@@ -12,6 +12,9 @@ modules:
   - name: web
     description: Browser UI (placeholder until initial-design)
     path: web/
+  - name: contracts
+    description: JSON schemas of the consumed WingFoil CLI output (placeholder until initial-design)
+    path: contracts/
 stacks:
   technologies: []
   methodologies:
