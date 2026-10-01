@@ -17,6 +17,7 @@ assignments:
     - ux-consistency
   qa:
     - testing
+    - accessibility
   architect:
     - architecture
     - determinism
