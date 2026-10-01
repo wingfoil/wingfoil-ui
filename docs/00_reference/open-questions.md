@@ -20,11 +20,14 @@ To be resolved during `lean-inception` / `specification-downcast`.
 6. ~~**Agent launch** — the UI starts `agent execute`; where is the agent's output shown
    (terminal, UI log, IDE)?~~
    → In the UI: after launch the button becomes *View agent's logs* — `05_journeys.md` Journey 3.
-7. **`ui.yaml` defaults** — ship presets per methodology template (Scrum, Kanban, custom
-   like WingFoil's `sw-life-cycle`)?
-8. **Completion %** — is the average of per-reference completion the right definition, or
-   should references be weighted (e.g. by story points)?
-9. **Documentation index** — only `paths.docs`, or also Memory element files?
+7. ~~**`ui.yaml` defaults** — ship presets per methodology template (Scrum, Kanban, custom
+   like WingFoil's `sw-life-cycle`)?~~
+   → Yes (Kanban, Scrum, `sw-life-cycle`); inferred defaults without `ui.yaml` — `06_features.md` C1.
+8. ~~**Completion %** — is the average of per-reference completion the right definition, or
+   should references be weighted (e.g. by story points)?~~
+   → Unweighted mean in the MVP, definition on hover; weighting later — `06_features.md` R5.
+9. ~~**Documentation index** — only `paths.docs`, or also Memory element files?~~
+   → `paths.docs` excluding Memory/plan paths; those open in the element panel — `06_features.md` R4.
 10. ~~**Accessibility and i18n** — UI language(s) for the MVP.~~
     → WCAG 2.1 AA; English-only MVP with externalised strings — `02_product-vision.md` (Key Decisions).
 11. ~~**Permissions before WingFoil enforces them** — is a UI-only check acceptable for the MVP, given it is not

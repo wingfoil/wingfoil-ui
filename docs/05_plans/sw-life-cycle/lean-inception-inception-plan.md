@@ -121,3 +121,16 @@ The release waves in `BOOTSTRAP.md` §7 are only a starting hypothesis for sessi
   How-to-join panel, ahead/behind indicator with sync options.
 - Stop-check: every persona has ≥ 1 journey (Riley 6, Taylor covered by Morgan/Sam) ✓; every step
   maps to a screen or is a listed GAP ✓.
+
+### Session 4 — Feature Brainstorm + Technical/Business Review (2026-10-01)
+
+- Output: `06_features.md` — accepted as drafted: 38 MVP features in areas S, T, G, M, R, A, C, Y, X
+  plus 9 later features (L1–L9), each with journeys, personas, minimum WingFoil version and
+  value/effort/UX/confidence scores; journey-coverage table.
+- Open questions closed: **7** (`ui.yaml` presets Kanban/Scrum/`sw-life-cycle`, inferred defaults),
+  **8** (unweighted mean completion), **9** (docs index = `paths.docs` minus Memory/plan paths).
+- Decisions: sync options are local per-user UI settings (auto-fetch on, auto-push off; WingFoil
+  core settings take precedence when they exist); areas are the release `pillar` values; the
+  reason is required on approve too (WingFoil 0.2.2), pre-filled — supersedes ux-reference §4.2.
+- Stop-check: every journey step covered by ≥ 1 feature, all five session-3 gaps covered ✓; every
+  feature has an id, scores and a WingFoil version ✓.
