@@ -1,8 +1,8 @@
 # Coherence Audit — Vision Package (WingFoil UI)
 
-**Version:** 1.0
-**Date:** 2026-10-01
-**Status:** Passed with fixes — lean-inception session 6 (to accept)
+**Version:** 1.1
+**Date:** 2026-10-01 (1.1: external review integrated — session 7)
+**Status:** Passed with fixes — lean-inception sessions 6–7 (to accept)
 **Scope:** `01_product-brief.md` (v0.2) · `02_product-vision.md` · `03_is-isnot.md` · `04_personas.md` ·
 `05_journeys.md` · `06_features.md` · `07_sequencer.md` · `08_mvp-canvas.md` ·
 `docs/00_reference/open-questions.md`
@@ -21,8 +21,8 @@ No MVP feature contradicts an "Is not" or a "Does not".
 |---|---------|---------|
 | 1.1 | `03_is-isnot.md` said the only persistent state is the project list and `ui.yaml`; feature C4 adds local per-user settings | **Fixed** — `03_is-isnot.md` v0.3 |
 | 1.2 | Brief §6 lists a *WingFoil settings* Configuration tab in the MVP; `06_features.md` places it in L7 (needs WingFoil core settings) | **Recorded** — the Vision Package supersedes the brief's MVP list; the brief stays as the inception input |
-| 1.3 | "No element created outside a workflow" (Is not) vs G5 on WingFoil 0.2.2, which runs an ingestion's steps as `memory add` + `submit` | **Consistent** — those are the ingestion workflow's own steps, as the project runs them by hand without an engine |
-| 1.4 | C1 *Use preset* commits `.wingfoil/ui.yaml` vs `cli-only-writes` | **Consistent** — `ui.yaml` is the one file the UI owns (directive rule 3) |
+| 1.3 | "No element created outside a workflow" (Is not) vs G5 on WingFoil 0.2.2, which runs an ingestion's steps as `memory add` + `submit` | ~~Consistent~~ **Superseded by R1** — the steps are the workflow's own, but filling the required fields needs a hand edit the UI may not make |
+| 1.4 | C1 *Use preset* commits `.wingfoil/ui.yaml` vs `cli-only-writes` | ~~Consistent~~ **Superseded by R2** — allowed, but the vision and the checks said "only `wf(…)` commits"; now write class (b) |
 | 1.5 | Y2 fetch / Y3 push vs "not a git client" | **Consistent** — `03_is-isnot.md` v0.2 allows fetch and push, not merge/rebase |
 
 ## Check 2 — Personas ↔ journeys ↔ features ↔ sequencer (both ways)
@@ -51,7 +51,10 @@ provides it.
 ## Check 4 — Open questions
 
 All 12 questions of `open-questions.md` are answered and struck, each with a pointer to the
-document that decides it (sessions 1–5). ✓
+document that decides it (sessions 1–5). ✓ — **but** (found by the external review, R3) the
+choice of which CLI the server runs was still deferred to the ADR although S1/S3 depend on it; it
+is now a product decision (`02_product-vision.md`, session 7), only its technical details remain
+for `adr-001`.
 
 ## Check 5 — Terminology (directive `ux-consistency`)
 
@@ -73,10 +76,32 @@ specification follows the Vision Package:
 - §4.11 *WingFoil* settings tab → after v1.0 (L7); a *UI settings* page (C4) is added.
 - §8 per-gate roles → WingFoil 0.2.2 gates need `approver` (finding 3.3).
 - New screens not in the UX reference: version/capability notice (S3), agent log view (A2),
-  all-roles summary (S5), *How to join* (C2), repository status with sync options (Y1, C4).
+  all-roles summary (S5), *How to join* (C2), repository status with sync options (Y1, C4),
+  update control and blocked-update notice (Y4), *local changes* marker (S8).
 
 The success metrics of `08_mvp-canvas.md` become SARD fit criteria.
 
+## Session 7 — External review of the Vision Package
+
+An external review found what the cross-document checks above could not: rules of the package
+that its own features broke. Each finding was verified against the files and the CLI 0.2.2.
+
+| # | Finding | Verification | Outcome |
+|---|---------|--------------|---------|
+| R1 | Ingestion on 0.2.2 needs hand-edited drafts, which `cli-only-writes` forbids | `--set` fills only `title` and id/path tokens; `severity`, `sard_ref`, `scope`… cannot be set | **Fixed** — G5 limited to types whose required fields the CLI sets (decision-log on 0.2.2); J7 moves to v0.4, conditional (`05` v0.3, `06` v0.3, `07` v0.3) |
+| R2 | "WingFoil is the only writer" vs C1 committing `ui.yaml` | vision line, C1, directive check, e2e and canvas metric all required `wf(…)` only | **Fixed** — four write classes (`02` v0.2); directive `cli-only-writes` v1.1; e2e-smoke; canvas metric |
+| R3 | Which CLI runs was undecided | see Check 4 | **Fixed** — product decision in `02`; details to `adr-001` |
+| R4 | Gates promised to Sam and Casey on 0.2.2 | approve/reject need `approver` (W-13) | **Fixed** — exit criteria per role, informational experience without `approver`, fixtures with and without (`07` rule 6, `08`) |
+| R5 | No snapshot semantics with local changes | **Worse than reported:** `memory search` reads the working tree, writes gate on HEAD, `submit` commits the target's uncommitted edits | **Fixed** — working-tree snapshot, *local changes* marker, actions blocked, cache on HEAD + status (`03` v0.4, `05`, S8, G2, G3, R8, ADR draft) |
+| R6 | "Behind" detected but no way back | — | **Fixed** — Y4 fast-forward update; actions blocked while behind; diverged → terminal (`03`, J8, C4) |
+| R7 | "Methodology-agnostic" without an operational contract | T1 relied on concepts not derivable for unknown states | **Fixed** — S9 action descriptor with "Action required" fallback; third fixture with unknown types/states and no `ui.yaml` (`02`, `06`, `07`, `08`) |
+| R8 | Local server security missing | — | **Fixed** — X4 (loopback, session token, Origin/Host, opaque ids, no shell, confinement, git-email policy in S4); e2e-smoke `local-security` |
+| R9 | Hidden vs read-only undefined | — | **Fixed** — rule in `02` (Q2 row), S3, journeys' common rules |
+| R10 | Same remote twice blocks worktrees | — | **Recorded** — D3 kept for the MVP; L10 after v1.0 |
+
+Features: 42 → **45** (S9, Y4, X4); v0.1 16, v0.2 13, v0.3 13, v0.4 3.
+
 ## Result
 
-**Passed** — 5 findings fixed, 1 recorded (1.2), no open failure.
+**Passed** — session 6: 5 findings fixed, 1 recorded (1.2); session 7: 9 review findings fixed, 1
+recorded (R10). No open failure; the technical details of the CLI rule are handed to `adr-001`.

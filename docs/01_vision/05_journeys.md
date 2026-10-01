@@ -1,7 +1,7 @@
 # User Journeys — WingFoil UI
 
-**Version:** 0.2
-**Date:** 2026-10-01 (0.2: J4 obstacle, J0 landing in v0.1 — coherence audit)
+**Version:** 0.3
+**Date:** 2026-10-01 (0.2: J4 obstacle, J0 landing in v0.1 — coherence audit; 0.3: external review — session 7)
 **Status:** Accepted in lean-inception session 3 (2026-10-01)
 **Input:** `04_personas.md` · `02_product-vision.md` · `03_is-isnot.md`
 **Evidence:** `docs/00_reference/ux-reference.md` (screen references below as §n) and the prototype
@@ -9,6 +9,18 @@
 Each step names the screen that serves it (UX reference section) or **GAP** when the UX reference
 has no screen for it yet; gaps are collected at the end. The *WF* column is the minimum WingFoil
 version the step needs (`02_product-vision.md`, Q2); `—` means no WingFoil call (UI or git only).
+
+**Rules common to every journey** (session 7):
+
+- **Snapshot.** The UI shows the project as the CLI reads it — the working tree. Elements with
+  uncommitted changes are marked *local changes*, and governed actions on them are blocked (the CLI
+  would commit those edits with the action).
+- **Behind the remote.** While the copy is behind, governed actions are blocked until it is
+  updated (Journey 8).
+- **Roles on WingFoil 0.2.2.** Every `approve`/`reject` needs the `approver` role; for members
+  without it a gate is **informational** ("reserved to approver", with who can act).
+- **Unavailable capabilities.** Read-only with the reason when the capability applies to the
+  project but the WingFoil version or the role lacks it; hidden when it does not apply.
 
 ---
 
@@ -26,7 +38,10 @@ version the step needs (`02_product-vision.md`, Q2); `—` means no WingFoil cal
 
 **Rules:** the same repository cannot be added twice — two working copies would show the same
 project (**Q3**). A second add of a known remote, or of a working copy of it, is refused and points
-to the existing entry.
+to the existing entry (worktrees and parallel branches: L10, after v1.0). The UI runs the
+project's own `wingfoil`: if none is found the project does not open and the UI says how to
+install it; if its version is outside the supported range the project opens read-only with the
+reason.
 
 **Success:** a project is browsable in under a minute, with what it cannot do yet stated up front.
 
@@ -150,14 +165,18 @@ gate shows "reserved to approver", as for Casey (J2).
 
 | # | Action | Screen | WF | Outcome |
 |---|--------|--------|----|---------|
-| 1 | Start the ingestion from Memory (*+ Ingestion*), Workflow or ⌘K | Memory (§4.4) · Workflow (§4.3) · ⌘K (§3) | 0.2.2 | Ingestion modal with the workflow's steps |
-| 2 | Type the title (step *capture*) and fill the required fields | Ingestion modal (§4.4) | 0.2.2 | Bug created as `draft` by the CLI |
+| 1 | Start the ingestion from Memory (*+ Ingestion*), Workflow or ⌘K | Memory (§4.4) · Workflow (§4.3) · ⌘K (§3) | field setter / 0.3 | Ingestion modal with the workflow's steps |
+| 2 | Type the title (step *capture*) and fill the required fields | Ingestion modal (§4.4) | field setter / 0.3 | Bug created as `draft` by the CLI, its required fields set by the CLI |
 | 3 | Submit it | Element panel (§4.2) | 0.2.2 | `draft → open`; appears in the triager's Today |
 | 4 | The approver triages it (Journey 1) | Element panel · gate footer (§4.2) | 0.2.2 | `open → triaged` or closed with reason |
 
-**Obstacles:** on 0.2.2 there is no `workflow start`: the UI runs the ingestion's steps as their
-Memory verbs (`memory add` + `submit`), as the project does by hand. With 0.3 it starts the
-workflow itself.
+**Rule (session 7):** an ingestion is offered only when **every required field of the type can be
+set by the CLI** — on 0.2.2 `memory add --set` fills only `title` and id/path tokens, and the UI
+never edits the draft file (`cli-only-writes`). On 0.2.2 this holds for **decision-log** only
+(required: `title`), whose ingestion the UI runs as `memory add` + `submit`. A bug needs
+`severity`: its ingestion waits for a WingFoil that sets fields (`memory amend` / a field setter)
+or whose workflow engine captures them (`workflow start`, 0.3) — until then it is shown
+read-only with the reason.
 
 **Success:** a bug reported in under a minute, through the same workflow the CLI would use.
 
@@ -170,14 +189,16 @@ workflow itself.
 
 | # | Action | Screen | WF | Outcome |
 |---|--------|--------|----|---------|
-| 1 | The UI fetches the remote automatically (option) and shows ahead/behind | Sidebar · git status (§3) | — | Knows if the copy is behind or has local changes |
-| 2 | A gate or submit commits through the CLI | Element panel (§4.2) | 0.2.2 | New `wf(…)` commit |
-| 3 | The commit is pushed automatically (option), or with *Push* when the option is off | Sidebar · git status (§3) | — | Remote updated; toast says "pushed" |
+| 1 | The UI fetches the remote automatically (option) and shows ahead/behind and local changes | Sidebar · git status (§3) | — | Knows if the copy is behind or has local changes |
+| 2 | When behind: *Update* (`git pull --ff-only`), automatic when the option is on | Sidebar · git status (§3) · **GAP** update control | — | Copy back in line; governed actions unblocked |
+| 3 | If the update cannot fast-forward (diverged history, local changes in the way) | **GAP** blocked-update notice | — | Governed actions stay blocked; the UI says what to run in the terminal |
+| 4 | A gate or submit commits through the CLI | Element panel (§4.2) | 0.2.2 | New `wf(…)` commit |
+| 5 | The commit is pushed automatically (option), or with *Push* when the option is off | Sidebar · git status (§3) | — | Remote updated; toast says "pushed" |
 
-**Rules (Q4):** synchronisation is part of how WingFoil works; options enable **automatic fetch**
-and **automatic push**. Where these options live (WingFoil core settings when they exist, UI
-settings until then) is decided in session 4. Conflicts, merges and rebases are not handled by
-the UI (`03_is-isnot.md`).
+**Rules (Q4, session 7):** synchronisation is part of how WingFoil works; local per-user options
+enable **automatic fetch**, **automatic update** and **automatic push** (C4). The only update the
+UI performs is a fast-forward; merges, rebases and conflicts are left to the terminal
+(`03_is-isnot.md`). Governed actions are blocked while the copy is behind.
 
 **Success:** the copy shown is current, and nothing committed from the UI stays unshared by accident.
 
@@ -210,3 +231,4 @@ writing them directly — the "specific permission" must therefore be reconciled
 | All-roles summary in Today | 5 | session 4 |
 | *How to join* panel for users not in the team | 6 | session 4 |
 | Ahead/behind and local-changes indicator; auto-fetch / auto-push options | 8 | session 4 |
+| Update control (fast-forward) and blocked-update notice | 8 | session 7 (Y4) |

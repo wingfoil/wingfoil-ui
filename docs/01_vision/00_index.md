@@ -14,7 +14,7 @@ The product discovery of WingFoil UI, from the brief to the MVP. Input of `speci
 | 03 | [Is / Is Not / Does / Does Not](03_is-isnot.md) | Boundaries of the product | 1 |
 | 04 | [Personas](04_personas.md) | Morgan, Casey (primary), Jordan, Sam, Alex, Riley; role views | 2 |
 | 05 | [User Journeys](05_journeys.md) | Journeys J0–J9, steps mapped to screens and WingFoil versions | 3 |
-| 06 | [Features](06_features.md) | 42 MVP features in nine areas, later features, journey coverage | 4 |
+| 06 | [Features](06_features.md) | 45 MVP features in nine areas, later features, journey coverage | 4 |
 | 07 | [Sequencer](07_sequencer.md) | Releases v0.1–v1.0 of `rl-v1`, WingFoil floor per release, forecast | 5 |
 | 08 | [MVP Canvas](08_mvp-canvas.md) | Problem, solution, personas, MVP, metrics, cost, risks | 5 |
 | X | [Coherence Audit](X_coherence-audit.md) | Cross-document checks, fixes, hand-off to specification | 6 |

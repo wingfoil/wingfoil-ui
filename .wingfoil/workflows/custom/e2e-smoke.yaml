@@ -31,7 +31,15 @@ phases:
       - 'cli.run("<start server> --project <fixture>")'
       - 'cli.run("<playwright e2e suite>")'
     checks:
-      post: ["e2e suite passing on the supported browsers", "no direct write to .wingfoil/ or Memory files (git log shows only CLI commits)"]
+      post: ["e2e suite passing on the supported browsers", "every commit is a CLI wf(…) commit or a chore(ui) commit touching only .wingfoil/ui.yaml", "actions refused on elements with local changes and while behind", "fixtures: Kanban, custom, unknown types/states without ui.yaml; reviewer/product-owner with and without approver"]
+
+  - name: local-security
+    description: "Check the local server protections (X4): loopback only, session token, Origin/Host checks, no path outside the repository."
+    role: qa
+    actions:
+      - 'cli.run("<security test suite>")'
+    checks:
+      post: ["non-loopback requests refused", "requests without the session token refused", "cross-origin and foreign-Host requests refused", "Files refuses paths outside the repository"]
 
   - name: accessibility
     description: "Scan every screen in scope with axe-core and walk the keyboard path of each gate action."

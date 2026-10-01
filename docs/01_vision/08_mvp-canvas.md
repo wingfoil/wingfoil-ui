@@ -1,7 +1,7 @@
 # MVP Canvas — WingFoil UI v1.0
 
-**Version:** 0.1
-**Date:** 2026-10-01
+**Version:** 0.2
+**Date:** 2026-10-01 (0.2: external review — session 7)
 **Status:** Accepted in lean-inception session 5 (2026-10-01)
 **Input:** `02_product-vision.md` · `04_personas.md` · `05_journeys.md` · `06_features.md` ·
 `07_sequencer.md`
@@ -39,26 +39,26 @@ governed operations into one or two clicks — with WingFoil as the only writer.
 | Persona | Problem | MVP solution | Journey | Release |
 |---------|---------|--------------|---------|---------|
 | **Morgan** (approver) · primary | Gates scattered, decisions typed blind | Requires you + gate footer with all outcomes | J1 | v0.2 |
-| **Casey** (product owner) · primary | Needs a developer to know anything | Progress card, readable decisions, traceability, deciding in the UI | J2 | v0.3 |
+| **Casey** (product owner) · primary | Needs a developer to know anything | Progress card, readable decisions, traceability; deciding in the UI when holding `approver` (WingFoil 0.2.2) | J2 | v0.3 |
 | **Jordan** (developer) | Next step and context spread across commands | Next step, agent launch with context and logs | J3 | v0.4 |
-| **Sam** (reviewer) | Review context scattered | Element panel with everything; gate | J4 | v0.2 / v0.4 |
+| **Sam** (reviewer) | Review context scattered | Element panel with everything; gate when holding `approver`, informational otherwise | J4 | v0.2 / v0.4 |
 | **Alex** (solo maintainer) | Every role at once | Role views, all-roles summary, several projects | J0, J5 | v0.1 / v0.2 |
 | **Riley** (newcomer) | No entry point | Read-only exploration, How to join | J6 | v0.1–v0.3 |
 
 ## MVP features
 
-42 features in nine areas (`06_features.md`), delivered as:
+45 features in nine areas (`06_features.md`), delivered as:
 
 | Release | Area | WingFoil | Delivers |
 |---------|------|----------|----------|
 | v0.1 | S — Read-only console | 0.2.2 | open and read any WingFoil project |
 | v0.2 | G — Unblock | 0.2.2 | Today, gates in 2 clicks, sync — **first usable** |
-| v0.3 | R — Project state | 0.2.2 | progress, traceability, timeline, files, ingestion, `ui.yaml` |
-| v0.4 | A — Workflow and agents | 0.3 | next step, agent launch and logs |
+| v0.3 | R — Project state | 0.2.2 | progress, traceability, timeline, files, decision-log ingestion, `ui.yaml` |
+| v0.4 | A — Workflow and agents | 0.3 | next step, agent launch and logs, all ingestions (when WingFoil sets their fields) |
 | v1.0 | X — MVP complete | 1.0 | `npx wingfoil-ui` stable, support matrix, polish |
 
-**Out of the MVP:** L1–L9 (editing content, DNA, directives, workflows and files; artifacts; external
-notifications; core-enforced permissions; core settings; second language; hosted deployment).
+**Out of the MVP:** L1–L10 (editing content, DNA, directives, workflows and files; artifacts; external
+notifications; core-enforced permissions; core settings; second language; hosted deployment; worktrees).
 
 ## Success metrics
 
@@ -68,8 +68,9 @@ From the vision's success signals, to become SARD fit criteria:
 |--------|--------|-------------|
 | Time to see what requires me | 0 navigation steps: everything on Today | e2e: Today lists every item requiring the view's roles |
 | Clicks to pass or reject a gate | ≤ 2 from Today | e2e click count |
-| Methodology independence | A Kanban project and the WingFoil (`custom`) project render with no UI code change | e2e on both fixtures |
-| No divergence from WingFoil | 100 % of UI writes are `wf(…)` commits made by the CLI; 0 direct writes to governed files | e2e: `git log` of the fixture after the suite |
+| Methodology independence | A Kanban project, the WingFoil (`custom`) project and a project with unknown types/states and no `ui.yaml` render with no UI code change | e2e on the three fixtures |
+| No divergence from WingFoil | Every commit the UI causes is a `wf(…)` commit made by the CLI, or a `chore(ui)` commit touching only `.wingfoil/ui.yaml`; 0 direct writes to governed files | e2e: `git log` of the fixture after the suite |
+| Local server safety | Non-loopback and cross-origin requests refused; no request without the session token succeeds | security tests in e2e-smoke |
 | Accessibility | 0 serious/critical axe violations on every MVP screen | axe scan in e2e-smoke |
 | Adoption (dogfooding) | WingFoil UI's own gates passed from the UI from v0.2; the WingFoil repository's from v0.3 | `wf(…)` history of both repositories |
 
@@ -88,4 +89,7 @@ From the vision's success signals, to become SARD fit criteria:
 | CLI JSON output changes between WingFoil versions | Contract tests per supported version; pinned CLI; directive `wingfoil-cli` |
 | A UI that looks like a security boundary | Permissions labelled advisory; gates enforced by the CLI |
 | Performance on large Memory (WingFoil has hundreds of elements) | Cache keyed on git HEAD; batch CLI reads (draft ADR) |
-| Writing outside WingFoil by accident | Directive `cli-only-writes`; e2e check on the fixture's git log |
+| Writing outside WingFoil by accident | Directive `cli-only-writes`; write classes; e2e check on the fixture's git log |
+| Committing someone's local edits with a UI action | Actions blocked on elements with local changes (S8) |
+| Acting on a stale copy | Actions blocked while behind; fast-forward update (Y4) |
+| Another web page driving the local server | Loopback only, session token, Origin/Host checks (X4) |

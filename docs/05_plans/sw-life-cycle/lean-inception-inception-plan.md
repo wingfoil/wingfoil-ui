@@ -157,3 +157,19 @@ The release waves in `BOOTSTRAP.md` §7 are only a starting hypothesis for sessi
 - Recorded: brief §6 *WingFoil settings* tab superseded by L7.
 - New CLI behaviour found: approve/reject always need `approver` → directive `wingfoil-cli` v1.1 W-13.
 - Hand-off to `specification-downcast`: deviations from the UX reference; canvas metrics → SARD.
+
+### Session 7 — External review integration (2026-10-01)
+
+- Not in the original plan: an external review of the Vision Package found three blockers and
+  several gaps; all were verified (files + CLI 0.2.2) and integrated, as proposed and accepted.
+- Decisions: ingestion only for types whose required fields the CLI sets (decision-log on 0.2.2;
+  J7 bug → v0.4, conditional); four write classes (governed / `ui.yaml` / git transport / files
+  later); the UI runs the observed project's own CLI (supported range, read-only outside, not
+  opened without CLI); exit criteria per role (approver vs informational); working-tree snapshot
+  with actions blocked on local changes and while behind; fast-forward update; action descriptor;
+  local server security; hidden vs read-only rule; D3 kept, worktrees as L10.
+- New verified CLI behaviour: `memory search` reads the working tree; `submit` commits the
+  target's uncommitted edits.
+- Updated: `02` v0.2, `03` v0.4, `05` v0.3, `06` v0.3 (45 features), `07` v0.3, `08` v0.2,
+  `X_coherence-audit.md` v1.1, `00_index.md`; directive `cli-only-writes` v1.1; `e2e-smoke`
+  (`local-security` phase, write-class and fixture checks); ADR draft.

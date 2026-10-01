@@ -1,7 +1,7 @@
 # ADR draft — Local server driving the WingFoil CLI
 
 **Status:** Draft — to be recorded as `adr-001` during `initial-design` (after `wingfoil init`)
-**Date:** 2026-09-30 · **Updated:** 2026-10-01 (checked against wingfoil 0.2.2)
+**Date:** 2026-09-30 · **Updated:** 2026-10-01 (checked against wingfoil 0.2.2; aligned with the Vision Package, session 7)
 
 ## Context
 
@@ -19,10 +19,13 @@ A browser cannot run the CLI or read the repository directly.
 WingFoil UI is a **local server** (Node.js, same runtime as WingFoil) that:
 
 1. serves the web UI on `localhost`;
-2. performs **every read and write by invoking the `wingfoil` CLI** with `--format json`,
-   in the project's working directory;
-3. reads git directly only for what the CLI does not expose (HEAD, ahead/behind, `git log`
-   for the Timeline, the working tree for the Files browser), never to change WingFoil state;
+2. performs **every governed read and write by invoking the observed project's own `wingfoil`
+   CLI** (its pinned `node_modules/wingfoil`, else the one on the PATH — never a copy bundled with
+   the UI) with `--format json`, in the project's working directory, through `execFile` with an
+   argument array (no shell);
+3. reads git directly only for what the CLI does not expose (HEAD, ahead/behind, working-tree
+   status, `git log` for the Timeline, the working tree for the Files browser), and moves it only
+   by fetch, `pull --ff-only` and push — never to change WingFoil state;
    future file edits from the Files page are plain git commits made by the server, outside
    WingFoil's Memory, and gated by the `files.edit` permission;
 4. owns exactly one file of its own per project: `.wingfoil/ui.yaml` (see UX reference);
@@ -42,11 +45,26 @@ WingFoil UI is a **local server** (Node.js, same runtime as WingFoil) that:
 | Edit element fields | `PATCH /p/:id/memory/:eid` | `memory amend` / shared frontmatter setter | after task-127 / task-163 |
 | Changes | `GET /p/:id/events` (SSE) | file watch + git HEAD | — |
 | Timeline | `GET /p/:id/log?branch=&author=&q=` | `git log` (parsed `wf(…)` messages) | — |
-| Files | `GET /p/:id/tree`, `GET /p/:id/file?path=` | `git ls-tree`, `git show HEAD:<path>` | — |
+| Files | `GET /p/:id/tree`, `GET /p/:id/file?path=` | working tree (confined to the repository), `git status --porcelain` / `git diff --name-only HEAD` for the "differs from HEAD" marker | — |
 
 In 0.2.2 the only workflow read is `workflow list` (definitions, no run state); `submit` takes no
 reason. Calls marked 0.3+ do not exist yet: the matching views stay read-only or hidden until the
 pinned WingFoil version provides them.
+
+### Snapshot, sync and security (from the Vision Package, session 7)
+
+- **Snapshot:** the CLI reads the working tree (`memory search` returns uncommitted edits) while
+  it gates writes on HEAD, and `memory submit` commits the target's uncommitted edits. The server
+  therefore shows the working tree, marks elements with local changes, refuses governed actions on
+  them, and keys its cache on HEAD **and** the `git status --porcelain` hash.
+- **Behind the remote:** governed actions are refused until a fast-forward update succeeds.
+- **Write classes:** governed (CLI, `wf(…)`), UI configuration (`ui.yaml`, `chore(ui)`), git
+  transport, repository files (after v1.0).
+- **Local security:** bind to loopback only; per-session token issued at launch; Origin and Host
+  checks on every request (CSRF, DNS rebinding); opaque project ids; no shell; Files confined to the
+  repository.
+- **To decide here:** binary discovery order and its edge cases, version detection, the supported
+  range and the JSON contract matrix per supported WingFoil version.
 
 ## Consequences
 
