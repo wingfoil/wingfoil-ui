@@ -2,7 +2,9 @@
 
 To be resolved during `lean-inception` / `specification-downcast`.
 
-1. **Packaging** — `npx wingfoil-ui`, a `wingfoil ui` subcommand, or a desktop wrapper later?
+1. ~~**Packaging** — `npx wingfoil-ui`, a `wingfoil ui` subcommand, or a desktop wrapper later?~~
+   → A separate npm package `wingfoil-ui` run with `npx`, published as `0.x` from v0.1; no
+   `wingfoil ui` subcommand; desktop wrapper after v1.0 — `07_sequencer.md` (Key Decisions).
 2. ~~**Which WingFoil version is the floor** — 0.3 (workflow engine) or 1.0?~~
    → 0.2.2 for the first waves, 1.0 for UI v1.0, per-feature floor with capability detection —
    `docs/01_vision/02_product-vision.md` (Key Decisions); per-wave confirmation in session 5.

@@ -124,7 +124,7 @@ The release waves in `BOOTSTRAP.md` §7 are only a starting hypothesis for sessi
 
 ### Session 4 — Feature Brainstorm + Technical/Business Review (2026-10-01)
 
-- Output: `06_features.md` — accepted as drafted: 38 MVP features in areas S, T, G, M, R, A, C, Y, X
+- Output: `06_features.md` — accepted as drafted: 42 MVP features (first reported as 38 — a miscount, corrected in session 5) in areas S, T, G, M, R, A, C, Y, X
   plus 9 later features (L1–L9), each with journeys, personas, minimum WingFoil version and
   value/effort/UX/confidence scores; journey-coverage table.
 - Open questions closed: **7** (`ui.yaml` presets Kanban/Scrum/`sw-life-cycle`, inferred defaults),
@@ -134,3 +134,16 @@ The release waves in `BOOTSTRAP.md` §7 are only a starting hypothesis for sessi
   reason is required on approve too (WingFoil 0.2.2), pre-filled — supersedes ux-reference §4.2.
 - Stop-check: every journey step covered by ≥ 1 feature, all five session-3 gaps covered ✓; every
   feature has an id, scores and a WingFoil version ✓.
+
+### Session 5 — Sequencer + MVP Canvas (2026-10-01)
+
+- Outputs: `07_sequencer.md`, `08_mvp-canvas.md` — accepted as drafted.
+- Releases of `rl-v1`: v0.1 read-only console (S, 0.2.2, 14 features) · v0.2 unblock (G, 0.2.2, 12,
+  first usable) · v0.3 project state (R, 0.2.2, 13) · v0.4 workflow and agents (A, WingFoil 0.3, 3 +
+  3 upgrades) · v1.0 MVP complete (X, WingFoil 1.0). Forecast ≈ 30 active days from specification
+  to v1.0, plus waits on WingFoil 0.3 and 1.0.
+- Open question closed: **1** (separate npm package `wingfoil-ui`, run with `npx`, `0.x` from v0.1;
+  no `wingfoil ui` subcommand; desktop wrapper after v1.0). **2** confirmed per release.
+- All 12 open questions are now closed.
+- Stop-check: waves respect each feature's WingFoil version ✓; the MVP canvas names MVP features,
+  metrics and cost/schedule ✓.
