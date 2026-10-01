@@ -147,3 +147,13 @@ The release waves in `BOOTSTRAP.md` §7 are only a starting hypothesis for sessi
 - All 12 open questions are now closed.
 - Stop-check: waves respect each feature's WingFoil version ✓; the MVP canvas names MVP features,
   metrics and cost/schedule ✓.
+
+### Step 6 — Coherence audit (2026-10-01)
+
+- Outputs: `X_coherence-audit.md` (passed with fixes), `00_index.md`.
+- Fixed: `03_is-isnot.md` v0.3 (local settings), `05_journeys.md` v0.2 (J4 approver obstacle),
+  `06_features.md` v0.2 (coverage: T5, C1, C3; cross-cutting S1, S8, X1–X3), `07_sequencer.md` v0.2
+  (J0 completes in v0.2; v0.1 opens on the Memory list).
+- Recorded: brief §6 *WingFoil settings* tab superseded by L7.
+- New CLI behaviour found: approve/reject always need `approver` → directive `wingfoil-cli` v1.1 W-13.
+- Hand-off to `specification-downcast`: deviations from the UX reference; canvas metrics → SARD.

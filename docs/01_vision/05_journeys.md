@@ -1,7 +1,7 @@
 # User Journeys — WingFoil UI
 
-**Version:** 0.1
-**Date:** 2026-10-01
+**Version:** 0.2
+**Date:** 2026-10-01 (0.2: J4 obstacle, J0 landing in v0.1 — coherence audit)
 **Status:** Accepted in lean-inception session 3 (2026-10-01)
 **Input:** `04_personas.md` · `02_product-vision.md` · `03_is-isnot.md`
 **Evidence:** `docs/00_reference/ux-reference.md` (screen references below as §n) and the prototype
@@ -104,6 +104,10 @@ disabled with the reason, and Jordan runs the agent outside the UI.
 | 2 | Open an item: state machine, references, applied directives, history | Element panel (§4.2) | 0.2.2 | Everything relevant on one panel |
 | 3 | Optionally launch an assisted review; follow it via *View agent's logs* | Element panel (§4.2) · **GAP** agent log view | 0.3+ | Review support from an agent |
 | 4 | Approve, or reject back with the reason | Element panel · gate footer (§4.2) | 0.2.2 | Decision recorded; author sees the reason in their Today |
+
+**Obstacles:** in WingFoil 0.2.2 both `memory approve` and `memory reject` need the `approver`
+role (their CLI help): a reviewer without it cannot pass or send back an item from the UI — the
+gate shows "reserved to approver", as for Casey (J2).
 
 **Success:** a review decided with everything relevant on one panel.
 

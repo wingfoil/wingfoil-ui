@@ -9,7 +9,7 @@ tags: [custom, wingfoil, cli, governance]
 
 # Directive — Using the pinned WingFoil CLI
 
-**Version:** 1.0 · **Date:** 2026-10-01 · **Checked against:** `wingfoil@0.2.2`
+**Version:** 1.1 · **Date:** 2026-10-01 (1.1: W-13) · **Checked against:** `wingfoil@0.2.2`
 
 Global. Applies to every role, human or agent, that changes this project's governance state
 (DNA, Memory, directives, plans) — and to the UI code that drives the CLI for other projects.
@@ -47,3 +47,4 @@ the way to work with each. It is a living list:
 | W-10 | Any `.md` under `.wingfoil/directives/` without frontmatter breaks loading (`E_MISSING_FRONTMATTER`) | Create directives with `wingfoil directive create --name <id>`; never drop notes there | — |
 | W-11 | Files the CLI does not own in `.wingfoil/` (e.g. `ui.yaml`) are ignored by every loader, but the secret scan would include them | Keep `ui.yaml` free of secrets | — |
 | W-12 | Unknown frontmatter fields (in directives, Memory elements, YAML config) are only a **warning on stderr** (`unknown field(s) ignored`), so a misspelt field is silently dropped. WingFoil's own directives carry a `scope:` field, and WingFoil's `main` `memory.yaml` an `amendable` key, that 0.2.2 reports this way | Read stderr after every command; remove fields the pinned version does not know | — |
+| W-13 | `memory approve` and `memory reject` both require the `approver` role, whatever the type and gate: there is no per-gate role (a reviewer or product owner without `approver` cannot pass or send back anything) | Give `approver` to whoever must decide gates; in the UI, gates show "reserved to approver" for other roles | — |

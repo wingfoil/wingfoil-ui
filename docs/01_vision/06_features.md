@@ -1,7 +1,7 @@
 # Features — WingFoil UI
 
-**Version:** 0.1
-**Date:** 2026-10-01
+**Version:** 0.2
+**Date:** 2026-10-01 (0.2: journey coverage completed by the coherence audit)
 **Status:** Accepted in lean-inception session 4 (2026-10-01)
 **Input:** `05_journeys.md` (steps and gaps) · `04_personas.md` · `02_product-vision.md` ·
 `03_is-isnot.md` · **Evidence:** `docs/00_reference/ux-reference.md`, the prototype,
@@ -124,9 +124,9 @@ know how to build it (H/M/L).
 
 | Journey | Steps → features |
 |---------|------------------|
-| J0 Add a project | 1–2 S2 · 3 S3 · 4 S4, T1 |
-| J1 Morgan clears the gates | 1 S7 · 2 T1 · 3 G1 · 4 G2, G4 · 5 T4, R3 |
-| J2 Casey follows and decides | 1 T2 · 2 M1, M2 · 3 G1, R4 · 4 G2, G4 · 5 R5 |
+| J0 Add a project | 1–2 S2 · 3 S3, C1 · 4 S4, T1 |
+| J1 Morgan clears the gates | 1 S7 · 2 T1 · 3 G1 · 4 G2, G4, C3 · 5 T4, R3 |
+| J2 Casey follows and decides | 1 T2, T5, C1 · 2 M1, M2, R6 · 3 G1, R4 · 4 G2, G4 · 5 R5 |
 | J3 Jordan with an agent | 1 T1, T3 · 2 T3 · 3 A1 · 4 A2 · 5 G3, G4 |
 | J4 Sam reviews | 1 T1, M1 · 2 G1, R2 · 3 A1, A2 · 4 G2, G4 |
 | J5 Alex switches | 1 S5 · 2 S4 · 3 S2, S6 |
@@ -136,6 +136,8 @@ know how to build it (H/M/L).
 | J9 Edit a file (after v1.0) | 1–2 L4 (R8 shows "coming") |
 
 All five gaps of `05_journeys.md` are covered: S3, A2, S5, C2, Y1 (+ C4 for the sync options).
+**Cross-cutting** features serve every step of every journey and are not listed per step: S1
+(server + CLI adapter), S8 (live refresh), X1–X3 (accessibility, strings, themes).
 
 ---
 

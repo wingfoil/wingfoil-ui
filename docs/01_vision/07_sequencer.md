@@ -1,7 +1,7 @@
 # Sequencer — WingFoil UI v1 (v0.1 → v1.0)
 
-**Version:** 0.1
-**Date:** 2026-10-01
+**Version:** 0.2
+**Date:** 2026-10-01 (0.2: J0 completion and v0.1 landing screen — coherence audit)
 **Status:** Accepted in lean-inception session 5 (2026-10-01)
 **Input:** `06_features.md` (42 MVP features, areas, WingFoil versions, scores) · `05_journeys.md` ·
 `02_product-vision.md` (Q2: WingFoil floor) · starting hypothesis in `BOOTSTRAP.md` §7
@@ -35,7 +35,7 @@ Open any WingFoil project and read it safely.
 
 | Features | Journeys served |
 |----------|-----------------|
-| S1 local server + CLI adapter · S2 project list · S3 WingFoil version and capabilities · S4 identity and role views · S8 live refresh · G1 element panel (read-only) · M1 Memory list · R1 DNA · R2 directives · R3 team · R4 documentation · X1 accessibility · X2 externalised strings · X3 themes | J0 (complete), J6 (steps 1–2), J4 step 2 (read) |
+| S1 local server + CLI adapter · S2 project list · S3 WingFoil version and capabilities · S4 identity and role views · S8 live refresh · G1 element panel (read-only) · M1 Memory list · R1 DNA · R2 directives · R3 team · R4 documentation · X1 accessibility · X2 externalised strings · X3 themes | J0 steps 1–3 (in v0.1 the project opens on the Memory list; Today arrives in v0.2), J6 (steps 1–2, partial), J4 step 2 (read) |
 
 14 features. **Exit:** the WingFoil and WingFoil UI repositories render without UI changes; no write
 path exists yet.
@@ -46,7 +46,7 @@ The human-on-the-loop core: see what requires you and act on it in two clicks.
 
 | Features | Journeys served |
 |----------|-----------------|
-| T1 Requires you · T4 waiting on others · S5 all-roles summary · S7 notifications · G2 gate footer · G3 submit · G4 action feedback · C2 identity and How to join · C4 UI settings · Y1 repository status · Y2 fetch · Y3 push | J1 (complete), J4 (gate), J5, J6 step 3, J8 |
+| T1 Requires you · T4 waiting on others · S5 all-roles summary · S7 notifications · G2 gate footer · G3 submit · G4 action feedback · C2 identity and How to join · C4 UI settings · Y1 repository status · Y2 fetch · Y3 push | J0 (complete), J1 (complete), J4 (gate), J5, J6 step 3, J8 |
 
 12 features. **Exit — first usable release:** a gate is passed from Today in ≤ 2 clicks with the
 `wf(…)` commit shown and pushed; the WingFoil UI project's own gates are passed from the UI.
@@ -94,8 +94,8 @@ the first candidate that needs nothing from WingFoil.
 
 | Release | Area (`pillar`) | `wingfoil_min` | Features | Primary personas | Journeys completed |
 |---------|-----------------|----------------|----------|------------------|--------------------|
-| v0.1 | S | 0.2.2 | 14 | Riley, Alex | J0 |
-| v0.2 | G | 0.2.2 | 12 | Morgan, Alex | J1, J5, J8 |
+| v0.1 | S | 0.2.2 | 14 | Riley, Alex | — (J0 steps 1–3) |
+| v0.2 | G | 0.2.2 | 12 | Morgan, Alex | J0, J1, J5, J8 |
 | v0.3 | R | 0.2.2 | 13 | Casey | J2, J6, J7 |
 | v0.4 | A | 0.3 | 3 (+3 upgrades) | Jordan, Sam | J3, J4 |
 | v1.0 | X | 1.0 | — | all | all (on WingFoil 1.0) |
