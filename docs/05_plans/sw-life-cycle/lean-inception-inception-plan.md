@@ -92,3 +92,15 @@ The release waves in `BOOTSTRAP.md` §7 are only a starting hypothesis for sessi
 - New point for `initial-design` / `adr-001`: which CLI the server runs for an observed project and
   how its version is detected.
 - Stop-check: one vision statement ✓; every brief §7 item placed in Is/Is Not/Does/Does Not ✓.
+
+### Session 2 — Personas (2026-10-01)
+
+- Output: `04_personas.md` — accepted as drafted.
+- Decisions: WingFoil's personas reused, rewritten around their needs from the UI; primary
+  personas Morgan (approver) and Casey (product owner); Jordan (team developer) and Alex (solo
+  maintainer, every role) kept separate; agents are not personas of the UI; Taylor kept as future.
+- New persona: Riley, the newcomer not in `dna.team`.
+- Open question closed: **5** (read-only access, "not in team" badge, *How to join* panel naming
+  the tech lead and the `dna add team.members` command; no guided flow in the MVP).
+- Role views table (role view → what Today shows first) added for sessions 3–4.
+- Stop-check: every brief §4 target user is a persona (Morgan, Jordan/Alex, Sam, Casey) ✓.

@@ -10,8 +10,10 @@ To be resolved during `lean-inception` / `specification-downcast`.
    directories (e.g. two branches)?
 4. **Remote sync** — should the UI fetch/pull automatically, and how does it show a working
    copy that is behind or has local changes?
-5. **Unregistered users** — read-only access when the git email is not in `dna.team`, or a
-   guided "add me to the team" flow (itself a governed change)?
+5. ~~**Unregistered users** — read-only access when the git email is not in `dna.team`, or a
+   guided "add me to the team" flow (itself a governed change)?~~
+   → Read-only with a "not in team" badge and a *How to join* panel; no guided flow in the MVP —
+   `docs/01_vision/04_personas.md` (persona Riley, Key Decisions).
 6. **Agent launch** — the UI starts `agent execute`; where is the agent's output shown
    (terminal, UI log, IDE)?
 7. **`ui.yaml` defaults** — ship presets per methodology template (Scrum, Kanban, custom
