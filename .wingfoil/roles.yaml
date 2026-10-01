@@ -7,6 +7,8 @@ assignments:
     - code-quality
     - testing
     - determinism
+    - cli-only-writes
+    - accessibility
   reviewer:
     - code-review
     - traceability
