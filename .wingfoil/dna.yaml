@@ -5,7 +5,10 @@ project:
   license: MIT
   repository: wingfoil-ui
   methodology: custom
-modules: []
+modules:
+  - name: server
+    description: Local HTTP server and WingFoil CLI adapter (placeholder until initial-design)
+    path: server/
 stacks:
   technologies: []
   methodologies:
