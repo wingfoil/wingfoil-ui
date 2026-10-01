@@ -30,6 +30,9 @@ stacks:
       notes: pinned devDependency; also the CLI contract the UI consumes
     - name: git
       category: version control
+    - name: Playwright
+      category: e2e testing
+      notes: to be confirmed by initial-design
   methodologies:
     - name: Kanban
     - name: Specification by Example (BDD)
