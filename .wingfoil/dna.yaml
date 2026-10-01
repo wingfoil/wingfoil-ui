@@ -87,5 +87,6 @@ paths:
     - test/
   docs:
     - docs/
-  config: []
+  config:
+    - package.json
   governance: []
