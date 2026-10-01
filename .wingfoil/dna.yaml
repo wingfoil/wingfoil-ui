@@ -22,6 +22,8 @@ stacks:
     - name: Node.js
       category: runtime
       version: 22.12+
+    - name: npm
+      category: package manager
   methodologies:
     - name: Kanban
     - name: Specification by Example (BDD)
