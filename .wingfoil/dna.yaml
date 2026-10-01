@@ -9,6 +9,9 @@ modules:
   - name: server
     description: Local HTTP server and WingFoil CLI adapter (placeholder until initial-design)
     path: server/
+  - name: web
+    description: Browser UI (placeholder until initial-design)
+    path: web/
 stacks:
   technologies: []
   methodologies:
