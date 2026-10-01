@@ -2,7 +2,7 @@
 id: svc-001-github-repository-wingfoil-wingfoil-ui
 type: service
 title: "GitHub repository wingfoil/wingfoil-ui"
-status: pending
+status: active
 provider: "GitHub"         # REQUIRED — who hosts it, e.g. "GitHub", "npmjs.com"
 kind: "setting"         # REQUIRED — account | credential | listing | setting | domain | handle
 owner_role: "tech-lead"         # REQUIRED — the dna.yaml role that manages it: a role, never a person
