@@ -113,3 +113,22 @@ Coherence audit checks (step 6):
 ## Session log
 
 <!-- One entry per session: date, decisions taken, deviations from this plan. -->
+
+### Session 1 — User Story Mapping (2026-10-01)
+
+- Outputs: `01_user_story_map/01_backbone.md`, `02_story-map.md`, `03_mvp-cut.md` — accepted after review.
+- Backbone: 9 activities (launch, open a project, see what requires me, decide and act, understand
+  the project, capture, agents, sync, configure) + an *Across every activity* row; every J0–J8
+  step lands on a task, J9 on a future story.
+- Stories: 112 MVP (69 nominal, 43 edge) + 10 future (L1–L10). Per release: v0.1 40, v0.2 32,
+  v0.3 27, v0.4 11, v1.0 2.
+- Decisions: story id `US-<area>-<nn>` (area of the main feature = release `pillar`; W1/W2 in M,
+  user guide in X; `US-L-nn` future), independent of the backbone — chosen over the first draft's
+  activity-based ids; a v0.4 capability upgrade is its own story (US-T-16, US-M-06, US-G-18 for T2
+  phases, W1 position, G5 via `workflow start`); edge stories derived from feature refusal cases
+  accepted; v1.0's technical scope (contract tests, capability review, polish) goes to the SARD and
+  the backlog as technical tasks, not stories.
+- Vision Package defect fixed: `06_features.md` v0.4 — the S8 row lacked WF and scores (now 0.2.2,
+  Val 3, Eff 2, UX 2, Conf M).
+- Stop-check: 45 / 45 MVP Canvas features covered ✓; every story tagged ✓; no story earlier than its
+  feature's release ✓; edge-case stories for every common rule and refusal case ✓ (checked by script).

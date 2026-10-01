@@ -1,7 +1,7 @@
 # Features — WingFoil UI
 
-**Version:** 0.3
-**Date:** 2026-10-01 (0.2: journey coverage completed by the coherence audit; 0.3: external review — session 7)
+**Version:** 0.4
+**Date:** 2026-10-01 (0.2: journey coverage completed by the coherence audit; 0.3: external review — session 7; 0.4: S8 row completed — specification session 1)
 **Status:** Accepted in lean-inception session 4 (2026-10-01)
 **Input:** `05_journeys.md` (steps and gaps) · `04_personas.md` · `02_product-vision.md` ·
 `03_is-isnot.md` · **Evidence:** `docs/00_reference/ux-reference.md`, the prototype,
@@ -28,7 +28,7 @@ know how to build it (H/M/L).
 | S5 | All-roles summary | J5 | Alex | In Today, per role held: count and top items requiring it (GAP J5) | 0.2.2 | 2 | 1 | 2 | H |
 | S6 | Command palette (⌘K) | J5, J7 | all | Navigate, open any element, start an ingestion, switch project, pending actions | 0.2.2 | 2 | 2 | 3 | H |
 | S7 | In-app notifications | J1 | Morgan, Casey | Bell with count: *To unblock* (same as Requires you) and *Updates* | 0.2.2 | 2 | 1 | 2 | H |
-| S8 | Live refresh and snapshot | all | all | The project as the CLI reads it (working tree); elements with uncommitted changes marked *local changes*. Cache keyed on git HEAD **and** the working-tree status (`git status --porcelain`); re-read on change and file watch |
+| S8 | Live refresh and snapshot | all | all | The project as the CLI reads it (working tree); elements with uncommitted changes marked *local changes*. Cache keyed on git HEAD **and** the working-tree status (`git status --porcelain`); re-read on change and file watch | 0.2.2 | 3 | 2 | 2 | M |
 | S9 | Action descriptor | J1–J4, J7 | all | For each element, derived from `memory.yaml` (sequence, gates, waiting), the workflows and the CLI version: available verbs, reject targets, role required (0.2.2: `approver` for every gate), terminal and engine-waiting states. Unknown states get a generic **"Action required"** fallback. Basis of T1, G1–G3 | 0.2.2 | 3 | 2 | 2 | M |
 
 ## Area T — Today
