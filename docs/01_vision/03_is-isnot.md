@@ -1,7 +1,7 @@
 # Is / Is Not / Does / Does Not — WingFoil UI
 
-**Version:** 0.1
-**Date:** 2026-10-01
+**Version:** 0.2
+**Date:** 2026-10-01 (0.2: git sync rule from session 3, Q4)
 **Status:** Accepted in lean-inception session 1 (2026-10-01)
 **Input:** `01_product-brief.md` §6–8 · `02_product-vision.md` (Key Decisions)
 
@@ -35,8 +35,9 @@ Every item of brief §7 is placed here (marked *brief §7*); the others come fro
   enforces (e.g. the approver role on gates) protect the project.
 - A part of WingFoil core: it requires no WingFoil change to exist, and it does not extend
   WingFoil's schema beyond its own `ui.yaml`.
-- A git client: it shows the repository state and, at most, pushes what WingFoil committed; it
-  does not merge, rebase or resolve conflicts (fetch/pull: open question 4, session 3).
+- A git client: it shows the repository state, fetches the remote and pushes what WingFoil
+  committed (automatically when the options are on, `05_journeys.md` Journey 8); it does not
+  merge, rebase or resolve conflicts.
 
 ## DOES
 

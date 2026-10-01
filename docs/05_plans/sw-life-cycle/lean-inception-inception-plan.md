@@ -104,3 +104,20 @@ The release waves in `BOOTSTRAP.md` §7 are only a starting hypothesis for sessi
   the tech lead and the `dna add team.members` command; no guided flow in the MVP).
 - Role views table (role view → what Today shows first) added for sessions 3–4.
 - Stop-check: every brief §4 target user is a persona (Morgan, Jordan/Alex, Sam, Casey) ✓.
+
+### Session 3 — User Journeys (2026-10-01)
+
+- Output: `05_journeys.md` — accepted as drafted: journeys 0–9 (add project, gates, follow and
+  decide, agent step, review, switch roles/projects, newcomer, bug ingestion, remote sync, file
+  editing after v1.0), each step mapped to a UX-reference screen or a GAP, with the minimum
+  WingFoil version.
+- Open questions closed: **3** (same repository not addable twice), **4** (sync intrinsic;
+  auto-fetch/auto-push options), **6** (*View agent's logs* replaces *Launch agent*), **12** (all
+  files editable, WingFoil files with a specific permission; after v1.0).
+- Recorded for later: Q12 vs `cli-only-writes` (reconcile when file editing is specified); Casey
+  needs the `approver` role to decide gates on WingFoil 0.2.2; where the sync options live → session 4.
+- Side effect: `03_is-isnot.md` v0.2 (git sync rule).
+- Gaps handed to session 4: version/capability notice, agent log view, all-roles summary,
+  How-to-join panel, ahead/behind indicator with sync options.
+- Stop-check: every persona has ≥ 1 journey (Riley 6, Taylor covered by Morgan/Sam) ✓; every step
+  maps to a screen or is a listed GAP ✓.
