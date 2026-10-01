@@ -43,6 +43,8 @@ stacks:
       phase: specification
     - name: Specification by Example (BDD)
       phase: specification
+    - name: SARD
+      phase: specification
 team:
   members:
     - name: Roberto Pompermaier
