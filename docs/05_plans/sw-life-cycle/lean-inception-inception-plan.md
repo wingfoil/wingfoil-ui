@@ -77,3 +77,18 @@ The release waves in `BOOTSTRAP.md` §7 are only a starting hypothesis for sessi
 ## Session log
 
 <!-- One entry per session: date, decisions taken, open questions closed, deviations from this plan. -->
+
+### Session 1 — Product Vision · Is/Is Not/Does/Does Not (2026-10-01)
+
+- Outputs: `02_product-vision.md`, `03_is-isnot.md` — accepted as drafted.
+- Decisions: one role-aware vision; primary target teams already running WingFoil (the WingFoil
+  repository first); WingFoil UI is a client of WingFoil, not part of it; core value word "unblock".
+- Open questions closed: **2** (WingFoil floor 0.2.2 for the first waves, 1.0 for UI v1.0,
+  per-feature floor with capability detection), **10** (WCAG 2.1 AA; English-only MVP with
+  externalised strings), **11** (UI-side permissions acceptable as advisory; gates enforced by the CLI).
+- Is/Is Not additions confirmed: not a git client (at most push; fetch/pull is Q4); a multi-project
+  console whose project list is local UI state.
+- Side effects: `01_product-brief.md` v0.2 (§8 WingFoil floor); `open-questions.md` 2/10/11 struck.
+- New point for `initial-design` / `adr-001`: which CLI the server runs for an observed project and
+  how its version is detected.
+- Stop-check: one vision statement ✓; every brief §7 item placed in Is/Is Not/Does/Does Not ✓.
