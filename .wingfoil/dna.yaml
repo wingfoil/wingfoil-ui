@@ -28,6 +28,8 @@ stacks:
       category: governance
       version: 0.2.2
       notes: pinned devDependency; also the CLI contract the UI consumes
+    - name: git
+      category: version control
   methodologies:
     - name: Kanban
     - name: Specification by Example (BDD)
