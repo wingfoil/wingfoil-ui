@@ -45,6 +45,8 @@ stacks:
       phase: specification
     - name: SARD
       phase: specification
+    - name: TDD
+      phase: delivery
 team:
   members:
     - name: Roberto Pompermaier
