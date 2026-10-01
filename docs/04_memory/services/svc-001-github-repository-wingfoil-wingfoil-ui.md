@@ -1,0 +1,44 @@
+---
+id: svc-001-github-repository-wingfoil-wingfoil-ui
+type: service
+title: "GitHub repository wingfoil/wingfoil-ui"
+status: draft
+provider: ""           # REQUIRED — who hosts it, e.g. "GitHub", "npmjs.com"
+kind: ""               # REQUIRED — account | credential | listing | setting | domain | handle
+owner_role: ""         # REQUIRED — the dna.yaml role that manages it: a role, never a person
+verify: ""             # REQUIRED — the read-only command or URL that establishes its current state, e.g. "gh repo view wingfoil/wingfoil-ui"
+url: ""                # optional — its public URL, if any
+account: ""            # optional — the public identifier used (a login, an org name); never a secret
+renews: ""             # optional — ISO date on which it expires or must be renewed; "" if never
+repo_refs: []          # optional — repository paths that depend on it, e.g. ["package.json"]
+decision: ""           # optional — the decision-log or ADR that motivated it
+release: ""            # optional — the release in which it was set up, e.g. "v0.2"
+tmpl_version: 260929   # Original template version
+---
+
+<!-- SECURITY RULE (directive security-secrets):
+     a service element NEVER holds a secret value — no token, password, recovery code or key, and no
+     fragment of one. Name where the secret is held (e.g. "GitHub Actions secret <NAME>, environment
+     <env>"), its type, its expiry and how it is rotated. -->
+
+## Purpose
+
+<!-- Why the project needs this external state; what breaks without it. -->
+
+## Configuration
+
+<!-- How it is set up and which settings matter. Public identifiers only: a secret is named by where
+     it is held, never by its value. Cite the documents that describe it rather than moving their
+     content. -->
+
+## Verification
+
+<!-- The `verify` procedure and the result expected from it — what the approver runs before
+     approving (pending → active). Read-only commands only. -->
+
+## Management
+
+<!-- How to renew, rotate, recover and retire it, with deadlines (`renews`). Retirement is
+     memory.deprecate, whose Reason: names why it was dropped or what replaced it. Edits to an
+     `active` service are body/frontmatter edits committed as `docs(service): …` until the pinned
+     WingFoil ships `memory amend`. -->
