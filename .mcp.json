@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "wingfoil": {
+      "command": "node",
+      "args": ["node_modules/wingfoil/dist/cli.js", "mcp"]
+    }
+  }
+}
