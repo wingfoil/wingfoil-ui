@@ -2,7 +2,7 @@
 id: lean-inception-inception-plan
 type: plan
 title: "Lean inception"
-status: active
+status: done
 version: "1.0"         # optional — plan version
 workflow: "lean-inception"
 phase: "inception"
