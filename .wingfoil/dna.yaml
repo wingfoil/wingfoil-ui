@@ -33,6 +33,9 @@ stacks:
     - name: Playwright
       category: e2e testing
       notes: to be confirmed by initial-design
+    - name: axe-core
+      category: accessibility testing
+      notes: to be confirmed by initial-design
   methodologies:
     - name: Kanban
     - name: Specification by Example (BDD)
