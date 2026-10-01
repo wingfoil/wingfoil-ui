@@ -36,7 +36,9 @@ stacks:
     - name: axe-core
       category: accessibility testing
       notes: to be confirmed by initial-design
-  methodologies: []
+  methodologies:
+    - name: Lean Inception
+      phase: inception
 team:
   members:
     - name: Roberto Pompermaier
