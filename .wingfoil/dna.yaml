@@ -79,7 +79,10 @@ team:
         - architect
       approval_authority: false
 paths:
-  sources: []
+  sources:
+    - server/
+    - web/
+    - contracts/
   tests: []
   docs: []
   config:
