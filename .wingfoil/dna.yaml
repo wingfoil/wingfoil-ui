@@ -29,7 +29,10 @@ stacks:
 
 # Team & roles — AI agents execute as developer/reviewer/qa/architect and never hold approval authority.
 team:
-  members: []
+  members:
+    - name: Roberto Pompermaier
+      email: robypomper@gmail.com
+      roles: [tech-lead, architect, developer, reviewer, product-owner, approver, facilitator, qa]
   roles:
     - name: developer
     - name: reviewer
