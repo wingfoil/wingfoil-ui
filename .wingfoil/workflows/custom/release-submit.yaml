@@ -1,0 +1,35 @@
+# WingFoil UI — release-submit (SUB workflow) — derived from wingfoil/wingfoil@c43221c4
+# Best practice adapted to WingFoil. Include-only.
+name: release-submit
+kind: sub
+description: >-
+  Assemble the release once its tasks are done: run pre-release checks, move the release into
+  `releasing`, and gate on approval before publishing.
+version: 1.0
+element: release
+
+phases:
+  - name: pre-release-checks
+    description: >-
+      Verify all release tasks are done and the suite is green. Bugs have no independent status
+      here — their state is derived by dev-loop's `bug.sync_state` from their fix tasks, so the
+      task check below covers them; the bug check is a redundant sanity check on the sync itself.
+    role: qa
+    checks:
+      pre:
+        - "all tasks where tags=[{release.version}] are status: done"
+        - "all bugs where tags=[{release.version}] are status: [resolved, closed]"
+        - "tests.passing"
+        - "tests.coverage(min: 80)"
+
+  - name: enter-releasing
+    description: "Move the release element into the releasing state."
+    role: tech-lead
+    actions:
+      - element.set_state(releasing)           # release: in-development -> releasing
+
+  - name: approve-release
+    description: "Final human approval before publishing."
+    role: approver
+    approval: { by_role: approver }
+    fallback: { step: pre-release-checks }

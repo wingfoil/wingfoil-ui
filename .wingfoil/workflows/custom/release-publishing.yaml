@@ -1,0 +1,48 @@
+# WingFoil UI — release-publishing (SUB workflow) — derived from wingfoil/wingfoil@c43221c4
+# Best practice adapted to WingFoil. Include-only.
+name: release-publishing
+kind: sub
+description: >-
+  Publish an approved release: tag, build, publish to the npm registry, and mark the release
+  element as released.
+version: 1.1
+element: release
+
+phases:
+  - name: tag
+    description: >-
+      Create the semver git tag for the release ON `main`, after the release branch has merged —
+      never on a phase branch (dl-024). The tag must be a stable ref reachable from main's permanent
+      history so it survives phase-branch cleanup.
+    role: tech-lead
+    checks:
+      pre: ["on-branch-is-main", "release-branch-merged-to-main"]   # dl-024
+    actions:
+      - 'git.commit("release {release.version}")'
+      - 'git.tag("{release.version}", on: main)'      # dl-024 — tag on main, not on a design/release_* branch
+
+  - name: publish
+    description: >-
+      Run the tag's publish pipeline, then make the staged version live. The tag push runs
+      `.github/workflows/publish.yml`: gate, Verdaccio staging + dl-023 smoke, then promote, which
+      STAGES the same tarball on npm with `npm stage publish` through the stage-only OIDC trusted
+      publisher — no token (adr-011, spec-015 §3 stage 4). A staged version is not live: after the
+      pipeline run, the approver inspects it (`npm stage view <stage-id>`) and approves it on npm
+      with 2FA (`npm stage approve <stage-id>`, or Approve on npmjs.com), or discards it with
+      `npm stage reject` (dl-087 Action 3). The runbook in publish.yml's header lists the one-time
+      registry-side setup this step presupposes.
+    role: tech-lead
+    actions:
+      - agent.execute        # push the tag; publish.yml runs gate → stage → promote (`npm stage publish`)
+      - agent.execute        # after the run: report the stage id promote printed; nothing is live yet
+      - 'approver.execute("npm stage approve <stage-id>")'   # 2FA on npm — the version goes live (adr-011 point 3)
+    checks:
+      pre: ["tests.passing"]
+      post: ["staged version approved on npm and live on the npm registry"]
+    approval: { by_role: approver }   # the npm-publish environment deployment AND the npm stage approval (adr-011 point 3, dl-087 Q2 (iii))
+
+  - name: mark-released
+    description: "Mark the release element released."
+    role: tech-lead
+    actions:
+      - element.set_state(released)            # release: releasing -> released

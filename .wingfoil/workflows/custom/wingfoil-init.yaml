@@ -1,0 +1,24 @@
+# WingFoil UI — wingfoil-init (SUB workflow) — derived from wingfoil/wingfoil@c43221c4
+# First phase of sw-life-cycle (moved before inception, see the bootstrap decision-log): initialise
+# the WingFoil configuration with the pinned CLI (`wingfoil init`), then align it with the WingFoil
+# repository (BOOTSTRAP.md §2). Pure config/tooling bootstrap — no Memory seeding except the
+# bootstrap decision-log; the release roadmap, ADRs, DLs and tech-specs belong to `initial-design`.
+name: wingfoil-init
+kind: sub
+description: "Initialize the WingFoil configuration: DNA, Memory schema, Directives, Workflows."
+version: 1.0
+
+phases:
+  - name: init-config
+    description: "Create the WingFoil configuration files (dna.yaml, memory.yaml, directives/, workflows.yaml)."
+    role: tech-lead
+    actions:
+      - config.init        # `npm run -s wingfoil -- init --template Kanban`, then the alignment of BOOTSTRAP.md §2
+    produces:
+      - ".wingfoil/dna.yaml"
+      - ".wingfoil/memory.yaml"
+      - ".wingfoil/memory/templates/"
+      - ".wingfoil/roles.yaml"
+      - ".wingfoil/directives/"
+      - ".wingfoil/workflows.yaml"
+      - ".wingfoil/workflows/"

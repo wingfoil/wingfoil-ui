@@ -1,10 +1,55 @@
-# The end-to-end software life cycle
+# WingFoil UI — sw-life-cycle (MAIN workflow) — derived from wingfoil/wingfoil@c43221c4
+# The end-to-end software life cycle for WingFoil UI: init -> inception -> specification ->
+# delivery (per release-line / release) -> sunset.
+# Deviation from WingFoil: `init` runs FIRST (WingFoil ran it after specification only because the
+# tool did not exist yet), so inception and specification are tracked as Memory `plan` elements
+# from day one — see the bootstrap decision-log.
+# Phase completion is deduced: Memory-backed phases from element status, inception/specification/
+# init from the existence of their `produces:` artifacts — no stored phase status.
+#
+# Git conventions (as WingFoil): every phase runs on its OWN branch named `design/<phase>_<version>`
+# (and `task/task-NNN-slug` for dev-loop tasks), merged to `main` with `git merge --ff=false`. The
+# release `vX.Y` tag is created on `main` after the release branch merges — never on a phase branch.
 name: sw-life-cycle
 kind: main
-description: "The end-to-end software life cycle"
+description: >-
+  Full software life cycle for WingFoil UI: from WingFoil initialisation and product inception,
+  through technical specification downcast, iterative per-release delivery, to end-of-life.
+version: 1.0
+
 phases:
+  - name: init
+    description: "Initialize the WingFoil configuration (DNA, Memory schema, Directives, Workflows)."
+    include: wingfoil-init
+
   - name: inception
+    description: Product discovery (Lean Inception) — produces the Vision Package.
+    include: lean-inception
+
   - name: specification
-  - name: delivery
-    include: workflows/custom/kanban-delivery.yaml
+    description: Downcast the vision into engineering specs (USM -> BDD -> SARD -> backlog).
+    include: specification-downcast
+
+  - name: seed-first-release-line
+    description: "Create the first release-line (v1) so release-line-cycle has something to iterate."
+    role: product-owner
+    actions:
+      - 'memory.add(type: release-line, version: "v1")'
+      - memory.submit                                    # release-line: draft -> planning
+    produces:
+      - "docs/04_memory/planning/{id}.md"
+    checks:
+      post: ["frontmatter.required: [title, version]"]
+
+  - name: release-line-cycle
+    description: >-
+      Iterative delivery per major version — approve scope, generate its roadmap + initial ADRs/
+      DLs/tech-specs, run one release-cycle per minor release, then close it and self-seed the
+      next release-line (if planned).
+    include: release-line-cycle
+    iterate_over: release-line
+    where: { status: [planning, active] }
+
   - name: sunset
+    description: Retire the product / a major line at end of life.
+    include: end-of-life

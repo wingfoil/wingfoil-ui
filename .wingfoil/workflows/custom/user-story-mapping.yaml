@@ -1,0 +1,22 @@
+# WingFoil UI — user-story-mapping (SUB workflow) — derived from wingfoil/wingfoil@c43221c4
+# Specification Downcast Module 1 (Jeff Patton). Include-only.
+# Source: docs/02_requirements/X_specs-downcast-plan.md §Module 1.
+name: user-story-mapping
+kind: sub
+description: >-
+  Explode the macro-flows of Lean Inception into atomic, value-oriented user stories;
+  build the backbone (horizontal axis), vertically explode functionalities, apply the MVP cut.
+version: 1.0
+
+phases:
+  - name: backbone
+    description: "Extract sequential user tasks from journeys to form the spine."
+    role: product-owner
+  - name: vertical-explosion
+    description: "Under each backbone step, write `As <persona>, I want <action> so that <benefit>`."
+    role: product-owner
+  - name: mvp-cut
+    description: "Tag stories [MVP · vX] / [Future] using the sequencer."
+    role: product-owner
+    checks:
+      post: ["100% of MVP Canvas features included; edge-case stories generated"]

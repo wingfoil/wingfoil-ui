@@ -1,0 +1,47 @@
+# WingFoil UI — retrospective (SUB workflow) — derived from wingfoil/wingfoil@c43221c4
+# Best practice adapted to WingFoil. Include-only.
+name: retrospective
+kind: sub
+description: >-
+  Close the release loop: EXPLORE the release's Execution Notes for friction, let the approver add
+  points, capture what went well / what to improve as Memory, and feed adjustments into the next
+  release planning.
+version: 1.1                     # dl-019/retro-v0.1 — added explore + additional-points phases
+element: release
+
+phases:
+  - name: explore
+    description: >-
+      Mine the `## Execution Notes` of every Memory document in the release scope (tasks, bugs, DLs,
+      the release doc, plan outcomes) for process friction — deviations, blockers, rejection reasons,
+      honest-TDD notes, tooling gaps, inter-task dependency friction. Read-only; produces a structured,
+      source-cited friction inventory grouped by theme. Parallelizable (cheap-model miners + synthesis).
+    role: facilitator
+    actions:
+      - agent.mine_execution_notes
+    produces:
+      - "retrospective friction inventory (source-cited, grouped by theme)"
+
+  - name: additional-points
+    description: >-
+      Approver gate: present the friction inventory + the identified improvement themes; the approver
+      adds any further points to analyze (and, if a point implies a config/process change, a DL is
+      spun off in capture). A review checkpoint, not an approval-gated transition — no commit.
+    role: approver
+    approval: { by_role: approver }
+
+  - name: capture
+    description: "Record retrospective learnings as a Memory decision-log."
+    role: facilitator
+    actions:
+      - 'memory.add(type: decision-log, title: "Retrospective {release.version}")'
+      - memory.submit
+    produces:
+      - "docs/04_memory/design/dls/retro-{release.version}.md"
+    checks:
+      post: ["frontmatter.required: [title]"]   # title always set by action above
+
+  - name: approve
+    description: "Approve the retrospective so its actions are committed."
+    role: approver
+    approval: { by_role: approver }

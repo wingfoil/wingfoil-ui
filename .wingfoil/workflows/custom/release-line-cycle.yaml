@@ -1,0 +1,53 @@
+# WingFoil UI — release-line-cycle (SUB workflow) — derived from wingfoil/wingfoil@c43221c4
+# One iteration per release-line (major version: v1, v2, ...). Composes initial-design (roadmap +
+# ADRs/DLs/tech-specs for this release-line) and delivery (one release-cycle per minor release
+# scoped to this release-line). Include-only; sw-life-cycle iterates it over `release-line`.
+# Self-seeding: `plan-next-release-line` (last phase) creates the NEXT release-line once every one
+# of this release-line's own releases is `released` — the only element type in this config whose
+# own iterating workflow also produces more of the same type. Not a new DSL mechanism: `iterate_over`
+# + `where` is always a live query against current Memory state (REQ-SYS-03), never a fixed
+# snapshot, so a workflow discovering/seeding new matching elements as it runs is already implied
+# by the existing semantics (`release-cycle`'s own `where:` docstring already says "picks up
+# releases with status..."), just not previously exercised this way.
+name: release-line-cycle
+kind: sub
+description: >-
+  Deliver one release-line end to end: approve its scope -> initial-design (roadmap + ADRs/DLs/
+  tech-specs) -> one release-cycle per minor release -> close it and seed the next release-line.
+version: 1.0
+element: release-line   # the iterated element provided by sw-life-cycle (iterate_over: release-line)
+
+phases:
+  - name: approve
+    description: "Approve the release-line's scope so initial-design and delivery can begin."
+    role: tech-lead
+    actions:
+      - memory.approve                  # release-line: planning -> active
+    approval: { by_role: approver }
+    fallback: { step: approve }         # reject -> stays for revision, re-submit for another approval pass
+
+  - name: initial-design
+    description: "Generate this release-line's minor-release roadmap and record its initial ADRs/DLs/tech-specs."
+    include: initial-design
+
+  - name: delivery
+    description: "Run one release-cycle per minor release belonging to this release-line."
+    include: release-cycle
+    iterate_over: release
+    where: { release-line: "{release-line.version}", status: [draft, planning, in-development] }
+
+  - name: plan-next-release-line
+    description: >-
+      Once every release under this release-line is `released`: close this release-line, and — if
+      another major version is planned — seed the next release-line (self-seeding: sw-life-cycle's
+      own iterate_over: release-line will pick it up next).
+    role: product-owner
+    actions:
+      - element.set_state(done)         # release-line: active -> done
+      - 'memory.add(type: release-line)'  # OPTIONAL: only if another major version is planned
+      - memory.submit                     # next release-line (if created): draft -> planning
+    produces:
+      - "docs/04_memory/planning/{id}.md"
+    checks:
+      pre: ["all releases where release-line={release-line.version} are status: released"]
+      post: ["frontmatter.required: [title, version]"]

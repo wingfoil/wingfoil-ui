@@ -1,0 +1,24 @@
+# WingFoil UI — volere-requirements (SUB workflow) — derived from wingfoil/wingfoil@c43221c4
+# Specification Downcast Module 3 — SARD via Volere Requirements Framework (Robertson). Include-only.
+# Source: docs/02_requirements/X_specs-downcast-plan.md §Module 3.
+name: volere-requirements
+kind: sub
+description: >-
+  Extract and formalize infrastructure, business rules, and NFRs into the SARD using the Volere
+  Requirement Shell (Description, Rationale, Traceability, Fit Criterion), grouped by macro-area.
+version: 1.0
+
+phases:
+  - name: extract-requirements
+    description: "From BDD scenarios, extract the infrastructural requirements that support them."
+    role: architect
+  - name: apply-volere-shell
+    description: "Structure each REQ: Description, Rationale, Traceability, Fit Criterion."
+    role: architect
+  - name: group-by-macro-area
+    description: >-
+      Organize into: Architectural Constraints; Performance & Latency; State & Context;
+      Integrations & Interfaces; Security, Roles & Governance.
+    role: architect
+    checks:
+      post: ["every REQ has a clearly numeric, percentage-based, or boolean Fit Criterion"]

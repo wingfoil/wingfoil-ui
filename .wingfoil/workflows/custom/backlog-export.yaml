@@ -1,0 +1,22 @@
+# WingFoil UI — backlog-export (SUB workflow) — derived from wingfoil/wingfoil@c43221c4
+# Specification Downcast Module 4 — operational backlog export. Include-only.
+# Source: docs/02_requirements/X_specs-downcast-plan.md §Module 4.
+name: backlog-export
+kind: sub
+description: >-
+  Consolidate the documentary chain (USM + BDD + SARD) into a single structured backlog,
+  ready to sync into dev tools; partition tasks by release wave.
+version: 1.0
+
+phases:
+  - name: generate-records
+    description: "One JSON record per MVP user story; Gherkin -> acceptance_criteria; one Technical Task per REQ."
+    role: product-owner
+  - name: map-dependencies
+    description: "Link technical-task IDs into the dependencies[] of affected user stories."
+    role: product-owner
+  - name: validate
+    description: "JSON Schema validation + partition by-release."
+    role: product-owner
+    checks:
+      post: ["valid JSON parse", "no duplicate IDs", "no circular dependencies"]

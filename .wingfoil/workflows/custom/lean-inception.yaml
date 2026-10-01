@@ -1,0 +1,42 @@
+# WingFoil UI — lean-inception (SUB workflow) — derived from wingfoil/wingfoil@c43221c4
+# Modeled from docs/01_vision/X_lean-inception-plan.md (5 sessions -> Vision Package).
+# Include-only; never started directly.
+name: lean-inception
+kind: sub
+description: >-
+  Product discovery via Lean Inception. Five sessions transform the Product Brief into
+  the Vision Package (vision, is/is-not, personas, journeys, features, sequencer, MVP canvas).
+version: 1.0
+
+phases:
+  - name: vision
+    description: "Session 1 — Product Vision + Is/Is Not/Does/Does Not."
+    role: facilitator
+    produces:
+      - docs/01_vision/02_product-vision.md
+      - docs/01_vision/03_is-isnot.md
+
+  - name: personas
+    description: "Session 2 — Personas."
+    role: facilitator
+    produces:
+      - docs/01_vision/04_personas.md
+
+  - name: journeys
+    description: "Session 3 — User Journeys."
+    role: facilitator
+    produces:
+      - docs/01_vision/05_journeys.md
+
+  - name: features
+    description: "Session 4 — Feature Brainstorm + Technical/Business Review."
+    role: architect
+    produces:
+      - docs/01_vision/06_features.md
+
+  - name: sequencer
+    description: "Session 5 — Sequencer + MVP Canvas."
+    role: product-owner
+    produces:
+      - docs/01_vision/07_sequencer.md
+      - docs/01_vision/08_mvp-canvas.md

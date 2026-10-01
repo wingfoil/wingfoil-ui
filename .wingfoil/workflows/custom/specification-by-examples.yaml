@@ -1,0 +1,22 @@
+# WingFoil UI — specification-by-examples (SUB workflow) — derived from wingfoil/wingfoil@c43221c4
+# Specification Downcast Module 2 — BDD (Gojko Adzic). Include-only.
+# Source: docs/02_requirements/X_specs-downcast-plan.md §Module 2.
+name: specification-by-examples
+kind: sub
+description: >-
+  Translate MVP user stories into deterministic Gherkin scenarios (Given-When-Then),
+  eliminating interpretive ambiguity. One happy path + one edge/error path per story.
+version: 1.0
+
+phases:
+  - name: isolate-mvp
+    description: "Select only [MVP] user stories."
+    role: qa
+  - name: write-scenarios
+    description: "For each story write Gherkin scenarios with concrete examples."
+    role: qa
+    checks:
+      post:
+        - "each story has >=1 happy path and >=1 edge/error path"
+        - "no ambiguous adjectives/adverbs (e.g. 'quickly', 'qualified user')"
+        - "each scenario atomic and testable"

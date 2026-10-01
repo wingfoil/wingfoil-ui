@@ -1,0 +1,36 @@
+# WingFoil UI — service-ingest (MAIN workflow) — derived from wingfoil/wingfoil@c43221c4
+# Startable entry point to record a single SERVICE into Memory: one unit of state outside the git
+# repository that the project owns, depends on, or presents itself through (dl-088). Run by whoever
+# set the external state up, once it exists — a `service` describes something that has been set up,
+# not an intention (that belongs in a decision-log, task or plan).
+# Multiple mains are allowed: REQ-STATE-03 (active workflow context with multiple open mains).
+# Source: dl-088-a-memory-type-for-state-that-lives-outside-the-repository; uses the `service` Memory
+# type (memory.yaml).
+name: service-ingest
+kind: main
+description: Record a single external service (account, credential by reference, listing, setting, domain, handle) into Memory.
+version: 1.0
+# No fixed `element:` — started standalone this main creates a top-level service. When invoked while
+# another workflow with an active `element` context is running (e.g. release-publishing setting up a
+# publish credential), the created Memory file inherits that element.
+phases:
+  - name: capture
+    description: "Record the service (purpose, configuration, verification, management) with public identifiers only — never a secret value (dl-088 security rule, REQ-SEC-08)."
+    role: developer
+    actions:
+      - 'memory.add(type: service)'
+      - memory.submit                          # service: draft -> pending
+    produces:
+      - "docs/04_memory/services/{id}.md"
+    checks:
+      post:
+        - "frontmatter.required: [title, provider, kind, owner_role, verify]"
+        - "secret-scan.clean: spec-007 scanText reports no blocking finding in the element (REQ-SEC-08)"
+
+  - name: approve
+    description: "The approver runs the element's `verify` and confirms the description holds (approval gate; reject = back to capture)."
+    role: approver
+    actions:
+      - memory.approve                         # service: pending -> active
+    approval: { by_role: approver }
+    fallback: { step: capture }

@@ -1,6 +1,30 @@
-# Capture a bug on demand
+# WingFoil UI — bug-ingest (MAIN workflow) — derived from wingfoil/wingfoil@c43221c4
+# Startable entry point to capture a single BUG into Memory, independent of the delivery loop.
+# Multiple mains are allowed: REQ-STATE-03 (active workflow context with multiple open mains).
+# Source: composition is user-defined; uses the `bug` Memory type (memory.yaml).
 name: bug-ingest
 kind: main
-description: "Capture a bug on demand"
+description: Capture a single defect report (bug) into Memory.
+version: 1.0
+# No fixed `element:` — started standalone this main creates a top-level bug. When invoked while
+# another workflow with an active `element` context is running, the created Memory file inherits that
+# element (e.g. a bug raised during dev-loop inherits the active `task`).
 phases:
   - name: capture
+    description: "Record the bug (summary, reproduction steps, severity)."
+    role: developer
+    actions:
+      - 'memory.add(type: bug)'
+      - memory.submit
+    produces:
+      - "docs/04_memory/bugs/{id}.md"
+    checks:
+      post: ["frontmatter.required: [title, severity]"]
+
+  - name: triage
+    description: "Triage and accept the bug for work (approval gate; reject = back to capture)."
+    role: tech-lead
+    actions:
+      - memory.approve                         # bug: open -> triaged
+    approval: { by_role: approver }
+    fallback: { step: capture }

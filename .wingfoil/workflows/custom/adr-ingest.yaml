@@ -1,6 +1,31 @@
-# Capture an ADR on demand
+# WingFoil UI — adr-ingest (MAIN workflow) — derived from wingfoil/wingfoil@c43221c4
+# Startable entry point to capture a single ADR (Architectural Decision Record) into Memory.
+# Used during dev-loop and other development phases to record new decisions on demand.
+# Multiple mains are allowed: REQ-STATE-03 (multiple open mains).
+# Source: composition is user-defined; uses the `adr` Memory type (memory.yaml).
 name: adr-ingest
 kind: main
-description: "Capture an ADR on demand"
+description: Capture a single Architectural Decision Record (ADR) into Memory.
+version: 1.0
+# No fixed `element:` — started standalone this main creates a top-level ADR. When invoked while
+# another workflow with an active `element` context is running, the created Memory file inherits that
+# element (e.g. an ADR recorded during dev-loop inherits the active `task`).
 phases:
   - name: capture
+    description: "Record the ADR (context, decision, consequences) and the SARD requirement(s) it implements."
+    role: architect
+    actions:
+      - 'memory.add(type: adr)'
+      - memory.submit
+    produces:
+      - "docs/04_memory/design/adrs/{id}.md"
+    checks:
+      post: ["frontmatter.required: [title, sard_ref]"]
+
+  - name: approve
+    description: "Accept the ADR (approval gate; reject = back to capture for revision)."
+    role: approver
+    actions:
+      - memory.approve                         # adr: pending -> accepted
+    approval: { by_role: approver }
+    fallback: { step: capture }

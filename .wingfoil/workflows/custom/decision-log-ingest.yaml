@@ -1,6 +1,30 @@
-# Capture a decision-log on demand
+# WingFoil UI — decision-log-ingest (MAIN workflow) — derived from wingfoil/wingfoil@c43221c4
+# Startable entry point to capture a single DECISION LOG (DL) into Memory, independent of the
+# delivery loop. Multiple mains are allowed: REQ-STATE-03 (multiple open mains).
+# Source: composition is user-defined; uses the `decision-log` Memory type (memory.yaml).
 name: decision-log-ingest
 kind: main
-description: "Capture a decision-log on demand"
+description: Capture a single product/process decision (decision-log) into Memory.
+version: 1.0
+# No fixed `element:` — started standalone this main creates a top-level decision-log. When invoked
+# while another workflow with an active `element` context is running, the created Memory file inherits
+# that element (e.g. a decision-log recorded during a release inherits the active `release`).
 phases:
   - name: capture
+    description: "Record the decision (context, decision, rationale)."
+    role: product-owner
+    actions:
+      - 'memory.add(type: decision-log)'
+      - memory.submit
+    produces:
+      - "docs/04_memory/design/dls/{id}.md"
+    checks:
+      post: ["frontmatter.required: [title]"]
+
+  - name: approve
+    description: "Approve the decision (approval gate; reject = back to capture)."
+    role: approver
+    actions:
+      - memory.approve                         # decision-log: in-discussion -> ready
+    approval: { by_role: approver }
+    fallback: { step: capture }

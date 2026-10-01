@@ -1,0 +1,35 @@
+# WingFoil UI — specification-downcast (SUB workflow) — derived from wingfoil/wingfoil@c43221c4
+# Modeled from docs/02_requirements/X_specs-downcast-plan.md.
+# Transforms the Vision Package into engineering requirements via three frameworks, then exports a backlog.
+# Strict sequence with Stop-Check gates between modules. Include-only.
+name: specification-downcast
+kind: sub
+description: >-
+  Downcast the strategic vision into actionable engineering requirements:
+  User Story Mapping -> Specification by Example (BDD) -> Volere Requirements (SARD) -> backlog.
+version: 1.0
+
+phases:
+  - name: user-story-mapping
+    description: "Module 1 — explode journeys into atomic stories; extract MVP."
+    include: user-story-mapping
+    checks:
+      post: ["100% of MVP Canvas features covered; edge-case stories present"]   # Stop-Check
+
+  - name: specification-by-examples
+    description: "Module 2 — translate MVP stories into Gherkin BDD scenarios."
+    include: specification-by-examples
+    checks:
+      post: ["each scenario atomic + testable; zero ambiguous adjectives/adverbs"]  # Stop-Check
+
+  - name: volere-requirements
+    description: "Module 3 — extract architectural/NFR requirements (SARD, Volere shell)."
+    include: volere-requirements
+    checks:
+      post: ["every REQ has a numeric/percentage/boolean Fit Criterion"]   # Stop-Check
+
+  - name: backlog-export
+    description: "Module 4 — consolidate the chain into a structured operational backlog."
+    include: backlog-export
+    checks:
+      post: ["valid JSON; no duplicate IDs; no circular dependencies"]   # Stop-Check

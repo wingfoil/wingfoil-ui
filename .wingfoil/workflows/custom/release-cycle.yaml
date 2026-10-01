@@ -1,0 +1,51 @@
+# WingFoil UI — release-cycle (SUB workflow) — derived from wingfoil/wingfoil@c43221c4
+# One iteration per release wave (v0.1 .. v1.0). Composes planning, per-task dev loops,
+# submission, publishing, and retrospective. Best practice adapted to WingFoil's weekly,
+# per-pillar cadence. Include-only; sw-life-cycle iterates it over `release`.
+# Git conventions (dl-024): one branch per phase (`design/<phase>_<version>`), --ff=false merge to
+# main; the release tag is created on `main` after merge, not on a phase branch. See sw-life-cycle.yaml.
+name: release-cycle
+kind: sub
+description: >-
+  Deliver one release: plan scope -> run a TDD dev-loop per backlog task (including bug-fix
+  tasks) -> align user-facing docs -> submit -> publish to npm -> retrospective.
+version: 1.1                     # dl-013: added user-docs phase between implementation and submit
+element: release        # the iterated element provided by sw-life-cycle (iterate_over: release)
+
+phases:
+  - name: planning
+    description: "Define release scope, story points, and the task backlog for this release."
+    include: release-planning
+
+  - name: implementation
+    description: >-
+      Run the TDD dev-loop once per backlog task tagged for this release — including the fix
+      tasks derived from bugs scheduled into this release; each keeps its source bug in sync
+      (`bug.sync_state`, see dev-loop.yaml).
+    include: dev-loop
+    iterate_over: task
+    where: { status: [backlog], tags: ["{release.version}"] }
+
+  - name: user-docs                          # dl-013 — user-facing docs gate before submit
+    description: >-
+      Write/align README, user guide, CLI reference, examples, and CHANGELOG to the shipped surface
+      before the release is assembled. Hard release blocker (dl-013).
+    include: user-docs
+
+  - name: e2e-smoke                          # dl-023 — fresh-init + CLI end-to-end smoke gate before submit (staged warn->reject)
+    description: >-
+      Run a real `wingfoil init` + drive the CLI surface, asserting exit codes + schema-valid
+      scaffolded artifacts, before the release is assembled.
+    include: e2e-smoke
+
+  - name: submit
+    description: "Assemble the release, run checks, request approval."
+    include: release-submit
+
+  - name: publishing
+    description: "Tag, build, and publish to npm; mark the release released."
+    include: release-publishing
+
+  - name: retrospective
+    description: "Capture learnings and adjust the next release."
+    include: retrospective

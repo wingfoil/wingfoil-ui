@@ -1,0 +1,82 @@
+# WingFoil UI — initial-design (SUB workflow) — derived from wingfoil/wingfoil@c43221c4
+# Runs once per release-line, as the first phase of `release-line-cycle` (after that release-line
+# is approved, before its `delivery`). Produces the minor-release roadmap for this release-line and
+# records the architecture/product decisions and shared-artefact specs already implied by it —
+# reusable as-is for v2, v3, ... whenever a new release-line starts (that was the whole point of
+# extracting this out of wingfoil-init, which only runs once, ever, for config bootstrap).
+# `seed-releases` was moved here from wingfoil-init: the roadmap is release-line-scoped, not
+# project-wide-once, so it has to be re-runnable per release-line.
+# `seed-specs` is the release-line-wide sibling of release-planning's `identify-specs`: same survey
+# logic, but for artefacts spanning this release-line's whole arc rather than one release's task
+# scope. identify-specs already dedupes against "not yet covered by an approved spec", so anything
+# seeded here is not re-created once a release's own delivery starts.
+# With wingfoil@0.2.2 each action is a `memory add` + hand-filled fields + `memory submit`/`approve`
+# (directive wingfoil-cli). TODO (before the first release): the `spec-review.passed` pre checks
+# come from WingFoil's dl-022 — re-create that review here or drop the checks; `seed-releases`
+# post check must also list `kind`.
+name: initial-design
+kind: sub
+element: release-line   # the active element provided by release-line-cycle
+description: >-
+  Generate this release-line's minor-release roadmap, then record the initial Architectural
+  Decision Records, Decision Logs, and Technical Specifications that formalize choices already
+  implied by it — before this release-line's delivery begins.
+version: 1.0
+
+phases:
+  - name: seed-releases
+    description: "Generate the RELEASE Memory files (the roadmap) for this release-line, that delivery iterates over."
+    role: product-owner
+    actions:
+      - 'memory.add(type: release, release-line: "{release-line.version}")'  # one per planned minor release wave, created in draft
+    # No submit: the `release` machine has no `pending`; releases stay `draft` and `release-planning`
+    # performs draft -> planning when delivery reaches each release.
+    produces:
+      - "docs/04_memory/planning/{release-line}/{id}.md"
+    checks:
+      post: ["frontmatter.required: [title, version, pillar, features, requirements, release-line]"]
+
+  - name: seed-adrs
+    description: "Optionally record the initial Architectural Decision Records for this release-line."
+    role: architect
+    optional: true
+    actions:
+      - 'memory.add(type: adr)'        # optional initial ADRs
+      - memory.submit                  # draft -> pending
+      - memory.approve                 # pending -> accepted (approver role)
+    produces:
+      - "docs/04_memory/design/adrs/{id}.md"
+    checks:
+      pre: ["spec-review.passed"]     # dl-022 — internal + cross-spec + BDD/vision + traceability review before accept
+      post: ["frontmatter.required: [title, sard_ref]"]
+
+  - name: seed-dls
+    description: "Optionally record the initial Decision Logs capturing product/process choices behind this release-line."
+    role: architect
+    optional: true
+    actions:
+      - 'memory.add(type: decision-log)'  # one per product/process decision
+      - memory.submit                     # draft -> in-discussion
+      - memory.approve                    # in-discussion -> ready (approver role)
+    produces:
+      - "docs/04_memory/design/dls/{id}.md"
+    checks:
+      post: ["frontmatter.required: [title]"]
+
+  - name: seed-specs
+    description: >-
+      Survey this whole release-line (not one release) for shared file formats, schemas, constant
+      sets, and module APIs already implied by its roadmap + the config; scaffold a tech-spec for
+      each one not yet covered by an approved spec.
+    role: architect
+    optional: true
+    actions:
+      - agent.survey_specs             # enumerate release-line-wide artefacts (e.g. memory.yaml's own schema)
+      - 'memory.add(type: tech-spec)'  # for each uncovered artefact: scaffold a new draft
+      - memory.submit                  # draft -> pending
+      - memory.approve                 # pending -> approved (approver role)
+    produces:
+      - "docs/04_memory/design/specs/{id}.md"
+    checks:
+      pre: ["spec-review.passed"]     # dl-022 — internal + cross-spec + BDD/vision + traceability review before approve
+      post: ["frontmatter.required: [title, scope]"]

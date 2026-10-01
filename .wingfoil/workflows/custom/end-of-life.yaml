@@ -1,0 +1,33 @@
+# WingFoil UI — end-of-life (SUB workflow) — derived from wingfoil/wingfoil@c43221c4
+# Best practice adapted to WingFoil. Include-only; the final phase of sw-life-cycle.
+name: end-of-life
+kind: sub
+description: >-
+  Retire the product (or a major line) at end of life: announce, deprecate active Memory and
+  releases, and archive. Documents remain in the repo (agents ignore deprecated content).
+version: 1.0
+
+phases:
+  - name: announce
+    description: "Record the end-of-life decision and timeline."
+    role: product-owner
+    actions:
+      - 'memory.add(type: decision-log, title: "End-of-life plan")'
+      - memory.submit
+    checks:
+      post: ["frontmatter.required: [title]"]   # title always set by action above
+    approval: { by_role: approver }
+
+  - name: deprecate
+    description: "Deprecate active releases and superseded ADRs / decision-logs."
+    role: tech-lead
+    actions:
+      - memory.deprecate                        # any state -> deprecated / superseded
+    checks:
+      post: ["deprecated content excluded from agent context and default search (REQ-STATE-06)"]
+
+  - name: archive
+    description: "Final commit; freeze the repository line."
+    role: tech-lead
+    actions:
+      - 'git.commit("end-of-life: archive")'

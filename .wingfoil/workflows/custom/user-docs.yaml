@@ -1,0 +1,54 @@
+# WingFoil UI — user-docs (SUB workflow) — derived from wingfoil/wingfoil@c43221c4
+# dl-013 — user-facing documentation gate, between implementation and release-submit. Include-only.
+# dl-025 (v1.1) — extended to own AGENT-facing docs too, as a sibling phase rather than by widening
+#   align-user-docs: verifying CLAUDE.md against dna.yaml/memory.yaml/workflows.yaml/roles.yaml is
+#   architect work, and "agent docs are stale" and "user docs are stale" have different remediations.
+name: user-docs
+kind: sub
+description: >-
+  Ensure the release's user-facing documentation is written and aligned before the release is
+  assembled: README, user guide, CLI reference, working examples, CHANGELOG. Makes documentation a
+  hard release blocker (dl-013) instead of an unenforced convention.
+version: 1.1
+element: release
+
+phases:
+  - name: check-implementation-complete
+    description: "Pre-check: every task tagged for this release is `done` before user docs are finalized."
+    role: tech-lead
+    checks:
+      pre: ["all tasks where tags=[{release.version}] are status: done"]
+
+  - name: align-user-docs
+    description: >-
+      Write/align the user-facing documentation to the shipped CLI/feature surface for this release.
+    role: developer
+    produces:
+      - "README.md"
+      - "docs/user-guide.md"
+      - "docs/cli-reference.md"
+      - "docs/examples/"
+      - "CHANGELOG.md"
+    checks:
+      post: ["user-facing docs aligned with the release's shipped CLI/feature surface"]
+    approval: { by_role: approver }
+
+  - name: align-agent-docs                   # [SPEC] dl-025 — agent-facing docs gate (shape B)
+    description: >-
+      Verify and align the agent-facing entry point against the config it projects, so an agent's
+      first contact describes the tool as it is. Runs after align-user-docs and before
+      release-submit. Also reused by plan-next-release-line at release-line close (dl-025), because
+      structural changes — a new Memory type, a changed state machine, a new pillar — land at
+      release-line boundaries and are exactly what the element/state tables stop matching.
+    role: architect                          # [SPEC] dl-025 — roles.yaml binds architect to
+                                             #   architecture, determinism and traceability
+    produces:
+      - "CLAUDE.md"
+      - ".wingfoil/README.md"
+    checks:
+      post:
+        - "CLAUDE.md project status matches the shipped command surface (CORE_MODULES)"
+        - "CLAUDE.md element/state tables match memory.yaml"
+        - "CLAUDE.md workflow list matches workflows.yaml"
+        - "CLAUDE.md role-directive bindings match roles.yaml"
+    approval: { by_role: approver }

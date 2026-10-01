@@ -1,0 +1,106 @@
+# WingFoil UI — dev-loop (SUB workflow) — TDD — derived from wingfoil/wingfoil@c43221c4
+# Runs once per backlog task (release-cycle iterates it over `task`). Include-only.
+# Encodes the test-first cycle and the review gate with fallback-on-rejection (P4.15).
+# Atomic actions per P4.10 / REQ-INT-06; atomic step execution per REQ-STATE-04.
+# New ADRs discovered during the loop are captured on demand via the `adr-ingest` main workflow.
+# `bug.sync_state` is a no-op unless the task's `bug:` field names at least one bug. Since
+# dl-045-absorbed-bug-back-reference that field is a LIST, and it covers TWO cases: a fix task
+# created by release-planning/build-backlog from a selected triaged bug, and a bug ABSORBED into an
+# existing task's Acceptance Criteria because that task already owns the ground (bug-018 into
+# task-054 is the worked example — task-054 creates the precondition the bug is about, so splitting
+# the fix out would have handed a second task a condition it does not control). A bug that no task
+# names here never advances past `triaged`: `triaged`/`planned` are `waiting` states, so their
+# forward edge fires only through a task. Its one other exit is the approver's `memory.reject` to
+# `closed` (wontfix), legal from `open`, `triaged` and `planned` (dl-123), or `memory.deprecate`.
+#
+# For each id in the list it recomputes that bug's own state from the aggregate progress of ALL the
+# tasks naming it — the bug only advances once every one of them has reached (at least) the matching
+# state, so a bug
+# with 2 fix tasks reaches in-review only once both are in-review, and resolved/closed only once
+# both are done. No separate bug-fix workflow: task and bug share the `in-progress`/`in-review`
+# state names by design.
+name: dev-loop
+kind: sub
+description: >-
+  Test-first development loop for a single task: design -> red -> green -> refactor -> review.
+  On review rejection, fall back to `red` and return the task to in-progress.
+version: 1.4                     # header comment only: dl-123 gives `triaged`/`planned` a reject to `closed` — no phase or step change (prev 1.3: dl-045 `task.bug` is a LIST, so a bug absorbed into an existing task's ACs is sync-able; 1.2: dl-034 lint.clean gate in `refactor`; 1.1: dl-014 git ergonomics (branch/worktree/merge) + docs-api checks; T1 test-strategy classification)
+element: task          # the iterated element provided by release-cycle
+
+phases:
+  - name: start
+    description: "Pick up the task; create a feature branch; move it to in-progress."
+    role: developer
+    actions:
+      - git.create_branch("task/{task.id}")               # dl-014 G1 — namespaced branch
+      - git.create_worktree("task/{task.id}")             # dl-014 G2 — per-task worktree (enables parallel dev-loops; REQ-INT-06)
+      - element.set_state(in-progress)        # task: backlog -> in-progress
+      - 'bug.sync_state(for_each: task.bug)'        # keep every linked bug in sync: planned -> in-progress (dl-045: a list)
+
+  - name: design
+    description: >-
+      Safety net for artefacts not caught by release-planning's `identify-specs`: verify that a
+      tech-spec exists and is approved for every file format, schema, constant set, and module API
+      the task will implement. No code is written until all relevant tech-spec elements are in
+      approved state. For each still-missing spec: memory.add then memory.submit (draft -> pending).
+    role: architect
+    actions:
+      - agent.classify_acs             # T1 (dl-014 + testing directive): classify each AC as red-first (new behavior) or characterization (behavior pre-exists); record in the task's Execution Notes
+      - agent.read_related             # dl-015 — load the Execution Notes of every `depends_on` task; HARD gate (blocks `red` until acknowledged)
+      - agent.verify_specs             # check task scope against existing tech-spec elements
+      - 'memory.add(type: tech-spec)'  # for each still-missing artefact: scaffold a new draft
+      - memory.submit                  # draft -> pending
+    produces:
+      - "docs/04_memory/design/specs/{id}.md"
+    checks:
+      post: ["frontmatter.required: [title, scope]", "tech-spec.approved", "depends_on.acknowledged"]  # specs approved + dl-015 hard gate: every depends_on task's Execution Notes read before red
+    approval: { by_role: approver }    # newly-scaffolded specs need approval before red begins
+    fallback: { step: design }         # reject -> revise the spec and re-verify
+
+  - name: red
+    description: "Write a failing test that captures the task's acceptance criteria."
+    role: developer
+    actions:
+      - agent.execute
+    checks:
+      post: ["tests.exist", "tests.failing(for: red-first ACs)"]   # red-first ACs: a new test exists and fails; characterization ACs (T1) are exempt — no fabricated red, no dead code to force one
+
+  - name: green
+    description: "Implement the minimum code to make the test pass."
+    role: developer
+    actions:
+      - agent.execute
+    checks:
+      post: ["tests.passing"]
+
+  - name: refactor
+    description: "Refactor with tests green; keep coverage from regressing."
+    role: developer
+    actions:
+      - agent.execute
+    checks:
+      post: ["tests.passing", "tests.coverage(min: 80)", "docs.api.public-complete", "docs.api.build", "lint.clean"]   # dl-014 G5 / dl-013 — ACTIVE hard-reject (as of task-062-typedoc-tsdoc-backfill, which closed the B-DECISION Option 2 ramp): docs.api.* enforce via TypeDoc `notDocumented` + `treatWarningsAsErrors` (`typedoc.json`, `npm run docs:api`, asserted by `test/docs/api-docs.test.ts`); an undocumented exported declaration fails `refactor`
+      # dl-034 (as of task-066-fix-eslint-baseline-and-lint-gate, which cleared the bug-009 baseline) — ACTIVE hard-reject FROM THE START, no warn-only ramp (dl-034 Decision 2: docs.api.* needed a ramp because its backfill spanned every exported declaration in the tree; this backfill was one line): lint.clean enforces via ESLint (`eslint.config.js`, `npm run lint`, asserted by `test/lint/lint-clean.test.ts`); any lint error fails `refactor`. Placed here and not in `review` (dl-034 Decision 3) so the developer clears their own lint before a reviewer is engaged — this is the gate the `code-quality` directive's "Lint clean: no errors" always assumed and never had
+
+  - name: review
+    description: "Quality gate runs the BDD acceptance tests, then the reviewer approves or rejects."
+    role: reviewer
+    actions:
+      - tests.bdd.run                          # gate also runs the BDD acceptance suite for the task
+      - memory.submit                          # task: in-progress -> in-review
+      - 'bug.sync_state(for_each: task.bug)'        # keep every linked bug in sync: in-progress -> in-review (once all ITS tasks are)
+    checks:
+      pre: ["tests.bdd.passing"]               # BDD scenarios for the task must pass before approval
+    approval: { by_role: approver }
+    fallback: { step: red, set_state: in-progress }   # reject -> back to red, task -> in-progress
+
+  - name: done
+    description: "On approval, merge to main and mark the task done."
+    role: developer
+    actions:
+      - memory.approve                         # task: in-review -> approved
+      - 'git.merge(to: main, ff: false)'       # dl-014 G3 — always a merge commit (a revertible unit per parallel task)
+      - git.remove_worktree                    # dl-014 G2 — remove the per-task worktree after merge, before branch delete
+      - element.set_state(done)                # task: approved -> done
+      - 'bug.sync_state(for_each: task.bug)'        # keep every linked bug in sync: in-review -> resolved -> closed (once all ITS tasks are done)
+    fallback: { step: red, set_state: in-progress }   # dl-014 G4 — a conflicted/failed merge (REQ-INT-06: abort clean, mark failed) routes back to red

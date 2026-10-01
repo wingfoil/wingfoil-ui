@@ -1,11 +1,42 @@
-# Project Workflow main configuration (P4.1) — scaffolded by `wingfoil init`.
-# This MAIN config file does not inline workflows; it include()s the custom (and, once populated,
-# built-in) workflow files. Startable mains + the Kanban delivery sub-workflow are composed below.
-version: 1
+# WingFoil UI — Project Workflow main configuration
+# Derived from the WingFoil repository's workflows.yaml (wingfoil/wingfoil@c43221c4). This is the
+# MAIN config file: it include()s the custom workflow files. Several `kind: main` workflows are
+# startable (sw-life-cycle + the ingest mains); every non-main is `kind: sub` (include-only).
+# wingfoil@0.2.2 has no workflow engine: phases are run by hand against their `plan` element.
+version: 1.0
 
 include:
-  - workflows/custom/sw-life-cycle.yaml
-  - workflows/custom/bug-ingest.yaml
-  - workflows/custom/decision-log-ingest.yaml
-  - workflows/custom/adr-ingest.yaml
-  - workflows/custom/kanban-delivery.yaml
+  # Startable main workflows.
+  - workflows/custom/sw-life-cycle.yaml        # the end-to-end software life cycle
+  - workflows/custom/bug-ingest.yaml           # capture a bug
+  - workflows/custom/decision-log-ingest.yaml  # capture a decision-log
+  - workflows/custom/adr-ingest.yaml           # capture an ADR
+  - workflows/custom/service-ingest.yaml       # capture an external service
+
+  # Sub-workflows composed by sw-life-cycle (include-only; never started directly).
+  # --- Init (first: before inception) ---
+  - workflows/custom/wingfoil-init.yaml
+  # --- Inception ---
+  - workflows/custom/lean-inception.yaml
+  # --- Specification downcast ---
+  - workflows/custom/specification-downcast.yaml
+  - workflows/custom/user-story-mapping.yaml
+  - workflows/custom/specification-by-examples.yaml
+  - workflows/custom/volere-requirements.yaml
+  - workflows/custom/backlog-export.yaml
+  # --- Delivery ---
+  # TODO before the first release-cycle: adapt release-planning, dev-loop, user-docs,
+  # release-submit, release-publishing to a web dashboard (BOOTSTRAP.md §2.2). e2e-smoke is
+  # already rewritten.
+  - workflows/custom/initial-design.yaml
+  - workflows/custom/release-line-cycle.yaml
+  - workflows/custom/release-cycle.yaml
+  - workflows/custom/release-planning.yaml
+  - workflows/custom/dev-loop.yaml
+  - workflows/custom/user-docs.yaml
+  - workflows/custom/e2e-smoke.yaml
+  - workflows/custom/release-submit.yaml
+  - workflows/custom/release-publishing.yaml
+  - workflows/custom/retrospective.yaml
+  # --- Sunset ---
+  - workflows/custom/end-of-life.yaml

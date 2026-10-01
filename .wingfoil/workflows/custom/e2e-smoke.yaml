@@ -1,0 +1,67 @@
+# WingFoil UI — e2e-smoke (SUB workflow) — rewritten for a web dashboard
+# Black-box release gate before release-submit, replacing WingFoil's CLI smoke (its dl-023).
+# Include-only. Tooling (Playwright, axe-core, packaging command) is confirmed by initial-design.
+name: e2e-smoke
+kind: sub
+description: >-
+  Black-box release gate: initialise a throwaway WingFoil project with the pinned CLI, start the
+  WingFoil UI server on it, drive the screens in scope through a real browser, scan them for
+  accessibility, and check that the packaged app launches. STAGED: warn on failure until the gate
+  runs green for a release, then flip to hard-reject.
+version: 1.0
+element: release
+
+phases:
+  - name: fixture-project
+    description: "Create a throwaway git repository and run the pinned `wingfoil init` (each supported template), plus a few Memory elements in different states."
+    role: qa
+    actions:
+      - 'cli.run("npm run -s wingfoil -- init --template <template>")'
+      - 'cli.run("npm run -s wingfoil -- memory add ...; memory submit ...")'
+    checks:
+      post: ["exit-code-zero", "fixture covers every element state shown by the screens in scope"]
+
+  - name: drive-browser
+    description: >-
+      Start the server on the fixture project and drive the release's screens in a real browser
+      (Playwright): read views render the fixture's state, and every gate action performed from the
+      UI produces the same `wf(…)` commit the CLI would.
+    role: qa
+    actions:
+      - 'cli.run("<start server> --project <fixture>")'
+      - 'cli.run("<playwright e2e suite>")'
+    checks:
+      post: ["e2e suite passing on the supported browsers", "no direct write to .wingfoil/ or Memory files (git log shows only CLI commits)"]
+
+  - name: accessibility
+    description: "Scan every screen in scope with axe-core and walk the keyboard path of each gate action."
+    role: qa
+    actions:
+      - 'cli.run("<axe scan>")'
+    checks:
+      post: ["zero serious/critical axe violations", "every gate action reachable by keyboard"]
+
+  - name: contract
+    description: "Run the CLI JSON contract tests against the WingFoil versions the release supports (`wingfoil_min` .. pinned)."
+    role: qa
+    actions:
+      - 'cli.run("<contract test suite>")'
+    checks:
+      post: ["contract tests passing for every supported WingFoil version"]
+
+  - name: launch
+    description: "Install the packaged app as a user would (packaging decided at inception) and check it starts and serves the UI."
+    role: qa
+    actions:
+      - 'cli.run("<packaged launch command>")'
+    checks:
+      post: ["exit-code-zero", "UI reachable on localhost"]
+
+  - name: gate
+    description: >-
+      Report smoke results. STAGED: warn on failure until the gate runs green for a release, then
+      flip to hard-reject so it blocks release-submit.
+    role: qa
+    checks:
+      post: ["e2e-smoke-passed (staged: warn until green for a release, then hard-reject)"]
+    approval: { by_role: approver }
