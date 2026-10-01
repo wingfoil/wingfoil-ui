@@ -17,7 +17,7 @@ The product discovery of WingFoil UI, from the brief to the MVP. Input of `speci
 | 06 | [Features](06_features.md) | 45 MVP features in nine areas, later features, journey coverage | 4 |
 | 07 | [Sequencer](07_sequencer.md) | Releases v0.1–v1.0 of `rl-v1`, WingFoil floor per release, forecast | 5 |
 | 08 | [MVP Canvas](08_mvp-canvas.md) | Problem, solution, personas, MVP, metrics, cost, risks | 5 |
-| X | [Coherence Audit](X_coherence-audit.md) | Cross-document checks, fixes, hand-off to specification | 6 |
+| X | [Coherence Audit](X_coherence-audit.md) | Cross-document checks, external review, fixes, hand-off to specification | 6–7 |
 
 **Evidence:** `docs/00_reference/` — UX reference and prototype, ADR draft, open questions (all
 closed).
