@@ -39,6 +39,8 @@ stacks:
   methodologies:
     - name: Lean Inception
       phase: inception
+    - name: User Story Mapping
+      phase: specification
 team:
   members:
     - name: Roberto Pompermaier
