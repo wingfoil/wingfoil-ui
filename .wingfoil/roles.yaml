@@ -12,6 +12,9 @@ assignments:
   reviewer:
     - code-review
     - traceability
+    - cli-only-writes
+    - accessibility
+    - ux-consistency
   qa:
     - testing
   architect:
