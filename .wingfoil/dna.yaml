@@ -37,7 +37,6 @@ stacks:
       category: accessibility testing
       notes: to be confirmed by initial-design
   methodologies:
-    - name: Specification by Example (BDD)
     - name: TDD
 team:
   members:
