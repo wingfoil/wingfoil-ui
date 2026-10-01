@@ -1,38 +1,30 @@
-# Project DNA (P2.4) — scaffolded by `wingfoil init` (Kanban template).
-# Structural map of the project: modules, stacks, team + roles, resource paths. Customize freely.
 version: 1
-
 project:
-  name: WingFoil UI               # your project name
+  name: WingFoil UI
   description: Local web UI for WingFoil-governed projects, served by a local server that drives the wingfoil CLI.
-  methodology: custom        # Continuous-flow delivery with work-in-progress limits.
   license: MIT
   repository: wingfoil-ui
-
-# Modules — the parts of the system (anatomy for navigation). Add your own.
+  methodology: custom
 modules: []
-
-# Stacks — technologies + methodologies in use. The methodologies come from the Kanban template.
 stacks:
-  # Each technology is a {name, category} entry: `category` is required (free text: language,
-  # runtime, framework, database, ...); `version` and `notes` are optional. To declare one, replace
-  # `technologies: []` with a list like this example, uncommented:
-  # technologies:
-  #   - name: TypeScript
-  #     category: language
-  # or run: wingfoil dna add stacks.technologies --value TypeScript --entry-category language
   technologies: []
   methodologies:
     - name: Kanban
     - name: Specification by Example (BDD)
     - name: TDD
-
-# Team & roles — AI agents execute as developer/reviewer/qa/architect and never hold approval authority.
 team:
   members:
     - name: Roberto Pompermaier
       email: robypomper@gmail.com
-      roles: [tech-lead, architect, developer, reviewer, product-owner, approver, facilitator, qa]
+      roles:
+        - tech-lead
+        - architect
+        - developer
+        - reviewer
+        - product-owner
+        - approver
+        - facilitator
+        - qa
   roles:
     - name: developer
     - name: reviewer
@@ -43,11 +35,18 @@ team:
     - name: approver
     - name: facilitator
       description: Drives discovery/inception sessions (Lean Inception).
-
-# Resource paths — query categories used to navigate the project.
+  agents:
+    - name: AI agent (Claude/Cursor/etc.)
+      executes_as:
+        - developer
+        - reviewer
+        - qa
+        - architect
+      approval_authority: false
 paths:
   sources: []
   tests: []
   docs: []
-  config: [.wingfoil]
+  config:
+    - .wingfoil
   governance: []
