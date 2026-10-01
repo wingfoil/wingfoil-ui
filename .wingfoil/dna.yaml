@@ -3,7 +3,7 @@
 version: 1
 
 project:
-  name: ""                        # your project name
+  name: WingFoil UI               # your project name
   description: ""
   methodology: Kanban        # Continuous-flow delivery with work-in-progress limits.
 
