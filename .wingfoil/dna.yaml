@@ -6,6 +6,7 @@ project:
   name: WingFoil UI               # your project name
   description: Local web UI for WingFoil-governed projects, served by a local server that drives the wingfoil CLI.
   methodology: custom        # Continuous-flow delivery with work-in-progress limits.
+  license: MIT
 
 # Modules — the parts of the system (anatomy for navigation). Add your own.
 modules: []
