@@ -57,7 +57,6 @@ Copy the package content:
 docs/01_vision/01_product-brief.md
 docs/00_reference/ux-reference.md
 docs/00_reference/adr-draft-local-server.md
-docs/00_reference/directives/wingfoil-cli.md
 .notes/wingfoil-requests.md        # local notes, ignored by git
 docs/00_reference/open-questions.md
 docs/00_reference/prototype/wingfoil-ui-prototype.html
@@ -125,8 +124,8 @@ traceability). **Keep them**; WingFoil's copies are rewritten for WingFoil (TSDo
 - do **not** copy `command-baseline` (WingFoil-only);
 - copy and rewrite `claim-evidence` (a claim names the test or command that proves it:
   unit, contract, Playwright);
-- add `wingfoil-cli` from `docs/00_reference/directives/wingfoil-cli.md`
-  (`wingfoil directive create --name wingfoil-cli`, then replace its content) and bind it
+- add `wingfoil-cli` (`wingfoil directive create --name wingfoil-cli`, then write its content —
+  now at `.wingfoil/directives/custom/wingfoil-cli.md`) and bind it
   **globally**: it lists the wrong or surprising behaviours of the pinned CLI (W-01…W-12) and how
   to work with each; entries are removed when WingFoil fixes them (see 2.2, `release-planning`);
 - remove the `scope:` frontmatter field from any directive copied from WingFoil (W-12);
