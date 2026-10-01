@@ -1,7 +1,7 @@
 # Product Brief — WingFoil UI
 
-**Version:** 0.1
-**Date:** 2026-09-30
+**Version:** 0.2
+**Date:** 2026-10-01 (0.1: 2026-09-30; 0.2: §8 WingFoil version floor, from lean-inception session 1)
 **Status:** Draft (input to `lean-inception`)
 **Reference:** `docs/00_reference/ux-reference.md` (UX concept + interactive prototype)
 
@@ -116,8 +116,11 @@ The current user is **identified from `git config user.email`** matched against
 
 ## 8. Constraints and dependencies
 
-- **Depends on WingFoil ≥ 0.3** (workflow engine: `workflow start|next|status|show|end`) and
-  on stable `--format json` output for every command it calls.
+- **Depends on WingFoil ≥ 0.2.2** for the first waves and on **WingFoil 1.0 for UI v1.0**; the
+  workflow features need WingFoil ≥ 0.3 (workflow engine: `workflow start|next|status|show|end`).
+  Each feature declares the WingFoil version it needs; capabilities missing from the project's
+  CLI are shown read-only or hidden (decided in `02_product-vision.md`, Key Decisions). Stable
+  `--format json` output is needed for every command the UI calls.
 - All writes go through the CLI; the UI server never edits `.wingfoil/` or Memory files
   directly, except its own `ui.yaml`.
 - Runs where git and `wingfoil` are installed and a git identity is configured.
