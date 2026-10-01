@@ -85,7 +85,8 @@ paths:
     - contracts/
   tests:
     - test/
-  docs: []
+  docs:
+    - docs/
   config:
     - .wingfoil
   governance: []
