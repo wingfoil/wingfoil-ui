@@ -83,7 +83,8 @@ paths:
     - server/
     - web/
     - contracts/
-  tests: []
+  tests:
+    - test/
   docs: []
   config:
     - .wingfoil
