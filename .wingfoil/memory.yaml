@@ -1,0 +1,66 @@
+# Memory element schema (P1.13) — scaffolded by `wingfoil init`.
+# One entry per element type: its path pattern, its id pattern and its scaffold template. Every type
+# below shares the `defaults` state machine; give a type its own `states:` block to override it for
+# that type only (REQ-STATE-08).
+version: 1
+
+# Default state machine — applies to every type that declares no `states:` block of its own.
+# `sequence` is the ordered forward chain (`submit` walks it); a `gates` state's forward edge needs
+# `approve` instead, and its `reject` target is where a rejection lands. `deprecated` is implicit:
+# `memory deprecate` reaches it from any state, so it is never listed here.
+defaults:
+  states:
+    sequence: [ draft, pending, approved ]
+    gates:
+      pending: { reject: draft }
+
+types:
+  adr:
+    path: docs/memory/adr/{id}.md
+    id_pattern: "adr-{n}-{slug}"
+    template:
+      file: memory/templates/adr.md
+      frontmatter:
+        required: [id, type, title, status]
+  bug:
+    path: docs/memory/bug/{id}.md
+    id_pattern: "bug-{n}-{slug}"
+    template:
+      file: memory/templates/bug.md
+      frontmatter:
+        required: [id, type, title, status]
+  decision-log:
+    path: docs/memory/decision-log/{id}.md
+    id_pattern: "dl-{n}-{slug}"
+    template:
+      file: memory/templates/decision-log.md
+      frontmatter:
+        required: [id, type, title, status]
+  release:
+    path: docs/memory/release/{id}.md
+    id_pattern: "release-{n}"
+    template:
+      file: memory/templates/release.md
+      frontmatter:
+        required: [id, type, title, status]
+  release-line:
+    path: docs/memory/release-line/{id}.md
+    id_pattern: "rl-{n}"
+    template:
+      file: memory/templates/release-line.md
+      frontmatter:
+        required: [id, type, title, status]
+  task:
+    path: docs/memory/task/{id}.md
+    id_pattern: "task-{n}-{slug}"
+    template:
+      file: memory/templates/task.md
+      frontmatter:
+        required: [id, type, title, status]
+  tech-spec:
+    path: docs/memory/tech-spec/{id}.md
+    id_pattern: "spec-{n}-{slug}"
+    template:
+      file: memory/templates/tech-spec.md
+      frontmatter:
+        required: [id, type, title, status]

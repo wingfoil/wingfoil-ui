@@ -1,0 +1,46 @@
+# Project DNA (P2.4) — scaffolded by `wingfoil init` (Kanban template).
+# Structural map of the project: modules, stacks, team + roles, resource paths. Customize freely.
+version: 1
+
+project:
+  name: ""                        # your project name
+  description: ""
+  methodology: Kanban        # Continuous-flow delivery with work-in-progress limits.
+
+# Modules — the parts of the system (anatomy for navigation). Add your own.
+modules: []
+
+# Stacks — technologies + methodologies in use. The methodologies come from the Kanban template.
+stacks:
+  # Each technology is a {name, category} entry: `category` is required (free text: language,
+  # runtime, framework, database, ...); `version` and `notes` are optional. To declare one, replace
+  # `technologies: []` with a list like this example, uncommented:
+  # technologies:
+  #   - name: TypeScript
+  #     category: language
+  # or run: wingfoil dna add stacks.technologies --value TypeScript --entry-category language
+  technologies: []
+  methodologies:
+    - name: Kanban
+    - name: Specification by Example (BDD)
+    - name: TDD
+
+# Team & roles — AI agents execute as developer/reviewer/qa/architect and never hold approval authority.
+team:
+  members: []
+  roles:
+    - name: developer
+    - name: reviewer
+    - name: qa
+    - name: architect
+    - name: product-owner
+    - name: tech-lead
+    - name: approver
+
+# Resource paths — query categories used to navigate the project.
+paths:
+  sources: []
+  tests: []
+  docs: []
+  config: [.wingfoil]
+  governance: []

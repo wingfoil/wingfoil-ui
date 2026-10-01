@@ -1,0 +1,11 @@
+# Project Workflow main configuration (P4.1) — scaffolded by `wingfoil init`.
+# This MAIN config file does not inline workflows; it include()s the custom (and, once populated,
+# built-in) workflow files. Startable mains + the Kanban delivery sub-workflow are composed below.
+version: 1
+
+include:
+  - workflows/custom/sw-life-cycle.yaml
+  - workflows/custom/bug-ingest.yaml
+  - workflows/custom/decision-log-ingest.yaml
+  - workflows/custom/adr-ingest.yaml
+  - workflows/custom/kanban-delivery.yaml

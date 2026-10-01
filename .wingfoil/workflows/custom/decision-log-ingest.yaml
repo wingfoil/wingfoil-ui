@@ -1,0 +1,6 @@
+# Capture a decision-log on demand
+name: decision-log-ingest
+kind: main
+description: "Capture a decision-log on demand"
+phases:
+  - name: capture

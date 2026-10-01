@@ -1,0 +1,14 @@
+# Kanban delivery loop (sub-workflow) — scaffolded by `wingfoil init`.
+# Work flows continuously across the board under explicit WIP limits; there are no timeboxed iterations.
+name: kanban-delivery
+kind: sub
+description: "Kanban delivery loop"
+phases:
+  - name: plan
+    description: "Select the next slice of work to deliver."
+  - name: build
+    description: "Implement the work test-first (TDD)."
+  - name: review
+    description: "Review against the directives; run unit + acceptance tests."
+  - name: deliver
+    description: "Integrate the completed work."

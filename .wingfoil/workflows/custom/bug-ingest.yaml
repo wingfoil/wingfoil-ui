@@ -1,0 +1,6 @@
+# Capture a bug on demand
+name: bug-ingest
+kind: main
+description: "Capture a bug on demand"
+phases:
+  - name: capture

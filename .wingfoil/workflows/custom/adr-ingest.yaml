@@ -1,0 +1,6 @@
+# Capture an ADR on demand
+name: adr-ingest
+kind: main
+description: "Capture an ADR on demand"
+phases:
+  - name: capture

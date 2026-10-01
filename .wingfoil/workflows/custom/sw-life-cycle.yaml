@@ -1,0 +1,10 @@
+# The end-to-end software life cycle
+name: sw-life-cycle
+kind: main
+description: "The end-to-end software life cycle"
+phases:
+  - name: inception
+  - name: specification
+  - name: delivery
+    include: workflows/custom/kanban-delivery.yaml
+  - name: sunset
