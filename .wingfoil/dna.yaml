@@ -19,6 +19,9 @@ stacks:
   technologies:
     - name: TypeScript
       category: language
+    - name: Node.js
+      category: runtime
+      version: 22.12+
   methodologies:
     - name: Kanban
     - name: Specification by Example (BDD)
