@@ -41,6 +41,8 @@ stacks:
       phase: inception
     - name: User Story Mapping
       phase: specification
+    - name: Specification by Example (BDD)
+      phase: specification
 team:
   members:
     - name: Roberto Pompermaier
