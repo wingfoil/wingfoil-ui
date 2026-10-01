@@ -25,6 +25,7 @@ assignments:
     - cli-only-writes
   product-owner:
     - traceability
+    - ux-consistency
   tech-lead:
     - architecture
     - code-review
