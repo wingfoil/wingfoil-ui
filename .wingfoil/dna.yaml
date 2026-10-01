@@ -89,4 +89,5 @@ paths:
     - docs/
   config:
     - package.json
-  governance: []
+  governance:
+    - .wingfoil/
