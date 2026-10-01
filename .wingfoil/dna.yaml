@@ -16,7 +16,9 @@ modules:
     description: JSON schemas of the consumed WingFoil CLI output (placeholder until initial-design)
     path: contracts/
 stacks:
-  technologies: []
+  technologies:
+    - name: TypeScript
+      category: language
   methodologies:
     - name: Kanban
     - name: Specification by Example (BDD)
