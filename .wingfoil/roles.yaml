@@ -22,6 +22,7 @@ assignments:
     - architecture
     - determinism
     - traceability
+    - cli-only-writes
   product-owner:
     - traceability
   tech-lead:
