@@ -38,6 +38,8 @@ team:
     - name: product-owner
     - name: tech-lead
     - name: approver
+    - name: facilitator
+      description: Drives discovery/inception sessions (Lean Inception).
 
 # Resource paths — query categories used to navigate the project.
 paths:
