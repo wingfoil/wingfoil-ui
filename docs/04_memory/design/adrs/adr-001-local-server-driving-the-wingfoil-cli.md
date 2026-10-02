@@ -2,7 +2,7 @@
 id: adr-001-local-server-driving-the-wingfoil-cli
 type: adr
 title: "Local server driving the WingFoil CLI"
-status: pending
+status: accepted
 sard_ref: "REQ-ARC-02"  # REQUIRED — REQ-* code (docs/02_requirements/03_sard/) or feature ID
 supersedes: ""         # optional — id of the ADR this one replaces, e.g. "adr-002"
 release: "v0.1"        # optional — implementation release this ADR is assigned to (stamped by release-planning/build-backlog), e.g. "v0.1"
