@@ -1,6 +1,6 @@
 # SARD — 1. Architectural Constraints
 
-**Version:** 0.3 · **Date:** 2026-10-02 (0.2: coherence audit fixes — session 6; 0.3: page title, REQ-ARC-10 — initial-design session 2) · **Status:** Draft — specification-downcast session 4
+**Version:** 0.4 · **Date:** 2026-10-02 (0.2: coherence audit fixes — session 6; 0.3: page title, REQ-ARC-10 — initial-design session 2; 0.4: REQ-ARC-04 allow-list of direct reads — initial-design session 5) · **Status:** Draft — specification-downcast session 4
 
 Shell and conventions: `00_sard.md`.
 
@@ -39,15 +39,15 @@ Shell and conventions: `00_sard.md`.
 | Fit criterion | [percentage] After the full e2e suite, 100 % of the commits created in each fixture are `wf(…)` commits made by a CLI process or `chore(ui)` commits changing exactly `.wingfoil/ui.yaml`; the server process opens 0 files for writing under `.wingfoil/` (other than `ui.yaml`) or under a Memory path (file-system audit); in v0.1 the only write is a clone into a new, empty folder (0 endpoints write an existing repository). |
 | Verified by | e2e-smoke `drive-browser` (git log check) · file-system audit |
 
-### REQ-ARC-04 — Reads through the CLI
+### REQ-ARC-04 — Reads through the CLI, direct reads on an allow-list
 
 | Field | |
 |-------|--|
 | Release | v0.1 |
-| Description | Governed state (DNA, Memory, directives, paths, workflows) is read through CLI JSON output only. Git is read directly only for HEAD, branches, ahead/behind, working-tree status, `git log` and the working-tree files shown in Files. The only governance file the server parses itself is `.wingfoil/ui.yaml`. |
-| Rationale | One interpretation of the schema: WingFoil's; the UI cannot drift from a loader it does not re-implement (ADR draft). |
+| Description | Governed state is read through CLI JSON output wherever the CLI exposes it (DNA, paths, workflows, Memory list and history, directive list). What the pinned CLI does not expose is read **directly, read-only, from a closed allow-list**, until WingFoil provides a read verb: `.wingfoil/memory.yaml` (type definitions: `id_pattern`, `path`, required fields, `states`), the Memory element files at the `path` given by `memory search`, and the directive files at the `path` given by `directives list`. Each directly read shape has a JSON schema in `contracts/` per supported WingFoil version, and an element's `status` read from its file must equal the one `memory search` returns (otherwise: read error). When the CLI of the project provides the read verb (capability detection), the direct read is not used. Git is read directly only for HEAD, branches, ahead/behind, working-tree status, `git log` and the working-tree files shown in Files. The server writes none of these files. |
+| Rationale | One interpretation of the schema: WingFoil's, wherever the CLI exposes it. WingFoil 0.2.2 has no verb for type definitions, element content or directive bodies (checked 2026-10-02, initial-design session 5), yet the action descriptor, the element panel and the Directives view need them; a closed, schema-checked, read-only list keeps the drift visible and temporary. |
 | Traceability | US-S-25, US-M-01, US-R-05, US-S-27 · S-25.1, M-01.1, R-05.1, S-27.1 · S1, S8 |
-| Fit criterion | [boolean] A unit test with a file-system spy over every read endpoint records 0 direct reads of `.wingfoil/*.yaml` (except `ui.yaml`) or of Memory element files by the server process. |
+| Fit criterion | [boolean] A unit test with a file-system spy over every read endpoint records 0 direct reads of `.wingfoil/*.yaml` other than `ui.yaml` and `memory.yaml`, 0 reads of Memory or directive files at a path not returned by the CLI, and 0 writes to any of them; every allow-listed shape has a schema and a passing contract test per supported version; a fixture whose element file `status` differs from `memory search` shows a read error for that element. |
 | Verified by | unit (fs spy) |
 
 ### REQ-ARC-05 — Methodology independence

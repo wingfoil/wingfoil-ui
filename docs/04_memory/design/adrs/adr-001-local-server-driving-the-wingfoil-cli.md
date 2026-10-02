@@ -47,6 +47,16 @@ project's `wingfoil` CLI with `--format json`, in the project root, through `exe
 argument array (REQ-ARC-04, INT-04, SEC-05). The package declares no dependency on `wingfoil`.
 The MCP server and WingFoil's internal modules are not used.
 
+**D1a — Direct reads where the CLI has no read verb** (REQ-ARC-04). WingFoil 0.2.2 exposes no
+type definitions, no element content (body and full frontmatter) and no directive bodies:
+`memory search` returns `id`, `title`, `type`, `status`, `tags`, `path` only, and `directives list`
+frontmatter and roles only (checked 2026-10-02). Until the project's CLI provides a read verb for
+them (capability detection), the server reads, **read-only, from a closed allow-list**:
+`.wingfoil/memory.yaml` (the keys the UI uses), the element files at the `path` `memory search`
+returns, and the directive files at the `path` `directives list` returns. Each shape has a schema
+in `contracts/` (D4); an element whose file `status` differs from `memory search` is a read error.
+The server never writes these files.
+
 **D2 — CLI discovery** (REQ-ARC-02), resolved when a project is opened or selected and again when
 `node_modules/wingfoil/package.json` changes:
 1. the project's pinned CLI: `<project root>/node_modules/wingfoil/package.json`, entry `bin.wingfoil`,
@@ -70,8 +80,9 @@ range the project opens read-only with the range in the reason (S-09.1, S-09.2).
 capability is enabled, read-only with the reason, or hidden according to the capability table
 (minimum version and project conditions per capability).
 
-**D4 — Contract matrix** (REQ-INT-01). Every CLI command the server invokes is listed in the CLI
-adapter; each consumed output shape has a JSON schema in `contracts/`, captured from a real
+**D4 — Contract matrix** (REQ-INT-01, ARC-04). Every CLI command the server invokes is listed in the
+CLI adapter, and every directly read file shape (D1a) in its reader; each consumed shape has a JSON
+schema in `contracts/`, captured from a real
 output of the version it records (`wingfoil_version`), plus the capability table. A contract test
 runs every listed command against a fixture for **each version of the support matrix** (the
 pinned version and every other supported release, installed in a temporary fixture). Output that
@@ -132,6 +143,9 @@ in the operating system's user configuration directory, never in a repository (R
     `active → done`) stay **read-only** until WingFoil provides them (WingFoil task-127, task-163).
   - Running a project's own CLI means trusting its `node_modules` as much as the project's own
     `npm run wingfoil` does.
+  - **Direct reads (D1a)** re-implement a small part of WingFoil's parsing (YAML frontmatter, the
+    used keys of `memory.yaml`): a drift risk, bounded by the schemas, the `status` cross-check
+    and the contract tests, and removed when WingFoil provides read verbs.
 - **Neutral**
   - `.wingfoil/ui.yaml` needs no WingFoil change: the CLI loaders read only the files they own
     (W-11).
@@ -159,3 +173,6 @@ PERF-05 · features S1, S3, S8, X4 · scenarios S-08.1, S-08.2, S-09.1, S-09.2, 
 - 2026-10-02 — drafted in initial-design session 3 (`initial-design-rl-v1-plan`) from the ADR
   draft; `sard_ref` = REQ-ARC-02 (the core of the decision), the full list above. Submitted only
   after the independent spec review (plan step 6).
+- 2026-10-02 — session 5: D1a added (and D4 extended) after the CLI read surface of 0.2.2 was
+  found not to cover type definitions, element content and directive bodies; SARD REQ-ARC-04
+  v0.4 and directive `cli-only-writes` v1.4 changed accordingly.

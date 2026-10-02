@@ -1,6 +1,6 @@
 # SARD — 4. Integrations & Interfaces
 
-**Version:** 0.2 · **Date:** 2026-10-02 (0.2: coherence audit fixes — session 6) · **Status:** Draft — specification-downcast session 4
+**Version:** 0.3 · **Date:** 2026-10-02 (0.2: coherence audit fixes — session 6; 0.3: REQ-INT-06 Memory-event source fixed by spec-002 — initial-design session 5) · **Status:** Draft — specification-downcast session 4
 
 Shell and conventions: `00_sard.md`.
 
@@ -66,7 +66,7 @@ Shell and conventions: `00_sard.md`.
 | Field | |
 |-------|--|
 | Release | v0.1 (read, clone) · v0.2 (transport) |
-| Description | The server runs only these git operations: read (`rev-parse`, `status --porcelain`, `log`, `rev-list --count`, `config user.email`, `remote`), `clone` (adding a remote project, into a new empty folder), `fetch`, `pull --ff-only`, `push`, and `add -- .wingfoil/ui.yaml` + `commit -- .wingfoil/ui.yaml` for presets. It never merges, rebases, resets, stashes or checks out. Git's error message is shown verbatim on failure. Memory events (Timeline, Recent activity) are parsed from `wf(…)` subjects; `add` and `submit` subjects carry no transition, so a submit's `from → to` is read from the element file's `status` before and after the commit (`git log -p` on the element file, or `memory history <id>` when its output carries the states — to be fixed by the Memory-event tech-spec). |
+| Description | The server runs only these git operations: read (`rev-parse`, `status --porcelain`, `log`, `rev-list --count`, `config user.email`, `remote`), `clone` (adding a remote project, into a new empty folder), `fetch`, `pull --ff-only`, `push`, and `add -- .wingfoil/ui.yaml` + `commit -- .wingfoil/ui.yaml` for presets. It never merges, rebases, resets, stashes or checks out. Git's error message is shown verbatim on failure. Memory events (Timeline, Recent activity) are parsed from `wf(…)` subjects; `add` and `submit` subjects carry no transition, so a submit's `from → to` is read from the element file's `status` before and after the commit (project-wide views: one `git log -p` over the Memory directories; element panel: `memory history <id>`, which carries the states — `spec-002-memory-events-from-git`). |
 | Rationale | Not a git client (`03_is-isnot.md`); write classes (c). |
 | Traceability | US-Y-01, US-Y-02, US-Y-03, US-Y-05, US-Y-06, US-Y-07, US-Y-08, US-S-04, US-S-07, US-C-02 · Y-01.1, Y-02.2, Y-03.1, Y-03.2, Y-05.1, Y-05.3, Y-06.1, Y-07.1, Y-07.3, Y-08.1, Y-08.2, S-04.3, S-07.1, C-02.2 · Y1–Y4, S2, C1 |
 | Fit criterion | [percentage] 100 % of the git processes started during the e2e suite use a subcommand of the allowed list (process audit). |
