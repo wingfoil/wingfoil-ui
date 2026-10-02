@@ -151,3 +151,27 @@ file's TODO is resolved in the same session (the check's meaning written in its 
   requirements index v1.1; `rl-v1` Scope counts updated (111 stories, 299 scenarios).
 - Stop-check: `check_releases.py` — 5 releases, 44 / 44 MVP features, OK; `check_usm.py`,
   `check_bdd.py`, `check_sard.py`, `check_backlog.py` ✓; `directives list` → no warnings.
+
+### Session 3 — ADRs (2026-10-02)
+
+- Outputs (both `draft`, submitted after the spec review of step 6):
+  - `adr-001-local-server-driving-the-wingfoil-cli` (`sard_ref` REQ-ARC-02, release v0.1) — from
+    the ADR draft, decisions D1–D10; the draft's open items decided: **D2** CLI discovery
+    (`node_modules/wingfoil/package.json` `bin` run with `process.execPath`, project root only, then
+    PATH resolved to an absolute path, else not opened; the installed version counts); **D3**
+    `--version` must be semver, range 0.2.2 → highest contract-tested inclusive, pre-releases out
+    unless listed; **D4** schemas per consumed command in `contracts/`, contract tests per matrix
+    version, matrix in the README, advanced by `release-planning`; **D5** batched reads, writes
+    serialised per project (an addition to the SARD), 30 s timeout. CLI latency measured instead
+    of estimated: ≈ 0.4 s warm, 0.85 s cold per call (WingFoil 0.2.2, this repository).
+  - `adr-002-technology-stack` (`sard_ref` REQ-ARC-01, release v0.1) — after a comparison of the
+    alternatives: TypeScript, npm workspaces `server/` `web/` `contracts/`; Fastify (JSON Schema
+    validation with Ajv, pino with token redaction); ports and adapters for process runner,
+    local-state store, event bus, per-project write lock, authentication, repository watcher;
+    React + Vite, React Aria Components, TanStack Query/Router, FormatJS, CSS custom properties,
+    markdown-it + DOMPurify; Vitest, Playwright, @axe-core/playwright, ESLint, Prettier.
+- Decisions: `sard_ref` holds the core requirement, the full list is in each ADR's Traceability;
+  local request ids are not cited (WingFoil elements are); the DNA `stacks.technologies` is
+  updated through the CLI only after `adr-002` is accepted.
+- `docs/00_reference/adr-draft-local-server.md` annotated "Recorded as adr-001" (kept as evidence).
+- Check: every `REQ-*` and scenario cited by the two ADRs exists (script over SARD v0.3 and BDD).

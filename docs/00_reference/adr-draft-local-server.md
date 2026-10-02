@@ -1,7 +1,7 @@
 # ADR draft — Local server driving the WingFoil CLI
 
-**Status:** Draft — to be recorded as `adr-001` during `initial-design` (after `wingfoil init`)
-**Date:** 2026-09-30 · **Updated:** 2026-10-01 (checked against wingfoil 0.2.2; aligned with the Vision Package, session 7)
+**Status:** Recorded as `adr-001-local-server-driving-the-wingfoil-cli` (initial-design session 3) — kept as historical evidence; the ADR is the reference
+**Date:** 2026-09-30 · **Updated:** 2026-10-01 (checked against wingfoil 0.2.2; aligned with the Vision Package, session 7) · 2026-10-02 (status: recorded as adr-001)
 
 ## Context
 
