@@ -1,0 +1,142 @@
+{
+  "version": 1,
+  "release": "v1.0",
+  "generated_from": {
+    "story_map": "docs/02_requirements/01_user_story_map/02_story-map.md v0.4",
+    "bdd": "docs/02_requirements/02_bdd/00_conventions.md v0.3",
+    "sard": "docs/02_requirements/03_sard/00_sard.md v0.2"
+  },
+  "items": [
+    {
+      "id": "US-S-02",
+      "kind": "user-story",
+      "title": "A stable wingfoil-ui 1.0 with a published support matrix of WingFoil versions",
+      "release": "v1.0",
+      "area": "S",
+      "wingfoil_min": "1.0",
+      "story": "As Alex, I want a stable `wingfoil-ui` 1.0 with a published support matrix of WingFoil versions, so that I know which of my projects it can open",
+      "persona": "Alex",
+      "story_kind": "nominal",
+      "features": [
+        "S3",
+        "S1"
+      ],
+      "journeys": "—",
+      "acceptance_criteria": [
+        {
+          "id": "S-02.1",
+          "title": "Install and run the stable release",
+          "file": "docs/02_requirements/02_bdd/features/s/packaging.feature",
+          "release": "v1.0",
+          "kind": "nominal",
+          "fixture": "any",
+          "steps": [
+            "Given Node.js 22.12 is installed",
+            "When I run \"npx wingfoil-ui@1 --version\"",
+            "Then it prints \"1.0.0\""
+          ]
+        },
+        {
+          "id": "S-02.2",
+          "title": "Publish the support matrix",
+          "file": "docs/02_requirements/02_bdd/features/s/packaging.feature",
+          "release": "v1.0",
+          "kind": "nominal",
+          "fixture": "any",
+          "steps": [
+            "When I open the README of the npm package \"wingfoil-ui\" 1.0.0",
+            "Then its section \"Supported WingFoil versions\" lists the range \"0.2.2 to 1.x\" and, per WingFoil version, the capabilities available"
+          ]
+        },
+        {
+          "id": "S-02.3",
+          "title": "Pass the MVP journeys on WingFoil 1.0",
+          "file": "docs/02_requirements/02_bdd/features/s/packaging.feature",
+          "release": "v1.0",
+          "kind": "edge",
+          "fixture": "any",
+          "steps": [
+            "Given the three fixtures are built with WingFoil 1.0",
+            "When the e2e suite of every MVP story runs",
+            "Then every scenario tagged up to @v1.0 passes"
+          ]
+        },
+        {
+          "id": "S-02.4",
+          "title": "Print the supported range on a version mismatch",
+          "file": "docs/02_requirements/02_bdd/features/s/packaging.feature",
+          "release": "v1.0",
+          "kind": "edge",
+          "fixture": "kanban",
+          "steps": [
+            "Given the kanban fixture pins `wingfoil` 2.0.0",
+            "When I open the kanban fixture",
+            "Then the project header shows \"WingFoil 2.0.0 — read-only: supported 0.2.2 to 1.x\""
+          ]
+        }
+      ],
+      "dependencies": [
+        "TT-ARC-01",
+        "TT-INT-01",
+        "TT-INT-02"
+      ]
+    },
+    {
+      "id": "US-X-01",
+      "kind": "user-story",
+      "title": "A user guide with screenshots of every MVP screen",
+      "release": "v1.0",
+      "area": "X",
+      "wingfoil_min": "1.0",
+      "story": "As Riley, I want a user guide with screenshots of every MVP screen, so that I learn the console without asking the team",
+      "persona": "Riley",
+      "story_kind": "nominal",
+      "features": [],
+      "journeys": "—",
+      "acceptance_criteria": [
+        {
+          "id": "X-01.1",
+          "title": "Cover every MVP screen",
+          "file": "docs/02_requirements/02_bdd/features/x/user-guide.feature",
+          "release": "v1.0",
+          "kind": "nominal",
+          "fixture": "any",
+          "steps": [
+            "When I open the user guide of release 1.0.0",
+            "Then it has one section per screen: Today, element panel, Workflow, Memory, DNA, Directives, Traceability, Documentation, Team, Configuration, Timeline, Files, project switcher, command palette",
+            "And each section has at least 1 screenshot"
+          ]
+        },
+        {
+          "id": "X-01.2",
+          "title": "Regenerate the screenshots for the release",
+          "file": "docs/02_requirements/02_bdd/features/x/user-guide.feature",
+          "release": "v1.0",
+          "kind": "edge",
+          "fixture": "any",
+          "steps": [
+            "When the screenshots of the user guide are generated for release 1.0.0",
+            "Then every screenshot is produced by the e2e suite from the fixtures at the release commit",
+            "And no screenshot file is older than that commit"
+          ]
+        },
+        {
+          "id": "X-01.3",
+          "title": "Pass the accessibility checks of the guide",
+          "file": "docs/02_requirements/02_bdd/features/x/user-guide.feature",
+          "release": "v1.0",
+          "kind": "edge",
+          "fixture": "any",
+          "steps": [
+            "When axe-core scans every page of the user guide",
+            "Then it reports 0 violations of impact \"serious\" or \"critical\"",
+            "And every screenshot has a text alternative"
+          ]
+        }
+      ],
+      "dependencies": [
+        "TT-ARC-10"
+      ]
+    }
+  ]
+}

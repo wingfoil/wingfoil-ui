@@ -1,0 +1,849 @@
+{
+  "version": 1,
+  "release": "v0.4",
+  "generated_from": {
+    "story_map": "docs/02_requirements/01_user_story_map/02_story-map.md v0.4",
+    "bdd": "docs/02_requirements/02_bdd/00_conventions.md v0.3",
+    "sard": "docs/02_requirements/03_sard/00_sard.md v0.2"
+  },
+  "items": [
+    {
+      "id": "US-T-09",
+      "kind": "user-story",
+      "title": "The next workflow step for my role in Requires you",
+      "release": "v0.4",
+      "area": "T",
+      "wingfoil_min": "0.3",
+      "story": "As Jordan, I want the next workflow step for my role in Requires you, so that I know what to do after my rejected work",
+      "persona": "Jordan",
+      "story_kind": "nominal",
+      "features": [
+        "T3"
+      ],
+      "journeys": "J3.1",
+      "acceptance_criteria": [
+        {
+          "id": "T-09.1",
+          "title": "Show the next step for my role",
+          "file": "docs/02_requirements/02_bdd/features/t/next-step.feature",
+          "release": "v0.4",
+          "kind": "nominal",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running",
+            "And I am Jordan",
+            "Given the custom fixture is open on WingFoil 0.3",
+            "And the workflow engine reports the next step \"dev-loop · red\" for role \"developer\" on \"task-003-element-panel\"",
+            "When I open Today",
+            "Then the Next workflow step card shows \"dev-loop · red — task-003-element-panel\""
+          ]
+        },
+        {
+          "id": "T-09.2",
+          "title": "List rejected work before the next step",
+          "file": "docs/02_requirements/02_bdd/features/t/next-step.feature",
+          "release": "v0.4",
+          "kind": "edge",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running",
+            "And I am Jordan",
+            "Given the custom fixture is open on WingFoil 0.3 with a next step for \"developer\"",
+            "And \"task-005-sidebar\" is a `draft` of Jordan's rejected with the reason \"Breaks the layout\"",
+            "When I open Today",
+            "Then Requires you lists \"task-005-sidebar\" above the Next workflow step card"
+          ]
+        },
+        {
+          "id": "T-09.3",
+          "title": "Say that no step waits for my role",
+          "file": "docs/02_requirements/02_bdd/features/t/next-step.feature",
+          "release": "v0.4",
+          "kind": "edge",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running",
+            "And I am Jordan",
+            "Given the custom fixture is open on WingFoil 0.3",
+            "And the workflow engine reports no next step for role \"developer\"",
+            "When I open Today",
+            "Then the Next workflow step card shows \"No workflow step waits for developer\""
+          ]
+        }
+      ],
+      "dependencies": [
+        "TT-INT-07"
+      ]
+    },
+    {
+      "id": "US-T-10",
+      "kind": "user-story",
+      "title": "The next-step area shown read-only with the reason",
+      "release": "v0.4",
+      "area": "T",
+      "wingfoil_min": "0.3",
+      "story": "As Jordan, on a project whose WingFoil is older than 0.3, I want the next-step area shown read-only with the reason, so that I know why it is empty",
+      "persona": "Jordan",
+      "story_kind": "edge",
+      "features": [
+        "T3",
+        "S3"
+      ],
+      "journeys": "J3 obstacle",
+      "acceptance_criteria": [
+        {
+          "id": "T-10.1",
+          "title": "Show the next-step card read-only on WingFoil 0.2.2",
+          "file": "docs/02_requirements/02_bdd/features/t/next-step.feature",
+          "release": "v0.4",
+          "kind": "nominal",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running",
+            "And I am Jordan",
+            "Given the custom fixture is open on WingFoil 0.2.2",
+            "When I open Today",
+            "Then the Next workflow step card shows \"Needs WingFoil 0.3 (this project: 0.2.2)\"",
+            "And the card shows no \"Launch agent\" button"
+          ]
+        },
+        {
+          "id": "T-10.2",
+          "title": "Show the same reason on a Kanban project",
+          "file": "docs/02_requirements/02_bdd/features/t/next-step.feature",
+          "release": "v0.4",
+          "kind": "edge",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running",
+            "And I am Jordan",
+            "Given the kanban fixture is open on WingFoil 0.2.2",
+            "When I open Today",
+            "Then the Next workflow step card shows \"Needs WingFoil 0.3 (this project: 0.2.2)\""
+          ]
+        }
+      ],
+      "dependencies": [
+        "TT-INT-03"
+      ]
+    },
+    {
+      "id": "US-T-16",
+      "kind": "user-story",
+      "title": "The progress card to show phase X of Y of the current workflow",
+      "release": "v0.4",
+      "area": "T",
+      "wingfoil_min": "0.3",
+      "story": "As Casey, I want the progress card to show phase X of Y of the current workflow, so that I know where the project is in its life cycle",
+      "persona": "Casey",
+      "story_kind": "nominal",
+      "features": [
+        "T2"
+      ],
+      "journeys": "J2.1",
+      "acceptance_criteria": [
+        {
+          "id": "T-16.1",
+          "title": "Show the current phase of the scope",
+          "file": "docs/02_requirements/02_bdd/features/t/progress-card.feature",
+          "release": "v0.4",
+          "kind": "nominal",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running",
+            "And I am Casey",
+            "Given the custom fixture with the sw-life-cycle preset is open on WingFoil 0.3",
+            "And the workflow engine reports `release-cycle` of \"minor-v0.1\" at phase \"implementation\"",
+            "When I open Today",
+            "Then the progress card shows \"Phase 2 of 7 — implementation\"",
+            "And the phase strip shows 1 phase done, 1 current and 5 to do"
+          ]
+        },
+        {
+          "id": "T-16.2",
+          "title": "Show a scope whose workflow has not started",
+          "file": "docs/02_requirements/02_bdd/features/t/progress-card.feature",
+          "release": "v0.4",
+          "kind": "edge",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running",
+            "And I am Casey",
+            "Given the custom fixture with the sw-life-cycle preset is open on WingFoil 0.3",
+            "And the workflow engine reports no run of `release-cycle` for \"minor-v0.1\"",
+            "When I open Today",
+            "Then the progress card shows \"Not started — 0 of 7 phases\""
+          ]
+        }
+      ],
+      "dependencies": [
+        "TT-INT-07"
+      ]
+    },
+    {
+      "id": "US-M-06",
+      "kind": "user-story",
+      "title": "The workflow tree to show the current position and who must act",
+      "release": "v0.4",
+      "area": "M",
+      "wingfoil_min": "0.3",
+      "story": "As Jordan, I want the workflow tree to show the current position and who must act, so that I see where the process stands",
+      "persona": "Jordan",
+      "story_kind": "nominal",
+      "features": [
+        "W1"
+      ],
+      "journeys": "J3.2",
+      "acceptance_criteria": [
+        {
+          "id": "M-06.1",
+          "title": "Mark the current position and who must act",
+          "file": "docs/02_requirements/02_bdd/features/m/workflows.feature",
+          "release": "v0.4",
+          "kind": "nominal",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running",
+            "Given the custom fixture is open on WingFoil 0.3",
+            "And the workflow engine reports `sw-life-cycle` at \"release-line-cycle\" › \"rl-v1\" › \"delivery\" › \"minor-v0.1\" › \"implementation\" with role \"developer\"",
+            "When I open Workflow",
+            "Then \"init\", \"inception\" and \"specification\" are marked done",
+            "And \"implementation\" under \"minor-v0.1\" is marked current with \"developer must act\""
+          ]
+        },
+        {
+          "id": "M-06.2",
+          "title": "Show no position on WingFoil 0.2.2",
+          "file": "docs/02_requirements/02_bdd/features/m/workflows.feature",
+          "release": "v0.4",
+          "kind": "edge",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running",
+            "Given the custom fixture is open on WingFoil 0.2.2",
+            "When I open Workflow",
+            "Then the tree shows no done/current marker and the note \"Position needs WingFoil 0.3 (this project: 0.2.2)\""
+          ]
+        }
+      ],
+      "dependencies": [
+        "TT-INT-03",
+        "TT-INT-07"
+      ]
+    },
+    {
+      "id": "US-G-18",
+      "kind": "user-story",
+      "title": "Report a bug through its ingestion with its required fields set by the CLI, when the project's WingFoil sets them …",
+      "release": "v0.4",
+      "area": "G",
+      "wingfoil_min": "0.3",
+      "story": "As Jordan, I want to report a bug through its ingestion with its required fields set by the CLI, when the project's WingFoil sets them (field setter or `workflow start`), so that defects are captured in the UI too",
+      "persona": "Jordan",
+      "story_kind": "nominal",
+      "features": [
+        "G5"
+      ],
+      "journeys": "J7.1–2",
+      "acceptance_criteria": [
+        {
+          "id": "G-18.1",
+          "title": "Report a bug with its severity set by the CLI",
+          "file": "docs/02_requirements/02_bdd/features/g/ingestion.feature",
+          "release": "v0.4",
+          "kind": "nominal",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running",
+            "And I am Jordan",
+            "Given the custom fixture is open on a WingFoil that sets the required fields of a bug",
+            "And I start \"bug-ingest\"",
+            "When I type the title \"Toast hides the Push button\", choose the severity \"medium\" and click \"Submit\"",
+            "Then the fixture's commits for \"bug-002-toast-hides-the-push-button\" are made by the CLI only",
+            "And the bug's frontmatter has `severity: medium` and the state \"open\""
+          ]
+        },
+        {
+          "id": "G-18.2",
+          "title": "Keep the bug ingestion read-only on WingFoil 0.3 when it sets no fields",
+          "file": "docs/02_requirements/02_bdd/features/g/ingestion.feature",
+          "release": "v0.4",
+          "kind": "edge",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running",
+            "And I am Jordan",
+            "Given the custom fixture is open on a WingFoil 0.3 whose `workflow start` does not set a bug's severity",
+            "When I click \"+ Ingestion\" on the Memory list",
+            "Then \"bug-ingest\" is shown disabled with \"Needs a WingFoil that sets the required field severity\""
+          ]
+        }
+      ],
+      "dependencies": [
+        "TT-INT-05",
+        "TT-INT-07"
+      ]
+    },
+    {
+      "id": "US-T-17",
+      "kind": "user-story",
+      "title": "The next step's context — role, directives, DNA modules, specs, branch — shown before launch",
+      "release": "v0.4",
+      "area": "T",
+      "wingfoil_min": "0.3",
+      "story": "As Jordan, I want the next step's context — role, directives, DNA modules, specs, branch — shown before launch, so that I know what the agent will receive",
+      "persona": "Jordan",
+      "story_kind": "nominal",
+      "features": [
+        "T3"
+      ],
+      "journeys": "J3.2",
+      "acceptance_criteria": [
+        {
+          "id": "T-17.1",
+          "title": "Show the context the agent will receive",
+          "file": "docs/02_requirements/02_bdd/features/t/next-step.feature",
+          "release": "v0.4",
+          "kind": "nominal",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running",
+            "And I am Jordan",
+            "Given the custom fixture is open on WingFoil 0.3 with the next step \"dev-loop · red\" on \"task-003-element-panel\"",
+            "When I expand the Next workflow step card",
+            "Then it shows the role \"developer\", the directives bound to \"developer\", the DNA module of the task, the specs it references and the branch \"task/task-003-element-panel\""
+          ]
+        },
+        {
+          "id": "T-17.2",
+          "title": "Name the context items that are missing",
+          "file": "docs/02_requirements/02_bdd/features/t/next-step.feature",
+          "release": "v0.4",
+          "kind": "edge",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running",
+            "And I am Jordan",
+            "Given the custom fixture is open on WingFoil 0.3 with the next step on \"task-004-themes\"",
+            "And \"task-004-themes\" declares no `module`",
+            "When I expand the Next workflow step card",
+            "Then the DNA module line reads \"No module declared on task-004-themes\""
+          ]
+        }
+      ],
+      "dependencies": [
+        "TT-INT-07"
+      ]
+    },
+    {
+      "id": "US-A-01",
+      "kind": "user-story",
+      "title": "Launch the agent on the next step or an element, with a confirmation when my settings ask for it",
+      "release": "v0.4",
+      "area": "A",
+      "wingfoil_min": "0.3",
+      "story": "As Jordan, I want to launch the agent on the next step or an element, with a confirmation when my settings ask for it, so that the agent starts with the right context",
+      "persona": "Jordan",
+      "story_kind": "nominal",
+      "features": [
+        "A1",
+        "C4"
+      ],
+      "journeys": "J3.3",
+      "acceptance_criteria": [
+        {
+          "id": "A-01.1",
+          "title": "Launch the agent on the next step after confirming",
+          "file": "docs/02_requirements/02_bdd/features/a/agents.feature",
+          "release": "v0.4",
+          "kind": "nominal",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running",
+            "And I am Jordan",
+            "Given the custom fixture is open on WingFoil 0.3 with the next step \"dev-loop · red\" on \"task-003-element-panel\"",
+            "And the UI setting \"Confirm agent launch\" is on",
+            "When I click \"Launch agent\" and confirm the modal showing the step's context and the branch \"task/task-003-element-panel\"",
+            "Then the server starts `wingfoil agent execute` for \"task-003-element-panel\" with role \"developer\"",
+            "And the button reads \"View agent's logs\""
+          ]
+        },
+        {
+          "id": "A-01.2",
+          "title": "Launch without the modal when confirmation is off",
+          "file": "docs/02_requirements/02_bdd/features/a/agents.feature",
+          "release": "v0.4",
+          "kind": "edge",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running",
+            "And I am Jordan",
+            "Given the custom fixture is open on WingFoil 0.3 with a next step for \"developer\"",
+            "And the UI setting \"Confirm agent launch\" is off",
+            "When I click \"Launch agent\"",
+            "Then no modal is shown and the agent starts"
+          ]
+        },
+        {
+          "id": "A-01.3",
+          "title": "Cancel the launch from the modal",
+          "file": "docs/02_requirements/02_bdd/features/a/agents.feature",
+          "release": "v0.4",
+          "kind": "edge",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running",
+            "And I am Jordan",
+            "Given the custom fixture is open on WingFoil 0.3 with a next step for \"developer\"",
+            "And the UI setting \"Confirm agent launch\" is on",
+            "When I click \"Launch agent\" and then \"Cancel\" in the modal",
+            "Then no agent process is started"
+          ]
+        }
+      ],
+      "dependencies": [
+        "TT-INT-07"
+      ]
+    },
+    {
+      "id": "US-A-02",
+      "kind": "user-story",
+      "title": "Launch an assisted review on an element",
+      "release": "v0.4",
+      "area": "A",
+      "wingfoil_min": "0.3",
+      "story": "As Sam, I want to launch an assisted review on an element, so that an agent supports my review",
+      "persona": "Sam",
+      "story_kind": "nominal",
+      "features": [
+        "A1"
+      ],
+      "journeys": "J4.3",
+      "acceptance_criteria": [
+        {
+          "id": "A-02.1",
+          "title": "Launch an assisted review on an element",
+          "file": "docs/02_requirements/02_bdd/features/a/agents.feature",
+          "release": "v0.4",
+          "kind": "nominal",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running",
+            "And I am Jordan",
+            "Given the custom fixture is open on WingFoil 0.3",
+            "And the DNA gives Sam the roles reviewer",
+            "And I am Sam",
+            "When I click \"Start assisted review\" in the panel of \"task-001-cli-adapter\" and confirm",
+            "Then the server starts `wingfoil agent execute` for \"task-001-cli-adapter\" with role \"reviewer\"",
+            "And the button reads \"View agent's logs\""
+          ]
+        },
+        {
+          "id": "A-02.2",
+          "title": "Offer no assisted review outside a gate state",
+          "file": "docs/02_requirements/02_bdd/features/a/agents.feature",
+          "release": "v0.4",
+          "kind": "edge",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running",
+            "And I am Jordan",
+            "Given the custom fixture is open on WingFoil 0.3",
+            "And I am Sam",
+            "When I open the element panel of \"task-002-memory-list\"",
+            "Then no \"Start assisted review\" button is shown"
+          ]
+        }
+      ],
+      "dependencies": [
+        "TT-INT-07"
+      ]
+    },
+    {
+      "id": "US-A-03",
+      "kind": "user-story",
+      "title": "Launch agent shown read-only with the reason",
+      "release": "v0.4",
+      "area": "A",
+      "wingfoil_min": "0.3",
+      "story": "As Jordan, on a project whose WingFoil cannot execute agents, I want Launch agent shown read-only with the reason, so that I know to run the agent outside the UI",
+      "persona": "Jordan",
+      "story_kind": "edge",
+      "features": [
+        "A1",
+        "S3"
+      ],
+      "journeys": "J3 obstacle",
+      "acceptance_criteria": [
+        {
+          "id": "A-03.1",
+          "title": "Show Launch agent read-only on WingFoil 0.2.2",
+          "file": "docs/02_requirements/02_bdd/features/a/agents.feature",
+          "release": "v0.4",
+          "kind": "nominal",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running",
+            "And I am Jordan",
+            "Given the custom fixture is open on WingFoil 0.2.2",
+            "When I open the element panel of \"task-003-element-panel\"",
+            "Then \"Launch agent\" is disabled with \"Needs WingFoil 0.3 (this project: 0.2.2) — run the agent outside the UI\""
+          ]
+        },
+        {
+          "id": "A-03.2",
+          "title": "Show the same reason on the Kanban fixture",
+          "file": "docs/02_requirements/02_bdd/features/a/agents.feature",
+          "release": "v0.4",
+          "kind": "edge",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running",
+            "And I am Jordan",
+            "Given the kanban fixture is open on WingFoil 0.2.2",
+            "When I open Today",
+            "Then the Next workflow step card shows no enabled \"Launch agent\" button"
+          ]
+        }
+      ],
+      "dependencies": [
+        "TT-INT-03"
+      ]
+    },
+    {
+      "id": "US-A-04",
+      "kind": "user-story",
+      "title": "Launch agent to become View agent's logs and show the run's output live",
+      "release": "v0.4",
+      "area": "A",
+      "wingfoil_min": "0.3",
+      "story": "As Jordan, I want Launch agent to become View agent's logs and show the run's output live, so that I follow it inside the UI",
+      "persona": "Jordan",
+      "story_kind": "nominal",
+      "features": [
+        "A2"
+      ],
+      "journeys": "J3.4, J4.3",
+      "acceptance_criteria": [
+        {
+          "id": "A-04.1",
+          "title": "Follow the run's output live",
+          "file": "docs/02_requirements/02_bdd/features/a/agents.feature",
+          "release": "v0.4",
+          "kind": "nominal",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running",
+            "And I am Jordan",
+            "Given an agent run started from the UI on \"task-003-element-panel\" prints 1 line per second",
+            "When I click \"View agent's logs\"",
+            "Then the log view shows each new line within 2 seconds of the agent printing it",
+            "And it shows \"Running\" with the elapsed time"
+          ]
+        },
+        {
+          "id": "A-04.2",
+          "title": "Show the end of a successful run",
+          "file": "docs/02_requirements/02_bdd/features/a/agents.feature",
+          "release": "v0.4",
+          "kind": "edge",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running",
+            "And I am Jordan",
+            "Given the log view of a run is open",
+            "When the agent exits with status 0",
+            "Then the log view shows \"Finished · exit 0\"",
+            "And the button on the step reads \"Launch agent\""
+          ]
+        }
+      ],
+      "dependencies": [
+        "TT-INT-07",
+        "TT-INT-09",
+        "TT-PERF-08"
+      ]
+    },
+    {
+      "id": "US-A-05",
+      "kind": "user-story",
+      "title": "A failed run (non-zero exit) shown in the logs with its exit status and the button back to Launch agent",
+      "release": "v0.4",
+      "area": "A",
+      "wingfoil_min": "0.3",
+      "story": "As Jordan, I want a failed run (non-zero exit) shown in the logs with its exit status and the button back to Launch agent, so that I can retry",
+      "persona": "Jordan",
+      "story_kind": "edge",
+      "features": [
+        "A2"
+      ],
+      "journeys": "—",
+      "acceptance_criteria": [
+        {
+          "id": "A-05.1",
+          "title": "Show a failed run with its exit status",
+          "file": "docs/02_requirements/02_bdd/features/a/agents.feature",
+          "release": "v0.4",
+          "kind": "nominal",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running",
+            "And I am Jordan",
+            "Given the log view of a run is open",
+            "When the agent exits with status 2",
+            "Then the log view shows \"Failed · exit 2\" and keeps the output",
+            "And the button on the step reads \"Launch agent\""
+          ]
+        },
+        {
+          "id": "A-05.2",
+          "title": "Report an agent that cannot start",
+          "file": "docs/02_requirements/02_bdd/features/a/agents.feature",
+          "release": "v0.4",
+          "kind": "edge",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running",
+            "And I am Jordan",
+            "Given `wingfoil agent execute` exits with an error before printing any output",
+            "When I launch the agent on the next step",
+            "Then a red toast shows the error message printed by `wingfoil agent execute`",
+            "And the button reads \"Launch agent\""
+          ]
+        }
+      ],
+      "dependencies": [
+        "TT-INT-07"
+      ]
+    },
+    {
+      "id": "TT-PERF-08",
+      "kind": "technical-task",
+      "title": "Agent log streaming",
+      "release": "v0.4",
+      "area": "PERF",
+      "wingfoil_min": "0.3",
+      "requirement": "REQ-PERF-08",
+      "description": "Lines printed by an agent run started from the UI appear in the log view.",
+      "fit_criterion": "[numeric] Each line appears ≤ 2 s after the agent prints it, for 100 % of the lines of a 60-line run.",
+      "verified_by": "e2e (WingFoil 0.3 fixture)",
+      "stories": [
+        "US-A-04"
+      ],
+      "acceptance_criteria": [
+        {
+          "id": "A-04.1",
+          "title": "Follow the run's output live",
+          "file": "docs/02_requirements/02_bdd/features/a/agents.feature",
+          "release": "v0.4",
+          "kind": "nominal",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running",
+            "And I am Jordan",
+            "Given an agent run started from the UI on \"task-003-element-panel\" prints 1 line per second",
+            "When I click \"View agent's logs\"",
+            "Then the log view shows each new line within 2 seconds of the agent printing it",
+            "And it shows \"Running\" with the elapsed time"
+          ]
+        }
+      ],
+      "dependencies": [
+        "TT-INT-07",
+        "TT-INT-09"
+      ]
+    },
+    {
+      "id": "TT-INT-07",
+      "kind": "technical-task",
+      "title": "WingFoil 0.3 workflow and agent verbs",
+      "release": "v0.4",
+      "area": "INT",
+      "wingfoil_min": "0.3",
+      "requirement": "REQ-INT-07",
+      "description": "With WingFoil 0.3 the server reads the workflow position and the next step (`workflow status`, `workflow next`), starts ingestions through `workflow start` where it sets the required fields, and launches agents with `agent execute`, streaming their output. Exact options and output are confirmed against WingFoil 0.3 at v0.4 `release-planning` and captured as contracts (REQ-INT-01).",
+      "fit_criterion": "[boolean] Every listed scenario passes on a fixture pinning WingFoil 0.3, and each verb used has a contract (REQ-INT-01).",
+      "verified_by": "e2e · contract tests",
+      "stories": [
+        "US-A-01",
+        "US-A-02",
+        "US-A-04",
+        "US-A-05",
+        "US-G-18",
+        "US-M-06",
+        "US-T-09",
+        "US-T-16",
+        "US-T-17"
+      ],
+      "acceptance_criteria": [
+        {
+          "id": "T-09.1",
+          "title": "Show the next step for my role",
+          "file": "docs/02_requirements/02_bdd/features/t/next-step.feature",
+          "release": "v0.4",
+          "kind": "nominal",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running",
+            "And I am Jordan",
+            "Given the custom fixture is open on WingFoil 0.3",
+            "And the workflow engine reports the next step \"dev-loop · red\" for role \"developer\" on \"task-003-element-panel\"",
+            "When I open Today",
+            "Then the Next workflow step card shows \"dev-loop · red — task-003-element-panel\""
+          ]
+        },
+        {
+          "id": "T-16.1",
+          "title": "Show the current phase of the scope",
+          "file": "docs/02_requirements/02_bdd/features/t/progress-card.feature",
+          "release": "v0.4",
+          "kind": "nominal",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running",
+            "And I am Casey",
+            "Given the custom fixture with the sw-life-cycle preset is open on WingFoil 0.3",
+            "And the workflow engine reports `release-cycle` of \"minor-v0.1\" at phase \"implementation\"",
+            "When I open Today",
+            "Then the progress card shows \"Phase 2 of 7 — implementation\"",
+            "And the phase strip shows 1 phase done, 1 current and 5 to do"
+          ]
+        },
+        {
+          "id": "T-17.1",
+          "title": "Show the context the agent will receive",
+          "file": "docs/02_requirements/02_bdd/features/t/next-step.feature",
+          "release": "v0.4",
+          "kind": "nominal",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running",
+            "And I am Jordan",
+            "Given the custom fixture is open on WingFoil 0.3 with the next step \"dev-loop · red\" on \"task-003-element-panel\"",
+            "When I expand the Next workflow step card",
+            "Then it shows the role \"developer\", the directives bound to \"developer\", the DNA module of the task, the specs it references and the branch \"task/task-003-element-panel\""
+          ]
+        },
+        {
+          "id": "M-06.1",
+          "title": "Mark the current position and who must act",
+          "file": "docs/02_requirements/02_bdd/features/m/workflows.feature",
+          "release": "v0.4",
+          "kind": "nominal",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running",
+            "Given the custom fixture is open on WingFoil 0.3",
+            "And the workflow engine reports `sw-life-cycle` at \"release-line-cycle\" › \"rl-v1\" › \"delivery\" › \"minor-v0.1\" › \"implementation\" with role \"developer\"",
+            "When I open Workflow",
+            "Then \"init\", \"inception\" and \"specification\" are marked done",
+            "And \"implementation\" under \"minor-v0.1\" is marked current with \"developer must act\""
+          ]
+        },
+        {
+          "id": "A-01.1",
+          "title": "Launch the agent on the next step after confirming",
+          "file": "docs/02_requirements/02_bdd/features/a/agents.feature",
+          "release": "v0.4",
+          "kind": "nominal",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running",
+            "And I am Jordan",
+            "Given the custom fixture is open on WingFoil 0.3 with the next step \"dev-loop · red\" on \"task-003-element-panel\"",
+            "And the UI setting \"Confirm agent launch\" is on",
+            "When I click \"Launch agent\" and confirm the modal showing the step's context and the branch \"task/task-003-element-panel\"",
+            "Then the server starts `wingfoil agent execute` for \"task-003-element-panel\" with role \"developer\"",
+            "And the button reads \"View agent's logs\""
+          ]
+        },
+        {
+          "id": "A-02.1",
+          "title": "Launch an assisted review on an element",
+          "file": "docs/02_requirements/02_bdd/features/a/agents.feature",
+          "release": "v0.4",
+          "kind": "nominal",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running",
+            "And I am Jordan",
+            "Given the custom fixture is open on WingFoil 0.3",
+            "And the DNA gives Sam the roles reviewer",
+            "And I am Sam",
+            "When I click \"Start assisted review\" in the panel of \"task-001-cli-adapter\" and confirm",
+            "Then the server starts `wingfoil agent execute` for \"task-001-cli-adapter\" with role \"reviewer\"",
+            "And the button reads \"View agent's logs\""
+          ]
+        },
+        {
+          "id": "A-04.2",
+          "title": "Show the end of a successful run",
+          "file": "docs/02_requirements/02_bdd/features/a/agents.feature",
+          "release": "v0.4",
+          "kind": "edge",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running",
+            "And I am Jordan",
+            "Given the log view of a run is open",
+            "When the agent exits with status 0",
+            "Then the log view shows \"Finished · exit 0\"",
+            "And the button on the step reads \"Launch agent\""
+          ]
+        },
+        {
+          "id": "A-05.1",
+          "title": "Show a failed run with its exit status",
+          "file": "docs/02_requirements/02_bdd/features/a/agents.feature",
+          "release": "v0.4",
+          "kind": "nominal",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running",
+            "And I am Jordan",
+            "Given the log view of a run is open",
+            "When the agent exits with status 2",
+            "Then the log view shows \"Failed · exit 2\" and keeps the output",
+            "And the button on the step reads \"Launch agent\""
+          ]
+        },
+        {
+          "id": "A-05.2",
+          "title": "Report an agent that cannot start",
+          "file": "docs/02_requirements/02_bdd/features/a/agents.feature",
+          "release": "v0.4",
+          "kind": "edge",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running",
+            "And I am Jordan",
+            "Given `wingfoil agent execute` exits with an error before printing any output",
+            "When I launch the agent on the next step",
+            "Then a red toast shows the error message printed by `wingfoil agent execute`",
+            "And the button reads \"Launch agent\""
+          ]
+        },
+        {
+          "id": "G-18.1",
+          "title": "Report a bug with its severity set by the CLI",
+          "file": "docs/02_requirements/02_bdd/features/g/ingestion.feature",
+          "release": "v0.4",
+          "kind": "nominal",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running",
+            "And I am Jordan",
+            "Given the custom fixture is open on a WingFoil that sets the required fields of a bug",
+            "And I start \"bug-ingest\"",
+            "When I type the title \"Toast hides the Push button\", choose the severity \"medium\" and click \"Submit\"",
+            "Then the fixture's commits for \"bug-002-toast-hides-the-push-button\" are made by the CLI only",
+            "And the bug's frontmatter has `severity: medium` and the state \"open\""
+          ]
+        }
+      ],
+      "dependencies": [
+        "TT-INT-01"
+      ]
+    }
+  ]
+}

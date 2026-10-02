@@ -143,7 +143,7 @@ gates".
 Sub-tabs (one row, scrolls horizontally when narrow):
 - **WingFoil** — proposed core settings (to be requested from WingFoil: a core settings file), grouped: Git, Approvals, Workflow,
   Agents, Notifications. Configuration files are edited in their own pages, not here.
-- **Permissions** — who may perform each action that changes the project (to be requested from WingFoil: action permissions enforced by the CLI).
+- *(Superseded — specification-downcast session 3: permissions are WingFoil's, shown only once WingFoil implements them, L6; the UI keeps none.)* **Permissions** — who may perform each action that changes the project (to be requested from WingFoil: action permissions enforced by the CLI).
   Per action: allowed **roles** (or *all*) and named **people**; "you can / you cannot".
   Gate approvals are not here: they follow the gate roles in `memory.yaml`.
 
@@ -184,7 +184,7 @@ Read-only repository browser.
   line numbers and syntax highlighting; Markdown with **Preview / Source** toggle; links
   between files stay in the browser.
 - **New / Edit / Delete** are shown disabled ("coming"): later they will write the file and
-  commit through the server, subject to the `files.edit` permission.
+  commit through the server, subject to the permissions WingFoil defines (L6).
 
 ## 5. Interaction rules
 
@@ -197,7 +197,7 @@ Read-only repository browser.
 | Agent launch | Confirmation modal with context and branch when `agent.launch = confirm` |
 | Edit mode | Explicit Edit → bar "Editing · <file> · N changes · Cancel · Save and commit"; leaving the page discards |
 | Role views | Same screens, content filtered by the roles of the view |
-| Permissions | Every changing action checks the Permissions table before running; refusal names who may do it |
+| Permissions | *(Superseded — session 3: no UI-side permissions; WingFoil's, L6)* Every changing action checks the Permissions table before running; refusal names who may do it |
 
 ## 6. `ui.yaml` (owned by the UI)
 
@@ -223,7 +223,7 @@ taxonomy:
     tech-spec: [requirement]
 progress:
   mode: sequence         # sequence | flow
-  scope: { type: release, id: minor-v0.3 }
+  scope: { type: release }   # type only (specification session 3): the current release is derived
   phases: [release-planning, dev-loop, user-docs, e2e-smoke, release-submit, release-publishing, retrospective]
   iterates: task
   defects: bug

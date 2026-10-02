@@ -1,7 +1,7 @@
 # Product Vision — WingFoil UI
 
-**Version:** 0.2
-**Date:** 2026-10-01 (0.2: external review — session 7)
+**Version:** 0.4
+**Date:** 2026-10-01 (0.2: external review — session 7; 0.3: permissions left to WingFoil — specification session 3; 0.4: clone and local state in the write classes — coherence audit of the specification — session 6)
 **Status:** Accepted in lean-inception session 1 (2026-10-01); revised in session 7
 **Input:** `01_product-brief.md` §1–5, §8 · **Evidence:** `docs/00_reference/ux-reference.md` §1,
 `docs/00_reference/adr-draft-local-server.md`
@@ -78,10 +78,10 @@ Decided in session 1 (2026-10-01), all as proposed.
 | Positioning vs WingFoil | A **client** of WingFoil, not part of it: no core change required to exist, every capability bounded by the CLI | Keeps one writer and one set of rules; the UI grows as the CLI grows |
 | **Q2 — WingFoil version floor** | **0.2.2 for the first waves, 1.0 for UI v1.0.** Each feature declares the WingFoil version it needs; the UI detects the version of the project's CLI and shows an unavailable capability **read-only with the reason** when it applies to the project but the WingFoil version or the user's role lacks it, and **hides** it when it does not apply to the project (e.g. no ingestion workflow declared) | The read views and gate actions already work on 0.2.2; waiting for 0.3 would delay all value. Supersedes brief §8 ("depends on ≥ 0.3"), which then applies only to the workflow features |
 | **Q10 — Accessibility and i18n** | **WCAG 2.1 AA** from the first release (directive `accessibility`); **English-only** UI in the MVP, with every string externalised so a second language is a later feature | Accessibility is cheap early and expensive to retrofit; WingFoil, its docs and its vocabulary are in English |
-| **Q11 — Permissions before WingFoil enforces them** | **Acceptable in the MVP as advisory**: the UI hides or disables actions per its Permissions table and says so ("not a security boundary"); gate authority stays enforced by the CLI (approver role) | Real enforcement belongs to WingFoil core; a UI-only check that claimed to protect would mislead |
+| **Q11 — Permissions before WingFoil enforces them** | ~~Acceptable in the MVP as advisory~~ **Superseded (specification session 3): permissions are WingFoil's.** The UI keeps no permissions table and stores none in `ui.yaml`; every team member may run what the CLI allows (gate authority: the `approver` role). The UI shows WingFoil's action permissions once WingFoil implements them (L6) | One owner for the rules: a UI-side table would be a second source of truth that WingFoil does not know |
 | Core value word | **"Unblock"** — what requires me, what I can unblock now | It is what Today, notifications and the gate actions all serve |
 | **Which CLI runs** *(session 7)* | The UI runs **the observed project's own `wingfoil`** — the one its `package.json` pins (`node_modules`), else `wingfoil` on the PATH — never a copy of its own. Supported range: from 0.2.2 to the latest version covered by contract tests; outside it the project opens **read-only** with the reason; with no CLI found it **does not open**, and says how to install it. Binary discovery and the contract matrix are specified in `adr-001` | Commits identical to the team's; one behaviour per project version; contract tests bound what the UI claims to support |
-| **Write classes** *(session 7)* | (a) **governed** changes: only through the CLI, `wf(…)` commits; (b) **UI configuration**: only `.wingfoil/ui.yaml`, schema-validated before writing, behind the `cfg.ui` permission, one `chore(ui): …` commit touching only that file; (c) **git transport**: fetch, `pull --ff-only`, push — no new commits; (d) **repository files** (L4, after v1.0): plain commits, specified then. Nothing else is written | Makes the single exception to "WingFoil is the only writer" explicit and testable |
+| **Write classes** *(session 7)* | (a) **governed** changes: only through the CLI, `wf(…)` commits; (b) **UI configuration**: only `.wingfoil/ui.yaml`, schema-validated before writing, by any team member, one `chore(ui): …` commit touching only that file; (c) **git transport**: `clone` into a new, empty folder, fetch, `pull --ff-only`, push — no new commits; (d) **repository files** (L4, after v1.0): plain commits, specified then. Nothing else is written in a repository; the UI's local state (project list, settings, action log) lives outside every repository | Makes the single exception to "WingFoil is the only writer" explicit and testable |
 
 ---
 

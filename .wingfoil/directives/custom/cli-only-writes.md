@@ -9,7 +9,7 @@ tags: [custom, architecture, wingfoil, security]
 
 # Directive — Every governed change goes through the WingFoil CLI
 
-**Version:** 1.1 · **Date:** 2026-10-01 (1.1: write classes, snapshot, CLI choice — vision session 7)
+**Version:** 1.3 · **Date:** 2026-10-02 (1.1: write classes, snapshot, CLI choice — vision session 7; 1.2: no UI-side permission on `ui.yaml` — specification session 3; 1.3: clone in class (c), check scoped to UI commits — specification session 6)
 
 Applies to whoever designs, writes or reviews the WingFoil UI server and its use of a WingFoil
 project (draft ADR: `docs/00_reference/adr-draft-local-server.md`).
@@ -21,9 +21,10 @@ project (draft ADR: `docs/00_reference/adr-draft-local-server.md`).
      json`, in the project's working directory) — `wf(…)` commits. The server never writes
      `.wingfoil/` files, Memory element files or plans directly — not even to fill a draft — and
      never re-implements a state machine, gate, role check or id allocation;
-   - (b) **UI configuration**: `.wingfoil/ui.yaml` only, schema-validated before writing, behind the
-     `cfg.ui` permission, one `chore(ui): …` commit touching only that file;
-   - (c) **git transport**: fetch, `pull --ff-only`, push — never merge, rebase or a new commit;
+   - (b) **UI configuration**: `.wingfoil/ui.yaml` only, schema-validated before writing, by any team
+     member, one `chore(ui): …` commit touching only that file;
+   - (c) **git transport**: `clone` into a new, empty folder, fetch, `pull --ff-only`, push — never
+     merge, rebase or a new commit;
    - (d) **repository files** (after v1.0): specified when the feature is.
    **Which CLI:** the observed project's own (its pinned `node_modules/wingfoil`, else the PATH),
    never a copy bundled with the UI.
@@ -42,6 +43,6 @@ project (draft ADR: `docs/00_reference/adr-draft-local-server.md`).
 ## How it is checked
 
 - Review: no `fs.write*` / `git commit` / `git add` on governed paths in `server/`.
-- e2e-smoke: after driving the UI, every commit in the fixture's `git log` is a `wf(…)` commit made
-  by the CLI or a `chore(ui)` commit whose only file is `.wingfoil/ui.yaml`; actions on an element
+- e2e-smoke: every commit **created while driving the UI** (the fixture's set-up commits excluded) is
+  a `wf(…)` commit made by the CLI or a `chore(ui)` commit whose only file is `.wingfoil/ui.yaml`; actions on an element
   with local changes, and while behind, are refused.

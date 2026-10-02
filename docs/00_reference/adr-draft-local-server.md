@@ -27,7 +27,7 @@ WingFoil UI is a **local server** (Node.js, same runtime as WingFoil) that:
    status, `git log` for the Timeline, the working tree for the Files browser), and moves it only
    by fetch, `pull --ff-only` and push — never to change WingFoil state;
    future file edits from the Files page are plain git commits made by the server, outside
-   WingFoil's Memory, and gated by the `files.edit` permission;
+   WingFoil's Memory, subject to the permissions WingFoil defines (L6 — the UI keeps none);
 4. owns exactly one file of its own per project: `.wingfoil/ui.yaml` (see UX reference);
 5. keeps the user's project list in its own local storage, outside any repository.
 

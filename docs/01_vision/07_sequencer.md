@@ -1,10 +1,10 @@
 # Sequencer — WingFoil UI v1 (v0.1 → v1.0)
 
-**Version:** 0.3
+**Version:** 0.5
 **Date:** 2026-10-01 (0.2: J0 completion and v0.1 landing screen — coherence audit; 0.3: external
-review — session 7)
+review — session 7; 0.4: permissions left to WingFoil — specification session 3; 0.5: input count, v0.1 exit (clone) — coherence audit of the specification — session 6)
 **Status:** Accepted in lean-inception session 5 (2026-10-01)
-**Input:** `06_features.md` (45 MVP features, areas, WingFoil versions, scores) · `05_journeys.md` ·
+**Input:** `06_features.md` (44 MVP features, areas, WingFoil versions, scores) · `05_journeys.md` ·
 `02_product-vision.md` (Q2: WingFoil floor) · starting hypothesis in `BOOTSTRAP.md` §7
 
 All releases belong to the release-line **v1** (`rl-v1`). Each release has a primary **area**
@@ -45,7 +45,7 @@ Open any WingFoil project and read it safely.
 
 16 features. **Exit:** the WingFoil and WingFoil UI repositories, and a fixture with unknown types
 and states and no `ui.yaml`, render without UI changes; the local server refuses non-loopback and
-cross-origin requests; no write path exists yet.
+cross-origin requests; the only write is cloning a remote into a new folder (no governed write yet).
 
 ### v0.2 — Unblock · area **G** · WingFoil ≥ 0.2.2
 
@@ -66,9 +66,9 @@ Everything Casey needs, plus governed creation through ingestion where WingFoil 
 
 | Features | Journeys served |
 |----------|-----------------|
-| T2 progress card (Memory figures) · T5 recent activity · M2 missing references · R5 traceability · R6 timeline axis · R7 git tree · R8 files · W1 workflow tree (definitions) · W2 ingestion cards · G5 ingestion start · S6 command palette · C1 `ui.yaml` and presets · C3 advisory permissions | J2 (complete for a product owner holding `approver`; informational otherwise), decision-log ingestion |
+| T2 progress card (Memory figures) · T5 recent activity · M2 missing references · R5 traceability · R6 timeline axis · R7 git tree · R8 files · W1 workflow tree (definitions) · W2 ingestion cards · G5 ingestion start · S6 command palette · C1 `ui.yaml` and presets | J2 (complete for a product owner holding `approver`; informational otherwise), decision-log ingestion |
 
-13 features. **Exit:** Casey follows a project without a developer, and — holding `approver` —
+12 features. **Exit:** Casey follows a project without a developer, and — holding `approver` —
 decides a product item; a decision-log is captured through its ingestion workflow from the UI;
 `ui.yaml` is written only as a schema-valid `chore(ui)` commit.
 
@@ -106,11 +106,11 @@ the first candidate that needs nothing from WingFoil.
 |---------|-----------------|----------------|----------|------------------|--------------------|
 | v0.1 | S | 0.2.2 | 16 | Riley, Alex | — (J0 steps 1–3) |
 | v0.2 | G | 0.2.2 | 13 | Morgan, Alex | J0, J1, J5, J8 |
-| v0.3 | R | 0.2.2 | 13 | Casey | J2 (with `approver`), J6 |
+| v0.3 | R | 0.2.2 | 12 | Casey | J2 (with `approver`), J6 |
 | v0.4 | A | 0.3 | 3 (+3 upgrades) | Jordan, Sam | J3, J4, J7 (conditional) |
 | v1.0 | X | 1.0 | — | all | all (on WingFoil 1.0) |
 
-Total: 45 features (16 + 13 + 13 + 3).
+Total: 44 features (16 + 13 + 12 + 3).
 
 ---
 

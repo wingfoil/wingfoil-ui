@@ -1,7 +1,7 @@
 # Features — WingFoil UI
 
-**Version:** 0.3
-**Date:** 2026-10-01 (0.2: journey coverage completed by the coherence audit; 0.3: external review — session 7)
+**Version:** 0.6
+**Date:** 2026-10-01 (0.2: journey coverage completed by the coherence audit; 0.3: external review — session 7; 0.4: S8 row completed — specification session 1; 0.5: permissions left to WingFoil — specification session 3; 0.6: X4 wording — coherence audit of the specification — session 6)
 **Status:** Accepted in lean-inception session 4 (2026-10-01)
 **Input:** `05_journeys.md` (steps and gaps) · `04_personas.md` · `02_product-vision.md` ·
 `03_is-isnot.md` · **Evidence:** `docs/00_reference/ux-reference.md`, the prototype,
@@ -28,7 +28,7 @@ know how to build it (H/M/L).
 | S5 | All-roles summary | J5 | Alex | In Today, per role held: count and top items requiring it (GAP J5) | 0.2.2 | 2 | 1 | 2 | H |
 | S6 | Command palette (⌘K) | J5, J7 | all | Navigate, open any element, start an ingestion, switch project, pending actions | 0.2.2 | 2 | 2 | 3 | H |
 | S7 | In-app notifications | J1 | Morgan, Casey | Bell with count: *To unblock* (same as Requires you) and *Updates* | 0.2.2 | 2 | 1 | 2 | H |
-| S8 | Live refresh and snapshot | all | all | The project as the CLI reads it (working tree); elements with uncommitted changes marked *local changes*. Cache keyed on git HEAD **and** the working-tree status (`git status --porcelain`); re-read on change and file watch |
+| S8 | Live refresh and snapshot | all | all | The project as the CLI reads it (working tree); elements with uncommitted changes marked *local changes*. Cache keyed on git HEAD **and** the working-tree status (`git status --porcelain`); re-read on change and file watch | 0.2.2 | 3 | 2 | 2 | M |
 | S9 | Action descriptor | J1–J4, J7 | all | For each element, derived from `memory.yaml` (sequence, gates, waiting), the workflows and the CLI version: available verbs, reject targets, role required (0.2.2: `approver` for every gate), terminal and engine-waiting states. Unknown states get a generic **"Action required"** fallback. Basis of T1, G1–G3 | 0.2.2 | 3 | 2 | 2 | M |
 
 ## Area T — Today
@@ -84,9 +84,8 @@ know how to build it (H/M/L).
 
 | ID | Feature | Journeys | Personas | Description | WF | Val | Eff | UX | Conf |
 |----|---------|----------|----------|-------------|----|-----|-----|----|------|
-| C1 | `ui.yaml` and presets | J0, J2 | Alex, Morgan | Taxonomy and Progress tabs explaining each key; when a project has no `ui.yaml`, the UI infers defaults and offers a **preset** (Kanban, Scrum, WingFoil `sw-life-cycle`) to commit (Q7). Write class (b): schema-validated before writing, behind the `cfg.ui` permission, one `chore(ui): …` commit touching only `.wingfoil/ui.yaml` | 0.2.2 | 2 | 2 | 2 | M |
+| C1 | `ui.yaml` and presets | J0, J2 | Alex, Morgan | Taxonomy and Progress tabs explaining each key; when a project has no `ui.yaml`, the UI infers defaults and offers a **preset** (Kanban, Scrum, WingFoil `sw-life-cycle`) to commit (Q7). Write class (b): schema-validated before writing, by any team member, one `chore(ui): …` commit touching only `.wingfoil/ui.yaml` | 0.2.2 | 2 | 2 | 2 | M |
 | C2 | Identity and *How to join* | J6 | Riley | How the user is recognised; for users not in the team, the tech lead to contact and the exact `dna add team.members` command (GAP J6, Q5) | 0.2.2 | 2 | 1 | 2 | H |
-| C3 | Advisory permissions | J1 | Morgan | Permissions table per action (roles/people), evaluated on all the member's roles; labelled "not a security boundary" (Q11) | 0.2.2 | 1 | 2 | 1 | H |
 | C4 | UI settings | J8 | all | Local, per-user settings (not versioned): auto-fetch, auto-update (fast-forward), auto-push, theme, agent launch confirmation (sync options) | — | 2 | 1 | 2 | H |
 
 ## Area Y — Synchronisation
@@ -105,7 +104,7 @@ know how to build it (H/M/L).
 | X1 | Accessibility | all | all | WCAG 2.1 AA (directive `accessibility`) | — | 2 | 2 | 3 | M |
 | X2 | Externalised strings | all | all | English-only MVP, every string externalised | — | 1 | 1 | 1 | H |
 | X3 | Light and dark themes | all | all | Both themes, AA contrast in each | — | 1 | 1 | 2 | H |
-| X4 | Local server security | all | all | Listens on loopback only; per-session token given at launch; Origin and Host checks (CSRF, DNS rebinding) on every request, writes included; opaque project ids (no paths in URLs); CLI and git run with `execFile` and argument arrays, never a shell; Files confined to the repository. Distinct from the advisory permissions (C3) | — | 3 | 2 | 1 | H |
+| X4 | Local server security | all | all | Listens on loopback only; per-session token given at launch; Origin and Host checks (CSRF, DNS rebinding) on every request, writes included; opaque project ids (no paths in URLs); CLI and git run with `execFile` and argument arrays, never a shell; Files confined to the repository. Distinct from team permissions, which are WingFoil's (L6) | — | 3 | 2 | 1 | H |
 
 ## Later — after v1.0 or after a WingFoil capability
 
@@ -116,7 +115,7 @@ know how to build it (H/M/L).
 | L3 | Artifacts view | WingFoil `paths.artifacts` (request) or `ui.yaml` | Artifacts by phase, URLs linked to `service` elements |
 | L4 | Edit repository files | after v1.0 (Q12) | All files; WingFoil's files only with a specific permission, reconciled with `cli-only-writes` |
 | L5 | External notifications | WingFoil notification channels (request) | Email/chat for pending gates |
-| L6 | Core-enforced permissions | WingFoil action permissions (request) | C3 enforced by the CLI |
+| L6 | Action permissions | WingFoil action permissions (request) | Configuration › Permissions showing WingFoil's rules, actions dimmed accordingly; the UI defines none itself (former C3, dropped from the MVP in specification session 3) |
 | L7 | WingFoil core settings page | WingFoil core settings (request) | Git, approvals, workflow, agents, notifications |
 | L8 | Second UI language | — | Built on X2 |
 | L9 | Multi-user / remote deployment | — | Out of the MVP (`03_is-isnot.md`) |
@@ -129,7 +128,7 @@ know how to build it (H/M/L).
 | Journey | Steps → features |
 |---------|------------------|
 | J0 Add a project | 1–2 S2 · 3 S3, C1 · 4 S4, T1 |
-| J1 Morgan clears the gates | 1 S7 · 2 T1, S9 · 3 G1, S9 · 4 G2, G4, C3 · 5 T4, R3 |
+| J1 Morgan clears the gates | 1 S7 · 2 T1, S9 · 3 G1, S9 · 4 G2, G4 · 5 T4, R3 |
 | J2 Casey follows and decides | 1 T2, T5, C1 · 2 M1, M2, R6 · 3 G1, R4 · 4 G2, G4 · 5 R5 |
 | J3 Jordan with an agent | 1 T1, T3 · 2 T3 · 3 A1 · 4 A2 · 5 G3, G4 |
 | J4 Sam reviews | 1 T1, M1 · 2 G1, R2 · 3 A1, A2 · 4 G2, G4 |
@@ -159,4 +158,5 @@ Decided in session 4 (2026-10-01), all as proposed.
 | Areas as release `pillar` | **S, T, G, M, R, A, C, Y, X** as the `pillar` values of releases | Matches the template rule: the release's primary feature area |
 | Reason on approve | **Required**, pre-filled with an editable default (G2) | WingFoil 0.2.2 requires `--reason` on approve; supersedes ux-reference §4.2 "reason optional to approve" || Ingestion on 0.2.2 *(session 7)* | **Only types whose required fields the CLI can set** (decision-log); bug and the others wait for a field setter or `workflow start` (G5, J7) | The UI never edits a draft file (`cli-only-writes`); no exception to the product's main rule |
 | Snapshot and blocked actions *(session 7)* | Working tree as read by the CLI; *local changes* marked; actions blocked on them and while behind (S8, G2, G3, Y4) | `memory submit` commits the target file's uncommitted edits — acting on them would commit someone's local work |
+| Permissions *(specification session 3)* | **C3 dropped from the MVP**; permissions are WingFoil's (L6) and are not stored in `ui.yaml` | Supersedes Q11's advisory table: one owner for the rules |
 | New features *(session 7)* | **S9** action descriptor, **Y4** fast-forward update, **X4** local server security (all MVP); **L10** worktrees (later) | From the external review of the Vision Package |
