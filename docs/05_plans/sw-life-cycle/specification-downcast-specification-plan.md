@@ -132,3 +132,22 @@ Coherence audit checks (step 6):
   Val 3, Eff 2, UX 2, Conf M).
 - Stop-check: 45 / 45 MVP Canvas features covered ✓; every story tagged ✓; no story earlier than its
   feature's release ✓; edge-case stories for every common rule and refusal case ✓ (checked by script).
+
+### Session 2 — Specification by Example, v0.1–v0.2 (2026-10-01)
+
+- Outputs: `02_bdd/00_conventions.md` (fixtures `kanban`/`custom`/`unknown`, standard team and
+  elements, tags, writing rules, assumed action-descriptor rules), 28 `.feature` files under
+  `02_bdd/features/{s,t,g,m,r,c,y,x}/` — 189 scenarios (77 nominal, 112 edge) for the 72 v0.1–v0.2
+  stories; validators `X_checks/check_usm.py` and `X_checks/check_bdd.py` — accepted after review.
+- Story map v0.2: US-S-11 and US-X-07 moved v0.1 → v0.2 (no action or toast exists in v0.1);
+  v0.1 38 stories, v0.2 34.
+- Decisions: a scenario may carry a later release tag than its story when it needs a later screen;
+  action-descriptor rules (first state → creator, rejected first; undeclared state → `tech-lead`,
+  "Action required"; Memory buckets) handed to an `initial-design` tech-spec; new behaviours
+  accepted (detached HEAD blocks actions, role view kept per project, Node < 22.12 refused, token
+  removed from the address bar, ≤ 3 items per role in the summary, default approve reason
+  "Approved via WingFoil UI"); proposed values for the SARD (refresh ≤ 5 s, auto-fetch every 60 s,
+  last 10 updates, focus contrast 3:1, axe in both themes); Morgan's roles ordered `approver,
+  tech-lead`.
+- Stop-check: ≥ 1 nominal + ≥ 1 edge scenario per story ✓; scenarios atomic (one `When`) ✓; no
+  ambiguous adjectives/adverbs ✓ (`check_bdd.py v0.1 v0.2`).

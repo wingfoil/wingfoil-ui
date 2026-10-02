@@ -1,7 +1,7 @@
 # User Story Map — Stories
 
-**Version:** 0.1
-**Date:** 2026-10-01
+**Version:** 0.2
+**Date:** 2026-10-01 (0.2: US-S-11, US-X-07 moved to v0.2 — session 2)
 **Status:** Draft — specification-downcast session 1 (`user-story-mapping`, phases
 `vertical-explosion` and `mvp-cut`)
 **Input:** `01_backbone.md` · `docs/01_vision/05_journeys.md` (v0.3) · `06_features.md` (v0.4) ·
@@ -67,7 +67,7 @@ means any of them.
 | US-S-08 | As Alex, I want to see the project's WingFoil version and the capabilities it lacks when I add it, so that I know up front what I cannot do yet | S3 | J0.3 | [MVP · v0.1] | N |
 | US-S-09 | As Alex, I want a project whose WingFoil version is outside the supported range opened read-only with the reason, so that I never act through a CLI the UI was not tested with | S3 | J0 rules | [MVP · v0.1] | E |
 | US-S-10 | As Alex, I want a project with no `wingfoil` CLI (neither in its `node_modules` nor on the PATH) not opened, with install instructions, so that I know how to make it readable | S3, S1 | J0 rules | [MVP · v0.1] | E |
-| US-S-11 | As a member, I want a capability that applies to the project but that its WingFoil version or my role lacks shown read-only with the reason, and one that does not apply hidden, so that I can tell "not now" from "not here" | S3 | common rules | [MVP · v0.1] | E |
+| US-S-11 | As a member, I want a capability that applies to the project but that its WingFoil version or my role lacks shown read-only with the reason, and one that does not apply hidden, so that I can tell "not now" from "not here" | S3 | common rules | [MVP · v0.2] | E |
 
 ### 2.3 Be recognised
 
@@ -336,7 +336,7 @@ means any of them.
 | ID | Story | Features | Journey | Release | Kind |
 |----|-------|----------|---------|---------|------|
 | US-X-06 | As a member who uses only the keyboard, I want every MVP screen and action reachable and operable from the keyboard with a visible focus, so that I can use the console without a mouse | X1 | — | [MVP · v0.1] | N |
-| US-X-07 | As a member using a screen reader, I want toasts, state changes and blocked actions announced, so that I know the outcome of what I did | X1 | — | [MVP · v0.1] | E |
+| US-X-07 | As a member using a screen reader, I want toasts, state changes and blocked actions announced, so that I know the outcome of what I did | X1 | — | [MVP · v0.2] | E |
 | US-X-08 | As a member, I want light and dark themes with AA contrast in each, following my system by default (a choice in the UI settings from v0.2), so that the console is readable in any setting | X3 | — | [MVP · v0.1] | N |
 | US-X-09 | As Alex, I want every UI string externalised (English only in the MVP), so that a second language can be added without touching the screens | X2 | — | [MVP · v0.1] | N |
 

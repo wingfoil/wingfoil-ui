@@ -1,0 +1,114 @@
+# BDD Scenarios — Conventions
+
+**Version:** 0.1
+**Date:** 2026-10-01
+**Status:** Draft — specification-downcast session 2 (`specification-by-examples`)
+**Input:** `../01_user_story_map/02_story-map.md` · `03_mvp-cut.md` · `docs/01_vision/` ·
+directives `wingfoil-cli` (v1.1), `cli-only-writes` (v1.1), `accessibility`
+
+The scenarios turn each MVP story into examples in Gherkin (Given–When–Then). They are the
+acceptance criteria of the backlog records (`backlog-export`) and the source of the e2e suite
+(`e2e-smoke`, Playwright). This file fixes the vocabulary every `.feature` file relies on.
+
+---
+
+## Layout and tags
+
+- `features/<area>/<topic>.feature`, one folder per feature area (`s`, `t`, `g`, `m`, `r`, `c`,
+  `y`, `x`; `a` arrives with v0.4).
+- Every scenario carries:
+  - the story tag `@US-<area>-<nn>` (one story per scenario);
+  - the release tag `@v0.1` … `@v1.0` (the story's release);
+  - the kind tag `@nominal` or `@edge` — every story has ≥ 1 of each. For a story that is itself
+    an edge case, `@nominal` is the story's main protective behaviour and `@edge` a variant of it;
+  - the fixture tag `@fx-kanban`, `@fx-custom`, `@fx-unknown` or `@fx-any` (runs on each of the
+    three).
+- Scenario titles start with the scenario id `<area>-<nn>.<k>` (e.g. `S-03.1`): the SARD and the
+  backlog cite scenarios by this id.
+
+## Fixtures
+
+Each fixture is a throwaway git repository built by the e2e suite with the **pinned** CLI
+(`e2e-smoke`, phase `fixture-project`), with a bare remote next to it unless a scenario says
+otherwise.
+
+| Tag | Project | Memory schema | `ui.yaml` |
+|-----|---------|---------------|-----------|
+| `@fx-kanban` | `wingfoil init --template Kanban` | every type uses the default states `draft → pending → approved`, gate `pending` (reject → `draft`) | none |
+| `@fx-custom` | this repository's `.wingfoil/` (`memory.yaml`, `workflows.yaml`, directives, `roles.yaml`, DNA with the team replaced by the standard team) and `docs/01_vision/`; Memory elements created by the builder | WingFoil-style types: `task` (`… in-review …`), `bug`, `decision-log` (`draft → in-discussion → ready`), `plan`, … | none (presets arrive in v0.3) |
+| `@fx-unknown` | hand-written `.wingfoil/memory.yaml` | one type `story`, states `idea → shaping → ready-to-build → shipped`, gate `shaping` (reject → `idea`), `waiting: [ready-to-build]`; one type `note`, states `open → archived`, no gate | none |
+
+**Standard team** (`dna.team.members`, same in every fixture unless a scenario overrides it):
+
+| Member | Email | Roles |
+|--------|-------|-------|
+| Morgan | `morgan@example.test` | approver, tech-lead |
+| Casey | `casey@example.test` | product-owner |
+| Jordan | `jordan@example.test` | developer |
+| Sam | `sam@example.test` | reviewer |
+| Alex | `alex@example.test` | tech-lead, architect, developer, reviewer, product-owner, approver, qa |
+
+Riley (`riley@example.test`) is **not** in the team. `dna.team.agents` declares one agent,
+"Build agent", executing as developer, `approval_authority: false`. Rule 6 of the sequencer: a
+scenario about a gate states explicitly whether Sam or Casey also holds `approver` (step
+*"the DNA gives Sam the roles reviewer, approver"*).
+
+**Standard elements** (created through the CLI, so every transition is a `wf(…)` commit):
+
+| Fixture | Element | State | History |
+|---------|---------|-------|---------|
+| kanban | `task-1-login-form` | `pending` | submitted by Jordan |
+| kanban | `task-2-password-reset` | `draft` | submitted by Jordan, rejected by Morgan with reason "Missing acceptance criteria" |
+| kanban | `task-3-logout` | `approved` | approved by Morgan |
+| kanban | `task-4-session-timeout` | `draft` | created by Jordan, never submitted |
+| kanban | `bug-1-crash-on-save` | `pending` | submitted by Sam |
+| custom | `task-1-cli-adapter` | `in-review` | submitted by Jordan |
+| custom | `dl-001-initialise-wingfoil-before-inception` | `ready` | approved by Morgan |
+| custom | `dl-002-use-fastify` | `in-discussion` | submitted by Casey |
+| custom | `bug-1-toast-overlap` | `open` | submitted by Sam |
+| custom | `adr-1-local-server` | `draft` | created by Alex, required field `sard_ref` left empty (`memory add` cannot set it, W-01) |
+| custom | `minor-v0.1` (release) | `planning` | submitted by Alex (engine-waiting state) |
+| unknown | `story-1-onboarding` | `shaping` | submitted by Jordan |
+| unknown | `story-2-billing` | `ready-to-build` | approved by Morgan |
+| unknown | `note-1-kickoff` | `open` | created by Casey |
+| unknown | `note-2-retro` | `on-hold` | status written by hand and committed — a state not declared for `note` |
+
+## Identity and roles in steps
+
+- *"I am <Member>"* means the fixture's `git config user.email` is that member's email, and the
+  role view is the member's first role unless a step selects another.
+- The **action descriptor** (S9) decides who an item requires. The scenarios assume its 0.2.2
+  rules: every gate (approve/reject) requires `approver` (W-13); an element in the first state of
+  its `sequence` requires the member who created it — when its last transition was a reject, the
+  member who submitted it, listed first with the reason; a `waiting:` state requires the workflow
+  engine (no member); the last state of `sequence` requires no one; a state not declared for the
+  type requires the `tech-lead` role and is shown as **"Action required"**. The exact derivation is
+  a tech-spec of `initial-design`.
+- Commit dates of the standard elements are set by the fixture builder: every element's last
+  transition is 3 days before the test date, unless a scenario says otherwise.
+
+## Writing rules (stop-check)
+
+- **Atomic:** one behaviour per scenario, one `When`.
+- **Testable:** every `Then` is observable in the browser, in the fixture's git history or on the
+  server's HTTP responses.
+- **No ambiguous adjectives or adverbs:** no "quickly", "clearly", "user-friendly", "recent",
+  "appropriate". Counts, names, states, texts and time limits are concrete.
+- **UI texts** in quotes are the English strings of the MVP (X2). Their final wording may change
+  in delivery only together with the scenario.
+- **Time limits** written in scenarios (e.g. "within 5 seconds") are the values proposed for the
+  SARD (session 4); the SARD is the authority and the scenarios follow it.
+- **Release tags:** a scenario carries its story's release, or a later one when it needs a screen
+  of that release (e.g. S-08.3 needs a UI release that knows WingFoil 0.3 capabilities); it then
+  runs from that release. Every story has ≥ 1 nominal and ≥ 1 edge scenario tagged with its own
+  release.
+- **Commits** are written as the CLI writes them: `wf(<type>): <verb> <id> [<from> → <to>]`.
+
+## Coverage
+
+Checked by `../X_checks/check_bdd.py <releases>` (tags, ids, one `When`, ambiguous words, ≥ 1
+nominal and ≥ 1 edge scenario per story of the releases in scope).
+
+| Session | Releases | Stories | Scenarios | Nominal | Edge |
+|---------|----------|---------|-----------|---------|------|
+| 2 | v0.1, v0.2 | 72 | 189 | 77 | 112 |

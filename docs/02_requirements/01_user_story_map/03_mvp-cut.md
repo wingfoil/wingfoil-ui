@@ -1,7 +1,7 @@
 # User Story Map — MVP Cut
 
-**Version:** 0.1
-**Date:** 2026-10-01
+**Version:** 0.2
+**Date:** 2026-10-01 (0.2: US-S-11, US-X-07 moved to v0.2 — session 2)
 **Status:** Draft — specification-downcast session 1 (`user-story-mapping`, phase `mvp-cut`)
 **Input:** `02_story-map.md` · `docs/01_vision/07_sequencer.md` (v0.3) · `08_mvp-canvas.md` (v0.2)
 
@@ -19,8 +19,8 @@ Casey's journey in v0.3).
 
 | Release | Area | WingFoil | Stories | Nominal | Edge |
 |---------|------|----------|---------|---------|------|
-| v0.1 — Read-only console | S | ≥ 0.2.2 | 40 | 23 | 17 |
-| v0.2 — Unblock | G | ≥ 0.2.2 | 32 | 18 | 14 |
+| v0.1 — Read-only console | S | ≥ 0.2.2 | 38 | 23 | 15 |
+| v0.2 — Unblock | G | ≥ 0.2.2 | 34 | 18 | 16 |
 | v0.3 — Project state | R | ≥ 0.2.2 | 27 | 18 | 9 |
 | v0.4 — Workflow and agents | A | ≥ 0.3 | 11 | 8 | 3 |
 | v1.0 — MVP complete | X | 1.0 | 2 | 2 | 0 |
@@ -30,8 +30,8 @@ Casey's journey in v0.3).
 - **Nominal:** US-S-01 · US-S-03 · US-S-04 · US-S-08 · US-S-12 · US-S-16 · US-S-17 · US-S-18 ·
   US-S-22 · US-S-25 · US-S-26 · US-S-28 · US-G-01 · US-G-02 · US-M-01 · US-R-05 · US-R-06 ·
   US-R-07 · US-R-08 · US-X-02 · US-X-06 · US-X-08 · US-X-09
-- **Edge:** US-S-05 · US-S-06 · US-S-07 · US-S-09 · US-S-10 · US-S-11 · US-S-13 · US-S-14 ·
-  US-S-15 · US-S-19 · US-S-27 · US-M-02 · US-R-09 · US-X-03 · US-X-04 · US-X-05 · US-X-07
+- **Edge:** US-S-05 · US-S-06 · US-S-07 · US-S-09 · US-S-10 · US-S-13 · US-S-14 · US-S-15 ·
+  US-S-19 · US-S-27 · US-M-02 · US-R-09 · US-X-03 · US-X-04 · US-X-05
 - **Exit criteria → stories:** three fixtures render without UI changes → US-S-28, US-M-02;
   non-loopback and cross-origin requests refused → US-X-03, US-X-04; no write path → no v0.1 story
   writes (checked by the SARD and e2e-smoke).
@@ -41,8 +41,8 @@ Casey's journey in v0.3).
 - **Nominal:** US-S-21 · US-S-23 · US-T-01 · US-T-02 · US-T-03 · US-T-04 · US-T-11 · US-G-04 ·
   US-G-05 · US-G-06 · US-G-10 · US-G-13 · US-C-07 · US-C-08 · US-Y-01 · US-Y-02 · US-Y-05 ·
   US-Y-07
-- **Edge:** US-S-24 · US-T-05 · US-T-06 · US-T-07 · US-G-07 · US-G-09 · US-G-11 · US-G-12 ·
-  US-G-14 · US-C-09 · US-Y-03 · US-Y-04 · US-Y-06 · US-Y-08
+- **Edge:** US-S-11 · US-S-24 · US-T-05 · US-T-06 · US-T-07 · US-G-07 · US-G-09 · US-G-11 ·
+  US-G-12 · US-G-14 · US-C-09 · US-Y-03 · US-Y-04 · US-Y-06 · US-Y-08 · US-X-07
 - **Exit criteria → stories:** a member holding `approver` passes a gate from Today in ≤ 2 clicks
   with the commit shown and pushed → US-G-04, US-G-05, US-G-13, US-Y-07; a reviewer without `approver`
   sees the gate as informational → US-T-06, US-G-09; actions blocked on local changes and while
