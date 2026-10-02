@@ -2,27 +2,109 @@
 id: release-planning-rel-v0.1-plan
 type: plan
 title: "Release planning — rel-v0.1"
-status: draft
-version: ""            # optional — plan version
+status: active
+version: "1.0"         # optional — plan version
 workflow: "release-planning"
 phase: "rel-v0.1"
 scope: "rl-v1/rel-v0.1"
-element: ""            # optional — the Memory element this phase iterates (e.g. a release id)
-release: ""            # optional — target release, e.g. "v0.1"
+element: "minor-v0.1" # optional — the Memory element this phase iterates (e.g. a release id)
+release: "v0.1"       # optional — target release, e.g. "v0.1"
 tmpl_version: 260703   # Orignal template version
 ---
 
 ## Context
 
-<!-- Why this phase runs now, its preconditions, and what it produces. Keep coherent with the
-     workflow definition's phases / roles / actions / produces / checks.
-     Every plan's preconditions include that the CLI in use is the pinned one:
-     `npm run -s wingfoil -- --version` prints the version package.json pins for `wingfoil`. -->
+**Date:** 2026-10-02 · **Branch:** `design/release-planning_v0.1` (merged to `main` with `--ff=false` at the end)
+**Workflows:** `sw-life-cycle` → `release-line-cycle` (`rl-v1`) phase `delivery` → `release-cycle`
+(`minor-v0.1`) phase `planning` = `release-planning` (`.wingfoil/workflows/custom/release-planning.yaml`)
+**Roles:** product-owner (define-scope, reconcile-governance, build-backlog), tech-lead
+(advance-pinned-build, triage-bugs, commit-backlog), architect (record-adrs, identify-specs),
+approver (gates) — Roberto Pompermaier holds all of them; the agent drafts and audits (no approval
+authority)
+**Input:** release `docs/04_memory/planning/v1/minor-v0.1.md`; its backlog
+`docs/03_backlog/04_backlog/by-release/v0.1.json` (39 user stories + 34 technical tasks, 73
+records); sequencer `docs/01_vision/07_sequencer.md` v0.5 (budget: 6 active days); ADRs
+`adr-001`, `adr-002` (`accepted`); tech-specs `spec-001` … `spec-005` (`approved`); DLs `dl-001` …
+`dl-003` (`ready`)
+**Evidence:** handoff of `initial-design-rl-v1-plan` (`done`); directives `wingfoil-cli` v1.2
+(W-01 … W-20), `cli-only-writes` v1.4, `claim-evidence`
+
+Why now: `initial-design-rl-v1-plan` is `done` and merged; `rl-v1` is `active` and its first
+release, `minor-v0.1`, is `draft`. `release-cycle` starts with `release-planning`.
+
+Preconditions:
+- `npm run -s wingfoil -- --version` prints `0.2.2`, the version `package.json` pins for `wingfoil`.
+- `initial-design-rl-v1-plan` is `done`; `directives list` → `"warnings": []`; backlog validators
+  pass (`check_backlog.py`, `check_releases.py`).
+
+Produces:
+
+| Step | Output |
+|------|--------|
+| define-scope | `minor-v0.1` → `planning` |
+| identify-specs | `docs/04_memory/design/specs/spec-…` (`approved`), only for uncovered v0.1 artefacts |
+| build-backlog | `docs/04_memory/v0.1/task-NNN-….md` (`pending`), `release: v0.1` stamped on included DLs |
+| commit-backlog | tasks `backlog`; `minor-v0.1` → `in-development` |
 
 ## Phases / Steps
 
-<!-- The ordered steps to execute against the workflow phase — actions, roles, gates, models. -->
+Each session: the agent drafts → the session (human + agent) reviews and decides → the agent
+writes the decisions into the elements and into **Session log** below → one commit per session
+(`docs(planning): session N — …`), plus the `wf(…)` commits the CLI makes. Fields that `--set`
+cannot write are filled by editing the draft before `memory submit` (W-01); before each submit the
+draft is checked against `memory.yaml`'s `required` list (W-02).
+
+| # | Step (workflow phase) | Role | Output | Stop-check |
+|---|-----------------------|------|--------|------------|
+| 1 | This plan; `release-planning.yaml` `advance-pinned-build` adapted to this project; `advance-pinned-build`; `define-scope` (`minor-v0.1` submit → `planning`); `triage-bugs`; `reconcile-governance`; `record-adrs` (optional) | tech-lead, product-owner, architect | plan `active`; workflow v1.4; release `planning` | pin = newest published `wingfoil`; release required fields set; no `open` bug, no pre-gate DL/ADR in scope |
+| 2 | v0.1 load decision (budget, technical tasks kept or moved); `identify-specs` | product-owner, architect, approver | sequencer/backlog updated if anything moves; new tech-specs if any | `build_backlog.py`, `check_backlog.py`, `check_releases.py` ✓; independent spec review passed |
+| 3 | `build-backlog`: ~20 vertical tasks grouped by module and feature; DL release stamping | product-owner | `docs/04_memory/v0.1/task-*.md` (`pending`) | every one of the v0.1 backlog records covered by exactly one task (script); `title`, `release` set; `module`, `ref`, `depends_on` filled |
+| 4 | `commit-backlog`: tasks `approve` → `backlog`; release `planning → in-development` by hand; independent audit; plan finalized; merge | tech-lead, approver | tasks `backlog`; release `in-development` | audit passed and re-verified; validators ✓ |
+
+### Decisions taken at the start (2026-10-02)
+
+- Four sessions on branch `design/release-planning_v0.1`.
+- `advance-pinned-build` means here: move the `wingfoil` devDependency in `package.json` to the
+  newest **published** version only if newer (forward only), one commit changing only
+  `package.json` and `package-lock.json`; re-run the CLI contract tests (once they exist) and
+  re-check the `wingfoil-cli` directive. WingFoil's `wingfoil-released`, `check:lockfile` and
+  `check:mcp` do not exist here; the workflow text is fixed (v1.4).
+- v0.1 load: proposal to keep the 39 user stories (they carry the exit criteria) and accept a longer
+  budget (~8–10 active days) rather than cut; candidates to move to a later release: TT-ARC-07
+  (`ui.yaml`, stories C-* are v0.3), TT-PERF-04 (p95 measurement), TT-INT-08 (three engines; v0.1
+  on Chromium only) — decided in session 2.
+- Task granularity: **~20 vertical tasks** grouped by module and feature (option B), not one per
+  backlog record: each dev-loop iteration (branch, TDD, review gate, approval, merge) has a fixed
+  cost and the technical tasks are cross-cutting constraints implemented with their stories. `ref`
+  holds the task's primary backlog id; the task body lists every backlog record it covers; a
+  script checks that the 73 records are covered exactly once.
+- DL release stamping: `dl-002` → `v0.1` (applies to read-only from day one); `dl-003` left for v0.3
+  (implemented through spec-005); `dl-001` left empty (process decision, already executed).
+- Release `planning → in-development` has no CLI verb: edit `status` by hand and commit
+  `wf(release): minor-v0.1 [planning → in-development]` (as plans are finalized, W-04).
+
+### Carried open points
+
+- spec-004 and spec-005 also cover v0.2/v0.3 routes and features — only their v0.1 parts are in
+  scope here.
+- `spec-review.passed` (record-adrs, identify-specs) is satisfied as in `initial-design`: an
+  independent, read-only, fresh-context review, re-verified by the same reviewer after fixes.
+- WingFoil requests (local notes): R-11 read verbs (`memory show`, type schema, `directives show`).
 
 ## Handoff
 
-<!-- What requires the approver vs. the agent; the checkpoint(s) and the completion criteria. -->
+- **Agent:** drafts every element, fills the fields `--set` cannot write, runs the scripted checks,
+  launches the independent reviews, keeps the session log, commits.
+- **Human (product-owner / tech-lead / architect / approver):** decides in each session; runs or
+  authorises every `memory approve` (only `approver` can, W-13).
+- **Checkpoints:** end of each session; spec review before any new tech-spec is approved; audit
+  before commit-backlog closes.
+- **Completion:** `minor-v0.1` `in-development`; every v0.1 task `backlog`; plan finalized by hand
+  (`status: done`, commit `wf(plan): finalize release-planning-rel-v0.1-plan [active → done]`, W-04)
+  and the branch merged to `main` with `--ff=false`.
+- **Next:** `release-cycle` phase `implementation` — `dev-loop` per task (`tags`/`release` v0.1,
+  status `backlog`), plan scope `rl-v1/rel-v0.1`.
+
+## Session log
+
+<!-- One entry per session: date, decisions taken, deviations from this plan. -->
