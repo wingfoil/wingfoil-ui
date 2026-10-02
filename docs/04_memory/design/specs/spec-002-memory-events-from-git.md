@@ -2,7 +2,7 @@
 id: spec-002-memory-events-from-git
 type: tech-spec
 title: "Memory events from git"
-status: draft
+status: pending
 scope: "Memory events: parsing wf(…) commits for Timeline, Recent activity and Updates"              # REQUIRED — the artefact this spec covers, e.g. "server HTTP API", "CLI JSON contract: memory search", ".wingfoil/ui.yaml"
 wingfoil_version: "0.2.2"   # optional — for a CLI contract: the WingFoil version the shape was captured from
 supersedes: ""         # optional — id of the tech-spec this one replaces, e.g. "spec-002"
@@ -44,7 +44,7 @@ date (ISO 8601), `author` = `Name <email>`, `operation` ∈ `add`, `submit`, `ap
 | View | Source | Processes |
 |------|--------|-----------|
 | Element panel history (G1) | `memory history <id>` (spec-001 §3) — the CLI's own reconstruction; non-`wf` commits touching the file (`operation: null`) are shown as "edited outside a WingFoil verb" | 1 per opened element and repository state |
-| Updates (S7), Recent activity (T5), Timeline (R6) | **one `git log`** over the Memory directories, parsed as §3 | 1 per repository state |
+| Updates (S7), Recent activity (T5), Timeline (R6); the action descriptor (spec-003: creator, submitter, last reject, `since`) behind Today (v0.2) and every element list | **one `git log`** over the Memory directories, parsed as §3 | 1 per repository state |
 
 Calling `memory history` for every element would cost one process per element (hundreds on the
 large fixture), against REQ-PERF-05; the single `git log` is used for the project-wide views.
@@ -67,7 +67,12 @@ For each record (`%x1e`-separated; header fields `%x1f`-separated, body ended by
 2. **Transition:** from the subject when present; otherwise from the patch of the element's file
    (the file whose name is `<id>.md`): `-status: <from>` and `+status: <to>` (`add`: `+status:` only).
    Values are taken without quotes and trailing comments.
-3. **Approver / reason:** the body trailers `Approver:` and `Reason:` (first occurrence each).
+3. **Approver / reason:** as WingFoil 0.2.2 reads them (`memory/commit-message.js`): `Approver:` =
+   the first non-empty body line when it starts with `Approver: `; the reason = from the first line
+   starting with `Reason:` to the end of the body, or to the start of a trailing trailer paragraph
+   (e.g. `Co-Authored-By:`), **multi-line**, normalised as `normalizeReason` does (CRLF → LF,
+   trailing blanks removed per line, ≥ 3 newlines → 2, leading/trailing newlines and leading blanks
+   removed).
 4. A record matching the subject but with no `+status:` line in its patch is reported as an event
    with `from`/`to` = `null` and logged as a parse warning (never dropped silently).
 
@@ -75,7 +80,8 @@ For each record (`%x1e`-separated; header fields `%x1f`-separated, body ended by
 
 - Cache key: HEAD only (events are commits; the working tree is irrelevant).
 - After a fast-forward from a cached HEAD `old`, only `old..HEAD` is parsed and prepended; when
-  `old` is not an ancestor of HEAD (rewritten history), the whole log is re-parsed.
+  `old` is not an ancestor of HEAD — `git rev-list --count HEAD..old` is not 0 (an allowed read,
+  REQ-INT-06) — the whole log is re-parsed.
 - Views read from the parsed list: Updates = last 10, Recent activity = last 5 (REQ-PERF-11),
   Timeline = grouped by local day of `timestamp`, paginated.
 
@@ -85,7 +91,7 @@ For each record (`%x1e`-separated; header fields `%x1f`-separated, body ended by
   events of §3 for each element equal the `wf` entries of its `memory history` (same sha,
   operation, from, to, approver, reason).
 - Unit tests with recorded `git log` outputs: each operation, a subject with and without
-  transition, a non-`wf` commit, `wf(plan): finalize` (ignored), a quoted `status:` value, a
+  transition, a multi-line reason, a reason followed by a `Co-Authored-By:` trailer, a non-`wf` commit, `wf(plan): finalize` (ignored), a quoted `status:` value, a
   rewritten history.
 - Performance: on the large fixture (500 elements, 2 000 commits) the first parse runs in one git
   process; an incremental parse after one commit reads one commit.
@@ -105,3 +111,6 @@ For each record (`%x1e`-separated; header fields `%x1f`-separated, body ended by
 - 2026-10-02 — evidence: a throwaway prototype of §3 (not committed) reproduced `memory history`
   exactly — this repository 17 elements / 30 events, the Kanban fixture 3 elements / 10 events
   (every operation, a reject with a reason and a deprecate), 0 mismatches.
+- 2026-10-02 — spec review (step 6): F2 multi-line reasons parsed as the CLI does (the
+  reviewer reproduced a two-line reason in `memory history`); F13 ancestry check named, spec-003
+  listed as a consumer.
