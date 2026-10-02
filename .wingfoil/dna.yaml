@@ -42,6 +42,9 @@ stacks:
     - name: React
       category: frontend framework
       notes: adr-002
+    - name: Vite
+      category: bundler
+      notes: 'adr-002: dev server and static SPA build'
   methodologies:
     - name: Lean Inception
       phase: inception
