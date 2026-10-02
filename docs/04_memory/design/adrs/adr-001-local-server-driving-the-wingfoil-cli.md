@@ -2,7 +2,7 @@
 id: adr-001-local-server-driving-the-wingfoil-cli
 type: adr
 title: "Local server driving the WingFoil CLI"
-status: draft
+status: pending
 sard_ref: "REQ-ARC-02"  # REQUIRED — REQ-* code (docs/02_requirements/03_sard/) or feature ID
 supersedes: ""         # optional — id of the ADR this one replaces, e.g. "adr-002"
 release: "v0.1"        # optional — implementation release this ADR is assigned to (stamped by release-planning/build-backlog), e.g. "v0.1"
@@ -93,8 +93,10 @@ re-run, directive `wingfoil-cli` re-checked).
 **D5 — Process model.** Reads are batched: one CLI process per consumed command and repository
 state, shared by every view and page (REQ-PERF-05). Writes are **serialised per project** — one
 governed or git write at a time, queued — because each makes a commit; the cache is invalidated
-after each write. Every process has a 30 s timeout, after which it is killed and the request fails
-with the reason (REQ-INT-04).
+after each write. Every `wingfoil` process and every git read has a 30 s timeout, after which it is
+killed and the request fails with the reason (REQ-INT-04). Git transport (`clone`, `fetch`, `pull
+--ff-only`, `push`) has no fixed timeout — it can take longer on large repositories — and the UI
+offers to cancel it (the process is killed; git leaves the repository as it was).
 
 **D6 — Snapshot and cache** (REQ-STATE-01…04, SEC-08). The UI shows the working tree, as the CLI
 reads it, and marks elements with *local changes*. Cached reads are keyed on HEAD, a hash of
@@ -110,8 +112,10 @@ touching only that file; (c) git transport — `clone` into a new empty folder, 
 list (REQ-INT-06): it never merges, rebases, resets, stashes or checks out.
 
 **D8 — Local security** (REQ-SEC-01…06). Listen on loopback only (127.0.0.1, ::1); a new random
-session token (≥ 128 bits) per start, in the printed URL, removed from the address bar after the
-first load, required on every request and on the event stream, never logged or stored; Host and
+session token (≥ 128 bits) per start, in the printed URL's fragment, removed from the address bar
+after the first load and exchanged for a per-port `HttpOnly`, `SameSite=Strict` session cookie;
+the token or that session is required on every API request and on the event stream (the static
+application files, which hold no project data, are exempt), never logged or stored (spec-004 §2); Host and
 Origin checked on every request (CSRF, DNS rebinding); opaque project ids, never paths, in URLs;
 no shell; documents and files confined to the repository (`realpath`).
 
@@ -176,3 +180,5 @@ PERF-05 · features S1, S3, S8, X4 · scenarios S-08.1, S-08.2, S-09.1, S-09.2, 
 - 2026-10-02 — session 5: D1a added (and D4 extended) after the CLI read surface of 0.2.2 was
   found not to cover type definitions, element content and directive bodies; SARD REQ-ARC-04
   v0.4 and directive `cli-only-writes` v1.4 changed accordingly.
+- 2026-10-02 — spec review (step 6): D8 aligned with spec-004's session (F4); D5 timeout scoped
+  to `wingfoil` processes and git reads, transport cancellable (F14).
