@@ -177,3 +177,21 @@ Coherence audit checks (step 6):
     at v0.4 `release-planning`; proposed SARD values: last 5 events, agent log lines ≤ 2 s.
 - Stop-check: ≥ 1 nominal + ≥ 1 edge scenario per story ✓; atomic ✓; no ambiguous words ✓
   (`check_bdd.py`, all releases); `check_usm.py` ✓.
+
+### Session 4 — Volere Requirements, SARD (2026-10-02)
+
+- Outputs: `03_sard/00_sard.md` (Volere shell, reference environment, coverage of the plan's
+  items, of the MVP canvas metrics and of the values proposed in sessions 2–3) and five area files
+  — 50 requirements (ARC 11, PERF 11, STATE 9, INT 9, SEC 10); validator `X_checks/check_sard.py`
+  — accepted after review.
+- Decisions: accessibility, strings and themes in `ARC` (the five areas are fixed by the workflow);
+  reference environment = CI runner `ubuntu-latest` + large fixture (custom + 500 elements, 2 000
+  commits), p95 over 20 runs; new values (Today ≤ 2 s warm / ≤ 5 s cold, other views ≤ 1 s,
+  gate/submit ≤ 3 s, ≤ 6 CLI processes for a cold Today and 0 on an unchanged repository, start
+  ≤ 3 s, CLI timeout 30 s, token ≥ 128 bits); server-side enforcement (409 on local changes or a
+  stale/diverged/detached copy, 403 for unidentified users); browsers = two latest majors of
+  Chrome, Edge, Firefox, Safari on Chromium/Firefox/WebKit; closed list of git subcommands; one
+  authenticated event stream per page, no polling; dogfooding measured with a local action log
+  (commit hash and time only), ≥ 80 % of approve/reject commits.
+- Stop-check: every REQ has a numeric, percentage or boolean fit criterion ✓; every cited story
+  and scenario exists ✓ (`check_sard.py`).
