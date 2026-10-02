@@ -11,9 +11,12 @@
 # scope. identify-specs already dedupes against "not yet covered by an approved spec", so anything
 # seeded here is not re-created once a release's own delivery starts.
 # With wingfoil@0.2.2 each action is a `memory add` + hand-filled fields + `memory submit`/`approve`
-# (directive wingfoil-cli). TODO (before the first release): the `spec-review.passed` pre checks
-# come from WingFoil's dl-022 — re-create that review here or drop the checks; `seed-releases`
-# post check must also list `kind`.
+# (directive wingfoil-cli).
+# `spec-review.passed` (pre check of seed-adrs and seed-specs, after WingFoil's dl-022): an
+# independent, read-only review of the ADR and tech-spec drafts — internal consistency, cross-spec
+# consistency, no contradiction with the BDD scenarios / Vision Package / write classes, and
+# traceability to REQ-* — run before they are submitted, its findings fixed and re-verified by the
+# same reviewer; the result is logged in the phase's plan (decided in initial-design-rl-v1-plan).
 name: initial-design
 kind: sub
 element: release-line   # the active element provided by release-line-cycle
@@ -34,7 +37,7 @@ phases:
     produces:
       - "docs/04_memory/planning/{release-line}/{id}.md"
     checks:
-      post: ["frontmatter.required: [title, version, pillar, features, requirements, release-line]"]
+      post: ["frontmatter.required: [title, kind, version, pillar, features, requirements, release-line]"]
 
   - name: seed-adrs
     description: "Optionally record the initial Architectural Decision Records for this release-line."

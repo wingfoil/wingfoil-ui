@@ -3,8 +3,8 @@
   "release": "v0.3",
   "generated_from": {
     "story_map": "docs/02_requirements/01_user_story_map/02_story-map.md v0.5",
-    "bdd": "docs/02_requirements/02_bdd/00_conventions.md v0.4",
-    "sard": "docs/02_requirements/03_sard/00_sard.md v0.4"
+    "bdd": "docs/02_requirements/02_bdd/00_conventions.md v0.5",
+    "sard": "docs/02_requirements/03_sard/00_sard.md v0.5"
   },
   "items": [
     {
@@ -1626,7 +1626,7 @@
       "area": "STATE",
       "wingfoil_min": "0.2.2",
       "requirement": "REQ-STATE-08",
-      "description": "Completion and iterated figures cover the current element of the `progress.scope` type: with WingFoil 0.3 the one `workflow status` reports; before it, the most advanced element not in its first or last state (ties: lowest version); none → whole project. Reference completion = done linked elements / linked elements; project completion = unweighted mean over references with ≥ 1 linked element (Q8); coverage = elements carrying all `requires` categories / elements whose type has `requires`, project-wide. Open bugs and pending gates are project-wide; a state both gate and `waiting:` is not a pending gate.",
+      "description": "Completion and iterated figures cover the current element of the `progress.scope` type: with WingFoil 0.3 the one `workflow status` reports; before it, the most advanced element not in its first or last non-archived state (ties: lowest version); none → whole project. Reference completion = done linked elements / linked elements; project completion = unweighted mean over references with ≥ 1 linked element (Q8); coverage = elements carrying all `requires` categories / elements whose type has `requires`, project-wide. Open bugs and pending gates are project-wide; a state both gate and `waiting:` is not a pending gate.",
       "fit_criterion": "[boolean] On the custom fixture with the `sw-life-cycle` preset the UI shows exactly: scope `minor-v0.1`, project completion 25 %, tasks 1/4, open bugs 1, pending gates 3, coverage 3/5 — and pending gates 2 after `bug-001-toast-overlap` is approved to `triaged`.",
       "verified_by": "unit · e2e",
       "stories": [

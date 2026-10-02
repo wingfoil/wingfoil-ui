@@ -9,7 +9,7 @@ tags: [custom, wingfoil, cli, governance]
 
 # Directive — Using the pinned WingFoil CLI
 
-**Version:** 1.1 · **Date:** 2026-10-01 (1.1: W-13) · **Checked against:** `wingfoil@0.2.2`
+**Version:** 1.2 · **Date:** 2026-10-02 (1.1: W-13; 1.2: W-14…W-20 — initial-design rl-v1) · **Checked against:** `wingfoil@0.2.2`
 
 Global. Applies to every role, human or agent, that changes this project's governance state
 (DNA, Memory, directives, plans) — and to the UI code that drives the CLI for other projects.
@@ -48,3 +48,10 @@ the way to work with each. It is a living list:
 | W-11 | Files the CLI does not own in `.wingfoil/` (e.g. `ui.yaml`) are ignored by every loader, but the secret scan would include them | Keep `ui.yaml` free of secrets | — |
 | W-12 | Unknown frontmatter fields (in directives, Memory elements, YAML config) are only a **warning on stderr** (`unknown field(s) ignored`), so a misspelt field is silently dropped. WingFoil's own directives carry a `scope:` field, and WingFoil's `main` `memory.yaml` an `amendable` key, that 0.2.2 reports this way | Read stderr after every command; remove fields the pinned version does not know | — |
 | W-13 | `memory approve` and `memory reject` both require the `approver` role, whatever the type and gate: there is no per-gate role (a reviewer or product owner without `approver` cannot pass or send back anything) | Give `approver` to whoever must decide gates; in the UI, gates show "reserved to approver" for other roles | — |
+| W-14 | Numeric id tokens are zero-padded to at least 3 digits (`task-001-login-form`, `dl-002-…`) | Write ids, fixtures and expected values padded; never build an id by hand — read it from the `memory add` output | — |
+| W-15 | `memory add` and `memory submit` commit subjects carry no transition (`wf(task): submit task-001-…`); only `approve`, `reject` and `deprecate` carry `[from → to]` | Read a submit's transition from `memory history` or from the `status:` diff of the element file (spec-002) | — |
+| W-16 | `wingfoil init --template Kanban` and `--template Scrum` write `bug-ingest`, `decision-log-ingest` and `adr-ingest` with one phase `capture` and no `actions`; Scrum declares the same 7 types as Kanban | Such workflows are not ingestions for the UI (no `memory.add` in the first phase): Kanban/Scrum projects show none until their workflows declare actions | — |
+| W-17 | The id slug keeps dots and turns an apostrophe into a separate `-s` (`"Permissions are WingFoil's"` → `…-wingfoil-s`, `"ui.yaml"` → `ui.yaml` in the id) | Choose titles with the id in mind: no dots, no apostrophes | — |
+| W-18 | No read verb for type definitions (`memory.yaml` resolved), one element's full content (frontmatter + body) or a directive's body: `memory search` returns `id`, `title`, `type`, `status`, `tags`, `path` only; `directives list` frontmatter and roles only | Read those files directly, read-only, from the allow-list of SARD REQ-ARC-04 (`adr-001` D1a, spec-001 §4) | — |
+| W-19 | `memory search` excludes archived elements (`deprecated`, `superseded`) unless `--status` names them; with no match it adds a `message` field; `--version` prints plain text even with `--format json` | List archived elements with `--status deprecated` / `--status superseded` when needed; accept `message`; parse `--version` as text | — |
+| W-20 | The refusal of `submit` from a waiting state names a wrong target (custom `task` in `backlog`: `illegal transition backlog -> pending`) | Treat the message as "not allowed from this state"; the UI never offers `submit` from a waiting state (spec-003) | — |

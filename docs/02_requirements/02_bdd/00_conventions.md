@@ -1,7 +1,7 @@
 # BDD Scenarios — Conventions
 
-**Version:** 0.4
-**Date:** 2026-10-02 (0.2: v0.3–v1.0 conventions — session 3; 0.3: coherence audit fixes — session 6; 0.4: US-X-10 page title — initial-design session 2)
+**Version:** 0.5
+**Date:** 2026-10-02 (0.2: v0.3–v1.0 conventions — session 3; 0.3: coherence audit fixes — session 6; 0.4: US-X-10 page title — initial-design session 2; 0.5: last *non-archived* state, X-02.2 API request — initial-design session 6)
 **Status:** Draft — specification-downcast sessions 2–3 (`specification-by-examples`)
 **Input:** `../01_user_story_map/02_story-map.md` · `03_mvp-cut.md` · `docs/01_vision/` ·
 directives `wingfoil-cli` (v1.1), `cli-only-writes` (v1.3), `accessibility`
@@ -103,7 +103,7 @@ after the commit `chore(ui): apply the WingFoil sw-life-cycle preset`, which wri
 `.wingfoil/ui.yaml` as in `ux-reference.md` §6 but with `progress.scope: { type: release }` (the
 type only, no id — session 3) and `taxonomy.patterns` matching `^(REQ|US)-` as `requirement`. The **current** element of the scope type is derived:
 with WingFoil 0.3, the one `workflow status` reports; before it, among the elements of that type
-not in the first or last state of their `sequence`, the one in the most advanced state (ties: the
+not in the first or last non-archived state of their `sequence`, the one in the most advanced state (ties: the
 lowest version) — on the custom fixture `minor-v0.1`; none → "No current release" and
 whole-project figures. With it, the custom fixture's figures are: reference `US-M-01` 1/2 done (50 %), `US-S-01` 0/1 (0 %), project
 completion 25 %, iterated tasks 1/4, open bugs 1, pending gates 3 (`task-001-cli-adapter`,
@@ -119,7 +119,8 @@ completion 25 %, iterated tasks 1/4, open bugs 1, pending gates 3 (`task-001-cli
   rules: every gate (approve/reject) requires `approver` (W-13); an element in the first state of
   its `sequence` requires the member who created it — when its last transition was a reject, the
   member who submitted it, listed first with the reason; a `waiting:` state requires the workflow
-  engine (no member); the last state of `sequence` requires no one; a state not declared for the
+  engine (no member); the last non-archived state of `sequence` (archived: `deprecated`,
+  `superseded`) requires no one; a state not declared for the
   type requires the `tech-lead` role and is shown as **"Action required"**. A state that is both a
   gate and a `waiting:` state (custom `bug` `triaged`) is advanced by the workflow engine: it is not
   a pending gate and is not in *Requires you*, and members holding `approver` see only its reject
@@ -138,7 +139,7 @@ completion 25 %, iterated tasks 1/4, open bugs 1, pending gates 3 (`task-001-cli
   id/path tokens): on the custom fixture only `decision-log-ingest`. The Kanban template's
   `bug-ingest`, `decision-log-ingest` and `adr-ingest` have one phase with no action, so they are
   not ingestions and the kanban fixture offers none (hidden: not applicable). An ingestion's
-  *open runs* on 0.2.2 are the elements of its type not in the last state of their `sequence` nor
+  *open runs* on 0.2.2 are the elements of its type not in the last non-archived state of their `sequence` nor
   in a reject target with no way out.
 - **Permissions:** the UI keeps none (they are WingFoil's, L6, and are not stored in `ui.yaml`):
   every team member may run every action the CLI allows; users not in the team, or with no or an

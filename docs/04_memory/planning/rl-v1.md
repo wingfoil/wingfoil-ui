@@ -61,6 +61,23 @@ criteria in the SARD):
 <!-- Decisions/specs formalized up front for this release-line; anything discovered late that
      should have been seeded here instead of during a release's identify-specs. -->
 
+2026-10-02 — `initial-design-rl-v1-plan`:
+- Roadmap: `minor-v0.1` … `minor-v1.0` (`draft`), from `07_sequencer.md` v0.5; new requirement
+  US-X-10 (browser tab title) added to v0.1.
+- ADRs (`accepted`): `adr-001` local server driving the project's own CLI (discovery, version
+  range, contract matrix, serialised writes, read allow-list D1a), `adr-002` technology stack
+  (TypeScript workspaces, Fastify, ports and adapters, React + Vite + React Aria, Vitest, Playwright).
+- DLs (`ready`): `dl-002` permissions left to WingFoil, `dl-003` presets limited to UI configuration.
+- Tech-specs (`approved`): `spec-001` CLI and file read contracts, `spec-002` Memory events from
+  git, `spec-003` action descriptor, `spec-004` server HTTP API and event stream, `spec-005` UI
+  configuration file and presets.
+- Found late, worth seeding earlier next time: WingFoil 0.2.2 exposes no read verb for type
+  definitions, element content or directive bodies (→ SARD REQ-ARC-04 allow-list); archived
+  states (`deprecated`, `superseded`) are hidden by `memory search` and end some sequences
+  (→ "last non-archived state"). Both were found by capturing real CLI output, not from documents.
+- Spec review: independent, read-only reviewer — 6 major + 10 minor fixed, re-verification
+  confirmed with 4 minor remarks, fixed.
+
 ### Delivery (per release)
 
 <!-- Cross-release patterns: recurring blockers, releases that slipped and why, whether the

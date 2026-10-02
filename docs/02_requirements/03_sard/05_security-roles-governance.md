@@ -1,6 +1,6 @@
 # SARD — 5. Security, Roles & Governance
 
-**Version:** 0.2 · **Date:** 2026-10-02 (0.2: coherence audit fixes — session 6) · **Status:** Draft — specification-downcast session 4
+**Version:** 0.3 · **Date:** 2026-10-02 (0.2: coherence audit fixes — session 6; 0.3: REQ-SEC-02 session derived from the token, static files exempt — initial-design session 6) · **Status:** Draft — specification-downcast session 4
 
 Shell and conventions: `00_sard.md`. The protection of the local server (X4) is mandatory and
 distinct from permissions between team members, which belong to WingFoil (L6).
@@ -23,10 +23,10 @@ distinct from permissions between team members, which belong to WingFoil (L6).
 | Field | |
 |-------|--|
 | Release | v0.1 |
-| Description | Each start issues a new random session token (≥ 128 bits), given in the printed URL, removed from the address bar after the first load, and required on every HTTP request and event stream; it is never written to logs or disk. |
+| Description | Each start issues a new random session token (≥ 128 bits), given in the printed URL's fragment, removed from the address bar after the first load and exchanged for a browser session; the token or that session is required on every API request and on the event stream — the static application files, which hold no project data, are exempt. Neither is ever written to logs or disk. |
 | Rationale | Only the user's browser session drives the projects (X4). |
 | Traceability | US-X-02, US-X-04 · X-02.1, X-02.2, X-04.1 · X4 |
-| Fit criterion | [percentage] 100 % of requests without the current token (or with a previous start's) get HTTP 401 and start 0 processes; the token appears in 0 log lines. |
+| Fit criterion | [percentage] 100 % of API and event-stream requests without the current token or a session derived from it (or with a previous start's) get HTTP 401 and start 0 processes; the token and the session id appear in 0 log lines. |
 | Verified by | e2e-smoke `local-security` |
 
 ### REQ-SEC-03 — Origin and Host checks

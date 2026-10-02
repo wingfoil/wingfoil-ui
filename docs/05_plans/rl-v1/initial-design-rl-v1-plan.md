@@ -240,3 +240,29 @@ file's TODO is resolved in the same session (the check's meaning written in its 
   spec-003 updated; `adr-001` D9 aligned on `/api/`.
 - Check: every `REQ-*` and scenario cited by the ADRs, DLs and specs exists; spec-005's figures
   re-derived by hand on the conventions' custom fixture (25 %, 1/4, 1, 3, 3/5).
+
+### Session 6 — Spec review, `wingfoil-cli` v1.2 (2026-10-02)
+
+- **Spec review** (`spec-review.passed`): an independent agent (fresh context, read-only; CLI
+  write commands only in a throwaway repository) reviewed `adr-001`, `adr-002` and `spec-001`…`005`
+  against the SARD, the BDD, the Vision Package, the directives and the pinned CLI (13 claims
+  verified on real output or code). Verdict **passed with fixes**: 0 blocker, 6 major, 10 minor —
+  all fixed. Main fixes: no outcome buttons without the role (G-09.1); multi-line `Reason:` parsed
+  as the CLI does; `workflow list` `version` optional; REQ-SEC-02 amended (session derived from the
+  fragment token, static files exempt, per-port cookie); write preconditions reordered, local
+  changes / stale copy / `expectedStatus` read fresh under the write lock (`memory submit` commits
+  local edits); **last non-archived state** as `last` (accepted ADRs and approved specs are final
+  and done); presets write empty keys; ingestion `commits[]` and partial failure; git transport
+  cancellable instead of a 30 s timeout.
+- Re-verification by the same reviewer: **confirmed with remarks** — 16/16 resolved, 4 new minor
+  (conventions/ARC-06/STATE-08 wording, contract-check exception for archived targets, adr-002
+  token wording, X-02.2 "API request") — fixed.
+- Requirements changed: SARD v0.5 (`01` v0.5, `03` v0.3, `05` v0.3); BDD conventions v0.5,
+  X-02.2; backlog rebuilt (texts only); validators ✓.
+- Transitions: `adr-001`, `adr-002` → `accepted`; `spec-001`…`spec-005` → `approved` (reason
+  "Accepted after the independent spec review (initial-design session 6, 2026-10-02).").
+- DNA `stacks.technologies` (CLI): Fastify, React, Vite, React Aria Components, TanStack Query,
+  TanStack Router, FormatJS, Vitest added; Playwright and axe-core confirmed by `adr-002`.
+- Directive `wingfoil-cli` v1.2: W-14…W-20. Workflow `initial-design`: `spec-review.passed`
+  defined in its header comment, `kind` added to the `seed-releases` post check.
+- `rl-v1` Execution Notes (Initial Design) filled.

@@ -3,8 +3,8 @@
   "release": "v0.1",
   "generated_from": {
     "story_map": "docs/02_requirements/01_user_story_map/02_story-map.md v0.5",
-    "bdd": "docs/02_requirements/02_bdd/00_conventions.md v0.4",
-    "sard": "docs/02_requirements/03_sard/00_sard.md v0.4"
+    "bdd": "docs/02_requirements/02_bdd/00_conventions.md v0.5",
+    "sard": "docs/02_requirements/03_sard/00_sard.md v0.5"
   },
   "items": [
     {
@@ -114,7 +114,7 @@
             "Given the console has been started with \"npx wingfoil-ui\" and printed its URL with the session token",
             "And the kanban fixture is added",
             "Given the token printed at the previous start",
-            "When I stop the console, start it again and send a request with the previous token",
+            "When I stop the console, start it again and send an API request with the previous token",
             "Then the response status is 401"
           ]
         }
@@ -2978,7 +2978,7 @@
       "area": "ARC",
       "wingfoil_min": "0.2.2",
       "requirement": "REQ-ARC-06",
-      "description": "For each element the server derives, from `memory.yaml` (`sequence`, `gates`, `waiting`), the workflows and the CLI version: the verbs available, the reject targets, the role required (0.2.2: `approver` for every gate), who must act (first state → creator; after a reject → submitter, listed first; `waiting:` → workflow engine; last state → no one; undeclared state → `tech-lead`, \"Action required\"; a state both gate and `waiting:` → workflow engine, reject only; gate states listed in *Requires you* of the reviewer and approver views only for members holding `approver`, in *Waiting on others* for the others). The UI shows only what the descriptor allows.",
+      "description": "For each element the server derives, from `memory.yaml` (`sequence`, `gates`, `waiting`), the workflows and the CLI version: the verbs available, the reject targets, the role required (0.2.2: `approver` for every gate), who must act (first state → creator; after a reject → submitter, listed first; `waiting:` → workflow engine; last non-archived state → no one (archived: `deprecated`, `superseded`; spec-003); undeclared state → `tech-lead`, \"Action required\"; a state both gate and `waiting:` → workflow engine, reject only; gate states listed in *Requires you* of the reviewer and approver views only for members holding `approver`, in *Waiting on others* for the others). The UI shows only what the descriptor allows.",
       "fit_criterion": "[percentage] A table-driven unit test over the elements of the three fixtures yields the expected verbs, reject targets, required role and actor for 100 % of the rows.",
       "verified_by": "unit (table-driven) · e2e",
       "stories": [
@@ -5878,8 +5878,8 @@
       "area": "SEC",
       "wingfoil_min": "0.2.2",
       "requirement": "REQ-SEC-02",
-      "description": "Each start issues a new random session token (≥ 128 bits), given in the printed URL, removed from the address bar after the first load, and required on every HTTP request and event stream; it is never written to logs or disk.",
-      "fit_criterion": "[percentage] 100 % of requests without the current token (or with a previous start's) get HTTP 401 and start 0 processes; the token appears in 0 log lines.",
+      "description": "Each start issues a new random session token (≥ 128 bits), given in the printed URL's fragment, removed from the address bar after the first load and exchanged for a browser session; the token or that session is required on every API request and on the event stream — the static application files, which hold no project data, are exempt. Neither is ever written to logs or disk.",
+      "fit_criterion": "[percentage] 100 % of API and event-stream requests without the current token or a session derived from it (or with a previous start's) get HTTP 401 and start 0 processes; the token and the session id appear in 0 log lines.",
       "verified_by": "e2e-smoke `local-security`",
       "stories": [
         "US-X-02",
@@ -5912,7 +5912,7 @@
             "Given the console has been started with \"npx wingfoil-ui\" and printed its URL with the session token",
             "And the kanban fixture is added",
             "Given the token printed at the previous start",
-            "When I stop the console, start it again and send a request with the previous token",
+            "When I stop the console, start it again and send an API request with the previous token",
             "Then the response status is 401"
           ]
         },

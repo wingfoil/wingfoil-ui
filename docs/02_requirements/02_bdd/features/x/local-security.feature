@@ -18,7 +18,7 @@ Feature: Local server security
   @US-X-02 @v0.1 @edge @fx-kanban
   Scenario: X-02.2 — Issue a new token at every start
     Given the token printed at the previous start
-    When I stop the console, start it again and send a request with the previous token
+    When I stop the console, start it again and send an API request with the previous token
     Then the response status is 401
 
   # --- US-X-03 — loopback only ---
