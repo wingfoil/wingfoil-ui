@@ -106,3 +106,20 @@ file's TODO is resolved in the same session (the check's meaning written in its 
 ## Session log
 
 <!-- One entry per session: date, decisions taken, deviations from this plan. -->
+
+### Session 1 — Release-line `rl-v1` (2026-10-02)
+
+- Outputs: `docs/04_memory/planning/rl-v1.md` — Scope (five releases of `07_sequencer.md` v0.5 with
+  area, WingFoil floor and delivery; requirements; out of scope L1–L10; WingFoil 0.3/1.0
+  dependencies) and Success Criteria (the MVP canvas metrics, as fit criteria in SARD v0.2) —
+  accepted after review; `submit` → `planning`, `approve` → `active` (`fda25fa`).
+- Plan accepted as drafted:
+  - six sessions, commits `docs(design): session N — …`;
+  - `spec-review.passed` kept and satisfied by an independent, read-only review of the ADR and
+    tech-spec drafts before submit, re-verified after fixes; the workflow TODO and the `kind`
+    post-check fixed in that session;
+  - DLs only for decisions not yet traceable to a document; the "presets UI-only" DL states that
+    presets are only the `ui.yaml` values/configurations the UI uses — WingFoil may define its own
+    presets in the future;
+  - `wingfoil-cli` directive v1.2 with W-14…W-16;
+  - v0.1's load (34 of 50 technical tasks) weighed by v0.1 `release-planning`, not here.
