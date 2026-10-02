@@ -2,7 +2,7 @@
 id: spec-004-server-http-api-and-event-stream
 type: tech-spec
 title: "Server HTTP API and event stream"
-status: draft
+status: pending
 scope: "server HTTP API and event stream"              # REQUIRED — the artefact this spec covers, e.g. "server HTTP API", "CLI JSON contract: memory search", ".wingfoil/ui.yaml"
 wingfoil_version: ""   # optional — for a CLI contract: the WingFoil version the shape was captured from
 supersedes: ""         # optional — id of the tech-spec this one replaces, e.g. "spec-002"
@@ -29,7 +29,8 @@ table of `docs/00_reference/adr-draft-local-server.md` is its starting point.
   `/api/`; any other path returns the application (client-side routing).
 - Every request — API, event stream and static files — passes the **Host check** (`127.0.0.1:<port>`,
   `localhost:<port>`, `[::1]:<port>`) and, when an `Origin` header is present, the **Origin check**
-  (the console's own origin); failure → **403**, before any other work (REQ-SEC-03).
+  (one of the three accepted origins `http://127.0.0.1:<port>`, `http://localhost:<port>`,
+  `http://[::1]:<port>`); failure → **403**, before any other work (REQ-SEC-03).
 
 ### 2. Session (REQ-SEC-02)
 
@@ -38,8 +39,11 @@ table of `docs/00_reference/adr-draft-local-server.md` is its starting point.
   never sends: it reaches no server log.
 - On load the application reads the fragment, removes it from the address bar
   (`history.replaceState`) and sends `POST /api/session` with `Authorization: Bearer <token>`;
-  the server answers with a cookie `wfui_session=<session id>; HttpOnly; SameSite=Strict; Path=/`
+  the server answers with a cookie `wfui_session_<port>=<session id>; HttpOnly; SameSite=Strict;
+  Path=/` (cookies are not scoped by port: the port in the name keeps two consoles apart)
   (no `Max-Age`: it ends with the browser session). The session id is random and lives in memory.
+- The static application files (`/`, scripts, styles) are served **without** a session: they hold
+  no project data, and the first load cannot carry the fragment token (REQ-SEC-02, SARD v0.5).
 - Every other `/api/` request and the event stream need **either** that cookie **or**
   `Authorization: Bearer <token>` (scripts and tests); otherwise **401**. A new start invalidates
   every token and session (X-02.2).
@@ -87,33 +91,42 @@ status the page showed: when the element's status differs, the write is refused 
 
 ### 4. Write preconditions and refusals
 
-Checked by the server, in this order, before any process starts:
+Checked by the server in this order (Fastify validates the body before the handler):
 
-| # | Condition | Status | `code` |
-|---|-----------|--------|--------|
-| 1 | Host / Origin | 403 | `forbidden-origin` |
-| 2 | session | 401 | `unauthenticated` |
-| 3 | project id unknown | 404 | `not-found` |
-| 4 | user not identified in the team (REQ-SEC-08) | 403 | `not-in-team` |
-| 5 | WingFoil version outside the range (REQ-INT-02) | 409 | `unsupported-version` |
-| 6 | element file has local changes (REQ-STATE-03) | 409 | `local-changes` |
-| 7 | copy behind, diverged or detached HEAD (REQ-STATE-04) | 409 | `stale-copy` |
-| 8 | `expectedStatus` differs | 409 | `element-changed` |
-| 9 | request body fails its schema | 400 | `invalid-request` |
+| # | Condition | Status | `code` | Evaluated from |
+|---|-----------|--------|--------|----------------|
+| 1 | Host / Origin | 403 | `forbidden-origin` | the request |
+| 2 | session | 401 | `unauthenticated` | the request |
+| 3 | project id unknown | 404 | `not-found` | the project list |
+| 4 | request body fails its schema | 400 | `invalid-request` | the request |
+| 5 | user not identified in the team (REQ-SEC-08) | 403 | `not-in-team` | the watched identity (REQ-STATE-02) |
+| 6 | WingFoil version outside the range (REQ-INT-02) | 409 | `unsupported-version` | the cached detection (`adr-001` D3) |
+| 7 | element file has local changes (REQ-STATE-03) | 409 | `local-changes` | **fresh** `git status --porcelain`, under the write lock |
+| 8 | copy behind, diverged or detached HEAD (REQ-STATE-04) | 409 | `stale-copy` | **fresh** `git rev-parse` / `rev-list --count`, under the write lock |
+| 9 | `expectedStatus` differs | 409 | `element-changed` | **fresh** read of the element file, under the write lock |
+
+Rows 1–6 start **no process**. Rows 7–9 run read-only git commands and a file read, never a
+cached answer: `memory submit` commits the target's uncommitted edits (checked on WingFoil 0.2.2),
+so a stale "no local changes" would let a UI action commit someone's work. No `wingfoil` process
+starts before row 9 passes.
 
 The role required by a gate is **not** checked by the server: the CLI refuses it (REQ-SEC-07).
 
 ### 5. Responses
 
-- Success of a write: `{ result: <CLI output>, commit: { sha, subject }, pushed: boolean }`
-  (`pushed` when auto-push is on and succeeded, G4).
+- Success of a write: `{ result: <CLI output>, commits: [{ sha, subject }], pushed: boolean }`
+  (`pushed` when auto-push is on and succeeded, G4); an ingestion lists its `add` and `submit`
+  commits.
+- Partial failure of an ingestion (`add` succeeded, `submit` refused): **422** `cli-refused` with
+  `detail: { created: { id, path }, commits: [{ sha, subject }] }` — the toast names the draft
+  created (REQ-INT-04).
 - Error envelope, every status: `{ error: { code, message, detail? } }`:
 
 | Status | `code` | When |
 |--------|--------|------|
 | 422 | `cli-refused` | CLI exit 1: `message` = the CLI's message verbatim (REQ-INT-04) |
 | 502 | `cli-output` | exit 0 with output failing its schema (spec-001 §2) |
-| 504 | `cli-timeout` | killed after 30 s |
+| 504 | `cli-timeout` | a `wingfoil` process killed after 30 s (git transport has no fixed timeout and is cancellable, `adr-001` D5) |
 | 500 | `internal` | adapter defect (exit 2) or unexpected error; details only in the log |
 | 422 | `git-refused` | a git transport command failed: git's message verbatim (REQ-INT-06) |
 
@@ -138,8 +151,9 @@ reconnecting page refetches everything. Pages never poll.
 
 ### 7. Verification
 
-- API tests for every row of §4 (status and `code`, 0 processes started), for §2 (fragment,
-  cookie flags, 401 with a previous start's token) and for every route's schema.
+- API tests for every row of §4 (status and `code`; 0 processes for rows 1–6, 0 `wingfoil`
+  processes for rows 7–9), for §2 (fragment, cookie name and flags, static files without a
+  session, 401 with a previous start's token) and for every route's schema.
 - The local-security scenarios (`features/x/local-security.feature`) and REQ-SEC-01…06 fit criteria.
 - With one page open and no change for 60 s, 0 CLI processes (REQ-INT-09).
 
@@ -157,3 +171,6 @@ reconnecting page refetches everything. Pages never poll.
   table and the SARD; additions: `expectedStatus` (409 `element-changed`), the fragment +
   `SameSite=Strict` cookie session, 422 for CLI refusals. Submitted after the independent spec
   review (plan step 6).
+- 2026-10-02 — spec review (step 6): F4 static files exempt, cookie name with the port, three
+  accepted origins (REQ-SEC-02 amended in SARD v0.5, `adr-001` D8); F5 order 1-2-3-body-4…, rows 7–9
+  evaluated fresh under the write lock; F16 `commits[]` and the ingestion partial failure.
