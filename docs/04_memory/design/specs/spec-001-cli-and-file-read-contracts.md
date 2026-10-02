@@ -2,7 +2,7 @@
 id: spec-001-cli-and-file-read-contracts
 type: tech-spec
 title: "CLI and file read contracts"
-status: draft
+status: pending
 scope: "CLI JSON contract and direct-read file shapes (WingFoil 0.2.2)"  # REQUIRED — the artefact this spec covers, e.g. "server HTTP API", "CLI JSON contract: memory search", ".wingfoil/ui.yaml"
 wingfoil_version: "0.2.2"   # optional — for a CLI contract: the WingFoil version the shape was captured from
 supersedes: ""         # optional — id of the tech-spec this one replaces, e.g. "spec-002"
@@ -56,7 +56,7 @@ Only these commands are invoked (static list of the CLI adapter). `[]` = optiona
 | `dna show` | S4, R1, R3, C2, T1 | v0.1 | the whole `dna.yaml`: `version`, `project {name, description, methodology}`, `modules[]`, `stacks {technologies[], methodologies[]}`, `team {members[{name, email, roles[]}], roles[{name, description?}], agents[{name, executes_as[], approval_authority}]?}`, `paths {<category>: string[]}` |
 | `paths` | R4, R8 | v0.1 | `{<category>: string[]}` — same as `dna.paths` |
 | `directives list` | R2, G1 | v0.1 | `{entries[{path, frontmatter{id, name, type, kind, title, tags[], ref[]?}, roles[], global, assignment}], warnings[]}` — `path` is relative to `.wingfoil/`; **no body** |
-| `workflow list` | W1, W2, G5, S9 | v0.1 | `{manifest{version, include[]}, workflows[{name, kind, description, version, element?, phases[{name, description?, role?, optional, actions[]?, produces[]?, checks{pre[]?, post[]?}?, approval{by_role}?, fallback{step}?, include?, iterate_over?, where?}]}]}` |
+| `workflow list` | W1, W2, G5, S9 | v0.1 | `{manifest{version, include[]}, workflows[{name, kind, description, version?, element?, phases[{name, description?, role?, optional, actions[]?, produces[]?, checks{pre[]?, post[]?}?, approval{by_role}?, fallback{step}?, include?, iterate_over?, where?}]}]}` |
 | `memory search` | M1, T1, T4, S5, R5 | v0.1 | `{query, matches[{path, id, title, type, status, tags[]}], message?}` — **excludes archived elements** (`deprecated`, `superseded` — WingFoil's archived set) (W-19); `message` present when `matches` is empty |
 | `memory search --status deprecated`, `memory search --status superseded` | M1 (state filter), G1 links | v0.1 | same shape; the only way to list archived elements — called **lazily**, when a view needs archived elements (never for Today) |
 | `memory history <id>` | G1 | v0.1 | `{id, path, entries[{sha, author, timestamp, operation, from, to, approver, reason, subject}]}` — `operation` ∈ `add`, `submit`, `approve`, `reject`, `deprecate`, or `null` for a non-`wf` commit touching the file; `from`/`to` set for every operation (submit included); `author` = `Name <email>`; `approver` = `Name <email> (role)` |
@@ -65,7 +65,7 @@ Only these commands are invoked (static list of the CLI adapter). `[]` = optiona
 | `memory reject <id> --reason <text>` | G2 | v0.2 | `{id, path, from, to, reason}` — the target is the gate's single `reject:` state; the reason is also written to the element as `rejection_reason` |
 | `memory add --type <type> --title <title> [--set <k>=<v>…]` | G5 (decision-log ingestion) | v0.3 | `{id, path}` |
 
-`memory search` is called **without filters** (plus the `deprecated` call): views filter the
+`memory search` is called **without filters** (plus, lazily, the two archived calls): views filter the
 result, so one process per repository state serves them all (REQ-PERF-05). WingFoil 0.3 verbs
 (`workflow status/next/start`, `agent execute`, REQ-INT-07) are added to this table, with their
 captured shapes, by v0.4 `release-planning`.
@@ -162,3 +162,5 @@ its schema, and run the §4.1 resolution check. A failure blocks the matrix adva
   (`deprecated`, `superseded`) and the built-in default machine read from WingFoil 0.2.2's
   `memory/state-machine.js` and checked on a fixture. Submitted after the
   independent spec review (plan step 6).
+- 2026-10-02 — spec review (step 6): F3 `version?` in `workflow list` (absent in Kanban/Scrum
+  template workflows, checked by the reviewer); F12 archived calls aligned.
