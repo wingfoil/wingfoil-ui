@@ -54,6 +54,9 @@ stacks:
     - name: TanStack Router
       category: frontend routing
       notes: adr-002
+    - name: FormatJS
+      category: i18n
+      notes: 'adr-002: react-intl message catalogues'
   methodologies:
     - name: Lean Inception
       phase: inception
