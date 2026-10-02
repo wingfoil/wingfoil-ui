@@ -51,6 +51,9 @@ stacks:
     - name: TanStack Query
       category: frontend state
       notes: 'adr-002: server state, invalidated by the event stream'
+    - name: TanStack Router
+      category: frontend routing
+      notes: adr-002
   methodologies:
     - name: Lean Inception
       phase: inception
