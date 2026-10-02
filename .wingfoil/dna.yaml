@@ -48,6 +48,9 @@ stacks:
     - name: React Aria Components
       category: accessibility
       notes: 'adr-002: accessible primitives (WCAG 2.1 AA)'
+    - name: TanStack Query
+      category: frontend state
+      notes: 'adr-002: server state, invalidated by the event stream'
   methodologies:
     - name: Lean Inception
       phase: inception
