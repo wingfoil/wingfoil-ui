@@ -45,6 +45,9 @@ stacks:
     - name: Vite
       category: bundler
       notes: 'adr-002: dev server and static SPA build'
+    - name: React Aria Components
+      category: accessibility
+      notes: 'adr-002: accessible primitives (WCAG 2.1 AA)'
   methodologies:
     - name: Lean Inception
       phase: inception
