@@ -2,7 +2,7 @@
 id: spec-005-ui-configuration-file-and-presets
 type: tech-spec
 title: "UI configuration file and presets"
-status: draft
+status: pending
 scope: ".wingfoil/ui.yaml schema, inferred defaults and UI presets"              # REQUIRED — the artefact this spec covers, e.g. "server HTTP API", "CLI JSON contract: memory search", ".wingfoil/ui.yaml"
 wingfoil_version: "0.2.2"   # optional — for a CLI contract: the WingFoil version the shape was captured from
 supersedes: ""         # optional — id of the tech-spec this one replaces, e.g. "spec-002"
@@ -56,6 +56,10 @@ declared in memory.yaml".
 
 ### 3. Inferred values (no or ignored file)
 
+The inference table lives in `server/presets/` with the presets — the only place where type names
+may appear in code (REQ-ARC-05).
+
+
 - `taxonomy.categories`: by type name — `task` → work, `bug` → defect, `adr` and `decision-log` →
   decision, `tech-spec` → spec, `release` and `release-line` → release, `service` → external; any
   other type has none ("No category — not counted in progress figures").
@@ -69,11 +73,11 @@ declared in memory.yaml".
   `type`, `title`, `status`, `tags`, `rejection_reason`, which equals the id of another Memory
   element (its category is that element type's) or matches a `taxonomy.patterns` entry (that
   entry's category). An element is **linked** to each of its references.
-- **Done:** an element in the last state of its type's `sequence` (spec-003 kind `last`);
+- **Done:** an element of spec-003 kind `last` (the last non-archived state of its `sequence`);
   archived elements are excluded from every figure.
 - **Current element** of `progress.scope` (mode `sequence`): with WingFoil 0.3 the element
-  `workflow status` reports; before it, among the elements of that type not in the first or last
-  state of their `sequence`, the one in the most advanced state, ties broken by the lowest
+  `workflow status` reports; before it, among the elements of that type not in the first state of
+  their `sequence` nor of spec-003 kind `last` or `archived` (`end`), the one in the most advanced state, ties broken by the lowest
   `version` field, then id; none → "No current <type>" and project-wide figures (REQ-STATE-08).
 - **In scope:** an element belongs to the current element when one of its frontmatter values
   equals the current element's id or its `version` field (e.g. a task's `release: v0.1` and the
@@ -82,7 +86,7 @@ declared in memory.yaml".
   in scope; project completion = unweighted mean of the completion of `requirement` and `feature`
   references with ≥ 1 linked element in scope (Q8); iterated = done / all `iterates` elements in
   scope; open defects = `defects` elements not done
-  (project-wide); pending gates = elements of kind `gate` (spec-003; `gate-waiting` excluded);
+  (project-wide); pending gates = elements of kind `gate` (spec-003; `gate-waiting` excluded), project-wide;
   coverage = elements carrying every `requires` category / elements whose type has `requires`
   (project-wide).
 
@@ -95,12 +99,14 @@ Shipped in `server/presets/` (the only place where type names may appear in code
 
 | Preset | Made for | Content |
 |--------|----------|---------|
-| Kanban | `wingfoil init --template Kanban` | categories of the 7 template types (§3 names); no patterns, no `requires`; `progress: {mode: flow, phases: [plan, build, review, deliver], iterates: task, defects: bug}` |
-| Scrum | `wingfoil init --template Scrum` | as Kanban, with `progress: {mode: sequence, scope: {type: release}, phases: [plan, build, review, deliver], iterates: task, defects: bug}` |
+| Kanban | `wingfoil init --template Kanban` | categories of the 7 template types (§3 names); `patterns: []`, `requires: {}`, `artifacts: []` (written explicitly, so every value shows "declared", C-02.1); `progress: {mode: flow, phases: [plan, build, review, deliver], iterates: task, defects: bug}` |
+| Scrum | `wingfoil init --template Scrum` | as Kanban (empty lists and maps written explicitly), with `progress: {mode: sequence, scope: {type: release}, phases: [plan, build, review, deliver], iterates: task, defects: bug}` |
 | WingFoil `sw-life-cycle` | the WingFoil repository and projects copying its configuration | `ux-reference.md` §6 with `scope: {type: release}`, patterns `^(REQ\|US)-` → requirement, `^(P\d\|Journey)` → feature, `^(minor\|patch)-v\|^rl-` → release, `requires` for `task`, `adr`, `tech-spec` → requirement, categories including `service` |
 
-**Apply** (`POST /api/p/:pid/ui-config/preset`, spec-004): offered only when `.wingfoil/ui.yaml`
-does not exist, to identified team members, on a copy that is not behind (spec-004 §4). The server
+**Apply** (`POST /api/p/:pid/ui-config/preset`, spec-004): *Use preset* is **hidden** when
+`.wingfoil/ui.yaml` exists (C-02.3) or the user is not identified in the team (C-02.5), and
+**disabled with the reason** when the copy is behind, diverged or detached ("Blocked: your copy is
+1 commit behind the remote — Update", C-02.4); the server enforces the same (spec-004 §4). The server
 renders the preset, validates it against the schema **and** the semantic checks (refusal →
 "ui.yaml not written: <first failure>", nothing written, C-03.1/C-03.2), writes the file, then runs
 `git add -- .wingfoil/ui.yaml` and `git commit -m "chore(ui): apply the <Preset> preset" --
@@ -120,8 +126,9 @@ renders the preset, validates it against the schema **and** the semantic checks 
 - A project renders with sensible defaults on day one, and a preset makes its conventions
   explicit and versioned in one reviewable commit.
 - An invalid file never half-applies: it is ignored with one explicit warning.
-- References are recognised by value, not by field name: no WingFoil field is hard-coded, at the
-  price of recognising only Memory ids and declared patterns.
+- References are recognised by value, not by field name, at the price of recognising only Memory
+  ids and declared patterns; the only field name the rules use is `version` (in-scope rule and
+  tie-break).
 
 ## Process Notes
 
@@ -129,3 +136,6 @@ renders the preset, validates it against the schema **and** the semantic checks 
   conventions, REQ-ARC-07, REQ-STATE-08, `dl-002` and `dl-003`; additions: the reference rule by
   value, the in-scope rule (id or `version`, checked against the conventions' figures), inferred `mode: flow`, the Kanban/Scrum preset contents (from the 0.2.2 templates' types
   and delivery phases), ties broken by id. Submitted after the independent spec review (plan step 6).
+- 2026-10-02 — spec review (step 6): F6 done = kind `last` (archived excluded); F7 presets write
+  empty lists/maps explicitly; F8 inference table in `server/presets/`, `version` named; F9 pending
+  gates project-wide; F11 hidden vs disabled for *Use preset*.
