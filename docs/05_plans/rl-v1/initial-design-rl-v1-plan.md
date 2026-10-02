@@ -2,7 +2,7 @@
 id: initial-design-rl-v1-plan
 type: plan
 title: "Initial design — rl-v1"
-status: active
+status: done
 version: "1.0"         # optional — plan version
 workflow: "initial-design"
 phase: "rl-v1"
