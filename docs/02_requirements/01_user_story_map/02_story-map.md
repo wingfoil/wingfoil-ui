@@ -1,7 +1,7 @@
 # User Story Map — Stories
 
-**Version:** 0.2
-**Date:** 2026-10-01 (0.2: US-S-11, US-X-07 moved to v0.2 — session 2)
+**Version:** 0.3
+**Date:** 2026-10-01 (0.2: US-S-11, US-X-07 moved to v0.2 — session 2; 0.3: US-C-05, US-C-06 dropped with C3 — session 3)
 **Status:** Draft — specification-downcast session 1 (`user-story-mapping`, phases
 `vertical-explosion` and `mvp-cut`)
 **Input:** `01_backbone.md` · `docs/01_vision/05_journeys.md` (v0.3) · `06_features.md` (v0.4) ·
@@ -294,13 +294,6 @@ means any of them.
 | US-C-02 | As Alex, on a project without `ui.yaml`, I want to apply a preset (Kanban, Scrum, WingFoil `sw-life-cycle`) as one `chore(ui)` commit touching only `.wingfoil/ui.yaml`, so that the conventions become explicit and versioned | C1 | J0.3 | [MVP · v0.3] | N |
 | US-C-03 | As Alex, I want `ui.yaml` content that fails its schema refused before anything is written, so that the UI never commits an invalid configuration | C1 | — | [MVP · v0.3] | E |
 | US-C-04 | As Alex, I want an existing `ui.yaml` that fails its schema ignored in favour of inferred defaults, with a warning naming the error, so that a bad hand edit does not break the console | C1 | — | [MVP · v0.3] | E |
-| US-C-05 | As Jordan, without the `cfg.ui` permission, I want *Use preset* shown read-only with the reason, so that only the members the team chose change the UI's configuration | C1, C3 | — | [MVP · v0.3] | E |
-
-### 9.2 Set who may do what (advisory)
-
-| ID | Story | Features | Journey | Release | Kind |
-|----|-------|----------|---------|---------|------|
-| US-C-06 | As Morgan, I want a permissions table per action (roles or people), evaluated on all of a member's roles and labelled "advisory — not a security boundary", so that the UI matches the team's habits without pretending to enforce them | C3 | J1.4 | [MVP · v0.3] | N |
 
 ### 9.3 Set my own preferences
 
@@ -353,7 +346,7 @@ One story per later feature of `06_features.md`; specified when their dependency
 | US-L-03 | As Casey, I want artifacts listed by phase, with URLs linked to `service` elements, so that I find what each phase produced | L3 | [Future · L3] |
 | US-L-04 | As Jordan, I want to edit a repository file and commit it, WingFoil's files only with a specific permission reconciled with `cli-only-writes`, so that small fixes need no editor | L4 | [Future · L4] |
 | US-L-05 | As Morgan, I want email or chat notifications for pending gates, so that I learn of them away from the console | L5 | [Future · L5] |
-| US-L-06 | As Morgan, I want the action permissions enforced by the CLI, so that they become a real boundary | L6 | [Future · L6] |
+| US-L-06 | As Morgan, I want the UI to show the action permissions WingFoil defines and dim the actions they forbid, once WingFoil implements them, so that the UI follows the team's rules without keeping its own | L6 | [Future · L6] |
 | US-L-07 | As Alex, I want a page for WingFoil's core settings, taking precedence over my UI settings where they overlap (e.g. `git.autoPush`), so that team-wide rules win over personal ones | L7 | [Future · L7] |
 | US-L-08 | As Riley, I want the UI in a second language, so that I use it in my own | L8 | [Future · L8] |
 | US-L-09 | As Morgan, I want a multi-user or remote deployment of the console, so that the team shares one instance | L9 | [Future · L9] |

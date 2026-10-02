@@ -1,7 +1,7 @@
 # MVP Canvas — WingFoil UI v1.0
 
-**Version:** 0.2
-**Date:** 2026-10-01 (0.2: external review — session 7)
+**Version:** 0.3
+**Date:** 2026-10-01 (0.2: external review — session 7; 0.3: permissions left to WingFoil — specification session 3)
 **Status:** Accepted in lean-inception session 5 (2026-10-01)
 **Input:** `02_product-vision.md` · `04_personas.md` · `05_journeys.md` · `06_features.md` ·
 `07_sequencer.md`
@@ -47,7 +47,7 @@ governed operations into one or two clicks — with WingFoil as the only writer.
 
 ## MVP features
 
-45 features in nine areas (`06_features.md`), delivered as:
+44 features in nine areas (`06_features.md`), delivered as:
 
 | Release | Area | WingFoil | Delivers |
 |---------|------|----------|----------|
@@ -87,7 +87,7 @@ From the vision's success signals, to become SARD fit criteria:
 |------|------------|
 | WingFoil 0.3 / 1.0 later than planned | v0.1–v0.3 need only 0.2.2; v0.4/v1.0 wait without blocking them |
 | CLI JSON output changes between WingFoil versions | Contract tests per supported version; pinned CLI; directive `wingfoil-cli` |
-| A UI that looks like a security boundary | Permissions labelled advisory; gates enforced by the CLI |
+| A UI that looks like a security boundary | No action permissions in the UI (they wait for WingFoil, L6); gates enforced by the CLI |
 | Performance on large Memory (WingFoil has hundreds of elements) | Cache keyed on git HEAD; batch CLI reads (draft ADR) |
 | Writing outside WingFoil by accident | Directive `cli-only-writes`; write classes; e2e check on the fixture's git log |
 | Committing someone's local edits with a UI action | Actions blocked on elements with local changes (S8) |

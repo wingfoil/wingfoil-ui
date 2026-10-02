@@ -27,7 +27,7 @@ S9, X1–X4, `06_features.md`): they serve every task and are not tied to one.
 | 6 | **Capture new elements** | 6.1 Find the ingestion · 6.2 Run the ingestion | J7.1–2 | all |
 | 7 | **Work with agents** | 7.1 Prepare the step · 7.2 Launch the agent · 7.3 Follow the run | J3.2–4 · J4.3 | Jordan, Sam |
 | 8 | **Stay in sync** | 8.1 Know the copy's state · 8.2 Bring the copy up to date · 8.3 Share what was committed | J8.1–5 | all |
-| 9 | **Configure the UI** | 9.1 Make the project's conventions explicit · 9.2 Set who may do what (advisory) · 9.3 Set my own preferences · 9.4 Learn how to join | J0.3 · J2.1 · J6.3 · J8.1–2, J8.5 | Alex, Morgan, Riley, all |
+| 9 | **Configure the UI** | 9.1 Make the project's conventions explicit · 9.3 Set my own preferences · 9.4 Learn how to join (9.2, advisory permissions, dropped — permissions are WingFoil's, L6) | J0.3 · J2.1 · J6.3 · J8.1–2, J8.5 | Alex, Morgan, Riley, all |
 | — | **Across every activity** | X.1 See the project as the CLI reads it · X.2 Work with any methodology · X.3 Use it with any ability and setting | all | all |
 
 ## Journey steps → tasks

@@ -1,7 +1,7 @@
 # User Story Map — MVP Cut
 
-**Version:** 0.2
-**Date:** 2026-10-01 (0.2: US-S-11, US-X-07 moved to v0.2 — session 2)
+**Version:** 0.3
+**Date:** 2026-10-01 (0.2: US-S-11, US-X-07 moved to v0.2 — session 2; 0.3: C3 and US-C-05, US-C-06 dropped — session 3)
 **Status:** Draft — specification-downcast session 1 (`user-story-mapping`, phase `mvp-cut`)
 **Input:** `02_story-map.md` · `docs/01_vision/07_sequencer.md` (v0.3) · `08_mvp-canvas.md` (v0.2)
 
@@ -11,7 +11,7 @@ complete. A story is never earlier than its main feature's release; a story can 
 US-G-03 reads a decision-log as a document, which needs R4 in the element panel and lands with
 Casey's journey in v0.3).
 
-**Totals:** 112 MVP stories (69 nominal, 43 edge) + 10 future stories.
+**Totals:** 110 MVP stories (68 nominal, 42 edge) + 10 future stories.
 
 ---
 
@@ -21,7 +21,7 @@ Casey's journey in v0.3).
 |---------|------|----------|---------|---------|------|
 | v0.1 — Read-only console | S | ≥ 0.2.2 | 38 | 23 | 15 |
 | v0.2 — Unblock | G | ≥ 0.2.2 | 34 | 18 | 16 |
-| v0.3 — Project state | R | ≥ 0.2.2 | 27 | 18 | 9 |
+| v0.3 — Project state | R | ≥ 0.2.2 | 25 | 17 | 8 |
 | v0.4 — Workflow and agents | A | ≥ 0.3 | 11 | 8 | 3 |
 | v1.0 — MVP complete | X | 1.0 | 2 | 2 | 0 |
 
@@ -51,10 +51,8 @@ Casey's journey in v0.3).
 ### v0.3 — Project state
 
 - **Nominal:** US-S-20 · US-T-08 · US-T-12 · US-T-13 · US-T-14 · US-G-03 · US-G-08 · US-G-15 ·
-  US-M-03 · US-M-05 · US-M-07 · US-R-01 · US-R-02 · US-R-04 · US-R-10 · US-C-01 · US-C-02 ·
-  US-C-06
-- **Edge:** US-T-15 · US-G-16 · US-G-17 · US-M-04 · US-R-03 · US-R-11 · US-C-03 · US-C-04 ·
-  US-C-05
+  US-M-03 · US-M-05 · US-M-07 · US-R-01 · US-R-02 · US-R-04 · US-R-10 · US-C-01 · US-C-02
+- **Edge:** US-T-15 · US-G-16 · US-G-17 · US-M-04 · US-R-03 · US-R-11 · US-C-03 · US-C-04
 - **Exit criteria → stories:** Casey follows the project without a developer → US-T-12–US-T-14,
   US-R-01, US-R-02; holding `approver`, decides a product item → US-G-03, US-G-08; a decision-log
   captured through its ingestion → US-G-15; `ui.yaml` written only as a schema-valid `chore(ui)`
@@ -81,7 +79,7 @@ Casey's journey in v0.3).
 
 ## Feature coverage (stop-check: 100 % of the MVP Canvas features)
 
-Every one of the 45 MVP features of `06_features.md` is delivered by ≥ 1 story (checked by script
+Every one of the 44 MVP features of `06_features.md` is delivered by ≥ 1 story (checked by script
 over `06_features.md` and `02_story-map.md`).
 
 | Feature | Release | Stories |
@@ -119,9 +117,8 @@ over `06_features.md` and `02_story-map.md`).
 | R8 Files (read-only) | v0.3 | US-R-10, US-R-11 |
 | A1 Launch agent | v0.4 | US-A-01, US-A-02, US-A-03 |
 | A2 Agent log view | v0.4 | US-A-04, US-A-05 |
-| C1 `ui.yaml` and presets | v0.3 | US-C-01, US-C-02, US-C-03, US-C-04, US-C-05 |
+| C1 `ui.yaml` and presets | v0.3 | US-C-01, US-C-02, US-C-03, US-C-04 |
 | C2 Identity and How to join | v0.2 | US-C-08, US-C-09 |
-| C3 Advisory permissions | v0.3 | US-C-05, US-C-06 |
 | C4 UI settings | v0.2 | US-A-01, US-C-07, US-Y-02, US-Y-05, US-Y-07 |
 | Y1 Repository status | v0.2 | US-Y-01, US-Y-04 |
 | Y2 Fetch | v0.2 | US-Y-02, US-Y-03 |
@@ -145,7 +142,7 @@ The journeys' common rules and obstacles, and the features' refusal cases, each 
 | Copy behind the remote; update cannot fast-forward | common rule *Behind*, Y4 | US-G-12, US-Y-06 |
 | Member without `approver` on WingFoil 0.2.2 | common rule *Roles*, J2/J4 obstacles, W-13 | US-T-06, US-G-09 |
 | Unknown types and states, no `ui.yaml` | S9, R7 of the external review | US-S-28, US-T-05, US-M-02 |
-| Capability not available (version or role) vs not applicable | common rule *Unavailable capabilities*, S3 | US-S-11, US-T-10, US-T-15, US-G-16, US-M-04, US-A-03, US-C-05, US-Y-04 |
+| Capability not available (version or role) vs not applicable | common rule *Unavailable capabilities*, S3 | US-S-11, US-T-10, US-T-15, US-G-16, US-M-04, US-A-03, US-Y-04 |
 | CLI outside the supported range; no CLI found | J0 rules, S3 | US-S-09, US-S-10 |
 | Not in team; no identity; ambiguous identity | J6, S4 | US-S-13, US-S-14, US-S-15 |
 | Invalid add (not WingFoil, duplicate, failed clone, missing folder) | J0 rules, S2 | US-S-05, US-S-06, US-S-07, US-S-19 |
@@ -166,9 +163,9 @@ The journeys' common rules and obstacles, and the features' refusal cases, each 
 
 | Check | Result |
 |-------|--------|
-| 100 % of the MVP Canvas features covered by ≥ 1 story | ✓ 45 / 45 |
-| Every story tagged `[MVP · vX.Y]` or `[Future · Ln]` | ✓ 112 MVP + 10 future |
+| 100 % of the MVP Canvas features covered by ≥ 1 story | ✓ 44 / 44 |
+| Every story tagged `[MVP · vX.Y]` or `[Future · Ln]` | ✓ 110 MVP + 10 future |
 | No story earlier than its main feature's release (`07_sequencer.md`) | ✓ |
 | No duplicate story id | ✓ |
-| Edge-case stories present for every common rule and refusal case | ✓ 43 edge stories (table above) |
+| Edge-case stories present for every common rule and refusal case | ✓ 42 edge stories (table above) |
 | Every MVP journey step (J0–J8) lands on a task with stories | ✓ `01_backbone.md` |

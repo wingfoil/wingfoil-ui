@@ -1,8 +1,8 @@
 # BDD Scenarios — Conventions
 
-**Version:** 0.1
-**Date:** 2026-10-01
-**Status:** Draft — specification-downcast session 2 (`specification-by-examples`)
+**Version:** 0.2
+**Date:** 2026-10-02 (0.2: v0.3–v1.0 conventions — session 3)
+**Status:** Draft — specification-downcast sessions 2–3 (`specification-by-examples`)
 **Input:** `../01_user_story_map/02_story-map.md` · `03_mvp-cut.md` · `docs/01_vision/` ·
 directives `wingfoil-cli` (v1.1), `cli-only-writes` (v1.1), `accessibility`
 
@@ -73,6 +73,30 @@ scenario about a gate states explicitly whether Sam or Casey also holds `approve
 | unknown | `note-1-kickoff` | `open` | created by Casey |
 | unknown | `note-2-retro` | `on-hold` | status written by hand and committed — a state not declared for `note` |
 
+**Progress elements** (custom fixture, from session 3 — used by the v0.3+ scenarios). Written by
+the fixture builder as files and committed with `wf(…)`-formatted messages where 0.2.2 has no verb
+for the transition (states after a `waiting:` state):
+
+| Element | State | Fields |
+|---------|-------|--------|
+| `minor-v0.1` (release) | `planning` | `features: [S1, M1]` |
+| `task-1-cli-adapter` | `in-review` | `release: v0.1`, `ref: US-S-01` |
+| `task-2-memory-list` | `done` | `release: v0.1`, `ref: US-M-01` |
+| `task-3-element-panel` | `backlog` | `release: v0.1`, `ref: US-M-01` |
+| `task-4-themes` | `backlog` | `release: v0.1`, no `ref` |
+
+**Preset variant** — *"the custom fixture with the sw-life-cycle preset"* is the custom fixture
+after the commit `chore(ui): apply the WingFoil sw-life-cycle preset`, which writes
+`.wingfoil/ui.yaml` as in `ux-reference.md` §6 but with `progress.scope: { type: release }` (the
+type only, no id — session 3) and `taxonomy.patterns` matching `^(REQ|US)-` as `requirement`. The **current** element of the scope type is derived:
+with WingFoil 0.3, the one `workflow status` reports; before it, among the elements of that type
+not in the first or last state of their `sequence`, the one in the most advanced state (ties: the
+lowest version) — on the custom fixture `minor-v0.1`; none → "No current release" and
+whole-project figures. With it, the custom fixture's figures are: reference `US-M-01` 1/2 done (50 %), `US-S-01` 0/1 (0 %), project
+completion 25 %, iterated tasks 1/4, open bugs 1, pending gates 3 (`task-1-cli-adapter`,
+`dl-002-use-fastify`, `bug-1-toast-overlap`), reference coverage 3/4 (`task-4-themes` lacks a
+requirement).
+
 ## Identity and roles in steps
 
 - *"I am <Member>"* means the fixture's `git config user.email` is that member's email, and the
@@ -84,6 +108,18 @@ scenario about a gate states explicitly whether Sam or Casey also holds `approve
   engine (no member); the last state of `sequence` requires no one; a state not declared for the
   type requires the `tech-lead` role and is shown as **"Action required"**. The exact derivation is
   a tech-spec of `initial-design`.
+- **Workflows:** an *ingestion* workflow is a `kind: main` workflow whose first phase runs
+  `memory.add`; the *main workflow* is the `kind: main` workflow that is not an ingestion (both
+  fixtures `kanban` and `custom`: `sw-life-cycle`). An ingestion is offered only when every
+  required field of its type is set by the CLI (on 0.2.2: `title` and id/path tokens) — so on the
+  kanban fixture, whose types require only `id, type, title, status`, decision-log, bug and adr
+  ingestions are all offered; on the custom fixture only decision-log.
+- **Permissions:** the UI keeps none (they are WingFoil's, L6, and are not stored in `ui.yaml`):
+  every team member may run every action the CLI allows; users not in the team, or with no or an
+  ambiguous identity, are read-only (S4).
+- **WingFoil 0.3 verbs** (v0.4 scenarios): `workflow start/next/status` and `agent execute`, as
+  named in the Vision Package. Their exact options and output are confirmed against WingFoil 0.3
+  by v0.4's `release-planning`; the scenarios describe the UI behaviour, not the CLI syntax.
 - Commit dates of the standard elements are set by the fixture builder: every element's last
   transition is 3 days before the test date, unless a scenario says otherwise.
 
@@ -112,3 +148,5 @@ nominal and ≥ 1 edge scenario per story of the releases in scope).
 | Session | Releases | Stories | Scenarios | Nominal | Edge |
 |---------|----------|---------|-----------|---------|------|
 | 2 | v0.1, v0.2 | 72 | 189 | 77 | 112 |
+| 3 | v0.3, v0.4, v1.0 | 38 | 103 | 39 | 64 |
+| **Total** | v0.1 → v1.0 | **110** | **292** | **116** | **176** |

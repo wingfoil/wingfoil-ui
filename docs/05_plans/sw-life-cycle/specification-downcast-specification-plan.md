@@ -151,3 +151,29 @@ Coherence audit checks (step 6):
   tech-lead`.
 - Stop-check: ≥ 1 nominal + ≥ 1 edge scenario per story ✓; scenarios atomic (one `When`) ✓; no
   ambiguous adjectives/adverbs ✓ (`check_bdd.py v0.1 v0.2`).
+
+### Session 3 — Specification by Example, v0.3–v1.0 (2026-10-02)
+
+- Outputs: 16 new `.feature` files (progress card, recent activity, next step, decision-log,
+  ingestion, missing references, workflows, traceability, timeline, files, command palette,
+  `ui.yaml` and presets, agents, packaging, user guide) — 103 scenarios (39 nominal, 64 edge) for
+  the 38 v0.3–v1.0 stories; `00_conventions.md` v0.2 (progress elements, preset variant, ingestion
+  and main-workflow rule, WingFoil 0.3 verbs assumption) — accepted after review.
+- Totals: 110 MVP stories, 292 scenarios (116 nominal, 176 edge), 44 MVP features.
+- Decisions:
+  - **Permissions are WingFoil's** (supersedes Q11): C3 dropped from the MVP and merged into L6;
+    nothing stored in `ui.yaml`; every team member may run what the CLI allows, presets included.
+    Vision Package: `02` v0.3, `03` v0.5, `06` v0.5 (44 features), `07` v0.4 (v0.3: 12 features),
+    `08` v0.3, `00_index`; directive `cli-only-writes` v1.2; story map v0.3 (US-C-05, US-C-06
+    dropped; US-L-06 rewritten); request R-09 updated in the local WingFoil notes.
+  - Presets are UI-only `ui.yaml` contents (Kanban, Scrum, `sw-life-cycle`), offered only without
+    `ui.yaml`, refused when they map an undeclared type, committed alone.
+  - **`progress.scope` declares the type only** (deviation from `ux-reference.md` §6, which had a
+    fixed id): the current element is derived (WingFoil 0.3 `workflow status`; before it, the most
+    advanced started, non-terminal element); completion and iterated figures on that element,
+    open bugs and pending gates project-wide.
+  - Ingestion offered only when the CLI sets every required field of the type (kanban: bug, adr,
+    decision-log; custom: decision-log); v0.4 scenarios describe UI behaviour, CLI syntax confirmed
+    at v0.4 `release-planning`; proposed SARD values: last 5 events, agent log lines ≤ 2 s.
+- Stop-check: ≥ 1 nominal + ≥ 1 edge scenario per story ✓; atomic ✓; no ambiguous words ✓
+  (`check_bdd.py`, all releases); `check_usm.py` ✓.
