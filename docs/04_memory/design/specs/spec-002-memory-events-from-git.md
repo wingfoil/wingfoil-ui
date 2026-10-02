@@ -2,7 +2,7 @@
 id: spec-002-memory-events-from-git
 type: tech-spec
 title: "Memory events from git"
-status: pending
+status: approved
 scope: "Memory events: parsing wf(…) commits for Timeline, Recent activity and Updates"              # REQUIRED — the artefact this spec covers, e.g. "server HTTP API", "CLI JSON contract: memory search", ".wingfoil/ui.yaml"
 wingfoil_version: "0.2.2"   # optional — for a CLI contract: the WingFoil version the shape was captured from
 supersedes: ""         # optional — id of the tech-spec this one replaces, e.g. "spec-002"
