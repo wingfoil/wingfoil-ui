@@ -57,6 +57,9 @@ stacks:
     - name: FormatJS
       category: i18n
       notes: 'adr-002: react-intl message catalogues'
+    - name: Vitest
+      category: unit testing
+      notes: 'adr-002: unit, component and contract tests'
   methodologies:
     - name: Lean Inception
       phase: inception
