@@ -2,7 +2,7 @@
 id: specification-downcast-specification-plan
 type: plan
 title: "Specification downcast"
-status: active
+status: done
 version: "1.0"         # optional — plan version
 workflow: "specification-downcast"
 phase: "specification"
