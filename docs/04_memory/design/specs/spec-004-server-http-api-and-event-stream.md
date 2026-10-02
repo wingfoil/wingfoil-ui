@@ -2,7 +2,7 @@
 id: spec-004-server-http-api-and-event-stream
 type: tech-spec
 title: "Server HTTP API and event stream"
-status: pending
+status: approved
 scope: "server HTTP API and event stream"              # REQUIRED — the artefact this spec covers, e.g. "server HTTP API", "CLI JSON contract: memory search", ".wingfoil/ui.yaml"
 wingfoil_version: ""   # optional — for a CLI contract: the WingFoil version the shape was captured from
 supersedes: ""         # optional — id of the tech-spec this one replaces, e.g. "spec-002"
