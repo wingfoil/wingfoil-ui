@@ -2,7 +2,7 @@
 id: adr-002-technology-stack
 type: adr
 title: "Technology stack"
-status: pending
+status: accepted
 sard_ref: "REQ-ARC-01"  # REQUIRED — REQ-* code (docs/02_requirements/03_sard/) or feature ID
 supersedes: ""         # optional — id of the ADR this one replaces, e.g. "adr-002"
 release: "v0.1"        # optional — implementation release this ADR is assigned to (stamped by release-planning/build-backlog), e.g. "v0.1"
