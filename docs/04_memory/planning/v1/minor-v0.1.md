@@ -60,6 +60,11 @@ Bars common to every release (`08_mvp-canvas.md`, SARD v0.3):
 <!-- identify-specs: artefacts discovered late or missed; build-backlog: scope/estimation
      surprises, bugs selected for this release and their derived fix tasks. -->
 
+- 2026-10-02 — `release-planning-rel-v0.1-plan` started. `advance-pinned-build` no-op (0.2.2 is
+  the newest published `wingfoil`); `triage-bugs`, `reconcile-governance` no-op (no bugs; DLs
+  `ready`, ADRs `accepted`); `record-adrs` skipped. Load (73 backlog records vs a 6-active-day
+  budget) to be weighed before `identify-specs`; tasks to be grouped into ~20 vertical tasks.
+
 ### Implementation (dev-loop, per task)
 
 <!-- Recurring blockers across tasks, tech-specs revised mid-release, review rejections and why,

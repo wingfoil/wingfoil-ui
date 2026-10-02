@@ -108,3 +108,27 @@ draft is checked against `memory.yaml`'s `required` list (W-02).
 ## Session log
 
 <!-- One entry per session: date, decisions taken, deviations from this plan. -->
+
+### Session 1 — Plan, pinned build, scope (2026-10-02)
+
+- Outputs: this plan (`9d2f45f`, `draft → active`); `release-planning.yaml` v1.4 —
+  `advance-pinned-build` adapted (pin = `wingfoil` devDependency, forward only, published only;
+  post-check: `directives list` with no warnings and CLI contract tests once they exist; WingFoil's
+  `wingfoil-released`, `check:lockfile`, `check:mcp` removed); `minor-v0.1` `draft → planning`
+  (`3891864`).
+- Decisions: the six points of *Decisions taken at the start* confirmed; task granularity chosen
+  after a pros/cons comparison of one task per backlog record (73), ~20 vertical tasks, and 39
+  stories 1:1 plus infrastructure tasks (~45) — **~20 vertical tasks** (option B).
+- `advance-pinned-build`: no-op — `npm run -s wingfoil -- --version` → `0.2.2` = the pin;
+  `npm view wingfoil versions` → `0.2.1`, `0.2.2` (no newer published build).
+- `define-scope`: `minor-v0.1` required fields present (`title`, `kind`, `version`, `pillar`,
+  `features`, `requirements`, `release-line`); scope, pillar focus and success criteria unchanged
+  from `initial-design`.
+- `triage-bugs`: no-op — `memory search --type bug` matches nothing.
+- `reconcile-governance`: no-op — `dl-001` … `dl-003` already `ready`, `adr-001`, `adr-002`
+  already `accepted`; nothing pre-gate in scope.
+- `record-adrs` (optional): skipped — the v0.1 scope needs no ADR beyond `adr-001`/`adr-002`.
+- Deviation: `check_releases.py` required status `draft` and failed once `minor-v0.1` reached
+  `planning`; it now accepts any `release` state of `memory.yaml`.
+- Checks: `check_releases.py` OK (5 releases, 44 / 44 MVP features); `check_backlog.py` all checks
+  passed (161 items, 238 links); `directives list` → `"warnings": []`; workflow YAML parses.
