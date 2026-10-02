@@ -1,0 +1,1930 @@
+{
+  "version": 1,
+  "release": "v0.3",
+  "generated_from": {
+    "story_map": "docs/02_requirements/01_user_story_map/02_story-map.md v0.3",
+    "bdd": "docs/02_requirements/02_bdd/00_conventions.md v0.2",
+    "sard": "docs/02_requirements/03_sard/00_sard.md v0.1"
+  },
+  "items": [
+    {
+      "id": "US-S-20",
+      "kind": "user-story",
+      "title": "Switch project, open any element and navigate from the command palette (⌘K)",
+      "release": "v0.3",
+      "area": "S",
+      "wingfoil_min": "0.2.2",
+      "story": "As Alex, I want to switch project, open any element and navigate from the command palette (⌘K), so that everything is one shortcut away",
+      "persona": "Alex",
+      "story_kind": "nominal",
+      "features": [
+        "S6"
+      ],
+      "journeys": "J5.3",
+      "acceptance_criteria": [
+        {
+          "id": "S-20.1",
+          "title": "Open an element by its id",
+          "file": "docs/02_requirements/02_bdd/features/s/command-palette.feature",
+          "release": "v0.3",
+          "kind": "nominal",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running with the kanban fixture and the custom fixture added",
+            "And the kanban fixture is open",
+            "And I am Alex",
+            "When I press Ctrl+K, type \"task-3\" and press Enter",
+            "Then the element panel of \"task-3-logout\" opens"
+          ]
+        },
+        {
+          "id": "S-20.2",
+          "title": "Switch project from the palette",
+          "file": "docs/02_requirements/02_bdd/features/s/command-palette.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running with the kanban fixture and the custom fixture added",
+            "And the kanban fixture is open",
+            "And I am Alex",
+            "When I press Ctrl+K, type \"custom\", select \"Switch to custom\" with the arrow keys and press Enter",
+            "Then the custom fixture is open on the same screen"
+          ]
+        },
+        {
+          "id": "S-20.3",
+          "title": "Navigate to a screen",
+          "file": "docs/02_requirements/02_bdd/features/s/command-palette.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running with the kanban fixture and the custom fixture added",
+            "And the kanban fixture is open",
+            "And I am Alex",
+            "When I press Ctrl+K, type \"timeline\" and press Enter",
+            "Then Timeline opens"
+          ]
+        },
+        {
+          "id": "S-20.4",
+          "title": "Say when nothing matches",
+          "file": "docs/02_requirements/02_bdd/features/s/command-palette.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running with the kanban fixture and the custom fixture added",
+            "And the kanban fixture is open",
+            "And I am Alex",
+            "When I press Ctrl+K and type \"zzz-no-such-thing\"",
+            "Then the palette shows \"No match\""
+          ]
+        },
+        {
+          "id": "S-20.5",
+          "title": "Close the palette with Escape",
+          "file": "docs/02_requirements/02_bdd/features/s/command-palette.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running with the kanban fixture and the custom fixture added",
+            "And the kanban fixture is open",
+            "And I am Alex",
+            "Given the palette is open",
+            "When I press Escape",
+            "Then the palette closes and the focus returns to where it was"
+          ]
+        }
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "US-T-08",
+      "kind": "user-story",
+      "title": "The recent Memory activity on Today with a link to the Timeline",
+      "release": "v0.3",
+      "area": "T",
+      "wingfoil_min": "0.2.2",
+      "story": "As Casey, I want the recent Memory activity on Today with a link to the Timeline, so that I see what moved since I last looked",
+      "persona": "Casey",
+      "story_kind": "nominal",
+      "features": [
+        "T5"
+      ],
+      "journeys": "J2.1",
+      "acceptance_criteria": [
+        {
+          "id": "T-08.1",
+          "title": "Show the last 5 Memory events",
+          "file": "docs/02_requirements/02_bdd/features/t/recent-activity.feature",
+          "release": "v0.3",
+          "kind": "nominal",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running with the kanban fixture open",
+            "And I am Casey",
+            "When I open Today",
+            "Then the \"Recent activity\" card lists 5 events, newest first",
+            "And each event shows the time, the element, the transition \"from → to\" and the author",
+            "And the card ends with the link \"Open the Timeline\""
+          ]
+        },
+        {
+          "id": "T-08.2",
+          "title": "Add an event made outside the UI",
+          "file": "docs/02_requirements/02_bdd/features/t/recent-activity.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running with the kanban fixture open",
+            "And I am Casey",
+            "When Morgan approves \"task-1-login-form\" with the CLI in a terminal",
+            "Then within 5 seconds the first event of \"Recent activity\" is \"task-1-login-form pending → approved · Morgan\""
+          ]
+        },
+        {
+          "id": "T-08.3",
+          "title": "Leave out commits that are not Memory events",
+          "file": "docs/02_requirements/02_bdd/features/t/recent-activity.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running with the kanban fixture open",
+            "And I am Casey",
+            "Given the last commit of the fixture is \"docs: fix a typo in README\"",
+            "When I open Today",
+            "Then \"Recent activity\" does not list \"docs: fix a typo in README\""
+          ]
+        }
+      ],
+      "dependencies": [
+        "TT-PERF-03",
+        "TT-PERF-11"
+      ]
+    },
+    {
+      "id": "US-G-03",
+      "kind": "user-story",
+      "title": "Read a decision-log as a rendered document in the element panel, with its history",
+      "release": "v0.3",
+      "area": "G",
+      "wingfoil_min": "0.2.2",
+      "story": "As Casey, I want to read a decision-log as a rendered document in the element panel, with its history, so that I understand the decision before taking it",
+      "persona": "Casey",
+      "story_kind": "nominal",
+      "features": [
+        "G1",
+        "R4"
+      ],
+      "journeys": "J2.3",
+      "acceptance_criteria": [
+        {
+          "id": "G-03.1",
+          "title": "Read a decision-log as a rendered document",
+          "file": "docs/02_requirements/02_bdd/features/g/decision-log.feature",
+          "release": "v0.3",
+          "kind": "nominal",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running with the custom fixture open",
+            "Given I am Casey",
+            "And the body of \"dl-002-use-fastify\" has the sections \"Context\", \"Options\" and \"Decision\"",
+            "When I open the element panel of \"dl-002-use-fastify\"",
+            "Then the panel renders the body as Markdown with the headings \"Context\", \"Options\" and \"Decision\"",
+            "And the history lists \"submitted by Casey\" with its commit"
+          ]
+        },
+        {
+          "id": "G-03.2",
+          "title": "Open the decision-log from Documentation links",
+          "file": "docs/02_requirements/02_bdd/features/g/decision-log.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running with the custom fixture open",
+            "Given I am Casey",
+            "And \"docs/01_vision/00_index.md\" links to the file of \"dl-002-use-fastify\"",
+            "When I select that link",
+            "Then the element panel of \"dl-002-use-fastify\" opens with its rendered body"
+          ]
+        },
+        {
+          "id": "G-03.3",
+          "title": "Read a decision-log with an empty body",
+          "file": "docs/02_requirements/02_bdd/features/g/decision-log.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running with the custom fixture open",
+            "Given I am Casey",
+            "And \"dl-003-empty\" is a `draft` decision-log whose body is empty",
+            "When I open the element panel of \"dl-003-empty\"",
+            "Then the body area reads \"No content yet\""
+          ]
+        }
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "US-G-08",
+      "kind": "user-story",
+      "title": "Approve or reject a decision-log in-discussion from its panel",
+      "release": "v0.3",
+      "area": "G",
+      "wingfoil_min": "0.2.2",
+      "story": "As Casey, holding `approver`, I want to approve or reject a decision-log `in-discussion` from its panel, so that I take product decisions without a developer",
+      "persona": "Casey",
+      "story_kind": "nominal",
+      "features": [
+        "G2"
+      ],
+      "journeys": "J2.4",
+      "acceptance_criteria": [
+        {
+          "id": "G-08.1",
+          "title": "Approve a decision-log as a product owner holding approver",
+          "file": "docs/02_requirements/02_bdd/features/g/decision-log.feature",
+          "release": "v0.3",
+          "kind": "nominal",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running with the custom fixture open",
+            "Given the DNA gives Casey the roles product-owner, approver",
+            "And I am Casey",
+            "When I approve \"dl-002-use-fastify\" from its panel with the reason \"Agreed in the planning meeting\"",
+            "Then the fixture's last commit is \"wf(decision-log): approve dl-002-use-fastify [in-discussion → ready]\""
+          ]
+        },
+        {
+          "id": "G-08.2",
+          "title": "Send a decision-log back to draft",
+          "file": "docs/02_requirements/02_bdd/features/g/decision-log.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running with the custom fixture open",
+            "Given the DNA gives Casey the roles product-owner, approver",
+            "And I am Casey",
+            "When I reject \"dl-002-use-fastify\" from its panel with the reason \"Needs a cost estimate\"",
+            "Then the fixture's last commit is \"wf(decision-log): reject dl-002-use-fastify [in-discussion → draft]\"",
+            "And Requires you of Casey lists \"dl-002-use-fastify\" with \"Rejected by Casey: Needs a cost estimate\""
+          ]
+        },
+        {
+          "id": "G-08.3",
+          "title": "Keep the decision informational for a product owner without approver",
+          "file": "docs/02_requirements/02_bdd/features/g/decision-log.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running with the custom fixture open",
+            "Given the DNA gives Casey the roles product-owner",
+            "And I am Casey",
+            "When I open the element panel of \"dl-002-use-fastify\"",
+            "Then the footer shows \"Reserved to approver — Morgan, Alex can act\""
+          ]
+        }
+      ],
+      "dependencies": [
+        "TT-SEC-07"
+      ]
+    },
+    {
+      "id": "US-T-12",
+      "kind": "user-story",
+      "title": "A progress card with scope, completion, iterated x/y, open bugs and pending gates",
+      "release": "v0.3",
+      "area": "T",
+      "wingfoil_min": "0.2.2",
+      "story": "As Casey, I want a progress card with scope, completion, iterated x/y, open bugs and pending gates, so that I understand progress in plain words",
+      "persona": "Casey",
+      "story_kind": "nominal",
+      "features": [
+        "T2"
+      ],
+      "journeys": "J2.1",
+      "acceptance_criteria": [
+        {
+          "id": "T-12.1",
+          "title": "Show the figures of the current scope",
+          "file": "docs/02_requirements/02_bdd/features/t/progress-card.feature",
+          "release": "v0.3",
+          "kind": "nominal",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running",
+            "And I am Casey",
+            "Given the custom fixture with the sw-life-cycle preset is open",
+            "When I open Today",
+            "Then the progress card shows the scope \"minor-v0.1\" with its state \"planning\"",
+            "And it shows \"Project completion 25 %\", \"Tasks 1/4\", \"Open bugs 1\" and \"Pending gates 3\""
+          ]
+        },
+        {
+          "id": "T-12.4",
+          "title": "Move the scope to the most advanced release",
+          "file": "docs/02_requirements/02_bdd/features/t/progress-card.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running",
+            "And I am Casey",
+            "Given the custom fixture with the sw-life-cycle preset is open",
+            "And \"minor-v0.1\" is `released` and \"minor-v0.2\" is `in-development`",
+            "When I open Today",
+            "Then the progress card shows the scope \"minor-v0.2\" with its state \"in-development\""
+          ]
+        },
+        {
+          "id": "T-12.5",
+          "title": "Say that no release is under way",
+          "file": "docs/02_requirements/02_bdd/features/t/progress-card.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running",
+            "And I am Casey",
+            "Given the custom fixture with the sw-life-cycle preset is open",
+            "And its only release \"minor-v0.1\" is `draft`",
+            "When I open Today",
+            "Then the progress card shows \"No current release\" and the figures of the whole project"
+          ]
+        },
+        {
+          "id": "T-12.2",
+          "title": "Show whole-project figures without ui.yaml",
+          "file": "docs/02_requirements/02_bdd/features/t/progress-card.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "unknown",
+          "steps": [
+            "Given the console is running",
+            "And I am Casey",
+            "Given the unknown fixture is open",
+            "When I open Today",
+            "Then the progress card shows the scope \"Whole project\"",
+            "And it shows \"Pending gates 1\"",
+            "And it shows no completion figure, with \"Completion needs references — see Configuration › Taxonomy\""
+          ]
+        },
+        {
+          "id": "T-12.3",
+          "title": "Update the figures after a decision",
+          "file": "docs/02_requirements/02_bdd/features/t/progress-card.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running",
+            "And I am Casey",
+            "Given the custom fixture with the sw-life-cycle preset is open and Today shows \"Pending gates 3\"",
+            "When Morgan approves \"bug-1-toast-overlap\" with the CLI in a terminal",
+            "Then within 5 seconds the progress card shows \"Pending gates 2\""
+          ]
+        }
+      ],
+      "dependencies": [
+        "TT-ARC-07",
+        "TT-PERF-03",
+        "TT-STATE-08"
+      ]
+    },
+    {
+      "id": "US-T-13",
+      "kind": "user-story",
+      "title": "Each figure of the progress card to open the Memory list filtered on the items behind it",
+      "release": "v0.3",
+      "area": "T",
+      "wingfoil_min": "0.2.2",
+      "story": "As Casey, I want each figure of the progress card to open the Memory list filtered on the items behind it, so that I see what the number means",
+      "persona": "Casey",
+      "story_kind": "nominal",
+      "features": [
+        "T2",
+        "M1"
+      ],
+      "journeys": "J2.2",
+      "acceptance_criteria": [
+        {
+          "id": "T-13.1",
+          "title": "Open the items behind \"Pending gates\"",
+          "file": "docs/02_requirements/02_bdd/features/t/progress-card.feature",
+          "release": "v0.3",
+          "kind": "nominal",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running",
+            "And I am Casey",
+            "Given the custom fixture with the sw-life-cycle preset is open",
+            "When I select \"Pending gates 3\" on the progress card",
+            "Then the Memory list shows exactly \"task-1-cli-adapter\", \"dl-002-use-fastify\" and \"bug-1-toast-overlap\"",
+            "And the active filter reads \"Pending gates\""
+          ]
+        },
+        {
+          "id": "T-13.2",
+          "title": "Open the items behind \"Tasks 1/4\"",
+          "file": "docs/02_requirements/02_bdd/features/t/progress-card.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running",
+            "And I am Casey",
+            "Given the custom fixture with the sw-life-cycle preset is open",
+            "When I select \"Tasks 1/4\" on the progress card",
+            "Then the Memory list shows the 4 tasks of release \"v0.1\", \"task-2-memory-list\" marked done"
+          ]
+        }
+      ],
+      "dependencies": [
+        "TT-STATE-08"
+      ]
+    },
+    {
+      "id": "US-T-14",
+      "kind": "user-story",
+      "title": "The definition of completion (unweighted mean of per-reference completion) shown on hover",
+      "release": "v0.3",
+      "area": "T",
+      "wingfoil_min": "0.2.2",
+      "story": "As Casey, I want the definition of completion (unweighted mean of per-reference completion) shown on hover, so that I can explain the figure",
+      "persona": "Casey",
+      "story_kind": "nominal",
+      "features": [
+        "T2",
+        "R5"
+      ],
+      "journeys": "—",
+      "acceptance_criteria": [
+        {
+          "id": "T-14.1",
+          "title": "Explain the completion figure on hover",
+          "file": "docs/02_requirements/02_bdd/features/t/progress-card.feature",
+          "release": "v0.3",
+          "kind": "nominal",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running",
+            "And I am Casey",
+            "Given the custom fixture with the sw-life-cycle preset is open",
+            "When I hover \"Project completion 25 %\"",
+            "Then a tooltip reads \"Mean of reference completion over 2 references with at least 1 linked element: US-M-01 50 %, US-S-01 0 %\""
+          ]
+        },
+        {
+          "id": "T-14.2",
+          "title": "Reach the explanation with the keyboard",
+          "file": "docs/02_requirements/02_bdd/features/t/progress-card.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running",
+            "And I am Casey",
+            "Given the custom fixture with the sw-life-cycle preset is open",
+            "When I move the keyboard focus to \"Project completion 25 %\"",
+            "Then the same explanation is shown and is the figure's accessible description"
+          ]
+        }
+      ],
+      "dependencies": [
+        "TT-ARC-10",
+        "TT-STATE-08"
+      ]
+    },
+    {
+      "id": "US-T-15",
+      "kind": "user-story",
+      "title": "The phase figure shown read-only with the reason and the other figures shown",
+      "release": "v0.3",
+      "area": "T",
+      "wingfoil_min": "0.2.2",
+      "story": "As Casey, on a project whose WingFoil is older than 0.3, I want the phase figure shown read-only with the reason and the other figures shown, so that I still get Memory progress",
+      "persona": "Casey",
+      "story_kind": "edge",
+      "features": [
+        "T2",
+        "S3"
+      ],
+      "journeys": "J2 obstacle",
+      "acceptance_criteria": [
+        {
+          "id": "T-15.1",
+          "title": "Show the phase figure read-only on WingFoil 0.2.2",
+          "file": "docs/02_requirements/02_bdd/features/t/progress-card.feature",
+          "release": "v0.3",
+          "kind": "nominal",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running",
+            "And I am Casey",
+            "Given the custom fixture with the sw-life-cycle preset is open on WingFoil 0.2.2",
+            "When I open Today",
+            "Then the progress card shows \"Phase — needs WingFoil 0.3 (this project: 0.2.2)\" in place of the phase figure",
+            "And it shows \"Project completion 25 %\""
+          ]
+        },
+        {
+          "id": "T-15.2",
+          "title": "Show phase completion read-only too",
+          "file": "docs/02_requirements/02_bdd/features/t/progress-card.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running",
+            "And I am Casey",
+            "Given the custom fixture with the sw-life-cycle preset is open on WingFoil 0.2.2",
+            "When I open Today",
+            "Then the progress card shows \"Phase completion — needs WingFoil 0.3\""
+          ]
+        }
+      ],
+      "dependencies": [
+        "TT-INT-03"
+      ]
+    },
+    {
+      "id": "US-M-03",
+      "kind": "user-story",
+      "title": "A filter and a badge for elements missing a reference their type requires",
+      "release": "v0.3",
+      "area": "M",
+      "wingfoil_min": "0.2.2",
+      "story": "As Morgan, I want a filter and a badge for elements missing a reference their type requires, so that I catch incomplete work before it reaches a gate",
+      "persona": "Morgan",
+      "story_kind": "nominal",
+      "features": [
+        "M2"
+      ],
+      "journeys": "J2.2",
+      "acceptance_criteria": [
+        {
+          "id": "M-03.1",
+          "title": "Filter the elements missing a required reference",
+          "file": "docs/02_requirements/02_bdd/features/m/missing-references.feature",
+          "release": "v0.3",
+          "kind": "nominal",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running",
+            "And I am Morgan",
+            "Given the custom fixture with the sw-life-cycle preset is open on the Memory list",
+            "When I select the filter \"Missing required references\"",
+            "Then the list shows exactly \"task-4-themes\"",
+            "And its row carries the badge \"missing refs\""
+          ]
+        },
+        {
+          "id": "M-03.2",
+          "title": "Drop the badge when the reference is added",
+          "file": "docs/02_requirements/02_bdd/features/m/missing-references.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running",
+            "And I am Morgan",
+            "Given the custom fixture with the sw-life-cycle preset is open",
+            "When `ref: US-X-08` is added to \"task-4-themes\" and committed outside the UI",
+            "Then within 5 seconds \"task-4-themes\" no longer carries the badge \"missing refs\""
+          ]
+        }
+      ],
+      "dependencies": [
+        "TT-PERF-03",
+        "TT-STATE-08"
+      ]
+    },
+    {
+      "id": "US-M-04",
+      "kind": "user-story",
+      "title": "The missing-references filter hidden",
+      "release": "v0.3",
+      "area": "M",
+      "wingfoil_min": "0.2.2",
+      "story": "As Morgan, on a project that declares no required references (no `ui.yaml`, none inferred), I want the missing-references filter hidden, so that an empty filter does not look like good news",
+      "persona": "Morgan",
+      "story_kind": "edge",
+      "features": [
+        "M2",
+        "S3"
+      ],
+      "journeys": "—",
+      "acceptance_criteria": [
+        {
+          "id": "M-04.1",
+          "title": "Hide the filter when no type requires references",
+          "file": "docs/02_requirements/02_bdd/features/m/missing-references.feature",
+          "release": "v0.3",
+          "kind": "nominal",
+          "fixture": "unknown",
+          "steps": [
+            "Given the console is running",
+            "And I am Morgan",
+            "Given the unknown fixture is open on the Memory list",
+            "When I look at the state filters",
+            "Then no filter \"Missing required references\" is shown"
+          ]
+        },
+        {
+          "id": "M-04.2",
+          "title": "Hide the filter on the custom fixture without ui.yaml",
+          "file": "docs/02_requirements/02_bdd/features/m/missing-references.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running",
+            "And I am Morgan",
+            "Given the custom fixture without `ui.yaml` is open on the Memory list",
+            "When I look at the state filters",
+            "Then no filter \"Missing required references\" is shown"
+          ]
+        }
+      ],
+      "dependencies": [
+        "TT-INT-03"
+      ]
+    },
+    {
+      "id": "US-R-01",
+      "kind": "user-story",
+      "title": "A traceability view from each reference to its linked elements, with completion, coverage and missing references",
+      "release": "v0.3",
+      "area": "R",
+      "wingfoil_min": "0.2.2",
+      "story": "As Casey, I want a traceability view from each reference to its linked elements, with completion, coverage and missing references, so that I see what is done, open and missing for a feature",
+      "persona": "Casey",
+      "story_kind": "nominal",
+      "features": [
+        "R5"
+      ],
+      "journeys": "J2.5",
+      "acceptance_criteria": [
+        {
+          "id": "R-01.1",
+          "title": "List references with their completion",
+          "file": "docs/02_requirements/02_bdd/features/r/traceability.feature",
+          "release": "v0.3",
+          "kind": "nominal",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running",
+            "And I am Casey",
+            "Given the custom fixture with the sw-life-cycle preset is open",
+            "When I open Traceability",
+            "Then it shows \"Project completion 25 %\" and \"Reference coverage 3/4\"",
+            "And the row \"US-M-01\" shows 2 linked elements and \"50 % · 1/2\"",
+            "And the row \"US-S-01\" shows 1 linked element and \"0 % · 0/1\""
+          ]
+        },
+        {
+          "id": "R-01.2",
+          "title": "Show who must act on a reference's open elements",
+          "file": "docs/02_requirements/02_bdd/features/r/traceability.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running",
+            "And I am Casey",
+            "Given the custom fixture with the sw-life-cycle preset is open on Traceability",
+            "When I select the row \"US-M-01\"",
+            "Then the detail lists \"task-2-memory-list · done\" and \"task-3-element-panel · backlog · waiting for the workflow engine\""
+          ]
+        },
+        {
+          "id": "R-01.3",
+          "title": "Filter references by status",
+          "file": "docs/02_requirements/02_bdd/features/r/traceability.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running",
+            "And I am Casey",
+            "Given the custom fixture with the sw-life-cycle preset is open on Traceability",
+            "When I select the status filter \"Completed\"",
+            "Then the table shows \"No reference matches\""
+          ]
+        },
+        {
+          "id": "R-01.4",
+          "title": "Explain an empty traceability",
+          "file": "docs/02_requirements/02_bdd/features/r/traceability.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "unknown",
+          "steps": [
+            "Given the console is running",
+            "And I am Casey",
+            "Given the unknown fixture is open",
+            "When I open Traceability",
+            "Then the page shows \"No references found — declare taxonomy patterns in ui.yaml\""
+          ]
+        }
+      ],
+      "dependencies": [
+        "TT-STATE-08"
+      ]
+    },
+    {
+      "id": "US-R-02",
+      "kind": "user-story",
+      "title": "A time axis of Memory creations and state changes per day, parsed from wf(…) commits",
+      "release": "v0.3",
+      "area": "R",
+      "wingfoil_min": "0.2.2",
+      "story": "As Casey, I want a time axis of Memory creations and state changes per day, parsed from `wf(…)` commits, so that I see the project's pace",
+      "persona": "Casey",
+      "story_kind": "nominal",
+      "features": [
+        "R6"
+      ],
+      "journeys": "J2.2",
+      "acceptance_criteria": [
+        {
+          "id": "R-02.1",
+          "title": "Show creations above and state changes below the axis",
+          "file": "docs/02_requirements/02_bdd/features/r/timeline.feature",
+          "release": "v0.3",
+          "kind": "nominal",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running with the kanban fixture open",
+            "And I am Casey",
+            "And after the commits of `wingfoil init`, the fixture's history is exactly: 2026-09-28 \"wf(task): add task-1-login-form\", 2026-09-28 \"wf(task): submit task-1-login-form [draft → pending]\", 2026-09-29 \"docs: fix a typo in README\", 2026-09-30 \"wf(task): approve task-1-login-form [pending → approved]\"",
+            "When I open Timeline",
+            "Then the Time axis tab is selected",
+            "And the column 2026-09-28 shows 1 creation above the axis and 1 state change below",
+            "And the column 2026-09-30 shows 1 state change below the axis"
+          ]
+        },
+        {
+          "id": "R-02.2",
+          "title": "List the events of a day",
+          "file": "docs/02_requirements/02_bdd/features/r/timeline.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running with the kanban fixture open",
+            "And I am Casey",
+            "And after the commits of `wingfoil init`, the fixture's history is exactly: 2026-09-28 \"wf(task): add task-1-login-form\", 2026-09-28 \"wf(task): submit task-1-login-form [draft → pending]\", 2026-09-29 \"docs: fix a typo in README\", 2026-09-30 \"wf(task): approve task-1-login-form [pending → approved]\"",
+            "Given Timeline is open on the Time axis",
+            "When I select the column 2026-09-28",
+            "Then it lists \"task-1-login-form · created\" and \"task-1-login-form · draft → pending\", each with the time and the author"
+          ]
+        }
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "US-R-03",
+      "kind": "user-story",
+      "title": "Commits that are not wf(…) commits left out of the time axis (and kept in the git tree)",
+      "release": "v0.3",
+      "area": "R",
+      "wingfoil_min": "0.2.2",
+      "story": "As Casey, I want commits that are not `wf(…)` commits left out of the time axis (and kept in the git tree), so that the axis shows governed events only",
+      "persona": "Casey",
+      "story_kind": "edge",
+      "features": [
+        "R6"
+      ],
+      "journeys": "—",
+      "acceptance_criteria": [
+        {
+          "id": "R-03.1",
+          "title": "Leave non-wf commits out of the time axis",
+          "file": "docs/02_requirements/02_bdd/features/r/timeline.feature",
+          "release": "v0.3",
+          "kind": "nominal",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running with the kanban fixture open",
+            "And I am Casey",
+            "And after the commits of `wingfoil init`, the fixture's history is exactly: 2026-09-28 \"wf(task): add task-1-login-form\", 2026-09-28 \"wf(task): submit task-1-login-form [draft → pending]\", 2026-09-29 \"docs: fix a typo in README\", 2026-09-30 \"wf(task): approve task-1-login-form [pending → approved]\"",
+            "When I open Timeline",
+            "Then the column 2026-09-29 shows no event"
+          ]
+        },
+        {
+          "id": "R-03.2",
+          "title": "Keep non-wf commits in the git tree",
+          "file": "docs/02_requirements/02_bdd/features/r/timeline.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running with the kanban fixture open",
+            "And I am Casey",
+            "And after the commits of `wingfoil init`, the fixture's history is exactly: 2026-09-28 \"wf(task): add task-1-login-form\", 2026-09-28 \"wf(task): submit task-1-login-form [draft → pending]\", 2026-09-29 \"docs: fix a typo in README\", 2026-09-30 \"wf(task): approve task-1-login-form [pending → approved]\"",
+            "When I open the Git tree tab of Timeline",
+            "Then it lists \"docs: fix a typo in README\" with a filled dot"
+          ]
+        }
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "US-R-04",
+      "kind": "user-story",
+      "title": "A git tree with lanes and filters, Memory commits marked, each commit opening its files and element",
+      "release": "v0.3",
+      "area": "R",
+      "wingfoil_min": "0.2.2",
+      "story": "As Morgan, I want a git tree with lanes and filters, Memory commits marked, each commit opening its files and element, so that I relate history to governed state",
+      "persona": "Morgan",
+      "story_kind": "nominal",
+      "features": [
+        "R7"
+      ],
+      "journeys": "J8",
+      "acceptance_criteria": [
+        {
+          "id": "R-04.1",
+          "title": "Mark Memory commits and open a commit",
+          "file": "docs/02_requirements/02_bdd/features/r/timeline.feature",
+          "release": "v0.3",
+          "kind": "nominal",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running with the kanban fixture open",
+            "And I am Casey",
+            "And after the commits of `wingfoil init`, the fixture's history is exactly: 2026-09-28 \"wf(task): add task-1-login-form\", 2026-09-28 \"wf(task): submit task-1-login-form [draft → pending]\", 2026-09-29 \"docs: fix a typo in README\", 2026-09-30 \"wf(task): approve task-1-login-form [pending → approved]\"",
+            "Given the Git tree tab of Timeline is open",
+            "When I select \"wf(task): approve task-1-login-form [pending → approved]\"",
+            "Then the commit shows its full message, its changed files and the link \"task-1-login-form\"",
+            "And the commit's dot is hollow, marking a Memory commit"
+          ]
+        },
+        {
+          "id": "R-04.2",
+          "title": "Filter Memory changes only",
+          "file": "docs/02_requirements/02_bdd/features/r/timeline.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running with the kanban fixture open",
+            "And I am Casey",
+            "And after the commits of `wingfoil init`, the fixture's history is exactly: 2026-09-28 \"wf(task): add task-1-login-form\", 2026-09-28 \"wf(task): submit task-1-login-form [draft → pending]\", 2026-09-29 \"docs: fix a typo in README\", 2026-09-30 \"wf(task): approve task-1-login-form [pending → approved]\"",
+            "Given the Git tree tab of Timeline is open",
+            "When I turn on the filter \"Memory changes only\"",
+            "Then the list shows the 3 `wf(task)` commits and not \"docs: fix a typo in README\""
+          ]
+        },
+        {
+          "id": "R-04.3",
+          "title": "Show a second branch in its own lane",
+          "file": "docs/02_requirements/02_bdd/features/r/timeline.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running with the kanban fixture open",
+            "And I am Casey",
+            "And after the commits of `wingfoil init`, the fixture's history is exactly: 2026-09-28 \"wf(task): add task-1-login-form\", 2026-09-28 \"wf(task): submit task-1-login-form [draft → pending]\", 2026-09-29 \"docs: fix a typo in README\", 2026-09-30 \"wf(task): approve task-1-login-form [pending → approved]\"",
+            "Given the fixture has a branch \"feature/x\" with 1 commit not on \"main\"",
+            "When I open the Git tree tab of Timeline",
+            "Then \"feature/x\" is drawn in a second lane with its label on the tip"
+          ]
+        }
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "US-R-10",
+      "kind": "user-story",
+      "title": "A read-only file tree and viewer of the working tree, files differing from HEAD marked, with highlighting and Markdown p",
+      "release": "v0.3",
+      "area": "R",
+      "wingfoil_min": "0.2.2",
+      "story": "As a member, I want a read-only file tree and viewer of the working tree, files differing from HEAD marked, with highlighting and Markdown preview, so that I read any file without leaving the UI",
+      "persona": "a member",
+      "story_kind": "nominal",
+      "features": [
+        "R8"
+      ],
+      "journeys": "J6.2",
+      "acceptance_criteria": [
+        {
+          "id": "R-10.1",
+          "title": "View a YAML file with line numbers and highlighting",
+          "file": "docs/02_requirements/02_bdd/features/r/files.feature",
+          "release": "v0.3",
+          "kind": "nominal",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running with the custom fixture open",
+            "And I am Jordan",
+            "When I open Files and select \".wingfoil/memory.yaml\"",
+            "Then the viewer shows the full path \".wingfoil/memory.yaml\", its size and line numbers",
+            "And the YAML keys are highlighted"
+          ]
+        },
+        {
+          "id": "R-10.2",
+          "title": "Mark a file that differs from HEAD",
+          "file": "docs/02_requirements/02_bdd/features/r/files.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running with the custom fixture open",
+            "And I am Jordan",
+            "Given \"README.md\" has an uncommitted edit",
+            "When I open Files",
+            "Then \"README.md\" is marked \"modified\" in the tree",
+            "And the viewer shows the working-tree content of \"README.md\""
+          ]
+        },
+        {
+          "id": "R-10.3",
+          "title": "Toggle a Markdown file between preview and source",
+          "file": "docs/02_requirements/02_bdd/features/r/files.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running with the custom fixture open",
+            "And I am Jordan",
+            "Given \"docs/01_vision/02_product-vision.md\" is open in Files with \"Preview\" selected",
+            "When I select \"Source\"",
+            "Then the viewer shows the raw Markdown with line numbers"
+          ]
+        },
+        {
+          "id": "R-10.4",
+          "title": "Show the editing actions as coming",
+          "file": "docs/02_requirements/02_bdd/features/r/files.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running with the custom fixture open",
+            "And I am Jordan",
+            "When I open a file in Files",
+            "Then \"New\", \"Edit\" and \"Delete\" are disabled with \"Coming after v1.0\""
+          ]
+        }
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "US-R-11",
+      "kind": "user-story",
+      "title": "Any path outside the repository (.., a symlink that escapes it) refused by the file browser",
+      "release": "v0.3",
+      "area": "R",
+      "wingfoil_min": "0.2.2",
+      "story": "As a member, I want any path outside the repository (`..`, a symlink that escapes it) refused by the file browser, so that the UI never reads beyond the project",
+      "persona": "a member",
+      "story_kind": "edge",
+      "features": [
+        "R8",
+        "X4"
+      ],
+      "journeys": "—",
+      "acceptance_criteria": [
+        {
+          "id": "R-11.1",
+          "title": "Refuse a path that climbs out of the repository",
+          "file": "docs/02_requirements/02_bdd/features/r/files.feature",
+          "release": "v0.3",
+          "kind": "nominal",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running with the custom fixture open",
+            "And I am Jordan",
+            "When I request the file \"../../etc/hosts\" from the Files API with the session token",
+            "Then the response status is 404",
+            "And the response contains no content of \"/etc/hosts\""
+          ]
+        },
+        {
+          "id": "R-11.2",
+          "title": "Refuse a symlink that escapes the repository",
+          "file": "docs/02_requirements/02_bdd/features/r/files.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running with the custom fixture open",
+            "And I am Jordan",
+            "Given the fixture contains a symlink \"notes/hosts\" pointing to \"/etc/hosts\"",
+            "When I select \"notes/hosts\" in Files",
+            "Then the viewer shows \"Not shown: the link points outside the repository\""
+          ]
+        }
+      ],
+      "dependencies": [
+        "TT-SEC-06"
+      ]
+    },
+    {
+      "id": "US-M-05",
+      "kind": "user-story",
+      "title": "The main workflow tree drawn from the project's definitions, with the elements each phase iterates",
+      "release": "v0.3",
+      "area": "M",
+      "wingfoil_min": "0.2.2",
+      "story": "As a member, I want the main workflow tree drawn from the project's definitions, with the elements each phase iterates, so that I understand the process the project follows",
+      "persona": "a member",
+      "story_kind": "nominal",
+      "features": [
+        "W1"
+      ],
+      "journeys": "J6.2",
+      "acceptance_criteria": [
+        {
+          "id": "M-05.1",
+          "title": "Draw the main workflow from its definitions",
+          "file": "docs/02_requirements/02_bdd/features/m/workflows.feature",
+          "release": "v0.3",
+          "kind": "nominal",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running",
+            "Given the custom fixture is open",
+            "When I open Workflow",
+            "Then the tree's top level lists \"init\", \"inception\", \"specification\", \"seed-first-release-line\", \"release-line-cycle\", \"sunset\" in this order",
+            "And \"release-line-cycle\" is marked \"iterates release-line\""
+          ]
+        },
+        {
+          "id": "M-05.2",
+          "title": "Expand an iterated phase with its elements",
+          "file": "docs/02_requirements/02_bdd/features/m/workflows.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running",
+            "Given the custom fixture is open and its Memory holds the release-line \"rl-v1\" in the state \"planning\"",
+            "When I expand \"release-line-cycle\" in the Workflow tree",
+            "Then it lists \"rl-v1\" with the state \"planning\""
+          ]
+        },
+        {
+          "id": "M-05.3",
+          "title": "Say that a project declares no main workflow",
+          "file": "docs/02_requirements/02_bdd/features/m/workflows.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "unknown",
+          "steps": [
+            "Given the console is running",
+            "Given the unknown fixture is open and its `workflows.yaml` includes no workflow",
+            "When I open Workflow",
+            "Then the page shows \"This project declares no workflow\""
+          ]
+        }
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "US-M-07",
+      "kind": "user-story",
+      "title": "One card per ingestion workflow with its steps, open runs and a Start button",
+      "release": "v0.3",
+      "area": "M",
+      "wingfoil_min": "0.2.2",
+      "story": "As a member, I want one card per ingestion workflow with its steps, open runs and a Start button, so that I see how each kind of element enters the project",
+      "persona": "a member",
+      "story_kind": "nominal",
+      "features": [
+        "W2"
+      ],
+      "journeys": "J7.1",
+      "acceptance_criteria": [
+        {
+          "id": "M-07.1",
+          "title": "Show one card per ingestion workflow",
+          "file": "docs/02_requirements/02_bdd/features/m/workflows.feature",
+          "release": "v0.3",
+          "kind": "nominal",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running",
+            "Given the custom fixture is open",
+            "When I open Workflow",
+            "Then the Ingestion section shows exactly the cards \"bug-ingest\", \"decision-log-ingest\", \"adr-ingest\" and \"service-ingest\"",
+            "And the card \"decision-log-ingest\" shows the steps \"capture · product-owner → approve · approver\" and the button \"Start\""
+          ]
+        },
+        {
+          "id": "M-07.2",
+          "title": "Count the open runs of an ingestion",
+          "file": "docs/02_requirements/02_bdd/features/m/workflows.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running",
+            "Given the custom fixture is open",
+            "When I open Workflow",
+            "Then the card \"decision-log-ingest\" shows \"1 open\" for \"dl-002-use-fastify\""
+          ]
+        },
+        {
+          "id": "M-07.3",
+          "title": "Open the ingestion modal from a card",
+          "file": "docs/02_requirements/02_bdd/features/m/workflows.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running",
+            "Given the custom fixture is open on Workflow",
+            "When I click \"Start\" on the card \"decision-log-ingest\"",
+            "Then the ingestion modal opens on \"decision-log-ingest\""
+          ]
+        }
+      ],
+      "dependencies": [
+        "TT-INT-05"
+      ]
+    },
+    {
+      "id": "US-G-15",
+      "kind": "user-story",
+      "title": "Start a decision-log ingestion from Memory, Workflow or ⌘K, give its title and submit it",
+      "release": "v0.3",
+      "area": "G",
+      "wingfoil_min": "0.2.2",
+      "story": "As Jordan, I want to start a decision-log ingestion from Memory, Workflow or ⌘K, give its title and submit it, so that a decision enters the project through its workflow",
+      "persona": "Jordan",
+      "story_kind": "nominal",
+      "features": [
+        "G5",
+        "S6"
+      ],
+      "journeys": "J7.1–3",
+      "acceptance_criteria": [
+        {
+          "id": "G-15.1",
+          "title": "Capture a decision-log from Memory",
+          "file": "docs/02_requirements/02_bdd/features/g/ingestion.feature",
+          "release": "v0.3",
+          "kind": "nominal",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running",
+            "And I am Jordan",
+            "Given the custom fixture is open on the Memory list",
+            "When I click \"+ Ingestion\", choose \"decision-log-ingest\", type the title \"Adopt Playwright\" and click \"Submit\"",
+            "Then the fixture's last 2 commits are \"wf(decision-log): add dl-003-adopt-playwright\" and \"wf(decision-log): submit dl-003-adopt-playwright [draft → in-discussion]\"",
+            "And the element panel of \"dl-003-adopt-playwright\" opens in the state \"in-discussion\""
+          ]
+        },
+        {
+          "id": "G-15.2",
+          "title": "Start the same ingestion from the command palette",
+          "file": "docs/02_requirements/02_bdd/features/g/ingestion.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running",
+            "And I am Jordan",
+            "Given the custom fixture is open",
+            "When I press Ctrl+K, type \"decision\" and press Enter on \"Start decision-log-ingest\"",
+            "Then the ingestion modal opens on \"decision-log-ingest\" with the title field focused"
+          ]
+        },
+        {
+          "id": "G-15.3",
+          "title": "Refuse an empty title before running the CLI",
+          "file": "docs/02_requirements/02_bdd/features/g/ingestion.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running",
+            "And I am Jordan",
+            "Given the ingestion modal of \"decision-log-ingest\" is open",
+            "When I click \"Submit\" with an empty title",
+            "Then the modal shows \"A title is required\"",
+            "And the server has run no `wingfoil memory add` process"
+          ]
+        },
+        {
+          "id": "G-15.4",
+          "title": "Block the ingestion while the copy is behind",
+          "file": "docs/02_requirements/02_bdd/features/g/ingestion.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running",
+            "And I am Jordan",
+            "Given the custom fixture is 1 commit behind its fetched remote",
+            "When I open the ingestion modal of \"decision-log-ingest\"",
+            "Then \"Submit\" is disabled with \"Blocked: your copy is 1 commit behind the remote — Update\""
+          ]
+        }
+      ],
+      "dependencies": [
+        "TT-ARC-03",
+        "TT-INT-05",
+        "TT-SEC-05",
+        "TT-STATE-04"
+      ]
+    },
+    {
+      "id": "US-G-16",
+      "kind": "user-story",
+      "title": "The ingestion of a type whose required fields the CLI cannot set (bug, adr, tech-spec, service on WingFoil 0.2.2) shown ",
+      "release": "v0.3",
+      "area": "G",
+      "wingfoil_min": "0.2.2",
+      "story": "As Jordan, I want the ingestion of a type whose required fields the CLI cannot set (bug, adr, tech-spec, service on WingFoil 0.2.2) shown read-only with the reason, so that the UI never edits a draft file",
+      "persona": "Jordan",
+      "story_kind": "edge",
+      "features": [
+        "G5",
+        "S3"
+      ],
+      "journeys": "J7 rule",
+      "acceptance_criteria": [
+        {
+          "id": "G-16.1",
+          "title": "Show the bug ingestion read-only on WingFoil 0.2.2",
+          "file": "docs/02_requirements/02_bdd/features/g/ingestion.feature",
+          "release": "v0.3",
+          "kind": "nominal",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running",
+            "And I am Jordan",
+            "Given the custom fixture is open on WingFoil 0.2.2",
+            "When I click \"+ Ingestion\" on the Memory list",
+            "Then \"bug-ingest\" is shown disabled with \"Needs a WingFoil that sets the required field severity\"",
+            "And \"adr-ingest\" is shown disabled with \"Needs a WingFoil that sets the required field sard_ref\"",
+            "And \"decision-log-ingest\" is enabled"
+          ]
+        },
+        {
+          "id": "G-16.2",
+          "title": "Offer every ingestion whose type requires only CLI-set fields",
+          "file": "docs/02_requirements/02_bdd/features/g/ingestion.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running",
+            "And I am Jordan",
+            "Given the kanban fixture is open on WingFoil 0.2.2",
+            "When I click \"+ Ingestion\" on the Memory list",
+            "Then \"bug-ingest\", \"decision-log-ingest\" and \"adr-ingest\" are enabled"
+          ]
+        }
+      ],
+      "dependencies": [
+        "TT-INT-03",
+        "TT-INT-05"
+      ]
+    },
+    {
+      "id": "US-G-17",
+      "kind": "user-story",
+      "title": "An ingestion step the CLI refuses reported as a red toast with the CLI's reason, nothing created or a created draft name",
+      "release": "v0.3",
+      "area": "G",
+      "wingfoil_min": "0.2.2",
+      "story": "As Jordan, I want an ingestion step the CLI refuses reported as a red toast with the CLI's reason, nothing created or a created draft named, so that I know the project's state after the failure",
+      "persona": "Jordan",
+      "story_kind": "edge",
+      "features": [
+        "G5",
+        "G4"
+      ],
+      "journeys": "—",
+      "acceptance_criteria": [
+        {
+          "id": "G-17.1",
+          "title": "Report a refused add with nothing created",
+          "file": "docs/02_requirements/02_bdd/features/g/ingestion.feature",
+          "release": "v0.3",
+          "kind": "nominal",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running",
+            "And I am Jordan",
+            "Given the ingestion modal of \"decision-log-ingest\" is open",
+            "And `wingfoil memory add` refuses the title with an error",
+            "When I type the title \"Adopt Playwright\" and click \"Submit\"",
+            "Then a red toast shows the error message printed by `wingfoil memory add`",
+            "And the fixture's last commit is unchanged"
+          ]
+        },
+        {
+          "id": "G-17.2",
+          "title": "Name the draft left by a refused submit",
+          "file": "docs/02_requirements/02_bdd/features/g/ingestion.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running",
+            "And I am Jordan",
+            "Given the ingestion modal of \"decision-log-ingest\" is open",
+            "And `wingfoil memory add` succeeds and `wingfoil memory submit` refuses with an error",
+            "When I type the title \"Adopt Playwright\" and click \"Submit\"",
+            "Then a red toast shows the error of `wingfoil memory submit` and \"Draft dl-003-adopt-playwright was created — open it\"",
+            "And the fixture's last commit is \"wf(decision-log): add dl-003-adopt-playwright\""
+          ]
+        }
+      ],
+      "dependencies": [
+        "TT-INT-04"
+      ]
+    },
+    {
+      "id": "US-C-01",
+      "kind": "user-story",
+      "title": "Taxonomy and Progress tabs that explain each ui.yaml key and its current value (declared or inferred)",
+      "release": "v0.3",
+      "area": "C",
+      "wingfoil_min": "0.2.2",
+      "story": "As Alex, I want Taxonomy and Progress tabs that explain each `ui.yaml` key and its current value (declared or inferred), so that I understand how the UI reads my project",
+      "persona": "Alex",
+      "story_kind": "nominal",
+      "features": [
+        "C1"
+      ],
+      "journeys": "J2.1",
+      "acceptance_criteria": [
+        {
+          "id": "C-01.1",
+          "title": "Show inferred values on a project without ui.yaml",
+          "file": "docs/02_requirements/02_bdd/features/c/ui-yaml.feature",
+          "release": "v0.3",
+          "kind": "nominal",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running",
+            "Given the kanban fixture is open and I am Alex",
+            "When I open Configuration › Taxonomy",
+            "Then the row \"task\" shows the category \"work\" marked \"inferred\"",
+            "And the row \"bug\" shows the category \"defect\" marked \"inferred\"",
+            "And the page explains the 8 UI categories \"work, defect, decision, spec, requirement, feature, release, external\""
+          ]
+        },
+        {
+          "id": "C-01.2",
+          "title": "Show declared values from ui.yaml",
+          "file": "docs/02_requirements/02_bdd/features/c/ui-yaml.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running",
+            "Given the custom fixture with the sw-life-cycle preset is open and I am Alex",
+            "When I open Configuration › Progress",
+            "Then the key \"scope\" shows the type \"release\" marked \"declared\" and the current element \"minor-v0.1\" marked \"derived\"",
+            "And the key \"mode\" shows \"sequence\" with its allowed values \"sequence | flow\""
+          ]
+        },
+        {
+          "id": "C-01.3",
+          "title": "Mark a type with no inferable category",
+          "file": "docs/02_requirements/02_bdd/features/c/ui-yaml.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "unknown",
+          "steps": [
+            "Given the console is running",
+            "Given the unknown fixture is open and I am Alex",
+            "When I open Configuration › Taxonomy",
+            "Then the row \"story\" shows \"No category — not counted in progress figures\""
+          ]
+        }
+      ],
+      "dependencies": [
+        "TT-ARC-07"
+      ]
+    },
+    {
+      "id": "US-C-02",
+      "kind": "user-story",
+      "title": "Apply a preset (Kanban, Scrum, WingFoil sw-life-cycle) as one chore(ui) commit touching only .wingfoil/ui.yaml",
+      "release": "v0.3",
+      "area": "C",
+      "wingfoil_min": "0.2.2",
+      "story": "As Alex, on a project without `ui.yaml`, I want to apply a preset (Kanban, Scrum, WingFoil `sw-life-cycle`) as one `chore(ui)` commit touching only `.wingfoil/ui.yaml`, so that the conventions become explicit and versioned",
+      "persona": "Alex",
+      "story_kind": "nominal",
+      "features": [
+        "C1"
+      ],
+      "journeys": "J0.3",
+      "acceptance_criteria": [
+        {
+          "id": "C-02.1",
+          "title": "Apply the Kanban preset as one chore(ui) commit",
+          "file": "docs/02_requirements/02_bdd/features/c/ui-yaml.feature",
+          "release": "v0.3",
+          "kind": "nominal",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running",
+            "Given the kanban fixture is open and I am Morgan",
+            "When I click \"Use preset\", choose \"Kanban\" and confirm",
+            "Then the fixture's last commit is \"chore(ui): apply the Kanban preset\"",
+            "And that commit changes exactly 1 file: \".wingfoil/ui.yaml\"",
+            "And Configuration › Taxonomy marks every value \"declared\""
+          ]
+        },
+        {
+          "id": "C-02.2",
+          "title": "Leave other staged changes out of the commit",
+          "file": "docs/02_requirements/02_bdd/features/c/ui-yaml.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running",
+            "Given the kanban fixture is open and I am Morgan",
+            "And \"README.md\" has a staged change",
+            "When I apply the \"Kanban\" preset",
+            "Then the preset commit changes only \".wingfoil/ui.yaml\"",
+            "And \"README.md\" is still staged and uncommitted"
+          ]
+        },
+        {
+          "id": "C-02.3",
+          "title": "Offer no preset when ui.yaml exists",
+          "file": "docs/02_requirements/02_bdd/features/c/ui-yaml.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running",
+            "Given the custom fixture with the sw-life-cycle preset is open and I am Alex",
+            "When I open Configuration › Taxonomy",
+            "Then no \"Use preset\" button is shown"
+          ]
+        },
+        {
+          "id": "C-02.5",
+          "title": "Offer no preset to a user who is not in the team",
+          "file": "docs/02_requirements/02_bdd/features/c/ui-yaml.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running",
+            "Given the kanban fixture is open and I am Riley",
+            "When I open Configuration › Taxonomy",
+            "Then \"Use preset\" is not shown"
+          ]
+        },
+        {
+          "id": "C-02.4",
+          "title": "Block the preset while the copy is behind",
+          "file": "docs/02_requirements/02_bdd/features/c/ui-yaml.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running",
+            "Given the kanban fixture is open and I am Morgan",
+            "And the fixture is 1 commit behind its fetched remote",
+            "When I open Configuration › Taxonomy",
+            "Then \"Use preset\" is disabled with \"Blocked: your copy is 1 commit behind the remote — Update\""
+          ]
+        }
+      ],
+      "dependencies": [
+        "TT-ARC-03",
+        "TT-ARC-07",
+        "TT-INT-06",
+        "TT-SEC-08",
+        "TT-SEC-09",
+        "TT-STATE-04"
+      ]
+    },
+    {
+      "id": "US-C-03",
+      "kind": "user-story",
+      "title": "Ui.yaml content that fails its schema refused before anything is written",
+      "release": "v0.3",
+      "area": "C",
+      "wingfoil_min": "0.2.2",
+      "story": "As Alex, I want `ui.yaml` content that fails its schema refused before anything is written, so that the UI never commits an invalid configuration",
+      "persona": "Alex",
+      "story_kind": "edge",
+      "features": [
+        "C1"
+      ],
+      "journeys": "—",
+      "acceptance_criteria": [
+        {
+          "id": "C-03.1",
+          "title": "Refuse a preset that fails the schema",
+          "file": "docs/02_requirements/02_bdd/features/c/ui-yaml.feature",
+          "release": "v0.3",
+          "kind": "nominal",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running",
+            "Given a test build whose \"Kanban\" preset lacks the required key \"version\"",
+            "And the kanban fixture is open and I am Morgan",
+            "When I apply the \"Kanban\" preset",
+            "Then a red toast shows \"ui.yaml not written: missing required key version\"",
+            "And \".wingfoil/ui.yaml\" does not exist",
+            "And the fixture's last commit is unchanged"
+          ]
+        },
+        {
+          "id": "C-03.2",
+          "title": "Refuse a preset that maps a type the project does not declare",
+          "file": "docs/02_requirements/02_bdd/features/c/ui-yaml.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running",
+            "Given the kanban fixture is open and I am Morgan",
+            "When I apply the \"Scrum\" preset, which maps the type \"story\"",
+            "Then a red toast shows \"ui.yaml not written: type story is not declared in memory.yaml\"",
+            "And \".wingfoil/ui.yaml\" does not exist"
+          ]
+        }
+      ],
+      "dependencies": [
+        "TT-ARC-07"
+      ]
+    },
+    {
+      "id": "US-C-04",
+      "kind": "user-story",
+      "title": "An existing ui.yaml that fails its schema ignored in favour of inferred defaults, with a warning naming the error",
+      "release": "v0.3",
+      "area": "C",
+      "wingfoil_min": "0.2.2",
+      "story": "As Alex, I want an existing `ui.yaml` that fails its schema ignored in favour of inferred defaults, with a warning naming the error, so that a bad hand edit does not break the console",
+      "persona": "Alex",
+      "story_kind": "edge",
+      "features": [
+        "C1"
+      ],
+      "journeys": "—",
+      "acceptance_criteria": [
+        {
+          "id": "C-04.1",
+          "title": "Fall back to inferred values when ui.yaml is invalid",
+          "file": "docs/02_requirements/02_bdd/features/c/ui-yaml.feature",
+          "release": "v0.3",
+          "kind": "nominal",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running",
+            "Given the kanban fixture has a committed \".wingfoil/ui.yaml\" whose `progress.mode` is \"spiral\"",
+            "And I am Alex",
+            "When I open Today",
+            "Then a warning reads \"ui.yaml ignored: progress.mode must be sequence or flow (found spiral)\"",
+            "And the progress card shows the scope \"Whole project\""
+          ]
+        },
+        {
+          "id": "C-04.2",
+          "title": "Treat unparsable ui.yaml the same way",
+          "file": "docs/02_requirements/02_bdd/features/c/ui-yaml.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running",
+            "Given the kanban fixture has a committed \".wingfoil/ui.yaml\" that is not valid YAML",
+            "When I open Configuration › Taxonomy",
+            "Then a warning names the YAML error and its line",
+            "And every value is marked \"inferred\""
+          ]
+        }
+      ],
+      "dependencies": [
+        "TT-ARC-07"
+      ]
+    },
+    {
+      "id": "TT-STATE-08",
+      "kind": "technical-task",
+      "title": "Progress scope and computations",
+      "release": "v0.3",
+      "area": "STATE",
+      "wingfoil_min": "0.2.2",
+      "requirement": "REQ-STATE-08",
+      "description": "Completion and iterated figures cover the current element of the `progress.scope` type: with WingFoil 0.3 the one `workflow status` reports; before it, the most advanced element not in its first or last state (ties: lowest version); none → whole project. Reference completion = done linked elements / linked elements; project completion = unweighted mean over references with ≥ 1 linked element (Q8); coverage = elements carrying all `requires` categories / elements whose type has `requires`. Open bugs and pending gates are project-wide.",
+      "fit_criterion": "[boolean] On the custom fixture with the `sw-life-cycle` preset the UI shows exactly: scope `minor-v0.1`, project completion 25 %, tasks 1/4, open bugs 1, pending gates 3, coverage 3/4.",
+      "verified_by": "unit · e2e",
+      "stories": [
+        "US-M-03",
+        "US-R-01",
+        "US-T-12",
+        "US-T-13",
+        "US-T-14"
+      ],
+      "acceptance_criteria": [
+        {
+          "id": "T-12.1",
+          "title": "Show the figures of the current scope",
+          "file": "docs/02_requirements/02_bdd/features/t/progress-card.feature",
+          "release": "v0.3",
+          "kind": "nominal",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running",
+            "And I am Casey",
+            "Given the custom fixture with the sw-life-cycle preset is open",
+            "When I open Today",
+            "Then the progress card shows the scope \"minor-v0.1\" with its state \"planning\"",
+            "And it shows \"Project completion 25 %\", \"Tasks 1/4\", \"Open bugs 1\" and \"Pending gates 3\""
+          ]
+        },
+        {
+          "id": "T-12.2",
+          "title": "Show whole-project figures without ui.yaml",
+          "file": "docs/02_requirements/02_bdd/features/t/progress-card.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "unknown",
+          "steps": [
+            "Given the console is running",
+            "And I am Casey",
+            "Given the unknown fixture is open",
+            "When I open Today",
+            "Then the progress card shows the scope \"Whole project\"",
+            "And it shows \"Pending gates 1\"",
+            "And it shows no completion figure, with \"Completion needs references — see Configuration › Taxonomy\""
+          ]
+        },
+        {
+          "id": "T-12.4",
+          "title": "Move the scope to the most advanced release",
+          "file": "docs/02_requirements/02_bdd/features/t/progress-card.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running",
+            "And I am Casey",
+            "Given the custom fixture with the sw-life-cycle preset is open",
+            "And \"minor-v0.1\" is `released` and \"minor-v0.2\" is `in-development`",
+            "When I open Today",
+            "Then the progress card shows the scope \"minor-v0.2\" with its state \"in-development\""
+          ]
+        },
+        {
+          "id": "T-12.5",
+          "title": "Say that no release is under way",
+          "file": "docs/02_requirements/02_bdd/features/t/progress-card.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running",
+            "And I am Casey",
+            "Given the custom fixture with the sw-life-cycle preset is open",
+            "And its only release \"minor-v0.1\" is `draft`",
+            "When I open Today",
+            "Then the progress card shows \"No current release\" and the figures of the whole project"
+          ]
+        },
+        {
+          "id": "T-13.1",
+          "title": "Open the items behind \"Pending gates\"",
+          "file": "docs/02_requirements/02_bdd/features/t/progress-card.feature",
+          "release": "v0.3",
+          "kind": "nominal",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running",
+            "And I am Casey",
+            "Given the custom fixture with the sw-life-cycle preset is open",
+            "When I select \"Pending gates 3\" on the progress card",
+            "Then the Memory list shows exactly \"task-1-cli-adapter\", \"dl-002-use-fastify\" and \"bug-1-toast-overlap\"",
+            "And the active filter reads \"Pending gates\""
+          ]
+        },
+        {
+          "id": "T-13.2",
+          "title": "Open the items behind \"Tasks 1/4\"",
+          "file": "docs/02_requirements/02_bdd/features/t/progress-card.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running",
+            "And I am Casey",
+            "Given the custom fixture with the sw-life-cycle preset is open",
+            "When I select \"Tasks 1/4\" on the progress card",
+            "Then the Memory list shows the 4 tasks of release \"v0.1\", \"task-2-memory-list\" marked done"
+          ]
+        },
+        {
+          "id": "T-14.1",
+          "title": "Explain the completion figure on hover",
+          "file": "docs/02_requirements/02_bdd/features/t/progress-card.feature",
+          "release": "v0.3",
+          "kind": "nominal",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running",
+            "And I am Casey",
+            "Given the custom fixture with the sw-life-cycle preset is open",
+            "When I hover \"Project completion 25 %\"",
+            "Then a tooltip reads \"Mean of reference completion over 2 references with at least 1 linked element: US-M-01 50 %, US-S-01 0 %\""
+          ]
+        },
+        {
+          "id": "R-01.1",
+          "title": "List references with their completion",
+          "file": "docs/02_requirements/02_bdd/features/r/traceability.feature",
+          "release": "v0.3",
+          "kind": "nominal",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running",
+            "And I am Casey",
+            "Given the custom fixture with the sw-life-cycle preset is open",
+            "When I open Traceability",
+            "Then it shows \"Project completion 25 %\" and \"Reference coverage 3/4\"",
+            "And the row \"US-M-01\" shows 2 linked elements and \"50 % · 1/2\"",
+            "And the row \"US-S-01\" shows 1 linked element and \"0 % · 0/1\""
+          ]
+        },
+        {
+          "id": "M-03.1",
+          "title": "Filter the elements missing a required reference",
+          "file": "docs/02_requirements/02_bdd/features/m/missing-references.feature",
+          "release": "v0.3",
+          "kind": "nominal",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running",
+            "And I am Morgan",
+            "Given the custom fixture with the sw-life-cycle preset is open on the Memory list",
+            "When I select the filter \"Missing required references\"",
+            "Then the list shows exactly \"task-4-themes\"",
+            "And its row carries the badge \"missing refs\""
+          ]
+        }
+      ],
+      "dependencies": [
+        "TT-ARC-07"
+      ]
+    },
+    {
+      "id": "TT-INT-05",
+      "kind": "technical-task",
+      "title": "Ingestion only when the CLI sets every required field",
+      "release": "v0.3",
+      "area": "INT",
+      "wingfoil_min": "0.2.2",
+      "requirement": "REQ-INT-05",
+      "description": "An ingestion is offered only when every required field of its type can be set by the CLI version in use (0.2.2: `title` and id/path tokens through `memory add --set`); its steps run as the workflow's own verbs. Otherwise it is read-only with the missing field named.",
+      "fit_criterion": "[boolean] On 0.2.2 the custom fixture offers exactly `decision-log-ingest` and the kanban fixture `bug-ingest`, `decision-log-ingest`, `adr-ingest`; every listed scenario passes.",
+      "verified_by": "e2e",
+      "stories": [
+        "US-G-15",
+        "US-G-16",
+        "US-G-18",
+        "US-M-07"
+      ],
+      "acceptance_criteria": [
+        {
+          "id": "G-15.1",
+          "title": "Capture a decision-log from Memory",
+          "file": "docs/02_requirements/02_bdd/features/g/ingestion.feature",
+          "release": "v0.3",
+          "kind": "nominal",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running",
+            "And I am Jordan",
+            "Given the custom fixture is open on the Memory list",
+            "When I click \"+ Ingestion\", choose \"decision-log-ingest\", type the title \"Adopt Playwright\" and click \"Submit\"",
+            "Then the fixture's last 2 commits are \"wf(decision-log): add dl-003-adopt-playwright\" and \"wf(decision-log): submit dl-003-adopt-playwright [draft → in-discussion]\"",
+            "And the element panel of \"dl-003-adopt-playwright\" opens in the state \"in-discussion\""
+          ]
+        },
+        {
+          "id": "G-15.3",
+          "title": "Refuse an empty title before running the CLI",
+          "file": "docs/02_requirements/02_bdd/features/g/ingestion.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running",
+            "And I am Jordan",
+            "Given the ingestion modal of \"decision-log-ingest\" is open",
+            "When I click \"Submit\" with an empty title",
+            "Then the modal shows \"A title is required\"",
+            "And the server has run no `wingfoil memory add` process"
+          ]
+        },
+        {
+          "id": "G-16.1",
+          "title": "Show the bug ingestion read-only on WingFoil 0.2.2",
+          "file": "docs/02_requirements/02_bdd/features/g/ingestion.feature",
+          "release": "v0.3",
+          "kind": "nominal",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running",
+            "And I am Jordan",
+            "Given the custom fixture is open on WingFoil 0.2.2",
+            "When I click \"+ Ingestion\" on the Memory list",
+            "Then \"bug-ingest\" is shown disabled with \"Needs a WingFoil that sets the required field severity\"",
+            "And \"adr-ingest\" is shown disabled with \"Needs a WingFoil that sets the required field sard_ref\"",
+            "And \"decision-log-ingest\" is enabled"
+          ]
+        },
+        {
+          "id": "G-16.2",
+          "title": "Offer every ingestion whose type requires only CLI-set fields",
+          "file": "docs/02_requirements/02_bdd/features/g/ingestion.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running",
+            "And I am Jordan",
+            "Given the kanban fixture is open on WingFoil 0.2.2",
+            "When I click \"+ Ingestion\" on the Memory list",
+            "Then \"bug-ingest\", \"decision-log-ingest\" and \"adr-ingest\" are enabled"
+          ]
+        },
+        {
+          "id": "G-18.1",
+          "title": "Report a bug with its severity set by the CLI",
+          "file": "docs/02_requirements/02_bdd/features/g/ingestion.feature",
+          "release": "v0.4",
+          "kind": "nominal",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running",
+            "And I am Jordan",
+            "Given the custom fixture is open on a WingFoil that sets the required fields of a bug",
+            "And I start \"bug-ingest\"",
+            "When I type the title \"Toast hides the Push button\", choose the severity \"medium\" and click \"Submit\"",
+            "Then the fixture's commits for \"bug-2-toast-hides-the-push-button\" are made by the CLI only",
+            "And the bug's frontmatter has `severity: medium` and the state \"open\""
+          ]
+        },
+        {
+          "id": "G-18.2",
+          "title": "Keep the bug ingestion read-only on WingFoil 0.3 when it sets no fields",
+          "file": "docs/02_requirements/02_bdd/features/g/ingestion.feature",
+          "release": "v0.4",
+          "kind": "edge",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running",
+            "And I am Jordan",
+            "Given the custom fixture is open on a WingFoil 0.3 whose `workflow start` does not set a bug's severity",
+            "When I click \"+ Ingestion\" on the Memory list",
+            "Then \"bug-ingest\" is shown disabled with \"Needs a WingFoil that sets the required field severity\""
+          ]
+        },
+        {
+          "id": "M-07.1",
+          "title": "Show one card per ingestion workflow",
+          "file": "docs/02_requirements/02_bdd/features/m/workflows.feature",
+          "release": "v0.3",
+          "kind": "nominal",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running",
+            "Given the custom fixture is open",
+            "When I open Workflow",
+            "Then the Ingestion section shows exactly the cards \"bug-ingest\", \"decision-log-ingest\", \"adr-ingest\" and \"service-ingest\"",
+            "And the card \"decision-log-ingest\" shows the steps \"capture · product-owner → approve · approver\" and the button \"Start\""
+          ]
+        }
+      ],
+      "dependencies": [
+        "TT-INT-03",
+        "TT-ARC-03"
+      ]
+    }
+  ]
+}

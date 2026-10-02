@@ -1,0 +1,3120 @@
+{
+  "version": 1,
+  "release": "v0.2",
+  "generated_from": {
+    "story_map": "docs/02_requirements/01_user_story_map/02_story-map.md v0.3",
+    "bdd": "docs/02_requirements/02_bdd/00_conventions.md v0.2",
+    "sard": "docs/02_requirements/03_sard/00_sard.md v0.1"
+  },
+  "items": [
+    {
+      "id": "US-T-01",
+      "kind": "user-story",
+      "title": "A newly added project to open on Today for my role view",
+      "release": "v0.2",
+      "area": "T",
+      "wingfoil_min": "0.2.2",
+      "story": "As Alex, I want a newly added project to open on Today for my role view, so that I start from what requires me",
+      "persona": "Alex",
+      "story_kind": "nominal",
+      "features": [
+        "T1",
+        "S4"
+      ],
+      "journeys": "J0.4",
+      "acceptance_criteria": [
+        {
+          "id": "T-01.1",
+          "title": "Open a newly added project on Today",
+          "file": "docs/02_requirements/02_bdd/features/t/requires-you.feature",
+          "release": "v0.2",
+          "kind": "nominal",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running",
+            "Given I am Morgan",
+            "When I add the local folder of the kanban fixture",
+            "Then Today opens with the greeting \"Morgan, 2 things require you\"",
+            "And the greeting shows the role view \"approver\""
+          ]
+        },
+        {
+          "id": "T-01.2",
+          "title": "Open on Today read-only for a user who is not in the team",
+          "file": "docs/02_requirements/02_bdd/features/t/requires-you.feature",
+          "release": "v0.2",
+          "kind": "edge",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running",
+            "Given I am Riley",
+            "When I add the local folder of the kanban fixture",
+            "Then Today opens without the Requires you card",
+            "And Today shows \"You are not in this project's team — How to join\""
+          ]
+        }
+      ],
+      "dependencies": [
+        "TT-PERF-01",
+        "TT-PERF-09",
+        "TT-SEC-08"
+      ]
+    },
+    {
+      "id": "US-S-11",
+      "kind": "user-story",
+      "title": "A capability that applies to the project but that its WingFoil version or my role lacks shown read-only with the reason,",
+      "release": "v0.2",
+      "area": "S",
+      "wingfoil_min": "0.2.2",
+      "story": "As a member, I want a capability that applies to the project but that its WingFoil version or my role lacks shown read-only with the reason, and one that does not apply hidden, so that I can tell \"not now\" from \"not here\"",
+      "persona": "a member",
+      "story_kind": "edge",
+      "features": [
+        "S3"
+      ],
+      "journeys": "common rules",
+      "acceptance_criteria": [
+        {
+          "id": "S-11.1",
+          "title": "Show a capability my role lacks as read-only with the reason",
+          "file": "docs/02_requirements/02_bdd/features/s/capabilities.feature",
+          "release": "v0.2",
+          "kind": "nominal",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running",
+            "And I am Alex",
+            "Given I am Jordan",
+            "When I open the element panel of \"dl-002-use-fastify\"",
+            "Then the gate footer is replaced by \"Reserved to approver — Morgan, Alex can act\""
+          ]
+        },
+        {
+          "id": "S-11.2",
+          "title": "Hide a capability that does not apply to the project",
+          "file": "docs/02_requirements/02_bdd/features/s/capabilities.feature",
+          "release": "v0.2",
+          "kind": "edge",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running",
+            "And I am Alex",
+            "Given the kanban fixture has no remote configured",
+            "When I open Today",
+            "Then no \"Push\", \"Fetch\" or \"Update\" control is shown on the page"
+          ]
+        }
+      ],
+      "dependencies": [
+        "TT-INT-03",
+        "TT-SEC-07"
+      ]
+    },
+    {
+      "id": "US-S-21",
+      "kind": "user-story",
+      "title": "A bell with the count of items to unblock and a list of updates",
+      "release": "v0.2",
+      "area": "S",
+      "wingfoil_min": "0.2.2",
+      "story": "As Morgan, I want a bell with the count of items to unblock and a list of updates, so that I know how much is waiting before opening anything",
+      "persona": "Morgan",
+      "story_kind": "nominal",
+      "features": [
+        "S7"
+      ],
+      "journeys": "J1.1",
+      "acceptance_criteria": [
+        {
+          "id": "S-21.1",
+          "title": "Count the items to unblock",
+          "file": "docs/02_requirements/02_bdd/features/s/shell.feature",
+          "release": "v0.2",
+          "kind": "nominal",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running with the kanban fixture open",
+            "Given I am Morgan with the role view \"approver\"",
+            "When I open Today",
+            "Then the bell shows the count 2",
+            "And the bell panel's \"To unblock\" lists \"task-1-login-form\" and \"bug-1-crash-on-save\"",
+            "And the bell panel's \"Updates\" lists the last 10 Memory events, newest first"
+          ]
+        },
+        {
+          "id": "S-21.2",
+          "title": "Show no count when nothing requires me",
+          "file": "docs/02_requirements/02_bdd/features/s/shell.feature",
+          "release": "v0.2",
+          "kind": "edge",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running with the kanban fixture open",
+            "Given I am Casey",
+            "When I open Today",
+            "Then the bell shows no count",
+            "And the bell panel's \"To unblock\" shows \"Nothing to unblock\""
+          ]
+        },
+        {
+          "id": "S-21.3",
+          "title": "Update the count after an action",
+          "file": "docs/02_requirements/02_bdd/features/s/shell.feature",
+          "release": "v0.2",
+          "kind": "edge",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running with the kanban fixture open",
+            "Given I am Morgan and the bell shows the count 2",
+            "When I approve \"task-1-login-form\" from Today",
+            "Then the bell shows the count 1"
+          ]
+        }
+      ],
+      "dependencies": [
+        "TT-PERF-11"
+      ]
+    },
+    {
+      "id": "US-T-02",
+      "kind": "user-story",
+      "title": "Requires you to list the items whose next move needs a role of my view — type, title, reason, age, one primary action ea",
+      "release": "v0.2",
+      "area": "T",
+      "wingfoil_min": "0.2.2",
+      "story": "As Morgan, I want Requires you to list the items whose next move needs a role of my view — type, title, reason, age, one primary action each — so that I prioritise without navigating",
+      "persona": "Morgan",
+      "story_kind": "nominal",
+      "features": [
+        "T1",
+        "S9"
+      ],
+      "journeys": "J1.2",
+      "acceptance_criteria": [
+        {
+          "id": "T-02.1",
+          "title": "List the items requiring the approver",
+          "file": "docs/02_requirements/02_bdd/features/t/requires-you.feature",
+          "release": "v0.2",
+          "kind": "nominal",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running",
+            "Given the kanban fixture is open and I am Morgan with the role view \"approver\"",
+            "When I open Today",
+            "Then Requires you lists exactly 2 rows: \"task-1-login-form\" and \"bug-1-crash-on-save\"",
+            "And the row of \"task-1-login-form\" shows the type \"task\", its title, the reason \"pending for 3 days\" and the action \"Approve\""
+          ]
+        },
+        {
+          "id": "T-02.2",
+          "title": "Show one primary action per row",
+          "file": "docs/02_requirements/02_bdd/features/t/requires-you.feature",
+          "release": "v0.2",
+          "kind": "edge",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running",
+            "Given the kanban fixture is open and I am Morgan with the role view \"approver\"",
+            "When I open Today",
+            "Then every Requires you row shows exactly 1 action button"
+          ]
+        },
+        {
+          "id": "T-02.3",
+          "title": "Follow the role view",
+          "file": "docs/02_requirements/02_bdd/features/t/requires-you.feature",
+          "release": "v0.2",
+          "kind": "edge",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running",
+            "Given the kanban fixture is open and I am Alex with the role view \"approver\"",
+            "When I select the role view \"product-owner\"",
+            "Then Requires you lists no row"
+          ]
+        }
+      ],
+      "dependencies": [
+        "TT-ARC-06",
+        "TT-PERF-01",
+        "TT-PERF-09",
+        "TT-STATE-06"
+      ]
+    },
+    {
+      "id": "US-T-03",
+      "kind": "user-story",
+      "title": "My work rejected back listed first in Requires you, with the rejection reason",
+      "release": "v0.2",
+      "area": "T",
+      "wingfoil_min": "0.2.2",
+      "story": "As Jordan, I want my work rejected back listed first in Requires you, with the rejection reason, so that I fix it before starting anything new",
+      "persona": "Jordan",
+      "story_kind": "nominal",
+      "features": [
+        "T1"
+      ],
+      "journeys": "J3.1",
+      "acceptance_criteria": [
+        {
+          "id": "T-03.1",
+          "title": "List my rejected work first, with the reason",
+          "file": "docs/02_requirements/02_bdd/features/t/requires-you.feature",
+          "release": "v0.2",
+          "kind": "nominal",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running",
+            "Given the kanban fixture is open and I am Jordan",
+            "When I open Today",
+            "Then the first Requires you row is \"task-2-password-reset\" with the reason \"Rejected by Morgan: Missing acceptance criteria\" shown as a rejection",
+            "And the second row is \"task-4-session-timeout\" with the action \"Submit\""
+          ]
+        },
+        {
+          "id": "T-03.2",
+          "title": "Drop the rejection once the work is submitted again",
+          "file": "docs/02_requirements/02_bdd/features/t/requires-you.feature",
+          "release": "v0.2",
+          "kind": "edge",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running",
+            "Given the kanban fixture is open and I am Jordan",
+            "When \"task-2-password-reset\" is submitted again with the CLI in a terminal",
+            "Then within 5 seconds Requires you lists only \"task-4-session-timeout\""
+          ]
+        }
+      ],
+      "dependencies": [
+        "TT-ARC-06",
+        "TT-PERF-03"
+      ]
+    },
+    {
+      "id": "US-T-04",
+      "kind": "user-story",
+      "title": "The reviewer view of Requires you to list the items in a review state",
+      "release": "v0.2",
+      "area": "T",
+      "wingfoil_min": "0.2.2",
+      "story": "As Sam, I want the reviewer view of Requires you to list the items in a review state, so that my review queue is one list",
+      "persona": "Sam",
+      "story_kind": "nominal",
+      "features": [
+        "T1",
+        "M1"
+      ],
+      "journeys": "J4.1",
+      "acceptance_criteria": [
+        {
+          "id": "T-04.1",
+          "title": "List the items in a review state for a reviewer holding approver",
+          "file": "docs/02_requirements/02_bdd/features/t/requires-you.feature",
+          "release": "v0.2",
+          "kind": "nominal",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running",
+            "Given the custom fixture is open",
+            "And the DNA gives Sam the roles reviewer, approver",
+            "And I am Sam with the role view \"reviewer\"",
+            "When I open Today",
+            "Then Requires you lists \"task-1-cli-adapter\" with the reason \"in-review for 3 days\" and the action \"Review\""
+          ]
+        },
+        {
+          "id": "T-04.2",
+          "title": "Drop an item that leaves the review state",
+          "file": "docs/02_requirements/02_bdd/features/t/requires-you.feature",
+          "release": "v0.2",
+          "kind": "edge",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running",
+            "Given the custom fixture is open and Sam, holding reviewer and approver, sees \"task-1-cli-adapter\" in Requires you",
+            "When \"task-1-cli-adapter\" is approved with the CLI in a terminal",
+            "Then within 5 seconds Requires you no longer lists \"task-1-cli-adapter\""
+          ]
+        }
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "US-T-05",
+      "kind": "user-story",
+      "title": "An element in a state the UI has no convention for listed as \"Action required\" with its own state name",
+      "release": "v0.2",
+      "area": "T",
+      "wingfoil_min": "0.2.2",
+      "story": "As a member, I want an element in a state the UI has no convention for listed as \"Action required\" with its own state name, so that projects with custom states still show what is pending",
+      "persona": "a member",
+      "story_kind": "edge",
+      "features": [
+        "T1",
+        "S9"
+      ],
+      "journeys": "—",
+      "acceptance_criteria": [
+        {
+          "id": "T-05.1",
+          "title": "List an undeclared state as \"Action required\"",
+          "file": "docs/02_requirements/02_bdd/features/t/requires-you.feature",
+          "release": "v0.2",
+          "kind": "nominal",
+          "fixture": "unknown",
+          "steps": [
+            "Given the console is running",
+            "Given the unknown fixture is open and I am Morgan with the role view \"tech-lead\"",
+            "When I open Today",
+            "Then Requires you lists \"note-2-retro\" with the reason \"Action required — state on-hold is not declared for note\"",
+            "And its action is \"Open\""
+          ]
+        },
+        {
+          "id": "T-05.2",
+          "title": "Derive the actions of a declared but unfamiliar gate",
+          "file": "docs/02_requirements/02_bdd/features/t/requires-you.feature",
+          "release": "v0.2",
+          "kind": "edge",
+          "fixture": "unknown",
+          "steps": [
+            "Given the console is running",
+            "Given the unknown fixture is open and I am Morgan with the role view \"approver\"",
+            "When I open Today",
+            "Then Requires you lists \"story-1-onboarding\" with the reason \"shaping for 3 days\" and the action \"Approve\""
+          ]
+        }
+      ],
+      "dependencies": [
+        "TT-ARC-05",
+        "TT-ARC-06"
+      ]
+    },
+    {
+      "id": "US-T-06",
+      "kind": "user-story",
+      "title": "A gate shown as informational (\"reserved to approver\", with who can act) instead of an action of mine",
+      "release": "v0.2",
+      "area": "T",
+      "wingfoil_min": "0.2.2",
+      "story": "As Sam, without the `approver` role on WingFoil 0.2.2, I want a gate shown as informational (\"reserved to approver\", with who can act) instead of an action of mine, so that Today never promises what the CLI will refuse",
+      "persona": "Sam",
+      "story_kind": "edge",
+      "features": [
+        "T1",
+        "S9"
+      ],
+      "journeys": "J4 obstacle",
+      "acceptance_criteria": [
+        {
+          "id": "T-06.1",
+          "title": "Show a gate as informational to a reviewer without approver",
+          "file": "docs/02_requirements/02_bdd/features/t/requires-you.feature",
+          "release": "v0.2",
+          "kind": "nominal",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running",
+            "Given the custom fixture is open",
+            "And the DNA gives Sam the roles reviewer",
+            "And I am Sam",
+            "When I open Today",
+            "Then Requires you does not list \"task-1-cli-adapter\"",
+            "And Waiting on others lists \"task-1-cli-adapter\" with \"Reserved to approver — Morgan, Alex\""
+          ]
+        },
+        {
+          "id": "T-06.2",
+          "title": "Show the same gate as informational to a product owner without approver",
+          "file": "docs/02_requirements/02_bdd/features/t/requires-you.feature",
+          "release": "v0.2",
+          "kind": "edge",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running",
+            "Given the custom fixture is open",
+            "And the DNA gives Casey the roles product-owner",
+            "And I am Casey",
+            "When I open Today",
+            "Then Waiting on others lists \"dl-002-use-fastify\" with \"Reserved to approver — Morgan, Alex\""
+          ]
+        }
+      ],
+      "dependencies": [
+        "TT-ARC-06",
+        "TT-SEC-07"
+      ]
+    },
+    {
+      "id": "US-T-07",
+      "kind": "user-story",
+      "title": "An explicit \"nothing requires you\" state when the list is empty",
+      "release": "v0.2",
+      "area": "T",
+      "wingfoil_min": "0.2.2",
+      "story": "As Morgan, I want an explicit \"nothing requires you\" state when the list is empty, so that I know the list is current, not broken",
+      "persona": "Morgan",
+      "story_kind": "edge",
+      "features": [
+        "T1"
+      ],
+      "journeys": "—",
+      "acceptance_criteria": [
+        {
+          "id": "T-07.1",
+          "title": "Say that nothing requires me",
+          "file": "docs/02_requirements/02_bdd/features/t/requires-you.feature",
+          "release": "v0.2",
+          "kind": "nominal",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running",
+            "Given the kanban fixture is open and I am Casey",
+            "When I open Today",
+            "Then the Requires you card shows \"Nothing requires you\"",
+            "And the greeting reads \"Casey, nothing requires you\""
+          ]
+        },
+        {
+          "id": "T-07.2",
+          "title": "Reach the empty state after the last action",
+          "file": "docs/02_requirements/02_bdd/features/t/requires-you.feature",
+          "release": "v0.2",
+          "kind": "edge",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running",
+            "Given the kanban fixture is open and I am Morgan",
+            "And \"bug-1-crash-on-save\" has been approved",
+            "When I approve \"task-1-login-form\" from Today",
+            "Then the Requires you card shows \"Nothing requires you\""
+          ]
+        }
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "US-T-11",
+      "kind": "user-story",
+      "title": "Waiting on others to list the items blocked on another role, with the role and the members who hold it",
+      "release": "v0.2",
+      "area": "T",
+      "wingfoil_min": "0.2.2",
+      "story": "As Morgan, I want Waiting on others to list the items blocked on another role, with the role and the members who hold it, so that I follow up with the right person",
+      "persona": "Morgan",
+      "story_kind": "nominal",
+      "features": [
+        "T4",
+        "R3"
+      ],
+      "journeys": "J1.5",
+      "acceptance_criteria": [
+        {
+          "id": "T-11.1",
+          "title": "List the items blocked on another member",
+          "file": "docs/02_requirements/02_bdd/features/t/waiting-on-others.feature",
+          "release": "v0.2",
+          "kind": "nominal",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running",
+            "Given the kanban fixture is open and I am Morgan",
+            "When I open Today",
+            "Then Waiting on others lists \"task-2-password-reset\" with \"Jordan (submitter) must act\"",
+            "And Waiting on others lists \"task-4-session-timeout\" with \"Jordan (creator) must act\""
+          ]
+        },
+        {
+          "id": "T-11.2",
+          "title": "Name the workflow engine for an engine-waiting state",
+          "file": "docs/02_requirements/02_bdd/features/t/waiting-on-others.feature",
+          "release": "v0.2",
+          "kind": "edge",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running",
+            "Given the custom fixture is open and I am Morgan",
+            "When I open Today",
+            "Then Waiting on others lists \"minor-v0.1\" with \"Waiting for the workflow engine\""
+          ]
+        },
+        {
+          "id": "T-11.3",
+          "title": "Do not repeat an item that requires me",
+          "file": "docs/02_requirements/02_bdd/features/t/waiting-on-others.feature",
+          "release": "v0.2",
+          "kind": "edge",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running",
+            "Given the kanban fixture is open and I am Morgan with the role view \"approver\"",
+            "When I open Today",
+            "Then Waiting on others does not list \"task-1-login-form\""
+          ]
+        }
+      ],
+      "dependencies": [
+        "TT-ARC-06"
+      ]
+    },
+    {
+      "id": "US-S-23",
+      "kind": "user-story",
+      "title": "An all-roles summary on Today — for each role I hold, the count and top items requiring it",
+      "release": "v0.2",
+      "area": "S",
+      "wingfoil_min": "0.2.2",
+      "story": "As Alex, I want an all-roles summary on Today — for each role I hold, the count and top items requiring it — so that I know which hat to put on first",
+      "persona": "Alex",
+      "story_kind": "nominal",
+      "features": [
+        "S5"
+      ],
+      "journeys": "J5.1",
+      "acceptance_criteria": [
+        {
+          "id": "S-23.1",
+          "title": "Summarise what requires each of my roles",
+          "file": "docs/02_requirements/02_bdd/features/s/shell.feature",
+          "release": "v0.2",
+          "kind": "nominal",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running with the kanban fixture open",
+            "Given I am Alex",
+            "When I open Today",
+            "Then the all-roles summary shows \"approver · 2\" with \"task-1-login-form\" and \"bug-1-crash-on-save\"",
+            "And the all-roles summary shows \"developer · 0\"",
+            "And it shows one line for each of the 7 roles Alex holds"
+          ]
+        },
+        {
+          "id": "S-23.2",
+          "title": "Switch role view from the summary",
+          "file": "docs/02_requirements/02_bdd/features/s/shell.feature",
+          "release": "v0.2",
+          "kind": "edge",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running with the kanban fixture open",
+            "Given I am Alex with the role view \"developer\"",
+            "When I select \"approver · 2\" in the all-roles summary",
+            "Then the shell shows the role view \"approver\"",
+            "And Requires you lists \"task-1-login-form\" and \"bug-1-crash-on-save\""
+          ]
+        },
+        {
+          "id": "S-23.3",
+          "title": "Show no summary to a single-role member",
+          "file": "docs/02_requirements/02_bdd/features/s/shell.feature",
+          "release": "v0.2",
+          "kind": "edge",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running with the kanban fixture open",
+            "Given I am Jordan",
+            "When I open Today",
+            "Then no all-roles summary is shown"
+          ]
+        },
+        {
+          "id": "S-23.4",
+          "title": "Show at most 3 items per role",
+          "file": "docs/02_requirements/02_bdd/features/s/shell.feature",
+          "release": "v0.2",
+          "kind": "edge",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running with the kanban fixture open",
+            "Given 5 elements of the kanban fixture are in the state \"pending\"",
+            "And I am Alex",
+            "When I open Today",
+            "Then the line \"approver · 5\" lists 3 items and the link \"2 more\""
+          ]
+        }
+      ],
+      "dependencies": [
+        "TT-PERF-09",
+        "TT-PERF-11",
+        "TT-STATE-06"
+      ]
+    },
+    {
+      "id": "US-G-04",
+      "kind": "user-story",
+      "title": "Approve on a Today item to open the element panel with the gate footer and the reason field focused",
+      "release": "v0.2",
+      "area": "G",
+      "wingfoil_min": "0.2.2",
+      "story": "As Morgan, I want Approve on a Today item to open the element panel with the gate footer and the reason field focused, so that a gate takes at most two clicks from Today",
+      "persona": "Morgan",
+      "story_kind": "nominal",
+      "features": [
+        "G2",
+        "T1"
+      ],
+      "journeys": "J1.3",
+      "acceptance_criteria": [
+        {
+          "id": "G-04.1",
+          "title": "Approve a gate in two clicks from Today",
+          "file": "docs/02_requirements/02_bdd/features/g/gate-footer.feature",
+          "release": "v0.2",
+          "kind": "nominal",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running",
+            "Given the kanban fixture is open and I am Morgan",
+            "When I click \"Approve\" on the Requires you row of \"task-1-login-form\"",
+            "And I click \"Approve → approved\" in the panel that opens",
+            "Then the fixture's last commit is \"wf(task): approve task-1-login-form [pending → approved]\"",
+            "And exactly 2 clicks were made since Today was shown"
+          ]
+        },
+        {
+          "id": "G-04.3",
+          "title": "Open the gate footer with the reason focused",
+          "file": "docs/02_requirements/02_bdd/features/g/gate-footer.feature",
+          "release": "v0.2",
+          "kind": "nominal",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running",
+            "Given the kanban fixture is open and I am Morgan",
+            "When I click \"Approve\" on the Requires you row of \"task-1-login-form\"",
+            "Then the element panel of \"task-1-login-form\" opens with the gate footer",
+            "And the reason field has the keyboard focus"
+          ]
+        },
+        {
+          "id": "G-04.2",
+          "title": "Cancel without running the CLI",
+          "file": "docs/02_requirements/02_bdd/features/g/gate-footer.feature",
+          "release": "v0.2",
+          "kind": "edge",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running",
+            "Given the kanban fixture is open and I am Morgan",
+            "And the gate footer of \"task-1-login-form\" is open from Today",
+            "When I click \"Cancel\"",
+            "Then the element panel closes",
+            "And the fixture's last commit is unchanged"
+          ]
+        }
+      ],
+      "dependencies": [
+        "TT-ARC-03",
+        "TT-PERF-02",
+        "TT-PERF-10",
+        "TT-SEC-10"
+      ]
+    },
+    {
+      "id": "US-G-05",
+      "kind": "user-story",
+      "title": "Every outcome of the gate side by side — approve and each reject target",
+      "release": "v0.2",
+      "area": "G",
+      "wingfoil_min": "0.2.2",
+      "story": "As Morgan, I want every outcome of the gate side by side — approve and each reject target — so that I choose the outcome, not a verb",
+      "persona": "Morgan",
+      "story_kind": "nominal",
+      "features": [
+        "G2",
+        "S9"
+      ],
+      "journeys": "J1.4",
+      "acceptance_criteria": [
+        {
+          "id": "G-05.1",
+          "title": "Show approve and the reject target of a bug gate",
+          "file": "docs/02_requirements/02_bdd/features/g/gate-footer.feature",
+          "release": "v0.2",
+          "kind": "nominal",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running",
+            "Given the custom fixture is open and I am Morgan",
+            "When I open the gate footer of \"bug-1-toast-overlap\"",
+            "Then the footer shows the buttons \"Approve → triaged\" and \"Reject → closed\" side by side",
+            "And \"Approve → triaged\" is the primary button"
+          ]
+        },
+        {
+          "id": "G-05.2",
+          "title": "Reject to the gate's target",
+          "file": "docs/02_requirements/02_bdd/features/g/gate-footer.feature",
+          "release": "v0.2",
+          "kind": "edge",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running",
+            "Given the custom fixture is open and I am Morgan",
+            "And the gate footer of \"bug-1-toast-overlap\" is open with the reason \"Cannot reproduce\"",
+            "When I click \"Reject → closed\"",
+            "Then the fixture's last commit is \"wf(bug): reject bug-1-toast-overlap [open → closed]\"",
+            "And the history of \"bug-1-toast-overlap\" lists the reason \"Cannot reproduce\""
+          ]
+        },
+        {
+          "id": "G-05.3",
+          "title": "Derive the outcomes of an unknown type's gate",
+          "file": "docs/02_requirements/02_bdd/features/g/gate-footer.feature",
+          "release": "v0.2",
+          "kind": "edge",
+          "fixture": "unknown",
+          "steps": [
+            "Given the console is running",
+            "Given the unknown fixture is open and I am Morgan",
+            "When I open the gate footer of \"story-1-onboarding\"",
+            "Then the footer shows the buttons \"Approve → ready-to-build\" and \"Reject → idea\""
+          ]
+        }
+      ],
+      "dependencies": [
+        "TT-ARC-05",
+        "TT-ARC-06",
+        "TT-SEC-10"
+      ]
+    },
+    {
+      "id": "US-G-06",
+      "kind": "user-story",
+      "title": "The reason required for approve too, pre-filled with an editable default",
+      "release": "v0.2",
+      "area": "G",
+      "wingfoil_min": "0.2.2",
+      "story": "As Morgan, I want the reason required for approve too, pre-filled with an editable default, so that the CLI (which requires `--reason`) never refuses my approval",
+      "persona": "Morgan",
+      "story_kind": "nominal",
+      "features": [
+        "G2"
+      ],
+      "journeys": "J1.4",
+      "acceptance_criteria": [
+        {
+          "id": "G-06.1",
+          "title": "Pre-fill the reason for approve",
+          "file": "docs/02_requirements/02_bdd/features/g/gate-footer.feature",
+          "release": "v0.2",
+          "kind": "nominal",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running",
+            "Given the kanban fixture is open and I am Morgan",
+            "When I open the gate footer of \"task-1-login-form\"",
+            "Then the reason field contains \"Approved via WingFoil UI\"",
+            "And the text is selected so that typing replaces it"
+          ]
+        },
+        {
+          "id": "G-06.2",
+          "title": "Use the reason I typed",
+          "file": "docs/02_requirements/02_bdd/features/g/gate-footer.feature",
+          "release": "v0.2",
+          "kind": "edge",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running",
+            "Given the kanban fixture is open and I am Morgan",
+            "And the gate footer of \"task-1-login-form\" is open",
+            "When I replace the reason with \"Matches the mock-up\" and click \"Approve → approved\"",
+            "Then the history of \"task-1-login-form\" lists the reason \"Matches the mock-up\""
+          ]
+        },
+        {
+          "id": "G-06.3",
+          "title": "Leave the reason empty for reject",
+          "file": "docs/02_requirements/02_bdd/features/g/gate-footer.feature",
+          "release": "v0.2",
+          "kind": "edge",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running",
+            "Given the kanban fixture is open and I am Morgan",
+            "When I open the gate footer of \"task-1-login-form\" and focus \"Reject → draft\"",
+            "Then the reason field is empty with the placeholder \"Reason (required)\""
+          ]
+        }
+      ],
+      "dependencies": [
+        "TT-SEC-05"
+      ]
+    },
+    {
+      "id": "US-G-07",
+      "kind": "user-story",
+      "title": "The outcome buttons disabled while the reason is empty",
+      "release": "v0.2",
+      "area": "G",
+      "wingfoil_min": "0.2.2",
+      "story": "As Morgan, I want the outcome buttons disabled while the reason is empty, so that no CLI call is made that would be refused",
+      "persona": "Morgan",
+      "story_kind": "edge",
+      "features": [
+        "G2"
+      ],
+      "journeys": "—",
+      "acceptance_criteria": [
+        {
+          "id": "G-07.1",
+          "title": "Disable the outcomes while the reason is empty",
+          "file": "docs/02_requirements/02_bdd/features/g/gate-footer.feature",
+          "release": "v0.2",
+          "kind": "nominal",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running",
+            "Given the kanban fixture is open and I am Morgan",
+            "And the gate footer of \"task-1-login-form\" is open",
+            "When I clear the reason field",
+            "Then \"Approve → approved\" and \"Reject → draft\" are disabled",
+            "And the footer shows \"A reason is required\""
+          ]
+        },
+        {
+          "id": "G-07.2",
+          "title": "Treat a reason of only spaces as empty",
+          "file": "docs/02_requirements/02_bdd/features/g/gate-footer.feature",
+          "release": "v0.2",
+          "kind": "edge",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running",
+            "Given the kanban fixture is open and I am Morgan",
+            "And the gate footer of \"task-1-login-form\" is open",
+            "When I replace the reason with 3 spaces",
+            "Then \"Approve → approved\" and \"Reject → draft\" are disabled",
+            "And the server has run no `wingfoil memory approve` or `memory reject` process"
+          ]
+        }
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "US-G-09",
+      "kind": "user-story",
+      "title": "The gate footer to be informational — \"reserved to approver\" and the members who can act",
+      "release": "v0.2",
+      "area": "G",
+      "wingfoil_min": "0.2.2",
+      "story": "As Sam, without `approver` on WingFoil 0.2.2, I want the gate footer to be informational — \"reserved to approver\" and the members who can act — so that I know whom to ask",
+      "persona": "Sam",
+      "story_kind": "edge",
+      "features": [
+        "G2",
+        "S9"
+      ],
+      "journeys": "J4 obstacle",
+      "acceptance_criteria": [
+        {
+          "id": "G-09.1",
+          "title": "Show an informational footer to a reviewer without approver",
+          "file": "docs/02_requirements/02_bdd/features/g/gate-footer.feature",
+          "release": "v0.2",
+          "kind": "nominal",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running",
+            "Given the custom fixture is open",
+            "And the DNA gives Sam the roles reviewer",
+            "And I am Sam",
+            "When I open the element panel of \"task-1-cli-adapter\"",
+            "Then the footer shows \"Reserved to approver — Morgan, Alex can act\"",
+            "And the footer shows no outcome button"
+          ]
+        },
+        {
+          "id": "G-09.2",
+          "title": "Show the outcomes to the same reviewer once they hold approver",
+          "file": "docs/02_requirements/02_bdd/features/g/gate-footer.feature",
+          "release": "v0.2",
+          "kind": "edge",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running",
+            "Given the custom fixture is open",
+            "And the DNA gives Sam the roles reviewer, approver",
+            "And I am Sam",
+            "When I open the element panel of \"task-1-cli-adapter\"",
+            "Then the footer shows the buttons \"Approve → approved\" and \"Reject → in-progress\""
+          ]
+        },
+        {
+          "id": "G-09.3",
+          "title": "Show an informational footer to a product owner without approver",
+          "file": "docs/02_requirements/02_bdd/features/g/gate-footer.feature",
+          "release": "v0.2",
+          "kind": "edge",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running",
+            "Given the custom fixture is open",
+            "And the DNA gives Casey the roles product-owner",
+            "And I am Casey",
+            "When I open the element panel of \"dl-002-use-fastify\"",
+            "Then the footer shows \"Reserved to approver — Morgan, Alex can act\""
+          ]
+        }
+      ],
+      "dependencies": [
+        "TT-ARC-06",
+        "TT-SEC-07"
+      ]
+    },
+    {
+      "id": "US-G-10",
+      "kind": "user-story",
+      "title": "Submit an element from its single-action footer",
+      "release": "v0.2",
+      "area": "G",
+      "wingfoil_min": "0.2.2",
+      "story": "As Jordan, I want to submit an element from its single-action footer, so that it moves to its next state without the terminal",
+      "persona": "Jordan",
+      "story_kind": "nominal",
+      "features": [
+        "G3"
+      ],
+      "journeys": "J3.5",
+      "acceptance_criteria": [
+        {
+          "id": "G-10.1",
+          "title": "Submit a draft",
+          "file": "docs/02_requirements/02_bdd/features/g/submit.feature",
+          "release": "v0.2",
+          "kind": "nominal",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running with the kanban fixture open",
+            "And I am Jordan",
+            "Given the element panel of \"task-4-session-timeout\" is open",
+            "When I click \"Submit\"",
+            "Then the fixture's last commit is \"wf(task): submit task-4-session-timeout [draft → pending]\"",
+            "And the state machine shows \"pending\" as current"
+          ]
+        },
+        {
+          "id": "G-10.2",
+          "title": "Submit rejected work again",
+          "file": "docs/02_requirements/02_bdd/features/g/submit.feature",
+          "release": "v0.2",
+          "kind": "edge",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running with the kanban fixture open",
+            "And I am Jordan",
+            "Given the element panel of \"task-2-password-reset\" shows the rejection banner",
+            "When I click \"Submit\"",
+            "Then the fixture's last commit is \"wf(task): submit task-2-password-reset [draft → pending]\"",
+            "And the panel no longer shows the rejection banner"
+          ]
+        },
+        {
+          "id": "G-10.3",
+          "title": "Offer no submit on an element waiting on a gate",
+          "file": "docs/02_requirements/02_bdd/features/g/submit.feature",
+          "release": "v0.2",
+          "kind": "edge",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running with the kanban fixture open",
+            "And I am Jordan",
+            "When I open the element panel of \"task-1-login-form\"",
+            "Then the panel shows no \"Submit\" button"
+          ]
+        }
+      ],
+      "dependencies": [
+        "TT-ARC-03",
+        "TT-PERF-02"
+      ]
+    },
+    {
+      "id": "US-G-11",
+      "kind": "user-story",
+      "title": "Gate and submit actions blocked, with the reason, on an element with local changes",
+      "release": "v0.2",
+      "area": "G",
+      "wingfoil_min": "0.2.2",
+      "story": "As a member, I want gate and submit actions blocked, with the reason, on an element with local changes, so that a UI action never commits someone's uncommitted edits",
+      "persona": "a member",
+      "story_kind": "edge",
+      "features": [
+        "G2",
+        "G3",
+        "S8"
+      ],
+      "journeys": "common rules",
+      "acceptance_criteria": [
+        {
+          "id": "G-11.1",
+          "title": "Block a gate on an element with local changes",
+          "file": "docs/02_requirements/02_bdd/features/g/blocked-actions.feature",
+          "release": "v0.2",
+          "kind": "nominal",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running with the kanban fixture open",
+            "And I am Morgan",
+            "Given the file of \"task-1-login-form\" has an uncommitted edit",
+            "When I open the gate footer of \"task-1-login-form\"",
+            "Then \"Approve → approved\" and \"Reject → draft\" are disabled",
+            "And the footer shows \"Blocked: this element has local changes — commit or discard them first\""
+          ]
+        },
+        {
+          "id": "G-11.2",
+          "title": "Block a submit on an element with local changes",
+          "file": "docs/02_requirements/02_bdd/features/g/blocked-actions.feature",
+          "release": "v0.2",
+          "kind": "edge",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running with the kanban fixture open",
+            "And I am Morgan",
+            "Given I am Jordan",
+            "And the file of \"task-4-session-timeout\" has an uncommitted edit",
+            "When I open the element panel of \"task-4-session-timeout\"",
+            "Then \"Submit\" is disabled with \"Blocked: this element has local changes — commit or discard them first\""
+          ]
+        },
+        {
+          "id": "G-11.3",
+          "title": "Do not block an element when only another file has local changes",
+          "file": "docs/02_requirements/02_bdd/features/g/blocked-actions.feature",
+          "release": "v0.2",
+          "kind": "edge",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running with the kanban fixture open",
+            "And I am Morgan",
+            "Given the file \"README.md\" has an uncommitted edit",
+            "When I open the gate footer of \"task-1-login-form\"",
+            "Then \"Approve → approved\" is enabled"
+          ]
+        }
+      ],
+      "dependencies": [
+        "TT-STATE-03"
+      ]
+    },
+    {
+      "id": "US-G-12",
+      "kind": "user-story",
+      "title": "Governed actions blocked while my copy is behind the remote, with a link to Update",
+      "release": "v0.2",
+      "area": "G",
+      "wingfoil_min": "0.2.2",
+      "story": "As a member, I want governed actions blocked while my copy is behind the remote, with a link to Update, so that I never act on a stale copy",
+      "persona": "a member",
+      "story_kind": "edge",
+      "features": [
+        "G2",
+        "G3",
+        "Y4"
+      ],
+      "journeys": "common rules",
+      "acceptance_criteria": [
+        {
+          "id": "G-12.1",
+          "title": "Block governed actions while behind",
+          "file": "docs/02_requirements/02_bdd/features/g/blocked-actions.feature",
+          "release": "v0.2",
+          "kind": "nominal",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running with the kanban fixture open",
+            "And I am Morgan",
+            "Given the remote has 1 commit that the fixture does not have, and it has been fetched",
+            "When I open the gate footer of \"task-1-login-form\"",
+            "Then \"Approve → approved\" and \"Reject → draft\" are disabled",
+            "And the footer shows \"Blocked: your copy is 1 commit behind the remote — Update\""
+          ]
+        },
+        {
+          "id": "G-12.2",
+          "title": "Unblock after the update",
+          "file": "docs/02_requirements/02_bdd/features/g/blocked-actions.feature",
+          "release": "v0.2",
+          "kind": "edge",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running with the kanban fixture open",
+            "And I am Morgan",
+            "Given the footer of \"task-1-login-form\" shows \"Blocked: your copy is 1 commit behind the remote — Update\"",
+            "When I click \"Update\" in that message",
+            "Then the fixture is at the remote's commit",
+            "And \"Approve → approved\" is enabled"
+          ]
+        },
+        {
+          "id": "G-12.3",
+          "title": "Do not block when the copy is only ahead",
+          "file": "docs/02_requirements/02_bdd/features/g/blocked-actions.feature",
+          "release": "v0.2",
+          "kind": "edge",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running with the kanban fixture open",
+            "And I am Morgan",
+            "Given the fixture has 1 commit that the remote does not have, and none the other way",
+            "When I open the gate footer of \"task-1-login-form\"",
+            "Then \"Approve → approved\" is enabled"
+          ]
+        }
+      ],
+      "dependencies": [
+        "TT-STATE-04"
+      ]
+    },
+    {
+      "id": "US-S-24",
+      "kind": "user-story",
+      "title": "No action footer on an element in a terminal state, and a \"waiting for the workflow engine\" note on one in an engine-wai",
+      "release": "v0.2",
+      "area": "S",
+      "wingfoil_min": "0.2.2",
+      "story": "As a member, I want no action footer on an element in a terminal state, and a \"waiting for the workflow engine\" note on one in an engine-waiting state, so that I am never offered an impossible move",
+      "persona": "a member",
+      "story_kind": "edge",
+      "features": [
+        "S9",
+        "G1"
+      ],
+      "journeys": "—",
+      "acceptance_criteria": [
+        {
+          "id": "S-24.1",
+          "title": "Offer no action on a terminal state",
+          "file": "docs/02_requirements/02_bdd/features/s/action-descriptor.feature",
+          "release": "v0.2",
+          "kind": "nominal",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running",
+            "Given the custom fixture is added and I am Morgan",
+            "When I open the element panel of \"dl-001-initialise-wingfoil-before-inception\"",
+            "Then the panel shows no action footer",
+            "And the state \"ready\" is marked as the final state"
+          ]
+        },
+        {
+          "id": "S-24.2",
+          "title": "Show an engine-waiting state as waiting",
+          "file": "docs/02_requirements/02_bdd/features/s/action-descriptor.feature",
+          "release": "v0.2",
+          "kind": "edge",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running",
+            "Given the custom fixture is added and I am Alex",
+            "When I open the element panel of \"minor-v0.1\"",
+            "Then the panel shows \"Waiting for the workflow engine (state: planning)\"",
+            "And the panel shows no action button"
+          ]
+        },
+        {
+          "id": "S-24.3",
+          "title": "Treat a declared waiting state of an unknown type the same way",
+          "file": "docs/02_requirements/02_bdd/features/s/action-descriptor.feature",
+          "release": "v0.2",
+          "kind": "edge",
+          "fixture": "unknown",
+          "steps": [
+            "Given the console is running",
+            "Given the unknown fixture is added and I am Alex",
+            "When I open the element panel of \"story-2-billing\"",
+            "Then the panel shows \"Waiting for the workflow engine (state: ready-to-build)\""
+          ]
+        }
+      ],
+      "dependencies": [
+        "TT-ARC-06"
+      ]
+    },
+    {
+      "id": "US-G-13",
+      "kind": "user-story",
+      "title": "A toast with the result and the wf(…) commit (and \"pushed\" when it was pushed)",
+      "release": "v0.2",
+      "area": "G",
+      "wingfoil_min": "0.2.2",
+      "story": "As Morgan, I want a toast with the result and the `wf(…)` commit (and \"pushed\" when it was pushed), so that I know the decision is recorded and shared",
+      "persona": "Morgan",
+      "story_kind": "nominal",
+      "features": [
+        "G4"
+      ],
+      "journeys": "J1.4",
+      "acceptance_criteria": [
+        {
+          "id": "G-13.1",
+          "title": "Show the commit and \"pushed\" after an approval",
+          "file": "docs/02_requirements/02_bdd/features/g/action-feedback.feature",
+          "release": "v0.2",
+          "kind": "nominal",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running",
+            "Given the kanban fixture is open and I am Morgan",
+            "And the UI setting \"Auto-push\" is on",
+            "When I approve \"task-1-login-form\" with the reason \"OK\"",
+            "Then a toast shows \"Approved task-1-login-form\", the commit line \"wf(task): approve task-1-login-form [pending → approved]\" with its short hash, and \"pushed\"",
+            "And the remote's branch is at that commit"
+          ]
+        },
+        {
+          "id": "G-13.2",
+          "title": "Show the commit without \"pushed\" when auto-push is off",
+          "file": "docs/02_requirements/02_bdd/features/g/action-feedback.feature",
+          "release": "v0.2",
+          "kind": "edge",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running",
+            "Given the kanban fixture is open and I am Morgan",
+            "And the UI setting \"Auto-push\" is off",
+            "When I approve \"task-1-login-form\" with the reason \"OK\"",
+            "Then the toast shows the commit line without \"pushed\"",
+            "And the sidebar shows \"1 commit to push\""
+          ]
+        }
+      ],
+      "dependencies": [
+        "TT-PERF-02"
+      ]
+    },
+    {
+      "id": "US-G-14",
+      "kind": "user-story",
+      "title": "A refused action shown as a red toast with the CLI's own reason and the element left unchanged",
+      "release": "v0.2",
+      "area": "G",
+      "wingfoil_min": "0.2.2",
+      "story": "As Morgan, I want a refused action shown as a red toast with the CLI's own reason and the element left unchanged, so that I know what to fix (missing field, wrong role)",
+      "persona": "Morgan",
+      "story_kind": "edge",
+      "features": [
+        "G4"
+      ],
+      "journeys": "J1 obstacle",
+      "acceptance_criteria": [
+        {
+          "id": "G-14.1",
+          "title": "Show the CLI's reason when a submit is refused",
+          "file": "docs/02_requirements/02_bdd/features/g/action-feedback.feature",
+          "release": "v0.2",
+          "kind": "nominal",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running",
+            "Given the custom fixture is open and I am Alex with the role view \"architect\"",
+            "And \"adr-1-local-server\" is a committed `draft` created by Alex with an empty required field \"sard_ref\"",
+            "When I submit \"adr-1-local-server\" from its panel",
+            "Then a red toast shows the error message printed by `wingfoil memory submit`, naming \"sard_ref\"",
+            "And \"adr-1-local-server\" is still in the state \"draft\"",
+            "And the fixture's last commit is unchanged"
+          ]
+        },
+        {
+          "id": "G-14.2",
+          "title": "Show the CLI's reason when the element moved in the meantime",
+          "file": "docs/02_requirements/02_bdd/features/g/action-feedback.feature",
+          "release": "v0.2",
+          "kind": "edge",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running",
+            "Given the kanban fixture is open and I am Morgan",
+            "And the gate footer of \"task-1-login-form\" is open",
+            "And \"task-1-login-form\" has been approved with the CLI in a terminal before the panel refreshed",
+            "When I click \"Reject → draft\" with the reason \"Too late\"",
+            "Then a red toast shows the error message printed by `wingfoil memory reject`",
+            "And the panel shows \"task-1-login-form\" in the state \"approved\""
+          ]
+        }
+      ],
+      "dependencies": [
+        "TT-INT-04"
+      ]
+    },
+    {
+      "id": "US-Y-01",
+      "kind": "user-story",
+      "title": "The branch, ahead/behind counts and local changes in the sidebar",
+      "release": "v0.2",
+      "area": "Y",
+      "wingfoil_min": "0.2.2",
+      "story": "As a member, I want the branch, ahead/behind counts and local changes in the sidebar, so that I know whether my copy is current",
+      "persona": "a member",
+      "story_kind": "nominal",
+      "features": [
+        "Y1"
+      ],
+      "journeys": "J8.1",
+      "acceptance_criteria": [
+        {
+          "id": "Y-01.1",
+          "title": "Show branch, ahead/behind and local changes",
+          "file": "docs/02_requirements/02_bdd/features/y/repository-status.feature",
+          "release": "v0.2",
+          "kind": "nominal",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running with the kanban fixture open",
+            "And I am Morgan",
+            "Given the fixture is on branch \"main\", 1 commit ahead and 2 commits behind its fetched remote",
+            "And 3 files have uncommitted changes",
+            "When I look at the sidebar",
+            "Then the git status shows \"main\", \"1 ahead\", \"2 behind\" and \"3 local changes\""
+          ]
+        },
+        {
+          "id": "Y-01.2",
+          "title": "Show an up-to-date copy",
+          "file": "docs/02_requirements/02_bdd/features/y/repository-status.feature",
+          "release": "v0.2",
+          "kind": "edge",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running with the kanban fixture open",
+            "And I am Morgan",
+            "Given the fixture is at the same commit as its fetched remote and has no uncommitted change",
+            "When I look at the sidebar",
+            "Then the git status shows \"main\" and \"In sync with git\""
+          ]
+        },
+        {
+          "id": "Y-01.3",
+          "title": "Show a detached HEAD",
+          "file": "docs/02_requirements/02_bdd/features/y/repository-status.feature",
+          "release": "v0.2",
+          "kind": "edge",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running with the kanban fixture open",
+            "And I am Morgan",
+            "Given the fixture's HEAD is detached at a commit of \"main\"",
+            "When I look at the sidebar",
+            "Then the git status shows \"Detached HEAD\" with the short hash",
+            "And governed actions are blocked with \"Blocked: no branch checked out\""
+          ]
+        }
+      ],
+      "dependencies": [
+        "TT-INT-06",
+        "TT-STATE-04"
+      ]
+    },
+    {
+      "id": "US-Y-02",
+      "kind": "user-story",
+      "title": "The remote fetched automatically (on by default) and on demand",
+      "release": "v0.2",
+      "area": "Y",
+      "wingfoil_min": "0.2.2",
+      "story": "As a member, I want the remote fetched automatically (on by default) and on demand, so that ahead/behind is always fresh",
+      "persona": "a member",
+      "story_kind": "nominal",
+      "features": [
+        "Y2",
+        "C4"
+      ],
+      "journeys": "J8.1",
+      "acceptance_criteria": [
+        {
+          "id": "Y-02.1",
+          "title": "Fetch automatically",
+          "file": "docs/02_requirements/02_bdd/features/y/fetch.feature",
+          "release": "v0.2",
+          "kind": "nominal",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running with the kanban fixture open",
+            "And I am Morgan",
+            "Given the UI setting \"Auto-fetch\" is on, with its default interval of 60 seconds",
+            "When a commit is pushed to the remote by someone else",
+            "Then within 65 seconds the sidebar shows \"1 behind\""
+          ]
+        },
+        {
+          "id": "Y-02.2",
+          "title": "Fetch on demand",
+          "file": "docs/02_requirements/02_bdd/features/y/fetch.feature",
+          "release": "v0.2",
+          "kind": "edge",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running with the kanban fixture open",
+            "And I am Morgan",
+            "Given the UI setting \"Auto-fetch\" is off",
+            "And a commit has been pushed to the remote by someone else",
+            "When I click \"Fetch\" in the sidebar",
+            "Then the sidebar shows \"1 behind\""
+          ]
+        },
+        {
+          "id": "Y-02.3",
+          "title": "Do not fetch when auto-fetch is off",
+          "file": "docs/02_requirements/02_bdd/features/y/fetch.feature",
+          "release": "v0.2",
+          "kind": "edge",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running with the kanban fixture open",
+            "And I am Morgan",
+            "Given the UI setting \"Auto-fetch\" is off",
+            "When 120 seconds pass",
+            "Then the server has run no `git fetch` process"
+          ]
+        }
+      ],
+      "dependencies": [
+        "TT-INT-06",
+        "TT-PERF-07"
+      ]
+    },
+    {
+      "id": "US-Y-03",
+      "kind": "user-story",
+      "title": "A failed fetch (offline, authentication) shown with the time of the last successful fetch, without blocking reading",
+      "release": "v0.2",
+      "area": "Y",
+      "wingfoil_min": "0.2.2",
+      "story": "As a member, I want a failed fetch (offline, authentication) shown with the time of the last successful fetch, without blocking reading, so that I know how fresh the status is",
+      "persona": "a member",
+      "story_kind": "edge",
+      "features": [
+        "Y2"
+      ],
+      "journeys": "—",
+      "acceptance_criteria": [
+        {
+          "id": "Y-03.1",
+          "title": "Report a failed fetch with the last successful time",
+          "file": "docs/02_requirements/02_bdd/features/y/fetch.feature",
+          "release": "v0.2",
+          "kind": "nominal",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running with the kanban fixture open",
+            "And I am Morgan",
+            "Given the last successful fetch was at 10:02",
+            "And the remote is unreachable",
+            "When I click \"Fetch\" in the sidebar",
+            "Then the sidebar shows \"Fetch failed — last fetched at 10:02\" with git's error on hover",
+            "And the Memory list still opens and lists the fixture's elements"
+          ]
+        },
+        {
+          "id": "Y-03.2",
+          "title": "Report a fetch refused for authentication",
+          "file": "docs/02_requirements/02_bdd/features/y/fetch.feature",
+          "release": "v0.2",
+          "kind": "edge",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running with the kanban fixture open",
+            "And I am Morgan",
+            "Given the remote refuses the credentials available to git",
+            "When I click \"Fetch\" in the sidebar",
+            "Then the sidebar shows \"Fetch failed\" with the authentication error printed by git"
+          ]
+        }
+      ],
+      "dependencies": [
+        "TT-INT-06"
+      ]
+    },
+    {
+      "id": "US-Y-04",
+      "kind": "user-story",
+      "title": "The sync controls hidden",
+      "release": "v0.2",
+      "area": "Y",
+      "wingfoil_min": "0.2.2",
+      "story": "As a member of a repository with no remote, I want the sync controls hidden, so that the UI does not offer what cannot apply",
+      "persona": "a member",
+      "story_kind": "edge",
+      "features": [
+        "Y1",
+        "S3"
+      ],
+      "journeys": "—",
+      "acceptance_criteria": [
+        {
+          "id": "Y-04.1",
+          "title": "Hide sync controls without a remote",
+          "file": "docs/02_requirements/02_bdd/features/y/repository-status.feature",
+          "release": "v0.2",
+          "kind": "nominal",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running with the kanban fixture open",
+            "And I am Morgan",
+            "Given the fixture has no remote configured",
+            "When I look at the sidebar",
+            "Then the git status shows the branch and the local changes",
+            "And no \"Fetch\", \"Update\" or \"Push\" control is shown"
+          ]
+        },
+        {
+          "id": "Y-04.2",
+          "title": "Show the controls once a remote is added",
+          "file": "docs/02_requirements/02_bdd/features/y/repository-status.feature",
+          "release": "v0.2",
+          "kind": "edge",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running with the kanban fixture open",
+            "And I am Morgan",
+            "Given the fixture has no remote configured",
+            "When a remote \"origin\" is added with git in a terminal",
+            "Then within 5 seconds the sidebar shows the \"Fetch\" control"
+          ]
+        }
+      ],
+      "dependencies": [
+        "TT-INT-03"
+      ]
+    },
+    {
+      "id": "US-Y-05",
+      "kind": "user-story",
+      "title": "Update to fast-forward my copy (git pull --ff-only), automatically when my settings say so",
+      "release": "v0.2",
+      "area": "Y",
+      "wingfoil_min": "0.2.2",
+      "story": "As a member, I want Update to fast-forward my copy (`git pull --ff-only`), automatically when my settings say so, so that governed actions are unblocked",
+      "persona": "a member",
+      "story_kind": "nominal",
+      "features": [
+        "Y4",
+        "C4"
+      ],
+      "journeys": "J8.2",
+      "acceptance_criteria": [
+        {
+          "id": "Y-05.1",
+          "title": "Update a copy that is behind",
+          "file": "docs/02_requirements/02_bdd/features/y/update.feature",
+          "release": "v0.2",
+          "kind": "nominal",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running with the kanban fixture open",
+            "And I am Morgan",
+            "Given the fixture is 2 commits behind its fetched remote and has no commit of its own",
+            "When I click \"Update\" in the sidebar",
+            "Then the fixture's HEAD is the remote's commit",
+            "And the sidebar shows \"In sync with git\""
+          ]
+        },
+        {
+          "id": "Y-05.2",
+          "title": "Update automatically after a fetch",
+          "file": "docs/02_requirements/02_bdd/features/y/update.feature",
+          "release": "v0.2",
+          "kind": "edge",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running with the kanban fixture open",
+            "And I am Morgan",
+            "Given the UI settings \"Auto-fetch\" and \"Auto-update\" are on",
+            "When a commit is pushed to the remote by someone else",
+            "Then within 65 seconds the fixture's HEAD is the remote's commit"
+          ]
+        },
+        {
+          "id": "Y-05.3",
+          "title": "Update with local changes that do not touch the incoming files",
+          "file": "docs/02_requirements/02_bdd/features/y/update.feature",
+          "release": "v0.2",
+          "kind": "edge",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running with the kanban fixture open",
+            "And I am Morgan",
+            "Given the fixture is 1 commit behind, and that commit changes only \"docs/memory/task/task-3-logout.md\"",
+            "And \"README.md\" has an uncommitted edit",
+            "When I click \"Update\" in the sidebar",
+            "Then the fixture's HEAD is the remote's commit",
+            "And \"README.md\" keeps its uncommitted edit"
+          ]
+        }
+      ],
+      "dependencies": [
+        "TT-ARC-03",
+        "TT-INT-06",
+        "TT-PERF-07",
+        "TT-STATE-04"
+      ]
+    },
+    {
+      "id": "US-Y-06",
+      "kind": "user-story",
+      "title": "An update that cannot fast-forward (diverged history, local changes in the way) to leave actions blocked and tell me wha",
+      "release": "v0.2",
+      "area": "Y",
+      "wingfoil_min": "0.2.2",
+      "story": "As a member, I want an update that cannot fast-forward (diverged history, local changes in the way) to leave actions blocked and tell me what to run in the terminal, so that the UI never merges or rebases",
+      "persona": "a member",
+      "story_kind": "edge",
+      "features": [
+        "Y4"
+      ],
+      "journeys": "J8.3",
+      "acceptance_criteria": [
+        {
+          "id": "Y-06.1",
+          "title": "Refuse to merge diverged histories",
+          "file": "docs/02_requirements/02_bdd/features/y/update.feature",
+          "release": "v0.2",
+          "kind": "nominal",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running with the kanban fixture open",
+            "And I am Morgan",
+            "Given the fixture has 1 commit of its own and is 1 commit behind its fetched remote",
+            "When I click \"Update\" in the sidebar",
+            "Then the fixture's HEAD is unchanged",
+            "And the sidebar shows \"Cannot fast-forward: your copy and the remote have diverged — run git pull --rebase or git merge in a terminal\"",
+            "And governed actions stay blocked"
+          ]
+        },
+        {
+          "id": "Y-06.2",
+          "title": "Refuse an update that local changes are in the way of",
+          "file": "docs/02_requirements/02_bdd/features/y/update.feature",
+          "release": "v0.2",
+          "kind": "edge",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running with the kanban fixture open",
+            "And I am Morgan",
+            "Given the fixture is 1 commit behind, and that commit changes \"docs/memory/task/task-1-login-form.md\"",
+            "And \"docs/memory/task/task-1-login-form.md\" has an uncommitted edit",
+            "When I click \"Update\" in the sidebar",
+            "Then the fixture's HEAD is unchanged and the uncommitted edit is kept",
+            "And the sidebar shows \"Cannot fast-forward: local changes to task-1-login-form.md are in the way — commit or stash them in a terminal\""
+          ]
+        }
+      ],
+      "dependencies": [
+        "TT-INT-06",
+        "TT-STATE-04"
+      ]
+    },
+    {
+      "id": "US-Y-07",
+      "kind": "user-story",
+      "title": "UI commits pushed automatically when my settings say so (off by default), or with Push",
+      "release": "v0.2",
+      "area": "Y",
+      "wingfoil_min": "0.2.2",
+      "story": "As a member, I want UI commits pushed automatically when my settings say so (off by default), or with Push, so that nothing committed from the UI stays unshared by accident",
+      "persona": "a member",
+      "story_kind": "nominal",
+      "features": [
+        "Y3",
+        "C4"
+      ],
+      "journeys": "J8.5",
+      "acceptance_criteria": [
+        {
+          "id": "Y-07.1",
+          "title": "Push with the button",
+          "file": "docs/02_requirements/02_bdd/features/y/push.feature",
+          "release": "v0.2",
+          "kind": "nominal",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running with the kanban fixture open",
+            "And I am Morgan",
+            "Given the UI setting \"Auto-push\" is off",
+            "And I approved \"task-1-login-form\" from the UI",
+            "When I click \"Push\" in the sidebar",
+            "Then the remote's branch is at the fixture's HEAD",
+            "And the sidebar shows \"In sync with git\""
+          ]
+        },
+        {
+          "id": "Y-07.2",
+          "title": "Keep auto-push off by default",
+          "file": "docs/02_requirements/02_bdd/features/y/push.feature",
+          "release": "v0.2",
+          "kind": "edge",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running with the kanban fixture open",
+            "And I am Morgan",
+            "Given the UI settings have never been changed",
+            "When I approve \"task-1-login-form\" from the UI",
+            "Then the remote's branch does not contain the approval commit",
+            "And the sidebar shows \"1 commit to push\" with the \"Push\" button"
+          ]
+        },
+        {
+          "id": "Y-07.3",
+          "title": "Push automatically after a UI action",
+          "file": "docs/02_requirements/02_bdd/features/y/push.feature",
+          "release": "v0.2",
+          "kind": "edge",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running with the kanban fixture open",
+            "And I am Morgan",
+            "Given the UI setting \"Auto-push\" is on",
+            "When I approve \"task-1-login-form\" from the UI",
+            "Then the remote's branch is at the approval commit"
+          ]
+        }
+      ],
+      "dependencies": [
+        "TT-ARC-03",
+        "TT-INT-06",
+        "TT-STATE-09"
+      ]
+    },
+    {
+      "id": "US-Y-08",
+      "kind": "user-story",
+      "title": "A rejected push (remote moved, no permission) shown as a red toast with git's reason, the commit kept local and counted ",
+      "release": "v0.2",
+      "area": "Y",
+      "wingfoil_min": "0.2.2",
+      "story": "As a member, I want a rejected push (remote moved, no permission) shown as a red toast with git's reason, the commit kept local and counted as ahead, so that I know it is not shared yet",
+      "persona": "a member",
+      "story_kind": "edge",
+      "features": [
+        "Y3",
+        "G4"
+      ],
+      "journeys": "—",
+      "acceptance_criteria": [
+        {
+          "id": "Y-08.1",
+          "title": "Report a push rejected because the remote moved",
+          "file": "docs/02_requirements/02_bdd/features/y/push.feature",
+          "release": "v0.2",
+          "kind": "nominal",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running with the kanban fixture open",
+            "And I am Morgan",
+            "Given the UI setting \"Auto-push\" is on",
+            "And a commit has been pushed to the remote by someone else and not yet fetched",
+            "When I approve \"task-1-login-form\" from the UI",
+            "Then a red toast shows \"Not pushed\" with the rejection printed by git",
+            "And the approval commit stays in the fixture",
+            "And the sidebar shows \"1 ahead\""
+          ]
+        },
+        {
+          "id": "Y-08.2",
+          "title": "Report a push refused for permission",
+          "file": "docs/02_requirements/02_bdd/features/y/push.feature",
+          "release": "v0.2",
+          "kind": "edge",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running with the kanban fixture open",
+            "And I am Morgan",
+            "Given the remote refuses pushes from the credentials available to git",
+            "And the fixture has 1 commit to push",
+            "When I click \"Push\" in the sidebar",
+            "Then a red toast shows \"Not pushed\" with the error printed by git",
+            "And the sidebar shows \"1 commit to push\""
+          ]
+        }
+      ],
+      "dependencies": [
+        "TT-INT-06"
+      ]
+    },
+    {
+      "id": "US-C-07",
+      "kind": "user-story",
+      "title": "Local, per-user settings — auto-fetch, auto-update, auto-push, theme, agent launch confirmation — kept on my machine and",
+      "release": "v0.2",
+      "area": "C",
+      "wingfoil_min": "0.2.2",
+      "story": "As a member, I want local, per-user settings — auto-fetch, auto-update, auto-push, theme, agent launch confirmation — kept on my machine and never committed, so that my preferences do not change the project",
+      "persona": "a member",
+      "story_kind": "nominal",
+      "features": [
+        "C4"
+      ],
+      "journeys": "J8.1",
+      "acceptance_criteria": [
+        {
+          "id": "C-07.1",
+          "title": "Show the settings with their defaults",
+          "file": "docs/02_requirements/02_bdd/features/c/ui-settings.feature",
+          "release": "v0.2",
+          "kind": "nominal",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running with the kanban fixture open",
+            "And I am Morgan",
+            "Given the UI settings have never been changed",
+            "When I open Configuration › UI settings",
+            "Then \"Auto-fetch\" is on, \"Auto-update\" is off, \"Auto-push\" is off, \"Theme\" is \"System\" and \"Confirm agent launch\" is on"
+          ]
+        },
+        {
+          "id": "C-07.2",
+          "title": "Keep a setting across restarts without touching the project",
+          "file": "docs/02_requirements/02_bdd/features/c/ui-settings.feature",
+          "release": "v0.2",
+          "kind": "edge",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running with the kanban fixture open",
+            "And I am Morgan",
+            "Given I set \"Auto-push\" to on",
+            "When I stop the console and run \"npx wingfoil-ui\" again",
+            "Then \"Auto-push\" is on",
+            "And `git status --porcelain` of the kanban fixture prints nothing"
+          ]
+        },
+        {
+          "id": "C-07.3",
+          "title": "Apply a setting change without a restart",
+          "file": "docs/02_requirements/02_bdd/features/c/ui-settings.feature",
+          "release": "v0.2",
+          "kind": "edge",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running with the kanban fixture open",
+            "And I am Morgan",
+            "Given \"Auto-fetch\" is on",
+            "When I set \"Auto-fetch\" to off",
+            "Then within 120 seconds the server runs no `git fetch` process"
+          ]
+        }
+      ],
+      "dependencies": [
+        "TT-ARC-08",
+        "TT-SEC-09",
+        "TT-STATE-09"
+      ]
+    },
+    {
+      "id": "US-C-08",
+      "kind": "user-story",
+      "title": "A How to join panel naming the tech lead and the exact wingfoil dna add team.members … command for my email",
+      "release": "v0.2",
+      "area": "C",
+      "wingfoil_min": "0.2.2",
+      "story": "As Riley, I want a How to join panel naming the tech lead and the exact `wingfoil dna add team.members …` command for my email, so that I know the next step to become a member",
+      "persona": "Riley",
+      "story_kind": "nominal",
+      "features": [
+        "C2"
+      ],
+      "journeys": "J6.3",
+      "acceptance_criteria": [
+        {
+          "id": "C-08.1",
+          "title": "Name the tech leads and give the command",
+          "file": "docs/02_requirements/02_bdd/features/c/how-to-join.feature",
+          "release": "v0.2",
+          "kind": "nominal",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running",
+            "And I am Riley",
+            "Given the kanban fixture is open",
+            "When I open How to join from the \"not in team\" badge",
+            "Then the panel names the tech leads \"Morgan <morgan@example.test>\" and \"Alex <alex@example.test>\"",
+            "And it shows the command `wingfoil dna add team.members --value \"<Your Name>\" --entry-email riley@example.test --entry-roles <roles>`"
+          ]
+        },
+        {
+          "id": "C-08.2",
+          "title": "Copy the command",
+          "file": "docs/02_requirements/02_bdd/features/c/how-to-join.feature",
+          "release": "v0.2",
+          "kind": "edge",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running",
+            "And I am Riley",
+            "Given the How to join panel is open",
+            "When I click \"Copy command\"",
+            "Then the clipboard contains the command shown, with \"riley@example.test\""
+          ]
+        }
+      ],
+      "dependencies": [
+        "TT-SEC-08"
+      ]
+    },
+    {
+      "id": "US-C-09",
+      "kind": "user-story",
+      "title": "How to join to say so and still give the command",
+      "release": "v0.2",
+      "area": "C",
+      "wingfoil_min": "0.2.2",
+      "story": "As Riley, on a project whose DNA declares no tech lead, I want How to join to say so and still give the command, so that I can ask any member to run it",
+      "persona": "Riley",
+      "story_kind": "edge",
+      "features": [
+        "C2"
+      ],
+      "journeys": "—",
+      "acceptance_criteria": [
+        {
+          "id": "C-09.1",
+          "title": "Say that no tech lead is declared",
+          "file": "docs/02_requirements/02_bdd/features/c/how-to-join.feature",
+          "release": "v0.2",
+          "kind": "nominal",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running",
+            "And I am Riley",
+            "Given the kanban fixture is open",
+            "And no member of its DNA holds the role \"tech-lead\"",
+            "When I open How to join",
+            "Then the panel shows \"This project declares no tech lead — ask any member to run the command\"",
+            "And it shows the command with \"riley@example.test\""
+          ]
+        },
+        {
+          "id": "C-09.2",
+          "title": "Explain an empty team",
+          "file": "docs/02_requirements/02_bdd/features/c/how-to-join.feature",
+          "release": "v0.2",
+          "kind": "edge",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running",
+            "And I am Riley",
+            "Given the kanban fixture is open",
+            "And its DNA declares no team member",
+            "When I open How to join",
+            "Then the panel shows \"This project declares no team member — anyone with write access to the repository can run the command\""
+          ]
+        }
+      ],
+      "dependencies": [
+        "TT-SEC-08"
+      ]
+    },
+    {
+      "id": "US-X-07",
+      "kind": "user-story",
+      "title": "Toasts, state changes and blocked actions announced",
+      "release": "v0.2",
+      "area": "X",
+      "wingfoil_min": "0.2.2",
+      "story": "As a member using a screen reader, I want toasts, state changes and blocked actions announced, so that I know the outcome of what I did",
+      "persona": "a member",
+      "story_kind": "edge",
+      "features": [
+        "X1"
+      ],
+      "journeys": "—",
+      "acceptance_criteria": [
+        {
+          "id": "X-07.1",
+          "title": "Announce a toast",
+          "file": "docs/02_requirements/02_bdd/features/x/accessibility.feature",
+          "release": "v0.2",
+          "kind": "nominal",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running with the kanban fixture open",
+            "And I am Morgan",
+            "When I approve \"task-1-login-form\" from the UI",
+            "Then the toast's text is in an ARIA live region with politeness \"polite\""
+          ]
+        },
+        {
+          "id": "X-07.2",
+          "title": "Announce a refusal assertively",
+          "file": "docs/02_requirements/02_bdd/features/x/accessibility.feature",
+          "release": "v0.2",
+          "kind": "edge",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running with the kanban fixture open",
+            "And I am Morgan",
+            "When an action of mine is refused by the CLI",
+            "Then the red toast's text is in an ARIA live region with politeness \"assertive\""
+          ]
+        },
+        {
+          "id": "X-07.3",
+          "title": "Expose the reason of a blocked action",
+          "file": "docs/02_requirements/02_bdd/features/x/accessibility.feature",
+          "release": "v0.2",
+          "kind": "edge",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running with the kanban fixture open",
+            "And I am Morgan",
+            "Given \"task-1-login-form\" has local changes",
+            "When the focus is on the disabled \"Approve → approved\" button",
+            "Then the button's accessible description is \"Blocked: this element has local changes — commit or discard them first\""
+          ]
+        }
+      ],
+      "dependencies": [
+        "TT-ARC-10"
+      ]
+    },
+    {
+      "id": "TT-PERF-01",
+      "kind": "technical-task",
+      "title": "Today first render",
+      "release": "v0.2",
+      "area": "PERF",
+      "wingfoil_min": "0.2.2",
+      "requirement": "REQ-PERF-01",
+      "description": "Today renders its greeting, Requires you and Waiting on others after the user opens a project or navigates to it.",
+      "fit_criterion": "[numeric] Navigation to Today → cards rendered: p95 ≤ 2.0 s with a warm cache; ≤ 5.0 s for the first open after the server starts.",
+      "verified_by": "e2e performance run",
+      "stories": [
+        "US-T-01",
+        "US-T-02"
+      ],
+      "acceptance_criteria": [
+        {
+          "id": "T-01.1",
+          "title": "Open a newly added project on Today",
+          "file": "docs/02_requirements/02_bdd/features/t/requires-you.feature",
+          "release": "v0.2",
+          "kind": "nominal",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running",
+            "Given I am Morgan",
+            "When I add the local folder of the kanban fixture",
+            "Then Today opens with the greeting \"Morgan, 2 things require you\"",
+            "And the greeting shows the role view \"approver\""
+          ]
+        },
+        {
+          "id": "T-02.1",
+          "title": "List the items requiring the approver",
+          "file": "docs/02_requirements/02_bdd/features/t/requires-you.feature",
+          "release": "v0.2",
+          "kind": "nominal",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running",
+            "Given the kanban fixture is open and I am Morgan with the role view \"approver\"",
+            "When I open Today",
+            "Then Requires you lists exactly 2 rows: \"task-1-login-form\" and \"bug-1-crash-on-save\"",
+            "And the row of \"task-1-login-form\" shows the type \"task\", its title, the reason \"pending for 3 days\" and the action \"Approve\""
+          ]
+        }
+      ],
+      "dependencies": [
+        "TT-PERF-05",
+        "TT-ARC-06"
+      ]
+    },
+    {
+      "id": "TT-PERF-02",
+      "kind": "technical-task",
+      "title": "Gate and submit latency",
+      "release": "v0.2",
+      "area": "PERF",
+      "wingfoil_min": "0.2.2",
+      "requirement": "REQ-PERF-02",
+      "description": "From the click on a gate outcome or *Submit* to the result toast, CLI process included, auto-push off.",
+      "fit_criterion": "[numeric] p95 ≤ 3.0 s on the large fixture.",
+      "verified_by": "e2e performance run",
+      "stories": [
+        "US-G-04",
+        "US-G-10",
+        "US-G-13"
+      ],
+      "acceptance_criteria": [
+        {
+          "id": "G-04.1",
+          "title": "Approve a gate in two clicks from Today",
+          "file": "docs/02_requirements/02_bdd/features/g/gate-footer.feature",
+          "release": "v0.2",
+          "kind": "nominal",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running",
+            "Given the kanban fixture is open and I am Morgan",
+            "When I click \"Approve\" on the Requires you row of \"task-1-login-form\"",
+            "And I click \"Approve → approved\" in the panel that opens",
+            "Then the fixture's last commit is \"wf(task): approve task-1-login-form [pending → approved]\"",
+            "And exactly 2 clicks were made since Today was shown"
+          ]
+        },
+        {
+          "id": "G-10.1",
+          "title": "Submit a draft",
+          "file": "docs/02_requirements/02_bdd/features/g/submit.feature",
+          "release": "v0.2",
+          "kind": "nominal",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running with the kanban fixture open",
+            "And I am Jordan",
+            "Given the element panel of \"task-4-session-timeout\" is open",
+            "When I click \"Submit\"",
+            "Then the fixture's last commit is \"wf(task): submit task-4-session-timeout [draft → pending]\"",
+            "And the state machine shows \"pending\" as current"
+          ]
+        },
+        {
+          "id": "G-13.2",
+          "title": "Show the commit without \"pushed\" when auto-push is off",
+          "file": "docs/02_requirements/02_bdd/features/g/action-feedback.feature",
+          "release": "v0.2",
+          "kind": "edge",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running",
+            "Given the kanban fixture is open and I am Morgan",
+            "And the UI setting \"Auto-push\" is off",
+            "When I approve \"task-1-login-form\" with the reason \"OK\"",
+            "Then the toast shows the commit line without \"pushed\"",
+            "And the sidebar shows \"1 commit to push\""
+          ]
+        }
+      ],
+      "dependencies": [
+        "TT-ARC-03"
+      ]
+    },
+    {
+      "id": "TT-PERF-07",
+      "kind": "technical-task",
+      "title": "Remote freshness",
+      "release": "v0.2",
+      "area": "PERF",
+      "wingfoil_min": "0.2.2",
+      "requirement": "REQ-PERF-07",
+      "description": "With auto-fetch on (default interval 60 s), a commit pushed to the remote by someone else appears in the ahead/behind status; with auto-update on, the copy is fast-forwarded.",
+      "fit_criterion": "[numeric] Remote commit → \"1 behind\" (or fast-forward) within 65 s in 10 out of 10 trials; with auto-fetch off, 0 `git fetch` processes in 120 s.",
+      "verified_by": "e2e",
+      "stories": [
+        "US-Y-02",
+        "US-Y-05"
+      ],
+      "acceptance_criteria": [
+        {
+          "id": "Y-02.1",
+          "title": "Fetch automatically",
+          "file": "docs/02_requirements/02_bdd/features/y/fetch.feature",
+          "release": "v0.2",
+          "kind": "nominal",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running with the kanban fixture open",
+            "And I am Morgan",
+            "Given the UI setting \"Auto-fetch\" is on, with its default interval of 60 seconds",
+            "When a commit is pushed to the remote by someone else",
+            "Then within 65 seconds the sidebar shows \"1 behind\""
+          ]
+        },
+        {
+          "id": "Y-05.2",
+          "title": "Update automatically after a fetch",
+          "file": "docs/02_requirements/02_bdd/features/y/update.feature",
+          "release": "v0.2",
+          "kind": "edge",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running with the kanban fixture open",
+            "And I am Morgan",
+            "Given the UI settings \"Auto-fetch\" and \"Auto-update\" are on",
+            "When a commit is pushed to the remote by someone else",
+            "Then within 65 seconds the fixture's HEAD is the remote's commit"
+          ]
+        },
+        {
+          "id": "C-07.3",
+          "title": "Apply a setting change without a restart",
+          "file": "docs/02_requirements/02_bdd/features/c/ui-settings.feature",
+          "release": "v0.2",
+          "kind": "edge",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running with the kanban fixture open",
+            "And I am Morgan",
+            "Given \"Auto-fetch\" is on",
+            "When I set \"Auto-fetch\" to off",
+            "Then within 120 seconds the server runs no `git fetch` process"
+          ]
+        }
+      ],
+      "dependencies": [
+        "TT-INT-06",
+        "TT-STATE-09"
+      ]
+    },
+    {
+      "id": "TT-PERF-09",
+      "kind": "technical-task",
+      "title": "Zero navigation to what requires me",
+      "release": "v0.2",
+      "area": "PERF",
+      "wingfoil_min": "0.2.2",
+      "requirement": "REQ-PERF-09",
+      "description": "Every item whose next move needs one of the role view's roles is listed on Today, which is the landing screen of a project.",
+      "fit_criterion": "[percentage] On each fixture and role view, 100 % of the items the action descriptor assigns to the view's roles are listed on Today, reached with 0 navigation steps after opening the project.",
+      "verified_by": "e2e",
+      "stories": [
+        "US-S-23",
+        "US-T-01",
+        "US-T-02"
+      ],
+      "acceptance_criteria": [
+        {
+          "id": "T-01.1",
+          "title": "Open a newly added project on Today",
+          "file": "docs/02_requirements/02_bdd/features/t/requires-you.feature",
+          "release": "v0.2",
+          "kind": "nominal",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running",
+            "Given I am Morgan",
+            "When I add the local folder of the kanban fixture",
+            "Then Today opens with the greeting \"Morgan, 2 things require you\"",
+            "And the greeting shows the role view \"approver\""
+          ]
+        },
+        {
+          "id": "T-02.1",
+          "title": "List the items requiring the approver",
+          "file": "docs/02_requirements/02_bdd/features/t/requires-you.feature",
+          "release": "v0.2",
+          "kind": "nominal",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running",
+            "Given the kanban fixture is open and I am Morgan with the role view \"approver\"",
+            "When I open Today",
+            "Then Requires you lists exactly 2 rows: \"task-1-login-form\" and \"bug-1-crash-on-save\"",
+            "And the row of \"task-1-login-form\" shows the type \"task\", its title, the reason \"pending for 3 days\" and the action \"Approve\""
+          ]
+        },
+        {
+          "id": "S-23.1",
+          "title": "Summarise what requires each of my roles",
+          "file": "docs/02_requirements/02_bdd/features/s/shell.feature",
+          "release": "v0.2",
+          "kind": "nominal",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running with the kanban fixture open",
+            "Given I am Alex",
+            "When I open Today",
+            "Then the all-roles summary shows \"approver · 2\" with \"task-1-login-form\" and \"bug-1-crash-on-save\"",
+            "And the all-roles summary shows \"developer · 0\"",
+            "And it shows one line for each of the 7 roles Alex holds"
+          ]
+        }
+      ],
+      "dependencies": [
+        "TT-ARC-06"
+      ]
+    },
+    {
+      "id": "TT-PERF-10",
+      "kind": "technical-task",
+      "title": "Two clicks per gate",
+      "release": "v0.2",
+      "area": "PERF",
+      "wingfoil_min": "0.2.2",
+      "requirement": "REQ-PERF-10",
+      "description": "A member holding the gate's role passes or rejects it from Today.",
+      "fit_criterion": "[numeric] ≤ 2 clicks from Today to the `wf(…)` commit with the pre-filled reason.",
+      "verified_by": "e2e click count",
+      "stories": [
+        "US-G-04"
+      ],
+      "acceptance_criteria": [
+        {
+          "id": "G-04.1",
+          "title": "Approve a gate in two clicks from Today",
+          "file": "docs/02_requirements/02_bdd/features/g/gate-footer.feature",
+          "release": "v0.2",
+          "kind": "nominal",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running",
+            "Given the kanban fixture is open and I am Morgan",
+            "When I click \"Approve\" on the Requires you row of \"task-1-login-form\"",
+            "And I click \"Approve → approved\" in the panel that opens",
+            "Then the fixture's last commit is \"wf(task): approve task-1-login-form [pending → approved]\"",
+            "And exactly 2 clicks were made since Today was shown"
+          ]
+        },
+        {
+          "id": "G-04.3",
+          "title": "Open the gate footer with the reason focused",
+          "file": "docs/02_requirements/02_bdd/features/g/gate-footer.feature",
+          "release": "v0.2",
+          "kind": "nominal",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running",
+            "Given the kanban fixture is open and I am Morgan",
+            "When I click \"Approve\" on the Requires you row of \"task-1-login-form\"",
+            "Then the element panel of \"task-1-login-form\" opens with the gate footer",
+            "And the reason field has the keyboard focus"
+          ]
+        },
+        {
+          "id": "X-06.2",
+          "title": "Decide a gate with the keyboard only",
+          "file": "docs/02_requirements/02_bdd/features/x/accessibility.feature",
+          "release": "v0.2",
+          "kind": "edge",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running with the kanban fixture open",
+            "And I am Morgan",
+            "Given Today is shown and no mouse is used",
+            "When I press Tab until \"Approve\" of \"task-1-login-form\" has the focus, press Enter, then press Tab until \"Approve → approved\" has the focus and press Enter",
+            "Then the fixture's last commit is \"wf(task): approve task-1-login-form [pending → approved]\""
+          ]
+        }
+      ],
+      "dependencies": [
+        "TT-ARC-06"
+      ]
+    },
+    {
+      "id": "TT-PERF-11",
+      "kind": "technical-task",
+      "title": "Display limits",
+      "release": "v0.2",
+      "area": "PERF",
+      "wingfoil_min": "0.2.2",
+      "requirement": "REQ-PERF-11",
+      "description": "Lists that summarise show a fixed number of items, newest or most urgent first, with a link to the rest.",
+      "fit_criterion": "[numeric] Bell *Updates*: last 10 Memory events; all-roles summary: ≤ 3 items per role plus \"N more\"; Recent activity: last 5 Memory events.",
+      "verified_by": "e2e",
+      "stories": [
+        "US-S-21",
+        "US-S-23",
+        "US-T-08"
+      ],
+      "acceptance_criteria": [
+        {
+          "id": "S-21.1",
+          "title": "Count the items to unblock",
+          "file": "docs/02_requirements/02_bdd/features/s/shell.feature",
+          "release": "v0.2",
+          "kind": "nominal",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running with the kanban fixture open",
+            "Given I am Morgan with the role view \"approver\"",
+            "When I open Today",
+            "Then the bell shows the count 2",
+            "And the bell panel's \"To unblock\" lists \"task-1-login-form\" and \"bug-1-crash-on-save\"",
+            "And the bell panel's \"Updates\" lists the last 10 Memory events, newest first"
+          ]
+        },
+        {
+          "id": "S-23.4",
+          "title": "Show at most 3 items per role",
+          "file": "docs/02_requirements/02_bdd/features/s/shell.feature",
+          "release": "v0.2",
+          "kind": "edge",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running with the kanban fixture open",
+            "Given 5 elements of the kanban fixture are in the state \"pending\"",
+            "And I am Alex",
+            "When I open Today",
+            "Then the line \"approver · 5\" lists 3 items and the link \"2 more\""
+          ]
+        },
+        {
+          "id": "T-08.1",
+          "title": "Show the last 5 Memory events",
+          "file": "docs/02_requirements/02_bdd/features/t/recent-activity.feature",
+          "release": "v0.3",
+          "kind": "nominal",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running with the kanban fixture open",
+            "And I am Casey",
+            "When I open Today",
+            "Then the \"Recent activity\" card lists 5 events, newest first",
+            "And each event shows the time, the element, the transition \"from → to\" and the author",
+            "And the card ends with the link \"Open the Timeline\""
+          ]
+        }
+      ],
+      "dependencies": [
+        "TT-ARC-06"
+      ]
+    },
+    {
+      "id": "TT-STATE-03",
+      "kind": "technical-task",
+      "title": "Governed actions refused on local changes",
+      "release": "v0.2",
+      "area": "STATE",
+      "wingfoil_min": "0.2.2",
+      "requirement": "REQ-STATE-03",
+      "description": "The server refuses a submit, approve, reject or ingestion step on an element whose file has local changes, with the reason; the UI disables the action. A change to another file does not block.",
+      "fit_criterion": "[percentage] 100 % of governed-action requests on an element with local changes get HTTP 409 and start 0 CLI processes, including requests sent directly to the API.",
+      "verified_by": "e2e · API test",
+      "stories": [
+        "US-G-11"
+      ],
+      "acceptance_criteria": [
+        {
+          "id": "G-11.1",
+          "title": "Block a gate on an element with local changes",
+          "file": "docs/02_requirements/02_bdd/features/g/blocked-actions.feature",
+          "release": "v0.2",
+          "kind": "nominal",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running with the kanban fixture open",
+            "And I am Morgan",
+            "Given the file of \"task-1-login-form\" has an uncommitted edit",
+            "When I open the gate footer of \"task-1-login-form\"",
+            "Then \"Approve → approved\" and \"Reject → draft\" are disabled",
+            "And the footer shows \"Blocked: this element has local changes — commit or discard them first\""
+          ]
+        },
+        {
+          "id": "G-11.2",
+          "title": "Block a submit on an element with local changes",
+          "file": "docs/02_requirements/02_bdd/features/g/blocked-actions.feature",
+          "release": "v0.2",
+          "kind": "edge",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running with the kanban fixture open",
+            "And I am Morgan",
+            "Given I am Jordan",
+            "And the file of \"task-4-session-timeout\" has an uncommitted edit",
+            "When I open the element panel of \"task-4-session-timeout\"",
+            "Then \"Submit\" is disabled with \"Blocked: this element has local changes — commit or discard them first\""
+          ]
+        },
+        {
+          "id": "G-11.3",
+          "title": "Do not block an element when only another file has local changes",
+          "file": "docs/02_requirements/02_bdd/features/g/blocked-actions.feature",
+          "release": "v0.2",
+          "kind": "edge",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running with the kanban fixture open",
+            "And I am Morgan",
+            "Given the file \"README.md\" has an uncommitted edit",
+            "When I open the gate footer of \"task-1-login-form\"",
+            "Then \"Approve → approved\" is enabled"
+          ]
+        },
+        {
+          "id": "X-07.3",
+          "title": "Expose the reason of a blocked action",
+          "file": "docs/02_requirements/02_bdd/features/x/accessibility.feature",
+          "release": "v0.2",
+          "kind": "edge",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running with the kanban fixture open",
+            "And I am Morgan",
+            "Given \"task-1-login-form\" has local changes",
+            "When the focus is on the disabled \"Approve → approved\" button",
+            "Then the button's accessible description is \"Blocked: this element has local changes — commit or discard them first\""
+          ]
+        }
+      ],
+      "dependencies": [
+        "TT-STATE-01",
+        "TT-ARC-03"
+      ]
+    },
+    {
+      "id": "TT-STATE-04",
+      "kind": "technical-task",
+      "title": "Governed actions refused on a stale or ambiguous copy",
+      "release": "v0.2",
+      "area": "STATE",
+      "wingfoil_min": "0.2.2",
+      "requirement": "REQ-STATE-04",
+      "description": "Governed actions and `ui.yaml` writes are refused while the copy is behind its fetched remote, has diverged from it, or has a detached HEAD; being only ahead does not block. *Update* is a fast-forward only.",
+      "fit_criterion": "[percentage] 100 % of governed-action and `ui.yaml` write requests in those states get HTTP 409; after a successful fast-forward the same requests succeed.",
+      "verified_by": "e2e · API test",
+      "stories": [
+        "US-C-02",
+        "US-G-12",
+        "US-G-15",
+        "US-Y-01",
+        "US-Y-05",
+        "US-Y-06"
+      ],
+      "acceptance_criteria": [
+        {
+          "id": "G-12.1",
+          "title": "Block governed actions while behind",
+          "file": "docs/02_requirements/02_bdd/features/g/blocked-actions.feature",
+          "release": "v0.2",
+          "kind": "nominal",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running with the kanban fixture open",
+            "And I am Morgan",
+            "Given the remote has 1 commit that the fixture does not have, and it has been fetched",
+            "When I open the gate footer of \"task-1-login-form\"",
+            "Then \"Approve → approved\" and \"Reject → draft\" are disabled",
+            "And the footer shows \"Blocked: your copy is 1 commit behind the remote — Update\""
+          ]
+        },
+        {
+          "id": "G-12.2",
+          "title": "Unblock after the update",
+          "file": "docs/02_requirements/02_bdd/features/g/blocked-actions.feature",
+          "release": "v0.2",
+          "kind": "edge",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running with the kanban fixture open",
+            "And I am Morgan",
+            "Given the footer of \"task-1-login-form\" shows \"Blocked: your copy is 1 commit behind the remote — Update\"",
+            "When I click \"Update\" in that message",
+            "Then the fixture is at the remote's commit",
+            "And \"Approve → approved\" is enabled"
+          ]
+        },
+        {
+          "id": "G-12.3",
+          "title": "Do not block when the copy is only ahead",
+          "file": "docs/02_requirements/02_bdd/features/g/blocked-actions.feature",
+          "release": "v0.2",
+          "kind": "edge",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running with the kanban fixture open",
+            "And I am Morgan",
+            "Given the fixture has 1 commit that the remote does not have, and none the other way",
+            "When I open the gate footer of \"task-1-login-form\"",
+            "Then \"Approve → approved\" is enabled"
+          ]
+        },
+        {
+          "id": "Y-05.1",
+          "title": "Update a copy that is behind",
+          "file": "docs/02_requirements/02_bdd/features/y/update.feature",
+          "release": "v0.2",
+          "kind": "nominal",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running with the kanban fixture open",
+            "And I am Morgan",
+            "Given the fixture is 2 commits behind its fetched remote and has no commit of its own",
+            "When I click \"Update\" in the sidebar",
+            "Then the fixture's HEAD is the remote's commit",
+            "And the sidebar shows \"In sync with git\""
+          ]
+        },
+        {
+          "id": "Y-06.1",
+          "title": "Refuse to merge diverged histories",
+          "file": "docs/02_requirements/02_bdd/features/y/update.feature",
+          "release": "v0.2",
+          "kind": "nominal",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running with the kanban fixture open",
+            "And I am Morgan",
+            "Given the fixture has 1 commit of its own and is 1 commit behind its fetched remote",
+            "When I click \"Update\" in the sidebar",
+            "Then the fixture's HEAD is unchanged",
+            "And the sidebar shows \"Cannot fast-forward: your copy and the remote have diverged — run git pull --rebase or git merge in a terminal\"",
+            "And governed actions stay blocked"
+          ]
+        },
+        {
+          "id": "Y-06.2",
+          "title": "Refuse an update that local changes are in the way of",
+          "file": "docs/02_requirements/02_bdd/features/y/update.feature",
+          "release": "v0.2",
+          "kind": "edge",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running with the kanban fixture open",
+            "And I am Morgan",
+            "Given the fixture is 1 commit behind, and that commit changes \"docs/memory/task/task-1-login-form.md\"",
+            "And \"docs/memory/task/task-1-login-form.md\" has an uncommitted edit",
+            "When I click \"Update\" in the sidebar",
+            "Then the fixture's HEAD is unchanged and the uncommitted edit is kept",
+            "And the sidebar shows \"Cannot fast-forward: local changes to task-1-login-form.md are in the way — commit or stash them in a terminal\""
+          ]
+        },
+        {
+          "id": "Y-01.3",
+          "title": "Show a detached HEAD",
+          "file": "docs/02_requirements/02_bdd/features/y/repository-status.feature",
+          "release": "v0.2",
+          "kind": "edge",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running with the kanban fixture open",
+            "And I am Morgan",
+            "Given the fixture's HEAD is detached at a commit of \"main\"",
+            "When I look at the sidebar",
+            "Then the git status shows \"Detached HEAD\" with the short hash",
+            "And governed actions are blocked with \"Blocked: no branch checked out\""
+          ]
+        },
+        {
+          "id": "G-15.4",
+          "title": "Block the ingestion while the copy is behind",
+          "file": "docs/02_requirements/02_bdd/features/g/ingestion.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running",
+            "And I am Jordan",
+            "Given the custom fixture is 1 commit behind its fetched remote",
+            "When I open the ingestion modal of \"decision-log-ingest\"",
+            "Then \"Submit\" is disabled with \"Blocked: your copy is 1 commit behind the remote — Update\""
+          ]
+        },
+        {
+          "id": "C-02.4",
+          "title": "Block the preset while the copy is behind",
+          "file": "docs/02_requirements/02_bdd/features/c/ui-yaml.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running",
+            "Given the kanban fixture is open and I am Morgan",
+            "And the fixture is 1 commit behind its fetched remote",
+            "When I open Configuration › Taxonomy",
+            "Then \"Use preset\" is disabled with \"Blocked: your copy is 1 commit behind the remote — Update\""
+          ]
+        }
+      ],
+      "dependencies": [
+        "TT-INT-06",
+        "TT-ARC-03"
+      ]
+    },
+    {
+      "id": "TT-STATE-09",
+      "kind": "technical-task",
+      "title": "UI settings defaults",
+      "release": "v0.2",
+      "area": "STATE",
+      "wingfoil_min": "0.2.2",
+      "requirement": "REQ-STATE-09",
+      "description": "Local per-user settings with defaults: auto-fetch on (every 60 s), auto-update off, auto-push off, theme *System*, confirm agent launch on; a change applies without a restart.",
+      "fit_criterion": "[boolean] A first start shows exactly these defaults; changing one takes effect within 120 s without a restart.",
+      "verified_by": "e2e",
+      "stories": [
+        "US-C-07",
+        "US-Y-07"
+      ],
+      "acceptance_criteria": [
+        {
+          "id": "C-07.1",
+          "title": "Show the settings with their defaults",
+          "file": "docs/02_requirements/02_bdd/features/c/ui-settings.feature",
+          "release": "v0.2",
+          "kind": "nominal",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running with the kanban fixture open",
+            "And I am Morgan",
+            "Given the UI settings have never been changed",
+            "When I open Configuration › UI settings",
+            "Then \"Auto-fetch\" is on, \"Auto-update\" is off, \"Auto-push\" is off, \"Theme\" is \"System\" and \"Confirm agent launch\" is on"
+          ]
+        },
+        {
+          "id": "C-07.3",
+          "title": "Apply a setting change without a restart",
+          "file": "docs/02_requirements/02_bdd/features/c/ui-settings.feature",
+          "release": "v0.2",
+          "kind": "edge",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running with the kanban fixture open",
+            "And I am Morgan",
+            "Given \"Auto-fetch\" is on",
+            "When I set \"Auto-fetch\" to off",
+            "Then within 120 seconds the server runs no `git fetch` process"
+          ]
+        },
+        {
+          "id": "Y-07.2",
+          "title": "Keep auto-push off by default",
+          "file": "docs/02_requirements/02_bdd/features/y/push.feature",
+          "release": "v0.2",
+          "kind": "edge",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running with the kanban fixture open",
+            "And I am Morgan",
+            "Given the UI settings have never been changed",
+            "When I approve \"task-1-login-form\" from the UI",
+            "Then the remote's branch does not contain the approval commit",
+            "And the sidebar shows \"1 commit to push\" with the \"Push\" button"
+          ]
+        }
+      ],
+      "dependencies": [
+        "TT-ARC-08"
+      ]
+    },
+    {
+      "id": "TT-SEC-07",
+      "kind": "technical-task",
+      "title": "Gate authority stays with WingFoil",
+      "release": "v0.2",
+      "area": "SEC",
+      "wingfoil_min": "0.2.2",
+      "requirement": "REQ-SEC-07",
+      "description": "The UI offers a gate's outcomes only to members holding the role WingFoil requires (0.2.2: `approver`, W-13); other members see the gate as informational with the members who can act. The UI defines no permissions of its own; action permissions are shown once WingFoil implements them (L6, request R-09).",
+      "fit_criterion": "[boolean] On the fixtures with Sam and Casey with and without `approver`, the outcomes are offered if and only if the member holds `approver`; `ui.yaml` and the server configuration contain 0 permission rules.",
+      "verified_by": "e2e",
+      "stories": [
+        "US-G-08",
+        "US-G-09",
+        "US-S-11",
+        "US-T-06"
+      ],
+      "acceptance_criteria": [
+        {
+          "id": "T-06.1",
+          "title": "Show a gate as informational to a reviewer without approver",
+          "file": "docs/02_requirements/02_bdd/features/t/requires-you.feature",
+          "release": "v0.2",
+          "kind": "nominal",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running",
+            "Given the custom fixture is open",
+            "And the DNA gives Sam the roles reviewer",
+            "And I am Sam",
+            "When I open Today",
+            "Then Requires you does not list \"task-1-cli-adapter\"",
+            "And Waiting on others lists \"task-1-cli-adapter\" with \"Reserved to approver — Morgan, Alex\""
+          ]
+        },
+        {
+          "id": "T-06.2",
+          "title": "Show the same gate as informational to a product owner without approver",
+          "file": "docs/02_requirements/02_bdd/features/t/requires-you.feature",
+          "release": "v0.2",
+          "kind": "edge",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running",
+            "Given the custom fixture is open",
+            "And the DNA gives Casey the roles product-owner",
+            "And I am Casey",
+            "When I open Today",
+            "Then Waiting on others lists \"dl-002-use-fastify\" with \"Reserved to approver — Morgan, Alex\""
+          ]
+        },
+        {
+          "id": "G-09.1",
+          "title": "Show an informational footer to a reviewer without approver",
+          "file": "docs/02_requirements/02_bdd/features/g/gate-footer.feature",
+          "release": "v0.2",
+          "kind": "nominal",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running",
+            "Given the custom fixture is open",
+            "And the DNA gives Sam the roles reviewer",
+            "And I am Sam",
+            "When I open the element panel of \"task-1-cli-adapter\"",
+            "Then the footer shows \"Reserved to approver — Morgan, Alex can act\"",
+            "And the footer shows no outcome button"
+          ]
+        },
+        {
+          "id": "G-09.2",
+          "title": "Show the outcomes to the same reviewer once they hold approver",
+          "file": "docs/02_requirements/02_bdd/features/g/gate-footer.feature",
+          "release": "v0.2",
+          "kind": "edge",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running",
+            "Given the custom fixture is open",
+            "And the DNA gives Sam the roles reviewer, approver",
+            "And I am Sam",
+            "When I open the element panel of \"task-1-cli-adapter\"",
+            "Then the footer shows the buttons \"Approve → approved\" and \"Reject → in-progress\""
+          ]
+        },
+        {
+          "id": "G-09.3",
+          "title": "Show an informational footer to a product owner without approver",
+          "file": "docs/02_requirements/02_bdd/features/g/gate-footer.feature",
+          "release": "v0.2",
+          "kind": "edge",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running",
+            "Given the custom fixture is open",
+            "And the DNA gives Casey the roles product-owner",
+            "And I am Casey",
+            "When I open the element panel of \"dl-002-use-fastify\"",
+            "Then the footer shows \"Reserved to approver — Morgan, Alex can act\""
+          ]
+        },
+        {
+          "id": "G-08.1",
+          "title": "Approve a decision-log as a product owner holding approver",
+          "file": "docs/02_requirements/02_bdd/features/g/decision-log.feature",
+          "release": "v0.3",
+          "kind": "nominal",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running with the custom fixture open",
+            "Given the DNA gives Casey the roles product-owner, approver",
+            "And I am Casey",
+            "When I approve \"dl-002-use-fastify\" from its panel with the reason \"Agreed in the planning meeting\"",
+            "Then the fixture's last commit is \"wf(decision-log): approve dl-002-use-fastify [in-discussion → ready]\""
+          ]
+        },
+        {
+          "id": "G-08.3",
+          "title": "Keep the decision informational for a product owner without approver",
+          "file": "docs/02_requirements/02_bdd/features/g/decision-log.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running with the custom fixture open",
+            "Given the DNA gives Casey the roles product-owner",
+            "And I am Casey",
+            "When I open the element panel of \"dl-002-use-fastify\"",
+            "Then the footer shows \"Reserved to approver — Morgan, Alex can act\""
+          ]
+        },
+        {
+          "id": "S-11.1",
+          "title": "Show a capability my role lacks as read-only with the reason",
+          "file": "docs/02_requirements/02_bdd/features/s/capabilities.feature",
+          "release": "v0.2",
+          "kind": "nominal",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running",
+            "And I am Alex",
+            "Given I am Jordan",
+            "When I open the element panel of \"dl-002-use-fastify\"",
+            "Then the gate footer is replaced by \"Reserved to approver — Morgan, Alex can act\""
+          ]
+        }
+      ],
+      "dependencies": [
+        "TT-ARC-06"
+      ]
+    },
+    {
+      "id": "TT-SEC-08",
+      "kind": "technical-task",
+      "title": "Read-only for unidentified users, enforced by the server",
+      "release": "v0.2",
+      "area": "SEC",
+      "wingfoil_min": "0.2.2",
+      "requirement": "REQ-SEC-08",
+      "description": "Users not in the team, with no git email or with an ambiguous one get no write action in the UI, and the server refuses their write requests; *How to join* names the tech leads (or says none is declared) and gives the exact `wingfoil dna add team.members …` command.",
+      "fit_criterion": "[percentage] 100 % of write requests from such users get HTTP 403 and start 0 processes; every listed scenario passes.",
+      "verified_by": "e2e · API test",
+      "stories": [
+        "US-C-02",
+        "US-C-08",
+        "US-C-09",
+        "US-S-13",
+        "US-S-15",
+        "US-T-01"
+      ],
+      "acceptance_criteria": [
+        {
+          "id": "S-13.2",
+          "title": "Offer no governed action to a user who is not in the team",
+          "file": "docs/02_requirements/02_bdd/features/s/identity.feature",
+          "release": "v0.2",
+          "kind": "edge",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running with the kanban fixture added",
+            "Given I am Riley",
+            "When I open the element panel of \"task-1-login-form\"",
+            "Then the panel shows no action footer",
+            "And the panel shows \"Read-only: riley@example.test is not in the team — How to join\""
+          ]
+        },
+        {
+          "id": "S-15.2",
+          "title": "Offer no governed action under an ambiguous identity",
+          "file": "docs/02_requirements/02_bdd/features/s/identity.feature",
+          "release": "v0.2",
+          "kind": "edge",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running with the kanban fixture added",
+            "Given the fixture's `git config user.email` matches the members \"Jordan\" and \"Sam\"",
+            "When I open the element panel of \"task-1-login-form\"",
+            "Then the panel shows no action footer"
+          ]
+        },
+        {
+          "id": "T-01.2",
+          "title": "Open on Today read-only for a user who is not in the team",
+          "file": "docs/02_requirements/02_bdd/features/t/requires-you.feature",
+          "release": "v0.2",
+          "kind": "edge",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running",
+            "Given I am Riley",
+            "When I add the local folder of the kanban fixture",
+            "Then Today opens without the Requires you card",
+            "And Today shows \"You are not in this project's team — How to join\""
+          ]
+        },
+        {
+          "id": "C-08.1",
+          "title": "Name the tech leads and give the command",
+          "file": "docs/02_requirements/02_bdd/features/c/how-to-join.feature",
+          "release": "v0.2",
+          "kind": "nominal",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running",
+            "And I am Riley",
+            "Given the kanban fixture is open",
+            "When I open How to join from the \"not in team\" badge",
+            "Then the panel names the tech leads \"Morgan <morgan@example.test>\" and \"Alex <alex@example.test>\"",
+            "And it shows the command `wingfoil dna add team.members --value \"<Your Name>\" --entry-email riley@example.test --entry-roles <roles>`"
+          ]
+        },
+        {
+          "id": "C-08.2",
+          "title": "Copy the command",
+          "file": "docs/02_requirements/02_bdd/features/c/how-to-join.feature",
+          "release": "v0.2",
+          "kind": "edge",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running",
+            "And I am Riley",
+            "Given the How to join panel is open",
+            "When I click \"Copy command\"",
+            "Then the clipboard contains the command shown, with \"riley@example.test\""
+          ]
+        },
+        {
+          "id": "C-09.1",
+          "title": "Say that no tech lead is declared",
+          "file": "docs/02_requirements/02_bdd/features/c/how-to-join.feature",
+          "release": "v0.2",
+          "kind": "nominal",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running",
+            "And I am Riley",
+            "Given the kanban fixture is open",
+            "And no member of its DNA holds the role \"tech-lead\"",
+            "When I open How to join",
+            "Then the panel shows \"This project declares no tech lead — ask any member to run the command\"",
+            "And it shows the command with \"riley@example.test\""
+          ]
+        },
+        {
+          "id": "C-09.2",
+          "title": "Explain an empty team",
+          "file": "docs/02_requirements/02_bdd/features/c/how-to-join.feature",
+          "release": "v0.2",
+          "kind": "edge",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running",
+            "And I am Riley",
+            "Given the kanban fixture is open",
+            "And its DNA declares no team member",
+            "When I open How to join",
+            "Then the panel shows \"This project declares no team member — anyone with write access to the repository can run the command\""
+          ]
+        },
+        {
+          "id": "C-02.5",
+          "title": "Offer no preset to a user who is not in the team",
+          "file": "docs/02_requirements/02_bdd/features/c/ui-yaml.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running",
+            "Given the kanban fixture is open and I am Riley",
+            "When I open Configuration › Taxonomy",
+            "Then \"Use preset\" is not shown"
+          ]
+        }
+      ],
+      "dependencies": [
+        "TT-STATE-05"
+      ]
+    },
+    {
+      "id": "TT-SEC-10",
+      "kind": "technical-task",
+      "title": "Dogfooding",
+      "release": "v0.2",
+      "area": "SEC",
+      "wingfoil_min": "0.2.2",
+      "requirement": "REQ-SEC-10",
+      "description": "From v0.2 the gates of the WingFoil UI repository are passed from the UI; from v0.3 those of the WingFoil repository too.",
+      "fit_criterion": "[percentage] Between the v0.2 and the v0.3 releases, ≥ 80 % of the approve/reject commits of this repository have their hash in the server's local action log (the list of commits the UI caused: hash and time, no other data); the same from v0.3 for the WingFoil repository.",
+      "verified_by": "retrospective (`wf(…)` history)",
+      "stories": [
+        "US-G-04",
+        "US-G-05"
+      ],
+      "acceptance_criteria": [
+        {
+          "id": "G-04.1",
+          "title": "Approve a gate in two clicks from Today",
+          "file": "docs/02_requirements/02_bdd/features/g/gate-footer.feature",
+          "release": "v0.2",
+          "kind": "nominal",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running",
+            "Given the kanban fixture is open and I am Morgan",
+            "When I click \"Approve\" on the Requires you row of \"task-1-login-form\"",
+            "And I click \"Approve → approved\" in the panel that opens",
+            "Then the fixture's last commit is \"wf(task): approve task-1-login-form [pending → approved]\"",
+            "And exactly 2 clicks were made since Today was shown"
+          ]
+        }
+      ],
+      "dependencies": [
+        "TT-ARC-03"
+      ]
+    }
+  ]
+}

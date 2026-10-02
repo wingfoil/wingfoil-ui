@@ -90,7 +90,7 @@ Shell and conventions: `00_sard.md`.
 | Release | v0.1 |
 | Description | The UI supports the two latest stable major versions of Chrome, Edge, Firefox and Safari on desktop; the e2e suite runs on the Chromium, Firefox and WebKit engines. |
 | Rationale | Users open the console in their own browser; three engines cover the four browsers. |
-| Traceability | e2e-smoke `drive-browser` · X1 |
+| Traceability | S-01.1, S-28.1, G-04.1, X-06.4 (run on each engine, with the rest of the release's scenarios) · e2e-smoke `drive-browser` · X1 |
 | Fit criterion | [percentage] 100 % of the release's e2e scenarios pass on each of the three engines. |
 | Verified by | e2e-smoke `drive-browser` |
 

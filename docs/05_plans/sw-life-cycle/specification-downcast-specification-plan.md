@@ -195,3 +195,18 @@ Coherence audit checks (step 6):
   (commit hash and time only), ≥ 80 % of approve/reject commits.
 - Stop-check: every REQ has a numeric, percentage or boolean fit criterion ✓; every cited story
   and scenario exists ✓ (`check_sard.py`).
+
+### Session 5 — Backlog export (2026-10-02)
+
+- Outputs: `docs/03_backlog/00_backlog.md`, `04_backlog/backlog.json` (110 user stories + 50
+  technical tasks, 221 dependency links), `04_backlog/schema.json`, `04_backlog/by-release/`
+  (v0.1 72, v0.2 46, v0.3 27, v0.4 13, v1.0 2 records); generator `X_tools/build_backlog.py`
+  (deterministic) and stop-check `X_tools/check_backlog.py` — accepted after review.
+- Decisions: a story depends on the technical tasks tracing it when not later than its release;
+  technical-task order is an explicit table (`TT_DEPS`); 34 of 50 technical tasks in v0.1
+  (sequencer rule 7) — to be weighed by v0.1 `release-planning`; Memory tasks are created from the
+  partitions by `release-planning`, `ref:` = backlog id; the JSON files are generated, never edited.
+- SARD fix: REQ-INT-08 now traces S-01.1, S-28.1, G-04.1, X-06.4 (its task had no acceptance
+  criteria).
+- Stop-check: valid JSON against the schema ✓; no duplicate ids ✓; no circular dependencies ✓;
+  every story and requirement in exactly one partition ✓ (`check_backlog.py`).
