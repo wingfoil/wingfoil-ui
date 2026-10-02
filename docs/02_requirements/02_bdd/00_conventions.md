@@ -1,7 +1,7 @@
 # BDD Scenarios — Conventions
 
-**Version:** 0.3
-**Date:** 2026-10-02 (0.2: v0.3–v1.0 conventions — session 3; 0.3: coherence audit fixes — session 6)
+**Version:** 0.4
+**Date:** 2026-10-02 (0.2: v0.3–v1.0 conventions — session 3; 0.3: coherence audit fixes — session 6; 0.4: US-X-10 page title — initial-design session 2)
 **Status:** Draft — specification-downcast sessions 2–3 (`specification-by-examples`)
 **Input:** `../01_user_story_map/02_story-map.md` · `03_mvp-cut.md` · `docs/01_vision/` ·
 directives `wingfoil-cli` (v1.1), `cli-only-writes` (v1.3), `accessibility`
@@ -178,4 +178,5 @@ nominal and ≥ 1 edge scenario per story of the releases in scope).
 | 2 | v0.1, v0.2 | 72 | 189 | 77 | 112 |
 | 3 | v0.3, v0.4, v1.0 | 38 | 103 | 39 | 64 |
 | 6 (audit) | v0.2 | — | +2 (G-06.4, S-24.4) | 0 | +2 |
-| **Total** | v0.1 → v1.0 | **110** | **294** | **116** | **178** |
+| initial-design 2 | v0.1 (+ v0.3, v0.4 variants) | +1 (US-X-10) | +5 (X-10.1 … X-10.5) | +1 | +4 |
+| **Total** | v0.1 → v1.0 | **111** | **299** | **117** | **182** |

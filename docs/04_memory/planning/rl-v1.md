@@ -25,8 +25,8 @@ by `docs/01_vision/07_sequencer.md` (v0.5):
 | v0.4 | A — Workflow and agents | 0.3 | next step, agent launch and logs, all ingestions (3 + 3 upgrades) |
 | v1.0 | X — MVP complete | 1.0 | `npx wingfoil-ui` stable, support matrix, polish (no new features) |
 
-Requirements: the user story map, BDD scenarios and SARD of `docs/02_requirements/` (110 MVP
-stories, 294 scenarios, 50 `REQ-*`); backlog partitions in `docs/03_backlog/04_backlog/by-release/`.
+Requirements: the user story map, BDD scenarios and SARD of `docs/02_requirements/` (111 MVP
+stories, 299 scenarios, 50 `REQ-*`); backlog partitions in `docs/03_backlog/04_backlog/by-release/`.
 
 Out of scope: L1–L10 of `06_features.md` (editing content, DNA, directives, workflows and files;
 artifacts; external notifications; core-enforced permissions; core settings; second language;

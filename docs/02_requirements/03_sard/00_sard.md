@@ -1,7 +1,7 @@
 # SARD — WingFoil UI
 
-**Version:** 0.2
-**Date:** 2026-10-02 (0.2: coherence audit fixes — session 6)
+**Version:** 0.3
+**Date:** 2026-10-02 (0.2: coherence audit fixes — session 6; 0.3: page title in REQ-ARC-10 — initial-design session 2)
 **Status:** Draft — specification-downcast session 4 (`volere-requirements`)
 **Input:** `../02_bdd/` (scenarios and conventions) · `../01_user_story_map/` ·
 `docs/01_vision/` (`02_product-vision.md` v0.3, `06_features.md` v0.5, `08_mvp-canvas.md` v0.3) ·

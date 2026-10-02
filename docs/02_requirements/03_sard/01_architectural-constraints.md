@@ -1,6 +1,6 @@
 # SARD — 1. Architectural Constraints
 
-**Version:** 0.2 · **Date:** 2026-10-02 (0.2: coherence audit fixes — session 6) · **Status:** Draft — specification-downcast session 4
+**Version:** 0.3 · **Date:** 2026-10-02 (0.2: coherence audit fixes — session 6; 0.3: page title, REQ-ARC-10 — initial-design session 2) · **Status:** Draft — specification-downcast session 4
 
 Shell and conventions: `00_sard.md`.
 
@@ -110,10 +110,10 @@ Shell and conventions: `00_sard.md`.
 | Field | |
 |-------|--|
 | Release | v0.1 |
-| Description | Every MVP screen meets WCAG 2.1 AA: keyboard operation with a visible focus, outcomes announced to screen readers, the reason of a blocked action exposed as its accessible description, text alternatives for images. |
+| Description | Every MVP screen meets WCAG 2.1 AA: keyboard operation with a visible focus, outcomes announced to screen readers, the reason of a blocked action exposed as its accessible description, text alternatives for images, a page title naming the project, its state and the current view or element (SC 2.4.2). |
 | Rationale | Q10, directive `accessibility`; MVP canvas metric *Accessibility*. |
-| Traceability | US-X-06, US-X-07, US-T-14, US-X-01, US-G-04 · X-06.1, X-06.2, X-06.3, X-06.4, X-07.1, X-07.2, X-07.3, T-14.2, X-01.3 · X1 |
-| Fit criterion | [numeric] axe-core reports 0 violations of impact serious or critical on every screen of the release in both themes; focus indicators have a contrast ratio ≥ 3:1; every gate action is completed with the keyboard alone; scenarios X-07.1, X-07.2, X-07.3 (live regions, accessible descriptions) pass. |
+| Traceability | US-X-06, US-X-07, US-X-10, US-T-14, US-X-01, US-G-04 · X-06.1, X-06.2, X-06.3, X-06.4, X-07.1, X-07.2, X-07.3, X-10.1, X-10.2, X-10.3, X-10.4, X-10.5, T-14.2, X-01.3 · X1 |
+| Fit criterion | [numeric] axe-core reports 0 violations of impact serious or critical on every screen of the release in both themes; focus indicators have a contrast ratio ≥ 3:1; every gate action is completed with the keyboard alone; scenarios X-07.1, X-07.2, X-07.3 (live regions, accessible descriptions) and X-10.1 … X-10.5 (page title) pass. |
 | Verified by | e2e-smoke `accessibility` |
 
 ### REQ-ARC-11 — Light and dark themes

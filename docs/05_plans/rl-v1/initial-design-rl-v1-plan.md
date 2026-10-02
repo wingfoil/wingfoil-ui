@@ -123,3 +123,31 @@ file's TODO is resolved in the same session (the check's meaning written in its 
     presets in the future;
   - `wingfoil-cli` directive v1.2 with W-14…W-16;
   - v0.1's load (34 of 50 technical tasks) weighed by v0.1 `release-planning`, not here.
+
+### Session 2 — Release roadmap (2026-10-02)
+
+- Outputs: five `release` elements in `draft` under `docs/04_memory/planning/v1/` (W-07) —
+  `minor-v0.1` *Read-only console* (S, 0.2.2, 16 features), `minor-v0.2` *Unblock* (G, 0.2.2, 13),
+  `minor-v0.3` *Project state* (R, 0.2.2, 12), `minor-v0.4` *Workflow and agents* (A, 0.3, 3),
+  `minor-v1.0` *MVP complete* (X, 1.0, none); Scope, Pillar Focus, Success Criteria (sequencer exit
+  criteria + bars common to every release: `@vX.Y` scenarios, prototype parity, axe, contract tests
+  from `wingfoil_min`, commit classes); stop-check `docs/03_backlog/X_tools/check_releases.py` —
+  accepted after review.
+- Decisions:
+  - `features` lists only the features a release introduces (each MVP feature once); v0.4's
+    capability upgrades (T2 phases, W1 position, G5 via `workflow start`) are in its Scope;
+    v1.0 keeps `features: []` — whether `submit` accepts an empty required list is checked at its
+    `release-planning`;
+  - v0.3 adds the WingFoil-repository dogfooding (canvas, REQ-SEC-10) to the sequencer's exit
+    criteria; a v0.4 criterion on 0.2.2 fall-back was dropped as already covered by the `@v0.4`
+    scenarios (e.g. T-10.1, T-10.2);
+  - **new requirement — page title** (user request): the browser tab title is
+    `<project> · <state> · <view or element> — WingFoil UI`, `<state>` = the current phase when
+    WingFoil reports it (0.3), otherwise the project completion (v0.3), omitted before; no project
+    open → `Projects — WingFoil UI`. Story US-X-10 (X1, v0.1, WCAG 2.4.2), scenarios X-10.1 …
+    X-10.5 (`x/accessibility.feature`), traced in REQ-ARC-10.
+- Requirements changed (no Vision Package change): story map `02` v0.5, `03` v0.5; BDD conventions
+  v0.4 (299 scenarios); SARD v0.3 (`01` v0.3); backlog rebuilt (161 items, 238 links; doc v0.3);
+  requirements index v1.1; `rl-v1` Scope counts updated (111 stories, 299 scenarios).
+- Stop-check: `check_releases.py` — 5 releases, 44 / 44 MVP features, OK; `check_usm.py`,
+  `check_bdd.py`, `check_sard.py`, `check_backlog.py` ✓; `directives list` → no warnings.

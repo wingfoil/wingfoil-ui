@@ -51,3 +51,36 @@ Feature: Accessibility
     Given "task-001-login-form" has local changes
     When the focus is on the disabled "Approve → approved" button
     Then the button's accessible description is "Blocked: this element has local changes — commit or discard them first"
+
+  # --- US-X-10 — page title ---
+  # Format: "<project> · <state> · <view or element> — WingFoil UI" (WCAG 2.1 SC 2.4.2). <project> is
+  # `dna.project.name`; <state> is the current phase when WingFoil reports it (0.3), otherwise the
+  # project completion of the progress card (v0.3), and is omitted while neither exists (v0.1–v0.2).
+
+  @US-X-10 @v0.1 @nominal @fx-kanban
+  Scenario: X-10.1 — Name the project and the view in the tab title
+    When I open the Memory list
+    Then the browser tab title is "kanban · Memory — WingFoil UI"
+
+  @US-X-10 @v0.1 @edge @fx-kanban
+  Scenario: X-10.2 — Name the open element in the tab title
+    When I open the element panel of "task-001-login-form"
+    Then the browser tab title is "kanban · task-001-login-form — WingFoil UI"
+
+  @US-X-10 @v0.1 @edge @fx-kanban
+  Scenario: X-10.3 — Title the project list when no project is open
+    When I go back to the project list
+    Then the browser tab title is "Projects — WingFoil UI"
+
+  @US-X-10 @v0.3 @edge @fx-kanban
+  Scenario: X-10.4 — Show the project completion in the tab title
+    Given the progress card shows a project completion of 40 %
+    When I open Today
+    Then the browser tab title is "kanban · 40 % · Today — WingFoil UI"
+
+  @US-X-10 @v0.4 @edge @fx-custom
+  Scenario: X-10.5 — Show the current phase in the tab title
+    Given the custom fixture with the sw-life-cycle preset is open on WingFoil 0.3
+    And the workflow engine reports `release-cycle` of "minor-v0.1" at phase "implementation"
+    When I open Today
+    Then the browser tab title is "custom · implementation · Today — WingFoil UI"
