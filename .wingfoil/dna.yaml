@@ -39,6 +39,9 @@ stacks:
     - name: Fastify
       category: server framework
       notes: 'adr-002: HTTP API and SSE, JSON Schema validation (Ajv), pino'
+    - name: React
+      category: frontend framework
+      notes: adr-002
   methodologies:
     - name: Lean Inception
       phase: inception
