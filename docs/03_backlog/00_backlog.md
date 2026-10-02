@@ -1,7 +1,7 @@
 # Backlog — WingFoil UI
 
-**Version:** 0.2
-**Date:** 2026-10-02 (0.2: rebuilt after the coherence audit — session 6)
+**Version:** 0.3
+**Date:** 2026-10-02 (0.2: rebuilt after the coherence audit — session 6; 0.3: US-X-10 page title — initial-design session 2)
 **Status:** Draft — specification-downcast session 5 (`backlog-export`)
 **Input:** `docs/02_requirements/01_user_story_map/02_story-map.md` (v0.4) ·
 `docs/02_requirements/02_bdd/` (v0.3) · `docs/02_requirements/03_sard/` (v0.2)
@@ -11,7 +11,7 @@ backlog, ready to be turned into Memory `task` elements release by release.
 
 | File | Content |
 |------|---------|
-| [`04_backlog/backlog.json`](04_backlog/backlog.json) | Every record: 110 user stories + 50 technical tasks |
+| [`04_backlog/backlog.json`](04_backlog/backlog.json) | Every record: 111 user stories + 50 technical tasks |
 | [`04_backlog/schema.json`](04_backlog/schema.json) | JSON Schema (draft 2020-12) of the backlog and of each partition |
 | `04_backlog/by-release/v0.1.json` … `v1.0.json` | The same records partitioned by release — the file a release's `requirements:` field points to |
 | [`X_tools/build_backlog.py`](X_tools/build_backlog.py) | Generator (deterministic) |
@@ -47,12 +47,12 @@ of the requirement), `acceptance_criteria` = the scenarios the requirement trace
 
 | Release | User stories | Technical tasks | Total |
 |---------|--------------|-----------------|-------|
-| v0.1 | 38 | 34 | 72 |
+| v0.1 | 39 | 34 | 73 |
 | v0.2 | 34 | 12 | 46 |
 | v0.3 | 25 | 2 | 27 |
 | v0.4 | 11 | 2 | 13 |
 | v1.0 | 2 | 0 | 2 |
-| **Total** | **110** | **50** | **160** |
+| **Total** | **111** | **50** | **161** |
 
 Most technical tasks land in v0.1: the architecture, the security of the local server, the CLI
 contract and the snapshot rules apply before the first write exists (sequencer rule 7). 10 user
@@ -76,5 +76,5 @@ the partition into Memory tasks:
 `check_backlog.py` verifies: valid JSON against `schema.json` (backlog and partitions); no
 duplicate ids; no circular dependencies; no dependency on a later release; every MVP story and
 every SARD requirement exactly once, in exactly one partition, identical to `backlog.json`; the
-files equal a fresh build. Result after session 6: **all checks passed** — 160 items, 237
+files equal a fresh build. Result after initial-design session 2: **all checks passed** — 161 items, 238
 dependency links.

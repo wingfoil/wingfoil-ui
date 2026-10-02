@@ -9,7 +9,7 @@ tags: [custom, architecture, wingfoil, security]
 
 # Directive — Every governed change goes through the WingFoil CLI
 
-**Version:** 1.3 · **Date:** 2026-10-02 (1.1: write classes, snapshot, CLI choice — vision session 7; 1.2: no UI-side permission on `ui.yaml` — specification session 3; 1.3: clone in class (c), check scoped to UI commits — specification session 6)
+**Version:** 1.4 · **Date:** 2026-10-02 (1.1: write classes, snapshot, CLI choice — vision session 7; 1.2: no UI-side permission on `ui.yaml` — specification session 3; 1.3: clone in class (c), check scoped to UI commits — specification session 6; 1.4: read allow-list where the CLI has no read verb — initial-design session 5)
 
 Applies to whoever designs, writes or reviews the WingFoil UI server and its use of a WingFoil
 project (draft ADR: `docs/00_reference/adr-draft-local-server.md`).
@@ -28,9 +28,12 @@ project (draft ADR: `docs/00_reference/adr-draft-local-server.md`).
    - (d) **repository files** (after v1.0): specified when the feature is.
    **Which CLI:** the observed project's own (its pinned `node_modules/wingfoil`, else the PATH),
    never a copy bundled with the UI.
-2. **Reads:** through the CLI. Git is read directly only for what the CLI does not expose (HEAD,
-   ahead/behind, log, working tree for the Files view) and is **never** used to change WingFoil
-   state.
+2. **Reads:** through the CLI wherever it exposes the data. What the pinned CLI does not expose is
+   read **directly, read-only, from a closed allow-list** until WingFoil provides a read verb
+   (SARD REQ-ARC-04): `.wingfoil/memory.yaml` (type definitions), Memory element files and directive
+   files at the `path` the CLI returns — each shape schema-checked in `contracts/`. Git is read
+   directly only for what the CLI does not expose (HEAD, ahead/behind, log, working tree for the
+   Files view) and is **never** used to change WingFoil state.
 3. **One file of its own:** the UI owns `.wingfoil/ui.yaml` and nothing else in `.wingfoil/`.
 4. **No action over someone's local work:** a governed action is refused while its target element
    has uncommitted changes (the CLI would commit them with the action) or while the copy is behind
@@ -43,6 +46,7 @@ project (draft ADR: `docs/00_reference/adr-draft-local-server.md`).
 ## How it is checked
 
 - Review: no `fs.write*` / `git commit` / `git add` on governed paths in `server/`.
+- Unit (fs spy, REQ-ARC-04): direct reads of WingFoil files only from the allow-list, 0 writes.
 - e2e-smoke: every commit **created while driving the UI** (the fixture's set-up commits excluded) is
   a `wf(…)` commit made by the CLI or a `chore(ui)` commit whose only file is `.wingfoil/ui.yaml`; actions on an element
   with local changes, and while behind, are refused.

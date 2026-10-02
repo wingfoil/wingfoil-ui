@@ -1,6 +1,6 @@
 # SARD — 3. State & Context
 
-**Version:** 0.2 · **Date:** 2026-10-02 (0.2: coherence audit fixes — session 6) · **Status:** Draft — specification-downcast session 4
+**Version:** 0.3 · **Date:** 2026-10-02 (0.2: coherence audit fixes — session 6; 0.3: REQ-STATE-08 last non-archived state — initial-design session 6) · **Status:** Draft — specification-downcast session 4
 
 Shell and conventions: `00_sard.md`.
 
@@ -88,7 +88,7 @@ Shell and conventions: `00_sard.md`.
 | Field | |
 |-------|--|
 | Release | v0.3 |
-| Description | Completion and iterated figures cover the current element of the `progress.scope` type: with WingFoil 0.3 the one `workflow status` reports; before it, the most advanced element not in its first or last state (ties: lowest version); none → whole project. Reference completion = done linked elements / linked elements; project completion = unweighted mean over references with ≥ 1 linked element (Q8); coverage = elements carrying all `requires` categories / elements whose type has `requires`, project-wide. Open bugs and pending gates are project-wide; a state both gate and `waiting:` is not a pending gate. |
+| Description | Completion and iterated figures cover the current element of the `progress.scope` type: with WingFoil 0.3 the one `workflow status` reports; before it, the most advanced element not in its first or last non-archived state (ties: lowest version); none → whole project. Reference completion = done linked elements / linked elements; project completion = unweighted mean over references with ≥ 1 linked element (Q8); coverage = elements carrying all `requires` categories / elements whose type has `requires`, project-wide. Open bugs and pending gates are project-wide; a state both gate and `waiting:` is not a pending gate. |
 | Rationale | `ux-reference.md` §7; session 3 decision (scope type only). |
 | Traceability | US-T-12, US-T-13, US-T-14, US-R-01, US-M-03 · T-12.1, T-12.2, T-12.4, T-12.5, T-13.1, T-13.2, T-14.1, R-01.1, M-03.1 · T2, R5, M2 |
 | Fit criterion | [boolean] On the custom fixture with the `sw-life-cycle` preset the UI shows exactly: scope `minor-v0.1`, project completion 25 %, tasks 1/4, open bugs 1, pending gates 3, coverage 3/5 — and pending gates 2 after `bug-001-toast-overlap` is approved to `triaged`. |

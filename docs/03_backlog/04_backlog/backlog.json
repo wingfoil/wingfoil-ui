@@ -1,9 +1,9 @@
 {
   "version": 1,
   "generated_from": {
-    "story_map": "docs/02_requirements/01_user_story_map/02_story-map.md v0.4",
-    "bdd": "docs/02_requirements/02_bdd/00_conventions.md v0.3",
-    "sard": "docs/02_requirements/03_sard/00_sard.md v0.2"
+    "story_map": "docs/02_requirements/01_user_story_map/02_story-map.md v0.5",
+    "bdd": "docs/02_requirements/02_bdd/00_conventions.md v0.5",
+    "sard": "docs/02_requirements/03_sard/00_sard.md v0.5"
   },
   "items": [
     {
@@ -244,7 +244,7 @@
             "Given the console has been started with \"npx wingfoil-ui\" and printed its URL with the session token",
             "And the kanban fixture is added",
             "Given the token printed at the previous start",
-            "When I stop the console, start it again and send a request with the previous token",
+            "When I stop the console, start it again and send an API request with the previous token",
             "Then the response status is 401"
           ]
         }
@@ -6796,6 +6796,99 @@
       ]
     },
     {
+      "id": "US-X-10",
+      "kind": "user-story",
+      "title": "The browser tab title to name the project, its state (phase or completion, when the release shows it) and the current …",
+      "release": "v0.1",
+      "area": "X",
+      "wingfoil_min": "0.2.2",
+      "story": "As Alex, I want the browser tab title to name the project, its state (phase or completion, when the release shows it) and the current view or element, before \"WingFoil UI\", so that I tell my projects and views apart among my tabs",
+      "persona": "Alex",
+      "story_kind": "nominal",
+      "features": [
+        "X1"
+      ],
+      "journeys": "J5",
+      "acceptance_criteria": [
+        {
+          "id": "X-10.1",
+          "title": "Name the project and the view in the tab title",
+          "file": "docs/02_requirements/02_bdd/features/x/accessibility.feature",
+          "release": "v0.1",
+          "kind": "nominal",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running with the kanban fixture open",
+            "And I am Morgan",
+            "When I open the Memory list",
+            "Then the browser tab title is \"kanban · Memory — WingFoil UI\""
+          ]
+        },
+        {
+          "id": "X-10.2",
+          "title": "Name the open element in the tab title",
+          "file": "docs/02_requirements/02_bdd/features/x/accessibility.feature",
+          "release": "v0.1",
+          "kind": "edge",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running with the kanban fixture open",
+            "And I am Morgan",
+            "When I open the element panel of \"task-001-login-form\"",
+            "Then the browser tab title is \"kanban · task-001-login-form — WingFoil UI\""
+          ]
+        },
+        {
+          "id": "X-10.3",
+          "title": "Title the project list when no project is open",
+          "file": "docs/02_requirements/02_bdd/features/x/accessibility.feature",
+          "release": "v0.1",
+          "kind": "edge",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running with the kanban fixture open",
+            "And I am Morgan",
+            "When I go back to the project list",
+            "Then the browser tab title is \"Projects — WingFoil UI\""
+          ]
+        },
+        {
+          "id": "X-10.4",
+          "title": "Show the project completion in the tab title",
+          "file": "docs/02_requirements/02_bdd/features/x/accessibility.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running with the kanban fixture open",
+            "And I am Morgan",
+            "Given the progress card shows a project completion of 40 %",
+            "When I open Today",
+            "Then the browser tab title is \"kanban · 40 % · Today — WingFoil UI\""
+          ]
+        },
+        {
+          "id": "X-10.5",
+          "title": "Show the current phase in the tab title",
+          "file": "docs/02_requirements/02_bdd/features/x/accessibility.feature",
+          "release": "v0.4",
+          "kind": "edge",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running with the kanban fixture open",
+            "And I am Morgan",
+            "Given the custom fixture with the sw-life-cycle preset is open on WingFoil 0.3",
+            "And the workflow engine reports `release-cycle` of \"minor-v0.1\" at phase \"implementation\"",
+            "When I open Today",
+            "Then the browser tab title is \"custom · implementation · Today — WingFoil UI\""
+          ]
+        }
+      ],
+      "dependencies": [
+        "TT-ARC-10"
+      ]
+    },
+    {
       "id": "TT-ARC-01",
       "kind": "technical-task",
       "title": "Local server on Node.js, run with npx",
@@ -7116,13 +7209,13 @@
     {
       "id": "TT-ARC-04",
       "kind": "technical-task",
-      "title": "Reads through the CLI",
+      "title": "Reads through the CLI, direct reads on an allow-list",
       "release": "v0.1",
       "area": "ARC",
       "wingfoil_min": "0.2.2",
       "requirement": "REQ-ARC-04",
-      "description": "Governed state (DNA, Memory, directives, paths, workflows) is read through CLI JSON output only. Git is read directly only for HEAD, branches, ahead/behind, working-tree status, `git log` and the working-tree files shown in Files. The only governance file the server parses itself is `.wingfoil/ui.yaml`.",
-      "fit_criterion": "[boolean] A unit test with a file-system spy over every read endpoint records 0 direct reads of `.wingfoil/*.yaml` (except `ui.yaml`) or of Memory element files by the server process.",
+      "description": "Governed state is read through CLI JSON output wherever the CLI exposes it (DNA, paths, workflows, Memory list and history, directive list). What the pinned CLI does not expose is read **directly, read-only, from a closed allow-list**, until WingFoil provides a read verb: `.wingfoil/memory.yaml` (type definitions: `id_pattern`, `path`, required fields, `states`), the Memory element files at the `path` given by `memory search`, and the directive files at the `path` given by `directives list`. Each directly read shape has a JSON schema in `contracts/` per supported WingFoil version, and an element's `status` read from its file must equal the one `memory search` returns (otherwise: read error). When the CLI of the project provides the read verb (capability detection), the direct read is not used. Git is read directly only for HEAD, branches, ahead/behind, working-tree status, `git log` and the working-tree files shown in Files. The server writes none of these files.",
+      "fit_criterion": "[boolean] A unit test with a file-system spy over every read endpoint records 0 direct reads of `.wingfoil/*.yaml` other than `ui.yaml` and `memory.yaml`, 0 reads of Memory or directive files at a path not returned by the CLI, and 0 writes to any of them; every allow-listed shape has a schema and a passing contract test per supported version; a fixture whose element file `status` differs from `memory search` shows a read error for that element.",
       "verified_by": "unit (fs spy)",
       "stories": [
         "US-M-01",
@@ -7339,7 +7432,7 @@
       "area": "ARC",
       "wingfoil_min": "0.2.2",
       "requirement": "REQ-ARC-06",
-      "description": "For each element the server derives, from `memory.yaml` (`sequence`, `gates`, `waiting`), the workflows and the CLI version: the verbs available, the reject targets, the role required (0.2.2: `approver` for every gate), who must act (first state → creator; after a reject → submitter, listed first; `waiting:` → workflow engine; last state → no one; undeclared state → `tech-lead`, \"Action required\"; a state both gate and `waiting:` → workflow engine, reject only; gate states listed in *Requires you* of the reviewer and approver views only for members holding `approver`, in *Waiting on others* for the others). The UI shows only what the descriptor allows.",
+      "description": "For each element the server derives, from `memory.yaml` (`sequence`, `gates`, `waiting`), the workflows and the CLI version: the verbs available, the reject targets, the role required (0.2.2: `approver` for every gate), who must act (first state → creator; after a reject → submitter, listed first; `waiting:` → workflow engine; last non-archived state → no one (archived: `deprecated`, `superseded`; spec-003); undeclared state → `tech-lead`, \"Action required\"; a state both gate and `waiting:` → workflow engine, reject only; gate states listed in *Requires you* of the reviewer and approver views only for members holding `approver`, in *Waiting on others* for the others). The UI shows only what the descriptor allows.",
       "fit_criterion": "[percentage] A table-driven unit test over the elements of the three fixtures yields the expected verbs, reject targets, required role and actor for 100 % of the rows.",
       "verified_by": "unit (table-driven) · e2e",
       "stories": [
@@ -7964,15 +8057,16 @@
       "area": "ARC",
       "wingfoil_min": "0.2.2",
       "requirement": "REQ-ARC-10",
-      "description": "Every MVP screen meets WCAG 2.1 AA: keyboard operation with a visible focus, outcomes announced to screen readers, the reason of a blocked action exposed as its accessible description, text alternatives for images.",
-      "fit_criterion": "[numeric] axe-core reports 0 violations of impact serious or critical on every screen of the release in both themes; focus indicators have a contrast ratio ≥ 3:1; every gate action is completed with the keyboard alone; scenarios X-07.1, X-07.2, X-07.3 (live regions, accessible descriptions) pass.",
+      "description": "Every MVP screen meets WCAG 2.1 AA: keyboard operation with a visible focus, outcomes announced to screen readers, the reason of a blocked action exposed as its accessible description, text alternatives for images, a page title naming the project, its state and the current view or element (SC 2.4.2).",
+      "fit_criterion": "[numeric] axe-core reports 0 violations of impact serious or critical on every screen of the release in both themes; focus indicators have a contrast ratio ≥ 3:1; every gate action is completed with the keyboard alone; scenarios X-07.1, X-07.2, X-07.3 (live regions, accessible descriptions) and X-10.1 … X-10.5 (page title) pass.",
       "verified_by": "e2e-smoke `accessibility`",
       "stories": [
         "US-G-04",
         "US-T-14",
         "US-X-01",
         "US-X-06",
-        "US-X-07"
+        "US-X-07",
+        "US-X-10"
       ],
       "acceptance_criteria": [
         {
@@ -8077,6 +8171,79 @@
             "Given \"task-001-login-form\" has local changes",
             "When the focus is on the disabled \"Approve → approved\" button",
             "Then the button's accessible description is \"Blocked: this element has local changes — commit or discard them first\""
+          ]
+        },
+        {
+          "id": "X-10.1",
+          "title": "Name the project and the view in the tab title",
+          "file": "docs/02_requirements/02_bdd/features/x/accessibility.feature",
+          "release": "v0.1",
+          "kind": "nominal",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running with the kanban fixture open",
+            "And I am Morgan",
+            "When I open the Memory list",
+            "Then the browser tab title is \"kanban · Memory — WingFoil UI\""
+          ]
+        },
+        {
+          "id": "X-10.2",
+          "title": "Name the open element in the tab title",
+          "file": "docs/02_requirements/02_bdd/features/x/accessibility.feature",
+          "release": "v0.1",
+          "kind": "edge",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running with the kanban fixture open",
+            "And I am Morgan",
+            "When I open the element panel of \"task-001-login-form\"",
+            "Then the browser tab title is \"kanban · task-001-login-form — WingFoil UI\""
+          ]
+        },
+        {
+          "id": "X-10.3",
+          "title": "Title the project list when no project is open",
+          "file": "docs/02_requirements/02_bdd/features/x/accessibility.feature",
+          "release": "v0.1",
+          "kind": "edge",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running with the kanban fixture open",
+            "And I am Morgan",
+            "When I go back to the project list",
+            "Then the browser tab title is \"Projects — WingFoil UI\""
+          ]
+        },
+        {
+          "id": "X-10.4",
+          "title": "Show the project completion in the tab title",
+          "file": "docs/02_requirements/02_bdd/features/x/accessibility.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running with the kanban fixture open",
+            "And I am Morgan",
+            "Given the progress card shows a project completion of 40 %",
+            "When I open Today",
+            "Then the browser tab title is \"kanban · 40 % · Today — WingFoil UI\""
+          ]
+        },
+        {
+          "id": "X-10.5",
+          "title": "Show the current phase in the tab title",
+          "file": "docs/02_requirements/02_bdd/features/x/accessibility.feature",
+          "release": "v0.4",
+          "kind": "edge",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running with the kanban fixture open",
+            "And I am Morgan",
+            "Given the custom fixture with the sw-life-cycle preset is open on WingFoil 0.3",
+            "And the workflow engine reports `release-cycle` of \"minor-v0.1\" at phase \"implementation\"",
+            "When I open Today",
+            "Then the browser tab title is \"custom · implementation · Today — WingFoil UI\""
           ]
         },
         {
@@ -9893,7 +10060,7 @@
       "area": "STATE",
       "wingfoil_min": "0.2.2",
       "requirement": "REQ-STATE-08",
-      "description": "Completion and iterated figures cover the current element of the `progress.scope` type: with WingFoil 0.3 the one `workflow status` reports; before it, the most advanced element not in its first or last state (ties: lowest version); none → whole project. Reference completion = done linked elements / linked elements; project completion = unweighted mean over references with ≥ 1 linked element (Q8); coverage = elements carrying all `requires` categories / elements whose type has `requires`, project-wide. Open bugs and pending gates are project-wide; a state both gate and `waiting:` is not a pending gate.",
+      "description": "Completion and iterated figures cover the current element of the `progress.scope` type: with WingFoil 0.3 the one `workflow status` reports; before it, the most advanced element not in its first or last non-archived state (ties: lowest version); none → whole project. Reference completion = done linked elements / linked elements; project completion = unweighted mean over references with ≥ 1 linked element (Q8); coverage = elements carrying all `requires` categories / elements whose type has `requires`, project-wide. Open bugs and pending gates are project-wide; a state both gate and `waiting:` is not a pending gate.",
       "fit_criterion": "[boolean] On the custom fixture with the `sw-life-cycle` preset the UI shows exactly: scope `minor-v0.1`, project completion 25 %, tasks 1/4, open bugs 1, pending gates 3, coverage 3/5 — and pending gates 2 after `bug-001-toast-overlap` is approved to `triaged`.",
       "verified_by": "unit · e2e",
       "stories": [
@@ -10770,7 +10937,7 @@
       "area": "INT",
       "wingfoil_min": "0.2.2",
       "requirement": "REQ-INT-06",
-      "description": "The server runs only these git operations: read (`rev-parse`, `status --porcelain`, `log`, `rev-list --count`, `config user.email`, `remote`), `clone` (adding a remote project, into a new empty folder), `fetch`, `pull --ff-only`, `push`, and `add -- .wingfoil/ui.yaml` + `commit -- .wingfoil/ui.yaml` for presets. It never merges, rebases, resets, stashes or checks out. Git's error message is shown verbatim on failure. Memory events (Timeline, Recent activity) are parsed from `wf(…)` subjects; `add` and `submit` subjects carry no transition, so a submit's `from → to` is read from the element file's `status` before and after the commit (`git log -p` on the element file, or `memory history <id>` when its output carries the states — to be fixed by the Memory-event tech-spec).",
+      "description": "The server runs only these git operations: read (`rev-parse`, `status --porcelain`, `log`, `rev-list --count`, `config user.email`, `remote`), `clone` (adding a remote project, into a new empty folder), `fetch`, `pull --ff-only`, `push`, and `add -- .wingfoil/ui.yaml` + `commit -- .wingfoil/ui.yaml` for presets. It never merges, rebases, resets, stashes or checks out. Git's error message is shown verbatim on failure. Memory events (Timeline, Recent activity) are parsed from `wf(…)` subjects; `add` and `submit` subjects carry no transition, so a submit's `from → to` is read from the element file's `status` before and after the commit (project-wide views: one `git log -p` over the Memory directories; element panel: `memory history <id>`, which carries the states — `spec-002-memory-events-from-git`).",
       "fit_criterion": "[percentage] 100 % of the git processes started during the e2e suite use a subcommand of the allowed list (process audit).",
       "verified_by": "e2e (process audit)",
       "stories": [
@@ -11425,8 +11592,8 @@
       "area": "SEC",
       "wingfoil_min": "0.2.2",
       "requirement": "REQ-SEC-02",
-      "description": "Each start issues a new random session token (≥ 128 bits), given in the printed URL, removed from the address bar after the first load, and required on every HTTP request and event stream; it is never written to logs or disk.",
-      "fit_criterion": "[percentage] 100 % of requests without the current token (or with a previous start's) get HTTP 401 and start 0 processes; the token appears in 0 log lines.",
+      "description": "Each start issues a new random session token (≥ 128 bits), given in the printed URL's fragment, removed from the address bar after the first load and exchanged for a browser session; the token or that session is required on every API request and on the event stream — the static application files, which hold no project data, are exempt. Neither is ever written to logs or disk.",
+      "fit_criterion": "[percentage] 100 % of API and event-stream requests without the current token or a session derived from it (or with a previous start's) get HTTP 401 and start 0 processes; the token and the session id appear in 0 log lines.",
       "verified_by": "e2e-smoke `local-security`",
       "stories": [
         "US-X-02",
@@ -11459,7 +11626,7 @@
             "Given the console has been started with \"npx wingfoil-ui\" and printed its URL with the session token",
             "And the kanban fixture is added",
             "Given the token printed at the previous start",
-            "When I stop the console, start it again and send a request with the previous token",
+            "When I stop the console, start it again and send an API request with the previous token",
             "Then the response status is 401"
           ]
         },

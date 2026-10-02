@@ -1,7 +1,7 @@
 # User Story Map — Stories
 
-**Version:** 0.4
-**Date:** 2026-10-01 (0.2: US-S-11, US-X-07 moved to v0.2 — session 2; 0.3: US-C-05, US-C-06 dropped with C3 — session 3; 0.4: input versions — session 6)
+**Version:** 0.5
+**Date:** 2026-10-01 (0.2: US-S-11, US-X-07 moved to v0.2 — session 2; 0.3: US-C-05, US-C-06 dropped with C3 — session 3; 0.4: input versions — session 6; 0.5: US-X-10 page title — initial-design session 2)
 **Status:** Draft — specification-downcast session 1 (`user-story-mapping`, phases
 `vertical-explosion` and `mvp-cut`)
 **Input:** `01_backbone.md` · `docs/01_vision/05_journeys.md` (v0.3) · `06_features.md` (v0.6) ·
@@ -332,6 +332,7 @@ means any of them.
 | US-X-07 | As a member using a screen reader, I want toasts, state changes and blocked actions announced, so that I know the outcome of what I did | X1 | — | [MVP · v0.2] | E |
 | US-X-08 | As a member, I want light and dark themes with AA contrast in each, following my system by default (a choice in the UI settings from v0.2), so that the console is readable in any setting | X3 | — | [MVP · v0.1] | N |
 | US-X-09 | As Alex, I want every UI string externalised (English only in the MVP), so that a second language can be added without touching the screens | X2 | — | [MVP · v0.1] | N |
+| US-X-10 | As Alex, I want the browser tab title to name the project, its state (phase or completion, when the release shows it) and the current view or element, before "WingFoil UI", so that I tell my projects and views apart among my tabs | X1 | J5 | [MVP · v0.1] | N |
 
 ---
 

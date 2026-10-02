@@ -32,10 +32,34 @@ stacks:
       category: version control
     - name: Playwright
       category: e2e testing
-      notes: to be confirmed by initial-design
+      notes: 'confirmed by adr-002: e2e on Chromium, Firefox, WebKit'
     - name: axe-core
       category: accessibility testing
-      notes: to be confirmed by initial-design
+      notes: 'confirmed by adr-002: @axe-core/playwright, both themes'
+    - name: Fastify
+      category: server framework
+      notes: 'adr-002: HTTP API and SSE, JSON Schema validation (Ajv), pino'
+    - name: React
+      category: frontend framework
+      notes: adr-002
+    - name: Vite
+      category: bundler
+      notes: 'adr-002: dev server and static SPA build'
+    - name: React Aria Components
+      category: accessibility
+      notes: 'adr-002: accessible primitives (WCAG 2.1 AA)'
+    - name: TanStack Query
+      category: frontend state
+      notes: 'adr-002: server state, invalidated by the event stream'
+    - name: TanStack Router
+      category: frontend routing
+      notes: adr-002
+    - name: FormatJS
+      category: i18n
+      notes: 'adr-002: react-intl message catalogues'
+    - name: Vitest
+      category: unit testing
+      notes: 'adr-002: unit, component and contract tests'
   methodologies:
     - name: Lean Inception
       phase: inception

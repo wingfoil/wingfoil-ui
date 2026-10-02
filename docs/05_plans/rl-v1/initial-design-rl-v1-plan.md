@@ -1,0 +1,268 @@
+---
+id: initial-design-rl-v1-plan
+type: plan
+title: "Initial design — rl-v1"
+status: done
+version: "1.0"         # optional — plan version
+workflow: "initial-design"
+phase: "rl-v1"
+scope: "rl-v1"
+element: "rl-v1"       # optional — the Memory element this phase iterates (e.g. a release id)
+release: ""            # optional — target release, e.g. "v0.1"
+tmpl_version: 260703   # Orignal template version
+---
+
+## Context
+
+**Date:** 2026-10-02 · **Branch:** `design/initial-design_v1` (merged to `main` with `--ff=false` at the end)
+**Workflows:** `sw-life-cycle` phase `seed-first-release-line`, then `release-line-cycle` phases
+`approve` and `initial-design` (`.wingfoil/workflows/custom/initial-design.yaml`) for `rl-v1`
+**Roles:** product-owner (seed-first-release-line, seed-releases), tech-lead + approver (approve),
+architect (ADRs, DLs, tech-specs), approver (gates) — Roberto Pompermaier holds all of them; the
+agent drafts and audits (executes as architect/developer/qa, no approval authority)
+**Input:** the Vision Package `docs/01_vision/` (sequencer `07_sequencer.md` v0.5, features
+`06_features.md` v0.6), the requirements `docs/02_requirements/` (story map, BDD conventions v0.3,
+SARD v0.2) and the hand-off section of `docs/02_requirements/X_coherence-audit.md`, the backlog
+`docs/03_backlog/04_backlog/`
+**Evidence:** `docs/00_reference/adr-draft-local-server.md`, `docs/00_reference/ux-reference.md`
+§6 (`ui.yaml` draft), the pinned CLI's JSON output, directives `wingfoil-cli`, `cli-only-writes`,
+`claim-evidence`
+
+Why now: `specification-downcast-specification-plan` is `done` and merged. The release-line `rl-v1`
+and its roadmap, decisions and shared specs must exist before `delivery` runs `release-cycle` for
+v0.1.
+
+Preconditions:
+- `npm run -s wingfoil -- --version` prints `0.2.2`, the version `package.json` pins for `wingfoil`.
+- `specification-downcast-specification-plan` is `done`; `.wingfoil/` loads with no warnings
+  (`directives list` → `"warnings": []`); backlog validators pass (`check_backlog.py`).
+
+Produces:
+
+| Step | Output |
+|------|--------|
+| seed-first-release-line, approve | `docs/04_memory/planning/rl-v1.md` (`active`) |
+| seed-releases | `docs/04_memory/planning/v1/minor-v0.1.md` … `minor-v1.0.md` (`draft`, W-07) |
+| seed-adrs | `docs/04_memory/design/adrs/adr-001-….md` (`accepted`) |
+| seed-dls | `docs/04_memory/design/dls/dl-…` (`ready`), only for decisions not already recorded |
+| seed-specs | `docs/04_memory/design/specs/spec-…` (`approved`) |
+
+## Phases / Steps
+
+Each session: the agent drafts → the session (human + agent) reviews and decides → the agent
+writes the decisions into the elements and into **Session log** below → one commit per session
+(`docs(design): session N — …`), plus the `wf(…)` commits the CLI makes. Fields that `--set`
+cannot write are filled by editing the draft before `memory submit` (W-01); before each submit the
+draft is checked against `memory.yaml`'s `required` list (W-02).
+
+| # | Step (workflow phase) | Role | Output | Stop-check |
+|---|-----------------------|------|--------|------------|
+| 1 | Release-line `rl-v1`: Scope and Success Criteria; `submit` → `planning`; `approve` → `active` (`seed-first-release-line`, `release-line-cycle/approve`) | product-owner, approver | `rl-v1.md` | `title`, `version` set; Success Criteria = the canvas metrics; status `active` |
+| 2 | Roadmap: five `release` elements v0.1, v0.2, v0.3, v0.4, v1.0 (`seed-releases`) | product-owner | `planning/v1/minor-v*.md` | every required field set (incl. `kind`); `features` match `07_sequencer.md` (44 features once each); `requirements` = `by-release/vX.Y.json`; `pillar` = area letter; `wingfoil_min` = sequencer floor (checked by script) |
+| 3 | `adr-001` — Local server driving the WingFoil CLI (`seed-adrs`), plus any other ADR the SARD implies | architect, approver | `design/adrs/` | `sard_ref` set; every ADR-draft decision traced to a `REQ-*`; consistent with SARD v0.2 (write class (c) with clone, git allow-list) |
+| 4 | Decision logs (`seed-dls`): only product/process decisions of inception/specification not yet traceable to a document (candidates: permissions left to WingFoil; presets UI-only — the presets are only the `ui.yaml` values/configurations the UI uses, not WingFoil presets, which WingFoil may define in the future) | architect, approver | `design/dls/` | each DL cites the document that records the decision |
+| 5 | Tech-specs (`seed-specs`): action descriptor (REQ-ARC-06), CLI JSON contracts (REQ-INT-01, `wingfoil_version: 0.2.2`), server HTTP API + event stream (REQ-INT-09, SEC-02/03/04), `ui.yaml` schema + presets (REQ-ARC-07), Memory events from git (REQ-INT-06) | architect, approver | `design/specs/` | `scope` set; every spec traces its `REQ-*` and the scenarios it serves; CLI shapes captured from the pinned 0.2.2 output, not from memory |
+| 6 | Spec review + `wingfoil-cli` directive update | architect (independent agent), approver | review report in this plan; directive v1.2 | see *Spec review* below; W-14…W-20 added |
+
+### Spec review (replaces WingFoil's `spec-review.passed`, `dl-022`)
+
+`initial-design` declares a `spec-review.passed` pre-check on `seed-adrs` and `seed-specs`, copied
+from WingFoil's `dl-022`, with no element behind it in this project. Proposed: keep the check and
+satisfy it with an **independent review** (fresh-context, read-only agent, as the specification
+coherence audit) run on the ADR and tech-spec drafts **before** they are submitted, covering:
+- internal consistency of each element;
+- cross-spec consistency (descriptor ↔ API ↔ CLI contracts ↔ `ui.yaml` ↔ Memory events);
+- BDD/vision: no element contradicts a scenario, `03_is-isnot.md`, the write classes or `cli-only-writes`;
+- traceability: every element cites its `REQ-*`, every `REQ-*` the hand-off lists is covered.
+Findings are fixed, then re-verified by the same reviewer; the result is logged here. The workflow
+file's TODO is resolved in the same session (the check's meaning written in its comment, and
+`seed-releases`' post check extended with `kind`).
+
+### Carried open points
+
+- v0.1 holds 34 of 50 technical tasks against a 6-day budget — weighed by v0.1 `release-planning`,
+  not here; the roadmap keeps the sequencer's partition.
+- v0.4 assumes WingFoil 0.3 verbs (`workflow start/next/status`, `agent execute`) — syntax
+  confirmed at v0.4 `release-planning`; `minor-v0.4` records `wingfoil_min: "0.3"`.
+- New CLI surprises to add to the `wingfoil-cli` directive (v1.2): W-14 numeric ids zero-padded to
+  ≥ 3 digits; W-15 `add`/`submit` commit subjects carry no `[from → to]`; W-16 `init --template
+  Kanban|Scrum` ingest workflows have one phase and no actions (Scrum = Kanban's 7 types); W-17
+  the id slug keeps dots and turns an apostrophe into `-s` (choose titles with the id in mind); W-18
+  no read verb for type definitions, element content or directive bodies (allow-list, REQ-ARC-04);
+  W-19 `memory search` excludes archived elements (`deprecated`, `superseded`; only `--status`
+  lists them) and adds `message` when nothing matches; `--version` prints plain text even with
+  `--format json`; W-20 the refusal of `submit` from a waiting state names a wrong target
+  (`illegal transition backlog -> pending` for custom `task`).
+- WingFoil requests relevant to `rl-v1` (local notes): R-01, R-02, R-03, R-09, R-10.
+
+## Handoff
+
+- **Agent:** drafts every element, fills the fields `--set` cannot write, runs the scripted checks,
+  launches the independent spec review, keeps the session log, commits.
+- **Human (product-owner / architect / approver):** decides in each session; runs or authorises
+  every `memory approve` (only `approver` can, W-13).
+- **Checkpoints:** end of each session; spec review result before any ADR/tech-spec is submitted.
+- **Completion:** `rl-v1` `active`; five releases in `draft`; `adr-001` `accepted`; tech-specs
+  `approved`; review passed; directive updated → the plan is finalized by hand (`status: done`,
+  commit `wf(plan): finalize initial-design-rl-v1-plan [active → done]`, W-04) and the branch is
+  merged to `main` with `--ff=false`.
+- **Next:** `release-line-cycle/delivery` → `release-cycle` for `minor-v0.1`, starting with
+  `release-planning` (plan scope `rl-v1/rel-v0.1`).
+
+## Session log
+
+<!-- One entry per session: date, decisions taken, deviations from this plan. -->
+
+### Session 1 — Release-line `rl-v1` (2026-10-02)
+
+- Outputs: `docs/04_memory/planning/rl-v1.md` — Scope (five releases of `07_sequencer.md` v0.5 with
+  area, WingFoil floor and delivery; requirements; out of scope L1–L10; WingFoil 0.3/1.0
+  dependencies) and Success Criteria (the MVP canvas metrics, as fit criteria in SARD v0.2) —
+  accepted after review; `submit` → `planning`, `approve` → `active` (`fda25fa`).
+- Plan accepted as drafted:
+  - six sessions, commits `docs(design): session N — …`;
+  - `spec-review.passed` kept and satisfied by an independent, read-only review of the ADR and
+    tech-spec drafts before submit, re-verified after fixes; the workflow TODO and the `kind`
+    post-check fixed in that session;
+  - DLs only for decisions not yet traceable to a document; the "presets UI-only" DL states that
+    presets are only the `ui.yaml` values/configurations the UI uses — WingFoil may define its own
+    presets in the future;
+  - `wingfoil-cli` directive v1.2 with W-14…W-16;
+  - v0.1's load (34 of 50 technical tasks) weighed by v0.1 `release-planning`, not here.
+
+### Session 2 — Release roadmap (2026-10-02)
+
+- Outputs: five `release` elements in `draft` under `docs/04_memory/planning/v1/` (W-07) —
+  `minor-v0.1` *Read-only console* (S, 0.2.2, 16 features), `minor-v0.2` *Unblock* (G, 0.2.2, 13),
+  `minor-v0.3` *Project state* (R, 0.2.2, 12), `minor-v0.4` *Workflow and agents* (A, 0.3, 3),
+  `minor-v1.0` *MVP complete* (X, 1.0, none); Scope, Pillar Focus, Success Criteria (sequencer exit
+  criteria + bars common to every release: `@vX.Y` scenarios, prototype parity, axe, contract tests
+  from `wingfoil_min`, commit classes); stop-check `docs/03_backlog/X_tools/check_releases.py` —
+  accepted after review.
+- Decisions:
+  - `features` lists only the features a release introduces (each MVP feature once); v0.4's
+    capability upgrades (T2 phases, W1 position, G5 via `workflow start`) are in its Scope;
+    v1.0 keeps `features: []` — whether `submit` accepts an empty required list is checked at its
+    `release-planning`;
+  - v0.3 adds the WingFoil-repository dogfooding (canvas, REQ-SEC-10) to the sequencer's exit
+    criteria; a v0.4 criterion on 0.2.2 fall-back was dropped as already covered by the `@v0.4`
+    scenarios (e.g. T-10.1, T-10.2);
+  - **new requirement — page title** (user request): the browser tab title is
+    `<project> · <state> · <view or element> — WingFoil UI`, `<state>` = the current phase when
+    WingFoil reports it (0.3), otherwise the project completion (v0.3), omitted before; no project
+    open → `Projects — WingFoil UI`. Story US-X-10 (X1, v0.1, WCAG 2.4.2), scenarios X-10.1 …
+    X-10.5 (`x/accessibility.feature`), traced in REQ-ARC-10.
+- Requirements changed (no Vision Package change): story map `02` v0.5, `03` v0.5; BDD conventions
+  v0.4 (299 scenarios); SARD v0.3 (`01` v0.3); backlog rebuilt (161 items, 238 links; doc v0.3);
+  requirements index v1.1; `rl-v1` Scope counts updated (111 stories, 299 scenarios).
+- Stop-check: `check_releases.py` — 5 releases, 44 / 44 MVP features, OK; `check_usm.py`,
+  `check_bdd.py`, `check_sard.py`, `check_backlog.py` ✓; `directives list` → no warnings.
+
+### Session 3 — ADRs (2026-10-02)
+
+- Outputs (both `draft`, submitted after the spec review of step 6):
+  - `adr-001-local-server-driving-the-wingfoil-cli` (`sard_ref` REQ-ARC-02, release v0.1) — from
+    the ADR draft, decisions D1–D10; the draft's open items decided: **D2** CLI discovery
+    (`node_modules/wingfoil/package.json` `bin` run with `process.execPath`, project root only, then
+    PATH resolved to an absolute path, else not opened; the installed version counts); **D3**
+    `--version` must be semver, range 0.2.2 → highest contract-tested inclusive, pre-releases out
+    unless listed; **D4** schemas per consumed command in `contracts/`, contract tests per matrix
+    version, matrix in the README, advanced by `release-planning`; **D5** batched reads, writes
+    serialised per project (an addition to the SARD), 30 s timeout. CLI latency measured instead
+    of estimated: ≈ 0.4 s warm, 0.85 s cold per call (WingFoil 0.2.2, this repository).
+  - `adr-002-technology-stack` (`sard_ref` REQ-ARC-01, release v0.1) — after a comparison of the
+    alternatives: TypeScript, npm workspaces `server/` `web/` `contracts/`; Fastify (JSON Schema
+    validation with Ajv, pino with token redaction); ports and adapters for process runner,
+    local-state store, event bus, per-project write lock, authentication, repository watcher;
+    React + Vite, React Aria Components, TanStack Query/Router, FormatJS, CSS custom properties,
+    markdown-it + DOMPurify; Vitest, Playwright, @axe-core/playwright, ESLint, Prettier.
+- Decisions: `sard_ref` holds the core requirement, the full list is in each ADR's Traceability;
+  local request ids are not cited (WingFoil elements are); the DNA `stacks.technologies` is
+  updated through the CLI only after `adr-002` is accepted.
+- `docs/00_reference/adr-draft-local-server.md` annotated "Recorded as adr-001" (kept as evidence).
+- Check: every `REQ-*` and scenario cited by the two ADRs exists (script over SARD v0.3 and BDD).
+
+### Session 4 — Decision logs (2026-10-02)
+
+- Outputs (`ready`): `dl-002-permissions-left-to-wingfoil` — the UI defines and stores no action
+  permissions; gates offered per WingFoil's role; C3 out of the MVP, L6 waits for WingFoil; 403/409
+  refusals are safety rules, not permissions (supersedes inception's Q11, consolidates six
+  documents); `dl-003-presets-limited-to-ui-configuration` — a UI preset is only `ui.yaml` content
+  (`taxonomy`, `progress`, `artifacts`), never WingFoil configuration or Memory; UI presets are not
+  WingFoil presets, re-examined if WingFoil adds its own — accepted after review; `submit` →
+  `in-discussion`, `approve` → `ready`.
+- Decisions: both DLs kept although their decisions were already in documents — dl-002 makes a
+  reversal of an inception decision one auditable record, dl-003 records a scope limit written
+  nowhere else.
+- CLI surprise: titles "Permissions are WingFoil's" and "UI presets are ui.yaml contents only" gave
+  `dl-002-permissions-are-wingfoil-s` and `dl-003-ui-presets-are-ui.yaml-contents-only`; the two
+  local, unpushed `add` commits were reset (maintainer's choice) and the DLs re-created with clean
+  titles; W-17 added to step 6.
+
+### Session 5a — CLI/file read contracts, Memory events (2026-10-02)
+
+- Outputs (`draft`, submitted after the spec review of step 6): `spec-001-cli-and-file-read-contracts`
+  (invocation, result classification by exit code, 12 consumed commands with their captured
+  shapes, direct-read allow-list with the `states` resolution rule, `contracts/` layout,
+  capabilities at 0.2.2, contract tests) and `spec-002-memory-events-from-git` (element panel from
+  `memory history`; Updates, Recent activity and Timeline from one incremental `git log -p` over the
+  Memory directories, submit transitions from the `status:` diff) — accepted after review.
+- **Finding:** WingFoil 0.2.2 has no read verb for type definitions, element content or directive
+  bodies (checked on real output). Decided (option A): direct, read-only reads from a closed
+  allow-list, schema-checked, `status` cross-checked with `memory search`, replaced by CLI verbs
+  when WingFoil provides them — SARD v0.4 (REQ-ARC-04; `01` v0.4), `adr-001` D1a and D4, directive
+  `cli-only-writes` v1.4; request recorded in the local WingFoil notes. Rejected: MCP reads (no type
+  definitions either, second protocol), importing WingFoil's loaders (internal API).
+- Other findings: `memory search` hides `deprecated` elements (deprecated elements stay in the
+  Memory list through a second call); `--version` is plain text; `memory reject` has no target
+  option (the gate's single `reject:` state) and writes `rejection_reason`; REQ-INT-06's open
+  source fixed by spec-002 (SARD `04` v0.3); backlog rebuilt (texts only).
+- Evidence: outputs captured on this repository and a throwaway Kanban fixture (add, submit,
+  reject, approve, deprecate, errors); a prototype of spec-002's parser matched `memory history`
+  on 40 events with 0 mismatches; validators ✓.
+
+### Session 5b — Action descriptor, server API, `ui.yaml` and UI presets (2026-10-02)
+
+- Outputs (`draft`, submitted after the spec review of step 6): `spec-003-action-descriptor`
+  (state kinds, verbs = WingFoil 0.2.2's own legality, actor, placement in role views, enablement,
+  tone, output), `spec-004-server-http-api-and-event-stream` (loopback, Host/Origin, fragment
+  token → `SameSite=Strict` session cookie, routes v0.1–v0.3 + v0.4 slots, write preconditions in
+  a fixed order, error envelope, SSE events), `spec-005-ui-configuration-file-and-presets` (schema
+  with unknown keys as errors, semantic checks, whole-file fallback, inferred values, references
+  by value, in-scope rule, figures, Kanban/Scrum/sw-life-cycle UI presets, apply as one
+  `chore(ui)` commit) — accepted after review, additions included (`work` and `off-sequence`
+  kinds, `tech-lead` fallback, tones `attention`/`muted`; `expectedStatus` 409; 422 for CLI
+  refusals; mode `flow` when inferred).
+- Findings read from WingFoil 0.2.2's `memory/state-machine.js` and checked on fixtures: archived
+  set `deprecated` + `superseded` hidden by `memory search` (lazy calls; cold Today = 3 CLI
+  processes); built-in default machine as third resolution arm; reject targets may lie outside
+  `sequence`; W-20 (misleading refusal message for `submit` from a waiting state). spec-001 and
+  spec-003 updated; `adr-001` D9 aligned on `/api/`.
+- Check: every `REQ-*` and scenario cited by the ADRs, DLs and specs exists; spec-005's figures
+  re-derived by hand on the conventions' custom fixture (25 %, 1/4, 1, 3, 3/5).
+
+### Session 6 — Spec review, `wingfoil-cli` v1.2 (2026-10-02)
+
+- **Spec review** (`spec-review.passed`): an independent agent (fresh context, read-only; CLI
+  write commands only in a throwaway repository) reviewed `adr-001`, `adr-002` and `spec-001`…`005`
+  against the SARD, the BDD, the Vision Package, the directives and the pinned CLI (13 claims
+  verified on real output or code). Verdict **passed with fixes**: 0 blocker, 6 major, 10 minor —
+  all fixed. Main fixes: no outcome buttons without the role (G-09.1); multi-line `Reason:` parsed
+  as the CLI does; `workflow list` `version` optional; REQ-SEC-02 amended (session derived from the
+  fragment token, static files exempt, per-port cookie); write preconditions reordered, local
+  changes / stale copy / `expectedStatus` read fresh under the write lock (`memory submit` commits
+  local edits); **last non-archived state** as `last` (accepted ADRs and approved specs are final
+  and done); presets write empty keys; ingestion `commits[]` and partial failure; git transport
+  cancellable instead of a 30 s timeout.
+- Re-verification by the same reviewer: **confirmed with remarks** — 16/16 resolved, 4 new minor
+  (conventions/ARC-06/STATE-08 wording, contract-check exception for archived targets, adr-002
+  token wording, X-02.2 "API request") — fixed.
+- Requirements changed: SARD v0.5 (`01` v0.5, `03` v0.3, `05` v0.3); BDD conventions v0.5,
+  X-02.2; backlog rebuilt (texts only); validators ✓.
+- Transitions: `adr-001`, `adr-002` → `accepted`; `spec-001`…`spec-005` → `approved` (reason
+  "Accepted after the independent spec review (initial-design session 6, 2026-10-02).").
+- DNA `stacks.technologies` (CLI): Fastify, React, Vite, React Aria Components, TanStack Query,
+  TanStack Router, FormatJS, Vitest added; Playwright and axe-core confirmed by `adr-002`.
+- Directive `wingfoil-cli` v1.2: W-14…W-20. Workflow `initial-design`: `spec-review.passed`
+  defined in its header comment, `kind` added to the `seed-releases` post check.
+- `rl-v1` Execution Notes (Initial Design) filled.

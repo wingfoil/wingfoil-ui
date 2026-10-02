@@ -1,7 +1,7 @@
 # User Story Map — MVP Cut
 
-**Version:** 0.4
-**Date:** 2026-10-01 (0.2: US-S-11, US-X-07 moved to v0.2 — session 2; 0.3: C3 and US-C-05, US-C-06 dropped — session 3; 0.4: input versions — session 6)
+**Version:** 0.5
+**Date:** 2026-10-01 (0.2: US-S-11, US-X-07 moved to v0.2 — session 2; 0.3: C3 and US-C-05, US-C-06 dropped — session 3; 0.4: input versions — session 6; 0.5: US-X-10 page title — initial-design session 2)
 **Status:** Draft — specification-downcast session 1 (`user-story-mapping`, phase `mvp-cut`)
 **Input:** `02_story-map.md` · `docs/01_vision/07_sequencer.md` (v0.5) · `08_mvp-canvas.md` (v0.3)
 
@@ -11,7 +11,7 @@ complete. A story is never earlier than its main feature's release; a story can 
 US-G-03 reads a decision-log as a document, which needs R4 in the element panel and lands with
 Casey's journey in v0.3).
 
-**Totals:** 110 MVP stories (68 nominal, 42 edge) + 10 future stories.
+**Totals:** 111 MVP stories (69 nominal, 42 edge) + 10 future stories.
 
 ---
 
@@ -19,7 +19,7 @@ Casey's journey in v0.3).
 
 | Release | Area | WingFoil | Stories | Nominal | Edge |
 |---------|------|----------|---------|---------|------|
-| v0.1 — Read-only console | S | ≥ 0.2.2 | 38 | 23 | 15 |
+| v0.1 — Read-only console | S | ≥ 0.2.2 | 39 | 24 | 15 |
 | v0.2 — Unblock | G | ≥ 0.2.2 | 34 | 18 | 16 |
 | v0.3 — Project state | R | ≥ 0.2.2 | 25 | 17 | 8 |
 | v0.4 — Workflow and agents | A | ≥ 0.3 | 11 | 8 | 3 |
@@ -29,7 +29,7 @@ Casey's journey in v0.3).
 
 - **Nominal:** US-S-01 · US-S-03 · US-S-04 · US-S-08 · US-S-12 · US-S-16 · US-S-17 · US-S-18 ·
   US-S-22 · US-S-25 · US-S-26 · US-S-28 · US-G-01 · US-G-02 · US-M-01 · US-R-05 · US-R-06 ·
-  US-R-07 · US-R-08 · US-X-02 · US-X-06 · US-X-08 · US-X-09
+  US-R-07 · US-R-08 · US-X-02 · US-X-06 · US-X-08 · US-X-09 · US-X-10
 - **Edge:** US-S-05 · US-S-06 · US-S-07 · US-S-09 · US-S-10 · US-S-13 · US-S-14 · US-S-15 ·
   US-S-19 · US-S-27 · US-M-02 · US-R-09 · US-X-03 · US-X-04 · US-X-05
 - **Exit criteria → stories:** three fixtures render without UI changes → US-S-28, US-M-02;
@@ -124,7 +124,7 @@ over `06_features.md` and `02_story-map.md`).
 | Y2 Fetch | v0.2 | US-Y-02, US-Y-03 |
 | Y3 Push | v0.2 | US-Y-07, US-Y-08 |
 | Y4 Update (fast-forward) | v0.2 | US-G-12, US-Y-05, US-Y-06 |
-| X1 Accessibility | v0.1 | US-X-06, US-X-07 |
+| X1 Accessibility | v0.1 | US-X-06, US-X-07, US-X-10 |
 | X2 Externalised strings | v0.1 | US-X-09 |
 | X3 Light and dark themes | v0.1 | US-X-08 |
 | X4 Local server security | v0.1 | US-R-11, US-X-02, US-X-03, US-X-04, US-X-05 |
@@ -164,7 +164,7 @@ The journeys' common rules and obstacles, and the features' refusal cases, each 
 | Check | Result |
 |-------|--------|
 | 100 % of the MVP Canvas features covered by ≥ 1 story | ✓ 44 / 44 |
-| Every story tagged `[MVP · vX.Y]` or `[Future · Ln]` | ✓ 110 MVP + 10 future |
+| Every story tagged `[MVP · vX.Y]` or `[Future · Ln]` | ✓ 111 MVP + 10 future |
 | No story earlier than its main feature's release (`07_sequencer.md`) | ✓ |
 | No duplicate story id | ✓ |
 | Edge-case stories present for every common rule and refusal case | ✓ 42 edge stories (table above) |
