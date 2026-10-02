@@ -2,7 +2,7 @@
 id: rl-v1
 type: release-line
 title: "WingFoil UI v1"
-status: planning
+status: active
 version: "v1"
 tmpl_version: 260703   # Orignal template version
 ---
