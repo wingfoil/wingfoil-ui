@@ -62,7 +62,7 @@ draft is checked against `memory.yaml`'s `required` list (W-02).
 | 3 | `adr-001` — Local server driving the WingFoil CLI (`seed-adrs`), plus any other ADR the SARD implies | architect, approver | `design/adrs/` | `sard_ref` set; every ADR-draft decision traced to a `REQ-*`; consistent with SARD v0.2 (write class (c) with clone, git allow-list) |
 | 4 | Decision logs (`seed-dls`): only product/process decisions of inception/specification not yet traceable to a document (candidates: permissions left to WingFoil; presets UI-only — the presets are only the `ui.yaml` values/configurations the UI uses, not WingFoil presets, which WingFoil may define in the future) | architect, approver | `design/dls/` | each DL cites the document that records the decision |
 | 5 | Tech-specs (`seed-specs`): action descriptor (REQ-ARC-06), CLI JSON contracts (REQ-INT-01, `wingfoil_version: 0.2.2`), server HTTP API + event stream (REQ-INT-09, SEC-02/03/04), `ui.yaml` schema + presets (REQ-ARC-07), Memory events from git (REQ-INT-06) | architect, approver | `design/specs/` | `scope` set; every spec traces its `REQ-*` and the scenarios it serves; CLI shapes captured from the pinned 0.2.2 output, not from memory |
-| 6 | Spec review + `wingfoil-cli` directive update | architect (independent agent), approver | review report in this plan; directive v1.2 | see *Spec review* below; W-14…W-16 added |
+| 6 | Spec review + `wingfoil-cli` directive update | architect (independent agent), approver | review report in this plan; directive v1.2 | see *Spec review* below; W-14…W-17 added |
 
 ### Spec review (replaces WingFoil's `spec-review.passed`, `dl-022`)
 
@@ -86,7 +86,8 @@ file's TODO is resolved in the same session (the check's meaning written in its 
   confirmed at v0.4 `release-planning`; `minor-v0.4` records `wingfoil_min: "0.3"`.
 - New CLI surprises to add to the `wingfoil-cli` directive (v1.2): W-14 numeric ids zero-padded to
   ≥ 3 digits; W-15 `add`/`submit` commit subjects carry no `[from → to]`; W-16 `init --template
-  Kanban|Scrum` ingest workflows have one phase and no actions (Scrum = Kanban's 7 types).
+  Kanban|Scrum` ingest workflows have one phase and no actions (Scrum = Kanban's 7 types); W-17
+  the id slug keeps dots and turns an apostrophe into `-s` (choose titles with the id in mind).
 - WingFoil requests relevant to `rl-v1` (local notes): R-01, R-02, R-03, R-09, R-10.
 
 ## Handoff
@@ -175,3 +176,20 @@ file's TODO is resolved in the same session (the check's meaning written in its 
   updated through the CLI only after `adr-002` is accepted.
 - `docs/00_reference/adr-draft-local-server.md` annotated "Recorded as adr-001" (kept as evidence).
 - Check: every `REQ-*` and scenario cited by the two ADRs exists (script over SARD v0.3 and BDD).
+
+### Session 4 — Decision logs (2026-10-02)
+
+- Outputs (`ready`): `dl-002-permissions-left-to-wingfoil` — the UI defines and stores no action
+  permissions; gates offered per WingFoil's role; C3 out of the MVP, L6 waits for WingFoil; 403/409
+  refusals are safety rules, not permissions (supersedes inception's Q11, consolidates six
+  documents); `dl-003-presets-limited-to-ui-configuration` — a UI preset is only `ui.yaml` content
+  (`taxonomy`, `progress`, `artifacts`), never WingFoil configuration or Memory; UI presets are not
+  WingFoil presets, re-examined if WingFoil adds its own — accepted after review; `submit` →
+  `in-discussion`, `approve` → `ready`.
+- Decisions: both DLs kept although their decisions were already in documents — dl-002 makes a
+  reversal of an inception decision one auditable record, dl-003 records a scope limit written
+  nowhere else.
+- CLI surprise: titles "Permissions are WingFoil's" and "UI presets are ui.yaml contents only" gave
+  `dl-002-permissions-are-wingfoil-s` and `dl-003-ui-presets-are-ui.yaml-contents-only`; the two
+  local, unpushed `add` commits were reset (maintainer's choice) and the DLs re-created with clean
+  titles; W-17 added to step 6.
