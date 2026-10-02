@@ -115,10 +115,10 @@ first load, required on every request and on the event stream, never logged or s
 Origin checked on every request (CSRF, DNS rebinding); opaque project ids, never paths, in URLs;
 no shell; documents and files confined to the repository (`realpath`).
 
-**D9 — Server ↔ browser.** An HTTP JSON API under `/p/:id/…` and **one authenticated event
+**D9 — Server ↔ browser.** An HTTP JSON API under `/api/` (projects under `/api/p/:id/…`) and **one authenticated event
 stream per page** for change notifications and agent output; pages never poll (REQ-INT-09). The
 indicative endpoint table of the ADR draft is the starting point of the *Server HTTP API*
-tech-spec, which fixes the API.
+tech-spec (`spec-004-server-http-api-and-event-stream`), which fixes the API.
 
 **D10 — Local state.** The project list, role view per project, UI settings and action log live
 in the operating system's user configuration directory, never in a repository (REQ-ARC-08).

@@ -62,7 +62,7 @@ draft is checked against `memory.yaml`'s `required` list (W-02).
 | 3 | `adr-001` — Local server driving the WingFoil CLI (`seed-adrs`), plus any other ADR the SARD implies | architect, approver | `design/adrs/` | `sard_ref` set; every ADR-draft decision traced to a `REQ-*`; consistent with SARD v0.2 (write class (c) with clone, git allow-list) |
 | 4 | Decision logs (`seed-dls`): only product/process decisions of inception/specification not yet traceable to a document (candidates: permissions left to WingFoil; presets UI-only — the presets are only the `ui.yaml` values/configurations the UI uses, not WingFoil presets, which WingFoil may define in the future) | architect, approver | `design/dls/` | each DL cites the document that records the decision |
 | 5 | Tech-specs (`seed-specs`): action descriptor (REQ-ARC-06), CLI JSON contracts (REQ-INT-01, `wingfoil_version: 0.2.2`), server HTTP API + event stream (REQ-INT-09, SEC-02/03/04), `ui.yaml` schema + presets (REQ-ARC-07), Memory events from git (REQ-INT-06) | architect, approver | `design/specs/` | `scope` set; every spec traces its `REQ-*` and the scenarios it serves; CLI shapes captured from the pinned 0.2.2 output, not from memory |
-| 6 | Spec review + `wingfoil-cli` directive update | architect (independent agent), approver | review report in this plan; directive v1.2 | see *Spec review* below; W-14…W-19 added |
+| 6 | Spec review + `wingfoil-cli` directive update | architect (independent agent), approver | review report in this plan; directive v1.2 | see *Spec review* below; W-14…W-20 added |
 
 ### Spec review (replaces WingFoil's `spec-review.passed`, `dl-022`)
 
@@ -89,8 +89,10 @@ file's TODO is resolved in the same session (the check's meaning written in its 
   Kanban|Scrum` ingest workflows have one phase and no actions (Scrum = Kanban's 7 types); W-17
   the id slug keeps dots and turns an apostrophe into `-s` (choose titles with the id in mind); W-18
   no read verb for type definitions, element content or directive bodies (allow-list, REQ-ARC-04);
-  W-19 `memory search` excludes `deprecated` elements (only `--status deprecated` lists them) and
-  adds `message` when nothing matches; `--version` prints plain text even with `--format json`.
+  W-19 `memory search` excludes archived elements (`deprecated`, `superseded`; only `--status`
+  lists them) and adds `message` when nothing matches; `--version` prints plain text even with
+  `--format json`; W-20 the refusal of `submit` from a waiting state names a wrong target
+  (`illegal transition backlog -> pending` for custom `task`).
 - WingFoil requests relevant to `rl-v1` (local notes): R-01, R-02, R-03, R-09, R-10.
 
 ## Handoff
@@ -218,3 +220,23 @@ file's TODO is resolved in the same session (the check's meaning written in its 
 - Evidence: outputs captured on this repository and a throwaway Kanban fixture (add, submit,
   reject, approve, deprecate, errors); a prototype of spec-002's parser matched `memory history`
   on 40 events with 0 mismatches; validators ✓.
+
+### Session 5b — Action descriptor, server API, `ui.yaml` and UI presets (2026-10-02)
+
+- Outputs (`draft`, submitted after the spec review of step 6): `spec-003-action-descriptor`
+  (state kinds, verbs = WingFoil 0.2.2's own legality, actor, placement in role views, enablement,
+  tone, output), `spec-004-server-http-api-and-event-stream` (loopback, Host/Origin, fragment
+  token → `SameSite=Strict` session cookie, routes v0.1–v0.3 + v0.4 slots, write preconditions in
+  a fixed order, error envelope, SSE events), `spec-005-ui-configuration-file-and-presets` (schema
+  with unknown keys as errors, semantic checks, whole-file fallback, inferred values, references
+  by value, in-scope rule, figures, Kanban/Scrum/sw-life-cycle UI presets, apply as one
+  `chore(ui)` commit) — accepted after review, additions included (`work` and `off-sequence`
+  kinds, `tech-lead` fallback, tones `attention`/`muted`; `expectedStatus` 409; 422 for CLI
+  refusals; mode `flow` when inferred).
+- Findings read from WingFoil 0.2.2's `memory/state-machine.js` and checked on fixtures: archived
+  set `deprecated` + `superseded` hidden by `memory search` (lazy calls; cold Today = 3 CLI
+  processes); built-in default machine as third resolution arm; reject targets may lie outside
+  `sequence`; W-20 (misleading refusal message for `submit` from a waiting state). spec-001 and
+  spec-003 updated; `adr-001` D9 aligned on `/api/`.
+- Check: every `REQ-*` and scenario cited by the ADRs, DLs and specs exists; spec-005's figures
+  re-derived by hand on the conventions' custom fixture (25 %, 1/4, 1, 3, 3/5).

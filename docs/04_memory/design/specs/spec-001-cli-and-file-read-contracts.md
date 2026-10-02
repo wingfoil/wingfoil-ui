@@ -57,8 +57,8 @@ Only these commands are invoked (static list of the CLI adapter). `[]` = optiona
 | `paths` | R4, R8 | v0.1 | `{<category>: string[]}` — same as `dna.paths` |
 | `directives list` | R2, G1 | v0.1 | `{entries[{path, frontmatter{id, name, type, kind, title, tags[], ref[]?}, roles[], global, assignment}], warnings[]}` — `path` is relative to `.wingfoil/`; **no body** |
 | `workflow list` | W1, W2, G5, S9 | v0.1 | `{manifest{version, include[]}, workflows[{name, kind, description, version, element?, phases[{name, description?, role?, optional, actions[]?, produces[]?, checks{pre[]?, post[]?}?, approval{by_role}?, fallback{step}?, include?, iterate_over?, where?}]}]}` |
-| `memory search` | M1, T1, T4, S5, R5 | v0.1 | `{query, matches[{path, id, title, type, status, tags[]}], message?}` — **excludes `deprecated` elements** (W-19); `message` present when `matches` is empty |
-| `memory search --status deprecated` | M1 (state filter) | v0.1 | same shape; the only way to list deprecated elements |
+| `memory search` | M1, T1, T4, S5, R5 | v0.1 | `{query, matches[{path, id, title, type, status, tags[]}], message?}` — **excludes archived elements** (`deprecated`, `superseded` — WingFoil's archived set) (W-19); `message` present when `matches` is empty |
+| `memory search --status deprecated`, `memory search --status superseded` | M1 (state filter), G1 links | v0.1 | same shape; the only way to list archived elements — called **lazily**, when a view needs archived elements (never for Today) |
 | `memory history <id>` | G1 | v0.1 | `{id, path, entries[{sha, author, timestamp, operation, from, to, approver, reason, subject}]}` — `operation` ∈ `add`, `submit`, `approve`, `reject`, `deprecate`, or `null` for a non-`wf` commit touching the file; `from`/`to` set for every operation (submit included); `author` = `Name <email>`; `approver` = `Name <email> (role)` |
 | `memory submit <id>` | G3 | v0.2 | `{id, path, from, to}` |
 | `memory approve <id> --reason <text>` | G2 | v0.2 | `{id, path, from, to}` |
@@ -89,8 +89,11 @@ Read-only; any other WingFoil file is out of bounds (REQ-ARC-04 fit criterion).
 | `types.<type>.template.frontmatter.required` | string[] | M2, G5 (REQ-INT-05) |
 | `types.<type>.states` | as `defaults.states` (optional) | action descriptor (S9) |
 
-Resolution rule: a type's states are `types.<type>.states` when present, otherwise
-`defaults.states`, taken as a whole (no key-by-key merge). The contract test checks the rule
+Resolution rule (as WingFoil 0.2.2's `resolveStateMachine`): a type's states are
+`types.<type>.states` when present, otherwise `defaults.states`, otherwise WingFoil's built-in
+machine `{sequence: [draft, pending, approved], gates: {pending: {reject: draft}}}` — each taken as
+a whole (no key-by-key merge). A type's **declared states** are its `sequence`, every
+`gates.<state>.reject` target (which may lie outside `sequence`) and the implicit `deprecated`. The contract test checks the rule
 against the CLI: on each fixture, every `memory submit` / `approve` / `reject` transition reported
 by the CLI must be one the resolved states allow.
 
@@ -144,8 +147,9 @@ its schema, and run the §4.1 resolution check. A failure blocks the matrix adva
 
 - One reviewed list of what the UI depends on; a WingFoil change that breaks a shape fails a
   contract test before any user sees it.
-- `memory search` hides `deprecated` elements: the Memory list costs two CLI processes, within
-  REQ-PERF-05's budget of 6 for a cold Today.
+- `memory search` hides archived elements (`deprecated`, `superseded`): they are fetched lazily by
+  two more calls when a view needs them; a cold Today needs `--version`, `dna show` and one
+  `memory search` — within REQ-PERF-05's budget of 6.
 - The direct reads re-implement a small part of WingFoil's parsing (§4.1 resolution, §4.2
   frontmatter); bounded by schemas, the `status` cross-check and §7, and dropped when WingFoil
   provides read verbs.
@@ -154,5 +158,7 @@ its schema, and run the §4.1 resolution check. A failure blocks the matrix adva
 
 - 2026-10-02 — drafted in initial-design session 5a from outputs captured on WingFoil 0.2.2; the
   capture found the missing read verbs (→ REQ-ARC-04 v0.4, `adr-001` D1a) and `memory search`
-  excluding `deprecated` elements (→ directive `wingfoil-cli` W-19). Submitted after the
+  excluding archived elements (→ directive `wingfoil-cli` W-19). Session 5b: the archived set
+  (`deprecated`, `superseded`) and the built-in default machine read from WingFoil 0.2.2's
+  `memory/state-machine.js` and checked on a fixture. Submitted after the
   independent spec review (plan step 6).
