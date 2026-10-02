@@ -2,7 +2,7 @@
 id: adr-002-technology-stack
 type: adr
 title: "Technology stack"
-status: draft
+status: pending
 sard_ref: "REQ-ARC-01"  # REQUIRED — REQ-* code (docs/02_requirements/03_sard/) or feature ID
 supersedes: ""         # optional — id of the ADR this one replaces, e.g. "adr-002"
 release: "v0.1"        # optional — implementation release this ADR is assigned to (stamped by release-planning/build-backlog), e.g. "v0.1"
@@ -23,12 +23,13 @@ Forces (SARD v0.3):
   is Node.js — runtimes without child processes are excluded;
 - request and response validation, and the CLI contracts, are JSON Schemas (REQ-INT-01;
   `ui.yaml` schema, REQ-ARC-07);
-- the session token is never logged (REQ-SEC-02); Host/Origin/token checks on every request
+- the session token is never logged (REQ-SEC-02); Host/Origin checks on every request, token or session on every API request and the event stream
   (REQ-SEC-03); one event stream per page, no polling (REQ-INT-09);
 - WCAG 2.1 AA with 0 serious/critical axe violations, keyboard operation (REQ-ARC-10); every string
   externalised (REQ-ARC-09); light and dark themes (REQ-ARC-11);
-- Today ≤ 2 s warm, other views ≤ 1 s (REQ-PERF-01, PERF-04); two latest majors of Chrome, Edge,
-  Firefox and Safari (REQ-INT-08);
+- Today ≤ 2 s warm, other views ≤ 1 s (REQ-PERF-01, PERF-04); Chrome, Edge, Firefox and Safari
+  in the engine versions of the pinned Playwright release, e2e on Chromium, Firefox and WebKit
+  (REQ-INT-08);
 - complex accessible widgets: command palette (S6), trees (W1, R8), timeline and git tree (R6, R7);
 - one maintainer and AI agents write the code: mainstream, well-documented tools are cheaper to
   get right;
@@ -45,7 +46,8 @@ Dependency versions are pinned by `package-lock.json`.
 **Server — Fastify.** HTTP API and event stream (Server-Sent Events) on Fastify:
 - request/response validation with JSON Schema (Ajv) — the same schemas as `contracts/`;
 - structured logging with pino and redaction of the session token (REQ-SEC-02);
-- `onRequest` hooks for the Host/Origin/token checks (REQ-SEC-03) and the 401/403/404/409 refusals;
+- `onRequest` hooks for the Host/Origin checks on every request (REQ-SEC-03), the token/session
+  check on API and event-stream requests (REQ-SEC-02) and the 401/403/404/409 refusals;
 - `yaml` to parse and write `ui.yaml`.
 
 **Ports and adapters.** The server's domain depends only on interfaces, each with a local adapter
@@ -53,7 +55,7 @@ now and an in-memory fake for tests:
 
 | Port | Local adapter (MVP) |
 |------|---------------------|
-| Process runner (CLI, git) | `execFile`, argument arrays, 30 s timeout (adr-001 D5) |
+| Process runner (CLI, git) | `execFile`, argument arrays; 30 s timeout for `wingfoil` and git reads, cancellable git transport (adr-001 D5) |
 | Local-state store (project list, role views, UI settings, action log) | files in the OS user configuration directory (REQ-ARC-08) |
 | Event bus (change notifications, agent output) | in-process emitter feeding the SSE streams |
 | Per-project write lock (adr-001 D5) | in-process queue |
@@ -128,3 +130,5 @@ REQ-SEC-02, SEC-03, SEC-05 · REQ-STATE-02 · REQ-PERF-01, PERF-04 · features S
 - 2026-10-02 — drafted in initial-design session 3 after a comparison of the alternatives with the
   maintainer; `sard_ref` = REQ-ARC-01. Submitted only after the independent spec review (plan
   step 6).
+- 2026-10-02 — spec review (step 6): browsers quoted from REQ-INT-08 (F15); process-runner
+  timeout aligned with adr-001 D5 (F14).
