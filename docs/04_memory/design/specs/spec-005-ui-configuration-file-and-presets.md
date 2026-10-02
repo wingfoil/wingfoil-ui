@@ -2,7 +2,7 @@
 id: spec-005-ui-configuration-file-and-presets
 type: tech-spec
 title: "UI configuration file and presets"
-status: pending
+status: approved
 scope: ".wingfoil/ui.yaml schema, inferred defaults and UI presets"              # REQUIRED — the artefact this spec covers, e.g. "server HTTP API", "CLI JSON contract: memory search", ".wingfoil/ui.yaml"
 wingfoil_version: "0.2.2"   # optional — for a CLI contract: the WingFoil version the shape was captured from
 supersedes: ""         # optional — id of the tech-spec this one replaces, e.g. "spec-002"
