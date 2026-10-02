@@ -2,7 +2,7 @@
 id: spec-001-cli-and-file-read-contracts
 type: tech-spec
 title: "CLI and file read contracts"
-status: pending
+status: approved
 scope: "CLI JSON contract and direct-read file shapes (WingFoil 0.2.2)"  # REQUIRED — the artefact this spec covers, e.g. "server HTTP API", "CLI JSON contract: memory search", ".wingfoil/ui.yaml"
 wingfoil_version: "0.2.2"   # optional — for a CLI contract: the WingFoil version the shape was captured from
 supersedes: ""         # optional — id of the tech-spec this one replaces, e.g. "spec-002"
