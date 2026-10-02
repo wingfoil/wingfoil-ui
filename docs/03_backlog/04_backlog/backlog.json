@@ -1,9 +1,9 @@
 {
   "version": 1,
   "generated_from": {
-    "story_map": "docs/02_requirements/01_user_story_map/02_story-map.md v0.3",
-    "bdd": "docs/02_requirements/02_bdd/00_conventions.md v0.2",
-    "sard": "docs/02_requirements/03_sard/00_sard.md v0.1"
+    "story_map": "docs/02_requirements/01_user_story_map/02_story-map.md v0.4",
+    "bdd": "docs/02_requirements/02_bdd/00_conventions.md v0.3",
+    "sard": "docs/02_requirements/03_sard/00_sard.md v0.2"
   },
   "items": [
     {
@@ -68,6 +68,7 @@
       ],
       "dependencies": [
         "TT-ARC-01",
+        "TT-INT-08",
         "TT-PERF-06"
       ]
     },
@@ -305,7 +306,7 @@
     {
       "id": "US-X-04",
       "kind": "user-story",
-      "title": "Requests from another web page (foreign Origin or Host, DNS rebinding) or without the session token refused, writes incl",
+      "title": "Requests from another web page (foreign Origin or Host, DNS rebinding) or without the session token refused, writes …",
       "release": "v0.1",
       "area": "X",
       "wingfoil_min": "0.2.2",
@@ -535,6 +536,7 @@
         }
       ],
       "dependencies": [
+        "TT-ARC-03",
         "TT-INT-06",
         "TT-SEC-05",
         "TT-STATE-07"
@@ -597,7 +599,7 @@
     {
       "id": "US-S-06",
       "kind": "user-story",
-      "title": "A second add of a repository already in the list (same remote, or a working copy of it) refused with a pointer to the ex",
+      "title": "A second add of a repository already in the list (same remote, or a working copy of it) refused with a pointer to the …",
       "release": "v0.1",
       "area": "S",
       "wingfoil_min": "0.2.2",
@@ -650,7 +652,7 @@
     {
       "id": "US-S-07",
       "kind": "user-story",
-      "title": "A failed clone (unreachable URL, authentication refused, target folder not empty) reported with git's reason and nothing",
+      "title": "A failed clone (unreachable URL, authentication refused, target folder not empty) reported with git's reason and …",
       "release": "v0.1",
       "area": "S",
       "wingfoil_min": "0.2.2",
@@ -942,13 +944,14 @@
         }
       ],
       "dependencies": [
-        "TT-ARC-02"
+        "TT-ARC-02",
+        "TT-STATE-07"
       ]
     },
     {
       "id": "US-S-11",
       "kind": "user-story",
-      "title": "A capability that applies to the project but that its WingFoil version or my role lacks shown read-only with the reason,",
+      "title": "A capability that applies to the project but that its WingFoil version or my role lacks shown read-only with the …",
       "release": "v0.2",
       "area": "S",
       "wingfoil_min": "0.2.2",
@@ -970,7 +973,7 @@
           "steps": [
             "Given the console is running",
             "And I am Alex",
-            "Given I am Jordan",
+            "Given the custom fixture is open and I am Jordan",
             "When I open the element panel of \"dl-002-use-fastify\"",
             "Then the gate footer is replaced by \"Reserved to approver — Morgan, Alex can act\""
           ]
@@ -1114,13 +1117,14 @@
           "steps": [
             "Given the console is running with the kanban fixture added",
             "Given I am Riley",
-            "When I open the element panel of \"task-1-login-form\"",
+            "When I open the element panel of \"task-001-login-form\"",
             "Then the panel shows no action footer",
             "And the panel shows \"Read-only: riley@example.test is not in the team — How to join\""
           ]
         }
       ],
       "dependencies": [
+        "TT-PERF-03",
         "TT-STATE-05"
       ]
     },
@@ -1229,19 +1233,20 @@
           "steps": [
             "Given the console is running with the kanban fixture added",
             "Given the fixture's `git config user.email` matches the members \"Jordan\" and \"Sam\"",
-            "When I open the element panel of \"task-1-login-form\"",
+            "When I open the element panel of \"task-001-login-form\"",
             "Then the panel shows no action footer"
           ]
         }
       ],
       "dependencies": [
+        "TT-PERF-03",
         "TT-STATE-05"
       ]
     },
     {
       "id": "US-S-16",
       "kind": "user-story",
-      "title": "Switch project from the project switcher and see the same screens in the other project's vocabulary, with nothing of the",
+      "title": "Switch project from the project switcher and see the same screens in the other project's vocabulary, with nothing of …",
       "release": "v0.1",
       "area": "S",
       "wingfoil_min": "0.2.2",
@@ -1280,7 +1285,7 @@
           "steps": [
             "Given the console is running",
             "And I am Alex",
-            "Given the kanban fixture is open with the element panel of \"task-1-login-form\"",
+            "Given the kanban fixture is open with the element panel of \"task-001-login-form\"",
             "When I select the custom fixture in the project switcher",
             "Then no element panel is open"
           ]
@@ -1467,8 +1472,8 @@
             "Given the console is running with the kanban fixture and the custom fixture added",
             "And the kanban fixture is open",
             "And I am Alex",
-            "When I press Ctrl+K, type \"task-3\" and press Enter",
-            "Then the element panel of \"task-3-logout\" opens"
+            "When I press Ctrl+K, type \"task-003\" and press Enter",
+            "Then the element panel of \"task-003-logout\" opens"
           ]
         },
         {
@@ -1562,7 +1567,7 @@
             "Given I am Morgan with the role view \"approver\"",
             "When I open Today",
             "Then the bell shows the count 2",
-            "And the bell panel's \"To unblock\" lists \"task-1-login-form\" and \"bug-1-crash-on-save\"",
+            "And the bell panel's \"To unblock\" lists \"task-001-login-form\" and \"bug-001-crash-on-save\"",
             "And the bell panel's \"Updates\" lists the last 10 Memory events, newest first"
           ]
         },
@@ -1591,7 +1596,7 @@
           "steps": [
             "Given the console is running with the kanban fixture open",
             "Given I am Morgan and the bell shows the count 2",
-            "When I approve \"task-1-login-form\" from Today",
+            "When I approve \"task-001-login-form\" from Today",
             "Then the bell shows the count 1"
           ]
         }
@@ -1603,7 +1608,7 @@
     {
       "id": "US-T-02",
       "kind": "user-story",
-      "title": "Requires you to list the items whose next move needs a role of my view — type, title, reason, age, one primary action ea",
+      "title": "Requires you to list the items whose next move needs a role of my view — type, title, reason, age, one primary action …",
       "release": "v0.2",
       "area": "T",
       "wingfoil_min": "0.2.2",
@@ -1627,8 +1632,8 @@
             "Given the console is running",
             "Given the kanban fixture is open and I am Morgan with the role view \"approver\"",
             "When I open Today",
-            "Then Requires you lists exactly 2 rows: \"task-1-login-form\" and \"bug-1-crash-on-save\"",
-            "And the row of \"task-1-login-form\" shows the type \"task\", its title, the reason \"pending for 3 days\" and the action \"Approve\""
+            "Then Requires you lists exactly 2 rows: \"task-001-login-form\" and \"bug-001-crash-on-save\"",
+            "And the row of \"task-001-login-form\" shows the type \"task\", its title, the reason \"pending for 3 days\" and the action \"Approve\""
           ]
         },
         {
@@ -1693,8 +1698,8 @@
             "Given the console is running",
             "Given the kanban fixture is open and I am Jordan",
             "When I open Today",
-            "Then the first Requires you row is \"task-2-password-reset\" with the reason \"Rejected by Morgan: Missing acceptance criteria\" shown as a rejection",
-            "And the second row is \"task-4-session-timeout\" with the action \"Submit\""
+            "Then the first Requires you row is \"task-002-password-reset\" with the reason \"Rejected by Morgan: Missing acceptance criteria\" shown as a rejection",
+            "And the second row is \"task-004-session-timeout\" with the action \"Submit\""
           ]
         },
         {
@@ -1707,8 +1712,8 @@
           "steps": [
             "Given the console is running",
             "Given the kanban fixture is open and I am Jordan",
-            "When \"task-2-password-reset\" is submitted again with the CLI in a terminal",
-            "Then within 5 seconds Requires you lists only \"task-4-session-timeout\""
+            "When \"task-002-password-reset\" is submitted again with the CLI in a terminal",
+            "Then within 5 seconds Requires you lists only \"task-004-session-timeout\""
           ]
         }
       ],
@@ -1746,7 +1751,7 @@
             "And the DNA gives Sam the roles reviewer, approver",
             "And I am Sam with the role view \"reviewer\"",
             "When I open Today",
-            "Then Requires you lists \"task-1-cli-adapter\" with the reason \"in-review for 3 days\" and the action \"Review\""
+            "Then Requires you lists \"task-001-cli-adapter\" with the reason \"in-review for 3 days\" and the action \"Review\""
           ]
         },
         {
@@ -1758,13 +1763,16 @@
           "fixture": "custom",
           "steps": [
             "Given the console is running",
-            "Given the custom fixture is open and Sam, holding reviewer and approver, sees \"task-1-cli-adapter\" in Requires you",
-            "When \"task-1-cli-adapter\" is approved with the CLI in a terminal",
-            "Then within 5 seconds Requires you no longer lists \"task-1-cli-adapter\""
+            "Given the custom fixture is open and Sam, holding reviewer and approver, sees \"task-001-cli-adapter\" in Requires you",
+            "When \"task-001-cli-adapter\" is approved with the CLI in a terminal",
+            "Then within 5 seconds Requires you no longer lists \"task-001-cli-adapter\""
           ]
         }
       ],
-      "dependencies": []
+      "dependencies": [
+        "TT-ARC-06",
+        "TT-PERF-03"
+      ]
     },
     {
       "id": "US-T-05",
@@ -1793,7 +1801,7 @@
             "Given the console is running",
             "Given the unknown fixture is open and I am Morgan with the role view \"tech-lead\"",
             "When I open Today",
-            "Then Requires you lists \"note-2-retro\" with the reason \"Action required — state on-hold is not declared for note\"",
+            "Then Requires you lists \"note-002-retro\" with the reason \"Action required — state on-hold is not declared for note\"",
             "And its action is \"Open\""
           ]
         },
@@ -1808,7 +1816,7 @@
             "Given the console is running",
             "Given the unknown fixture is open and I am Morgan with the role view \"approver\"",
             "When I open Today",
-            "Then Requires you lists \"story-1-onboarding\" with the reason \"shaping for 3 days\" and the action \"Approve\""
+            "Then Requires you lists \"story-001-onboarding\" with the reason \"shaping for 3 days\" and the action \"Approve\""
           ]
         }
       ],
@@ -1846,8 +1854,8 @@
             "And the DNA gives Sam the roles reviewer",
             "And I am Sam",
             "When I open Today",
-            "Then Requires you does not list \"task-1-cli-adapter\"",
-            "And Waiting on others lists \"task-1-cli-adapter\" with \"Reserved to approver — Morgan, Alex\""
+            "Then Requires you does not list \"task-001-cli-adapter\"",
+            "And Waiting on others lists \"task-001-cli-adapter\" with \"Reserved to approver — Morgan, Alex\""
           ]
         },
         {
@@ -1912,8 +1920,8 @@
           "steps": [
             "Given the console is running",
             "Given the kanban fixture is open and I am Morgan",
-            "And \"bug-1-crash-on-save\" has been approved",
-            "When I approve \"task-1-login-form\" from Today",
+            "And \"bug-001-crash-on-save\" has been approved",
+            "When I approve \"task-001-login-form\" from Today",
             "Then the Requires you card shows \"Nothing requires you\""
           ]
         }
@@ -1947,7 +1955,7 @@
             "And I am Casey",
             "When I open Today",
             "Then the \"Recent activity\" card lists 5 events, newest first",
-            "And each event shows the time, the element, the transition \"from → to\" and the author",
+            "And each state-change event shows the time, the element, the transition \"from → to\" and the author, and each creation event shows \"created\" instead of a transition",
             "And the card ends with the link \"Open the Timeline\""
           ]
         },
@@ -1961,8 +1969,8 @@
           "steps": [
             "Given the console is running with the kanban fixture open",
             "And I am Casey",
-            "When Morgan approves \"task-1-login-form\" with the CLI in a terminal",
-            "Then within 5 seconds the first event of \"Recent activity\" is \"task-1-login-form pending → approved · Morgan\""
+            "When Morgan approves \"task-001-login-form\" with the CLI in a terminal",
+            "Then within 5 seconds the first event of \"Recent activity\" is \"task-001-login-form pending → approved · Morgan\""
           ]
         },
         {
@@ -2012,9 +2020,9 @@
             "Given the console is running",
             "And I am Jordan",
             "Given the custom fixture is open on WingFoil 0.3",
-            "And the workflow engine reports the next step \"dev-loop · implement\" for role \"developer\" on \"task-3-element-panel\"",
+            "And the workflow engine reports the next step \"dev-loop · red\" for role \"developer\" on \"task-003-element-panel\"",
             "When I open Today",
-            "Then the Next workflow step card shows \"dev-loop · implement — task-3-element-panel\""
+            "Then the Next workflow step card shows \"dev-loop · red — task-003-element-panel\""
           ]
         },
         {
@@ -2028,9 +2036,9 @@
             "Given the console is running",
             "And I am Jordan",
             "Given the custom fixture is open on WingFoil 0.3 with a next step for \"developer\"",
-            "And \"task-5-sidebar\" is a `draft` of Jordan's rejected with the reason \"Breaks the layout\"",
+            "And \"task-005-sidebar\" is a `draft` of Jordan's rejected with the reason \"Breaks the layout\"",
             "When I open Today",
-            "Then Requires you lists \"task-5-sidebar\" above the Next workflow step card"
+            "Then Requires you lists \"task-005-sidebar\" above the Next workflow step card"
           ]
         },
         {
@@ -2133,8 +2141,8 @@
             "Given the console is running",
             "Given the kanban fixture is open and I am Morgan",
             "When I open Today",
-            "Then Waiting on others lists \"task-2-password-reset\" with \"Jordan (submitter) must act\"",
-            "And Waiting on others lists \"task-4-session-timeout\" with \"Jordan (creator) must act\""
+            "Then Waiting on others lists \"task-002-password-reset\" with \"Jordan (submitter) must act\"",
+            "And Waiting on others lists \"task-004-session-timeout\" with \"Jordan (creator) must act\""
           ]
         },
         {
@@ -2162,7 +2170,7 @@
             "Given the console is running",
             "Given the kanban fixture is open and I am Morgan with the role view \"approver\"",
             "When I open Today",
-            "Then Waiting on others does not list \"task-1-login-form\""
+            "Then Waiting on others does not list \"task-001-login-form\""
           ]
         }
       ],
@@ -2261,7 +2269,7 @@
             "Given the console is running with the kanban fixture open",
             "Given I am Alex",
             "When I open Today",
-            "Then the all-roles summary shows \"approver · 2\" with \"task-1-login-form\" and \"bug-1-crash-on-save\"",
+            "Then the all-roles summary shows \"approver · 2\" with \"task-001-login-form\" and \"bug-001-crash-on-save\"",
             "And the all-roles summary shows \"developer · 0\"",
             "And it shows one line for each of the 7 roles Alex holds"
           ]
@@ -2278,7 +2286,7 @@
             "Given I am Alex with the role view \"developer\"",
             "When I select \"approver · 2\" in the all-roles summary",
             "Then the shell shows the role view \"approver\"",
-            "And Requires you lists \"task-1-login-form\" and \"bug-1-crash-on-save\""
+            "And Requires you lists \"task-001-login-form\" and \"bug-001-crash-on-save\""
           ]
         },
         {
@@ -2320,7 +2328,7 @@
     {
       "id": "US-G-01",
       "kind": "user-story",
-      "title": "An element panel with the state machine, rejection banner, summary, references (missing required ones flagged) and histo",
+      "title": "An element panel with the state machine, rejection banner, summary, references (missing required ones flagged) and …",
       "release": "v0.1",
       "area": "G",
       "wingfoil_min": "0.2.2",
@@ -2342,8 +2350,8 @@
           "steps": [
             "Given the console is running",
             "Given the kanban fixture is open and I am Morgan",
-            "When I open the element panel of \"task-1-login-form\"",
-            "Then the panel shows the type \"task\", the id \"task-1-login-form\" and its title",
+            "When I open the element panel of \"task-001-login-form\"",
+            "Then the panel shows the type \"task\", the id \"task-001-login-form\" and its title",
             "And the state machine shows \"draft\" as past, \"pending\" as current and \"approved\" as future",
             "And the history lists \"submitted by Jordan\" with its commit hash and date"
           ]
@@ -2358,13 +2366,13 @@
           "steps": [
             "Given the console is running",
             "Given the kanban fixture is open and I am Jordan",
-            "When I open the element panel of \"task-2-password-reset\"",
+            "When I open the element panel of \"task-002-password-reset\"",
             "Then the panel shows the banner \"Rejected by Morgan: Missing acceptance criteria\""
           ]
         },
         {
           "id": "G-01.3",
-          "title": "Flag a missing required reference",
+          "title": "Flag a missing required field",
           "file": "docs/02_requirements/02_bdd/features/g/element-panel.feature",
           "release": "v0.1",
           "kind": "edge",
@@ -2372,9 +2380,9 @@
           "steps": [
             "Given the console is running",
             "Given the custom fixture is open",
-            "And \"adr-1-local-server\" is a committed `draft` with an empty required field \"sard_ref\"",
-            "When I open the element panel of \"adr-1-local-server\"",
-            "Then the References section shows \"sard_ref — required, missing\""
+            "And \"adr-001-local-server\" is a committed `draft` with an empty required field \"sard_ref\"",
+            "When I open the element panel of \"adr-001-local-server\"",
+            "Then the panel shows \"sard_ref — required field, missing\" next to the summary"
           ]
         },
         {
@@ -2387,8 +2395,8 @@
           "steps": [
             "Given the console is running",
             "Given the kanban fixture is open",
-            "When I copy the URL of the element panel of \"task-1-login-form\" and open it in a new tab",
-            "Then the new tab shows the element panel of \"task-1-login-form\""
+            "When I copy the URL of the element panel of \"task-001-login-form\" and open it in a new tab",
+            "Then the new tab shows the element panel of \"task-001-login-form\""
           ]
         }
       ],
@@ -2422,7 +2430,7 @@
           "steps": [
             "Given the console is running",
             "Given the custom fixture is open and I am Sam",
-            "When I open the element panel of \"task-1-cli-adapter\"",
+            "When I open the element panel of \"task-001-cli-adapter\"",
             "Then the Directives section lists the directives bound to \"reviewer\" in `.wingfoil/roles.yaml`, including \"accessibility\" and \"ux-consistency\"",
             "And it lists the global directives \"claim-evidence\" and \"wingfoil-cli\""
           ]
@@ -2437,7 +2445,7 @@
           "steps": [
             "Given the console is running",
             "Given the kanban fixture is open",
-            "And the element panel of \"task-1-login-form\" lists a directive",
+            "And the element panel of \"task-001-login-form\" lists a directive",
             "When I select that directive",
             "Then the Directives view opens on that directive with its body rendered"
           ]
@@ -2536,9 +2544,9 @@
           "steps": [
             "Given the console is running",
             "Given the kanban fixture is open and I am Morgan",
-            "When I click \"Approve\" on the Requires you row of \"task-1-login-form\"",
+            "When I click \"Approve\" on the Requires you row of \"task-001-login-form\"",
             "And I click \"Approve → approved\" in the panel that opens",
-            "Then the fixture's last commit is \"wf(task): approve task-1-login-form [pending → approved]\"",
+            "Then the fixture's last commit is \"wf(task): approve task-001-login-form [pending → approved]\"",
             "And exactly 2 clicks were made since Today was shown"
           ]
         },
@@ -2552,8 +2560,8 @@
           "steps": [
             "Given the console is running",
             "Given the kanban fixture is open and I am Morgan",
-            "When I click \"Approve\" on the Requires you row of \"task-1-login-form\"",
-            "Then the element panel of \"task-1-login-form\" opens with the gate footer",
+            "When I click \"Approve\" on the Requires you row of \"task-001-login-form\"",
+            "Then the element panel of \"task-001-login-form\" opens with the gate footer",
             "And the reason field has the keyboard focus"
           ]
         },
@@ -2567,7 +2575,7 @@
           "steps": [
             "Given the console is running",
             "Given the kanban fixture is open and I am Morgan",
-            "And the gate footer of \"task-1-login-form\" is open from Today",
+            "And the gate footer of \"task-001-login-form\" is open from Today",
             "When I click \"Cancel\"",
             "Then the element panel closes",
             "And the fixture's last commit is unchanged"
@@ -2576,6 +2584,8 @@
       ],
       "dependencies": [
         "TT-ARC-03",
+        "TT-ARC-10",
+        "TT-INT-08",
         "TT-PERF-02",
         "TT-PERF-10",
         "TT-SEC-10"
@@ -2607,7 +2617,7 @@
           "steps": [
             "Given the console is running",
             "Given the custom fixture is open and I am Morgan",
-            "When I open the gate footer of \"bug-1-toast-overlap\"",
+            "When I open the gate footer of \"bug-001-toast-overlap\"",
             "Then the footer shows the buttons \"Approve → triaged\" and \"Reject → closed\" side by side",
             "And \"Approve → triaged\" is the primary button"
           ]
@@ -2622,10 +2632,10 @@
           "steps": [
             "Given the console is running",
             "Given the custom fixture is open and I am Morgan",
-            "And the gate footer of \"bug-1-toast-overlap\" is open with the reason \"Cannot reproduce\"",
+            "And the gate footer of \"bug-001-toast-overlap\" is open with the reason \"Cannot reproduce\"",
             "When I click \"Reject → closed\"",
-            "Then the fixture's last commit is \"wf(bug): reject bug-1-toast-overlap [open → closed]\"",
-            "And the history of \"bug-1-toast-overlap\" lists the reason \"Cannot reproduce\""
+            "Then the fixture's last commit is \"wf(bug): reject bug-001-toast-overlap [open → closed]\"",
+            "And the history of \"bug-001-toast-overlap\" lists the reason \"Cannot reproduce\""
           ]
         },
         {
@@ -2638,15 +2648,14 @@
           "steps": [
             "Given the console is running",
             "Given the unknown fixture is open and I am Morgan",
-            "When I open the gate footer of \"story-1-onboarding\"",
+            "When I open the gate footer of \"story-001-onboarding\"",
             "Then the footer shows the buttons \"Approve → ready-to-build\" and \"Reject → idea\""
           ]
         }
       ],
       "dependencies": [
         "TT-ARC-05",
-        "TT-ARC-06",
-        "TT-SEC-10"
+        "TT-ARC-06"
       ]
     },
     {
@@ -2674,7 +2683,7 @@
           "steps": [
             "Given the console is running",
             "Given the kanban fixture is open and I am Morgan",
-            "When I open the gate footer of \"task-1-login-form\"",
+            "When I open the gate footer of \"task-001-login-form\"",
             "Then the reason field contains \"Approved via WingFoil UI\"",
             "And the text is selected so that typing replaces it"
           ]
@@ -2689,14 +2698,14 @@
           "steps": [
             "Given the console is running",
             "Given the kanban fixture is open and I am Morgan",
-            "And the gate footer of \"task-1-login-form\" is open",
+            "And the gate footer of \"task-001-login-form\" is open",
             "When I replace the reason with \"Matches the mock-up\" and click \"Approve → approved\"",
-            "Then the history of \"task-1-login-form\" lists the reason \"Matches the mock-up\""
+            "Then the history of \"task-001-login-form\" lists the reason \"Matches the mock-up\""
           ]
         },
         {
           "id": "G-06.3",
-          "title": "Leave the reason empty for reject",
+          "title": "Clear an untouched default when a reject is chosen",
           "file": "docs/02_requirements/02_bdd/features/g/gate-footer.feature",
           "release": "v0.2",
           "kind": "edge",
@@ -2704,8 +2713,24 @@
           "steps": [
             "Given the console is running",
             "Given the kanban fixture is open and I am Morgan",
-            "When I open the gate footer of \"task-1-login-form\" and focus \"Reject → draft\"",
+            "And the gate footer of \"task-001-login-form\" is open with the untouched default reason",
+            "When I move the focus to \"Reject → draft\"",
             "Then the reason field is empty with the placeholder \"Reason (required)\""
+          ]
+        },
+        {
+          "id": "G-06.4",
+          "title": "Keep a reason I typed when a reject is chosen",
+          "file": "docs/02_requirements/02_bdd/features/g/gate-footer.feature",
+          "release": "v0.2",
+          "kind": "edge",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running",
+            "Given the kanban fixture is open and I am Morgan",
+            "And the gate footer of \"task-001-login-form\" is open with the reason \"Looks wrong\"",
+            "When I move the focus to \"Reject → draft\"",
+            "Then the reason field contains \"Looks wrong\""
           ]
         }
       ],
@@ -2738,7 +2763,7 @@
           "steps": [
             "Given the console is running",
             "Given the kanban fixture is open and I am Morgan",
-            "And the gate footer of \"task-1-login-form\" is open",
+            "And the gate footer of \"task-001-login-form\" is open",
             "When I clear the reason field",
             "Then \"Approve → approved\" and \"Reject → draft\" are disabled",
             "And the footer shows \"A reason is required\""
@@ -2754,7 +2779,7 @@
           "steps": [
             "Given the console is running",
             "Given the kanban fixture is open and I am Morgan",
-            "And the gate footer of \"task-1-login-form\" is open",
+            "And the gate footer of \"task-001-login-form\" is open",
             "When I replace the reason with 3 spaces",
             "Then \"Approve → approved\" and \"Reject → draft\" are disabled",
             "And the server has run no `wingfoil memory approve` or `memory reject` process"
@@ -2857,7 +2882,7 @@
             "Given the custom fixture is open",
             "And the DNA gives Sam the roles reviewer",
             "And I am Sam",
-            "When I open the element panel of \"task-1-cli-adapter\"",
+            "When I open the element panel of \"task-001-cli-adapter\"",
             "Then the footer shows \"Reserved to approver — Morgan, Alex can act\"",
             "And the footer shows no outcome button"
           ]
@@ -2874,7 +2899,7 @@
             "Given the custom fixture is open",
             "And the DNA gives Sam the roles reviewer, approver",
             "And I am Sam",
-            "When I open the element panel of \"task-1-cli-adapter\"",
+            "When I open the element panel of \"task-001-cli-adapter\"",
             "Then the footer shows the buttons \"Approve → approved\" and \"Reject → in-progress\""
           ]
         },
@@ -2925,9 +2950,9 @@
           "steps": [
             "Given the console is running with the kanban fixture open",
             "And I am Jordan",
-            "Given the element panel of \"task-4-session-timeout\" is open",
+            "Given the element panel of \"task-004-session-timeout\" is open",
             "When I click \"Submit\"",
-            "Then the fixture's last commit is \"wf(task): submit task-4-session-timeout [draft → pending]\"",
+            "Then the fixture's last commit is \"wf(task): submit task-004-session-timeout\"",
             "And the state machine shows \"pending\" as current"
           ]
         },
@@ -2941,9 +2966,9 @@
           "steps": [
             "Given the console is running with the kanban fixture open",
             "And I am Jordan",
-            "Given the element panel of \"task-2-password-reset\" shows the rejection banner",
+            "Given the element panel of \"task-002-password-reset\" shows the rejection banner",
             "When I click \"Submit\"",
-            "Then the fixture's last commit is \"wf(task): submit task-2-password-reset [draft → pending]\"",
+            "Then the fixture's last commit is \"wf(task): submit task-002-password-reset\"",
             "And the panel no longer shows the rejection banner"
           ]
         },
@@ -2957,7 +2982,7 @@
           "steps": [
             "Given the console is running with the kanban fixture open",
             "And I am Jordan",
-            "When I open the element panel of \"task-1-login-form\"",
+            "When I open the element panel of \"task-001-login-form\"",
             "Then the panel shows no \"Submit\" button"
           ]
         }
@@ -2994,8 +3019,8 @@
           "steps": [
             "Given the console is running with the kanban fixture open",
             "And I am Morgan",
-            "Given the file of \"task-1-login-form\" has an uncommitted edit",
-            "When I open the gate footer of \"task-1-login-form\"",
+            "Given the file of \"task-001-login-form\" has an uncommitted edit",
+            "When I open the gate footer of \"task-001-login-form\"",
             "Then \"Approve → approved\" and \"Reject → draft\" are disabled",
             "And the footer shows \"Blocked: this element has local changes — commit or discard them first\""
           ]
@@ -3011,8 +3036,8 @@
             "Given the console is running with the kanban fixture open",
             "And I am Morgan",
             "Given I am Jordan",
-            "And the file of \"task-4-session-timeout\" has an uncommitted edit",
-            "When I open the element panel of \"task-4-session-timeout\"",
+            "And the file of \"task-004-session-timeout\" has an uncommitted edit",
+            "When I open the element panel of \"task-004-session-timeout\"",
             "Then \"Submit\" is disabled with \"Blocked: this element has local changes — commit or discard them first\""
           ]
         },
@@ -3027,7 +3052,7 @@
             "Given the console is running with the kanban fixture open",
             "And I am Morgan",
             "Given the file \"README.md\" has an uncommitted edit",
-            "When I open the gate footer of \"task-1-login-form\"",
+            "When I open the gate footer of \"task-001-login-form\"",
             "Then \"Approve → approved\" is enabled"
           ]
         }
@@ -3064,7 +3089,7 @@
             "Given the console is running with the kanban fixture open",
             "And I am Morgan",
             "Given the remote has 1 commit that the fixture does not have, and it has been fetched",
-            "When I open the gate footer of \"task-1-login-form\"",
+            "When I open the gate footer of \"task-001-login-form\"",
             "Then \"Approve → approved\" and \"Reject → draft\" are disabled",
             "And the footer shows \"Blocked: your copy is 1 commit behind the remote — Update\""
           ]
@@ -3079,7 +3104,7 @@
           "steps": [
             "Given the console is running with the kanban fixture open",
             "And I am Morgan",
-            "Given the footer of \"task-1-login-form\" shows \"Blocked: your copy is 1 commit behind the remote — Update\"",
+            "Given the footer of \"task-001-login-form\" shows \"Blocked: your copy is 1 commit behind the remote — Update\"",
             "When I click \"Update\" in that message",
             "Then the fixture is at the remote's commit",
             "And \"Approve → approved\" is enabled"
@@ -3096,7 +3121,7 @@
             "Given the console is running with the kanban fixture open",
             "And I am Morgan",
             "Given the fixture has 1 commit that the remote does not have, and none the other way",
-            "When I open the gate footer of \"task-1-login-form\"",
+            "When I open the gate footer of \"task-001-login-form\"",
             "Then \"Approve → approved\" is enabled"
           ]
         }
@@ -3108,7 +3133,7 @@
     {
       "id": "US-S-24",
       "kind": "user-story",
-      "title": "No action footer on an element in a terminal state, and a \"waiting for the workflow engine\" note on one in an engine-wai",
+      "title": "No action footer on an element in a terminal state, and a \"waiting for the workflow engine\" note on one in an …",
       "release": "v0.2",
       "area": "S",
       "wingfoil_min": "0.2.2",
@@ -3161,8 +3186,24 @@
           "steps": [
             "Given the console is running",
             "Given the unknown fixture is added and I am Alex",
-            "When I open the element panel of \"story-2-billing\"",
+            "When I open the element panel of \"story-002-billing\"",
             "Then the panel shows \"Waiting for the workflow engine (state: ready-to-build)\""
+          ]
+        },
+        {
+          "id": "S-24.4",
+          "title": "Offer only the reject of a state that is both a gate and a waiting state",
+          "file": "docs/02_requirements/02_bdd/features/s/action-descriptor.feature",
+          "release": "v0.2",
+          "kind": "edge",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running",
+            "Given the custom fixture is added and I am Morgan",
+            "And \"bug-001-toast-overlap\" has been approved to the state \"triaged\"",
+            "When I open the element panel of \"bug-001-toast-overlap\"",
+            "Then the gate footer shows only \"Reject → closed\" and \"Waiting for the workflow engine to advance\"",
+            "And Requires you does not list \"bug-001-toast-overlap\""
           ]
         }
       ],
@@ -3196,8 +3237,8 @@
             "Given the console is running",
             "Given the kanban fixture is open and I am Morgan",
             "And the UI setting \"Auto-push\" is on",
-            "When I approve \"task-1-login-form\" with the reason \"OK\"",
-            "Then a toast shows \"Approved task-1-login-form\", the commit line \"wf(task): approve task-1-login-form [pending → approved]\" with its short hash, and \"pushed\"",
+            "When I approve \"task-001-login-form\" with the reason \"OK\"",
+            "Then a toast shows \"Approved task-001-login-form\", the commit line \"wf(task): approve task-001-login-form [pending → approved]\" with its short hash, and \"pushed\"",
             "And the remote's branch is at that commit"
           ]
         },
@@ -3212,7 +3253,7 @@
             "Given the console is running",
             "Given the kanban fixture is open and I am Morgan",
             "And the UI setting \"Auto-push\" is off",
-            "When I approve \"task-1-login-form\" with the reason \"OK\"",
+            "When I approve \"task-001-login-form\" with the reason \"OK\"",
             "Then the toast shows the commit line without \"pushed\"",
             "And the sidebar shows \"1 commit to push\""
           ]
@@ -3247,10 +3288,10 @@
           "steps": [
             "Given the console is running",
             "Given the custom fixture is open and I am Alex with the role view \"architect\"",
-            "And \"adr-1-local-server\" is a committed `draft` created by Alex with an empty required field \"sard_ref\"",
-            "When I submit \"adr-1-local-server\" from its panel",
+            "And \"adr-001-local-server\" is a committed `draft` created by Alex with an empty required field \"sard_ref\"",
+            "When I submit \"adr-001-local-server\" from its panel",
             "Then a red toast shows the error message printed by `wingfoil memory submit`, naming \"sard_ref\"",
-            "And \"adr-1-local-server\" is still in the state \"draft\"",
+            "And \"adr-001-local-server\" is still in the state \"draft\"",
             "And the fixture's last commit is unchanged"
           ]
         },
@@ -3264,11 +3305,11 @@
           "steps": [
             "Given the console is running",
             "Given the kanban fixture is open and I am Morgan",
-            "And the gate footer of \"task-1-login-form\" is open",
-            "And \"task-1-login-form\" has been approved with the CLI in a terminal before the panel refreshed",
+            "And the gate footer of \"task-001-login-form\" is open",
+            "And \"task-001-login-form\" has been approved with the CLI in a terminal before the panel refreshed",
             "When I click \"Reject → draft\" with the reason \"Too late\"",
             "Then a red toast shows the error message printed by `wingfoil memory reject`",
-            "And the panel shows \"task-1-login-form\" in the state \"approved\""
+            "And the panel shows \"task-001-login-form\" in the state \"approved\""
           ]
         }
       ],
@@ -3367,7 +3408,7 @@
             "Given the console is running",
             "And I am Casey",
             "Given the custom fixture with the sw-life-cycle preset is open and Today shows \"Pending gates 3\"",
-            "When Morgan approves \"bug-1-toast-overlap\" with the CLI in a terminal",
+            "When Morgan approves \"bug-001-toast-overlap\" with the CLI in a terminal",
             "Then within 5 seconds the progress card shows \"Pending gates 2\""
           ]
         }
@@ -3406,7 +3447,7 @@
             "And I am Casey",
             "Given the custom fixture with the sw-life-cycle preset is open",
             "When I select \"Pending gates 3\" on the progress card",
-            "Then the Memory list shows exactly \"task-1-cli-adapter\", \"dl-002-use-fastify\" and \"bug-1-toast-overlap\"",
+            "Then the Memory list shows exactly \"task-001-cli-adapter\", \"dl-002-use-fastify\" and \"bug-001-toast-overlap\"",
             "And the active filter reads \"Pending gates\""
           ]
         },
@@ -3422,7 +3463,7 @@
             "And I am Casey",
             "Given the custom fixture with the sw-life-cycle preset is open",
             "When I select \"Tasks 1/4\" on the progress card",
-            "Then the Memory list shows the 4 tasks of release \"v0.1\", \"task-2-memory-list\" marked done"
+            "Then the Memory list shows the 4 tasks of release \"v0.1\", \"task-002-memory-list\" marked done"
           ]
         }
       ],
@@ -3560,9 +3601,9 @@
             "Given the console is running",
             "And I am Casey",
             "Given the custom fixture with the sw-life-cycle preset is open on WingFoil 0.3",
-            "And the workflow engine reports `release-cycle` of \"minor-v0.1\" at phase \"dev-loop\"",
+            "And the workflow engine reports `release-cycle` of \"minor-v0.1\" at phase \"implementation\"",
             "When I open Today",
-            "Then the progress card shows \"Phase 2 of 7 — dev-loop\"",
+            "Then the progress card shows \"Phase 2 of 7 — implementation\"",
             "And the phase strip shows 1 phase done, 1 current and 5 to do"
           ]
         },
@@ -3590,7 +3631,7 @@
     {
       "id": "US-M-01",
       "kind": "user-story",
-      "title": "The Memory list with type filters from memory.yaml (with counts) and state filters (buckets for all types, real states p",
+      "title": "The Memory list with type filters from memory.yaml (with counts) and state filters (buckets for all types, real states …",
       "release": "v0.1",
       "area": "M",
       "wingfoil_min": "0.2.2",
@@ -3627,7 +3668,7 @@
             "Given the console is running",
             "Given the kanban fixture is open on the Memory list",
             "When I select the type filter \"task\"",
-            "Then the list shows exactly \"task-1-login-form\", \"task-2-password-reset\", \"task-3-logout\", \"task-4-session-timeout\"",
+            "Then the list shows exactly \"task-001-login-form\", \"task-002-password-reset\", \"task-003-logout\", \"task-004-session-timeout\"",
             "And the state filters are exactly \"draft\", \"pending\", \"approved\""
           ]
         },
@@ -3642,7 +3683,7 @@
             "Given the console is running",
             "Given the kanban fixture is open",
             "When I select the type filter \"All types\" and the bucket \"To approve\"",
-            "Then the list shows exactly \"task-1-login-form\" and \"bug-1-crash-on-save\""
+            "Then the list shows exactly \"task-001-login-form\" and \"bug-001-crash-on-save\""
           ]
         },
         {
@@ -3655,8 +3696,8 @@
           "steps": [
             "Given the console is running",
             "Given the kanban fixture is open on the Memory list",
-            "When I select the row of \"task-3-logout\"",
-            "Then the element panel of \"task-3-logout\" opens"
+            "When I select the row of \"task-003-logout\"",
+            "Then the element panel of \"task-003-logout\" opens"
           ]
         },
         {
@@ -3737,9 +3778,9 @@
             "When I select the type filter \"All types\" and the bucket \"<bucket>\"",
             "Then the list shows exactly <elements>",
             "| bucket                | elements",
-            "| To approve            | \"story-1-onboarding\"",
-            "| In progress           | \"note-2-retro\"",
-            "| Waiting/drafts/closed | \"story-2-billing\", \"note-1-kickoff\"",
+            "| To approve            | \"story-001-onboarding\"",
+            "| In progress           | \"note-002-retro\"",
+            "| Waiting/drafts/closed | \"story-002-billing\", \"note-001-kickoff\"",
             "| Done                  | no element"
           ]
         }
@@ -3775,8 +3816,8 @@
             "And I am Morgan",
             "Given the custom fixture with the sw-life-cycle preset is open on the Memory list",
             "When I select the filter \"Missing required references\"",
-            "Then the list shows exactly \"task-4-themes\"",
-            "And its row carries the badge \"missing refs\""
+            "Then the list shows exactly \"task-004-themes\" and \"adr-001-local-server\"",
+            "And each row carries the badge \"missing refs\""
           ]
         },
         {
@@ -3790,8 +3831,8 @@
             "Given the console is running",
             "And I am Morgan",
             "Given the custom fixture with the sw-life-cycle preset is open",
-            "When `ref: US-X-08` is added to \"task-4-themes\" and committed outside the UI",
-            "Then within 5 seconds \"task-4-themes\" no longer carries the badge \"missing refs\""
+            "When `ref: US-X-08` is added to \"task-004-themes\" and committed outside the UI",
+            "Then within 5 seconds \"task-004-themes\" no longer carries the badge \"missing refs\""
           ]
         }
       ],
@@ -3878,7 +3919,7 @@
             "And I am Casey",
             "Given the custom fixture with the sw-life-cycle preset is open",
             "When I open Traceability",
-            "Then it shows \"Project completion 25 %\" and \"Reference coverage 3/4\"",
+            "Then it shows \"Project completion 25 %\" and \"Reference coverage 3/5\"",
             "And the row \"US-M-01\" shows 2 linked elements and \"50 % · 1/2\"",
             "And the row \"US-S-01\" shows 1 linked element and \"0 % · 0/1\""
           ]
@@ -3895,7 +3936,7 @@
             "And I am Casey",
             "Given the custom fixture with the sw-life-cycle preset is open on Traceability",
             "When I select the row \"US-M-01\"",
-            "Then the detail lists \"task-2-memory-list · done\" and \"task-3-element-panel · backlog · waiting for the workflow engine\""
+            "Then the detail lists \"task-002-memory-list · done\" and \"task-003-element-panel · backlog · waiting for the workflow engine\""
           ]
         },
         {
@@ -3956,9 +3997,8 @@
           "kind": "nominal",
           "fixture": "kanban",
           "steps": [
-            "Given the console is running with the kanban fixture open",
+            "Given the console is running with the kanban fixture's timeline variant open",
             "And I am Casey",
-            "And after the commits of `wingfoil init`, the fixture's history is exactly: 2026-09-28 \"wf(task): add task-1-login-form\", 2026-09-28 \"wf(task): submit task-1-login-form [draft → pending]\", 2026-09-29 \"docs: fix a typo in README\", 2026-09-30 \"wf(task): approve task-1-login-form [pending → approved]\"",
             "When I open Timeline",
             "Then the Time axis tab is selected",
             "And the column 2026-09-28 shows 1 creation above the axis and 1 state change below",
@@ -3973,12 +4013,11 @@
           "kind": "edge",
           "fixture": "kanban",
           "steps": [
-            "Given the console is running with the kanban fixture open",
+            "Given the console is running with the kanban fixture's timeline variant open",
             "And I am Casey",
-            "And after the commits of `wingfoil init`, the fixture's history is exactly: 2026-09-28 \"wf(task): add task-1-login-form\", 2026-09-28 \"wf(task): submit task-1-login-form [draft → pending]\", 2026-09-29 \"docs: fix a typo in README\", 2026-09-30 \"wf(task): approve task-1-login-form [pending → approved]\"",
             "Given Timeline is open on the Time axis",
             "When I select the column 2026-09-28",
-            "Then it lists \"task-1-login-form · created\" and \"task-1-login-form · draft → pending\", each with the time and the author"
+            "Then it lists \"task-001-login-form · created\" and \"task-001-login-form · draft → pending\", each with the time and the author"
           ]
         }
       ],
@@ -4007,9 +4046,8 @@
           "kind": "nominal",
           "fixture": "kanban",
           "steps": [
-            "Given the console is running with the kanban fixture open",
+            "Given the console is running with the kanban fixture's timeline variant open",
             "And I am Casey",
-            "And after the commits of `wingfoil init`, the fixture's history is exactly: 2026-09-28 \"wf(task): add task-1-login-form\", 2026-09-28 \"wf(task): submit task-1-login-form [draft → pending]\", 2026-09-29 \"docs: fix a typo in README\", 2026-09-30 \"wf(task): approve task-1-login-form [pending → approved]\"",
             "When I open Timeline",
             "Then the column 2026-09-29 shows no event"
           ]
@@ -4022,9 +4060,8 @@
           "kind": "edge",
           "fixture": "kanban",
           "steps": [
-            "Given the console is running with the kanban fixture open",
+            "Given the console is running with the kanban fixture's timeline variant open",
             "And I am Casey",
-            "And after the commits of `wingfoil init`, the fixture's history is exactly: 2026-09-28 \"wf(task): add task-1-login-form\", 2026-09-28 \"wf(task): submit task-1-login-form [draft → pending]\", 2026-09-29 \"docs: fix a typo in README\", 2026-09-30 \"wf(task): approve task-1-login-form [pending → approved]\"",
             "When I open the Git tree tab of Timeline",
             "Then it lists \"docs: fix a typo in README\" with a filled dot"
           ]
@@ -4055,12 +4092,11 @@
           "kind": "nominal",
           "fixture": "kanban",
           "steps": [
-            "Given the console is running with the kanban fixture open",
+            "Given the console is running with the kanban fixture's timeline variant open",
             "And I am Casey",
-            "And after the commits of `wingfoil init`, the fixture's history is exactly: 2026-09-28 \"wf(task): add task-1-login-form\", 2026-09-28 \"wf(task): submit task-1-login-form [draft → pending]\", 2026-09-29 \"docs: fix a typo in README\", 2026-09-30 \"wf(task): approve task-1-login-form [pending → approved]\"",
             "Given the Git tree tab of Timeline is open",
-            "When I select \"wf(task): approve task-1-login-form [pending → approved]\"",
-            "Then the commit shows its full message, its changed files and the link \"task-1-login-form\"",
+            "When I select \"wf(task): approve task-001-login-form [pending → approved]\"",
+            "Then the commit shows its full message, its changed files and the link \"task-001-login-form\"",
             "And the commit's dot is hollow, marking a Memory commit"
           ]
         },
@@ -4072,9 +4108,8 @@
           "kind": "edge",
           "fixture": "kanban",
           "steps": [
-            "Given the console is running with the kanban fixture open",
+            "Given the console is running with the kanban fixture's timeline variant open",
             "And I am Casey",
-            "And after the commits of `wingfoil init`, the fixture's history is exactly: 2026-09-28 \"wf(task): add task-1-login-form\", 2026-09-28 \"wf(task): submit task-1-login-form [draft → pending]\", 2026-09-29 \"docs: fix a typo in README\", 2026-09-30 \"wf(task): approve task-1-login-form [pending → approved]\"",
             "Given the Git tree tab of Timeline is open",
             "When I turn on the filter \"Memory changes only\"",
             "Then the list shows the 3 `wf(task)` commits and not \"docs: fix a typo in README\""
@@ -4088,9 +4123,8 @@
           "kind": "edge",
           "fixture": "kanban",
           "steps": [
-            "Given the console is running with the kanban fixture open",
+            "Given the console is running with the kanban fixture's timeline variant open",
             "And I am Casey",
-            "And after the commits of `wingfoil init`, the fixture's history is exactly: 2026-09-28 \"wf(task): add task-1-login-form\", 2026-09-28 \"wf(task): submit task-1-login-form [draft → pending]\", 2026-09-29 \"docs: fix a typo in README\", 2026-09-30 \"wf(task): approve task-1-login-form [pending → approved]\"",
             "Given the fixture has a branch \"feature/x\" with 1 commit not on \"main\"",
             "When I open the Git tree tab of Timeline",
             "Then \"feature/x\" is drawn in a second lane with its label on the tip"
@@ -4292,7 +4326,7 @@
     {
       "id": "US-R-08",
       "kind": "user-story",
-      "title": "An index of the documents under paths.docs, without the Memory and plan files, rendered as Markdown with links that stay",
+      "title": "An index of the documents under paths.docs, without the Memory and plan files, rendered as Markdown with links that …",
       "release": "v0.1",
       "area": "R",
       "wingfoil_min": "0.2.2",
@@ -4357,7 +4391,7 @@
     {
       "id": "US-R-09",
       "kind": "user-story",
-      "title": "A document link to a Memory file to open its element panel, and a link that leaves the repository or points nowhere mark",
+      "title": "A document link to a Memory file to open its element panel, and a link that leaves the repository or points nowhere …",
       "release": "v0.1",
       "area": "R",
       "wingfoil_min": "0.2.2",
@@ -4438,7 +4472,7 @@
     {
       "id": "US-R-10",
       "kind": "user-story",
-      "title": "A read-only file tree and viewer of the working tree, files differing from HEAD marked, with highlighting and Markdown p",
+      "title": "A read-only file tree and viewer of the working tree, files differing from HEAD marked, with highlighting and Markdown …",
       "release": "v0.3",
       "area": "R",
       "wingfoil_min": "0.2.2",
@@ -4511,7 +4545,9 @@
           ]
         }
       ],
-      "dependencies": []
+      "dependencies": [
+        "TT-STATE-01"
+      ]
     },
     {
       "id": "US-R-11",
@@ -4650,10 +4686,10 @@
           "steps": [
             "Given the console is running",
             "Given the custom fixture is open on WingFoil 0.3",
-            "And the workflow engine reports `sw-life-cycle` at \"release-line-cycle\" › \"rl-v1\" › \"dev-loop\" with role \"developer\"",
+            "And the workflow engine reports `sw-life-cycle` at \"release-line-cycle\" › \"rl-v1\" › \"delivery\" › \"minor-v0.1\" › \"implementation\" with role \"developer\"",
             "When I open Workflow",
             "Then \"init\", \"inception\" and \"specification\" are marked done",
-            "And \"dev-loop\" under \"rl-v1\" is marked current with \"developer must act\""
+            "And \"implementation\" under \"minor-v0.1\" is marked current with \"developer must act\""
           ]
         },
         {
@@ -4767,7 +4803,7 @@
             "And I am Jordan",
             "Given the custom fixture is open on the Memory list",
             "When I click \"+ Ingestion\", choose \"decision-log-ingest\", type the title \"Adopt Playwright\" and click \"Submit\"",
-            "Then the fixture's last 2 commits are \"wf(decision-log): add dl-003-adopt-playwright\" and \"wf(decision-log): submit dl-003-adopt-playwright [draft → in-discussion]\"",
+            "Then the fixture's last 2 commits are \"wf(decision-log): add dl-003-adopt-playwright\" and \"wf(decision-log): submit dl-003-adopt-playwright\"",
             "And the element panel of \"dl-003-adopt-playwright\" opens in the state \"in-discussion\""
           ]
         },
@@ -4828,7 +4864,7 @@
     {
       "id": "US-G-16",
       "kind": "user-story",
-      "title": "The ingestion of a type whose required fields the CLI cannot set (bug, adr, tech-spec, service on WingFoil 0.2.2) shown ",
+      "title": "The ingestion of a type whose required fields the CLI cannot set (bug, adr, tech-spec, service on WingFoil 0.2.2) shown …",
       "release": "v0.3",
       "area": "G",
       "wingfoil_min": "0.2.2",
@@ -4860,7 +4896,7 @@
         },
         {
           "id": "G-16.2",
-          "title": "Offer every ingestion whose type requires only CLI-set fields",
+          "title": "Hide ingestion when the project's ingest workflows declare no step",
           "file": "docs/02_requirements/02_bdd/features/g/ingestion.feature",
           "release": "v0.3",
           "kind": "edge",
@@ -4868,9 +4904,9 @@
           "steps": [
             "Given the console is running",
             "And I am Jordan",
-            "Given the kanban fixture is open on WingFoil 0.2.2",
-            "When I click \"+ Ingestion\" on the Memory list",
-            "Then \"bug-ingest\", \"decision-log-ingest\" and \"adr-ingest\" are enabled"
+            "Given the kanban fixture is open on WingFoil 0.2.2, whose `bug-ingest`, `decision-log-ingest` and `adr-ingest` have one phase with no action",
+            "When I open the Memory list",
+            "Then no \"+ Ingestion\" button is shown"
           ]
         }
       ],
@@ -4882,7 +4918,7 @@
     {
       "id": "US-G-17",
       "kind": "user-story",
-      "title": "An ingestion step the CLI refuses reported as a red toast with the CLI's reason, nothing created or a created draft name",
+      "title": "An ingestion step the CLI refuses reported as a red toast with the CLI's reason, nothing created or a created draft …",
       "release": "v0.3",
       "area": "G",
       "wingfoil_min": "0.2.2",
@@ -4906,7 +4942,7 @@
             "Given the console is running",
             "And I am Jordan",
             "Given the ingestion modal of \"decision-log-ingest\" is open",
-            "And `wingfoil memory add` refuses the title with an error",
+            "And the CLI stub makes `wingfoil memory add` exit with an error",
             "When I type the title \"Adopt Playwright\" and click \"Submit\"",
             "Then a red toast shows the error message printed by `wingfoil memory add`",
             "And the fixture's last commit is unchanged"
@@ -4923,7 +4959,7 @@
             "Given the console is running",
             "And I am Jordan",
             "Given the ingestion modal of \"decision-log-ingest\" is open",
-            "And `wingfoil memory add` succeeds and `wingfoil memory submit` refuses with an error",
+            "And the CLI stub lets `wingfoil memory add` run and makes `wingfoil memory submit` exit with an error",
             "When I type the title \"Adopt Playwright\" and click \"Submit\"",
             "Then a red toast shows the error of `wingfoil memory submit` and \"Draft dl-003-adopt-playwright was created — open it\"",
             "And the fixture's last commit is \"wf(decision-log): add dl-003-adopt-playwright\""
@@ -4937,7 +4973,7 @@
     {
       "id": "US-G-18",
       "kind": "user-story",
-      "title": "Report a bug through its ingestion with its required fields set by the CLI, when the project's WingFoil sets them (field",
+      "title": "Report a bug through its ingestion with its required fields set by the CLI, when the project's WingFoil sets them …",
       "release": "v0.4",
       "area": "G",
       "wingfoil_min": "0.3",
@@ -4962,7 +4998,7 @@
             "Given the custom fixture is open on a WingFoil that sets the required fields of a bug",
             "And I start \"bug-ingest\"",
             "When I type the title \"Toast hides the Push button\", choose the severity \"medium\" and click \"Submit\"",
-            "Then the fixture's commits for \"bug-2-toast-hides-the-push-button\" are made by the CLI only",
+            "Then the fixture's commits for \"bug-002-toast-hides-the-push-button\" are made by the CLI only",
             "And the bug's frontmatter has `severity: medium` and the state \"open\""
           ]
         },
@@ -5012,9 +5048,9 @@
           "steps": [
             "Given the console is running",
             "And I am Jordan",
-            "Given the custom fixture is open on WingFoil 0.3 with the next step \"dev-loop · implement\" on \"task-3-element-panel\"",
+            "Given the custom fixture is open on WingFoil 0.3 with the next step \"dev-loop · red\" on \"task-003-element-panel\"",
             "When I expand the Next workflow step card",
-            "Then it shows the role \"developer\", the directives bound to \"developer\", the DNA module of the task, the specs it references and the branch \"task/task-3-element-panel\""
+            "Then it shows the role \"developer\", the directives bound to \"developer\", the DNA module of the task, the specs it references and the branch \"task/task-003-element-panel\""
           ]
         },
         {
@@ -5027,10 +5063,10 @@
           "steps": [
             "Given the console is running",
             "And I am Jordan",
-            "Given the custom fixture is open on WingFoil 0.3 with the next step on \"task-4-themes\"",
-            "And \"task-4-themes\" declares no `module`",
+            "Given the custom fixture is open on WingFoil 0.3 with the next step on \"task-004-themes\"",
+            "And \"task-004-themes\" declares no `module`",
             "When I expand the Next workflow step card",
-            "Then the DNA module line reads \"No module declared on task-4-themes\""
+            "Then the DNA module line reads \"No module declared on task-004-themes\""
           ]
         }
       ],
@@ -5064,10 +5100,10 @@
           "steps": [
             "Given the console is running",
             "And I am Jordan",
-            "Given the custom fixture is open on WingFoil 0.3 with the next step \"dev-loop · implement\" on \"task-3-element-panel\"",
+            "Given the custom fixture is open on WingFoil 0.3 with the next step \"dev-loop · red\" on \"task-003-element-panel\"",
             "And the UI setting \"Confirm agent launch\" is on",
-            "When I click \"Launch agent\" and confirm the modal showing the step's context and the branch \"task/task-3-element-panel\"",
-            "Then the server starts `wingfoil agent execute` for \"task-3-element-panel\" with role \"developer\"",
+            "When I click \"Launch agent\" and confirm the modal showing the step's context and the branch \"task/task-003-element-panel\"",
+            "Then the server starts `wingfoil agent execute` for \"task-003-element-panel\" with role \"developer\"",
             "And the button reads \"View agent's logs\""
           ]
         },
@@ -5136,14 +5172,14 @@
             "Given the custom fixture is open on WingFoil 0.3",
             "And the DNA gives Sam the roles reviewer",
             "And I am Sam",
-            "When I click \"Start assisted review\" in the panel of \"task-1-cli-adapter\" and confirm",
-            "Then the server starts `wingfoil agent execute` for \"task-1-cli-adapter\" with role \"reviewer\"",
+            "When I click \"Start assisted review\" in the panel of \"task-001-cli-adapter\" and confirm",
+            "Then the server starts `wingfoil agent execute` for \"task-001-cli-adapter\" with role \"reviewer\"",
             "And the button reads \"View agent's logs\""
           ]
         },
         {
           "id": "A-02.2",
-          "title": "Offer no assisted review outside a review state",
+          "title": "Offer no assisted review outside a gate state",
           "file": "docs/02_requirements/02_bdd/features/a/agents.feature",
           "release": "v0.4",
           "kind": "edge",
@@ -5153,7 +5189,7 @@
             "And I am Jordan",
             "Given the custom fixture is open on WingFoil 0.3",
             "And I am Sam",
-            "When I open the element panel of \"task-2-memory-list\"",
+            "When I open the element panel of \"task-002-memory-list\"",
             "Then no \"Start assisted review\" button is shown"
           ]
         }
@@ -5189,7 +5225,7 @@
             "Given the console is running",
             "And I am Jordan",
             "Given the custom fixture is open on WingFoil 0.2.2",
-            "When I open the element panel of \"task-3-element-panel\"",
+            "When I open the element panel of \"task-003-element-panel\"",
             "Then \"Launch agent\" is disabled with \"Needs WingFoil 0.3 (this project: 0.2.2) — run the agent outside the UI\""
           ]
         },
@@ -5238,7 +5274,7 @@
           "steps": [
             "Given the console is running",
             "And I am Jordan",
-            "Given an agent run started from the UI on \"task-3-element-panel\" prints 1 line per second",
+            "Given an agent run started from the UI on \"task-003-element-panel\" prints 1 line per second",
             "When I click \"View agent's logs\"",
             "Then the log view shows each new line within 2 seconds of the agent printing it",
             "And it shows \"Running\" with the elapsed time"
@@ -5556,7 +5592,8 @@
         }
       ],
       "dependencies": [
-        "TT-INT-03"
+        "TT-INT-03",
+        "TT-PERF-03"
       ]
     },
     {
@@ -5616,7 +5653,7 @@
           "steps": [
             "Given the console is running with the kanban fixture open",
             "And I am Morgan",
-            "Given the fixture is 1 commit behind, and that commit changes only \"docs/memory/task/task-3-logout.md\"",
+            "Given the fixture is 1 commit behind, and that commit changes only \"docs/memory/task/task-003-logout.md\"",
             "And \"README.md\" has an uncommitted edit",
             "When I click \"Update\" in the sidebar",
             "Then the fixture's HEAD is the remote's commit",
@@ -5634,7 +5671,7 @@
     {
       "id": "US-Y-06",
       "kind": "user-story",
-      "title": "An update that cannot fast-forward (diverged history, local changes in the way) to leave actions blocked and tell me wha",
+      "title": "An update that cannot fast-forward (diverged history, local changes in the way) to leave actions blocked and tell me …",
       "release": "v0.2",
       "area": "Y",
       "wingfoil_min": "0.2.2",
@@ -5673,11 +5710,11 @@
           "steps": [
             "Given the console is running with the kanban fixture open",
             "And I am Morgan",
-            "Given the fixture is 1 commit behind, and that commit changes \"docs/memory/task/task-1-login-form.md\"",
-            "And \"docs/memory/task/task-1-login-form.md\" has an uncommitted edit",
+            "Given the fixture is 1 commit behind, and that commit changes \"docs/memory/task/task-001-login-form.md\"",
+            "And \"docs/memory/task/task-001-login-form.md\" has an uncommitted edit",
             "When I click \"Update\" in the sidebar",
             "Then the fixture's HEAD is unchanged and the uncommitted edit is kept",
-            "And the sidebar shows \"Cannot fast-forward: local changes to task-1-login-form.md are in the way — commit or stash them in a terminal\""
+            "And the sidebar shows \"Cannot fast-forward: local changes to task-001-login-form.md are in the way — commit or stash them in a terminal\""
           ]
         }
       ],
@@ -5713,7 +5750,7 @@
             "Given the console is running with the kanban fixture open",
             "And I am Morgan",
             "Given the UI setting \"Auto-push\" is off",
-            "And I approved \"task-1-login-form\" from the UI",
+            "And I approved \"task-001-login-form\" from the UI",
             "When I click \"Push\" in the sidebar",
             "Then the remote's branch is at the fixture's HEAD",
             "And the sidebar shows \"In sync with git\""
@@ -5730,7 +5767,7 @@
             "Given the console is running with the kanban fixture open",
             "And I am Morgan",
             "Given the UI settings have never been changed",
-            "When I approve \"task-1-login-form\" from the UI",
+            "When I approve \"task-001-login-form\" from the UI",
             "Then the remote's branch does not contain the approval commit",
             "And the sidebar shows \"1 commit to push\" with the \"Push\" button"
           ]
@@ -5746,7 +5783,7 @@
             "Given the console is running with the kanban fixture open",
             "And I am Morgan",
             "Given the UI setting \"Auto-push\" is on",
-            "When I approve \"task-1-login-form\" from the UI",
+            "When I approve \"task-001-login-form\" from the UI",
             "Then the remote's branch is at the approval commit"
           ]
         }
@@ -5760,7 +5797,7 @@
     {
       "id": "US-Y-08",
       "kind": "user-story",
-      "title": "A rejected push (remote moved, no permission) shown as a red toast with git's reason, the commit kept local and counted ",
+      "title": "A rejected push (remote moved, no permission) shown as a red toast with git's reason, the commit kept local and counted …",
       "release": "v0.2",
       "area": "Y",
       "wingfoil_min": "0.2.2",
@@ -5785,7 +5822,7 @@
             "And I am Morgan",
             "Given the UI setting \"Auto-push\" is on",
             "And a commit has been pushed to the remote by someone else and not yet fetched",
-            "When I approve \"task-1-login-form\" from the UI",
+            "When I approve \"task-001-login-form\" from the UI",
             "Then a red toast shows \"Not pushed\" with the rejection printed by git",
             "And the approval commit stays in the fixture",
             "And the sidebar shows \"1 ahead\""
@@ -6020,8 +6057,8 @@
           "steps": [
             "Given the console is running",
             "Given the kanban fixture is open and I am Morgan",
-            "When I apply the \"Scrum\" preset, which maps the type \"story\"",
-            "Then a red toast shows \"ui.yaml not written: type story is not declared in memory.yaml\"",
+            "When I apply the \"WingFoil sw-life-cycle\" preset, which maps the type \"service\"",
+            "Then a red toast shows \"ui.yaml not written: type service is not declared in memory.yaml\"",
             "And \".wingfoil/ui.yaml\" does not exist"
           ]
         }
@@ -6084,7 +6121,7 @@
     {
       "id": "US-C-07",
       "kind": "user-story",
-      "title": "Local, per-user settings — auto-fetch, auto-update, auto-push, theme, agent launch confirmation — kept on my machine and",
+      "title": "Local, per-user settings — auto-fetch, auto-update, auto-push, theme, agent launch confirmation — kept on my machine …",
       "release": "v0.2",
       "area": "C",
       "wingfoil_min": "0.2.2",
@@ -6145,6 +6182,7 @@
       ],
       "dependencies": [
         "TT-ARC-08",
+        "TT-PERF-07",
         "TT-SEC-09",
         "TT-STATE-09"
       ]
@@ -6256,7 +6294,7 @@
     {
       "id": "US-S-25",
       "kind": "user-story",
-      "title": "The UI to show the project as the CLI reads it — the working tree — with elements that have uncommitted changes marked l",
+      "title": "The UI to show the project as the CLI reads it — the working tree — with elements that have uncommitted changes marked …",
       "release": "v0.1",
       "area": "S",
       "wingfoil_min": "0.2.2",
@@ -6278,9 +6316,9 @@
           "steps": [
             "Given the console is running with the kanban fixture open",
             "And I am Morgan",
-            "Given the file of \"task-1-login-form\" has an uncommitted edit of its title to \"Login form v2\"",
+            "Given the file of \"task-001-login-form\" has an uncommitted edit of its title to \"Login form v2\"",
             "When I open the Memory list",
-            "Then \"task-1-login-form\" is listed with the title \"Login form v2\"",
+            "Then \"task-001-login-form\" is listed with the title \"Login form v2\"",
             "And it carries the marker \"local changes\""
           ]
         },
@@ -6294,9 +6332,9 @@
           "steps": [
             "Given the console is running with the kanban fixture open",
             "And I am Morgan",
-            "Given \"task-1-login-form\" carries the marker \"local changes\"",
+            "Given \"task-001-login-form\" carries the marker \"local changes\"",
             "When its edit is committed with git outside the UI",
-            "Then within 5 seconds \"task-1-login-form\" no longer carries the marker \"local changes\""
+            "Then within 5 seconds \"task-001-login-form\" no longer carries the marker \"local changes\""
           ]
         },
         {
@@ -6309,9 +6347,9 @@
           "steps": [
             "Given the console is running with the kanban fixture open",
             "And I am Morgan",
-            "Given an element file \"docs/memory/task/task-9-draft-idea.md\" exists in the working tree and is not committed",
+            "Given an element file \"docs/memory/task/task-009-draft-idea.md\" exists in the working tree and is not committed",
             "When I open the Memory list",
-            "Then \"task-9-draft-idea\" is listed with the marker \"local changes\""
+            "Then \"task-009-draft-idea\" is listed with the marker \"local changes\""
           ]
         }
       ],
@@ -6346,9 +6384,9 @@
           "steps": [
             "Given the console is running with the kanban fixture open",
             "And I am Morgan",
-            "Given the Memory list shows \"task-1-login-form\" in the state \"pending\"",
-            "When \"task-1-login-form\" is approved with the CLI in a terminal",
-            "Then within 5 seconds the Memory list shows \"task-1-login-form\" in the state \"approved\" without a page reload"
+            "Given the Memory list shows \"task-001-login-form\" in the state \"pending\"",
+            "When \"task-001-login-form\" is approved with the CLI in a terminal",
+            "Then within 5 seconds the Memory list shows \"task-001-login-form\" in the state \"approved\" without a page reload"
           ]
         },
         {
@@ -6361,8 +6399,8 @@
           "steps": [
             "Given the console is running with the kanban fixture open",
             "And I am Morgan",
-            "Given the element panel of \"task-1-login-form\" is open",
-            "When \"task-1-login-form\" is approved with the CLI in a terminal",
+            "Given the element panel of \"task-001-login-form\" is open",
+            "When \"task-001-login-form\" is approved with the CLI in a terminal",
             "Then within 5 seconds the panel's history lists the approval and its commit"
           ]
         },
@@ -6392,7 +6430,7 @@
     {
       "id": "US-S-27",
       "kind": "user-story",
-      "title": "A CLI read that fails (e.g. a malformed governance file) shown as an error with the CLI's message on the affected view, ",
+      "title": "A CLI read that fails (e.g. a malformed governance file) shown as an error with the CLI's message on the affected view …",
       "release": "v0.1",
       "area": "S",
       "wingfoil_min": "0.2.2",
@@ -6437,14 +6475,16 @@
         }
       ],
       "dependencies": [
+        "TT-ARC-04",
         "TT-INT-01",
-        "TT-INT-04"
+        "TT-INT-04",
+        "TT-PERF-03"
       ]
     },
     {
       "id": "US-S-28",
       "kind": "user-story",
-      "title": "A Kanban project, the WingFoil (custom) project and a project with unknown types and states and no ui.yaml to render wit",
+      "title": "A Kanban project, the WingFoil (custom) project and a project with unknown types and states and no ui.yaml to render …",
       "release": "v0.1",
       "area": "S",
       "wingfoil_min": "0.2.2",
@@ -6487,14 +6527,15 @@
           "steps": [
             "Given the console is running",
             "Given the unknown fixture is added and I am Alex",
-            "When I open the element panel of \"story-1-onboarding\"",
+            "When I open the element panel of \"story-001-onboarding\"",
             "Then the state machine shows the chips \"idea\", \"shaping\", \"ready-to-build\", \"shipped\"",
             "And \"shaping\" is marked as the current state"
           ]
         }
       ],
       "dependencies": [
-        "TT-ARC-05"
+        "TT-ARC-05",
+        "TT-INT-08"
       ]
     },
     {
@@ -6539,8 +6580,8 @@
             "Given the console is running with the kanban fixture open",
             "And I am Morgan",
             "Given Today is shown and no mouse is used",
-            "When I press Tab until \"Approve\" of \"task-1-login-form\" has the focus, press Enter, then press Tab until \"Approve → approved\" has the focus and press Enter",
-            "Then the fixture's last commit is \"wf(task): approve task-1-login-form [pending → approved]\""
+            "When I press Tab until \"Approve\" of \"task-001-login-form\" has the focus, press Enter, then press Tab until \"Approve → approved\" has the focus and press Enter",
+            "Then the fixture's last commit is \"wf(task): approve task-001-login-form [pending → approved]\""
           ]
         },
         {
@@ -6553,7 +6594,7 @@
           "steps": [
             "Given the console is running with the kanban fixture open",
             "And I am Morgan",
-            "Given the element panel of \"task-1-login-form\" is open and has the focus",
+            "Given the element panel of \"task-001-login-form\" is open and has the focus",
             "When I press Escape",
             "Then the panel closes and the focus returns to the row that opened it"
           ]
@@ -6574,7 +6615,8 @@
         }
       ],
       "dependencies": [
-        "TT-ARC-10"
+        "TT-ARC-10",
+        "TT-INT-08"
       ]
     },
     {
@@ -6602,7 +6644,7 @@
           "steps": [
             "Given the console is running with the kanban fixture open",
             "And I am Morgan",
-            "When I approve \"task-1-login-form\" from the UI",
+            "When I approve \"task-001-login-form\" from the UI",
             "Then the toast's text is in an ARIA live region with politeness \"polite\""
           ]
         },
@@ -6612,11 +6654,12 @@
           "file": "docs/02_requirements/02_bdd/features/x/accessibility.feature",
           "release": "v0.2",
           "kind": "edge",
-          "fixture": "kanban",
+          "fixture": "custom",
           "steps": [
             "Given the console is running with the kanban fixture open",
             "And I am Morgan",
-            "When an action of mine is refused by the CLI",
+            "Given I switch to the custom fixture and I am Alex",
+            "When I submit \"adr-001-local-server\", which the CLI refuses for its empty \"sard_ref\"",
             "Then the red toast's text is in an ARIA live region with politeness \"assertive\""
           ]
         },
@@ -6630,14 +6673,15 @@
           "steps": [
             "Given the console is running with the kanban fixture open",
             "And I am Morgan",
-            "Given \"task-1-login-form\" has local changes",
+            "Given \"task-001-login-form\" has local changes",
             "When the focus is on the disabled \"Approve → approved\" button",
             "Then the button's accessible description is \"Blocked: this element has local changes — commit or discard them first\""
           ]
         }
       ],
       "dependencies": [
-        "TT-ARC-10"
+        "TT-ARC-10",
+        "TT-STATE-03"
       ]
     },
     {
@@ -6742,7 +6786,7 @@
           "steps": [
             "Given the console is running with the kanban fixture open",
             "Given the build replaces every message of the English catalogue with its key",
-            "When I open the element panel of \"task-1-login-form\"",
+            "When I open the element panel of \"task-001-login-form\"",
             "Then the element's title, id and state names are shown as written in the project"
           ]
         }
@@ -6922,14 +6966,15 @@
       "area": "ARC",
       "wingfoil_min": "0.2.2",
       "requirement": "REQ-ARC-03",
-      "description": "The server writes only through: (a) governed changes, by invoking the CLI (`wf(…)` commits); (b) `.wingfoil/ui.yaml`, schema-validated, one `chore(ui): …` commit touching only that file; (c) git transport — fetch, `pull --ff-only`, push; (d) repository files after v1.0 (L4). It never writes `.wingfoil/` files (except `ui.yaml`), Memory element files or plans.",
-      "fit_criterion": "[percentage] After the full e2e suite, 100 % of the commits created in each fixture are `wf(…)` commits made by a CLI process or `chore(ui)` commits changing exactly `.wingfoil/ui.yaml`; the server process opens 0 files for writing under `.wingfoil/` (other than `ui.yaml`) or under a Memory path (file-system audit); in v0.1 the server exposes 0 endpoints that write.",
+      "description": "The server writes only through: (a) governed changes, by invoking the CLI (`wf(…)` commits); (b) `.wingfoil/ui.yaml`, schema-validated, one `chore(ui): …` commit touching only that file; (c) git transport — `clone` into a new, empty folder, fetch, `pull --ff-only`, push; (d) repository files after v1.0 (L4). It never writes `.wingfoil/` files (except `ui.yaml`), Memory element files or plans. The UI's own local state (REQ-ARC-08) lives outside every repository.",
+      "fit_criterion": "[percentage] After the full e2e suite, 100 % of the commits created in each fixture are `wf(…)` commits made by a CLI process or `chore(ui)` commits changing exactly `.wingfoil/ui.yaml`; the server process opens 0 files for writing under `.wingfoil/` (other than `ui.yaml`) or under a Memory path (file-system audit); in v0.1 the only write is a clone into a new, empty folder (0 endpoints write an existing repository).",
       "verified_by": "e2e-smoke `drive-browser` (git log check) · file-system audit",
       "stories": [
         "US-C-02",
         "US-G-04",
         "US-G-10",
         "US-G-15",
+        "US-S-04",
         "US-Y-05",
         "US-Y-07"
       ],
@@ -6944,9 +6989,9 @@
           "steps": [
             "Given the console is running",
             "Given the kanban fixture is open and I am Morgan",
-            "When I click \"Approve\" on the Requires you row of \"task-1-login-form\"",
+            "When I click \"Approve\" on the Requires you row of \"task-001-login-form\"",
             "And I click \"Approve → approved\" in the panel that opens",
-            "Then the fixture's last commit is \"wf(task): approve task-1-login-form [pending → approved]\"",
+            "Then the fixture's last commit is \"wf(task): approve task-001-login-form [pending → approved]\"",
             "And exactly 2 clicks were made since Today was shown"
           ]
         },
@@ -6960,9 +7005,9 @@
           "steps": [
             "Given the console is running with the kanban fixture open",
             "And I am Jordan",
-            "Given the element panel of \"task-4-session-timeout\" is open",
+            "Given the element panel of \"task-004-session-timeout\" is open",
             "When I click \"Submit\"",
-            "Then the fixture's last commit is \"wf(task): submit task-4-session-timeout [draft → pending]\"",
+            "Then the fixture's last commit is \"wf(task): submit task-004-session-timeout\"",
             "And the state machine shows \"pending\" as current"
           ]
         },
@@ -6978,7 +7023,7 @@
             "And I am Jordan",
             "Given the custom fixture is open on the Memory list",
             "When I click \"+ Ingestion\", choose \"decision-log-ingest\", type the title \"Adopt Playwright\" and click \"Submit\"",
-            "Then the fixture's last 2 commits are \"wf(decision-log): add dl-003-adopt-playwright\" and \"wf(decision-log): submit dl-003-adopt-playwright [draft → in-discussion]\"",
+            "Then the fixture's last 2 commits are \"wf(decision-log): add dl-003-adopt-playwright\" and \"wf(decision-log): submit dl-003-adopt-playwright\"",
             "And the element panel of \"dl-003-adopt-playwright\" opens in the state \"in-discussion\""
           ]
         },
@@ -7013,6 +7058,55 @@
             "Then the preset commit changes only \".wingfoil/ui.yaml\"",
             "And \"README.md\" is still staged and uncommitted"
           ]
+        },
+        {
+          "id": "Y-05.1",
+          "title": "Update a copy that is behind",
+          "file": "docs/02_requirements/02_bdd/features/y/update.feature",
+          "release": "v0.2",
+          "kind": "nominal",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running with the kanban fixture open",
+            "And I am Morgan",
+            "Given the fixture is 2 commits behind its fetched remote and has no commit of its own",
+            "When I click \"Update\" in the sidebar",
+            "Then the fixture's HEAD is the remote's commit",
+            "And the sidebar shows \"In sync with git\""
+          ]
+        },
+        {
+          "id": "Y-07.1",
+          "title": "Push with the button",
+          "file": "docs/02_requirements/02_bdd/features/y/push.feature",
+          "release": "v0.2",
+          "kind": "nominal",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running with the kanban fixture open",
+            "And I am Morgan",
+            "Given the UI setting \"Auto-push\" is off",
+            "And I approved \"task-001-login-form\" from the UI",
+            "When I click \"Push\" in the sidebar",
+            "Then the remote's branch is at the fixture's HEAD",
+            "And the sidebar shows \"In sync with git\""
+          ]
+        },
+        {
+          "id": "S-04.3",
+          "title": "Clone the remote on confirm",
+          "file": "docs/02_requirements/02_bdd/features/s/projects.feature",
+          "release": "v0.1",
+          "kind": "nominal",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running",
+            "And I am Alex",
+            "Given I chose \"Remote git repository\" and typed \"file:///srv/remotes/kanban.git\"",
+            "When I confirm the modal with the working directory \"~/projects/kanban\"",
+            "Then \"~/projects/kanban\" is a clone of \"file:///srv/remotes/kanban.git\"",
+            "And the project switcher lists the project"
+          ]
         }
       ],
       "dependencies": [
@@ -7033,7 +7127,8 @@
       "stories": [
         "US-M-01",
         "US-R-05",
-        "US-S-25"
+        "US-S-25",
+        "US-S-27"
       ],
       "acceptance_criteria": [
         {
@@ -7046,9 +7141,9 @@
           "steps": [
             "Given the console is running with the kanban fixture open",
             "And I am Morgan",
-            "Given the file of \"task-1-login-form\" has an uncommitted edit of its title to \"Login form v2\"",
+            "Given the file of \"task-001-login-form\" has an uncommitted edit of its title to \"Login form v2\"",
             "When I open the Memory list",
-            "Then \"task-1-login-form\" is listed with the title \"Login form v2\"",
+            "Then \"task-001-login-form\" is listed with the title \"Login form v2\"",
             "And it carries the marker \"local changes\""
           ]
         },
@@ -7150,7 +7245,7 @@
           "steps": [
             "Given the console is running",
             "Given the unknown fixture is added and I am Alex",
-            "When I open the element panel of \"story-1-onboarding\"",
+            "When I open the element panel of \"story-001-onboarding\"",
             "Then the state machine shows the chips \"idea\", \"shaping\", \"ready-to-build\", \"shipped\"",
             "And \"shaping\" is marked as the current state"
           ]
@@ -7182,9 +7277,9 @@
             "When I select the type filter \"All types\" and the bucket \"<bucket>\"",
             "Then the list shows exactly <elements>",
             "| bucket                | elements",
-            "| To approve            | \"story-1-onboarding\"",
-            "| In progress           | \"note-2-retro\"",
-            "| Waiting/drafts/closed | \"story-2-billing\", \"note-1-kickoff\"",
+            "| To approve            | \"story-001-onboarding\"",
+            "| In progress           | \"note-002-retro\"",
+            "| Waiting/drafts/closed | \"story-002-billing\", \"note-001-kickoff\"",
             "| Done                  | no element"
           ]
         },
@@ -7213,7 +7308,7 @@
             "Given the console is running",
             "Given the unknown fixture is open and I am Morgan with the role view \"tech-lead\"",
             "When I open Today",
-            "Then Requires you lists \"note-2-retro\" with the reason \"Action required — state on-hold is not declared for note\"",
+            "Then Requires you lists \"note-002-retro\" with the reason \"Action required — state on-hold is not declared for note\"",
             "And its action is \"Open\""
           ]
         },
@@ -7227,7 +7322,7 @@
           "steps": [
             "Given the console is running",
             "Given the unknown fixture is open and I am Morgan",
-            "When I open the gate footer of \"story-1-onboarding\"",
+            "When I open the gate footer of \"story-001-onboarding\"",
             "Then the footer shows the buttons \"Approve → ready-to-build\" and \"Reject → idea\""
           ]
         }
@@ -7244,7 +7339,7 @@
       "area": "ARC",
       "wingfoil_min": "0.2.2",
       "requirement": "REQ-ARC-06",
-      "description": "For each element the server derives, from `memory.yaml` (`sequence`, `gates`, `waiting`), the workflows and the CLI version: the verbs available, the reject targets, the role required (0.2.2: `approver` for every gate), who must act (first state → creator; after a reject → submitter, listed first; `waiting:` → workflow engine; last state → no one; undeclared state → `tech-lead`, \"Action required\"). The UI shows only what the descriptor allows.",
+      "description": "For each element the server derives, from `memory.yaml` (`sequence`, `gates`, `waiting`), the workflows and the CLI version: the verbs available, the reject targets, the role required (0.2.2: `approver` for every gate), who must act (first state → creator; after a reject → submitter, listed first; `waiting:` → workflow engine; last state → no one; undeclared state → `tech-lead`, \"Action required\"; a state both gate and `waiting:` → workflow engine, reject only; gate states listed in *Requires you* of the reviewer and approver views only for members holding `approver`, in *Waiting on others* for the others). The UI shows only what the descriptor allows.",
       "fit_criterion": "[percentage] A table-driven unit test over the elements of the three fixtures yields the expected verbs, reject targets, required role and actor for 100 % of the rows.",
       "verified_by": "unit (table-driven) · e2e",
       "stories": [
@@ -7253,6 +7348,7 @@
         "US-S-24",
         "US-T-02",
         "US-T-03",
+        "US-T-04",
         "US-T-05",
         "US-T-06",
         "US-T-11"
@@ -7269,8 +7365,8 @@
             "Given the console is running",
             "Given the kanban fixture is open and I am Morgan with the role view \"approver\"",
             "When I open Today",
-            "Then Requires you lists exactly 2 rows: \"task-1-login-form\" and \"bug-1-crash-on-save\"",
-            "And the row of \"task-1-login-form\" shows the type \"task\", its title, the reason \"pending for 3 days\" and the action \"Approve\""
+            "Then Requires you lists exactly 2 rows: \"task-001-login-form\" and \"bug-001-crash-on-save\"",
+            "And the row of \"task-001-login-form\" shows the type \"task\", its title, the reason \"pending for 3 days\" and the action \"Approve\""
           ]
         },
         {
@@ -7284,8 +7380,24 @@
             "Given the console is running",
             "Given the kanban fixture is open and I am Jordan",
             "When I open Today",
-            "Then the first Requires you row is \"task-2-password-reset\" with the reason \"Rejected by Morgan: Missing acceptance criteria\" shown as a rejection",
-            "And the second row is \"task-4-session-timeout\" with the action \"Submit\""
+            "Then the first Requires you row is \"task-002-password-reset\" with the reason \"Rejected by Morgan: Missing acceptance criteria\" shown as a rejection",
+            "And the second row is \"task-004-session-timeout\" with the action \"Submit\""
+          ]
+        },
+        {
+          "id": "T-04.1",
+          "title": "List the items in a review state for a reviewer holding approver",
+          "file": "docs/02_requirements/02_bdd/features/t/requires-you.feature",
+          "release": "v0.2",
+          "kind": "nominal",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running",
+            "Given the custom fixture is open",
+            "And the DNA gives Sam the roles reviewer, approver",
+            "And I am Sam with the role view \"reviewer\"",
+            "When I open Today",
+            "Then Requires you lists \"task-001-cli-adapter\" with the reason \"in-review for 3 days\" and the action \"Review\""
           ]
         },
         {
@@ -7299,7 +7411,7 @@
             "Given the console is running",
             "Given the unknown fixture is open and I am Morgan with the role view \"tech-lead\"",
             "When I open Today",
-            "Then Requires you lists \"note-2-retro\" with the reason \"Action required — state on-hold is not declared for note\"",
+            "Then Requires you lists \"note-002-retro\" with the reason \"Action required — state on-hold is not declared for note\"",
             "And its action is \"Open\""
           ]
         },
@@ -7314,7 +7426,7 @@
             "Given the console is running",
             "Given the unknown fixture is open and I am Morgan with the role view \"approver\"",
             "When I open Today",
-            "Then Requires you lists \"story-1-onboarding\" with the reason \"shaping for 3 days\" and the action \"Approve\""
+            "Then Requires you lists \"story-001-onboarding\" with the reason \"shaping for 3 days\" and the action \"Approve\""
           ]
         },
         {
@@ -7330,8 +7442,8 @@
             "And the DNA gives Sam the roles reviewer",
             "And I am Sam",
             "When I open Today",
-            "Then Requires you does not list \"task-1-cli-adapter\"",
-            "And Waiting on others lists \"task-1-cli-adapter\" with \"Reserved to approver — Morgan, Alex\""
+            "Then Requires you does not list \"task-001-cli-adapter\"",
+            "And Waiting on others lists \"task-001-cli-adapter\" with \"Reserved to approver — Morgan, Alex\""
           ]
         },
         {
@@ -7345,8 +7457,8 @@
             "Given the console is running",
             "Given the kanban fixture is open and I am Morgan",
             "When I open Today",
-            "Then Waiting on others lists \"task-2-password-reset\" with \"Jordan (submitter) must act\"",
-            "And Waiting on others lists \"task-4-session-timeout\" with \"Jordan (creator) must act\""
+            "Then Waiting on others lists \"task-002-password-reset\" with \"Jordan (submitter) must act\"",
+            "And Waiting on others lists \"task-004-session-timeout\" with \"Jordan (creator) must act\""
           ]
         },
         {
@@ -7403,8 +7515,24 @@
           "steps": [
             "Given the console is running",
             "Given the unknown fixture is added and I am Alex",
-            "When I open the element panel of \"story-2-billing\"",
+            "When I open the element panel of \"story-002-billing\"",
             "Then the panel shows \"Waiting for the workflow engine (state: ready-to-build)\""
+          ]
+        },
+        {
+          "id": "S-24.4",
+          "title": "Offer only the reject of a state that is both a gate and a waiting state",
+          "file": "docs/02_requirements/02_bdd/features/s/action-descriptor.feature",
+          "release": "v0.2",
+          "kind": "edge",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running",
+            "Given the custom fixture is added and I am Morgan",
+            "And \"bug-001-toast-overlap\" has been approved to the state \"triaged\"",
+            "When I open the element panel of \"bug-001-toast-overlap\"",
+            "Then the gate footer shows only \"Reject → closed\" and \"Waiting for the workflow engine to advance\"",
+            "And Requires you does not list \"bug-001-toast-overlap\""
           ]
         },
         {
@@ -7417,7 +7545,7 @@
           "steps": [
             "Given the console is running",
             "Given the custom fixture is open and I am Morgan",
-            "When I open the gate footer of \"bug-1-toast-overlap\"",
+            "When I open the gate footer of \"bug-001-toast-overlap\"",
             "Then the footer shows the buttons \"Approve → triaged\" and \"Reject → closed\" side by side",
             "And \"Approve → triaged\" is the primary button"
           ]
@@ -7432,7 +7560,7 @@
           "steps": [
             "Given the console is running",
             "Given the unknown fixture is open and I am Morgan",
-            "When I open the gate footer of \"story-1-onboarding\"",
+            "When I open the gate footer of \"story-001-onboarding\"",
             "Then the footer shows the buttons \"Approve → ready-to-build\" and \"Reject → idea\""
           ]
         },
@@ -7448,7 +7576,7 @@
             "Given the custom fixture is open",
             "And the DNA gives Sam the roles reviewer",
             "And I am Sam",
-            "When I open the element panel of \"task-1-cli-adapter\"",
+            "When I open the element panel of \"task-001-cli-adapter\"",
             "Then the footer shows \"Reserved to approver — Morgan, Alex can act\"",
             "And the footer shows no outcome button"
           ]
@@ -7593,8 +7721,8 @@
           "steps": [
             "Given the console is running",
             "Given the kanban fixture is open and I am Morgan",
-            "When I apply the \"Scrum\" preset, which maps the type \"story\"",
-            "Then a red toast shows \"ui.yaml not written: type story is not declared in memory.yaml\"",
+            "When I apply the \"WingFoil sw-life-cycle\" preset, which maps the type \"service\"",
+            "Then a red toast shows \"ui.yaml not written: type service is not declared in memory.yaml\"",
             "And \".wingfoil/ui.yaml\" does not exist"
           ]
         },
@@ -7690,7 +7818,7 @@
       "area": "ARC",
       "wingfoil_min": "0.2.2",
       "requirement": "REQ-ARC-08",
-      "description": "The project list, the role view per project and the UI settings are stored per user in the operating system's user configuration directory, never in a project repository and never committed.",
+      "description": "The project list, the role view per project, the UI settings and the action log (hash and time of each commit the UI caused, REQ-SEC-10) are stored per user in the operating system's user configuration directory, never in a project repository and never committed.",
       "fit_criterion": "[boolean] After the full e2e suite, `git status --porcelain` of every fixture prints only the changes the scenarios made on purpose, and the state survives a server restart.",
       "verified_by": "e2e",
       "stories": [
@@ -7819,7 +7947,7 @@
           "steps": [
             "Given the console is running with the kanban fixture open",
             "Given the build replaces every message of the English catalogue with its key",
-            "When I open the element panel of \"task-1-login-form\"",
+            "When I open the element panel of \"task-001-login-form\"",
             "Then the element's title, id and state names are shown as written in the project"
           ]
         }
@@ -7837,9 +7965,10 @@
       "wingfoil_min": "0.2.2",
       "requirement": "REQ-ARC-10",
       "description": "Every MVP screen meets WCAG 2.1 AA: keyboard operation with a visible focus, outcomes announced to screen readers, the reason of a blocked action exposed as its accessible description, text alternatives for images.",
-      "fit_criterion": "[numeric] axe-core reports 0 violations of impact serious or critical on every screen of the release in both themes; focus indicators have a contrast ratio ≥ 3:1; every gate action is completed with the keyboard alone.",
+      "fit_criterion": "[numeric] axe-core reports 0 violations of impact serious or critical on every screen of the release in both themes; focus indicators have a contrast ratio ≥ 3:1; every gate action is completed with the keyboard alone; scenarios X-07.1, X-07.2, X-07.3 (live regions, accessible descriptions) pass.",
       "verified_by": "e2e-smoke `accessibility`",
       "stories": [
+        "US-G-04",
         "US-T-14",
         "US-X-01",
         "US-X-06",
@@ -7873,8 +8002,8 @@
             "Given the console is running with the kanban fixture open",
             "And I am Morgan",
             "Given Today is shown and no mouse is used",
-            "When I press Tab until \"Approve\" of \"task-1-login-form\" has the focus, press Enter, then press Tab until \"Approve → approved\" has the focus and press Enter",
-            "Then the fixture's last commit is \"wf(task): approve task-1-login-form [pending → approved]\""
+            "When I press Tab until \"Approve\" of \"task-001-login-form\" has the focus, press Enter, then press Tab until \"Approve → approved\" has the focus and press Enter",
+            "Then the fixture's last commit is \"wf(task): approve task-001-login-form [pending → approved]\""
           ]
         },
         {
@@ -7887,7 +8016,7 @@
           "steps": [
             "Given the console is running with the kanban fixture open",
             "And I am Morgan",
-            "Given the element panel of \"task-1-login-form\" is open and has the focus",
+            "Given the element panel of \"task-001-login-form\" is open and has the focus",
             "When I press Escape",
             "Then the panel closes and the focus returns to the row that opened it"
           ]
@@ -7916,7 +8045,7 @@
           "steps": [
             "Given the console is running with the kanban fixture open",
             "And I am Morgan",
-            "When I approve \"task-1-login-form\" from the UI",
+            "When I approve \"task-001-login-form\" from the UI",
             "Then the toast's text is in an ARIA live region with politeness \"polite\""
           ]
         },
@@ -7926,11 +8055,12 @@
           "file": "docs/02_requirements/02_bdd/features/x/accessibility.feature",
           "release": "v0.2",
           "kind": "edge",
-          "fixture": "kanban",
+          "fixture": "custom",
           "steps": [
             "Given the console is running with the kanban fixture open",
             "And I am Morgan",
-            "When an action of mine is refused by the CLI",
+            "Given I switch to the custom fixture and I am Alex",
+            "When I submit \"adr-001-local-server\", which the CLI refuses for its empty \"sard_ref\"",
             "Then the red toast's text is in an ARIA live region with politeness \"assertive\""
           ]
         },
@@ -7944,7 +8074,7 @@
           "steps": [
             "Given the console is running with the kanban fixture open",
             "And I am Morgan",
-            "Given \"task-1-login-form\" has local changes",
+            "Given \"task-001-login-form\" has local changes",
             "When the focus is on the disabled \"Approve → approved\" button",
             "Then the button's accessible description is \"Blocked: this element has local changes — commit or discard them first\""
           ]
@@ -8087,8 +8217,8 @@
             "Given the console is running",
             "Given the kanban fixture is open and I am Morgan with the role view \"approver\"",
             "When I open Today",
-            "Then Requires you lists exactly 2 rows: \"task-1-login-form\" and \"bug-1-crash-on-save\"",
-            "And the row of \"task-1-login-form\" shows the type \"task\", its title, the reason \"pending for 3 days\" and the action \"Approve\""
+            "Then Requires you lists exactly 2 rows: \"task-001-login-form\" and \"bug-001-crash-on-save\"",
+            "And the row of \"task-001-login-form\" shows the type \"task\", its title, the reason \"pending for 3 days\" and the action \"Approve\""
           ]
         }
       ],
@@ -8124,9 +8254,9 @@
           "steps": [
             "Given the console is running",
             "Given the kanban fixture is open and I am Morgan",
-            "When I click \"Approve\" on the Requires you row of \"task-1-login-form\"",
+            "When I click \"Approve\" on the Requires you row of \"task-001-login-form\"",
             "And I click \"Approve → approved\" in the panel that opens",
-            "Then the fixture's last commit is \"wf(task): approve task-1-login-form [pending → approved]\"",
+            "Then the fixture's last commit is \"wf(task): approve task-001-login-form [pending → approved]\"",
             "And exactly 2 clicks were made since Today was shown"
           ]
         },
@@ -8140,9 +8270,9 @@
           "steps": [
             "Given the console is running with the kanban fixture open",
             "And I am Jordan",
-            "Given the element panel of \"task-4-session-timeout\" is open",
+            "Given the element panel of \"task-004-session-timeout\" is open",
             "When I click \"Submit\"",
-            "Then the fixture's last commit is \"wf(task): submit task-4-session-timeout [draft → pending]\"",
+            "Then the fixture's last commit is \"wf(task): submit task-004-session-timeout\"",
             "And the state machine shows \"pending\" as current"
           ]
         },
@@ -8157,7 +8287,7 @@
             "Given the console is running",
             "Given the kanban fixture is open and I am Morgan",
             "And the UI setting \"Auto-push\" is off",
-            "When I approve \"task-1-login-form\" with the reason \"OK\"",
+            "When I approve \"task-001-login-form\" with the reason \"OK\"",
             "Then the toast shows the commit line without \"pushed\"",
             "And the sidebar shows \"1 commit to push\""
           ]
@@ -8181,11 +8311,16 @@
       "stories": [
         "US-M-03",
         "US-S-12",
+        "US-S-13",
+        "US-S-15",
         "US-S-25",
         "US-S-26",
+        "US-S-27",
         "US-T-03",
+        "US-T-04",
         "US-T-08",
-        "US-T-12"
+        "US-T-12",
+        "US-Y-04"
       ],
       "acceptance_criteria": [
         {
@@ -8198,9 +8333,9 @@
           "steps": [
             "Given the console is running with the kanban fixture open",
             "And I am Morgan",
-            "Given \"task-1-login-form\" carries the marker \"local changes\"",
+            "Given \"task-001-login-form\" carries the marker \"local changes\"",
             "When its edit is committed with git outside the UI",
-            "Then within 5 seconds \"task-1-login-form\" no longer carries the marker \"local changes\""
+            "Then within 5 seconds \"task-001-login-form\" no longer carries the marker \"local changes\""
           ]
         },
         {
@@ -8213,9 +8348,9 @@
           "steps": [
             "Given the console is running with the kanban fixture open",
             "And I am Morgan",
-            "Given the Memory list shows \"task-1-login-form\" in the state \"pending\"",
-            "When \"task-1-login-form\" is approved with the CLI in a terminal",
-            "Then within 5 seconds the Memory list shows \"task-1-login-form\" in the state \"approved\" without a page reload"
+            "Given the Memory list shows \"task-001-login-form\" in the state \"pending\"",
+            "When \"task-001-login-form\" is approved with the CLI in a terminal",
+            "Then within 5 seconds the Memory list shows \"task-001-login-form\" in the state \"approved\" without a page reload"
           ]
         },
         {
@@ -8228,8 +8363,8 @@
           "steps": [
             "Given the console is running with the kanban fixture open",
             "And I am Morgan",
-            "Given the element panel of \"task-1-login-form\" is open",
-            "When \"task-1-login-form\" is approved with the CLI in a terminal",
+            "Given the element panel of \"task-001-login-form\" is open",
+            "When \"task-001-login-form\" is approved with the CLI in a terminal",
             "Then within 5 seconds the panel's history lists the approval and its commit"
           ]
         },
@@ -8300,8 +8435,8 @@
           "steps": [
             "Given the console is running",
             "Given the kanban fixture is open and I am Jordan",
-            "When \"task-2-password-reset\" is submitted again with the CLI in a terminal",
-            "Then within 5 seconds Requires you lists only \"task-4-session-timeout\""
+            "When \"task-002-password-reset\" is submitted again with the CLI in a terminal",
+            "Then within 5 seconds Requires you lists only \"task-004-session-timeout\""
           ]
         },
         {
@@ -8313,9 +8448,9 @@
           "fixture": "custom",
           "steps": [
             "Given the console is running",
-            "Given the custom fixture is open and Sam, holding reviewer and approver, sees \"task-1-cli-adapter\" in Requires you",
-            "When \"task-1-cli-adapter\" is approved with the CLI in a terminal",
-            "Then within 5 seconds Requires you no longer lists \"task-1-cli-adapter\""
+            "Given the custom fixture is open and Sam, holding reviewer and approver, sees \"task-001-cli-adapter\" in Requires you",
+            "When \"task-001-cli-adapter\" is approved with the CLI in a terminal",
+            "Then within 5 seconds Requires you no longer lists \"task-001-cli-adapter\""
           ]
         },
         {
@@ -8329,7 +8464,7 @@
             "Given the console is running",
             "And I am Casey",
             "Given the custom fixture with the sw-life-cycle preset is open and Today shows \"Pending gates 3\"",
-            "When Morgan approves \"bug-1-toast-overlap\" with the CLI in a terminal",
+            "When Morgan approves \"bug-001-toast-overlap\" with the CLI in a terminal",
             "Then within 5 seconds the progress card shows \"Pending gates 2\""
           ]
         },
@@ -8343,8 +8478,8 @@
           "steps": [
             "Given the console is running with the kanban fixture open",
             "And I am Casey",
-            "When Morgan approves \"task-1-login-form\" with the CLI in a terminal",
-            "Then within 5 seconds the first event of \"Recent activity\" is \"task-1-login-form pending → approved · Morgan\""
+            "When Morgan approves \"task-001-login-form\" with the CLI in a terminal",
+            "Then within 5 seconds the first event of \"Recent activity\" is \"task-001-login-form pending → approved · Morgan\""
           ]
         },
         {
@@ -8358,8 +8493,8 @@
             "Given the console is running",
             "And I am Morgan",
             "Given the custom fixture with the sw-life-cycle preset is open",
-            "When `ref: US-X-08` is added to \"task-4-themes\" and committed outside the UI",
-            "Then within 5 seconds \"task-4-themes\" no longer carries the badge \"missing refs\""
+            "When `ref: US-X-08` is added to \"task-004-themes\" and committed outside the UI",
+            "Then within 5 seconds \"task-004-themes\" no longer carries the badge \"missing refs\""
           ]
         },
         {
@@ -8426,8 +8561,8 @@
           "steps": [
             "Given the console is running",
             "Given the kanban fixture is open and I am Morgan",
-            "When I open the element panel of \"task-1-login-form\"",
-            "Then the panel shows the type \"task\", the id \"task-1-login-form\" and its title",
+            "When I open the element panel of \"task-001-login-form\"",
+            "Then the panel shows the type \"task\", the id \"task-001-login-form\" and its title",
             "And the state machine shows \"draft\" as past, \"pending\" as current and \"approved\" as future",
             "And the history lists \"submitted by Jordan\" with its commit hash and date"
           ]
@@ -8580,6 +8715,7 @@
       "fit_criterion": "[numeric] Remote commit → \"1 behind\" (or fast-forward) within 65 s in 10 out of 10 trials; with auto-fetch off, 0 `git fetch` processes in 120 s.",
       "verified_by": "e2e",
       "stories": [
+        "US-C-07",
         "US-Y-02",
         "US-Y-05"
       ],
@@ -8660,7 +8796,7 @@
           "steps": [
             "Given the console is running",
             "And I am Jordan",
-            "Given an agent run started from the UI on \"task-3-element-panel\" prints 1 line per second",
+            "Given an agent run started from the UI on \"task-003-element-panel\" prints 1 line per second",
             "When I click \"View agent's logs\"",
             "Then the log view shows each new line within 2 seconds of the agent printing it",
             "And it shows \"Running\" with the elapsed time"
@@ -8715,8 +8851,8 @@
             "Given the console is running",
             "Given the kanban fixture is open and I am Morgan with the role view \"approver\"",
             "When I open Today",
-            "Then Requires you lists exactly 2 rows: \"task-1-login-form\" and \"bug-1-crash-on-save\"",
-            "And the row of \"task-1-login-form\" shows the type \"task\", its title, the reason \"pending for 3 days\" and the action \"Approve\""
+            "Then Requires you lists exactly 2 rows: \"task-001-login-form\" and \"bug-001-crash-on-save\"",
+            "And the row of \"task-001-login-form\" shows the type \"task\", its title, the reason \"pending for 3 days\" and the action \"Approve\""
           ]
         },
         {
@@ -8730,7 +8866,7 @@
             "Given the console is running with the kanban fixture open",
             "Given I am Alex",
             "When I open Today",
-            "Then the all-roles summary shows \"approver · 2\" with \"task-1-login-form\" and \"bug-1-crash-on-save\"",
+            "Then the all-roles summary shows \"approver · 2\" with \"task-001-login-form\" and \"bug-001-crash-on-save\"",
             "And the all-roles summary shows \"developer · 0\"",
             "And it shows one line for each of the 7 roles Alex holds"
           ]
@@ -8752,7 +8888,8 @@
       "fit_criterion": "[numeric] ≤ 2 clicks from Today to the `wf(…)` commit with the pre-filled reason.",
       "verified_by": "e2e click count",
       "stories": [
-        "US-G-04"
+        "US-G-04",
+        "US-X-06"
       ],
       "acceptance_criteria": [
         {
@@ -8765,9 +8902,9 @@
           "steps": [
             "Given the console is running",
             "Given the kanban fixture is open and I am Morgan",
-            "When I click \"Approve\" on the Requires you row of \"task-1-login-form\"",
+            "When I click \"Approve\" on the Requires you row of \"task-001-login-form\"",
             "And I click \"Approve → approved\" in the panel that opens",
-            "Then the fixture's last commit is \"wf(task): approve task-1-login-form [pending → approved]\"",
+            "Then the fixture's last commit is \"wf(task): approve task-001-login-form [pending → approved]\"",
             "And exactly 2 clicks were made since Today was shown"
           ]
         },
@@ -8781,8 +8918,8 @@
           "steps": [
             "Given the console is running",
             "Given the kanban fixture is open and I am Morgan",
-            "When I click \"Approve\" on the Requires you row of \"task-1-login-form\"",
-            "Then the element panel of \"task-1-login-form\" opens with the gate footer",
+            "When I click \"Approve\" on the Requires you row of \"task-001-login-form\"",
+            "Then the element panel of \"task-001-login-form\" opens with the gate footer",
             "And the reason field has the keyboard focus"
           ]
         },
@@ -8797,8 +8934,8 @@
             "Given the console is running with the kanban fixture open",
             "And I am Morgan",
             "Given Today is shown and no mouse is used",
-            "When I press Tab until \"Approve\" of \"task-1-login-form\" has the focus, press Enter, then press Tab until \"Approve → approved\" has the focus and press Enter",
-            "Then the fixture's last commit is \"wf(task): approve task-1-login-form [pending → approved]\""
+            "When I press Tab until \"Approve\" of \"task-001-login-form\" has the focus, press Enter, then press Tab until \"Approve → approved\" has the focus and press Enter",
+            "Then the fixture's last commit is \"wf(task): approve task-001-login-form [pending → approved]\""
           ]
         }
       ],
@@ -8835,7 +8972,7 @@
             "Given I am Morgan with the role view \"approver\"",
             "When I open Today",
             "Then the bell shows the count 2",
-            "And the bell panel's \"To unblock\" lists \"task-1-login-form\" and \"bug-1-crash-on-save\"",
+            "And the bell panel's \"To unblock\" lists \"task-001-login-form\" and \"bug-001-crash-on-save\"",
             "And the bell panel's \"Updates\" lists the last 10 Memory events, newest first"
           ]
         },
@@ -8866,7 +9003,7 @@
             "And I am Casey",
             "When I open Today",
             "Then the \"Recent activity\" card lists 5 events, newest first",
-            "And each event shows the time, the element, the transition \"from → to\" and the author",
+            "And each state-change event shows the time, the element, the transition \"from → to\" and the author, and each creation event shows \"created\" instead of a transition",
             "And the card ends with the link \"Open the Timeline\""
           ]
         }
@@ -8887,6 +9024,7 @@
       "fit_criterion": "[boolean] For every element file listed by `git status --porcelain`, the element carries the marker; for every other element it does not.",
       "verified_by": "unit · e2e",
       "stories": [
+        "US-R-10",
         "US-S-25"
       ],
       "acceptance_criteria": [
@@ -8900,9 +9038,9 @@
           "steps": [
             "Given the console is running with the kanban fixture open",
             "And I am Morgan",
-            "Given the file of \"task-1-login-form\" has an uncommitted edit of its title to \"Login form v2\"",
+            "Given the file of \"task-001-login-form\" has an uncommitted edit of its title to \"Login form v2\"",
             "When I open the Memory list",
-            "Then \"task-1-login-form\" is listed with the title \"Login form v2\"",
+            "Then \"task-001-login-form\" is listed with the title \"Login form v2\"",
             "And it carries the marker \"local changes\""
           ]
         },
@@ -8916,9 +9054,9 @@
           "steps": [
             "Given the console is running with the kanban fixture open",
             "And I am Morgan",
-            "Given \"task-1-login-form\" carries the marker \"local changes\"",
+            "Given \"task-001-login-form\" carries the marker \"local changes\"",
             "When its edit is committed with git outside the UI",
-            "Then within 5 seconds \"task-1-login-form\" no longer carries the marker \"local changes\""
+            "Then within 5 seconds \"task-001-login-form\" no longer carries the marker \"local changes\""
           ]
         },
         {
@@ -8931,9 +9069,9 @@
           "steps": [
             "Given the console is running with the kanban fixture open",
             "And I am Morgan",
-            "Given an element file \"docs/memory/task/task-9-draft-idea.md\" exists in the working tree and is not committed",
+            "Given an element file \"docs/memory/task/task-009-draft-idea.md\" exists in the working tree and is not committed",
             "When I open the Memory list",
-            "Then \"task-9-draft-idea\" is listed with the marker \"local changes\""
+            "Then \"task-009-draft-idea\" is listed with the marker \"local changes\""
           ]
         },
         {
@@ -8965,8 +9103,8 @@
       "area": "STATE",
       "wingfoil_min": "0.2.2",
       "requirement": "REQ-STATE-02",
-      "description": "Cached CLI and git reads are keyed on the commit of HEAD **and** a hash of `git status --porcelain`; a change of either invalidates them. Changes are detected by file watching, with a periodic check as a fallback.",
-      "fit_criterion": "[boolean] A unit test shows a cache miss after a commit and after a working-tree edit, and a cache hit when neither changed.",
+      "description": "Cached CLI and git reads are keyed on the commit of HEAD **and** a hash of `git status --porcelain`; a change of either invalidates them. The effective `user.email` (repository and global git configuration) is watched too and re-evaluates the identity. Changes are detected by file watching, with a periodic check as a fallback.",
+      "fit_criterion": "[boolean] A unit test shows a cache miss after a commit and after a working-tree edit, a cache hit when neither changed, and a new identity after a change of `user.email`.",
       "verified_by": "unit",
       "stories": [
         "US-S-26"
@@ -8982,9 +9120,9 @@
           "steps": [
             "Given the console is running with the kanban fixture open",
             "And I am Morgan",
-            "Given the Memory list shows \"task-1-login-form\" in the state \"pending\"",
-            "When \"task-1-login-form\" is approved with the CLI in a terminal",
-            "Then within 5 seconds the Memory list shows \"task-1-login-form\" in the state \"approved\" without a page reload"
+            "Given the Memory list shows \"task-001-login-form\" in the state \"pending\"",
+            "When \"task-001-login-form\" is approved with the CLI in a terminal",
+            "Then within 5 seconds the Memory list shows \"task-001-login-form\" in the state \"approved\" without a page reload"
           ]
         },
         {
@@ -9019,7 +9157,8 @@
       "fit_criterion": "[percentage] 100 % of governed-action requests on an element with local changes get HTTP 409 and start 0 CLI processes, including requests sent directly to the API.",
       "verified_by": "e2e · API test",
       "stories": [
-        "US-G-11"
+        "US-G-11",
+        "US-X-07"
       ],
       "acceptance_criteria": [
         {
@@ -9032,8 +9171,8 @@
           "steps": [
             "Given the console is running with the kanban fixture open",
             "And I am Morgan",
-            "Given the file of \"task-1-login-form\" has an uncommitted edit",
-            "When I open the gate footer of \"task-1-login-form\"",
+            "Given the file of \"task-001-login-form\" has an uncommitted edit",
+            "When I open the gate footer of \"task-001-login-form\"",
             "Then \"Approve → approved\" and \"Reject → draft\" are disabled",
             "And the footer shows \"Blocked: this element has local changes — commit or discard them first\""
           ]
@@ -9049,8 +9188,8 @@
             "Given the console is running with the kanban fixture open",
             "And I am Morgan",
             "Given I am Jordan",
-            "And the file of \"task-4-session-timeout\" has an uncommitted edit",
-            "When I open the element panel of \"task-4-session-timeout\"",
+            "And the file of \"task-004-session-timeout\" has an uncommitted edit",
+            "When I open the element panel of \"task-004-session-timeout\"",
             "Then \"Submit\" is disabled with \"Blocked: this element has local changes — commit or discard them first\""
           ]
         },
@@ -9065,7 +9204,7 @@
             "Given the console is running with the kanban fixture open",
             "And I am Morgan",
             "Given the file \"README.md\" has an uncommitted edit",
-            "When I open the gate footer of \"task-1-login-form\"",
+            "When I open the gate footer of \"task-001-login-form\"",
             "Then \"Approve → approved\" is enabled"
           ]
         },
@@ -9079,7 +9218,7 @@
           "steps": [
             "Given the console is running with the kanban fixture open",
             "And I am Morgan",
-            "Given \"task-1-login-form\" has local changes",
+            "Given \"task-001-login-form\" has local changes",
             "When the focus is on the disabled \"Approve → approved\" button",
             "Then the button's accessible description is \"Blocked: this element has local changes — commit or discard them first\""
           ]
@@ -9121,7 +9260,7 @@
             "Given the console is running with the kanban fixture open",
             "And I am Morgan",
             "Given the remote has 1 commit that the fixture does not have, and it has been fetched",
-            "When I open the gate footer of \"task-1-login-form\"",
+            "When I open the gate footer of \"task-001-login-form\"",
             "Then \"Approve → approved\" and \"Reject → draft\" are disabled",
             "And the footer shows \"Blocked: your copy is 1 commit behind the remote — Update\""
           ]
@@ -9136,7 +9275,7 @@
           "steps": [
             "Given the console is running with the kanban fixture open",
             "And I am Morgan",
-            "Given the footer of \"task-1-login-form\" shows \"Blocked: your copy is 1 commit behind the remote — Update\"",
+            "Given the footer of \"task-001-login-form\" shows \"Blocked: your copy is 1 commit behind the remote — Update\"",
             "When I click \"Update\" in that message",
             "Then the fixture is at the remote's commit",
             "And \"Approve → approved\" is enabled"
@@ -9153,7 +9292,7 @@
             "Given the console is running with the kanban fixture open",
             "And I am Morgan",
             "Given the fixture has 1 commit that the remote does not have, and none the other way",
-            "When I open the gate footer of \"task-1-login-form\"",
+            "When I open the gate footer of \"task-001-login-form\"",
             "Then \"Approve → approved\" is enabled"
           ]
         },
@@ -9200,11 +9339,11 @@
           "steps": [
             "Given the console is running with the kanban fixture open",
             "And I am Morgan",
-            "Given the fixture is 1 commit behind, and that commit changes \"docs/memory/task/task-1-login-form.md\"",
-            "And \"docs/memory/task/task-1-login-form.md\" has an uncommitted edit",
+            "Given the fixture is 1 commit behind, and that commit changes \"docs/memory/task/task-001-login-form.md\"",
+            "And \"docs/memory/task/task-001-login-form.md\" has an uncommitted edit",
             "When I click \"Update\" in the sidebar",
             "Then the fixture's HEAD is unchanged and the uncommitted edit is kept",
-            "And the sidebar shows \"Cannot fast-forward: local changes to task-1-login-form.md are in the way — commit or stash them in a terminal\""
+            "And the sidebar shows \"Cannot fast-forward: local changes to task-001-login-form.md are in the way — commit or stash them in a terminal\""
           ]
         },
         {
@@ -9487,7 +9626,7 @@
             "Given I am Alex with the role view \"developer\"",
             "When I select \"approver · 2\" in the all-roles summary",
             "Then the shell shows the role view \"approver\"",
-            "And Requires you lists \"task-1-login-form\" and \"bug-1-crash-on-save\""
+            "And Requires you lists \"task-001-login-form\" and \"bug-001-crash-on-save\""
           ]
         },
         {
@@ -9526,6 +9665,7 @@
         "US-S-05",
         "US-S-06",
         "US-S-07",
+        "US-S-10",
         "US-S-18",
         "US-S-19"
       ],
@@ -9753,8 +9893,8 @@
       "area": "STATE",
       "wingfoil_min": "0.2.2",
       "requirement": "REQ-STATE-08",
-      "description": "Completion and iterated figures cover the current element of the `progress.scope` type: with WingFoil 0.3 the one `workflow status` reports; before it, the most advanced element not in its first or last state (ties: lowest version); none → whole project. Reference completion = done linked elements / linked elements; project completion = unweighted mean over references with ≥ 1 linked element (Q8); coverage = elements carrying all `requires` categories / elements whose type has `requires`. Open bugs and pending gates are project-wide.",
-      "fit_criterion": "[boolean] On the custom fixture with the `sw-life-cycle` preset the UI shows exactly: scope `minor-v0.1`, project completion 25 %, tasks 1/4, open bugs 1, pending gates 3, coverage 3/4.",
+      "description": "Completion and iterated figures cover the current element of the `progress.scope` type: with WingFoil 0.3 the one `workflow status` reports; before it, the most advanced element not in its first or last state (ties: lowest version); none → whole project. Reference completion = done linked elements / linked elements; project completion = unweighted mean over references with ≥ 1 linked element (Q8); coverage = elements carrying all `requires` categories / elements whose type has `requires`, project-wide. Open bugs and pending gates are project-wide; a state both gate and `waiting:` is not a pending gate.",
+      "fit_criterion": "[boolean] On the custom fixture with the `sw-life-cycle` preset the UI shows exactly: scope `minor-v0.1`, project completion 25 %, tasks 1/4, open bugs 1, pending gates 3, coverage 3/5 — and pending gates 2 after `bug-001-toast-overlap` is approved to `triaged`.",
       "verified_by": "unit · e2e",
       "stories": [
         "US-M-03",
@@ -9841,7 +9981,7 @@
             "And I am Casey",
             "Given the custom fixture with the sw-life-cycle preset is open",
             "When I select \"Pending gates 3\" on the progress card",
-            "Then the Memory list shows exactly \"task-1-cli-adapter\", \"dl-002-use-fastify\" and \"bug-1-toast-overlap\"",
+            "Then the Memory list shows exactly \"task-001-cli-adapter\", \"dl-002-use-fastify\" and \"bug-001-toast-overlap\"",
             "And the active filter reads \"Pending gates\""
           ]
         },
@@ -9857,7 +9997,7 @@
             "And I am Casey",
             "Given the custom fixture with the sw-life-cycle preset is open",
             "When I select \"Tasks 1/4\" on the progress card",
-            "Then the Memory list shows the 4 tasks of release \"v0.1\", \"task-2-memory-list\" marked done"
+            "Then the Memory list shows the 4 tasks of release \"v0.1\", \"task-002-memory-list\" marked done"
           ]
         },
         {
@@ -9887,7 +10027,7 @@
             "And I am Casey",
             "Given the custom fixture with the sw-life-cycle preset is open",
             "When I open Traceability",
-            "Then it shows \"Project completion 25 %\" and \"Reference coverage 3/4\"",
+            "Then it shows \"Project completion 25 %\" and \"Reference coverage 3/5\"",
             "And the row \"US-M-01\" shows 2 linked elements and \"50 % · 1/2\"",
             "And the row \"US-S-01\" shows 1 linked element and \"0 % · 0/1\""
           ]
@@ -9904,8 +10044,8 @@
             "And I am Morgan",
             "Given the custom fixture with the sw-life-cycle preset is open on the Memory list",
             "When I select the filter \"Missing required references\"",
-            "Then the list shows exactly \"task-4-themes\"",
-            "And its row carries the badge \"missing refs\""
+            "Then the list shows exactly \"task-004-themes\" and \"adr-001-local-server\"",
+            "And each row carries the badge \"missing refs\""
           ]
         }
       ],
@@ -9970,7 +10110,7 @@
             "Given the console is running with the kanban fixture open",
             "And I am Morgan",
             "Given the UI settings have never been changed",
-            "When I approve \"task-1-login-form\" from the UI",
+            "When I approve \"task-001-login-form\" from the UI",
             "Then the remote's branch does not contain the approval commit",
             "And the sidebar shows \"1 commit to push\" with the \"Push\" button"
           ]
@@ -10173,7 +10313,7 @@
           "steps": [
             "Given the console is running",
             "And I am Alex",
-            "Given I am Jordan",
+            "Given the custom fixture is open and I am Jordan",
             "When I open the element panel of \"dl-002-use-fastify\"",
             "Then the gate footer is replaced by \"Reserved to approver — Morgan, Alex can act\""
           ]
@@ -10313,7 +10453,7 @@
             "Given the console is running",
             "And I am Jordan",
             "Given the custom fixture is open on WingFoil 0.2.2",
-            "When I open the element panel of \"task-3-element-panel\"",
+            "When I open the element panel of \"task-003-element-panel\"",
             "Then \"Launch agent\" is disabled with \"Needs WingFoil 0.3 (this project: 0.2.2) — run the agent outside the UI\""
           ]
         },
@@ -10394,10 +10534,10 @@
           "steps": [
             "Given the console is running",
             "Given the custom fixture is open and I am Alex with the role view \"architect\"",
-            "And \"adr-1-local-server\" is a committed `draft` created by Alex with an empty required field \"sard_ref\"",
-            "When I submit \"adr-1-local-server\" from its panel",
+            "And \"adr-001-local-server\" is a committed `draft` created by Alex with an empty required field \"sard_ref\"",
+            "When I submit \"adr-001-local-server\" from its panel",
             "Then a red toast shows the error message printed by `wingfoil memory submit`, naming \"sard_ref\"",
-            "And \"adr-1-local-server\" is still in the state \"draft\"",
+            "And \"adr-001-local-server\" is still in the state \"draft\"",
             "And the fixture's last commit is unchanged"
           ]
         },
@@ -10411,11 +10551,11 @@
           "steps": [
             "Given the console is running",
             "Given the kanban fixture is open and I am Morgan",
-            "And the gate footer of \"task-1-login-form\" is open",
-            "And \"task-1-login-form\" has been approved with the CLI in a terminal before the panel refreshed",
+            "And the gate footer of \"task-001-login-form\" is open",
+            "And \"task-001-login-form\" has been approved with the CLI in a terminal before the panel refreshed",
             "When I click \"Reject → draft\" with the reason \"Too late\"",
             "Then a red toast shows the error message printed by `wingfoil memory reject`",
-            "And the panel shows \"task-1-login-form\" in the state \"approved\""
+            "And the panel shows \"task-001-login-form\" in the state \"approved\""
           ]
         },
         {
@@ -10429,7 +10569,7 @@
             "Given the console is running",
             "And I am Jordan",
             "Given the ingestion modal of \"decision-log-ingest\" is open",
-            "And `wingfoil memory add` refuses the title with an error",
+            "And the CLI stub makes `wingfoil memory add` exit with an error",
             "When I type the title \"Adopt Playwright\" and click \"Submit\"",
             "Then a red toast shows the error message printed by `wingfoil memory add`",
             "And the fixture's last commit is unchanged"
@@ -10446,7 +10586,7 @@
             "Given the console is running",
             "And I am Jordan",
             "Given the ingestion modal of \"decision-log-ingest\" is open",
-            "And `wingfoil memory add` succeeds and `wingfoil memory submit` refuses with an error",
+            "And the CLI stub lets `wingfoil memory add` run and makes `wingfoil memory submit` exit with an error",
             "When I type the title \"Adopt Playwright\" and click \"Submit\"",
             "Then a red toast shows the error of `wingfoil memory submit` and \"Draft dl-003-adopt-playwright was created — open it\"",
             "And the fixture's last commit is \"wf(decision-log): add dl-003-adopt-playwright\""
@@ -10482,7 +10622,7 @@
       "wingfoil_min": "0.2.2",
       "requirement": "REQ-INT-05",
       "description": "An ingestion is offered only when every required field of its type can be set by the CLI version in use (0.2.2: `title` and id/path tokens through `memory add --set`); its steps run as the workflow's own verbs. Otherwise it is read-only with the missing field named.",
-      "fit_criterion": "[boolean] On 0.2.2 the custom fixture offers exactly `decision-log-ingest` and the kanban fixture `bug-ingest`, `decision-log-ingest`, `adr-ingest`; every listed scenario passes.",
+      "fit_criterion": "[boolean] On 0.2.2 the custom fixture offers exactly `decision-log-ingest`, and the kanban fixture (whose ingest workflows declare no action) offers none; every listed scenario passes.",
       "verified_by": "e2e",
       "stories": [
         "US-G-15",
@@ -10503,7 +10643,7 @@
             "And I am Jordan",
             "Given the custom fixture is open on the Memory list",
             "When I click \"+ Ingestion\", choose \"decision-log-ingest\", type the title \"Adopt Playwright\" and click \"Submit\"",
-            "Then the fixture's last 2 commits are \"wf(decision-log): add dl-003-adopt-playwright\" and \"wf(decision-log): submit dl-003-adopt-playwright [draft → in-discussion]\"",
+            "Then the fixture's last 2 commits are \"wf(decision-log): add dl-003-adopt-playwright\" and \"wf(decision-log): submit dl-003-adopt-playwright\"",
             "And the element panel of \"dl-003-adopt-playwright\" opens in the state \"in-discussion\""
           ]
         },
@@ -10542,7 +10682,7 @@
         },
         {
           "id": "G-16.2",
-          "title": "Offer every ingestion whose type requires only CLI-set fields",
+          "title": "Hide ingestion when the project's ingest workflows declare no step",
           "file": "docs/02_requirements/02_bdd/features/g/ingestion.feature",
           "release": "v0.3",
           "kind": "edge",
@@ -10550,9 +10690,9 @@
           "steps": [
             "Given the console is running",
             "And I am Jordan",
-            "Given the kanban fixture is open on WingFoil 0.2.2",
-            "When I click \"+ Ingestion\" on the Memory list",
-            "Then \"bug-ingest\", \"decision-log-ingest\" and \"adr-ingest\" are enabled"
+            "Given the kanban fixture is open on WingFoil 0.2.2, whose `bug-ingest`, `decision-log-ingest` and `adr-ingest` have one phase with no action",
+            "When I open the Memory list",
+            "Then no \"+ Ingestion\" button is shown"
           ]
         },
         {
@@ -10568,7 +10708,7 @@
             "Given the custom fixture is open on a WingFoil that sets the required fields of a bug",
             "And I start \"bug-ingest\"",
             "When I type the title \"Toast hides the Push button\", choose the severity \"medium\" and click \"Submit\"",
-            "Then the fixture's commits for \"bug-2-toast-hides-the-push-button\" are made by the CLI only",
+            "Then the fixture's commits for \"bug-002-toast-hides-the-push-button\" are made by the CLI only",
             "And the bug's frontmatter has `severity: medium` and the state \"open\""
           ]
         },
@@ -10601,6 +10741,20 @@
             "Then the Ingestion section shows exactly the cards \"bug-ingest\", \"decision-log-ingest\", \"adr-ingest\" and \"service-ingest\"",
             "And the card \"decision-log-ingest\" shows the steps \"capture · product-owner → approve · approver\" and the button \"Start\""
           ]
+        },
+        {
+          "id": "M-07.2",
+          "title": "Count the open runs of an ingestion",
+          "file": "docs/02_requirements/02_bdd/features/m/workflows.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running",
+            "Given the custom fixture is open",
+            "When I open Workflow",
+            "Then the card \"decision-log-ingest\" shows \"1 open\" for \"dl-002-use-fastify\""
+          ]
         }
       ],
       "dependencies": [
@@ -10616,7 +10770,7 @@
       "area": "INT",
       "wingfoil_min": "0.2.2",
       "requirement": "REQ-INT-06",
-      "description": "The server runs only these git operations: read (`rev-parse`, `status --porcelain`, `log`, `rev-list --count`, `config user.email`, `remote`), `clone` (adding a remote project), `fetch`, `pull --ff-only`, `push`, and `commit -- .wingfoil/ui.yaml` for presets. It never merges, rebases, resets, stashes or checks out. Git's error message is shown verbatim on failure.",
+      "description": "The server runs only these git operations: read (`rev-parse`, `status --porcelain`, `log`, `rev-list --count`, `config user.email`, `remote`), `clone` (adding a remote project, into a new empty folder), `fetch`, `pull --ff-only`, `push`, and `add -- .wingfoil/ui.yaml` + `commit -- .wingfoil/ui.yaml` for presets. It never merges, rebases, resets, stashes or checks out. Git's error message is shown verbatim on failure. Memory events (Timeline, Recent activity) are parsed from `wf(…)` subjects; `add` and `submit` subjects carry no transition, so a submit's `from → to` is read from the element file's `status` before and after the commit (`git log -p` on the element file, or `memory history <id>` when its output carries the states — to be fixed by the Memory-event tech-spec).",
       "fit_criterion": "[percentage] 100 % of the git processes started during the e2e suite use a subcommand of the allowed list (process audit).",
       "verified_by": "e2e (process audit)",
       "stories": [
@@ -10722,7 +10876,7 @@
           "steps": [
             "Given the console is running with the kanban fixture open",
             "And I am Morgan",
-            "Given the fixture is 1 commit behind, and that commit changes only \"docs/memory/task/task-3-logout.md\"",
+            "Given the fixture is 1 commit behind, and that commit changes only \"docs/memory/task/task-003-logout.md\"",
             "And \"README.md\" has an uncommitted edit",
             "When I click \"Update\" in the sidebar",
             "Then the fixture's HEAD is the remote's commit",
@@ -10757,7 +10911,7 @@
             "Given the console is running with the kanban fixture open",
             "And I am Morgan",
             "Given the UI setting \"Auto-push\" is off",
-            "And I approved \"task-1-login-form\" from the UI",
+            "And I approved \"task-001-login-form\" from the UI",
             "When I click \"Push\" in the sidebar",
             "Then the remote's branch is at the fixture's HEAD",
             "And the sidebar shows \"In sync with git\""
@@ -10774,7 +10928,7 @@
             "Given the console is running with the kanban fixture open",
             "And I am Morgan",
             "Given the UI setting \"Auto-push\" is on",
-            "When I approve \"task-1-login-form\" from the UI",
+            "When I approve \"task-001-login-form\" from the UI",
             "Then the remote's branch is at the approval commit"
           ]
         },
@@ -10790,7 +10944,7 @@
             "And I am Morgan",
             "Given the UI setting \"Auto-push\" is on",
             "And a commit has been pushed to the remote by someone else and not yet fetched",
-            "When I approve \"task-1-login-form\" from the UI",
+            "When I approve \"task-001-login-form\" from the UI",
             "Then a red toast shows \"Not pushed\" with the rejection printed by git",
             "And the approval commit stays in the fixture",
             "And the sidebar shows \"1 ahead\""
@@ -10900,9 +11054,9 @@
             "Given the console is running",
             "And I am Jordan",
             "Given the custom fixture is open on WingFoil 0.3",
-            "And the workflow engine reports the next step \"dev-loop · implement\" for role \"developer\" on \"task-3-element-panel\"",
+            "And the workflow engine reports the next step \"dev-loop · red\" for role \"developer\" on \"task-003-element-panel\"",
             "When I open Today",
-            "Then the Next workflow step card shows \"dev-loop · implement — task-3-element-panel\""
+            "Then the Next workflow step card shows \"dev-loop · red — task-003-element-panel\""
           ]
         },
         {
@@ -10916,9 +11070,9 @@
             "Given the console is running",
             "And I am Casey",
             "Given the custom fixture with the sw-life-cycle preset is open on WingFoil 0.3",
-            "And the workflow engine reports `release-cycle` of \"minor-v0.1\" at phase \"dev-loop\"",
+            "And the workflow engine reports `release-cycle` of \"minor-v0.1\" at phase \"implementation\"",
             "When I open Today",
-            "Then the progress card shows \"Phase 2 of 7 — dev-loop\"",
+            "Then the progress card shows \"Phase 2 of 7 — implementation\"",
             "And the phase strip shows 1 phase done, 1 current and 5 to do"
           ]
         },
@@ -10932,9 +11086,9 @@
           "steps": [
             "Given the console is running",
             "And I am Jordan",
-            "Given the custom fixture is open on WingFoil 0.3 with the next step \"dev-loop · implement\" on \"task-3-element-panel\"",
+            "Given the custom fixture is open on WingFoil 0.3 with the next step \"dev-loop · red\" on \"task-003-element-panel\"",
             "When I expand the Next workflow step card",
-            "Then it shows the role \"developer\", the directives bound to \"developer\", the DNA module of the task, the specs it references and the branch \"task/task-3-element-panel\""
+            "Then it shows the role \"developer\", the directives bound to \"developer\", the DNA module of the task, the specs it references and the branch \"task/task-003-element-panel\""
           ]
         },
         {
@@ -10947,10 +11101,10 @@
           "steps": [
             "Given the console is running",
             "Given the custom fixture is open on WingFoil 0.3",
-            "And the workflow engine reports `sw-life-cycle` at \"release-line-cycle\" › \"rl-v1\" › \"dev-loop\" with role \"developer\"",
+            "And the workflow engine reports `sw-life-cycle` at \"release-line-cycle\" › \"rl-v1\" › \"delivery\" › \"minor-v0.1\" › \"implementation\" with role \"developer\"",
             "When I open Workflow",
             "Then \"init\", \"inception\" and \"specification\" are marked done",
-            "And \"dev-loop\" under \"rl-v1\" is marked current with \"developer must act\""
+            "And \"implementation\" under \"minor-v0.1\" is marked current with \"developer must act\""
           ]
         },
         {
@@ -10963,10 +11117,10 @@
           "steps": [
             "Given the console is running",
             "And I am Jordan",
-            "Given the custom fixture is open on WingFoil 0.3 with the next step \"dev-loop · implement\" on \"task-3-element-panel\"",
+            "Given the custom fixture is open on WingFoil 0.3 with the next step \"dev-loop · red\" on \"task-003-element-panel\"",
             "And the UI setting \"Confirm agent launch\" is on",
-            "When I click \"Launch agent\" and confirm the modal showing the step's context and the branch \"task/task-3-element-panel\"",
-            "Then the server starts `wingfoil agent execute` for \"task-3-element-panel\" with role \"developer\"",
+            "When I click \"Launch agent\" and confirm the modal showing the step's context and the branch \"task/task-003-element-panel\"",
+            "Then the server starts `wingfoil agent execute` for \"task-003-element-panel\" with role \"developer\"",
             "And the button reads \"View agent's logs\""
           ]
         },
@@ -10983,8 +11137,8 @@
             "Given the custom fixture is open on WingFoil 0.3",
             "And the DNA gives Sam the roles reviewer",
             "And I am Sam",
-            "When I click \"Start assisted review\" in the panel of \"task-1-cli-adapter\" and confirm",
-            "Then the server starts `wingfoil agent execute` for \"task-1-cli-adapter\" with role \"reviewer\"",
+            "When I click \"Start assisted review\" in the panel of \"task-001-cli-adapter\" and confirm",
+            "Then the server starts `wingfoil agent execute` for \"task-001-cli-adapter\" with role \"reviewer\"",
             "And the button reads \"View agent's logs\""
           ]
         },
@@ -11049,7 +11203,7 @@
             "Given the custom fixture is open on a WingFoil that sets the required fields of a bug",
             "And I start \"bug-ingest\"",
             "When I type the title \"Toast hides the Push button\", choose the severity \"medium\" and click \"Submit\"",
-            "Then the fixture's commits for \"bug-2-toast-hides-the-push-button\" are made by the CLI only",
+            "Then the fixture's commits for \"bug-002-toast-hides-the-push-button\" are made by the CLI only",
             "And the bug's frontmatter has `severity: medium` and the state \"open\""
           ]
         }
@@ -11066,10 +11220,15 @@
       "area": "INT",
       "wingfoil_min": "0.2.2",
       "requirement": "REQ-INT-08",
-      "description": "The UI supports the two latest stable major versions of Chrome, Edge, Firefox and Safari on desktop; the e2e suite runs on the Chromium, Firefox and WebKit engines.",
+      "description": "The UI supports the desktop browsers built on the Chromium, Firefox (Gecko) and WebKit engines — Chrome, Edge, Firefox and Safari — in the versions those engines have in the Playwright release pinned by the project; the e2e suite runs on the three engines.",
       "fit_criterion": "[percentage] 100 % of the release's e2e scenarios pass on each of the three engines.",
       "verified_by": "e2e-smoke `drive-browser`",
-      "stories": [],
+      "stories": [
+        "US-G-04",
+        "US-S-01",
+        "US-S-28",
+        "US-X-06"
+      ],
       "acceptance_criteria": [
         {
           "id": "S-01.1",
@@ -11116,9 +11275,9 @@
           "steps": [
             "Given the console is running",
             "Given the kanban fixture is open and I am Morgan",
-            "When I click \"Approve\" on the Requires you row of \"task-1-login-form\"",
+            "When I click \"Approve\" on the Requires you row of \"task-001-login-form\"",
             "And I click \"Approve → approved\" in the panel that opens",
-            "Then the fixture's last commit is \"wf(task): approve task-1-login-form [pending → approved]\"",
+            "Then the fixture's last commit is \"wf(task): approve task-001-login-form [pending → approved]\"",
             "And exactly 2 clicks were made since Today was shown"
           ]
         },
@@ -11167,9 +11326,9 @@
           "steps": [
             "Given the console is running with the kanban fixture open",
             "And I am Morgan",
-            "Given the Memory list shows \"task-1-login-form\" in the state \"pending\"",
-            "When \"task-1-login-form\" is approved with the CLI in a terminal",
-            "Then within 5 seconds the Memory list shows \"task-1-login-form\" in the state \"approved\" without a page reload"
+            "Given the Memory list shows \"task-001-login-form\" in the state \"pending\"",
+            "When \"task-001-login-form\" is approved with the CLI in a terminal",
+            "Then within 5 seconds the Memory list shows \"task-001-login-form\" in the state \"approved\" without a page reload"
           ]
         },
         {
@@ -11182,8 +11341,8 @@
           "steps": [
             "Given the console is running with the kanban fixture open",
             "And I am Morgan",
-            "Given the element panel of \"task-1-login-form\" is open",
-            "When \"task-1-login-form\" is approved with the CLI in a terminal",
+            "Given the element panel of \"task-001-login-form\" is open",
+            "When \"task-001-login-form\" is approved with the CLI in a terminal",
             "Then within 5 seconds the panel's history lists the approval and its commit"
           ]
         },
@@ -11197,7 +11356,7 @@
           "steps": [
             "Given the console is running",
             "And I am Jordan",
-            "Given an agent run started from the UI on \"task-3-element-panel\" prints 1 line per second",
+            "Given an agent run started from the UI on \"task-003-element-panel\" prints 1 line per second",
             "When I click \"View agent's logs\"",
             "Then the log view shows each new line within 2 seconds of the agent printing it",
             "And it shows \"Running\" with the elapsed time"
@@ -11475,7 +11634,7 @@
             "And I am Jordan",
             "Given the custom fixture is open on the Memory list",
             "When I click \"+ Ingestion\", choose \"decision-log-ingest\", type the title \"Adopt Playwright\" and click \"Submit\"",
-            "Then the fixture's last 2 commits are \"wf(decision-log): add dl-003-adopt-playwright\" and \"wf(decision-log): submit dl-003-adopt-playwright [draft → in-discussion]\"",
+            "Then the fixture's last 2 commits are \"wf(decision-log): add dl-003-adopt-playwright\" and \"wf(decision-log): submit dl-003-adopt-playwright\"",
             "And the element panel of \"dl-003-adopt-playwright\" opens in the state \"in-discussion\""
           ]
         },
@@ -11489,9 +11648,9 @@
           "steps": [
             "Given the console is running",
             "Given the kanban fixture is open and I am Morgan",
-            "And the gate footer of \"task-1-login-form\" is open",
+            "And the gate footer of \"task-001-login-form\" is open",
             "When I replace the reason with \"Matches the mock-up\" and click \"Approve → approved\"",
-            "Then the history of \"task-1-login-form\" lists the reason \"Matches the mock-up\""
+            "Then the history of \"task-001-login-form\" lists the reason \"Matches the mock-up\""
           ]
         },
         {
@@ -11612,8 +11771,8 @@
             "And the DNA gives Sam the roles reviewer",
             "And I am Sam",
             "When I open Today",
-            "Then Requires you does not list \"task-1-cli-adapter\"",
-            "And Waiting on others lists \"task-1-cli-adapter\" with \"Reserved to approver — Morgan, Alex\""
+            "Then Requires you does not list \"task-001-cli-adapter\"",
+            "And Waiting on others lists \"task-001-cli-adapter\" with \"Reserved to approver — Morgan, Alex\""
           ]
         },
         {
@@ -11644,7 +11803,7 @@
             "Given the custom fixture is open",
             "And the DNA gives Sam the roles reviewer",
             "And I am Sam",
-            "When I open the element panel of \"task-1-cli-adapter\"",
+            "When I open the element panel of \"task-001-cli-adapter\"",
             "Then the footer shows \"Reserved to approver — Morgan, Alex can act\"",
             "And the footer shows no outcome button"
           ]
@@ -11661,7 +11820,7 @@
             "Given the custom fixture is open",
             "And the DNA gives Sam the roles reviewer, approver",
             "And I am Sam",
-            "When I open the element panel of \"task-1-cli-adapter\"",
+            "When I open the element panel of \"task-001-cli-adapter\"",
             "Then the footer shows the buttons \"Approve → approved\" and \"Reject → in-progress\""
           ]
         },
@@ -11721,7 +11880,7 @@
           "steps": [
             "Given the console is running",
             "And I am Alex",
-            "Given I am Jordan",
+            "Given the custom fixture is open and I am Jordan",
             "When I open the element panel of \"dl-002-use-fastify\"",
             "Then the gate footer is replaced by \"Reserved to approver — Morgan, Alex can act\""
           ]
@@ -11761,7 +11920,7 @@
           "steps": [
             "Given the console is running with the kanban fixture added",
             "Given I am Riley",
-            "When I open the element panel of \"task-1-login-form\"",
+            "When I open the element panel of \"task-001-login-form\"",
             "Then the panel shows no action footer",
             "And the panel shows \"Read-only: riley@example.test is not in the team — How to join\""
           ]
@@ -11776,7 +11935,7 @@
           "steps": [
             "Given the console is running with the kanban fixture added",
             "Given the fixture's `git config user.email` matches the members \"Jordan\" and \"Sam\"",
-            "When I open the element panel of \"task-1-login-form\"",
+            "When I open the element panel of \"task-001-login-form\"",
             "Then the panel shows no action footer"
           ]
         },
@@ -11959,8 +12118,7 @@
       "fit_criterion": "[percentage] Between the v0.2 and the v0.3 releases, ≥ 80 % of the approve/reject commits of this repository have their hash in the server's local action log (the list of commits the UI caused: hash and time, no other data); the same from v0.3 for the WingFoil repository.",
       "verified_by": "retrospective (`wf(…)` history)",
       "stories": [
-        "US-G-04",
-        "US-G-05"
+        "US-G-04"
       ],
       "acceptance_criteria": [
         {
@@ -11973,9 +12131,9 @@
           "steps": [
             "Given the console is running",
             "Given the kanban fixture is open and I am Morgan",
-            "When I click \"Approve\" on the Requires you row of \"task-1-login-form\"",
+            "When I click \"Approve\" on the Requires you row of \"task-001-login-form\"",
             "And I click \"Approve → approved\" in the panel that opens",
-            "Then the fixture's last commit is \"wf(task): approve task-1-login-form [pending → approved]\"",
+            "Then the fixture's last commit is \"wf(task): approve task-001-login-form [pending → approved]\"",
             "And exactly 2 clicks were made since Today was shown"
           ]
         }

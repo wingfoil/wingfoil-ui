@@ -11,8 +11,8 @@ Feature: Command palette
 
   @US-S-20 @v0.3 @nominal @fx-kanban
   Scenario: S-20.1 — Open an element by its id
-    When I press Ctrl+K, type "task-3" and press Enter
-    Then the element panel of "task-3-logout" opens
+    When I press Ctrl+K, type "task-003" and press Enter
+    Then the element panel of "task-003-logout" opens
 
   @US-S-20 @v0.3 @edge @fx-kanban
   Scenario: S-20.2 — Switch project from the palette

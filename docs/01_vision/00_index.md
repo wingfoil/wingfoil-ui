@@ -1,7 +1,7 @@
 # Vision Package — WingFoil UI
 
-**Version:** 1.0
-**Date:** 2026-10-01
+**Version:** 1.1
+**Date:** 2026-10-02 (1.1: 44 MVP features, documents updated by specification-downcast sessions 1–6)
 **Status:** Produced by `lean-inception` (phase `inception` of `sw-life-cycle`); plan
 `docs/05_plans/sw-life-cycle/lean-inception-inception-plan.md`
 

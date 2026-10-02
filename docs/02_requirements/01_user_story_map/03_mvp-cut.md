@@ -1,9 +1,9 @@
 # User Story Map — MVP Cut
 
-**Version:** 0.3
-**Date:** 2026-10-01 (0.2: US-S-11, US-X-07 moved to v0.2 — session 2; 0.3: C3 and US-C-05, US-C-06 dropped — session 3)
+**Version:** 0.4
+**Date:** 2026-10-01 (0.2: US-S-11, US-X-07 moved to v0.2 — session 2; 0.3: C3 and US-C-05, US-C-06 dropped — session 3; 0.4: input versions — session 6)
 **Status:** Draft — specification-downcast session 1 (`user-story-mapping`, phase `mvp-cut`)
-**Input:** `02_story-map.md` · `docs/01_vision/07_sequencer.md` (v0.3) · `08_mvp-canvas.md` (v0.2)
+**Input:** `02_story-map.md` · `docs/01_vision/07_sequencer.md` (v0.5) · `08_mvp-canvas.md` (v0.3)
 
 The MVP is the release-line `rl-v1` (v0.1 → v1.0, `08_mvp-canvas.md`). The cut slices the map
 horizontally by release: each story carries the release of `07_sequencer.md` in which it is
@@ -33,8 +33,8 @@ Casey's journey in v0.3).
 - **Edge:** US-S-05 · US-S-06 · US-S-07 · US-S-09 · US-S-10 · US-S-13 · US-S-14 · US-S-15 ·
   US-S-19 · US-S-27 · US-M-02 · US-R-09 · US-X-03 · US-X-04 · US-X-05
 - **Exit criteria → stories:** three fixtures render without UI changes → US-S-28, US-M-02;
-  non-loopback and cross-origin requests refused → US-X-03, US-X-04; no write path → no v0.1 story
-  writes (checked by the SARD and e2e-smoke).
+  non-loopback and cross-origin requests refused → US-X-03, US-X-04; no governed write → the only v0.1
+  write is the clone of US-S-04 (checked by REQ-ARC-03 and e2e-smoke).
 
 ### v0.2 — Unblock (first usable)
 

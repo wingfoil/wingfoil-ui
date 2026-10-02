@@ -11,16 +11,16 @@ Feature: Next workflow step
   @US-T-09 @v0.4 @nominal @fx-custom
   Scenario: T-09.1 — Show the next step for my role
     Given the custom fixture is open on WingFoil 0.3
-    And the workflow engine reports the next step "dev-loop · implement" for role "developer" on "task-3-element-panel"
+    And the workflow engine reports the next step "dev-loop · red" for role "developer" on "task-003-element-panel"
     When I open Today
-    Then the Next workflow step card shows "dev-loop · implement — task-3-element-panel"
+    Then the Next workflow step card shows "dev-loop · red — task-003-element-panel"
 
   @US-T-09 @v0.4 @edge @fx-custom
   Scenario: T-09.2 — List rejected work before the next step
     Given the custom fixture is open on WingFoil 0.3 with a next step for "developer"
-    And "task-5-sidebar" is a `draft` of Jordan's rejected with the reason "Breaks the layout"
+    And "task-005-sidebar" is a `draft` of Jordan's rejected with the reason "Breaks the layout"
     When I open Today
-    Then Requires you lists "task-5-sidebar" above the Next workflow step card
+    Then Requires you lists "task-005-sidebar" above the Next workflow step card
 
   @US-T-09 @v0.4 @edge @fx-custom
   Scenario: T-09.3 — Say that no step waits for my role
@@ -48,13 +48,13 @@ Feature: Next workflow step
 
   @US-T-17 @v0.4 @nominal @fx-custom
   Scenario: T-17.1 — Show the context the agent will receive
-    Given the custom fixture is open on WingFoil 0.3 with the next step "dev-loop · implement" on "task-3-element-panel"
+    Given the custom fixture is open on WingFoil 0.3 with the next step "dev-loop · red" on "task-003-element-panel"
     When I expand the Next workflow step card
-    Then it shows the role "developer", the directives bound to "developer", the DNA module of the task, the specs it references and the branch "task/task-3-element-panel"
+    Then it shows the role "developer", the directives bound to "developer", the DNA module of the task, the specs it references and the branch "task/task-003-element-panel"
 
   @US-T-17 @v0.4 @edge @fx-custom
   Scenario: T-17.2 — Name the context items that are missing
-    Given the custom fixture is open on WingFoil 0.3 with the next step on "task-4-themes"
-    And "task-4-themes" declares no `module`
+    Given the custom fixture is open on WingFoil 0.3 with the next step on "task-004-themes"
+    And "task-004-themes" declares no `module`
     When I expand the Next workflow step card
-    Then the DNA module line reads "No module declared on task-4-themes"
+    Then the DNA module line reads "No module declared on task-004-themes"

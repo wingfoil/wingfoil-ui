@@ -1,8 +1,9 @@
 Feature: Memory list
   Type filters from `memory.yaml` with counts, state filters (buckets for all types, real states
   per type), each item opening its element panel (M1, S9). Buckets with *All types*: **To approve**
-  (gate states) · **In progress** (other intermediate states, and states not declared for the
-  type) · **Waiting/drafts/closed** (first state, `waiting:` states, reject targets with no way
+  (gate states that are not `waiting:` states) · **In progress** (other intermediate states, and
+  states not declared for the type) · **Waiting/drafts/closed** (first state, `waiting:` states —
+  including those that are also gates, e.g. custom `bug` `triaged` — reject targets with no way
   out) · **Done** (last state of `sequence`).
 
   Background:
@@ -20,20 +21,20 @@ Feature: Memory list
   Scenario: M-01.5 — List one type with its real states
     Given the kanban fixture is open on the Memory list
     When I select the type filter "task"
-    Then the list shows exactly "task-1-login-form", "task-2-password-reset", "task-3-logout", "task-4-session-timeout"
+    Then the list shows exactly "task-001-login-form", "task-002-password-reset", "task-003-logout", "task-004-session-timeout"
     And the state filters are exactly "draft", "pending", "approved"
 
   @US-M-01 @v0.1 @edge @fx-kanban
   Scenario: M-01.2 — Filter all types by bucket
     Given the kanban fixture is open
     When I select the type filter "All types" and the bucket "To approve"
-    Then the list shows exactly "task-1-login-form" and "bug-1-crash-on-save"
+    Then the list shows exactly "task-001-login-form" and "bug-001-crash-on-save"
 
   @US-M-01 @v0.1 @edge @fx-kanban
   Scenario: M-01.3 — Open the element panel from the list
     Given the kanban fixture is open on the Memory list
-    When I select the row of "task-3-logout"
-    Then the element panel of "task-3-logout" opens
+    When I select the row of "task-003-logout"
+    Then the element panel of "task-003-logout" opens
 
   @US-M-01 @v0.1 @edge @fx-kanban
   Scenario: M-01.4 — Show a type with no element
@@ -64,7 +65,7 @@ Feature: Memory list
 
     Examples:
       | bucket                | elements                                  |
-      | To approve            | "story-1-onboarding"                      |
-      | In progress           | "note-2-retro"                            |
-      | Waiting/drafts/closed | "story-2-billing", "note-1-kickoff"       |
+      | To approve            | "story-001-onboarding"                      |
+      | In progress           | "note-002-retro"                            |
+      | Waiting/drafts/closed | "story-002-billing", "note-001-kickoff"       |
       | Done                  | no element                                |

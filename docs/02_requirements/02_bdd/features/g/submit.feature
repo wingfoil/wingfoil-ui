@@ -9,19 +9,19 @@ Feature: Submit from the single-action footer
 
   @US-G-10 @v0.2 @nominal @fx-kanban
   Scenario: G-10.1 — Submit a draft
-    Given the element panel of "task-4-session-timeout" is open
+    Given the element panel of "task-004-session-timeout" is open
     When I click "Submit"
-    Then the fixture's last commit is "wf(task): submit task-4-session-timeout [draft → pending]"
+    Then the fixture's last commit is "wf(task): submit task-004-session-timeout"
     And the state machine shows "pending" as current
 
   @US-G-10 @v0.2 @edge @fx-kanban
   Scenario: G-10.2 — Submit rejected work again
-    Given the element panel of "task-2-password-reset" shows the rejection banner
+    Given the element panel of "task-002-password-reset" shows the rejection banner
     When I click "Submit"
-    Then the fixture's last commit is "wf(task): submit task-2-password-reset [draft → pending]"
+    Then the fixture's last commit is "wf(task): submit task-002-password-reset"
     And the panel no longer shows the rejection banner
 
   @US-G-10 @v0.2 @edge @fx-kanban
   Scenario: G-10.3 — Offer no submit on an element waiting on a gate
-    When I open the element panel of "task-1-login-form"
+    When I open the element panel of "task-001-login-form"
     Then the panel shows no "Submit" button

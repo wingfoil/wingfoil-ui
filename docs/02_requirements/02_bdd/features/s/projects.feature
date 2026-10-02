@@ -112,7 +112,7 @@ Feature: Project list
 
   @US-S-16 @v0.1 @edge @fx-any
   Scenario: S-16.2 — Close the element panel of the previous project on switch
-    Given the kanban fixture is open with the element panel of "task-1-login-form"
+    Given the kanban fixture is open with the element panel of "task-001-login-form"
     When I select the custom fixture in the project switcher
     Then no element panel is open
 

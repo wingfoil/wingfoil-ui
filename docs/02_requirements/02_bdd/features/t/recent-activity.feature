@@ -11,13 +11,13 @@ Feature: Recent activity
   Scenario: T-08.1 — Show the last 5 Memory events
     When I open Today
     Then the "Recent activity" card lists 5 events, newest first
-    And each event shows the time, the element, the transition "from → to" and the author
+    And each state-change event shows the time, the element, the transition "from → to" and the author, and each creation event shows "created" instead of a transition
     And the card ends with the link "Open the Timeline"
 
   @US-T-08 @v0.3 @edge @fx-kanban
   Scenario: T-08.2 — Add an event made outside the UI
-    When Morgan approves "task-1-login-form" with the CLI in a terminal
-    Then within 5 seconds the first event of "Recent activity" is "task-1-login-form pending → approved · Morgan"
+    When Morgan approves "task-001-login-form" with the CLI in a terminal
+    Then within 5 seconds the first event of "Recent activity" is "task-001-login-form pending → approved · Morgan"
 
   @US-T-08 @v0.3 @edge @fx-kanban
   Scenario: T-08.3 — Leave out commits that are not Memory events

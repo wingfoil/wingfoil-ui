@@ -19,12 +19,12 @@ Feature: Accessibility
   @US-X-06 @v0.2 @edge @fx-kanban
   Scenario: X-06.2 — Decide a gate with the keyboard only
     Given Today is shown and no mouse is used
-    When I press Tab until "Approve" of "task-1-login-form" has the focus, press Enter, then press Tab until "Approve → approved" has the focus and press Enter
-    Then the fixture's last commit is "wf(task): approve task-1-login-form [pending → approved]"
+    When I press Tab until "Approve" of "task-001-login-form" has the focus, press Enter, then press Tab until "Approve → approved" has the focus and press Enter
+    Then the fixture's last commit is "wf(task): approve task-001-login-form [pending → approved]"
 
   @US-X-06 @v0.1 @edge @fx-kanban
   Scenario: X-06.3 — Close the element panel with Escape
-    Given the element panel of "task-1-login-form" is open and has the focus
+    Given the element panel of "task-001-login-form" is open and has the focus
     When I press Escape
     Then the panel closes and the focus returns to the row that opened it
 
@@ -37,16 +37,17 @@ Feature: Accessibility
 
   @US-X-07 @v0.2 @nominal @fx-kanban
   Scenario: X-07.1 — Announce a toast
-    When I approve "task-1-login-form" from the UI
+    When I approve "task-001-login-form" from the UI
     Then the toast's text is in an ARIA live region with politeness "polite"
 
-  @US-X-07 @v0.2 @edge @fx-kanban
+  @US-X-07 @v0.2 @edge @fx-custom
   Scenario: X-07.2 — Announce a refusal assertively
-    When an action of mine is refused by the CLI
+    Given I switch to the custom fixture and I am Alex
+    When I submit "adr-001-local-server", which the CLI refuses for its empty "sard_ref"
     Then the red toast's text is in an ARIA live region with politeness "assertive"
 
   @US-X-07 @v0.2 @edge @fx-kanban
   Scenario: X-07.3 — Expose the reason of a blocked action
-    Given "task-1-login-form" has local changes
+    Given "task-001-login-form" has local changes
     When the focus is on the disabled "Approve → approved" button
     Then the button's accessible description is "Blocked: this element has local changes — commit or discard them first"

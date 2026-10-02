@@ -37,5 +37,5 @@ Feature: Themes and externalised strings
   @US-X-09 @v0.1 @edge @fx-kanban
   Scenario: X-09.2 — Keep project data untranslated
     Given the build replaces every message of the English catalogue with its key
-    When I open the element panel of "task-1-login-form"
+    When I open the element panel of "task-001-login-form"
     Then the element's title, id and state names are shown as written in the project

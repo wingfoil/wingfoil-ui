@@ -2,9 +2,9 @@
   "version": 1,
   "release": "v0.4",
   "generated_from": {
-    "story_map": "docs/02_requirements/01_user_story_map/02_story-map.md v0.3",
-    "bdd": "docs/02_requirements/02_bdd/00_conventions.md v0.2",
-    "sard": "docs/02_requirements/03_sard/00_sard.md v0.1"
+    "story_map": "docs/02_requirements/01_user_story_map/02_story-map.md v0.4",
+    "bdd": "docs/02_requirements/02_bdd/00_conventions.md v0.3",
+    "sard": "docs/02_requirements/03_sard/00_sard.md v0.2"
   },
   "items": [
     {
@@ -33,9 +33,9 @@
             "Given the console is running",
             "And I am Jordan",
             "Given the custom fixture is open on WingFoil 0.3",
-            "And the workflow engine reports the next step \"dev-loop · implement\" for role \"developer\" on \"task-3-element-panel\"",
+            "And the workflow engine reports the next step \"dev-loop · red\" for role \"developer\" on \"task-003-element-panel\"",
             "When I open Today",
-            "Then the Next workflow step card shows \"dev-loop · implement — task-3-element-panel\""
+            "Then the Next workflow step card shows \"dev-loop · red — task-003-element-panel\""
           ]
         },
         {
@@ -49,9 +49,9 @@
             "Given the console is running",
             "And I am Jordan",
             "Given the custom fixture is open on WingFoil 0.3 with a next step for \"developer\"",
-            "And \"task-5-sidebar\" is a `draft` of Jordan's rejected with the reason \"Breaks the layout\"",
+            "And \"task-005-sidebar\" is a `draft` of Jordan's rejected with the reason \"Breaks the layout\"",
             "When I open Today",
-            "Then Requires you lists \"task-5-sidebar\" above the Next workflow step card"
+            "Then Requires you lists \"task-005-sidebar\" above the Next workflow step card"
           ]
         },
         {
@@ -153,9 +153,9 @@
             "Given the console is running",
             "And I am Casey",
             "Given the custom fixture with the sw-life-cycle preset is open on WingFoil 0.3",
-            "And the workflow engine reports `release-cycle` of \"minor-v0.1\" at phase \"dev-loop\"",
+            "And the workflow engine reports `release-cycle` of \"minor-v0.1\" at phase \"implementation\"",
             "When I open Today",
-            "Then the progress card shows \"Phase 2 of 7 — dev-loop\"",
+            "Then the progress card shows \"Phase 2 of 7 — implementation\"",
             "And the phase strip shows 1 phase done, 1 current and 5 to do"
           ]
         },
@@ -205,10 +205,10 @@
           "steps": [
             "Given the console is running",
             "Given the custom fixture is open on WingFoil 0.3",
-            "And the workflow engine reports `sw-life-cycle` at \"release-line-cycle\" › \"rl-v1\" › \"dev-loop\" with role \"developer\"",
+            "And the workflow engine reports `sw-life-cycle` at \"release-line-cycle\" › \"rl-v1\" › \"delivery\" › \"minor-v0.1\" › \"implementation\" with role \"developer\"",
             "When I open Workflow",
             "Then \"init\", \"inception\" and \"specification\" are marked done",
-            "And \"dev-loop\" under \"rl-v1\" is marked current with \"developer must act\""
+            "And \"implementation\" under \"minor-v0.1\" is marked current with \"developer must act\""
           ]
         },
         {
@@ -234,7 +234,7 @@
     {
       "id": "US-G-18",
       "kind": "user-story",
-      "title": "Report a bug through its ingestion with its required fields set by the CLI, when the project's WingFoil sets them (field",
+      "title": "Report a bug through its ingestion with its required fields set by the CLI, when the project's WingFoil sets them …",
       "release": "v0.4",
       "area": "G",
       "wingfoil_min": "0.3",
@@ -259,7 +259,7 @@
             "Given the custom fixture is open on a WingFoil that sets the required fields of a bug",
             "And I start \"bug-ingest\"",
             "When I type the title \"Toast hides the Push button\", choose the severity \"medium\" and click \"Submit\"",
-            "Then the fixture's commits for \"bug-2-toast-hides-the-push-button\" are made by the CLI only",
+            "Then the fixture's commits for \"bug-002-toast-hides-the-push-button\" are made by the CLI only",
             "And the bug's frontmatter has `severity: medium` and the state \"open\""
           ]
         },
@@ -309,9 +309,9 @@
           "steps": [
             "Given the console is running",
             "And I am Jordan",
-            "Given the custom fixture is open on WingFoil 0.3 with the next step \"dev-loop · implement\" on \"task-3-element-panel\"",
+            "Given the custom fixture is open on WingFoil 0.3 with the next step \"dev-loop · red\" on \"task-003-element-panel\"",
             "When I expand the Next workflow step card",
-            "Then it shows the role \"developer\", the directives bound to \"developer\", the DNA module of the task, the specs it references and the branch \"task/task-3-element-panel\""
+            "Then it shows the role \"developer\", the directives bound to \"developer\", the DNA module of the task, the specs it references and the branch \"task/task-003-element-panel\""
           ]
         },
         {
@@ -324,10 +324,10 @@
           "steps": [
             "Given the console is running",
             "And I am Jordan",
-            "Given the custom fixture is open on WingFoil 0.3 with the next step on \"task-4-themes\"",
-            "And \"task-4-themes\" declares no `module`",
+            "Given the custom fixture is open on WingFoil 0.3 with the next step on \"task-004-themes\"",
+            "And \"task-004-themes\" declares no `module`",
             "When I expand the Next workflow step card",
-            "Then the DNA module line reads \"No module declared on task-4-themes\""
+            "Then the DNA module line reads \"No module declared on task-004-themes\""
           ]
         }
       ],
@@ -361,10 +361,10 @@
           "steps": [
             "Given the console is running",
             "And I am Jordan",
-            "Given the custom fixture is open on WingFoil 0.3 with the next step \"dev-loop · implement\" on \"task-3-element-panel\"",
+            "Given the custom fixture is open on WingFoil 0.3 with the next step \"dev-loop · red\" on \"task-003-element-panel\"",
             "And the UI setting \"Confirm agent launch\" is on",
-            "When I click \"Launch agent\" and confirm the modal showing the step's context and the branch \"task/task-3-element-panel\"",
-            "Then the server starts `wingfoil agent execute` for \"task-3-element-panel\" with role \"developer\"",
+            "When I click \"Launch agent\" and confirm the modal showing the step's context and the branch \"task/task-003-element-panel\"",
+            "Then the server starts `wingfoil agent execute` for \"task-003-element-panel\" with role \"developer\"",
             "And the button reads \"View agent's logs\""
           ]
         },
@@ -433,14 +433,14 @@
             "Given the custom fixture is open on WingFoil 0.3",
             "And the DNA gives Sam the roles reviewer",
             "And I am Sam",
-            "When I click \"Start assisted review\" in the panel of \"task-1-cli-adapter\" and confirm",
-            "Then the server starts `wingfoil agent execute` for \"task-1-cli-adapter\" with role \"reviewer\"",
+            "When I click \"Start assisted review\" in the panel of \"task-001-cli-adapter\" and confirm",
+            "Then the server starts `wingfoil agent execute` for \"task-001-cli-adapter\" with role \"reviewer\"",
             "And the button reads \"View agent's logs\""
           ]
         },
         {
           "id": "A-02.2",
-          "title": "Offer no assisted review outside a review state",
+          "title": "Offer no assisted review outside a gate state",
           "file": "docs/02_requirements/02_bdd/features/a/agents.feature",
           "release": "v0.4",
           "kind": "edge",
@@ -450,7 +450,7 @@
             "And I am Jordan",
             "Given the custom fixture is open on WingFoil 0.3",
             "And I am Sam",
-            "When I open the element panel of \"task-2-memory-list\"",
+            "When I open the element panel of \"task-002-memory-list\"",
             "Then no \"Start assisted review\" button is shown"
           ]
         }
@@ -486,7 +486,7 @@
             "Given the console is running",
             "And I am Jordan",
             "Given the custom fixture is open on WingFoil 0.2.2",
-            "When I open the element panel of \"task-3-element-panel\"",
+            "When I open the element panel of \"task-003-element-panel\"",
             "Then \"Launch agent\" is disabled with \"Needs WingFoil 0.3 (this project: 0.2.2) — run the agent outside the UI\""
           ]
         },
@@ -535,7 +535,7 @@
           "steps": [
             "Given the console is running",
             "And I am Jordan",
-            "Given an agent run started from the UI on \"task-3-element-panel\" prints 1 line per second",
+            "Given an agent run started from the UI on \"task-003-element-panel\" prints 1 line per second",
             "When I click \"View agent's logs\"",
             "Then the log view shows each new line within 2 seconds of the agent printing it",
             "And it shows \"Running\" with the elapsed time"
@@ -641,7 +641,7 @@
           "steps": [
             "Given the console is running",
             "And I am Jordan",
-            "Given an agent run started from the UI on \"task-3-element-panel\" prints 1 line per second",
+            "Given an agent run started from the UI on \"task-003-element-panel\" prints 1 line per second",
             "When I click \"View agent's logs\"",
             "Then the log view shows each new line within 2 seconds of the agent printing it",
             "And it shows \"Running\" with the elapsed time"
@@ -687,9 +687,9 @@
             "Given the console is running",
             "And I am Jordan",
             "Given the custom fixture is open on WingFoil 0.3",
-            "And the workflow engine reports the next step \"dev-loop · implement\" for role \"developer\" on \"task-3-element-panel\"",
+            "And the workflow engine reports the next step \"dev-loop · red\" for role \"developer\" on \"task-003-element-panel\"",
             "When I open Today",
-            "Then the Next workflow step card shows \"dev-loop · implement — task-3-element-panel\""
+            "Then the Next workflow step card shows \"dev-loop · red — task-003-element-panel\""
           ]
         },
         {
@@ -703,9 +703,9 @@
             "Given the console is running",
             "And I am Casey",
             "Given the custom fixture with the sw-life-cycle preset is open on WingFoil 0.3",
-            "And the workflow engine reports `release-cycle` of \"minor-v0.1\" at phase \"dev-loop\"",
+            "And the workflow engine reports `release-cycle` of \"minor-v0.1\" at phase \"implementation\"",
             "When I open Today",
-            "Then the progress card shows \"Phase 2 of 7 — dev-loop\"",
+            "Then the progress card shows \"Phase 2 of 7 — implementation\"",
             "And the phase strip shows 1 phase done, 1 current and 5 to do"
           ]
         },
@@ -719,9 +719,9 @@
           "steps": [
             "Given the console is running",
             "And I am Jordan",
-            "Given the custom fixture is open on WingFoil 0.3 with the next step \"dev-loop · implement\" on \"task-3-element-panel\"",
+            "Given the custom fixture is open on WingFoil 0.3 with the next step \"dev-loop · red\" on \"task-003-element-panel\"",
             "When I expand the Next workflow step card",
-            "Then it shows the role \"developer\", the directives bound to \"developer\", the DNA module of the task, the specs it references and the branch \"task/task-3-element-panel\""
+            "Then it shows the role \"developer\", the directives bound to \"developer\", the DNA module of the task, the specs it references and the branch \"task/task-003-element-panel\""
           ]
         },
         {
@@ -734,10 +734,10 @@
           "steps": [
             "Given the console is running",
             "Given the custom fixture is open on WingFoil 0.3",
-            "And the workflow engine reports `sw-life-cycle` at \"release-line-cycle\" › \"rl-v1\" › \"dev-loop\" with role \"developer\"",
+            "And the workflow engine reports `sw-life-cycle` at \"release-line-cycle\" › \"rl-v1\" › \"delivery\" › \"minor-v0.1\" › \"implementation\" with role \"developer\"",
             "When I open Workflow",
             "Then \"init\", \"inception\" and \"specification\" are marked done",
-            "And \"dev-loop\" under \"rl-v1\" is marked current with \"developer must act\""
+            "And \"implementation\" under \"minor-v0.1\" is marked current with \"developer must act\""
           ]
         },
         {
@@ -750,10 +750,10 @@
           "steps": [
             "Given the console is running",
             "And I am Jordan",
-            "Given the custom fixture is open on WingFoil 0.3 with the next step \"dev-loop · implement\" on \"task-3-element-panel\"",
+            "Given the custom fixture is open on WingFoil 0.3 with the next step \"dev-loop · red\" on \"task-003-element-panel\"",
             "And the UI setting \"Confirm agent launch\" is on",
-            "When I click \"Launch agent\" and confirm the modal showing the step's context and the branch \"task/task-3-element-panel\"",
-            "Then the server starts `wingfoil agent execute` for \"task-3-element-panel\" with role \"developer\"",
+            "When I click \"Launch agent\" and confirm the modal showing the step's context and the branch \"task/task-003-element-panel\"",
+            "Then the server starts `wingfoil agent execute` for \"task-003-element-panel\" with role \"developer\"",
             "And the button reads \"View agent's logs\""
           ]
         },
@@ -770,8 +770,8 @@
             "Given the custom fixture is open on WingFoil 0.3",
             "And the DNA gives Sam the roles reviewer",
             "And I am Sam",
-            "When I click \"Start assisted review\" in the panel of \"task-1-cli-adapter\" and confirm",
-            "Then the server starts `wingfoil agent execute` for \"task-1-cli-adapter\" with role \"reviewer\"",
+            "When I click \"Start assisted review\" in the panel of \"task-001-cli-adapter\" and confirm",
+            "Then the server starts `wingfoil agent execute` for \"task-001-cli-adapter\" with role \"reviewer\"",
             "And the button reads \"View agent's logs\""
           ]
         },
@@ -836,7 +836,7 @@
             "Given the custom fixture is open on a WingFoil that sets the required fields of a bug",
             "And I start \"bug-ingest\"",
             "When I type the title \"Toast hides the Push button\", choose the severity \"medium\" and click \"Submit\"",
-            "Then the fixture's commits for \"bug-2-toast-hides-the-push-button\" are made by the CLI only",
+            "Then the fixture's commits for \"bug-002-toast-hides-the-push-button\" are made by the CLI only",
             "And the bug's frontmatter has `severity: medium` and the state \"open\""
           ]
         }

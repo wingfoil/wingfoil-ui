@@ -2,9 +2,9 @@
   "version": 1,
   "release": "v0.3",
   "generated_from": {
-    "story_map": "docs/02_requirements/01_user_story_map/02_story-map.md v0.3",
-    "bdd": "docs/02_requirements/02_bdd/00_conventions.md v0.2",
-    "sard": "docs/02_requirements/03_sard/00_sard.md v0.1"
+    "story_map": "docs/02_requirements/01_user_story_map/02_story-map.md v0.4",
+    "bdd": "docs/02_requirements/02_bdd/00_conventions.md v0.3",
+    "sard": "docs/02_requirements/03_sard/00_sard.md v0.2"
   },
   "items": [
     {
@@ -33,8 +33,8 @@
             "Given the console is running with the kanban fixture and the custom fixture added",
             "And the kanban fixture is open",
             "And I am Alex",
-            "When I press Ctrl+K, type \"task-3\" and press Enter",
-            "Then the element panel of \"task-3-logout\" opens"
+            "When I press Ctrl+K, type \"task-003\" and press Enter",
+            "Then the element panel of \"task-003-logout\" opens"
           ]
         },
         {
@@ -128,7 +128,7 @@
             "And I am Casey",
             "When I open Today",
             "Then the \"Recent activity\" card lists 5 events, newest first",
-            "And each event shows the time, the element, the transition \"from → to\" and the author",
+            "And each state-change event shows the time, the element, the transition \"from → to\" and the author, and each creation event shows \"created\" instead of a transition",
             "And the card ends with the link \"Open the Timeline\""
           ]
         },
@@ -142,8 +142,8 @@
           "steps": [
             "Given the console is running with the kanban fixture open",
             "And I am Casey",
-            "When Morgan approves \"task-1-login-form\" with the CLI in a terminal",
-            "Then within 5 seconds the first event of \"Recent activity\" is \"task-1-login-form pending → approved · Morgan\""
+            "When Morgan approves \"task-001-login-form\" with the CLI in a terminal",
+            "Then within 5 seconds the first event of \"Recent activity\" is \"task-001-login-form pending → approved · Morgan\""
           ]
         },
         {
@@ -389,7 +389,7 @@
             "Given the console is running",
             "And I am Casey",
             "Given the custom fixture with the sw-life-cycle preset is open and Today shows \"Pending gates 3\"",
-            "When Morgan approves \"bug-1-toast-overlap\" with the CLI in a terminal",
+            "When Morgan approves \"bug-001-toast-overlap\" with the CLI in a terminal",
             "Then within 5 seconds the progress card shows \"Pending gates 2\""
           ]
         }
@@ -428,7 +428,7 @@
             "And I am Casey",
             "Given the custom fixture with the sw-life-cycle preset is open",
             "When I select \"Pending gates 3\" on the progress card",
-            "Then the Memory list shows exactly \"task-1-cli-adapter\", \"dl-002-use-fastify\" and \"bug-1-toast-overlap\"",
+            "Then the Memory list shows exactly \"task-001-cli-adapter\", \"dl-002-use-fastify\" and \"bug-001-toast-overlap\"",
             "And the active filter reads \"Pending gates\""
           ]
         },
@@ -444,7 +444,7 @@
             "And I am Casey",
             "Given the custom fixture with the sw-life-cycle preset is open",
             "When I select \"Tasks 1/4\" on the progress card",
-            "Then the Memory list shows the 4 tasks of release \"v0.1\", \"task-2-memory-list\" marked done"
+            "Then the Memory list shows the 4 tasks of release \"v0.1\", \"task-002-memory-list\" marked done"
           ]
         }
       ],
@@ -583,8 +583,8 @@
             "And I am Morgan",
             "Given the custom fixture with the sw-life-cycle preset is open on the Memory list",
             "When I select the filter \"Missing required references\"",
-            "Then the list shows exactly \"task-4-themes\"",
-            "And its row carries the badge \"missing refs\""
+            "Then the list shows exactly \"task-004-themes\" and \"adr-001-local-server\"",
+            "And each row carries the badge \"missing refs\""
           ]
         },
         {
@@ -598,8 +598,8 @@
             "Given the console is running",
             "And I am Morgan",
             "Given the custom fixture with the sw-life-cycle preset is open",
-            "When `ref: US-X-08` is added to \"task-4-themes\" and committed outside the UI",
-            "Then within 5 seconds \"task-4-themes\" no longer carries the badge \"missing refs\""
+            "When `ref: US-X-08` is added to \"task-004-themes\" and committed outside the UI",
+            "Then within 5 seconds \"task-004-themes\" no longer carries the badge \"missing refs\""
           ]
         }
       ],
@@ -686,7 +686,7 @@
             "And I am Casey",
             "Given the custom fixture with the sw-life-cycle preset is open",
             "When I open Traceability",
-            "Then it shows \"Project completion 25 %\" and \"Reference coverage 3/4\"",
+            "Then it shows \"Project completion 25 %\" and \"Reference coverage 3/5\"",
             "And the row \"US-M-01\" shows 2 linked elements and \"50 % · 1/2\"",
             "And the row \"US-S-01\" shows 1 linked element and \"0 % · 0/1\""
           ]
@@ -703,7 +703,7 @@
             "And I am Casey",
             "Given the custom fixture with the sw-life-cycle preset is open on Traceability",
             "When I select the row \"US-M-01\"",
-            "Then the detail lists \"task-2-memory-list · done\" and \"task-3-element-panel · backlog · waiting for the workflow engine\""
+            "Then the detail lists \"task-002-memory-list · done\" and \"task-003-element-panel · backlog · waiting for the workflow engine\""
           ]
         },
         {
@@ -764,9 +764,8 @@
           "kind": "nominal",
           "fixture": "kanban",
           "steps": [
-            "Given the console is running with the kanban fixture open",
+            "Given the console is running with the kanban fixture's timeline variant open",
             "And I am Casey",
-            "And after the commits of `wingfoil init`, the fixture's history is exactly: 2026-09-28 \"wf(task): add task-1-login-form\", 2026-09-28 \"wf(task): submit task-1-login-form [draft → pending]\", 2026-09-29 \"docs: fix a typo in README\", 2026-09-30 \"wf(task): approve task-1-login-form [pending → approved]\"",
             "When I open Timeline",
             "Then the Time axis tab is selected",
             "And the column 2026-09-28 shows 1 creation above the axis and 1 state change below",
@@ -781,12 +780,11 @@
           "kind": "edge",
           "fixture": "kanban",
           "steps": [
-            "Given the console is running with the kanban fixture open",
+            "Given the console is running with the kanban fixture's timeline variant open",
             "And I am Casey",
-            "And after the commits of `wingfoil init`, the fixture's history is exactly: 2026-09-28 \"wf(task): add task-1-login-form\", 2026-09-28 \"wf(task): submit task-1-login-form [draft → pending]\", 2026-09-29 \"docs: fix a typo in README\", 2026-09-30 \"wf(task): approve task-1-login-form [pending → approved]\"",
             "Given Timeline is open on the Time axis",
             "When I select the column 2026-09-28",
-            "Then it lists \"task-1-login-form · created\" and \"task-1-login-form · draft → pending\", each with the time and the author"
+            "Then it lists \"task-001-login-form · created\" and \"task-001-login-form · draft → pending\", each with the time and the author"
           ]
         }
       ],
@@ -815,9 +813,8 @@
           "kind": "nominal",
           "fixture": "kanban",
           "steps": [
-            "Given the console is running with the kanban fixture open",
+            "Given the console is running with the kanban fixture's timeline variant open",
             "And I am Casey",
-            "And after the commits of `wingfoil init`, the fixture's history is exactly: 2026-09-28 \"wf(task): add task-1-login-form\", 2026-09-28 \"wf(task): submit task-1-login-form [draft → pending]\", 2026-09-29 \"docs: fix a typo in README\", 2026-09-30 \"wf(task): approve task-1-login-form [pending → approved]\"",
             "When I open Timeline",
             "Then the column 2026-09-29 shows no event"
           ]
@@ -830,9 +827,8 @@
           "kind": "edge",
           "fixture": "kanban",
           "steps": [
-            "Given the console is running with the kanban fixture open",
+            "Given the console is running with the kanban fixture's timeline variant open",
             "And I am Casey",
-            "And after the commits of `wingfoil init`, the fixture's history is exactly: 2026-09-28 \"wf(task): add task-1-login-form\", 2026-09-28 \"wf(task): submit task-1-login-form [draft → pending]\", 2026-09-29 \"docs: fix a typo in README\", 2026-09-30 \"wf(task): approve task-1-login-form [pending → approved]\"",
             "When I open the Git tree tab of Timeline",
             "Then it lists \"docs: fix a typo in README\" with a filled dot"
           ]
@@ -863,12 +859,11 @@
           "kind": "nominal",
           "fixture": "kanban",
           "steps": [
-            "Given the console is running with the kanban fixture open",
+            "Given the console is running with the kanban fixture's timeline variant open",
             "And I am Casey",
-            "And after the commits of `wingfoil init`, the fixture's history is exactly: 2026-09-28 \"wf(task): add task-1-login-form\", 2026-09-28 \"wf(task): submit task-1-login-form [draft → pending]\", 2026-09-29 \"docs: fix a typo in README\", 2026-09-30 \"wf(task): approve task-1-login-form [pending → approved]\"",
             "Given the Git tree tab of Timeline is open",
-            "When I select \"wf(task): approve task-1-login-form [pending → approved]\"",
-            "Then the commit shows its full message, its changed files and the link \"task-1-login-form\"",
+            "When I select \"wf(task): approve task-001-login-form [pending → approved]\"",
+            "Then the commit shows its full message, its changed files and the link \"task-001-login-form\"",
             "And the commit's dot is hollow, marking a Memory commit"
           ]
         },
@@ -880,9 +875,8 @@
           "kind": "edge",
           "fixture": "kanban",
           "steps": [
-            "Given the console is running with the kanban fixture open",
+            "Given the console is running with the kanban fixture's timeline variant open",
             "And I am Casey",
-            "And after the commits of `wingfoil init`, the fixture's history is exactly: 2026-09-28 \"wf(task): add task-1-login-form\", 2026-09-28 \"wf(task): submit task-1-login-form [draft → pending]\", 2026-09-29 \"docs: fix a typo in README\", 2026-09-30 \"wf(task): approve task-1-login-form [pending → approved]\"",
             "Given the Git tree tab of Timeline is open",
             "When I turn on the filter \"Memory changes only\"",
             "Then the list shows the 3 `wf(task)` commits and not \"docs: fix a typo in README\""
@@ -896,9 +890,8 @@
           "kind": "edge",
           "fixture": "kanban",
           "steps": [
-            "Given the console is running with the kanban fixture open",
+            "Given the console is running with the kanban fixture's timeline variant open",
             "And I am Casey",
-            "And after the commits of `wingfoil init`, the fixture's history is exactly: 2026-09-28 \"wf(task): add task-1-login-form\", 2026-09-28 \"wf(task): submit task-1-login-form [draft → pending]\", 2026-09-29 \"docs: fix a typo in README\", 2026-09-30 \"wf(task): approve task-1-login-form [pending → approved]\"",
             "Given the fixture has a branch \"feature/x\" with 1 commit not on \"main\"",
             "When I open the Git tree tab of Timeline",
             "Then \"feature/x\" is drawn in a second lane with its label on the tip"
@@ -910,7 +903,7 @@
     {
       "id": "US-R-10",
       "kind": "user-story",
-      "title": "A read-only file tree and viewer of the working tree, files differing from HEAD marked, with highlighting and Markdown p",
+      "title": "A read-only file tree and viewer of the working tree, files differing from HEAD marked, with highlighting and Markdown …",
       "release": "v0.3",
       "area": "R",
       "wingfoil_min": "0.2.2",
@@ -983,7 +976,9 @@
           ]
         }
       ],
-      "dependencies": []
+      "dependencies": [
+        "TT-STATE-01"
+      ]
     },
     {
       "id": "US-R-11",
@@ -1188,7 +1183,7 @@
             "And I am Jordan",
             "Given the custom fixture is open on the Memory list",
             "When I click \"+ Ingestion\", choose \"decision-log-ingest\", type the title \"Adopt Playwright\" and click \"Submit\"",
-            "Then the fixture's last 2 commits are \"wf(decision-log): add dl-003-adopt-playwright\" and \"wf(decision-log): submit dl-003-adopt-playwright [draft → in-discussion]\"",
+            "Then the fixture's last 2 commits are \"wf(decision-log): add dl-003-adopt-playwright\" and \"wf(decision-log): submit dl-003-adopt-playwright\"",
             "And the element panel of \"dl-003-adopt-playwright\" opens in the state \"in-discussion\""
           ]
         },
@@ -1249,7 +1244,7 @@
     {
       "id": "US-G-16",
       "kind": "user-story",
-      "title": "The ingestion of a type whose required fields the CLI cannot set (bug, adr, tech-spec, service on WingFoil 0.2.2) shown ",
+      "title": "The ingestion of a type whose required fields the CLI cannot set (bug, adr, tech-spec, service on WingFoil 0.2.2) shown …",
       "release": "v0.3",
       "area": "G",
       "wingfoil_min": "0.2.2",
@@ -1281,7 +1276,7 @@
         },
         {
           "id": "G-16.2",
-          "title": "Offer every ingestion whose type requires only CLI-set fields",
+          "title": "Hide ingestion when the project's ingest workflows declare no step",
           "file": "docs/02_requirements/02_bdd/features/g/ingestion.feature",
           "release": "v0.3",
           "kind": "edge",
@@ -1289,9 +1284,9 @@
           "steps": [
             "Given the console is running",
             "And I am Jordan",
-            "Given the kanban fixture is open on WingFoil 0.2.2",
-            "When I click \"+ Ingestion\" on the Memory list",
-            "Then \"bug-ingest\", \"decision-log-ingest\" and \"adr-ingest\" are enabled"
+            "Given the kanban fixture is open on WingFoil 0.2.2, whose `bug-ingest`, `decision-log-ingest` and `adr-ingest` have one phase with no action",
+            "When I open the Memory list",
+            "Then no \"+ Ingestion\" button is shown"
           ]
         }
       ],
@@ -1303,7 +1298,7 @@
     {
       "id": "US-G-17",
       "kind": "user-story",
-      "title": "An ingestion step the CLI refuses reported as a red toast with the CLI's reason, nothing created or a created draft name",
+      "title": "An ingestion step the CLI refuses reported as a red toast with the CLI's reason, nothing created or a created draft …",
       "release": "v0.3",
       "area": "G",
       "wingfoil_min": "0.2.2",
@@ -1327,7 +1322,7 @@
             "Given the console is running",
             "And I am Jordan",
             "Given the ingestion modal of \"decision-log-ingest\" is open",
-            "And `wingfoil memory add` refuses the title with an error",
+            "And the CLI stub makes `wingfoil memory add` exit with an error",
             "When I type the title \"Adopt Playwright\" and click \"Submit\"",
             "Then a red toast shows the error message printed by `wingfoil memory add`",
             "And the fixture's last commit is unchanged"
@@ -1344,7 +1339,7 @@
             "Given the console is running",
             "And I am Jordan",
             "Given the ingestion modal of \"decision-log-ingest\" is open",
-            "And `wingfoil memory add` succeeds and `wingfoil memory submit` refuses with an error",
+            "And the CLI stub lets `wingfoil memory add` run and makes `wingfoil memory submit` exit with an error",
             "When I type the title \"Adopt Playwright\" and click \"Submit\"",
             "Then a red toast shows the error of `wingfoil memory submit` and \"Draft dl-003-adopt-playwright was created — open it\"",
             "And the fixture's last commit is \"wf(decision-log): add dl-003-adopt-playwright\""
@@ -1562,8 +1557,8 @@
           "steps": [
             "Given the console is running",
             "Given the kanban fixture is open and I am Morgan",
-            "When I apply the \"Scrum\" preset, which maps the type \"story\"",
-            "Then a red toast shows \"ui.yaml not written: type story is not declared in memory.yaml\"",
+            "When I apply the \"WingFoil sw-life-cycle\" preset, which maps the type \"service\"",
+            "Then a red toast shows \"ui.yaml not written: type service is not declared in memory.yaml\"",
             "And \".wingfoil/ui.yaml\" does not exist"
           ]
         }
@@ -1631,8 +1626,8 @@
       "area": "STATE",
       "wingfoil_min": "0.2.2",
       "requirement": "REQ-STATE-08",
-      "description": "Completion and iterated figures cover the current element of the `progress.scope` type: with WingFoil 0.3 the one `workflow status` reports; before it, the most advanced element not in its first or last state (ties: lowest version); none → whole project. Reference completion = done linked elements / linked elements; project completion = unweighted mean over references with ≥ 1 linked element (Q8); coverage = elements carrying all `requires` categories / elements whose type has `requires`. Open bugs and pending gates are project-wide.",
-      "fit_criterion": "[boolean] On the custom fixture with the `sw-life-cycle` preset the UI shows exactly: scope `minor-v0.1`, project completion 25 %, tasks 1/4, open bugs 1, pending gates 3, coverage 3/4.",
+      "description": "Completion and iterated figures cover the current element of the `progress.scope` type: with WingFoil 0.3 the one `workflow status` reports; before it, the most advanced element not in its first or last state (ties: lowest version); none → whole project. Reference completion = done linked elements / linked elements; project completion = unweighted mean over references with ≥ 1 linked element (Q8); coverage = elements carrying all `requires` categories / elements whose type has `requires`, project-wide. Open bugs and pending gates are project-wide; a state both gate and `waiting:` is not a pending gate.",
+      "fit_criterion": "[boolean] On the custom fixture with the `sw-life-cycle` preset the UI shows exactly: scope `minor-v0.1`, project completion 25 %, tasks 1/4, open bugs 1, pending gates 3, coverage 3/5 — and pending gates 2 after `bug-001-toast-overlap` is approved to `triaged`.",
       "verified_by": "unit · e2e",
       "stories": [
         "US-M-03",
@@ -1719,7 +1714,7 @@
             "And I am Casey",
             "Given the custom fixture with the sw-life-cycle preset is open",
             "When I select \"Pending gates 3\" on the progress card",
-            "Then the Memory list shows exactly \"task-1-cli-adapter\", \"dl-002-use-fastify\" and \"bug-1-toast-overlap\"",
+            "Then the Memory list shows exactly \"task-001-cli-adapter\", \"dl-002-use-fastify\" and \"bug-001-toast-overlap\"",
             "And the active filter reads \"Pending gates\""
           ]
         },
@@ -1735,7 +1730,7 @@
             "And I am Casey",
             "Given the custom fixture with the sw-life-cycle preset is open",
             "When I select \"Tasks 1/4\" on the progress card",
-            "Then the Memory list shows the 4 tasks of release \"v0.1\", \"task-2-memory-list\" marked done"
+            "Then the Memory list shows the 4 tasks of release \"v0.1\", \"task-002-memory-list\" marked done"
           ]
         },
         {
@@ -1765,7 +1760,7 @@
             "And I am Casey",
             "Given the custom fixture with the sw-life-cycle preset is open",
             "When I open Traceability",
-            "Then it shows \"Project completion 25 %\" and \"Reference coverage 3/4\"",
+            "Then it shows \"Project completion 25 %\" and \"Reference coverage 3/5\"",
             "And the row \"US-M-01\" shows 2 linked elements and \"50 % · 1/2\"",
             "And the row \"US-S-01\" shows 1 linked element and \"0 % · 0/1\""
           ]
@@ -1782,8 +1777,8 @@
             "And I am Morgan",
             "Given the custom fixture with the sw-life-cycle preset is open on the Memory list",
             "When I select the filter \"Missing required references\"",
-            "Then the list shows exactly \"task-4-themes\"",
-            "And its row carries the badge \"missing refs\""
+            "Then the list shows exactly \"task-004-themes\" and \"adr-001-local-server\"",
+            "And each row carries the badge \"missing refs\""
           ]
         }
       ],
@@ -1800,7 +1795,7 @@
       "wingfoil_min": "0.2.2",
       "requirement": "REQ-INT-05",
       "description": "An ingestion is offered only when every required field of its type can be set by the CLI version in use (0.2.2: `title` and id/path tokens through `memory add --set`); its steps run as the workflow's own verbs. Otherwise it is read-only with the missing field named.",
-      "fit_criterion": "[boolean] On 0.2.2 the custom fixture offers exactly `decision-log-ingest` and the kanban fixture `bug-ingest`, `decision-log-ingest`, `adr-ingest`; every listed scenario passes.",
+      "fit_criterion": "[boolean] On 0.2.2 the custom fixture offers exactly `decision-log-ingest`, and the kanban fixture (whose ingest workflows declare no action) offers none; every listed scenario passes.",
       "verified_by": "e2e",
       "stories": [
         "US-G-15",
@@ -1821,7 +1816,7 @@
             "And I am Jordan",
             "Given the custom fixture is open on the Memory list",
             "When I click \"+ Ingestion\", choose \"decision-log-ingest\", type the title \"Adopt Playwright\" and click \"Submit\"",
-            "Then the fixture's last 2 commits are \"wf(decision-log): add dl-003-adopt-playwright\" and \"wf(decision-log): submit dl-003-adopt-playwright [draft → in-discussion]\"",
+            "Then the fixture's last 2 commits are \"wf(decision-log): add dl-003-adopt-playwright\" and \"wf(decision-log): submit dl-003-adopt-playwright\"",
             "And the element panel of \"dl-003-adopt-playwright\" opens in the state \"in-discussion\""
           ]
         },
@@ -1860,7 +1855,7 @@
         },
         {
           "id": "G-16.2",
-          "title": "Offer every ingestion whose type requires only CLI-set fields",
+          "title": "Hide ingestion when the project's ingest workflows declare no step",
           "file": "docs/02_requirements/02_bdd/features/g/ingestion.feature",
           "release": "v0.3",
           "kind": "edge",
@@ -1868,9 +1863,9 @@
           "steps": [
             "Given the console is running",
             "And I am Jordan",
-            "Given the kanban fixture is open on WingFoil 0.2.2",
-            "When I click \"+ Ingestion\" on the Memory list",
-            "Then \"bug-ingest\", \"decision-log-ingest\" and \"adr-ingest\" are enabled"
+            "Given the kanban fixture is open on WingFoil 0.2.2, whose `bug-ingest`, `decision-log-ingest` and `adr-ingest` have one phase with no action",
+            "When I open the Memory list",
+            "Then no \"+ Ingestion\" button is shown"
           ]
         },
         {
@@ -1886,7 +1881,7 @@
             "Given the custom fixture is open on a WingFoil that sets the required fields of a bug",
             "And I start \"bug-ingest\"",
             "When I type the title \"Toast hides the Push button\", choose the severity \"medium\" and click \"Submit\"",
-            "Then the fixture's commits for \"bug-2-toast-hides-the-push-button\" are made by the CLI only",
+            "Then the fixture's commits for \"bug-002-toast-hides-the-push-button\" are made by the CLI only",
             "And the bug's frontmatter has `severity: medium` and the state \"open\""
           ]
         },
@@ -1918,6 +1913,20 @@
             "When I open Workflow",
             "Then the Ingestion section shows exactly the cards \"bug-ingest\", \"decision-log-ingest\", \"adr-ingest\" and \"service-ingest\"",
             "And the card \"decision-log-ingest\" shows the steps \"capture · product-owner → approve · approver\" and the button \"Start\""
+          ]
+        },
+        {
+          "id": "M-07.2",
+          "title": "Count the open runs of an ingestion",
+          "file": "docs/02_requirements/02_bdd/features/m/workflows.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running",
+            "Given the custom fixture is open",
+            "When I open Workflow",
+            "Then the card \"decision-log-ingest\" shows \"1 open\" for \"dl-002-use-fastify\""
           ]
         }
       ],

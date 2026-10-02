@@ -1,8 +1,8 @@
 # Is / Is Not / Does / Does Not — WingFoil UI
 
-**Version:** 0.5
+**Version:** 0.6
 **Date:** 2026-10-01 (0.2: git sync rule from session 3, Q4; 0.3: local settings — coherence audit;
-0.4: external review — session 7; 0.5: permissions left to WingFoil — specification session 3)
+0.4: external review — session 7; 0.5: permissions left to WingFoil — specification session 3; 0.6: action log — coherence audit of the specification — session 6)
 **Status:** Accepted in lean-inception session 1 (2026-10-01)
 **Input:** `01_product-brief.md` §6–8 · `02_product-vision.md` (Key Decisions)
 
@@ -29,8 +29,8 @@ Every item of brief §7 is placed here (marked *brief §7*); the others come fro
 ## IS NOT
 
 - A second source of truth, database or cache that can diverge from the repository *(brief §7)*.
-  Its only persistent state is its own local project list and per-user settings, and each
-  project's `.wingfoil/ui.yaml`.
+  Its only persistent state is its own local project list, per-user settings and action log (the
+  hashes of the commits it caused), and each project's `.wingfoil/ui.yaml`.
 - A way to bypass WingFoil: no element is created outside a workflow (ingestion or main), no state
   changes outside the type's state machine *(brief §7)*.
 - An IDE, a code editor, a code reviewer or an agent *(brief §7)*.

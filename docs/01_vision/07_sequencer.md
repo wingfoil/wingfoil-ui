@@ -1,10 +1,10 @@
 # Sequencer — WingFoil UI v1 (v0.1 → v1.0)
 
-**Version:** 0.4
+**Version:** 0.5
 **Date:** 2026-10-01 (0.2: J0 completion and v0.1 landing screen — coherence audit; 0.3: external
-review — session 7; 0.4: permissions left to WingFoil — specification session 3)
+review — session 7; 0.4: permissions left to WingFoil — specification session 3; 0.5: input count, v0.1 exit (clone) — coherence audit of the specification — session 6)
 **Status:** Accepted in lean-inception session 5 (2026-10-01)
-**Input:** `06_features.md` (45 MVP features, areas, WingFoil versions, scores) · `05_journeys.md` ·
+**Input:** `06_features.md` (44 MVP features, areas, WingFoil versions, scores) · `05_journeys.md` ·
 `02_product-vision.md` (Q2: WingFoil floor) · starting hypothesis in `BOOTSTRAP.md` §7
 
 All releases belong to the release-line **v1** (`rl-v1`). Each release has a primary **area**
@@ -45,7 +45,7 @@ Open any WingFoil project and read it safely.
 
 16 features. **Exit:** the WingFoil and WingFoil UI repositories, and a fixture with unknown types
 and states and no `ui.yaml`, render without UI changes; the local server refuses non-loopback and
-cross-origin requests; no write path exists yet.
+cross-origin requests; the only write is cloning a remote into a new folder (no governed write yet).
 
 ### v0.2 — Unblock · area **G** · WingFoil ≥ 0.2.2
 

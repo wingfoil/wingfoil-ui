@@ -1,6 +1,6 @@
 # SARD — 5. Security, Roles & Governance
 
-**Version:** 0.1 · **Date:** 2026-10-02 · **Status:** Draft — specification-downcast session 4
+**Version:** 0.2 · **Date:** 2026-10-02 (0.2: coherence audit fixes — session 6) · **Status:** Draft — specification-downcast session 4
 
 Shell and conventions: `00_sard.md`. The protection of the local server (X4) is mandatory and
 distinct from permissions between team members, which belong to WingFoil (L6).
@@ -113,6 +113,6 @@ distinct from permissions between team members, which belong to WingFoil (L6).
 | Release | v0.2 (this repository) · v0.3 (WingFoil repository) |
 | Description | From v0.2 the gates of the WingFoil UI repository are passed from the UI; from v0.3 those of the WingFoil repository too. |
 | Rationale | MVP canvas metric *Adoption*; sequencer rule 5. |
-| Traceability | US-G-04, US-G-05 · G-04.1 · G2 · `08_mvp-canvas.md` |
+| Traceability | US-G-04 · G-04.1 · G2 · `08_mvp-canvas.md` |
 | Fit criterion | [percentage] Between the v0.2 and the v0.3 releases, ≥ 80 % of the approve/reject commits of this repository have their hash in the server's local action log (the list of commits the UI caused: hash and time, no other data); the same from v0.3 for the WingFoil repository. |
 | Verified by | retrospective (`wf(…)` history) |

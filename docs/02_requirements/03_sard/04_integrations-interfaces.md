@@ -1,6 +1,6 @@
 # SARD — 4. Integrations & Interfaces
 
-**Version:** 0.1 · **Date:** 2026-10-02 · **Status:** Draft — specification-downcast session 4
+**Version:** 0.2 · **Date:** 2026-10-02 (0.2: coherence audit fixes — session 6) · **Status:** Draft — specification-downcast session 4
 
 Shell and conventions: `00_sard.md`.
 
@@ -57,8 +57,8 @@ Shell and conventions: `00_sard.md`.
 | Release | v0.3 (0.2.2) · v0.4 (WingFoil 0.3 or a field setter) |
 | Description | An ingestion is offered only when every required field of its type can be set by the CLI version in use (0.2.2: `title` and id/path tokens through `memory add --set`); its steps run as the workflow's own verbs. Otherwise it is read-only with the missing field named. |
 | Rationale | The UI never edits a draft file (`cli-only-writes`; external review R1). |
-| Traceability | US-G-15, US-G-16, US-G-18, US-M-07 · G-15.1, G-15.3, G-16.1, G-16.2, G-18.1, G-18.2, M-07.1 · G5, W2 |
-| Fit criterion | [boolean] On 0.2.2 the custom fixture offers exactly `decision-log-ingest` and the kanban fixture `bug-ingest`, `decision-log-ingest`, `adr-ingest`; every listed scenario passes. |
+| Traceability | US-G-15, US-G-16, US-G-18, US-M-07 · G-15.1, G-15.3, G-16.1, G-16.2, G-18.1, G-18.2, M-07.1, M-07.2 · G5, W2 |
+| Fit criterion | [boolean] On 0.2.2 the custom fixture offers exactly `decision-log-ingest`, and the kanban fixture (whose ingest workflows declare no action) offers none; every listed scenario passes. |
 | Verified by | e2e |
 
 ### REQ-INT-06 — Git interface
@@ -66,7 +66,7 @@ Shell and conventions: `00_sard.md`.
 | Field | |
 |-------|--|
 | Release | v0.1 (read, clone) · v0.2 (transport) |
-| Description | The server runs only these git operations: read (`rev-parse`, `status --porcelain`, `log`, `rev-list --count`, `config user.email`, `remote`), `clone` (adding a remote project), `fetch`, `pull --ff-only`, `push`, and `commit -- .wingfoil/ui.yaml` for presets. It never merges, rebases, resets, stashes or checks out. Git's error message is shown verbatim on failure. |
+| Description | The server runs only these git operations: read (`rev-parse`, `status --porcelain`, `log`, `rev-list --count`, `config user.email`, `remote`), `clone` (adding a remote project, into a new empty folder), `fetch`, `pull --ff-only`, `push`, and `add -- .wingfoil/ui.yaml` + `commit -- .wingfoil/ui.yaml` for presets. It never merges, rebases, resets, stashes or checks out. Git's error message is shown verbatim on failure. Memory events (Timeline, Recent activity) are parsed from `wf(…)` subjects; `add` and `submit` subjects carry no transition, so a submit's `from → to` is read from the element file's `status` before and after the commit (`git log -p` on the element file, or `memory history <id>` when its output carries the states — to be fixed by the Memory-event tech-spec). |
 | Rationale | Not a git client (`03_is-isnot.md`); write classes (c). |
 | Traceability | US-Y-01, US-Y-02, US-Y-03, US-Y-05, US-Y-06, US-Y-07, US-Y-08, US-S-04, US-S-07, US-C-02 · Y-01.1, Y-02.2, Y-03.1, Y-03.2, Y-05.1, Y-05.3, Y-06.1, Y-07.1, Y-07.3, Y-08.1, Y-08.2, S-04.3, S-07.1, C-02.2 · Y1–Y4, S2, C1 |
 | Fit criterion | [percentage] 100 % of the git processes started during the e2e suite use a subcommand of the allowed list (process audit). |
@@ -88,9 +88,9 @@ Shell and conventions: `00_sard.md`.
 | Field | |
 |-------|--|
 | Release | v0.1 |
-| Description | The UI supports the two latest stable major versions of Chrome, Edge, Firefox and Safari on desktop; the e2e suite runs on the Chromium, Firefox and WebKit engines. |
+| Description | The UI supports the desktop browsers built on the Chromium, Firefox (Gecko) and WebKit engines — Chrome, Edge, Firefox and Safari — in the versions those engines have in the Playwright release pinned by the project; the e2e suite runs on the three engines. |
 | Rationale | Users open the console in their own browser; three engines cover the four browsers. |
-| Traceability | S-01.1, S-28.1, G-04.1, X-06.4 (run on each engine, with the rest of the release's scenarios) · e2e-smoke `drive-browser` · X1 |
+| Traceability | US-S-01, US-S-28, US-G-04, US-X-06 · S-01.1, S-28.1, G-04.1, X-06.4 (run on each engine, with the rest of the release's scenarios) · e2e-smoke `drive-browser` · X1 |
 | Fit criterion | [percentage] 100 % of the release's e2e scenarios pass on each of the three engines. |
 | Verified by | e2e-smoke `drive-browser` |
 

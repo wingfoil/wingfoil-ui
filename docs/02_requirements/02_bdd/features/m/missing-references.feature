@@ -12,14 +12,14 @@ Feature: Missing references
   Scenario: M-03.1 — Filter the elements missing a required reference
     Given the custom fixture with the sw-life-cycle preset is open on the Memory list
     When I select the filter "Missing required references"
-    Then the list shows exactly "task-4-themes"
-    And its row carries the badge "missing refs"
+    Then the list shows exactly "task-004-themes" and "adr-001-local-server"
+    And each row carries the badge "missing refs"
 
   @US-M-03 @v0.3 @edge @fx-custom
   Scenario: M-03.2 — Drop the badge when the reference is added
     Given the custom fixture with the sw-life-cycle preset is open
-    When `ref: US-X-08` is added to "task-4-themes" and committed outside the UI
-    Then within 5 seconds "task-4-themes" no longer carries the badge "missing refs"
+    When `ref: US-X-08` is added to "task-004-themes" and committed outside the UI
+    Then within 5 seconds "task-004-themes" no longer carries the badge "missing refs"
 
   # --- US-M-04 ---
 

@@ -31,10 +31,10 @@ Feature: Workflow tree and ingestion cards
   @US-M-06 @v0.4 @nominal @fx-custom
   Scenario: M-06.1 — Mark the current position and who must act
     Given the custom fixture is open on WingFoil 0.3
-    And the workflow engine reports `sw-life-cycle` at "release-line-cycle" › "rl-v1" › "dev-loop" with role "developer"
+    And the workflow engine reports `sw-life-cycle` at "release-line-cycle" › "rl-v1" › "delivery" › "minor-v0.1" › "implementation" with role "developer"
     When I open Workflow
     Then "init", "inception" and "specification" are marked done
-    And "dev-loop" under "rl-v1" is marked current with "developer must act"
+    And "implementation" under "minor-v0.1" is marked current with "developer must act"
 
   @US-M-06 @v0.4 @edge @fx-custom
   Scenario: M-06.2 — Show no position on WingFoil 0.2.2

@@ -15,6 +15,7 @@ stories = set(re.findall(r"^\| (US-[A-Z]-\d\d) \|", (REQ / "01_user_story_map" /
 scenarios = set()
 for f in (REQ / "02_bdd" / "features").rglob("*.feature"):
     scenarios |= set(re.findall(r"Scenario(?: Outline)?: ([A-Z]-\d\d\.\d+) — ", f.read_text()))
+# a scenario's story is the prefix of its id: S-03.1 -> US-S-03
 
 reqs, per_area = {}, collections.Counter()
 for f in sorted(SARD.glob("0[1-9]_*.md")):
@@ -37,8 +38,10 @@ for f in sorted(SARD.glob("0[1-9]_*.md")):
         trace = rows.get("Traceability", "")
         for s in re.findall(r"US-[A-Z]-\d\d", trace):
             if s not in stories: errors.append(f"{rid}: unknown story {s}")
+        cited = set(re.findall(r"US-[A-Z]-\d\d", trace))
         for s in re.findall(r"\b[A-Z]-\d\d\.\d+\b", trace):
             if s not in scenarios: errors.append(f"{rid}: unknown scenario {s}")
+            elif "US-" + s.split(".")[0] not in cited: errors.append(f"{rid}: cites {s} but not its story US-{s.split('.')[0]}")
 
 index = (SARD / "00_sard.md").read_text()
 cov = index.split("## Coverage", 1)[1]

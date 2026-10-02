@@ -1,11 +1,11 @@
 # SARD — WingFoil UI
 
-**Version:** 0.1
-**Date:** 2026-10-02
+**Version:** 0.2
+**Date:** 2026-10-02 (0.2: coherence audit fixes — session 6)
 **Status:** Draft — specification-downcast session 4 (`volere-requirements`)
 **Input:** `../02_bdd/` (scenarios and conventions) · `../01_user_story_map/` ·
 `docs/01_vision/` (`02_product-vision.md` v0.3, `06_features.md` v0.5, `08_mvp-canvas.md` v0.3) ·
-`docs/00_reference/adr-draft-local-server.md` · directives `cli-only-writes` (v1.2), `wingfoil-cli`
+`docs/00_reference/adr-draft-local-server.md` · directives `cli-only-writes` (v1.3), `wingfoil-cli`
 (v1.1), `accessibility`, `security-secrets`
 
 The **System Architecture Requirements Document**: the infrastructural, business-rule and
@@ -103,7 +103,7 @@ Timings (`PERF`) are measured on:
 | Server start ≤ 3.0 s | REQ-PERF-06 |
 | CLI timeout 30 s | REQ-INT-04 |
 | Session token ≥ 128 bits | REQ-SEC-02 |
-| Browsers: two latest majors of Chrome, Edge, Firefox, Safari; engines Chromium, Firefox, WebKit | REQ-INT-08 |
+| Browsers: Chrome, Edge, Firefox, Safari through the Chromium, Firefox and WebKit engines of the pinned Playwright | REQ-INT-08 |
 | Dogfooding ≥ 80 % of approve/reject commits from the UI (local action log) | REQ-SEC-10 |
 
 Checked by `../X_checks/check_sard.py` (shell fields present, fit-criterion class, ids unique,

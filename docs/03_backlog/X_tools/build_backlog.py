@@ -90,7 +90,8 @@ def main():
             "release": rel, "area": area, "wingfoil_min": WINGFOIL_MIN[rel],
             "requirement": rid, "description": fl["Description"],
             "fit_criterion": fl["Fit criterion"], "verified_by": fl["Verified by"],
-            "stories": sorted(set(re.findall(r"US-[A-Z]-\d\d", trace))),
+            "stories": sorted(set(re.findall(r"US-[A-Z]-\d\d", trace))
+                              | {"US-" + s.split(".")[0] for s in re.findall(r"\b[A-Z]-\d\d\.\d+\b", trace)}),
             "acceptance_criteria": [strip(sc[s]) for s in dict.fromkeys(re.findall(r"\b[A-Z]-\d\d\.\d+\b", trace))],
             "dependencies": [f"TT-{d}" for d in TT_DEPS[key]],
         })
@@ -123,7 +124,10 @@ def title_of(text):
     t = re.split(r",? I want (?:to )?", text, maxsplit=1)[1]
     t = re.split(r"(?:,| —) so that ", t)[0]
     t = t.replace("`", "").replace("*", "").strip(" ,—")
-    return (t[:1].upper() + t[1:])[:120]
+    t = t[:1].upper() + t[1:]
+    if len(t) > 120:
+        t = t[:120].rsplit(" ", 1)[0].rstrip(" ,—") + " …"
+    return t
 
 def strip(s):
     return {k: v for k, v in s.items() if k != "story"}

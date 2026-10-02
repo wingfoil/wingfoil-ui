@@ -42,7 +42,7 @@ Feature: Progress card
   @US-T-12 @v0.3 @edge @fx-custom
   Scenario: T-12.3 — Update the figures after a decision
     Given the custom fixture with the sw-life-cycle preset is open and Today shows "Pending gates 3"
-    When Morgan approves "bug-1-toast-overlap" with the CLI in a terminal
+    When Morgan approves "bug-001-toast-overlap" with the CLI in a terminal
     Then within 5 seconds the progress card shows "Pending gates 2"
 
   # --- US-T-13 — figures open the Memory list ---
@@ -51,14 +51,14 @@ Feature: Progress card
   Scenario: T-13.1 — Open the items behind "Pending gates"
     Given the custom fixture with the sw-life-cycle preset is open
     When I select "Pending gates 3" on the progress card
-    Then the Memory list shows exactly "task-1-cli-adapter", "dl-002-use-fastify" and "bug-1-toast-overlap"
+    Then the Memory list shows exactly "task-001-cli-adapter", "dl-002-use-fastify" and "bug-001-toast-overlap"
     And the active filter reads "Pending gates"
 
   @US-T-13 @v0.3 @edge @fx-custom
   Scenario: T-13.2 — Open the items behind "Tasks 1/4"
     Given the custom fixture with the sw-life-cycle preset is open
     When I select "Tasks 1/4" on the progress card
-    Then the Memory list shows the 4 tasks of release "v0.1", "task-2-memory-list" marked done
+    Then the Memory list shows the 4 tasks of release "v0.1", "task-002-memory-list" marked done
 
   # --- US-T-14 — completion definition ---
 
@@ -94,9 +94,9 @@ Feature: Progress card
   @US-T-16 @v0.4 @nominal @fx-custom
   Scenario: T-16.1 — Show the current phase of the scope
     Given the custom fixture with the sw-life-cycle preset is open on WingFoil 0.3
-    And the workflow engine reports `release-cycle` of "minor-v0.1" at phase "dev-loop"
+    And the workflow engine reports `release-cycle` of "minor-v0.1" at phase "implementation"
     When I open Today
-    Then the progress card shows "Phase 2 of 7 — dev-loop"
+    Then the progress card shows "Phase 2 of 7 — implementation"
     And the phase strip shows 1 phase done, 1 current and 5 to do
 
   @US-T-16 @v0.4 @edge @fx-custom

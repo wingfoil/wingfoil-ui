@@ -1,11 +1,11 @@
 # User Story Map — Stories
 
-**Version:** 0.3
-**Date:** 2026-10-01 (0.2: US-S-11, US-X-07 moved to v0.2 — session 2; 0.3: US-C-05, US-C-06 dropped with C3 — session 3)
+**Version:** 0.4
+**Date:** 2026-10-01 (0.2: US-S-11, US-X-07 moved to v0.2 — session 2; 0.3: US-C-05, US-C-06 dropped with C3 — session 3; 0.4: input versions — session 6)
 **Status:** Draft — specification-downcast session 1 (`user-story-mapping`, phases
 `vertical-explosion` and `mvp-cut`)
-**Input:** `01_backbone.md` · `docs/01_vision/05_journeys.md` (v0.3) · `06_features.md` (v0.4) ·
-`07_sequencer.md` (v0.3) · `04_personas.md`
+**Input:** `01_backbone.md` · `docs/01_vision/05_journeys.md` (v0.3) · `06_features.md` (v0.6) ·
+`07_sequencer.md` (v0.5) · `04_personas.md`
 
 Under each task of the backbone, the stories that explode it, written as
 *As <persona>, I want <action> so that <benefit>*.

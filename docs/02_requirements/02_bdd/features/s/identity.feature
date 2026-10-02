@@ -44,7 +44,7 @@ Feature: Identity and role views
   @US-S-13 @v0.2 @edge @fx-kanban
   Scenario: S-13.2 — Offer no governed action to a user who is not in the team
     Given I am Riley
-    When I open the element panel of "task-1-login-form"
+    When I open the element panel of "task-001-login-form"
     Then the panel shows no action footer
     And the panel shows "Read-only: riley@example.test is not in the team — How to join"
 
@@ -83,7 +83,7 @@ Feature: Identity and role views
   @US-S-15 @v0.2 @edge @fx-kanban
   Scenario: S-15.2 — Offer no governed action under an ambiguous identity
     Given the fixture's `git config user.email` matches the members "Jordan" and "Sam"
-    When I open the element panel of "task-1-login-form"
+    When I open the element panel of "task-001-login-form"
     Then the panel shows no action footer
 
   # --- US-S-22 — switch role view ---

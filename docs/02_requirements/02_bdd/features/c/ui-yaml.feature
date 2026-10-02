@@ -80,8 +80,8 @@ Feature: ui.yaml and presets
   @US-C-03 @v0.3 @edge @fx-kanban
   Scenario: C-03.2 — Refuse a preset that maps a type the project does not declare
     Given the kanban fixture is open and I am Morgan
-    When I apply the "Scrum" preset, which maps the type "story"
-    Then a red toast shows "ui.yaml not written: type story is not declared in memory.yaml"
+    When I apply the "WingFoil sw-life-cycle" preset, which maps the type "service"
+    Then a red toast shows "ui.yaml not written: type service is not declared in memory.yaml"
     And ".wingfoil/ui.yaml" does not exist
 
   # --- US-C-04 — invalid existing ui.yaml ---

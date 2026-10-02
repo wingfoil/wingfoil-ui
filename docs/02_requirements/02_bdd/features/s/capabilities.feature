@@ -67,7 +67,7 @@ Feature: WingFoil version and capabilities
 
   @US-S-11 @v0.2 @nominal @fx-custom
   Scenario: S-11.1 — Show a capability my role lacks as read-only with the reason
-    Given I am Jordan
+    Given the custom fixture is open and I am Jordan
     When I open the element panel of "dl-002-use-fastify"
     Then the gate footer is replaced by "Reserved to approver — Morgan, Alex can act"
 

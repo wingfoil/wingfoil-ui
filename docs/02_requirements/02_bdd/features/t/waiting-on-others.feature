@@ -11,8 +11,8 @@ Feature: Waiting on others
   Scenario: T-11.1 — List the items blocked on another member
     Given the kanban fixture is open and I am Morgan
     When I open Today
-    Then Waiting on others lists "task-2-password-reset" with "Jordan (submitter) must act"
-    And Waiting on others lists "task-4-session-timeout" with "Jordan (creator) must act"
+    Then Waiting on others lists "task-002-password-reset" with "Jordan (submitter) must act"
+    And Waiting on others lists "task-004-session-timeout" with "Jordan (creator) must act"
 
   @US-T-11 @v0.2 @edge @fx-custom
   Scenario: T-11.2 — Name the workflow engine for an engine-waiting state
@@ -24,4 +24,4 @@ Feature: Waiting on others
   Scenario: T-11.3 — Do not repeat an item that requires me
     Given the kanban fixture is open and I am Morgan with the role view "approver"
     When I open Today
-    Then Waiting on others does not list "task-1-login-form"
+    Then Waiting on others does not list "task-001-login-form"

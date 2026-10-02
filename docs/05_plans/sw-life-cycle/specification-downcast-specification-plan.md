@@ -21,7 +21,7 @@ tmpl_version: 260703   # Orignal template version
 **Roles:** product-owner (USM, backlog), qa (BDD), architect (SARD), approver — Roberto Pompermaier
 holds all of them; the agent drafts and audits (executes as architect/developer/qa, no approval authority)
 **Input:** the Vision Package `docs/01_vision/` (index `00_index.md`, v1.0), in particular
-`05_journeys.md` (v0.3), `06_features.md` (v0.3, 45 MVP features), `07_sequencer.md` (v0.3),
+`05_journeys.md` (v0.3), `06_features.md` (v0.3, 45 MVP features at the start; v0.6, 44 after session 3), `07_sequencer.md` (v0.3),
 `08_mvp-canvas.md` (v0.2) and the hand-off section of `X_coherence-audit.md` (v1.1)
 **Evidence:** `docs/00_reference/ux-reference.md` and the prototype (evidence, not specification:
 where they differ, the Vision Package wins), `docs/00_reference/adr-draft-local-server.md`,
@@ -210,3 +210,23 @@ Coherence audit checks (step 6):
   criteria).
 - Stop-check: valid JSON against the schema ✓; no duplicate ids ✓; no circular dependencies ✓;
   every story and requirement in exactly one partition ✓ (`check_backlog.py`).
+
+### Step 6 — Coherence audit (2026-10-02)
+
+- Run by an **independent agent** (no part in sessions 1–5, read-only, only the documents and this
+  plan's checks), which verified claims against the files, the pinned CLI 0.2.2 and the `init`
+  templates; fixes applied by the session agent; the same auditor re-verified them.
+- Outputs: `docs/02_requirements/X_coherence-audit.md` (passed with fixes), `docs/02_requirements/00_index.md`.
+- Findings: 0 blocker, 10 major, 24 minor — all major fixed, 23 minor fixed, 1.2 fixed in part and
+  recorded; re-verification **confirmed with remarks**, its 5 new findings (N1 major) fixed.
+- Main fixes: ids zero-padded as the CLI renders them (`task-001-…`); `add`/`submit` commits carry
+  no transition (read from the file's `status`); the Kanban template's ingest workflows have no
+  action → no ingestion on Kanban (request R-10 to WingFoil, local notes); coverage 3/5; rules for
+  gate+waiting states and the reviewer view; `sw-life-cycle` preset for the preset refusal;
+  `clone` in write class (c) and the action log as local state (`02` v0.4, `03` v0.6, directive
+  `cli-only-writes` v1.3); `git add -- .wingfoil/ui.yaml` allowed; `check_sard.py` refuses a
+  scenario cited without its story; UX reference and ADR draft annotated (permissions, scope).
+- Versions: vision `02` v0.4, `03` v0.6, `06` v0.6, `07` v0.5, `00_index` v1.1; story map
+  `01` v0.2, `02` v0.4, `03` v0.4; BDD conventions v0.3 (294 scenarios); SARD v0.2; backlog doc
+  v0.2 (160 items, 237 links).
+- Stop-check: all audit checks pass or each failure is fixed/recorded ✓; validators ✓.

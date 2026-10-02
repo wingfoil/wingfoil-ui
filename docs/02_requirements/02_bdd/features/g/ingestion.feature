@@ -13,7 +13,7 @@ Feature: Ingestion start
   Scenario: G-15.1 — Capture a decision-log from Memory
     Given the custom fixture is open on the Memory list
     When I click "+ Ingestion", choose "decision-log-ingest", type the title "Adopt Playwright" and click "Submit"
-    Then the fixture's last 2 commits are "wf(decision-log): add dl-003-adopt-playwright" and "wf(decision-log): submit dl-003-adopt-playwright [draft → in-discussion]"
+    Then the fixture's last 2 commits are "wf(decision-log): add dl-003-adopt-playwright" and "wf(decision-log): submit dl-003-adopt-playwright"
     And the element panel of "dl-003-adopt-playwright" opens in the state "in-discussion"
 
   @US-G-15 @v0.3 @edge @fx-custom
@@ -46,17 +46,17 @@ Feature: Ingestion start
     And "decision-log-ingest" is enabled
 
   @US-G-16 @v0.3 @edge @fx-kanban
-  Scenario: G-16.2 — Offer every ingestion whose type requires only CLI-set fields
-    Given the kanban fixture is open on WingFoil 0.2.2
-    When I click "+ Ingestion" on the Memory list
-    Then "bug-ingest", "decision-log-ingest" and "adr-ingest" are enabled
+  Scenario: G-16.2 — Hide ingestion when the project's ingest workflows declare no step
+    Given the kanban fixture is open on WingFoil 0.2.2, whose `bug-ingest`, `decision-log-ingest` and `adr-ingest` have one phase with no action
+    When I open the Memory list
+    Then no "+ Ingestion" button is shown
 
   # --- US-G-17 — a refused step ---
 
   @US-G-17 @v0.3 @nominal @fx-custom
   Scenario: G-17.1 — Report a refused add with nothing created
     Given the ingestion modal of "decision-log-ingest" is open
-    And `wingfoil memory add` refuses the title with an error
+    And the CLI stub makes `wingfoil memory add` exit with an error
     When I type the title "Adopt Playwright" and click "Submit"
     Then a red toast shows the error message printed by `wingfoil memory add`
     And the fixture's last commit is unchanged
@@ -64,7 +64,7 @@ Feature: Ingestion start
   @US-G-17 @v0.3 @edge @fx-custom
   Scenario: G-17.2 — Name the draft left by a refused submit
     Given the ingestion modal of "decision-log-ingest" is open
-    And `wingfoil memory add` succeeds and `wingfoil memory submit` refuses with an error
+    And the CLI stub lets `wingfoil memory add` run and makes `wingfoil memory submit` exit with an error
     When I type the title "Adopt Playwright" and click "Submit"
     Then a red toast shows the error of `wingfoil memory submit` and "Draft dl-003-adopt-playwright was created — open it"
     And the fixture's last commit is "wf(decision-log): add dl-003-adopt-playwright"
@@ -76,7 +76,7 @@ Feature: Ingestion start
     Given the custom fixture is open on a WingFoil that sets the required fields of a bug
     And I start "bug-ingest"
     When I type the title "Toast hides the Push button", choose the severity "medium" and click "Submit"
-    Then the fixture's commits for "bug-2-toast-hides-the-push-button" are made by the CLI only
+    Then the fixture's commits for "bug-002-toast-hides-the-push-button" are made by the CLI only
     And the bug's frontmatter has `severity: medium` and the state "open"
 
   @US-G-18 @v0.4 @edge @fx-custom

@@ -1,7 +1,7 @@
 # Features — WingFoil UI
 
-**Version:** 0.5
-**Date:** 2026-10-01 (0.2: journey coverage completed by the coherence audit; 0.3: external review — session 7; 0.4: S8 row completed — specification session 1; 0.5: permissions left to WingFoil — specification session 3)
+**Version:** 0.6
+**Date:** 2026-10-01 (0.2: journey coverage completed by the coherence audit; 0.3: external review — session 7; 0.4: S8 row completed — specification session 1; 0.5: permissions left to WingFoil — specification session 3; 0.6: X4 wording — coherence audit of the specification — session 6)
 **Status:** Accepted in lean-inception session 4 (2026-10-01)
 **Input:** `05_journeys.md` (steps and gaps) · `04_personas.md` · `02_product-vision.md` ·
 `03_is-isnot.md` · **Evidence:** `docs/00_reference/ux-reference.md`, the prototype,
@@ -104,7 +104,7 @@ know how to build it (H/M/L).
 | X1 | Accessibility | all | all | WCAG 2.1 AA (directive `accessibility`) | — | 2 | 2 | 3 | M |
 | X2 | Externalised strings | all | all | English-only MVP, every string externalised | — | 1 | 1 | 1 | H |
 | X3 | Light and dark themes | all | all | Both themes, AA contrast in each | — | 1 | 1 | 2 | H |
-| X4 | Local server security | all | all | Listens on loopback only; per-session token given at launch; Origin and Host checks (CSRF, DNS rebinding) on every request, writes included; opaque project ids (no paths in URLs); CLI and git run with `execFile` and argument arrays, never a shell; Files confined to the repository. Distinct from the advisory permissions (C3) | — | 3 | 2 | 1 | H |
+| X4 | Local server security | all | all | Listens on loopback only; per-session token given at launch; Origin and Host checks (CSRF, DNS rebinding) on every request, writes included; opaque project ids (no paths in URLs); CLI and git run with `execFile` and argument arrays, never a shell; Files confined to the repository. Distinct from team permissions, which are WingFoil's (L6) | — | 3 | 2 | 1 | H |
 
 ## Later — after v1.0 or after a WingFoil capability
 

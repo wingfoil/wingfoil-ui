@@ -1,10 +1,10 @@
 # Backlog — WingFoil UI
 
-**Version:** 0.1
-**Date:** 2026-10-02
+**Version:** 0.2
+**Date:** 2026-10-02 (0.2: rebuilt after the coherence audit — session 6)
 **Status:** Draft — specification-downcast session 5 (`backlog-export`)
-**Input:** `docs/02_requirements/01_user_story_map/02_story-map.md` (v0.3) ·
-`docs/02_requirements/02_bdd/` (v0.2) · `docs/02_requirements/03_sard/` (v0.1)
+**Input:** `docs/02_requirements/01_user_story_map/02_story-map.md` (v0.4) ·
+`docs/02_requirements/02_bdd/` (v0.3) · `docs/02_requirements/03_sard/` (v0.2)
 
 The documentary chain (user story map → BDD scenarios → SARD) consolidated into one structured
 backlog, ready to be turned into Memory `task` elements release by release.
@@ -36,7 +36,7 @@ Background first); `dependencies` = the technical tasks whose requirement traces
 that task's release is not later than the story's.
 
 **Technical task** (`TT-<AREA>-<nn>`, one per SARD requirement `REQ-<AREA>-<nn>`): `requirement`,
-`description`, `fit_criterion`, `verified_by`, `stories` it supports, `release` (the first stage
+`description`, `fit_criterion`, `verified_by`, `stories` it supports (the stories it names and the stories of the scenarios it cites), `release` (the first stage
 of the requirement), `acceptance_criteria` = the scenarios the requirement traces;
 `dependencies` = the technical tasks it builds on (table `TT_DEPS` of the generator: e.g.
 `TT-INT-02` version range → `TT-INT-01` CLI contract → `TT-ARC-02` own CLI → `TT-ARC-01` server).
@@ -55,7 +55,7 @@ of the requirement), `acceptance_criteria` = the scenarios the requirement trace
 | **Total** | **110** | **50** | **160** |
 
 Most technical tasks land in v0.1: the architecture, the security of the local server, the CLI
-contract and the snapshot rules apply before the first write exists (sequencer rule 7). 12 user
+contract and the snapshot rules apply before the first write exists (sequencer rule 7). 10 user
 stories depend on no technical task (pure screen behaviour, e.g. US-R-02 time axis); they still
 depend on the release's foundation through its order.
 
@@ -76,5 +76,5 @@ the partition into Memory tasks:
 `check_backlog.py` verifies: valid JSON against `schema.json` (backlog and partitions); no
 duplicate ids; no circular dependencies; no dependency on a later release; every MVP story and
 every SARD requirement exactly once, in exactly one partition, identical to `backlog.json`; the
-files equal a fresh build. Result of session 5: **all checks passed** — 160 items, 221
+files equal a fresh build. Result after session 6: **all checks passed** — 160 items, 237
 dependency links.

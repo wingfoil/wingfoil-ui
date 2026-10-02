@@ -1,9 +1,9 @@
 # User Story Map — Backbone
 
-**Version:** 0.1
-**Date:** 2026-10-01
+**Version:** 0.2
+**Date:** 2026-10-01 (0.2: task 9.2 dropped with C3 — session 3; input versions — session 6)
 **Status:** Draft — specification-downcast session 1 (`user-story-mapping`, phase `backbone`)
-**Input:** `docs/01_vision/05_journeys.md` (v0.3) · `06_features.md` (v0.4) · `04_personas.md`
+**Input:** `docs/01_vision/05_journeys.md` (v0.3) · `06_features.md` (v0.6) · `04_personas.md`
 
 The backbone is the horizontal axis of the map: the **activities** a member does with WingFoil UI,
 left to right in the order they are first met, each split into **user tasks**. It is extracted

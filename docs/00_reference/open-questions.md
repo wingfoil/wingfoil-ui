@@ -35,6 +35,7 @@ To be resolved during `lean-inception` / `specification-downcast`.
 11. ~~**Permissions before WingFoil enforces them** — is a UI-only check acceptable for the MVP, given it is not
     a security boundary (the CLI can still be used directly)?~~
     → Yes, as advisory and labelled so; gates stay enforced by the CLI — `02_product-vision.md` (Key Decisions).
+    **Superseded** (specification-downcast session 3): permissions are WingFoil's; the UI keeps none (L6).
 12. ~~**File editing scope** — which files may be edited from the UI (all, or not `.wingfoil/`
     and Memory files, which have their own governed paths)?~~
     → All files, WingFoil's own files only with a specific permission; minor feature, after v1.0;

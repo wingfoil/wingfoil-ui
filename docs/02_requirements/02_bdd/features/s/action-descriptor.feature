@@ -25,7 +25,7 @@ Feature: Action descriptor and methodology independence
   @US-S-28 @v0.1 @edge @fx-unknown
   Scenario: S-28.2 — Derive the state machine of an unknown type
     Given the unknown fixture is added and I am Alex
-    When I open the element panel of "story-1-onboarding"
+    When I open the element panel of "story-001-onboarding"
     Then the state machine shows the chips "idea", "shaping", "ready-to-build", "shipped"
     And "shaping" is marked as the current state
 
@@ -48,5 +48,13 @@ Feature: Action descriptor and methodology independence
   @US-S-24 @v0.2 @edge @fx-unknown
   Scenario: S-24.3 — Treat a declared waiting state of an unknown type the same way
     Given the unknown fixture is added and I am Alex
-    When I open the element panel of "story-2-billing"
+    When I open the element panel of "story-002-billing"
     Then the panel shows "Waiting for the workflow engine (state: ready-to-build)"
+
+  @US-S-24 @v0.2 @edge @fx-custom
+  Scenario: S-24.4 — Offer only the reject of a state that is both a gate and a waiting state
+    Given the custom fixture is added and I am Morgan
+    And "bug-001-toast-overlap" has been approved to the state "triaged"
+    When I open the element panel of "bug-001-toast-overlap"
+    Then the gate footer shows only "Reject → closed" and "Waiting for the workflow engine to advance"
+    And Requires you does not list "bug-001-toast-overlap"

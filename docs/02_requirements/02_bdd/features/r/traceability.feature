@@ -12,7 +12,7 @@ Feature: Traceability
   Scenario: R-01.1 — List references with their completion
     Given the custom fixture with the sw-life-cycle preset is open
     When I open Traceability
-    Then it shows "Project completion 25 %" and "Reference coverage 3/4"
+    Then it shows "Project completion 25 %" and "Reference coverage 3/5"
     And the row "US-M-01" shows 2 linked elements and "50 % · 1/2"
     And the row "US-S-01" shows 1 linked element and "0 % · 0/1"
 
@@ -20,7 +20,7 @@ Feature: Traceability
   Scenario: R-01.2 — Show who must act on a reference's open elements
     Given the custom fixture with the sw-life-cycle preset is open on Traceability
     When I select the row "US-M-01"
-    Then the detail lists "task-2-memory-list · done" and "task-3-element-panel · backlog · waiting for the workflow engine"
+    Then the detail lists "task-002-memory-list · done" and "task-003-element-panel · backlog · waiting for the workflow engine"
 
   @US-R-01 @v0.3 @edge @fx-custom
   Scenario: R-01.3 — Filter references by status

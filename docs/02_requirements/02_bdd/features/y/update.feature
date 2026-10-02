@@ -23,7 +23,7 @@ Feature: Update (fast-forward)
 
   @US-Y-05 @v0.2 @edge @fx-kanban
   Scenario: Y-05.3 — Update with local changes that do not touch the incoming files
-    Given the fixture is 1 commit behind, and that commit changes only "docs/memory/task/task-3-logout.md"
+    Given the fixture is 1 commit behind, and that commit changes only "docs/memory/task/task-003-logout.md"
     And "README.md" has an uncommitted edit
     When I click "Update" in the sidebar
     Then the fixture's HEAD is the remote's commit
@@ -41,8 +41,8 @@ Feature: Update (fast-forward)
 
   @US-Y-06 @v0.2 @edge @fx-kanban
   Scenario: Y-06.2 — Refuse an update that local changes are in the way of
-    Given the fixture is 1 commit behind, and that commit changes "docs/memory/task/task-1-login-form.md"
-    And "docs/memory/task/task-1-login-form.md" has an uncommitted edit
+    Given the fixture is 1 commit behind, and that commit changes "docs/memory/task/task-001-login-form.md"
+    And "docs/memory/task/task-001-login-form.md" has an uncommitted edit
     When I click "Update" in the sidebar
     Then the fixture's HEAD is unchanged and the uncommitted edit is kept
-    And the sidebar shows "Cannot fast-forward: local changes to task-1-login-form.md are in the way — commit or stash them in a terminal"
+    And the sidebar shows "Cannot fast-forward: local changes to task-001-login-form.md are in the way — commit or stash them in a terminal"

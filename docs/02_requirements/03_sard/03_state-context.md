@@ -1,6 +1,6 @@
 # SARD — 3. State & Context
 
-**Version:** 0.1 · **Date:** 2026-10-02 · **Status:** Draft — specification-downcast session 4
+**Version:** 0.2 · **Date:** 2026-10-02 (0.2: coherence audit fixes — session 6) · **Status:** Draft — specification-downcast session 4
 
 Shell and conventions: `00_sard.md`.
 
@@ -13,7 +13,7 @@ Shell and conventions: `00_sard.md`.
 | Release | v0.1 |
 | Description | The UI shows the project as the CLI reads it — the working tree. An element whose file differs from HEAD (modified or untracked) carries the marker *local changes* in every view. |
 | Rationale | `memory search` reads the working tree (external review R5). |
-| Traceability | US-S-25 · S-25.1, S-25.2, S-25.3, R-10.2 · S8, R8 |
+| Traceability | US-S-25, US-R-10 · S-25.1, S-25.2, S-25.3, R-10.2 · S8, R8 |
 | Fit criterion | [boolean] For every element file listed by `git status --porcelain`, the element carries the marker; for every other element it does not. |
 | Verified by | unit · e2e |
 
@@ -22,10 +22,10 @@ Shell and conventions: `00_sard.md`.
 | Field | |
 |-------|--|
 | Release | v0.1 |
-| Description | Cached CLI and git reads are keyed on the commit of HEAD **and** a hash of `git status --porcelain`; a change of either invalidates them. Changes are detected by file watching, with a periodic check as a fallback. |
+| Description | Cached CLI and git reads are keyed on the commit of HEAD **and** a hash of `git status --porcelain`; a change of either invalidates them. The effective `user.email` (repository and global git configuration) is watched too and re-evaluates the identity. Changes are detected by file watching, with a periodic check as a fallback. |
 | Rationale | Correct with uncommitted edits, cheap otherwise (ADR draft). |
 | Traceability | US-S-26 · S-26.1, S-26.3 · S8 |
-| Fit criterion | [boolean] A unit test shows a cache miss after a commit and after a working-tree edit, and a cache hit when neither changed. |
+| Fit criterion | [boolean] A unit test shows a cache miss after a commit and after a working-tree edit, a cache hit when neither changed, and a new identity after a change of `user.email`. |
 | Verified by | unit |
 
 ### REQ-STATE-03 — Governed actions refused on local changes
@@ -35,7 +35,7 @@ Shell and conventions: `00_sard.md`.
 | Release | v0.2 |
 | Description | The server refuses a submit, approve, reject or ingestion step on an element whose file has local changes, with the reason; the UI disables the action. A change to another file does not block. |
 | Rationale | `memory submit` commits the target's uncommitted edits — a UI action must never commit someone's local work. |
-| Traceability | US-G-11 · G-11.1, G-11.2, G-11.3, X-07.3 · G2, G3, S8 |
+| Traceability | US-G-11, US-X-07 · G-11.1, G-11.2, G-11.3, X-07.3 · G2, G3, S8 |
 | Fit criterion | [percentage] 100 % of governed-action requests on an element with local changes get HTTP 409 and start 0 CLI processes, including requests sent directly to the API. |
 | Verified by | e2e · API test |
 
@@ -79,7 +79,7 @@ Shell and conventions: `00_sard.md`.
 | Release | v0.1 |
 | Description | A repository is in the list at most once (same path, same remote, or a working copy of a listed remote); only folders with `.wingfoil/` are added; a failed add or clone leaves nothing; a missing folder or CLI marks the entry unavailable without blocking the others. |
 | Rationale | Q3; one project never shows twice (worktrees: L10). |
-| Traceability | US-S-03, US-S-04, US-S-05, US-S-06, US-S-07, US-S-18, US-S-19 · S-03.2, S-04.3, S-05.1, S-05.2, S-06.1, S-06.2, S-07.1, S-07.2, S-07.3, S-18.1, S-19.1, S-19.2, S-10.2 · S2 |
+| Traceability | US-S-03, US-S-04, US-S-05, US-S-06, US-S-07, US-S-10, US-S-18, US-S-19 · S-03.2, S-04.3, S-05.1, S-05.2, S-06.1, S-06.2, S-07.1, S-07.2, S-07.3, S-18.1, S-19.1, S-19.2, S-10.2 · S2 |
 | Fit criterion | [boolean] Every listed scenario passes; after each refused add the list and the file system are unchanged. |
 | Verified by | e2e |
 
@@ -88,10 +88,10 @@ Shell and conventions: `00_sard.md`.
 | Field | |
 |-------|--|
 | Release | v0.3 |
-| Description | Completion and iterated figures cover the current element of the `progress.scope` type: with WingFoil 0.3 the one `workflow status` reports; before it, the most advanced element not in its first or last state (ties: lowest version); none → whole project. Reference completion = done linked elements / linked elements; project completion = unweighted mean over references with ≥ 1 linked element (Q8); coverage = elements carrying all `requires` categories / elements whose type has `requires`. Open bugs and pending gates are project-wide. |
+| Description | Completion and iterated figures cover the current element of the `progress.scope` type: with WingFoil 0.3 the one `workflow status` reports; before it, the most advanced element not in its first or last state (ties: lowest version); none → whole project. Reference completion = done linked elements / linked elements; project completion = unweighted mean over references with ≥ 1 linked element (Q8); coverage = elements carrying all `requires` categories / elements whose type has `requires`, project-wide. Open bugs and pending gates are project-wide; a state both gate and `waiting:` is not a pending gate. |
 | Rationale | `ux-reference.md` §7; session 3 decision (scope type only). |
 | Traceability | US-T-12, US-T-13, US-T-14, US-R-01, US-M-03 · T-12.1, T-12.2, T-12.4, T-12.5, T-13.1, T-13.2, T-14.1, R-01.1, M-03.1 · T2, R5, M2 |
-| Fit criterion | [boolean] On the custom fixture with the `sw-life-cycle` preset the UI shows exactly: scope `minor-v0.1`, project completion 25 %, tasks 1/4, open bugs 1, pending gates 3, coverage 3/4. |
+| Fit criterion | [boolean] On the custom fixture with the `sw-life-cycle` preset the UI shows exactly: scope `minor-v0.1`, project completion 25 %, tasks 1/4, open bugs 1, pending gates 3, coverage 3/5 — and pending gates 2 after `bug-001-toast-overlap` is approved to `triaged`. |
 | Verified by | unit · e2e |
 
 ### REQ-STATE-09 — UI settings defaults

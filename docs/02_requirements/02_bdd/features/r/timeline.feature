@@ -1,11 +1,15 @@
 Feature: Timeline
   Time axis of Memory creations and state changes per day, parsed from `wf(…)` commits; git tree
-  with lanes, filters and Memory commits marked (R6, R7).
+  with lanes, filters and Memory commits marked (R6, R7). The timeline variant of the kanban
+  fixture (`00_conventions.md`) has, after `wingfoil init` and the standard team, exactly:
+  2026-09-28 "wf(task): add task-001-login-form", 2026-09-28 "wf(task): submit task-001-login-form",
+  2026-09-29 "docs: fix a typo in README", 2026-09-30 "wf(task): approve task-001-login-form
+  [pending → approved]". A submit's transition is read from the element file's `status` before and
+  after the commit (its subject carries none).
 
   Background:
-    Given the console is running with the kanban fixture open
+    Given the console is running with the kanban fixture's timeline variant open
     And I am Casey
-    And after the commits of `wingfoil init`, the fixture's history is exactly: 2026-09-28 "wf(task): add task-1-login-form", 2026-09-28 "wf(task): submit task-1-login-form [draft → pending]", 2026-09-29 "docs: fix a typo in README", 2026-09-30 "wf(task): approve task-1-login-form [pending → approved]"
 
   # --- US-R-02 — time axis ---
 
@@ -20,7 +24,7 @@ Feature: Timeline
   Scenario: R-02.2 — List the events of a day
     Given Timeline is open on the Time axis
     When I select the column 2026-09-28
-    Then it lists "task-1-login-form · created" and "task-1-login-form · draft → pending", each with the time and the author
+    Then it lists "task-001-login-form · created" and "task-001-login-form · draft → pending", each with the time and the author
 
   # --- US-R-03 — non-governed commits ---
 
@@ -39,8 +43,8 @@ Feature: Timeline
   @US-R-04 @v0.3 @nominal @fx-kanban
   Scenario: R-04.1 — Mark Memory commits and open a commit
     Given the Git tree tab of Timeline is open
-    When I select "wf(task): approve task-1-login-form [pending → approved]"
-    Then the commit shows its full message, its changed files and the link "task-1-login-form"
+    When I select "wf(task): approve task-001-login-form [pending → approved]"
+    Then the commit shows its full message, its changed files and the link "task-001-login-form"
     And the commit's dot is hollow, marking a Memory commit
 
   @US-R-04 @v0.3 @edge @fx-kanban
