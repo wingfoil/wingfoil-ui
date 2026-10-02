@@ -1,0 +1,34 @@
+---
+id: rl-v1
+type: release-line
+title: "WingFoil UI v1"
+status: draft
+version: "v1"
+tmpl_version: 260703   # Orignal template version
+---
+
+## Scope
+
+<!-- What this major version line delivers, at a level above any single minor release —
+     the overall arc its releases (v{version}.1, v{version}.2, ...) will cover. -->
+
+## Success Criteria
+
+<!-- Measurable criteria that mark the whole release-line as complete/done — i.e. worth cutting
+     the next one. Individual releases have their own; this is the release-line-level bar. -->
+
+## Execution Notes
+
+<!-- Running log of what actually happened across this release-line's workflow — filled in
+     incrementally, not written after the fact. Raw material for future planning of the next
+     release-line, not a retrospective itself (each release still has its own). -->
+
+### Initial Design (seed-adrs / seed-dls / seed-specs)
+
+<!-- Decisions/specs formalized up front for this release-line; anything discovered late that
+     should have been seeded here instead of during a release's identify-specs. -->
+
+### Delivery (per release)
+
+<!-- Cross-release patterns: recurring blockers, releases that slipped and why, whether the
+     release roadmap seeded here needed revision mid-line. -->
