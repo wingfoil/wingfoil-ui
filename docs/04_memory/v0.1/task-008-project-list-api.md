@@ -2,36 +2,41 @@
 id: task-008-project-list-api
 type: task
 title: "Project list API"
-status: draft
+status: pending
 release: "v0.1"
-module: ""             # optional — server | web | contracts (dna.yaml modules)
-priority: ""           # optional — high | medium | low
+module: "server"             # optional — server | web | contracts (dna.yaml modules)
+priority: "high"           # optional — high | medium | low
 tags: ["v0.1"]
-ref: ""                # optional — backlog item ID, e.g. "TASK-001"
+ref: "TT-STATE-07"                # optional — backlog item ID, e.g. "TASK-001"
 bug: []                # optional — LIST of bug ids this task closes. Two cases: a fix task derived from a bug
                        # by release-planning, and a bug ABSORBED into an existing task's Acceptance Criteria because that
                        # task already owns the ground. `bug.sync_state` iterates this list; a bug with no task naming it
                        # here never advances past `triaged` (only a reject to `closed`).
                        # dev-loop keeps the source bug's state in sync with this task via bug.sync_state
-depends_on: []         # optional — ids of tasks whose Execution Notes constrain this one; authored at planning time, may be appended during design
+depends_on: ["task-004-cli-adapter-discovery-and-invocation", "task-007-local-state-store"]         # optional — ids of tasks whose Execution Notes constrain this one; authored at planning time, may be appended during design
 tmpl_version: 260703   # Orignal template version
 ---
 
 ## Description
 
-<!-- What needs to be built and why. Reference the user story if applicable:
-     "As <persona>, I want <action> so that <benefit>." -->
+The project-list routes of spec-004 §3 (`GET/POST/DELETE /api/projects`, `POST /api/projects/clone`) with the integrity rules and refusal codes of spec-006 §3: add a local folder, clone a remote into a new empty folder (write class (c), git allow-list), duplicates, removal, computed availability (folder, `.wingfoil/`, CLI).
+
+**Backlog items:** TT-STATE-07, TT-INT-06, TT-ARC-03
 
 ## Acceptance Criteria
 
-<!-- Reference the Gherkin feature file, or inline the key scenarios.
-     e.g. "See docs/02_requirements/02_bdd/features/today/pending-gates.feature"
-     For `web` tasks also point to the screen in docs/00_reference/ux-reference.md (§4.x) and the
-     prototype, and state the accessibility bar (keyboard path, axe clean). -->
+- **TT-STATE-07** (REQ-STATE-07 — Project list integrity): [boolean] Every listed scenario passes; after each refused add the list and the file system are unchanged. *Verified by:* e2e.
+  Scenarios (`@v0.1`): S-03.2, S-04.3, S-05.1, S-05.2, S-06.1, S-06.2, S-07.1, S-07.2, S-07.3, S-18.1, S-19.1, S-19.2, S-10.2.
+- **TT-INT-06** (REQ-INT-06 — Git interface): [percentage] 100 % of the git processes started during the e2e suite use a subcommand of the allowed list (process audit). *Verified by:* e2e (process audit).
+  Scenarios (`@v0.1`): S-04.3, S-07.1.
+- **TT-ARC-03** (REQ-ARC-03 — Four write classes, nothing else): [percentage] After the full e2e suite, 100 % of the commits created in each fixture are `wf(…)` commits made by a CLI process or `chore(ui)` commits changing exactly `.wingfoil/ui.yaml`; the server process opens 0 files for writing under `.wingfoil/` (other than `ui.yaml`) or under a Memory path (file-system audit); in v0.1 the only write is a clone into a new, empty folder (0 endpoints write an existing repository). *Verified by:* e2e-smoke `drive-browser` (git log check) · file-system audit.
+  Scenarios (`@v0.1`): S-04.3.
 
 ## Implementation Notes
 
-<!-- Optional: known constraints, design hints, or links to relevant ADRs. -->
+- `spec-006` §3; `spec-004` §3–5; `adr-001` D5, D7 (git allow-list); directive `cli-only-writes` (write class (c)).
+- Scenarios that need a screen are proved here by API and unit tests against the same
+  fixtures; their e2e run closes in the `web` task that depends on this one.
 
 ## Execution Notes
 
