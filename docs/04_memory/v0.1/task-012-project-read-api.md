@@ -2,36 +2,37 @@
 id: task-012-project-read-api
 type: task
 title: "Project read API"
-status: draft
+status: pending
 release: "v0.1"
-module: ""             # optional — server | web | contracts (dna.yaml modules)
-priority: ""           # optional — high | medium | low
+module: "server"             # optional — server | web | contracts (dna.yaml modules)
+priority: "high"           # optional — high | medium | low
 tags: ["v0.1"]
-ref: ""                # optional — backlog item ID, e.g. "TASK-001"
+ref: "TT-SEC-06"                # optional — backlog item ID, e.g. "TASK-001"
 bug: []                # optional — LIST of bug ids this task closes. Two cases: a fix task derived from a bug
                        # by release-planning, and a bug ABSORBED into an existing task's Acceptance Criteria because that
                        # task already owns the ground. `bug.sync_state` iterates this list; a bug with no task naming it
                        # here never advances past `triaged` (only a reject to `closed`).
                        # dev-loop keeps the source bug's state in sync with this task via bug.sync_state
-depends_on: []         # optional — ids of tasks whose Execution Notes constrain this one; authored at planning time, may be appended during design
+depends_on: ["task-007-local-state-store", "task-010-snapshot-cache-and-live-updates", "task-011-action-descriptor"]         # optional — ids of tasks whose Execution Notes constrain this one; authored at planning time, may be appended during design
 tmpl_version: 260703   # Orignal template version
 ---
 
 ## Description
 
-<!-- What needs to be built and why. Reference the user story if applicable:
-     "As <persona>, I want <action> so that <benefit>." -->
+The v0.1 read routes of spec-004 §3 — `GET /api/server`, `/api/p/:pid`, `/config` (without `ui.yaml`, from v0.3), `/elements`, `/elements/:eid`, `/elements/:eid/history`, `/directives`, `/directives/:did`, `/docs`, `/files/tree`, `/files/content` — assembled from the adapter, the snapshot and the descriptor, with confinement of every path to the repository.
+
+**Backlog items:** TT-SEC-06
 
 ## Acceptance Criteria
 
-<!-- Reference the Gherkin feature file, or inline the key scenarios.
-     e.g. "See docs/02_requirements/02_bdd/features/today/pending-gates.feature"
-     For `web` tasks also point to the screen in docs/00_reference/ux-reference.md (§4.x) and the
-     prototype, and state the accessibility bar (keyboard path, axe clean). -->
+- **TT-SEC-06** (REQ-SEC-06 — Confinement to the repository): [percentage] 100 % of the path-traversal cases of the security suite (`..`, encoded `..`, absolute paths, escaping symlinks) return 404 or the "outside the repository" marker with 0 bytes of the target. *Verified by:* e2e-smoke `local-security`.
+  Scenarios (`@v0.1`): R-09.3.
 
 ## Implementation Notes
 
-<!-- Optional: known constraints, design hints, or links to relevant ADRs. -->
+- `spec-004` §3 (v0.1 rows), §5; `spec-001` §4 (direct reads); `spec-003` §8 (output); `adr-001` D1a.
+- Scenarios that need a screen are proved here by API and unit tests against the same
+  fixtures; their e2e run closes in the `web` task that depends on this one.
 
 ## Execution Notes
 
