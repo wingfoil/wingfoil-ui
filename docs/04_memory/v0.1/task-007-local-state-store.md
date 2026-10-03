@@ -2,36 +2,41 @@
 id: task-007-local-state-store
 type: task
 title: "Local state store"
-status: draft
+status: pending
 release: "v0.1"
-module: ""             # optional — server | web | contracts (dna.yaml modules)
-priority: ""           # optional — high | medium | low
+module: "server"             # optional — server | web | contracts (dna.yaml modules)
+priority: "high"           # optional — high | medium | low
 tags: ["v0.1"]
-ref: ""                # optional — backlog item ID, e.g. "TASK-001"
+ref: "TT-ARC-08"                # optional — backlog item ID, e.g. "TASK-001"
 bug: []                # optional — LIST of bug ids this task closes. Two cases: a fix task derived from a bug
                        # by release-planning, and a bug ABSORBED into an existing task's Acceptance Criteria because that
                        # task already owns the ground. `bug.sync_state` iterates this list; a bug with no task naming it
                        # here never advances past `triaged` (only a reject to `closed`).
                        # dev-loop keeps the source bug's state in sync with this task via bug.sync_state
-depends_on: []         # optional — ids of tasks whose Execution Notes constrain this one; authored at planning time, may be appended during design
+depends_on: ["task-002-launcher-and-http-server-skeleton"]         # optional — ids of tasks whose Execution Notes constrain this one; authored at planning time, may be appended during design
 tmpl_version: 260703   # Orignal template version
 ---
 
 ## Description
 
-<!-- What needs to be built and why. Reference the user story if applicable:
-     "As <persona>, I want <action> so that <benefit>." -->
+The local state file of spec-006: location per platform and `WINGFOIL_UI_STATE_DIR`, `state.json` schema, opaque project ids, atomic writes, corrupt and newer-version handling, warnings in `GET /api/server`, no secrets.
+
+**Backlog items:** TT-ARC-08, TT-SEC-04, TT-SEC-09
 
 ## Acceptance Criteria
 
-<!-- Reference the Gherkin feature file, or inline the key scenarios.
-     e.g. "See docs/02_requirements/02_bdd/features/today/pending-gates.feature"
-     For `web` tasks also point to the screen in docs/00_reference/ux-reference.md (§4.x) and the
-     prototype, and state the accessibility bar (keyboard path, axe clean). -->
+- **TT-ARC-08** (REQ-ARC-08 — Local state outside the repositories): [boolean] After the full e2e suite, `git status --porcelain` of every fixture prints only the changes the scenarios made on purpose, and the state survives a server restart. *Verified by:* e2e.
+  Scenarios (`@v0.1`): S-17.1, S-17.2, S-22.3.
+- **TT-SEC-04** (REQ-SEC-04 — Opaque project ids): [boolean] Across the e2e suite, 0 requested URLs contain a fixture's absolute path; a request for the id `../../etc` gets 404. *Verified by:* e2e-smoke `local-security`.
+  Scenarios (`@v0.1`): X-05.1, X-05.2.
+- **TT-SEC-09** (REQ-SEC-09 — No secrets stored): [boolean] A secret scan over `ui.yaml`, the local state directory and the logs after the e2e suite reports 0 findings. *Verified by:* e2e (secret scan).
+  Scenarios (`@v0.1`): X-02.1.
 
 ## Implementation Notes
 
-<!-- Optional: known constraints, design hints, or links to relevant ADRs. -->
+- `spec-006-local-state-store` (whole); `adr-001` D10; `spec-004` §3 (`GET /api/server` warnings).
+- Scenarios that need a screen are proved here by API and unit tests against the same
+  fixtures; their e2e run closes in the `web` task that depends on this one.
 
 ## Execution Notes
 
