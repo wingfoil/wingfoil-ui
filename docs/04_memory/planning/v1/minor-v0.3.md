@@ -21,7 +21,7 @@ Everything Casey needs to follow a project without a developer: progress card (M
 - Features (12 features, `07_sequencer.md` v0.5): T2, T5, M2, R5, R6, R7, R8, W1, W2, G5, S6, C1.
 - Journeys served: J2 (complete for a product owner holding `approver`; informational otherwise), decision-log ingestion.
 - Backlog: `docs/03_backlog/04_backlog/by-release/v0.3.json` — 25 user stories,
-  2 technical tasks; the Memory `task` elements are created from it by
+  3 technical tasks (TT-ARC-07 moved from v0.1 by release-planning v0.1); the Memory `task` elements are created from it by
   this release's `release-planning` (`ref:` = backlog id).
 
 ## Pillar Focus

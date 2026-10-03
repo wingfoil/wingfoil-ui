@@ -1,6 +1,6 @@
 # UX reference — WingFoil UI
 
-**Version:** 0.1 · **Date:** 2026-09-30 · **Status:** Reference for `lean-inception` and `specification-downcast`
+**Version:** 0.2 · **Date:** 2026-10-03 (0.2: §9 colours aligned with spec-009 — release-planning v0.1 session 2) · **Status:** Reference for `lean-inception` and `specification-downcast`
 **Prototype:** `docs/00_reference/prototype/` (interactive HTML; sample data from the WingFoil
 repository and from a fictional Kanban project `acme-checkout`)
 
@@ -261,5 +261,10 @@ UI categories: `work`, `defect`, `decision`, `spec`, `requirement`, `feature`, `
 
 Ink `#081532`, primary `#0C469F`, accent `#1686C8`, teal `#22CEC6` (brand gradient
 `#22CEC6 → #1686C8 → #0C469F` from `docs/assets`), neutrals `#F5F7FA` / `#E3E8EF` / `#6B7890`.
+
+> **Superseded by `spec-009-theme-tokens`** (the colour source of the implementation): muted text
+> is `#5C6880` (`#6B7890` fails AA at 4.45:1 on white and becomes the control-border colour);
+> `#8A96A8` carries no text; added a dark palette and the *attention* (`#FDECEC/#B42318`) and
+> *muted* (`#F5F7FA/#5C6880`) tones. Deviations recorded under directive `ux-consistency`.
 Type: Geist + Geist Mono. State tones: human `#FFF3DC/#8A5A00`, active `#E3F0FB/#0C469F`,
 done `#E2F6F1/#0B6B5C`, neutral `#EEF1F5/#4A5568`.

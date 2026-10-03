@@ -132,3 +132,33 @@ draft is checked against `memory.yaml`'s `required` list (W-02).
   `planning`; it now accepts any `release` state of `memory.yaml`.
 - Checks: `check_releases.py` OK (5 releases, 44 / 44 MVP features); `check_backlog.py` all checks
   passed (161 items, 238 links); `directives list` → `"warnings": []`; workflow YAML parses.
+
+### Session 2 — Load and identify-specs (2026-10-03)
+
+- Load decided (all as proposed):
+  - **budget** v0.1 6 → 9 active days — sequencer `07` v0.6, canvas `08` v0.4 (≈ 33 active days);
+  - **REQ-ARC-07 → v0.3** (read, inferred defaults, presets): no `@v0.1` scenario reads `ui.yaml`
+    (M-02 buckets come from spec-003 state kinds) — SARD `01` v0.6; spec-004 `GET /config` serves
+    `ui.yaml` from v0.3; spec-005 `release` v0.1 → v0.3; TT-ARC-07 now in v0.3;
+  - **REQ-INT-08 staged**: v0.1 e2e on Chromium, three engines from v0.2 — SARD `04` v0.4;
+    TT-INT-08 stays in v0.1 with the narrower scope; `minor-v0.2` notes the extension;
+  - **TT-PERF-04 kept** in v0.1;
+  - backlog regenerated (`build_backlog.py`): v0.1 = 39 stories + 33 technical tasks (72), v0.3 =
+    25 + 3 (28); `00_backlog.md` v0.4; `minor-v0.1`/`minor-v0.3` counts and citations updated.
+  - Finding while weighing: `build_backlog.py` assigns a technical task to the **first** release
+    of its SARD requirement — moving a TT means changing the requirement's Release field.
+- `identify-specs`: survey of v0.1 artefacts against spec-001…005, ADRs and BDD conventions —
+  covered: CLI contracts, descriptor, HTTP API/session, snapshot (adr-001 D6), fixtures (BDD
+  conventions). Specified (user asked for all four, not only the local state):
+  `spec-006-local-state-store`, `spec-007-launcher-command-line`, `spec-008-message-catalogue`,
+  `spec-009-theme-tokens` (`release: v0.1`). Contrast ratios of spec-009 computed by script
+  (WCAG 2.1); deviation: prototype muted text `#6B7890` fails AA (4.45:1) → `#5C6880`;
+  `ux-reference.md` v0.2 §9 points to spec-009 (`ux-consistency`).
+- `spec-review.passed`: independent read-only agent — PASS, 25 findings (no blocker/major), 24
+  fixed, F25 (SARD Input line lists consumed versions) left by decision; re-verified by the same
+  agent: all resolved, 6 new nits fixed. Side fixes: spec-004 `GET /api/server` `warnings`,
+  project-list refusal codes referenced from spec-004 §5 (process notes).
+- Specs: `add` → `submit` by the agent; `approve` run by the user (approver), commits `438d82b`,
+  `fea71c2`, `40f65b1`, `ac72db8` — spec-001…009 all `approved`.
+- Checks: `check_usm.py`, `check_bdd.py`, `check_sard.py`, `check_backlog.py` all checks passed;
+  `check_releases.py` OK; `directives list` → `"warnings": []`.

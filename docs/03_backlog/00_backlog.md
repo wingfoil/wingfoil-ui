@@ -1,10 +1,10 @@
 # Backlog — WingFoil UI
 
-**Version:** 0.3
-**Date:** 2026-10-02 (0.2: rebuilt after the coherence audit — session 6; 0.3: US-X-10 page title — initial-design session 2)
+**Version:** 0.4
+**Date:** 2026-10-03 (0.2: rebuilt after the coherence audit — session 6; 0.3: US-X-10 page title — initial-design session 2; 0.4: TT-ARC-07 v0.1 → v0.3 (SARD v0.6), Input versions refreshed — release-planning v0.1 session 2)
 **Status:** Draft — specification-downcast session 5 (`backlog-export`)
-**Input:** `docs/02_requirements/01_user_story_map/02_story-map.md` (v0.4) ·
-`docs/02_requirements/02_bdd/` (v0.3) · `docs/02_requirements/03_sard/` (v0.2)
+**Input:** `docs/02_requirements/01_user_story_map/02_story-map.md` (v0.5) ·
+`docs/02_requirements/02_bdd/` (v0.5) · `docs/02_requirements/03_sard/` (v0.6)
 
 The documentary chain (user story map → BDD scenarios → SARD) consolidated into one structured
 backlog, ready to be turned into Memory `task` elements release by release.
@@ -47,9 +47,9 @@ of the requirement), `acceptance_criteria` = the scenarios the requirement trace
 
 | Release | User stories | Technical tasks | Total |
 |---------|--------------|-----------------|-------|
-| v0.1 | 39 | 34 | 73 |
+| v0.1 | 39 | 33 | 72 |
 | v0.2 | 34 | 12 | 46 |
-| v0.3 | 25 | 2 | 27 |
+| v0.3 | 25 | 3 | 28 |
 | v0.4 | 11 | 2 | 13 |
 | v1.0 | 2 | 0 | 2 |
 | **Total** | **111** | **50** | **161** |

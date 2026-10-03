@@ -20,6 +20,8 @@ The human-on-the-loop core — **first usable release**: Today (Requires you, wa
 
 - Features (13 features, `07_sequencer.md` v0.5): T1, T4, S5, S7, G2, G3, G4, C2, C4, Y1, Y2, Y3, Y4.
 - Journeys served: J0 (complete), J1 (complete), J4 (gate — reviewers holding `approver`; informational otherwise), J5, J6 step 3, J8.
+- Browsers: the e2e suite extends from Chromium (v0.1) to Firefox and WebKit (REQ-INT-08, staged by
+  release-planning v0.1).
 - Backlog: `docs/03_backlog/04_backlog/by-release/v0.2.json` — 34 user stories,
   12 technical tasks; the Memory `task` elements are created from it by
   this release's `release-planning` (`ref:` = backlog id).

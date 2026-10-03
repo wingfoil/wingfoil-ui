@@ -1,6 +1,6 @@
 # SARD — 4. Integrations & Interfaces
 
-**Version:** 0.3 · **Date:** 2026-10-02 (0.2: coherence audit fixes — session 6; 0.3: REQ-INT-06 Memory-event source fixed by spec-002 — initial-design session 5) · **Status:** Draft — specification-downcast session 4
+**Version:** 0.4 · **Date:** 2026-10-03 (0.2: coherence audit fixes — session 6; 0.3: REQ-INT-06 Memory-event source fixed by spec-002 — initial-design session 5; 0.4: REQ-INT-08 staged, Chromium in v0.1 — release-planning v0.1 session 2) · **Status:** Draft — specification-downcast session 4
 
 Shell and conventions: `00_sard.md`.
 
@@ -87,11 +87,11 @@ Shell and conventions: `00_sard.md`.
 
 | Field | |
 |-------|--|
-| Release | v0.1 |
+| Release | v0.1 (Chromium) · v0.2 (Chromium, Firefox, WebKit) |
 | Description | The UI supports the desktop browsers built on the Chromium, Firefox (Gecko) and WebKit engines — Chrome, Edge, Firefox and Safari — in the versions those engines have in the Playwright release pinned by the project; the e2e suite runs on the three engines. |
 | Rationale | Users open the console in their own browser; three engines cover the four browsers. |
 | Traceability | US-S-01, US-S-28, US-G-04, US-X-06 · S-01.1, S-28.1, G-04.1, X-06.4 (run on each engine, with the rest of the release's scenarios) · e2e-smoke `drive-browser` · X1 |
-| Fit criterion | [percentage] 100 % of the release's e2e scenarios pass on each of the three engines. |
+| Fit criterion | [percentage] 100 % of the release's e2e scenarios pass on each of the three engines (v0.1: on Chromium). |
 | Verified by | e2e-smoke `drive-browser` |
 
 ### REQ-INT-09 — Server ↔ browser live updates
