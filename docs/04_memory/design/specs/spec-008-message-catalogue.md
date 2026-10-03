@@ -2,7 +2,7 @@
 id: spec-008-message-catalogue
 type: tech-spec
 title: "Message catalogue"
-status: pending
+status: approved
 scope: "UI message catalogue: files, key scheme, message syntax, key-rendering build, server-side texts"              # REQUIRED — the artefact this spec covers, e.g. "server HTTP API", "CLI JSON contract: memory search", ".wingfoil/ui.yaml"
 wingfoil_version: ""   # optional — for a CLI contract: the WingFoil version the shape was captured from
 supersedes: ""         # optional — id of the tech-spec this one replaces, e.g. "spec-002"
