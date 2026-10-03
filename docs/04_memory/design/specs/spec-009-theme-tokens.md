@@ -2,7 +2,7 @@
 id: spec-009-theme-tokens
 type: tech-spec
 title: "Theme tokens"
-status: pending
+status: approved
 scope: "UI theme tokens: CSS custom properties, light and dark values, theme selection, contrast pairs"              # REQUIRED — the artefact this spec covers, e.g. "server HTTP API", "CLI JSON contract: memory search", ".wingfoil/ui.yaml"
 wingfoil_version: ""   # optional — for a CLI contract: the WingFoil version the shape was captured from
 supersedes: ""         # optional — id of the tech-spec this one replaces, e.g. "spec-002"
