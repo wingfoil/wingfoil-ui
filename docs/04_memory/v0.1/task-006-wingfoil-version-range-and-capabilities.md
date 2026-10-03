@@ -2,36 +2,38 @@
 id: task-006-wingfoil-version-range-and-capabilities
 type: task
 title: "WingFoil version range and capabilities"
-status: draft
+status: pending
 release: "v0.1"
-module: ""             # optional — server | web | contracts (dna.yaml modules)
-priority: ""           # optional — high | medium | low
+module: "server"             # optional — server | web | contracts (dna.yaml modules)
+priority: "high"           # optional — high | medium | low
 tags: ["v0.1"]
-ref: ""                # optional — backlog item ID, e.g. "TASK-001"
+ref: "TT-INT-02"                # optional — backlog item ID, e.g. "TASK-001"
 bug: []                # optional — LIST of bug ids this task closes. Two cases: a fix task derived from a bug
                        # by release-planning, and a bug ABSORBED into an existing task's Acceptance Criteria because that
                        # task already owns the ground. `bug.sync_state` iterates this list; a bug with no task naming it
                        # here never advances past `triaged` (only a reject to `closed`).
                        # dev-loop keeps the source bug's state in sync with this task via bug.sync_state
-depends_on: []         # optional — ids of tasks whose Execution Notes constrain this one; authored at planning time, may be appended during design
+depends_on: ["task-005-cli-contracts-and-direct-reads"]         # optional — ids of tasks whose Execution Notes constrain this one; authored at planning time, may be appended during design
 tmpl_version: 260703   # Orignal template version
 ---
 
 ## Description
 
-<!-- What needs to be built and why. Reference the user story if applicable:
-     "As <persona>, I want <action> so that <benefit>." -->
+Detect each project's WingFoil version, compare it with the supported range (0.2.2 → highest contract-tested), open out-of-range projects read-only with the reason, and the capability table (`contracts/capabilities.json`) that hides or disables what a version lacks (adr-001 D3, spec-001 §6).
+
+**Backlog items:** TT-INT-02, TT-INT-03
 
 ## Acceptance Criteria
 
-<!-- Reference the Gherkin feature file, or inline the key scenarios.
-     e.g. "See docs/02_requirements/02_bdd/features/today/pending-gates.feature"
-     For `web` tasks also point to the screen in docs/00_reference/ux-reference.md (§4.x) and the
-     prototype, and state the accessibility bar (keyboard path, axe clean). -->
+- **TT-INT-02** (REQ-INT-02 — Supported WingFoil range): [boolean] A fixture pinning a version below or above the range opens with 0 enabled actions and the reason naming the range; a version inside it passes every scenario of the release. *Verified by:* e2e · README review.
+  Scenarios (`@v0.1`): S-08.1, S-09.1, S-09.2.
+- **TT-INT-03** (REQ-INT-03 — Capability detection: read-only or hidden): [boolean] Every listed scenario passes on WingFoil 0.2.2; the capability table in `contracts/` declares a minimum version for 100 % of the capabilities. *Verified by:* e2e · unit.
 
 ## Implementation Notes
 
-<!-- Optional: known constraints, design hints, or links to relevant ADRs. -->
+- `adr-001` D3; `spec-001` §6 (`capabilities.json`), §5 (`matrix.json`).
+- Scenarios that need a screen are proved here by API and unit tests against the same
+  fixtures; their e2e run closes in the `web` task that depends on this one.
 
 ## Execution Notes
 
