@@ -71,6 +71,11 @@ Bars common to every release (`08_mvp-canvas.md`, SARD v0.6):
   specified — spec-006 local state store, spec-007 launcher command line, spec-008 message
   catalogue, spec-009 theme tokens; independent spec review PASS — 24 findings fixed, 1 (F25) left by decision; 6 nits of the
   re-verification fixed.
+- 2026-10-03 — `build-backlog` (plan session 3): 21 vertical tasks `task-001` … `task-021`
+  (12 server, 1 contracts, 8 web) cover the 72 backlog records exactly once
+  (`check_tasks.py`); server/contracts tasks own the technical tasks and the server-only stories,
+  web tasks own the user stories; all `pending`. `dl-002` stamped `release: v0.1`; `dl-001`,
+  `dl-003` left unassigned (dl-003 lands with spec-005 in v0.3). No bug selected.
 
 ### Implementation (dev-loop, per task)
 

@@ -162,3 +162,26 @@ draft is checked against `memory.yaml`'s `required` list (W-02).
   `fea71c2`, `40f65b1`, `ac72db8` — spec-001…009 all `approved`.
 - Checks: `check_usm.py`, `check_bdd.py`, `check_sard.py`, `check_backlog.py` all checks passed;
   `check_releases.py` OK; `directives list` → `"warnings": []`.
+
+### Session 3 — Build backlog (2026-10-03)
+
+- Decisions (all as proposed): 21 tasks in the order of the proposal; **server/contracts tasks own
+  the technical tasks and the server-only stories (X-02…04), web tasks own the user stories** — one
+  module per task; priority high for task-001…013, medium for task-014…021; tag `v0.1` (the
+  `release-cycle` implementation filter); coverage script in `docs/03_backlog/X_tools/`.
+- Two placements corrected while checking scenarios: US-S-27 (failed CLI read) → task-019 (its
+  scenarios are on the DNA view); US-S-10 (no CLI) → task-014 (add modal and switcher).
+- Outputs: `task-001` … `task-021` under `docs/04_memory/v0.1/` — `memory add --set release=v0.1
+  --tags v0.1`, then `module`, `priority`, `ref` (first backlog item), `depends_on` and the body
+  (Description with `**Backlog items:**`, the stories' text; Acceptance Criteria = the `@v0.1`
+  scenarios per feature file and the technical tasks' fit criteria; screen, prototype and
+  accessibility bar for web tasks; Implementation Notes = specs, ADR decisions, directives)
+  filled by editing the drafts (W-01), then `memory submit` → `pending` (21 commits).
+- `docs/03_backlog/X_tools/check_tasks.py` (new): release and tag, required fields, module in DNA,
+  backlog ids valid, `ref` among them, `depends_on` within the release, every by-release item listed
+  exactly once. Negative test on a scratch copy: 4 injected defects → 4 failures, exit 1.
+- Release stamping: `dl-002` `release: v0.1` (by edit, no CLI verb for the field); `dl-001`,
+  `dl-003` unassigned; specs already stamped (spec-001…004, 006…009 v0.1; spec-005 v0.3); ADRs v0.1.
+  `triage-bugs` selected no bug, so no fix task.
+- Checks: `check_tasks.py` OK (21 tasks, 72 / 72 items); `check_backlog.py`, `check_releases.py`
+  OK; `directives list` → `"warnings": []`.
