@@ -2,7 +2,7 @@
 id: spec-006-local-state-store
 type: tech-spec
 title: "Local state store"
-status: pending
+status: approved
 scope: "local state file: project list, role view per project (v0.1); UI settings, action log (reserved)"              # REQUIRED — the artefact this spec covers, e.g. "server HTTP API", "CLI JSON contract: memory search", ".wingfoil/ui.yaml"
 wingfoil_version: ""   # optional — for a CLI contract: the WingFoil version the shape was captured from
 supersedes: ""         # optional — id of the tech-spec this one replaces, e.g. "spec-002"
