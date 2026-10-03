@@ -2,7 +2,7 @@
 id: spec-007-launcher-command-line
 type: tech-spec
 title: "Launcher command line"
-status: pending
+status: approved
 scope: "wingfoil-ui command line: options, Node.js check, output, exit codes, browser opening"              # REQUIRED — the artefact this spec covers, e.g. "server HTTP API", "CLI JSON contract: memory search", ".wingfoil/ui.yaml"
 wingfoil_version: ""   # optional — for a CLI contract: the WingFoil version the shape was captured from
 supersedes: ""         # optional — id of the tech-spec this one replaces, e.g. "spec-002"
