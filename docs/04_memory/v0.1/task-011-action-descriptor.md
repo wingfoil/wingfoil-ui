@@ -26,14 +26,15 @@ The action descriptor of spec-003 computed from `memory.yaml` states for every e
 ## Acceptance Criteria
 
 - **TT-ARC-06** (REQ-ARC-06 — Action descriptor derived from the project): [percentage] A table-driven unit test over the elements of the three fixtures yields the expected verbs, reject targets, required role and actor for 100 % of the rows. *Verified by:* unit (table-driven) · e2e.
-- **TT-ARC-05** (REQ-ARC-05 — Methodology independence): [boolean] The same build renders and acts on the `kanban`, `custom` and `unknown` fixtures with every scenario of the release passing; a lint rule finds 0 string literals equal to a type or state name of the three fixtures in `server/` and `web/` outside `presets/` and tests. *Verified by:* e2e on the three fixtures · lint.
+- **TT-ARC-05** (REQ-ARC-05 — Methodology independence): [boolean] The same build renders and acts on the `kanban`, `custom` and `unknown` fixtures with every scenario of the release passing; a lint rule finds 0 string literals equal to a type or state name of the three fixtures in `server/` and `web/` outside `presets/` and tests. v0.1 (read-only): the same build renders the three fixtures with every `@v0.1` scenario passing. *Verified by:* e2e on the three fixtures · lint.
   Scenarios (`@v0.1`): S-28.1, S-28.2, M-02.1, M-02.2, M-02.3.
+
+e2e closure — scenarios that need a screen are proved here by API and unit tests on the same fixtures and close in: task-017-memory-list-and-live-refresh: S-28.1, S-28.2, M-02.1, M-02.2, M-02.3.
 
 ## Implementation Notes
 
 - `spec-003-action-descriptor` (whole); REQ-ARC-05 lint (no type/state literal outside `presets/` and tests).
-- Scenarios that need a screen are proved here by API and unit tests against the same
-  fixtures; their e2e run closes in the `web` task that depends on this one.
+- `dl-002` (permissions left to WingFoil): the descriptor computes no UI-side permission; the role a gate requires is WingFoil's.
 
 ## Execution Notes
 

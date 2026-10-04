@@ -36,12 +36,12 @@ The `wingfoil-ui` command and the HTTP server skeleton: `bin` stub with the Node
 - **US-X-03** — every `@v0.1` scenario passes:
   - `docs/02_requirements/02_bdd/features/x/local-security.feature`: X-03.1 Listen on the loopback interface only; X-03.2 Refuse a connection on the machine's network address
 
+e2e closure — scenarios that need a screen are proved here by API and unit tests on the same fixtures and close in: task-013-web-shell-themes-and-message-catalogue: S-01.1, S-01.2, S-01.3.
+
 ## Implementation Notes
 
 - `spec-007-launcher-command-line` (whole), `spec-004` §1; `adr-001` D8; `adr-002` (Fastify, pino).
 - REQ-PERF-06: no project read before the URL is printed.
-- Scenarios that need a screen are proved here by API and unit tests against the same
-  fixtures; their e2e run closes in the `web` task that depends on this one.
 
 ## Execution Notes
 

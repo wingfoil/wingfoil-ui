@@ -1,6 +1,6 @@
 # SARD — 5. Security, Roles & Governance
 
-**Version:** 0.3 · **Date:** 2026-10-02 (0.2: coherence audit fixes — session 6; 0.3: REQ-SEC-02 session derived from the token, static files exempt — initial-design session 6) · **Status:** Draft — specification-downcast session 4
+**Version:** 0.4 · **Date:** 2026-10-04 (0.2: coherence audit fixes — session 6; 0.3: REQ-SEC-02 session derived from the token, static files exempt — initial-design session 6; 0.4: REQ-SEC-05 v0.1 scope — release-planning v0.1 session 4 (audit A4)) · **Status:** Draft — specification-downcast session 4
 
 Shell and conventions: `00_sard.md`. The protection of the local server (X4) is mandatory and
 distinct from permissions between team members, which belong to WingFoil (L6).
@@ -55,11 +55,11 @@ distinct from permissions between team members, which belong to WingFoil (L6).
 
 | Field | |
 |-------|--|
-| Release | v0.1 |
+| Release | v0.1 (lint, clone arguments) · v0.3 (decision-log title) |
 | Description | CLI and git processes are started with `execFile` and argument arrays; user input (titles, reasons, paths, URLs) is passed as arguments, never interpolated into a command line. |
 | Rationale | No command injection (X4). |
 | Traceability | US-G-15, US-G-06, US-S-04 · G-15.1, G-06.2, S-04.3 · X4, S1 |
-| Fit criterion | [boolean] A lint rule finds 0 uses of `exec`, `execSync` or `shell: true` in `server/`; a decision-log titled `x"; touch /tmp/pwned; "` is created with that literal title and `/tmp/pwned` does not exist. |
+| Fit criterion | [boolean] A lint rule finds 0 uses of `exec`, `execSync` or `shell: true` in `server/`; a decision-log titled `x"; touch /tmp/pwned; "` is created with that literal title and `/tmp/pwned` does not exist. v0.1 (no governed write): the lint rule, and a clone whose URL and working directory contain `"; touch /tmp/pwned; "` creates no `/tmp/pwned`. |
 | Verified by | lint · e2e |
 
 ### REQ-SEC-06 — Confinement to the repository

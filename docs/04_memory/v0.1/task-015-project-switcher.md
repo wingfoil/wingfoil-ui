@@ -13,7 +13,7 @@ bug: []                # optional — LIST of bug ids this task closes. Two case
                        # task already owns the ground. `bug.sync_state` iterates this list; a bug with no task naming it
                        # here never advances past `triaged` (only a reject to `closed`).
                        # dev-loop keeps the source bug's state in sync with this task via bug.sync_state
-depends_on: ["task-008-project-list-api", "task-013-web-shell-themes-and-message-catalogue"]         # optional — ids of tasks whose Execution Notes constrain this one; authored at planning time, may be appended during design
+depends_on: ["task-008-project-list-api", "task-012-project-read-api", "task-013-web-shell-themes-and-message-catalogue", "task-017-memory-list-and-live-refresh", "task-018-element-panel-read-only"]         # optional — ids of tasks whose Execution Notes constrain this one; authored at planning time, may be appended during design
 tmpl_version: 260703   # Orignal template version
 ---
 
@@ -41,6 +41,8 @@ The project switcher: list in stored order, switch project (closing the previous
   - `docs/02_requirements/02_bdd/features/s/projects.feature`: S-19.1 Show a moved project as unavailable; S-19.2 Recover when the folder comes back
 - **US-X-05** — every `@v0.1` scenario passes:
   - `docs/02_requirements/02_bdd/features/x/local-security.feature`: X-05.1 Use opaque project ids in URLs; X-05.2 Refuse a project id that is not in the list
+
+Also closes the e2e of **X-02.1** (US-X-02, task-003): the fragment is removed from the address bar and the switcher lists the fixture.
 
 Screen: `docs/00_reference/ux-reference.md` §3 and the prototype (`docs/00_reference/prototype/`), deviations only as recorded (directive `ux-consistency`). Accessibility bar: every screen and action of the task operable from the keyboard with visible focus; axe-core 0 serious/critical violations in both themes; every string from the catalogue (X-09.1).
 

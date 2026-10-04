@@ -27,16 +27,16 @@ Set up the npm workspaces `server/`, `web/`, `contracts/` with TypeScript, ESLin
 
 - **TT-INT-08** (REQ-INT-08 — Supported browsers): [percentage] 100 % of the release's e2e scenarios pass on each of the three engines (v0.1: on Chromium). *Verified by:* e2e-smoke `drive-browser`.
   Scenarios (`@v0.1`): S-01.1, S-28.1, X-06.4.
-- **TT-SEC-05** (REQ-SEC-05 — No shell): [boolean] A lint rule finds 0 uses of `exec`, `execSync` or `shell: true` in `server/`; a decision-log titled `x"; touch /tmp/pwned; "` is created with that literal title and `/tmp/pwned` does not exist. *Verified by:* lint · e2e.
+- **TT-SEC-05** (REQ-SEC-05 — No shell): [boolean] A lint rule finds 0 uses of `exec`, `execSync` or `shell: true` in `server/`; a decision-log titled `x"; touch /tmp/pwned; "` is created with that literal title and `/tmp/pwned` does not exist. v0.1 (no governed write): the lint rule, and a clone whose URL and working directory contain `"; touch /tmp/pwned; "` creates no `/tmp/pwned`. *Verified by:* lint · e2e.
   Scenarios (`@v0.1`): S-04.3.
+
+e2e closure — scenarios that need a screen are proved here by API and unit tests on the same fixtures and close in: task-013-web-shell-themes-and-message-catalogue: S-01.1; task-014-add-project-modal: S-04.3; task-017-memory-list-and-live-refresh: S-28.1; task-021-accessibility-page-title-and-performance-pass: X-06.4.
 
 ## Implementation Notes
 
 - `adr-002` (stack, tests and quality); BDD conventions `docs/02_requirements/02_bdd/00_conventions.md` (tags, fixtures, standard team).
 - e2e on Chromium only in v0.1 (SARD `04` v0.4, REQ-INT-08 staged).
 - Directive `wingfoil-cli` (W-01…W-20) for every CLI call made by the fixture builder.
-- Scenarios that need a screen are proved here by API and unit tests against the same
-  fixtures; their e2e run closes in the `web` task that depends on this one.
 
 ## Execution Notes
 

@@ -23,7 +23,7 @@ approver (gates) — Roberto Pompermaier holds all of them; the agent drafts and
 authority)
 **Input:** release `docs/04_memory/planning/v1/minor-v0.1.md`; its backlog
 `docs/03_backlog/04_backlog/by-release/v0.1.json` (39 user stories + 34 technical tasks, 73
-records); sequencer `docs/01_vision/07_sequencer.md` v0.5 (budget: 6 active days); ADRs
+records — 72 / 33 after session 2); sequencer `docs/01_vision/07_sequencer.md` v0.5 (budget: 6 active days); ADRs
 `adr-001`, `adr-002` (`accepted`); tech-specs `spec-001` … `spec-005` (`approved`); DLs `dl-001` …
 `dl-003` (`ready`)
 **Evidence:** handoff of `initial-design-rl-v1-plan` (`done`); directives `wingfoil-cli` v1.2
@@ -77,7 +77,7 @@ draft is checked against `memory.yaml`'s `required` list (W-02).
   backlog record: each dev-loop iteration (branch, TDD, review gate, approval, merge) has a fixed
   cost and the technical tasks are cross-cutting constraints implemented with their stories. `ref`
   holds the task's primary backlog id; the task body lists every backlog record it covers; a
-  script checks that the 73 records are covered exactly once.
+  script checks that the 73 records (72 after session 2) are covered exactly once.
 - DL release stamping: `dl-002` → `v0.1` (applies to read-only from day one); `dl-003` left for v0.3
   (implemented through spec-005); `dl-001` left empty (process decision, already executed).
 - Release `planning → in-development` has no CLI verb: edit `status` by hand and commit
@@ -103,7 +103,9 @@ draft is checked against `memory.yaml`'s `required` list (W-02).
   (`status: done`, commit `wf(plan): finalize release-planning-rel-v0.1-plan [active → done]`, W-04)
   and the branch merged to `main` with `--ff=false`.
 - **Next:** `release-cycle` phase `implementation` — `dev-loop` per task (`tags`/`release` v0.1,
-  status `backlog`), plan scope `rl-v1/rel-v0.1`.
+  status `backlog`), plan scope `rl-v1/rel-v0.1`. Tasks are picked by `depends_on`, **not by
+  number**; a valid order: 001, 002, 003, 004, 007, 005, 006, 009, 010, 011, 008, 012, 013, 018,
+  017, 020, 015, 019, 014, 016, 021.
 
 ## Session log
 
@@ -165,9 +167,9 @@ draft is checked against `memory.yaml`'s `required` list (W-02).
 
 ### Session 3 — Build backlog (2026-10-03)
 
-- Decisions (all as proposed): 21 tasks in the order of the proposal; **server/contracts tasks own
-  the technical tasks and the server-only stories (X-02…04), web tasks own the user stories** — one
-  module per task; priority high for task-001…013, medium for task-014…021; tag `v0.1` (the
+- Decisions (all as proposed): 21 tasks in the order of the proposal; **each technical task sits
+  in the module that implements it, server tasks also own the server-only stories (X-02…04), web
+  tasks own the user stories** — one module per task (wording corrected in session 4, audit A13); priority high for task-001…013, medium for task-014…021; tag `v0.1` (the
   `release-cycle` implementation filter); coverage script in `docs/03_backlog/X_tools/`.
 - Two placements corrected while checking scenarios: US-S-27 (failed CLI read) → task-019 (its
   scenarios are on the DNA view); US-S-10 (no CLI) → task-014 (add modal and switcher).
@@ -185,3 +187,46 @@ draft is checked against `memory.yaml`'s `required` list (W-02).
   `triage-bugs` selected no bug, so no fix task.
 - Checks: `check_tasks.py` OK (21 tasks, 72 / 72 items); `check_backlog.py`, `check_releases.py`
   OK; `directives list` → `"warnings": []`.
+
+### Session 4 — Commit backlog (2026-10-04)
+
+- Independent audit (fresh-context, read-only) of the release-planning outputs: **FAIL** — 5 major,
+  7 minor, 4 nit:
+  - A1 web tasks depended on screens of tasks they did not depend on, with a cycle 017 → 018 →
+    019 → 017; A2 task-013 (shell) carried every-screen acceptance (themes, strings); A3 missing
+    server dependencies; A4 fit criteria quoted from the SARD named capabilities of later releases
+    (Today, gate actions, decision-log creation, X-10.4/5); A5 no refusal contract for S-10.1;
+  - minor/nit: fixture variants (A6), wrong module counts in `minor-v0.1` and in the message of
+    `b60dc9e` — **11 server, 1 contracts, 9 web**, not 12/1/8 (A7; the commit message cannot be
+    changed), dl-002 cited by no task (A8), wrong references (A9), reversed backlog dependencies
+    without a note (A10), `projects` event without owner (A11), X-02.1 browser side (A12), plan
+    wording and counts (A13, A14), stale sequencer citations (A15), `check_tasks.py` gaps (A16).
+- Decisions (user): all fixes as proposed; tasks edited **in place while `pending`** (no reject to
+  `draft`).
+- Fixes:
+  - web order 013 → 018 → 017 → 019 → 020 → 015 → 014 → 016 → 021: the element panel (task-018)
+    is reachable by URL and comes first; US-G-02 → task-019; dependencies 017→018, 019→017/018,
+    015→012/017/018, 014→015/017, 016→014/015/019/020; the e2e harness registers fixtures through
+    `POST /api/projects`, so views are testable before the add modal;
+  - US-X-08, US-X-09, TT-ARC-09, TT-ARC-11 → task-021; task-013 keeps US-S-01 and the mechanisms
+    (unit-tested), depends on 008, 012;
+  - dependencies 012→006/009, 009→003/007, 008→003/010 (the `projects` event, A11);
+  - SARD v0.7 (`01` v0.7, `02` v0.3, `03` v0.4, `04` v0.5, `05` v0.4): v0.1 scope in Release and
+    fit criterion of REQ-ARC-05, ARC-10, INT-03, PERF-05, SEC-05, STATE-06; backlog regenerated;
+  - spec-006 `availability` (`ok`, `folder-not-found`, `not-wingfoil`, `cli-not-found`), `projects`
+    event, `cli-not-found` refusal; spec-008 `error.cliNotFound`;
+  - BDD conventions v0.6: CLI stub = the package `bin` script (adr-001 D2), version-fake and no-CLI
+    fixture variants;
+  - every server/contracts task names, per scenario, the web task that closes its e2e; dl-002 cited
+    in task-007 and task-011; references corrected; `rl-v1` Delivery note and sequencer v0.6
+    citations in every release; `check_tasks.py` reads modules from `dna.yaml`, checks each item's
+    scenarios inside its own acceptance block, detects `depends_on` cycles (negative-tested).
+- Re-verification by the same agent: **PASS** — all 16 resolved; new N1–N4 (minor) and N5–N6 (nit)
+  fixed: X-02.1 closure named in task-007 and task-015; REQ-INT-03 v0.1 scope = version notice
+  (S-08.3 is v0.4); `GET /api/projects` returns `path` and `remote` for the switcher (ux-reference
+  §3; REQ-SEC-04 restricts URLs only); per-item scenario check; run order in *Handoff → Next*.
+- Checks: `check_usm.py`, `check_bdd.py`, `check_sard.py`, `check_backlog.py` all checks passed;
+  `check_releases.py` OK; `check_tasks.py` OK (21 tasks, 72 / 72); `directives list` →
+  `"warnings": []`.
+- Committed before the approvals, so that the `approve` commits change only the task status.
+

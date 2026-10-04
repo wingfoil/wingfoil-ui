@@ -67,7 +67,8 @@ same keys. Catalogues are JSON, one flat object, UTF-8, sorted by key (checked).
 ### 4. Texts coming from the server
 
 - API errors are rendered from `error.` + the `code` in lowerCamelCase (`folder-not-found` →
-  `error.folderNotFound`; codes of spec-004 §4–§5 and the project-list codes of spec-006 §3),
+  `error.folderNotFound`, `cli-not-found` → `error.cliNotFound`; codes of spec-004 §4–§5 and the
+  project-list codes of spec-006 §3),
   with `detail` as the arguments — e.g. `error.folderNotFound` =
   `Folder not found: {path}`. The envelope's `message` is not shown, except:
 - **tool output** — the CLI's refusal (`cli-refused`) and git's error (`git-refused`) — is shown
@@ -120,3 +121,4 @@ catalogue and its arguments (`warnings: [{ key, args }]` of `GET /api/server`, s
   script; F16 code → key mapping.
 - 2026-10-03 — re-verification (plan session 2): N2 optional `<place>` segment; N3 select/plural
   arguments in the key build.
+- 2026-10-04 — release-planning audit (plan session 4, A5): `error.cliNotFound` example.

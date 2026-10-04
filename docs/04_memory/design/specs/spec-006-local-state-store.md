@@ -74,7 +74,12 @@ since) stops the start with a message naming both paths (spec-007 §6, exit 4).
 | `actionLog` | reserved for the action log (REQ-SEC-10, from the first governed write); written as `[]` in v0.1 |
 
 Availability (folder found, `.wingfoil/` present, CLI found — REQ-STATE-07, S-10, S-19) is
-**computed** on every read of the list, never stored.
+**computed** on every read of the list, never stored. `GET /api/projects` returns each entry as
+`{ id, name, path, remote, availability }` (the switcher shows name and path, `ux-reference.md`
+§3; REQ-SEC-04 keeps paths out of URLs, not out of response bodies) with `availability` one of `ok`, `folder-not-found` (S-19.1),
+`not-wingfoil` (`.wingfoil/` removed since the add) or `cli-not-found` (S-10.2, with `command`,
+the install command). A change of availability or of the
+list is notified by the `projects` event (spec-004 §6).
 
 ### 3. Operations
 
@@ -97,6 +102,7 @@ Availability (folder found, `.wingfoil/` present, CLI found — REQ-STATE-07, S-
 | `not-wingfoil` | `{ path }` or `{ source: "clone" }` (the clone is removed) | S-05.1, S-05.2 |
 | `already-listed` | `{ pid, name, sameRemote: boolean }` | S-06.1, S-06.2 |
 | `directory-not-empty` | `{ path }` | S-07.2 |
+| `cli-not-found` | `{ path, command: "npm install --save-dev wingfoil" }` | S-10.1 |
 | `state-dir-inside-project` | `{ path, stateDir }` | §1 (no scenario) |
 | `git-refused` | — (`message` = git's message verbatim, spec-004 §5) | S-07.1, S-07.3 |
 
@@ -148,3 +154,7 @@ a project (REQ-SEC-09). The secret scan of REQ-SEC-09 runs over the state direct
   F17 remote compared before cloning, scp-like form; F18 temp file named by process id; F19 macOS.
 - 2026-10-03 — re-verification (plan session 2): N4 duplicate cases in §6; N3 `not-wingfoil`
   detail as a string enum.
+- 2026-10-04 — release-planning audit (plan session 4, A5): `cli-not-found` refusal; `availability`
+  values of `GET /api/projects`; `projects` event.
+- 2026-10-04 — re-verification of the release-planning audit (N4): `GET /api/projects` returns
+  `path` and `remote` for the switcher (ux-reference §3); paths stay out of URLs only.

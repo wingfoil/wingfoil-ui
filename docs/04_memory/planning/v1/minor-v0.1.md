@@ -72,10 +72,16 @@ Bars common to every release (`08_mvp-canvas.md`, SARD v0.6):
   catalogue, spec-009 theme tokens; independent spec review PASS — 24 findings fixed, 1 (F25) left by decision; 6 nits of the
   re-verification fixed.
 - 2026-10-03 — `build-backlog` (plan session 3): 21 vertical tasks `task-001` … `task-021`
-  (12 server, 1 contracts, 8 web) cover the 72 backlog records exactly once
+  (11 server, 1 contracts, 9 web) cover the 72 backlog records exactly once
   (`check_tasks.py`); server/contracts tasks own the technical tasks and the server-only stories,
   web tasks own the user stories; all `pending`. `dl-002` stamped `release: v0.1`; `dl-001`,
   `dl-003` left unassigned (dl-003 lands with spec-005 in v0.3). No bug selected.
+- 2026-10-04 — `commit-backlog` gate (plan session 4): the independent audit FAILED (5 major — web
+  task order with a 017 → 018 → 019 cycle, shell task carrying every-screen acceptance, missing
+  server dependencies, fit criteria naming later capabilities, no `cli-not-found` contract).
+  Fixed: web order 013 → 018 → 017 → 019 → 020 → 015 → 014 → 016 → 021 (element panel by URL
+  first; US-G-02 → task-019); themes/strings acceptance → task-021; dependencies added; SARD v0.7
+  v0.1 scopes; spec-006 `cli-not-found` and `availability`; BDD conventions v0.6 fixture variants.
 
 ### Implementation (dev-loop, per task)
 

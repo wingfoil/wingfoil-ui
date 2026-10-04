@@ -30,12 +30,12 @@ The CLI adapter's process runner and discovery: find the observed project's own 
 - **TT-INT-04** (REQ-INT-04 — CLI invocation and errors): [boolean] Every listed scenario passes; a CLI stub that sleeps 40 s is killed at 30 s ± 1 s and its request returns an error. *Verified by:* unit (stub) · e2e.
   Scenarios (`@v0.1`): S-27.1.
 
+e2e closure — scenarios that need a screen are proved here by API and unit tests on the same fixtures and close in: task-014-add-project-modal: S-10.1, S-10.2; task-016-project-header-version-identity-and-role-view: S-08.1, S-08.2; task-019-dna-directives-and-team-views: S-27.1.
+
 ## Implementation Notes
 
 - `adr-001` D2, D5; `spec-001` §1–2; directive `cli-only-writes` (which CLI), `wingfoil-cli` (W-01…W-20).
 - Ports: process runner, per-project write lock (`adr-002`).
-- Scenarios that need a screen are proved here by API and unit tests against the same
-  fixtures; their e2e run closes in the `web` task that depends on this one.
 
 ## Execution Notes
 

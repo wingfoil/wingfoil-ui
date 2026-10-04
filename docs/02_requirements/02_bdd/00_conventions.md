@@ -1,7 +1,7 @@
 # BDD Scenarios — Conventions
 
-**Version:** 0.5
-**Date:** 2026-10-02 (0.2: v0.3–v1.0 conventions — session 3; 0.3: coherence audit fixes — session 6; 0.4: US-X-10 page title — initial-design session 2; 0.5: last *non-archived* state, X-02.2 API request — initial-design session 6)
+**Version:** 0.6
+**Date:** 2026-10-04 (0.2: v0.3–v1.0 conventions — session 3; 0.3: coherence audit fixes — session 6; 0.4: US-X-10 page title — initial-design session 2; 0.5: last *non-archived* state, X-02.2 API request — initial-design session 6; 0.6: CLI stub as the package `bin` script, version-fake and no-CLI variants — release-planning v0.1 session 4 (audit A6))
 **Status:** Draft — specification-downcast sessions 2–3 (`specification-by-examples`)
 **Input:** `../01_user_story_map/02_story-map.md` · `03_mvp-cut.md` · `docs/01_vision/` ·
 directives `wingfoil-cli` (v1.1), `cli-only-writes` (v1.3), `accessibility`
@@ -38,9 +38,15 @@ otherwise. The builder sets `dna.project.name` to the fixture's name (`kanban`, 
 **Variants:** *the custom fixture with the sw-life-cycle preset* (below); *the kanban fixture's
 timeline variant* — after `wingfoil init` and the standard team, the Memory history is only the
 commits listed in `features/r/timeline.feature` (the standard elements are replaced); *the CLI
-stub* — the project's `node_modules/.bin/wingfoil` is a wrapper that delegates to the pinned CLI
-except for the commands a scenario makes fail (its exit status and message are set by the
-scenario).
+stub* — the `bin.wingfoil` script of the project's `node_modules/wingfoil/package.json` (the file
+the server runs, `adr-001` D2) is a wrapper that delegates to the pinned CLI except for the
+commands a scenario makes fail (its exit status and message are set by the scenario); *the
+version-fake variant* — "the fixture pins `wingfoil` X.Y.Z" for a version that is not the pinned
+one: `node_modules/wingfoil/package.json` declares `version: X.Y.Z` and its `bin` script answers
+`--version` with `X.Y.Z` and delegates every other command to the pinned CLI (no unpublished
+version is installed); *the no-CLI variant* — "no `wingfoil` in its `node_modules`" /
+"uninstalled": `node_modules/wingfoil` is removed and the e2e process runs with a `PATH` that
+holds no `wingfoil`.
 
 **Test clock and paths:** times and dates in scenarios come from the e2e suite's controlled clock;
 the default working directory for a cloned remote is `~/projects/<repository name>`.

@@ -18,7 +18,7 @@ tmpl_version: 260929   # Orignal template version
 
 The human-on-the-loop core — **first usable release**: Today (Requires you, waiting on others, all-roles summary), in-app notifications, the gate footer with every outcome, submit, action feedback, identity and *How to join*, UI settings, and git sync (repository status, fetch, push, fast-forward update).
 
-- Features (13 features, `07_sequencer.md` v0.5): T1, T4, S5, S7, G2, G3, G4, C2, C4, Y1, Y2, Y3, Y4.
+- Features (13 features, `07_sequencer.md` v0.6): T1, T4, S5, S7, G2, G3, G4, C2, C4, Y1, Y2, Y3, Y4.
 - Journeys served: J0 (complete), J1 (complete), J4 (gate — reviewers holding `approver`; informational otherwise), J5, J6 step 3, J8.
 - Browsers: the e2e suite extends from Chromium (v0.1) to Firefox and WebKit (REQ-INT-08, staged by
   release-planning v0.1).
@@ -32,7 +32,7 @@ The human-on-the-loop core — **first usable release**: Today (Requires you, wa
 
 ## Success Criteria
 
-Exit criteria of `07_sequencer.md` v0.5:
+Exit criteria of `07_sequencer.md` v0.6:
 
 - a member holding `approver` passes a gate from Today in ≤ 2 clicks, with the `wf(…)` commit shown and pushed;
 - a reviewer without `approver` sees the gate as informational, with who can act (sequencer rule 6);

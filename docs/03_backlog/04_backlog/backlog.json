@@ -2,8 +2,8 @@
   "version": 1,
   "generated_from": {
     "story_map": "docs/02_requirements/01_user_story_map/02_story-map.md v0.5",
-    "bdd": "docs/02_requirements/02_bdd/00_conventions.md v0.5",
-    "sard": "docs/02_requirements/03_sard/00_sard.md v0.6"
+    "bdd": "docs/02_requirements/02_bdd/00_conventions.md v0.6",
+    "sard": "docs/02_requirements/03_sard/00_sard.md v0.7"
   },
   "items": [
     {
@@ -7299,7 +7299,7 @@
       "wingfoil_min": "0.2.2",
       "requirement": "REQ-ARC-05",
       "description": "Types, states, gates, roles and workflows come from each project; the UI hard-codes none of them outside the `ui.yaml` presets and the tests.",
-      "fit_criterion": "[boolean] The same build renders and acts on the `kanban`, `custom` and `unknown` fixtures with every scenario of the release passing; a lint rule finds 0 string literals equal to a type or state name of the three fixtures in `server/` and `web/` outside `presets/` and tests.",
+      "fit_criterion": "[boolean] The same build renders and acts on the `kanban`, `custom` and `unknown` fixtures with every scenario of the release passing; a lint rule finds 0 string literals equal to a type or state name of the three fixtures in `server/` and `web/` outside `presets/` and tests. v0.1 (read-only): the same build renders the three fixtures with every `@v0.1` scenario passing.",
       "verified_by": "e2e on the three fixtures · lint",
       "stories": [
         "US-G-05",
@@ -8058,7 +8058,7 @@
       "wingfoil_min": "0.2.2",
       "requirement": "REQ-ARC-10",
       "description": "Every MVP screen meets WCAG 2.1 AA: keyboard operation with a visible focus, outcomes announced to screen readers, the reason of a blocked action exposed as its accessible description, text alternatives for images, a page title naming the project, its state and the current view or element (SC 2.4.2).",
-      "fit_criterion": "[numeric] axe-core reports 0 violations of impact serious or critical on every screen of the release in both themes; focus indicators have a contrast ratio ≥ 3:1; every gate action is completed with the keyboard alone; scenarios X-07.1, X-07.2, X-07.3 (live regions, accessible descriptions) and X-10.1 … X-10.5 (page title) pass.",
+      "fit_criterion": "[numeric] axe-core reports 0 violations of impact serious or critical on every screen of the release in both themes; focus indicators have a contrast ratio ≥ 3:1; every gate action is completed with the keyboard alone; scenarios X-07.1, X-07.2, X-07.3 (live regions, accessible descriptions) and X-10.1 … X-10.5 (page title) pass. v0.1 (no gate action): axe and focus contrast on the v0.1 screens, X-06.1, X-06.3, X-06.4 and X-10.1 … X-10.3 pass.",
       "verified_by": "e2e-smoke `accessibility`",
       "stories": [
         "US-G-04",
@@ -8809,7 +8809,7 @@
       "wingfoil_min": "0.2.2",
       "requirement": "REQ-PERF-05",
       "description": "The server batches CLI reads per state of the repository: one CLI process per consumed command and repository state, shared by every view.",
-      "fit_criterion": "[numeric] Opening Today on a cold cache starts ≤ 6 CLI processes; reopening any view with no commit and no working-tree change starts 0.",
+      "fit_criterion": "[numeric] Opening Today on a cold cache starts ≤ 6 CLI processes; reopening any view with no commit and no working-tree change starts 0. v0.1 (no Today): opening the Memory list on a cold cache starts ≤ 6 CLI processes.",
       "verified_by": "e2e (process audit)",
       "stories": [
         "US-S-26"
@@ -9729,7 +9729,7 @@
       "wingfoil_min": "0.2.2",
       "requirement": "REQ-STATE-06",
       "description": "A member with several roles switches role view among the roles they hold; the default is their first role in the DNA; the choice is kept per project. Role views filter content only — capabilities follow all the member's roles as WingFoil evaluates them.",
-      "fit_criterion": "[boolean] The role view selector lists exactly the member's roles; switching changes Today's list as the action descriptor computes it for that role.",
+      "fit_criterion": "[boolean] The role view selector lists exactly the member's roles; switching changes Today's list as the action descriptor computes it for that role. v0.1 (no Today): switching changes the Directives view filtered on \"only mine\" (S-22.1) and is kept per project (S-22.3).",
       "verified_by": "e2e",
       "stories": [
         "US-S-22",
@@ -10440,7 +10440,7 @@
       "wingfoil_min": "0.2.2",
       "requirement": "REQ-INT-03",
       "description": "Each capability declares the minimum WingFoil version and the project conditions it needs. When it applies to the project but the version or the user's role lacks it, it is shown **read-only with the reason**; when it does not apply (e.g. no remote, no ingestion workflow, no required references) it is **hidden**.",
-      "fit_criterion": "[boolean] Every listed scenario passes on WingFoil 0.2.2; the capability table in `contracts/` declares a minimum version for 100 % of the capabilities.",
+      "fit_criterion": "[boolean] Every listed scenario passes on WingFoil 0.2.2; the capability table in `contracts/` declares a minimum version for 100 % of the capabilities. v0.1 (version notice): the table exists with a minimum version for every capability, and the project header shows the version and the version notice (S-08.1, S-08.2).",
       "verified_by": "e2e · unit",
       "stories": [
         "US-A-03",
@@ -11781,7 +11781,7 @@
       "wingfoil_min": "0.2.2",
       "requirement": "REQ-SEC-05",
       "description": "CLI and git processes are started with `execFile` and argument arrays; user input (titles, reasons, paths, URLs) is passed as arguments, never interpolated into a command line.",
-      "fit_criterion": "[boolean] A lint rule finds 0 uses of `exec`, `execSync` or `shell: true` in `server/`; a decision-log titled `x\"; touch /tmp/pwned; \"` is created with that literal title and `/tmp/pwned` does not exist.",
+      "fit_criterion": "[boolean] A lint rule finds 0 uses of `exec`, `execSync` or `shell: true` in `server/`; a decision-log titled `x\"; touch /tmp/pwned; \"` is created with that literal title and `/tmp/pwned` does not exist. v0.1 (no governed write): the lint rule, and a clone whose URL and working directory contain `\"; touch /tmp/pwned; \"` creates no `/tmp/pwned`.",
       "verified_by": "lint · e2e",
       "stories": [
         "US-G-06",

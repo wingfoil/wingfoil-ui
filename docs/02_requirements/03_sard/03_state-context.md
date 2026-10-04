@@ -1,6 +1,6 @@
 # SARD — 3. State & Context
 
-**Version:** 0.3 · **Date:** 2026-10-02 (0.2: coherence audit fixes — session 6; 0.3: REQ-STATE-08 last non-archived state — initial-design session 6) · **Status:** Draft — specification-downcast session 4
+**Version:** 0.4 · **Date:** 2026-10-04 (0.2: coherence audit fixes — session 6; 0.3: REQ-STATE-08 last non-archived state — initial-design session 6; 0.4: REQ-STATE-06 v0.1 scope — release-planning v0.1 session 4 (audit A4)) · **Status:** Draft — specification-downcast session 4
 
 Shell and conventions: `00_sard.md`.
 
@@ -65,11 +65,11 @@ Shell and conventions: `00_sard.md`.
 
 | Field | |
 |-------|--|
-| Release | v0.1 |
+| Release | v0.1 (selector, directives filter) · v0.2 (Today) |
 | Description | A member with several roles switches role view among the roles they hold; the default is their first role in the DNA; the choice is kept per project. Role views filter content only — capabilities follow all the member's roles as WingFoil evaluates them. |
 | Rationale | Same screens, content per role (`ux-reference.md` §5). |
 | Traceability | US-S-22, US-S-23, US-T-02 · S-22.1, S-22.2, S-22.3, S-23.2, T-02.3 · S4, S5 |
-| Fit criterion | [boolean] The role view selector lists exactly the member's roles; switching changes Today's list as the action descriptor computes it for that role. |
+| Fit criterion | [boolean] The role view selector lists exactly the member's roles; switching changes Today's list as the action descriptor computes it for that role. v0.1 (no Today): switching changes the Directives view filtered on "only mine" (S-22.1) and is kept per project (S-22.3). |
 | Verified by | e2e |
 
 ### REQ-STATE-07 — Project list integrity

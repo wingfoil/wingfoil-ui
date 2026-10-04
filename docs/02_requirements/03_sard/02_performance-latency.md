@@ -1,6 +1,6 @@
 # SARD — 2. Performance & Latency
 
-**Version:** 0.2 · **Date:** 2026-10-02 (0.2: coherence audit fixes — session 6) · **Status:** Draft — specification-downcast session 4
+**Version:** 0.3 · **Date:** 2026-10-04 (0.2: coherence audit fixes — session 6; 0.3: REQ-PERF-05 v0.1 scope — release-planning v0.1 session 4 (audit A4)) · **Status:** Draft — specification-downcast session 4
 
 Shell and conventions: `00_sard.md`. All timings are measured in the **reference environment**
 (`00_sard.md`) on the **large fixture** unless a requirement says otherwise; p95 is over 20 runs.
@@ -55,11 +55,11 @@ Shell and conventions: `00_sard.md`. All timings are measured in the **reference
 
 | Field | |
 |-------|--|
-| Release | v0.1 |
+| Release | v0.1 (Memory list) · v0.2 (Today) |
 | Description | The server batches CLI reads per state of the repository: one CLI process per consumed command and repository state, shared by every view. |
 | Rationale | One process per call is the main latency cost (ADR draft, *Consequences*). |
 | Traceability | US-S-26 · S-26.3 · S1, S8 |
-| Fit criterion | [numeric] Opening Today on a cold cache starts ≤ 6 CLI processes; reopening any view with no commit and no working-tree change starts 0. |
+| Fit criterion | [numeric] Opening Today on a cold cache starts ≤ 6 CLI processes; reopening any view with no commit and no working-tree change starts 0. v0.1 (no Today): opening the Memory list on a cold cache starts ≤ 6 CLI processes. |
 | Verified by | e2e (process audit) |
 
 ### REQ-PERF-06 — Server start

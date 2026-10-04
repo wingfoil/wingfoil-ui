@@ -27,13 +27,13 @@ Detect each project's WingFoil version, compare it with the supported range (0.2
 
 - **TT-INT-02** (REQ-INT-02 — Supported WingFoil range): [boolean] A fixture pinning a version below or above the range opens with 0 enabled actions and the reason naming the range; a version inside it passes every scenario of the release. *Verified by:* e2e · README review.
   Scenarios (`@v0.1`): S-08.1, S-09.1, S-09.2.
-- **TT-INT-03** (REQ-INT-03 — Capability detection: read-only or hidden): [boolean] Every listed scenario passes on WingFoil 0.2.2; the capability table in `contracts/` declares a minimum version for 100 % of the capabilities. *Verified by:* e2e · unit.
+- **TT-INT-03** (REQ-INT-03 — Capability detection: read-only or hidden): [boolean] Every listed scenario passes on WingFoil 0.2.2; the capability table in `contracts/` declares a minimum version for 100 % of the capabilities. v0.1 (version notice): the table exists with a minimum version for every capability, and the project header shows the version and the version notice (S-08.1, S-08.2). *Verified by:* e2e · unit.
+
+e2e closure — scenarios that need a screen are proved here by API and unit tests on the same fixtures and close in: task-016-project-header-version-identity-and-role-view: S-08.1, S-09.1, S-09.2.
 
 ## Implementation Notes
 
 - `adr-001` D3; `spec-001` §6 (`capabilities.json`), §5 (`matrix.json`).
-- Scenarios that need a screen are proved here by API and unit tests against the same
-  fixtures; their e2e run closes in the `web` task that depends on this one.
 
 ## Execution Notes
 

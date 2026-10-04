@@ -13,13 +13,13 @@ bug: []                # optional — LIST of bug ids this task closes. Two case
                        # task already owns the ground. `bug.sync_state` iterates this list; a bug with no task naming it
                        # here never advances past `triaged` (only a reject to `closed`).
                        # dev-loop keeps the source bug's state in sync with this task via bug.sync_state
-depends_on: ["task-010-snapshot-cache-and-live-updates", "task-012-project-read-api", "task-013-web-shell-themes-and-message-catalogue"]         # optional — ids of tasks whose Execution Notes constrain this one; authored at planning time, may be appended during design
+depends_on: ["task-010-snapshot-cache-and-live-updates", "task-012-project-read-api", "task-013-web-shell-themes-and-message-catalogue", "task-018-element-panel-read-only"]         # optional — ids of tasks whose Execution Notes constrain this one; authored at planning time, may be appended during design
 tmpl_version: 260703   # Orignal template version
 ---
 
 ## Description
 
-The Memory list (the v0.1 landing view): type filters from `memory.yaml` with counts, state filters and the generic buckets of the action descriptor, unknown types and states under their own names, the local-changes marker, live refresh from the event stream, the same build on the three fixtures.
+The Memory list (the v0.1 landing view): type filters from `memory.yaml` with counts, state filters and the generic buckets (*To approve*, *In progress*, *Done*, … as defined in the header of `features/m/memory-list.feature`, computed from the descriptor's state kinds, spec-003 §2), unknown types and states under their own names, rows opening the element panel (task-018), the local-changes marker, live refresh from the event stream, the same build on the three fixtures.
 
 **Backlog items:** US-M-01, US-M-02, US-S-25, US-S-26, US-S-28
 
@@ -46,7 +46,7 @@ Screen: `docs/00_reference/ux-reference.md` §4.4 and the prototype (`docs/00_re
 
 ## Implementation Notes
 
-- `spec-003` §2, §7 (buckets, tones), `spec-004` §3, §6; `spec-009` tones; `ux-reference.md` §4.4; prototype.
+- Buckets: header of `features/m/memory-list.feature`; state kinds and tones: `spec-003` §2, §7; `spec-004` §3, §6; `spec-009` tones; `ux-reference.md` §4.4; prototype.
 
 ## Execution Notes
 

@@ -15,7 +15,7 @@ what requires them and the whole project state, and turns governed operations in
 clicks, with WingFoil as the only writer.
 
 It delivers the 44 MVP features of `docs/01_vision/06_features.md` in five releases, as sequenced
-by `docs/01_vision/07_sequencer.md` (v0.5):
+by `docs/01_vision/07_sequencer.md` (v0.6):
 
 | Release | Area (`pillar`) | `wingfoil_min` | Delivers |
 |---------|-----------------|----------------|----------|
@@ -82,3 +82,8 @@ criteria in the SARD):
 
 <!-- Cross-release patterns: recurring blockers, releases that slipped and why, whether the
      release roadmap seeded here needed revision mid-line. -->
+
+- 2026-10-04 — v0.1 `release-planning`: budget v0.1 6 → 9 active days (sequencer v0.6, line ≈ 33);
+  REQ-ARC-07 (`ui.yaml`) moved to v0.3; REQ-INT-08 staged (Chromium in v0.1); v0.1 scope written
+  into six SARD requirements whose fit criteria named later capabilities (SARD v0.7); four new
+  tech-specs (spec-006…009). The roadmap itself (five releases, features) is unchanged.

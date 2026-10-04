@@ -18,7 +18,7 @@ tmpl_version: 260929   # Orignal template version
 
 Everything Casey needs to follow a project without a developer: progress card (Memory figures), recent activity, missing references, traceability, timeline (time axis and git tree), read-only files, workflow tree (definitions), ingestion cards and ingestion start (decision-log on WingFoil 0.2.2), command palette, and `ui.yaml` with presets.
 
-- Features (12 features, `07_sequencer.md` v0.5): T2, T5, M2, R5, R6, R7, R8, W1, W2, G5, S6, C1.
+- Features (12 features, `07_sequencer.md` v0.6): T2, T5, M2, R5, R6, R7, R8, W1, W2, G5, S6, C1.
 - Journeys served: J2 (complete for a product owner holding `approver`; informational otherwise), decision-log ingestion.
 - Backlog: `docs/03_backlog/04_backlog/by-release/v0.3.json` — 25 user stories,
   3 technical tasks (TT-ARC-07 moved from v0.1 by release-planning v0.1); the Memory `task` elements are created from it by
@@ -30,7 +30,7 @@ Everything Casey needs to follow a project without a developer: progress card (M
 
 ## Success Criteria
 
-Exit criteria of `07_sequencer.md` v0.5:
+Exit criteria of `07_sequencer.md` v0.6:
 
 - Casey follows a project without a developer and — holding `approver` — decides a product item;
 - a decision-log is captured through its ingestion workflow from the UI;

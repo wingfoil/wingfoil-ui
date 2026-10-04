@@ -31,16 +31,16 @@ Working-tree snapshot and cache keyed on HEAD and the working-tree status hash, 
   Scenarios (`@v0.1`): S-25.1, S-25.2, S-25.3.
 - **TT-PERF-03** (REQ-PERF-03 — Refresh after an external change): [numeric] Change → view updated within 5 s in 20 out of 20 trials. *Verified by:* e2e.
   Scenarios (`@v0.1`): S-25.2, S-26.1, S-26.2, S-27.2, S-12.3, S-13.3, S-15.3.
-- **TT-PERF-05** (REQ-PERF-05 — Batched CLI reads): [numeric] Opening Today on a cold cache starts ≤ 6 CLI processes; reopening any view with no commit and no working-tree change starts 0. *Verified by:* e2e (process audit).
+- **TT-PERF-05** (REQ-PERF-05 — Batched CLI reads): [numeric] Opening Today on a cold cache starts ≤ 6 CLI processes; reopening any view with no commit and no working-tree change starts 0. v0.1 (no Today): opening the Memory list on a cold cache starts ≤ 6 CLI processes. *Verified by:* e2e (process audit).
   Scenarios (`@v0.1`): S-26.3.
 - **TT-INT-09** (REQ-INT-09 — Server ↔ browser live updates): [boolean] With one page open and no change for 60 s, the server starts 0 CLI processes; after a change the page updates without a reload (REQ-PERF-03). *Verified by:* e2e (process audit).
   Scenarios (`@v0.1`): S-26.1, S-26.2.
 
+e2e closure — scenarios that need a screen are proved here by API and unit tests on the same fixtures and close in: task-016-project-header-version-identity-and-role-view: S-12.3, S-13.3, S-15.3; task-017-memory-list-and-live-refresh: S-26.1, S-26.3, S-25.1, S-25.2, S-25.3, S-26.2; task-019-dna-directives-and-team-views: S-27.2.
+
 ## Implementation Notes
 
 - `adr-001` D6; `spec-004` §5–6; `adr-002` (event bus, repository watcher ports).
-- Scenarios that need a screen are proved here by API and unit tests against the same
-  fixtures; their e2e run closes in the `web` task that depends on this one.
 
 ## Execution Notes
 

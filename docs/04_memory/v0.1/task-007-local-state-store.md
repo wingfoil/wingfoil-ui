@@ -32,11 +32,12 @@ The local state file of spec-006: location per platform and `WINGFOIL_UI_STATE_D
 - **TT-SEC-09** (REQ-SEC-09 — No secrets stored): [boolean] A secret scan over `ui.yaml`, the local state directory and the logs after the e2e suite reports 0 findings. *Verified by:* e2e (secret scan).
   Scenarios (`@v0.1`): X-02.1.
 
+e2e closure — scenarios that need a screen are proved here by API and unit tests on the same fixtures and close in: task-015-project-switcher: S-17.1, S-17.2, X-05.1, X-05.2, X-02.1; task-016-project-header-version-identity-and-role-view: S-22.3.
+
 ## Implementation Notes
 
 - `spec-006-local-state-store` (whole); `adr-001` D10; `spec-004` §3 (`GET /api/server` warnings).
-- Scenarios that need a screen are proved here by API and unit tests against the same
-  fixtures; their e2e run closes in the `web` task that depends on this one.
+- `dl-002` (permissions left to WingFoil): the state file holds no permission or role grant.
 
 ## Execution Notes
 

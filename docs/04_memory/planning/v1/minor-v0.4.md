@@ -18,7 +18,7 @@ tmpl_version: 260929   # Orignal template version
 
 What the WingFoil 0.3 workflow engine and agent execution make possible: next workflow step, agent launch and agent log view, plus three capability upgrades of earlier features on 0.3 — T2 phases, W1 current position, G5 via `workflow start` (every ingestion type whose required fields the engine or a field setter sets).
 
-- Features (3 features, `07_sequencer.md` v0.5): T3, A1, A2.
+- Features (3 features, `07_sequencer.md` v0.6): T3, A1, A2.
 - Journeys served: J3 (complete), J4 step 3, J2 step 1 (phases), J7 (if WingFoil 0.3 sets the required fields; otherwise with the first WingFoil that does).
 - Backlog: `docs/03_backlog/04_backlog/by-release/v0.4.json` — 11 user stories,
   2 technical tasks; the Memory `task` elements are created from it by
@@ -30,7 +30,7 @@ What the WingFoil 0.3 workflow engine and agent execution make possible: next wo
 
 ## Success Criteria
 
-Exit criteria of `07_sequencer.md` v0.5:
+Exit criteria of `07_sequencer.md` v0.6:
 
 - Jordan starts the day from Today and runs the agent on the next step, with its logs in the UI.
 

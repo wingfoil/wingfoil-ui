@@ -37,12 +37,12 @@ The per-start session token printed in the URL fragment, `POST /api/session` and
 - **US-X-04** — every `@v0.1` scenario passes:
   - `docs/02_requirements/02_bdd/features/x/local-security.feature`: X-04.1 Refuse requests without a valid session; X-04.2 Refuse a DNS-rebinding request; X-04.3 Accept a request with the token from the console's own origin
 
+e2e closure — scenarios that need a screen are proved here by API and unit tests on the same fixtures and close in: task-015-project-switcher: X-02.1 (browser side: fragment removed, switcher lists the fixture), X-02.1.
+
 ## Implementation Notes
 
 - `spec-004` §1–2; `adr-001` D8; `adr-002` (authentication port).
 - The e2e-smoke `local-security` suite starts here and grows with every route.
-- Scenarios that need a screen are proved here by API and unit tests against the same
-  fixtures; their e2e run closes in the `web` task that depends on this one.
 
 ## Execution Notes
 

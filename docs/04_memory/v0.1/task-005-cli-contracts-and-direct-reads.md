@@ -30,11 +30,11 @@ tmpl_version: 260703   # Orignal template version
 - **TT-ARC-04** (REQ-ARC-04 — Reads through the CLI, direct reads on an allow-list): [boolean] A unit test with a file-system spy over every read endpoint records 0 direct reads of `.wingfoil/*.yaml` other than `ui.yaml` and `memory.yaml`, 0 reads of Memory or directive files at a path not returned by the CLI, and 0 writes to any of them; every allow-listed shape has a schema and a passing contract test per supported version; a fixture whose element file `status` differs from `memory search` shows a read error for that element. *Verified by:* unit (fs spy).
   Scenarios (`@v0.1`): S-25.1, S-27.1, M-01.1, R-05.1.
 
+e2e closure — scenarios that need a screen are proved here by API and unit tests on the same fixtures and close in: task-017-memory-list-and-live-refresh: S-25.1, M-01.1; task-019-dna-directives-and-team-views: S-27.1, R-05.1.
+
 ## Implementation Notes
 
 - `spec-001` §3–7; `adr-001` D1a, D4; directive `cli-only-writes` §2 (read allow-list); `claim-evidence` (shapes captured from real 0.2.2 output, never from memory).
-- Scenarios that need a screen are proved here by API and unit tests against the same
-  fixtures; their e2e run closes in the `web` task that depends on this one.
 
 ## Execution Notes
 
