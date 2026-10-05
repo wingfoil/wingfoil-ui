@@ -5,7 +5,15 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterAll, beforeAll, beforeEach, expect, it, vi } from 'vitest';
 
-const failures = vi.hoisted(() => ({ rename: false, corruptGone: false, renames: [] as [string, string][], syncs: 0 }));
+const failures = vi.hoisted(() => ({
+  rename: false,
+  corruptGone: false,
+  renames: [] as [string, string][],
+  syncs: 0,
+  /** Windows-like transient errors still to throw: on the lock creation, on the rename. */
+  lockBusy: [] as string[],
+  renameBusy: [] as string[],
+}));
 
 vi.mock('node:fs/promises', async (importOriginal) => {
   const real = await importOriginal<typeof import('node:fs/promises')>();
@@ -13,6 +21,8 @@ vi.mock('node:fs/promises', async (importOriginal) => {
     ...real,
     rename: async (from: string, to: string) => {
       failures.renames.push([from, to]);
+      const busy = failures.renameBusy.shift();
+      if (busy) throw Object.assign(new Error(`${busy}: simulated`), { code: busy });
       if (failures.rename) throw Object.assign(new Error('EIO: simulated'), { code: 'EIO' });
       if (failures.corruptGone && to.includes('.corrupt-')) {
         // Another console kept the corrupt file first.
@@ -22,6 +32,10 @@ vi.mock('node:fs/promises', async (importOriginal) => {
       return real.rename(from, to);
     },
     open: async (...args: Parameters<typeof real.open>) => {
+      if (String(args[0]).endsWith('state.json.lock') && args[1] === 'wx') {
+        const busy = failures.lockBusy.shift();
+        if (busy) throw Object.assign(new Error(`${busy}: simulated`), { code: busy });
+      }
       const handle = await real.open(...args);
       const sync = handle.sync.bind(handle);
       handle.sync = async () => {
@@ -44,6 +58,8 @@ beforeAll(async () => {
 beforeEach(() => {
   failures.rename = false;
   failures.corruptGone = false;
+  failures.lockBusy = [];
+  failures.renameBusy = [];
   failures.renames = [];
   failures.syncs = 0;
 });
@@ -109,4 +125,24 @@ it('every write has its own temporary file, and a stale one never lends its mode
   expect(failures.renames[1]![0]).toBe(next);
   if (process.platform !== 'win32') expect((await stat(path.join(dir, 'state.json'))).mode & 0o777).toBe(0o600);
   expect(await readdir(dir)).toEqual(['state.json']);
+});
+
+it('win32: a lock creation refused with EPERM/EACCES/EBUSY is retried, and so is the rename', async () => {
+  const dir = path.join(root, 'win32');
+  const store = await openFileStateStore({ dir, platform: 'win32' });
+  failures.lockBusy = ['EPERM', 'EACCES', 'EBUSY'];
+  failures.renameBusy = ['EBUSY', 'EPERM', 'EACCES'];
+  await store.add({ path: '/home/alex/kanban', name: 'kanban', remote: '' });
+  expect(failures.lockBusy).toEqual([]);
+  expect(failures.renames).toHaveLength(4);
+  expect(store.projects()).toHaveLength(1);
+  expect(await readdir(dir)).toEqual(['state.json']);
+});
+
+it('POSIX: EBUSY on the rename is not retried', async () => {
+  const dir = path.join(root, 'posix-busy');
+  const store = await openFileStateStore({ dir, platform: 'linux' });
+  failures.renameBusy = ['EBUSY'];
+  await expect(store.add({ path: '/home/alex/kanban', name: 'kanban', remote: '' })).rejects.toThrow('EBUSY');
+  expect(await readdir(dir)).toEqual([]);
 });

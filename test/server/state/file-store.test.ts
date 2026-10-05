@@ -1,7 +1,7 @@
 // spec-006 §1, §4 — the file adapter: modes, missing / corrupt / newer files, two consoles.
 import { spawn } from 'node:child_process';
 import { mkdir, mkdtemp, readdir, readFile, rm, stat, utimes, writeFile } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
+import { hostname, tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { openFileStateStore } from '../../../server/src/state/file-store.js';
@@ -184,6 +184,17 @@ describe('reading', () => {
     expect(b.projects().map((p) => p.name)).toEqual(['kanban']);
   });
 
+  it('a no-op transaction creates nothing when there is no state yet', async () => {
+    const store = await openFileStateStore({ dir });
+    expect(await store.transaction((draft) => draft.projects.length)).toBe(0);
+    await expect(
+      store.transaction(() => {
+        throw new Error('refused');
+      }),
+    ).rejects.toThrow('refused');
+    await expect(stat(dir)).rejects.toThrow();
+  });
+
   it('reload() creates nothing when there is no state yet', async () => {
     const store = await openFileStateStore({ dir });
     expect(await store.reload()).toEqual([]);
@@ -227,7 +238,7 @@ describe('lock between processes (state.json.lock)', () => {
 
   it('waits while a live process holds it', async () => {
     await mkdir(dir, { recursive: true });
-    await writeFile(lock(), `${process.pid} other`);
+    await writeFile(lock(), `${hostname()} ${process.pid} other`);
     const store = await openFileStateStore({ dir });
     let done = false;
     const adding = store.add(KANBAN).then(() => (done = true));
@@ -241,15 +252,67 @@ describe('lock between processes (state.json.lock)', () => {
 
   it('breaks a lock left by a dead process', async () => {
     await mkdir(dir, { recursive: true });
-    await writeFile(lock(), `${await deadPid()} gone`);
+    await writeFile(lock(), `${hostname()} ${await deadPid()} gone`);
     const store = await openFileStateStore({ dir });
     await store.add(KANBAN);
     expect(await readdir(dir)).toEqual(['state.json']);
   });
 
+  it('holds the lock with "<hostname> <pid> <nonce>"', async () => {
+    const store = await openFileStateStore({ dir });
+    let content = '';
+    await store.transaction(async (draft) => {
+      content = await readFile(lock(), 'utf8');
+      draft.projects.push(draft.create(KANBAN));
+    });
+    expect(content).toMatch(
+      new RegExp(`^${hostname().replace(/[.*+?^${}()|[\]\\]/g, '\\$&')} ${process.pid} [0-9a-f-]{36}$`),
+    );
+  });
+
+  it('does not judge the pid of another host: a fresh lock from another host is waited for', async () => {
+    await mkdir(dir, { recursive: true });
+    await writeFile(lock(), `other-host.invalid ${await deadPid()} remote`);
+    const store = await openFileStateStore({ dir });
+    let done = false;
+    const adding = store.add(KANBAN).then(() => (done = true));
+    await new Promise((r) => setTimeout(r, 150));
+    expect(done).toBe(false);
+    await rm(lock());
+    await adding;
+    expect(store.projects()).toHaveLength(1);
+  });
+
+  it('breaks a lock of another host once it is older than the stale age', async () => {
+    await mkdir(dir, { recursive: true });
+    await writeFile(lock(), `other-host.invalid 1 remote`);
+    const old = new Date(Date.now() - 11_000);
+    await utimes(lock(), old, old);
+    const store = await openFileStateStore({ dir });
+    await store.add(KANBAN);
+    expect(await readdir(dir)).toEqual(['state.json']);
+  });
+
+  it('a holder slower than the stale age keeps its lock alive (heartbeat): no add is lost', async () => {
+    const slow = await openFileStateStore({ dir, lockStaleMs: 600 });
+    const other = await openFileStateStore({ dir, lockStaleMs: 600 });
+    let entered!: () => void;
+    const inside = new Promise<void>((r) => (entered = r));
+    const slowWrite = slow.transaction(async (draft) => {
+      entered();
+      await new Promise((r) => setTimeout(r, 1_800));
+      draft.projects.push(draft.create(KANBAN));
+    });
+    await inside;
+    await other.add({ ...KANBAN, path: '/home/alex/projects/custom', name: 'custom' });
+    await slowWrite;
+    const names = (await openFileStateStore({ dir })).projects().map((p) => p.name);
+    expect(names.sort()).toEqual(['custom', 'kanban']);
+  });
+
   it('breaks a lock older than 10 s even when its pid is alive (pid reuse)', async () => {
     await mkdir(dir, { recursive: true });
-    await writeFile(lock(), `${process.pid} old`);
+    await writeFile(lock(), `${hostname()} ${process.pid} old`);
     const old = new Date(Date.now() - 11_000);
     await utimes(lock(), old, old);
     const store = await openFileStateStore({ dir });
