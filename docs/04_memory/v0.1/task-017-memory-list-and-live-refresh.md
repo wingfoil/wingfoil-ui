@@ -2,7 +2,7 @@
 id: task-017-memory-list-and-live-refresh
 type: task
 title: "Memory list and live refresh"
-status: pending
+status: backlog
 release: "v0.1"
 module: "web"             # optional — server | web | contracts (dna.yaml modules)
 priority: "medium"           # optional — high | medium | low
