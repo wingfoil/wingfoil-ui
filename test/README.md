@@ -1,6 +1,6 @@
 # Tests
 
-**Version:** 0.6 · **Date:** 2026-10-05 (0.1: workspace tooling and e2e harness — task-001; 0.2: `test/launcher/`, `test/server/` — task-002; 0.3: `test/contracts/`, local state isolation, secret scan — task-007; 0.4: `local-security` suite — task-003; 0.5: process runner fake, hand-made CLI packages, stub after global options — task-004; 0.6: CLI contract tests, captured samples, `test:contract` — task-005)
+**Version:** 0.7 · **Date:** 2026-10-05 (0.1: workspace tooling and e2e harness — task-001; 0.2: `test/launcher/`, `test/server/` — task-002; 0.3: `test/contracts/`, local state isolation, secret scan — task-007; 0.4: `local-security` suite — task-003; 0.5: process runner fake, hand-made CLI packages, stub after global options — task-004; 0.6: CLI contract tests, captured samples, `test:contract` — task-005; 0.7: identity tests, bin with a seeded state — task-009)
 
 Every test lives under `test/` (DNA `paths.tests`); sources stay in `server/src`, `web/src`,
 `contracts/src`.
@@ -77,6 +77,11 @@ A failure is matched on the command's positional words before its first option
 the server invokes the CLI); installing a stub again replaces the previous one.
 
 ## Local state
+
+A bin test that needs listed projects before the project-list routes exist seeds
+`<WINGFOIL_UI_STATE_DIR>/state.json` with the fixtures' entries (`test/launcher/role-view.test.ts`);
+identity tests change `git config user.email` (repository or `--global`, i.e. the harness's
+`.gitconfig`) and the team with the pinned CLI (`dna remove` / `dna add team.members`) on a copy.
 
 No test reads or writes the developer's own state directory (spec-006 §1). A test that starts
 the console or opens a file store gives it a temporary directory: `WINGFOIL_UI_STATE_DIR`, the

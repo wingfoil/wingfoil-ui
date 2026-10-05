@@ -115,3 +115,70 @@ e2e closure — scenarios that need a screen are proved here by API and unit tes
     fixtures seeded into `WINGFOIL_UI_STATE_DIR`: S-22.3 (developer on kanban, approver on custom,
     kept per project and across a restart), a role not held → 400; local-security rows for the new
     route (401/403).
+
+### red / green / refactor (2026-10-05)
+
+- **Red** (`ebb9d3a`): `test/server/identity/{identity,git-email,project-identity}.test.ts`,
+  `test/server/http/role-view.test.ts`, `test/contracts/api-identity-schema.test.ts`,
+  `test/launcher/role-view.test.ts` — all failed on the missing modules (`Cannot find module
+  '…/server/src/identity/identity.js'`, `'…/http/role-view.js'`). The three new rows in
+  `test/launcher/local-security.test.ts` (`PUT …/role-view` → 401 / 403 / 404 on an unknown id)
+  passed at once: the guards and the JSON 404 already existed — characterization, as they should.
+- **Green** (`ce28ab9`):
+  - `contracts/src/api.ts` (`Identity`, `IdentityView`, `RoleViewRequest`, exported by the package
+    index), `contracts/api/identity.schema.json`, `contracts/api/role-view.request.schema.json`.
+  - `server/src/identity/identity.ts` — pure `matchIdentity(email, members)`,
+    `identityView(identity, storedRoleView)`, `directivesForRoleView(entries, role)`.
+  - `server/src/identity/git-email.ts` — `readGitEmail(root, { runner, git, env?, signal? })`
+    (`git config --get user.email`; exit 1 / blank → `undefined`; any other end →
+    `GitConfigError` without git's stderr), `findGit({ env?, platform? })` (absolute `PATH`
+    entries, executable check on POSIX, `git.exe` on Windows).
+  - `server/src/identity/project-identity.ts` — port `IdentitySource.identify(project, signal?)`,
+    adapter `createLocalIdentitySource({ runner, env?, logger? })` (`findGit` once per source,
+    `discoverCli` + `ProjectReads.dna()` and the git email in parallel, fresh on every call),
+    `projectIdentityView(source, entry)` → `IdentityView`, `GitNotFoundError`.
+  - `server/src/http/role-view.ts` — `registerRoleViewRoute(app, { store, identity })`; the
+    project lookup is a route `onRequest` hook (an unknown id is 404 even with an unparsable body);
+    the body is validated by a strict Ajv of its own (Fastify's default validator coerces `3` to
+    `"3"` and drops extra properties); CLI failures through `cliErrorEnvelope`; `store.update` only.
+  - `server/src/launcher/start.ts` — `buildApp({ register })` registers the route with the opened
+    state store and a local identity source over the launcher's process runner (one localized
+    block).
+- **Deviations:** none from the ACs. The refusal of a role not held (400 `invalid-request`) and
+  the 204 are decisions of this task (design note): spec-004 §4 has no row for the former —
+  **spec gap for the coordinator** (proposed wording in the design note). `PUT role-view` runs git
+  and `dna show` to know the member's roles: rows 1–6 of spec-004 §4 "start no process" are written
+  for governed writes; once task-010's watched identity exists the route should use it instead.
+- **Load:** the full runs saw only the two known bug-001 timing tests fail (load 47–75 on 12
+  cores, `/proc/loadavg`); in one run three `beforeAll` hooks also timed out (fixture build in
+  `test/harness/fixtures.test.ts`, the 10 s console start in two `local-security.test.ts`
+  describes), and the two files re-run alone passed 38/38 (load 57).
+- **Checks** (HEAD after this note): `npm run -s typecheck`, `lint` clean · `format:check` "All
+  matched files use Prettier code style!" · `docs:api` OK · `npx vitest run --coverage
+  --coverage.reportOnFailure`: 47 files, **619 passed / 2 failed (bug-001) / 1 skipped**,
+  coverage **96.34 %** statements / 89.8 % branches / 96.46 % functions / 98.21 % lines
+  (`server/src/identity` 98.38 % statements, 100 % lines; `http/role-view.ts` 92 % / 100 % lines) ·
+  `test:e2e` 3/3 · `check_tasks.py` OK. Task files alone: 71/71 (identity units, route, schemas,
+  fixture integration, bin).
+- **Hand-overs:**
+  - **task-012** (`GET /api/p/:pid`): embed `await projectIdentityView(identity, store.get(pid)!)`
+    — shape `IdentityView` / `contracts/api/identity.schema.json` (`$ref` it from the header
+    schema). The source is created in `runLauncher` (`createLocalIdentitySource({ runner:
+    processes, logger })`); share one instance between the PUT route and the header (move it to a
+    `const` next to `state` when registering both). Map `CliError` / `CliNotFoundError` with
+    `cliErrorEnvelope`; `GitConfigError` / `GitNotFoundError` are 500 `internal`. Read-only reason
+    = `identity.kind !== 'member'`; the ambiguous warning names `identity.members`.
+  - **task-010** (cache, watcher, events): the effective email for the cache key is
+    `readGitEmail(root, { runner, git })` (`findGit` resolves `git`; reuse it for every git read
+    rather than a second resolver); a `repo` event is due when it changes (S-12.3) and when the DNA
+    changes (S-13.3, S-15.3 — a HEAD/working-tree change). Wrap `IdentitySource` with the cached
+    snapshot so `PUT role-view` and spec-004 §4 row 5 read the watched identity, not a fresh one.
+  - **task-016** (screens): selector shown when `roleViews.length > 1`; `roleView` is already the
+    effective one (fallback applied on read); after `PUT` (204) refetch `GET /api/p/:pid`. Badges /
+    notices from `identity.kind` (`not-in-team` with `email`, `no-identity` with the command
+    `git config user.email <your email>`, `ambiguous` with "`email` matches N members: names").
+  - **task-019** (Directives view): "only mine" = `directivesForRoleView(entries, roleView)`
+    (bound or global; `[]` without a role view, R-06.4) — the bin test checks it equals
+    `directives list --role developer` on the custom fixture.
+  - **task-008**: the project-list routes register next to the role-view route in the same
+    `register` callback of `runLauncher`.

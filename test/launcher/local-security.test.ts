@@ -1,5 +1,5 @@
 // e2e-smoke `local-security` (REQ-SEC-02, REQ-SEC-03; X-02.1 API side, X-02.2, X-04.1…X-04.3): the
-// `wingfoil-ui` bin driven over HTTP. No project route exists yet (task-008/012): the guarded
+// `wingfoil-ui` bin driven over HTTP. No project read route exists yet (task-008/012; `PUT …/role-view` is task-009): the guarded
 // requests target `/api/` paths that, once past the guards, answer 404 — never 401 or 403.
 import http from 'node:http';
 import net from 'node:net';
