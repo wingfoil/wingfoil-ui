@@ -12,5 +12,7 @@ export default defineConfig({
     sequence: { concurrent: false },
     testTimeout: 30_000,
     hookTimeout: 600_000,
+    // The measurements are the output: print the console of passed tests too.
+    silent: false,
   },
 });

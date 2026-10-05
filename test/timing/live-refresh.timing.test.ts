@@ -110,6 +110,7 @@ describe('REQ-PERF-03 — refresh after an external change', () => {
       ),
     });
     const kinds = ['edit', 'commit', 'email', 'dna'] as const;
+    let emailTrials = 0;
     for (let i = 1; i < TRIALS; i += 1) {
       const kind = kinds[(i - 1) % kinds.length]!;
       const title = `Password reset ${i}`;
@@ -130,7 +131,9 @@ describe('REQ-PERF-03 — refresh after an external change', () => {
           async () => (await elements()).every((e) => !e.localChanges),
         );
       } else if (kind === 'email') {
-        const email = i % 2 === 0 ? 'alex@example.test' : 'jordan@example.test';
+        // A new value every time (the identity starts as Morgan's): the same value is no change.
+        emailTrials += 1;
+        const email = emailTrials % 2 === 1 ? 'jordan@example.test' : 'alex@example.test';
         ms = await trial(
           async () => {
             await git(fx.dir, ['config', 'user.email', email], fx.env);
