@@ -310,3 +310,15 @@ e2e closure — scenarios that need a screen are proved here by API and unit tes
   REQ-PERF-06 timing tests pass on this quiet machine. Coverage **96.32 %** statements /
   **90.04 %** branches / 96.18 % functions / 98.07 % lines (`server/src/reads` 96.18 %,
   `server/src/cli` 98.9 % statements) · `test:e2e` 3/3.
+- Re-verification by the same agent: **PASS** — all 11 findings confirmed fixed (probes re-run
+  against the pinned CLI; loosened schemas still refuse `version: 0`, `project: "x"`, `email: 3`,
+  a negative memory `version`, a non-string `path`). Nits left as known limits: `stat` then
+  `readFile` (a file growing in between is read before the post-read length check; a folder
+  swapped and back during the read defeats the re-check — local-only); a FIFO inside the project
+  would block the read (no `isFile()` check yet); the yaml library refuses > ~100 uses of one
+  anchor (js-yaml does not); the "using <path>" warning regex does not match paths with spaces
+  (falls back to the last entry, correct on 0.2.2).
+- **Hand-overs (explicit):** task-008 — `dna.project.name` is optional in 0.2.2: the project's
+  display name falls back (e.g. to the folder's base name) when it is absent
+  (`server/src/state/store.ts` takes `name: string`). task-019 — the DNA view must render without
+  `project` fields, stack lists, member `email`, agent `approval_authority`.
