@@ -1,0 +1,17 @@
+# Prettier formats code only: documents and governance files keep their hand layout.
+docs/
+.wingfoil/
+.notes/
+.idea/
+export/
+export1/
+*.md
+*.yaml
+*.yml
+package-lock.json
+dist/
+coverage/
+docs-api/
+test-results/
+playwright-report/
+.worktrees/

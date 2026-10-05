@@ -3,7 +3,16 @@
   "version": "0.0.0",
   "description": "Local web UI for WingFoil-governed projects",
   "scripts": {
-    "wingfoil": "wingfoil"
+    "wingfoil": "wingfoil",
+    "build": "tsc -b",
+    "typecheck": "tsc -b && tsc -p test",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "test:e2e": "playwright test",
+    "docs:api": "typedoc --options typedoc.json"
   },
   "author": "Roberto Pompermaier <robypomper@gmail.com>",
   "license": "MIT",
@@ -12,6 +21,25 @@
     "node": ">=22.12.0"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.13.0",
+    "@eslint/js": "^10.0.1",
+    "@playwright/test": "^1.63.0",
+    "@types/node": "^26.6.4",
+    "@vitest/coverage-v8": "^5.0.3",
+    "eslint": "^10.12.0",
+    "eslint-config-prettier": "^10.1.8",
+    "globals": "^17.13.0",
+    "prettier": "^3.9.9",
+    "typedoc": "^0.28.20",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.71.0",
+    "vitest": "^5.0.3",
     "wingfoil": "0.2.2"
-  }
+  },
+  "workspaces": [
+    "contracts",
+    "server",
+    "web"
+  ],
+  "type": "module"
 }
