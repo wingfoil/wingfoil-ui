@@ -1,0 +1,77 @@
+{
+  "query": "",
+  "matches": [
+    {
+      "path": "docs/04_memory/design/adrs/adr-001-local-server.md",
+      "id": "adr-001-local-server",
+      "title": "Local server",
+      "type": "adr",
+      "status": "draft",
+      "tags": []
+    },
+    {
+      "path": "docs/04_memory/bugs/bug-001-toast-overlap.md",
+      "id": "bug-001-toast-overlap",
+      "title": "Toast overlap",
+      "type": "bug",
+      "status": "open",
+      "tags": []
+    },
+    {
+      "path": "docs/04_memory/design/dls/dl-001-initialise-wingfoil-before-inception.md",
+      "id": "dl-001-initialise-wingfoil-before-inception",
+      "title": "Initialise WingFoil before inception",
+      "type": "decision-log",
+      "status": "ready",
+      "tags": []
+    },
+    {
+      "path": "docs/04_memory/design/dls/dl-002-use-fastify.md",
+      "id": "dl-002-use-fastify",
+      "title": "Use Fastify",
+      "type": "decision-log",
+      "status": "in-discussion",
+      "tags": []
+    },
+    {
+      "path": "docs/04_memory/planning/v1/minor-v0.1.md",
+      "id": "minor-v0.1",
+      "title": "Minor v0.1",
+      "type": "release",
+      "status": "planning",
+      "tags": []
+    },
+    {
+      "path": "docs/04_memory/v0.1/task-001-cli-adapter.md",
+      "id": "task-001-cli-adapter",
+      "title": "CLI adapter",
+      "type": "task",
+      "status": "in-review",
+      "tags": []
+    },
+    {
+      "path": "docs/04_memory/v0.1/task-002-memory-list.md",
+      "id": "task-002-memory-list",
+      "title": "Memory list",
+      "type": "task",
+      "status": "done",
+      "tags": []
+    },
+    {
+      "path": "docs/04_memory/v0.1/task-003-element-panel.md",
+      "id": "task-003-element-panel",
+      "title": "Element panel",
+      "type": "task",
+      "status": "backlog",
+      "tags": []
+    },
+    {
+      "path": "docs/04_memory/v0.1/task-004-themes.md",
+      "id": "task-004-themes",
+      "title": "Themes",
+      "type": "task",
+      "status": "backlog",
+      "tags": []
+    }
+  ]
+}

@@ -1,0 +1,39 @@
+{
+  "id": "task-004-themes",
+  "path": "docs/04_memory/v0.1/task-004-themes.md",
+  "entries": [
+    {
+      "sha": "ef731ec7aaff1014092b57b2414e4ad8b0a68070",
+      "author": "Jordan <jordan@example.test>",
+      "timestamp": "2026-09-29T15:20:15+00:00",
+      "operation": "add",
+      "from": null,
+      "to": "draft",
+      "approver": null,
+      "reason": null,
+      "subject": "wf(task): add task-004-themes"
+    },
+    {
+      "sha": "14207e8715ca7227cdcf33250eb5aacf1f054f16",
+      "author": "Jordan <jordan@example.test>",
+      "timestamp": "2026-09-29T15:20:16+00:00",
+      "operation": "submit",
+      "from": "draft",
+      "to": "pending",
+      "approver": null,
+      "reason": null,
+      "subject": "wf(task): submit task-004-themes"
+    },
+    {
+      "sha": "3a13b384dba301c503d1c9bd39d29bf0562acfb3",
+      "author": "Morgan <morgan@example.test>",
+      "timestamp": "2026-09-29T15:20:17+00:00",
+      "operation": "approve",
+      "from": "pending",
+      "to": "backlog",
+      "approver": "Morgan <morgan@example.test> (approver)",
+      "reason": "Approved",
+      "subject": "wf(task): approve task-004-themes [pending → backlog]"
+    }
+  ]
+}

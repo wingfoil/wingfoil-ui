@@ -15,3 +15,5 @@ docs-api/
 test-results/
 playwright-report/
 .worktrees/
+# Raw captures of the WingFoil CLI (claim-evidence): kept as the CLI wrote them.
+test/contracts/samples/

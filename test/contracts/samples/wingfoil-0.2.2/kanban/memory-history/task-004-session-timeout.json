@@ -1,0 +1,17 @@
+{
+  "id": "task-004-session-timeout",
+  "path": "docs/memory/task/task-004-session-timeout.md",
+  "entries": [
+    {
+      "sha": "43e5394c0807d6261caf3755464afe576b042338",
+      "author": "Jordan <jordan@example.test>",
+      "timestamp": "2026-09-29T15:20:08+00:00",
+      "operation": "add",
+      "from": null,
+      "to": "draft",
+      "approver": null,
+      "reason": null,
+      "subject": "wf(task): add task-004-session-timeout"
+    }
+  ]
+}

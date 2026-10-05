@@ -1,0 +1,37 @@
+{
+  "query": "",
+  "matches": [
+    {
+      "path": "docs/notes/note-001-kickoff.md",
+      "id": "note-001-kickoff",
+      "title": "Kickoff",
+      "type": "note",
+      "status": "open",
+      "tags": []
+    },
+    {
+      "path": "docs/notes/note-002-retro.md",
+      "id": "note-002-retro",
+      "title": "Retro",
+      "type": "note",
+      "status": "on-hold",
+      "tags": []
+    },
+    {
+      "path": "docs/stories/story-001-onboarding.md",
+      "id": "story-001-onboarding",
+      "title": "Onboarding",
+      "type": "story",
+      "status": "shaping",
+      "tags": []
+    },
+    {
+      "path": "docs/stories/story-002-billing.md",
+      "id": "story-002-billing",
+      "title": "Billing",
+      "type": "story",
+      "status": "ready-to-build",
+      "tags": []
+    }
+  ]
+}

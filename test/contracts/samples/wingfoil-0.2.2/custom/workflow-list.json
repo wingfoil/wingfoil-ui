@@ -1,0 +1,1446 @@
+{
+  "manifest": {
+    "version": 1,
+    "include": [
+      "workflows/custom/sw-life-cycle.yaml",
+      "workflows/custom/bug-ingest.yaml",
+      "workflows/custom/decision-log-ingest.yaml",
+      "workflows/custom/adr-ingest.yaml",
+      "workflows/custom/service-ingest.yaml",
+      "workflows/custom/wingfoil-init.yaml",
+      "workflows/custom/lean-inception.yaml",
+      "workflows/custom/specification-downcast.yaml",
+      "workflows/custom/user-story-mapping.yaml",
+      "workflows/custom/specification-by-examples.yaml",
+      "workflows/custom/volere-requirements.yaml",
+      "workflows/custom/backlog-export.yaml",
+      "workflows/custom/initial-design.yaml",
+      "workflows/custom/release-line-cycle.yaml",
+      "workflows/custom/release-cycle.yaml",
+      "workflows/custom/release-planning.yaml",
+      "workflows/custom/dev-loop.yaml",
+      "workflows/custom/user-docs.yaml",
+      "workflows/custom/e2e-smoke.yaml",
+      "workflows/custom/release-submit.yaml",
+      "workflows/custom/release-publishing.yaml",
+      "workflows/custom/retrospective.yaml",
+      "workflows/custom/end-of-life.yaml"
+    ]
+  },
+  "workflows": [
+    {
+      "name": "sw-life-cycle",
+      "kind": "main",
+      "description": "Full software life cycle for WingFoil UI: from WingFoil initialisation and product inception, through technical specification downcast, iterative per-release delivery, to end-of-life.",
+      "version": 1,
+      "phases": [
+        {
+          "name": "init",
+          "description": "Initialize the WingFoil configuration (DNA, Memory schema, Directives, Workflows).",
+          "optional": false,
+          "include": "wingfoil-init"
+        },
+        {
+          "name": "inception",
+          "description": "Product discovery (Lean Inception) — produces the Vision Package.",
+          "optional": false,
+          "include": "lean-inception"
+        },
+        {
+          "name": "specification",
+          "description": "Downcast the vision into engineering specs (USM -> BDD -> SARD -> backlog).",
+          "optional": false,
+          "include": "specification-downcast"
+        },
+        {
+          "name": "seed-first-release-line",
+          "description": "Create the first release-line (v1) so release-line-cycle has something to iterate.",
+          "role": "product-owner",
+          "optional": false,
+          "actions": [
+            "memory.add(type: release-line, version: \"v1\")",
+            "memory.submit"
+          ],
+          "produces": [
+            "docs/04_memory/planning/{id}.md"
+          ],
+          "checks": {
+            "post": [
+              "frontmatter.required: [title, version]"
+            ]
+          }
+        },
+        {
+          "name": "release-line-cycle",
+          "description": "Iterative delivery per major version — approve scope, generate its roadmap + initial ADRs/ DLs/tech-specs, run one release-cycle per minor release, then close it and self-seed the next release-line (if planned).",
+          "optional": false,
+          "include": "release-line-cycle",
+          "iterate_over": "release-line",
+          "where": {
+            "status": [
+              "planning",
+              "active"
+            ]
+          }
+        },
+        {
+          "name": "sunset",
+          "description": "Retire the product / a major line at end of life.",
+          "optional": false,
+          "include": "end-of-life"
+        }
+      ]
+    },
+    {
+      "name": "bug-ingest",
+      "kind": "main",
+      "description": "Capture a single defect report (bug) into Memory.",
+      "version": 1,
+      "phases": [
+        {
+          "name": "capture",
+          "description": "Record the bug (summary, reproduction steps, severity).",
+          "role": "developer",
+          "optional": false,
+          "actions": [
+            "memory.add(type: bug)",
+            "memory.submit"
+          ],
+          "produces": [
+            "docs/04_memory/bugs/{id}.md"
+          ],
+          "checks": {
+            "post": [
+              "frontmatter.required: [title, severity]"
+            ]
+          }
+        },
+        {
+          "name": "triage",
+          "description": "Triage and accept the bug for work (approval gate; reject = back to capture).",
+          "role": "tech-lead",
+          "optional": false,
+          "actions": [
+            "memory.approve"
+          ],
+          "approval": {
+            "by_role": "approver"
+          },
+          "fallback": {
+            "step": "capture"
+          }
+        }
+      ]
+    },
+    {
+      "name": "decision-log-ingest",
+      "kind": "main",
+      "description": "Capture a single product/process decision (decision-log) into Memory.",
+      "version": 1,
+      "phases": [
+        {
+          "name": "capture",
+          "description": "Record the decision (context, decision, rationale).",
+          "role": "product-owner",
+          "optional": false,
+          "actions": [
+            "memory.add(type: decision-log)",
+            "memory.submit"
+          ],
+          "produces": [
+            "docs/04_memory/design/dls/{id}.md"
+          ],
+          "checks": {
+            "post": [
+              "frontmatter.required: [title]"
+            ]
+          }
+        },
+        {
+          "name": "approve",
+          "description": "Approve the decision (approval gate; reject = back to capture).",
+          "role": "approver",
+          "optional": false,
+          "actions": [
+            "memory.approve"
+          ],
+          "approval": {
+            "by_role": "approver"
+          },
+          "fallback": {
+            "step": "capture"
+          }
+        }
+      ]
+    },
+    {
+      "name": "adr-ingest",
+      "kind": "main",
+      "description": "Capture a single Architectural Decision Record (ADR) into Memory.",
+      "version": 1,
+      "phases": [
+        {
+          "name": "capture",
+          "description": "Record the ADR (context, decision, consequences) and the SARD requirement(s) it implements.",
+          "role": "architect",
+          "optional": false,
+          "actions": [
+            "memory.add(type: adr)",
+            "memory.submit"
+          ],
+          "produces": [
+            "docs/04_memory/design/adrs/{id}.md"
+          ],
+          "checks": {
+            "post": [
+              "frontmatter.required: [title, sard_ref]"
+            ]
+          }
+        },
+        {
+          "name": "approve",
+          "description": "Accept the ADR (approval gate; reject = back to capture for revision).",
+          "role": "approver",
+          "optional": false,
+          "actions": [
+            "memory.approve"
+          ],
+          "approval": {
+            "by_role": "approver"
+          },
+          "fallback": {
+            "step": "capture"
+          }
+        }
+      ]
+    },
+    {
+      "name": "service-ingest",
+      "kind": "main",
+      "description": "Record a single external service (account, credential by reference, listing, setting, domain, handle) into Memory.",
+      "version": 1,
+      "phases": [
+        {
+          "name": "capture",
+          "description": "Record the service (purpose, configuration, verification, management) with public identifiers only — never a secret value (dl-088 security rule, REQ-SEC-08).",
+          "role": "developer",
+          "optional": false,
+          "actions": [
+            "memory.add(type: service)",
+            "memory.submit"
+          ],
+          "produces": [
+            "docs/04_memory/services/{id}.md"
+          ],
+          "checks": {
+            "post": [
+              "frontmatter.required: [title, provider, kind, owner_role, verify]",
+              "secret-scan.clean: spec-007 scanText reports no blocking finding in the element (REQ-SEC-08)"
+            ]
+          }
+        },
+        {
+          "name": "approve",
+          "description": "The approver runs the element's `verify` and confirms the description holds (approval gate; reject = back to capture).",
+          "role": "approver",
+          "optional": false,
+          "actions": [
+            "memory.approve"
+          ],
+          "approval": {
+            "by_role": "approver"
+          },
+          "fallback": {
+            "step": "capture"
+          }
+        }
+      ]
+    },
+    {
+      "name": "wingfoil-init",
+      "kind": "sub",
+      "description": "Initialize the WingFoil configuration: DNA, Memory schema, Directives, Workflows.",
+      "version": 1,
+      "phases": [
+        {
+          "name": "init-config",
+          "description": "Create the WingFoil configuration files (dna.yaml, memory.yaml, directives/, workflows.yaml).",
+          "role": "tech-lead",
+          "optional": false,
+          "actions": [
+            "config.init"
+          ],
+          "produces": [
+            ".wingfoil/dna.yaml",
+            ".wingfoil/memory.yaml",
+            ".wingfoil/memory/templates/",
+            ".wingfoil/roles.yaml",
+            ".wingfoil/directives/",
+            ".wingfoil/workflows.yaml",
+            ".wingfoil/workflows/"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "lean-inception",
+      "kind": "sub",
+      "description": "Product discovery via Lean Inception. Five sessions transform the Product Brief into the Vision Package (vision, is/is-not, personas, journeys, features, sequencer, MVP canvas).",
+      "version": 1,
+      "phases": [
+        {
+          "name": "vision",
+          "description": "Session 1 — Product Vision + Is/Is Not/Does/Does Not.",
+          "role": "facilitator",
+          "optional": false,
+          "produces": [
+            "docs/01_vision/02_product-vision.md",
+            "docs/01_vision/03_is-isnot.md"
+          ]
+        },
+        {
+          "name": "personas",
+          "description": "Session 2 — Personas.",
+          "role": "facilitator",
+          "optional": false,
+          "produces": [
+            "docs/01_vision/04_personas.md"
+          ]
+        },
+        {
+          "name": "journeys",
+          "description": "Session 3 — User Journeys.",
+          "role": "facilitator",
+          "optional": false,
+          "produces": [
+            "docs/01_vision/05_journeys.md"
+          ]
+        },
+        {
+          "name": "features",
+          "description": "Session 4 — Feature Brainstorm + Technical/Business Review.",
+          "role": "architect",
+          "optional": false,
+          "produces": [
+            "docs/01_vision/06_features.md"
+          ]
+        },
+        {
+          "name": "sequencer",
+          "description": "Session 5 — Sequencer + MVP Canvas.",
+          "role": "product-owner",
+          "optional": false,
+          "produces": [
+            "docs/01_vision/07_sequencer.md",
+            "docs/01_vision/08_mvp-canvas.md"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "specification-downcast",
+      "kind": "sub",
+      "description": "Downcast the strategic vision into actionable engineering requirements: User Story Mapping -> Specification by Example (BDD) -> Volere Requirements (SARD) -> backlog.",
+      "version": 1,
+      "phases": [
+        {
+          "name": "user-story-mapping",
+          "description": "Module 1 — explode journeys into atomic stories; extract MVP.",
+          "optional": false,
+          "include": "user-story-mapping",
+          "checks": {
+            "post": [
+              "100% of MVP Canvas features covered; edge-case stories present"
+            ]
+          }
+        },
+        {
+          "name": "specification-by-examples",
+          "description": "Module 2 — translate MVP stories into Gherkin BDD scenarios.",
+          "optional": false,
+          "include": "specification-by-examples",
+          "checks": {
+            "post": [
+              "each scenario atomic + testable; zero ambiguous adjectives/adverbs"
+            ]
+          }
+        },
+        {
+          "name": "volere-requirements",
+          "description": "Module 3 — extract architectural/NFR requirements (SARD, Volere shell).",
+          "optional": false,
+          "include": "volere-requirements",
+          "checks": {
+            "post": [
+              "every REQ has a numeric/percentage/boolean Fit Criterion"
+            ]
+          }
+        },
+        {
+          "name": "backlog-export",
+          "description": "Module 4 — consolidate the chain into a structured operational backlog.",
+          "optional": false,
+          "include": "backlog-export",
+          "checks": {
+            "post": [
+              "valid JSON; no duplicate IDs; no circular dependencies"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "user-story-mapping",
+      "kind": "sub",
+      "description": "Explode the macro-flows of Lean Inception into atomic, value-oriented user stories; build the backbone (horizontal axis), vertically explode functionalities, apply the MVP cut.",
+      "version": 1,
+      "phases": [
+        {
+          "name": "backbone",
+          "description": "Extract sequential user tasks from journeys to form the spine.",
+          "role": "product-owner",
+          "optional": false
+        },
+        {
+          "name": "vertical-explosion",
+          "description": "Under each backbone step, write `As <persona>, I want <action> so that <benefit>`.",
+          "role": "product-owner",
+          "optional": false
+        },
+        {
+          "name": "mvp-cut",
+          "description": "Tag stories [MVP · vX] / [Future] using the sequencer.",
+          "role": "product-owner",
+          "optional": false,
+          "checks": {
+            "post": [
+              "100% of MVP Canvas features included; edge-case stories generated"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "specification-by-examples",
+      "kind": "sub",
+      "description": "Translate MVP user stories into deterministic Gherkin scenarios (Given-When-Then), eliminating interpretive ambiguity. One happy path + one edge/error path per story.",
+      "version": 1,
+      "phases": [
+        {
+          "name": "isolate-mvp",
+          "description": "Select only [MVP] user stories.",
+          "role": "qa",
+          "optional": false
+        },
+        {
+          "name": "write-scenarios",
+          "description": "For each story write Gherkin scenarios with concrete examples.",
+          "role": "qa",
+          "optional": false,
+          "checks": {
+            "post": [
+              "each story has >=1 happy path and >=1 edge/error path",
+              "no ambiguous adjectives/adverbs (e.g. 'quickly', 'qualified user')",
+              "each scenario atomic and testable"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "volere-requirements",
+      "kind": "sub",
+      "description": "Extract and formalize infrastructure, business rules, and NFRs into the SARD using the Volere Requirement Shell (Description, Rationale, Traceability, Fit Criterion), grouped by macro-area.",
+      "version": 1,
+      "phases": [
+        {
+          "name": "extract-requirements",
+          "description": "From BDD scenarios, extract the infrastructural requirements that support them.",
+          "role": "architect",
+          "optional": false
+        },
+        {
+          "name": "apply-volere-shell",
+          "description": "Structure each REQ: Description, Rationale, Traceability, Fit Criterion.",
+          "role": "architect",
+          "optional": false
+        },
+        {
+          "name": "group-by-macro-area",
+          "description": "Organize into: Architectural Constraints; Performance & Latency; State & Context; Integrations & Interfaces; Security, Roles & Governance.",
+          "role": "architect",
+          "optional": false,
+          "checks": {
+            "post": [
+              "every REQ has a clearly numeric, percentage-based, or boolean Fit Criterion"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "backlog-export",
+      "kind": "sub",
+      "description": "Consolidate the documentary chain (USM + BDD + SARD) into a single structured backlog, ready to sync into dev tools; partition tasks by release wave.",
+      "version": 1,
+      "phases": [
+        {
+          "name": "generate-records",
+          "description": "One JSON record per MVP user story; Gherkin -> acceptance_criteria; one Technical Task per REQ.",
+          "role": "product-owner",
+          "optional": false
+        },
+        {
+          "name": "map-dependencies",
+          "description": "Link technical-task IDs into the dependencies[] of affected user stories.",
+          "role": "product-owner",
+          "optional": false
+        },
+        {
+          "name": "validate",
+          "description": "JSON Schema validation + partition by-release.",
+          "role": "product-owner",
+          "optional": false,
+          "checks": {
+            "post": [
+              "valid JSON parse",
+              "no duplicate IDs",
+              "no circular dependencies"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "initial-design",
+      "kind": "sub",
+      "description": "Generate this release-line's minor-release roadmap, then record the initial Architectural Decision Records, Decision Logs, and Technical Specifications that formalize choices already implied by it — before this release-line's delivery begins.",
+      "version": 1,
+      "element": "release-line",
+      "phases": [
+        {
+          "name": "seed-releases",
+          "description": "Generate the RELEASE Memory files (the roadmap) for this release-line, that delivery iterates over.",
+          "role": "product-owner",
+          "optional": false,
+          "actions": [
+            "memory.add(type: release, release-line: \"{release-line.version}\")"
+          ],
+          "produces": [
+            "docs/04_memory/planning/{release-line}/{id}.md"
+          ],
+          "checks": {
+            "post": [
+              "frontmatter.required: [title, kind, version, pillar, features, requirements, release-line]"
+            ]
+          }
+        },
+        {
+          "name": "seed-adrs",
+          "description": "Optionally record the initial Architectural Decision Records for this release-line.",
+          "role": "architect",
+          "optional": true,
+          "actions": [
+            "memory.add(type: adr)",
+            "memory.submit",
+            "memory.approve"
+          ],
+          "produces": [
+            "docs/04_memory/design/adrs/{id}.md"
+          ],
+          "checks": {
+            "pre": [
+              "spec-review.passed"
+            ],
+            "post": [
+              "frontmatter.required: [title, sard_ref]"
+            ]
+          }
+        },
+        {
+          "name": "seed-dls",
+          "description": "Optionally record the initial Decision Logs capturing product/process choices behind this release-line.",
+          "role": "architect",
+          "optional": true,
+          "actions": [
+            "memory.add(type: decision-log)",
+            "memory.submit",
+            "memory.approve"
+          ],
+          "produces": [
+            "docs/04_memory/design/dls/{id}.md"
+          ],
+          "checks": {
+            "post": [
+              "frontmatter.required: [title]"
+            ]
+          }
+        },
+        {
+          "name": "seed-specs",
+          "description": "Survey this whole release-line (not one release) for shared file formats, schemas, constant sets, and module APIs already implied by its roadmap + the config; scaffold a tech-spec for each one not yet covered by an approved spec.",
+          "role": "architect",
+          "optional": true,
+          "actions": [
+            "agent.survey_specs",
+            "memory.add(type: tech-spec)",
+            "memory.submit",
+            "memory.approve"
+          ],
+          "produces": [
+            "docs/04_memory/design/specs/{id}.md"
+          ],
+          "checks": {
+            "pre": [
+              "spec-review.passed"
+            ],
+            "post": [
+              "frontmatter.required: [title, scope]"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "release-line-cycle",
+      "kind": "sub",
+      "description": "Deliver one release-line end to end: approve its scope -> initial-design (roadmap + ADRs/DLs/ tech-specs) -> one release-cycle per minor release -> close it and seed the next release-line.",
+      "version": 1,
+      "element": "release-line",
+      "phases": [
+        {
+          "name": "approve",
+          "description": "Approve the release-line's scope so initial-design and delivery can begin.",
+          "role": "tech-lead",
+          "optional": false,
+          "actions": [
+            "memory.approve"
+          ],
+          "approval": {
+            "by_role": "approver"
+          },
+          "fallback": {
+            "step": "approve"
+          }
+        },
+        {
+          "name": "initial-design",
+          "description": "Generate this release-line's minor-release roadmap and record its initial ADRs/DLs/tech-specs.",
+          "optional": false,
+          "include": "initial-design"
+        },
+        {
+          "name": "delivery",
+          "description": "Run one release-cycle per minor release belonging to this release-line.",
+          "optional": false,
+          "include": "release-cycle",
+          "iterate_over": "release",
+          "where": {
+            "release-line": "{release-line.version}",
+            "status": [
+              "draft",
+              "planning",
+              "in-development"
+            ]
+          }
+        },
+        {
+          "name": "plan-next-release-line",
+          "description": "Once every release under this release-line is `released`: close this release-line, and — if another major version is planned — seed the next release-line (self-seeding: sw-life-cycle's own iterate_over: release-line will pick it up next).",
+          "role": "product-owner",
+          "optional": false,
+          "actions": [
+            "element.set_state(done)",
+            "memory.add(type: release-line)",
+            "memory.submit"
+          ],
+          "produces": [
+            "docs/04_memory/planning/{id}.md"
+          ],
+          "checks": {
+            "pre": [
+              "all releases where release-line={release-line.version} are status: released"
+            ],
+            "post": [
+              "frontmatter.required: [title, version]"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "release-cycle",
+      "kind": "sub",
+      "description": "Deliver one release: plan scope -> run a TDD dev-loop per backlog task (including bug-fix tasks) -> align user-facing docs -> submit -> publish to npm -> retrospective.",
+      "version": 1.1,
+      "element": "release",
+      "phases": [
+        {
+          "name": "planning",
+          "description": "Define release scope, story points, and the task backlog for this release.",
+          "optional": false,
+          "include": "release-planning"
+        },
+        {
+          "name": "implementation",
+          "description": "Run the TDD dev-loop once per backlog task tagged for this release — including the fix tasks derived from bugs scheduled into this release; each keeps its source bug in sync (`bug.sync_state`, see dev-loop.yaml).",
+          "optional": false,
+          "include": "dev-loop",
+          "iterate_over": "task",
+          "where": {
+            "status": [
+              "backlog"
+            ],
+            "tags": [
+              "{release.version}"
+            ]
+          }
+        },
+        {
+          "name": "user-docs",
+          "description": "Write/align README, user guide, CLI reference, examples, and CHANGELOG to the shipped surface before the release is assembled. Hard release blocker (dl-013).",
+          "optional": false,
+          "include": "user-docs"
+        },
+        {
+          "name": "e2e-smoke",
+          "description": "Run a real `wingfoil init` + drive the CLI surface, asserting exit codes + schema-valid scaffolded artifacts, before the release is assembled.",
+          "optional": false,
+          "include": "e2e-smoke"
+        },
+        {
+          "name": "submit",
+          "description": "Assemble the release, run checks, request approval.",
+          "optional": false,
+          "include": "release-submit"
+        },
+        {
+          "name": "publishing",
+          "description": "Tag, build, and publish to npm; mark the release released.",
+          "optional": false,
+          "include": "release-publishing"
+        },
+        {
+          "name": "retrospective",
+          "description": "Capture learnings and adjust the next release.",
+          "optional": false,
+          "include": "retrospective"
+        }
+      ]
+    },
+    {
+      "name": "release-planning",
+      "kind": "sub",
+      "description": "Plan a release: confirm the pillar focus and scope, triage bugs and reconcile accumulated governance into their gated states, identify and spec shared artefacts up front, pull backlog tasks for the release, and stamp each included element with its `release`. Set the release element to `planning` then `in-development`.",
+      "version": 1.4,
+      "element": "release",
+      "phases": [
+        {
+          "name": "advance-pinned-build",
+          "description": "Before the release is planned, move the WingFoil build that governs this repository (the `wingfoil` devDependency pinned exactly in package.json) to the newest PUBLISHED version, if it is newer. Rule (dl-095 Q3): the pin moves forward only, never backwards, and only to a published build; every switch is its own commit changing only package.json and package-lock.json (`npm install --save-dev --save-exact wingfoil@X.Y.Z`), noted in the active phase plan. After a switch, re-run the CLI contract tests (spec-001; once they exist) and re-check the `wingfoil-cli` directive against the new build. On a defect that blocks a step: move to a published fix; if none exists, work by hand, record it in the plan and in the `wingfoil-cli` directive. The pin is the governance CLI only; the versions the UI supports for observed projects are the contract-test matrix (adr-001 D3/D4), advanced separately.",
+          "role": "tech-lead",
+          "optional": false,
+          "actions": [
+            "npm.pin_advance(\"wingfoil\")"
+          ],
+          "checks": {
+            "pre": [
+              "`npm run -s wingfoil -- --version` == the version package.json pins (the build in use is the pinned one)"
+            ],
+            "post": [
+              "new pin >= old pin, and `npm view wingfoil versions` lists it (forward only, published only)",
+              "the switch commit changes only package.json and package-lock.json",
+              "`npm run -s wingfoil -- directives list` reports \"warnings\": []; CLI contract tests pass (when they exist)"
+            ]
+          }
+        },
+        {
+          "name": "define-scope",
+          "description": "Confirm pillar focus + feature scope for the release (from the release Memory doc).",
+          "role": "product-owner",
+          "optional": false,
+          "actions": [
+            "memory.submit"
+          ],
+          "produces": [
+            "docs/04_memory/planning/{release-line}/{release.id}.md"
+          ],
+          "checks": {
+            "post": [
+              "frontmatter.required: [title, kind, version, pillar, features, requirements, release-line]"
+            ]
+          }
+        },
+        {
+          "name": "triage-bugs",
+          "description": "Select in-scope `open` bugs (selection filter: release empty or == {release in planning}) and triage them so downstream phases see only `triaged` bugs. Not-selected bugs are left untouched.",
+          "role": "tech-lead",
+          "optional": false,
+          "actions": [
+            "memory.approve"
+          ],
+          "where": {
+            "type": "bug",
+            "status": [
+              "open"
+            ],
+            "release": [
+              "",
+              "{release.version}"
+            ]
+          },
+          "approval": {
+            "by_role": "approver"
+          },
+          "fallback": {
+            "step": "triage-bugs",
+            "set_state": "closed"
+          }
+        },
+        {
+          "name": "reconcile-governance",
+          "description": "Sweep accumulated not-ready in-scope governance into its gated state so build-backlog/identify-specs never silently skip it. Idempotent — acts only on pre-gate elements (selection filter: release empty or == {release in planning}). Not-selected elements are left untouched.",
+          "role": "product-owner",
+          "optional": false,
+          "actions": [
+            "memory.approve"
+          ],
+          "where": {
+            "type": [
+              "decision-log",
+              "adr"
+            ],
+            "status": [
+              "in-discussion",
+              "pending"
+            ],
+            "release": [
+              "",
+              "{release.version}"
+            ]
+          },
+          "approval": {
+            "by_role": "approver"
+          },
+          "fallback": {
+            "step": "reconcile-governance",
+            "set_state": "draft"
+          }
+        },
+        {
+          "name": "record-adrs",
+          "description": "Optionally record + approve Architectural Decision Records for this release's scope.",
+          "role": "architect",
+          "optional": true,
+          "actions": [
+            "memory.add(type: adr)",
+            "memory.submit",
+            "memory.approve"
+          ],
+          "produces": [
+            "docs/04_memory/design/adrs/{id}.md"
+          ],
+          "checks": {
+            "pre": [
+              "spec-review.passed"
+            ],
+            "post": [
+              "frontmatter.required: [title, sard_ref]"
+            ]
+          },
+          "approval": {
+            "by_role": "approver"
+          }
+        },
+        {
+          "name": "identify-specs",
+          "description": "Survey the release scope for file formats, schemas, constant sets, and module APIs that will be implemented by this release's tasks; scaffold a tech-spec for each one not yet covered by an approved spec. Runs before tasks are created so build-backlog can reference approved (or at least pending) specs instead of discovering gaps task-by-task.",
+          "role": "architect",
+          "optional": false,
+          "actions": [
+            "agent.survey_specs",
+            "memory.add(type: tech-spec)",
+            "memory.submit"
+          ],
+          "produces": [
+            "docs/04_memory/design/specs/{id}.md"
+          ],
+          "checks": {
+            "pre": [
+              "spec-review.passed"
+            ],
+            "post": [
+              "frontmatter.required: [title, scope]"
+            ]
+          },
+          "approval": {
+            "by_role": "approver"
+          },
+          "fallback": {
+            "step": "identify-specs"
+          }
+        },
+        {
+          "name": "build-backlog",
+          "description": "Create/triage task deliverables for the release, convert reconciled governance into tasks, and stamp the `release` assignment on every included element. For each in-scope `ready` DL, create the task(s) it implies (the DL STAYS `ready` — dl-017, no ready->in-develop). For each selected `triaged` bug, create one or more fix tasks (task.bug = the source bug's id) and schedule the bug into the release; from here the bug's own state tracks its derived task(s) automatically (dev-loop's `bug.sync_state`). Assignment (dl-016 §4): stamp `release = {release.version}` on every included decision-log, bug, tech-spec, adr, and task.",
+          "role": "product-owner",
+          "optional": false,
+          "actions": [
+            "memory.add(type: task, tags: [\"{release.version}\"])",
+            "memory.submit",
+            "memory.add(type: task, tags: [\"{release.version}\"], dl: \"{dl.id}\")",
+            "memory.submit",
+            "memory.add(type: task, tags: [\"{release.version}\"], bug: \"{bug.id}\")",
+            "memory.submit",
+            "bug.set_state(planned)",
+            "element.set_release(\"{release.version}\")"
+          ],
+          "produces": [
+            "docs/04_memory/{release}/{id}.md"
+          ],
+          "checks": {
+            "post": [
+              "frontmatter.required: [title, release]"
+            ]
+          }
+        },
+        {
+          "name": "commit-backlog",
+          "description": "Approve the planned tasks into the backlog so the dev-loop can pick them up, then move the release into development.",
+          "role": "tech-lead",
+          "optional": false,
+          "actions": [
+            "task.set_state(backlog)",
+            "release.set_state(in-development)"
+          ],
+          "approval": {
+            "by_role": "approver"
+          }
+        }
+      ]
+    },
+    {
+      "name": "dev-loop",
+      "kind": "sub",
+      "description": "Test-first development loop for a single task: design -> red -> green -> refactor -> review. On review rejection, fall back to `red` and return the task to in-progress.",
+      "version": 1.4,
+      "element": "task",
+      "phases": [
+        {
+          "name": "start",
+          "description": "Pick up the task; create a feature branch; move it to in-progress.",
+          "role": "developer",
+          "optional": false,
+          "actions": [
+            "git.create_branch(\"task/{task.id}\")",
+            "git.create_worktree(\"task/{task.id}\")",
+            "element.set_state(in-progress)",
+            "bug.sync_state(for_each: task.bug)"
+          ]
+        },
+        {
+          "name": "design",
+          "description": "Safety net for artefacts not caught by release-planning's `identify-specs`: verify that a tech-spec exists and is approved for every file format, schema, constant set, and module API the task will implement. No code is written until all relevant tech-spec elements are in approved state. For each still-missing spec: memory.add then memory.submit (draft -> pending).",
+          "role": "architect",
+          "optional": false,
+          "actions": [
+            "agent.classify_acs",
+            "agent.read_related",
+            "agent.verify_specs",
+            "memory.add(type: tech-spec)",
+            "memory.submit"
+          ],
+          "produces": [
+            "docs/04_memory/design/specs/{id}.md"
+          ],
+          "checks": {
+            "post": [
+              "frontmatter.required: [title, scope]",
+              "tech-spec.approved",
+              "depends_on.acknowledged"
+            ]
+          },
+          "approval": {
+            "by_role": "approver"
+          },
+          "fallback": {
+            "step": "design"
+          }
+        },
+        {
+          "name": "red",
+          "description": "Write a failing test that captures the task's acceptance criteria.",
+          "role": "developer",
+          "optional": false,
+          "actions": [
+            "agent.execute"
+          ],
+          "checks": {
+            "post": [
+              "tests.exist",
+              "tests.failing(for: red-first ACs)"
+            ]
+          }
+        },
+        {
+          "name": "green",
+          "description": "Implement the minimum code to make the test pass.",
+          "role": "developer",
+          "optional": false,
+          "actions": [
+            "agent.execute"
+          ],
+          "checks": {
+            "post": [
+              "tests.passing"
+            ]
+          }
+        },
+        {
+          "name": "refactor",
+          "description": "Refactor with tests green; keep coverage from regressing.",
+          "role": "developer",
+          "optional": false,
+          "actions": [
+            "agent.execute"
+          ],
+          "checks": {
+            "post": [
+              "tests.passing",
+              "tests.coverage(min: 80)",
+              "docs.api.public-complete",
+              "docs.api.build",
+              "lint.clean"
+            ]
+          }
+        },
+        {
+          "name": "review",
+          "description": "Quality gate runs the BDD acceptance tests, then the reviewer approves or rejects.",
+          "role": "reviewer",
+          "optional": false,
+          "actions": [
+            "tests.bdd.run",
+            "memory.submit",
+            "bug.sync_state(for_each: task.bug)"
+          ],
+          "checks": {
+            "pre": [
+              "tests.bdd.passing"
+            ]
+          },
+          "approval": {
+            "by_role": "approver"
+          },
+          "fallback": {
+            "step": "red",
+            "set_state": "in-progress"
+          }
+        },
+        {
+          "name": "done",
+          "description": "On approval, merge to main and mark the task done.",
+          "role": "developer",
+          "optional": false,
+          "actions": [
+            "memory.approve",
+            "git.merge(to: main, ff: false)",
+            "git.remove_worktree",
+            "element.set_state(done)",
+            "bug.sync_state(for_each: task.bug)"
+          ],
+          "fallback": {
+            "step": "red",
+            "set_state": "in-progress"
+          }
+        }
+      ]
+    },
+    {
+      "name": "user-docs",
+      "kind": "sub",
+      "description": "Ensure the release's user-facing documentation is written and aligned before the release is assembled: README, user guide, CLI reference, working examples, CHANGELOG. Makes documentation a hard release blocker (dl-013) instead of an unenforced convention.",
+      "version": 1.1,
+      "element": "release",
+      "phases": [
+        {
+          "name": "check-implementation-complete",
+          "description": "Pre-check: every task tagged for this release is `done` before user docs are finalized.",
+          "role": "tech-lead",
+          "optional": false,
+          "checks": {
+            "pre": [
+              "all tasks where tags=[{release.version}] are status: done"
+            ]
+          }
+        },
+        {
+          "name": "align-user-docs",
+          "description": "Write/align the user-facing documentation to the shipped CLI/feature surface for this release.",
+          "role": "developer",
+          "optional": false,
+          "produces": [
+            "README.md",
+            "docs/user-guide.md",
+            "docs/cli-reference.md",
+            "docs/examples/",
+            "CHANGELOG.md"
+          ],
+          "checks": {
+            "post": [
+              "user-facing docs aligned with the release's shipped CLI/feature surface"
+            ]
+          },
+          "approval": {
+            "by_role": "approver"
+          }
+        },
+        {
+          "name": "align-agent-docs",
+          "description": "Verify and align the agent-facing entry point against the config it projects, so an agent's first contact describes the tool as it is. Runs after align-user-docs and before release-submit. Also reused by plan-next-release-line at release-line close (dl-025), because structural changes — a new Memory type, a changed state machine, a new pillar — land at release-line boundaries and are exactly what the element/state tables stop matching.",
+          "role": "architect",
+          "optional": false,
+          "produces": [
+            "CLAUDE.md",
+            ".wingfoil/README.md"
+          ],
+          "checks": {
+            "post": [
+              "CLAUDE.md project status matches the shipped command surface (CORE_MODULES)",
+              "CLAUDE.md element/state tables match memory.yaml",
+              "CLAUDE.md workflow list matches workflows.yaml",
+              "CLAUDE.md role-directive bindings match roles.yaml"
+            ]
+          },
+          "approval": {
+            "by_role": "approver"
+          }
+        }
+      ]
+    },
+    {
+      "name": "e2e-smoke",
+      "kind": "sub",
+      "description": "Black-box release gate: initialise a throwaway WingFoil project with the pinned CLI, start the WingFoil UI server on it, drive the screens in scope through a real browser, scan them for accessibility, and check that the packaged app launches. STAGED: warn on failure until the gate runs green for a release, then flip to hard-reject.",
+      "version": 1,
+      "element": "release",
+      "phases": [
+        {
+          "name": "fixture-project",
+          "description": "Create a throwaway git repository and run the pinned `wingfoil init` (each supported template), plus a few Memory elements in different states.",
+          "role": "qa",
+          "optional": false,
+          "actions": [
+            "cli.run(\"npm run -s wingfoil -- init --template <template>\")",
+            "cli.run(\"npm run -s wingfoil -- memory add ...; memory submit ...\")"
+          ],
+          "checks": {
+            "post": [
+              "exit-code-zero",
+              "fixture covers every element state shown by the screens in scope"
+            ]
+          }
+        },
+        {
+          "name": "drive-browser",
+          "description": "Start the server on the fixture project and drive the release's screens in a real browser (Playwright): read views render the fixture's state, and every gate action performed from the UI produces the same `wf(…)` commit the CLI would.",
+          "role": "qa",
+          "optional": false,
+          "actions": [
+            "cli.run(\"<start server> --project <fixture>\")",
+            "cli.run(\"<playwright e2e suite>\")"
+          ],
+          "checks": {
+            "post": [
+              "e2e suite passing on the supported browsers",
+              "every commit is a CLI wf(…) commit or a chore(ui) commit touching only .wingfoil/ui.yaml",
+              "actions refused on elements with local changes and while behind",
+              "fixtures: Kanban, custom, unknown types/states without ui.yaml; reviewer/product-owner with and without approver"
+            ]
+          }
+        },
+        {
+          "name": "local-security",
+          "description": "Check the local server protections (X4): loopback only, session token, Origin/Host checks, no path outside the repository.",
+          "role": "qa",
+          "optional": false,
+          "actions": [
+            "cli.run(\"<security test suite>\")"
+          ],
+          "checks": {
+            "post": [
+              "non-loopback requests refused",
+              "requests without the session token refused",
+              "cross-origin and foreign-Host requests refused",
+              "Files refuses paths outside the repository"
+            ]
+          }
+        },
+        {
+          "name": "accessibility",
+          "description": "Scan every screen in scope with axe-core and walk the keyboard path of each gate action.",
+          "role": "qa",
+          "optional": false,
+          "actions": [
+            "cli.run(\"<axe scan>\")"
+          ],
+          "checks": {
+            "post": [
+              "zero serious/critical axe violations",
+              "every gate action reachable by keyboard"
+            ]
+          }
+        },
+        {
+          "name": "contract",
+          "description": "Run the CLI JSON contract tests against the WingFoil versions the release supports (`wingfoil_min` .. pinned).",
+          "role": "qa",
+          "optional": false,
+          "actions": [
+            "cli.run(\"<contract test suite>\")"
+          ],
+          "checks": {
+            "post": [
+              "contract tests passing for every supported WingFoil version"
+            ]
+          }
+        },
+        {
+          "name": "launch",
+          "description": "Install the packaged app as a user would (packaging decided at inception) and check it starts and serves the UI.",
+          "role": "qa",
+          "optional": false,
+          "actions": [
+            "cli.run(\"<packaged launch command>\")"
+          ],
+          "checks": {
+            "post": [
+              "exit-code-zero",
+              "UI reachable on localhost"
+            ]
+          }
+        },
+        {
+          "name": "gate",
+          "description": "Report smoke results. STAGED: warn on failure until the gate runs green for a release, then flip to hard-reject so it blocks release-submit.",
+          "role": "qa",
+          "optional": false,
+          "checks": {
+            "post": [
+              "e2e-smoke-passed (staged: warn until green for a release, then hard-reject)"
+            ]
+          },
+          "approval": {
+            "by_role": "approver"
+          }
+        }
+      ]
+    },
+    {
+      "name": "release-submit",
+      "kind": "sub",
+      "description": "Assemble the release once its tasks are done: run pre-release checks, move the release into `releasing`, and gate on approval before publishing.",
+      "version": 1,
+      "element": "release",
+      "phases": [
+        {
+          "name": "pre-release-checks",
+          "description": "Verify all release tasks are done and the suite is green. Bugs have no independent status here — their state is derived by dev-loop's `bug.sync_state` from their fix tasks, so the task check below covers them; the bug check is a redundant sanity check on the sync itself.",
+          "role": "qa",
+          "optional": false,
+          "checks": {
+            "pre": [
+              "all tasks where tags=[{release.version}] are status: done",
+              "all bugs where tags=[{release.version}] are status: [resolved, closed]",
+              "tests.passing",
+              "tests.coverage(min: 80)"
+            ]
+          }
+        },
+        {
+          "name": "enter-releasing",
+          "description": "Move the release element into the releasing state.",
+          "role": "tech-lead",
+          "optional": false,
+          "actions": [
+            "element.set_state(releasing)"
+          ]
+        },
+        {
+          "name": "approve-release",
+          "description": "Final human approval before publishing.",
+          "role": "approver",
+          "optional": false,
+          "approval": {
+            "by_role": "approver"
+          },
+          "fallback": {
+            "step": "pre-release-checks"
+          }
+        }
+      ]
+    },
+    {
+      "name": "release-publishing",
+      "kind": "sub",
+      "description": "Publish an approved release: tag, build, publish to the npm registry, and mark the release element as released.",
+      "version": 1.1,
+      "element": "release",
+      "phases": [
+        {
+          "name": "tag",
+          "description": "Create the semver git tag for the release ON `main`, after the release branch has merged — never on a phase branch (dl-024). The tag must be a stable ref reachable from main's permanent history so it survives phase-branch cleanup.",
+          "role": "tech-lead",
+          "optional": false,
+          "actions": [
+            "git.commit(\"release {release.version}\")",
+            "git.tag(\"{release.version}\", on: main)"
+          ],
+          "checks": {
+            "pre": [
+              "on-branch-is-main",
+              "release-branch-merged-to-main"
+            ]
+          }
+        },
+        {
+          "name": "publish",
+          "description": "Run the tag's publish pipeline, then make the staged version live. The tag push runs `.github/workflows/publish.yml`: gate, Verdaccio staging + dl-023 smoke, then promote, which STAGES the same tarball on npm with `npm stage publish` through the stage-only OIDC trusted publisher — no token (adr-011, spec-015 §3 stage 4). A staged version is not live: after the pipeline run, the approver inspects it (`npm stage view <stage-id>`) and approves it on npm with 2FA (`npm stage approve <stage-id>`, or Approve on npmjs.com), or discards it with `npm stage reject` (dl-087 Action 3). The runbook in publish.yml's header lists the one-time registry-side setup this step presupposes.",
+          "role": "tech-lead",
+          "optional": false,
+          "actions": [
+            "agent.execute",
+            "agent.execute",
+            "approver.execute(\"npm stage approve <stage-id>\")"
+          ],
+          "checks": {
+            "pre": [
+              "tests.passing"
+            ],
+            "post": [
+              "staged version approved on npm and live on the npm registry"
+            ]
+          },
+          "approval": {
+            "by_role": "approver"
+          }
+        },
+        {
+          "name": "mark-released",
+          "description": "Mark the release element released.",
+          "role": "tech-lead",
+          "optional": false,
+          "actions": [
+            "element.set_state(released)"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "retrospective",
+      "kind": "sub",
+      "description": "Close the release loop: EXPLORE the release's Execution Notes for friction, let the approver add points, capture what went well / what to improve as Memory, and feed adjustments into the next release planning.",
+      "version": 1.1,
+      "element": "release",
+      "phases": [
+        {
+          "name": "explore",
+          "description": "Mine the `## Execution Notes` of every Memory document in the release scope (tasks, bugs, DLs, the release doc, plan outcomes) for process friction — deviations, blockers, rejection reasons, honest-TDD notes, tooling gaps, inter-task dependency friction. Read-only; produces a structured, source-cited friction inventory grouped by theme. Parallelizable (cheap-model miners + synthesis).",
+          "role": "facilitator",
+          "optional": false,
+          "actions": [
+            "agent.mine_execution_notes"
+          ],
+          "produces": [
+            "retrospective friction inventory (source-cited, grouped by theme)"
+          ]
+        },
+        {
+          "name": "additional-points",
+          "description": "Approver gate: present the friction inventory + the identified improvement themes; the approver adds any further points to analyze (and, if a point implies a config/process change, a DL is spun off in capture). A review checkpoint, not an approval-gated transition — no commit.",
+          "role": "approver",
+          "optional": false,
+          "approval": {
+            "by_role": "approver"
+          }
+        },
+        {
+          "name": "capture",
+          "description": "Record retrospective learnings as a Memory decision-log.",
+          "role": "facilitator",
+          "optional": false,
+          "actions": [
+            "memory.add(type: decision-log, title: \"Retrospective {release.version}\")",
+            "memory.submit"
+          ],
+          "produces": [
+            "docs/04_memory/design/dls/retro-{release.version}.md"
+          ],
+          "checks": {
+            "post": [
+              "frontmatter.required: [title]"
+            ]
+          }
+        },
+        {
+          "name": "approve",
+          "description": "Approve the retrospective so its actions are committed.",
+          "role": "approver",
+          "optional": false,
+          "approval": {
+            "by_role": "approver"
+          }
+        }
+      ]
+    },
+    {
+      "name": "end-of-life",
+      "kind": "sub",
+      "description": "Retire the product (or a major line) at end of life: announce, deprecate active Memory and releases, and archive. Documents remain in the repo (agents ignore deprecated content).",
+      "version": 1,
+      "phases": [
+        {
+          "name": "announce",
+          "description": "Record the end-of-life decision and timeline.",
+          "role": "product-owner",
+          "optional": false,
+          "actions": [
+            "memory.add(type: decision-log, title: \"End-of-life plan\")",
+            "memory.submit"
+          ],
+          "checks": {
+            "post": [
+              "frontmatter.required: [title]"
+            ]
+          },
+          "approval": {
+            "by_role": "approver"
+          }
+        },
+        {
+          "name": "deprecate",
+          "description": "Deprecate active releases and superseded ADRs / decision-logs.",
+          "role": "tech-lead",
+          "optional": false,
+          "actions": [
+            "memory.deprecate"
+          ],
+          "checks": {
+            "post": [
+              "deprecated content excluded from agent context and default search (REQ-STATE-06)"
+            ]
+          }
+        },
+        {
+          "name": "archive",
+          "description": "Final commit; freeze the repository line.",
+          "role": "tech-lead",
+          "optional": false,
+          "actions": [
+            "git.commit(\"end-of-life: archive\")"
+          ]
+        }
+      ]
+    }
+  ]
+}

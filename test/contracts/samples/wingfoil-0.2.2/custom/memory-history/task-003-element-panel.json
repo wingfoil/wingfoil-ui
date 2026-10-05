@@ -1,0 +1,39 @@
+{
+  "id": "task-003-element-panel",
+  "path": "docs/04_memory/v0.1/task-003-element-panel.md",
+  "entries": [
+    {
+      "sha": "0f0d53c6f81ab53437408fd23d5364e3def66962",
+      "author": "Jordan <jordan@example.test>",
+      "timestamp": "2026-09-29T15:20:12+00:00",
+      "operation": "add",
+      "from": null,
+      "to": "draft",
+      "approver": null,
+      "reason": null,
+      "subject": "wf(task): add task-003-element-panel"
+    },
+    {
+      "sha": "16c920d673f66fc99aa7ac5d573ee4d2db395980",
+      "author": "Jordan <jordan@example.test>",
+      "timestamp": "2026-09-29T15:20:13+00:00",
+      "operation": "submit",
+      "from": "draft",
+      "to": "pending",
+      "approver": null,
+      "reason": null,
+      "subject": "wf(task): submit task-003-element-panel"
+    },
+    {
+      "sha": "e94dab90f5387153bf6715c9b34f5126ea6f369b",
+      "author": "Morgan <morgan@example.test>",
+      "timestamp": "2026-09-29T15:20:14+00:00",
+      "operation": "approve",
+      "from": "pending",
+      "to": "backlog",
+      "approver": "Morgan <morgan@example.test> (approver)",
+      "reason": "Approved",
+      "subject": "wf(task): approve task-003-element-panel [pending → backlog]"
+    }
+  ]
+}

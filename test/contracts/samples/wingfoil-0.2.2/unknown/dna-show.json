@@ -1,0 +1,110 @@
+{
+  "version": 1,
+  "project": {
+    "name": "unknown",
+    "description": "",
+    "methodology": "Kanban"
+  },
+  "modules": [],
+  "stacks": {
+    "technologies": [],
+    "methodologies": [
+      {
+        "name": "Kanban"
+      },
+      {
+        "name": "Specification by Example (BDD)"
+      },
+      {
+        "name": "TDD"
+      }
+    ]
+  },
+  "team": {
+    "members": [
+      {
+        "name": "Morgan",
+        "email": "morgan@example.test",
+        "roles": [
+          "approver",
+          "tech-lead"
+        ]
+      },
+      {
+        "name": "Casey",
+        "email": "casey@example.test",
+        "roles": [
+          "product-owner"
+        ]
+      },
+      {
+        "name": "Jordan",
+        "email": "jordan@example.test",
+        "roles": [
+          "developer"
+        ]
+      },
+      {
+        "name": "Sam",
+        "email": "sam@example.test",
+        "roles": [
+          "reviewer"
+        ]
+      },
+      {
+        "name": "Alex",
+        "email": "alex@example.test",
+        "roles": [
+          "tech-lead",
+          "architect",
+          "developer",
+          "reviewer",
+          "product-owner",
+          "approver",
+          "qa"
+        ]
+      }
+    ],
+    "agents": [
+      {
+        "name": "Build agent",
+        "executes_as": [
+          "developer"
+        ],
+        "approval_authority": false
+      }
+    ],
+    "roles": [
+      {
+        "name": "developer"
+      },
+      {
+        "name": "reviewer"
+      },
+      {
+        "name": "qa"
+      },
+      {
+        "name": "architect"
+      },
+      {
+        "name": "product-owner"
+      },
+      {
+        "name": "tech-lead"
+      },
+      {
+        "name": "approver"
+      }
+    ]
+  },
+  "paths": {
+    "sources": [],
+    "tests": [],
+    "docs": [],
+    "config": [
+      ".wingfoil"
+    ],
+    "governance": []
+  }
+}

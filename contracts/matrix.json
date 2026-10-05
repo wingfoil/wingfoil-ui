@@ -1,0 +1,5 @@
+{
+  "$comment": "Support matrix (adr-001 D3/D4, spec-001 §5): the WingFoil versions the contract tests run against. It advances only through release-planning (new version → contract tests re-run, directive wingfoil-cli re-checked).",
+  "pinned": "0.2.2",
+  "versions": ["0.2.2"]
+}

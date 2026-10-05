@@ -20,6 +20,7 @@
     "format:check": "prettier --check .",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
+    "test:contract": "vitest run test/contracts",
     "test:e2e": "playwright test",
     "docs:api": "typedoc --options typedoc.json"
   },

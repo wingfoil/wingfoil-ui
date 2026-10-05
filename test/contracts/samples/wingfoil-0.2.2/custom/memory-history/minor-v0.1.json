@@ -1,0 +1,28 @@
+{
+  "id": "minor-v0.1",
+  "path": "docs/04_memory/planning/v1/minor-v0.1.md",
+  "entries": [
+    {
+      "sha": "51a05194b40da62cd1ea239687d0426534ff9686",
+      "author": "Alex <alex@example.test>",
+      "timestamp": "2026-09-29T15:20:26+00:00",
+      "operation": "add",
+      "from": null,
+      "to": "draft",
+      "approver": null,
+      "reason": null,
+      "subject": "wf(release): add minor-v0.1"
+    },
+    {
+      "sha": "17ab0a5c5d93ede1df41c42cd0a2e51b1ef01d2f",
+      "author": "Alex <alex@example.test>",
+      "timestamp": "2026-09-29T15:20:27+00:00",
+      "operation": "submit",
+      "from": "draft",
+      "to": "planning",
+      "approver": null,
+      "reason": null,
+      "subject": "wf(release): submit minor-v0.1"
+    }
+  ]
+}

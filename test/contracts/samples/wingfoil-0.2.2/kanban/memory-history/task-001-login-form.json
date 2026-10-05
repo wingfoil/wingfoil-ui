@@ -1,0 +1,28 @@
+{
+  "id": "task-001-login-form",
+  "path": "docs/memory/task/task-001-login-form.md",
+  "entries": [
+    {
+      "sha": "4dda73a8503bc9345c430a62df23512edd926637",
+      "author": "Jordan <jordan@example.test>",
+      "timestamp": "2026-09-29T15:20:00+00:00",
+      "operation": "add",
+      "from": null,
+      "to": "draft",
+      "approver": null,
+      "reason": null,
+      "subject": "wf(task): add task-001-login-form"
+    },
+    {
+      "sha": "996cde40d515010423e590bc00ee42e4dd03bd5d",
+      "author": "Jordan <jordan@example.test>",
+      "timestamp": "2026-09-29T15:20:01+00:00",
+      "operation": "submit",
+      "from": "draft",
+      "to": "pending",
+      "approver": null,
+      "reason": null,
+      "subject": "wf(task): submit task-001-login-form"
+    }
+  ]
+}

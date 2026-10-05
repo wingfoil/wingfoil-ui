@@ -1,0 +1,83 @@
+{
+  "id": "task-002-memory-list",
+  "path": "docs/04_memory/v0.1/task-002-memory-list.md",
+  "entries": [
+    {
+      "sha": "293efe8dfcf24da39da4921b932dfccec063b731",
+      "author": "Jordan <jordan@example.test>",
+      "timestamp": "2026-09-29T15:20:05+00:00",
+      "operation": "add",
+      "from": null,
+      "to": "draft",
+      "approver": null,
+      "reason": null,
+      "subject": "wf(task): add task-002-memory-list"
+    },
+    {
+      "sha": "26a82319e108791a3e9707d1d1e1adc4d3e3c199",
+      "author": "Jordan <jordan@example.test>",
+      "timestamp": "2026-09-29T15:20:06+00:00",
+      "operation": "submit",
+      "from": "draft",
+      "to": "pending",
+      "approver": null,
+      "reason": null,
+      "subject": "wf(task): submit task-002-memory-list"
+    },
+    {
+      "sha": "28138b61d12c5db8ae55972ba5d434d9c7ea3285",
+      "author": "Morgan <morgan@example.test>",
+      "timestamp": "2026-09-29T15:20:07+00:00",
+      "operation": "approve",
+      "from": "pending",
+      "to": "backlog",
+      "approver": "Morgan <morgan@example.test> (approver)",
+      "reason": "Approved",
+      "subject": "wf(task): approve task-002-memory-list [pending → backlog]"
+    },
+    {
+      "sha": "f749e89f32880ac592aabfff8350b1d7dae3bc43",
+      "author": "Jordan <jordan@example.test>",
+      "timestamp": "2026-09-29T15:20:08+00:00",
+      "operation": null,
+      "from": "backlog",
+      "to": "in-progress",
+      "approver": null,
+      "reason": null,
+      "subject": "wf(task): task-002-memory-list [backlog → in-progress]"
+    },
+    {
+      "sha": "ba9104dbde2936c43eb425995341a8f0a4d7794d",
+      "author": "Jordan <jordan@example.test>",
+      "timestamp": "2026-09-29T15:20:09+00:00",
+      "operation": "submit",
+      "from": "in-progress",
+      "to": "in-review",
+      "approver": null,
+      "reason": null,
+      "subject": "wf(task): submit task-002-memory-list"
+    },
+    {
+      "sha": "1103fca76f43cb4571b03af6a21a7d045c63468a",
+      "author": "Morgan <morgan@example.test>",
+      "timestamp": "2026-09-29T15:20:10+00:00",
+      "operation": "approve",
+      "from": "in-review",
+      "to": "approved",
+      "approver": "Morgan <morgan@example.test> (approver)",
+      "reason": "Approved",
+      "subject": "wf(task): approve task-002-memory-list [in-review → approved]"
+    },
+    {
+      "sha": "f8f641aed7d295b51cc7d694af19b61c4dcc9653",
+      "author": "Jordan <jordan@example.test>",
+      "timestamp": "2026-09-29T15:20:11+00:00",
+      "operation": null,
+      "from": "approved",
+      "to": "done",
+      "approver": null,
+      "reason": null,
+      "subject": "wf(task): task-002-memory-list [approved → done]"
+    }
+  ]
+}
