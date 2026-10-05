@@ -1,10 +1,8 @@
 /**
  * The static list of the WingFoil CLI commands the server invokes (spec-001 §3, adr-001 D4,
- * REQ-INT-01) and the validation of their output against `contracts/cli/<command>.schema.json`,
- * read at run time like the state schema. The adapter refuses any command not listed here.
+ * REQ-INT-01) and the validation of their output against `contracts/cli/<command>.schema.json`.
+ * The adapter refuses any command not listed here.
  */
-import { Ajv, type ValidateFunction } from 'ajv';
-import { readFileSync } from 'node:fs';
 import type {
   DirectivesList,
   DnaPaths,
@@ -16,6 +14,7 @@ import type {
   MemoryTransition,
   WorkflowList,
 } from '@wingfoil-ui/contracts';
+import { schemaProblems, type ContractSchema } from '../contracts.js';
 
 /** One consumed command. */
 export interface CliCommandSpec {
@@ -59,7 +58,7 @@ export interface CliCommandOutputs {
 }
 
 /** Path of the schema of `name`, relative to `contracts/`. */
-export function cliSchemaFile(name: CliCommandName): string {
+export function cliSchemaFile(name: CliCommandName): ContractSchema {
   return `cli/${CLI_COMMANDS[name].schema}.schema.json`;
 }
 
@@ -67,30 +66,6 @@ export function cliSchemaFile(name: CliCommandName): string {
 export function commandFor(words: readonly string[]): CliCommandName | undefined {
   const name = words.join(' ');
   return Object.hasOwn(CLI_COMMANDS, name) ? (name as CliCommandName) : undefined;
-}
-
-const ajv = new Ajv({ allErrors: true });
-const validators = new Map<string, ValidateFunction>();
-
-/** Compile (once) the schema at `contracts/<file>`. */
-export function contractValidator(file: string): ValidateFunction {
-  let validate = validators.get(file);
-  if (!validate) {
-    const schema = JSON.parse(readFileSync(new URL(`../../../contracts/${file}`, import.meta.url), 'utf8')) as object;
-    validate = ajv.compile(schema);
-    validators.set(file, validate);
-  }
-  return validate;
-}
-
-/**
- * Why `data` does not match the schema at `contracts/<file>` — one `<instance path> <message>` per
- * problem, never a value — or `undefined` when it does.
- */
-export function schemaProblems(file: string, data: unknown): string[] | undefined {
-  const validate = contractValidator(file);
-  if (validate(data)) return undefined;
-  return (validate.errors ?? []).map((e) => `${e.instancePath || '/'} ${e.message ?? 'is invalid'}`);
 }
 
 /** Why the output of `name` does not match its schema, or `undefined` when it does. */

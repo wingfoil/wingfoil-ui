@@ -4,7 +4,7 @@
  * `# …` comments are ignored.
  */
 import { parse } from 'yaml';
-import { schemaProblems } from '../cli/commands.js';
+import { schemaProblems, type ContractSchema } from '../contracts.js';
 import { DirectReadError } from './confine.js';
 
 /** A parsed Markdown file. */
@@ -24,7 +24,7 @@ export function parseYaml(text: string, file: string): unknown {
 }
 
 /** Throw a `shape` error when `data` fails the schema at `contracts/<schemaFile>`. */
-export function checkShape(schemaFile: string, data: unknown, file: string): void {
+export function checkShape(schemaFile: ContractSchema, data: unknown, file: string): void {
   const problems = schemaProblems(schemaFile, data);
   if (problems) throw new DirectReadError('shape', file, `${file}: unexpected content (${problems.join('; ')})`);
 }
@@ -33,7 +33,7 @@ export function checkShape(schemaFile: string, data: unknown, file: string): voi
  * Split `text` into its frontmatter, validated against `contracts/<schemaFile>`, and its body; a
  * file without a closed frontmatter is a `shape` error.
  */
-export function parseFrontmatterFile<T>(text: string, file: string, schemaFile: string): FrontmatterFile<T> {
+export function parseFrontmatterFile<T>(text: string, file: string, schemaFile: ContractSchema): FrontmatterFile<T> {
   const lines = text.split('\n');
   const close = lines[0]?.trimEnd() === '---' ? lines.findIndex((l, i) => i > 0 && l.trimEnd() === '---') : -1;
   if (close === -1) throw new DirectReadError('shape', file, `${file}: no frontmatter`);
