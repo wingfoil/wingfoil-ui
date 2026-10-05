@@ -135,6 +135,7 @@ The role required by a gate is **not** checked by the server: the CLI refuses it
 | 504 | `cli-timeout` | a `wingfoil` process killed after 30 s (git transport has no fixed timeout and is cancellable, `adr-001` D5) |
 | 500 | `internal` | adapter defect (exit 2) or unexpected error; details only in the log |
 | 422 | `git-refused` | a git transport command failed: git's message verbatim (REQ-INT-06) |
+| 502 | `read-error` | a direct read of spec-001 §4 failed: `message` "Cannot read `<file>`" and the reason, `detail: { file, kind }` with `kind` one of `outside`, `missing`, `shape`, `mismatch` and `file` relative to the project (never absolute). Scoped to the element or directive read: a list never fails as a whole; an unreadable `memory.yaml` degrades only the type-dependent features. Logged as `{ kind, file }` only (`outside` at warn level) |
 | 422 | project-list codes | refusals of `POST /api/projects` and `/projects/clone`: spec-006 §3 |
 
 - Read responses carry `X-Repo-State: <HEAD sha>.<status hash>`; the page compares it with the
@@ -188,3 +189,5 @@ reconnecting page refetches everything. Pages never poll.
 - 2026-10-05 — amended in dev-loop task-003 (independent review F1, F2), decided by the user:
   §1 `Sec-Fetch-Site` check on `/api/` and the event stream (403 `forbidden-origin`), and a
   duplicate `Host` header refused. No route, code or envelope changes.
+- 2026-10-05 — amended in dev-loop task-005 (independent review), decided by the user: §5
+  `502 read-error` for a failed direct read (spec-001 §4), with its scope and logging rule.
