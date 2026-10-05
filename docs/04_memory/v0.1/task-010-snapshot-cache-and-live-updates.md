@@ -2,7 +2,7 @@
 id: task-010-snapshot-cache-and-live-updates
 type: task
 title: "Snapshot cache and live updates"
-status: backlog
+status: in-progress
 release: "v0.1"
 module: "server"             # optional — server | web | contracts (dna.yaml modules)
 priority: "high"           # optional — high | medium | low
