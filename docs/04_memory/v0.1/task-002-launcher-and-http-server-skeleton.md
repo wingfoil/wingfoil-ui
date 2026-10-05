@@ -2,7 +2,7 @@
 id: task-002-launcher-and-http-server-skeleton
 type: task
 title: "Launcher and HTTP server skeleton"
-status: approved
+status: done
 release: "v0.1"
 module: "server"             # optional — server | web | contracts (dna.yaml modules)
 priority: "high"           # optional — high | medium | low
