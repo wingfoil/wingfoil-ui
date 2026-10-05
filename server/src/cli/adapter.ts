@@ -5,7 +5,7 @@
  *
  * | Exit | The adapter |
  * |------|-------------|
- * | 0 | returns the parsed stdout and the stderr lines as warnings; stdout that is not JSON is a {@link CliOutputError} |
+ * | 0 | returns the parsed stdout, validated against the command's schema, and the stderr lines as warnings; stdout that is not JSON, or fails the schema, is a {@link CliOutputError} |
  * | 1 | {@link CliRefusedError} with the CLI's message verbatim (stderr `{"error": …}`, else its text) |
  * | 2 | {@link CliInternalError}: a defect of the adapter, logged (command words and option names) |
  * | other, signal, cancelled, stopped | {@link CliProcessError} with the reason |
@@ -14,11 +14,13 @@
  * Internal, process and timeout errors are logged with the command words and option names, never
  * a user value.
  *
- * Validating the data against the command's schema is the caller's (contracts, task-005); writes
- * run under the project's write lock, taken by the caller.
+ * Only the commands of the static list (`CLI_COMMANDS` of `./commands.ts`, spec-001 §3) run; any other is an
+ * internal error raised before a process starts. Writes run under the project's write lock, taken
+ * by the caller.
  */
 import { envelope, type ErrorEnvelope } from '../http/app.js';
 import { DEFAULT_TIMEOUT_MS, type ProcessResult, type ProcessRunner } from '../process/runner.js';
+import { commandFor, outputProblem, type CliCommandName, type CliCommandOutputs } from './commands.js';
 import { CliNotFoundError, type CliSource, type ResolvedCli } from './discovery.js';
 
 /** Timeout of every `wingfoil` process (REQ-INT-04). */
@@ -93,11 +95,15 @@ export class CliRefusedError extends CliError {
   }
 }
 
-/** Exit 0 with output that cannot be read. */
+/** Exit 0 with output that cannot be read: not JSON, or failing the command's schema. */
 export class CliOutputError extends CliError {
   readonly kind = 'output';
 
-  constructor(command: CliCommand) {
+  constructor(
+    command: CliCommand,
+    /** What failed: `not JSON`, or one `<instance path> <message>` per schema problem (no value). */
+    readonly problems: readonly string[] = [],
+  ) {
     super(command, `Unexpected output of ${command.words.join(' ')}`);
   }
 }
@@ -175,9 +181,20 @@ export class WingfoilCli {
   }
 
   /**
-   * Run `wingfoil --format json <words…> <options…> [-- <positionals…>]` and parse its JSON output.
-   * The words are the adapter's own and must not start with `-`; user values go in `options` or
-   * `positionals`.
+   * Run the listed command `name` (e.g. `'memory search'`) and return its validated output, typed by
+   * {@link CliCommandOutputs}.
+   */
+  run<N extends Exclude<CliCommandName, '--version'>>(
+    name: N,
+    args: CliArgs = {},
+  ): Promise<CliOutput<CliCommandOutputs[N]>> {
+    return this.json<CliCommandOutputs[N]>(name.split(' '), args);
+  }
+
+  /**
+   * Run `wingfoil --format json <words…> <options…> [-- <positionals…>]`, parse its JSON output and
+   * validate it against the command's schema. The words are the adapter's own, name a command of
+   * the static list (`CLI_COMMANDS`) and must not start with `-`; user values go in `options` or `positionals`.
    */
   async json<T = unknown>(words: readonly string[], args: CliArgs = {}): Promise<CliOutput<T>> {
     const options = args.options ?? {};
@@ -194,20 +211,37 @@ export class WingfoilCli {
       this.log(command, { reason: detail }, 'CLI invocation rejected as malformed');
       throw new CliInternalError(command, detail);
     }
-    const result = await this.exec(command, argv, args.signal);
-    try {
-      return { data: JSON.parse(result.stdout.trim()) as T, warnings: lines(result.stderr) };
-    } catch {
-      throw new CliOutputError(command);
+    const name = commandFor(words);
+    if (name === undefined || name === '--version') {
+      const detail = `command not on the static list: ${words.join(' ')}`;
+      this.log(command, { reason: detail }, 'CLI invocation rejected as malformed');
+      throw new CliInternalError(command, detail);
     }
+    const result = await this.exec(command, argv, args.signal);
+    let data: unknown;
+    try {
+      data = JSON.parse(result.stdout.trim());
+    } catch {
+      throw this.outputError(command, ['not JSON']);
+    }
+    const problems = outputProblem(name, data);
+    if (problems) throw this.outputError(command, problems);
+    return { data: data as T, warnings: lines(result.stderr) };
   }
 
   /** `wingfoil --version`: one line of plain text, even with `--format json` (W-19). Not parsed here. */
   async version(): Promise<string> {
     const command: CliCommand = { words: ['--version'], options: [] };
     const text = (await this.exec(command, ['--version'])).stdout.trim();
-    if (!text) throw new CliOutputError(command);
+    const problems = outputProblem('--version', text);
+    if (problems) throw this.outputError(command, problems);
     return text;
+  }
+
+  /** An output error, logged with its problems (instance paths and messages, no value). */
+  private outputError(command: CliCommand, problems: string[]): CliOutputError {
+    this.log(command, { problems }, `Unexpected output of ${command.words.join(' ')}`);
+    return new CliOutputError(command, problems);
   }
 
   private async exec(command: CliCommand, argv: readonly string[], signal?: AbortSignal): Promise<ProcessResult> {
