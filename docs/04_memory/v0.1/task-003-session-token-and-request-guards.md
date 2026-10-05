@@ -186,7 +186,7 @@ e2e closure — scenarios that need a screen are proved here by API and unit tes
   - F6 `test/launcher/local-security.test.ts`: each X-04.x `describe` starts its own console in
     `beforeAll` (no `started.at(-1)` ordering); the `::1` check is a separate `it.skipIf(!HAS_IPV6)`
     (a `::1` listen probe at load) instead of a swallowed error — on this machine it runs and passes.
-- **Open point (not implemented, pending a spec-004 decision with the user):** F2 — a page served
+- **Open point at this pass (implemented below, see F2):** a page served
   from another local port (`http://127.0.0.1:<other>`) is cross-origin but same-site, so
   `SameSite=Strict` does not stop its requests from carrying the cookie; the Origin check refuses
   them when the browser sends `Origin`, but `Sec-Fetch-Site` handling (e.g. refusing `same-site`/
@@ -202,3 +202,24 @@ e2e closure — scenarios that need a screen are proved here by API and unit tes
 - Re-verification by the same agent: **PASS** (F1, F3–F6 resolved; F2 open by design). Two nits
   fixed by the coordinator: the not-found handler uses `isApiUrl` too (an authenticated `/API/x`
   gets the JSON 404, not the application); the superseded "undecodable path" decision is marked.
+- **F2 implemented** per the spec-004 §1 amendment of 2026-10-05 (approved by the user; commit
+  `429aab3` on main, not merged into this branch). Test-first: red `751dc61`; green
+  `2213a74`. `isAllowedFetchSite(rawHeaders)` in `guards.ts`: on `/api` requests (matched route or
+  `isApiUrl`, the event stream included) a `Sec-Fetch-Site` other than `same-origin`/`none`
+  (case-insensitive), or more than one such header, → 403 `forbidden-origin`, after the
+  Host/Origin check and before the session; the same check runs in `frameworkErrors` for
+  malformed `/api` URLs. Requests without the header are judged by Host/Origin alone; static files
+  and client-side routes are unaffected (`/` with `cross-site` → 200, `/%zz` → 400). Unit rows
+  (`guards.test.ts`): `same-site`, `cross-site`, `SAME-SITE` → 403; `same-origin`, `none`, absent
+  → 200, on `/api/p/p1` and `/api/events`; before the session (no token → 403), on
+  `POST /api/session` (no cookie set) and on `/api/%zz`; repeated header refused
+  (`isAllowedFetchSite` on raw headers). Bin (`local-security.test.ts`, X-04.2 describe):
+  `Sec-Fetch-Site: same-site` with the token → 403 `forbidden-origin`, `/` not 403, two
+  `same-origin` headers over a raw socket → 403. Deviation: the red commit's import missed
+  `isAllowedFetchSite`, so that one red test failed with a `ReferenceError` (the function did not
+  exist either); the import was fixed with the implementation.
+- Checks after F2 (worktree, HEAD `2213a74`): `npm run -s typecheck`, `lint` clean ·
+  `format:check` "All matched files use Prettier code style!" · `docs:api` OK ·
+  `npm run -s test:coverage` 18 files, 223/223 on the first run (load average 10.6, `uptime`),
+  coverage 93.93 % statements / 89.52 % branches / 92.5 % functions / 95.1 % lines (`guards.ts`
+  97.18 % statements, 100 % lines) · `npm run -s test:e2e` 3/3.
