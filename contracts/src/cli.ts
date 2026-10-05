@@ -7,7 +7,8 @@
 /** A member of `dna.team.members`. */
 export interface DnaMember {
   name: string;
-  email: string;
+  /** Optional in WingFoil 0.2.2. */
+  email?: string;
   roles: string[];
 }
 
@@ -21,7 +22,8 @@ export interface DnaRole {
 export interface DnaAgent {
   name: string;
   executes_as: string[];
-  approval_authority: boolean;
+  /** Optional in WingFoil 0.2.2. */
+  approval_authority?: boolean;
 }
 
 /** A module of `dna.modules`. */
@@ -50,12 +52,15 @@ export interface DnaMethodology {
 /** Path categories: `{<category>: string[]}` (`wingfoil paths`, `dna.paths`). */
 export type DnaPaths = Record<string, string[]>;
 
-/** `wingfoil dna show`: the whole `dna.yaml`. */
+/**
+ * `wingfoil dna show`: the whole `dna.yaml`. As in WingFoil 0.2.2's `dist/dna/schema.js`, the
+ * project, each of its fields and both stack lists are optional: a consumer shows their absence.
+ */
 export interface DnaShow {
   version: number;
-  project: { name: string; description: string; methodology: string };
+  project?: { name?: string; description?: string; methodology?: string };
   modules: DnaModule[];
-  stacks: { technologies: DnaTechnology[]; methodologies: DnaMethodology[] };
+  stacks: { technologies?: DnaTechnology[]; methodologies?: DnaMethodology[] };
   team: { members: DnaMember[]; roles: DnaRole[]; agents?: DnaAgent[] };
   paths: DnaPaths;
 }
@@ -112,7 +117,8 @@ export interface Workflow {
   name: string;
   /** `main` or `sub`. */
   kind: string;
-  description: string;
+  /** Optional in WingFoil 0.2.2. */
+  description?: string;
   /** A number (`1`, `1.4`); absent in the Kanban and Scrum template workflows. */
   version?: number;
   /** Element type the workflow iterates over. */
@@ -122,7 +128,8 @@ export interface Workflow {
 
 /** `wingfoil workflow list`. */
 export interface WorkflowList {
-  manifest: { version: number; include: string[] };
+  /** `version` is optional in WingFoil 0.2.2. */
+  manifest: { version?: number; include: string[] };
   workflows: Workflow[];
 }
 

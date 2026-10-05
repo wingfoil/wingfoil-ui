@@ -17,8 +17,8 @@ export interface StateMachine {
 export interface MemoryTypeDef {
   /** Path pattern with `{id}` and path tokens. */
   path: string;
-  /** Id pattern with `{n}`, `{slug}` and other tokens. */
-  id_pattern: string;
+  /** Id pattern with `{n}`, `{slug}` and other tokens; optional in WingFoil 0.2.2. */
+  id_pattern?: string;
   name?: string;
   description?: string;
   tags?: string[];
@@ -30,6 +30,7 @@ export interface MemoryTypeDef {
 
 /** The subset of `.wingfoil/memory.yaml` the server reads (spec-001 §4.1). */
 export interface MemoryYaml {
+  /** A positive number (WingFoil 0.2.2 does not require an integer). */
   version: number;
   defaults?: { states?: StateMachine };
   types: Record<string, MemoryTypeDef>;

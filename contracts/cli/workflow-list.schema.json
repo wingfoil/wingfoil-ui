@@ -3,16 +3,17 @@
   "$id": "https://wingfoil-ui.local/contracts/cli/workflow-list.schema.json",
   "$comment": "wingfoil 0.2.2 — captured from `wingfoil --format json workflow list` on the kanban, custom and unknown fixtures.",
   "title": "wingfoil workflow list",
-  "description": "Workflow manifest and every workflow with its phases (spec-001 §3). version is a number (1, 1.1, 1.4) and absent in the Kanban template workflows; fallback may carry set_state.",
+  "description": "Workflow manifest and every workflow with its phases (spec-001 §3). version is a number (1, 1.1, 1.4) and absent in the Kanban template workflows; fallback may carry set_state. manifest.version and a workflow's description are optional (dist/workflow/schema.js).",
   "type": "object",
   "required": ["manifest", "workflows"],
   "properties": {
     "manifest": {
       "type": "object",
-      "required": ["version", "include"],
+      "required": ["include"],
       "properties": {
         "version": {
-          "type": "number"
+          "type": "number",
+          "exclusiveMinimum": 0
         },
         "include": {
           "type": "array",
@@ -26,7 +27,7 @@
       "type": "array",
       "items": {
         "type": "object",
-        "required": ["name", "kind", "description", "phases"],
+        "required": ["name", "kind", "phases"],
         "properties": {
           "name": {
             "type": "string"

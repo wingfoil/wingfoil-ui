@@ -3,12 +3,13 @@
   "$id": "https://wingfoil-ui.local/contracts/files/memory-yaml.schema.json",
   "$comment": "wingfoil 0.2.2 — checked on the memory.yaml of the kanban (template), custom (this repository) and unknown (hand-written) fixtures.",
   "title": ".wingfoil/memory.yaml (subset)",
-  "description": "The keys of memory.yaml the server reads directly (spec-001 §4.1, adr-001 D1a); other keys are ignored.",
+  "description": "The keys of memory.yaml the server reads directly (spec-001 §4.1, adr-001 D1a); other keys are ignored. As WingFoil 0.2.2's dist/memory/schema.js: version a positive number, id_pattern optional. Merge keys (<<) are resolved, as js-yaml does.",
   "type": "object",
   "required": ["version", "types"],
   "properties": {
     "version": {
-      "type": "integer"
+      "type": "number",
+      "exclusiveMinimum": 0
     },
     "defaults": {
       "type": "object",
@@ -20,10 +21,9 @@
     },
     "types": {
       "type": "object",
-      "minProperties": 1,
       "additionalProperties": {
         "type": "object",
-        "required": ["path", "id_pattern"],
+        "required": ["path"],
         "properties": {
           "path": {
             "type": "string"

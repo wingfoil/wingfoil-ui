@@ -3,16 +3,16 @@
   "$id": "https://wingfoil-ui.local/contracts/cli/dna-show.schema.json",
   "$comment": "wingfoil 0.2.2 — captured from `wingfoil --format json dna show` on the kanban, custom and unknown fixtures (custom: project.license/repository, modules[].path, technologies {name, category, version?, notes?}, methodologies {name, phase?}).",
   "title": "wingfoil dna show",
-  "description": "The whole dna.yaml (spec-001 §3). Additional properties are accepted (a newer CLI may add fields); every field the UI reads is required.",
+  "description": "The whole dna.yaml (spec-001 §3). Additional properties are accepted (a newer CLI may add fields); every field the UI reads is required. Optional as in WingFoil 0.2.2's dist/dna/schema.js: project and each of its fields, a member's email, an agent's approval_authority, stacks.technologies and stacks.methodologies.",
   "type": "object",
-  "required": ["version", "project", "modules", "stacks", "team", "paths"],
+  "required": ["version", "modules", "stacks", "team", "paths"],
   "properties": {
     "version": {
-      "type": "integer"
+      "type": "number",
+      "exclusiveMinimum": 0
     },
     "project": {
       "type": "object",
-      "required": ["name", "description", "methodology"],
       "properties": {
         "name": {
           "type": "string"
@@ -45,7 +45,6 @@
     },
     "stacks": {
       "type": "object",
-      "required": ["technologies", "methodologies"],
       "properties": {
         "technologies": {
           "type": "array",
@@ -93,7 +92,7 @@
           "type": "array",
           "items": {
             "type": "object",
-            "required": ["name", "email", "roles"],
+            "required": ["name", "roles"],
             "properties": {
               "name": {
                 "type": "string"
@@ -129,7 +128,7 @@
           "type": "array",
           "items": {
             "type": "object",
-            "required": ["name", "executes_as", "approval_authority"],
+            "required": ["name", "executes_as"],
             "properties": {
               "name": {
                 "type": "string"
