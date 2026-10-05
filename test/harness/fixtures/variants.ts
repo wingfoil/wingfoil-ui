@@ -38,7 +38,8 @@ export function cliPackageDir(fixture: Pick<Fixture, 'dir'>): string {
 /**
  * Replace the fixture's `node_modules/wingfoil` with a package whose `bin.wingfoil` script is a
  * wrapper: it answers `--version` with `options.version` (when set), fails the commands listed in
- * `options.failures` (matched on the leading positional words, before the first `-` argument), and
+ * `options.failures` (matched on the leading positional words, before the first `-` argument, after
+ * any global option such as `--format json` placed before the command), and
  * delegates everything else to the CLI the fixture was built with. Installing it again replaces
  * the previous stub and keeps delegating to the same real CLI.
  * Returns the path of the wrapper script.
@@ -72,13 +73,19 @@ function stubSource(realScript: string, options: StubOptions): string {
 // WingFoil CLI stub of the e2e harness (BDD conventions: CLI stub / version-fake variants).
 const { spawnSync } = require('node:child_process');
 const config = ${config};
+// wingfoil's global options and the number of values each takes.
+const GLOBAL_OPTIONS = { '--format': 1, '--verbose': 0, '--no-color': 0, '--no-interactive': 0 };
 const args = process.argv.slice(2);
 if (config.version && (args.includes('--version') || args.includes('-V'))) {
   process.stdout.write(config.version + '\\n');
   process.exit(0);
 }
-const firstOption = args.findIndex((a) => a.startsWith('-'));
-const words = firstOption === -1 ? args : args.slice(0, firstOption);
+// Global options may come before the command (the server's \`--format json <command>\`, spec-001 §1).
+let start = 0;
+while (start < args.length && GLOBAL_OPTIONS[args[start]] !== undefined) start += 1 + GLOBAL_OPTIONS[args[start]];
+const rest = args.slice(start);
+const firstOption = rest.findIndex((a) => a.startsWith('-'));
+const words = firstOption === -1 ? rest : rest.slice(0, firstOption);
 for (const failure of config.failures) {
   if (failure.command.every((w, i) => words[i] === w)) {
     process.stderr.write(failure.stderr + '\\n');
