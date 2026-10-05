@@ -204,3 +204,31 @@ e2e closure — scenarios that need a screen are proved here by API and unit tes
   test); coverage 94.72 % statements / 88.76 % branches / 93.23 % functions / 96.18 % lines
   (`server/src/state` 96.83 % statements) · `npm run test:e2e` 3/3 · typecheck, lint,
   format:check clean · `docs:api` OK.
+- Re-verification of 23d66c1 by the same reviewer: findings 2–11 resolved; **PASS WITH FIXES** for
+  N1–N4, fixed test-first (red commit `5d37c17`; the heartbeat test failed for the right reason —
+  the other console's add was lost — once the stale age was configurable):
+  - N1 a live holder slower than the stale age lost its lock → heartbeat: the holder refreshes the
+    lock's mtime (`utimes`) every quarter of the stale age (2.5 s by default); staleness counts
+    from the last refresh. `FileStoreOptions.lockStaleMs` (default 10 s) lets the test run a
+    1.8 s transaction against a 0.6 s stale age while another store adds: both entries kept. The
+    `transaction` JSDoc says to keep transactions short (no clone, CLI or network inside: do the
+    slow work first, re-check inside) and that `fn` may run twice.
+  - N2 the lock holds `<hostname> <pid> <nonce>`; the pid is judged only when the hostname is
+    this host's, otherwise only the refreshed age counts (tests: a fresh lock of another host is
+    waited for, an old one broken).
+  - N3 win32: `EPERM`/`EACCES`/`EBUSY` on the lock creation are retried like a held lock, and the
+    rename is retried up to 5 times; unit-tested with the mocked `fs/promises` and an injected
+    `FileStoreOptions.platform: 'win32'` (POSIX: not retried, tested). Still on the manual Windows
+    check of spec-007 §7 for real antivirus/indexer behaviour.
+  - N4 before the first write ever (no state directory), a transaction runs as a dry run without
+    the lock and takes it — re-reading and running `fn` again — only when there is something to
+    write: a no-op or refused transaction creates no directory (tested).
+- **Hand-over addition (task-015 and every Playwright suite that starts the bin):** the Vitest
+  `globalSetup` build does not run for Playwright; such a suite needs its own build step
+  (`tsc -b server`, e.g. a Playwright `globalSetup`).
+- spec-006 §4 wording of the temporary-file name is left unchanged here (amendment to be proposed
+  to the user by the coordinator).
+- Checks after the re-verification fixes: `npm run test:coverage` 277/277 tests, 25 files (two
+  full runs, no flaky test); coverage 94.69 % statements / 88.92 % branches / 92.85 % functions /
+  96.41 % lines (`server/src/state` 96.54 % statements) · `npm run test:e2e` 3/3 · typecheck,
+  lint, format:check clean · `docs:api` OK.
