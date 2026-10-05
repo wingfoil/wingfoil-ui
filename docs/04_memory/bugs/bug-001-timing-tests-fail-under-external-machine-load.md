@@ -2,7 +2,7 @@
 id: bug-001-timing-tests-fail-under-external-machine-load
 type: bug
 title: "Timing tests fail under external machine load"
-status: triaged
+status: planned
 severity: "low"        # REQUIRED — critical | high | medium | low
 release-origin: "v0.1" # optional — release where the bug was FOUND, e.g. "v0.1"
 release: ""            # optional — fix/implementation release, stamped by release-planning/build-backlog
@@ -62,5 +62,9 @@ needed a manual re-run on a quiet machine.
 
 ## Triage & Execution Notes
 
-<!-- triage (bug-ingest): severity call, wontfix/duplicate rationale if rejected to `closed`.
-     fix: pointer to the fix task. -->
+- triage (2026-10-05): approved by the user as **low** severity (test-suite defect, no product
+  code at fault).
+- fix: **absorbed into task-010-snapshot-cache-and-live-updates** (dl-045 pattern; the task owns
+  TT-PERF-03/05 and lists this bug in `bug:`, with its own Acceptance Criterion). `triaged →
+  planned` set by hand (waiting state, no CLI verb); dev-loop `bug.sync_state` moves it with the
+  task from there.
