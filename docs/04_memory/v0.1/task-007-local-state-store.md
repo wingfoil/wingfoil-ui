@@ -240,3 +240,6 @@ e2e closure — scenarios that need a screen are proved here by API and unit tes
   REQ-PERF-06 launcher test at 4.19 s and the TypeDoc build test time out with load average
   57–67 on 12 cores (other projects' builds); both pass when re-run alone — re-run the full suite
   on a quiet machine before merging.
+- spec-006 §4 amended on `main` (`429aab3`, decided by the user): the lock protocol, the
+  temporary-file name `state.json.tmp-<pid>-<n>`, `reload` and "no directory for a no-op" are now
+  the spec; the implementation on this branch already follows it.
