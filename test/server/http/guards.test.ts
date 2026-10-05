@@ -282,6 +282,73 @@ describe('REQ-SEC-03 — Host and Origin, 403 before any other work', () => {
   });
 });
 
+describe('spec-004 §1 (amended 2026-10-05) — Sec-Fetch-Site on the API', () => {
+  it.each([
+    ['same-site', 403],
+    ['cross-site', 403],
+    ['SAME-SITE', 403],
+    ['same-origin', 200],
+    ['none', 200],
+    [undefined, 200],
+  ] as const)('Sec-Fetch-Site %s with the token → %i', async (site, status) => {
+    const a = await app();
+    const headers: Record<string, string> = { host: HOST, authorization: `Bearer ${TOKEN}` };
+    if (site !== undefined) headers['sec-fetch-site'] = site;
+    for (const url of ['/api/p/p1', '/api/events']) {
+      const res = await a.inject({ method: 'GET', url, headers });
+      expect(res.statusCode, url).toBe(status);
+      if (status === 403) expect(res.json()).toEqual(FORBIDDEN);
+    }
+  });
+
+  it('is checked before the session, on POST /api/session and on malformed /api URLs', async () => {
+    const a = await app();
+    const noToken = await a.inject({
+      method: 'GET',
+      url: '/api/p/p1',
+      headers: { host: HOST, 'sec-fetch-site': 'same-site' },
+    });
+    expect(noToken.statusCode).toBe(403);
+    const session = await a.inject({
+      method: 'POST',
+      url: '/api/session',
+      headers: { host: HOST, 'sec-fetch-site': 'same-site', authorization: `Bearer ${TOKEN}` },
+    });
+    expect(session.statusCode).toBe(403);
+    expect(session.headers['set-cookie']).toBeUndefined();
+    const malformed = await a.inject({
+      method: 'GET',
+      url: '/api/%zz',
+      headers: { host: HOST, 'sec-fetch-site': 'cross-site', authorization: `Bearer ${TOKEN}` },
+    });
+    expect(malformed.statusCode).toBe(403);
+    expect(handler).not.toHaveBeenCalled();
+  });
+
+  it('leaves the static application and client-side routes alone', async () => {
+    const a = await app();
+    for (const url of ['/', '/p/p1/memory']) {
+      const res = await a.inject({ method: 'GET', url, headers: { host: HOST, 'sec-fetch-site': 'cross-site' } });
+      expect(res.statusCode, url).toBe(200);
+    }
+    const malformed = await a.inject({
+      method: 'GET',
+      url: '/%zz',
+      headers: { host: HOST, 'sec-fetch-site': 'cross-site' },
+    });
+    expect(malformed.statusCode).toBe(400);
+  });
+
+  it('refuses more than one Sec-Fetch-Site header', () => {
+    expect(isAllowedFetchSite([])).toBe(true);
+    expect(isAllowedFetchSite(['Sec-Fetch-Site', 'same-origin'])).toBe(true);
+    expect(isAllowedFetchSite(['Sec-Fetch-Site', 'none'])).toBe(true);
+    expect(isAllowedFetchSite(['Sec-Fetch-Site', 'same-site'])).toBe(false);
+    expect(isAllowedFetchSite(['Sec-Fetch-Site', 'same-origin', 'sec-fetch-site', 'same-origin'])).toBe(false);
+    expect(isAllowedFetchSite(['X-Sec-Fetch-Site', 'cross-site', 'Host', HOST])).toBe(true);
+  });
+});
+
 describe('isAllowedHost / isAllowedOrigin', () => {
   it.each([
     ['127.0.0.1:54321', true],

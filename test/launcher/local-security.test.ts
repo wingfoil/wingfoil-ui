@@ -169,6 +169,22 @@ describe('X-04.2 — refuse a DNS-rebinding request', () => {
     }
   });
 
+  it('answers 403 to an API request from another local port (Sec-Fetch-Site: same-site)', async () => {
+    const headers = { authorization: `Bearer ${l.token}`, 'sec-fetch-site': 'same-site' };
+    const res = await request(l, 'GET', PROJECT_API, headers);
+    expect(res.status).toBe(403);
+    expect(JSON.parse(res.body)).toEqual({ error: { code: 'forbidden-origin', message: expect.any(String) } });
+    expect((await request(l, 'GET', '/', headers)).status).not.toBe(403);
+    const twice = await rawRequest(l, [
+      `GET ${PROJECT_API} HTTP/1.1`,
+      `Host: 127.0.0.1:${l.port}`,
+      `Authorization: Bearer ${l.token}`,
+      'Sec-Fetch-Site: same-origin',
+      'Sec-Fetch-Site: same-origin',
+    ]);
+    expect(twice.status).toBe(403);
+  });
+
   it('answers 403 to a second Host header, even after our own', async () => {
     for (const target of [PROJECT_API, '/', '/api/%zz']) {
       const res = await rawRequest(l, [
