@@ -2,13 +2,13 @@
 id: bug-001-timing-tests-fail-under-external-machine-load
 type: bug
 title: "Timing tests fail under external machine load"
-status: draft
-severity: ""           # REQUIRED — critical | high | medium | low
-release-origin: ""     # optional — release where the bug was FOUND, e.g. "v0.1"
+status: open
+severity: "low"        # REQUIRED — critical | high | medium | low
+release-origin: "v0.1" # optional — release where the bug was FOUND, e.g. "v0.1"
 release: ""            # optional — fix/implementation release, stamped by release-planning/build-backlog
 feature: ""            # optional — related feature ID from docs/01_vision/06_features.md
-module: ""             # optional — server | web | contracts
-wingfoil_version: ""   # optional — `wingfoil --version` of the OBSERVED project (the UI drives its CLI)
+module: "server"       # optional — server | web | contracts
+wingfoil_version: "0.2.2" # optional — `wingfoil --version` of the OBSERVED project (the UI drives its CLI)
 browser: ""            # optional — for `web`: browser name + version, e.g. "Firefox 131"
 contributor: ""        # optional — who originated this contribution, if not the git author; credited for AI-generated work derived from it
 credit: ""             # optional — free-text credit note
@@ -17,38 +17,50 @@ tmpl_version: 260703   # Orignal template version
 
 ## Summary
 
-<!-- One-sentence description of the defect. -->
+Two timing-bound tests of the suite fail when other processes load the machine, although the code
+they measure meets its budget: the REQ-PERF-06 start test (`test/launcher/launcher.test.ts`,
+≤ 3.0 s in 10 of 10 runs) and the TypeDoc build test (`test/docs/api-docs.test.ts`, 30 s test
+timeout).
 
 ## Steps to Reproduce
 
-<!-- Start from the observed project's state (WingFoil version, branch, the elements involved),
-     then the numbered steps in the UI or against the server API.
-  1. ...
-  2. ...
-  3. ... -->
+1. On `main` (`6b8a3cf`, WingFoil 0.2.2 pinned), with another project's builds running in
+   parallel (observed: the WingFoil2 dev-loop worktrees `.wf2-wt/task-*` running `tsc`, `typedoc`,
+   `jest`; load average 50–70 on 12 cores, `cat /proc/loadavg`).
+2. Run `npm run -s test:coverage`.
+3. Run `npx vitest run test/launcher/launcher.test.ts -t REQ-PERF --silent=false`.
 
 ## Expected Behavior
 
-<!-- What should happen. -->
+The suite's verdict depends only on the code under test: a timing test either measures in
+controlled conditions or is kept out of the gates that run under arbitrary load.
 
 ## Actual Behavior
 
-<!-- What actually happens. Include error messages or stack traces if available. -->
+Both tests fail under load and pass alone at low load. The `dev-loop` refactor gate
+(`tests.passing`) and the review gate turn red without any defect in the code, and every merge
+needed a manual re-run on a quiet machine.
 
 ## Evidence
 
-<!-- Screenshot or recording (web), browser console output, server log lines, the CLI command the
-     server ran and its JSON output. Never paste secrets (directive security-secrets). -->
+- REQ-PERF-06 spawn → URL, quiet machine (load ≈ 2): 386–693 ms; under load: 2339, 3098, 1777,
+  4076, 4426, 4491, 3144, 3239, 2763, 3948 ms (load ≈ 61, task-004 integration, 2026-10-05);
+  max 4192 ms (load 57–67, task-007 third review).
+- `api-docs.test.ts` "build with the repository configuration": 30 056–30 126 ms (timeout) under
+  load; `npm run docs:api` alone takes ≈ 18 s at load ≈ 44.
+- The task-001 TypeDoc test leaves `/tmp/wfui-typedoc-*` behind when it times out.
 
 ## Notes
 
-<!-- Optional: environment details, related ADRs, suspected root cause, or workaround. -->
+- Proposed fix: a separate sequential Vitest project (or a dedicated script) for the timing-bound
+  tests, excluded from the default `test`/`test:coverage` gates, run on a quiet machine and
+  reporting the load average next to the measurement; clean the TypeDoc temp dir in `afterAll`
+  even on timeout.
+- Found during the Wave 1 dev-loops of v0.1 (plan `dev-loop-rel-v0.1-plan`, Session 1).
+- To be absorbed into task-010 (snapshot cache and live updates), which owns TT-PERF-03 and
+  TT-PERF-05 (dl-045 absorbed-bug pattern).
 
 ## Triage & Execution Notes
 
-<!-- Running log, not the retrospective itself.
-     - triage (bug-ingest): severity call, wontfix/duplicate rationale if rejected to `closed`.
-     - fix: once fix task(s) exist (release-planning/build-backlog), day-to-day execution notes
-       live on those tasks (docs/04_memory/{release}/{id}.md, `bug: {this id}`, their own
-       Execution Notes section) — this section only needs a pointer plus anything that doesn't
-       belong on a specific fix task (e.g. why 2 tasks were needed instead of 1). -->
+<!-- triage (bug-ingest): severity call, wontfix/duplicate rationale if rejected to `closed`.
+     fix: pointer to the fix task. -->
