@@ -2,7 +2,7 @@
 id: task-005-cli-contracts-and-direct-reads
 type: task
 title: "CLI contracts and direct reads"
-status: approved
+status: done
 release: "v0.1"
 module: "contracts"             # optional — server | web | contracts (dna.yaml modules)
 priority: "high"           # optional — high | medium | low
