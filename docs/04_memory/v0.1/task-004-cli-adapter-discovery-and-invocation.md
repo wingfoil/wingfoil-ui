@@ -255,9 +255,9 @@ e2e closure — scenarios that need a screen are proved here by API and unit tes
   in 14 ms; a grandchild holding the pipes → timeout at 1.2 s, grandchild gone). New findings:
   - N1 (minor) with process groups, a forced stop or an unhandled exit could orphan children:
     `LocalProcessRunner.killAllNow()` (synchronous SIGKILL to every tracked group) runs before
-    exit 130 and on `process.on('exit')` (`3ddff61`, red tests in `85906cf`). **Open point:**
-    SIGHUP (terminal closed) is not handled — spec-007 §6 lists SIGINT/SIGTERM only; pending a
-    spec-007 decision.
+    exit 130 and on `process.on('exit')` (`3ddff61`, red tests in `85906cf`). ~~Open point:
+    SIGHUP not handled~~ — closed: implemented per the spec-007 §6 amendment of 2026-10-05
+    (below).
   - N3 (nit) the exit-2 stderr is logged truncated to 200 characters (`3123dad`): Commander's
     choice errors may quote a rejected value.
   - N4 (nit) **deviation note:** a grandchild that detaches itself (`setsid`, `detached`) leaves
@@ -276,3 +276,21 @@ e2e closure — scenarios that need a screen are proved here by API and unit tes
   the two failures are the timing tests of task-001/002 (TypeDoc build > 30 s, REQ-PERF-06
   > 3.0 s) with load average 64–68 on 12 cores from another project's builds
   (`ps`: `.wf2-wt/task-*` tsc/typedoc/jest); to be re-run on a quiet machine before the merge.
+- **SIGHUP** (spec-007 §6 amended on `main`, commit `429aab3`, approved by the user 2026-10-05;
+  not merged into this branch): `main.ts` registers the same stop handler on `SIGINT`, `SIGTERM`
+  and `SIGHUP` (registered on Windows too: Node.js emits `SIGHUP` there when the console window
+  is closed). Reviewer nit taken: the runner's synchronous exit kill is registered by
+  `runLauncher` through the new optional `LauncherIo.onExit`, **only for a start** (`--version`,
+  `--help` and usage errors register nothing); `main(argv, { processes })` accepts an injected
+  runner (tests). Red first (`52890c8`: SIGHUP had no listener, `--version` registered an exit
+  listener, the injected runner was ignored), green `2f7ac50`. Tests: `test/server/main.test.ts`
+  — SIGHUP terminates a running child, prints `WingFoil UI stopped`, exits 0; the exit listener
+  SIGKILLs a running child. `test/launcher/launcher.test.ts` — the bin stops on `SIGHUP` with the
+  stop line and exit 0 (`a42753f`; written after the code — it would have failed before, the
+  default SIGHUP action kills the process; skipped on Windows, where a child cannot be sent
+  SIGHUP).
+- Checks after SIGHUP (2026-10-05 16:51, load average 6.7–9.7): `npx tsc -b server`, typecheck,
+  lint, format:check clean · `docs:api` OK · `npm run -s test:coverage` 21 files, **210/210**
+  (the TypeDoc-build and REQ-PERF-06 timing tests pass on this quieter machine), coverage
+  **95.99 %** statements / **89 %** branches / 96.46 % functions / 97.11 % lines ·
+  `npm run -s test:e2e` 3/3.
