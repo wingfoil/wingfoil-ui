@@ -2,7 +2,7 @@
 id: task-006-wingfoil-version-range-and-capabilities
 type: task
 title: "WingFoil version range and capabilities"
-status: pending
+status: backlog
 release: "v0.1"
 module: "server"             # optional — server | web | contracts (dna.yaml modules)
 priority: "high"           # optional — high | medium | low
