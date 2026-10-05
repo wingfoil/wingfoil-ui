@@ -78,3 +78,33 @@ e2e closure — scenarios that need a screen are proved here by API and unit tes
   - S-01.1, X-06.4 (screens) — not provable before the launcher (task-002) and the web shell
     (task-013/021): this task only provides the helpers they use.
   - Fixture variants (CLI stub, version-fake, no-CLI) — **red-first** unit tests of the builder.
+
+### red / green / refactor (2026-10-05)
+
+- Tooling: npm workspaces `contracts`, `server`, `web` (`@wingfoil-ui/*`, private, ESM), each with a
+  documented placeholder `src/index.ts` (the real modules start with task-002/005/013); TypeScript
+  6 strict (`tsconfig.base.json`, project references, `tsc -b`); ESLint 10 flat config with
+  typescript-eslint and Prettier; Vitest 5 (v8 coverage, threshold 80 % on `server/`,
+  `contracts/`, `web/` — 0/0 statements for now); Playwright 1.63 with Chromium only and
+  @axe-core/playwright; TypeDoc with `notDocumented` + `treatWarningsAsErrors`. Playwright needed
+  its Chromium build (rev 1243) downloaded with `npx playwright install chromium`.
+- Red first: the lint-rule test (14 cases) failed before `eslint.config.js`; the Playwright config
+  test failed before `playwright.config.ts`. **Deviation:** the fixture builder was written right
+  after the CLI probes on a scratch repository and its tests immediately after, not before.
+- REQ-SEC-05 rule (`server/**`): `exec`/`execSync` named imports, namespace/default imports,
+  `require` and dynamic `import()` of `child_process`, and any `shell:` other than literal `false`.
+  `RegExp#exec` stays allowed.
+- Findings on `wingfoil@0.2.2` (directive `wingfoil-cli` v1.3, local requests R-12, R-13):
+  - **W-21** `memory add` always writes `status: draft` — the `unknown` fixture's types start with
+    `idea`/`open`, so the builder amends the add commit (`addInState`).
+  - **W-22** `memory search` omits elements in an undeclared state even with `--status`: the
+    `unknown` fixture's `note-002-retro` (`on-hold`) is invisible to it. **For task-005 design:**
+    spec-001 §3 lists elements through `memory search` only, so S-28 / spec-003 `undeclared` need
+    another source (e.g. listing the type's Memory path, a direct read on the allow-list).
+- Custom fixture: the S-28.1 type list is read from this repository's `memory.yaml` (it imports
+  `.wingfoil/`), so a change of this project's types changes the fixture — intended by the BDD
+  conventions.
+- Timing: a fixture build is ~10 s with the pinned CLI (≈ 40 CLI calls); the full Vitest run is
+  ~130 s, the e2e self-test ~25 s.
+- Checks: `npm run test:coverage` 43/43 · `npm run test:e2e` 3/3 (Chromium) · `npm run lint` clean
+  · `npm run format:check` clean · `npm run typecheck` clean · `npm run docs:api` OK.

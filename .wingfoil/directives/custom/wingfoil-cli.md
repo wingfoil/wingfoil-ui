@@ -9,7 +9,7 @@ tags: [custom, wingfoil, cli, governance]
 
 # Directive — Using the pinned WingFoil CLI
 
-**Version:** 1.2 · **Date:** 2026-10-02 (1.1: W-13; 1.2: W-14…W-20 — initial-design rl-v1) · **Checked against:** `wingfoil@0.2.2`
+**Version:** 1.3 · **Date:** 2026-10-05 (1.1: W-13; 1.2: W-14…W-20 — initial-design rl-v1; 1.3: W-20 task hand transitions, W-21, W-22 — dev-loop task-001) · **Checked against:** `wingfoil@0.2.2`
 
 Global. Applies to every role, human or agent, that changes this project's governance state
 (DNA, Memory, directives, plans) — and to the UI code that drives the CLI for other projects.
@@ -54,4 +54,6 @@ the way to work with each. It is a living list:
 | W-17 | The id slug keeps dots and turns an apostrophe into a separate `-s` (`"Permissions are WingFoil's"` → `…-wingfoil-s`, `"ui.yaml"` → `ui.yaml` in the id) | Choose titles with the id in mind: no dots, no apostrophes | — |
 | W-18 | No read verb for type definitions (`memory.yaml` resolved), one element's full content (frontmatter + body) or a directive's body: `memory search` returns `id`, `title`, `type`, `status`, `tags`, `path` only; `directives list` frontmatter and roles only | Read those files directly, read-only, from the allow-list of SARD REQ-ARC-04 (`adr-001` D1a, spec-001 §4) | — |
 | W-19 | `memory search` excludes archived elements (`deprecated`, `superseded`) unless `--status` names them; with no match it adds a `message` field; `--version` prints plain text even with `--format json` | List archived elements with `--status deprecated` / `--status superseded` when needed; accept `message`; parse `--version` as text | — |
-| W-20 | The refusal of `submit` from a waiting state names a wrong target (custom `task` in `backlog`: `illegal transition backlog -> pending`) | Treat the message as "not allowed from this state"; the UI never offers `submit` from a waiting state (spec-003) | — |
+| W-20 | The refusal of `submit` from a waiting state names a wrong target (custom `task` in `backlog`: `illegal transition backlog -> pending`) | Treat the message as "not allowed from this state"; the UI never offers `submit` from a waiting state (spec-003). For this project's tasks, `backlog → in-progress` and `approved → done` have no verb: set `status:` by hand and commit `wf(task): <id> [<from> → <to>]` (dev-loop `start` and `done`) | — |
+| W-21 | `memory add` always writes `status: draft`, even when the type's `sequence` starts with another state (`story` `idea → …`): the new element is in an undeclared state and `submit` fails (`invalid state 'draft' for type 'story'`) | Declare `draft` as the first state of every type; the e2e `unknown` fixture amends the add commit to the first declared state (test harness `addInState`) | — |
+| W-22 | `memory search` omits elements whose `status` is not declared for their type, even with `--status <that state>` | A view that must show undeclared states (spec-003 `undeclared`, S-28) cannot rely on `memory search` alone: list the type's Memory path too (to be specified by task-005 design) | — |
