@@ -3,11 +3,11 @@
  * variant and the no-CLI variant. They change only the fixture's `node_modules/wingfoil`, which
  * is not versioned, so the fixture's git history is untouched.
  */
-import { cp, mkdir, readFile, realpath, rm, stat, writeFile } from 'node:fs/promises';
+import { cp, mkdir, readFile, realpath, rm, stat, symlink, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { binScript } from '../cli.js';
 import { git } from '../run.js';
-import type { Fixture } from './builder.js';
+import { harnessEnv, type Fixture } from './builder.js';
 
 /** A command the CLI stub makes fail. */
 export interface StubFailure {
@@ -27,6 +27,9 @@ export interface StubOptions {
   failures?: readonly StubFailure[];
 }
 
+/** Field of the stub's `package.json` recording the real CLI it delegates to. */
+const STUB_FIELD = 'wingfoilUiHarnessStub';
+
 /** Path of the fixture's `node_modules/wingfoil`. */
 export function cliPackageDir(fixture: Pick<Fixture, 'dir'>): string {
   return path.join(fixture.dir, 'node_modules', 'wingfoil');
@@ -35,17 +38,27 @@ export function cliPackageDir(fixture: Pick<Fixture, 'dir'>): string {
 /**
  * Replace the fixture's `node_modules/wingfoil` with a package whose `bin.wingfoil` script is a
  * wrapper: it answers `--version` with `options.version` (when set), fails the commands listed in
- * `options.failures`, and delegates everything else to the CLI the fixture was built with.
+ * `options.failures` (matched on the leading positional words, before the first `-` argument), and
+ * delegates everything else to the CLI the fixture was built with. Installing it again replaces
+ * the previous stub and keeps delegating to the same real CLI.
  * Returns the path of the wrapper script.
  */
 export async function installCliStub(fixture: Pick<Fixture, 'dir'>, options: StubOptions): Promise<string> {
   const dir = cliPackageDir(fixture);
-  // Resolve through the link before replacing it: the stub delegates to the real package.
-  const realScript = binScript(await realpath(dir));
   const pkg = JSON.parse(await readFile(path.join(dir, 'package.json'), 'utf8')) as Record<string, unknown>;
+  // A previous stub records the real CLI it delegates to; otherwise resolve through the link
+  // before replacing it.
+  const previous = pkg[STUB_FIELD] as { realScript: string; version: unknown } | undefined;
+  const realScript = previous?.realScript ?? binScript(await realpath(dir));
+  const realVersion = previous?.version ?? pkg.version;
   await rm(dir, { recursive: true, force: true });
   await mkdir(path.join(dir, 'bin'), { recursive: true });
-  const stubPkg = { ...pkg, version: options.version ?? pkg.version, bin: { wingfoil: 'bin/wingfoil-stub.cjs' } };
+  const stubPkg = {
+    ...pkg,
+    version: options.version ?? realVersion,
+    bin: { wingfoil: 'bin/wingfoil-stub.cjs' },
+    [STUB_FIELD]: { realScript, version: realVersion },
+  };
   await writeFile(path.join(dir, 'package.json'), `${JSON.stringify(stubPkg, null, 2)}\n`);
   const script = path.join(dir, 'bin', 'wingfoil-stub.cjs');
   await writeFile(script, stubSource(realScript, options));
@@ -64,7 +77,8 @@ if (config.version && (args.includes('--version') || args.includes('-V'))) {
   process.stdout.write(config.version + '\\n');
   process.exit(0);
 }
-const words = args.filter((a, i) => !a.startsWith('-') && !(i > 0 && /^--(format|reason|type|title|set|value|tags|status|tag|template)$/.test(args[i - 1])));
+const firstOption = args.findIndex((a) => a.startsWith('-'));
+const words = firstOption === -1 ? args : args.slice(0, firstOption);
 for (const failure of config.failures) {
   if (failure.command.every((w, i) => words[i] === w)) {
     process.stderr.write(failure.stderr + '\\n');
@@ -81,8 +95,12 @@ export async function removeCli(fixture: Pick<Fixture, 'dir'>): Promise<void> {
   await rm(cliPackageDir(fixture), { recursive: true, force: true });
 }
 
-/** `env` with a `PATH` holding no directory that contains a `wingfoil` executable. */
-export async function envWithoutWingfoil(env: NodeJS.ProcessEnv): Promise<NodeJS.ProcessEnv> {
+/**
+ * `env` with a `PATH` holding no directory that contains a `wingfoil` executable. Dropping a
+ * directory can drop `git` and `node` with it (a global `wingfoil` in `/usr/local/bin`), so
+ * `binDir` is created with links to both and appended to the `PATH`.
+ */
+export async function envWithoutWingfoil(env: NodeJS.ProcessEnv, binDir: string): Promise<NodeJS.ProcessEnv> {
   const key = Object.keys(env).find((k) => k.toUpperCase() === 'PATH') ?? 'PATH';
   const names = process.platform === 'win32' ? ['wingfoil.cmd', 'wingfoil.exe', 'wingfoil'] : ['wingfoil'];
   const kept: string[] = [];
@@ -93,7 +111,25 @@ export async function envWithoutWingfoil(env: NodeJS.ProcessEnv): Promise<NodeJS
     }
     if (!found) kept.push(entry);
   }
-  return { ...env, [key]: kept.join(path.delimiter) };
+  await mkdir(binDir, { recursive: true });
+  const gitPath = await which('git', env[key] ?? '');
+  for (const [name, target] of [
+    ['node', process.execPath],
+    ['git', gitPath],
+  ] as const) {
+    const link = path.join(binDir, process.platform === 'win32' ? `${name}.exe` : name);
+    if (target && !(await exists(link))) await symlink(target, link);
+  }
+  return { ...env, [key]: [...kept, binDir].join(path.delimiter) };
+}
+
+async function which(name: string, pathValue: string): Promise<string | undefined> {
+  for (const entry of pathValue.split(path.delimiter).filter(Boolean)) {
+    for (const file of process.platform === 'win32' ? [`${name}.exe`, `${name}.cmd`] : [name]) {
+      if (await exists(path.join(entry, file))) return path.join(entry, file);
+    }
+  }
+  return undefined;
 }
 
 async function exists(file: string): Promise<boolean> {
@@ -105,13 +141,14 @@ async function exists(file: string): Promise<boolean> {
   }
 }
 
-/** Copy a built fixture (repository and remote) under `root`, re-pointing `origin`. */
+/** Copy a built fixture (repository and remote) under `root`, re-pointing `origin`; the copy gets its own environment and home. */
 export async function copyFixture(fixture: Fixture, root: string): Promise<Fixture> {
   const dir = path.join(root, fixture.kind);
   const remoteDir = path.join(root, 'remotes', `${fixture.kind}.git`);
   await cp(fixture.dir, dir, { recursive: true, verbatimSymlinks: true });
   await cp(fixture.remoteDir, remoteDir, { recursive: true });
   const remoteUrl = `file://${remoteDir}`;
-  await git(dir, ['remote', 'set-url', 'origin', remoteUrl], fixture.env);
-  return { ...fixture, dir, remoteDir, remoteUrl };
+  const { env, home } = await harnessEnv(root);
+  await git(dir, ['remote', 'set-url', 'origin', remoteUrl], env);
+  return { ...fixture, dir, remoteDir, remoteUrl, env, home };
 }

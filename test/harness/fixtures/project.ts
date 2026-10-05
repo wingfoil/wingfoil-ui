@@ -9,6 +9,8 @@ import { git, run, type RunResult } from '../run.js';
 import { memberByName, type MemberName } from './team.js';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
+/** Element commits start this long before `now − 3 days` and advance 1 s each (no timestamp ties). */
+const ELEMENT_WINDOW_MS = 10 * 60 * 1000;
 
 /** A step's moment relative to the test clock. */
 export type Moment = 'setup' | 'elements';
@@ -21,7 +23,11 @@ export interface ProjectOptions {
   cli: CliBuild;
   /** Version of `cli`, written as the `wingfoil` pin of the fixture's `package.json`. */
   cliVersion: string;
-  /** Test clock: element commits are dated 3 days before it, setup commits 4 days before it. */
+  /**
+   * Test clock: setup commits are dated 4 days before it; element commits 1 s apart, starting 10 min
+   * before `now − 3 days` and never later than it (the last transition of every element is 3 days
+   * before the clock, with no two commits sharing a timestamp).
+   */
   now: Date;
   /** Environment of every process (isolated git configuration). */
   env: NodeJS.ProcessEnv;
@@ -30,6 +36,7 @@ export interface ProjectOptions {
 /** Drives one fixture repository. */
 export class FixtureProject {
   private member: MemberName = 'Alex';
+  private ticks: Record<Moment, number> = { setup: 0, elements: 0 };
 
   constructor(readonly options: ProjectOptions) {}
 
@@ -39,8 +46,11 @@ export class FixtureProject {
   }
 
   private date(moment: Moment): string {
-    const offsetDays = moment === 'setup' ? 4 : 3;
-    return new Date(this.options.now.getTime() - offsetDays * DAY_MS).toISOString();
+    const now = this.options.now.getTime();
+    if (moment === 'setup') return new Date(now - 4 * DAY_MS + this.ticks.setup++ * 1000).toISOString();
+    const at = now - 3 * DAY_MS - ELEMENT_WINDOW_MS + this.ticks.elements++ * 1000;
+    if (at > now - 3 * DAY_MS) throw new Error('fixture has more element commits than its 10-minute window');
+    return new Date(at).toISOString();
   }
 
   private env(moment: Moment): NodeJS.ProcessEnv {

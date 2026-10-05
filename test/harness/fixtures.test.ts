@@ -2,9 +2,16 @@ import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { run } from './run.js';
-import { buildFixture, FIXTURE_KINDS, STANDARD_TEAM, type Fixture, type FixtureKind } from './fixtures/index.js';
-import { git } from './run.js';
+import { binScript } from './cli.js';
+import {
+  buildFixture,
+  cliPackageDir,
+  FIXTURE_KINDS,
+  STANDARD_TEAM,
+  type Fixture,
+  type FixtureKind,
+} from './fixtures/index.js';
+import { git, run } from './run.js';
 
 /** S-28.1 Examples: the type filters of each fixture, in `memory.yaml` order. */
 const TYPES: Record<FixtureKind, string[]> = {
@@ -13,31 +20,37 @@ const TYPES: Record<FixtureKind, string[]> = {
   unknown: ['story', 'note'],
 };
 
-/** Standard elements and their states (BDD conventions *Standard elements*). */
-const ELEMENTS: Record<FixtureKind, Record<string, string>> = {
+/**
+ * Standard and progress elements (BDD conventions): state, and the author and subject of the
+ * element's last transition.
+ */
+const ELEMENTS: Record<FixtureKind, Record<string, [state: string, last: string]>> = {
   kanban: {
-    'task-001-login-form': 'pending',
-    'task-002-password-reset': 'draft',
-    'task-003-logout': 'approved',
-    'task-004-session-timeout': 'draft',
-    'bug-001-crash-on-save': 'pending',
+    'task-001-login-form': ['pending', 'Jordan|wf(task): submit task-001-login-form'],
+    'task-002-password-reset': ['draft', 'Morgan|wf(task): reject task-002-password-reset [pending → draft]'],
+    'task-003-logout': ['approved', 'Morgan|wf(task): approve task-003-logout [pending → approved]'],
+    'task-004-session-timeout': ['draft', 'Jordan|wf(task): add task-004-session-timeout'],
+    'bug-001-crash-on-save': ['pending', 'Sam|wf(bug): submit bug-001-crash-on-save'],
   },
   custom: {
-    'task-001-cli-adapter': 'in-review',
-    'task-002-memory-list': 'done',
-    'task-003-element-panel': 'backlog',
-    'task-004-themes': 'backlog',
-    'dl-001-initialise-wingfoil-before-inception': 'ready',
-    'dl-002-use-fastify': 'in-discussion',
-    'bug-001-toast-overlap': 'open',
-    'adr-001-local-server': 'draft',
-    'minor-v0.1': 'planning',
+    'task-001-cli-adapter': ['in-review', 'Jordan|wf(task): submit task-001-cli-adapter'],
+    'task-002-memory-list': ['done', 'Jordan|wf(task): task-002-memory-list [approved → done]'],
+    'task-003-element-panel': ['backlog', 'Morgan|wf(task): approve task-003-element-panel [pending → backlog]'],
+    'task-004-themes': ['backlog', 'Morgan|wf(task): approve task-004-themes [pending → backlog]'],
+    'dl-001-initialise-wingfoil-before-inception': [
+      'ready',
+      'Morgan|wf(decision-log): approve dl-001-initialise-wingfoil-before-inception [in-discussion → ready]',
+    ],
+    'dl-002-use-fastify': ['in-discussion', 'Casey|wf(decision-log): submit dl-002-use-fastify'],
+    'bug-001-toast-overlap': ['open', 'Sam|wf(bug): submit bug-001-toast-overlap'],
+    'adr-001-local-server': ['draft', 'Alex|wf(adr): add adr-001-local-server'],
+    'minor-v0.1': ['planning', 'Alex|wf(release): submit minor-v0.1'],
   },
   unknown: {
-    'story-001-onboarding': 'shaping',
-    'story-002-billing': 'ready-to-build',
-    'note-001-kickoff': 'open',
-    'note-002-retro': 'on-hold',
+    'story-001-onboarding': ['shaping', 'Jordan|wf(story): submit story-001-onboarding'],
+    'story-002-billing': ['ready-to-build', 'Morgan|wf(story): approve story-002-billing [shaping → ready-to-build]'],
+    'note-001-kickoff': ['open', 'Casey|wf(note): add note-001-kickoff'],
+    'note-002-retro': ['on-hold', 'Casey|wf(note): note-002-retro [open → on-hold]'],
   },
 };
 
@@ -53,7 +66,7 @@ let root: string;
 const built = new Map<FixtureKind, Fixture>();
 
 async function cli(fx: Fixture, args: string[]): Promise<unknown> {
-  const script = path.join(fx.dir, 'node_modules', 'wingfoil', 'dist', 'cli.js');
+  const script = binScript(cliPackageDir(fx));
   const { stdout } = await run(process.execPath, [script, ...args, '--format', 'json'], { cwd: fx.dir, env: fx.env });
   return JSON.parse(stdout) as unknown;
 }
@@ -86,18 +99,29 @@ describe.each(FIXTURE_KINDS)('%s fixture', (kind) => {
     expect(types).toEqual(TYPES[kind]);
   });
 
-  it('holds every standard element in its state', async () => {
+  it('holds every standard element in its state, as memory search reports it', async () => {
     const found = (await cli(fx(), ['memory', 'search'])) as { matches: SearchMatch[] };
-    const states: Record<string, string> = {};
-    for (const m of found.matches) states[m.id] = m.status;
-    for (const [id, state] of Object.entries(ELEMENTS[kind])) {
-      if (states[id] === undefined) {
-        // An undeclared state is not returned by the CLI: read it from the file.
-        const file = await readFile(path.join(fx().dir, 'docs', 'notes', `${id}.md`), 'utf8');
-        states[id] = /^status:\s*(\S+)/m.exec(file)?.[1] ?? '';
-      }
-      expect.soft(states[id], id).toBe(state);
+    const states = Object.fromEntries(found.matches.map((m) => [m.id, m.status]));
+    expect(states).toEqual(Object.fromEntries(Object.entries(ELEMENTS[kind]).map(([id, [state]]) => [id, state])));
+  });
+
+  it('records the last transition of every element by the conventions member, 3 days before the clock', async () => {
+    const f = fx();
+    const found = (await cli(f, ['memory', 'search'])) as { matches: SearchMatch[] };
+    const threeDays = NOW.getTime() - 3 * 86_400_000;
+    for (const match of found.matches) {
+      const { stdout } = await git(f.dir, ['log', '-1', '--format=%aI|%an|%s', '--', match.path], f.env);
+      const [date, ...last] = stdout.trim().split('|');
+      expect.soft(last.join('|'), match.id).toBe(ELEMENTS[kind][match.id]?.[1]);
+      const at = new Date(date!).getTime();
+      expect.soft(at <= threeDays && at > threeDays - 10 * 60_000, `${match.id} at ${date}`).toBe(true);
     }
+  });
+
+  it('gives every commit its own timestamp', async () => {
+    const f = fx();
+    const dates = (await git(f.dir, ['log', '--format=%aI'], f.env)).stdout.trim().split('\n');
+    expect(new Set(dates).size).toBe(dates.length);
   });
 
   it('is clean, pushed to its bare remote, and Alex is the current identity', async () => {
@@ -110,10 +134,15 @@ describe.each(FIXTURE_KINDS)('%s fixture', (kind) => {
     expect(f.remoteUrl).toBe(`file://${f.remoteDir}`);
   });
 
-  it('dates the last transition of every element 3 days before the test clock', async () => {
+  it('isolates git and the home directory of every process', () => {
     const f = fx();
-    const { stdout } = await git(f.dir, ['log', '-1', '--format=%aI', '--', 'docs/'], f.env);
-    expect(new Date(stdout.trim()).toISOString()).toBe(new Date(NOW.getTime() - 3 * 86_400_000).toISOString());
+    expect(f.env.HOME).toBe(f.home);
+    expect(f.env.XDG_CONFIG_HOME).toBe(path.join(f.home, '.config'));
+    expect(
+      Object.keys(f.env)
+        .filter((k) => k.startsWith('GIT_'))
+        .sort(),
+    ).toEqual(['GIT_CONFIG_GLOBAL', 'GIT_CONFIG_NOSYSTEM']);
   });
 });
 

@@ -1,3 +1,4 @@
+import { existsSync } from 'node:fs';
 import { chmod, mkdir, mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -46,6 +47,8 @@ describe('copyFixture', () => {
   it('copies the repository and re-points origin to the copied remote', async () => {
     const fx = await freshKanban();
     expect(fx.dir).not.toBe(template.dir);
+    expect(fx.home).not.toBe(template.home);
+    expect(fx.env.GIT_CONFIG_GLOBAL).not.toBe(template.env.GIT_CONFIG_GLOBAL);
     expect((await git(fx.dir, ['remote', 'get-url', 'origin'], fx.env)).stdout.trim()).toBe(`file://${fx.remoteDir}`);
     await git(fx.dir, ['fetch', '-q', 'origin'], fx.env);
     expect((await wingfoil(fx, ['--version'])).stdout.trim()).toBe(pinnedVersion());
@@ -84,6 +87,15 @@ describe('CLI stub variant', () => {
     ]);
   });
 
+  it('can be installed again and still delegates to the real CLI', async () => {
+    const fx = await freshKanban();
+    await installCliStub(fx, { version: '0.1.9' });
+    await installCliStub(fx, { failures: [{ command: ['dna'], exitCode: 3, stderr: 'no dna' }] });
+    expect((await wingfoil(fx, ['--version'])).stdout.trim()).toBe(pinnedVersion());
+    expect((await wingfoil(fx, ['dna', 'show'])).code).toBe(3);
+    expect((await wingfoil(fx, ['memory', 'search', '--format', 'json'])).code).toBe(0);
+  });
+
   it('is the bin.wingfoil script of node_modules/wingfoil/package.json', async () => {
     const fx = await freshKanban();
     const script = await installCliStub(fx, {});
@@ -110,14 +122,24 @@ describe('no-CLI variant', () => {
     await expect(stat(cliPackageDir(fx))).rejects.toThrow();
   });
 
-  it('builds a PATH that holds no wingfoil executable', async () => {
+  it('builds a PATH that holds no wingfoil executable but still reaches git and node', async () => {
     const bin = path.join(root, 'fake-bin');
     await mkdir(bin, { recursive: true });
     await writeFile(path.join(bin, 'wingfoil'), '#!/bin/sh\necho 0.2.2\n');
     await chmod(path.join(bin, 'wingfoil'), 0o755);
     const other = path.join(root, 'other-bin');
     await mkdir(other, { recursive: true });
-    const env = await envWithoutWingfoil({ PATH: [bin, other].join(path.delimiter) });
-    expect(env.PATH).toBe(other);
+    const safe = path.join(root, 'safe-bin');
+    const env = await envWithoutWingfoil(
+      { PATH: [bin, other, ...(process.env.PATH ?? '').split(path.delimiter)].join(path.delimiter) },
+      safe,
+    );
+    const entries = (env.PATH ?? '').split(path.delimiter);
+    expect(entries).not.toContain(bin);
+    expect(entries).toContain(other);
+    expect(entries.at(-1)).toBe(safe);
+    expect((await run('git', ['--version'], { env })).stdout).toMatch(/^git version/);
+    expect((await run('node', ['--version'], { env })).stdout.trim()).toBe(process.version);
+    expect(entries.filter((e) => existsSync(path.join(e, 'wingfoil')))).toEqual([]);
   });
 });

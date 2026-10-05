@@ -64,10 +64,11 @@ e2e closure — scenarios that need a screen are proved here by API and unit tes
     error for `exec`, `execSync` (named, namespace and default `child_process` imports, `require`,
     dynamic `import()`) and for any `shell:` option other than `false`; clean samples (`execFile`,
     `spawn`, `RegExp#exec`) pass.
-  - TT-SEC-05 v0.1 clone — **red-first** on the harness: a bare remote and a working directory whose
-    paths contain `"; touch /tmp/pwned; "` are cloned through the harness runner (`execFile`) and
-    `/tmp/pwned` does not exist. The server's clone (`POST /api/projects/clone`) is task-008; the
-    screen closes in task-014 (S-04.3).
+  - TT-SEC-05 v0.1 clone — **characterization** (corrected at review: it runs through the harness's
+    own `execFile` runner, so it could not be red): a bare remote and a working directory whose
+    paths contain `"; touch /tmp/pwned; "` are cloned literally and `/tmp/pwned` does not exist.
+    **Hand-over to task-008:** run the same probe (`test/harness/security.ts`: `SHELL_PAYLOAD`,
+    `pwned()`) through `POST /api/projects/clone`; the screen closes in task-014 (S-04.3).
   - TT-INT-08 — **red-first**: the Playwright config declares exactly one project, `chromium`; an
     e2e self-test runs @axe-core/playwright in the light and the dark theme (`X-06.4` helper) and
     fails on serious/critical violations (checked with a page that has one).
@@ -94,17 +95,42 @@ e2e closure — scenarios that need a screen are proved here by API and unit tes
 - REQ-SEC-05 rule (`server/**`): `exec`/`execSync` named imports, namespace/default imports,
   `require` and dynamic `import()` of `child_process`, and any `shell:` other than literal `false`.
   `RegExp#exec` stays allowed.
-- Findings on `wingfoil@0.2.2` (directive `wingfoil-cli` v1.3, local requests R-12, R-13):
-  - **W-21** `memory add` always writes `status: draft` — the `unknown` fixture's types start with
-    `idea`/`open`, so the builder amends the add commit (`addInState`).
-  - **W-22** `memory search` omits elements in an undeclared state even with `--status`: the
-    `unknown` fixture's `note-002-retro` (`on-hold`) is invisible to it. **For task-005 design:**
-    spec-001 §3 lists elements through `memory search` only, so S-28 / spec-003 `undeclared` need
-    another source (e.g. listing the type's Memory path, a direct read on the allow-list).
+- Findings on `wingfoil@0.2.2` (directive `wingfoil-cli` v1.3, local request R-12):
+  - **W-21** `memory add` always writes `status: draft` (`dist/memory/add.js`) — the `unknown`
+    fixture's types start with `idea`/`open`, so the builder amends the add commit (`addInState`).
+  - ~~W-22~~ **withdrawn at review**: the claim "`memory search` omits elements in an undeclared
+    state" came from a flawed probe (the scratch repository's `memory.yaml` had been replaced, so
+    the element's *type* was undeclared). Disproved by `memory search --format json` on the
+    `unknown` fixture, which lists `note-002-retro` with `status: on-hold` (now asserted by
+    `test/harness/fixtures.test.ts`). No hand-over to task-005.
 - Custom fixture: the S-28.1 type list is read from this repository's `memory.yaml` (it imports
   `.wingfoil/`), so a change of this project's types changes the fixture — intended by the BDD
   conventions.
 - Timing: a fixture build is ~10 s with the pinned CLI (≈ 40 CLI calls); the full Vitest run is
   ~130 s, the e2e self-test ~25 s.
-- Checks: `npm run test:coverage` 43/43 · `npm run test:e2e` 3/3 (Chromium) · `npm run lint` clean
+- Checks (first pass): `npm run test:coverage` 43/43 · `npm run test:e2e` 3/3 (Chromium) · `npm run lint` clean
   · `npm run format:check` clean · `npm run typecheck` clean · `npm run docs:api` OK.
+
+### review (2026-10-05)
+
+- Independent fresh-context read-only review: **PASS WITH FIXES**, 16 findings (1 blocker, 2 major,
+  9 minor, 4 nits). All fixed:
+  - F1 (blocker) W-22 false — withdrawn from the directive and the notes (above); the fixtures test
+    now asserts `memory search` returns every element with its state.
+  - F2–F5 lint rule: applies to `.mts`, `.cts`, `.jsx` too; also catches `module.require`,
+    `createRequire`, non-literal dynamic `import()`, `shell` assigned to a member, computed keys and
+    spreads in process options, a shell interpreter as the program; type-only imports and
+    destructured `shell` fields no longer reported; the tests count only REQ-SEC-05 messages and
+    fail on parse errors (36 cases, red before the config change). Residual risk documented in
+    `eslint.config.js` (options built elsewhere, aliased imports).
+  - F6 clone test re-labelled characterization, payload helpers in `test/harness/security.ts`.
+  - F7–F8 `harnessEnv` isolates the home (`HOME`, `USERPROFILE`, `APPDATA`, XDG under
+    `<root>/home`, `fixture.home`) and drops every inherited `GIT_*`/`XDG_*` variable.
+  - F9 `envWithoutWingfoil(env, binDir)` keeps `git` and `node` reachable through `binDir`.
+  - F10–F11 every element's last transition checked (author, subject, date in the 10 minutes up
+    to `now − 3 days`); commits are 1 s apart (no timestamp ties).
+  - F12–F15 stub re-installable, failures matched on the positional words before the first
+    option, `copyFixture` gets its own environment, tests resolve the CLI through `bin.wingfoil`.
+  - F16 README states that the version-fake variant leaves the fixture's `package.json` pin as is.
+- Checks after the fixes: `npm run test:coverage` 71/71 · `npm run test:e2e` 3/3 (Chromium) · lint,
+  format, typecheck clean · `npm run docs:api` OK.

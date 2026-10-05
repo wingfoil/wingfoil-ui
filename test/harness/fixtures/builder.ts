@@ -41,30 +41,51 @@ export interface Fixture {
   remoteUrl: string;
   /** Test clock the fixture was built with. */
   now: Date;
-  /** Environment the harness runs git with (isolated configuration). */
+  /** Environment of every process run on the fixture: isolated git configuration and home. */
   env: NodeJS.ProcessEnv;
+  /** Home directory of `env` (`HOME`, `USERPROFILE`; XDG directories under it). */
+  home: string;
+}
+
+/** Environment of the processes run under `root`, and its home directory. */
+export interface HarnessEnv {
+  env: NodeJS.ProcessEnv;
+  home: string;
 }
 
 /**
- * Environment for every process of a fixture under `root`: git reads only the fixture's own
- * configuration plus `root/.gitconfig` (no user or system settings such as commit signing).
+ * Environment for every process of a fixture under `root`: git reads only the repository's own
+ * configuration plus `root/.gitconfig` (no user or system settings such as commit signing), no
+ * inherited `GIT_*` variable (e.g. `GIT_INDEX_FILE` from a hook), and the home and XDG
+ * directories point into `root/home` (default clone folder `~/projects`, OS state directory).
  */
-export async function harnessEnv(root: string): Promise<NodeJS.ProcessEnv> {
+export async function harnessEnv(root: string): Promise<HarnessEnv> {
   await mkdir(root, { recursive: true });
+  const home = path.join(root, 'home');
+  await mkdir(home, { recursive: true });
   const gitconfig = path.join(root, '.gitconfig');
   await writeFile(gitconfig, '[init]\n\tdefaultBranch = main\n[commit]\n\tgpgsign = false\n[tag]\n\tgpgsign = false\n');
-  const env: NodeJS.ProcessEnv = { ...process.env, GIT_CONFIG_GLOBAL: gitconfig, GIT_CONFIG_NOSYSTEM: '1' };
+  const env: NodeJS.ProcessEnv = { ...process.env };
   for (const key of Object.keys(env)) {
-    if (/^GIT_(AUTHOR|COMMITTER)_(NAME|EMAIL|DATE)$/.test(key) || key === 'GIT_DIR' || key === 'GIT_WORK_TREE')
-      delete env[key];
+    if (key.startsWith('GIT_') || key.startsWith('XDG_')) delete env[key];
   }
-  return env;
+  Object.assign(env, {
+    GIT_CONFIG_GLOBAL: gitconfig,
+    GIT_CONFIG_NOSYSTEM: '1',
+    HOME: home,
+    USERPROFILE: home,
+    XDG_CONFIG_HOME: path.join(home, '.config'),
+    XDG_DATA_HOME: path.join(home, '.local', 'share'),
+    XDG_CACHE_HOME: path.join(home, '.cache'),
+    APPDATA: path.join(home, 'AppData', 'Roaming'),
+  });
+  return { env, home };
 }
 
 /** Build the `kind` fixture under `options.root`. */
 export async function buildFixture(kind: FixtureKind, options: BuildOptions): Promise<Fixture> {
   const now = options.now ?? new Date();
-  const env = await harnessEnv(options.root);
+  const { env, home } = await harnessEnv(options.root);
   const dir = path.join(options.root, kind);
   const remoteDir = path.join(options.root, 'remotes', `${kind}.git`);
   const project = new FixtureProject({
@@ -82,7 +103,7 @@ export async function buildFixture(kind: FixtureKind, options: BuildOptions): Pr
   await BUILDERS[kind](project);
   await project.as('Alex');
   const remoteUrl = await project.publish(remoteDir);
-  return { kind, name: kind, dir, remoteDir, remoteUrl, now, env };
+  return { kind, name: kind, dir, remoteDir, remoteUrl, now, env, home };
 }
 
 /** Custom fixture: this repository's `.wingfoil/` and `docs/01_vision/`. */
