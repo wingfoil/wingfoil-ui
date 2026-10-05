@@ -6,6 +6,7 @@ import { randomBytes } from 'node:crypto';
 import { buildApp } from '../http/app.js';
 import { message } from '../i18n/messages.js';
 import { createLogger } from '../logging.js';
+import { LocalProcessRunner } from '../process/runner.js';
 import { listenLoopback, NoFreePortError, PortInUseError } from './listen.js';
 import { openBrowser, type Spawner } from './opener.js';
 import { parseOptions, UsageError } from './options.js';
@@ -37,6 +38,8 @@ export interface LauncherIo {
   exit(code: number): void;
   /** Longest wait for open requests at stop before they are cut (default 5 s). */
   drainTimeoutMs?: number;
+  /** Runner of the `wingfoil` and git processes, terminated at stop (default: a new one). */
+  processes?: LocalProcessRunner;
 }
 
 /** Work run during the stop sequence (e.g. closing event streams, terminating CLI children). */
@@ -93,6 +96,9 @@ export async function runLauncher(argv: readonly string[], io: LauncherIo): Prom
   const logger = createLogger();
   // Drawn before the application is built: the session guards (task-003) need it.
   const token = drawToken();
+  // CLI and git children are terminated in the stop sequence (spec-007 §6, adr-001 D5).
+  const processes = io.processes ?? new LocalProcessRunner();
+  const offProcesses = onStop(() => processes.terminateAll());
   const app = await buildApp({ staticDir: io.staticDir, logger });
   let listeners;
   try {
@@ -101,6 +107,7 @@ export async function runLauncher(argv: readonly string[], io: LauncherIo): Prom
       onError: (error) => logger.error({ err: error }, 'listener error'),
     });
   } catch (error) {
+    offProcesses();
     await app.close();
     if (error instanceof PortInUseError) {
       io.stderr(message('launcher.portInUse', { port: error.port }));
