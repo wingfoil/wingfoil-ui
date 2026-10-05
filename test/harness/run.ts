@@ -15,6 +15,8 @@ export interface RunOptions {
   allowFailure?: boolean;
   /** Kill the process after this many milliseconds (default 60 s). */
   timeoutMs?: number;
+  /** Kill the process when aborted (SIGTERM); it then resolves or rejects as a failure. */
+  signal?: AbortSignal;
 }
 
 /** Outcome of a finished process. */
@@ -51,6 +53,7 @@ export function run(file: string, args: readonly string[], options: RunOptions =
         timeout: options.timeoutMs ?? 60_000,
         maxBuffer: 32 * 1024 * 1024,
         encoding: 'utf8',
+        ...(options.signal ? { signal: options.signal } : {}),
       },
       (error, stdout, stderr) => {
         const code = error ? (typeof error.code === 'number' ? error.code : null) : 0;

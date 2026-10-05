@@ -1,5 +1,6 @@
-// The wingfoil-ui command end to end (spec-007; S-01.1…S-01.3, X-03.1, X-03.2, REQ-PERF-06):
-// the package `bin` run with node, as `npx wingfoil-ui` runs it.
+// The wingfoil-ui command end to end (spec-007; S-01.1…S-01.3, X-03.1, X-03.2):
+// the package `bin` run with node, as `npx wingfoil-ui` runs it. The REQ-PERF-06 start time is
+// measured in the timing suite (`test/timing/launcher-start.timing.test.ts`, bug-001).
 import { chmod, mkdir, mkdtemp, readFile, readlink, readdir, rm, symlink, writeFile } from 'node:fs/promises';
 import net from 'node:net';
 import { networkInterfaces, tmpdir } from 'node:os';
@@ -164,19 +165,6 @@ describe('spec-007 command line', () => {
     socket.destroy();
     expect(code).toBe(130);
   });
-});
-
-describe('REQ-PERF-06 — server start', () => {
-  it('prints the URL within 3.0 s in 10 out of 10 runs', async () => {
-    const times: number[] = [];
-    for (let i = 0; i < 10; i += 1) {
-      const l = await launch(['--no-open']);
-      times.push(l.startMs);
-      await l.stop();
-    }
-    console.info(`REQ-PERF-06 spawn → URL (ms): ${times.map((t) => Math.round(t)).join(', ')}`);
-    expect(Math.max(...times)).toBeLessThanOrEqual(3_000);
-  }, 60_000);
 });
 
 describe('REQ-SEC-01 — loopback only', () => {
