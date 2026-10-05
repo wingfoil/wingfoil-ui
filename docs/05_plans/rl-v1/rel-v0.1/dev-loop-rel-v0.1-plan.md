@@ -140,5 +140,12 @@ Per task (`dev-loop` v1.4):
   012 — routes through `buildApp({ register })` (guarded automatically), `read-error` mapping,
   never log `DirectReadError.message`; 013 — `POST /api/session` (Bearer, 204), same-origin
   fetches only, catalogue keys `state.*`; 015 — Playwright needs its own `tsc -b server` step.
+- **Bug ingest** (user decision: isolating the timing tests needs a bug, not an ad-hoc change):
+  `bug-001-timing-tests-fail-under-external-machine-load` captured through `bug-ingest`
+  (`add`/`submit` by the agent, triage `approve` by the user, severity low), **absorbed into
+  task-010** (dl-045; it owns TT-PERF-03/05): `bug:` field and an Acceptance Criterion added
+  (`443fb08`), bug `triaged → planned` by hand (`eeb7b9e`).
+- **`.wingfoil/` alignment** with the WingFoil-Templates `base` pack: between releases, not
+  between waves (user decision).
 - **Next:** Wave 2 — 006, 009, 010, 011, 008, 012 (by `depends_on`; parallel where independent).
 
