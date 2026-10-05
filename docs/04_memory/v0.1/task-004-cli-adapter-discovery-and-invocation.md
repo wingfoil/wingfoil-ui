@@ -250,3 +250,29 @@ e2e closure — scenarios that need a screen are proved here by API and unit tes
   statements / **89.37 %** branches / 94.49 % functions / 96.59 % lines · `test:e2e` 3/3.
   `npx vitest run test/server/process test/server/launcher` repeated 3× → 66/66 each time (no
   flakiness seen).
+- Re-verification by the same agent: **PASS WITH FIXES** — every original finding resolved and
+  re-probed (`run` + immediate `terminateAll` → terminated in 28 ms; immediate abort → cancelled
+  in 14 ms; a grandchild holding the pipes → timeout at 1.2 s, grandchild gone). New findings:
+  - N1 (minor) with process groups, a forced stop or an unhandled exit could orphan children:
+    `LocalProcessRunner.killAllNow()` (synchronous SIGKILL to every tracked group) runs before
+    exit 130 and on `process.on('exit')` (`3ddff61`, red tests in `85906cf`). **Open point:**
+    SIGHUP (terminal closed) is not handled — spec-007 §6 lists SIGINT/SIGTERM only; pending a
+    spec-007 decision.
+  - N3 (nit) the exit-2 stderr is logged truncated to 200 characters (`3123dad`): Commander's
+    choice errors may quote a rejected value.
+  - N4 (nit) **deviation note:** a grandchild that detaches itself (`setsid`, `detached`) leaves
+    the group and escapes the group kill; wingfoil 0.2.2 and git do not do this.
+  - N5 (nit) the grandchild timeout test uses `timeoutMs: 3_000` so a slow Node start cannot kill
+    the child before it reports the grandchild; the TT-ARC-02 audit has a 90 s budget (ten CLI
+    processes on a loaded machine, `6388717`).
+  - N6 (nit) **hand-over to task-008/012:** pass exactly the positionals a command expects
+    (Commander silently drops extras: `memory submit -- a b` acts on `a`); for git transport set
+    `GIT_TERMINAL_PROMPT=0` — detached children have no controlling terminal, so git/ssh fail
+    instead of prompting.
+  - The agent session ended before this note and the final gate run; the coordinator wrote the
+    note and ran the gates (below).
+- Checks after the re-verification fixes (coordinator, 2026-10-05 11:20): `npx tsc -b`,
+  typecheck, lint, format:check clean · `docs:api` OK · `npm run -s test:coverage` **205/207**:
+  the two failures are the timing tests of task-001/002 (TypeDoc build > 30 s, REQ-PERF-06
+  > 3.0 s) with load average 64–68 on 12 cores from another project's builds
+  (`ps`: `.wf2-wt/task-*` tsc/typedoc/jest); to be re-run on a quiet machine before the merge.
