@@ -4,7 +4,7 @@
  * 1. The project's pinned CLI: `<project root>/node_modules/wingfoil/package.json`, entry
  *    `bin.wingfoil`, run as `process.execPath <bin script>` — no shell, no `.bin` shim. Only the
  *    project root is searched, never its parent folders. A `node_modules/wingfoil` without a bin
- *    script is a broken install: no CLI, and no fallback to another version on the `PATH`.
+ *    script, or a dangling link, is a broken install: no CLI, and no fallback to another version on the `PATH`.
  * 2. Otherwise the first `wingfoil` on the `PATH` (absolute entries only), resolved to an absolute
  *    path by the server: an npm shim runs its package's bin script as in 1; any other executable
  *    runs by its absolute path (on Windows only npm shims are used: a `.cmd` needs a shell).
@@ -13,7 +13,7 @@
  * The installed package counts, not the range written in the project's `package.json`.
  */
 import { constants } from 'node:fs';
-import { access, readFile, realpath, stat } from 'node:fs/promises';
+import { access, lstat, readFile, realpath, stat } from 'node:fs/promises';
 import path from 'node:path';
 
 /** The install command shown when no CLI is found (S-10.1, spec-006 §3). */
@@ -62,7 +62,8 @@ export interface DiscoveryOptions {
 export async function discoverCli(projectRoot: string, options: DiscoveryOptions = {}): Promise<ResolvedCli> {
   const execPath = options.execPath ?? process.execPath;
   const pinnedDir = path.join(projectRoot, 'node_modules', 'wingfoil');
-  if (await exists(pinnedDir)) {
+  // `lstat`: a dangling link is a broken pinned install, not an absent one.
+  if (await present(pinnedDir)) {
     const script = await packageBinScript(pinnedDir);
     if (!script) throw new CliNotFoundError(projectRoot);
     return { source: 'project', projectRoot, file: execPath, prefixArgs: [script], packageDir: pinnedDir };
@@ -139,6 +140,15 @@ async function packageBinScript(dir: string): Promise<string | undefined> {
 async function exists(file: string): Promise<boolean> {
   try {
     await stat(file);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function present(file: string): Promise<boolean> {
+  try {
+    await lstat(file);
     return true;
   } catch {
     return false;
