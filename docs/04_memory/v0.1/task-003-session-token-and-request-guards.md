@@ -121,8 +121,10 @@ e2e closure — scenarios that need a screen are proved here by API and unit tes
   **required** `security` option and registers the guards and the session route before the static
   plugin and `register`; its `frameworkErrors` handler (malformed URL, which bypasses hooks) runs
   the Host/Origin check first. `runLauncher` feeds the drawn token to the adapter and publishes the
-  port once listening (before that, every request is 403). `logging.ts` also redacts a response
-  `Set-Cookie`.
+  port once listening (before that, every request is 403). `logging.ts` also lists a response
+  `Set-Cookie` among the redacted paths — defensive only and inert today (Fastify's response
+  serializer logs only `statusCode`); it is not the evidence for "0 log lines" (corrected at
+  review, see below).
 - **Decisions:** an `/api` request is recognised by its matched route, its raw path or its
   percent-decoded path (`/%61pi/…` is guarded); an undecodable path is treated as API. Host and
   Origin are compared case-insensitively and exactly (`Origin: null`, a missing `Host`, a
@@ -160,3 +162,40 @@ e2e closure — scenarios that need a screen are proved here by API and unit tes
   `authentication.ts`, `session.ts` 100 %) · `npm run -s test:e2e` 3/3 (Chromium, task-001's axe
   self-tests) · the task's own files: `npx vitest run test/server/auth
   test/server/http/guards.test.ts test/launcher/local-security.test.ts` 63/63. No flaky run seen.
+
+### review (2026-10-05)
+
+- Independent review of `af01c80`: **PASS WITH FIXES**. Fixed test-first (red `d10545e`: 6 tests
+  failing for the expected reasons — 400 instead of 401, 404 instead of 403, 200 instead of 401,
+  the 65th session not evicting the first; green `abde821`):
+  - F1 two `Host` headers were accepted when the first was ours (Node keeps the first in
+    `headers`). `hasOwnOrigin(headers, rawHeaders, port)` now requires exactly one `Host` entry in
+    `rawHeaders` — in the `onRequest` hook and in `frameworkErrors`. Unit rows on `hasOwnOrigin`
+    (light-my-request cannot send a repeated header) and a bin test over a raw socket on `/api/…`,
+    `/` and a malformed `/api/%zz` → 403 `forbidden-origin`.
+  - F3 the session set was unbounded: `MAX_SESSIONS` = 64, the oldest evicted (unit test with 65).
+  - F4 a malformed URL under `/api` without a session answered 400 before the session check.
+    `frameworkErrors` now keeps the spec-004 §4 order 403 → 401 → 400: `isApiUrl` (raw or
+    ASCII-percent-decoded path, case-insensitive, never throws — it replaces the former
+    `decodeURIComponent`/catch) plus `isAuthenticated(headers, …)`. Unit: `/api/%zz`, `/api/%`,
+    `/%61pi/%zz`, `/API/%zz` → 401 without, 400 with token or cookie; `/%zz` stays 400. Bin:
+    `GET /api/%zz` → 401. `/API/…` is now treated as API by the guard too (fail closed).
+  - F5 the response `Set-Cookie` redaction is kept but is inert; the red/green note above is
+    corrected so it is not cited as evidence. The evidence for "token and session id in 0 log
+    lines" stays the captured-stream unit test and the bin's stderr check.
+  - F6 `test/launcher/local-security.test.ts`: each X-04.x `describe` starts its own console in
+    `beforeAll` (no `started.at(-1)` ordering); the `::1` check is a separate `it.skipIf(!HAS_IPV6)`
+    (a `::1` listen probe at load) instead of a swallowed error — on this machine it runs and passes.
+- **Open point (not implemented, pending a spec-004 decision with the user):** F2 — a page served
+  from another local port (`http://127.0.0.1:<other>`) is cross-origin but same-site, so
+  `SameSite=Strict` does not stop its requests from carrying the cookie; the Origin check refuses
+  them when the browser sends `Origin`, but `Sec-Fetch-Site` handling (e.g. refusing `same-site`/
+  `cross-site` on the API) is a spec change and is left to that decision.
+- Checks after the fixes (worktree, HEAD `abde821` + this note): `npm run -s typecheck`, `lint`
+  clean · `format:check` "All matched files use Prettier code style!" · `docs:api` OK ·
+  `npm run -s test:coverage` 18 files, 213/213, coverage 93.61 % statements / 89.5 % branches /
+  92.4 % functions / 94.92 % lines (`guards.ts` 96.49 % statements, 100 % lines) · `test:e2e` 3/3.
+  The first `test:coverage` run had 2 timing failures in other tasks' tests ("build with the
+  repository configuration" at its 30 s timeout, REQ-PERF-06 "10 out of 10 runs") with a load
+  average of ~28 (other agents' suites running concurrently, `uptime`); the immediate re-run was
+  213/213.
