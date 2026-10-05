@@ -103,3 +103,60 @@ e2e closure — scenarios that need a screen are proved here by API and unit tes
     checked before the session (no token + foreign Origin → 403).
   - X-04.3 — token + Origin `http://127.0.0.1:<port>` + Host `127.0.0.1:<port>` → 200 (unit with a
     test route); the three accepted Host/Origin forms (`127.0.0.1`, `localhost`, `[::1]`).
+
+### red / green / refactor (2026-10-05)
+
+- **Red** (commit `8955b5b`): `test/server/auth/authentication.test.ts`,
+  `test/server/http/guards.test.ts` (buildApp with `security`, routes registered by the test as the
+  project-API and event-stream stand-ins, a spy proving the handler never runs on a refusal) and
+  `test/launcher/local-security.test.ts` (the bin over raw `http` requests). `npx vitest run` on the
+  three files: the unit files failed on the missing module, the 8 bin tests on 404 where
+  401/403/204 were expected — the right reasons. The two task-002 launcher tests that probed
+  `/api/nothing` without a token now send it (they would have turned into 401s).
+- **Green:** `server/src/auth/authentication.ts` (port `Authentication` + adapter
+  `createTokenAuthentication`: SHA-256 digests compared with `timingSafeEqual`, 256-bit session ids
+  in a `Set`, nothing on disk), `server/src/http/guards.ts` (`registerGuards`, `isAllowedHost`,
+  `isAllowedOrigin`, `hasOwnOrigin`, `sessionCookieName`, `bearerToken`, `isAuthenticated`),
+  `server/src/http/session.ts` (`POST /api/session` → 204 + `Set-Cookie`). `buildApp` takes a
+  **required** `security` option and registers the guards and the session route before the static
+  plugin and `register`; its `frameworkErrors` handler (malformed URL, which bypasses hooks) runs
+  the Host/Origin check first. `runLauncher` feeds the drawn token to the adapter and publishes the
+  port once listening (before that, every request is 403). `logging.ts` also redacts a response
+  `Set-Cookie`.
+- **Decisions:** an `/api` request is recognised by its matched route, its raw path or its
+  percent-decoded path (`/%61pi/…` is guarded); an undecodable path is treated as API. Host and
+  Origin are compared case-insensitively and exactly (`Origin: null`, a missing `Host`, a
+  trailing `/` or another scheme are foreign; Node joins duplicate `Origin` headers, which then
+  fail). Multiple cookies with the session name: any valid one is accepted. `security` is required
+  (fail closed) rather than optional — every later `buildApp` caller passes it.
+- **Deviations:** two test bugs fixed during green (not code changes to pass): the "port unknown"
+  case built its app through a helper whose default parameter replaced `undefined` with the port,
+  and the raw-request helper sent a JSON body without `Content-Type` (Fastify 415). Lint asked for a
+  holder object instead of a `let port` assigned once (prefer-const). `test/server/http/app.test.ts`
+  (task-002) now passes `security` and the token on its `/api/` requests.
+- **X-04.3:** no `GET` project route exists yet, so the 200 is proved in unit (`guards.test.ts`,
+  three host forms) and on the bin by the guards letting the request through (204 on
+  `POST /api/session`, 404 on an unknown `/api/` path, on `127.0.0.1` and `::1`). "Start 0
+  processes": no process runner exists yet; the guards answer in `onRequest`, before any handler
+  (the spy is never called on a refusal).
+- **Hand-overs:**
+  - task-008 / task-012 / task-010 (every `/api/` route, the event stream `GET /api/events`):
+    routes added through `buildApp({ register })` are guarded automatically; add each route's
+    401/403 rows to `test/launcher/local-security.test.ts`, and once `GET /api/projects` or
+    `GET /api/server` exists, turn X-04.3's bin check into the scenario's literal 200. Tests that
+    call `buildApp` pass `security` (see `test/server/http/app.test.ts`: light-my-request sends
+    `Host: localhost:80`, so `port: () => 80`).
+  - task-004 (process runner): "0 processes for rows 1–2" needs a counting fake of the runner in a
+    test once the runner exists; the guards already answer before any handler.
+  - task-013 (web bootstrap): `POST /api/session` with `Authorization: Bearer <token>`, no body
+    needed, answers 204 (401 on a wrong token, 403 from a foreign origin); then rely on the cookie.
+    task-015 closes the X-02.1 browser side.
+  - task-007/others touching `runLauncher`: the token and the `listening.port` holder sit right
+    before `buildApp`.
+- **Checks** (after the last commit of this phase, worktree): `npm run -s typecheck` clean ·
+  `npm run -s lint` clean · `npm run -s format:check` "All matched files use Prettier code style!" ·
+  `npm run -s docs:api` OK · `npm run -s test:coverage` 18 files, 207/207 tests, coverage 93.1 %
+  statements / 89.41 % branches / 92 % functions / 94.42 % lines (`guards.ts` 94.2 % statements;
+  `authentication.ts`, `session.ts` 100 %) · `npm run -s test:e2e` 3/3 (Chromium, task-001's axe
+  self-tests) · the task's own files: `npx vitest run test/server/auth
+  test/server/http/guards.test.ts test/launcher/local-security.test.ts` 63/63. No flaky run seen.
