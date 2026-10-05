@@ -89,7 +89,7 @@ export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
   });
   app.setNotFoundHandler((request, reply) => {
     const pathname = request.url.split('?')[0] ?? '';
-    const isApi = pathname === '/api' || pathname.startsWith('/api/');
+    const isApi = isApiUrl(request.url);
     // A missing build asset stays a 404; every other path is a client-side route (it may hold a
     // dot: a release id `v0.1`, a document `README.md`).
     const isAsset = pathname.startsWith(ASSETS_PREFIX);

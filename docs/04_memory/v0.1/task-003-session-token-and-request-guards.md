@@ -126,7 +126,7 @@ e2e closure — scenarios that need a screen are proved here by API and unit tes
   serializer logs only `statusCode`); it is not the evidence for "0 log lines" (corrected at
   review, see below).
 - **Decisions:** an `/api` request is recognised by its matched route, its raw path or its
-  percent-decoded path (`/%61pi/…` is guarded); an undecodable path is treated as API. Host and
+  percent-decoded path (`/%61pi/…` is guarded); an undecodable path is treated as API (superseded at review, F4: see *review*). Host and
   Origin are compared case-insensitively and exactly (`Origin: null`, a missing `Host`, a
   trailing `/` or another scheme are foreign; Node joins duplicate `Origin` headers, which then
   fail). Multiple cookies with the session name: any valid one is accepted. `security` is required
@@ -199,3 +199,6 @@ e2e closure — scenarios that need a screen are proved here by API and unit tes
   repository configuration" at its 30 s timeout, REQ-PERF-06 "10 out of 10 runs") with a load
   average of ~28 (other agents' suites running concurrently, `uptime`); the immediate re-run was
   213/213.
+- Re-verification by the same agent: **PASS** (F1, F3–F6 resolved; F2 open by design). Two nits
+  fixed by the coordinator: the not-found handler uses `isApiUrl` too (an authenticated `/API/x`
+  gets the JSON 404, not the application); the superseded "undecodable path" decision is marked.

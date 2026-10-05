@@ -62,7 +62,7 @@ describe('buildApp', () => {
 
   it('answers an unknown /api/ path with the spec-004 error envelope', async () => {
     const app = await buildApp({ staticDir, logger: createLogger(sink), security });
-    for (const url of ['/api/nothing', '/api/']) {
+    for (const url of ['/api/nothing', '/api/', '/API/nothing', '/%61pi/nothing']) {
       const res = await app.inject({ method: 'GET', url, headers: AUTH });
       expect(res.statusCode).toBe(404);
       expect(res.json()).toEqual({ error: { code: 'not-found', message: expect.any(String) } });
