@@ -8,7 +8,7 @@ module: "server"             # optional — server | web | contracts (dna.yaml m
 priority: "high"           # optional — high | medium | low
 tags: ["v0.1"]
 ref: "TT-STATE-02"                # optional — backlog item ID, e.g. "TASK-001"
-bug: []                # optional — LIST of bug ids this task closes. Two cases: a fix task derived from a bug
+bug: ["bug-001-timing-tests-fail-under-external-machine-load"]   # optional — LIST of bug ids this task closes. Two cases: a fix task derived from a bug
                        # by release-planning, and a bug ABSORBED into an existing task's Acceptance Criteria because that
                        # task already owns the ground. `bug.sync_state` iterates this list; a bug with no task naming it
                        # here never advances past `triaged` (only a reject to `closed`).
@@ -36,6 +36,13 @@ Working-tree snapshot and cache keyed on HEAD and the working-tree status hash, 
 - **TT-INT-09** (REQ-INT-09 — Server ↔ browser live updates): [boolean] With one page open and no change for 60 s, the server starts 0 CLI processes; after a change the page updates without a reload (REQ-PERF-03). *Verified by:* e2e (process audit).
   Scenarios (`@v0.1`): S-26.1, S-26.2.
 
+- **bug-001-timing-tests-fail-under-external-machine-load** (absorbed, dl-045 — this task owns the
+  performance measurements TT-PERF-03/05): the timing-bound tests (REQ-PERF-06 start test, the
+  TypeDoc build test, and this task's TT-PERF measurements) run in a separate sequential test
+  project/script, excluded from the default `test`/`test:coverage` gates, executed on a quiet
+  machine and reporting the load average with each measurement; the TypeDoc build test removes its
+  temporary directory even on timeout. Verified: `npm run test:coverage` passes with load average
+  > 40 from external processes; the timing script passes at low load and prints the load.
 e2e closure — scenarios that need a screen are proved here by API and unit tests on the same fixtures and close in: task-016-project-header-version-identity-and-role-view: S-12.3, S-13.3, S-15.3; task-017-memory-list-and-live-refresh: S-26.1, S-26.3, S-25.1, S-25.2, S-25.3, S-26.2; task-019-dna-directives-and-team-views: S-27.2.
 
 ## Implementation Notes
