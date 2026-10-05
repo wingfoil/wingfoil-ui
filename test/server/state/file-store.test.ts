@@ -260,10 +260,11 @@ describe('lock between processes (state.json.lock)', () => {
 
   it('holds the lock with "<hostname> <pid> <nonce>"', async () => {
     const store = await openFileStateStore({ dir });
+    await store.add(KANBAN);
     let content = '';
     await store.transaction(async (draft) => {
       content = await readFile(lock(), 'utf8');
-      draft.projects.push(draft.create(KANBAN));
+      draft.projects.push(draft.create({ ...KANBAN, path: '/home/alex/projects/custom' }));
     });
     expect(content).toMatch(
       new RegExp(`^${hostname().replace(/[.*+?^${}()|[\]\\]/g, '\\$&')} ${process.pid} [0-9a-f-]{36}$`),

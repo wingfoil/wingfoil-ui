@@ -7,7 +7,8 @@
  * other's changes.
  */
 import { randomUUID } from 'node:crypto';
-import { access, mkdir, open, readdir, readFile, rename, rm, stat } from 'node:fs/promises';
+import { access, mkdir, open, readdir, readFile, rename, rm, stat, utimes } from 'node:fs/promises';
+import { hostname } from 'node:os';
 import path from 'node:path';
 import type { StateFile } from '@wingfoil-ui/contracts';
 import { asRecord, knownFields, newerVersion, stateProblem } from './schema.js';
@@ -27,14 +28,25 @@ export const STATE_FILE = 'state.json';
 export interface FileStoreOptions extends StoreOptions {
   /** The state directory (spec-006 §1, `resolveStateDir`). */
   dir: string;
+  /** Age after which a lock not refreshed by its holder is stale (default {@link LOCK_STALE_MS}). */
+  lockStaleMs?: number;
+  /** Platform whose file-system rules apply (default: the process's; injected by tests). */
+  platform?: NodeJS.Platform;
 }
 
 const POSIX = process.platform !== 'win32';
 
 /** Name of the advisory lock file next to `state.json`. */
 export const LOCK_FILE = `${STATE_FILE}.lock`;
-/** A lock older than this is stale whatever its pid (a crash followed by pid reuse). */
+/**
+ * A lock not refreshed for this long is stale whatever its pid (a crash followed by pid reuse, or
+ * a holder on another host). Its holder refreshes it every quarter of this age (heartbeat).
+ */
 export const LOCK_STALE_MS = 10_000;
+/** Transient errors Windows raises while another process holds or scans a file. */
+const WIN32_BUSY = new Set(['EPERM', 'EACCES', 'EBUSY']);
+/** Tries of a rename that Windows refuses for a moment. */
+const RENAME_TRIES = 5;
 /** Longest wait for the lock before a mutation fails. */
 const LOCK_TIMEOUT_MS = 15_000;
 const TMP_PATTERN = /^state\.json\.tmp-(\d+)(?:-\d+)?$/;
@@ -80,12 +92,21 @@ class FileBackend implements StateBackend {
   readonly #file: string;
   readonly #lockFile: string;
   readonly #now: () => Date;
+  readonly #staleMs: number;
+  readonly #platform: NodeJS.Platform;
 
-  constructor(dir: string, now: () => Date) {
+  constructor(dir: string, now: () => Date, staleMs: number, platform: NodeJS.Platform) {
     this.location = dir;
     this.#file = path.join(dir, STATE_FILE);
     this.#lockFile = path.join(dir, LOCK_FILE);
     this.#now = now;
+    this.#staleMs = staleMs;
+    this.#platform = platform;
+  }
+
+  /** Whether the state directory does not exist yet (nothing to lock, nothing written so far). */
+  async pristine(): Promise<boolean> {
+    return !(await exists(this.location));
   }
 
   /** Remove the temporary files left by processes that no longer run (killed during a write). */
@@ -151,7 +172,7 @@ class FileBackend implements StateBackend {
       } finally {
         await handle.close();
       }
-      await rename(tmp, this.#file);
+      await this.#rename(tmp, this.#file);
     } catch (error) {
       await rm(tmp, { force: true });
       throw error;
@@ -159,13 +180,38 @@ class FileBackend implements StateBackend {
     if (POSIX) await this.#syncDirectory();
   }
 
+  /** `rename`, retried a few times when Windows refuses it for a moment (antivirus, indexer). */
+  async #rename(from: string, to: string): Promise<void> {
+    for (let attempt = 1; ; attempt++) {
+      try {
+        await rename(from, to);
+        return;
+      } catch (error) {
+        if (!this.#busy(error) || attempt >= RENAME_TRIES) throw error;
+        await delay(20 * attempt);
+      }
+    }
+  }
+
+  /** A transient refusal on Windows (another process holds or scans the file). */
+  #busy(error: unknown): boolean {
+    return this.#platform === 'win32' && WIN32_BUSY.has(code(error) ?? '');
+  }
+
   async lock<T>(fn: () => Promise<T>): Promise<T> {
     await mkdir(this.location, { recursive: true, mode: 0o700 });
-    const token = `${process.pid} ${randomUUID()}`;
+    const token = `${hostname()} ${process.pid} ${randomUUID()}`;
     await this.#acquire(token);
+    // Heartbeat: a slow holder keeps its lock fresh, so it is never judged stale while alive.
+    const heartbeat = setInterval(() => {
+      const now = new Date();
+      void utimes(this.#lockFile, now, now).catch(() => undefined);
+    }, this.#staleMs / 4);
+    heartbeat.unref();
     try {
       return await fn();
     } finally {
+      clearInterval(heartbeat);
       await this.#release(token);
     }
   }
@@ -182,6 +228,12 @@ class FileBackend implements StateBackend {
         }
         return;
       } catch (error) {
+        if (this.#busy(error)) {
+          // Windows: the lock is being created or removed by another process right now.
+          if (Date.now() - started > LOCK_TIMEOUT_MS) throw error;
+          await delay(wait);
+          continue;
+        }
         if (code(error) !== 'EEXIST') throw error;
       }
       if (await this.#breakIfStale()) continue;
@@ -192,7 +244,7 @@ class FileBackend implements StateBackend {
     }
   }
 
-  /** Remove the lock when its holder is dead or it is older than {@link LOCK_STALE_MS}. */
+  /** Remove the lock when its holder (on this host) is dead or it was not refreshed for the stale age. */
   async #breakIfStale(): Promise<boolean> {
     let holder: string;
     let age: number;
@@ -203,10 +255,12 @@ class FileBackend implements StateBackend {
       if (code(error) === 'ENOENT') return true; // released meanwhile: try again at once
       throw error;
     }
-    const pid = Number(holder.split(' ')[0]);
-    // An empty file is a lock being written right now: only its age can make it stale.
-    const dead = holder !== '' && Number.isInteger(pid) && pid > 0 && !alive(pid);
-    if (!dead && age <= LOCK_STALE_MS) return false;
+    // `<hostname> <pid> <nonce>`: the pid is judged only on this host; elsewhere only the age
+    // since the holder's last heartbeat counts. An empty file is a lock being written right now.
+    const [host, pidText] = holder.split(' ');
+    const pid = Number(pidText);
+    const dead = host === hostname() && Number.isInteger(pid) && pid > 0 && !alive(pid);
+    if (!dead && age <= this.#staleMs) return false;
     // Remove it only if it is still the lock judged stale (a narrow race is left: see the notes).
     if ((await readFile(this.#lockFile, 'utf8').catch(() => undefined)) === holder) {
       await rm(this.#lockFile, { force: true });
@@ -237,8 +291,13 @@ class FileBackend implements StateBackend {
 
 /** Open the store of the state directory `dir`; the file is read once here. */
 export async function openFileStateStore(options: FileStoreOptions): Promise<StateStore> {
-  const { dir, ...rest } = options;
-  const backend = new FileBackend(dir, rest.now ?? (() => new Date()));
+  const { dir, lockStaleMs, platform, ...rest } = options;
+  const backend = new FileBackend(
+    dir,
+    rest.now ?? (() => new Date()),
+    lockStaleMs ?? LOCK_STALE_MS,
+    platform ?? process.platform,
+  );
   await backend.sweep();
   return openStore(backend, rest);
 }

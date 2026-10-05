@@ -59,6 +59,11 @@ export interface StateStore {
   /**
    * Re-read the state, run `fn` on a draft under the lock, and write the result if it changed.
    * When `fn` throws (a refusal), nothing is written. Resolves with what `fn` returned.
+   *
+   * Keep transactions short: the lock blocks every other console's mutation. Never clone, run the
+   * CLI or wait on the network inside `fn`: do the slow work first, then re-check its premises
+   * (duplicates, the list) inside. `fn` may run twice (a dry run before the first write ever, so
+   * a no-op creates no directory): apart from the draft it must have no side effect.
    */
   transaction<T>(fn: (draft: StateDraft) => T | Promise<T>): Promise<T>;
   /** Append a project; resolves with the stored entry. */
@@ -84,6 +89,8 @@ export interface StateBackend {
   write(state: StateFile): Promise<void>;
   /** Run `fn` (a re-read, then maybe a write) while no other process mutates the same state. */
   lock<T>(fn: () => Promise<T>): Promise<T>;
+  /** True while nothing was ever written (the file adapter: no state directory yet). */
+  pristine(): Promise<boolean>;
 }
 
 /** The state of a first start. */
@@ -173,12 +180,11 @@ class BackedStateStore implements StateStore {
   }
 
   /**
-   * Run `fn` after every earlier operation of this store; a mutation (`crossProcess`) also runs
-   * under the backend's lock. A plain read needs no lock: every write is an atomic rename.
+   * Run `fn` after every earlier operation of this store (in-process lock). The lock between
+   * processes is taken by {@link transaction}; a plain read needs none (writes are atomic renames).
    */
-  #serialise<T>(fn: () => Promise<T>, crossProcess = true): Promise<T> {
-    const run = (): Promise<T> => (this.#readOnly || !crossProcess ? fn() : this.#backend.lock(fn));
-    const done = this.#lock.then(run, run);
+  #serialise<T>(fn: () => Promise<T>): Promise<T> {
+    const done = this.#lock.then(fn, fn);
     this.#lock = done.catch(() => undefined);
     return done;
   }
@@ -187,27 +193,46 @@ class BackedStateStore implements StateStore {
     return this.#serialise(async () => {
       if (!this.#readOnly) this.#accept(await this.#backend.read());
       return this.projects();
-    }, false);
+    });
   }
 
   transaction<T>(fn: (draft: StateDraft) => T | Promise<T>): Promise<T> {
     return this.#serialise(async (): Promise<T> => {
-      // Re-read first: another console on the same directory may have changed the list.
-      if (!this.#readOnly) this.#accept(await this.#backend.read());
-      const projects = structuredClone(this.#state.projects);
-      const draft: StateDraft = { projects, create: (project) => this.#create(project, projects) };
-      const result = await fn(draft);
-      const next: StateFile = {
-        ...this.#state,
-        projects: draft.projects.map((p) => ({ ...p, remote: stripUserinfo(p.remote) })),
-      };
-      if (JSON.stringify(next) === JSON.stringify(this.#state)) return result;
-      const problem = stateProblem(next);
-      if (problem !== undefined) throw new InvalidStateError(`invalid state: ${problem}`);
-      if (!this.#readOnly) await this.#backend.write(next);
-      this.#state = next;
-      return result;
+      if (this.#readOnly) return (await this.#attempt(fn, false)).result;
+      if (await this.#backend.pristine()) {
+        // Nothing written yet: run without the lock (which would create the directory) and take
+        // it only when there is something to write.
+        const dry = await this.#attempt(fn, false, true);
+        if (!dry.changed) return dry.result;
+      }
+      return this.#backend.lock(async () => (await this.#attempt(fn, true, true)).result);
     });
+  }
+
+  /**
+   * Run `fn` on a draft of the state (re-read first when `reread`) and keep the result; write it
+   * when `write` and it changed. A dry run (`write` false on a writable store) keeps nothing.
+   */
+  async #attempt<T>(
+    fn: (draft: StateDraft) => T | Promise<T>,
+    write: boolean,
+    reread = false,
+  ): Promise<{ result: T; changed: boolean }> {
+    // Re-read first: another console on the same directory may have changed the list.
+    if (reread) this.#accept(await this.#backend.read());
+    const projects = structuredClone(this.#state.projects);
+    const draft: StateDraft = { projects, create: (project) => this.#create(project, projects) };
+    const result = await fn(draft);
+    const next: StateFile = {
+      ...this.#state,
+      projects: draft.projects.map((p) => ({ ...p, remote: stripUserinfo(p.remote) })),
+    };
+    if (JSON.stringify(next) === JSON.stringify(this.#state)) return { result, changed: false };
+    const problem = stateProblem(next);
+    if (problem !== undefined) throw new InvalidStateError(`invalid state: ${problem}`);
+    if (write) await this.#backend.write(next);
+    if (write || this.#readOnly) this.#state = next;
+    return { result, changed: true };
   }
 
   #create(project: NewProject, projects: readonly ProjectEntry[]): ProjectEntry {

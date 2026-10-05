@@ -35,6 +35,10 @@ class MemoryBackend implements StateBackend {
   lock<T>(fn: () => Promise<T>): Promise<T> {
     return fn();
   }
+
+  pristine(): Promise<boolean> {
+    return Promise.resolve(false);
+  }
 }
 
 /** A store that keeps its state in memory, with the same rules as the file adapter. */
