@@ -34,6 +34,12 @@ export default tseslint.config(
     },
   },
   {
+    // CommonJS files (the package bin): `require` is the module system there.
+    files: ['**/*.cjs'],
+    languageOptions: { sourceType: 'commonjs' },
+    rules: { '@typescript-eslint/no-require-imports': 'off' },
+  },
+  {
     files: ['**/*.jsx'],
     languageOptions: { parserOptions: { ecmaFeatures: { jsx: true } } },
   },

@@ -87,3 +87,30 @@ e2e closure — scenarios that need a screen are proved here by API and unit tes
   - spec-007 units: option table (exit 2), `--version`/`--help` (exit 0), `--port` in use (exit 3),
     `::1` retry, stop line and exit 0, second signal exit 130, pino on stderr with
     `authorization`/`cookie` redacted.
+
+### red / green / refactor (2026-10-05)
+
+- Red: options, catalogue, opener, listen, app and the bin end-to-end tests written first, all
+  failing (no module). Green on the first full run except one race (below).
+- Code: `bin/wingfoil-ui.cjs` (root `package.json` `bin`; ES2020 CommonJS — dynamic `import()`
+  needs ES2020, still parsed by Node.js 14; the test parses it as such); `server/src/main.ts`
+  entry; `launcher/` (`options`, `opener`, `listen`, `start`), `http/app.ts` (Fastify 5 +
+  `@fastify/static`, SPA fallback, 404 envelope for `/api/`), `logging.ts` (pino on stderr,
+  `authorization`/`cookie` redacted, headers serialized so the redaction is exercised),
+  `i18n/` (`en.json` + `@formatjs/intl`, `ignoreTag` so `<n>` stays literal; numbers passed as
+  text, no grouping). The two listeners are plain `http` servers handing requests to
+  `app.routing`; Fastify's own server never listens.
+- Exit status for "unexpected failure" (spec-007 §6 "other"): **70**.
+- `onStop(hook)` is the stop-sequence hook for task-004's child processes; spec-007 §3.2 (state
+  read, exit 4) is left to task-007.
+- **Race found and fixed:** the SIGINT handler was registered after the running line, so a stop
+  sent right after the URL could kill the process with the default handler (flaky launcher test
+  under load). Signals are now handled before the URL is printed.
+- **Deviation:** `test/server/launcher/start.test.ts` and `test/server/main.test.ts` were added
+  in refactor, after the code, to cover in process what the bin tests cover in a child (coverage
+  gate); they are characterization tests.
+- `typedoc.json` now expands `server/src` and `contracts/src` (every exported declaration
+  checked, not only `index.ts`); ESLint treats `*.cjs` as CommonJS.
+- Checks: `npm run test:coverage` 137/137, coverage 91 % statements / 87 % branches · e2e 3/3 ·
+  lint, format, typecheck clean · `docs:api` OK. TT-PERF-06: 10/10 starts print the URL in well
+  under 3 s (≈ 0.1–0.3 s on this machine).
