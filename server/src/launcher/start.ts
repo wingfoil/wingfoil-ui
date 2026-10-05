@@ -96,10 +96,11 @@ export async function runLauncher(argv: readonly string[], io: LauncherIo): Prom
   const logger = createLogger();
   // Drawn before the application is built: the session guards (task-003) need it.
   const token = drawToken();
-  // CLI and git children are terminated in the stop sequence (spec-007 §6, adr-001 D5).
   const processes = io.processes ?? new LocalProcessRunner();
-  const offProcesses = onStop(() => processes.terminateAll());
   const app = await buildApp({ staticDir: io.staticDir, logger });
+  // CLI and git children are terminated in the stop sequence (spec-007 §6, adr-001 D5); registered
+  // once the application exists, removed again if the listen fails.
+  const offProcesses = onStop(() => processes.terminateAll());
   let listeners;
   try {
     listeners = await listenLoopback(app.routing, {
