@@ -49,10 +49,16 @@ const stopHooks: StopHook[] = [];
  * connections → run the hooks, in registration order (close the event streams, terminate the
  * `wingfoil` and git child processes) → wait for the open requests, at most `drainTimeoutMs`, then
  * cut them → print the stop line, exit 0. A hook must end what keeps a request open; it must not
- * wait for requests itself. Hooks live for the process (module scope).
+ * wait for requests itself. Every hook runs even if another fails; the first failure then ends the
+ * process with exit 70. Hooks live for the process (module scope); the returned function removes
+ * the hook.
  */
-export function onStop(hook: StopHook): void {
+export function onStop(hook: StopHook): () => void {
   stopHooks.push(hook);
+  return () => {
+    const index = stopHooks.indexOf(hook);
+    if (index >= 0) stopHooks.splice(index, 1);
+  };
 }
 
 /** Draw the per-start session token: 32 random bytes, base64url (spec-004 §2). */
@@ -117,9 +123,18 @@ export async function runLauncher(argv: readonly string[], io: LauncherIo): Prom
     void (async () => {
       try {
         listeners.stopAccepting();
-        for (const hook of stopHooks) await hook();
+        // Every hook runs even when one fails (a failed stream close must not orphan CLI children).
+        const failures: unknown[] = [];
+        for (const hook of [...stopHooks]) {
+          try {
+            await hook();
+          } catch (error) {
+            failures.push(error);
+          }
+        }
         await listeners.drain(io.drainTimeoutMs ?? 5_000);
         await app.close();
+        if (failures.length > 0) throw failures[0];
         io.stdout(message('launcher.stopped'));
         io.exit(EXIT.ok);
       } catch (error) {

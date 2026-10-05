@@ -147,3 +147,14 @@ e2e closure — scenarios that need a screen are proved here by API and unit tes
   smoke test are needed. spec-007 §7's manual Windows check is still open.
 - Checks after the fixes: `npm run test:coverage` 142/142, coverage 91.6 % statements / 88.6 %
   branches · lint, format, typecheck clean · `docs:api` OK.
+- Re-verification by the same agent: all 9 findings resolved; new N1–N3 and a nit fixed:
+  - N1 every 4xx keeps its status with `invalid-request` (413, 415, …), a thrown 404 is
+    `not-found`, Fastify's pre-routing errors (malformed URL) get the envelope via
+    `frameworkErrors`; 5xx and status-less errors are `internal`.
+  - N2 every `onStop` hook runs even when one fails (the first failure then exits 70);
+    `onStop` returns an unsubscribe function, used by the tests.
+  - N3 only `/assets/` (the build's assets) 404s; every other path, dotted ones included
+    (`/p/…/releases/v0.1`, `/p/…/docs/README.md`), falls back to the application.
+  - nit: the bin prints the raw error when the catalogue itself cannot be read.
+- Checks after the re-verification fixes: `npm run test:coverage` 144/144, coverage 92.1 %
+  statements / 87.6 % branches · lint, format, typecheck clean · `docs:api` OK.

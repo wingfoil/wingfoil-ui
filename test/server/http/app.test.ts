@@ -45,13 +45,16 @@ describe('buildApp', () => {
     await app.close();
   });
 
-  it('returns the application for any other path (client-side routing)', async () => {
-    const app = await buildApp({ staticDir, logger: createLogger(sink) });
-    const res = await app.inject({ method: 'GET', url: '/p/p_abcdefghijkl/memory' });
-    expect(res.statusCode).toBe(200);
-    expect(res.body).toContain('<title>WingFoil UI</title>');
-    await app.close();
-  });
+  it.each(['/p/p_abcdefghijkl/memory', '/p/p_abcdefghijkl/releases/v0.1', '/p/x/docs/README.md'])(
+    'returns the application for the client-side route %s',
+    async (url) => {
+      const app = await buildApp({ staticDir, logger: createLogger(sink) });
+      const res = await app.inject({ method: 'GET', url });
+      expect(res.statusCode).toBe(200);
+      expect(res.body).toContain('<title>WingFoil UI</title>');
+      await app.close();
+    },
+  );
 
   it('answers an unknown /api/ path with the spec-004 error envelope', async () => {
     const app = await buildApp({ staticDir, logger: createLogger(sink) });
@@ -80,6 +83,9 @@ describe('buildApp', () => {
       logger: createLogger(sink),
       register: (a) => {
         a.post('/api/echo', async (req) => req.body);
+        a.get('/api/gone', async () => {
+          throw Object.assign(new Error('gone'), { statusCode: 404 });
+        });
         a.get('/api/boom', async () => {
           throw new Error('adapter detail /home/secret');
         });
@@ -93,6 +99,22 @@ describe('buildApp', () => {
     });
     expect(bad.statusCode).toBe(400);
     expect(bad.json()).toEqual({ error: { code: 'invalid-request', message: expect.any(String) } });
+    const big = await app.inject({
+      method: 'POST',
+      url: '/api/echo',
+      headers: { 'content-type': 'application/json' },
+      payload: JSON.stringify({ x: 'a'.repeat(1_100_000) }),
+    });
+    expect(big.statusCode).toBe(413);
+    expect(big.json()).toEqual({ error: { code: 'invalid-request', message: expect.any(String) } });
+    const missing = await app.inject({ method: 'GET', url: '/api/gone' });
+    expect(missing.statusCode).toBe(404);
+    expect(missing.json().error.code).toBe('not-found');
+    for (const url of ['/%', '/api/%']) {
+      const badUrl = await app.inject({ method: 'GET', url });
+      expect(badUrl.statusCode, url).toBe(400);
+      expect(badUrl.json(), url).toEqual({ error: { code: 'invalid-request', message: expect.any(String) } });
+    }
     const boom = await app.inject({ method: 'GET', url: '/api/boom' });
     expect(boom.statusCode).toBe(500);
     expect(boom.json()).toEqual({ error: { code: 'internal', message: expect.any(String) } });

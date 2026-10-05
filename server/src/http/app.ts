@@ -22,6 +22,9 @@ export interface ErrorEnvelope {
   error: { code: string; message: string; detail?: unknown };
 }
 
+/** Path prefix of the files of the `web/` build (Vite's `assets/`): never a client-side route. */
+export const ASSETS_PREFIX = '/assets/';
+
 /** The error envelope with `code` and `message` (the message is never shown to the user). */
 export function envelope(code: string, message: string): ErrorEnvelope {
   return { error: { code, message } };
@@ -34,7 +37,13 @@ function notFound(reply: FastifyReply): FastifyReply {
 /** Build the application; call `ready()` before handing `routing` to a server. */
 export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
   const loggerInstance: FastifyBaseLogger = options.logger;
-  const app = fastify({ loggerInstance });
+  const app = fastify({
+    loggerInstance,
+    // Errors Fastify raises before routing (e.g. a malformed URL) get the envelope too.
+    frameworkErrors: (_error, _request, reply) => {
+      void (reply as unknown as FastifyReply).code(400).send(envelope('invalid-request', 'Invalid request'));
+    },
+  });
   const hasWebBuild = existsSync(path.join(options.staticDir, 'index.html'));
   if (hasWebBuild) {
     await app.register(fastifyStatic, {
@@ -48,18 +57,19 @@ export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
     app.log.warn({ staticDir: options.staticDir }, 'web build not found: the application is not served');
   }
   app.setErrorHandler((error: { statusCode?: number; validation?: unknown }, request, reply) => {
-    const status = error.statusCode ?? 500;
-    if (error.validation !== undefined || status === 400 || status === 415) {
-      return reply.code(400).send(envelope('invalid-request', 'Invalid request'));
-    }
+    const status = error.validation !== undefined ? 400 : (error.statusCode ?? 500);
+    if (status === 404) return notFound(reply);
+    // A client error keeps its status (400, 413, 415, …); the request is what is wrong.
+    if (status >= 400 && status < 500) return reply.code(status).send(envelope('invalid-request', 'Invalid request'));
     request.log.error({ err: error }, 'request failed');
     return reply.code(500).send(envelope('internal', 'Internal error'));
   });
   app.setNotFoundHandler((request, reply) => {
     const pathname = request.url.split('?')[0] ?? '';
     const isApi = pathname === '/api' || pathname.startsWith('/api/');
-    // Client-side routes have no extension; a missing asset stays a 404.
-    const isAsset = path.posix.extname(pathname) !== '';
+    // A missing build asset stays a 404; every other path is a client-side route (it may hold a
+    // dot: a release id `v0.1`, a document `README.md`).
+    const isAsset = pathname.startsWith(ASSETS_PREFIX);
     if (isApi || isAsset || !hasWebBuild || (request.method !== 'GET' && request.method !== 'HEAD')) {
       return notFound(reply);
     }

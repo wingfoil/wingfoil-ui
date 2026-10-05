@@ -10,6 +10,7 @@ import type { Spawner } from '../../../server/src/launcher/opener.js';
 
 let staticDir: string;
 const stops: (() => void)[] = [];
+const unsubscribe: (() => void)[] = [];
 
 beforeAll(async () => {
   staticDir = await mkdtemp(path.join(tmpdir(), 'wfui-start-'));
@@ -18,6 +19,7 @@ beforeAll(async () => {
 });
 
 afterEach(async () => {
+  for (const off of unsubscribe.splice(0)) off();
   for (const stop of stops.splice(0)) stop();
   await new Promise((r) => setTimeout(r, 50));
 });
@@ -88,7 +90,7 @@ describe('runLauncher', () => {
   it('prints the running line, serves, and stops with the stop line and exit 0', async () => {
     const io = testIo();
     const hook = vi.fn(async () => undefined);
-    onStop(hook);
+    unsubscribe.push(onStop(hook));
     expect(await runLauncher(['--no-open'], io)).toBeUndefined();
     const port = Number(RUNNING.exec(io.out[0]!)![1]);
     expect((await fetch(`http://127.0.0.1:${port}/`)).status).toBe(200);
@@ -108,9 +110,11 @@ describe('runLauncher', () => {
     socket.write('GET /api/x HTTP/1.1\r\nHost: 127.0.0.1\r\n'); // never finished
     socket.on('error', () => undefined);
     let hookAt = 0;
-    onStop(async () => {
-      hookAt = performance.now();
-    });
+    unsubscribe.push(
+      onStop(async () => {
+        hookAt = performance.now();
+      }),
+    );
     const t0 = performance.now();
     io.signal();
     await vi.waitFor(() => expect(io.exits).toEqual([EXIT.ok]), { timeout: 3_000 });
@@ -149,15 +153,20 @@ describe('runLauncher', () => {
     expect(io.err).toEqual([`Port ${port} is already in use`]);
     blocker.close();
   });
-  it('exits 70 with the catalogue message when the stop sequence fails', async () => {
+  it('runs every stop hook even when one fails, then exits 70 with the catalogue message', async () => {
     const io = testIo();
     await runLauncher(['--no-open'], io);
-    onStop(async () => {
-      throw new Error('child would not die');
-    });
+    const after = vi.fn(async () => undefined);
+    unsubscribe.push(
+      onStop(async () => {
+        throw new Error('stream would not close');
+      }),
+      onStop(after),
+    );
     io.signal();
     await vi.waitFor(() => expect(io.exits).toEqual([EXIT.unexpected]));
-    expect(io.err).toEqual(['WingFoil UI stopped on an unexpected error: child would not die']);
+    expect(after).toHaveBeenCalledOnce();
+    expect(io.err).toEqual(['WingFoil UI stopped on an unexpected error: stream would not close']);
   });
 });
 

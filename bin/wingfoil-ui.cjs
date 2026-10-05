@@ -31,6 +31,13 @@ import(url.pathToFileURL(path.join(__dirname, '..', 'server', 'dist', 'main.js')
     return entry.main(process.argv.slice(2));
   })
   .catch(function (error) {
-    process.stderr.write(launcherMessage('launcher.unexpected', { message: (error && error.message) || error }) + '\n');
+    var detail = (error && error.message) || String(error);
+    var text;
+    try {
+      text = launcherMessage('launcher.unexpected', { message: detail });
+    } catch {
+      text = detail; // the catalogue itself is missing: print the error as is
+    }
+    process.stderr.write(text + '\n');
     process.exitCode = 70;
   });
