@@ -3,7 +3,7 @@ import { mkdir, mkdtemp, rm, symlink } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { findProjectContaining, resolveStateDir } from '../../../server/src/state/location.js';
+import { findProjectContaining, isWithin, resolveStateDir } from '../../../server/src/state/location.js';
 
 describe('resolveStateDir', () => {
   it('uses WINGFOIL_UI_STATE_DIR first, on every platform', () => {
@@ -102,5 +102,21 @@ describe('findProjectContaining', () => {
     expect(await findProjectContaining(path.join(root, 'projects', 'kanban2', 'state'), projects)).toBeUndefined();
     expect(await findProjectContaining(path.join(root, 'state'), projects)).toBeUndefined();
     expect(await findProjectContaining(path.join(root, 'state'), [])).toBeUndefined();
+  });
+});
+
+describe('isWithin', () => {
+  it('folds letter case on macOS and Windows, not on Linux', () => {
+    expect(isWithin('/Users/Alex/Kanban/state', '/users/alex/kanban', 'darwin')).toBe(true);
+    expect(isWithin('/Users/Alex/Kanban/state', '/users/alex/kanban', 'linux')).toBe(false);
+    expect(isWithin('C:\\Users\\Alex\\Kanban\\state', 'c:\\users\\alex\\kanban', 'win32')).toBe(true);
+    expect(isWithin('D:\\state', 'C:\\users\\alex\\kanban', 'win32')).toBe(false);
+  });
+
+  it('is true for the folder itself and false for a sibling or a ..-named child of the parent', () => {
+    expect(isWithin('/home/alex/kanban', '/home/alex/kanban', 'linux')).toBe(true);
+    expect(isWithin('/home/alex/kanban2', '/home/alex/kanban', 'linux')).toBe(false);
+    expect(isWithin('/home/alex/kanban/..state', '/home/alex/kanban', 'linux')).toBe(true);
+    expect(isWithin('/home/alex', '/home/alex/kanban', 'linux')).toBe(false);
   });
 });

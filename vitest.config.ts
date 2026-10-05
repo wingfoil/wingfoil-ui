@@ -4,6 +4,8 @@ export default defineConfig({
   test: {
     include: ['test/**/*.test.ts'],
     exclude: ['test/e2e/**', '**/node_modules/**'],
+    // Builds server/dist once for the bin and child-process tests.
+    globalSetup: ['test/global-setup.ts'],
     testTimeout: 30_000,
     hookTimeout: 180_000,
     coverage: {

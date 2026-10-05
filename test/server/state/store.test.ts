@@ -94,6 +94,34 @@ describe.each([fileAdapter, memoryAdapter])('StateStore ($name)', (adapter) => {
     expect((await adapter.reopen(store)).projects()).toEqual([]);
   });
 
+  it('update() changes only name, remote and roleView (never id or path)', async () => {
+    const store = await adapter.open();
+    const kanban = await store.add(KANBAN);
+    const patch = { id: 'p_000000000000', path: '/etc', addedAt: '2000-01-01T00:00:00Z', roleView: 'developer' };
+    const updated = await store.update(kanban.id, patch as never);
+    expect(updated).toEqual({ ...kanban, roleView: 'developer' });
+    expect(store.get('p_000000000000')).toBeUndefined();
+  });
+
+  it('reload() returns the current list', async () => {
+    const store = await adapter.open();
+    await store.add(KANBAN);
+    expect(await store.reload()).toEqual(store.projects());
+  });
+
+  it.each([
+    [' https://u:tok@github.com/acme/x.git ', 'https://github.com/acme/x.git'],
+    ['https://u:p/w@github.com/acme/x', 'https://github.com/acme/x'],
+    ['https://u:p@w@github.com/acme/x', 'https://github.com/acme/x'],
+    ['  git@github.com:acme/x.git\n', 'git@github.com:acme/x.git'],
+    ['https://github.com/acme/x@v1', 'https://github.com/acme/x%40v1'],
+    ['file:///srv/git/x.git', 'file:///srv/git/x.git'],
+  ])('REQ-SEC-09 — stores the remote %j as %j', async (remote, stored) => {
+    const store = await adapter.open();
+    const entry = await store.add({ ...KANBAN, remote });
+    expect(entry.remote).toBe(stored);
+  });
+
   it('X-05.2 — compares ids as exact strings, never as paths', async () => {
     const store = await adapter.open();
     const kanban = await store.add(KANBAN);

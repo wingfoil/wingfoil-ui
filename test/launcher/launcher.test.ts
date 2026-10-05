@@ -42,10 +42,6 @@ async function launch(args: string[], extraEnv: NodeJS.ProcessEnv = {}): Promise
 }
 
 beforeAll(async () => {
-  await run(process.execPath, [path.join(REPO_ROOT, 'node_modules/typescript/bin/tsc'), '-b', 'server'], {
-    cwd: REPO_ROOT,
-    timeoutMs: 120_000,
-  });
   root = await mkdtemp(path.join(tmpdir(), 'wfui-launch-'));
   env = { ...(await harnessEnv(root)).env, WINGFOIL_UI_STATE_DIR: path.join(root, 'state') };
 }, 180_000);

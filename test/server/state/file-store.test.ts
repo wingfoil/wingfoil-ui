@@ -1,5 +1,6 @@
 // spec-006 §1, §4 — the file adapter: modes, missing / corrupt / newer files, two consoles.
-import { mkdir, mkdtemp, readdir, readFile, rm, stat, writeFile } from 'node:fs/promises';
+import { spawn } from 'node:child_process';
+import { mkdir, mkdtemp, readdir, readFile, rm, stat, utimes, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
@@ -157,6 +158,96 @@ describe('file written by a newer build', () => {
     expect(store.readOnly).toBe(true);
     expect(store.projects()).toEqual([]);
     expect(store.warnings()).toEqual([{ key: 'state.newerVersion', args: {} }]);
+    expect(await readdir(dir)).toEqual(['state.json']);
+  });
+});
+
+describe('reading', () => {
+  it('ignores a leading byte-order mark', async () => {
+    await seed(`\uFEFF${JSON.stringify({ version: 1, projects: [ENTRY], settings: {}, actionLog: [] })}`);
+    const store = await openFileStateStore({ dir });
+    expect(store.projects()).toEqual([ENTRY]);
+    expect(store.warnings()).toEqual([]);
+  });
+
+  it('a state.json that cannot be read fails with a message naming the file', async () => {
+    await mkdir(file, { recursive: true });
+    await expect(openFileStateStore({ dir })).rejects.toThrow(file);
+  });
+
+  it('reload() re-reads the list another console changed', async () => {
+    const a = await openFileStateStore({ dir });
+    const b = await openFileStateStore({ dir });
+    await a.add(KANBAN);
+    expect(b.projects()).toEqual([]);
+    expect((await b.reload()).map((p) => p.name)).toEqual(['kanban']);
+    expect(b.projects().map((p) => p.name)).toEqual(['kanban']);
+  });
+});
+
+/** The pid of a process that has already exited. */
+async function deadPid(): Promise<number> {
+  const child = spawn(process.execPath, ['-e', ''], { stdio: 'ignore' });
+  await new Promise((r) => child.once('exit', r));
+  return child.pid!;
+}
+
+describe('temporary files', () => {
+  it('those of dead processes are swept when the state is opened; a live one is kept', async () => {
+    const dead = await deadPid();
+    await seed(JSON.stringify({ version: 1, projects: [ENTRY], settings: {}, actionLog: [] }));
+    const live = `state.json.tmp-${process.pid}-999999`;
+    for (const name of [`state.json.tmp-${dead}`, `state.json.tmp-${dead}-3`, live, 'state.json.tmp-x']) {
+      await writeFile(path.join(dir, name), 'partial');
+    }
+    await openFileStateStore({ dir });
+    expect((await readdir(dir)).sort()).toEqual(['state.json', live, 'state.json.tmp-x'].sort());
+  });
+});
+
+describe('lock between processes (state.json.lock)', () => {
+  const lock = () => path.join(dir, 'state.json.lock');
+
+  it('is released after every mutation, also a refused one', async () => {
+    const store = await openFileStateStore({ dir });
+    await store.add(KANBAN);
+    await expect(
+      store.transaction(() => {
+        throw new Error('refused');
+      }),
+    ).rejects.toThrow('refused');
+    expect(await readdir(dir)).toEqual(['state.json']);
+  });
+
+  it('waits while a live process holds it', async () => {
+    await mkdir(dir, { recursive: true });
+    await writeFile(lock(), `${process.pid} other`);
+    const store = await openFileStateStore({ dir });
+    let done = false;
+    const adding = store.add(KANBAN).then(() => (done = true));
+    await new Promise((r) => setTimeout(r, 150));
+    expect(done).toBe(false);
+    await rm(lock());
+    await adding;
+    expect(store.projects()).toHaveLength(1);
+    expect(await readdir(dir)).toEqual(['state.json']);
+  });
+
+  it('breaks a lock left by a dead process', async () => {
+    await mkdir(dir, { recursive: true });
+    await writeFile(lock(), `${await deadPid()} gone`);
+    const store = await openFileStateStore({ dir });
+    await store.add(KANBAN);
+    expect(await readdir(dir)).toEqual(['state.json']);
+  });
+
+  it('breaks a lock older than 10 s even when its pid is alive (pid reuse)', async () => {
+    await mkdir(dir, { recursive: true });
+    await writeFile(lock(), `${process.pid} old`);
+    const old = new Date(Date.now() - 11_000);
+    await utimes(lock(), old, old);
+    const store = await openFileStateStore({ dir });
+    await store.add(KANBAN);
     expect(await readdir(dir)).toEqual(['state.json']);
   });
 });

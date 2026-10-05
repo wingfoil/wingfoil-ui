@@ -6,10 +6,9 @@ import { mkdtemp, readFile, realpath, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { REPO_ROOT } from '../harness/cli.js';
 import { buildFixture, copyFixture, type Fixture } from '../harness/fixtures/index.js';
-import { git, run } from '../harness/run.js';
-import { scanForSecrets } from '../harness/secret-scan.js';
+import { git } from '../harness/run.js';
+import { scanForSecrets, scanText } from '../harness/secret-scan.js';
 import { openFileStateStore } from '../../server/src/state/file-store.js';
 import { BIN, startLauncher } from './launcher.js';
 
@@ -18,10 +17,6 @@ let kanban: Fixture;
 const PLANTED = 'planted-env-value-Zq81xT';
 
 beforeAll(async () => {
-  await run(process.execPath, [path.join(REPO_ROOT, 'node_modules/typescript/bin/tsc'), '-b', 'server'], {
-    cwd: REPO_ROOT,
-    timeoutMs: 120_000,
-  });
   root = await realpath(await mkdtemp(path.join(tmpdir(), 'wfui-launch-state-')));
   kanban = await buildFixture('kanban', { root: path.join(root, 'build') });
 }, 180_000);
@@ -63,6 +58,8 @@ describe('TT-ARC-08 — local state outside the repositories', () => {
       logs.push(l.stderr(), l.stdoutLines().join('\n'));
       const tokenFree = await scanForSecrets([stateDir], [l.token, PLANTED]);
       expect(tokenFree).toEqual([]);
+      // The server log (stderr) holds neither the token nor a credential nor the planted value.
+      expect(scanText('logs', l.stderr(), [l.token, PLANTED])).toEqual([]);
     }
     expect(await readFile(path.join(stateDir, 'state.json'), 'utf8')).toBe(before);
     expect((await openFileStateStore({ dir: stateDir })).get(entry.id)?.roleView).toBe('developer');
@@ -73,6 +70,18 @@ describe('TT-ARC-08 — local state outside the repositories', () => {
 });
 
 describe('spec-007 §3.2 — state directory inside a listed project', () => {
+  it('reads the OS location when WINGFOIL_UI_STATE_DIR is not set (exit 4 found there)', async () => {
+    const fx = await copyFixture(kanban, path.join(root, 'xdg'));
+    // The XDG configuration folder itself is listed as a project: the state directory lies in it.
+    const config = path.join(await realpath(fx.home), '.config');
+    const stateDir = path.join(config, 'wingfoil-ui');
+    const store = await openFileStateStore({ dir: stateDir });
+    await store.add({ path: config, name: 'config', remote: '' });
+    const result = await runBin(['--no-open'], { ...fx.env, WINGFOIL_UI_STATE_DIR: '' });
+    expect(result.code).toBe(4);
+    expect(result.stderr).toContain(stateDir);
+  });
+
   it('exits 4 before listening, naming both paths', async () => {
     const fx = await copyFixture(kanban, path.join(root, 'inside'));
     const project = await realpath(fx.dir);

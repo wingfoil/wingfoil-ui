@@ -1,6 +1,6 @@
 // spec-006 §4 — atomic write: `state.json.tmp-<pid>` in the same directory, fsync, rename. A failed
 // write leaves the previous `state.json` whole and no temporary file behind.
-import { mkdir, mkdtemp, readdir, readFile, rm, writeFile } from 'node:fs/promises';
+import { chmod, mkdir, mkdtemp, readdir, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterAll, beforeAll, beforeEach, expect, it, vi } from 'vitest';
@@ -56,7 +56,11 @@ it('writes through state.json.tmp-<pid>, synced, renamed over state.json', async
   const dir = path.join(root, 'ok');
   const store = await openFileStateStore({ dir });
   await store.add({ path: '/home/alex/kanban', name: 'kanban', remote: '' });
-  expect(failures.renames).toEqual([[path.join(dir, `state.json.tmp-${process.pid}`), path.join(dir, 'state.json')]]);
+  expect(failures.renames).toHaveLength(1);
+  const [from, to] = failures.renames[0]!;
+  expect(path.dirname(from)).toBe(dir);
+  expect(path.basename(from)).toMatch(new RegExp(`^state\\.json\\.tmp-${process.pid}-\\d+$`));
+  expect(to).toBe(path.join(dir, 'state.json'));
   expect(failures.syncs).toBeGreaterThanOrEqual(1);
 });
 
@@ -89,4 +93,20 @@ it('a rename failure other than ENOENT while keeping a corrupt file is not hidde
   failures.rename = true;
   await expect(openFileStateStore({ dir })).rejects.toThrow('EIO');
   expect(await readFile(path.join(dir, 'state.json'), 'utf8')).toBe('garbage');
+});
+
+it('every write has its own temporary file, and a stale one never lends its mode to state.json', async () => {
+  const dir = path.join(root, 'stale-tmp');
+  const store = await openFileStateStore({ dir });
+  await store.add({ path: '/home/alex/kanban', name: 'kanban', remote: '' });
+  const first = failures.renames[0]![0];
+  const n = Number(/-(\d+)$/.exec(first)![1]);
+  // The next write's temporary file already exists, world-readable (left by an earlier run).
+  const next = path.join(dir, `state.json.tmp-${process.pid}-${n + 1}`);
+  await writeFile(next, 'stale', { mode: 0o644 });
+  await chmod(next, 0o644);
+  await store.add({ path: '/home/alex/custom', name: 'custom', remote: '' });
+  expect(failures.renames[1]![0]).toBe(next);
+  if (process.platform !== 'win32') expect((await stat(path.join(dir, 'state.json'))).mode & 0o777).toBe(0o600);
+  expect(await readdir(dir)).toEqual(['state.json']);
 });

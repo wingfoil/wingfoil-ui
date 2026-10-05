@@ -53,6 +53,9 @@ describe('state.schema.json', () => {
     ['a remote holding credentials', { remote: 'https://alex:ghp_secret@github.com/acme/kanban.git' }],
     ['a remote holding a user name', { remote: 'ssh://git@github.com/acme/kanban.git' }],
     ['a local time', { addedAt: '2026-10-03T09:12:44+02:00' }],
+    ['a credential behind leading space', { remote: ' https://u:tok@github.com/acme/kanban.git' }],
+    ['a credential holding a slash', { remote: 'https://u:p/w@github.com/acme/kanban' }],
+    ['a remote with trailing space', { remote: 'https://github.com/acme/kanban.git ' }],
     ['an unknown field', { token: 'x' }],
   ])('refuses %s', (_label, patch) => {
     expect(validate(withProject(patch))).toBe(false);
