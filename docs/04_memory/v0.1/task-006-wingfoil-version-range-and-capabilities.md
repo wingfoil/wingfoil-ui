@@ -180,3 +180,10 @@ e2e closure — scenarios that need a screen are proved here by API and unit tes
     update `capabilities.json` and the README section (test enforces), `npm run test:contract`
     installs the new build via `cliBuildFor`; add a versioned schema variant only for a changed
     shape.
+- **Checks (refactor, load average 60–75 on 12 cores):** typecheck, lint, format:check clean ·
+  `docs:api` OK · `test:e2e` 3/3 · `check_tasks.py` OK · `npx vitest run --coverage
+  --coverage.reportOnFailure` 46 files, **613 passed / 2 failed / 1 skipped**: the two failures
+  are the known bug-001 timing tests (TypeDoc build > 30 s, REQ-PERF-06), re-run alone the
+  TypeDoc build still fails at load 73. Coverage **96.31 %** statements / 90.13 % branches /
+  96.14 % functions / 98.07 % lines; `version.ts` 98.97 %, `capabilities.ts` 100 % statements
+  after the table-check test.
