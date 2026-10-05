@@ -6,7 +6,13 @@ import { cp, mkdir, mkdtemp, readFile, realpath, rm, symlink, writeFile } from '
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { confinedPath, DirectReadError, nodeReadFs, type ReadFs } from '../../../server/src/reads/confine.js';
+import {
+  confinedPath,
+  DirectReadError,
+  MAX_DIRECT_READ_BYTES,
+  nodeReadFs,
+  type ReadFs,
+} from '../../../server/src/reads/confine.js';
 import { parseDirective, readDirective } from '../../../server/src/reads/directive.js';
 import { parseElement, readElement } from '../../../server/src/reads/element.js';
 import { readMemoryYaml } from '../../../server/src/reads/memory-yaml.js';
@@ -61,6 +67,7 @@ function recording(): ReadFs & { paths: string[] } {
     paths,
     readFile: (p) => (paths.push(p), nodeReadFs.readFile(p)),
     realpath: (p) => (paths.push(p), nodeReadFs.realpath(p)),
+    size: (p) => (paths.push(p), nodeReadFs.size(p)),
   };
 }
 
@@ -203,11 +210,80 @@ describe('memory.yaml and confinedPath', () => {
   });
 
   it('confinedPath resolves inside the base only', async () => {
-    expect(await confinedPath(root, MATCH.path)).toBe(path.join(root, MATCH.path));
-    await expect(confinedPath(root, '')).rejects.toMatchObject({ kind: 'outside' });
-    await expect(confinedPath(root, 'a\0b')).rejects.toMatchObject({ kind: 'outside' });
-    await expect(confinedPath(root, 'C:\\Windows\\win.ini')).rejects.toMatchObject({ kind: 'outside' });
-    await expect(confinedPath(path.join(base, 'none'), 'a.md')).rejects.toMatchObject({ kind: 'missing' });
+    expect(await confinedPath(root, root, MATCH.path)).toBe(path.join(root, MATCH.path));
+    await expect(confinedPath(root, root, '')).rejects.toMatchObject({ kind: 'outside' });
+    await expect(confinedPath(root, root, 'a\0b')).rejects.toMatchObject({ kind: 'outside' });
+    await expect(confinedPath(root, root, 'C:\\Windows\\win.ini')).rejects.toMatchObject({ kind: 'outside' });
+    const none = path.join(base, 'none');
+    await expect(confinedPath(none, none, 'a.md')).rejects.toMatchObject({ kind: 'missing' });
+    // A base that is not inside the project root.
+    await expect(confinedPath(root, outside, 'secret.md')).rejects.toMatchObject({ kind: 'outside' });
+  });
+});
+
+describe('review fixes: CRLF, linked .wingfoil, size cap, names starting with ..', () => {
+  it('reads a CRLF element: the frontmatter values carry no \\r, the body keeps its text', () => {
+    const el = parseElement(ELEMENT.replace(/\n/g, '\r\n'), MATCH.path);
+    expect(el.frontmatter.status).toBe('pending');
+    expect(el.frontmatter.title).toBe('Login form');
+    expect(el.body).toBe('\n## Description\n\nBody --- with dashes\n---\nnot frontmatter\n');
+  });
+
+  it('a .wingfoil folder linked out of the project is outside (memory.yaml and directives)', async () => {
+    const p = path.join(base, 'linked-wingfoil');
+    const target = path.join(base, 'elsewhere', '.wingfoil');
+    await mkdir(path.join(target, 'directives/custom'), { recursive: true });
+    await writeFile(path.join(target, 'memory.yaml'), 'version: 1\ntypes:\n  a:\n    path: a/{id}.md\n');
+    await writeFile(path.join(target, ENTRY.path), DIRECTIVE);
+    await mkdir(p, { recursive: true });
+    await symlink(target, path.join(p, '.wingfoil'));
+    const fs = recording();
+    await expect(readMemoryYaml(p, fs)).rejects.toMatchObject({ kind: 'outside' });
+    await expect(readDirective(p, ENTRY, fs)).rejects.toMatchObject({ kind: 'outside' });
+    expect(fs.paths.some((x) => x.startsWith(target))).toBe(false);
+  });
+
+  it(`a file over ${MAX_DIRECT_READ_BYTES} bytes is a shape error "too large", not read`, async () => {
+    const big = 'docs/memory/task/big.md';
+    await writeFile(path.join(root, big), Buffer.alloc(MAX_DIRECT_READ_BYTES + 1, 'a'));
+    const fs = recording();
+    const reads: string[] = [];
+    const error = await readElement(
+      root,
+      { ...MATCH, path: big },
+      {
+        ...fs,
+        readFile: (p) => (reads.push(p), fs.readFile(p)),
+      },
+    ).catch((e: unknown) => e);
+    expect(error).toMatchObject({ kind: 'shape', file: big });
+    expect((error as Error).message).toBe(`${big}: too large (over ${MAX_DIRECT_READ_BYTES} bytes)`);
+    expect(reads).toEqual([]);
+  });
+
+  it('a folder whose name starts with ".." is inside the project', async () => {
+    await mkdir(path.join(root, 'docs/..notes'), { recursive: true });
+    await writeFile(path.join(root, 'docs/..notes/task-001-login-form.md'), ELEMENT);
+    const el = await readElement(root, { ...MATCH, path: 'docs/..notes/task-001-login-form.md' });
+    expect(el.frontmatter.id).toBe(MATCH.id);
+    expect(await confinedPath(root, root, '..notes-at-root.md').catch((e: unknown) => e)).toMatchObject({
+      kind: 'missing',
+    });
+  });
+
+  it('a file swapped for a link out of the project between resolution and read is refused', async () => {
+    const swapped = 'docs/memory/task/swapped.md';
+    await writeFile(path.join(root, swapped), ELEMENT);
+    const fs: ReadFs = {
+      ...nodeReadFs,
+      readFile: async (p) => {
+        const text = await nodeReadFs.readFile(p);
+        await rm(path.join(root, swapped));
+        await symlink(path.join(outside, 'secret.md'), path.join(root, swapped));
+        return text;
+      },
+    };
+    await expect(readElement(root, { ...MATCH, path: swapped }, fs)).rejects.toMatchObject({ kind: 'outside' });
   });
 });
 
@@ -241,6 +317,12 @@ describe('ProjectReads lookups by id (fake CLI answers captured from 0.2.2)', ()
     const d = await reads.directive('testing');
     expect(d?.entry.path).toBe('directives/custom/testing.md');
     expect(d?.content.body).toContain('# Our testing rules');
+
+    // The path named by the warning wins over the list order.
+    const reversed = JSON.parse(listed) as { entries: unknown[] };
+    reversed.entries.reverse();
+    const r = readsAnswering(dir, () => JSON.stringify(reversed)).reads;
+    expect((await r.directive('testing'))?.entry.path).toBe('directives/custom/testing.md');
   });
 
   it('an element not in the default search is looked up in the archived searches, lazily', async () => {

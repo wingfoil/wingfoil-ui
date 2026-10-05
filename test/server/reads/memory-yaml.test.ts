@@ -62,10 +62,42 @@ describe('parseMemoryYaml', () => {
     });
   });
 
+  it('accepts what WingFoil 0.2.2 accepts: no id_pattern, a non-integer version, merge keys', () => {
+    const parsed = parseMemoryYaml(
+      [
+        'version: 1.5',
+        'types:',
+        '  bug: &bug',
+        '    path: bugs/{id}.md',
+        '    id_pattern: "bug-{n}-{slug}"',
+        '    states: { sequence: [ open, closed ] }',
+        '  incident:',
+        '    <<: *bug',
+        '    path: incidents/{id}.md',
+        '  note:',
+        '    path: notes/{id}.md',
+        '',
+      ].join('\n'),
+      FILE,
+    );
+    expect(parsed.version).toBe(1.5);
+    expect(parsed.types.incident).toEqual({
+      path: 'incidents/{id}.md',
+      id_pattern: 'bug-{n}-{slug}',
+      states: { sequence: ['open', 'closed'] },
+    });
+    expect(parsed.types.note).toEqual({ path: 'notes/{id}.md' });
+  });
+
   it.each([
+    ['a version that is not positive', 'version: 0\ntypes:\n  a:\n    path: a/{id}.md\n'],
     ['invalid YAML', 'types: [unclosed'],
     ['no types', 'version: 1\n'],
     ['a type without path', 'version: 1\ntypes:\n  a:\n    id_pattern: "a-{n}"\n'],
+    [
+      'an alias bomb',
+      `version: 1\na: &a [x, x]\nb: &b [*a, *a, *a, *a, *a, *a, *a, *a, *a, *a]\nc: &c [*b, *b, *b, *b, *b, *b, *b, *b, *b, *b]\nd: [*c, *c, *c, *c, *c, *c, *c, *c, *c, *c]\ntypes:\n  a:\n    path: a/{id}.md\n`,
+    ],
     [
       'a sequence that is not a list',
       'version: 1\ntypes:\n  a:\n    path: a/{id}.md\n    id_pattern: "a-{n}"\n    states:\n      sequence: draft\n',

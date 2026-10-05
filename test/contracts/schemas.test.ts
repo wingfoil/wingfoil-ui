@@ -149,7 +149,7 @@ describe.each(matrix.versions)('samples captured from wingfoil %s', (version) =>
 const pinned = (kind: string, rel: string) => sample(matrix.pinned, kind, rel);
 
 describe('negative cases: a field the UI reads is required, its type checked', () => {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- mutations of parsed JSON samples
+  /* eslint-disable @typescript-eslint/no-explicit-any -- mutations of parsed JSON samples */
   const cases: [string, string, string, (d: any) => void][] = [
     ['dna show without team', 'cli/dna-show.schema.json', 'dna-show.json', (d) => delete d.team],
     [
@@ -224,6 +224,50 @@ describe('negative cases: a field the UI reads is required, its type checked', (
     expect(validator(file)(data)).toBe(false);
   });
 
+  // Optional in WingFoil 0.2.2 itself (`dist/dna/schema.js`, `dist/workflow/schema.js`): a project
+  // may omit them, so the UI must not require them.
+  const optional: [string, string, string, (d: any) => void][] = [
+    ['dna show without project', 'cli/dna-show.schema.json', 'dna-show.json', (d) => delete d.project],
+    ['dna show without project fields', 'cli/dna-show.schema.json', 'dna-show.json', (d) => (d.project = {})],
+    [
+      'dna show with a member without email',
+      'cli/dna-show.schema.json',
+      'dna-show.json',
+      (d) => delete d.team.members[0].email,
+    ],
+    [
+      'dna show with an agent without approval_authority',
+      'cli/dna-show.schema.json',
+      'dna-show.json',
+      (d) => delete d.team.agents[0].approval_authority,
+    ],
+    [
+      'dna show without technologies and methodologies',
+      'cli/dna-show.schema.json',
+      'dna-show.json',
+      (d) => (d.stacks = {}),
+    ],
+    ['dna show with a version 1.5', 'cli/dna-show.schema.json', 'dna-show.json', (d) => (d.version = 1.5)],
+    [
+      'workflow list without manifest.version',
+      'cli/workflow-list.schema.json',
+      'workflow-list.json',
+      (d) => delete d.manifest.version,
+    ],
+    [
+      'a workflow without description',
+      'cli/workflow-list.schema.json',
+      'workflow-list.json',
+      (d) => delete d.workflows[0].description,
+    ],
+  ];
+  it.each(optional)('accepts %s', (_label, file, rel, mutate) => {
+    const data = clone(pinned('kanban', rel));
+    mutate(data);
+    expect(validator(file)(data)).toBe(true);
+  });
+
+  /* eslint-enable @typescript-eslint/no-explicit-any */
   it('accepts unknown additional properties (a newer CLI may add fields)', () => {
     const data = clone(pinned('kanban', 'memory-search.json')) as { matches: Record<string, unknown>[] } & Record<
       string,

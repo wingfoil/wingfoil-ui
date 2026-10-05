@@ -3,10 +3,11 @@
 // fixtures built with that version's CLI; every command of the adapter's static list run through
 // the adapter (which validates its output against the command's schema), every allow-listed reader
 // run on every file the CLI points at, and the §4.1 resolution check. S-27.1 on the adapter side.
-import { appendFile, mkdtemp, realpath, rm } from 'node:fs/promises';
+import { appendFile, mkdtemp, readFile, realpath, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { parseDocument } from 'yaml';
 import { CliRefusedError, WingfoilCli, type CliArgs } from '../../server/src/cli/adapter.js';
 import { CLI_COMMANDS, type CliCommandName, type CliCommandOutputs } from '../../server/src/cli/commands.js';
 import { discoverCli } from '../../server/src/cli/discovery.js';
@@ -171,6 +172,56 @@ describe.each(VERSIONS)('contract — wingfoil %s', (version) => {
     expect((await reads.elements()).data.matches.map((m) => m.id)).toContain('task-001-login-form');
   }, 120_000);
 
+  it('accepts what WingFoil itself accepts: optional DNA, workflow and memory.yaml fields, merge keys, CRLF', async () => {
+    const fx = await copyFixture(fixtures.kanban, path.join(root, version, 'kanban-optional'));
+    const edit = async (rel: string, change: (doc: ReturnType<typeof parseDocument>) => void) => {
+      const file = path.join(fx.dir, rel);
+      const doc = parseDocument(await readFile(file, 'utf8'));
+      change(doc);
+      await writeFile(file, doc.toString());
+    };
+    // Optional in WingFoil 0.2.2's `dist/dna/schema.js`.
+    await edit('.wingfoil/dna.yaml', (doc) => {
+      doc.delete('project');
+      doc.deleteIn(['stacks', 'technologies']);
+      doc.deleteIn(['stacks', 'methodologies']);
+      doc.deleteIn(['team', 'members', 0, 'email']);
+      doc.deleteIn(['team', 'agents', 0, 'approval_authority']);
+    });
+    // Optional in `dist/workflow/schema.js`.
+    await edit('.wingfoil/workflows.yaml', (doc) => doc.delete('version'));
+    await edit('.wingfoil/workflows/custom/bug-ingest.yaml', (doc) => doc.delete('description'));
+    // `dist/memory/schema.js`: id_pattern optional, version a positive number; js-yaml resolves `<<`.
+    const memoryYaml = path.join(fx.dir, '.wingfoil', 'memory.yaml');
+    await writeFile(
+      memoryYaml,
+      (await readFile(memoryYaml, 'utf8'))
+        .replace(/^version: 1$/m, 'version: 1.5')
+        .replace(/^  adr:\n    path: (.*)\n    id_pattern: .*$/m, '  adr:\n    path: $1')
+        .replace(/^  bug:\n    path: (.*)$/m, '  bug: &bug\n    path: $1')
+        .concat('  incident:\n    <<: *bug\n    path: docs/memory/incident/{id}.md\n'),
+    );
+    // A CRLF element file.
+    const login = path.join(fx.dir, 'docs/memory/task/task-001-login-form.md');
+    await writeFile(login, (await readFile(login, 'utf8')).replace(/\n/g, '\r\n'));
+
+    const { cli, reads } = await adapterFor(fx, ran);
+    const dna = (await reads.dna()).data;
+    expect(dna.project).toBeUndefined();
+    expect(dna.team.members[0]?.email).toBeUndefined();
+    expect((await reads.workflows()).data.manifest.version).toBeUndefined();
+    const types = await reads.memoryTypes();
+    expect(types.version).toBe(1.5);
+    expect(types.types.adr?.id_pattern).toBeUndefined();
+    expect(types.types.incident).toMatchObject({ path: 'docs/memory/incident/{id}.md', id_pattern: 'bug-{n}-{slug}' });
+    const match = (await reads.elements()).data.matches.find((m) => m.id === 'task-001-login-form')!;
+    expect(match.status).toBe('pending');
+    expect((await reads.elementFromMatch(match)).frontmatter).toMatchObject({ status: 'pending', title: 'Login form' });
+    expect(await cli.version()).toBe(version);
+  }, 120_000);
+
+  // Runs last on purpose: it reads the commands the tests above ran (vitest runs a file's tests in
+  // order), so it must stay at the end of this describe.
   it('REQ-INT-01 — 100 % of the commands of the static list ran and validated', () => {
     expect([...ran].sort()).toEqual(Object.keys(CLI_COMMANDS).sort());
   });
