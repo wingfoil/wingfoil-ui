@@ -90,6 +90,23 @@ describe('cliBuildFor', () => {
     expect((await readdir(cacheRoot)).filter((name) => /^0\.5\.0\./.test(name))).toEqual([]);
   });
 
+  it('keeps the good install of a concurrent worker that replaced a broken prefix during ours', async () => {
+    const prefix = path.join(cacheRoot, '0.7.0');
+    await mkdir(path.join(prefix, 'node_modules', 'wingfoil'), { recursive: true });
+    await writeFile(path.join(prefix, 'node_modules', 'wingfoil', 'package.json'), '{"name":"wingfoil"');
+    const marker = path.join(prefix, 'winner');
+    // Our install runs; meanwhile another worker replaces the broken prefix with its good one.
+    const install = async (staging: string, version: string) => {
+      await fakeInstall(staging, version);
+      await rm(prefix, { recursive: true, force: true });
+      await fakeInstall(prefix, version);
+      await writeFile(marker, '');
+    };
+    await cliBuildFor('0.7.0', { cacheRoot, install });
+    expect((await readdir(prefix)).includes('winner')).toBe(true);
+    expect((await readdir(cacheRoot)).filter((name) => /^0\.7\.0\./.test(name))).toEqual([]);
+  });
+
   it('removes staging and stale folders of a killed worker once old, keeps recent ones', async () => {
     const old = path.join(cacheRoot, '0.6.0.tmp-old');
     const stale = path.join(cacheRoot, '0.6.0.stale-old');
@@ -100,6 +117,10 @@ describe('cliBuildFor', () => {
     await utimes(stale, hoursAgo, hoursAgo);
     await cliBuildFor('0.6.0', { cacheRoot, install: fakeInstall });
     expect((await readdir(cacheRoot)).filter((name) => name.startsWith('0.6.0.'))).toEqual(['0.6.0.tmp-recent']);
+    // Also on the fast path (the version already installed, no install runs).
+    await utimes(recent, hoursAgo, hoursAgo);
+    await cliBuildFor('0.6.0', { cacheRoot, install: () => Promise.reject(new Error('no reinstall')) });
+    expect((await readdir(cacheRoot)).filter((name) => name.startsWith('0.6.0.'))).toEqual([]);
     expect(ORPHAN_AGE_MS).toBe(6 * 60 * 60 * 1000);
   });
 

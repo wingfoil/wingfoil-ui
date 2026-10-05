@@ -63,11 +63,11 @@ export async function cliBuildFor(version: string, options: CliBuildOptions = {}
   }
   const prefix = path.join(options.cacheRoot ?? MATRIX_CACHE, version);
   const packageDir = path.join(prefix, 'node_modules', 'wingfoil');
+  await mkdir(path.dirname(prefix), { recursive: true });
+  await removeOrphans(prefix, options.orphanAgeMs ?? ORPHAN_AGE_MS);
   if ((await installedVersion(packageDir)) !== version) {
     // Install into a private folder, then rename it into place: parallel workers never share a
     // half-written prefix, and a concurrent winner's install is kept.
-    await mkdir(path.dirname(prefix), { recursive: true });
-    await removeOrphans(prefix, options.orphanAgeMs ?? ORPHAN_AGE_MS);
     const staging = await mkdtemp(`${prefix}.tmp-`);
     try {
       await (options.install ?? npmInstall)(staging, version);
@@ -86,7 +86,8 @@ export async function cliBuildFor(version: string, options: CliBuildOptions = {}
 /**
  * Rename `staging` to `prefix`. When `prefix` exists: kept if it holds `version` (a concurrent
  * winner); otherwise it is a broken install (interrupted, corrupted), moved aside to
- * `<prefix>.stale-<uuid>`, removed, and the rename is retried once.
+ * `<prefix>.stale-<uuid>`, removed, and the rename is retried once. A folder moved aside that
+ * turns out to hold `version` (a winner that landed in between) is renamed back and kept.
  */
 async function moveIntoPlace(staging: string, prefix: string, version: string): Promise<void> {
   const packageDir = path.join(prefix, 'node_modules', 'wingfoil');
@@ -100,6 +101,16 @@ async function moveIntoPlace(staging: string, prefix: string, version: string): 
       await rename(prefix, stale);
     } catch {
       // Already moved aside by another worker, or gone: retry below.
+    }
+    // Another worker may have put its good install in place between the check and the move:
+    // put it back and keep it (our staging is discarded by the caller).
+    if ((await installedVersion(path.join(stale, 'node_modules', 'wingfoil'))) === version) {
+      try {
+        await rename(stale, prefix);
+        return;
+      } catch {
+        // The prefix was filled again meanwhile: fall through to the retry and its check.
+      }
     }
     await rm(stale, { recursive: true, force: true });
     try {

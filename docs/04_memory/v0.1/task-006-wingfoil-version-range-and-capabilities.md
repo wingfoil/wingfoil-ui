@@ -219,3 +219,12 @@ e2e closure — scenarios that need a screen are proved here by API and unit tes
   - N2 — on entry, `<version>.tmp-*` / `.stale-*` siblings older than `ORPHAN_AGE_MS` (6 h,
     option `orphanAgeMs`) are removed; recent ones (a live worker) are kept. Test with `utimes`.
   - Lower-bound rule unchanged (pending spec gap 1).
+- Review round 3: **PASS**, follow-ups taken (`test/contracts/support.ts`):
+  - R1 — `moveIntoPlace`: a folder moved aside that holds the requested version (a winner that
+    landed between the check and the move) is renamed back and kept; our staging is discarded.
+    No lock file. Tested: a concurrent worker replacing the broken prefix during our install is
+    kept. The narrower check-to-move window itself has no deterministic test (it would need a
+    file-system hook).
+  - R2 — orphan cleanup now runs on every non-pinned call, before the version check (fast path
+    included; tested). This corrects the round 2 note: in round 2 the cleanup ran only on the
+    install path, not "on entry".
