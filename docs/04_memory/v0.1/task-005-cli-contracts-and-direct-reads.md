@@ -322,3 +322,7 @@ e2e closure — scenarios that need a screen are proved here by API and unit tes
   display name falls back (e.g. to the folder's base name) when it is absent
   (`server/src/state/store.ts` takes `name: string`). task-019 — the DNA view must render without
   `project` fields, stack lists, member `email`, agent `approval_authority`.
+- Spec errata no longer pending: spec-001 errata and spec-004 §5 `502 read-error` committed on
+  `main` (`aba1464`, decided by the user); `wingfoil-cli` 1.5 (W-09 qualified, W-23, `8fb47e9`).
+  `main` merged into this branch before submit; full suite at load ≈ 2: **547 passed, 1 skipped**,
+  coverage 96.32 % / 90.04 % · lint, format, typecheck clean · `docs:api` OK · e2e 3/3.
