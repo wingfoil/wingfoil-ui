@@ -82,7 +82,13 @@ class FileBackend implements StateBackend {
     const base = `${this.#file}.corrupt-${stamp(this.#now())}`;
     let kept = base;
     for (let n = 1; await exists(kept); n++) kept = `${base}-${n}`;
-    await rename(this.#file, kept);
+    try {
+      await rename(this.#file, kept);
+    } catch (error) {
+      // Another console moved it aside first: read what is there now.
+      if ((error as NodeJS.ErrnoException).code === 'ENOENT') return this.read();
+      throw error;
+    }
     return { state: emptyState(), readOnly: false, warning: { key: 'state.corruptKept', args: { file: kept } } };
   }
 
