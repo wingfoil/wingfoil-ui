@@ -31,6 +31,10 @@ class MemoryBackend implements StateBackend {
     this.#state = structuredClone(state);
     return Promise.resolve();
   }
+
+  lock<T>(fn: () => Promise<T>): Promise<T> {
+    return fn();
+  }
 }
 
 /** A store that keeps its state in memory, with the same rules as the file adapter. */

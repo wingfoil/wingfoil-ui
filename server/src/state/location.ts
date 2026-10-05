@@ -53,8 +53,11 @@ async function realpathLoose(target: string): Promise<string> {
 export function isWithin(child: string, parent: string, platform: NodeJS.Platform = process.platform): boolean {
   // Default file systems of Windows and macOS ignore letter case.
   const fold = platform === 'win32' || platform === 'darwin' ? (p: string) => p.toLowerCase() : (p: string) => p;
-  const relative = path.relative(fold(parent), fold(child));
-  return relative === '' || (relative !== '..' && !relative.startsWith(`..${path.sep}`) && !path.isAbsolute(relative));
+  const paths = platform === 'win32' ? path.win32 : path.posix;
+  const relative = paths.relative(fold(parent), fold(child));
+  return (
+    relative === '' || (relative !== '..' && !relative.startsWith(`..${paths.sep}`) && !paths.isAbsolute(relative))
+  );
 }
 
 /** The first listed project whose working tree contains the state directory `stateDir`, if any. */

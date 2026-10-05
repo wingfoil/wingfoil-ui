@@ -183,6 +183,12 @@ describe('reading', () => {
     expect((await b.reload()).map((p) => p.name)).toEqual(['kanban']);
     expect(b.projects().map((p) => p.name)).toEqual(['kanban']);
   });
+
+  it('reload() creates nothing when there is no state yet', async () => {
+    const store = await openFileStateStore({ dir });
+    expect(await store.reload()).toEqual([]);
+    await expect(stat(dir)).rejects.toThrow();
+  });
 });
 
 /** The pid of a process that has already exited. */

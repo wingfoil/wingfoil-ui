@@ -67,3 +67,9 @@ it('starts with an empty state when state.json is corrupt, keeping the file asid
   expect(files).toHaveLength(1);
   expect(files[0]).toMatch(/^state\.json\.corrupt-\d{8}T\d{6}Z$/);
 });
+
+it('fails (exit 70 in main) with a message naming a state.json it cannot read', async () => {
+  const stateDir = path.join(root, 'unreadable');
+  await mkdir(path.join(stateDir, 'state.json'), { recursive: true });
+  await expect(runLauncher(['--no-open'], io(stateDir))).rejects.toThrow(path.join(stateDir, 'state.json'));
+});

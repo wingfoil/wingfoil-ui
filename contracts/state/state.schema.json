@@ -15,7 +15,9 @@
     "projects": {
       "description": "The project list, in insertion order (the switcher's order, S-17.1). Ids are unique (checked by the reader).",
       "type": "array",
-      "items": { "$ref": "#/definitions/project" }
+      "items": {
+        "$ref": "#/definitions/project"
+      }
     },
     "settings": {
       "description": "Reserved for the UI settings (v0.2); {} in v0.1.",
@@ -47,9 +49,9 @@
           "type": "string"
         },
         "remote": {
-          "description": "URL of origin without userinfo, or \"\" (REQ-SEC-09). The scp-like form user@host:path is kept as typed.",
+          "description": "URL of origin, trimmed, without any credential, or \"\" (REQ-SEC-09): a URL form (scheme://) holds no '@' at all (userinfo removed, other '@' percent-encoded). The scp-like form user@host:path is kept as typed.",
           "type": "string",
-          "pattern": "^(?![A-Za-z][A-Za-z0-9+.-]*://[^/?#]*@)"
+          "pattern": "^(?!\\s)(?![\\s\\S]*\\s$)(?![A-Za-z][A-Za-z0-9+.-]*://[\\s\\S]*@)"
         },
         "addedAt": {
           "description": "ISO 8601 UTC time of the add.",

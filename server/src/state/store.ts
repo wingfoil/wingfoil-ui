@@ -47,6 +47,11 @@ export interface StateStore {
   projects(): ProjectEntry[];
   /** The project with exactly this id (never resolved as a path, REQ-SEC-04). */
   get(id: string): ProjectEntry | undefined;
+  /**
+   * Re-read the state (another console may have changed it) and resolve with the list. A
+   * read-only store keeps its in-memory list.
+   */
+  reload(): Promise<ProjectEntry[]>;
   /** Warnings for the shell (`GET /api/server`, spec-006 §4). */
   warnings(): StateWarning[];
   /** The whole state as last read or written. */
@@ -60,7 +65,7 @@ export interface StateStore {
   add(project: NewProject): Promise<ProjectEntry>;
   /** Drop a project (no file of the project is touched); resolves with the removed entry. */
   remove(id: string): Promise<ProjectEntry | undefined>;
-  /** Change fields of a project; resolves with the stored entry. */
+  /** Change `name`, `remote` or `roleView` of a project (other fields are ignored); resolves with the stored entry. */
   update(id: string, patch: ProjectPatch): Promise<ProjectEntry | undefined>;
 }
 
@@ -77,6 +82,8 @@ export interface StateBackend {
   readonly location: string;
   read(): Promise<ReadOutcome>;
   write(state: StateFile): Promise<void>;
+  /** Run `fn` (a re-read, then maybe a write) while no other process mutates the same state. */
+  lock<T>(fn: () => Promise<T>): Promise<T>;
 }
 
 /** The state of a first start. */
@@ -84,13 +91,27 @@ export function emptyState(): StateFile {
   return { version: STATE_VERSION, projects: [], settings: {}, actionLog: [] };
 }
 
+const URL_FORM = /^([A-Za-z][A-Za-z0-9+.-]*:\/\/)(.*)$/s;
+
 /**
- * `remote` without its userinfo (`https://user:token@host/x.git` → `https://host/x.git`). The
- * scp-like form `user@host:path` names a login, never a password, and is kept as written.
+ * `remote` trimmed and without any credential (REQ-SEC-09): in the URL form the userinfo is
+ * removed (`https://user:token@host/x.git` → `https://host/x.git`) and any other `@` is
+ * percent-encoded, so no `@` is left; a URL that does not parse loses everything up to its last
+ * `@`. The scp-like form `user@host:path` names a login, never a password, and is kept as written.
  */
 export function stripUserinfo(remote: string): string {
-  const match = /^([A-Za-z][A-Za-z0-9+.-]*:\/\/)[^/?#]*@(.*)$/s.exec(remote);
-  return match ? `${match[1]!}${match[2]!}` : remote;
+  const trimmed = remote.trim();
+  const match = URL_FORM.exec(trimmed);
+  if (!match || !trimmed.includes('@')) return trimmed;
+  try {
+    const url = new URL(trimmed);
+    url.username = '';
+    url.password = '';
+    return url.href.replaceAll('@', '%40');
+  } catch {
+    const rest = match[2]!;
+    return `${match[1]!}${rest.slice(rest.lastIndexOf('@') + 1)}`;
+  }
 }
 
 /** ISO 8601 UTC to the second, as spec-006 §2 shows `addedAt`. */
@@ -151,8 +172,26 @@ class BackedStateStore implements StateStore {
     return structuredClone(this.#state);
   }
 
+  /**
+   * Run `fn` after every earlier operation of this store; a mutation (`crossProcess`) also runs
+   * under the backend's lock. A plain read needs no lock: every write is an atomic rename.
+   */
+  #serialise<T>(fn: () => Promise<T>, crossProcess = true): Promise<T> {
+    const run = (): Promise<T> => (this.#readOnly || !crossProcess ? fn() : this.#backend.lock(fn));
+    const done = this.#lock.then(run, run);
+    this.#lock = done.catch(() => undefined);
+    return done;
+  }
+
+  reload(): Promise<ProjectEntry[]> {
+    return this.#serialise(async () => {
+      if (!this.#readOnly) this.#accept(await this.#backend.read());
+      return this.projects();
+    }, false);
+  }
+
   transaction<T>(fn: (draft: StateDraft) => T | Promise<T>): Promise<T> {
-    const run = async (): Promise<T> => {
+    return this.#serialise(async (): Promise<T> => {
       // Re-read first: another console on the same directory may have changed the list.
       if (!this.#readOnly) this.#accept(await this.#backend.read());
       const projects = structuredClone(this.#state.projects);
@@ -168,10 +207,7 @@ class BackedStateStore implements StateStore {
       if (!this.#readOnly) await this.#backend.write(next);
       this.#state = next;
       return result;
-    };
-    const done = this.#lock.then(run, run);
-    this.#lock = done.catch(() => undefined);
-    return done;
+    });
   }
 
   #create(project: NewProject, projects: readonly ProjectEntry[]): ProjectEntry {
@@ -207,7 +243,12 @@ class BackedStateStore implements StateStore {
   async update(id: string, patch: ProjectPatch): Promise<ProjectEntry | undefined> {
     const found = await this.transaction((draft) => {
       const entry = draft.projects.find((p) => p.id === id);
-      if (entry) Object.assign(entry, patch);
+      if (entry) {
+        // Only these fields: the id and the path of an entry never change.
+        if (patch.name !== undefined) entry.name = patch.name;
+        if (patch.remote !== undefined) entry.remote = patch.remote;
+        if (patch.roleView !== undefined) entry.roleView = patch.roleView;
+      }
       return entry !== undefined;
     });
     return found ? this.get(id) : undefined;
