@@ -294,3 +294,9 @@ e2e closure — scenarios that need a screen are proved here by API and unit tes
   (the TypeDoc-build and REQ-PERF-06 timing tests pass on this quieter machine), coverage
   **95.99 %** statements / **89 %** branches / 96.46 % functions / 97.11 % lines ·
   `npm run -s test:e2e` 3/3.
+- Integration with `main` (tasks 003, 007, spec amendments `429aab3`) merged into this branch
+  (`6876e83`) before submit; conflicts resolved in `start.ts`, `main.ts`, `test/README.md`;
+  `stateDir` added to the stop-children and stop-hook-leak tests. Focused review of the SIGHUP
+  change (`5fdb82d`): **PASS**. Full suite on the integrated branch at load ≈ 10: **422/422**,
+  coverage 96.44 % statements / 89.65 % branches; REQ-PERF-06 spawn → URL 1068–2790 ms with the
+  load rising again to ≈ 38 (≤ 3.0 s, but a thin margin under load — quiet machine: 386–693 ms).
