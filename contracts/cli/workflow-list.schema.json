@@ -1,0 +1,123 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://wingfoil-ui.local/contracts/cli/workflow-list.schema.json",
+  "$comment": "wingfoil 0.2.2 — captured from `wingfoil --format json workflow list` on the kanban, custom and unknown fixtures.",
+  "title": "wingfoil workflow list",
+  "description": "Workflow manifest and every workflow with its phases (spec-001 §3). version is a number (1, 1.1, 1.4) and absent in the Kanban template workflows; fallback may carry set_state.",
+  "type": "object",
+  "required": ["manifest", "workflows"],
+  "properties": {
+    "manifest": {
+      "type": "object",
+      "required": ["version", "include"],
+      "properties": {
+        "version": {
+          "type": "number"
+        },
+        "include": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "workflows": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "kind", "description", "phases"],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "version": {
+            "type": "number"
+          },
+          "element": {
+            "type": "string"
+          },
+          "phases": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["name", "optional"],
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "description": {
+                  "type": "string"
+                },
+                "role": {
+                  "type": "string"
+                },
+                "optional": {
+                  "type": "boolean"
+                },
+                "actions": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "produces": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "checks": {
+                  "type": "object",
+                  "properties": {
+                    "pre": {
+                      "type": "array"
+                    },
+                    "post": {
+                      "type": "array"
+                    }
+                  }
+                },
+                "approval": {
+                  "type": "object",
+                  "required": ["by_role"],
+                  "properties": {
+                    "by_role": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "fallback": {
+                  "type": "object",
+                  "properties": {
+                    "step": {
+                      "type": "string"
+                    },
+                    "set_state": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "include": {
+                  "type": "string"
+                },
+                "iterate_over": {
+                  "type": "string"
+                },
+                "where": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

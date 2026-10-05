@@ -1,0 +1,47 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://wingfoil-ui.local/contracts/cli/memory-search.schema.json",
+  "$comment": "wingfoil 0.2.2 — captured from `wingfoil --format json memory search` and `memory search --status deprecated|superseded` on the kanban, custom and unknown fixtures (one element archived on kanban and custom).",
+  "title": "wingfoil memory search",
+  "description": "Memory elements (spec-001 §3): without --status, archived elements (deprecated, superseded) are excluded; with --status deprecated|superseded, only those (W-19). message is present when matches is empty.",
+  "type": "object",
+  "required": ["query", "matches"],
+  "properties": {
+    "query": {
+      "type": "string"
+    },
+    "matches": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["path", "id", "title", "type", "status", "tags"],
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "message": {
+      "type": "string"
+    }
+  }
+}

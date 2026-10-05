@@ -1,0 +1,74 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://wingfoil-ui.local/contracts/cli/directives-list.schema.json",
+  "$comment": "wingfoil 0.2.2 — captured from `wingfoil --format json directives list` on the kanban, custom and unknown fixtures, and with two files of the same id (warnings: one string per shadowed id).",
+  "title": "wingfoil directives list",
+  "description": "Directive inventory: path relative to .wingfoil/, frontmatter, bound roles; no body (spec-001 §3). frontmatter.tags is absent when the file has none (captured on the custom fixture; spec-001 §3 writes `tags[]`).",
+  "type": "object",
+  "required": ["entries", "warnings"],
+  "properties": {
+    "entries": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["path", "frontmatter", "roles", "global", "assignment"],
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "frontmatter": {
+            "type": "object",
+            "required": ["id", "name", "type", "kind", "title"],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "type": {
+                "type": "string"
+              },
+              "kind": {
+                "type": "string"
+              },
+              "title": {
+                "type": "string"
+              },
+              "tags": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "ref": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "roles": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "global": {
+            "type": "boolean"
+          },
+          "assignment": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "warnings": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  }
+}

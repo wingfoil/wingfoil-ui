@@ -1,8 +1,34 @@
 /**
- * WingFoil UI contracts: JSON Schemas of the consumed WingFoil CLI output, of `ui.yaml`, of the
- * HTTP API and of the local state file, and the types matching them (adr-002). The CLI schemas
- * arrive with task-005.
+ * WingFoil UI contracts: JSON Schemas of the consumed WingFoil CLI output (`cli/`), of the files
+ * read directly from the allow-list (`files/`), of `ui.yaml`, of the HTTP API and of the local state
+ * file, and the types matching them (adr-002, spec-001 §5). `matrix.json` holds the supported
+ * WingFoil versions.
  *
  * @packageDocumentation
  */
+export type {
+  DirectiveEntry,
+  DirectiveFrontmatter,
+  DirectivesList,
+  DnaAgent,
+  DnaMember,
+  DnaMethodology,
+  DnaModule,
+  DnaPaths,
+  DnaRole,
+  DnaShow,
+  DnaTechnology,
+  HistoryEntry,
+  HistoryOperation,
+  MemoryAdded,
+  MemoryHistory,
+  MemoryMatch,
+  MemoryRejection,
+  MemorySearch,
+  MemoryTransition,
+  Workflow,
+  WorkflowList,
+  WorkflowPhase,
+} from './cli.js';
+export type { ElementFrontmatter, MemoryTypeDef, MemoryYaml, StateMachine } from './files.js';
 export type { ProjectEntry, StateFile, StateWarning } from './state.js';

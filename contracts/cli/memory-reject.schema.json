@@ -1,0 +1,26 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://wingfoil-ui.local/contracts/cli/memory-reject.schema.json",
+  "$comment": "wingfoil 0.2.2 — captured from `wingfoil --format json memory reject <id> --reason <text>` on the kanban, custom and unknown fixtures.",
+  "title": "wingfoil memory reject <id> --reason <text>",
+  "description": "A gate refused: to is the gate's reject target; the reason is also written to the element as rejection_reason (spec-001 §3).",
+  "type": "object",
+  "required": ["id", "path", "from", "to", "reason"],
+  "properties": {
+    "id": {
+      "type": "string"
+    },
+    "path": {
+      "type": "string"
+    },
+    "from": {
+      "type": "string"
+    },
+    "to": {
+      "type": "string"
+    },
+    "reason": {
+      "type": "string"
+    }
+  }
+}

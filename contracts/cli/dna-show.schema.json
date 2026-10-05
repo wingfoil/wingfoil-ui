@@ -1,0 +1,166 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://wingfoil-ui.local/contracts/cli/dna-show.schema.json",
+  "$comment": "wingfoil 0.2.2 — captured from `wingfoil --format json dna show` on the kanban, custom and unknown fixtures (custom: project.license/repository, modules[].path, technologies {name, category, version?, notes?}, methodologies {name, phase?}).",
+  "title": "wingfoil dna show",
+  "description": "The whole dna.yaml (spec-001 §3). Additional properties are accepted (a newer CLI may add fields); every field the UI reads is required.",
+  "type": "object",
+  "required": ["version", "project", "modules", "stacks", "team", "paths"],
+  "properties": {
+    "version": {
+      "type": "integer"
+    },
+    "project": {
+      "type": "object",
+      "required": ["name", "description", "methodology"],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "methodology": {
+          "type": "string"
+        }
+      }
+    },
+    "modules": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name"],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "stacks": {
+      "type": "object",
+      "required": ["technologies", "methodologies"],
+      "properties": {
+        "technologies": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["name"],
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "category": {
+                "type": "string"
+              },
+              "version": {
+                "type": "string"
+              },
+              "notes": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "methodologies": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["name"],
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "phase": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "team": {
+      "type": "object",
+      "required": ["members", "roles"],
+      "properties": {
+        "members": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["name", "email", "roles"],
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "email": {
+                "type": "string"
+              },
+              "roles": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "roles": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["name"],
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "agents": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["name", "executes_as", "approval_authority"],
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "executes_as": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "approval_authority": {
+                "type": "boolean"
+              }
+            }
+          }
+        }
+      }
+    },
+    "paths": {
+      "$ref": "#/definitions/paths"
+    }
+  },
+  "definitions": {
+    "paths": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

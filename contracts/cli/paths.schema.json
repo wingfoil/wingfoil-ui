@@ -1,0 +1,14 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://wingfoil-ui.local/contracts/cli/paths.schema.json",
+  "$comment": "wingfoil 0.2.2 — captured from `wingfoil --format json paths` on the kanban, custom and unknown fixtures.",
+  "title": "wingfoil paths",
+  "description": "Path categories of dna.yaml: {<category>: string[]} — same as dna show's paths (spec-001 §3).",
+  "type": "object",
+  "additionalProperties": {
+    "type": "array",
+    "items": {
+      "type": "string"
+    }
+  }
+}

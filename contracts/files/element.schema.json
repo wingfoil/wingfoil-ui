@@ -1,0 +1,23 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://wingfoil-ui.local/contracts/files/element.schema.json",
+  "$comment": "wingfoil 0.2.2 — checked on every element file of the kanban, custom and unknown fixtures.",
+  "title": "Memory element frontmatter",
+  "description": "The YAML frontmatter of a Memory element file, read only at a path memory search returns (spec-001 §4.2). id, type, title and status are always present; every other field is type-specific and shown as read.",
+  "type": "object",
+  "required": ["id", "type", "title", "status"],
+  "properties": {
+    "id": {
+      "type": "string"
+    },
+    "type": {
+      "type": "string"
+    },
+    "title": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string"
+    }
+  }
+}

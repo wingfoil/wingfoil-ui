@@ -1,0 +1,23 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://wingfoil-ui.local/contracts/cli/memory-submit.schema.json",
+  "$comment": "wingfoil 0.2.2 — captured from `wingfoil --format json memory submit <id>` on the kanban and unknown fixtures.",
+  "title": "wingfoil memory submit <id>",
+  "description": "One step forward along the type's sequence (spec-001 §3).",
+  "type": "object",
+  "required": ["id", "path", "from", "to"],
+  "properties": {
+    "id": {
+      "type": "string"
+    },
+    "path": {
+      "type": "string"
+    },
+    "from": {
+      "type": "string"
+    },
+    "to": {
+      "type": "string"
+    }
+  }
+}

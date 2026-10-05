@@ -1,0 +1,9 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://wingfoil-ui.local/contracts/cli/version.schema.json",
+  "$comment": "wingfoil 0.2.2 — captured with `node <bin> --version` on the kanban, custom and unknown fixtures: `0.2.2`.",
+  "title": "wingfoil --version",
+  "description": "Plain text, not JSON, even with --format json (W-19): one non-empty line, trimmed by the adapter. Parsed as a semantic version by task-006 (spec-001 §3).",
+  "type": "string",
+  "pattern": "^[^\\r\\n]+$"
+}
