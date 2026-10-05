@@ -2,7 +2,7 @@
 id: task-004-cli-adapter-discovery-and-invocation
 type: task
 title: "CLI adapter discovery and invocation"
-status: backlog
+status: in-progress
 release: "v0.1"
 module: "server"             # optional — server | web | contracts (dna.yaml modules)
 priority: "high"           # optional — high | medium | low
