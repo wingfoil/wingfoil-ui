@@ -69,7 +69,7 @@ beforeAll(async () => {
   root = await realpath(await mkdtemp(path.join(tmpdir(), 'wfui-reads-fx-')));
   kanban = await buildFixture('kanban', { root: path.join(root, 'kanban') });
   custom = await buildFixture('custom', { root: path.join(root, 'custom') });
-});
+}, 600_000); // two fixture builds; minutes under a heavy load
 
 afterAll(async () => {
   for (const r of runners) await r.terminateAll();
@@ -138,7 +138,7 @@ describe('TT-ARC-04 — file-system spy over every read', () => {
       const resolved = onProject.filter((c) => !c.fn.endsWith('readFile') && !c.fn.endsWith('readFileSync'));
       expect(resolved.filter((c) => !allowed.has(c.arg) && c.arg !== fx.dir && c.arg !== abs('.wingfoil'))).toEqual([]);
     },
-    120_000,
+    300_000,
   );
 });
 
@@ -160,7 +160,7 @@ describe('the status cross-check (REQ-ARC-04)', () => {
     );
     // The other elements read fine.
     for (const m of matches.filter((x) => x !== login)) await expect(reads.elementFromMatch(m)).resolves.toBeDefined();
-  });
+  }, 120_000);
 });
 
 describe('scenarios on the API side', () => {
@@ -174,7 +174,7 @@ describe('scenarios on the API side', () => {
     expect(match?.title).toBe('Login form v2');
     const el = await reads.element('task-001-login-form');
     expect(el?.content.frontmatter.title).toBe('Login form v2');
-  });
+  }, 120_000);
 
   it('M-01.1 — kanban: the type filter counts task 4 and bug 1 (memory search over the memory.yaml types)', async () => {
     const reads = await readsFor(kanban);
@@ -184,7 +184,7 @@ describe('scenarios on the API side', () => {
     expect(types).toEqual(expect.arrayContaining(['task', 'bug']));
     expect(count('task')).toBe(4);
     expect(count('bug')).toBe(1);
-  });
+  }, 120_000);
 
   it("R-05.1 — custom: the DNA's modules with descriptions and paths, stacks, team roles and paths", async () => {
     const reads = await readsFor(custom);
@@ -199,5 +199,5 @@ describe('scenarios on the API side', () => {
     expect(dna.stacks.methodologies.find((m) => m.name === 'TDD')?.phase).toBe('delivery');
     expect(dna.team.members.find((m) => m.name === 'Morgan')?.roles).toEqual(['approver', 'tech-lead']);
     expect(dna.paths.tests).toEqual(['test/']);
-  });
+  }, 120_000);
 });

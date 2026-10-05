@@ -77,7 +77,7 @@ describe.each(VERSIONS)('contract — wingfoil %s', (version) => {
     for (const kind of FIXTURE_KINDS) {
       fixtures[kind] = await buildFixture(kind, { root: path.join(root, version, kind), cli, cliVersion: version });
     }
-  });
+  }, 600_000); // three fixture builds: ~35 s idle, over 180 s measured under a load average of 50
 
   it.each(FIXTURE_KINDS)(
     '%s: every read command validates, every allow-listed file validates, transitions follow §4.1',
@@ -108,7 +108,7 @@ describe.each(VERSIONS)('contract — wingfoil %s', (version) => {
       expect(entries.length).toBeGreaterThan(0);
       for (const d of entries) await reads.directiveFromEntry(d);
     },
-    180_000,
+    300_000,
   );
 
   it.each(FIXTURE_KINDS)(
@@ -156,7 +156,7 @@ describe.each(VERSIONS)('contract — wingfoil %s', (version) => {
         } else expect(result.message).toBe('no documents matched the query');
       }
     },
-    180_000,
+    300_000,
   );
 
   it('S-27.1 — an invalid dna.yaml refuses dna show with the CLI message; memory search still validates', async () => {
@@ -169,7 +169,7 @@ describe.each(VERSIONS)('contract — wingfoil %s', (version) => {
       /^E_YAML_PARSE_ERROR \(.*dna\.yaml\): invalid DNA: YAML parse error/,
     );
     expect((await reads.elements()).data.matches.map((m) => m.id)).toContain('task-001-login-form');
-  });
+  }, 120_000);
 
   it('REQ-INT-01 — 100 % of the commands of the static list ran and validated', () => {
     expect([...ran].sort()).toEqual(Object.keys(CLI_COMMANDS).sort());
