@@ -9,15 +9,23 @@ import { message } from './i18n/messages.js';
 import { EXIT, runLauncher } from './launcher/start.js';
 import { LocalProcessRunner } from './process/runner.js';
 
+/** Options of {@link main} (tests). */
+export interface MainOptions {
+  /** Runner of the `wingfoil` and git processes of a start (default: a new one). */
+  processes?: LocalProcessRunner;
+}
+
+/**
+ * Signals that stop the console (spec-007 §6, amended 2026-10-05): Ctrl-C, `kill`, terminal closed.
+ * Node.js emits `SIGHUP` on Windows too, when the console window is closed.
+ */
+const STOP_SIGNALS: readonly NodeJS.Signals[] = ['SIGINT', 'SIGTERM', 'SIGHUP'];
+
 /** Run the console with the command-line arguments `argv`. */
-export async function main(argv: readonly string[]): Promise<void> {
+export async function main(argv: readonly string[], options: MainOptions = {}): Promise<void> {
   const { version } = JSON.parse(readFileSync(new URL('../../package.json', import.meta.url), 'utf8')) as {
     version: string;
   };
-  // Children lead their own process group (no terminal signal reaches them): whatever ends the
-  // process, the ones still running are killed with it.
-  const processes = new LocalProcessRunner();
-  process.on('exit', () => processes.killAllNow());
   try {
     const code = await runLauncher(argv, {
       stdout: (line) => process.stdout.write(`${line}\n`),
@@ -26,11 +34,13 @@ export async function main(argv: readonly string[]): Promise<void> {
       staticDir: fileURLToPath(new URL('../../web/dist/', import.meta.url)),
       platform: process.platform,
       onSignal: (handler) => {
-        process.on('SIGINT', handler);
-        process.on('SIGTERM', handler);
+        for (const signal of STOP_SIGNALS) process.on(signal, handler);
+      },
+      onExit: (handler) => {
+        process.on('exit', handler);
       },
       exit: (code) => process.exit(code),
-      processes,
+      ...(options.processes ? { processes: options.processes } : {}),
     });
     if (code !== undefined) process.exitCode = code;
   } catch (error) {

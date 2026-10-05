@@ -32,8 +32,10 @@ export interface LauncherIo {
   staticDir: string;
   platform: NodeJS.Platform;
   spawn?: Spawner;
-  /** Registers the handler of SIGINT/SIGTERM. */
+  /** Registers the handler of the stop signals (SIGINT, SIGTERM, SIGHUP — spec-007 §6). */
   onSignal(handler: () => void): void;
+  /** Registers a synchronous handler run at any process exit (a start only). */
+  onExit?(handler: () => void): void;
   /** Ends the process with `code`. */
   exit(code: number): void;
   /** Longest wait for open requests at stop before they are cut (default 5 s). */
@@ -97,6 +99,9 @@ export async function runLauncher(argv: readonly string[], io: LauncherIo): Prom
   // Drawn before the application is built: the session guards (task-003) need it.
   const token = drawToken();
   const processes = io.processes ?? new LocalProcessRunner();
+  // Children lead their own process group (no terminal signal reaches them): whatever ends the
+  // process, the ones still running are killed with it (spec-007 §6).
+  io.onExit?.(() => processes.killAllNow());
   const app = await buildApp({ staticDir: io.staticDir, logger });
   // CLI and git children are terminated in the stop sequence (spec-007 §6, adr-001 D5); registered
   // once the application exists, removed again if the listen fails.
