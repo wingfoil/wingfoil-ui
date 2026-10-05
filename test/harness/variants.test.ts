@@ -77,6 +77,14 @@ describe('CLI stub variant', () => {
     expect((await git(fx.dir, ['status', '--porcelain'], fx.env)).stdout).toBe('');
   });
 
+  it('matches a command whose global options come first, as the server invokes it', async () => {
+    const fx = await freshKanban();
+    await installCliStub(fx, { failures: [{ command: ['memory', 'approve'], exitCode: 1, stderr: 'refused' }] });
+    const result = await wingfoil(fx, ['--format', 'json', '--no-color', 'memory', 'approve', 'x', '--reason', 'ok']);
+    expect(result.code).toBe(1);
+    expect(result.stderr.trim()).toBe('refused');
+  });
+
   it('delegates every other command to the real CLI', async () => {
     const fx = await freshKanban();
     await installCliStub(fx, { failures: [{ command: ['memory', 'approve'], exitCode: 1, stderr: 'x' }] });

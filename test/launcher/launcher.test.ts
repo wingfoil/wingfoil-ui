@@ -142,6 +142,16 @@ describe('spec-007 command line', () => {
     expect(l.stdoutLines().at(-1)).toBe('WingFoil UI stopped');
   });
 
+  it.skipIf(process.platform === 'win32')(
+    'stops on SIGHUP (terminal closed) with the stop line and exit 0',
+    async () => {
+      const l = await launch(['--no-open']);
+      const code = await l.stop('SIGHUP');
+      expect(code).toBe(0);
+      expect(l.stdoutLines().at(-1)).toBe('WingFoil UI stopped');
+    },
+  );
+
   it('exits 130 on a second signal while stopping', async () => {
     const l = await launch(['--no-open']);
     // An unfinished request keeps the graceful stop waiting.

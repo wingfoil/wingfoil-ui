@@ -7,6 +7,7 @@ import { createTokenAuthentication } from '../auth/authentication.js';
 import { buildApp } from '../http/app.js';
 import { message } from '../i18n/messages.js';
 import { createLogger } from '../logging.js';
+import { LocalProcessRunner } from '../process/runner.js';
 import { openFileStateStore } from '../state/file-store.js';
 import { findProjectContaining } from '../state/location.js';
 import { listenLoopback, NoFreePortError, PortInUseError } from './listen.js';
@@ -36,12 +37,16 @@ export interface LauncherIo {
   stateDir: string;
   platform: NodeJS.Platform;
   spawn?: Spawner;
-  /** Registers the handler of SIGINT/SIGTERM. */
+  /** Registers the handler of the stop signals (SIGINT, SIGTERM, SIGHUP — spec-007 §6). */
   onSignal(handler: () => void): void;
+  /** Registers a synchronous handler run at any process exit (a start only). */
+  onExit?(handler: () => void): void;
   /** Ends the process with `code`. */
   exit(code: number): void;
   /** Longest wait for open requests at stop before they are cut (default 5 s). */
   drainTimeoutMs?: number;
+  /** Runner of the `wingfoil` and git processes, terminated at stop (default: a new one). */
+  processes?: LocalProcessRunner;
 }
 
 /** Work run during the stop sequence (e.g. closing event streams, terminating CLI children). */
@@ -106,6 +111,10 @@ export async function runLauncher(argv: readonly string[], io: LauncherIo): Prom
   for (const warning of state.warnings()) logger.warn({ warning }, 'local state');
   // Drawn before the application is built: the session guards (task-003) need it.
   const token = drawToken();
+  const processes = io.processes ?? new LocalProcessRunner();
+  // Children lead their own process group (no terminal signal reaches them): whatever ends the
+  // process, the ones still running are killed with it (spec-007 §6).
+  io.onExit?.(() => processes.killAllNow());
   // The port is known once listening; until then the guards refuse every request.
   const listening: { port?: number } = {};
   const app = await buildApp({
@@ -113,6 +122,9 @@ export async function runLauncher(argv: readonly string[], io: LauncherIo): Prom
     logger,
     security: { authentication: createTokenAuthentication(token), port: () => listening.port },
   });
+  // CLI and git children are terminated in the stop sequence (spec-007 §6, adr-001 D5); registered
+  // once the application exists, removed again if the listen fails.
+  const offProcesses = onStop(() => processes.terminateAll());
   let listeners;
   try {
     listeners = await listenLoopback(app.routing, {
@@ -120,6 +132,7 @@ export async function runLauncher(argv: readonly string[], io: LauncherIo): Prom
       onError: (error) => logger.error({ err: error }, 'listener error'),
     });
   } catch (error) {
+    offProcesses();
     await app.close();
     if (error instanceof PortInUseError) {
       io.stderr(message('launcher.portInUse', { port: error.port }));
@@ -136,6 +149,8 @@ export async function runLauncher(argv: readonly string[], io: LauncherIo): Prom
   let stopping = false;
   io.onSignal(() => {
     if (stopping) {
+      // Forced: the SIGKILL escalation timers would die with the process — kill the children now.
+      processes.killAllNow();
       io.exit(EXIT.forced);
       return;
     }

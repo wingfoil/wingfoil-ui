@@ -8,10 +8,23 @@ import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { message } from './i18n/messages.js';
 import { EXIT, runLauncher } from './launcher/start.js';
+import { LocalProcessRunner } from './process/runner.js';
 import { resolveStateDir } from './state/location.js';
 
+/** Options of {@link main} (tests). */
+export interface MainOptions {
+  /** Runner of the `wingfoil` and git processes of a start (default: a new one). */
+  processes?: LocalProcessRunner;
+}
+
+/**
+ * Signals that stop the console (spec-007 §6, amended 2026-10-05): Ctrl-C, `kill`, terminal closed.
+ * Node.js emits `SIGHUP` on Windows too, when the console window is closed.
+ */
+const STOP_SIGNALS: readonly NodeJS.Signals[] = ['SIGINT', 'SIGTERM', 'SIGHUP'];
+
 /** Run the console with the command-line arguments `argv`. */
-export async function main(argv: readonly string[]): Promise<void> {
+export async function main(argv: readonly string[], options: MainOptions = {}): Promise<void> {
   const { version } = JSON.parse(readFileSync(new URL('../../package.json', import.meta.url), 'utf8')) as {
     version: string;
   };
@@ -24,10 +37,13 @@ export async function main(argv: readonly string[]): Promise<void> {
       stateDir: resolveStateDir({ env: process.env, platform: process.platform, homedir: homedir() }),
       platform: process.platform,
       onSignal: (handler) => {
-        process.on('SIGINT', handler);
-        process.on('SIGTERM', handler);
+        for (const signal of STOP_SIGNALS) process.on(signal, handler);
+      },
+      onExit: (handler) => {
+        process.on('exit', handler);
       },
       exit: (code) => process.exit(code),
+      ...(options.processes ? { processes: options.processes } : {}),
     });
     if (code !== undefined) process.exitCode = code;
   } catch (error) {
