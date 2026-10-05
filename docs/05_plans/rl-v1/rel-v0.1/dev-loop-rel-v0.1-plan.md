@@ -3,7 +3,7 @@ id: dev-loop-rel-v0.1-plan
 type: plan
 title: "Implementation rel-v0.1"
 status: active
-version: "0.1"         # optional — plan version
+version: "0.2"         # optional — plan version
 workflow: "dev-loop"
 phase: "rel-v0.1"
 scope: "rl-v1/rel-v0.1"
@@ -14,7 +14,7 @@ tmpl_version: 260703   # Orignal template version
 
 ## Context
 
-**Version:** 0.1 · **Date:** 2026-10-05 (0.1: plan created, Wave 1 scope)
+**Version:** 0.2 · **Date:** 2026-10-05 (0.1: plan created, Wave 1 scope; 0.2: Wave 1 session log)
 **Workflows:** `sw-life-cycle` → `release-line-cycle` (`rl-v1`) phase `delivery` → `release-cycle`
 (`minor-v0.1`) phase `implementation` = `dev-loop` iterated over every task with status `backlog`
 and tag `v0.1` (`.wingfoil/workflows/custom/release-cycle.yaml` v1.1, `dev-loop.yaml` v1.4)
@@ -90,8 +90,55 @@ Per task (`dev-loop` v1.4):
   before each merge; end of each wave.
 - **Completion:** every v0.1 task `done` and merged; plan finalized by hand (`status: done`, commit
   `wf(plan): finalize dev-loop-rel-v0.1-plan [active → done]`, W-04).
-- **Next:** wave 2 (006, 009, 010, 011, 008, 012).
+- **Next:** wave 2 (006, 009, 010, 011, 008, 012) — see Session 1.
 
 ## Session log
 
 <!-- One entry per session: date, decisions taken, deviations from this plan. -->
+
+### Session 1 — Wave 1: server foundations (2026-10-05)
+
+- **Done and merged** (`--no-ff`, each after an independent fresh-context review, re-verified by
+  the same agent after fixes, and the user's `memory approve`): task-001 (`cef8085`), task-002
+  (`cfc7d87`), task-007 (`5708b16`), task-003 (`f534738`), task-004 (`dc6baf6`), task-005
+  (`d8960f5`). Review rounds: 001 ×2, 002 ×2, 003 ×3, 004 ×4, 007 ×3, 005 ×2.
+- **Process decisions:**
+  - Task transitions checked on a scratch clone: `backlog → in-progress` and `approved → done` are
+    hand edits with a `wf(task): <id> [from → to]` commit on `main` (W-20, directive 1.3).
+  - **Parallel dev-loops** (user request): after task-002, tasks 003, 004, 007 ran in parallel,
+    one background agent per worktree (design → refactor only); the coordinator kept every
+    transition, review, submit and merge on `main`. Wave statistics are shown at every agent
+    update (user preference). Merges one at a time; from task-004 on, `main` is merged into the
+    task branch **before** submit, so the approval covers the integrated code.
+  - Plan `workflow: dev-loop` (the `id_pattern` example) instead of `release-cycle`.
+- **Spec amendments decided by the user** (approved specs edited in place, Process Notes dated):
+  spec-004 §1 `Sec-Fetch-Site` check and duplicate `Host` refused, §5 `502 read-error`; spec-006 §4
+  lock protocol between consoles (`state.json.lock`, heartbeat, 10 s staleness), temporary file
+  `tmp-<pid>-<n>`, `reload`; spec-007 §6 `SIGHUP` like `SIGTERM`, synchronous kill of child
+  process groups on forced stop/exit; spec-001 errata — shapes follow WingFoil 0.2.2's own
+  schemas (optional fields, `\r?\n` delimiters, merge keys) (`429aab3`, `aba1464`).
+- **WingFoil 0.2.2 facts** (directive `wingfoil-cli` 1.3 → 1.5): W-21 `memory add` always writes
+  `draft`; W-22 exit 2 may be JSON on stderr, positionals after `--`; W-23 duplicate directive ids;
+  W-09 qualified (dangling binding warned only with `--role`). A claimed W-22 "search hides
+  undeclared states" was **withdrawn** at review (flawed probe). adr-001 Process Note: the root
+  `devDependencies` pin of `wingfoil` is not a runtime dependency. Local requests: R-12.
+- **Deviations:** the fixture builder (001) and two coverage tests (002) were written after the
+  code; the task-004 agent session was interrupted and the coordinator completed its notes.
+- **Environment:** another project's parallel builds pushed the load average to 50–70 on 12
+  cores; the REQ-PERF-06 start test (≤ 3.0 s) and the TypeDoc-build test (30 s) then fail and pass
+  alone. Every merge was preceded by a full run at low load. **Proposal for Wave 2:** isolate the
+  timing tests (sequential Vitest project) and run them only on a quiet machine.
+- **Checks on `main` after the wave** (`4d3e6cb`, load ≈ 6): `npm run test:coverage` **547 passed,
+  1 skipped** (on-demand sample capture), coverage 96.32 % statements / 90.04 % branches · e2e 3/3
+  (Chromium) · lint, format, typecheck clean · `docs:api` OK · `check_tasks.py` OK (21 tasks, 72
+  items) · `directives list` → `"warnings": []`.
+- **Hand-overs to Wave 2** (in each task's Execution Notes): 006 — `matrix.json`, versioned
+  schemas; 008 — clone through the runner with the REQ-SEC-05 probe (`test/harness/security.ts`),
+  `store.transaction` short and side-effect-free (may run twice, not re-entrant), `reload()` for
+  the list, write-lock key = opaque project id, `GIT_TERMINAL_PROMPT=0`, `dna.project.name`
+  optional; 010 — cache `memory search`, re-discover the CLI when `node_modules/wingfoil` changes;
+  012 — routes through `buildApp({ register })` (guarded automatically), `read-error` mapping,
+  never log `DirectReadError.message`; 013 — `POST /api/session` (Bearer, 204), same-origin
+  fetches only, catalogue keys `state.*`; 015 — Playwright needs its own `tsc -b server` step.
+- **Next:** Wave 2 — 006, 009, 010, 011, 008, 012 (by `depends_on`; parallel where independent).
+
