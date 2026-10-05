@@ -82,6 +82,8 @@ Bars common to every release (`08_mvp-canvas.md`, SARD v0.6):
   Fixed: web order 013 → 018 → 017 → 019 → 020 → 015 → 014 → 016 → 021 (element panel by URL
   first; US-G-02 → task-019); themes/strings acceptance → task-021; dependencies added; SARD v0.7
   v0.1 scopes; spec-006 `cli-not-found` and `availability`; BDD conventions v0.6 fixture variants.
+- 2026-10-05 — 21 tasks approved into `backlog`; release `planning → in-development` (`df09286`).
+  Planning took 4 active days (2026-10-02 … 2026-10-05) inside the v0.1 budget of 9.
 
 ### Implementation (dev-loop, per task)
 

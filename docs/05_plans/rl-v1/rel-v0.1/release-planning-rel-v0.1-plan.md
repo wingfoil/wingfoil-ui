@@ -2,7 +2,7 @@
 id: release-planning-rel-v0.1-plan
 type: plan
 title: "Release planning — rel-v0.1"
-status: active
+status: done
 version: "1.0"         # optional — plan version
 workflow: "release-planning"
 phase: "rel-v0.1"
@@ -229,4 +229,8 @@ draft is checked against `memory.yaml`'s `required` list (W-02).
   `check_releases.py` OK; `check_tasks.py` OK (21 tasks, 72 / 72); `directives list` →
   `"warnings": []`.
 - Committed before the approvals, so that the `approve` commits change only the task status.
+- `commit-backlog`: the user (approver) approved the 21 tasks → `backlog` (`542de86` … `b656e82`);
+  `minor-v0.1` `planning → in-development` by hand (`df09286`, no CLI verb, W-04);
+  `check_releases.py` OK, `memory search --type task` → 21 `backlog`.
+- Plan finalized (`status: done`) and branch merged to `main` with `--no-ff` at the user's request.
 
