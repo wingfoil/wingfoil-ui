@@ -124,6 +124,8 @@ export async function runLauncher(argv: readonly string[], io: LauncherIo): Prom
   let stopping = false;
   io.onSignal(() => {
     if (stopping) {
+      // Forced: the SIGKILL escalation timers would die with the process — kill the children now.
+      processes.killAllNow();
       io.exit(EXIT.forced);
       return;
     }

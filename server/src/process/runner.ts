@@ -84,6 +84,8 @@ export class ProcessStartError extends Error {
 interface Running {
   child: ChildProcess;
   kill(end: ProcessEnd): void;
+  /** SIGKILL now, synchronously. */
+  killNow(): void;
   done: Promise<unknown>;
 }
 
@@ -165,7 +167,13 @@ export class LocalProcessRunner implements ProcessRunner {
         // Without a pid (not started yet) the signal is sent on 'spawn'.
         terminate();
       };
-      const entry: Running = { child, kill, done };
+      const killNow = (): void => {
+        if (end === 'exit') end = 'terminated';
+        signalled = true;
+        clearTimeout(escalation);
+        if (child.pid !== undefined) signalAll('SIGKILL');
+      };
+      const entry: Running = { child, kill, killNow, done };
       const onAbort = (): void => kill('cancelled');
       const cleanUp = (): void => {
         clearTimeout(timer);
@@ -196,8 +204,9 @@ export class LocalProcessRunner implements ProcessRunner {
       child.on('spawn', () => {
         this.options.onSpawn?.({ file: request.file, args: [...request.args], cwd: request.cwd, pid: child.pid });
         if (end !== 'exit') {
-          // Stopped or aborted before it existed.
-          terminate();
+          // Stopped, aborted or killed before it existed.
+          if (signalled) signalAll('SIGKILL');
+          else terminate();
           return;
         }
         const timeoutMs = request.timeoutMs === undefined ? DEFAULT_TIMEOUT_MS : request.timeoutMs;
@@ -226,5 +235,14 @@ export class LocalProcessRunner implements ProcessRunner {
     const running = [...this.children];
     for (const entry of running) entry.kill('terminated');
     await Promise.all(running.map((entry) => entry.done));
+  }
+
+  /**
+   * Last resort, synchronous (a forced stop, `process.on('exit')`): refuse new processes and send
+   * SIGKILL to every running one (its group on POSIX) now — no timer survives the server's exit.
+   */
+  killAllNow(): void {
+    this.stopping = true;
+    for (const entry of this.children) entry.killNow();
   }
 }

@@ -7,12 +7,17 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { message } from './i18n/messages.js';
 import { EXIT, runLauncher } from './launcher/start.js';
+import { LocalProcessRunner } from './process/runner.js';
 
 /** Run the console with the command-line arguments `argv`. */
 export async function main(argv: readonly string[]): Promise<void> {
   const { version } = JSON.parse(readFileSync(new URL('../../package.json', import.meta.url), 'utf8')) as {
     version: string;
   };
+  // Children lead their own process group (no terminal signal reaches them): whatever ends the
+  // process, the ones still running are killed with it.
+  const processes = new LocalProcessRunner();
+  process.on('exit', () => processes.killAllNow());
   try {
     const code = await runLauncher(argv, {
       stdout: (line) => process.stdout.write(`${line}\n`),
@@ -25,6 +30,7 @@ export async function main(argv: readonly string[]): Promise<void> {
         process.on('SIGTERM', handler);
       },
       exit: (code) => process.exit(code),
+      processes,
     });
     if (code !== undefined) process.exitCode = code;
   } catch (error) {
