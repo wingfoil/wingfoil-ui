@@ -2,7 +2,7 @@
  * WingFoil UI contracts: JSON Schemas of the consumed WingFoil CLI output (`cli/`), of the files
  * read directly from the allow-list (`files/`), of `ui.yaml`, of the HTTP API and of the local state
  * file, and the types matching them (adr-002, spec-001 §5). `matrix.json` holds the supported
- * WingFoil versions.
+ * WingFoil versions, `capabilities.json` the capability table.
  *
  * @packageDocumentation
  */
@@ -30,5 +30,6 @@ export type {
   WorkflowList,
   WorkflowPhase,
 } from './cli.js';
+export type { Capability, CapabilityTable, SupportMatrix } from './capabilities.js';
 export type { ElementFrontmatter, MemoryTypeDef, MemoryYaml, StateMachine } from './files.js';
 export type { ProjectEntry, StateFile, StateWarning } from './state.js';

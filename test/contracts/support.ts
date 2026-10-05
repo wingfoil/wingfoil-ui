@@ -3,7 +3,7 @@
  * each matrix version, the raw CLI (as a terminal runs it — the samples are captured with it, not
  * with the adapter under test) and the fixture changes that make the archived searches non-empty.
  */
-import { readFile, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { binScript, pinnedCli, pinnedVersion, REPO_ROOT, type CliBuild } from '../harness/cli.js';
 import { cliPackageDir, memberByName, type Fixture, type MemberName } from '../harness/fixtures/index.js';
@@ -22,15 +22,56 @@ export async function matrixVersions(): Promise<string[]> {
   return matrix.versions;
 }
 
+/** Default folder of the matrix builds other than the pinned one (ignored by git with `node_modules`). */
+export const MATRIX_CACHE = path.join(REPO_ROOT, 'node_modules', '.cache', 'wingfoil-ui-matrix');
+
+/** Options of {@link cliBuildFor}. */
+export interface CliBuildOptions {
+  /** Folder holding one `<version>/` install prefix per version (default {@link MATRIX_CACHE}). */
+  cacheRoot?: string;
+  /** Installs `wingfoil@<version>` under `prefix` (default: `npm install --prefix`, needs the registry once). */
+  install?: (prefix: string, version: string) => Promise<void>;
+}
+
+/** `npm install --prefix <prefix> --no-save wingfoil@<version>`, without scripts, audit or fund. */
+async function npmInstall(prefix: string, version: string): Promise<void> {
+  await mkdir(prefix, { recursive: true });
+  await writeFile(path.join(prefix, 'package.json'), '{"private": true}\n');
+  const args = ['install', '--prefix', prefix, '--no-save', '--ignore-scripts', '--no-audit', '--no-fund'];
+  // Under an npm script, run npm's own CLI with this Node.js (no shell, also on Windows).
+  const npmCli = process.env.npm_execpath;
+  const [file, prefixArgs] = npmCli ? [process.execPath, [npmCli]] : ['npm', []];
+  await run(file, [...prefixArgs, ...args, `wingfoil@${version}`], { cwd: prefix, timeoutMs: 300_000 });
+}
+
 /**
- * The CLI build of a matrix version. v0.1's matrix holds the pinned version only; a matrix advance
- * (`release-planning`) that adds another version installs it here (adr-001 D4).
+ * The CLI build of a matrix version (adr-001 D4): the pinned version is the installed
+ * devDependency; any other is installed once into `<cacheRoot>/<version>` and reused, and must
+ * declare that exact version.
  */
-export function cliBuildFor(version: string): CliBuild {
+export async function cliBuildFor(version: string, options: CliBuildOptions = {}): Promise<CliBuild> {
   if (version === pinnedVersion()) return pinnedCli();
-  throw new Error(
-    `wingfoil ${version} is in contracts/matrix.json but no build of it is installed for the contract tests`,
-  );
+  if (!/^\d+\.\d+\.\d+(-[0-9A-Za-z.-]+)?$/.test(version)) {
+    throw new Error(`contracts/matrix.json: ${version} is not an exact version`);
+  }
+  const prefix = path.join(options.cacheRoot ?? MATRIX_CACHE, version);
+  const packageDir = path.join(prefix, 'node_modules', 'wingfoil');
+  if ((await installedVersion(packageDir)) !== version) {
+    await (options.install ?? npmInstall)(prefix, version);
+    const installed = await installedVersion(packageDir);
+    if (installed !== version) {
+      throw new Error(`installing wingfoil ${version} for the contract tests gave ${String(installed)}`);
+    }
+  }
+  return { script: binScript(packageDir), packageDir };
+}
+
+async function installedVersion(packageDir: string): Promise<string | undefined> {
+  try {
+    return (JSON.parse(await readFile(path.join(packageDir, 'package.json'), 'utf8')) as { version?: string }).version;
+  } catch {
+    return undefined;
+  }
 }
 
 /** Make `name` the git identity of `fx` (who the CLI acts as). */

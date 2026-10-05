@@ -74,7 +74,7 @@ describe.each(VERSIONS)('contract — wingfoil %s', (version) => {
 
   beforeAll(async () => {
     root ??= await realpath(await mkdtemp(path.join(tmpdir(), 'wfui-contract-')));
-    const cli = cliBuildFor(version);
+    const cli = await cliBuildFor(version);
     for (const kind of FIXTURE_KINDS) {
       fixtures[kind] = await buildFixture(kind, { root: path.join(root, version, kind), cli, cliVersion: version });
     }
