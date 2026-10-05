@@ -7,9 +7,12 @@
  * |------|-------------|
  * | 0 | returns the parsed stdout and the stderr lines as warnings; stdout that is not JSON is a {@link CliOutputError} |
  * | 1 | {@link CliRefusedError} with the CLI's message verbatim (stderr `{"error": …}`, else its text) |
- * | 2 | {@link CliInternalError}: a defect of the adapter, logged with the command line |
+ * | 2 | {@link CliInternalError}: a defect of the adapter, logged (command words and option names) |
  * | other, signal, cancelled, stopped | {@link CliProcessError} with the reason |
  * | killed at the timeout | {@link CliTimeoutError} |
+ *
+ * Internal, process and timeout errors are logged with the command words and option names, never
+ * a user value.
  *
  * Validating the data against the command's schema is the caller's (contracts, task-005); writes
  * run under the project's write lock, taken by the caller.
@@ -51,14 +54,25 @@ export interface WingfoilCliOptions {
 /** Kinds of CLI failure (spec-001 §2). */
 export type CliErrorKind = 'refused' | 'output' | 'internal' | 'timeout' | 'process';
 
+/**
+ * What an error and a log line record of a command: its words and option names — never a user
+ * value (titles, reasons and ids passed as options or positionals stay out of logs).
+ */
+export interface CliCommand {
+  /** The command words (`['memory', 'reject']`), or `['--version']`. */
+  words: readonly string[];
+  /** The option names given (`['--reason']`). */
+  options: readonly string[];
+}
+
 /** A failed CLI command. */
 export abstract class CliError extends Error {
   /** Which row of spec-001 §2. */
   abstract readonly kind: CliErrorKind;
 
   constructor(
-    /** The CLI's arguments (after the bin script). */
-    readonly command: readonly string[],
+    /** The command, without user values. */
+    readonly command: CliCommand,
     message: string,
   ) {
     super(message);
@@ -71,7 +85,7 @@ export class CliRefusedError extends CliError {
   readonly kind = 'refused';
 
   constructor(
-    command: readonly string[],
+    command: CliCommand,
     /** The CLI's message, verbatim. */
     readonly cliMessage: string,
   ) {
@@ -83,12 +97,8 @@ export class CliRefusedError extends CliError {
 export class CliOutputError extends CliError {
   readonly kind = 'output';
 
-  constructor(
-    command: readonly string[],
-    /** The command words, for the message (`dna show`). */
-    readonly commandName: string,
-  ) {
-    super(command, `Unexpected output of ${commandName}`);
+  constructor(command: CliCommand) {
+    super(command, `Unexpected output of ${command.words.join(' ')}`);
   }
 }
 
@@ -97,7 +107,7 @@ export class CliInternalError extends CliError {
   readonly kind = 'internal';
 
   constructor(
-    command: readonly string[],
+    command: CliCommand,
     readonly detail: string,
   ) {
     super(command, detail);
@@ -109,10 +119,15 @@ export class CliTimeoutError extends CliError {
   readonly kind = 'timeout';
 
   constructor(
-    command: readonly string[],
+    command: CliCommand,
     readonly timeoutMs: number,
   ) {
     super(command, `WingFoil did not answer within ${Math.round(timeoutMs / 1000)} s`);
+  }
+
+  /** Same as the message (logged as the reason). */
+  get reason(): string {
+    return this.message;
   }
 }
 
@@ -121,7 +136,7 @@ export class CliProcessError extends CliError {
   readonly kind = 'process';
 
   constructor(
-    command: readonly string[],
+    command: CliCommand,
     readonly reason: string,
   ) {
     super(command, reason);
@@ -134,6 +149,16 @@ export class CliProcessError extends CliError {
  */
 export function optionArg(name: string, value: string): string[] {
   return value.startsWith('-') ? [`${name}=${value}`] : [name, value];
+}
+
+/** Arguments of {@link WingfoilCli.json} besides the command words. */
+export interface CliArgs {
+  /** Options, user values included (rendered with {@link optionArg}). */
+  options?: CliOptions;
+  /** Positional user values (ids, titles): passed after `--`, so none is read as an option. */
+  positionals?: readonly string[];
+  /** Cancels the process. */
+  signal?: AbortSignal;
 }
 
 /** One project's CLI. */
@@ -150,88 +175,102 @@ export class WingfoilCli {
   }
 
   /**
-   * Run `wingfoil --format json <words…> <options…>` and parse its JSON output. Every word is one
-   * argument and must not start with `-`; user values go in `options`.
+   * Run `wingfoil --format json <words…> <options…> [-- <positionals…>]` and parse its JSON output.
+   * The words are the adapter's own and must not start with `-`; user values go in `options` or
+   * `positionals`.
    */
-  async json<T = unknown>(
-    words: readonly string[],
-    options: CliOptions = {},
-    run: { signal?: AbortSignal } = {},
-  ): Promise<CliOutput<T>> {
-    const command = ['--format', 'json', ...words];
+  async json<T = unknown>(words: readonly string[], args: CliArgs = {}): Promise<CliOutput<T>> {
+    const options = args.options ?? {};
+    const command: CliCommand = { words: [...words], options: Object.keys(options) };
+    const argv = ['--format', 'json', ...words];
     for (const [name, value] of Object.entries(options)) {
-      for (const v of typeof value === 'string' ? [value] : value) command.push(...optionArg(name, v));
+      for (const v of typeof value === 'string' ? [value] : value) argv.push(...optionArg(name, v));
     }
+    if (args.positionals && args.positionals.length > 0) argv.push('--', ...args.positionals);
     const badWord = words.find((w) => w.startsWith('-'));
-    const badOption = Object.keys(options).find((name) => !/^--[a-z][a-z0-9-]*$/.test(name));
+    const badOption = command.options.find((name) => !/^--[a-z][a-z0-9-]*$/.test(name));
     if (badWord !== undefined || badOption !== undefined) {
-      throw this.internal(command, `invalid CLI argument: ${badWord ?? badOption ?? ''}`);
+      const detail = `invalid CLI argument: ${badWord ?? badOption ?? ''}`;
+      this.log(command, { reason: detail }, 'CLI invocation rejected as malformed');
+      throw new CliInternalError(command, detail);
     }
-    const result = await this.exec(command, run.signal);
-    const out = result.stdout.trim();
+    const result = await this.exec(command, argv, args.signal);
     try {
-      return { data: JSON.parse(out) as T, warnings: lines(result.stderr) };
+      return { data: JSON.parse(result.stdout.trim()) as T, warnings: lines(result.stderr) };
     } catch {
-      throw new CliOutputError(command, words.join(' '));
+      throw new CliOutputError(command);
     }
   }
 
   /** `wingfoil --version`: one line of plain text, even with `--format json` (W-19). Not parsed here. */
   async version(): Promise<string> {
-    const command = ['--version'];
-    const text = (await this.exec(command)).stdout.trim();
-    if (!text) throw new CliOutputError(command, '--version');
+    const command: CliCommand = { words: ['--version'], options: [] };
+    const text = (await this.exec(command, ['--version'])).stdout.trim();
+    if (!text) throw new CliOutputError(command);
     return text;
   }
 
-  private async exec(command: readonly string[], signal?: AbortSignal): Promise<ProcessResult> {
+  private async exec(command: CliCommand, argv: readonly string[], signal?: AbortSignal): Promise<ProcessResult> {
     const { cli, runner, env } = this.options;
     const result = await runner.run({
       file: cli.file,
-      args: [...cli.prefixArgs, ...command],
+      args: [...cli.prefixArgs, ...argv],
       cwd: cli.projectRoot,
       timeoutMs: this.timeoutMs,
       ...(env ? { env } : {}),
       ...(signal ? { signal } : {}),
     });
-    switch (result.ended) {
-      case 'timeout':
-        throw new CliTimeoutError(command, this.timeoutMs);
-      case 'cancelled':
-        throw new CliProcessError(command, 'WingFoil was cancelled');
-      case 'terminated':
-        throw new CliProcessError(command, 'WingFoil was stopped with the server');
-      case 'overflow':
-        throw new CliProcessError(command, 'WingFoil wrote too much output');
-      case 'exit':
-        break;
+    if (result.ended === 'exit' && result.exitCode === 0) return result;
+    if (result.ended === 'exit' && result.exitCode === 1) {
+      throw new CliRefusedError(command, refusalMessage(result.stderr));
     }
-    if (result.exitCode === 0) return result;
-    if (result.exitCode === 1) throw new CliRefusedError(command, refusalMessage(result.stderr));
-    if (result.exitCode === 2) {
-      throw this.internal(command, result.stderr.trim(), result.exitCode);
+    if (result.ended === 'exit' && result.exitCode === 2) {
+      // A usage error: its text names options, not user values.
+      const detail = result.stderr.trim();
+      this.log(command, { exitCode: 2, stderr: detail }, 'CLI invocation rejected as malformed');
+      throw new CliInternalError(command, detail);
     }
-    const reason =
-      result.exitCode === null
-        ? `WingFoil was killed by ${result.signal ?? 'a signal'}`
-        : `WingFoil exited with status ${result.exitCode}`;
-    this.options.logger?.error({ command, exitCode: result.exitCode, stderr: result.stderr.trim() }, reason);
-    throw new CliProcessError(command, reason);
+    const error =
+      result.ended === 'timeout'
+        ? new CliTimeoutError(command, this.timeoutMs)
+        : new CliProcessError(command, reason(result));
+    // Details of a 500/504 live only in the log (spec-004 §5).
+    this.log(
+      command,
+      { ended: result.ended, exitCode: result.exitCode, signal: result.signal, reason: error.reason },
+      error.reason,
+    );
+    throw error;
   }
 
-  private internal(command: readonly string[], detail: string, exitCode?: number): CliInternalError {
-    // The command line holds no token or session (spec-004 §2): logged as is.
+  private log(command: CliCommand, fields: object, message: string): void {
+    // No token, session or user value (spec-004 §2): the command words and option names only.
     this.options.logger?.error(
-      { command, exitCode, stderr: detail, cli: this.options.cli.file },
-      'CLI invocation rejected as malformed',
+      { words: command.words, options: command.options, cli: this.options.cli.file, ...fields },
+      message,
     );
-    return new CliInternalError(command, detail);
   }
 }
 
-/** The CLI's refusal message: stderr `{"error": "<message>"}`, else the stderr text. */
+function reason(result: ProcessResult): string {
+  switch (result.ended) {
+    case 'cancelled':
+      return 'WingFoil was cancelled';
+    case 'terminated':
+      return 'WingFoil was stopped with the server';
+    case 'overflow':
+      return 'WingFoil wrote too much output';
+    default:
+      return result.exitCode === null
+        ? `WingFoil was killed by ${result.signal ?? 'a signal'}`
+        : `WingFoil exited with status ${result.exitCode}`;
+  }
+}
+
+/** The CLI's refusal message: stderr `{"error": "<message>"}`, else the stderr text, else the exit. */
 function refusalMessage(stderr: string): string {
   const text = stderr.trim();
+  if (!text) return 'WingFoil refused (exit status 1) without a message';
   try {
     const parsed = JSON.parse(text) as { error?: unknown };
     if (typeof parsed.error === 'string') return parsed.error;
