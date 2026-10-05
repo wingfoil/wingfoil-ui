@@ -2,7 +2,7 @@
 id: task-003-session-token-and-request-guards
 type: task
 title: "Session token and request guards"
-status: pending
+status: backlog
 release: "v0.1"
 module: "server"             # optional — server | web | contracts (dna.yaml modules)
 priority: "high"           # optional — high | medium | low
