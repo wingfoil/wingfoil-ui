@@ -29,7 +29,7 @@ export async function readDirective(
   entry: Pick<DirectiveEntry, 'path' | 'frontmatter'>,
   fs: ReadFs = nodeReadFs,
 ): Promise<DirectiveContent> {
-  const parsed = parseDirective(await readConfined(path.join(root, '.wingfoil'), entry.path, fs), entry.path);
+  const parsed = parseDirective(await readConfined(root, path.join(root, '.wingfoil'), entry.path, fs), entry.path);
   if (parsed.frontmatter.id !== entry.frontmatter.id) {
     throw new DirectReadError(
       'mismatch',

@@ -195,8 +195,8 @@ describe('scenarios on the API side', () => {
       ['contracts', 'contracts/'],
     ]);
     expect(dna.modules.every((m) => typeof m.description === 'string' && m.description.length > 0)).toBe(true);
-    expect(dna.stacks.technologies.map((t) => t.name)).toContain('TypeScript');
-    expect(dna.stacks.methodologies.find((m) => m.name === 'TDD')?.phase).toBe('delivery');
+    expect((dna.stacks.technologies ?? []).map((t) => t.name)).toContain('TypeScript');
+    expect(dna.stacks.methodologies?.find((m) => m.name === 'TDD')?.phase).toBe('delivery');
     expect(dna.team.members.find((m) => m.name === 'Morgan')?.roles).toEqual(['approver', 'tech-lead']);
     expect(dna.paths.tests).toEqual(['test/']);
   }, 120_000);

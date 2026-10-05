@@ -197,8 +197,8 @@ describe.each(VERSIONS)('contract — wingfoil %s', (version) => {
       memoryYaml,
       (await readFile(memoryYaml, 'utf8'))
         .replace(/^version: 1$/m, 'version: 1.5')
-        .replace(/^  adr:\n    path: (.*)\n    id_pattern: .*$/m, '  adr:\n    path: $1')
-        .replace(/^  bug:\n    path: (.*)$/m, '  bug: &bug\n    path: $1')
+        .replace(/^ {2}adr:\n {4}path: (.*)\n {4}id_pattern: .*$/m, '  adr:\n    path: $1')
+        .replace(/^ {2}bug:\n {4}path: (.*)$/m, '  bug: &bug\n    path: $1')
         .concat('  incident:\n    <<: *bug\n    path: docs/memory/incident/{id}.md\n'),
     );
     // A CRLF element file.

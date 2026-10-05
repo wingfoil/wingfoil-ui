@@ -32,7 +32,7 @@ interface RawStates {
 
 interface RawType {
   path: string;
-  id_pattern: string;
+  id_pattern?: string;
   name?: string;
   description?: string;
   tags?: string[];
@@ -60,7 +60,7 @@ function pickType(raw: RawType): MemoryTypeDef {
   const required = raw.template?.frontmatter?.required;
   return {
     path: raw.path,
-    id_pattern: raw.id_pattern,
+    ...(raw.id_pattern !== undefined ? { id_pattern: raw.id_pattern } : {}),
     ...(raw.name !== undefined ? { name: raw.name } : {}),
     ...(raw.description !== undefined ? { description: raw.description } : {}),
     ...(raw.tags ? { tags: [...raw.tags] } : {}),
@@ -84,7 +84,7 @@ export function parseMemoryYaml(text: string, file: string = MEMORY_YAML): Memor
 
 /** Read and parse `<root>/.wingfoil/memory.yaml` (confined to the project). */
 export async function readMemoryYaml(root: string, fs: ReadFs = nodeReadFs): Promise<MemoryYaml> {
-  return parseMemoryYaml(await readConfined(path.join(root, '.wingfoil'), 'memory.yaml', fs), MEMORY_YAML);
+  return parseMemoryYaml(await readConfined(root, path.join(root, '.wingfoil'), 'memory.yaml', fs), MEMORY_YAML);
 }
 
 /**

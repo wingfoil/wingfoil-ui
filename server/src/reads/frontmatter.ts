@@ -17,7 +17,9 @@ export interface FrontmatterFile<T> {
 /** Parse YAML text, or a {@link DirectReadError} `shape` naming `file`. */
 export function parseYaml(text: string, file: string): unknown {
   try {
-    return parse(text, { schema: 'core', prettyErrors: false });
+    // Merge keys (`<<`) resolved as WingFoil's js-yaml does; the alias limit (resource exhaustion)
+    // stays at the library's default.
+    return parse(text, { schema: 'core', merge: true, prettyErrors: false });
   } catch (e) {
     throw new DirectReadError('shape', file, `${file}: invalid YAML (${(e as Error).message.split('\n')[0] ?? ''})`);
   }
@@ -31,10 +33,11 @@ export function checkShape(schemaFile: ContractSchema, data: unknown, file: stri
 
 /**
  * Split `text` into its frontmatter, validated against `contracts/<schemaFile>`, and its body; a
- * file without a closed frontmatter is a `shape` error.
+ * file without a closed frontmatter is a `shape` error. Lines end with LF or CRLF (WingFoil's
+ * delimiter is `^---\r?\n…\r?\n---`); the body is returned with LF line ends.
  */
 export function parseFrontmatterFile<T>(text: string, file: string, schemaFile: ContractSchema): FrontmatterFile<T> {
-  const lines = text.split('\n');
+  const lines = text.split(/\r?\n/);
   const close = lines[0]?.trimEnd() === '---' ? lines.findIndex((l, i) => i > 0 && l.trimEnd() === '---') : -1;
   if (close === -1) throw new DirectReadError('shape', file, `${file}: no frontmatter`);
   const frontmatter = parseYaml(lines.slice(1, close).join('\n'), file);

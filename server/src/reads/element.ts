@@ -29,7 +29,7 @@ export async function readElement(
   match: Pick<MemoryMatch, 'path' | 'id' | 'type' | 'status'>,
   fs: ReadFs = nodeReadFs,
 ): Promise<ElementContent> {
-  const parsed = parseElement(await readConfined(root, match.path, fs), match.path);
+  const parsed = parseElement(await readConfined(root, root, match.path, fs), match.path);
   for (const field of ['id', 'type', 'status'] as const) {
     if (parsed.frontmatter[field] !== match[field]) {
       throw new DirectReadError(

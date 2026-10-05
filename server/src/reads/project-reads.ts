@@ -113,12 +113,18 @@ export class ProjectReads {
   }
 
   /**
-   * The directive `id`, looked up in `directives list`; `undefined` when none has that id. When a
-   * built-in and a custom file declare the same id, the CLI lists both, the custom one last, and
-   * uses the custom one (its warning: `using directives/custom/<id>.md`): the last entry is read.
+   * The directive `id`, looked up in `directives list`; `undefined` when none has that id. When
+   * several files declare the id, the CLI lists them all and its warning names the one in force
+   * (`directive '<id>' defined in <a>, <b>; using <path>`): that entry is read, else the last one
+   * listed (the custom one, listed after the built-in).
    */
   async directive(id: string, signal?: AbortSignal): Promise<DirectiveRead | undefined> {
-    const entry = (await this.directives(signal)).data.entries.findLast((e) => e.frontmatter.id === id);
+    const { entries, warnings } = (await this.directives(signal)).data;
+    const candidates = entries.filter((e) => e.frontmatter.id === id);
+    const inForce = warnings
+      .map((w) => /^directive '(.*)' defined in .*; using (\S+)$/.exec(w))
+      .find((m) => m?.[1] === id)?.[2];
+    const entry = candidates.find((e) => e.path === inForce) ?? candidates.at(-1);
     return entry ? { entry, content: await this.directiveFromEntry(entry) } : undefined;
   }
 }
