@@ -3,7 +3,8 @@
  * each matrix version, the raw CLI (as a terminal runs it — the samples are captured with it, not
  * with the adapter under test) and the fixture changes that make the archived searches non-empty.
  */
-import { mkdir, mkdtemp, readFile, rename, rm, writeFile } from 'node:fs/promises';
+import { randomUUID } from 'node:crypto';
+import { mkdir, mkdtemp, readdir, readFile, rename, rm, stat, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { binScript, pinnedCli, pinnedVersion, REPO_ROOT, type CliBuild } from '../harness/cli.js';
 import { cliPackageDir, memberByName, type Fixture, type MemberName } from '../harness/fixtures/index.js';
@@ -31,6 +32,8 @@ export interface CliBuildOptions {
   cacheRoot?: string;
   /** Installs `wingfoil@<version>` under `prefix` (default: `npm install --prefix`, needs the registry once). */
   install?: (prefix: string, version: string) => Promise<void>;
+  /** Age after which a leftover staging or stale folder is removed (default {@link ORPHAN_AGE_MS}). */
+  orphanAgeMs?: number;
 }
 
 /**
@@ -64,6 +67,7 @@ export async function cliBuildFor(version: string, options: CliBuildOptions = {}
     // Install into a private folder, then rename it into place: parallel workers never share a
     // half-written prefix, and a concurrent winner's install is kept.
     await mkdir(path.dirname(prefix), { recursive: true });
+    await removeOrphans(prefix, options.orphanAgeMs ?? ORPHAN_AGE_MS);
     const staging = await mkdtemp(`${prefix}.tmp-`);
     try {
       await (options.install ?? npmInstall)(staging, version);
@@ -71,16 +75,57 @@ export async function cliBuildFor(version: string, options: CliBuildOptions = {}
       if (installed !== version) {
         throw new Error(`installing wingfoil ${version} for the contract tests gave ${String(installed)}`);
       }
-      try {
-        await rename(staging, prefix);
-      } catch (error) {
-        if ((await installedVersion(packageDir)) !== version) throw error;
-      }
+      await moveIntoPlace(staging, prefix, version);
     } finally {
       await rm(staging, { recursive: true, force: true });
     }
   }
   return { script: binScript(packageDir), packageDir };
+}
+
+/**
+ * Rename `staging` to `prefix`. When `prefix` exists: kept if it holds `version` (a concurrent
+ * winner); otherwise it is a broken install (interrupted, corrupted), moved aside to
+ * `<prefix>.stale-<uuid>`, removed, and the rename is retried once.
+ */
+async function moveIntoPlace(staging: string, prefix: string, version: string): Promise<void> {
+  const packageDir = path.join(prefix, 'node_modules', 'wingfoil');
+  try {
+    await rename(staging, prefix);
+    return;
+  } catch (error) {
+    if ((await installedVersion(packageDir)) === version) return;
+    const stale = `${prefix}.stale-${randomUUID()}`;
+    try {
+      await rename(prefix, stale);
+    } catch {
+      // Already moved aside by another worker, or gone: retry below.
+    }
+    await rm(stale, { recursive: true, force: true });
+    try {
+      await rename(staging, prefix);
+    } catch {
+      if ((await installedVersion(packageDir)) !== version) throw error;
+    }
+  }
+}
+
+/** Default age after which a `<version>.tmp-*` or `.stale-*` folder is an orphan of a killed worker. */
+export const ORPHAN_AGE_MS = 6 * 60 * 60 * 1000;
+
+/** Remove the staging and stale folders of `prefix` older than `ageMs` (left by a killed worker). */
+async function removeOrphans(prefix: string, ageMs: number): Promise<void> {
+  const dir = path.dirname(prefix);
+  const base = path.basename(prefix);
+  for (const name of await readdir(dir)) {
+    if (!name.startsWith(`${base}.tmp-`) && !name.startsWith(`${base}.stale-`)) continue;
+    const file = path.join(dir, name);
+    try {
+      if (Date.now() - (await stat(file)).mtimeMs >= ageMs) await rm(file, { recursive: true, force: true });
+    } catch {
+      // Removed meanwhile by another worker.
+    }
+  }
 }
 
 async function installedVersion(packageDir: string): Promise<string | undefined> {

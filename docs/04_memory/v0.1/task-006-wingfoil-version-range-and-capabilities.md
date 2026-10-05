@@ -211,3 +211,11 @@ e2e closure — scenarios that need a screen are proved here by API and unit tes
   task-011's `test/contracts/descriptor-contract.test.ts`) must `await` it.
 - Checks: `npx vitest run test/server/cli test/contracts/{capabilities,support,schemas}.test.ts`
   9 files, 160/160 · typecheck, lint, format:check clean · `docs:api` OK (load average ≈ 64).
+- Review round 2: **PASS**, follow-ups taken (`test/contracts/support.ts`):
+  - N1 — a broken existing prefix (unreadable or wrong-version `package.json`) no longer blocks
+    forever: when the rename fails and the prefix is invalid, it is moved aside to
+    `<prefix>.stale-<uuid>`, removed, and the rename retried once. Test starts from a truncated
+    `package.json`.
+  - N2 — on entry, `<version>.tmp-*` / `.stale-*` siblings older than `ORPHAN_AGE_MS` (6 h,
+    option `orphanAgeMs`) are removed; recent ones (a live worker) are kept. Test with `utimes`.
+  - Lower-bound rule unchanged (pending spec gap 1).

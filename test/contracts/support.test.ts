@@ -1,11 +1,11 @@
 // adr-001 D4, spec-001 §7 — the CLI build of each version of the support matrix: the pinned one
 // as installed, any other installed once into a cache folder and reused.
-import { mkdir, mkdtemp, readdir, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readdir, rm, utimes, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { pinnedCli, pinnedVersion } from '../harness/cli.js';
-import { cliBuildFor } from './support.js';
+import { cliBuildFor, ORPHAN_AGE_MS } from './support.js';
 
 let cacheRoot: string;
 
@@ -76,6 +76,31 @@ describe('cliBuildFor', () => {
       cliBuildFor('0.3.1', { cacheRoot, install: (prefix) => fakeInstall(prefix, '0.3.2') }),
     ).rejects.toThrow(/0\.3\.1/);
     expect((await readdir(cacheRoot)).filter((name) => name.startsWith('0.3.1'))).toEqual([]);
+  });
+
+  it('recovers from a broken prefix (interrupted install): moved aside, removed, replaced', async () => {
+    const prefix = path.join(cacheRoot, '0.5.0');
+    await mkdir(path.join(prefix, 'node_modules', 'wingfoil'), { recursive: true });
+    await writeFile(path.join(prefix, 'node_modules', 'wingfoil', 'package.json'), '{"name":"wingfoil"');
+    const build = await cliBuildFor('0.5.0', { cacheRoot, install: fakeInstall });
+    expect(build.packageDir).toBe(path.join(prefix, 'node_modules', 'wingfoil'));
+    expect(await cliBuildFor('0.5.0', { cacheRoot, install: () => Promise.reject(new Error('no reinstall')) })).toEqual(
+      build,
+    );
+    expect((await readdir(cacheRoot)).filter((name) => /^0\.5\.0\./.test(name))).toEqual([]);
+  });
+
+  it('removes staging and stale folders of a killed worker once old, keeps recent ones', async () => {
+    const old = path.join(cacheRoot, '0.6.0.tmp-old');
+    const stale = path.join(cacheRoot, '0.6.0.stale-old');
+    const recent = path.join(cacheRoot, '0.6.0.tmp-recent');
+    for (const dir of [old, stale, recent]) await mkdir(dir, { recursive: true });
+    const hoursAgo = new Date(Date.now() - 7 * 60 * 60 * 1000);
+    await utimes(old, hoursAgo, hoursAgo);
+    await utimes(stale, hoursAgo, hoursAgo);
+    await cliBuildFor('0.6.0', { cacheRoot, install: fakeInstall });
+    expect((await readdir(cacheRoot)).filter((name) => name.startsWith('0.6.0.'))).toEqual(['0.6.0.tmp-recent']);
+    expect(ORPHAN_AGE_MS).toBe(6 * 60 * 60 * 1000);
   });
 
   it('refuses a version that is not an exact semantic version', async () => {
