@@ -1,6 +1,6 @@
 # SARD — 1. Architectural Constraints
 
-**Version:** 0.5 · **Date:** 2026-10-02 (0.2: coherence audit fixes — session 6; 0.3: page title, REQ-ARC-10 — initial-design session 2; 0.4: REQ-ARC-04 allow-list of direct reads — initial-design session 5; 0.5: REQ-ARC-06 last non-archived state — initial-design session 6) · **Status:** Draft — specification-downcast session 4
+**Version:** 0.7 · **Date:** 2026-10-04 (0.2: coherence audit fixes — session 6; 0.3: page title, REQ-ARC-10 — initial-design session 2; 0.4: REQ-ARC-04 allow-list of direct reads — initial-design session 5; 0.5: REQ-ARC-06 last non-archived state — initial-design session 6; 0.6: REQ-ARC-07 moved to v0.3 — release-planning v0.1 session 2; 0.7: REQ-ARC-05, REQ-ARC-10 v0.1 scope — release-planning v0.1 session 4 (audit A4)) · **Status:** Draft — specification-downcast session 4
 
 Shell and conventions: `00_sard.md`.
 
@@ -54,11 +54,11 @@ Shell and conventions: `00_sard.md`.
 
 | Field | |
 |-------|--|
-| Release | v0.1 |
+| Release | v0.1 (renders) · v0.2 (acts) |
 | Description | Types, states, gates, roles and workflows come from each project; the UI hard-codes none of them outside the `ui.yaml` presets and the tests. |
 | Rationale | Project-agnostic pillar; MVP canvas metric *Methodology independence*. |
 | Traceability | US-S-28, US-M-02, US-T-05, US-G-05 · S-28.1, S-28.2, M-02.1, M-02.2, M-02.3, T-05.1, G-05.3 · S9, M1 |
-| Fit criterion | [boolean] The same build renders and acts on the `kanban`, `custom` and `unknown` fixtures with every scenario of the release passing; a lint rule finds 0 string literals equal to a type or state name of the three fixtures in `server/` and `web/` outside `presets/` and tests. |
+| Fit criterion | [boolean] The same build renders and acts on the `kanban`, `custom` and `unknown` fixtures with every scenario of the release passing; a lint rule finds 0 string literals equal to a type or state name of the three fixtures in `server/` and `web/` outside `presets/` and tests. v0.1 (read-only): the same build renders the three fixtures with every `@v0.1` scenario passing. |
 | Verified by | e2e on the three fixtures · lint |
 
 ### REQ-ARC-06 — Action descriptor derived from the project
@@ -76,7 +76,7 @@ Shell and conventions: `00_sard.md`.
 
 | Field | |
 |-------|--|
-| Release | v0.1 (read, inferred defaults) · v0.3 (presets) |
+| Release | v0.3 (read, inferred defaults, presets) — no `@v0.1` scenario reads `ui.yaml`; v0.1 opens a project whatever its `ui.yaml` (release-planning v0.1) |
 | Description | `.wingfoil/ui.yaml` holds the UI's conventions (`version`, `taxonomy`, `progress`, `artifacts`) and nothing else — no permissions (they are WingFoil's, L6), no secrets. It has a JSON schema in `contracts/`. Without it, or when it fails the schema, the UI uses inferred defaults and warns. A preset (Kanban, Scrum, `sw-life-cycle`) is offered only when the file does not exist, refused when it maps a type the project does not declare, and validated before writing. `progress.scope` declares a type only; the current element is derived. |
 | Rationale | One versioned home for the UI's conventions, invisible to WingFoil's loaders (W-11); decisions of sessions 3 (permissions, scope). |
 | Traceability | US-C-01, US-C-02, US-C-03, US-C-04, US-T-12 · C-01.1, C-01.2, C-01.3, C-02.1, C-02.3, C-02.5, C-03.1, C-03.2, C-04.1, C-04.2, T-12.1, T-12.4, T-12.5 · C1, T2 |
@@ -109,11 +109,11 @@ Shell and conventions: `00_sard.md`.
 
 | Field | |
 |-------|--|
-| Release | v0.1 |
+| Release | v0.1 (v0.1 screens, X-06, X-10.1–X-10.3) · v0.2 onward (gate actions, live regions, title state) |
 | Description | Every MVP screen meets WCAG 2.1 AA: keyboard operation with a visible focus, outcomes announced to screen readers, the reason of a blocked action exposed as its accessible description, text alternatives for images, a page title naming the project, its state and the current view or element (SC 2.4.2). |
 | Rationale | Q10, directive `accessibility`; MVP canvas metric *Accessibility*. |
 | Traceability | US-X-06, US-X-07, US-X-10, US-T-14, US-X-01, US-G-04 · X-06.1, X-06.2, X-06.3, X-06.4, X-07.1, X-07.2, X-07.3, X-10.1, X-10.2, X-10.3, X-10.4, X-10.5, T-14.2, X-01.3 · X1 |
-| Fit criterion | [numeric] axe-core reports 0 violations of impact serious or critical on every screen of the release in both themes; focus indicators have a contrast ratio ≥ 3:1; every gate action is completed with the keyboard alone; scenarios X-07.1, X-07.2, X-07.3 (live regions, accessible descriptions) and X-10.1 … X-10.5 (page title) pass. |
+| Fit criterion | [numeric] axe-core reports 0 violations of impact serious or critical on every screen of the release in both themes; focus indicators have a contrast ratio ≥ 3:1; every gate action is completed with the keyboard alone; scenarios X-07.1, X-07.2, X-07.3 (live regions, accessible descriptions) and X-10.1 … X-10.5 (page title) pass. v0.1 (no gate action): axe and focus contrast on the v0.1 screens, X-06.1, X-06.3, X-06.4 and X-10.1 … X-10.3 pass. |
 | Verified by | e2e-smoke `accessibility` |
 
 ### REQ-ARC-11 — Light and dark themes

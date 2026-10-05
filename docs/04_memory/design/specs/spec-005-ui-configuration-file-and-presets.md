@@ -6,7 +6,7 @@ status: approved
 scope: ".wingfoil/ui.yaml schema, inferred defaults and UI presets"              # REQUIRED — the artefact this spec covers, e.g. "server HTTP API", "CLI JSON contract: memory search", ".wingfoil/ui.yaml"
 wingfoil_version: "0.2.2"   # optional — for a CLI contract: the WingFoil version the shape was captured from
 supersedes: ""         # optional — id of the tech-spec this one replaces, e.g. "spec-002"
-release: "v0.1"            # optional — implementation release this spec is assigned to (stamped by release-planning/build-backlog), e.g. "v0.1"
+release: "v0.3"            # optional — implementation release this spec is assigned to (stamped by release-planning/build-backlog), e.g. "v0.1"
 contributor: ""        # optional — who originated this contribution, if not the git author; credited for AI-generated work derived from it
 credit: ""             # optional — free-text credit note
 tmpl_version: 260703   # Orignal template version
@@ -139,3 +139,5 @@ renders the preset, validates it against the schema **and** the semantic checks 
 - 2026-10-02 — spec review (step 6): F6 done = kind `last` (archived excluded); F7 presets write
   empty lists/maps explicitly; F8 inference table in `server/presets/`, `version` named; F9 pending
   gates project-wide; F11 hidden vs disabled for *Use preset*.
+- 2026-10-03 — release-planning v0.1 session 2: implementation release v0.1 → v0.3 (REQ-ARC-07
+  moved to v0.3, SARD `01` v0.6; no `@v0.1` scenario reads `ui.yaml`).

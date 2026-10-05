@@ -18,7 +18,7 @@ tmpl_version: 260929   # Orignal template version
 
 MVP complete — no new features: stable packaging `npx wingfoil-ui` (Q1), support matrix and contract tests from the floor (0.2.2) to WingFoil 1.0, capability detection reviewed against WingFoil 1.0, polish from the retrospectives, user guide.
 
-- Features (no new features, `07_sequencer.md` v0.5): —.
+- Features (no new features, `07_sequencer.md` v0.6): —.
 - Journeys served: all journeys J0–J8.
 - Backlog: `docs/03_backlog/04_backlog/by-release/v1.0.json` — 2 user stories,
   0 technical tasks; the Memory `task` elements are created from it by
@@ -30,7 +30,7 @@ MVP complete — no new features: stable packaging `npx wingfoil-ui` (Q1), suppo
 
 ## Success Criteria
 
-Exit criteria of `07_sequencer.md` v0.5:
+Exit criteria of `07_sequencer.md` v0.6:
 
 - every MVP journey (J0–J8) passes the e2e smoke on WingFoil 1.0;
 - `npx wingfoil-ui` is published as stable 1.0 with its support matrix.

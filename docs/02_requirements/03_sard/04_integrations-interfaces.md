@@ -1,6 +1,6 @@
 # SARD — 4. Integrations & Interfaces
 
-**Version:** 0.3 · **Date:** 2026-10-02 (0.2: coherence audit fixes — session 6; 0.3: REQ-INT-06 Memory-event source fixed by spec-002 — initial-design session 5) · **Status:** Draft — specification-downcast session 4
+**Version:** 0.5 · **Date:** 2026-10-04 (0.2: coherence audit fixes — session 6; 0.3: REQ-INT-06 Memory-event source fixed by spec-002 — initial-design session 5; 0.4: REQ-INT-08 staged, Chromium in v0.1 — release-planning v0.1 session 2; 0.5: REQ-INT-03 v0.1 scope — release-planning v0.1 session 4 (audit A4)) · **Status:** Draft — specification-downcast session 4
 
 Shell and conventions: `00_sard.md`.
 
@@ -36,7 +36,7 @@ Shell and conventions: `00_sard.md`.
 | Description | Each capability declares the minimum WingFoil version and the project conditions it needs. When it applies to the project but the version or the user's role lacks it, it is shown **read-only with the reason**; when it does not apply (e.g. no remote, no ingestion workflow, no required references) it is **hidden**. |
 | Rationale | Q2 rule; external review R9. |
 | Traceability | US-S-08, US-S-11, US-T-10, US-T-15, US-M-04, US-G-16, US-A-03, US-Y-04, US-M-06 · S-08.3, S-11.1, S-11.2, T-10.1, T-10.2, T-15.1, T-15.2, M-04.1, M-04.2, G-16.1, A-03.1, A-03.2, Y-04.1, M-06.2 · S3 |
-| Fit criterion | [boolean] Every listed scenario passes on WingFoil 0.2.2; the capability table in `contracts/` declares a minimum version for 100 % of the capabilities. |
+| Fit criterion | [boolean] Every listed scenario passes on WingFoil 0.2.2; the capability table in `contracts/` declares a minimum version for 100 % of the capabilities. v0.1 (version notice): the table exists with a minimum version for every capability, and the project header shows the version and the version notice (S-08.1, S-08.2). |
 | Verified by | e2e · unit |
 
 ### REQ-INT-04 — CLI invocation and errors
@@ -87,11 +87,11 @@ Shell and conventions: `00_sard.md`.
 
 | Field | |
 |-------|--|
-| Release | v0.1 |
+| Release | v0.1 (Chromium) · v0.2 (Chromium, Firefox, WebKit) |
 | Description | The UI supports the desktop browsers built on the Chromium, Firefox (Gecko) and WebKit engines — Chrome, Edge, Firefox and Safari — in the versions those engines have in the Playwright release pinned by the project; the e2e suite runs on the three engines. |
 | Rationale | Users open the console in their own browser; three engines cover the four browsers. |
 | Traceability | US-S-01, US-S-28, US-G-04, US-X-06 · S-01.1, S-28.1, G-04.1, X-06.4 (run on each engine, with the rest of the release's scenarios) · e2e-smoke `drive-browser` · X1 |
-| Fit criterion | [percentage] 100 % of the release's e2e scenarios pass on each of the three engines. |
+| Fit criterion | [percentage] 100 % of the release's e2e scenarios pass on each of the three engines (v0.1: on Chromium). |
 | Verified by | e2e-smoke `drive-browser` |
 
 ### REQ-INT-09 — Server ↔ browser live updates

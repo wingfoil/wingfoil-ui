@@ -1,7 +1,7 @@
 # MVP Canvas — WingFoil UI v1.0
 
-**Version:** 0.3
-**Date:** 2026-10-01 (0.2: external review — session 7; 0.3: permissions left to WingFoil — specification session 3)
+**Version:** 0.4
+**Date:** 2026-10-03 (0.2: external review — session 7; 0.3: permissions left to WingFoil — specification session 3; 0.4: budget ≈ 33 active days (v0.1 6 → 9) — release-planning v0.1 session 2)
 **Status:** Accepted in lean-inception session 5 (2026-10-01)
 **Input:** `02_product-vision.md` · `04_personas.md` · `05_journeys.md` · `06_features.md` ·
 `07_sequencer.md`
@@ -77,7 +77,7 @@ From the vision's success signals, to become SARD fit criteria:
 ## Cost and schedule
 
 - **Team:** one maintainer (all roles) + AI agents executing as developer/reviewer/qa/architect.
-- **Budget:** ≈ 30 active days from specification to v1.0 (`07_sequencer.md`), plus waiting time on
+- **Budget:** ≈ 33 active days from specification to v1.0 (`07_sequencer.md`), plus waiting time on
   WingFoil 0.3 and 1.0.
 - **Running cost:** none — local software, public npm package, GitHub repository (`svc-001`).
 

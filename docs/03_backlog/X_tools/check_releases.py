@@ -7,12 +7,16 @@ Checks, for every docs/04_memory/planning/v1/minor-*.md:
 - `features` = the features the sequencer introduces in that release, and every MVP feature of
   06_features.md is in exactly one release;
 - `requirements` points to the existing by-release partition of the same version;
-- `release-line` = v1, status `draft`.
+- `release-line` = v1, status one of the `release` states of memory.yaml (`draft` at seeding; it
+  advances through release-cycle — release-planning-rel-v0.1-plan, session 1).
 
 Usage: python3 docs/03_backlog/X_tools/check_releases.py
 Exit status 0 when every check passes.
 """
 import pathlib, re, sys, collections
+
+# release states of .wingfoil/memory.yaml (draft at seeding; advanced by release-cycle)
+RELEASE_STATES = ("draft", "planning", "in-development", "releasing", "released")
 
 ROOT = pathlib.Path(__file__).resolve().parents[3]
 VISION = ROOT / "docs" / "01_vision"
@@ -63,7 +67,7 @@ for p in files:
     req = f.get("requirements", "")
     if req != f"docs/03_backlog/04_backlog/by-release/{v}.json" or not (ROOT / req).is_file():
         errors.append(f"{p.name}: requirements {req!r} is not the {v} partition")
-    if f.get("kind") != "minor" or f.get("release-line") != "v1" or f.get("status") != "draft":
+    if f.get("kind") != "minor" or f.get("release-line") != "v1" or f.get("status") not in RELEASE_STATES:
         errors.append(f"{p.name}: kind/release-line/status = {f.get('kind')}/{f.get('release-line')}/{f.get('status')}")
 
 if sorted(expected) != sorted(fm(p.read_text()).get("version") for p in files):

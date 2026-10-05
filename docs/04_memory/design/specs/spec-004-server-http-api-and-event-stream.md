@@ -58,14 +58,14 @@ JSON; every request and response body has a schema in `contracts/api/`.
 | Method and path | Purpose | Since |
 |-----------------|---------|-------|
 | `POST /api/session` | exchange the start token for the session cookie | v0.1 |
-| `GET /api/server` | UI version, supported WingFoil range, capabilities table | v0.1 |
+| `GET /api/server` | UI version, supported WingFoil range, capabilities table, `warnings: [{ key, args }]` for the shell (spec-006 §4) | v0.1 |
 | `GET /api/projects` | project list with availability (S2, REQ-STATE-07) | v0.1 |
 | `POST /api/projects` `{path}` | add a local folder | v0.1 |
 | `POST /api/projects/clone` `{url, directory?}` | clone a remote into a new empty folder, then add it (write class c) | v0.1 |
 | `DELETE /api/projects/:pid` | remove from the list (no file is touched) | v0.1 |
 | `GET /api/p/:pid` | project header: name, WingFoil version and range state, identity, role views, repository status | v0.1 |
 | `PUT /api/p/:pid/role-view` `{role}` | remember the role view (local state) | v0.1 |
-| `GET /api/p/:pid/config` | DNA, paths, workflows, resolved types (spec-001 §4.1), effective `ui.yaml` with origin of each value | v0.1 |
+| `GET /api/p/:pid/config` | DNA, paths, workflows, resolved types (spec-001 §4.1); effective `ui.yaml` with origin of each value since v0.3 (REQ-ARC-07) | v0.1 |
 | `GET /api/p/:pid/elements[?archived=true]` | elements with their descriptor (spec-003) and local-changes marker | v0.1 |
 | `GET /api/p/:pid/elements/:eid` | one element: frontmatter, body, descriptor, references | v0.1 |
 | `GET /api/p/:pid/elements/:eid/history` | `memory history` entries (spec-002 §2) | v0.1 |
@@ -129,6 +129,7 @@ The role required by a gate is **not** checked by the server: the CLI refuses it
 | 504 | `cli-timeout` | a `wingfoil` process killed after 30 s (git transport has no fixed timeout and is cancellable, `adr-001` D5) |
 | 500 | `internal` | adapter defect (exit 2) or unexpected error; details only in the log |
 | 422 | `git-refused` | a git transport command failed: git's message verbatim (REQ-INT-06) |
+| 422 | project-list codes | refusals of `POST /api/projects` and `/projects/clone`: spec-006 §3 |
 
 - Read responses carry `X-Repo-State: <HEAD sha>.<status hash>`; the page compares it with the
   event stream to know whether its data is current.
@@ -174,3 +175,7 @@ reconnecting page refetches everything. Pages never poll.
 - 2026-10-02 — spec review (step 6): F4 static files exempt, cookie name with the port, three
   accepted origins (REQ-SEC-02 amended in SARD v0.5, `adr-001` D8); F5 order 1-2-3-body-4…, rows 7–9
   evaluated fresh under the write lock; F16 `commits[]` and the ingestion partial failure.
+- 2026-10-03 — release-planning v0.1 session 2: `ui.yaml` in `GET /config` from v0.3 (REQ-ARC-07
+  moved to v0.3, SARD `01` v0.6); the rest of the route stays v0.1.
+- 2026-10-03 — release-planning v0.1 session 2 (spec review of spec-006, F9): `GET /api/server`
+  carries the shell warnings; the project-list refusal codes are defined in spec-006 §3.
