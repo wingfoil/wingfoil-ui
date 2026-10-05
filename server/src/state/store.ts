@@ -1,0 +1,222 @@
+/**
+ * The local-state store port (adr-002) and its shared behaviour (spec-006 §2–§5): read once at
+ * open and again before every mutation, mutations serialised by an in-process lock, every write
+ * checked against the schema, remotes stored without userinfo (REQ-SEC-09), warnings for the
+ * shell (`GET /api/server`). Adapters only read and write the whole state.
+ */
+import type { ProjectEntry, StateFile, StateWarning } from '@wingfoil-ui/contracts';
+import { newProjectId, type RandomSource } from './ids.js';
+import { InvalidStateError, STATE_VERSION, stateProblem } from './schema.js';
+
+/** What the caller gives to add a project; the store draws the id and the add time. */
+export interface NewProject {
+  /** Absolute realpath of the working directory. */
+  path: string;
+  /** `dna.project.name`. */
+  name: string;
+  /** URL of `origin`, or `""`; any userinfo is removed before it is stored. */
+  remote: string;
+}
+
+/** Fields a caller may change on a listed project. */
+export type ProjectPatch = Partial<Pick<ProjectEntry, 'name' | 'remote' | 'roleView'>>;
+
+/** Options shared by every adapter. */
+export interface StoreOptions {
+  /** Clock of `addedAt` and of the corrupt-copy name (default: now). */
+  now?: () => Date;
+  /** Random source of the ids (default: `crypto.randomBytes`). */
+  random?: RandomSource;
+}
+
+/** The mutable view a {@link StateStore.transaction} works on. */
+export interface StateDraft {
+  /** A copy of the current list, re-read just before; change it in place. */
+  projects: ProjectEntry[];
+  /** A new entry for `project` with a fresh id unique in `projects` (not added: push it). */
+  create(project: NewProject): ProjectEntry;
+}
+
+/** The local-state store port. Every value handed out is a copy. */
+export interface StateStore {
+  /** Where the state lives: the state directory, or `memory` for the fake. */
+  readonly location: string;
+  /** True when the file was written by a newer build: changes live for this run only. */
+  readonly readOnly: boolean;
+  /** The project list, in insertion order. */
+  projects(): ProjectEntry[];
+  /** The project with exactly this id (never resolved as a path, REQ-SEC-04). */
+  get(id: string): ProjectEntry | undefined;
+  /** Warnings for the shell (`GET /api/server`, spec-006 §4). */
+  warnings(): StateWarning[];
+  /** The whole state as last read or written. */
+  snapshot(): StateFile;
+  /**
+   * Re-read the state, run `fn` on a draft under the lock, and write the result if it changed.
+   * When `fn` throws (a refusal), nothing is written. Resolves with what `fn` returned.
+   */
+  transaction<T>(fn: (draft: StateDraft) => T | Promise<T>): Promise<T>;
+  /** Append a project; resolves with the stored entry. */
+  add(project: NewProject): Promise<ProjectEntry>;
+  /** Drop a project (no file of the project is touched); resolves with the removed entry. */
+  remove(id: string): Promise<ProjectEntry | undefined>;
+  /** Change fields of a project; resolves with the stored entry. */
+  update(id: string, patch: ProjectPatch): Promise<ProjectEntry | undefined>;
+}
+
+/** What an adapter's read found. */
+export interface ReadOutcome {
+  state: StateFile;
+  /** The file is from a newer build: never write it back. */
+  readOnly: boolean;
+  warning?: StateWarning;
+}
+
+/** An adapter: reads and writes the whole state. */
+export interface StateBackend {
+  readonly location: string;
+  read(): Promise<ReadOutcome>;
+  write(state: StateFile): Promise<void>;
+}
+
+/** The state of a first start. */
+export function emptyState(): StateFile {
+  return { version: STATE_VERSION, projects: [], settings: {}, actionLog: [] };
+}
+
+/**
+ * `remote` without its userinfo (`https://user:token@host/x.git` → `https://host/x.git`). The
+ * scp-like form `user@host:path` names a login, never a password, and is kept as written.
+ */
+export function stripUserinfo(remote: string): string {
+  const match = /^([A-Za-z][A-Za-z0-9+.-]*:\/\/)[^/?#]*@(.*)$/s.exec(remote);
+  return match ? `${match[1]!}${match[2]!}` : remote;
+}
+
+/** ISO 8601 UTC to the second, as spec-006 §2 shows `addedAt`. */
+function isoSeconds(date: Date): string {
+  return date.toISOString().replace(/\.\d+Z$/, 'Z');
+}
+
+class BackedStateStore implements StateStore {
+  readonly #backend: StateBackend;
+  readonly #now: () => Date;
+  readonly #random: RandomSource | undefined;
+  #state: StateFile = emptyState();
+  #readOnly = false;
+  readonly #warnings: StateWarning[] = [];
+  #lock: Promise<unknown> = Promise.resolve();
+
+  constructor(backend: StateBackend, options: StoreOptions) {
+    this.#backend = backend;
+    this.#now = options.now ?? (() => new Date());
+    this.#random = options.random;
+  }
+
+  get location(): string {
+    return this.#backend.location;
+  }
+
+  get readOnly(): boolean {
+    return this.#readOnly;
+  }
+
+  async load(): Promise<void> {
+    this.#accept(await this.#backend.read());
+  }
+
+  #accept(outcome: ReadOutcome): void {
+    this.#state = outcome.state;
+    this.#readOnly = outcome.readOnly;
+    const { warning } = outcome;
+    if (warning && !this.#warnings.some((w) => JSON.stringify(w) === JSON.stringify(warning))) {
+      this.#warnings.push(warning);
+    }
+  }
+
+  projects(): ProjectEntry[] {
+    return structuredClone(this.#state.projects);
+  }
+
+  get(id: string): ProjectEntry | undefined {
+    const entry = this.#state.projects.find((p) => p.id === id);
+    return entry && { ...entry };
+  }
+
+  warnings(): StateWarning[] {
+    return structuredClone(this.#warnings);
+  }
+
+  snapshot(): StateFile {
+    return structuredClone(this.#state);
+  }
+
+  transaction<T>(fn: (draft: StateDraft) => T | Promise<T>): Promise<T> {
+    const run = async (): Promise<T> => {
+      // Re-read first: another console on the same directory may have changed the list.
+      if (!this.#readOnly) this.#accept(await this.#backend.read());
+      const projects = structuredClone(this.#state.projects);
+      const draft: StateDraft = { projects, create: (project) => this.#create(project, projects) };
+      const result = await fn(draft);
+      const next: StateFile = {
+        ...this.#state,
+        projects: draft.projects.map((p) => ({ ...p, remote: stripUserinfo(p.remote) })),
+      };
+      if (JSON.stringify(next) === JSON.stringify(this.#state)) return result;
+      const problem = stateProblem(next);
+      if (problem !== undefined) throw new InvalidStateError(`invalid state: ${problem}`);
+      if (!this.#readOnly) await this.#backend.write(next);
+      this.#state = next;
+      return result;
+    };
+    const done = this.#lock.then(run, run);
+    this.#lock = done.catch(() => undefined);
+    return done;
+  }
+
+  #create(project: NewProject, projects: readonly ProjectEntry[]): ProjectEntry {
+    let id: string;
+    do id = newProjectId(this.#random);
+    while (projects.some((p) => p.id === id));
+    return {
+      id,
+      path: project.path,
+      name: project.name,
+      remote: stripUserinfo(project.remote),
+      addedAt: isoSeconds(this.#now()),
+      roleView: '',
+    };
+  }
+
+  async add(project: NewProject): Promise<ProjectEntry> {
+    const id = await this.transaction((draft) => {
+      const entry = draft.create(project);
+      draft.projects.push(entry);
+      return entry.id;
+    });
+    return this.get(id)!;
+  }
+
+  remove(id: string): Promise<ProjectEntry | undefined> {
+    return this.transaction((draft) => {
+      const index = draft.projects.findIndex((p) => p.id === id);
+      return index < 0 ? undefined : draft.projects.splice(index, 1)[0];
+    });
+  }
+
+  async update(id: string, patch: ProjectPatch): Promise<ProjectEntry | undefined> {
+    const found = await this.transaction((draft) => {
+      const entry = draft.projects.find((p) => p.id === id);
+      if (entry) Object.assign(entry, patch);
+      return entry !== undefined;
+    });
+    return found ? this.get(id) : undefined;
+  }
+}
+
+/** Open a store over `backend`: the state is read once here. */
+export async function openStore(backend: StateBackend, options: StoreOptions = {}): Promise<StateStore> {
+  const store = new BackedStateStore(backend, options);
+  await store.load();
+  return store;
+}

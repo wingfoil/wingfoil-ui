@@ -6,6 +6,8 @@ import { randomBytes } from 'node:crypto';
 import { buildApp } from '../http/app.js';
 import { message } from '../i18n/messages.js';
 import { createLogger } from '../logging.js';
+import { openFileStateStore } from '../state/file-store.js';
+import { findProjectContaining } from '../state/location.js';
 import { listenLoopback, NoFreePortError, PortInUseError } from './listen.js';
 import { openBrowser, type Spawner } from './opener.js';
 import { parseOptions, UsageError } from './options.js';
@@ -29,6 +31,8 @@ export interface LauncherIo {
   version: string;
   /** Directory of the `web/` build. */
   staticDir: string;
+  /** The local state directory (spec-006 §1, `resolveStateDir`). */
+  stateDir: string;
   platform: NodeJS.Platform;
   spawn?: Spawner;
   /** Registers the handler of SIGINT/SIGTERM. */
@@ -91,6 +95,14 @@ export async function runLauncher(argv: readonly string[], io: LauncherIo): Prom
 
   const started = performance.now();
   const logger = createLogger();
+  // spec-007 §3.2: the local state is read before listening; no project is read here.
+  const state = await openFileStateStore({ dir: io.stateDir });
+  const holder = await findProjectContaining(io.stateDir, state.projects());
+  if (holder) {
+    io.stderr(message('launcher.stateDirInsideProject', { stateDir: io.stateDir, path: holder.path }));
+    return EXIT.stateDirInsideProject;
+  }
+  for (const warning of state.warnings()) logger.warn({ warning }, 'local state');
   // Drawn before the application is built: the session guards (task-003) need it.
   const token = drawToken();
   const app = await buildApp({ staticDir: io.staticDir, logger });
