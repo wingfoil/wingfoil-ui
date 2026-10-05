@@ -52,3 +52,54 @@ e2e closure — scenarios that need a screen are proved here by API and unit tes
      - design: tech-specs found missing/needing revision (dev-loop/design safety net).
      - red/green/refactor: deviations from the plan above, blockers, scope surprises.
      - review: rejection reasons and what changed on the next pass. -->
+
+### design (2026-10-05)
+
+- **depends_on acknowledged:** task-002 Execution Notes read — the token is drawn by `drawToken()`
+  before `buildApp` in `runLauncher` (injected here into the authentication adapter); Fastify's
+  own server never listens (two plain `http` servers hand requests to `app.routing`), so the Host
+  check gets the port from the launcher (the listeners' port), not from Fastify's server options;
+  `buildApp({ register })` adds routes before `ready()`; `envelope()` and the spec-004 §5 error
+  handler live in `http/app.ts`; `onStop` is not needed here (no child process yet); pino on
+  stderr already redacts `authorization`/`cookie`. task-001 notes read (via task-002): unit tests
+  in `test/server/`, the bin driven by `startLauncher` in `test/launcher/`, coverage gate 80 %,
+  TypeDoc on every exported declaration of `server/src`.
+- **Specs:** no gap. spec-004 §1 (Host/Origin on every request, 403 first), §2 (token, `POST
+  /api/session`, cookie `wfui_session_<port>; HttpOnly; SameSite=Strict; Path=/`, static files
+  exempt, cookie **or** Bearer on every other `/api/` request and the event stream, 401), §4 rows
+  1–2 (`forbidden-origin`, `unauthenticated`), §5 envelope; `adr-002` authentication port;
+  REQ-SEC-02/03. Two details the spec leaves open, decided here without changing any interface:
+  `POST /api/session` answers **204** (no body, so no `contracts/api/` schema is needed) and needs
+  the Bearer token itself (a cookie alone does not mint a new session); a request without a
+  `Host` header, or with `Origin: null`, is foreign (403).
+- **Design:** port `Authentication` (`server/src/auth/`: verify a token, open a session, verify a
+  session id) with the in-memory adapter `createTokenAuthentication(token)` (per-start, constant-time
+  comparison, sessions in a `Set`, nothing on disk); `http/guards.ts` registers one Fastify
+  `onRequest` hook **before** the static plugin and every route: Host/Origin first (403), then,
+  for any request whose path — raw or percent-decoded — or matched route is under `/api`
+  (the event stream `GET /api/events`, task-010, included), cookie or Bearer (401); `http/session.ts`
+  is the `POST /api/session` route. The guards answer before any handler runs, so a refused
+  request starts no process (none exists yet; task-004's runner will sit behind the handlers).
+  The `Set-Cookie` response header is added to the pino redaction.
+- **Scope boundaries:** no project route exists yet (task-008/012): the "project API" of X-04.1 and
+  the 200 of X-04.3 are proved on routes registered by the tests (unit, `buildApp({ register })`)
+  and, on the bin, on `POST /api/session` and an unknown `/api/` path (guards passed → 204/404, not
+  401/403). The browser side of X-02.1 (fragment read, `history.replaceState`, `POST /api/session`
+  from the page, the switcher listing the fixture) is task-013 (bootstrap) and closes in task-015;
+  here X-02.1 is proved by API tests (token → cookie with its name and flags → cookie accepted).
+- **AC classification (T1)** — all **red-first** (no guard exists; today `/api/nothing` answers 404
+  to anyone):
+  - TT-SEC-02 / X-04.1 rows 1–2 — GET and POST under `/api/` without token, with a wrong token, with
+    a wrong or other port's cookie → 401 `unauthenticated`, the handler never runs; static files
+    and client-side routes served without a session.
+  - X-02.1 (API side) — `POST /api/session` with the Bearer token → 204 and the cookie
+    `wfui_session_<port>` with `HttpOnly`, `SameSite=Strict`, `Path=/`, no `Max-Age`; the cookie
+    then opens the API; without/with a wrong token → 401.
+  - X-02.2 — bin started twice: the first start's token (and session) → 401 on the second start.
+  - TT-SEC-02 logging — token and session id in 0 log lines (unit with a captured pino stream, and
+    the bin's stderr).
+  - TT-SEC-03 / X-04.1 rows 3–4, X-04.2 — Origin `https://evil.test` (GET, POST, also PUT/DELETE
+    and on static files) and Host `evil.test:<port>` → 403 `forbidden-origin`, even with the token,
+    checked before the session (no token + foreign Origin → 403).
+  - X-04.3 — token + Origin `http://127.0.0.1:<port>` + Host `127.0.0.1:<port>` → 200 (unit with a
+    test route); the three accepted Host/Origin forms (`127.0.0.1`, `localhost`, `[::1]`).
