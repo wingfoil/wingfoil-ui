@@ -1,10 +1,15 @@
 {
   "$schema": "https://typedoc.org/schema.json",
-  "entryPoints": ["server/src/index.ts", "contracts/src/index.ts"],
+  "entryPoints": ["server/src", "contracts/src"],
   "tsconfig": "tsconfig.typedoc.json",
   "out": "docs-api",
   "treatWarningsAsErrors": true,
-  "validation": { "notExported": true, "invalidLink": true, "notDocumented": true },
+  "validation": {
+    "notExported": true,
+    "invalidLink": true,
+    "notDocumented": true
+  },
   "excludePrivate": true,
-  "excludeInternal": true
+  "excludeInternal": true,
+  "entryPointStrategy": "expand"
 }

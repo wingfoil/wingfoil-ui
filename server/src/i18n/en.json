@@ -1,0 +1,15 @@
+{
+  "launcher.help": "Usage: wingfoil-ui [--port <n>] [--no-open] [--version] [--help]\n\n  --port <n>   listen on port n (1024–65535); default: a free port chosen by the OS\n  --no-open    do not open a browser; print the URL only\n  --version    print the version and exit\n  --help       print this help and exit",
+  "launcher.noFreePort": "No free port found after {tries} tries",
+  "launcher.nodeTooOld": "WingFoil UI needs Node.js 22.12 or later (found {major}.{minor})",
+  "launcher.openManually": "Open this URL in your browser: {url}",
+  "launcher.portInUse": "Port {port} is already in use",
+  "launcher.running": "WingFoil UI is running at {url}",
+  "launcher.stopped": "WingFoil UI stopped",
+  "launcher.unexpected": "WingFoil UI stopped on an unexpected error: {message}",
+  "launcher.usage.invalidPort": "Invalid port: {value} (expected an integer from 1024 to 65535)",
+  "launcher.usage.line": "{reason}\nUsage: wingfoil-ui [--port <n>] [--no-open] [--version] [--help]",
+  "launcher.usage.missingValue": "Missing value for {option}",
+  "launcher.usage.unexpectedValue": "{option} takes no value",
+  "launcher.usage.unknownOption": "Unknown option: {option}"
+}
