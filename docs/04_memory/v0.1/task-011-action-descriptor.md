@@ -97,8 +97,8 @@ e2e closure — scenarios that need a screen are proved here by API and unit tes
   parameters (`not-in-team`, `version-unsupported {range}`, `local-changes`, `copy-behind
   {commits}`, `copy-diverged`, `copy-detached`), since browser texts come from the web catalogue
   (spec-008), not from the server; `actor.member` is `{name, email}` (placement matches the user
-  by email, REQ-STATE-05); `actor.members` lists names; the fallback actor carries `note:
-  "author-not-in-team"`; `rejection` is set when the last event is a reject into the current
+  by email, REQ-STATE-05); `actor.members` lists names; the fallback actor carries `fallback:
+  "author-not-in-team"` (named `note` until review round 1); `rejection` is set when the last event is a reject into the current
   state; `since` is absent when no event led into the current state.
 - **AC classification** — all **red-first** (no descriptor, no lint rule exist):
   - TT-ARC-06 — `test/server/descriptor/descriptor.test.ts`: table-driven over the 18 standard
@@ -141,10 +141,11 @@ e2e closure — scenarios that need a screen are proved here by API and unit tes
     `server/src/presets/descriptor.ts` — the kind→tone and kind→bucket tables and the `archived`
     kind (see deviation 2).
   - `lint/methodology-literals.js` + one block in `eslint.config.js` — rule
-    `wfui/no-methodology-literal` on `server/**` and `web/**`, ignoring `**/presets/**`,
-    `*.test.*`, `*.spec.*`: string literals and expression-free template literals (also literal
-    types and keys) equal to a name of the fixtures; module specifiers are not checked. The names
-    (40) are read from `test/contracts/samples/wingfoil-*/<fixture>/files/memory.yaml` (types,
+    `wfui/no-methodology-literal` on `server/**` and `web/**` (as first built: ignoring
+    `**/presets/**`, `*.test.*`, `*.spec.*`; string and expression-free template literals, which
+    covers literal types and quoted keys but not unquoted keys or regexes — both fixed in review
+    round 1, below) equal to a name of the fixtures; module specifiers are not checked. The names
+    (39) are read from `test/contracts/samples/wingfoil-*/<fixture>/files/memory.yaml` (types,
     sequence, gates, reject targets, waiting) and `memory-search.json` (statuses, e.g. `on-hold`),
     plus `deprecated`.
 - **How the ACs are proved:**
@@ -164,7 +165,7 @@ e2e closure — scenarios that need a screen are proved here by API and unit tes
     `submit`/`approve`/`reject` of every element (18 × 3 = 54 tries, a fresh copy after each
     accepted move) — accepted ⇔ offered, same target, **0 mismatches**, with one listed content
     refusal (deviation 3).
-  - TT-ARC-05 — `methodology-literals.test.ts`: each of the 40 names is reported in `server/`,
+  - TT-ARC-05 — `methodology-literals.test.ts`: each of the 39 names is reported in `server/`,
     plus a template literal, a literal type, an object key, a comparison and a `web/` file; not
     reported: another word, a longer string, a template with an expression, an import path, and
     files under `presets/`, tests, `contracts/`. On the repository with inline disables ignored, the
@@ -212,10 +213,13 @@ e2e closure — scenarios that need a screen are proved here by API and unit tes
   - Placement/order/offered verbs are for Today (v0.2) and the footers; nothing in v0.1 needs
     them over HTTP.
 - **Hand-over to task-017/018/web:** render `kind`, `tone`, `verbs`, `actor`, `rejection`,
-  `since`; map `DisabledReason.code` and `actor.note` to catalogue keys; use tone values as data
+  `since`; map `DisabledReason.code` and `actor.fallback` to catalogue keys; use tone values as data
   (`tone-${tone}`) — a `web/` literal equal to `done`/`active`/`archived` fails REQ-ARC-05.
-- **Merge note:** sibling tasks adding a literal equal to a fixture state or type name in
-  `server/` (e.g. `'open'`, `'active'`, `'done'`, `'task'`) fail the new rule after merge.
+- **Merge note:** sibling tasks adding a literal (or, since review round 1, an unquoted key,
+  interface member, class property, enum member or regex word) equal to a fixture state or type
+  name in `server/` or `web/` (e.g. `'open'`, `'active'`, `'done'`, `'pending'`, `'task'`) fail the
+  new rule after merge. Known concrete hit: task-010's `snapshot.ts` literals `'deprecated'` /
+  `'superseded'` — replace them with `ARCHIVED_STATES` of `server/src/presets/wingfoil.ts`.
 - **Checks (refactor, 2026-10-05, load average 54–96 on 12 cores from another project):**
   typecheck, lint, format:check clean · `docs:api` OK · `test:e2e` 3/3 · `check_tasks.py` OK ·
   `npx vitest run --coverage --coverage.reportOnFailure`: 45 files, **659 passed / 2 failed / 1
@@ -225,3 +229,29 @@ e2e closure — scenarios that need a screen are proved here by API and unit tes
   contract test: first run 9/10 in 496 s (the custom §9 check found the `sard_ref` content
   refusal, deviation 3), then that test alone passed (442 s, mostly the three builds); all 10 pass
   in the coverage run.
+
+### review round 1 (2026-10-05)
+
+Coordinator review: **FAIL** on the lint rule (descriptor logic accepted). Fixed:
+- **1 (major) keys and regexes:** the rule now also checks keys written as bare identifiers —
+  non-shorthand properties of object literals, `TSPropertySignature` (interface and type-literal
+  members), class properties (`PropertyDefinition`, abstract too), enum members — and the
+  standalone words of a regex literal (bounded by `^`, `$`, `(`, `(?:`, `)`, `|` or `\b`; an
+  unanchored `/done/` too). Plain identifiers, member access, shorthand properties and computed
+  keys are not checked. New cases: unquoted object key, type-literal key, interface member, enum
+  member, class property, anchored alternation, non-capturing group, `\b` word (reported);
+  identifiers/member access, shorthand, computed key, `/^task-\d+$/` (accepted). The residual risk
+  (concatenation, `${''}done`, case variants, JSX text, other regex shapes, destructuring) is
+  documented in the `eslint.config.js` block, as SEC-05's is.
+  The wider rule found four generic words in existing code: renamed `Running.done` → `settled`
+  (`process/runner.ts`, internal), `InProcessWriteLock.pending` → `queued` (private), and this
+  task's `actor.note` → `actor.fallback` (contracts type); `LauncherCommand.open` (spec-007
+  `--no-open`, used by `start.ts`) keeps its name with a justified inline disable, like
+  `opener.ts`'s `'open'`. The repository check now pins exactly these two `open`s.
+- **3 (minor) exemption narrowed** to `server/src/presets/**`: `web/src/presets/` and
+  `server/**/*.test.*` are now reported (tests asserting it); nothing needed the old exemptions.
+- **5** names: 39, not 40 (the test now asserts 39). **6** only directories under
+  `test/contracts/samples/` are read. **7** `compareRequiresYou`: an unparsable `since` sorts last
+  like an absent one (test with both orders).
+- Not changed here (coordinator's): task-010's `snapshot.ts` hit (named in the merge note), the
+  gate-waiting actor and the bucket wording (escalated to the user).

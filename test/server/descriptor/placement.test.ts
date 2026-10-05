@@ -121,6 +121,10 @@ describe('Requires you order (spec-003 §5)', () => {
     delete d.since;
     const e = { ...base, id: 'e', since: '2026-10-01T10:00:00+00:00' };
     expect([a, d, b, c, e].sort(compareRequiresYou).map((x) => x.id)).toEqual(['c', 'b', 'e', 'a', 'd']);
+    // An unparsable time sorts last too, consistently with an absent one (then by id).
+    const f = { ...base, id: 'f', since: 'not a date' };
+    expect([f, d, a].sort(compareRequiresYou).map((x) => x.id)).toEqual(['a', 'd', 'f']);
+    expect([d, f, a].sort(compareRequiresYou).map((x) => x.id)).toEqual(['a', 'd', 'f']);
   });
 });
 

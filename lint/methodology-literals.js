@@ -21,7 +21,8 @@ export function methodologyNames() {
     for (const [gate, { reject }] of Object.entries(states?.gates ?? {})) names.add(gate).add(reject);
     for (const s of states?.waiting ?? []) names.add(s);
   };
-  for (const version of readdirSync(SAMPLES)) {
+  const versions = readdirSync(SAMPLES, { withFileTypes: true }).filter((e) => e.isDirectory());
+  for (const { name: version } of versions) {
     for (const fixture of FIXTURES) {
       const dir = path.join(SAMPLES, version, fixture);
       const memory = parse(readFileSync(path.join(dir, 'files', 'memory.yaml'), 'utf8'), { merge: true });
@@ -38,9 +39,12 @@ export function methodologyNames() {
   return names;
 }
 
+/** A word of a regex source bounded by `^`, `$`, `(`, `)`, `|`, `(?:` or `\\b` on both sides. */
+const WORD_IN_PATTERN = /(?<=^|[|(^:]|\\b)([a-z][a-z0-9-]*)(?=$|[|)$]|\\b)/g;
+
 const MESSAGE =
   'REQ-ARC-05: "{{value}}" is a type or state name of a fixture — read it from the project ' +
-  '(memory.yaml, the action descriptor) or move it to presets/';
+  '(memory.yaml, the action descriptor) or move it to server/src/presets/';
 
 /** The ESLint plugin holding the rule `no-methodology-literal`. */
 export const methodologyPlugin = {
@@ -48,7 +52,7 @@ export const methodologyPlugin = {
     'no-methodology-literal': {
       meta: {
         type: 'problem',
-        docs: { description: 'REQ-ARC-05: no type or state name of the fixtures outside presets/ and tests' },
+        docs: { description: 'REQ-ARC-05: no type or state name of the fixtures outside server/src/presets/' },
         schema: [],
         messages: { literal: MESSAGE },
       },
@@ -57,8 +61,18 @@ export const methodologyPlugin = {
         const check = (node, value) => {
           if (names.has(value)) context.report({ node, messageId: 'literal', data: { value } });
         };
+        /** A key written as a bare identifier (`{ draft: 1 }`, `enum K { draft }`, `x: T` members). */
+        const checkKey = (node) => {
+          if (!node.computed && node.key?.type === 'Identifier') check(node.key, node.key.name);
+        };
         return {
           Literal(node) {
+            if (node.regex) {
+              // Words of a regular expression that stand alone between anchors, groups or
+              // alternatives: `/^(draft|pending)$/`, `/\bdone\b/`.
+              for (const m of node.regex.pattern.matchAll(WORD_IN_PATTERN)) check(node, m[1]);
+              return;
+            }
             if (typeof node.value !== 'string') return;
             // Module specifiers name files, not states.
             const parent = node.parent;
@@ -76,6 +90,16 @@ export const methodologyPlugin = {
           },
           TemplateLiteral(node) {
             if (node.expressions.length === 0) check(node, node.quasis[0].value.cooked);
+          },
+          // Shorthand properties (`{ task }`) are variables, not written keys: not checked.
+          'ObjectExpression > Property'(node) {
+            if (!node.shorthand) checkKey(node);
+          },
+          TSPropertySignature: checkKey,
+          PropertyDefinition: checkKey,
+          TSAbstractPropertyDefinition: checkKey,
+          TSEnumMember(node) {
+            if (node.id.type === 'Identifier') check(node.id, node.id.name);
           },
         };
       },

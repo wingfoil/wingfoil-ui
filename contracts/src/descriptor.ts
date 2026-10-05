@@ -55,7 +55,7 @@ export interface DescriptorActor {
   /** Names of the members holding `role`, in `dna.team.members` order. */
   members?: string[];
   /** Set on the tech-lead fallback: the author is not in the team, or there is no event. */
-  note?: 'author-not-in-team';
+  fallback?: 'author-not-in-team';
 }
 
 /** The last reject, when it led to the current state. */

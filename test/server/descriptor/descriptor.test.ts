@@ -208,14 +208,14 @@ describe('spec-003 §9 — the synthetic rows', () => {
   });
 
   it('falls back to the tech-lead role when the author is not in the team or there is no event', () => {
-    const fallback = { kind: 'role', role: 'tech-lead', members: TECH_LEADS, note: 'author-not-in-team' };
+    const fallback = { kind: 'role', role: 'tech-lead', members: TECH_LEADS, fallback: 'author-not-in-team' };
     const outsider = describeElement(el('adr', 'draft'), [ev('add', null, 'draft', 'Riley', T(1))], custom);
     expect(outsider.actor).toEqual(fallback);
     expect(describeElement(el('adr', 'draft'), [], custom).actor).toEqual(fallback);
     expect(describeElement(el('adr', 'draft'), [], custom).since).toBeUndefined();
     // A member with no email (optional in 0.2.2) is never matched.
     const noEmail = { ...custom, members: custom.members.map(({ email: _e, ...m }) => m) };
-    expect(describeElement(el('adr', 'draft'), [ev('add', null, 'draft', 'Alex', T(1))], noEmail).actor.note).toBe(
+    expect(describeElement(el('adr', 'draft'), [ev('add', null, 'draft', 'Alex', T(1))], noEmail).actor.fallback).toBe(
       'author-not-in-team',
     );
   });
@@ -223,7 +223,7 @@ describe('spec-003 §9 — the synthetic rows', () => {
   it('a rejected element whose rejected submit is unknown falls back too', () => {
     const events = [ev('reject', 'pending', 'draft', 'Morgan', T(2), { reason: 'No' })];
     const d = describeElement(el('adr', 'draft'), events, custom);
-    expect(d.actor.note).toBe('author-not-in-team');
+    expect(d.actor.fallback).toBe('author-not-in-team');
     expect(d.rejection).toEqual({ by: 'Morgan', reason: 'No', at: T(2) });
   });
 

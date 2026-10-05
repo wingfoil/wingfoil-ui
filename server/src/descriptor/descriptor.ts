@@ -179,7 +179,7 @@ class Team {
 
   /** The member who authored `author`, else the tech-lead role "Author not in the team". */
   memberOrFallback(author: string | undefined): DescriptorActor {
-    return this.member(author) ?? { ...this.role(TECH_LEAD_ROLE), note: 'author-not-in-team' };
+    return this.member(author) ?? { ...this.role(TECH_LEAD_ROLE), fallback: 'author-not-in-team' };
   }
 }
 

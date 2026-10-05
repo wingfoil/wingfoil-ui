@@ -95,10 +95,17 @@ export default tseslint.config(
     },
   },
   {
-    // REQ-ARC-05 — methodology independence (TT-ARC-05): no string literal equal to a type or state
-    // name of the three fixtures in server/ and web/, outside presets/ and the tests.
+    // REQ-ARC-05 — methodology independence (TT-ARC-05): no type or state name of the three
+    // fixtures in server/ and web/ outside server/src/presets/ (tests live in test/). Reported: string
+    // literals, expression-free template literals, literal types, keys written as bare identifiers
+    // (object literals, interface/type members, class properties, enum members) and the standalone
+    // words of a regular expression (`/^(draft|pending)$/`, `/\bdone\b/`, also an unanchored
+    // `/done/`). Residual risk left to review: names built by concatenation (`'dr' + 'aft'`) or
+    // with an expression (`${''}done`), other cases (`'DONE'`, `Draft`), names in JSX text or in
+    // a regex beyond those boundaries, shorthand properties and destructuring (`{ task }`, which
+    // are variables), and identifiers (`note`, `task` are legitimate names of variables).
     files: ['server/**/*.{ts,tsx,mts,cts,js,jsx,mjs,cjs}', 'web/**/*.{ts,tsx,mts,cts,js,jsx,mjs,cjs}'],
-    ignores: ['**/presets/**', '**/*.test.*', '**/*.spec.*'],
+    ignores: ['server/src/presets/**'],
     plugins: { wfui: methodologyPlugin },
     rules: { 'wfui/no-methodology-literal': 'error' },
   },

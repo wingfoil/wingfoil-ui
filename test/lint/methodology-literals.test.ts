@@ -58,7 +58,7 @@ describe('REQ-ARC-05 lint rule', () => {
 
   it('knows the names of the three fixtures (sanity of the oracle)', () => {
     expect(names).toEqual(expect.arrayContaining(['task', 'story', 'note', 'in-review', 'on-hold', 'ready-to-build']));
-    expect(names.length).toBeGreaterThan(30);
+    expect(names).toHaveLength(39);
   });
 
   it.each(names)('reports the literal %j in server/', async (name) => {
@@ -70,7 +70,25 @@ describe('REQ-ARC-05 lint rule', () => {
     ['a literal type', "export type T = 'backlog' | 'x';\n"],
     ['an object key', "export const o = { 'in-progress': 1 };\n"],
     ['a comparison', "export const f = (s: string) => s === 'approved';\n"],
+    ['an unquoted object key', "export const colour = { draft: 'grey', x: 'green' };\n"],
+    ['an unquoted key of a type literal', 'export type S = { approved: boolean };\n'],
+    ['an interface member', 'export interface S {\n  approved: boolean;\n}\n'],
+    ['an enum member', 'export enum K {\n  draft,\n  x,\n}\n'],
+    ['a class property', 'export class C {\n  pending = 1;\n}\n'],
+    ['an anchored regex alternation', 'export const re = /^(draft|x)$/;\n'],
+    ['a non-capturing regex group', 'export const re = /^(?:x|in-review)$/;\n'],
+    ['a regex word between \\b', 'export const re = /\\bdone\\b/;\n'],
     ['web/', "export const x = 'shaping';\n", 'web/src/sample.ts'],
+    [
+      'web/src/presets/ (only server/src/presets/ is exempt)',
+      "export const x = 'draft';\n",
+      'web/src/presets/sample.ts',
+    ],
+    [
+      'a test-named file under server/ (tests live in test/)',
+      "export const x = 'draft';\n",
+      'server/src/sample.test.ts',
+    ],
   ])('reports %s', async (_name, code, file?: string) => {
     expect(await arc05(code, file)).not.toEqual([]);
   });
@@ -80,21 +98,25 @@ describe('REQ-ARC-05 lint rule', () => {
     ['a name inside a longer string', "export const x = 'the task list';\n"],
     ['a template with an expression', 'export const f = (s: string) => `${s}draft`;\n'],
     ['an import source', "import { x } from './task';\nexport { x };\n"],
+    [
+      'identifiers and member access',
+      'export function f(task: Map<string, string>, note: string) {\n  return task.get(note) ?? task.size;\n}\n',
+    ],
+    ['a shorthand property', 'const task = 1;\nexport const o = { task };\n'],
+    ['a computed key', "const k = 'x';\nexport const o = { [k]: 1 };\n"],
+    ['a regex with the name inside a longer word', 'export const re = /^task-\\d+$/;\n'],
   ])('accepts %s', async (_name, code) => {
     expect(await arc05(code)).toEqual([]);
   });
 
-  it.each([
-    ['server/src/presets/sample.ts'],
-    ['web/src/presets/sample.ts'],
-    ['test/server/sample.test.ts'],
-    ['server/src/sample.test.ts'],
-    ['contracts/src/sample.ts'],
-  ])('does not apply to %s', async (file) => {
-    expect(await arc05("export const x = 'draft';\n", file)).toEqual([]);
-  });
+  it.each([['server/src/presets/sample.ts'], ['test/server/sample.test.ts'], ['contracts/src/sample.ts']])(
+    'does not apply to %s',
+    async (file) => {
+      expect(await arc05("export const x = 'draft';\n", file)).toEqual([]);
+    },
+  );
 
-  it('finds 0 literals in server/ and web/ but the justified program name `open` (macOS opener)', async () => {
+  it('finds 0 literals in server/ and web/ but the two justified `open`s (macOS program, --no-open option)', async () => {
     // Inline disables are ignored here: every literal the rule would report is listed.
     const raw = new ESLint({ cwd: REPO_ROOT, allowInlineConfig: false });
     const results = await raw.lintFiles(['server', 'web']);
@@ -103,6 +125,9 @@ describe('REQ-ARC-05 lint rule', () => {
         .filter((m) => m.message.includes(RULE))
         .map((m) => `${path.relative(REPO_ROOT, r.filePath)}: ${m.message}`),
     );
-    expect(hits).toEqual([expect.stringMatching(/^server\/src\/launcher\/opener\.ts: .*"open"/)]);
+    expect(hits).toEqual([
+      expect.stringMatching(/^server\/src\/launcher\/opener\.ts: .*"open"/),
+      expect.stringMatching(/^server\/src\/launcher\/options\.ts: .*"open"/),
+    ]);
   }, 120_000);
 });

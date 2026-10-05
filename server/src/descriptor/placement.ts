@@ -40,7 +40,7 @@ export function placement(d: ActionDescriptor, user: PlacementUser | undefined, 
   if (d.kind === 'gate' && holds(APPROVER_ROLE) && (roleView === REVIEWER_ROLE || roleView === APPROVER_ROLE)) {
     return { list: 'requires-you', action: roleView === REVIEWER_ROLE ? 'review' : 'approve' };
   }
-  const techLeadActor = d.kind === 'undeclared' || actor.note === 'author-not-in-team';
+  const techLeadActor = d.kind === 'undeclared' || actor.fallback === 'author-not-in-team';
   if (techLeadActor && roleView === TECH_LEAD_ROLE && holds(TECH_LEAD_ROLE)) {
     return { list: 'requires-you', action: d.kind === 'undeclared' ? 'resolve' : d.rejection ? 'rework' : 'submit' };
   }
@@ -50,15 +50,21 @@ export function placement(d: ActionDescriptor, user: PlacementUser | undefined, 
   return { list: null };
 }
 
+/** Milliseconds of `since`; an absent or unparsable time sorts last. */
+function sinceTime(d: ActionDescriptor): number {
+  const t = d.since === undefined ? NaN : Date.parse(d.since);
+  return Number.isNaN(t) ? Infinity : t;
+}
+
 /**
  * Order of *Requires you* (spec-003 §5): rejected work first, then by time in the current state,
- * oldest first (an unknown time last), then by id.
+ * oldest first (an absent or unparsable time last), then by id.
  */
 export function compareRequiresYou(a: ActionDescriptor, b: ActionDescriptor): number {
   const rejected = Number(!a.rejection) - Number(!b.rejection);
   if (rejected !== 0) return rejected;
-  const ta = a.since === undefined ? Infinity : Date.parse(a.since);
-  const tb = b.since === undefined ? Infinity : Date.parse(b.since);
+  const ta = sinceTime(a);
+  const tb = sinceTime(b);
   if (ta !== tb) return ta < tb ? -1 : 1;
   return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
 }
