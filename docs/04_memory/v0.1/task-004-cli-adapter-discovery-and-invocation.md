@@ -203,3 +203,50 @@ e2e closure — scenarios that need a screen are proved here by API and unit tes
   `npx vitest run test/server/cli/adapter.test.ts -t "sleeps 40 s" --reporter=verbose` →
   passed in 30 925 ms including the fixture copy (assertion 29 000 ≤ elapsed ≤ 31 000 ms on the
   request itself). No flaky test seen in these runs.
+
+### review (2026-10-05)
+
+- Independent review of HEAD `1481944`: **PASS WITH FIXES**. Fixed test-first: red tests in
+  `9c41102`; before the fixes they failed for the expected reasons (runner: terminate/abort
+  before 'spawn' and the two grandchild cases hit the test timeout; dangling link fell back to the
+  PATH; build failure left the hook; adapter: the new `json(words, { options, positionals })`
+  shape, redacted logs, empty refusal message).
+  - **1 (major)** `runner.ts` — a child is tracked synchronously right after `spawn()` returns (and
+    the stopping check stays at the top of `run()`): `run()` then an immediate `terminateAll()`
+    ends it ('terminated'). A kill requested before 'spawn' is sent on 'spawn'.
+  - **2 (major)** the abort listener is attached synchronously after `spawn()`: an abort before
+    'spawn' cancels the process.
+  - **3** POSIX children are spawned `detached: true` (own process group) and every kill goes to
+    the group (`process.kill(-pid, sig)`, falling back to the child); Windows keeps `child.kill`.
+    A child whose long-lived grandchild inherits its stdout/stderr now returns at its timeout
+    (1 s timeout, result < 4 s) and from `terminateAll` (< 3 s), and the grandchild is gone.
+    This closes the grandchild deviation noted in red/green/refactor (POSIX only). Consequence:
+    children no longer receive the terminal's Ctrl+C directly; the stop sequence terminates them.
+  - **4** `discovery.ts` — presence of `node_modules/wingfoil` checked with `lstat`: a dangling
+    link is a broken pinned install → `CliNotFoundError`, no PATH fallback.
+  - **5** `adapter.ts` — every internal, process and timeout error is logged; errors and logs carry
+    `CliCommand { words, options }` (command words, option names), never option values or
+    positionals (the `secret-…` probe in the test is absent from the log).
+  - **6** `start.ts` — the `onStop` hook is registered after `buildApp`, removed when the listen
+    fails (`test/server/launcher/stop-hook-leak.test.ts`: a later stop must not terminate the
+    failed launch's runner — build failure was red, listen failure a characterization).
+  - **8** user positionals go after `--`: `json(['memory', 'history'], { positionals: ['--version'] })`
+    runs `… memory history -- --version` and gets the CLI refusal `document not found: --version`.
+  - **9** TT-ARC-02 positive control: after `removeCli`, rediscovery with the same PATH gives source
+    `path`, `version()` `0.2.1` and the marker file exists.
+  - **10** fixed 200 ms sleep replaced with `vi.waitFor`; the grandchild tests wait on a pid file.
+  - **11** `shell: false` explicit; exit 1 with an empty stderr → `WingFoil refused (exit status 1)
+    without a message`.
+  - Package review now lists every `wingfoil` occurrence in every dependency field of the root and
+    workspace packages and expects exactly `package.json devDependencies` (this repository's own
+    governance CLI, never installed by `npx wingfoil-ui`).
+- **API change for the hand-overs:** `WingfoilCli.json(words, { options?, positionals?, signal? })`
+  — words are the adapter's own; ids, titles, reasons go in `positionals`/`options`.
+- **Hand-over additions (task-008/012):** the write-lock key must be the opaque project id
+  (spec-004 `:pid`), never a user-supplied path; `InProcessWriteLock` is **not re-entrant** — a
+  task holding the lock must not call `run` with the same key (it would wait forever).
+- **Checks after the fixes:** `npx tsc -b server` OK · typecheck, lint, format:check clean ·
+  `docs:api` OK · `npm run -s test:coverage` 21 files, **203/203**, coverage **95.46 %**
+  statements / **89.37 %** branches / 94.49 % functions / 96.59 % lines · `test:e2e` 3/3.
+  `npx vitest run test/server/process test/server/launcher` repeated 3× → 66/66 each time (no
+  flakiness seen).
