@@ -10,7 +10,14 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { CliRefusedError } from '../../../server/src/cli/adapter.js';
 import { CliNotFoundError } from '../../../server/src/cli/discovery.js';
 import type { Snapshots } from '../../../server/src/snapshot/snapshots.js';
-import { buildFixture, copyFixture, installCliStub, removeCli, type Fixture } from '../../harness/fixtures/index.js';
+import {
+  buildFixture,
+  copyFixture,
+  envWithoutWingfoil,
+  installCliStub,
+  removeCli,
+  type Fixture,
+} from '../../harness/fixtures/index.js';
 import { git } from '../../harness/run.js';
 import { auditedSnapshots } from './support.js';
 
@@ -20,10 +27,10 @@ let template: Fixture;
 let n = 0;
 const registries: Snapshots[] = [];
 
-async function fresh() {
+async function fresh(envFor: (fx: Fixture) => Promise<NodeJS.ProcessEnv> = async (fx) => fx.env) {
   n += 1;
   const fx = await copyFixture(template, path.join(root, `copy-${n}`));
-  const audited = auditedSnapshots(fx.env);
+  const audited = auditedSnapshots(await envFor(fx));
   registries.push(audited.snapshots);
   const snapshot = await audited.snapshots.open(`p${n}`, fx.dir);
   return { fx, snapshot, ...audited };
@@ -158,7 +165,8 @@ describe('TT-STATE-02 — cache keyed on HEAD, working-tree status and user.emai
   });
 
   it('runs CLI discovery once per CLI generation; cliChanged() starts a new one', async () => {
-    const { fx, snapshot, runner, events } = await fresh();
+    // No `wingfoil` on the PATH: without the project's own CLI there is none.
+    const { fx, snapshot, runner, events } = await fresh((f) => envWithoutWingfoil(f.env, path.join(root, `bin-${n}`)));
     expect(await (await snapshot.view()).version()).toBe('0.2.2');
     expect(await (await snapshot.view()).version()).toBe('0.2.2');
     expect(runner.count('wingfoil')).toBe(1);

@@ -106,11 +106,13 @@ describe('GET /api/events', () => {
   });
 
   it('unsubscribes when the page goes away', async () => {
-    const before = bus.size;
+    // The streams of the previous tests are gone once the server saw their close.
+    await expect.poll(() => bus.size).toBe(0);
     const s = await connect();
-    await expect.poll(() => bus.size).toBe(before + 1);
+    await expect.poll(() => bus.size).toBe(1);
     s.close();
-    await expect.poll(() => bus.size).toBe(before);
+    await expect.poll(() => bus.size).toBe(0);
+    expect(streams.size).toBe(0);
   });
 
   it('is guarded: 401 without a session, 403 from another site (spec-004 §1–2)', async () => {

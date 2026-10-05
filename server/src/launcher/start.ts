@@ -4,10 +4,13 @@
  */
 import { randomBytes } from 'node:crypto';
 import { createTokenAuthentication } from '../auth/authentication.js';
+import { InProcessEventBus } from '../events/bus.js';
 import { buildApp } from '../http/app.js';
+import { registerEventStream, type EventStreams } from '../http/events.js';
 import { message } from '../i18n/messages.js';
 import { createLogger } from '../logging.js';
 import { LocalProcessRunner } from '../process/runner.js';
+import { Snapshots } from '../snapshot/snapshots.js';
 import { openFileStateStore } from '../state/file-store.js';
 import { findProjectContaining } from '../state/location.js';
 import { listenLoopback, NoFreePortError, PortInUseError } from './listen.js';
@@ -117,13 +120,26 @@ export async function runLauncher(argv: readonly string[], io: LauncherIo): Prom
   io.onExit?.(() => processes.killAllNow());
   // The port is known once listening; until then the guards refuse every request.
   const listening: { port?: number } = {};
+  // Change notifications (adr-002 event bus) and the project snapshots (task-010): the read routes
+  // (task-012) and the project list (task-008) open projects in `snapshots`; no project is read here.
+  const bus = new InProcessEventBus();
+  const snapshots = new Snapshots({ runner: processes, bus, logger });
+  const streams: { events?: EventStreams } = {};
   const app = await buildApp({
     staticDir: io.staticDir,
     logger,
     security: { authentication: createTokenAuthentication(token), port: () => listening.port },
+    register: (a) => {
+      streams.events = registerEventStream(a, { bus });
+    },
   });
-  // CLI and git children are terminated in the stop sequence (spec-007 §6, adr-001 D5); registered
-  // once the application exists, removed again if the listen fails.
+  // Stop sequence (spec-007 §6): close the event streams and the watchers, then terminate the CLI
+  // and git children (adr-001 D5); registered once the application exists, removed again if the
+  // listen fails.
+  const offStreams = onStop(async () => {
+    streams.events?.close();
+    await snapshots.closeAll();
+  });
   const offProcesses = onStop(() => processes.terminateAll());
   let listeners;
   try {
@@ -132,6 +148,7 @@ export async function runLauncher(argv: readonly string[], io: LauncherIo): Prom
       onError: (error) => logger.error({ err: error }, 'listener error'),
     });
   } catch (error) {
+    offStreams();
     offProcesses();
     await app.close();
     if (error instanceof PortInUseError) {
