@@ -117,3 +117,89 @@ e2e closure — scenarios that need a screen are proved here by API and unit tes
   where the first route invoking the CLI lands (task-008 add project / task-012 reads), with the
   spawn observer this task provides. Screens: task-014 (S-10.1, S-10.2), task-016 (S-08.1,
   S-08.2), task-019 (S-27.1).
+
+### red / green / refactor (2026-10-05)
+
+- **Red:** `test/server/process/{runner,write-lock}.test.ts`, `test/server/cli/{discovery,adapter}.test.ts`,
+  `test/server/launcher/stop-children.test.ts` written first; all 5 files failed on the missing
+  modules (`Cannot find module '…/server/src/process/runner.js'` …), commit `668dfcb`.
+- **Green — built:**
+  - `server/src/process/runner.ts` — the process runner port (`ProcessRunner`) and
+    `LocalProcessRunner`: `spawn` with an argument array (no shell, REQ-SEC-05), stdin closed,
+    `DEFAULT_TIMEOUT_MS` 30 s (`timeoutMs: null` for cancellable git transport), `AbortSignal`,
+    SIGTERM then SIGKILL after 2 s, output cap 64 MiB, `ended` ∈ `exit | timeout | cancelled |
+    overflow | terminated`, `onSpawn` observer (process audit), `terminateAll()` (refuses new
+    processes, ends the running ones).
+  - `server/src/process/write-lock.ts` — `WriteLock` port and `InProcessWriteLock` (queue per
+    project key, arrival order, released before the caller sees the outcome, failure releases).
+  - `server/src/cli/discovery.ts` — `discoverCli(projectRoot, { env })` per adr-001 D2 →
+    `ResolvedCli { source: 'project' | 'path', file, prefixArgs, packageDir? }`, or
+    `CliNotFoundError` (`code: 'cli-not-found'`, `installCommand: 'npm install --save-dev
+    wingfoil'`).
+  - `server/src/cli/adapter.ts` — `WingfoilCli.json(words, options)` (`--format json` before the
+    command; words must not start with `-`; options rendered with `optionArg`, `--name=value` when
+    the value starts with `-`, a repeated option once per value), `version()` (plain text, W-19),
+    the error classes of spec-001 §2 and `cliErrorEnvelope()` (spec-004 §5, spec-006 §3).
+  - `server/src/launcher/start.ts` — `LauncherIo.processes` (default a new `LocalProcessRunner`);
+    `runLauncher` registers `onStop(() => processes.terminateAll())` before building the app and
+    unsubscribes it when the listen fails.
+  - `test/server/process/fake-runner.ts` — the port's in-memory fake (adr-002);
+    `test/server/cli/fake-cli.ts` — hand-made `wingfoil` packages and an npm-global install layout.
+- **Decisions:**
+  - Process errors (another exit status, a foreign signal, cancelled, stopped, overflow) map to
+    500 `internal` (spec-004 §5 has no dedicated code); the reason is in the error and the log.
+  - A `node_modules/wingfoil` present without a usable `bin.wingfoil` is "no CLI" and does **not**
+    fall back to the PATH (it would silently run another version, against REQ-ARC-02).
+  - Relative `PATH` entries are never searched (they would resolve against the project folder).
+    On Windows only npm shims (`wingfoil.cmd` → `node_modules/wingfoil` next to it) and `.exe`
+    are used — a `.cmd` that is not a shim would need a shell.
+  - "The package `wingfoil-ui` declares no dependency on `wingfoil`" is checked on
+    `dependencies`, `peerDependencies`, `optionalDependencies` and bundled dependencies of the root
+    and every workspace package; the root `devDependencies` pin is this repository's governance CLI
+    (never installed by `npx wingfoil-ui`) and stays — **to confirm at review**.
+- **Deviations (honest):**
+  - The harness CLI stub (task-001, `test/harness/fixtures/variants.ts`) matched failures only on
+    the words before the first `-` argument, so it never matched the server's invocation
+    (`--format json` first): the stub-based classification tests passed through to the real CLI
+    (found in green). The stub now skips wingfoil's global options (`--format <v>`, `--verbose`,
+    `--no-color`, `--no-interactive`) first; new case in `test/harness/variants.test.ts`, README
+    updated (commit `c6a51bb`).
+  - TT-ARC-02's process audit runs at the adapter level (Vitest, real kanban fixture), not through
+    the HTTP API: no route invokes the CLI yet (hand-over below).
+  - Children are killed individually, not as a process group: a `git` started by a killed
+    `wingfoil` may outlive it briefly. Accepted for v0.1 (no shell, no detached group on Windows).
+  - Windows rules are unit-tested on Linux through the `platform` option (host path separators);
+    a manual Windows check stays open with spec-007 §7's.
+- **CLI facts (wingfoil 0.2.2) — new, for the coordinator (directive not edited):**
+  - exit 2 is not always plain text as spec-001 §2 says: a missing required option gives JSON on
+    stderr. `node node_modules/wingfoil/dist/cli.js --format json memory approve task-001-a
+    </dev/null` → exit 2, stdout empty, stderr `{"error":"missing required argument: --reason"}`
+    (also `memory add --type task` → `{"error":"missing required argument: --title"}`); an unknown
+    option stays text (`--bogus dna show` → `error: unknown option '--bogus'`). The adapter treats
+    every exit 2 as internal whatever its format.
+  - With stdin a pipe or `/dev/null` the CLI never prompts (above), so `--no-interactive` is not
+    needed; the `--name=value` form works for a value starting with `-`: `memory reject
+    task-001-login-form --reason=-x dash first` as Morgan on the kanban fixture writes
+    `reason: "-x dash first"` (asserted by `adapter.test.ts`).
+- **Hand-overs:**
+  - **task-005:** validate `WingfoilCli.json(...)` data against the command schema and throw
+    `CliOutputError` (→ 502 `cli-output`) on failure; the static list of consumed commands; pass user
+    values only through the `options` map.
+  - **task-006:** parse the `version()` text (semantic version or "unrecognised"), cache it with the
+    `ResolvedCli`; `cli.source === 'path'` gives "(from PATH)".
+  - **task-008:** `discoverCli` rejection → `availability: 'cli-not-found'` and the
+    `POST /api/projects` refusal via `cliErrorEnvelope` (422, `detail { path, command }`); git
+    reads through the runner (30 s default), transport with `timeoutMs: null` + `signal`; the
+    API-level process audit of TT-ARC-02 with `new LocalProcessRunner({ onSpawn })`.
+  - **task-010:** re-run `discoverCli` when `node_modules/wingfoil/package.json` changes.
+  - **task-008/012 (wiring):** `runLauncher` creates the runner (`io.processes ?? new
+    LocalProcessRunner()`) but does not hand it to routes yet: pass that instance (and one
+    `InProcessWriteLock`) to `buildApp({ register })` so the stop hook covers every child.
+- **Checks (refactor):** `npx tsc -b server` OK · `npm run -s typecheck` clean · `npm run -s lint`
+  clean · `npm run -s format:check` clean · `npm run -s docs:api` OK (`html generated at
+  ./docs-api`) · `npm run -s test:coverage` 20 files, **193/193** passed, coverage **95.41 %**
+  statements / **88.88 %** branches / 94.23 % functions / 96.62 % lines (`server/src/cli` 98.68 %,
+  `server/src/process` 98.8 % statements) · `npm run -s test:e2e` 3/3 (Chromium). Timeout test:
+  `npx vitest run test/server/cli/adapter.test.ts -t "sleeps 40 s" --reporter=verbose` →
+  passed in 30 925 ms including the fixture copy (assertion 29 000 ≤ elapsed ≤ 31 000 ms on the
+  request itself). No flaky test seen in these runs.

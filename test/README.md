@@ -1,6 +1,6 @@
 # Tests
 
-**Version:** 0.2 · **Date:** 2026-10-05 (0.1: workspace tooling and e2e harness — task-001; 0.2: `test/launcher/`, `test/server/` — task-002)
+**Version:** 0.3 · **Date:** 2026-10-05 (0.1: workspace tooling and e2e harness — task-001; 0.2: `test/launcher/`, `test/server/` — task-002; 0.3: process runner fake, hand-made CLI packages, stub after global options — task-004)
 
 Every test lives under `test/` (DNA `paths.tests`); sources stay in `server/src`, `web/src`,
 `contracts/src`.
@@ -21,7 +21,10 @@ Every test lives under `test/` (DNA `paths.tests`); sources stay in `server/src`
 - `test/launcher/` — the `wingfoil-ui` bin driven as a child process (`launcher.ts`:
   `startLauncher(args, env)` waits for the running line and returns port, token and stop helpers;
   later e2e suites start the console with it).
-- `test/server/` — unit tests of `server/src`, mirroring its folders.
+- `test/server/` — unit tests of `server/src`, mirroring its folders. `process/fake-runner.ts` is the
+  in-memory fake of the process runner port (adr-002); `cli/fake-cli.ts` writes hand-made `wingfoil`
+  packages (a marking or sleeping CLI) and installs a package globally (`<prefix>/bin/wingfoil` →
+  `<prefix>/lib/node_modules/wingfoil/…`) for the discovery tests.
 - `test/lint/`, `test/docs/` — the dev-loop gates `lint.clean`, `docs.api.*`.
 
 ## Fixtures
@@ -52,7 +55,8 @@ Variants (they change only the untracked `node_modules/wingfoil`):
   `git` and `node` on the `PATH`).
 
 A failure is matched on the command's positional words before its first option
-(`['memory', 'approve']`); installing a stub again replaces the previous one.
+(`['memory', 'approve']`), after any global option placed before the command (`--format json`, as
+the server invokes the CLI); installing a stub again replaces the previous one.
 
 `security.ts` holds the REQ-SEC-05 probe (`SHELL_PAYLOAD`, `pwned()`) for every test that passes
 user input to a process.
