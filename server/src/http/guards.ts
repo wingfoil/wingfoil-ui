@@ -45,9 +45,23 @@ export function isAllowedOrigin(origin: string, port: number | undefined): boole
   return OWN_HOSTS.some((name) => value === `http://${name}:${port}`);
 }
 
-/** `true` when the request's Host, and its Origin when present, are the console's own. */
-export function hasOwnOrigin(headers: IncomingHttpHeaders, port: number | undefined): boolean {
-  if (!isAllowedHost(headers.host, port)) return false;
+/** Number of `Host` headers in `rawHeaders` (Node keeps only the first in `headers`). */
+function hostHeaderCount(rawHeaders: readonly string[]): number {
+  let count = 0;
+  for (let i = 0; i < rawHeaders.length; i += 2) if (rawHeaders[i]?.toLowerCase() === 'host') count += 1;
+  return count;
+}
+
+/**
+ * `true` when the request has exactly one `Host` header, the console's own, and an Origin, when
+ * present, that is the console's own too. `rawHeaders` is the request's `rawHeaders` list.
+ */
+export function hasOwnOrigin(
+  headers: IncomingHttpHeaders,
+  rawHeaders: readonly string[],
+  port: number | undefined,
+): boolean {
+  if (hostHeaderCount(rawHeaders) !== 1 || !isAllowedHost(headers.host, port)) return false;
   return headers.origin === undefined || isAllowedOrigin(headers.origin, port);
 }
 
@@ -69,30 +83,34 @@ function cookieValues(header: string | undefined, name: string): string[] {
 }
 
 function isApiPath(pathname: string): boolean {
-  return pathname === '/api' || pathname.startsWith('/api/');
+  const value = pathname.toLowerCase();
+  return value === '/api' || value.startsWith('/api/');
 }
 
-/** `true` for a request that reaches the API: by its route, its path or its decoded path. */
+/**
+ * `true` when the request URL `url` (path and query) is under `/api`: as written, or with its
+ * percent-encoded ASCII characters decoded (`/%61pi/…`); never throws on a malformed encoding.
+ */
+export function isApiUrl(url: string): boolean {
+  const pathname = url.split('?')[0] ?? '';
+  const decoded = pathname.replace(/%([0-7][0-9a-f])/gi, (_m, hex: string) => String.fromCharCode(parseInt(hex, 16)));
+  return isApiPath(pathname) || isApiPath(decoded);
+}
+
+/** `true` for a request that reaches the API: by its matched route or by its URL. */
 function reachesApi(request: FastifyRequest): boolean {
   const route = request.routeOptions.url;
-  if (route !== undefined && isApiPath(route)) return true;
-  const pathname = request.url.split('?')[0] ?? '';
-  if (isApiPath(pathname)) return true;
-  try {
-    return isApiPath(decodeURIComponent(pathname));
-  } catch {
-    return true; // undecodable: never served as a static file, refuse rather than guess
-  }
+  return (route !== undefined && isApiPath(route)) || isApiUrl(request.url);
 }
 
-/** `true` when the request carries this start's token or a session opened with it. */
-export function isAuthenticated(request: FastifyRequest, options: SecurityOptions): boolean {
+/** `true` when `headers` carry this start's token or a session opened with it. */
+export function isAuthenticated(headers: IncomingHttpHeaders, options: SecurityOptions): boolean {
   const { authentication } = options;
-  const token = bearerToken(request.headers);
+  const token = bearerToken(headers);
   if (token !== undefined && authentication.verifyToken(token)) return true;
   const port = options.port();
   if (port === undefined) return false;
-  return cookieValues(request.headers.cookie, sessionCookieName(port)).some((id) => authentication.verifySession(id));
+  return cookieValues(headers.cookie, sessionCookieName(port)).some((id) => authentication.verifySession(id));
 }
 
 /** The 403 refusal of a foreign Host or Origin. */
@@ -100,13 +118,16 @@ export function refuseOrigin(reply: FastifyReply): FastifyReply {
   return reply.code(403).send(envelope('forbidden-origin', 'Forbidden origin'));
 }
 
+/** The 401 refusal of a request without a valid session or token. */
+export function refuseUnauthenticated(reply: FastifyReply): FastifyReply {
+  return reply.code(401).send(envelope('unauthenticated', 'Authentication required'));
+}
+
 /** Register the guards; call before any route or plugin so that they cover every request. */
 export function registerGuards(app: FastifyInstance, options: SecurityOptions): void {
   app.addHook('onRequest', async (request, reply) => {
-    if (!hasOwnOrigin(request.headers, options.port())) return refuseOrigin(reply);
-    if (reachesApi(request) && !isAuthenticated(request, options)) {
-      return reply.code(401).send(envelope('unauthenticated', 'Authentication required'));
-    }
+    if (!hasOwnOrigin(request.headers, request.raw.rawHeaders, options.port())) return refuseOrigin(reply);
+    if (reachesApi(request) && !isAuthenticated(request.headers, options)) return refuseUnauthenticated(reply);
     return undefined;
   });
 }

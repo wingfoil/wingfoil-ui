@@ -15,6 +15,9 @@ export interface Authentication {
   verifySession(sessionId: string): boolean;
 }
 
+/** Most sessions kept at once; opening one more evicts the oldest (bounded memory). */
+export const MAX_SESSIONS = 64;
+
 /** SHA-256 of `value`: equal-length digests let the comparison run in constant time. */
 function digest(value: string): Buffer {
   return createHash('sha256').update(value, 'utf8').digest();
@@ -30,6 +33,8 @@ export function createTokenAuthentication(token: string): Authentication {
     openSession: () => {
       const id = randomBytes(32).toString('base64url');
       sessions.add(id);
+      // A Set iterates in insertion order: the first id is the oldest.
+      if (sessions.size > MAX_SESSIONS) sessions.delete(sessions.values().next().value as string);
       return id;
     },
     // The ids are 256-bit random values: a Set lookup reveals nothing usable through timing.

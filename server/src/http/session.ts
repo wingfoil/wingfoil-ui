@@ -5,8 +5,7 @@
  * with the browser session. Answers 204 without a body.
  */
 import type { FastifyInstance } from 'fastify';
-import { envelope } from './app.js';
-import { bearerToken, sessionCookieName, type SecurityOptions } from './guards.js';
+import { bearerToken, refuseUnauthenticated, sessionCookieName, type SecurityOptions } from './guards.js';
 
 /** Path of the session exchange. */
 export const SESSION_PATH = '/api/session';
@@ -17,7 +16,7 @@ export function registerSessionRoute(app: FastifyInstance, options: SecurityOpti
     const token = bearerToken(request.headers);
     const port = options.port();
     if (token === undefined || port === undefined || !options.authentication.verifyToken(token)) {
-      return reply.code(401).send(envelope('unauthenticated', 'Authentication required'));
+      return refuseUnauthenticated(reply);
     }
     const sessionId = options.authentication.openSession();
     return reply

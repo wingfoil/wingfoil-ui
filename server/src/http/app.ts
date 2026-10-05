@@ -7,7 +7,15 @@ import { fastify, type FastifyBaseLogger, type FastifyInstance, type FastifyRepl
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 import type { Logger } from 'pino';
-import { hasOwnOrigin, refuseOrigin, registerGuards, type SecurityOptions } from './guards.js';
+import {
+  hasOwnOrigin,
+  isApiUrl,
+  isAuthenticated,
+  refuseOrigin,
+  refuseUnauthenticated,
+  registerGuards,
+  type SecurityOptions,
+} from './guards.js';
 import { registerSessionRoute } from './session.js';
 
 /** Options of {@link buildApp}. */
@@ -46,8 +54,13 @@ export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
     // Errors Fastify raises before routing (e.g. a malformed URL) get the envelope too.
     frameworkErrors: (_error, request, reply) => {
       const fastifyReply = reply as unknown as FastifyReply;
-      // The Host/Origin refusal comes first, here too (REQ-SEC-03).
-      if (!hasOwnOrigin(request.headers, options.security.port())) return void refuseOrigin(fastifyReply);
+      // The spec-004 §4 order holds here too: Host/Origin (403), session (401), then the 400.
+      if (!hasOwnOrigin(request.headers, request.raw.rawHeaders, options.security.port())) {
+        return void refuseOrigin(fastifyReply);
+      }
+      if (isApiUrl(request.raw.url ?? '') && !isAuthenticated(request.headers, options.security)) {
+        return void refuseUnauthenticated(fastifyReply);
+      }
       void fastifyReply.code(400).send(envelope('invalid-request', 'Invalid request'));
     },
   });
