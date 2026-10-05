@@ -13,7 +13,13 @@ import {
   GitNotFoundError,
   projectIdentityView,
 } from '../../../server/src/identity/project-identity.js';
-import { LocalProcessRunner } from '../../../server/src/process/runner.js';
+import { GitConfigError } from '../../../server/src/identity/git-email.js';
+import {
+  LocalProcessRunner,
+  type ProcessRequest,
+  type ProcessResult,
+  type ProcessRunner,
+} from '../../../server/src/process/runner.js';
 import { pinnedCli } from '../../harness/cli.js';
 import {
   buildFixture,
@@ -196,5 +202,66 @@ describe('failures', () => {
     const { fx, entry } = await fresh();
     const noGit = createLocalIdentitySource({ runner, env: { ...fx.env, PATH: '' } });
     await expect(noGit.identify(entry)).rejects.toBeInstanceOf(GitNotFoundError);
+  }, 120_000);
+});
+
+/**
+ * A runner whose git read fails at once (or hangs) while `wingfoil` hangs until its signal aborts:
+ * shows that one failed read, or the caller, cancels the other.
+ */
+class HangingRunner implements ProcessRunner {
+  readonly requests: ProcessRequest[] = [];
+  constructor(private readonly gitFails: boolean) {}
+
+  run(request: ProcessRequest): Promise<ProcessResult> {
+    this.requests.push(request);
+    const end = (partial: Partial<ProcessResult>): ProcessResult => ({
+      exitCode: null,
+      signal: null,
+      stdout: '',
+      stderr: '',
+      ended: 'exit',
+      durationMs: 0,
+      ...partial,
+    });
+    if (this.gitFails && request.args[0] === 'config') return Promise.resolve(end({ exitCode: 3 }));
+    return new Promise((resolve) => {
+      const done = (): void => resolve(end({ ended: 'cancelled' }));
+      if (request.signal?.aborted) done();
+      else request.signal?.addEventListener('abort', done, { once: true });
+    });
+  }
+}
+
+describe('cancellation', () => {
+  it('a failed git read cancels the parallel `dna show`', async () => {
+    const { fx, entry } = await fresh();
+    const hanging = new HangingRunner(true);
+    const error = await createLocalIdentitySource({ runner: hanging, env: fx.env })
+      .identify(entry)
+      .catch((e: unknown) => e);
+    expect(error).toBeInstanceOf(GitConfigError);
+    const cli = hanging.requests.find((r) => r.args[0] !== 'config');
+    expect(cli?.signal?.aborted).toBe(true);
+  }, 120_000);
+
+  it("the caller's signal cancels both reads", async () => {
+    const { fx, entry } = await fresh();
+    const hanging = new HangingRunner(false);
+    const caller = new AbortController();
+    const pending = createLocalIdentitySource({ runner: hanging, env: fx.env }).identify(entry, caller.signal);
+    while (hanging.requests.length < 2) await new Promise((r) => setTimeout(r, 10));
+    caller.abort();
+    await expect(pending).rejects.toBeInstanceOf(Error);
+    expect(hanging.requests.every((r) => r.signal?.aborted)).toBe(true);
+  }, 120_000);
+
+  it('looks for git again after a miss (only a found path is kept)', async () => {
+    const { fx, entry } = await fresh();
+    const env = { ...fx.env, PATH: '' };
+    const identities = createLocalIdentitySource({ runner, env });
+    await expect(identities.identify(entry)).rejects.toBeInstanceOf(GitNotFoundError);
+    env.PATH = fx.env.PATH ?? '';
+    expect(await identities.identify(entry)).toMatchObject({ kind: 'member', name: 'Alex' });
   }, 120_000);
 });

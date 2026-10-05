@@ -44,11 +44,11 @@ export interface LocalIdentityOptions {
 /** The local adapter: git through the runner, the team through the project's own CLI. */
 export function createLocalIdentitySource(options: LocalIdentityOptions): IdentitySource {
   const env = options.env;
-  let git: Promise<string | undefined> | undefined;
+  // Only a found path is kept: a `git` installed later is found on the next call.
+  let gitFile: string | undefined;
   return {
     async identify(project, signal) {
-      git ??= findGit(env ? { env } : {});
-      const gitFile = await git;
+      gitFile ??= await findGit(env ? { env } : {});
       if (gitFile === undefined) throw new GitNotFoundError();
       const cli = new WingfoilCli({
         cli: await discoverCli(project.path, env ? { env } : {}),
@@ -56,15 +56,33 @@ export function createLocalIdentitySource(options: LocalIdentityOptions): Identi
         ...(env ? { env } : {}),
         ...(options.logger ? { logger: options.logger } : {}),
       });
-      const [email, dna] = await Promise.all([
-        readGitEmail(project.path, {
-          runner: options.runner,
-          git: gitFile,
-          ...(env ? { env } : {}),
-          ...(signal ? { signal } : {}),
-        }),
-        new ProjectReads({ root: project.path, cli }).dna(signal),
-      ]);
+      // One read failing (or the caller cancelling) cancels the other.
+      const both = new AbortController();
+      const cancel = (): void => both.abort();
+      if (signal?.aborted) both.abort();
+      signal?.addEventListener('abort', cancel, { once: true });
+      const failFast = <T>(read: Promise<T>): Promise<T> =>
+        read.catch((error: unknown) => {
+          both.abort();
+          throw error;
+        });
+      let email: string | undefined;
+      let dna: Awaited<ReturnType<ProjectReads['dna']>>;
+      try {
+        [email, dna] = await Promise.all([
+          failFast(
+            readGitEmail(project.path, {
+              runner: options.runner,
+              git: gitFile,
+              signal: both.signal,
+              ...(env ? { env } : {}),
+            }),
+          ),
+          failFast(new ProjectReads({ root: project.path, cli }).dna(both.signal)),
+        ]);
+      } finally {
+        signal?.removeEventListener('abort', cancel);
+      }
       return matchIdentity(email, dna.data.team.members);
     },
   };

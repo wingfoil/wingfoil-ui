@@ -69,8 +69,8 @@ e2e closure — scenarios that need a screen are proved here by API and unit tes
   - `PUT /api/p/:pid/role-view` answers **204** (no body; the client refetches `GET /api/p/:pid`),
     its request schema is `contracts/api/role-view.request.schema.json` (`{ role: string }`,
     non-empty, no other property).
-  - Refusals, in the spec-004 §4 order: unknown `:pid` → 404 `not-found` (checked before the body,
-    in `preValidation`); body failing its schema → 400 `invalid-request`; user not identified as
+  - Refusals, in the spec-004 §4 order: unknown `:pid` → 404 `not-found` (checked before the body is
+    parsed, in the route's `onRequest` hook — corrected at review); body failing its schema → 400 `invalid-request`; user not identified as
     exactly one member (not in team, no email, ambiguous) → 403 `not-in-team`; a role the member
     does not hold → 400 `invalid-request`. spec-004 §4 has no row for the last case: proposed
     addition "role not held by the member → 400 `invalid-request`" (option: a dedicated 422 code).
@@ -182,3 +182,33 @@ e2e closure — scenarios that need a screen are proved here by API and unit tes
     `directives list --role developer` on the custom fixture.
   - **task-008**: the project-list routes register next to the role-view route in the same
     `register` callback of `runLauncher`.
+
+### review (2026-10-05)
+
+- Independent review, round 1: **PASS** with findings, fixed on this branch:
+  - 1 (minor) inherited `GIT_DIR`/`GIT_WORK_TREE`/… made `git config --get user.email` read another
+    repository: `readGitEmail` now runs git with `gitConfigEnv(env ?? process.env)`, which drops
+    `REPOSITORY_LOCATING_VARIABLES` (`GIT_DIR`, `GIT_WORK_TREE`, `GIT_COMMON_DIR`,
+    `GIT_INDEX_FILE`, `GIT_OBJECT_DIRECTORY`, `GIT_ALTERNATE_OBJECT_DIRECTORIES`, `GIT_NAMESPACE`,
+    `GIT_CEILING_DIRECTORIES`, `GIT_DISCOVERY_ACROSS_FILESYSTEM`; case-insensitive) and keeps
+    `HOME`, `GIT_CONFIG_GLOBAL`, `GIT_CONFIG_NOSYSTEM`. Real-git test: with `GIT_DIR`/`GIT_WORK_TREE`
+    pointing at another repository, plain git reads riley's email and `readGitEmail` reads the
+    project's jordan. Only the identity reads changed: the process runner and the CLI environment
+    are not (coordinator's scope — **hand-over:** the `wingfoil` processes, and git reads of
+    task-010, still inherit those variables).
+  - 2 exact pid: `kanban.id.toUpperCase()` and the id with a leading/trailing space (encoded) → 404.
+  - 4 characterization rows with a known pid: malformed JSON → 400, a `__proto__` key → 400
+    (Fastify's proto-poisoning check), `application/xml` → 415, `text/plain` → 400 (Fastify parses
+    text bodies; the schema refuses a string) — the identity source never called, nothing stored.
+  - 5 `identify` gets an `AbortSignal` aborted when the client goes before the answer (listener on
+    the response `close`, removed once `identify` settles); in the adapter a failed read aborts the
+    parallel one, and the caller's signal aborts both (tests with a hanging fake runner on a real
+    fixture copy).
+  - 6 only a found `git` path is cached (test: `PATH` empty → `GitNotFoundError`, then fixed →
+    member).
+  - 7 design note corrected (`onRequest`, not `preValidation`). 8 TSDoc of `email` and of
+    `RoleViewRouteOptions` fields; the local-security header comment wrapped.
+- Checks: affected files (`test/server/identity`, `test/server/http/role-view.test.ts`,
+  `test/contracts/api-identity-schema.test.ts`, `test/launcher/role-view.test.ts`,
+  `test/launcher/local-security.test.ts`) all pass — 96 tests, then `role-view.test.ts` 20/20 after
+  the last fix (load 35–50) · typecheck, lint clean · format:check clean · `docs:api` OK.

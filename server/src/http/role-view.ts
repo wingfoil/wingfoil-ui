@@ -29,7 +29,9 @@ const validateRequest = new Ajv({ allErrors: true }).compile(REQUEST_SCHEMA);
 
 /** What the route needs. */
 export interface RoleViewRouteOptions {
+  /** The local state: the project lookup and where the role view is remembered. */
   store: StateStore;
+  /** Who the user is in the project (the member's roles bound the accepted role). */
   identity: IdentitySource;
 }
 
@@ -50,15 +52,23 @@ export function registerRoleViewRoute(app: FastifyInstance, options: RoleViewRou
     handler: async (request, reply) => {
       const project = store.get(request.params.pid);
       if (project === undefined) return notFound(reply);
+      // A client gone before the answer cancels the reads (git, `dna show`).
+      const gone = new AbortController();
+      const onClose = (): void => {
+        if (!reply.raw.writableFinished) gone.abort();
+      };
+      reply.raw.once('close', onClose);
       let user;
       try {
-        user = await identity.identify(project);
+        user = await identity.identify(project, gone.signal);
       } catch (error) {
         if (error instanceof CliError || error instanceof CliNotFoundError) {
           const { status, body } = cliErrorEnvelope(error);
           return reply.code(status).send(body);
         }
         throw error;
+      } finally {
+        reply.raw.off('close', onClose);
       }
       if (user.kind !== 'member') {
         return reply.code(403).send(envelope('not-in-team', 'Not identified as a member of the team'));

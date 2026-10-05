@@ -21,6 +21,7 @@ export type Identity =
   | {
       /** The email matches no member (S-13.1, S-13.3). */
       kind: 'not-in-team';
+      /** The effective `user.email`, trimmed, as git gives it. */
       email: string;
     }
   | {
@@ -30,6 +31,7 @@ export type Identity =
   | {
       /** The email matches several members (S-15.1). */
       kind: 'ambiguous';
+      /** The effective `user.email`, trimmed, as git gives it. */
       email: string;
       /** The names of the matching members, in DNA order (at least two). */
       members: string[];

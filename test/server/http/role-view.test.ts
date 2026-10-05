@@ -34,12 +34,17 @@ afterEach(async () => {
 });
 
 /** A source that answers `identity` (or throws it) and counts its calls. */
-function scripted(identity: Identity | Error): IdentitySource & { calls: string[] } {
+function scripted(
+  identity: Identity | Error,
+): IdentitySource & { calls: string[]; signals: (AbortSignal | undefined)[] } {
   const calls: string[] = [];
+  const signals: (AbortSignal | undefined)[] = [];
   return {
     calls,
-    identify: async (project: ProjectEntry) => {
+    signals,
+    identify: async (project: ProjectEntry, signal?: AbortSignal) => {
       calls.push(project.id);
+      signals.push(signal);
       if (identity instanceof Error) throw identity;
       return identity;
     },
@@ -92,13 +97,45 @@ describe('PUT /api/p/:pid/role-view', () => {
   });
 
   it('answers 404 not-found to an unknown or path-like project id, before the body and the identity', async () => {
-    const { source } = await setUp(ALEX);
-    for (const pid of ['p_zzzzzzzzzzzz', '..%2F..%2Fetc', 'P_ABCDEFGHIJKL']) {
+    const { kanban, source } = await setUp(ALEX);
+    for (const pid of [
+      'p_zzzzzzzzzzzz',
+      '..%2F..%2Fetc',
+      kanban.id.toUpperCase(),
+      encodeURIComponent(`${kanban.id} `),
+      encodeURIComponent(` ${kanban.id}`),
+    ]) {
       const res = await put(pid, 'not json');
       expect(res.statusCode, pid).toBe(404);
       expect(res.json()).toEqual({ error: { code: 'not-found', message: expect.any(String) } });
     }
     expect(source.calls).toEqual([]);
+  });
+
+  it('passes a cancellation signal to the identity read', async () => {
+    const { kanban, source } = await setUp(ALEX);
+    expect((await put(kanban.id, { role: 'developer' })).statusCode).toBe(204);
+    expect(source.signals[0]).toBeInstanceOf(AbortSignal);
+    expect(source.signals[0]!.aborted).toBe(false);
+  });
+
+  it.each([
+    ['malformed JSON', 'application/json', '{"role": "developer"', 400],
+    ['a __proto__ key', 'application/json', '{"__proto__": {"role": "developer"}, "role": "developer"}', 400],
+    ['a content type without a parser', 'application/xml', '<role>developer</role>', 415],
+    ['a text body', 'text/plain', 'developer', 400],
+  ])('answers %s with a known project before the identity (characterization)', async (_name, type, payload, status) => {
+    const { store, kanban, source } = await setUp(ALEX);
+    const res = await app!.inject({
+      method: 'PUT',
+      url: `/api/p/${kanban.id}/role-view`,
+      headers: { 'content-type': type, ...AUTH },
+      payload,
+    });
+    expect(res.statusCode).toBe(status);
+    expect(res.json()).toEqual({ error: { code: 'invalid-request', message: expect.any(String) } });
+    expect(source.calls).toEqual([]);
+    expect(store.get(kanban.id)?.roleView).toBe('');
   });
 
   it.each([

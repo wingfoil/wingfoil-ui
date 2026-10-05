@@ -31,7 +31,33 @@ export interface GitEmailOptions {
 }
 
 /**
- * `git config --get user.email` in `root`: the trimmed value, or `undefined` when it is unset
+ * Variables that make git locate another repository than the one of its working directory (a hook
+ * or a terminal inside another repository may export them): never passed to the identity reads.
+ */
+export const REPOSITORY_LOCATING_VARIABLES = [
+  'GIT_DIR',
+  'GIT_WORK_TREE',
+  'GIT_COMMON_DIR',
+  'GIT_INDEX_FILE',
+  'GIT_OBJECT_DIRECTORY',
+  'GIT_ALTERNATE_OBJECT_DIRECTORIES',
+  'GIT_NAMESPACE',
+  'GIT_CEILING_DIRECTORIES',
+  'GIT_DISCOVERY_ACROSS_FILESYSTEM',
+] as const;
+
+/**
+ * `env` without {@link REPOSITORY_LOCATING_VARIABLES} (compared case-insensitively, as Windows
+ * does); everything else — `HOME`, `GIT_CONFIG_GLOBAL`, `GIT_CONFIG_NOSYSTEM` — is kept.
+ */
+export function gitConfigEnv(env: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
+  const dropped = new Set<string>(REPOSITORY_LOCATING_VARIABLES);
+  return Object.fromEntries(Object.entries(env).filter(([key]) => !dropped.has(key.toUpperCase())));
+}
+
+/**
+ * `git config --get user.email` in `root` (the environment cleaned by {@link gitConfigEnv}, so
+ * the project's own repository configuration is the one read): the trimmed value, or `undefined` when it is unset
  * (exit 1) or blank. Any other end is a {@link GitConfigError}.
  */
 export async function readGitEmail(root: string, options: GitEmailOptions): Promise<string | undefined> {
@@ -39,7 +65,7 @@ export async function readGitEmail(root: string, options: GitEmailOptions): Prom
     file: options.git,
     args: ['config', '--get', 'user.email'],
     cwd: root,
-    ...(options.env ? { env: options.env } : {}),
+    env: gitConfigEnv(options.env ?? process.env),
     ...(options.signal ? { signal: options.signal } : {}),
   });
   if (result.ended === 'exit' && result.exitCode === 1) return undefined;
