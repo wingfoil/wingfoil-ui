@@ -22,9 +22,15 @@ const ajv = new Ajv({ allErrors: true });
 function schema(rel: string): object {
   return JSON.parse(readFileSync(path.join(REPO_ROOT, 'contracts', rel), 'utf8')) as object;
 }
-const validator = (rel: string) => ajv.compile(schema(rel));
+const compiled = new Map<string, ReturnType<typeof ajv.compile>>();
+function validator(rel: string) {
+  if (!compiled.has(rel)) compiled.set(rel, ajv.compile(schema(rel)));
+  return compiled.get(rel)!;
+}
 const sample = (version: string, kind: string, rel: string): unknown =>
-  JSON.parse(readFileSync(path.join(REPO_ROOT, 'test', 'contracts', 'samples', `wingfoil-${version}`, kind, rel), 'utf8'));
+  JSON.parse(
+    readFileSync(path.join(REPO_ROOT, 'test', 'contracts', 'samples', `wingfoil-${version}`, kind, rel), 'utf8'),
+  );
 const sampleDir = (version: string, kind: string, rel = '') =>
   path.join(REPO_ROOT, 'test', 'contracts', 'samples', `wingfoil-${version}`, kind, rel);
 const clone = <T>(v: T): T => structuredClone(v);
@@ -33,7 +39,7 @@ const clone = <T>(v: T): T => structuredClone(v);
 const SAMPLES: Record<string, (kind: string, version: string) => string[]> = {
   'cli/dna-show.schema.json': () => ['dna-show.json'],
   'cli/paths.schema.json': () => ['paths.json'],
-  'cli/directives-list.schema.json': () => ['directives-list.json'],
+  'cli/directives-list.schema.json': () => ['directives-list.json', 'directives-list-shadowed.json'],
   'cli/workflow-list.schema.json': () => ['workflow-list.json'],
   'cli/memory-search.schema.json': () => [
     'memory-search.json',
@@ -143,19 +149,70 @@ describe.each(matrix.versions)('samples captured from wingfoil %s', (version) =>
 const pinned = (kind: string, rel: string) => sample(matrix.pinned, kind, rel);
 
 describe('negative cases: a field the UI reads is required, its type checked', () => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- mutations of parsed JSON samples
   const cases: [string, string, string, (d: any) => void][] = [
     ['dna show without team', 'cli/dna-show.schema.json', 'dna-show.json', (d) => delete d.team],
-    ['dna show with a member without roles', 'cli/dna-show.schema.json', 'dna-show.json', (d) => delete d.team.members[0].roles],
-    ['dna show with a module name that is a number', 'cli/dna-show.schema.json', 'dna-show.json', (d) => (d.modules = [{ name: 1 }])],
+    [
+      'dna show with a member without roles',
+      'cli/dna-show.schema.json',
+      'dna-show.json',
+      (d) => delete d.team.members[0].roles,
+    ],
+    [
+      'dna show with a module name that is a number',
+      'cli/dna-show.schema.json',
+      'dna-show.json',
+      (d) => (d.modules = [{ name: 1 }]),
+    ],
     ['paths with a string value', 'cli/paths.schema.json', 'paths.json', (d) => (d.sources = 'server/')],
-    ['directives list without warnings', 'cli/directives-list.schema.json', 'directives-list.json', (d) => delete d.warnings],
-    ['a directive entry without frontmatter.id', 'cli/directives-list.schema.json', 'directives-list.json', (d) => delete d.entries[0].frontmatter.id],
-    ['a workflow phase without name', 'cli/workflow-list.schema.json', 'workflow-list.json', (d) => delete d.workflows[0].phases[0].name],
-    ['a workflow list without manifest', 'cli/workflow-list.schema.json', 'workflow-list.json', (d) => delete d.manifest],
-    ['a search match without status', 'cli/memory-search.schema.json', 'memory-search.json', (d) => delete d.matches[0].status],
-    ['a search match with tags as a string', 'cli/memory-search.schema.json', 'memory-search.json', (d) => (d.matches[0].tags = 'a')],
-    ['a history entry with an unknown operation', 'cli/memory-history.schema.json', 'memory-history/task-002-password-reset.json', (d) => (d.entries[0].operation = 'merge')],
-    ['a history entry without sha', 'cli/memory-history.schema.json', 'memory-history/task-002-password-reset.json', (d) => delete d.entries[0].sha],
+    [
+      'directives list without warnings',
+      'cli/directives-list.schema.json',
+      'directives-list.json',
+      (d) => delete d.warnings,
+    ],
+    [
+      'a directive entry without frontmatter.id',
+      'cli/directives-list.schema.json',
+      'directives-list.json',
+      (d) => delete d.entries[0].frontmatter.id,
+    ],
+    [
+      'a workflow phase without name',
+      'cli/workflow-list.schema.json',
+      'workflow-list.json',
+      (d) => delete d.workflows[0].phases[0].name,
+    ],
+    [
+      'a workflow list without manifest',
+      'cli/workflow-list.schema.json',
+      'workflow-list.json',
+      (d) => delete d.manifest,
+    ],
+    [
+      'a search match without status',
+      'cli/memory-search.schema.json',
+      'memory-search.json',
+      (d) => delete d.matches[0].status,
+    ],
+    [
+      'a search match with tags as a string',
+      'cli/memory-search.schema.json',
+      'memory-search.json',
+      (d) => (d.matches[0].tags = 'a'),
+    ],
+    [
+      'a history entry with an unknown operation',
+      'cli/memory-history.schema.json',
+      'memory-history/task-002-password-reset.json',
+      (d) => (d.entries[0].operation = 'merge'),
+    ],
+    [
+      'a history entry without sha',
+      'cli/memory-history.schema.json',
+      'memory-history/task-002-password-reset.json',
+      (d) => delete d.entries[0].sha,
+    ],
     ['a submit without to', 'cli/memory-submit.schema.json', 'memory-submit.json', (d) => delete d.to],
     ['an approve without from', 'cli/memory-approve.schema.json', 'memory-approve.json', (d) => delete d.from],
     ['a reject without reason', 'cli/memory-reject.schema.json', 'memory-reject.json', (d) => delete d.reason],
@@ -168,14 +225,19 @@ describe('negative cases: a field the UI reads is required, its type checked', (
   });
 
   it('accepts unknown additional properties (a newer CLI may add fields)', () => {
-    const data = clone(pinned('kanban', 'memory-search.json')) as { matches: Record<string, unknown>[] } & Record<string, unknown>;
+    const data = clone(pinned('kanban', 'memory-search.json')) as { matches: Record<string, unknown>[] } & Record<
+      string,
+      unknown
+    >;
     data.extra = 1;
     data.matches[0]!.score = 0.5;
     expect(validator('cli/memory-search.schema.json')(data)).toBe(true);
   });
 
   it('accepts a directive without tags (custom directives, captured) and refuses one without title', () => {
-    const list = clone(pinned('custom', 'directives-list.json')) as { entries: { frontmatter: Record<string, unknown> }[] };
+    const list = clone(pinned('custom', 'directives-list.json')) as {
+      entries: { frontmatter: Record<string, unknown> }[];
+    };
     expect(list.entries.some((e) => !('tags' in e.frontmatter))).toBe(true);
     const validate = validator('cli/directives-list.schema.json');
     expect(validate(list)).toBe(true);

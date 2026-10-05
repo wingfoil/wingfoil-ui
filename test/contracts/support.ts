@@ -28,7 +28,9 @@ export async function matrixVersions(): Promise<string[]> {
  */
 export function cliBuildFor(version: string): CliBuild {
   if (version === pinnedVersion()) return pinnedCli();
-  throw new Error(`wingfoil ${version} is in contracts/matrix.json but no build of it is installed for the contract tests`);
+  throw new Error(
+    `wingfoil ${version} is in contracts/matrix.json but no build of it is installed for the contract tests`,
+  );
 }
 
 /** Make `name` the git identity of `fx` (who the CLI acts as). */

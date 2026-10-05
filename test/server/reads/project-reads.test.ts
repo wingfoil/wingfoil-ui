@@ -129,7 +129,11 @@ describe('TT-ARC-04 — file-system spy over every read', () => {
       const fileReads = onProject.filter((c) => c.fn.endsWith('readFile') || c.fn.endsWith('readFileSync'));
       expect(fileReads.filter((c) => !allowed.has(c.arg))).toEqual([]);
       expect(new Set(fileReads.map((c) => c.arg))).toEqual(
-        new Set([abs('.wingfoil', 'memory.yaml'), ...elements.map((m) => abs(m.path)), ...directives.map((d) => abs('.wingfoil', d.path))]),
+        new Set([
+          abs('.wingfoil', 'memory.yaml'),
+          ...elements.map((m) => abs(m.path)),
+          ...directives.map((d) => abs('.wingfoil', d.path)),
+        ]),
       );
       const resolved = onProject.filter((c) => !c.fn.endsWith('readFile') && !c.fn.endsWith('readFileSync'));
       expect(resolved.filter((c) => !allowed.has(c.arg) && c.arg !== fx.dir && c.arg !== abs('.wingfoil'))).toEqual([]);

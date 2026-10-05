@@ -1,7 +1,8 @@
 // spec-001 §4.2–§4.3, REQ-ARC-04 — element and directive files: frontmatter parsing, the
 // `id`/`type`/`status` cross-check with `memory search`, and confinement of every path the CLI
 // returns to the project (lexically and by realpath).
-import { mkdir, mkdtemp, realpath, rm, symlink, writeFile } from 'node:fs/promises';
+import { readFileSync } from 'node:fs';
+import { cp, mkdir, mkdtemp, readFile, realpath, rm, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -9,6 +10,10 @@ import { confinedPath, DirectReadError, nodeReadFs, type ReadFs } from '../../..
 import { parseDirective, readDirective } from '../../../server/src/reads/directive.js';
 import { parseElement, readElement } from '../../../server/src/reads/element.js';
 import { readMemoryYaml } from '../../../server/src/reads/memory-yaml.js';
+import { ProjectReads } from '../../../server/src/reads/project-reads.js';
+import { WingfoilCli } from '../../../server/src/cli/adapter.js';
+import { REPO_ROOT } from '../../harness/cli.js';
+import { FakeProcessRunner } from '../process/fake-runner.js';
 
 let base: string;
 let root: string;
@@ -39,7 +44,8 @@ const MATCH = {
   status: 'pending',
   tags: [],
 };
-const DIRECTIVE = '---\nid: determinism\nname: determinism\ntype: directive\nkind: custom\ntitle: "Determinism"\n---\n\n# Determinism\n';
+const DIRECTIVE =
+  '---\nid: determinism\nname: determinism\ntype: directive\nkind: custom\ntitle: "Determinism"\n---\n\n# Determinism\n';
 const ENTRY = {
   path: 'directives/custom/determinism.md',
   frontmatter: { id: 'determinism', name: 'determinism', type: 'directive', kind: 'custom', title: 'Determinism' },
@@ -67,7 +73,10 @@ beforeAll(async () => {
   await mkdir(outside, { recursive: true });
   await writeFile(path.join(root, MATCH.path), ELEMENT);
   await writeFile(path.join(root, '.wingfoil', ENTRY.path), DIRECTIVE);
-  await writeFile(path.join(outside, 'secret.md'), '---\nid: secret\ntype: task\ntitle: s\nstatus: pending\n---\nSECRET\n');
+  await writeFile(
+    path.join(outside, 'secret.md'),
+    '---\nid: secret\ntype: task\ntitle: s\nstatus: pending\n---\nSECRET\n',
+  );
   await writeFile(path.join(outside, 'memory.yaml'), 'version: 1\ntypes: {}\n');
   await symlink(path.join(outside, 'secret.md'), path.join(root, 'docs/memory/task/escape.md'));
   await symlink(outside, path.join(root, 'docs/memory/linked'));
@@ -128,10 +137,11 @@ describe('readElement — only at the path memory search returns, cross-checked 
   it.each([
     ['a parent traversal', '../outside/secret.md'],
     ['a traversal inside the path', 'docs/memory/../../../outside/secret.md'],
-    ['an absolute path', path.join(base, 'outside', 'secret.md')],
+    ['an absolute path', '<base>/outside/secret.md'],
     ['a symlink that escapes', 'docs/memory/task/escape.md'],
     ['a path through a linked directory', 'docs/memory/linked/secret.md'],
-  ])('refuses %s without reading the target', async (_label, p) => {
+  ])('refuses %s without reading the target', async (_label, rel) => {
+    const p = rel.replace('<base>', base);
     const fs = recording();
     const error = await readElement(root, { ...MATCH, path: p }, fs).catch((e: unknown) => e);
     expect(error).toBeInstanceOf(DirectReadError);
@@ -163,8 +173,9 @@ describe('directives — only at .wingfoil/<path> of directives list', () => {
   it.each([
     ['a path leaving .wingfoil', '../docs/memory/task/task-001-login-form.md'],
     ['a parent traversal', '../../outside/secret.md'],
-    ['an absolute path', path.join(base, 'outside', 'secret.md')],
-  ])('refuses %s', async (_label, p) => {
+    ['an absolute path', '<base>/outside/secret.md'],
+  ])('refuses %s', async (_label, rel) => {
+    const p = rel.replace('<base>', base);
     await expect(readDirective(root, { ...ENTRY, path: p })).rejects.toMatchObject({ kind: 'outside' });
   });
 
@@ -192,8 +203,66 @@ describe('memory.yaml and confinedPath', () => {
   });
 
   it('confinedPath resolves inside the base only', async () => {
-    expect(await confinedPath(root, root, MATCH.path)).toBe(path.join(root, MATCH.path));
-    await expect(confinedPath(root, root, '')).rejects.toMatchObject({ kind: 'outside' });
-    await expect(confinedPath(root, root, 'a\0b')).rejects.toMatchObject({ kind: 'outside' });
+    expect(await confinedPath(root, MATCH.path)).toBe(path.join(root, MATCH.path));
+    await expect(confinedPath(root, '')).rejects.toMatchObject({ kind: 'outside' });
+    await expect(confinedPath(root, 'a\0b')).rejects.toMatchObject({ kind: 'outside' });
+    await expect(confinedPath(root, 'C:\\Windows\\win.ini')).rejects.toMatchObject({ kind: 'outside' });
+    await expect(confinedPath(path.join(base, 'none'), 'a.md')).rejects.toMatchObject({ kind: 'missing' });
+  });
+});
+
+describe('ProjectReads lookups by id (fake CLI answers captured from 0.2.2)', () => {
+  const SAMPLES = path.join(REPO_ROOT, 'test/contracts/samples/wingfoil-0.2.2/kanban');
+  const sampleText = (f: string) => readFileSync(path.join(SAMPLES, f), 'utf8');
+  function readsAnswering(dir: string, answer: (args: readonly string[]) => string) {
+    const runner = new FakeProcessRunner().answer((request) => ({ stdout: answer(request.args) }));
+    const cli = new WingfoilCli({
+      cli: { source: 'project', projectRoot: dir, file: process.execPath, prefixArgs: ['/x/cli.js'] },
+      runner,
+    });
+    return { reads: new ProjectReads({ root: dir, cli }), runner };
+  }
+
+  it('a directive id defined by a built-in and a custom file: the custom one, in force, is read', async () => {
+    const dir = path.join(base, 'shadow');
+    const builtIn = path.join(SAMPLES, 'files/directives/built-in/testing.md');
+    await mkdir(path.join(dir, '.wingfoil/directives/built-in'), { recursive: true });
+    await mkdir(path.join(dir, '.wingfoil/directives/custom'), { recursive: true });
+    await cp(builtIn, path.join(dir, '.wingfoil/directives/built-in/testing.md'));
+    await writeFile(
+      path.join(dir, '.wingfoil/directives/custom/testing.md'),
+      (await readFile(builtIn, 'utf8')).replace('# Directive — Testing', '# Our testing rules'),
+    );
+    const listed = sampleText('directives-list-shadowed.json');
+    expect(JSON.parse(listed).warnings).toEqual([
+      "directive 'testing' defined in directives/built-in/testing.md, directives/custom/testing.md; using directives/custom/testing.md",
+    ]);
+    const { reads } = readsAnswering(dir, () => listed);
+    const d = await reads.directive('testing');
+    expect(d?.entry.path).toBe('directives/custom/testing.md');
+    expect(d?.content.body).toContain('# Our testing rules');
+  });
+
+  it('an element not in the default search is looked up in the archived searches, lazily', async () => {
+    const dir = path.join(base, 'archived');
+    await mkdir(path.join(dir, 'docs/memory/bug'), { recursive: true });
+    const archived = JSON.stringify({
+      query: '',
+      matches: [{ ...MATCH, path: 'docs/memory/bug/b.md', id: 'bug-001-b', type: 'bug', status: 'deprecated' }],
+    });
+    await writeFile(
+      path.join(dir, 'docs/memory/bug/b.md'),
+      '---\nid: bug-001-b\ntype: bug\ntitle: B\nstatus: deprecated\n---\n',
+    );
+    const search = sampleText('memory-search.json');
+    const { reads, runner } = readsAnswering(dir, (args) => (args.includes('deprecated') ? archived : search));
+    expect((await reads.element('bug-001-b'))?.content.frontmatter.status).toBe('deprecated');
+    expect(runner.requests.map((r) => r.args.slice(3).join(' '))).toEqual([
+      'memory search',
+      'memory search --status deprecated',
+    ]);
+    runner.requests.length = 0;
+    await reads.element('task-001-login-form').catch(() => undefined);
+    expect(runner.requests).toHaveLength(1);
   });
 });

@@ -22,7 +22,15 @@ describe('parseMemoryYaml', () => {
     const parsed = parseMemoryYaml(sample('custom'), FILE);
     expect(Object.keys(parsed).sort()).toEqual(['defaults', 'types', 'version']);
     const task = parsed.types.task!;
-    expect(Object.keys(task).sort()).toEqual(['description', 'id_pattern', 'name', 'path', 'required', 'states', 'tags']);
+    expect(Object.keys(task).sort()).toEqual([
+      'description',
+      'id_pattern',
+      'name',
+      'path',
+      'required',
+      'states',
+      'tags',
+    ]);
     expect(task).toMatchObject({
       path: 'docs/04_memory/{release}/{id}.md',
       id_pattern: 'task-{n}-{slug}',
@@ -48,15 +56,24 @@ describe('parseMemoryYaml', () => {
       id_pattern: 'task-{n}-{slug}',
       required: ['id', 'type', 'title', 'status'],
     });
-    expect(parsed.defaults?.states).toEqual({ sequence: ['draft', 'pending', 'approved'], gates: { pending: { reject: 'draft' } } });
+    expect(parsed.defaults?.states).toEqual({
+      sequence: ['draft', 'pending', 'approved'],
+      gates: { pending: { reject: 'draft' } },
+    });
   });
 
   it.each([
     ['invalid YAML', 'types: [unclosed'],
     ['no types', 'version: 1\n'],
     ['a type without path', 'version: 1\ntypes:\n  a:\n    id_pattern: "a-{n}"\n'],
-    ['a sequence that is not a list', 'version: 1\ntypes:\n  a:\n    path: a/{id}.md\n    id_pattern: "a-{n}"\n    states:\n      sequence: draft\n'],
-    ['a version that is not an integer', 'version: "one"\ntypes:\n  a:\n    path: a/{id}.md\n    id_pattern: "a-{n}"\n'],
+    [
+      'a sequence that is not a list',
+      'version: 1\ntypes:\n  a:\n    path: a/{id}.md\n    id_pattern: "a-{n}"\n    states:\n      sequence: draft\n',
+    ],
+    [
+      'a version that is not an integer',
+      'version: "one"\ntypes:\n  a:\n    path: a/{id}.md\n    id_pattern: "a-{n}"\n',
+    ],
   ])('refuses %s with a read error naming the file', (_label, text) => {
     expect(() => parseMemoryYaml(text, FILE)).toThrow(DirectReadError);
     try {
@@ -93,9 +110,15 @@ describe('resolveStates — as a whole, no key-by-key merge', () => {
   it("uses the type's states, else defaults.states, else the built-in machine", () => {
     expect(resolveStates(yaml, 'own')).toEqual({ sequence: ['a', 'b', 'c'], gates: { b: { reject: 'x' } } });
     expect(resolveStates(yaml, 'shared')).toEqual({ sequence: ['new', 'done'] });
-    const noDefaults = parseMemoryYaml('version: 1\ntypes:\n  t:\n    path: t/{id}.md\n    id_pattern: "t-{n}"\n', FILE);
+    const noDefaults = parseMemoryYaml(
+      'version: 1\ntypes:\n  t:\n    path: t/{id}.md\n    id_pattern: "t-{n}"\n',
+      FILE,
+    );
     expect(resolveStates(noDefaults, 't')).toEqual(BUILT_IN_STATES);
-    expect(BUILT_IN_STATES).toEqual({ sequence: ['draft', 'pending', 'approved'], gates: { pending: { reject: 'draft' } } });
+    expect(BUILT_IN_STATES).toEqual({
+      sequence: ['draft', 'pending', 'approved'],
+      gates: { pending: { reject: 'draft' } },
+    });
   });
 
   it('is undefined for a type memory.yaml does not declare', () => {

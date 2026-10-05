@@ -61,7 +61,12 @@ describe.runIf(CAPTURE)('capture samples', () => {
       const base = samplesDir(version);
       await rm(base, { recursive: true, force: true });
       for (const kind of FIXTURE_KINDS) {
-        const fx = await buildFixture(kind, { root: path.join(root, version, kind), cli, cliVersion: version, now: NOW });
+        const fx = await buildFixture(kind, {
+          root: path.join(root, version, kind),
+          cli,
+          cliVersion: version,
+          now: NOW,
+        });
         const out = path.join(base, kind);
         await mkdir(path.join(out, 'memory-history'), { recursive: true });
         const save = (name: string, text: string) => writeFile(path.join(out, name), text);
@@ -102,7 +107,8 @@ describe.runIf(CAPTURE)('capture samples', () => {
         const archived = await archiveOne(fx);
         await save('memory-search-deprecated.json', await json(fx, ['memory', 'search', '--status', 'deprecated']));
         await save('memory-search-superseded.json', await json(fx, ['memory', 'search', '--status', 'superseded']));
-        if (archived) expect(await readFile(path.join(out, `memory-search-${archived}.json`), 'utf8')).toContain(archived);
+        if (archived)
+          expect(await readFile(path.join(out, `memory-search-${archived}.json`), 'utf8')).toContain(archived);
       }
     }
   }, 600_000);

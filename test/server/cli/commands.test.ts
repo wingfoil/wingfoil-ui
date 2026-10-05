@@ -64,7 +64,10 @@ describe('schema validation of exit-0 output (spec-001 §2)', () => {
     });
     expect(logger.error).toHaveBeenCalledTimes(1);
     const [logged] = logger.error.mock.calls[0] as [{ problems: string[] }];
-    expect(logged.problems).toEqual(['/matches/0 must have required property status', '/matches/1/title must be string']);
+    expect(logged.problems).toEqual([
+      "/matches/0 must have required property 'status'",
+      '/matches/1/title must be string',
+    ]);
     expect(JSON.stringify(logged)).not.toContain('Login form');
   });
 
