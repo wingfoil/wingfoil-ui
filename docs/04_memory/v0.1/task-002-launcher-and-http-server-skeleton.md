@@ -51,3 +51,39 @@ e2e closure — scenarios that need a screen are proved here by API and unit tes
      - design: tech-specs found missing/needing revision (dev-loop/design safety net).
      - red/green/refactor: deviations from the plan above, blockers, scope surprises.
      - review: rejection reasons and what changed on the next pass. -->
+
+### design (2026-10-05)
+
+- **depends_on acknowledged:** task-001 Execution Notes read — tests under `test/` (unit in
+  `test/server/`, launcher end-to-end in `test/launcher/`), `harnessEnv`/`fixture.env` isolate
+  home and git (with `npm_config_cache` caveat), REQ-SEC-05 lint rule on `server/**` (the opener
+  uses `spawn` with an argument array and `shell: false`), TypeDoc complete for `server/src`.
+- **Specs:** no gap for the behaviour (spec-007 whole, spec-004 §1, spec-008 §5). One layout
+  decision spec-007 leaves open, recorded here rather than in a new spec (it does not change any
+  interface): the **root package `wingfoil-ui`** (the name REQ-ARC-01 fixes, already the root
+  `package.json` name) declares `bin: { "wingfoil-ui": "bin/wingfoil-ui.cjs" }`. The stub is
+  CommonJS, ES2019 syntax (Node.js 14 parses it), checks the version, reads `launcher.nodeTooOld`
+  from `server/src/i18n/en.json` as plain JSON, then `import()`s `server/dist/main.js`. The
+  server's runtime dependencies stay in `server/package.json` (hoisted by npm workspaces);
+  turning the workspaces into one publishable tarball (bundle or root `dependencies`, `files`) is
+  left to `release-publishing` — **hand-over**, the package stays `private` until then.
+- **Scope boundaries:** the token is drawn and printed here (spec-007 §3.4); `POST /api/session`,
+  401/403 and the Host/Origin checks are task-003; reading `state.json` and exit 4 (spec-007 §3.2)
+  are task-007; CLI child processes (stopped at shutdown, spec-007 §6) arrive with task-004 — the
+  stop sequence exposes a hook for them. Static files: `web/dist` (task-013 builds it); every
+  non-`/api/` GET falls back to `index.html`, unknown `/api/` paths answer 404 JSON.
+- **AC classification (T1)** — all **red-first** (no launcher exists):
+  - S-01.1 / TT-ARC-01 — the bin prints `WingFoil UI is running at http://127.0.0.1:<port>/#token=<43 chars>` and
+    serves `/`; the opener receives the URL as one argument (unit, injected spawner); the page
+    content ("Add project…") closes in task-013.
+  - S-01.2 — the bin under a faked `process.versions.node` 20.11 prints the catalogue message,
+    exits 1 and opens no port; the stub parses as ES2019 script.
+  - S-01.3 — with no opener on the `PATH` the bin prints `Open this URL in your browser: <url>`
+    and keeps serving.
+  - TT-PERF-06 — 10 of 10 starts print the URL ≤ 3.0 s.
+  - X-03.1 / TT-SEC-01 — the listeners are exactly `127.0.0.1:<port>` and `[::1]:<port>` (Linux:
+    the process's sockets from `/proc`); X-03.2 — a connection to the machine's first non-loopback
+    IPv4 address on that port is refused.
+  - spec-007 units: option table (exit 2), `--version`/`--help` (exit 0), `--port` in use (exit 3),
+    `::1` retry, stop line and exit 0, second signal exit 130, pino on stderr with
+    `authorization`/`cookie` redacted.
