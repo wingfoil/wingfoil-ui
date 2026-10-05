@@ -2,7 +2,7 @@
 id: task-009-identity-and-role-views
 type: task
 title: "Identity and role views"
-status: backlog
+status: in-progress
 release: "v0.1"
 module: "server"             # optional — server | web | contracts (dna.yaml modules)
 priority: "high"           # optional — high | medium | low
