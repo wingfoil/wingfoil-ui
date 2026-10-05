@@ -143,6 +143,20 @@ describe('X-04.1 — refuse requests without a valid session', () => {
     expect(JSON.parse(res.body)).toEqual({ error: { code, message: expect.any(String) } });
   });
 
+  // task-009: `PUT /api/p/:pid/role-view` — refused by the guards; past them, an unknown id is 404.
+  it.each([
+    [{}, 401, 'unauthenticated'],
+    [{ origin: 'https://evil.test', auth: true }, 403, 'forbidden-origin'],
+    [{ auth: true }, 404, 'not-found'],
+  ] as const)('PUT role-view %o → %i', async (condition, status, code) => {
+    const headers: Record<string, string> = {};
+    if ('origin' in condition) headers.origin = condition.origin;
+    if ('auth' in condition) headers.authorization = `Bearer ${l.token}`;
+    const res = await request(l, 'PUT', `${PROJECT_API}/role-view`, headers);
+    expect(res.status).toBe(status);
+    expect(JSON.parse(res.body)).toEqual({ error: { code, message: expect.any(String) } });
+  });
+
   it('answers 401 to a malformed /api URL without a session (spec-004 §4 order)', async () => {
     expect((await rawRequest(l, ['GET /api/%zz HTTP/1.1', `Host: 127.0.0.1:${l.port}`])).status).toBe(401);
   });
