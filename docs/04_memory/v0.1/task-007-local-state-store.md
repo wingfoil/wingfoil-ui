@@ -2,7 +2,7 @@
 id: task-007-local-state-store
 type: task
 title: "Local state store"
-status: pending
+status: backlog
 release: "v0.1"
 module: "server"             # optional — server | web | contracts (dna.yaml modules)
 priority: "high"           # optional — high | medium | low
