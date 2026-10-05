@@ -133,3 +133,107 @@ e2e closure — scenarios that need a screen are proved here by API and unit tes
     sequential, `/proc/loadavg` printed with each measurement), excluded from `test` and
     `test:coverage`; the TypeDoc test aborts its process and removes its temp dir in `afterAll`
     even on timeout (red-first: a timeout test proves the cleanup). Own commits.
+
+### red / green / refactor (2026-10-05)
+
+- **bug-001 (own commits):** red `8c7cbf7` — `test/harness/temp-workspace.test.ts`: with the
+  removal-only stub (what the TypeDoc test did) a process still writing into the folder recreated
+  it, and the second removal failed `ENOTEMPTY`. Green `a402be6`: `TempWorkspace` (aborts its
+  processes — `run()` gained `signal` — waits for them, then removes the folder); timing suite
+  `test/timing/*.timing.test.ts` + `vitest.timing.config.ts` (files sequential, the load printed at
+  start and with every measurement, `silent: false` added in `12f3016` because Vitest hides the
+  console of passed tests), script `npm run test:timing`, excluded from `test`/`test:coverage`
+  (`vitest.config.ts`); moved there: REQ-PERF-06 (from `test/launcher/launcher.test.ts`) and the
+  TypeDoc full build (from `test/docs/api-docs.test.ts`; the undocumented-export check stays in
+  the default suite with a 120 s timeout, it is a correctness test). Cleanup on timeout checked
+  by hand: `--testTimeout=5000` on the build test → timed out, no new `/tmp/wfui-typedoc-*` (diff
+  of the folder list before/after empty). `test/README.md` 0.7: *Timing suite* section.
+- **Red** `23c8142`: every new file failed on the missing modules (`server/src/git/git.js`,
+  `events/bus.js`, `snapshot/*.js`); the bin's `GET /api/events` answered 404 where 200 was
+  expected (task-003's X-02.1 line now checks the stream opens with the cookie).
+- **Green** `ec23305`: as designed. `server/src/git/git.ts`, `server/src/snapshot/{state,snapshot,
+  snapshots,watcher}.ts`, `server/src/events/bus.ts`, `server/src/http/events.ts`,
+  `contracts/src/events.ts`; `runLauncher` creates the bus, `Snapshots` (its runner, its logger) and
+  the stream, and closes streams and watchers in a stop hook before the processes are terminated.
+  `ProjectReads.directive` now uses the exported `directiveInForce`, shared with the view.
+  Test bugs fixed during green (not code changes to pass): a racy subscriber count in
+  `events.test.ts`; the discovery test found `wingfoil` on the `PATH` after `removeCli` — it now
+  runs with `envWithoutWingfoil`; the REQ-PERF-03 email trials set the same address twice (no
+  change, so no event: the "Infinity" trials of the first timing run), now alternating (`12f3016`).
+- **AC → tests:**
+  - TT-STATE-02 — `test/server/snapshot/snapshot.test.ts` "hits with no change, misses after a
+    working-tree edit and after a commit, new identity after user.email" (counting runner, watcher
+    off); plus concurrent views (one process per command), cached `element(id)`/`directive(id)`/
+    `history(id)`, refusal kept per state (S-27.1/S-27.2 API side), CLI generation, `repo` events,
+    coalesced checks; parser and commands in `test/server/git/git.test.ts`, keys in
+    `state.test.ts`; detection in `watcher.test.ts` (edit, commit, repository and global
+    `user.email`, new top-level folder, `node_modules/wingfoil`, closed → no process, the periodic
+    check with watching off).
+  - TT-STATE-01 / S-25.1–S-25.3 (API half) — `snapshot.test.ts` "the local-changes marker": the
+    marker equals membership in `git status --porcelain` (computed independently by the test) for
+    every element, on a clean copy, with a modified title (read as the working tree), a staged
+    edit, an untracked new element, a rename; none after the commit.
+  - TT-PERF-05 / S-26.3 — `test/server/snapshot/process-audit.test.ts` over the stand-in routes:
+    cold Memory list **5 CLI processes** (`--version`, `dna show`, `memory search`, `paths`,
+    `workflow list`; 5 git), reopened twice **0 processes** (git included), same `X-Repo-State`.
+  - TT-INT-09 — same file: one stream open, 60 s idle → **0 CLI processes** (12 git: the periodic
+    check, 2 per 10 s), no event; then a commit outside the UI → `repo` on the open stream, the
+    refetch shows the new title, marker off, new `X-Repo-State`.
+  - TT-PERF-03 — `test/timing/live-refresh.timing.test.ts` (timing suite): 20 trials (CLI approve
+    in a terminal, working-tree edit, commit, `user.email`, DNA edit) → **20/20 ≤ 5 s, max
+    2339 ms** (load average 41–47 on 12 cores: not a quiet machine — the coordinator re-runs it at
+    low load).
+  - bug-001 — see above; `npm run test:coverage` passed with external load > 40 (below).
+- **Deviations (honest):**
+  - TT-PERF-05 and TT-INT-09 stay in the default suite: they count processes and events, which
+    load does not change; only TT-PERF-03 is timing-bound (the bug AC says "this task's TT-PERF
+    measurements" go to the timing suite — TT-PERF-05 is a count). To be confirmed by the
+    coordinator.
+  - The ACs are "e2e (process audit)": no project route exists yet (task-012), so they are proved
+    through stand-in routes registered by the tests on the real `buildApp` (guards included), the
+    real snapshot, CLI, git and watcher, and the real stream — not through the bin. The screens
+    close in task-017 (as listed).
+  - The periodic check runs git (status + `user.email`) every 10 s per open project; "0 CLI
+    processes" is read as 0 `wingfoil` processes (REQ-INT-09 "pages never poll the CLI"; REQ-STATE-02
+    requires the periodic check). The git count is reported, not asserted.
+  - A CLI change (`node_modules/wingfoil`, gitignored) publishes `repo` with the unchanged state:
+    the page refetches though `X-Repo-State` did not move.
+  - Cold Memory list starts 5 git processes where 3 are expected (layout, status, email): one
+    extra check, most likely a watcher event caused by the CLI's own git reads; state unchanged,
+    no event, no loop (idle count is exactly the periodic checks).
+- **Hand-overs:**
+  - **task-012 (read routes):** `const snapshot = await snapshots.open(pid, entry.path)`, then
+    `const view = await snapshot.view()` per request; read through the view (`version`, `dna`,
+    `paths`, `workflows`, `directives`, `elements`/`archivedElements` with `localChanges`,
+    `history`, `memoryTypes`, `element(id)`, `directive(id)`); set
+    `reply.header(REPO_STATE_HEADER, repoStateHeader(view.state))` (`snapshot/state.ts`). Pass the
+    launcher's `snapshots` (created in `runLauncher`, next to `bus`) to the routes' `register`.
+    Never call `ProjectReads` directly from a route (no cache). Add the routes' 401/403 rows to
+    `local-security.test.ts`.
+  - **task-008 (project list):** `snapshots.open(pid, path)` when a project is first read,
+    `snapshots.close(pid)` on `DELETE /api/projects/:pid`; a missing CLI is a `CliNotFoundError`
+    from any CLI read of the view (cached per CLI generation, re-discovered when
+    `node_modules/wingfoil` changes) → `availability: 'cli-not-found'`; publish `projects {}` on the
+    same `bus` (`bus.publish({ event: 'projects', data: {} })`). `open()` of a folder that is not a
+    git repository rejects with `GitReadError` (git's message). `GitReads`/`resolveGit`
+    (`server/src/git/git.ts`) hold the read allow-list; the clone/transport commands of REQ-INT-06
+    are task-008's to add there.
+  - **task-009 (identity):** the effective `user.email` is `view.state.email` (repository, else
+    global; watched, a change publishes `repo`): match it against `dna.team` from `view.dna()`
+    instead of running `git config` again.
+  - **v0.2 writes:** spec-004 §4 rows 7–9 must read git fresh under the write lock
+    (`snapshot.check()` returns a fresh state), never `current()`; after a write publish `write`.
+  - **task-017 (web):** one `EventSource('/api/events')` per page; on `repo` with the page's `pid`,
+    invalidate that project's queries; on reconnect, refetch all; compare `X-Repo-State`.
+  - **Coordinator:** run `npm run test:timing` on a quiet machine before merging (REQ-PERF-06 and
+    the TypeDoc build fail at load ≈ 55–65, as before).
+- **Checks** (worktree, HEAD after this note): `npm run -s typecheck`, `lint` clean ·
+  `format:check` "All matched files use Prettier code style!" · `docs:api` OK · `npm run -s
+  test:coverage` **47 files passed, 1 skipped; 592 passed / 1 skipped**, 447 s, coverage **95.62 %**
+  statements / **87.36 %** branches / 95.58 % functions / 97.96 % lines (`server/src/snapshot`
+  91.37 %, `git.ts` 98.66 %, `http/events.ts` 100 % statements) — at load average **70.00** at start,
+  71.74 at the end, samples 48.9–78.4 (31 samples, `/proc/loadavg`), external load (other
+  project's builds) ≈ 60–65 before the run · `test:e2e` 3/3 · `check_tasks.py` OK ·
+  `npm run test:timing` at load 55–65: REQ-PERF-03 (before the email fix) and REQ-PERF-06 (max
+  3986 ms) and the TypeDoc build (30 s timeout) failed — load; REQ-PERF-03 re-run alone after the fix
+  at load 41–47: passed, max 2339 ms.

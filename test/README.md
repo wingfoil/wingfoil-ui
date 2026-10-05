@@ -32,6 +32,12 @@ Every test lives under `test/` (DNA `paths.tests`); sources stay in `server/src`
   `<prefix>/lib/node_modules/wingfoil/…`) for the discovery tests.
   `reads/project-reads.test.ts` is the REQ-ARC-04 file-system spy: `vi.mock('node:fs/promises')`
   and `vi.mock('node:fs')` record every call while the read facade runs on real fixtures.
+- `test/server/snapshot/` — the snapshot cache, the marker and the watcher on real fixtures.
+  `support.ts`: `AuditedRunner` (counts `wingfoil` and git processes, the process audit) and
+  `auditedSnapshots(env)`; `stand-in-app.ts`: stand-ins of the Memory list's read routes over the
+  snapshot with `X-Repo-State`, next to the real `GET /api/events`, on a loopback listener (the
+  real routes are task-012's). `test/server/http/sse-client.ts` reads an event stream over raw
+  `http`.
 - `test/contracts/` — the JSON Schemas of `contracts/` (e.g. `state/state.schema.json`) and the CLI
   contract tests (spec-001 §7, adr-001 D4): `cli-contract.test.ts` builds the three fixtures with
   the CLI of every version of `contracts/matrix.json` (`support.ts`: `cliBuildFor(version)`), runs
