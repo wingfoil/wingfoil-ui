@@ -113,3 +113,141 @@ e2e closure — scenarios that need a screen are proved here by API and unit tes
     technologies, methodologies with phase, team roles, paths); §4.1 resolution check.
 - **Where:** schemas and samples in `contracts/` and `test/contracts/`; npm script
   `test:contract` (= the e2e-smoke `contract` suite: `vitest run test/contracts`).
+
+### red / green / refactor (2026-10-05)
+
+- **Samples first (claim-evidence):** `test/contracts/capture-samples.test.ts` (skipped unless
+  `WFUI_CAPTURE_SAMPLES=1`) built the three fixtures with `wingfoil@0.2.2` (test clock
+  2026-10-02T15:30Z) and saved the raw CLI output of every §3 command — reads on the fixtures,
+  `submit`/`approve`/`reject`/`add` on copies, the two `--status` searches after one element is
+  archived (kanban: `memory deprecate` of the bug; custom: the ADR's working-tree `status:
+  superseded`) — plus the allow-listed files as found, under
+  `test/contracts/samples/wingfoil-0.2.2/<fixture>/` (Prettier-ignored). One more sample by hand
+  on a kanban copy: `directives-list-shadowed.json` (two files with id `testing`).
+- **Red** (`5c3b7cf`): `test/contracts/{schemas,cli-contract}.test.ts`,
+  `test/server/cli/commands.test.ts`, `test/server/reads/{memory-yaml,files,project-reads}.test.ts`;
+  all six files failed on the missing modules (`Cannot find module
+  '…/server/src/cli/commands.js'`, `'…/server/src/reads/confine.js'`). One task-004 test changed
+  its call to the new rule (`memory submit` id as a positional, no longer a command word).
+- **Green — built:**
+  - `contracts/cli/*.schema.json` (11: `version`, `dna-show`, `paths`, `directives-list`,
+    `workflow-list`, `memory-search`, `memory-history`, `memory-submit`, `memory-approve`,
+    `memory-reject`, `memory-add`), `contracts/files/{memory-yaml,element,directive}.schema.json`,
+    each with `$comment: "wingfoil 0.2.2 — captured from …"`; additional properties accepted, the
+    fields the UI reads required. `contracts/matrix.json` `{pinned: "0.2.2", versions: ["0.2.2"]}`.
+    Types in `contracts/src/cli.ts`, `contracts/src/files.ts` (exported by the package index).
+  - `server/src/cli/commands.ts` — `CLI_COMMANDS`, the static list of §3 with `since`;
+    `CliCommandOutputs`; `commandFor(words)`, `outputProblem(name, data)`.
+    `server/src/contracts.ts` — the schemas compiled once at load, `schemaProblems(file, data)`
+    (instance path + message, never a value).
+  - `server/src/cli/adapter.ts` — `json(words, …)` refuses a command not on the list before any
+    process (`CliInternalError` "command not on the static list: …", logged); every exit-0 output
+    and the `--version` text (one non-empty line) validated: a failure is a `CliOutputError`
+    (`problems`, 502 `cli-output`), logged with the problems only. New `run(name, args)` typed by
+    the command.
+  - `server/src/reads/` — `confine.ts` (`ReadFs`: `readFile`/`realpath` only; `confinedPath` /
+    `readConfined`: empty, NUL, POSIX or Windows absolute, `..` refused lexically, then the base
+    and the target realpath'd and compared — no byte outside is read; `DirectReadError` with
+    `kind` ∈ `outside | missing | shape | mismatch` and the CLI-given `file`); `frontmatter.ts`
+    (YAML 1.2 core via `yaml`, the frontmatter between the first two `---` lines);
+    `memory-yaml.ts` (§4.1 subset — `template.frontmatter.required` exposed as `required` —,
+    `resolveStates`, `declaredStates`, `transitionTarget` mirroring WingFoil 0.2.2's
+    `resolveTransitionTarget`, `BUILT_IN_STATES`); `element.ts` (`id`/`type`/`status` cross-check);
+    `directive.ts` (confined to `.wingfoil/`, `id` cross-check); `project-reads.ts` —
+    `ProjectReads`, the read facade: `dna`, `paths`, `workflows`, `directives`, `elements`,
+    `archivedElements(status)`, `history(id)`, `memoryTypes`, `elementFromMatch`, `element(id)`
+    (default search, then the archived ones lazily), `directiveFromEntry`, `directive(id)`. No path
+    is built from a caller's value.
+  - `yaml@^2.9.1` added to `@wingfoil-ui/server` dependencies (adr-002 names it; already in the
+    lock as a dev dependency of typedoc/vite); npm script `test:contract` (`vitest run
+    test/contracts`, the e2e-smoke `contract` suite).
+- **How the ACs are proved:**
+  - TT-INT-01 / S-27.1 — `test/contracts/cli-contract.test.ts` for every version of
+    `matrix.json` (0.2.2): on kanban, custom, unknown every read command and history through the
+    adapter (schema-validated), every element and directive file through the readers; writes on
+    copies (kanban submit/approve/reject, custom approve ×2/reject, unknown submit/reject, `add` on
+    each) and the archived searches; the last test asserts the commands run equal `CLI_COMMANDS`
+    (11/11 = 100 %). S-27.1: `dna show` → `CliRefusedError` `E_YAML_PARSE_ERROR (…dna.yaml):
+    invalid DNA: YAML parse error …`, `memory search` on the same copy validates.
+    `schemas.test.ts`: every sample validates; 16 negative mutations fail; unknown fields pass.
+  - TT-ARC-04 — `test/server/reads/project-reads.test.ts`: `vi.mock('node:fs/promises')` and
+    `vi.mock('node:fs')` record every call while every facade read runs on kanban and custom: 0
+    calls other than reads on project files; 0 reads of `.wingfoil/*.yaml` but `memory.yaml`; the
+    files read are exactly `memory.yaml` + the `memory search` paths + `.wingfoil/<directives list
+    path>`; directories resolved only for the confinement (root, `.wingfoil`). Status cross-check:
+    `memory search`, then the file's `status` changed → `DirectReadError` `mismatch` "…: status
+    "approved" differs from memory search ("pending")" for that element, the others read fine.
+    Traversal / absolute / escaping-symlink / linked-folder cases in `files.test.ts` (0 reads
+    outside). The §4.1 resolution check: every `submit`/`approve`/`reject` in `memory history` of
+    the three fixtures, and every write the contract test runs, equals `transitionTarget` of the
+    resolved states.
+  - S-25.1 (API half: working-tree title read by `memory search` and the reader, no read error;
+    the marker is task-010), M-01.1 (kanban `task` 4, `bug` 1, both types in `memory.yaml`),
+    R-05.1 (custom `dna show`: modules `server`/`web`/`contracts` with description and path,
+    `TypeScript` among technologies, `TDD` phase `delivery`, Morgan's roles, `paths.tests`).
+- **Decisions:**
+  - `--version` is on the static list with a schema of its own (one non-empty line); parsing the
+    semantic version stays task-006's.
+  - Directive files also get an `id` cross-check with the list entry (spec-001 §4.3 does not
+    require it; same rule as elements).
+  - `memory.yaml` read errors (`shape`, `missing`, `outside`) are `DirectReadError`s like the
+    element and directive ones; the HTTP mapping is task-012's (open point below).
+- **Deviations (honest):**
+  - The schema of `directives list` makes `frontmatter.tags` optional, against spec-001 §3's
+    `tags[]` — real 0.2.2 output (design note); spec erratum for the coordinator.
+  - Coverage of spec-001 §7 "for every version of the matrix": a matrix of one; `cliBuildFor`
+    throws for a version other than the pinned one, so a matrix advance must add the install there
+    (`test/contracts/support.ts`, documented in `test/README.md`).
+  - Fixture-build hooks raised to 600 s, CLI-heavy tests to 120–300 s (`0f2be23`): under a load
+    average of ~50 (another project's builds, `ps`: `.wf2-wt/task-*` `tsc`/`cli.js`) the contract
+    suite's three builds exceeded the 180 s default hook timeout.
+- **CLI facts (wingfoil 0.2.2) — new, for the coordinator (directive not edited):**
+  - `directives list` omits `frontmatter.tags` when the file has no `tags:` (custom fixture:
+    `node …/cli.js --format json directives list` → `determinism`, `doc-versioning`,
+    `security-secrets`, `traceability` without `tags`); `ref` likewise.
+  - Two directive files with the same id are both listed (built-in first) and `warnings` says
+    which is used: `"directive 'testing' defined in directives/built-in/testing.md,
+    directives/custom/testing.md; using directives/custom/testing.md"` (sample
+    `kanban/directives-list-shadowed.json`). A dangling `roles.yaml` binding gives **no** warning
+    without `--role` (W-09 holds only for `--role`): with `- ghost-directive` added under `qa:`,
+    `directives list` → `"warnings": []`, `directives list --role qa` → `["directive
+    'ghost-directive' bound to role 'qa' has no directive file"]`. The server calls it without
+    `--role`, so a dangling binding is invisible to the UI in v0.1.
+  - `workflow list` `version` is a number (`1`, `1.1`, `1.4`), not a string; `fallback` may carry
+    `set_state` besides `step` (custom `release-planning`, `dev-loop`).
+  - `dna show`: `modules[]` carry `path`; `stacks.technologies[]` are `{name, category?, version?,
+    notes?}`, `stacks.methodologies[]` `{name, phase?}`; `project` may carry `license`,
+    `repository`.
+  - `memory history` timestamps carry the committer's offset (`2026-10-05T17:35:06+02:00` for a
+    commit made on this machine; fixture commits `+00:00`).
+  - `memory deprecate <id> --reason <text>` answers `{id, path, from, to, reason}` (not consumed;
+    used by the harness only).
+- **Hand-overs:**
+  - **task-006:** read `contracts/matrix.json` (`pinned`, `versions`) for the range; add
+    `contracts/capabilities.json`; when a second version enters the matrix, a versioned schema
+    variant is selected by the detected version (none needed now) and `cliBuildFor` installs it.
+  - **task-012:** routes over `ProjectReads` (`/elements/:eid` → `element(id)`, `/directives/:did`
+    → `directive(id)`, `/history` → `history(id)`); `CliOutputError` → 502 via
+    `cliErrorEnvelope`; **spec-004 §5 has no code for a `DirectReadError`** (element/directive/
+    `memory.yaml` read error) — a spec decision is needed at task-012 design (e.g. 502
+    `read-error` with `detail { file, kind }`), and the element panel shows it for that element
+    only.
+  - **task-010:** cache `ProjectReads` results per repository state; `element(id)` and
+    `directive(id)` each run the list command again — use `elementFromMatch` /
+    `directiveFromEntry` with the cached list.
+  - **task-017 / task-019:** screens of S-25.1, M-01.1 / R-05.1, S-27.1 over these reads.
+  - **release-planning (matrix advance):** re-capture the samples
+    (`WFUI_CAPTURE_SAMPLES=1 npx vitest run test/contracts/capture-samples.test.ts`) and run
+    `npm run test:contract`.
+- **Checks (refactor, 2026-10-05):** `npx tsc -b server` OK · `npm run -s typecheck` clean ·
+  `npm run -s lint` clean · `npm run -s format:check` clean · `npm run -s docs:api` OK (`html
+  generated at ./docs-api`) · `npm run -s test:e2e` 3/3 (Chromium) · `npx vitest run --coverage
+  --coverage.reportOnFailure` 41 files, **528 passed / 2 failed / 1 skipped** (the capture test):
+  the two failures are the timing tests of task-001/002 under a load average of 48–58 on 12 cores
+  (another project's builds): TypeDoc build > 30 s and REQ-PERF-06 (max 3074–5150 ms); re-run
+  alone, `test/launcher/launcher.test.ts -t REQ-PERF-06` passed (load 46) and
+  `test/docs/api-docs.test.ts` 2/2 passed (load 28). Coverage **96.61 %** statements / **90.12 %**
+  branches / 96.79 % functions / 98.04 % lines (`server/src/cli` 98.9 %, `server/src/reads`
+  99.06 %, `server/src/contracts.ts` 100 % statements). `npx vitest run
+  test/contracts/cli-contract.test.ts` 8/8 in 93 s (load ~30); `test/server/reads/project-reads.test.ts`
+  6/6 in 72 s.
