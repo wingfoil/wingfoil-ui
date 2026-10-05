@@ -225,9 +225,10 @@ export class WingfoilCli {
       throw new CliRefusedError(command, refusalMessage(result.stderr));
     }
     if (result.ended === 'exit' && result.exitCode === 2) {
-      // A usage error: its text names options, not user values.
+      // A usage error names options, but it may quote a value (`missing required argument`,
+      // a rejected option value): the log keeps its first 200 characters only.
       const detail = result.stderr.trim();
-      this.log(command, { exitCode: 2, stderr: detail }, 'CLI invocation rejected as malformed');
+      this.log(command, { exitCode: 2, stderr: detail.slice(0, 200) }, 'CLI invocation rejected as malformed');
       throw new CliInternalError(command, detail);
     }
     const error =
