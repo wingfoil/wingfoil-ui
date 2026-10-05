@@ -1,8 +1,9 @@
 /**
  * The request guards (spec-004 §1–2, §4 rows 1–2): every request passes the Host and Origin
  * checks (403 `forbidden-origin`, REQ-SEC-03), then every `/api/` request — the event stream
- * included — passes the `Sec-Fetch-Site` check (403, spec-004 §1 amended 2026-10-05) and needs the session cookie or the start token (401 `unauthenticated`, REQ-SEC-02). The
- * static application files are exempt from the session only. Both checks answer in an `onRequest`
+ * included — passes the `Sec-Fetch-Site` check (403, spec-004 §1 amended 2026-10-05) and needs
+ * the session cookie or the start token (401 `unauthenticated`, REQ-SEC-02). The static
+ * application files are exempt from the session only. Both checks answer in an `onRequest`
  * hook, before any handler runs: a refused request starts no process.
  */
 import type { IncomingHttpHeaders } from 'node:http';
