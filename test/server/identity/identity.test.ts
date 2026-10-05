@@ -35,7 +35,9 @@ describe('matchIdentity — REQ-STATE-05', () => {
   });
 
   it('S-15.1 is ambiguous when the email matches two members, named in DNA order', () => {
-    const shared = TEAM.map((m) => (m.name === 'Jordan' || m.name === 'Sam' ? { ...m, email: 'shared@example.test' } : m));
+    const shared = TEAM.map((m) =>
+      m.name === 'Jordan' || m.name === 'Sam' ? { ...m, email: 'shared@example.test' } : m,
+    );
     expect(matchIdentity('Shared@example.test', shared)).toEqual({
       kind: 'ambiguous',
       email: 'Shared@example.test',
@@ -51,7 +53,9 @@ describe('matchIdentity — REQ-STATE-05', () => {
   });
 
   it('keeps the roles in DNA order without duplicates', () => {
-    const twice: DnaMember[] = [{ name: 'Morgan', email: 'morgan@example.test', roles: ['approver', 'tech-lead', 'approver'] }];
+    const twice: DnaMember[] = [
+      { name: 'Morgan', email: 'morgan@example.test', roles: ['approver', 'tech-lead', 'approver'] },
+    ];
     expect(matchIdentity('morgan@example.test', twice)).toMatchObject({ roles: ['approver', 'tech-lead'] });
   });
 });
@@ -66,7 +70,11 @@ describe('identityView — REQ-STATE-06 role views', () => {
   });
 
   it('defaults to the first role in the DNA (stored "")', () => {
-    expect(identityView(morgan, '')).toEqual({ identity: morgan, roleViews: ['approver', 'tech-lead'], roleView: 'approver' });
+    expect(identityView(morgan, '')).toEqual({
+      identity: morgan,
+      roleViews: ['approver', 'tech-lead'],
+      roleView: 'approver',
+    });
     expect(identityView(alex, '').roleView).toBe('tech-lead');
   });
 
@@ -114,7 +122,12 @@ function entry(id: string, roles: string[], global = false): DirectiveEntry {
 }
 
 describe('directivesForRoleView — "only mine" (S-22.1, R-06.1, R-06.4)', () => {
-  const entries = [entry('a', ['developer']), entry('b', ['approver']), entry('c', [], true), entry('d', ['developer', 'qa'])];
+  const entries = [
+    entry('a', ['developer']),
+    entry('b', ['approver']),
+    entry('c', [], true),
+    entry('d', ['developer', 'qa']),
+  ];
 
   it('lists the directives bound to the role and the global ones, in list order', () => {
     expect(directivesForRoleView(entries, 'developer').map((e) => e.frontmatter.id)).toEqual(['a', 'c', 'd']);

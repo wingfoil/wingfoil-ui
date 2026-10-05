@@ -63,8 +63,12 @@ describe('readGitEmail — through the runner port', () => {
   });
 
   it('treats exit 1 (unset) and a blank value as no email', async () => {
-    expect(await readGitEmail('/p', { runner: new FakeProcessRunner().answer({ exitCode: 1 }), git: '/g' })).toBeUndefined();
-    expect(await readGitEmail('/p', { runner: new FakeProcessRunner().answer({ stdout: '  \n' }), git: '/g' })).toBeUndefined();
+    expect(
+      await readGitEmail('/p', { runner: new FakeProcessRunner().answer({ exitCode: 1 }), git: '/g' }),
+    ).toBeUndefined();
+    expect(
+      await readGitEmail('/p', { runner: new FakeProcessRunner().answer({ stdout: '  \n' }), git: '/g' }),
+    ).toBeUndefined();
   });
 
   it('fails on any other end (bad configuration, timeout), without the stderr text', async () => {

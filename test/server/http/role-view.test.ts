@@ -155,7 +155,9 @@ describe('PUT /api/p/:pid/role-view', () => {
   it('is guarded: 401 without a session, 403 from a foreign origin', async () => {
     const { kanban, source } = await setUp(ALEX);
     expect((await put(kanban.id, { role: 'developer' }, {})).statusCode).toBe(401);
-    expect((await put(kanban.id, { role: 'developer' }, { ...AUTH, origin: 'https://evil.test' })).statusCode).toBe(403);
+    expect((await put(kanban.id, { role: 'developer' }, { ...AUTH, origin: 'https://evil.test' })).statusCode).toBe(
+      403,
+    );
     expect(source.calls).toEqual([]);
   });
 });

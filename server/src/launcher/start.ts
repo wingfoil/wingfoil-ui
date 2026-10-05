@@ -5,6 +5,8 @@
 import { randomBytes } from 'node:crypto';
 import { createTokenAuthentication } from '../auth/authentication.js';
 import { buildApp } from '../http/app.js';
+import { registerRoleViewRoute } from '../http/role-view.js';
+import { createLocalIdentitySource } from '../identity/project-identity.js';
 import { message } from '../i18n/messages.js';
 import { createLogger } from '../logging.js';
 import { LocalProcessRunner } from '../process/runner.js';
@@ -121,6 +123,12 @@ export async function runLauncher(argv: readonly string[], io: LauncherIo): Prom
     staticDir: io.staticDir,
     logger,
     security: { authentication: createTokenAuthentication(token), port: () => listening.port },
+    register: (routes) => {
+      registerRoleViewRoute(routes, {
+        store: state,
+        identity: createLocalIdentitySource({ runner: processes, logger }),
+      });
+    },
   });
   // CLI and git children are terminated in the stop sequence (spec-007 §6, adr-001 D5); registered
   // once the application exists, removed again if the listen fails.

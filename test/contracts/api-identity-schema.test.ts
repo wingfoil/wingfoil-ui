@@ -37,8 +37,14 @@ describe('identity.schema.json', () => {
 
   it.each([
     ['an unknown kind', { identity: { kind: 'guest' }, roleViews: [], roleView: null }],
-    ['a member without roles field', { identity: { kind: 'member', email: 'a@b', name: 'A' }, roleViews: [], roleView: null }],
-    ['an ambiguous identity with one member', { identity: { kind: 'ambiguous', email: 'a@b', members: ['A'] }, roleViews: [], roleView: null }],
+    [
+      'a member without roles field',
+      { identity: { kind: 'member', email: 'a@b', name: 'A' }, roleViews: [], roleView: null },
+    ],
+    [
+      'an ambiguous identity with one member',
+      { identity: { kind: 'ambiguous', email: 'a@b', members: ['A'] }, roleViews: [], roleView: null },
+    ],
     ['a missing roleView', { identity: { kind: 'no-identity' }, roleViews: [] }],
     ['a not-in-team identity without email', { identity: { kind: 'not-in-team' }, roleViews: [], roleView: null }],
   ])('refuses %s', (_name, data) => {

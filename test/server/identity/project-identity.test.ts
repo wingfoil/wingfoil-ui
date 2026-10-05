@@ -15,7 +15,13 @@ import {
 } from '../../../server/src/identity/project-identity.js';
 import { LocalProcessRunner } from '../../../server/src/process/runner.js';
 import { pinnedCli } from '../../harness/cli.js';
-import { buildFixture, copyFixture, envWithoutWingfoil, removeCli, type Fixture } from '../../harness/fixtures/index.js';
+import {
+  buildFixture,
+  copyFixture,
+  envWithoutWingfoil,
+  removeCli,
+  type Fixture,
+} from '../../harness/fixtures/index.js';
 import { git, run } from '../../harness/run.js';
 
 let root: string;
@@ -86,7 +92,11 @@ describe('US-S-12 — recognised from git', () => {
   it('S-12.2 matches Jordan@Example.TEST regardless of letter case', async () => {
     const { fx, entry } = await fresh();
     await git(fx.dir, ['config', 'user.email', 'Jordan@Example.TEST'], fx.env);
-    expect(await source(fx).identify(entry)).toMatchObject({ kind: 'member', name: 'Jordan', email: 'Jordan@Example.TEST' });
+    expect(await source(fx).identify(entry)).toMatchObject({
+      kind: 'member',
+      name: 'Jordan',
+      email: 'Jordan@Example.TEST',
+    });
   }, 120_000);
 
   it('S-12.3 follows a change of git email: the next evaluation is Morgan', async () => {

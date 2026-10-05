@@ -136,10 +136,14 @@ describe('REQ-STATE-06 — role views through the console', () => {
     // The same set as WingFoil's own role filter.
     const byCli = JSON.parse(
       (
-        await run(process.execPath, [pinnedCli().script, '--format', 'json', 'directives', 'list', '--role', 'developer'], {
-          cwd: custom.dir,
-          env,
-        })
+        await run(
+          process.execPath,
+          [pinnedCli().script, '--format', 'json', 'directives', 'list', '--role', 'developer'],
+          {
+            cwd: custom.dir,
+            env,
+          },
+        )
       ).stdout,
     ) as { entries: { frontmatter: { id: string } }[] };
     expect([...developer].sort()).toEqual(byCli.entries.map((e) => e.frontmatter.id).sort());

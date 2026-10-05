@@ -30,5 +30,6 @@ export type {
   WorkflowList,
   WorkflowPhase,
 } from './cli.js';
+export type { Identity, IdentityView, RoleViewRequest } from './api.js';
 export type { ElementFrontmatter, MemoryTypeDef, MemoryYaml, StateMachine } from './files.js';
 export type { ProjectEntry, StateFile, StateWarning } from './state.js';
