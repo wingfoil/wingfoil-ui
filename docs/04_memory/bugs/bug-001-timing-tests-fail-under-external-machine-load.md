@@ -68,3 +68,5 @@ needed a manual re-run on a quiet machine.
   TT-PERF-03/05 and lists this bug in `bug:`, with its own Acceptance Criterion). `triaged →
   planned` set by hand (waiting state, no CLI verb); dev-loop `bug.sync_state` moves it with the
   task from there.
+- start (2026-10-05): task-010 started (Wave 2) → `planned → in-progress` by hand (dev-loop
+  `start` step `bug.sync_state`; no CLI verb for this edge).
