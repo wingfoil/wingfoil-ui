@@ -43,7 +43,7 @@ afterAll(async () => {
   await rm(staticDir, { recursive: true, force: true });
 });
 
-async function app(port: number | undefined = PORT, token = TOKEN): Promise<FastifyInstance> {
+async function app(port = PORT, token = TOKEN): Promise<FastifyInstance> {
   const a = await buildApp({
     staticDir,
     logger: createLogger(sink),
@@ -251,9 +251,19 @@ describe('REQ-SEC-03 — Host and Origin, 403 before any other work', () => {
   });
 
   it('refuses every request while the port is unknown', async () => {
-    const a = await app(undefined);
-    const res = await a.inject({ method: 'GET', url: '/', headers: { host: HOST } });
-    expect(res.statusCode).toBe(403);
+    const a = await buildApp({
+      staticDir,
+      logger: createLogger(sink),
+      security: { authentication: createTokenAuthentication(TOKEN), port: () => undefined },
+    });
+    apps.push(a);
+    expect((await a.inject({ method: 'GET', url: '/', headers: { host: HOST } })).statusCode).toBe(403);
+    const session = await a.inject({
+      method: 'POST',
+      url: '/api/session',
+      headers: { authorization: `Bearer ${TOKEN}` },
+    });
+    expect(session.statusCode).toBe(403);
   });
 });
 

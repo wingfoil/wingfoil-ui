@@ -10,6 +10,7 @@ export const REDACTED_PATHS = [
   'req.headers.cookie',
   'headers.authorization',
   'headers.cookie',
+  'res.headers["set-cookie"]',
 ];
 
 interface LoggedRequest {

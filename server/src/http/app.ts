@@ -7,12 +7,16 @@ import { fastify, type FastifyBaseLogger, type FastifyInstance, type FastifyRepl
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 import type { Logger } from 'pino';
+import { hasOwnOrigin, refuseOrigin, registerGuards, type SecurityOptions } from './guards.js';
+import { registerSessionRoute } from './session.js';
 
 /** Options of {@link buildApp}. */
 export interface AppOptions {
   /** Directory of the `web/` build; the application is not served when it has no `index.html`. */
   staticDir: string;
   logger: Logger;
+  /** The Host/Origin and session guards and `POST /api/session` (spec-004 §1–2): always on. */
+  security: SecurityOptions;
   /** Registers routes and hooks before the application is ready (later tasks: `/api/` routes). */
   register?: (app: FastifyInstance) => void | Promise<void>;
 }
@@ -40,10 +44,16 @@ export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
   const app = fastify({
     loggerInstance,
     // Errors Fastify raises before routing (e.g. a malformed URL) get the envelope too.
-    frameworkErrors: (_error, _request, reply) => {
-      void (reply as unknown as FastifyReply).code(400).send(envelope('invalid-request', 'Invalid request'));
+    frameworkErrors: (_error, request, reply) => {
+      const fastifyReply = reply as unknown as FastifyReply;
+      // The Host/Origin refusal comes first, here too (REQ-SEC-03).
+      if (!hasOwnOrigin(request.headers, options.security.port())) return void refuseOrigin(fastifyReply);
+      void fastifyReply.code(400).send(envelope('invalid-request', 'Invalid request'));
     },
   });
+  // Before the static files and every route: the guards answer first (spec-004 §4 rows 1–2).
+  registerGuards(app, options.security);
+  registerSessionRoute(app, options.security);
   const hasWebBuild = existsSync(path.join(options.staticDir, 'index.html'));
   if (hasWebBuild) {
     await app.register(fastifyStatic, {

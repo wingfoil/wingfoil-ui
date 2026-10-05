@@ -46,6 +46,7 @@ function request(
       },
     );
     req.on('error', reject);
+    if (method === 'POST' || method === 'PUT') req.setHeader('content-type', 'application/json');
     req.end(method === 'POST' || method === 'PUT' ? '{}' : undefined);
   });
 }
