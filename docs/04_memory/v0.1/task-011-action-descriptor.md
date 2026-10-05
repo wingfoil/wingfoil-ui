@@ -222,4 +222,6 @@ e2e closure — scenarios that need a screen are proved here by API and unit tes
   skipped** in 517 s — the two failures are the known timing tests of bug-001 (REQ-PERF-06 start,
   TypeDoc build > 30 s) at load ≈ 60; coverage **96.63 %** statements / **90.73 %** branches /
   96.59 % functions / 98.26 % lines (`server/src/descriptor` 99.2 % / 94.02 %). The descriptor
-  contract test alone: 10/10 in 496 s (the §9 check on custom: 120 s).
+  contract test: first run 9/10 in 496 s (the custom §9 check found the `sard_ref` content
+  refusal, deviation 3), then that test alone passed (442 s, mostly the three builds); all 10 pass
+  in the coverage run.
