@@ -36,7 +36,12 @@ const SEMVER = new RegExp(
     `(?:\\+([0-9a-zA-Z-]+(?:\\.[0-9a-zA-Z-]+)*))?$`,
 );
 
-/** Parse `text` as a semantic version; `undefined` when it is not one (whole text, no `v`, no spaces). */
+/**
+ * Parse `text` as a semantic version; `undefined` when it is not one (whole text, no `v`, no
+ * spaces). A numeric part or numeric pre-release identifier above `Number.MAX_SAFE_INTEGER`
+ * (2^53 − 1) cannot be compared exactly and is refused, so such a version is "unrecognised" —
+ * the conservative side (outside the range).
+ */
 export function parseSemVer(text: string): SemVer | undefined {
   const m = SEMVER.exec(text);
   if (!m) return undefined;

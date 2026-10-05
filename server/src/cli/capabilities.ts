@@ -16,8 +16,8 @@
  * The role a capability needs is not evaluated here (spec-003 §6, REQ-SEC-07).
  */
 import type { Capability, CapabilityTable } from '@wingfoil-ui/contracts';
-import { Ajv } from 'ajv';
 import { readFileSync } from 'node:fs';
+import { schemaProblems } from '../contracts.js';
 import { classifyVersion, compareSemVer, parseSemVer, type SupportedRange, type VersionClass } from './version.js';
 
 export type { Capability } from '@wingfoil-ui/contracts';
@@ -28,9 +28,8 @@ function readContract(file: string): unknown {
 
 /** Validate a capability table against `contracts/capabilities.schema.json`; throws on the first problems. */
 export function checkCapabilityTable(table: unknown): readonly Capability[] {
-  const validate = new Ajv({ allErrors: true }).compile(readContract('capabilities.schema.json') as object);
-  if (!validate(table)) {
-    const problems = (validate.errors ?? []).map((e) => `${e.instancePath || '/'} ${e.message ?? 'is invalid'}`);
+  const problems = schemaProblems('capabilities.schema.json', table);
+  if (problems) {
     throw new Error(`contracts/capabilities.json: ${problems.join('; ')}`);
   }
   const capabilities = (table as CapabilityTable).capabilities;

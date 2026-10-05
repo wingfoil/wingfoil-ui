@@ -146,8 +146,22 @@ describe('detectVersion (fake runner)', () => {
         inRange: false,
         source: 'project',
       });
+      // The adapter logs the output error (no value); detection turns it into "unrecognised".
+      expect(errors).toEqual(['Unexpected output of --version']);
     },
   );
+
+  it('the cache is keyed by the ResolvedCli: two adapters of one resolution share one --version', async () => {
+    const runner = new FakeProcessRunner().answer({ stdout: '0.2.2\n' });
+    const cache = new VersionCache();
+    const a = await cache.detect(new WingfoilCli({ cli: resolved, runner }));
+    const b = await cache.detect(new WingfoilCli({ cli: resolved, runner }));
+    expect(b).toBe(a);
+    expect(runner.requests).toHaveLength(1);
+    // An equal but new resolution object (a re-run of discoverCli) is detected again.
+    await cache.detect(new WingfoilCli({ cli: { ...resolved }, runner }));
+    expect(runner.requests).toHaveLength(2);
+  });
 
   it('a --version that fails to run propagates, and the cache does not keep the failure', async () => {
     const runner = new FakeProcessRunner()

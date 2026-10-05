@@ -187,3 +187,27 @@ e2e closure — scenarios that need a screen are proved here by API and unit tes
   TypeDoc build still fails at load 73. Coverage **96.31 %** statements / 90.13 % branches /
   96.14 % functions / 98.07 % lines; `version.ts` 98.97 %, `capabilities.ts` 100 % statements
   after the table-check test.
+
+### review (2026-10-05)
+
+- Review round 1: **PASS** with fixes, all taken:
+  - 4 — new test: two `WingfoilCli` built from one `ResolvedCli` share a single `--version`; a
+    copy of the resolution is detected again (a cache keyed by the adapter would fail it).
+  - 5 — `capabilities.schema.json` is registered in `CONTRACT_SCHEMAS` (`server/src/contracts.ts`);
+    `checkCapabilityTable` uses `schemaProblems` (no second Ajv).
+  - 6 — `cliBuildFor` installs into a `mkdtemp` staging folder next to the prefix and renames it
+    into place; when the rename fails, a concurrent winner with the right version is accepted.
+    Tests: parallel installs of one version, no staging folder left, a wrong-version install
+    leaves no prefix.
+  - 7 — `npmInstall` TSDoc: no shell only through `npm_execpath`; plain `npm` is found by
+    `execFile` on Linux/macOS only (on Windows run the tests through `npm run`).
+  - 8 — the always-true `validate.errors` assertion is gone; the README check compares the
+    "Minimum WingFoil" column exactly; the output-error test asserts the logged
+    `Unexpected output of --version`.
+  - 9 — `parseSemVer` TSDoc: a numeric part or pre-release identifier above 2^53 − 1 is refused
+    (unrecognised, the conservative side); tests for 2^53 − 1 accepted and above refused.
+  - The lower-bound rule is not changed (pending spec gap 1).
+- **Hand-over addition (task-011 / merge):** `cliBuildFor` is now async: any new caller (e.g.
+  task-011's `test/contracts/descriptor-contract.test.ts`) must `await` it.
+- Checks: `npx vitest run test/server/cli test/contracts/{capabilities,support,schemas}.test.ts`
+  9 files, 160/160 · typecheck, lint, format:check clean · `docs:api` OK (load average ≈ 64).

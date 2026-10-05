@@ -46,8 +46,14 @@ describe('parseSemVer', () => {
     ['0.2.2\n0.2.3'],
     ['wingfoil 0.2.2'],
     ['99999999999999999999.0.0'],
+    ['0.2.2-9007199254740993'],
   ])('refuses %j (not a semantic version)', (text) => {
     expect(parseSemVer(text)).toBeUndefined();
+  });
+
+  it('keeps a numeric pre-release identifier up to 2^53 − 1; a larger one is refused (conservative)', () => {
+    expect(parseSemVer('0.2.2-9007199254740991')?.prerelease).toEqual([9007199254740991]);
+    expect(parseSemVer('0.2.2-rc.9007199254740992')).toBeUndefined();
   });
 
   it('formats a version back to its canonical text', () => {

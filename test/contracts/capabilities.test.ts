@@ -22,7 +22,6 @@ describe('contracts/capabilities.json', () => {
   it('validates against contracts/capabilities.schema.json', async () => {
     const validate = new Ajv({ allErrors: true }).compile((await json('contracts/capabilities.schema.json')) as object);
     const table = await json('contracts/capabilities.json');
-    expect(validate.errors ?? null).toBeNull();
     expect(validate(table), JSON.stringify(validate.errors)).toBe(true);
   });
 
@@ -74,7 +73,8 @@ describe('package README — support matrix (REQ-INT-02 README review)', () => {
     for (const c of capabilities) {
       const row = section!.split('\n').find((line) => line.startsWith(`| ${c.name} |`));
       expect(row, `README row of ${c.name}`).toBeDefined();
-      expect(row).toContain(c.minVersion ?? 'not released');
+      const cells = row!.split('|').map((cell) => cell.trim());
+      expect(cells[2]).toBe(c.minVersion ?? 'not released');
     }
   });
 });

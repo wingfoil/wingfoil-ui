@@ -3,7 +3,7 @@
  * each matrix version, the raw CLI (as a terminal runs it — the samples are captured with it, not
  * with the adapter under test) and the fixture changes that make the archived searches non-empty.
  */
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rename, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { binScript, pinnedCli, pinnedVersion, REPO_ROOT, type CliBuild } from '../harness/cli.js';
 import { cliPackageDir, memberByName, type Fixture, type MemberName } from '../harness/fixtures/index.js';
@@ -33,12 +33,16 @@ export interface CliBuildOptions {
   install?: (prefix: string, version: string) => Promise<void>;
 }
 
-/** `npm install --prefix <prefix> --no-save wingfoil@<version>`, without scripts, audit or fund. */
+/**
+ * `npm install --prefix <prefix> --no-save wingfoil@<version>`, without scripts, audit or fund.
+ * Under an npm script npm's own CLI (`npm_execpath`) runs with this Node.js, with no shell on any
+ * platform; otherwise `npm` from the `PATH`, which `execFile` finds on Linux and macOS only (on
+ * Windows run the tests through `npm run`).
+ */
 async function npmInstall(prefix: string, version: string): Promise<void> {
   await mkdir(prefix, { recursive: true });
   await writeFile(path.join(prefix, 'package.json'), '{"private": true}\n');
   const args = ['install', '--prefix', prefix, '--no-save', '--ignore-scripts', '--no-audit', '--no-fund'];
-  // Under an npm script, run npm's own CLI with this Node.js (no shell, also on Windows).
   const npmCli = process.env.npm_execpath;
   const [file, prefixArgs] = npmCli ? [process.execPath, [npmCli]] : ['npm', []];
   await run(file, [...prefixArgs, ...args, `wingfoil@${version}`], { cwd: prefix, timeoutMs: 300_000 });
@@ -57,10 +61,23 @@ export async function cliBuildFor(version: string, options: CliBuildOptions = {}
   const prefix = path.join(options.cacheRoot ?? MATRIX_CACHE, version);
   const packageDir = path.join(prefix, 'node_modules', 'wingfoil');
   if ((await installedVersion(packageDir)) !== version) {
-    await (options.install ?? npmInstall)(prefix, version);
-    const installed = await installedVersion(packageDir);
-    if (installed !== version) {
-      throw new Error(`installing wingfoil ${version} for the contract tests gave ${String(installed)}`);
+    // Install into a private folder, then rename it into place: parallel workers never share a
+    // half-written prefix, and a concurrent winner's install is kept.
+    await mkdir(path.dirname(prefix), { recursive: true });
+    const staging = await mkdtemp(`${prefix}.tmp-`);
+    try {
+      await (options.install ?? npmInstall)(staging, version);
+      const installed = await installedVersion(path.join(staging, 'node_modules', 'wingfoil'));
+      if (installed !== version) {
+        throw new Error(`installing wingfoil ${version} for the contract tests gave ${String(installed)}`);
+      }
+      try {
+        await rename(staging, prefix);
+      } catch (error) {
+        if ((await installedVersion(packageDir)) !== version) throw error;
+      }
+    } finally {
+      await rm(staging, { recursive: true, force: true });
     }
   }
   return { script: binScript(packageDir), packageDir };
