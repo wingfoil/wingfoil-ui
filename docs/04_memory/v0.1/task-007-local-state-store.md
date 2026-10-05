@@ -161,3 +161,46 @@ e2e closure — scenarios that need a screen are proved here by API and unit tes
     fallback of a role no longer held is applied on read, not stored.
   - **task-015/016** (e2e closure) — S-17.1/S-17.2/X-05.x/X-02.1 and S-22.3 through the screens;
     the full-suite secret scan of REQ-SEC-09 over the state directory and the logs.
+
+### review (2026-10-05)
+
+- Independent review of 98f93ca: **PASS WITH FIXES**. Findings 2–11 fixed, test-first (red commit
+  `dff0cea`: 27 failing tests, each for the right reason — e.g. 2 × 25 concurrent adds kept 28
+  entries, a killed process's `state.json.tmp-<pid>` was left behind, `x@v1` and leading-space
+  credentials stored):
+  - F2 two consoles lost adds under overlapping writes → advisory lock `state.json.lock`
+    (`open(…, 'wx')`, content `<pid> <nonce>`) around every re-read → write; stale when its pid is
+    dead or it is older than 10 s; retry with exponential backoff + jitter (5 → 100 ms), failure
+    after 15 s; released in `finally` only if the content is still ours. Two-process test
+    (2 × 25 adds → 50 entries, no lock left). Residual: a narrow race when two waiters break the
+    same stale lock (the content is re-checked just before removal).
+  - F3 temporary file `state.json.tmp-<pid>-<n>` (process-wide counter), removed then created with
+    `wx`/0600 (a stale 0644 file never lends its mode; tested), and the temporary files of dead
+    pids are swept when a store is opened (tested). **Deviation from spec-006 §4 wording**
+    (`state.json.tmp-<process id>`): the `-<n>` suffix was asked by the review so two stores in one
+    process never collide — the spec text could be amended at the next spec revision.
+  - F4 the SIGKILL test now loops (≤ 40 rounds) until ≥ 2 kills left a `.tmp-` file, i.e. landed
+    inside a write, and asserts that count; it also checks the sweep.
+  - F5 remotes are trimmed; a URL form is parsed with `new URL`, username and password cleared,
+    any other `@` percent-encoded (no `@` left); an unparsable URL loses everything up to its last
+    `@` (`https://u:p/w@h/x` → `https://h/x`); scp-like `user@host:path` kept as decided. The schema
+    refuses leading/trailing space and any `@` in a URL form.
+  - F6 `isWithin` tested with `darwin` and `win32` case folding (and now uses `path.win32` rules
+    for `win32`).
+  - F7 `update()` copies only `name`, `remote`, `roleView`.
+  - F8 the bin restart test scans stderr for the token, credentials and the planted value; a new
+    bin test lists the XDG configuration folder as a project with `WINGFOIL_UI_STATE_DIR` unset →
+    exit 4 naming `<home>/.config/wingfoil-ui` (the OS location is really read).
+  - F9 `tsc -b server` runs once in a Vitest `globalSetup` (`test/global-setup.ts`,
+    `vitest.config.ts`); the per-file builds of `test/launcher/launcher.test.ts`,
+    `test/launcher/state.test.ts` and `killed-write.test.ts` are removed.
+  - F10 a leading BOM is ignored; an unreadable `state.json` (EISDIR/EACCES) fails with
+    `Cannot read the WingFoil UI state file <path>: …` (exit 70 through `main`).
+  - F11 `reload()` re-reads the state (no lock, nothing created) and returns the list.
+- **Hand-over (task-008/015):** `projects()` is the list as last read (start or last mutation);
+  `GET /api/projects` must call `await store.reload()` to see another console's changes.
+- Merge note kept: `LauncherIo.stateDir` stays required.
+- Checks after the fixes: `npm run test:coverage` 270/270 tests, 25 files (two full runs, no flaky
+  test); coverage 94.72 % statements / 88.76 % branches / 93.23 % functions / 96.18 % lines
+  (`server/src/state` 96.83 % statements) · `npm run test:e2e` 3/3 · typecheck, lint,
+  format:check clean · `docs:api` OK.
