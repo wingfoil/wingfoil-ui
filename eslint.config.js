@@ -40,8 +40,11 @@ export default tseslint.config(
   {
     // REQ-SEC-05 — no shell in the server (TT-SEC-05). Processes are started only with execFile,
     // execFileSync, spawn or spawnSync, imported by name, with an argument array and no `shell`.
-    // Residual risk left to review: options objects built elsewhere and passed by variable,
-    // aliased imports of the allowed functions running an interpreter.
+    // Residual risk left to review: options objects built elsewhere and passed by variable;
+    // aliased imports of the allowed functions running an interpreter; an interpreter given as a
+    // template literal or a variable (`process.env.SHELL`); `shell` set through `Reflect.set` or
+    // `Object.defineProperty`. `fork` is not allowed: it is not needed and runs a module, not a
+    // program with arguments.
     files: ['server/**/*.{ts,tsx,mts,cts,js,jsx,mjs,cjs}'],
     rules: {
       '@typescript-eslint/no-restricted-imports': [
@@ -67,6 +70,7 @@ export default tseslint.config(
           "ImportExpression:not([source.type='Literal'])",
           "CallExpression[callee.name='require']",
           "CallExpression[callee.property.name='require']",
+          "CallExpression[callee.property.name='getBuiltinModule']",
         ].map((selector) => ({ selector, message: `${SEC05} (import execFile/spawn by name, statically)` })),
         ...[
           "ObjectExpression > Property[key.name='shell']:not([value.value=false])",

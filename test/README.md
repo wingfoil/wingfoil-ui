@@ -1,6 +1,6 @@
 # Tests
 
-**Version:** 0.2 · **Date:** 2026-10-05 (0.1: workspace tooling and e2e harness — task-001; 0.2: review fixes — isolated home, clock steps, variants)
+**Version:** 0.1 · **Date:** 2026-10-05 (0.1: workspace tooling and e2e harness — task-001)
 
 Every test lives under `test/` (DNA `paths.tests`); sources stay in `server/src`, `web/src`,
 `contracts/src`.
@@ -31,7 +31,9 @@ commits are dated 4 days before `now`; element commits 1 s apart in the 10 minut
 `now − 3 days` (no two commits share a timestamp). Alex is the current identity. Run every
 process with `fixture.env`: it isolates git from the user's configuration (no inherited `GIT_*`)
 and points `HOME`, `USERPROFILE`, `APPDATA` and the XDG directories into `fixture.home` (the
-default clone folder `~/projects` and the OS state directory land there).
+default clone folder `~/projects` and the OS state directory land there). The npm cache moves
+there too: a test that runs `npm`/`npx` with `fixture.env` sets `npm_config_cache` to the real
+cache (or runs `node` directly) to stay offline and fast.
 
 A build takes ~10 s: build once per test file and use `copyFixture(fixture, otherRoot)` for a
 fresh copy per test.

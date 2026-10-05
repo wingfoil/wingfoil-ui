@@ -121,7 +121,7 @@ e2e closure — scenarios that need a screen are proved here by API and unit tes
     `createRequire`, non-literal dynamic `import()`, `shell` assigned to a member, computed keys and
     spreads in process options, a shell interpreter as the program; type-only imports and
     destructured `shell` fields no longer reported; the tests count only REQ-SEC-05 messages and
-    fail on parse errors (36 cases, red before the config change). Residual risk documented in
+    fail on parse errors (35 cases, red before the config change). Residual risk documented in
     `eslint.config.js` (options built elsewhere, aliased imports).
   - F6 clone test re-labelled characterization, payload helpers in `test/harness/security.ts`.
   - F7–F8 `harnessEnv` isolates the home (`HOME`, `USERPROFILE`, `APPDATA`, XDG under
@@ -131,6 +131,11 @@ e2e closure — scenarios that need a screen are proved here by API and unit tes
     to `now − 3 days`); commits are 1 s apart (no timestamp ties).
   - F12–F15 stub re-installable, failures matched on the positional words before the first
     option, `copyFixture` gets its own environment, tests resolve the CLI through `bin.wingfoil`.
-  - F16 README states that the version-fake variant leaves the fixture's `package.json` pin as is.
+  - F16 `test/README.md` states that the version-fake variant leaves the fixture's `package.json` pin as is.
 - Checks after the fixes: `npm run test:coverage` 71/71 · `npm run test:e2e` 3/3 (Chromium) · lint,
   format, typecheck clean · `npm run docs:api` OK.
+- Re-verification by the same agent: all 16 findings resolved; new N1 (`process.getBuiltinModule`
+  bypass) fixed with a selector and a test case (36 cases now); N2 case count corrected; N3–N4
+  remaining limits listed in the `eslint.config.js` residual-risk comment; N5 `test/README.md`
+  kept at 0.1 (unmerged first version, like the directive's 1.3); N6 README notes the npm cache
+  under `fixture.home`.

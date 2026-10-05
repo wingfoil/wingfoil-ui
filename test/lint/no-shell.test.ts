@@ -25,6 +25,7 @@ const FORBIDDEN: Record<string, string> = {
   'module.require': "const cp = module.require('child_process');\ncp.exec('ls');\n",
   createRequire:
     "import { createRequire } from 'node:module';\nconst cp = createRequire(import.meta.url)('child_process');\ncp.exec('ls');\n",
+  getBuiltinModule: "process.getBuiltinModule('node:child_process').exec('ls');\n",
   'dynamic import': "const cp = await import('node:child_process');\ncp.exec('ls');\n",
   'dynamic import, template literal': 'const cp = await import(`node:child_process`);\ncp.exec("ls");\n',
   'dynamic import, computed': "const cp = await import('child_' + 'process');\ncp.exec('ls');\n",
