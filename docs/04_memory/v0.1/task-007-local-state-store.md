@@ -103,3 +103,61 @@ e2e closure — scenarios that need a screen are proved here by API and unit tes
 - **e2e closure:** the screens of S-17.1, S-17.2, X-05.1, X-05.2, X-02.1 close in task-015 and
   S-22.3 in task-016, as the task states; the route-level 404 of X-05.2 is proved by task-008/012
   through the store lookup tested here.
+
+### red / green / refactor (2026-10-05)
+
+- **Red:** schema, ids, location, store (both adapters through one `describe.each`), file adapter
+  (missing/corrupt/newer, modes, two consoles), atomic write (mocked `rename`/`sync`, and a child
+  process SIGKILLed mid-writes), in-process start (exit 4, corrupt at start) and bin tests written
+  first; 9 test files failed for the right reason (module or schema file missing).
+  `test/harness/secret-scan.ts` and its self-test were written together (test infrastructure,
+  characterization). Green on the first full run.
+- **Built:** `contracts/state/state.schema.json` (draft-07; ids `p_` + 12 Crockford base32, absolute
+  POSIX/Windows paths, remotes without userinfo, `addedAt` UTC, `settings`/`actionLog` open for
+  v0.2) and `contracts/src/state.ts` (`ProjectEntry`, `StateFile`, `StateWarning`, exported by
+  `@wingfoil-ui/contracts`). `server/src/state/`: `location.ts` (`resolveStateDir`,
+  `findProjectContaining`, `isWithin`), `ids.ts`, `schema.ts` (Ajv, unique ids, known fields of a
+  newer file), `store.ts` (port `StateStore`, `transaction`, `add`/`remove`/`update`,
+  `stripUserinfo`, `openStore` over a backend), `file-store.ts`, `memory-store.ts`.
+  `runLauncher` reads the state after the option parsing and before `buildApp`; exit 4 with
+  `launcher.stateDirInsideProject` naming both paths; the state warnings are also logged (stderr).
+  `LauncherIo.stateDir` (required) is resolved in `main.ts`.
+- **Build layout:** `@wingfoil-ui/contracts` exports `types: ./src/index.ts`; `server/tsconfig.json`
+  references `../contracts`, so `tsc -b server` builds contracts first. The server imports only
+  types from contracts (erased at run time); the schema JSON is read from
+  `contracts/state/state.schema.json` relative to the module (same depth from `src` and `dist`).
+  `ajv` declared in `server/package.json` (already installed through Fastify; no download).
+- **Decisions:** mutations in a read-only (newer-version) store apply in memory for the run and are
+  never written ("changes are not saved"); the store re-reads before every mutation except when
+  read-only; a transaction that throws writes nothing (task-008's refusals); every write is
+  validated against the schema (a relative path or a duplicate id is refused with
+  `InvalidStateError`); `remote` userinfo is stripped on every write, the scp-like `user@host:path`
+  is kept (no password possible); a corrupt file another console already moved aside is not
+  reported twice (re-read on `ENOENT`). The directory is fsynced after the rename (POSIX, best
+  effort).
+- **Deviations:** none from the ACs. The REQ-SEC-04 route-level 404 and the REQ-ARC-08 /
+  REQ-SEC-09 fit criteria over the *full* e2e suite cannot be measured before the routes and
+  screens exist; here they are proved on the store and on the bin (below) and close as listed in
+  the e2e closure.
+- **Checks:** `npm run test:coverage` 236/236 tests, 25 files; coverage 94.85 % statements /
+  88.93 % branches / 93.1 % functions / 96.02 % lines (`server/src/state` ≈ 98 % statements) ·
+  `npm run test:e2e` 3/3 · typecheck, lint, format:check clean · `docs:api` OK. The killed-write
+  test was checked to fail (`Unexpected end of JSON input`) when the adapter writes `state.json`
+  in place. No flaky test seen in two full runs.
+- **Hand-overs:**
+  - **task-008** — use `store.transaction(draft => …)` for every add: the duplicate checks (same
+    realpath, normalised remote), `findProjectContaining(stateDir, [candidate])` for
+    `state-dir-inside-project`, then `draft.projects.push(draft.create({ path, name, remote }))`;
+    throwing inside leaves the file unchanged. `store.get(pid)` is the exact-string lookup for the
+    404 of unknown ids (X-05.2 at route level). The store is opened in `runLauncher` (`state`);
+    pass it to the routes through `buildApp({ register })`. Run the secret scan
+    (`test/harness/secret-scan.ts`) after the clone tests with a credential URL.
+  - **task-012** — `GET /api/server` returns `warnings: store.warnings()` (`state.corruptKept`
+    `{ file }`, `state.newerVersion` `{}`); route and domain tests can use
+    `createMemoryStateStore()`.
+  - **task-013** — the web catalogue needs `state.corruptKept` and `state.newerVersion` (spec-006
+    §4 text for the latter).
+  - **task-009/016** — `store.update(pid, { roleView })` for `PUT /api/p/:pid/role-view`; the
+    fallback of a role no longer held is applied on read, not stored.
+  - **task-015/016** (e2e closure) — S-17.1/S-17.2/X-05.x/X-02.1 and S-22.3 through the screens;
+    the full-suite secret scan of REQ-SEC-09 over the state directory and the logs.
