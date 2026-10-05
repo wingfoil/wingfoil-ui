@@ -2,6 +2,8 @@
  * The process runner port (adr-002) and its local adapter: every `wingfoil` and git process of the
  * server starts here, with `spawn`, an argument array and no shell (REQ-SEC-05), its standard input
  * closed, and a timeout — 30 s unless the caller lifts it for cancellable git transport (adr-001 D5).
+ * On POSIX each child leads its own process group and every kill (timeout, cancel, stop) goes to the
+ * group, so the processes it started end with it; on Windows the child alone is killed.
  */
 import { spawn, type ChildProcess } from 'node:child_process';
 
@@ -119,10 +121,15 @@ export class LocalProcessRunner implements ProcessRunner {
     if (request.signal?.aborted) return Promise.resolve(result('cancelled'));
 
     return new Promise((resolve, reject) => {
+      // POSIX: the child leads its own process group, so a kill reaches the processes it started
+      // (a `git` under `wingfoil`), which would otherwise keep the output pipes open.
+      const group = process.platform !== 'win32';
       const child = spawn(request.file, [...request.args], {
         cwd: request.cwd,
         env: request.env ?? process.env,
         stdio: ['ignore', 'pipe', 'pipe'],
+        shell: false,
+        detached: group,
         windowsHide: true,
       });
       const stdout: Buffer[] = [];
@@ -134,11 +141,29 @@ export class LocalProcessRunner implements ProcessRunner {
       let settle!: () => void;
       const done = new Promise<void>((r) => (settle = r));
 
+      const signalAll = (sig: NodeJS.Signals): void => {
+        if (group && child.pid !== undefined) {
+          try {
+            process.kill(-child.pid, sig);
+            return;
+          } catch {
+            // The group is gone (or was never formed): the child alone.
+          }
+        }
+        child.kill(sig);
+      };
+      let signalled = false;
+      const terminate = (): void => {
+        if (signalled || child.pid === undefined) return;
+        signalled = true;
+        signalAll('SIGTERM');
+        escalation = setTimeout(() => signalAll('SIGKILL'), this.killGraceMs);
+      };
       const kill = (why: ProcessEnd): void => {
-        if (end !== 'exit' || child.exitCode !== null || child.signalCode !== null) return;
+        if (end !== 'exit') return;
         end = why;
-        child.kill('SIGTERM');
-        escalation = setTimeout(() => child.kill('SIGKILL'), this.killGraceMs);
+        // Without a pid (not started yet) the signal is sent on 'spawn'.
+        terminate();
       };
       const entry: Running = { child, kill, done };
       const onAbort = (): void => kill('cancelled');
@@ -149,6 +174,10 @@ export class LocalProcessRunner implements ProcessRunner {
         this.children.delete(entry);
         settle();
       };
+      // Tracked and cancellable from now on, not only once spawned: a stop or an abort that comes
+      // before 'spawn' is not lost.
+      this.children.add(entry);
+      request.signal?.addEventListener('abort', onAbort, { once: true });
 
       const collect =
         (into: Buffer[]) =>
@@ -165,11 +194,14 @@ export class LocalProcessRunner implements ProcessRunner {
         reject(new ProcessStartError(request.file, `cannot start ${request.file}: ${error.message}`, { cause: error }));
       });
       child.on('spawn', () => {
-        this.children.add(entry);
         this.options.onSpawn?.({ file: request.file, args: [...request.args], cwd: request.cwd, pid: child.pid });
+        if (end !== 'exit') {
+          // Stopped or aborted before it existed.
+          terminate();
+          return;
+        }
         const timeoutMs = request.timeoutMs === undefined ? DEFAULT_TIMEOUT_MS : request.timeoutMs;
         if (timeoutMs !== null) timer = setTimeout(() => kill('timeout'), timeoutMs);
-        request.signal?.addEventListener('abort', onAbort, { once: true });
       });
       child.on('close', (exitCode, signal) => {
         cleanUp();
