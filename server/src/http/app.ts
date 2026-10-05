@@ -9,6 +9,7 @@ import path from 'node:path';
 import type { Logger } from 'pino';
 import {
   hasOwnOrigin,
+  isAllowedFetchSite,
   isApiUrl,
   isAuthenticated,
   refuseOrigin,
@@ -54,12 +55,14 @@ export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
     // Errors Fastify raises before routing (e.g. a malformed URL) get the envelope too.
     frameworkErrors: (_error, request, reply) => {
       const fastifyReply = reply as unknown as FastifyReply;
-      // The spec-004 §4 order holds here too: Host/Origin (403), session (401), then the 400.
+      // The spec-004 §4 order holds here too: Host/Origin and, on /api, Sec-Fetch-Site (403), session
+      // (401), then the 400.
       if (!hasOwnOrigin(request.headers, request.raw.rawHeaders, options.security.port())) {
         return void refuseOrigin(fastifyReply);
       }
-      if (isApiUrl(request.raw.url ?? '') && !isAuthenticated(request.headers, options.security)) {
-        return void refuseUnauthenticated(fastifyReply);
+      if (isApiUrl(request.raw.url ?? '')) {
+        if (!isAllowedFetchSite(request.raw.rawHeaders)) return void refuseOrigin(fastifyReply);
+        if (!isAuthenticated(request.headers, options.security)) return void refuseUnauthenticated(fastifyReply);
       }
       void fastifyReply.code(400).send(envelope('invalid-request', 'Invalid request'));
     },

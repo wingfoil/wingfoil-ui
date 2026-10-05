@@ -1,7 +1,7 @@
 /**
  * The request guards (spec-004 §1–2, §4 rows 1–2): every request passes the Host and Origin
  * checks (403 `forbidden-origin`, REQ-SEC-03), then every `/api/` request — the event stream
- * included — needs the session cookie or the start token (401 `unauthenticated`, REQ-SEC-02). The
+ * included — passes the `Sec-Fetch-Site` check (403, spec-004 §1 amended 2026-10-05) and needs the session cookie or the start token (401 `unauthenticated`, REQ-SEC-02). The
  * static application files are exempt from the session only. Both checks answer in an `onRequest`
  * hook, before any handler runs: a refused request starts no process.
  */
@@ -87,6 +87,24 @@ function isApiPath(pathname: string): boolean {
   return value === '/api' || value.startsWith('/api/');
 }
 
+/** The `Sec-Fetch-Site` values the API accepts: the console's own page, or a user-typed request. */
+const OWN_FETCH_SITES = new Set(['same-origin', 'none']);
+
+/**
+ * `true` when `rawHeaders` hold no `Sec-Fetch-Site` header (scripts, tests, older browsers: the
+ * Host/Origin checks judge them) or exactly one, `same-origin` or `none` (spec-004 §1, amended
+ * 2026-10-05). A page served by another local port is `same-site` for the browser — cookies
+ * ignore ports — and its no-cors GET carries no `Origin`: refused here.
+ */
+export function isAllowedFetchSite(rawHeaders: readonly string[]): boolean {
+  const values: string[] = [];
+  for (let i = 0; i < rawHeaders.length; i += 2) {
+    if (rawHeaders[i]?.toLowerCase() === 'sec-fetch-site') values.push((rawHeaders[i + 1] ?? '').trim().toLowerCase());
+  }
+  if (values.length === 0) return true;
+  return values.length === 1 && OWN_FETCH_SITES.has(values[0]!);
+}
+
 /**
  * `true` when the request URL `url` (path and query) is under `/api`: as written, or with its
  * percent-encoded ASCII characters decoded (`/%61pi/…`); never throws on a malformed encoding.
@@ -126,8 +144,11 @@ export function refuseUnauthenticated(reply: FastifyReply): FastifyReply {
 /** Register the guards; call before any route or plugin so that they cover every request. */
 export function registerGuards(app: FastifyInstance, options: SecurityOptions): void {
   app.addHook('onRequest', async (request, reply) => {
-    if (!hasOwnOrigin(request.headers, request.raw.rawHeaders, options.port())) return refuseOrigin(reply);
-    if (reachesApi(request) && !isAuthenticated(request.headers, options)) return refuseUnauthenticated(reply);
+    const { rawHeaders } = request.raw;
+    if (!hasOwnOrigin(request.headers, rawHeaders, options.port())) return refuseOrigin(reply);
+    if (!reachesApi(request)) return undefined; // static files: no session, no Sec-Fetch-Site check
+    if (!isAllowedFetchSite(rawHeaders)) return refuseOrigin(reply);
+    if (!isAuthenticated(request.headers, options)) return refuseUnauthenticated(reply);
     return undefined;
   });
 }

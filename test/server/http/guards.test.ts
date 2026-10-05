@@ -8,7 +8,13 @@ import type { FastifyInstance } from 'fastify';
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { createTokenAuthentication } from '../../../server/src/auth/authentication.js';
 import { buildApp } from '../../../server/src/http/app.js';
-import { hasOwnOrigin, isAllowedHost, isAllowedOrigin, sessionCookieName } from '../../../server/src/http/guards.js';
+import {
+  hasOwnOrigin,
+  isAllowedFetchSite,
+  isAllowedHost,
+  isAllowedOrigin,
+  sessionCookieName,
+} from '../../../server/src/http/guards.js';
 import { createLogger } from '../../../server/src/logging.js';
 
 const PORT = 54321;
