@@ -96,7 +96,7 @@ describe('TT-ARC-02 — process audit', () => {
     expect(fallback.source).toBe('path');
     expect(await fallback.version()).toBe('0.2.1');
     expect(existsSync(marker)).toBe(true);
-  });
+  }, 90_000); // ten CLI processes: ~8 s idle, ~26 s measured under a load average of 60
 
   it('places --format json before the command, and runs --version alone', async () => {
     const fx = await freshKanban();
