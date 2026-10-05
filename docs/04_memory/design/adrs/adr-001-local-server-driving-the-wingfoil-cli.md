@@ -182,3 +182,10 @@ PERF-05 · features S1, S3, S8, X4 · scenarios S-08.1, S-08.2, S-09.1, S-09.2, 
   v0.4 and directive `cli-only-writes` v1.4 changed accordingly.
 - 2026-10-02 — spec review (step 6): D8 aligned with spec-004's session (F4); D5 timeout scoped
   to `wingfoil` processes and git reads, transport cancellable (F14).
+- 2026-10-05 — dev-loop task-004 (independent review): "the package declares no dependency on
+  `wingfoil`" is read as the **runtime** dependencies (`dependencies`, `peerDependencies`,
+  `optionalDependencies`, bundled) of the published package. The root `devDependencies` pin of
+  `wingfoil` is this repository's own governance CLI and the version the test harness builds
+  fixtures with; `npx wingfoil-ui` never installs it. A package-review test asserts it is the
+  only occurrence.
+

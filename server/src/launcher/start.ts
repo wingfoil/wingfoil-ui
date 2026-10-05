@@ -3,10 +3,13 @@
  * is started before the URL is printed (REQ-PERF-06).
  */
 import { randomBytes } from 'node:crypto';
+import { createTokenAuthentication } from '../auth/authentication.js';
 import { buildApp } from '../http/app.js';
 import { message } from '../i18n/messages.js';
 import { createLogger } from '../logging.js';
 import { LocalProcessRunner } from '../process/runner.js';
+import { openFileStateStore } from '../state/file-store.js';
+import { findProjectContaining } from '../state/location.js';
 import { listenLoopback, NoFreePortError, PortInUseError } from './listen.js';
 import { openBrowser, type Spawner } from './opener.js';
 import { parseOptions, UsageError } from './options.js';
@@ -30,6 +33,8 @@ export interface LauncherIo {
   version: string;
   /** Directory of the `web/` build. */
   staticDir: string;
+  /** The local state directory (spec-006 §1, `resolveStateDir`). */
+  stateDir: string;
   platform: NodeJS.Platform;
   spawn?: Spawner;
   /** Registers the handler of the stop signals (SIGINT, SIGTERM, SIGHUP — spec-007 §6). */
@@ -96,13 +101,27 @@ export async function runLauncher(argv: readonly string[], io: LauncherIo): Prom
 
   const started = performance.now();
   const logger = createLogger();
+  // spec-007 §3.2: the local state is read before listening; no project is read here.
+  const state = await openFileStateStore({ dir: io.stateDir });
+  const holder = await findProjectContaining(io.stateDir, state.projects());
+  if (holder) {
+    io.stderr(message('launcher.stateDirInsideProject', { stateDir: io.stateDir, path: holder.path }));
+    return EXIT.stateDirInsideProject;
+  }
+  for (const warning of state.warnings()) logger.warn({ warning }, 'local state');
   // Drawn before the application is built: the session guards (task-003) need it.
   const token = drawToken();
   const processes = io.processes ?? new LocalProcessRunner();
   // Children lead their own process group (no terminal signal reaches them): whatever ends the
   // process, the ones still running are killed with it (spec-007 §6).
   io.onExit?.(() => processes.killAllNow());
-  const app = await buildApp({ staticDir: io.staticDir, logger });
+  // The port is known once listening; until then the guards refuse every request.
+  const listening: { port?: number } = {};
+  const app = await buildApp({
+    staticDir: io.staticDir,
+    logger,
+    security: { authentication: createTokenAuthentication(token), port: () => listening.port },
+  });
   // CLI and git children are terminated in the stop sequence (spec-007 §6, adr-001 D5); registered
   // once the application exists, removed again if the listen fails.
   const offProcesses = onStop(() => processes.terminateAll());
@@ -125,6 +144,7 @@ export async function runLauncher(argv: readonly string[], io: LauncherIo): Prom
     }
     throw error;
   }
+  listening.port = listeners.port;
   // Signals are handled before the URL is printed: a stop sent right after it is never lost.
   let stopping = false;
   io.onSignal(() => {

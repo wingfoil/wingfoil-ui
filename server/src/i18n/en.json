@@ -5,6 +5,7 @@
   "launcher.openManually": "Open this URL in your browser: {url}",
   "launcher.portInUse": "Port {port} is already in use",
   "launcher.running": "WingFoil UI is running at {url}",
+  "launcher.stateDirInsideProject": "The WingFoil UI state directory {stateDir} lies inside the project {path}: set WINGFOIL_UI_STATE_DIR to a folder outside every project",
   "launcher.stopped": "WingFoil UI stopped",
   "launcher.unexpected": "WingFoil UI stopped on an unexpected error: {message}",
   "launcher.usage.invalidPort": "Invalid port: {value} (expected an integer from 1024 to 65535)",

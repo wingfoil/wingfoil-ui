@@ -4,10 +4,12 @@
  * @packageDocumentation
  */
 import { readFileSync } from 'node:fs';
+import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { message } from './i18n/messages.js';
 import { EXIT, runLauncher } from './launcher/start.js';
 import { LocalProcessRunner } from './process/runner.js';
+import { resolveStateDir } from './state/location.js';
 
 /** Options of {@link main} (tests). */
 export interface MainOptions {
@@ -32,6 +34,7 @@ export async function main(argv: readonly string[], options: MainOptions = {}): 
       stderr: (line) => process.stderr.write(`${line}\n`),
       version,
       staticDir: fileURLToPath(new URL('../../web/dist/', import.meta.url)),
+      stateDir: resolveStateDir({ env: process.env, platform: process.platform, homedir: homedir() }),
       platform: process.platform,
       onSignal: (handler) => {
         for (const signal of STOP_SIGNALS) process.on(signal, handler);

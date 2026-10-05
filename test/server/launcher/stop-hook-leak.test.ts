@@ -41,6 +41,7 @@ function io(processes: LocalProcessRunner) {
     stderr: () => undefined,
     version: '9.9.9',
     staticDir,
+    stateDir: path.join(staticDir, 'state'),
     platform: 'linux',
     onSignal: (h) => (signal = h),
     exit: (code) => exits.push(code),

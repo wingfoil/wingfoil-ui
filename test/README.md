@@ -1,6 +1,6 @@
 # Tests
 
-**Version:** 0.3 · **Date:** 2026-10-05 (0.1: workspace tooling and e2e harness — task-001; 0.2: `test/launcher/`, `test/server/` — task-002; 0.3: process runner fake, hand-made CLI packages, stub after global options — task-004)
+**Version:** 0.5 · **Date:** 2026-10-05 (0.1: workspace tooling and e2e harness — task-001; 0.2: `test/launcher/`, `test/server/` — task-002; 0.3: `test/contracts/`, local state isolation, secret scan — task-007; 0.4: `local-security` suite — task-003; 0.5: process runner fake, hand-made CLI packages, stub after global options — task-004)
 
 Every test lives under `test/` (DNA `paths.tests`); sources stay in `server/src`, `web/src`,
 `contracts/src`.
@@ -20,11 +20,15 @@ Every test lives under `test/` (DNA `paths.tests`); sources stay in `server/src`
   (X-06.4).
 - `test/launcher/` — the `wingfoil-ui` bin driven as a child process (`launcher.ts`:
   `startLauncher(args, env)` waits for the running line and returns port, token and stop helpers;
-  later e2e suites start the console with it).
+  later e2e suites start the console with it). `local-security.test.ts` is the e2e-smoke
+  `local-security` suite (REQ-SEC-02/03): raw `http` requests, since `fetch` cannot set `Host`
+  or `Origin`; every new `/api/` route adds its rows there. Every `/api/` request needs
+  `Authorization: Bearer <token>` (or the `wfui_session_<port>` cookie from `POST /api/session`).
 - `test/server/` — unit tests of `server/src`, mirroring its folders. `process/fake-runner.ts` is the
   in-memory fake of the process runner port (adr-002); `cli/fake-cli.ts` writes hand-made `wingfoil`
   packages (a marking or sleeping CLI) and installs a package globally (`<prefix>/bin/wingfoil` →
   `<prefix>/lib/node_modules/wingfoil/…`) for the discovery tests.
+- `test/contracts/` — the JSON Schemas of `contracts/` (e.g. `state/state.schema.json`).
 - `test/lint/`, `test/docs/` — the dev-loop gates `lint.clean`, `docs.api.*`.
 
 ## Fixtures
@@ -57,6 +61,18 @@ Variants (they change only the untracked `node_modules/wingfoil`):
 A failure is matched on the command's positional words before its first option
 (`['memory', 'approve']`), after any global option placed before the command (`--format json`, as
 the server invokes the CLI); installing a stub again replaces the previous one.
+
+## Local state
+
+No test reads or writes the developer's own state directory (spec-006 §1). A test that starts
+the console or opens a file store gives it a temporary directory: `WINGFOIL_UI_STATE_DIR`, the
+`stateDir` of `LauncherIo`, `openFileStateStore({ dir })`, or the isolated home of `harnessEnv`
+(the XDG location under `<root>/home`). Domain and route tests use the in-memory fake
+`createMemoryStateStore()`.
+
+`secret-scan.ts` is the REQ-SEC-09 scan: `scanForSecrets(paths, values)` searches files and
+directories for the given values (the printed token, a planted environment value) and for
+credential shapes (URL userinfo, bearer headers, GitHub/GitLab/AWS tokens, session cookies).
 
 `security.ts` holds the REQ-SEC-05 probe (`SHELL_PAYLOAD`, `pwned()`) for every test that passes
 user input to a process.

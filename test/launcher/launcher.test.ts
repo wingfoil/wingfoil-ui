@@ -42,10 +42,6 @@ async function launch(args: string[], extraEnv: NodeJS.ProcessEnv = {}): Promise
 }
 
 beforeAll(async () => {
-  await run(process.execPath, [path.join(REPO_ROOT, 'node_modules/typescript/bin/tsc'), '-b', 'server'], {
-    cwd: REPO_ROOT,
-    timeoutMs: 120_000,
-  });
   root = await mkdtemp(path.join(tmpdir(), 'wfui-launch-'));
   env = { ...(await harnessEnv(root)).env, WINGFOIL_UI_STATE_DIR: path.join(root, 'state') };
 }, 180_000);
@@ -62,7 +58,9 @@ describe('S-01.1 — start the console', () => {
     const l = await launch([], { PATH: `${bin}${path.delimiter}${env.PATH ?? ''}` });
     const [, url, port] = RUNNING.exec(l.runningLine)!;
     expect(url).toBeDefined();
-    const api = await fetch(`http://127.0.0.1:${port}/api/nothing`);
+    const api = await fetch(`http://127.0.0.1:${port}/api/nothing`, {
+      headers: { authorization: `Bearer ${l.token}` },
+    });
     expect(api.status).toBe(404);
     await expect
       .poll(async () => readFile(record, 'utf8').catch(() => ''), { timeout: 5_000 })
@@ -101,7 +99,10 @@ describe('S-01.3 — no browser available', () => {
     const l = await launch([], { PATH: await pathWithoutOpener() });
     const url = RUNNING.exec(l.runningLine)![1]!;
     await expect.poll(() => l.stdoutLines(), { timeout: 5_000 }).toContain(`Open this URL in your browser: ${url}`);
-    expect((await fetch(`http://127.0.0.1:${l.port}/api/nothing`)).status).toBe(404);
+    const api = await fetch(`http://127.0.0.1:${l.port}/api/nothing`, {
+      headers: { authorization: `Bearer ${l.token}` },
+    });
+    expect(api.status).toBe(404);
   });
 });
 

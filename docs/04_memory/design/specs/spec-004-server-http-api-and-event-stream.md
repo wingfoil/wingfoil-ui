@@ -31,6 +31,12 @@ table of `docs/00_reference/adr-draft-local-server.md` is its starting point.
   `localhost:<port>`, `[::1]:<port>`) and, when an `Origin` header is present, the **Origin check**
   (one of the three accepted origins `http://127.0.0.1:<port>`, `http://localhost:<port>`,
   `http://[::1]:<port>`); failure → **403**, before any other work (REQ-SEC-03).
+- On `/api/` requests and the event stream, a `Sec-Fetch-Site` header other than `same-origin`
+  or `none` → **403** `forbidden-origin`, checked with the Origin check: a page served by another
+  local port is *same-site* for the browser (cookies ignore ports) and its no-cors GET carries no
+  `Origin`, so without this check it could make the console run a read. Requests without the
+  header (scripts, tests, older browsers) are judged by the Host/Origin checks alone. A request
+  carrying more than one `Host` header is refused the same way.
 
 ### 2. Session (REQ-SEC-02)
 
@@ -179,3 +185,6 @@ reconnecting page refetches everything. Pages never poll.
   moved to v0.3, SARD `01` v0.6); the rest of the route stays v0.1.
 - 2026-10-03 — release-planning v0.1 session 2 (spec review of spec-006, F9): `GET /api/server`
   carries the shell warnings; the project-list refusal codes are defined in spec-006 §3.
+- 2026-10-05 — amended in dev-loop task-003 (independent review F1, F2), decided by the user:
+  §1 `Sec-Fetch-Site` check on `/api/` and the event stream (403 `forbidden-origin`), and a
+  duplicate `Host` header refused. No route, code or envelope changes.

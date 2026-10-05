@@ -82,9 +82,11 @@ stdout and keeps running (S-01.3). The server never waits for the browser.
 
 ### 6. Stop
 
-`SIGINT` (Ctrl-C) or `SIGTERM`: stop accepting connections, close event streams, terminate the
+`SIGINT` (Ctrl-C), `SIGTERM` or `SIGHUP` (terminal closed): stop accepting connections, close event streams, terminate the
 CLI and git child processes the server started, print `WingFoil UI stopped` on stdout, exit 0.
-A second signal exits at once with status 130. Every token and session dies with the process
+A second signal exits at once with status 130, after a synchronous `SIGKILL` to every child
+process group still running; the same kill runs at any process exit, so no child outlives the
+server. Every token and session dies with the process
 (X-02.2).
 
 | Exit status | Meaning |
@@ -125,3 +127,7 @@ A second signal exits at once with status 130. Every token and session dies with
   port retry on `::1`; F21 Windows fragment check.
 - 2026-10-03 — re-verification (plan session 2): N5 Windows fallback `explorer.exe`, no PowerShell
   command string.
+- 2026-10-05 — amended in dev-loop task-004 (independent review N1), decided by the user: §6
+  `SIGHUP` handled like `SIGTERM`; a forced stop and any process exit kill the remaining child
+  process groups synchronously (children run in their own process group, so the terminal's
+  signals no longer reach them).
