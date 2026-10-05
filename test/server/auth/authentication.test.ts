@@ -1,6 +1,6 @@
 // adr-002 authentication port, spec-004 §2 — the per-start token and the sessions derived from it.
 import { describe, expect, it } from 'vitest';
-import { createTokenAuthentication } from '../../../server/src/auth/authentication.js';
+import { createTokenAuthentication, MAX_SESSIONS } from '../../../server/src/auth/authentication.js';
 
 const TOKEN = 'A'.repeat(43);
 
@@ -33,6 +33,14 @@ describe('createTokenAuthentication', () => {
     const second = createTokenAuthentication('C'.repeat(43));
     expect(second.verifyToken(TOKEN)).toBe(false);
     expect(second.verifySession(session)).toBe(false);
+  });
+
+  it('keeps at most 64 sessions, evicting the oldest', () => {
+    const auth = createTokenAuthentication(TOKEN);
+    const ids = Array.from({ length: 65 }, () => auth.openSession());
+    expect(auth.verifySession(ids[0]!)).toBe(false);
+    for (const id of ids.slice(1)) expect(auth.verifySession(id)).toBe(true);
+    expect(MAX_SESSIONS).toBe(64);
   });
 
   it('refuses an empty start token', () => {

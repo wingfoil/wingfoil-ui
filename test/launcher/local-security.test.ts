@@ -2,6 +2,7 @@
 // `wingfoil-ui` bin driven over HTTP. No project route exists yet (task-008/012): the guarded
 // requests target `/api/` paths that, once past the guards, answer 404 — never 401 or 403.
 import http from 'node:http';
+import net from 'node:net';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -48,6 +49,28 @@ function request(
     req.on('error', reject);
     if (method === 'POST' || method === 'PUT') req.setHeader('content-type', 'application/json');
     req.end(method === 'POST' || method === 'PUT' ? '{}' : undefined);
+  });
+}
+
+/** `true` when the machine can listen on `::1` (the console then listens there too). */
+const HAS_IPV6 = await new Promise<boolean>((resolve) => {
+  const probe = net.createServer();
+  probe.once('error', () => resolve(false));
+  probe.listen({ host: '::1', port: 0 }, () => probe.close(() => resolve(true)));
+});
+
+/** A request written line by line on a socket: `http.request` cannot repeat `Host`. */
+function rawRequest(l: Launcher, head: string[]): Promise<{ status: number; body: string }> {
+  return new Promise((resolve, reject) => {
+    const socket = net.connect({ host: '127.0.0.1', port: l.port });
+    let data = '';
+    socket.on('data', (d: Buffer) => (data += String(d)));
+    socket.on('error', reject);
+    socket.on('end', () => {
+      const status = Number(/^HTTP\/1\.1 (\d{3})/.exec(data)?.[1] ?? 0);
+      resolve({ status, body: data.slice(data.indexOf('\r\n\r\n') + 4) });
+    });
+    socket.write(`${[...head, 'Connection: close'].join('\r\n')}\r\n\r\n`);
   });
 }
 
@@ -106,13 +129,17 @@ describe('X-02.2 — a new token at every start', () => {
 });
 
 describe('X-04.1 — refuse requests without a valid session', () => {
+  let l: Launcher;
+  beforeAll(async () => {
+    l = await launch();
+  });
+
   it.each([
     ['GET', {}, 401, 'unauthenticated'],
     ['POST', {}, 401, 'unauthenticated'],
     ['GET', { origin: 'https://evil.test', auth: true }, 403, 'forbidden-origin'],
     ['POST', { origin: 'https://evil.test', auth: true }, 403, 'forbidden-origin'],
   ] as const)('%s %o → %i', async (method, condition, status, code) => {
-    const l = started.at(-1) ?? (await launch());
     const headers: Record<string, string> = {};
     if ('origin' in condition) headers.origin = condition.origin;
     if ('auth' in condition) headers.authorization = `Bearer ${l.token}`;
@@ -120,11 +147,19 @@ describe('X-04.1 — refuse requests without a valid session', () => {
     expect(res.status).toBe(status);
     expect(JSON.parse(res.body)).toEqual({ error: { code, message: expect.any(String) } });
   });
+
+  it('answers 401 to a malformed /api URL without a session (spec-004 §4 order)', async () => {
+    expect((await rawRequest(l, ['GET /api/%zz HTTP/1.1', `Host: 127.0.0.1:${l.port}`])).status).toBe(401);
+  });
 });
 
 describe('X-04.2 — refuse a DNS-rebinding request', () => {
+  let l: Launcher;
+  beforeAll(async () => {
+    l = await launch();
+  });
+
   it('answers 403 to the Host evil.test:<port>, on the API and the application', async () => {
-    const l = started.at(-1) ?? (await launch());
     for (const urlPath of [PROJECT_API, '/']) {
       const res = await request(l, 'GET', urlPath, {
         host: `evil.test:${l.port}`,
@@ -133,18 +168,37 @@ describe('X-04.2 — refuse a DNS-rebinding request', () => {
       expect(res.status, urlPath).toBe(403);
     }
   });
+
+  it('answers 403 to a second Host header, even after our own', async () => {
+    for (const target of [PROJECT_API, '/', '/api/%zz']) {
+      const res = await rawRequest(l, [
+        `GET ${target} HTTP/1.1`,
+        `Host: 127.0.0.1:${l.port}`,
+        `Host: evil.test:${l.port}`,
+        `Authorization: Bearer ${l.token}`,
+      ]);
+      expect(res.status, target).toBe(403);
+      expect(res.body, target).toContain('forbidden-origin');
+    }
+  });
 });
 
 describe("X-04.3 — accept a request with the token from the console's own origin", () => {
-  it('lets the request through the guards on 127.0.0.1 and ::1', async () => {
-    const l = started.at(-1) ?? (await launch());
+  let l: Launcher;
+  beforeAll(async () => {
+    l = await launch();
+  });
+
+  it('lets the request through the guards on 127.0.0.1', async () => {
     const headers = { origin: `http://127.0.0.1:${l.port}`, authorization: `Bearer ${l.token}` };
     expect((await request(l, 'POST', '/api/session', headers)).status).toBe(204);
     expect((await request(l, 'GET', PROJECT_API, headers)).status).toBe(404);
-    const v6 = await request(l, 'GET', '/api/session', { ...headers, host: `[::1]:${l.port}` }, '::1').catch(
-      () => undefined,
-    );
-    // ::1 may be unavailable on the machine (IPv4-only start, spec-007 §3.3).
-    if (v6) expect(v6.status).toBe(404);
+  });
+
+  // ::1 may be unavailable on the machine (IPv4-only start, spec-007 §3.3).
+  it.skipIf(!HAS_IPV6)('lets the request through the guards on ::1', async () => {
+    const headers = { host: `[::1]:${l.port}`, origin: `http://[::1]:${l.port}`, authorization: `Bearer ${l.token}` };
+    expect((await request(l, 'POST', '/api/session', headers, '::1')).status).toBe(204);
+    expect((await request(l, 'GET', PROJECT_API, headers, '::1')).status).toBe(404);
   });
 });

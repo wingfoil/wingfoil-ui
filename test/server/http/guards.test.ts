@@ -8,7 +8,7 @@ import type { FastifyInstance } from 'fastify';
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { createTokenAuthentication } from '../../../server/src/auth/authentication.js';
 import { buildApp } from '../../../server/src/http/app.js';
-import { isAllowedHost, isAllowedOrigin, sessionCookieName } from '../../../server/src/http/guards.js';
+import { hasOwnOrigin, isAllowedHost, isAllowedOrigin, sessionCookieName } from '../../../server/src/http/guards.js';
 import { createLogger } from '../../../server/src/logging.js';
 
 const PORT = 54321;
@@ -160,7 +160,7 @@ describe('X-04.1 / REQ-SEC-02 — 401 without a valid session, before any handle
 
   it('guards the event stream and unknown /api/ paths too', async () => {
     const a = await app();
-    for (const url of ['/api/events', '/api/nothing', '/api', '/api/', '/api?x=1', '/%61pi/p/p1']) {
+    for (const url of ['/api/events', '/api/nothing', '/api', '/api/', '/api?x=1', '/%61pi/p/p1', '/API/p/p1']) {
       const res = await a.inject({ method: 'GET', url, headers: { host: HOST } });
       expect(res.statusCode, url).toBe(401);
     }
@@ -233,8 +233,23 @@ describe('REQ-SEC-03 — Host and Origin, 403 before any other work', () => {
     const a = await app();
     const res = await a.inject({ method: 'GET', url: '/api/%', headers: { host: `evil.test:${PORT}` } });
     expect(res.statusCode).toBe(403);
-    const own = await a.inject({ method: 'GET', url: '/api/%', headers: { host: HOST } });
-    expect(own.statusCode).toBe(400);
+    expect(res.json()).toEqual(FORBIDDEN);
+  });
+
+  it('keeps the spec-004 §4 order on a malformed /api URL: 401 without a session, 400 with one', async () => {
+    const a = await app();
+    for (const url of ['/api/%zz', '/api/%', '/%61pi/%zz', '/API/%zz']) {
+      const res = await a.inject({ method: 'GET', url, headers: { host: HOST } });
+      expect(res.statusCode, url).toBe(401);
+      expect(res.json(), url).toEqual(UNAUTHENTICATED);
+      const authed = await a.inject({ method: 'GET', url, headers: { host: HOST, authorization: `Bearer ${TOKEN}` } });
+      expect(authed.statusCode, url).toBe(400);
+    }
+    const pair = (await openSession(a)).split(';')[0]!;
+    const byCookie = await a.inject({ method: 'GET', url: '/api/%zz', headers: { host: HOST, cookie: pair } });
+    expect(byCookie.statusCode).toBe(400);
+    // Outside /api, a malformed URL is a plain 400: no session is involved.
+    expect((await a.inject({ method: 'GET', url: '/%zz', headers: { host: HOST } })).statusCode).toBe(400);
   });
 
   it('X-04.3 — accepts the token from the console origin, for each of the three host forms', async () => {
@@ -298,6 +313,14 @@ describe('isAllowedHost / isAllowedOrigin', () => {
     ['http://127.0.0.1:54321/', false],
   ])('Origin %s → %s', (origin, expected) => {
     expect(isAllowedOrigin(origin, PORT)).toBe(expected);
+  });
+
+  it('refuses a request carrying more than one Host header, even when the first is ours', () => {
+    const headers = { host: HOST };
+    expect(hasOwnOrigin(headers, ['Host', HOST], PORT)).toBe(true);
+    expect(hasOwnOrigin(headers, ['Host', HOST, 'host', `evil.test:${PORT}`], PORT)).toBe(false);
+    expect(hasOwnOrigin(headers, ['Host', HOST, 'HOST', HOST], PORT)).toBe(false);
+    expect(hasOwnOrigin(headers, ['X-Host', 'a', 'Host', HOST], PORT)).toBe(true);
   });
 
   it('names the cookie after the port', () => {
