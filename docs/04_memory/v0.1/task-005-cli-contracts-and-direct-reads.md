@@ -251,3 +251,62 @@ e2e closure — scenarios that need a screen are proved here by API and unit tes
   99.06 %, `server/src/contracts.ts` 100 % statements). `npx vitest run
   test/contracts/cli-contract.test.ts` 8/8 in 93 s (load ~30); `test/server/reads/project-reads.test.ts`
   6/6 in 72 s.
+
+### review (2026-10-05)
+
+- Independent review of HEAD `89d5d22`: **PASS WITH FIXES** (samples verified byte-identical on
+  re-capture). Fixed test-first: red in `8f3c35a`. Before the fixes, the new contract test on a
+  mutated kanban copy failed with `CliOutputError: Unexpected output of dna show` even though the
+  real 0.2.2 CLI had answered. The units failed for the expected reasons: integer `version`,
+  `id_pattern` required, the CRLF body kept `\r`, a linked `.wingfoil` was read, `size` was
+  missing, a `..notes` folder was refused, the swapped file was read, and `directive(id)` picked by
+  list order.
+  - **1–3 (major) schemas stricter than WingFoil 0.2.2** (`3abb6af`), now as `dist/dna/schema.js`,
+    `dist/workflow/schema.js` and `dist/memory/schema.js` declare them:
+    - `dna show`: `project` and each of its fields, a member's `email`, `stacks.technologies` and
+      `stacks.methodologies` are optional. Also relaxed, found in the same file: an agent's
+      `approval_authority` and a positive-number `version`.
+    - `workflow list`: `manifest.version` and a workflow's `description` are optional.
+    - `memory.yaml`: `id_pattern` is optional (`pickType` omits it), `version` is a positive
+      number, and an empty `types` is accepted.
+    - Types in `contracts/src/cli.ts` and `files.ts` follow, and consumers must handle the absence
+      (the R-05.1 test now does). Proof on the real CLI (`cli-contract.test.ts`, "accepts what
+      WingFoil itself accepts"): a kanban copy with no `project`, no stack lists, a member without
+      `email`, an agent without `approval_authority`, `workflows.yaml` without `version`,
+      `bug-ingest` without `description`, `memory.yaml` `version: 1.5`, `adr` without
+      `id_pattern` and a type `incident` with `<<: *bug`. `dna show`, `workflow list` and
+      `memory search` all validate, and `memoryTypes()` gives `incident` the merged `id_pattern`.
+      `schemas.test.ts` adds 8 positive mutation cases.
+  - **4 (major) CRLF** (`8b93557`): the frontmatter is split on `\r?\n`, and the body comes back
+    with LF line ends. Proved by a unit test and by a CRLF `task-001-login-form.md` on the real
+    CLI: `memory search` gives `pending`, and the reader gives `pending` with no mismatch.
+  - **5** `parseYaml` resolves merge keys (`merge: true`); the library's alias limit is kept. An
+    alias bomb is a `shape` error (unit test).
+  - **7** `confinedPath(root, base, rel)`: `realpath(base)` must be the project root or inside it.
+    A `.wingfoil` symlinked outside is now `outside` for both `memory.yaml` and directives, and
+    nothing under the target is touched.
+  - **8** A size cap of `MAX_DIRECT_READ_BYTES` (5 MiB) is checked with `stat` before the read and
+    on the text after it; a larger file is a `shape` error "too large (over 5242880 bytes)" and is
+    never read. `inside()` now accepts names starting with `..` (`docs/..notes/…`). The path is
+    resolved again after the read, so a file swapped for a link out of the folder meanwhile is
+    `outside`. `ReadFs` gains `size(file)`, which is still read-only.
+  - **9** `directive(id)` reads the entry whose path the warning `directive '<id>' defined in …;
+    using <path>` names; the last entry listed is the fallback. Tested with the captured shadowed
+    list, also with its entries reversed.
+  - **11** A comment on the REQ-INT-01 "100 %" test says it depends on test order (it reads the
+    commands the earlier tests ran) and must stay last.
+- **Spec errata pending** (the coordinator is proposing them to the user; spec-001 and spec-004
+  are not edited here):
+  - spec-001 §3: `directives list` `tags[]?`.
+  - spec-001 §3: the `dna show` and `workflow list` optional fields above.
+  - spec-001 §4.1: `id_pattern` optional and `version` a positive number.
+  - spec-001 §4.2: `\r?\n` delimiters.
+  - spec-004 §5: `DirectReadError` → 502 `read-error` with `detail { file, kind }`.
+- **Hand-over addition (task-012):** never log `DirectReadError.message`, because it embeds file
+  values (a `status`, an `id`). Log `{ kind, file }` only.
+- **Checks after the fixes (load 2.9–5.5):** `npx tsc -b server`, typecheck, lint and
+  format:check are clean · `docs:api` OK · `npx vitest run --coverage --coverage.reportOnFailure`:
+  41 files, **547 passed / 1 skipped** (the capture test), 0 failed. The TypeDoc-build and
+  REQ-PERF-06 timing tests pass on this quiet machine. Coverage **96.32 %** statements /
+  **90.04 %** branches / 96.18 % functions / 98.07 % lines (`server/src/reads` 96.18 %,
+  `server/src/cli` 98.9 % statements) · `test:e2e` 3/3.
