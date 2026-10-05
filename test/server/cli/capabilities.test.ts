@@ -3,6 +3,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   CAPABILITIES,
+  checkCapabilityTable,
   evaluateCapabilities,
   type Capability,
   type CapabilityStatus,
@@ -86,5 +87,16 @@ describe('evaluateCapabilities', () => {
   it('defaults to the table of contracts/capabilities.json, in its order', () => {
     const result = evaluateCapabilities(classifyVersion('0.2.2', v01), v01);
     expect(result.capabilities.map((c) => c.id)).toEqual(CAPABILITIES.map((c) => c.id));
+  });
+});
+
+describe('checkCapabilityTable', () => {
+  it('refuses a table failing the schema, with the instance path, and a duplicate id', () => {
+    expect(() => checkCapabilityTable({ capabilities: [{ id: 'x' }] })).toThrow(
+      /\/capabilities\/0 must have required property/,
+    );
+    const row = { id: 'x', name: 'X', minVersion: '0.2.2', via: null, conditions: [] };
+    expect(() => checkCapabilityTable({ capabilities: [row, row] })).toThrow(/duplicate capability id/);
+    expect(checkCapabilityTable({ capabilities: [row] })).toEqual([row]);
   });
 });

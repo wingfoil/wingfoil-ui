@@ -116,3 +116,67 @@ e2e closure — scenarios that need a screen are proved here by API and unit tes
     `test/contracts/capabilities.test.ts`: the table validates, 100 % of the entries declare
     `minVersion`, the §6 rows are present; `test/server/cli/capabilities.test.ts` evaluation units.
   - The header texts close in task-016 (screens).
+
+### red / green / refactor (2026-10-05)
+
+- **Red** (`6a62e91`): `test/server/cli/{version,capabilities,version-detection}.test.ts`,
+  `test/contracts/{capabilities,support}.test.ts`; four files failed on the missing
+  `server/src/cli/version.js` / `capabilities.js`, `support.test.ts` 3/4 on `cliBuildFor`
+  throwing "wingfoil 0.3.0 is in contracts/matrix.json but no build of it is installed".
+- **Green** (`7419aa5`), as designed:
+  - `server/src/cli/version.ts` — `parseSemVer`/`formatSemVer`/`compareSemVer` (SemVer 2.0, no
+    dependency added), `rangeFromMatrix`, `supportedRange()` (matrix read once at load: `{min:
+    '0.2.2', max: '0.2.x', below: '0.3.0', versions: ['0.2.2']}`), `classifyVersion`,
+    `detectVersion(cli)`, `VersionCache` (WeakMap keyed by the `ResolvedCli` object; concurrent
+    callers share one process; a failure is dropped). The upper bound compares the release triple,
+    so `0.3.0-beta.1` is `above`, `0.2.2-rc.1` `below`, an unlisted `0.2.3-rc.1` `pre-release`.
+  - `contracts/capabilities.json`, `contracts/capabilities.schema.json`,
+    `contracts/src/capabilities.ts` (`SupportMatrix`, `Capability`, `CapabilityTable`, one export
+    line in `contracts/src/index.ts`); `server/src/cli/capabilities.ts` — `CAPABILITIES` (checked
+    at load: schema + unique ids), `evaluateCapabilities(version, range, { conditions?, table? })`
+    → `{capabilities: [{id, state, reason?}], missing: [{id, minVersion}]}`; reasons are codes +
+    arguments for the web catalogue (`unsupported-version {range{min,max}}`, `not-released`,
+    `needs-version {minVersion}`).
+  - `WingfoilCli.resolved` getter (`server/src/cli/adapter.ts`).
+  - `test/contracts/support.ts` — `cliBuildFor(version, { cacheRoot?, install? })` is now async:
+    pinned → `pinnedCli()`; another exact version → installed once with npm (`npm_execpath` run
+    by this Node.js, else `npm`; `--no-save --ignore-scripts`) into
+    `node_modules/.cache/wingfoil-ui-matrix/<version>`, reused when present, refused when the
+    install gives another version. Callers in `cli-contract.test.ts` / `capture-samples.test.ts`
+    await it. The real npm path is not exercised (matrix of one; needs the registry).
+  - Root `README.md` "Supported WingFoil versions" (range, matrix, capability table), checked by
+    `capabilities.test.ts` against `matrix.json`/`capabilities.json`; `test/README.md` 0.7.
+- **AC → test:**
+  - TT-INT-02 — S-09.1/S-09.2: `version-detection.test.ts` (kanban + version-fake 0.4.0 →
+    `above`, 0.2.0 → `below`; 0 enabled capabilities; every reason `unsupported-version` with
+    `{min: '0.2.2', max: '0.2.x'}`); units `version.test.ts`; README review:
+    `capabilities.test.ts` "package README". "A version inside passes every scenario of the
+    release": the release suite runs on the pinned 0.2.2.
+  - TT-INT-03 — `capabilities.test.ts` (schema, 100 % `minVersion` declared — 9/9 —, §6 rows);
+    S-08.1 (pinned 0.2.2: `in-range`, source `project`, `missing` `[]`, the four 0.2.2
+    capabilities enabled), S-08.2 (PATH install: source `path`) in `version-detection.test.ts`;
+    evaluation units in `capabilities.test.ts`. Header texts: task-016.
+- **Deviations (honest):** range upper bound and `field-editing` `minVersion: null` are my
+  readings of spec gaps 1–2 (design); versioned schema variants not implemented (nothing to select
+  with a matrix of one — release-planning adds the selection with the second version); the
+  `--version` cache is per `ResolvedCli` object identity, so it only helps when the caller keeps
+  the resolution (task-010).
+- **Hand-overs:**
+  - **task-012** (`GET /api/server`, `GET /api/p/:pid`): range `supportedRange()` (send `{min,
+    max}`), table `CAPABILITIES`; per project keep one `VersionCache` for the server, call
+    `cache.detect(cli)` → `DetectedVersion {text, version, state, inRange, source}` and
+    `evaluateCapabilities(detected, supportedRange(), { conditions })`. A rejected `detect`
+    (refusal/timeout/process error of `--version`) is a CLI error → `cliErrorEnvelope`. Header:
+    "WingFoil <version ?? text> [(from PATH) when source === 'path']", out of range → "read-only:
+    supported <min> to <max>". `contracts/api` schemas for these shapes are 012's.
+  - **task-011 / write routes (v0.2):** spec-003 §6 rule 2 and spec-004 §4 row 6
+    (`unsupported-version`, 409) = `!detected.inRange`, from the cache (no process).
+  - **task-010:** keep the `ResolvedCli` object between snapshots and replace it only on
+    re-resolution (`node_modules/wingfoil/package.json` change), so `--version` runs once per
+    resolution; a new object triggers a new detection automatically.
+  - **task-016:** catalogue keys `capability.<id>`, reason codes above; the notice is
+    `missing.length === 0` → "Every capability of this release is available".
+  - **release-planning (matrix advance):** add the version to `matrix.json` (the range follows),
+    update `capabilities.json` and the README section (test enforces), `npm run test:contract`
+    installs the new build via `cliBuildFor`; add a versioned schema variant only for a changed
+    shape.
