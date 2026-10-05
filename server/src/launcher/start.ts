@@ -94,11 +94,12 @@ export async function runLauncher(argv: readonly string[], io: LauncherIo): Prom
   const logger = createLogger();
   // Drawn before the application is built: the session guards (task-003) need it.
   const token = drawToken();
-  let port: number | undefined; // known once listening; until then every request is refused
+  // The port is known once listening; until then the guards refuse every request.
+  const listening: { port?: number } = {};
   const app = await buildApp({
     staticDir: io.staticDir,
     logger,
-    security: { authentication: createTokenAuthentication(token), port: () => port },
+    security: { authentication: createTokenAuthentication(token), port: () => listening.port },
   });
   let listeners;
   try {
@@ -118,7 +119,7 @@ export async function runLauncher(argv: readonly string[], io: LauncherIo): Prom
     }
     throw error;
   }
-  port = listeners.port;
+  listening.port = listeners.port;
   // Signals are handled before the URL is printed: a stop sent right after it is never lost.
   let stopping = false;
   io.onSignal(() => {

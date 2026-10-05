@@ -1,6 +1,6 @@
 # Tests
 
-**Version:** 0.2 · **Date:** 2026-10-05 (0.1: workspace tooling and e2e harness — task-001; 0.2: `test/launcher/`, `test/server/` — task-002)
+**Version:** 0.3 · **Date:** 2026-10-05 (0.1: workspace tooling and e2e harness — task-001; 0.2: `test/launcher/`, `test/server/` — task-002; 0.3: `local-security` suite — task-003)
 
 Every test lives under `test/` (DNA `paths.tests`); sources stay in `server/src`, `web/src`,
 `contracts/src`.
@@ -20,7 +20,10 @@ Every test lives under `test/` (DNA `paths.tests`); sources stay in `server/src`
   (X-06.4).
 - `test/launcher/` — the `wingfoil-ui` bin driven as a child process (`launcher.ts`:
   `startLauncher(args, env)` waits for the running line and returns port, token and stop helpers;
-  later e2e suites start the console with it).
+  later e2e suites start the console with it). `local-security.test.ts` is the e2e-smoke
+  `local-security` suite (REQ-SEC-02/03): raw `http` requests, since `fetch` cannot set `Host`
+  or `Origin`; every new `/api/` route adds its rows there. Every `/api/` request needs
+  `Authorization: Bearer <token>` (or the `wfui_session_<port>` cookie from `POST /api/session`).
 - `test/server/` — unit tests of `server/src`, mirroring its folders.
 - `test/lint/`, `test/docs/` — the dev-loop gates `lint.clean`, `docs.api.*`.
 
