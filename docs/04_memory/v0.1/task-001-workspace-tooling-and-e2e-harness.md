@@ -46,3 +46,35 @@ e2e closure — scenarios that need a screen are proved here by API and unit tes
      - design: tech-specs found missing/needing revision (dev-loop/design safety net).
      - red/green/refactor: deviations from the plan above, blockers, scope surprises.
      - review: rejection reasons and what changed on the next pass. -->
+
+### design (2026-10-05)
+
+- **depends_on:** none — no Execution Notes to acknowledge (dl-015 gate trivially satisfied).
+- **Specs:** no gap. The harness is defined by `adr-002` (stack, tests) and
+  `02_bdd/00_conventions.md` v0.6 *Fixtures* (fixtures, variants, standard team and elements);
+  the CLI facts used by the builder are `wingfoil-cli` W-01…W-20, re-checked on `wingfoil@0.2.2`
+  in a scratch repository (identity = `git config user.email`, commit dates from
+  `GIT_AUTHOR_DATE`/`GIT_COMMITTER_DATE`, `approve` refused for a member without `approver`).
+- **Layout decision:** DNA `paths.tests` is `test/`, so every test lives under the root `test/`
+  (`test/harness/` fixture builder and helpers, `test/e2e/` Playwright, `test/lint/`,
+  `test/docs/`, later `test/server/`, `test/contracts/`, `test/web/`); sources stay in
+  `server/src`, `web/src`, `contracts/src`.
+- **AC classification (T1):**
+  - TT-SEC-05 lint rule — **red-first**: a test lints sample `server/` sources and expects an
+    error for `exec`, `execSync` (named, namespace and default `child_process` imports, `require`,
+    dynamic `import()`) and for any `shell:` option other than `false`; clean samples (`execFile`,
+    `spawn`, `RegExp#exec`) pass.
+  - TT-SEC-05 v0.1 clone — **red-first** on the harness: a bare remote and a working directory whose
+    paths contain `"; touch /tmp/pwned; "` are cloned through the harness runner (`execFile`) and
+    `/tmp/pwned` does not exist. The server's clone (`POST /api/projects/clone`) is task-008; the
+    screen closes in task-014 (S-04.3).
+  - TT-INT-08 — **red-first**: the Playwright config declares exactly one project, `chromium`; an
+    e2e self-test runs @axe-core/playwright in the light and the dark theme (`X-06.4` helper) and
+    fails on serious/critical violations (checked with a page that has one).
+  - S-28.1 (fixture side) — **red-first**: each fixture built with the pinned CLI declares exactly
+    the type list of the Examples table and holds every standard element in its state (read back
+    with `memory search --format json` and, for the hand-written `on-hold`, from the file). The
+    Memory list screen closes in task-017.
+  - S-01.1, X-06.4 (screens) — not provable before the launcher (task-002) and the web shell
+    (task-013/021): this task only provides the helpers they use.
+  - Fixture variants (CLI stub, version-fake, no-CLI) — **red-first** unit tests of the builder.
