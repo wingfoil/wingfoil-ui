@@ -394,6 +394,20 @@ describe('classification without processes (fake runner)', () => {
     }
   });
 
+  it('logs at most the first 200 characters of an exit-2 stderr', async () => {
+    const { FakeProcessRunner } = await import('../process/fake-runner.js');
+    const logger = { error: vi.fn() };
+    const cli = new WingfoilCli({
+      cli: { source: 'project', projectRoot: root, file: process.execPath, prefixArgs: ['/x/cli.js'] },
+      runner: new FakeProcessRunner().answer({ exitCode: 2, stderr: `error: ${'x'.repeat(500)}` }),
+      logger,
+    });
+    await expect(cli.json(['paths'])).rejects.toBeInstanceOf(CliInternalError);
+    const logged = logger.error.mock.calls[0]?.[0] as { stderr: string };
+    expect(logged.stderr).toHaveLength(200);
+    expect(logged.stderr.startsWith('error: xxx')).toBe(true);
+  });
+
   it('exit 1 with an empty stderr is a refusal that says so', async () => {
     const { FakeProcessRunner } = await import('../process/fake-runner.js');
     const cli = new WingfoilCli({

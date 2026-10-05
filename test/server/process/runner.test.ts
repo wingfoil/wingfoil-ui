@@ -199,12 +199,13 @@ setTimeout(() => {}, 60000);`;
       const pidFile = path.join(dir, 'grandchild-timeout.pid');
       const r = runner({ killGraceMs: 500 });
       const started = Date.now();
-      const result = await r.run({ ...node(PARENT, [pidFile]), timeoutMs: 1_000 });
-      expect(Date.now() - started).toBeLessThan(4_000);
+      // 3 s: a slow Node.js start still spawns the grandchild before the timeout.
+      const result = await r.run({ ...node(PARENT, [pidFile]), timeoutMs: 3_000 });
+      expect(Date.now() - started).toBeLessThan(6_000);
       expect(result.ended).toBe('timeout');
       const pid = await grandchild(pidFile);
       await vi.waitFor(() => expect(alive(pid)).toBe(false));
-    }, 10_000);
+    }, 15_000);
 
     it('is killed with its parent by terminateAll, which returns promptly', async () => {
       const pidFile = path.join(dir, 'grandchild-stop.pid');
@@ -217,5 +218,24 @@ setTimeout(() => {}, 60000);`;
       expect((await pending).ended).toBe('terminated');
       await vi.waitFor(() => expect(alive(pid)).toBe(false));
     }, 10_000);
+  });
+
+  it('killAllNow sends SIGKILL at once to every child, even one that ignores SIGTERM (forced stop, exit)', async () => {
+    const ready = path.join(dir, 'ignore-term.ready');
+    const r = runner({ killGraceMs: 60_000 });
+    const pending = r.run({
+      ...node(
+        'process.on("SIGTERM", () => {}); require("node:fs").writeFileSync(process.argv[1], "1"); setInterval(() => {}, 1000)',
+        [ready],
+      ),
+      timeoutMs: null,
+    });
+    await vi.waitFor(async () => expect(await readFile(ready, 'utf8')).toBe('1'));
+    const started = Date.now();
+    r.killAllNow();
+    const result = await pending;
+    expect(Date.now() - started).toBeLessThan(2_000);
+    expect(result).toMatchObject({ ended: 'terminated', signal: 'SIGKILL' });
+    await expect(r.run(node('0'))).rejects.toBeInstanceOf(ProcessStartError);
   });
 });
