@@ -7,14 +7,22 @@ var fs = require('fs');
 var path = require('path');
 var url = require('url');
 
+/** A message of the server catalogue, read as plain JSON (no FormatJS before the check). */
+function launcherMessage(key, args) {
+  var file = path.join(__dirname, '..', 'server', 'src', 'i18n', 'en.json');
+  var text = JSON.parse(fs.readFileSync(file, 'utf8'))[key];
+  Object.keys(args).forEach(function (name) {
+    text = text.split('{' + name + '}').join(String(args[name]));
+  });
+  return text;
+}
+
 var parts = process.versions.node.split('.');
 var major = Number(parts[0]);
 var minor = Number(parts[1]);
 
 if (major < 22 || (major === 22 && minor < 12)) {
-  var catalogue = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'server', 'src', 'i18n', 'en.json'), 'utf8'));
-  var text = catalogue['launcher.nodeTooOld'].replace('{major}', String(major)).replace('{minor}', String(minor));
-  process.stderr.write(text + '\n');
+  process.stderr.write(launcherMessage('launcher.nodeTooOld', { major: major, minor: minor }) + '\n');
   process.exit(1);
 }
 
@@ -23,6 +31,6 @@ import(url.pathToFileURL(path.join(__dirname, '..', 'server', 'dist', 'main.js')
     return entry.main(process.argv.slice(2));
   })
   .catch(function (error) {
-    process.stderr.write(String((error && error.stack) || error) + '\n');
+    process.stderr.write(launcherMessage('launcher.unexpected', { message: (error && error.message) || error }) + '\n');
     process.exitCode = 70;
   });

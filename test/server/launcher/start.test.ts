@@ -98,6 +98,29 @@ describe('runLauncher', () => {
     expect(hook).toHaveBeenCalledOnce();
   });
 
+  it('runs the stop hooks before waiting for open requests, and bounds the wait', async () => {
+    const io = testIo();
+    io.drainTimeoutMs = 300;
+    await runLauncher(['--no-open'], io);
+    const port = Number(RUNNING.exec(io.out[0]!)![1]);
+    const socket = net.connect({ host: '127.0.0.1', port });
+    await new Promise<void>((r) => socket.once('connect', () => r()));
+    socket.write('GET /api/x HTTP/1.1\r\nHost: 127.0.0.1\r\n'); // never finished
+    socket.on('error', () => undefined);
+    let hookAt = 0;
+    onStop(async () => {
+      hookAt = performance.now();
+    });
+    const t0 = performance.now();
+    io.signal();
+    await vi.waitFor(() => expect(io.exits).toEqual([EXIT.ok]), { timeout: 3_000 });
+    const stoppedAt = performance.now();
+    expect(hookAt - t0).toBeLessThan(100);
+    expect(stoppedAt - t0).toBeGreaterThanOrEqual(250);
+    expect(stoppedAt - t0).toBeLessThan(2_000);
+    socket.destroy();
+  });
+
   it('exits 130 on a second signal', async () => {
     const io = testIo();
     await runLauncher(['--no-open'], io);
@@ -125,6 +148,16 @@ describe('runLauncher', () => {
     expect(await runLauncher(['--no-open', '--port', String(port)], io)).toBe(EXIT.port);
     expect(io.err).toEqual([`Port ${port} is already in use`]);
     blocker.close();
+  });
+  it('exits 70 with the catalogue message when the stop sequence fails', async () => {
+    const io = testIo();
+    await runLauncher(['--no-open'], io);
+    onStop(async () => {
+      throw new Error('child would not die');
+    });
+    io.signal();
+    await vi.waitFor(() => expect(io.exits).toEqual([EXIT.unexpected]));
+    expect(io.err).toEqual(['WingFoil UI stopped on an unexpected error: child would not die']);
   });
 });
 

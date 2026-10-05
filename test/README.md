@@ -1,6 +1,6 @@
 # Tests
 
-**Version:** 0.1 · **Date:** 2026-10-05 (0.1: workspace tooling and e2e harness — task-001)
+**Version:** 0.2 · **Date:** 2026-10-05 (0.1: workspace tooling and e2e harness — task-001; 0.2: `test/launcher/`, `test/server/` — task-002)
 
 Every test lives under `test/` (DNA `paths.tests`); sources stay in `server/src`, `web/src`,
 `contracts/src`.
@@ -18,6 +18,10 @@ Every test lives under `test/` (DNA `paths.tests`); sources stay in `server/src`
   (`cli.ts`), and the fixture builder (`fixtures/`).
 - `test/e2e/` — Playwright specs; `support/axe.ts` scans a screen in the light and the dark theme
   (X-06.4).
+- `test/launcher/` — the `wingfoil-ui` bin driven as a child process (`launcher.ts`:
+  `startLauncher(args, env)` waits for the running line and returns port, token and stop helpers;
+  later e2e suites start the console with it).
+- `test/server/` — unit tests of `server/src`, mirroring its folders.
 - `test/lint/`, `test/docs/` — the dev-loop gates `lint.clean`, `docs.api.*`.
 
 ## Fixtures

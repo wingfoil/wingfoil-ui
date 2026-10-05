@@ -63,6 +63,43 @@ describe('buildApp', () => {
     await app.close();
   });
 
+  it('does not serve dotfiles nor fall back for a missing asset', async () => {
+    await writeFile(path.join(staticDir, '.env'), 'SECRET=1');
+    const app = await buildApp({ staticDir, logger: createLogger(sink) });
+    const dot = await app.inject({ method: 'GET', url: '/.env' });
+    expect(dot.body).not.toContain('SECRET');
+    const missing = await app.inject({ method: 'GET', url: '/assets/missing.js' });
+    expect(missing.statusCode).toBe(404);
+    expect(missing.json()).toEqual({ error: { code: 'not-found', message: expect.any(String) } });
+    await app.close();
+  });
+
+  it('answers a malformed body with 400 invalid-request and a failure with 500 internal', async () => {
+    const app = await buildApp({
+      staticDir,
+      logger: createLogger(sink),
+      register: (a) => {
+        a.post('/api/echo', async (req) => req.body);
+        a.get('/api/boom', async () => {
+          throw new Error('adapter detail /home/secret');
+        });
+      },
+    });
+    const bad = await app.inject({
+      method: 'POST',
+      url: '/api/echo',
+      headers: { 'content-type': 'application/json' },
+      payload: '{nope',
+    });
+    expect(bad.statusCode).toBe(400);
+    expect(bad.json()).toEqual({ error: { code: 'invalid-request', message: expect.any(String) } });
+    const boom = await app.inject({ method: 'GET', url: '/api/boom' });
+    expect(boom.statusCode).toBe(500);
+    expect(boom.json()).toEqual({ error: { code: 'internal', message: expect.any(String) } });
+    expect(boom.body).not.toContain('secret');
+    await app.close();
+  });
+
   it('starts without a web build and says so for the application paths', async () => {
     const app = await buildApp({ staticDir: path.join(staticDir, 'missing'), logger: createLogger(sink) });
     const res = await app.inject({ method: 'GET', url: '/' });

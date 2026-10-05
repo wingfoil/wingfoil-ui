@@ -111,6 +111,39 @@ e2e closure — scenarios that need a screen are proved here by API and unit tes
   gate); they are characterization tests.
 - `typedoc.json` now expands `server/src` and `contracts/src` (every exported declaration
   checked, not only `index.ts`); ESLint treats `*.cjs` as CommonJS.
-- Checks: `npm run test:coverage` 137/137, coverage 91 % statements / 87 % branches · e2e 3/3 ·
-  lint, format, typecheck clean · `docs:api` OK. TT-PERF-06: 10/10 starts print the URL in well
-  under 3 s (≈ 0.1–0.3 s on this machine).
+- Checks (first pass): `npm run test:coverage` 137/137, coverage 91 % statements / 87 % branches ·
+  lint, format, typecheck clean · `docs:api` OK.
+
+### review (2026-10-05)
+
+- Independent fresh-context read-only review: **PASS WITH FIXES**, 9 findings (1 major, 5 minor,
+  3 nits). All fixed:
+  - F1 (major) stop order now as spec-007 §6: stop accepting → `onStop` hooks → drain open
+    requests at most `drainTimeoutMs` (5 s) then cut them → stop line, exit 0. The order and
+    the hooks' contract are documented on `onStop` for task-004 and the event-stream task.
+  - F2 a failing stop sequence prints `launcher.unexpected` and exits 70; listener errors after
+    the bind are logged.
+  - F3 `main.ts` resolves the package paths from `import.meta.url` (paths with `#`/`%`).
+  - F4 `setErrorHandler`: 400 `invalid-request` (validation, malformed body), 500 `internal`
+    (details only in the log), spec-004 §5 envelope; `buildApp({ register })` lets later tasks add
+    their routes before `ready()`.
+  - F5/F7 dotfiles not served; only extension-less paths fall back to `index.html`, a missing
+    asset is a 404.
+  - F6 timing claim restated with evidence: `npx vitest run test/launcher -t REQ-PERF
+    --silent=false` printed spawn → URL 449, 613, 387, 386, 587, 498, 551, 601, 693, 663 ms
+    (≤ 3.0 s, 10/10); the in-process `startMs` log is ~75–85 ms. The task's ACs (e2e-smoke
+    `launch`, `local-security`) run in Vitest (`test/launcher/launcher.test.ts`) by driving the
+    bin; `npm run test:e2e` holds only task-001's axe self-tests.
+  - F8 X-03.2 reports *skipped* without a network address; `espree` is a declared devDependency;
+    the given-port test retries a port taken meanwhile.
+  - F9 `server/src/index.ts` text, `test/README.md` v0.2 lists `test/launcher/`, the bin's failure
+    path prints the catalogue message.
+- **Hand-overs:** task-003 — the token is drawn before `buildApp` in `runLauncher`, inject it
+  there; Fastify's own server never listens (use the request socket's local port or the
+  listeners' port for the Host check; Fastify server options do not apply to the two `http`
+  servers). `release-publishing` — `npm pack` today ships no `server/dist` or `web/dist`, the
+  runtime dependencies live in `server/package.json`, and `server/src/i18n/en.json` is read at
+  run time: a `files` list, root `dependencies` (or a bundle) and an `npm pack` → `npx ./tarball`
+  smoke test are needed. spec-007 §7's manual Windows check is still open.
+- Checks after the fixes: `npm run test:coverage` 142/142, coverage 91.6 % statements / 88.6 %
+  branches · lint, format, typecheck clean · `docs:api` OK.

@@ -163,6 +163,7 @@ describe('REQ-PERF-06 — server start', () => {
       times.push(l.startMs);
       await l.stop();
     }
+    console.info(`REQ-PERF-06 spawn → URL (ms): ${times.map((t) => Math.round(t)).join(', ')}`);
     expect(Math.max(...times)).toBeLessThanOrEqual(3_000);
   }, 60_000);
 });
@@ -188,11 +189,11 @@ describe('REQ-SEC-01 — loopback only', () => {
     expect(listening.sort()).toEqual([`00000000000000000000000001000000:${hexPort}`, `0100007F:${hexPort}`]);
   });
 
-  it('X-03.2 — refuses a connection on the machine network address', async () => {
+  it('X-03.2 — refuses a connection on the machine network address', async (ctx) => {
     const address = Object.values(networkInterfaces())
       .flat()
       .find((a) => a && a.family === 'IPv4' && !a.internal)?.address;
-    if (!address) return; // no network address on this machine: nothing to refuse
+    if (!address) ctx.skip(); // no network address on this machine: nothing to refuse
     const l = await launch(['--no-open']);
     const error = await new Promise<NodeJS.ErrnoException | null>((resolve) => {
       const socket = net.connect({ host: address, port: l.port });

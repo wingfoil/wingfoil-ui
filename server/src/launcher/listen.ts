@@ -14,8 +14,15 @@ export interface LoopbackListeners {
   port: number;
   /** Bound addresses, `127.0.0.1` first. */
   addresses: string[];
-  /** Stop accepting connections and wait for the open requests to finish. */
-  close(): Promise<void>;
+  /** Stop accepting new connections; the open ones go on (see {@link LoopbackListeners.drain}). */
+  stopAccepting(): void;
+  /**
+   * Wait for the open requests to finish, at most `timeoutMs`; then every remaining connection
+   * is destroyed.
+   */
+  drain(timeoutMs: number): Promise<void>;
+  /** `stopAccepting()` then `drain(timeoutMs)` (default 5 s). */
+  close(timeoutMs?: number): Promise<void>;
 }
 
 /** Options of {@link listenLoopback}. */
@@ -25,6 +32,8 @@ export interface ListenOptions {
   /** Tries without a given port (default 5). */
   maxTries?: number;
   bind?: Binder;
+  /** Called with an error a listening server reports after the bind (e.g. `EMFILE`). */
+  onError?: (error: Error) => void;
 }
 
 /** A given port is already in use on `127.0.0.1` or `::1` (exit 3). */
@@ -62,6 +71,7 @@ function closeServer(server: http.Server): Promise<void> {
       return;
     }
     server.close(() => resolve());
+    server.closeIdleConnections();
   });
 }
 
@@ -88,10 +98,10 @@ export async function listenLoopback(
     const v6 = http.createServer(handler);
     try {
       await bind(v6, '::1', port);
-      return listeners(port, [v4, v6], ['127.0.0.1', '::1']);
+      return listeners(port, [v4, v6], ['127.0.0.1', '::1'], options.onError);
     } catch (error) {
       const code = errorCode(error);
-      if (code !== undefined && NO_IPV6.has(code)) return listeners(port, [v4], ['127.0.0.1']);
+      if (code !== undefined && NO_IPV6.has(code)) return listeners(port, [v4], ['127.0.0.1'], options.onError);
       await closeServer(v4);
       if (code !== 'EADDRINUSE') throw error;
       if (options.port !== undefined) throw new PortInUseError(options.port);
@@ -100,6 +110,34 @@ export async function listenLoopback(
   throw new NoFreePortError(tries);
 }
 
-function listeners(port: number, servers: http.Server[], addresses: string[]): LoopbackListeners {
-  return { port, addresses, close: async () => void (await Promise.all(servers.map(closeServer))) };
+function listeners(
+  port: number,
+  servers: http.Server[],
+  addresses: string[],
+  onError: ((error: Error) => void) | undefined,
+): LoopbackListeners {
+  for (const server of servers) server.on('error', (error: Error) => onError?.(error));
+  let closed: Promise<void> | undefined;
+  const result: LoopbackListeners = {
+    port,
+    addresses,
+    stopAccepting: () => {
+      closed ??= Promise.all(servers.map(closeServer)).then(() => undefined);
+    },
+    drain: async (timeoutMs) => {
+      result.stopAccepting();
+      let timer: NodeJS.Timeout | undefined;
+      const timeout = new Promise<'timeout'>((resolve) => {
+        timer = setTimeout(() => resolve('timeout'), timeoutMs);
+      });
+      const outcome = await Promise.race([closed, timeout]);
+      clearTimeout(timer);
+      if (outcome === 'timeout') {
+        for (const server of servers) server.closeAllConnections();
+        await closed;
+      }
+    },
+    close: (timeoutMs = 5_000) => result.drain(timeoutMs),
+  };
+  return result;
 }

@@ -35,14 +35,22 @@ export interface LauncherIo {
   onSignal(handler: () => void): void;
   /** Ends the process with `code`. */
   exit(code: number): void;
+  /** Longest wait for open requests at stop before they are cut (default 5 s). */
+  drainTimeoutMs?: number;
 }
 
-/** Work run at stop, after the listeners close (e.g. terminating CLI child processes). */
+/** Work run during the stop sequence (e.g. closing event streams, terminating CLI children). */
 export type StopHook = () => Promise<void>;
 
 const stopHooks: StopHook[] = [];
 
-/** Register work to run during the stop sequence (spec-007 §6). */
+/**
+ * Register work to run during the stop sequence (spec-007 §6), whose order is: stop accepting
+ * connections → run the hooks, in registration order (close the event streams, terminate the
+ * `wingfoil` and git child processes) → wait for the open requests, at most `drainTimeoutMs`, then
+ * cut them → print the stop line, exit 0. A hook must end what keeps a request open; it must not
+ * wait for requests itself. Hooks live for the process (module scope).
+ */
 export function onStop(hook: StopHook): void {
   stopHooks.push(hook);
 }
@@ -77,10 +85,15 @@ export async function runLauncher(argv: readonly string[], io: LauncherIo): Prom
 
   const started = performance.now();
   const logger = createLogger();
+  // Drawn before the application is built: the session guards (task-003) need it.
+  const token = drawToken();
   const app = await buildApp({ staticDir: io.staticDir, logger });
   let listeners;
   try {
-    listeners = await listenLoopback(app.routing, { port: command.port });
+    listeners = await listenLoopback(app.routing, {
+      port: command.port,
+      onError: (error) => logger.error({ err: error }, 'listener error'),
+    });
   } catch (error) {
     await app.close();
     if (error instanceof PortInUseError) {
@@ -102,15 +115,21 @@ export async function runLauncher(argv: readonly string[], io: LauncherIo): Prom
     }
     stopping = true;
     void (async () => {
-      await listeners.close();
-      for (const hook of stopHooks) await hook();
-      await app.close();
-      io.stdout(message('launcher.stopped'));
-      io.exit(EXIT.ok);
+      try {
+        listeners.stopAccepting();
+        for (const hook of stopHooks) await hook();
+        await listeners.drain(io.drainTimeoutMs ?? 5_000);
+        await app.close();
+        io.stdout(message('launcher.stopped'));
+        io.exit(EXIT.ok);
+      } catch (error) {
+        io.stderr(message('launcher.unexpected', { message: (error as Error).message }));
+        io.exit(EXIT.unexpected);
+      }
     })();
   });
 
-  const url = `http://127.0.0.1:${listeners.port}/#token=${drawToken()}`;
+  const url = `http://127.0.0.1:${listeners.port}/#token=${token}`;
   io.stdout(message('launcher.running', { url }));
   logger.info(
     { port: listeners.port, addresses: listeners.addresses, startMs: Math.round(performance.now() - started) },

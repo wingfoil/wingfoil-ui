@@ -46,12 +46,33 @@ describe('listenLoopback', () => {
   });
 
   it('listens on the given port', async () => {
-    const port = await block('127.0.0.1');
-    blockers.pop()!.close();
-    await new Promise((r) => setTimeout(r, 50));
-    const l = await listenLoopback(handler, { port });
-    opened.push(l);
-    expect(l.port).toBe(port);
+    // A port just released by the OS; another test file may grab it meanwhile, so retry.
+    for (let attempt = 0; ; attempt += 1) {
+      const port = await block('127.0.0.1');
+      await new Promise((r) => blockers.pop()!.close(r));
+      try {
+        const l = await listenLoopback(handler, { port });
+        opened.push(l);
+        expect(l.port).toBe(port);
+        return;
+      } catch (error) {
+        if (!(error instanceof PortInUseError) || attempt === 4) throw error;
+      }
+    }
+  });
+
+  it('stops accepting at once and cuts open requests after the drain timeout', async () => {
+    const l = await listenLoopback(handler, {});
+    const socket = net.connect({ host: '127.0.0.1', port: l.port });
+    await new Promise<void>((r) => socket.once('connect', () => r()));
+    socket.write('GET / HTTP/1.1\r\nHost: x\r\n'); // never finished
+    const closedByServer = new Promise<void>((r) => socket.once('close', () => r()));
+    l.stopAccepting();
+    await expect(fetch(`http://127.0.0.1:${l.port}/`)).rejects.toThrow();
+    const t0 = performance.now();
+    await l.drain(200);
+    expect(performance.now() - t0).toBeGreaterThanOrEqual(150);
+    await closedByServer;
   });
 
   it.each(['127.0.0.1', '::1'])('refuses a given port already in use on %s', async (host) => {
