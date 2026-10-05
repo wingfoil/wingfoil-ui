@@ -44,3 +44,72 @@ e2e closure — scenarios that need a screen are proved here by API and unit tes
      - design: tech-specs found missing/needing revision (dev-loop/design safety net).
      - red/green/refactor: deviations from the plan above, blockers, scope surprises.
      - review: rejection reasons and what changed on the next pass. -->
+
+### design (2026-10-05)
+
+- **depends_on acknowledged (dl-015):** task-004 Execution Notes read, review included. Taken
+  from its hand-over: validate the data `WingfoilCli.json(words, { options?, positionals?,
+  signal? })` returns against the command's schema and throw `CliOutputError` (→ 502
+  `cli-output` through `cliErrorEnvelope`) on failure; the static list of consumed commands
+  lives here; user values only in `options`/`positionals` (positionals after `--`, W-22); every
+  exit 2 stays an adapter defect (W-22); `version()` returns the trimmed text, parsed by task-006.
+  Conventions from task-001/002/003/007: tests under `test/` (`test/server/` mirrors
+  `server/src`, `test/contracts/` for the schemas), `buildFixture` / `copyFixture` /
+  `fixture.env`, the CLI stub and `FakeProcessRunner`; schemas read at run time with Ajv as
+  `server/src/state/schema.ts` does for `contracts/state/state.schema.json`; the error envelope of
+  `http/app.ts`.
+- **Specs:** spec-001 §3–§7, `adr-001` D1a/D4, REQ-INT-01, REQ-ARC-04, directive `cli-only-writes`
+  §2 cover the scope; no missing spec. Re-captured on `wingfoil@0.2.2` (fixtures built with the
+  harness, `node node_modules/wingfoil/dist/cli.js --format json <command> </dev/null`): every
+  §3 shape matches except one detail — `directives list` → `frontmatter.tags` is **absent** for
+  directives whose file has no `tags:` (custom fixture: `determinism`, `doc-versioning`,
+  `security-secrets`, `traceability`), while §3 writes `tags[]` without `?`. The schema follows
+  the real output (tags optional); spec-001 §3 needs a one-character erratum (`tags[]?`) —
+  reported to the coordinator, not edited here. Also observed: `dna show` modules carry `path`,
+  `project` may carry `license`/`repository`, `stacks.technologies[]` are objects
+  `{name, category?, version?, notes?}`, `stacks.methodologies[]` are `{name, phase?}` (all
+  accepted as additional properties by §5).
+- **Scope boundaries:**
+  - here: `contracts/cli/*.schema.json` (one per §3 row: `version`, `dna-show`, `paths`,
+    `directives-list`, `workflow-list`, `memory-search` — also for the two `--status` calls,
+    `memory-history`, `memory-submit`, `memory-approve`, `memory-reject`, `memory-add`),
+    `contracts/files/{memory-yaml,element,directive}.schema.json`, `contracts/matrix.json`
+    (support matrix `["0.2.2"]`), their TypeScript types in `contracts/src/`; the static list of
+    consumed commands in the server (`server/src/cli/commands.ts`), enforced by the adapter (a
+    command not on the list is refused before any process starts) with schema validation of every
+    exit-0 output; the direct readers (`server/src/reads/`): `memory.yaml` subset with the §4.1
+    resolution rule, element files at a `memory search` path with the `id`/`type`/`status`
+    cross-check, directive files at `.wingfoil/<path>` of `directives list`, every path confined
+    (lexically and by realpath) to the project; a read facade over CLI reads and direct reads (the
+    "read endpoints" of the fs-spy test); the contract tests per matrix version and the captured
+    samples.
+  - **task-006:** semantic-version parsing and the supported range (it reads `matrix.json`),
+    `contracts/capabilities.json` (spec-001 §6), selection of a versioned schema variant by the
+    detected version (only 0.2.2 exists: no variant now).
+  - **task-012:** the read routes over the facade, the HTTP mapping of a direct-read error (see
+    the open point below), REQ-SEC-06 confinement of `/files/*`. **task-010:** caching/batching of
+    the reads (one `memory search` per repository state), the local-changes marker (S-25.1's
+    marker half). **task-008:** add-project and availability.
+- **Open point for task-012 (not blocking here):** spec-004 §5 has no error code for a failed
+  direct read (a file outside the allow-list, failing its schema, or an element whose `status`
+  differs from `memory search`). This task raises a typed `DirectReadError` and does not map it
+  to HTTP.
+- **AC classification (T1)** — all **red-first** (no schema, list, reader or contract test exists):
+  - TT-INT-01 / S-27.1 — contract tests (`test/contracts/cli-contract.test.ts`): for each version
+    of `contracts/matrix.json`, the three fixtures built with that CLI; every command of the
+    static list run through the adapter and validated (reads on the fixtures, writes and the
+    archived searches on copies); a check that the commands run equal the static list (100 %);
+    S-27.1: `dna show` refused with the CLI message on an invalid `dna.yaml` while `memory search`
+    still validates. Schema units on the captured samples
+    (`test/contracts/samples/wingfoil-0.2.2/`), with negative cases (a missing required field
+    fails). Adapter units: unlisted command refused, schema failure → `CliOutputError` (502).
+  - TT-ARC-04 / S-25.1 / M-01.1 / R-05.1 — `test/server/reads/*.test.ts`: fs spy
+    (`vi.mock('node:fs/promises')`, `node:fs`) over every facade read on the real fixtures:
+    reads only `.wingfoil/memory.yaml` and CLI-returned paths, 0 writes; traversal and escaping
+    symlinks refused with 0 bytes read; an element whose file `status` changed after
+    `memory search` is a read error; S-25.1 (an uncommitted title edit is read as the working
+    tree, no read error), M-01.1 (kanban: `task` 4, `bug` 1 from `memory search` + `memory.yaml`
+    types), R-05.1 (custom: modules `server`, `web`, `contracts` with descriptions and paths,
+    technologies, methodologies with phase, team roles, paths); §4.1 resolution check.
+- **Where:** schemas and samples in `contracts/` and `test/contracts/`; npm script
+  `test:contract` (= the e2e-smoke `contract` suite: `vitest run test/contracts`).
