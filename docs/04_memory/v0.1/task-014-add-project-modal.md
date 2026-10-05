@@ -2,7 +2,7 @@
 id: task-014-add-project-modal
 type: task
 title: "Add project modal"
-status: pending
+status: backlog
 release: "v0.1"
 module: "web"             # optional — server | web | contracts (dna.yaml modules)
 priority: "medium"           # optional — high | medium | low
