@@ -1,7 +1,7 @@
 // adr-001 D2, REQ-ARC-02 — which `wingfoil` runs for a project: the project's pinned one, else the
 // PATH's (resolved to an absolute path, an npm shim to its package's bin script), else none
 // (S-08.1, S-08.2, S-10.1, S-10.2 on the adapter side).
-import { chmod, mkdir, mkdtemp, realpath, rm, writeFile } from 'node:fs/promises';
+import { chmod, mkdir, mkdtemp, realpath, rm, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -124,6 +124,14 @@ describe('discoverCli', () => {
     await removeCli(fx);
     await mkdir(cliPackageDir(fx), { recursive: true });
     await writeFile(path.join(cliPackageDir(fx), 'package.json'), '{"name":"wingfoil","version":"0.2.2"}\n');
+    const bin = await installGlobally(path.join(root, `global-${n}`), PINNED_PACKAGE_DIR);
+    await expect(discoverCli(fx.dir, { env: withPathFirst(fx.env, bin) })).rejects.toBeInstanceOf(CliNotFoundError);
+  });
+
+  it('treats a dangling node_modules/wingfoil link as no CLI, without falling back to the PATH', async () => {
+    const fx = await freshKanban();
+    await removeCli(fx);
+    await symlink(path.join(root, `gone-${n}`), cliPackageDir(fx), 'dir');
     const bin = await installGlobally(path.join(root, `global-${n}`), PINNED_PACKAGE_DIR);
     await expect(discoverCli(fx.dir, { env: withPathFirst(fx.env, bin) })).rejects.toBeInstanceOf(CliNotFoundError);
   });

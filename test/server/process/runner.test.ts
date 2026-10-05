@@ -1,9 +1,9 @@
 // adr-001 D5, adr-002 (process runner port) — the local adapter: argument array, no shell, timeout,
 // cancellation, termination at stop (spec-007 §6).
-import { mkdtemp, realpath, rm } from 'node:fs/promises';
+import { mkdtemp, readFile, realpath, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import {
   DEFAULT_TIMEOUT_MS,
   LocalProcessRunner,
@@ -142,12 +142,80 @@ describe('LocalProcessRunner', () => {
     const r = runner();
     const a = r.run({ ...node(SLEEP), timeoutMs: null });
     const b = r.run({ ...node(SLEEP), timeoutMs: null });
-    await new Promise((resolve) => setTimeout(resolve, 200));
-    expect(r.running).toBe(2);
+    await vi.waitFor(() => expect(r.running).toBe(2));
     await r.terminateAll();
     expect(r.running).toBe(0);
     expect((await a).ended).toBe('terminated');
     expect((await b).ended).toBe('terminated');
     await expect(r.run(node('0'))).rejects.toBeInstanceOf(ProcessStartError);
+  });
+
+  it('terminates a child started just before the stop, before it has spawned', async () => {
+    const r = runner();
+    const started = Date.now();
+    const pending = r.run({ ...node(SLEEP), timeoutMs: null });
+    await r.terminateAll();
+    expect((await pending).ended).toBe('terminated');
+    expect(r.running).toBe(0);
+    expect(Date.now() - started).toBeLessThan(3_000);
+  });
+
+  it('cancels a child aborted before it has spawned', async () => {
+    const controller = new AbortController();
+    const started = Date.now();
+    const pending = runner().run({ ...node(SLEEP), timeoutMs: null, signal: controller.signal });
+    controller.abort();
+    expect((await pending).ended).toBe('cancelled');
+    expect(Date.now() - started).toBeLessThan(3_000);
+  });
+
+  describe.skipIf(process.platform === 'win32')('a grandchild holding the output pipes', () => {
+    // The child starts a long-lived grandchild that inherits its stdout/stderr, writes the
+    // grandchild's pid to the file named by its first argument, and sleeps.
+    const PARENT = `const { spawn } = require('node:child_process');
+const g = spawn(process.execPath, ['-e', 'setTimeout(() => {}, 60000)'], { stdio: 'inherit' });
+require('node:fs').writeFileSync(process.argv[1], String(g.pid));
+setTimeout(() => {}, 60000);`;
+
+    function alive(pid: number): boolean {
+      try {
+        process.kill(pid, 0);
+        return true;
+      } catch {
+        return false;
+      }
+    }
+
+    async function grandchild(pidFile: string): Promise<number> {
+      let pid = 0;
+      await vi.waitFor(async () => {
+        pid = Number(await readFile(pidFile, 'utf8'));
+        expect(pid).toBeGreaterThan(0);
+      });
+      return pid;
+    }
+
+    it('is killed with its parent at the timeout, and the result comes back promptly', async () => {
+      const pidFile = path.join(dir, 'grandchild-timeout.pid');
+      const r = runner({ killGraceMs: 500 });
+      const started = Date.now();
+      const result = await r.run({ ...node(PARENT, [pidFile]), timeoutMs: 1_000 });
+      expect(Date.now() - started).toBeLessThan(4_000);
+      expect(result.ended).toBe('timeout');
+      const pid = await grandchild(pidFile);
+      await vi.waitFor(() => expect(alive(pid)).toBe(false));
+    }, 10_000);
+
+    it('is killed with its parent by terminateAll, which returns promptly', async () => {
+      const pidFile = path.join(dir, 'grandchild-stop.pid');
+      const r = runner({ killGraceMs: 500 });
+      const pending = r.run({ ...node(PARENT, [pidFile]), timeoutMs: null });
+      const pid = await grandchild(pidFile);
+      const started = Date.now();
+      await r.terminateAll();
+      expect(Date.now() - started).toBeLessThan(3_000);
+      expect((await pending).ended).toBe('terminated');
+      await vi.waitFor(() => expect(alive(pid)).toBe(false));
+    }, 10_000);
   });
 });

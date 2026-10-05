@@ -78,8 +78,8 @@ describe('TT-ARC-02 — process audit', () => {
     await cli.json(['directives', 'list']);
     await cli.json(['workflow', 'list']);
     await cli.json(['memory', 'search']);
-    await cli.json(['memory', 'search'], { '--status': 'deprecated' });
-    await cli.json(['memory', 'history', 'task-001-login-form']);
+    await cli.json(['memory', 'search'], { options: { '--status': 'deprecated' } });
+    await cli.json(['memory', 'history'], { positionals: ['task-001-login-form'] });
 
     const pinned = binScript(cliPackageDir(fx));
     expect(spawned).toHaveLength(8);
@@ -89,6 +89,13 @@ describe('TT-ARC-02 — process audit', () => {
       expect(p.cwd).toBe(fx.dir);
     }
     expect(existsSync(marker)).toBe(false);
+
+    // Positive control: without the pinned CLI the same PATH runs the fake, and the marker shows it.
+    await removeCli(fx);
+    const fallback = new WingfoilCli({ cli: await discoverCli(fx.dir, { env }), runner: runners[0]!, env });
+    expect(fallback.source).toBe('path');
+    expect(await fallback.version()).toBe('0.2.1');
+    expect(existsSync(marker)).toBe(true);
   });
 
   it('places --format json before the command, and runs --version alone', async () => {
@@ -101,16 +108,21 @@ describe('TT-ARC-02 — process audit', () => {
 
   it('the package wingfoil-ui and its workspaces declare no dependency on wingfoil', async () => {
     const repo = path.resolve(import.meta.dirname, '../../..');
+    const occurrences: string[] = [];
     for (const file of ['package.json', 'server/package.json', 'contracts/package.json', 'web/package.json']) {
       const pkg = JSON.parse(await readFile(path.join(repo, file), 'utf8')) as Record<string, unknown>;
       if (file === 'package.json') expect(pkg.name).toBe('wingfoil-ui');
-      for (const field of ['dependencies', 'peerDependencies', 'optionalDependencies']) {
-        expect(Object.keys((pkg[field] as Record<string, string> | undefined) ?? {}), `${file} ${field}`).not.toContain(
-          'wingfoil',
-        );
+      for (const field of ['dependencies', 'devDependencies', 'peerDependencies', 'optionalDependencies']) {
+        if ('wingfoil' in ((pkg[field] as Record<string, string> | undefined) ?? {}))
+          occurrences.push(`${file} ${field}`);
       }
-      expect((pkg.bundleDependencies ?? pkg.bundledDependencies ?? []) as string[]).not.toContain('wingfoil');
+      for (const field of ['bundleDependencies', 'bundledDependencies']) {
+        if (((pkg[field] ?? []) as string[]).includes('wingfoil')) occurrences.push(`${file} ${field}`);
+      }
     }
+    // The only one allowed: this repository's own governance CLI (directive `wingfoil-cli`), a
+    // devDependency of the root, never installed by `npx wingfoil-ui`.
+    expect(occurrences).toEqual(['package.json devDependencies']);
   });
 });
 
@@ -186,10 +198,14 @@ describe('TT-INT-04 — result classification (spec-001 §2)', () => {
       ],
     });
     const { cli } = await adapterFor(fx);
-    await expect(cli.json(['memory', 'approve', 'task-001-login-form'], { '--reason': 'ok' })).rejects.toMatchObject({
+    await expect(
+      cli.json(['memory', 'approve'], { options: { '--reason': 'ok' }, positionals: ['task-001-login-form'] }),
+    ).rejects.toMatchObject({
       cliMessage: 'simulated refusal',
     });
-    await expect(cli.json(['memory', 'reject', 'task-001-login-form'], { '--reason': 'no' })).rejects.toMatchObject({
+    await expect(
+      cli.json(['memory', 'reject'], { options: { '--reason': 'no' }, positionals: ['task-001-login-form'] }),
+    ).rejects.toMatchObject({
       cliMessage: 'plain refusal',
     });
   });
@@ -197,11 +213,12 @@ describe('TT-INT-04 — result classification (spec-001 §2)', () => {
   it('exit 2: an internal error, logged with the command line, mapped to 500 internal', async () => {
     const fx = await freshKanban();
     const { cli, logger } = await adapterFor(fx);
-    const error = await cli.json(['dna', 'show'], { '--bogus': 'x' }).catch((e: unknown) => e);
+    const error = await cli.json(['dna', 'show'], { options: { '--bogus': 'x' } }).catch((e: unknown) => e);
     expect(error).toBeInstanceOf(CliInternalError);
     expect(logger.error).toHaveBeenCalledTimes(1);
     expect(logger.error.mock.calls[0]?.[0]).toMatchObject({
-      command: ['--format', 'json', 'dna', 'show', '--bogus', 'x'],
+      words: ['dna', 'show'],
+      options: ['--bogus'],
       exitCode: 2,
       stderr: "error: unknown option '--bogus'",
     });
@@ -244,15 +261,29 @@ describe('spec-001 §1 — user values', () => {
     const { cli } = await adapterFor(fx);
     expect(optionArg('--reason', 'fine')).toEqual(['--reason', 'fine']);
     expect(optionArg('--reason', '-x dash first')).toEqual(['--reason=-x dash first']);
-    const out = await cli.json(['memory', 'reject', 'task-001-login-form'], { '--reason': '-x dash first' });
+    const out = await cli.json(['memory', 'reject'], {
+      options: { '--reason': '-x dash first' },
+      positionals: ['task-001-login-form'],
+    });
     expect(out.data).toMatchObject({ id: 'task-001-login-form', reason: '-x dash first' });
+  });
+
+  it('passes user positionals after "--": one starting with "-" reaches the CLI as a value', async () => {
+    const fx = await freshKanban();
+    const { cli, spawned } = await adapterFor(fx);
+    const error = await cli.json(['memory', 'history'], { positionals: ['--version'] }).catch((e: unknown) => e);
+    expect(error).toBeInstanceOf(CliRefusedError);
+    expect((error as CliRefusedError).cliMessage).toBe('document not found: --version');
+    expect(spawned[0]?.args.slice(1)).toEqual(['--format', 'json', 'memory', 'history', '--', '--version']);
+    const out = await cli.json(['memory', 'history'], { positionals: ['task-001-login-form'] });
+    expect(out.data).toMatchObject({ id: 'task-001-login-form' });
   });
 
   it('refuses a word that starts with "-", or an option without "--", before starting any process', async () => {
     const fx = await freshKanban();
     const { cli, spawned } = await adapterFor(fx);
     await expect(cli.json(['memory', 'history', '--help'])).rejects.toBeInstanceOf(CliInternalError);
-    await expect(cli.json(['memory', 'search'], { status: 'x' })).rejects.toBeInstanceOf(CliInternalError);
+    await expect(cli.json(['memory', 'search'], { options: { status: 'x' } })).rejects.toBeInstanceOf(CliInternalError);
     expect(spawned).toEqual([]);
   });
 });
@@ -329,11 +360,48 @@ describe('classification without processes (fake runner)', () => {
       runner,
       timeoutMs: 1234,
     });
-    await cli.json(['memory', 'add'], { '--type': 'adr', '--title': '-dash', '--set': ['a=1', 'b=2'] });
+    await cli.json(['memory', 'add'], { options: { '--type': 'adr', '--title': '-dash', '--set': ['a=1', 'b=2'] } });
     expect(runner.requests[0]).toMatchObject({
       file: '/usr/bin/wingfoil',
       args: ['--format', 'json', 'memory', 'add', '--type', 'adr', '--title=-dash', '--set', 'a=1', '--set', 'b=2'],
       timeoutMs: 1234,
+    });
+  });
+
+  it('logs every process error and timeout with the command words and option names, never their values', async () => {
+    const { FakeProcessRunner } = await import('../process/fake-runner.js');
+    const cliInfo = {
+      source: 'project' as const,
+      projectRoot: root,
+      file: process.execPath,
+      prefixArgs: ['/x/cli.js'],
+    };
+    for (const [answer, reason] of [
+      [{ exitCode: 3 }, 'WingFoil exited with status 3'],
+      [{ exitCode: null, ended: 'cancelled' as const }, 'WingFoil was cancelled'],
+      [{ exitCode: null, ended: 'timeout' as const }, 'WingFoil did not answer within 30 s'],
+    ] as const) {
+      const logger = { error: vi.fn() };
+      const cli = new WingfoilCli({ cli: cliInfo, runner: new FakeProcessRunner().answer(answer), logger });
+      await expect(
+        cli.json(['memory', 'reject'], { options: { '--reason': 'secret-reason' }, positionals: ['secret-title'] }),
+      ).rejects.toThrow(reason);
+      expect(logger.error).toHaveBeenCalledTimes(1);
+      const [logged, message] = logger.error.mock.calls[0] as [object, string];
+      expect(logged).toMatchObject({ words: ['memory', 'reject'], options: ['--reason'], reason });
+      expect(message).toBe(reason);
+      expect(JSON.stringify(logged)).not.toMatch(/secret/);
+    }
+  });
+
+  it('exit 1 with an empty stderr is a refusal that says so', async () => {
+    const { FakeProcessRunner } = await import('../process/fake-runner.js');
+    const cli = new WingfoilCli({
+      cli: { source: 'project', projectRoot: root, file: process.execPath, prefixArgs: ['/x/cli.js'] },
+      runner: new FakeProcessRunner().answer({ exitCode: 1, stderr: ' \n' }),
+    });
+    await expect(cli.json(['paths'])).rejects.toMatchObject({
+      cliMessage: 'WingFoil refused (exit status 1) without a message',
     });
   });
 
