@@ -62,7 +62,8 @@ export interface StateStore {
    *
    * Keep transactions short: the lock blocks every other console's mutation. Never clone, run the
    * CLI or wait on the network inside `fn`: do the slow work first, then re-check its premises
-   * (duplicates, the list) inside. `fn` may run twice (a dry run before the first write ever, so
+   * (duplicates, the list) inside. Never call a store mutation (`add`, `update`, `remove`,
+   * `transaction`) inside `fn`: the store is not re-entrant and would wait forever. `fn` may run twice (a dry run before the first write ever, so
    * a no-op creates no directory): apart from the draft it must have no side effect.
    */
   transaction<T>(fn: (draft: StateDraft) => T | Promise<T>): Promise<T>;

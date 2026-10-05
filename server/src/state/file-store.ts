@@ -253,6 +253,7 @@ class FileBackend implements StateBackend {
       age = Date.now() - (await stat(this.#lockFile)).mtimeMs;
     } catch (error) {
       if (code(error) === 'ENOENT') return true; // released meanwhile: try again at once
+      if (this.#busy(error)) return true; // win32: being deleted by its holder: try again
       throw error;
     }
     // `<hostname> <pid> <nonce>`: the pid is judged only on this host; elsewhere only the age

@@ -232,3 +232,11 @@ e2e closure — scenarios that need a screen are proved here by API and unit tes
   full runs, no flaky test); coverage 94.69 % statements / 88.92 % branches / 92.85 % functions /
   96.41 % lines (`server/src/state` 96.54 % statements) · `npm run test:e2e` 3/3 · typecheck,
   lint, format:check clean · `docs:api` OK.
+- Third pass by the same agent: N1, N2, N4 resolved, N3 mostly. Two nits fixed by the coordinator:
+  `#breakIfStale` also retries when reading the lock fails with a win32 "busy" error (EPERM/
+  EACCES/EBUSY while its holder deletes it); the `transaction` JSDoc says the store is not
+  re-entrant (no store mutation inside `fn`). **Hand-over to task-008:** keep `fn` free of side
+  effects (it may run twice) and never call a store mutation inside it. The third pass saw the
+  REQ-PERF-06 launcher test at 4.19 s and the TypeDoc build test time out with load average
+  57–67 on 12 cores (other projects' builds); both pass when re-run alone — re-run the full suite
+  on a quiet machine before merging.
