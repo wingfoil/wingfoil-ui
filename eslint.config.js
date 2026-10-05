@@ -3,6 +3,7 @@ import js from '@eslint/js';
 import prettier from 'eslint-config-prettier';
 import globals from 'globals';
 import tseslint from 'typescript-eslint';
+import { methodologyPlugin } from './lint/methodology-literals.js';
 
 const CHILD_PROCESS = '/^(node:)?child_process$/';
 const PROCESS_CALL = 'CallExpression[callee.name=/^(execFile|execFileSync|spawn|spawnSync)$/]';
@@ -92,6 +93,14 @@ export default tseslint.config(
         },
       ],
     },
+  },
+  {
+    // REQ-ARC-05 — methodology independence (TT-ARC-05): no string literal equal to a type or state
+    // name of the three fixtures in server/ and web/, outside presets/ and the tests.
+    files: ['server/**/*.{ts,tsx,mts,cts,js,jsx,mjs,cjs}', 'web/**/*.{ts,tsx,mts,cts,js,jsx,mjs,cjs}'],
+    ignores: ['**/presets/**', '**/*.test.*', '**/*.spec.*'],
+    plugins: { wfui: methodologyPlugin },
+    rules: { 'wfui/no-methodology-literal': 'error' },
   },
   prettier,
 );

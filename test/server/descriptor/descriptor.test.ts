@@ -5,6 +5,7 @@
 // code under test.
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
+import { isDeepStrictEqual } from 'node:util';
 import type { DnaShow, HistoryEntry, MemoryHistory, MemorySearch, MemoryYaml } from '@wingfoil-ui/contracts';
 import { describe, expect, it } from 'vitest';
 import {
@@ -59,7 +60,7 @@ describe('TT-ARC-06 — the standard elements of the three fixtures', () => {
     let ok = 0;
     for (const { kind, id, row } of ROWS) {
       const m = matches(kind).find((x) => x.id === id)!;
-      if (JSON.stringify(observed(describeElement(m, history(kind, id), project(kind)))) === JSON.stringify(row)) ok++;
+      if (isDeepStrictEqual(observed(describeElement(m, history(kind, id), project(kind))), row)) ok++;
     }
     expect(ok / ROWS.length).toBe(1);
   });

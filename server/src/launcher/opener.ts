@@ -13,6 +13,8 @@ export interface OpenerCommand {
 
 /** The opener of `platform` for `url`. */
 export function openerCommand(platform: NodeJS.Platform, url: string): OpenerCommand {
+  // The macOS program `open`, not a Memory state (REQ-ARC-05's one justified exception).
+  // eslint-disable-next-line wfui/no-methodology-literal
   if (platform === 'darwin') return { file: 'open', args: [url] };
   if (platform === 'win32') return { file: 'rundll32', args: ['url.dll,FileProtocolHandler', url] };
   return { file: 'xdg-open', args: [url] };

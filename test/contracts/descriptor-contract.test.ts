@@ -127,10 +127,16 @@ describe.each(VERSIONS)('action descriptor — wingfoil %s', (version) => {
       };
       let copy = await fresh();
       const mismatches: string[] = [];
+      // A legal move the CLI refuses on the element's content — an empty required field of
+      // `memory.yaml` (W-01: custom `adr-001-local-server`'s `sard_ref`) — is still offered: the UI
+      // shows the CLI's message (action-feedback.feature, G-01.3). Listed, not hidden.
+      const contentRefusals: string[] = [];
       for (const d of described[kind].descriptors) {
+        const required = described[kind].memoryYaml.types[d.type]?.required ?? [];
         for (const op of OPS) {
           const offered = d.verbs.find((v) => v.verb === op);
           let accepted: string | undefined;
+          let refusal = '';
           try {
             const out = await copy.cli.run(`memory ${op}`, {
               positionals: [d.id],
@@ -139,6 +145,11 @@ describe.each(VERSIONS)('action descriptor — wingfoil %s', (version) => {
             accepted = out.data.to;
           } catch (error) {
             if (!(error instanceof CliRefusedError)) throw error;
+            refusal = error.message;
+          }
+          if (offered && accepted === undefined && required.some((f) => refusal.includes(f))) {
+            contentRefusals.push(`${d.id} ${op}`);
+            continue;
           }
           if (accepted !== offered?.to)
             mismatches.push(`${d.id} ${op}: CLI ${accepted ?? 'refused'}, offered ${offered?.to ?? 'no'}`);
@@ -146,6 +157,7 @@ describe.each(VERSIONS)('action descriptor — wingfoil %s', (version) => {
         }
       }
       expect(mismatches).toEqual([]);
+      expect(contentRefusals).toEqual(kind === 'custom' ? ['adr-001-local-server submit'] : []);
     },
     600_000,
   );
