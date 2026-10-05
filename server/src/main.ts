@@ -4,9 +4,11 @@
  * @packageDocumentation
  */
 import { readFileSync } from 'node:fs';
+import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { message } from './i18n/messages.js';
 import { EXIT, runLauncher } from './launcher/start.js';
+import { resolveStateDir } from './state/location.js';
 
 /** Run the console with the command-line arguments `argv`. */
 export async function main(argv: readonly string[]): Promise<void> {
@@ -19,6 +21,7 @@ export async function main(argv: readonly string[]): Promise<void> {
       stderr: (line) => process.stderr.write(`${line}\n`),
       version,
       staticDir: fileURLToPath(new URL('../../web/dist/', import.meta.url)),
+      stateDir: resolveStateDir({ env: process.env, platform: process.platform, homedir: homedir() }),
       platform: process.platform,
       onSignal: (handler) => {
         process.on('SIGINT', handler);

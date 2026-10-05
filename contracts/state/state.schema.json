@@ -1,0 +1,68 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://wingfoil-ui.local/contracts/state/state.schema.json",
+  "title": "WingFoil UI local state (state.json)",
+  "description": "The local state file of spec-006 §2, version 1. Never holds a token, a session id, a git credential or an environment variable value (REQ-SEC-09).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "projects", "settings", "actionLog"],
+  "properties": {
+    "version": {
+      "description": "Format version; 1 for spec-006. A greater value is read for the known fields only and never written back.",
+      "type": "integer",
+      "minimum": 1
+    },
+    "projects": {
+      "description": "The project list, in insertion order (the switcher's order, S-17.1). Ids are unique (checked by the reader).",
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/project"
+      }
+    },
+    "settings": {
+      "description": "Reserved for the UI settings (v0.2); {} in v0.1.",
+      "type": "object"
+    },
+    "actionLog": {
+      "description": "Reserved for the action log (REQ-SEC-10); [] in v0.1.",
+      "type": "array"
+    }
+  },
+  "definitions": {
+    "project": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "path", "name", "remote", "addedAt", "roleView"],
+      "properties": {
+        "id": {
+          "description": "Opaque id: p_ + 12 lower-case Crockford base32 characters (60 random bits), never derived from the path (REQ-SEC-04).",
+          "type": "string",
+          "pattern": "^p_[0-9abcdefghjkmnpqrstvwxyz]{12}$"
+        },
+        "path": {
+          "description": "Absolute realpath of the working directory at add time (POSIX or Windows).",
+          "type": "string",
+          "pattern": "^(/|[A-Za-z]:[\\\\/]|\\\\\\\\)"
+        },
+        "name": {
+          "description": "dna.project.name, refreshed on every successful open.",
+          "type": "string"
+        },
+        "remote": {
+          "description": "URL of origin, trimmed, without any credential, or \"\" (REQ-SEC-09): a URL form (scheme://) holds no '@' at all (userinfo removed, other '@' percent-encoded). The scp-like form user@host:path is kept as typed.",
+          "type": "string",
+          "pattern": "^(?!\\s)(?![\\s\\S]*\\s$)(?![A-Za-z][A-Za-z0-9+.-]*://[\\s\\S]*@)"
+        },
+        "addedAt": {
+          "description": "ISO 8601 UTC time of the add.",
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d+)?Z$"
+        },
+        "roleView": {
+          "description": "Last role view chosen for this project (S-22.3); \"\" = the shell's default.",
+          "type": "string"
+        }
+      }
+    }
+  }
+}

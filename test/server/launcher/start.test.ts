@@ -46,6 +46,8 @@ function testIo(spawn?: Spawner): TestIo {
     stderr: (line) => io.err.push(line),
     version: '9.9.9',
     staticDir,
+    // Never the user's own state directory (spec-006 §1).
+    stateDir: path.join(staticDir, 'state'),
     platform: 'linux',
     onSignal: (h) => {
       handler = h;
