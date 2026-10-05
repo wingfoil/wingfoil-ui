@@ -2,7 +2,7 @@
 id: task-001-workspace-tooling-and-e2e-harness
 type: task
 title: "Workspace tooling and e2e harness"
-status: approved
+status: done
 release: "v0.1"
 module: "server"             # optional — server | web | contracts (dna.yaml modules)
 priority: "high"           # optional — high | medium | low
