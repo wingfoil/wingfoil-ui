@@ -108,11 +108,21 @@ list is notified by the `projects` event (spec-004 §6).
 
 ### 4. Reads and writes
 
-- Read once at start and before every mutation (re-read, modify, write), so that two consoles on
-  different ports (spec-004 §2) do not silently drop each other's additions; a mutation of the
-  same entry by both is last-writer-wins.
-- Every write is atomic: write `state.json.tmp-<process id>` in the same directory, `fsync`, rename over
-  `state.json`. Mutations inside one server are serialised by an in-process lock.
+- Read once at start, before every mutation (re-read, modify, write) and when the list is served
+  (`reload`), so that two consoles on different ports (spec-004 §2) see and keep each other's
+  additions; a mutation of the same entry by both is last-writer-wins.
+- **Lock between consoles:** every re-read → write runs under `state.json.lock` in the state
+  directory, created exclusively (`wx`) and holding `<hostname> <pid> <nonce>`. The holder
+  refreshes its modification time every quarter of the stale age (10 s); a lock is stale when
+  not refreshed for 10 s, or when its host is this machine's and its pid is dead. A waiter
+  retries with a short backoff and gives up after 15 s (the mutation fails). The lock is removed
+  only by the console whose nonce it holds. A transaction is short: no clone, CLI or network
+  call inside it (slow work first, then its premises are re-checked under the lock).
+- Every write is atomic: write a temporary file unique to the writer in the same directory
+  (`state.json.tmp-<pid>-<n>`, created exclusively, mode `0600`), `fsync`, rename over
+  `state.json`; temporary files of dead processes are removed on open. Mutations inside one
+  server are serialised by an in-process lock. A mutation that changes nothing creates no
+  directory or file.
 - Warnings for the shell are returned by `GET /api/server` (spec-004 §3) in
   `warnings: [{ key, args }]` (keys of the web catalogue, spec-008 §5).
 - **Missing file** → empty state (first start, S-01.1).
@@ -158,3 +168,8 @@ a project (REQ-SEC-09). The secret scan of REQ-SEC-09 runs over the state direct
   values of `GET /api/projects`; `projects` event.
 - 2026-10-04 — re-verification of the release-planning audit (N4): `GET /api/projects` returns
   `path` and `remote` for the switcher (ux-reference §3); paths stay out of URLs only.
+- 2026-10-05 — amended in dev-loop task-007 (independent review, three passes), decided by the
+  user: §4 lock protocol between consoles (`state.json.lock`: host, pid, nonce, heartbeat, 10 s
+  staleness, 15 s give-up, short transactions), temporary file `state.json.tmp-<pid>-<n>` with the
+  sweep of dead processes' files, `reload` when the list is served, no directory for a no-op. The
+  lock is an interface between consoles and builds: a build that skips it brings lost updates back.

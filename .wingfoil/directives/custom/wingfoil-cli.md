@@ -9,7 +9,7 @@ tags: [custom, wingfoil, cli, governance]
 
 # Directive — Using the pinned WingFoil CLI
 
-**Version:** 1.3 · **Date:** 2026-10-05 (1.1: W-13; 1.2: W-14…W-20 — initial-design rl-v1; 1.3: W-20 task hand transitions, W-21 — dev-loop task-001) · **Checked against:** `wingfoil@0.2.2`
+**Version:** 1.4 · **Date:** 2026-10-05 (1.1: W-13; 1.2: W-14…W-20 — initial-design rl-v1; 1.3: W-20 task hand transitions, W-21 — dev-loop task-001; 1.4: W-22 — dev-loop task-004) · **Checked against:** `wingfoil@0.2.2`
 
 Global. Applies to every role, human or agent, that changes this project's governance state
 (DNA, Memory, directives, plans) — and to the UI code that drives the CLI for other projects.
@@ -56,3 +56,4 @@ the way to work with each. It is a living list:
 | W-19 | `memory search` excludes archived elements (`deprecated`, `superseded`) unless `--status` names them; with no match it adds a `message` field; `--version` prints plain text even with `--format json` | List archived elements with `--status deprecated` / `--status superseded` when needed; accept `message`; parse `--version` as text | — |
 | W-20 | The refusal of `submit` from a waiting state names a wrong target (custom `task` in `backlog`: `illegal transition backlog -> pending`) | Treat the message as "not allowed from this state"; the UI never offers `submit` from a waiting state (spec-003). For this project's tasks, `backlog → in-progress` and `approved → done` have no verb: set `status:` by hand and commit `wf(task): <id> [<from> → <to>]` (dev-loop `start` and `done`) | — |
 | W-21 | `memory add` always writes `status: draft`, even when the type's `sequence` starts with another state (`story` `idea → …`): the new element is in an undeclared state and `submit` fails (`invalid state 'draft' for type 'story'`) | Declare `draft` as the first state of every type; the e2e `unknown` fixture amends the add commit to the first declared state (test harness `addInState`). `memory search` does list elements in an undeclared state (with their `status`) | — |
+| W-22 | Exit status 2 is not always plain text: a missing required argument answers JSON on stderr even before `--format json` applies (`memory approve <id>` → `{"error":"missing required argument: --reason"}`, same for `memory add` without `--title`); an unknown option is plain text (`error: unknown option '--bogus'`). Positionals after `--` are taken literally (`memory history -- --version` → `document not found: --version`) | Treat exit 2 as an adapter defect whatever the stderr format (spec-001 §2); pass user positionals after `--`; log stderr truncated (it may quote a value) | — |
