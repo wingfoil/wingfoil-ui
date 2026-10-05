@@ -1,0 +1,28 @@
+{
+  "id": "bug-001-crash-on-save",
+  "path": "docs/memory/bug/bug-001-crash-on-save.md",
+  "entries": [
+    {
+      "sha": "6901ac83cab386411813da36efd387e1ad568496",
+      "author": "Sam <sam@example.test>",
+      "timestamp": "2026-09-29T15:20:09+00:00",
+      "operation": "add",
+      "from": null,
+      "to": "draft",
+      "approver": null,
+      "reason": null,
+      "subject": "wf(bug): add bug-001-crash-on-save"
+    },
+    {
+      "sha": "92678d97a44f1fbf54b008bf1b754e2cdab176a5",
+      "author": "Sam <sam@example.test>",
+      "timestamp": "2026-09-29T15:20:10+00:00",
+      "operation": "submit",
+      "from": "draft",
+      "to": "pending",
+      "approver": null,
+      "reason": null,
+      "subject": "wf(bug): submit bug-001-crash-on-save"
+    }
+  ]
+}

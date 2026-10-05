@@ -1,0 +1,39 @@
+{
+  "id": "task-003-logout",
+  "path": "docs/memory/task/task-003-logout.md",
+  "entries": [
+    {
+      "sha": "3dda20dbefe3a59ae68727cf53ae6f5e945b385d",
+      "author": "Jordan <jordan@example.test>",
+      "timestamp": "2026-09-29T15:20:05+00:00",
+      "operation": "add",
+      "from": null,
+      "to": "draft",
+      "approver": null,
+      "reason": null,
+      "subject": "wf(task): add task-003-logout"
+    },
+    {
+      "sha": "cfee80f9e647a08bc6feede0b84b680bb3b50a41",
+      "author": "Jordan <jordan@example.test>",
+      "timestamp": "2026-09-29T15:20:06+00:00",
+      "operation": "submit",
+      "from": "draft",
+      "to": "pending",
+      "approver": null,
+      "reason": null,
+      "subject": "wf(task): submit task-003-logout"
+    },
+    {
+      "sha": "da2fa6e3aa27802e4996853b2160a537a963c5bb",
+      "author": "Morgan <morgan@example.test>",
+      "timestamp": "2026-09-29T15:20:07+00:00",
+      "operation": "approve",
+      "from": "pending",
+      "to": "approved",
+      "approver": "Morgan <morgan@example.test> (approver)",
+      "reason": "Approved",
+      "subject": "wf(task): approve task-003-logout [pending → approved]"
+    }
+  ]
+}

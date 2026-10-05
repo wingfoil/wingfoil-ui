@@ -1,0 +1,195 @@
+{
+  "entries": [
+    {
+      "path": "directives/built-in/architecture.md",
+      "frontmatter": {
+        "id": "architecture",
+        "name": "Architecture",
+        "type": "directive",
+        "kind": "built-in",
+        "title": "Architecture",
+        "tags": [
+          "built-in",
+          "architecture"
+        ],
+        "ref": [
+          "P3.8"
+        ]
+      },
+      "roles": [
+        "architect",
+        "tech-lead"
+      ],
+      "global": false,
+      "assignment": "architect, tech-lead"
+    },
+    {
+      "path": "directives/built-in/code-quality.md",
+      "frontmatter": {
+        "id": "code-quality",
+        "name": "Code Quality",
+        "type": "directive",
+        "kind": "built-in",
+        "title": "Code Quality",
+        "tags": [
+          "built-in",
+          "code-quality"
+        ],
+        "ref": [
+          "P3.8"
+        ]
+      },
+      "roles": [
+        "developer"
+      ],
+      "global": false,
+      "assignment": "developer"
+    },
+    {
+      "path": "directives/built-in/code-review.md",
+      "frontmatter": {
+        "id": "code-review",
+        "name": "Code Review",
+        "type": "directive",
+        "kind": "built-in",
+        "title": "Code Review",
+        "tags": [
+          "built-in",
+          "code-review"
+        ],
+        "ref": [
+          "P3.8"
+        ]
+      },
+      "roles": [
+        "reviewer",
+        "tech-lead"
+      ],
+      "global": false,
+      "assignment": "reviewer, tech-lead"
+    },
+    {
+      "path": "directives/built-in/documentation.md",
+      "frontmatter": {
+        "id": "documentation",
+        "name": "Documentation",
+        "type": "directive",
+        "kind": "built-in",
+        "title": "Documentation",
+        "tags": [
+          "built-in",
+          "documentation"
+        ],
+        "ref": [
+          "P3.8"
+        ]
+      },
+      "roles": [],
+      "global": true,
+      "assignment": "global (all roles)"
+    },
+    {
+      "path": "directives/built-in/security.md",
+      "frontmatter": {
+        "id": "security",
+        "name": "Security",
+        "type": "directive",
+        "kind": "built-in",
+        "title": "Security",
+        "tags": [
+          "built-in",
+          "security"
+        ],
+        "ref": [
+          "P3.8"
+        ]
+      },
+      "roles": [],
+      "global": false,
+      "assignment": "unassigned"
+    },
+    {
+      "path": "directives/built-in/testing.md",
+      "frontmatter": {
+        "id": "testing",
+        "name": "Testing",
+        "type": "directive",
+        "kind": "built-in",
+        "title": "Testing",
+        "tags": [
+          "built-in",
+          "testing"
+        ],
+        "ref": [
+          "P3.8"
+        ]
+      },
+      "roles": [
+        "developer",
+        "qa"
+      ],
+      "global": false,
+      "assignment": "developer, qa"
+    },
+    {
+      "path": "directives/custom/determinism.md",
+      "frontmatter": {
+        "id": "determinism",
+        "name": "determinism",
+        "type": "directive",
+        "kind": "custom",
+        "title": "Determinism"
+      },
+      "roles": [
+        "architect",
+        "developer"
+      ],
+      "global": false,
+      "assignment": "architect, developer"
+    },
+    {
+      "path": "directives/custom/doc-versioning.md",
+      "frontmatter": {
+        "id": "doc-versioning",
+        "name": "doc-versioning",
+        "type": "directive",
+        "kind": "custom",
+        "title": "Documentation versioning"
+      },
+      "roles": [],
+      "global": true,
+      "assignment": "global (all roles)"
+    },
+    {
+      "path": "directives/custom/security-secrets.md",
+      "frontmatter": {
+        "id": "security-secrets",
+        "name": "security-secrets",
+        "type": "directive",
+        "kind": "custom",
+        "title": "Secret hygiene"
+      },
+      "roles": [],
+      "global": true,
+      "assignment": "global (all roles)"
+    },
+    {
+      "path": "directives/custom/traceability.md",
+      "frontmatter": {
+        "id": "traceability",
+        "name": "traceability",
+        "type": "directive",
+        "kind": "custom",
+        "title": "Traceability"
+      },
+      "roles": [
+        "architect",
+        "product-owner",
+        "reviewer"
+      ],
+      "global": false,
+      "assignment": "architect, product-owner, reviewer"
+    }
+  ],
+  "warnings": []
+}

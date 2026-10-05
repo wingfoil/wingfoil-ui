@@ -1,0 +1,17 @@
+{
+  "id": "adr-001-local-server",
+  "path": "docs/04_memory/design/adrs/adr-001-local-server.md",
+  "entries": [
+    {
+      "sha": "746774930eac99586281ffce2b58023f19acdbd7",
+      "author": "Alex <alex@example.test>",
+      "timestamp": "2026-09-29T15:20:25+00:00",
+      "operation": "add",
+      "from": null,
+      "to": "draft",
+      "approver": null,
+      "reason": null,
+      "subject": "wf(adr): add adr-001-local-server"
+    }
+  ]
+}

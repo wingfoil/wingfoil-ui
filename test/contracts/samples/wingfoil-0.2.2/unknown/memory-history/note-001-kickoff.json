@@ -1,0 +1,17 @@
+{
+  "id": "note-001-kickoff",
+  "path": "docs/notes/note-001-kickoff.md",
+  "entries": [
+    {
+      "sha": "323d6adeb37db1af1a4c89ab737032121bb5e040",
+      "author": "Casey <casey@example.test>",
+      "timestamp": "2026-09-29T15:20:07+00:00",
+      "operation": "add",
+      "from": null,
+      "to": "open",
+      "approver": null,
+      "reason": null,
+      "subject": "wf(note): add note-001-kickoff"
+    }
+  ]
+}

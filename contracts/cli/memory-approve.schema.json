@@ -1,0 +1,23 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://wingfoil-ui.local/contracts/cli/memory-approve.schema.json",
+  "$comment": "wingfoil 0.2.2 — captured from `wingfoil --format json memory approve <id> --reason <text>` on the kanban and custom fixtures.",
+  "title": "wingfoil memory approve <id> --reason <text>",
+  "description": "A gate passed (spec-001 §3).",
+  "type": "object",
+  "required": ["id", "path", "from", "to"],
+  "properties": {
+    "id": {
+      "type": "string"
+    },
+    "path": {
+      "type": "string"
+    },
+    "from": {
+      "type": "string"
+    },
+    "to": {
+      "type": "string"
+    }
+  }
+}

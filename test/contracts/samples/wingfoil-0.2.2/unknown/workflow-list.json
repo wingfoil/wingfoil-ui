@@ -1,0 +1,98 @@
+{
+  "manifest": {
+    "version": 1,
+    "include": [
+      "workflows/custom/sw-life-cycle.yaml",
+      "workflows/custom/bug-ingest.yaml",
+      "workflows/custom/decision-log-ingest.yaml",
+      "workflows/custom/adr-ingest.yaml",
+      "workflows/custom/kanban-delivery.yaml"
+    ]
+  },
+  "workflows": [
+    {
+      "name": "sw-life-cycle",
+      "kind": "main",
+      "description": "The end-to-end software life cycle",
+      "phases": [
+        {
+          "name": "inception",
+          "optional": false
+        },
+        {
+          "name": "specification",
+          "optional": false
+        },
+        {
+          "name": "delivery",
+          "optional": false,
+          "include": "workflows/custom/kanban-delivery.yaml"
+        },
+        {
+          "name": "sunset",
+          "optional": false
+        }
+      ]
+    },
+    {
+      "name": "bug-ingest",
+      "kind": "main",
+      "description": "Capture a bug on demand",
+      "phases": [
+        {
+          "name": "capture",
+          "optional": false
+        }
+      ]
+    },
+    {
+      "name": "decision-log-ingest",
+      "kind": "main",
+      "description": "Capture a decision-log on demand",
+      "phases": [
+        {
+          "name": "capture",
+          "optional": false
+        }
+      ]
+    },
+    {
+      "name": "adr-ingest",
+      "kind": "main",
+      "description": "Capture an ADR on demand",
+      "phases": [
+        {
+          "name": "capture",
+          "optional": false
+        }
+      ]
+    },
+    {
+      "name": "kanban-delivery",
+      "kind": "sub",
+      "description": "Kanban delivery loop",
+      "phases": [
+        {
+          "name": "plan",
+          "description": "Select the next slice of work to deliver.",
+          "optional": false
+        },
+        {
+          "name": "build",
+          "description": "Implement the work test-first (TDD).",
+          "optional": false
+        },
+        {
+          "name": "review",
+          "description": "Review against the directives; run unit + acceptance tests.",
+          "optional": false
+        },
+        {
+          "name": "deliver",
+          "description": "Integrate the completed work.",
+          "optional": false
+        }
+      ]
+    }
+  ]
+}

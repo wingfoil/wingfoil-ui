@@ -1,0 +1,45 @@
+{
+  "query": "",
+  "matches": [
+    {
+      "path": "docs/memory/bug/bug-001-crash-on-save.md",
+      "id": "bug-001-crash-on-save",
+      "title": "Crash on save",
+      "type": "bug",
+      "status": "pending",
+      "tags": []
+    },
+    {
+      "path": "docs/memory/task/task-001-login-form.md",
+      "id": "task-001-login-form",
+      "title": "Login form",
+      "type": "task",
+      "status": "pending",
+      "tags": []
+    },
+    {
+      "path": "docs/memory/task/task-002-password-reset.md",
+      "id": "task-002-password-reset",
+      "title": "Password reset",
+      "type": "task",
+      "status": "draft",
+      "tags": []
+    },
+    {
+      "path": "docs/memory/task/task-003-logout.md",
+      "id": "task-003-logout",
+      "title": "Logout",
+      "type": "task",
+      "status": "approved",
+      "tags": []
+    },
+    {
+      "path": "docs/memory/task/task-004-session-timeout.md",
+      "id": "task-004-session-timeout",
+      "title": "Session timeout",
+      "type": "task",
+      "status": "draft",
+      "tags": []
+    }
+  ]
+}

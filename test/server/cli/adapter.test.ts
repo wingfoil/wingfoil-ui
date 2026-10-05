@@ -180,7 +180,7 @@ describe('TT-INT-04 — result classification (spec-001 §2)', () => {
   it('exit 1: a refusal with the CLI message verbatim (real CLI), mapped to 422 cli-refused', async () => {
     const fx = await freshKanban();
     const { cli } = await adapterFor(fx);
-    const error = await cli.json(['memory', 'submit', 'task-999-nope']).catch((e: unknown) => e);
+    const error = await cli.json(['memory', 'submit'], { positionals: ['task-999-nope'] }).catch((e: unknown) => e);
     expect(error).toBeInstanceOf(CliRefusedError);
     expect((error as CliRefusedError).cliMessage).toBe('document not found: task-999-nope');
     expect(cliErrorEnvelope(error as CliRefusedError)).toEqual({

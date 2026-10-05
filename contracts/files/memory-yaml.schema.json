@@ -1,0 +1,102 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://wingfoil-ui.local/contracts/files/memory-yaml.schema.json",
+  "$comment": "wingfoil 0.2.2 — checked on the memory.yaml of the kanban (template), custom (this repository) and unknown (hand-written) fixtures.",
+  "title": ".wingfoil/memory.yaml (subset)",
+  "description": "The keys of memory.yaml the server reads directly (spec-001 §4.1, adr-001 D1a); other keys are ignored. As WingFoil 0.2.2's dist/memory/schema.js: version a positive number, id_pattern optional. Merge keys (<<) are resolved, as js-yaml does.",
+  "type": "object",
+  "required": ["version", "types"],
+  "properties": {
+    "version": {
+      "type": "number",
+      "exclusiveMinimum": 0
+    },
+    "defaults": {
+      "type": "object",
+      "properties": {
+        "states": {
+          "$ref": "#/definitions/states"
+        }
+      }
+    },
+    "types": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["path"],
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "id_pattern": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "template": {
+            "type": "object",
+            "properties": {
+              "frontmatter": {
+                "type": "object",
+                "properties": {
+                  "required": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "states": {
+            "$ref": "#/definitions/states"
+          }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "states": {
+      "type": "object",
+      "required": ["sequence"],
+      "properties": {
+        "sequence": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          }
+        },
+        "gates": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "required": ["reject"],
+            "properties": {
+              "reject": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "waiting": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,6 +1,6 @@
 # Tests
 
-**Version:** 0.5 · **Date:** 2026-10-05 (0.1: workspace tooling and e2e harness — task-001; 0.2: `test/launcher/`, `test/server/` — task-002; 0.3: `test/contracts/`, local state isolation, secret scan — task-007; 0.4: `local-security` suite — task-003; 0.5: process runner fake, hand-made CLI packages, stub after global options — task-004)
+**Version:** 0.6 · **Date:** 2026-10-05 (0.1: workspace tooling and e2e harness — task-001; 0.2: `test/launcher/`, `test/server/` — task-002; 0.3: `test/contracts/`, local state isolation, secret scan — task-007; 0.4: `local-security` suite — task-003; 0.5: process runner fake, hand-made CLI packages, stub after global options — task-004; 0.6: CLI contract tests, captured samples, `test:contract` — task-005)
 
 Every test lives under `test/` (DNA `paths.tests`); sources stay in `server/src`, `web/src`,
 `contracts/src`.
@@ -9,6 +9,7 @@ Every test lives under `test/` (DNA `paths.tests`); sources stay in `server/src`
 |---------|--------------|
 | `npm test` | Vitest: every `test/**/*.test.ts` (unit, contract, harness, gates) |
 | `npm run test:coverage` | the same with v8 coverage of `server/`, `contracts/`, `web/` (threshold 80 %, dev-loop `refactor`) |
+| `npm run test:contract` | the contract tests of `test/contracts/` (e2e-smoke `contract`, spec-001 §7) |
 | `npm run test:e2e` | Playwright: `test/e2e/**/*.spec.ts`, Chromium only in v0.1 (REQ-INT-08 staged) |
 | `npm run lint` · `npm run format:check` · `npm run typecheck` · `npm run docs:api` | ESLint (with the REQ-SEC-05 no-shell rule on `server/`), Prettier, `tsc`, TypeDoc of `server/` and `contracts/` |
 
@@ -28,7 +29,20 @@ Every test lives under `test/` (DNA `paths.tests`); sources stay in `server/src`
   in-memory fake of the process runner port (adr-002); `cli/fake-cli.ts` writes hand-made `wingfoil`
   packages (a marking or sleeping CLI) and installs a package globally (`<prefix>/bin/wingfoil` →
   `<prefix>/lib/node_modules/wingfoil/…`) for the discovery tests.
-- `test/contracts/` — the JSON Schemas of `contracts/` (e.g. `state/state.schema.json`).
+  `reads/project-reads.test.ts` is the REQ-ARC-04 file-system spy: `vi.mock('node:fs/promises')`
+  and `vi.mock('node:fs')` record every call while the read facade runs on real fixtures.
+- `test/contracts/` — the JSON Schemas of `contracts/` (e.g. `state/state.schema.json`) and the CLI
+  contract tests (spec-001 §7, adr-001 D4): `cli-contract.test.ts` builds the three fixtures with
+  the CLI of every version of `contracts/matrix.json` (`support.ts`: `cliBuildFor(version)`), runs
+  every command of the adapter's static list (`server/src/cli/commands.ts`) through the adapter —
+  reads on the fixtures, writes and the archived searches on copies — and every direct reader on
+  every file the CLI points at, and checks the §4.1 state resolution against the transitions the
+  CLI reports. `schemas.test.ts` validates the samples of `samples/wingfoil-<version>/<fixture>/`:
+  real CLI output (`<command>.json`, `memory-history/<id>.json`, `version.txt`) and the
+  allow-listed files as found (`files/`), captured with
+  `WFUI_CAPTURE_SAMPLES=1 npx vitest run test/contracts/capture-samples.test.ts` (skipped
+  otherwise; Prettier leaves `samples/` as captured). A matrix advance re-captures them and adds the
+  new version's build to `cliBuildFor`.
 - `test/lint/`, `test/docs/` — the dev-loop gates `lint.clean`, `docs.api.*`.
 
 ## Fixtures

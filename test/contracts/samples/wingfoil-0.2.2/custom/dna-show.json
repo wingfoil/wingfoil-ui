@@ -1,0 +1,227 @@
+{
+  "version": 1,
+  "project": {
+    "name": "custom",
+    "description": "Local web UI for WingFoil-governed projects, served by a local server that drives the wingfoil CLI.",
+    "license": "MIT",
+    "repository": "wingfoil-ui",
+    "methodology": "custom"
+  },
+  "modules": [
+    {
+      "name": "server",
+      "description": "Local HTTP server and WingFoil CLI adapter (placeholder until initial-design)",
+      "path": "server/"
+    },
+    {
+      "name": "web",
+      "description": "Browser UI (placeholder until initial-design)",
+      "path": "web/"
+    },
+    {
+      "name": "contracts",
+      "description": "JSON schemas of the consumed WingFoil CLI output (placeholder until initial-design)",
+      "path": "contracts/"
+    }
+  ],
+  "stacks": {
+    "technologies": [
+      {
+        "name": "TypeScript",
+        "category": "language"
+      },
+      {
+        "name": "Node.js",
+        "category": "runtime",
+        "version": "22.12+"
+      },
+      {
+        "name": "npm",
+        "category": "package manager"
+      },
+      {
+        "name": "WingFoil CLI",
+        "category": "governance",
+        "version": "0.2.2",
+        "notes": "pinned devDependency; also the CLI contract the UI consumes"
+      },
+      {
+        "name": "git",
+        "category": "version control"
+      },
+      {
+        "name": "Playwright",
+        "category": "e2e testing",
+        "notes": "confirmed by adr-002: e2e on Chromium, Firefox, WebKit"
+      },
+      {
+        "name": "axe-core",
+        "category": "accessibility testing",
+        "notes": "confirmed by adr-002: @axe-core/playwright, both themes"
+      },
+      {
+        "name": "Fastify",
+        "category": "server framework",
+        "notes": "adr-002: HTTP API and SSE, JSON Schema validation (Ajv), pino"
+      },
+      {
+        "name": "React",
+        "category": "frontend framework",
+        "notes": "adr-002"
+      },
+      {
+        "name": "Vite",
+        "category": "bundler",
+        "notes": "adr-002: dev server and static SPA build"
+      },
+      {
+        "name": "React Aria Components",
+        "category": "accessibility",
+        "notes": "adr-002: accessible primitives (WCAG 2.1 AA)"
+      },
+      {
+        "name": "TanStack Query",
+        "category": "frontend state",
+        "notes": "adr-002: server state, invalidated by the event stream"
+      },
+      {
+        "name": "TanStack Router",
+        "category": "frontend routing",
+        "notes": "adr-002"
+      },
+      {
+        "name": "FormatJS",
+        "category": "i18n",
+        "notes": "adr-002: react-intl message catalogues"
+      },
+      {
+        "name": "Vitest",
+        "category": "unit testing",
+        "notes": "adr-002: unit, component and contract tests"
+      }
+    ],
+    "methodologies": [
+      {
+        "name": "Lean Inception",
+        "phase": "inception"
+      },
+      {
+        "name": "User Story Mapping",
+        "phase": "specification"
+      },
+      {
+        "name": "Specification by Example (BDD)",
+        "phase": "specification"
+      },
+      {
+        "name": "SARD",
+        "phase": "specification"
+      },
+      {
+        "name": "TDD",
+        "phase": "delivery"
+      }
+    ]
+  },
+  "team": {
+    "members": [
+      {
+        "name": "Morgan",
+        "email": "morgan@example.test",
+        "roles": [
+          "approver",
+          "tech-lead"
+        ]
+      },
+      {
+        "name": "Casey",
+        "email": "casey@example.test",
+        "roles": [
+          "product-owner"
+        ]
+      },
+      {
+        "name": "Jordan",
+        "email": "jordan@example.test",
+        "roles": [
+          "developer"
+        ]
+      },
+      {
+        "name": "Sam",
+        "email": "sam@example.test",
+        "roles": [
+          "reviewer"
+        ]
+      },
+      {
+        "name": "Alex",
+        "email": "alex@example.test",
+        "roles": [
+          "tech-lead",
+          "architect",
+          "developer",
+          "reviewer",
+          "product-owner",
+          "approver",
+          "qa"
+        ]
+      }
+    ],
+    "agents": [
+      {
+        "name": "Build agent",
+        "executes_as": [
+          "developer"
+        ],
+        "approval_authority": false
+      }
+    ],
+    "roles": [
+      {
+        "name": "developer"
+      },
+      {
+        "name": "reviewer"
+      },
+      {
+        "name": "qa"
+      },
+      {
+        "name": "architect"
+      },
+      {
+        "name": "product-owner"
+      },
+      {
+        "name": "tech-lead"
+      },
+      {
+        "name": "approver"
+      },
+      {
+        "name": "facilitator",
+        "description": "Drives discovery/inception sessions (Lean Inception)."
+      }
+    ]
+  },
+  "paths": {
+    "sources": [
+      "server/",
+      "web/",
+      "contracts/"
+    ],
+    "tests": [
+      "test/"
+    ],
+    "docs": [
+      "docs/"
+    ],
+    "config": [
+      "package.json"
+    ],
+    "governance": [
+      ".wingfoil/"
+    ]
+  }
+}

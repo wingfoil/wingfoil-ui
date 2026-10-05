@@ -1,0 +1,61 @@
+{
+  "id": "task-001-cli-adapter",
+  "path": "docs/04_memory/v0.1/task-001-cli-adapter.md",
+  "entries": [
+    {
+      "sha": "3edd821849475f6afd49c37f955895903302c5ab",
+      "author": "Jordan <jordan@example.test>",
+      "timestamp": "2026-09-29T15:20:00+00:00",
+      "operation": "add",
+      "from": null,
+      "to": "draft",
+      "approver": null,
+      "reason": null,
+      "subject": "wf(task): add task-001-cli-adapter"
+    },
+    {
+      "sha": "6a72c7ac5be4bd83e24436e8433adcd61637f3ce",
+      "author": "Jordan <jordan@example.test>",
+      "timestamp": "2026-09-29T15:20:01+00:00",
+      "operation": "submit",
+      "from": "draft",
+      "to": "pending",
+      "approver": null,
+      "reason": null,
+      "subject": "wf(task): submit task-001-cli-adapter"
+    },
+    {
+      "sha": "b551d818201717b81276aac76ca677f4ee8ee201",
+      "author": "Morgan <morgan@example.test>",
+      "timestamp": "2026-09-29T15:20:02+00:00",
+      "operation": "approve",
+      "from": "pending",
+      "to": "backlog",
+      "approver": "Morgan <morgan@example.test> (approver)",
+      "reason": "Approved",
+      "subject": "wf(task): approve task-001-cli-adapter [pending → backlog]"
+    },
+    {
+      "sha": "8de637b006486fc40b801f7d336f8388dadfdb4d",
+      "author": "Jordan <jordan@example.test>",
+      "timestamp": "2026-09-29T15:20:03+00:00",
+      "operation": null,
+      "from": "backlog",
+      "to": "in-progress",
+      "approver": null,
+      "reason": null,
+      "subject": "wf(task): task-001-cli-adapter [backlog → in-progress]"
+    },
+    {
+      "sha": "14209dc2557074ee9a4d2c8fcd96b747f6e6e07b",
+      "author": "Jordan <jordan@example.test>",
+      "timestamp": "2026-09-29T15:20:04+00:00",
+      "operation": "submit",
+      "from": "in-progress",
+      "to": "in-review",
+      "approver": null,
+      "reason": null,
+      "subject": "wf(task): submit task-001-cli-adapter"
+    }
+  ]
+}

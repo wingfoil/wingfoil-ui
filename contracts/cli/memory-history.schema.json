@@ -1,0 +1,54 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://wingfoil-ui.local/contracts/cli/memory-history.schema.json",
+  "$comment": "wingfoil 0.2.2 — captured from `wingfoil --format json memory history <id>` for every element of the kanban, custom and unknown fixtures.",
+  "title": "wingfoil memory history <id>",
+  "description": "Audit trail of one element reconstructed from git (spec-001 §3, spec-002 §2). operation is null for a commit that is not a WingFoil verb (e.g. a hand transition, W-20); from is null for add.",
+  "type": "object",
+  "required": ["id", "path", "entries"],
+  "properties": {
+    "id": {
+      "type": "string"
+    },
+    "path": {
+      "type": "string"
+    },
+    "entries": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["sha", "author", "timestamp", "operation", "from", "to", "approver", "reason", "subject"],
+        "properties": {
+          "sha": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{7,64}$"
+          },
+          "author": {
+            "type": "string"
+          },
+          "timestamp": {
+            "type": "string"
+          },
+          "operation": {
+            "enum": ["add", "submit", "approve", "reject", "deprecate", null]
+          },
+          "from": {
+            "type": ["string", "null"]
+          },
+          "to": {
+            "type": ["string", "null"]
+          },
+          "approver": {
+            "type": ["string", "null"]
+          },
+          "reason": {
+            "type": ["string", "null"]
+          },
+          "subject": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}
