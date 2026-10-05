@@ -117,3 +117,109 @@ e2e closure — scenarios that need a screen are proved here by API and unit tes
     `eslint .` finds 0. Scenarios S-28.1, S-28.2, M-02.1–M-02.3 at API/unit level on the built
     fixtures (type list and counts, sequence chips and current state, state filters, buckets) in
     the contract test; their screens close in task-017.
+
+### red / green / refactor (2026-10-05)
+
+- **Red** (`2ba9b68`): `test/server/descriptor/{descriptor,placement}.test.ts` and
+  `test/contracts/descriptor-contract.test.ts` failed on the missing module (`Cannot find module
+  '…/server/src/descriptor/descriptor.js'`); `test/lint/methodology-literals.test.ts` failed on
+  every planted literal (no such rule: 45 failed, 10 passed — the "accepts"/"does not apply" cases).
+- **Green** (`2fc8114`):
+  - `contracts/src/descriptor.ts` — the §8 types (`ActionDescriptor`, `StateKind`, `Tone`,
+    `DescriptorVerb`, `DescriptorActor`, `DescriptorRejection`, `DisabledReason`), exported by the
+    package index (one block added).
+  - `server/src/descriptor/descriptor.ts` — `stateKind`, `toneOf`, `bucketOf`,
+    `describeElement(element, events, project)`, `describeElements(elements, eventsOf, project)`;
+    inputs `DescriptorEvent` (spec-002 §1 subset, oldest first), `Enablement`, `CopyState`,
+    `DescriptorProject`. Verbs use task-005's `transitionTarget`, so they cannot drift from
+    WingFoil's resolution; transitions into the archived set are not offered.
+  - `server/src/descriptor/placement.ts` — `placement(d, user, roleView)`,
+    `compareRequiresYou`, `offeredVerbs(d, roles)`.
+  - `server/src/presets/wingfoil.ts` — `BUILT_IN_STATES`, `DEPRECATED`, `ARCHIVED_STATES`,
+    `ArchivedStatus`, the `approver`/`tech-lead`/`reviewer` roles, moved out of `reads/`
+    (re-exported from `memory-yaml.ts` / `project-reads.ts`, no caller changed);
+    `server/src/presets/descriptor.ts` — the kind→tone and kind→bucket tables and the `archived`
+    kind (see deviation 2).
+  - `lint/methodology-literals.js` + one block in `eslint.config.js` — rule
+    `wfui/no-methodology-literal` on `server/**` and `web/**`, ignoring `**/presets/**`,
+    `*.test.*`, `*.spec.*`: string literals and expression-free template literals (also literal
+    types and keys) equal to a name of the fixtures; module specifiers are not checked. The names
+    (40) are read from `test/contracts/samples/wingfoil-*/<fixture>/files/memory.yaml` (types,
+    sequence, gates, reject targets, waiting) and `memory-search.json` (statuses, e.g. `on-hold`),
+    plus `deprecated`.
+- **How the ACs are proved:**
+  - TT-ARC-06 — `descriptor.test.ts`: the 18 standard elements (captured `memory.yaml`, `memory
+    history`, `dna show`) against the hand-written table `test/server/descriptor/standard.ts`
+    (kind, verbs with targets and roles, actor, rejection, tone, bucket): **18/18 = 100 %**; the
+    table is checked complete against `memory search`. §9 synthetic rows: custom `bug` `triaged`
+    (gate-waiting, reject only), `task` `in-progress` (work, submit, last mover), work after a
+    reject (submitter + reason), `adr` `accepted` and `tech-spec` `approved` (last), a gate on the
+    last state (reject offered), an off-sequence reject target, `superseded`/`deprecated`
+    (archived), an undeclared type, author not in the team / no event / member without email
+    (tech-lead fallback), reject with no earlier submit, reject without reason, an edit after a
+    reject. Enablement order (§6) and "role is not a rule". `placement.test.ts`: §5 on the three
+    fixtures for Jordan, Morgan, Sam, Alex in several views; order; `offeredVerbs`.
+    e2e half — `descriptor-contract.test.ts` on fixtures built with the pinned CLI, inputs through
+    `ProjectReads`: the same table holds on the three fixtures (100 %); §9 contract check: every
+    `submit`/`approve`/`reject` of every element (18 × 3 = 54 tries, a fresh copy after each
+    accepted move) — accepted ⇔ offered, same target, **0 mismatches**, with one listed content
+    refusal (deviation 3).
+  - TT-ARC-05 — `methodology-literals.test.ts`: each of the 40 names is reported in `server/`,
+    plus a template literal, a literal type, an object key, a comparison and a `web/` file; not
+    reported: another word, a longer string, a template with an expression, an import path, and
+    files under `presets/`, tests, `contracts/`. On the repository with inline disables ignored, the
+    rule finds exactly one literal: `"open"` in `server/src/launcher/opener.ts` (deviation 1);
+    `eslint .` is clean. Scenarios at API level in the contract test: S-28.1 (type lists of the
+    three fixtures exactly as the scenario, every element with its own state), S-28.2 / M-02.3
+    (`story` sequence `idea, shaping, ready-to-build, shipped`, `story-001-onboarding` in
+    `shaping`), M-02.1 (`story` 2, `note` 2), M-02.2 (To approve `story-001-onboarding`; In
+    progress `note-002-retro`; Waiting `story-002-billing`, `note-001-kickoff`; Done none) and
+    M-01.2 (kanban To approve `task-001-login-form`, `bug-001-crash-on-save`). Screens: task-017.
+- **Deviations (honest):**
+  1. One inline `eslint-disable-next-line wfui/no-methodology-literal` for the macOS program
+     `'open'` (`opener.ts`), justified in a comment; the lint test pins it as the only hit.
+  2. **Spec conflict (for the coordinator):** spec-003's own words `archived` (kind), `done` and
+     `active` (tones) — and the bucket codes `in-progress`, `done` — equal fixture state names, so
+     the literal rule of REQ-ARC-05 flags them. Interim: the tables holding them live in
+     `server/src/presets/descriptor.ts` (contracts/ is outside the rule's scope). Options: (a)
+     accept this placement (record it in spec-005 §5 / spec-003); (b) rename the descriptor
+     vocabulary (e.g. tone `complete`/`current`, kind `retired`) in spec-003; (c) narrow the fit
+     criterion to methodology names compared against element data.
+  3. §9's "every verb the descriptor enables is accepted" does not hold for content: `memory
+     submit adr-001-local-server` is refused for the empty required `sard_ref` (W-01). The
+     descriptor still offers it, as `action-feedback.feature` (red toast with the CLI message) and
+     G-01.3 require; the contract test lists it as a content refusal (a refusal naming a
+     `required` field of the type) and asserts it is the only one. Proposed spec-003 §9 wording:
+     "…the CLI accepts it, unless it refuses the element's content (an empty required field)".
+  4. Placement: the tech-lead **fallback** actor (author not in the team / no event) is put in
+     *Requires you* of the `tech-lead` view, like an undeclared state; spec-003 §5 lists only
+     `undeclared` there, which would leave such elements in no list of a tech-lead. Requires-you
+     action codes (`submit`, `rework`, `review`, `approve`, `resolve`) are mine.
+  5. `DisabledReason` is a code with parameters, not a text (browser texts are the web
+     catalogue's, spec-008); `rejection.reason` is `null` when the commit has none; `verbs[].role`
+     is `null` for `submit`.
+- **Hand-over to task-012** (the API):
+  - Per repository state, call `describeElements(matches, eventsOf, { memoryYaml, members,
+    enablement })` with `matches` of `ProjectReads.elements()` (archived ones when
+    `?archived=true`), `memoryYaml` of `memoryTypes()` (when it throws a `DirectReadError`, spec-004 §5
+    degrades only type-dependent features: serve the elements without descriptor), `members`
+    of `dna().data.team.members`, `enablement` = `{ identified` (task-009), `version: { supported,
+    range }` (task-006), `localChanges` (set of element ids, task-010) `}`; `copy` is v0.2.
+  - `eventsOf(id)`: **open point 1 of the design** (no owner for spec-002 §3). Interim source:
+    `ProjectReads.history(id).data.entries` (fits `DescriptorEvent`, oldest first) — one process
+    per element, against TT-PERF-05.
+  - Serve `bucketOf(d.kind)` next to each descriptor until spec-003 §8 decides (design gap 2).
+  - Placement/order/offered verbs are for Today (v0.2) and the footers; nothing in v0.1 needs
+    them over HTTP.
+- **Hand-over to task-017/018/web:** render `kind`, `tone`, `verbs`, `actor`, `rejection`,
+  `since`; map `DisabledReason.code` and `actor.note` to catalogue keys; use tone values as data
+  (`tone-${tone}`) — a `web/` literal equal to `done`/`active`/`archived` fails REQ-ARC-05.
+- **Merge note:** sibling tasks adding a literal equal to a fixture state or type name in
+  `server/` (e.g. `'open'`, `'active'`, `'done'`, `'task'`) fail the new rule after merge.
+- **Checks (refactor, 2026-10-05, load average 54–96 on 12 cores from another project):**
+  typecheck, lint, format:check clean · `docs:api` OK · `test:e2e` 3/3 · `check_tasks.py` OK ·
+  `npx vitest run --coverage --coverage.reportOnFailure`: 45 files, **659 passed / 2 failed / 1
+  skipped** in 517 s — the two failures are the known timing tests of bug-001 (REQ-PERF-06 start,
+  TypeDoc build > 30 s) at load ≈ 60; coverage **96.63 %** statements / **90.73 %** branches /
+  96.59 % functions / 98.26 % lines (`server/src/descriptor` 99.2 % / 94.02 %). The descriptor
+  contract test alone: 10/10 in 496 s (the §9 check on custom: 120 s).
