@@ -4,9 +4,13 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { Writable } from 'node:stream';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { createTokenAuthentication } from '../../../server/src/auth/authentication.js';
 import { buildApp } from '../../../server/src/http/app.js';
 import { createLogger } from '../../../server/src/logging.js';
 
+// light-my-request sends `Host: localhost:80`; the API needs the token (task-003 guards).
+const security = { authentication: createTokenAuthentication('test-token'), port: () => 80 };
+const AUTH = { authorization: 'Bearer test-token' };
 let staticDir: string;
 const lines: string[] = [];
 const sink = new Writable({
@@ -29,7 +33,7 @@ afterAll(async () => {
 
 describe('buildApp', () => {
   it('serves the application at /', async () => {
-    const app = await buildApp({ staticDir, logger: createLogger(sink) });
+    const app = await buildApp({ staticDir, logger: createLogger(sink), security });
     const res = await app.inject({ method: 'GET', url: '/' });
     expect(res.statusCode).toBe(200);
     expect(res.headers['content-type']).toMatch(/text\/html/);
@@ -38,7 +42,7 @@ describe('buildApp', () => {
   });
 
   it('serves static assets', async () => {
-    const app = await buildApp({ staticDir, logger: createLogger(sink) });
+    const app = await buildApp({ staticDir, logger: createLogger(sink), security });
     const res = await app.inject({ method: 'GET', url: '/assets/app.js' });
     expect(res.statusCode).toBe(200);
     expect(res.body).toBe('console.log(1)');
@@ -48,8 +52,8 @@ describe('buildApp', () => {
   it.each(['/p/p_abcdefghijkl/memory', '/p/p_abcdefghijkl/releases/v0.1', '/p/x/docs/README.md'])(
     'returns the application for the client-side route %s',
     async (url) => {
-      const app = await buildApp({ staticDir, logger: createLogger(sink) });
-      const res = await app.inject({ method: 'GET', url });
+      const app = await buildApp({ staticDir, logger: createLogger(sink), security });
+      const res = await app.inject({ method: 'GET', url, headers: AUTH });
       expect(res.statusCode).toBe(200);
       expect(res.body).toContain('<title>WingFoil UI</title>');
       await app.close();
@@ -57,9 +61,9 @@ describe('buildApp', () => {
   );
 
   it('answers an unknown /api/ path with the spec-004 error envelope', async () => {
-    const app = await buildApp({ staticDir, logger: createLogger(sink) });
-    for (const url of ['/api/nothing', '/api/']) {
-      const res = await app.inject({ method: 'GET', url });
+    const app = await buildApp({ staticDir, logger: createLogger(sink), security });
+    for (const url of ['/api/nothing', '/api/', '/API/nothing', '/%61pi/nothing']) {
+      const res = await app.inject({ method: 'GET', url, headers: AUTH });
       expect(res.statusCode).toBe(404);
       expect(res.json()).toEqual({ error: { code: 'not-found', message: expect.any(String) } });
     }
@@ -68,7 +72,7 @@ describe('buildApp', () => {
 
   it('does not serve dotfiles nor fall back for a missing asset', async () => {
     await writeFile(path.join(staticDir, '.env'), 'SECRET=1');
-    const app = await buildApp({ staticDir, logger: createLogger(sink) });
+    const app = await buildApp({ staticDir, logger: createLogger(sink), security });
     const dot = await app.inject({ method: 'GET', url: '/.env' });
     expect(dot.body).not.toContain('SECRET');
     const missing = await app.inject({ method: 'GET', url: '/assets/missing.js' });
@@ -81,6 +85,7 @@ describe('buildApp', () => {
     const app = await buildApp({
       staticDir,
       logger: createLogger(sink),
+      security,
       register: (a) => {
         a.post('/api/echo', async (req) => req.body);
         a.get('/api/gone', async () => {
@@ -94,7 +99,7 @@ describe('buildApp', () => {
     const bad = await app.inject({
       method: 'POST',
       url: '/api/echo',
-      headers: { 'content-type': 'application/json' },
+      headers: { ...AUTH, 'content-type': 'application/json' },
       payload: '{nope',
     });
     expect(bad.statusCode).toBe(400);
@@ -102,20 +107,20 @@ describe('buildApp', () => {
     const big = await app.inject({
       method: 'POST',
       url: '/api/echo',
-      headers: { 'content-type': 'application/json' },
+      headers: { ...AUTH, 'content-type': 'application/json' },
       payload: JSON.stringify({ x: 'a'.repeat(1_100_000) }),
     });
     expect(big.statusCode).toBe(413);
     expect(big.json()).toEqual({ error: { code: 'invalid-request', message: expect.any(String) } });
-    const missing = await app.inject({ method: 'GET', url: '/api/gone' });
+    const missing = await app.inject({ method: 'GET', url: '/api/gone', headers: AUTH });
     expect(missing.statusCode).toBe(404);
     expect(missing.json().error.code).toBe('not-found');
     for (const url of ['/%', '/api/%']) {
-      const badUrl = await app.inject({ method: 'GET', url });
+      const badUrl = await app.inject({ method: 'GET', url, headers: AUTH });
       expect(badUrl.statusCode, url).toBe(400);
       expect(badUrl.json(), url).toEqual({ error: { code: 'invalid-request', message: expect.any(String) } });
     }
-    const boom = await app.inject({ method: 'GET', url: '/api/boom' });
+    const boom = await app.inject({ method: 'GET', url: '/api/boom', headers: AUTH });
     expect(boom.statusCode).toBe(500);
     expect(boom.json()).toEqual({ error: { code: 'internal', message: expect.any(String) } });
     expect(boom.body).not.toContain('secret');
@@ -123,16 +128,16 @@ describe('buildApp', () => {
   });
 
   it('starts without a web build and says so for the application paths', async () => {
-    const app = await buildApp({ staticDir: path.join(staticDir, 'missing'), logger: createLogger(sink) });
+    const app = await buildApp({ staticDir: path.join(staticDir, 'missing'), logger: createLogger(sink), security });
     const res = await app.inject({ method: 'GET', url: '/' });
     expect(res.statusCode).toBe(404);
-    expect((await app.inject({ method: 'GET', url: '/api/x' })).statusCode).toBe(404);
+    expect((await app.inject({ method: 'GET', url: '/api/x', headers: AUTH })).statusCode).toBe(404);
     await app.close();
   });
 
   it('redacts authorization and cookie in the request log', async () => {
     lines.length = 0;
-    const app = await buildApp({ staticDir, logger: createLogger(sink) });
+    const app = await buildApp({ staticDir, logger: createLogger(sink), security });
     await app.inject({
       method: 'GET',
       url: '/api/nothing',

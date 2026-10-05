@@ -3,6 +3,7 @@
  * is started before the URL is printed (REQ-PERF-06).
  */
 import { randomBytes } from 'node:crypto';
+import { createTokenAuthentication } from '../auth/authentication.js';
 import { buildApp } from '../http/app.js';
 import { message } from '../i18n/messages.js';
 import { createLogger } from '../logging.js';
@@ -105,7 +106,13 @@ export async function runLauncher(argv: readonly string[], io: LauncherIo): Prom
   for (const warning of state.warnings()) logger.warn({ warning }, 'local state');
   // Drawn before the application is built: the session guards (task-003) need it.
   const token = drawToken();
-  const app = await buildApp({ staticDir: io.staticDir, logger });
+  // The port is known once listening; until then the guards refuse every request.
+  const listening: { port?: number } = {};
+  const app = await buildApp({
+    staticDir: io.staticDir,
+    logger,
+    security: { authentication: createTokenAuthentication(token), port: () => listening.port },
+  });
   let listeners;
   try {
     listeners = await listenLoopback(app.routing, {
@@ -124,6 +131,7 @@ export async function runLauncher(argv: readonly string[], io: LauncherIo): Prom
     }
     throw error;
   }
+  listening.port = listeners.port;
   // Signals are handled before the URL is printed: a stop sent right after it is never lost.
   let stopping = false;
   io.onSignal(() => {
