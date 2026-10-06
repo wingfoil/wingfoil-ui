@@ -2,7 +2,7 @@
 id: bug-003-confined-file-reads-can-block-or-exhaust-memory-when-the-file-is-swapped-after-the-check
 type: bug
 title: "Confined file reads can block or exhaust memory when the file is swapped after the check"
-status: planned
+status: in-progress
 severity: "low"        # REQUIRED — critical | high | medium | low
 release-origin: "v0.1" # optional — release where the bug was FOUND, e.g. "v0.1"
 release: ""            # optional — fix/implementation release, stamped by release-planning/build-backlog
@@ -57,3 +57,4 @@ the client — the defect is availability, not disclosure.
 
 - triage (2026-10-06): approved by the user as **low** severity.
 - fix: **absorbed into task-012-project-read-api** (dl-045); `triaged → planned` by hand.
+- start (2026-10-06): task-012 already in progress → `planned → in-progress` by hand.
