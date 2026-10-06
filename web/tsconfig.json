@@ -1,10 +1,15 @@
 {
   "extends": "../tsconfig.base.json",
   "compilerOptions": {
-    "rootDir": "src",
-    "outDir": "dist",
+    // Type-check only: Vite builds the application into web/dist (task-013).
+    "noEmit": true,
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "jsx": "react-jsx",
+    "resolveJsonModule": true,
     "lib": ["ES2023", "DOM", "DOM.Iterable"],
-    "types": []
+    "types": ["vite/client"],
+    "rootDir": "src"
   },
   "include": ["src"]
 }

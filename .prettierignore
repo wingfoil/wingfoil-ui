@@ -10,6 +10,7 @@ export1/
 *.yml
 package-lock.json
 dist/
+web/dist-keys/
 coverage/
 docs-api/
 test-results/

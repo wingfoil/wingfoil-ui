@@ -7,3 +7,4 @@ docs-api/
 test-results/
 playwright-report/
 *.tsbuildinfo
+web/dist-keys/

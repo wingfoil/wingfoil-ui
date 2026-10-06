@@ -3,7 +3,13 @@ import js from '@eslint/js';
 import prettier from 'eslint-config-prettier';
 import globals from 'globals';
 import tseslint from 'typescript-eslint';
+import formatjs from 'eslint-plugin-formatjs';
+import reactHooks from 'eslint-plugin-react-hooks';
+import { cataloguePlugin } from './lint/catalogue-placeholders.js';
 import { methodologyPlugin } from './lint/methodology-literals.js';
+
+/** The project's own rules (one plugin object: flat config refuses two different `wfui`). */
+const wfui = { rules: { ...methodologyPlugin.rules, ...cataloguePlugin.rules } };
 
 const CHILD_PROCESS = '/^(node:)?child_process$/';
 const PROCESS_CALL = 'CallExpression[callee.name=/^(execFile|execFileSync|spawn|spawnSync)$/]';
@@ -16,6 +22,7 @@ export default tseslint.config(
     ignores: [
       '**/node_modules/**',
       '**/dist/**',
+      'web/dist-keys/**',
       'coverage/**',
       'docs-api/**',
       'test-results/**',
@@ -110,8 +117,26 @@ export default tseslint.config(
     // classes, interfaces and object literals (`open()`, `get resolved()`) — behaviour, not data.
     files: ['server/**/*.{ts,tsx,mts,cts,js,jsx,mjs,cjs}', 'web/**/*.{ts,tsx,mts,cts,js,jsx,mjs,cjs}'],
     ignores: ['server/src/presets/**'],
-    plugins: { wfui: methodologyPlugin },
+    plugins: { wfui },
     rules: { 'wfui/no-methodology-literal': 'error' },
+  },
+  {
+    // The browser application (adr-002): React hooks rules, and every UI string from the message
+    // catalogue (spec-008 §6): no literal text in JSX children nor in the accessible-name and hint
+    // attributes, one plural per message, and the `values` of each message checked against the
+    // arguments of its `en.json` text (`wfui/catalogue-placeholders`, decision W3-3).
+    files: ['web/src/**/*.{ts,tsx}'],
+    languageOptions: { globals: { ...globals.browser } },
+    plugins: { formatjs, 'react-hooks': reactHooks, wfui },
+    rules: {
+      ...reactHooks.configs.recommended.rules,
+      'formatjs/no-literal-string-in-jsx': [
+        'error',
+        { props: { include: [['*', '{aria-label,aria-description,title,alt,placeholder,label}']] } },
+      ],
+      'formatjs/no-multiple-plurals': 'error',
+      'wfui/catalogue-placeholders': 'error',
+    },
   },
   prettier,
 );

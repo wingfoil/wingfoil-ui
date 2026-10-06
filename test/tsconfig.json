@@ -4,8 +4,11 @@
     "noEmit": true,
     "composite": false,
     "declaration": false,
-    "lib": ["ES2023", "DOM"],
-    "rootDir": ".."
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "jsx": "react-jsx",
+    "resolveJsonModule": true,
+    "rootDir": "..",
+    "types": ["node", "vite/client"]
   },
-  "include": ["**/*.ts", "../*.config.ts"]
+  "include": ["**/*.ts", "**/*.tsx", "../*.config.ts", "../web/vite.config.ts"]
 }
