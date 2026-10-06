@@ -10,6 +10,7 @@ import {
   Fingerprinter,
   MAX_FINGERPRINT_BYTES_PER_CHECK,
   MAX_FINGERPRINT_FILE_BYTES,
+  RACY_WINDOW_MS,
 } from '../../../server/src/snapshot/fingerprint.js';
 
 let dir: string;
@@ -92,6 +93,31 @@ describe('contentFingerprint', () => {
     await writeFile(path.join(dir, 'out.md'), 'OUT');
     expect(await f.fingerprint([entry('proj/in.md'), entry('out.md')])).toBe(one);
     expect(f.lastReads).toBe(0);
+  });
+
+  it('N1 — does not trust a mark taken within the racy window of the file mtime', async () => {
+    const file = path.join(dir, 'racy.md');
+    await writeFile(file, 'same size A');
+    const mtime = 1_700_000_000; // seconds
+    await utimes(file, mtime, mtime);
+    let now = mtime * 1000 + 1_000; // the mark is taken 1 s after the mtime: racy
+    const f = new Fingerprinter(dir, '', { now: () => now });
+    const first = await f.fingerprint([entry('racy.md')]);
+    expect(f.lastReads).toBe(1);
+    // Rewritten with the same size inside the same mtime tick (same lstat): must be seen.
+    await writeFile(file, 'same size B');
+    await utimes(file, mtime, mtime);
+    now = mtime * 1000 + 1_500;
+    const second = await f.fingerprint([entry('racy.md')]);
+    expect(f.lastReads).toBe(1);
+    expect(second).not.toBe(first);
+    // Read again while racy; once a mark is taken past the window it is reused.
+    now = mtime * 1000 + RACY_WINDOW_MS + 1_000;
+    expect(await f.fingerprint([entry('racy.md')])).toBe(second);
+    expect(f.lastReads).toBe(1);
+    expect(await f.fingerprint([entry('racy.md')])).toBe(second);
+    expect(f.lastReads).toBe(0);
+    expect(RACY_WINDOW_MS).toBeGreaterThanOrEqual(2_000);
   });
 
   it('combines with the status hash into 16 hex digits', () => {
