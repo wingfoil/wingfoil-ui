@@ -1,10 +1,10 @@
 # SARD — WingFoil UI
 
-**Version:** 0.7
-**Date:** 2026-10-04 (0.2: coherence audit fixes — session 6; 0.3: page title in REQ-ARC-10 — initial-design session 2; 0.4: REQ-ARC-04 allow-list of direct reads, REQ-INT-06 Memory-event source — initial-design session 5; 0.5: REQ-SEC-02 session and static files, last non-archived state (ARC-06, STATE-08) — initial-design session 6; 0.6: REQ-ARC-07 to v0.3, REQ-INT-08 staged (Chromium in v0.1) — release-planning v0.1 session 2; 0.7: v0.1 scope of REQ-ARC-05, ARC-10, INT-03, PERF-05, SEC-05, STATE-06 — release-planning v0.1 session 4 (audit A4))
+**Version:** 0.8
+**Date:** 2026-10-06 (0.2: coherence audit fixes — session 6; 0.3: page title in REQ-ARC-10 — initial-design session 2; 0.4: REQ-ARC-04 allow-list of direct reads, REQ-INT-06 Memory-event source — initial-design session 5; 0.5: REQ-SEC-02 session and static files, last non-archived state (ARC-06, STATE-08) — initial-design session 6; 0.6: REQ-ARC-07 to v0.3, REQ-INT-08 staged (Chromium in v0.1) — release-planning v0.1 session 2; 0.7: v0.1 scope of REQ-ARC-05, ARC-10, INT-03, PERF-05, SEC-05, STATE-06 — release-planning v0.1 session 4 (audit A4); 0.8: REQ-INT-02 range bounds, REQ-INT-03 `null` minimum, REQ-STATE-02 content fingerprint, REQ-ARC-05 lint scope, REQ-ARC-04 hash-only reads — dev-loop tasks 006, 010, 011)
 **Status:** Draft — specification-downcast session 4 (`volere-requirements`)
 **Input:** `../02_bdd/` (scenarios and conventions) · `../01_user_story_map/` ·
-`docs/01_vision/` (`02_product-vision.md` v0.3, `06_features.md` v0.5, `08_mvp-canvas.md` v0.3) ·
+`docs/01_vision/` (`02_product-vision.md` v0.5, `06_features.md` v0.8, `08_mvp-canvas.md` v0.3) ·
 `docs/00_reference/adr-draft-local-server.md` · directives `cli-only-writes` (v1.3), `wingfoil-cli`
 (v1.1), `accessibility`, `security-secrets`
 

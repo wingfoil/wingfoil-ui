@@ -1,6 +1,6 @@
 # Tests
 
-**Version:** 0.7 · **Date:** 2026-10-05 (0.1: workspace tooling and e2e harness — task-001; 0.2: `test/launcher/`, `test/server/` — task-002; 0.3: `test/contracts/`, local state isolation, secret scan — task-007; 0.4: `local-security` suite — task-003; 0.5: process runner fake, hand-made CLI packages, stub after global options — task-004; 0.6: CLI contract tests, captured samples, `test:contract` — task-005; 0.7: identity tests, bin with a seeded state — task-009)
+**Version:** 0.8 · **Date:** 2026-10-06 (0.1: workspace tooling and e2e harness — task-001; 0.2: `test/launcher/`, `test/server/` — task-002; 0.3: `test/contracts/`, local state isolation, secret scan — task-007; 0.4: `local-security` suite — task-003; 0.5: process runner fake, hand-made CLI packages, stub after global options — task-004; 0.6: CLI contract tests, captured samples, `test:contract` — task-005; 0.7: action descriptor tests, REQ-ARC-05 lint rule — task-011; 0.8: matrix builds of `cliBuildFor`, capability table and README checks — task-006; 0.9: identity tests, bin with a seeded state — task-009)
 
 Every test lives under `test/` (DNA `paths.tests`); sources stay in `server/src`, `web/src`,
 `contracts/src`.
@@ -41,9 +41,19 @@ Every test lives under `test/` (DNA `paths.tests`); sources stay in `server/src`
   real CLI output (`<command>.json`, `memory-history/<id>.json`, `version.txt`) and the
   allow-listed files as found (`files/`), captured with
   `WFUI_CAPTURE_SAMPLES=1 npx vitest run test/contracts/capture-samples.test.ts` (skipped
-  otherwise; Prettier leaves `samples/` as captured). A matrix advance re-captures them and adds the
-  new version's build to `cliBuildFor`.
-- `test/lint/`, `test/docs/` — the dev-loop gates `lint.clean`, `docs.api.*`.
+  otherwise; Prettier leaves `samples/` as captured). A matrix advance re-captures them;
+  `cliBuildFor` installs a matrix version other than the pinned one once (`npm install` from the
+  registry) into `node_modules/.cache/wingfoil-ui-matrix/<version>` and reuses it.
+  `capabilities.test.ts` checks `capabilities.json` against its schema and the package README's
+  "Supported WingFoil versions" section against `matrix.json` and `capabilities.json`.
+  `descriptor-contract.test.ts` checks the action descriptor (spec-003 §9) on the built fixtures:
+  every `submit`/`approve`/`reject` of every element, run on a copy, is accepted exactly when the
+  descriptor offers it. Its oracle, shared with `test/server/descriptor/`, is
+  `test/server/descriptor/standard.ts` (hand-written from the BDD conventions).
+- `test/lint/`, `test/docs/` — the dev-loop gates `lint.clean`, `docs.api.*`, and the lint rules'
+  own tests (REQ-SEC-05 `no-shell`, REQ-ARC-05 `methodology-literals`: the rule of
+  `lint/methodology-literals.js` reads the fixtures' type and state names from the captured samples,
+  so a re-capture updates it).
 
 ## Fixtures
 

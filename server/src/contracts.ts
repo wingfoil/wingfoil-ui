@@ -5,7 +5,10 @@
 import { Ajv, type ValidateFunction } from 'ajv';
 import { readFileSync } from 'node:fs';
 
-/** The schemas of the CLI output and of the directly read files (spec-001 §5), relative to `contracts/`. */
+/**
+ * The schemas of the CLI output, of the directly read files and of the capability table (spec-001
+ * §5), relative to `contracts/`.
+ */
 export const CONTRACT_SCHEMAS = [
   'cli/version.schema.json',
   'cli/dna-show.schema.json',
@@ -21,6 +24,7 @@ export const CONTRACT_SCHEMAS = [
   'files/memory-yaml.schema.json',
   'files/element.schema.json',
   'files/directive.schema.json',
+  'capabilities.schema.json',
 ] as const;
 
 /** A schema of {@link CONTRACT_SCHEMAS}. */

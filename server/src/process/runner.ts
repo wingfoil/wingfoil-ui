@@ -86,7 +86,7 @@ interface Running {
   kill(end: ProcessEnd): void;
   /** SIGKILL now, synchronously. */
   killNow(): void;
-  done: Promise<unknown>;
+  settled: Promise<unknown>;
 }
 
 /** The local adapter of the port. */
@@ -173,7 +173,7 @@ export class LocalProcessRunner implements ProcessRunner {
         clearTimeout(escalation);
         if (child.pid !== undefined) signalAll('SIGKILL');
       };
-      const entry: Running = { child, kill, killNow, done };
+      const entry: Running = { child, kill, killNow, settled: done };
       const onAbort = (): void => kill('cancelled');
       const cleanUp = (): void => {
         clearTimeout(timer);
@@ -234,7 +234,7 @@ export class LocalProcessRunner implements ProcessRunner {
     this.stopping = true;
     const running = [...this.children];
     for (const entry of running) entry.kill('terminated');
-    await Promise.all(running.map((entry) => entry.done));
+    await Promise.all(running.map((entry) => entry.settled));
   }
 
   /**

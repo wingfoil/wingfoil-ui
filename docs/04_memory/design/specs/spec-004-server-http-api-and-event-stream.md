@@ -95,6 +95,15 @@ Write routes run through the per-project write lock (`adr-001` D5). `expectedSta
 status the page showed: when the element's status differs, the write is refused with **409**
 "This element changed since you opened it" — the user never decides on a stale view.
 
+**Identity and role view (addendum, dev-loop task-009).** The identity part of `GET /api/p/:pid`
+is `{ identity, roleViews, roleView }`, defined by `contracts/api/identity.schema.json`:
+`identity` is one of `{ kind: "member", email, name, roles }`, `{ kind: "not-in-team", email }`,
+`{ kind: "no-identity" }` or `{ kind: "ambiguous", email, members }` (two or more member names);
+`roleViews` lists the role views the user can choose; `roleView` is the remembered one, or
+`null` for the default — spec-006 stores the default as `roleView: ""`, the API exposes it as
+`null`. `PUT /api/p/:pid/role-view` `{role}` (`contracts/api/role-view.request.schema.json`)
+answers **204** with no body.
+
 ### 4. Write preconditions and refusals
 
 Checked by the server in this order (Fastify validates the body before the handler):
@@ -106,6 +115,7 @@ Checked by the server in this order (Fastify validates the body before the handl
 | 3 | project id unknown | 404 | `not-found` | the project list |
 | 4 | request body fails its schema | 400 | `invalid-request` | the request |
 | 5 | user not identified in the team (REQ-SEC-08) | 403 | `not-in-team` | the watched identity (REQ-STATE-02) |
+| 5a | role not held by the member (`PUT /api/p/:pid/role-view` only) | 400 | `invalid-request` | the watched identity |
 | 6 | WingFoil version outside the range (REQ-INT-02) | 409 | `unsupported-version` | the cached detection (`adr-001` D3) |
 | 7 | element file has local changes (REQ-STATE-03) | 409 | `local-changes` | **fresh** `git status --porcelain`, under the write lock |
 | 8 | copy behind, diverged or detached HEAD (REQ-STATE-04) | 409 | `stale-copy` | **fresh** `git rev-parse` / `rev-list --count`, under the write lock |
@@ -117,6 +127,13 @@ so a stale "no local changes" would let a UI action commit someone's work. No `w
 starts before row 9 passes.
 
 The role required by a gate is **not** checked by the server: the CLI refuses it (REQ-SEC-07).
+
+Which rows apply to which writes: the governed writes on an element (`submit`, `approve`,
+`reject`) run rows 1–9 as listed; row 5a applies to the role-view `PUT` only. The role-view
+`PUT` is a **local-state write** (spec-006): rows 1–5 and 5a apply, rows 6–9 do **not** — in
+particular row 6 (`unsupported-version`) does not, so a role view can be chosen on a read-only
+project. "Not identified" in row 5 covers the identity kinds `not-in-team`, `no-identity` and
+`ambiguous`; nothing is stored on a refusal.
 
 ### 5. Responses
 
@@ -139,7 +156,11 @@ The role required by a gate is **not** checked by the server: the CLI refuses it
 | 422 | project-list codes | refusals of `POST /api/projects` and `/projects/clone`: spec-006 §3 |
 
 - Read responses carry `X-Repo-State: <HEAD sha>.<status hash>`; the page compares it with the
-  event stream to know whether its data is current.
+  event stream to know whether its data is current. The status hash is the hash of
+  `git status --porcelain` combined with a fingerprint of the working-tree content of each
+  changed and untracked entry, computed by the server without an extra git command
+  (REQ-STATE-02), so a second edit of an already-modified file changes the state; the header
+  format is unchanged.
 
 ### 6. Event stream (REQ-INT-09)
 
@@ -191,3 +212,11 @@ reconnecting page refetches everything. Pages never poll.
   duplicate `Host` header refused. No route, code or envelope changes.
 - 2026-10-05 — amended in dev-loop task-005 (independent review), decided by the user: §5
   `502 read-error` for a failed direct read (spec-001 §4), with its scope and logging rule.
+- 2026-10-06 — amended in dev-loop task-009 (Wave 2, plan dev-loop-rel-v0.1-plan): §3 addendum
+  (identity shape of `contracts/api/identity.schema.json`, role view `{identity, roleViews,
+  roleView}`, role-view `PUT` → 204 no body); §4 row 5a (role not held by the member → 400
+  `invalid-request`, after the not-in-team check) and which rows apply to which writes (the
+  role-view `PUT` is a local-state write: rows 1–5 and 5a, not row 6); decided by the user.
+- 2026-10-06 — amended in dev-loop task-010 (Wave 2, plan dev-loop-rel-v0.1-plan): §5 the status
+  hash of `X-Repo-State` includes a fingerprint of the working-tree content of changed and
+  untracked entries (REQ-STATE-02); header format unchanged; decided by the user.

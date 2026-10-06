@@ -1,7 +1,7 @@
 # BDD Scenarios — Conventions
 
-**Version:** 0.6
-**Date:** 2026-10-04 (0.2: v0.3–v1.0 conventions — session 3; 0.3: coherence audit fixes — session 6; 0.4: US-X-10 page title — initial-design session 2; 0.5: last *non-archived* state, X-02.2 API request — initial-design session 6; 0.6: CLI stub as the package `bin` script, version-fake and no-CLI variants — release-planning v0.1 session 4 (audit A6))
+**Version:** 0.7
+**Date:** 2026-10-06 (0.2: v0.3–v1.0 conventions — session 3; 0.3: coherence audit fixes — session 6; 0.4: US-X-10 page title — initial-design session 2; 0.5: last *non-archived* state, X-02.2 API request — initial-design session 6; 0.6: CLI stub as the package `bin` script, version-fake and no-CLI variants — release-planning v0.1 session 4 (audit A6); 0.7: `memory-list.feature` bucket header aligned with spec-003 — dev-loop task-011)
 **Status:** Draft — specification-downcast sessions 2–3 (`specification-by-examples`)
 **Input:** `../01_user_story_map/02_story-map.md` · `03_mvp-cut.md` · `docs/01_vision/` ·
 directives `wingfoil-cli` (v1.1), `cli-only-writes` (v1.3), `accessibility`
@@ -187,3 +187,11 @@ nominal and ≥ 1 edge scenario per story of the releases in scope).
 | 6 (audit) | v0.2 | — | +2 (G-06.4, S-24.4) | 0 | +2 |
 | initial-design 2 | v0.1 (+ v0.3, v0.4 variants) | +1 (US-X-10) | +5 (X-10.1 … X-10.5) | +1 | +4 |
 | **Total** | v0.1 → v1.0 | **111** | **299** | **117** | **182** |
+
+## Process Notes
+
+- 2026-10-06 — amended in dev-loop task-011 (Wave 2, plan dev-loop-rel-v0.1-plan):
+  `features/m/memory-list.feature` header — **Done** = last non-archived state of `sequence`
+  (custom `adr` `accepted` → Done, `superseded` → no bucket), *Waiting/drafts/closed* lists the
+  `waiting:` states other than the last non-archived one, as spec-003 §2 and §8; no scenario
+  changed; decided by the user.

@@ -74,6 +74,12 @@ same keys. Catalogues are JSON, one flat object, UTF-8, sorted by key (checked).
 - **tool output** — the CLI's refusal (`cli-refused`) and git's error (`git-refused`) — is shown
   verbatim inside a catalogue frame (`error.cliRefused` = `WingFoil refused the action:` + the
   verbatim block): it is the tool's text, treated like project data.
+- **Reason codes** of the action descriptor (spec-003 §6, e.g. `local-changes`,
+  `version-unsupported {range}`) and of the capability table (spec-001 §6, e.g. `not-released`,
+  `needs-version {minVersion}`) are rendered from the catalogue as `<area>.reason.` + the code
+  (segments lowerCamelCase, §2), with the parameters as the arguments. The descriptor reason
+  `version-unsupported` and the API error code `unsupported-version` (spec-004 §4) are distinct
+  keys of different areas, by design.
 
 ### 5. Server catalogue
 
@@ -122,3 +128,7 @@ catalogue and its arguments (`warnings: [{ key, args }]` of `GET /api/server`, s
 - 2026-10-03 — re-verification (plan session 2): N2 optional `<place>` segment; N3 select/plural
   arguments in the key build.
 - 2026-10-04 — release-planning audit (plan session 4, A5): `error.cliNotFound` example.
+- 2026-10-06 — audit follow-up of the Wave 2 amendments (dev-loop tasks 006, 011, plan
+  dev-loop-rel-v0.1-plan): §4 reason codes of the descriptor and of the capability table rendered
+  as `<area>.reason.` + code with parameters as arguments; `version-unsupported` (descriptor) and
+  `unsupported-version` (API) are distinct keys by design; decided by the user.

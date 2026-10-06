@@ -16,21 +16,21 @@ export class InProcessWriteLock implements WriteLock {
   /** Last write queued per project. */
   private readonly tails = new Map<string, Promise<void>>();
   /** Writes running or queued per project. */
-  private readonly pending = new Map<string, number>();
+  private readonly queued = new Map<string, number>();
 
   run<T>(key: string, task: () => Promise<T>): Promise<T> {
     const previous = this.tails.get(key) ?? Promise.resolve();
-    this.pending.set(key, (this.pending.get(key) ?? 0) + 1);
+    this.queued.set(key, (this.queued.get(key) ?? 0) + 1);
     const current = previous.then(task);
     // Released before the caller sees the outcome; the queue goes on whatever it is (a failure is
     // the caller's).
     const release = (): void => {
-      const left = (this.pending.get(key) ?? 1) - 1;
+      const left = (this.queued.get(key) ?? 1) - 1;
       if (left > 0) {
-        this.pending.set(key, left);
+        this.queued.set(key, left);
         return;
       }
-      this.pending.delete(key);
+      this.queued.delete(key);
       this.tails.delete(key);
     };
     this.tails.set(key, current.then(release, release));
@@ -39,6 +39,6 @@ export class InProcessWriteLock implements WriteLock {
 
   /** Whether a write of the project `key` is running or queued. */
   isBusy(key: string): boolean {
-    return this.pending.has(key);
+    return this.queued.has(key);
   }
 }

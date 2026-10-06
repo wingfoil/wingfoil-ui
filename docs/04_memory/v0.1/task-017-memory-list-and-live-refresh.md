@@ -19,7 +19,7 @@ tmpl_version: 260703   # Orignal template version
 
 ## Description
 
-The Memory list (the v0.1 landing view): type filters from `memory.yaml` with counts, state filters and the generic buckets (*To approve*, *In progress*, *Done*, … as defined in the header of `features/m/memory-list.feature`, computed from the descriptor's state kinds, spec-003 §2), unknown types and states under their own names, rows opening the element panel (task-018), the local-changes marker, live refresh from the event stream, the same build on the three fixtures.
+The Memory list (the v0.1 landing view): type filters from `memory.yaml` with counts, state filters and the generic buckets (*To approve*, *In progress*, *Done*, … as defined in the header of `features/m/memory-list.feature`, taken from the descriptor's `bucket` (spec-003 §8)), unknown types and states under their own names, rows opening the element panel (task-018), the local-changes marker, live refresh from the event stream, the same build on the three fixtures.
 
 **Backlog items:** US-M-01, US-M-02, US-S-25, US-S-26, US-S-28
 
@@ -46,7 +46,7 @@ Screen: `docs/00_reference/ux-reference.md` §4.4 and the prototype (`docs/00_re
 
 ## Implementation Notes
 
-- Buckets: header of `features/m/memory-list.feature`; state kinds and tones: `spec-003` §2, §7; `spec-004` §3, §6; `spec-009` tones; `ux-reference.md` §4.4; prototype.
+- Buckets: header of `features/m/memory-list.feature`, taken from the descriptor's `bucket` (`spec-003` §8); state kinds and tones: `spec-003` §2, §7; `spec-004` §3, §6; `spec-009` tones; `ux-reference.md` §4.4; prototype.
 
 ## Execution Notes
 

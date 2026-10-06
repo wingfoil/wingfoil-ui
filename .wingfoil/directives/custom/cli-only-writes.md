@@ -9,7 +9,7 @@ tags: [custom, architecture, wingfoil, security]
 
 # Directive — Every governed change goes through the WingFoil CLI
 
-**Version:** 1.4 · **Date:** 2026-10-02 (1.1: write classes, snapshot, CLI choice — vision session 7; 1.2: no UI-side permission on `ui.yaml` — specification session 3; 1.3: clone in class (c), check scoped to UI commits — specification session 6; 1.4: read allow-list where the CLI has no read verb — initial-design session 5)
+**Version:** 1.5 · **Date:** 2026-10-06 (1.1: write classes, snapshot, CLI choice — vision session 7; 1.2: no UI-side permission on `ui.yaml` — specification session 3; 1.3: clone in class (c), check scoped to UI commits — specification session 6; 1.4: read allow-list where the CLI has no read verb — initial-design session 5; 1.5: hash-only reads for the state key — dev-loop task-010)
 
 Applies to whoever designs, writes or reviews the WingFoil UI server and its use of a WingFoil
 project (draft ADR: `docs/00_reference/adr-draft-local-server.md`).
@@ -33,7 +33,9 @@ project (draft ADR: `docs/00_reference/adr-draft-local-server.md`).
    (SARD REQ-ARC-04): `.wingfoil/memory.yaml` (type definitions), Memory element files and directive
    files at the `path` the CLI returns — each shape schema-checked in `contracts/`. Git is read
    directly only for what the CLI does not expose (HEAD, ahead/behind, log, working tree for the
-   Files view) and is **never** used to change WingFoil state.
+   Files view) and is **never** used to change WingFoil state. Exception: the hash-only reads of
+   changed and untracked entries for the state key (REQ-STATE-02, spec-001 §4.4), whose content
+   is neither kept nor exposed.
 3. **One file of its own:** the UI owns `.wingfoil/ui.yaml` and nothing else in `.wingfoil/`.
 4. **No action over someone's local work:** a governed action is refused while its target element
    has uncommitted changes (the CLI would commit them with the action) or while the copy is behind
@@ -46,7 +48,9 @@ project (draft ADR: `docs/00_reference/adr-draft-local-server.md`).
 ## How it is checked
 
 - Review: no `fs.write*` / `git commit` / `git add` on governed paths in `server/`.
-- Unit (fs spy, REQ-ARC-04): direct reads of WingFoil files only from the allow-list, 0 writes.
+- Unit (fs spy, REQ-ARC-04): direct reads of WingFoil files only from the allow-list — except the
+  hash-only reads of changed and untracked entries for the state key (REQ-STATE-02, spec-001
+  §4.4), whose content is neither kept nor exposed — 0 writes.
 - e2e-smoke: every commit **created while driving the UI** (the fixture's set-up commits excluded) is
   a `wf(…)` commit made by the CLI or a `chore(ui)` commit whose only file is `.wingfoil/ui.yaml`; actions on an element
   with local changes, and while behind, are refused.
