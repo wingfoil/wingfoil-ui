@@ -2,7 +2,7 @@
 id: bug-002-inherited-git-variables-redirect-git-and-cli-reads-to-another-repository
 type: bug
 title: "Inherited GIT variables redirect git and CLI reads to another repository"
-status: triaged
+status: planned
 severity: "medium"     # REQUIRED — critical | high | medium | low
 release-origin: "v0.1" # optional — release where the bug was FOUND, e.g. "v0.1"
 release: ""            # optional — fix/implementation release, stamped by release-planning/build-backlog
@@ -60,3 +60,8 @@ REQ-STATE-01/02 wrong). From v0.2 a governed write could commit in the wrong rep
 
 ## Triage & Execution Notes
 
+- triage (2026-10-06): approved by the user as **medium** severity (wrong identity/state for every
+  project when the server inherits `GIT_DIR` & co.; from v0.2 a write could hit the wrong repository).
+- fix: **absorbed into task-010-snapshot-cache-and-live-updates** (dl-045 pattern; the task owns the
+  shared git module and lists this bug in `bug:`, with its own Acceptance Criterion). `triaged →
+  planned` set by hand (waiting state, no CLI verb).
