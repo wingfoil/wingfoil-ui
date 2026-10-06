@@ -165,3 +165,96 @@ Added during the Wave 2 dev-loops (plan `dev-loop-rel-v0.1-plan`, Session 2; dec
     custom copies: shapes validate against `contracts/api/*`, 404 unknown pid/eid/did, 502
     `read-error` scoped to the element, `X-Repo-State` on every read, degraded `memory.yaml`,
     S-27.1 confined DNA failure.
+
+### red / green / refactor (2026-10-06)
+
+- **Red** (`ca8dab5`): `test/server/git/memory-log.test.ts`, `test/server/reads/working-tree.test.ts`,
+  `test/server/http/project-routes.test.ts`, `test/server/snapshot/memory-events.test.ts`, the
+  process audit and the timing test moved to the real routes (`test/server/http/read-console.ts`,
+  the successor of task-010's `stand-in-app.ts`), new rows in `test/launcher/local-security.test.ts`.
+  Failed for the expected reasons: missing modules `git/memory-log`, `reads/working-tree`,
+  `http/project-routes`; `view.events is not a function`.
+- **Green** (`c143cbb`), as designed:
+  - `server/src/git/memory-log.ts` (`parseMemoryLog`, `eventsByElement`, `memoryDirectories`,
+    `normalizeReason`) + `GitReads.memoryLog(dirs)` / `GIT_READ_ARGS.memoryLog` (spec-002 §3 command
+    plus `--no-optional-locks -c core.quotePath=false`). Hunk lines are counted from the `@@` header,
+    so content looking like a `+++` header is never read as one. The subject bracket also accepts
+    the ASCII `->` WingFoil's audit reads (spec writes `→` only).
+  - `ProjectSnapshot`: Memory events cached per HEAD + Memory directories (spec-002 §4), unborn HEAD
+    → none, a parse warning logged `{pid, sha}`; `SnapshotView.events()`, `detected()` (the
+    registry's server-wide `VersionCache`, `Snapshots.versions`), `derived(name, compute)`
+    (per-state memo of computed bodies: descriptors, docs index).
+  - `server/src/reads/working-tree.ts` (`documentationScope`, `documentationIndex`,
+    `listDirectory`, `readWorkingTreeFile`, `TreeFs`, `WorkingTreeError` kinds `outside | missing |
+    not-allowed | too-large`); `server/src/identity/snapshot-identity.ts`
+    (`createSnapshotIdentitySource`, `identityOf`); `server/src/http/server-route.ts`,
+    `server/src/http/project-routes.ts`; `server/src/presets/api.ts` (`ARCHIVED_QUERY`: the query
+    name `archived` is a fixture state name, REQ-ARC-05); 13 schemas in `contracts/api/` and their
+    types in `contracts/src/api.ts` (exported by the index).
+  - `runLauncher`: the same `register` callback registers `GET /api/server`, the project routes,
+    the role-view `PUT` (now with the snapshot identity source) and the event stream.
+- **AC → tests:**
+  - TT-SEC-06 — `working-tree.test.ts` (12 traversal cases, recording read port: 0 reads of any
+    target; not-allowed for Memory, plan, `.wingfoil/`, `.git`, `node_modules`, non-doc files) and
+    the bin (`local-security.test.ts`, custom fixture seeded, symlinks to a file and a folder
+    outside): **20/20 = 100 %** of the cases (10 paths × `files/content` and `files/tree`) → 404
+    `not-found` `detail.kind: "outside"`, the body without a byte of the target. R-09.3's screen
+    closes in task-020.
+  - Actor events — `memory-log.test.ts` (15) + `memory-events.test.ts`: on kanban, custom and
+    unknown, the §3 events equal the `wf` entries of `memory history` for every element (sha,
+    operation, from, to, approver, reason); one git process; a working-tree edit does not re-parse,
+    a commit does.
+  - Process audits on the real routes — `process-audit.test.ts`: cold Memory list **5 CLI**
+    (`--version`, `dna show`, `paths`, `workflow list`, `memory search`) + **4 git** (rev-parse,
+    status, user.email, the one `git log -p`), reopened twice **0 processes**; 60 s idle with a
+    stream **0 CLI** (12 git: the periodic check).
+  - Cached identity — `project-routes.test.ts`: on a warm cache `GET /api/p/:pid` and
+    `PUT role-view` start **0 processes**, and the PUT is seen by the next header.
+  - Routes — `project-routes.test.ts` (28): every body validated against its `contracts/api/`
+    schema, `X-Repo-State` on every read, 404 for unknown pid (incl. `../..`, case variant) on all
+    10 routes with 0 processes, unknown eid/did, 502 `read-error` scoped to one element (file over
+    5 MiB → `shape`), unreadable `memory.yaml` → elements without descriptor + `typesError`, S-27.1
+    (invalid `dna.yaml`: header 200 with `dnaError`, config section error, elements listed),
+    not-in-team read-only, local-changes marker disabling the verbs, M-01.1/M-01.2 counts and
+    buckets, R-08.1 docs index on custom. Bin: X-04.1 rows (401/403 Origin/403 `Sec-Fetch-Site`/404)
+    for every read route and `GET /api/server`; X-04.3 now the literal **200** on `GET /api/server`
+    (127.0.0.1 and `::1`).
+- **Deviations (honest):**
+  - Response bodies are decided here (design 1–8) — spec-004 §3 names the purpose of each route,
+    not its body; the schemas in `contracts/api/` are now the contract. To confirm by the
+    coordinator.
+  - A refused working-tree path answers 404 `not-found` with `detail.kind` (spec-004 §5 has no
+    `outside` code) — open point.
+  - `test/launcher/role-view.test.ts` S-22.2 now polls (≤ 20 s) after a `git config user.email`
+    change: the identity is the watched one, so the change is seen once the watcher moved the state
+    (REQ-PERF-03 ≤ 5 s), not on the very next request — the intended effect of the AC.
+  - spec-002 §4 incremental `old..HEAD` parse not implemented (whole log re-parsed once per HEAD);
+    needed for the large fixture's Updates/Timeline (v0.2).
+  - Without a readable `memory.yaml` the Memory directories are unknown: the docs index is empty
+    and `/files/content` serves nothing (conservative for REQ-ARC-04).
+  - A git read failure when opening a project (folder gone, not a repository) is a 500 `internal`
+    (availability is task-008's).
+  - `createLocalIdentitySource` (task-009) is no longer used by the launcher; kept with its tests.
+- **Hand-overs:**
+  - **task-008:** register the project-list routes in the same `register` callback of
+    `runLauncher` (next to `registerServerRoute`/`registerProjectRoutes`); `local-security.test.ts`
+    X-04.3 already checks the 200 on `GET /api/server` — add `GET /api/projects` beside it.
+  - **task-016:** header = `GET /api/p/:pid` (`ProjectHeader`): `wingfoil.version ?? text`,
+    "(from PATH)" when `source === 'path'`, `readOnly` reasons, `capabilities.missing`,
+    `dnaError`; `PUT role-view` then refetch. `range` label in `version-unsupported` is
+    `<min>–<max>`.
+  - **task-017/018:** `GET /elements` → `elements[].descriptor` (bucket included) and
+    `localChanges`; `typesError` → no buckets; resolved states in `GET /config` `types.data`;
+    element panel: `GET /elements/:eid` (`required[]` for G-01.3, 502 `read-error` → error of that
+    element), `/history`.
+  - **task-019:** `GET /config` sections (DNA view shows `dna.error.message` — the CLI's text);
+    `GET /directives` `entries[].mine` for "only mine"; `/directives/:did` body.
+  - **task-020:** `GET /docs` (paths only, no titles), `GET /files/content?path=` (404
+    `detail.kind`: `outside` → "outside the repository", `missing` → "broken link", `not-allowed`
+    → a Memory/governance file: resolve it against `GET /elements` paths to open the panel, R-09.1).
+- **Checks** (worktree, load 8–15 on 12 cores): `npm run -s typecheck`, `lint` clean ·
+  `format:check` clean · `docs:api` OK · `npm run -s test:coverage` **69 files passed, 1 skipped;
+  1042 passed / 1 skipped**, coverage **95.96 %** statements / 89.07 % branches / 96.42 % functions
+  / 98.07 % lines (`server/src/http` 96.31 %, `memory-log.ts` 96.69 %, `working-tree.ts` 88.34 %) ·
+  `test:e2e` 3/3 · `check_tasks.py` OK · `npm run test:timing` 3/3 at load 10.6 → 8.3:
+  REQ-PERF-03 20/20, max 687 ms (now on the real routes); REQ-PERF-06 339–503 ms; TypeDoc 4573 ms.
