@@ -200,6 +200,9 @@ test.describe('shell mechanisms', () => {
     await expect(page.getByRole('heading', { level: 1, name: 'Projects' })).toBeVisible();
     const banner = page.getByRole('region', { name: 'Connection to the console' });
     await expect(banner).toHaveCount(0);
+    // Past the threshold with the console running: no banner (it is the kill that causes it).
+    await page.clock.runFor(15_000);
+    await expect(banner).toHaveCount(0);
     await c.launcher.kill();
     await expect
       .poll(

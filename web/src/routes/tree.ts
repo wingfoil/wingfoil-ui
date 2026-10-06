@@ -11,7 +11,7 @@ import { startRoute } from './start.js';
 /**
  * The views under `/p/$pid`. **Adding a view:** write `routes/<view>.tsx` exporting
  * `createRoute({ getParentRoute: () => projectRoute, path: '<view>', component, staticData: { nav } })`
- * (the sidebar entry, `routes/nav.ts`), its query-key factory next to it (`api/query-keys.ts`), and
+ * (the sidebar entry, `routes/nav.ts`), its query-key factory in the same route file (built on `queryKeys.project`, `api/query-keys.ts`), and
  * add one line below — one route per line, trailing comma, so that parallel tasks merge cleanly;
  * the order of the lines does not matter (the sidebar follows `NAV_ORDER`).
  */

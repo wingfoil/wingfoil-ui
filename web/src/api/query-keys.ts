@@ -3,7 +3,8 @@
  * `['p', pid]`**, built by {@link queryKeys.project}: a `repo` event of the event stream invalidates
  * exactly that prefix (spec-004 §6), so a key built otherwise would never refresh.
  *
- * Each view keeps its own factory next to its route (merge-friendly), built on `queryKeys.project`:
+ * Each view keeps its own factory in its route file (`routes/<view>.tsx`, merge-friendly), built on
+ * `queryKeys.project`:
  *
  * ```ts
  * // routes/memory.tsx
