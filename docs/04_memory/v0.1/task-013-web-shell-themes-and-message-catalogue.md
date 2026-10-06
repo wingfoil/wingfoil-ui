@@ -280,3 +280,68 @@ Screen: `docs/00_reference/ux-reference.md` §1–3, §9 and the prototype (`doc
   change); W3-5 every `error.*` key (spec-004 §4–§5 and spec-006 §3) added here; W3-6 the
   `/p/$pid` layout built here; W3-7 full-page lost-session notice. Spec/UX-reference amendments
   are the coordinator's (on `main`).
+
+### red / green / refactor (2026-10-06)
+
+- **Red** (`831f923`): `test/web/**` (theme, i18n, api, session, shell) and
+  `test/lint/catalogue-placeholders.test.ts`; 8 of 12 files failed on the missing modules
+  (`web/src/api/client.js`, `events.js`, `session/session.js`, `theme/tokens.css`) and the catalogue
+  check on 47 unused ids. **Deviation:** the build-time tooling (`web/scripts/catalogue.mjs`, the
+  ESLint rule, `index.html`'s theme script) was written with the configuration, before its tests —
+  those 4 files passed at red.
+- **Green** (`a909bb3`, `16dbe82`) as designed, with these deviations from the design note:
+  - the key catalogue, ICU argument walk and catalogue check live in `web/scripts/catalogue.mjs`
+    (plain JS, typed by `catalogue.d.mts`), shared by `vite.config.ts`, the ESLint rule and
+    `npm run lint` — not in `web/src/i18n/key-catalogue.ts`;
+  - no `theme.ts`: the inline script of `index.html` is the only theme code and is tested directly
+    (`theme-script.test.ts`);
+  - react-intl's global id typing is not used: it would also bind the server's `@formatjs/intl`
+    (another catalogue) in `tsc -p test`; ids are checked by the catalogue check (missing/unused) and
+    `wfui/catalogue-placeholders` (unknown id, missing/extra values);
+  - dynamic ids (error codes, state warnings, nav labels, page titles) go through `defineMessages`
+    so that the extract sees them; `FormattedMessage` with a non-literal `id` is refused by
+    `formatjs extract --throws` (use the descriptor or `formatMessage(descriptor)`);
+  - the Add project dialog is not dismissed by a click outside: React Aria then adds its own
+    "Dismiss" button, a text outside the catalogue (X-09.1). Escape and Close close it;
+  - React Aria's `RouterProvider` is not wired yet (no React Aria link in the shell);
+  - one token beyond the spec-009 table: `--shadow-popover` (decorative shadow; amendment below).
+- **Refactor / e2e** (`03adc40`): the shared e2e support (`test/e2e/support/`: `global-setup.ts`,
+  `console.ts`, `fixtures.ts`, `events.ts`, `keyboard.ts`) and its self-test
+  (`test/e2e/harness/support.spec.ts`: a seeded kanban copy listed, a commit outside the UI → `repo`
+  of that pid recorded by the page, an add → `projects`); `test/e2e/shell.spec.ts`; more unit tests
+  (queries, `ErrorText`, the default probe); `test/README.md` 0.13. Playwright `globalSetup` and
+  `timeout: 60 s` in `playwright.config.ts`; root `build` = `tsc -b && npm run -s build -w web`,
+  `lint` = ESLint + the catalogue check; `web/dist-keys/` ignored.
+- **Scenario closure (US-S-01):**
+
+  | Scenario | Proved by |
+  |----------|-----------|
+  | S-01.1 Start the console with npx | `test/e2e/shell.spec.ts` › "S-01.1 — Start the console with npx" — the bin (as `npx` runs it) with a recording opener: printed URL `http://127.0.0.1:<port>/#token=…`, the opener got exactly that URL, the page opened at it shows the project switcher whose menu (keyboard: Tab, visible focus ring, Enter) offers "Add project…", fragment gone, title "Projects — WingFoil UI", axe 0 serious/critical in light and dark (menu open and closed) |
+  | S-01.2 Refuse an unsupported Node.js version | `test/launcher/launcher.test.ts` › "S-01.2 — refuse an unsupported Node.js version" (task-002): the bin exits 1 with the catalogue line and opens no port — there is no screen to drive, so no browser test |
+  | S-01.3 Start without opening a browser | `test/e2e/shell.spec.ts` › "S-01.3 — Start without opening a browser when none is available" — no opener on the `PATH`: "Open this URL in your browser: <url>" printed, no opener ran, the page at that URL still shows the switcher with "Add project…" |
+
+  Shell mechanisms (same spec, `shell mechanisms`): session (fragment → cookie, reload keeps it,
+  wrong token and a forgotten session → lost-session page), corrupt `state.json` warning shown with
+  the kept file and dismissed, theme following `prefers-color-scheme` and its change without reload,
+  the dialog frame (keyboard, focus trapped and given back, axe), the key build showing only keys.
+- **Checks** (worktree, load 15–18 on 12 cores, `/proc/loadavg`): `npm run -s typecheck`, `lint`
+  (ESLint + catalogue check) clean · `format:check` "All matched files use Prettier code style!" ·
+  `docs:api` OK · `npm run -s test:coverage` **87 files passed, 1 skipped; 1350 passed / 1 skipped**,
+  coverage 95.44 % statements / 88.48 % branches / 95.47 % functions / 97.48 % lines (before the last
+  three unit tests; `web/src` alone now 96.01 % / 90.59 %) · `test:e2e` **12/12** (and 36/36 with
+  `--repeat-each=3`) · `check_tasks.py` OK · `npm run test:timing` **not run** (load > 12).
+- **Hand-overs:**
+  - **view tasks (017–020):** route + `PROJECT_ROUTES` + `PROJECT_NAV` entry (`routes/project.tsx`
+    header comment); query keys under `queryKeys.project(pid, …)`; `apiGet` in query functions;
+    `stream.on('write', …)` for other events; ids through `defineMessages` when not literal; every
+    new key in `en.json` in the same commit (the lint fails otherwise).
+  - **task-014:** fill `AddProjectDialog` (`shell/add-project.tsx`); render refusals with
+    `ErrorText` / `errorMessage` (all spec-006 §3 keys exist; texts from `projects.feature`, adjust
+    with the scenarios).
+  - **task-015:** project items in `ProjectSwitcher` above "Add project…" (`projectsQuery()`, already
+    refetched on `projects`); X-02.1's browser half is the bootstrap of `session/session.ts`.
+  - **task-016:** header slot in `ProjectLayout`, above `<Outlet/>`.
+  - **task-021:** `openConsole(page, c, { build: 'keys' })` for X-09.1/X-09.2; React Aria's popovers
+    render a visually hidden "Dismiss" button (its own string): decide how X-09.1 treats it (the
+    switcher menu has one); X-08.1/X-08.2 mechanism already e2e-tested here.
+  - **Coordinator:** run `npm run test:timing` on a quiet machine.
