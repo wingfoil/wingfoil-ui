@@ -3,12 +3,12 @@ id: bug-003-confined-file-reads-can-block-or-exhaust-memory-when-the-file-is-swa
 type: bug
 title: "Confined file reads can block or exhaust memory when the file is swapped after the check"
 status: draft
-severity: ""           # REQUIRED — critical | high | medium | low
-release-origin: ""     # optional — release where the bug was FOUND, e.g. "v0.1"
+severity: "low"        # REQUIRED — critical | high | medium | low
+release-origin: "v0.1" # optional — release where the bug was FOUND, e.g. "v0.1"
 release: ""            # optional — fix/implementation release, stamped by release-planning/build-backlog
 feature: ""            # optional — related feature ID from docs/01_vision/06_features.md
-module: ""             # optional — server | web | contracts
-wingfoil_version: ""   # optional — `wingfoil --version` of the OBSERVED project (the UI drives its CLI)
+module: "server"       # optional — server | web | contracts
+wingfoil_version: "0.2.2" # optional — `wingfoil --version` of the OBSERVED project (the UI drives its CLI)
 browser: ""            # optional — for `web`: browser name + version, e.g. "Firefox 131"
 contributor: ""        # optional — who originated this contribution, if not the git author; credited for AI-generated work derived from it
 credit: ""             # optional — free-text credit note
@@ -17,38 +17,41 @@ tmpl_version: 260703   # Orignal template version
 
 ## Summary
 
-<!-- One-sentence description of the defect. -->
+`server/src/reads/confine.ts` checks a confined file (kind, size, real path) and then reads it by
+path with no size bound, so a local writer that swaps the file between the check and the read can
+make the request hang or exhaust memory.
 
 ## Steps to Reproduce
 
-<!-- Start from the observed project's state (WingFoil version, branch, the elements involved),
-     then the numbered steps in the UI or against the server API.
-  1. ...
-  2. ...
-  3. ... -->
+1. A listed project (any fixture, WingFoil 0.2.2) with a document or element file served by a
+   direct read (task-005 reads, task-012 `/files/content`).
+2. Between the server's `lstat`/size check and its `readFile`, replace the file with a FIFO, or
+   with a symlink to `/dev/zero` (a local process racing the request).
+3. Request the file.
 
 ## Expected Behavior
 
-<!-- What should happen. -->
+The read is bounded and refers to the object that was checked: a swapped file is refused
+(`not-allowed`/`outside`) or read up to the size limit; the request never blocks.
 
 ## Actual Behavior
 
-<!-- What actually happens. Include error messages or stack traces if available. -->
+`readFile` follows the path again: a FIFO blocks the request, `/dev/zero` grows the buffer until
+memory runs out. The second confinement check refuses the result afterwards, so no byte reaches
+the client — the defect is availability, not disclosure.
 
 ## Evidence
 
-<!-- Screenshot or recording (web), browser console output, server log lines, the CLI command the
-     server ran and its JSON output. Never paste secrets (directive security-secrets). -->
+- task-012 review (2026-10-06, finding 9): `server/src/reads/confine.ts:85-96` — check, then
+  unbounded `readFile` on the path.
 
 ## Notes
 
-<!-- Optional: environment details, related ADRs, suspected root cause, or workaround. -->
+- Fix: open with `O_NOFOLLOW` (and `O_NONBLOCK` for FIFOs), `fstat` the descriptor, refuse anything
+  that is not a regular file, read at most MAX + 1 bytes from the descriptor.
+- Found in the Wave 2 dev-loop review of task-012 (plan `dev-loop-rel-v0.1-plan`, Session 2);
+  the code belongs to task-005 (done), hence this bug (user rule). To be absorbed into task-012,
+  decided by the user 2026-10-06.
 
 ## Triage & Execution Notes
 
-<!-- Running log, not the retrospective itself.
-     - triage (bug-ingest): severity call, wontfix/duplicate rationale if rejected to `closed`.
-     - fix: once fix task(s) exist (release-planning/build-backlog), day-to-day execution notes
-       live on those tasks (docs/04_memory/{release}/{id}.md, `bug: {this id}`, their own
-       Execution Notes section) — this section only needs a pointer plus anything that doesn't
-       belong on a specific fix task (e.g. why 2 tasks were needed instead of 1). -->
