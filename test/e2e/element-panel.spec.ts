@@ -1,0 +1,106 @@
+// task-018 — the read-only element panel on the real bin (US-G-01: G-01.1…G-01.4), on the built
+// kanban and custom fixtures. The panel is read-only: the identity of a scenario ("I am Morgan")
+// changes nothing it shows, so the fixtures' own identity (Alex) is used.
+import type { Page } from '@playwright/test';
+import type { MemoryHistory } from '@wingfoil-ui/contracts';
+import { scanThemes } from './support/axe.js';
+import { openConsole, type RunningConsole } from './support/console.js';
+import { cli } from './support/events.js';
+import { expect, test } from './support/fixtures.js';
+import { expectFocusVisible } from './support/keyboard.js';
+
+/** Open the element panel of `eid` by its URL. */
+async function openPanel(page: Page, c: RunningConsole, eid: string) {
+  await openConsole(page, c, { path: `/p/${c.pids[0]}/e/${eid}` });
+  const panel = page.getByRole('dialog');
+  await expect(panel).toBeVisible();
+  return panel;
+}
+
+/** The chip of `state` in the panel's state machine. */
+function chip(page: Page, state: string) {
+  return page
+    .getByRole('list', { name: 'State machine' })
+    .getByRole('listitem')
+    .filter({ hasText: new RegExp(`^${state}\\(`) });
+}
+
+test.describe('US-G-01 — element panel', () => {
+  test('G-01.1 — Show an element with its state machine and history', async ({ page, fixtures, consoles }) => {
+    const kanban = await fixtures.get('kanban');
+    const c = await consoles.start({ projects: [kanban] });
+    const panel = await openPanel(page, c, 'task-001-login-form');
+    await expect(panel).toHaveAccessibleName('Login form');
+    await expect(panel.getByText('task', { exact: true })).toBeVisible();
+    await expect(panel.getByText('task-001-login-form', { exact: true })).toBeVisible();
+    await expect(panel.getByRole('heading', { level: 2, name: 'Login form' })).toBeVisible();
+    await expect(chip(page, 'draft')).toHaveText('draft(past state)');
+    await expect(chip(page, 'pending')).toHaveText('pending(current state)');
+    await expect(chip(page, 'pending')).toHaveAttribute('aria-current', 'step');
+    await expect(chip(page, 'approved')).toHaveText('approved(future state)');
+    // The history line of the submit: who, its commit hash and its date as the CLI reports them.
+    const history = JSON.parse(
+      await cli(kanban, ['--format', 'json', 'memory', 'history', 'task-001-login-form']),
+    ) as MemoryHistory;
+    const submit = history.entries.find((e) => e.operation === 'submit')!;
+    const date = await page.evaluate(
+      (ts) => new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(ts)),
+      submit.timestamp,
+    );
+    const line = panel.getByRole('listitem').filter({ hasText: 'submitted by Jordan' });
+    await expect(line).toBeVisible();
+    await expect(line).toContainText(submit.sha.slice(0, 7));
+    await expect(line).toContainText(date);
+    await expect(line.getByTitle(submit.sha)).toBeVisible();
+    // Keyboard: the focus is in the panel; Close is reachable with a visible focus; Escape closes.
+    const close = panel.getByRole('button', { name: 'Close' });
+    for (let i = 0; i < 5 && !(await close.evaluate((el) => el === document.activeElement)); i++) {
+      await page.keyboard.press('Tab');
+    }
+    await expectFocusVisible(close);
+    expect(await scanThemes(page)).toEqual([]);
+    await page.keyboard.press('Escape');
+    await expect(panel).toBeHidden();
+    await expect(page).toHaveURL(`${c.origin}/p/${c.pids[0]}`);
+  });
+
+  test('G-01.2 — Show the rejection banner after a reject', async ({ page, fixtures, consoles }) => {
+    // The built kanban fixture has `task-002-password-reset` rejected by Morgan with this reason.
+    const c = await consoles.start({ projects: [await fixtures.get('kanban')] });
+    const panel = await openPanel(page, c, 'task-002-password-reset');
+    await expect(panel.getByText('Rejected by Morgan: Missing acceptance criteria', { exact: true })).toBeVisible();
+    await expect(chip(page, 'draft')).toHaveText('draft(current state)');
+    await expect(panel.getByRole('listitem').filter({ hasText: 'rejected by Morgan' })).toContainText(
+      '“Missing acceptance criteria”',
+    );
+    expect(await scanThemes(page)).toEqual([]);
+  });
+
+  test('G-01.3 — Flag a missing required field', async ({ page, fixtures, consoles }) => {
+    // The built custom fixture has `adr-001-local-server` committed as a draft with an empty `sard_ref`.
+    const c = await consoles.start({ projects: [await fixtures.get('custom')] });
+    const panel = await openPanel(page, c, 'adr-001-local-server');
+    const summary = panel.getByRole('region', { name: 'Summary' });
+    await expect(summary.getByText('sard_ref — required field, missing', { exact: true })).toBeVisible();
+    await expect(chip(page, 'draft')).toHaveAttribute('aria-current', 'step');
+    expect(await scanThemes(page)).toEqual([]);
+  });
+
+  test('G-01.4 — Open an element panel from its URL', async ({ page, fixtures, consoles }) => {
+    const c = await consoles.start({ projects: [await fixtures.get('kanban')] });
+    await openPanel(page, c, 'task-001-login-form');
+    const copied = page.url();
+    expect(copied).toBe(`${c.origin}/p/${c.pids[0]}/e/task-001-login-form`);
+    // A new tab of the same browser session: the session cookie, no token in the URL.
+    const tab = await page.context().newPage();
+    try {
+      await tab.goto(copied);
+      const panel = tab.getByRole('dialog', { name: 'Login form' });
+      await expect(panel).toBeVisible();
+      await expect(panel.getByText('task-001-login-form', { exact: true })).toBeVisible();
+      await expect(tab).toHaveTitle(/· task-001-login-form — WingFoil UI$/);
+    } finally {
+      await tab.close();
+    }
+  });
+});
