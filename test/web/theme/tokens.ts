@@ -7,7 +7,7 @@ export const TOKENS_FILE = path.join(REPO_ROOT, 'web', 'src', 'theme', 'tokens.c
 
 /** The custom properties declared in the rule `:root[data-theme="<theme>"]`. */
 export function themeTokens(theme: 'light' | 'dark', css = readFileSync(TOKENS_FILE, 'utf8')): Record<string, string> {
-  const block = new RegExp(`:root\\[data-theme="${theme}"\\]\\s*\\{([^}]*)\\}`).exec(css);
+  const block = new RegExp(`:root\\[data-theme=["']${theme}["']\\]\\s*\\{([^}]*)\\}`).exec(css);
   if (!block) throw new Error(`no :root[data-theme="${theme}"] rule`);
   const tokens: Record<string, string> = {};
   for (const m of block[1]!.matchAll(/(--[a-z0-9-]+)\s*:\s*([^;]+);/g)) tokens[m[1]!] = m[2]!.trim();

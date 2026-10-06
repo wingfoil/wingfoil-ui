@@ -45,8 +45,8 @@ describe.each(['light', 'dark'] as const)('the %s theme', (theme) => {
 
   it('declares the brand gradient and the font and focus tokens', () => {
     expect(t['--brand-gradient']).toMatch(/#22CEC6.*#1686C8.*#0C469F/i);
-    expect(t['--font-sans']).toMatch(/^"Geist", system-ui, sans-serif$/);
-    expect(t['--font-mono']).toMatch(/^"Geist Mono", ui-monospace, monospace$/);
+    expect(t['--font-sans']).toMatch(/^["']Geist["'], system-ui, sans-serif$/);
+    expect(t['--font-mono']).toMatch(/^["']Geist Mono["'], ui-monospace, monospace$/);
     expect(t['--focus-ring']).toBe('2px solid var(--color-focus)');
   });
 
@@ -76,8 +76,8 @@ describe.each(['light', 'dark'] as const)('the %s theme', (theme) => {
 
 it('sets the colour scheme of each theme', () => {
   const css = readFileSync(TOKENS_FILE, 'utf8');
-  expect(css).toMatch(/:root\[data-theme="light"\]\s*\{[^}]*color-scheme:\s*light;/);
-  expect(css).toMatch(/:root\[data-theme="dark"\]\s*\{[^}]*color-scheme:\s*dark;/);
+  expect(css).toMatch(/:root\[data-theme=["']light["']\]\s*\{[^}]*color-scheme:\s*light;/);
+  expect(css).toMatch(/:root\[data-theme=["']dark["']\]\s*\{[^}]*color-scheme:\s*dark;/);
 });
 
 it('fails a pair below its bar (the check is not vacuous)', () => {
