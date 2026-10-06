@@ -30,7 +30,7 @@ import {
   type DirectiveRead,
   type ElementRead,
 } from '../reads/project-reads.js';
-import { combinedHash, contentFingerprint } from './fingerprint.js';
+import { combinedHash, Fingerprinter } from './fingerprint.js';
 import { repoState, sameState, type RepoState } from './state.js';
 
 /** Options of {@link ProjectSnapshot}. */
@@ -101,13 +101,16 @@ export class ProjectSnapshot {
   private generation: Generation | undefined;
   private memo: { key: string; values: Map<string, Promise<unknown>> } | undefined;
 
-  private readonly topLevel: string;
+  private readonly fingerprints: Fingerprinter;
 
   constructor(private readonly options: ProjectSnapshotOptions) {
     this.pid = options.pid;
     this.root = options.root;
     const depth = options.prefix.split('/').filter(Boolean).length;
-    this.topLevel = path.resolve(options.root, ...Array<string>(depth).fill('..'));
+    this.fingerprints = new Fingerprinter(
+      path.resolve(options.root, ...Array<string>(depth).fill('..')),
+      options.prefix,
+    );
   }
 
   /** The last observed state, or `undefined` before the first check. */
@@ -173,7 +176,7 @@ export class ProjectSnapshot {
       const [status, email] = await Promise.all([this.options.git.status(), this.options.git.email()]);
       // The content of the listed files too: a second edit of a modified or untracked file leaves
       // the porcelain status unchanged (review F1).
-      const fingerprint = await contentFingerprint(this.topLevel, status.entries);
+      const fingerprint = await this.fingerprints.fingerprint(status.entries);
       const next = repoState({ ...status, hash: combinedHash(status.hash, fingerprint) }, email, this.options.prefix);
       const previous = this.last;
       this.last = next;

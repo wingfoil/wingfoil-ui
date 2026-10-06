@@ -10,7 +10,7 @@
  * | Folder | How | Means |
  * |--------|-----|-------|
  * | the project root | not recursive | root files, new `node_modules` |
- * | `.wingfoil/` and the element folders of `memory.yaml` ({@link memoryTrees}) | recursive | DNA, types, directives, element edits; re-evaluated when `.wingfoil/` changes |
+ * | `.wingfoil/` and the element folders of `memory.yaml` ({@link memoryWatchPlan}) | recursive | DNA, types, directives, element edits; re-evaluated when `.wingfoil/` changes |
  * | the nearest existing parent of a missing element folder | not recursive | the folder appears |
  * | `node_modules`, `node_modules/wingfoil` | not recursive | the project's CLI changed (task-004 hand-over) |
  * | the git directory and common directory, `refs/` | not recursive, `refs/` recursive | commits, staging, branch moves, the repository configuration |
@@ -34,8 +34,8 @@ export interface WatchTargets {
   commonDir: string;
   /** Global git configuration files ({@link globalConfigFiles}). */
   globalConfig: readonly string[];
-  /** The folders, relative to the root, to watch recursively (default {@link memoryTrees}). */
-  trees?: () => Promise<readonly string[]>;
+  /** What to watch recursively, re-evaluated when `.wingfoil/` changes (default {@link memoryWatchPlan}). */
+  trees?: () => Promise<WatchPlan>;
 }
 
 /** Called on a possible change. */
@@ -83,26 +83,47 @@ export function globalConfigFiles(env: NodeJS.ProcessEnv): string[] {
   return files;
 }
 
+/** What {@link memoryWatchPlan} found. */
+export interface WatchPlan {
+  /** Folders, relative to the root, to watch recursively. */
+  trees: string[];
+  /**
+   * Types whose path pattern has no static folder (`{id}.md`, `{release}/{id}.md`): their elements
+   * may be anywhere, so file watching cannot cover them without watching the whole tree — the
+   * watcher reports itself degraded instead (review round 2, R3).
+   */
+  unwatched: string[];
+}
+
 /**
  * The folders that feed the reads, relative to `root`: `.wingfoil` and, for each type of
  * `memory.yaml`, the static folder of its path pattern (`docs/memory/task/{id}.md` →
  * `docs/memory/task`), without folders nested in another one. An unreadable `memory.yaml` leaves
  * `.wingfoil` only (its fix is an event there).
  */
-export async function memoryTrees(root: string): Promise<string[]> {
+export async function memoryWatchPlan(root: string): Promise<WatchPlan> {
   const trees = new Set<string>(['.wingfoil']);
+  const unwatched: string[] = [];
   try {
-    for (const type of Object.values((await readMemoryYaml(root)).types)) {
+    for (const [name, type] of Object.entries((await readMemoryYaml(root)).types)) {
       const fixed = type.path.split('{')[0] ?? '';
       const dir = path.normalize(fixed.endsWith('/') ? fixed.slice(0, -1) : path.dirname(fixed));
-      if (dir === '.' || dir.startsWith('..') || path.isAbsolute(dir)) continue;
-      trees.add(dir);
+      if (dir === '.' || dir.startsWith('..') || path.isAbsolute(dir)) unwatched.push(name);
+      else trees.add(dir);
     }
   } catch {
     // Types unreadable: `.wingfoil` only.
   }
   const sorted = [...trees].sort();
-  return sorted.filter((dir) => !sorted.some((other) => other !== dir && dir.startsWith(`${other}${path.sep}`)));
+  return {
+    trees: sorted.filter((dir) => !sorted.some((other) => other !== dir && dir.startsWith(`${other}${path.sep}`))),
+    unwatched: unwatched.sort(),
+  };
+}
+
+/** The recursive folders of {@link memoryWatchPlan}. */
+export async function memoryTrees(root: string): Promise<string[]> {
+  return (await memoryWatchPlan(root)).trees;
 }
 
 /** The local adapter of {@link WatchRepository}. */
@@ -112,6 +133,8 @@ export const watchRepository: WatchRepository = (targets, handlers, options = {}
 class FsRepositoryWatcher implements RepositoryWatcher {
   private readonly watchers = new Map<string, FSWatcher>();
   private stopped = false;
+  private treeGeneration = 0;
+  private reportedUnwatched = '';
   readonly ready: Promise<void>;
 
   constructor(
@@ -151,35 +174,51 @@ class FsRepositoryWatcher implements RepositoryWatcher {
     for (const key of [...this.watchers.keys()]) this.drop(key);
   }
 
-  /** (Re)watch the trees; a missing one through its nearest existing parent. */
+  /**
+   * (Re)watch the trees; a missing one through its nearest existing parent. Calls may overlap (a
+   * burst of `.wingfoil/` events): each takes a generation, and one superseded by a later call
+   * neither adds nor drops a watch (review round 2, R4).
+   */
   private async watchTrees(): Promise<void> {
-    const trees = await (this.targets.trees ?? (() => memoryTrees(this.targets.root)))().catch(() => ['.wingfoil']);
-    if (this.stopped) return;
-    const wanted = new Set<string>();
-    for (const tree of trees) {
+    const generation = ++this.treeGeneration;
+    const plan = await (this.targets.trees ?? (() => memoryWatchPlan(this.targets.root)))().catch((): WatchPlan => ({
+      trees: ['.wingfoil'],
+      unwatched: [],
+    }));
+    const wanted: { key: string; dir: string; recursive: boolean; tree: string }[] = [];
+    for (const tree of plan.trees) {
       const dir = path.join(this.targets.root, tree);
       if (await isDirectory(dir)) {
-        const key = `tree:${tree}`;
-        wanted.add(key);
-        if (this.watchers.has(key)) continue;
-        this.add(key, dir, true, () => {
-          this.handlers.repo();
-          // `.wingfoil/memory.yaml` may name other folders now.
-          if (tree === '.wingfoil') void this.watchTrees();
-        });
+        wanted.push({ key: `tree:${tree}`, dir, recursive: true, tree });
         continue;
       }
       const parent = await nearestParent(this.targets.root, dir);
-      if (parent === undefined) continue;
-      const key = `parent:${parent}`;
-      wanted.add(key);
-      this.add(key, parent, false, () => {
-        void this.watchTrees();
-        this.handlers.repo();
-      });
+      if (parent !== undefined) wanted.push({ key: `parent:${parent}`, dir: parent, recursive: false, tree });
     }
+    if (this.stopped || generation !== this.treeGeneration) return;
+    // From here on synchronous: no other call interleaves.
+    const unwatched = plan.unwatched.join(', ');
+    if (unwatched !== '' && unwatched !== this.reportedUnwatched) {
+      this.handlers.degraded?.(`no static folder in the path pattern of: ${unwatched}`);
+    }
+    this.reportedUnwatched = unwatched;
+    const keys = new Set(wanted.map((w) => w.key));
     for (const key of [...this.watchers.keys()]) {
-      if ((key.startsWith('tree:') || key.startsWith('parent:')) && !wanted.has(key)) this.drop(key);
+      if ((key.startsWith('tree:') || key.startsWith('parent:')) && !keys.has(key)) this.drop(key);
+    }
+    for (const w of wanted) {
+      if (w.recursive) {
+        this.add(w.key, w.dir, true, () => {
+          this.handlers.repo();
+          // `.wingfoil/memory.yaml` may name other folders now.
+          if (w.tree === '.wingfoil') void this.watchTrees();
+        });
+      } else {
+        this.add(w.key, w.dir, false, () => {
+          void this.watchTrees();
+          this.handlers.repo();
+        });
+      }
     }
   }
 

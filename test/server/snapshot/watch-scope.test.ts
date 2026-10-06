@@ -3,13 +3,19 @@
 // not recursively, the git directories, the global configuration folders. Never a source tree,
 // `dist/`, `coverage/` or a nested `node_modules` (one inotify watch per folder on Linux). A watch
 // that fails is reported (degraded: the snapshot then checks more often).
-import { mkdir, mkdtemp, realpath, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, realpath, rm, writeFile } from 'node:fs/promises';
+import { parse as parseYaml, stringify as stringifyYaml } from 'yaml';
 import type { watch as fsWatch } from 'node:fs';
 import { EventEmitter } from 'node:events';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
-import { memoryTrees, watchRepository, type WatchTargets } from '../../../server/src/snapshot/watcher.js';
+import {
+  memoryTrees,
+  memoryWatchPlan,
+  watchRepository,
+  type WatchTargets,
+} from '../../../server/src/snapshot/watcher.js';
 import { buildFixture, type Fixture } from '../../harness/fixtures/index.js';
 
 let root: string;
@@ -48,7 +54,7 @@ function targets(): WatchTargets {
     gitDir,
     commonDir: gitDir,
     globalConfig: [path.join(fx.home, '.gitconfig')],
-    trees: () => memoryTrees(fx.dir),
+    trees: () => memoryWatchPlan(fx.dir),
   };
 }
 
@@ -86,6 +92,68 @@ describe('watch scope', () => {
     await vi.waitFor(() => expect(handlers.degraded).toHaveBeenCalled());
     expect(String(handlers.degraded.mock.calls[0]![0])).toMatch(/ENOSPC/);
     expect(calls).toContainEqual({ dir: '.', recursive: false });
+    w.close();
+  });
+});
+
+describe('review round 2', () => {
+  it('R3 — a type whose path pattern has no static folder is reported, and makes the watcher degraded', async () => {
+    const project = path.join(root, 'r3');
+    await mkdir(path.join(project, '.wingfoil'), { recursive: true });
+    const yaml = parseYaml(await readFile(path.join(fx.dir, '.wingfoil', 'memory.yaml'), 'utf8')) as {
+      types: Record<string, unknown>;
+    };
+    yaml.types.anywhere = { path: '{release}/{id}.md' };
+    yaml.types.flat = { path: '{id}.md' };
+    await writeFile(path.join(project, '.wingfoil', 'memory.yaml'), stringifyYaml(yaml));
+    const plan = await memoryWatchPlan(project);
+    expect(plan.unwatched).toEqual(['anywhere', 'flat']);
+    expect(plan.trees).toContain('.wingfoil');
+
+    const { watch } = recordingWatch();
+    const handlers = { repo: vi.fn(), cli: vi.fn(), degraded: vi.fn() };
+    const gitDir = path.join(fx.dir, '.git');
+    const w = watchRepository(
+      { root: project, gitDir, commonDir: gitDir, globalConfig: [], trees: () => memoryWatchPlan(project) },
+      handlers,
+      { watch },
+    );
+    await w.ready;
+    expect(handlers.degraded).toHaveBeenCalledWith('no static folder in the path pattern of: anywhere, flat');
+    w.close();
+  });
+
+  it('R4 — a superseded re-scoping neither adds nor drops a watch', async () => {
+    const active = new Map<string, boolean>();
+    const listeners = new Map<string, (type: string, name: string | null) => void>();
+    const watch = ((dir: string, options: { recursive?: boolean }, listener: (t: string, n: string | null) => void) => {
+      const rel = path.relative(fx.dir, dir) || '.';
+      active.set(rel, options.recursive === true);
+      listeners.set(rel, listener);
+      return Object.assign(new EventEmitter(), { close: () => active.delete(rel) });
+    }) as unknown as typeof fsWatch;
+    let calls = 0;
+    const trees = async () => {
+      calls += 1;
+      // The first plan comes late and is stale; the second is the current one.
+      if (calls === 1) {
+        await new Promise((r) => setTimeout(r, 300));
+        return { trees: ['.wingfoil', path.join('docs', 'memory', 'task')], unwatched: [] };
+      }
+      return { trees: ['.wingfoil'], unwatched: [] };
+    };
+    const gitDir = path.join(fx.dir, '.git');
+    const w = watchRepository(
+      { root: fx.dir, gitDir, commonDir: gitDir, globalConfig: [], trees },
+      { repo: vi.fn(), cli: vi.fn() },
+      { watch },
+    );
+    // A root event re-scopes while the first call is still waiting for its plan.
+    listeners.get('.')!('rename', 'docs');
+    await w.ready;
+    await new Promise((r) => setTimeout(r, 100));
+    expect(active.get('.wingfoil')).toBe(true);
+    expect(active.has(path.join('docs', 'memory', 'task'))).toBe(false);
     w.close();
   });
 });

@@ -2,10 +2,16 @@
  * Fingerprint of the working-tree content of the status entries (review F1 of task-010): the
  * porcelain status of a file that is already modified, or untracked, does not change when the
  * file is edited again, so the state key would not move and the view would stay stale. The
- * fingerprint hashes, for every entry, the SHA-256 of its content (regular files up to
- * {@link MAX_FINGERPRINT_FILE_BYTES}), its size and modification time beyond that or beyond
- * {@link MAX_FINGERPRINT_FILES} entries, the target of a symbolic link (never followed), or
- * `missing`. No git command; nothing is kept or exposed but the hash.
+ * fingerprint hashes, for every entry inside the project folder, the SHA-256 of its content, the
+ * target of a symbolic link (never followed), or `missing`. No git command; nothing is kept or
+ * exposed but the hashes.
+ *
+ * Bounded cost (review round 2, R2): a file's SHA is cached by path and re-read only when its
+ * `lstat` (size, modification time in ns, inode) changes — an entry fingerprinted by its `lstat`
+ * keeps that mark while it holds; a check reads at most
+ * {@link MAX_FINGERPRINT_BYTES_PER_CHECK} bytes of new content and hashes at most
+ * {@link MAX_FINGERPRINT_FILES} entries by content — beyond, and for files over
+ * {@link MAX_FINGERPRINT_FILE_BYTES}, an entry is fingerprinted by its `lstat` alone.
  */
 import { createHash } from 'node:crypto';
 import { lstat, readFile, readlink } from 'node:fs/promises';
@@ -18,39 +24,89 @@ export const MAX_FINGERPRINT_FILES = 1_000;
 /** Largest file whose content is hashed; a bigger one is fingerprinted by size and time. */
 export const MAX_FINGERPRINT_FILE_BYTES = 1024 * 1024;
 
+/** New content read by one check, at most; beyond, entries are fingerprinted by size and time. */
+export const MAX_FINGERPRINT_BYTES_PER_CHECK = 8 * 1024 * 1024;
+
 /** Files read at once. */
 export const FINGERPRINT_CONCURRENCY = 16;
 
-/** The fingerprint (hex SHA-256) of the entries' content under the repository's `topLevel`. */
-export async function contentFingerprint(topLevel: string, entries: readonly StatusEntry[]): Promise<string> {
-  const parts = new Array<string>(entries.length);
-  let next = 0;
-  // A bounded number of files open at once (no EMFILE on a large status).
-  const worker = async (): Promise<void> => {
-    while (next < entries.length) {
-      const index = next++;
-      const entry = entries[index]!;
-      parts[index] = `${entry.path}\0${await fileMark(path.join(topLevel, entry.path), index)}`;
-    }
-  };
-  await Promise.all(Array.from({ length: Math.min(FINGERPRINT_CONCURRENCY, entries.length) }, worker));
-  return createHash('sha256').update(parts.join('\0')).digest('hex');
+interface Cached {
+  stat: string;
+  /** `sha:<hex>`, or `stat:<stat>` when it was over a limit: kept while the stat holds, so an unchanged file never changes its mark (no spurious `repo` event). */
+  mark: string;
 }
 
-async function fileMark(file: string, index: number): Promise<string> {
-  try {
-    const info = await lstat(file, { bigint: true });
-    if (info.isSymbolicLink()) return `link:${await readlink(file)}`;
-    if (!info.isFile()) return `other:${info.mtimeNs}`;
-    if (index >= MAX_FINGERPRINT_FILES || info.size > BigInt(MAX_FINGERPRINT_FILE_BYTES)) {
-      return `stat:${info.size}:${info.mtimeNs}`;
-    }
-    return `sha:${createHash('sha256')
-      .update(await readFile(file))
-      .digest('hex')}`;
-  } catch {
-    return 'missing';
+/** The fingerprints of one project, with the SHA cache. */
+export class Fingerprinter {
+  private cache = new Map<string, Cached>();
+
+  /**
+   * @param topLevel the repository's top level (the status paths are relative to it)
+   * @param prefix the project folder relative to it (`GitLayout.prefix`): only entries under it count
+   */
+  constructor(
+    private readonly topLevel: string,
+    private readonly prefix = '',
+  ) {}
+
+  /** Files read by the last {@link fingerprint} call (not taken from the cache). */
+  lastReads = 0;
+
+  /** The fingerprint (hex SHA-256) of the content of `entries` under the project folder. */
+  async fingerprint(entries: readonly StatusEntry[]): Promise<string> {
+    const listed = entries.filter((e) => e.path.startsWith(this.prefix));
+    const parts = new Array<string>(listed.length);
+    const next = new Map<string, Cached>();
+    let budget = MAX_FINGERPRINT_BYTES_PER_CHECK;
+    let reads = 0;
+    let cursor = 0;
+    const worker = async (): Promise<void> => {
+      while (cursor < listed.length) {
+        const index = cursor++;
+        const entry = listed[index]!;
+        const file = path.join(this.topLevel, entry.path);
+        let mark: string;
+        try {
+          const info = await lstat(file, { bigint: true });
+          const stat = `${info.size}:${info.mtimeNs}:${info.ino}`;
+          if (info.isSymbolicLink()) mark = `link:${await readlink(file)}`;
+          else if (!info.isFile()) mark = `other:${stat}`;
+          else {
+            const cached = this.cache.get(entry.path);
+            if (cached?.stat === stat) {
+              mark = cached.mark;
+            } else if (
+              index >= MAX_FINGERPRINT_FILES ||
+              info.size > BigInt(MAX_FINGERPRINT_FILE_BYTES) ||
+              Number(info.size) > budget
+            ) {
+              mark = `stat:${stat}`;
+            } else {
+              budget -= Number(info.size);
+              reads += 1;
+              mark = `sha:${createHash('sha256')
+                .update(await readFile(file))
+                .digest('hex')}`;
+            }
+            next.set(entry.path, { stat, mark });
+          }
+        } catch {
+          mark = 'missing';
+        }
+        parts[index] = `${entry.path}\0${mark}`;
+      }
+    };
+    await Promise.all(Array.from({ length: Math.min(FINGERPRINT_CONCURRENCY, listed.length) }, worker));
+    // Only the entries still listed stay cached.
+    this.cache = next;
+    this.lastReads = reads;
+    return createHash('sha256').update(parts.join('\0')).digest('hex');
   }
+}
+
+/** One-off fingerprint of `entries` under `topLevel` (no cache). */
+export function contentFingerprint(topLevel: string, entries: readonly StatusEntry[]): Promise<string> {
+  return new Fingerprinter(topLevel).fingerprint(entries);
 }
 
 /** The status hash combined with the content fingerprint: 16 hex digits, as the status hash. */

@@ -219,7 +219,12 @@ e2e closure — scenarios that need a screen are proved here by API and unit tes
     same `bus` (`bus.publish({ event: 'projects', data: {} })`). `open()` of a folder that is not a
     git repository rejects with `GitReadError` (git's message). `GitReads`/`resolveGit`
     (`server/src/git/git.ts`) hold the read allow-list; the clone/transport commands of REQ-INT-06
-    are task-008's to add there.
+    are task-008's to add there. `gitEnv` (applied by the process runner to every child) also
+    strips `GIT_CONFIG_PARAMETERS`/`GIT_CONFIG_COUNT`/`GIT_CONFIG_KEY_<n>`/`GIT_CONFIG_VALUE_<n>`
+    (`git -c` and env-injected settings such as proxy or credential helpers), the legacy
+    `GIT_CONFIG`, `GIT_CEILING_DIRECTORIES` and `GIT_DISCOVERY_ACROSS_FILESYSTEM`: a transport
+    command that needs such a setting must pass it explicitly (`-c` arguments of an allow-listed
+    command), never through the inherited environment (review round 2, R6).
   - **task-009 (identity):** the effective `user.email` is `view.state.email` (repository, else
     global; watched, a change publishes `repo`): match it against `dna.team` from `view.dna()`
     instead of running `git config` again.
@@ -302,3 +307,33 @@ e2e closure — scenarios that need a screen are proved here by API and unit tes
   97.44 % lines (load 3.29 → 6.64) · `test:e2e` 3/3 · `check_tasks.py` OK · **`npm run test:timing`
   3/3 at load 6.27–5.52**: REQ-PERF-06 187–287 ms; TypeDoc build 3963 ms; REQ-PERF-03 20/20, max
   367 ms. Process audits: cold Memory list 5 CLI + 3 git, warm 0; 60 s idle 0 CLI, 12 git.
+
+### review round 2 follow-ups (2026-10-06)
+
+- Review round 2: **PASS with follow-ups**, fixed here (load 25–57 on 12 cores during this pass,
+  other projects' builds):
+  - R1 (own commit `8c7db17`, red first: `GitReads.email()` answered `legacy@example.test`): the
+    legacy `GIT_CONFIG` is also dropped by `gitEnv`; `hostileEnv()` of `git-env.test.ts` sets it,
+    with an assertion on `GitReads.email()` and on the runner's child environment.
+  - R2 `Fingerprinter` (one per snapshot): a file's mark is cached by path with its `lstat` (size,
+    mtime ns, inode) and re-read only when that changes — a mark that fell back to size+time keeps
+    it while the stat holds (no `stat:` → `sha:` promotion, hence no spurious `repo` event: found
+    while measuring); at most `MAX_FINGERPRINT_BYTES_PER_CHECK` = 8 MiB of new content read per
+    check; only entries under the project prefix. Tests: re-read on change only, budget, stable
+    fingerprint with nothing read on the next check, prefix. **Measured** (load ≈ 53–57, so
+    inflated; 1st check / next unchanged checks, median of 5): 100 × 4 KiB 123 ms / 8 ms (0 read);
+    1000 × 4 KiB 1531 ms / 297 ms (0 read, 1000 `lstat`); 1000 × 1 MiB 120 ms (8 files read) /
+    119 ms (0 read). Round 1's quiet-machine figure for 1000 × 4 KiB was 27 ms.
+  - R3 `memoryWatchPlan(root)` → `{ trees, unwatched }`: a type whose path pattern has no static
+    folder (`{release}/{id}.md`, `{id}.md`) is listed and the watcher reports itself degraded
+    (`no static folder in the path pattern of: …`, once per distinct list) → 2 s periodic check.
+    `memoryTrees` stays (the trees only). Test on a `memory.yaml` with two such types.
+  - R4 `watchTrees` takes a generation; all awaits come first, and a call superseded by a later
+    one neither adds nor drops a watch. Test: a slow stale plan overtaken by a root event's fresh
+    plan leaves only the fresh watches.
+  - R5 test: a fake `watchRepository` calling `degraded` with the periodic check off → the change is
+    seen by the 2 s check (bound `DEGRADED_FALLBACK_MS` + 6 s for load).
+  - R6 task-008 hand-over above. `/tmp/wfui-rev-oCHAvP` removed.
+- Checks: typecheck, lint clean · format:check clean · `docs:api` OK · affected tests
+  (`test/server/snapshot`, `test/server/git`, `test/server/process/git-env.test.ts`) 59/59 at load
+  ≈ 50. `test:timing` not run (load).

@@ -6,8 +6,8 @@ import { mkdir, mkdtemp, readFile, realpath, rm, stat, writeFile } from 'node:fs
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import type { Snapshots } from '../../../server/src/snapshot/snapshots.js';
-import { globalConfigFiles, memoryTrees } from '../../../server/src/snapshot/watcher.js';
+import { DEGRADED_FALLBACK_MS, type Snapshots } from '../../../server/src/snapshot/snapshots.js';
+import { globalConfigFiles, memoryTrees, type WatchRepository } from '../../../server/src/snapshot/watcher.js';
 import { buildFixture, copyFixture, installCliStub, type Fixture } from '../../harness/fixtures/index.js';
 import { git } from '../../harness/run.js';
 import { auditedSnapshots } from './support.js';
@@ -112,6 +112,27 @@ describe('periodic check (fallback)', () => {
     const before = snapshot.current()!.key;
     await writeFile(path.join(fx.dir, 'notes.txt'), 'x\n');
     await expect.poll(() => snapshot.current()!.key, POLL).not.toBe(before);
+  });
+});
+
+describe('degraded watching (review round 2, R5)', () => {
+  it('a watcher reporting itself degraded turns the periodic check on at 2 s', async () => {
+    n += 1;
+    const fx = await copyFixture(template, path.join(root, `copy-${n}`));
+    const fake: WatchRepository = (_targets, handlers) => {
+      handlers.degraded?.('ENOSPC: test');
+      return { ready: Promise.resolve(), close: () => undefined };
+    };
+    // Periodic check off, file watching replaced: only the degraded fallback can see the change.
+    const audited = auditedSnapshots(fx.env, { watch: true, fallbackMs: 0, watchRepository: fake });
+    registries.push(audited.snapshots);
+    const snapshot = await audited.snapshots.open(`p${n}`, fx.dir);
+    const before = (await snapshot.state()).key;
+    await writeFile(path.join(fx.dir, 'docs/memory/task/notes.md'), 'x\n');
+    const t0 = performance.now();
+    await expect.poll(() => snapshot.current()!.key, { timeout: 10_000, interval: 50 }).not.toBe(before);
+    // Within one interval and a check, with room for a loaded machine.
+    expect(performance.now() - t0).toBeLessThan(DEGRADED_FALLBACK_MS + 6_000);
   });
 });
 

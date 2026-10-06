@@ -1,12 +1,14 @@
 // Review F1 — the content fingerprint of the status entries: changes with the content of a listed
 // file, never follows a symbolic link, bounds the bytes read (size and time beyond the limits).
-import { mkdtemp, rm, symlink, truncate, utimes, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, rm, symlink, truncate, utimes, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import {
   combinedHash,
   contentFingerprint,
+  Fingerprinter,
+  MAX_FINGERPRINT_BYTES_PER_CHECK,
   MAX_FINGERPRINT_FILE_BYTES,
 } from '../../../server/src/snapshot/fingerprint.js';
 
@@ -48,6 +50,48 @@ describe('contentFingerprint', () => {
     const one = await contentFingerprint(dir, [entry('big.bin')]);
     await utimes(big, 2_000, 2_000);
     expect(await contentFingerprint(dir, [entry('big.bin')])).not.toBe(one);
+  });
+
+  it('reads a file again only when its lstat changed (review R2)', async () => {
+    const f = new Fingerprinter(dir);
+    await writeFile(path.join(dir, 'c1.md'), 'one');
+    await writeFile(path.join(dir, 'c2.md'), 'two');
+    const entries = [entry('c1.md'), entry('c2.md')];
+    const first = await f.fingerprint(entries);
+    expect(f.lastReads).toBe(2);
+    expect(await f.fingerprint(entries)).toBe(first);
+    expect(f.lastReads).toBe(0);
+    await writeFile(path.join(dir, 'c1.md'), 'ONE');
+    expect(await f.fingerprint(entries)).not.toBe(first);
+    expect(f.lastReads).toBe(1);
+  });
+
+  it('reads at most the per-check byte budget of new content; the rest by size and time (review R2)', async () => {
+    const f = new Fingerprinter(dir);
+    const size = 512 * 1024;
+    const count = Math.ceil(MAX_FINGERPRINT_BYTES_PER_CHECK / size) + 4;
+    await mkdir(path.join(dir, 'budget'));
+    const entries = [];
+    for (let i = 0; i < count; i += 1) {
+      await writeFile(path.join(dir, 'budget', `b${i}.bin`), Buffer.alloc(size, i));
+      entries.push(entry(`budget/b${i}.bin`));
+    }
+    const first = await f.fingerprint(entries);
+    expect(f.lastReads).toBe(MAX_FINGERPRINT_BYTES_PER_CHECK / size);
+    // Nothing changed: the same fingerprint and nothing read (no entry moves from size+time to SHA).
+    expect(await f.fingerprint(entries)).toBe(first);
+    expect(f.lastReads).toBe(0);
+  });
+
+  it('counts only the entries under the project prefix (review R2)', async () => {
+    await mkdir(path.join(dir, 'proj'), { recursive: true });
+    await writeFile(path.join(dir, 'proj', 'in.md'), 'in');
+    await writeFile(path.join(dir, 'out.md'), 'out');
+    const f = new Fingerprinter(dir, 'proj/');
+    const one = await f.fingerprint([entry('proj/in.md'), entry('out.md')]);
+    await writeFile(path.join(dir, 'out.md'), 'OUT');
+    expect(await f.fingerprint([entry('proj/in.md'), entry('out.md')])).toBe(one);
+    expect(f.lastReads).toBe(0);
   });
 
   it('combines with the status hash into 16 hex digits', () => {
