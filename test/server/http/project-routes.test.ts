@@ -85,7 +85,13 @@ interface Console {
 
 async function start(
   template: Fixture,
-  options: { fs?: ReadFs; prepare?: (fx: Fixture) => Promise<void>; failLog?: boolean; name?: string } = {},
+  options: {
+    fs?: ReadFs;
+    prepare?: (fx: Fixture) => Promise<void>;
+    failLog?: boolean;
+    name?: string;
+    failUpdate?: boolean;
+  } = {},
 ): Promise<Console> {
   n += 1;
   const fx = await copyFixture(template, path.join(root, `copy-${n}`));
@@ -102,6 +108,9 @@ async function start(
   registries.push(audited.snapshots);
   const store = await createMemoryStateStore();
   const entry = await store.add({ path: fx.dir, name: options.name ?? fx.name, remote: '' });
+  // A state that cannot be written (read-only folder, full disk).
+  if (options.failUpdate)
+    store.update = () => Promise.reject(Object.assign(new Error('EROFS /secret/path'), { name: 'StateWriteError' }));
   const logger = createLogger(sink);
   app = await buildApp({
     staticDir: '/nonexistent',
@@ -238,6 +247,16 @@ describe('name and remote refreshed on open (spec-006 §2, task-008 decision 28)
     const before = c.runner.spawned.length;
     expect((await c.get(`/api/p/${c.pid}`)).status).toBe(200);
     expect(c.runner.spawned.length).toBe(before);
+  });
+
+  it('is best-effort: a failed state write still answers the header with the fresh name', async () => {
+    const c = await start(kanbanTemplate, { name: 'folder-name', failUpdate: true });
+    for (let i = 0; i < 2; i += 1) {
+      const header = await c.get(`/api/p/${c.pid}`);
+      expect(header.status).toBe(200);
+      expect(header.body.name).toBe('kanban');
+    }
+    expect(c.store.get(c.pid)?.name).toBe('folder-name');
   });
 
   it('keeps the stored name when the DNA has none, and an empty remote without origin', async () => {
