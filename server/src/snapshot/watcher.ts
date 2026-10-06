@@ -51,7 +51,7 @@ export interface WatchHandlers {
 /** A running watcher. */
 export interface RepositoryWatcher {
   /** Resolves once every initial watch is set up (the element folders are found asynchronously). */
-  readonly ready: Promise<void>;
+  readonly started: Promise<void>;
   /** Stop watching (idempotent). */
   close(): void;
 }
@@ -135,7 +135,7 @@ class FsRepositoryWatcher implements RepositoryWatcher {
   private stopped = false;
   private treeGeneration = 0;
   private reportedUnwatched = '';
-  readonly ready: Promise<void>;
+  readonly started: Promise<void>;
 
   constructor(
     private readonly targets: WatchTargets,
@@ -153,7 +153,7 @@ class FsRepositoryWatcher implements RepositoryWatcher {
         handlers.repo();
       }
     });
-    this.ready = this.watchTrees();
+    this.started = this.watchTrees();
     this.watchCli();
     const git = (name: string | null): void => {
       if (name === null || !name.endsWith('.lock')) handlers.repo();

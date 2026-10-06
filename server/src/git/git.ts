@@ -234,8 +234,10 @@ export async function resolveGit(
   platform: NodeJS.Platform = process.platform,
 ): Promise<string> {
   const key = Object.keys(env).find((k) => k.toUpperCase() === 'PATH') ?? 'PATH';
-  const name = platform === 'win32' ? 'git.exe' : 'git';
-  for (const entry of (env[key] ?? '').split(path.delimiter)) {
+  const windows = platform === 'win32';
+  const name = windows ? 'git.exe' : 'git';
+  // The delimiter follows the platform rules; paths are the server's own (its file system).
+  for (const entry of (env[key] ?? '').split(windows ? ';' : ':')) {
     if (!path.isAbsolute(entry)) continue;
     const candidate = path.join(entry, name);
     if (await runnable(candidate, platform)) return candidate;

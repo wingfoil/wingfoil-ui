@@ -1,0 +1,55 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://wingfoil-ui.local/contracts/api/identity.schema.json",
+  "title": "Identity and role views of a project",
+  "description": "The identity part of GET /api/p/:pid (spec-004 §3; REQ-STATE-05, REQ-STATE-06).",
+  "type": "object",
+  "required": ["identity", "roleViews", "roleView"],
+  "additionalProperties": false,
+  "properties": {
+    "identity": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": ["kind", "email", "name", "roles"],
+          "additionalProperties": false,
+          "properties": {
+            "kind": { "const": "member" },
+            "email": { "type": "string", "minLength": 1 },
+            "name": { "type": "string" },
+            "roles": { "type": "array", "items": { "type": "string" }, "uniqueItems": true }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["kind", "email"],
+          "additionalProperties": false,
+          "properties": {
+            "kind": { "const": "not-in-team" },
+            "email": { "type": "string", "minLength": 1 }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["kind"],
+          "additionalProperties": false,
+          "properties": {
+            "kind": { "const": "no-identity" }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["kind", "email", "members"],
+          "additionalProperties": false,
+          "properties": {
+            "kind": { "const": "ambiguous" },
+            "email": { "type": "string", "minLength": 1 },
+            "members": { "type": "array", "items": { "type": "string" }, "minItems": 2 }
+          }
+        }
+      ]
+    },
+    "roleViews": { "type": "array", "items": { "type": "string" }, "uniqueItems": true },
+    "roleView": { "type": ["string", "null"] }
+  }
+}

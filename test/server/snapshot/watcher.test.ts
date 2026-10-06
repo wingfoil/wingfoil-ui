@@ -121,7 +121,7 @@ describe('degraded watching (review round 2, R5)', () => {
     const fx = await copyFixture(template, path.join(root, `copy-${n}`));
     const fake: WatchRepository = (_targets, handlers) => {
       handlers.degraded?.('ENOSPC: test');
-      return { ready: Promise.resolve(), close: () => undefined };
+      return { started: Promise.resolve(), close: () => undefined };
     };
     // Periodic check off, file watching replaced: only the degraded fallback can see the change.
     const audited = auditedSnapshots(fx.env, { watch: true, fallbackMs: 0, watchRepository: fake });

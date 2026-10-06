@@ -22,6 +22,7 @@ import { CliOutputError, CliRefusedError, type CliOutput, type WingfoilCli } fro
 import type { CliCommandOutputs } from '../cli/commands.js';
 import { CliNotFoundError, type ResolvedCli } from '../cli/discovery.js';
 import type { GitReads } from '../git/git.js';
+import { ARCHIVED_STATES } from '../presets/wingfoil.js';
 import { DirectReadError, type ReadFs } from '../reads/confine.js';
 import {
   directiveInForce,
@@ -306,7 +307,7 @@ export class SnapshotView {
    */
   async element(id: string): Promise<MarkedElementRead | undefined> {
     let match = (await this.search()).data.matches.find((m) => m.id === id);
-    for (const status of ['deprecated', 'superseded'] as const) {
+    for (const status of ARCHIVED_STATES) {
       match ??= (await this.archived(status)).data.matches.find((m) => m.id === id);
     }
     if (!match) return undefined;

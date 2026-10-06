@@ -1,7 +1,7 @@
 // e2e-smoke `local-security` (REQ-SEC-02, REQ-SEC-03; X-02.1 API side, X-02.2, X-04.1…X-04.3): the
-// `wingfoil-ui` bin driven over HTTP. No project route exists yet (task-008/012): the guarded
-// requests target `/api/` paths that, once past the guards, answer 404 — never 401 or 403. The
-// event stream `GET /api/events` (task-010) answers 200 once past them.
+// `wingfoil-ui` bin driven over HTTP. No project read route exists yet (task-008/012; `PUT …/role-view`
+// is task-009): the guarded requests target `/api/` paths that, once past the guards, answer 404 —
+// never 401 or 403. The event stream `GET /api/events` (task-010) answers 200 once past them.
 import http from 'node:http';
 import net from 'node:net';
 import { mkdtemp, rm } from 'node:fs/promises';
@@ -160,6 +160,20 @@ describe('X-04.1 — refuse requests without a valid session', () => {
     if ('origin' in condition) headers.origin = condition.origin;
     if ('auth' in condition) headers.authorization = `Bearer ${l.token}`;
     const res = await request(l, method, PROJECT_API, headers);
+    expect(res.status).toBe(status);
+    expect(JSON.parse(res.body)).toEqual({ error: { code, message: expect.any(String) } });
+  });
+
+  // task-009: `PUT /api/p/:pid/role-view` — refused by the guards; past them, an unknown id is 404.
+  it.each([
+    [{}, 401, 'unauthenticated'],
+    [{ origin: 'https://evil.test', auth: true }, 403, 'forbidden-origin'],
+    [{ auth: true }, 404, 'not-found'],
+  ] as const)('PUT role-view %o → %i', async (condition, status, code) => {
+    const headers: Record<string, string> = {};
+    if ('origin' in condition) headers.origin = condition.origin;
+    if ('auth' in condition) headers.authorization = `Bearer ${l.token}`;
+    const res = await request(l, 'PUT', `${PROJECT_API}/role-view`, headers);
     expect(res.status).toBe(status);
     expect(JSON.parse(res.body)).toEqual({ error: { code, message: expect.any(String) } });
   });

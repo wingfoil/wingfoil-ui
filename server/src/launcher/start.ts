@@ -7,6 +7,8 @@ import { createTokenAuthentication } from '../auth/authentication.js';
 import { InProcessEventBus } from '../events/bus.js';
 import { buildApp } from '../http/app.js';
 import { registerEventStream, type EventStreams } from '../http/events.js';
+import { registerRoleViewRoute } from '../http/role-view.js';
+import { createLocalIdentitySource } from '../identity/project-identity.js';
 import { message } from '../i18n/messages.js';
 import { createLogger } from '../logging.js';
 import { LocalProcessRunner } from '../process/runner.js';
@@ -129,8 +131,12 @@ export async function runLauncher(argv: readonly string[], io: LauncherIo): Prom
     staticDir: io.staticDir,
     logger,
     security: { authentication: createTokenAuthentication(token), port: () => listening.port },
-    register: (a) => {
-      streams.events = registerEventStream(a, { bus });
+    register: (routes) => {
+      registerRoleViewRoute(routes, {
+        store: state,
+        identity: createLocalIdentitySource({ runner: processes, logger }),
+      });
+      streams.events = registerEventStream(routes, { bus });
     },
   });
   // Stop sequence (spec-007 §6): close the event streams and the watchers, then terminate the CLI

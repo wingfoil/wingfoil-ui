@@ -1,0 +1,77 @@
+{
+  "$schema": "./capabilities.schema.json",
+  "$comment": "Capability table (spec-001 §6, adr-001 D3, REQ-INT-03): what each WingFoil version gives the UI. Initial table at wingfoil 0.2.2; it advances with the support matrix (release-planning). Published in the package README (Supported WingFoil versions).",
+  "capabilities": [
+    {
+      "id": "type-definitions",
+      "name": "Type definitions",
+      "minVersion": "0.2.2",
+      "via": "direct read of .wingfoil/memory.yaml (spec-001 §4.1)",
+      "replacedBy": "a CLI read verb, when WingFoil adds one",
+      "conditions": []
+    },
+    {
+      "id": "element-content",
+      "name": "Element content",
+      "minVersion": "0.2.2",
+      "via": "direct read of the element file (spec-001 §4.2)",
+      "replacedBy": "memory show (or equivalent), when WingFoil adds one",
+      "conditions": []
+    },
+    {
+      "id": "directive-body",
+      "name": "Directive body",
+      "minVersion": "0.2.2",
+      "via": "direct read of the directive file (spec-001 §4.3)",
+      "replacedBy": "directives show (or equivalent)",
+      "conditions": []
+    },
+    {
+      "id": "gate-decision",
+      "name": "Gate decision",
+      "minVersion": "0.2.2",
+      "via": "memory approve / memory reject",
+      "conditions": []
+    },
+    {
+      "id": "workflow-position",
+      "name": "Workflow position",
+      "minVersion": "0.3.0",
+      "via": null,
+      "replacedBy": "workflow status (REQ-INT-07)",
+      "conditions": []
+    },
+    {
+      "id": "workflow-next-step",
+      "name": "Next workflow step",
+      "minVersion": "0.3.0",
+      "via": null,
+      "replacedBy": "workflow next (REQ-INT-07)",
+      "conditions": []
+    },
+    {
+      "id": "workflow-start",
+      "name": "Workflow start",
+      "minVersion": "0.3.0",
+      "via": null,
+      "replacedBy": "workflow start (REQ-INT-07)",
+      "conditions": []
+    },
+    {
+      "id": "agent-launch",
+      "name": "Agent launch",
+      "minVersion": "0.3.0",
+      "via": null,
+      "replacedBy": "agent execute",
+      "conditions": []
+    },
+    {
+      "id": "field-editing",
+      "name": "Field editing",
+      "minVersion": null,
+      "via": null,
+      "replacedBy": "the field-editing verb of WingFoil task-127 / task-163",
+      "conditions": []
+    }
+  ]
+}

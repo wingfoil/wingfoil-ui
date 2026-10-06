@@ -207,7 +207,7 @@ export class Snapshots {
     }
     scheduleFallback();
     // Watching before the first view: an edit made right after the open is not missed.
-    await entry.watcher?.ready;
+    await entry.watcher?.started;
     return snapshot;
   }
 }

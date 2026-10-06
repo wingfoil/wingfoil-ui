@@ -180,6 +180,11 @@ export class WingfoilCli {
     return this.options.cli.source;
   }
 
+  /** The resolution this adapter runs: the key the detected version is cached with (adr-001 D3). */
+  get resolved(): ResolvedCli {
+    return this.options.cli;
+  }
+
   /**
    * Run the listed command `name` (e.g. `'memory search'`) and return its validated output, typed by
    * {@link CliCommandOutputs}.

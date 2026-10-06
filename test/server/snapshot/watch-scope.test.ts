@@ -118,7 +118,7 @@ describe('review round 2', () => {
       handlers,
       { watch },
     );
-    await w.ready;
+    await w.started;
     expect(handlers.degraded).toHaveBeenCalledWith('no static folder in the path pattern of: anywhere, flat');
     w.close();
   });
@@ -150,7 +150,7 @@ describe('review round 2', () => {
     );
     // A root event re-scopes while the first call is still waiting for its plan.
     listeners.get('.')!('rename', 'docs');
-    await w.ready;
+    await w.started;
     await new Promise((r) => setTimeout(r, 100));
     expect(active.get('.wingfoil')).toBe(true);
     expect(active.has(path.join('docs', 'memory', 'task'))).toBe(false);
