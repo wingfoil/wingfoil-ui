@@ -98,14 +98,16 @@ export default tseslint.config(
     // REQ-ARC-05 — methodology independence (TT-ARC-05): no type or state name of the three
     // fixtures in server/ and web/ outside server/src/presets/ (tests live in test/). Reported: string
     // literals, expression-free template literals, literal types, keys written as bare identifiers
-    // (object literals, interface/type members and methods, class properties and methods, enum
+    // (object-literal data properties, interface/type property signatures, class fields, enum
     // members) and the standalone
     // words of a regular expression (`/^(draft|pending)$/`, `/\bdone\b/`, also an unanchored
     // `/done/`). Residual risk left to review: names built by concatenation (`'dr' + 'aft'`) or
     // with an expression (`${''}done`), other cases (`'DONE'`, `Draft`), names in JSX text or JSX
     // attribute names, in a regex beyond those boundaries or built from a string (`new
-    // RegExp('^done$')` — its string argument is checked only as a whole literal), shorthand properties and destructuring (`{ task }`, which
-    // are variables), and identifiers (`note`, `task` are legitimate names of variables).
+    // RegExp('^done$')` — its string argument is checked only as a whole literal), shorthand properties and
+    // destructuring (`{ task }`, which are variables), and identifiers (`note`, `task` are
+    // legitimate names of variables). Exempt by design: method, getter and setter names of
+    // classes, interfaces and object literals (`open()`, `get resolved()`) — behaviour, not data.
     files: ['server/**/*.{ts,tsx,mts,cts,js,jsx,mjs,cjs}', 'web/**/*.{ts,tsx,mts,cts,js,jsx,mjs,cjs}'],
     ignores: ['server/src/presets/**'],
     plugins: { wfui: methodologyPlugin },

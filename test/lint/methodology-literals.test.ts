@@ -78,8 +78,6 @@ describe('REQ-ARC-05 lint rule', () => {
     ['an anchored regex alternation', 'export const re = /^(draft|x)$/;\n'],
     ['a non-capturing regex group', 'export const re = /^(?:x|in-review)$/;\n'],
     ['an unanchored regex word', 'export const re = /done/;\n'],
-    ['a class method', 'export class C {\n  approved(): boolean {\n    return true;\n  }\n}\n'],
-    ['an interface method', 'export interface S {\n  shipped(): void;\n}\n'],
     ['a regex word between \\b', 'export const re = /\\bdone\\b/;\n'],
     ['web/', "export const x = 'shaping';\n", 'web/src/sample.ts'],
     [
@@ -107,6 +105,17 @@ describe('REQ-ARC-05 lint rule', () => {
     ],
     ['a shorthand property', 'const task = 1;\nexport const o = { task };\n'],
     ['a computed key', "const k = 'x';\nexport const o = { [k]: 1 };\n"],
+    ['a class method', 'export class C {\n  approved(): boolean {\n    return true;\n  }\n}\n'],
+    [
+      'a class getter and setter',
+      'export class C {\n  get resolved(): boolean {\n    return true;\n  }\n  set resolved(_v: boolean) {}\n}\n',
+    ],
+    ['an abstract method', 'export abstract class C {\n  abstract open(): void;\n}\n'],
+    ['an interface method', 'export interface S {\n  shipped(): void;\n}\n'],
+    [
+      'an object-literal method and getter',
+      'export const o = {\n  open() {\n    return 1;\n  },\n  get archived() {\n    return 2;\n  },\n};\n',
+    ],
     ['a regex with the name inside a longer word', 'export const re = /^task-\\d+$/;\n'],
   ])('accepts %s', async (_name, code) => {
     expect(await arc05(code)).toEqual([]);

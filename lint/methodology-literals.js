@@ -91,16 +91,16 @@ export const methodologyPlugin = {
           TemplateLiteral(node) {
             if (node.expressions.length === 0) check(node, node.quasis[0].value.cooked);
           },
-          // Shorthand properties (`{ task }`) are variables, not written keys: not checked.
+          // Shorthand properties (`{ task }`) are variables, not written keys, and method names
+          // (`{ open() {} }`, `get resolved()`) name behaviour, not methodology data: not checked.
           'ObjectExpression > Property'(node) {
-            if (!node.shorthand) checkKey(node);
+            if (!node.shorthand && !node.method && node.kind === 'init') checkKey(node);
           },
           TSPropertySignature: checkKey,
           PropertyDefinition: checkKey,
           TSAbstractPropertyDefinition: checkKey,
-          MethodDefinition: checkKey,
-          TSAbstractMethodDefinition: checkKey,
-          TSMethodSignature: checkKey,
+          // Class and interface methods, getters and setters (MethodDefinition,
+          // TSAbstractMethodDefinition, TSMethodSignature) are exempt by design, as above.
           TSEnumMember(node) {
             if (node.id.type === 'Identifier') check(node.id, node.id.name);
           },

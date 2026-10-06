@@ -215,16 +215,18 @@ e2e closure — scenarios that need a screen are proved here by API and unit tes
 - **Hand-over to task-017/018/web:** render `kind`, `tone`, `verbs`, `actor`, `rejection`,
   `since`; map `DisabledReason.code` and `actor.fallback` to catalogue keys; use tone values as data
   (`tone-${tone}`) — a `web/` literal equal to `done`/`active`/`archived` fails REQ-ARC-05.
-- **Merge note:** sibling tasks adding a literal (or, since review round 1, an unquoted key,
-  interface member, class property, enum member or regex word) equal to a fixture state or type
-  name in `server/` or `web/` (e.g. `'open'`, `'active'`, `'done'`, `'pending'`, `'task'`) fail the
-  new rule after merge. Known concrete hit: task-010's `snapshot.ts` literals `'deprecated'` /
-  `'superseded'` — replace them with `ARCHIVED_STATES` of `server/src/presets/wingfoil.ts`; and
-  task-010's `server/src/snapshot/watcher.ts:71` `private closed = false;`, a class property equal
-  to the custom `bug` state `closed` (to be renamed).
-- **Hand-over to task-017/018 (web):** prop, state, interface member and method names equal to a
-  fixture name (`open`, `active`, `closed`, `done`, `ready`, `pending`, `release`, `plan`,
-  `service`, `note`, …) are reported by REQ-ARC-05 — expect renames or justified inline disables.
+- **Merge note:** sibling tasks adding a literal (or, since review round 1, a data key: unquoted
+  object property, interface property signature, class field, enum member, or a regex word) equal
+  to a fixture state or type name in `server/` or `web/` (e.g. `'open'`, `'active'`, `'done'`,
+  `'pending'`, `'task'`) fail the new rule after merge; method names are exempt (round 3). The
+  only expected hits after merge: task-010's `server/src/snapshot/snapshot.ts:273` literals
+  `'deprecated'` / `'superseded'` (→ `ARCHIVED_STATES` of `server/src/presets/wingfoil.ts`) and
+  task-010's `server/src/snapshot/watcher.ts:71` `private closed = false;` (a class field equal to
+  the custom `bug` state `closed`; task-010 is renaming it).
+- **Hand-over to task-017/018 (web):** props, state fields, interface property signatures and
+  other data keys equal to a fixture name (`open`, `active`, `closed`, `done`, `ready`, `pending`,
+  `release`, `plan`, `service`, `note`, …) are reported by REQ-ARC-05 — expect renames or justified
+  inline disables. Method, getter and setter names are not reported.
 - **Checks (refactor, 2026-10-05, load average 54–96 on 12 cores from another project):**
   typecheck, lint, format:check clean · `docs:api` OK · `test:e2e` 3/3 · `check_tasks.py` OK ·
   `npx vitest run --coverage --coverage.reportOnFailure`: 45 files, **659 passed / 2 failed / 1
@@ -262,5 +264,11 @@ Coordinator review: **FAIL** on the lint rule (descriptor logic accepted). Fixed
   `TSMethodSignature`) are checked as well, with tests; an unanchored `/done/` is pinned by a test;
   `new RegExp('…')` string arguments and JSX attribute names added to the residual risk; merge
   note (task-010 `watcher.ts` `closed`) and web hand-over added.
+- **Round 3 (2026-10-06, coordinator decision):** method names are behaviour, not methodology
+  data, and checking them hit sibling APIs (task-006 `get resolved()`, task-010 `open()`,
+  `archived()`): class methods, getters and setters, abstract methods, interface methods and
+  object-literal methods/getters/setters are now **exempt** (tests assert they are accepted);
+  data keys, literals and regex words are still reported. Comment, merge note and web hand-over
+  updated.
 - Not changed here (coordinator's): task-010's `snapshot.ts` hit (named in the merge note), the
   gate-waiting actor and the bucket wording (escalated to the user).
