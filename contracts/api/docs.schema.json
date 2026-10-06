@@ -1,0 +1,30 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://wingfoil-ui.local/contracts/api/docs.schema.json",
+  "title": "GET /api/p/:pid/docs",
+  "description": "The documentation index (R-08.1): Markdown files under paths.docs without the Memory and plan files, sorted by path.",
+  "type": "object",
+  "required": ["roots", "documents"],
+  "properties": {
+    "roots": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "documents": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["path"],
+        "properties": {
+          "path": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

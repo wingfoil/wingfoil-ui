@@ -1,5 +1,6 @@
-// Process audits over the stand-in read routes and the real event stream, on the real kanban
-// fixture with the production watcher settings (file watching + the periodic check):
+// Process audits over the real read routes (task-012; task-010's stand-ins before) and the real
+// event stream, on the real kanban fixture with the production watcher settings (file watching +
+// the periodic check):
 // - REQ-PERF-05 (TT-PERF-05, S-26.3): opening the Memory list on a cold cache starts ≤ 6 CLI
 //   processes; opening it again with no commit and no working-tree change starts 0 processes.
 // - REQ-INT-09 (TT-INT-09, S-26.1 API side): one page open and no change for 60 s → 0 CLI
@@ -12,24 +13,25 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { DEFAULT_FALLBACK_MS, type Snapshots } from '../../../server/src/snapshot/snapshots.js';
 import { buildFixture, copyFixture, type Fixture } from '../../harness/fixtures/index.js';
 import { git } from '../../harness/run.js';
-import { startStandIn, type StandIn } from './stand-in-app.js';
-import { auditedSnapshots } from './support.js';
+import { startReadConsole, type ReadConsole } from '../http/read-console.js';
+import { GIT_ALLOWED_SUBCOMMANDS, gitSubcommand } from '../../../server/src/git/git.js';
+import { auditedSnapshots, processKind } from './support.js';
 
 const STATE = /^[0-9a-f]{40}\.[0-9a-f]{16}$/;
 let root: string;
 let template: Fixture;
 let n = 0;
 const registries: Snapshots[] = [];
-const consoles: StandIn[] = [];
+const consoles: ReadConsole[] = [];
 
 async function fresh(fallbackMs = DEFAULT_FALLBACK_MS) {
   n += 1;
   const fx = await copyFixture(template, path.join(root, `copy-${n}`));
   const audited = auditedSnapshots(fx.env, { watch: true, fallbackMs });
   registries.push(audited.snapshots);
-  const pid = `p_audit${n}`;
-  await audited.snapshots.open(pid, fx.dir);
-  const standIn = await startStandIn(audited.snapshots, audited.bus);
+  const pid = `p_${String(n).padStart(12, '0')}`;
+  // The routes open the project in the registry on the first read, as in the console.
+  const standIn = await startReadConsole(audited.snapshots, audited.bus, { [pid]: fx.dir });
   consoles.push(standIn);
   return { fx, pid, standIn, ...audited };
 }
@@ -56,8 +58,15 @@ describe('TT-PERF-05 — batched CLI reads (S-26.3)', () => {
       `TT-PERF-05 cold Memory list: ${commands.length} CLI processes (${commands.join(', ')}), ${runner.count('git')} git`,
     );
     expect(commands.length).toBeLessThanOrEqual(6);
-    // open(): one rev-parse; the first state: one status, one user.email (review F4).
-    expect(runner.count('git')).toBe(3);
+    // open(): one rev-parse; the first state: one status, one user.email (review F4); the actor
+    // events of the descriptors: one `git log -p` (spec-002 §3) and its header-only sha list; the
+    // header's `origin` (spec-006 §2 refresh on open).
+    expect(runner.count('git')).toBe(6);
+    expect(runner.spawned.filter((r) => r.args.includes('log'))).toHaveLength(2);
+    // REQ-INT-06: every git process of the read routes uses a subcommand of the allowed list.
+    for (const r of runner.spawned.filter((x) => processKind(x) === 'git')) {
+      expect(GIT_ALLOWED_SUBCOMMANDS, r.args.join(' ')).toContain(gitSubcommand(r.args));
+    }
     expect(new Set(commands).size).toBe(commands.length);
     const states = cold.map((r) => r.state);
     expect(states[0]).toMatch(STATE);
@@ -102,7 +111,7 @@ describe('TT-INT-09 — server ↔ browser live updates', () => {
       .poll(async () => (await standIn.get(`/api/p/${pid}/elements`)).state, { timeout: 20_000, interval: 50 })
       .toBe(snapshotState(registries.at(-1)!, pid));
     const refetched = await standIn.get(`/api/p/${pid}/elements`);
-    const task = (refetched.body as { id: string; title: string; localChanges: boolean }[]).find(
+    const task = (refetched.body as { elements: { id: string; title: string; localChanges: boolean }[] }).elements.find(
       (e) => e.id === 'task-001-login-form',
     );
     expect(task).toMatchObject({ title: 'Login form v2', localChanges: false });

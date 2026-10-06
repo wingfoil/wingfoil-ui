@@ -153,11 +153,17 @@ describe('REQ-STATE-06 — role views through the console', () => {
   it('S-22.2 refuses a role Jordan does not hold; 403 for a user not in the team; 404, 401', async () => {
     const l = await launch();
     await git(kanban.dir, ['config', 'user.email', 'jordan@example.test'], env);
-    expect((await put(l, KANBAN, { role: 'approver' })).status).toBe(400);
+    await expect
+      .poll(async () => (await put(l, KANBAN, { role: 'approver' })).status, { timeout: 20_000, interval: 100 })
+      .toBe(400);
     expect((await put(l, KANBAN, { role: 'developer' })).status).toBe(204);
     await git(kanban.dir, ['config', 'user.email', 'riley@example.test'], env);
+    // The identity is the watched one (spec-004 §4 row 5, task-012): the change is seen once the
+    // repository watcher moved the state (REQ-PERF-03: within 5 s).
+    await expect
+      .poll(async () => (await put(l, KANBAN, { role: 'developer' })).status, { timeout: 20_000, interval: 100 })
+      .toBe(403);
     const refused = await put(l, KANBAN, { role: 'developer' });
-    expect(refused.status).toBe(403);
     expect(JSON.parse(refused.body)).toMatchObject({ error: { code: 'not-in-team' } });
     expect((await put(l, 'p_zzzzzzzzzzzz', { role: 'developer' })).status).toBe(404);
     expect((await put(l, KANBAN, { role: 'developer' }, false)).status).toBe(401);

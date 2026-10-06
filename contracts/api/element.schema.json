@@ -1,0 +1,70 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://wingfoil-ui.local/contracts/api/element.schema.json",
+  "title": "GET /api/p/:pid/elements/:eid",
+  "description": "One element: its match with the marker, its frontmatter and body (direct read, spec-001 §4.2), descriptor and the required fields of its type (spec-004 §3).",
+  "type": "object",
+  "required": ["element", "frontmatter", "body"],
+  "properties": {
+    "element": {
+      "type": "object",
+      "required": ["path", "id", "title", "type", "status", "tags", "localChanges"],
+      "properties": {
+        "path": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "localChanges": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false
+    },
+    "frontmatter": {
+      "$ref": "../files/element.schema.json"
+    },
+    "body": {
+      "type": "string"
+    },
+    "descriptor": {
+      "$ref": "descriptor.schema.json"
+    },
+    "required": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["field", "missing"],
+        "properties": {
+          "field": {
+            "type": "string"
+          },
+          "missing": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "eventsError": {
+      "$ref": "error.schema.json"
+    }
+  },
+  "additionalProperties": false
+}

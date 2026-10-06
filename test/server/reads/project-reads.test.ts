@@ -2,6 +2,7 @@
 // fixtures under a file-system spy: direct reads only of `.wingfoil/memory.yaml` and of the paths
 // the CLI returns, 0 writes; an element whose file `status` differs from `memory search` is a read
 // error. API/unit side of S-25.1, M-01.1, R-05.1 (screens: task-017, task-019).
+import { constants } from 'node:fs';
 import { mkdtemp, readFile, realpath, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -14,7 +15,7 @@ import { ProjectReads } from '../../../server/src/reads/project-reads.js';
 import { buildFixture, copyFixture, type Fixture } from '../../harness/fixtures/index.js';
 
 /** File-system calls recorded while `on`: function name and first argument. */
-const spy = vi.hoisted(() => ({ on: false, calls: [] as { fn: string; arg: string }[] }));
+const spy = vi.hoisted(() => ({ on: false, calls: [] as { fn: string; arg: string; flags?: unknown }[] }));
 
 function wrapModule(real: Record<string, unknown>, prefix: string): Record<string, unknown> {
   const wrapped: Record<string, unknown> = {};
@@ -25,7 +26,7 @@ function wrapModule(real: Record<string, unknown>, prefix: string): Record<strin
     }
     const fn = value as (...args: unknown[]) => unknown;
     wrapped[name] = Object.assign((...args: unknown[]) => {
-      if (spy.on) spy.calls.push({ fn: `${prefix}${name}`, arg: String(args[0]) });
+      if (spy.on) spy.calls.push({ fn: `${prefix}${name}`, arg: String(args[0]), flags: args[1] });
       return fn(...args);
     }, fn);
   }
@@ -51,6 +52,18 @@ const READ_ONLY = new Set([
   'accessSync',
   'readdirSync',
 ]);
+
+/**
+ * A file read (bug-003: the content is read from a descriptor opened read-only, `O_NOFOLLOW |
+ * O_NONBLOCK`): `readFile`, or `open` with no write, create, truncate or append flag.
+ */
+function isFileRead(c: { fn: string; flags?: unknown }): boolean {
+  const name = c.fn.replace(/^(promises|fs)\./, '');
+  if (name === 'readFile' || name === 'readFileSync') return true;
+  if (name !== 'open' || typeof c.flags !== 'number') return false;
+  const writing = constants.O_WRONLY | constants.O_RDWR | constants.O_CREAT | constants.O_TRUNC | constants.O_APPEND;
+  return (c.flags & writing) === 0;
+}
 
 let root: string;
 let kanban: Fixture;
@@ -114,7 +127,9 @@ describe('TT-ARC-04 — file-system spy over every read', () => {
       const onProject = spy.calls.filter((c) => c.arg === fx.dir || c.arg.startsWith(fx.dir + path.sep));
       expect(onProject.length).toBeGreaterThan(0);
       // 0 writes (nor any other change) to a project file.
-      expect(onProject.filter((c) => !READ_ONLY.has(c.fn.replace(/^(promises|fs)\./, '')))).toEqual([]);
+      expect(onProject.filter((c) => !READ_ONLY.has(c.fn.replace(/^(promises|fs)\./, '')) && !isFileRead(c))).toEqual(
+        [],
+      );
       // 0 reads of .wingfoil/*.yaml other than ui.yaml and memory.yaml.
       expect(
         onProject.filter((c) => /[\\/]\.wingfoil[\\/][^\\/]+\.ya?ml$/.test(c.arg) && !/(memory|ui)\.yaml$/.test(c.arg)),
@@ -126,7 +141,7 @@ describe('TT-ARC-04 — file-system spy over every read', () => {
         ...[...elements, ...archived].map((m) => abs(m.path)),
         ...directives.map((d) => abs('.wingfoil', d.path)),
       ]);
-      const fileReads = onProject.filter((c) => c.fn.endsWith('readFile') || c.fn.endsWith('readFileSync'));
+      const fileReads = onProject.filter(isFileRead);
       expect(fileReads.filter((c) => !allowed.has(c.arg))).toEqual([]);
       expect(new Set(fileReads.map((c) => c.arg))).toEqual(
         new Set([
@@ -135,7 +150,7 @@ describe('TT-ARC-04 — file-system spy over every read', () => {
           ...directives.map((d) => abs('.wingfoil', d.path)),
         ]),
       );
-      const resolved = onProject.filter((c) => !c.fn.endsWith('readFile') && !c.fn.endsWith('readFileSync'));
+      const resolved = onProject.filter((c) => !isFileRead(c));
       expect(resolved.filter((c) => !allowed.has(c.arg) && c.arg !== fx.dir && c.arg !== abs('.wingfoil'))).toEqual([]);
     },
     300_000,

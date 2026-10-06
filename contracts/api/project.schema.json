@@ -1,0 +1,189 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://wingfoil-ui.local/contracts/api/project.schema.json",
+  "title": "GET /api/p/:pid",
+  "description": "The project header (spec-004 §3): name, WingFoil version and range state, capabilities, identity and role views (identity.schema.json), read-only reasons, repository status; dnaError when dna show failed (S-27.1).",
+  "type": "object",
+  "required": ["id", "name", "wingfoil", "capabilities", "readOnly", "repository", "identity", "roleViews", "roleView"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^p_[0-9a-hjkmnp-tv-z]{12}$"
+    },
+    "name": {
+      "type": "string"
+    },
+    "wingfoil": {
+      "type": "object",
+      "required": ["text", "version", "state", "inRange", "source"],
+      "properties": {
+        "text": {
+          "type": ["string", "null"]
+        },
+        "version": {
+          "type": ["string", "null"]
+        },
+        "state": {
+          "enum": ["in-range", "below", "above", "pre-release", "unrecognised"]
+        },
+        "inRange": {
+          "type": "boolean"
+        },
+        "source": {
+          "enum": ["project", "path"]
+        }
+      },
+      "additionalProperties": false
+    },
+    "capabilities": {
+      "type": "object",
+      "required": ["capabilities", "missing"],
+      "properties": {
+        "capabilities": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["id", "state"],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "state": {
+                "enum": ["enabled", "read-only", "hidden"]
+              },
+              "reason": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "required": ["code", "range"],
+                    "properties": {
+                      "code": {
+                        "const": "unsupported-version"
+                      },
+                      "range": {
+                        "type": "object",
+                        "required": ["min", "max"],
+                        "properties": {
+                          "min": {
+                            "type": "string"
+                          },
+                          "max": {
+                            "type": "string"
+                          }
+                        },
+                        "additionalProperties": false
+                      }
+                    },
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "required": ["code"],
+                    "properties": {
+                      "code": {
+                        "const": "not-released"
+                      }
+                    },
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "required": ["code", "minVersion"],
+                    "properties": {
+                      "code": {
+                        "const": "needs-version"
+                      },
+                      "minVersion": {
+                        "type": "string"
+                      }
+                    },
+                    "additionalProperties": false
+                  }
+                ]
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "missing": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["id", "minVersion"],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "minVersion": {
+                "type": "string"
+              }
+            },
+            "additionalProperties": false
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "readOnly": {
+      "type": "array",
+      "items": {
+        "oneOf": [
+          {
+            "type": "object",
+            "required": ["code"],
+            "properties": {
+              "code": {
+                "const": "not-in-team"
+              }
+            },
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "required": ["code", "range"],
+            "properties": {
+              "code": {
+                "const": "version-unsupported"
+              },
+              "range": {
+                "type": "string"
+              }
+            },
+            "additionalProperties": false
+          }
+        ]
+      }
+    },
+    "repository": {
+      "type": "object",
+      "required": ["state", "head", "localChanges"],
+      "properties": {
+        "state": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40,64}\\.[0-9a-f]{16}$"
+        },
+        "head": {
+          "type": "string"
+        },
+        "localChanges": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "additionalProperties": false
+    },
+    "dnaError": {
+      "$ref": "error.schema.json"
+    },
+    "identity": {
+      "$ref": "identity.schema.json#/properties/identity"
+    },
+    "roleViews": {
+      "$ref": "identity.schema.json#/properties/roleViews"
+    },
+    "roleView": {
+      "$ref": "identity.schema.json#/properties/roleView"
+    }
+  },
+  "additionalProperties": false
+}

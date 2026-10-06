@@ -1,0 +1,21 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://wingfoil-ui.local/contracts/api/file-content.schema.json",
+  "title": "GET /api/p/:pid/files/content",
+  "description": "The content of one file of the documentation scope (v0.1), confined to the repository (REQ-SEC-06). A refused path is a 404 not-found with detail.kind outside, missing, not-allowed or too-large.",
+  "type": "object",
+  "required": ["path", "size", "content"],
+  "properties": {
+    "path": {
+      "type": "string"
+    },
+    "size": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "content": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": false
+}

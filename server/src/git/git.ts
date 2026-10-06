@@ -9,7 +9,8 @@
  * | HEAD and the working tree, in one process | `git status --porcelain=v2 --branch -z --untracked-files=all` |
  * | the effective identity (repository, else global configuration) | `git config user.email` |
  * | the layout, once per project | `git rev-parse --show-prefix --absolute-git-dir --git-common-dir` |
- * | the URL of `origin`, when a project is added (duplicate check) | `git remote get-url origin` |
+ * | the URL of `origin`, when a project is added (duplicate check) and on every open (spec-006 §2, once per state) | `git remote get-url origin` |
+ * | the Memory events, once per HEAD (spec-002 §3), with their sha order (`log --format=%H%x00`) | `git log --no-color --no-renames --no-ext-diff --no-textconv --unified=0 -p --format=… <HEAD> -- <Memory directories>` |
  *
  * Git is never used to change a repository. The one write of v0.1 is the clone into a new, empty
  * folder ({@link cloneArgs}, write class (c), adr-001 D7), run by `projects/clone.ts`.
@@ -19,6 +20,7 @@ import { constants } from 'node:fs';
 import { access, stat } from 'node:fs/promises';
 import path from 'node:path';
 import type { ProcessResult, ProcessRunner } from '../process/runner.js';
+import { MEMORY_LOG_FORMAT } from './memory-log.js';
 
 /** HEAD of a repository without commits (`# branch.oid (initial)`). */
 export const UNBORN_HEAD = '0'.repeat(40);
@@ -29,6 +31,25 @@ export const GIT_READ_ARGS = {
   email: ['--no-optional-locks', 'config', 'user.email'],
   layout: ['--no-optional-locks', 'rev-parse', '--show-prefix', '--absolute-git-dir', '--git-common-dir'],
   origin: ['--no-optional-locks', 'remote', 'get-url', 'origin'],
+  // `core.quotePath=false` for this invocation only: file names arrive as UTF-8, not escaped.
+  memoryLog: [
+    '--no-optional-locks',
+    '-c',
+    'core.quotePath=false',
+    // No signature check output (`log.showSignature`) in the stream; no textconv or external diff.
+    '-c',
+    'log.showSignature=false',
+    'log',
+    '--no-color',
+    '--no-renames',
+    '--no-ext-diff',
+    '--no-textconv',
+    '--unified=0',
+    '-p',
+    `--format=${MEMORY_LOG_FORMAT}`,
+  ],
+  // The same walk without the patch: the authoritative sha order the patch read is cut at.
+  memoryShas: ['--no-optional-locks', '-c', 'log.showSignature=false', 'log', '--no-renames', '--format=%H%x00'],
 } as const;
 
 /**
@@ -172,6 +193,12 @@ export class GitNotFoundError extends Error {
   }
 }
 
+/** A commit sha as a revision argument; anything else is refused (never an option). */
+function commitArg(head: string): string {
+  if (!/^(?:[0-9a-f]{40}|[0-9a-f]{64})$/.test(head)) throw new GitReadError(`not a commit sha: ${head}`);
+  return head;
+}
+
 /** Parse the output of {@link GIT_READ_ARGS}`.status` (porcelain v2, NUL-terminated records). */
 export function parseStatus(stdout: string): WorkingTreeStatus {
   const records = stdout.split('\0');
@@ -273,6 +300,27 @@ export class GitReads {
       gitDir: path.resolve(this.options.cwd, gitDir),
       commonDir: path.resolve(this.options.cwd, commonDir),
     };
+  }
+
+  /**
+   * The raw output of the spec-002 §3 read over `dirs` (Memory directories relative to the
+   * project, see `memoryDirectories`) from the commit `head` — the observed state's HEAD, so that a
+   * commit landing meanwhile does not change what is read; parse it with `parseMemoryLog`. No
+   * directory → no process.
+   */
+  async memoryLog(dirs: readonly string[], head: string): Promise<string> {
+    if (dirs.length === 0) return '';
+    return (await this.read([...GIT_READ_ARGS.memoryLog, commitArg(head), '--', ...dirs])).stdout;
+  }
+
+  /** The shas of the same walk as {@link memoryLog} from `head`, newest first (no patch). */
+  async memoryLogShas(dirs: readonly string[], head: string): Promise<string[]> {
+    if (dirs.length === 0) return [];
+    const out = (await this.read([...GIT_READ_ARGS.memoryShas, commitArg(head), '--', ...dirs])).stdout;
+    return out
+      .split(String.fromCharCode(0))
+      .map((s) => s.trim())
+      .filter((s) => s !== '');
   }
 
   private run(args: readonly string[]): Promise<ProcessResult> {

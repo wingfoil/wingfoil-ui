@@ -1,8 +1,9 @@
 /**
- * Stand-ins of the v0.1 read routes the Memory list needs (spec-004 §3: the project header, the
- * configuration, the element list — the real routes are task-012's), served over the snapshot with
- * `X-Repo-State` and next to the real event stream `GET /api/events`, on a real loopback listener.
- * Used by the process audits (REQ-PERF-05, REQ-INT-09) and the refresh measurement (REQ-PERF-03).
+ * A console serving the real v0.1 read routes (task-012: `GET /api/server`, `/api/p/:pid/…`) over
+ * the given snapshot registry, next to the real event stream `GET /api/events`, on a real loopback
+ * listener, with the projects listed in an in-memory store under the given ids. Used by the process
+ * audits (REQ-PERF-05, REQ-INT-09) and the refresh measurement (REQ-PERF-03); the successor of
+ * task-010's stand-in routes.
  */
 import http from 'node:http';
 import { mkdtemp, rm } from 'node:fs/promises';
@@ -10,19 +11,23 @@ import type { AddressInfo } from 'node:net';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { Writable } from 'node:stream';
-import type { FastifyInstance, FastifyReply } from 'fastify';
+import type { FastifyInstance } from 'fastify';
 import { createTokenAuthentication } from '../../../server/src/auth/authentication.js';
 import type { EventBus } from '../../../server/src/events/bus.js';
 import { buildApp } from '../../../server/src/http/app.js';
 import { EVENTS_PATH, registerEventStream, type EventStreams } from '../../../server/src/http/events.js';
+import { registerProjectRoutes } from '../../../server/src/http/project-routes.js';
+import { registerRoleViewRoute } from '../../../server/src/http/role-view.js';
+import { registerServerRoute } from '../../../server/src/http/server-route.js';
+import { createSnapshotIdentitySource } from '../../../server/src/identity/snapshot-identity.js';
 import { createLogger } from '../../../server/src/logging.js';
-import { REPO_STATE_HEADER, repoStateHeader } from '../../../server/src/snapshot/state.js';
-import type { SnapshotView } from '../../../server/src/snapshot/snapshot.js';
+import { REPO_STATE_HEADER } from '../../../server/src/snapshot/state.js';
 import type { Snapshots } from '../../../server/src/snapshot/snapshots.js';
-import { openSse, type SseStream } from '../http/sse-client.js';
+import { createMemoryStateStore } from '../../../server/src/state/memory-store.js';
+import { openSse, type SseStream } from './sse-client.js';
 
-/** A running stand-in console. */
-export interface StandIn {
+/** A running read console. */
+export interface ReadConsole {
   port: number;
   token: string;
   /** `GET <path>` with the token: status, `X-Repo-State` and the JSON body. */
@@ -34,47 +39,43 @@ export interface StandIn {
   close(): Promise<void>;
 }
 
-const TOKEN = 'StandIn_'.padEnd(43, 'x');
+const TOKEN = 'ReadConsole_'.padEnd(43, 'x');
 
-/** Start the stand-in console over `snapshots` (projects already opened there) and `bus`. */
-export async function startStandIn(snapshots: Snapshots, bus: EventBus): Promise<StandIn> {
-  const staticDir = await mkdtemp(path.join(tmpdir(), 'wfui-standin-'));
+/**
+ * Start the console over `snapshots` and `bus`, with `projects` (`pid` → realpath of the project) in
+ * its local state. Project ids follow the state schema (`p_` + 12 Crockford base32 characters).
+ */
+export async function startReadConsole(
+  snapshots: Snapshots,
+  bus: EventBus,
+  projects: Record<string, string>,
+): Promise<ReadConsole> {
+  const staticDir = await mkdtemp(path.join(tmpdir(), 'wfui-console-'));
   const holder: { port?: number } = {};
   let streams: EventStreams | undefined;
   const opened: SseStream[] = [];
+  const store = await createMemoryStateStore({
+    initial: {
+      version: 1,
+      projects: Object.entries(projects).map(([id, dir]) => ({
+        id,
+        path: dir,
+        name: path.basename(dir),
+        remote: '',
+        addedAt: '2026-10-06T08:00:00Z',
+        roleView: '',
+      })),
+      settings: {},
+      actionLog: [],
+    },
+  });
 
   const register = (app: FastifyInstance): void => {
+    const identity = createSnapshotIdentitySource(snapshots);
+    registerServerRoute(app, { store, version: '0.0.0-test' });
+    registerProjectRoutes(app, { store, snapshots });
+    registerRoleViewRoute(app, { store, identity });
     streams = registerEventStream(app, { bus });
-    const withView = async (pid: string, reply: FastifyReply, read: (view: SnapshotView) => Promise<unknown>) => {
-      const snapshot = snapshots.get(pid);
-      if (!snapshot) return reply.code(404).send({ error: { code: 'not-found', message: 'Not found' } });
-      const view = await snapshot.view();
-      const body = await read(view);
-      return reply.header(REPO_STATE_HEADER, repoStateHeader(view.state)).send(body);
-    };
-    app.get<{ Params: { pid: string } }>('/api/p/:pid', (request, reply) =>
-      withView(request.params.pid, reply, async (view) => {
-        const [version, dna] = await Promise.all([view.version(), view.dna()]);
-        return { name: dna.data.project?.name ?? null, version, email: view.state.email ?? null };
-      }),
-    );
-    app.get<{ Params: { pid: string } }>('/api/p/:pid/config', (request, reply) =>
-      withView(request.params.pid, reply, async (view) => {
-        const [dna, paths, workflows, types] = await Promise.all([
-          view.dna(),
-          view.paths(),
-          view.workflows(),
-          view.memoryTypes(),
-        ]);
-        return { dna: dna.data, paths: paths.data, workflows: workflows.data, types };
-      }),
-    );
-    app.get<{ Params: { pid: string } }>('/api/p/:pid/elements', (request, reply) =>
-      withView(request.params.pid, reply, async (view) => {
-        const list = await view.elements();
-        return list.matches.map(({ match, localChanges }) => ({ ...match, localChanges }));
-      }),
-    );
   };
 
   const app = await buildApp({

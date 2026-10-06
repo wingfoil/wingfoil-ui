@@ -3,12 +3,16 @@
  * write method, the confinement of every path to a base folder of the project (lexically, then by
  * realpath, so neither `..` nor a symlink leads out), and the error of a failed direct read.
  */
-import { readFile, realpath, stat } from 'node:fs/promises';
+import { constants } from 'node:fs';
+import { open, realpath, stat } from 'node:fs/promises';
 import path from 'node:path';
 
 /** The file-system operations a direct read needs — reads only. */
 export interface ReadFs {
-  /** The content of a file, as UTF-8. */
+  /**
+   * The content of a file, as UTF-8 — of a regular file only, at most
+   * {@link MAX_DIRECT_READ_BYTES} + 1 bytes; anything else is a {@link NotRegularFileError}.
+   */
   readFile(file: string): Promise<string>;
   /** The canonical absolute path (symlinks resolved). */
   realpath(file: string): Promise<string>;
@@ -19,9 +23,53 @@ export interface ReadFs {
 /** Largest file a direct read accepts (5 MiB): a bigger one is a `shape` error, never read. */
 export const MAX_DIRECT_READ_BYTES = 5 * 1024 * 1024;
 
+/** The object at a path is not a regular file (a FIFO, a device, a symlink as last component). */
+export class NotRegularFileError extends Error {
+  override name = 'NotRegularFileError';
+
+  constructor(readonly file: string) {
+    super(`${file}: not a regular file`);
+  }
+}
+
+// Not on every platform (Windows): 0 leaves them out.
+const OPEN_FLAGS = constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0) | (constants.O_NONBLOCK ?? 0);
+const CHUNK = 64 * 1024;
+
+/**
+ * The read of bug-003: the descriptor opened without following a last-component symlink and
+ * without blocking on a FIFO, `fstat`-ed (a regular file only), then read from the descriptor —
+ * the object checked is the object read — at most `limit` bytes.
+ */
+async function readRegularFile(file: string, limit: number): Promise<string> {
+  let handle;
+  try {
+    handle = await open(file, OPEN_FLAGS);
+  } catch (error) {
+    // ELOOP: the last component is a symlink (O_NOFOLLOW).
+    if ((error as NodeJS.ErrnoException).code === 'ELOOP') throw new NotRegularFileError(file);
+    throw error;
+  }
+  try {
+    if (!(await handle.stat()).isFile()) throw new NotRegularFileError(file);
+    const chunks: Buffer[] = [];
+    let total = 0;
+    while (total < limit) {
+      const buffer = Buffer.alloc(Math.min(CHUNK, limit - total));
+      const { bytesRead } = await handle.read(buffer, 0, buffer.length, null);
+      if (bytesRead === 0) break;
+      chunks.push(buffer.subarray(0, bytesRead));
+      total += bytesRead;
+    }
+    return Buffer.concat(chunks, total).toString('utf8');
+  } finally {
+    await handle.close();
+  }
+}
+
 /** {@link ReadFs} on the local file system. */
 export const nodeReadFs: ReadFs = {
-  readFile: (file) => readFile(file, 'utf8'),
+  readFile: (file) => readRegularFile(file, MAX_DIRECT_READ_BYTES + 1),
   realpath: (file) => realpath(file),
   size: async (file) => (await stat(file)).size,
 };
@@ -46,8 +94,10 @@ export class DirectReadError extends Error {
     /** The path as the CLI gave it (relative to the project or to `.wingfoil/`), or the file read. */
     readonly file: string,
     message: string,
+    /** `cause`: e.g. a {@link NotRegularFileError} (the file was swapped after the checks). */
+    options?: ErrorOptions,
   ) {
-    super(message);
+    super(message, options);
   }
 }
 
@@ -83,15 +133,25 @@ export async function confinedPath(root: string, base: string, rel: string, fs: 
 
 /**
  * The content of `rel` inside `base`, confined as {@link confinedPath} says, at most
- * {@link MAX_DIRECT_READ_BYTES}; the path is resolved again after the read, so a file swapped for a
- * link out of the folder meanwhile is refused.
+ * {@link MAX_DIRECT_READ_BYTES}; read from a descriptor that is a regular file (bug-003: a FIFO, a
+ * device or a symlink swapped in after the checks is refused without blocking, the read is
+ * bounded); the path is resolved again after the read, so a file swapped for a link out of the
+ * folder meanwhile is refused.
  */
 export async function readConfined(root: string, base: string, rel: string, fs: ReadFs = nodeReadFs): Promise<string> {
   const file = await confinedPath(root, base, rel, fs);
   const tooLarge = () => new DirectReadError('shape', rel, `${rel}: too large (over ${MAX_DIRECT_READ_BYTES} bytes)`);
   const unreadable = () => new DirectReadError('missing', rel, `${rel}: cannot be read`);
   if ((await fs.size(file).catch(() => Promise.reject(unreadable()))) > MAX_DIRECT_READ_BYTES) throw tooLarge();
-  const text = await fs.readFile(file).catch(() => Promise.reject(unreadable()));
+  const text = await fs
+    .readFile(file)
+    .catch((error: unknown) =>
+      Promise.reject(
+        error instanceof NotRegularFileError
+          ? new DirectReadError('missing', rel, `${rel}: not a regular file`, { cause: error })
+          : unreadable(),
+      ),
+    );
   if ((await confinedPath(root, base, rel, fs)) !== file) {
     throw new DirectReadError('outside', rel, `${rel}: outside the allowed folder`);
   }

@@ -31,7 +31,31 @@ export type {
   WorkflowList,
   WorkflowPhase,
 } from './cli.js';
-export type { Identity, IdentityView, RoleViewRequest } from './api.js';
+export type {
+  ApiCapabilities,
+  ApiCapability,
+  ApiCapabilityReason,
+  ApiError,
+  ApiRange,
+  ApiWingfoilVersion,
+  ConfigSection,
+  DirectiveDetail,
+  DirectiveList,
+  DocumentationIndex,
+  ElementDetail,
+  ElementList,
+  FileContent,
+  FileTree,
+  Identity,
+  IdentityView,
+  ListedElement,
+  ProjectConfig,
+  ProjectHeader,
+  ReadOnlyReason,
+  RequiredField,
+  RoleViewRequest,
+  ServerInfo,
+} from './api.js';
 export type {
   Availability,
   CloneRequest,
