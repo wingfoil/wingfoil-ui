@@ -30,6 +30,12 @@ The v0.1 read routes of spec-004 §3 — `GET /api/server`, `/api/p/:pid`, `/con
 
 e2e closure — scenarios that need a screen are proved here by API and unit tests on the same fixtures and close in: task-020-documentation-index-and-links: R-09.3.
 
+Added during the Wave 2 dev-loops (plan `dev-loop-rel-v0.1-plan`, Session 2; decided by the user 2026-10-06):
+
+- **Actor events (spec-002 §3, from task-011):** the project-wide `git log -p` parse of spec-002 §3 that feeds the descriptor's actor events (`describeElements(…, eventsOf, …)`) is implemented here, once per repository state, so the Memory list does not start one `memory history` per element. *Verified by:* unit tests on the fixtures (events equal to `memory history` for every element) + the process audit below.
+- **Process audits on the real routes (from task-010):** re-run the TT-PERF-05 audit (cold Memory list ≤ 6 CLI processes, reopened with no change 0) and the TT-INT-09 audit (idle with an open stream: 0 CLI processes) against the real project routes of this task instead of task-010's stand-in routes. *Verified by:* process audit (`test/server/snapshot/process-audit.test.ts` or a successor).
+- **Cached identity for governed checks (from task-009, deviation of spec-004 §4 "rows 1–6 start no process"):** `PUT /api/p/:pid/role-view` and `GET /api/p/:pid` read the identity from task-010's watched repository state (`view.state.email`) instead of running `git config` / `dna show` per request. *Verified by:* process audit — the PUT starts 0 processes on a warm cache.
+
 ## Implementation Notes
 
 - `spec-004` §3 (v0.1 rows), §5; `spec-001` §4 (direct reads); `spec-002` §2 (`memory history` entries for `/history`); `spec-003` §8 (output); `adr-001` D1a, D3 (version and range in `/api/p/:pid`).

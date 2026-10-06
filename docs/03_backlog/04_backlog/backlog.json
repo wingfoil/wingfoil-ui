@@ -2,8 +2,8 @@
   "version": 1,
   "generated_from": {
     "story_map": "docs/02_requirements/01_user_story_map/02_story-map.md v0.5",
-    "bdd": "docs/02_requirements/02_bdd/00_conventions.md v0.6",
-    "sard": "docs/02_requirements/03_sard/00_sard.md v0.7"
+    "bdd": "docs/02_requirements/02_bdd/00_conventions.md v0.7",
+    "sard": "docs/02_requirements/03_sard/00_sard.md v0.8"
   },
   "items": [
     {
@@ -7214,8 +7214,8 @@
       "area": "ARC",
       "wingfoil_min": "0.2.2",
       "requirement": "REQ-ARC-04",
-      "description": "Governed state is read through CLI JSON output wherever the CLI exposes it (DNA, paths, workflows, Memory list and history, directive list). What the pinned CLI does not expose is read **directly, read-only, from a closed allow-list**, until WingFoil provides a read verb: `.wingfoil/memory.yaml` (type definitions: `id_pattern`, `path`, required fields, `states`), the Memory element files at the `path` given by `memory search`, and the directive files at the `path` given by `directives list`. Each directly read shape has a JSON schema in `contracts/` per supported WingFoil version, and an element's `status` read from its file must equal the one `memory search` returns (otherwise: read error). When the CLI of the project provides the read verb (capability detection), the direct read is not used. Git is read directly only for HEAD, branches, ahead/behind, working-tree status, `git log` and the working-tree files shown in Files. The server writes none of these files.",
-      "fit_criterion": "[boolean] A unit test with a file-system spy over every read endpoint records 0 direct reads of `.wingfoil/*.yaml` other than `ui.yaml` and `memory.yaml`, 0 reads of Memory or directive files at a path not returned by the CLI, and 0 writes to any of them; every allow-listed shape has a schema and a passing contract test per supported version; a fixture whose element file `status` differs from `memory search` shows a read error for that element.",
+      "description": "Governed state is read through CLI JSON output wherever the CLI exposes it (DNA, paths, workflows, Memory list and history, directive list). What the pinned CLI does not expose is read **directly, read-only, from a closed allow-list**, until WingFoil provides a read verb: `.wingfoil/memory.yaml` (type definitions: `id_pattern`, `path`, required fields, `states`), the Memory element files at the `path` given by `memory search`, and the directive files at the `path` given by `directives list`. Each directly read shape has a JSON schema in `contracts/` per supported WingFoil version, and an element's `status` read from its file must equal the one `memory search` returns (otherwise: read error). When the CLI of the project provides the read verb (capability detection), the direct read is not used. Git is read directly only for HEAD, branches, ahead/behind, working-tree status, `git log` and the working-tree files shown in Files. **Exception:** hash-only reads of the changed and untracked entries listed by `git status --porcelain`, for the repository state key (REQ-STATE-02); their content is neither kept nor exposed. The server writes none of these files.",
+      "fit_criterion": "[boolean] A unit test with a file-system spy over every read endpoint records 0 direct reads of `.wingfoil/*.yaml` other than `ui.yaml` and `memory.yaml`, 0 reads of Memory or directive files at a path not returned by the CLI (except the hash-only reads of changed and untracked entries for the state key, REQ-STATE-02), and 0 writes to any of them; every allow-listed shape has a schema and a passing contract test per supported version; a fixture whose element file `status` differs from `memory search` shows a read error for that element.",
       "verified_by": "unit (fs spy)",
       "stories": [
         "US-M-01",
@@ -7299,7 +7299,7 @@
       "wingfoil_min": "0.2.2",
       "requirement": "REQ-ARC-05",
       "description": "Types, states, gates, roles and workflows come from each project; the UI hard-codes none of them outside the `ui.yaml` presets and the tests.",
-      "fit_criterion": "[boolean] The same build renders and acts on the `kanban`, `custom` and `unknown` fixtures with every scenario of the release passing; a lint rule finds 0 string literals equal to a type or state name of the three fixtures in `server/` and `web/` outside `presets/` and tests. v0.1 (read-only): the same build renders the three fixtures with every `@v0.1` scenario passing.",
+      "fit_criterion": "[boolean] The same build renders and acts on the `kanban`, `custom` and `unknown` fixtures with every scenario of the release passing; a lint rule finds 0 values equal to a type or state name of the three fixtures in `server/` and `web/` — string and expression-free template literals, data keys (object-literal properties, class fields, interface and type-literal property signatures, enum members) and regular-expression words; method, getter and setter names are exempt by design; the only exempt path is `server/src/presets/**` (`test/` and `contracts/` are outside the rule; spec-005 §5). v0.1 (read-only): the same build renders the three fixtures with every `@v0.1` scenario passing.",
       "verified_by": "e2e on the three fixtures · lint",
       "stories": [
         "US-G-05",
@@ -9270,7 +9270,7 @@
       "area": "STATE",
       "wingfoil_min": "0.2.2",
       "requirement": "REQ-STATE-02",
-      "description": "Cached CLI and git reads are keyed on the commit of HEAD **and** a hash of `git status --porcelain`; a change of either invalidates them. The effective `user.email` (repository and global git configuration) is watched too and re-evaluates the identity. Changes are detected by file watching, with a periodic check as a fallback.",
+      "description": "Cached CLI and git reads are keyed on the commit of HEAD **and** a hash of `git status --porcelain` combined with a fingerprint of the working-tree content of each changed and untracked entry (computed by the server, no extra git command); a change of either invalidates them, so a second edit of a file that is already modified changes the state too. The effective `user.email` (repository and global git configuration) is watched too and re-evaluates the identity. Changes are detected by file watching, with a periodic check as a fallback.",
       "fit_criterion": "[boolean] A unit test shows a cache miss after a commit and after a working-tree edit, a cache hit when neither changed, and a new identity after a change of `user.email`.",
       "verified_by": "unit",
       "stories": [
@@ -10345,7 +10345,7 @@
       "area": "INT",
       "wingfoil_min": "0.2.2",
       "requirement": "REQ-INT-02",
-      "description": "The server reads `wingfoil --version` when a project opens. Inside the supported range (0.2.2 to the highest contract-tested version; 0.2.2 to 1.x at v1.0) the project is fully usable; outside it, read-only with the range in the reason. The range and the capabilities per version are published in the package README (support matrix).",
+      "description": "The server reads `wingfoil --version` when a project opens. Inside the supported range — from a declared minimum (`min` in `contracts/matrix.json`, 0.2.2 today) to the caret line of the highest contract-tested version (every version below the next minor for 0.x, below the next major from 1.0; a 0.0.z version is its own line), labelled `0.Y.x` / `X.x` (e.g. \"0.2.2 to 0.2.x\"; 0.2.2 to 1.x at v1.0) — the project is fully usable; outside it, read-only with the range in the reason. The range and the capabilities per version are published in the package README (support matrix).",
       "fit_criterion": "[boolean] A fixture pinning a version below or above the range opens with 0 enabled actions and the reason naming the range; a version inside it passes every scenario of the release.",
       "verified_by": "e2e · README review",
       "stories": [
@@ -10440,7 +10440,7 @@
       "wingfoil_min": "0.2.2",
       "requirement": "REQ-INT-03",
       "description": "Each capability declares the minimum WingFoil version and the project conditions it needs. When it applies to the project but the version or the user's role lacks it, it is shown **read-only with the reason**; when it does not apply (e.g. no remote, no ingestion workflow, no required references) it is **hidden**.",
-      "fit_criterion": "[boolean] Every listed scenario passes on WingFoil 0.2.2; the capability table in `contracts/` declares a minimum version for 100 % of the capabilities. v0.1 (version notice): the table exists with a minimum version for every capability, and the project header shows the version and the version notice (S-08.1, S-08.2).",
+      "fit_criterion": "[boolean] Every listed scenario passes on WingFoil 0.2.2; the capability table in `contracts/` declares a minimum version for 100 % of the capabilities (`null` counts as declared: the capability is in no released WingFoil version and is always read-only or hidden per its rule, reason `not-released`). v0.1 (version notice): the table exists with a minimum version for every capability, and the project header shows the version and the version notice (S-08.1, S-08.2).",
       "verified_by": "e2e · unit",
       "stories": [
         "US-A-03",

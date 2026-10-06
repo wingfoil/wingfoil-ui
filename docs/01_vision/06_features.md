@@ -1,7 +1,7 @@
 # Features — WingFoil UI
 
-**Version:** 0.6
-**Date:** 2026-10-01 (0.2: journey coverage completed by the coherence audit; 0.3: external review — session 7; 0.4: S8 row completed — specification session 1; 0.5: permissions left to WingFoil — specification session 3; 0.6: X4 wording — coherence audit of the specification — session 6)
+**Version:** 0.7
+**Date:** 2026-10-06 (0.2: journey coverage completed by the coherence audit; 0.3: external review — session 7; 0.4: S8 row completed — specification session 1; 0.5: permissions left to WingFoil — specification session 3; 0.6: X4 wording — coherence audit of the specification — session 6; 0.7: S3 supported range rule — dev-loop task-006)
 **Status:** Accepted in lean-inception session 4 (2026-10-01)
 **Input:** `05_journeys.md` (steps and gaps) · `04_personas.md` · `02_product-vision.md` ·
 `03_is-isnot.md` · **Evidence:** `docs/00_reference/ux-reference.md`, the prototype,
@@ -23,7 +23,7 @@ know how to build it (H/M/L).
 |----|---------|----------|----------|-------------|----|-----|-----|----|------|
 | S1 | Local server + CLI adapter | all | all | Node server on `localhost` that runs **the observed project's own** `wingfoil` (pinned in its `node_modules`, else on the PATH) with `--format json`, as `execFile` without a shell; reads git; serves the UI (draft ADR) | 0.2.2 | 3 | 3 | 1 | M |
 | S2 | Project list | J0, J5 | Alex, all | Add a local folder or clone a remote; remove; persisted as local UI state. The same repository cannot be added twice (Q3) | — | 3 | 2 | 2 | H |
-| S3 | WingFoil version and capabilities | J0, J3 | all | Detect the project's WingFoil version against the supported range (0.2.2 → latest contract-tested): outside it the project is read-only with the reason; no CLI found → not opened, with install instructions. Per capability: **read-only with the reason** when it applies to the project but the version or the role lacks it, **hidden** when it does not apply (GAP J0/J3) | 0.2.2 | 3 | 2 | 2 | M |
+| S3 | WingFoil version and capabilities | J0, J3 | all | Detect the project's WingFoil version against the supported range (declared minimum 0.2.2 → the caret line of the latest contract-tested version, e.g. 0.2.2 to 0.2.x): outside it the project is read-only with the reason; no CLI found → not opened, with install instructions. Per capability: **read-only with the reason** when it applies to the project but the version or the role lacks it, **hidden** when it does not apply (GAP J0/J3) | 0.2.2 | 3 | 2 | 2 | M |
 | S4 | Identity and role views | J1–J6 | all | User from `git config user.email` → `dna.team.members`; role-view switch for multi-role members; "not in team" badge. No git email → read-only ("no identity"); email matching several members → read-only with a warning | 0.2.2 | 3 | 1 | 3 | H |
 | S5 | All-roles summary | J5 | Alex | In Today, per role held: count and top items requiring it (GAP J5) | 0.2.2 | 2 | 1 | 2 | H |
 | S6 | Command palette (⌘K) | J5, J7 | all | Navigate, open any element, start an ingestion, switch project, pending actions | 0.2.2 | 2 | 2 | 3 | H |

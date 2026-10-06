@@ -55,7 +55,9 @@ them (capability detection), the server reads, **read-only, from a closed allow-
 `.wingfoil/memory.yaml` (the keys the UI uses), the element files at the `path` `memory search`
 returns, and the directive files at the `path` `directives list` returns. Each shape has a schema
 in `contracts/` (D4); an element whose file `status` differs from `memory search` is a read error.
-The server never writes these files.
+The server never writes these files. **Exception:** hash-only reads of the changed and untracked
+entries listed by `git status --porcelain`, for the repository state key (D6, REQ-STATE-02,
+spec-001 §4.4); their content is neither kept nor exposed.
 
 **D2 — CLI discovery** (REQ-ARC-02), resolved when a project is opened or selected and again when
 `node_modules/wingfoil/package.json` changes:
@@ -74,11 +76,14 @@ version counts, not the range written in `package.json`.
 **D3 — Version detection and supported range** (REQ-INT-02, INT-03). The server runs
 `<cli> --version` once per resolution and caches it with the binary path. The output must be a
 semantic version; anything else is treated as outside the range ("unrecognised version"). The
-supported range of a UI release is **from 0.2.2 to the highest WingFoil version contract-tested by
-that release**, inclusive; pre-releases are outside unless the matrix lists them. Outside the
-range the project opens read-only with the range in the reason (S-09.1, S-09.2). Inside it, each
-capability is enabled, read-only with the reason, or hidden according to the capability table
-(minimum version and project conditions per capability).
+supported range of a UI release is **from a declared minimum (`min` in `contracts/matrix.json`,
+0.2.2 today) to the caret line of the highest WingFoil version contract-tested by that release**:
+every version below the next minor for 0.x (`^0.2.2` → below 0.3.0, label `0.2.x`), below the next
+major from 1.0 (`^1.0.3` → below 2.0.0, label `1.x`); a 0.0.z version is its own line. The range
+is shown as `<min> to <label>` ("0.2.2 to 0.2.x"); pre-releases are outside unless the matrix
+lists them. Outside the range the project opens read-only with the range in the reason (S-09.1,
+S-09.2). Inside it, each capability is enabled, read-only with the reason, or hidden according
+to the capability table (minimum version and project conditions per capability).
 
 **D4 — Contract matrix** (REQ-INT-01, ARC-04). Every CLI command the server invokes is listed in the
 CLI adapter, and every directly read file shape (D1a) in its reader; each consumed shape has a JSON
@@ -100,10 +105,12 @@ offers to cancel it (the process is killed; git leaves the repository as it was)
 
 **D6 — Snapshot and cache** (REQ-STATE-01…04, SEC-08). The UI shows the working tree, as the CLI
 reads it, and marks elements with *local changes*. Cached reads are keyed on HEAD, a hash of
-`git status --porcelain` and the effective `user.email`; changes are detected by file watching
-with a periodic check as fallback. The server — not only the UI — refuses governed actions and
-`ui.yaml` writes with **409** on an element with local changes or on a copy that is behind,
-diverged or on a detached HEAD, and with **403** for users not identified in `dna.team`.
+`git status --porcelain` combined with a fingerprint of the working-tree content of each changed
+and untracked entry (computed by the server, no extra git command; a second edit of an
+already-modified file changes the key) and the effective `user.email`; changes are detected by
+file watching with a periodic check as fallback. The server — not only the UI — refuses governed
+actions and `ui.yaml` writes with **409** on an element with local changes or on a copy that is
+behind, diverged or on a detached HEAD, and with **403** for users not identified in `dna.team`.
 
 **D7 — Write classes and git interface** (REQ-ARC-03, INT-06). The server writes only through
 (a) the CLI (`wf(…)` commits); (b) `.wingfoil/ui.yaml`, schema-validated, one `chore(ui)` commit
@@ -188,4 +195,11 @@ PERF-05 · features S1, S3, S8, X4 · scenarios S-08.1, S-08.2, S-09.1, S-09.2, 
   `wingfoil` is this repository's own governance CLI and the version the test harness builds
   fixtures with; `npx wingfoil-ui` never installs it. A package-review test asserts it is the
   only occurrence.
-
+- 2026-10-06 — amended in dev-loop task-006 (Wave 2, plan dev-loop-rel-v0.1-plan): D3 range =
+  declared minimum (`min` in `contracts/matrix.json`) to the caret line of the highest
+  contract-tested version, labelled `0.Y.x` / `X.x` (replaces "to the highest contract-tested
+  version, inclusive"); decided by the user.
+- 2026-10-06 — amended in dev-loop task-010 (Wave 2, plan dev-loop-rel-v0.1-plan): D6 the cache
+  key's status hash includes a fingerprint of the working-tree content of each changed and
+  untracked entry (SARD REQ-STATE-02, spec-004 §5), and D1a gains the hash-only read exception
+  for it; decided by the user.

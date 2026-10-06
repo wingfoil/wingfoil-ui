@@ -56,8 +56,8 @@ declared in memory.yaml".
 
 ### 3. Inferred values (no or ignored file)
 
-The inference table lives in `server/presets/` with the presets — the only place where type names
-may appear in code (REQ-ARC-05).
+The inference table lives in `server/src/presets/` with the presets — the only place where type
+names may appear in code (REQ-ARC-05).
 
 
 - `taxonomy.categories`: by type name — `task` → work, `bug` → defect, `adr` and `decision-log` →
@@ -95,7 +95,8 @@ conventions (project completion 25 %, tasks 1/4, open bugs 1, pending gates 3, c
 
 ### 5. UI presets (`dl-003`)
 
-Shipped in `server/presets/` (the only place where type names may appear in code, REQ-ARC-05):
+Shipped in `server/src/presets/` (the only place where type names may appear in code, REQ-ARC-05;
+under `server/src/` because the server compiles only `server/src`):
 
 | Preset | Made for | Content |
 |--------|----------|---------|
@@ -111,6 +112,21 @@ renders the preset, validates it against the schema **and** the semantic checks 
 "ui.yaml not written: <first failure>", nothing written, C-03.1/C-03.2), writes the file, then runs
 `git add -- .wingfoil/ui.yaml` and `git commit -m "chore(ui): apply the <Preset> preset" --
 .wingfoil/ui.yaml` (other staged changes stay staged, C-02.2), under the write lock.
+
+**`server/src/presets/` also holds** WingFoil 0.2.2's own vocabulary (built-in state machine,
+archived set `deprecated`/`superseded`, the roles `approver`, `tech-lead`, `reviewer`) and the
+tables of spec-003's own vocabulary that coincide with fixture state names (the kind `archived`,
+the tones `done` and `active`, the bucket codes `in-progress` and `done`; spec-003 §8).
+
+**Lint scope (REQ-ARC-05, rule `wfui/no-methodology-literal`).** On `server/**` and `web/**` the
+rule reports a value equal to a type or state name of the three fixtures in: string and
+expression-free template literals (literal types and quoted keys included), data keys written as
+identifiers (object-literal properties, class fields, interface and type-literal property
+signatures, enum members) and the standalone words of a regular-expression literal. Method,
+getter and setter names are **exempt by design** (behaviour, not methodology data). The only
+exempt path is `server/src/presets/**` (test files and any `presets/` folder elsewhere under
+`server/` or `web/` are checked; `test/` and `contracts/` are outside the rule's scope); a
+remaining non-methodology hit needs a justified inline disable.
 
 ### 6. Verification
 
@@ -141,3 +157,9 @@ renders the preset, validates it against the schema **and** the semantic checks 
   gates project-wide; F11 hidden vs disabled for *Use preset*.
 - 2026-10-03 — release-planning v0.1 session 2: implementation release v0.1 → v0.3 (REQ-ARC-07
   moved to v0.3, SARD `01` v0.6; no `@v0.1` scenario reads `ui.yaml`).
+- 2026-10-06 — amended in dev-loop task-011 (Wave 2, plan dev-loop-rel-v0.1-plan): presets in
+  `server/src/presets/` (not `server/presets/`: the server compiles only `server/src`), which also
+  holds WingFoil's vocabulary and spec-003's vocabulary tables that coincide with fixture state
+  names; §5 lint scope of REQ-ARC-05 (literals, data keys, class fields, interface property
+  signatures, enum members and regex words checked; method/getter/setter names exempt; only
+  `server/src/presets/**` exempt); decided by the user (lint scope by the coordinator).

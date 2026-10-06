@@ -1,6 +1,6 @@
 # SARD — 1. Architectural Constraints
 
-**Version:** 0.7 · **Date:** 2026-10-04 (0.2: coherence audit fixes — session 6; 0.3: page title, REQ-ARC-10 — initial-design session 2; 0.4: REQ-ARC-04 allow-list of direct reads — initial-design session 5; 0.5: REQ-ARC-06 last non-archived state — initial-design session 6; 0.6: REQ-ARC-07 moved to v0.3 — release-planning v0.1 session 2; 0.7: REQ-ARC-05, REQ-ARC-10 v0.1 scope — release-planning v0.1 session 4 (audit A4)) · **Status:** Draft — specification-downcast session 4
+**Version:** 0.8 · **Date:** 2026-10-06 (0.2: coherence audit fixes — session 6; 0.3: page title, REQ-ARC-10 — initial-design session 2; 0.4: REQ-ARC-04 allow-list of direct reads — initial-design session 5; 0.5: REQ-ARC-06 last non-archived state — initial-design session 6; 0.6: REQ-ARC-07 moved to v0.3 — release-planning v0.1 session 2; 0.7: REQ-ARC-05, REQ-ARC-10 v0.1 scope — release-planning v0.1 session 4 (audit A4); 0.8: REQ-ARC-05 lint scope — dev-loop task-011; REQ-ARC-04 hash-only reads for the state key — dev-loop task-010) · **Status:** Draft — specification-downcast session 4
 
 Shell and conventions: `00_sard.md`.
 
@@ -44,10 +44,10 @@ Shell and conventions: `00_sard.md`.
 | Field | |
 |-------|--|
 | Release | v0.1 |
-| Description | Governed state is read through CLI JSON output wherever the CLI exposes it (DNA, paths, workflows, Memory list and history, directive list). What the pinned CLI does not expose is read **directly, read-only, from a closed allow-list**, until WingFoil provides a read verb: `.wingfoil/memory.yaml` (type definitions: `id_pattern`, `path`, required fields, `states`), the Memory element files at the `path` given by `memory search`, and the directive files at the `path` given by `directives list`. Each directly read shape has a JSON schema in `contracts/` per supported WingFoil version, and an element's `status` read from its file must equal the one `memory search` returns (otherwise: read error). When the CLI of the project provides the read verb (capability detection), the direct read is not used. Git is read directly only for HEAD, branches, ahead/behind, working-tree status, `git log` and the working-tree files shown in Files. The server writes none of these files. |
+| Description | Governed state is read through CLI JSON output wherever the CLI exposes it (DNA, paths, workflows, Memory list and history, directive list). What the pinned CLI does not expose is read **directly, read-only, from a closed allow-list**, until WingFoil provides a read verb: `.wingfoil/memory.yaml` (type definitions: `id_pattern`, `path`, required fields, `states`), the Memory element files at the `path` given by `memory search`, and the directive files at the `path` given by `directives list`. Each directly read shape has a JSON schema in `contracts/` per supported WingFoil version, and an element's `status` read from its file must equal the one `memory search` returns (otherwise: read error). When the CLI of the project provides the read verb (capability detection), the direct read is not used. Git is read directly only for HEAD, branches, ahead/behind, working-tree status, `git log` and the working-tree files shown in Files. **Exception:** hash-only reads of the changed and untracked entries listed by `git status --porcelain`, for the repository state key (REQ-STATE-02); their content is neither kept nor exposed. The server writes none of these files. |
 | Rationale | One interpretation of the schema: WingFoil's, wherever the CLI exposes it. WingFoil 0.2.2 has no verb for type definitions, element content or directive bodies (checked 2026-10-02, initial-design session 5), yet the action descriptor, the element panel and the Directives view need them; a closed, schema-checked, read-only list keeps the drift visible and temporary. |
 | Traceability | US-S-25, US-M-01, US-R-05, US-S-27 · S-25.1, M-01.1, R-05.1, S-27.1 · S1, S8 |
-| Fit criterion | [boolean] A unit test with a file-system spy over every read endpoint records 0 direct reads of `.wingfoil/*.yaml` other than `ui.yaml` and `memory.yaml`, 0 reads of Memory or directive files at a path not returned by the CLI, and 0 writes to any of them; every allow-listed shape has a schema and a passing contract test per supported version; a fixture whose element file `status` differs from `memory search` shows a read error for that element. |
+| Fit criterion | [boolean] A unit test with a file-system spy over every read endpoint records 0 direct reads of `.wingfoil/*.yaml` other than `ui.yaml` and `memory.yaml`, 0 reads of Memory or directive files at a path not returned by the CLI (except the hash-only reads of changed and untracked entries for the state key, REQ-STATE-02), and 0 writes to any of them; every allow-listed shape has a schema and a passing contract test per supported version; a fixture whose element file `status` differs from `memory search` shows a read error for that element. |
 | Verified by | unit (fs spy) |
 
 ### REQ-ARC-05 — Methodology independence
@@ -58,7 +58,7 @@ Shell and conventions: `00_sard.md`.
 | Description | Types, states, gates, roles and workflows come from each project; the UI hard-codes none of them outside the `ui.yaml` presets and the tests. |
 | Rationale | Project-agnostic pillar; MVP canvas metric *Methodology independence*. |
 | Traceability | US-S-28, US-M-02, US-T-05, US-G-05 · S-28.1, S-28.2, M-02.1, M-02.2, M-02.3, T-05.1, G-05.3 · S9, M1 |
-| Fit criterion | [boolean] The same build renders and acts on the `kanban`, `custom` and `unknown` fixtures with every scenario of the release passing; a lint rule finds 0 string literals equal to a type or state name of the three fixtures in `server/` and `web/` outside `presets/` and tests. v0.1 (read-only): the same build renders the three fixtures with every `@v0.1` scenario passing. |
+| Fit criterion | [boolean] The same build renders and acts on the `kanban`, `custom` and `unknown` fixtures with every scenario of the release passing; a lint rule finds 0 values equal to a type or state name of the three fixtures in `server/` and `web/` — string and expression-free template literals, data keys (object-literal properties, class fields, interface and type-literal property signatures, enum members) and regular-expression words; method, getter and setter names are exempt by design; the only exempt path is `server/src/presets/**` (`test/` and `contracts/` are outside the rule; spec-005 §5). v0.1 (read-only): the same build renders the three fixtures with every `@v0.1` scenario passing. |
 | Verified by | e2e on the three fixtures · lint |
 
 ### REQ-ARC-06 — Action descriptor derived from the project
@@ -126,3 +126,16 @@ Shell and conventions: `00_sard.md`.
 | Traceability | US-X-08 · X-08.1, X-08.2, X-08.3 · X3, C4 |
 | Fit criterion | [numeric] In each theme every text has a contrast ratio ≥ 4.5:1 (≥ 3:1 for large text) against its background, measured by axe-core on every screen of the release. |
 | Verified by | e2e-smoke `accessibility` |
+
+## Process Notes
+
+- 2026-10-06 — amended in dev-loop task-011 (Wave 2, plan dev-loop-rel-v0.1-plan): REQ-ARC-05 fit
+  criterion aligned with the lint scope of spec-005 §5 — literals, data keys, class fields,
+  interface property signatures, enum members and regex words checked; method, getter and setter
+  names exempt; only `server/src/presets/**` exempt; `test/` and `contracts/` outside the rule;
+  decided by the user (option 10a) with the coordinator's method-name exemption.
+- 2026-10-06 — amended in dev-loop task-010 (Wave 2, plan dev-loop-rel-v0.1-plan): REQ-ARC-04
+  exception to the direct-read allow-list (Description and fit criterion) — hash-only reads of
+  changed and untracked working-tree entries for the repository state key (REQ-STATE-02); content
+  is neither kept nor exposed; decided by the user as part of #18 (REQ-STATE-02 content
+  fingerprint).
