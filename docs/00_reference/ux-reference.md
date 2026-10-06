@@ -1,6 +1,6 @@
 # UX reference — WingFoil UI
 
-**Version:** 0.2 · **Date:** 2026-10-03 (0.2: §9 colours aligned with spec-009 — release-planning v0.1 session 2) · **Status:** Reference for `lean-inception` and `specification-downcast`
+**Version:** 0.3 · **Date:** 2026-10-06 (0.2: §9 colours aligned with spec-009 — release-planning v0.1 session 2; 0.3: §3 start page with no project open, §5 modal dismissal — dev-loop task-013, decided by the user) · **Status:** Reference for `lean-inception` and `specification-downcast`
 **Prototype:** `docs/00_reference/prototype/` (interactive HTML; sample data from the WingFoil
 repository and from a fictional Kanban project `acme-checkout`)
 
@@ -41,6 +41,7 @@ Overlay: element panel (right) · command palette · modals (ingestion, agent la
 | Element | Behaviour |
 |---------|-----------|
 | **Project switcher** | Lists projects added to the UI (name + path, or URL → working dir). "Add project…" opens a modal: *Local folder* (absolute path) or *Remote git repository* (URL + local working dir, auto-filled `~/projects/<repo>`). Validates path/URL and duplicates. The list persists in the UI; added projects can be removed (×). |
+| **Start page** | `/` with no project open: header with the project switcher; main with the heading *Projects*, one sentence and *Add project…*. |
 | **Context crumb** | Current position in the main workflow (e.g. `rl-v1 › minor-v0.3 › dev-loop`); truncates from the left. |
 | **Search / ⌘K** | One palette for: start ingestion, pending actions, navigation, switch project, open any element. Arrow keys + Enter. |
 | **Current user** | From `git config user.email`, matched to `dna.team.members[].email`. Shows initials; name + role when single-role; "not in team" badge when unmatched. |
@@ -196,6 +197,7 @@ Read-only repository browser.
 | Checks | Submit with missing required references: *block* or *warn* (setting) |
 | Agent launch | Confirmation modal with context and branch when `agent.launch = confirm` |
 | Edit mode | Explicit Edit → bar "Editing · <file> · N changes · Cancel · Save and commit"; leaving the page discards |
+| Modal dismissal | A modal closes with its Close button or Escape, not with a click outside it (the outside-click dismiss adds a library text outside the catalogue) |
 | Role views | Same screens, content filtered by the roles of the view |
 | Permissions | *(Superseded — session 3: no UI-side permissions; WingFoil's, L6)* Every changing action checks the Permissions table before running; refusal names who may do it |
 
