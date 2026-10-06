@@ -2,7 +2,7 @@
 id: bug-003-confined-file-reads-can-block-or-exhaust-memory-when-the-file-is-swapped-after-the-check
 type: bug
 title: "Confined file reads can block or exhaust memory when the file is swapped after the check"
-status: in-progress
+status: in-review
 severity: "low"        # REQUIRED — critical | high | medium | low
 release-origin: "v0.1" # optional — release where the bug was FOUND, e.g. "v0.1"
 release: ""            # optional — fix/implementation release, stamped by release-planning/build-backlog
