@@ -244,3 +244,17 @@ e2e closure — scenarios that need a screen are proved here by API and unit tes
   3. `capabilities.json` shape — kept.
 - Checks: `npx vitest run test/server/cli test/contracts/{capabilities,schemas,support}.test.ts`
   9 files, 165/165 · typecheck, lint, format:check clean · `docs:api` OK.
+
+### integration (2026-10-06)
+
+- `main` (task-011 done, Wave 2 spec amendments 90d4f81 + audit follow-up d4338a9, bug-002)
+  merged into the branch (3514758). Conflicts: `contracts/src/index.ts` (both export blocks
+  kept), `test/README.md` (renumbered 0.8). task-011's `descriptor-contract.test.ts` now awaits
+  the async `cliBuildFor` (6f9802e; typecheck caught it, test 10/10).
+- Full gates on the merge, load 31–48: typecheck, lint, format:check clean; `test:coverage` 758
+  passed, 1 skipped, coverage 96.96 % statements / 91.85 % branches; `docs:api` OK; `test:e2e`
+  3/3; `check_tasks.py` OK. A first run at load 40–48 also showed the two known bug-001 timing
+  failures (REQ-PERF-06 start, TypeDoc build), accepted as load-only by the user (2026-10-06);
+  task-010 moves them to `test:timing`.
+- Reviews: rounds 1–4 PASS (minor/nit fixes on the `cliBuildFor` helper), decision-1 change
+  (declared `min`) re-verified PASS.
