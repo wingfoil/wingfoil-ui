@@ -360,3 +360,33 @@ e2e closure — scenarios that need a screen are proved here by API and unit tes
   edited file is re-read by the checks of its first 3 s only.
 - Checks: typecheck, lint clean · format:check clean · `docs:api` OK · `test/server/snapshot`
   42/42 at load ≈ 31–42.
+
+### integration (2026-10-06)
+
+- `main` merged into the branch (authorized by the coordinator for this step): merge `cd5dc2a`
+  (tasks 006, 009, 011, Wave 2 spec amendments; the task's front part — bug-002 AC and `bug:`
+  entry, wording — taken from `main`, the Execution Notes kept).
+- **Conflicts:** `contracts/src/index.ts` — every export block kept (api, capabilities,
+  descriptor, events); `server/src/launcher/start.ts` — one `register` callback registering the
+  role-view route (task-009) and the event stream, the stop hook for streams and watchers kept;
+  `test/README.md` — version 0.10 (2026-10-06), changelog "0.10: timing suite, `TempWorkspace`,
+  snapshot audits and stand-ins — task-010 / bug-001", every task's layout section and the
+  *Timing suite* section kept; `test/launcher/local-security.test.ts` — header of both, every row
+  of task-009 and of this task. `server/src/process/runner.ts` merged cleanly: task-011's
+  `settled` and the `gitEnv` call both present.
+- **Decisions (one helper each, bug-002):** `server/src/identity/` now uses `resolveGit`,
+  `gitEnv` and `GitNotFoundError` of `server/src/git/git.ts`; task-009's `findGit`,
+  `gitConfigEnv`, `REPOSITORY_LOCATING_VARIABLES` and its own `GitNotFoundError` removed
+  (`project-identity.ts` re-exports the shared error); its tests moved to the shared helpers with
+  the same cases (absolute PATH entries only, non-executable skipped, `git.exe` with a `Path` key on
+  Windows, GIT_DIR/GIT_WORK_TREE/GIT_COMMON_DIR/GIT_CEILING_DIRECTORIES ignored by
+  `readGitEmail`). `resolveGit` now splits the `PATH` by the platform's delimiter (`;` on
+  Windows), as task-009's resolver did. The identity is not switched to `view.state.email`
+  (task-012). REQ-ARC-05 lint (task-011): `snapshot.ts` uses `ARCHIVED_STATES`; the watcher's
+  `ready` promise renamed `started` (a fixture state name).
+- **Checks** (load 10–18 on 12 cores): `npm install` up to date · typecheck, `eslint .` clean ·
+  format:check clean · `npm run -s test:coverage` **65 files passed, 1 skipped; 917 passed / 1
+  skipped**, 110.9 s, coverage **96.29 %** statements / **89.66 %** branches / 96.07 % functions /
+  98.39 % lines · `docs:api` OK · `test:e2e` 3/3 · `check_tasks.py` OK · **`npm run test:timing`
+  3/3** at load 16.7 → 12.3: REQ-PERF-03 20/20, max 527 ms; REQ-PERF-06 333–677 ms; TypeDoc build
+  4789 ms.
