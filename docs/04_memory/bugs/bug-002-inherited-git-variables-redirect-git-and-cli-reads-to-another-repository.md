@@ -2,7 +2,7 @@
 id: bug-002-inherited-git-variables-redirect-git-and-cli-reads-to-another-repository
 type: bug
 title: "Inherited GIT variables redirect git and CLI reads to another repository"
-status: draft
+status: open
 severity: "medium"     # REQUIRED — critical | high | medium | low
 release-origin: "v0.1" # optional — release where the bug was FOUND, e.g. "v0.1"
 release: ""            # optional — fix/implementation release, stamped by release-planning/build-backlog
