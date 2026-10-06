@@ -681,14 +681,87 @@ describe('POST /api/projects/clone (S-04, S-05.2, S-06, S-07)', () => {
     expect(pwned()).toBe(false);
   });
 
-  it('refuses a clone whose project has no CLI, and removes the clone', async () => {
+  it('keeps and lists a clone whose project has no CLI, marked cli-not-found (decided 2026-10-06)', async () => {
     const w = await world({ cliOnPath: false });
-    const before = await tree(w.dir);
-    const error = await refusal(
-      await clone(w, { url: w.fx.remoteUrl, directory: '~/projects/kanban' }),
-      'cli-not-found',
+    const res = await clone(w, { url: w.fx.remoteUrl, directory: '~/projects/kanban' });
+    expect(res.statusCode, res.body).toBe(201);
+    expect(res.json()).toEqual(
+      expect.objectContaining({ name: 'kanban', availability: 'cli-not-found', command: INSTALL }),
     );
-    expect(error.detail).toEqual({ path: '~/projects/kanban', command: INSTALL });
+    expect((await lstat(path.join(w.home, 'projects', 'kanban', '.wingfoil'))).isDirectory()).toBe(true);
+    expect(await list(w)).toEqual([expect.objectContaining({ availability: 'cli-not-found' })]);
+  });
+
+  it('runs no CLI of the cloned repository: a committed node_modules/wingfoil never runs, name = folder', async () => {
+    const w = await world();
+    const marker = path.join(w.dir, 'cli-ran.txt');
+    const src = await copyFixture(template, path.join(w.dir, 'hostile'));
+    await rm(path.join(src.dir, 'node_modules'), { recursive: true, force: true });
+    const pkg = path.join(src.dir, 'node_modules', 'wingfoil');
+    await mkdir(pkg, { recursive: true });
+    await writeFile(
+      path.join(pkg, 'package.json'),
+      JSON.stringify({ name: 'wingfoil', version: '0.2.2', bin: { wingfoil: 'bin.js' } }),
+    );
+    await writeFile(
+      path.join(pkg, 'bin.js'),
+      `require('node:fs').appendFileSync(${JSON.stringify(marker)}, 'ran\\n'); process.stdout.write('{}');\n`,
+    );
+    await git(src.dir, ['add', '-f', 'node_modules/wingfoil'], w.env);
+    await git(
+      src.dir,
+      ['-c', 'user.name=T', '-c', 'user.email=t@example.test', 'commit', '-qm', 'vendored cli'],
+      w.env,
+    );
+    await git(src.dir, ['push', '-q', 'origin', 'HEAD'], w.env);
+    const res = await clone(w, { url: `file://${src.remoteDir}`, directory: '~/projects/board-x' });
+    expect(res.statusCode, res.body).toBe(201);
+    expect((res.json() as { name: string; availability: string }).name).toBe('board-x');
+    expect((await lstat(path.join(w.home, 'projects', 'board-x', 'node_modules', 'wingfoil', 'bin.js'))).isFile()).toBe(
+      true,
+    );
+    await list(w);
+    await w.projects.check();
+    await expect(lstat(marker)).rejects.toThrow();
+  });
+
+  it.each([
+    ['inside a listed project .wingfoil/', (w: World) => path.join(w.fx.dir, '.wingfoil', 'nested')],
+    ['inside a listed project docs/', (w: World) => path.join(w.fx.dir, 'docs', 'nested')],
+    [
+      'inside a listed project, through a symlinked parent',
+      (w: World) => path.join(w.dir, 'alias', 'kanban', 'nested'),
+    ],
+  ])('refuses a clone target %s: directory-inside-project, nothing written', async (_name, target) => {
+    const w = await world();
+    await add(w, w.fx.dir);
+    await symlink(w.dir, path.join(w.dir, 'alias'));
+    const before = await tree(w.dir);
+    const directory = target(w);
+    const spawned = runner.spawned.length;
+    const error = await refusal(
+      await clone(w, { url: 'https://example.test/x.git', directory }),
+      'directory-inside-project',
+    );
+    expect(error.detail).toEqual({ path: directory });
+    expect(runner.spawned.length).toBe(spawned);
+    expect(await tree(w.dir)).toEqual(before);
+  });
+
+  it.each([
+    ['inside the state directory', (w: World) => path.join(w.stateDir, 'clone')],
+    [
+      'inside the state directory, through a symlinked parent',
+      (w: World) => path.join(w.dir, 'alias', 'state', 'clone'),
+    ],
+  ])('refuses a clone target %s: inside-state-dir', async (_name, target) => {
+    const w = await world();
+    await add(w, w.fx.dir); // creates the state directory
+    await symlink(w.dir, path.join(w.dir, 'alias'));
+    const before = await tree(w.dir);
+    const directory = target(w);
+    const error = await refusal(await clone(w, { url: 'https://example.test/x.git', directory }), 'inside-state-dir');
+    expect(error.detail).toEqual({ path: directory });
     expect(await tree(w.dir)).toEqual(before);
   });
 
