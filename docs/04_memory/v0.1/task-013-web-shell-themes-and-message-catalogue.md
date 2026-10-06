@@ -2,7 +2,7 @@
 id: task-013-web-shell-themes-and-message-catalogue
 type: task
 title: "Web shell themes and message catalogue"
-status: in-progress
+status: in-review
 release: "v0.1"
 module: "web"             # optional — server | web | contracts (dna.yaml modules)
 priority: "high"           # optional — high | medium | low
