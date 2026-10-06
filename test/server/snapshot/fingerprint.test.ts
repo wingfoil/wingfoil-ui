@@ -14,6 +14,8 @@ import {
 } from '../../../server/src/snapshot/fingerprint.js';
 
 let dir: string;
+/** A clock well past the racy window of the files these tests just wrote. */
+const LATER = { now: () => Date.now() + 60_000 };
 const entry = (p: string) => ({ code: '??', path: p });
 
 beforeAll(async () => {
@@ -54,7 +56,7 @@ describe('contentFingerprint', () => {
   });
 
   it('reads a file again only when its lstat changed (review R2)', async () => {
-    const f = new Fingerprinter(dir);
+    const f = new Fingerprinter(dir, '', LATER);
     await writeFile(path.join(dir, 'c1.md'), 'one');
     await writeFile(path.join(dir, 'c2.md'), 'two');
     const entries = [entry('c1.md'), entry('c2.md')];
@@ -68,7 +70,7 @@ describe('contentFingerprint', () => {
   });
 
   it('reads at most the per-check byte budget of new content; the rest by size and time (review R2)', async () => {
-    const f = new Fingerprinter(dir);
+    const f = new Fingerprinter(dir, '', LATER);
     const size = 512 * 1024;
     const count = Math.ceil(MAX_FINGERPRINT_BYTES_PER_CHECK / size) + 4;
     await mkdir(path.join(dir, 'budget'));
@@ -88,7 +90,7 @@ describe('contentFingerprint', () => {
     await mkdir(path.join(dir, 'proj'), { recursive: true });
     await writeFile(path.join(dir, 'proj', 'in.md'), 'in');
     await writeFile(path.join(dir, 'out.md'), 'out');
-    const f = new Fingerprinter(dir, 'proj/');
+    const f = new Fingerprinter(dir, 'proj/', LATER);
     const one = await f.fingerprint([entry('proj/in.md'), entry('out.md')]);
     await writeFile(path.join(dir, 'out.md'), 'OUT');
     expect(await f.fingerprint([entry('proj/in.md'), entry('out.md')])).toBe(one);

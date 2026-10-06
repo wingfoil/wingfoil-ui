@@ -8,7 +8,7 @@
  *
  * Bounded cost (review round 2, R2): a file's SHA is cached by path and re-read only when its
  * `lstat` (size, modification time in ns, inode) changes — an entry fingerprinted by its `lstat`
- * keeps that mark while it holds; a check reads at most
+ * keeps that mark while it holds — unless the mark is racy ({@link RACY_WINDOW_MS}); a check reads at most
  * {@link MAX_FINGERPRINT_BYTES_PER_CHECK} bytes of new content and hashes at most
  * {@link MAX_FINGERPRINT_FILES} entries by content — beyond, and for files over
  * {@link MAX_FINGERPRINT_FILE_BYTES}, an entry is fingerprinted by its `lstat` alone.
@@ -27,11 +27,27 @@ export const MAX_FINGERPRINT_FILE_BYTES = 1024 * 1024;
 /** New content read by one check, at most; beyond, entries are fingerprinted by size and time. */
 export const MAX_FINGERPRINT_BYTES_PER_CHECK = 8 * 1024 * 1024;
 
+/**
+ * git's "racy git" rule (review round 3, N1): a mark taken less than this after the file's
+ * modification time is not trusted — a same-size rewrite within one mtime tick (FAT 2 s, HFS+ 1 s,
+ * network mounts, `touch -r`, `cp -p`) leaves the `lstat` unchanged. Such an entry is read again at
+ * each check until a mark is taken past the window.
+ */
+export const RACY_WINDOW_MS = 3_000;
+
+/** Options of {@link Fingerprinter}. */
+export interface FingerprinterOptions {
+  /** Clock of the racy rule, in ms (default `Date.now`). */
+  now?: () => number;
+}
+
 /** Files read at once. */
 export const FINGERPRINT_CONCURRENCY = 16;
 
 interface Cached {
   stat: string;
+  /** The mark may not be trusted on the next check: taken within {@link RACY_WINDOW_MS} of the file's mtime. */
+  racy: boolean;
   /** `sha:<hex>`, or `stat:<stat>` when it was over a limit: kept while the stat holds, so an unchanged file never changes its mark (no spurious `repo` event). */
   mark: string;
 }
@@ -47,6 +63,7 @@ export class Fingerprinter {
   constructor(
     private readonly topLevel: string,
     private readonly prefix = '',
+    private readonly options: FingerprinterOptions = {},
   ) {}
 
   /** Files read by the last {@link fingerprint} call (not taken from the cache). */
@@ -73,7 +90,9 @@ export class Fingerprinter {
           else if (!info.isFile()) mark = `other:${stat}`;
           else {
             const cached = this.cache.get(entry.path);
-            if (cached?.stat === stat) {
+            const now = (this.options.now ?? Date.now)();
+            const racy = now - Number(info.mtimeMs) < RACY_WINDOW_MS;
+            if (cached?.stat === stat && !cached.racy) {
               mark = cached.mark;
             } else if (
               index >= MAX_FINGERPRINT_FILES ||
@@ -88,7 +107,7 @@ export class Fingerprinter {
                 .update(await readFile(file))
                 .digest('hex')}`;
             }
-            next.set(entry.path, { stat, mark });
+            next.set(entry.path, { stat, mark, racy });
           }
         } catch {
           mark = 'missing';

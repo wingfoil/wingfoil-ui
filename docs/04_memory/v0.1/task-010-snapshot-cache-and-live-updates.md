@@ -337,3 +337,18 @@ e2e closure — scenarios that need a screen are proved here by API and unit tes
 - Checks: typecheck, lint clean · format:check clean · `docs:api` OK · affected tests
   (`test/server/snapshot`, `test/server/git`, `test/server/process/git-env.test.ts`) 59/59 at load
   ≈ 50. `test:timing` not run (load).
+
+### review round 3 follow-up (2026-10-06)
+
+- Review round 3: **PASS**, one follow-up. N1 — the fingerprint cache reused a mark whenever
+  size + mtime ns + inode were unchanged, so a same-size rewrite within one mtime tick (FAT 2 s,
+  HFS+ 1 s, network mounts, `touch -r`, `cp -p`) was missed. Red (its own commit): a rewrite with
+  the mtime restored read 0 files. Fix: git's "racy git" rule — a mark taken less than
+  `RACY_WINDOW_MS` = 3 s after the file's mtime is flagged racy and not trusted: the entry is read
+  again at each check until a mark is taken past the window, then reused. Clock injectable
+  (`Fingerprinter(topLevel, prefix, { now })`); test with a fake clock: mark taken 1 s and 1.5 s
+  after mtime → re-read, the rewrite seen; mark taken past the window → reused (0 reads). The
+  R2 tests use a clock past the window (they write their files just before). Cost: a freshly
+  edited file is re-read by the checks of its first 3 s only.
+- Checks: typecheck, lint clean · format:check clean · `docs:api` OK · `test/server/snapshot`
+  42/42 at load ≈ 31–42.
