@@ -135,3 +135,73 @@ Screen: `docs/00_reference/ux-reference.md` §4.2 and the prototype (`docs/00_re
      and "edited outside a WingFoil verb by" (spec-002 §2) + `{name}` (the approver for
      approve/reject, else the author, without the email); the transition `{from} → {to}` as data
      (recommended); (b) the CLI's `subject` verbatim.
+
+### red / green / refactor (2026-10-07)
+
+- **Pending decisions:** the 7 design decisions were sent to the coordinator and got no answer
+  during this run. The panel is built on the recommended option (a) of each one. Each option is
+  contained so that it can change: 1 → `statesOf` in `project-routes.ts` + `states` in
+  `element.schema.json`/`ElementDetail`; 2 → `stateChips`; 3 → `summaryOf`; 4 → `fieldEntries`;
+  5 → `close` in `routes/element.tsx`; 6 → nothing rendered; 7 → `element.history.entry`.
+- **Red / green** (`33b9e87`). **Deviation (test-after):** `web/src/element/model.ts` was written
+  right after its unit test (`test/web/element/model.test.ts`), before the test was run, so the test
+  passed on its first run. The component test `test/web/element/panel.test.tsx` was written after
+  the components. The server half was red first: the route test "answers the resolved states of
+  the element type" failed on `states` undefined, then passed with `statesOf`.
+  - Server: `GET /elements/:eid` adds `states` (`resolveStates`, spec-001 §4.1). It is absent
+    together with `descriptor`/`required` (unreadable `memory.yaml`, asserted) or for an
+    undeclared type. Contracts: `element.schema.json` (`$ref` to
+    `memory-yaml.schema.json#/definitions/states`), `ElementDetail.states?: StateMachine`.
+    **Spec-004 §3 row/addendum to amend on `main`**: "one element: frontmatter, body, descriptor,
+    references, type states".
+  - Web: `routes/element.tsx` (`elementRoute` `e/$eid` under `projectRoute`, no `staticData.nav`;
+    `elementKeys.detail/history` on `queryKeys.project(pid, 'element', eid, …)`; page title
+    `title.projectElement` with the project name from the already-cached `GET /api/projects`;
+    close = `history.back()` when `useCanGoBack()`, else `/p/$pid`), `element/ElementPanel.tsx`
+    (RAC `ModalOverlay`/`Modal`/`Dialog`, labelled by the `<h2>` title, not dismissable by an
+    outside click), `element/StateMachine.tsx` (`<ol aria-label>`, `aria-current="step"`,
+    a visually hidden "(past/current/future state)" per chip, `tone-${descriptor.tone}` on the
+    current chip only), `element/History.tsx` (newest first, `FormattedDate`, short sha with the
+    full sha as `title`), `element/model.ts`, `element/element.css`, `theme/tones.css` (the six
+    `.tone-*` classes + `.visually-hidden`, imported by `main.tsx`), 23 catalogue keys
+    (`element.*`, `title.projectElement`).
+  - Refreshing: both keys sit under `['p', pid]`, so the `repo` event refetches an open panel. No
+    `useServerEvent` was needed.
+- **e2e** (`e8b32e5`): `test/e2e/element-panel.spec.ts` was written after the code. It passed on
+  its first run.
+- `test/README.md` 0.14.
+- **Scenario closure (US-G-01):**
+
+  | Scenario | Proved by |
+  |----------|-----------|
+  | G-01.1 Show an element with its state machine and history | `test/e2e/element-panel.spec.ts` › "G-01.1 — Show an element with its state machine and history": kanban `task-001-login-form` by URL; dialog named "Login form"; type tag `task`, id, `<h2>`; chips `draft(past state)`, `pending(current state)` (`aria-current="step"`), `approved(future state)`; the line "submitted by Jordan" holds the 7-char sha and the date of the `memory history` submit entry, with the full sha as title; Close reached by Tab with a visible focus; axe 0 serious/critical in light and dark; Escape closes to `/p/<pid>` |
+  | G-01.2 Show the rejection banner after a reject | same spec › "G-01.2 …": kanban `task-002-password-reset` (rejected by Morgan in the built fixture) shows "Rejected by Morgan: Missing acceptance criteria", `draft` current, the history line "rejected by Morgan" with the quoted reason; axe in both themes |
+  | G-01.3 Flag a missing required field | same spec › "G-01.3 …": custom `adr-001-local-server` (built as a committed draft with an empty `sard_ref`) shows "sard_ref — required field, missing" inside the *Summary* region; axe in both themes |
+  | G-01.4 Open an element panel from its URL | same spec › "G-01.4 …": the panel URL (`<origin>/p/<pid>/e/task-001-login-form`, no token) opened in a new page of the same browser context shows the panel of `task-001-login-form`, title `… · task-001-login-form — WingFoil UI` |
+
+  The scenarios' "I am Morgan/Jordan" is not set up: the read-only panel shows the same thing to
+  every identity, so the fixtures' identity (Alex) is used.
+- **Checks** (load 3.8–8.5 on 12 cores): typecheck, lint (ESLint + catalogue check), format:check
+  clean · `docs:api` OK · `npm run -s test:coverage` **92 files passed, 1 skipped; 1426 passed / 1
+  skipped**, coverage 95.88 % statements / 89.14 % branches / 96.38 % functions / 97.88 % lines
+  (`web/src/element` 100 % / 96.47 %) · `test:e2e` **18/18** · `check_tasks.py` OK ·
+  `npm run test:timing` **3/3** at load 8.5 → 6.4: REQ-PERF-03 20/20, max 496 ms; TypeDoc
+  3038 ms; REQ-PERF-06 276–304 ms.
+- **Hand-overs:**
+  - **task-017:** a list row links to `/p/$pid/e/$eid` (a React Aria `Link href` with the concrete
+    path, or the router `Link to="/p/$pid/e/$eid"`). Close goes back to the list through
+    `history.back()`. The panel replaces the Outlet, so the list is not rendered behind the drawer
+    (decision 5). To keep it visible, a later change can render the list as the panel route's
+    background. Reuse `theme/tones.css` (`tone-${descriptor.tone}`) for the state pills; do not add
+    tone classes to `base.css`. S-26.2 (refresh an open panel) needs no code: the panel keys sit
+    under `['p', pid]`. S-28.2 (chips of an unknown type) is served by `states` +
+    `StateMachine`; assert it with `chip(page, state)` as in `element-panel.spec.ts`.
+  - **task-019 (US-G-02):** the *Directives* section goes at the comment slot in
+    `ElementContent` (`element/ElementPanel.tsx`), between References and History, as a
+    `<section aria-labelledby>` with an `h3.section-title`. Its directive links go to the
+    Directives view. Fetch `GET /directives` once (no per-element request).
+  - **task-020 (R-09.1):** to open a Memory file, navigate to `/p/$pid/e/<id>` (resolve the path
+    against `GET /elements`).
+  - **task-021:** X-10.2's title is set by the panel (`title.projectElement`, project name from
+    `GET /api/projects`, the pid until it loads).
+  - **Coordinator:** the decisions 1–7 above; the spec-004 §3 amendment for `states`.
