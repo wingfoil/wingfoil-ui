@@ -219,3 +219,18 @@ e2e closure — scenarios that need a screen are proved here by API and unit tes
   waits → 0 log lines at error level, nothing stored; without the fix it fails (one level-50
   line). (b) the corrected design-note line wrapped. Checks: `role-view.test.ts` 21/21 ·
   typecheck, lint, format:check clean.
+
+### integration (2026-10-06)
+
+- `main` (tasks 006 and 011 done, Wave 2 spec amendments 90d4f81 + d4338a9 — spec-004 §3
+  identity addendum, §4 row 5a and rows per write kind — bug-002) merged into the branch.
+  Conflicts: `contracts/src/index.ts` (all export blocks kept), `test/README.md` (0.9). The
+  REQ-ARC-05 lint rule of task-011 reports nothing on this task's code.
+- Full gates on the merge, load 30–39: typecheck, lint, format:check clean; `test:coverage` 844
+  passed, 1 skipped, coverage 96.92 % statements / 91.76 % branches; `docs:api` OK; `test:e2e`
+  3/3; `check_tasks.py` OK.
+- Left for the task-010 merge (bug-002): this task's local git-environment cleaning in
+  `server/src/identity/git-email.ts` is replaced by task-010's shared `gitEnv()` /
+  `resolveGit()` (one helper, one git resolver). task-012 switches the identity to the watched
+  state (`view.state.email`, AC added on main).
+- Reviews: round 1 PASS (3 minor + 6 nit fixed), round 2 PASS (2 nit fixed).
