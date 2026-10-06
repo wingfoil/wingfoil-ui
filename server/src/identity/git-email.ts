@@ -4,9 +4,7 @@
  * A read of git for what the CLI does not expose (directive `cli-only-writes` rule 2), through the
  * process runner: argument array, no shell, the 30 s timeout.
  */
-import { constants } from 'node:fs';
-import { access, stat } from 'node:fs/promises';
-import path from 'node:path';
+import { gitEnv } from '../git/git.js';
 import type { ProcessRunner } from '../process/runner.js';
 
 /** `git config` failed other than "unset" (a broken configuration, a timeout, a kill). */
@@ -23,7 +21,7 @@ export class GitConfigError extends Error {
 /** Options of {@link readGitEmail}. */
 export interface GitEmailOptions {
   runner: ProcessRunner;
-  /** Absolute path of `git` ({@link findGit}). */
+  /** Absolute path of `git` (`resolveGit` of `git/git.ts`). */
   git: string;
   /** Environment of the git process (default: the server's). */
   env?: NodeJS.ProcessEnv;
@@ -31,33 +29,8 @@ export interface GitEmailOptions {
 }
 
 /**
- * Variables that make git locate another repository than the one of its working directory (a hook
- * or a terminal inside another repository may export them): never passed to the identity reads.
- */
-export const REPOSITORY_LOCATING_VARIABLES = [
-  'GIT_DIR',
-  'GIT_WORK_TREE',
-  'GIT_COMMON_DIR',
-  'GIT_INDEX_FILE',
-  'GIT_OBJECT_DIRECTORY',
-  'GIT_ALTERNATE_OBJECT_DIRECTORIES',
-  'GIT_NAMESPACE',
-  'GIT_CEILING_DIRECTORIES',
-  'GIT_DISCOVERY_ACROSS_FILESYSTEM',
-] as const;
-
-/**
- * `env` without {@link REPOSITORY_LOCATING_VARIABLES} (compared case-insensitively, as Windows
- * does); everything else — `HOME`, `GIT_CONFIG_GLOBAL`, `GIT_CONFIG_NOSYSTEM` — is kept.
- */
-export function gitConfigEnv(env: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
-  const dropped = new Set<string>(REPOSITORY_LOCATING_VARIABLES);
-  return Object.fromEntries(Object.entries(env).filter(([key]) => !dropped.has(key.toUpperCase())));
-}
-
-/**
- * `git config --get user.email` in `root` (the environment cleaned by {@link gitConfigEnv}, so
- * the project's own repository configuration is the one read): the trimmed value, or `undefined` when it is unset
+ * `git config --get user.email` in `root` (the environment cleaned by `gitEnv` of
+ * `git/git.ts`, so the project's own repository configuration is the one read): the trimmed value, or `undefined` when it is unset
  * (exit 1) or blank. Any other end is a {@link GitConfigError}.
  */
 export async function readGitEmail(root: string, options: GitEmailOptions): Promise<string | undefined> {
@@ -65,7 +38,7 @@ export async function readGitEmail(root: string, options: GitEmailOptions): Prom
     file: options.git,
     args: ['config', '--get', 'user.email'],
     cwd: root,
-    env: gitConfigEnv(options.env ?? process.env),
+    env: gitEnv(options.env ?? process.env),
     ...(options.signal ? { signal: options.signal } : {}),
   });
   if (result.ended === 'exit' && result.exitCode === 1) return undefined;
@@ -75,40 +48,4 @@ export async function readGitEmail(root: string, options: GitEmailOptions): Prom
   }
   const email = result.stdout.trim();
   return email === '' ? undefined : email;
-}
-
-/** Options of {@link findGit}. */
-export interface FindGitOptions {
-  /** Environment whose `PATH` is searched (default: the server's). */
-  env?: NodeJS.ProcessEnv;
-  /** Platform rules (default: the server's). */
-  platform?: NodeJS.Platform;
-}
-
-/**
- * The first `git` (`git.exe` on Windows) on the `PATH`, as an absolute path; relative entries are
- * never searched (they would resolve against the project folder).
- */
-export async function findGit(options: FindGitOptions = {}): Promise<string | undefined> {
-  const env = options.env ?? process.env;
-  const windows = (options.platform ?? process.platform) === 'win32';
-  // The delimiter follows the platform rules; paths are the server's own (its file system).
-  const delimiter = windows ? ';' : ':';
-  const key = Object.keys(env).find((k) => k.toUpperCase() === 'PATH') ?? 'PATH';
-  const entries = (env[key] ?? '').split(delimiter).filter((entry) => path.isAbsolute(entry));
-  for (const entry of entries) {
-    const candidate = path.join(entry, windows ? 'git.exe' : 'git');
-    if (await isRunnable(candidate, windows)) return candidate;
-  }
-  return undefined;
-}
-
-async function isRunnable(file: string, windows: boolean): Promise<boolean> {
-  try {
-    if (!(await stat(file)).isFile()) return false;
-    if (!windows) await access(file, constants.X_OK);
-    return true;
-  } catch {
-    return false;
-  }
 }

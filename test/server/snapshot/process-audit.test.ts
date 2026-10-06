@@ -1,0 +1,114 @@
+// Process audits over the stand-in read routes and the real event stream, on the real kanban
+// fixture with the production watcher settings (file watching + the periodic check):
+// - REQ-PERF-05 (TT-PERF-05, S-26.3): opening the Memory list on a cold cache starts ≤ 6 CLI
+//   processes; opening it again with no commit and no working-tree change starts 0 processes.
+// - REQ-INT-09 (TT-INT-09, S-26.1 API side): one page open and no change for 60 s → 0 CLI
+//   processes; after a change the page gets `repo` on its open stream and reads the new data.
+// Counts, not timings: these stay in the default suite (bug-001). The screens close in task-017.
+import { mkdtemp, readFile, realpath, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { DEFAULT_FALLBACK_MS, type Snapshots } from '../../../server/src/snapshot/snapshots.js';
+import { buildFixture, copyFixture, type Fixture } from '../../harness/fixtures/index.js';
+import { git } from '../../harness/run.js';
+import { startStandIn, type StandIn } from './stand-in-app.js';
+import { auditedSnapshots } from './support.js';
+
+const STATE = /^[0-9a-f]{40}\.[0-9a-f]{16}$/;
+let root: string;
+let template: Fixture;
+let n = 0;
+const registries: Snapshots[] = [];
+const consoles: StandIn[] = [];
+
+async function fresh(fallbackMs = DEFAULT_FALLBACK_MS) {
+  n += 1;
+  const fx = await copyFixture(template, path.join(root, `copy-${n}`));
+  const audited = auditedSnapshots(fx.env, { watch: true, fallbackMs });
+  registries.push(audited.snapshots);
+  const pid = `p_audit${n}`;
+  await audited.snapshots.open(pid, fx.dir);
+  const standIn = await startStandIn(audited.snapshots, audited.bus);
+  consoles.push(standIn);
+  return { fx, pid, standIn, ...audited };
+}
+
+beforeAll(async () => {
+  root = await realpath(await mkdtemp(path.join(tmpdir(), 'wfui-audit-')));
+  template = await buildFixture('kanban', { root: path.join(root, 'template') });
+}, 600_000);
+
+afterAll(async () => {
+  for (const c of consoles) await c.close();
+  for (const s of registries) await s.closeAll();
+  await rm(root, { recursive: true, force: true });
+});
+
+describe('TT-PERF-05 — batched CLI reads (S-26.3)', () => {
+  it('Memory list: ≤ 6 CLI processes on a cold cache, 0 processes when reopened unchanged', async () => {
+    // The watcher on, the periodic check out of the way: under load the cold half can last past
+    // its first tick, which would add git processes to the warm half (review F5).
+    const { pid, standIn, runner } = await fresh(3_600_000);
+    const cold = await standIn.openMemoryList(pid);
+    const commands = runner.wingfoilCommands();
+    console.info(
+      `TT-PERF-05 cold Memory list: ${commands.length} CLI processes (${commands.join(', ')}), ${runner.count('git')} git`,
+    );
+    expect(commands.length).toBeLessThanOrEqual(6);
+    // open(): one rev-parse; the first state: one status, one user.email (review F4).
+    expect(runner.count('git')).toBe(3);
+    expect(new Set(commands).size).toBe(commands.length);
+    const states = cold.map((r) => r.state);
+    expect(states[0]).toMatch(STATE);
+    expect(new Set(states).size).toBe(1);
+
+    const before = runner.spawned.length;
+    const warm = await standIn.openMemoryList(pid);
+    await standIn.openMemoryList(pid);
+    expect(runner.spawned.length).toBe(before);
+    expect(warm.map((r) => r.state)).toEqual(states);
+    expect(warm.map((r) => r.body)).toEqual(cold.map((r) => r.body));
+  });
+});
+
+describe('TT-INT-09 — server ↔ browser live updates', () => {
+  it('starts 0 CLI processes in 60 s with one page open and no change; a change reaches the open page', async () => {
+    const { fx, pid, standIn, runner } = await fresh();
+    const stream = await standIn.events();
+    expect(stream.status).toBe(200);
+    const [, , list] = await standIn.openMemoryList(pid);
+    const cli = runner.count('wingfoil');
+    const gitBefore = runner.count('git');
+    await new Promise((r) => setTimeout(r, 60_000));
+    const idleGit = runner.count('git') - gitBefore;
+    console.info(
+      `TT-INT-09 60 s idle: ${runner.count('wingfoil') - cli} CLI processes, ${idleGit} git (periodic check)`,
+    );
+    expect(runner.count('wingfoil')).toBe(cli);
+    expect(stream.events()).toEqual([]);
+
+    const file = path.join(fx.dir, 'docs/memory/task/task-001-login-form.md');
+    await writeFile(file, (await readFile(file, 'utf8')).replace('title: "Login form"', 'title: "Login form v2"'));
+    await git(fx.dir, ['commit', '-qam', 'retitle outside the UI'], fx.env);
+    await expect
+      .poll(() => stream.events().filter((e) => e.event === 'repo'), { timeout: 20_000, interval: 50 })
+      .not.toEqual([]);
+    const events = stream.events().filter((e) => e.event === 'repo');
+    const last = events.at(-1)!.data as { pid: string; state: string };
+    expect(last.pid).toBe(pid);
+    expect(last.state).not.toBe(list!.state);
+    await expect
+      .poll(async () => (await standIn.get(`/api/p/${pid}/elements`)).state, { timeout: 20_000, interval: 50 })
+      .toBe(snapshotState(registries.at(-1)!, pid));
+    const refetched = await standIn.get(`/api/p/${pid}/elements`);
+    const task = (refetched.body as { id: string; title: string; localChanges: boolean }[]).find(
+      (e) => e.id === 'task-001-login-form',
+    );
+    expect(task).toMatchObject({ title: 'Login form v2', localChanges: false });
+  }, 180_000);
+});
+
+function snapshotState(snapshots: Snapshots, pid: string): string | undefined {
+  return snapshots.get(pid)?.current()?.key;
+}

@@ -45,5 +45,13 @@ export type {
   StateKind,
   Tone,
 } from './descriptor.js';
+export type {
+  AgentEventData,
+  RepoEventData,
+  ServerEvent,
+  ServerEventMap,
+  ServerEventName,
+  WriteEventData,
+} from './events.js';
 export type { ElementFrontmatter, MemoryTypeDef, MemoryYaml, StateMachine } from './files.js';
 export type { ProjectEntry, StateFile, StateWarning } from './state.js';

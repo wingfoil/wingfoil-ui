@@ -1,7 +1,7 @@
 // e2e-smoke `local-security` (REQ-SEC-02, REQ-SEC-03; X-02.1 API side, X-02.2, X-04.1…X-04.3): the
 // `wingfoil-ui` bin driven over HTTP. No project read route exists yet (task-008/012; `PUT …/role-view`
 // is task-009): the guarded requests target `/api/` paths that, once past the guards, answer 404 —
-// never 401 or 403.
+// never 401 or 403. The event stream `GET /api/events` (task-010) answers 200 once past them.
 import http from 'node:http';
 import net from 'node:net';
 import { mkdtemp, rm } from 'node:fs/promises';
@@ -48,6 +48,26 @@ function request(
     req.on('error', reject);
     if (method === 'POST' || method === 'PUT') req.setHeader('content-type', 'application/json');
     req.end(method === 'POST' || method === 'PUT' ? '{}' : undefined);
+  });
+}
+
+/** `GET /api/events`: resolves with the response head and the stream, which stays open. */
+function openStream(
+  l: Launcher,
+  headers: Record<string, string>,
+): Promise<{ status: number; type: string | undefined; ended: Promise<void>; close(): void }> {
+  return new Promise((resolve, reject) => {
+    const req = http.get(
+      { host: '127.0.0.1', port: l.port, path: '/api/events', headers: { host: `127.0.0.1:${l.port}`, ...headers } },
+      (res) => {
+        const ended = new Promise<void>((r) => {
+          res.on('close', () => r());
+          res.resume();
+        });
+        resolve({ status: res.statusCode ?? 0, type: res.headers['content-type'], ended, close: () => req.destroy() });
+      },
+    );
+    req.on('error', reject);
   });
 }
 
@@ -101,7 +121,7 @@ describe('X-02.1 (API side) — the session opened with the token', () => {
     expect(setCookie).not.toContain('Max-Age');
     const cookie = setCookie.split(';')[0]!;
     expect((await request(l, 'GET', PROJECT_API, { cookie })).status).toBe(404);
-    expect((await request(l, 'GET', '/api/events', { cookie })).status).toBe(404);
+    expect((await openStream(l, { cookie })).status).toBe(200);
     await l.stop();
     const sessionId = cookie.split('=')[1]!;
     expect(l.stderr()).not.toContain(l.token);
@@ -226,5 +246,53 @@ describe("X-04.3 — accept a request with the token from the console's own orig
     const headers = { host: `[::1]:${l.port}`, origin: `http://[::1]:${l.port}`, authorization: `Bearer ${l.token}` };
     expect((await request(l, 'POST', '/api/session', headers, '::1')).status).toBe(204);
     expect((await request(l, 'GET', PROJECT_API, headers, '::1')).status).toBe(404);
+  });
+});
+
+describe('GET /api/events — the event stream on the bin (spec-004 §1–2, §6)', () => {
+  it('refuses it without a session (401) and from another site or origin (403)', async () => {
+    const l = await launch();
+    const anonymous = await openStream(l, {});
+    expect(anonymous.status).toBe(401);
+    const sameSite = await openStream(l, { authorization: `Bearer ${l.token}`, 'sec-fetch-site': 'same-site' });
+    expect(sameSite.status).toBe(403);
+    const foreign = await openStream(l, { authorization: `Bearer ${l.token}`, origin: 'https://evil.test' });
+    expect(foreign.status).toBe(403);
+    // A foreign Host without any Origin (DNS rebinding), even with the token.
+    const rebinding = await openStream(l, { authorization: `Bearer ${l.token}`, host: `evil.test:${l.port}` });
+    expect(rebinding.status).toBe(403);
+    // Two Host headers (raw socket: http.request cannot repeat one).
+    const duplicate = await rawRequest(l, [
+      'GET /api/events HTTP/1.1',
+      `Host: 127.0.0.1:${l.port}`,
+      'Host: evil.test',
+      `Authorization: Bearer ${l.token}`,
+    ]);
+    expect(duplicate.status).toBe(403);
+    // A wrong token.
+    const wrong = await openStream(l, { authorization: `Bearer ${'x'.repeat(43)}` });
+    expect(wrong.status).toBe(401);
+  });
+
+  it("refuses the previous start's token and session (401)", async () => {
+    const first = await launch();
+    const session = await request(first, 'POST', '/api/session', { authorization: `Bearer ${first.token}` });
+    const cookie = String(session.headers['set-cookie']).split(';')[0]!;
+    await first.stop();
+    const second = await launch();
+    expect((await openStream(second, { authorization: `Bearer ${first.token}` })).status).toBe(401);
+    const sameName = cookie.replace(`wfui_session_${first.port}`, `wfui_session_${second.port}`);
+    expect((await openStream(second, { cookie: sameName })).status).toBe(401);
+  });
+
+  it('opens it with the token, and ends it in the stop sequence (exit 0)', async () => {
+    const l = await launch();
+    const stream = await openStream(l, { authorization: `Bearer ${l.token}` });
+    expect(stream.status).toBe(200);
+    expect(stream.type).toMatch(/^text\/event-stream/);
+    const code = await l.stop();
+    await stream.ended;
+    expect(code).toBe(0);
+    expect(l.stdoutLines().at(-1)).toBe('WingFoil UI stopped');
   });
 });

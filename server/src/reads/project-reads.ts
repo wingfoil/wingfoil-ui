@@ -4,9 +4,9 @@
  * `.wingfoil/memory.yaml`, the element files at the paths `memory search` returns, the directive
  * files at the paths `directives list` returns. No path is ever built from a caller's value: an
  * element or a directive is looked up by id in the CLI's list, and only its listed path is read.
- * Nothing here writes. Caching and batching are the caller's (task-010).
+ * Nothing here writes. Caching and batching are the caller's: `snapshot/snapshot.ts` (task-010).
  */
-import type { DirectiveEntry, MemoryMatch, MemoryYaml } from '@wingfoil-ui/contracts';
+import type { DirectiveEntry, DirectivesList, MemoryMatch, MemoryYaml } from '@wingfoil-ui/contracts';
 import type { CliArgs, CliOutput, WingfoilCli } from '../cli/adapter.js';
 import type { CliCommandOutputs } from '../cli/commands.js';
 import { ARCHIVED_STATES, type ArchivedStatus } from '../presets/wingfoil.js';
@@ -120,14 +120,22 @@ export class ProjectReads {
    * listed (the custom one, listed after the built-in).
    */
   async directive(id: string, signal?: AbortSignal): Promise<DirectiveRead | undefined> {
-    const { entries, warnings } = (await this.directives(signal)).data;
-    const candidates = entries.filter((e) => e.frontmatter.id === id);
-    const inForce = warnings
-      .map((w) => /^directive '(.*)' defined in .*; using (\S+)$/.exec(w))
-      .find((m) => m?.[1] === id)?.[2];
-    const entry = candidates.find((e) => e.path === inForce) ?? candidates.at(-1);
+    const entry = directiveInForce((await this.directives(signal)).data, id);
     return entry ? { entry, content: await this.directiveFromEntry(entry) } : undefined;
   }
+}
+
+/**
+ * The entry of `list` for the directive `id`, or `undefined`. When several files declare the id,
+ * the one the CLI's warning names (`directive '<id>' defined in <a>, <b>; using <path>`), else the
+ * last one listed (the custom one, listed after the built-in).
+ */
+export function directiveInForce(list: DirectivesList, id: string): DirectiveEntry | undefined {
+  const candidates = list.entries.filter((e) => e.frontmatter.id === id);
+  const inForce = list.warnings
+    .map((w) => /^directive '(.*)' defined in .*; using (\S+)$/.exec(w))
+    .find((m) => m?.[1] === id)?.[2];
+  return candidates.find((e) => e.path === inForce) ?? candidates.at(-1);
 }
 
 function args(signal: AbortSignal | undefined): CliArgs {

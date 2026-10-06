@@ -1,10 +1,12 @@
 // REQ-STATE-05 — the effective `git config user.email` of a project (repository, else global),
-// read through the process runner; `git` found on the PATH.
+// read through the process runner; `git` found on the PATH (the shared `resolveGit` and the
+// shared environment cleaner `gitEnv` of server/src/git/git.ts, bug-002).
 import { chmod, mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { findGit, GitConfigError, gitConfigEnv, readGitEmail } from '../../../server/src/identity/git-email.js';
+import { GitNotFoundError, gitEnv, resolveGit } from '../../../server/src/git/git.js';
+import { GitConfigError, readGitEmail } from '../../../server/src/identity/git-email.js';
 import { LocalProcessRunner } from '../../../server/src/process/runner.js';
 import { harnessEnv } from '../../harness/fixtures/index.js';
 import { git } from '../../harness/run.js';
@@ -21,9 +23,7 @@ beforeAll(async () => {
   repo = path.join(root, 'repo');
   await mkdir(repo);
   await git(repo, ['init', '-q'], env);
-  const found = await findGit({ env });
-  expect(found).toBeDefined();
-  gitFile = found!;
+  gitFile = await resolveGit(env);
 });
 
 afterAll(async () => {
@@ -73,9 +73,9 @@ describe('readGitEmail — another repository named by the environment', () => {
   });
 });
 
-describe('gitConfigEnv', () => {
+describe('gitEnv (shared with the snapshot and the runner, bug-002)', () => {
   it('drops the repository-locating variables (any letter case) and keeps the rest', () => {
-    const cleaned = gitConfigEnv({
+    const cleaned = gitEnv({
       HOME: '/h',
       GIT_CONFIG_GLOBAL: '/h/.gitconfig',
       GIT_CONFIG_NOSYSTEM: '1',
@@ -135,16 +135,16 @@ describe('readGitEmail — through the runner port', () => {
   });
 });
 
-describe('findGit', () => {
+describe('resolveGit (the shared resolver)', () => {
   it('finds an executable `git` on the absolute PATH entries only', async () => {
     const bin = path.join(root, 'bin');
     await mkdir(bin, { recursive: true });
     const fake = path.join(bin, 'git');
     await writeFile(fake, '#!/bin/sh\n');
     await chmod(fake, 0o755);
-    expect(await findGit({ env: { PATH: ['relative/bin', bin].join(path.delimiter) }, platform: 'linux' })).toBe(fake);
-    expect(await findGit({ env: { PATH: 'relative/bin' }, platform: 'linux' })).toBeUndefined();
-    expect(await findGit({ env: {}, platform: 'linux' })).toBeUndefined();
+    expect(await resolveGit({ PATH: ['relative/bin', bin].join(':') }, 'linux')).toBe(fake);
+    await expect(resolveGit({ PATH: 'relative/bin' }, 'linux')).rejects.toBeInstanceOf(GitNotFoundError);
+    await expect(resolveGit({}, 'linux')).rejects.toBeInstanceOf(GitNotFoundError);
   });
 
   it('skips a non-executable file on POSIX', async () => {
@@ -152,13 +152,13 @@ describe('findGit', () => {
     await mkdir(bin, { recursive: true });
     await writeFile(path.join(bin, 'git'), '');
     await chmod(path.join(bin, 'git'), 0o644);
-    expect(await findGit({ env: { PATH: bin }, platform: 'linux' })).toBeUndefined();
+    await expect(resolveGit({ PATH: bin }, 'linux')).rejects.toBeInstanceOf(GitNotFoundError);
   });
 
   it('looks for git.exe on Windows (case-insensitive Path key)', async () => {
     const bin = path.join(root, 'bin-win');
     await mkdir(bin, { recursive: true });
     await writeFile(path.join(bin, 'git.exe'), '');
-    expect(await findGit({ env: { Path: bin }, platform: 'win32' })).toBe(path.join(bin, 'git.exe'));
+    expect(await resolveGit({ Path: bin }, 'win32')).toBe(path.join(bin, 'git.exe'));
   });
 });

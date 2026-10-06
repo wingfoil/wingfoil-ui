@@ -1,15 +1,16 @@
 # Tests
 
-**Version:** 0.8 · **Date:** 2026-10-06 (0.1: workspace tooling and e2e harness — task-001; 0.2: `test/launcher/`, `test/server/` — task-002; 0.3: `test/contracts/`, local state isolation, secret scan — task-007; 0.4: `local-security` suite — task-003; 0.5: process runner fake, hand-made CLI packages, stub after global options — task-004; 0.6: CLI contract tests, captured samples, `test:contract` — task-005; 0.7: action descriptor tests, REQ-ARC-05 lint rule — task-011; 0.8: matrix builds of `cliBuildFor`, capability table and README checks — task-006; 0.9: identity tests, bin with a seeded state — task-009)
+**Version:** 0.10 · **Date:** 2026-10-06 (0.1: workspace tooling and e2e harness — task-001; 0.2: `test/launcher/`, `test/server/` — task-002; 0.3: `test/contracts/`, local state isolation, secret scan — task-007; 0.4: `local-security` suite — task-003; 0.5: process runner fake, hand-made CLI packages, stub after global options — task-004; 0.6: CLI contract tests, captured samples, `test:contract` — task-005; 0.7: action descriptor tests, REQ-ARC-05 lint rule — task-011; 0.8: matrix builds of `cliBuildFor`, capability table and README checks — task-006; 0.9: identity tests, bin with a seeded state — task-009; 0.10: timing suite `test:timing`, `TempWorkspace`, snapshot audits and stand-ins — task-010 / bug-001)
 
 Every test lives under `test/` (DNA `paths.tests`); sources stay in `server/src`, `web/src`,
 `contracts/src`.
 
 | Command | What it runs |
 |---------|--------------|
-| `npm test` | Vitest: every `test/**/*.test.ts` (unit, contract, harness, gates) |
+| `npm test` | Vitest: every `test/**/*.test.ts` (unit, contract, harness, gates) except the timing suite |
 | `npm run test:coverage` | the same with v8 coverage of `server/`, `contracts/`, `web/` (threshold 80 %, dev-loop `refactor`) |
 | `npm run test:contract` | the contract tests of `test/contracts/` (e2e-smoke `contract`, spec-001 §7) |
+| `npm run test:timing` | the timing suite: `test/timing/**/*.timing.test.ts`, one file at a time, each measurement printed with the load average — on a quiet machine only (see *Timing suite*) |
 | `npm run test:e2e` | Playwright: `test/e2e/**/*.spec.ts`, Chromium only in v0.1 (REQ-INT-08 staged) |
 | `npm run lint` · `npm run format:check` · `npm run typecheck` · `npm run docs:api` | ESLint (with the REQ-SEC-05 no-shell rule on `server/`), Prettier, `tsc`, TypeDoc of `server/` and `contracts/` |
 
@@ -31,6 +32,12 @@ Every test lives under `test/` (DNA `paths.tests`); sources stay in `server/src`
   `<prefix>/lib/node_modules/wingfoil/…`) for the discovery tests.
   `reads/project-reads.test.ts` is the REQ-ARC-04 file-system spy: `vi.mock('node:fs/promises')`
   and `vi.mock('node:fs')` record every call while the read facade runs on real fixtures.
+- `test/server/snapshot/` — the snapshot cache, the marker and the watcher on real fixtures.
+  `support.ts`: `AuditedRunner` (counts `wingfoil` and git processes, the process audit) and
+  `auditedSnapshots(env)`; `stand-in-app.ts`: stand-ins of the Memory list's read routes over the
+  snapshot with `X-Repo-State`, next to the real `GET /api/events`, on a loopback listener (the
+  real routes are task-012's). `test/server/http/sse-client.ts` reads an event stream over raw
+  `http`.
 - `test/contracts/` — the JSON Schemas of `contracts/` (e.g. `state/state.schema.json`) and the CLI
   contract tests (spec-001 §7, adr-001 D4): `cli-contract.test.ts` builds the three fixtures with
   the CLI of every version of `contracts/matrix.json` (`support.ts`: `cliBuildFor(version)`), runs
@@ -54,6 +61,23 @@ Every test lives under `test/` (DNA `paths.tests`); sources stay in `server/src`
   own tests (REQ-SEC-05 `no-shell`, REQ-ARC-05 `methodology-literals`: the rule of
   `lint/methodology-literals.js` reads the fixtures' type and state names from the captured samples,
   so a re-capture updates it).
+
+## Timing suite
+
+A test whose verdict depends on elapsed time — a performance budget (REQ-PERF-03, REQ-PERF-06) or
+a heavy build racing the test timeout (the TypeDoc build) — fails on a loaded machine although the
+code meets its budget (bug-001). Such tests are named `*.timing.test.ts`, live in `test/timing/`
+and run only with `npm run test:timing` (`vitest.timing.config.ts`): files sequentially, the load
+average printed at the start and with every measurement (`report(label, value)` of
+`test/timing/load.ts`, `/proc/loadavg` on Linux). `npm test` and `npm run test:coverage` exclude
+them. Run the timing suite on a quiet machine (load average well below the core count) and record
+the printed load with the result; a failure under load is re-run, not "fixed". Counting tests
+(processes, events) are not timing tests and stay in the default suite.
+
+A test that runs a long process in a temporary folder uses `TempWorkspace`
+(`test/harness/temp-workspace.ts`): `dispose()` in `afterAll` kills the processes still running
+(after a test timeout), waits for them, then removes the folder — nothing is left in the temporary
+directory.
 
 ## Fixtures
 

@@ -3,7 +3,8 @@ import { defineConfig } from 'vitest/config';
 export default defineConfig({
   test: {
     include: ['test/**/*.test.ts'],
-    exclude: ['test/e2e/**', '**/node_modules/**'],
+    // The timing suite runs on its own (`npm run test:timing`, vitest.timing.config.ts, bug-001).
+    exclude: ['test/e2e/**', 'test/timing/**', '**/node_modules/**'],
     // Builds server/dist once for the bin and child-process tests.
     globalSetup: ['test/global-setup.ts'],
     testTimeout: 30_000,

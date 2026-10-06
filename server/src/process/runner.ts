@@ -2,10 +2,14 @@
  * The process runner port (adr-002) and its local adapter: every `wingfoil` and git process of the
  * server starts here, with `spawn`, an argument array and no shell (REQ-SEC-05), its standard input
  * closed, and a timeout — 30 s unless the caller lifts it for cancellable git transport (adr-001 D5).
+ * Every child gets its environment through `gitEnv` (bug-002): no inherited `GIT_DIR`,
+ * `GIT_WORK_TREE`, `GIT_CONFIG_KEY_<n>`, … redirects the `wingfoil` CLI (which runs git itself) or
+ * a git read to another repository or configuration.
  * On POSIX each child leads its own process group and every kill (timeout, cancel, stop) goes to the
  * group, so the processes it started end with it; on Windows the child alone is killed.
  */
 import { spawn, type ChildProcess } from 'node:child_process';
+import { gitEnv } from '../git/git.js';
 
 /** Timeout of every `wingfoil` process and git read (adr-001 D5, REQ-INT-04). */
 export const DEFAULT_TIMEOUT_MS = 30_000;
@@ -18,7 +22,7 @@ export interface ProcessRequest {
   args: readonly string[];
   /** Working directory. */
   cwd: string;
-  /** Full environment (default: the server's). */
+  /** Full environment (default: the server's), without the redirecting `GIT_*` variables (`gitEnv`). */
   env?: NodeJS.ProcessEnv;
   /** Kill the process after this many milliseconds; `null` for no timeout (default 30 s). */
   timeoutMs?: number | null;
@@ -128,7 +132,7 @@ export class LocalProcessRunner implements ProcessRunner {
       const group = process.platform !== 'win32';
       const child = spawn(request.file, [...request.args], {
         cwd: request.cwd,
-        env: request.env ?? process.env,
+        env: gitEnv(request.env ?? process.env),
         stdio: ['ignore', 'pipe', 'pipe'],
         shell: false,
         detached: group,

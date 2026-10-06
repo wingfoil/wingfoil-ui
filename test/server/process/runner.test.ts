@@ -27,6 +27,12 @@ function node(code: string, args: readonly string[] = []) {
 }
 
 const SLEEP = 'setTimeout(() => {}, 60_000)';
+/**
+ * Bound of "killed, not waited for": the processes sleep 60 s (and the 60 s grace is never waited
+ * for), so 20 s proves the kill with room for a loaded machine (bug-001: no tight timing bound in
+ * the default suite).
+ */
+const KILLED_WELL_BEFORE_MS = 20_000;
 
 beforeAll(async () => {
   dir = await realpath(await mkdtemp(path.join(tmpdir(), 'wfui-runner-')));
@@ -87,7 +93,7 @@ describe('LocalProcessRunner', () => {
     const result = await runner().run({ ...node(SLEEP), timeoutMs: 300 });
     expect(result.ended).toBe('timeout');
     expect(result.exitCode).toBeNull();
-    expect(Date.now() - started).toBeLessThan(2_000);
+    expect(Date.now() - started).toBeLessThan(KILLED_WELL_BEFORE_MS);
   });
 
   it('runs without a timeout when timeoutMs is null, and is cancelled by its signal', async () => {
@@ -157,7 +163,7 @@ describe('LocalProcessRunner', () => {
     await r.terminateAll();
     expect((await pending).ended).toBe('terminated');
     expect(r.running).toBe(0);
-    expect(Date.now() - started).toBeLessThan(3_000);
+    expect(Date.now() - started).toBeLessThan(KILLED_WELL_BEFORE_MS);
   });
 
   it('cancels a child aborted before it has spawned', async () => {
@@ -166,7 +172,7 @@ describe('LocalProcessRunner', () => {
     const pending = runner().run({ ...node(SLEEP), timeoutMs: null, signal: controller.signal });
     controller.abort();
     expect((await pending).ended).toBe('cancelled');
-    expect(Date.now() - started).toBeLessThan(3_000);
+    expect(Date.now() - started).toBeLessThan(KILLED_WELL_BEFORE_MS);
   });
 
   describe.skipIf(process.platform === 'win32')('a grandchild holding the output pipes', () => {
@@ -201,7 +207,7 @@ setTimeout(() => {}, 60000);`;
       const started = Date.now();
       // 3 s: a slow Node.js start still spawns the grandchild before the timeout.
       const result = await r.run({ ...node(PARENT, [pidFile]), timeoutMs: 3_000 });
-      expect(Date.now() - started).toBeLessThan(6_000);
+      expect(Date.now() - started).toBeLessThan(KILLED_WELL_BEFORE_MS);
       expect(result.ended).toBe('timeout');
       const pid = await grandchild(pidFile);
       await vi.waitFor(() => expect(alive(pid)).toBe(false));
@@ -214,7 +220,7 @@ setTimeout(() => {}, 60000);`;
       const pid = await grandchild(pidFile);
       const started = Date.now();
       await r.terminateAll();
-      expect(Date.now() - started).toBeLessThan(3_000);
+      expect(Date.now() - started).toBeLessThan(KILLED_WELL_BEFORE_MS);
       expect((await pending).ended).toBe('terminated');
       await vi.waitFor(() => expect(alive(pid)).toBe(false));
     }, 10_000);
@@ -234,7 +240,7 @@ setTimeout(() => {}, 60000);`;
     const started = Date.now();
     r.killAllNow();
     const result = await pending;
-    expect(Date.now() - started).toBeLessThan(2_000);
+    expect(Date.now() - started).toBeLessThan(KILLED_WELL_BEFORE_MS);
     expect(result).toMatchObject({ ended: 'terminated', signal: 'SIGKILL' });
     await expect(r.run(node('0'))).rejects.toBeInstanceOf(ProcessStartError);
   });

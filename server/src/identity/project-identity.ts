@@ -10,16 +10,12 @@ import { WingfoilCli, type CliLogger } from '../cli/adapter.js';
 import { discoverCli } from '../cli/discovery.js';
 import type { ProcessRunner } from '../process/runner.js';
 import { ProjectReads } from '../reads/project-reads.js';
-import { findGit, readGitEmail } from './git-email.js';
+import { GitNotFoundError, resolveGit } from '../git/git.js';
+import { readGitEmail } from './git-email.js';
 import { identityView, matchIdentity } from './identity.js';
 
-/** No `git` on the `PATH`: the identity cannot be read. */
-export class GitNotFoundError extends Error {
-  constructor() {
-    super('git not found on the PATH');
-    this.name = 'GitNotFoundError';
-  }
-}
+// No `git` on the `PATH`: the identity cannot be read (the one error of the shared resolver).
+export { GitNotFoundError };
 
 /** The identity port. */
 export interface IdentitySource {
@@ -48,8 +44,8 @@ export function createLocalIdentitySource(options: LocalIdentityOptions): Identi
   let gitFile: string | undefined;
   return {
     async identify(project, signal) {
-      gitFile ??= await findGit(env ? { env } : {});
-      if (gitFile === undefined) throw new GitNotFoundError();
+      // `resolveGit` rejects with GitNotFoundError; nothing is kept then.
+      gitFile ??= await resolveGit(env);
       const cli = new WingfoilCli({
         cli: await discoverCli(project.path, env ? { env } : {}),
         runner: options.runner,

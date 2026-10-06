@@ -15,6 +15,8 @@ export interface RunOptions {
   allowFailure?: boolean;
   /** Kill the process after this many milliseconds (default 60 s). */
   timeoutMs?: number;
+  /** Kill the process when aborted (SIGTERM, SIGKILL 2 s later); it then resolves or rejects as a failure. */
+  signal?: AbortSignal;
 }
 
 /** Outcome of a finished process. */
@@ -42,7 +44,8 @@ export class RunError extends Error {
 /** Run `file` with `args` (no shell) and collect its output. */
 export function run(file: string, args: readonly string[], options: RunOptions = {}): Promise<RunResult> {
   return new Promise((resolve, reject) => {
-    execFile(
+    let escalation: NodeJS.Timeout | undefined;
+    const child = execFile(
       file,
       [...args],
       {
@@ -53,12 +56,22 @@ export function run(file: string, args: readonly string[], options: RunOptions =
         encoding: 'utf8',
       },
       (error, stdout, stderr) => {
+        clearTimeout(escalation);
+        options.signal?.removeEventListener('abort', onAbort);
         const code = error ? (typeof error.code === 'number' ? error.code : null) : 0;
         const result: RunResult = { code, stdout, stderr };
         if (error && !options.allowFailure) reject(new RunError(file, args, result));
         else resolve(result);
       },
     );
+    function onAbort(): void {
+      child.kill('SIGTERM');
+      // A process that ignores SIGTERM is killed anyway.
+      escalation = setTimeout(() => child.kill('SIGKILL'), 2_000);
+      escalation.unref();
+    }
+    if (options.signal?.aborted) onAbort();
+    else options.signal?.addEventListener('abort', onAbort, { once: true });
   });
 }
 
