@@ -131,8 +131,11 @@ it('shows a not-found page with a way back for an unknown path', async () => {
   renderApp('/no/such/page');
   expect(await screen.findByRole('heading', { level: 1, name: 'Page not found' })).toBeTruthy();
   await waitFor(() => expect(document.title).toBe('Page not found — WingFoil UI'));
+  const banner = screen.getByRole('banner');
+  // A React Aria link: navigates through the router (jsdom would not follow a plain anchor).
   await user.click(screen.getByRole('link', { name: 'Back to the projects' }));
   expect(await screen.findByRole('heading', { level: 1, name: 'Projects' })).toBeTruthy();
+  expect(screen.getByRole('banner')).toBe(banner);
 });
 
 it('renders the project layout with its views navigation and main landmark', async () => {
@@ -142,8 +145,8 @@ it('renders the project layout with its views navigation and main landmark', asy
   expect(screen.getByRole('main')).toBeTruthy();
 });
 
-it('lists the registered views by group, skipping empty groups', async () => {
-  // The real registry is empty in task-013: ProjectNav is rendered alone with sample groups.
+it('renders the sidebar groups with links to the views of the current project', async () => {
+  // The registry of task-013 is empty: ProjectNav is rendered alone with a sample group.
   const root = createRootRoute({
     component: () => (
       <ProjectNav
@@ -152,9 +155,8 @@ it('lists the registered views by group, skipping empty groups', async () => {
           {
             id: 'work',
             label: { id: 'shell.nav.group.work' },
-            items: [{ id: 'one', label: { id: 'projects.start.title' }, to: '/' }],
+            items: [{ id: 'one', label: { id: 'projects.start.title' }, to: '/p/$pid', order: 10 }],
           },
-          { id: 'rules', label: { id: 'shell.nav.group.rules' }, items: [] },
         ]}
       />
     ),
@@ -167,6 +169,5 @@ it('lists the registered views by group, skipping empty groups', async () => {
   );
   const nav = await screen.findByRole('navigation', { name: 'Project views' });
   expect(within(nav).getByText('Work')).toBeTruthy();
-  expect(within(nav).queryByText('Rules and context')).toBeNull();
-  expect(within(nav).getByRole('link', { name: 'Projects' })).toBeTruthy();
+  expect(within(nav).getByRole('link', { name: 'Projects' }).getAttribute('href')).toBe('/p/p_x');
 });

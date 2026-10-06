@@ -8,8 +8,16 @@ import { projectRoute } from './project.js';
 import { rootRoute } from './root.js';
 import { startRoute } from './start.js';
 
-/** The views under `/p/$pid` — each view task appends its route (see `routes/project.tsx`). */
-export const PROJECT_ROUTES = [] as const;
+/**
+ * The views under `/p/$pid`. **Adding a view:** write `routes/<view>.tsx` exporting
+ * `createRoute({ getParentRoute: () => projectRoute, path: '<view>', component, staticData: { nav } })`
+ * (the sidebar entry, `routes/nav.ts`), its query-key factory next to it (`api/query-keys.ts`), and
+ * add one line below — one route per line, trailing comma, so that parallel tasks merge cleanly;
+ * the order of the lines does not matter (the sidebar follows `NAV_ORDER`).
+ */
+export const PROJECT_ROUTES = [
+  // memoryRoute,
+] as const;
 
 /** Every route of the application. */
 export const routeTree = rootRoute.addChildren([startRoute, projectRoute.addChildren([...PROJECT_ROUTES])]);

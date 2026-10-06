@@ -4,6 +4,7 @@
 import { afterEach, expect, it, vi } from 'vitest';
 import { ApiError } from '../../../web/src/api/client.js';
 import { createQueryClient, projectsQuery, serverQuery } from '../../../web/src/api/queries.js';
+import { queryKeys, type ProjectQueryKey } from '../../../web/src/api/query-keys.js';
 
 afterEach(() => vi.unstubAllGlobals());
 
@@ -28,4 +29,10 @@ it.each([
   expect(query().queryKey).toEqual(key);
   expect(await client.fetchQuery(query() as never)).toEqual({ ok: true });
   expect((fetchFn.mock.calls[0] as unknown as [string])[0]).toBe(path);
+});
+
+it('builds every project key under the ["p", pid] prefix that a repo event invalidates', () => {
+  const key: ProjectQueryKey = queryKeys.project('p_a', 'elements', { archived: false });
+  expect(key).toEqual(['p', 'p_a', 'elements', { archived: false }]);
+  expect(queryKeys.project('p_a')).toEqual(['p', 'p_a']);
 });
