@@ -246,8 +246,8 @@ class ProjectRead {
   /**
    * spec-006 §2: the stored name and remote follow the project on every open — the DNA name (kept
    * when the DNA has none) and `origin` without credentials. Written only when one differs; no CLI
-   * work happens inside the store's transaction, and on a warm cache no process starts. A failed
-   * `origin` read leaves the entry as it is.
+   * work happens inside the store's transaction, and on a warm cache no process starts. Best-effort:
+   * a failed `origin` read or state write leaves the entry as it is and is logged by kind only.
    */
   async refreshEntry(name: string): Promise<void> {
     let remote: string;
@@ -258,7 +258,13 @@ class ProjectRead {
       return;
     }
     if (name === this.entry.name && remote === this.entry.remote) return;
-    await this.store.update(this.entry.id, { name, remote });
+    try {
+      await this.store.update(this.entry.id, { name, remote });
+    } catch (error) {
+      // Best-effort: a state that cannot be written (read-only folder, full disk) never fails the
+      // header; the kind only (the message may quote paths).
+      this.log.warn({ kind: (error as Error).name }, 'project entry not refreshed: state not written');
+    }
   }
 
   /** The `memory search` match of `id`, then the archived ones; `undefined` when none. */

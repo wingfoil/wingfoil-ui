@@ -391,3 +391,8 @@ Added during the Wave 2 dev-loops (plan `dev-loop-rel-v0.1-plan`, Session 2; dec
 - Checks (load 0.5–11): typecheck, lint, format:check clean · `docs:api` OK · full
   `test:coverage` **70 files passed, 1 skipped; 1080 passed / 1 skipped**, coverage 95.96 %
   statements / 89.05 % branches / 96.39 % functions / 98.12 % lines.
+- Quick verify of the decisions: **PASS**, one minor fixed test-first: the refresh on open is
+  best-effort — a rejected `store.update` (read-only state folder, full disk) is caught and logged
+  as `{kind}` at warn (no path, no value); the header still answers with the fresh name (red: 500).
+  Test: a store whose `update` rejects, two headers 200 with the DNA name, the entry unchanged.
+  `project-routes.test.ts` 34/34; typecheck, lint, format:check clean, `docs:api` OK.
