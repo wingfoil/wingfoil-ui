@@ -4,7 +4,7 @@
  * | Route | Answer |
  * |-------|--------|
  * | `GET /api/projects` | 200 `{ projects }` (`contracts/api/projects.list.response.schema.json`) |
- * | `POST /api/projects` `{path}` | 201 the new item (`contracts/api/project.schema.json`) |
+ * | `POST /api/projects` `{path}` | 201 the new item (`contracts/api/projects.item.schema.json`) |
  * | `POST /api/projects/clone` `{url, directory?}` | 201 the new item |
  * | `DELETE /api/projects/:pid` | 204, no body; 404 `not-found` for an unknown id |
  *
@@ -38,7 +38,7 @@ const validateAdd = ajv.compile(ADD_SCHEMA);
 const validateClone = ajv.compile(CLONE_SCHEMA);
 
 /** What the routes need. */
-export interface ProjectRoutesOptions {
+export interface ProjectListRoutesOptions {
   projects: ProjectList;
 }
 
@@ -90,7 +90,7 @@ async function answerAdd(
 }
 
 /** Register the four routes. */
-export function registerProjectRoutes(app: FastifyInstance, options: ProjectRoutesOptions): void {
+export function registerProjectListRoutes(app: FastifyInstance, options: ProjectListRoutesOptions): void {
   const { projects } = options;
 
   app.get(PROJECTS_PATH, async (): Promise<ProjectListResponse> => ({ projects: await projects.list() }));

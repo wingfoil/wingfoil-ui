@@ -80,6 +80,7 @@ e2e closure — scenarios that need a screen are proved here by API and unit tes
   Details the specs leave open, decided here without changing a spec'd interface (to confirm at
   review):
   - Bodies (spec-004 §3: "every request and response body has a schema in `contracts/api/`"):
+    `projects.item` (renamed at review from `project`, which is task-012's header schema),
     `projects.list.response` `{ projects: [{ id, name, path, remote, availability, command? }] }`
     (`command` only with `cli-not-found`), `projects.add.request` `{ path }`,
     `projects.clone.request` `{ url, directory? }`, the add and clone answer **201** with the new
@@ -108,7 +109,9 @@ e2e closure — scenarios that need a screen are proved here by API and unit tes
     console) or an availability differs from the last one seen.
 - **Design:** `server/src/projects/` — `remote.ts` (`normaliseRemote`: scp-like → `ssh://`,
   userinfo removed, host lower-cased, trailing `/` and `.git` removed, host + path compared),
-  `availability.ts`, `clone.ts` (`git clone --quiet -c protocol.ext.allow=never -- <url> <dir>`
+  ~~`availability.ts`~~ (corrected at review: the availability lives in `project-list.ts`),
+  `clone.ts` (as built: `git -c protocol.allow=never -c protocol.<https|http|ssh|git|file>.allow=always
+  clone --quiet -- <url> <dir>` — the `-c` settings before the subcommand; review item 7)
   through the runner, `timeoutMs: null`, the client's `AbortSignal`, `GIT_TERMINAL_PROMPT=0`; the
   folders it created removed on any refusal, a pre-existing empty folder emptied again),
   `project-list.ts` (the domain service: add, clone, remove, list, refusals as `ProjectRefusal
@@ -217,3 +220,54 @@ e2e closure — scenarios that need a screen are proved here by API and unit tes
   - **Coordinator — open points** (design note): not-a-repository folder → `git-refused`;
     clone without a CLI → `cli-not-found` and the clone removed; the `clone` write-lock key; 201 /
     204 answers. Run `npm run test:timing` on a quiet machine before merging.
+
+### review round 1 fixes (2026-10-06)
+
+- Review: **FAIL** (2 major, minors, nits). Items 3 and 6 and the open point on the clone without a
+  CLI wait for the user (not implemented). Fixed:
+  - **1 (merge)** `contracts/api/project.schema.json` → `projects.item.schema.json` (`$id`, `$ref`
+    of the list schema, types' TSDoc, tests); `registerProjectRoutes`/`ProjectRoutesOptions` →
+    `registerProjectListRoutes`/`ProjectListRoutesOptions` (task-012 uses the old names).
+  - **2** `CloneTarget.discard()` removes the working directory recursively, then each created
+    ancestor with `rmdir` (no recursion), deepest first, stopping at the first that is not empty —
+    a sibling created during the clone stays. Unit `test/server/projects/clone.test.ts`; route test
+    with a slow dumb-HTTP remote: `~/projects/sibling.txt` written while git runs survives the
+    refused clone of `~/projects/deep/plain` (with the old code `~/projects` was removed).
+  - **4** running clones are tracked (`cloning` set of working directories); an add of, or inside,
+    such a folder waits on the `clone` queue and is then judged as the folder is (re-checked once
+    more just before the append); a clone refused `already-listed` by its **path** keeps the clone
+    (a local add listed it); a clone into the folder of a listed project that went missing is
+    refused `already-listed` before cloning. Tests: two concurrent adds of one folder (201 + 422,
+    one entry); two queued clones into one folder (201 + 422); two queued clones of one remote
+    (201 + `already-listed`, one folder); an add during the clone of that folder (waits, then
+    `already-listed` with the clone's pid, folder kept); a remove during a clone (204 while git
+    still runs, the clone then 201); the missing-folder case.
+  - **5** `repoName` ignores a URL's `?query`/`#fragment` and returns `undefined` for an empty,
+    `.` or `..` name → 400 when no `directory` is given (`https://h/.`, `https://h/..`, `file:///`);
+    `cloneSourceProblem`: a value starting with `-` or a relative local path (`kanban.git`,
+    `./x`, `../x`) → 400. Units and route rows.
+  - **7** `CLONE_SETTINGS`: `-c protocol.allow=never` plus `protocol.{https,http,ssh,git,file}.allow
+    =always`. Route tests: `ext::sh -c touch% /tmp/pwned` and `fd::17` → 422 `git-refused` (git:
+    "transport '…' not allowed"), `pwned()` false, file system unchanged.
+  - **8** REQ-SEC-09: the route tests capture the application's log stream; a clone with
+    `http://alex:<wrong secret>@…` (401) → 422, the secret absent from the body, the log and the
+    state directory; the successful credential clone's log holds no secret either.
+  - **9** `normaliseRemote` TSDoc: a port stays part of the host; a local path remote has an empty
+    host and equals the same path as `file://`; path case kept; relative local remotes refused by
+    the clone.
+  - **11** the TT-INT-06 audit test makes its own add, clone and list first: it passes alone
+    (`-t TT-INT-06`: 1 passed, 59 skipped) and still audits every process of the file in a full run.
+  - **12** design note corrected (no `availability.ts`; the clone's argument order). Launcher test
+    `test/server/launcher/project-check.test.ts`: `runLauncher` calls `ProjectList.start()` once
+    listening and `stop()` in the stop sequence (spies; in-process, < 1 s).
+- **Hand-over addition (task-014, item 10):** a clone runs in its own process group; if the server
+  is killed with SIGKILL (no stop sequence), git goes on and finishes (or fails) with nobody to
+  undo it — a retry into the same folder is then refused `directory-not-empty`, and the user
+  removes the folder by hand. The modal can say so for `directory-not-empty`.
+- **Checks** (load 2.5–4.4 on 12 cores): `npx tsc -b`, `tsc -p test`, `eslint .` clean ·
+  `prettier --check .` clean · `docs:api` OK · affected suites (`test/server/http`,
+  `test/server/projects`, `test/contracts/api-projects-schema.test.ts`, `test/server/launcher`,
+  `test/launcher`, `test/server/git`, `test/server/process`) **24 files, 361/361** ·
+  `test/server/http/projects.test.ts` 60/60 · **`npm run test:timing` 3/3 at load 4.1 → 3.5**:
+  REQ-PERF-03 20/20, max 387 ms; TypeDoc build 3018 ms; REQ-PERF-06 255–345 ms.
+

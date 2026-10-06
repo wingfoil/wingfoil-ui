@@ -7,7 +7,7 @@ import { createTokenAuthentication } from '../auth/authentication.js';
 import { InProcessEventBus } from '../events/bus.js';
 import { buildApp } from '../http/app.js';
 import { registerEventStream, type EventStreams } from '../http/events.js';
-import { registerProjectRoutes } from '../http/projects.js';
+import { registerProjectListRoutes } from '../http/projects.js';
 import { registerRoleViewRoute } from '../http/role-view.js';
 import { createLocalIdentitySource } from '../identity/project-identity.js';
 import { message } from '../i18n/messages.js';
@@ -150,7 +150,7 @@ export async function runLauncher(argv: readonly string[], io: LauncherIo): Prom
         identity: createLocalIdentitySource({ runner: processes, logger }),
       });
       streams.events = registerEventStream(routes, { bus });
-      registerProjectRoutes(routes, { projects });
+      registerProjectListRoutes(routes, { projects });
     },
   });
   // Stop sequence (spec-007 §6): close the event streams and the watchers, then terminate the CLI

@@ -27,10 +27,10 @@ import type { ProcessRunner } from '../process/runner.js';
 import type { WriteLock } from '../process/write-lock.js';
 import { ProjectReads } from '../reads/project-reads.js';
 import type { Snapshots } from '../snapshot/snapshots.js';
-import { findProjectContaining } from '../state/location.js';
+import { findProjectContaining, isWithin } from '../state/location.js';
 import type { StateStore } from '../state/store.js';
 import { CloneTarget, GitCloneError, runClone } from './clone.js';
-import { repoName, sameRemote } from './remote.js';
+import { cloneSourceProblem, repoName, sameRemote } from './remote.js';
 
 /** Interval of the availability check, in milliseconds (the snapshot fallback's). */
 export const DEFAULT_CHECK_MS = 10_000;
@@ -117,6 +117,8 @@ export class ProjectList {
   /** Token of the periodic check started last; `undefined` once stopped. */
   private run: object | undefined;
   private git: Promise<string> | undefined;
+  /** Working directories of the clones running now (absolute). */
+  private readonly cloning = new Set<string>();
 
   constructor(private readonly options: ProjectListOptions) {
     this.env = options.env ?? process.env;
@@ -167,6 +169,25 @@ export class ProjectList {
     const shown = given.trim();
     const absolute = this.absolute(shown, 'path');
     const root = await realpath(absolute).catch(() => undefined);
+    // A folder a clone is writing: wait for that clone (it may list it, or remove it), then judge
+    // the folder as it is. Inside the clone queue no other clone runs, so this add cannot race one.
+    if (this.inClone(absolute) || (root !== undefined && this.inClone(root)))
+      return this.addAfterClone(shown, absolute, signal);
+    return this.addNow(shown, root, signal, false);
+  }
+
+  private addAfterClone(shown: string, absolute: string, signal?: AbortSignal): Promise<ProjectListItem> {
+    return this.options.writeLock.run(CLONE_LOCK_KEY, async () =>
+      this.addNow(shown, await realpath(absolute).catch(() => undefined), signal, true),
+    );
+  }
+
+  private async addNow(
+    shown: string,
+    root: string | undefined,
+    signal: AbortSignal | undefined,
+    queued: boolean,
+  ): Promise<ProjectListItem> {
     if (root === undefined || !(await isDirectory(root))) {
       throw new ProjectRefusal('folder-not-found', `Folder not found: ${shown}`, { path: shown });
     }
@@ -177,25 +198,34 @@ export class ProjectList {
     const remote = await this.origin(root);
     this.refuseSameRemote(listed, remote);
     const name = await this.name(root, shown, signal);
+    // A clone started into this folder meanwhile: let it finish first.
+    if (!queued && this.inClone(root)) return this.addAfterClone(shown, root, signal);
     return this.append({ path: root, name, remote });
   }
 
   /** Clone `input.url` into a new, empty folder and add it (`POST /api/projects/clone`). */
   async clone(input: CloneInput, signal?: AbortSignal): Promise<ProjectListItem> {
     const url = input.url.trim();
-    if (url.startsWith('-')) throw new InvalidProjectRequest('url must not start with -');
-    const shown = input.directory?.trim() ?? `~/projects/${repoName(url)}`;
+    const problem = cloneSourceProblem(url);
+    if (problem) throw new InvalidProjectRequest(problem);
+    let shown = input.directory?.trim();
+    if (shown === undefined) {
+      const name = repoName(url);
+      if (name === undefined) throw new InvalidProjectRequest('no folder name in the url: give a directory');
+      shown = `~/projects/${name}`;
+    }
     const directory = this.absolute(shown, 'directory');
     // The URL typed is compared before anything is cloned (spec-006 §3).
-    this.refuseSameRemote(await this.options.store.reload(), url);
+    this.refuseListed(await this.options.store.reload(), url, directory);
     if (!(await CloneTarget.inspect(directory))) throw this.notEmpty(shown);
     await this.refuseStateDirInside(directory, shown);
     const git = await this.resolveGit();
     return this.options.writeLock.run(CLONE_LOCK_KEY, async () => {
       // Premises again: an earlier clone in the queue may have taken the folder or the remote.
-      this.refuseSameRemote(await this.options.store.reload(), url);
+      this.refuseListed(await this.options.store.reload(), url, directory);
       const target = await CloneTarget.inspect(directory);
       if (!target) throw this.notEmpty(shown);
+      this.cloning.add(directory);
       try {
         try {
           await runClone(url, target, {
@@ -213,8 +243,14 @@ export class ProjectList {
         const name = await this.name(root, shown, signal);
         return await this.append({ path: root, name, remote: url });
       } catch (error) {
-        await target.discard();
+        // Listed meanwhile by its path (a local add won the race): the entry points at the clone,
+        // so the clone stays.
+        const listedHere =
+          error instanceof ProjectRefusal && error.code === 'already-listed' && !error.detail?.sameRemote;
+        if (!listedHere) await target.discard();
         throw error;
+      } finally {
+        this.cloning.delete(directory);
       }
     });
   }
@@ -225,6 +261,11 @@ export class ProjectList {
     await this.options.snapshots.close(pid);
     await this.publishChange();
     return true;
+  }
+
+  /** Whether `folder` is, or lies inside, the working directory of a running clone. */
+  private inClone(folder: string): boolean {
+    return [...this.cloning].some((dir) => isWithin(folder, dir));
   }
 
   private absolute(given: string, field: string): string {
@@ -242,6 +283,12 @@ export class ProjectList {
   private refuseSamePath(listed: readonly ProjectEntry[], root: string): void {
     const same = listed.find((p) => p.path === root);
     if (same) throw this.alreadyListed(same, false);
+  }
+
+  /** A clone: its remote, or its working directory (a listed folder that went missing), already listed. */
+  private refuseListed(listed: readonly ProjectEntry[], url: string, directory: string): void {
+    this.refuseSameRemote(listed, url);
+    this.refuseSamePath(listed, directory);
   }
 
   private refuseSameRemote(listed: readonly ProjectEntry[], remote: string): void {

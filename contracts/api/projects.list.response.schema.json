@@ -7,6 +7,6 @@
   "required": ["projects"],
   "additionalProperties": false,
   "properties": {
-    "projects": { "type": "array", "items": { "$ref": "project.schema.json" } }
+    "projects": { "type": "array", "items": { "$ref": "projects.item.schema.json" } }
   }
 }

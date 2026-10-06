@@ -1,6 +1,6 @@
 /**
  * Types of the project-list bodies (spec-004 §3, spec-006 §2–§3), matching the schemas of
- * `contracts/api/` (`project.schema.json`, `projects.*.schema.json`; checked by
+ * `contracts/api/` (`projects.item.schema.json`, `projects.*.schema.json`; checked by
  * `test/contracts/api-projects-schema.test.ts`).
  */
 

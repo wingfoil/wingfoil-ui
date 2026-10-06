@@ -35,7 +35,7 @@ import { createTokenAuthentication } from '../../../server/src/auth/authenticati
 import { InProcessEventBus } from '../../../server/src/events/bus.js';
 import { GIT_ALLOWED_SUBCOMMANDS, gitSubcommand } from '../../../server/src/git/git.js';
 import { buildApp } from '../../../server/src/http/app.js';
-import { registerProjectRoutes } from '../../../server/src/http/projects.js';
+import { registerProjectListRoutes } from '../../../server/src/http/projects.js';
 import { createLogger } from '../../../server/src/logging.js';
 import { InProcessWriteLock } from '../../../server/src/process/write-lock.js';
 import { ProjectList } from '../../../server/src/projects/project-list.js';
@@ -58,14 +58,13 @@ import { AuditedRunner, processKind } from '../snapshot/support.js';
 
 const security = { authentication: createTokenAuthentication('test-token'), port: () => 80 };
 const AUTH = { authorization: 'Bearer test-token' };
-const sink = new Writable({ write: (_c, _e, cb) => cb() });
 const INSTALL = 'npm install --save-dev wingfoil';
 const ajv = new Ajv({ allErrors: true });
 const schema = async (file: string): Promise<object> =>
   JSON.parse(await readFile(path.join(REPO_ROOT, 'contracts/api', file), 'utf8')) as object;
-ajv.addSchema(await schema('project.schema.json'));
+ajv.addSchema(await schema('projects.item.schema.json'));
 const validList = ajv.compile(await schema('projects.list.response.schema.json'));
-const validItem = ajv.getSchema('https://wingfoil-ui.local/contracts/api/project.schema.json')!;
+const validItem = ajv.getSchema('https://wingfoil-ui.local/contracts/api/projects.item.schema.json')!;
 
 let root: string;
 let template: Fixture;
@@ -101,6 +100,8 @@ interface World {
   stateDir: string;
   home: string;
   events: string[];
+  /** Every log line the application wrote (REQ-SEC-09 scan). */
+  logs: string[];
   projects: ProjectList;
   snapshots: Snapshots;
   app: FastifyInstance;
@@ -137,14 +138,21 @@ async function world(options: { cliOnPath?: boolean; stateDir?: (fx: Fixture) =>
     env,
     homedir: fx.home,
   });
+  const logs: string[] = [];
+  const captured = new Writable({
+    write: (chunk, _e, cb) => {
+      logs.push(String(chunk));
+      cb();
+    },
+  });
   const app = await buildApp({
     staticDir: '/nonexistent',
-    logger: createLogger(sink),
+    logger: createLogger(captured),
     security,
-    register: (a) => registerProjectRoutes(a, { projects }),
+    register: (a) => registerProjectListRoutes(a, { projects }),
   });
   apps.push(app);
-  return { dir, fx, env, stateDir, home: fx.home, events, projects, snapshots, app };
+  return { dir, fx, env, stateDir, home: fx.home, events, logs, projects, snapshots, app };
 }
 
 function post(w: World, url: string, body: unknown) {
@@ -155,7 +163,7 @@ function post(w: World, url: string, body: unknown) {
     payload: typeof body === 'string' ? body : JSON.stringify(body),
   });
 }
-/** A 201 answers a list item valid against `contracts/api/project.schema.json`. */
+/** A 201 answers a list item valid against `contracts/api/projects.item.schema.json`. */
 async function created<T extends { statusCode: number; json(): unknown }>(answer: Promise<T>): Promise<T> {
   const res = await answer;
   if (res.statusCode === 201) expect(validItem(res.json()), JSON.stringify(validItem.errors)).toBe(true);
@@ -210,9 +218,14 @@ async function plainRepo(dir: string, env: NodeJS.ProcessEnv): Promise<string> {
  * A git "dumb HTTP" server for the bare repositories under `base` (`git update-server-info` run on
  * each). With `credentials`, every request needs that Basic authorization, else 401.
  */
-async function httpRemote(base: string, credentials?: string, hang = false): Promise<string> {
-  const server = http.createServer((req, res) => {
+async function httpRemote(
+  base: string,
+  options: { credentials?: string; hang?: boolean; delayMs?: number } = {},
+): Promise<string> {
+  const { credentials, hang = false, delayMs = 0 } = options;
+  const server = http.createServer(async (req, res) => {
     if (hang) return; // never answers: the clone waits until it is cancelled
+    if (delayMs > 0) await new Promise((r) => setTimeout(r, delayMs));
     if (credentials && req.headers.authorization !== `Basic ${Buffer.from(credentials).toString('base64')}`) {
       res.writeHead(401, { 'www-authenticate': 'Basic realm="test"' }).end();
       return;
@@ -587,7 +600,7 @@ describe('POST /api/projects/clone (S-04, S-05.2, S-06, S-07)', () => {
 
   it('S-07.3 reports a refused authentication with git message, without prompting', async () => {
     const w = await world();
-    const host = await httpRemote(path.join(w.dir, 'remotes'), 'alex:right');
+    const host = await httpRemote(path.join(w.dir, 'remotes'), { credentials: 'alex:right' });
     const before = await tree(w.dir);
     const error = await refusal(
       await clone(w, { url: `http://${host}/kanban.git`, directory: '~/projects/private' }),
@@ -602,13 +615,57 @@ describe('POST /api/projects/clone (S-04, S-05.2, S-06, S-07)', () => {
     const w = await world();
     const secret = 's3cret-token-0123456789';
     await git(w.fx.remoteDir, ['update-server-info'], w.env);
-    const host = await httpRemote(path.join(w.dir, 'remotes'), `alex:${secret}`);
+    const host = await httpRemote(path.join(w.dir, 'remotes'), { credentials: `alex:${secret}` });
     const res = await clone(w, { url: `http://alex:${secret}@${host}/kanban.git`, directory: '~/projects/kanban' });
     expect(res.statusCode, res.body).toBe(201);
     expect((res.json() as { remote: string }).remote).toBe(`http://${host}/kanban.git`);
     expect(await scanForSecrets([w.stateDir], [secret])).toEqual([]);
+    expect(w.logs.length).toBeGreaterThan(0);
+    expect(w.logs.join('')).not.toContain(secret);
     // The same remote again, written differently: refused before cloning.
     await refusal(await clone(w, { url: `HTTP://${host.toUpperCase()}/kanban/`, directory: '~/x' }), 'already-listed');
+  }, 60_000);
+
+  it('REQ-SEC-09 keeps a refused credential out of the answer and the log', async () => {
+    const w = await world();
+    const wrong = 'wr0ng-secret-9876543210';
+    await git(w.fx.remoteDir, ['update-server-info'], w.env);
+    const host = await httpRemote(path.join(w.dir, 'remotes'), { credentials: 'alex:right' });
+    const res = await clone(w, { url: `http://alex:${wrong}@${host}/kanban.git`, directory: '~/projects/kanban' });
+    await refusal(res, 'git-refused');
+    expect(res.body).not.toContain(wrong);
+    expect(w.logs.length).toBeGreaterThan(0);
+    expect(w.logs.join('')).not.toContain(wrong);
+    expect(await scanForSecrets([w.stateDir], [wrong])).toEqual([]);
+  }, 60_000);
+
+  it.each([
+    ['ext::', `ext::sh -c touch% ${PWNED_PATH}`],
+    ['fd::', 'fd::17'],
+  ])('refuses the %s transport: git-refused, nothing run', async (_name, url) => {
+    expect(pwned(), `${PWNED_PATH} exists before the test: remove it and re-run`).toBe(false);
+    const w = await world();
+    const before = await tree(w.dir);
+    const error = await refusal(await clone(w, { url, directory: '~/projects/x' }), 'git-refused');
+    expect(error.message).toMatch(/not allowed/);
+    expect(pwned()).toBe(false);
+    expect(await tree(w.dir)).toEqual(before);
+  });
+
+  it('keeps a folder created next to the clone meanwhile when the clone is refused', async () => {
+    const w = await world();
+    const plain = await plainRepo(path.join(w.dir, 'plain-src'), w.env);
+    const bare = path.join(w.dir, 'remotes', 'plain.git');
+    await git(w.dir, ['clone', '-q', '--bare', plain, bare], w.env);
+    await git(bare, ['update-server-info'], w.env);
+    const host = await httpRemote(path.join(w.dir, 'remotes'), { delayMs: 300 });
+    const running = runner.running;
+    const answer = clone(w, { url: `http://${host}/plain.git`, directory: '~/projects/deep/plain' });
+    await expect.poll(() => runner.running, { timeout: 10_000 }).toBeGreaterThan(running);
+    await mkdir(path.join(w.home, 'projects'), { recursive: true });
+    await writeFile(path.join(w.home, 'projects', 'sibling.txt'), 'mine\n');
+    await refusal(await answer, 'not-wingfoil');
+    expect(await readdir(path.join(w.home, 'projects'))).toEqual(['sibling.txt']);
   }, 60_000);
 
   it('REQ-SEC-05 clones a remote and a working directory whose paths hold a shell payload, literally', async () => {
@@ -651,6 +708,10 @@ describe('POST /api/projects/clone (S-04, S-05.2, S-06, S-07)', () => {
     ['an empty url', { url: ' ' }],
     ['a url starting with -', { url: '--upload-pack=touch /tmp/pwned' }],
     ['a relative directory', { url: 'file:///x.git', directory: 'projects/x' }],
+    ['a relative local url', { url: 'remotes/kanban.git' }],
+    ['a url with no folder name and no directory (.)', { url: 'https://h/.' }],
+    ['a url with no folder name and no directory (..)', { url: 'https://h/..' }],
+    ['a url with no folder name and no directory (file:///)', { url: 'file:///' }],
     ['an extra field', { url: 'file:///x.git', depth: 1 }],
   ])('answers 400 invalid-request to %s', async (_name, body) => {
     const w = await world();
@@ -682,7 +743,7 @@ describe('the CLI and the client while adding', () => {
 
   it('cancels the clone when the client leaves, and leaves nothing', async () => {
     const w = await world();
-    const host = await httpRemote(path.join(w.dir, 'remotes'), undefined, true);
+    const host = await httpRemote(path.join(w.dir, 'remotes'), { hang: true });
     const before = await tree(w.dir);
     await w.app.listen({ port: 0, host: '127.0.0.1' });
     const port = (w.app.server.address() as AddressInfo).port;
@@ -704,6 +765,88 @@ describe('the CLI and the client while adding', () => {
   }, 60_000);
 });
 
+describe('concurrent adds, clones and removals (review round 1 item 4)', () => {
+  /** A dumb-HTTP remote of the fixture answering each request after `delayMs`: a slow clone. */
+  async function slowRemote(w: World, delayMs = 150): Promise<string> {
+    await git(w.fx.remoteDir, ['update-server-info'], w.env);
+    return `http://${await httpRemote(path.join(w.dir, 'remotes'), { delayMs })}/kanban.git`;
+  }
+
+  it('two concurrent adds of the same folder list it once', async () => {
+    const w = await world();
+    const answers = await Promise.all([add(w, w.fx.dir), add(w, w.fx.dir)]);
+    expect(answers.map((a) => a.statusCode).sort()).toEqual([201, 422]);
+    expect(await list(w)).toHaveLength(1);
+  });
+
+  it('two queued clones into the same folder: one is cloned, the other refused directory-not-empty', async () => {
+    const w = await world();
+    const url = await slowRemote(w);
+    const [a, b] = await Promise.all([
+      clone(w, { url, directory: '~/projects/kanban' }),
+      clone(w, { url: w.fx.remoteUrl, directory: '~/projects/kanban' }),
+    ]);
+    expect([a.statusCode, b.statusCode].sort()).toEqual([201, 422]);
+    const refused = [a, b].find((r) => r.statusCode === 422)!;
+    expect((refused.json() as { error: { code: string } }).error.code).toMatch(/directory-not-empty|already-listed/);
+    expect(await list(w)).toHaveLength(1);
+    expect((await lstat(path.join(w.home, 'projects', 'kanban', '.wingfoil'))).isDirectory()).toBe(true);
+  }, 60_000);
+
+  it('two queued clones of the same remote: one is cloned, the other refused already-listed', async () => {
+    const w = await world();
+    const url = await slowRemote(w);
+    const [a, b] = await Promise.all([
+      clone(w, { url, directory: '~/projects/one' }),
+      clone(w, { url, directory: '~/projects/two' }),
+    ]);
+    expect([a.statusCode, b.statusCode].sort()).toEqual([201, 422]);
+    expect(((a.statusCode === 422 ? a : b).json() as { error: { code: string } }).error.code).toBe('already-listed');
+    expect(await list(w)).toHaveLength(1);
+    expect((await readdir(path.join(w.home, 'projects'))).length).toBe(1);
+  }, 60_000);
+
+  it('an add of the folder a clone is writing waits for the clone, then is refused already-listed', async () => {
+    const w = await world();
+    const url = await slowRemote(w);
+    const running = runner.running;
+    const cloning = clone(w, { url, directory: '~/projects/kanban' });
+    await expect.poll(() => runner.running, { timeout: 10_000 }).toBeGreaterThan(running);
+    const adding = add(w, '~/projects/kanban');
+    const cloned = await cloning;
+    expect(cloned.statusCode, cloned.body).toBe(201);
+    const error = await refusal(await adding, 'already-listed');
+    expect(error.detail).toEqual({ pid: (cloned.json() as { id: string }).id, name: 'kanban', sameRemote: false });
+    expect(await list(w)).toHaveLength(1);
+    expect((await lstat(path.join(w.home, 'projects', 'kanban', '.wingfoil'))).isDirectory()).toBe(true);
+  }, 60_000);
+
+  it('a remove during a clone is not held up by it, and both end listed as expected', async () => {
+    const w = await world();
+    const other = await copyFixture(template, path.join(w.dir, 'other'));
+    await git(other.dir, ['remote', 'set-url', 'origin', 'https://example.test/other.git'], w.env);
+    const listed = (await add(w, other.dir)).json() as { id: string };
+    const url = await slowRemote(w);
+    const running = runner.running;
+    const cloning = clone(w, { url, directory: '~/projects/kanban' });
+    await expect.poll(() => runner.running, { timeout: 10_000 }).toBeGreaterThan(running);
+    expect((await remove(w, listed.id)).statusCode).toBe(204);
+    expect(runner.running).toBeGreaterThan(running); // the clone was still running
+    expect((await cloning).statusCode).toBe(201);
+    expect((await list(w)).map((p) => p.name)).toEqual(['kanban']);
+  }, 60_000);
+
+  it('a clone into the folder of a listed project that went missing is refused already-listed', async () => {
+    const w = await world();
+    const kanban = (await add(w, w.fx.dir)).json() as { id: string };
+    await rename(w.fx.dir, `${w.fx.dir}-moved`);
+    const other = await plainRepo(path.join(w.dir, 'plain-src'), w.env);
+    const error = await refusal(await clone(w, { url: other, directory: w.fx.dir }), 'already-listed');
+    expect(error.detail).toEqual({ pid: kanban.id, name: 'kanban', sameRemote: false });
+    await expect(lstat(w.fx.dir)).rejects.toThrow();
+  });
+});
+
 describe('the fixture repository is never written (TT-ARC-03)', () => {
   it('add, list, a refused add, a check and remove leave the fixture files and history unchanged', async () => {
     const w = await world();
@@ -720,7 +863,14 @@ describe('the fixture repository is never written (TT-ARC-03)', () => {
 });
 
 describe('TT-INT-06 — process audit of this file', () => {
-  it('every git process used a subcommand of the allowed list; the CLI ran only reads', () => {
+  it('every git process used a subcommand of the allowed list; the CLI ran only reads', async () => {
+    // Self-contained when run alone (`-t`): an add, a clone and a list of its own first.
+    const w = await world();
+    expect((await add(w, w.fx.dir)).statusCode).toBe(201);
+    const other = await copyFixture(template, path.join(w.dir, 'other'));
+    await git(other.remoteDir, ['update-server-info'], w.env);
+    expect((await clone(w, { url: `file://${other.remoteDir}`, directory: '~/projects/audit' })).statusCode).toBe(201);
+    await list(w);
     const gits = runner.spawned.filter((r) => processKind(r) === 'git');
     expect(gits.length).toBeGreaterThan(0);
     const used = new Set(gits.map((r) => gitSubcommand(r.args)));

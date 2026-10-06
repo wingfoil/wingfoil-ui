@@ -53,9 +53,15 @@ export const GIT_ALLOWED_SUBCOMMANDS: readonly string[] = [
 
 /**
  * Settings of every clone, passed as `-c` arguments (the inherited `GIT_CONFIG_*` variables are
- * dropped by {@link gitEnv}): the `ext::` transport, which runs a command, is never allowed.
+ * dropped by {@link gitEnv}): every transport refused by default (`protocol.allow=never`) and only
+ * `https`, `http`, `ssh`, `git` and `file` allowed — so `ext::` (which runs a command) and `fd::`
+ * are refused whatever the user's configuration says.
  */
-export const CLONE_SETTINGS: readonly string[] = ['-c', 'protocol.ext.allow=never'];
+export const CLONE_SETTINGS: readonly string[] = [
+  '-c',
+  'protocol.allow=never',
+  ...['https', 'http', 'ssh', 'git', 'file'].flatMap((p) => ['-c', `protocol.${p}.allow=always`]),
+];
 
 /**
  * `git clone` of `url` into `directory` (write class (c)): quiet, so that the standard error holds

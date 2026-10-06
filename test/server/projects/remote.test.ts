@@ -3,7 +3,7 @@
 // removed, then host + path compared whatever the scheme. And the default working directory of a
 // clone (`ux-reference` §3: `~/projects/<repo>`).
 import { describe, expect, it } from 'vitest';
-import { normaliseRemote, repoName, sameRemote } from '../../../server/src/projects/remote.js';
+import { cloneSourceProblem, normaliseRemote, repoName, sameRemote } from '../../../server/src/projects/remote.js';
 
 describe('normaliseRemote', () => {
   it.each([
@@ -49,7 +49,28 @@ describe('repoName', () => {
     ['git@github.com:acme/project.git', 'project'],
     ['git@github.com:project.git', 'project'],
     ['https://host/', 'host'],
+    ['https://github.com/acme/kanban.git?ref=main#readme', 'kanban'],
+    ['https://h/.', undefined],
+    ['https://h/..', undefined],
+    ['/..', undefined],
+    ['file:///', undefined],
   ])('%s → %s', (url, name) => {
     expect(repoName(url)).toBe(name);
+  });
+});
+
+describe('cloneSourceProblem', () => {
+  it.each([
+    ['https://github.com/acme/kanban.git', undefined],
+    ['git@github.com:acme/kanban.git', undefined],
+    ['file:///srv/remotes/kanban.git', undefined],
+    ['/srv/remotes/kanban.git', undefined],
+    ['C:\\remotes\\kanban.git', undefined],
+    ['--upload-pack=x', 'url must not start with -'],
+    ['kanban.git', 'a local url must be an absolute path'],
+    ['./kanban', 'a local url must be an absolute path'],
+    ['../remotes/kanban.git', 'a local url must be an absolute path'],
+  ])('%s → %s', (url, problem) => {
+    expect(cloneSourceProblem(url)).toBe(problem);
   });
 });

@@ -17,9 +17,9 @@ import { REPO_ROOT } from '../harness/cli.js';
 const load = (file: string): object =>
   JSON.parse(readFileSync(path.join(REPO_ROOT, 'contracts/api', file), 'utf8')) as object;
 const ajv = new Ajv({ allErrors: true });
-ajv.addSchema(load('project.schema.json'));
+ajv.addSchema(load('projects.item.schema.json'));
 const validList = ajv.compile(load('projects.list.response.schema.json'));
-const validItem = ajv.getSchema('https://wingfoil-ui.local/contracts/api/project.schema.json')!;
+const validItem = ajv.getSchema('https://wingfoil-ui.local/contracts/api/projects.item.schema.json')!;
 const validAdd = ajv.compile(load('projects.add.request.schema.json'));
 const validClone = ajv.compile(load('projects.clone.request.schema.json'));
 
@@ -31,7 +31,7 @@ const OK: ProjectListItem = {
   availability: 'ok',
 };
 
-describe('project.schema.json and projects.list.response.schema.json', () => {
+describe('projects.item.schema.json and projects.list.response.schema.json', () => {
   const items: ProjectListItem[] = [
     OK,
     { ...OK, remote: '', availability: 'folder-not-found' },

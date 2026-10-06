@@ -5,7 +5,7 @@
  * clone leaves the file system as it was (REQ-STATE-07): {@link CloneTarget.discard} removes what
  * the clone created, and only that.
  */
-import { lstat, readdir, rm, stat } from 'node:fs/promises';
+import { lstat, readdir, rm, rmdir, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { cloneArgs } from '../git/git.js';
 import type { ProcessRunner } from '../process/runner.js';
@@ -70,14 +70,27 @@ export class CloneTarget {
     return this.existed ? this.directory : path.dirname(this.createdRoot);
   }
 
-  /** Remove what the clone created: the folders it made, or the content of the empty folder. */
+  /**
+   * Remove what the clone created, and only that: the working directory (recursively — the clone
+   * wrote it), then each missing ancestor it created, from the deepest up to {@link createdRoot},
+   * as an empty folder only: an ancestor that holds anything else (another clone, a user's file
+   * created meanwhile) stays, with everything above it. An existing empty folder is emptied again.
+   */
   async discard(): Promise<void> {
-    if (!this.existed) {
-      await rm(this.createdRoot, { recursive: true, force: true });
+    if (this.existed) {
+      const entries = await readdir(this.directory).catch(() => []);
+      await Promise.all(entries.map((e) => rm(path.join(this.directory, e), { recursive: true, force: true })));
       return;
     }
-    const entries = await readdir(this.directory).catch(() => []);
-    await Promise.all(entries.map((e) => rm(path.join(this.directory, e), { recursive: true, force: true })));
+    await rm(this.directory, { recursive: true, force: true });
+    for (let dir = this.directory; dir !== this.createdRoot;) {
+      dir = path.dirname(dir);
+      try {
+        await rmdir(dir);
+      } catch {
+        return; // not empty (or gone): leave it and what is above it
+      }
+    }
   }
 }
 
