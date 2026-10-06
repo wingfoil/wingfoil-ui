@@ -402,4 +402,9 @@ Screen: `docs/00_reference/ux-reference.md` §1–3, §9 and the prototype (`doc
     in the same file on `queryKeys.project(pid, …)`; live updates by `useServerEvent(name,
     handler)` (never start a stream); every new key in `en.json` in the same commit.
   - **task-014:** an unanswered request is `error.unreachable`; the rest as before.
-- Checks: see the coordinator report of this round.
+- Checks (HEAD `2fc7b1d`): typecheck, lint (ESLint + catalogue check), format:check clean ·
+  `docs:api` OK · `npm run -s test:coverage` **90 files passed, 1 skipped; 1398 passed / 1 skipped**,
+  coverage 95.84 % statements / 88.88 % branches / 96.2 % functions / 97.87 % lines (load 8.5 at
+  start) · `test:e2e` **14/14** (`shell.spec.ts` 30/30 with `--repeat-each=3`) · `check_tasks.py` OK
+  · **`npm run test:timing` 3/3** at load 0.8 → 1.7: REQ-PERF-03 20/20, max 524 ms; TypeDoc build
+  3446 ms; REQ-PERF-06 403–728 ms.
