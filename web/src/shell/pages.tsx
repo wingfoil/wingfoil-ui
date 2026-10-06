@@ -1,6 +1,6 @@
 /** Full pages of the shell: the lost session (decision W3-7) and the unknown path. */
-import { Link } from '@tanstack/react-router';
 import type { ReactNode } from 'react';
+import { Link } from 'react-aria-components';
 import { FormattedMessage } from 'react-intl';
 import { TITLES, usePageTitle } from './page-title.js';
 
@@ -31,7 +31,7 @@ export function NotFoundPage(): ReactNode {
           <FormattedMessage id="shell.notFound.title" />
         </h1>
         <p>
-          <Link to="/">
+          <Link href="/">
             <FormattedMessage id="shell.notFound.back" />
           </Link>
         </p>
