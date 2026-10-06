@@ -104,7 +104,15 @@ async function defaultProbe(): Promise<void> {
   await apiGet('/api/server').catch(() => undefined);
 }
 
-let current: (EventStream & { stop(): void }) | undefined;
+let current: (EventStream & { stop(): void; noteNetworkFailure(): void }) | undefined;
+
+/**
+ * A request got no answer at network level (spec-004 §6): starts the unreachable countdown of the
+ * page's stream, unless it is already running (no effect before the stream starts).
+ */
+export function noteNetworkFailure(): void {
+  current?.noteNetworkFailure();
+}
 
 /** The page's event stream, if started. */
 export function currentEventStream(): EventStream | undefined {
@@ -191,7 +199,12 @@ export function startEventStream(queryClient: QueryClient, options: EventStreamO
     if (sessionStatus() === 'lost') stop();
   });
 
-  const stream: EventStream & { stop(): void } = { on: onServerEvent, close: stop, stop };
+  const stream: EventStream & { stop(): void; noteNetworkFailure(): void } = {
+    on: onServerEvent,
+    close: stop,
+    stop,
+    noteNetworkFailure: watchReachability,
+  };
   current = stream;
   if (sessionStatus() === 'lost') stop();
   else connect();

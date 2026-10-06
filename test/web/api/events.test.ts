@@ -12,8 +12,10 @@ import {
   stopEventStream,
   useReachability,
   useServerEvent,
+  noteNetworkFailure,
   UNREACHABLE_AFTER_MS,
 } from '../../../web/src/api/events.js';
+import { apiGet } from '../../../web/src/api/client.js';
 import { queryKeys } from '../../../web/src/api/query-keys.js';
 import { markSessionLost, resetSession } from '../../../web/src/session/session.js';
 
@@ -278,6 +280,37 @@ describe('reachability (W3-12)', () => {
     const { result } = renderHook(() => useReachability());
     await vi.advanceTimersByTimeAsync(1_000);
     expect(result.current).toBe('unreachable');
+  });
+
+  it('starts the countdown on a network failure of a request while the stream is open (spec-004 §6)', async () => {
+    start(undefined, 2_000);
+    const { result } = renderHook(() => useReachability());
+    latest().open();
+    noteNetworkFailure();
+    await vi.advanceTimersByTimeAsync(1_000);
+    noteNetworkFailure(); // already counting: does not restart
+    await vi.advanceTimersByTimeAsync(1_000);
+    expect(result.current).toBe('unreachable');
+    latest().open();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(result.current).toBe('reachable');
+  });
+
+  it('a request failing at network level counts too (apiRequest → noteNetworkFailure)', async () => {
+    start(undefined, 1_000);
+    latest().open();
+    const { result } = renderHook(() => useReachability());
+    vi.stubGlobal('fetch', async () => {
+      throw new TypeError('Failed to fetch');
+    });
+    await expect(apiGet('/api/server')).rejects.toMatchObject({ code: 'unreachable' });
+    await vi.advanceTimersByTimeAsync(1_000);
+    expect(result.current).toBe('unreachable');
+    vi.unstubAllGlobals();
+  });
+
+  it('ignores a network failure before the stream starts', () => {
+    expect(() => noteNetworkFailure()).not.toThrow();
   });
 
   it('is back to reachable when the stream stops (the lost-session page takes over)', async () => {

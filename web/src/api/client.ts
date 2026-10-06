@@ -5,6 +5,7 @@
  * Read answers carry the repository state (`X-Repo-State`, `<HEAD>.<status hash>`).
  */
 import { markSessionLost } from '../session/session.js';
+import { noteNetworkFailure } from './events.js';
 
 /** Header of the repository state on read answers. */
 export const REPO_STATE_HEADER = 'X-Repo-State';
@@ -69,6 +70,7 @@ export async function apiRequest<T>(
     // An aborted request stays an abort; any other failure is the network: the console is not
     // answering (W3-12) — never rendered as `internal`.
     if (signal?.aborted) throw error;
+    noteNetworkFailure();
     throw new ApiError(0, UNREACHABLE, 'The console cannot be reached', undefined);
   }
   const text = response.status === 204 ? '' : await response.text();
