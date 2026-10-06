@@ -13,8 +13,7 @@
  * binary check), so records are cut at the authoritative sha order of a second, header-only read
  * of the same walk; a damaged record and a `wf` record with an unreadable date or author are
  * skipped (warnings), the others read; an output that does not match the sha list is refused as a
- * whole ({@link MemoryLogFormatError}), never guessed at. spec-002 §3 still writes the
- * `%x1e`/`%x1f`/`%x1d` format and one process: pending spec amendment.
+ * whole ({@link MemoryLogFormatError}), never guessed at (spec-002 §3, as amended 2026-10-06).
  */
 import path from 'node:path';
 import type { MemoryYaml } from '@wingfoil-ui/contracts';

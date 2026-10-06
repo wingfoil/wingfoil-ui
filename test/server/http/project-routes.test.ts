@@ -85,7 +85,7 @@ interface Console {
 
 async function start(
   template: Fixture,
-  options: { fs?: ReadFs; prepare?: (fx: Fixture) => Promise<void>; failLog?: boolean } = {},
+  options: { fs?: ReadFs; prepare?: (fx: Fixture) => Promise<void>; failLog?: boolean; name?: string } = {},
 ): Promise<Console> {
   n += 1;
   const fx = await copyFixture(template, path.join(root, `copy-${n}`));
@@ -101,7 +101,7 @@ async function start(
   }
   registries.push(audited.snapshots);
   const store = await createMemoryStateStore();
-  const entry = await store.add({ path: fx.dir, name: fx.name, remote: '' });
+  const entry = await store.add({ path: fx.dir, name: options.name ?? fx.name, remote: '' });
   const logger = createLogger(sink);
   app = await buildApp({
     staticDir: '/nonexistent',
@@ -224,6 +224,35 @@ describe('a version outside the range (user decision 2026-10-06, open point 26)'
     const reasons = elements.body.elements.flatMap((e: any) => e.descriptor.verbs.map((v: any) => v.reason));
     expect(reasons.length).toBeGreaterThan(0);
     expect(reasons.every((r: any) => r.code === 'version-unsupported' && r.range === '0.2.2 to 0.2.x')).toBe(true);
+  });
+});
+
+describe('name and remote refreshed on open (spec-006 §2, task-008 decision 28)', () => {
+  it('updates the stored name from the DNA and the remote from origin, with no process on a warm cache', async () => {
+    const c = await start(kanbanTemplate, { name: 'folder-name' });
+    const origin = (await git(c.fx.dir, ['remote', 'get-url', 'origin'], c.fx.env)).stdout.trim();
+    expect(origin).not.toBe('');
+    expect(c.store.get(c.pid)).toMatchObject({ name: 'folder-name', remote: '' });
+    expect((await c.get(`/api/p/${c.pid}`)).body.name).toBe('kanban');
+    expect(c.store.get(c.pid)).toMatchObject({ name: 'kanban', remote: origin });
+    const before = c.runner.spawned.length;
+    expect((await c.get(`/api/p/${c.pid}`)).status).toBe(200);
+    expect(c.runner.spawned.length).toBe(before);
+  });
+
+  it('keeps the stored name when the DNA has none, and an empty remote without origin', async () => {
+    const c = await start(kanbanTemplate, {
+      name: 'kept-name',
+      prepare: async (fx) => {
+        await git(fx.dir, ['remote', 'remove', 'origin'], fx.env);
+        const dna = path.join(fx.dir, '.wingfoil', 'dna.yaml');
+        await writeFile(dna, (await readFile(dna, 'utf8')).replace(/^ {2}name: .*$/m, ''));
+      },
+    });
+    const header = await c.get(`/api/p/${c.pid}`);
+    expect(header.status).toBe(200);
+    expect(header.body.name).toBe('kept-name');
+    expect(c.store.get(c.pid)).toMatchObject({ name: 'kept-name', remote: '' });
   });
 });
 

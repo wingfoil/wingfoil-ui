@@ -145,10 +145,13 @@ function valueOf<T>(settled: { ok: true; value: T } | { ok: false; refusal: Refu
 
 const notFound = (): Refused => new Refused({ status: 404, error: { code: 'not-found', message: 'Not found' } });
 
-/** The label of the supported range in a `version-unsupported` reason, e.g. `0.2.2–0.2.x`. */
+/**
+ * The label of the supported range in a `version-unsupported` reason: `<min> to <max>`, e.g.
+ * `0.2.2 to 0.2.x` (decided by the user 2026-10-06).
+ */
 export function rangeLabel(): string {
   const { min, max } = supportedRange();
-  return `${min}–${max}`;
+  return `${min} to ${max}`;
 }
 
 /** The team of the DNA, none when `dna show` failed (the identity then matches no member). */
