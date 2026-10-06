@@ -98,6 +98,9 @@ export const methodologyPlugin = {
           TSPropertySignature: checkKey,
           PropertyDefinition: checkKey,
           TSAbstractPropertyDefinition: checkKey,
+          MethodDefinition: checkKey,
+          TSAbstractMethodDefinition: checkKey,
+          TSMethodSignature: checkKey,
           TSEnumMember(node) {
             if (node.id.type === 'Identifier') check(node.id, node.id.name);
           },

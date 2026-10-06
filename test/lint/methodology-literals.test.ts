@@ -77,6 +77,9 @@ describe('REQ-ARC-05 lint rule', () => {
     ['a class property', 'export class C {\n  pending = 1;\n}\n'],
     ['an anchored regex alternation', 'export const re = /^(draft|x)$/;\n'],
     ['a non-capturing regex group', 'export const re = /^(?:x|in-review)$/;\n'],
+    ['an unanchored regex word', 'export const re = /done/;\n'],
+    ['a class method', 'export class C {\n  approved(): boolean {\n    return true;\n  }\n}\n'],
+    ['an interface method', 'export interface S {\n  shipped(): void;\n}\n'],
     ['a regex word between \\b', 'export const re = /\\bdone\\b/;\n'],
     ['web/', "export const x = 'shaping';\n", 'web/src/sample.ts'],
     [

@@ -219,7 +219,12 @@ e2e closure — scenarios that need a screen are proved here by API and unit tes
   interface member, class property, enum member or regex word) equal to a fixture state or type
   name in `server/` or `web/` (e.g. `'open'`, `'active'`, `'done'`, `'pending'`, `'task'`) fail the
   new rule after merge. Known concrete hit: task-010's `snapshot.ts` literals `'deprecated'` /
-  `'superseded'` — replace them with `ARCHIVED_STATES` of `server/src/presets/wingfoil.ts`.
+  `'superseded'` — replace them with `ARCHIVED_STATES` of `server/src/presets/wingfoil.ts`; and
+  task-010's `server/src/snapshot/watcher.ts:71` `private closed = false;`, a class property equal
+  to the custom `bug` state `closed` (to be renamed).
+- **Hand-over to task-017/018 (web):** prop, state, interface member and method names equal to a
+  fixture name (`open`, `active`, `closed`, `done`, `ready`, `pending`, `release`, `plan`,
+  `service`, `note`, …) are reported by REQ-ARC-05 — expect renames or justified inline disables.
 - **Checks (refactor, 2026-10-05, load average 54–96 on 12 cores from another project):**
   typecheck, lint, format:check clean · `docs:api` OK · `test:e2e` 3/3 · `check_tasks.py` OK ·
   `npx vitest run --coverage --coverage.reportOnFailure`: 45 files, **659 passed / 2 failed / 1
@@ -253,5 +258,9 @@ Coordinator review: **FAIL** on the lint rule (descriptor logic accepted). Fixed
 - **5** names: 39, not 40 (the test now asserts 39). **6** only directories under
   `test/contracts/samples/` are read. **7** `compareRequiresYou`: an unparsable `since` sorts last
   like an absent one (test with both orders).
+- **Round 2 (2026-10-06):** class and interface method names (`MethodDefinition`, abstract too,
+  `TSMethodSignature`) are checked as well, with tests; an unanchored `/done/` is pinned by a test;
+  `new RegExp('…')` string arguments and JSX attribute names added to the residual risk; merge
+  note (task-010 `watcher.ts` `closed`) and web hand-over added.
 - Not changed here (coordinator's): task-010's `snapshot.ts` hit (named in the merge note), the
   gate-waiting actor and the bucket wording (escalated to the user).
