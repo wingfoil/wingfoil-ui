@@ -305,7 +305,8 @@ Screen: `docs/00_reference/ux-reference.md` §1–3, §9 and the prototype (`doc
     "Dismiss" button, a text outside the catalogue (X-09.1). Escape and Close close it;
   - React Aria's `RouterProvider` is not wired yet (no React Aria link in the shell);
   - one token beyond the spec-009 table: `--shadow-popover` (decorative shadow; amendment below).
-- **Refactor / e2e** (`03adc40`): the shared e2e support (`test/e2e/support/`: `global-setup.ts`,
+- **Refactor / e2e** (`03adc40`) — **deviation (test-after):** the e2e suite and the shared support
+  were written after green, in this commit, not before the code they prove: the shared e2e support (`test/e2e/support/`: `global-setup.ts`,
   `console.ts`, `fixtures.ts`, `events.ts`, `keyboard.ts`) and its self-test
   (`test/e2e/harness/support.spec.ts`: a seeded kanban copy listed, a commit outside the UI → `repo`
   of that pid recorded by the page, an add → `projects`); `test/e2e/shell.spec.ts`; more unit tests
@@ -318,7 +319,7 @@ Screen: `docs/00_reference/ux-reference.md` §1–3, §9 and the prototype (`doc
   |----------|-----------|
   | S-01.1 Start the console with npx | `test/e2e/shell.spec.ts` › "S-01.1 — Start the console with npx" — the bin (as `npx` runs it) with a recording opener: printed URL `http://127.0.0.1:<port>/#token=…`, the opener got exactly that URL, the page opened at it shows the project switcher whose menu (keyboard: Tab, visible focus ring, Enter) offers "Add project…", fragment gone, title "Projects — WingFoil UI", axe 0 serious/critical in light and dark (menu open and closed) |
   | S-01.2 Refuse an unsupported Node.js version | `test/launcher/launcher.test.ts` › "S-01.2 — refuse an unsupported Node.js version" (task-002): the bin exits 1 with the catalogue line and opens no port — there is no screen to drive, so no browser test |
-  | S-01.3 Start without opening a browser | `test/e2e/shell.spec.ts` › "S-01.3 — Start without opening a browser when none is available" — no opener on the `PATH`: "Open this URL in your browser: <url>" printed, no opener ran, the page at that URL still shows the switcher with "Add project…" |
+  | S-01.3 Start without opening a browser | `test/e2e/shell.spec.ts` › "S-01.3 — Start without opening a browser when none is available" — the `PATH` holds only `node` and `git` (no opener exists, so none can run): "Open this URL in your browser: <url>" printed, and the page at that URL still shows the switcher with "Add project…" |
 
   Shell mechanisms (same spec, `shell mechanisms`): session (fragment → cookie, reload keeps it,
   wrong token and a forgotten session → lost-session page), corrupt `state.json` warning shown with
@@ -345,3 +346,60 @@ Screen: `docs/00_reference/ux-reference.md` §1–3, §9 and the prototype (`doc
     render a visually hidden "Dismiss" button (its own string): decide how X-09.1 treats it (the
     switcher menu has one); X-08.1/X-08.2 mechanism already e2e-tested here.
   - **Coordinator:** run `npm run test:timing` on a quiet machine.
+
+### review round 1 (2026-10-06)
+
+- Coordinator review: **PASS with minors**; user decisions W3-12 (unreachable console, F5) and
+  W3-13 (backdrop token, nit 4) implemented in the same pass. One commit per logical fix:
+  - **F1** (`ae025d0`) React Aria's `RouterProvider` in `app.tsx` (`navigate` → `router.navigate`,
+    `useHref` → `router.buildLocation({ to }).href`, `RouterConfig` augmented with the router's
+    paths); the not-found page's link is a React Aria `Link`. Proved: component test (the same
+    banner element after the click — jsdom follows no plain anchor) and e2e "a React Aria link
+    navigates inside the application, without a reload" (a marker on `window` survives).
+  - **F3, F4** (`76b56cb`) the sidebar is built from the routes: a view declares
+    `staticData.nav = { group, order: NAV_ORDER.<view>, label }` (`routes/nav.ts`, `NAV_ORDER` fixed
+    from ux-reference §2) and `ProjectLayout` collects them from `router.routesById` — order does
+    not depend on merge order (unit `test/web/routes/nav.test.ts`, routes reversed → same
+    sidebar); `PROJECT_ROUTES` one route per line with a trailing comma; nav `to` typed
+    `ProjectViewPath` (the router's `/p/$pid…` paths), no casts in `ProjectNav`; per-view query-key
+    factories next to their route on `queryKeys.project(pid, …)` (`ProjectQueryKey` type, rule in
+    `api/query-keys.ts`).
+  - **F2, N1, N6, N3 (unit), W3-12** (`a48a048`) `onServerEvent(name, handler)` /
+    `useServerEvent(name, handler)` subscribe without creating the stream (a module registry: a
+    subscription made before `App` starts the stream holds), `currentEventStream()`; only `App`
+    starts it. Reachability: no open stream for `unreachableAfterMs` (10 s, option) since start or
+    the first failure → `useReachability()` `unreachable` → `UnreachableBanner` (non-modal,
+    `role="alert"` in a labelled region, `shell.unreachable.*`), gone on open (which refetches
+    everything). A request without an answer (`fetch` rejects, not an abort) → `ApiError(0,
+    'unreachable')` → `error.unreachable`, never `internal`. Lost-session texts narrowed
+    (`shell.session.lost.*`, `title.sessionLost` "Session ended — WingFoil UI"). A lost session
+    renders the header and the notice only: the Add project dialog unmounts (test). The default
+    probe is `apiGet('/api/server').catch(…)` — a 401 is handled in `apiRequest`. The key-rendering
+    unit test compares with the exact key-catalogue texts.
+  - **F8** (`7cdd846`) per-code detail shapes: spec-006 §3 from
+    `projects.refusal.schema.json`, spec-004 §5 listed (`read-error {file, kind}`, `not-found` with
+    or without `{kind}`, the rest none); every argument of each message must come from a shape its
+    code sends.
+  - **N5** (`0ef8c29`) a dismissed warning is keyed by key + `JSON.stringify(args)` (test: the same
+    key with another file shows again).
+  - **W3-13, N7** (`4fbc124`) `--color-backdrop` (light `rgba(8, 21, 50, 0.45)`, dark
+    `rgba(0, 0, 0, 0.6)`, decorative, outside the contrast pairs, checked by the token test) used
+    by the modal backdrop; `web/dist` built without source maps.
+  - **F6, N2, N3 (e2e), N9, W3-12 e2e** (`abfce52`) `scanThemes` waits until `data-theme` follows
+    the emulated scheme; the vacuous `opened()` assertion of S-01.3 dropped (closure table: the
+    `PATH` without an opener proves it); the e2e key check uses the exact key-catalogue texts; the
+    extra browser context closed in `finally`; `mutateAndWait(…, timeout)`. New e2e: a stopped
+    console → the banner, on Playwright's clock (`page.clock.install()` / `runFor`, no 10 s wait),
+    axe 0 serious/critical in both themes.
+  - **F7** this note's red/green/refactor entry says the e2e suite was written after green.
+  - N8: `index.tsx` kept (spec-008 §1 amended on `main`); the static `<title>` of `index.html` left
+    for task-021's X-09.1.
+- **Hand-overs (updated, replace the earlier ones where they differ):**
+  - **View tasks 017–020 — recipe:** `routes/<view>.tsx` exports
+    `createRoute({ getParentRoute: () => projectRoute, path: '<view>', component, staticData: { nav:
+    { group, order: NAV_ORDER.<view>, label } } })` with the label from `defineMessages` in that
+    file; one line `<view>Route,` in `PROJECT_ROUTES` (`routes/tree.ts`); its query keys as a factory
+    in the same file on `queryKeys.project(pid, …)`; live updates by `useServerEvent(name,
+    handler)` (never start a stream); every new key in `en.json` in the same commit.
+  - **task-014:** an unanswered request is `error.unreachable`; the rest as before.
+- Checks: see the coordinator report of this round.
