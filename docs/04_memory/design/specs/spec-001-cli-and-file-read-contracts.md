@@ -107,6 +107,13 @@ error (REQ-ARC-04).
 **4.3 Directive files** — only at `.wingfoil/<path>` for a `path` returned by `directives list`:
 frontmatter (as in `directives list`) and a Markdown body, rendered in R2.
 
+**4.4 Exception — hash-only reads for the repository state key** (REQ-STATE-02, spec-004 §5): the
+server reads each changed and untracked entry listed by `git status --porcelain` only to hash it
+— SHA-256 of the content up to 1 MiB, size and modification time beyond that (or beyond the first
+1 000 entries), the target of a symbolic link (never followed), or "missing". The content is
+neither kept nor exposed; only the combined hash enters the state key. No other use of these
+reads is allowed.
+
 ### 5. `contracts/` layout
 
 ```
@@ -116,7 +123,8 @@ contracts/
   files/element.schema.json          # §4.2 frontmatter
   files/directive.schema.json        # §4.3 frontmatter
   capabilities.json                  # capability → minimum WingFoil version, conditions (REQ-INT-03)
-  matrix.json                        # supported WingFoil versions (adr-001 D3/D4)
+  capabilities.schema.json           # shape of capabilities.json (§6)
+  matrix.json                        # supported WingFoil versions and range minimum (adr-001 D3/D4)
 ```
 
 Each schema records the WingFoil version it was captured from (`$comment: "wingfoil 0.2.2"`); a
@@ -132,9 +140,24 @@ the UI reads.
 | Element content | direct read §4.2 | `memory show` (or equivalent), when WingFoil adds one |
 | Directive body | direct read §4.3 | `directives show` (or equivalent) |
 | Gate decision | `memory approve/reject` | — |
-| Workflow position, next step, start | — (read-only, "needs WingFoil 0.3") | 0.3 verbs (REQ-INT-07) |
+| Workflow position | — (read-only, "needs WingFoil 0.3") | `workflow status` (REQ-INT-07) |
+| Next workflow step | — (read-only, "needs WingFoil 0.3") | `workflow next` (REQ-INT-07) |
+| Workflow start | — (read-only, "needs WingFoil 0.3") | `workflow start` (REQ-INT-07) |
 | Agent launch | — | `agent execute` (0.3+) |
-| Field editing | — (read-only) | WingFoil task-127 / task-163 |
+| Field editing | — (read-only, not released) | WingFoil task-127 / task-163 |
+
+**Format (addendum, dev-loop task-006).** `capabilities.json` is `{ capabilities: [...] }`,
+validated by `contracts/capabilities.schema.json`; each row is `{ id, name, minVersion, via,
+replacedBy?, conditions[] }` — `minVersion` a semantic version or `null`, `via` the 0.2.2 source
+(or `null`), `conditions` the project-condition ids that must all hold for the capability to
+apply (otherwise it is hidden; none in v0.1). The ids of the table above are `type-definitions`,
+`element-content`, `directive-body`, `gate-decision` (`minVersion` `0.2.2`), `workflow-position`,
+`workflow-next-step`, `workflow-start` (the former "Workflow position, next step, start" row,
+split in three; S-08.3 names "Next workflow step" alone), `agent-launch` (`minVersion` `0.3.0`)
+and `field-editing` (`null`). `minVersion` is required on every row: **`null` means the
+capability is in no released WingFoil version** (`field-editing` today); it is always read-only
+or hidden according to its rule, with reason `not-released` (REQ-INT-03: `null` counts as a
+declared minimum).
 
 ### 7. Contract tests
 
@@ -172,3 +195,13 @@ its schema, and run the §4.1 resolution check. A failure blocks the matrix adva
   `workflow list` `manifest.version?`, `description?`; `memory.yaml` `id_pattern?`, `version`
   a positive number; §4.2 frontmatter delimiters `\r?\n` and merge keys. "Required" in this spec
   means required by WingFoil's schema and read by the UI.
+- 2026-10-06 — amended in dev-loop task-006 (Wave 2, plan dev-loop-rel-v0.1-plan): §5 lists
+  `capabilities.schema.json`; §6 format addendum (row shape `{id, name, minVersion, via,
+  replacedBy?, conditions[]}`, ids), the "Workflow position, next step, start" row split into
+  `workflow-position`, `workflow-next-step`, `workflow-start`, and `minVersion: null` = in no
+  released WingFoil version (always read-only or hidden, reason `not-released`); decided by the
+  user.
+- 2026-10-06 — amended in dev-loop task-010 (Wave 2, plan dev-loop-rel-v0.1-plan): §4.4
+  exception to the direct-read allow-list — hash-only reads of changed and untracked entries for
+  the repository state key (REQ-STATE-02); content is neither kept nor exposed; decided by the
+  user as part of #18.

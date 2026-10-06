@@ -1,6 +1,6 @@
 # SARD — 3. State & Context
 
-**Version:** 0.4 · **Date:** 2026-10-04 (0.2: coherence audit fixes — session 6; 0.3: REQ-STATE-08 last non-archived state — initial-design session 6; 0.4: REQ-STATE-06 v0.1 scope — release-planning v0.1 session 4 (audit A4)) · **Status:** Draft — specification-downcast session 4
+**Version:** 0.5 · **Date:** 2026-10-06 (0.2: coherence audit fixes — session 6; 0.3: REQ-STATE-08 last non-archived state — initial-design session 6; 0.4: REQ-STATE-06 v0.1 scope — release-planning v0.1 session 4 (audit A4); 0.5: REQ-STATE-02 content fingerprint in the state key — dev-loop task-010) · **Status:** Draft — specification-downcast session 4
 
 Shell and conventions: `00_sard.md`.
 
@@ -22,7 +22,7 @@ Shell and conventions: `00_sard.md`.
 | Field | |
 |-------|--|
 | Release | v0.1 |
-| Description | Cached CLI and git reads are keyed on the commit of HEAD **and** a hash of `git status --porcelain`; a change of either invalidates them. The effective `user.email` (repository and global git configuration) is watched too and re-evaluates the identity. Changes are detected by file watching, with a periodic check as a fallback. |
+| Description | Cached CLI and git reads are keyed on the commit of HEAD **and** a hash of `git status --porcelain` combined with a fingerprint of the working-tree content of each changed and untracked entry (computed by the server, no extra git command); a change of either invalidates them, so a second edit of a file that is already modified changes the state too. The effective `user.email` (repository and global git configuration) is watched too and re-evaluates the identity. Changes are detected by file watching, with a periodic check as a fallback. |
 | Rationale | Correct with uncommitted edits, cheap otherwise (ADR draft). |
 | Traceability | US-S-26 · S-26.1, S-26.3 · S8 |
 | Fit criterion | [boolean] A unit test shows a cache miss after a commit and after a working-tree edit, a cache hit when neither changed, and a new identity after a change of `user.email`. |
@@ -104,3 +104,10 @@ Shell and conventions: `00_sard.md`.
 | Traceability | US-C-07, US-Y-07 · C-07.1, C-07.3, Y-07.2 · C4 |
 | Fit criterion | [boolean] A first start shows exactly these defaults; changing one takes effect within 120 s without a restart. |
 | Verified by | e2e |
+
+## Process Notes
+
+- 2026-10-06 — amended in dev-loop task-010 (Wave 2, plan dev-loop-rel-v0.1-plan): REQ-STATE-02
+  state key = hash of `git status --porcelain` plus a server-computed fingerprint of the
+  working-tree content of each changed and untracked entry (no extra git command), so a second
+  edit of an already-modified file changes the state; decided by the user.
