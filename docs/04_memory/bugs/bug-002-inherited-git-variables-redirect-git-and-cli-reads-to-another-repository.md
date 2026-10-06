@@ -2,7 +2,7 @@
 id: bug-002-inherited-git-variables-redirect-git-and-cli-reads-to-another-repository
 type: bug
 title: "Inherited GIT variables redirect git and CLI reads to another repository"
-status: planned
+status: in-progress
 severity: "medium"     # REQUIRED — critical | high | medium | low
 release-origin: "v0.1" # optional — release where the bug was FOUND, e.g. "v0.1"
 release: ""            # optional — fix/implementation release, stamped by release-planning/build-backlog
@@ -65,3 +65,5 @@ REQ-STATE-01/02 wrong). From v0.2 a governed write could commit in the wrong rep
 - fix: **absorbed into task-010-snapshot-cache-and-live-updates** (dl-045 pattern; the task owns the
   shared git module and lists this bug in `bug:`, with its own Acceptance Criterion). `triaged →
   planned` set by hand (waiting state, no CLI verb).
+- start (2026-10-06): task-010 is already in progress (Wave 2) → `planned → in-progress` by hand
+  (dev-loop `bug.sync_state`; no CLI verb for this edge).
