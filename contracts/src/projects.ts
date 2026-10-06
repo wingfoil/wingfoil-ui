@@ -26,6 +26,27 @@ export interface ProjectListItem {
   command?: string;
 }
 
+/**
+ * The `code` of a refused add or clone (422, spec-006 §3; `contracts/api/projects.refusal.schema.json`).
+ * `directory-inside-project` and `inside-state-dir` refuse a clone target inside a listed project or
+ * the local state directory (decided by the user 2026-10-06).
+ */
+export type ProjectRefusalCode =
+  | 'folder-not-found'
+  | 'not-wingfoil'
+  | 'already-listed'
+  | 'directory-not-empty'
+  | 'directory-inside-project'
+  | 'inside-state-dir'
+  | 'cli-not-found'
+  | 'state-dir-inside-project'
+  | 'git-refused';
+
+/** The envelope of a refused add or clone (spec-004 §5); `detail` holds the catalogue arguments. */
+export interface ProjectRefusalBody {
+  error: { code: ProjectRefusalCode; message: string; detail?: Record<string, unknown> };
+}
+
 /** Body of `GET /api/projects`. */
 export interface ProjectListResponse {
   /** In insertion order (S-17.1). */

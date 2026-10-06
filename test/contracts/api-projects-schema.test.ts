@@ -11,6 +11,7 @@ import type {
   ProjectAddRequest,
   ProjectListItem,
   ProjectListResponse,
+  ProjectRefusalBody,
 } from '../../contracts/src/projects.js';
 import { REPO_ROOT } from '../harness/cli.js';
 
@@ -22,6 +23,7 @@ const validList = ajv.compile(load('projects.list.response.schema.json'));
 const validItem = ajv.getSchema('https://wingfoil-ui.local/contracts/api/projects.item.schema.json')!;
 const validAdd = ajv.compile(load('projects.add.request.schema.json'));
 const validClone = ajv.compile(load('projects.clone.request.schema.json'));
+const validRefusal = ajv.compile(load('projects.refusal.schema.json'));
 
 const OK: ProjectListItem = {
   id: 'p_7kq2m9x4r1tz',
@@ -83,5 +85,42 @@ describe('request bodies', () => {
     [validClone, { url: 'x', depth: 1 }],
   ])('refuses %#', (validate, body) => {
     expect(validate(body)).toBe(false);
+  });
+});
+
+describe('projects.refusal.schema.json', () => {
+  const refusals: ProjectRefusalBody[] = [
+    { error: { code: 'folder-not-found', message: 'm', detail: { path: '/tmp/x' } } },
+    { error: { code: 'not-wingfoil', message: 'm', detail: { path: '/tmp/x' } } },
+    { error: { code: 'not-wingfoil', message: 'm', detail: { source: 'clone' } } },
+    { error: { code: 'already-listed', message: 'm', detail: { pid: 'p_7kq2m9x4r1tz', name: 'k', sameRemote: true } } },
+    { error: { code: 'directory-not-empty', message: 'm', detail: { path: '~/projects/k' } } },
+    { error: { code: 'directory-inside-project', message: 'm', detail: { path: '~/k/docs/x' } } },
+    { error: { code: 'inside-state-dir', message: 'm', detail: { path: '/s/x' } } },
+    {
+      error: {
+        code: 'cli-not-found',
+        message: 'm',
+        detail: { path: '/k', command: 'npm install --save-dev wingfoil' },
+      },
+    },
+    { error: { code: 'state-dir-inside-project', message: 'm', detail: { path: '/k', stateDir: '/k/.s' } } },
+    { error: { code: 'git-refused', message: 'fatal: repository not found' } },
+  ];
+
+  it.each(refusals.map((r) => [r.error.code, r] as const))('accepts %s', (_code, body) => {
+    expect(validRefusal(body), JSON.stringify(validRefusal.errors)).toBe(true);
+  });
+
+  it.each([
+    ['an unknown code', { error: { code: 'nope', message: 'm' } }],
+    ['inside-state-dir without its path', { error: { code: 'inside-state-dir', message: 'm', detail: {} } }],
+    ['git-refused with a detail', { error: { code: 'git-refused', message: 'm', detail: { path: '/x' } } }],
+    [
+      'already-listed without sameRemote',
+      { error: { code: 'already-listed', message: 'm', detail: { pid: 'p', name: 'k' } } },
+    ],
+  ])('refuses %s', (_name, body) => {
+    expect(validRefusal(body)).toBe(false);
   });
 });

@@ -38,6 +38,8 @@ export type {
   ProjectAddRequest,
   ProjectListItem,
   ProjectListResponse,
+  ProjectRefusalBody,
+  ProjectRefusalCode,
 } from './projects.js';
 export type { Capability, CapabilityTable, SupportMatrix } from './capabilities.js';
 export type {

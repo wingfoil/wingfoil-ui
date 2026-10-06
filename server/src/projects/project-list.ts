@@ -8,7 +8,10 @@
  * directory), the processes (`git remote get-url origin`, then the duplicate remote, the CLI
  * discovery, `dna show` for the name) — and only then a short transaction on the store that checks
  * the duplicates again against the list re-read under its lock (another console) and appends the
- * entry. A clone checks the typed URL against the list **before** cloning.
+ * entry. A clone checks the typed URL against the list **before** cloning, refuses a working
+ * directory inside a listed project or the state directory, and runs no CLI of the cloned
+ * repository: it is listed under its folder name, whatever its availability (`cli-not-found`
+ * included).
  *
  * The `projects` event (spec-004 §6) is published after an add or a remove, and by {@link
  * ProjectList.check} when the list (another console) or an availability differs from the last one
@@ -18,7 +21,7 @@
 import { realpath, stat } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import type { Availability, ProjectEntry, ProjectListItem } from '@wingfoil-ui/contracts';
+import type { Availability, ProjectEntry, ProjectListItem, ProjectRefusalCode } from '@wingfoil-ui/contracts';
 import { CliOutputError, CliRefusedError, WingfoilCli, type CliLogger } from '../cli/adapter.js';
 import { CliNotFoundError, discoverCli, INSTALL_COMMAND } from '../cli/discovery.js';
 import type { EventBus } from '../events/bus.js';
@@ -41,15 +44,8 @@ export const DEFAULT_CHECK_MS = 10_000;
  */
 export const CLONE_LOCK_KEY = 'clone';
 
-/** Refusal codes of spec-006 §3. */
-export type RefusalCode =
-  | 'folder-not-found'
-  | 'not-wingfoil'
-  | 'already-listed'
-  | 'directory-not-empty'
-  | 'cli-not-found'
-  | 'state-dir-inside-project'
-  | 'git-refused';
+/** Refusal codes of spec-006 §3 (`contracts/api/projects.refusal.schema.json`). */
+export type RefusalCode = ProjectRefusalCode;
 
 /** A refused add or clone (422, spec-006 §3): the list and the file system are unchanged. */
 export class ProjectRefusal extends Error {
@@ -216,14 +212,24 @@ export class ProjectList {
     // Real path (through a symlinked parent too) once: the stored paths are real paths.
     const directory = await realpathLoose(this.absolute(shown, 'directory'));
     // The URL typed is compared before anything is cloned (spec-006 §3).
-    this.refuseListed(await this.options.store.reload(), url, directory);
+    this.refuseListed(await this.options.store.reload(), url, directory, shown);
+    // Never into the local state (REQ-ARC-08), decided by the user 2026-10-06.
+    if (isWithin(directory, await realpathLoose(this.options.stateDir))) {
+      throw new ProjectRefusal(
+        'inside-state-dir',
+        `The working directory lies inside the local state directory: ${shown}`,
+        {
+          path: shown,
+        },
+      );
+    }
     if (!(await CloneTarget.inspect(directory))) throw this.notEmpty(shown);
     await this.refuseStateDirInside(directory, shown);
     const git = await this.resolveGit();
     return this.options.writeLock.run(CLONE_LOCK_KEY, async () => {
       // Premises again: an earlier clone in the queue may have taken the folder or the remote.
       const listedBefore = await this.options.store.reload();
-      this.refuseListed(listedBefore, url, directory);
+      this.refuseListed(listedBefore, url, directory, shown);
       const target = await CloneTarget.inspect(directory);
       if (!target) throw this.notEmpty(shown);
       const known = new Set(listedBefore.map((p) => p.id));
@@ -242,7 +248,9 @@ export class ProjectList {
         }
         const root = await realpath(directory);
         await this.checkWingfoil(root, { source: 'clone' });
-        const name = await this.name(root, shown, signal);
+        // No CLI of the cloned repository runs at clone time (it is code just downloaded, decided by
+        // the user 2026-10-06): the folder name for now, the DNA name refreshed on the first open.
+        const name = path.basename(root);
         return await this.append({ path: root, name, remote: url });
       } catch (error) {
         // Listed by its path by an entry added during the clone (a local add won the race): that
@@ -292,9 +300,19 @@ export class ProjectList {
   }
 
   /** A clone: its remote, or its working directory (a listed folder that went missing), already listed. */
-  private refuseListed(listed: readonly ProjectEntry[], url: string, directory: string): void {
+  private refuseListed(listed: readonly ProjectEntry[], url: string, directory: string, shown: string): void {
     this.refuseSameRemote(listed, url);
     this.refuseSamePath(listed, directory);
+    // A clone never writes inside an existing repository (REQ-ARC-03), decided by the user 2026-10-06.
+    if (listed.some((p) => isWithin(directory, p.path))) {
+      throw new ProjectRefusal(
+        'directory-inside-project',
+        `The working directory lies inside a listed project: ${shown}`,
+        {
+          path: shown,
+        },
+      );
+    }
   }
 
   private refuseSameRemote(listed: readonly ProjectEntry[], remote: string): void {

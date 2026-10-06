@@ -289,3 +289,38 @@ e2e closure — scenarios that need a screen are proved here by API and unit tes
   - **N3** `cloneSourceProblem(url, platform)`: drive-letter and UNC paths are absolute on
     `win32` only (POSIX → 400); unit rows for both platforms.
 - Checks: see the coordinator report of this round.
+
+### open points decided by the user 2026-10-06
+
+- **Kept as built:** (20) a folder with `.wingfoil/` that is not a git repository → 422
+  `git-refused`; (22) clones queued on the write-lock key `clone`; (23) 201 with the item, `DELETE`
+  204, `detail.path` as typed, `~` = home, default `~/projects/<repo>`, a refused `dna show` at add →
+  folder name. The coordinator writes the spec-004 §3 / spec-006 §3 addendum on `main`.
+- **Changed** — red first (`b71c434`: the no-CLI clone answered 422 `cli-not-found`, the vendored
+  `node_modules/wingfoil` of a clone ran and wrote its marker, the five nested targets answered
+  `git-refused` after a git attempt), then green:
+  - (21) a clone whose project has no CLI is **kept** and listed: 201, `availability:
+    "cli-not-found"` with the install command.
+  - (28) at clone time **no CLI of the cloned repository runs** (no discovery-and-run, no `dna
+    show`): the item is named after its folder; the availability is computed from files only. Test:
+    a remote committing `node_modules/wingfoil/{package.json,bin.js}` whose script writes a marker
+    → after the clone, a list and a check, no marker; name = the folder (`board-x`).
+  - (27) a clone target inside a listed project's path → 422 `directory-inside-project {path}`;
+    inside the state directory → 422 `inside-state-dir {path}`; both on the real path (nearest
+    existing ancestor, `realpathLoose`), before any git process, re-checked in the clone queue.
+    Tests: inside a listed project's `.wingfoil/`, its `docs/`, through a symlinked parent; inside
+    the state directory, directly and through a symlinked parent — 0 git processes, tree unchanged.
+  - Contracts: `contracts/api/projects.refusal.schema.json` (the 422 envelope with every
+    spec-006 §3 code and its `detail`, the two new codes included; `git-refused` without `detail`),
+    types `ProjectRefusalCode`, `ProjectRefusalBody` (`contracts/src/projects.ts`, exported); the
+    route tests validate every refusal body against it; contract rows in
+    `test/contracts/api-projects-schema.test.ts`.
+- **Hand-over (task-012):** a cloned project's `name` is its folder name until the first open:
+  `GET /api/p/:pid` must `store.update(pid, { name, remote })` from `dna show` / `origin`
+  (spec-006 §2 "refreshed on every successful open") — then the next check publishes `projects`.
+  **task-014:** catalogue keys `error.directoryInsideProject`, `error.insideStateDir` (`{path}`).
+- **Checks** (quiet machine, load 2.8 at start → 17 during the run, `/proc/loadavg`): `tsc -b`,
+  `tsc -p test`, `eslint .`, `prettier --check .` clean · `docs:api` OK · `npm run -s
+  test:coverage` **70 files passed, 1 skipped; 1071 passed / 1 skipped**, 99 s, coverage
+  95.95 % statements / 89.18 % branches / 95.95 % functions / 98.02 % lines (`server/src/projects`
+  94.64 %).

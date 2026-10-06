@@ -65,6 +65,7 @@ const schema = async (file: string): Promise<object> =>
 ajv.addSchema(await schema('projects.item.schema.json'));
 const validList = ajv.compile(await schema('projects.list.response.schema.json'));
 const validItem = ajv.getSchema('https://wingfoil-ui.local/contracts/api/projects.item.schema.json')!;
+const validRefusal = ajv.compile(await schema('projects.refusal.schema.json'));
 
 let root: string;
 let template: Fixture;
@@ -249,6 +250,7 @@ async function refusal(
   expect(res.statusCode, JSON.stringify(res.json())).toBe(422);
   const body = res.json() as { error: { code: string; message: string; detail?: unknown } };
   expect(body.error.code).toBe(code);
+  expect(validRefusal(body), JSON.stringify(validRefusal.errors)).toBe(true);
   return body.error;
 }
 
