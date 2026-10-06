@@ -12,6 +12,7 @@ import { Ajv } from 'ajv';
 import type { FastifyInstance } from 'fastify';
 import { createHash } from 'node:crypto';
 import {
+  appendFile,
   cp,
   lstat,
   mkdir,
@@ -693,6 +694,29 @@ describe('POST /api/projects/clone (S-04, S-05.2, S-06, S-07)', () => {
     expect((await lstat(path.join(w.home, 'projects', 'kanban', '.wingfoil'))).isDirectory()).toBe(true);
     expect(await list(w)).toEqual([expect.objectContaining({ availability: 'cli-not-found' })]);
   });
+
+  it.skipIf(process.platform === 'win32')(
+    "runs no hook of the cloned repository, even with a relative core.hooksPath in the user's git configuration",
+    async () => {
+      const w = await world();
+      const marker = path.join(w.dir, 'hook-ran.txt');
+      const src = await copyFixture(template, path.join(w.dir, 'hooked'));
+      const hook = path.join(src.dir, '.githooks', 'post-checkout');
+      await mkdir(path.dirname(hook), { recursive: true });
+      await writeFile(hook, `#!/bin/sh\necho ran >> '${marker}'\n`, { mode: 0o755 });
+      await git(src.dir, ['add', '.githooks'], w.env);
+      await git(src.dir, ['-c', 'user.name=T', '-c', 'user.email=t@example.test', 'commit', '-qm', 'hooks'], w.env);
+      await git(src.dir, ['push', '-q', 'origin', 'HEAD'], w.env);
+      // The user's global configuration: hooks from the working tree (a husky-like set-up).
+      await appendFile(w.env.GIT_CONFIG_GLOBAL!, '[core]\n\thooksPath = .githooks\n');
+      const res = await clone(w, { url: `file://${src.remoteDir}`, directory: '~/projects/hooked' });
+      expect(res.statusCode, res.body).toBe(201);
+      expect((await lstat(path.join(w.home, 'projects', 'hooked', '.githooks', 'post-checkout'))).isFile()).toBe(true);
+      await list(w);
+      await w.projects.check();
+      await expect(lstat(marker)).rejects.toThrow();
+    },
+  );
 
   it('runs no CLI of the cloned repository: a committed node_modules/wingfoil never runs, name = folder', async () => {
     const w = await world();
