@@ -2,7 +2,8 @@
  * Error answers rendered from the catalogue (spec-008 §4): `error.` + the code in lowerCamelCase,
  * with the envelope's `detail` as the arguments; the envelope's `message` is never shown, except
  * the tool output of `cli-refused` and `git-refused`, shown verbatim inside the catalogue frame.
- * The table holds every code of spec-004 §4–§5 and spec-006 §3 (decision W3-5).
+ * The table holds every code of spec-004 §4–§5 and spec-006 §3 (decision W3-5), plus the
+ * client-side `unreachable` (no answer, W3-12).
  */
 import type { MessageDescriptor } from 'react-intl';
 import { defineMessages } from 'react-intl';
@@ -32,6 +33,8 @@ const MESSAGES = defineMessages({
   'state-dir-inside-project': { id: 'error.stateDirInsideProject' },
   'directory-inside-project': { id: 'error.directoryInsideProject' },
   'inside-state-dir': { id: 'error.insideStateDir' },
+  // Client-side: no answer at all (W3-12).
+  unreachable: { id: 'error.unreachable' },
 });
 
 /** An error code the catalogue renders. */

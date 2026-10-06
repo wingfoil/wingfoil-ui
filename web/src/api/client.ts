@@ -9,7 +9,10 @@ import { markSessionLost } from '../session/session.js';
 /** Header of the repository state on read answers. */
 export const REPO_STATE_HEADER = 'X-Repo-State';
 
-/** An error answer of the API (spec-004 §5). */
+/** Client-side code of a request that got no answer (network failure, console stopped). */
+export const UNREACHABLE = 'unreachable';
+
+/** An error answer of the API (spec-004 §5), or {@link UNREACHABLE} with status 0. */
 export class ApiError extends Error {
   constructor(
     /** HTTP status. */
@@ -53,13 +56,21 @@ export async function apiRequest<T>(
   if (!path.startsWith('/api/')) throw new Error(`not a same-origin API path: ${path}`);
   const headers: Record<string, string> = { Accept: 'application/json' };
   if (body !== undefined) headers['Content-Type'] = 'application/json';
-  const response = await fetch(path, {
-    method,
-    credentials: 'same-origin',
-    headers,
-    ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
-    ...(signal ? { signal } : {}),
-  });
+  let response: Response;
+  try {
+    response = await fetch(path, {
+      method,
+      credentials: 'same-origin',
+      headers,
+      ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
+      ...(signal ? { signal } : {}),
+    });
+  } catch (error) {
+    // An aborted request stays an abort; any other failure is the network: the console is not
+    // answering (W3-12) — never rendered as `internal`.
+    if (signal?.aborted) throw error;
+    throw new ApiError(0, UNREACHABLE, 'The console cannot be reached', undefined);
+  }
   const text = response.status === 204 ? '' : await response.text();
   let parsed: unknown;
   try {

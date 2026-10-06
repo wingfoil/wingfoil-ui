@@ -11,7 +11,17 @@ import { resetSession } from '../../../web/src/session/session.js';
 import { renderApp, serverInfo, stubApi } from '../shell/render.js';
 
 const keys = keyCatalogue(en);
-const KEY = /^[a-z][a-zA-Z0-9]*(\.[a-z][a-zA-Z0-9]*)+( \{[^}]+\}| \S+)*$/;
+/** One pattern per key-catalogue text: the key and its argument placeholders, each filled by data. */
+const PATTERNS = Object.values(keys).map(
+  (text) =>
+    new RegExp(
+      `^${text
+        .split(/\{[^}]+\}/)
+        .map((part) => part.replace(/[.*+?^$()|[\]\\]/g, '\\$&'))
+        .join('.+')}$`,
+    ),
+);
+const isKeyText = (t: string): boolean => PATTERNS.some((p) => p.test(t));
 
 /** Visible text nodes and accessible-name attributes of the document. */
 function texts(): string[] {
@@ -56,7 +66,9 @@ it('renders only keys on the start page, its warnings and the Add project dialog
   await screen.findByText('state.corruptKept state.json.corrupt-x');
   await user.click(screen.getByRole('button', { name: 'projects.start.add' }));
   await screen.findByRole('dialog', { name: 'projects.add.title' });
-  const offending = texts().filter((t) => !KEY.test(t));
+  const offending = texts().filter((t) => !isKeyText(t));
+  expect(isKeyText('Projects')).toBe(false);
+  expect(isKeyText('state.corruptKept state.json.corrupt-x')).toBe(true);
   expect(offending).toEqual([]);
   expect(document.title).toBe('title.projects');
 });

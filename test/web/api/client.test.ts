@@ -83,3 +83,20 @@ it('passes an abort signal', async () => {
   const [, init] = fetchFn.mock.calls[0] as unknown as [string, RequestInit];
   expect(init.signal).toBe(controller.signal);
 });
+
+it('turns a network failure into the client-side unreachable error, never internal', async () => {
+  vi.stubGlobal('fetch', async () => {
+    throw new TypeError('Failed to fetch');
+  });
+  await expect(apiGet('/api/server')).rejects.toMatchObject({ status: 0, code: 'unreachable' });
+  expect(sessionStatus()).toBe('connecting');
+});
+
+it('keeps an abort an abort', async () => {
+  const controller = new AbortController();
+  controller.abort();
+  vi.stubGlobal('fetch', async () => {
+    throw new DOMException('aborted', 'AbortError');
+  });
+  await expect(apiGet('/api/server', controller.signal)).rejects.toMatchObject({ name: 'AbortError' });
+});

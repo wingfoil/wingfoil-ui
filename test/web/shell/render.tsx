@@ -32,7 +32,7 @@ export function serverInfo(warnings: { key: string; args: Record<string, string>
 export function renderApp(
   path = '/',
   messages?: Record<string, string>,
-): RenderResult & { router: ReturnType<typeof createAppRouter> } {
+): RenderResult & { router: ReturnType<typeof createAppRouter>; queryClient: ReturnType<typeof createQueryClient> } {
   const queryClient = createQueryClient();
   const router = createAppRouter({ queryClient, history: createMemoryHistory({ initialEntries: [path] }) });
   const result = render(
@@ -42,5 +42,5 @@ export function renderApp(
       {...(messages ? { messages: messages as Record<MessageId, string> } : {})}
     />,
   );
-  return { ...result, router };
+  return { ...result, router, queryClient };
 }

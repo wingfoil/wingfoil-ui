@@ -3,8 +3,17 @@
 // (also with an unchanged state), `projects` the project list, a reconnect everything; a closed
 // stream is re-created with backoff; a lost session stops it. No polling.
 import { QueryClient } from '@tanstack/react-query';
-import { afterEach, beforeEach, expect, it, vi } from 'vitest';
-import { startEventStream, stopEventStream } from '../../../web/src/api/events.js';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { renderHook } from '@testing-library/react';
+import {
+  currentEventStream,
+  onServerEvent,
+  startEventStream,
+  stopEventStream,
+  useReachability,
+  useServerEvent,
+  UNREACHABLE_AFTER_MS,
+} from '../../../web/src/api/events.js';
 import { queryKeys } from '../../../web/src/api/query-keys.js';
 import { markSessionLost, resetSession } from '../../../web/src/session/session.js';
 
@@ -75,8 +84,12 @@ const stale = (): string[] =>
     .map((q) => JSON.stringify(q.queryKey))
     .sort();
 
-function start(probe = vi.fn(async () => undefined)) {
-  return startEventStream(client, { EventSourceImpl: FakeEventSource as unknown as typeof EventSource, probe });
+function start(probe = vi.fn(async () => undefined), unreachableAfterMs?: number) {
+  return startEventStream(client, {
+    EventSourceImpl: FakeEventSource as unknown as typeof EventSource,
+    probe,
+    ...(unreachableAfterMs !== undefined ? { unreachableAfterMs } : {}),
+  });
 }
 
 it('opens one EventSource on /api/events per page', () => {
@@ -199,4 +212,80 @@ it('reconnects after a default probe that the console answers', async () => {
   await vi.advanceTimersByTimeAsync(1_000);
   expect(FakeEventSource.instances).toHaveLength(2);
   vi.unstubAllGlobals();
+});
+
+it('lets a subscriber registered before the stream starts receive its events, without creating it', () => {
+  const handler = vi.fn();
+  const off = onServerEvent('settings', handler);
+  expect(currentEventStream()).toBeUndefined();
+  expect(FakeEventSource.instances).toHaveLength(0);
+  const stream = start();
+  expect(currentEventStream()).toBe(stream);
+  latest().emit('settings', '{}');
+  off();
+  latest().emit('settings', '{}');
+  expect(handler).toHaveBeenCalledTimes(1);
+});
+
+it('useServerEvent subscribes while mounted and calls the latest handler', () => {
+  start();
+  const first = vi.fn();
+  const second = vi.fn();
+  const { rerender, unmount } = renderHook(({ h }) => useServerEvent('repo', h), { initialProps: { h: first } });
+  rerender({ h: second });
+  latest().emit('repo', JSON.stringify({ pid: 'p_a', state: 's' }));
+  expect(first).not.toHaveBeenCalled();
+  expect(second).toHaveBeenCalledWith({ pid: 'p_a', state: 's' });
+  unmount();
+  latest().emit('repo', JSON.stringify({ pid: 'p_a', state: 's' }));
+  expect(second).toHaveBeenCalledTimes(1);
+  expect(FakeEventSource.instances).toHaveLength(1);
+});
+
+describe('reachability (W3-12)', () => {
+  it('waits 10 s by default', () => {
+    expect(UNREACHABLE_AFTER_MS).toBe(10_000);
+  });
+
+  it('turns unreachable when the stream stays connecting past the threshold, reachable again on open', async () => {
+    start(undefined, 3_000);
+    const { result } = renderHook(() => useReachability());
+    latest().open();
+    latest().fail(0);
+    await vi.advanceTimersByTimeAsync(2_999);
+    expect(result.current).toBe('reachable');
+    await vi.advanceTimersByTimeAsync(1);
+    expect(result.current).toBe('unreachable');
+    latest().open();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(result.current).toBe('reachable');
+    expect(stale()).toHaveLength(4);
+  });
+
+  it('counts from the first failure across re-created streams', async () => {
+    start(undefined, 5_000);
+    const { result } = renderHook(() => useReachability());
+    latest().open();
+    latest().fail(2);
+    await vi.advanceTimersByTimeAsync(1_000);
+    latest().fail(2);
+    await vi.advanceTimersByTimeAsync(4_000);
+    expect(result.current).toBe('unreachable');
+  });
+
+  it('is unreachable when the first stream never opens', async () => {
+    start(undefined, 1_000);
+    const { result } = renderHook(() => useReachability());
+    await vi.advanceTimersByTimeAsync(1_000);
+    expect(result.current).toBe('unreachable');
+  });
+
+  it('is back to reachable when the stream stops (the lost-session page takes over)', async () => {
+    start(undefined, 1_000);
+    const { result } = renderHook(() => useReachability());
+    await vi.advanceTimersByTimeAsync(1_000);
+    markSessionLost();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(result.current).toBe('reachable');
+  });
 });

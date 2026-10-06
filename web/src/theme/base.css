@@ -258,7 +258,7 @@ p {
   align-items: flex-start;
   justify-content: center;
   padding: 10vh var(--space-4) var(--space-4);
-  background: color-mix(in srgb, var(--color-text) 35%, transparent);
+  background: var(--color-backdrop);
 }
 
 .modal {
@@ -308,6 +308,11 @@ p {
   border-radius: var(--radius-md);
   background: var(--tone-human-bg);
   color: var(--tone-human-fg);
+}
+
+.warning-danger {
+  background: var(--tone-attention-bg);
+  color: var(--tone-attention-fg);
 }
 
 .warning .button {

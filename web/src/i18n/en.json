@@ -23,6 +23,7 @@
   "error.staleCopy": "Your working copy is behind, diverged from or detached from its remote branch",
   "error.stateDirInsideProject": "The state directory {stateDir} of WingFoil UI lies inside the project {path}",
   "error.unauthenticated": "This page is no longer connected to the console",
+  "error.unreachable": "The console cannot be reached: check that it is still running in its terminal.",
   "error.unsupportedVersion": "The WingFoil version of this project is outside the supported range",
   "projects.add.title": "Add project",
   "projects.start.add": "Add project…",
@@ -37,13 +38,15 @@
   "shell.notFound.back": "Back to the projects",
   "shell.notFound.title": "Page not found",
   "shell.productName": "WingFoil UI",
-  "shell.session.lost.body": "This page is no longer connected to the WingFoil UI console: the console was stopped or started again. Open the URL printed in the terminal where you started it.",
-  "shell.session.lost.title": "Not connected to the console",
+  "shell.session.lost.body": "The console was stopped and started again, or this page belongs to another console. Open the URL printed in the terminal where you started the console.",
+  "shell.session.lost.title": "This page is no longer recognised by the console",
+  "shell.unreachable.body": "Cannot reach the console. Check that it is still running in the terminal where you started it, or start it again and open the URL it prints. This page reconnects by itself when the console answers again.",
+  "shell.unreachable.label": "Connection to the console",
   "shell.warnings.dismiss": "Dismiss this warning",
   "shell.warnings.label": "Console warnings",
   "state.corruptKept": "The project list could not be read: it was kept as {file} and the console started with an empty list.",
   "state.newerVersion": "Project list saved by a newer WingFoil UI — changes are not saved",
   "title.notFound": "Page not found — WingFoil UI",
   "title.projects": "Projects — WingFoil UI",
-  "title.sessionLost": "Not connected — WingFoil UI"
+  "title.sessionLost": "Session ended — WingFoil UI"
 }

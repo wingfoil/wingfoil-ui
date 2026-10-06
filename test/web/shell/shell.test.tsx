@@ -3,10 +3,11 @@
 // the project switcher and "Add project…", the dialog frame, the shell warnings of GET
 // /api/server (spec-006 §4), the lost-session page, the project layout and the page title.
 import { createMemoryHistory, createRootRoute, createRouter, RouterProvider } from '@tanstack/react-router';
-import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
+import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import { userEvent } from '@testing-library/user-event';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
-import { stopEventStream } from '../../../web/src/api/events.js';
+import { QueryClient } from '@tanstack/react-query';
+import { startEventStream, stopEventStream } from '../../../web/src/api/events.js';
 import { AppIntlProvider } from '../../../web/src/i18n/index.js';
 import { markSessionLost, resetSession } from '../../../web/src/session/session.js';
 import { ProjectNav } from '../../../web/src/routes/project.js';
@@ -113,16 +114,20 @@ it('replaces the page with the lost-session notice when the session is lost', as
   renderApp('/');
   await screen.findByRole('heading', { level: 1, name: 'Projects' });
   markSessionLost();
-  expect(await screen.findByRole('heading', { level: 1, name: 'Not connected to the console' })).toBeTruthy();
-  expect(screen.getByText(/Open the URL printed in the terminal/)).toBeTruthy();
+  expect(
+    await screen.findByRole('heading', { level: 1, name: 'This page is no longer recognised by the console' }),
+  ).toBeTruthy();
+  expect(screen.getByText(/stopped and started again, or this page belongs to another console/)).toBeTruthy();
   expect(screen.queryByRole('button', { name: 'Add project…' })).toBeNull();
-  await waitFor(() => expect(document.title).toBe('Not connected — WingFoil UI'));
+  await waitFor(() => expect(document.title).toBe('Session ended — WingFoil UI'));
 });
 
 it('loses the session when GET /api/server answers 401', async () => {
   stubApi({ '/api/server': { status: 401, body: { error: { code: 'unauthenticated', message: 'x' } } } });
   renderApp('/');
-  expect(await screen.findByRole('heading', { level: 1, name: 'Not connected to the console' })).toBeTruthy();
+  expect(
+    await screen.findByRole('heading', { level: 1, name: 'This page is no longer recognised by the console' }),
+  ).toBeTruthy();
 });
 
 it('shows a not-found page with a way back for an unknown path', async () => {
@@ -170,4 +175,55 @@ it('renders the sidebar groups with links to the views of the current project', 
   const nav = await screen.findByRole('navigation', { name: 'Project views' });
   expect(within(nav).getByText('Work')).toBeTruthy();
   expect(within(nav).getByRole('link', { name: 'Projects' }).getAttribute('href')).toBe('/p/p_x');
+});
+
+it('closes the Add project dialog when the session is lost', async () => {
+  stubApi({ '/api/server': serverInfo() });
+  const user = userEvent.setup();
+  renderApp('/');
+  await user.click(await screen.findByRole('button', { name: 'Add project…' }));
+  await screen.findByRole('dialog');
+  markSessionLost();
+  await screen.findByRole('heading', { level: 1, name: 'This page is no longer recognised by the console' });
+  expect(screen.queryByRole('dialog')).toBeNull();
+});
+
+it('shows the unreachable banner while the event stream cannot open, and hides it when it opens (W3-12)', async () => {
+  stubApi({ '/api/server': serverInfo() });
+  const sources: { onopen: (() => void) | null }[] = [];
+  class NeverOpen {
+    static readonly CLOSED = 2;
+    readyState = 0;
+    onopen: (() => void) | null = null;
+    onerror: (() => void) | null = null;
+    constructor() {
+      sources.push(this);
+    }
+    addEventListener(): void {}
+    close(): void {}
+  }
+  renderApp('/');
+  await screen.findByRole('heading', { level: 1, name: 'Projects' });
+  startEventStream(new QueryClient(), {
+    EventSourceImpl: NeverOpen as unknown as typeof EventSource,
+    unreachableAfterMs: 50,
+  });
+  const region = await screen.findByRole('region', { name: 'Connection to the console' });
+  expect(within(region).getByRole('alert').textContent).toMatch(/^Cannot reach the console\./);
+  expect(screen.getByRole('heading', { level: 1, name: 'Projects' })).toBeTruthy();
+  act(() => sources[0]!.onopen!());
+  await waitFor(() => expect(screen.queryByRole('region', { name: 'Connection to the console' })).toBeNull());
+});
+
+it('shows a warning again when it comes back with other arguments after a dismissal', async () => {
+  const api = { '/api/server': serverInfo([{ key: 'state.corruptKept', args: { file: 'a' } }]) };
+  stubApi(api);
+  const user = userEvent.setup();
+  const { queryClient } = renderApp('/');
+  const region = await screen.findByRole('region', { name: 'Console warnings' });
+  await user.click(within(region).getByRole('button', { name: 'Dismiss this warning' }));
+  await waitFor(() => expect(screen.queryByRole('region', { name: 'Console warnings' })).toBeNull());
+  stubApi({ '/api/server': serverInfo([{ key: 'state.corruptKept', args: { file: 'b' } }]) });
+  await act(() => queryClient.invalidateQueries());
+  expect(await screen.findByText(/kept as b and/)).toBeTruthy();
 });
