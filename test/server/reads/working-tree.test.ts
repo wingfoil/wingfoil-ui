@@ -35,6 +35,7 @@ function recording(): TreeFs & { read: string[] } {
     size: (f) => nodeTreeFs.size(f),
     kind: (f) => nodeTreeFs.kind(f),
     list: (d) => nodeTreeFs.list(d),
+    links: (f) => nodeTreeFs.links(f),
   };
 }
 
@@ -149,7 +150,8 @@ describe('readWorkingTreeFile (REQ-SEC-06)', () => {
     ['src/code.md', 'not-allowed'],
     ['docs/node_modules/x/dep.md', 'not-allowed'],
     ['docs/missing.md', 'missing'],
-    ['docs/01_vision', 'missing'],
+    ['docs/01_vision', 'not-allowed'],
+    ['docs/01_vision/missing.md', 'missing'],
   ] as const)('refuses %s (%s) without reading it', async (rel, kind) => {
     const fs = recording();
     const refusal = (await readWorkingTreeFile(root, rel, scope(), fs).catch((e: unknown) => e)) as WorkingTreeError;

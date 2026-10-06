@@ -5,10 +5,12 @@
  * the repository lexically, then by `realpath`, before anything is read, so that neither `..`, an
  * absolute path nor a symlink leads out (refused as `outside`, with 0 bytes of the target read).
  *
- * v0.1 serves documents only (spec-004 §3 "v0.1 (docs)"): the content of a file under `paths.docs`
- * that is not a Memory file (spec-002 §3 Memory directories — Memory and plan files are read only
- * at the paths the CLI returns, REQ-ARC-04), nor under `.wingfoil/`, `.git` or `node_modules`.
- * Nothing here writes.
+ * v0.1 serves documents only (spec-004 §3 "v0.1 (docs)"): Markdown files (`.md`, `.markdown`)
+ * under `paths.docs` that are not Memory files (spec-002 §3 Memory directories — Memory and plan
+ * files are read only at the paths the CLI returns, REQ-ARC-04), nor under a governance folder
+ * (`.wingfoil`, `paths.governance`), `.git` or `node_modules`, nor hard-linked; the tree lists the
+ * documentation folders only. Folder names are compared in NFC. The index lists the working tree
+ * as it is, git-ignored documents included (the project's documents on disk). Nothing here writes.
  */
 import type { Dirent } from 'node:fs';
 import { lstat, readdir } from 'node:fs/promises';
@@ -24,6 +26,8 @@ export interface TreeFs extends ReadFs {
   kind(file: string): Promise<EntryKind>;
   /** The entries of the directory `dir`, by name and kind. */
   list(dir: string): Promise<{ name: string; kind: EntryKind }[]>;
+  /** The number of hard links of `file` (a document linked elsewhere is not served). */
+  links(file: string): Promise<number>;
 }
 
 function kindOf(entry: Pick<Dirent, 'isFile' | 'isDirectory' | 'isSymbolicLink'>): EntryKind {
@@ -38,6 +42,7 @@ export const nodeTreeFs: TreeFs = {
   ...nodeReadFs,
   kind: async (file) => kindOf(await lstat(file)),
   list: async (dir) => (await readdir(dir, { withFileTypes: true })).map((d) => ({ name: d.name, kind: kindOf(d) })),
+  links: async (file) => (await lstat(file)).nlink,
 };
 
 /** Why a working-tree path is refused. */
@@ -66,47 +71,66 @@ export class WorkingTreeError extends Error {
 
 /** Where documents are looked for, and what is never served. */
 export interface DocumentationScope {
-  /** `paths.docs`, normalised (POSIX, no trailing `/`, `.` for the root), inside the project. */
+  /** `paths.docs`, normalised (POSIX, NFC, no trailing `/`, `.` for the root), inside the project. */
   roots: string[];
   /** The Memory directories (spec-002 §3), normalised. */
   memory: string[];
+  /** The governance folders: `.wingfoil` and `paths.governance`, normalised. */
+  governance: string[];
 }
 
 /** Largest number of entries the documentation index visits. */
 export const MAX_DOC_ENTRIES = 20_000;
 
-/** File names of documents. */
+/** File names of documents: the only files served in v0.1. */
 const DOCUMENT = /\.(md|markdown)$/i;
 
-/** Folders never listed nor served, at any depth (`.git` is never listed either). */
+/** Folders never listed nor served, at any depth. */
 const HIDDEN_DIRS = new Set(['.git', 'node_modules']);
 
 /** The WingFoil folder: read only through the CLI and the allow-list (REQ-ARC-04). */
 const GOVERNANCE_DIR = '.wingfoil';
 
+/** `rel` normalised (POSIX, NFC, no trailing `/`), or `undefined` when it leaves the project. */
 function normalise(rel: string): string | undefined {
   if (rel.includes('\0') || path.posix.isAbsolute(rel) || path.win32.isAbsolute(rel)) return undefined;
-  const clean = path.posix.normalize(rel.replace(/\/+$/, '') || '.');
+  const clean = path.posix.normalize(rel.normalize('NFC').replace(/\/+$/, '') || '.');
   return clean === '..' || clean.startsWith('../') ? undefined : clean;
 }
 
-/** The scope from `paths.docs` and the Memory directories; folders leaving the project are dropped. */
+/**
+ * The scope from `paths.docs`, the Memory directories and `paths.governance` (`.wingfoil` always);
+ * folders leaving the project are dropped.
+ */
 export function documentationScope(input: {
   docs: readonly string[];
   memoryDirectories: readonly string[];
+  governance?: readonly string[];
 }): DocumentationScope {
   const keep = (list: readonly string[]) => list.map(normalise).filter((d): d is string => d !== undefined);
-  return { roots: [...new Set(keep(input.docs))], memory: keep(input.memoryDirectories) };
+  return {
+    roots: [...new Set(keep(input.docs))],
+    memory: keep(input.memoryDirectories),
+    governance: [...new Set([GOVERNANCE_DIR, ...keep(input.governance ?? [])])],
+  };
 }
 
 const under = (rel: string, dir: string): boolean => dir === '.' || rel === dir || rel.startsWith(`${dir}/`);
 
-/** True when the normalised project-relative `rel` is a file the documentation scope serves. */
+/**
+ * True when the folder `rel` (normalised, project-relative) is a documentation folder: under a root,
+ * not a Memory or governance folder, not `.git` or `node_modules`.
+ */
+export function inDocumentationFolder(scope: DocumentationScope, rel: string): boolean {
+  const clean = rel.normalize('NFC');
+  if (clean.split('/').some((s) => HIDDEN_DIRS.has(s))) return false;
+  if (scope.memory.some((dir) => under(clean, dir)) || scope.governance.some((dir) => under(clean, dir))) return false;
+  return scope.roots.some((root) => under(clean, root));
+}
+
+/** True when the normalised project-relative `rel` is a document the scope serves (`.md`, `.markdown`). */
 export function inDocumentationScope(scope: DocumentationScope, rel: string): boolean {
-  const segments = rel.split('/');
-  if (segments.some((s) => HIDDEN_DIRS.has(s)) || segments[0] === GOVERNANCE_DIR) return false;
-  if (scope.memory.some((dir) => under(rel, dir))) return false;
-  return scope.roots.some((root) => under(rel, root));
+  return DOCUMENT.test(rel) && inDocumentationFolder(scope, rel);
 }
 
 /** `rel` of `real` against the real root, POSIX. */
@@ -155,10 +179,10 @@ export async function documentationIndex(
       if (++visited > MAX_DOC_ENTRIES) return;
       const rel = dir === '.' ? entry.name : `${dir}/${entry.name}`;
       if (entry.kind === 'directory') {
-        if (HIDDEN_DIRS.has(entry.name) || rel === GOVERNANCE_DIR || scope.memory.some((m) => under(rel, m))) continue;
-        await walk(rel, path.join(abs, entry.name));
-      } else if (entry.kind === 'file' && DOCUMENT.test(entry.name) && inDocumentationScope(scope, rel)) {
-        found.add(rel);
+        if (inDocumentationFolder(scope, rel)) await walk(rel, path.join(abs, entry.name));
+      } else if (entry.kind === 'file' && inDocumentationScope(scope, rel)) {
+        // A hard-linked file may be a file of anywhere else: not a document of the project.
+        if ((await fs.links(path.join(abs, entry.name)).catch(() => 2)) === 1) found.add(rel);
       }
     }
   };
@@ -191,21 +215,31 @@ export interface TreeListing {
 }
 
 /**
- * The entries of the directory `rel` (`""`: the root), by name, confined to the repository; `.git`
- * is neither listed nor listable (`not-allowed`).
+ * The entries of the directory `rel` — in v0.1 a documentation folder (spec-004 §3 "v0.1 (docs)"),
+ * else `not-allowed` — by name: its documentation folders and documents. Confined to the
+ * repository (lexically, then by `realpath`) before the scope is judged.
  */
-export async function listDirectory(root: string, rel: string, fs: TreeFs = nodeTreeFs): Promise<TreeListing> {
+export async function listDirectory(
+  root: string,
+  rel: string,
+  scope: DocumentationScope,
+  fs: TreeFs = nodeTreeFs,
+): Promise<TreeListing> {
   const lexical = rel === '' ? '.' : normalise(rel);
   if (lexical === undefined) throw new WorkingTreeError('outside', rel);
   const real = lexical === '.' ? await fs.realpath(root) : await confine(root, rel, fs);
-  const inRepo = relativeTo(await fs.realpath(root), real);
-  if ([...lexical.split('/'), ...inRepo.split('/')].includes('.git')) throw new WorkingTreeError('not-allowed', rel);
+  const resolved = relativeTo(await fs.realpath(root), real);
+  if (!inDocumentationFolder(scope, lexical) || !inDocumentationFolder(scope, resolved)) {
+    throw new WorkingTreeError('not-allowed', rel);
+  }
   if ((await fs.kind(real).catch(() => 'missing')) !== 'directory') throw new WorkingTreeError('missing', rel);
   const base = lexical === '.' ? '' : lexical;
   const entries = (await fs.list(real))
-    .filter((e) => e.name !== '.git')
-    .sort((a, b) => (a.name < b.name ? -1 : 1))
-    .map((e) => ({ name: e.name, path: base === '' ? e.name : `${base}/${e.name}`, kind: e.kind }));
+    .map((e) => ({ name: e.name, path: base === '' ? e.name : `${base}/${e.name}`, kind: e.kind }))
+    .filter((e) =>
+      e.kind === 'directory' ? inDocumentationFolder(scope, e.path) : inDocumentationScope(scope, e.path),
+    )
+    .sort((a, b) => (a.name < b.name ? -1 : 1));
   return { path: base, entries };
 }
 
@@ -234,10 +268,13 @@ export async function readWorkingTreeFile(
   if (lexical === undefined || rel === '') throw new WorkingTreeError('outside', rel);
   const real = await confine(root, rel, fs);
   const resolved = relativeTo(await fs.realpath(root), real);
-  if (!inDocumentationScope(scope, lexical) || !inDocumentationScope(scope, resolved)) {
+  // A trailing `/` names a folder: never a document.
+  if (rel.endsWith('/') || !inDocumentationScope(scope, lexical) || !inDocumentationScope(scope, resolved)) {
     throw new WorkingTreeError('not-allowed', rel);
   }
   if ((await fs.kind(real).catch(() => 'missing')) !== 'file') throw new WorkingTreeError('missing', rel);
+  // A hard link may be a file of anywhere else on the disk (REQ-SEC-06).
+  if ((await fs.links(real).catch(() => 2)) !== 1) throw new WorkingTreeError('not-allowed', rel);
   let content: string;
   try {
     content = await readConfined(root, root, rel, fs);

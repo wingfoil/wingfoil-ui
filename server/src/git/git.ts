@@ -9,7 +9,7 @@
  * | HEAD and the working tree, in one process | `git status --porcelain=v2 --branch -z --untracked-files=all` |
  * | the effective identity (repository, else global configuration) | `git config user.email` |
  * | the layout, once per project | `git rev-parse --show-prefix --absolute-git-dir --git-common-dir` |
- * | the Memory events, once per HEAD (spec-002 §3) | `git log --no-color --no-renames --no-ext-diff --unified=0 -p --format=… -- <Memory directories>` |
+ * | the Memory events, once per HEAD (spec-002 §3) | `git log --no-color --no-renames --no-ext-diff --no-textconv --unified=0 -p --format=… -- <Memory directories>` |
  *
  * Git is never used to change anything here.
  */
@@ -33,10 +33,14 @@ export const GIT_READ_ARGS = {
     '--no-optional-locks',
     '-c',
     'core.quotePath=false',
+    // No signature check output (`log.showSignature`) in the stream; no textconv or external diff.
+    '-c',
+    'log.showSignature=false',
     'log',
     '--no-color',
     '--no-renames',
     '--no-ext-diff',
+    '--no-textconv',
     '--unified=0',
     '-p',
     `--format=${MEMORY_LOG_FORMAT}`,

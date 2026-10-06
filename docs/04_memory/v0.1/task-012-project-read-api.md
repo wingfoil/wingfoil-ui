@@ -140,13 +140,15 @@ Added during the Wave 2 dev-loops (plan `dev-loop-rel-v0.1-plan`, Session 2; dec
   same view: `memoryTypes()`, `dna()` members (none when it fails), `identified` (watched email ×
   members), `version {supported: inRange, range: "<min>–<max>"}`, `localChanges` (ids of marked
   matches).
-- **Where:** `server/src/http/project-routes.ts` (the routes), `server/src/http/files.ts`
-  (docs index, tree, confined content), `server/src/git/memory-log.ts` (parse),
+- **Where:** `server/src/http/project-routes.ts` and `server/src/http/server-route.ts` (the
+  routes), `server/src/reads/working-tree.ts` (docs index, tree, confined content),
+  `server/src/git/memory-log.ts` (parse),
   `server/src/identity/snapshot-identity.ts` (watched identity source), `contracts/api/*.schema.json`
   + `contracts/src/api.ts` types; `runLauncher` registers the routes in the same `register`
   callback with the shared `snapshots`, store, identity source and UI version.
 - **AC classification (T1):**
-  - TT-SEC-06 / R-09.3 (API half) — **red-first**: unit (`test/server/http/files.test.ts`, fs spy):
+  - TT-SEC-06 / R-09.3 (API half) — **red-first**: unit (`test/server/reads/working-tree.test.ts`,
+    recording read port):
     `..`, `%2e%2e`, `%2E%2E%2F`, absolute, `/etc/hosts`, NUL, a symlink to a file and to a folder
     outside → 404 `{kind:"outside"}`, the target never opened; bin (`local-security.test.ts`, custom
     fixture seeded): 100 % of the cases 404/outside with 0 bytes of the target in the body.
@@ -258,3 +260,49 @@ Added during the Wave 2 dev-loops (plan `dev-loop-rel-v0.1-plan`, Session 2; dec
   / 98.07 % lines (`server/src/http` 96.31 %, `memory-log.ts` 96.69 %, `working-tree.ts` 88.34 %) ·
   `test:e2e` 3/3 · `check_tasks.py` OK · `npm run test:timing` 3/3 at load 10.6 → 8.3:
   REQ-PERF-03 20/20, max 687 ms (now on the real routes); REQ-PERF-06 339–503 ms; TypeDoc 4573 ms.
+
+### review round 1 (2026-10-06)
+
+- Independent review: **FAIL** (1 major, minors, nits). Finding 2 (name collision with task-008)
+  solved on 008's side; finding 9 (`confine.ts` read window, task-005 code) left to the
+  coordinator. Fixed test-first — red `18b7a27` (36 failing for the expected reasons: the old
+  framing parsed nothing of the NUL-framed records, `MemoryLogFormatError` missing, `docs/hard.md`
+  in the index, `listDirectory` without scope, `eventsError` absent / a 500 on a failed `git log`):
+  - **1 (major, security) framing.** A `--reason` holding `\x1e`/`\x1f`/`\x1d` could forge a whole
+    event or a diff block. Now as WingFoil bug-050 / task-086: `MEMORY_LOG_FORMAT =
+    '%H%x00%aI%x00%an <%ae>%x00%s%x00%b%x00'` (git refuses a NUL in a commit message), records
+    recovered by arity, the patch = the piece after the body up to the next record's sha
+    (`\n<sha>$`), every sha (`^[0-9a-f]{40}$`, or 64 for SHA-256 repositories) and date validated; an
+    output of another shape → `MemoryLogFormatError` (the parse fails as a whole, never guessed).
+    Tests: whole-event forgery in a reason, a `\x1d`-injected diff/status block in a body (ignored,
+    also when the real patch has no status), several records, malformed outputs. **Pending spec
+    amendment:** spec-002 §3 still prescribes the `%x1e`/`%x1f`/`%x1d` format literally (the
+    coordinator proposes the amendment to the user). Residual: a text file with a NUL beyond git's
+    8000-byte binary check would put a NUL in the patch — the arity/sha/date validation then
+    refuses the output (eventsError), it cannot forge an event silently.
+  - **3** `/files/content` serves only documents (`.md`, `.markdown`, `inDocumentationScope`); a
+    trailing `/` and a hard-linked file (`nlink > 1`, `TreeFs.links`) → `not-allowed`; also with
+    `paths.docs: ['.']` (`package.json` refused). Hard-linked files are left out of the index too.
+  - **4** `/files/tree` lists only documentation folders (`inDocumentationFolder`: under a docs root,
+    not Memory/governance/`.git`/`node_modules`), entries filtered to documentation folders and
+    documents; elsewhere (the root included, unless `paths.docs` has `.`) → `not-allowed` until v0.3.
+    Confinement (`outside`) is judged before the scope, so TT-SEC-06 is unchanged (20/20 on the bin).
+  - **5** the events are read outside the per-state memo and settled: a failed or overflowing
+    `git log` (or a refused shape) gives descriptors computed without events plus `eventsError`
+    (`internal`, logged `{kind}` at warn) on `/elements` and `/elements/:eid` — no 500, not kept for
+    the state. Schemas `elements`/`element` gain `eventsError`. Test with a runner whose `git log`
+    ends `overflow`.
+  - **6** an event counts only when the commit's patch touches `<id>.md` (as `memory history`):
+    otherwise excluded. Test.
+  - **7** the log read adds `-c log.showSignature=false` and `--no-textconv` (`--no-ext-diff` kept).
+  - **8** `paths.governance` folders (plus `.wingfoil`) are governance in the scope; folder names
+    compared in NFC.
+  - **10** the docs index is walked per request (no longer memoised per state: a git-ignored
+    document does not move the state); git-ignored documents are listed — documented in the module
+    comment (no git command needed, REQ-INT-06 has no `check-ignore`).
+  - **11** design-note file names corrected (`files.ts` → `reads/working-tree.ts`, tests).
+- Checks (load 7–10): typecheck, lint, format:check clean · `docs:api` OK · affected files
+  (`test/server/http/project-routes.test.ts`, `test/server/git`, `test/server/reads`,
+  `memory-events.test.ts`) 177/177 · `process-audit.test.ts`, `local-security.test.ts`,
+  `role-view.test.ts` 71/71 (cold Memory list 5 CLI + 4 git, warm 0; 60 s idle 0 CLI; TT-SEC-06
+  20/20).

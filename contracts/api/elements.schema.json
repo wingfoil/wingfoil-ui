@@ -54,6 +54,9 @@
     },
     "typesError": {
       "$ref": "error.schema.json"
+    },
+    "eventsError": {
+      "$ref": "error.schema.json"
     }
   },
   "additionalProperties": false

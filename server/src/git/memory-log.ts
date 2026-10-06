@@ -6,12 +6,30 @@
  * `memory history` (spec-002 §2).
  *
  * Pure: the git read is {@link GitReads.memoryLog}; here the output is parsed.
+ *
+ * **Framing** (review round 1, as WingFoil bug-050 / task-086): every field is followed by a NUL
+ * (`%x00`), which git refuses in a commit message — so no subject, body or `--reason` can split a
+ * record or forge one. Records are recovered by arity: sha, date, author, subject, body, then the
+ * piece holding the patch and the next record's sha. Every sha and date is validated; an output
+ * that does not have this shape is refused as a whole ({@link MemoryLogFormatError}), never
+ * guessed at. spec-002 §3 still writes the `%x1e`/`%x1f`/`%x1d` format: pending spec amendment.
  */
 import path from 'node:path';
 import type { MemoryYaml } from '@wingfoil-ui/contracts';
 
-/** The `--format` of the read (spec-002 §3): record separator, header fields, body end. */
-export const MEMORY_LOG_FORMAT = '%x1e%H%x1f%aI%x1f%an <%ae>%x1f%s%x1f%b%x1d';
+/** The `--format` of the read: sha, author date, author, subject, body, each followed by a NUL. */
+export const MEMORY_LOG_FORMAT = '%H%x00%aI%x00%an <%ae>%x00%s%x00%b%x00';
+
+/** The output of the read does not have the shape {@link MEMORY_LOG_FORMAT} gives. */
+export class MemoryLogFormatError extends Error {
+  override name = 'MemoryLogFormatError';
+}
+
+const NUL = String.fromCharCode(0);
+const SHA = /^(?:[0-9a-f]{40}|[0-9a-f]{64})$/;
+/** The sha that begins the next record, at the end of a patch piece. */
+const NEXT_SHA = /(?:^|\n)([0-9a-f]{64}|[0-9a-f]{40})$/;
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:Z|[+-]\d{2}:\d{2})$/;
 
 /** A WingFoil verb recorded by a `wf(…)` commit. */
 export type MemoryOperation = 'add' | 'submit' | 'approve' | 'reject' | 'deprecate';
@@ -114,9 +132,12 @@ function headerFile(line: string): string | undefined {
   return path.posix.basename(name);
 }
 
-/** The first `-status:` and `+status:` values in the patch of the file `<id>.md`. */
-function transitionInPatch(patch: string, fileName: string): { from?: string; to?: string } {
-  const found: { from?: string; to?: string } = {};
+/**
+ * Whether the patch touches the file `<id>.md`, and its first `-status:` and `+status:` values
+ * there.
+ */
+function transitionInPatch(patch: string, fileName: string): { touched: boolean; from?: string; to?: string } {
+  const found: { touched: boolean; from?: string; to?: string } = { touched: false };
   let file: string | undefined;
   // Lines left in the current hunk: content lines are never read as headers.
   let oldLeft = 0;
@@ -138,7 +159,7 @@ function transitionInPatch(patch: string, fileName: string): { from?: string; to
       continue;
     }
     if (line.startsWith('diff --git ')) {
-      file = undefined;
+      file = line.endsWith(`/${fileName}`) || line.endsWith(` ${fileName}`) ? fileName : undefined;
     } else if (line.startsWith('--- ') || line.startsWith('+++ ')) {
       file = headerFile(line) ?? file;
     } else {
@@ -148,29 +169,67 @@ function transitionInPatch(patch: string, fileName: string): { from?: string; to
         newLeft = Number(hunk.groups?.new ?? 1);
       }
     }
+    if (file === fileName) found.touched = true;
   }
   return found;
 }
 
-/** Parse the output of the spec-002 §3 read (rules 1–4). */
+interface RawRecord {
+  sha: string;
+  timestamp: string;
+  author: string;
+  subject: string;
+  body: string;
+  patch: string;
+}
+
+/** The records of the output, by arity (see the module comment). */
+function records(stdout: string): RawRecord[] {
+  if (stdout === '') return [];
+  const pieces = stdout.split(NUL);
+  const out: RawRecord[] = [];
+  let sha = pieces[0] ?? '';
+  let i = 1;
+  for (;;) {
+    if (!SHA.test(sha)) throw new MemoryLogFormatError('git log: a record does not start with a commit sha');
+    if (i + 4 > pieces.length - 1) throw new MemoryLogFormatError('git log: a record has fewer fields than its format');
+    const [timestamp = '', author = '', subject = '', body = ''] = pieces.slice(i, i + 4);
+    if (!ISO_DATE.test(timestamp)) throw new MemoryLogFormatError('git log: a record has no ISO 8601 date');
+    const tail = pieces[i + 4]!;
+    const last = i + 4 === pieces.length - 1;
+    let patch = tail;
+    let next: string | undefined;
+    if (!last) {
+      const m = NEXT_SHA.exec(tail);
+      if (!m) throw new MemoryLogFormatError('git log: a patch is not followed by a commit sha');
+      next = m[1]!;
+      patch = tail.slice(0, tail.length - next.length);
+    }
+    out.push({ sha, timestamp, author, subject, body, patch });
+    if (next === undefined) return out;
+    sha = next;
+    i += 5;
+  }
+}
+
+/** Parse the output of the spec-002 §3 read (rules 1–4); throws {@link MemoryLogFormatError}. */
 export function parseMemoryLog(stdout: string): MemoryLog {
   const events: MemoryEvent[] = [];
   const warnings: string[] = [];
-  for (const record of stdout.split('\x1e')) {
-    const end = record.indexOf('\x1d');
-    if (end === -1) continue;
-    const [sha = '', timestamp = '', author = '', subject = '', ...rest] = record.slice(0, end).split('\x1f');
+  for (const { sha, timestamp, author, subject, body, patch: diff } of records(stdout)) {
     const match = SUBJECT.exec(subject);
     if (!match?.groups) continue;
     const { type, op, id, from: bracketFrom, to: bracketTo } = match.groups as Record<string, string | undefined>;
-    const lines = rest.join('\x1f').replace(/\r\n?/g, '\n').split('\n');
+    // As `memory history`: only a commit that touches the element's own file is its event.
+    const patch = transitionInPatch(diff, `${id!}.md`);
+    if (!patch.touched) continue;
+    const lines = body.replace(/\r\n?/g, '\n').split('\n');
     let from: string | null;
     let to: string | null;
     if (bracketFrom !== undefined && bracketTo !== undefined) {
       from = bracketFrom;
       to = bracketTo;
     } else {
-      const patch = transitionInPatch(record.slice(end + 1), `${id!}.md`);
       if (patch.to === undefined) {
         warnings.push(sha);
         from = null;

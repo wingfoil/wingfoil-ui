@@ -62,7 +62,7 @@ import {
   WorkingTreeError,
   type DocumentationScope,
 } from '../reads/working-tree.js';
-import type { SnapshotView } from '../snapshot/snapshot.js';
+import type { ElementEvents, SnapshotView } from '../snapshot/snapshot.js';
 import { REPO_STATE_HEADER, repoStateHeader } from '../snapshot/state.js';
 import type { Snapshots } from '../snapshot/snapshots.js';
 import type { StateStore } from '../state/store.js';
@@ -158,13 +158,13 @@ function membersOf(dna: { ok: true; value: CliOutput<DnaShow> } | { ok: false })
 
 /**
  * The descriptor inputs of a view (spec-003), or why there are none (an unreadable `memory.yaml`):
- * `describe(match, localChanges)` gives the descriptor of one element.
+ * `describe(match, localChanges, events)` gives the descriptor of one element.
  */
 type DescriptorInputs =
   | {
       ok: true;
       memoryYaml: MemoryYaml;
-      describe(match: MemoryMatch, localChanges: boolean): ActionDescriptor;
+      describe(match: MemoryMatch, localChanges: boolean, events: ElementEvents): ActionDescriptor;
     }
   | { ok: false; refusal: Refusal };
 
@@ -203,11 +203,7 @@ class ProjectRead {
     return this.view.derived('descriptor inputs', async (): Promise<DescriptorInputs> => {
       const types = await this.settle(this.view.memoryTypes(), '.wingfoil/');
       if (!types.ok) return types;
-      const [events, dna, detected] = await Promise.all([
-        this.view.events(),
-        this.settle(this.view.dna()),
-        this.view.detected(),
-      ]);
+      const [dna, detected] = await Promise.all([this.settle(this.view.dna()), this.view.detected()]);
       const members = membersOf(dna);
       const memoryYaml = types.value;
       const enablement = {
@@ -219,7 +215,7 @@ class ProjectRead {
         ok: true,
         memoryYaml,
         // Rule 3 of spec-003 §6 looks only at the element itself.
-        describe: (match, localChanges) =>
+        describe: (match, localChanges, events) =>
           describeElement(match, events.get(match.id) ?? [], {
             memoryYaml,
             members,
@@ -227,6 +223,20 @@ class ProjectRead {
           }),
       };
     });
+  }
+
+  /**
+   * The Memory events (spec-002 §3), or none and why: a failed or refused `git log` degrades the
+   * actors, `rejection` and `since` of the descriptors only (review round 1, finding 5). Not kept
+   * for the state: the next request reads again.
+   */
+  async events(): Promise<{ events: ElementEvents; error?: ApiError }> {
+    try {
+      return { events: await this.view.events() };
+    } catch (error) {
+      this.log.warn({ kind: (error as Error).name }, 'memory events unavailable');
+      return { events: new Map(), error: { code: 'internal', message: 'Memory events unavailable' } };
+    }
   }
 
   /** The `memory search` match of `id`, then the archived ones; `undefined` when none. */
@@ -246,7 +256,11 @@ class ProjectRead {
       const [paths, types] = await Promise.all([this.view.paths(), this.settle(this.view.memoryTypes(), '.wingfoil/')]);
       // Without memory.yaml the Memory directories are unknown: nothing is served (REQ-ARC-04).
       const memory = types.ok ? memoryDirectories(types.value) : ['.'];
-      return documentationScope({ docs: paths.data.docs ?? [], memoryDirectories: memory });
+      return documentationScope({
+        docs: paths.data.docs ?? [],
+        memoryDirectories: memory,
+        governance: paths.data.governance ?? [],
+      });
     });
   }
 }
@@ -311,27 +325,27 @@ async function config(read: ProjectRead): Promise<ProjectConfig> {
 }
 
 /** `GET /api/p/:pid/elements[?archived=true]`. */
-function elements(read: ProjectRead, archived: boolean): Promise<ElementList> {
+async function elements(read: ProjectRead, archived: boolean): Promise<ElementList> {
   const { view } = read;
-  return view.derived(`elements ${String(archived)}`, async () => {
-    const list = await view.elements();
-    const matches = [...list.matches];
-    if (archived) {
-      for (const status of ARCHIVED_STATES) matches.push(...(await view.archivedElements(status)).matches);
-    }
-    const inputs = await read.descriptorInputs();
-    const listed: ListedElement[] = matches.map(({ match, localChanges }) => ({
-      ...match,
-      localChanges,
-      ...(inputs.ok ? { descriptor: inputs.describe(match, localChanges) } : {}),
-    }));
-    return {
-      elements: listed,
-      warnings: list.warnings,
-      ...(list.message !== undefined ? { message: list.message } : {}),
-      ...(inputs.ok ? {} : { typesError: inputs.refusal.error }),
-    };
-  });
+  const list = await view.elements();
+  const matches = [...list.matches];
+  if (archived) {
+    for (const status of ARCHIVED_STATES) matches.push(...(await view.archivedElements(status)).matches);
+  }
+  const inputs = await read.descriptorInputs();
+  const events = inputs.ok ? await read.events() : undefined;
+  const listed: ListedElement[] = matches.map(({ match, localChanges }) => ({
+    ...match,
+    localChanges,
+    ...(inputs.ok && events ? { descriptor: inputs.describe(match, localChanges, events.events) } : {}),
+  }));
+  return {
+    elements: listed,
+    warnings: list.warnings,
+    ...(list.message !== undefined ? { message: list.message } : {}),
+    ...(inputs.ok ? {} : { typesError: inputs.refusal.error }),
+    ...(events?.error ? { eventsError: events.error } : {}),
+  };
 }
 
 /** `GET /api/p/:pid/elements/:eid`. */
@@ -339,15 +353,17 @@ async function element(read: ProjectRead, id: string): Promise<ElementDetail> {
   const found = valueOf(await read.settle(read.view.element(id)));
   if (!found) throw notFound();
   const inputs = await read.descriptorInputs();
+  const events = inputs.ok ? await read.events() : undefined;
   const { match, content, localChanges } = found;
   return {
     element: { ...match, localChanges },
     frontmatter: content.frontmatter,
     body: content.body,
-    ...(inputs.ok
+    ...(inputs.ok && events
       ? {
-          descriptor: inputs.describe(match, localChanges),
+          descriptor: inputs.describe(match, localChanges, events.events),
           required: requiredFields(inputs.memoryYaml, match.type, content.frontmatter),
+          ...(events.error ? { eventsError: events.error } : {}),
         }
       : {}),
   };
@@ -373,12 +389,11 @@ async function directive(read: ProjectRead, id: string): Promise<DirectiveDetail
 }
 
 /** `GET /api/p/:pid/docs`. */
-function docs(read: ProjectRead): Promise<DocumentationIndex> {
-  return read.view.derived('docs', async () => {
-    const scope = await read.documentationScope();
-    const paths = await read.view.paths();
-    return { roots: paths.data.docs ?? [], documents: await documentationIndex(read.root, scope) };
-  });
+async function docs(read: ProjectRead): Promise<DocumentationIndex> {
+  // Walked per request, not kept for the state: a git-ignored document does not move the state.
+  const scope = await read.documentationScope();
+  const paths = await read.view.paths();
+  return { roots: paths.data.docs ?? [], documents: await documentationIndex(read.root, scope) };
 }
 
 type Handler<P, Q> = (read: ProjectRead, params: P, query: Q) => Promise<unknown>;
@@ -437,7 +452,7 @@ export function registerProjectRoutes(app: FastifyInstance, options: ProjectRout
   route(`${PROJECT_PATH}/docs`, docs);
   route<object, { path?: string }>(
     `${PROJECT_PATH}/files/tree`,
-    (read, _p, query) => listDirectory(read.root, query.path ?? ''),
+    async (read, _p, query) => listDirectory(read.root, query.path ?? '', await read.documentationScope()),
     pathQuery(false),
   );
   route<object, { path: string }>(

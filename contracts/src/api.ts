@@ -178,6 +178,8 @@ export interface ElementList {
   message?: string;
   /** Why the descriptors are missing (an unreadable `memory.yaml`, spec-004 §5). */
   typesError?: ApiError;
+  /** Why the descriptors were computed without events (a failed `git log`): actors fall back. */
+  eventsError?: ApiError;
 }
 
 /** A required field of the element's type (`template.frontmatter.required`, G-01.3). */
@@ -197,6 +199,8 @@ export interface ElementDetail {
   descriptor?: ActionDescriptor;
   /** Absent when `memory.yaml` cannot be read. */
   required?: RequiredField[];
+  /** Why the descriptor was computed without events (a failed `git log`). */
+  eventsError?: ApiError;
 }
 
 /** `GET /api/p/:pid/directives` (`contracts/api/directives.schema.json`). */
