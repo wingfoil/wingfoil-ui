@@ -198,9 +198,9 @@ e2e closure — scenarios that need a screen are proved here by API and unit tes
     requires the periodic check). The git count is reported, not asserted.
   - A CLI change (`node_modules/wingfoil`, gitignored) publishes `repo` with the unchanged state:
     the page refetches though `X-Repo-State` did not move.
-  - Cold Memory list starts 5 git processes where 3 are expected (layout, status, email): one
-    extra check, most likely a watcher event caused by the CLI's own git reads; state unchanged,
-    no event, no loop (idle count is exactly the periodic checks).
+  - ~~Cold Memory list starts 5 git processes … a watcher event caused by the CLI's own git
+    reads~~ — wrong diagnosis, corrected at review (F4): concurrent first views each started a
+    first check; now shared, cold = 3 git (asserted).
 - **Hand-overs:**
   - **task-012 (read routes):** `const snapshot = await snapshots.open(pid, entry.path)`, then
     `const view = await snapshot.view()` per request; read through the view (`version`, `dna`,
@@ -209,7 +209,9 @@ e2e closure — scenarios that need a screen are proved here by API and unit tes
     `reply.header(REPO_STATE_HEADER, repoStateHeader(view.state))` (`snapshot/state.ts`). Pass the
     launcher's `snapshots` (created in `runLauncher`, next to `bus`) to the routes' `register`.
     Never call `ProjectReads` directly from a route (no cache). Add the routes' 401/403 rows to
-    `local-security.test.ts`.
+    `local-security.test.ts`. Re-run the TT-PERF-05 / TT-INT-09 audits
+    (`test/server/snapshot/process-audit.test.ts`) against the real routes instead of the
+    stand-ins (review F8).
   - **task-008 (project list):** `snapshots.open(pid, path)` when a project is first read,
     `snapshots.close(pid)` on `DELETE /api/projects/:pid`; a missing CLI is a `CliNotFoundError`
     from any CLI read of the view (cached per CLI generation, re-discovered when
@@ -237,3 +239,66 @@ e2e closure — scenarios that need a screen are proved here by API and unit tes
   `npm run test:timing` at load 55–65: REQ-PERF-03 (before the email fix) and REQ-PERF-06 (max
   3986 ms) and the TypeDoc build (30 s timeout) failed — load; REQ-PERF-03 re-run alone after the fix
   at load 41–47: passed, max 2339 ms.
+
+### review round 1 fixes (2026-10-06)
+
+- Review of `769ab22`: **FAIL** (1 blocker, 2 major, minors, nits). The user decided (coordinator,
+  options a): TT-PERF-05/TT-INT-09 stay in the default suite; the deviations above are accepted;
+  the state key = porcelain hash + a content fingerprint computed in Node (REQ-STATE-02 /
+  spec-004 §5 amended on `main`); the `GIT_*` inheritance is **bug-002**, absorbed here.
+- **Red** `b590da0` (failing for the expected reasons): F1 — a second edit of a modified tracked
+  file and of an untracked file gave the same key (`a386e92…` twice), no `repo`, title still
+  "First"; F2 — `gitEnv` missing, `GIT_DIR`/`GIT_WORK_TREE`/`GIT_CONFIG_KEY_0` redirected
+  `GitReads` (status `[]`, injected email); F3 — `memoryTrees`/injectable watch/`degraded` missing;
+  F4 — concurrent first views 5 git instead of 3; F9 — a missing CLI never looked for again.
+- **Green** `5b74678`:
+  - F1 `server/src/snapshot/fingerprint.ts`: for every status entry, SHA-256 of the file content
+    (≤ 1 MiB, the first 1000 entries), size + mtime (ns) beyond, the link target for a symlink
+    (never followed), `missing`; 16 files read at once; combined with the porcelain hash into the
+    same 16 hex digits — `X-Repo-State` format unchanged, no git command added. **Cost** (quiet
+    machine, load ≈ 3, 4 KiB files, median of 5): 1 entry 0.3 ms · 10 entries 0.3 ms · 100 entries
+    2.8 ms · 1000 entries 26.6 ms · 2000 entries 38.2 ms (max 42.7 ms). Note: these reads go
+    beyond the REQ-ARC-04 direct-read allow-list (hash only, nothing kept or exposed) — the
+    user's decision (18); the fs-spy test covers the read facade, not the check.
+  - F2 `gitEnv(env)` in `server/src/git/git.ts` (case-insensitive; keeps `HOME`,
+    `GIT_CONFIG_GLOBAL`, `GIT_CONFIG_NOSYSTEM`), applied by `GitReads`; test with `GIT_DIR`,
+    `GIT_WORK_TREE` and a `GIT_CONFIG_KEY_0` injection on a real repository.
+  - F3 watch scope: recursive watches only on `.wingfoil/` and the element folders of
+    `memory.yaml` (`memoryTrees`: static part of each type's path pattern, nested ones dropped,
+    re-evaluated on `.wingfoil/` and root events), the nearest existing parent of a missing one
+    (not recursive); root, `node_modules`, `node_modules/wingfoil`, git dirs, global config folders
+    as before. A failed watch other than ENOENT/ENOTDIR (ENOSPC, EMFILE, an error event) calls
+    `degraded(reason)`: warn log, periodic check at `DEGRADED_FALLBACK_MS` = 2 s. `open()` awaits
+    `watcher.ready` (the folders are found asynchronously; an edit right after open was missed).
+    Edits under `dist/` start no process (test). `closed` renamed `stopped` (task-011 lint).
+  - F4 `state()` returns the in-flight first check; cold Memory list = 3 git (asserted).
+  - F5 the TT-PERF-05 warm half runs with the periodic check at 1 h (watcher on).
+  - F6 (bug-001 part) no tight timing bound left in the default suite: `adapter.test.ts` TT-INT-04
+    — `CliTimeoutError` with elapsed ≥ 29 s and < 39 s (the stub sleeps 40 s; `CLI_TIMEOUT_MS` =
+    30 s asserted separately); `runner.test.ts` — kills bounded by `KILLED_WELL_BEFORE_MS` = 20 s
+    (the children sleep 60 s); `start.test.ts` — the stop hook before the drain by relation
+    (`stoppedAt − hookAt ≥ 250 ms`, total < 10 s) instead of < 100 ms.
+  - F7 `/api/events` on the bin: foreign Host without Origin (403), duplicate Host (403), wrong
+    token (401), previous start's token and session (401).
+  - F8 hand-over added (task-012 above). F9 at each check, when the current CLI generation found no
+    CLI, discovery runs again (files only); found → new generation and a `repo` event.
+  - Nits fixed: a failed `resolveGit` is not cached; `close(pid)` during an in-flight `open`
+    waits for it and closes what it registered; the check-failure warn logs `{ pid, kind, ended,
+    exitCode }` only; an SSE stream with more than 1 MiB unflushed is ended (the page reconnects);
+    the harness `run()` sends SIGKILL 2 s after SIGTERM on abort (`TempWorkspace` test with a
+    SIGTERM-ignoring child); TypeDoc run timeouts below the test timeouts (100 s < 120 s, 28 s <
+    30 s). **Left (listed):** no cap on the number of open streams (spec-004 has no refusal code
+    for it); the periodic check runs while no stream is subscribed; a re-rooting `open()` racing an
+    outside `close()` can still register the new root.
+- **bug-002** (own commits): red `36ec2e8` — the runner passed `GIT_DIR`, `GIT_WORK_TREE`,
+  `GIT_CONFIG_KEY_0` through (request env and the server's own); `memory history
+  task-001-login-form` on kanban with `GIT_DIR` set to another repository: 0 entries. Green
+  `5e7714a` — `LocalProcessRunner` spawns every child with `gitEnv(request.env ?? process.env)`:
+  the CLI answers for its own project (history entries, `memory search` lists its elements).
+  `GitReads` keeps applying it too (a fake runner). task-009's local helper to be unified at merge.
+- **Checks** (quiet machine, load 2.4–6.6 on 12 cores): typecheck, lint clean · format:check clean
+  · `docs:api` OK · `npm run -s test:coverage` **50 files passed, 1 skipped; 612 passed / 1
+  skipped**, 85.6 s, coverage 94.98 % statements / 86.15 % branches / 95.07 % functions /
+  97.44 % lines (load 3.29 → 6.64) · `test:e2e` 3/3 · `check_tasks.py` OK · **`npm run test:timing`
+  3/3 at load 6.27–5.52**: REQ-PERF-06 187–287 ms; TypeDoc build 3963 ms; REQ-PERF-03 20/20, max
+  367 ms. Process audits: cold Memory list 5 CLI + 3 git, warm 0; 60 s idle 0 CLI, 12 git.
