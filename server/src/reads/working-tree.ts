@@ -17,7 +17,14 @@
 import type { Dirent } from 'node:fs';
 import { lstat, readdir } from 'node:fs/promises';
 import path from 'node:path';
-import { confinedPath, DirectReadError, nodeReadFs, readConfined, type ReadFs } from './confine.js';
+import {
+  confinedPath,
+  DirectReadError,
+  nodeReadFs,
+  NotRegularFileError,
+  readConfined,
+  type ReadFs,
+} from './confine.js';
 
 /** What a working-tree entry is (symlinks are reported, never followed by a listing). */
 export type EntryKind = 'file' | 'directory' | 'symlink' | 'other';
@@ -304,6 +311,8 @@ export async function readWorkingTreeFile(
     content = await readConfined(root, root, rel, fs);
   } catch (error) {
     if (!(error instanceof DirectReadError)) throw error;
+    // Swapped after the checks for a FIFO, a device or a symlink (bug-003).
+    if (error.cause instanceof NotRegularFileError) throw new WorkingTreeError('not-allowed', rel);
     throw new WorkingTreeError(
       error.kind === 'shape' ? 'too-large' : error.kind === 'outside' ? 'outside' : 'missing',
       rel,
