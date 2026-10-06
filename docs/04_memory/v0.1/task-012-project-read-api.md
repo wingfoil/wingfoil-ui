@@ -305,4 +305,5 @@ Added during the Wave 2 dev-loops (plan `dev-loop-rel-v0.1-plan`, Session 2; dec
   (`test/server/http/project-routes.test.ts`, `test/server/git`, `test/server/reads`,
   `memory-events.test.ts`) 177/177 · `process-audit.test.ts`, `local-security.test.ts`,
   `role-view.test.ts` 71/71 (cold Memory list 5 CLI + 4 git, warm 0; 60 s idle 0 CLI; TT-SEC-06
-  20/20).
+  20/20). Full `test:coverage` (load 3.4 → 14.3): 1063 passed, 1 skipped, coverage 96.03 % /
+  89.31 % branches.
