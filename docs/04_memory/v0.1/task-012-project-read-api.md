@@ -397,3 +397,32 @@ Added during the Wave 2 dev-loops (plan `dev-loop-rel-v0.1-plan`, Session 2; dec
   as `{kind}` at warn (no path, no value); the header still answers with the fresh name (red: 500).
   Test: a store whose `update` rejects, two headers 200 with the DNA name, the entry unchanged.
   `project-routes.test.ts` 34/34; typecheck, lint, format:check clean, `docs:api` OK.
+
+### integration (2026-10-06)
+
+- `main` (task-008 done, spec amendments `5aedca8`, bug-003 planning) merged into the branch
+  (`d8a763a`, authorized by the coordinator for this step). Conflicts:
+  - `contracts/src/index.ts` — both export blocks (this task's `api.ts` types, task-008's
+    `projects.js` with `ProjectRefusalCode`/`ProjectRefusalBody`);
+  - `server/src/git/git.ts` — one `GitReads.origin()` / `GIT_READ_ARGS.origin` (identical on both
+    sides); task-008's `GIT_ALLOWED_SUBCOMMANDS`, `gitSubcommand`, `cloneArgs` (with
+    `core.hooksPath`) kept with this task's Memory log reads (explicit HEAD); the module table
+    lists `origin` for the add check and the refresh on open;
+  - `server/src/launcher/start.ts` — one `register` callback: server route, project read routes,
+    role-view `PUT`, event stream, task-008's `registerProjectListRoutes` with its `ProjectList`
+    start/stop and its one write lock;
+  - `test/README.md` — 0.12 (2026-10-06) after task-008's 0.11, both layout sections kept;
+  - `test/launcher/local-security.test.ts` — union of both tasks' rows; X-04.3 checks the literal
+    200 on `GET /api/server` and `GET /api/projects`; header comment updated (the project routes
+    exist).
+- Follow-up: the TT-PERF-05 audit also checks every git process of the read routes against
+  `GIT_ALLOWED_SUBCOMMANDS` (REQ-INT-06): `log` (both Memory reads, `-c` options skipped by
+  `gitSubcommand`), `status`, `config`, `rev-parse`, `remote` — all listed.
+- task-008 hand-over (a cloned project keeps its folder name until first opened): covered by the
+  refresh on open of `GET /api/p/:pid` (spec-006 §2), tested in `project-routes.test.ts`.
+- Checks: `npm install` up to date (0 vulnerabilities) · typecheck, `eslint .`, format:check clean
+  · `docs:api` OK · `npm run -s test:coverage` **75 files passed, 1 skipped; 1236 passed / 1
+  skipped**, coverage **95.66 %** statements / 88.68 % branches / 96 % functions / 97.81 % lines
+  (load 26.5 → 24.4) · `test:e2e` 3/3 · `check_tasks.py` OK · `npm run test:timing` 3/3 at load
+  19.9 → 12.0 (above the < 12 rule, run as asked; all within budget): REQ-PERF-03 20/20, max
+  1985 ms; TypeDoc build 12 847 ms; REQ-PERF-06 1049–1535 ms.

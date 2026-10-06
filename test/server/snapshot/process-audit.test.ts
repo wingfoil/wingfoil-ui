@@ -14,7 +14,8 @@ import { DEFAULT_FALLBACK_MS, type Snapshots } from '../../../server/src/snapsho
 import { buildFixture, copyFixture, type Fixture } from '../../harness/fixtures/index.js';
 import { git } from '../../harness/run.js';
 import { startReadConsole, type ReadConsole } from '../http/read-console.js';
-import { auditedSnapshots } from './support.js';
+import { GIT_ALLOWED_SUBCOMMANDS, gitSubcommand } from '../../../server/src/git/git.js';
+import { auditedSnapshots, processKind } from './support.js';
 
 const STATE = /^[0-9a-f]{40}\.[0-9a-f]{16}$/;
 let root: string;
@@ -62,6 +63,10 @@ describe('TT-PERF-05 — batched CLI reads (S-26.3)', () => {
     // header's `origin` (spec-006 §2 refresh on open).
     expect(runner.count('git')).toBe(6);
     expect(runner.spawned.filter((r) => r.args.includes('log'))).toHaveLength(2);
+    // REQ-INT-06: every git process of the read routes uses a subcommand of the allowed list.
+    for (const r of runner.spawned.filter((x) => processKind(x) === 'git')) {
+      expect(GIT_ALLOWED_SUBCOMMANDS, r.args.join(' ')).toContain(gitSubcommand(r.args));
+    }
     expect(new Set(commands).size).toBe(commands.length);
     const states = cold.map((r) => r.state);
     expect(states[0]).toMatch(STATE);
