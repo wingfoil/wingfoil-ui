@@ -351,6 +351,17 @@ describe('GET /api/p/:pid/elements/:eid and /history', () => {
     expect(Array.isArray(res.body.required)).toBe(true);
   });
 
+  it('answers the resolved states of the element type, for the state machine chips (task-018)', async () => {
+    const c = await start(kanbanTemplate);
+    const res = await c.get(`/api/p/${c.pid}/elements/task-001-login-form`);
+    expectSchema('element.schema.json', res.body);
+    // kanban: every type takes `defaults.states` (spec-001 §4.1).
+    expect(res.body.states).toEqual({
+      sequence: ['draft', 'pending', 'approved'],
+      gates: { pending: { reject: 'draft' } },
+    });
+  });
+
   it('answers the memory history of an element', async () => {
     const c = await start(kanbanTemplate);
     const res = await c.get(`/api/p/${c.pid}/elements/task-002-password-reset/history`);
@@ -410,6 +421,7 @@ describe('an unreadable memory.yaml degrades the type-dependent features only (s
     expect(one.status).toBe(200);
     expect(one.body).not.toHaveProperty('descriptor');
     expect(one.body).not.toHaveProperty('required');
+    expect(one.body).not.toHaveProperty('states');
     expect((await c.get(`/api/p/${c.pid}/config`)).body.types.error.detail.kind).toBe('missing');
   });
 });

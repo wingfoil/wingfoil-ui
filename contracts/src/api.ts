@@ -4,7 +4,7 @@
  */
 import type { DirectiveEntry, DirectiveFrontmatter, DnaPaths, DnaShow, MemoryMatch, WorkflowList } from './cli.js';
 import type { ActionDescriptor } from './descriptor.js';
-import type { ElementFrontmatter, MemoryYaml } from './files.js';
+import type { ElementFrontmatter, MemoryYaml, StateMachine } from './files.js';
 
 /**
  * Who the user is in a project (REQ-STATE-05): the effective `git config user.email` matched,
@@ -199,6 +199,11 @@ export interface ElementDetail {
   descriptor?: ActionDescriptor;
   /** Absent when `memory.yaml` cannot be read. */
   required?: RequiredField[];
+  /**
+   * The resolved states of the element's type (spec-001 §4.1), for the panel's state machine;
+   * absent when `memory.yaml` cannot be read or does not declare the type.
+   */
+  states?: StateMachine;
   /** Why the descriptor was computed without events (a failed `git log`). */
   eventsError?: ApiError;
 }
