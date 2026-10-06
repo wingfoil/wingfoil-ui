@@ -9,13 +9,14 @@
 import type { DirectiveEntry, MemoryMatch, MemoryYaml } from '@wingfoil-ui/contracts';
 import type { CliArgs, CliOutput, WingfoilCli } from '../cli/adapter.js';
 import type { CliCommandOutputs } from '../cli/commands.js';
+import { ARCHIVED_STATES, type ArchivedStatus } from '../presets/wingfoil.js';
 import { nodeReadFs, type ReadFs } from './confine.js';
 import { readDirective, type DirectiveContent } from './directive.js';
 import { readElement, type ElementContent } from './element.js';
 import { readMemoryYaml } from './memory-yaml.js';
 
-/** WingFoil's archived states: listed by `memory search` only when `--status` names them (W-19). */
-export type ArchivedStatus = 'deprecated' | 'superseded';
+// WingFoil's archived set lives in `presets/` (REQ-ARC-05).
+export type { ArchivedStatus } from '../presets/wingfoil.js';
 
 /** Options of {@link ProjectReads}. */
 export interface ProjectReadsOptions {
@@ -101,7 +102,7 @@ export class ProjectReads {
    */
   async element(id: string, signal?: AbortSignal): Promise<ElementRead | undefined> {
     let match = (await this.elements(signal)).data.matches.find((m) => m.id === id);
-    for (const status of ['deprecated', 'superseded'] as const) {
+    for (const status of ARCHIVED_STATES) {
       match ??= (await this.archivedElements(status, signal)).data.matches.find((m) => m.id === id);
     }
     return match ? { match, content: await this.elementFromMatch(match) } : undefined;
