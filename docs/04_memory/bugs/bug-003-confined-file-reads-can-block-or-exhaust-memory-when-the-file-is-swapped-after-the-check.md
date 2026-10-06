@@ -58,3 +58,4 @@ the client — the defect is availability, not disclosure.
 - triage (2026-10-06): approved by the user as **low** severity.
 - fix: **absorbed into task-012-project-read-api** (dl-045); `triaged → planned` by hand.
 - start (2026-10-06): task-012 already in progress → `planned → in-progress` by hand.
+- submit (2026-10-06): task-012 submitted after its integration (reviews PASS; `test:coverage` 1236 passed, `test:timing` 3/3) → `in-progress → in-review` (dev-loop `bug.sync_state`).
