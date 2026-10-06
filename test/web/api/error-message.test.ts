@@ -1,53 +1,117 @@
 // spec-008 §4, §7: every error code of spec-004 §4–§5 and spec-006 §3 maps to a catalogue key with
-// its detail as arguments; tool output (cli-refused, git-refused) is kept verbatim.
+// its detail as arguments; tool output (cli-refused, git-refused) is kept verbatim. Each message may
+// use only the arguments its code actually sends: the detail shapes are read from
+// contracts/api/projects.refusal.schema.json (spec-006 §3) and spec-004 §5.
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
 import { expect, it } from 'vitest';
 import type { ProjectRefusalCode } from '../../../contracts/src/index.js';
-import en from '../../../web/src/i18n/en.json' with { type: 'json' };
-import { ApiError } from '../../../web/src/api/client.js';
-import { ERROR_CODES, errorMessage, type ErrorCode } from '../../../web/src/api/error-message.js';
 import { messageArguments } from '../../../web/scripts/catalogue.mjs';
+import { ApiError } from '../../../web/src/api/client.js';
+import { ERROR_CODES, errorMessage } from '../../../web/src/api/error-message.js';
+import en from '../../../web/src/i18n/en.json' with { type: 'json' };
+import { REPO_ROOT } from '../../harness/cli.js';
 
-/** spec-004 §4–§5 codes. */
-const SPEC_004 = [
-  'forbidden-origin',
-  'unauthenticated',
-  'not-found',
-  'invalid-request',
-  'not-in-team',
-  'unsupported-version',
-  'local-changes',
-  'stale-copy',
-  'element-changed',
-  'cli-refused',
-  'cli-output',
-  'cli-timeout',
-  'internal',
-  'git-refused',
-  'read-error',
-];
-/** spec-006 §3 codes (checked against the contracts type at compile time). */
-const SPEC_006: ProjectRefusalCode[] = [
-  'folder-not-found',
-  'not-wingfoil',
-  'already-listed',
-  'directory-not-empty',
-  'cli-not-found',
-  'state-dir-inside-project',
-  'directory-inside-project',
-  'inside-state-dir',
-  'git-refused',
-];
 const catalogue = en as Record<string, string>;
 
-it('knows every code of spec-004 §4–§5 and spec-006 §3', () => {
-  expect([...ERROR_CODES].sort()).toEqual([...new Set([...SPEC_004, ...SPEC_006])].sort());
+/** A sample value per property type of a detail schema. */
+const SAMPLE: Record<string, unknown> = { string: 'value', boolean: true };
+
+interface Schema {
+  $ref?: string;
+  const?: unknown;
+  enum?: string[];
+  oneOf?: Schema[];
+  required?: string[];
+  properties?: Record<string, Schema>;
+  type?: string;
+  not?: unknown;
+}
+
+/** Every detail shape of each spec-006 §3 code, as sample objects, from the refusal schema. */
+function refusalShapes(): Map<string, Record<string, unknown>[]> {
+  const schema = JSON.parse(
+    readFileSync(path.join(REPO_ROOT, 'contracts', 'api', 'projects.refusal.schema.json'), 'utf8'),
+  ) as {
+    properties: { error: { oneOf: Schema[] } };
+    definitions: Record<string, Schema>;
+  };
+  const resolve = (s: Schema): Schema => (s.$ref ? schema.definitions[s.$ref.split('/').at(-1)!]! : s);
+  const sample = (s: Schema): Record<string, unknown> =>
+    Object.fromEntries(
+      Object.entries(resolve(s).properties ?? {}).map(([k, p]) => [k, p.const ?? SAMPLE[p.type ?? 'string']]),
+    );
+  const shapes = new Map<string, Record<string, unknown>[]>();
+  for (const branch of schema.properties.error.oneOf) {
+    const code = branch.properties!['code']!;
+    const codes = code.enum ?? [code.const as string];
+    const detail = branch.properties!['detail'];
+    const variants = detail === undefined ? [{}] : (resolve(detail).oneOf ?? [detail]).map(sample);
+    for (const c of codes) shapes.set(c, variants);
+  }
+  return shapes;
+}
+
+/** spec-004 §4–§5 codes and their `detail` (none unless the spec gives one). */
+const SPEC_004: Record<string, Record<string, unknown>[]> = {
+  'forbidden-origin': [{}],
+  unauthenticated: [{}],
+  'not-found': [{}, { kind: 'outside' }],
+  'invalid-request': [{}],
+  'not-in-team': [{}],
+  'unsupported-version': [{}],
+  'local-changes': [{}],
+  'stale-copy': [{}],
+  'element-changed': [{}],
+  'cli-refused': [{}],
+  'cli-output': [{}],
+  'cli-timeout': [{}],
+  internal: [{}],
+  'git-refused': [{}],
+  'read-error': [{ file: 'docs/x.md', kind: 'missing' }],
+};
+/** Client-side code (W3-12): no answer at all. */
+const CLIENT: Record<string, Record<string, unknown>[]> = { unreachable: [{}] };
+
+const SPEC_006 = refusalShapes();
+const SHAPES = new Map<string, Record<string, unknown>[]>([
+  ...Object.entries(SPEC_004),
+  ...SPEC_006,
+  ...Object.entries(CLIENT),
+]);
+
+it('reads every spec-006 §3 code from the refusal schema', () => {
+  const expected: ProjectRefusalCode[] = [
+    'folder-not-found',
+    'not-wingfoil',
+    'already-listed',
+    'directory-not-empty',
+    'cli-not-found',
+    'state-dir-inside-project',
+    'directory-inside-project',
+    'inside-state-dir',
+    'git-refused',
+  ];
+  expect([...SPEC_006.keys()].sort()).toEqual([...expected].sort());
 });
 
-it.each([...new Set([...SPEC_004, ...SPEC_006])])('maps %s to error.<lowerCamel code> in the catalogue', (code) => {
+it('knows every code of spec-004 §4–§5, spec-006 §3 and the client', () => {
+  expect([...ERROR_CODES].sort()).toEqual([...SHAPES.keys()].sort());
+});
+
+it.each([...SHAPES.keys()])('maps %s to error.<lowerCamel code> in the catalogue', (code) => {
   const camel = code.replace(/-([a-z])/g, (_, c: string) => c.toUpperCase());
-  const m = errorMessage(new ApiError(422, code, 'message', undefined));
-  expect(m.descriptor.id).toBe(`error.${camel}`);
+  expect(errorMessage(new ApiError(422, code, 'message', undefined)).descriptor.id).toBe(`error.${camel}`);
   expect(catalogue[`error.${camel}`]).toBeDefined();
+});
+
+it.each([...SHAPES.entries()])('%s: every argument of its message comes from a detail it sends', (code, shapes) => {
+  for (const detail of shapes) {
+    const m = errorMessage(new ApiError(422, code, 'x', detail));
+    for (const arg of messageArguments(catalogue[m.descriptor.id as string]!).args) {
+      expect(m.values, `${code} ${JSON.stringify(detail)} → {${arg}}`).toHaveProperty(arg);
+    }
+  }
 });
 
 it('passes the detail as arguments, booleans and absent selectors as select values', () => {
@@ -69,26 +133,6 @@ it('passes the detail as arguments, booleans and absent selectors as select valu
     source: 'clone',
     path: '',
   });
-});
-
-it('gives every argument of each message a value from a detail of the contract shape', () => {
-  for (const code of ERROR_CODES) {
-    const m = errorMessage(
-      new ApiError(422, code as ErrorCode, 'x', {
-        path: 'p',
-        stateDir: 's',
-        command: 'c',
-        file: 'f',
-        kind: 'missing',
-        name: 'n',
-        pid: 'p_1',
-        sameRemote: false,
-      }),
-    );
-    for (const arg of messageArguments(catalogue[m.descriptor.id as string]!).args) {
-      expect(m.values, `${code} {${arg}}`).toHaveProperty(arg);
-    }
-  }
 });
 
 it('keeps the tool output of cli-refused and git-refused verbatim', () => {
