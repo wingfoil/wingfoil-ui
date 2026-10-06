@@ -7,8 +7,10 @@ import { createTokenAuthentication } from '../auth/authentication.js';
 import { InProcessEventBus } from '../events/bus.js';
 import { buildApp } from '../http/app.js';
 import { registerEventStream, type EventStreams } from '../http/events.js';
+import { registerProjectRoutes } from '../http/project-routes.js';
 import { registerRoleViewRoute } from '../http/role-view.js';
-import { createLocalIdentitySource } from '../identity/project-identity.js';
+import { registerServerRoute } from '../http/server-route.js';
+import { createSnapshotIdentitySource } from '../identity/snapshot-identity.js';
 import { message } from '../i18n/messages.js';
 import { createLogger } from '../logging.js';
 import { LocalProcessRunner } from '../process/runner.js';
@@ -132,10 +134,11 @@ export async function runLauncher(argv: readonly string[], io: LauncherIo): Prom
     logger,
     security: { authentication: createTokenAuthentication(token), port: () => listening.port },
     register: (routes) => {
-      registerRoleViewRoute(routes, {
-        store: state,
-        identity: createLocalIdentitySource({ runner: processes, logger }),
-      });
+      // task-012: the identity of the role-view PUT and of the header is the watched one (one source).
+      const identity = createSnapshotIdentitySource(snapshots);
+      registerServerRoute(routes, { store: state, version: io.version });
+      registerProjectRoutes(routes, { store: state, snapshots });
+      registerRoleViewRoute(routes, { store: state, identity });
       streams.events = registerEventStream(routes, { bus });
     },
   });

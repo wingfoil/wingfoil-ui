@@ -1,0 +1,36 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://wingfoil-ui.local/contracts/api/directives.schema.json",
+  "title": "GET /api/p/:pid/directives",
+  "description": "The directive list (directives list), each entry with mine: bound to the current role view or global (S-22.1, R-06.4).",
+  "type": "object",
+  "required": ["entries", "warnings"],
+  "properties": {
+    "entries": {
+      "type": "array",
+      "items": {
+        "allOf": [
+          {
+            "$ref": "../cli/directives-list.schema.json#/properties/entries/items"
+          },
+          {
+            "type": "object",
+            "required": ["mine"],
+            "properties": {
+              "mine": {
+                "type": "boolean"
+              }
+            }
+          }
+        ]
+      }
+    },
+    "warnings": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "additionalProperties": false
+}

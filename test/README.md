@@ -1,6 +1,6 @@
 # Tests
 
-**Version:** 0.10 · **Date:** 2026-10-06 (0.1: workspace tooling and e2e harness — task-001; 0.2: `test/launcher/`, `test/server/` — task-002; 0.3: `test/contracts/`, local state isolation, secret scan — task-007; 0.4: `local-security` suite — task-003; 0.5: process runner fake, hand-made CLI packages, stub after global options — task-004; 0.6: CLI contract tests, captured samples, `test:contract` — task-005; 0.7: action descriptor tests, REQ-ARC-05 lint rule — task-011; 0.8: matrix builds of `cliBuildFor`, capability table and README checks — task-006; 0.9: identity tests, bin with a seeded state — task-009; 0.10: timing suite `test:timing`, `TempWorkspace`, snapshot audits and stand-ins — task-010 / bug-001)
+**Version:** 0.11 · **Date:** 2026-10-06 (0.1: workspace tooling and e2e harness — task-001; 0.2: `test/launcher/`, `test/server/` — task-002; 0.3: `test/contracts/`, local state isolation, secret scan — task-007; 0.4: `local-security` suite — task-003; 0.5: process runner fake, hand-made CLI packages, stub after global options — task-004; 0.6: CLI contract tests, captured samples, `test:contract` — task-005; 0.7: action descriptor tests, REQ-ARC-05 lint rule — task-011; 0.8: matrix builds of `cliBuildFor`, capability table and README checks — task-006; 0.9: identity tests, bin with a seeded state — task-009; 0.10: timing suite `test:timing`, `TempWorkspace`, snapshot audits and stand-ins — task-010 / bug-001; 0.11: read routes, the read console replacing the stand-ins, spec-002 §3 event parse, confinement — task-012)
 
 Every test lives under `test/` (DNA `paths.tests`); sources stay in `server/src`, `web/src`,
 `contracts/src`.
@@ -34,10 +34,14 @@ Every test lives under `test/` (DNA `paths.tests`); sources stay in `server/src`
   and `vi.mock('node:fs')` record every call while the read facade runs on real fixtures.
 - `test/server/snapshot/` — the snapshot cache, the marker and the watcher on real fixtures.
   `support.ts`: `AuditedRunner` (counts `wingfoil` and git processes, the process audit) and
-  `auditedSnapshots(env)`; `stand-in-app.ts`: stand-ins of the Memory list's read routes over the
-  snapshot with `X-Repo-State`, next to the real `GET /api/events`, on a loopback listener (the
-  real routes are task-012's). `test/server/http/sse-client.ts` reads an event stream over raw
-  `http`.
+  `auditedSnapshots(env)`. `memory-events.test.ts` is the spec-002 §5 consistency check (the
+  project-wide `git log -p` events equal every element's `memory history`).
+  `test/server/http/read-console.ts`: the real read routes (task-012) over a given snapshot
+  registry, next to the real `GET /api/events`, on a loopback listener, with the projects in an
+  in-memory store — the process audits and the refresh measurement run on it (it replaced
+  task-010's stand-ins). `test/server/http/project-routes.test.ts` checks every read route's body
+  against its schema in `contracts/api/`. `test/server/http/sse-client.ts` reads an event stream
+  over raw `http`.
 - `test/contracts/` — the JSON Schemas of `contracts/` (e.g. `state/state.schema.json`) and the CLI
   contract tests (spec-001 §7, adr-001 D4): `cli-contract.test.ts` builds the three fixtures with
   the CLI of every version of `contracts/matrix.json` (`support.ts`: `cliBuildFor(version)`), runs

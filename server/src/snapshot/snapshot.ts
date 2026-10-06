@@ -15,13 +15,20 @@
  *   (`node_modules/wingfoil` changed) starts a new one (task-004 hand-over).
  * - **Marker.** An element carries *local changes* when its file is in the working-tree status
  *   (REQ-STATE-01).
+ * - **Events.** The project-wide Memory events (spec-002 §3, one `git log -p`) are cached per HEAD
+ *   and set of Memory directories (spec-002 §4: the working tree does not change them).
+ * - **Version.** The detected CLI version comes from the registry's {@link VersionCache}: one
+ *   `--version` per CLI resolution (adr-001 D3).
  */
 import path from 'node:path';
 import type { DirectivesList, DnaPaths, DnaShow, MemoryMatch, MemoryYaml, WorkflowList } from '@wingfoil-ui/contracts';
 import { CliOutputError, CliRefusedError, type CliOutput, type WingfoilCli } from '../cli/adapter.js';
 import type { CliCommandOutputs } from '../cli/commands.js';
 import { CliNotFoundError, type ResolvedCli } from '../cli/discovery.js';
-import type { GitReads } from '../git/git.js';
+import type { DetectedVersion } from '../cli/version.js';
+import { VersionCache } from '../cli/version.js';
+import { UNBORN_HEAD, type GitReads } from '../git/git.js';
+import { eventsByElement, memoryDirectories, parseMemoryLog, type MemoryEvent } from '../git/memory-log.js';
 import { ARCHIVED_STATES } from '../presets/wingfoil.js';
 import { DirectReadError, type ReadFs } from '../reads/confine.js';
 import {
@@ -51,7 +58,14 @@ export interface ProjectSnapshotOptions {
   fs?: ReadFs;
   /** Called when a check finds a new state, or the CLI changed (not for the first state). */
   onChange?: (state: RepoState) => void;
+  /** The detected versions, shared by the server (default: one of its own). */
+  versions?: VersionCache;
+  /** Where parse warnings of the Memory events go (`{ pid, sha }` only). */
+  logger?: { warn(object: object, message: string): void };
 }
+
+/** The Memory events of each element, oldest first (spec-002 §3). */
+export type ElementEvents = ReadonlyMap<string, readonly MemoryEvent[]>;
 
 /** A `memory search` match with its marker. */
 export interface MarkedElement {
@@ -103,6 +117,8 @@ export class ProjectSnapshot {
   private memo: { key: string; values: Map<string, Promise<unknown>> } | undefined;
 
   private readonly fingerprints: Fingerprinter;
+  private readonly versions: VersionCache;
+  private events: { key: string; value: Promise<ElementEvents> } | undefined;
 
   constructor(private readonly options: ProjectSnapshotOptions) {
     this.pid = options.pid;
@@ -112,6 +128,7 @@ export class ProjectSnapshot {
       path.resolve(options.root, ...Array<string>(depth).fill('..')),
       options.prefix,
     );
+    this.versions = options.versions ?? new VersionCache();
   }
 
   /** The last observed state, or `undefined` before the first check. */
@@ -169,7 +186,33 @@ export class ProjectSnapshot {
       }
       return value;
     };
-    return new SnapshotView(state, memo);
+    return new SnapshotView(state, memo, {
+      events: (dirs) => this.memoryEvents(state.head, dirs),
+      versions: this.versions,
+    });
+  }
+
+  /**
+   * The Memory events at `head` over `dirs`: one `git log -p` per HEAD and set of directories,
+   * shared by concurrent callers; a failed read is not kept. An unborn HEAD has none.
+   */
+  private memoryEvents(head: string, dirs: readonly string[]): Promise<ElementEvents> {
+    const key = `${head}\0${dirs.join('\0')}`;
+    if (this.events?.key === key) return this.events.value;
+    const value = (async (): Promise<ElementEvents> => {
+      if (head === UNBORN_HEAD) return new Map();
+      const log = parseMemoryLog(await this.options.git.memoryLog(dirs));
+      for (const sha of log.warnings) {
+        this.options.logger?.warn({ pid: this.pid, sha }, 'memory event without a status line');
+      }
+      return eventsByElement(log.events);
+    })();
+    const entry = { key, value };
+    this.events = entry;
+    value.catch(() => {
+      if (this.events === entry) this.events = undefined;
+    });
+    return value;
   }
 
   private runCheck(): Promise<RepoState> {
@@ -238,6 +281,12 @@ export class ProjectSnapshot {
 
 type Memo = <T>(name: string, read: (tools: { cli: WingfoilCli; reads: ProjectReads }) => Promise<T>) => Promise<T>;
 
+/** What a view reads beyond its memo: the snapshot's event cache and the version cache. */
+interface ViewSources {
+  events(dirs: readonly string[]): Promise<ElementEvents>;
+  versions: VersionCache;
+}
+
 /**
  * The reads of one project in one repository state, cached (REQ-PERF-05). Build it with
  * {@link ProjectSnapshot.view}; every method of every view of the same state shares one result.
@@ -248,7 +297,29 @@ export class SnapshotView {
     /** The state this view reads; its `key` is the `X-Repo-State` header (spec-004 §5). */
     readonly state: RepoState,
     private readonly memo: Memo,
+    private readonly sources: ViewSources,
   ) {}
+
+  /**
+   * A value derived from this view's reads (e.g. the action descriptors), computed once per state
+   * and shared like the reads; `name` must not collide with a read's (use a `derived:` prefix).
+   */
+  derived<T>(name: string, compute: () => Promise<T>): Promise<T> {
+    return this.memo(`derived\0${name}`, () => compute());
+  }
+
+  /** The project's CLI version against the supported range (one `--version` per CLI resolution). */
+  detected(): Promise<DetectedVersion> {
+    return this.memo('detected version', ({ cli }) => this.sources.versions.detect(cli));
+  }
+
+  /**
+   * The Memory events of every element, oldest first (spec-002 §3), from one `git log -p` over the
+   * Memory directories of `memory.yaml` — cached per HEAD. Rejects as {@link memoryTypes} does.
+   */
+  events(): Promise<ElementEvents> {
+    return this.memo('memory events', async () => this.sources.events(memoryDirectories(await this.memoryTypes())));
+  }
 
   /** True when the file at `path` (relative to the project root) has local changes (REQ-STATE-01). */
   hasLocalChanges(path: string): boolean {

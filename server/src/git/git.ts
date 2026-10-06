@@ -9,6 +9,7 @@
  * | HEAD and the working tree, in one process | `git status --porcelain=v2 --branch -z --untracked-files=all` |
  * | the effective identity (repository, else global configuration) | `git config user.email` |
  * | the layout, once per project | `git rev-parse --show-prefix --absolute-git-dir --git-common-dir` |
+ * | the Memory events, once per HEAD (spec-002 §3) | `git log --no-color --no-renames --no-ext-diff --unified=0 -p --format=… -- <Memory directories>` |
  *
  * Git is never used to change anything here.
  */
@@ -17,6 +18,7 @@ import { constants } from 'node:fs';
 import { access, stat } from 'node:fs/promises';
 import path from 'node:path';
 import type { ProcessResult, ProcessRunner } from '../process/runner.js';
+import { MEMORY_LOG_FORMAT } from './memory-log.js';
 
 /** HEAD of a repository without commits (`# branch.oid (initial)`). */
 export const UNBORN_HEAD = '0'.repeat(40);
@@ -26,6 +28,19 @@ export const GIT_READ_ARGS = {
   status: ['--no-optional-locks', 'status', '--porcelain=v2', '--branch', '-z', '--untracked-files=all'],
   email: ['--no-optional-locks', 'config', 'user.email'],
   layout: ['--no-optional-locks', 'rev-parse', '--show-prefix', '--absolute-git-dir', '--git-common-dir'],
+  // `core.quotePath=false` for this invocation only: file names arrive as UTF-8, not escaped.
+  memoryLog: [
+    '--no-optional-locks',
+    '-c',
+    'core.quotePath=false',
+    'log',
+    '--no-color',
+    '--no-renames',
+    '--no-ext-diff',
+    '--unified=0',
+    '-p',
+    `--format=${MEMORY_LOG_FORMAT}`,
+  ],
 } as const;
 
 /** One entry of the porcelain status. */
@@ -205,6 +220,15 @@ export class GitReads {
       gitDir: path.resolve(this.options.cwd, gitDir),
       commonDir: path.resolve(this.options.cwd, commonDir),
     };
+  }
+
+  /**
+   * The raw output of the spec-002 §3 read over `dirs` (Memory directories relative to the
+   * project, see `memoryDirectories`); parse it with `parseMemoryLog`. No directory → no process.
+   */
+  async memoryLog(dirs: readonly string[]): Promise<string> {
+    if (dirs.length === 0) return '';
+    return (await this.read([...GIT_READ_ARGS.memoryLog, '--', ...dirs])).stdout;
   }
 
   private run(args: readonly string[]): Promise<ProcessResult> {

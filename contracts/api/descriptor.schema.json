@@ -1,0 +1,181 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://wingfoil-ui.local/contracts/api/descriptor.schema.json",
+  "title": "Action descriptor",
+  "description": "The action descriptor of one element (spec-003 §8), computed by the server once per repository state.",
+  "type": "object",
+  "required": ["id", "type", "status", "kind", "tone", "verbs", "actor"],
+  "properties": {
+    "id": {
+      "type": "string"
+    },
+    "type": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string"
+    },
+    "kind": {
+      "enum": ["archived", "off-sequence", "undeclared", "last", "gate-waiting", "gate", "waiting", "first", "work"]
+    },
+    "tone": {
+      "enum": ["human", "done", "neutral", "active", "attention", "muted"]
+    },
+    "bucket": {
+      "enum": ["to-approve", "in-progress", "waiting", "done"]
+    },
+    "verbs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["verb", "to", "role", "enabled"],
+        "properties": {
+          "verb": {
+            "enum": ["submit", "approve", "reject"]
+          },
+          "to": {
+            "type": "string"
+          },
+          "role": {
+            "type": ["string", "null"]
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "reason": {
+            "$ref": "#/definitions/reason"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "actor": {
+      "type": "object",
+      "required": ["kind"],
+      "properties": {
+        "kind": {
+          "enum": ["member", "role", "engine", "none"]
+        },
+        "member": {
+          "type": "object",
+          "required": ["name", "email"],
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "email": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        },
+        "role": {
+          "type": "string"
+        },
+        "members": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "fallback": {
+          "const": "author-not-in-team"
+        }
+      },
+      "additionalProperties": false
+    },
+    "rejection": {
+      "type": "object",
+      "required": ["by", "reason", "at"],
+      "properties": {
+        "by": {
+          "type": "string"
+        },
+        "reason": {
+          "type": ["string", "null"]
+        },
+        "at": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "since": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "definitions": {
+    "reason": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": ["code"],
+          "properties": {
+            "code": {
+              "const": "not-in-team"
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["code", "range"],
+          "properties": {
+            "code": {
+              "const": "version-unsupported"
+            },
+            "range": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["code"],
+          "properties": {
+            "code": {
+              "const": "local-changes"
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["code", "commits"],
+          "properties": {
+            "code": {
+              "const": "copy-behind"
+            },
+            "commits": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["code"],
+          "properties": {
+            "code": {
+              "const": "copy-diverged"
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["code"],
+          "properties": {
+            "code": {
+              "const": "copy-detached"
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    }
+  }
+}

@@ -44,7 +44,15 @@ beforeAll(async () => {
   await mkdir(path.join(outside, 'dir'), { recursive: true });
   await writeFile(path.join(outside, 'secret.md'), 'SECRET-OUTSIDE\n');
   await writeFile(path.join(outside, 'dir', 'inner.md'), 'SECRET-INNER\n');
-  for (const d of ['docs/01_vision', 'docs/04_memory/task', 'docs/05_plans', '.wingfoil', '.git', 'src', 'docs/node_modules/x']) {
+  for (const d of [
+    'docs/01_vision',
+    'docs/04_memory/task',
+    'docs/05_plans',
+    '.wingfoil',
+    '.git',
+    'src',
+    'docs/node_modules/x',
+  ]) {
     await mkdir(path.join(root, d), { recursive: true });
   }
   await writeFile(path.join(root, 'docs/01_vision/00_index.md'), '# Index\n[v](02_product-vision.md)\n');
@@ -66,8 +74,7 @@ afterAll(async () => {
   await rm(base, { recursive: true, force: true });
 });
 
-const scope = () =>
-  documentationScope({ docs: ['docs/'], memoryDirectories: ['docs/04_memory', 'docs/05_plans'] });
+const scope = () => documentationScope({ docs: ['docs/'], memoryDirectories: ['docs/04_memory', 'docs/05_plans'] });
 
 describe('documentationIndex (R-08.1)', () => {
   it('lists the Markdown files under paths.docs without the Memory and plan files, symlinks not followed', async () => {
@@ -107,7 +114,7 @@ describe('readWorkingTreeFile (REQ-SEC-06)', () => {
   it('reads a documentation file, also through a symlink that stays inside', async () => {
     expect(await readWorkingTreeFile(root, 'docs/01_vision/00_index.md', scope())).toEqual({
       path: 'docs/01_vision/00_index.md',
-      size: 37,
+      size: Buffer.byteLength('# Index\n[v](02_product-vision.md)\n'),
       content: '# Index\n[v](02_product-vision.md)\n',
     });
     expect((await readWorkingTreeFile(root, 'docs/inside-link.md', scope())).content).toBe('# Vision\n');
@@ -149,7 +156,11 @@ describe('listDirectory (REQ-SEC-06)', () => {
       ['src', 'directory'],
     ]);
     const docs = await listDirectory(root, 'docs');
-    expect(docs.entries.find((e) => e.name === 'link.md')).toEqual({ name: 'link.md', path: 'docs/link.md', kind: 'symlink' });
+    expect(docs.entries.find((e) => e.name === 'link.md')).toEqual({
+      name: 'link.md',
+      path: 'docs/link.md',
+      kind: 'symlink',
+    });
   });
 
   it.each(['..', '../outside', 'docs/linkdir', '/etc', 'docs/../..', '.git'])('refuses %j', async (rel) => {

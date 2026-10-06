@@ -371,7 +371,9 @@ describe('TT-SEC-06 — confinement to the repository (R-09.3 API side)', () => 
     await mkdir(stateDir, { recursive: true, mode: 0o700 });
     const state: StateFile = {
       version: 1,
-      projects: [{ id: CUSTOM, path: fx.dir, name: 'custom', remote: '', addedAt: '2026-10-06T08:00:00Z', roleView: '' }],
+      projects: [
+        { id: CUSTOM, path: fx.dir, name: 'custom', remote: '', addedAt: '2026-10-06T08:00:00Z', roleView: '' },
+      ],
       settings: {},
       actionLog: [],
     };
@@ -401,7 +403,9 @@ describe('TT-SEC-06 — confinement to the repository (R-09.3 API side)', () => 
     for (const raw of CASES) {
       const query = raw.includes('%') ? raw : encodeURIComponent(raw);
       for (const route of ['files/content', 'files/tree']) {
-        const res = await request(l, 'GET', `/api/p/${CUSTOM}/${route}?path=${query}`, { authorization: `Bearer ${l.token}` });
+        const res = await request(l, 'GET', `/api/p/${CUSTOM}/${route}?path=${query}`, {
+          authorization: `Bearer ${l.token}`,
+        });
         const body = JSON.parse(res.body) as { error?: { code: string; detail?: { kind: string } } };
         const ok =
           res.status === 404 &&
@@ -418,9 +422,14 @@ describe('TT-SEC-06 — confinement to the repository (R-09.3 API side)', () => 
   });
 
   it('serves a document inside the repository', async () => {
-    const res = await request(l, 'GET', `/api/p/${CUSTOM}/files/content?path=${encodeURIComponent('docs/01_vision/00_index.md')}`, {
-      authorization: `Bearer ${l.token}`,
-    });
+    const res = await request(
+      l,
+      'GET',
+      `/api/p/${CUSTOM}/files/content?path=${encodeURIComponent('docs/01_vision/00_index.md')}`,
+      {
+        authorization: `Bearer ${l.token}`,
+      },
+    );
     expect(res.status).toBe(200);
     expect(JSON.parse(res.body)).toMatchObject({ path: 'docs/01_vision/00_index.md' });
   });

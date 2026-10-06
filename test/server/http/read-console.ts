@@ -73,7 +73,7 @@ export async function startReadConsole(
   const register = (app: FastifyInstance): void => {
     const identity = createSnapshotIdentitySource(snapshots);
     registerServerRoute(app, { store, version: '0.0.0-test' });
-    registerProjectRoutes(app, { store, snapshots, identity });
+    registerProjectRoutes(app, { store, snapshots });
     registerRoleViewRoute(app, { store, identity });
     streams = registerEventStream(app, { bus });
   };

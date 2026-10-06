@@ -1,0 +1,33 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://wingfoil-ui.local/contracts/api/file-tree.schema.json",
+  "title": "GET /api/p/:pid/files/tree",
+  "description": "One directory level of the working tree, confined to the repository (REQ-SEC-06); .git is not listed.",
+  "type": "object",
+  "required": ["path", "entries"],
+  "properties": {
+    "path": {
+      "type": "string"
+    },
+    "entries": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "path", "kind"],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          },
+          "kind": {
+            "enum": ["file", "directory", "symlink", "other"]
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

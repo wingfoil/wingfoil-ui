@@ -1,0 +1,183 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://wingfoil-ui.local/contracts/api/config.schema.json",
+  "title": "GET /api/p/:pid/config",
+  "description": "DNA, paths, workflows and the types of memory.yaml with their resolved states (spec-004 §3, spec-001 §4.1); each section is the read or its error, so that a failure stays in its view (S-27.1). ui.yaml from v0.3.",
+  "type": "object",
+  "required": ["dna", "paths", "workflows", "types"],
+  "properties": {
+    "dna": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": ["data"],
+          "properties": {
+            "data": {
+              "$ref": "../cli/dna-show.schema.json"
+            },
+            "warnings": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["error"],
+          "properties": {
+            "error": {
+              "$ref": "error.schema.json"
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "paths": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": ["data"],
+          "properties": {
+            "data": {
+              "$ref": "../cli/paths.schema.json"
+            },
+            "warnings": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["error"],
+          "properties": {
+            "error": {
+              "$ref": "error.schema.json"
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "workflows": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": ["data"],
+          "properties": {
+            "data": {
+              "$ref": "../cli/workflow-list.schema.json"
+            },
+            "warnings": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["error"],
+          "properties": {
+            "error": {
+              "$ref": "error.schema.json"
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "types": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": ["data"],
+          "properties": {
+            "data": {
+              "type": "object",
+              "required": ["version", "types"],
+              "properties": {
+                "version": {
+                  "type": "number"
+                },
+                "defaults": {
+                  "type": "object"
+                },
+                "types": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "object",
+                    "required": ["path", "states"],
+                    "properties": {
+                      "path": {
+                        "type": "string"
+                      },
+                      "states": {
+                        "type": "object",
+                        "required": ["sequence"],
+                        "properties": {
+                          "sequence": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "gates": {
+                            "type": "object",
+                            "additionalProperties": {
+                              "type": "object",
+                              "required": ["reject"],
+                              "properties": {
+                                "reject": {
+                                  "type": "string"
+                                }
+                              },
+                              "additionalProperties": false
+                            }
+                          },
+                          "waiting": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "warnings": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["error"],
+          "properties": {
+            "error": {
+              "$ref": "error.schema.json"
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    }
+  },
+  "additionalProperties": false
+}

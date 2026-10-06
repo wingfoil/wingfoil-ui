@@ -1,0 +1,60 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://wingfoil-ui.local/contracts/api/elements.schema.json",
+  "title": "GET /api/p/:pid/elements",
+  "description": "The elements of memory search (with ?archived=true also the archived ones), each with its local-changes marker and action descriptor (spec-004 §3, spec-003 §8). Without a readable memory.yaml, no descriptor and typesError says why (spec-004 §5).",
+  "type": "object",
+  "required": ["elements", "warnings"],
+  "properties": {
+    "elements": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["path", "id", "title", "type", "status", "tags", "localChanges"],
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "localChanges": {
+            "type": "boolean"
+          },
+          "descriptor": {
+            "$ref": "descriptor.schema.json"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "warnings": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "message": {
+      "type": "string"
+    },
+    "typesError": {
+      "$ref": "error.schema.json"
+    }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,57 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://wingfoil-ui.local/contracts/api/server.schema.json",
+  "title": "GET /api/server",
+  "description": "UI version, supported WingFoil range, capability table and the shell warnings of the local state (spec-004 §3, spec-006 §4).",
+  "type": "object",
+  "required": ["version", "range", "capabilities", "warnings"],
+  "properties": {
+    "version": {
+      "type": "string"
+    },
+    "range": {
+      "$ref": "#/definitions/range"
+    },
+    "capabilities": {
+      "type": "array",
+      "items": {
+        "$ref": "../capabilities.schema.json#/properties/capabilities/items"
+      }
+    },
+    "warnings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["key", "args"],
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "args": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false,
+  "definitions": {
+    "range": {
+      "type": "object",
+      "required": ["min", "max"],
+      "properties": {
+        "min": {
+          "type": "string"
+        },
+        "max": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

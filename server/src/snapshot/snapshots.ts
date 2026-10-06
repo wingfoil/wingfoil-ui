@@ -10,6 +10,7 @@
  */
 import { WingfoilCli, type CliLogger } from '../cli/adapter.js';
 import { discoverCli } from '../cli/discovery.js';
+import { VersionCache } from '../cli/version.js';
 import type { EventBus } from '../events/bus.js';
 import { GitReads, resolveGit, type GitReadError } from '../git/git.js';
 import type { ProcessRunner } from '../process/runner.js';
@@ -50,6 +51,8 @@ export interface SnapshotsOptions {
   watchRepository?: WatchRepository;
   /** Read port of the direct reads (default: the local file system). */
   fs?: ReadFs;
+  /** The detected CLI versions, one cache for the server (default: a new one). */
+  versions?: VersionCache;
 }
 
 interface Entry {
@@ -64,8 +67,12 @@ export class Snapshots {
   private readonly entries = new Map<string, Entry>();
   private readonly opening = new Map<string, Promise<ProjectSnapshot>>();
   private git: Promise<string> | undefined;
+  /** The server-wide version cache (adr-001 D3): one `--version` per CLI resolution. */
+  readonly versions: VersionCache;
 
-  constructor(private readonly options: SnapshotsOptions) {}
+  constructor(private readonly options: SnapshotsOptions) {
+    this.versions = options.versions ?? new VersionCache();
+  }
 
   /** The snapshot of `pid`, if open. */
   get(pid: string): ProjectSnapshot | undefined {
@@ -140,6 +147,8 @@ export class Snapshots {
       cli: (resolved) => new WingfoilCli({ cli: resolved, runner, env, ...(logger ? { logger } : {}) }),
       ...(this.options.fs ? { fs: this.options.fs } : {}),
       onChange: (state) => bus.publish({ event: 'repo', data: { pid, state: state.key } }),
+      versions: this.versions,
+      ...(logger ? { logger } : {}),
     });
     const entry: Entry = { root, snapshot, watcher: undefined, timers: new Set() };
     this.entries.set(pid, entry);

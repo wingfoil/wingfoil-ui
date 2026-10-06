@@ -22,9 +22,15 @@ function record(n: number, subject: string, body: string, patch: string, author 
 }
 
 function filePatch(file: string, lines: string[], header = '@@ -3 +3 @@'): string {
-  return [`diff --git a/${file} b/${file}`, 'index 1111111..2222222 100644', `--- a/${file}`, `+++ b/${file}`, header, ...lines, ''].join(
-    '\n',
-  );
+  return [
+    `diff --git a/${file} b/${file}`,
+    'index 1111111..2222222 100644',
+    `--- a/${file}`,
+    `+++ b/${file}`,
+    header,
+    ...lines,
+    '',
+  ].join('\n');
 }
 
 const TASK = 'docs/memory/task/task-001-login-form.md';
@@ -100,21 +106,44 @@ describe('parseMemoryLog', () => {
       'Co-Authored-By: Claude <noreply@example.test>',
       '',
     ].join('\n');
-    const out = record(4, 'wf(task): approve task-001-login-form [pending → approved]', body, filePatch(TASK, ['-status: pending', '+status: approved']));
+    const out = record(
+      4,
+      'wf(task): approve task-001-login-form [pending → approved]',
+      body,
+      filePatch(TASK, ['-status: pending', '+status: approved']),
+    );
     expect(parseMemoryLog(out).events[0]!.reason).toBe('First line\n  indented second line\n\nThird paragraph');
   });
 
   it('reads an `Approver:` line only as the first body line', () => {
     const body = 'Reason: see below\nApprover: not an approval\n';
-    const out = record(5, 'wf(task): approve task-001-login-form [pending → approved]', body, filePatch(TASK, ['-status: pending', '+status: approved']));
-    expect(parseMemoryLog(out).events[0]).toMatchObject({ approver: null, reason: 'see below\nApprover: not an approval' });
+    const out = record(
+      5,
+      'wf(task): approve task-001-login-form [pending → approved]',
+      body,
+      filePatch(TASK, ['-status: pending', '+status: approved']),
+    );
+    expect(parseMemoryLog(out).events[0]).toMatchObject({
+      approver: null,
+      reason: 'see below\nApprover: not an approval',
+    });
   });
 
   it('ignores non-wf commits and wf(plan): finalize', () => {
     const out =
       record(6, 'edit the title by hand', '', filePatch(TASK, ['-title: A', '+title: B'])) +
-      record(7, 'wf(plan): finalize plan-001', '', filePatch('docs/plans/plan-001.md', ['-status: open', '+status: done'])) +
-      record(8, 'wf(task): deprecate task-003-logout', 'Reason: obsolete\n', filePatch('docs/memory/task/task-003-logout.md', ['-status: draft', '+status: deprecated']));
+      record(
+        7,
+        'wf(plan): finalize plan-001',
+        '',
+        filePatch('docs/plans/plan-001.md', ['-status: open', '+status: done']),
+      ) +
+      record(
+        8,
+        'wf(task): deprecate task-003-logout',
+        'Reason: obsolete\n',
+        filePatch('docs/memory/task/task-003-logout.md', ['-status: draft', '+status: deprecated']),
+      );
     const { events } = parseMemoryLog(out);
     expect(events.map((e) => [e.operation, e.id, e.from, e.to, e.reason])).toEqual([
       ['deprecate', 'task-003-logout', 'draft', 'deprecated', 'obsolete'],
@@ -122,7 +151,12 @@ describe('parseMemoryLog', () => {
   });
 
   it('strips quotes and trailing comments from status values', () => {
-    const out = record(9, 'wf(task): submit task-001-login-form', '', filePatch(TASK, ["-status: 'draft' # was", '+status: "pending"   # now']));
+    const out = record(
+      9,
+      'wf(task): submit task-001-login-form',
+      '',
+      filePatch(TASK, ["-status: 'draft' # was", '+status: "pending"   # now']),
+    );
     expect(parseMemoryLog(out).events[0]).toMatchObject({ from: 'draft', to: 'pending' });
   });
 
@@ -148,7 +182,12 @@ describe('parseMemoryLog', () => {
 
   it('accepts CRLF bodies and an empty log', () => {
     expect(parseMemoryLog('')).toEqual({ events: [], warnings: [] });
-    const out = record(13, 'wf(task): reject task-001-login-form [pending → draft]', 'Approver: M <m@x.test> (approver)\r\nReason: a\r\nb\r\n', filePatch(TASK, ['-status: pending', '+status: draft']));
+    const out = record(
+      13,
+      'wf(task): reject task-001-login-form [pending → draft]',
+      'Approver: M <m@x.test> (approver)\r\nReason: a\r\nb\r\n',
+      filePatch(TASK, ['-status: pending', '+status: draft']),
+    );
     expect(parseMemoryLog(out).events[0]).toMatchObject({ approver: 'M <m@x.test> (approver)', reason: 'a\nb' });
   });
 });

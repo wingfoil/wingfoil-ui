@@ -25,7 +25,14 @@ afterAll(async () => {
   await rm(root, { recursive: true, force: true });
 });
 
-const pick = (e: { sha: string; operation: unknown; from: unknown; to: unknown; approver: unknown; reason: unknown }) => ({
+const pick = (e: {
+  sha: string;
+  operation: unknown;
+  from: unknown;
+  to: unknown;
+  approver: unknown;
+  reason: unknown;
+}) => ({
   sha: e.sha,
   operation: e.operation,
   from: e.from,

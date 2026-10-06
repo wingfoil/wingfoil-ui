@@ -6,6 +6,8 @@
 // to its element (502 `read-error`), an unreadable `memory.yaml` degrading the type-dependent
 // features only, a failed `dna show` confined to the DNA (S-27.1), and the identity read from the
 // watched state (0 processes for `GET /api/p/:pid` and `PUT role-view` on a warm cache).
+// The bodies are read as untyped JSON: each is validated against its schema first.
+/* eslint-disable @typescript-eslint/no-explicit-any -- JSON bodies, each validated against its schema */
 import { Ajv } from 'ajv';
 import type { FastifyInstance } from 'fastify';
 import { appendFile, mkdtemp, readdir, readFile, realpath, rm, writeFile } from 'node:fs/promises';
@@ -35,14 +37,17 @@ const AUTH = { authorization: 'Bearer test-token' };
 const sink = new Writable({ write: (_c, _e, cb) => cb() });
 const STATE = /^[0-9a-f]{40}\.[0-9a-f]{16}$/;
 
-// Every schema of contracts/api, by $id, so that `$ref`s resolve.
+// Every schema of contracts/ the API schemas refer to, by $id, so that `$ref`s resolve.
 const ajv = new Ajv({ allErrors: true });
-const API_DIR = path.join(REPO_ROOT, 'contracts', 'api');
-for (const file of await readdir(API_DIR)) {
-  ajv.addSchema(JSON.parse(await readFile(path.join(API_DIR, file), 'utf8')) as object, file);
+const CONTRACTS = path.join(REPO_ROOT, 'contracts');
+for (const dir of ['api', 'cli', 'files']) {
+  for (const file of await readdir(path.join(CONTRACTS, dir))) {
+    ajv.addSchema(JSON.parse(await readFile(path.join(CONTRACTS, dir, file), 'utf8')) as object);
+  }
 }
+ajv.addSchema(JSON.parse(await readFile(path.join(CONTRACTS, 'capabilities.schema.json'), 'utf8')) as object);
 function expectSchema(file: string, body: unknown): void {
-  const validate = ajv.getSchema(file);
+  const validate = ajv.getSchema(`https://wingfoil-ui.local/contracts/api/${file}`);
   expect(validate, file).toBeDefined();
   expect(validate!(body), `${file}: ${JSON.stringify(validate!.errors)}`).toBe(true);
 }
@@ -78,7 +83,10 @@ interface Console {
   get(url: string): Promise<{ status: number; state: string | undefined; body: any }>;
 }
 
-async function start(template: Fixture, options: { fs?: ReadFs; prepare?: (fx: Fixture) => Promise<void> } = {}): Promise<Console> {
+async function start(
+  template: Fixture,
+  options: { fs?: ReadFs; prepare?: (fx: Fixture) => Promise<void> } = {},
+): Promise<Console> {
   n += 1;
   const fx = await copyFixture(template, path.join(root, `copy-${n}`));
   await options.prepare?.(fx);
@@ -94,7 +102,7 @@ async function start(template: Fixture, options: { fs?: ReadFs; prepare?: (fx: F
     register: (a) => {
       const identity = createSnapshotIdentitySource(audited.snapshots);
       registerServerRoute(a, { store, version: '9.9.9-test' });
-      registerProjectRoutes(a, { store, snapshots: audited.snapshots, identity });
+      registerProjectRoutes(a, { store, snapshots: audited.snapshots });
       registerRoleViewRoute(a, { store, identity });
     },
   });
@@ -177,7 +185,10 @@ describe('GET /api/p/:pid — the project header', () => {
     const res = await c.get(`/api/p/${c.pid}`);
     expect(res.status).toBe(200);
     expectSchema('project.schema.json', res.body);
-    expect(res.body.dnaError).toMatchObject({ code: 'cli-refused', message: expect.stringMatching(/E_YAML_PARSE_ERROR/) });
+    expect(res.body.dnaError).toMatchObject({
+      code: 'cli-refused',
+      message: expect.stringMatching(/E_YAML_PARSE_ERROR/),
+    });
     expect(res.body.name).toBe('kanban');
     const config = await c.get(`/api/p/${c.pid}/config`);
     expect(config.status).toBe(200);
@@ -217,10 +228,12 @@ describe('GET /api/p/:pid/elements', () => {
     expect(elements.filter((e) => e.type === 'task')).toHaveLength(4);
     expect(elements.filter((e) => e.type === 'bug')).toHaveLength(1);
     expect(elements.every((e) => e.localChanges === false && e.descriptor.id === e.id)).toBe(true);
-    expect(elements.filter((e) => e.descriptor.bucket === 'to-approve').map((e) => e.id).sort()).toEqual([
-      'bug-001-crash-on-save',
-      'task-001-login-form',
-    ]);
+    expect(
+      elements
+        .filter((e) => e.descriptor.bucket === 'to-approve')
+        .map((e) => e.id)
+        .sort(),
+    ).toEqual(['bug-001-crash-on-save', 'task-001-login-form']);
     const rejected = elements.find((e) => e.id === 'task-002-password-reset').descriptor;
     expect(rejected.rejection).toMatchObject({ by: 'Morgan', reason: 'Missing acceptance criteria' });
   });
@@ -305,7 +318,8 @@ describe('an unreadable memory.yaml degrades the type-dependent features only (s
   it('serves the elements without descriptor, the element without required fields', async () => {
     const fs: ReadFs = {
       ...nodeReadFs,
-      readFile: (f) => (f.endsWith(`${path.sep}memory.yaml`) ? Promise.reject(new Error('EACCES')) : nodeReadFs.readFile(f)),
+      readFile: (f) =>
+        f.endsWith(`${path.sep}memory.yaml`) ? Promise.reject(new Error('EACCES')) : nodeReadFs.readFile(f),
     };
     const c = await start(kanbanTemplate, { fs });
     const list = await c.get(`/api/p/${c.pid}/elements`);
@@ -357,7 +371,9 @@ describe('GET /api/p/:pid/docs and /files (R-08.1, REQ-SEC-06)', () => {
 
   it('answers a document, refuses traversal as outside with 0 bytes of the target', async () => {
     const c = await start(customTemplate);
-    const ok = await c.get(`/api/p/${c.pid}/files/content?path=${encodeURIComponent('docs/01_vision/02_product-vision.md')}`);
+    const ok = await c.get(
+      `/api/p/${c.pid}/files/content?path=${encodeURIComponent('docs/01_vision/02_product-vision.md')}`,
+    );
     expect(ok.status).toBe(200);
     expectSchema('file-content.schema.json', ok.body);
     const hosts = await readFile('/etc/hosts', 'utf8').catch(() => 'no-hosts-file-here');
