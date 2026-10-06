@@ -13,7 +13,8 @@ import { useSessionStatus } from './session/session.js';
 
 declare module 'react-aria-components' {
   interface RouterConfig {
-    href: NonNullable<ToOptions['to']>;
+    // The router's paths, or a concrete path such as `/p/<pid>` (task-015's switcher).
+    href: NonNullable<ToOptions['to']> | (string & {});
     routerOptions: Omit<NavigateOptions, keyof ToOptions>;
   }
 }

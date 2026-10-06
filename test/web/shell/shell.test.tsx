@@ -2,7 +2,17 @@
 // The web shell (task-013; ux-reference §2–§3, decisions W3-1, W3-2, W3-6, W3-7): the start page with
 // the project switcher and "Add project…", the dialog frame, the shell warnings of GET
 // /api/server (spec-006 §4), the lost-session page, the project layout and the page title.
-import { createMemoryHistory, createRootRoute, createRouter, RouterProvider } from '@tanstack/react-router';
+import {
+  createMemoryHistory,
+  createRootRoute,
+  createRoute,
+  createRouter,
+  Outlet,
+  RouterProvider,
+} from '@tanstack/react-router';
+import { Link } from 'react-aria-components';
+import { App } from '../../../web/src/app.js';
+import { createQueryClient } from '../../../web/src/api/queries.js';
 import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import { userEvent } from '@testing-library/user-event';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
@@ -226,4 +236,28 @@ it('shows a warning again when it comes back with other arguments after a dismis
   stubApi({ '/api/server': serverInfo([{ key: 'state.corruptKept', args: { file: 'b' } }]) });
   await act(() => queryClient.invalidateQueries());
   expect(await screen.findByText(/kept as b and/)).toBeTruthy();
+});
+
+it('a React Aria link to a concrete project path navigates client side (R2-1, task-015)', async () => {
+  stubApi({ '/api/server': serverInfo() });
+  const user = userEvent.setup();
+  const root = createRootRoute({
+    component: () => (
+      <div>
+        <Link href="/p/p_kanbankanban">x</Link>
+        <Outlet />
+      </div>
+    ),
+  });
+  const project = createRoute({ getParentRoute: () => root, path: '/p/$pid', component: () => <h1>project</h1> });
+  const router = createRouter({
+    routeTree: root.addChildren([project]),
+    history: createMemoryHistory({ initialEntries: ['/'] }),
+  });
+  render(<App queryClient={createQueryClient()} router={router as never} />);
+  const link = await screen.findByRole('link', { name: 'x' });
+  expect(link.getAttribute('href')).toBe('/p/p_kanbankanban');
+  await user.click(link);
+  expect(await screen.findByRole('heading', { name: 'project' })).toBeTruthy();
+  expect(router.state.location.pathname).toBe('/p/p_kanbankanban');
 });
