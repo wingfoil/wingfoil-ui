@@ -9,8 +9,10 @@
  * under `paths.docs` that are not Memory files (spec-002 §3 Memory directories — Memory and plan
  * files are read only at the paths the CLI returns, REQ-ARC-04), nor under a governance folder
  * (`.wingfoil`, `paths.governance`), `.git` or `node_modules`, nor hard-linked; the tree lists the
- * documentation folders only. Folder names are compared in NFC. The index lists the working tree
- * as it is, git-ignored documents included (the project's documents on disk). Nothing here writes.
+ * documentation folders and the documents the content route serves. The index lists Markdown
+ * files without a per-file stat (a hard link is listed, its content refused). Folder names are
+ * compared in NFC. The index lists the working tree as it is, git-ignored documents included (the
+ * project's documents on disk). Nothing here writes.
  */
 import type { Dirent } from 'node:fs';
 import { lstat, readdir } from 'node:fs/promises';
@@ -181,8 +183,8 @@ export async function documentationIndex(
       if (entry.kind === 'directory') {
         if (inDocumentationFolder(scope, rel)) await walk(rel, path.join(abs, entry.name));
       } else if (entry.kind === 'file' && inDocumentationScope(scope, rel)) {
-        // A hard-linked file may be a file of anywhere else: not a document of the project.
-        if ((await fs.links(path.join(abs, entry.name)).catch(() => 2)) === 1) found.add(rel);
+        // No per-file stat here (review round 2, B): a hard link is listed, its content refused.
+        found.add(rel);
       }
     }
   };
@@ -234,13 +236,44 @@ export async function listDirectory(
   }
   if ((await fs.kind(real).catch(() => 'missing')) !== 'directory') throw new WorkingTreeError('missing', rel);
   const base = lexical === '.' ? '' : lexical;
-  const entries = (await fs.list(real))
+  const listed = (await fs.list(real))
     .map((e) => ({ name: e.name, path: base === '' ? e.name : `${base}/${e.name}`, kind: e.kind }))
     .filter((e) =>
       e.kind === 'directory' ? inDocumentationFolder(scope, e.path) : inDocumentationScope(scope, e.path),
     )
     .sort((a, b) => (a.name < b.name ? -1 : 1));
-  return { path: base, entries };
+  // Documents: only those the content route serves (review round 2, C) — one level, stat only.
+  const serves = await Promise.all(
+    listed.map((e) => (e.kind === 'directory' ? Promise.resolve(true) : servable(root, e.path, scope, fs))),
+  );
+  return { path: base, entries: listed.filter((_e, i) => serves[i]) };
+}
+
+/** True when {@link readWorkingTreeFile} would serve `rel` (nothing of it is read). */
+async function servable(root: string, rel: string, scope: DocumentationScope, fs: TreeFs): Promise<boolean> {
+  try {
+    await documentFile(root, rel, scope, fs);
+    return true;
+  } catch (error) {
+    if (error instanceof WorkingTreeError) return false;
+    throw error;
+  }
+}
+
+/** The confined real path of the document `rel`, or why it is not served (nothing is read). */
+async function documentFile(root: string, rel: string, scope: DocumentationScope, fs: TreeFs): Promise<string> {
+  const lexical = normalise(rel);
+  if (lexical === undefined || rel === '') throw new WorkingTreeError('outside', rel);
+  const real = await confine(root, rel, fs);
+  const resolved = relativeTo(await fs.realpath(root), real);
+  // A trailing `/` names a folder: never a document.
+  if (rel.endsWith('/') || !inDocumentationScope(scope, lexical) || !inDocumentationScope(scope, resolved)) {
+    throw new WorkingTreeError('not-allowed', rel);
+  }
+  if ((await fs.kind(real).catch(() => 'missing')) !== 'file') throw new WorkingTreeError('missing', rel);
+  // A hard link may be a file of anywhere else on the disk (REQ-SEC-06).
+  if ((await fs.links(real).catch(() => 2)) !== 1) throw new WorkingTreeError('not-allowed', rel);
+  return real;
 }
 
 /** The content of a working-tree file. */
@@ -264,17 +297,8 @@ export async function readWorkingTreeFile(
   scope: DocumentationScope,
   fs: TreeFs = nodeTreeFs,
 ): Promise<FileContent> {
-  const lexical = normalise(rel);
-  if (lexical === undefined || rel === '') throw new WorkingTreeError('outside', rel);
-  const real = await confine(root, rel, fs);
-  const resolved = relativeTo(await fs.realpath(root), real);
-  // A trailing `/` names a folder: never a document.
-  if (rel.endsWith('/') || !inDocumentationScope(scope, lexical) || !inDocumentationScope(scope, resolved)) {
-    throw new WorkingTreeError('not-allowed', rel);
-  }
-  if ((await fs.kind(real).catch(() => 'missing')) !== 'file') throw new WorkingTreeError('missing', rel);
-  // A hard link may be a file of anywhere else on the disk (REQ-SEC-06).
-  if ((await fs.links(real).catch(() => 2)) !== 1) throw new WorkingTreeError('not-allowed', rel);
+  await documentFile(root, rel, scope, fs);
+  const lexical = normalise(rel)!;
   let content: string;
   try {
     content = await readConfined(root, root, rel, fs);

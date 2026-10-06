@@ -28,7 +28,13 @@ import { CliNotFoundError, type ResolvedCli } from '../cli/discovery.js';
 import type { DetectedVersion } from '../cli/version.js';
 import { VersionCache } from '../cli/version.js';
 import { UNBORN_HEAD, type GitReads } from '../git/git.js';
-import { eventsByElement, memoryDirectories, parseMemoryLog, type MemoryEvent } from '../git/memory-log.js';
+import {
+  eventsByElement,
+  memoryDirectories,
+  MemoryLogFormatError,
+  parseMemoryLog,
+  type MemoryEvent,
+} from '../git/memory-log.js';
 import { ARCHIVED_STATES } from '../presets/wingfoil.js';
 import { DirectReadError, type ReadFs } from '../reads/confine.js';
 import {
@@ -99,7 +105,8 @@ function deterministic(error: unknown): boolean {
     error instanceof CliRefusedError ||
     error instanceof CliOutputError ||
     error instanceof DirectReadError ||
-    error instanceof CliNotFoundError
+    error instanceof CliNotFoundError ||
+    error instanceof MemoryLogFormatError
   );
 }
 
@@ -201,16 +208,22 @@ export class ProjectSnapshot {
     if (this.events?.key === key) return this.events.value;
     const value = (async (): Promise<ElementEvents> => {
       if (head === UNBORN_HEAD) return new Map();
-      const log = parseMemoryLog(await this.options.git.memoryLog(dirs));
+      const [stdout, shas] = await Promise.all([
+        this.options.git.memoryLog(dirs),
+        this.options.git.memoryLogShas(dirs),
+      ]);
+      const log = parseMemoryLog(stdout, shas);
       for (const sha of log.warnings) {
-        this.options.logger?.warn({ pid: this.pid, sha }, 'memory event without a status line');
+        this.options.logger?.warn({ pid: this.pid, sha }, 'memory event skipped or without a status line');
       }
       return eventsByElement(log.events);
     })();
     const entry = { key, value };
     this.events = entry;
-    value.catch(() => {
-      if (this.events === entry) this.events = undefined;
+    // A refused shape answers the same for this HEAD: kept, like the deterministic read errors;
+    // transient failures (overflow, timeout, spawn) are read again.
+    value.catch((error: unknown) => {
+      if (!(error instanceof MemoryLogFormatError) && this.events === entry) this.events = undefined;
     });
     return value;
   }

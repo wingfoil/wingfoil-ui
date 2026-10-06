@@ -370,7 +370,7 @@ describe('one odd commit loses at most its own event (review round 2, finding A)
     const c = await start(kanbanTemplate, {
       prepare: async (fx) => {
         // A text file past git's 8000-byte binary check, with a NUL: the patch holds a NUL.
-        await writeFile(path.join(fx.dir, 'docs/memory/task/blob.md'), `${'a'.repeat(9000)}\0z\n`);
+        await writeFile(path.join(fx.dir, 'docs/memory/task/blob.txt'), `${'a'.repeat(9000)}\0z\n`);
         await git(fx.dir, ['add', '-A'], fx.env);
         await git(fx.dir, ['commit', '-qm', 'wf(task): add blob'], fx.env);
         // A wf commit whose author date git cannot print (`%aI` stays literal).
@@ -390,7 +390,7 @@ describe('one odd commit loses at most its own event (review round 2, finding A)
       },
     });
     const first = await c.get(`/api/p/${c.pid}/elements`);
-    expect(first.status).toBe(200);
+    expect(first.status, JSON.stringify(first.body)).toBe(200);
     expect(first.body).not.toHaveProperty('eventsError');
     const rejected = first.body.elements.find((e: any) => e.id === 'task-002-password-reset');
     expect(rejected.descriptor.rejection.by).toBe('Morgan');

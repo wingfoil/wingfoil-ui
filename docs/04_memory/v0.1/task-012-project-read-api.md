@@ -307,3 +307,35 @@ Added during the Wave 2 dev-loops (plan `dev-loop-rel-v0.1-plan`, Session 2; dec
   `role-view.test.ts` 71/71 (cold Memory list 5 CLI + 4 git, warm 0; 60 s idle 0 CLI; TT-SEC-06
   20/20). Full `test:coverage` (load 3.4 → 14.3): 1063 passed, 1 skipped, coverage 96.03 % /
   89.31 % branches.
+
+### review round 2 (2026-10-06)
+
+- Review round 2: **FAIL** on one new major (A) from the finding-5 fix, plus B (minor) and C (nit).
+  Red `7f723bd` (failing for the expected reasons: the arity parser threw "a patch is not followed
+  by a commit sha" on a NUL past 8000 bytes, so every request re-ran the log and got `eventsError`;
+  no `memoryShas` read; the index/tree expectations).
+- **A** — one ordinary commit no longer disables the actor events:
+  - the refusal is cached per HEAD + Memory directories: `MemoryLogFormatError` is in
+    `deterministic()` (`snapshot.ts`) and its failed entry is kept in `memoryEvents`; transient
+    failures (overflow, timeout, spawn) are read again;
+  - per-record recovery: a `wf` record with an unreadable date (`%aI` left literal) or author is
+    skipped with a `{pid, sha}` warning; a non-`wf` record is not validated;
+  - resync: a second, header-only read of the same walk (`GIT_READ_ARGS.memoryShas`:
+    `log --no-renames --format=%H%x00`, same pathspec, `log.showSignature=false`) gives the
+    authoritative sha order; the `-p` stream is cut backwards at the **last** `\n<sha_k>\0` before
+    the next record (a patch can quote an older commit's sha, never its own — so a forged header in
+    a patch never moves the cut); a record whose patch holds a NUL is skipped (warning), losing only
+    itself. Tests: NUL in one patch, a forged header after a NUL, bad date / bad ident, a sha
+    missing from the stream (refused); route test on a kanban copy with a NUL-after-8000-bytes file
+    commit and a `--literally` commit with `author … notadate`: no `eventsError`, task-002's
+    rejection kept, the second request starts 0 processes.
+  - cost: one more git process per HEAD — cold Memory list **5 CLI + 5 git** (≤ 6 CLI), reopened 0;
+    60 s idle 0 CLI. **Pending spec amendment** (spec-002 §3: format and "one git process").
+- **B** the docs index no longer stats each document (no hard-link check there; the content route
+  refuses hard links): 19 800 documents in 198 folders, 5 runs on a quiet machine (load ≈ 3):
+  51, 64, 82, 77, 80 ms (before: 1.8–3.7 s as measured by the review).
+- **C** `/files/tree` lists only the documents the content route serves (same checks, nothing read):
+  no hard link, FIFO, or symlink leading out or to a non-document.
+- Checks (load 3–8): typecheck, lint, format:check clean · `docs:api` OK (0 warnings) ·
+  `test/server/{reads,git,snapshot}`, `project-routes.test.ts` 223/223 · `process-audit.test.ts`,
+  `local-security.test.ts` 68/68 (TT-SEC-06 20/20).

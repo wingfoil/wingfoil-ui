@@ -9,7 +9,7 @@
  * | HEAD and the working tree, in one process | `git status --porcelain=v2 --branch -z --untracked-files=all` |
  * | the effective identity (repository, else global configuration) | `git config user.email` |
  * | the layout, once per project | `git rev-parse --show-prefix --absolute-git-dir --git-common-dir` |
- * | the Memory events, once per HEAD (spec-002 §3) | `git log --no-color --no-renames --no-ext-diff --no-textconv --unified=0 -p --format=… -- <Memory directories>` |
+ * | the Memory events, once per HEAD (spec-002 §3), with their sha order (`log --format=%H%x00`) | `git log --no-color --no-renames --no-ext-diff --no-textconv --unified=0 -p --format=… -- <Memory directories>` |
  *
  * Git is never used to change anything here.
  */
@@ -45,6 +45,8 @@ export const GIT_READ_ARGS = {
     '-p',
     `--format=${MEMORY_LOG_FORMAT}`,
   ],
+  // The same walk without the patch: the authoritative sha order the patch read is cut at.
+  memoryShas: ['--no-optional-locks', '-c', 'log.showSignature=false', 'log', '--no-renames', '--format=%H%x00'],
 } as const;
 
 /** One entry of the porcelain status. */
@@ -233,6 +235,16 @@ export class GitReads {
   async memoryLog(dirs: readonly string[]): Promise<string> {
     if (dirs.length === 0) return '';
     return (await this.read([...GIT_READ_ARGS.memoryLog, '--', ...dirs])).stdout;
+  }
+
+  /** The shas of the same walk as {@link memoryLog}, newest first (no patch). */
+  async memoryLogShas(dirs: readonly string[]): Promise<string[]> {
+    if (dirs.length === 0) return [];
+    const out = (await this.read([...GIT_READ_ARGS.memoryShas, '--', ...dirs])).stdout;
+    return out
+      .split(String.fromCharCode(0))
+      .map((s) => s.trim())
+      .filter((s) => s !== '');
   }
 
   private run(args: readonly string[]): Promise<ProcessResult> {
