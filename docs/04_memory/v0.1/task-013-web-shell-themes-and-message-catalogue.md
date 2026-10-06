@@ -269,3 +269,14 @@ Screen: `docs/00_reference/ux-reference.md` §1–3, §9 and the prototype (`doc
      fills (recommended), or left to task-018/017.
   7. *Lost session UX* (no spec text): full-page notice telling to open the URL printed in the
      terminal, event stream stopped (recommended); alternative: a dismissible banner.
+
+### design decisions (2026-10-06)
+
+- Decided by the user 2026-10-06 (coordinator decisions W3-1…W3-7), every point option (a) of the
+  design list: W3-1 start page = header with the switcher, `<h1>` Projects, one sentence and an
+  *Add project…* button; W3-2 *Add project…* opens a dialog frame that task-014 fills; W3-3 own
+  rule `wfui/catalogue-placeholders` checking `values` against the `en.json` arguments; W3-4 key
+  build in `web/dist-keys`, served to the e2e page by Playwright route interception (no server
+  change); W3-5 every `error.*` key (spec-004 §4–§5 and spec-006 §3) added here; W3-6 the
+  `/p/$pid` layout built here; W3-7 full-page lost-session notice. Spec/UX-reference amendments
+  are the coordinator's (on `main`).
