@@ -16,26 +16,31 @@ const STATE_WARNINGS: Readonly<Record<string, MessageDescriptor>> = defineMessag
   'state.newerVersion': { id: 'state.newerVersion' },
 });
 
+/** Identity of a warning: its key and arguments (a new warning is shown even after a dismissal). */
+function warningId(warning: { key: string; args: Record<string, string> }): string {
+  return `${warning.key} ${JSON.stringify(warning.args)}`;
+}
+
 /** The shell's warnings region, absent when there is nothing to show. */
 export function ShellWarnings(): ReactNode {
   const intl = useIntl();
   const { data } = useQuery(serverQuery());
-  const [dismissed, setDismissed] = useState<ReadonlySet<number>>(new Set());
-  const shown = (data?.warnings ?? []).flatMap((warning, index) =>
-    Object.hasOwn(STATE_WARNINGS, warning.key) && !dismissed.has(index)
-      ? [{ index, descriptor: STATE_WARNINGS[warning.key]!, args: warning.args }]
+  const [dismissed, setDismissed] = useState<ReadonlySet<string>>(new Set());
+  const shown = (data?.warnings ?? []).flatMap((warning) =>
+    Object.hasOwn(STATE_WARNINGS, warning.key) && !dismissed.has(warningId(warning))
+      ? [{ id: warningId(warning), descriptor: STATE_WARNINGS[warning.key]!, args: warning.args }]
       : [],
   );
   if (shown.length === 0) return null;
   return (
     <section className="shell-warnings" aria-label={intl.formatMessage({ id: 'shell.warnings.label' })}>
-      {shown.map(({ index, descriptor, args }) => (
-        <div key={index} className="warning" role="status">
+      {shown.map(({ id, descriptor, args }) => (
+        <div key={id} className="warning" role="status">
           <p>{intl.formatMessage(descriptor, args)}</p>
           <Button
             className="button"
             aria-label={intl.formatMessage({ id: 'shell.warnings.dismiss' })}
-            onPress={() => setDismissed(new Set([...dismissed, index]))}
+            onPress={() => setDismissed(new Set([...dismissed, id]))}
           >
             <Cross />
           </Button>
