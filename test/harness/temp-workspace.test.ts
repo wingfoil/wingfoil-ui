@@ -45,6 +45,18 @@ describe('TempWorkspace', () => {
     expect(result.code).not.toBe(0);
   });
 
+  it('kills a process that ignores SIGTERM (SIGKILL after the grace)', async () => {
+    const workspace = await TempWorkspace.create('wfui-tempws-');
+    open.push(workspace);
+    const stubborn = `process.on('SIGTERM', () => {}); ${WRITER}`;
+    const out = `${workspace.dir}/out`;
+    void workspace.run(process.execPath, ['-e', stubborn, out], { allowFailure: true, timeoutMs: 60_000 });
+    await expect.poll(() => exists(out), { timeout: 10_000 }).toBe(true);
+    await workspace.dispose();
+    await new Promise((r) => setTimeout(r, 300));
+    expect(await exists(workspace.dir)).toBe(false);
+  }, 30_000);
+
   it('can be disposed twice', async () => {
     const workspace = await TempWorkspace.create('wfui-tempws-');
     await workspace.dispose();

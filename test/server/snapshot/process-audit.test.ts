@@ -22,10 +22,10 @@ let n = 0;
 const registries: Snapshots[] = [];
 const consoles: StandIn[] = [];
 
-async function fresh() {
+async function fresh(fallbackMs = DEFAULT_FALLBACK_MS) {
   n += 1;
   const fx = await copyFixture(template, path.join(root, `copy-${n}`));
-  const audited = auditedSnapshots(fx.env, { watch: true, fallbackMs: DEFAULT_FALLBACK_MS });
+  const audited = auditedSnapshots(fx.env, { watch: true, fallbackMs });
   registries.push(audited.snapshots);
   const pid = `p_audit${n}`;
   await audited.snapshots.open(pid, fx.dir);
@@ -47,13 +47,17 @@ afterAll(async () => {
 
 describe('TT-PERF-05 — batched CLI reads (S-26.3)', () => {
   it('Memory list: ≤ 6 CLI processes on a cold cache, 0 processes when reopened unchanged', async () => {
-    const { pid, standIn, runner } = await fresh();
+    // The watcher on, the periodic check out of the way: under load the cold half can last past
+    // its first tick, which would add git processes to the warm half (review F5).
+    const { pid, standIn, runner } = await fresh(3_600_000);
     const cold = await standIn.openMemoryList(pid);
     const commands = runner.wingfoilCommands();
     console.info(
       `TT-PERF-05 cold Memory list: ${commands.length} CLI processes (${commands.join(', ')}), ${runner.count('git')} git`,
     );
     expect(commands.length).toBeLessThanOrEqual(6);
+    // open(): one rev-parse; the first state: one status, one user.email (review F4).
+    expect(runner.count('git')).toBe(3);
     expect(new Set(commands).size).toBe(commands.length);
     const states = cold.map((r) => r.state);
     expect(states[0]).toMatch(STATE);

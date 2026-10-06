@@ -1,13 +1,13 @@
 // REQ-STATE-02 — changes are detected by file watching, with a periodic check as a fallback
 // (adr-001 D6, adr-002 *Repository watcher*): a working-tree edit, a commit, a change of the
-// repository's or the global `user.email`, a new top-level folder, a change of the project's CLI
+// repository's or the global `user.email`, a new element folder (only the folders that feed the reads), a change of the project's CLI
 // (`node_modules/wingfoil`, task-004 hand-over); nothing once closed.
-import { mkdir, mkdtemp, readFile, realpath, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, realpath, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { Snapshots } from '../../../server/src/snapshot/snapshots.js';
-import { globalConfigFiles } from '../../../server/src/snapshot/watcher.js';
+import { globalConfigFiles, memoryTrees } from '../../../server/src/snapshot/watcher.js';
 import { buildFixture, copyFixture, installCliStub, type Fixture } from '../../harness/fixtures/index.js';
 import { git } from '../../harness/run.js';
 import { auditedSnapshots } from './support.js';
@@ -61,15 +61,31 @@ describe('file watching', () => {
     await expect.poll(() => snapshot.current()!.email, POLL).toBe('casey@example.test');
   });
 
-  it('detects edits in a top-level folder created after the start', async () => {
+  it('detects a new element in an element folder created after the start (review F3)', async () => {
     const { fx, snapshot } = await fresh({ watch: true, fallbackMs: 0 });
-    await mkdir(path.join(fx.dir, 'later'));
+    // A type of memory.yaml whose folder does not exist yet.
+    let missing: string | undefined;
+    for (const tree of await memoryTrees(fx.dir)) {
+      if (!(await stat(path.join(fx.dir, tree)).catch(() => undefined))) missing ??= tree;
+    }
+    expect(missing).toBeDefined();
+    await mkdir(path.join(fx.dir, missing!), { recursive: true });
     // An empty folder changes no git status; let the watcher take the new folder up first.
     await new Promise((r) => setTimeout(r, 300));
     const before = snapshot.current()!.key;
-    await mkdir(path.join(fx.dir, 'later', 'deep'));
-    await writeFile(path.join(fx.dir, 'later', 'deep', 'x.md'), 'x\n');
+    await writeFile(path.join(fx.dir, missing!, 'new-element.md'), 'x\n');
     await expect.poll(() => snapshot.current()!.key, POLL).not.toBe(before);
+  });
+
+  it('does not react to edits outside the folders that feed the reads (review F3)', async () => {
+    const { fx, snapshot, runner } = await fresh({ watch: true, fallbackMs: 0 });
+    await mkdir(path.join(fx.dir, 'dist', 'assets'), { recursive: true });
+    await new Promise((r) => setTimeout(r, 300));
+    const before = runner.count('git');
+    await writeFile(path.join(fx.dir, 'dist', 'assets', 'bundle.js'), 'x\n');
+    await new Promise((r) => setTimeout(r, 500));
+    expect(runner.count('git')).toBe(before);
+    expect(snapshot.current()).toBeDefined();
   });
 
   it('starts a new CLI generation when node_modules/wingfoil changes', async () => {

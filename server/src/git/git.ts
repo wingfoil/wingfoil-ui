@@ -59,10 +59,49 @@ export interface GitLayout {
 
 /** A git read failed: git's message, verbatim (REQ-INT-06). */
 export class GitReadError extends Error {
-  constructor(message: string) {
+  constructor(
+    message: string,
+    /** How the process ended (`exit`, `timeout`, …). */
+    readonly ended: ProcessResult['ended'] = 'exit',
+    /** Exit status, when it exited. */
+    readonly exitCode: number | null = null,
+  ) {
     super(message);
     this.name = 'GitReadError';
   }
+}
+
+/**
+ * Variables that make git read another repository, index or object store than the project's, or
+ * inject configuration (a `user.email` the repository does not hold). Compared case-insensitively.
+ */
+const REDIRECTING_GIT_VARIABLES = new Set([
+  'GIT_DIR',
+  'GIT_WORK_TREE',
+  'GIT_COMMON_DIR',
+  'GIT_INDEX_FILE',
+  'GIT_OBJECT_DIRECTORY',
+  'GIT_ALTERNATE_OBJECT_DIRECTORIES',
+  'GIT_NAMESPACE',
+  'GIT_CEILING_DIRECTORIES',
+  'GIT_DISCOVERY_ACROSS_FILESYSTEM',
+  'GIT_CONFIG_PARAMETERS',
+  'GIT_CONFIG_COUNT',
+]);
+
+/**
+ * `env` without the variables that would redirect a git read away from the project (an inherited
+ * `GIT_DIR` from a hook, a `GIT_CONFIG_KEY_<n>` injection). `HOME`, `GIT_CONFIG_GLOBAL` and
+ * `GIT_CONFIG_NOSYSTEM` are kept: they choose the global configuration, as for the CLI.
+ */
+export function gitEnv(env: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
+  const clean: NodeJS.ProcessEnv = {};
+  for (const [key, value] of Object.entries(env)) {
+    const upper = key.toUpperCase();
+    if (REDIRECTING_GIT_VARIABLES.has(upper) || /^GIT_CONFIG_(KEY|VALUE)_\d+$/.test(upper)) continue;
+    clean[key] = value;
+  }
+  return clean;
 }
 
 /** No `git` executable on the `PATH`. */
@@ -127,13 +166,17 @@ export interface GitReadsOptions {
   runner: ProcessRunner;
   /** The project root: working directory of every read. */
   cwd: string;
-  /** Environment of the git processes (default: the server's). */
+  /** Environment of the git processes (default: the server's), cleaned by {@link gitEnv}. */
   env?: NodeJS.ProcessEnv;
 }
 
 /** The git reads of one project. */
 export class GitReads {
-  constructor(private readonly options: GitReadsOptions) {}
+  private readonly env: NodeJS.ProcessEnv;
+
+  constructor(private readonly options: GitReadsOptions) {
+    this.env = gitEnv(options.env ?? process.env);
+  }
 
   /** HEAD and the working tree (one process). */
   async status(): Promise<WorkingTreeStatus> {
@@ -162,8 +205,8 @@ export class GitReads {
   }
 
   private run(args: readonly string[]): Promise<ProcessResult> {
-    const { git, runner, cwd, env } = this.options;
-    return runner.run({ file: git, args, cwd, ...(env ? { env } : {}) });
+    const { git, runner, cwd } = this.options;
+    return runner.run({ file: git, args, cwd, env: this.env });
   }
 
   private async read(args: readonly string[]): Promise<ProcessResult> {
@@ -175,7 +218,7 @@ export class GitReads {
     const message =
       result.stderr.trim() ||
       (result.ended === 'exit' ? `git exited with status ${String(result.exitCode)}` : `git ended: ${result.ended}`);
-    throw new GitReadError(message);
+    throw new GitReadError(message, result.ended, result.exitCode);
   }
 }
 

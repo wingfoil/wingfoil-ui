@@ -18,6 +18,9 @@ export const HEARTBEAT_MS = 25_000;
 /** Reconnection delay the stream suggests to `EventSource` (`retry:` field). */
 export const RETRY_MS = 2_000;
 
+/** Most bytes buffered for a stream whose page does not read; beyond, the stream is ended. */
+export const MAX_BUFFERED_BYTES = 1024 * 1024;
+
 /** Options of {@link registerEventStream}. */
 export interface EventStreamOptions {
   bus: EventBus;
@@ -49,7 +52,10 @@ export function registerEventStream(app: FastifyInstance, options: EventStreamOp
     });
     res.write(`retry: ${RETRY_MS}\n: connected\n\n`);
     const unsubscribe = options.bus.subscribe((event) => {
-      res.write(`event: ${event.event}\ndata: ${JSON.stringify(event.data)}\n\n`);
+      // A page that does not read its stream is cut rather than buffered without bound; it
+      // reconnects and refetches everything (spec-004 §6).
+      const flushed = res.write(`event: ${event.event}\ndata: ${JSON.stringify(event.data)}\n\n`);
+      if (!flushed && res.writableLength > MAX_BUFFERED_BYTES) end();
     });
     const heartbeat = setInterval(() => res.write(': heartbeat\n\n'), heartbeatMs);
     heartbeat.unref();

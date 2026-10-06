@@ -244,6 +244,31 @@ describe('GET /api/events — the event stream on the bin (spec-004 §1–2, §6
     expect(sameSite.status).toBe(403);
     const foreign = await openStream(l, { authorization: `Bearer ${l.token}`, origin: 'https://evil.test' });
     expect(foreign.status).toBe(403);
+    // A foreign Host without any Origin (DNS rebinding), even with the token.
+    const rebinding = await openStream(l, { authorization: `Bearer ${l.token}`, host: `evil.test:${l.port}` });
+    expect(rebinding.status).toBe(403);
+    // Two Host headers (raw socket: http.request cannot repeat one).
+    const duplicate = await rawRequest(l, [
+      'GET /api/events HTTP/1.1',
+      `Host: 127.0.0.1:${l.port}`,
+      'Host: evil.test',
+      `Authorization: Bearer ${l.token}`,
+    ]);
+    expect(duplicate.status).toBe(403);
+    // A wrong token.
+    const wrong = await openStream(l, { authorization: `Bearer ${'x'.repeat(43)}` });
+    expect(wrong.status).toBe(401);
+  });
+
+  it("refuses the previous start's token and session (401)", async () => {
+    const first = await launch();
+    const session = await request(first, 'POST', '/api/session', { authorization: `Bearer ${first.token}` });
+    const cookie = String(session.headers['set-cookie']).split(';')[0]!;
+    await first.stop();
+    const second = await launch();
+    expect((await openStream(second, { authorization: `Bearer ${first.token}` })).status).toBe(401);
+    const sameName = cookie.replace(`wfui_session_${first.port}`, `wfui_session_${second.port}`);
+    expect((await openStream(second, { cookie: sameName })).status).toBe(401);
   });
 
   it('opens it with the token, and ends it in the stop sequence (exit 0)', async () => {

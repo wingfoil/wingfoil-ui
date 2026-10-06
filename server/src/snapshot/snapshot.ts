@@ -16,6 +16,7 @@
  * - **Marker.** An element carries *local changes* when its file is in the working-tree status
  *   (REQ-STATE-01).
  */
+import path from 'node:path';
 import type { DirectivesList, DnaPaths, DnaShow, MemoryMatch, MemoryYaml, WorkflowList } from '@wingfoil-ui/contracts';
 import { CliOutputError, CliRefusedError, type CliOutput, type WingfoilCli } from '../cli/adapter.js';
 import type { CliCommandOutputs } from '../cli/commands.js';
@@ -29,6 +30,7 @@ import {
   type DirectiveRead,
   type ElementRead,
 } from '../reads/project-reads.js';
+import { combinedHash, contentFingerprint } from './fingerprint.js';
 import { repoState, sameState, type RepoState } from './state.js';
 
 /** Options of {@link ProjectSnapshot}. */
@@ -99,9 +101,13 @@ export class ProjectSnapshot {
   private generation: Generation | undefined;
   private memo: { key: string; values: Map<string, Promise<unknown>> } | undefined;
 
+  private readonly topLevel: string;
+
   constructor(private readonly options: ProjectSnapshotOptions) {
     this.pid = options.pid;
     this.root = options.root;
+    const depth = options.prefix.split('/').filter(Boolean).length;
+    this.topLevel = path.resolve(options.root, ...Array<string>(depth).fill('..'));
   }
 
   /** The last observed state, or `undefined` before the first check. */
@@ -111,7 +117,9 @@ export class ProjectSnapshot {
 
   /** The last observed state; the first call checks. */
   state(): Promise<RepoState> {
-    return this.last ? Promise.resolve(this.last) : this.check();
+    if (this.last) return Promise.resolve(this.last);
+    // Concurrent first views share the first check.
+    return this.queued ?? this.running ?? this.check();
   }
 
   /**
@@ -163,10 +171,14 @@ export class ProjectSnapshot {
   private runCheck(): Promise<RepoState> {
     const run = (async () => {
       const [status, email] = await Promise.all([this.options.git.status(), this.options.git.email()]);
-      const next = repoState(status, email, this.options.prefix);
+      // The content of the listed files too: a second edit of a modified or untracked file leaves
+      // the porcelain status unchanged (review F1).
+      const fingerprint = await contentFingerprint(this.topLevel, status.entries);
+      const next = repoState({ ...status, hash: combinedHash(status.hash, fingerprint) }, email, this.options.prefix);
       const previous = this.last;
       this.last = next;
-      if (previous && !sameState(previous, next)) this.options.onChange?.(next);
+      const cliFound = await this.cliFoundAgain();
+      if (previous && (!sameState(previous, next) || cliFound)) this.options.onChange?.(next);
       return next;
     })();
     this.running = run;
@@ -175,6 +187,27 @@ export class ProjectSnapshot {
     };
     void run.then(clear, clear);
     return run;
+  }
+
+  /**
+   * When the current CLI generation found no CLI (a `PATH` change is not watched), look again at
+   * each check; a CLI found starts a new generation (review F9). Discovery reads files only.
+   */
+  private async cliFoundAgain(): Promise<boolean> {
+    const generation = this.generation;
+    if (!generation || generation.id !== this.generationId) return false;
+    const missing = await generation.tools.then(
+      () => false,
+      (error: unknown) => error instanceof CliNotFoundError,
+    );
+    if (!missing) return false;
+    try {
+      await this.options.discover();
+    } catch {
+      return false;
+    }
+    if (this.generationId === generation.id) this.generationId += 1;
+    return true;
   }
 
   private tools(id: number): Generation['tools'] {

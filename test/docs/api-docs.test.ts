@@ -32,7 +32,8 @@ describe('API docs', () => {
     const result = await workspace.run(
       process.execPath,
       [TYPEDOC, '--options', 'typedoc.json', '--entryPoints', entry, '--tsconfig', path.join(tmp, 'tsconfig.json'), '--out', path.join(tmp, 'out2')],
-      { cwd: REPO_ROOT, allowFailure: true, timeoutMs: 120_000 },
+      // Below the test timeout: TypeDoc is killed (and reported) before Vitest gives up.
+      { cwd: REPO_ROOT, allowFailure: true, timeoutMs: 100_000 },
     );
     expect(result.code).not.toBe(0);
     expect(result.stdout + result.stderr).toMatch(/undocumented/);

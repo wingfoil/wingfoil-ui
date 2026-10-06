@@ -119,11 +119,13 @@ describe('runLauncher', () => {
     );
     const t0 = performance.now();
     io.signal();
-    await vi.waitFor(() => expect(io.exits).toEqual([EXIT.ok]), { timeout: 3_000 });
+    await vi.waitFor(() => expect(io.exits).toEqual([EXIT.ok]), { timeout: 10_000 });
     const stoppedAt = performance.now();
-    expect(hookAt - t0).toBeLessThan(100);
-    expect(stoppedAt - t0).toBeGreaterThanOrEqual(250);
-    expect(stoppedAt - t0).toBeLessThan(2_000);
+    // The hook ran first, then the open request was waited for (300 ms) and cut. Relations rather
+    // than tight bounds: no timing-bound assertion in the default suite (bug-001).
+    expect(hookAt).toBeGreaterThan(t0);
+    expect(stoppedAt - hookAt).toBeGreaterThanOrEqual(250);
+    expect(stoppedAt - t0).toBeLessThan(10_000);
     socket.destroy();
   });
 

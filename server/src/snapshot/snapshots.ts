@@ -11,7 +11,7 @@
 import { WingfoilCli, type CliLogger } from '../cli/adapter.js';
 import { discoverCli } from '../cli/discovery.js';
 import type { EventBus } from '../events/bus.js';
-import { GitReads, resolveGit } from '../git/git.js';
+import { GitReads, resolveGit, type GitReadError } from '../git/git.js';
 import type { ProcessRunner } from '../process/runner.js';
 import type { ReadFs } from '../reads/confine.js';
 import { ProjectSnapshot } from './snapshot.js';
@@ -19,6 +19,9 @@ import { globalConfigFiles, watchRepository, type RepositoryWatcher, type WatchR
 
 /** Interval of the periodic check (fallback of file watching), in milliseconds. */
 export const DEFAULT_FALLBACK_MS = 10_000;
+
+/** Interval of the periodic check once file watching is degraded (a watch failed). */
+export const DEGRADED_FALLBACK_MS = 2_000;
 
 /** Wait after a file event before the check: a burst of events (a commit, a save) is one check. */
 export const DEFAULT_DEBOUNCE_MS = 100;
@@ -94,6 +97,9 @@ export class Snapshots {
 
   /** Stop watching `pid` and drop its cache (the project left the list). */
   async close(pid: string): Promise<void> {
+    // Closed while being opened: wait for the open, then close what it registered.
+    const pending = this.opening.get(pid);
+    if (!this.entries.has(pid) && pending) await pending.catch(() => undefined);
     const entry = this.entries.get(pid);
     if (!entry) return;
     this.entries.delete(pid);
@@ -108,11 +114,22 @@ export class Snapshots {
     for (const pid of [...this.entries.keys()]) await this.close(pid);
   }
 
+  private resolveGit(env: NodeJS.ProcessEnv): Promise<string> {
+    if (!this.git) {
+      const resolving = resolveGit(env);
+      this.git = resolving;
+      // Not found now (a PATH being fixed): looked for again at the next open.
+      resolving.catch(() => {
+        if (this.git === resolving) this.git = undefined;
+      });
+    }
+    return this.git;
+  }
+
   private async start(pid: string, root: string): Promise<ProjectSnapshot> {
     const { runner, bus, logger } = this.options;
     const env = this.options.env ?? process.env;
-    this.git ??= resolveGit(env);
-    const git = new GitReads({ git: await this.git, runner, cwd: root, env });
+    const git = new GitReads({ git: await this.resolveGit(env), runner, cwd: root, env });
     const layout = await git.layout();
     const snapshot = new ProjectSnapshot({
       pid,
@@ -132,7 +149,9 @@ export class Snapshots {
       // Never before the first view: an unread project has nothing to refresh.
       if (!live() || !snapshot.current()) return;
       snapshot.check().catch((error: unknown) => {
-        logger?.warn({ pid, reason: (error as Error).message }, 'repository check failed');
+        // The kind and the exit only: git's message may quote paths or configuration.
+        const e = error as Partial<GitReadError>;
+        logger?.warn({ pid, kind: e.name, ended: e.ended, exitCode: e.exitCode }, 'repository check failed');
       });
     };
     const debounced = (fn: () => void): (() => void) => {
@@ -148,6 +167,25 @@ export class Snapshots {
         entry.timers.add(timer);
       };
     };
+    const fallbackMs = this.options.fallbackMs ?? DEFAULT_FALLBACK_MS;
+    let interval = fallbackMs;
+    let fallback: NodeJS.Timeout | undefined;
+    const scheduleFallback = (): void => {
+      if (fallback) {
+        clearTimeout(fallback);
+        entry.timers.delete(fallback);
+      }
+      if (interval <= 0 || !live()) return;
+      const timer = setTimeout(() => {
+        entry.timers.delete(timer);
+        fallback = undefined;
+        check();
+        scheduleFallback();
+      }, interval);
+      timer.unref();
+      fallback = timer;
+      entry.timers.add(timer);
+    };
     if (this.options.watch ?? true) {
       entry.watcher = (this.options.watchRepository ?? watchRepository)(
         { root, gitDir: layout.gitDir, commonDir: layout.commonDir, globalConfig: globalConfigFiles(env) },
@@ -156,28 +194,20 @@ export class Snapshots {
           cli: debounced(() => {
             if (live()) snapshot.cliChanged();
           }),
+          degraded: (reason) => {
+            logger?.warn({ pid, reason }, 'file watching degraded: checking periodically');
+            // File watching misses changes there: check often enough for the 5 s budget (REQ-PERF-03).
+            if (interval <= 0 || interval > DEGRADED_FALLBACK_MS) {
+              interval = DEGRADED_FALLBACK_MS;
+              scheduleFallback();
+            }
+          },
         },
       );
     }
-    const fallbackMs = this.options.fallbackMs ?? DEFAULT_FALLBACK_MS;
-    if (fallbackMs > 0) {
-      const tick = (): void => {
-        if (!live()) return;
-        check();
-        const timer = setTimeout(() => {
-          entry.timers.delete(timer);
-          tick();
-        }, fallbackMs);
-        timer.unref();
-        entry.timers.add(timer);
-      };
-      const first = setTimeout(() => {
-        entry.timers.delete(first);
-        tick();
-      }, fallbackMs);
-      first.unref();
-      entry.timers.add(first);
-    }
+    scheduleFallback();
+    // Watching before the first view: an edit made right after the open is not missed.
+    await entry.watcher?.ready;
     return snapshot;
   }
 }

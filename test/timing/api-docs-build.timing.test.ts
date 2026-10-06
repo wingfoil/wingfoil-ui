@@ -19,13 +19,14 @@ afterAll(async () => {
   await workspace.dispose();
 });
 
+// TypeDoc is killed at 28 s, before the 30 s test timeout, so the failure names the build.
 describe('API docs', () => {
   it('build with the repository configuration', async () => {
     const t0 = performance.now();
     const result = await workspace.run(
       process.execPath,
       [TYPEDOC, '--options', 'typedoc.json', '--out', path.join(workspace.dir, 'out'), '--logLevel', 'Warn'],
-      { cwd: REPO_ROOT, allowFailure: true, timeoutMs: 120_000 },
+      { cwd: REPO_ROOT, allowFailure: true, timeoutMs: 28_000 },
     );
     const ms = String(Math.round(performance.now() - t0));
     report('TypeDoc build (ms)', result.code === 0 ? ms : `${ms} (exit ${String(result.code)})`);

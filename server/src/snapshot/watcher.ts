@@ -4,19 +4,25 @@
  * git to know *what* (a check), so a missed or a spurious event costs at most one check. The
  * periodic check of the snapshot is the fallback for what file watching misses.
  *
- * Watched, without following the project's `node_modules` tree:
+ * Only what feeds the reads is watched (on Linux a recursive watch costs one inotify watch per
+ * folder, so a source tree, `dist/` or a nested `node_modules` is never watched):
  *
  * | Folder | How | Means |
  * |--------|-----|-------|
- * | the project root | not recursive | new or removed top-level entries |
- * | each top-level folder but `.git` and `node_modules` | recursive | working-tree edits |
+ * | the project root | not recursive | root files, new `node_modules` |
+ * | `.wingfoil/` and the element folders of `memory.yaml` ({@link memoryTrees}) | recursive | DNA, types, directives, element edits; re-evaluated when `.wingfoil/` changes |
+ * | the nearest existing parent of a missing element folder | not recursive | the folder appears |
  * | `node_modules`, `node_modules/wingfoil` | not recursive | the project's CLI changed (task-004 hand-over) |
  * | the git directory and common directory, `refs/` | not recursive, `refs/` recursive | commits, staging, branch moves, the repository configuration |
  * | the folders of the global git configuration files | not recursive, filtered by name | the global `user.email` |
+ *
+ * A watch that cannot be set up (other than a missing folder: `ENOSPC`, `EMFILE`, …) is reported
+ * through {@link WatchHandlers.degraded}.
  */
-import { watch, type FSWatcher } from 'node:fs';
-import { lstat, readdir } from 'node:fs/promises';
+import { watch as fsWatch, type FSWatcher } from 'node:fs';
+import { stat } from 'node:fs/promises';
 import path from 'node:path';
+import { readMemoryYaml } from '../reads/memory-yaml.js';
 
 /** What to watch for one project. */
 export interface WatchTargets {
@@ -28,6 +34,8 @@ export interface WatchTargets {
   commonDir: string;
   /** Global git configuration files ({@link globalConfigFiles}). */
   globalConfig: readonly string[];
+  /** The folders, relative to the root, to watch recursively (default {@link memoryTrees}). */
+  trees?: () => Promise<readonly string[]>;
 }
 
 /** Called on a possible change. */
@@ -36,16 +44,30 @@ export interface WatchHandlers {
   repo(): void;
   /** `node_modules/wingfoil` may have changed. */
   cli(): void;
+  /** A watch could not be set up: changes there are seen by the periodic check only. */
+  degraded?(reason: string): void;
 }
 
 /** A running watcher. */
 export interface RepositoryWatcher {
+  /** Resolves once every initial watch is set up (the element folders are found asynchronously). */
+  readonly ready: Promise<void>;
   /** Stop watching (idempotent). */
   close(): void;
 }
 
+/** Options of {@link watchRepository}. */
+export interface WatchOptions {
+  /** `fs.watch` (replaced by tests). */
+  watch?: typeof fsWatch;
+}
+
 /** The port: start watching `targets`. */
-export type WatchRepository = (targets: WatchTargets, handlers: WatchHandlers) => RepositoryWatcher;
+export type WatchRepository = (
+  targets: WatchTargets,
+  handlers: WatchHandlers,
+  options?: WatchOptions,
+) => RepositoryWatcher;
 
 /**
  * The global git configuration files git reads for `user.email` with `env`: `GIT_CONFIG_GLOBAL`
@@ -61,22 +83,54 @@ export function globalConfigFiles(env: NodeJS.ProcessEnv): string[] {
   return files;
 }
 
-const NOT_IN_TREE = new Set(['.git', 'node_modules']);
+/**
+ * The folders that feed the reads, relative to `root`: `.wingfoil` and, for each type of
+ * `memory.yaml`, the static folder of its path pattern (`docs/memory/task/{id}.md` →
+ * `docs/memory/task`), without folders nested in another one. An unreadable `memory.yaml` leaves
+ * `.wingfoil` only (its fix is an event there).
+ */
+export async function memoryTrees(root: string): Promise<string[]> {
+  const trees = new Set<string>(['.wingfoil']);
+  try {
+    for (const type of Object.values((await readMemoryYaml(root)).types)) {
+      const fixed = type.path.split('{')[0] ?? '';
+      const dir = path.normalize(fixed.endsWith('/') ? fixed.slice(0, -1) : path.dirname(fixed));
+      if (dir === '.' || dir.startsWith('..') || path.isAbsolute(dir)) continue;
+      trees.add(dir);
+    }
+  } catch {
+    // Types unreadable: `.wingfoil` only.
+  }
+  const sorted = [...trees].sort();
+  return sorted.filter((dir) => !sorted.some((other) => other !== dir && dir.startsWith(`${other}${path.sep}`)));
+}
 
 /** The local adapter of {@link WatchRepository}. */
-export const watchRepository: WatchRepository = (targets, handlers) => new FsRepositoryWatcher(targets, handlers);
+export const watchRepository: WatchRepository = (targets, handlers, options = {}) =>
+  new FsRepositoryWatcher(targets, handlers, options.watch ?? fsWatch);
 
 class FsRepositoryWatcher implements RepositoryWatcher {
   private readonly watchers = new Map<string, FSWatcher>();
-  private closed = false;
+  private stopped = false;
+  readonly ready: Promise<void>;
 
   constructor(
     private readonly targets: WatchTargets,
     private readonly handlers: WatchHandlers,
+    private readonly watchFn: typeof fsWatch,
   ) {
     const { root, gitDir, commonDir } = targets;
-    this.add('root', root, false, (name) => this.onRoot(name));
-    void this.scanTopLevel(true);
+    this.add('root', root, false, (name) => {
+      if (name === 'node_modules') {
+        this.watchCli();
+        handlers.cli();
+      } else if (name !== '.git') {
+        // A new top-level folder may be (the parent of) an element folder.
+        void this.watchTrees();
+        handlers.repo();
+      }
+    });
+    this.ready = this.watchTrees();
     this.watchCli();
     const git = (name: string | null): void => {
       if (name === null || !name.endsWith('.lock')) handlers.repo();
@@ -93,79 +147,79 @@ class FsRepositoryWatcher implements RepositoryWatcher {
   }
 
   close(): void {
-    this.closed = true;
+    this.stopped = true;
     for (const key of [...this.watchers.keys()]) this.drop(key);
   }
 
-  private onRoot(name: string | null): void {
-    if (name === 'node_modules') {
-      this.watchCli();
-      this.handlers.cli();
-      return;
-    }
-    if (name === '.git') return;
-    // A new top-level folder gets its own watcher; a removed one loses it.
-    void this.scanTopLevel();
-    this.handlers.repo();
-  }
-
-  private async scanTopLevel(initial = false): Promise<void> {
-    let names: string[];
-    try {
-      names = await readdir(this.targets.root);
-    } catch {
-      return;
-    }
-    const present = new Set<string>();
-    for (const name of names) {
-      if (NOT_IN_TREE.has(name)) continue;
-      const dir = path.join(this.targets.root, name);
-      try {
-        if (!(await lstat(dir)).isDirectory()) continue;
-      } catch {
+  /** (Re)watch the trees; a missing one through its nearest existing parent. */
+  private async watchTrees(): Promise<void> {
+    const trees = await (this.targets.trees ?? (() => memoryTrees(this.targets.root)))().catch(() => ['.wingfoil']);
+    if (this.stopped) return;
+    const wanted = new Set<string>();
+    for (const tree of trees) {
+      const dir = path.join(this.targets.root, tree);
+      if (await isDirectory(dir)) {
+        const key = `tree:${tree}`;
+        wanted.add(key);
+        if (this.watchers.has(key)) continue;
+        this.add(key, dir, true, () => {
+          this.handlers.repo();
+          // `.wingfoil/memory.yaml` may name other folders now.
+          if (tree === '.wingfoil') void this.watchTrees();
+        });
         continue;
       }
-      present.add(`tree:${name}`);
-      if (!this.watchers.has(`tree:${name}`)) {
-        this.add(`tree:${name}`, dir, true, () => this.handlers.repo());
-        // Files written in a new folder before its watcher existed: one more check covers them.
-        if (!initial) this.handlers.repo();
-      }
+      const parent = await nearestParent(this.targets.root, dir);
+      if (parent === undefined) continue;
+      const key = `parent:${parent}`;
+      wanted.add(key);
+      this.add(key, parent, false, () => {
+        void this.watchTrees();
+        this.handlers.repo();
+      });
     }
-    for (const key of [...this.watchers.keys()]) if (key.startsWith('tree:') && !present.has(key)) this.drop(key);
+    for (const key of [...this.watchers.keys()]) {
+      if ((key.startsWith('tree:') || key.startsWith('parent:')) && !wanted.has(key)) this.drop(key);
+    }
   }
 
   /** (Re)watch `node_modules` and `node_modules/wingfoil` (a reinstall replaces the folder). */
   private watchCli(): void {
     const modules = path.join(this.targets.root, 'node_modules');
+    const cli = (): void => {
+      this.drop('cli');
+      this.add('cli', path.join(modules, 'wingfoil'), false, (n) => {
+        if (n === null || n === 'package.json') this.handlers.cli();
+      });
+    };
     this.drop('modules');
-    this.drop('cli');
     this.add('modules', modules, false, (name) => {
       if (name === null || name === 'wingfoil') {
-        this.drop('cli');
-        this.add('cli', path.join(modules, 'wingfoil'), false, (n) => {
-          if (n === null || n === 'package.json') this.handlers.cli();
-        });
+        cli();
         this.handlers.cli();
       }
     });
-    this.add('cli', path.join(modules, 'wingfoil'), false, (name) => {
-      if (name === null || name === 'package.json') this.handlers.cli();
-    });
+    cli();
   }
 
   private add(key: string, dir: string, recursive: boolean, onEvent: (name: string | null) => void): void {
-    if (this.closed || this.watchers.has(key)) return;
+    if (this.stopped || this.watchers.has(key)) return;
     let watcher: FSWatcher;
     try {
-      watcher = watch(dir, { recursive, persistent: false }, (_type, name) => {
-        if (!this.closed) onEvent(name === null ? null : String(name));
+      watcher = this.watchFn(dir, { recursive, persistent: false }, (_type, name) => {
+        if (!this.stopped) onEvent(name === null ? null : String(name));
       });
-    } catch {
-      // Missing or unwatchable: the periodic check covers it.
+    } catch (error) {
+      // A missing folder is normal (no global configuration, no `node_modules`); anything else
+      // (`ENOSPC`, `EMFILE`) leaves changes there to the periodic check.
+      const code = (error as NodeJS.ErrnoException).code;
+      if (code !== 'ENOENT' && code !== 'ENOTDIR') this.handlers.degraded?.(`${code ?? 'error'}: ${dir}`);
       return;
     }
-    watcher.on('error', () => this.drop(key));
+    watcher.on('error', (error: NodeJS.ErrnoException) => {
+      this.drop(key);
+      if (error.code !== 'ENOENT') this.handlers.degraded?.(`${error.code ?? 'error'}: ${dir}`);
+    });
     this.watchers.set(key, watcher);
   }
 
@@ -175,4 +229,22 @@ class FsRepositoryWatcher implements RepositoryWatcher {
     this.watchers.delete(key);
     watcher.close();
   }
+}
+
+async function isDirectory(dir: string): Promise<boolean> {
+  try {
+    return (await stat(dir)).isDirectory();
+  } catch {
+    return false;
+  }
+}
+
+/** The nearest existing folder above `dir`, strictly inside `root`, or `undefined`. */
+async function nearestParent(root: string, dir: string): Promise<string | undefined> {
+  let current = path.dirname(dir);
+  while (current.startsWith(`${root}${path.sep}`)) {
+    if (await isDirectory(current)) return current;
+    current = path.dirname(current);
+  }
+  return undefined;
 }
