@@ -17,7 +17,7 @@ import { Writable } from 'node:stream';
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 import { createTokenAuthentication } from '../../../server/src/auth/authentication.js';
 import { buildApp } from '../../../server/src/http/app.js';
-import { registerProjectRoutes } from '../../../server/src/http/project-routes.js';
+import { rangeLabel, registerProjectRoutes } from '../../../server/src/http/project-routes.js';
 import { registerRoleViewRoute } from '../../../server/src/http/role-view.js';
 import { registerServerRoute } from '../../../server/src/http/server-route.js';
 import { createSnapshotIdentitySource } from '../../../server/src/identity/snapshot-identity.js';
@@ -28,7 +28,7 @@ import type { Snapshots } from '../../../server/src/snapshot/snapshots.js';
 import { createMemoryStateStore } from '../../../server/src/state/memory-store.js';
 import type { StateStore } from '../../../server/src/state/store.js';
 import { REPO_ROOT } from '../../harness/cli.js';
-import { buildFixture, copyFixture, type Fixture } from '../../harness/fixtures/index.js';
+import { buildFixture, copyFixture, installCliStub, type Fixture } from '../../harness/fixtures/index.js';
 import { git } from '../../harness/run.js';
 import { auditedSnapshots, type AuditedRunner } from '../snapshot/support.js';
 
@@ -206,6 +206,24 @@ describe('GET /api/p/:pid — the project header', () => {
     const elements = await c.get(`/api/p/${c.pid}/elements`);
     expect(elements.status).toBe(200);
     expect(elements.body.elements).toHaveLength(5);
+  });
+});
+
+describe('a version outside the range (user decision 2026-10-06, open point 26)', () => {
+  it('names the range as "<min> to <max>" in the read-only reason and in every disabled verb', async () => {
+    expect(rangeLabel()).toBe('0.2.2 to 0.2.x');
+    const c = await start(kanbanTemplate, {
+      prepare: async (fx) => void (await installCliStub(fx, { version: '0.4.0' })),
+    });
+    const header = await c.get(`/api/p/${c.pid}`);
+    expect(header.status).toBe(200);
+    expectSchema('project.schema.json', header.body);
+    expect(header.body.wingfoil).toMatchObject({ version: '0.4.0', inRange: false, state: 'above' });
+    expect(header.body.readOnly).toEqual([{ code: 'version-unsupported', range: '0.2.2 to 0.2.x' }]);
+    const elements = await c.get(`/api/p/${c.pid}/elements`);
+    const reasons = elements.body.elements.flatMap((e: any) => e.descriptor.verbs.map((v: any) => v.reason));
+    expect(reasons.length).toBeGreaterThan(0);
+    expect(reasons.every((r: any) => r.code === 'version-unsupported' && r.range === '0.2.2 to 0.2.x')).toBe(true);
   });
 });
 
