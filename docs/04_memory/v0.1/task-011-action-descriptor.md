@@ -297,3 +297,13 @@ my minor choices (14).
 - **Checks (2026-10-06, load ≈ 3–5):** typecheck, `eslint .`, format:check clean · `docs:api` OK ·
   `vitest run test/server/descriptor test/lint` 160/160 · `descriptor-contract.test.ts` 10/10
   (29 s).
+
+### integration (2026-10-06)
+
+- `main` (90d4f81: Wave 2 spec amendments, bug-002, task-010/012 AC updates) merged into the
+  branch with no conflict. Full gates on the merge, load 15–22: typecheck, lint, format:check
+  clean; `test:coverage` 680 passed, 1 skipped, coverage 96.64 % statements / 90.88 % branches;
+  `docs:api` OK; `test:e2e` 3/3; `check_tasks.py` OK.
+- Reviews: round 1 FAIL (lint rule coverage), round 2 FAIL (merge note), round 3 FAIL (method
+  names on sibling APIs → method names exempt by coordinator decision), round 4 PASS; user
+  decisions 17 and 12 re-verified PASS.
