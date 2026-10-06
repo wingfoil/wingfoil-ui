@@ -836,6 +836,39 @@ describe('concurrent adds, clones and removals (review round 1 item 4)', () => {
     expect((await list(w)).map((p) => p.name)).toEqual(['kanban']);
   }, 60_000);
 
+  it('a clone through a symlinked parent into the folder of a missing listed project is refused, nothing re-pointed', async () => {
+    const w = await world();
+    const kanban = (await add(w, w.fx.dir)).json() as { id: string };
+    await rename(w.fx.dir, `${w.fx.dir}-moved`);
+    const alias = path.join(w.dir, 'alias');
+    await symlink(w.dir, alias);
+    const other = await plainRepo(path.join(w.dir, 'plain-src'), w.env);
+    const error = await refusal(
+      await clone(w, { url: other, directory: path.join(alias, path.basename(w.fx.dir)) }),
+      'already-listed',
+    );
+    expect(error.detail).toEqual({ pid: kanban.id, name: 'kanban', sameRemote: false });
+    await expect(lstat(w.fx.dir)).rejects.toThrow();
+    expect(await list(w)).toEqual([expect.objectContaining({ id: kanban.id, availability: 'folder-not-found' })]);
+  });
+
+  it('an add of the real folder a clone typed through a symlinked parent is writing waits for the clone', async () => {
+    const w = await world();
+    const url = await slowRemote(w);
+    const alias = path.join(w.dir, 'alias');
+    await symlink(w.dir, alias);
+    const running = runner.running;
+    const cloning = clone(w, { url, directory: path.join(alias, 'kanban-c') });
+    await expect.poll(() => runner.running, { timeout: 10_000 }).toBeGreaterThan(running);
+    const adding = add(w, path.join(w.dir, 'kanban-c'));
+    const cloned = await cloning;
+    expect(cloned.statusCode, cloned.body).toBe(201);
+    expect((cloned.json() as { path: string }).path).toBe(path.join(w.dir, 'kanban-c'));
+    await refusal(await adding, 'already-listed');
+    expect(await list(w)).toHaveLength(1);
+    expect((await lstat(path.join(w.dir, 'kanban-c', '.wingfoil'))).isDirectory()).toBe(true);
+  }, 60_000);
+
   it('a clone into the folder of a listed project that went missing is refused already-listed', async () => {
     const w = await world();
     const kanban = (await add(w, w.fx.dir)).json() as { id: string };

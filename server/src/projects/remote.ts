@@ -73,11 +73,13 @@ export function repoName(url: string): string | undefined {
  * as an option), or a local path that is not absolute (git would resolve it against the server's
  * working directory).
  */
-export function cloneSourceProblem(url: string): string | undefined {
+export function cloneSourceProblem(url: string, platform: NodeJS.Platform = process.platform): string | undefined {
   const trimmed = url.trim();
   if (trimmed.startsWith('-')) return 'url must not start with -';
   if (URL_FORM.test(trimmed)) return undefined;
   const { host, path } = split(trimmed);
-  if (host === '' && !/^(\/|[A-Za-z]:[\\/]|\\\\)/.test(path)) return 'a local url must be an absolute path';
+  // Drive letters and UNC paths are absolute on Windows only.
+  const absolute = platform === 'win32' ? /^(\/|[A-Za-z]:[\\/]|\\\\)/ : /^\//;
+  if (host === '' && !absolute.test(path)) return 'a local url must be an absolute path';
   return undefined;
 }

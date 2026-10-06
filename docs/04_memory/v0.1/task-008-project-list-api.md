@@ -271,3 +271,21 @@ e2e closure — scenarios that need a screen are proved here by API and unit tes
   `test/server/http/projects.test.ts` 60/60 · **`npm run test:timing` 3/3 at load 4.1 → 3.5**:
   REQ-PERF-03 20/20, max 387 ms; TypeDoc build 3018 ms; REQ-PERF-06 255–345 ms.
 
+
+### review round 2 follow-ups (2026-10-06)
+
+- Review round 2: **PASS with follow-ups**, fixed here:
+  - **M1** the clone resolves its working directory once with `realpathLoose` (now exported by
+    `server/src/state/location.ts`) and uses that real path for the listed-path checks, the
+    `cloning` set and the target; an add checks `inClone` on its real path (or `realpathLoose` of a
+    missing one). A clone refused `already-listed` by path keeps its folder only when that entry
+    was added during the clone (ids listed under the queue before `runClone`). Tests (symlinked
+    parent `alias` → the test folder): a clone typed through it into the folder of a missing listed
+    project → 422 `already-listed` before cloning, nothing created, the entry still
+    `folder-not-found`; an add of the real folder while a clone typed through the alias writes it
+    → waits, then `already-listed`, the clone kept.
+  - **N2** `test/README.md`: the TT-INT-06 audit is self-contained; `clone.test.ts` and
+    `test/server/launcher/project-check.test.ts` listed.
+  - **N3** `cloneSourceProblem(url, platform)`: drive-letter and UNC paths are absolute on
+    `win32` only (POSIX → 400); unit rows for both platforms.
+- Checks: see the coordinator report of this round.

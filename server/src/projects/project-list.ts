@@ -27,7 +27,7 @@ import type { ProcessRunner } from '../process/runner.js';
 import type { WriteLock } from '../process/write-lock.js';
 import { ProjectReads } from '../reads/project-reads.js';
 import type { Snapshots } from '../snapshot/snapshots.js';
-import { findProjectContaining, isWithin } from '../state/location.js';
+import { findProjectContaining, isWithin, realpathLoose } from '../state/location.js';
 import type { StateStore } from '../state/store.js';
 import { CloneTarget, GitCloneError, runClone } from './clone.js';
 import { cloneSourceProblem, repoName, sameRemote } from './remote.js';
@@ -171,8 +171,7 @@ export class ProjectList {
     const root = await realpath(absolute).catch(() => undefined);
     // A folder a clone is writing: wait for that clone (it may list it, or remove it), then judge
     // the folder as it is. Inside the clone queue no other clone runs, so this add cannot race one.
-    if (this.inClone(absolute) || (root !== undefined && this.inClone(root)))
-      return this.addAfterClone(shown, absolute, signal);
+    if (this.inClone(root ?? (await realpathLoose(absolute)))) return this.addAfterClone(shown, absolute, signal);
     return this.addNow(shown, root, signal, false);
   }
 
@@ -214,7 +213,8 @@ export class ProjectList {
       if (name === undefined) throw new InvalidProjectRequest('no folder name in the url: give a directory');
       shown = `~/projects/${name}`;
     }
-    const directory = this.absolute(shown, 'directory');
+    // Real path (through a symlinked parent too) once: the stored paths are real paths.
+    const directory = await realpathLoose(this.absolute(shown, 'directory'));
     // The URL typed is compared before anything is cloned (spec-006 §3).
     this.refuseListed(await this.options.store.reload(), url, directory);
     if (!(await CloneTarget.inspect(directory))) throw this.notEmpty(shown);
@@ -222,9 +222,11 @@ export class ProjectList {
     const git = await this.resolveGit();
     return this.options.writeLock.run(CLONE_LOCK_KEY, async () => {
       // Premises again: an earlier clone in the queue may have taken the folder or the remote.
-      this.refuseListed(await this.options.store.reload(), url, directory);
+      const listedBefore = await this.options.store.reload();
+      this.refuseListed(listedBefore, url, directory);
       const target = await CloneTarget.inspect(directory);
       if (!target) throw this.notEmpty(shown);
+      const known = new Set(listedBefore.map((p) => p.id));
       this.cloning.add(directory);
       try {
         try {
@@ -243,10 +245,14 @@ export class ProjectList {
         const name = await this.name(root, shown, signal);
         return await this.append({ path: root, name, remote: url });
       } catch (error) {
-        // Listed meanwhile by its path (a local add won the race): the entry points at the clone,
-        // so the clone stays.
+        // Listed by its path by an entry added during the clone (a local add won the race): that
+        // entry points at the clone, so the clone stays. An entry listed before the clone never
+        // keeps it (it was refused above; this guards a re-pointed missing project).
         const listedHere =
-          error instanceof ProjectRefusal && error.code === 'already-listed' && !error.detail?.sameRemote;
+          error instanceof ProjectRefusal &&
+          error.code === 'already-listed' &&
+          !error.detail?.sameRemote &&
+          !known.has(String(error.detail?.pid));
         if (!listedHere) await target.discard();
         throw error;
       } finally {

@@ -38,7 +38,7 @@ export function resolveStateDir(context: LocationContext): string {
 }
 
 /** The realpath of `target`, resolving its nearest existing ancestor when it does not exist yet. */
-async function realpathLoose(target: string): Promise<string> {
+export async function realpathLoose(target: string): Promise<string> {
   const absolute = path.resolve(target);
   try {
     return await realpath(absolute);

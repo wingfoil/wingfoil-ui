@@ -65,12 +65,18 @@ describe('cloneSourceProblem', () => {
     ['git@github.com:acme/kanban.git', undefined],
     ['file:///srv/remotes/kanban.git', undefined],
     ['/srv/remotes/kanban.git', undefined],
-    ['C:\\remotes\\kanban.git', undefined],
     ['--upload-pack=x', 'url must not start with -'],
     ['kanban.git', 'a local url must be an absolute path'],
     ['./kanban', 'a local url must be an absolute path'],
     ['../remotes/kanban.git', 'a local url must be an absolute path'],
   ])('%s → %s', (url, problem) => {
-    expect(cloneSourceProblem(url)).toBe(problem);
+    expect(cloneSourceProblem(url, 'linux')).toBe(problem);
+  });
+
+  it('accepts drive-letter and UNC paths on Windows only', () => {
+    for (const url of ['C:\\remotes\\kanban.git', 'C:/remotes/kanban.git', '\\\\server\\share\\kanban.git']) {
+      expect(cloneSourceProblem(url, 'win32'), url).toBeUndefined();
+      expect(cloneSourceProblem(url, 'linux'), url).toBe('a local url must be an absolute path');
+    }
   });
 });
