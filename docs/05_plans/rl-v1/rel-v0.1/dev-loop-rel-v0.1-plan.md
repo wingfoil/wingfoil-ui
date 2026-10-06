@@ -3,7 +3,7 @@ id: dev-loop-rel-v0.1-plan
 type: plan
 title: "Implementation rel-v0.1"
 status: active
-version: "0.2"         # optional — plan version
+version: "0.3"         # optional — plan version
 workflow: "dev-loop"
 phase: "rel-v0.1"
 scope: "rl-v1/rel-v0.1"
@@ -14,7 +14,7 @@ tmpl_version: 260703   # Orignal template version
 
 ## Context
 
-**Version:** 0.2 · **Date:** 2026-10-05 (0.1: plan created, Wave 1 scope; 0.2: Wave 1 session log)
+**Version:** 0.3 · **Date:** 2026-10-06 (0.1: plan created, Wave 1 scope; 0.2: Wave 1 session log; 0.3: Wave 2 session log)
 **Workflows:** `sw-life-cycle` → `release-line-cycle` (`rl-v1`) phase `delivery` → `release-cycle`
 (`minor-v0.1`) phase `implementation` = `dev-loop` iterated over every task with status `backlog`
 and tag `v0.1` (`.wingfoil/workflows/custom/release-cycle.yaml` v1.1, `dev-loop.yaml` v1.4)
@@ -90,7 +90,7 @@ Per task (`dev-loop` v1.4):
   before each merge; end of each wave.
 - **Completion:** every v0.1 task `done` and merged; plan finalized by hand (`status: done`, commit
   `wf(plan): finalize dev-loop-rel-v0.1-plan [active → done]`, W-04).
-- **Next:** wave 2 (006, 009, 010, 011, 008, 012) — see Session 1.
+- **Next:** wave 3 (013, 018, 017, 020, 019) — see Session 2.
 
 ## Session log
 
@@ -149,3 +149,70 @@ Per task (`dev-loop` v1.4):
   between waves (user decision).
 - **Next:** Wave 2 — 006, 009, 010, 011, 008, 012 (by `depends_on`; parallel where independent).
 
+### Session 2 — Wave 2: server APIs (2026-10-05 → 2026-10-06)
+
+- **Done and merged** (`--no-ff`, one at a time, each after an independent fresh-context review
+  re-verified by the same agent, `main` merged into the branch before submit, and the user's
+  `memory approve`), in this order: task-011 (`5a87c98`), task-006 (`19e89d2`), task-009
+  (`c28f60b`), task-010 (`5f3c663`), task-008 (`9465fd6`), task-012 (`da0e6a4`). Review rounds:
+  011 ×4, 006 ×4 (+ decision check), 009 ×2, 010 ×3 (+ integration review), 008 ×3 (+ decision
+  check), 012 ×3 (+ decision check). Parallelism: level A (006, 009, 010, 011) four agents, then
+  008 and 012 together after 010.
+- **Decisions of the user (1–30, all option a except 21 → b)**, applied as amendments of the
+  approved documents with dated Process Notes (`90d4f81`, audit follow-up `d4338a9`, `5aedca8`,
+  `08dd680`); an independent coherence audit of the first set found 18 follow-ups, all fixed:
+  - 006: range = declared `min` (`matrix.json`) to the caret line of the highest contract-tested
+    version, labels `0.Y.x`/`X.x` (REQ-INT-02, adr-001 D3); `minVersion: null` = not released
+    (REQ-INT-03); `capabilities.json` format (spec-001 §5/§6).
+  - 009: role not held → 400 (spec-004 §4 row 5a); identity addendum and PUT 204 (§3); the
+    role-view PUT is a local-state write (rows 1–5, 5a); cached identity moved to task-012.
+  - 010: state key = porcelain hash + content fingerprint (REQ-STATE-02, spec-004 §5, adr-001 D6)
+    with a hash-only read exception (REQ-ARC-04, adr-001 D1a, spec-001 §4.4, directive
+    `cli-only-writes` 1.5); TT-PERF-05/TT-INT-09 stay in the default suite.
+  - 011: gate-waiting actor = workflow engine, reject reserved to `approver` (spec-003 §4);
+    `bucket` in the output (§8, `memory-list.feature`); reason codes; tables in
+    `server/src/presets/` (spec-005, REQ-ARC-05); §9 erratum.
+  - 008: `git-refused` for a non-git folder; a clone without CLI is kept as `cli-not-found`; clone
+    queue on the lock key `clone`; response shapes; new refusals `directory-inside-project` and
+    `inside-state-dir`; no CLI of the cloned repository runs at clone time (spec-006 §3, adr-001
+    D2/D5).
+  - 012: bodies defined by `contracts/api/` schemas (spec-004 §3); refused paths 404 with
+    `detail.kind` (§5); range label "0.2.2 to 0.2.x" (spec-003 §6); spec-002 §3 NUL framing with a
+    header-only sha read (two git processes per HEAD).
+  - Process: submits allowed under external load with the two known timing failures accepted
+    (before task-010 moved them to `test:timing`).
+- **Coordinator decisions:** REQ-ARC-05 lint exempts method/getter/setter names (behaviour, not
+  data) — sibling APIs (`open()`, `get resolved()`) were otherwise reported; descriptor reason
+  `version-unsupported` and the capability/API code `unsupported-version` are distinct catalogue
+  keys (spec-008 §4); task-005's ACs left historical; the integrations of 010 and 012 were
+  delegated to their developer agents (merge of `main` authorised for that step only).
+- **Bugs** (`bug-ingest`, absorbed per dl-045, `bug.sync_state` by hand/CLI): bug-001 (timing
+  tests under load) and bug-002 (inherited `GIT_*` variables redirect git and CLI reads, medium)
+  absorbed into task-010, **closed**; bug-003 (confined reads swapped after the check, low)
+  absorbed into task-012, **closed**.
+- **Facts learned:** a commit message can forge `%x1e`-framed `git log` records — NUL framing as
+  WingFoil bug-050/task-086; git decides "binary" on the first 8000 bytes, so a NUL can reach a
+  patch; legacy `GIT_CONFIG` still redirects `git config` (git 2.43); a relative `core.hooksPath`
+  in the user's config runs the remote's committed hooks during `git clone` (neutralised with
+  `-c core.hooksPath=<empty dir>`); WingFoil 0.2.2's `--reason` accepts control characters.
+- **Deviations:** spec-002 §4 incremental `old..HEAD` parse not implemented (whole walk per HEAD;
+  needed for v0.2 Updates/Timeline); e2e ACs proved through the API and the bin, screens close in
+  the web tasks; agent sessions interrupted twice by API limits and resumed without loss; the
+  task-009 identity source is superseded by the watched identity (kept with its tests).
+- **Environment:** external load 25–80 for most of the wave; after task-010 the default suite is
+  load-independent (`test:coverage` green at load 70) and only `test:timing` needs a quiet machine.
+- **Checks on `main` after the wave** (`9bbf70b`): `test:coverage` **1236 passed, 1 skipped**,
+  coverage 95.66 % statements / 88.68 % branches · `test:e2e` 3/3 · typecheck, lint (REQ-ARC-05
+  rule), format clean · `docs:api` OK · `check_tasks.py`, `check_releases.py` OK · `directives
+  list` → `"warnings": []` · `test:timing` **3/3** at load ≈ 9–12 (REQ-PERF-03 20/20 ≤ 1.5 s,
+  REQ-PERF-06 546–1377 ms, TypeDoc 9.0 s). Process audit on the real routes: cold Memory list 5
+  CLI + 6 git, reopened 0, 60 s idle 0 CLI.
+- **Hand-overs to Wave 3** (details in each task's Execution Notes): web code must not use data
+  keys/props equal to fixture type or state names (REQ-ARC-05 rule; method names exempt) — use
+  `tone`/`bucket` from the descriptor as data; one `EventSource` per page, invalidate on `repo`,
+  refetch the list on `projects`; response shapes from `contracts/api/` (incl. refusal codes and
+  `detail`); catalogue keys for the new codes (`error.directoryInsideProject`,
+  `error.insideStateDir`, `capability.<id>`, reason codes per spec-008 §4); selector only when
+  `roleViews.length > 1`; Playwright suites that start the bin need their own `tsc -b server`.
+- **Next:** Wave 3 — 013, 018, 017, 020, 019 (web core). To confirm at its start: the rule for
+  external load (quiet machine only for `test:timing`, as in this wave).
