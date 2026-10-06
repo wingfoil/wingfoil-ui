@@ -9,6 +9,7 @@ import {
   GitNotFoundError,
   GitReadError,
   GitReads,
+  gitEnv,
   parseStatus,
   resolveGit,
   UNBORN_HEAD,
@@ -178,5 +179,61 @@ describe('resolveGit', () => {
     );
     await chmod(path.join(bin, 'git'), 0o755);
     await expect(resolveGit({ PATH: `relative${path.delimiter}${bin}` }, 'linux')).resolves.toBe(path.join(bin, 'git'));
+  });
+});
+
+describe('gitEnv — inherited GIT_* variables never redirect a read (review F2)', () => {
+  it('removes the repository-locating and config-injecting variables, case-insensitively, and keeps the rest', () => {
+    const env = gitEnv({
+      HOME: '/h',
+      PATH: '/bin',
+      GIT_CONFIG_GLOBAL: '/g',
+      GIT_CONFIG_NOSYSTEM: '1',
+      GIT_DIR: '/other/.git',
+      git_work_tree: '/other',
+      GIT_COMMON_DIR: '/c',
+      GIT_INDEX_FILE: '/i',
+      GIT_OBJECT_DIRECTORY: '/o',
+      GIT_ALTERNATE_OBJECT_DIRECTORIES: '/a',
+      GIT_NAMESPACE: 'n',
+      GIT_CEILING_DIRECTORIES: '/',
+      GIT_DISCOVERY_ACROSS_FILESYSTEM: '1',
+      GIT_CONFIG_PARAMETERS: "'user.email'='x@y'",
+      GIT_CONFIG_COUNT: '1',
+      GIT_CONFIG_KEY_0: 'user.email',
+      GIT_CONFIG_VALUE_0: 'x@y',
+    });
+    expect(env).toEqual({ HOME: '/h', PATH: '/bin', GIT_CONFIG_GLOBAL: '/g', GIT_CONFIG_NOSYSTEM: '1' });
+  });
+
+  it('GitReads reads the project although GIT_DIR, GIT_WORK_TREE and a config injection point elsewhere', async () => {
+    const make = async (name: string, email: string) => {
+      const repo = path.join(root, name);
+      await mkdir(repo, { recursive: true });
+      await git(repo, ['init', '-q'], env);
+      await git(repo, ['config', 'user.email', email], env);
+      return repo;
+    };
+    const project = await make('project-f2', 'alex@example.test');
+    const other = await make('other-f2', 'evil@example.test');
+    await writeFile(path.join(project, 'mine.md'), 'x\n');
+    const hostile = {
+      ...env,
+      GIT_DIR: path.join(other, '.git'),
+      GIT_WORK_TREE: other,
+      GIT_CONFIG_COUNT: '1',
+      GIT_CONFIG_KEY_0: 'user.email',
+      GIT_CONFIG_VALUE_0: 'injected@example.test',
+    };
+    const r = new GitReads({ git: gitFile, runner: new LocalProcessRunner(), cwd: project, env: hostile });
+    expect((await r.status()).entries).toEqual([{ code: '??', path: 'mine.md' }]);
+    expect(await r.email()).toBe('alex@example.test');
+    expect((await r.layout()).gitDir).toBe(path.join(project, '.git'));
+  });
+
+  it('GitReads passes the cleaned environment to the runner', async () => {
+    const runner = new FakeProcessRunner().answer({ stdout: 'a@b\n' });
+    await new GitReads({ git: '/usr/bin/git', runner, cwd: '/p', env: { HOME: '/h', GIT_DIR: '/x' } }).email();
+    expect(runner.requests[0]!.env).toEqual({ HOME: '/h' });
   });
 });

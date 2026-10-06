@@ -3,7 +3,7 @@
 // API side) — the local-changes marker; REQ-PERF-05 (one CLI process per command and state, shared
 // by concurrent views). On the real kanban fixture and the pinned CLI, the watcher off: the state
 // moves only by `check()`.
-import { appendFile, mkdtemp, readFile, realpath, rm, writeFile } from 'node:fs/promises';
+import { appendFile, mkdtemp, readFile, realpath, rm, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -18,6 +18,7 @@ import {
   removeCli,
   type Fixture,
 } from '../../harness/fixtures/index.js';
+import { PINNED_PACKAGE_DIR } from '../../harness/cli.js';
 import { git } from '../../harness/run.js';
 import { auditedSnapshots } from './support.js';
 
@@ -191,6 +192,66 @@ describe('TT-STATE-02 — cache keyed on HEAD, working-tree status and user.emai
     await git(fx.dir, ['config', 'user.email', 'casey@example.test'], fx.env);
     await snapshot.check();
     expect(events).toHaveLength(2);
+  });
+
+  it('misses and publishes after a second edit of an already modified tracked file (review F1)', async () => {
+    const { fx, snapshot, events } = await fresh();
+    const file = path.join(fx.dir, TASK_001);
+    const original = await readFile(file, 'utf8');
+    await writeFile(file, original.replace('title: "Login form"', 'title: "First"'));
+    await snapshot.check();
+    const first = await snapshot.view();
+    expect((await first.elements()).matches.find((m) => m.match.id === 'task-001-login-form')?.match.title).toBe(
+      'First',
+    );
+    await writeFile(file, original.replace('title: "Login form"', 'title: "Second"'));
+    const next = await snapshot.check();
+    expect(next.key).not.toBe(first.state.key);
+    expect(events.at(-1)).toEqual({ event: 'repo', data: { pid: snapshot.pid, state: next.key } });
+    const second = await snapshot.view();
+    expect((await second.elements()).matches.find((m) => m.match.id === 'task-001-login-form')?.match.title).toBe(
+      'Second',
+    );
+  });
+
+  it('misses and publishes after a second edit of an untracked file (review F1)', async () => {
+    const { fx, snapshot, events } = await fresh();
+    const draft = 'docs/memory/task/task-009-draft-idea.md';
+    const write = (title: string) =>
+      writeFile(
+        path.join(fx.dir, draft),
+        `---\nid: task-009-draft-idea\ntype: task\ntitle: "${title}"\nstatus: draft\n---\n\nIdea.\n`,
+      );
+    await write('Draft one');
+    const one = await snapshot.check();
+    await write('Draft two');
+    const two = await snapshot.check();
+    expect(two.key).not.toBe(one.key);
+    expect(events.at(-1)).toEqual({ event: 'repo', data: { pid: snapshot.pid, state: two.key } });
+    const list = await (await snapshot.view()).elements();
+    expect(list.matches.find((m) => m.match.id === 'task-009-draft-idea')?.match.title).toBe('Draft two');
+  });
+
+  it('shares the first check between concurrent first views (review F4)', async () => {
+    const { snapshot, runner } = await fresh();
+    // open() ran one `git rev-parse`; the first state is one status + one user.email.
+    expect(runner.count('git')).toBe(1);
+    await Promise.all([snapshot.view(), snapshot.view(), snapshot.state()]);
+    expect(runner.count('git')).toBe(3);
+  });
+
+  it('looks for a missing CLI again at the next check (review F9)', async () => {
+    const { fx, snapshot, events } = await fresh((f) => envWithoutWingfoil(f.env, path.join(root, `bin-${n}`)));
+    await snapshot.state();
+    await removeCli(fx);
+    snapshot.cliChanged();
+    await expect((await snapshot.view()).version()).rejects.toBeInstanceOf(CliNotFoundError);
+    // Installed without the watcher seeing it (e.g. a CLI put on the PATH): the next check finds it.
+    await symlink(PINNED_PACKAGE_DIR, path.join(fx.dir, 'node_modules', 'wingfoil'));
+    const before = events.length;
+    await snapshot.check();
+    expect(await (await snapshot.view()).version()).toBe('0.2.2');
+    expect(events.length).toBe(before + 1);
   });
 
   it('coalesces concurrent checks', async () => {
