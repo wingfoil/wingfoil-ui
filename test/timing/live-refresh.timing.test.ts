@@ -1,6 +1,6 @@
 // REQ-PERF-03 (TT-PERF-03) — refresh after an external change: change → view updated within 5 s in
 // 20 out of 20 trials (S-26.1, S-25.2, S-27.2 and the identity/DNA changes of S-12.3, S-13.3,
-// S-15.3, API side). The page is the stand-in console of the process audits: its event stream
+// S-15.3, API side). The page is the read console of the process audits (the real routes): its event stream
 // stays open; on `repo` it refetches the view, as TanStack Query invalidation will (task-017).
 // Changes: a CLI approval in a terminal (S-26.1), a working-tree edit, its commit (marker removed,
 // S-25.2), a `user.email` change, a DNA edit. Timing suite (bug-001): run on a quiet machine; the
@@ -14,17 +14,17 @@ import { binScript, PINNED_PACKAGE_DIR } from '../harness/cli.js';
 import { buildFixture, type Fixture } from '../harness/fixtures/index.js';
 import { git, run } from '../harness/run.js';
 import type { SseStream } from '../server/http/sse-client.js';
-import { startStandIn, type StandIn } from '../server/snapshot/stand-in-app.js';
+import { startReadConsole, type ReadConsole } from '../server/http/read-console.js';
 import { auditedSnapshots } from '../server/snapshot/support.js';
 import { report } from './load.js';
 
 const BUDGET_MS = 5_000;
 const TRIALS = 20;
-const PID = 'p_refresh';
+const PID = 'p_refresh00000';
 let root: string;
 let fx: Fixture;
 let snapshots: Snapshots;
-let standIn: StandIn;
+let standIn: ReadConsole;
 let stream: SseStream;
 
 interface Element {
@@ -35,11 +35,12 @@ interface Element {
 }
 
 async function elements(): Promise<Element[]> {
-  return (await standIn.get(`/api/p/${PID}/elements`)).body as Element[];
+  return ((await standIn.get(`/api/p/${PID}/elements`)).body as { elements: Element[] }).elements;
 }
 
 async function header(): Promise<{ name: string; email: string | null }> {
-  return (await standIn.get(`/api/p/${PID}`)).body as { name: string; email: string | null };
+  const body = (await standIn.get(`/api/p/${PID}`)).body as { name: string; identity: { email?: string } };
+  return { name: body.name, email: body.identity.email ?? null };
 }
 
 /** Make the change, then measure until `updated()` holds on data refetched after a `repo` event. */
@@ -68,8 +69,7 @@ beforeAll(async () => {
   fx = await buildFixture('kanban', { root });
   const audited = auditedSnapshots(fx.env, { watch: true, fallbackMs: DEFAULT_FALLBACK_MS });
   snapshots = audited.snapshots;
-  await snapshots.open(PID, fx.dir);
-  standIn = await startStandIn(snapshots, audited.bus);
+  standIn = await startReadConsole(snapshots, audited.bus, { [PID]: fx.dir });
   stream = await standIn.events();
   await standIn.openMemoryList(PID);
 }, 600_000);

@@ -1,14 +1,18 @@
-// e2e-smoke `local-security` (REQ-SEC-02, REQ-SEC-03; X-02.1 API side, X-02.2, X-04.1…X-04.3): the
-// `wingfoil-ui` bin driven over HTTP. No project read route exists yet (task-008/012; `PUT …/role-view`
-// is task-009): the guarded requests target `/api/` paths that, once past the guards, answer 404 —
-// never 401 or 403. The event stream `GET /api/events` (task-010) answers 200 once past them.
+// e2e-smoke `local-security` (REQ-SEC-02, REQ-SEC-03, REQ-SEC-06; X-02.1 API side, X-02.2,
+// X-04.1…X-04.3, R-09.3 API side): the `wingfoil-ui` bin driven over HTTP. The guarded project
+// requests target an unknown project id, which, once past the guards, answers 404 — never 401 or 403
+// (`PUT …/role-view` is task-009, the read routes task-012). `GET /api/server` (task-012) and the
+// event stream `GET /api/events` (task-010) answer 200 once past them. TT-SEC-06: the path-traversal
+// cases on a seeded custom fixture answer 404 with the "outside the repository" marker and 0 bytes of
+// the target.
 import http from 'node:http';
 import net from 'node:net';
-import { mkdtemp, rm } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, realpath, rm, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { harnessEnv } from '../harness/fixtures/index.js';
+import type { StateFile } from '@wingfoil-ui/contracts';
+import { buildFixture, harnessEnv, type Fixture } from '../harness/fixtures/index.js';
 import { startLauncher, type Launcher } from './launcher.js';
 
 let root: string;
@@ -178,6 +182,53 @@ describe('X-04.1 — refuse requests without a valid session', () => {
     expect(JSON.parse(res.body)).toEqual({ error: { code, message: expect.any(String) } });
   });
 
+  // task-012: the v0.1 read routes — refused by the guards; past them, an unknown id is 404.
+  const READ_ROUTES = [
+    '',
+    '/config',
+    '/elements',
+    '/elements?archived=true',
+    '/elements/task-001-login-form',
+    '/elements/task-001-login-form/history',
+    '/directives',
+    '/directives/testing',
+    '/docs',
+    '/files/tree',
+    '/files/content?path=docs%2Fa.md',
+  ];
+  it.each(
+    READ_ROUTES.flatMap((suffix) =>
+      (
+        [
+          [{}, 401, 'unauthenticated'],
+          [{ origin: 'https://evil.test', auth: true }, 403, 'forbidden-origin'],
+          [{ fetchSite: 'cross-site', auth: true }, 403, 'forbidden-origin'],
+          [{ auth: true }, 404, 'not-found'],
+        ] as const
+      ).map(([condition, status, code]) => [suffix, condition, status, code] as const),
+    ),
+  )('GET <project>%s %o → %i', async (suffix, condition, status, code) => {
+    const headers: Record<string, string> = {};
+    if ('origin' in condition) headers.origin = condition.origin;
+    if ('fetchSite' in condition) headers['sec-fetch-site'] = condition.fetchSite;
+    if ('auth' in condition) headers.authorization = `Bearer ${l.token}`;
+    const res = await request(l, 'GET', `${PROJECT_API}${suffix}`, headers);
+    expect(res.status).toBe(status);
+    expect(JSON.parse(res.body)).toEqual({ error: { code, message: expect.any(String) } });
+  });
+
+  it.each([
+    [{}, 401, 'unauthenticated'],
+    [{ origin: 'https://evil.test', auth: true }, 403, 'forbidden-origin'],
+  ] as const)('GET /api/server %o → %i', async (condition, status, code) => {
+    const headers: Record<string, string> = {};
+    if ('origin' in condition) headers.origin = condition.origin;
+    if ('auth' in condition) headers.authorization = `Bearer ${l.token}`;
+    const res = await request(l, 'GET', '/api/server', headers);
+    expect(res.status).toBe(status);
+    expect(JSON.parse(res.body)).toEqual({ error: { code, message: expect.any(String) } });
+  });
+
   it('answers 401 to a malformed /api URL without a session (spec-004 §4 order)', async () => {
     expect((await rawRequest(l, ['GET /api/%zz HTTP/1.1', `Host: 127.0.0.1:${l.port}`])).status).toBe(401);
   });
@@ -238,6 +289,7 @@ describe("X-04.3 — accept a request with the token from the console's own orig
   it('lets the request through the guards on 127.0.0.1', async () => {
     const headers = { origin: `http://127.0.0.1:${l.port}`, authorization: `Bearer ${l.token}` };
     expect((await request(l, 'POST', '/api/session', headers)).status).toBe(204);
+    expect((await request(l, 'GET', '/api/server', headers)).status).toBe(200);
     expect((await request(l, 'GET', PROJECT_API, headers)).status).toBe(404);
   });
 
@@ -245,6 +297,7 @@ describe("X-04.3 — accept a request with the token from the console's own orig
   it.skipIf(!HAS_IPV6)('lets the request through the guards on ::1', async () => {
     const headers = { host: `[::1]:${l.port}`, origin: `http://[::1]:${l.port}`, authorization: `Bearer ${l.token}` };
     expect((await request(l, 'POST', '/api/session', headers, '::1')).status).toBe(204);
+    expect((await request(l, 'GET', '/api/server', headers, '::1')).status).toBe(200);
     expect((await request(l, 'GET', PROJECT_API, headers, '::1')).status).toBe(404);
   });
 });
@@ -294,5 +347,81 @@ describe('GET /api/events — the event stream on the bin (spec-004 §1–2, §6
     await stream.ended;
     expect(code).toBe(0);
     expect(l.stdoutLines().at(-1)).toBe('WingFoil UI stopped');
+  });
+});
+
+describe('TT-SEC-06 — confinement to the repository (R-09.3 API side)', () => {
+  const CUSTOM = 'p_c5stmc5stmab';
+  let l: Launcher;
+  let fx: Fixture;
+  let secret: string;
+
+  beforeAll(async () => {
+    const base = await realpath(await mkdtemp(path.join(root, 'confine-')));
+    fx = await buildFixture('custom', { root: path.join(base, 'fx') });
+    // Targets outside the repository, reached by traversal, an absolute path or a symlink.
+    const outside = path.join(base, 'outside');
+    await mkdir(path.join(outside, 'dir'), { recursive: true });
+    secret = `SECRET-${Date.now()}`;
+    await writeFile(path.join(outside, 'secret.md'), `${secret}\n`);
+    await writeFile(path.join(outside, 'dir', 'inner.md'), `${secret}-inner\n`);
+    await symlink(path.join(outside, 'secret.md'), path.join(fx.dir, 'docs', 'escape.md'));
+    await symlink(path.join(outside, 'dir'), path.join(fx.dir, 'docs', 'escape-dir'));
+    const stateDir = path.join(base, 'state');
+    await mkdir(stateDir, { recursive: true, mode: 0o700 });
+    const state: StateFile = {
+      version: 1,
+      projects: [{ id: CUSTOM, path: fx.dir, name: 'custom', remote: '', addedAt: '2026-10-06T08:00:00Z', roleView: '' }],
+      settings: {},
+      actionLog: [],
+    };
+    await writeFile(path.join(stateDir, 'state.json'), JSON.stringify(state), { mode: 0o600 });
+    const fixtureLauncher = await startLauncher(['--no-open'], { ...fx.env, WINGFOIL_UI_STATE_DIR: stateDir }, 30_000);
+    started.push(fixtureLauncher);
+    l = fixtureLauncher;
+  }, 600_000);
+
+  // `..`, encoded `..` (once and with mixed case), absolute paths, escaping symlinks (file, folder).
+  const CASES = [
+    '../../../etc/hosts',
+    'docs/../../outside/secret.md',
+    '..%2F..%2F..%2Fetc%2Fhosts',
+    '%2e%2e%2f%2e%2e%2f%2e%2e%2fetc%2fhosts',
+    'docs%2F%2E%2E%2F%2E%2E%2Foutside%2Fsecret.md',
+    '%2Fetc%2Fhosts',
+    '/etc/passwd',
+    'docs/escape.md',
+    'docs%2Fescape-dir%2Finner.md',
+    'docs/escape-dir/inner.md',
+  ];
+
+  it('answers 404 with the outside marker and 0 bytes of the target to 100 % of the cases', async () => {
+    const hosts = (await readFile('/etc/hosts', 'utf8').catch(() => '')).trim().split('\n')[0] || 'localhost-not-there';
+    const refused: string[] = [];
+    for (const raw of CASES) {
+      const query = raw.includes('%') ? raw : encodeURIComponent(raw);
+      for (const route of ['files/content', 'files/tree']) {
+        const res = await request(l, 'GET', `/api/p/${CUSTOM}/${route}?path=${query}`, { authorization: `Bearer ${l.token}` });
+        const body = JSON.parse(res.body) as { error?: { code: string; detail?: { kind: string } } };
+        const ok =
+          res.status === 404 &&
+          body.error?.code === 'not-found' &&
+          body.error.detail?.kind === 'outside' &&
+          !res.body.includes(secret) &&
+          !res.body.includes(hosts);
+        if (ok) refused.push(`${route} ${raw}`);
+        else console.error(`not confined: ${route} ${raw} → ${res.status} ${res.body.slice(0, 200)}`);
+      }
+    }
+    console.info(`TT-SEC-06: ${refused.length}/${CASES.length * 2} traversal cases refused as outside`);
+    expect(refused).toHaveLength(CASES.length * 2);
+  });
+
+  it('serves a document inside the repository', async () => {
+    const res = await request(l, 'GET', `/api/p/${CUSTOM}/files/content?path=${encodeURIComponent('docs/01_vision/00_index.md')}`, {
+      authorization: `Bearer ${l.token}`,
+    });
+    expect(res.status).toBe(200);
+    expect(JSON.parse(res.body)).toMatchObject({ path: 'docs/01_vision/00_index.md' });
   });
 });
