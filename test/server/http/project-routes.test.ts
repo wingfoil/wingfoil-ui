@@ -85,12 +85,20 @@ interface Console {
 
 async function start(
   template: Fixture,
-  options: { fs?: ReadFs; prepare?: (fx: Fixture) => Promise<void> } = {},
+  options: { fs?: ReadFs; prepare?: (fx: Fixture) => Promise<void>; failLog?: boolean } = {},
 ): Promise<Console> {
   n += 1;
   const fx = await copyFixture(template, path.join(root, `copy-${n}`));
   await options.prepare?.(fx);
   const audited = auditedSnapshots(fx.env, options.fs ? { fs: options.fs } : {});
+  if (options.failLog) {
+    // A git log that ends badly (its output over the runner's limit), every other process real.
+    const run = audited.runner.run.bind(audited.runner);
+    audited.runner.run = async (request) =>
+      request.args.includes('log')
+        ? { exitCode: null, signal: 'SIGKILL', stdout: '', stderr: '', ended: 'overflow', durationMs: 1 }
+        : run(request);
+  }
   registries.push(audited.snapshots);
   const store = await createMemoryStateStore();
   const entry = await store.add({ path: fx.dir, name: fx.name, remote: '' });
@@ -340,6 +348,23 @@ describe('an unreadable memory.yaml degrades the type-dependent features only (s
   });
 });
 
+describe('a failed Memory event read degrades the actors only (review round 1, finding 5)', () => {
+  it('serves the elements with descriptors computed without events, and eventsError', async () => {
+    const c = await start(kanbanTemplate, { failLog: true });
+    const list = await c.get(`/api/p/${c.pid}/elements`);
+    expect(list.status).toBe(200);
+    expectSchema('elements.schema.json', list.body);
+    expect(list.body.elements).toHaveLength(5);
+    expect(list.body.elements.every((e: any) => e.descriptor !== undefined)).toBe(true);
+    expect(list.body.eventsError).toEqual({ code: 'internal', message: expect.any(String) });
+    const one = await c.get(`/api/p/${c.pid}/elements/task-002-password-reset`);
+    expect(one.status).toBe(200);
+    expectSchema('element.schema.json', one.body);
+    expect(one.body.descriptor).not.toHaveProperty('rejection');
+    expect(one.body.eventsError.code).toBe('internal');
+  });
+});
+
 describe('GET /api/p/:pid/directives', () => {
   it('lists the directives with "only mine" for the role view, and answers one with its body', async () => {
     const c = await start(customTemplate);
@@ -390,11 +415,14 @@ describe('GET /api/p/:pid/docs and /files (R-08.1, REQ-SEC-06)', () => {
 
   it('lists the working tree one level at a time, confined', async () => {
     const c = await start(customTemplate);
-    const res = await c.get(`/api/p/${c.pid}/files/tree`);
+    // v0.1: the documentation folders only (spec-004 §3 "v0.1 (docs)").
+    const res = await c.get(`/api/p/${c.pid}/files/tree?path=docs`);
     expect(res.status).toBe(200);
     expectSchema('file-tree.schema.json', res.body);
-    expect(res.body.entries.map((e: any) => e.name)).toContain('docs');
-    expect(res.body.entries.map((e: any) => e.name)).not.toContain('.git');
+    expect(res.body.entries.map((e: any) => e.name)).toEqual(['01_vision']);
+    const top = await c.get(`/api/p/${c.pid}/files/tree`);
+    expect(top.status).toBe(404);
+    expect(top.body.error.detail.kind).toBe('not-allowed');
     const out = await c.get(`/api/p/${c.pid}/files/tree?path=..`);
     expect(out.status).toBe(404);
     expect(out.body.error.detail.kind).toBe('outside');

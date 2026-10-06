@@ -3,11 +3,12 @@
 // query parser, absolute paths, NUL, escaping symlinks to a file or a folder) is refused as
 // `outside` with 0 bytes of the target read (a recording read port); REQ-ARC-04 — the v0.1 content
 // route reads only documentation files, never a Memory, `.wingfoil/` or `.git` file.
-import { mkdir, mkdtemp, realpath, rm, symlink, writeFile } from 'node:fs/promises';
+import { link, mkdir, mkdtemp, realpath, rm, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import {
+  inDocumentationScope,
   documentationIndex,
   documentationScope,
   listDirectory,
@@ -68,13 +69,24 @@ beforeAll(async () => {
   await symlink(path.join(outside, 'secret.md'), path.join(root, 'docs/link.md'));
   await symlink(path.join(outside, 'dir'), path.join(root, 'docs/linkdir'));
   await symlink(path.join(root, 'docs/01_vision/02_product-vision.md'), path.join(root, 'docs/inside-link.md'));
+  // Review round 1 (finding 3, 8): files of the docs folder that are not documents, a hard link,
+  // a governance folder named by paths.governance.
+  await writeFile(path.join(root, 'docs/.env'), 'TOKEN=secret\n');
+  await link(path.join(outside, 'secret.md'), path.join(root, 'docs/hard.md'));
+  await mkdir(path.join(root, 'docs/gov'), { recursive: true });
+  await writeFile(path.join(root, 'docs/gov/rules.md'), '# governance\n');
 });
 
 afterAll(async () => {
   await rm(base, { recursive: true, force: true });
 });
 
-const scope = () => documentationScope({ docs: ['docs/'], memoryDirectories: ['docs/04_memory', 'docs/05_plans'] });
+const scope = () =>
+  documentationScope({
+    docs: ['docs/'],
+    memoryDirectories: ['docs/04_memory', 'docs/05_plans'],
+    governance: ['docs/gov/'],
+  });
 
 describe('documentationIndex (R-08.1)', () => {
   it('lists the Markdown files under paths.docs without the Memory and plan files, symlinks not followed', async () => {
@@ -146,26 +158,72 @@ describe('readWorkingTreeFile (REQ-SEC-06)', () => {
   });
 });
 
-describe('listDirectory (REQ-SEC-06)', () => {
-  it('lists one level by name and kind, without .git', async () => {
-    const listing = await listDirectory(root, '');
-    expect(listing.path).toBe('');
-    expect(listing.entries.map((e) => [e.name, e.kind])).toEqual([
-      ['.wingfoil', 'directory'],
-      ['docs', 'directory'],
-      ['src', 'directory'],
-    ]);
-    const docs = await listDirectory(root, 'docs');
-    expect(docs.entries.find((e) => e.name === 'link.md')).toEqual({
-      name: 'link.md',
-      path: 'docs/link.md',
-      kind: 'symlink',
-    });
+describe('the v0.1 scope (review round 1, findings 3, 8)', () => {
+  it.each([
+    'docs/.env',
+    'docs/01_vision/diagram.png',
+    'docs/01_vision/00_index.md/',
+    'docs/hard.md',
+    'docs/gov/rules.md',
+  ])('refuses %j as not-allowed without reading it', async (rel) => {
+    const fs = recording();
+    const refusal = (await readWorkingTreeFile(root, rel, scope(), fs).catch((e: unknown) => e)) as WorkingTreeError;
+    expect(refusal).toBeInstanceOf(WorkingTreeError);
+    expect(refusal.kind).toBe('not-allowed');
+    expect(fs.read).toEqual([]);
   });
 
-  it.each(['..', '../outside', 'docs/linkdir', '/etc', 'docs/../..', '.git'])('refuses %j', async (rel) => {
-    const refusal = (await listDirectory(root, rel).catch((e: unknown) => e)) as WorkingTreeError;
+  it('serves only documents with paths.docs ["."], and compares folders in NFC', async () => {
+    const whole = documentationScope({
+      docs: ['.'],
+      memoryDirectories: ['docs/caf\u00e9'],
+      governance: ['.wingfoil/'],
+    });
+    expect(inDocumentationScope(whole, 'package.json')).toBe(false);
+    expect(inDocumentationScope(whole, 'docs/01_vision/00_index.md')).toBe(true);
+    expect(inDocumentationScope(whole, 'docs/cafe\u0301/x.md')).toBe(false);
+    expect(inDocumentationScope(whole, '.wingfoil/x.md')).toBe(false);
+  });
+
+  it('leaves the governance folders out of the index', async () => {
+    expect((await documentationIndex(root, scope())).map((d) => d.path)).not.toContain('docs/gov/rules.md');
+  });
+});
+
+describe('listDirectory (REQ-SEC-06)', () => {
+  it('lists one level of a documentation folder: its folders and documents, by name and kind', async () => {
+    const docs = await listDirectory(root, 'docs', scope());
+    expect(docs.path).toBe('docs');
+    expect(docs.entries.map((e) => [e.name, e.kind])).toEqual([
+      ['01_vision', 'directory'],
+      ['README.markdown', 'file'],
+      ['hard.md', 'file'],
+      ['inside-link.md', 'symlink'],
+      ['link.md', 'symlink'],
+    ]);
+    expect((await listDirectory(root, 'docs/01_vision', scope())).entries.map((e) => e.path)).toEqual([
+      'docs/01_vision/00_index.md',
+      'docs/01_vision/02_product-vision.md',
+    ]);
+  });
+
+  it.each([
+    ['..', 'outside'],
+    ['../outside', 'outside'],
+    ['docs/linkdir', 'outside'],
+    ['/etc', 'outside'],
+    ['docs/../..', 'outside'],
+    ['.git', 'not-allowed'],
+    ['', 'not-allowed'],
+    ['src', 'not-allowed'],
+    ['.wingfoil', 'not-allowed'],
+    ['docs/04_memory', 'not-allowed'],
+    ['docs/gov', 'not-allowed'],
+    ['docs/node_modules', 'not-allowed'],
+    ['docs/01_vision/00_index.md', 'missing'],
+  ] as const)('refuses %j (%s)', async (rel, kind) => {
+    const refusal = (await listDirectory(root, rel, scope()).catch((e: unknown) => e)) as WorkingTreeError;
     expect(refusal).toBeInstanceOf(WorkingTreeError);
-    expect(refusal.kind).toBe(rel === '.git' ? 'not-allowed' : 'outside');
+    expect(refusal.kind).toBe(kind);
   });
 });

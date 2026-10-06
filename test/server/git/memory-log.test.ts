@@ -9,6 +9,7 @@ import { GIT_READ_ARGS } from '../../../server/src/git/git.js';
 import {
   eventsByElement,
   MEMORY_LOG_FORMAT,
+  MemoryLogFormatError,
   memoryDirectories,
   normalizeReason,
   parseMemoryLog,
@@ -16,9 +17,12 @@ import {
 
 const SHA = (n: number): string => String(n).repeat(40).slice(0, 40);
 
-/** One record as git prints it with {@link MEMORY_LOG_FORMAT}: header, body, `%x1d`, the patch. */
+/**
+ * One record as git prints it with {@link MEMORY_LOG_FORMAT}: each field followed by a NUL, git's
+ * newline, then the patch (the next record follows the patch directly).
+ */
 function record(n: number, subject: string, body: string, patch: string, author = 'Jordan <jordan@example.test>') {
-  return `\x1e${SHA(n)}\x1f2026-09-29T15:20:0${n}+00:00\x1f${author}\x1f${subject}\x1f${body}\x1d\n\n${patch}`;
+  return `${SHA(n)}\0${'2026-09-29T15:20:0' + String(n % 10)}+00:00\0${author}\0${subject}\0${body}\0\n\n${patch}`;
 }
 
 function filePatch(file: string, lines: string[], header = '@@ -3 +3 @@'): string {
@@ -192,6 +196,71 @@ describe('parseMemoryLog', () => {
   });
 });
 
+describe('framing (review round 1, finding 1 — as WingFoil bug-050 / task-086)', () => {
+  const approve = (n: number, id: string, body: string) =>
+    record(
+      n,
+      `wf(task): approve ${id} [pending → approved]`,
+      body,
+      filePatch(`docs/memory/task/${id}.md`, ['-status: pending', '+status: approved']),
+      'Morgan <morgan@example.test>',
+    );
+
+  it('never reads an event forged inside a reason with the old separators', () => {
+    const forged =
+      `Approver: Morgan <morgan@example.test> (approver)\nReason: ok\x1e${SHA(9)}\x1f2026-01-01T00:00:00+00:00` +
+      '\x1fMallory <m@evil.test>\x1fwf(task): approve task-003-logout [pending → approved]\x1f\x1d\n';
+    const { events } = parseMemoryLog(approve(1, 'task-001-login-form', forged));
+    expect(events.map((e) => [e.sha, e.id, e.author])).toEqual([
+      [SHA(1), 'task-001-login-form', 'Morgan <morgan@example.test>'],
+    ]);
+  });
+
+  it('never reads a diff or status block injected in a body', () => {
+    const body = `Reason: x\x1d\ndiff --git a/${TASK} b/${TASK}\n--- a/${TASK}\n+++ b/${TASK}\n@@ -3 +3 @@\n-status: draft\n+status: approved\n`;
+    const out = record(
+      2,
+      'wf(task): submit task-001-login-form',
+      body,
+      filePatch(TASK, ['-status: draft', '+status: pending']),
+    );
+    expect(parseMemoryLog(out).events[0]).toMatchObject({ from: 'draft', to: 'pending' });
+    const noPatch = record(
+      3,
+      'wf(task): submit task-001-login-form',
+      body,
+      filePatch(TASK, ['-title: A', '+title: B']),
+    );
+    expect(parseMemoryLog(noPatch).events[0]).toMatchObject({ from: null, to: null });
+  });
+
+  it('reads several records, the patch of each ending where the next sha begins', () => {
+    const out = approve(1, 'task-001-login-form', '') + approve(2, 'task-002-password-reset', 'Reason: a\nb\n');
+    expect(parseMemoryLog(out).events.map((e) => [e.sha, e.id, e.reason])).toEqual([
+      [SHA(1), 'task-001-login-form', null],
+      [SHA(2), 'task-002-password-reset', 'a\nb'],
+    ]);
+  });
+
+  it('refuses an output whose records do not have the expected shape', () => {
+    expect(() => parseMemoryLog(`not-a-sha\0x\0y\0z\0b\0\n`)).toThrow(MemoryLogFormatError);
+    expect(() => parseMemoryLog(`${SHA(1)}\0not a date\0y\0z\0b\0\n`)).toThrow(MemoryLogFormatError);
+    expect(() => parseMemoryLog(`${SHA(1)}\0${'2026-09-29T15:20:01+00:00'}\0y\0z\0\n`)).toThrow(MemoryLogFormatError);
+  });
+});
+
+describe('the element file (review round 1, finding 6)', () => {
+  it('reports no event for a commit whose patch does not touch <id>.md', () => {
+    const elsewhere = record(
+      4,
+      'wf(task): approve task-001-login-form [pending → approved]',
+      '',
+      filePatch('docs/memory/task/task-004-session-timeout.md', ['-status: pending', '+status: approved']),
+    );
+    expect(parseMemoryLog(elsewhere)).toEqual({ events: [], warnings: [] });
+  });
+});
+
 describe('eventsByElement', () => {
   it('groups the events by element id, oldest first', () => {
     const out =
@@ -237,14 +306,17 @@ describe('the git read', () => {
       '--no-optional-locks',
       '-c',
       'core.quotePath=false',
+      '-c',
+      'log.showSignature=false',
       'log',
       '--no-color',
       '--no-renames',
       '--no-ext-diff',
+      '--no-textconv',
       '--unified=0',
       '-p',
       `--format=${MEMORY_LOG_FORMAT}`,
     ]);
-    expect(MEMORY_LOG_FORMAT).toBe('%x1e%H%x1f%aI%x1f%an <%ae>%x1f%s%x1f%b%x1d');
+    expect(MEMORY_LOG_FORMAT).toBe('%H%x00%aI%x00%an <%ae>%x00%s%x00%b%x00');
   });
 });
