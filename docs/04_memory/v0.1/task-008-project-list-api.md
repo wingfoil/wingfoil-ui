@@ -341,3 +341,15 @@ e2e closure — scenarios that need a screen are proved here by API and unit tes
   OK · affected suites (`test/server/http`, `test/server/projects`, `test/server/git`,
   `test/contracts/api-projects-schema.test.ts`, `test/server/launcher`, `test/launcher`) 21 files,
   359/359.
+
+### integration (2026-10-06)
+
+- `main` (tasks 006, 009, 010, 011 done; Wave 2 spec amendments incl. spec-006 §3 points 20–28;
+  bugs 001/002 closed, bug-003) merged into the branch with no conflict.
+- Full gates on the merge, load 5–10: typecheck, lint (REQ-ARC-05 rule included), format:check
+  clean; `test:coverage` 1072 passed, 1 skipped, coverage 95.84 % statements / 89.07 % branches;
+  `docs:api` OK; `test:e2e` 3/3; `check_tasks.py` OK; `test:timing` 3/3 (REQ-PERF-03 max 353 ms,
+  REQ-PERF-06 254–278 ms, TypeDoc 3090 ms) at load 7.5–9.6.
+- Reviews: round 1 FAIL (3 major: merge collision, clone undo, clone target), round 2 PASS with a
+  symlink follow-up, round 3 PASS; user decisions 20–23, 27, 28 implemented and verified (one
+  follow-up: `core.hooksPath` neutralised at clone time).
