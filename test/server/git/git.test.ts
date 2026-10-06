@@ -202,6 +202,7 @@ describe('gitEnv — inherited GIT_* variables never redirect a read (review F2)
       GIT_CONFIG_COUNT: '1',
       GIT_CONFIG_KEY_0: 'user.email',
       GIT_CONFIG_VALUE_0: 'x@y',
+      GIT_CONFIG: '/legacy',
     });
     expect(env).toEqual({ HOME: '/h', PATH: '/bin', GIT_CONFIG_GLOBAL: '/g', GIT_CONFIG_NOSYSTEM: '1' });
   });

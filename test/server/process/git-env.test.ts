@@ -7,6 +7,7 @@ import path from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { WingfoilCli } from '../../../server/src/cli/adapter.js';
 import { discoverCli } from '../../../server/src/cli/discovery.js';
+import { GitReads, resolveGit } from '../../../server/src/git/git.js';
 import { LocalProcessRunner } from '../../../server/src/process/runner.js';
 import { buildFixture, type Fixture } from '../../harness/fixtures/index.js';
 import { git } from '../../harness/run.js';
@@ -14,6 +15,7 @@ import { git } from '../../harness/run.js';
 let root: string;
 let fx: Fixture;
 let other: string;
+let legacyConfig: string;
 const runners: LocalProcessRunner[] = [];
 
 function runner(): LocalProcessRunner {
@@ -28,6 +30,8 @@ beforeAll(async () => {
   other = path.join(root, 'other');
   await mkdir(other, { recursive: true });
   await git(other, ['init', '-q'], fx.env);
+  legacyConfig = path.join(other, 'legacy.gitconfig');
+  await writeFile(legacyConfig, '[user]\n\temail = legacy@example.test\n');
   await writeFile(path.join(other, 'x.md'), 'x\n');
   await git(other, ['add', 'x.md'], fx.env);
   await git(other, ['-c', 'user.name=O', '-c', 'user.email=o@example.test', 'commit', '-qm', 'other'], fx.env);
@@ -48,6 +52,8 @@ function hostileEnv(): NodeJS.ProcessEnv {
     GIT_CONFIG_COUNT: '1',
     GIT_CONFIG_KEY_0: 'user.email',
     GIT_CONFIG_VALUE_0: 'injected@example.test',
+    // Legacy: `git config` reads this file instead of the repository's (review R1).
+    GIT_CONFIG: legacyConfig,
   };
 }
 
@@ -63,7 +69,14 @@ describe('bug-002 — children never inherit a redirecting GIT_* variable', () =
       env: hostileEnv(),
     });
     const keys = JSON.parse(result.stdout) as string[];
-    for (const name of ['GIT_DIR', 'GIT_WORK_TREE', 'GIT_INDEX_FILE', 'GIT_CONFIG_COUNT', 'GIT_CONFIG_KEY_0']) {
+    for (const name of [
+      'GIT_DIR',
+      'GIT_WORK_TREE',
+      'GIT_INDEX_FILE',
+      'GIT_CONFIG_COUNT',
+      'GIT_CONFIG_KEY_0',
+      'GIT_CONFIG',
+    ]) {
       expect(keys).not.toContain(name);
     }
     expect(keys).toEqual(expect.arrayContaining(['GIT_CONFIG_GLOBAL', 'GIT_CONFIG_NOSYSTEM']));
@@ -83,6 +96,19 @@ describe('bug-002 — children never inherit a redirecting GIT_* variable', () =
       if (saved === undefined) delete process.env.GIT_DIR;
       else process.env.GIT_DIR = saved;
     }
+  });
+
+  it("GitReads.email() is the project's although a legacy GIT_CONFIG names another file (review R1)", async () => {
+    const reads = new GitReads({
+      git: await resolveGit(fx.env),
+      runner: runner(),
+      cwd: fx.dir,
+      env: { ...fx.env, GIT_CONFIG: legacyConfig },
+    });
+    expect(await reads.email()).toBe('alex@example.test');
+    expect(
+      await new GitReads({ git: await resolveGit(fx.env), runner: runner(), cwd: fx.dir, env: hostileEnv() }).email(),
+    ).toBe('alex@example.test');
   });
 
   it('the wingfoil CLI answers for its own project (memory history reads git)', async () => {

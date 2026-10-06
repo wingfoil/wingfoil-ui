@@ -87,6 +87,8 @@ const REDIRECTING_GIT_VARIABLES = new Set([
   'GIT_DISCOVERY_ACROSS_FILESYSTEM',
   'GIT_CONFIG_PARAMETERS',
   'GIT_CONFIG_COUNT',
+  // Legacy: `git config` reads and writes this file instead of the repository's (git 2.43 still).
+  'GIT_CONFIG',
 ]);
 
 /**
