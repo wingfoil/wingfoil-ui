@@ -70,8 +70,8 @@ e2e closure — scenarios that need a screen are proved here by API and unit tes
     its request schema is `contracts/api/role-view.request.schema.json` (`{ role: string }`,
     non-empty, no other property).
   - Refusals, in the spec-004 §4 order: unknown `:pid` → 404 `not-found` (checked before the body is
-    parsed, in the route's `onRequest` hook — corrected at review); body failing its schema → 400 `invalid-request`; user not identified as
-    exactly one member (not in team, no email, ambiguous) → 403 `not-in-team`; a role the member
+    parsed, in the route's `onRequest` hook — corrected at review); body failing its schema → 400
+    `invalid-request`; user not identified as exactly one member (not in team, no email, ambiguous) → 403 `not-in-team`; a role the member
     does not hold → 400 `invalid-request`. spec-004 §4 has no row for the last case: proposed
     addition "role not held by the member → 400 `invalid-request`" (option: a dedicated 422 code).
   - The identity shape for `GET /api/p/:pid` (task-012) is defined here as a schema
@@ -212,3 +212,10 @@ e2e closure — scenarios that need a screen are proved here by API and unit tes
   `test/contracts/api-identity-schema.test.ts`, `test/launcher/role-view.test.ts`,
   `test/launcher/local-security.test.ts`) all pass — 96 tests, then `role-view.test.ts` 20/20 after
   the last fix (load 35–50) · typecheck, lint clean · format:check clean · `docs:api` OK.
+- Round 2: **PASS** with two nits, fixed: (a) a read cancelled because the client disconnected no
+  longer reaches the application error handler (which logged `request failed` at error level and
+  tried a 500 on a closed socket): the route logs it at debug and hijacks the reply. Test over a
+  real socket (`role-view.test.ts`, "client gone"): the request destroyed while the identity read
+  waits → 0 log lines at error level, nothing stored; without the fix it fails (one level-50
+  line). (b) the corrected design-note line wrapped. Checks: `role-view.test.ts` 21/21 ·
+  typecheck, lint, format:check clean.

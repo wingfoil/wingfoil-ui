@@ -3,12 +3,15 @@
 // order: 404 unknown project → 400 body → 403 not identified → 400 role not held.
 import type { ProjectEntry } from '@wingfoil-ui/contracts';
 import type { FastifyInstance } from 'fastify';
+import http from 'node:http';
+import type { AddressInfo } from 'node:net';
 import { Writable } from 'node:stream';
 import { afterEach, describe, expect, it } from 'vitest';
 import { createTokenAuthentication } from '../../../server/src/auth/authentication.js';
 import { CliRefusedError } from '../../../server/src/cli/adapter.js';
 import { buildApp } from '../../../server/src/http/app.js';
 import { registerRoleViewRoute } from '../../../server/src/http/role-view.js';
+import { GitConfigError } from '../../../server/src/identity/git-email.js';
 import type { IdentitySource } from '../../../server/src/identity/project-identity.js';
 import { createLogger } from '../../../server/src/logging.js';
 import { createMemoryStateStore } from '../../../server/src/state/memory-store.js';
@@ -196,5 +199,58 @@ describe('PUT /api/p/:pid/role-view', () => {
       403,
     );
     expect(source.calls).toEqual([]);
+  });
+});
+
+describe('PUT /api/p/:pid/role-view — client gone', () => {
+  it('cancels the identity read and logs no error when the client disconnects', async () => {
+    const lines: string[] = [];
+    const logs = new Writable({
+      write(chunk, _e, cb) {
+        lines.push(String(chunk));
+        cb();
+      },
+    });
+    const store = await createMemoryStateStore();
+    const kanban = await store.add({ path: '/p/kanban', name: 'kanban', remote: '' });
+    let started!: () => void;
+    const reading = new Promise<void>((resolve) => (started = resolve));
+    let settled!: () => void;
+    const cancelled = new Promise<void>((resolve) => (settled = resolve));
+    const source: IdentitySource = {
+      identify: (_project, signal) =>
+        new Promise((_resolve, reject) => {
+          started();
+          signal?.addEventListener('abort', () => {
+            reject(new GitConfigError('cancelled'));
+            setTimeout(settled, 50);
+          });
+        }),
+    };
+    const listening: { port?: number } = {};
+    app = await buildApp({
+      staticDir: '/nonexistent',
+      logger: createLogger(logs),
+      security: { authentication: createTokenAuthentication('test-token'), port: () => listening.port },
+      register: (a) => registerRoleViewRoute(a, { store, identity: source }),
+    });
+    await app.listen({ host: '127.0.0.1', port: 0 });
+    listening.port = (app.server.address() as AddressInfo).port;
+    const req = http.request({
+      host: '127.0.0.1',
+      port: listening.port,
+      method: 'PUT',
+      path: `/api/p/${kanban.id}/role-view`,
+      headers: { host: `127.0.0.1:${listening.port}`, 'content-type': 'application/json', ...AUTH },
+    });
+    req.on('error', () => undefined);
+    req.end(JSON.stringify({ role: 'developer' }));
+    await reading;
+    req.destroy();
+    await cancelled;
+    const errors = lines.map((l) => JSON.parse(l) as { level: number; msg: string }).filter((l) => l.level >= 50);
+    expect(errors).toEqual([]);
+    expect(lines.join('')).not.toContain('request failed');
+    expect(store.get(kanban.id)?.roleView).toBe('');
   });
 });

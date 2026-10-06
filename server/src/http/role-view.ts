@@ -62,6 +62,12 @@ export function registerRoleViewRoute(app: FastifyInstance, options: RoleViewRou
       try {
         user = await identity.identify(project, gone.signal);
       } catch (error) {
+        if (gone.signal.aborted) {
+          // The client left and its reads were cancelled: no answer to send, nothing went wrong.
+          request.log.debug({ pid: project.id }, 'role view: client gone, identity read cancelled');
+          reply.hijack();
+          return;
+        }
         if (error instanceof CliError || error instanceof CliNotFoundError) {
           const { status, body } = cliErrorEnvelope(error);
           return reply.code(status).send(body);
