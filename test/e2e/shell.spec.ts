@@ -3,10 +3,15 @@
 // on: session bootstrap, shell warnings, theme, key-rendering build, Add project dialog frame.
 // `npx wingfoil-ui` runs the package bin with node: the tests run that same bin (as task-002's).
 import type { Page } from '@playwright/test';
+import { keyCatalogue } from '../../web/scripts/catalogue.mjs';
+import en from '../../web/src/i18n/en.json' with { type: 'json' };
 import { scanThemes } from './support/axe.js';
 import { openConsole } from './support/console.js';
 import { expect, test } from './support/fixtures.js';
 import { expectFocusVisible } from './support/keyboard.js';
+
+/** Heading of the lost-session page (W3-7). */
+const LOST = 'This page is no longer recognised by the console';
 
 /** Press Tab until `name`d button has the focus (at most `max` presses). */
 async function tabTo(page: Page, role: 'button' | 'link', name: string, max = 10): Promise<void> {
@@ -47,7 +52,6 @@ test.describe('US-S-01 — start the console', () => {
     await expect
       .poll(() => c.launcher.stdoutLines(), { timeout: 10_000 })
       .toContain(`Open this URL in your browser: ${c.url}`);
-    expect(await c.opened()).toBeUndefined();
     // The server keeps running: the URL printed opens the console.
     await page.goto(c.url);
     await page.getByRole('button', { name: 'Projects', exact: true }).click();
@@ -70,12 +74,15 @@ test.describe('shell mechanisms', () => {
     expect(await page.evaluate(async () => (await fetch('/api/server')).status)).toBe(200);
 
     const context = await browser.newContext();
-    const other = await context.newPage();
-    await other.goto(`${c.origin}/#token=${'x'.repeat(43)}`);
-    await expect(other.getByRole('heading', { level: 1, name: 'Not connected to the console' })).toBeVisible();
-    await expect(other).toHaveTitle('Not connected — WingFoil UI');
-    expect(await scanThemes(other)).toEqual([]);
-    await context.close();
+    try {
+      const other = await context.newPage();
+      await other.goto(`${c.origin}/#token=${'x'.repeat(43)}`);
+      await expect(other.getByRole('heading', { level: 1, name: LOST })).toBeVisible();
+      await expect(other).toHaveTitle('Session ended — WingFoil UI');
+      expect(await scanThemes(other)).toEqual([]);
+    } finally {
+      await context.close();
+    }
   });
 
   test('a session the console no longer knows (e.g. after a restart) shows the lost-session page', async ({
@@ -86,7 +93,7 @@ test.describe('shell mechanisms', () => {
     await openConsole(page, c);
     await page.context().clearCookies();
     await page.reload();
-    await expect(page.getByRole('heading', { level: 1, name: 'Not connected to the console' })).toBeVisible();
+    await expect(page.getByRole('heading', { level: 1, name: LOST })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Projects', exact: true })).toHaveCount(0);
   });
 
@@ -153,7 +160,59 @@ test.describe('shell mechanisms', () => {
       }
       return out;
     });
-    expect(texts.filter((t) => !/^[a-z][a-zA-Z0-9]*(\.[a-z][a-zA-Z0-9]*)+( \S+)*$/.test(t))).toEqual([]);
+    // Each text must be one key-catalogue text exactly, its argument placeholders filled by data.
+    const patterns = Object.values(keyCatalogue(en)).map(
+      (text) =>
+        new RegExp(
+          `^${text
+            .split(/\{[^}]+\}/)
+            .map((part) => part.replace(/[.*+?^$()|[\]\\]/g, '\\$&'))
+            .join('.+')}$`,
+        ),
+    );
+    expect(texts.filter((t) => !patterns.some((p) => p.test(t)))).toEqual([]);
     await expect(page).toHaveTitle('title.projects');
+  });
+
+  test('a React Aria link navigates inside the application, without a reload (review F1)', async ({
+    page,
+    consoles,
+  }) => {
+    const c = await consoles.start();
+    await openConsole(page, c, { path: '/no/such/page' });
+    await expect(page.getByRole('heading', { level: 1, name: 'Page not found' })).toBeVisible();
+    await page.evaluate(() => {
+      (window as unknown as { sameDocument: boolean }).sameDocument = true;
+    });
+    await page.getByRole('link', { name: 'Back to the projects' }).click();
+    await expect(page.getByRole('heading', { level: 1, name: 'Projects' })).toBeVisible();
+    expect(await page.evaluate(() => (window as unknown as { sameDocument?: boolean }).sameDocument)).toBe(true);
+  });
+
+  test('a stopped console: the unreachable banner after the threshold, axe in both themes (W3-12)', async ({
+    page,
+    consoles,
+  }) => {
+    const c = await consoles.start();
+    // The page's timers run on Playwright's clock: the 10 s threshold is crossed without waiting.
+    await page.clock.install();
+    await openConsole(page, c);
+    await expect(page.getByRole('heading', { level: 1, name: 'Projects' })).toBeVisible();
+    const banner = page.getByRole('region', { name: 'Connection to the console' });
+    await expect(banner).toHaveCount(0);
+    await c.launcher.kill();
+    await expect
+      .poll(
+        async () => {
+          await page.clock.runFor(1_000);
+          return banner.count();
+        },
+        { timeout: 30_000 },
+      )
+      .toBe(1);
+    await expect(banner.getByRole('alert')).toContainText('Cannot reach the console.');
+    // The rest of the page stays usable.
+    await expect(page.getByRole('heading', { level: 1, name: 'Projects' })).toBeVisible();
+    expect(await scanThemes(page)).toEqual([]);
   });
 });

@@ -34,6 +34,11 @@ export async function scanThemes(page: Page, options: ScanOptions = {}): Promise
   const found: BlockingViolation[] = [];
   for (const theme of options.themes ?? (['light', 'dark'] as const)) {
     await page.emulateMedia({ colorScheme: theme });
+    // The application sets data-theme from the media change (spec-009 §1); static pages have none.
+    await page.waitForFunction(
+      (t) => !document.documentElement.hasAttribute('data-theme') || document.documentElement.dataset['theme'] === t,
+      theme,
+    );
     if (options.ready) await options.ready(page);
     const results = await new AxeBuilder({ page }).withTags([...AXE_TAGS]).analyze();
     for (const v of results.violations) {

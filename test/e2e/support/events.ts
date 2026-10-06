@@ -83,10 +83,11 @@ export async function mutateAndWait(
   page: Page,
   mutation: () => Promise<unknown>,
   match: EventMatch,
+  timeout = 15_000,
 ): Promise<RecordedEvent> {
   const since = await eventCount(page);
   await mutation();
-  return waitForServerEvent(page, match, since);
+  return waitForServerEvent(page, match, since, timeout);
 }
 
 /** Write `content` to `file` (relative to the fixture) and commit it with `message`. */
