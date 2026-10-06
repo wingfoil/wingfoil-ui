@@ -1,6 +1,6 @@
 # Tests
 
-**Version:** 0.12 · **Date:** 2026-10-06 (0.1: workspace tooling and e2e harness — task-001; 0.2: `test/launcher/`, `test/server/` — task-002; 0.3: `test/contracts/`, local state isolation, secret scan — task-007; 0.4: `local-security` suite — task-003; 0.5: process runner fake, hand-made CLI packages, stub after global options — task-004; 0.6: CLI contract tests, captured samples, `test:contract` — task-005; 0.7: action descriptor tests, REQ-ARC-05 lint rule — task-011; 0.8: matrix builds of `cliBuildFor`, capability table and README checks — task-006; 0.9: identity tests, bin with a seeded state — task-009; 0.10: timing suite `test:timing`, `TempWorkspace`, snapshot audits and stand-ins — task-010 / bug-001; 0.11: project-list route tests, a dumb-HTTP git remote — task-008; 0.12: read routes, the read console replacing the stand-ins, spec-002 §3 event parse, confinement — task-012)
+**Version:** 0.13 · **Date:** 2026-10-06 (0.1: workspace tooling and e2e harness — task-001; 0.2: `test/launcher/`, `test/server/` — task-002; 0.3: `test/contracts/`, local state isolation, secret scan — task-007; 0.4: `local-security` suite — task-003; 0.5: process runner fake, hand-made CLI packages, stub after global options — task-004; 0.6: CLI contract tests, captured samples, `test:contract` — task-005; 0.7: action descriptor tests, REQ-ARC-05 lint rule — task-011; 0.8: matrix builds of `cliBuildFor`, capability table and README checks — task-006; 0.9: identity tests, bin with a seeded state — task-009; 0.10: timing suite `test:timing`, `TempWorkspace`, snapshot audits and stand-ins — task-010 / bug-001; 0.11: project-list route tests, a dumb-HTTP git remote — task-008; 0.12: read routes, the read console replacing the stand-ins, spec-002 §3 event parse, confinement — task-012; 0.13: `test/web/` component tests, the shared e2e support of Wave 3, the shell e2e — task-013)
 
 Every test lives under `test/` (DNA `paths.tests`); sources stay in `server/src`, `web/src`,
 `contracts/src`.
@@ -18,8 +18,30 @@ Every test lives under `test/` (DNA `paths.tests`); sources stay in `server/src`
 
 - `test/harness/` — the e2e harness: process runner (`run.ts`, `execFile` only), the pinned CLI
   (`cli.ts`), and the fixture builder (`fixtures/`).
-- `test/e2e/` — Playwright specs; `support/axe.ts` scans a screen in the light and the dark theme
-  (X-06.4).
+- `test/e2e/` — Playwright specs on the real bin, one spec per task, one test per scenario titled
+  with its id (`S-01.1 …`), assertions on what the user sees, `scanThemes` (`support/axe.ts`, X-06.4)
+  on each screen in the light and the dark theme. Shared support (task-013), used by every web task:
+  - `support/global-setup.ts` (Playwright `globalSetup`): `tsc -b`, `vite build` and the
+    key-rendering build `web/dist-keys` (spec-008 §6), once per run;
+  - `support/console.ts`: `startConsole({ projects?, stateFile?, opener?, args?, env? })` — the bin
+    with an isolated home and `WINGFOIL_UI_STATE_DIR` seeded with fixture projects (opaque ids in
+    `pids`), `opener: 'recording' | 'none'` for S-01.1/S-01.3 (default `--no-open`);
+    `openConsole(page, console, { path?, build?: 'keys' })` opens the page with the token in the
+    fragment and waits for the shell; `build: 'keys'` serves `web/dist-keys` by route interception;
+  - `support/fixtures.ts`: the Playwright `test` with worker-scoped `fixtures.get(kind)` (built once
+    per worker) / `fixtures.copy(kind)` (a copy to mutate) and test-scoped `consoles.start()`,
+    stopped after the test;
+  - `support/events.ts`: `recordServerEvents(page)` (wraps the page's `EventSource` from an init
+    script, test side only), `mutateAndWait(page, mutation, { event, pid? })` — no fixed sleeps —,
+    `commitFile(fixture, file, content, message)`, `cli(fixture, args)`;
+  - `support/keyboard.ts`: `expectFocusVisible(locator)`.
+  `harness/` holds the self-tests of the support (axe helper, console + SSE helper).
+- `test/web/` — unit and component tests of `web/src` (Vitest; `// @vitest-environment jsdom` per
+  file, Testing Library): `shell/render.tsx` renders the whole application on a memory history with
+  a stubbed `fetch` (`stubApi`) — optionally with the key catalogue; theme tokens and contrast pairs
+  (`theme/`), catalogue check and key catalogue (`i18n/`), API client, event stream, error renderer
+  and session bootstrap. `test/lint/catalogue-placeholders.test.ts` covers the spec-008 placeholder
+  rule.
 - `test/launcher/` — the `wingfoil-ui` bin driven as a child process (`launcher.ts`:
   `startLauncher(args, env)` waits for the running line and returns port, token and stop helpers;
   later e2e suites start the console with it). `local-security.test.ts` is the e2e-smoke

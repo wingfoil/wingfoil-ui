@@ -10,6 +10,9 @@ const root = path.dirname(fileURLToPath(import.meta.url));
  */
 export default defineConfig({
   testDir: path.join(root, 'test', 'e2e'),
+  // Builds server/dist, web/dist and web/dist-keys once: the suites start the real bin.
+  globalSetup: path.join(root, 'test', 'e2e', 'support', 'global-setup.ts'),
+  timeout: 60_000,
   outputDir: path.join(root, 'test-results'),
   fullyParallel: true,
   forbidOnly: Boolean(process.env.CI),

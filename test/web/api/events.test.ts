@@ -174,3 +174,29 @@ it('does not reconnect when the probe finds the session lost', async () => {
   await vi.advanceTimersByTimeAsync(60_000);
   expect(FakeEventSource.instances).toHaveLength(1);
 });
+
+it('probes GET /api/server by default: a 401 there loses the session and stops reconnecting', async () => {
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(
+      async () => new Response(JSON.stringify({ error: { code: 'unauthenticated', message: 'x' } }), { status: 401 }),
+    ),
+  );
+  startEventStream(client, { EventSourceImpl: FakeEventSource as unknown as typeof EventSource });
+  latest().fail(2);
+  await vi.advanceTimersByTimeAsync(60_000);
+  expect(FakeEventSource.instances).toHaveLength(1);
+  vi.unstubAllGlobals();
+});
+
+it('reconnects after a default probe that the console answers', async () => {
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async () => new Response('{}', { status: 200 })),
+  );
+  startEventStream(client, { EventSourceImpl: FakeEventSource as unknown as typeof EventSource });
+  latest().fail(2);
+  await vi.advanceTimersByTimeAsync(1_000);
+  expect(FakeEventSource.instances).toHaveLength(2);
+  vi.unstubAllGlobals();
+});
