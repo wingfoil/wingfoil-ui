@@ -4,6 +4,7 @@
 // `outside` with 0 bytes of the target read (a recording read port); REQ-ARC-04 — the v0.1 content
 // route reads only documentation files, never a Memory, `.wingfoil/` or `.git` file.
 import { link, mkdir, mkdtemp, realpath, rm, symlink, writeFile } from 'node:fs/promises';
+import { execFileSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -76,6 +77,8 @@ beforeAll(async () => {
   await link(path.join(outside, 'secret.md'), path.join(root, 'docs/hard.md'));
   await mkdir(path.join(root, 'docs/gov'), { recursive: true });
   await writeFile(path.join(root, 'docs/gov/rules.md'), '# governance\n');
+  // Review round 2 (finding C): a FIFO with a document name.
+  execFileSync('mkfifo', [path.join(root, 'docs/pipe.md')]);
 });
 
 afterAll(async () => {
@@ -90,13 +93,15 @@ const scope = () =>
   });
 
 describe('documentationIndex (R-08.1)', () => {
-  it('lists the Markdown files under paths.docs without the Memory and plan files, symlinks not followed', async () => {
+  it('lists the Markdown files under paths.docs without the Memory and plan files, symlinks and FIFOs left out', async () => {
     const fs = recording();
     const docs = await documentationIndex(root, scope(), fs);
     expect(docs.map((d) => d.path)).toEqual([
       'docs/01_vision/00_index.md',
       'docs/01_vision/02_product-vision.md',
       'docs/README.markdown',
+      // Listed without a per-file stat (review round 2, finding B); its content is refused.
+      'docs/hard.md',
     ]);
     expect(fs.read).toEqual([]);
   });
@@ -199,9 +204,9 @@ describe('listDirectory (REQ-SEC-06)', () => {
     expect(docs.entries.map((e) => [e.name, e.kind])).toEqual([
       ['01_vision', 'directory'],
       ['README.markdown', 'file'],
-      ['hard.md', 'file'],
+      // Only what the content route serves (review round 2, finding C): not the hard link, the
+      // FIFO, nor the symlink leading out.
       ['inside-link.md', 'symlink'],
-      ['link.md', 'symlink'],
     ]);
     expect((await listDirectory(root, 'docs/01_vision', scope())).entries.map((e) => e.path)).toEqual([
       'docs/01_vision/00_index.md',

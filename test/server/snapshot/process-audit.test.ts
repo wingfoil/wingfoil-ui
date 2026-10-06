@@ -58,9 +58,9 @@ describe('TT-PERF-05 — batched CLI reads (S-26.3)', () => {
     );
     expect(commands.length).toBeLessThanOrEqual(6);
     // open(): one rev-parse; the first state: one status, one user.email (review F4); the actor
-    // events of the descriptors: one `git log -p` (spec-002 §3).
-    expect(runner.count('git')).toBe(4);
-    expect(runner.spawned.filter((r) => r.args.includes('log'))).toHaveLength(1);
+    // events of the descriptors: one `git log -p` (spec-002 §3) and its header-only sha list.
+    expect(runner.count('git')).toBe(5);
+    expect(runner.spawned.filter((r) => r.args.includes('log'))).toHaveLength(2);
     expect(new Set(commands).size).toBe(commands.length);
     const states = cold.map((r) => r.state);
     expect(states[0]).toMatch(STATE);

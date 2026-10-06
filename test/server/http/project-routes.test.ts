@@ -365,6 +365,41 @@ describe('a failed Memory event read degrades the actors only (review round 1, f
   });
 });
 
+describe('one odd commit loses at most its own event (review round 2, finding A)', () => {
+  it('a NUL past 8000 bytes and a bad ident: events kept, the refusal or skip cached for the HEAD', async () => {
+    const c = await start(kanbanTemplate, {
+      prepare: async (fx) => {
+        // A text file past git's 8000-byte binary check, with a NUL: the patch holds a NUL.
+        await writeFile(path.join(fx.dir, 'docs/memory/task/blob.md'), `${'a'.repeat(9000)}\0z\n`);
+        await git(fx.dir, ['add', '-A'], fx.env);
+        await git(fx.dir, ['commit', '-qm', 'wf(task): add blob'], fx.env);
+        // A wf commit whose author date git cannot print (`%aI` stays literal).
+        const file = path.join(fx.dir, 'docs/memory/task/task-003-logout.md');
+        await appendFile(file, '\nedited\n');
+        await git(fx.dir, ['add', '-A'], fx.env);
+        const tree = (await git(fx.dir, ['write-tree'], fx.env)).stdout.trim();
+        const parent = (await git(fx.dir, ['rev-parse', 'HEAD'], fx.env)).stdout.trim();
+        const raw = `tree ${tree}\nparent ${parent}\nauthor Mallory <m@x.test> notadate\ncommitter Mallory <m@x.test> 1700000000 +0000\n\nwf(task): submit task-003-logout\n`;
+        const objects = path.join(fx.dir, '.git', 'raw-commit');
+        await writeFile(objects, raw);
+        const sha = (
+          await git(fx.dir, ['hash-object', '-t', 'commit', '-w', '--literally', objects], fx.env)
+        ).stdout.trim();
+        await rm(objects);
+        await git(fx.dir, ['update-ref', 'HEAD', sha], fx.env);
+      },
+    });
+    const first = await c.get(`/api/p/${c.pid}/elements`);
+    expect(first.status).toBe(200);
+    expect(first.body).not.toHaveProperty('eventsError');
+    const rejected = first.body.elements.find((e: any) => e.id === 'task-002-password-reset');
+    expect(rejected.descriptor.rejection.by).toBe('Morgan');
+    const before = c.runner.spawned.length;
+    expect((await c.get(`/api/p/${c.pid}/elements`)).body).toEqual(first.body);
+    expect(c.runner.spawned.length).toBe(before);
+  });
+});
+
 describe('GET /api/p/:pid/directives', () => {
   it('lists the directives with "only mine" for the role view, and answers one with its body', async () => {
     const c = await start(customTemplate);

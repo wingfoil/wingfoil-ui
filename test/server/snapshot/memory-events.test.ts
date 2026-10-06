@@ -1,7 +1,7 @@
 // spec-002 §5 consistency contract (task-012 AC "Actor events"): on the three fixtures built with the
 // pinned CLI, the events of the project-wide `git log -p` parse (spec-002 §3) equal, for every
 // element, the `wf` entries of its `memory history` — same sha, operation, from, to, approver,
-// reason — and the parse is one git process per HEAD.
+// reason — and the parse is two git processes per HEAD (the patch read and its sha list).
 import { mkdtemp, realpath, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -42,7 +42,7 @@ const pick = (e: {
 });
 
 describe.each(FIXTURE_KINDS)('spec-002 §5 on the %s fixture', (kind) => {
-  it('gives every element the wf entries of its memory history, in one git process', async () => {
+  it('gives every element the wf entries of its memory history, in two git processes', async () => {
     const fx = fixtures.get(kind)!;
     const audited = auditedSnapshots(fx.env);
     registries.push(audited.snapshots);
@@ -50,10 +50,11 @@ describe.each(FIXTURE_KINDS)('spec-002 §5 on the %s fixture', (kind) => {
     const view = await snapshot.view();
     const gitBefore = audited.runner.count('git');
     const events = await view.events();
-    expect(audited.runner.count('git') - gitBefore).toBe(1);
+    // The patch read and its header-only sha list (review round 2, finding A).
+    expect(audited.runner.count('git') - gitBefore).toBe(2);
     // Cached for the HEAD: a second view of the same state reads nothing.
     await (await snapshot.view()).events();
-    expect(audited.runner.count('git') - gitBefore).toBe(1);
+    expect(audited.runner.count('git') - gitBefore).toBe(2);
 
     const { matches } = await view.elements();
     expect(matches.length).toBeGreaterThan(0);
@@ -75,14 +76,14 @@ describe('the cache key of the events is HEAD only (spec-002 §4)', () => {
     const snapshot = await audited.snapshots.open('p_kanban_key', fx.dir);
     await (await snapshot.view()).events();
     const logs = () => audited.runner.spawned.filter((r) => r.args.includes('log')).length;
-    expect(logs()).toBe(1);
+    expect(logs()).toBe(2);
     await writeFile(path.join(fx.dir, 'notes.txt'), 'a working-tree edit\n');
     await snapshot.check();
     await (await snapshot.view()).events();
-    expect(logs()).toBe(1);
+    expect(logs()).toBe(2);
     await git(fx.dir, ['commit', '-q', '--allow-empty', '-m', 'empty'], fx.env);
     await snapshot.check();
     await (await snapshot.view()).events();
-    expect(logs()).toBe(2);
+    expect(logs()).toBe(4);
   }, 120_000);
 });
