@@ -2,13 +2,13 @@
 id: task-012-project-read-api
 type: task
 title: "Project read API"
-status: backlog
+status: in-progress
 release: "v0.1"
 module: "server"             # optional — server | web | contracts (dna.yaml modules)
 priority: "high"           # optional — high | medium | low
 tags: ["v0.1"]
 ref: "TT-SEC-06"                # optional — backlog item ID, e.g. "TASK-001"
-bug: []                # optional — LIST of bug ids this task closes. Two cases: a fix task derived from a bug
+bug: ["bug-003-confined-file-reads-can-block-or-exhaust-memory-when-the-file-is-swapped-after-the-check"]   # optional — LIST of bug ids this task closes. Two cases: a fix task derived from a bug
                        # by release-planning, and a bug ABSORBED into an existing task's Acceptance Criteria because that
                        # task already owns the ground. `bug.sync_state` iterates this list; a bug with no task naming it
                        # here never advances past `triaged` (only a reject to `closed`).
@@ -35,6 +35,7 @@ Added during the Wave 2 dev-loops (plan `dev-loop-rel-v0.1-plan`, Session 2; dec
 - **Actor events (spec-002 §3, from task-011):** the project-wide `git log -p` parse of spec-002 §3 that feeds the descriptor's actor events (`describeElements(…, eventsOf, …)`) is implemented here, once per repository state, so the Memory list does not start one `memory history` per element. *Verified by:* unit tests on the fixtures (events equal to `memory history` for every element) + the process audit below.
 - **Process audits on the real routes (from task-010):** re-run the TT-PERF-05 audit (cold Memory list ≤ 6 CLI processes, reopened with no change 0) and the TT-INT-09 audit (idle with an open stream: 0 CLI processes) against the real project routes of this task instead of task-010's stand-in routes. *Verified by:* process audit (`test/server/snapshot/process-audit.test.ts` or a successor).
 - **Cached identity for governed checks (from task-009, as required by spec-004 §4 "rows 1–6 start no process"):** `PUT /api/p/:pid/role-view` and `GET /api/p/:pid` read the identity from task-010's watched repository state (`view.state.email`) instead of running `git config` / `dna show` per request. *Verified by:* process audit — the PUT starts 0 processes on a warm cache.
+- **bug-003-confined-file-reads-can-block-or-exhaust-memory-when-the-file-is-swapped-after-the-check** (absorbed, dl-045, decided by the user 2026-10-06): confined reads open the file with `O_NOFOLLOW`/`O_NONBLOCK`, `fstat` the descriptor, refuse anything not a regular file and read at most MAX + 1 bytes. *Verified by:* unit tests (FIFO and `/dev/zero` swapped in → refused, no block).
 
 ## Implementation Notes
 

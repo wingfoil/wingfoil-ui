@@ -119,7 +119,8 @@ An offered verb is **enabled** only when all hold; otherwise it is shown disable
 failing reason (also its accessible description, REQ-ARC-10):
 
 1. the user is identified in the team (REQ-SEC-08) — "Read-only: not in the team";
-2. the WingFoil version is in the supported range — "Read-only: supported <range>";
+2. the WingFoil version is in the supported range — "Read-only: supported <range>", the range
+   labelled `<min> to <X.Y.x>` as in `adr-001` D3 (e.g. "0.2.2 to 0.2.x");
 3. the element file has no local changes — "Blocked: this element has local changes — commit or
    discard them first" (REQ-STATE-03);
 4. the copy is not behind, diverged or on a detached HEAD (REQ-STATE-04).
@@ -204,6 +205,7 @@ element list; `web/` renders it and never re-derives it.
   view; §6 the
   disabled reason is a code with parameters rendered by the web catalogue; §8 `bucket` in the
   output (Done = last non-archived state of `sequence`), `verbs[].role` `null` for `submit`,
-  `rejection.reason` may be `null`, `actor.fallback`; §8 vocabulary note (tables in
+  `rejection.reason` may be `null`, `actor.fallback`; §6 the `version-unsupported` range label
+  `<min> to <X.Y.x>` (task-012); §8 vocabulary note (tables in
   `server/src/presets/`, REQ-ARC-05); §9 erratum (the CLI may refuse an offered move for the
   element's content); decided by the user.

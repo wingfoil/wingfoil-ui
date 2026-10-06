@@ -89,6 +89,25 @@ list is notified by the `projects` event (spec-004 §6).
   is compared on its `origin`. Remote normalisation: the scp-like form `user@host:owner/repo` is
   read as `ssh://host/owner/repo`; userinfo removed; host lower-cased; trailing `/` and `.git`
   removed; then **host + path** are compared, whatever the scheme. The entry is appended.
+- **Paths as typed:** a leading `~` is the user's home directory; `detail.path` of a refusal is
+  the path **as typed** (never the resolved real path). The default clone directory is
+  `~/projects/<repo>` (the last path segment of the URL without `.git`, S-04.1).
+- **Name:** for a local folder, `dna.project.name` read by `dna show`; a refused or invalid
+  `dna show` (S-27.1) does not stop the add — the name is the folder's base name. **At clone
+  time no CLI of the cloned repository runs** (no discovery-and-run, no `dna show`): the name is
+  the folder's base name until the first open refreshes it (§2 `name`, "refreshed on every
+  successful open"). Security note (`adr-001` D2, REQ-ARC-02): the project's own CLI comes first
+  in discovery, so a freshly cloned repository could ship its own `node_modules/wingfoil`; it is
+  run only when the user opens the project, never as a side effect of the clone.
+- **Clone without a CLI:** a clone whose project has no CLI (pinned or on the `PATH`) is **kept**
+  and listed with availability `cli-not-found` (S-10.2, with the install command); the
+  `cli-not-found` refusal below applies to adding a local folder only.
+- **Clones are serialised** on the write-lock key `clone` (`adr-001` D5) — never a project id or a
+  user path — so two clones into the same folder cannot race; the premises (listed remote,
+  empty target) are re-checked inside it.
+- **Responses:** `POST /api/projects` and `POST /api/projects/clone` → **201** with the new item
+  (`contracts/api/projects.item.schema.json`, as an entry of `GET /api/projects`);
+  `DELETE /api/projects/:pid` → **204** with no body.
 - **Remove**: drops the entry; no file of the project is touched (S-18.1).
 - **Role view**: `PUT /api/p/:pid/role-view` (spec-004) sets `roleView`; a role the member no
   longer holds falls back to the default when read.
@@ -102,9 +121,11 @@ list is notified by the `projects` event (spec-004 §6).
 | `not-wingfoil` | `{ path }` or `{ source: "clone" }` (the clone is removed) | S-05.1, S-05.2 |
 | `already-listed` | `{ pid, name, sameRemote: boolean }` | S-06.1, S-06.2 |
 | `directory-not-empty` | `{ path }` | S-07.2 |
-| `cli-not-found` | `{ path, command: "npm install --save-dev wingfoil" }` | S-10.1 |
+| `cli-not-found` | `{ path, command: "npm install --save-dev wingfoil" }` (local folder only) | S-10.1 |
 | `state-dir-inside-project` | `{ path, stateDir }` | §1 (no scenario) |
-| `git-refused` | — (`message` = git's message verbatim, spec-004 §5) | S-07.1, S-07.3 |
+| `directory-inside-project` | `{ path }` — the clone target lies inside a listed project | (no scenario) |
+| `inside-state-dir` | `{ path }` — the clone target lies inside the state directory | §1 (no scenario) |
+| `git-refused` | — (`message` = git's message verbatim, spec-004 §5): a failed clone, or a folder with `.wingfoil/` that is not a git repository | S-07.1, S-07.3 |
 
 ### 4. Reads and writes
 
@@ -173,3 +194,11 @@ a project (REQ-SEC-09). The secret scan of REQ-SEC-09 runs over the state direct
   staleness, 15 s give-up, short transactions), temporary file `state.json.tmp-<pid>-<n>` with the
   sweep of dead processes' files, `reload` when the list is served, no directory for a no-op. The
   lock is an interface between consoles and builds: a build that skips it brings lost updates back.
+- 2026-10-06 — amended in dev-loop task-008 (Wave 2, plan dev-loop-rel-v0.1-plan): §3 a folder
+  with `.wingfoil/` that is not a git repository → 422 `git-refused`; a clone without a CLI is
+  kept and listed `cli-not-found`; clones serialised on the write-lock key `clone`; responses 201
+  with the item (`projects.item.schema.json`) / 204; `detail.path` as typed, leading `~` = home,
+  default clone directory `~/projects/<repo>`; a refused or invalid `dna show` → the folder name;
+  new refusals `directory-inside-project` and `inside-state-dir` (`{path}`); no CLI of the
+  cloned repository runs at clone time (name = folder base name until the first open), with the
+  security note; decided by the user.

@@ -44,10 +44,12 @@ date (ISO 8601), `author` = `Name <email>`, `operation` ∈ `add`, `submit`, `ap
 | View | Source | Processes |
 |------|--------|-----------|
 | Element panel history (G1) | `memory history <id>` (spec-001 §3) — the CLI's own reconstruction; non-`wf` commits touching the file (`operation: null`) are shown as "edited outside a WingFoil verb" | 1 per opened element and repository state |
-| Updates (S7), Recent activity (T5), Timeline (R6); the action descriptor (spec-003: creator, submitter, last reject, `since`) behind Today (v0.2) and every element list | **one `git log`** over the Memory directories, parsed as §3 | 1 per repository state |
+| Updates (S7), Recent activity (T5), Timeline (R6); the action descriptor (spec-003: creator, submitter, last reject, `since`) behind Today (v0.2) and every element list | **one `git log -p`** over the Memory directories, parsed as §3, plus its header-only sha list | 2 git processes per HEAD |
 
 Calling `memory history` for every element would cost one process per element (hundreds on the
-large fixture), against REQ-PERF-05; the single `git log` is used for the project-wide views.
+large fixture), against REQ-PERF-05; the two `git log` reads are used for the project-wide views.
+They are git processes, not CLI processes: a cold Memory list (5 CLI + 5 git reads) stays within
+REQ-PERF-05's ≤ 6 CLI processes.
 
 ### 3. Project-wide parsing
 
@@ -55,18 +57,34 @@ Memory directories = for each type of `memory.yaml` (spec-001 §4.1), the static
 `path` up to the first `{` (e.g. `docs/04_memory/planning/`), de-duplicated.
 
 ```
-git log --no-color --no-renames --no-ext-diff --unified=0 -p \
-  --format=%x1e%H%x1f%aI%x1f%an <%ae>%x1f%s%x1f%b%x1d \
-  [<old>..HEAD] -- <memory directories…>
+git -c log.showSignature=false log --no-color --no-renames --no-ext-diff --no-textconv \
+  --unified=0 -p --format=%H%x00%aI%x00%an <%ae>%x00%s%x00%b%x00 \
+  <HEAD sha> -- <memory directories…>
+git -c log.showSignature=false log --no-renames --format=%H%x00 \
+  <HEAD sha> -- <memory directories…>
 ```
 
-For each record (`%x1e`-separated; header fields `%x1f`-separated, body ended by `%x1d`, then the patch):
+**Framing (NUL, as WingFoil bug-050 / task-086).** Every header field — sha, author date, author,
+subject, body — is followed by a NUL, which git refuses in a commit message, so no subject, body
+or `--reason` can split or forge a record; the patch follows. Records are split by arity (five
+NUL-terminated fields, then the patch up to the next record). The sha must match
+`^[0-9a-f]{40}$` (`^[0-9a-f]{64}$` in a SHA-256 repository) and the date must be a valid ISO
+8601 author date. A patch can still hold a NUL (a text file with one past git's binary check):
+the second, **header-only read** of the same walk (same pathspec and flags, no patch) gives the
+**authoritative sha order**, at which the records are resynchronised. Both reads name the view's
+HEAD sha as an explicit revision (never the symbolic `HEAD`, which may move between them). A
+malformed `wf` record (damaged framing, unreadable date or author) is skipped with a warning and
+the others are read; an output that does not match the sha list is refused as a whole, never
+guessed at.
+
+For each record:
 1. **Subject** must match
    `^wf\((?<type>[^)]+)\): (?<op>add|submit|approve|reject|deprecate) (?<id>\S+)(?: \[(?<from>[^\]]+) → (?<to>[^\]]+)\])?$`;
    any other commit (including `wf(plan): finalize …` and non-`wf` commits) is **not** an event.
 2. **Transition:** from the subject when present; otherwise from the patch of the element's file
    (the file whose name is `<id>.md`): `-status: <from>` and `+status: <to>` (`add`: `+status:` only).
-   Values are taken without quotes and trailing comments.
+   Values are taken without quotes and trailing comments. As in `memory history`, a commit is an
+   event of `<id>` **only when its patch touches `<id>.md`**.
 3. **Approver / reason:** as WingFoil 0.2.2 reads them (`memory/commit-message.js`): `Approver:` =
    the first non-empty body line when it starts with `Approver: `; the reason = from the first line
    starting with `Reason:` to the end of the body, or to the start of a trailing trailer paragraph
@@ -79,9 +97,9 @@ For each record (`%x1e`-separated; header fields `%x1f`-separated, body ended by
 ### 4. Caching and incremental reads
 
 - Cache key: HEAD only (events are commits; the working tree is irrelevant).
-- After a fast-forward from a cached HEAD `old`, only `old..HEAD` is parsed and prepended; when
-  `old` is not an ancestor of HEAD — `git rev-list --count HEAD..old` is not 0 (an allowed read,
-  REQ-INT-06) — the whole log is re-parsed.
+- After a fast-forward from a cached HEAD `old`, only `old..<HEAD sha>` is parsed (both reads)
+  and prepended; when `old` is not an ancestor of HEAD — `git rev-list --count HEAD..old` is not 0
+  (an allowed read, REQ-INT-06) — the whole log is re-parsed.
 - Views read from the parsed list: Updates = last 10, Recent activity = last 5 (REQ-PERF-11),
   Timeline = grouped by local day of `timestamp`, paginated.
 
@@ -93,12 +111,17 @@ For each record (`%x1e`-separated; header fields `%x1f`-separated, body ended by
 - Unit tests with recorded `git log` outputs: each operation, a subject with and without
   transition, a multi-line reason, a reason followed by a `Co-Authored-By:` trailer, a non-`wf` commit, `wf(plan): finalize` (ignored), a quoted `status:` value, a
   rewritten history.
-- Performance: on the large fixture (500 elements, 2 000 commits) the first parse runs in one git
-  process; an incremental parse after one commit reads one commit.
+- Unit tests for the framing: a NUL inside a patch (resync on the sha list), a malformed `wf`
+  record (skipped with a warning), a sha or date that fails its check, an output that does not
+  match the sha list (refused).
+- Performance: on the large fixture (500 elements, 2 000 commits) the first parse runs in two git
+  processes (the patch read and the sha list); an incremental parse after one commit reads one
+  commit.
 
 ## Consequences
 
-- One git process serves three views; the element panel keeps WingFoil's own history.
+- Two git processes per HEAD serve three views and the descriptor; the element panel keeps
+  WingFoil's own history.
 - The project-wide parser depends on WingFoil's commit format (subject, trailers, `status:` line):
   the consistency test catches a format change against `memory history`.
 - If WingFoil adds the transition to `add`/`submit` subjects, step 3.2 falls back on the subject
@@ -114,3 +137,12 @@ For each record (`%x1e`-separated; header fields `%x1f`-separated, body ended by
 - 2026-10-02 — spec review (step 6): F2 multi-line reasons parsed as the CLI does (the
   reviewer reproduced a two-line reason in `memory history`); F13 ancestry check named, spec-003
   listed as a consumer.
+- 2026-10-06 — amended in dev-loop task-012 (Wave 2, plan dev-loop-rel-v0.1-plan): §3 the
+  `%x1e`/`%x1f`/`%x1d` format replaced by NUL framing (`%H%x00%aI%x00%an <%ae>%x00%s%x00%b%x00` +
+  patch, records split by arity, sha and date validated) as WingFoil bug-050 / task-086; a second
+  header-only read (`log --no-renames --format=%H%x00`, same pathspec and flags) gives the
+  authoritative sha order to resync after a NUL inside a patch; both reads name the view's HEAD
+  explicitly; a malformed `wf` record is skipped with a warning; an event counts only when the
+  patch touches `<id>.md`; `--no-textconv --no-ext-diff -c log.showSignature=false`; "one git
+  process" → two per HEAD (§2, §5, Consequences; within REQ-PERF-05, which counts CLI
+  processes); decided by the user.
