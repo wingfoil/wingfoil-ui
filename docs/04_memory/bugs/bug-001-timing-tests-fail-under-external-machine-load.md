@@ -70,3 +70,4 @@ needed a manual re-run on a quiet machine.
   task from there.
 - start (2026-10-05): task-010 started (Wave 2) → `planned → in-progress` by hand (dev-loop
   `start` step `bug.sync_state`; no CLI verb for this edge).
+- submit (2026-10-06): task-010 submitted after its integration (all reviews PASS; `test:coverage` 917 passed, `test:timing` 3/3 at load 12–17) → `in-progress → in-review` with `memory submit` (dev-loop `bug.sync_state`).

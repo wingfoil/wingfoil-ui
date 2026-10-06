@@ -67,3 +67,4 @@ REQ-STATE-01/02 wrong). From v0.2 a governed write could commit in the wrong rep
   planned` set by hand (waiting state, no CLI verb).
 - start (2026-10-06): task-010 is already in progress (Wave 2) → `planned → in-progress` by hand
   (dev-loop `bug.sync_state`; no CLI verb for this edge).
+- submit (2026-10-06): task-010 submitted after its integration (all reviews PASS; `test:coverage` 917 passed, `test:timing` 3/3 at load 12–17) → `in-progress → in-review` with `memory submit` (dev-loop `bug.sync_state`).
