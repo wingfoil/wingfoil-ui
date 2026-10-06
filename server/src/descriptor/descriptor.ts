@@ -10,6 +10,7 @@
  */
 import type {
   ActionDescriptor,
+  Bucket,
   DescriptorActor,
   DescriptorRejection,
   DescriptorVerb,
@@ -21,12 +22,12 @@ import type {
   StateMachine,
   Tone,
 } from '@wingfoil-ui/contracts';
-import { ARCHIVED_KIND, BUCKET_OF_KIND, TONE_OF_KIND, type Bucket } from '../presets/descriptor.js';
+import { ARCHIVED_KIND, BUCKET_OF_KIND, TONE_OF_KIND } from '../presets/descriptor.js';
 import { APPROVER_ROLE, ARCHIVED_STATES, TECH_LEAD_ROLE } from '../presets/wingfoil.js';
 import { resolveStates, transitionTarget } from '../reads/memory-yaml.js';
 
 export type { ActionDescriptor } from '@wingfoil-ui/contracts';
-export type { Bucket } from '../presets/descriptor.js';
+export type { Bucket } from '@wingfoil-ui/contracts';
 
 /**
  * One event of an element (spec-002 §1), oldest first. A `memory history` entry and a spec-002
@@ -201,8 +202,10 @@ function actorOf(kind: StateKind, status: string, moves: readonly DescriptorEven
       return team.memberOrFallback(moves.findLast((e) => e.to === status)?.author);
     }
     case 'gate':
-    case 'gate-waiting':
       return team.role(APPROVER_ROLE);
+    // A gate that is also waiting is advanced by the workflow engine; its reject stays reserved to
+    // `approver` (the verb's role). Decided by the user, 2026-10-06.
+    case 'gate-waiting':
     case 'waiting':
       return { kind: 'engine' };
     case 'undeclared':
@@ -234,12 +237,14 @@ export function describeElement(
   const moves = transitions(events);
   const rejection = rejectionOf(status, moves);
   const since = moves.findLast((e) => e.to === status)?.timestamp;
+  const bucket = bucketOf(kind);
   return {
     id,
     type,
     status,
     kind,
     tone: toneOf(kind),
+    ...(bucket !== undefined ? { bucket } : {}),
     verbs,
     actor: actorOf(kind, status, moves, new Team(project.members)),
     ...(rejection ? { rejection } : {}),

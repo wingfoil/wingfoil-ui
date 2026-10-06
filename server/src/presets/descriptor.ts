@@ -5,10 +5,7 @@
  * UI's words, not a methodology's, but REQ-ARC-05's lint rule matches literals by value, so the
  * tables holding them live here, next to WingFoil's vocabulary, and nowhere else.
  */
-import type { StateKind, Tone } from '@wingfoil-ui/contracts';
-
-/** A Memory list bucket with *All types* (`memory-list.feature`). */
-export type Bucket = 'to-approve' | 'in-progress' | 'waiting' | 'done';
+import type { Bucket, StateKind, Tone } from '@wingfoil-ui/contracts';
 
 /** The kind of a state in WingFoil's archived set (spec-003 §2). */
 export const ARCHIVED_KIND: StateKind = 'archived';
@@ -29,7 +26,8 @@ export const TONE_OF_KIND: Readonly<Record<StateKind, Tone>> = Object.freeze({
 /**
  * The bucket of each kind (`memory-list.feature`): *To approve* — gates that are not waiting;
  * *In progress* — other intermediate states and undeclared ones; *Waiting/drafts/closed* — first,
- * waiting (also gate-waiting) states and reject targets with no way out; *Done* — the last state.
+ * waiting (also gate-waiting) states and reject targets with no way out; *Done* — the last
+ * non-archived state of the sequence (kind `last`, e.g. custom `adr` `accepted`).
  * Archived elements are in none.
  */
 export const BUCKET_OF_KIND: Readonly<Record<StateKind, Bucket | undefined>> = Object.freeze({

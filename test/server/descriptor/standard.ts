@@ -3,7 +3,7 @@
 // (*Standard elements*, *Identity and roles in steps*) and spec-003 §2–§7 — never computed with
 // the code under test. Shared by the unit test (captured samples) and the contract test (fixtures
 // built with the pinned CLI).
-import { bucketOf, type ActionDescriptor } from '../../../server/src/descriptor/descriptor.js';
+import type { ActionDescriptor } from '../../../server/src/descriptor/descriptor.js';
 import type { FixtureKind } from '../../harness/fixtures/index.js';
 
 export const APPROVERS = ['Morgan', 'Alex'];
@@ -93,7 +93,7 @@ export function observed(d: ActionDescriptor): Row {
     actor,
     ...(d.rejection ? { rejection: { by: d.rejection.by, reason: d.rejection.reason ?? '' } } : {}),
     tone: d.tone,
-    bucket: bucketOf(d.kind),
+    bucket: d.bucket,
   };
 }
 

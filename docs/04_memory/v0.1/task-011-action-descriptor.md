@@ -272,3 +272,28 @@ Coordinator review: **FAIL** on the lint rule (descriptor logic accepted). Fixed
   updated.
 - Not changed here (coordinator's): task-010's `snapshot.ts` hit (named in the merge note), the
   gate-waiting actor and the bucket wording (escalated to the user).
+
+### open points — decided by the user 2026-10-06
+
+All option (a). Code changed here:
+- **Gate-waiting actor** (custom `bug` `triaged`): the actor is the **workflow engine**, as for
+  `waiting`; the `reject` verb stays reserved to `approver` (its `role`). Placement follows: such
+  an element is in *Waiting on others* of every member ("Waiting for the workflow engine"), never in
+  *Requires you*; `offeredVerbs` offers its reject only to `approver` holders. Tests:
+  `descriptor.test.ts` (triaged row, by hand from the rule), `placement.test.ts` (Morgan/Alex/Sam/
+  Jordan in several views, reject offered to Morgan only). No standard element is gate-waiting, so
+  `standard.ts` rows are unchanged.
+- **`bucket` in the descriptor output** (spec-003 §8): `ActionDescriptor.bucket?: Bucket`
+  (`Bucket` moved to `contracts/src/descriptor.ts`, exported by the index), absent for archived
+  elements; `bucketOf(kind)` stays exported. Rule: `last` (last non-archived state) → `done`, e.g.
+  custom `adr` `accepted` → Done, `superseded` → none (tested). The table oracle and the contract
+  test now read `d.bucket`.
+No code change (accepted as built): tables in `server/src/presets/` (10, 13), the §9 erratum (11),
+my minor choices (14).
+- **Hand-over to task-012 (updated):** the project-wide `git log -p` event parse of spec-002 §3 is
+  **task-012's** (decision 9). The descriptor keeps events as an input: give `describeElements` an
+  `eventsOf(id)` backed by that parse (oldest first, `DescriptorEvent` shape); `memory history` is
+  only the element panel's source. `bucket` now comes with each descriptor — no need to attach it.
+- **Checks (2026-10-06, load ≈ 3–5):** typecheck, `eslint .`, format:check clean · `docs:api` OK ·
+  `vitest run test/server/descriptor test/lint` 160/160 · `descriptor-contract.test.ts` 10/10
+  (29 s).

@@ -13,7 +13,6 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { CliRefusedError, WingfoilCli } from '../../server/src/cli/adapter.js';
 import { discoverCli } from '../../server/src/cli/discovery.js';
 import {
-  bucketOf,
   describeElements,
   type ActionDescriptor,
   type DescriptorProject,
@@ -106,7 +105,7 @@ describe.each(VERSIONS)('action descriptor — wingfoil %s', (version) => {
   it('M-02.2 / M-01.2 — the generic buckets', () => {
     const bucket = (kind: FixtureKind, b: string) =>
       described[kind].descriptors
-        .filter((d) => bucketOf(d.kind) === b)
+        .filter((d) => d.bucket === b)
         .map((d) => d.id)
         .sort();
     expect(bucket('unknown', 'to-approve')).toEqual(['story-001-onboarding']);

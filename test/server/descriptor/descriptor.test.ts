@@ -20,7 +20,7 @@ import {
 import { parseMemoryYaml, resolveStates } from '../../../server/src/reads/memory-yaml.js';
 import { REPO_ROOT } from '../../harness/cli.js';
 import type { FixtureKind } from '../../harness/fixtures/index.js';
-import { APPROVERS, LAST, observed, ROWS, STANDARD, TECH_LEADS } from './standard.js';
+import { LAST, observed, ROWS, STANDARD, TECH_LEADS } from './standard.js';
 
 const SAMPLES = path.join(REPO_ROOT, 'test/contracts/samples/wingfoil-0.2.2');
 const sample = (kind: FixtureKind, file: string) => readFileSync(path.join(SAMPLES, kind, file), 'utf8');
@@ -115,12 +115,12 @@ describe('spec-003 §9 — the synthetic rows', () => {
   const custom = project('custom');
   const el = (type: string, status: string) => ({ id: `${type}-x`, type, status });
 
-  it('custom bug triaged is gate-waiting: reject only, approver, human, Waiting bucket', () => {
+  it('custom bug triaged is gate-waiting: reject only (reserved to approver), engine actor, Waiting bucket', () => {
     const d = describeElement(el('bug', 'triaged'), [], custom);
     expect(observed(d)).toEqual({
       kind: 'gate-waiting',
       verbs: [['reject', 'closed', 'approver']],
-      actor: { kind: 'role', role: 'approver', members: APPROVERS },
+      actor: { kind: 'engine' },
       tone: 'human',
       bucket: 'waiting',
     });
@@ -245,6 +245,19 @@ describe('spec-003 §9 — the synthetic rows', () => {
     const d = describeElement(el('adr', 'draft'), events, custom);
     expect(d.actor.member?.name).toBe('Jordan');
     expect(d.since).toBe(T(2));
+  });
+
+  it('the output carries the bucket of its kind, none when archived (custom adr accepted Done, superseded none)', () => {
+    expect(describeElement(el('adr', 'accepted'), [], custom).bucket).toBe('done');
+    expect('bucket' in describeElement(el('adr', 'superseded'), [], custom)).toBe(false);
+    for (const { kind, id } of ROWS) {
+      const d = describeElement(
+        matches(kind).find((m) => m.id === id)!,
+        history(kind, id),
+        project(kind),
+      );
+      expect(d.bucket).toBe(bucketOf(d.kind));
+    }
   });
 
   it('tones and buckets per kind (spec-003 §7, memory-list.feature)', () => {

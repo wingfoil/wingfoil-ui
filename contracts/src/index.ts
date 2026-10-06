@@ -33,6 +33,7 @@ export type {
 } from './cli.js';
 export type {
   ActionDescriptor,
+  Bucket,
   DescriptorActor,
   DescriptorMember,
   DescriptorRejection,

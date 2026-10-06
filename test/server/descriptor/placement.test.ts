@@ -98,11 +98,24 @@ describe('placement (spec-003 §5)', () => {
     expect(engine).toEqual({ list: 'waiting-on-others', who: { kind: 'engine' } });
   });
 
-  it('a gate-waiting element is never in Requires you', () => {
-    const d = descriptors('custom').get('bug-001-toast-overlap')!;
-    const triaged = { ...d, kind: 'gate-waiting' as const };
-    expect(placement(triaged, user('Morgan'), 'approver').list).toBeNull();
-    expect(placement(triaged, user('Sam'), 'reviewer').list).toBe('waiting-on-others');
+  it('a gate-waiting element waits on the workflow engine for everyone, never in Requires you', () => {
+    const project = {
+      memoryYaml: parseMemoryYaml(read('custom', 'files/memory.yaml')),
+      members: (JSON.parse(read('custom', 'dna-show.json')) as DnaShow).team.members,
+      enablement: { identified: true, version: { supported: true, range: '0.2.2' } },
+    };
+    const triaged = describeElement({ id: 'bug-x', type: 'bug', status: 'triaged' }, [], project);
+    for (const [name, view] of [
+      ['Morgan', 'approver'],
+      ['Alex', 'reviewer'],
+      ['Sam', 'reviewer'],
+      ['Jordan', 'developer'],
+    ] as const) {
+      expect(placement(triaged, user(name), view)).toEqual({ list: 'waiting-on-others', who: { kind: 'engine' } });
+    }
+    // Its reject stays reserved to approver.
+    expect(offeredVerbs(triaged, user('Morgan').roles).map((v) => v.verb)).toEqual(['reject']);
+    expect(offeredVerbs(triaged, user('Sam').roles)).toEqual([]);
   });
 
   it('a user with no identity sees nothing of their own', () => {

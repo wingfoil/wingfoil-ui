@@ -13,6 +13,13 @@ export type StateKind =
 /** The colour of a state (spec-003 §7, `ux-reference.md` §7). */
 export type Tone = 'human' | 'done' | 'neutral' | 'active' | 'attention' | 'muted';
 
+/**
+ * The Memory list bucket with *All types* (`memory-list.feature`), by kind: *To approve* `gate`;
+ * *In progress* `work`, `undeclared`; *Waiting/drafts/closed* `first`, `waiting`, `gate-waiting`,
+ * `off-sequence`; *Done* `last` (the last non-archived state). Archived elements have none.
+ */
+export type Bucket = 'to-approve' | 'in-progress' | 'waiting' | 'done';
+
 /** A verb the UI may offer on WingFoil 0.2.2 (`deprecate` is not offered in the MVP). */
 export type DescriptorVerbName = 'submit' | 'approve' | 'reject';
 
@@ -75,6 +82,8 @@ export interface ActionDescriptor {
   status: string;
   kind: StateKind;
   tone: Tone;
+  /** The Memory list bucket; absent for an archived element. */
+  bucket?: Bucket;
   /** The verbs WingFoil accepts from this state, in the order submit, approve, reject. */
   verbs: DescriptorVerb[];
   actor: DescriptorActor;

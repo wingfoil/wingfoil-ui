@@ -28,8 +28,9 @@ export type Placement =
  * §5): *Requires you* when the actor is the user (every view), a gate for a member holding
  * `approver` in the `reviewer` or `approver` view, an undeclared state — or the tech-lead
  * fallback actor — in the `tech-lead` view; *Waiting on others* when the actor is another member,
- * a role the user does not hold, or the workflow engine; otherwise neither. A gate-waiting element
- * is never in *Requires you*.
+ * a role the user does not hold, or the workflow engine (also a gate-waiting element, whose actor
+ * is the engine: "Waiting for the workflow engine"); otherwise neither. A gate-waiting element is
+ * never in *Requires you*; its reject stays reserved to `approver` (the verb's role).
  */
 export function placement(d: ActionDescriptor, user: PlacementUser | undefined, roleView: string): Placement {
   const actor = d.actor;
