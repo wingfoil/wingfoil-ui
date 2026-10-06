@@ -92,7 +92,8 @@ const REDIRECTING_GIT_VARIABLES = new Set([
 /**
  * `env` without the variables that would redirect a git read away from the project (an inherited
  * `GIT_DIR` from a hook, a `GIT_CONFIG_KEY_<n>` injection). `HOME`, `GIT_CONFIG_GLOBAL` and
- * `GIT_CONFIG_NOSYSTEM` are kept: they choose the global configuration, as for the CLI.
+ * `GIT_CONFIG_NOSYSTEM` are kept: they choose the global configuration, as for the CLI. The process
+ * runner applies it to every child (bug-002), {@link GitReads} to its own requests too.
  */
 export function gitEnv(env: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
   const clean: NodeJS.ProcessEnv = {};
