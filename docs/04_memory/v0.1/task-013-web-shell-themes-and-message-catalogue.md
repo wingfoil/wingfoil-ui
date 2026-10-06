@@ -326,9 +326,9 @@ Screen: `docs/00_reference/ux-reference.md` §1–3, §9 and the prototype (`doc
   the dialog frame (keyboard, focus trapped and given back, axe), the key build showing only keys.
 - **Checks** (worktree, load 15–18 on 12 cores, `/proc/loadavg`): `npm run -s typecheck`, `lint`
   (ESLint + catalogue check) clean · `format:check` "All matched files use Prettier code style!" ·
-  `docs:api` OK · `npm run -s test:coverage` **87 files passed, 1 skipped; 1350 passed / 1 skipped**,
-  coverage 95.44 % statements / 88.48 % branches / 95.47 % functions / 97.48 % lines (before the last
-  three unit tests; `web/src` alone now 96.01 % / 90.59 %) · `test:e2e` **12/12** (and 36/36 with
+  `docs:api` OK · `npm run -s test:coverage` **89 files passed, 1 skipped; 1357 passed / 1 skipped**,
+  coverage 95.72 % statements / 88.84 % branches / 96.1 % functions / 97.79 % lines (`web/src`
+  96.01 % / 90.59 %) · `test:e2e` **12/12** (and 36/36 with
   `--repeat-each=3`) · `check_tasks.py` OK · `npm run test:timing` **not run** (load > 12).
 - **Hand-overs:**
   - **view tasks (017–020):** route + `PROJECT_ROUTES` + `PROJECT_NAV` entry (`routes/project.tsx`
