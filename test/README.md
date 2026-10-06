@@ -1,6 +1,6 @@
 # Tests
 
-**Version:** 0.10 · **Date:** 2026-10-06 (0.1: workspace tooling and e2e harness — task-001; 0.2: `test/launcher/`, `test/server/` — task-002; 0.3: `test/contracts/`, local state isolation, secret scan — task-007; 0.4: `local-security` suite — task-003; 0.5: process runner fake, hand-made CLI packages, stub after global options — task-004; 0.6: CLI contract tests, captured samples, `test:contract` — task-005; 0.7: action descriptor tests, REQ-ARC-05 lint rule — task-011; 0.8: matrix builds of `cliBuildFor`, capability table and README checks — task-006; 0.9: identity tests, bin with a seeded state — task-009; 0.10: timing suite `test:timing`, `TempWorkspace`, snapshot audits and stand-ins — task-010 / bug-001)
+**Version:** 0.11 · **Date:** 2026-10-06 (0.1: workspace tooling and e2e harness — task-001; 0.2: `test/launcher/`, `test/server/` — task-002; 0.3: `test/contracts/`, local state isolation, secret scan — task-007; 0.4: `local-security` suite — task-003; 0.5: process runner fake, hand-made CLI packages, stub after global options — task-004; 0.6: CLI contract tests, captured samples, `test:contract` — task-005; 0.7: action descriptor tests, REQ-ARC-05 lint rule — task-011; 0.8: matrix builds of `cliBuildFor`, capability table and README checks — task-006; 0.9: identity tests, bin with a seeded state — task-009; 0.10: timing suite `test:timing`, `TempWorkspace`, snapshot audits and stand-ins — task-010 / bug-001; 0.11: project-list route tests, a dumb-HTTP git remote — task-008)
 
 Every test lives under `test/` (DNA `paths.tests`); sources stay in `server/src`, `web/src`,
 `contracts/src`.
@@ -38,6 +38,13 @@ Every test lives under `test/` (DNA `paths.tests`); sources stay in `server/src`
   snapshot with `X-Repo-State`, next to the real `GET /api/events`, on a loopback listener (the
   real routes are task-012's). `test/server/http/sse-client.ts` reads an event stream over raw
   `http`.
+- `test/server/http/projects.test.ts` — the project-list routes (task-008) on copies of the kanban
+  fixture with the file store in a temporary state directory: every refusal compared with a tree
+  listing (paths + content hashes, links not followed) taken before it; a local git "dumb HTTP"
+  server (`httpRemote`: optional Basic credentials, or never answering) for the authentication,
+  credential-URL and cancellation cases; the pinned CLI installed globally on the `PATH` (a fresh
+  clone has no `node_modules`). Its last test is the TT-INT-06 process audit of the whole file
+  (one `AuditedRunner`): keep it last. `test/server/projects/` — remote normalisation.
 - `test/contracts/` — the JSON Schemas of `contracts/` (e.g. `state/state.schema.json`) and the CLI
   contract tests (spec-001 §7, adr-001 D4): `cli-contract.test.ts` builds the three fixtures with
   the CLI of every version of `contracts/matrix.json` (`support.ts`: `cliBuildFor(version)`), runs

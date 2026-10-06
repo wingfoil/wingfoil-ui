@@ -46,6 +46,7 @@ import {
   buildFixture,
   copyFixture,
   envWithoutWingfoil,
+  installCliStub,
   removeCli,
   type Fixture,
 } from '../../harness/fixtures/index.js';
@@ -83,7 +84,10 @@ beforeAll(async () => {
 afterEach(async () => {
   for (const app of apps.splice(0)) await app.close();
   for (const s of registries.splice(0)) await s.closeAll();
-  for (const s of servers.splice(0)) await new Promise((r) => s.close(r));
+  for (const s of servers.splice(0)) {
+    s.closeAllConnections();
+    await new Promise((r) => s.close(r));
+  }
 });
 
 afterAll(async () => {
@@ -206,8 +210,9 @@ async function plainRepo(dir: string, env: NodeJS.ProcessEnv): Promise<string> {
  * A git "dumb HTTP" server for the bare repositories under `base` (`git update-server-info` run on
  * each). With `credentials`, every request needs that Basic authorization, else 401.
  */
-async function httpRemote(base: string, credentials?: string): Promise<string> {
+async function httpRemote(base: string, credentials?: string, hang = false): Promise<string> {
   const server = http.createServer((req, res) => {
+    if (hang) return; // never answers: the clone waits until it is cancelled
     if (credentials && req.headers.authorization !== `Basic ${Buffer.from(credentials).toString('base64')}`) {
       res.writeHead(401, { 'www-authenticate': 'Basic realm="test"' }).end();
       return;
@@ -653,6 +658,50 @@ describe('POST /api/projects/clone (S-04, S-05.2, S-06, S-07)', () => {
     expect(res.statusCode).toBe(400);
     expect((res.json() as { error: { code: string } }).error.code).toBe('invalid-request');
   });
+});
+
+describe('the CLI and the client while adding', () => {
+  it('S-27.1 adds a project whose dna show is refused, named after its folder', async () => {
+    const w = await world();
+    await installCliStub(w.fx, {
+      failures: [{ command: ['dna', 'show'], exitCode: 1, stderr: '{"error":"E_YAML_PARSE_ERROR: invalid DNA"}' }],
+    });
+    const res = await add(w, w.fx.dir);
+    expect(res.statusCode, res.body).toBe(201);
+    expect((res.json() as { name: string }).name).toBe('kanban');
+  });
+
+  it('answers 500 internal when dna show fails as an adapter defect, and lists nothing', async () => {
+    const w = await world();
+    await installCliStub(w.fx, { failures: [{ command: ['dna', 'show'], exitCode: 2, stderr: 'error: boom' }] });
+    const res = await add(w, w.fx.dir);
+    expect(res.statusCode).toBe(500);
+    expect((res.json() as { error: { code: string } }).error.code).toBe('internal');
+    expect(await list(w)).toEqual([]);
+  });
+
+  it('cancels the clone when the client leaves, and leaves nothing', async () => {
+    const w = await world();
+    const host = await httpRemote(path.join(w.dir, 'remotes'), undefined, true);
+    const before = await tree(w.dir);
+    await w.app.listen({ port: 0, host: '127.0.0.1' });
+    const port = (w.app.server.address() as AddressInfo).port;
+    const running = runner.running;
+    const req = http.request({
+      host: '127.0.0.1',
+      port,
+      method: 'POST',
+      path: '/api/projects/clone',
+      headers: { host: 'localhost:80', 'content-type': 'application/json', ...AUTH },
+    });
+    req.on('error', () => undefined);
+    req.end(JSON.stringify({ url: `http://${host}/kanban.git`, directory: '~/projects/slow' }));
+    await expect.poll(() => runner.running, { timeout: 10_000 }).toBeGreaterThan(running);
+    req.destroy();
+    await expect.poll(() => runner.running, { timeout: 15_000 }).toBe(running);
+    await expect.poll(async () => JSON.stringify(await tree(w.dir)), { timeout: 5_000 }).toBe(JSON.stringify(before));
+    expect(await list(w)).toEqual([]);
+  }, 60_000);
 });
 
 describe('the fixture repository is never written (TT-ARC-03)', () => {

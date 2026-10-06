@@ -136,3 +136,84 @@ e2e closure — scenarios that need a screen are proved here by API and unit tes
     secret scan over the state directory after a clone with a credential URL.
   - local-security rows (task-003 hand-over) — the four routes' 401/403 rows on the bin; X-04.3 →
     literal 200 on `GET /api/projects`.
+
+### red / green / refactor (2026-10-06)
+
+- **Red** (`f2f1e60`): `test/server/http/projects.test.ts`, `test/server/projects/remote.test.ts`,
+  `test/contracts/api-projects-schema.test.ts` failed on the missing modules / schema files
+  (`Cannot find module '…/server/src/http/projects.js'`, `ENOENT …/contracts/api/project.schema.json`);
+  `test/launcher/local-security.test.ts` failed on 404 where 200 (X-04.3 literal, `GET /api/projects`)
+  and 400 (the two `POST`s past the guards) were expected — the right reasons.
+- **Green** (`70baf46`): as designed. `contracts/api/{project,projects.list.response,
+  projects.add.request,projects.clone.request}.schema.json`, `contracts/src/projects.ts` (exported
+  by the index); `server/src/projects/{remote,clone,project-list}.ts`; `server/src/http/projects.ts`;
+  `server/src/git/git.ts` — `GIT_READ_ARGS.origin` (`remote get-url origin`, exit 2 = no `origin`),
+  `GitReads.origin()`, `cloneArgs()` (`-c protocol.ext.allow=never clone --quiet -- <url> <dir>`),
+  `GIT_ALLOWED_SUBCOMMANDS` (REQ-INT-06), `gitSubcommand()`; `runLauncher` — one `ProjectList` with
+  one `InProcessWriteLock`, the routes in the same `register` callback (role view and event stream
+  kept), `projects.start()` once listening, `projects.stop()` in the streams stop hook. All new
+  tests green on the first run.
+- **Refactor:** the periodic check cannot re-arm itself after `stop()` while a check is in flight;
+  response bodies validated against the `contracts/api/` schemas inside the route tests; three more
+  route tests (S-27.1 refused `dna show` → folder name, exit 2 → 500 `internal`, client gone during
+  a hanging HTTP clone → git killed, nothing left); `test/README.md` 0.11.
+- **AC → tests** (`test/server/http/projects.test.ts` unless noted):
+  - TT-STATE-07 — S-03.2 (missing path and a file → `folder-not-found {path}`), S-04.3 (+ S-04.2,
+    default `~/projects/<repo>`, existing empty folder), S-05.1, S-05.2 (`{source:"clone"}`, clone and
+    the `~/projects` it created removed), S-06.1 (also via a symlink and a trailing `/`), S-06.2 (second
+    clone of the remote), S-07.1 (`https://git.invalid/…` → `git-refused`, git's message), S-07.2
+    (`directory-not-empty`, 0 git processes), S-07.3 (local HTTP remote answering 401 → git's
+    "could not read Username … terminal prompts disabled", no hang), S-10.2 (CLI removed →
+    `cli-not-found` + command, `projects` event), S-18.1 (204, snapshot closed, fixture tree and
+    `git log` unchanged), S-19.1/S-19.2 (moved folder → `folder-not-found`, the other entry `ok`;
+    moved back → `ok`; one `projects` event per change); every refusal compares a tree listing of
+    the whole test folder (state directory included) before/after. Units: `remote.test.ts`
+    (spec-006 §6 table). Plus S-10.1, `state-dir-inside-project`, not-a-repository, 400 rows,
+    another console's add, the periodic check.
+  - TT-INT-06 — the last test of the file: every git process of the file (one `AuditedRunner`)
+    has its subcommand in `GIT_ALLOWED_SUBCOMMANDS`, in v0.1 within `clone`/`config`/`remote`/
+    `rev-parse`/`status`; the only CLI command run is `dna show`.
+  - TT-ARC-03 — characterization: a clone's `git log` equals the remote's, status clean, no new
+    commit; add/list/refused add/check/remove leave the fixture's files and history unchanged. The
+    full-suite `drive-browser` git-log check stays with the e2e-smoke (task-014/015 screens).
+  - REQ-SEC-05 probe — remote and working directory with `SHELL_PAYLOAD` cloned literally through
+    the route, `pwned()` false. REQ-SEC-09 — clone of `http://alex:<secret>@127.0.0.1:<port>/…`
+    (dumb-HTTP remote with Basic auth): the answer and `state.json` hold the URL without userinfo,
+    `scanForSecrets([stateDir], [secret])` empty; the same remote typed differently is refused.
+  - local-security (`test/launcher/local-security.test.ts`) — the four routes: 401 without a
+    session, 403 for a foreign Origin, a foreign Host and `Sec-Fetch-Site: same-site`; past the
+    guards 200 `{projects: []}`, 400, 400, 404; X-04.3 now also asserts the literal 200.
+  - Schemas — `test/contracts/api-projects-schema.test.ts` (items of each availability, `command`
+    exactly with `cli-not-found`, no userinfo, request bodies).
+- **Deviations (honest):**
+  - The tests were all green at the first green run (no implementation iteration to report).
+  - TT-STATE-07 / TT-INT-06 are "e2e": proved through the real `buildApp` with the real store,
+    git, CLI and snapshots (light-my-request), plus the bin for the guards — not through a browser;
+    the screens close in task-014/015 as the task states.
+  - The availability check's `projects` event comes from a periodic file check (10 s) and from
+    each list read, not from file watching: an availability change is published within ≈ 10 s.
+  - A clone cancelled by the stop sequence answers 500 `internal` (untested: it would stop the
+    shared runner).
+- **Checks** (worktree, load 12.5 → 21.0 on 12 cores, `/proc/loadavg`): `npm run -s typecheck`,
+  `lint` clean · `format:check` "All matched files use Prettier code style!" · `npm run -s
+  test:coverage` **68 files passed, 1 skipped; 1017 passed / 1 skipped**, 142 s, coverage
+  **96 %** statements / **89.24 %** branches / 96.04 % functions / 97.98 % lines
+  (`server/src/projects` 94.82 %, `http/projects.ts` 92 % statements) · `docs:api` OK · `test:e2e`
+  3/3 · `check_tasks.py` OK. `test/server/http/projects.test.ts` alone: 46/46 in ≈ 27 s.
+  `npm run test:timing` not run (load > 12).
+- **Hand-overs:**
+  - **task-012 (read routes):** `snapshots.open(pid, path)` is already called at add/clone; after
+    a restart the listed projects are not open — open on first read as planned. spec-006 §2 says
+    `name` and `remote` are "refreshed on every successful open": not done here (no open route) —
+    `store.update(pid, { name, remote })` from `GET /api/p/:pid`, and the list's `projects` event
+    follows from the next check. `local-security.test.ts`'s header comment still says no project
+    route exists: update it when merging.
+  - **task-014 (modal):** bodies and codes as in the design note; `detail.path` is the path as
+    typed (`~` kept); `not-wingfoil` from a clone has `{ source: "clone" }`; `git-refused` has no
+    `detail` (git's message in `message`); a clone has no timeout — the modal's cancel is closing
+    the request (the server kills git and removes the folder).
+  - **task-015 (switcher):** `GET /api/projects` → `{ projects: [{ id, name, path, remote,
+    availability, command? }] }`; refetch on `projects`; `DELETE` → 204.
+  - **Coordinator — open points** (design note): not-a-repository folder → `git-refused`;
+    clone without a CLI → `cli-not-found` and the clone removed; the `clone` write-lock key; 201 /
+    204 answers. Run `npm run test:timing` on a quiet machine before merging.

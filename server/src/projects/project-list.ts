@@ -114,6 +114,8 @@ export class ProjectList {
   /** Availability by id at the last check (the list's order included in the key). */
   private seen: string | undefined;
   private timer: NodeJS.Timeout | undefined;
+  /** Token of the periodic check started last; `undefined` once stopped. */
+  private run: object | undefined;
   private git: Promise<string> | undefined;
 
   constructor(private readonly options: ProjectListOptions) {
@@ -137,7 +139,11 @@ export class ProjectList {
   start(intervalMs = DEFAULT_CHECK_MS): void {
     this.stop();
     if (intervalMs <= 0) return;
+    const run = {};
+    this.run = run;
     const tick = (): void => {
+      // Stopped (or restarted) while a check was running: schedule nothing more.
+      if (this.run !== run) return;
       this.timer = setTimeout(() => {
         this.check().then(tick, (error: unknown) => {
           this.options.logger?.warn({ kind: (error as Error).name }, 'project list check failed');
@@ -151,6 +157,7 @@ export class ProjectList {
 
   /** Stop the periodic check (stop sequence). */
   stop(): void {
+    this.run = undefined;
     clearTimeout(this.timer);
     this.timer = undefined;
   }
