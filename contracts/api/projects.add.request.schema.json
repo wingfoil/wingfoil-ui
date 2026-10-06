@@ -1,0 +1,12 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://wingfoil-ui.local/contracts/api/projects.add.request.schema.json",
+  "title": "POST /api/projects request",
+  "description": "Add a local folder (spec-004 §3, spec-006 §3): an absolute path, or one starting with ~ (the user's home).",
+  "type": "object",
+  "required": ["path"],
+  "additionalProperties": false,
+  "properties": {
+    "path": { "type": "string", "minLength": 1, "pattern": "\\S" }
+  }
+}

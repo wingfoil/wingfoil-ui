@@ -7,11 +7,14 @@ import { createTokenAuthentication } from '../auth/authentication.js';
 import { InProcessEventBus } from '../events/bus.js';
 import { buildApp } from '../http/app.js';
 import { registerEventStream, type EventStreams } from '../http/events.js';
+import { registerProjectListRoutes } from '../http/projects.js';
 import { registerRoleViewRoute } from '../http/role-view.js';
 import { createLocalIdentitySource } from '../identity/project-identity.js';
 import { message } from '../i18n/messages.js';
 import { createLogger } from '../logging.js';
 import { LocalProcessRunner } from '../process/runner.js';
+import { InProcessWriteLock } from '../process/write-lock.js';
+import { ProjectList } from '../projects/project-list.js';
 import { Snapshots } from '../snapshot/snapshots.js';
 import { openFileStateStore } from '../state/file-store.js';
 import { findProjectContaining } from '../state/location.js';
@@ -127,6 +130,16 @@ export async function runLauncher(argv: readonly string[], io: LauncherIo): Prom
   const bus = new InProcessEventBus();
   const snapshots = new Snapshots({ runner: processes, bus, logger });
   const streams: { events?: EventStreams } = {};
+  // The project list (task-008): one write lock for the server (clones now, governed writes later).
+  const projects = new ProjectList({
+    store: state,
+    snapshots,
+    bus,
+    runner: processes,
+    writeLock: new InProcessWriteLock(),
+    stateDir: io.stateDir,
+    logger,
+  });
   const app = await buildApp({
     staticDir: io.staticDir,
     logger,
@@ -137,12 +150,14 @@ export async function runLauncher(argv: readonly string[], io: LauncherIo): Prom
         identity: createLocalIdentitySource({ runner: processes, logger }),
       });
       streams.events = registerEventStream(routes, { bus });
+      registerProjectListRoutes(routes, { projects });
     },
   });
   // Stop sequence (spec-007 §6): close the event streams and the watchers, then terminate the CLI
   // and git children (adr-001 D5); registered once the application exists, removed again if the
   // listen fails.
   const offStreams = onStop(async () => {
+    projects.stop();
     streams.events?.close();
     await snapshots.closeAll();
   });
@@ -168,6 +183,8 @@ export async function runLauncher(argv: readonly string[], io: LauncherIo): Prom
     throw error;
   }
   listening.port = listeners.port;
+  // Availability changes and another console's list are noticed without a page asking (file reads only).
+  projects.start();
   // Signals are handled before the URL is printed: a stop sent right after it is never lost.
   let stopping = false;
   io.onSignal(() => {
