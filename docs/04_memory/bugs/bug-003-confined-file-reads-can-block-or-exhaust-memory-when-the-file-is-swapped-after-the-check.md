@@ -59,3 +59,4 @@ the client — the defect is availability, not disclosure.
 - fix: **absorbed into task-012-project-read-api** (dl-045); `triaged → planned` by hand.
 - start (2026-10-06): task-012 already in progress → `planned → in-progress` by hand.
 - submit (2026-10-06): task-012 submitted after its integration (reviews PASS; `test:coverage` 1236 passed, `test:timing` 3/3) → `in-progress → in-review` (dev-loop `bug.sync_state`).
+- done (2026-10-06): task-012 merged and done (da0e6a4, 9bbf70b) → `in-review → resolved → closed` approved by the user.
