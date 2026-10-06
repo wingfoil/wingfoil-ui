@@ -324,3 +324,20 @@ e2e closure — scenarios that need a screen are proved here by API and unit tes
   test:coverage` **70 files passed, 1 skipped; 1071 passed / 1 skipped**, 99 s, coverage
   95.95 % statements / 89.18 % branches / 95.95 % functions / 98.02 % lines (`server/src/projects`
   94.64 %).
+
+### verification of decisions 21/27/28 — follow-up (2026-10-06)
+
+- Finding: a relative `core.hooksPath` in the user's global or system git configuration
+  (`.githooks`, `.husky`) is resolved against the new working tree, so `git clone` ran the remote's
+  committed `post-checkout` hook (git 2.43) — against decision 28. Red `2c7b5cc`: a source repository
+  committing `.githooks/post-checkout` (writes a marker), the world's `GIT_CONFIG_GLOBAL` with
+  `core.hooksPath = .githooks` → the marker existed after the clone.
+- Fix: `cloneArgs(url, directory, hooksDir)` adds `-c core.hooksPath=<hooksDir>`; `noHooksDir()`
+  (`server/src/projects/clone.ts`) creates one empty folder per process with `mkdtemp` under the OS
+  temporary directory (mode 0700, works on Windows), removed at process exit, never persisted. The
+  route test passes: no marker after the clone, a list and a check (skipped on Windows: the hook is
+  a shell script).
+- Checks (load ≈ 10): `tsc -b`, `tsc -p test`, `eslint .`, `prettier --check .` clean · `docs:api`
+  OK · affected suites (`test/server/http`, `test/server/projects`, `test/server/git`,
+  `test/contracts/api-projects-schema.test.ts`, `test/server/launcher`, `test/launcher`) 21 files,
+  359/359.

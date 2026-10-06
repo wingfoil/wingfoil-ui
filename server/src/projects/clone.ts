@@ -5,7 +5,9 @@
  * clone leaves the file system as it was (REQ-STATE-07): {@link CloneTarget.discard} removes what
  * the clone created, and only that.
  */
-import { lstat, readdir, rm, rmdir, stat } from 'node:fs/promises';
+import { rmSync } from 'node:fs';
+import { lstat, mkdtemp, readdir, rm, rmdir, stat } from 'node:fs/promises';
+import os from 'node:os';
 import path from 'node:path';
 import { cloneArgs } from '../git/git.js';
 import type { ProcessRunner } from '../process/runner.js';
@@ -94,6 +96,26 @@ export class CloneTarget {
   }
 }
 
+let hooksDir: Promise<string> | undefined;
+
+/**
+ * The empty hooks folder of every clone ({@link cloneArgs}): created once per process under the
+ * OS temporary directory (mode 0700, `mkdtemp`), removed when the process exits; never persisted.
+ */
+export function noHooksDir(): Promise<string> {
+  if (!hooksDir) {
+    const creating = mkdtemp(path.join(os.tmpdir(), 'wfui-no-hooks-'));
+    hooksDir = creating;
+    creating.then(
+      (dir) => process.once('exit', () => rmSync(dir, { recursive: true, force: true })),
+      () => {
+        if (hooksDir === creating) hooksDir = undefined;
+      },
+    );
+  }
+  return hooksDir;
+}
+
 /** What {@link runClone} needs. */
 export interface CloneOptions {
   /** Absolute path of `git`. */
@@ -114,7 +136,7 @@ export interface CloneOptions {
 export async function runClone(url: string, target: CloneTarget, options: CloneOptions): Promise<void> {
   const result = await options.runner.run({
     file: options.git,
-    args: cloneArgs(url, target.directory),
+    args: cloneArgs(url, target.directory, await noHooksDir()),
     cwd: target.existingParent,
     env: { ...options.env, GIT_TERMINAL_PROMPT: '0' },
     timeoutMs: null,
