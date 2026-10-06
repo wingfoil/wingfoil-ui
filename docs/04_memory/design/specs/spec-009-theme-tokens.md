@@ -65,6 +65,8 @@ ui-monospace, monospace` (fonts self-hosted as woff2 in the web build — the co
 offline, no font CDN); `--focus-ring: 2px solid var(--color-focus)` with `outline-offset: 2px`;
 `--shadow-popover` (decorative, no text on it: light `0 12px 32px rgba(8,21,50,0.12)`, dark
 `0 12px 32px rgba(0,0,0,0.45)`) for menus, popovers and dialogs;
+`--color-backdrop` (decorative, no text on it: light `rgba(8, 21, 50, 0.45)`, dark
+`rgba(0, 0, 0, 0.6)`) behind a modal;
 spacing and radius scales are left to the shell task. Placeholders use `--color-text-muted`;
 disabled controls keep their text colour at reduced emphasis only through `--color-text-muted`
 (no opacity on text).
@@ -124,3 +126,5 @@ Recorded as deviations under directive `ux-consistency`.
 - 2026-10-03 — re-verification (plan session 2): N1 on-primary row truncated.
 - 2026-10-06 — amended in dev-loop task-013 (Wave 3, plan dev-loop-rel-v0.1-plan): §2 decorative token
   `--shadow-popover` for menus, popovers and dialogs; decided by the user.
+- 2026-10-06 — amended in dev-loop task-013 (Wave 3, plan dev-loop-rel-v0.1-plan, independent review): §2 decorative token
+  `--color-backdrop` behind a modal (W3-13); decided by the user.

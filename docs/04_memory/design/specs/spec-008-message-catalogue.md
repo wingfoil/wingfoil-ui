@@ -27,7 +27,7 @@ Identified by `release-planning` v0.1 (`identify-specs`).
 
 ```
 web/src/i18n/en.json        # the web catalogue: { "<key>": "<ICU message>", ... }, keys sorted
-web/src/i18n/index.ts       # loads the catalogue, creates the IntlProvider (locale "en")
+web/src/i18n/index.tsx      # loads the catalogue, creates the IntlProvider (locale "en")
 server/src/i18n/en.json     # the server catalogue (launcher texts, §5)
 ```
 
@@ -142,3 +142,5 @@ catalogue and its arguments (`warnings: [{ key, args }]` of `GET /api/server`, s
   `wfui/catalogue-placeholders` instead of `enforce-placeholders` (W3-3); the key build in
   `web/dist-keys`, served to e2e by Playwright route interception, no server change (W3-4);
   decided by the user.
+- 2026-10-06 — amended in dev-loop task-013 (Wave 3, plan dev-loop-rel-v0.1-plan, independent review): erratum §1 `index.tsx`
+  (the file holds the provider component).
