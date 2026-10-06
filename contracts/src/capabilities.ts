@@ -6,6 +6,8 @@
 
 /** The support matrix `contracts/matrix.json`. */
 export interface SupportMatrix {
+  /** Lowest supported version, declared (not the lowest listed); at most every listed version. */
+  min: string;
   /** The version the fixtures and this repository pin. */
   pinned: string;
   /** Every contract-tested version. */

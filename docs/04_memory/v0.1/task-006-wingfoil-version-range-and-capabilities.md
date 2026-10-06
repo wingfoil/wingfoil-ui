@@ -228,3 +228,19 @@ e2e closure — scenarios that need a screen are proved here by API and unit tes
   - R2 — orphan cleanup now runs on every non-pinned call, before the version check (fast path
     included; tested). This corrects the round 2 note: in round 2 the cleanup ran only on the
     install path, not "on entry".
+
+### spec gaps decided (2026-10-06)
+
+- Decided by the user 2026-10-06 (all option a); the coordinator amends REQ-INT-02/03,
+  `adr-001` D3 and spec-001 §5/§6 on `main` (received through the merge of `main` before submit):
+  1. Range = the **declared minimum** + the caret line of the highest contract-tested version
+     (label `X.Y.x`). Implemented: `contracts/matrix.json` gains `"min": "0.2.2"` (no matrix
+     schema exists; `SupportMatrix.min` in `contracts/src/capabilities.ts`); `rangeFromMatrix`
+     takes the lower bound from `min`, not from the lowest listed version, and fails loudly at
+     load when `min` is not semantic or lies above a listed version. Tests in `version.test.ts`
+     (declared min below every listed version, the two refusals); the README check asserts
+     `supportedRange().min === matrix.min`; README text updated.
+  2. `minVersion: null` = not released, reason `not-released` — kept.
+  3. `capabilities.json` shape — kept.
+- Checks: `npx vitest run test/server/cli test/contracts/{capabilities,schemas,support}.test.ts`
+  9 files, 165/165 · typecheck, lint, format:check clean · `docs:api` OK.

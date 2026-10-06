@@ -4,9 +4,10 @@
  * - `wingfoil --version` is run once per CLI resolution ({@link VersionCache}); its text must be a
  *   semantic version (SemVer 2.0, no `v` prefix — WingFoil prints `0.2.2`), anything else is
  *   "unrecognised" and outside the range.
- * - The range comes from the support matrix `contracts/matrix.json`: from the lowest version of the
- *   matrix to the release line of the highest (its caret line: `^0.2.2` → `0.2.x`, below `0.3.0`;
- *   `^1.0.3` → `1.x`, below `2.0.0`). A pre-release is in range only when the matrix lists it.
+ * - The range comes from the support matrix `contracts/matrix.json`: from its declared `min` to
+ *   the release line (caret line) of the highest listed version: `^0.2.2` → `0.2.x`, below
+ *   `0.3.0`; `^1.0.3` → `1.x`, below `2.0.0` (decided by the user 2026-10-06). A pre-release is
+ *   in range only when the matrix lists it.
  * - Outside the range a project is read-only with the range in the reason (S-09.1, S-09.2); the
  *   capabilities it gives are evaluated by `./capabilities.ts`.
  */
@@ -86,7 +87,7 @@ export function compareSemVer(a: SemVer, b: SemVer): number {
 
 /** The supported range of this UI release (adr-001 D3). */
 export interface SupportedRange {
-  /** Lowest supported version (the lowest of the matrix), e.g. `0.2.2`. */
+  /** Lowest supported version: the matrix's declared `min`, e.g. `0.2.2`. */
   min: string;
   /** Label of the upper end: the release line of the highest matrix version, e.g. `0.2.x`, `1.x`. */
   max: string;
@@ -96,16 +97,23 @@ export interface SupportedRange {
   versions: readonly string[];
 }
 
-/** The range of `matrix` (see the module comment); throws on an empty matrix or a non-semantic entry. */
+/**
+ * The range of `matrix` (see the module comment): from its declared `min` to the caret line of
+ * its highest version. Throws on an empty matrix, a non-semantic entry, or a `min` above a listed
+ * version.
+ */
 export function rangeFromMatrix(matrix: SupportMatrix): SupportedRange {
+  const low = parseSemVer(matrix.min);
+  if (!low) throw new Error(`contracts/matrix.json: min ${String(matrix.min)} is not a semantic version`);
   const parsed = matrix.versions.map((text) => {
     const v = parseSemVer(text);
     if (!v) throw new Error(`contracts/matrix.json: ${text} is not a semantic version`);
+    if (compareSemVer(low, v) > 0)
+      throw new Error(`contracts/matrix.json: min ${matrix.min} is above the listed ${text}`);
     return v;
   });
   if (parsed.length === 0) throw new Error('contracts/matrix.json: the matrix lists no version');
   const sorted = [...parsed].sort(compareSemVer);
-  const low = sorted[0]!;
   const high = sorted[sorted.length - 1]!;
   let max: string;
   let below: string;

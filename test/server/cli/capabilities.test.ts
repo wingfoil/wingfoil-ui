@@ -10,8 +10,8 @@ import {
 } from '../../../server/src/cli/capabilities.js';
 import { classifyVersion, rangeFromMatrix } from '../../../server/src/cli/version.js';
 
-const v01 = rangeFromMatrix({ pinned: '0.2.2', versions: ['0.2.2'] });
-const v04 = rangeFromMatrix({ pinned: '0.3.0', versions: ['0.2.2', '0.3.0'] });
+const v01 = rangeFromMatrix({ min: '0.2.2', pinned: '0.2.2', versions: ['0.2.2'] });
+const v04 = rangeFromMatrix({ min: '0.2.2', pinned: '0.3.0', versions: ['0.2.2', '0.3.0'] });
 
 const table: Capability[] = [
   { id: 'gate-decision', name: 'Gate decision', minVersion: '0.2.2', via: 'memory approve/reject', conditions: [] },

@@ -18,10 +18,10 @@ License: MIT.
 ## Supported WingFoil versions
 
 Each project runs its own pinned `wingfoil` (or, when it pins none, the one on the `PATH`). This
-release supports **0.2.2 to 0.2.x**: from the lowest version of the support matrix to the release
-line of the highest (`contracts/matrix.json`, adr-001 D3); a pre-release only when the matrix lists
-it. A project outside the range, or whose `wingfoil --version` is not a semantic version, opens
-read-only with the range in the reason.
+release supports **0.2.2 to 0.2.x**: from the declared minimum (`min` of `contracts/matrix.json`)
+to the release line of the highest contract-tested version (adr-001 D3); a pre-release only when
+the matrix lists it. A project outside the range, or whose `wingfoil --version` is not a semantic
+version, opens read-only with the range in the reason.
 
 Support matrix (contract-tested versions): `0.2.2`.
 

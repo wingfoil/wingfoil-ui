@@ -65,8 +65,9 @@ describe('package README — support matrix (REQ-INT-02 README review)', () => {
     const readme = await readFile(path.join(REPO_ROOT, 'README.md'), 'utf8');
     const section = readme.split(/^## /m).find((s) => s.startsWith('Supported WingFoil versions'));
     expect(section, 'README section "## Supported WingFoil versions"').toBeDefined();
-    const { versions } = (await json('contracts/matrix.json')) as { versions: string[] };
+    const { min, versions } = (await json('contracts/matrix.json')) as { min: string; versions: string[] };
     const range = supportedRange();
+    expect(range.min).toBe(min);
     expect(section).toContain(`**${range.min} to ${range.max}**`);
     for (const version of versions) expect(section).toContain(`\`${version}\``);
     const { capabilities } = (await json('contracts/capabilities.json')) as { capabilities: Entry[] };

@@ -91,12 +91,26 @@ describe('compareSemVer (SemVer 2.0 precedence)', () => {
 
 describe('rangeFromMatrix', () => {
   it('v0.1 matrix [0.2.2] → 0.2.2 to 0.2.x (caret line of the highest tested version)', () => {
-    const range = rangeFromMatrix({ pinned: '0.2.2', versions: ['0.2.2'] });
+    const range = rangeFromMatrix({ min: '0.2.2', pinned: '0.2.2', versions: ['0.2.2'] });
     expect(range).toEqual({ min: '0.2.2', max: '0.2.x', below: '0.3.0', versions: ['0.2.2'] });
   });
 
-  it('several versions: the lowest is the minimum, the highest gives the line (S-08.3: 0.2.2 to 0.3.x)', () => {
-    expect(rangeFromMatrix({ pinned: '0.3.1', versions: ['0.3.1', '0.2.2'] })).toMatchObject({
+  it('the lower bound is the declared min, not the lowest listed version', () => {
+    expect(rangeFromMatrix({ min: '0.2.2', pinned: '0.3.0', versions: ['0.3.0'] })).toMatchObject({
+      min: '0.2.2',
+      max: '0.3.x',
+    });
+  });
+
+  it('refuses a min that is not semantic or lies above a listed version', () => {
+    expect(() => rangeFromMatrix({ min: '0.2', pinned: '0.2.2', versions: ['0.2.2'] })).toThrow(/min 0\.2 /);
+    expect(() => rangeFromMatrix({ min: '0.2.3', pinned: '0.2.2', versions: ['0.2.2'] })).toThrow(
+      /min 0\.2\.3 is above the listed 0\.2\.2/,
+    );
+  });
+
+  it('several versions: the declared min, the highest gives the line (S-08.3: 0.2.2 to 0.3.x)', () => {
+    expect(rangeFromMatrix({ min: '0.2.2', pinned: '0.3.1', versions: ['0.3.1', '0.2.2'] })).toMatchObject({
       min: '0.2.2',
       max: '0.3.x',
       below: '0.4.0',
@@ -104,7 +118,7 @@ describe('rangeFromMatrix', () => {
   });
 
   it('from 1.0 the line is the major (REQ-INT-02: 0.2.2 to 1.x)', () => {
-    expect(rangeFromMatrix({ pinned: '1.0.3', versions: ['0.2.2', '1.0.3'] })).toMatchObject({
+    expect(rangeFromMatrix({ min: '0.2.2', pinned: '1.0.3', versions: ['0.2.2', '1.0.3'] })).toMatchObject({
       min: '0.2.2',
       max: '1.x',
       below: '2.0.0',
@@ -112,12 +126,17 @@ describe('rangeFromMatrix', () => {
   });
 
   it('a 0.0.z highest version is its own line', () => {
-    expect(rangeFromMatrix({ pinned: '0.0.4', versions: ['0.0.4'] })).toMatchObject({ max: '0.0.4', below: '0.0.5' });
+    expect(rangeFromMatrix({ min: '0.0.4', pinned: '0.0.4', versions: ['0.0.4'] })).toMatchObject({
+      max: '0.0.4',
+      below: '0.0.5',
+    });
   });
 
   it('refuses a matrix with no version or a version that is not semantic', () => {
-    expect(() => rangeFromMatrix({ pinned: '0.2.2', versions: [] })).toThrow(/matrix/);
-    expect(() => rangeFromMatrix({ pinned: '0.2.2', versions: ['0.2'] } as SupportMatrix)).toThrow(/0\.2/);
+    expect(() => rangeFromMatrix({ min: '0.2.2', pinned: '0.2.2', versions: [] })).toThrow(/matrix/);
+    expect(() => rangeFromMatrix({ min: '0.2.2', pinned: '0.2.2', versions: ['0.2'] } as SupportMatrix)).toThrow(
+      /0\.2/,
+    );
   });
 
   it('supportedRange() reads contracts/matrix.json', () => {
@@ -126,7 +145,7 @@ describe('rangeFromMatrix', () => {
 });
 
 describe('classifyVersion', () => {
-  const range = rangeFromMatrix({ pinned: '0.2.2', versions: ['0.2.2'] });
+  const range = rangeFromMatrix({ min: '0.2.2', pinned: '0.2.2', versions: ['0.2.2'] });
 
   it.each([
     ['0.2.2', 'in-range'],
@@ -157,7 +176,7 @@ describe('classifyVersion', () => {
   });
 
   it('a pre-release listed in the matrix is in range', () => {
-    const withRc = rangeFromMatrix({ pinned: '0.2.2', versions: ['0.2.2', '0.2.3-rc.1'] });
+    const withRc = rangeFromMatrix({ min: '0.2.2', pinned: '0.2.2', versions: ['0.2.2', '0.2.3-rc.1'] });
     expect(classifyVersion('0.2.3-rc.1', withRc).state).toBe('in-range');
     expect(classifyVersion('0.2.3-rc.2', withRc).state).toBe('pre-release');
   });
