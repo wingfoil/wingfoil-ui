@@ -27,7 +27,7 @@ import type { CliCommandOutputs } from '../cli/commands.js';
 import { CliNotFoundError, type ResolvedCli } from '../cli/discovery.js';
 import type { DetectedVersion } from '../cli/version.js';
 import { VersionCache } from '../cli/version.js';
-import { UNBORN_HEAD, type GitReads } from '../git/git.js';
+import { GitReadError, UNBORN_HEAD, type GitReads } from '../git/git.js';
 import {
   eventsByElement,
   memoryDirectories,
@@ -106,8 +106,13 @@ function deterministic(error: unknown): boolean {
     error instanceof CliOutputError ||
     error instanceof DirectReadError ||
     error instanceof CliNotFoundError ||
-    error instanceof MemoryLogFormatError
+    sameForHead(error)
   );
+}
+
+/** Failures of the Memory event read that the same HEAD would give again (review round 3, M2). */
+function sameForHead(error: unknown): boolean {
+  return error instanceof MemoryLogFormatError || (error instanceof GitReadError && error.ended === 'overflow');
 }
 
 /** The snapshot of one project. */
@@ -200,8 +205,9 @@ export class ProjectSnapshot {
   }
 
   /**
-   * The Memory events at `head` over `dirs`: one `git log -p` per HEAD and set of directories,
-   * shared by concurrent callers; a failed read is not kept. An unborn HEAD has none.
+   * The Memory events at `head` over `dirs`: one `git log -p <head>` and its sha list per HEAD and
+   * set of directories, shared by concurrent callers; a refused shape or an oversized log is kept
+   * for the HEAD, other failures are not. An unborn HEAD has none.
    */
   private memoryEvents(head: string, dirs: readonly string[]): Promise<ElementEvents> {
     const key = `${head}\0${dirs.join('\0')}`;
@@ -209,8 +215,8 @@ export class ProjectSnapshot {
     const value = (async (): Promise<ElementEvents> => {
       if (head === UNBORN_HEAD) return new Map();
       const [stdout, shas] = await Promise.all([
-        this.options.git.memoryLog(dirs),
-        this.options.git.memoryLogShas(dirs),
+        this.options.git.memoryLog(dirs, head),
+        this.options.git.memoryLogShas(dirs, head),
       ]);
       const log = parseMemoryLog(stdout, shas);
       for (const sha of log.warnings) {
@@ -220,10 +226,10 @@ export class ProjectSnapshot {
     })();
     const entry = { key, value };
     this.events = entry;
-    // A refused shape answers the same for this HEAD: kept, like the deterministic read errors;
-    // transient failures (overflow, timeout, spawn) are read again.
+    // A refused shape or an oversized log answers the same for this HEAD: kept, like the
+    // deterministic read errors; transient failures (timeout, spawn) are read again.
     value.catch((error: unknown) => {
-      if (!(error instanceof MemoryLogFormatError) && this.events === entry) this.events = undefined;
+      if (!sameForHead(error) && this.events === entry) this.events = undefined;
     });
     return value;
   }

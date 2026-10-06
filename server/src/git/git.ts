@@ -136,6 +136,12 @@ export class GitNotFoundError extends Error {
   }
 }
 
+/** A commit sha as a revision argument; anything else is refused (never an option). */
+function commitArg(head: string): string {
+  if (!/^(?:[0-9a-f]{40}|[0-9a-f]{64})$/.test(head)) throw new GitReadError(`not a commit sha: ${head}`);
+  return head;
+}
+
 /** Parse the output of {@link GIT_READ_ARGS}`.status` (porcelain v2, NUL-terminated records). */
 export function parseStatus(stdout: string): WorkingTreeStatus {
   const records = stdout.split('\0');
@@ -230,17 +236,19 @@ export class GitReads {
 
   /**
    * The raw output of the spec-002 §3 read over `dirs` (Memory directories relative to the
-   * project, see `memoryDirectories`); parse it with `parseMemoryLog`. No directory → no process.
+   * project, see `memoryDirectories`) from the commit `head` — the observed state's HEAD, so that a
+   * commit landing meanwhile does not change what is read; parse it with `parseMemoryLog`. No
+   * directory → no process.
    */
-  async memoryLog(dirs: readonly string[]): Promise<string> {
+  async memoryLog(dirs: readonly string[], head: string): Promise<string> {
     if (dirs.length === 0) return '';
-    return (await this.read([...GIT_READ_ARGS.memoryLog, '--', ...dirs])).stdout;
+    return (await this.read([...GIT_READ_ARGS.memoryLog, commitArg(head), '--', ...dirs])).stdout;
   }
 
-  /** The shas of the same walk as {@link memoryLog}, newest first (no patch). */
-  async memoryLogShas(dirs: readonly string[]): Promise<string[]> {
+  /** The shas of the same walk as {@link memoryLog} from `head`, newest first (no patch). */
+  async memoryLogShas(dirs: readonly string[], head: string): Promise<string[]> {
     if (dirs.length === 0) return [];
-    const out = (await this.read([...GIT_READ_ARGS.memoryShas, '--', ...dirs])).stdout;
+    const out = (await this.read([...GIT_READ_ARGS.memoryShas, commitArg(head), '--', ...dirs])).stdout;
     return out
       .split(String.fromCharCode(0))
       .map((s) => s.trim())

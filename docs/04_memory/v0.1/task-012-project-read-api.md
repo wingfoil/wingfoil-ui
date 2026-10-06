@@ -339,3 +339,18 @@ Added during the Wave 2 dev-loops (plan `dev-loop-rel-v0.1-plan`, Session 2; dec
 - Checks (load 3–8): typecheck, lint, format:check clean · `docs:api` OK (0 warnings) ·
   `test/server/{reads,git,snapshot}`, `project-routes.test.ts` 223/223 · `process-audit.test.ts`,
   `local-security.test.ts` 68/68 (TT-SEC-06 20/20).
+
+### review round 3 (2026-10-06)
+
+- Review round 3: **PASS** with two follow-ups, fixed test-first (red: the HEAD-moves test failed
+  with `MemoryLogFormatError` "the patch read does not start with the first commit"; the
+  overflow test re-ran the log):
+  - **M1** both Memory-event reads take the view's `state.head` as an explicit revision
+    (`git log … <head> -- <dirs>`, the sha validated so it is never an option): a commit landing
+    between the two reads no longer gives a refusal cached under the old state. Test: a commit
+    made just before the reads start; events read, both reads carry the view's HEAD.
+  - **M2** a `GitReadError` with `ended === 'overflow'` is kept per HEAD like a refused shape
+    (`sameForHead`, also in `deterministic()`): an oversized log is not re-read at every request.
+    Test: the second view starts 0 processes and gets the same error.
+- Checks: typecheck, lint, format:check clean · `docs:api` OK · `test/server/{snapshot,git}`,
+  `project-routes.test.ts` 115/115 · process audit 2/2 (cold 5 CLI + 5 git, reopened 0).
