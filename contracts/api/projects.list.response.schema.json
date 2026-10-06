@@ -1,0 +1,12 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://wingfoil-ui.local/contracts/api/projects.list.response.schema.json",
+  "title": "GET /api/projects response",
+  "description": "The project list in insertion order, with the availability of each entry (spec-004 §3, spec-006 §2).",
+  "type": "object",
+  "required": ["projects"],
+  "additionalProperties": false,
+  "properties": {
+    "projects": { "type": "array", "items": { "$ref": "project.schema.json" } }
+  }
+}

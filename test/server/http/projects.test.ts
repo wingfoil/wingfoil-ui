@@ -8,6 +8,7 @@
 // - TT-ARC-03 (REQ-ARC-03): no endpoint writes an existing repository; a clone adds no commit.
 // - REQ-SEC-05 probe through the clone route (task-001 hand-over), REQ-SEC-09 secret scan after a
 //   clone with a credential URL (task-007 hand-over).
+import { Ajv } from 'ajv';
 import type { FastifyInstance } from 'fastify';
 import { createHash } from 'node:crypto';
 import {
@@ -40,7 +41,7 @@ import { InProcessWriteLock } from '../../../server/src/process/write-lock.js';
 import { ProjectList } from '../../../server/src/projects/project-list.js';
 import { Snapshots } from '../../../server/src/snapshot/snapshots.js';
 import { openFileStateStore, STATE_FILE } from '../../../server/src/state/file-store.js';
-import { PINNED_PACKAGE_DIR } from '../../harness/cli.js';
+import { PINNED_PACKAGE_DIR, REPO_ROOT } from '../../harness/cli.js';
 import {
   buildFixture,
   copyFixture,
@@ -58,6 +59,12 @@ const security = { authentication: createTokenAuthentication('test-token'), port
 const AUTH = { authorization: 'Bearer test-token' };
 const sink = new Writable({ write: (_c, _e, cb) => cb() });
 const INSTALL = 'npm install --save-dev wingfoil';
+const ajv = new Ajv({ allErrors: true });
+const schema = async (file: string): Promise<object> =>
+  JSON.parse(await readFile(path.join(REPO_ROOT, 'contracts/api', file), 'utf8')) as object;
+ajv.addSchema(await schema('project.schema.json'));
+const validList = ajv.compile(await schema('projects.list.response.schema.json'));
+const validItem = ajv.getSchema('https://wingfoil-ui.local/contracts/api/project.schema.json')!;
 
 let root: string;
 let template: Fixture;
@@ -125,7 +132,6 @@ async function world(options: { cliOnPath?: boolean; stateDir?: (fx: Fixture) =>
     stateDir,
     env,
     homedir: fx.home,
-    checkMs: 0,
   });
   const app = await buildApp({
     staticDir: '/nonexistent',
@@ -145,11 +151,18 @@ function post(w: World, url: string, body: unknown) {
     payload: typeof body === 'string' ? body : JSON.stringify(body),
   });
 }
-const add = (w: World, p: string) => post(w, '/api/projects', { path: p });
-const clone = (w: World, body: { url: string; directory?: string }) => post(w, '/api/projects/clone', body);
+/** A 201 answers a list item valid against `contracts/api/project.schema.json`. */
+async function created<T extends { statusCode: number; json(): unknown }>(answer: Promise<T>): Promise<T> {
+  const res = await answer;
+  if (res.statusCode === 201) expect(validItem(res.json()), JSON.stringify(validItem.errors)).toBe(true);
+  return res;
+}
+const add = (w: World, p: string) => created(post(w, '/api/projects', { path: p }));
+const clone = (w: World, body: { url: string; directory?: string }) => created(post(w, '/api/projects/clone', body));
 const list = async (w: World) => {
   const res = await w.app.inject({ method: 'GET', url: '/api/projects', headers: AUTH });
   expect(res.statusCode).toBe(200);
+  expect(validList(res.json()), JSON.stringify(validList.errors)).toBe(true);
   return (res.json() as { projects: { id: string; name: string; path: string; availability: string }[] }).projects;
 };
 const remove = (w: World, pid: string) =>

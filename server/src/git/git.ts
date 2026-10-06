@@ -9,8 +9,10 @@
  * | HEAD and the working tree, in one process | `git status --porcelain=v2 --branch -z --untracked-files=all` |
  * | the effective identity (repository, else global configuration) | `git config user.email` |
  * | the layout, once per project | `git rev-parse --show-prefix --absolute-git-dir --git-common-dir` |
+ * | the URL of `origin`, when a project is added (duplicate check) | `git remote get-url origin` |
  *
- * Git is never used to change anything here.
+ * Git is never used to change a repository. The one write of v0.1 is the clone into a new, empty
+ * folder ({@link cloneArgs}, write class (c), adr-001 D7), run by `projects/clone.ts`.
  */
 import { createHash } from 'node:crypto';
 import { constants } from 'node:fs';
@@ -26,7 +28,52 @@ export const GIT_READ_ARGS = {
   status: ['--no-optional-locks', 'status', '--porcelain=v2', '--branch', '-z', '--untracked-files=all'],
   email: ['--no-optional-locks', 'config', 'user.email'],
   layout: ['--no-optional-locks', 'rev-parse', '--show-prefix', '--absolute-git-dir', '--git-common-dir'],
+  origin: ['--no-optional-locks', 'remote', 'get-url', 'origin'],
 } as const;
+
+/**
+ * The git subcommands the server may run (REQ-INT-06): reads, `clone` into a new empty folder,
+ * transport (v0.2) and the `ui.yaml` preset commit (v0.3). Never merge, rebase, reset, stash or
+ * checkout. The process audit checks every git process against it.
+ */
+export const GIT_ALLOWED_SUBCOMMANDS: readonly string[] = [
+  'rev-parse',
+  'status',
+  'log',
+  'rev-list',
+  'config',
+  'remote',
+  'clone',
+  'fetch',
+  'pull',
+  'push',
+  'add',
+  'commit',
+];
+
+/**
+ * Settings of every clone, passed as `-c` arguments (the inherited `GIT_CONFIG_*` variables are
+ * dropped by {@link gitEnv}): the `ext::` transport, which runs a command, is never allowed.
+ */
+export const CLONE_SETTINGS: readonly string[] = ['-c', 'protocol.ext.allow=never'];
+
+/**
+ * `git clone` of `url` into `directory` (write class (c)): quiet, so that the standard error holds
+ * git's error message only; `url` and `directory` after `--`, never read as options.
+ */
+export function cloneArgs(url: string, directory: string): string[] {
+  return [...CLONE_SETTINGS, 'clone', '--quiet', '--', url, directory];
+}
+
+/** The subcommand of a git argument list: the first word after the global options (`-c k=v`, `-C dir`, `--…`). */
+export function gitSubcommand(args: readonly string[]): string | undefined {
+  for (let i = 0; i < args.length; i += 1) {
+    const arg = args[i]!;
+    if (arg === '-c' || arg === '-C') i += 1;
+    else if (!arg.startsWith('-')) return arg;
+  }
+  return undefined;
+}
 
 /** One entry of the porcelain status. */
 export interface StatusEntry {
@@ -193,6 +240,17 @@ export class GitReads {
     if (result.ended === 'exit' && result.exitCode === 1) return undefined;
     const email = this.check(result).stdout.trim();
     return email === '' ? undefined : email;
+  }
+
+  /**
+   * The URL of `origin` as git resolves it (`url.<base>.insteadOf` applied), or `""` when the
+   * repository has no `origin`. Rejects with {@link GitReadError} outside a repository.
+   */
+  async origin(): Promise<string> {
+    const result = await this.run(GIT_READ_ARGS.origin);
+    // `git remote get-url` exits 2 when the remote does not exist.
+    if (result.ended === 'exit' && result.exitCode === 2) return '';
+    return this.check(result).stdout.trim();
   }
 
   /** Prefix, git directory and common directory (one process). */
