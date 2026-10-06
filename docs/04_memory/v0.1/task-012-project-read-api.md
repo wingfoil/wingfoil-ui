@@ -2,7 +2,7 @@
 id: task-012-project-read-api
 type: task
 title: "Project read API"
-status: in-progress
+status: in-review
 release: "v0.1"
 module: "server"             # optional — server | web | contracts (dna.yaml modules)
 priority: "high"           # optional — high | medium | low
