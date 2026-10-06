@@ -2,9 +2,11 @@ Feature: Memory list
   Type filters from `memory.yaml` with counts, state filters (buckets for all types, real states
   per type), each item opening its element panel (M1, S9). Buckets with *All types*: **To approve**
   (gate states that are not `waiting:` states) · **In progress** (other intermediate states, and
-  states not declared for the type) · **Waiting/drafts/closed** (first state, `waiting:` states —
-  including those that are also gates, e.g. custom `bug` `triaged` — reject targets with no way
-  out) · **Done** (last state of `sequence`).
+  states not declared for the type) · **Waiting/drafts/closed** (first state, `waiting:` states
+  other than the last non-archived one — including those that are also gates, e.g. custom `bug`
+  `triaged` — reject targets with no way out) · **Done** (last non-archived state of `sequence`,
+  e.g. custom `adr` `accepted`; archived elements — `deprecated`, `superseded` — are in no bucket).
+  The bucket comes with each element's action descriptor (spec-003 §8).
 
   Background:
     Given the console is running

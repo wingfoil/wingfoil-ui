@@ -19,7 +19,7 @@ tmpl_version: 260703   # Orignal template version
 
 ## Description
 
-Detect each project's WingFoil version, compare it with the supported range (0.2.2 → highest contract-tested), open out-of-range projects read-only with the reason, and the capability table (`contracts/capabilities.json`) that hides or disables what a version lacks (adr-001 D3, spec-001 §6).
+Detect each project's WingFoil version, compare it with the supported range (declared minimum `min` of `contracts/matrix.json`, 0.2.2, to the caret line of the highest contract-tested version, label `0.Y.x`/`X.x`), open out-of-range projects read-only with the reason, and the capability table (`contracts/capabilities.json`) that hides or disables what a version lacks (adr-001 D3, spec-001 §6).
 
 **Backlog items:** TT-INT-02, TT-INT-03
 
@@ -27,13 +27,13 @@ Detect each project's WingFoil version, compare it with the supported range (0.2
 
 - **TT-INT-02** (REQ-INT-02 — Supported WingFoil range): [boolean] A fixture pinning a version below or above the range opens with 0 enabled actions and the reason naming the range; a version inside it passes every scenario of the release. *Verified by:* e2e · README review.
   Scenarios (`@v0.1`): S-08.1, S-09.1, S-09.2.
-- **TT-INT-03** (REQ-INT-03 — Capability detection: read-only or hidden): [boolean] Every listed scenario passes on WingFoil 0.2.2; the capability table in `contracts/` declares a minimum version for 100 % of the capabilities. v0.1 (version notice): the table exists with a minimum version for every capability, and the project header shows the version and the version notice (S-08.1, S-08.2). *Verified by:* e2e · unit.
+- **TT-INT-03** (REQ-INT-03 — Capability detection: read-only or hidden): [boolean] Every listed scenario passes on WingFoil 0.2.2; the capability table in `contracts/` declares a minimum version for 100 % of the capabilities (`null` counts as declared: the capability is in no released WingFoil version and is always read-only or hidden per its rule, reason `not-released`). v0.1 (version notice): the table exists with a minimum version for every capability, and the project header shows the version and the version notice (S-08.1, S-08.2). *Verified by:* e2e · unit.
 
 e2e closure — scenarios that need a screen are proved here by API and unit tests on the same fixtures and close in: task-016-project-header-version-identity-and-role-view: S-08.1, S-09.1, S-09.2.
 
 ## Implementation Notes
 
-- `adr-001` D3; `spec-001` §6 (`capabilities.json`), §5 (`matrix.json`).
+- `adr-001` D3; `spec-001` §6 (`capabilities.json`), §5 (`matrix.json`, its `min`).
 
 ## Execution Notes
 

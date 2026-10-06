@@ -1,6 +1,6 @@
 # SARD — 4. Integrations & Interfaces
 
-**Version:** 0.5 · **Date:** 2026-10-04 (0.2: coherence audit fixes — session 6; 0.3: REQ-INT-06 Memory-event source fixed by spec-002 — initial-design session 5; 0.4: REQ-INT-08 staged, Chromium in v0.1 — release-planning v0.1 session 2; 0.5: REQ-INT-03 v0.1 scope — release-planning v0.1 session 4 (audit A4)) · **Status:** Draft — specification-downcast session 4
+**Version:** 0.6 · **Date:** 2026-10-06 (0.2: coherence audit fixes — session 6; 0.3: REQ-INT-06 Memory-event source fixed by spec-002 — initial-design session 5; 0.4: REQ-INT-08 staged, Chromium in v0.1 — release-planning v0.1 session 2; 0.5: REQ-INT-03 v0.1 scope — release-planning v0.1 session 4 (audit A4); 0.6: REQ-INT-02 range bounds, REQ-INT-03 `null` minimum — dev-loop task-006) · **Status:** Draft — specification-downcast session 4
 
 Shell and conventions: `00_sard.md`.
 
@@ -22,7 +22,7 @@ Shell and conventions: `00_sard.md`.
 | Field | |
 |-------|--|
 | Release | v0.1 |
-| Description | The server reads `wingfoil --version` when a project opens. Inside the supported range (0.2.2 to the highest contract-tested version; 0.2.2 to 1.x at v1.0) the project is fully usable; outside it, read-only with the range in the reason. The range and the capabilities per version are published in the package README (support matrix). |
+| Description | The server reads `wingfoil --version` when a project opens. Inside the supported range — from a declared minimum (`min` in `contracts/matrix.json`, 0.2.2 today) to the caret line of the highest contract-tested version (every version below the next minor for 0.x, below the next major from 1.0; a 0.0.z version is its own line), labelled `0.Y.x` / `X.x` (e.g. "0.2.2 to 0.2.x"; 0.2.2 to 1.x at v1.0) — the project is fully usable; outside it, read-only with the range in the reason. The range and the capabilities per version are published in the package README (support matrix). |
 | Rationale | Q2; one behaviour per tested version (`02_product-vision.md`). |
 | Traceability | US-S-08, US-S-09, US-S-02 · S-08.1, S-09.1, S-09.2, S-02.2, S-02.4 · S3 |
 | Fit criterion | [boolean] A fixture pinning a version below or above the range opens with 0 enabled actions and the reason naming the range; a version inside it passes every scenario of the release. |
@@ -36,7 +36,7 @@ Shell and conventions: `00_sard.md`.
 | Description | Each capability declares the minimum WingFoil version and the project conditions it needs. When it applies to the project but the version or the user's role lacks it, it is shown **read-only with the reason**; when it does not apply (e.g. no remote, no ingestion workflow, no required references) it is **hidden**. |
 | Rationale | Q2 rule; external review R9. |
 | Traceability | US-S-08, US-S-11, US-T-10, US-T-15, US-M-04, US-G-16, US-A-03, US-Y-04, US-M-06 · S-08.3, S-11.1, S-11.2, T-10.1, T-10.2, T-15.1, T-15.2, M-04.1, M-04.2, G-16.1, A-03.1, A-03.2, Y-04.1, M-06.2 · S3 |
-| Fit criterion | [boolean] Every listed scenario passes on WingFoil 0.2.2; the capability table in `contracts/` declares a minimum version for 100 % of the capabilities. v0.1 (version notice): the table exists with a minimum version for every capability, and the project header shows the version and the version notice (S-08.1, S-08.2). |
+| Fit criterion | [boolean] Every listed scenario passes on WingFoil 0.2.2; the capability table in `contracts/` declares a minimum version for 100 % of the capabilities (`null` counts as declared: the capability is in no released WingFoil version and is always read-only or hidden per its rule, reason `not-released`). v0.1 (version notice): the table exists with a minimum version for every capability, and the project header shows the version and the version notice (S-08.1, S-08.2). |
 | Verified by | e2e · unit |
 
 ### REQ-INT-04 — CLI invocation and errors
@@ -104,3 +104,11 @@ Shell and conventions: `00_sard.md`.
 | Traceability | US-S-26, US-A-04 · S-26.1, S-26.2, A-04.1 · S8, A2 |
 | Fit criterion | [boolean] With one page open and no change for 60 s, the server starts 0 CLI processes; after a change the page updates without a reload (REQ-PERF-03). |
 | Verified by | e2e (process audit) |
+
+## Process Notes
+
+- 2026-10-06 — amended in dev-loop task-006 (Wave 2, plan dev-loop-rel-v0.1-plan): REQ-INT-02
+  range = declared minimum (`min` in `contracts/matrix.json`) to the caret line of the highest
+  contract-tested version, labelled `0.Y.x` / `X.x`; REQ-INT-03 a `null` minimum version counts
+  as declared (not in any released WingFoil version → read-only or hidden, reason
+  `not-released`); decided by the user.

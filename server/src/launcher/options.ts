@@ -2,6 +2,8 @@
 
 /** What the command line asks for. */
 export type LauncherCommand =
+  // `open` mirrors the spec-007 option `--no-open`, not a Memory state (REQ-ARC-05 exception).
+  // eslint-disable-next-line wfui/no-methodology-literal
   { kind: 'start'; port: number | undefined; open: boolean } | { kind: 'version' } | { kind: 'help' };
 
 /** A malformed command line (exit 2): the catalogue key and arguments of the reason. */

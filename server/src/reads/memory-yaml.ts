@@ -7,19 +7,14 @@
 import path from 'node:path';
 import type { MemoryTypeDef, MemoryYaml, StateMachine } from '@wingfoil-ui/contracts';
 import { nodeReadFs, readConfined, type ReadFs } from './confine.js';
+import { BUILT_IN_STATES, DEPRECATED } from '../presets/wingfoil.js';
 import { checkShape, parseYaml } from './frontmatter.js';
 
 /** Path of the file, relative to the project root. */
 export const MEMORY_YAML = '.wingfoil/memory.yaml';
 
-/** WingFoil's built-in machine, for a type with no `states` and no `defaults.states`. */
-export const BUILT_IN_STATES: StateMachine = Object.freeze({
-  sequence: ['draft', 'pending', 'approved'],
-  gates: { pending: { reject: 'draft' } },
-});
-
-/** The implicit state every element can reach (`memory deprecate`). */
-export const DEPRECATED = 'deprecated';
+// WingFoil's own vocabulary lives in `presets/` (REQ-ARC-05); re-exported for the readers' callers.
+export { BUILT_IN_STATES, DEPRECATED } from '../presets/wingfoil.js';
 
 /** A verb that moves an element. */
 export type TransitionOp = 'submit' | 'approve' | 'reject' | 'deprecate';
