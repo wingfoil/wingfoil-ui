@@ -48,6 +48,8 @@ describe.each(['light', 'dark'] as const)('the %s theme', (theme) => {
     expect(t['--font-sans']).toMatch(/^["']Geist["'], system-ui, sans-serif$/);
     expect(t['--font-mono']).toMatch(/^["']Geist Mono["'], ui-monospace, monospace$/);
     expect(t['--focus-ring']).toBe('2px solid var(--color-focus)');
+    // Decorative (W3-13, spec-009 §2): no text on it, so no contrast pair.
+    expect(t['--color-backdrop']).toBe(theme === 'light' ? 'rgba(8, 21, 50, 0.45)' : 'rgba(0, 0, 0, 0.6)');
   });
 
   const minOver = (fg: string): number => Math.min(...BACKGROUNDS.map((bg) => contrast(t[fg]!, t[bg]!)));

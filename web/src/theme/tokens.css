@@ -2,6 +2,7 @@
  * Theme tokens (spec-009 §2): the only place of the web application that holds colour values.
  * Components use the semantic tokens; `data-theme` is set on <html> by the inline script of
  * index.html from prefers-color-scheme (spec-009 §1). Contrast pairs: test/web/theme/contrast.test.ts.
+ * `--shadow-popover` and `--color-backdrop` are decorative: no text is ever drawn on them.
  */
 :root[data-theme='light'] {
   color-scheme: light;
@@ -32,6 +33,7 @@
   --tone-muted-fg: #5c6880;
   --brand-gradient: linear-gradient(135deg, #22cec6, #1686c8, #0c469f);
   --shadow-popover: 0 12px 32px rgba(8, 21, 50, 0.12);
+  --color-backdrop: rgba(8, 21, 50, 0.45);
   --font-sans: 'Geist', system-ui, sans-serif;
   --font-mono: 'Geist Mono', ui-monospace, monospace;
   --focus-ring: 2px solid var(--color-focus);
@@ -66,6 +68,7 @@
   --tone-muted-fg: #94a2b8;
   --brand-gradient: linear-gradient(135deg, #22cec6, #1686c8, #0c469f);
   --shadow-popover: 0 12px 32px rgba(0, 0, 0, 0.45);
+  --color-backdrop: rgba(0, 0, 0, 0.6);
   --font-sans: 'Geist', system-ui, sans-serif;
   --font-mono: 'Geist Mono', ui-monospace, monospace;
   --focus-ring: 2px solid var(--color-focus);

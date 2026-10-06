@@ -34,7 +34,8 @@ export default defineConfig(({ mode }) => ({
     emptyOutDir: true,
     // Build files under `assets/`: the only path prefix the server answers 404 for (task-002).
     assetsDir: 'assets',
-    sourcemap: true,
+    // No source maps in the shipped build (web/dist is served as is by the console).
+    sourcemap: false,
     // One chunk for a locally served application (adr-002 accepts React's size; REQ-PERF-04 is
     // measured in task-021).
     chunkSizeWarningLimit: 1024,
