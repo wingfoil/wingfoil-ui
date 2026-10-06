@@ -53,6 +53,9 @@ table of `docs/00_reference/adr-draft-local-server.md` is its starting point.
 - Every other `/api/` request and the event stream need **either** that cookie **or**
   `Authorization: Bearer <token>` (scripts and tests); otherwise **401**. A new start invalidates
   every token and session (X-02.2).
+- A 401 on the session exchange, on an API request or on the event stream's probe means the
+  console no longer knows the page: the shell shows a full-page notice to open the URL printed in
+  the terminal, and the page does not retry.
 - Neither token nor session id is logged (pino redaction of `authorization` and `cookie`) or
   written to disk.
 
@@ -246,3 +249,6 @@ reconnecting page refetches everything. Pages never poll.
   `inside-state-dir`; `git-refused` for a non-git folder) and a refused working-tree path → 404
   `not-found` with `detail.kind` ∈ {`outside`, `missing`, `not-allowed`, `too-large`}; decided
   by the user.
+- 2026-10-06 — amended in dev-loop task-013 (Wave 3, plan dev-loop-rel-v0.1-plan): §2 a 401 on the session
+  exchange, an API request or the event stream's probe shows a full-page notice to open the printed
+  URL, no retry (W3-7); decided by the user.

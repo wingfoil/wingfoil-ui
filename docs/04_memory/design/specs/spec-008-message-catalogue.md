@@ -99,10 +99,15 @@ catalogue and its arguments (`warnings: [{ key, args }]` of `GET /api/server`, s
   {path}" }`; a plural or select argument becomes `{<argument name>}`; the key build renders select and
   plural argument values as given, and X-09.1 treats them like project data), so that project data passed as an
   argument is still rendered (X-09.2). X-09.1 runs the release's screens on this build and fails on any visible text that is
-  neither a key nor project data.
+  neither a key nor project data. The key build is written to `web/dist-keys` and served to the
+  e2e page by Playwright route interception; the bin serves `web/dist` only.
 - ESLint `eslint-plugin-formatjs`: `no-literal-string-in-jsx` (including the `aria-label`,
-  `title`, `alt` and `placeholder` attributes), `enforce-placeholders`, `no-multiple-plurals`
-  (`enforce-id` is not used: it targets generated hash ids); every message has an explicit `id`
+  `title`, `alt` and `placeholder` attributes), `no-multiple-plurals` (`enforce-id` is not used: it
+  targets generated hash ids); placeholders are checked by the project rule
+  `wfui/catalogue-placeholders` (`lint/catalogue-placeholders.js`): the `values` of each message
+  against the arguments of its `en.json` text, and a `defaultMessage` in code is refused
+  (formatjs's `enforce-placeholders` needs a `defaultMessage` in code, which §1 and the
+  Consequences rule out); every message has an explicit `id`
   matching `^[a-z][a-zA-Z0-9]*(\.[a-z][a-zA-Z0-9]*)+$`, checked by the script; a check script compares the ids used in code
   (`@formatjs/cli extract`) with the catalogue: no missing key, no unused key, sorted file.
 
@@ -133,3 +138,7 @@ catalogue and its arguments (`warnings: [{ key, args }]` of `GET /api/server`, s
   dev-loop-rel-v0.1-plan): §4 reason codes of the descriptor and of the capability table rendered
   as `<area>.reason.` + code with parameters as arguments; `version-unsupported` (descriptor) and
   `unsupported-version` (capability table; API) are distinct keys by design; decided by the user.
+- 2026-10-06 — amended in dev-loop task-013 (Wave 3, plan dev-loop-rel-v0.1-plan): §6 placeholders checked by
+  `wfui/catalogue-placeholders` instead of `enforce-placeholders` (W3-3); the key build in
+  `web/dist-keys`, served to e2e by Playwright route interception, no server change (W3-4);
+  decided by the user.
