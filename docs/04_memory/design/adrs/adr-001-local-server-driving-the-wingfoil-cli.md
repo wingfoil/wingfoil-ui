@@ -71,7 +71,9 @@ spec-001 §4.4); their content is neither kept nor exposed.
 3. otherwise the project is not opened (S-10.1), or a listed project is marked *Unavailable*
    (S-10.2), with the install command.
 The resolved binary is the one the CLI itself would use through `npm run wingfoil`: the installed
-version counts, not the range written in `package.json`.
+version counts, not the range written in `package.json`. Because the project's own CLI comes first,
+discovery and the first CLI run happen only when the user **opens** the project: cloning a remote
+runs no CLI of the cloned repository (spec-006 §3).
 
 **D3 — Version detection and supported range** (REQ-INT-02, INT-03). The server runs
 `<cli> --version` once per resolution and caches it with the binary path. The output must be a
@@ -98,7 +100,8 @@ re-run, directive `wingfoil-cli` re-checked).
 **D5 — Process model.** Reads are batched: one CLI process per consumed command and repository
 state, shared by every view and page (REQ-PERF-05). Writes are **serialised per project** — one
 governed or git write at a time, queued — because each makes a commit; the cache is invalidated
-after each write. Every `wingfoil` process and every git read has a 30 s timeout, after which it is
+after each write. Clones, which have no project yet, are serialised on the write-lock key `clone`
+(never a project id or a user path; spec-006 §3). Every `wingfoil` process and every git read has a 30 s timeout, after which it is
 killed and the request fails with the reason (REQ-INT-04). Git transport (`clone`, `fetch`, `pull
 --ff-only`, `push`) has no fixed timeout — it can take longer on large repositories — and the UI
 offers to cancel it (the process is killed; git leaves the repository as it was).
@@ -203,3 +206,6 @@ PERF-05 · features S1, S3, S8, X4 · scenarios S-08.1, S-08.2, S-09.1, S-09.2, 
   key's status hash includes a fingerprint of the working-tree content of each changed and
   untracked entry (SARD REQ-STATE-02, spec-004 §5), and D1a gains the hash-only read exception
   for it; decided by the user.
+- 2026-10-06 — amended in dev-loop task-008 (Wave 2, plan dev-loop-rel-v0.1-plan): D2 no CLI of a
+  cloned repository runs at clone time, only when the user opens the project (the project's own
+  CLI comes first); D5 clones serialised on the write-lock key `clone`; decided by the user.

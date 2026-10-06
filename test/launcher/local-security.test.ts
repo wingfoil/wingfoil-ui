@@ -1,8 +1,9 @@
 // e2e-smoke `local-security` (REQ-SEC-02, REQ-SEC-03, REQ-SEC-06; X-02.1 API side, X-02.2,
 // X-04.1…X-04.3, R-09.3 API side): the `wingfoil-ui` bin driven over HTTP. The guarded project
 // requests target an unknown project id, which, once past the guards, answers 404 — never 401 or 403
-// (`PUT …/role-view` is task-009, the read routes task-012). `GET /api/server` (task-012) and the
-// event stream `GET /api/events` (task-010) answer 200 once past them. TT-SEC-06: the path-traversal
+// (the project routes exist: `PUT …/role-view` task-009, the project list task-008, the read routes
+// task-012). `GET /api/server`, `GET /api/projects` and the event stream `GET /api/events` answer
+// 200 once past them. TT-SEC-06: the path-traversal
 // cases on a seeded custom fixture answer 404 with the "outside the repository" marker and 0 bytes of
 // the target.
 import http from 'node:http';
@@ -291,6 +292,8 @@ describe("X-04.3 — accept a request with the token from the console's own orig
     expect((await request(l, 'POST', '/api/session', headers)).status).toBe(204);
     expect((await request(l, 'GET', '/api/server', headers)).status).toBe(200);
     expect((await request(l, 'GET', PROJECT_API, headers)).status).toBe(404);
+    // task-008: the scenario's literal 200 on the project list.
+    expect((await request(l, 'GET', '/api/projects', headers)).status).toBe(200);
   });
 
   // ::1 may be unavailable on the machine (IPv4-only start, spec-007 §3.3).
@@ -432,5 +435,48 @@ describe('TT-SEC-06 — confinement to the repository (R-09.3 API side)', () => 
     );
     expect(res.status).toBe(200);
     expect(JSON.parse(res.body)).toMatchObject({ path: 'docs/01_vision/00_index.md' });
+  });
+});
+
+// task-008: the project-list routes (spec-004 §3) — refused by the guards; past them, the empty
+// list (200), a body failing its schema (400: the bodies sent here are `{}`), an unknown id (404).
+describe('the project-list routes on the bin (spec-004 §1–3)', () => {
+  let l: Launcher;
+  beforeAll(async () => {
+    l = await launch();
+  });
+
+  it.each([
+    ['GET', '/api/projects'],
+    ['POST', '/api/projects'],
+    ['POST', '/api/projects/clone'],
+    ['DELETE', '/api/projects/p_abcdefghijkl'],
+  ] as const)('%s %s → 401 without a session, 403 from another origin or site', async (method, urlPath) => {
+    const unauthenticated = await request(l, method, urlPath);
+    expect(unauthenticated.status).toBe(401);
+    expect(JSON.parse(unauthenticated.body)).toEqual({
+      error: { code: 'unauthenticated', message: expect.any(String) },
+    });
+    const auth = { authorization: `Bearer ${l.token}` };
+    for (const headers of [
+      { ...auth, origin: 'https://evil.test' },
+      { ...auth, host: `evil.test:${l.port}` },
+      { ...auth, 'sec-fetch-site': 'same-site' },
+    ]) {
+      const res = await request(l, method, urlPath, headers);
+      expect(res.status, JSON.stringify(headers)).toBe(403);
+      expect(JSON.parse(res.body)).toEqual({ error: { code: 'forbidden-origin', message: expect.any(String) } });
+    }
+  });
+
+  it.each([
+    ['GET', '/api/projects', 200],
+    ['POST', '/api/projects', 400],
+    ['POST', '/api/projects/clone', 400],
+    ['DELETE', '/api/projects/p_abcdefghijkl', 404],
+  ] as const)('%s %s → %i past the guards', async (method, urlPath, status) => {
+    const res = await request(l, method, urlPath, { authorization: `Bearer ${l.token}` });
+    expect(res.status).toBe(status);
+    if (status === 200) expect(JSON.parse(res.body)).toEqual({ projects: [] });
   });
 });

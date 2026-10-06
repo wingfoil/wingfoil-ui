@@ -56,6 +56,15 @@ export type {
   RoleViewRequest,
   ServerInfo,
 } from './api.js';
+export type {
+  Availability,
+  CloneRequest,
+  ProjectAddRequest,
+  ProjectListItem,
+  ProjectListResponse,
+  ProjectRefusalBody,
+  ProjectRefusalCode,
+} from './projects.js';
 export type { Capability, CapabilityTable, SupportMatrix } from './capabilities.js';
 export type {
   ActionDescriptor,

@@ -66,9 +66,9 @@ JSON; every request and response body has a schema in `contracts/api/`.
 | `POST /api/session` | exchange the start token for the session cookie | v0.1 |
 | `GET /api/server` | UI version, supported WingFoil range, capabilities table, `warnings: [{ key, args }]` for the shell (spec-006 §4) | v0.1 |
 | `GET /api/projects` | project list with availability (S2, REQ-STATE-07) | v0.1 |
-| `POST /api/projects` `{path}` | add a local folder | v0.1 |
-| `POST /api/projects/clone` `{url, directory?}` | clone a remote into a new empty folder, then add it (write class c) | v0.1 |
-| `DELETE /api/projects/:pid` | remove from the list (no file is touched) | v0.1 |
+| `POST /api/projects` `{path}` | add a local folder → 201 with the item | v0.1 |
+| `POST /api/projects/clone` `{url, directory?}` | clone a remote into a new empty folder, then add it (write class c) → 201 with the item | v0.1 |
+| `DELETE /api/projects/:pid` | remove from the list (no file is touched) → 204, no body | v0.1 |
 | `GET /api/p/:pid` | project header: name, WingFoil version and range state, identity, role views, repository status | v0.1 |
 | `PUT /api/p/:pid/role-view` `{role}` | remember the role view (local state) | v0.1 |
 | `GET /api/p/:pid/config` | DNA, paths, workflows, resolved types (spec-001 §4.1); effective `ui.yaml` with origin of each value since v0.3 (REQ-ARC-07) | v0.1 |
@@ -94,6 +94,25 @@ JSON; every request and response body has a schema in `contracts/api/`.
 Write routes run through the per-project write lock (`adr-001` D5). `expectedStatus` is the
 status the page showed: when the element's status differs, the write is refused with **409**
 "This element changed since you opened it" — the user never decides on a stale view.
+
+**v0.1 bodies (addendum, dev-loop tasks 008 and 012).** The request and response bodies of the
+v0.1 routes are defined by the schemas in `contracts/api/` (errors: `error.schema.json`):
+
+| Route | Schema |
+|-------|--------|
+| `GET /api/server` | `server.schema.json` |
+| `GET /api/projects` | `projects.list.response.schema.json` (items `projects.item.schema.json`) |
+| `POST /api/projects` | request `projects.add.request.schema.json`; 201 `projects.item.schema.json` |
+| `POST /api/projects/clone` | request `projects.clone.request.schema.json`; 201 `projects.item.schema.json` |
+| `GET /api/p/:pid` | `project.schema.json` (identity part: `identity.schema.json`) |
+| `PUT /api/p/:pid/role-view` | request `role-view.request.schema.json`; 204 |
+| `GET /api/p/:pid/config` | `config.schema.json` |
+| `GET /api/p/:pid/elements` | `elements.schema.json` (descriptor: `descriptor.schema.json`) |
+| `GET /api/p/:pid/elements/:eid` | `element.schema.json` |
+| `GET /api/p/:pid/elements/:eid/history` | `history.schema.json` |
+| `GET /api/p/:pid/directives`, `/directives/:did` | `directives.schema.json`, `directive.schema.json` |
+| `GET /api/p/:pid/docs` | `docs.schema.json` |
+| `GET /api/p/:pid/files/tree`, `/files/content` | `file-tree.schema.json`, `file-content.schema.json` |
 
 **Identity and role view (addendum, dev-loop task-009).** The identity part of `GET /api/p/:pid`
 is `{ identity, roleViews, roleView }`, defined by `contracts/api/identity.schema.json`:
@@ -153,7 +172,8 @@ project. "Not identified" in row 5 covers the identity kinds `not-in-team`, `no-
 | 500 | `internal` | adapter defect (exit 2) or unexpected error; details only in the log |
 | 422 | `git-refused` | a git transport command failed: git's message verbatim (REQ-INT-06) |
 | 502 | `read-error` | a direct read of spec-001 §4 failed: `message` "Cannot read `<file>`" and the reason, `detail: { file, kind }` with `kind` one of `outside`, `missing`, `shape`, `mismatch` and `file` relative to the project (never absolute). Scoped to the element or directive read: a list never fails as a whole; an unreadable `memory.yaml` degrades only the type-dependent features. Logged as `{ kind, file }` only (`outside` at warn level) |
-| 422 | project-list codes | refusals of `POST /api/projects` and `/projects/clone`: spec-006 §3 |
+| 422 | project-list codes | refusals of `POST /api/projects` and `/projects/clone`: spec-006 §3 (`folder-not-found`, `not-wingfoil`, `already-listed`, `directory-not-empty`, `cli-not-found`, `state-dir-inside-project`, `directory-inside-project`, `inside-state-dir`, `git-refused` — also for a folder with `.wingfoil/` that is not a git repository) |
+| 404 | `not-found` | also a refused working-tree path of `/files/tree` and `/files/content` (REQ-SEC-06): `detail.kind` one of `outside` (the "outside the repository" marker), `missing`, `not-allowed`, `too-large`; 0 bytes of the target |
 
 - Read responses carry `X-Repo-State: <HEAD sha>.<status hash>`; the page compares it with the
   event stream to know whether its data is current. The status hash is the hash of
@@ -220,3 +240,9 @@ reconnecting page refetches everything. Pages never poll.
 - 2026-10-06 — amended in dev-loop task-010 (Wave 2, plan dev-loop-rel-v0.1-plan): §5 the status
   hash of `X-Repo-State` includes a fingerprint of the working-tree content of changed and
   untracked entries (REQ-STATE-02); header format unchanged; decided by the user.
+- 2026-10-06 — amended in dev-loop tasks 008 and 012 (Wave 2, plan dev-loop-rel-v0.1-plan): §3
+  project-list responses (201 with the item, 204 for `DELETE`) and the v0.1 bodies by schema of
+  `contracts/api/`; §5 the project-list codes listed (new `directory-inside-project`,
+  `inside-state-dir`; `git-refused` for a non-git folder) and a refused working-tree path → 404
+  `not-found` with `detail.kind` ∈ {`outside`, `missing`, `not-allowed`, `too-large`}; decided
+  by the user.

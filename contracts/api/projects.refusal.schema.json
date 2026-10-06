@@ -1,0 +1,98 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://wingfoil-ui.local/contracts/api/projects.refusal.schema.json",
+  "title": "422 refusal of POST /api/projects and POST /api/projects/clone",
+  "description": "The error envelope of spec-004 §5 with the project-list codes of spec-006 §3; detail holds the arguments of the web catalogue (spec-008 §4). directory-inside-project and inside-state-dir: decided by the user 2026-10-06.",
+  "type": "object",
+  "required": ["error"],
+  "additionalProperties": false,
+  "properties": {
+    "error": {
+      "type": "object",
+      "required": ["code", "message"],
+      "additionalProperties": false,
+      "properties": {
+        "code": { "type": "string" },
+        "message": { "type": "string" },
+        "detail": { "type": "object" }
+      },
+      "oneOf": [
+        {
+          "properties": {
+            "code": {
+              "enum": ["folder-not-found", "directory-not-empty", "directory-inside-project", "inside-state-dir"]
+            },
+            "detail": { "$ref": "#/definitions/path" }
+          },
+          "required": ["detail"]
+        },
+        {
+          "properties": {
+            "code": { "const": "not-wingfoil" },
+            "detail": {
+              "oneOf": [
+                { "$ref": "#/definitions/path" },
+                {
+                  "type": "object",
+                  "required": ["source"],
+                  "additionalProperties": false,
+                  "properties": { "source": { "const": "clone" } }
+                }
+              ]
+            }
+          },
+          "required": ["detail"]
+        },
+        {
+          "properties": {
+            "code": { "const": "already-listed" },
+            "detail": {
+              "type": "object",
+              "required": ["pid", "name", "sameRemote"],
+              "additionalProperties": false,
+              "properties": {
+                "pid": { "type": "string" },
+                "name": { "type": "string" },
+                "sameRemote": { "type": "boolean" }
+              }
+            }
+          },
+          "required": ["detail"]
+        },
+        {
+          "properties": {
+            "code": { "const": "cli-not-found" },
+            "detail": {
+              "type": "object",
+              "required": ["path", "command"],
+              "additionalProperties": false,
+              "properties": { "path": { "type": "string" }, "command": { "type": "string" } }
+            }
+          },
+          "required": ["detail"]
+        },
+        {
+          "properties": {
+            "code": { "const": "state-dir-inside-project" },
+            "detail": {
+              "type": "object",
+              "required": ["path", "stateDir"],
+              "additionalProperties": false,
+              "properties": { "path": { "type": "string" }, "stateDir": { "type": "string" } }
+            }
+          },
+          "required": ["detail"]
+        },
+        { "properties": { "code": { "const": "git-refused" } }, "not": { "required": ["detail"] } }
+      ]
+    }
+  },
+  "definitions": {
+    "path": {
+      "type": "object",
+      "required": ["path"],
+      "additionalProperties": false,
+      "properties": { "path": { "type": "string" } }
+    }
+  }
+}

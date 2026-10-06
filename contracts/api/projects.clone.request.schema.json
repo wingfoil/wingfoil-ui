@@ -1,0 +1,13 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://wingfoil-ui.local/contracts/api/projects.clone.request.schema.json",
+  "title": "POST /api/projects/clone request",
+  "description": "Clone a remote into a new, empty folder, then add it (spec-004 §3, write class c). Without directory, ~/projects/<repo>.",
+  "type": "object",
+  "required": ["url"],
+  "additionalProperties": false,
+  "properties": {
+    "url": { "type": "string", "minLength": 1, "pattern": "\\S" },
+    "directory": { "type": "string", "minLength": 1, "pattern": "\\S" }
+  }
+}

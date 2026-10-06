@@ -1,0 +1,24 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://wingfoil-ui.local/contracts/api/projects.item.schema.json",
+  "title": "Project list item",
+  "description": "One entry of GET /api/projects, and the answer of POST /api/projects and POST /api/projects/clone (spec-006 §2): availability computed on every read, the install command with cli-not-found only.",
+  "type": "object",
+  "required": ["id", "name", "path", "remote", "availability"],
+  "additionalProperties": false,
+  "properties": {
+    "id": { "type": "string", "pattern": "^p_[0-9abcdefghjkmnpqrstvwxyz]{12}$" },
+    "name": { "type": "string" },
+    "path": { "type": "string", "minLength": 1 },
+    "remote": {
+      "type": "string",
+      "description": "URL of origin, without userinfo (REQ-SEC-09), or empty.",
+      "pattern": "^(?![A-Za-z][A-Za-z0-9+.-]*://[\\s\\S]*@)"
+    },
+    "availability": { "enum": ["ok", "folder-not-found", "not-wingfoil", "cli-not-found"] },
+    "command": { "type": "string", "minLength": 1 }
+  },
+  "if": { "properties": { "availability": { "const": "cli-not-found" } } },
+  "then": { "required": ["command"] },
+  "else": { "not": { "required": ["command"] } }
+}
