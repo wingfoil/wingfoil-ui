@@ -9,6 +9,7 @@
  * | HEAD and the working tree, in one process | `git status --porcelain=v2 --branch -z --untracked-files=all` |
  * | the effective identity (repository, else global configuration) | `git config user.email` |
  * | the layout, once per project | `git rev-parse --show-prefix --absolute-git-dir --git-common-dir` |
+ * | the URL of `origin` (the remote refreshed on open, spec-006 §2), once per state | `git remote get-url origin` |
  * | the Memory events, once per HEAD (spec-002 §3), with their sha order (`log --format=%H%x00`) | `git log --no-color --no-renames --no-ext-diff --no-textconv --unified=0 -p --format=… -- <Memory directories>` |
  *
  * Git is never used to change anything here.
@@ -28,6 +29,7 @@ export const GIT_READ_ARGS = {
   status: ['--no-optional-locks', 'status', '--porcelain=v2', '--branch', '-z', '--untracked-files=all'],
   email: ['--no-optional-locks', 'config', 'user.email'],
   layout: ['--no-optional-locks', 'rev-parse', '--show-prefix', '--absolute-git-dir', '--git-common-dir'],
+  origin: ['--no-optional-locks', 'remote', 'get-url', 'origin'],
   // `core.quotePath=false` for this invocation only: file names arrive as UTF-8, not escaped.
   memoryLog: [
     '--no-optional-locks',
@@ -220,6 +222,17 @@ export class GitReads {
     if (result.ended === 'exit' && result.exitCode === 1) return undefined;
     const email = this.check(result).stdout.trim();
     return email === '' ? undefined : email;
+  }
+
+  /**
+   * The URL of `origin` as git resolves it (`url.<base>.insteadOf` applied), or `""` when the
+   * repository has no `origin`. Rejects with {@link GitReadError} outside a repository.
+   */
+  async origin(): Promise<string> {
+    const result = await this.run(GIT_READ_ARGS.origin);
+    // `git remote get-url` exits 2 when the remote does not exist.
+    if (result.ended === 'exit' && result.exitCode === 2) return '';
+    return this.check(result).stdout.trim();
   }
 
   /** Prefix, git directory and common directory (one process). */

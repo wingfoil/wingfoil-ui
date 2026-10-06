@@ -354,3 +354,40 @@ Added during the Wave 2 dev-loops (plan `dev-loop-rel-v0.1-plan`, Session 2; dec
     Test: the second view starts 0 processes and gets the same error.
 - Checks: typecheck, lint, format:check clean · `docs:api` OK · `test/server/{snapshot,git}`,
   `project-routes.test.ts` 115/115 · process audit 2/2 (cold 5 CLI + 5 git, reopened 0).
+
+### open points — decided by the user 2026-10-06
+
+- Decided by the user 2026-10-06 (spec-004 §3 addendum and spec-002 §3 amended on `main`,
+  `5aedca8`): **(24)** the bodies are those of the `contracts/api/` schemas — kept; **(25)** a
+  refused file path is a 404 `not-found` with `detail.kind` — kept; **(29)** NUL framing,
+  header-only sha read, per-record skip, explicit HEAD — kept (the "pending spec amendment" comment
+  of `memory-log.ts` removed).
+- **(26)** the range of a `version-unsupported` reason is labelled `<min> to <max>` from
+  `supportedRange()` (`0.2.2 to 0.2.x`), in the header's `readOnly` and in every disabled verb of
+  the descriptors (`rangeLabel()`). Red: the label was `0.2.2–0.2.x`. Test: a kanban copy with
+  the version-fake CLI 0.4.0.
+- **(30) bug-003** absorbed (own commits `980b273` red, `5d19722` green): the local `ReadFs.readFile`
+  opens with `O_RDONLY | O_NOFOLLOW | O_NONBLOCK` (0 where a flag is absent, e.g. Windows),
+  `fstat`s the descriptor — `NotRegularFileError` for anything not a regular file, also `ELOOP`
+  (a last-component symlink) — and reads at most `MAX_DIRECT_READ_BYTES + 1` bytes from it;
+  `readConfined` keeps it as the `cause` of its `DirectReadError` (kind `missing`: "cannot be
+  read"), `/files/content` answers `not-allowed`; the confinement re-check after the read is
+  unchanged. Tests (`test/server/reads/confine-swap.test.ts`): a FIFO and a symlink to `/dev/zero`
+  swapped in after the checks are refused within 5 s (red: blocked past 5 s, `/dev/zero` read
+  without bound); a FIFO and `/dev/zero` given directly are refused; a regular file is read whole,
+  a larger one at most MAX + 1 bytes. The task-005 REQ-ARC-04 fs spy counts a read-only `open`
+  (no write/create/truncate/append flag) as a file read; it still passes (0 writes, reads only at
+  `memory.yaml` and the CLI-returned paths).
+- **task-008 decision 28** — the stored name and remote follow the project on every open
+  (spec-006 §2): `GET /api/p/:pid` writes `store.update(pid, { name, remote })` when the DNA name
+  (kept when absent) or `origin` without credentials (`stripUserinfo`) differ; no CLI work inside
+  the store's transaction. `origin` is read once per state (`GitReads.origin()`, the same reader
+  as task-008's — merge note: identical `GIT_READ_ARGS.origin` / `origin()` on both branches;
+  `SnapshotView.origin()`), so a warm header starts no process; a `git remote set-url` alone is
+  seen with the next state change. Tests: a stale folder name and an empty remote refreshed, the
+  second header 0 processes; a DNA without a name and no `origin` keep the stored values.
+- Process audit: cold Memory list **5 CLI + 6 git** (the header's `origin` adds one), reopened 0;
+  60 s idle 0 CLI.
+- Checks (load 0.5–11): typecheck, lint, format:check clean · `docs:api` OK · full
+  `test:coverage` **70 files passed, 1 skipped; 1080 passed / 1 skipped**, coverage 95.96 %
+  statements / 89.05 % branches / 96.39 % functions / 98.12 % lines.

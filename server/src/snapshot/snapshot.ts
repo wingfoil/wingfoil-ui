@@ -131,6 +131,7 @@ export class ProjectSnapshot {
   private readonly fingerprints: Fingerprinter;
   private readonly versions: VersionCache;
   private events: { key: string; value: Promise<ElementEvents> } | undefined;
+  private originCache: { key: string; value: Promise<string> } | undefined;
 
   constructor(private readonly options: ProjectSnapshotOptions) {
     this.pid = options.pid;
@@ -200,6 +201,7 @@ export class ProjectSnapshot {
     };
     return new SnapshotView(state, memo, {
       events: (dirs) => this.memoryEvents(state.head, dirs),
+      origin: () => this.origin(state.key),
       versions: this.versions,
     });
   }
@@ -232,6 +234,17 @@ export class ProjectSnapshot {
       if (!sameForHead(error) && this.events === entry) this.events = undefined;
     });
     return value;
+  }
+
+  /** The URL of `origin`, read once per state (a failed read is not kept). */
+  private origin(key: string): Promise<string> {
+    if (this.originCache?.key === key) return this.originCache.value;
+    const entry = { key, value: this.options.git.origin() };
+    this.originCache = entry;
+    entry.value.catch(() => {
+      if (this.originCache === entry) this.originCache = undefined;
+    });
+    return entry.value;
   }
 
   private runCheck(): Promise<RepoState> {
@@ -303,6 +316,7 @@ type Memo = <T>(name: string, read: (tools: { cli: WingfoilCli; reads: ProjectRe
 /** What a view reads beyond its memo: the snapshot's event cache and the version cache. */
 interface ViewSources {
   events(dirs: readonly string[]): Promise<ElementEvents>;
+  origin(): Promise<string>;
   versions: VersionCache;
 }
 
@@ -325,6 +339,14 @@ export class SnapshotView {
    */
   derived<T>(name: string, compute: () => Promise<T>): Promise<T> {
     return this.memo(`derived\0${name}`, () => compute());
+  }
+
+  /**
+   * The URL of `origin` (`""` without one), read once per state: a `git remote set-url` alone does
+   * not move the state, so it is seen with the next state change.
+   */
+  origin(): Promise<string> {
+    return this.sources.origin();
   }
 
   /** The project's CLI version against the supported range (one `--version` per CLI resolution). */

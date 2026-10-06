@@ -65,7 +65,7 @@ import {
 import type { ElementEvents, SnapshotView } from '../snapshot/snapshot.js';
 import { REPO_STATE_HEADER, repoStateHeader } from '../snapshot/state.js';
 import type { Snapshots } from '../snapshot/snapshots.js';
-import type { StateStore } from '../state/store.js';
+import { stripUserinfo, type StateStore } from '../state/store.js';
 import { envelope } from './app.js';
 
 /** Prefix of every route of this module. */
@@ -195,6 +195,7 @@ class ProjectRead {
     readonly root: string,
     readonly view: SnapshotView,
     private readonly log: FastifyBaseLogger,
+    private readonly store: StateStore,
   ) {}
 
   settle<T>(read: Promise<T>, base: ReadBase = ''): ReturnType<typeof settle<T>> {
@@ -242,6 +243,24 @@ class ProjectRead {
     }
   }
 
+  /**
+   * spec-006 §2: the stored name and remote follow the project on every open — the DNA name (kept
+   * when the DNA has none) and `origin` without credentials. Written only when one differs; no CLI
+   * work happens inside the store's transaction, and on a warm cache no process starts. A failed
+   * `origin` read leaves the entry as it is.
+   */
+  async refreshEntry(name: string): Promise<void> {
+    let remote: string;
+    try {
+      remote = stripUserinfo(await this.view.origin());
+    } catch (error) {
+      this.log.warn({ kind: (error as Error).name }, 'origin unreadable: project entry not refreshed');
+      return;
+    }
+    if (name === this.entry.name && remote === this.entry.remote) return;
+    await this.store.update(this.entry.id, { name, remote });
+  }
+
   /** The `memory search` match of `id`, then the archived ones; `undefined` when none. */
   async findMatch(id: string): Promise<{ match: MemoryMatch; localChanges: boolean } | undefined> {
     const found = (await this.view.elements()).matches.find((m) => m.match.id === id);
@@ -278,9 +297,11 @@ async function header(read: ProjectRead): Promise<ProjectHeader> {
   const readOnly: ReadOnlyReason[] = [];
   if (ids.identity.kind !== 'member') readOnly.push({ code: 'not-in-team' });
   if (!detected.inRange) readOnly.push({ code: 'version-unsupported', range: rangeLabel() });
+  const name = (dna.ok ? dna.value.data.project?.name : undefined) ?? entry.name;
+  await read.refreshEntry(name);
   return {
     id: entry.id,
-    name: (dna.ok ? dna.value.data.project?.name : undefined) ?? entry.name,
+    name,
     wingfoil: wingfoilOf(detected),
     capabilities: evaluateCapabilities(detected, range),
     ...ids,
@@ -420,7 +441,7 @@ export function registerProjectRoutes(app: FastifyInstance, options: ProjectRout
           const snapshot = await snapshots.open(entry.id, entry.path);
           const view = await snapshot.view();
           reply.header(REPO_STATE_HEADER, repoStateHeader(view.state));
-          const read = new ProjectRead(entry, snapshot.root, view, request.log);
+          const read = new ProjectRead(entry, snapshot.root, view, request.log, store);
           const body = await handler(read, params, request.query as Q);
           return reply.send(body);
         } catch (error) {
