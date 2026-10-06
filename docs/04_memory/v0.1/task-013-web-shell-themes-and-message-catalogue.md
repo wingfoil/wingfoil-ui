@@ -408,3 +408,31 @@ Screen: `docs/00_reference/ux-reference.md` §1–3, §9 and the prototype (`doc
   start) · `test:e2e` **14/14** (`shell.spec.ts` 30/30 with `--repeat-each=3`) · `check_tasks.py` OK
   · **`npm run test:timing` 3/3** at load 0.8 → 1.7: REQ-PERF-03 20/20, max 524 ms; TypeDoc build
   3446 ms; REQ-PERF-06 403–728 ms.
+
+### integration (2026-10-06)
+
+- Re-verification of round 1: **PASS** with 3 minors and 2 nits, fixed before the merge:
+  - **R2-1** (`32bab71`) React Aria `RouterConfig.href` is `NonNullable<ToOptions['to']> | (string &
+    {})`: a concrete path such as `/p/<pid>` is accepted (task-015's switcher); component test: a
+    React Aria link to `/p/p_kanbankanban` navigates client side (router location changed).
+  - **R2-2** (`854270c`) `noteNetworkFailure()` (`api/events.ts`), called by `apiRequest` when a
+    request fails at network level, starts the unreachable countdown unless it already runs
+    (spec-004 §6 as amended); unit tests (open stream + a failing request → unreachable after the
+    threshold; a second failure does not restart the count; no-op before the stream starts).
+  - **R2-3, N-a, N-b** (`1b7d172`) the e2e banner test first runs the page clock 15 s with the
+    console up and asserts no banner, then kills the console; `routes/tree.ts` and
+    `api/query-keys.ts` both say a view's key factory lives in its route file; the token test checks
+    the `--shadow-popover` values.
+- `main` merged (`9bcf905`, authorised by the coordinator): spec amendments W3 (a605969, 785ccaf —
+  spec-004 §2/§6, spec-008 §1/§6, spec-009 §2, ux-reference §3/§5); no conflict; the implemented
+  `--shadow-popover` and `--color-backdrop` values equal spec-009 §2.
+- Gates on the merge: typecheck, lint (ESLint + catalogue check), format:check clean · `docs:api`
+  OK · `check_tasks.py` OK · `test:e2e` **14/14** · `npm run -s test:coverage` — first run at load
+  57–99 (other projects): 5 failures in `test/launcher/local-security.test.ts`,
+  `test/lint/lint-clean.test.ts` and the `beforeAll` of `test/harness/fixtures.test.ts` (timeouts;
+  the two first files re-run alone: 75/75); the re-run at load ≈ 35–80: **90 files passed, 1
+  skipped; 1402 passed / 1 skipped**, coverage 95.84 % statements / 88.94 % branches / 96.21 %
+  functions / 97.83 % lines. `npm run test:timing` not re-run (load > 12); it passed 3/3 at
+  `d4b9170` (load 0.8–1.7: REQ-PERF-03 max 524 ms, TypeDoc 3446 ms, REQ-PERF-06 403–728 ms).
+- Reviews: round 1 PASS with minors (all fixed, user decisions W3-12/W3-13 implemented),
+  re-verification PASS with minors (fixed above).
