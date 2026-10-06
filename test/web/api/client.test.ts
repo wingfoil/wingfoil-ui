@@ -56,7 +56,12 @@ it('throws the envelope of an error answer as an ApiError', async () => {
   answer(422, { error: { code: 'folder-not-found', message: 'Folder not found', detail: { path: '/tmp/x' } } });
   const error = await apiGet('/api/projects').catch((e: unknown) => e);
   expect(error).toBeInstanceOf(ApiError);
-  expect(error).toMatchObject({ status: 422, code: 'folder-not-found', message: 'Folder not found', detail: { path: '/tmp/x' } });
+  expect(error).toMatchObject({
+    status: 422,
+    code: 'folder-not-found',
+    message: 'Folder not found',
+    detail: { path: '/tmp/x' },
+  });
   expect(sessionStatus()).toBe('connecting');
 });
 

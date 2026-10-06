@@ -52,7 +52,12 @@ beforeEach(() => {
   resetSession();
   FakeEventSource.instances = [];
   client = new QueryClient();
-  for (const key of [queryKeys.server(), queryKeys.projects(), queryKeys.project('p_a', 'header'), queryKeys.project('p_b', 'header')]) {
+  for (const key of [
+    queryKeys.server(),
+    queryKeys.projects(),
+    queryKeys.project('p_a', 'header'),
+    queryKeys.project('p_b', 'header'),
+  ]) {
     client.setQueryData(key, { cached: true });
   }
 });

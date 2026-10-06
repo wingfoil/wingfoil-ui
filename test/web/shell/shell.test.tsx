@@ -4,7 +4,7 @@
 // /api/server (spec-006 §4), the lost-session page, the project layout and the page title.
 import { createMemoryHistory, createRootRoute, createRouter, RouterProvider } from '@tanstack/react-router';
 import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
+import { userEvent } from '@testing-library/user-event';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { stopEventStream } from '../../../web/src/api/events.js';
 import { AppIntlProvider } from '../../../web/src/i18n/index.js';
@@ -66,7 +66,7 @@ it('opens the Add project dialog frame, traps the focus and gives it back on clo
   expect(dialog.contains(document.activeElement)).toBe(true);
   await user.click(within(dialog).getByRole('button', { name: 'Close' }));
   await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
-  expect(document.activeElement).toBe(add);
+  await waitFor(() => expect(document.activeElement).toBe(add));
 });
 
 it('closes the dialog with Escape', async () => {
@@ -149,8 +149,12 @@ it('lists the registered views by group, skipping empty groups', async () => {
       <ProjectNav
         pid="p_x"
         groups={[
-          { id: 'work', label: 'shell.nav.group.work', items: [{ id: 'one', label: 'projects.start.title', to: '/' }] },
-          { id: 'rules', label: 'shell.nav.group.rules', items: [] },
+          {
+            id: 'work',
+            label: { id: 'shell.nav.group.work' },
+            items: [{ id: 'one', label: { id: 'projects.start.title' }, to: '/' }],
+          },
+          { id: 'rules', label: { id: 'shell.nav.group.rules' }, items: [] },
         ]}
       />
     ),

@@ -15,7 +15,9 @@ const HEAD = `import { FormattedMessage, useIntl } from 'react-intl';\n`;
 
 it('accepts a message with exactly its arguments', async () => {
   expect(
-    await problems(`${HEAD}export const A = () => <FormattedMessage id="error.folderNotFound" values={{ path: '/x' }} />;`),
+    await problems(
+      `${HEAD}export const A = () => <FormattedMessage id="error.folderNotFound" values={{ path: '/x' }} />;`,
+    ),
   ).toEqual([]);
   expect(await problems(`${HEAD}export const B = () => <FormattedMessage id="projects.start.title" />;`)).toEqual([]);
   expect(
@@ -41,7 +43,9 @@ it('reports a missing value, an extra value and an unknown id', async () => {
 
 it('does not judge values given by a variable', async () => {
   expect(
-    await problems(`${HEAD}export const A = (v: Record<string, string>) => <FormattedMessage id="error.folderNotFound" values={v} />;`),
+    await problems(
+      `${HEAD}export const A = (v: Record<string, string>) => <FormattedMessage id="error.folderNotFound" values={v} />;`,
+    ),
   ).toEqual([]);
 });
 

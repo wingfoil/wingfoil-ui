@@ -102,7 +102,13 @@ async function sourceFiles(dir) {
  */
 export async function extractIds(files) {
   if (files.length === 0) return {};
-  const bin = path.join(WEB_DIR, '..', 'node_modules', '.bin', process.platform === 'win32' ? 'formatjs.cmd' : 'formatjs');
+  const bin = path.join(
+    WEB_DIR,
+    '..',
+    'node_modules',
+    '.bin',
+    process.platform === 'win32' ? 'formatjs.cmd' : 'formatjs',
+  );
   const { stdout } = await promisify(execFile)(bin, ['extract', '--throws', ...files], { maxBuffer: 64 * 1024 * 1024 });
   return JSON.parse(stdout);
 }

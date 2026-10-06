@@ -1,0 +1,74 @@
+/**
+ * Error answers rendered from the catalogue (spec-008 §4): `error.` + the code in lowerCamelCase,
+ * with the envelope's `detail` as the arguments; the envelope's `message` is never shown, except
+ * the tool output of `cli-refused` and `git-refused`, shown verbatim inside the catalogue frame.
+ * The table holds every code of spec-004 §4–§5 and spec-006 §3 (decision W3-5).
+ */
+import type { MessageDescriptor } from 'react-intl';
+import { defineMessages } from 'react-intl';
+import type { ApiError } from './client.js';
+
+const MESSAGES = defineMessages({
+  'forbidden-origin': { id: 'error.forbiddenOrigin' },
+  unauthenticated: { id: 'error.unauthenticated' },
+  'not-found': { id: 'error.notFound' },
+  'invalid-request': { id: 'error.invalidRequest' },
+  'not-in-team': { id: 'error.notInTeam' },
+  'unsupported-version': { id: 'error.unsupportedVersion' },
+  'local-changes': { id: 'error.localChanges' },
+  'stale-copy': { id: 'error.staleCopy' },
+  'element-changed': { id: 'error.elementChanged' },
+  'cli-refused': { id: 'error.cliRefused' },
+  'cli-output': { id: 'error.cliOutput' },
+  'cli-timeout': { id: 'error.cliTimeout' },
+  internal: { id: 'error.internal' },
+  'git-refused': { id: 'error.gitRefused' },
+  'read-error': { id: 'error.readError' },
+  'folder-not-found': { id: 'error.folderNotFound' },
+  'not-wingfoil': { id: 'error.notWingfoil' },
+  'already-listed': { id: 'error.alreadyListed' },
+  'directory-not-empty': { id: 'error.directoryNotEmpty' },
+  'cli-not-found': { id: 'error.cliNotFound' },
+  'state-dir-inside-project': { id: 'error.stateDirInsideProject' },
+  'directory-inside-project': { id: 'error.directoryInsideProject' },
+  'inside-state-dir': { id: 'error.insideStateDir' },
+});
+
+/** An error code the catalogue renders. */
+export type ErrorCode = keyof typeof MESSAGES;
+
+/** Every error code the catalogue renders. */
+export const ERROR_CODES = Object.keys(MESSAGES) as readonly ErrorCode[];
+
+/** Codes whose `message` is a tool's output, shown verbatim (spec-008 §4). */
+const VERBATIM: ReadonlySet<string> = new Set<ErrorCode>(['cli-refused', 'git-refused']);
+
+/** What to render for an error answer. */
+export interface ErrorRendering {
+  descriptor: MessageDescriptor;
+  /** Arguments of the message: the `detail` fields as text (selectors included). */
+  values: Record<string, string>;
+  /** The tool output to show verbatim after the message, for `cli-refused` and `git-refused`. */
+  verbatim?: string;
+}
+
+/** The catalogue message for an error answer (an unknown code renders as `internal`). */
+export function errorMessage(error: Pick<ApiError, 'code' | 'message' | 'detail'>): ErrorRendering {
+  const code: ErrorCode = Object.hasOwn(MESSAGES, error.code) ? (error.code as ErrorCode) : 'internal';
+  const values: Record<string, string> = {};
+  if (error.detail !== null && typeof error.detail === 'object') {
+    for (const [k, v] of Object.entries(error.detail)) {
+      if (typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean') values[k] = String(v);
+    }
+  }
+  if (code === 'not-wingfoil') {
+    // Two detail shapes (projects.refusal.schema.json): `{path}` for a folder, `{source}` for a clone.
+    values['source'] ??= 'local';
+    values['path'] ??= '';
+  }
+  return {
+    descriptor: MESSAGES[code],
+    values,
+    ...(VERBATIM.has(code) ? { verbatim: error.message } : {}),
+  };
+}

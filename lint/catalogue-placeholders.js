@@ -65,11 +65,18 @@ const rule = {
       },
       CallExpression(node) {
         const callee = node.callee;
-        const name = callee.type === 'Identifier' ? callee.name : callee.type === 'MemberExpression' ? callee.property.name : undefined;
+        const name =
+          callee.type === 'Identifier'
+            ? callee.name
+            : callee.type === 'MemberExpression'
+              ? callee.property.name
+              : undefined;
         if (name !== 'formatMessage') return;
         const descriptor = node.arguments[0];
         if (descriptor?.type !== 'ObjectExpression') return;
-        const idProp = descriptor.properties.find((p) => p.type === 'Property' && !p.computed && (p.key.name ?? p.key.value) === 'id');
+        const idProp = descriptor.properties.find(
+          (p) => p.type === 'Property' && !p.computed && (p.key.name ?? p.key.value) === 'id',
+        );
         check(context, node, literal(idProp?.value), node.arguments[1], node.arguments.length > 1);
       },
     };

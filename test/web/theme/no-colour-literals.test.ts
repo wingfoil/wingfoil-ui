@@ -14,7 +14,9 @@ function colourLiterals(text: string): string[] {
 }
 
 it('finds a planted literal', () => {
-  expect(colourLiterals('a { color: #fff; }\nb { color: rgb(0 0 0); }\nc { color: var(--color-text); }')).toHaveLength(2);
+  expect(colourLiterals('a { color: #fff; }\nb { color: rgb(0 0 0); }\nc { color: var(--color-text); }')).toHaveLength(
+    2,
+  );
 });
 
 it('finds no colour literal in web/src outside theme/tokens.css', () => {

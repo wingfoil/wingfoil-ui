@@ -7,7 +7,10 @@ it('lists simple, plural, select and nested arguments once, and tags apart', () 
   expect(
     messageArguments('{count, plural, one {# element in {type}} other {# elements in {type}}} by <b>{name}</b>'),
   ).toEqual({ args: ['count', 'type', 'name'], tags: ['b'] });
-  expect(messageArguments('{source, select, clone {a} other {b {path}}}')).toEqual({ args: ['source', 'path'], tags: [] });
+  expect(messageArguments('{source, select, clone {a} other {b {path}}}')).toEqual({
+    args: ['source', 'path'],
+    tags: [],
+  });
   expect(messageArguments('No argument')).toEqual({ args: [], tags: [] });
 });
 

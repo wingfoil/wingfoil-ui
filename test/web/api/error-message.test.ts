@@ -51,8 +51,12 @@ it.each([...new Set([...SPEC_004, ...SPEC_006])])('maps %s to error.<lowerCamel 
 });
 
 it('passes the detail as arguments, booleans and absent selectors as select values', () => {
-  expect(errorMessage(new ApiError(422, 'folder-not-found', 'x', { path: '/tmp/x' })).values).toEqual({ path: '/tmp/x' });
-  expect(errorMessage(new ApiError(422, 'already-listed', 'x', { pid: 'p_1', name: 'kanban', sameRemote: true })).values).toEqual({
+  expect(errorMessage(new ApiError(422, 'folder-not-found', 'x', { path: '/tmp/x' })).values).toEqual({
+    path: '/tmp/x',
+  });
+  expect(
+    errorMessage(new ApiError(422, 'already-listed', 'x', { pid: 'p_1', name: 'kanban', sameRemote: true })).values,
+  ).toEqual({
     pid: 'p_1',
     name: 'kanban',
     sameRemote: 'true',
@@ -61,12 +65,26 @@ it('passes the detail as arguments, booleans and absent selectors as select valu
     path: '/tmp/plain',
     source: 'local',
   });
-  expect(errorMessage(new ApiError(422, 'not-wingfoil', 'x', { source: 'clone' })).values).toEqual({ source: 'clone', path: '' });
+  expect(errorMessage(new ApiError(422, 'not-wingfoil', 'x', { source: 'clone' })).values).toEqual({
+    source: 'clone',
+    path: '',
+  });
 });
 
 it('gives every argument of each message a value from a detail of the contract shape', () => {
   for (const code of ERROR_CODES) {
-    const m = errorMessage(new ApiError(422, code as ErrorCode, 'x', { path: 'p', stateDir: 's', command: 'c', file: 'f', kind: 'missing', name: 'n', pid: 'p_1', sameRemote: false }));
+    const m = errorMessage(
+      new ApiError(422, code as ErrorCode, 'x', {
+        path: 'p',
+        stateDir: 's',
+        command: 'c',
+        file: 'f',
+        kind: 'missing',
+        name: 'n',
+        pid: 'p_1',
+        sameRemote: false,
+      }),
+    );
     for (const arg of messageArguments(catalogue[m.descriptor.id as string]!).args) {
       expect(m.values, `${code} {${arg}}`).toHaveProperty(arg);
     }

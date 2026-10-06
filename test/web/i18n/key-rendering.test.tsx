@@ -2,7 +2,7 @@
 // spec-008 §6 at component level (X-09.1 closes on every screen in task-021): with the key catalogue
 // every visible text of the start page and its dialog is a catalogue key.
 import { cleanup, screen } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
+import { userEvent } from '@testing-library/user-event';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { keyCatalogue } from '../../../web/scripts/catalogue.mjs';
 import { stopEventStream } from '../../../web/src/api/events.js';

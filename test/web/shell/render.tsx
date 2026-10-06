@@ -3,6 +3,7 @@ import { createMemoryHistory } from '@tanstack/react-router';
 import { render, type RenderResult } from '@testing-library/react';
 import { vi } from 'vitest';
 import { App } from '../../../web/src/app.js';
+import type { MessageId } from '../../../web/src/i18n/index.js';
 import { createQueryClient } from '../../../web/src/api/queries.js';
 import { createAppRouter } from '../../../web/src/routes/tree.js';
 
@@ -28,9 +29,18 @@ export function serverInfo(warnings: { key: string; args: Record<string, string>
 }
 
 /** Render the application at `path`, optionally with another catalogue (the key build). */
-export function renderApp(path = '/', messages?: Record<string, string>): RenderResult & { router: ReturnType<typeof createAppRouter> } {
+export function renderApp(
+  path = '/',
+  messages?: Record<string, string>,
+): RenderResult & { router: ReturnType<typeof createAppRouter> } {
   const queryClient = createQueryClient();
   const router = createAppRouter({ queryClient, history: createMemoryHistory({ initialEntries: [path] }) });
-  const result = render(<App queryClient={queryClient} router={router} {...(messages ? { messages } : {})} />);
+  const result = render(
+    <App
+      queryClient={queryClient}
+      router={router}
+      {...(messages ? { messages: messages as Record<MessageId, string> } : {})}
+    />,
+  );
   return { ...result, router };
 }
