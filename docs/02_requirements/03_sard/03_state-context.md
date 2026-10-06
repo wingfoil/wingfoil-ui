@@ -25,7 +25,7 @@ Shell and conventions: `00_sard.md`.
 | Description | Cached CLI and git reads are keyed on the commit of HEAD **and** a hash of `git status --porcelain` combined with a fingerprint of the working-tree content of each changed and untracked entry (computed by the server, no extra git command); a change of either invalidates them, so a second edit of a file that is already modified changes the state too. The effective `user.email` (repository and global git configuration) is watched too and re-evaluates the identity. Changes are detected by file watching, with a periodic check as a fallback. |
 | Rationale | Correct with uncommitted edits, cheap otherwise (ADR draft). |
 | Traceability | US-S-26 · S-26.1, S-26.3 · S8 |
-| Fit criterion | [boolean] A unit test shows a cache miss after a commit and after a working-tree edit, a cache hit when neither changed, and a new identity after a change of `user.email`. |
+| Fit criterion | [boolean] A unit test shows a cache miss after a commit and after a working-tree edit, including a second edit of an already-modified file, a cache hit when neither changed, and a new identity after a change of `user.email`. |
 | Verified by | unit |
 
 ### REQ-STATE-03 — Governed actions refused on local changes
@@ -110,4 +110,5 @@ Shell and conventions: `00_sard.md`.
 - 2026-10-06 — amended in dev-loop task-010 (Wave 2, plan dev-loop-rel-v0.1-plan): REQ-STATE-02
   state key = hash of `git status --porcelain` plus a server-computed fingerprint of the
   working-tree content of each changed and untracked entry (no extra git command), so a second
-  edit of an already-modified file changes the state; decided by the user.
+  edit of an already-modified file changes the state; decided by the user. Audit follow-up of
+  the Wave 2 amendments: the fit criterion names the second edit of an already-modified file.

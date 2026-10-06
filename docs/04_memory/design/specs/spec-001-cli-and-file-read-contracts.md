@@ -127,6 +127,11 @@ contracts/
   matrix.json                        # supported WingFoil versions and range minimum (adr-001 D3/D4)
 ```
 
+`matrix.json` is `{ min, pinned, versions }`: `min` the declared lowest supported version (the
+range's lower bound, adr-001 D3), `pinned` the version the repository's own fixtures and samples
+use, `versions` every WingFoil version the contract tests run against (the highest gives the
+range's caret line).
+
 Each schema records the WingFoil version it was captured from (`$comment: "wingfoil 0.2.2"`); a
 shape that changes in a later version gets a versioned variant, selected by the detected version.
 Schemas accept unknown additional properties (a newer CLI may add fields) but require every field
@@ -151,10 +156,10 @@ validated by `contracts/capabilities.schema.json`; each row is `{ id, name, minV
 replacedBy?, conditions[] }` — `minVersion` a semantic version or `null`, `via` the 0.2.2 source
 (or `null`), `conditions` the project-condition ids that must all hold for the capability to
 apply (otherwise it is hidden; none in v0.1). The ids of the table above are `type-definitions`,
-`element-content`, `directive-body`, `gate-decision` (`minVersion` `0.2.2`), `workflow-position`,
+`element-content`, `directive-body`, `gate-decision` (`minVersion` `0.2.2`); `workflow-position`,
 `workflow-next-step`, `workflow-start` (the former "Workflow position, next step, start" row,
-split in three; S-08.3 names "Next workflow step" alone), `agent-launch` (`minVersion` `0.3.0`)
-and `field-editing` (`null`). `minVersion` is required on every row: **`null` means the
+split in three; S-08.3 names "Next workflow step" alone) and `agent-launch` (`minVersion`
+`0.3.0`); `field-editing` (`null`). `minVersion` is required on every row: **`null` means the
 capability is in no released WingFoil version** (`field-editing` today); it is always read-only
 or hidden according to its rule, with reason `not-released` (REQ-INT-03: `null` counts as a
 declared minimum).
@@ -200,7 +205,8 @@ its schema, and run the §4.1 resolution check. A failure blocks the matrix adva
   replacedBy?, conditions[]}`, ids), the "Workflow position, next step, start" row split into
   `workflow-position`, `workflow-next-step`, `workflow-start`, and `minVersion: null` = in no
   released WingFoil version (always read-only or hidden, reason `not-released`); decided by the
-  user.
+  user. Audit follow-up of the Wave 2 amendments: §6 `minVersion` per id made unambiguous; §5
+  names the `min`, `pinned`, `versions` keys of `matrix.json`.
 - 2026-10-06 — amended in dev-loop task-010 (Wave 2, plan dev-loop-rel-v0.1-plan): §4.4
   exception to the direct-read allow-list — hash-only reads of changed and untracked entries for
   the repository state key (REQ-STATE-02); content is neither kept nor exposed; decided by the

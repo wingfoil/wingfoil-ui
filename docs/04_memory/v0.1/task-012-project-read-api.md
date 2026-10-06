@@ -34,7 +34,7 @@ Added during the Wave 2 dev-loops (plan `dev-loop-rel-v0.1-plan`, Session 2; dec
 
 - **Actor events (spec-002 §3, from task-011):** the project-wide `git log -p` parse of spec-002 §3 that feeds the descriptor's actor events (`describeElements(…, eventsOf, …)`) is implemented here, once per repository state, so the Memory list does not start one `memory history` per element. *Verified by:* unit tests on the fixtures (events equal to `memory history` for every element) + the process audit below.
 - **Process audits on the real routes (from task-010):** re-run the TT-PERF-05 audit (cold Memory list ≤ 6 CLI processes, reopened with no change 0) and the TT-INT-09 audit (idle with an open stream: 0 CLI processes) against the real project routes of this task instead of task-010's stand-in routes. *Verified by:* process audit (`test/server/snapshot/process-audit.test.ts` or a successor).
-- **Cached identity for governed checks (from task-009, deviation of spec-004 §4 "rows 1–6 start no process"):** `PUT /api/p/:pid/role-view` and `GET /api/p/:pid` read the identity from task-010's watched repository state (`view.state.email`) instead of running `git config` / `dna show` per request. *Verified by:* process audit — the PUT starts 0 processes on a warm cache.
+- **Cached identity for governed checks (from task-009, as required by spec-004 §4 "rows 1–6 start no process"):** `PUT /api/p/:pid/role-view` and `GET /api/p/:pid` read the identity from task-010's watched repository state (`view.state.email`) instead of running `git config` / `dna show` per request. *Verified by:* process audit — the PUT starts 0 processes on a warm cache.
 
 ## Implementation Notes
 

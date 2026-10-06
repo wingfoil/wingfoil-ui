@@ -199,7 +199,9 @@ element list; `web/` renders it and never re-derives it.
   final and done; F10 a gate on the last state offers `reject`; kind `deprecated` → `archived`.
 - 2026-10-06 — amended in dev-loop task-011 (Wave 2, plan dev-loop-rel-v0.1-plan): §4
   `gate-waiting` actor = the workflow engine, `reject` still reserved to `approver` (SARD
-  REQ-ARC-06); §5 the `tech-lead` fallback actor in Requires you of the `tech-lead` view; §6 the
+  REQ-ARC-06); §5 `gate-waiting` in Waiting on others with the engine text, its reject offered
+  to `approver` holders only; §5 the `tech-lead` fallback actor in Requires you of the `tech-lead`
+  view; §6 the
   disabled reason is a code with parameters rendered by the web catalogue; §8 `bucket` in the
   output (Done = last non-archived state of `sequence`), `verbs[].role` `null` for `submit`,
   `rejection.reason` may be `null`, `actor.fallback`; §8 vocabulary note (tables in

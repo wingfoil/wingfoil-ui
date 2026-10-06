@@ -19,13 +19,13 @@ tmpl_version: 260703   # Orignal template version
 
 ## Description
 
-Working-tree snapshot and cache keyed on HEAD and the working-tree status hash, the local-changes marker per element, batched CLI reads, the repository watcher and the per-page event stream that invalidates views without polling (adr-001 D6, spec-004 §5 `X-Repo-State`, §6).
+Working-tree snapshot and cache keyed on HEAD and the working-tree status hash with content fingerprint, the local-changes marker per element, batched CLI reads, the repository watcher and the per-page event stream that invalidates views without polling (adr-001 D6, spec-004 §5 `X-Repo-State`, §6).
 
 **Backlog items:** TT-STATE-02, TT-STATE-01, TT-PERF-03, TT-PERF-05, TT-INT-09
 
 ## Acceptance Criteria
 
-- **TT-STATE-02** (REQ-STATE-02 — Cache keyed on HEAD and working-tree status): [boolean] A unit test shows a cache miss after a commit and after a working-tree edit, a cache hit when neither changed, and a new identity after a change of `user.email`. *Verified by:* unit.
+- **TT-STATE-02** (REQ-STATE-02 — Cache keyed on HEAD and working-tree status): [boolean] A unit test shows a cache miss after a commit and after a working-tree edit, including a second edit of an already-modified file, a cache hit when neither changed, and a new identity after a change of `user.email`. *Verified by:* unit.
   Scenarios (`@v0.1`): S-26.1, S-26.3.
 - **TT-STATE-01** (REQ-STATE-01 — Working-tree snapshot and local changes): [boolean] For every element file listed by `git status --porcelain`, the element carries the marker; for every other element it does not. *Verified by:* unit · e2e.
   Scenarios (`@v0.1`): S-25.1, S-25.2, S-25.3.
@@ -55,6 +55,7 @@ e2e closure — scenarios that need a screen are proved here by API and unit tes
 ## Implementation Notes
 
 - `adr-001` D6; `spec-004` §5–6; `adr-002` (event bus, repository watcher ports).
+- `spec-001` §4.4 (hash-only reads; REQ-ARC-04 exception — the task-005 fs-spy test must stay green).
 
 ## Execution Notes
 

@@ -162,4 +162,5 @@ remaining non-methodology hit needs a justified inline disable.
   holds WingFoil's vocabulary and spec-003's vocabulary tables that coincide with fixture state
   names; §5 lint scope of REQ-ARC-05 (literals, data keys, class fields, interface property
   signatures, enum members and regex words checked; method/getter/setter names exempt; only
-  `server/src/presets/**` exempt); decided by the user (lint scope by the coordinator).
+  `server/src/presets/**` exempt); decided by the user (option 10a, with the
+  method/getter/setter-name exemption).
