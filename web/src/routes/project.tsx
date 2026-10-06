@@ -1,0 +1,61 @@
+/**
+ * The project layout `/p/$pid` (decision W3-6; ux-reference §2): the views sidebar and the view of
+ * the child route in `<main>`. `$pid` is the opaque project id (REQ-SEC-04).
+ *
+ * **Adding a view (tasks 017–020):** see `routes/tree.ts` (route list) and `routes/nav.ts` (the
+ * sidebar entry declared on the route). The project header (task-016) goes above `<Outlet/>` in
+ * `ProjectLayout`.
+ */
+import { createRoute, Link, Outlet, useRouter } from '@tanstack/react-router';
+import { useMemo, type ReactNode } from 'react';
+import { FormattedMessage, useIntl } from 'react-intl';
+import { navGroups, type NavGroup } from './nav.js';
+import { rootRoute } from './root.js';
+
+/** Props of {@link ProjectNav}. */
+export interface ProjectNavProps {
+  pid: string;
+  groups: readonly NavGroup[];
+}
+
+/** The views sidebar of a project. */
+export function ProjectNav({ pid, groups }: ProjectNavProps): ReactNode {
+  const intl = useIntl();
+  return (
+    <nav className="project-nav" aria-label={intl.formatMessage({ id: 'shell.nav.label' })}>
+      {groups.map((g) => (
+        <div key={g.id}>
+          <div className="nav-group-label" id={`nav-group-${g.id}`}>
+            <FormattedMessage {...g.label} />
+          </div>
+          <ul aria-labelledby={`nav-group-${g.id}`}>
+            {g.items.map((item) => (
+              <li key={item.id}>
+                <Link className="nav-link" to={item.to} params={{ pid }} activeProps={{ 'aria-current': 'page' }}>
+                  <FormattedMessage {...item.label} />
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ))}
+    </nav>
+  );
+}
+
+function ProjectLayout(): ReactNode {
+  const { pid } = projectRoute.useParams();
+  const router = useRouter();
+  const groups = useMemo(() => navGroups(Object.values(router.routesById)), [router]);
+  return (
+    <>
+      <ProjectNav pid={pid} groups={groups} />
+      <main id="main" className="shell-main" tabIndex={-1}>
+        <Outlet />
+      </main>
+    </>
+  );
+}
+
+/** `/p/$pid`: the layout of every project view. */
+export const projectRoute = createRoute({ getParentRoute: () => rootRoute, path: '/p/$pid', component: ProjectLayout });
