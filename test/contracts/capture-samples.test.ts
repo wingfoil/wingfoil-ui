@@ -57,7 +57,7 @@ describe.runIf(CAPTURE)('capture samples', () => {
   it('captures every consumed command and allow-listed file of every matrix version', async () => {
     root = await realpath(await mkdtemp(path.join(tmpdir(), 'wfui-capture-')));
     for (const version of await matrixVersions()) {
-      const cli = cliBuildFor(version);
+      const cli = await cliBuildFor(version);
       const base = samplesDir(version);
       await rm(base, { recursive: true, force: true });
       for (const kind of FIXTURE_KINDS) {

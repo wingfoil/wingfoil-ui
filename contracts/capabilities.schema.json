@@ -1,0 +1,55 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://wingfoil-ui.local/contracts/capabilities.schema.json",
+  "title": "Capability table",
+  "description": "contracts/capabilities.json (spec-001 §5–6, adr-001 D3, REQ-INT-03): each capability with the minimum WingFoil version it needs and the project conditions under which it applies. minVersion null = in no released WingFoil version (always read-only). A capability whose conditions do not all hold for a project is hidden.",
+  "type": "object",
+  "required": ["capabilities"],
+  "properties": {
+    "$schema": { "type": "string" },
+    "$comment": { "type": "string" },
+    "capabilities": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["id", "name", "minVersion", "via", "conditions"],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "description": "Stable kebab-case id; the web catalogue key is capability.<id>.",
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9]*(-[a-z0-9]+)*$"
+          },
+          "name": {
+            "description": "English name (README, logs); the UI uses the catalogue.",
+            "type": "string",
+            "minLength": 1
+          },
+          "minVersion": {
+            "description": "Lowest WingFoil version that provides it (exact semantic version), or null when no released version does.",
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)$"
+              },
+              { "type": "null" }
+            ]
+          },
+          "via": {
+            "description": "How the server provides it at minVersion (a CLI command or a direct read), null when it does not yet.",
+            "type": ["string", "null"]
+          },
+          "replacedBy": { "description": "What replaces the current source in a later WingFoil.", "type": "string" },
+          "conditions": {
+            "description": "Project-condition ids that must all hold for the capability to apply (e.g. a remote); none in v0.1.",
+            "type": "array",
+            "uniqueItems": true,
+            "items": { "type": "string", "pattern": "^[a-z][a-z0-9]*(-[a-z0-9]+)*$" }
+          }
+        }
+      }
+    }
+  },
+  "additionalProperties": false
+}

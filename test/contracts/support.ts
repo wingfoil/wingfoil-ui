@@ -3,7 +3,8 @@
  * each matrix version, the raw CLI (as a terminal runs it — the samples are captured with it, not
  * with the adapter under test) and the fixture changes that make the archived searches non-empty.
  */
-import { readFile, writeFile } from 'node:fs/promises';
+import { randomUUID } from 'node:crypto';
+import { mkdir, mkdtemp, readdir, readFile, rename, rm, stat, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { binScript, pinnedCli, pinnedVersion, REPO_ROOT, type CliBuild } from '../harness/cli.js';
 import { cliPackageDir, memberByName, type Fixture, type MemberName } from '../harness/fixtures/index.js';
@@ -22,15 +23,128 @@ export async function matrixVersions(): Promise<string[]> {
   return matrix.versions;
 }
 
+/** Default folder of the matrix builds other than the pinned one (ignored by git with `node_modules`). */
+export const MATRIX_CACHE = path.join(REPO_ROOT, 'node_modules', '.cache', 'wingfoil-ui-matrix');
+
+/** Options of {@link cliBuildFor}. */
+export interface CliBuildOptions {
+  /** Folder holding one `<version>/` install prefix per version (default {@link MATRIX_CACHE}). */
+  cacheRoot?: string;
+  /** Installs `wingfoil@<version>` under `prefix` (default: `npm install --prefix`, needs the registry once). */
+  install?: (prefix: string, version: string) => Promise<void>;
+  /** Age after which a leftover staging or stale folder is removed (default {@link ORPHAN_AGE_MS}). */
+  orphanAgeMs?: number;
+}
+
 /**
- * The CLI build of a matrix version. v0.1's matrix holds the pinned version only; a matrix advance
- * (`release-planning`) that adds another version installs it here (adr-001 D4).
+ * `npm install --prefix <prefix> --no-save wingfoil@<version>`, without scripts, audit or fund.
+ * Under an npm script npm's own CLI (`npm_execpath`) runs with this Node.js, with no shell on any
+ * platform; otherwise `npm` from the `PATH`, which `execFile` finds on Linux and macOS only (on
+ * Windows run the tests through `npm run`).
  */
-export function cliBuildFor(version: string): CliBuild {
+async function npmInstall(prefix: string, version: string): Promise<void> {
+  await mkdir(prefix, { recursive: true });
+  await writeFile(path.join(prefix, 'package.json'), '{"private": true}\n');
+  const args = ['install', '--prefix', prefix, '--no-save', '--ignore-scripts', '--no-audit', '--no-fund'];
+  const npmCli = process.env.npm_execpath;
+  const [file, prefixArgs] = npmCli ? [process.execPath, [npmCli]] : ['npm', []];
+  await run(file, [...prefixArgs, ...args, `wingfoil@${version}`], { cwd: prefix, timeoutMs: 300_000 });
+}
+
+/**
+ * The CLI build of a matrix version (adr-001 D4): the pinned version is the installed
+ * devDependency; any other is installed once into `<cacheRoot>/<version>` and reused, and must
+ * declare that exact version.
+ */
+export async function cliBuildFor(version: string, options: CliBuildOptions = {}): Promise<CliBuild> {
   if (version === pinnedVersion()) return pinnedCli();
-  throw new Error(
-    `wingfoil ${version} is in contracts/matrix.json but no build of it is installed for the contract tests`,
-  );
+  if (!/^\d+\.\d+\.\d+(-[0-9A-Za-z.-]+)?$/.test(version)) {
+    throw new Error(`contracts/matrix.json: ${version} is not an exact version`);
+  }
+  const prefix = path.join(options.cacheRoot ?? MATRIX_CACHE, version);
+  const packageDir = path.join(prefix, 'node_modules', 'wingfoil');
+  await mkdir(path.dirname(prefix), { recursive: true });
+  await removeOrphans(prefix, options.orphanAgeMs ?? ORPHAN_AGE_MS);
+  if ((await installedVersion(packageDir)) !== version) {
+    // Install into a private folder, then rename it into place: parallel workers never share a
+    // half-written prefix, and a concurrent winner's install is kept.
+    const staging = await mkdtemp(`${prefix}.tmp-`);
+    try {
+      await (options.install ?? npmInstall)(staging, version);
+      const installed = await installedVersion(path.join(staging, 'node_modules', 'wingfoil'));
+      if (installed !== version) {
+        throw new Error(`installing wingfoil ${version} for the contract tests gave ${String(installed)}`);
+      }
+      await moveIntoPlace(staging, prefix, version);
+    } finally {
+      await rm(staging, { recursive: true, force: true });
+    }
+  }
+  return { script: binScript(packageDir), packageDir };
+}
+
+/**
+ * Rename `staging` to `prefix`. When `prefix` exists: kept if it holds `version` (a concurrent
+ * winner); otherwise it is a broken install (interrupted, corrupted), moved aside to
+ * `<prefix>.stale-<uuid>`, removed, and the rename is retried once. A folder moved aside that
+ * turns out to hold `version` (a winner that landed in between) is renamed back and kept.
+ */
+async function moveIntoPlace(staging: string, prefix: string, version: string): Promise<void> {
+  const packageDir = path.join(prefix, 'node_modules', 'wingfoil');
+  try {
+    await rename(staging, prefix);
+    return;
+  } catch (error) {
+    if ((await installedVersion(packageDir)) === version) return;
+    const stale = `${prefix}.stale-${randomUUID()}`;
+    try {
+      await rename(prefix, stale);
+    } catch {
+      // Already moved aside by another worker, or gone: retry below.
+    }
+    // Another worker may have put its good install in place between the check and the move:
+    // put it back and keep it (our staging is discarded by the caller).
+    if ((await installedVersion(path.join(stale, 'node_modules', 'wingfoil'))) === version) {
+      try {
+        await rename(stale, prefix);
+        return;
+      } catch {
+        // The prefix was filled again meanwhile: fall through to the retry and its check.
+      }
+    }
+    await rm(stale, { recursive: true, force: true });
+    try {
+      await rename(staging, prefix);
+    } catch {
+      if ((await installedVersion(packageDir)) !== version) throw error;
+    }
+  }
+}
+
+/** Default age after which a `<version>.tmp-*` or `.stale-*` folder is an orphan of a killed worker. */
+export const ORPHAN_AGE_MS = 6 * 60 * 60 * 1000;
+
+/** Remove the staging and stale folders of `prefix` older than `ageMs` (left by a killed worker). */
+async function removeOrphans(prefix: string, ageMs: number): Promise<void> {
+  const dir = path.dirname(prefix);
+  const base = path.basename(prefix);
+  for (const name of await readdir(dir)) {
+    if (!name.startsWith(`${base}.tmp-`) && !name.startsWith(`${base}.stale-`)) continue;
+    const file = path.join(dir, name);
+    try {
+      if (Date.now() - (await stat(file)).mtimeMs >= ageMs) await rm(file, { recursive: true, force: true });
+    } catch {
+      // Removed meanwhile by another worker.
+    }
+  }
+}
+
+async function installedVersion(packageDir: string): Promise<string | undefined> {
+  try {
+    return (JSON.parse(await readFile(path.join(packageDir, 'package.json'), 'utf8')) as { version?: string }).version;
+  } catch {
+    return undefined;
+  }
 }
 
 /** Make `name` the git identity of `fx` (who the CLI acts as). */

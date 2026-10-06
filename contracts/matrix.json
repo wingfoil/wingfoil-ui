@@ -1,5 +1,6 @@
 {
-  "$comment": "Support matrix (adr-001 D3/D4, spec-001 §5): the WingFoil versions the contract tests run against. It advances only through release-planning (new version → contract tests re-run, directive wingfoil-cli re-checked).",
+  "$comment": "Support matrix (adr-001 D3/D4, spec-001 §5): the WingFoil versions the contract tests run against. min = lowest supported version; the range is min to the caret line of the highest listed version (adr-001 D3). It advances only through release-planning (new version → contract tests re-run, directive wingfoil-cli re-checked).",
+  "min": "0.2.2",
   "pinned": "0.2.2",
   "versions": ["0.2.2"]
 }
