@@ -222,6 +222,20 @@ describe('a document', () => {
     await waitFor(() => expect(decodeURI(router.state.location.pathname)).toBe(`/p/${PID}/docs/docs/01_vision/my doc.md`));
   });
 
+  it('selecting the same in-page anchor again focuses its heading again (re-verification N1)', async () => {
+    const { article, router } = await openLinks();
+    const top = within(article).getByRole('link', { name: 'top' });
+    await userEvent.click(top);
+    await waitFor(() => expect(router.state.location.hash).toBe('links'));
+    const heading = within(article).getByRole('heading', { name: 'Links' });
+    await waitFor(() => expect(document.activeElement).toBe(heading));
+    within(article).getByRole('link', { name: 'top' }).focus();
+    const before = router.history.length;
+    await userEvent.click(within(article).getByRole('link', { name: 'top' }));
+    expect(document.activeElement).toBe(within(article).getByRole('heading', { name: 'Links' }));
+    expect(router.history.length).toBe(before);
+  });
+
   it('a modified click is left to the browser', async () => {
     const { article, router } = await openLinks();
     const link = within(article).getByRole('link', { name: 'vision' });

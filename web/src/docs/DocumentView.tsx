@@ -12,7 +12,14 @@ import { Link } from 'react-aria-components';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { classifyLink, resolveLink, type LinkLookup } from './links.js';
 import { QueryError, refusedKind } from './QueryError.js';
-import { documentLinks, finishDocument, headingId, markdownToSafeHtml, type FinishOptions } from './render.js';
+import {
+  documentHref,
+  documentLinks,
+  finishDocument,
+  headingId,
+  markdownToSafeHtml,
+  type FinishOptions,
+} from './render.js';
 import './docs.css';
 
 /** While the index is loading every repository link waits. */
@@ -66,8 +73,8 @@ function focusKey(article: HTMLElement): string | undefined {
   const active = document.activeElement;
   if (!(active instanceof HTMLElement) || !article.contains(active)) return undefined;
   if (active === article) return '';
-  if (active.dataset.docLink !== undefined) return `[data-doc-link="${active.dataset.docLink}"]`;
-  if (active.dataset.docTable !== undefined) return `[data-doc-table="${active.dataset.docTable}"]`;
+  if (active.dataset.docLink !== undefined) return `[data-doc-link="${CSS.escape(active.dataset.docLink)}"]`;
+  if (active.dataset.docTable !== undefined) return `[data-doc-table="${CSS.escape(active.dataset.docTable)}"]`;
   return active.id ? `#${CSS.escape(active.id)}` : undefined;
 }
 
@@ -151,9 +158,18 @@ export function DocumentView({
       const a = event.target instanceof Element ? event.target.closest('a') : null;
       if (!a || a.dataset.docNav === undefined) return;
       event.preventDefault();
-      onNavigate(a.getAttribute('href') ?? '');
+      const href = a.getAttribute('href') ?? '';
+      // The URL already shown (the same in-page anchor again): no navigation happens, so the
+      // heading is focused here.
+      const target = new URL(href, window.location.origin);
+      const here = new URL(documentHref(pid, path, decoded(hash)), window.location.origin);
+      if (hash !== '' && target.pathname === here.pathname && target.hash === here.hash) {
+        focusFragment(article.current, decoded(hash));
+        return;
+      }
+      onNavigate(href);
     },
-    [onNavigate],
+    [onNavigate, pid, path, hash],
   );
 
   const kind = refusedKind(content.error);
