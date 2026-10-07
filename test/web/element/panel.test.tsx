@@ -307,6 +307,20 @@ it('leaves the focus where the destination put it', async () => {
   unsubscribe();
 });
 
+it('names a deprecate in the history without a state name (W3-21)', async () => {
+  const last = HISTORY.entries[3]!;
+  stubApi(
+    api({
+      [`${BASE}/history`]: {
+        status: 200,
+        body: { ...HISTORY, entries: [{ ...last, operation: 'deprecate', from: 's1', to: 'x0' }] },
+      },
+    }),
+  );
+  renderApp(`/p/${PID}/e/${EID}`);
+  expect(await screen.findByText('marked obsolete by Casey')).toBeTruthy();
+});
+
 it('makes the scrollable body a focusable, named region (keyboard scrolling)', async () => {
   stubApi(api());
   renderApp(`/p/${PID}/e/${EID}`);

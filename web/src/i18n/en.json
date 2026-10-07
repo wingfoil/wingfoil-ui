@@ -5,7 +5,7 @@
   "element.fields.empty": "—",
   "element.fields.none": "No other fields in the document.",
   "element.fields.title": "References",
-  "element.history.entry": "{operation, select, add {created by {name}} submit {submitted by {name}} approve {signed off by {name}} reject {rejected by {name}} deprecate {deprecation by {name}} other {edited outside a WingFoil verb by {name}}}",
+  "element.history.entry": "{operation, select, add {created by {name}} submit {submitted by {name}} approve {signed off by {name}} reject {rejected by {name}} deprecate {marked obsolete by {name}} other {edited outside a WingFoil verb by {name}}}",
   "element.history.loading": "Loading the history…",
   "element.history.none": "No history yet.",
   "element.history.reason": "“{reason}”",
