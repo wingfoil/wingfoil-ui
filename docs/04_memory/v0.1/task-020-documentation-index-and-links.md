@@ -174,7 +174,7 @@ Screen: `docs/00_reference/ux-reference.md` §4.9 and the prototype (`docs/00_re
   the UI"; W3-31 images never loaded, "Image not shown: {alt}"; W3-32 only `http`/`https`
   followable, every other scheme "link not supported"; W3-33 root-relative links resolved from the
   repository root; W3-34 "Open on GitHub ↗" deferred, a prototype deviation.
-- Coordination with task-017: the `GET /elements` query is `projectElementsQuery(pid, {archived})`
+- Coordination with task-017: the `GET /elements` query is `elementsQuery(pid, archived)`
   in `web/src/api/queries.ts` with the key `queryKeys.project(pid, 'elements', { archived })` (017
   owns it; the merge unifies). `/p/$pid` redirects to the Memory list (W3-22): nothing here assumes
   what `/p/$pid` shows.
@@ -189,10 +189,10 @@ Screen: `docs/00_reference/ux-reference.md` §4.9 and the prototype (`docs/00_re
     pass uses DOMPurify's default shape restricted to `http`/`https` schemes (a strict "starts with
     `/p/`" regex stripped `target`, `tabindex` and `data-doc-anchor`).
   - REQ-ARC-05: the classification state "waiting" is `unresolved` (`pending` is a fixture state);
-    the elements query is `projectElementsQuery(pid, withArchived)` with the key
-    `queryKeys.project(pid, 'elements', { withArchived })` — **`{ archived }` as an object key or
-    a parameter property is refused by the lint** (`archived` is a fixture state name), so the key
-    agreed with task-017 cannot be written in `web/`; the merge must unify on a lint-clean name.
+    the elements query is task-017's `elementsQuery(pid, archived)` in `api/queries.ts` with the key
+    `queryKeys.project(pid, 'elements', { archived })` (coordinator decision): the shorthand
+    property and a plain `archived` parameter pass the lint, while `archived:` written as a key or
+    as a property of a parameter type is refused (`archived` is a fixture state name).
   - Index entry numbers are `aria-hidden` (the accessible name is "<file name> <path>"; inline
     spans join without a space, and a `{' '}` literal is refused by `formatjs/no-literal-string-in-jsx`);
     the title and path are block elements.
