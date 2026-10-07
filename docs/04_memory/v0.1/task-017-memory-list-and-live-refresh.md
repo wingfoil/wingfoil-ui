@@ -241,3 +241,34 @@ Screen: `docs/00_reference/ux-reference.md` §4.4 and the prototype (`docs/00_re
   two paths, nothing per row); the archived read is made once, after the first type selection
   (component test: one `?archived=true` over two type selections). TT-PERF-05 (≤ 6 CLI cold, 0
   warm) is asserted by the process audit, unchanged.
+- **e2e under machine load** (`7ce46a5`, `2b1b0d1`): at load 25–76 (other projects' builds on the
+  same 12 cores) the cold first read of a console took longer than the default 5 s expectation, and
+  up to 20 of the 40 e2e tests timed out, in this spec and in `element-panel.spec.ts` alike. The
+  logs showed only timeouts ("Loading the Memory list…" / "Loading the element…" still on screen),
+  never a wrong value. The first-load wait of `memory-list.spec.ts` is now 30 s. Later assertions
+  keep the default. At load 7–14 the whole suite passes (below).
+- **Checks** (HEAD `2b1b0d1`): typecheck, lint (ESLint + catalogue check), format:check clean ·
+  `docs:api` OK · `check_tasks.py` OK · `test:e2e` **40/40** (load 7.3 → 14.1) ·
+  `npm run -s test:coverage` **94 files passed, 1 skipped; 1459 passed / 1 skipped**, coverage
+  96.12 % statements / 89.72 % branches / 96.69 % functions / 97.96 % lines (`web/src/memory`
+  100 % / 96.62 %) (load 14 → 18; an earlier run at load ≈ 60 failed on two timeouts: the lint
+  test and the first panel component test, both green when re-run at low load) ·
+  `npm run test:timing` **3/3** at load 8.7 → 7.2: REQ-PERF-03 20/20, max 728 ms (a `memory approve`
+  by the CLI: 552 ms); TypeDoc 3706 ms; REQ-PERF-06 272–302 ms.
+- **Hand-overs:**
+  - **task-019:** `projectConfigQuery(pid)` in `api/queries.ts` (`['p', pid, 'config']`), already
+    read by the Memory list (one read per repository state, shared). The DNA view shows
+    `dna.error.message`. `title.projectView` with the view label for the page title.
+  - **task-020:** `elementsQuery(pid, archived)` in `api/queries.ts`, key
+    `queryKeys.project(pid, 'elements', { archived })`, as agreed. `title.projectView` and
+    `TITLES.projectView` are the same lines in both branches.
+  - **task-021:** X-10.1 title of a view = `title.projectView` (the project name from
+    `GET /api/projects`, the pid until it loads). The list's live region is "Memory list updates".
+  - **v0.2 Today:** replace `projectIndexRoute`'s redirect with the Today view; the panel's
+    fallback (`/p/$pid`) follows.
+- **Open points:**
+  - The default 5 s Playwright expectations of `element-panel.spec.ts` (task-018) time out on a
+    cold console when the machine is loaded. The same 30 s first-load wait could be applied there.
+    Not changed here (another task's suite, except the W3-22 assertion).
+  - The age of an element is computed against the time of the last read. It does not tick while the
+    page stays open with no change (no timer, REQ-INT-09 no polling).
