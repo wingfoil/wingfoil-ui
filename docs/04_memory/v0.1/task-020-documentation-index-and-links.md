@@ -2,7 +2,7 @@
 id: task-020-documentation-index-and-links
 type: task
 title: "Documentation index and links"
-status: backlog
+status: in-progress
 release: "v0.1"
 module: "web"             # optional — server | web | contracts (dna.yaml modules)
 priority: "medium"           # optional — high | medium | low
