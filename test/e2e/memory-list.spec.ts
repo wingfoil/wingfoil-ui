@@ -10,7 +10,7 @@ import path from 'node:path';
 import type { Fixture } from '../harness/fixtures/index.js';
 import { git } from '../harness/run.js';
 import { scanThemes } from './support/axe.js';
-import { COLD_READ_MS, expectFirstLoad } from './support/cold-read.js';
+import { COLD_READ_MS, expectFirstLoad, REFRESH_MS } from './support/cold-read.js';
 import { openConsole, type RunningConsole } from './support/console.js';
 import { cli, mutateAndWait, recordServerEvents } from './support/events.js';
 import { expect, test } from './support/fixtures.js';
@@ -162,7 +162,8 @@ test.describe('US-M-01 — Memory list', () => {
     await page.keyboard.press('Escape');
     await expect(panel).toBeHidden();
     await expect(page).toHaveURL(`${c.origin}/p/${c.pids[0]}/memory?type=task`);
-    await expect(row(page, 'task-003-logout')).toBeFocused();
+    // The row is focused once the list is complete, archived elements included (a cold read).
+    await expect(row(page, 'task-003-logout')).toBeFocused({ timeout: COLD_READ_MS });
     await expectFocusVisible(row(page, 'task-003-logout'));
   });
 
@@ -252,7 +253,7 @@ test.describe('US-S-25 — working tree and local changes', () => {
       },
       { event: 'repo', pid: c.pids[0]! },
     );
-    await expect(marker).toBeHidden({ timeout: 5_000 });
+    await expect(marker).toBeHidden({ timeout: REFRESH_MS });
     await expect(row(page, 'task-001-login-form').locator('.memory-title')).toHaveText('Login form v2');
     expect(await page.evaluate(() => (window as unknown as { __noReload?: boolean }).__noReload)).toBe(true);
   });
@@ -289,7 +290,7 @@ test.describe('US-S-26 — refresh by itself', () => {
       () => cli(kanban, ['memory', 'approve', 'task-001-login-form', '--reason', 'Looks good']),
       { event: 'repo', pid: c.pids[0]! },
     );
-    await expect(pill).toHaveText('approved', { timeout: 5_000 });
+    await expect(pill).toHaveText('approved', { timeout: REFRESH_MS });
     // Without a page reload: the marker set before the change is still there.
     expect(await page.evaluate(() => (window as unknown as { __noReload?: boolean }).__noReload)).toBe(true);
     await expect(page.getByRole('status', { name: 'Memory list updates' })).toHaveText('The list was updated.');
@@ -310,7 +311,7 @@ test.describe('US-S-26 — refresh by itself', () => {
     );
     const head = (await git(kanban.dir, ['rev-parse', 'HEAD'], kanban.env)).stdout.trim();
     const line = panel.getByRole('listitem').filter({ hasText: 'signed off by Alex' });
-    await expect(line).toBeVisible({ timeout: 5_000 });
+    await expect(line).toBeVisible({ timeout: REFRESH_MS });
     await expect(line).toContainText(head.slice(0, 7));
     await expect(line).toContainText('“Looks good”');
   });

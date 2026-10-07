@@ -14,7 +14,9 @@ export default defineConfig({
   globalSetup: path.join(root, 'test', 'e2e', 'support', 'global-setup.ts'),
   // Kills and reports any console of the run still running (bug-004).
   globalTeardown: path.join(root, 'test', 'e2e', 'support', 'global-teardown.ts'),
-  timeout: 60_000,
+  // A test may wait for several cold reads (60 s each, test/e2e/support/cold-read.ts) and two axe
+  // scans under external load (bug-004).
+  timeout: 180_000,
   outputDir: path.join(root, 'test-results'),
   fullyParallel: true,
   forbidOnly: Boolean(process.env.CI),

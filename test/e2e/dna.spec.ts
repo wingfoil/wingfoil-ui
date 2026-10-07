@@ -8,7 +8,7 @@ import path from 'node:path';
 import { pinnedCli } from '../harness/cli.js';
 import { run } from '../harness/run.js';
 import { scanThemes } from './support/axe.js';
-import { expectFirstLoad } from './support/cold-read.js';
+import { expectFirstLoad, REFRESH_MS } from './support/cold-read.js';
 import { openConsole, type RunningConsole } from './support/console.js';
 import { cli, commitFile, mutateAndWait, recordServerEvents } from './support/events.js';
 import { expect, test } from './support/fixtures.js';
@@ -146,7 +146,7 @@ test.describe('US-S-27 — a failed read confined to its view', () => {
       pid: c.pids[0]!,
     });
     const modules = section(page, 'Modules');
-    await expect(modules).toBeVisible({ timeout: 5_000 });
+    await expect(modules).toBeVisible({ timeout: REFRESH_MS });
     await expect(modules.getByText('No module declared', { exact: true })).toBeVisible();
     await expect(section(page, 'Stack').getByText('Kanban', { exact: true })).toBeVisible();
     await expect(page.getByRole('main').getByRole('alert')).toHaveCount(0);
