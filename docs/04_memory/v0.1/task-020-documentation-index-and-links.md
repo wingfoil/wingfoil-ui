@@ -298,4 +298,5 @@ Screen: `docs/00_reference/ux-reference.md` §4.9 and the prototype (`docs/00_re
   `docs:api` OK · `check_tasks.py` OK · `test:e2e` **26/26** (load ≈ 30) · `npm run -s
   test:coverage` **95 files passed, 1 skipped; 1548 passed / 1 skipped** (load 17–22, no retry),
   coverage 96.15 % statements / 89.53 % branches / 96.69 % functions / 98.01 % lines
-  (`web/src/docs` 98.02 % / 92 %) · `npm run test:timing`: see below.
+  (`web/src/docs` 98.02 % / 92 %) · `npm run test:timing` **3/3** at load 9.1 → 8.7: REQ-PERF-03
+  20/20, max 1756 ms; TypeDoc 11 539 ms; REQ-PERF-06 631–1322 ms.
