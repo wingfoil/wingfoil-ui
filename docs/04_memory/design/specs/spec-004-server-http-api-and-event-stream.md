@@ -268,3 +268,7 @@ goes away by itself when the stream reconnects. A network failure is not rendere
 - 2026-10-07 — amended in dev-loop task-018 (Wave 3, plan dev-loop-rel-v0.1-plan): §3 addendum `states` in the
   element response (W3-14); decided by the user. Same day, erratum after the independent review:
   `states` is also absent for an undeclared type, whose descriptor is present.
+- 2026-10-07 — amended in dev-loop tasks 017 and 020 (Wave 3, plan dev-loop-rel-v0.1-plan): no route change; the Memory
+  list reads `GET /elements?archived=true` only once a type is selected, keeping a cold landing
+  within TT-PERF-05 (W3-24); the documentation view asks `GET /files/content` once per distinct
+  repository link target outside the index to mark it (W3-30); decided by the user.
