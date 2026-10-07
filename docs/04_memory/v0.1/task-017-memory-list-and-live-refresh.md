@@ -274,3 +274,36 @@ Screen: `docs/00_reference/ux-reference.md` §4.4 and the prototype (`docs/00_re
     Not changed here (another task's suite, except the W3-22 assertion).
   - The age of an element is computed against the time of the last read. It does not tick while the
     page stays open with no change (no timer, REQ-INT-09 no polling).
+
+### review round 1 (2026-10-07)
+
+- Coordinator review: **PASS with findings**. Fixed one commit per finding. Each new test was run
+  against the previous `MemoryList.tsx` and failed there (F2, F3, F4):
+  - **F1** (`1a8fc94`) the task-020 hand-over states the settled query
+    (`elementsQuery(pid, archived)`, key `queryKeys.project(pid, 'elements', { archived })`, adopted by
+    task-020). It also says that `title.projectView`, `TITLES.projectView` and `test/README.md` need
+    resolution by whoever merges second.
+  - **F2** (`205fb9b`) focus theft: the return row is set only by a click that this page follows
+    (primary button, no modifier, not prevented). It is taken by a mount effect into a ref and
+    consumed once. A refetch never moves the focus. Component test: a Ctrl-click on a row, then a
+    refetch with changed data → the focus stays where it was.
+  - **F4** (`a996be3`) with a type selected, the return row waits for the configuration and the
+    archived read. Component test: the archived list removed from the cache while the panel is open
+    → after Close the archived row `k-009-gone` gets the focus once the archived read is back.
+  - **F3** (`e192a9a`) every refresh that changed the list renders a new node in the live region
+    (keyed by a counter). An unchanged refetch (same data, structural sharing) announces nothing. A
+    filter change clears the announcement. Component test with a `MutationObserver`: unchanged → 0,
+    two changes → 2 announcements, a filter click → empty.
+  - **F5** (`39da270`) a `?type=` that is neither declared nor found on an element: "No element
+    matches these filters.", no state row, and no archived read. The page enables the archived query
+    only for a listed type, once the configuration and the list are settled. Helpers `typesOf` and
+    `isListedType` moved to `model.ts`.
+  - **F6** (`f893fb7`) a failed `GET /config` shows the type-definitions notice. The buckets stay,
+    since they come from the descriptors of the list. Only a list `typesError` hides them. The notice
+    text now fits every case: "The type definitions could not be read: some filters, buckets or
+    tones may be missing."
+  - **F7** (`ed0d57f`) S-26.3 asserts the number of `GET /elements` reads at a settled point: no API
+    request in flight (the event stream aside) and none for 500 ms (`trackApi` in the spec). New
+    component test: back and forward across `/memory` → `?type=kind-a` → `&state=s2` restore the
+    filters, the current link and the rows.
+  - **F8** not changed (task-018's suite, coordinator's bug).
