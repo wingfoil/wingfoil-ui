@@ -297,6 +297,59 @@ it('focuses an archived originating row once the archived read is back (review F
   await waitFor(() => expect((document.activeElement as HTMLElement | null)?.dataset['eid']).toBe('k-009-gone'));
 });
 
+/** Stub the API with `fake`, holding the answer of `held` paths until `release()`. */
+function stubHeld(
+  fake: FakeApi,
+  held: readonly string[],
+): { fetch: ReturnType<typeof stubApi>; hold(): void; release(): void } {
+  const inner = stubApi(fake);
+  let holding = false;
+  let release: () => void = () => {};
+  let gate = Promise.resolve();
+  const fetch = vi.fn(async (url: string) => {
+    if (holding && held.includes(url)) await gate;
+    return (inner as unknown as (u: string) => Promise<Response>)(url);
+  });
+  vi.stubGlobal('fetch', fetch);
+  return {
+    fetch,
+    hold: () => {
+      holding = true;
+      gate = new Promise((r) => (release = r));
+    },
+    release: () => {
+      holding = false;
+      release();
+    },
+  };
+}
+
+it('drops the return row when the user moved the focus before the rows were complete (review N2)', async () => {
+  const net = stubHeld(
+    api({
+      [`${LIST}/k-009-gone`]: { status: 404, body: { error: { code: 'not-found', message: 'x' } } },
+      [`${LIST}/k-009-gone/history`]: { status: 404, body: { error: { code: 'not-found', message: 'x' } } },
+    }),
+    [ARCHIVED],
+  );
+  const user = userEvent.setup();
+  const { router, queryClient } = renderApp(`/p/${PID}/memory?type=kind-a`);
+  await screen.findByText('Title of k-009-gone');
+  await user.click(screen.getByRole('link', { name: /k-009-gone/ }));
+  await screen.findByRole('dialog');
+  queryClient.removeQueries({ queryKey: queryKeys.project(PID, 'elements', { archived: true }) });
+  net.hold();
+  await user.click(screen.getByRole('button', { name: 'Close' }));
+  await waitFor(() => expect(router.state.location.pathname).toBe(`/p/${PID}/memory`));
+  // Before the archived read is back, the user goes to a filter.
+  const allTypes = await screen.findByRole('link', { name: /^All types,/ });
+  allTypes.focus();
+  net.release();
+  await screen.findByText('Title of k-009-gone');
+  await act(async () => new Promise((r) => requestAnimationFrame(() => r(undefined))));
+  expect(document.activeElement).toBe(allTypes);
+});
+
 it('closes a panel opened by URL to the Memory list (W3-22 fallback)', async () => {
   stubApi(api());
   const { router } = renderApp(`/p/${PID}/e/k-001-alpha`);

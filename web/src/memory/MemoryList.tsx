@@ -182,6 +182,10 @@ export function MemoryList({ pid, filters, config, elements, withArchived }: Mem
     const eid = pendingRow.current;
     if (!ready || eid === undefined) return;
     pendingRow.current = undefined;
+    // Only while nothing else holds the focus (the page, or `<main>` after the panel closed): a
+    // focus the user moved meanwhile is kept, and the row is dropped (review N2).
+    const active = document.activeElement;
+    if (active !== null && active !== document.body && active.id !== 'main') return;
     const row = [...(listRef.current?.querySelectorAll<HTMLElement>('[data-eid]') ?? [])].find(
       (a) => a.dataset['eid'] === eid,
     );
