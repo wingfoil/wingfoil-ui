@@ -7,7 +7,7 @@
  */
 import type { UseQueryResult } from '@tanstack/react-query';
 import type { FileContent } from '@wingfoil-ui/contracts';
-import { useCallback, useEffect, useMemo, useRef, type MouseEvent, type ReactNode } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, type MouseEvent, type ReactNode } from 'react';
 import { Link } from 'react-aria-components';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { classifyLink, resolveLink, type LinkLookup } from './links.js';
@@ -46,14 +46,45 @@ export function useResolvedLinks(safeHtml: string, path: string) {
   return useMemo(() => documentLinks(safeHtml).map((href) => resolveLink(href, path)), [safeHtml, path]);
 }
 
-/** Move the focus to the heading `id` of `article` and show it. */
-function focusHeading(article: HTMLElement | null, id: string): boolean {
+/** Move the focus to the element `id` of `article` (a heading: made focusable) and show it. */
+function focusById(article: HTMLElement | null, id: string, scroll = true): boolean {
   const target = article?.querySelector<HTMLElement>(`#${CSS.escape(id)}`);
   if (!target) return false;
   target.setAttribute('tabindex', '-1');
   target.focus();
-  target.scrollIntoView?.({ block: 'start' });
+  if (scroll) target.scrollIntoView?.({ block: 'start' });
   return true;
+}
+
+/** The heading the URL fragment names: its slug (`#key-decisions`) or a `doc-` id as rendered. */
+function focusFragment(article: HTMLElement | null, fragment: string): boolean {
+  return focusById(article, headingId(fragment)) || (fragment.startsWith('doc-') && focusById(article, fragment));
+}
+
+/** A selector finding the focused element of `article` again after its content is rebuilt. */
+function focusKey(article: HTMLElement): string | undefined {
+  const active = document.activeElement;
+  if (!(active instanceof HTMLElement) || !article.contains(active)) return undefined;
+  if (active === article) return '';
+  if (active.dataset.docLink !== undefined) return `[data-doc-link="${active.dataset.docLink}"]`;
+  if (active.dataset.docTable !== undefined) return `[data-doc-table="${active.dataset.docTable}"]`;
+  return active.id ? `#${CSS.escape(active.id)}` : undefined;
+}
+
+/**
+ * Put `html` into `article`, keeping the focus where it was: the links are classified as their
+ * answers arrive (index, elements, server checks), and each new classification rebuilds the
+ * content. A link that became refused is no longer focusable: the article takes the focus.
+ */
+function replaceContent(article: HTMLElement, html: string): void {
+  const key = focusKey(article);
+  article.innerHTML = html;
+  if (key === undefined) return;
+  const again = key === '' ? null : article.querySelector<HTMLElement>(key);
+  if (again && (again.tabIndex >= 0 || again.id)) {
+    if (again.id && again.tabIndex < 0) again.setAttribute('tabindex', '-1');
+    again.focus({ preventScroll: true });
+  } else article.focus({ preventScroll: true });
 }
 
 /** `text` percent-decoded when it can be. */
@@ -82,6 +113,7 @@ export function DocumentView({
     const current = lookup ?? WAITING;
     return {
       pid,
+      documentPath: path,
       classify: (href) => classifyLink(resolveLink(href, path), current),
       marks: {
         broken: intl.formatMessage({ id: 'docs.link.broken' }),
@@ -97,11 +129,17 @@ export function DocumentView({
   const html = useMemo(() => (safeHtml === '' ? '' : finishDocument(safeHtml, options)), [safeHtml, options]);
   const shown = html !== '';
 
-  // A heading named by the URL fragment, else the article when the focus was lost (e.g. after
+  // The content is set here, not by React, so that a new classification keeps the focus
+  // (replaceContent). DOMPurify ran last in finishDocument (adr-002, W3-29).
+  useLayoutEffect(() => {
+    if (article.current) replaceContent(article.current, html);
+  }, [html]);
+
+  // The heading named by the URL fragment, else the article when the focus was lost (e.g. after
   // following a link of the previous document).
   useEffect(() => {
     if (!shown) return;
-    if (hash !== '' && focusHeading(article.current, headingId(decoded(hash)))) return;
+    if (hash !== '' && focusFragment(article.current, decoded(hash))) return;
     const active = document.activeElement;
     if (active === null || active === document.body) article.current?.focus();
   }, [shown, path, hash]);
@@ -111,14 +149,9 @@ export function DocumentView({
       if (event.defaultPrevented || event.button !== 0) return;
       if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
       const a = event.target instanceof Element ? event.target.closest('a') : null;
-      if (!a) return;
-      if (a.dataset.docAnchor !== undefined) {
-        event.preventDefault();
-        focusHeading(article.current, a.dataset.docAnchor);
-      } else if (a.dataset.docNav !== undefined) {
-        event.preventDefault();
-        onNavigate(a.getAttribute('href') ?? '');
-      }
+      if (!a || a.dataset.docNav === undefined) return;
+      event.preventDefault();
+      onNavigate(a.getAttribute('href') ?? '');
     },
     [onNavigate],
   );
@@ -152,8 +185,6 @@ export function DocumentView({
           aria-label={path}
           tabIndex={-1}
           onClick={onClick}
-          // Sanitised by DOMPurify as the last step of finishDocument (adr-002, W3-29).
-          dangerouslySetInnerHTML={{ __html: html }}
         />
       )}
     </div>

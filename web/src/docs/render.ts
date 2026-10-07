@@ -75,6 +75,8 @@ export function documentLinks(safeHtml: string): string[] {
 /** What {@link finishDocument} needs: the project, the classification and the catalogue texts. */
 export interface FinishOptions {
   pid: string;
+  /** The document's repository path (the target of its in-page links). */
+  documentPath: string;
   /** The classification of a raw href of the document. */
   classify: (href: string) => LinkClass;
   /** The visible mark of each refusal. */
@@ -113,13 +115,15 @@ function span(className: string, text: string): HTMLSpanElement {
   return el;
 }
 
+/** Unique heading ids: a repeated slug takes the first free `-1`, `-2`, … suffix. */
 function rewriteHeadings(root: DocumentFragment): void {
-  const seen = new Map<string, number>();
+  const used = new Set<string>();
   for (const h of root.querySelectorAll('h1, h2, h3, h4, h5, h6')) {
     const base = slug(h.textContent ?? '');
-    const n = seen.get(base) ?? 0;
-    seen.set(base, n + 1);
-    h.id = `doc-${n === 0 ? base : `${base}-${n}`}`;
+    let id = base;
+    for (let n = 1; used.has(id); n++) id = `${base}-${n}`;
+    used.add(id);
+    h.id = `doc-${id}`;
   }
 }
 
@@ -133,8 +137,10 @@ function rewriteLink(a: HTMLAnchorElement, link: LinkClass, options: FinishOptio
       a.append(document.createTextNode(' '), span('visually-hidden', options.newTab));
       return;
     case 'anchor':
-      a.setAttribute('href', `#${headingId(link.fragment)}`);
-      a.dataset.docAnchor = headingId(link.fragment);
+      // The same document with the fragment in the URL: a copied or reloaded URL lands on the
+      // heading, and Back returns to the previous position.
+      a.setAttribute('href', documentHref(options.pid, options.documentPath, link.fragment));
+      a.dataset.docNav = '';
       return;
     case 'document':
       a.setAttribute('href', documentHref(options.pid, link.path, link.fragment));
@@ -148,6 +154,7 @@ function rewriteLink(a: HTMLAnchorElement, link: LinkClass, options: FinishOptio
     case 'unresolved': {
       const text = document.createElement('span');
       text.className = link.kind === 'refused' ? 'doc-link-refused' : 'doc-link-unresolved';
+      text.dataset.docLink = a.dataset.docLink;
       text.append(...a.childNodes);
       const parts: Node[] = [text];
       if (link.kind === 'refused') parts.push(document.createTextNode(' '), span('doc-link-mark', options.marks[link.mark]));
@@ -161,11 +168,13 @@ function rewriteLink(a: HTMLAnchorElement, link: LinkClass, options: FinishOptio
 export function finishDocument(safeHtml: string, options: FinishOptions): string {
   const root = inert(safeHtml).content;
   rewriteHeadings(root);
-  for (const a of root.querySelectorAll('a')) {
+  [...root.querySelectorAll('a')].forEach((a, i) => {
     const href = a.getAttribute('href');
     a.removeAttribute('title');
+    // A key that survives a new classification (the page keeps the focus on it).
+    a.dataset.docLink = String(i);
     rewriteLink(a, options.classify(href ?? ''), options);
-  }
+  });
   for (const img of root.querySelectorAll('img')) {
     img.replaceWith(span('doc-image', options.imageNotShown(img.getAttribute('alt') ?? '')));
   }
@@ -180,6 +189,7 @@ export function finishDocument(safeHtml: string, options: FinishOptions): string
     region.setAttribute('role', 'region');
     region.setAttribute('tabindex', '0');
     region.setAttribute('aria-label', options.tableLabel(i + 1));
+    region.dataset.docTable = String(i);
     table.replaceWith(region);
     region.append(table);
   });
@@ -198,8 +208,11 @@ export function finishDocument(safeHtml: string, options: FinishOptions): string
       'tabindex',
       'aria-label',
       'data-doc-nav',
-      'data-doc-anchor',
+      'data-doc-link',
+      'data-doc-table',
     ],
+    // Labels are text, not URLs: not checked against ALLOWED_URI_REGEXP.
+    ADD_URI_SAFE_ATTR: ['aria-label'],
     ALLOW_DATA_ATTR: false,
     // DOMPurify checks every attribute value with it: no scheme but http(s) (W3-32).
     ALLOWED_URI_REGEXP: /^(?:https?:|[^a-z]|[a-z+.-]+(?:[^a-z+.\-:]|$))/i,

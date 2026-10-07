@@ -18,6 +18,7 @@ const LOOKUP: LinkLookup = {
 
 const OPTIONS: FinishOptions = {
   pid: 'p_x',
+  documentPath: DOC,
   classify: (href) => classifyLink(resolveLink(href, DOC), LOOKUP),
   marks: {
     broken: 'broken link',
@@ -49,10 +50,25 @@ describe('Markdown structure', () => {
     expect(region.getAttribute('role')).toBe('region');
     expect(region.getAttribute('tabindex')).toBe('0');
     expect(region.getAttribute('aria-label')).toBe('Table 1');
+    expect(region.getAttribute('data-doc-table')).toBe('0');
     expect(region.querySelector('table th')?.className).toBe('align-center');
     expect(region.querySelector('table td:last-child')?.className).toBe('align-right');
     expect(host.querySelector('[style]')).toBeNull();
     expect(host.querySelector('pre code')?.textContent).toBe('code\n');
+  });
+
+  it('a table label is text, kept even when it reads like a URL scheme (review F5)', () => {
+    const host = document.createElement('div');
+    host.innerHTML = finishDocument(markdownToSafeHtml('| A |\n|---|\n| 1 |'), {
+      ...OPTIONS,
+      tableLabel: (n) => `Tabelle: ${n}`,
+    });
+    expect(host.querySelector('.doc-table')?.getAttribute('aria-label')).toBe('Tabelle: 1');
+  });
+
+  it('heading ids are unique even when a slug equals a suffixed one (review F3)', () => {
+    const host = render('# A\n\n# A\n\n# A-1\n\n# A\n');
+    expect([...host.querySelectorAll('h1')].map((h) => h.id)).toEqual(['doc-a', 'doc-a-1', 'doc-a-1-1', 'doc-a-2']);
   });
 
   it('a heading id cannot clobber a document property', () => {
@@ -124,10 +140,20 @@ describe('links (W3-30, W3-32)', () => {
     expect(a.dataset.docNav).toBe('');
   });
 
-  it('a fragment links to the prefixed heading id of the same document', () => {
+  it('a fragment links to the same document with the fragment in its URL (review F2)', () => {
     const a = render('# Top\n\n[up](#top)').querySelector('a')!;
-    expect(a.getAttribute('href')).toBe('#doc-top');
-    expect(a.dataset.docAnchor).toBe('doc-top');
+    expect(a.getAttribute('href')).toBe('/p/p_x/docs/docs/guide/a.md#top');
+    expect(a.dataset.docNav).toBe('');
+  });
+
+  it('every link and its replacement keep a stable key (review F1)', () => {
+    const host = render('[a](b.md) [x](missing.md) [y](unknown.md) [z](https://x.test)');
+    expect([...host.querySelectorAll('[data-doc-link]')].map((e) => [e.tagName, e.getAttribute('data-doc-link')])).toEqual([
+      ['A', '0'],
+      ['SPAN', '1'],
+      ['SPAN', '2'],
+      ['A', '3'],
+    ]);
   });
 
   it.each([
