@@ -269,3 +269,17 @@ Screen: `docs/00_reference/ux-reference.md` §4.2 and the prototype (`docs/00_re
 - **Hand-over 017 (updated):** after the back navigation from the panel, focus the originating row
   (by eid) on the list's mount. The panel moves the focus to `<main>` only when no element holds
   it.
+
+### integration (2026-10-07)
+
+- Re-verification of review round 1: **PASS** (two harmless nits, no action).
+- `main` merged into the branch (`2d7df33`, authorised by the coordinator): spec amendments W3
+  (`10d3759`, `3aa0433`, `b44f999` — spec-004 §3 erratum: `states` is also absent for an undeclared
+  type, with the descriptor present, which is what the code and the F5 route test do) plus status
+  commits. No conflict.
+- Gates on the merge: typecheck, lint (ESLint + catalogue check), format:check clean · `docs:api`
+  OK · `npm run -s test:coverage` **92 files passed, 1 skipped; 1433 passed / 1 skipped**, coverage
+  95.95 % statements / 89.29 % branches / 96.5 % functions / 97.89 % lines · `test:e2e` **19/19**
+  · `check_tasks.py` OK · `npm run test:timing` **3/3** after waiting for the load to drop below
+  12 (start 8.86, 1-minute load 6.8–8.9 during the run; the 5- and 15-minute averages were still ≈ 12.6):
+  REQ-PERF-03 20/20, max 1507 ms; TypeDoc 8931 ms; REQ-PERF-06 563–1485 ms.
