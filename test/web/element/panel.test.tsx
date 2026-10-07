@@ -307,6 +307,17 @@ it('leaves the focus where the destination put it', async () => {
   unsubscribe();
 });
 
+it('applies any descriptor tone as data on the current chip only (e.g. attention)', async () => {
+  stubApi(
+    api({ [BASE]: { status: 200, body: { ...DETAIL, descriptor: { ...DETAIL.descriptor!, tone: 'attention' } } } }),
+  );
+  renderApp(`/p/${PID}/e/${EID}`);
+  const list = await screen.findByRole('list', { name: 'State machine' });
+  const chips = within(list).getAllByRole('listitem');
+  expect(chips[0]?.classList.contains('tone-attention')).toBe(true);
+  expect(chips.slice(1).some((c) => /\btone-/.test(c.className))).toBe(false);
+});
+
 it('names a deprecate in the history without a state name (W3-21)', async () => {
   const last = HISTORY.entries[3]!;
   stubApi(
