@@ -5,7 +5,9 @@ import type { Page } from '@playwright/test';
 import type { MemoryHistory } from '@wingfoil-ui/contracts';
 import { scanThemes } from './support/axe.js';
 import { openConsole, type RunningConsole } from './support/console.js';
-import { cli } from './support/events.js';
+import { readFile } from 'node:fs/promises';
+import path from 'node:path';
+import { cli, commitFile } from './support/events.js';
 import { expect, test } from './support/fixtures.js';
 import { expectFocusVisible } from './support/keyboard.js';
 
@@ -114,5 +116,22 @@ test.describe('US-G-01 — element panel', () => {
     } finally {
       await tab.close();
     }
+  });
+});
+
+test.describe('element panel layout', () => {
+  test('a long unbroken value wraps inside the drawer: no horizontal scroll', async ({ page, fixtures, consoles }) => {
+    const kanban = await fixtures.copy('kanban');
+    const file = 'docs/memory/task/task-004-session-timeout.md';
+    const long = 'X'.repeat(300);
+    const text = await readFile(path.join(kanban.dir, file), 'utf8');
+    await commitFile(kanban, file, text.replace('\n---\n', `\nref: "${long}"\n---\n\n${long}\n`), 'docs: long values');
+    const c = await consoles.start({ projects: [kanban] });
+    const panel = await openPanel(page, c, 'task-004-session-timeout');
+    await expect(panel.getByText(long).first()).toBeVisible();
+    const overflow = await page
+      .locator('.drawer-body')
+      .evaluate((el) => ({ scroll: el.scrollWidth, client: el.clientWidth }));
+    expect(overflow.scroll).toBeLessThanOrEqual(overflow.client);
   });
 });

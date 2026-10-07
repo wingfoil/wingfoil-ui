@@ -61,6 +61,8 @@
 }
 
 .drawer-title {
+  min-width: 0;
+  overflow-wrap: anywhere;
   margin: 0;
   font-size: 18px;
   font-weight: 600;
@@ -135,6 +137,8 @@
 }
 
 .element-summary {
+  min-width: 0;
+  overflow-wrap: anywhere;
   color: var(--color-text-2);
   line-height: 1.55;
 }
@@ -179,6 +183,7 @@
 }
 
 .field-values {
+  min-width: 0;
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
@@ -186,6 +191,9 @@
 }
 
 .field-value {
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
   padding: 2px 7px;
   border: 1px solid var(--color-divider);
   border-radius: 5px;
@@ -213,6 +221,8 @@
 
 .history-transition,
 .history-reason {
+  min-width: 0;
+  overflow-wrap: anywhere;
   color: var(--color-text-2);
   font-size: 13px;
 }
