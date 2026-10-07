@@ -2,7 +2,7 @@
 id: bug-004-tests-time-out-under-extreme-machine-load
 type: bug
 title: "Tests time out under extreme machine load"
-status: triaged
+status: planned
 severity: "low"        # REQUIRED — critical | high | medium | low
 release-origin: "v0.1" # optional — release where the bug was FOUND, e.g. "v0.1"
 release: ""            # optional — fix/implementation release, stamped by release-planning/build-backlog
@@ -63,4 +63,8 @@ tests may be slower under load but do not fail when the code is correct.
   suites on the same support).
 
 ## Triage & Execution Notes
-
+- triage (2026-10-07): approved by the user as **low** severity (test-suite defect under extreme
+  external load, no product code at fault).
+- fix: **absorbed into task-019-dna-directives-and-team-views** (dl-045 pattern; the task lists
+  this bug in `bug:` with its own Acceptance Criterion). `triaged → planned` set by hand (no CLI
+  verb); it moves to `in-progress` when task-019 starts.
