@@ -4,6 +4,7 @@
  */
 import type { QueryClient } from '@tanstack/react-query';
 import { createRouter, type RouterHistory } from '@tanstack/react-router';
+import { documentationRoute } from './docs.js';
 import { elementRoute } from './element.js';
 import { projectRoute } from './project.js';
 import { rootRoute } from './root.js';
@@ -19,6 +20,7 @@ import { startRoute } from './start.js';
 export const PROJECT_ROUTES = [
   // memoryRoute,
   elementRoute,
+  documentationRoute,
 ] as const;
 
 /** Every route of the application. */

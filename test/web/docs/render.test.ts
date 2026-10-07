@@ -107,7 +107,7 @@ describe('links (W3-30, W3-32)', () => {
     expect(a.getAttribute('target')).toBe('_blank');
     expect(a.getAttribute('rel')).toBe('noopener noreferrer');
     expect(a.textContent).toBe('guide (opens in a new tab)');
-    expect(a.querySelector('.visually-hidden')?.textContent).toBe(' (opens in a new tab)');
+    expect(a.querySelector('.visually-hidden')?.textContent).toBe('(opens in a new tab)');
   });
 
   it('an indexed document is an in-UI link, its path encoded', () => {
@@ -147,7 +147,7 @@ describe('links (W3-30, W3-32)', () => {
   it('a link waiting for its classification is plain text', () => {
     const host = render('[x](unknown.md)');
     expect(host.querySelector('a')).toBeNull();
-    expect(host.querySelector('.doc-link-pending')?.textContent).toBe('x');
+    expect(host.querySelector('.doc-link-unresolved')?.textContent).toBe('x');
   });
 
   it('documentLinks lists the hrefs to classify', () => {

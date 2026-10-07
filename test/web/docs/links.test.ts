@@ -117,10 +117,10 @@ describe('classifyLink', () => {
   it('a path neither indexed nor an element waits for the elements, then for the server', () => {
     const target = resolveLink('missing-file.md', DOC);
     expect(classifyLink(target, lookup({ elements: undefined }))).toEqual({
-      kind: 'pending',
+      kind: 'unresolved',
       path: 'docs/01_vision/missing-file.md',
     });
-    expect(classifyLink(target, lookup())).toEqual({ kind: 'pending', path: 'docs/01_vision/missing-file.md' });
+    expect(classifyLink(target, lookup())).toEqual({ kind: 'unresolved', path: 'docs/01_vision/missing-file.md' });
   });
 
   it.each([
