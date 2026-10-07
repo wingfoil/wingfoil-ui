@@ -14,7 +14,15 @@ import { renderApp, stubApi, type FakeApi } from '../shell/render.js';
 
 function detail(id: string): ElementDetail {
   return {
-    element: { path: `docs/${id}.md`, id, title: `Element ${id}`, type: 'kind-a', status: 's1', tags: [], localChanges: false },
+    element: {
+      path: `docs/${id}.md`,
+      id,
+      title: `Element ${id}`,
+      type: 'kind-a',
+      status: 's1',
+      tags: [],
+      localChanges: false,
+    },
     frontmatter: { id, type: 'kind-a', title: `Element ${id}`, status: 's1' },
     body: 'Text.',
   };
@@ -62,7 +70,9 @@ it("lists the role view's directives as links to the Directives view, between Re
   stubApi(API);
   renderApp(`/p/${PID}/e/e-1`);
   const s = await section();
-  await waitFor(() => expect(s.getAllByRole('link').map((a) => a.textContent)).toEqual(['Title of d-dev', 'Title of d-all']));
+  await waitFor(() =>
+    expect(s.getAllByRole('link').map((a: HTMLElement) => a.textContent)).toEqual(['Title of d-dev', 'Title of d-all']),
+  );
   expect(s.getByRole('link', { name: 'Title of d-dev' }).getAttribute('href')).toBe(`/p/${PID}/directives/d-dev`);
   expect(s.getByText('d-all')).toBeTruthy();
   const titles = [...document.querySelectorAll('.drawer-body h3')].map((h) => h.textContent);
@@ -98,7 +108,9 @@ it('shows the global directives with the reason outside the team', async () => {
   });
   renderApp(`/p/${PID}/e/e-1`);
   const s = await section();
-  await waitFor(() => expect(s.getAllByRole('link').map((a) => a.textContent)).toEqual(['Title of d-all']));
+  await waitFor(() =>
+    expect(s.getAllByRole('link').map((a: HTMLElement) => a.textContent)).toEqual(['Title of d-all']),
+  );
   expect(s.getByText('You hold no role in this project: only the global directives are shown.')).toBeTruthy();
 });
 

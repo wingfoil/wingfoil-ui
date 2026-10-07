@@ -1,16 +1,17 @@
 /**
  * The element panel route `/p/$pid/e/$eid` (US-G-01; ux-reference §2 overlay, §4.2): reachable by
  * URL (G-01.4), opened from the Memory list (task-017) and from document links (task-020). It has
- * no sidebar entry — the panel is an overlay, not a view. Two reads, nothing per reference
- * (TT-PERF-05): the element and its history; both keys sit under `['p', pid]`, so the `repo` event
- * refreshes an open panel (S-26.2).
+ * no sidebar entry — the panel is an overlay, not a view. Reads, nothing per reference (TT-PERF-05):
+ * the element and its history, plus the project's directives and header (task-019, shared with the
+ * Directives view: once per project and repository state); every key sits under `['p', pid]`, so
+ * the `repo` event refreshes an open panel (S-26.2).
  */
 import type { ElementDetail, MemoryHistory } from '@wingfoil-ui/contracts';
 import { queryOptions, useQuery } from '@tanstack/react-query';
 import { createRoute, useCanGoBack, useRouter } from '@tanstack/react-router';
 import { useCallback, type ReactNode } from 'react';
 import { apiGet } from '../api/client.js';
-import { projectsQuery } from '../api/queries.js';
+import { directivesQuery, projectHeaderQuery, projectsQuery } from '../api/queries.js';
 import { queryKeys } from '../api/query-keys.js';
 import { ElementPanel } from '../element/ElementPanel.js';
 import { TITLES, usePageTitle } from '../shell/page-title.js';
@@ -68,9 +69,12 @@ function ElementPage(): ReactNode {
   }, [canGoBack, router, pid]);
   return (
     <ElementPanel
+      pid={pid}
       eid={eid}
       element={useQuery(elementQuery(pid, eid))}
       history={useQuery(historyQuery(pid, eid))}
+      directives={useQuery(directivesQuery(pid))}
+      header={useQuery(projectHeaderQuery(pid))}
       onClose={close}
     />
   );

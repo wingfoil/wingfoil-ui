@@ -62,7 +62,7 @@ afterEach(() => {
 /** The member cards' names, in order. */
 function cards(): string[] {
   return within(screen.getByRole('list', { name: 'Members' }))
-    .queryAllByRole('listitem', { name: /./ })
+    .queryAllByRole('listitem')
     .filter((li) => li.classList.contains('member-card'))
     .map((li) => li.getAttribute('aria-label') ?? '');
 }

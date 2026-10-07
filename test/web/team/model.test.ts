@@ -38,7 +38,10 @@ function el(id: string, descriptor?: Partial<ActionDescriptor>): ListedElement {
   };
 }
 
-const GATE = { kind: 'gate', actor: { kind: 'role', role: 'r-approve', members: ['Ann', 'Bo'] } } as const;
+const GATE: Partial<ActionDescriptor> = {
+  kind: 'gate',
+  actor: { kind: 'role', role: 'r-approve', members: ['Ann', 'Bo'] },
+};
 
 const ELEMENTS: ListedElement[] = [
   el('e1', GATE),

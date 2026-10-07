@@ -116,6 +116,9 @@ function api(over: FakeApi = {}): FakeApi {
     },
     [BASE]: { status: 200, body: DETAIL },
     [`${BASE}/history`]: { status: 200, body: HISTORY },
+    // task-019: the panel's Directives section reads the project's directives and header.
+    [`/api/p/${PID}/directives`]: { status: 200, body: { entries: [], warnings: [] } },
+    [`/api/p/${PID}`]: { status: 200, body: { identity: { kind: 'no-identity' }, roleViews: [], roleView: null } },
     ...over,
   };
 }

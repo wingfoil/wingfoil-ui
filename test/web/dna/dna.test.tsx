@@ -37,7 +37,7 @@ it('shows every section of the DNA: project, modules, stack, methodologies, team
   const fetch = stubApi(projectApi({ [`${BASE}/config`]: { status: 200, body: config() } }));
   renderApp(`/p/${PID}/dna`);
   expect(await screen.findByRole('heading', { level: 1, name: 'DNA' })).toBeTruthy();
-  expect(screen.getByText('A demo project')).toBeTruthy();
+  expect(await screen.findByText('A demo project')).toBeTruthy();
   expect(screen.getByRole('link', { name: 'DNA' }).getAttribute('aria-current')).toBe('page');
   const modules = section('Modules');
   expect(modules.getByText('mod-a')).toBeTruthy();
@@ -113,8 +113,8 @@ it('shows a failed configuration request as an error of the view', async () => {
 it('renders every text from the catalogue (key build)', async () => {
   stubApi(projectApi({ [`${BASE}/config`]: { status: 200, body: config() } }));
   renderApp(`/p/${PID}/dna`, keyCatalogue(en));
-  expect(await screen.findByText('dna.title')).toBeTruthy();
-  expect(screen.getByText('dna.modules.title')).toBeTruthy();
+  expect(await screen.findByText('dna.modules.title')).toBeTruthy();
+  expect(screen.getByText('dna.title')).toBeTruthy();
   expect(screen.getByText('dna.agent.executes r-dev, r-qa')).toBeTruthy();
   expect(screen.queryByText('Modules')).toBeNull();
   expect(DNA.modules).toHaveLength(2);

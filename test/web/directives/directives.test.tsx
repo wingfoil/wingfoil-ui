@@ -39,6 +39,7 @@ const MEMBER = projectApi({
 function listed(): string[] {
   return within(screen.getByRole('list', { name: 'Directives' }))
     .getAllByRole('listitem')
+    .filter((li) => li.classList.contains('directive-row'))
     .map((li) => li.dataset['directive'] ?? '');
 }
 
@@ -104,7 +105,10 @@ it('shows a failed list as an error of the view', async () => {
   stubApi(
     projectApi({
       [BASE]: { status: 200, body: header(BO, 'r-dev') },
-      [`${BASE}/directives`]: { status: 502, body: { error: { code: 'cli-refused', message: 'roles.yaml is broken' } } },
+      [`${BASE}/directives`]: {
+        status: 502,
+        body: { error: { code: 'cli-refused', message: 'roles.yaml is broken' } },
+      },
     }),
   );
   renderApp(`/p/${PID}/directives`);

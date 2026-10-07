@@ -1,0 +1,405 @@
+/*
+ * The *Rules and context* views (ux-reference §4.5, §4.6, §4.10, prototype): DNA, Directives and
+ * Team. Colours only through the tokens of tokens.css.
+ */
+.rules-head {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.rules-head .page-intro {
+  margin: 0;
+  font-size: 14px;
+}
+
+.rules-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr));
+  gap: var(--space-4);
+  align-items: start;
+}
+
+.rules-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+  padding: var(--space-4);
+  border: 1px solid var(--color-divider);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg);
+}
+
+.rules-section-title {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+}
+
+.rules-subtitle {
+  margin: var(--space-2) 0 0;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.rules-list,
+.rules-paths {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.rules-item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px var(--space-2);
+  padding: 6px 0;
+  border-bottom: 1px solid var(--color-surface-2);
+}
+
+.rules-item:last-child {
+  border-bottom: none;
+}
+
+.rules-paths dd {
+  margin: 0;
+}
+
+.rules-name {
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+
+.rules-text {
+  min-width: 0;
+  color: var(--color-text-2);
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+
+.rules-meta {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+
+.rules-path {
+  color: var(--color-text-muted);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.rules-none {
+  margin: 0;
+  font-size: 13px;
+}
+
+.rules-error,
+.rules-notice {
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--tone-attention-bg);
+  color: var(--tone-attention-fg);
+  font-size: 13px;
+}
+
+.rules-notice {
+  background: var(--tone-human-bg);
+  color: var(--tone-human-fg);
+  list-style: none;
+}
+
+.rules-error p,
+.rules-error-frame {
+  margin: 0;
+}
+
+.rules-error .verbatim {
+  margin: var(--space-1) 0 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+/* --- Role chips (the current view's role highlighted) --- */
+
+.role-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.role-chip {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--tone-neutral-bg);
+  color: var(--tone-neutral-fg);
+  font-size: 12px;
+}
+
+.role-chip[data-current='true'] {
+  background: var(--tone-active-bg);
+  color: var(--tone-active-fg);
+  font-weight: 600;
+}
+
+.role-chip-global {
+  background: var(--tone-done-bg);
+  color: var(--tone-done-fg);
+}
+
+/* --- Directives --- */
+
+.directive-filter {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.segmented {
+  display: inline-flex;
+  padding: 2px;
+  border: 1px solid var(--color-control-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+}
+
+.segment {
+  height: 28px;
+  padding: 0 12px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--color-text);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.segment[data-selected] {
+  background: var(--color-text);
+  color: var(--color-bg);
+}
+
+.segment[data-disabled] {
+  color: var(--color-text-muted);
+  cursor: not-allowed;
+  text-decoration: line-through;
+}
+
+.directive-list {
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  list-style: none;
+  border: 1px solid var(--color-divider);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg);
+}
+
+.directive-list:empty {
+  display: none;
+}
+
+.directive-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-4);
+  padding: 11px 16px;
+}
+
+.directive-row + .directive-row {
+  border-top: 1px solid var(--color-divider);
+}
+
+.directive-head {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.directive-title {
+  color: var(--color-primary);
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+
+.directive-page {
+  max-width: 820px;
+}
+
+/* --- Team --- */
+
+.team-filters {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.team-filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.team-search-input {
+  width: min(280px, 100%);
+  height: 34px;
+  padding: 0 var(--space-3);
+  border: 1px solid var(--color-control-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+  color: var(--color-text);
+  font: inherit;
+  font-size: 13px;
+}
+
+.team-search-input::placeholder {
+  color: var(--color-text-muted);
+}
+
+.team-gates {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.team-gates-box {
+  width: 16px;
+  height: 16px;
+  border: 1px solid var(--color-control-border);
+  border-radius: 4px;
+  background: var(--color-bg);
+}
+
+.team-gates[data-selected] .team-gates-box {
+  border-color: var(--color-primary);
+  background: var(--color-primary);
+  box-shadow: inset 0 0 0 3px var(--color-bg);
+}
+
+.team-gates[data-focus-visible] .team-gates-box {
+  outline: var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.member-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr));
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.member-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+  padding: var(--space-4);
+  border: 1px solid var(--color-divider);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg);
+}
+
+.member-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.member-initials {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.member-who {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.member-name {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.member-you {
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--tone-active-bg);
+  color: var(--tone-active-fg);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.member-email {
+  color: var(--color-text-muted);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.member-gates {
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+
+.member-gates-some {
+  align-self: flex-start;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--tone-human-bg);
+  color: var(--tone-human-fg);
+  font-weight: 500;
+}
+
+/* --- Element panel: the Directives section --- */
+
+.directive-links {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.directive-link-item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px var(--space-2);
+}

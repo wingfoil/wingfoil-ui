@@ -73,8 +73,16 @@ describe('directive paths and links', () => {
   });
 
   it('opens another directive in the UI', () => {
-    expect(classify('./d-other.md#a')).toEqual({ kind: 'document', path: '.wingfoil/directives/custom/d-other.md', fragment: 'a' });
-    expect(classify('../custom/d-global.md')).toEqual({ kind: 'document', path: '.wingfoil/directives/custom/d-global.md', fragment: '' });
+    expect(classify('./d-other.md#a')).toEqual({
+      kind: 'document',
+      path: '.wingfoil/directives/custom/d-other.md',
+      fragment: 'a',
+    });
+    expect(classify('../custom/d-global.md')).toEqual({
+      kind: 'document',
+      path: '.wingfoil/directives/custom/d-global.md',
+      fragment: '',
+    });
   });
 
   it('marks every other repository path "not shown in the UI", and refuses the rest', () => {

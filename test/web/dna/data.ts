@@ -2,7 +2,14 @@
  * Fake API answers of the task-019 component tests (DNA, Directives, Team, panel directives): a
  * neutral project (no fixture type, state or role vocabulary needed by the screens).
  */
-import type { DirectiveDetail, DirectiveList, DnaShow, Identity, ProjectConfig, ProjectHeader } from '@wingfoil-ui/contracts';
+import type {
+  DirectiveDetail,
+  DirectiveList,
+  DnaShow,
+  Identity,
+  ProjectConfig,
+  ProjectHeader,
+} from '@wingfoil-ui/contracts';
 import { serverInfo, type FakeApi } from '../shell/render.js';
 
 export const PID = 'p_fx';
@@ -11,15 +18,9 @@ export const BASE = `/api/p/${PID}`;
 export const DNA: DnaShow = {
   version: 1,
   project: { name: 'demo', description: 'A demo project', methodology: 'Flow' },
-  modules: [
-    { name: 'mod-a', description: 'First module', path: 'a/' },
-    { name: 'mod-b' },
-  ],
+  modules: [{ name: 'mod-a', description: 'First module', path: 'a/' }, { name: 'mod-b' }],
   stacks: {
-    technologies: [
-      { name: 'Lang', category: 'language', version: '5.x', notes: 'pinned' },
-      { name: 'Tool' },
-    ],
+    technologies: [{ name: 'Lang', category: 'language', version: '5.x', notes: 'pinned' }, { name: 'Tool' }],
     methodologies: [{ name: 'Method One', phase: 'phase-1' }, { name: 'Method Two' }],
   },
   team: {
@@ -74,7 +75,11 @@ function entry(id: string, roles: string[], mine: boolean, dir = 'custom'): Entr
 
 /** Bo's view (`r-dev`): `d-dev` and the global `d-all` are his. */
 export const DIRECTIVES: DirectiveList = {
-  entries: [entry('d-dev', ['r-dev', 'r-qa'], true), entry('d-qa', ['r-qa'], false, 'built-in'), entry('d-all', [], true)],
+  entries: [
+    entry('d-dev', ['r-dev', 'r-qa'], true),
+    entry('d-qa', ['r-qa'], false, 'built-in'),
+    entry('d-all', [], true),
+  ],
   warnings: [],
 };
 
