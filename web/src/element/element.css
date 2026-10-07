@@ -1,0 +1,244 @@
+/*
+ * The element panel (ux-reference §4.2, prototype drawer): a 480 px drawer on the right over the
+ * backdrop. Colours only through the tokens of tokens.css.
+ */
+.drawer-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  justify-content: flex-end;
+  background: var(--color-backdrop);
+}
+
+.drawer {
+  width: min(480px, 100%);
+  height: 100%;
+  border-left: 1px solid var(--color-divider);
+  background: var(--color-bg);
+  box-shadow: var(--shadow-popover);
+}
+
+.drawer-dialog {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  outline: none;
+}
+
+.drawer-header {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 18px var(--space-5) 14px;
+  border-bottom: 1px solid var(--color-divider);
+}
+
+.drawer-topline {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.type-tag {
+  padding: 3px 6px;
+  border-radius: 4px;
+  background: var(--color-surface-2);
+  color: var(--color-text-2);
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+
+.element-id {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--color-text-muted);
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+.drawer-title {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: -0.2px;
+}
+
+.state-machine {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.state-chip {
+  padding: 3px 7px;
+  border-radius: 999px;
+  font-size: 12px;
+}
+
+.state-chip-past {
+  color: var(--color-text-2);
+}
+
+.state-chip-future,
+.state-chip-other {
+  color: var(--color-text-muted);
+}
+
+.state-chip-current {
+  font-weight: 600;
+  outline: 1px solid currentColor;
+}
+
+.drawer-body {
+  flex: 1;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: var(--space-4) var(--space-5);
+}
+
+.drawer-body:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: -2px;
+}
+
+.rejection-banner,
+.element-error {
+  padding: 10px var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--tone-attention-bg);
+  color: var(--tone-attention-fg);
+}
+
+.element-notice {
+  padding: var(--space-2) 10px;
+  border-radius: var(--radius-md);
+  background: var(--tone-human-bg);
+  color: var(--tone-human-fg);
+  font-size: 13px;
+}
+
+.element-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.section-title {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+.element-summary {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  color: var(--color-text-2);
+  line-height: 1.55;
+}
+
+.muted {
+  color: var(--color-text-muted);
+}
+
+.missing-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.missing-field {
+  padding: var(--space-2) 10px;
+  border-radius: var(--radius-md);
+  background: var(--tone-human-bg);
+  color: var(--tone-human-fg);
+  font-size: 13px;
+}
+
+.field-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+}
+
+.field-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: baseline;
+}
+
+.field-name {
+  min-width: 96px;
+  color: var(--color-text-muted);
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+.field-values {
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+}
+
+.field-value {
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  padding: 2px 7px;
+  border: 1px solid var(--color-divider);
+  border-radius: 5px;
+  color: var(--color-primary);
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+.history {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.history-entry {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-left: var(--space-3);
+  border-left: 2px solid var(--color-divider);
+}
+
+.history-transition,
+.history-reason {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  color: var(--color-text-2);
+  font-size: 13px;
+}
+
+.history-meta {
+  display: flex;
+  gap: var(--space-2);
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+
+.history-sha {
+  font-family: var(--font-mono);
+}

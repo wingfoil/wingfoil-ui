@@ -27,9 +27,9 @@ import { REPO_STATE_HEADER } from '../../../server/src/snapshot/state.js';
 import type { Snapshots } from '../../../server/src/snapshot/snapshots.js';
 import { createMemoryStateStore } from '../../../server/src/state/memory-store.js';
 import type { StateStore } from '../../../server/src/state/store.js';
-import { REPO_ROOT } from '../../harness/cli.js';
+import { pinnedCli, REPO_ROOT } from '../../harness/cli.js';
 import { buildFixture, copyFixture, installCliStub, type Fixture } from '../../harness/fixtures/index.js';
-import { git } from '../../harness/run.js';
+import { git, run } from '../../harness/run.js';
 import { auditedSnapshots, type AuditedRunner } from '../snapshot/support.js';
 
 const security = { authentication: createTokenAuthentication('test-token'), port: () => 80 };
@@ -351,6 +351,59 @@ describe('GET /api/p/:pid/elements/:eid and /history', () => {
     expect(Array.isArray(res.body.required)).toBe(true);
   });
 
+  it('answers the resolved states of the element type, for the state machine chips (task-018)', async () => {
+    const c = await start(kanbanTemplate);
+    const res = await c.get(`/api/p/${c.pid}/elements/task-001-login-form`);
+    expectSchema('element.schema.json', res.body);
+    // kanban: every type takes `defaults.states` (spec-001 §4.1).
+    expect(res.body.states).toEqual({
+      sequence: ['draft', 'pending', 'approved'],
+      gates: { pending: { reject: 'draft' } },
+    });
+  });
+
+  it('answers an element of a type memory.yaml does not declare: undeclared descriptor, no states (task-018)', async () => {
+    // The server reads memory.yaml without the `bug` type; the CLI still lists the bug element.
+    const fs: ReadFs = {
+      ...nodeReadFs,
+      readFile: async (f) => {
+        const text = await nodeReadFs.readFile(f);
+        return f.endsWith(`${path.sep}memory.yaml`) ? text.replace(/\n {2}bug:\n(?: {4}.*\n)+/, '\n') : text;
+      },
+    };
+    const c = await start(kanbanTemplate, { fs });
+    const res = await c.get(`/api/p/${c.pid}/elements/bug-001-crash-on-save`);
+    expect(res.status).toBe(200);
+    expectSchema('element.schema.json', res.body);
+    expect(res.body.descriptor.kind).toBe('undeclared');
+    expect(res.body.required).toEqual([]);
+    expect(res.body).not.toHaveProperty('states');
+  });
+
+  it('answers the type states of an archived element (task-018)', async () => {
+    const c = await start(kanbanTemplate, {
+      prepare: async (fx) => {
+        await run(
+          process.execPath,
+          [pinnedCli().script, 'memory', 'deprecate', 'task-003-logout', '--reason', 'Obsolete'],
+          {
+            cwd: fx.dir,
+            env: fx.env,
+          },
+        );
+      },
+    });
+    const res = await c.get(`/api/p/${c.pid}/elements/task-003-logout`);
+    expect(res.status).toBe(200);
+    expectSchema('element.schema.json', res.body);
+    expect(res.body.element.status).toBe('deprecated');
+    expect(res.body.descriptor.kind).toBe('archived');
+    expect(res.body.states).toEqual({
+      sequence: ['draft', 'pending', 'approved'],
+      gates: { pending: { reject: 'draft' } },
+    });
+  });
+
   it('answers the memory history of an element', async () => {
     const c = await start(kanbanTemplate);
     const res = await c.get(`/api/p/${c.pid}/elements/task-002-password-reset/history`);
@@ -410,6 +463,7 @@ describe('an unreadable memory.yaml degrades the type-dependent features only (s
     expect(one.status).toBe(200);
     expect(one.body).not.toHaveProperty('descriptor');
     expect(one.body).not.toHaveProperty('required');
+    expect(one.body).not.toHaveProperty('states');
     expect((await c.get(`/api/p/${c.pid}/config`)).body.types.error.detail.kind).toBe('missing');
   });
 });

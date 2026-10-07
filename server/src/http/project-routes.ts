@@ -8,7 +8,7 @@
  * | `GET /api/p/:pid` | `project.schema.json` — header: name, version and range state, capabilities, identity, role views, read-only reasons, repository status |
  * | `GET /api/p/:pid/config` | `config.schema.json` — DNA, paths, workflows, resolved types; each section its read or its error |
  * | `GET /api/p/:pid/elements[?archived=true]` | `elements.schema.json` — elements with marker and descriptor |
- * | `GET /api/p/:pid/elements/:eid` | `element.schema.json` — frontmatter, body, descriptor, required fields |
+ * | `GET /api/p/:pid/elements/:eid` | `element.schema.json` — frontmatter, body, descriptor, required fields, type states |
  * | `GET /api/p/:pid/elements/:eid/history` | `history.schema.json` — `memory history` |
  * | `GET /api/p/:pid/directives`, `/directives/:did` | `directives.schema.json`, `directive.schema.json` |
  * | `GET /api/p/:pid/docs` | `docs.schema.json` — the documentation index |
@@ -41,6 +41,7 @@ import type {
   ProjectHeader,
   ReadOnlyReason,
   RequiredField,
+  StateMachine,
 } from '@wingfoil-ui/contracts';
 import { CliError, cliErrorEnvelope, type CliOutput } from '../cli/adapter.js';
 import { evaluateCapabilities } from '../cli/capabilities.js';
@@ -186,6 +187,12 @@ export function requiredFields(
       (Array.isArray(value) && value.length === 0);
     return { field, missing };
   });
+}
+
+/** The resolved states of `type` (spec-001 §4.1) for the panel's state machine; none for an undeclared type. */
+function statesOf(memoryYaml: MemoryYaml, type: string): { states?: StateMachine } {
+  const states = resolveStates(memoryYaml, type);
+  return states ? { states } : {};
 }
 
 /** The reads of one request on one project. */
@@ -393,6 +400,7 @@ async function element(read: ProjectRead, id: string): Promise<ElementDetail> {
       ? {
           descriptor: inputs.describe(match, localChanges, events.events),
           required: requiredFields(inputs.memoryYaml, match.type, content.frontmatter),
+          ...statesOf(inputs.memoryYaml, match.type),
           ...(events.error ? { eventsError: events.error } : {}),
         }
       : {}),

@@ -1,0 +1,34 @@
+/*
+ * State tones (spec-003 §7, spec-009 §2): one class per tone of the action descriptor, applied as
+ * data — `tone-${descriptor.tone}` — never chosen from a type or state name (spec-003 §8,
+ * REQ-ARC-05). Shared by every view that shows a state (element panel, Memory list).
+ */
+.tone-human {
+  background: var(--tone-human-bg);
+  color: var(--tone-human-fg);
+}
+
+.tone-done {
+  background: var(--tone-done-bg);
+  color: var(--tone-done-fg);
+}
+
+.tone-neutral {
+  background: var(--tone-neutral-bg);
+  color: var(--tone-neutral-fg);
+}
+
+.tone-active {
+  background: var(--tone-active-bg);
+  color: var(--tone-active-fg);
+}
+
+.tone-attention {
+  background: var(--tone-attention-bg);
+  color: var(--tone-attention-fg);
+}
+
+.tone-muted {
+  background: var(--tone-muted-bg);
+  color: var(--tone-muted-fg);
+}
