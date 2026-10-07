@@ -10,6 +10,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { keyCatalogue } from '../../../web/scripts/catalogue.mjs';
 import { stopEventStream } from '../../../web/src/api/events.js';
 import { indexSections } from '../../../web/src/docs/DocsIndex.js';
+import { MAX_LINK_CHECKS } from '../../../web/src/docs/pages.js';
 import en from '../../../web/src/i18n/en.json' with { type: 'json' };
 import { resetSession } from '../../../web/src/session/session.js';
 import { renderApp, serverInfo, stubApi, type FakeApi } from '../shell/render.js';
@@ -211,7 +212,11 @@ describe('a document', () => {
   it('a fragment link moves the focus to its heading; keyboard Enter follows a link', async () => {
     const { article, router } = await openLinks();
     await userEvent.click(within(article).getByRole('link', { name: 'top' }));
-    expect(document.activeElement).toBe(within(article).getByRole('heading', { name: 'Links' }));
+    // The fragment is in the URL (review F2): Back and a copied URL work.
+    await waitFor(() => expect(router.state.location.hash).toBe('links'));
+    await waitFor(() =>
+      expect(document.activeElement).toBe(within(article).getByRole('heading', { name: 'Links' })),
+    );
     within(article).getByRole('link', { name: 'spaced' }).focus();
     await userEvent.keyboard('{Enter}');
     await waitFor(() => expect(decodeURI(router.state.location.pathname)).toBe(`/p/${PID}/docs/docs/01_vision/my doc.md`));
@@ -278,5 +283,100 @@ describe('a document', () => {
     expect(within(article).getByRole('link', { name: 'guide docs.link.newTab' })).toBeTruthy();
     expect(screen.getByRole('link', { name: 'docs.document.back' })).toBeTruthy();
     expect(within(article).getByRole('region', { name: 'docs.table.label 1' })).toBeTruthy();
+  });
+
+  it('the server answering outside for a link check marks it "outside the repository" (review F8)', async () => {
+    // e.g. a symlink inside the repository leading out of it.
+    stubApi(api({ [content('src/index.ts')]: refused('outside') }));
+    renderApp(`/p/${PID}/docs/docs/01_vision/links.md`);
+    const article = await screen.findByRole('article');
+    await waitFor(() =>
+      expect(within(article).getByText('source').nextElementSibling?.textContent).toBe('outside the repository'),
+    );
+    expect(within(article).queryByRole('link', { name: 'source' })).toBeNull();
+  });
+});
+
+describe('the focus while the links are classified (review F1)', () => {
+  /** The API with `GET /elements` held back until `release()`. */
+  function heldElements() {
+    const answers = api();
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => (release = resolve));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: string) => {
+        if (url === `${API}/elements`) await gate;
+        const a = answers[url] ?? refused('missing');
+        return new Response(JSON.stringify(a.body), {
+          status: a.status,
+          headers: { 'content-type': 'application/json' },
+        });
+      }),
+    );
+    return () => release();
+  }
+
+  it('a focused link keeps the focus when the classification updates', async () => {
+    const release = heldElements();
+    renderApp(`/p/${PID}/docs/docs/01_vision/links.md`);
+    const article = await screen.findByRole('article');
+    const vision = await within(article).findByRole('link', { name: 'vision' });
+    expect(within(article).getByText('decision').className).toBe('doc-link-unresolved');
+    vision.focus();
+    release();
+    await waitFor(() => expect(within(article).getByRole('link', { name: 'decision' })).toBeTruthy());
+    expect(document.activeElement).toBe(within(article).getByRole('link', { name: 'vision' }));
+    expect(document.activeElement).not.toBe(vision);
+  });
+
+  it('the heading of the URL fragment keeps the focus when the classification updates', async () => {
+    const release = heldElements();
+    renderApp(`/p/${PID}/docs/docs/01_vision/links.md#links`);
+    const article = await screen.findByRole('article');
+    await waitFor(() =>
+      expect(document.activeElement).toBe(within(article).getByRole('heading', { name: 'Links' })),
+    );
+    release();
+    await waitFor(() => expect(within(article).getByRole('link', { name: 'decision' })).toBeTruthy());
+    expect(document.activeElement).toBe(within(article).getByRole('heading', { name: 'Links' }));
+  });
+
+  it('a focus on a link that becomes refused goes to the article', async () => {
+    const release = heldElements();
+    renderApp(`/p/${PID}/docs/docs/01_vision/links.md`);
+    const article = await screen.findByRole('article');
+    await within(article).findByRole('link', { name: 'vision' });
+    // An unresolved link is text: put the focus on its key element as a stand-in.
+    const unresolved = within(article).getByText('nowhere');
+    unresolved.setAttribute('tabindex', '0');
+    unresolved.focus();
+    release();
+    await waitFor(() => expect(within(article).getByText('nowhere').className).toBe('doc-link-refused'));
+    expect(document.activeElement).toBe(article);
+  });
+});
+
+describe('the cap on link checks (W3-36)', () => {
+  it(`checks at most ${MAX_LINK_CHECKS} distinct targets; the others are "not shown in the UI"`, async () => {
+    const many = Array.from({ length: MAX_LINK_CHECKS + 1 }, (_, i) => `[t${i}](gone-${i}.md)`).join(' ');
+    const answers = api({ [content('docs/01_vision/links.md')]: doc('docs/01_vision/links.md', `# Many\n\n${many}`) });
+    const calls: string[] = [];
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: string) => {
+        calls.push(url);
+        const a = answers[url] ?? refused('missing');
+        return new Response(JSON.stringify(a.body), { status: a.status, headers: { 'content-type': 'application/json' } });
+      }),
+    );
+    renderApp(`/p/${PID}/docs/docs/01_vision/links.md`);
+    const article = await screen.findByRole('article');
+    const last = `t${MAX_LINK_CHECKS}`;
+    await waitFor(() => expect(within(article).getByText(last).nextElementSibling?.textContent).toBe('not shown in the UI'));
+    await waitFor(() => expect(within(article).getByText(`t${MAX_LINK_CHECKS - 1}`).nextElementSibling?.textContent).toBe('broken link'));
+    expect(within(article).getByText('t0').nextElementSibling?.textContent).toBe('broken link');
+    expect(calls.filter((u) => u.includes('gone-'))).toHaveLength(MAX_LINK_CHECKS);
+    expect(calls.some((u) => u.includes(`gone-${MAX_LINK_CHECKS}.md`))).toBe(false);
   });
 });
