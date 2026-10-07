@@ -212,7 +212,7 @@ Screen: `docs/00_reference/ux-reference.md` §4.9 and the prototype (`docs/00_re
   | Scenario | Proved by |
   |----------|-----------|
   | R-08.1 Index the documents without Memory and plan files | `test/e2e/documentation.spec.ts` › "R-08.1 — Index the documents without Memory and plan files": custom fixture, sidebar *Documentation* reached by keyboard (visible focus, Enter) → `/p/<pid>/docs`, title "custom · Documentation — WingFoil UI", the entry "02_product-vision.md docs/01_vision/02_product-vision.md" shown, no listed path under `docs/04_memory/` or `docs/05_plans/`; axe 0 serious/critical in light and dark |
-  | R-08.2 Render a document inside the UI | same spec › "R-08.2 …": `06_features.md` opened from the index renders its headings and tables (the table in a focusable region reached by Tab, visible focus), no Markdown source shown, URL on the console's origin; axe in both themes. `06_features.md` holds no list: the lists are asserted on `02_product-vision.md` opened from the index (open point) |
+  | R-08.2 Render a document inside the UI (as amended, W3-37) | same spec › "R-08.2 …": `06_features.md` opened from the index renders its headings and tables (the table in a focusable region reached by Tab, visible focus), no Markdown source shown, URL on the console's origin; axe in both themes; the lists on `02_product-vision.md` opened from the index, as the scenario names it after W3-37 |
   | R-08.3 Follow a link between indexed documents inside the UI | same spec › "R-08.3 …": `00_index.md`'s link "Product Vision" (href `/p/<pid>/docs/docs/01_vision/02_product-vision.md`) followed by keyboard renders `02_product-vision.md`; a marker on `window` survives (no reload), title "custom · docs/01_vision/02_product-vision.md — WingFoil UI"; "← Index" goes back |
   | R-09.1 Open a linked Memory file in the element panel | same spec › "R-09.1 …": on a custom copy with `docs/01_vision/links.md`, the link to `../04_memory/design/dls/dl-001-initialise-wingfoil-before-inception.md` points at `/p/<pid>/e/dl-001-…`, selecting it opens the panel (dialog "Initialise WingFoil before inception", id shown); Escape goes back to the document |
   | R-09.2 Mark a link that points nowhere | same spec › "R-09.2 …": `missing-file.md` (server answer `missing`) shows its text with the mark "broken link", is no link, a click leaves the URL unchanged; axe in both themes |
@@ -253,12 +253,49 @@ Screen: `docs/00_reference/ux-reference.md` §4.9 and the prototype (`docs/00_re
     (`title.projectView`); the key build covers the docs strings (component test).
   - **Coordinator:** spec-008 §3 has no title for a document (used `title.projectView` with the path).
 - **Open points:**
-  - R-08.2 names `06_features.md` for "headings, lists and tables" but it holds no list (scenario or
-    fixture to align).
   - e2e support builds the worker fixtures lazily inside the test body: under heavy load a test
     times out on the build (`beforeAll` used here). Proposal: a worker-fixture pre-build in the
     shared support (bug-ingest).
   - `panel.test.tsx` "shows the element…" fails in every full `test:coverage` run on this branch
     (1 s `findByRole`, passes alone): bug-ingest, or a longer wait in that test, to decide before merge.
-  - A document with many unresolved repository links makes one `GET /files/content` per distinct
-    target (no cap); a cap could be added if large documents show it.
+
+### review round 1 (2026-10-07)
+
+- Independent review: **FAIL** on one Medium accessibility defect (F1); security **PASS** (about 40
+  payloads inert). The `panel.test.tsx` failure under load was judged load-only (task-018's test,
+  bug-004, absorbed into task-019): unchanged here. User decisions W3-36 (cap) and W3-37 (R-08.2
+  amended on `main` to name `02_product-vision.md` for the lists). Fixed:
+  - **F1** (`6cd4611`, tests in `53c5113`) the focus was lost each time the links were classified
+    again (index → `GET /elements` → server checks rebuilt the article's HTML). The article's
+    content is now set in a layout effect (`replaceContent`): the focused link (`data-doc-link`, a
+    key set on every link and on its replacement), heading (id) or table (`data-doc-table`) gets
+    the focus back; a link that became refused gives it to the article. Component tests with a
+    held-back `GET /elements`: a focused link and the heading of the URL fragment keep the focus, a
+    link turned refused leaves it on the article — all three fail without the fix.
+  - **F2** (`6cd4611`) an in-page link is the document's URL with the fragment
+    (`/p/<pid>/docs/<path>#<fragment>`), routed like a document link: Back works, a copied or
+    reloaded URL lands on the heading; the fragment is read as a slug (`#key-decisions`) or as a
+    rendered `doc-` id. `data-doc-anchor` is gone.
+  - **F3** (`6cd4611`) heading ids take the first free suffix (`A`, `A`, `A-1`, `A` →
+    `doc-a`, `doc-a-1`, `doc-a-1-1`, `doc-a-2`); unit test.
+  - **F5** (`6cd4611`) `ADD_URI_SAFE_ATTR: ['aria-label']` in the final DOMPurify pass (still the
+    last step); unit test of a label with a colon. It also passed before: DOMPurify keeps `aria-*`
+    values unchecked, so the option makes that explicit.
+  - **F6** (`f25aece`, `53c5113`) `@types/markdown-it` removed (markdown-it 15 ships its types); the
+    pages moved to `web/src/docs/pages.tsx`, loaded by `lazyRouteComponent` (the route file keeps the
+    routes, keys and queries; the pages read their params through `getRouteApi`). `vite build`:
+    entry chunk 699.76 kB (gzip 231.12 kB) → 563.46 kB (176.01 kB) plus a `pages` chunk 140.51 kB
+    (57.23 kB) and its CSS 2.86 kB.
+  - **F8** (`53c5113`) component test: the server answering `outside` for a link check (an
+    escaping symlink) → "outside the repository", no link.
+  - **W3-36** (`53c5113`) at most `MAX_LINK_CHECKS` = 100 distinct targets checked per document;
+    the rest are "not shown in the UI" without a request. Component test with 101 targets: 100
+    requests, the 101st marked.
+  - **W3-37** closure table wording (R-08.2 "as amended"); the spec keeps its assertions.
+  - Commit granularity: F1, F2, F3 and F5 touch the same render/view code and share one commit; F8
+    and the F1 component tests are in the F6/W3-36 commit (same test file).
+- **Checks** (HEAD `53c5113`): typecheck, lint (ESLint + catalogue check), format:check clean ·
+  `docs:api` OK · `check_tasks.py` OK · `test:e2e` **26/26** (load ≈ 30) · `npm run -s
+  test:coverage` **95 files passed, 1 skipped; 1548 passed / 1 skipped** (load 17–22, no retry),
+  coverage 96.15 % statements / 89.53 % branches / 96.69 % functions / 98.01 % lines
+  (`web/src/docs` 98.02 % / 92 %) · `npm run test:timing`: see below.
