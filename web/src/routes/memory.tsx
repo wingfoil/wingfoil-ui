@@ -15,7 +15,7 @@ import type { ReactNode } from 'react';
 import { defineMessages, useIntl } from 'react-intl';
 import { elementsQuery, projectConfigQuery, projectsQuery } from '../api/queries.js';
 import { MemoryList } from '../memory/MemoryList.js';
-import type { ListFilters } from '../memory/model.js';
+import { isListedType, typesOf, type ListFilters } from '../memory/model.js';
 import { TITLES, usePageTitle } from '../shell/page-title.js';
 import { NAV_ORDER } from './nav.js';
 import { projectRoute } from './project.js';
@@ -44,15 +44,19 @@ function MemoryPage(): ReactNode {
   usePageTitle(TITLES.projectView, { project: project?.name ?? pid, view: intl.formatMessage(LABELS.memory) });
   const config = useQuery(projectConfigQuery(pid));
   const elements = useQuery(elementsQuery(pid, false));
-  // The archived elements are read once a type is selected (W3-24), then kept for the session.
-  const archived = useQuery({ ...elementsQuery(pid, true), enabled: filters.type !== undefined });
+  // The archived elements are read once a listed type is selected (W3-24), then kept for the
+  // session; a type the project does not list reads nothing more (review F5).
+  const settled = elements.data !== undefined && (config.data !== undefined || config.error !== null);
+  const listed =
+    settled && filters.type !== undefined && isListedType(typesOf(config.data), elements.data.elements, filters.type);
+  const archived = useQuery({ ...elementsQuery(pid, true), enabled: listed });
   return (
     <MemoryList
       pid={pid}
       filters={filters}
       config={config}
       elements={elements}
-      withArchived={filters.type !== undefined ? archived : undefined}
+      withArchived={listed ? archived : undefined}
     />
   );
 }

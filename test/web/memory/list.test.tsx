@@ -193,6 +193,15 @@ it('says a type has no element yet', async () => {
   expect(stateFilters()).toEqual(['All states0', 'e10']);
 });
 
+it('says nothing matches for a type the project does not list, and reads no archived list (review F5)', async () => {
+  const fetch = stubApi(api());
+  renderApp(`/p/${PID}/memory?type=kind-nope`);
+  expect(await screen.findByText('No element matches these filters.')).toBeTruthy();
+  expect(screen.queryByText('No kind-nope yet')).toBeNull();
+  expect(screen.queryByRole('list', { name: 'States' })).toBeNull();
+  expect(paths(fetch)).not.toContain(ARCHIVED);
+});
+
 it('shows the row: type tag, title, id, local changes, age, the state pill with the descriptor tone', async () => {
   vi.useFakeTimers({ toFake: ['Date'], now: new Date('2026-10-07T10:00:00Z') });
   stubApi(api());

@@ -6,7 +6,7 @@
  * an element is its descriptor's, and the bucket labels are catalogue messages whose ids follow the
  * bucket codes by the lowerCamel rule (`to-approve` → `memory.bucket.toApprove`).
  */
-import type { Bucket, ListedElement, MemoryYaml, Tone } from '@wingfoil-ui/contracts';
+import type { Bucket, ListedElement, MemoryYaml, ProjectConfig, Tone } from '@wingfoil-ui/contracts';
 import { defineMessage, type MessageDescriptor } from 'react-intl';
 
 /** `a-b-c` → `aBC`, as a type. */
@@ -152,4 +152,14 @@ export function ageOf(since: string, now: number): Age {
     if (seconds >= size) return { value: -Math.floor(seconds / size), unit };
   }
   return { value: -seconds, unit: 'second' };
+}
+
+/** The type definitions of the configuration, when they could be read. */
+export function typesOf(config: ProjectConfig | undefined): MemoryYaml | undefined {
+  return config && 'data' in config.types ? config.types.data : undefined;
+}
+
+/** Whether `type` is one of the type filters (declared, or found on an element). */
+export function isListedType(types: MemoryYaml | undefined, elements: readonly ListedElement[], type: string): boolean {
+  return typeFilters(types, elements).some((t) => t.type === type);
 }

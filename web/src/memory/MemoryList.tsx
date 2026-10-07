@@ -10,13 +10,22 @@
  * (spec-003 §8), never re-derived; type and state names are shown as written.
  */
 import type { UseQueryResult } from '@tanstack/react-query';
-import type { ElementList, ListedElement, MemoryYaml, ProjectConfig } from '@wingfoil-ui/contracts';
+import type { ElementList, ListedElement, ProjectConfig } from '@wingfoil-ui/contracts';
 import { Link } from '@tanstack/react-router';
 import { useEffect, useRef, useState, type MouseEvent, type ReactNode } from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { ApiError } from '../api/client.js';
 import { ErrorText } from '../shell/ErrorText.js';
-import { ageOf, bucketFilters, filterRows, stateFilters, typeFilters, type ListFilters } from './model.js';
+import {
+  ageOf,
+  bucketFilters,
+  filterRows,
+  isListedType,
+  stateFilters,
+  typeFilters,
+  typesOf,
+  type ListFilters,
+} from './model.js';
 import './memory.css';
 
 type Read<T> = Pick<UseQueryResult<T>, 'data' | 'error'>;
@@ -58,11 +67,6 @@ function QueryError({ error }: { error: Error }): ReactNode {
       <ErrorText error={e} />
     </div>
   );
-}
-
-/** The type definitions of the configuration, when they could be read. */
-function typesOf(config: ProjectConfig | undefined): MemoryYaml | undefined {
-  return config && 'data' in config.types ? config.types.data : undefined;
 }
 
 /** One filter link: its name, its count, the router's `aria-current` when it is the URL's filter. */
@@ -155,6 +159,8 @@ export function MemoryList({ pid, filters, config, elements, withArchived }: Mem
   const pool = filters.type !== undefined ? (withArchived?.data?.elements ?? base) : base;
   const ofType = filters.type !== undefined ? pool.filter((e) => e.type === filters.type) : [];
   const rows = filterRows(pool, filters);
+  // A type in the URL that is neither declared nor on an element (review F5).
+  const unknownType = list !== undefined && selected !== undefined && !isListedType(types, base, selected);
   const listRef = useRef<HTMLUListElement>(null);
 
   // Back from the element panel: the row it was opened from is taken when the list mounts, and
@@ -167,6 +173,7 @@ export function MemoryList({ pid, filters, config, elements, withArchived }: Mem
   // With a type selected, the rows are complete once the archived read is there too (review F4).
   const ready =
     list !== undefined &&
+    (selected === undefined || config.data !== undefined || config.error !== null) &&
     (withArchived === undefined || withArchived.data !== undefined || withArchived.error !== null);
   useEffect(() => {
     const eid = pendingRow.current;
@@ -250,7 +257,7 @@ export function MemoryList({ pid, filters, config, elements, withArchived }: Mem
               <FilterLink key={t.type} pid={pid} search={{ type: t.type }} name={t.type} count={t.count} />
             ))}
           </ul>
-          {selected !== undefined ? (
+          {unknownType ? null : selected !== undefined ? (
             <ul className="filter-row filter-states" aria-label={intl.formatMessage({ id: 'memory.filter.states' })}>
               <FilterLink
                 pid={pid}
@@ -297,8 +304,8 @@ export function MemoryList({ pid, filters, config, elements, withArchived }: Mem
           </ul>
           {rows.length === 0 && (
             <p className="memory-empty">
-              {filters.type !== undefined && ofType.length === 0 ? (
-                <FormattedMessage id="memory.empty.type" values={{ type: filters.type }} />
+              {selected !== undefined && !unknownType && ofType.length === 0 ? (
+                <FormattedMessage id="memory.empty.type" values={{ type: selected }} />
               ) : (
                 <FormattedMessage id="memory.empty.filter" />
               )}
