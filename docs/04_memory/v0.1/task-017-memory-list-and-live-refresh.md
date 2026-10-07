@@ -177,3 +177,67 @@ Screen: `docs/00_reference/ux-reference.md` §4.4 and the prototype (`docs/00_re
   `queryKeys.project(pid, 'elements', { archived: false | true })`, factory `elementsQuery(pid,
   archived)` in `api/queries.ts` (next to `projectConfigQuery`), shared by both tasks;
   `title.projectView` = "{project} · {view} — WingFoil UI" (same line in both tasks).
+
+### red / green / refactor (2026-10-07)
+
+- **Red** (`a1474e7`): `test/web/memory/model.test.ts` (failed on the missing module) and
+  `test/web/memory/list.test.tsx` (12 of 12 failed: no route, no heading, `/p/$pid` not redirected).
+- **Green** (`4df7d3e`, `00f7bf4`) as designed, with these details:
+  - `routes/memory.tsx`: `memoryRoute` (`validateSearch` → `{type, state}` or `{bucket}`), and
+    `projectIndexRoute` (`/p/$pid` → `redirect` to `/p/$pid/memory`, replace; W3-22). Two lines in
+    `PROJECT_ROUTES`. A comment line inside the array keeps Prettier from joining the lines.
+  - `api/queries.ts`: `projectConfigQuery(pid)` (`['p', pid, 'config']`) and `elementsQuery(pid,
+    archived)` (`['p', pid, 'elements', { archived }]`), the key shape agreed with task-020.
+  - `memory/model.ts`: `typeFilters`, `stateFilters`, `bucketFilters`, `filterRows`,
+    `bucketKeyOf`, `ageOf`. The bucket labels are four `defineMessage` ids in the header's order.
+    The URL key of a bucket is the last id segment (`?bucket=toApprove`), compared with
+    `bucketKeyOf(descriptor.bucket)` (lowerCamel). No bucket code is written in `web/`. A
+    compile-time check ties the ids to `Bucket`.
+  - `memory/MemoryList.tsx`: filters are router `Link`s with `activeOptions.exact`, so the
+    selected filter gets the router's `aria-current="page"`. Each filter's accessible name is
+    `memory.filter.withCount` ("task, 4 elements"). The state dot and the pill take the descriptor's
+    `tone` (data). The age comes from the descriptor's `since`
+    (`Intl.RelativeTimeFormat`, numeric auto), against the time of the last read (React purity
+    rule: no `Date.now()` during render). The originating row is a module-level `{pid, eid}`, set
+    on the row's click and used once when the list of that project renders its data again (W3-23).
+    The `typesError` notice shows when the list or the config's `types` section failed, and then
+    no bucket row is drawn. CLI warnings are shown verbatim. A polite `role="status"` region
+    announces "The list was updated." when a refetch returns new data.
+  - REQ-ARC-05: the prop `archived` was renamed `withArchived` (the unknown `note` state).
+  - task-018's unit test "closes with Escape to the project…" now expects `/p/$pid/memory` (W3-22).
+- **e2e** (`cc58b01`), **deviation (test-after):** `test/e2e/memory-list.spec.ts` was written after
+  the code. It passed on its first run (26/26 with `element-panel.spec.ts`). The G-01.1 assertion of
+  `element-panel.spec.ts` now expects `/p/$pid/memory` (W3-22, owned here).
+- `test/README.md` 0.15.
+- **Deviations from ux-reference §4.4 and the prototype (directive `ux-consistency`, W3-23, W3-26):**
+  no "+ Ingestion" (writes from v0.2), no producer note, no "Missing required references" chip and
+  no "missing refs" badge (the panel flags missing fields, G-01.3), no free-text filter (the
+  prototype's, not in ux-reference). The element panel replaces the list instead of drawing over
+  it (W3-18/W3-23). The per-type state filters add the undeclared states after the `sequence`
+  (W3-25). The *local changes* badge sits where the prototype has "missing refs".
+- **Scenario closure (US-M-01, US-M-02, US-S-25, US-S-26, US-S-28 and the deferred ones of task-005,
+  010, 011, 001):**
+
+  | Scenario | Proved by |
+  |----------|-----------|
+  | M-01.1 Filter by type with counts (also task-005) | `test/e2e/memory-list.spec.ts` › "M-01.1 — Filter by type with counts": kanban `/p/<pid>` lands on `/p/<pid>/memory` (W3-22), filters "task, 4 elements" and "bug, 1 element", sidebar "Memory" current, title "kanban · Memory — WingFoil UI", axe 0 serious/critical in both themes |
+  | M-01.5 List one type with its real states | same spec › "M-01.5 …": the "task" filter reached and followed by keyboard (visible focus) lists exactly task-001…004, the state filters are exactly draft, pending, approved, the pill "pending" has `tone-human`; axe in both themes |
+  | M-01.2 Filter all types by bucket | same spec › "M-01.2 …": *All types* + *To approve* lists exactly `bug-001-crash-on-save`, `task-001-login-form` (`?bucket=toApprove`); axe |
+  | M-01.3 Open the element panel from the list | same spec › "M-01.3 …": the row of `task-003-logout` focused (visible focus) + Enter → the panel "Logout" at `/p/<pid>/e/task-003-logout`. Escape → `/p/<pid>/memory?type=task`, with the focus on that row (W3-23) |
+  | M-01.4 Show a type with no element | same spec › "M-01.4 …": "adr, 0 elements", selected → "No adr yet"; axe |
+  | M-02.1 List unknown types under their own names (task-011) | same spec › "M-02.1 …": unknown fixture type filters exactly story, note, each "2 elements"; axe |
+  | M-02.3 Show the declared states of an unknown type (task-011) | same spec › "M-02.3 …": "story" → state filters exactly idea, shaping, ready-to-build, shipped |
+  | M-02.2 Group unknown states in generic buckets (task-011) | same spec › "M-02.2 … : To approve / In progress / Waiting/drafts/closed / Done" (one test per example): the exact element sets, and "No element matches these filters." for Done |
+  | S-25.1 Mark an element with uncommitted changes (task-005, 010) | same spec › "S-25.1 …": a kanban copy with the uncommitted title edit → row shows "Login form v2" and "local changes" (only that row); axe |
+  | S-25.2 Remove the marker once the change is committed (task-010) | same spec › "S-25.2 …": the edit committed with git while the list is open → `repo` reaches the page, the marker is gone within 5 s, no reload (a window marker survives) |
+  | S-25.3 Show an uncommitted new element (task-010) | same spec › "S-25.3 …": untracked `docs/memory/task/task-009-draft-idea.md` → listed with "local changes" |
+  | S-26.1 Refresh after a commit made outside the UI (task-010) | same spec › "S-26.1 …": pill "pending", `memory approve` by the CLI on the copy → pill "approved" within 5 s without reload, "The list was updated." announced |
+  | S-26.2 Refresh an open element panel (task-010) | same spec › "S-26.2 …": panel of `task-001-login-form` opened from its row; CLI approve → the history line "signed off by Alex" with the short HEAD sha and "“Looks good”" within 5 s |
+  | S-26.3 Read the CLI once per state of the repository (task-010) | screen: same spec › "S-26.3 …" (list → panel → Close → the same list with no new `GET /elements` from the page); CLI count: `test/server/snapshot/process-audit.test.ts` › "Memory list: ≤ 6 CLI processes on a cold cache, 0 processes when reopened unchanged" (task-010/012) |
+  | S-28.1 Render each fixture with the same UI build (task-001, 011) | same spec › "S-28.1 … : kanban / custom / unknown": type filters exactly the scenario's list, every element of `memory search` listed with its own state name in its pill; axe on custom |
+  | S-28.2 Derive the state machine of an unknown type (task-011) | same spec › "S-28.2 …": the row of `story-001-onboarding` opens the panel. Chips idea, shaping, ready-to-build, shipped; "shaping" `aria-current="step"`, "shaping, current state" |
+
+- **Performance:** the landing reads `GET /config` + `GET /elements` (component test: exactly these
+  two paths, nothing per row); the archived read is made once, after the first type selection
+  (component test: one `?archived=true` over two type selections). TT-PERF-05 (≤ 6 CLI cold, 0
+  warm) is asserted by the process audit, unchanged.
