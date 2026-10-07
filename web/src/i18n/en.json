@@ -12,7 +12,7 @@
   "element.history.transition": "{from} → {to}",
   "element.loading": "Loading the element…",
   "element.localChanges": "This element has local changes that are not committed.",
-  "element.notice.eventsError": "The repository history could not be read: who must act may be incomplete.",
+  "element.notice.eventsError": "The repository history could not be read: the rejection banner may be missing.",
   "element.notice.typesError": "The type definitions could not be read: only the current state is shown.",
   "element.rejection.noReason": "Rejected by {name}",
   "element.rejection.withReason": "Rejected by {name}: {reason}",

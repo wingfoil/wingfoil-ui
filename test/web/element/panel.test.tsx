@@ -226,7 +226,7 @@ it('says when there is no summary, no other field, no history, and marks local c
   expect(await screen.findByText('No history yet.')).toBeTruthy();
   expect(screen.getByText('Rejected by Morgan')).toBeTruthy();
   expect(screen.getByText('This element has local changes that are not committed.')).toBeTruthy();
-  expect(screen.getByText('The repository history could not be read: who must act may be incomplete.')).toBeTruthy();
+  expect(screen.getByText('The repository history could not be read: the rejection banner may be missing.')).toBeTruthy();
 });
 
 it('renders an empty field as a dash next to its name', async () => {
