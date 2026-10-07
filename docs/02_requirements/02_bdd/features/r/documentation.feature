@@ -17,7 +17,8 @@ Feature: Documentation
   @US-R-08 @v0.1 @edge @fx-custom
   Scenario: R-08.2 — Render a document inside the UI
     When I open "docs/01_vision/06_features.md" from the index
-    Then its headings, lists and tables are rendered
+    Then its headings and tables are rendered
+    And "docs/01_vision/02_product-vision.md", opened from the index, renders its lists
     And the browser URL stays on the console's origin
 
   @US-R-08 @v0.1 @edge @fx-custom

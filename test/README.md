@@ -1,6 +1,6 @@
 # Tests
 
-**Version:** 0.15 · **Date:** 2026-10-07 (0.1: workspace tooling and e2e harness — task-001; 0.2: `test/launcher/`, `test/server/` — task-002; 0.3: `test/contracts/`, local state isolation, secret scan — task-007; 0.4: `local-security` suite — task-003; 0.5: process runner fake, hand-made CLI packages, stub after global options — task-004; 0.6: CLI contract tests, captured samples, `test:contract` — task-005; 0.7: action descriptor tests, REQ-ARC-05 lint rule — task-011; 0.8: matrix builds of `cliBuildFor`, capability table and README checks — task-006; 0.9: identity tests, bin with a seeded state — task-009; 0.10: timing suite `test:timing`, `TempWorkspace`, snapshot audits and stand-ins — task-010 / bug-001; 0.11: project-list route tests, a dumb-HTTP git remote — task-008; 0.12: read routes, the read console replacing the stand-ins, spec-002 §3 event parse, confinement — task-012; 0.13: `test/web/` component tests, the shared e2e support of Wave 3, the shell e2e — task-013; 0.14: `test/web/element/` and the element panel e2e `element-panel.spec.ts` — task-018; 0.15: `test/web/memory/` and the Memory list e2e `memory-list.spec.ts` — task-017)
+**Version:** 0.16 · **Date:** 2026-10-07 (0.1: workspace tooling and e2e harness — task-001; 0.2: `test/launcher/`, `test/server/` — task-002; 0.3: `test/contracts/`, local state isolation, secret scan — task-007; 0.4: `local-security` suite — task-003; 0.5: process runner fake, hand-made CLI packages, stub after global options — task-004; 0.6: CLI contract tests, captured samples, `test:contract` — task-005; 0.7: action descriptor tests, REQ-ARC-05 lint rule — task-011; 0.8: matrix builds of `cliBuildFor`, capability table and README checks — task-006; 0.9: identity tests, bin with a seeded state — task-009; 0.10: timing suite `test:timing`, `TempWorkspace`, snapshot audits and stand-ins — task-010 / bug-001; 0.11: project-list route tests, a dumb-HTTP git remote — task-008; 0.12: read routes, the read console replacing the stand-ins, spec-002 §3 event parse, confinement — task-012; 0.13: `test/web/` component tests, the shared e2e support of Wave 3, the shell e2e — task-013; 0.14: `test/web/element/` and the element panel e2e `element-panel.spec.ts` — task-018; 0.15: `test/web/docs/` and the documentation e2e `documentation.spec.ts` — task-020; 0.16: `test/web/memory/` and the Memory list e2e `memory-list.spec.ts` — task-017)
 
 Every test lives under `test/` (DNA `paths.tests`); sources stay in `server/src`, `web/src`,
 `contracts/src`.
@@ -41,7 +41,9 @@ Every test lives under `test/` (DNA `paths.tests`); sources stay in `server/src`
   a stubbed `fetch` (`stubApi`) — optionally with the key catalogue; theme tokens and contrast pairs
   (`theme/`), catalogue check and key catalogue (`i18n/`), API client, event stream, error renderer
   and session bootstrap; `element/` the element panel (its pure helpers and the route rendered on the
-  stubbed API). `test/lint/catalogue-placeholders.test.ts` covers the spec-008 placeholder rule.
+  stubbed API); `docs/` the Documentation view (link resolution and classification, the Markdown
+  rendering and its sanitising with attack payloads, the index and document pages).
+  `test/lint/catalogue-placeholders.test.ts` covers the spec-008 placeholder rule.
 - `test/launcher/` — the `wingfoil-ui` bin driven as a child process (`launcher.ts`:
   `startLauncher(args, env)` waits for the running line and returns port, token and stop helpers;
   later e2e suites start the console with it). `local-security.test.ts` is the e2e-smoke

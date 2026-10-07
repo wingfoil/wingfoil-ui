@@ -2,7 +2,7 @@
   "version": 1,
   "generated_from": {
     "story_map": "docs/02_requirements/01_user_story_map/02_story-map.md v0.5",
-    "bdd": "docs/02_requirements/02_bdd/00_conventions.md v0.7",
+    "bdd": "docs/02_requirements/02_bdd/00_conventions.md v0.8",
     "sard": "docs/02_requirements/03_sard/00_sard.md v0.8"
   },
   "items": [
@@ -4364,7 +4364,8 @@
             "Given the console is running with the custom fixture open",
             "And I am Riley",
             "When I open \"docs/01_vision/06_features.md\" from the index",
-            "Then its headings, lists and tables are rendered",
+            "Then its headings and tables are rendered",
+            "And \"docs/01_vision/02_product-vision.md\", opened from the index, renders its lists",
             "And the browser URL stays on the console's origin"
           ]
         },
