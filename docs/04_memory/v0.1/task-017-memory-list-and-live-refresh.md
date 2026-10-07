@@ -241,13 +241,13 @@ Screen: `docs/00_reference/ux-reference.md` §4.4 and the prototype (`docs/00_re
   two paths, nothing per row); the archived read is made once, after the first type selection
   (component test: one `?archived=true` over two type selections). TT-PERF-05 (≤ 6 CLI cold, 0
   warm) is asserted by the process audit, unchanged.
-- **e2e under machine load** (`7ce46a5`, `2b1b0d1`): at load 25–76 (other projects' builds on the
+- **e2e under machine load** (`7ce46a5`, `15af3e0`): at load 25–76 (other projects' builds on the
   same 12 cores) the cold first read of a console took longer than the default 5 s expectation, and
   up to 20 of the 40 e2e tests timed out, in this spec and in `element-panel.spec.ts` alike. The
   logs showed only timeouts ("Loading the Memory list…" / "Loading the element…" still on screen),
   never a wrong value. The first-load wait of `memory-list.spec.ts` is now 30 s. Later assertions
   keep the default. At load 7–14 the whole suite passes (below).
-- **Checks** (HEAD `2b1b0d1`): typecheck, lint (ESLint + catalogue check), format:check clean ·
+- **Checks** (HEAD `15af3e0`): typecheck, lint (ESLint + catalogue check), format:check clean ·
   `docs:api` OK · `check_tasks.py` OK · `test:e2e` **40/40** (load 7.3 → 14.1) ·
   `npm run -s test:coverage` **94 files passed, 1 skipped; 1459 passed / 1 skipped**, coverage
   96.12 % statements / 89.72 % branches / 96.69 % functions / 97.96 % lines (`web/src/memory`
