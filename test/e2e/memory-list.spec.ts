@@ -70,6 +70,7 @@ test.describe('US-M-01 — Memory list', () => {
     await openConsole(page, c, { path: `/p/${c.pids[0]}` });
     await expect(page).toHaveURL(`${c.origin}/p/${c.pids[0]}/memory`);
     await expect(page.getByRole('heading', { level: 1, name: 'Memory' })).toBeVisible();
+    await expect(rows(page).first()).toBeVisible({ timeout: 30_000 });
     await expect(typeList(page).getByRole('link', { name: 'task, 4 elements' })).toBeVisible();
     await expect(typeList(page).getByRole('link', { name: 'bug, 1 element' })).toBeVisible();
     await expect(
