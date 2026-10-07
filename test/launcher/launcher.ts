@@ -28,10 +28,25 @@ export interface Launcher {
   kill(): Promise<void>;
 }
 
+/** Options of {@link startLauncher}. */
+export interface LaunchOptions {
+  /** Run the bin in its own process group (the e2e support kills the group, bug-004). */
+  detached?: boolean;
+}
+
 /** Start the bin with `args` and wait for its running line (rejects after `timeoutMs`). */
-export function startLauncher(args: readonly string[], env: NodeJS.ProcessEnv, timeoutMs = 10_000): Promise<Launcher> {
+export function startLauncher(
+  args: readonly string[],
+  env: NodeJS.ProcessEnv,
+  timeoutMs = 10_000,
+  options: LaunchOptions = {},
+): Promise<Launcher> {
   const t0 = performance.now();
-  const child: ChildProcess = spawn(process.execPath, [BIN, ...args], { env, stdio: ['ignore', 'pipe', 'pipe'] });
+  const child: ChildProcess = spawn(process.execPath, [BIN, ...args], {
+    env,
+    stdio: ['ignore', 'pipe', 'pipe'],
+    detached: options.detached ?? false,
+  });
   const out: string[] = [];
   let buffer = '';
   let err = '';

@@ -12,6 +12,8 @@ export default defineConfig({
   testDir: path.join(root, 'test', 'e2e'),
   // Builds server/dist, web/dist and web/dist-keys once: the suites start the real bin.
   globalSetup: path.join(root, 'test', 'e2e', 'support', 'global-setup.ts'),
+  // Kills and reports any console of the run still running (bug-004).
+  globalTeardown: path.join(root, 'test', 'e2e', 'support', 'global-teardown.ts'),
   timeout: 60_000,
   outputDir: path.join(root, 'test-results'),
   fullyParallel: true,

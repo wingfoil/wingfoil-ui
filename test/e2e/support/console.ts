@@ -13,6 +13,8 @@ import type { ProjectEntry, StateFile } from '../../../contracts/src/index.js';
 import { REPO_ROOT } from '../../harness/cli.js';
 import { harnessEnv, type Fixture } from '../../harness/fixtures/index.js';
 import { startLauncher, type Launcher } from '../../launcher/launcher.js';
+import { COLD_READ_MS } from './cold-read.js';
+import { forget, killGroup, track } from './reaper.js';
 
 /** How the bin may open a browser. */
 export type Opener =
@@ -123,7 +125,9 @@ export async function startConsole(options: ConsoleOptions = {}): Promise<Runnin
     env['PATH'] = await isolatedPath(root, base['PATH'] ?? '', opener === 'recording' ? record : undefined);
   }
   const args = [...(opener === 'flag' ? ['--no-open'] : []), ...(options.args ?? [])];
-  const launcher = await startLauncher(args, env, 30_000);
+  // Its own process group, recorded for the reaper (bug-004): killed whatever ends the test.
+  const launcher = await startLauncher(args, env, COLD_READ_MS, { detached: true });
+  track(launcher.pid);
   const origin = `http://127.0.0.1:${launcher.port}`;
   return {
     origin,
@@ -142,8 +146,13 @@ export async function startConsole(options: ConsoleOptions = {}): Promise<Runnin
       }
     },
     stop: async () => {
-      await launcher.kill();
-      await rm(root, { recursive: true, force: true });
+      try {
+        await launcher.kill();
+      } finally {
+        killGroup(launcher.pid);
+        forget(launcher.pid);
+        await rm(root, { recursive: true, force: true });
+      }
     },
   };
 }
@@ -188,6 +197,6 @@ async function serveKeyBuild(page: Page, origin: string): Promise<void> {
 /** Open the console in `page` at `options.path` with the token in the fragment; waits for the shell. */
 export async function openConsole(page: Page, console: RunningConsole, options: OpenOptions = {}): Promise<void> {
   if (options.build === 'keys') await serveKeyBuild(page, console.origin);
-  await page.goto(`${console.origin}${options.path ?? '/'}#token=${console.token}`);
-  await page.getByRole('banner').waitFor();
+  await page.goto(`${console.origin}${options.path ?? '/'}#token=${console.token}`, { timeout: COLD_READ_MS });
+  await page.getByRole('banner').waitFor({ timeout: COLD_READ_MS });
 }

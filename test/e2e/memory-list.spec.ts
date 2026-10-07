@@ -10,10 +10,14 @@ import path from 'node:path';
 import type { Fixture } from '../harness/fixtures/index.js';
 import { git } from '../harness/run.js';
 import { scanThemes } from './support/axe.js';
+import { COLD_READ_MS } from './support/cold-read.js';
 import { openConsole, type RunningConsole } from './support/console.js';
 import { cli, mutateAndWait, recordServerEvents } from './support/events.js';
 import { expect, test } from './support/fixtures.js';
 import { expectFocusVisible } from './support/keyboard.js';
+
+// The fixtures of this spec, built before its first test (shared support, bug-004).
+test.use({ prebuild: ['kanban', 'custom', 'unknown'] });
 
 /** Open the Memory list of the console's project `i` (optionally with a query string). */
 async function openList(page: Page, c: RunningConsole, query = '', i = 0): Promise<void> {
@@ -21,7 +25,7 @@ async function openList(page: Page, c: RunningConsole, query = '', i = 0): Promi
   await expect(page.getByRole('heading', { level: 1, name: 'Memory' })).toBeVisible();
   // The first read of a cold console runs the CLI (≤ 6 processes): slower than the default 5 s
   // expectation on a loaded machine; later assertions keep the default.
-  await expect(rows(page).first()).toBeVisible({ timeout: 30_000 });
+  await expect(rows(page).first()).toBeVisible({ timeout: COLD_READ_MS });
 }
 
 /**
@@ -48,7 +52,7 @@ function trackApi(page: Page): { listReads: string[]; settled(): Promise<void> }
     listReads,
     settled: () =>
       expect
-        .poll(() => inflight.size === 0 && Date.now() - last >= 500, { timeout: 30_000, intervals: [100] })
+        .poll(() => inflight.size === 0 && Date.now() - last >= 500, { timeout: COLD_READ_MS, intervals: [100] })
         .toBe(true),
   };
 }
@@ -99,7 +103,7 @@ test.describe('US-M-01 — Memory list', () => {
     await openConsole(page, c, { path: `/p/${c.pids[0]}` });
     await expect(page).toHaveURL(`${c.origin}/p/${c.pids[0]}/memory`);
     await expect(page.getByRole('heading', { level: 1, name: 'Memory' })).toBeVisible();
-    await expect(rows(page).first()).toBeVisible({ timeout: 30_000 });
+    await expect(rows(page).first()).toBeVisible({ timeout: COLD_READ_MS });
     await expect(typeList(page).getByRole('link', { name: 'task, 4 elements' })).toBeVisible();
     await expect(typeList(page).getByRole('link', { name: 'bug, 1 element' })).toBeVisible();
     await expect(

@@ -4,6 +4,7 @@
 // identity "I am Riley" changes nothing a read-only page shows: the fixture's identity is used.
 import type { Page } from '@playwright/test';
 import { scanThemes } from './support/axe.js';
+import { COLD_READ_MS, expectFirstLoad } from './support/cold-read.js';
 import { openConsole, type RunningConsole } from './support/console.js';
 import { commitFile } from './support/events.js';
 import { expect, test, type Consoles, type FixtureBuilds } from './support/fixtures.js';
@@ -11,7 +12,7 @@ import { expectFocusVisible } from './support/keyboard.js';
 
 const LINKS_DOC = 'docs/01_vision/links.md';
 /** A link waiting for `GET /elements` (a cold CLI search) and the server check is classified within. */
-const CLASSIFIED_WITHIN = 30_000;
+const CLASSIFIED_WITHIN = COLD_READ_MS;
 const LINKS = [
   '# Links of the scenarios',
   '',
@@ -35,12 +36,8 @@ async function withLinks(fixtures: FixtureBuilds, consoles: Consoles): Promise<R
   return consoles.start({ projects: [custom] });
 }
 
-// The worker's custom build is made before the tests (a build can take minutes on a loaded
-// machine; inside a test it would count against the test's timeout).
-test.beforeAll(async ({ fixtures }) => {
-  test.setTimeout(300_000);
-  await fixtures.get('custom');
-});
+// The worker's custom build is made before the tests (shared support, bug-004).
+test.use({ prebuild: ['custom'] });
 
 test.describe('US-R-08 — documentation index and documents', () => {
   test('R-08.1 — Index the documents without Memory and plan files', async ({ page, fixtures, consoles }) => {
@@ -55,6 +52,7 @@ test.describe('US-R-08 — documentation index and documents', () => {
     await expect(page.getByRole('heading', { level: 1, name: 'Documentation' })).toBeVisible();
     await expect(page).toHaveTitle('custom · Documentation — WingFoil UI');
     const index = page.locator('.docs-index');
+    await expectFirstLoad(index.locator('.docs-path').first());
     await expect(
       index.getByRole('link', { name: '02_product-vision.md docs/01_vision/02_product-vision.md' }),
     ).toBeVisible();
@@ -67,10 +65,9 @@ test.describe('US-R-08 — documentation index and documents', () => {
   test('R-08.2 — Render a document inside the UI', async ({ page, fixtures, consoles }) => {
     const c = await consoles.start({ projects: [await fixtures.get('custom')] });
     await openConsole(page, c, { path: `/p/${c.pids[0]}/docs` });
-    await page
-      .locator('.docs-index')
-      .getByRole('link', { name: /^06_features\.md / })
-      .click();
+    const features = page.locator('.docs-index').getByRole('link', { name: /^06_features\.md / });
+    await expectFirstLoad(features);
+    await features.click();
     const doc = article(page, 'docs/01_vision/06_features.md');
     await expect(doc).toBeVisible();
     // Headings, lists and tables rendered (not the Markdown source).
@@ -102,6 +99,7 @@ test.describe('US-R-08 — documentation index and documents', () => {
     const c = await consoles.start({ projects: [await fixtures.get('custom')] });
     await openConsole(page, c, { path: docPath(c, 'docs/01_vision/00_index.md') });
     const link = article(page, 'docs/01_vision/00_index.md').getByRole('link', { name: 'Product Vision' });
+    await expectFirstLoad(link);
     await expect(link).toHaveAttribute('href', docPath(c, 'docs/01_vision/02_product-vision.md'));
     // A client-side navigation: a marker on `window` survives (no reload), the origin stays.
     await page.evaluate(() => ((window as unknown as { marker: number }).marker = 1));
@@ -154,6 +152,7 @@ test.describe('US-R-09 — safe links', () => {
     const asked: string[] = [];
     page.on('request', (r) => asked.push(r.url()));
     await openConsole(page, c, { path: docPath(c, LINKS_DOC) });
+    await expectFirstLoad(article(page, LINKS_DOC));
     const item = article(page, LINKS_DOC).getByRole('listitem').filter({ hasText: 'Hosts' });
     await expect(item.locator('.doc-link-mark')).toHaveText('outside the repository');
     await expect(item.getByRole('link')).toHaveCount(0);
@@ -172,6 +171,7 @@ test.describe('US-R-09 — safe links', () => {
     );
     await openConsole(page, c, { path: docPath(c, LINKS_DOC) });
     const link = article(page, LINKS_DOC).getByRole('link', { name: 'Guide (opens in a new tab)', exact: true });
+    await expectFirstLoad(link);
     await expect(link).toHaveAttribute('target', '_blank');
     await expect(link).toHaveAttribute('rel', 'noopener noreferrer');
     const [tab] = await Promise.all([context.waitForEvent('page'), link.click()]);

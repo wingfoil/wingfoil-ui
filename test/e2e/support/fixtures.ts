@@ -17,6 +17,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { buildFixture, copyFixture, type Fixture, type FixtureKind } from '../../harness/fixtures/index.js';
 import { startConsole, type ConsoleOptions, type RunningConsole } from './console.js';
+import { reapWorker } from './reaper.js';
 
 export { expect } from '@playwright/test';
 
@@ -33,7 +34,38 @@ export interface Consoles {
   start(options?: ConsoleOptions): Promise<RunningConsole>;
 }
 
-export const test = base.extend<{ consoles: Consoles }, { fixtures: FixtureBuilds }>({
+/** Worker-scoped options and fixtures. */
+export interface WorkerFixtures {
+  fixtures: FixtureBuilds;
+  /**
+   * The fixture kinds a spec uses, built before its first test body (bug-004): a build can take
+   * minutes on a loaded machine, and inside a test it would count against the test's timeout.
+   * `test.use({ prebuild: ['kanban'] })` at the top of the spec.
+   */
+  prebuild: FixtureKind[];
+  /** Builds the `prebuild` kinds (automatic). */
+  prebuilt: void;
+  /** Kills the consoles this worker still holds when it ends (automatic, bug-004). */
+  reaper: void;
+}
+
+export const test = base.extend<{ consoles: Consoles }, WorkerFixtures>({
+  prebuild: [[], { scope: 'worker', option: true }],
+  prebuilt: [
+    async ({ fixtures, prebuild }, use) => {
+      await Promise.all(prebuild.map((kind) => fixtures.get(kind)));
+      await use();
+    },
+    { scope: 'worker', auto: true, timeout: 300_000 },
+  ],
+  reaper: [
+    // eslint-disable-next-line no-empty-pattern -- Playwright requires the destructuring
+    async ({}, use) => {
+      await use();
+      reapWorker();
+    },
+    { scope: 'worker', auto: true },
+  ],
   fixtures: [
     // eslint-disable-next-line no-empty-pattern -- Playwright requires the destructuring
     async ({}, use) => {
@@ -63,6 +95,8 @@ export const test = base.extend<{ consoles: Consoles }, { fixtures: FixtureBuild
         return c;
       },
     });
-    await Promise.all(started.map((c) => c.stop()));
+    // Every console of the test is stopped, passed or failed; a stop that fails does not keep the
+    // others running (bug-004).
+    await Promise.allSettled(started.map((c) => c.stop()));
   },
 });

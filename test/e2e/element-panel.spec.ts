@@ -2,20 +2,27 @@
 // kanban and custom fixtures. The panel is read-only: the identity of a scenario ("I am Morgan")
 // changes nothing it shows, so the fixtures' own identity (Alex) is used.
 import type { Page } from '@playwright/test';
-import type { MemoryHistory } from '@wingfoil-ui/contracts';
+import type { DirectiveEntry, MemoryHistory } from '@wingfoil-ui/contracts';
 import { scanThemes } from './support/axe.js';
+import { expectFirstLoad, expectLoaded } from './support/cold-read.js';
 import { openConsole, type RunningConsole } from './support/console.js';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { cli, commitFile } from './support/events.js';
 import { expect, test } from './support/fixtures.js';
+import { actAs } from './support/identity.js';
 import { expectFocusVisible } from './support/keyboard.js';
+
+// The fixtures of this spec, built before its first test (shared support, bug-004).
+test.use({ prebuild: ['kanban', 'custom'] });
 
 /** Open the element panel of `eid` by its URL. */
 async function openPanel(page: Page, c: RunningConsole, eid: string) {
   await openConsole(page, c, { path: `/p/${c.pids[0]}/e/${eid}` });
   const panel = page.getByRole('dialog');
-  await expect(panel).toBeVisible();
+  // The cold reads of the element and of its history (bug-004).
+  await expectFirstLoad(panel.locator('.type-tag'));
+  await expectLoaded(panel);
   return panel;
 }
 
@@ -140,5 +147,59 @@ test.describe('element panel layout', () => {
       .locator('.drawer-body')
       .evaluate((el) => ({ scroll: el.scrollWidth, client: el.clientWidth }));
     expect(overflow.scroll).toBeLessThanOrEqual(overflow.client);
+  });
+});
+
+// task-019 — the panel's Directives section (US-G-02): the directives of the user's role view
+// (W3-38), each opening the Directives view.
+test.describe('US-G-02 — directives in the element panel', () => {
+  /** The ids listed by the Directives section of the open panel. */
+  const directiveIds = (page: Page) =>
+    page
+      .getByRole('dialog')
+      .getByRole('region', { name: 'Directives', exact: true })
+      .locator('.directive-link-item .field-value');
+
+  test("G-02.1 — Show the directives that apply to the element's roles", async ({ page, fixtures, consoles }) => {
+    const custom = await fixtures.copy('custom');
+    await actAs(custom, 'Sam');
+    const reviewer = (
+      JSON.parse(await cli(custom, ['--format', 'json', 'directives', 'list', '--role', 'reviewer'])) as {
+        entries: DirectiveEntry[];
+      }
+    ).entries.map((e) => e.frontmatter.id);
+    const c = await consoles.start({ projects: [custom] });
+    const panel = await openPanel(page, c, 'task-001-cli-adapter');
+    const section = panel.getByRole('region', { name: 'Directives', exact: true });
+    await expect(directiveIds(page).first()).toBeVisible();
+    const ids = await directiveIds(page).allTextContents();
+    // The directives bound to "reviewer" (and the global ones): exactly `directives list --role reviewer`.
+    expect(new Set(ids)).toEqual(new Set(reviewer));
+    for (const id of ['accessibility', 'ux-consistency', 'claim-evidence', 'wingfoil-cli']) expect(ids).toContain(id);
+    // Each one links to its page in the Directives view.
+    const first = section.getByRole('link').first();
+    await expect(first).toHaveAttribute('href', `/p/${c.pids[0]}/directives/${ids[0]}`);
+    expect(await scanThemes(page)).toEqual([]);
+  });
+
+  test('G-02.2 — Open a directive from the panel', async ({ page, fixtures, consoles }) => {
+    const c = await consoles.start({ projects: [await fixtures.get('kanban')] });
+    const panel = await openPanel(page, c, 'task-001-login-form');
+    const link = panel.getByRole('region', { name: 'Directives', exact: true }).getByRole('link').first();
+    await expect(link).toBeVisible();
+    const title = (await link.textContent()) ?? '';
+    const id = (await directiveIds(page).first().textContent()) ?? '';
+    await link.focus();
+    await expectFocusVisible(link);
+    await page.keyboard.press('Enter');
+    await expect(page).toHaveURL(`${c.origin}/p/${c.pids[0]}/directives/${id}`);
+    await expect(page.getByRole('dialog')).toHaveCount(0);
+    // The Directives view on that directive, with its body rendered.
+    const article = page.getByRole('article', { name: title });
+    await expectFirstLoad(article);
+    await expect(article.getByRole('heading').first()).toBeVisible();
+    await expect(
+      page.getByRole('navigation', { name: 'Project views' }).getByRole('link', { name: 'Directives' }),
+    ).toHaveAttribute('aria-current', 'page');
   });
 });
