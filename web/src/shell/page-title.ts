@@ -9,8 +9,8 @@ import { defineMessages, useIntl, type MessageDescriptor } from 'react-intl';
 /** The page titles of the shell. */
 export const TITLES = defineMessages({
   projects: { id: 'title.projects' },
-  projectView: { id: 'title.projectView' },
   projectElement: { id: 'title.projectElement' },
+  projectView: { id: 'title.projectView' },
   notFound: { id: 'title.notFound' },
   sessionLost: { id: 'title.sessionLost' },
 });

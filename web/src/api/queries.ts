@@ -40,10 +40,10 @@ export function projectsQuery() {
 }
 
 /** `GET /api/p/:pid/elements[?archived=true]`: the Memory elements (shared by the views that need them). */
-export function projectElementsQuery(pid: string, withArchived: boolean) {
-  const path = `/api/p/${encodeURIComponent(pid)}/elements${withArchived ? '?archived=true' : ''}`;
+export function elementsQuery(pid: string, archived: boolean) {
+  const path = `/api/p/${encodeURIComponent(pid)}/elements${archived ? '?archived=true' : ''}`;
   return queryOptions({
-    queryKey: queryKeys.project(pid, 'elements', { withArchived }),
+    queryKey: queryKeys.project(pid, 'elements', { archived }),
     queryFn: ({ signal }) => apiGet<ElementList>(path, signal),
   });
 }

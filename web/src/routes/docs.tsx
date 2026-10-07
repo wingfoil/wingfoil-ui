@@ -12,7 +12,7 @@ import { createRoute, Outlet, useLocation, useRouter } from '@tanstack/react-rou
 import { useCallback, useMemo, type ReactNode } from 'react';
 import { defineMessages, useIntl } from 'react-intl';
 import { apiGet } from '../api/client.js';
-import { projectElementsQuery, projectsQuery } from '../api/queries.js';
+import { elementsQuery, projectsQuery } from '../api/queries.js';
 import { queryKeys } from '../api/query-keys.js';
 import { DocsIndex } from '../docs/DocsIndex.js';
 import { DocumentView, useDocumentHtml, useResolvedLinks } from '../docs/DocumentView.js';
@@ -85,15 +85,15 @@ function useLinkLookup(pid: string, path: string, safeHtml: string): LinkLookup 
     }
     return [...paths];
   }, [resolved, documents]);
-  const elementsQuery = useQuery({
-    ...projectElementsQuery(pid, false),
+  const elementsAnswer = useQuery({
+    ...elementsQuery(pid, false),
     enabled: indexReady && outsideIndex.length > 0,
   });
   const elements = useMemo(() => {
-    if (elementsQuery.data) return new Map(elementsQuery.data.elements.map((e) => [e.path.normalize('NFC'), e.id]));
+    if (elementsAnswer.data) return new Map(elementsAnswer.data.elements.map((e) => [e.path.normalize('NFC'), e.id]));
     // Without the elements, the Memory links are checked by the server like any path.
-    return elementsQuery.error ? new Map<string, string>() : undefined;
-  }, [elementsQuery.data, elementsQuery.error]);
+    return elementsAnswer.error ? new Map<string, string>() : undefined;
+  }, [elementsAnswer.data, elementsAnswer.error]);
   const toProbe = elements ? outsideIndex.filter((p) => !elements.has(p)) : [];
   const probes = useQueries({
     queries: toProbe.map((p) => documentContentQuery(pid, p)),

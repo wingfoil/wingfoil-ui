@@ -178,3 +178,83 @@ Screen: `docs/00_reference/ux-reference.md` §4.9 and the prototype (`docs/00_re
   in `web/src/api/queries.ts` with the key `queryKeys.project(pid, 'elements', { archived })` (017
   owns it; the merge unifies). `/p/$pid` redirects to the Memory list (W3-22): nothing here assumes
   what `/p/$pid` shows.
+
+### red / green / refactor (2026-10-07)
+
+- **Red** (`22a9be9`): `test/web/docs/links.test.ts` and `render.test.ts` failed on the missing
+  modules (`web/src/docs/links.js`, `render.js`); markdown-it ^15.0.2 and DOMPurify ^3.4.16 added to
+  `web`, `@types/markdown-it` ^14.2.0 to the root.
+- **Green** (`98e6dcd`) as designed, with these deviations:
+  - DOMPurify checks **every** attribute value against `ALLOWED_URI_REGEXP`, not only URLs: the final
+    pass uses DOMPurify's default shape restricted to `http`/`https` schemes (a strict "starts with
+    `/p/`" regex stripped `target`, `tabindex` and `data-doc-anchor`).
+  - REQ-ARC-05: the classification state "waiting" is `unresolved` (`pending` is a fixture state);
+    the elements query is `projectElementsQuery(pid, withArchived)` with the key
+    `queryKeys.project(pid, 'elements', { withArchived })` — **`{ archived }` as an object key or
+    a parameter property is refused by the lint** (`archived` is a fixture state name), so the key
+    agreed with task-017 cannot be written in `web/`; the merge must unify on a lint-clean name.
+  - Index entry numbers are `aria-hidden` (the accessible name is "<file name> <path>"; inline
+    spans join without a space, and a `{' '}` literal is refused by `formatjs/no-literal-string-in-jsx`);
+    the title and path are block elements.
+  - The visible "↗" after an external link is CSS (`content: ' \2197' / ''`, empty alternative), the
+    accessible "(opens in a new tab)" comes from the catalogue.
+  - **Deviation (test-after):** the component test `test/web/docs/docs.test.tsx` and the e2e spec
+    were written after the components and the routes.
+- **e2e** (`206f32f` + the next commit): `test/e2e/documentation.spec.ts`; the R-09 scenarios run on a
+  custom copy with `docs/01_vision/links.md` committed. A `beforeAll` builds the worker's custom
+  fixture (300 s) before the tests: the lazy build inside a test counted against the 60 s test
+  timeout and failed every test at load ≈ 45 (other projects' builds) — the shared support builds
+  lazily inside the test body (reported, not changed). The first classification waits up to 30 s
+  (cold `GET /elements` runs the CLI).
+- `test/README.md` 0.15.
+- **Scenario closure (US-R-08, US-R-09):**
+
+  | Scenario | Proved by |
+  |----------|-----------|
+  | R-08.1 Index the documents without Memory and plan files | `test/e2e/documentation.spec.ts` › "R-08.1 — Index the documents without Memory and plan files": custom fixture, sidebar *Documentation* reached by keyboard (visible focus, Enter) → `/p/<pid>/docs`, title "custom · Documentation — WingFoil UI", the entry "02_product-vision.md docs/01_vision/02_product-vision.md" shown, no listed path under `docs/04_memory/` or `docs/05_plans/`; axe 0 serious/critical in light and dark |
+  | R-08.2 Render a document inside the UI | same spec › "R-08.2 …": `06_features.md` opened from the index renders its headings and tables (the table in a focusable region reached by Tab, visible focus), no Markdown source shown, URL on the console's origin; axe in both themes. `06_features.md` holds no list: the lists are asserted on `02_product-vision.md` opened from the index (open point) |
+  | R-08.3 Follow a link between indexed documents inside the UI | same spec › "R-08.3 …": `00_index.md`'s link "Product Vision" (href `/p/<pid>/docs/docs/01_vision/02_product-vision.md`) followed by keyboard renders `02_product-vision.md`; a marker on `window` survives (no reload), title "custom · docs/01_vision/02_product-vision.md — WingFoil UI"; "← Index" goes back |
+  | R-09.1 Open a linked Memory file in the element panel | same spec › "R-09.1 …": on a custom copy with `docs/01_vision/links.md`, the link to `../04_memory/design/dls/dl-001-initialise-wingfoil-before-inception.md` points at `/p/<pid>/e/dl-001-…`, selecting it opens the panel (dialog "Initialise WingFoil before inception", id shown); Escape goes back to the document |
+  | R-09.2 Mark a link that points nowhere | same spec › "R-09.2 …": `missing-file.md` (server answer `missing`) shows its text with the mark "broken link", is no link, a click leaves the URL unchanged; axe in both themes |
+  | R-09.3 Mark a link that leaves the repository | same spec › "R-09.3 …": `../../../etc/hosts` marked "outside the repository", no link, a click opens no page and changes nothing, no request of the page names `etc/hosts` (decided in the page). The API half (TT-SEC-06: 404 `outside`, 0 bytes of the target) stays task-012's `test/server/http/project-routes.test.ts` and `test/launcher/local-security.test.ts` |
+  | R-09.4 Open an external link in a new tab | same spec › "R-09.4 …": the link "Guide (opens in a new tab)" has `target="_blank"` and `rel="noopener noreferrer"`; selecting it opens a new page at `https://example.test/guide` (served by a Playwright route) whose `window.opener` is `null`; the console's page stays |
+
+  Unit/component: `test/web/docs/links.test.ts` (resolution and classification, traversal and
+  scheme cases), `render.test.ts` (structure, 14 attack payloads never active, raw HTML as text,
+  link rewrite, images never loaded), `docs.test.tsx` (index, document, routing, focus, server
+  checks, refused documents, key build). "I am Riley" is not set up: a read-only view shows the same
+  thing to every identity.
+- **Checks** (HEAD before the notes `3a0c3a7`): typecheck, lint (ESLint + catalogue check),
+  format:check clean · `docs:api` OK · `check_tasks.py` OK · `test:e2e` **26/26** (40.5 s, load ≈ 2;
+  earlier runs at load 45–60 timed out on fixture builds and cold CLI calls, see above) ·
+  `test:coverage`: at load 30–40 one run failed only `test/web/element/panel.test.tsx` › "shows the
+  element…" (its first `findByRole` waits 1 s; passes alone, 16/16) and once
+  `test/lint/lint-clean.test.ts` (135 s timeout); the run with `--retry=2` at load ≈ 33: **95 files
+  passed, 1 skipped; 1540 passed / 1 skipped**, coverage 96.19 % statements / 89.58 % branches /
+  96.66 % functions / 98.02 % lines (`web/src/docs` 97.65 % / 91.35 %; `routes/docs.tsx` 100 % /
+  97.22 %).
+- **Prototype deviations (directive `ux-consistency`):** index entries show the file name and path,
+  no curated title or description (W3-28); no "Open on GitHub ↗" (W3-34); sections are folders;
+  "← Index" is a link (it navigates); refused links are struck through with a mark; images are a
+  marked text (W3-31).
+- **Hand-overs:**
+  - **task-017 (merge):** `elementsQuery(pid, archived)` in `api/queries.ts` with 017's signature and
+    key (one definition after the merge); `title.projectView` and `TITLES.projectView` (after
+    `projectElement`) with the agreed text; `PROJECT_ROUTES` gains `documentationRoute,`;
+    `test/README.md` 0.15 conflicts with 017's 0.15 (resolved at integration).
+  - **task-016:** nothing in the header; the Documentation view sets its own title.
+  - **task-019:** a directive body is Markdown: reuse `markdownToSafeHtml` + `finishDocument`
+    (`docs/render.ts`) with a classification of its own (directive files are governance: links to
+    them are "not shown in the UI" here).
+  - **task-021:** X-10 titles: index "{project} · Documentation", a document "{project} · <path>"
+    (`title.projectView`); the key build covers the docs strings (component test).
+  - **Coordinator:** spec-008 §3 has no title for a document (used `title.projectView` with the path).
+- **Open points:**
+  - R-08.2 names `06_features.md` for "headings, lists and tables" but it holds no list (scenario or
+    fixture to align).
+  - e2e support builds the worker fixtures lazily inside the test body: under heavy load a test
+    times out on the build (`beforeAll` used here). Proposal: a worker-fixture pre-build in the
+    shared support (bug-ingest).
+  - `panel.test.tsx` "shows the element…" flakes under load (1 s `findByRole`): bug-ingest.
+  - A document with many unresolved repository links makes one `GET /files/content` per distinct
+    target (no cap); a cap could be added if large documents show it.
