@@ -335,3 +335,25 @@ Screen: `docs/00_reference/ux-reference.md` §4.4 and the prototype (`docs/00_re
 - Checks: typecheck, lint, format:check clean · `docs:api` OK · `check_tasks.py` OK · `test:e2e`
   **40/40** (load 7.7) · `test:coverage` **1466 passed / 1 skipped**, 96.12 % statements / 89.88 %
   branches (`web/src/memory` 100 % / 97.61 %) (load 8.0 → 14.6).
+
+### integration (2026-10-07)
+
+- `main` merged into the branch (`4e7eb4a`, authorised by the coordinator): task-020 (documentation
+  index and links, `2d1802f`), the spec amendments W3, bug-004. Conflicts and how they were resolved:
+  - `web/src/api/queries.ts`: one `elementsQuery(pid, archived)` with the key
+    `queryKeys.project(pid, 'elements', { archived })` kept (this branch's body, next to
+    `projectConfigQuery`), and one import line (`ElementList, ProjectConfig, ProjectListResponse,
+    ServerInfo`). task-020's `web/src/docs/pages.tsx` imports the same `elementsQuery(pid, false)`,
+    so the Documentation view and the Memory list share one cache entry.
+  - `test/README.md`: version 0.16, both entries kept (0.15 task-020, 0.16 task-017).
+  - Merged without conflict: `routes/tree.ts` (`documentationRoute,` and this task's lines, one per
+    line), `en.json` (`title.projectView` once), `shell/page-title.ts` (one `projectView`).
+  - `npm install` for task-020's new dependencies (markdown-it and its types): 0 vulnerabilities.
+- Gates on the merge: typecheck, lint (ESLint + catalogue check), format:check clean · `docs:api` OK
+  · `check_tasks.py` OK · `test:e2e` **47/47** (load 6.7), the Memory list and Documentation specs
+  included · `npm run -s test:coverage` **97 files passed, 1 skipped; 1582 passed / 1 skipped**,
+  coverage 96.3 % statements / 90.1 % branches / 96.86 % functions / 98.08 % lines
+  (`web/src/memory` 100 % / 97.61 %, `web/src/docs` 98.06 % / 92.17 %) (load 7.2 → 14.8) ·
+  task-018's `panel.test.tsx` alone 16/16 (bug-004: no timeout in the full run either) ·
+  `npm run test:timing` **3/3** at load 9.5 → 7.2: REQ-PERF-03 20/20 (a CLI approve 415 ms),
+  TypeDoc 2981 ms, REQ-PERF-06 269–312 ms.
