@@ -1,6 +1,6 @@
 # UX reference — WingFoil UI
 
-**Version:** 0.5 · **Date:** 2026-10-07 (0.2: §9 colours aligned with spec-009 — release-planning v0.1 session 2; 0.3: §3 start page with no project open, §5 modal dismissal — dev-loop task-013, decided by the user; 0.4: §4.2 v0.1 read-only panel — dev-loop task-018, decided by the user; 0.5: §4.4 and §4.9 in v0.1 — dev-loop tasks 017 and 020, decided by the user) · **Status:** Reference for `lean-inception` and `specification-downcast`
+**Version:** 0.6 · **Date:** 2026-10-07 (0.2: §9 colours aligned with spec-009 — release-planning v0.1 session 2; 0.3: §3 start page with no project open, §5 modal dismissal — dev-loop task-013, decided by the user; 0.4: §4.2 v0.1 read-only panel — dev-loop task-018, decided by the user; 0.5: §4.4 and §4.9 in v0.1 — dev-loop tasks 017 and 020, decided by the user; 0.6: §4.2 panel directives, §4.5, §4.6, §4.10 in v0.1 — dev-loop task-019, decided by the user) · **Status:** Reference for `lean-inception` and `specification-downcast`
 **Prototype:** `docs/00_reference/prototype/` (interactive HTML; sample data from the WingFoil
 repository and from a fictional Kanban project `acme-checkout`)
 
@@ -90,6 +90,9 @@ All cards are stacked full width, in this order.
   v0.3). References = the frontmatter fields other than id, type, title and status with their
   values ("—" when empty), without UI category (`ui.yaml` taxonomy from v0.3); a missing required
   field reads "<field> — required field, missing".
+  *Directives* (dev-loop task-019): the directives of the current role view plus the global ones,
+  each linking to its directive page; a user who holds no role sees the global ones with "You
+  hold no role in this project".
 
 ### 4.3 Workflow
 - **Main workflow tree** with status dots (done / current / todo) and notes; the iterated
@@ -124,9 +127,19 @@ All cards are stacked full width, in this order.
 Modules, stack + methodologies, team and roles, paths. **Edit mode**: modules (name,
 description, add/remove), technologies (chips + add), path values.
 
+**v0.1 (dev-loop task-019):** `/p/:pid/dna`, read-only: Project, Modules, Stack (technologies and
+methodologies), Team and roles, Paths; an empty list reads "No … declared", absent optional
+fields are left out. A failed read is confined to this view and recovers by itself.
+
 ### 4.6 Directives
 Directive list with bound roles; roles of the current view highlighted; "only mine / all".
 **Edit mode**: toggle role bindings per directive, edit description, add/remove directive.
+
+**v0.1 (dev-loop task-019):** list at `/p/:pid/directives` and one page per directive at
+`/p/:pid/directives/:did` with its body rendered as in §4.9 (links: `http(s)` in a new tab,
+in-page anchors, another directive opens its page, other repository paths read *not shown in the
+UI*). "only mine / all" is a two-option control kept in the URL; a member starts on "only mine";
+for a user who holds no role "only mine" is disabled with its reason.
 
 ### 4.7 Artifacts
 Not Memory elements. Found through **artifact paths** (file globs or URLs with
@@ -166,6 +179,10 @@ shown in the UI* (W3-36).
 Member cards (initials, name, email, roles, "you" badge, pending gates on their roles);
 agents listed as "executes as a role, never approves". Filters: search, role, "with pending
 gates".
+
+**v0.1 (dev-loop task-019):** `/p/:pid/team`; filters kept in the URL; agents in their own
+section after the member cards; pending gates per member are counted from the descriptors of the
+elements (gates whose actor lists the member).
 
 ### 4.11 Configuration
 Sub-tabs (one row, scrolls horizontally when narrow):
