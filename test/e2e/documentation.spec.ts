@@ -127,7 +127,7 @@ test.describe('US-R-09 — safe links', () => {
     });
     await link.click();
     const panel = page.getByRole('dialog');
-    await expect(panel).toBeVisible();
+    await expectFirstLoad(panel.locator('.type-tag'));
     await expect(panel.getByText('dl-001-initialise-wingfoil-before-inception', { exact: true })).toBeVisible();
     await expect(panel).toHaveAccessibleName('Initialise WingFoil before inception');
     // Close goes back to the document.

@@ -123,8 +123,8 @@ test.describe('US-G-01 — element panel', () => {
     const tab = await page.context().newPage();
     try {
       await tab.goto(copied);
-      const panel = tab.getByRole('dialog', { name: 'Login form' });
-      await expect(panel).toBeVisible();
+      const panel = tab.getByRole('dialog', { name: 'Login form', exact: true });
+      await expectFirstLoad(panel.locator('.type-tag'));
       await expect(panel.getByText('task-001-login-form', { exact: true })).toBeVisible();
       await expect(tab).toHaveTitle(/· task-001-login-form — WingFoil UI$/);
     } finally {

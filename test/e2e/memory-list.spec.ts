@@ -10,7 +10,7 @@ import path from 'node:path';
 import type { Fixture } from '../harness/fixtures/index.js';
 import { git } from '../harness/run.js';
 import { scanThemes } from './support/axe.js';
-import { COLD_READ_MS } from './support/cold-read.js';
+import { COLD_READ_MS, expectFirstLoad } from './support/cold-read.js';
 import { openConsole, type RunningConsole } from './support/console.js';
 import { cli, mutateAndWait, recordServerEvents } from './support/events.js';
 import { expect, test } from './support/fixtures.js';
@@ -153,8 +153,9 @@ test.describe('US-M-01 — Memory list', () => {
     await logout.focus();
     await expectFocusVisible(logout);
     await page.keyboard.press('Enter');
-    const panel = page.getByRole('dialog', { name: 'Logout' });
-    await expect(panel).toBeVisible();
+    const panel = page.getByRole('dialog', { name: 'Logout', exact: true });
+    // The panel's first read (bug-004): until it answers, the dialog is named by the id.
+    await expectFirstLoad(panel.locator('.type-tag'));
     await expect(panel.getByText('task-003-logout', { exact: true })).toBeVisible();
     await expect(page).toHaveURL(`${c.origin}/p/${c.pids[0]}/e/task-003-logout`);
     // Close: back to the list with its filter, the focus on the row it was opened from (W3-23).
@@ -300,8 +301,8 @@ test.describe('US-S-26 — refresh by itself', () => {
     await recordServerEvents(page);
     await openList(page, c);
     await row(page, 'task-001-login-form').click();
-    const panel = page.getByRole('dialog', { name: 'Login form' });
-    await expect(panel.getByRole('listitem').filter({ hasText: 'submitted by Jordan' })).toBeVisible();
+    const panel = page.getByRole('dialog', { name: 'Login form', exact: true });
+    await expectFirstLoad(panel.getByRole('listitem').filter({ hasText: 'submitted by Jordan' }));
     await mutateAndWait(
       page,
       () => cli(kanban, ['memory', 'approve', 'task-001-login-form', '--reason', 'Looks good']),
@@ -325,7 +326,7 @@ test.describe('US-S-26 — refresh by itself', () => {
     expect(api.listReads).toHaveLength(1);
     // Away (the element panel) and back to the list.
     await row(page, 'task-002-password-reset').click();
-    await expect(page.getByRole('dialog')).toBeVisible();
+    await expectFirstLoad(page.getByRole('dialog').locator('.type-tag'));
     await page.getByRole('button', { name: 'Close' }).click();
     await expect(page.getByRole('heading', { level: 1, name: 'Memory' })).toBeVisible();
     await api.settled();
@@ -362,6 +363,7 @@ test.describe('US-S-28 — three fixtures, no UI change', () => {
     await openList(page, c);
     await row(page, 'story-001-onboarding').click();
     const machine = page.getByRole('dialog').getByRole('list', { name: 'State machine' });
+    await expectFirstLoad(page.getByRole('dialog').locator('.type-tag'));
     const chips = machine.getByRole('listitem');
     await expect(chips.locator('[aria-hidden="true"]')).toHaveText(['idea', 'shaping', 'ready-to-build', 'shipped']);
     const current = chips.filter({ has: page.locator('[aria-hidden="true"]', { hasText: /^shaping$/ }) });
