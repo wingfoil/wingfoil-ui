@@ -177,3 +177,32 @@ Screen: `docs/00_reference/ux-reference.md` §4.5, §4.6, §4.10 and the prototy
 - **Decisions — reported to the coordinator, waiting (recommended option first):** see the
   numbered list sent to "main" (panel directives source, pending gates, header query, directive
   page, directive links, filter control, Team filters, DNA content, S-27.2 on kanban).
+
+### design decisions (2026-10-07)
+
+- Decided by the user 2026-10-07 (coordinator decisions W3-38…W3-46), every point the recommended
+  option of the design:
+  - **W3-38** the panel's Directives section = the directives of the current role view
+    (`entries[].mine`: bound to it or global); a user outside the team sees the global ones with
+    "You hold no role in this project"; each links to `/p/$pid/directives/$did`.
+  - **W3-39** pending gates per member counted in `web/` from the `GET /elements` descriptors:
+    `kind` `gate` with `actor.members` listing the member (`gate-waiting` excluded); no server change.
+  - **W3-40** `projectHeaderQuery(pid)` in `api/queries.ts`, key `['p', pid, 'header']`, for task-016.
+  - **W3-41** a list and a page per directive at `/p/$pid/directives/$did` (lazy), body through
+    `markdownToSafeHtml` + `finishDocument`.
+  - **W3-42** directive body links: `http(s)` in a new tab, in-page anchors, another directive → its
+    page, any other repository path "not shown in the UI" with no request.
+  - **W3-43** a `ToggleButtonGroup` *only mine / all*, state in the URL (`?show=all`); a member
+    defaults to *only mine*; outside the team *all* is selected and *only mine* disabled with the
+    visible reason.
+  - **W3-44** Team filters search, role and *with pending gates* in the URL (`?q=&role=&gates=1`);
+    agents in their own section, "executes as {roles} · never approves".
+  - **W3-45** DNA view sections Project, Modules, Stack (technologies + methodologies), Team and
+    roles, Paths; "No … declared" for an empty list; absent optional fields omitted; read-only.
+  - **W3-46** S-27.2: the original `dna.yaml` restored and committed, recovery asserted within 5 s
+    without reload.
+- bug-004 scope added by the coordinator: the shared e2e support guarantees the teardown of every
+  console it starts (process group killed at test end, on failure and at worker exit), and a
+  global teardown checks that no console started by the run survives it (kills it and fails
+  loudly). Cause: three `wingfoil-ui --no-open` consoles of task-017's e2e were still running
+  about 10 h after its worktree was removed.
