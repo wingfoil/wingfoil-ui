@@ -11,9 +11,10 @@ import net from 'node:net';
 import { mkdir, mkdtemp, readFile, realpath, rm, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import type { StateFile } from '@wingfoil-ui/contracts';
 import { buildFixture, harnessEnv, type Fixture } from '../harness/fixtures/index.js';
+import { BIN_START_MS, BIN_TEST_MS } from '../harness/load.js';
 import { startLauncher, type Launcher } from './launcher.js';
 
 let root: string;
@@ -21,8 +22,11 @@ let env: NodeJS.ProcessEnv;
 const started: Launcher[] = [];
 const PROJECT_API = '/api/p/p_abcdefghijkl';
 
+// Sized for the worst measured external load (bug-004): each test starts the bin itself.
+vi.setConfig({ testTimeout: BIN_TEST_MS });
+
 async function launch(): Promise<Launcher> {
-  const l = await startLauncher(['--no-open'], env);
+  const l = await startLauncher(['--no-open'], env, BIN_START_MS);
   started.push(l);
   return l;
 }
@@ -381,7 +385,11 @@ describe('TT-SEC-06 — confinement to the repository (R-09.3 API side)', () => 
       actionLog: [],
     };
     await writeFile(path.join(stateDir, 'state.json'), JSON.stringify(state), { mode: 0o600 });
-    const fixtureLauncher = await startLauncher(['--no-open'], { ...fx.env, WINGFOIL_UI_STATE_DIR: stateDir }, 30_000);
+    const fixtureLauncher = await startLauncher(
+      ['--no-open'],
+      { ...fx.env, WINGFOIL_UI_STATE_DIR: stateDir },
+      BIN_START_MS,
+    );
     started.push(fixtureLauncher);
     l = fixtureLauncher;
   }, 600_000);

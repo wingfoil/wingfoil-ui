@@ -2,6 +2,7 @@ import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { HEAVY_MS } from './load.js';
 import { binScript } from './cli.js';
 import {
   buildFixture,
@@ -74,7 +75,8 @@ async function cli(fx: Fixture, args: string[]): Promise<unknown> {
 beforeAll(async () => {
   root = await mkdtemp(path.join(tmpdir(), 'wfui-fx-'));
   await Promise.all(FIXTURE_KINDS.map(async (kind) => built.set(kind, await buildFixture(kind, { root, now: NOW }))));
-});
+  // Three fixtures built with the real CLI and git: sized for the worst measured load (bug-004).
+}, HEAVY_MS);
 
 afterAll(async () => {
   await rm(root, { recursive: true, force: true });
