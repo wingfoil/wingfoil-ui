@@ -144,3 +144,7 @@ catalogue and its arguments (`warnings: [{ key, args }]` of `GET /api/server`, s
   decided by the user.
 - 2026-10-06 — amended in dev-loop task-013 (Wave 3, plan dev-loop-rel-v0.1-plan, independent review): erratum §1 `index.tsx`
   (the file holds the provider component).
+- 2026-10-07 — amended in dev-loop task-018 (Wave 3, plan dev-loop-rel-v0.1-plan): history lines name the verb, not
+  the state ("created by", "submitted by", "signed off by", "rejected by", "deprecation by",
+  "edited outside a WingFoil verb by" + `{name}`), the transition `{from} → {to}` is data (§3,
+  W3-20); decided by the user.

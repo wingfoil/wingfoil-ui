@@ -209,3 +209,6 @@ element list; `web/` renders it and never re-derives it.
   `<min> to <X.Y.x>` (task-012); §8 vocabulary note (tables in
   `server/src/presets/`, REQ-ARC-05); §9 erratum (the CLI may refuse an offered move for the
   element's content); decided by the user.
+- 2026-10-07 — amended in dev-loop task-018 (Wave 3, plan dev-loop-rel-v0.1-plan): panel use of the descriptor in
+  v0.1: a current state outside `sequence` (off-sequence, undeclared, archived) is drawn as its own
+  chip after the unmarked sequence chips, coloured by `tone` (W3-15); decided by the user.
