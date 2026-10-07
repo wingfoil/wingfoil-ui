@@ -83,7 +83,7 @@ Screen: `docs/00_reference/ux-reference.md` §4.2 and the prototype (`docs/00_re
   web/src/element/ElementPanel.tsx  the drawer (RAC Modal + Dialog, heading = title, Close)
   web/src/element/StateMachine.tsx  ordered list of state chips (past / current / future)
   web/src/element/History.tsx       history list (who, when, transition, reason, short sha)
-  web/src/element/summary.ts        pure helpers: summary excerpt, member name of "Name <email>",
+  web/src/element/model.ts          pure helpers: summary excerpt, member name of "Name <email>",
                                     chip positions
   web/src/theme/tones.css           .tone-<tone> classes (spec-009 tone tokens), shared with 017
   ```
@@ -174,7 +174,7 @@ Screen: `docs/00_reference/ux-reference.md` §4.2 and the prototype (`docs/00_re
 
   | Scenario | Proved by |
   |----------|-----------|
-  | G-01.1 Show an element with its state machine and history | `test/e2e/element-panel.spec.ts` › "G-01.1 — Show an element with its state machine and history": kanban `task-001-login-form` by URL; dialog named "Login form"; type tag `task`, id, `<h2>`; chips `draft(past state)`, `pending(current state)` (`aria-current="step"`), `approved(future state)`; the line "submitted by Jordan" holds the 7-char sha and the date of the `memory history` submit entry, with the full sha as title; Close reached by Tab with a visible focus; axe 0 serious/critical in light and dark; Escape closes to `/p/<pid>` |
+  | G-01.1 Show an element with its state machine and history | `test/e2e/element-panel.spec.ts` › "G-01.1 — Show an element with its state machine and history": kanban `task-001-login-form` by URL; dialog named "Login form"; type tag `task`, id, `<h2>`; chips `draft` / `pending` / `approved` with `data-position` past / current (`aria-current="step"`, class `tone-human` from the descriptor) / future and the accessible texts "draft, past state", "pending, current state", "approved, future state"; the line "submitted by Jordan" holds the 7-char sha and the date of the `memory history` submit entry, with the full sha as title; Close and the scrollable body region reached by Tab with a visible focus; axe 0 serious/critical in light and dark; Escape closes to `/p/<pid>` with the focus on `<main>` |
   | G-01.2 Show the rejection banner after a reject | same spec › "G-01.2 …": kanban `task-002-password-reset` (rejected by Morgan in the built fixture) shows "Rejected by Morgan: Missing acceptance criteria", `draft` current, the history line "rejected by Morgan" with the quoted reason; axe in both themes |
   | G-01.3 Flag a missing required field | same spec › "G-01.3 …": custom `adr-001-local-server` (built as a committed draft with an empty `sard_ref`) shows "sard_ref — required field, missing" inside the *Summary* region; axe in both themes |
   | G-01.4 Open an element panel from its URL | same spec › "G-01.4 …": the panel URL (`<origin>/p/<pid>/e/task-001-login-form`, no token) opened in a new page of the same browser context shows the panel of `task-001-login-form`, title `… · task-001-login-form — WingFoil UI` |
@@ -190,7 +190,8 @@ Screen: `docs/00_reference/ux-reference.md` §4.2 and the prototype (`docs/00_re
 - **Hand-overs:**
   - **task-017:** a list row links to `/p/$pid/e/$eid` (a React Aria `Link href` with the concrete
     path, or the router `Link to="/p/$pid/e/$eid"`). Close goes back to the list through
-    `history.back()`. The panel replaces the Outlet, so the list is not rendered behind the drawer
+    `history.back()`; the list must then focus the originating row (by eid), see review round 1.
+    The panel replaces the Outlet, so the list is not rendered behind the drawer
     (decision 5). To keep it visible, a later change can render the list as the panel route's
     background. Reuse `theme/tones.css` (`tone-${descriptor.tone}`) for the state pills; do not add
     tone classes to `base.css`. S-26.2 (refresh an open panel) needs no code: the panel keys sit
@@ -205,3 +206,66 @@ Screen: `docs/00_reference/ux-reference.md` §4.2 and the prototype (`docs/00_re
   - **task-021:** X-10.2's title is set by the panel (`title.projectElement`, project name from
     `GET /api/projects`, the pid until it loads).
   - **Coordinator:** the decisions 1–7 above; the spec-004 §3 amendment for `states`.
+
+### design decisions (2026-10-07)
+
+- Decided by the user (coordinator decisions W3-14…W3-20): decisions 1–7 of the design, each
+  option (a), exactly as built. Spec amendments on `main` (`10d3759`): spec-004 §3 `states`
+  addendum, spec-003, spec-008, ux-reference 0.4 §4.2. W3-21 (N15): the deprecate history line
+  reads "marked obsolete by {name}" (no state name).
+- Process lesson: the decisions were sent and the build went on without waiting; the rule "when
+  told to wait, wait" was added to the dev rules.
+
+### review round 1 (2026-10-07)
+
+- Independent review: **PASS with minors**. Fixed one commit per point:
+  - **F1, N9** (`daec946`) each chip shows its name `aria-hidden` and gives assistive technology
+    one message with the state as argument: `element.states.past|current|future|other` =
+    "{state}, past state" / "current state" / "future state" / "state of the sequence". Component
+    and e2e tests assert `data-position`, the accessible text and the tone class (`expectChip`).
+  - **F2, F4** (`71ffa29`) after closing, the focus goes to the destination's `<main>` when it
+    was lost (on `<body>`). A destination that places the focus itself keeps it (tested). Close
+    after opening from `/` returns to `/` (history back), which is distinct from the `/p/$pid`
+    fallback of a panel opened by URL (tested). e2e G-01.1: `<main>` is focused after Escape.
+  - **F3** (`6267f51`) `overflow-wrap: anywhere` + `min-width: 0` on the title, summary, field
+    values (also `max-width: 100%`) and history texts. e2e "a long unbroken value wraps inside
+    the drawer" (300-char `ref` and body line on a kanban copy): no horizontal scroll. It fails
+    on the previous CSS.
+  - **F6** (`fb064ac`) `element.notice.eventsError` = "The repository history could not be read:
+    the rejection banner may be missing."
+  - **F7** (`85cb7d4`) the scrollable `.drawer-body` is `role="region"`, `tabIndex=0`, named
+    "Element details" (`element.body.label`), with an inset focus ring. Tested in the component
+    test and the e2e (Tab, visible focus).
+  - **W3-21** (`d12e65b`) "marked obsolete by {name}", component test.
+  - **N8** (`73cbbc7`) the `attention` tone on the current chip only. **N10** (`4c54fb8`)
+    `.visually-hidden` moved to `base.css`.
+  - **F5** (`4110223`) route tests: a type that `memory.yaml` does not declare (`bug` removed
+    from the server's read) → descriptor `kind: undeclared`, `required: []`, no `states`. A
+    deprecated element (`task-003-logout`, CLI `memory deprecate` on a copy) → `archived` with
+    the type's `states`.
+  - **N12** design layout bullet corrected (`model.ts`, not `summary.ts`).
+- **Prototype deviations (directive `ux-consistency`, N13):**
+  - the section headings are "Summary" and "References". The prototype has a summary paragraph
+    without a heading and "References" with a UI-category caption, which v0.1 lacks (W3-17: no
+    taxonomy before v0.3);
+  - the missing required field is flagged in the Summary section ("<field> — required field,
+    missing", G-01.3), not under the references as a missing-category note;
+  - references are the frontmatter fields with their values (no category chip);
+  - no Edit button and no footer (W3-19);
+  - the current chip is outlined and coloured by the descriptor tone, and the past and future
+    chips use text colour only;
+  - the drawer is closed by Close/Escape only, not by a click on the backdrop (ux-reference §5).
+- **Small choices (N14):** history newest first; the page title uses the element id
+  (`title.projectElement`, X-10.2), with the pid until the project list is loaded; three notices
+  (local changes, events error, unreadable type definitions); loading texts for the element and
+  the history; a failed history read stays inside the History section.
+- **Open point (N11, v0.2):** the full commit hash is only in the short hash's `title` tooltip,
+  which is not reachable by keyboard or touch. Decide in v0.2 (copy button or expandable line).
+- **Checks** (HEAD `4110223` + notes, load 8.8 → 16.6): typecheck, lint (ESLint + catalogue check),
+  format:check clean · `docs:api` OK · `npm run -s test:coverage` **92 files passed, 1 skipped;
+  1433 passed / 1 skipped**, coverage 95.95 % statements / 89.29 % branches / 96.5 % functions /
+  97.89 % lines (`web/src/element` 100 % / 96.38 %) · `test:e2e` **19/19** · `check_tasks.py` OK
+  · `npm run test:timing` **skipped** (load 16.6 > 12; it passed 3/3 before this round).
+- **Hand-over 017 (updated):** after the back navigation from the panel, focus the originating row
+  (by eid) on the list's mount. The panel moves the focus to `<main>` only when no element holds
+  it.
