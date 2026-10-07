@@ -316,3 +316,22 @@ Screen: `docs/00_reference/ux-reference.md` §4.4 and the prototype (`docs/00_re
   first render of the file under load: the F8 case, not changed here). It passes when its file runs
   alone (`panel.test.tsx` + `test/web/memory`: 47/47). `test:timing` not re-run (load > 12); it
   passed 3/3 before this round.
+
+### review round 2 (2026-10-07)
+
+- Re-verification: **PASS with 3 minors**. Fixed one commit per point. Each test was run red first:
+  - **N1** (`fix(web): a filter change resets the refresh announcement`) the announcement is dropped
+    when the filter changes, so returning to a filter does not show it again. The F3 test was
+    extended: refresh on *All types* → `kind-a` → *All types* gives an empty region and still two
+    nodes.
+  - **N2** (`fix(web): the return row takes the focus only while nothing else holds it`) the
+    pending return row is focused only while the focus is on `<body>` or `<main>`, and dropped
+    otherwise. Test: the archived read is held back, the user focuses a filter, then the read is
+    released → the focus stays on the filter.
+  - **N3** (`fix(web): no verdict on a selected type before the configuration is settled`)
+    `unknownType` and the empty text wait for the configuration (data or error), like the route's
+    archived read. Test: `?type=kind-e` with `/config` held back → no empty text, then "No kind-e
+    yet".
+- Checks: typecheck, lint, format:check clean · `docs:api` OK · `check_tasks.py` OK · `test:e2e`
+  **40/40** (load 7.7) · `test:coverage` **1466 passed / 1 skipped**, 96.12 % statements / 89.88 %
+  branches (`web/src/memory` 100 % / 97.61 %) (load 8.0 → 14.6).
