@@ -173,10 +173,9 @@ Screen: `docs/00_reference/ux-reference.md` §4.4 and the prototype (`docs/00_re
     from the descriptor's `since`; deviations recorded under `ux-consistency`.
   - **W3-27** bucket labels as in the feature header ("To approve", "In progress",
     "Waiting/drafts/closed", "Done"), the UI's closed vocabulary.
-- Coordination with task-020: the elements queries use exactly
-  `queryKeys.project(pid, 'elements', { archived: false | true })`, factory `elementsQuery(pid,
-  archived)` in `api/queries.ts` (next to `projectConfigQuery`), shared by both tasks;
-  `title.projectView` = "{project} · {view} — WingFoil UI" (same line in both tasks).
+- Coordination with task-020 (coordinator's instruction): the elements queries use the key
+  `queryKeys.project(pid, 'elements', { archived: false | true })`, factory in `api/queries.ts`
+  (next to `projectConfigQuery`); `title.projectView` = "{project} · {view} — WingFoil UI".
 
 ### red / green / refactor (2026-10-07)
 
@@ -187,7 +186,7 @@ Screen: `docs/00_reference/ux-reference.md` §4.4 and the prototype (`docs/00_re
     `projectIndexRoute` (`/p/$pid` → `redirect` to `/p/$pid/memory`, replace; W3-22). Two lines in
     `PROJECT_ROUTES`. A comment line inside the array keeps Prettier from joining the lines.
   - `api/queries.ts`: `projectConfigQuery(pid)` (`['p', pid, 'config']`) and `elementsQuery(pid,
-    archived)` (`['p', pid, 'elements', { archived }]`), the key shape agreed with task-020.
+    archived)` (`['p', pid, 'elements', { archived }]`), the shared key (settled in review round 1, F1).
   - `memory/model.ts`: `typeFilters`, `stateFilters`, `bucketFilters`, `filterRows`,
     `bucketKeyOf`, `ageOf`. The bucket labels are four `defineMessage` ids in the header's order.
     The URL key of a bucket is the last id segment (`?bucket=toApprove`), compared with
@@ -259,9 +258,12 @@ Screen: `docs/00_reference/ux-reference.md` §4.4 and the prototype (`docs/00_re
   - **task-019:** `projectConfigQuery(pid)` in `api/queries.ts` (`['p', pid, 'config']`), already
     read by the Memory list (one read per repository state, shared). The DNA view shows
     `dna.error.message`. `title.projectView` with the view label for the page title.
-  - **task-020:** `elementsQuery(pid, archived)` in `api/queries.ts`, key
-    `queryKeys.project(pid, 'elements', { archived })`, as agreed. `title.projectView` and
-    `TITLES.projectView` are the same lines in both branches.
+  - **task-020:** the shared elements query is settled by the coordinator (review round 1, F1) on
+    this task's version: `elementsQuery(pid, archived)` in `api/queries.ts`, key
+    `queryKeys.project(pid, 'elements', { archived })`. task-020 (now
+    `projectElementsQuery(pid, withArchived)` / `{ withArchived }`) adopts it. Both branches add
+    `title.projectView` to `en.json` and `TITLES.projectView` to `shell/page-title.ts`, and both bump
+    `test/README.md`. Whoever merges second resolves those three files.
   - **task-021:** X-10.1 title of a view = `title.projectView` (the project name from
     `GET /api/projects`, the pid until it loads). The list's live region is "Memory list updates".
   - **v0.2 Today:** replace `projectIndexRoute`'s redirect with the Today view; the panel's
