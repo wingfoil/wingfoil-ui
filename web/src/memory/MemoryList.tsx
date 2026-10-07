@@ -178,18 +178,20 @@ export function MemoryList({ pid, filters, config, elements, withArchived }: Mem
     row?.focus();
   }, [ready]);
 
-  // A refresh that changed the list is announced (directive `accessibility`).
+  // Every refresh that changed the list is announced (directive `accessibility`): each one renders a
+  // new node in the live region (keyed by a counter), and a filter change clears it (review F3).
   // The ages are computed against the time of the last read.
-  const [updated, setUpdated] = useState(false);
+  const filterKey = JSON.stringify([filters.type, filters.state, filters.bucket]);
+  const [announcement, setAnnouncement] = useState<{ n: number; filterKey: string } | undefined>(undefined);
   const [now, setNow] = useState(Date.now);
   const previous = useRef<ElementList | undefined>(undefined);
   useEffect(() => {
     if (previous.current !== undefined && list !== undefined && previous.current !== list) {
-      setUpdated(true);
+      setAnnouncement((a) => ({ n: (a?.n ?? 0) + 1, filterKey }));
       setNow(Date.now());
     }
     previous.current = list;
-  }, [list]);
+  }, [list, filterKey]);
 
   return (
     <div className="page memory">
@@ -204,7 +206,11 @@ export function MemoryList({ pid, filters, config, elements, withArchived }: Mem
         )}
       </div>
       <div className="visually-hidden" role="status" aria-label={intl.formatMessage({ id: 'memory.updates.label' })}>
-        {updated && <FormattedMessage id="memory.updated" />}
+        {announcement?.filterKey === filterKey && (
+          <span key={announcement.n}>
+            <FormattedMessage id="memory.updated" />
+          </span>
+        )}
       </div>
       {elements.error ? (
         <QueryError error={elements.error} />

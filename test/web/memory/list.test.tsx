@@ -321,20 +321,35 @@ it('notes an events error and renders a failed list read from the catalogue', as
   expect(alert.textContent).toBe('WingFoil answered with an output the UI does not understand');
 });
 
-it('announces a refresh that changed the list', async () => {
+it('announces every refresh that changed the list, none for an unchanged one, cleared by a filter (review F3)', async () => {
   const fake = api();
   stubApi(fake);
+  const user = userEvent.setup();
   const { queryClient } = renderApp(`/p/${PID}/memory`);
   await screen.findByText('Title of k-001-alpha');
   const status = screen.getByRole('status', { name: 'Memory list updates' });
   expect(status.textContent).toBe('');
-  fake[LIST] = {
-    status: 200,
-    body: { ...ELEMENTS, elements: [el('k-001-alpha', 'kind-a', 's3', { bucket: 'done', tone: 'done' })] },
+  // Each announcement is a new node in the live region.
+  const added: string[] = [];
+  new MutationObserver((records) => {
+    for (const r of records) for (const n of r.addedNodes) added.push(n.textContent ?? '');
+  }).observe(status, { childList: true, subtree: true });
+  const refresh = async (elements: ListedElement[]) => {
+    fake[LIST] = { status: 200, body: { ...ELEMENTS, elements } };
+    await act(() => queryClient.invalidateQueries({ queryKey: queryKeys.project(PID) }));
   };
-  await act(() => queryClient.invalidateQueries({ queryKey: queryKeys.project(PID) }));
-  await waitFor(() => expect(status.textContent).toBe('The list was updated.'));
+  // An unchanged refetch: nothing announced.
+  await refresh(ELEMENTS.elements);
+  expect(added).toEqual([]);
+  await refresh([el('k-001-alpha', 'kind-a', 's3', { bucket: 'done', tone: 'done' })]);
+  await waitFor(() => expect(added).toEqual(['The list was updated.']));
   expect(rows()).toEqual(['k-001-alpha']);
+  await refresh([el('k-001-alpha', 'kind-a', 's1', { bucket: 'waiting' })]);
+  await waitFor(() => expect(added).toEqual(['The list was updated.', 'The list was updated.']));
+  expect(status.textContent).toBe('The list was updated.');
+  // A filter change clears the announcement.
+  await user.click(screen.getByRole('link', { name: /^kind-a,/ }));
+  await waitFor(() => expect(status.textContent).toBe(''));
 });
 
 it('shows only catalogue keys with the key catalogue (spec-008 §6)', async () => {
