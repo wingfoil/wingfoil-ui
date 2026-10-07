@@ -6,6 +6,7 @@ import type { QueryClient } from '@tanstack/react-query';
 import { createRouter, type RouterHistory } from '@tanstack/react-router';
 import { documentationRoute } from './docs.js';
 import { elementRoute } from './element.js';
+import { memoryRoute, projectIndexRoute } from './memory.js';
 import { projectRoute } from './project.js';
 import { rootRoute } from './root.js';
 import { startRoute } from './start.js';
@@ -18,7 +19,9 @@ import { startRoute } from './start.js';
  * the order of the lines does not matter (the sidebar follows `NAV_ORDER`).
  */
 export const PROJECT_ROUTES = [
-  // memoryRoute,
+  // One route per line (this comment keeps Prettier from joining the lines).
+  memoryRoute,
+  projectIndexRoute,
   elementRoute,
   documentationRoute,
 ] as const;

@@ -3,7 +3,7 @@
  * (`staleTime: Infinity`, no refetch on focus or reconnect of the window): pages never poll
  * (REQ-INT-09); `repo`, `projects` and a stream reconnect invalidate (`api/events.ts`).
  */
-import type { ElementList, ProjectListResponse, ServerInfo } from '@wingfoil-ui/contracts';
+import type { ElementList, ProjectConfig, ProjectListResponse, ServerInfo } from '@wingfoil-ui/contracts';
 import { QueryClient, queryOptions } from '@tanstack/react-query';
 import { ApiError, apiGet } from './client.js';
 import { queryKeys } from './query-keys.js';
@@ -39,11 +39,28 @@ export function projectsQuery() {
   });
 }
 
-/** `GET /api/p/:pid/elements[?archived=true]`: the Memory elements (shared by the views that need them). */
+/** The API path of project `pid`. */
+function projectPath(pid: string): string {
+  return `/api/p/${encodeURIComponent(pid)}`;
+}
+
+/** `GET /api/p/:pid/config`: DNA, paths, workflows and resolved types (Memory list, DNA view). */
+export function projectConfigQuery(pid: string) {
+  return queryOptions({
+    queryKey: queryKeys.project(pid, 'config'),
+    queryFn: ({ signal }) => apiGet<ProjectConfig>(`${projectPath(pid)}/config`, signal),
+  });
+}
+
+/**
+ * `GET /api/p/:pid/elements[?archived=true]`: the elements with their descriptor and marker. Shared
+ * by the Memory list and the documentation index (same key, one read per repository state); the
+ * archived read costs two more CLI processes, so it is made only when a view needs it (spec-001).
+ */
 export function elementsQuery(pid: string, archived: boolean) {
-  const path = `/api/p/${encodeURIComponent(pid)}/elements${archived ? '?archived=true' : ''}`;
   return queryOptions({
     queryKey: queryKeys.project(pid, 'elements', { archived }),
-    queryFn: ({ signal }) => apiGet<ElementList>(path, signal),
+    queryFn: ({ signal }) =>
+      apiGet<ElementList>(`${projectPath(pid)}/elements${archived ? '?archived=true' : ''}`, signal),
   });
 }
