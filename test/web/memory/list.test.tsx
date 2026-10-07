@@ -388,9 +388,16 @@ it('announces every refresh that changed the list, none for an unchanged one, cl
   await refresh([el('k-001-alpha', 'kind-a', 's1', { bucket: 'waiting' })]);
   await waitFor(() => expect(added).toEqual(['The list was updated.', 'The list was updated.']));
   expect(status.textContent).toBe('The list was updated.');
-  // A filter change clears the announcement.
+  // A filter change clears the announcement; going back to the first filter does not bring it back
+  // (review N1).
   await user.click(screen.getByRole('link', { name: /^kind-a,/ }));
   await waitFor(() => expect(status.textContent).toBe(''));
+  await user.click(screen.getByRole('link', { name: /^All types,/ }));
+  await waitFor(() =>
+    expect(screen.getByRole('link', { name: /^All types,/ }).getAttribute('aria-current')).toBe('page'),
+  );
+  expect(status.textContent).toBe('');
+  expect(added).toHaveLength(2);
 });
 
 it('shows only catalogue keys with the key catalogue (spec-008 §6)', async () => {

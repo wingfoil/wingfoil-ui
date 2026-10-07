@@ -195,7 +195,14 @@ export function MemoryList({ pid, filters, config, elements, withArchived }: Mem
   const [announcement, setAnnouncement] = useState<{ n: number; filterKey: string } | undefined>(undefined);
   const [now, setNow] = useState(Date.now);
   const previous = useRef<ElementList | undefined>(undefined);
+  const previousFilter = useRef(filterKey);
   useEffect(() => {
+    // A filter change drops the announcement, so that coming back to a filter does not show it again
+    // (review N1).
+    if (previousFilter.current !== filterKey) {
+      previousFilter.current = filterKey;
+      setAnnouncement(undefined);
+    }
     if (previous.current !== undefined && list !== undefined && previous.current !== list) {
       setAnnouncement((a) => ({ n: (a?.n ?? 0) + 1, filterKey }));
       setNow(Date.now());
