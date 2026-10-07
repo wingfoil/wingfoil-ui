@@ -3,7 +3,13 @@
 // queries read their routes.
 import { afterEach, expect, it, vi } from 'vitest';
 import { ApiError } from '../../../web/src/api/client.js';
-import { createQueryClient, projectsQuery, serverQuery } from '../../../web/src/api/queries.js';
+import {
+  createQueryClient,
+  directivesQuery,
+  projectHeaderQuery,
+  projectsQuery,
+  serverQuery,
+} from '../../../web/src/api/queries.js';
 import { queryKeys, type ProjectQueryKey } from '../../../web/src/api/query-keys.js';
 
 afterEach(() => vi.unstubAllGlobals());
@@ -35,4 +41,18 @@ it('builds every project key under the ["p", pid] prefix that a repo event inval
   const key: ProjectQueryKey = queryKeys.project('p_a', 'elements', { archived: false });
   expect(key).toEqual(['p', 'p_a', 'elements', { archived: false }]);
   expect(queryKeys.project('p_a')).toEqual(['p', 'p_a']);
+});
+
+// task-019 (W3-40): the header (shared with task-016) and the directive list (shared by the
+// Directives view and the element panel) sit under the project's prefix.
+it.each([
+  ['/api/p/p_a', projectHeaderQuery, ['p', 'p_a', 'header']],
+  ['/api/p/p_a/directives', directivesQuery, ['p', 'p_a', 'directives']],
+] as const)('%s', async (path, query, key) => {
+  const fetchFn = vi.fn(async () => new Response('{"ok":true}', { status: 200 }));
+  vi.stubGlobal('fetch', fetchFn);
+  const client = createQueryClient();
+  expect(query('p_a').queryKey).toEqual(key);
+  expect(await client.fetchQuery(query('p_a') as never)).toEqual({ ok: true });
+  expect((fetchFn.mock.calls[0] as unknown as [string])[0]).toBe(path);
 });
