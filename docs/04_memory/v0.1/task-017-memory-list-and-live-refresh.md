@@ -154,3 +154,26 @@ Screen: `docs/00_reference/ux-reference.md` §4.4 and the prototype (`docs/00_re
 - **Decisions — reported to the coordinator, awaiting the go (recommended option first):** see
   the numbered list sent to "main" (routes, list behind the drawer, archived elements, undeclared
   states/types in filters, ux §4.4 items outside the scenarios, bucket labels in the catalogue).
+
+### design decisions (2026-10-07)
+
+- Decided by the user 2026-10-07 (coordinator decisions W3-22…W3-27), every point the recommended
+  option of the design:
+  - **W3-22** Memory at `/p/$pid/memory` with its sidebar entry; the index `/p/$pid` redirects there
+    (replace) in v0.1 (Today takes the index in v0.2). This task updates task-018's G-01.1 e2e
+    assertion (close of a panel opened by URL → `/p/$pid/memory`) and any 018 test relying on the
+    fallback.
+  - **W3-23** W3-18 kept: the panel replaces the list; the back navigation restores the filters from
+    the URL and focuses the originating row. Prototype deviation recorded.
+  - **W3-24** archived elements fetched lazily (`?archived=true`) on the first type selection; the
+    landing view and the type counts on non-archived elements; the cold landing stays at 5 CLI.
+  - **W3-25** per-type state filters = `sequence` + the undeclared states found on its elements,
+    under their own names; undeclared types appended after the declared ones.
+  - **W3-26** no "+ Ingestion", no producer note, no missing-required chip/badge; the age column
+    from the descriptor's `since`; deviations recorded under `ux-consistency`.
+  - **W3-27** bucket labels as in the feature header ("To approve", "In progress",
+    "Waiting/drafts/closed", "Done"), the UI's closed vocabulary.
+- Coordination with task-020: the elements queries use exactly
+  `queryKeys.project(pid, 'elements', { archived: false | true })`, factory `elementsQuery(pid,
+  archived)` in `api/queries.ts` (next to `projectConfigQuery`), shared by both tasks;
+  `title.projectView` = "{project} · {view} — WingFoil UI" (same line in both tasks).
