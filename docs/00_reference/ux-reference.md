@@ -1,6 +1,6 @@
 # UX reference — WingFoil UI
 
-**Version:** 0.3 · **Date:** 2026-10-06 (0.2: §9 colours aligned with spec-009 — release-planning v0.1 session 2; 0.3: §3 start page with no project open, §5 modal dismissal — dev-loop task-013, decided by the user) · **Status:** Reference for `lean-inception` and `specification-downcast`
+**Version:** 0.4 · **Date:** 2026-10-07 (0.2: §9 colours aligned with spec-009 — release-planning v0.1 session 2; 0.3: §3 start page with no project open, §5 modal dismissal — dev-loop task-013, decided by the user; 0.4: §4.2 v0.1 read-only panel — dev-loop task-018, decided by the user) · **Status:** Reference for `lean-inception` and `specification-downcast`
 **Prototype:** `docs/00_reference/prototype/` (interactive HTML; sample data from the WingFoil
 repository and from a fictional Kanban project `acme-checkout`)
 
@@ -83,6 +83,13 @@ All cards are stacked full width, in this order.
   the action.
 - **Single-action footer** otherwise (Submit for review, Launch agent, Start review).
 - **Edit mode**: title, summary, references (add with Enter, remove ×) → "Save and commit".
+- **v0.1 (read-only, dev-loop task-018):** the panel is the route `/p/:pid/e/:eid`, a modal drawer
+  over the project layout; Close and Escape go back in history, or to the project when the panel
+  was opened from its URL. No Edit and no footer (writes from v0.2). Summary = the first paragraph
+  of the body as plain text ("No summary in the document." otherwise; full Markdown is US-G-03,
+  v0.3). References = the frontmatter fields other than id, type, title and status with their
+  values ("—" when empty), without UI category (`ui.yaml` taxonomy from v0.3); a missing required
+  field reads "<field> — required field, missing".
 
 ### 4.3 Workflow
 - **Main workflow tree** with status dots (done / current / todo) and notes; the iterated

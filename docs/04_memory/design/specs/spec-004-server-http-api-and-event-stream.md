@@ -126,6 +126,12 @@ is `{ identity, roleViews, roleView }`, defined by `contracts/api/identity.schem
 `null`. `PUT /api/p/:pid/role-view` `{role}` (`contracts/api/role-view.request.schema.json`)
 answers **204** with no body.
 
+**Element states (addendum, dev-loop task-018).** `GET /api/p/:pid/elements/:eid` also carries
+`states`: the resolved state machine of the element's type (spec-001 §4.1), so the element panel
+draws its chips from one request. `states` is absent when `descriptor` is absent (memory
+configuration unreadable) and for a type `memory.yaml` does not declare (descriptor kind
+`undeclared`).
+
 ### 4. Write preconditions and refusals
 
 Checked by the server in this order (Fastify validates the body before the handler):
@@ -259,3 +265,6 @@ goes away by itself when the stream reconnects. A network failure is not rendere
 - 2026-10-06 — amended in dev-loop task-013 (Wave 3, plan dev-loop-rel-v0.1-plan, independent review): §6 unreachable console → non-modal
   banner after 10 s, cleared on reconnect, network failures not shown as `internal`; §2 wording of
   the 401 notice (W3-12); decided by the user.
+- 2026-10-07 — amended in dev-loop task-018 (Wave 3, plan dev-loop-rel-v0.1-plan): §3 addendum `states` in the
+  element response (W3-14); decided by the user. Same day, erratum after the independent review:
+  `states` is also absent for an undeclared type, whose descriptor is present.
