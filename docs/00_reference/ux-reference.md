@@ -159,6 +159,8 @@ outside the index is checked once with the server and marked *outside the reposi
 link* or *not shown in the UI*; root-relative links resolve from the repository root; only
 `http`/`https` links are followed (new tab), every other scheme is marked *link not supported*.
 Images are never loaded ("Image not shown" with the alt text). "Open on GitHub" is deferred.
+At most 100 distinct targets per document are checked with the server; the others read *not
+shown in the UI* (W3-36).
 
 ### 4.10 Team
 Member cards (initials, name, email, roles, "you" badge, pending gates on their roles);
