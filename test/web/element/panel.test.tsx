@@ -96,6 +96,17 @@ const HISTORY: MemoryHistory = {
   ],
 };
 
+/** Each chip of the state machine: its visible name, its position (data) and its accessible text. */
+function chipsOf(list: HTMLElement): { name: string; position: string; label: string }[] {
+  return within(list)
+    .getAllByRole('listitem')
+    .map((li) => ({
+      name: li.querySelector('[aria-hidden="true"]')?.textContent ?? '',
+      position: li.dataset['position'] ?? '',
+      label: li.querySelector('.visually-hidden')?.textContent ?? '',
+    }));
+}
+
 function api(over: FakeApi = {}): FakeApi {
   return {
     '/api/server': serverInfo(),
@@ -133,8 +144,13 @@ it('shows the element: type, id, title, chips, banner, summary, missing field, r
   expect(d.getByText('kind-a')).toBeTruthy();
   expect(d.getByText(EID)).toBeTruthy();
   // State machine: s1 current (rejected back), s2/s3 future; the current chip takes the tone as data.
-  const chips = within(d.getByRole('list', { name: 'State machine' })).getAllByRole('listitem');
-  expect(chips.map((c) => c.textContent)).toEqual(['s1(current state)', 's2(future state)', 's3(future state)']);
+  const list = d.getByRole('list', { name: 'State machine' });
+  expect(chipsOf(list)).toEqual([
+    { name: 's1', position: 'current', label: 's1, current state' },
+    { name: 's2', position: 'future', label: 's2, future state' },
+    { name: 's3', position: 'future', label: 's3, future state' },
+  ]);
+  const chips = within(list).getAllByRole('listitem');
   expect(chips[0]?.getAttribute('aria-current')).toBe('step');
   expect(chips[0]?.className).toContain('tone-neutral');
   expect(d.getByText('Rejected by Morgan: Missing acceptance criteria')).toBeTruthy();
@@ -168,11 +184,12 @@ it('shows the sequence unmarked and the current state after it when it is outsid
   stubApi(api({ [BASE]: { status: 200, body: { ...DETAIL, element: { ...DETAIL.element, status: 'x9' } } } }));
   renderApp(`/p/${PID}/e/${EID}`);
   const list = await screen.findByRole('list', { name: 'State machine' });
-  expect(
-    within(list)
-      .getAllByRole('listitem')
-      .map((c) => c.textContent),
-  ).toEqual(['s1', 's2', 's3', 'x9(current state)']);
+  expect(chipsOf(list)).toEqual([
+    { name: 's1', position: 'other', label: 's1, state of the sequence' },
+    { name: 's2', position: 'other', label: 's2, state of the sequence' },
+    { name: 's3', position: 'other', label: 's3, state of the sequence' },
+    { name: 'x9', position: 'current', label: 'x9, current state' },
+  ]);
 });
 
 it('degrades without the type definitions: only the current state, a notice, no required fields', async () => {
@@ -180,11 +197,7 @@ it('degrades without the type definitions: only the current state, a notice, no 
   stubApi(api({ [BASE]: { status: 200, body: rest } }));
   renderApp(`/p/${PID}/e/${EID}`);
   const list = await screen.findByRole('list', { name: 'State machine' });
-  expect(
-    within(list)
-      .getAllByRole('listitem')
-      .map((c) => c.textContent),
-  ).toEqual(['s1(current state)']);
+  expect(chipsOf(list)).toEqual([{ name: 's1', position: 'current', label: 's1, current state' }]);
   expect(screen.getByText('The type definitions could not be read: only the current state is shown.')).toBeTruthy();
   expect(screen.queryByText(/Rejected by/)).toBeNull();
 });

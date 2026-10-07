@@ -17,12 +17,21 @@ async function openPanel(page: Page, c: RunningConsole, eid: string) {
   return panel;
 }
 
-/** The chip of `state` in the panel's state machine. */
+/** The chip of `state` in the panel's state machine (found by the name it shows). */
 function chip(page: Page, state: string) {
   return page
     .getByRole('list', { name: 'State machine' })
     .getByRole('listitem')
-    .filter({ hasText: new RegExp(`^${state}\\(`) });
+    .filter({ has: page.locator('[aria-hidden="true"]', { hasText: new RegExp(`^${state}$`) }) });
+}
+
+/** Assert the chip of `state`: its position (data), what it shows, what assistive technology reads. */
+async function expectChip(page: Page, state: string, position: 'past' | 'current' | 'future'): Promise<void> {
+  const c = chip(page, state);
+  await expect(c).toHaveAttribute('data-position', position);
+  await expect(c.locator('.visually-hidden')).toHaveText(`${state}, ${position} state`);
+  if (position === 'current') await expect(c).toHaveAttribute('aria-current', 'step');
+  else await expect(c).not.toHaveAttribute('aria-current');
 }
 
 test.describe('US-G-01 — element panel', () => {
@@ -34,10 +43,11 @@ test.describe('US-G-01 — element panel', () => {
     await expect(panel.getByText('task', { exact: true })).toBeVisible();
     await expect(panel.getByText('task-001-login-form', { exact: true })).toBeVisible();
     await expect(panel.getByRole('heading', { level: 2, name: 'Login form' })).toBeVisible();
-    await expect(chip(page, 'draft')).toHaveText('draft(past state)');
-    await expect(chip(page, 'pending')).toHaveText('pending(current state)');
-    await expect(chip(page, 'pending')).toHaveAttribute('aria-current', 'step');
-    await expect(chip(page, 'approved')).toHaveText('approved(future state)');
+    await expectChip(page, 'draft', 'past');
+    await expectChip(page, 'pending', 'current');
+    await expectChip(page, 'approved', 'future');
+    // The current chip takes the descriptor's tone (data): kanban `pending` is a gate → human.
+    await expect(chip(page, 'pending')).toHaveClass(/\btone-human\b/);
     // The history line of the submit: who, its commit hash and its date as the CLI reports them.
     const history = JSON.parse(
       await cli(kanban, ['--format', 'json', 'memory', 'history', 'task-001-login-form']),
@@ -69,7 +79,8 @@ test.describe('US-G-01 — element panel', () => {
     const c = await consoles.start({ projects: [await fixtures.get('kanban')] });
     const panel = await openPanel(page, c, 'task-002-password-reset');
     await expect(panel.getByText('Rejected by Morgan: Missing acceptance criteria', { exact: true })).toBeVisible();
-    await expect(chip(page, 'draft')).toHaveText('draft(current state)');
+    await expectChip(page, 'draft', 'current');
+    await expectChip(page, 'pending', 'future');
     await expect(panel.getByRole('listitem').filter({ hasText: 'rejected by Morgan' })).toContainText(
       '“Missing acceptance criteria”',
     );
@@ -82,7 +93,7 @@ test.describe('US-G-01 — element panel', () => {
     const panel = await openPanel(page, c, 'adr-001-local-server');
     const summary = panel.getByRole('region', { name: 'Summary' });
     await expect(summary.getByText('sard_ref — required field, missing', { exact: true })).toBeVisible();
-    await expect(chip(page, 'draft')).toHaveAttribute('aria-current', 'step');
+    await expectChip(page, 'draft', 'current');
     expect(await scanThemes(page)).toEqual([]);
   });
 

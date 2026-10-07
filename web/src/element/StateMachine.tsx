@@ -1,18 +1,21 @@
 /**
  * The state machine of the element as chips (ux-reference §4.2): past · current · future along the
  * type's `sequence` (`model.stateChips`). The current chip takes the descriptor's tone as data
- * (`tone-<tone>`, spec-003 §7–§8); each chip's position is also given as text for assistive
- * technology, and the current one is `aria-current="step"`.
+ * (`tone-<tone>`, spec-003 §7–§8). Assistive technology reads one message per chip — the state and
+ * its position, e.g. "pending, current state" — instead of the visible name; the current chip is
+ * `aria-current="step"`.
  */
 import type { Tone } from '@wingfoil-ui/contracts';
 import type { ReactNode } from 'react';
-import { defineMessages, FormattedMessage, useIntl } from 'react-intl';
+import { defineMessages, useIntl, type MessageDescriptor } from 'react-intl';
 import { stateChips, type ChipPosition } from './model.js';
 
-const POSITION = defineMessages({
+/** The accessible text of a chip: its state and its position (the visible name is hidden from it). */
+const POSITION: Readonly<Record<ChipPosition, MessageDescriptor>> = defineMessages({
   past: { id: 'element.states.past' },
   current: { id: 'element.states.current' },
   future: { id: 'element.states.future' },
+  other: { id: 'element.states.other' },
 });
 
 /** Props of {@link StateMachine}. */
@@ -41,12 +44,8 @@ export function StateMachine({ sequence, current, tone }: StateMachineProps): Re
           data-position={chip.position}
           aria-current={chip.position === 'current' ? 'step' : undefined}
         >
-          {chip.name}
-          {chip.position !== 'other' && (
-            <span className="visually-hidden">
-              <FormattedMessage {...POSITION[chip.position]} />
-            </span>
-          )}
+          <span aria-hidden="true">{chip.name}</span>
+          <span className="visually-hidden">{intl.formatMessage(POSITION[chip.position], { state: chip.name })}</span>
         </li>
       ))}
     </ol>
