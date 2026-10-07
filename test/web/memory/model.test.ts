@@ -5,6 +5,7 @@ import type { ActionDescriptor, Bucket, ListedElement, MemoryYaml } from '@wingf
 import { describe, expect, it } from 'vitest';
 import en from '../../../web/src/i18n/en.json' with { type: 'json' };
 import {
+  ageOf,
   BUCKET_FILTERS,
   bucketFilters,
   bucketKeyOf,
@@ -107,9 +108,11 @@ describe('buckets', () => {
     expect(bucketKeyOf(undefined)).toBeUndefined();
   });
   it('counts the elements by the bucket of their descriptor; archived ones (no bucket) in none', () => {
-    const counts = bucketFilters([...ELEMENTS, el('ar', 'zeta', 'gone')].map((e) =>
-      e.id === 'ar' ? { ...e, descriptor: descriptor('zeta', 'gone', undefined) } : e,
-    ));
+    const counts = bucketFilters(
+      [...ELEMENTS, el('ar', 'zeta', 'gone')].map((e) =>
+        e.id === 'ar' ? { ...e, descriptor: descriptor('zeta', 'gone', undefined) } : e,
+      ),
+    );
     expect(counts.map((b) => [b.key, b.count])).toEqual([
       ['toApprove', 1],
       ['inProgress', 2],
@@ -133,5 +136,20 @@ describe('filterRows', () => {
   });
   it('ignores a bucket when a type is selected', () => {
     expect(filterRows(ELEMENTS, { type: 'alpha', bucket: 'toApprove' }).map((e) => e.id)).toEqual(['a1']);
+  });
+});
+
+describe('ageOf', () => {
+  const now = Date.parse('2026-10-07T10:00:00Z');
+  it('gives the largest whole unit, in the past', () => {
+    expect(ageOf('2026-10-07T09:59:30Z', now)).toEqual({ value: -30, unit: 'second' });
+    expect(ageOf('2026-10-07T09:55:00Z', now)).toEqual({ value: -5, unit: 'minute' });
+    expect(ageOf('2026-10-07T07:00:00Z', now)).toEqual({ value: -3, unit: 'hour' });
+    expect(ageOf('2026-10-05T10:00:00+00:00', now)).toEqual({ value: -2, unit: 'day' });
+    expect(ageOf('2026-08-01T10:00:00Z', now)).toEqual({ value: -2, unit: 'month' });
+    expect(ageOf('2024-10-01T10:00:00Z', now)).toEqual({ value: -2, unit: 'year' });
+  });
+  it('treats a time in the future as now', () => {
+    expect(ageOf('2026-10-08T10:00:00Z', now)).toEqual({ value: -0, unit: 'second' });
   });
 });

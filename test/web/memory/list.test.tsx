@@ -164,7 +164,7 @@ it('filters all types by bucket, the four buckets in the header order with count
   await user.click(screen.getByRole('link', { name: /^To approve/ }));
   await waitFor(() => expect(rows()).toEqual(['k-001-alpha', 'm-001-delta']));
   expect(router.state.location.search).toEqual({ bucket: 'toApprove' });
-  expect(screen.getByRole('link', { name: /^To approve/ }).getAttribute('aria-current')).toBe('true');
+  expect(screen.getByRole('link', { name: /^To approve/ }).getAttribute('aria-current')).toBe('page');
   await user.click(screen.getByRole('link', { name: /^Done/ }));
   await screen.findByText('No element matches these filters.');
 });
@@ -174,14 +174,14 @@ it('lists one type with its states, undeclared ones after the sequence, and read
   const user = userEvent.setup();
   renderApp(`/p/${PID}/memory`);
   await screen.findByText('Title of k-001-alpha');
-  await user.click(screen.getByRole('link', { name: /^kind-a/ }));
+  await user.click(screen.getByRole('link', { name: /^kind-a,/ }));
   await waitFor(() => expect(rows()).toEqual(['k-001-alpha', 'k-002-beta', 'k-003-gamma', 'k-009-gone']));
   expect(stateFilters()).toEqual(['All states4', 's11', 's21', 's31', 'odd1']);
   // The type count stays on the non-archived elements.
   expect(typeFilters()[1]).toBe('kind-a3');
-  await user.click(screen.getByRole('link', { name: /^s3/ }));
+  await user.click(screen.getByRole('link', { name: /^s3,/ }));
   await waitFor(() => expect(rows()).toEqual(['k-009-gone']));
-  await user.click(screen.getByRole('link', { name: /^kind-m/ }));
+  await user.click(screen.getByRole('link', { name: /^kind-m,/ }));
   await waitFor(() => expect(rows()).toEqual(['m-001-delta']));
   expect(paths(fetch).filter((p) => p === ARCHIVED)).toHaveLength(1);
 });
@@ -242,15 +242,28 @@ it('degrades without the type definitions: types from the elements, no buckets, 
   const bare = ELEMENTS.elements.map(({ descriptor: _d, ...rest }) => rest);
   stubApi(
     api({
-      [CONFIG]: { status: 200, body: { ...CONFIG_BODY, types: { error: { code: 'read-error', message: 'x', detail: { file: '.wingfoil/memory.yaml', kind: 'yaml' } } } } },
-      [LIST]: { status: 200, body: { elements: bare, warnings: ['a CLI warning'], typesError: { code: 'read-error', message: 'x' } } },
+      [CONFIG]: {
+        status: 200,
+        body: {
+          ...CONFIG_BODY,
+          types: {
+            error: { code: 'read-error', message: 'x', detail: { file: '.wingfoil/memory.yaml', kind: 'yaml' } },
+          },
+        },
+      },
+      [LIST]: {
+        status: 200,
+        body: { elements: bare, warnings: ['a CLI warning'], typesError: { code: 'read-error', message: 'x' } },
+      },
     }),
   );
   renderApp(`/p/${PID}/memory`);
   await screen.findByText('Title of k-001-alpha');
   expect(typeFilters()).toEqual(['All types5', 'kind-a3', 'kind-m1', 'kind-z1']);
   expect(screen.queryByRole('list', { name: 'States' })).toBeNull();
-  expect(screen.getByText('The type definitions could not be read: the lists show no buckets and no tones.')).toBeTruthy();
+  expect(
+    screen.getByText('The type definitions could not be read: the lists show no buckets and no tones.'),
+  ).toBeTruthy();
   expect(screen.getByText('a CLI warning')).toBeTruthy();
   // No descriptor, no tone class on the pill.
   const pill = within(screen.getByRole('link', { name: /k-001-alpha/ })).getByText('s2');

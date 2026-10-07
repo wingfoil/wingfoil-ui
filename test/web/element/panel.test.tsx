@@ -269,12 +269,12 @@ it('says the element is loading while the read is pending', async () => {
   expect(await screen.findByText('Loading the element…')).toBeTruthy();
 });
 
-it('closes with Escape to the project when opened from its URL (no page to go back to), focus on main', async () => {
+it('closes with Escape to the project (its Memory list, W3-22) when opened from its URL (no page to go back to), focus on main', async () => {
   stubApi(api());
   const { router } = renderApp(`/p/${PID}/e/${EID}`);
   await screen.findByRole('dialog', { name: 'Password reset' });
   await userEvent.keyboard('{Escape}');
-  await waitFor(() => expect(router.state.location.pathname).toBe(`/p/${PID}`));
+  await waitFor(() => expect(router.state.location.pathname).toBe(`/p/${PID}/memory`));
   expect(screen.queryByRole('dialog')).toBeNull();
   await waitFor(() => expect(document.activeElement?.id).toBe('main'));
 });
