@@ -162,8 +162,11 @@ export function MemoryList({ pid, filters, config, elements, withArchived }: Mem
   const pool = filters.type !== undefined ? (withArchived?.data?.elements ?? base) : base;
   const ofType = filters.type !== undefined ? pool.filter((e) => e.type === filters.type) : [];
   const rows = filterRows(pool, filters);
-  // A type in the URL that is neither declared nor on an element (review F5).
-  const unknownType = list !== undefined && selected !== undefined && !isListedType(types, base, selected);
+  // A type in the URL that is neither declared nor on an element (review F5), known only once the
+  // configuration is settled, as the route's archived read (review N3).
+  const configSettled = config.data !== undefined || config.error !== null;
+  const unknownType =
+    list !== undefined && configSettled && selected !== undefined && !isListedType(types, base, selected);
   const listRef = useRef<HTMLUListElement>(null);
 
   // Back from the element panel: the row it was opened from is taken when the list mounts, and
@@ -176,7 +179,7 @@ export function MemoryList({ pid, filters, config, elements, withArchived }: Mem
   // With a type selected, the rows are complete once the archived read is there too (review F4).
   const ready =
     list !== undefined &&
-    (selected === undefined || config.data !== undefined || config.error !== null) &&
+    (selected === undefined || configSettled) &&
     (withArchived === undefined || withArchived.data !== undefined || withArchived.error !== null);
   useEffect(() => {
     const eid = pendingRow.current;
@@ -316,7 +319,7 @@ export function MemoryList({ pid, filters, config, elements, withArchived }: Mem
               <Row key={e.id} pid={pid} element={e} now={now} />
             ))}
           </ul>
-          {rows.length === 0 && (
+          {rows.length === 0 && (selected === undefined || configSettled) && (
             <p className="memory-empty">
               {selected !== undefined && !unknownType && ofType.length === 0 ? (
                 <FormattedMessage id="memory.empty.type" values={{ type: selected }} />

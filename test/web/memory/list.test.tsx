@@ -324,6 +324,19 @@ function stubHeld(
   };
 }
 
+it('shows no empty text for a deep-linked declared type until the configuration is read (review N3)', async () => {
+  const net = stubHeld(api(), [CONFIG]);
+  net.hold();
+  renderApp(`/p/${PID}/memory?type=kind-e`);
+  await screen.findByRole('link', { name: /^All types,/ });
+  // The list is read, the configuration not yet: no verdict on the type.
+  expect(screen.queryByText('No element matches these filters.')).toBeNull();
+  expect(screen.queryByText('No kind-e yet')).toBeNull();
+  net.release();
+  expect(await screen.findByText('No kind-e yet')).toBeTruthy();
+  expect(screen.queryByText('No element matches these filters.')).toBeNull();
+});
+
 it('drops the return row when the user moved the focus before the rows were complete (review N2)', async () => {
   const net = stubHeld(
     api({
