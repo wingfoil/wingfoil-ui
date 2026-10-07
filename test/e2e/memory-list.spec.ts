@@ -19,7 +19,9 @@ import { expectFocusVisible } from './support/keyboard.js';
 async function openList(page: Page, c: RunningConsole, query = '', i = 0): Promise<void> {
   await openConsole(page, c, { path: `/p/${c.pids[i]}/memory${query}` });
   await expect(page.getByRole('heading', { level: 1, name: 'Memory' })).toBeVisible();
-  await expect(rows(page).first()).toBeVisible();
+  // The first read of a cold console runs the CLI (≤ 6 processes): slower than the default 5 s
+  // expectation on a loaded machine; later assertions keep the default.
+  await expect(rows(page).first()).toBeVisible({ timeout: 30_000 });
 }
 
 function typeList(page: Page): Locator {
