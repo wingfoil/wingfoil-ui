@@ -307,3 +307,12 @@ Screen: `docs/00_reference/ux-reference.md` §4.4 and the prototype (`docs/00_re
     component test: back and forward across `/memory` → `?type=kind-a` → `&state=s2` restore the
     filters, the current link and the rows.
   - **F8** not changed (task-018's suite, coordinator's bug).
+- **Checks** (HEAD `ed0d57f` + notes): typecheck, lint (ESLint + catalogue check), format:check clean
+  · `docs:api` OK · `check_tasks.py` OK · `test:e2e` **40/40** at load 7.8 (an earlier run at load
+  17–34 had 3 timeouts: G-01.3, the drawer-wrap test, S-28.1 custom) · `test:coverage` (load 7.8 →
+  29.6) **1463 passed, 1 failed / 1 skipped**, coverage 96.14 % statements / 89.78 % branches /
+  96.71 % functions / 97.97 % lines (`web/src/memory` 100 % / 96.52 %). The one failure is
+  task-018's first component test "shows the element: …" (jsdom `findByRole`, 1 s default, the cold
+  first render of the file under load: the F8 case, not changed here). It passes when its file runs
+  alone (`panel.test.tsx` + `test/web/memory`: 47/47). `test:timing` not re-run (load > 12); it
+  passed 3/3 before this round.
