@@ -300,3 +300,25 @@ Screen: `docs/00_reference/ux-reference.md` §4.9 and the prototype (`docs/00_re
   coverage 96.15 % statements / 89.53 % branches / 96.69 % functions / 98.01 % lines
   (`web/src/docs` 98.02 % / 92 %) · `npm run test:timing` **3/3** at load 9.1 → 8.7: REQ-PERF-03
   20/20, max 1756 ms; TypeDoc 11 539 ms; REQ-PERF-06 631–1322 ms.
+
+### integration (2026-10-07)
+
+- Re-verification of review round 1: **PASS**, one Low finding fixed first:
+  - **N1** (`e9aa29b`) selecting the same in-page anchor again did nothing: the URL does not change,
+    so no navigation fires the focus effect. The click handler now focuses the heading itself when
+    the link's URL is the one shown (no history entry is added). The focus keys escape their
+    `data-doc-link`/`data-doc-table` values with `CSS.escape`. Component test (red without the
+    fix): the second click puts the focus back on the heading, and the history length is unchanged.
+- `main` merged (`26e37fb`, authorised by the coordinator): spec amendments W3 (`76ef2b3`,
+  `6a34345` — ux-reference 0.5 §4.9 v0.1, spec-004/spec-008 notes, R-08.2 amended: headings and
+  tables on `06_features.md`, lists on `02_product-vision.md`, backlog regenerated), bug-004 and
+  status commits. No conflict. The amended R-08.2 matches the e2e test as it was written.
+- Gates on the merge: typecheck, lint (ESLint + catalogue check), format:check clean · `docs:api`
+  OK · `check_tasks.py` OK · `test:e2e` **26/26** (load ≈ 20–25) · `npm run -s test:coverage` at
+  load 19–25: 1548 passed, 1 failed — `test/web/element/panel.test.tsx` "shows the element…"
+  (bug-004, absorbed into task-019); that file run alone: **16/16**; the full run with `--retry=2`:
+  **95 files passed, 1 skipped; 1549 passed / 1 skipped**, coverage 96.15 % statements / 89.55 %
+  branches / 96.69 % functions / 98.01 % lines (`web/src/docs` 98.06 % / 92.17 %) ·
+  `npm run test:timing` not re-run (load ≈ 20 > 12): the last run, at `53c5113` + notes (load
+  9.1 → 8.7), passed 3/3 (REQ-PERF-03 20/20, max 1756 ms; TypeDoc 11 539 ms; REQ-PERF-06
+  631–1322 ms).
