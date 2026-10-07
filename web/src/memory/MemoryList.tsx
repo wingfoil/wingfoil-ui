@@ -153,7 +153,10 @@ export function MemoryList({ pid, filters, config, elements, withArchived }: Mem
   const list = elements.data;
   const selected = filters.type;
   const types = typesOf(config.data);
-  const typesError = list?.typesError !== undefined || (config.data !== undefined && types === undefined);
+  // No descriptor (unreadable `memory.yaml` on the list's side): no bucket row. The type definitions
+  // unavailable — that, a failed `types` section or a failed `GET /config` (review F6) — get the notice.
+  const noDescriptors = list?.typesError !== undefined;
+  const typesUnavailable = noDescriptors || config.error !== null || (config.data !== undefined && types === undefined);
   const base = list?.elements ?? [];
   // A selected type lists its archived elements too, once read (W3-24); its count stays on `base`.
   const pool = filters.type !== undefined ? (withArchived?.data?.elements ?? base) : base;
@@ -227,7 +230,7 @@ export function MemoryList({ pid, filters, config, elements, withArchived }: Mem
         </p>
       ) : (
         <>
-          {typesError && (
+          {typesUnavailable && (
             <p className="memory-notice">
               <FormattedMessage id="memory.notice.typesError" />
             </p>
@@ -277,7 +280,7 @@ export function MemoryList({ pid, filters, config, elements, withArchived }: Mem
               ))}
             </ul>
           ) : (
-            !typesError && (
+            !noDescriptors && (
               <ul className="filter-row filter-states" aria-label={intl.formatMessage({ id: 'memory.filter.states' })}>
                 <FilterLink
                   pid={pid}

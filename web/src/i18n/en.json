@@ -65,7 +65,7 @@
   "memory.loading": "Loading the Memory list…",
   "memory.localChanges": "local changes",
   "memory.notice.eventsError": "The repository history could not be read: the ages of the states may be missing.",
-  "memory.notice.typesError": "The type definitions could not be read: the lists show no buckets and no tones.",
+  "memory.notice.typesError": "The type definitions could not be read: some filters, buckets or tones may be missing.",
   "memory.notice.warnings": "WingFoil warnings",
   "memory.title": "Memory",
   "memory.updated": "The list was updated.",

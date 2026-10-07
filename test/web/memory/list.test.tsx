@@ -308,12 +308,23 @@ it('degrades without the type definitions: types from the elements, no buckets, 
   expect(typeFilters()).toEqual(['All types5', 'kind-a3', 'kind-m1', 'kind-z1']);
   expect(screen.queryByRole('list', { name: 'States' })).toBeNull();
   expect(
-    screen.getByText('The type definitions could not be read: the lists show no buckets and no tones.'),
+    screen.getByText('The type definitions could not be read: some filters, buckets or tones may be missing.'),
   ).toBeTruthy();
   expect(screen.getByText('a CLI warning')).toBeTruthy();
   // No descriptor, no tone class on the pill.
   const pill = within(screen.getByRole('link', { name: /k-001-alpha/ })).getByText('s2');
   expect(pill.className).not.toMatch(/tone-/);
+});
+
+it('notes unavailable type definitions when GET /config fails, keeping the buckets of the descriptors (review F6)', async () => {
+  stubApi(api({ [CONFIG]: { status: 502, body: { error: { code: 'cli-output', message: 'bad' } } } }));
+  renderApp(`/p/${PID}/memory`);
+  await screen.findByText('Title of k-001-alpha');
+  expect(
+    await screen.findByText('The type definitions could not be read: some filters, buckets or tones may be missing.'),
+  ).toBeTruthy();
+  expect(typeFilters()).toEqual(['All types5', 'kind-a3', 'kind-m1', 'kind-z1']);
+  expect(stateFilters()[1]).toBe('To approve2');
 });
 
 it('notes an events error and renders a failed list read from the catalogue', async () => {
