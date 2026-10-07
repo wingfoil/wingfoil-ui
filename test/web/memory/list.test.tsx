@@ -230,6 +230,24 @@ it('opens the panel from a row and focuses that row again after Close (W3-23)', 
   await waitFor(() => expect((document.activeElement as HTMLElement | null)?.dataset['eid']).toBe('k-003-gamma'));
 });
 
+it('does not move the focus on a refetch after a modified click that opened no panel (review F2)', async () => {
+  const fake = api();
+  stubApi(fake);
+  const user = userEvent.setup();
+  const { router, queryClient } = renderApp(`/p/${PID}/memory`);
+  await screen.findByText('Title of k-003-gamma');
+  await user.keyboard('{Control>}');
+  await user.click(screen.getByRole('link', { name: /k-003-gamma/ }));
+  await user.keyboard('{/Control}');
+  expect(router.state.location.pathname).toBe(`/p/${PID}/memory`);
+  const allTypes = screen.getByRole('link', { name: /^All types,/ });
+  allTypes.focus();
+  fake[LIST] = { status: 200, body: { ...ELEMENTS, elements: ELEMENTS.elements.slice(1) } };
+  await act(() => queryClient.invalidateQueries({ queryKey: queryKeys.project(PID) }));
+  await waitFor(() => expect(rows()).not.toContain('k-001-alpha'));
+  expect(document.activeElement).toBe(allTypes);
+});
+
 it('closes a panel opened by URL to the Memory list (W3-22 fallback)', async () => {
   stubApi(api());
   const { router } = renderApp(`/p/${PID}/e/k-001-alpha`);

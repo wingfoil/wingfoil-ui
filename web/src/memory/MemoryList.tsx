@@ -12,7 +12,7 @@
 import type { UseQueryResult } from '@tanstack/react-query';
 import type { ElementList, ListedElement, MemoryYaml, ProjectConfig } from '@wingfoil-ui/contracts';
 import { Link } from '@tanstack/react-router';
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type MouseEvent, type ReactNode } from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { ApiError } from '../api/client.js';
 import { ErrorText } from '../shell/ErrorText.js';
@@ -37,6 +37,18 @@ export interface MemoryListProps {
  * by the list of the same project after the panel is closed (back navigation, W3-23).
  */
 let returnRow: { pid: string; eid: string } | undefined;
+
+/** Whether a click on a link is followed in this page (primary button, no modifier key). */
+function navigatesHere(event: MouseEvent<HTMLAnchorElement>): boolean {
+  return (
+    !event.defaultPrevented &&
+    event.button === 0 &&
+    !event.metaKey &&
+    !event.ctrlKey &&
+    !event.shiftKey &&
+    !event.altKey
+  );
+}
 
 /** An error of a query as the catalogue renders it. */
 function QueryError({ error }: { error: Error }): ReactNode {
@@ -109,8 +121,9 @@ function Row({ pid, element, now }: { pid: string; element: ListedElement; now: 
         to="/p/$pid/e/$eid"
         params={{ pid, eid: element.id }}
         data-eid={element.id}
-        onClick={() => {
-          returnRow = { pid, eid: element.id };
+        onClick={(event) => {
+          // Only a click that navigates here (primary button, no modifier: not a new tab or window).
+          if (navigatesHere(event)) returnRow = { pid, eid: element.id };
         }}
       >
         <span className="type-tag memory-tag">{element.type}</span>
@@ -144,16 +157,23 @@ export function MemoryList({ pid, filters, config, elements, withArchived }: Mem
   const rows = filterRows(pool, filters);
   const listRef = useRef<HTMLUListElement>(null);
 
-  // Back from the element panel: focus the row it was opened from (W3-23).
+  // Back from the element panel: the row it was opened from is taken when the list mounts, and
+  // focused once the rows are there (W3-23). A later refetch never moves the focus.
+  const pendingRow = useRef<string | undefined>(undefined);
   useEffect(() => {
-    if (!list || returnRow?.pid !== pid) return;
-    const eid = returnRow.eid;
+    if (returnRow?.pid === pid) pendingRow.current = returnRow.eid;
     returnRow = undefined;
+  }, [pid]);
+  const ready = list !== undefined;
+  useEffect(() => {
+    const eid = pendingRow.current;
+    if (!ready || eid === undefined) return;
+    pendingRow.current = undefined;
     const row = [...(listRef.current?.querySelectorAll<HTMLElement>('[data-eid]') ?? [])].find(
       (a) => a.dataset['eid'] === eid,
     );
     row?.focus();
-  }, [list, pid]);
+  }, [ready]);
 
   // A refresh that changed the list is announced (directive `accessibility`).
   // The ages are computed against the time of the last read.
