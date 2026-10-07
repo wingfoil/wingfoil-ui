@@ -1,6 +1,6 @@
 # UX reference — WingFoil UI
 
-**Version:** 0.4 · **Date:** 2026-10-07 (0.2: §9 colours aligned with spec-009 — release-planning v0.1 session 2; 0.3: §3 start page with no project open, §5 modal dismissal — dev-loop task-013, decided by the user; 0.4: §4.2 v0.1 read-only panel — dev-loop task-018, decided by the user) · **Status:** Reference for `lean-inception` and `specification-downcast`
+**Version:** 0.5 · **Date:** 2026-10-07 (0.2: §9 colours aligned with spec-009 — release-planning v0.1 session 2; 0.3: §3 start page with no project open, §5 modal dismissal — dev-loop task-013, decided by the user; 0.4: §4.2 v0.1 read-only panel — dev-loop task-018, decided by the user; 0.5: §4.4 and §4.9 in v0.1 — dev-loop tasks 017 and 020, decided by the user) · **Status:** Reference for `lean-inception` and `specification-downcast`
 **Prototype:** `docs/00_reference/prototype/` (interactive HTML; sample data from the WingFoil
 repository and from a fictional Kanban project `acme-checkout`)
 
@@ -109,6 +109,16 @@ All cards are stacked full width, in this order.
 - List: tag, title, id, "missing refs" badge, age, state pill → element panel.
 - **Ingestion modal**: choose the ingestion workflow, see its steps, type the title
   (step 1 · capture) → element created as draft by the workflow.
+- **v0.1 (dev-loop task-017):** the list is `/p/:pid/memory`; `/p/:pid` redirects there until
+  Today (v0.2) takes the project index. Filters live in the URL; the element panel replaces the
+  list and closing it returns to the list with its filters and the originating row focused.
+  Archived elements are read only once a type is selected (the landing view and type counts
+  cover non-archived elements). With a type, the state filters are its `sequence` followed by
+  the states found on its elements that the definitions do not declare; types found on elements
+  but not in `memory.yaml` follow the declared ones. Bucket labels are the UI's closed vocabulary
+  of the feature header. Not in v0.1: "+ Ingestion" (v0.2), the producer note, the "Missing
+  required references" filter and badge (the panel flags missing fields); the age comes from the
+  descriptor's `since`.
 
 ### 4.5 DNA
 Modules, stack + methodologies, team and roles, paths. **Edit mode**: modules (name,
@@ -141,6 +151,16 @@ Numbered **index** of `paths.docs` (sections → documents with title, descripti
 Markdown opens **inside the UI** (headings, lists, tables, code); links between indexed
 documents stay in the UI; external links open in a new tab; "Open on GitHub" for the
 current file.
+
+**v0.1 (dev-loop task-020):** index at `/p/:pid/docs`, a document at `/p/:pid/docs/<path>`;
+sections are folders, each entry shows its file name and path (no description). Raw HTML in
+Markdown is shown as text. A link to a Memory file opens the element panel; a repository target
+outside the index is checked once with the server and marked *outside the repository*, *broken
+link* or *not shown in the UI*; root-relative links resolve from the repository root; only
+`http`/`https` links are followed (new tab), every other scheme is marked *link not supported*.
+Images are never loaded ("Image not shown" with the alt text). "Open on GitHub" is deferred.
+At most 100 distinct targets per document are checked with the server; the others read *not
+shown in the UI* (W3-36).
 
 ### 4.10 Team
 Member cards (initials, name, email, roles, "you" badge, pending gates on their roles);

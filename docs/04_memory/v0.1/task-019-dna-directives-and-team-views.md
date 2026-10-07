@@ -8,7 +8,7 @@ module: "web"             # optional — server | web | contracts (dna.yaml modu
 priority: "medium"           # optional — high | medium | low
 tags: ["v0.1"]
 ref: "US-R-05"                # optional — backlog item ID, e.g. "TASK-001"
-bug: []                # optional — LIST of bug ids this task closes. Two cases: a fix task derived from a bug
+bug: ["bug-004-tests-time-out-under-extreme-machine-load"] # optional — LIST of bug ids this task closes. Two cases: a fix task derived from a bug
                        # by release-planning, and a bug ABSORBED into an existing task's Acceptance Criteria because that
                        # task already owns the ground. `bug.sync_state` iterates this list; a bug with no task naming it
                        # here never advances past `triaged` (only a reject to `closed`).
@@ -41,6 +41,8 @@ The DNA view (modules, stacks, methodologies, team and roles, paths), the Direct
   - `docs/02_requirements/02_bdd/features/s/snapshot.feature`: S-27.1 Confine a failed DNA read to the DNA view; S-27.2 Recover when the file is fixed
 - **US-G-02** — every `@v0.1` scenario passes:
   - `docs/02_requirements/02_bdd/features/g/element-panel.feature`: G-02.1 Show the directives that apply to the element's roles; G-02.2 Open a directive from the panel
+
+- **bug-004-tests-time-out-under-extreme-machine-load** (absorbed, dl-045) — the default gates fail only on wrong values, not on external load: one shared cold-read timeout in `test/e2e/support/` used by every e2e spec's first load (element panel, Memory list, documentation, this task's views); a longer async default for the web component tests; `test/lint/lint-clean.test.ts` and the process-spawning tests sized or isolated for the measured worst case; evidence recorded at integration (a full `test:coverage` + `test:e2e` run at load ≥ 30 with no timeout).
 
 Screen: `docs/00_reference/ux-reference.md` §4.5, §4.6, §4.10 and the prototype (`docs/00_reference/prototype/`), deviations only as recorded (directive `ux-consistency`). Accessibility bar: every screen and action of the task operable from the keyboard with visible focus; axe-core 0 serious/critical violations in both themes; every string from the catalogue (X-09.1).
 

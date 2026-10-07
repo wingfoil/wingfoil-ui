@@ -55,7 +55,10 @@ same keys. Catalogues are JSON, one flat object, UTF-8, sorted by key (checked).
   by concatenating messages or messages and data.
 - Project data — element titles, ids, type and state names, role names, member names, paths,
   directive and document text — is passed as an argument and shown as written (X-09.2,
-  REQ-ARC-09). The catalogue never holds a type or state name (REQ-ARC-05).
+  REQ-ARC-09). The catalogue never holds a type or state name (REQ-ARC-05). The bucket labels of
+  the Memory list (*To approve*, *In progress*, *Waiting/drafts/closed*, *Done*, header of
+  `features/m/memory-list.feature`) are the UI's closed vocabulary, not state names, even where
+  a project's state is spelled the same.
 - The page title (US-X-10) is composed by messages:
   `title.projectView` = `{project} · {view} — WingFoil UI`,
   `title.projectElement` = `{project} · {element} — WingFoil UI`,
@@ -148,3 +151,5 @@ catalogue and its arguments (`warnings: [{ key, args }]` of `GET /api/server`, s
   the state ("created by", "submitted by", "signed off by", "rejected by", "marked obsolete by",
   "edited outside a WingFoil verb by" + `{name}`), the transition `{from} → {to}` is data (§3,
   W3-20; "marked obsolete by" W3-21); decided by the user.
+- 2026-10-07 — amended in dev-loop task-017 (Wave 3, plan dev-loop-rel-v0.1-plan): §3 bucket labels are the UI's
+  closed vocabulary (W3-27); decided by the user.
