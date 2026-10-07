@@ -72,6 +72,7 @@ test.describe('US-G-01 — element panel', () => {
     await page.keyboard.press('Escape');
     await expect(panel).toBeHidden();
     await expect(page).toHaveURL(`${c.origin}/p/${c.pids[0]}`);
+    await expect(page.locator('main#main')).toBeFocused();
   });
 
   test('G-01.2 — Show the rejection banner after a reject', async ({ page, fixtures, consoles }) => {

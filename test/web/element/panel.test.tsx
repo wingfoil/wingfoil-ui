@@ -267,18 +267,42 @@ it('says the element is loading while the read is pending', async () => {
   expect(await screen.findByText('Loading the element…')).toBeTruthy();
 });
 
-it('closes with Escape back to the project when opened from its URL, and with Close back where it was opened', async () => {
+it('closes with Escape to the project when opened from its URL (no page to go back to), focus on main', async () => {
   stubApi(api());
   const { router } = renderApp(`/p/${PID}/e/${EID}`);
   await screen.findByRole('dialog', { name: 'Password reset' });
   await userEvent.keyboard('{Escape}');
   await waitFor(() => expect(router.state.location.pathname).toBe(`/p/${PID}`));
   expect(screen.queryByRole('dialog')).toBeNull();
-  // Opened from inside the application: Close goes back to that page.
+  await waitFor(() => expect(document.activeElement?.id).toBe('main'));
+});
+
+it('closes with Close back to the page it was opened from (history back), focus on main', async () => {
+  stubApi(api());
+  const { router } = renderApp('/');
+  await screen.findByRole('heading', { level: 1, name: 'Projects' });
   await router.navigate({ to: '/p/$pid/e/$eid', params: { pid: PID, eid: EID } });
   await userEvent.click(await screen.findByRole('button', { name: 'Close' }));
-  await waitFor(() => expect(router.state.location.pathname).toBe(`/p/${PID}`));
-  expect(router.history.length).toBeGreaterThan(0);
+  // Back to `/` — not the `/p/$pid` fallback.
+  await waitFor(() => expect(router.state.location.pathname).toBe('/'));
+  expect(screen.queryByRole('dialog')).toBeNull();
+  await waitFor(() => expect(document.activeElement?.id).toBe('main'));
+});
+
+it('leaves the focus where the destination put it', async () => {
+  stubApi(api());
+  const { router } = renderApp('/');
+  const add = await screen.findByRole('button', { name: 'Add project…' });
+  await router.navigate({ to: '/p/$pid/e/$eid', params: { pid: PID, eid: EID } });
+  await screen.findByRole('dialog', { name: 'Password reset' });
+  // A destination that focuses its own element (task-017: the row of the element) keeps it.
+  const unsubscribe = router.subscribe('onResolved', () =>
+    document.querySelector<HTMLElement>('.button-primary')?.focus(),
+  );
+  await userEvent.keyboard('{Escape}');
+  await waitFor(() => expect(router.state.location.pathname).toBe('/'));
+  await waitFor(() => expect(document.activeElement?.textContent).toBe(add.textContent));
+  unsubscribe();
 });
 
 it('focuses inside the panel and keeps the focus there', async () => {

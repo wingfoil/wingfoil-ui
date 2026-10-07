@@ -43,14 +43,26 @@ export function historyQuery(pid: string, eid: string) {
   });
 }
 
+/** Focus the page's `<main>` when the focus was lost with the closed panel (on `<body>`). */
+function focusMainWhenLost(): void {
+  const active = document.activeElement;
+  if (active === null || active === document.body) document.getElementById('main')?.focus();
+}
+
 function ElementPage(): ReactNode {
   const { pid, eid } = elementRoute.useParams();
   const router = useRouter();
   const canGoBack = useCanGoBack();
   const project = useQuery(projectsQuery()).data?.projects.find((p) => p.id === pid);
   usePageTitle(TITLES.projectElement, { project: project?.name ?? pid, element: eid });
-  // Back to where the panel was opened from inside the application, else to the project.
+  // Back to where the panel was opened from inside the application, else to the project; then the
+  // focus goes to the destination's main region, unless the destination placed it itself (e.g. the
+  // Memory list on the row of this element).
   const close = useCallback(() => {
+    const unsubscribe = router.subscribe('onResolved', () => {
+      unsubscribe();
+      requestAnimationFrame(focusMainWhenLost);
+    });
     if (canGoBack) router.history.back();
     else void router.navigate({ to: '/p/$pid', params: { pid } });
   }, [canGoBack, router, pid]);
