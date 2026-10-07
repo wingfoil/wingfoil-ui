@@ -162,3 +162,19 @@ Screen: `docs/00_reference/ux-reference.md` §4.9 and the prototype (`docs/00_re
   7. *"Open on GitHub ↗"* (ux §4.9, prototype; no v0.1 scenario; the web URL would be guessed from
      the git remote): (a) deferred, recorded as a prototype deviation (recommended); (b) built for
      `github.com` remotes only.
+
+### design decisions (2026-10-07)
+
+- Decided by the user 2026-10-07 (coordinator decisions W3-28…W3-34), every point option (a) of the
+  design list: W3-28 index sections by folder, numbered as the prototype, entry = file name as title
+  + full path, no description; W3-29 markdown-it `html: false`, DOMPurify still last; W3-30 a
+  repository target that is neither indexed nor an active element is checked once per distinct
+  target with `GET /files/content` (cached under `['p', pid]`): 200 → opened in the UI, `outside` →
+  "outside the repository", `missing` → "broken link", `not-allowed`/`too-large` → "not shown in
+  the UI"; W3-31 images never loaded, "Image not shown: {alt}"; W3-32 only `http`/`https`
+  followable, every other scheme "link not supported"; W3-33 root-relative links resolved from the
+  repository root; W3-34 "Open on GitHub ↗" deferred, a prototype deviation.
+- Coordination with task-017: the `GET /elements` query is `projectElementsQuery(pid, {archived})`
+  in `web/src/api/queries.ts` with the key `queryKeys.project(pid, 'elements', { archived })` (017
+  owns it; the merge unifies). `/p/$pid` redirects to the Memory list (W3-22): nothing here assumes
+  what `/p/$pid` shows.
