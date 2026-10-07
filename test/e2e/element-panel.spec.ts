@@ -70,6 +70,12 @@ test.describe('US-G-01 — element panel', () => {
       await page.keyboard.press('Tab');
     }
     await expectFocusVisible(close);
+    // The scrollable body is reachable with Tab (keyboard scrolling), with a visible focus.
+    const body = panel.getByRole('region', { name: 'Element details' });
+    for (let i = 0; i < 5 && !(await body.evaluate((el) => el === document.activeElement)); i++) {
+      await page.keyboard.press('Tab');
+    }
+    await expectFocusVisible(body);
     expect(await scanThemes(page)).toEqual([]);
     await page.keyboard.press('Escape');
     await expect(panel).toBeHidden();

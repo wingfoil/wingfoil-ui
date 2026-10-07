@@ -11,7 +11,7 @@ import type { UseQueryResult } from '@tanstack/react-query';
 import type { ElementDetail, MemoryHistory } from '@wingfoil-ui/contracts';
 import type { ReactNode } from 'react';
 import { Button, Dialog, Heading, Modal, ModalOverlay } from 'react-aria-components';
-import { FormattedMessage } from 'react-intl';
+import { FormattedMessage, useIntl } from 'react-intl';
 import { ApiError } from '../api/client.js';
 import { ErrorText } from '../shell/ErrorText.js';
 import { History } from './History.js';
@@ -40,6 +40,7 @@ function QueryError({ error }: { error: Error }): ReactNode {
 
 /** The drawer around the panel's content. */
 export function ElementPanel({ eid, element, history, onClose }: ElementPanelProps): ReactNode {
+  const intl = useIntl();
   const detail = element.data;
   return (
     <ModalOverlay
@@ -70,7 +71,13 @@ export function ElementPanel({ eid, element, history, onClose }: ElementPanelPro
               />
             )}
           </div>
-          <div className="drawer-body">
+          {/* The body scrolls: focusable so that the keyboard can scroll it (axe scrollable-region-focusable). */}
+          <div
+            className="drawer-body"
+            role="region"
+            tabIndex={0}
+            aria-label={intl.formatMessage({ id: 'element.body.label' })}
+          >
             {element.error ? (
               <QueryError error={element.error} />
             ) : detail ? (

@@ -1,6 +1,7 @@
 {
   "a11y.skipToContent": "Skip to content",
   "common.action.close": "Close",
+  "element.body.label": "Element details",
   "element.fields.empty": "—",
   "element.fields.none": "No other fields in the document.",
   "element.fields.title": "References",

@@ -107,6 +107,11 @@
   padding: var(--space-4) var(--space-5);
 }
 
+.drawer-body:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: -2px;
+}
+
 .rejection-banner,
 .element-error {
   padding: 10px var(--space-3);

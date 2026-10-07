@@ -226,7 +226,9 @@ it('says when there is no summary, no other field, no history, and marks local c
   expect(await screen.findByText('No history yet.')).toBeTruthy();
   expect(screen.getByText('Rejected by Morgan')).toBeTruthy();
   expect(screen.getByText('This element has local changes that are not committed.')).toBeTruthy();
-  expect(screen.getByText('The repository history could not be read: the rejection banner may be missing.')).toBeTruthy();
+  expect(
+    screen.getByText('The repository history could not be read: the rejection banner may be missing.'),
+  ).toBeTruthy();
 });
 
 it('renders an empty field as a dash next to its name', async () => {
@@ -303,6 +305,15 @@ it('leaves the focus where the destination put it', async () => {
   await waitFor(() => expect(router.state.location.pathname).toBe('/'));
   await waitFor(() => expect(document.activeElement?.textContent).toBe(add.textContent));
   unsubscribe();
+});
+
+it('makes the scrollable body a focusable, named region (keyboard scrolling)', async () => {
+  stubApi(api());
+  renderApp(`/p/${PID}/e/${EID}`);
+  const dialog = await screen.findByRole('dialog', { name: 'Password reset' });
+  const body = within(dialog).getByRole('region', { name: 'Element details' });
+  expect(body.tabIndex).toBe(0);
+  expect(body.className).toContain('drawer-body');
 });
 
 it('focuses inside the panel and keeps the focus there', async () => {
