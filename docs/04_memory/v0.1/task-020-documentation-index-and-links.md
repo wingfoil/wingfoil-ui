@@ -224,15 +224,18 @@ Screen: `docs/00_reference/ux-reference.md` §4.9 and the prototype (`docs/00_re
   link rewrite, images never loaded), `docs.test.tsx` (index, document, routing, focus, server
   checks, refused documents, key build). "I am Riley" is not set up: a read-only view shows the same
   thing to every identity.
-- **Checks** (HEAD before the notes `3a0c3a7`): typecheck, lint (ESLint + catalogue check),
-  format:check clean · `docs:api` OK · `check_tasks.py` OK · `test:e2e` **26/26** (40.5 s, load ≈ 2;
-  earlier runs at load 45–60 timed out on fixture builds and cold CLI calls, see above) ·
-  `test:coverage`: at load 30–40 one run failed only `test/web/element/panel.test.tsx` › "shows the
-  element…" (its first `findByRole` waits 1 s; passes alone, 16/16) and once
-  `test/lint/lint-clean.test.ts` (135 s timeout); the run with `--retry=2` at load ≈ 33: **95 files
-  passed, 1 skipped; 1540 passed / 1 skipped**, coverage 96.19 % statements / 89.58 % branches /
-  96.66 % functions / 98.02 % lines (`web/src/docs` 97.65 % / 91.35 %; `routes/docs.tsx` 100 % /
-  97.22 %).
+- **Checks** (final code `6ee5f2d`, notes after): typecheck, lint (ESLint + catalogue check),
+  format:check clean · `docs:api` OK · `check_tasks.py` OK · `test:e2e` **26/26** (twice: load ≈ 2
+  and ≈ 6–20; earlier runs at load 45–60 timed out on fixture builds and cold CLI calls, see above) ·
+  `test:coverage`: **every full run (4/4, load 6–40) fails `test/web/element/panel.test.tsx`** ›
+  "shows the element…" (sometimes also "shows the sequence unmarked…") — the panel is still
+  "Loading the element…" when its first `findByRole` gives up after 1 s; the file passes alone
+  (16/16) and `test/web` with coverage passes (297/297, twice). Not a behaviour change (no element
+  code touched); likely the extra parallel load of the new suites on a 1 s wait — reported. With
+  `--retry=2`: **95 files passed, 1 skipped; 1540 passed / 1 skipped**, coverage 96.16 % statements /
+  89.58 % branches / 96.66 % functions / 97.99 % lines (`web/src/docs` 97.65 % / 91.35 %,
+  `routes/docs.tsx` 100 % / 97.22 %) · `npm run test:timing` **3/3** at load 8.7 → 6.5: REQ-PERF-03
+  20/20, max 928 ms; TypeDoc 8518 ms; REQ-PERF-06 482–809 ms.
 - **Prototype deviations (directive `ux-consistency`):** index entries show the file name and path,
   no curated title or description (W3-28); no "Open on GitHub ↗" (W3-34); sections are folders;
   "← Index" is a link (it navigates); refused links are struck through with a mark; images are a
@@ -255,6 +258,7 @@ Screen: `docs/00_reference/ux-reference.md` §4.9 and the prototype (`docs/00_re
   - e2e support builds the worker fixtures lazily inside the test body: under heavy load a test
     times out on the build (`beforeAll` used here). Proposal: a worker-fixture pre-build in the
     shared support (bug-ingest).
-  - `panel.test.tsx` "shows the element…" flakes under load (1 s `findByRole`): bug-ingest.
+  - `panel.test.tsx` "shows the element…" fails in every full `test:coverage` run on this branch
+    (1 s `findByRole`, passes alone): bug-ingest, or a longer wait in that test, to decide before merge.
   - A document with many unresolved repository links makes one `GET /files/content` per distinct
     target (no cap); a cap could be added if large documents show it.
