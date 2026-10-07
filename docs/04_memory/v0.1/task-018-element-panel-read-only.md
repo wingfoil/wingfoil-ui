@@ -2,7 +2,7 @@
 id: task-018-element-panel-read-only
 type: task
 title: "Element panel read-only"
-status: in-progress
+status: in-review
 release: "v0.1"
 module: "web"             # optional — server | web | contracts (dna.yaml modules)
 priority: "medium"           # optional — high | medium | low
