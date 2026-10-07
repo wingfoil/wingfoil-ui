@@ -18,6 +18,7 @@ import { startRoute } from './start.js';
  * the order of the lines does not matter (the sidebar follows `NAV_ORDER`).
  */
 export const PROJECT_ROUTES = [
+  // One route per line (this comment keeps Prettier from joining the lines).
   memoryRoute,
   projectIndexRoute,
   elementRoute,
