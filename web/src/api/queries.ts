@@ -3,7 +3,7 @@
  * (`staleTime: Infinity`, no refetch on focus or reconnect of the window): pages never poll
  * (REQ-INT-09); `repo`, `projects` and a stream reconnect invalidate (`api/events.ts`).
  */
-import type { ProjectListResponse, ServerInfo } from '@wingfoil-ui/contracts';
+import type { ElementList, ProjectListResponse, ServerInfo } from '@wingfoil-ui/contracts';
 import { QueryClient, queryOptions } from '@tanstack/react-query';
 import { ApiError, apiGet } from './client.js';
 import { queryKeys } from './query-keys.js';
@@ -36,5 +36,14 @@ export function projectsQuery() {
   return queryOptions({
     queryKey: queryKeys.projects(),
     queryFn: ({ signal }) => apiGet<ProjectListResponse>('/api/projects', signal),
+  });
+}
+
+/** `GET /api/p/:pid/elements[?archived=true]`: the Memory elements (shared by the views that need them). */
+export function elementsQuery(pid: string, archived: boolean) {
+  const path = `/api/p/${encodeURIComponent(pid)}/elements${archived ? '?archived=true' : ''}`;
+  return queryOptions({
+    queryKey: queryKeys.project(pid, 'elements', { archived }),
+    queryFn: ({ signal }) => apiGet<ElementList>(path, signal),
   });
 }

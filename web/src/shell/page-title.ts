@@ -10,6 +10,7 @@ import { defineMessages, useIntl, type MessageDescriptor } from 'react-intl';
 export const TITLES = defineMessages({
   projects: { id: 'title.projects' },
   projectElement: { id: 'title.projectElement' },
+  projectView: { id: 'title.projectView' },
   notFound: { id: 'title.notFound' },
   sessionLost: { id: 'title.sessionLost' },
 });
