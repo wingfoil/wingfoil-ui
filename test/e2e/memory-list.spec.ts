@@ -3,7 +3,7 @@
 // one). Assertions are on what the user sees; the CLI process counts of S-26.3 stay in the
 // server-side process audit (test/server/snapshot/process-audit.test.ts). The scenarios' "I am
 // Alex" is the fixtures' own identity.
-import type { Locator, Page } from '@playwright/test';
+import type { Locator, Page, Request } from '@playwright/test';
 import type { MemorySearch } from '@wingfoil-ui/contracts';
 import { readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
@@ -22,6 +22,35 @@ async function openList(page: Page, c: RunningConsole, query = '', i = 0): Promi
   // The first read of a cold console runs the CLI (≤ 6 processes): slower than the default 5 s
   // expectation on a loaded machine; later assertions keep the default.
   await expect(rows(page).first()).toBeVisible({ timeout: 30_000 });
+}
+
+/**
+ * The page's API requests (the event stream aside): the reads of the element list, and a settled
+ * point — no request in flight and none started or ended for 500 ms (review F7).
+ */
+function trackApi(page: Page): { listReads: string[]; settled(): Promise<void> } {
+  const inflight = new Set<Request>();
+  const listReads: string[] = [];
+  let last = Date.now();
+  page.on('request', (r) => {
+    const url = new URL(r.url());
+    if (!url.pathname.startsWith('/api/') || url.pathname === '/api/events') return;
+    inflight.add(r);
+    last = Date.now();
+    if (/^\/api\/p\/[^/]+\/elements$/.test(url.pathname)) listReads.push(r.url());
+  });
+  const done = (r: Request) => {
+    if (inflight.delete(r)) last = Date.now();
+  };
+  page.on('requestfinished', done);
+  page.on('requestfailed', done);
+  return {
+    listReads,
+    settled: () =>
+      expect
+        .poll(() => inflight.size === 0 && Date.now() - last >= 500, { timeout: 30_000, intervals: [100] })
+        .toBe(true),
+  };
 }
 
 function typeList(page: Page): Locator {
@@ -285,21 +314,19 @@ test.describe('US-S-26 — refresh by itself', () => {
     // The screen half: the list opened again with no change shows the same list without a new read
     // (the server-side CLI count is the process audit's: test/server/snapshot/process-audit.test.ts).
     const c = await consoles.start({ projects: [await fixtures.get('kanban')] });
-    const reads: string[] = [];
-    page.on('request', (r) => {
-      if (/\/api\/p\/[^/]+\/elements(\?|$)/.test(new URL(r.url()).pathname + new URL(r.url()).search))
-        reads.push(r.url());
-    });
+    const api = trackApi(page);
     await openList(page, c);
+    await api.settled();
     const first = await listed(page);
-    expect(reads).toHaveLength(1);
+    expect(api.listReads).toHaveLength(1);
     // Away (the element panel) and back to the list.
     await row(page, 'task-002-password-reset').click();
     await expect(page.getByRole('dialog')).toBeVisible();
     await page.getByRole('button', { name: 'Close' }).click();
     await expect(page.getByRole('heading', { level: 1, name: 'Memory' })).toBeVisible();
+    await api.settled();
     expect(await listed(page)).toEqual(first);
-    expect(reads).toHaveLength(1);
+    expect(api.listReads).toHaveLength(1);
   });
 });
 

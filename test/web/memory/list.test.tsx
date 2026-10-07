@@ -186,6 +186,27 @@ it('lists one type with its states, undeclared ones after the sequence, and read
   expect(paths(fetch).filter((p) => p === ARCHIVED)).toHaveLength(1);
 });
 
+it('follows the history back and forward across filter URLs (review F7)', async () => {
+  stubApi(api());
+  const user = userEvent.setup();
+  const { router } = renderApp(`/p/${PID}/memory`);
+  await screen.findByText('Title of k-001-alpha');
+  await user.click(screen.getByRole('link', { name: /^kind-a,/ }));
+  await user.click(await screen.findByRole('link', { name: /^s2,/ }));
+  await waitFor(() => expect(rows()).toEqual(['k-001-alpha']));
+  act(() => router.history.back());
+  await waitFor(() => expect(router.state.location.search).toEqual({ type: 'kind-a' }));
+  await waitFor(() => expect(rows()).toEqual(['k-001-alpha', 'k-002-beta', 'k-003-gamma', 'k-009-gone']));
+  act(() => router.history.back());
+  await waitFor(() => expect(router.state.location.search).toEqual({}));
+  await waitFor(() => expect(stateFilters()[1]).toBe('To approve2'));
+  expect(screen.getByRole('link', { name: /^All types,/ }).getAttribute('aria-current')).toBe('page');
+  act(() => router.history.forward());
+  await waitFor(() => expect(router.state.location.search).toEqual({ type: 'kind-a' }));
+  await waitFor(() => expect(screen.getByRole('link', { name: /^kind-a,/ }).getAttribute('aria-current')).toBe('page'));
+  expect(stateFilters()).toEqual(['All states4', 's11', 's21', 's31', 'odd1']);
+});
+
 it('says a type has no element yet', async () => {
   stubApi(api());
   renderApp(`/p/${PID}/memory?type=kind-e`);
