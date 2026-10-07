@@ -10,6 +10,8 @@ import { expect, test, type Consoles, type FixtureBuilds } from './support/fixtu
 import { expectFocusVisible } from './support/keyboard.js';
 
 const LINKS_DOC = 'docs/01_vision/links.md';
+/** A link waiting for `GET /elements` (a cold CLI search) and the server check is classified within. */
+const CLASSIFIED_WITHIN = 30_000;
 const LINKS = [
   '# Links of the scenarios',
   '',
@@ -32,6 +34,13 @@ async function withLinks(fixtures: FixtureBuilds, consoles: Consoles): Promise<R
   await commitFile(custom, LINKS_DOC, LINKS, 'docs: links of the scenarios');
   return consoles.start({ projects: [custom] });
 }
+
+// The worker's custom build is made before the tests (a build can take minutes on a loaded
+// machine; inside a test it would count against the test's timeout).
+test.beforeAll(async ({ fixtures }) => {
+  test.setTimeout(300_000);
+  await fixtures.get('custom');
+});
 
 test.describe('US-R-08 — documentation index and documents', () => {
   test('R-08.1 — Index the documents without Memory and plan files', async ({ page, fixtures, consoles }) => {
@@ -67,13 +76,16 @@ test.describe('US-R-08 — documentation index and documents', () => {
     // Headings, lists and tables rendered (not the Markdown source).
     await expect(doc.getByRole('heading', { level: 1 })).toBeVisible();
     await expect(doc.getByRole('heading', { level: 2 }).first()).toBeVisible();
-    await expect(doc.getByRole('region', { name: 'Table 1' }).getByRole('table')).toBeVisible();
+    await expect(doc.getByRole('region', { name: 'Table 1', exact: true }).getByRole('table')).toBeVisible();
     await expect(doc).not.toContainText('|---');
     expect(new URL(page.url()).origin).toBe(c.origin);
     await expect(page).toHaveURL(`${c.origin}${docPath(c, 'docs/01_vision/06_features.md')}`);
     // A wide table scrolls inside its focusable region (keyboard).
-    const table = doc.getByRole('region', { name: 'Table 1' });
-    await table.focus();
+    const table = doc.getByRole('region', { name: 'Table 1', exact: true });
+    await doc.focus();
+    for (let i = 0; i < 30 && !(await table.evaluate((el) => el === document.activeElement)); i++) {
+      await page.keyboard.press('Tab');
+    }
     await expectFocusVisible(table);
     expect(await scanThemes(page)).toEqual([]);
     // 06_features.md holds no list: the lists are proved on 02_product-vision.md (open point).
@@ -111,7 +123,10 @@ test.describe('US-R-09 — safe links', () => {
     const c = await withLinks(fixtures, consoles);
     await openConsole(page, c, { path: docPath(c, LINKS_DOC) });
     const link = article(page, LINKS_DOC).getByRole('link', { name: 'Decision' });
-    await expect(link).toHaveAttribute('href', `/p/${c.pids[0]}/e/dl-001-initialise-wingfoil-before-inception`);
+    // The first `GET /elements` runs the CLI cold (seconds on a loaded machine).
+    await expect(link).toHaveAttribute('href', `/p/${c.pids[0]}/e/dl-001-initialise-wingfoil-before-inception`, {
+      timeout: CLASSIFIED_WITHIN,
+    });
     await link.click();
     const panel = page.getByRole('dialog');
     await expect(panel).toBeVisible();
@@ -127,7 +142,7 @@ test.describe('US-R-09 — safe links', () => {
     await openConsole(page, c, { path: docPath(c, LINKS_DOC) });
     const doc = article(page, LINKS_DOC);
     const item = doc.getByRole('listitem').filter({ hasText: 'Missing' });
-    await expect(item.locator('.doc-link-mark')).toHaveText('broken link');
+    await expect(item.locator('.doc-link-mark')).toHaveText('broken link', { timeout: CLASSIFIED_WITHIN });
     await expect(item.getByRole('link')).toHaveCount(0);
     await item.getByText('Missing', { exact: true }).click();
     await expect(page).toHaveURL(`${c.origin}${docPath(c, LINKS_DOC)}`);
@@ -156,7 +171,7 @@ test.describe('US-R-09 — safe links', () => {
       route.fulfill({ status: 200, contentType: 'text/html', body: '<title>Guide</title>' }),
     );
     await openConsole(page, c, { path: docPath(c, LINKS_DOC) });
-    const link = article(page, LINKS_DOC).getByRole('link', { name: 'Guide (opens in a new tab)' });
+    const link = article(page, LINKS_DOC).getByRole('link', { name: 'Guide (opens in a new tab)', exact: true });
     await expect(link).toHaveAttribute('target', '_blank');
     await expect(link).toHaveAttribute('rel', 'noopener noreferrer');
     const [tab] = await Promise.all([context.waitForEvent('page'), link.click()]);

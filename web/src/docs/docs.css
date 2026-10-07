@@ -188,7 +188,8 @@
 }
 
 .doc-link-external::after {
-  content: ' \2197';
+  /* Decorative: the "(opens in a new tab)" text says it to assistive technology. */
+  content: ' \2197' / '';
 }
 
 .doc-link-refused {
