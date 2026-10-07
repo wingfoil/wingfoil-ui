@@ -248,6 +248,25 @@ it('does not move the focus on a refetch after a modified click that opened no p
   expect(document.activeElement).toBe(allTypes);
 });
 
+it('focuses an archived originating row once the archived read is back (review F4)', async () => {
+  stubApi(
+    api({
+      [`${LIST}/k-009-gone`]: { status: 404, body: { error: { code: 'not-found', message: 'x' } } },
+      [`${LIST}/k-009-gone/history`]: { status: 404, body: { error: { code: 'not-found', message: 'x' } } },
+    }),
+  );
+  const user = userEvent.setup();
+  const { router, queryClient } = renderApp(`/p/${PID}/memory?type=kind-a`);
+  await screen.findByText('Title of k-009-gone');
+  await user.click(screen.getByRole('link', { name: /k-009-gone/ }));
+  await screen.findByRole('dialog');
+  // The archived list left the cache while the panel was open: the list reads it again.
+  queryClient.removeQueries({ queryKey: queryKeys.project(PID, 'elements', { archived: true }) });
+  await user.click(screen.getByRole('button', { name: 'Close' }));
+  await waitFor(() => expect(router.state.location.pathname).toBe(`/p/${PID}/memory`));
+  await waitFor(() => expect((document.activeElement as HTMLElement | null)?.dataset['eid']).toBe('k-009-gone'));
+});
+
 it('closes a panel opened by URL to the Memory list (W3-22 fallback)', async () => {
   stubApi(api());
   const { router } = renderApp(`/p/${PID}/e/k-001-alpha`);

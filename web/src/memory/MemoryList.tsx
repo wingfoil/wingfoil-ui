@@ -164,7 +164,10 @@ export function MemoryList({ pid, filters, config, elements, withArchived }: Mem
     if (returnRow?.pid === pid) pendingRow.current = returnRow.eid;
     returnRow = undefined;
   }, [pid]);
-  const ready = list !== undefined;
+  // With a type selected, the rows are complete once the archived read is there too (review F4).
+  const ready =
+    list !== undefined &&
+    (withArchived === undefined || withArchived.data !== undefined || withArchived.error !== null);
   useEffect(() => {
     const eid = pendingRow.current;
     if (!ready || eid === undefined) return;
