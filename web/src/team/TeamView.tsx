@@ -70,8 +70,22 @@ function Filters({
   roles: string[];
 }): ReactNode {
   const intl = useIntl();
-  // The field keeps what is typed; the URL follows it.
+  // The field keeps what is typed and the URL follows it; a URL change that is not one of the
+  // field's own (back, forward, a link) sets the field (review F8). The field's pushes are queued:
+  // the URL may still show an earlier one while the user types.
   const [text, setText] = useState(filters.q ?? '');
+  const [pushed, setPushed] = useState<string[]>([]);
+  const [seen, setSeen] = useState(filters.q ?? '');
+  const urlText = filters.q ?? '';
+  if (urlText !== seen) {
+    setSeen(urlText);
+    const at = pushed.indexOf(urlText);
+    if (at >= 0) setPushed(pushed.slice(at + 1));
+    else {
+      setPushed([]);
+      setText(urlText);
+    }
+  }
   const { role: _role, ...withoutRole } = filters;
   return (
     <div className="team-filters">
@@ -81,6 +95,7 @@ function Filters({
           value={text}
           onChange={(value) => {
             setText(value);
+            setPushed((p) => [...p, value]);
             const { q: _q, ...rest } = filters;
             onFilters(value === '' ? rest : { ...rest, q: value });
           }}

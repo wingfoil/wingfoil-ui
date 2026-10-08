@@ -114,6 +114,28 @@ it('filters by pending gates, role and text, kept in the URL', async () => {
   expect(router.state.location.search).toEqual({ q: 'BO@' });
 });
 
+it('keeps the search field on the URL through back and forward (review F8)', async () => {
+  stubApi(API);
+  const { router } = renderApp(`/p/${PID}/team?q=Ann`);
+  const field = await screen.findByRole('searchbox', { name: 'Search by name or email' });
+  await waitFor(() => expect(cards()).toEqual(['Ann Lee']));
+  expect((field as HTMLInputElement).value).toBe('Ann');
+  await router.navigate({ to: '/p/$pid/team', params: { pid: PID }, search: { q: 'Cy' } });
+  await waitFor(() => expect((field as HTMLInputElement).value).toBe('Cy'));
+  await waitFor(() => expect(cards()).toEqual(['Cy']));
+  router.history.back();
+  await waitFor(() => expect((field as HTMLInputElement).value).toBe('Ann'));
+  router.history.forward();
+  await waitFor(() => expect((field as HTMLInputElement).value).toBe('Cy'));
+  await router.navigate({ to: '/p/$pid/team', params: { pid: PID }, search: {} });
+  await waitFor(() => expect((field as HTMLInputElement).value).toBe(''));
+  // Typing still drives the URL, character by character, without the field jumping back.
+  const user = userEvent.setup();
+  await user.type(field, 'Bo Ray');
+  expect((field as HTMLInputElement).value).toBe('Bo Ray');
+  await waitFor(() => expect(router.state.location.search).toEqual({ q: 'Bo Ray' }));
+});
+
 it('says when no member matches the filters', async () => {
   stubApi(API);
   renderApp(`/p/${PID}/team?q=nobody`);
