@@ -126,8 +126,26 @@ export async function startConsole(options: ConsoleOptions = {}): Promise<Runnin
   }
   const args = [...(opener === 'flag' ? ['--no-open'] : []), ...(options.args ?? [])];
   // Its own process group, recorded for the reaper (bug-004): killed whatever ends the test.
-  const launcher = await startLauncher(args, env, COLD_READ_MS, { detached: true });
-  track(launcher.pid);
+  // Recorded as soon as it is spawned, so that a console that never gets to its running line is
+  // still reaped (review F1).
+  let spawned: number | undefined;
+  let launcher: Launcher;
+  try {
+    launcher = await startLauncher(args, env, COLD_READ_MS, {
+      detached: true,
+      onSpawn: (pid) => {
+        spawned = pid;
+        track(pid);
+      },
+    });
+  } catch (error) {
+    if (spawned !== undefined) {
+      killGroup(spawned);
+      forget(spawned);
+    }
+    await rm(root, { recursive: true, force: true });
+    throw error;
+  }
   const origin = `http://127.0.0.1:${launcher.port}`;
   return {
     origin,

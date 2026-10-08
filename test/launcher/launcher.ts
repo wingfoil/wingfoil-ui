@@ -32,6 +32,8 @@ export interface Launcher {
 export interface LaunchOptions {
   /** Run the bin in its own process group (the e2e support kills the group, bug-004). */
   detached?: boolean;
+  /** Called with the pid as soon as the process is spawned, before its running line (bug-004). */
+  onSpawn?: (pid: number) => void;
 }
 
 /** Start the bin with `args` and wait for its running line (rejects after `timeoutMs`). */
@@ -47,6 +49,7 @@ export function startLauncher(
     stdio: ['ignore', 'pipe', 'pipe'],
     detached: options.detached ?? false,
   });
+  if (child.pid !== undefined) options.onSpawn?.(child.pid);
   const out: string[] = [];
   let buffer = '';
   let err = '';
@@ -56,7 +59,14 @@ export function startLauncher(
   });
   return new Promise((resolve, reject) => {
     const timer = setTimeout(() => {
-      child.kill('SIGKILL');
+      // A detached bin leads its own process group: the whole group goes.
+      if (options.detached && child.pid !== undefined) {
+        try {
+          process.kill(-child.pid, 'SIGKILL');
+        } catch {
+          child.kill('SIGKILL');
+        }
+      } else child.kill('SIGKILL');
       reject(new Error(`no running line after ${timeoutMs} ms; stderr: ${err}`));
     }, timeoutMs);
     const early = (code: number | null): void => {
