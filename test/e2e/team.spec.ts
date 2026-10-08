@@ -18,7 +18,7 @@ const card = (page: Page, name: string) => page.getByRole('listitem', { name, ex
 
 /** The names on the cards, in order. */
 async function names(page: Page): Promise<string[]> {
-  return cards(page).evaluateAll((els) => els.map((e) => e.getAttribute('aria-label') ?? ''));
+  return cards(page).evaluateAll((els) => els.map((e) => e.querySelector('.member-name-text')?.textContent ?? ''));
 }
 
 test.describe('US-R-07 — Team view', () => {

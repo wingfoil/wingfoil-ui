@@ -7,7 +7,7 @@
 import type { UseQueryResult } from '@tanstack/react-query';
 import type { ElementList, ProjectConfig, ProjectHeader } from '@wingfoil-ui/contracts';
 import { Link } from '@tanstack/react-router';
-import { useState, type ReactNode } from 'react';
+import { useId, useState, type ReactNode } from 'react';
 import { Checkbox, Input, Label, SearchField } from 'react-aria-components';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { AgentLine, RoleChips, RulesError, Section } from '../dna/DnaView.js';
@@ -26,15 +26,18 @@ export interface TeamViewProps {
 
 /** One member card. */
 function Card({ card }: { card: MemberCard }): ReactNode {
+  const nameId = useId();
   return (
-    <li className="member-card" aria-label={card.name}>
+    <li className="member-card" aria-labelledby={nameId}>
       <div className="member-head">
         <span className="member-initials" aria-hidden="true">
           {card.initials}
         </span>
         <span className="member-who">
           <span className="member-name">
-            <span>{card.name}</span>
+            <span id={nameId} className="member-name-text">
+              {card.name}
+            </span>
             {card.me && (
               <span className="member-you">
                 <FormattedMessage id="team.member.you" />

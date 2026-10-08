@@ -64,7 +64,7 @@ function cards(): string[] {
   return within(screen.getByRole('list', { name: 'Members' }))
     .queryAllByRole('listitem')
     .filter((li) => li.classList.contains('member-card'))
-    .map((li) => li.getAttribute('aria-label') ?? '');
+    .map((li) => li.querySelector('.member-name-text')?.textContent ?? '');
 }
 
 it('shows a card per member with roles, "you" and the pending gates, and the agents apart', async () => {
