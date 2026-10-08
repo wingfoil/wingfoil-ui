@@ -251,8 +251,8 @@ Screen: `docs/00_reference/ux-reference.md` §4.5, §4.6, §4.10 and the prototy
   `support/identity.ts` `actAs(fixture, name)` sets the scenario's user.
 - **bug-004** (`bab9bd8`, `8c35bd6`, `4b0bc30`, `4b5c874`):
   - `support/cold-read.ts`: `COLD_READ_MS` (60 s), `expectFirstLoad(locator)`, `expectLoaded(scope)`;
-    `openConsole` waits for the shell with it; every spec's first cold read uses it (shell through
-    `openConsole`, element panel incl. G-01.3 and every panel opened from the Memory list or a
+    `openConsole` waits for the shell with it; every spec's first cold read uses it (shell — its
+    first loads also through `expectFirstLoad` since review round 1, F8 —, element panel incl. G-01.3 and every panel opened from the Memory list or a
     document, Memory list — its inline 30 s waits replaced —, documentation, this task's specs).
   - `REFRESH_MS`: the scenarios' "within 5 seconds" (S-25.2, S-26.1, S-26.2, S-27.2) is asserted as
     5 s when the worker starts below load 12 (the `test:timing` threshold) and as a cold read above
@@ -321,3 +321,39 @@ Screen: `docs/00_reference/ux-reference.md` §4.5, §4.6, §4.10 and the prototy
   (`DnaView.tsx` 100 / 90.9, `TeamView.tsx` 100 / 89.58, `element/Directives.tsx` 100 / 81.25,
   `directives/pages.tsx` 100 / 97.22) · `test:e2e` **60/60** (also 60/60 at load 22–28 before the
   synthetic load) · `npm run test:timing` **skipped** (load > 12 throughout: 16–98).
+
+### review round 1 (2026-10-08)
+
+- Coordinator review: **PASS, no blockers**. Fixed one commit per finding (F1 and F2/F5 share the
+  reaper's test file; F8 has a web and an e2e commit). F4 (the adaptive "within 5 s",
+  `REFRESH_MS`) is **pending the user**: unchanged.
+  - **F1** (`d16df67`) `startLauncher(…, { onSpawn })` gives the pid right after the spawn: the
+    e2e console is recorded (worker set + run directory) before its running line; on the start's
+    timeout a detached bin's whole group is killed (`process.kill(-pid)`), and `startConsole` kills
+    and forgets a console whose start failed. Test: a bin with a 1 ms start budget is recorded at
+    spawn, rejected, and gone.
+  - **F2, F5** (`2d98107`) a run directory names its owner (the Playwright runner's pid, file
+    `owner`); the global setup first reaps every `wfui-e2e-run-*` directory whose owner is gone (a
+    run killed before its teardown) — a concurrent run's directory (owner alive) is left alone.
+    `killGroup` kills the group only (no fallback to the pid). A recorded pid whose command line
+    cannot be read is not killed but reported (`unverified`, a warning of the teardown). Tests:
+    stale directory reaped with its console, live run untouched, unreadable command line left
+    alone; the test's temporary directories are removed after each test.
+  - **F3** (`5192aa3`) on a directive page, a repository link waits (`unresolved`) while
+    `GET /directives` is pending, instead of a passing "not shown in the UI"; a failed list leaves
+    no directive to open. Model test and component test with the list held back (fails on the
+    previous code).
+  - **F6** (`a03637a`) component test: a directive body with `<script>`, `javascript:`/`data:`/
+    `vbscript:`/`file:` links and image, `<img onerror>`, `<iframe>`, an `onclick` attribute and an
+    escaping path renders inert (raw HTML as text, no element of those tags, no `on*` attribute,
+    only `http(s)` or `/p/` hrefs, nothing set on `window` after a click, images as marked text).
+  - **F7** (`9efc915`) a member card is named by its name element (`aria-labelledby`), not an
+    `aria-label` on the `<li>`.
+  - **F8** (`5524385`, `27d95a9`) the Team search field follows the URL on back, forward and links
+    (its own pushes are queued so that typing never jumps back; component test fails on the
+    previous code); the shell spec's first loads go through `expectFirstLoad`.
+- Checks (load 4–20): typecheck, lint (ESLint + catalogue check), format:check clean · `docs:api`
+  OK · `check_tasks.py` OK · `test:coverage` **105 files passed, 1 skipped; 1638 passed / 1
+  skipped**, coverage 96.48 % statements / 90.37 % branches / 97.05 % functions / 98.17 % lines ·
+  `test:e2e` **60/60** (load 16–18; no console and no run directory left afterwards) ·
+  `npm run test:timing` **skipped** (load > 12).
