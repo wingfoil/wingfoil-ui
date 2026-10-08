@@ -10,6 +10,7 @@
  * - by the global teardown ({@link reapRun}), which also fails the run loudly when one survived.
  */
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, unlinkSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import path from 'node:path';
 
 /** Environment variable naming the run's directory of console records. */
@@ -21,15 +22,16 @@ export const CONSOLE_MARK = path.join('bin', 'wingfoil-ui.cjs');
 const live = new Set<number>();
 let hooked = false;
 
-/** Kill the process group of `pid` (falling back to the process), ignoring one already gone. */
+/**
+ * Kill the process group led by `pid` (every console is spawned detached: it leads its group),
+ * ignoring one already gone. No fallback to the pid alone: a pid that leads no group is not one of
+ * the consoles (review F5).
+ */
 export function killGroup(pid: number): void {
-  for (const target of [-pid, pid]) {
-    try {
-      process.kill(target, 'SIGKILL');
-      return;
-    } catch {
-      // not a group leader, or already gone
-    }
+  try {
+    process.kill(-pid, 'SIGKILL');
+  } catch {
+    // already gone
   }
 }
 
@@ -102,23 +104,70 @@ export function forget(pid: number): void {
   }
 }
 
+/** What {@link reapRun} found. */
+export interface RunReap {
+  /** Consoles still running: killed. */
+  killed: { pid: number; command: string }[];
+  /** Recorded pids still running whose command line cannot be read: left alone, reported. */
+  unverified: number[];
+}
+
+/** The file of a run directory naming the Playwright process that owns it. */
+export const OWNER_FILE = 'owner';
+
+/** Prefix of the run directories (under the system temporary directory). */
+export const RUN_DIR_PREFIX = 'wfui-e2e-run-';
+
 /**
  * The global teardown's check: every console recorded by the run that still runs is killed and
- * reported. Returns the survivors (pid and command line).
+ * reported; a running pid whose command line cannot be read is not killed (it may be another
+ * user's process with a recycled pid) but reported. The directory is removed.
  */
-export function reapRun(dir: string): { pid: number; command: string }[] {
-  if (!existsSync(dir)) return [];
-  const survivors: { pid: number; command: string }[] = [];
+export function reapRun(dir: string, readCommand: (pid: number) => string | undefined = commandLine): RunReap {
+  const result: RunReap = { killed: [], unverified: [] };
+  if (!existsSync(dir)) return result;
   for (const name of readdirSync(dir)) {
     const pid = Number(name);
-    if (!Number.isInteger(pid) || pid <= 0) continue;
-    const command = commandLine(pid);
+    if (!Number.isInteger(pid) || pid <= 0 || !isRunning(pid)) continue;
+    const command = readCommand(pid);
+    if (command === undefined) result.unverified.push(pid);
     // A recycled pid that is not a console is left alone.
-    if (isRunning(pid) && (command === undefined || command.includes(CONSOLE_MARK))) {
+    else if (command.includes(CONSOLE_MARK)) {
       killGroup(pid);
-      survivors.push({ pid, command: command ?? '' });
+      result.killed.push({ pid, command });
     }
   }
   rmSync(dir, { recursive: true, force: true });
-  return survivors;
+  return result;
+}
+
+/** A new run directory owned by this process (the global setup's). */
+export function createRunDir(root = tmpdir()): string {
+  const dir = path.join(root, `${RUN_DIR_PREFIX}${process.pid}-${Date.now()}`);
+  mkdirSync(dir, { recursive: true });
+  writeFileSync(path.join(dir, OWNER_FILE), String(process.pid));
+  return dir;
+}
+
+/**
+ * Reap the run directories of earlier runs whose owner is gone (a run killed before its teardown,
+ * review F2); a directory whose owner still runs belongs to a concurrent run and is left alone.
+ */
+export function sweepStaleRuns(root = tmpdir()): RunReap {
+  const all: RunReap = { killed: [], unverified: [] };
+  for (const name of readdirSync(root)) {
+    if (!name.startsWith(RUN_DIR_PREFIX)) continue;
+    const dir = path.join(root, name);
+    let owner = NaN;
+    try {
+      owner = Number(readFileSync(path.join(dir, OWNER_FILE), 'utf8'));
+    } catch {
+      // no owner recorded: an orphan
+    }
+    if (Number.isInteger(owner) && owner > 0 && isRunning(owner)) continue;
+    const r = reapRun(dir);
+    all.killed.push(...r.killed);
+    all.unverified.push(...r.unverified);
+  }
+  return all;
 }

@@ -7,7 +7,12 @@ import { reapRun, RUN_DIR_ENV } from './reaper.js';
 export default function globalTeardown(): void {
   const dir = process.env[RUN_DIR_ENV];
   if (!dir) return;
-  const survivors = reapRun(dir);
+  const { killed: survivors, unverified } = reapRun(dir);
+  if (unverified.length > 0) {
+    console.warn(
+      `e2e teardown: recorded pid(s) still running but not verifiable, left alone: ${unverified.join(', ')}`,
+    );
+  }
   if (survivors.length > 0) {
     throw new Error(
       `${survivors.length} console(s) survived the e2e run and were killed: ${survivors
