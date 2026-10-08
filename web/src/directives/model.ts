@@ -50,9 +50,14 @@ export function directiveHref(pid: string, id: string, fragment = ''): string {
 /**
  * A link of the directive at `path` (W3-42): `http(s)` in a new tab, an in-page anchor, another
  * directive (by repository path, `byPath`) opened in the UI; every other repository path "not
- * shown in the UI", without a request.
+ * shown in the UI", without a request. While the directive list is not read (`byPath`
+ * `undefined`), a repository path waits (`unresolved`) instead of being marked (review F3).
  */
-export function classifyDirectiveLink(href: string, path: string, byPath: ReadonlyMap<string, string>): LinkClass {
+export function classifyDirectiveLink(
+  href: string,
+  path: string,
+  byPath: ReadonlyMap<string, string> | undefined,
+): LinkClass {
   const target = resolveLink(href, path);
   switch (target.kind) {
     case 'external':
@@ -62,6 +67,7 @@ export function classifyDirectiveLink(href: string, path: string, byPath: Readon
     case 'unsupported':
       return { kind: 'refused', mark: target.kind };
     case 'path':
+      if (byPath === undefined) return { kind: 'unresolved', path: target.path };
       return byPath.has(target.path)
         ? { kind: 'document', path: target.path, fragment: target.fragment }
         : { kind: 'refused', mark: 'hidden' };

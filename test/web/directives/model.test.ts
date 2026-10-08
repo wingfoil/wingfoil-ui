@@ -85,6 +85,18 @@ describe('directive paths and links', () => {
     });
   });
 
+  it('lets a repository path wait while the directive list is not read (review F3)', () => {
+    expect(classifyDirectiveLink('./d-other.md', self, undefined)).toEqual({
+      kind: 'unresolved',
+      path: '.wingfoil/directives/custom/d-other.md',
+    });
+    expect(classifyDirectiveLink('../../dna.yaml', self, undefined)).toEqual({
+      kind: 'unresolved',
+      path: '.wingfoil/dna.yaml',
+    });
+    expect(classifyDirectiveLink('#a', self, undefined)).toEqual({ kind: 'anchor', fragment: 'a' });
+  });
+
   it('marks every other repository path "not shown in the UI", and refuses the rest', () => {
     expect(classify('../../dna.yaml')).toEqual({ kind: 'refused', mark: 'hidden' });
     expect(classify('../../../docs/x.md')).toEqual({ kind: 'refused', mark: 'hidden' });

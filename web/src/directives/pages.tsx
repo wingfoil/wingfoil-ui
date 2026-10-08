@@ -33,10 +33,14 @@ export function DirectivePage(): ReactNode {
   const texts = useRenderTexts();
   const entry = detail.data?.entry;
   const path = entry ? directiveRepoPath(entry) : '';
-  // Other directives by repository path (the list, once read): their links open in the UI.
+  // Other directives by repository path (the list, once read): their links open in the UI. Until
+  // the list answers, the repository links wait (review F3); a failed list leaves none to open.
   const byPath = useMemo(
-    () => new Map((list.data?.entries ?? []).map((e) => [directiveRepoPath(e), e.frontmatter.id])),
-    [list.data],
+    () =>
+      list.data === undefined && list.error === null
+        ? undefined
+        : new Map((list.data?.entries ?? []).map((e) => [directiveRepoPath(e), e.frontmatter.id])),
+    [list.data, list.error],
   );
   const safeHtml = useMemo(() => (detail.data ? markdownToSafeHtml(detail.data.body) : ''), [detail.data]);
   const options = useMemo<FinishOptions>(
@@ -44,7 +48,7 @@ export function DirectivePage(): ReactNode {
       pid,
       documentPath: path,
       classify: (href) => classifyDirectiveLink(href, path, byPath),
-      hrefOf: (target, fragment) => directiveHref(pid, target === path ? did : (byPath.get(target) ?? did), fragment),
+      hrefOf: (target, fragment) => directiveHref(pid, target === path ? did : (byPath?.get(target) ?? did), fragment),
       ...texts,
     }),
     [pid, did, path, byPath, texts],

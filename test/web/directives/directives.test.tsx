@@ -161,6 +161,26 @@ it('follows a link to another directive inside the UI', async () => {
   expect(router.state.location.pathname).toBe(`/p/${PID}/directives/d-qa`);
 });
 
+it('waits for the directive list before classifying a repository link, with no mark meanwhile (review F3)', async () => {
+  let release!: () => void;
+  const held = new Promise<void>((r) => (release = r));
+  const fetch = stubApi(MEMBER);
+  const answer = fetch.getMockImplementation() as (url: string) => Promise<Response>;
+  fetch.mockImplementation(async (url: string) => {
+    if (url === `${BASE}/directives`) await held;
+    return answer(url);
+  });
+  renderApp(`/p/${PID}/directives/d-dev`);
+  const article = await screen.findByRole('article', { name: 'Title of d-dev' });
+  const a = within(article);
+  expect(a.getByText('the QA directive')).toBeTruthy();
+  expect(a.queryByRole('link', { name: 'the QA directive' })).toBeNull();
+  expect(a.queryByText('not shown in the UI')).toBeNull();
+  release();
+  expect(await a.findByRole('link', { name: 'the QA directive' })).toBeTruthy();
+  expect(a.getByText('not shown in the UI')).toBeTruthy();
+});
+
 it('shows an unknown directive as not found', async () => {
   stubApi(MEMBER);
   renderApp(`/p/${PID}/directives/nope`);
