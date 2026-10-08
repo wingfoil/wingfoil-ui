@@ -181,6 +181,46 @@ it('waits for the directive list before classifying a repository link, with no m
   expect(a.getByText('not shown in the UI')).toBeTruthy();
 });
 
+it('renders a malicious directive body inert (review F6)', async () => {
+  const body = [
+    '<script>window.__pwned = 1</script>',
+    '',
+    '[click me](javascript:window.__pwned=2) and [data](data:text/html,<script>window.__pwned=3</script>)',
+    '',
+    '<img src="x" onerror="window.__pwned=4"> and ![pic](javascript:window.__pwned=5) ![tracker](https://example.test/t.png)',
+    '',
+    '<b onclick="window.__pwned=6">bold</b> <iframe src="https://example.test"></iframe>',
+    '',
+    '[vb](vbscript:msgbox(1)) [file](file:///etc/passwd) [up](../../../../etc/hosts)',
+  ].join('\n');
+  stubApi({
+    ...MEMBER,
+    [`${BASE}/directives/d-dev`]: { status: 200, body: { ...D_DEV, body: body } },
+  });
+  renderApp(`/p/${PID}/directives/d-dev`);
+  const article = await screen.findByRole('article', { name: 'Title of d-dev' });
+  await within(article)
+    .findByText('not shown in the UI', { exact: false })
+    .catch(() => undefined);
+  // Raw HTML is shown as written text, never parsed.
+  expect(article.textContent).toContain('<script>window.__pwned = 1</script>');
+  expect(article.textContent).toContain('<b onclick="window.__pwned=6">bold</b>');
+  for (const tag of ['script', 'img', 'iframe', 'b']) expect(article.querySelector(tag)).toBeNull();
+  for (const el of article.querySelectorAll('*')) {
+    for (const attr of el.getAttributeNames()) expect(attr.startsWith('on')).toBe(false);
+  }
+  // No link leaves http(s) or the UI; the scripted ones are not links at all.
+  for (const a of article.querySelectorAll('a')) {
+    expect(a.getAttribute('href') ?? '').toMatch(/^(https?:|\/p\/)/);
+  }
+  expect(within(article).queryByRole('link', { name: 'click me' })).toBeNull();
+  expect(within(article).queryByRole('link', { name: 'data' })).toBeNull();
+  await userEvent.setup().click(within(article).getByText(/click me/));
+  expect((window as unknown as { __pwned?: number }).__pwned).toBeUndefined();
+  // An image is never loaded: its alternative text, marked.
+  expect(within(article).getByText('Image not shown: tracker')).toBeTruthy();
+});
+
 it('shows an unknown directive as not found', async () => {
   stubApi(MEMBER);
   renderApp(`/p/${PID}/directives/nope`);
