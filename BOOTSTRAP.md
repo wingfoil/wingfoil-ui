@@ -183,11 +183,20 @@ draft stays in `docs/00_reference/ux-reference.md` §6.
 
 ## 3. Requests to WingFoil (in parallel)
 
-The requests are tracked in the **local, git-ignored** notes `.notes/wingfoil-requests.md`
-(they are working notes, not project history, so versioned documents never cite their ids).
+> **Updated 2026-10-09 (dev-loop task-023, WingFoil dl-163).** The requests are now versioned
+> notes in `docs/wingfoil-feedback/`, one file per note (`F-<nnn>-<slug>.md`, ids `F-001`…), listed
+> in the ledger of its `README.md`; the former local requests R-01…R-12 are F-001…F-012. WingFoil
+> reads the inbox at its retrospective and publishes its answer in its own repository; this
+> repository pulls it at its own sync (rules 3–7 of the `wingfoil-cli` directive). A `wingfoil-cli`
+> entry that is a WingFoil defect or gap names its note in the directive's *Note* column. The text
+> below, and the bootstrap steps above (the `.notes/` entries of step 1), are kept as they
+> ran.
+
+The requests were tracked in the **local, git-ignored** notes `.notes/wingfoil-requests.md`
+(they were working notes, not project history, so versioned documents never cited their ids).
 The ones needed before v1.0 go **against the WingFoil element that already covers them** (extend
 or comment it, do not duplicate); the others become new elements after WingFoil v1.0. The notes
-also collect the `wingfoil-cli` directive entries that are WingFoil defects.
+also collected the `wingfoil-cli` directive entries that are WingFoil defects.
 
 In the **wingfoil** repository a new request follows its ingest main (`decision-log-ingest`):
 

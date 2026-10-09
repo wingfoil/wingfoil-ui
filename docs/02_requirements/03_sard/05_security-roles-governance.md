@@ -1,6 +1,6 @@
 # SARD — 5. Security, Roles & Governance
 
-**Version:** 0.4 · **Date:** 2026-10-04 (0.2: coherence audit fixes — session 6; 0.3: REQ-SEC-02 session derived from the token, static files exempt — initial-design session 6; 0.4: REQ-SEC-05 v0.1 scope — release-planning v0.1 session 4 (audit A4)) · **Status:** Draft — specification-downcast session 4
+**Version:** 0.5 · **Date:** 2026-10-09 (0.2: coherence audit fixes — session 6; 0.3: REQ-SEC-02 session derived from the token, static files exempt — initial-design session 6; 0.4: REQ-SEC-05 v0.1 scope — release-planning v0.1 session 4 (audit A4); 0.5: REQ-SEC-07 cites the feedback note F-009 — dev-loop task-023) · **Status:** Draft — specification-downcast session 4
 
 Shell and conventions: `00_sard.md`. The protection of the local server (X4) is mandatory and
 distinct from permissions between team members, which belong to WingFoil (L6).
@@ -78,7 +78,7 @@ distinct from permissions between team members, which belong to WingFoil (L6).
 | Field | |
 |-------|--|
 | Release | v0.2 |
-| Description | The UI offers a gate's outcomes only to members holding the role WingFoil requires (0.2.2: `approver`, W-13); other members see the gate as informational with the members who can act. The UI defines no permissions of its own; action permissions are shown once WingFoil implements them (L6, request R-09). |
+| Description | The UI offers a gate's outcomes only to members holding the role WingFoil requires (0.2.2: `approver`, W-13); other members see the gate as informational with the members who can act. The UI defines no permissions of its own; action permissions are shown once WingFoil implements them (L6, WingFoil feedback note F-009 in `docs/wingfoil-feedback/`). |
 | Rationale | One owner for the rules (session 3 decision; supersedes Q11). |
 | Traceability | US-T-06, US-G-09, US-G-08, US-S-11 · T-06.1, T-06.2, G-09.1, G-09.2, G-09.3, G-08.1, G-08.3, S-11.1 · G2, S9 |
 | Fit criterion | [boolean] On the fixtures with Sam and Casey with and without `approver`, the outcomes are offered if and only if the member holds `approver`; `ui.yaml` and the server configuration contain 0 permission rules. |
@@ -116,3 +116,9 @@ distinct from permissions between team members, which belong to WingFoil (L6).
 | Traceability | US-G-04 · G-04.1 · G2 · `08_mvp-canvas.md` |
 | Fit criterion | [percentage] Between the v0.2 and the v0.3 releases, ≥ 80 % of the approve/reject commits of this repository have their hash in the server's local action log (the list of commits the UI caused: hash and time, no other data); the same from v0.3 for the WingFoil repository. |
 | Verified by | retrospective (`wf(…)` history) |
+
+## Process Notes
+
+- 2026-10-09 — amended in dev-loop task-023 (governance, WingFoil dl-163 feedback loop): REQ-SEC-07
+  cites the versioned WingFoil feedback note F-009 (`docs/wingfoil-feedback/`) in place of the local
+  request R-09, which the split of the inbox retired; no requirement changed; decided by the user.
