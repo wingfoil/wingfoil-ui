@@ -99,3 +99,54 @@ at `53090c2` (task-009, task-010). Governance task between Wave 3 and Wave 4: `m
   renamed *WingFoil element*, its values kept.
 - **Test:** `test/wingfoil-feedback.test.ts` (Vitest, `yaml` parser like `server/src/reads/
   frontmatter.ts`), checked by planted defects; `test/README.md` version bumped.
+
+### red / green / refactor (2026-10-09)
+
+- Commits: `e7656bd` the 19 notes and the README with its ledger; `9fd6ab8` `wingfoil-cli` 1.6;
+  `07c9e3b` the test (red on the stray `wingfoil-requests.md`); `126eb50` the deletion of the former
+  file (green); `1c711cd` `test/README.md` 0.19.
+- **Mapping of the former inbox:**
+
+  | Former | Note | Directive entry |
+  |---|---|---|
+  | R-01 | F-001 | — |
+  | R-02 | F-002 | — |
+  | R-03 (+ the unnamed "ingestion needs every required field settable" row) | F-003 | W-01 |
+  | R-04 | F-004 | W-02 |
+  | R-05 … R-09 | F-005 … F-009 | — |
+  | R-10 | F-010 | W-16 |
+  | R-11 | F-011 | W-18 |
+  | R-12 | F-012 | W-21 |
+  | W-03 | F-013 | W-03 |
+  | W-07 | F-014 | W-07 |
+  | W-08 | F-015 | W-08 |
+  | W-09 | F-016 | W-09 |
+  | W-12 | F-017 | W-12 |
+  | W-13 | F-018 | W-13 |
+  | unnamed "memory search reads the working tree while writes gate on HEAD" | F-019 | — |
+  | W-01, W-04 candidates (already covered: R-03; WingFoil task-226) | no note | — |
+
+- Every Observed section re-run with the pinned `wingfoil` 0.2.2 in scratch repositories under the
+  session's temp directory (Kanban and Scrum `init`, custom types for F-012…F-014, a clone of the
+  WingFoil repository at `1ce84a54` for F-017's read-only `directives list`). Two claims of the
+  former text were not reproducible and were left out of the notes (the directive keeps its wording):
+  the `amendable` key of WingFoil's `memory.yaml` gives no warning on `memory search` in 0.2.2.
+- WingFoil elements on the same subject found in the WingFoil repository (local `main` at
+  `1ce84a54`) and stated in the note bodies, not in `answered_by` (rule 6): bug-214 (F-012),
+  bug-163 / task-164 (F-014), bug-113 (F-017), dl-084 (F-019). The directive's *WingFoil element*
+  column keeps its former values only.
+- F-019 has no W-id: its first line is "Formerly an unnamed W-xx candidate."; the test accepts the
+  three first-line forms.
+- The test is a characterization test, checked by planting defects one at a time (each caught, then
+  reverted): a status outside dl-163, an extra field, a wrong ledger title, a missing Expected, a
+  directive *Note* naming F-099, a missing first line, a stray file, an id not matching its file, a
+  kind outside dl-163, a Replies section.
+- References to `.notes/wingfoil-requests.md` left unchanged: the product brief and the approved
+  plans (approver decision), and `BOOTSTRAP.md` (lines 43, 60, 186; reported to the coordinator).
+  R-xx references in the SARD (`04_integrations-interfaces.md`), the backlog (`R-09`) and approved
+  plans are left as written; the mapping above resolves them.
+- `npm run -s wingfoil -- directives list --format json`: `warnings: []`, empty stderr, `wingfoil-cli`
+  listed.
+- Gates: typecheck, lint, format:check OK; `test:coverage` 1647 passed / 1 skipped (statements
+  96.48 %, branches 90.37 %, functions 97.05 %, lines 98.17 %); `docs:api` OK; `check_tasks.py` OK;
+  `test:e2e` 60 passed (load 16.7); `test:timing` not needed (no timed path touched).
