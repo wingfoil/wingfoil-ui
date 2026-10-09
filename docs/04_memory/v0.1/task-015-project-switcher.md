@@ -58,3 +58,90 @@ Screen: `docs/00_reference/ux-reference.md` §3 and the prototype (`docs/00_refe
      - design: tech-specs found missing/needing revision (dev-loop/design safety net).
      - red/green/refactor: deviations from the plan above, blockers, scope surprises.
      - review: rejection reasons and what changed on the next pass. -->
+
+### design (2026-10-09)
+
+- **depends_on acknowledged (dl-015):** Execution Notes of task-008, 012, 013, 017, 018 read, plus
+  the hand-overs of task-003 and task-007 to this task:
+  - 008 — `GET /api/projects` → `{ projects: [{ id, name, path, remote, availability, command? }] }`
+    in stored order; `availability` ∈ `ok` · `folder-not-found` · `not-wingfoil` · `cli-not-found`
+    (with `command`); computed on every list read from files only (no process); a `projects` event
+    after an add/remove and when a list read or the periodic check (10 s) sees a change.
+    `DELETE /api/projects/:pid` → 204, 404 `not-found` for an unknown id; no file touched.
+  - 007 — the list kept in `state.json` under `WINGFOIL_UI_STATE_DIR` (never in a repository);
+    ids `p_` + 12 base32 characters, never derived from the path; the screens of S-17.1, S-17.2,
+    X-05.1, X-05.2, X-02.1 close here; Playwright suites build the server themselves (done by the
+    e2e `global-setup.ts` of task-013).
+  - 003/013 — X-02.1's browser half is `session/session.ts` (fragment read, `history.replaceState`,
+    `POST /api/session`); this task asserts it through the switcher listing the fixture.
+  - 012 — every project read is `/api/p/:pid/…`; an unknown pid is 404 before any read (X-05.2).
+  - 013 — `ProjectSwitcher` placeholder (RAC `MenuTrigger`, "Projects ▾", *Add project…* →
+    `useAddProject().show()`); `projectsQuery()` refetched on `projects`; RAC `RouterProvider`
+    wired, a concrete `href` such as `/p/<pid>` navigates client side (R2-1); errors through
+    `errorMessage()`/`ErrorText`, no answer → `error.unreachable`; the shell e2e asserts the
+    trigger as button "Projects" and *Add project…* as a `menuitem`.
+  - 017/018 — the element panel is the route `/p/$pid/e/$eid` replacing the Outlet; every project
+    key under `['p', pid]`; page titles take the project name from `GET /api/projects`.
+- **Specs:** spec-006 §2 (order = insertion order, availability computed, name shown while
+  unavailable), §3 (remove drops the entry, no file touched; unknown pid 404); spec-004 §3 (routes,
+  204); ux-reference §3 (switcher: name + path, × to remove, *Add project…*); prototype (popover of
+  320 px: rows name + mono path, × per row, separator, *+ Add project…*, footnote "Added projects
+  stay saved in this UI"; trigger = project name + methodology ▾; a pick keeps the current view and
+  drops the selection; × removes **without confirmation**; no unavailable state drawn).
+- **Spec gaps / decisions for the user (W4-1 … W4-7)** — see the report; nothing below that depends
+  on them is built before the answer.
+  - W4-1 the widget: the prototype's row (open + ×) cannot live in an ARIA menu (no interactive
+    child in a `menuitem`; axe `nested-interactive` is serious).
+  - W4-2 the removal confirmation (S-18.1/S-18.2 "confirm"/"cancel"; the prototype has none) and
+    what follows the removal of the open project.
+  - W4-3 unavailable entries: openable or not.
+  - W4-4 freshness when the switcher opens (S-19.2 "… and I open the project switcher").
+  - W4-5 where a switch lands (same view vs the project's landing view).
+  - W4-6 the trigger's text inside a project (the prototype's methodology is not in the list API).
+  - W4-7 the start page: the comment of `routes/start.tsx` (task-013) says task-015 lists the
+    projects there too; ux-reference §3 has no list on the start page.
+- **Design (assuming the recommended options; adjusted to the answers):**
+  - `web/src/shell/ProjectSwitcher.tsx` — trigger RAC `DialogTrigger` + `Button` (text "Projects"
+    on `/`, the project name inside a project; accessible name "Projects: <name>" so the visible
+    text is part of it); `Popover` › `Dialog` (aria-label "Projects") › RAC `GridList`
+    (aria-label "Projects", stored order) whose rows are links (`href="/p/<pid>/<view>"`) showing
+    name and path, the current project marked `aria-current` (visually: the prototype's selected
+    background), and a **Remove** button per row (glyph ×, accessible name "Remove <name>");
+    an unavailable row has no `href`, shows "Unavailable — <reason>" (and the install command for
+    `cli-not-found`) and the Remove button; then a separator, the *Add project…* button
+    (→ `useAddProject().show()`, the dialog frame of task-013 left unfilled for task-014) and the
+    footnote. Loading/error of the list: a status line / `ErrorText` inside the popover.
+  - `web/src/shell/RemoveProjectDialog.tsx` — modal `alertdialog`: "Remove <name> from the
+    list?", "Its folder and its files are not touched.", buttons **Remove** and **Cancel**
+    (Escape = Cancel, ux-reference §5); while the request runs the buttons are disabled; a refusal
+    or no answer shows `ErrorText` (`error.notFound`, `error.unreachable`, …) inside the dialog.
+  - **Shared mutation (checkpoint with the coordinator):** `web/src/api/projects.ts` —
+    `removeProject(pid, signal?) → Promise<void>` (`DELETE /api/projects/:pid` through
+    `apiRequest`) and `useRemoveProject()` (TanStack `useMutation`; on success it drops the entry
+    from the `projectsQuery()` cache and removes the `['p', pid]` queries; the `projects` event
+    refetches the list as usual). task-014 adds `addProject(path)` / `cloneProject(url,
+    directory?)` and their hooks to the same file. No second list query.
+  - Switch target (W4-5 a): `switchTarget(pid, currentPath)` in `web/src/shell/switch-target.ts` —
+    the view segment of the current `/p/<old>/<view>/…` path when it is a view of the sidebar
+    (`memory`, `dna`, `directives`, `team`, `docs`), else the project root (`/p/<pid>`, which
+    redirects to the Memory list); search parameters, the element panel (`e/<eid>`), a document or
+    a directive are dropped (S-16.2). Built from the router's view routes, not a hard-coded list.
+  - Removal of the open project (W4-2): navigate to `/`; focus back to the switcher's trigger.
+  - Catalogue (en.json, same commits): `projects.switcher.current`, `.listLabel`, `.loading`,
+    `.empty`, `.footnote`, `.remove`, `.unavailable` (select on the availability),
+    `projects.remove.title`, `.body`, `.confirm`, `.cancel` (`common.action.*` reused where they
+    exist); the start page comment of `routes/start.tsx` corrected (W4-7 a).
+- **Tech specs:** none missing; the ux-reference §3 needs the amendment for the decisions that
+  deviate from the prototype (confirmation, unavailable mark, trigger text) — proposed with W4.
+- **Test plan:**
+  - Unit (`test/web/shell/project-switcher.test.tsx`, `test/web/api/projects.test.ts`,
+    `test/web/shell/switch-target.test.ts`): rows in stored order with name and path; current row
+    marked; hrefs `/p/<pid>[/<view>]` (never a path); unavailable rows (three reasons, command)
+    without a link and with Remove; keyboard (arrows between rows, Enter opens, Remove reachable,
+    Escape closes, focus back on the trigger); removal confirm → `DELETE`, list updated, open
+    project removed → `/`; cancel → no request; 404/unreachable → `ErrorText`; refetch on open
+    (W4-4); every string from the catalogue (key render).
+  - e2e `test/e2e/projects.spec.ts` (real bin, kanban + custom fixtures, `scanThemes` both themes
+    on the switcher open, the removal confirmation and the unavailable state), one test per
+    scenario: S-16.1, S-16.2, S-17.1, S-17.2, S-18.1, S-18.2, S-19.1, S-19.2, X-05.1, X-05.2,
+    X-02.1 — the closure table follows in the red/green notes.
