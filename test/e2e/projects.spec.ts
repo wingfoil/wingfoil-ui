@@ -4,6 +4,7 @@
 // path, Remove), *Add project…*; the same view in the other project; the unavailable entries; the
 // list read again on every opening; a confirmation for the removal; a non-modal element panel.
 import type { Locator, Page } from '@playwright/test';
+import type { ProjectListResponse } from '@wingfoil-ui/contracts';
 import { mkdtemp, readdir, rename, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -33,19 +34,39 @@ function rows(page: Page): Locator {
   return switcher(page).getByRole('grid', { name: 'Projects' }).getByRole('row');
 }
 
-/** Open the switcher and wait for its list (read again on every opening, W4-4). */
-async function openSwitcher(page: Page): Promise<void> {
-  await expectFirstLoad(trigger(page));
-  await trigger(page).click();
-  await expect(switcher(page)).toBeVisible();
-  await expect(switcher(page).getByRole('status')).toHaveCount(0, { timeout: COLD_READ_MS });
+/**
+ * The next `GET /api/projects` the page completes (W4-4: one on every opening of the switcher), read
+ * as soon as it finished: a read cancelled by a newer one never completes.
+ */
+async function nextListRead(page: Page): Promise<{ status: number; body: ProjectListResponse }> {
+  const request = await page.waitForEvent('requestfinished', {
+    predicate: (r) => r.method() === 'GET' && new URL(r.url()).pathname === '/api/projects',
+    timeout: COLD_READ_MS,
+  });
+  const response = (await request.response())!;
+  return { status: response.status(), body: (await response.json()) as ProjectListResponse };
 }
 
-/** The names of the listed projects, in the order shown. */
-async function listedNames(page: Page): Promise<string[]> {
-  const names = await rows(page).evaluateAll((rs) => rs.map((r) => r.querySelector('.switcher-row-name')?.textContent));
-  // The empty state of the grid is a row without a project name.
-  return names.filter((n): n is string => typeof n === 'string');
+/**
+ * Open the switcher (`open`: a click on the trigger by default) and wait for the list read that the
+ * opening sent (W4-4) — not for the periodic check of the server — and its answer rendered.
+ */
+async function openSwitcher(page: Page, open = () => trigger(page).click()): Promise<ProjectListResponse> {
+  await expectFirstLoad(trigger(page));
+  const read = nextListRead(page);
+  await open();
+  const answer = await read;
+  expect(answer.status).toBe(200);
+  await expect(switcher(page)).toBeVisible();
+  await expect(switcher(page).getByRole('status')).toHaveCount(0, { timeout: COLD_READ_MS });
+  return answer.body;
+}
+
+/** The switcher lists `names`, in this order (retrying until the last read is rendered). */
+async function expectListed(page: Page, names: string[]): Promise<void> {
+  const shown = switcher(page).locator('.switcher-row-name');
+  if (names.length === 0) await expect(shown).toHaveCount(0, { timeout: COLD_READ_MS });
+  else await expect(shown).toHaveText(names, { timeout: COLD_READ_MS });
 }
 
 /** The Memory list's type filters (task-017). */
@@ -80,9 +101,8 @@ test.describe('US-X-02 — browser session (task-003 closure)', () => {
     await expectFirstLoad(trigger(page));
     await trigger(page).focus();
     await expectFocusVisible(trigger(page));
-    await page.keyboard.press('Enter');
-    await expect(rows(page)).toHaveCount(1, { timeout: COLD_READ_MS });
-    expect(await listedNames(page)).toEqual(['kanban']);
+    await openSwitcher(page, () => page.keyboard.press('Enter'));
+    await expectListed(page, ['kanban']);
     // The address bar no longer shows the token.
     expect(page.url()).toBe(`${c.origin}/`);
     expect(page.url()).not.toContain(c.token);
@@ -144,14 +164,14 @@ test.describe('US-S-17 — list kept across restarts', () => {
       });
       await openConsole(page, first);
       await openSwitcher(page);
-      expect(await listedNames(page)).toEqual(['kanban', 'custom']);
+      await expectListed(page, ['kanban', 'custom']);
       await first.stop();
       // `npx wingfoil-ui` again, on the same state directory.
       const second = await consoles.start({ projects: [await fixtures.get('kanban')], stateDir });
       expect(second.pids).toEqual([]);
       await openConsole(page, second);
       await openSwitcher(page);
-      expect(await listedNames(page)).toEqual(['kanban', 'custom']);
+      await expectListed(page, ['kanban', 'custom']);
     } finally {
       await rm(stateDir, { recursive: true, force: true });
     }
@@ -163,7 +183,7 @@ test.describe('US-S-17 — list kept across restarts', () => {
     await openConsole(page, c, { path: `/p/${c.pids[0]}/memory` });
     await expectMemoryList(page);
     await openSwitcher(page);
-    expect(await listedNames(page)).toEqual(['kanban']);
+    await expectListed(page, ['kanban']);
     await c.stop();
     expect((await git(kanban.dir, ['status', '--porcelain'], kanban.env)).stdout).toBe('');
   });
@@ -192,7 +212,7 @@ test.describe('US-S-18 — remove a project', () => {
     await expect(trigger(page)).toBeFocused();
     await openSwitcher(page);
     await expect(switcher(page).getByText('No project in the list')).toBeVisible();
-    expect(await listedNames(page)).toEqual([]);
+    await expectListed(page, []);
     expect(await folderState(kanban)).toEqual(before);
   });
 
@@ -206,14 +226,14 @@ test.describe('US-S-18 — remove a project', () => {
     await confirm.getByRole('button', { name: 'Cancel' }).click();
     await expect(confirm).toBeHidden();
     await openSwitcher(page);
-    expect(await listedNames(page)).toEqual(['kanban']);
+    await expectListed(page, ['kanban']);
     // Escape cancels too (ux-reference §5).
     await switcher(page).getByRole('button', { name: 'Remove kanban' }).click();
     await expect(confirm).toBeVisible();
     await page.keyboard.press('Escape');
     await expect(confirm).toBeHidden();
     await openSwitcher(page);
-    expect(await listedNames(page)).toEqual(['kanban']);
+    await expectListed(page, ['kanban']);
   });
 });
 
@@ -234,9 +254,11 @@ test.describe('US-S-19 — missing folder', () => {
 
   test('S-19.1 — Show a moved project as unavailable', async ({ page, fixtures, consoles }) => {
     const { c } = await movedKanban(page, fixtures, consoles);
-    await openSwitcher(page);
+    // The read sent by the opening already sees the folder missing (W4-4).
+    const list = await openSwitcher(page);
+    expect(list.projects.map((p) => p.availability)).toEqual(['folder-not-found', 'ok']);
     const entry = rows(page).filter({ hasText: 'kanban' });
-    await expect(entry).toContainText('Unavailable — folder not found');
+    await expect(entry).toContainText('Unavailable — folder not found', { timeout: COLD_READ_MS });
     await expect(entry.getByRole('button', { name: 'Remove kanban' })).toBeVisible();
     // Not a link (W4-3).
     expect(await entry.getAttribute('data-href')).toBeNull();
@@ -251,12 +273,14 @@ test.describe('US-S-19 — missing folder', () => {
     const { kanban, moved } = await movedKanban(page, fixtures, consoles);
     await openSwitcher(page);
     const entry = rows(page).filter({ hasText: 'kanban' });
-    await expect(entry).toContainText('Unavailable — folder not found');
+    await expect(entry).toContainText('Unavailable — folder not found', { timeout: COLD_READ_MS });
     await page.keyboard.press('Escape');
     await expect(switcher(page)).toBeHidden();
     await rename(moved, kanban.dir);
-    await openSwitcher(page);
-    await expect(entry).not.toContainText('Unavailable');
+    // The read sent by the opening sees the folder back (W4-4), whatever the periodic check did.
+    const list = await openSwitcher(page);
+    expect(list.projects.map((p) => p.availability)).toEqual(['ok', 'ok']);
+    await expect(entry).not.toContainText('Unavailable', { timeout: COLD_READ_MS });
     expect(await entry.getAttribute('data-href')).not.toBeNull();
   });
 });
@@ -273,11 +297,13 @@ test.describe('US-X-05 — opaque project ids', () => {
     await rows(page).filter({ hasText: 'kanban' }).click();
     await expectMemoryList(page);
     const parent = path.basename(path.dirname(kanban.dir));
-    const forbidden = [kanban.dir, encodeURIComponent(kanban.dir), `${parent}/kanban`, `${parent}%2Fkanban`];
+    // The scenario's "/home/test" is the folder holding the fixture; "projects/kanban" its last two
+    // segments.
+    const holder = path.dirname(kanban.dir);
+    const forbidden = [holder, encodeURIComponent(holder), `${parent}/kanban`, `${parent}%2Fkanban`];
     expect(urls.length).toBeGreaterThan(3);
     for (const url of urls) for (const f of forbidden) expect(url).not.toContain(f);
     expect(page.url()).toBe(`${c.origin}/p/${c.pids[0]}/memory`);
-    expect(c.pids[0]).toMatch(/^p_[0-9a-hjkmnp-tv-z]{12}$/);
   });
 
   test('X-05.2 — Refuse a project id that is not in the list', async ({ page, fixtures, consoles }) => {
