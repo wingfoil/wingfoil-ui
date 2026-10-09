@@ -185,3 +185,64 @@ Screen: `docs/00_reference/ux-reference.md` §3 and the prototype (`docs/00_refe
   when pressed inside the panel"). `test/e2e/element-panel.spec.ts` needed no change (it asserts
   focus inside the panel, Close, Escape, focus on `main` after closing). The coordinator amends
   ux-reference §4.2 (0.8).
+
+### red / green / refactor (2026-10-09)
+
+- **Red:** `test/web/shell/project-switcher.test.tsx`, `test/web/shell/switch-target.test.ts`,
+  `test/web/api/projects.test.tsx` written first: 17 failing (modules missing, the switcher still a
+  menu). **Green:** `web/src/api/projects.ts`, `web/src/shell/switch-target.ts`,
+  `web/src/shell/ProjectSwitcher.tsx` (rewritten), `web/src/shell/RemoveProjectDialog.tsx`,
+  `en.json` (`projects.switcher.*`, `projects.remove.*`), `theme/base.css` (switcher rows,
+  `.icon-button`, `.button-danger`, `.dialog-actions`, `.dialog-error`).
+- **Deviations / findings:**
+  - React Aria renders a link row of a grid list as a `div[role=row]` with `data-href` (no `<a>`).
+    It opens on press or Enter through the `RouterProvider`. The tests assert `data-href`.
+  - The popover closes on any navigation (`router.subscribe('onBeforeNavigate')`), not on the
+    pathname. A pathname check would reopen it on a back navigation to the same path.
+  - "current project" is a visually hidden catalogue string in the open project's row (React Aria
+    passes no `aria-current` to a grid-list row).
+  - W4-8 found in green (S-16.2 with a modal panel), decided and built; see "design decisions".
+  - `test/e2e/support/console.ts`: new `ConsoleOptions.stateDir`, a state directory owned by the
+    test that survives `stop()` (S-17.1 restarts on the same directory). It is seeded only when it
+    has no `state.json`, and `pids` is then empty.
+  - The X-02.1 focus-ring check needs keyboard modality: the switcher is opened with Enter, not a
+    click.
+- **e2e closure** (`test/e2e/projects.spec.ts`, real bin, kanban/custom fixtures; axe 0
+  serious/critical in light and dark on the open switcher (X-02.1), the removal confirmation
+  (S-18.1) and the unavailable state (S-19.1)):
+
+  | Scenario | spec:test |
+  |----------|-----------|
+  | S-16.1 Switch to another project | `projects.spec.ts` › "S-16.1 — Switch to another project" (keyboard: trigger focus ring, Enter, ArrowDown with visible ring, Enter; custom's `decision-log` and `plan` types; no kanban id on the page; trigger "Projects: custom") |
+  | S-16.2 Close the element panel on switch | `projects.spec.ts` › "S-16.2 — Close the element panel of the previous project on switch" (panel open, switcher used, panel gone, custom's Memory list, no dialog) |
+  | S-17.1 Keep the list after a restart | `projects.spec.ts` › "S-17.1 — Keep the project list after a restart" (two consoles on one state directory, same order) |
+  | S-17.2 Keep the list out of every repository | `projects.spec.ts` › "S-17.2 — Keep the list out of every project repository" (`git status --porcelain` empty after the stop) |
+  | S-18.1 Remove a project | `projects.spec.ts` › "S-18.1 — Remove a project from the list" (Tab to Remove, confirmation, focus on Cancel, axe; empty list; files, `git log --all`, `status --ignored` unchanged) |
+  | S-18.2 Cancel the removal | `projects.spec.ts` › "S-18.2 — Cancel the removal" (Cancel button and Escape) |
+  | S-19.1 Show a moved project as unavailable | `projects.spec.ts` › "S-19.1 — Show a moved project as unavailable" (mark, Remove, no link, axe; custom opens on the Memory list) |
+  | S-19.2 Recover when the folder comes back | `projects.spec.ts` › "S-19.2 — Recover when the folder comes back" (folder moved back, switcher reopened, mark gone, link back) |
+  | X-05.1 Opaque ids in URLs | `projects.spec.ts` › "X-05.1 — Use opaque project ids in URLs" (every request and navigation URL free of the fixture's path; id `p_` + 12 base32) |
+  | X-05.2 Refuse an unknown id | `projects.spec.ts` › "X-05.2 — Refuse a project id that is not in the list" (`GET /api/p/..%2F..%2Fetc` with the page's session → 404; the page at that address shows "Not found") |
+  | X-02.1 Browser session (task-003/007 closure) | `projects.spec.ts` › "X-02.1 — Serve the browser session opened with the token" (the URL with the fragment; the address bar is `<origin>/` without the token; the switcher lists kanban; keyboard; axe) |
+
+- **Checks** (HEAD before this note `d3a6ab2`, load average 238–286 on 12 cores, other projects):
+  `npm run -s typecheck`, `lint` (ESLint + catalogue check) clean · `format:check` clean ·
+  `docs:api` OK · `check_tasks.py` OK · `npm run -s test:coverage` **109 files passed, 1
+  skipped; 1682 passed / 1 skipped**, coverage 96.5 % statements / 90.51 % branches / 97.14 %
+  functions / 98.2 % lines · `npm run -s test:e2e` **71/71** (4.3 min) ·
+  `npm run test:timing` **not run** (load ≈ 286 > 12).
+- **Hand-overs:**
+  - **task-014:** add `addProject(path)` / `cloneProject(url, directory?)` and their hooks to
+    `web/src/api/projects.ts` beside `removeProject`/`useRemoveProject`. After a success, put the
+    new item into the `projectsQuery()` cache (`setQueryData`); the `projects` event refetches it
+    anyway. The switcher's *Add project…* is a `button` inside `dialog "Projects"` and calls
+    `useAddProject().show()`. Unavailable rows already render `cli-not-found` with "Install it
+    with: <command>" (S-10.2: assert it in the switcher). The removal dialog
+    (`RemoveProjectDialog.tsx`) is a model for an alert/modal with `ErrorText` and
+    `.dialog-actions`.
+  - **task-016:** the header's project name is in the switcher trigger. The header slot stays in
+    `ProjectLayout`.
+  - **task-021:** the switcher's popover still has React Aria's visually hidden "Dismiss" button
+    (as the 013 menu had). The panel is non-modal: X-10.2's title is unchanged.
+  - **Coordinator:** ux-reference §3 (W4-1/2/3/6) and §4.2 (W4-8) amendments on `main`. Run
+    `npm run test:timing` on a quiet machine.
