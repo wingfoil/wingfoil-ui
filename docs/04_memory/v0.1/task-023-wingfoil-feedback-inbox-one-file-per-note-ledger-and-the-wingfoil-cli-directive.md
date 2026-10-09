@@ -150,3 +150,29 @@ at `53090c2` (task-009, task-010). Governance task between Wave 3 and Wave 4: `m
 - Gates: typecheck, lint, format:check OK; `test:coverage` 1647 passed / 1 skipped (statements
   96.48 %, branches 90.37 %, functions 97.05 %, lines 98.17 %); `docs:api` OK; `check_tasks.py` OK;
   `test:e2e` 60 passed (load 16.7); `test:timing` not needed (no timed path touched).
+
+### review (2026-10-09)
+
+- Independent review: **PASS** with 1 medium and 6 low findings. Decisions by the user
+  (2026-10-09), all applied on the branch:
+
+  | # | Decision | Commit |
+  |---|---|---|
+  | D54 | `BOOTSTRAP.md` §3: a dated note (task-023, dl-163) states the new rule — versioned inbox `docs/wingfoil-feedback/`, F-ids, R-01…R-12 = F-001…F-012, sync by `wingfoil-cli` rules 3–7; the old paragraph kept in the past tense; the bootstrap steps of §1 (the `.notes/` lines) stay historical | `84c0e68` |
+  | D55 | SARD amended, dated: `04_integrations-interfaces.md` 0.6 → 0.7 (REQ-INT-01 R-01 → F-001, REQ-INT-07 R-02 → F-002) and `05_security-roles-governance.md` 0.4 → 0.5 (REQ-SEC-07 R-09 → F-009; its first *Process Notes* section), each with a Process Notes line; backlog regenerated with `build_backlog.py` (`backlog.json`, `by-release/v0.2.json`: the REQ-SEC-07 description); plans, brief, audit and task notes stay historical | `b3bfcc1` |
+  | D56 | F-019's first line "Formerly an unnamed W-xx candidate." is accepted as a third form beside the AC's "Formerly R-xx." / "Formerly W-xx candidate." | — |
+  | D57 | The WingFoil elements found on the same subjects (bug-214, bug-163 / task-164, bug-113, dl-084) stay sentences in the note bodies until the first sync | — |
+  | D58 (medium) | W-12: the false `amendable` clause removed. Reproduced on 0.2.2 (scratch Kanban repository): an unknown key inside a `memory.yaml` type block (`amendable`, `bogus_key`) gives no warning on `memory search` or `memory add`; a top-level unknown key gives `unknown field(s) ignored: amendable` (from the working tree on `search`, from `HEAD:` on `add`). The entry now says so | `051f0b8` |
+  | D59 | New entry W-24 (search reads the working tree, writes gate on HEAD, `submit` commits the target's uncommitted edits), with its workaround and *Note* F-019 | `fc0dff0` |
+
+- Low fixes: the test refuses a Replies heading at any level (planted `### Replies` and
+  `#### replies`: both caught, reverted) — `7fd10a7`; F-014's Expected limited to what Observed shows
+  (WingFoil's configuration), F-019 and F-012 show the real outputs (F-012's `memory search` sentence
+  now with its command and output) — `6a1b088`; README Context names the UI features F-005…F-009
+  feed (Configuration › Permissions, L6, for F-009; journey 6 for F-008) — `a23f832`.
+- These decisions supersede the "left unchanged" bullet of `### red / green / refactor` for
+  `BOOTSTRAP.md` and the SARD; the mapping row for F-019 now has the directive entry W-24.
+- Gates after the fixes: typecheck, lint, format:check OK; `test:coverage` 1647 passed / 1 skipped
+  (96.48 / 90.37 / 97.05 / 98.17 %); `docs:api` OK; `check_tasks.py`, `check_releases.py`,
+  `check_backlog.py` OK; `directives list` empty stderr; `test:e2e` skipped (load 26.6 > 20, no UI
+  code touched; 60 passed before the fixes).
