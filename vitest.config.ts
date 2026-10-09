@@ -7,6 +7,8 @@ export default defineConfig({
     exclude: ['test/e2e/**', 'test/timing/**', '**/node_modules/**'],
     // Builds server/dist once for the bin and child-process tests.
     globalSetup: ['test/global-setup.ts'],
+    // Longer async waits of the component tests under external load (bug-004).
+    setupFiles: ['test/web/setup.ts'],
     testTimeout: 30_000,
     hookTimeout: 180_000,
     coverage: {

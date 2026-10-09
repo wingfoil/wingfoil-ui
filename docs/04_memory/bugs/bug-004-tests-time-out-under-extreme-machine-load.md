@@ -2,7 +2,7 @@
 id: bug-004-tests-time-out-under-extreme-machine-load
 type: bug
 title: "Tests time out under extreme machine load"
-status: in-progress
+status: in-review
 severity: "low"        # REQUIRED — critical | high | medium | low
 release-origin: "v0.1" # optional — release where the bug was FOUND, e.g. "v0.1"
 release: ""            # optional — fix/implementation release, stamped by release-planning/build-backlog
@@ -69,3 +69,10 @@ tests may be slower under load but do not fail when the code is correct.
   this bug in `bug:` with its own Acceptance Criterion). `triaged → planned` set by hand (no CLI
   verb); it moves to `in-progress` when task-019 starts.
 - start (2026-10-07): task-019 started (Wave 3) → `planned → in-progress` by hand (dev-loop `start` step `bug.sync_state`; no CLI verb for this edge).
+- evidence (2026-10-09, task-019): the load ≥ 30 evidence — `test:coverage` passed at load 31–63 and
+  `test:e2e` 60/60 at load 71–98 (24 CPU burners of task-019 plus other projects' load) — was
+  recorded on 2026-10-07, before task-019's review round 1 fixes and W3-47; those later changes only
+  relax the default gates (the live-refresh budget moved to `test:timing`) or touch the e2e teardown.
+  On the merge with `main`: `test:coverage` and `test:e2e` 60/60 green at load 7–24, and
+  `npm run test:timing` green at load < 10, including the strict live refresh 4/4 (S-27.2 487 ms,
+  S-25.2 971 ms, S-26.1 1225 ms, S-26.2 1377 ms from the mutation, budget 5 s).

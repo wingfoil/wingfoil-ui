@@ -6,6 +6,7 @@ import type { Page } from '@playwright/test';
 import { keyCatalogue } from '../../web/scripts/catalogue.mjs';
 import en from '../../web/src/i18n/en.json' with { type: 'json' };
 import { scanThemes } from './support/axe.js';
+import { expectFirstLoad } from './support/cold-read.js';
 import { openConsole } from './support/console.js';
 import { expect, test } from './support/fixtures.js';
 import { expectFocusVisible } from './support/keyboard.js';
@@ -31,7 +32,7 @@ test.describe('US-S-01 — start the console', () => {
     // The default browser opens the URL it was given.
     await page.goto((await c.opened())![0]!);
     const switcher = page.getByRole('button', { name: 'Projects', exact: true });
-    await expect(switcher).toBeVisible();
+    await expectFirstLoad(switcher);
     await expect(page).toHaveURL(`${c.origin}/`);
     await tabTo(page, 'button', 'Projects');
     await expectFocusVisible(switcher);
@@ -54,6 +55,7 @@ test.describe('US-S-01 — start the console', () => {
       .toContain(`Open this URL in your browser: ${c.url}`);
     // The server keeps running: the URL printed opens the console.
     await page.goto(c.url);
+    await expectFirstLoad(page.getByRole('button', { name: 'Projects', exact: true }));
     await page.getByRole('button', { name: 'Projects', exact: true }).click();
     await expect(page.getByRole('menuitem', { name: 'Add project…' })).toBeVisible();
   });
@@ -93,7 +95,7 @@ test.describe('shell mechanisms', () => {
     await openConsole(page, c);
     await page.context().clearCookies();
     await page.reload();
-    await expect(page.getByRole('heading', { level: 1, name: LOST })).toBeVisible();
+    await expectFirstLoad(page.getByRole('heading', { level: 1, name: LOST }));
     await expect(page.getByRole('button', { name: 'Projects', exact: true })).toHaveCount(0);
   });
 
@@ -101,6 +103,7 @@ test.describe('shell mechanisms', () => {
     const c = await consoles.start({ stateFile: '{ not json' });
     await openConsole(page, c);
     const region = page.getByRole('region', { name: 'Console warnings' });
+    await expectFirstLoad(region);
     await expect(
       region.getByText(/The project list could not be read: it was kept as \S*state\.json\.corrupt-\d{8}T\d{6}Z and/),
     ).toBeVisible();
@@ -150,6 +153,7 @@ test.describe('shell mechanisms', () => {
   }) => {
     const c = await consoles.start();
     await openConsole(page, c, { build: 'keys' });
+    await expectFirstLoad(page.getByRole('heading', { level: 1 }));
     await expect(page.getByRole('heading', { level: 1 })).toHaveText('projects.start.title');
     const texts = await page.evaluate(() => {
       const out: string[] = [];
@@ -180,7 +184,7 @@ test.describe('shell mechanisms', () => {
   }) => {
     const c = await consoles.start();
     await openConsole(page, c, { path: '/no/such/page' });
-    await expect(page.getByRole('heading', { level: 1, name: 'Page not found' })).toBeVisible();
+    await expectFirstLoad(page.getByRole('heading', { level: 1, name: 'Page not found' }));
     await page.evaluate(() => {
       (window as unknown as { sameDocument: boolean }).sameDocument = true;
     });
@@ -197,7 +201,7 @@ test.describe('shell mechanisms', () => {
     // The page's timers run on Playwright's clock: the 10 s threshold is crossed without waiting.
     await page.clock.install();
     await openConsole(page, c);
-    await expect(page.getByRole('heading', { level: 1, name: 'Projects' })).toBeVisible();
+    await expectFirstLoad(page.getByRole('heading', { level: 1, name: 'Projects' }));
     const banner = page.getByRole('region', { name: 'Connection to the console' });
     await expect(banner).toHaveCount(0);
     // Past the threshold with the console running: no banner (it is the kill that causes it).

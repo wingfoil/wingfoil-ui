@@ -5,6 +5,9 @@ import { openConsole } from '../support/console.js';
 import { commitFile, mutateAndWait, recordServerEvents } from '../support/events.js';
 import { expect, test } from '../support/fixtures.js';
 
+// The fixtures of this spec, built before its first test (shared support, bug-004).
+test.use({ prebuild: ['kanban'] });
+
 test('seeds the console, opens the page and waits for repo and projects events', async ({
   page,
   fixtures,

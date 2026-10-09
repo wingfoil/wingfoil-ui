@@ -28,10 +28,28 @@ export interface Launcher {
   kill(): Promise<void>;
 }
 
+/** Options of {@link startLauncher}. */
+export interface LaunchOptions {
+  /** Run the bin in its own process group (the e2e support kills the group, bug-004). */
+  detached?: boolean;
+  /** Called with the pid as soon as the process is spawned, before its running line (bug-004). */
+  onSpawn?: (pid: number) => void;
+}
+
 /** Start the bin with `args` and wait for its running line (rejects after `timeoutMs`). */
-export function startLauncher(args: readonly string[], env: NodeJS.ProcessEnv, timeoutMs = 10_000): Promise<Launcher> {
+export function startLauncher(
+  args: readonly string[],
+  env: NodeJS.ProcessEnv,
+  timeoutMs = 10_000,
+  options: LaunchOptions = {},
+): Promise<Launcher> {
   const t0 = performance.now();
-  const child: ChildProcess = spawn(process.execPath, [BIN, ...args], { env, stdio: ['ignore', 'pipe', 'pipe'] });
+  const child: ChildProcess = spawn(process.execPath, [BIN, ...args], {
+    env,
+    stdio: ['ignore', 'pipe', 'pipe'],
+    detached: options.detached ?? false,
+  });
+  if (child.pid !== undefined) options.onSpawn?.(child.pid);
   const out: string[] = [];
   let buffer = '';
   let err = '';
@@ -41,7 +59,14 @@ export function startLauncher(args: readonly string[], env: NodeJS.ProcessEnv, t
   });
   return new Promise((resolve, reject) => {
     const timer = setTimeout(() => {
-      child.kill('SIGKILL');
+      // A detached bin leads its own process group: the whole group goes.
+      if (options.detached && child.pid !== undefined) {
+        try {
+          process.kill(-child.pid, 'SIGKILL');
+        } catch {
+          child.kill('SIGKILL');
+        }
+      } else child.kill('SIGKILL');
       reject(new Error(`no running line after ${timeoutMs} ms; stderr: ${err}`));
     }, timeoutMs);
     const early = (code: number | null): void => {

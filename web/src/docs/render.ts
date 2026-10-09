@@ -85,6 +85,11 @@ export interface FinishOptions {
   newTab: string;
   imageNotShown: (alt: string) => string;
   tableLabel: (n: number) => string;
+  /**
+   * The in-UI URL of a repository path with a fragment (anchors and `document` links); default the
+   * Documentation view's ({@link documentHref}). The Directives view gives its own (task-019).
+   */
+  hrefOf?: (path: string, fragment: string) => string;
 }
 
 /** The in-UI URL of a document of project `pid` (each path segment encoded). */
@@ -127,6 +132,11 @@ function rewriteHeadings(root: DocumentFragment): void {
   }
 }
 
+/** The URL builder of `options`. */
+function hrefOf(options: FinishOptions): (path: string, fragment: string) => string {
+  return options.hrefOf ?? ((path, fragment) => documentHref(options.pid, path, fragment));
+}
+
 function rewriteLink(a: HTMLAnchorElement, link: LinkClass, options: FinishOptions): void {
   switch (link.kind) {
     case 'external':
@@ -139,11 +149,11 @@ function rewriteLink(a: HTMLAnchorElement, link: LinkClass, options: FinishOptio
     case 'anchor':
       // The same document with the fragment in the URL: a copied or reloaded URL lands on the
       // heading, and Back returns to the previous position.
-      a.setAttribute('href', documentHref(options.pid, options.documentPath, link.fragment));
+      a.setAttribute('href', hrefOf(options)(options.documentPath, link.fragment));
       a.dataset.docNav = '';
       return;
     case 'document':
-      a.setAttribute('href', documentHref(options.pid, link.path, link.fragment));
+      a.setAttribute('href', hrefOf(options)(link.path, link.fragment));
       a.dataset.docNav = '';
       return;
     case 'element':

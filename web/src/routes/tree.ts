@@ -4,12 +4,15 @@
  */
 import type { QueryClient } from '@tanstack/react-query';
 import { createRouter, type RouterHistory } from '@tanstack/react-router';
+import { directivesViewRoute } from './directives.js';
 import { documentationRoute } from './docs.js';
+import { dnaRoute } from './dna.js';
 import { elementRoute } from './element.js';
 import { memoryRoute, projectIndexRoute } from './memory.js';
 import { projectRoute } from './project.js';
 import { rootRoute } from './root.js';
 import { startRoute } from './start.js';
+import { teamRoute } from './team.js';
 
 /**
  * The views under `/p/$pid`. **Adding a view:** write `routes/<view>.tsx` exporting
@@ -24,6 +27,9 @@ export const PROJECT_ROUTES = [
   projectIndexRoute,
   elementRoute,
   documentationRoute,
+  dnaRoute,
+  directivesViewRoute,
+  teamRoute,
 ] as const;
 
 /** Every route of the application. */

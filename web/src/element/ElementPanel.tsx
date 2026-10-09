@@ -1,19 +1,21 @@
 /**
  * The element panel (US-G-01; ux-reference §4.2, prototype drawer): a modal drawer on the right with
  * the type tag, id and Close; the title; the state machine; the rejection banner; the summary with
- * the missing required fields; the references (the frontmatter fields); the history with commits.
+ * the missing required fields; the references (the frontmatter fields); the directives of the
+ * current role view (task-019); the history with commits.
  * Read-only in v0.1: no Edit, no action footer (decision 6). It renders the server's data as is —
  * the tone of the current state is the descriptor's (spec-003 §8), never re-derived.
  *
  * Closes with Close or Escape, not with a click outside (ux-reference §5).
  */
 import type { UseQueryResult } from '@tanstack/react-query';
-import type { ElementDetail, MemoryHistory } from '@wingfoil-ui/contracts';
+import type { DirectiveList, ElementDetail, MemoryHistory, ProjectHeader } from '@wingfoil-ui/contracts';
 import type { ReactNode } from 'react';
 import { Button, Dialog, Heading, Modal, ModalOverlay } from 'react-aria-components';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { ApiError } from '../api/client.js';
 import { ErrorText } from '../shell/ErrorText.js';
+import { ElementDirectives } from './Directives.js';
 import { History } from './History.js';
 import { fieldEntries, summaryOf } from './model.js';
 import { StateMachine } from './StateMachine.js';
@@ -21,10 +23,15 @@ import './element.css';
 
 /** Props of {@link ElementPanel}. */
 export interface ElementPanelProps {
+  pid: string;
   /** The element id of the URL (the heading while the element loads or fails). */
   eid: string;
   element: Pick<UseQueryResult<ElementDetail>, 'data' | 'error'>;
   history: Pick<UseQueryResult<MemoryHistory>, 'data' | 'error'>;
+  /** `GET /directives` of the project (task-019: one read per project, not per element). */
+  directives: Pick<UseQueryResult<DirectiveList>, 'data' | 'error'>;
+  /** `GET /api/p/:pid`: whether the user holds a role (the panel's directives, W3-38). */
+  header: Pick<UseQueryResult<ProjectHeader>, 'data'>;
   onClose(): void;
 }
 
@@ -39,7 +46,15 @@ function QueryError({ error }: { error: Error }): ReactNode {
 }
 
 /** The drawer around the panel's content. */
-export function ElementPanel({ eid, element, history, onClose }: ElementPanelProps): ReactNode {
+export function ElementPanel({
+  pid,
+  eid,
+  element,
+  history,
+  directives,
+  header,
+  onClose,
+}: ElementPanelProps): ReactNode {
   const intl = useIntl();
   const detail = element.data;
   return (
@@ -81,7 +96,9 @@ export function ElementPanel({ eid, element, history, onClose }: ElementPanelPro
             {element.error ? (
               <QueryError error={element.error} />
             ) : detail ? (
-              <ElementContent detail={detail} history={history} />
+              <ElementContent detail={detail} history={history}>
+                <ElementDirectives pid={pid} directives={directives} header={header} />
+              </ElementContent>
             ) : (
               <p className="muted" role="status">
                 <FormattedMessage id="element.loading" />
@@ -98,9 +115,12 @@ export function ElementPanel({ eid, element, history, onClose }: ElementPanelPro
 function ElementContent({
   detail,
   history,
+  children,
 }: {
   detail: ElementDetail;
   history: ElementPanelProps['history'];
+  /** The Directives section (between References and History). */
+  children: ReactNode;
 }): ReactNode {
   const rejection = detail.descriptor?.rejection;
   const summary = summaryOf(detail.body);
@@ -182,8 +202,7 @@ function ElementContent({
         )}
       </section>
 
-      {/* task-019 (US-G-02): the *Directives* section of the element's roles goes here, between
-          References and History (ux-reference §4.2). */}
+      {children}
 
       <section className="element-section" aria-labelledby="element-history">
         <h3 id="element-history" className="section-title">

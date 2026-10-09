@@ -3,7 +3,14 @@
  * (`staleTime: Infinity`, no refetch on focus or reconnect of the window): pages never poll
  * (REQ-INT-09); `repo`, `projects` and a stream reconnect invalidate (`api/events.ts`).
  */
-import type { ElementList, ProjectConfig, ProjectListResponse, ServerInfo } from '@wingfoil-ui/contracts';
+import type {
+  DirectiveList,
+  ElementList,
+  ProjectConfig,
+  ProjectHeader,
+  ProjectListResponse,
+  ServerInfo,
+} from '@wingfoil-ui/contracts';
 import { QueryClient, queryOptions } from '@tanstack/react-query';
 import { ApiError, apiGet } from './client.js';
 import { queryKeys } from './query-keys.js';
@@ -62,5 +69,27 @@ export function elementsQuery(pid: string, archived: boolean) {
     queryKey: queryKeys.project(pid, 'elements', { archived }),
     queryFn: ({ signal }) =>
       apiGet<ElementList>(`${projectPath(pid)}/elements${archived ? '?archived=true' : ''}`, signal),
+  });
+}
+
+/**
+ * `GET /api/p/:pid`: the project header — identity, role views, version (W3-40). Read by the views
+ * that depend on who the user is (Directives, Team, the element panel); task-016's header shares it.
+ */
+export function projectHeaderQuery(pid: string) {
+  return queryOptions({
+    queryKey: queryKeys.project(pid, 'header'),
+    queryFn: ({ signal }) => apiGet<ProjectHeader>(projectPath(pid), signal),
+  });
+}
+
+/**
+ * `GET /api/p/:pid/directives`: every directive with `mine` for the current role view. Shared by
+ * the Directives view and the element panel: one read per repository state, never per element.
+ */
+export function directivesQuery(pid: string) {
+  return queryOptions({
+    queryKey: queryKeys.project(pid, 'directives'),
+    queryFn: ({ signal }) => apiGet<DirectiveList>(`${projectPath(pid)}/directives`, signal),
   });
 }

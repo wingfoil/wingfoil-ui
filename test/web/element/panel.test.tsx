@@ -116,6 +116,9 @@ function api(over: FakeApi = {}): FakeApi {
     },
     [BASE]: { status: 200, body: DETAIL },
     [`${BASE}/history`]: { status: 200, body: HISTORY },
+    // task-019: the panel's Directives section reads the project's directives and header.
+    [`/api/p/${PID}/directives`]: { status: 200, body: { entries: [], warnings: [] } },
+    [`/api/p/${PID}`]: { status: 200, body: { identity: { kind: 'no-identity' }, roleViews: [], roleView: null } },
     ...over,
   };
 }
@@ -175,9 +178,10 @@ it('shows the element: type, id, title, chips, banner, summary, missing field, r
   // Read-only: no Edit, no verb.
   expect(d.getAllByRole('button').map((b) => b.textContent)).toEqual(['Close']);
   await waitFor(() => expect(document.title).toBe(`kanban · ${EID} — WingFoil UI`));
-  // Two reads for the panel, nothing per reference.
+  // The element and its history, plus the project's directives and header (task-019, once per
+  // project); nothing per reference.
   const paths = fetch.mock.calls.map((c) => String(c[0])).filter((p) => p.startsWith(`/api/p/`));
-  expect(new Set(paths)).toEqual(new Set([BASE, `${BASE}/history`]));
+  expect(new Set(paths)).toEqual(new Set([BASE, `${BASE}/history`, `/api/p/${PID}/directives`, `/api/p/${PID}`]));
 });
 
 it('shows the sequence unmarked and the current state after it when it is outside the sequence', async () => {
