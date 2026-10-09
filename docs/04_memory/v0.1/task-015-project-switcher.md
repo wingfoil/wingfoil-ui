@@ -145,3 +145,43 @@ Screen: `docs/00_reference/ux-reference.md` §3 and the prototype (`docs/00_refe
     on the switcher open, the removal confirmation and the unavailable state), one test per
     scenario: S-16.1, S-16.2, S-17.1, S-17.2, S-18.1, S-18.2, S-19.1, S-19.2, X-05.1, X-05.2,
     X-02.1 — the closure table follows in the red/green notes.
+
+### design decisions (2026-10-09)
+
+- Decided by the user (coordinator), each option (a) as recommended:
+  - **W4-1** popover › dialog "Projects" › React Aria grid list: a row per project (name, path;
+    a link `/p/<pid>[/<view>]` rendered by React Aria as `data-href`), a **Remove <name>** button
+    per row (× icon; Tab moves from the row to it, `keyboardNavigationBehavior="tab"`), a
+    separator, the *Add project…* **button** (opening task-013's dialog frame, left unfilled for
+    task-014) and the footnote. The two task-013 shell assertions on a `menuitem` now look for the
+    button inside the dialog "Projects" (`test/e2e/shell.spec.ts`, `test/web/shell/shell.test.tsx`).
+  - **W4-2** modal `alertdialog` "Remove <name> from the list?" / "Its folder and its files are
+    not touched." / Cancel (focused first) · Remove; Escape cancels; `ErrorText` inside the dialog
+    (`error.notFound`, `error.unreachable`, …); removing the open project goes to `/`; the focus
+    returns to the trigger after confirm or cancel.
+  - **W4-3** unavailable rows are not links; they show name, path, "Unavailable — <reason>"
+    (`folder-not-found`, `not-wingfoil`, `cli-not-found`) and, for `cli-not-found`, "Install it
+    with: <command>"; Remove kept. task-014 only has to assert S-10.2.
+  - **W4-4** the list is read again (`invalidateQueries(projectsQuery())`) on every opening.
+  - **W4-5** a switch keeps the current sidebar view (`switch-target.ts`, from `navGroups` of the
+    router); anything below it (panel, document, directive) and the search are dropped; a non-view
+    path lands on `/p/<pid>` (→ Memory list).
+  - **W4-6** trigger text: the project name inside a project, accessible name "Projects: <name>";
+    "Projects" on `/`. The prototype's methodology is not shown.
+  - **W4-7** no list on the start page; the comment of `routes/start.tsx` corrected.
+  - Shared API **confirmed**: `web/src/api/projects.ts` — `removeProject(pid, signal?)`,
+    `forgetProject(queryClient, pid)`, `useRemoveProject({ onRemoved? })`.
+  - The coordinator amends ux-reference §3 (0.7) for W4-1/2/3/6 on `main`.
+- **W4-8** (gap found in green: S-16.2 needs the switcher while the element panel is open, but
+  task-018's panel was a modal drawer — header `aria-hidden`, focus trapped, backdrop over the
+  page) — decided (a): the panel is a **non-modal** drawer with the same look. This supersedes the
+  "modal" part of task-018's decision 5. Changes to task-018's files:
+  `web/src/element/ElementPanel.tsx` (a React Aria `Dialog` in a fixed `div.drawer`, no
+  `ModalOverlay`/`Modal`; Escape pressed inside the panel closes it through a native listener on
+  the drawer; Close unchanged; focus moved into the dialog on open by React Aria),
+  `web/src/element/element.css` (`.drawer-overlay` removed; `.drawer` fixed below the header,
+  `z-index: 4`, no backdrop), `test/web/element/panel.test.tsx` ("keeps the focus there" replaced
+  by "focuses inside the panel on open and leaves the header operable" and "closes with Escape only
+  when pressed inside the panel"). `test/e2e/element-panel.spec.ts` needed no change (it asserts
+  focus inside the panel, Close, Escape, focus on `main` after closing). The coordinator amends
+  ux-reference §4.2 (0.8).
