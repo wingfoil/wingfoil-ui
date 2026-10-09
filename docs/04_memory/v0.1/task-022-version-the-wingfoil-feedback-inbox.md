@@ -2,7 +2,7 @@
 id: task-022-version-the-wingfoil-feedback-inbox
 type: task
 title: "Version the WingFoil feedback inbox"
-status: in-progress
+status: approved
 release: "v0.1"
 module: "governance"   # optional — server | web | contracts (dna.yaml modules)
 priority: "high"       # optional — high | medium | low
@@ -60,3 +60,27 @@ the release's stop-check stays green.
      - design: tech-specs found missing/needing revision (dev-loop/design safety net).
      - red/green/refactor: deviations from the plan above, blockers, scope surprises.
      - review: rejection reasons and what changed on the next pass. -->
+
+### design (2026-10-09)
+
+- No tech-spec involved; target path `docs/wingfoil-feedback/wingfoil-requests.md` (dl-163 inbox
+  folder; the one-file-per-note split is task-023). `.notes/` stays git-ignored (`.gitignore` line 2)
+  for other local notes; the new folder is not ignored (`git check-ignore` empty).
+- `check_tasks.py` governance rule committed with the task authoring (`1d55674`), so the release's
+  stop-check stays green; both refusal cases checked by hand (governance without `GOV`, `GOV` with
+  another module).
+
+### red / green / refactor (2026-10-09)
+
+- Copied byte-identical (`cp -p`, sha256 `80c28eff…07c0` before and after) and committed (`5dd192d`).
+  No test: a moved document; task-023 adds `test/wingfoil-feedback.test.ts` over the split notes.
+- Gates: `tsc -b`, lint, format:check, `check_tasks.py` OK, `npm test` 1640 passed / 1 skipped.
+- Push: `main` pushed before the task (`851ef46..0349e08`, 2026-10-09, approver decision "push
+  before and after"); the after-push follows the merge.
+
+### review (2026-10-09)
+
+- Independent fresh-context review: **PASS** (byte-identity, not ignored, governance rule refuses
+  every mismatched combination and keeps depends_on/cycle checks, notes truthful, scope limited to the
+  inbox and the task file). Two low notes, both closed at merge: the local `.notes/` copy is removed
+  after the merge and the after-push, and both are recorded under `### integration`.
