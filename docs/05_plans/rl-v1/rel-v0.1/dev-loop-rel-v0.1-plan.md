@@ -3,7 +3,7 @@ id: dev-loop-rel-v0.1-plan
 type: plan
 title: "Implementation rel-v0.1"
 status: active
-version: "0.4"         # optional — plan version
+version: "0.5"         # optional — plan version
 workflow: "dev-loop"
 phase: "rel-v0.1"
 scope: "rl-v1/rel-v0.1"
@@ -14,7 +14,7 @@ tmpl_version: 260703   # Orignal template version
 
 ## Context
 
-**Version:** 0.4 · **Date:** 2026-10-09 (0.1: plan created, Wave 1 scope; 0.2: Wave 1 session log; 0.3: Wave 2 session log; 0.4: Wave 3 session log)
+**Version:** 0.5 · **Date:** 2026-10-09 (0.1: plan created, Wave 1 scope; 0.2: Wave 1 session log; 0.3: Wave 2 session log; 0.4: Wave 3 session log; 0.5: between-waves feedback-loop tasks 022, 023)
 **Workflows:** `sw-life-cycle` → `release-line-cycle` (`rl-v1`) phase `delivery` → `release-cycle`
 (`minor-v0.1`) phase `implementation` = `dev-loop` iterated over every task with status `backlog`
 and tag `v0.1` (`.wingfoil/workflows/custom/release-cycle.yaml` v1.1, `dev-loop.yaml` v1.4)
@@ -90,8 +90,8 @@ Per task (`dev-loop` v1.4):
   before each merge; end of each wave.
 - **Completion:** every v0.1 task `done` and merged; plan finalized by hand (`status: done`, commit
   `wf(plan): finalize dev-loop-rel-v0.1-plan [active → done]`, W-04).
-- **Next:** wave 4 (015, 014, 016) — see Session 3; it starts only after the WingFoil feedback
-  mechanism changes (M2) are applied between waves.
+- **Next:** wave 4 (015, 014, 016) — see Session 3 and its addendum; M2 applied, waiting for the
+  approver's go.
 
 ## Session log
 
@@ -291,3 +291,31 @@ Per task (`dev-loop` v1.4):
   Playwright test timeout 180 s.
 - **Next:** Wave 4 — 015, 014, 016. Not started: the user asked to apply the WingFoil feedback
   mechanism (session "Meccanismo feedback wingfoil", changes M2) between waves first.
+
+#### Session 3 addendum — between Wave 3 and Wave 4: WingFoil feedback loop (2026-10-09)
+
+- **Request:** step M2 of the WingFoil feedback loop (WingFoil dl-163 applied strictly, approver ruling
+  R9), relayed by the session "Meccanismo feedback wingfoil" and confirmed by the approver; applied
+  between waves, one task per change.
+- **Tasks** (`docs/04_memory/v0.1/`, `module: governance`, `ref: GOV`, tags `v0.1`, `governance`,
+  `feedback-loop`; `check_tasks.py` accepts a governance task only as that pair with `**Backlog
+  items:** GOV`, `1d55674`), each through dev-loop with an independent review and the approver's
+  `approve`:
+  - task-022 (S1): inbox versioned byte-identical in `docs/wingfoil-feedback/`, local `.notes/` copy
+    removed — done `8c96fa2`.
+  - task-023 (S4a + S4b): 19 notes F-001 … F-019 (R-01 … R-12 → F-001 … F-012, W-03/07/08/09/12/13 →
+    F-013 … F-018, working-tree/HEAD row → F-019, ingestion row folded into F-003), README with ledger,
+    `wingfoil-cli` 1.6 (rules 1–7 as WingFoil-Templates `53090c2`, own rules 8–9, *Note* column, new
+    W-24, W-12 corrected), `test/wingfoil-feedback.test.ts`; live references updated (BOOTSTRAP §3,
+    SARD `04` 0.7 and `05` 0.5, backlog regenerated) — merge `a7ccdc7`, done `1d9348d`.
+- **Decisions of the user (48–59):** governance tasks in v0.1 with `module: governance` / `ref: GOV`
+  (48); dev-loop per task (49); push before and after (50); ingestion row folded into F-003 (51);
+  product brief and plans historical (52); test added (53); BOOTSTRAP §3 and SARD references updated
+  (54, 55); F-019 first-line form (56); WingFoil elements only as sentences until the first sync
+  (57); W-12 corrected (58); W-24 added (59).
+- **Push:** `main` pushed for the first time (`851ef46..0349e08`), then `..8c96fa2` and
+  `..1d9348d`; the remote now carries the whole history of Waves 1–3. Reported to the coordinating
+  session with task ids and commits.
+- **Open:** `Source key` waits for WingFoil's svc id (its task-269); rule 7's `wingfoil-sync`
+  procedure is not defined yet (WingFoil v0.3 user-docs); no sync due before WingFoil's v0.3
+  retrospective.
