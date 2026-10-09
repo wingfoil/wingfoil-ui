@@ -366,6 +366,21 @@ it('closes with Escape only when pressed inside the panel', async () => {
   expect(screen.getByRole('dialog', { name: 'Password reset' })).toBeTruthy();
 });
 
+it('leaves an Escape that an inner control handled (preventDefault) to that control (R8)', async () => {
+  stubApi(api());
+  const { router } = renderApp(`/p/${PID}/e/${EID}`);
+  const dialog = await screen.findByRole('dialog', { name: 'Password reset' });
+  const body = within(dialog).getByRole('region', { name: 'Element details' });
+  // An inner control that consumes Escape (e.g. a future combo box in the panel).
+  body.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') e.preventDefault();
+  });
+  body.focus();
+  await userEvent.keyboard('{Escape}');
+  expect(router.state.location.pathname).toBe(`/p/${PID}/e/${EID}`);
+  expect(screen.getByRole('dialog', { name: 'Password reset' })).toBeTruthy();
+});
+
 it('shows only catalogue keys with the key catalogue (spec-008 §6)', async () => {
   stubApi(api());
   const keys = keyCatalogue(en);

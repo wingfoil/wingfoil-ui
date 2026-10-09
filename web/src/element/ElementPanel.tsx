@@ -9,11 +9,11 @@
  * Non-modal (decision W4-8, task-015): the header and the sidebar stay operable while it is open —
  * the project switcher above all (S-16.2: a switch leaves the panel's route, so the panel goes). The
  * focus moves into the panel when it opens; it closes with Close or Escape (pressed inside the
- * panel), not with a click outside (ux-reference §5).
+ * panel and not handled by an inner control), not with a click outside (ux-reference §5).
  */
 import type { UseQueryResult } from '@tanstack/react-query';
 import type { DirectiveList, ElementDetail, MemoryHistory, ProjectHeader } from '@wingfoil-ui/contracts';
-import { useEffect, useRef, type ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { Button, Dialog, Heading } from 'react-aria-components';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { ApiError } from '../api/client.js';
@@ -60,22 +60,18 @@ export function ElementPanel({
 }: ElementPanelProps): ReactNode {
   const intl = useIntl();
   const detail = element.data;
-  const drawer = useRef<HTMLDivElement>(null);
-  // Escape inside the panel closes it (a native listener: the portals of other overlays, such as
-  // the switcher's popover, are outside this element and keep their own Escape).
-  useEffect(() => {
-    const node = drawer.current;
-    if (!node) return undefined;
-    const onKey = (event: KeyboardEvent): void => {
-      if (event.key !== 'Escape' || event.defaultPrevented) return;
-      event.preventDefault();
-      onClose();
-    };
-    node.addEventListener('keydown', onKey);
-    return () => node.removeEventListener('keydown', onKey);
-  }, [onClose]);
   return (
-    <div className="drawer" ref={drawer}>
+    // Escape pressed inside the panel closes it, unless an inner control handled it first (React
+    // handler: it sees the inner React and React Aria handlers' preventDefault, review R8). The
+    // portals of other overlays (the switcher's popover) are not React children of the panel.
+    <div
+      className="drawer"
+      onKeyDown={(event) => {
+        if (event.key !== 'Escape' || event.defaultPrevented) return;
+        event.preventDefault();
+        onClose();
+      }}
+    >
       <Dialog className="drawer-dialog">
         <div className="drawer-header">
           <div className="drawer-topline">
