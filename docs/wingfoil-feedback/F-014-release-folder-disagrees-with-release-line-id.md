@@ -34,7 +34,7 @@ release v0.3), fixed by task-164 (done), which changed WingFoil's own path to
 
 ## Expected
 
-The release's folder and its `release-line` field agree with the release line's id, in WingFoil's
-configuration and in what `init` scaffolds.
+The release's folder and its `release-line` field agree with the release line's id in WingFoil's
+configuration.
 
 Suggested kind in WingFoil: bug (possibly already answered by bug-163).

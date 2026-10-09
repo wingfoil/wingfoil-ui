@@ -29,7 +29,13 @@ error: invalid state 'draft' for type 'story'
 
 The new element is in a state its type does not declare, and no verb moves it on: a type whose
 sequence does not start with `draft` cannot be created through the CLI (first found on 2026-10-05,
-building a test fixture in the WingFoil UI's dev-loop task-001). `memory search` lists such an element with its `status`.
+building a test fixture in the WingFoil UI's dev-loop task-001). `memory search` still lists the
+element, with the undeclared state:
+
+```
+$ wingfoil memory search --type story --format json
+{"query":"","matches":[{"path":"docs/memory/story/story-001-billing.md","id":"story-001-billing","title":"Billing","type":"story","status":"draft","tags":[]}]}
+```
 
 A WingFoil element on the same subject was seen in the WingFoil repository on 2026-10-09: bug-214
 ("memory add writes status draft literally instead of the head of the type's state machine",

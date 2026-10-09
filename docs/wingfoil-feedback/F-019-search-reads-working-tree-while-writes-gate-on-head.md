@@ -27,9 +27,14 @@ title is edited in the file and not committed:
 
 ```
 $ wingfoil memory search --type bug --format json
-{"query":"","matches":[{…,"id":"bug-001-crash-on-save","title":"Crash on save (edited, not committed)",…}]}
+{"query":"","matches":[{"path":"docs/memory/bug/bug-001-crash-on-save.md","id":"bug-001-crash-on-save","title":"Crash on save (edited, not committed)","type":"bug","status":"draft","tags":[]}]}
 $ wingfoil memory submit bug-001-crash-on-save
-{ "id": "bug-001-crash-on-save", "from": "draft", "to": "pending" }
+{
+  "id": "bug-001-crash-on-save",
+  "path": "docs/memory/bug/bug-001-crash-on-save.md",
+  "from": "draft",
+  "to": "pending"
+}
 $ git show HEAD | grep '^[-+]title'
 -title: "Crash on save"
 +title: "Crash on save (edited, not committed)"
