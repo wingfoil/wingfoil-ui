@@ -1,6 +1,6 @@
 # SARD — 4. Integrations & Interfaces
 
-**Version:** 0.6 · **Date:** 2026-10-06 (0.2: coherence audit fixes — session 6; 0.3: REQ-INT-06 Memory-event source fixed by spec-002 — initial-design session 5; 0.4: REQ-INT-08 staged, Chromium in v0.1 — release-planning v0.1 session 2; 0.5: REQ-INT-03 v0.1 scope — release-planning v0.1 session 4 (audit A4); 0.6: REQ-INT-02 range bounds, REQ-INT-03 `null` minimum — dev-loop task-006) · **Status:** Draft — specification-downcast session 4
+**Version:** 0.7 · **Date:** 2026-10-09 (0.2: coherence audit fixes — session 6; 0.3: REQ-INT-06 Memory-event source fixed by spec-002 — initial-design session 5; 0.4: REQ-INT-08 staged, Chromium in v0.1 — release-planning v0.1 session 2; 0.5: REQ-INT-03 v0.1 scope — release-planning v0.1 session 4 (audit A4); 0.6: REQ-INT-02 range bounds, REQ-INT-03 `null` minimum — dev-loop task-006; 0.7: REQ-INT-01, REQ-INT-07 rationales cite the feedback notes F-001, F-002 — dev-loop task-023) · **Status:** Draft — specification-downcast session 4
 
 Shell and conventions: `00_sard.md`.
 
@@ -12,7 +12,7 @@ Shell and conventions: `00_sard.md`.
 |-------|--|
 | Release | v0.1 |
 | Description | Every CLI command the server invokes runs with `--format json`; each consumed output shape has a JSON schema in `contracts/`, captured from the pinned WingFoil version (`wingfoil_version` recorded), and a contract test that runs against every version of the support matrix. Output that fails its schema is reported as a read error, never guessed at. |
-| Rationale | The CLI output is the UI's API (ADR draft, *Consequences*; MVP canvas risk *CLI JSON output changes*); request R-01 to WingFoil. |
+| Rationale | The CLI output is the UI's API (ADR draft, *Consequences*; MVP canvas risk *CLI JSON output changes*); WingFoil feedback note F-001 (`docs/wingfoil-feedback/`). |
 | Traceability | US-S-02, US-S-27 · S-02.3, S-27.1 · S1 · e2e-smoke `contract` |
 | Fit criterion | [percentage] 100 % of the CLI commands invoked by the server (static list from the adapter) have a schema and a passing contract test for each WingFoil version of the support matrix. |
 | Verified by | contract tests (e2e-smoke `contract`) |
@@ -78,7 +78,7 @@ Shell and conventions: `00_sard.md`.
 |-------|--|
 | Release | v0.4 |
 | Description | With WingFoil 0.3 the server reads the workflow position and the next step (`workflow status`, `workflow next`), starts ingestions through `workflow start` where it sets the required fields, and launches agents with `agent execute`, streaming their output. Exact options and output are confirmed against WingFoil 0.3 at v0.4 `release-planning` and captured as contracts (REQ-INT-01). |
-| Rationale | `07_sequencer.md` v0.4; request R-02 to WingFoil. |
+| Rationale | `07_sequencer.md` v0.4; WingFoil feedback note F-002 (`docs/wingfoil-feedback/`). |
 | Traceability | US-T-09, US-T-16, US-T-17, US-M-06, US-A-01, US-A-02, US-A-04, US-A-05, US-G-18 · T-09.1, T-16.1, T-17.1, M-06.1, A-01.1, A-02.1, A-04.2, A-05.1, A-05.2, G-18.1 · T3, T2, W1, A1, A2, G5 |
 | Fit criterion | [boolean] Every listed scenario passes on a fixture pinning WingFoil 0.3, and each verb used has a contract (REQ-INT-01). |
 | Verified by | e2e · contract tests |
@@ -112,3 +112,7 @@ Shell and conventions: `00_sard.md`.
   contract-tested version, labelled `0.Y.x` / `X.x`; REQ-INT-03 a `null` minimum version counts
   as declared (not in any released WingFoil version → read-only or hidden, reason
   `not-released`); decided by the user.
+- 2026-10-09 — amended in dev-loop task-023 (governance, WingFoil dl-163 feedback loop): the
+  rationales of REQ-INT-01 and REQ-INT-07 cite the versioned WingFoil feedback notes F-001 and
+  F-002 (`docs/wingfoil-feedback/`) in place of the local requests R-01 and R-02, which the split
+  of the inbox retired; no requirement changed; decided by the user.

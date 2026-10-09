@@ -2833,7 +2833,7 @@
       "area": "SEC",
       "wingfoil_min": "0.2.2",
       "requirement": "REQ-SEC-07",
-      "description": "The UI offers a gate's outcomes only to members holding the role WingFoil requires (0.2.2: `approver`, W-13); other members see the gate as informational with the members who can act. The UI defines no permissions of its own; action permissions are shown once WingFoil implements them (L6, request R-09).",
+      "description": "The UI offers a gate's outcomes only to members holding the role WingFoil requires (0.2.2: `approver`, W-13); other members see the gate as informational with the members who can act. The UI defines no permissions of its own; action permissions are shown once WingFoil implements them (L6, WingFoil feedback note F-009 in `docs/wingfoil-feedback/`).",
       "fit_criterion": "[boolean] On the fixtures with Sam and Casey with and without `approver`, the outcomes are offered if and only if the member holds `approver`; `ui.yaml` and the server configuration contain 0 permission rules.",
       "verified_by": "e2e",
       "stories": [
