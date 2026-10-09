@@ -2,7 +2,7 @@
 id: task-015-project-switcher
 type: task
 title: "Project switcher"
-status: backlog
+status: in-progress
 release: "v0.1"
 module: "web"             # optional — server | web | contracts (dna.yaml modules)
 priority: "medium"           # optional — high | medium | low
