@@ -2,7 +2,7 @@
 id: task-022-version-the-wingfoil-feedback-inbox
 type: task
 title: "Version the WingFoil feedback inbox"
-status: approved
+status: done
 release: "v0.1"
 module: "governance"   # optional — server | web | contracts (dna.yaml modules)
 priority: "high"       # optional — high | medium | low
@@ -84,3 +84,11 @@ the release's stop-check stays green.
   every mismatched combination and keeps depends_on/cycle checks, notes truthful, scope limited to the
   inbox and the task file). Two low notes, both closed at merge: the local `.notes/` copy is removed
   after the merge and the after-push, and both are recorded under `### integration`.
+
+### integration (2026-10-09)
+
+- Merged into `main` (`f138b35`, no conflict; `main` had nothing new for the branch). The local
+  `.notes/wingfoil-requests.md` removed after `cmp` against the versioned copy (identical); `.notes/`
+  stays git-ignored and is now empty.
+- After-push: `main` pushed to `origin` with this `done` commit (range recorded in the plan and
+  reported to the session coordinating the feedback loop).
