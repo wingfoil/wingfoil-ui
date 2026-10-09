@@ -78,15 +78,33 @@ it('useRemoveProject runs onRemoved before forgetting the project', async () => 
   expect(client.getQueryData(projectsQuery().queryKey)?.projects.map((p) => p.id)).toEqual(['p_b']);
 });
 
-it('useRemoveProject keeps the list on a refusal and exposes the ApiError', async () => {
+it('useRemoveProject handles a 404 not-found as already removed (another tab, R5)', async () => {
   stubFetch(404, { error: { code: 'not-found', message: 'Not found' } });
   const client = createQueryClient();
   client.setQueryData(projectsQuery().queryKey, LIST);
+  const onRemoved = vi.fn();
   const wrapper = ({ children }: { children: ReactNode }) => (
     <QueryClientProvider client={client}>{children}</QueryClientProvider>
   );
-  const { result } = renderHook(() => useRemoveProject(), { wrapper });
+  const { result } = renderHook(() => useRemoveProject({ onRemoved }), { wrapper });
+  await act(() => result.current.mutateAsync('p_a'));
+  expect(onRemoved).toHaveBeenCalledWith('p_a');
+  expect(client.getQueryData(projectsQuery().queryKey)?.projects.map((p) => p.id)).toEqual(['p_b']);
+});
+
+it('useRemoveProject keeps the list on another refusal, exposes the ApiError and reads the list again', async () => {
+  stubFetch(500, { error: { code: 'internal', message: 'x' } });
+  const client = createQueryClient();
+  client.setQueryData(projectsQuery().queryKey, LIST);
+  const onRemoved = vi.fn();
+  const wrapper = ({ children }: { children: ReactNode }) => (
+    <QueryClientProvider client={client}>{children}</QueryClientProvider>
+  );
+  const { result } = renderHook(() => useRemoveProject({ onRemoved }), { wrapper });
   act(() => result.current.mutate('p_a'));
   await waitFor(() => expect(result.current.error).toBeInstanceOf(ApiError));
+  expect(result.current.error?.code).toBe('internal');
+  expect(onRemoved).not.toHaveBeenCalled();
   expect(client.getQueryData(projectsQuery().queryKey)?.projects).toHaveLength(2);
+  await waitFor(() => expect(client.getQueryState(projectsQuery().queryKey)?.isInvalidated).toBe(true));
 });

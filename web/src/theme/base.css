@@ -328,6 +328,13 @@ p {
   font-weight: 600;
 }
 
+.switcher-row-details {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
 .switcher-row-path {
   overflow: hidden;
   font-family: var(--font-mono);

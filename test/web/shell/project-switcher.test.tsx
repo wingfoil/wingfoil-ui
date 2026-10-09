@@ -119,6 +119,31 @@ it('names the open project on the trigger and marks its row', async () => {
   expect(within(second!).queryByText('current project')).toBeNull();
 });
 
+it('announces a row with its name, current mark and path (R1)', async () => {
+  fakeApi([ALPHA, BETA]);
+  const user = userEvent.setup();
+  renderApp('/p/p_alpha/dna');
+  const grid = await openSwitcher(user, 'Projects: alpha');
+  // What a screen reader announces (Testing Library computes it): React Aria labels the row by its
+  // text value and the description slot (aria-labelledby).
+  expect(
+    await within(grid).findByRole('row', { name: 'alpha current project /home/test/projects/alpha' }),
+  ).toBeTruthy();
+  expect(within(grid).getByRole('row', { name: 'beta /home/test/projects/beta' })).toBeTruthy();
+});
+
+it("pressing the open project's own row only closes the switcher (R9)", async () => {
+  fakeApi([ALPHA, BETA]);
+  const user = userEvent.setup();
+  const { router } = renderApp('/p/p_alpha/dna?x=1');
+  const grid = await openSwitcher(user, 'Projects: alpha');
+  expect(grid.querySelector('[data-href^="/p/p_alpha"]')).toBeNull();
+  await user.click(within(grid).getByText('alpha'));
+  await waitFor(() => expect(screen.queryByRole('grid', { name: 'Projects' })).toBeNull());
+  expect(router.state.location.pathname).toBe('/p/p_alpha/dna');
+  expect(router.state.location.searchStr).toBe('?x=1');
+});
+
 it('switches to the same view of the other project and closes the switcher (W4-5)', async () => {
   fakeApi([ALPHA, BETA]);
   const user = userEvent.setup();
@@ -226,6 +251,14 @@ it('marks the unavailable entries with their reason, without a link, and keeps R
   expect(within(rows[1]!).getByText('Unavailable — no .wingfoil/ folder')).toBeTruthy();
   expect(within(rows[2]!).getByText('Unavailable — WingFoil CLI not found')).toBeTruthy();
   expect(within(rows[2]!).getByText('npm install --save-dev wingfoil')).toBeTruthy();
+  expect(
+    within(grid).getByRole('row', { name: 'alpha /home/test/projects/alpha Unavailable — folder not found' }),
+  ).toBe(rows[0]);
+  expect(
+    within(grid).getByRole('row', {
+      name: 'gamma /home/test/projects/gamma Unavailable — WingFoil CLI not found Install it with: npm install --save-dev wingfoil',
+    }),
+  ).toBe(rows[2]);
   expect(grid.querySelectorAll('[data-href]')).toHaveLength(0);
   for (const name of ['alpha', 'beta', 'gamma']) {
     expect(within(grid).getByRole('button', { name: `Remove ${name}` })).toBeTruthy();
@@ -284,7 +317,10 @@ it.each(['button', 'Escape'] as const)('cancels the removal with %s (S-18.2)', a
 });
 
 it.each([
-  [{ status: 404, body: { error: { code: 'not-found', message: 'Not found' } } }, 'Not found'],
+  [
+    { status: 500, body: { error: { code: 'internal', message: 'x' } } },
+    'Something went wrong in the console: see its log in the terminal',
+  ],
   ['unreachable', 'The console cannot be reached: check that it is still running in its terminal.'],
 ] as const)('shows a refused or unanswered removal inside the dialog', async (answer, text) => {
   fakeApi([ALPHA], answer);

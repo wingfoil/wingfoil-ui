@@ -6,11 +6,13 @@
  * **Adding a mutation (task-014):** a plain function on {@link apiRequest} (`addProject(path)`,
  * `cloneProject(url, directory?)`) and its hook built like {@link useRemoveProject}; after a
  * success, update the `projectsQuery()` cache (the `projects` event refetches it anyway) so the
- * switcher shows the change without waiting for the stream.
+ * switcher shows the change without waiting for the stream. On a refusal, read the list again
+ * (`invalidateQueries(projectsQuery())`) so that the switcher shows what the server holds; a refusal
+ * that means "already done" (as `not-found` for a removal) is handled as a success.
  */
 import type { ProjectListResponse } from '@wingfoil-ui/contracts';
 import { useMutation, useQueryClient, type QueryClient } from '@tanstack/react-query';
-import { apiRequest, type ApiError } from './client.js';
+import { ApiError, apiRequest } from './client.js';
 import { projectsQuery } from './queries.js';
 import { queryKeys } from './query-keys.js';
 
@@ -44,15 +46,27 @@ export interface RemoveProjectOptions {
   onRemoved?(pid: string): Promise<void> | void;
 }
 
-/** The removal of a project as a mutation (variables: the project id). */
+/**
+ * The removal of a project as a mutation (variables: the project id). A 404 `not-found` means the
+ * entry is already gone (another tab or console removed it): handled as a removal. Any other
+ * failure leaves the list as the server has it — the cached list is read again (review R5).
+ */
 export function useRemoveProject(options: RemoveProjectOptions = {}) {
   const queryClient = useQueryClient();
   const { onRemoved } = options;
   return useMutation<void, ApiError, string>({
-    mutationFn: (pid) => removeProject(pid),
+    mutationFn: async (pid) => {
+      try {
+        await removeProject(pid);
+      } catch (error) {
+        if (error instanceof ApiError && error.code === 'not-found') return;
+        throw error;
+      }
+    },
     onSuccess: async (_data, pid) => {
       await onRemoved?.(pid);
       forgetProject(queryClient, pid);
     },
+    onError: () => queryClient.invalidateQueries({ queryKey: projectsQuery().queryKey }),
   });
 }

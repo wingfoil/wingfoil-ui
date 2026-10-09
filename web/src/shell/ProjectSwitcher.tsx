@@ -3,9 +3,10 @@
  * popover with the projects of the list in stored order (spec-006 §2) — name and path, the open one
  * marked —, a *Remove* button on each row, then *Add project…* and a footnote.
  *
- * - The rows are a React Aria grid list (W4-1): a row is a link to the project (opaque id only,
- *   X-05.1) and holds its Remove button (Tab moves from the row to it); an ARIA menu could not hold
- *   that button.
+ * - The rows are a React Aria grid list (W4-1): the arrow keys move between the rows, Tab moves
+ *   from a row to its Remove button. A row is a link to the project (opaque id only, X-05.1); the
+ *   open project's row only closes the switcher (review R9). An ARIA menu could not hold the button.
+ *   A row is named by the project name and described by its current mark, path and reason.
  * - A switch keeps the current view (W4-5, `switch-target.ts`); the element panel and every other
  *   page of the previous project are left (S-16.2).
  * - An unavailable entry (W4-3: folder not found, no `.wingfoil/`, no CLI) is not a link: it shows
@@ -19,7 +20,7 @@ import type { ProjectListItem } from '@wingfoil-ui/contracts';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useParams, useRouter, useRouterState } from '@tanstack/react-router';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { Button, Dialog, DialogTrigger, GridList, GridListItem, Popover } from 'react-aria-components';
+import { Button, Dialog, DialogTrigger, GridList, GridListItem, Popover, Text } from 'react-aria-components';
 import { defineMessages, FormattedMessage, useIntl } from 'react-intl';
 import { ApiError } from '../api/client.js';
 import { projectsQuery } from '../api/queries.js';
@@ -123,6 +124,7 @@ export function ProjectSwitcher(): ReactNode {
                       setExpanded(false);
                       setRemoving(p);
                     }}
+                    onStay={() => setExpanded(false)}
                   />
                 )}
               </GridList>
@@ -164,10 +166,12 @@ interface ProjectRowProps {
   current: boolean;
   href: string;
   onRemove(): void;
+  /** Pressing the open project's own row: close the switcher, nothing else (review R9). */
+  onStay(): void;
 }
 
 /** One project: a link when available, its reason otherwise; and its Remove button. */
-function ProjectRow({ project, current, href, onRemove }: ProjectRowProps): ReactNode {
+function ProjectRow({ project, current, href, onRemove, onStay }: ProjectRowProps): ReactNode {
   const intl = useIntl();
   const available = project.availability === 'ok';
   return (
@@ -175,29 +179,34 @@ function ProjectRow({ project, current, href, onRemove }: ProjectRowProps): Reac
       id={project.id}
       textValue={project.name}
       className={`switcher-row${current ? ' switcher-row-current' : ''}${available ? '' : ' switcher-row-unavailable'}`}
-      {...(available ? { href } : {})}
+      {...(current ? { onAction: onStay } : available ? { href } : {})}
     >
       <div className="switcher-row-text">
         <span className="switcher-row-name">{project.name}</span>
-        {current && (
-          <span className="visually-hidden">
-            <FormattedMessage id="projects.switcher.currentMark" />
-          </span>
-        )}
-        <span className="switcher-row-path">{project.path}</span>
-        {project.availability !== 'ok' && (
-          <span className="switcher-row-reason">
-            <FormattedMessage id="projects.switcher.unavailable" values={{ reason: REASONS[project.availability] }} />
-          </span>
-        )}
-        {project.availability === 'cli-not-found' && project.command !== undefined && (
-          <span className="switcher-row-reason">
-            <FormattedMessage
-              id="projects.switcher.install"
-              values={{ command: <code key="command">{project.command}</code> }}
-            />
-          </span>
-        )}
+        {/* React Aria names the row by its text value (the name) and describes it by this slot:
+            the current mark, the path and the reason of an unavailable entry reach assistive
+            technology through it (review R1). */}
+        <Text slot="description" elementType="div" className="switcher-row-details">
+          {current && (
+            <div className="visually-hidden">
+              <FormattedMessage id="projects.switcher.currentMark" />
+            </div>
+          )}
+          <div className="switcher-row-path">{project.path}</div>
+          {project.availability !== 'ok' && (
+            <div className="switcher-row-reason">
+              <FormattedMessage id="projects.switcher.unavailable" values={{ reason: REASONS[project.availability] }} />
+            </div>
+          )}
+          {project.availability === 'cli-not-found' && project.command !== undefined && (
+            <div className="switcher-row-reason">
+              <FormattedMessage
+                id="projects.switcher.install"
+                values={{ command: <code key="command">{project.command}</code> }}
+              />
+            </div>
+          )}
+        </Text>
       </div>
       <Button
         className="icon-button switcher-remove"
