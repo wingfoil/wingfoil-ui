@@ -378,3 +378,23 @@ Screen: `docs/00_reference/ux-reference.md` §4.5, §4.6, §4.10 and the prototy
   | S-26.1 Refresh after a commit made outside the UI | same spec › "S-26.1 …": the pill turns "approved" by itself, announced, no reload | same test, strict: ≤ 5 s from the start of `memory approve` |
   | S-26.2 Refresh an open element panel | same spec › "S-26.2 …": the open panel shows "signed off by Alex" with the new HEAD | same test, strict: ≤ 5 s from the start of `memory approve` |
   | S-27.2 Recover when the file is fixed | `test/e2e/dna.spec.ts` › "S-27.2 …": the DNA sections replace the error by themselves, no reload | same test, strict: ≤ 5 s from the file write |
+
+### integration (2026-10-09)
+
+- W3-47 implemented first (`b2fd447`, section above).
+- `main` merged into the branch (`bb58a25`, authorised by the coordinator): the spec amendments W3 of
+  `05d8876` (ux-reference 0.6 §4.2, §4.5, §4.6, §4.10; spec-003 W3-39 note) — they describe what was
+  built; task-017 (`90b03ce`) was already in the branch's base. No conflict (`test/README.md`,
+  `api/queries.ts` and the e2e specs untouched by `main` since the branch point).
+- Gates on the merge: typecheck, lint (ESLint + catalogue check), format:check clean · `docs:api`
+  OK · `check_tasks.py` OK · `npm run -s test:coverage` **105 files passed, 1 skipped; 1638 passed / 1
+  skipped**, coverage 96.48 % statements / 90.37 % branches / 97.05 % functions / 98.17 % lines (load
+  7.1 → 24) · `test:e2e` **60/60** (load 21–22; no console and no run directory left) ·
+  `npm run test:timing` **pass** at load 6.7–8.0: REQ-PERF-03 20/20 (max 874 ms), TypeDoc 4900 ms,
+  REQ-PERF-06 311–521 ms, and its Playwright part 4/4 — S-27.2 487 ms, S-25.2 971 ms, S-26.1
+  1225 ms, S-26.2 1377 ms from the mutation (budget 5 s).
+- **bug-004 evidence (summary):** default gates load-independent — `test:coverage` passed at load
+  31–63 and `test:e2e` 60/60 at load 71–98 (24 CPU burners of this task plus other projects' load,
+  2026-10-07); every remaining time budget lives in `npm run test:timing` (quiet machine). The
+  e2e support tears down every console (process group, worker, run teardown, stale runs of a
+  killed run reaped by the next setup).
