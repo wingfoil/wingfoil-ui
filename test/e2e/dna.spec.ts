@@ -8,7 +8,7 @@ import path from 'node:path';
 import { pinnedCli } from '../harness/cli.js';
 import { run } from '../harness/run.js';
 import { scanThemes } from './support/axe.js';
-import { expectFirstLoad, REFRESH_MS } from './support/cold-read.js';
+import { expectFirstLoad, LIVE_REFRESH_TAG, refreshClock } from './support/cold-read.js';
 import { openConsole, type RunningConsole } from './support/console.js';
 import { cli, commitFile, mutateAndWait, recordServerEvents } from './support/events.js';
 import { expect, test } from './support/fixtures.js';
@@ -131,7 +131,7 @@ test.describe('US-S-27 — a failed read confined to its view', () => {
     ]);
   });
 
-  test('S-27.2 — Recover when the file is fixed', async ({ page, fixtures, consoles }) => {
+  test('S-27.2 — Recover when the file is fixed', { tag: LIVE_REFRESH_TAG }, async ({ page, fixtures, consoles }) => {
     const kanban = await fixtures.copy('kanban');
     const original = await readFile(path.join(kanban.dir, DNA_FILE), 'utf8');
     await commitFile(kanban, DNA_FILE, INVALID_DNA, 'chore: break the DNA');
@@ -141,12 +141,19 @@ test.describe('US-S-27 — a failed read confined to its view', () => {
     await expectFirstLoad(page.getByRole('main').getByRole('alert'));
     await page.evaluate(() => ((window as unknown as { marker: number }).marker = 1));
     // The file restored to valid YAML and committed (W3-46).
-    await mutateAndWait(page, () => commitFile(kanban, DNA_FILE, original, 'chore: restore the DNA'), {
-      event: 'repo',
-      pid: c.pids[0]!,
-    });
+    // By itself, without a reload; within 5 s of the file write under `npm run test:timing` (W3-47).
+    const clock = refreshClock();
+    await mutateAndWait(
+      page,
+      () => {
+        clock.start();
+        return commitFile(kanban, DNA_FILE, original, 'chore: restore the DNA');
+      },
+      { event: 'repo', pid: c.pids[0]! },
+    );
     const modules = section(page, 'Modules');
-    await expect(modules).toBeVisible({ timeout: REFRESH_MS });
+    await expect(modules).toBeVisible({ timeout: clock.timeout() });
+    clock.done('S-27.2 DNA view recovered');
     await expect(modules.getByText('No module declared', { exact: true })).toBeVisible();
     await expect(section(page, 'Stack').getByText('Kanban', { exact: true })).toBeVisible();
     await expect(page.getByRole('main').getByRole('alert')).toHaveCount(0);

@@ -10,7 +10,7 @@ import path from 'node:path';
 import type { Fixture } from '../harness/fixtures/index.js';
 import { git } from '../harness/run.js';
 import { scanThemes } from './support/axe.js';
-import { COLD_READ_MS, expectFirstLoad, REFRESH_MS } from './support/cold-read.js';
+import { COLD_READ_MS, expectFirstLoad, LIVE_REFRESH_TAG, refreshClock } from './support/cold-read.js';
 import { openConsole, type RunningConsole } from './support/console.js';
 import { cli, mutateAndWait, recordServerEvents } from './support/events.js';
 import { expect, test } from './support/fixtures.js';
@@ -236,27 +236,35 @@ test.describe('US-S-25 — working tree and local changes', () => {
     expect(await scanThemes(page)).toEqual([]);
   });
 
-  test('S-25.2 — Remove the marker once the change is committed', async ({ page, fixtures, consoles }) => {
-    const kanban = await fixtures.copy('kanban');
-    await editTitle(kanban, FILE, 'Login form v2');
-    const c = await consoles.start({ projects: [kanban] });
-    await recordServerEvents(page);
-    await openList(page, c);
-    const marker = row(page, 'task-001-login-form').getByText('local changes', { exact: true });
-    await expect(marker).toBeVisible();
-    await page.evaluate(() => ((window as unknown as { __noReload: boolean }).__noReload = true));
-    await mutateAndWait(
-      page,
-      async () => {
-        await git(kanban.dir, ['add', '--', FILE], kanban.env);
-        await git(kanban.dir, ['commit', '--quiet', '-m', 'docs: retitle the login form'], kanban.env);
-      },
-      { event: 'repo', pid: c.pids[0]! },
-    );
-    await expect(marker).toBeHidden({ timeout: REFRESH_MS });
-    await expect(row(page, 'task-001-login-form').locator('.memory-title')).toHaveText('Login form v2');
-    expect(await page.evaluate(() => (window as unknown as { __noReload?: boolean }).__noReload)).toBe(true);
-  });
+  test(
+    'S-25.2 — Remove the marker once the change is committed',
+    { tag: LIVE_REFRESH_TAG },
+    async ({ page, fixtures, consoles }) => {
+      const kanban = await fixtures.copy('kanban');
+      await editTitle(kanban, FILE, 'Login form v2');
+      const c = await consoles.start({ projects: [kanban] });
+      await recordServerEvents(page);
+      await openList(page, c);
+      const marker = row(page, 'task-001-login-form').getByText('local changes', { exact: true });
+      await expect(marker).toBeVisible();
+      await page.evaluate(() => ((window as unknown as { __noReload: boolean }).__noReload = true));
+      // By itself, without a reload; within 5 s of the commit under `npm run test:timing` (W3-47).
+      const clock = refreshClock();
+      await mutateAndWait(
+        page,
+        async () => {
+          await git(kanban.dir, ['add', '--', FILE], kanban.env);
+          clock.start();
+          await git(kanban.dir, ['commit', '--quiet', '-m', 'docs: retitle the login form'], kanban.env);
+        },
+        { event: 'repo', pid: c.pids[0]! },
+      );
+      await expect(marker).toBeHidden({ timeout: clock.timeout() });
+      clock.done('S-25.2 marker removed');
+      await expect(row(page, 'task-001-login-form').locator('.memory-title')).toHaveText('Login form v2');
+      expect(await page.evaluate(() => (window as unknown as { __noReload?: boolean }).__noReload)).toBe(true);
+    },
+  );
 
   test('S-25.3 — Show an uncommitted new element', async ({ page, fixtures, consoles }) => {
     const kanban = await fixtures.copy('kanban');
@@ -277,26 +285,36 @@ test.describe('US-S-25 — working tree and local changes', () => {
 });
 
 test.describe('US-S-26 — refresh by itself', () => {
-  test('S-26.1 — Refresh after a commit made outside the UI', async ({ page, fixtures, consoles }) => {
-    const kanban = await fixtures.copy('kanban');
-    const c = await consoles.start({ projects: [kanban] });
-    await recordServerEvents(page);
-    await openList(page, c);
-    const pill = row(page, 'task-001-login-form').locator('.state-pill');
-    await expect(pill).toHaveText('pending');
-    await page.evaluate(() => ((window as unknown as { __noReload: boolean }).__noReload = true));
-    await mutateAndWait(
-      page,
-      () => cli(kanban, ['memory', 'approve', 'task-001-login-form', '--reason', 'Looks good']),
-      { event: 'repo', pid: c.pids[0]! },
-    );
-    await expect(pill).toHaveText('approved', { timeout: REFRESH_MS });
-    // Without a page reload: the marker set before the change is still there.
-    expect(await page.evaluate(() => (window as unknown as { __noReload?: boolean }).__noReload)).toBe(true);
-    await expect(page.getByRole('status', { name: 'Memory list updates' })).toHaveText('The list was updated.');
-  });
+  test(
+    'S-26.1 — Refresh after a commit made outside the UI',
+    { tag: LIVE_REFRESH_TAG },
+    async ({ page, fixtures, consoles }) => {
+      const kanban = await fixtures.copy('kanban');
+      const c = await consoles.start({ projects: [kanban] });
+      await recordServerEvents(page);
+      await openList(page, c);
+      const pill = row(page, 'task-001-login-form').locator('.state-pill');
+      await expect(pill).toHaveText('pending');
+      await page.evaluate(() => ((window as unknown as { __noReload: boolean }).__noReload = true));
+      // From the start of the CLI verb that commits (W3-47).
+      const clock = refreshClock();
+      await mutateAndWait(
+        page,
+        () => {
+          clock.start();
+          return cli(kanban, ['memory', 'approve', 'task-001-login-form', '--reason', 'Looks good']);
+        },
+        { event: 'repo', pid: c.pids[0]! },
+      );
+      await expect(pill).toHaveText('approved', { timeout: clock.timeout() });
+      clock.done('S-26.1 state pill refreshed');
+      // Without a page reload: the marker set before the change is still there.
+      expect(await page.evaluate(() => (window as unknown as { __noReload?: boolean }).__noReload)).toBe(true);
+      await expect(page.getByRole('status', { name: 'Memory list updates' })).toHaveText('The list was updated.');
+    },
+  );
 
-  test('S-26.2 — Refresh an open element panel', async ({ page, fixtures, consoles }) => {
+  test('S-26.2 — Refresh an open element panel', { tag: LIVE_REFRESH_TAG }, async ({ page, fixtures, consoles }) => {
     const kanban = await fixtures.copy('kanban');
     const c = await consoles.start({ projects: [kanban] });
     await recordServerEvents(page);
@@ -304,14 +322,19 @@ test.describe('US-S-26 — refresh by itself', () => {
     await row(page, 'task-001-login-form').click();
     const panel = page.getByRole('dialog', { name: 'Login form', exact: true });
     await expectFirstLoad(panel.getByRole('listitem').filter({ hasText: 'submitted by Jordan' }));
+    const clock = refreshClock();
     await mutateAndWait(
       page,
-      () => cli(kanban, ['memory', 'approve', 'task-001-login-form', '--reason', 'Looks good']),
+      () => {
+        clock.start();
+        return cli(kanban, ['memory', 'approve', 'task-001-login-form', '--reason', 'Looks good']);
+      },
       { event: 'repo', pid: c.pids[0]! },
     );
-    const head = (await git(kanban.dir, ['rev-parse', 'HEAD'], kanban.env)).stdout.trim();
     const line = panel.getByRole('listitem').filter({ hasText: 'signed off by Alex' });
-    await expect(line).toBeVisible({ timeout: REFRESH_MS });
+    await expect(line).toBeVisible({ timeout: clock.timeout() });
+    clock.done('S-26.2 open panel refreshed');
+    const head = (await git(kanban.dir, ['rev-parse', 'HEAD'], kanban.env)).stdout.trim();
     await expect(line).toContainText(head.slice(0, 7));
     await expect(line).toContainText('“Looks good”');
   });

@@ -254,7 +254,7 @@ Screen: `docs/00_reference/ux-reference.md` §4.5, §4.6, §4.10 and the prototy
     `openConsole` waits for the shell with it; every spec's first cold read uses it (shell — its
     first loads also through `expectFirstLoad` since review round 1, F8 —, element panel incl. G-01.3 and every panel opened from the Memory list or a
     document, Memory list — its inline 30 s waits replaced —, documentation, this task's specs).
-  - `REFRESH_MS`: the scenarios' "within 5 seconds" (S-25.2, S-26.1, S-26.2, S-27.2) is asserted as
+  - `REFRESH_MS` (superseded by W3-47, below): the scenarios' "within 5 seconds" (S-25.2, S-26.1, S-26.2, S-27.2) is asserted as
     5 s when the worker starts below load 12 (the `test:timing` threshold) and as a cold read above
     it — a budget is a timing check, which the default gates do not make under external load
     (bug-001). **Reported to the coordinator** (it softens other tasks' 5 s assertions under load).
@@ -290,7 +290,7 @@ Screen: `docs/00_reference/ux-reference.md` §4.5, §4.6, §4.10 and the prototy
   | R-05.1 Show the project's DNA (also task-005) | `test/e2e/dna.spec.ts` › "R-05.1 — Show the project's DNA": custom copy as Riley; the sidebar entry *DNA* reached by keyboard (visible focus, Enter) → `/p/<pid>/dna`, title "custom · DNA — WingFoil UI"; modules `server`, `web`, `contracts` each with its description and path, every technology, every methodology with its phase, every member with exactly its roles, every path category with its values — all compared with `dna show` of the same copy; axe 0 serious/critical in light and dark |
   | R-05.2 Show an empty DNA section as empty | same spec › "R-05.2 …": kanban (`dna show` modules `[]`) → the Modules section shows "No module declared"; axe in both themes |
   | S-27.1 Confine a failed DNA read to the DNA view (also task-004, task-005) | same spec › "S-27.1 …": kanban copy with an unparsable `.wingfoil/dna.yaml` committed; the DNA view shows "The DNA could not be read." with the CLI's own message (the stderr of `dna show` on that copy, verbatim), no section; axe in both themes; the sidebar *Memory* opens the list with exactly the five kanban elements |
-  | S-27.2 Recover when the file is fixed (task-010) | same spec › "S-27.2 …": the same broken copy, DNA view on the error; the original `dna.yaml` restored and committed (W3-46) → `repo` reaches the page → the Modules section ("No module declared") and the methodology "Kanban" replace the error within 5 s (`REFRESH_MS`), no reload (a `window` marker survives) |
+  | S-27.2 Recover when the file is fixed (task-010) | behaviour: same spec › "S-27.2 …" in `npm run test:e2e`: the same broken copy, DNA view on the error; the original `dna.yaml` restored and committed (W3-46) → `repo` reaches the page → the Modules section ("No module declared") and the methodology "Kanban" replace the error by themselves, no reload (a `window` marker survives); **5 s**: the same test in `npm run test:timing` (`playwright.timing.config.ts`, W3-47), measured from the file write |
   | R-06.1 Filter the directives bound to my role | `test/e2e/directives.spec.ts` › "R-06.1 …": custom copy as Jordan; "Only mine" selected by default; the rows are exactly the global and developer-bound entries of `directives list` in its order (equal to `directives list --role developer`); each row's role chips equal the entry's roles ("All roles" for a global one), `developer` highlighted; visible focus on the toggle; axe in both themes |
   | R-06.2 Show every directive with "all" | same spec › "R-06.2 …": Jordan; "All" chosen by keyboard (arrow, Enter) → `?show=all`, the rows are every entry of `directives list` (all under `directives/`); axe in both themes |
   | R-06.3 Render a directive body | same spec › "R-06.3 …": the row "Using the pinned WingFoil CLI" → `/p/<pid>/directives/wingfoil-cli`, title "custom · wingfoil-cli — WingFoil UI"; the article's h1, the h2 "Known behaviours (0.2.2)" and the table with the column "Behaviour" and the cell "W-01", no Markdown source; the table region reached by Tab with a visible focus; axe in both themes; "← Directives" back to the list |
@@ -357,3 +357,24 @@ Screen: `docs/00_reference/ux-reference.md` §4.5, §4.6, §4.10 and the prototy
   skipped**, coverage 96.48 % statements / 90.37 % branches / 97.05 % functions / 98.17 % lines ·
   `test:e2e` **60/60** (load 16–18; no console and no run directory left afterwards) ·
   `npm run test:timing` **skipped** (load > 12).
+
+### W3-47 — live refresh: behaviour in the default gate, 5 s in the timing gate (2026-10-09)
+
+- Decided by the user (W3-47, option a): the load-adaptive `REFRESH_MS` is removed. In
+  `npm run test:e2e` the four live-refresh scenarios assert the behaviour only (the screen changes
+  by itself, without a reload) with the cold-read budget, at any load. `npm run test:timing` gains a
+  Playwright part, `playwright.timing.config.ts` (tag `@live-refresh`, one worker,
+  `WFUI_STRICT_REFRESH=1`): the same tests check that the screen changed within 5 s **of the
+  mutation** (`refreshClock().start()` right before the commit, the file write or the CLI verb that
+  commits), so the budget covers watcher → event stream → refetch → render; each time is printed
+  with the load. First run (load 8.5–9): S-27.2 495 ms, S-25.2 956 ms, S-26.1 1407 ms, S-26.2
+  1312 ms. `test/README.md` 0.18.
+- Closure of the live-refresh scenarios (S-25.2, S-26.1, S-26.2 close in task-017's table; their
+  proof is now split as follows):
+
+  | Scenario | Behaviour (`npm run test:e2e`) | 5 s (`npm run test:timing`) |
+  |----------|--------------------------------|-----------------------------|
+  | S-25.2 Remove the marker once the change is committed | `test/e2e/memory-list.spec.ts` › "S-25.2 …": the marker disappears by itself after the commit, no reload | same test, strict: ≤ 5 s from the commit |
+  | S-26.1 Refresh after a commit made outside the UI | same spec › "S-26.1 …": the pill turns "approved" by itself, announced, no reload | same test, strict: ≤ 5 s from the start of `memory approve` |
+  | S-26.2 Refresh an open element panel | same spec › "S-26.2 …": the open panel shows "signed off by Alex" with the new HEAD | same test, strict: ≤ 5 s from the start of `memory approve` |
+  | S-27.2 Recover when the file is fixed | `test/e2e/dna.spec.ts` › "S-27.2 …": the DNA sections replace the error by themselves, no reload | same test, strict: ≤ 5 s from the file write |

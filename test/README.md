@@ -1,6 +1,6 @@
 # Tests
 
-**Version:** 0.17 · **Date:** 2026-10-07 (0.1: workspace tooling and e2e harness — task-001; 0.2: `test/launcher/`, `test/server/` — task-002; 0.3: `test/contracts/`, local state isolation, secret scan — task-007; 0.4: `local-security` suite — task-003; 0.5: process runner fake, hand-made CLI packages, stub after global options — task-004; 0.6: CLI contract tests, captured samples, `test:contract` — task-005; 0.7: action descriptor tests, REQ-ARC-05 lint rule — task-011; 0.8: matrix builds of `cliBuildFor`, capability table and README checks — task-006; 0.9: identity tests, bin with a seeded state — task-009; 0.10: timing suite `test:timing`, `TempWorkspace`, snapshot audits and stand-ins — task-010 / bug-001; 0.11: project-list route tests, a dumb-HTTP git remote — task-008; 0.12: read routes, the read console replacing the stand-ins, spec-002 §3 event parse, confinement — task-012; 0.13: `test/web/` component tests, the shared e2e support of Wave 3, the shell e2e — task-013; 0.14: `test/web/element/` and the element panel e2e `element-panel.spec.ts` — task-018; 0.15: `test/web/docs/` and the documentation e2e `documentation.spec.ts` — task-020; 0.16: `test/web/memory/` and the Memory list e2e `memory-list.spec.ts` — task-017; 0.17: `test/web/dna/`, `directives/`, `team/`, the e2e `dna`, `directives`, `team` specs and G-02 in `element-panel.spec.ts`; load-independent waits, prebuilt fixtures and the console reaper of the e2e support, `test/harness/load.ts` — task-019 / bug-004)
+**Version:** 0.18 · **Date:** 2026-10-07 (0.1: workspace tooling and e2e harness — task-001; 0.2: `test/launcher/`, `test/server/` — task-002; 0.3: `test/contracts/`, local state isolation, secret scan — task-007; 0.4: `local-security` suite — task-003; 0.5: process runner fake, hand-made CLI packages, stub after global options — task-004; 0.6: CLI contract tests, captured samples, `test:contract` — task-005; 0.7: action descriptor tests, REQ-ARC-05 lint rule — task-011; 0.8: matrix builds of `cliBuildFor`, capability table and README checks — task-006; 0.9: identity tests, bin with a seeded state — task-009; 0.10: timing suite `test:timing`, `TempWorkspace`, snapshot audits and stand-ins — task-010 / bug-001; 0.11: project-list route tests, a dumb-HTTP git remote — task-008; 0.12: read routes, the read console replacing the stand-ins, spec-002 §3 event parse, confinement — task-012; 0.13: `test/web/` component tests, the shared e2e support of Wave 3, the shell e2e — task-013; 0.14: `test/web/element/` and the element panel e2e `element-panel.spec.ts` — task-018; 0.15: `test/web/docs/` and the documentation e2e `documentation.spec.ts` — task-020; 0.16: `test/web/memory/` and the Memory list e2e `memory-list.spec.ts` — task-017; 0.17: `test/web/dna/`, `directives/`, `team/`, the e2e `dna`, `directives`, `team` specs and G-02 in `element-panel.spec.ts`; load-independent waits, prebuilt fixtures and the console reaper of the e2e support, `test/harness/load.ts` — task-019 / bug-004; 0.18: the Playwright part of `test:timing` (strict live refresh) — task-019, W3-47)
 
 Every test lives under `test/` (DNA `paths.tests`); sources stay in `server/src`, `web/src`,
 `contracts/src`.
@@ -37,7 +37,8 @@ Every test lives under `test/` (DNA `paths.tests`); sources stay in `server/src`
   - `support/keyboard.ts`: `expectFocusVisible(locator)`;
   - `support/cold-read.ts` (bug-004): `COLD_READ_MS` and `expectFirstLoad(locator)` /
     `expectLoaded(scope)` — every spec waits for its first, cold read with them (the CLI behind the
-    API is slow under external load), later assertions keep Playwright's default;
+    API is slow under external load), later assertions keep Playwright's default; `refreshClock()`
+    for a live refresh (behaviour by default, the strict 5 s in `test:timing`, W3-47);
   - `fixtures.ts` option `prebuild` (bug-004): `test.use({ prebuild: ['kanban'] })` builds the
     spec's fixtures before its first test body (worker fixture, 300 s), not inside a test;
   - `support/reaper.ts` + `support/global-teardown.ts` (bug-004): each console runs in its own
@@ -125,6 +126,14 @@ average printed at the start and with every measurement (`report(label, value)` 
 them. Run the timing suite on a quiet machine (load average well below the core count) and record
 the printed load with the result; a failure under load is re-run, not "fixed". Counting tests
 (processes, events) are not timing tests and stay in the default suite.
+
+`npm run test:timing` also runs a Playwright part (`playwright.timing.config.ts`, W3-47): the
+live-refresh scenarios S-25.2, S-26.1, S-26.2 and S-27.2 (tag `@live-refresh`) on the real bin, one
+at a time, with `WFUI_STRICT_REFRESH=1`: the screen must change within 5 s of the mutation (the
+commit, the file write or the CLI verb that commits — watcher, event stream, refetch and render
+included), and each time is printed with the load (`refreshClock()` of
+`test/e2e/support/cold-read.ts`). The same tests in `npm run test:e2e` check the behaviour only (the
+screen changes by itself, without a reload) with the cold-read budget, at any load.
 
 A test that runs a long process in a temporary folder uses `TempWorkspace`
 (`test/harness/temp-workspace.ts`): `dispose()` in `afterAll` kills the processes still running

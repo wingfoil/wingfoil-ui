@@ -21,7 +21,7 @@
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
     "test:contract": "vitest run test/contracts",
-    "test:timing": "vitest run --config vitest.timing.config.ts",
+    "test:timing": "vitest run --config vitest.timing.config.ts && playwright test --config playwright.timing.config.ts",
     "test:e2e": "playwright test",
     "docs:api": "typedoc --options typedoc.json"
   },
