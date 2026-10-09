@@ -3,7 +3,7 @@ id: dev-loop-rel-v0.1-plan
 type: plan
 title: "Implementation rel-v0.1"
 status: active
-version: "0.3"         # optional — plan version
+version: "0.4"         # optional — plan version
 workflow: "dev-loop"
 phase: "rel-v0.1"
 scope: "rl-v1/rel-v0.1"
@@ -14,7 +14,7 @@ tmpl_version: 260703   # Orignal template version
 
 ## Context
 
-**Version:** 0.3 · **Date:** 2026-10-06 (0.1: plan created, Wave 1 scope; 0.2: Wave 1 session log; 0.3: Wave 2 session log)
+**Version:** 0.4 · **Date:** 2026-10-09 (0.1: plan created, Wave 1 scope; 0.2: Wave 1 session log; 0.3: Wave 2 session log; 0.4: Wave 3 session log)
 **Workflows:** `sw-life-cycle` → `release-line-cycle` (`rl-v1`) phase `delivery` → `release-cycle`
 (`minor-v0.1`) phase `implementation` = `dev-loop` iterated over every task with status `backlog`
 and tag `v0.1` (`.wingfoil/workflows/custom/release-cycle.yaml` v1.1, `dev-loop.yaml` v1.4)
@@ -90,7 +90,8 @@ Per task (`dev-loop` v1.4):
   before each merge; end of each wave.
 - **Completion:** every v0.1 task `done` and merged; plan finalized by hand (`status: done`, commit
   `wf(plan): finalize dev-loop-rel-v0.1-plan [active → done]`, W-04).
-- **Next:** wave 3 (013, 018, 017, 020, 019) — see Session 2.
+- **Next:** wave 4 (015, 014, 016) — see Session 3; it starts only after the WingFoil feedback
+  mechanism changes (M2) are applied between waves.
 
 ## Session log
 
@@ -216,3 +217,77 @@ Per task (`dev-loop` v1.4):
   `roleViews.length > 1`; Playwright suites that start the bin need their own `tsc -b server`.
 - **Next:** Wave 3 — 013, 018, 017, 020, 019 (web core). To confirm at its start: the rule for
   external load (quiet machine only for `test:timing`, as in this wave).
+
+### Session 3 — Wave 3: web core (2026-10-06 → 2026-10-09)
+
+- **Done and merged** (`--no-ff`, one at a time, each after an independent fresh-context review
+  re-verified by the same agent, `main` merged into the branch before submit, and the user's
+  `memory approve`), in this order: task-013 (`6ad0c7d`), task-018 (`db4055a`), task-020
+  (`2d1802f`), task-017 (`90b03ce`), task-019 (`9c8eb3d`). Review rounds: 013 ×3, 018 ×2, 020 ×2
+  (round 1 FAIL on focus loss), 017 ×3, 019 ×2. Parallelism: 013 → 018 sequential (the user
+  declined an early design of 018), then 017 ∥ 020, then 019. Handoff from the Wave 2 session
+  requested and received at start.
+- **Decisions of the user (W3-1 … W3-47, all option a)**, numbered per task with a recommended
+  option, applied as amendments with dated Process Notes (`a605969`, `785ccaf`, `10d3759`,
+  `3aa0433`, `b44f999`, `76ef2b3`, `6a34345`, `05d8876`; backlog regenerated with
+  `build_backlog.py`):
+  - 013 (W3-1 … W3-13): start page with no project open, empty Add-project dialog for 014, own lint
+    rule `wfui/catalogue-placeholders` (spec-008 §6), key build in `web/dist-keys` served by
+    Playwright route interception, every `error.*` key, project layout, full-page lost-session
+    notice (spec-004 §2), tokens `--shadow-popover` and `--color-backdrop` (spec-009 §2), modal
+    dismissal by Close/Escape only (ux-reference §5), unreachable-console banner after 10 s
+    (spec-004 §6); React Aria "Dismiss" string and the static `<title>` left to task-021 (X-09.1);
+    Vite chunk size measured in 021.
+  - 018 (W3-14 … W3-21): `states` in the element response (spec-004 §3 addendum + erratum),
+    off-sequence chip, first-paragraph summary, frontmatter references, route drawer, no Edit in
+    v0.1 (ux-reference §4.2), history wording without state names (spec-008).
+  - 017 (W3-22 … W3-27): `/p/$pid/memory` with `/p/$pid` redirect, panel replaces the list, lazy
+    archived read (TT-PERF-05 kept at 5 CLI), undeclared states/types shown, §4.4 items deferred,
+    bucket labels as closed UI vocabulary (spec-008 §3).
+  - 020 (W3-28 … W3-37): index by folder, `html:false`, per-target server checks capped at 100,
+    images never loaded, only http(s) followed, root-relative links, "Open on GitHub" deferred
+    (ux-reference §4.9); R-08.2 amended (lists on `02_product-vision.md`, BDD conventions 0.8).
+  - 019 (W3-38 … W3-47): panel directives of the current role view, pending gates aggregated
+    from descriptors (spec-003 note), `projectHeaderQuery`, directive pages, only mine/all in the
+    URL, team filters, DNA sections (ux-reference 0.6); W3-47: live-refresh "within 5 s" proved
+    strictly in `test:timing` (Playwright part, measured from the mutation), default e2e asserts
+    behaviour only.
+- **Coordinator decisions:** shared `elementsQuery(pid, archived)` settled on task-017's shape
+  after the review found 017 and 020 had diverged; task-020 merged first, task-017 resolved the
+  shared-file conflicts; small catalogue rewordings accepted inside their tasks; a rule added to
+  the agents' rules file: "when told to wait, wait" (task-018's agent built on its own recommended
+  options before the user answered).
+- **Bugs:** bug-004 (tests time out under extreme machine load, low) — `bug-ingest` by the agent,
+  triaged by the user, absorbed into task-019 (dl-045), fixed (shared cold-read helpers, prebuilt
+  fixtures, 10 s async waits, sized heavy tests, guaranteed console teardown with a reaper) and
+  **resolved**; left in `resolved` on purpose, to be closed after real runs under load in Wave 4
+  or at release validation.
+- **Facts learned:** under load 25–100 the first cold CLI read behind a screen outlasts
+  Playwright's 5 s and jsdom's 1 s defaults; e2e consoles could outlive their worktree (three found
+  after ~10 h) until the reaper; the load average sampled at worker start is not a reliable switch
+  for timing assertions; React Aria popovers add an English "Dismiss" string outside the catalogue.
+- **Deviations:** several e2e specs (and some component tests) were written after the code, each
+  recorded in its task's Execution Notes and checked for vacuity by the reviewer; agent sessions
+  were interrupted by API limits four times and resumed without loss; the entry bundle grew to
+  ≈ 618 kB (≈ 190 kB gzip), Markdown renderer lazy-loaded.
+- **Environment:** external load 3–110; the user accepted reviews and submits under load with
+  `test:timing` run only below load 12; task-019's evidence used self-started CPU burners
+  (coverage green at load 31–63, e2e 60/60 at load 71–98).
+- **Checks on `main` after the wave** (`d433812`): `test:coverage` **1640 passed, 1 skipped**,
+  coverage 96.48 % statements / 90.37 % branches · `test:e2e` **60/60** · typecheck, lint (incl.
+  catalogue check), format clean · `docs:api` OK · `check_tasks.py`, `check_releases.py` OK ·
+  `test:timing` green at load ≈ 14–16 (REQ-PERF-03 20/20 ≤ 1.9 s, REQ-PERF-06 1080–1490 ms,
+  TypeDoc 13.4 s, strict live refresh 4/4 from the mutation: S-27.2 995 ms, S-25.2 968 ms, S-26.1
+  1379 ms, S-26.2 2297 ms); no e2e console left running.
+- **Open points for later waves:** X-09.1 treatment of React Aria's "Dismiss" and the static
+  `<title>` (021); REQ-PERF-04 bundle size (021); full commit hash only in a tooltip (v0.2);
+  bug-004 to close; the task-017 closure rows' "within 5 s" superseded by W3-47 (notes kept
+  historical); spec-002 §4 incremental parse still deferred (v0.2).
+- **Hand-overs to Wave 4** (details in each task's Execution Notes): view recipe of task-013
+  (`staticData.nav`, one line in `PROJECT_ROUTES`, query keys under `['p', pid]`,
+  `useServerEvent`); reuse `projectHeaderQuery` (016), `elementsQuery`/`projectConfigQuery`;
+  React Aria hrefs accept concrete paths (015 switcher); an unanswered request renders as
+  `error.unreachable` (014); every new e2e spec declares `prebuild` and uses `expectFirstLoad`;
+  Playwright test timeout 180 s.
+- **Next:** Wave 4 — 015, 014, 016. Not started: the user asked to apply the WingFoil feedback
+  mechanism (session "Meccanismo feedback wingfoil", changes M2) between waves first.
