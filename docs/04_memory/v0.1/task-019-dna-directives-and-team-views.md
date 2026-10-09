@@ -369,6 +369,8 @@ Screen: `docs/00_reference/ux-reference.md` §4.5, §4.6, §4.10 and the prototy
   commits), so the budget covers watcher → event stream → refetch → render; each time is printed
   with the load. First run (load 8.5–9): S-27.2 495 ms, S-25.2 956 ms, S-26.1 1407 ms, S-26.2
   1312 ms. `test/README.md` 0.18.
+- W3-47 supersedes the "within 5 s" wording of task-017's closure rows S-25.2, S-26.1 and S-26.2
+  (task-017's notes are left as historical): the table below is their current proof.
 - Closure of the live-refresh scenarios (S-25.2, S-26.1, S-26.2 close in task-017's table; their
   proof is now split as follows):
 
