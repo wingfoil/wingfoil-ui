@@ -2,7 +2,7 @@
 id: bug-004-tests-time-out-under-extreme-machine-load
 type: bug
 title: "Tests time out under extreme machine load"
-status: in-progress
+status: in-review
 severity: "low"        # REQUIRED — critical | high | medium | low
 release-origin: "v0.1" # optional — release where the bug was FOUND, e.g. "v0.1"
 release: ""            # optional — fix/implementation release, stamped by release-planning/build-backlog
