@@ -1,6 +1,7 @@
 /**
  * The start page `/` (decision W3-1): the project list page, shown when no project is open — its
- * heading, one sentence and *Add project…*. Task-015 lists the projects here and in the switcher.
+ * heading, one sentence and *Add project…*. The projects are listed in the project switcher only
+ * (decision W4-7, ux-reference §3).
  */
 import { createRoute } from '@tanstack/react-router';
 import type { ReactNode } from 'react';
