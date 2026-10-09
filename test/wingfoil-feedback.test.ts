@@ -92,8 +92,10 @@ describe('the WingFoil feedback inbox (dl-163)', () => {
   it('states what was observed and what was expected, with no other section', () => {
     for (const note of notes) {
       expect(note.body, note.file).toMatch(/\n## Observed\n[\s\S]+\n## Expected\n[\s\S]*\S/);
-      const headings = note.body.match(/^## .+$/gm) ?? [];
-      expect(headings, note.file).toEqual(['## Observed', '## Expected']);
+      const sections = note.body.match(/^## .+$/gm) ?? [];
+      expect(sections, note.file).toEqual(['## Observed', '## Expected']);
+      // dl-163 R4 has no Replies: refused at any heading level.
+      expect(note.body, note.file).not.toMatch(/^#{1,6}\s+Replies\b/im);
     }
   });
 
