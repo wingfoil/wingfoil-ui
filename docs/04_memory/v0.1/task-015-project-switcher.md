@@ -219,9 +219,9 @@ Screen: `docs/00_reference/ux-reference.md` §3 and the prototype (`docs/00_refe
   | S-17.2 Keep the list out of every repository | `projects.spec.ts` › "S-17.2 — Keep the list out of every project repository" (`git status --porcelain` empty after the stop) |
   | S-18.1 Remove a project | `projects.spec.ts` › "S-18.1 — Remove a project from the list" (Tab to Remove, confirmation, focus on Cancel, axe; empty list; files, `git log --all`, `status --ignored` unchanged) |
   | S-18.2 Cancel the removal | `projects.spec.ts` › "S-18.2 — Cancel the removal" (Cancel button and Escape) |
-  | S-19.1 Show a moved project as unavailable | `projects.spec.ts` › "S-19.1 — Show a moved project as unavailable" (mark, Remove, no link, axe; custom opens on the Memory list) |
-  | S-19.2 Recover when the folder comes back | `projects.spec.ts` › "S-19.2 — Recover when the folder comes back" (folder moved back, switcher reopened, mark gone, link back) |
-  | X-05.1 Opaque ids in URLs | `projects.spec.ts` › "X-05.1 — Use opaque project ids in URLs" (every request and navigation URL free of the fixture's path; id `p_` + 12 base32) |
+  | S-19.1 Show a moved project as unavailable | `projects.spec.ts` › "S-19.1 — Show a moved project as unavailable" (the `GET /api/projects` sent by the opening answers `folder-not-found`; mark, Remove, no link, axe; custom opens on the Memory list) |
+  | S-19.2 Recover when the folder comes back | `projects.spec.ts` › "S-19.2 — Recover when the folder comes back" (folder moved back; the read sent by reopening the switcher answers `ok`; mark gone, link back) |
+  | X-05.1 Opaque ids in URLs | `projects.spec.ts` › "X-05.1 — Use opaque project ids in URLs" (every request and navigation URL free of the folder holding the fixture — the scenario's "/home/test" — and of `<parent>/kanban`, encoded or not; the page lands on `/p/<pid>/memory`) |
   | X-05.2 Refuse an unknown id | `projects.spec.ts` › "X-05.2 — Refuse a project id that is not in the list" (`GET /api/p/..%2F..%2Fetc` with the page's session → 404; the page at that address shows "Not found") |
   | X-02.1 Browser session (task-003/007 closure) | `projects.spec.ts` › "X-02.1 — Serve the browser session opened with the token" (the URL with the fragment; the address bar is `<origin>/` without the token; the switcher lists kanban; keyboard; axe) |
 
@@ -246,3 +246,42 @@ Screen: `docs/00_reference/ux-reference.md` §3 and the prototype (`docs/00_refe
     (as the 013 menu had). The panel is non-modal: X-10.2's title is unchanged.
   - **Coordinator:** ux-reference §3 (W4-1/2/3/6) and §4.2 (W4-8) amendments on `main`. Run
     `npm run test:timing` on a quiet machine.
+
+### review round 1 (2026-10-09)
+
+- Coordinator review: **FAIL** (1 major, minors, nits). Fixed one commit per group:
+  - **R1 (major)** (`21c81cd`) a grid-list row was named by its text value only, so the current
+    mark, the path, the reason and the install line were lost to assistive technology. They now
+    sit in a React Aria `<Text slot="description" elementType="div">`. React Aria then labels the
+    row by `aria-labelledby` = the row (name) + that slot, so a screen reader hears e.g. "alpha
+    current project /home/…/alpha" or "gamma /home/…/gamma Unavailable — WingFoil CLI not found
+    Install it with: npm install --save-dev wingfoil". Unit tests assert the computed accessible
+    name of the current row and of the unavailable rows (`getByRole('row', { name })`). React Aria
+    puts the slot in the name, not in `aria-describedby`.
+  - **R2** (`cda455e`) S-19.1/S-19.2: `openSwitcher` waits for the `GET /api/projects` that the
+    opening sends (`requestfinished`, `COLD_READ_MS`) and returns its body. The tests assert that
+    this read answers `folder-not-found` (then `ok` after the folder is back), so they prove the
+    refetch on open (W4-4) rather than the 10 s periodic check. The marks are awaited with
+    `COLD_READ_MS`.
+  - **R3** (`cda455e`) `listedNames()` (one non-retrying read) is replaced by `expectListed()`
+    (`toHaveText([...])`/`toHaveCount(0)` on the row names, `COLD_READ_MS`), after the opening's
+    read completed (S-17.1, S-18.1, S-18.2, S-17.2, X-02.1).
+  - **R4** (`cda455e`) X-05.1: the tautological id-format assertion is dropped. The folder holding
+    the fixture (the scenario's "/home/test") is added to the forbidden substrings, encoded too.
+    The closure row is reworded.
+  - **R5** (`21c81cd`) `useRemoveProject`: a 404 `not-found` on `DELETE` is handled as already
+    removed (`onRemoved`, then `forgetProject`). Any other failure invalidates `projectsQuery()`
+    and is shown in the dialog. Unit tests cover the 404 → removed path and the 500 → error,
+    list kept, query invalidated path. The switcher test of a refused removal now uses a 500. The
+    pattern is documented in the header of `api/projects.ts` for task-014.
+  - **R6** kept: the arrow keys move between the rows and Tab moves from a row to its Remove
+    button (`keyboardNavigationBehavior="tab"`). The `ProjectSwitcher.tsx` header says so;
+    ux-reference §3 wording by the coordinator.
+  - **R7** nothing here (coordinator, ux-reference §4.2).
+  - **R8** (`e33617b`) the panel's Escape is a React `onKeyDown` on `div.drawer` that ignores an
+    event an inner handler already `preventDefault`-ed (the native listener ran before React's
+    delegated handlers). New unit test: an inner control consuming Escape keeps the panel open.
+    The test uses a native listener on the body region (the panel has no inner React control
+    handling Escape today).
+  - **R9** (`21c81cd`) the open project's own row has no `href`: pressing it only closes the
+    switcher (`onAction`). The URL, its search and an open panel stay. Unit test included.
