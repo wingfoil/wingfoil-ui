@@ -4,7 +4,16 @@
 // next run's setup reaps the directories of a run killed before its teardown, never a concurrent
 // run's; a recycled pid that is no console, or whose command line cannot be read, is left alone.
 import { spawn, type ChildProcess } from 'node:child_process';
-import { existsSync, mkdirSync, mkdtempSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  utimesSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, expect, it } from 'vitest';
@@ -14,6 +23,7 @@ import {
   createRunDir,
   forget,
   isRunning,
+  ORPHAN_GRACE_MS,
   OWNER_FILE,
   reapRun,
   reapWorker,
@@ -144,4 +154,28 @@ it("reaps the directory of a run killed before its teardown, never a running run
   expect(existsSync(stale)).toBe(false);
   expect(isRunning(busy.pid!)).toBe(true);
   expect(existsSync(live)).toBe(true);
+});
+
+it('creates a run directory with its owner in one step, leaving no staging directory (review N1)', () => {
+  const root = temp('wfui-reaper-root-');
+  const run = createRunDir(root);
+  expect(readFileSync(path.join(run, OWNER_FILE), 'utf8')).toBe(String(process.pid));
+  expect(readdirSync(root)).toEqual([path.basename(run)]);
+});
+
+it('leaves an owner-less run directory alone while it is recent, and reaps it once old (review N1)', async () => {
+  const root = temp('wfui-reaper-root-');
+  const young = path.join(root, `${RUN_DIR_PREFIX}young`);
+  mkdirSync(young);
+  const orphan = fakeConsole();
+  writeFileSync(path.join(young, String(orphan.pid)), '');
+  expect(sweepStaleRuns(root).killed).toEqual([]);
+  expect(existsSync(young)).toBe(true);
+  expect(isRunning(orphan.pid!)).toBe(true);
+  // The same directory, older than the grace period.
+  const old = (Date.now() - ORPHAN_GRACE_MS - 1_000) / 1_000;
+  utimesSync(young, old, old);
+  expect(sweepStaleRuns(root).killed.map((k) => k.pid)).toEqual([orphan.pid]);
+  expect(await gone(orphan.pid!)).toBe(true);
+  expect(existsSync(young)).toBe(false);
 });

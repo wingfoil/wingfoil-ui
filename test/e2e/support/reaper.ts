@@ -9,7 +9,17 @@
  * - synchronously on the worker's `exit` (and on SIGTERM/SIGINT), for a worker that dies early;
  * - by the global teardown ({@link reapRun}), which also fails the run loudly when one survived.
  */
-import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, unlinkSync, writeFileSync } from 'node:fs';
+import {
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  renameSync,
+  rmSync,
+  statSync,
+  unlinkSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 
@@ -143,17 +153,28 @@ export function reapRun(dir: string, readCommand: (pid: number) => string | unde
 
 /** A new run directory owned by this process (the global setup's). */
 export function createRunDir(root = tmpdir()): string {
-  const dir = path.join(root, `${RUN_DIR_PREFIX}${process.pid}-${Date.now()}`);
-  mkdirSync(dir, { recursive: true });
-  writeFileSync(path.join(dir, OWNER_FILE), String(process.pid));
+  // Made complete under another name, then renamed into place: a concurrent sweep never sees the
+  // run directory without its owner (review N1).
+  const name = `${process.pid}-${Date.now()}`;
+  const staging = path.join(root, `${STAGING_PREFIX}${name}`);
+  mkdirSync(staging, { recursive: true });
+  writeFileSync(path.join(staging, OWNER_FILE), String(process.pid));
+  const dir = path.join(root, `${RUN_DIR_PREFIX}${name}`);
+  renameSync(staging, dir);
   return dir;
 }
+
+/** Prefix of a run directory being made (never swept). */
+export const STAGING_PREFIX = '.wfui-e2e-staging-';
+
+/** An owner-less run directory younger than this is left alone (it may be one being made). */
+export const ORPHAN_GRACE_MS = 60_000;
 
 /**
  * Reap the run directories of earlier runs whose owner is gone (a run killed before its teardown,
  * review F2); a directory whose owner still runs belongs to a concurrent run and is left alone.
  */
-export function sweepStaleRuns(root = tmpdir()): RunReap {
+export function sweepStaleRuns(root = tmpdir(), now = Date.now()): RunReap {
   const all: RunReap = { killed: [], unverified: [] };
   for (const name of readdirSync(root)) {
     if (!name.startsWith(RUN_DIR_PREFIX)) continue;
@@ -162,7 +183,15 @@ export function sweepStaleRuns(root = tmpdir()): RunReap {
     try {
       owner = Number(readFileSync(path.join(dir, OWNER_FILE), 'utf8'));
     } catch {
-      // no owner recorded: an orphan
+      // No owner recorded: an orphan, unless it is recent (made by another tool, or by an older
+      // support without the atomic creation, review N1).
+      let mtime: number;
+      try {
+        mtime = statSync(dir).mtimeMs;
+      } catch {
+        continue;
+      }
+      if (now - mtime < ORPHAN_GRACE_MS) continue;
     }
     if (Number.isInteger(owner) && owner > 0 && isRunning(owner)) continue;
     const r = reapRun(dir);
