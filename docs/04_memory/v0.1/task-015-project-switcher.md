@@ -285,3 +285,17 @@ Screen: `docs/00_reference/ux-reference.md` §3 and the prototype (`docs/00_refe
     handling Escape today).
   - **R9** (`21c81cd`) the open project's own row has no `href`: pressing it only closes the
     switcher (`onAction`). The URL, its search and an open panel stay. Unit test included.
+- **Checks after the fixes** (HEAD `e2566ae`; the machine rebooted between the fixes and the
+  gates; load average 13.3 at the start, 39–82 during the long gates, from other projects):
+  `typecheck`, `lint`, `format:check` clean · `docs:api` OK · `check_tasks.py` OK ·
+  `test:coverage`, two runs: (1) load 39 → 80: 4 timeouts in `test/launcher/launcher.test.ts`
+  ("no running line after 10000 ms"), 1682 passed; (2) load 68 → 78: 2 timeouts
+  (`launcher.test.ts` "exits 130 on a second signal", `test/lint/no-shell.test.ts` 30 s), **1684
+  passed / 1 skipped of 1687**. Those two files re-run alone: 50/50. No failure in a file this
+  task touches. Before the reboot, the same code (`cda455e`) ran **1686 passed / 1 skipped**,
+  coverage 96.57 % statements / 90.63 % branches / 97.14 % functions / 98.2 % lines (load ≈ 304).
+  · `test:e2e`: **68/71** at load 80 → 82. The 3 failures are cold-read timeouts (60 s) in
+  `memory-list.spec.ts` (S-26.2, S-28.1 kanban and custom) right after the reboot.
+  `memory-list.spec.ts` re-run alone at load 75 → 69: **21/21**. `projects.spec.ts` with
+  `--repeat-each=2` 22/22, plus `element-panel` and `shell` 28/28 before the reboot.
+  `npm run test:timing` **not run** (load ≥ 13.3 > 12).
