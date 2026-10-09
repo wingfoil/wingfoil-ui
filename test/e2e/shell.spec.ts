@@ -37,7 +37,8 @@ test.describe('US-S-01 — start the console', () => {
     await tabTo(page, 'button', 'Projects');
     await expectFocusVisible(switcher);
     await page.keyboard.press('Enter');
-    const add = page.getByRole('menuitem', { name: 'Add project…' });
+    // task-015 (W4-1): the switcher is a dialog with the project rows and an "Add project…" button.
+    const add = page.getByRole('dialog', { name: 'Projects' }).getByRole('button', { name: 'Add project…' });
     await expect(add).toBeVisible();
     await expect(add).toBeFocused();
     expect(await scanThemes(page)).toEqual([]);
@@ -57,7 +58,9 @@ test.describe('US-S-01 — start the console', () => {
     await page.goto(c.url);
     await expectFirstLoad(page.getByRole('button', { name: 'Projects', exact: true }));
     await page.getByRole('button', { name: 'Projects', exact: true }).click();
-    await expect(page.getByRole('menuitem', { name: 'Add project…' })).toBeVisible();
+    await expect(
+      page.getByRole('dialog', { name: 'Projects' }).getByRole('button', { name: 'Add project…' }),
+    ).toBeVisible();
   });
 });
 

@@ -132,6 +132,19 @@ it('switches to the same view of the other project and closes the switcher (W4-5
   expect(await screen.findByRole('button', { name: 'Projects: beta' })).toBeTruthy();
 });
 
+it('closes the element panel of the previous project on switch (S-16.2)', async () => {
+  fakeApi([ALPHA, BETA]);
+  const user = userEvent.setup();
+  const { router } = renderApp('/p/p_alpha/e/task-001-login-form');
+  expect(await screen.findByRole('dialog', { name: 'task-001-login-form' })).toBeTruthy();
+  const grid = await openSwitcher(user, 'Projects: alpha');
+  expect(grid.querySelector('[data-href="/p/p_beta"]')).not.toBeNull();
+  await user.click(within(grid).getByText('beta'));
+  await waitFor(() => expect(router.state.location.pathname).toBe('/p/p_beta/memory'));
+  expect(screen.queryByRole('dialog', { name: 'task-001-login-form' })).toBeNull();
+  expect(screen.queryByText('task-001-login-form')).toBeNull();
+});
+
 it('operates from the keyboard: open, move between rows, open a project', async () => {
   fakeApi([ALPHA, BETA]);
   const user = userEvent.setup();
