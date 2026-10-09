@@ -212,3 +212,7 @@ element list; `web/` renders it and never re-derives it.
 - 2026-10-07 — amended in dev-loop task-018 (Wave 3, plan dev-loop-rel-v0.1-plan): panel use of the descriptor in
   v0.1: a current state outside `sequence` (off-sequence, undeclared, archived) is drawn as its own
   chip after the unmarked sequence chips, coloured by `tone` (W3-15); decided by the user.
+- 2026-10-07 — amended in dev-loop task-019 (Wave 3, plan dev-loop-rel-v0.1-plan): the Team
+  view's pending gates per member are counted in the web from the descriptors of `GET /elements`
+  (`kind: gate` whose `actor.members` lists the member; `gate-waiting` excluded) — an aggregation
+  of descriptor data, not a re-derivation (§8); no server change (W3-39); decided by the user.
