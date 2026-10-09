@@ -77,3 +77,10 @@ the release's stop-check stays green.
 - Gates: `tsc -b`, lint, format:check, `check_tasks.py` OK, `npm test` 1640 passed / 1 skipped.
 - Push: `main` pushed before the task (`851ef46..0349e08`, 2026-10-09, approver decision "push
   before and after"); the after-push follows the merge.
+
+### review (2026-10-09)
+
+- Independent fresh-context review: **PASS** (byte-identity, not ignored, governance rule refuses
+  every mismatched combination and keeps depends_on/cycle checks, notes truthful, scope limited to the
+  inbox and the task file). Two low notes, both closed at merge: the local `.notes/` copy is removed
+  after the merge and the after-push, and both are recorded under `### integration`.
