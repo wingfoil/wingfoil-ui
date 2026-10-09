@@ -225,14 +225,14 @@ test.describe('US-S-18 — remove a project', () => {
     await expect(confirm).toBeVisible();
     await confirm.getByRole('button', { name: 'Cancel' }).click();
     await expect(confirm).toBeHidden();
-    await openSwitcher(page);
+    expect((await openSwitcher(page)).projects.map((p) => p.name)).toEqual(['kanban']);
     await expectListed(page, ['kanban']);
     // Escape cancels too (ux-reference §5).
     await switcher(page).getByRole('button', { name: 'Remove kanban' }).click();
     await expect(confirm).toBeVisible();
     await page.keyboard.press('Escape');
     await expect(confirm).toBeHidden();
-    await openSwitcher(page);
+    expect((await openSwitcher(page)).projects.map((p) => p.name)).toEqual(['kanban']);
     await expectListed(page, ['kanban']);
   });
 });
@@ -246,7 +246,10 @@ test.describe('US-S-19 — missing folder', () => {
   ): Promise<{ c: RunningConsole; kanban: Fixture; moved: string }> {
     const kanban = await fixtures.copy('kanban');
     const c = await consoles.start({ projects: [kanban, await fixtures.get('custom')] });
+    // The page's first list read completes before the folder moves: a later read is the opening's.
+    const first = nextListRead(page);
     await openConsole(page, c);
+    expect((await first).body.projects.map((p) => p.availability)).toEqual(['ok', 'ok']);
     const moved = `${kanban.dir}-moved`;
     await rename(kanban.dir, moved);
     return { c, kanban, moved };

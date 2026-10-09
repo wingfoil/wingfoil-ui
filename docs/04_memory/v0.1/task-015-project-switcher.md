@@ -299,3 +299,13 @@ Screen: `docs/00_reference/ux-reference.md` §3 and the prototype (`docs/00_refe
   `memory-list.spec.ts` re-run alone at load 75 → 69: **21/21**. `projects.spec.ts` with
   `--repeat-each=2` 22/22, plus `element-panel` and `shell` 28/28 before the reboot.
   `npm run test:timing` **not run** (load ≥ 13.3 > 12).
+
+### review round 2 (2026-10-09)
+
+- Coordinator re-review: round-1 findings verified fixed; two test-only items fixed (`test/e2e/projects.spec.ts`):
+  - **R11** S-18.2: both reopenings also assert the body of the list read sent by the opening
+    (`['kanban']`), so the screen assertion cannot pass on the cached list alone.
+  - **R10** S-19.x `movedKanban`: the page's first `GET /api/projects` is awaited (and answers
+    `ok`, `ok`) before the folder is renamed, so the read captured after it is the opening's.
+- Checks: `typecheck`, `lint`, `format:check` clean · `projects.spec.ts --repeat-each=2`
+  **22/22** (load 41 → 50). Full suites not re-run (test-only change in this spec).
