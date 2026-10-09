@@ -1,6 +1,6 @@
 # UX reference — WingFoil UI
 
-**Version:** 0.7 · **Date:** 2026-10-09 (0.2: §9 colours aligned with spec-009 — release-planning v0.1 session 2; 0.3: §3 start page with no project open, §5 modal dismissal — dev-loop task-013, decided by the user; 0.4: §4.2 v0.1 read-only panel — dev-loop task-018, decided by the user; 0.5: §4.4 and §4.9 in v0.1 — dev-loop tasks 017 and 020, decided by the user; 0.6: §4.2 panel directives, §4.5, §4.6, §4.10 in v0.1 — dev-loop task-019, decided by the user; 0.7: §3 project switcher in v0.1 (grid rows, removal confirmation, unavailable entries, trigger text) — dev-loop task-015, Wave 4, decided by the user) · **Status:** Reference for `lean-inception` and `specification-downcast`
+**Version:** 0.8 · **Date:** 2026-10-09 (0.2: §9 colours aligned with spec-009 — release-planning v0.1 session 2; 0.3: §3 start page with no project open, §5 modal dismissal — dev-loop task-013, decided by the user; 0.4: §4.2 v0.1 read-only panel — dev-loop task-018, decided by the user; 0.5: §4.4 and §4.9 in v0.1 — dev-loop tasks 017 and 020, decided by the user; 0.6: §4.2 panel directives, §4.5, §4.6, §4.10 in v0.1 — dev-loop task-019, decided by the user; 0.7: §3 project switcher in v0.1 (grid rows, removal confirmation, unavailable entries, trigger text) — dev-loop task-015, Wave 4, decided by the user; 0.8: §4.2 non-modal drawer — dev-loop task-015, W4-8, decided by the user) · **Status:** Reference for `lean-inception` and `specification-downcast`
 **Prototype:** `docs/00_reference/prototype/` (interactive HTML; sample data from the WingFoil
 repository and from a fictional Kanban project `acme-checkout`)
 
@@ -70,6 +70,7 @@ Overlay: element panel (right) · command palette · modals (ingestion, agent la
 All cards are stacked full width, in this order.
 
 ### 4.2 Element panel (right drawer)
+- **v0.1 (dev-loop task-015, decided by the user, W4-8):** the drawer is **non-modal** — no backdrop over the header and sidebar and no focus trap, so the shell (project switcher included) stays operable while it is open; focus moves into the panel on open, *Close* and Escape close it and return focus.
 - Type tag, id, **Edit**, close.
 - Title; **state machine** as chips (past / current / future).
 - Rejection banner if last transition was a reject.
