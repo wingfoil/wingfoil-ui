@@ -2,7 +2,7 @@
 id: task-022-version-the-wingfoil-feedback-inbox
 type: task
 title: "Version the WingFoil feedback inbox"
-status: draft
+status: pending
 release: "v0.1"
 module: "governance"   # optional — server | web | contracts (dna.yaml modules)
 priority: "high"       # optional — high | medium | low
