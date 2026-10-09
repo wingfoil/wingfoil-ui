@@ -176,3 +176,15 @@ at `53090c2` (task-009, task-010). Governance task between Wave 3 and Wave 4: `m
   (96.48 / 90.37 / 97.05 / 98.17 %); `docs:api` OK; `check_tasks.py`, `check_releases.py`,
   `check_backlog.py` OK; `directives list` empty stderr; `test:e2e` skipped (load 26.6 > 20, no UI
   code touched; 60 passed before the fixes).
+
+### integration (2026-10-09)
+
+- Independent re-verification: **PASS**, no new findings (W-12 and W-24 reproduced on 0.2.2, SARD
+  amendment and backlog regeneration limited to REQ-SEC-07, Replies caught at any heading level, no
+  live `.notes/` or inbox R-id reference left).
+- `main` merged into the branch: already up to date (the branch started after task-022's merge).
+- Gates on the branch: `tsc -b`, lint, format:check, `check_tasks.py`, `check_releases.py` OK; `npm
+  test` 1647 passed / 1 skipped (load ≈ 28); `test:e2e` not re-run (no UI code changed; 60/60 before
+  the review fixes).
+- After the merge `main` is pushed (approver decision "push before and after"), so WingFoil's
+  task-269 `verify` can read `docs/wingfoil-feedback/README.md` on the pushed `main`.
