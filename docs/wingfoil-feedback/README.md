@@ -73,3 +73,9 @@ reads only the files it names, so an extra file in `.wingfoil/` is already ignor
 **When each request was wanted** (the former *When* column) is stated in each note's Expected
 section: before v1.0 for F-001, F-002, F-003, F-011, F-012; before v1.0 as a nice to have for F-004
 and F-010; after v1.0 for F-005…F-009.
+
+**What each request feeds in WingFoil UI** (the former *Why* column, for this repository's
+readers): F-005 the Configuration page; F-006 the Artifacts view (artifact paths stay in `ui.yaml`
+until then); F-007 external notifications (in-app ones meanwhile); F-008 workflow editing from the
+UI (journey 6); F-009 Configuration › Permissions (UI feature L6) — the UI implements no
+permissions until WingFoil does (decided 2026-10-02, specification session 3).
