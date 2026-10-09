@@ -2,7 +2,7 @@
 id: task-023-wingfoil-feedback-inbox-one-file-per-note-ledger-and-the-wingfoil-cli-directive
 type: task
 title: "WingFoil feedback inbox one file per note ledger and the wingfoil-cli directive"
-status: pending
+status: backlog
 release: "v0.1"
 module: "governance"   # optional — server | web | contracts (dna.yaml modules)
 priority: "high"       # optional — high | medium | low
