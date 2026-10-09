@@ -128,8 +128,8 @@ at `53090c2` (task-009, task-010). Governance task between Wave 3 and Wave 4: `m
 
 - Every Observed section re-run with the pinned `wingfoil` 0.2.2 in scratch repositories under the
   session's temp directory (Kanban and Scrum `init`, custom types for F-012…F-014, a clone of the
-  WingFoil repository at `1ce84a54` for F-017's read-only `directives list`). Two claims of the
-  former text were not reproducible and were left out of the notes (the directive keeps its wording):
+  WingFoil repository at `1ce84a54` for F-017's read-only `directives list`). One claim of the
+  former text was not reproducible and was left out of the notes (the directive keeps its wording):
   the `amendable` key of WingFoil's `memory.yaml` gives no warning on `memory search` in 0.2.2.
 - WingFoil elements on the same subject found in the WingFoil repository (local `main` at
   `1ce84a54`) and stated in the note bodies, not in `answered_by` (rule 6): bug-214 (F-012),
