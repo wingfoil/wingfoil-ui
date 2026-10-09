@@ -8,6 +8,9 @@ Checks, for every docs/04_memory/<release>/task-*.md:
 - every `<release>` acceptance criterion of an item is cited in that item's Acceptance Criteria block;
 - every `depends_on` id is a task of the same release, and `depends_on` has no cycle;
 and that every item of by-release/<release>.json is listed by exactly one task.
+A governance task of the release (`module: governance` together with `ref: GOV`, line
+`**Backlog items:** GOV …`) has no backlog item and is exempt from the module and backlog checks;
+`governance` without `GOV`, or `GOV` with another module, is an error.
 
 Usage: python3 docs/03_backlog/X_tools/check_tasks.py [release]   (default: v0.1)
 Exit status 0 when every check passes.
@@ -52,7 +55,18 @@ for p in tasks:
     for k in ("title", "module", "priority", "ref"):
         if f.get(k, '""') in ('""', ""):
             errors.append(f"{name}: {k} empty")
-    if f.get("module", "").strip('"') not in MODULES:
+    module, ref = f.get("module", "").strip('"'), f.get("ref", "").strip('"')
+    if (module == "governance") != (ref == "GOV"):
+        errors.append(f"{name}: governance task needs module governance with ref GOV")
+    deps[p.stem] = lst(f.get("depends_on"))
+    if module == "governance" and ref == "GOV":
+        if not re.search(r"^\*\*Backlog items:\*\* GOV\b", s, re.M):
+            errors.append(f"{name}: governance task without **Backlog items:** GOV line")
+        for d in deps[p.stem]:
+            if d not in ids:
+                errors.append(f"{name}: depends_on {d} is not a {REL} task")
+        continue
+    if module not in MODULES:
         errors.append(f"{name}: module {f.get('module')}")
     m = re.search(r"^\*\*Backlog items:\*\* (.+)$", s, re.M)
     items = [x.strip() for x in m.group(1).split(",")] if m else []

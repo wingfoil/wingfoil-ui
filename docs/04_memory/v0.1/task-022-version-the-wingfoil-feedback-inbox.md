@@ -4,10 +4,10 @@ type: task
 title: "Version the WingFoil feedback inbox"
 status: draft
 release: "v0.1"
-module: ""             # optional — server | web | contracts (dna.yaml modules)
-priority: ""           # optional — high | medium | low
+module: "governance"   # optional — server | web | contracts (dna.yaml modules)
+priority: "high"       # optional — high | medium | low
 tags: ["v0.1","governance","feedback-loop"]
-ref: ""                # optional — backlog item ID, e.g. "TASK-001"
+ref: "GOV"             # optional — backlog item ID, e.g. "TASK-001"
 bug: []                # optional — LIST of bug ids this task closes. Two cases: a fix task derived from a bug
                        # by release-planning, and a bug ABSORBED into an existing task's Acceptance Criteria because that
                        # task already owns the ground. `bug.sync_state` iterates this list; a bug with no task naming it
@@ -19,20 +19,39 @@ tmpl_version: 260703   # Orignal template version
 
 ## Description
 
-<!-- What needs to be built and why. Reference the user story if applicable:
-     "As <persona>, I want <action> so that <benefit>." -->
+Version the WingFoil feedback inbox (step S1): move the local, git-ignored
+`.notes/wingfoil-requests.md` **unchanged** to `docs/wingfoil-feedback/` on `main`, so that WingFoil
+can register this repository as a `repository` service with `feedback_inbox: docs/wingfoil-feedback/`
+(WingFoil task-269, whose `verify` reads the inbox on the pushed `main`). `.notes/` may stay
+git-ignored for other local notes. The one-file-per-note format is task-023.
+
+It applies **WingFoil dl-163** ("Consumer projects' feedback sources and the feedback loop",
+`ready`, ratified 2026-10-07) **strictly, with no local extension** (approver ruling R9), as relayed by
+the session coordinating the loop (step M2, 2026-10-09). Background: proposal
+`~/Workspaces/WingFoil2-Market/proposals/2026-10-07-wingfoil-feedback-loop/README.md` (where it differs
+from dl-163, its table "WingFoil dl-163 supersedes…" wins). Reference implementation: WingFoil-Templates
+at `53090c2` (task-009, task-010). Governance task between Wave 3 and Wave 4: `module: governance`,
+`ref: GOV` (no backlog item; accepted by `check_tasks.py`).
+
+Also: `docs/03_backlog/X_tools/check_tasks.py` accepts a governance task of a release
+(`module: governance` with `ref: GOV`, no backlog item) — done with this task's authoring, so that
+the release's stop-check stays green.
+
+**Backlog items:** GOV (governance — no backlog item)
 
 ## Acceptance Criteria
 
-<!-- Reference the Gherkin feature file, or inline the key scenarios.
-     e.g. "See docs/02_requirements/02_bdd/features/today/pending-gates.feature"
-     For `web` tasks also point to the screen in docs/00_reference/ux-reference.md (§4.x) and the
-     prototype, and state the accessibility bar (keyboard path, axe clean). -->
+- `docs/wingfoil-feedback/wingfoil-requests.md` is byte-identical to the former
+  `.notes/wingfoil-requests.md` and committed on `main`; the local copy is removed.
+- `check_tasks.py` passes with the governance tasks (and still refuses a `governance` module without
+  `ref: GOV`, or `GOV` with another module).
+- `main` pushed to `origin` before and after (approver decision, 2026-10-09); the push state is
+  reported to the coordinating session.
 
 ## Implementation Notes
 
-<!-- Optional: known constraints, design hints, or links to relevant ADRs. -->
-
+- No product code changes; references to `.notes/` in the `wingfoil-cli` directive change in
+  task-023 (S4b).
 ## Execution Notes
 
 <!-- Running log of what actually happened while working this task through dev-loop — filled in
