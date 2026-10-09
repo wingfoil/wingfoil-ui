@@ -70,3 +70,32 @@ at `53090c2` (task-009, task-010). Governance task between Wave 3 and Wave 4: `m
      - design: tech-specs found missing/needing revision (dev-loop/design safety net).
      - red/green/refactor: deviations from the plan above, blockers, scope surprises.
      - review: rejection reasons and what changed on the next pass. -->
+
+### design (2026-10-09)
+
+- No tech-spec involved. Authority: WingFoil dl-163 R4 strictly (R9); shape copied from
+  WingFoil-Templates `53090c2` (`docs/wingfoil-feedback/`, `wingfoil-cli.md` 1.0,
+  `tests/wingfoil-feedback.test.ts`, task-010's Execution Notes).
+- **Numbering** (Templates' convention: old ids in order, then the new ones): R-01…R-12 →
+  F-001…F-012; the candidates in table order W-03, W-07, W-08, W-09, W-12, W-13 → F-013…F-018; the
+  unnamed "memory search reads the working tree" row → F-019. The unnamed "ingestion needs every
+  required field settable" row folds into F-003 (R-03), approver decision.
+- **Duplicate check of the candidates against R-xx:** W-01 → R-03 and W-04 → WingFoil task-226 (no
+  note, as the old table said); W-08 and R-10 both concern the Kanban template but different files
+  (`dna.yaml` roles vs ingestion workflows); W-13 (who passes a gate) is not R-09 (action
+  permissions: R-09 keeps gate approvals under `memory.yaml`); W-03, W-07, W-09, W-12 and the
+  working-tree row match no R-xx. No candidate is a duplicate.
+- **Kinds:** defect = wrong behaviour of 0.2.2 or its templates (R-10, R-12, W-03, W-07, W-12);
+  gap = a missing read/write capability of the CLI (R-03, R-04, R-11, W-08, W-09, W-13, F-019);
+  request = a new feature or a promise (R-01, R-02, R-05…R-09). `wingfoil_version: 0.2.2` everywhere
+  (the pinned build every observation was made on).
+- **Reproduction:** every Observed section re-run on 2026-10-09 with the pinned `wingfoil` 0.2.2 in a
+  scratch git repository under the session's temp directory (`init --template Kanban
+  --no-interactive`, plus types copied into its `memory.yaml` where the observation needs them);
+  nothing written to this repository's Memory.
+- **Directive 1.6:** rules 1–7 word for word from Templates; this repository's own content that 1–7
+  do not carry becomes rules 8+ (the `-s` reason; "update the entries that changed" at a pin
+  advance). The scope paragraph stays. *Note* column added; *Fixed upstream by (WingFoil element)*
+  renamed *WingFoil element*, its values kept.
+- **Test:** `test/wingfoil-feedback.test.ts` (Vitest, `yaml` parser like `server/src/reads/
+  frontmatter.ts`), checked by planted defects; `test/README.md` version bumped.
