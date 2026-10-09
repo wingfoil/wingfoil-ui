@@ -2,7 +2,7 @@
 id: task-019-dna-directives-and-team-views
 type: task
 title: "DNA directives and team views"
-status: in-review
+status: approved
 release: "v0.1"
 module: "web"             # optional — server | web | contracts (dna.yaml modules)
 priority: "medium"           # optional — high | medium | low
