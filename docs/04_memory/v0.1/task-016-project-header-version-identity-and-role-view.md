@@ -200,3 +200,28 @@ Screen: `docs/00_reference/ux-reference.md` §3 and the prototype (`docs/00_refe
   change is always visible to `lstat`; the `LATER` clock still disables the racy rule on purpose.
   Product code unchanged. 20 consecutive isolated runs (`npx vitest run
   test/server/snapshot/fingerprint.test.ts`): **20/20 green** (load 22.75). Commit `ada377a`.
+
+### design decisions (2026-10-10)
+
+- Decided by the user (through the coordinator), each option (a)/(b) as recommended:
+  - **W4-16 (b)** identity and role view at the right end of the global header, rendered by
+    `ProjectLayout` through a portal into an empty slot of `Shell`'s header (only inside a
+    project); the version line and the read-only notices in a "Project header" strip above
+    `<Outlet/>`.
+  - **W4-17 (a)** initials + name always visible; a single-role member also shows the role;
+    not in team → the email + badge "not in team"; "No identity"; "Ambiguous identity"; accessible
+    name e.g. "Current user: Jordan, developer".
+  - **W4-18 (a)** always-visible version line ("(from PATH)" when so), "Every capability of this
+    release is available" or the missing list; out of range "WingFoil 0.4.0 — read-only: supported
+    0.2.2 to 0.2.x" from catalogue wording; an unknown version handled.
+  - **W4-19 (a)** one persistent, non-dismissible notice per reason (warning tone + icon) in a polite
+    live region, texts as proposed.
+  - **W4-20 (a)** React Aria `Select` "Role view", roles in DNA order; shared
+    `setRoleView(pid, role, signal?)` + `useSetRoleView(pid)` in `web/src/api/projects.ts`
+    **confirmed**; on success `projectHeaderQuery(pid)` and the `['p', pid, 'directives']` prefix
+    are invalidated; disabled while pending; a refusal → `ErrorText` + the header read again.
+  - **W4-21 (a)** S-09.1 visits every view: no governed-action control rendered, and every
+    `GET /elements` descriptor disabled with `version-unsupported`.
+  - **W4-22 (a)** with `dnaError`: badge "team unknown" and notice "Read-only: the DNA could not be
+    read, so the team is unknown."
+  - The coordinator amends ux-reference §3 (1.0) on `main`.
