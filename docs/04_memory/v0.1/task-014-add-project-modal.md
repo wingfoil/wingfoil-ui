@@ -283,3 +283,48 @@ Screen: `docs/00_reference/ux-reference.md` §3 and the prototype (`docs/00_refe
   - **Coordinator:** ux-reference §3 (0.9) for W4-11/12/13/15 on `main`; run `npm run test:timing`
     on a quiet machine. Known and deferred (task-008): a SIGKILLed console leaves a clone folder and
     the retry shows "The working directory is not empty".
+
+### review round 1 (2026-10-10)
+
+- Coordinator review: **FAIL** on minors only (no blocker or major). Fixed in `5a572a0`:
+  - **R1** (security, a11y) the progress line showed and announced the URL as typed, password
+    included (`http://alex:wrong@…`). `displayUrl()` (`web/src/shell/working-directory.ts`) strips
+    the userinfo of a URL form before the URL is formatted; the scp-like `user@host:` holds no
+    password and is kept. Nothing else echoes the raw URL: the refusals render `detail` (paths, the
+    entry's name) and git's message (git leaves the credentials out); W4-12 and the announcement
+    use the project's name. Tests: unit rows for `displayUrl`; the dialog's status text and the
+    progress bar's name without the password (component); e2e W4-11 with `alex:s3cret@` in the URL
+    (status text, progress name, no `s3cret` on the page) and S-07.3 (no `alex:wrong` on the page).
+  - **R2** `useAddHandlers.onError` no longer awaits the list read it starts (TanStack awaited it,
+    so the refusal waited for `GET /api/projects`). Unit test: a list read that never answers after
+    a refusal — the error shows at once (red on the old code, checked). S-03.2's alert, the W4-12
+    message and S-10.2's settle wait with `COLD_READ_MS`.
+  - **R3** (a) S-10.2: the row has no `data-href`; after Enter on it the test closes and reopens
+    the switcher, waiting for that opening's completed list read, then asserts the URL `<origin>/`,
+    no `/api/p/…` request since the Enter and the row still marked unavailable. (b) W4-11: the
+    test polls until `~/projects/held` exists while git waits, then asserts it is removed after
+    Cancel.
+  - **R4** (W4-13, ux-reference §3 0.9) `directoryProblem(value, url)`: an empty working directory
+    is refused only when the URL gives no folder name; a filled one must be absolute. An empty field
+    with a derivable name sends no `directory` (the server's default `~/projects/<repo>`, shown in
+    the progress line). Unit rows for both branches; component test of the request body.
+  - **R5** (a11y) one persistent `role="status"` region, mounted with the dialog, holds the progress
+    and then the W4-12 message (the form unmounts below it); the component test asserts the same
+    element before the submit and after, with the message in it.
+  - **R6** (accepted behaviour) "Cancel aborts the request": an abort that lands after the server
+    has committed the add or the clone closes the dialog as cancelled, while the project still
+    appears in the switcher through the `projects` event. Hand-over below.
+  - **R7** (no change) a relative local clone URL (`kanban.git`, `./x`) gets the server's 400,
+    rendered as the generic "The console refused an invalid request": consistent with W4-13 (no
+    scheme or URL-form check in the dialog).
+- Out of scope, reported: `useRemoveProject` (task-015) still returns the invalidation promise
+  from `onError`, so a refused removal also waits for the list read (same pattern as R2).
+- **Checks** (HEAD `5a572a0`): `typecheck`, `lint`, `format:check` clean · `docs:api` OK ·
+  `check_tasks.py` OK · `test:coverage` **112 files passed, 1 skipped; 1791 passed / 1 skipped**
+  (load 8.5 → 14.2), coverage 96.58 % statements / 90.81 % branches / 97.23 % functions /
+  98.26 % lines · `add-project.spec.ts` + `projects.spec.ts` `--repeat-each=2` **54/54** (load 2.3 →
+  12.9) · `test:e2e` **87/87** (3.2 min, load 13.1 → 16.3) · `npm run test:timing` **not run**
+  (load 16.3 > 12).
+- **Hand-over addition (R6):** a cancel racing the server's commit leaves the project listed
+  (shown by the `projects` event) though the dialog closed as cancelled; the user removes it from
+  the switcher if unwanted.
