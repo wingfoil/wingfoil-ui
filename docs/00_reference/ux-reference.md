@@ -1,6 +1,6 @@
 # UX reference — WingFoil UI
 
-**Version:** 0.6 · **Date:** 2026-10-07 (0.2: §9 colours aligned with spec-009 — release-planning v0.1 session 2; 0.3: §3 start page with no project open, §5 modal dismissal — dev-loop task-013, decided by the user; 0.4: §4.2 v0.1 read-only panel — dev-loop task-018, decided by the user; 0.5: §4.4 and §4.9 in v0.1 — dev-loop tasks 017 and 020, decided by the user; 0.6: §4.2 panel directives, §4.5, §4.6, §4.10 in v0.1 — dev-loop task-019, decided by the user) · **Status:** Reference for `lean-inception` and `specification-downcast`
+**Version:** 0.8 · **Date:** 2026-10-09 (0.2: §9 colours aligned with spec-009 — release-planning v0.1 session 2; 0.3: §3 start page with no project open, §5 modal dismissal — dev-loop task-013, decided by the user; 0.4: §4.2 v0.1 read-only panel — dev-loop task-018, decided by the user; 0.5: §4.4 and §4.9 in v0.1 — dev-loop tasks 017 and 020, decided by the user; 0.6: §4.2 panel directives, §4.5, §4.6, §4.10 in v0.1 — dev-loop task-019, decided by the user; 0.7: §3 project switcher in v0.1 (grid rows, removal confirmation, unavailable entries, trigger text) — dev-loop task-015, Wave 4, decided by the user; 0.8: §4.2 non-modal drawer — dev-loop task-015, W4-8, decided by the user; §3 keyboard wording and §4.2 v0.1 bullet aligned after review) · **Status:** Reference for `lean-inception` and `specification-downcast`
 **Prototype:** `docs/00_reference/prototype/` (interactive HTML; sample data from the WingFoil
 repository and from a fictional Kanban project `acme-checkout`)
 
@@ -40,7 +40,7 @@ Overlay: element panel (right) · command palette · modals (ingestion, agent la
 
 | Element | Behaviour |
 |---------|-----------|
-| **Project switcher** | Lists projects added to the UI (name + path, or URL → working dir). "Add project…" opens a modal: *Local folder* (absolute path) or *Remote git repository* (URL + local working dir, auto-filled `~/projects/<repo>`). Validates path/URL and duplicates. The list persists in the UI; added projects can be removed (×). |
+| **Project switcher** | Lists projects added to the UI (name + path, or URL → working dir). "Add project…" opens a modal: *Local folder* (absolute path) or *Remote git repository* (URL + local working dir, auto-filled `~/projects/<repo>`). Validates path/URL and duplicates. The list persists in the UI; added projects can be removed (×). **v0.1 (dev-loop task-015, decided by the user, W4-1/2/3/6):** the list is a popover holding a keyboard grid (one row per project: link to the project with name + path, and a *Remove <name>* × button; arrow keys move between rows, Tab moves from a row to its button), then a separator, *Add project…* (a button) and the footnote; the × asks for confirmation in a modal alert dialog (*Remove <name> from the list?*, "its folder and its files are not touched", Remove / Cancel, Escape cancels; removing the open project returns to `/`); a project whose folder is missing, is not a WingFoil project or whose CLI is missing is a non-link row marked *Unavailable — <reason>* (the install command for a missing CLI) that keeps its × ; the trigger shows the open project's name only (no methodology), *Projects* on `/`; switching keeps the current view in the other project. |
 | **Start page** | `/` with no project open: header with the project switcher; main with the heading *Projects*, one sentence and *Add project…*. |
 | **Context crumb** | Current position in the main workflow (e.g. `rl-v1 › minor-v0.3 › dev-loop`); truncates from the left. |
 | **Search / ⌘K** | One palette for: start ingestion, pending actions, navigation, switch project, open any element. Arrow keys + Enter. |
@@ -70,6 +70,7 @@ Overlay: element panel (right) · command palette · modals (ingestion, agent la
 All cards are stacked full width, in this order.
 
 ### 4.2 Element panel (right drawer)
+- **v0.1 (dev-loop task-015, decided by the user, W4-8):** the drawer is **non-modal** — no backdrop over the header and sidebar and no focus trap, so the shell (project switcher included) stays operable while it is open; focus moves into the panel on open, *Close* and Escape close it and return focus.
 - Type tag, id, **Edit**, close.
 - Title; **state machine** as chips (past / current / future).
 - Rejection banner if last transition was a reject.
@@ -83,8 +84,8 @@ All cards are stacked full width, in this order.
   the action.
 - **Single-action footer** otherwise (Submit for review, Launch agent, Start review).
 - **Edit mode**: title, summary, references (add with Enter, remove ×) → "Save and commit".
-- **v0.1 (read-only, dev-loop task-018):** the panel is the route `/p/:pid/e/:eid`, a modal drawer
-  over the project layout; Close and Escape go back in history, or to the project when the panel
+- **v0.1 (read-only, dev-loop task-018):** the panel is the route `/p/:pid/e/:eid`, a drawer
+  over the project layout (non-modal since W4-8); Close and Escape go back in history, or to the project when the panel
   was opened from its URL. No Edit and no footer (writes from v0.2). Summary = the first paragraph
   of the body as plain text ("No summary in the document." otherwise; full Markdown is US-G-03,
   v0.3). References = the frontmatter fields other than id, type, title and status with their
