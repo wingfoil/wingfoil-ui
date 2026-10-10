@@ -13,10 +13,10 @@ import { useQuery } from '@tanstack/react-query';
 import { createRoute, redirect } from '@tanstack/react-router';
 import type { ReactNode } from 'react';
 import { defineMessages, useIntl } from 'react-intl';
-import { elementsQuery, projectConfigQuery, projectsQuery } from '../api/queries.js';
+import { elementsQuery, projectConfigQuery } from '../api/queries.js';
 import { MemoryList } from '../memory/MemoryList.js';
 import { isListedType, typesOf, type ListFilters } from '../memory/model.js';
-import { TITLES, usePageTitle } from '../shell/page-title.js';
+import { useProjectTitle } from '../shell/page-title.js';
 import { NAV_ORDER } from './nav.js';
 import { projectRoute } from './project.js';
 
@@ -40,8 +40,7 @@ function MemoryPage(): ReactNode {
   const { pid } = memoryRoute.useParams();
   const filters = memoryRoute.useSearch();
   const intl = useIntl();
-  const project = useQuery(projectsQuery()).data?.projects.find((p) => p.id === pid);
-  usePageTitle(TITLES.projectView, { project: project?.name ?? pid, view: intl.formatMessage(LABELS.memory) });
+  useProjectTitle(pid, intl.formatMessage(LABELS.memory));
   const config = useQuery(projectConfigQuery(pid));
   const elements = useQuery(elementsQuery(pid, false));
   // The archived elements are read once a listed type is selected (W3-24), then kept for the

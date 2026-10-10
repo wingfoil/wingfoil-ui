@@ -9,10 +9,9 @@ import { createRoute } from '@tanstack/react-router';
 import type { ReactNode } from 'react';
 import { defineMessages, useIntl } from 'react-intl';
 import { elementsQuery, projectConfigQuery, projectHeaderQuery } from '../api/queries.js';
-import { TITLES, usePageTitle } from '../shell/page-title.js';
+import { useProjectTitle } from '../shell/page-title.js';
 import { searchOf, teamSearch, type TeamFilters } from '../team/model.js';
 import { TeamView } from '../team/TeamView.js';
-import { useProjectName } from './dna.js';
 import { NAV_ORDER } from './nav.js';
 import { projectRoute } from './project.js';
 
@@ -28,7 +27,7 @@ function TeamPage(): ReactNode {
   const search = teamRoute.useSearch();
   const navigate = teamRoute.useNavigate();
   const intl = useIntl();
-  usePageTitle(TITLES.projectView, { project: useProjectName(pid), view: intl.formatMessage(LABELS.team) });
+  useProjectTitle(pid, intl.formatMessage(LABELS.team));
   const { gates, ...text } = search;
   const filters: TeamFilters = { ...text, ...(gates ? { gates: true } : {}) };
   const setFilters = (next: TeamFilters): void => {

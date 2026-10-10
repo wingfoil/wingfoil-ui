@@ -11,10 +11,10 @@ import { queryOptions, useQuery } from '@tanstack/react-query';
 import { createRoute, useCanGoBack, useRouter } from '@tanstack/react-router';
 import { useCallback, type ReactNode } from 'react';
 import { apiGet } from '../api/client.js';
-import { directivesQuery, projectHeaderQuery, projectsQuery } from '../api/queries.js';
+import { directivesQuery, projectHeaderQuery } from '../api/queries.js';
 import { queryKeys } from '../api/query-keys.js';
 import { ElementPanel } from '../element/ElementPanel.js';
-import { TITLES, usePageTitle } from '../shell/page-title.js';
+import { TITLES, usePageTitle, useProjectName } from '../shell/page-title.js';
 import { projectRoute } from './project.js';
 
 /** Query keys of the element panel (on `queryKeys.project`, refreshed by `repo`). */
@@ -54,8 +54,7 @@ function ElementPage(): ReactNode {
   const { pid, eid } = elementRoute.useParams();
   const router = useRouter();
   const canGoBack = useCanGoBack();
-  const project = useQuery(projectsQuery()).data?.projects.find((p) => p.id === pid);
-  usePageTitle(TITLES.projectElement, { project: project?.name ?? pid, element: eid });
+  usePageTitle(TITLES.projectElement, { project: useProjectName(pid), element: eid });
   // Back to where the panel was opened from inside the application, else to the project; then the
   // focus goes to the destination's main region, unless the destination placed it itself (e.g. the
   // Memory list on the row of this element).

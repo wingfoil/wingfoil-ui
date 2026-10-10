@@ -12,9 +12,8 @@ import { directivesQuery, projectHeaderQuery } from '../api/queries.js';
 import { RulesError } from '../dna/DnaView.js';
 import { RenderedArticle, useRenderTexts } from '../docs/RenderedArticle.js';
 import { finishDocument, markdownToSafeHtml, type FinishOptions } from '../docs/render.js';
-import { useProjectName } from '../routes/dna.js';
 import { directiveQuery } from '../routes/directives.js';
-import { TITLES, usePageTitle } from '../shell/page-title.js';
+import { useProjectTitle } from '../shell/page-title.js';
 import { DirectiveRoles } from './DirectiveList.js';
 import { classifyDirectiveLink, directiveHref, directiveRepoPath } from './model.js';
 import '../docs/docs.css';
@@ -26,7 +25,8 @@ export function DirectivePage(): ReactNode {
   const { pid, did } = pageApi.useParams();
   const hash = useLocation({ select: (l) => l.hash });
   const router = useRouter();
-  usePageTitle(TITLES.projectView, { project: useProjectName(pid), view: did });
+  // The directive's id is the view (project data, W5-5).
+  useProjectTitle(pid, did);
   const detail = useQuery(directiveQuery(pid, did));
   const list = useQuery(directivesQuery(pid));
   const header = useQuery(projectHeaderQuery(pid));

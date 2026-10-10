@@ -236,6 +236,7 @@
   "team.members.label": "Members",
   "team.members.noMatch": "No member matches these filters.",
   "team.title": "Team",
+  "title.app": "WingFoil UI",
   "title.notFound": "Page not found — WingFoil UI",
   "title.projectElement": "{project} · {element} — WingFoil UI",
   "title.projectView": "{project} · {view} — WingFoil UI",
