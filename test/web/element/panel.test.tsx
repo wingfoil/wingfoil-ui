@@ -10,6 +10,7 @@ import { keyCatalogue } from '../../../web/scripts/catalogue.mjs';
 import { stopEventStream } from '../../../web/src/api/events.js';
 import en from '../../../web/src/i18n/en.json' with { type: 'json' };
 import { resetSession } from '../../../web/src/session/session.js';
+import { header } from '../dna/data.js';
 import { renderApp, serverInfo, stubApi, type FakeApi } from '../shell/render.js';
 
 const PID = 'p_fx';
@@ -116,9 +117,10 @@ function api(over: FakeApi = {}): FakeApi {
     },
     [BASE]: { status: 200, body: DETAIL },
     [`${BASE}/history`]: { status: 200, body: HISTORY },
-    // task-019: the panel's Directives section reads the project's directives and header.
+    // task-019: the panel's Directives section reads the project's directives and header (the
+    // header is also task-016's project header, around the panel).
     [`/api/p/${PID}/directives`]: { status: 200, body: { entries: [], warnings: [] } },
-    [`/api/p/${PID}`]: { status: 200, body: { identity: { kind: 'no-identity' }, roleViews: [], roleView: null } },
+    [`/api/p/${PID}`]: { status: 200, body: header({ kind: 'no-identity' }) },
     ...over,
   };
 }

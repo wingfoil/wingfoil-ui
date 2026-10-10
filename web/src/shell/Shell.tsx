@@ -1,8 +1,9 @@
 /**
  * The global shell (ux-reference §2–§3): skip link, header (home link and project switcher), the
  * unreachable-console banner (W3-12) and the shell warnings, then the page of the current route.
- * The header's other parts — context crumb, ⌘K, role view, notifications, user — arrive with their
- * tasks (task-016 for identity and role view). A lost session replaces the page with the
+ * The header's right end is a slot (`header-slot.tsx`) that the project layout fills with the current
+ * user and the role view (task-016, W4-16); the context crumb, ⌘K and notifications arrive with
+ * their tasks. A lost session replaces the page with the
  * lost-session notice and unmounts everything else, the Add project dialog included (W3-7).
  */
 import { Link, Outlet } from '@tanstack/react-router';
@@ -10,6 +11,7 @@ import type { ReactNode } from 'react';
 import { FormattedMessage } from 'react-intl';
 import { useSessionStatus } from '../session/session.js';
 import { AddProjectProvider } from './add-project.js';
+import { HeaderSlotProvider, HeaderSlotTarget } from './header-slot.js';
 import { SessionLostPage } from './pages.js';
 import { ProjectSwitcher } from './ProjectSwitcher.js';
 import { ShellWarnings } from './ShellWarnings.js';
@@ -44,16 +46,19 @@ export function Shell(): ReactNode {
   }
   return (
     <AddProjectProvider>
-      <div className="shell">
-        <Header>
-          <ProjectSwitcher />
-        </Header>
-        <UnreachableBanner />
-        <ShellWarnings />
-        <div className="shell-body">
-          <Outlet />
+      <HeaderSlotProvider>
+        <div className="shell">
+          <Header>
+            <ProjectSwitcher />
+            <HeaderSlotTarget />
+          </Header>
+          <UnreachableBanner />
+          <ShellWarnings />
+          <div className="shell-body">
+            <Outlet />
+          </div>
         </div>
-      </div>
+      </HeaderSlotProvider>
     </AddProjectProvider>
   );
 }
