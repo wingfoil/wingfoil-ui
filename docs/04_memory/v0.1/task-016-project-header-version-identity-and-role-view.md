@@ -2,7 +2,7 @@
 id: task-016-project-header-version-identity-and-role-view
 type: task
 title: "Project header version identity and role view"
-status: approved
+status: done
 release: "v0.1"
 module: "web"             # optional — server | web | contracts (dna.yaml modules)
 priority: "medium"           # optional — high | medium | low
