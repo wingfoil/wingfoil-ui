@@ -334,3 +334,9 @@ Screen: `docs/00_reference/ux-reference.md` §3 and the prototype (`docs/00_refe
     `ProjectHeader.tsx` (formatjs extracts it) and this note.
 - **Hand-over addition (task-021):** a failed header re-read while data is cached shows the cached
   header silently (R6); decide whether to show a stale/error mark.
+- Checks after the fixes (`6d006d1`): typecheck, lint (catalogue check included), format:check clean
+  · `docs:api` OK · `check_tasks.py` OK · affected unit files 43/43 · `project-header.spec.ts
+  --repeat-each=2` **34/34** (load 1.7) · `test:coverage` **115 files passed, 1 skipped; 1837 passed /
+  1 skipped**, 96.64 % statements / 90.92 % branches / 97.22 % functions / 98.31 % lines (load 9.6 →
+  17.3) · `test:e2e` **104/104** (4.1 min, load 17.3 → 17.4) · `test:timing` **3 + 7 passed** (start
+  load 10.3): S-12.3 798 ms, S-13.3 478 ms, S-15.3 722 ms from the mutation (budget 5 s).
