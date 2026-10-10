@@ -57,6 +57,10 @@ describe('displayUrl (review R1: no password shown or announced)', () => {
     ['  https://github.com/acme/kanban.git  ', 'https://github.com/acme/kanban.git'],
     ['file:///srv/remotes/kanban.git', 'file:///srv/remotes/kanban.git'],
     ['https://github.com/a@b/kanban.git', 'https://github.com/a@b/kanban.git'],
+    // Up to the last '@' of the authority, never past it (review R8).
+    ['https://u:p@ss@host/r.git', 'https://host/r.git'],
+    ['https://host?x=a@b', 'https://host?x=a@b'],
+    ['https://host#a@b', 'https://host#a@b'],
     // scp-like: no password possible, kept as typed.
     ['git@github.com:acme/kanban.git', 'git@github.com:acme/kanban.git'],
   ])('%s → %s', (url, shown) => {

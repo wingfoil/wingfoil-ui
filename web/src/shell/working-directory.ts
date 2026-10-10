@@ -2,8 +2,9 @@
  * The default working directory of a clone (ux-reference §3, spec-006 §3, S-04.1):
  * `~/projects/<repo>`, `<repo>` the last path segment of the URL without `.git`. A mirror of the
  * server's `repoName` (`server/src/projects/remote.ts`), kept equal by a unit test replaying the
- * server's table (decision W4-14). The dialog always sends the field's value: the server's own
- * default is never relied on.
+ * server's table (decision W4-14). The dialog sends the field's value when it is filled; an empty
+ * field with a folder name derivable from the URL sends no directory and the server's default
+ * applies (W4-13, review R4 — it takes precedence over that part of W4-14).
  */
 
 const URL_FORM = /^([A-Za-z][A-Za-z0-9+.-]*):\/\/(.*)$/s;
@@ -49,10 +50,10 @@ export function defaultWorkingDirectory(url: string): string {
 }
 
 /**
- * `url` as the dialog shows and announces it: the userinfo of a URL form (`scheme://user:secret@`)
- * removed, so that a password typed in the URL is never echoed (directive `security-secrets`). The
+ * `url` as the dialog shows and announces it: the userinfo of a URL form (`scheme://user:secret@`,
+ * up to the last `@` of the authority, as the server's `split`) removed, so that a password typed in the URL is never echoed (directive `security-secrets`). The
  * scp-like `user@host:path` holds no password and stays as typed.
  */
 export function displayUrl(url: string): string {
-  return url.trim().replace(/^([a-z][a-z0-9+.-]*:\/\/)[^@/]*@/i, '$1');
+  return url.trim().replace(/^([a-z][a-z0-9+.-]*:\/\/)[^/?#]*@/i, '$1');
 }
