@@ -2,7 +2,7 @@
 id: bug-005-snapshot-fingerprint-misses-a-same-size-rewrite-within-one-mtime-tick
 type: bug
 title: "Snapshot fingerprint misses a same-size rewrite within one mtime tick"
-status: open
+status: triaged
 severity: "low"        # REQUIRED — critical | high | medium | low
 release-origin: "v0.1" # optional — release where the bug was FOUND, e.g. "v0.1"
 release: ""            # optional — fix/implementation release, stamped by release-planning/build-backlog
