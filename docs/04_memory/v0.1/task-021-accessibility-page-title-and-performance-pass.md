@@ -239,3 +239,81 @@ Screen: `docs/00_reference/ux-reference.md` every v0.1 screen and the prototype 
   - **W5-17** `useRemoveProject` does not await the list read on a refusal; unit test.
 - Spec amendments (spec-006 §3, spec-008 §3/§6) are applied by the coordinator on `main`, not on
   this branch.
+
+### red / green / refactor (2026-10-10)
+
+- **bug-006** (`5aa9f5b`, `2c80eba`): `credentialsInUrl(url)` (`server/src/projects/remote.ts`)
+  covers any userinfo of an http(s)/ftp(s) URL; the authority ends at the first `/`, `?` or `#`.
+  `ProjectList.clone()` refuses with 422 `credentials-in-url` right after `cloneSourceProblem`, and
+  the refusal message never holds the URL. The contracts type, the refusal schema
+  (`credentials-in-url`, no `detail`), `error.credentialsInUrl` and the web code map are updated.
+  Red first: the 21 `credentialsInUrl` rows; the API tests were written before the route change.
+  - The API test "stores a credential URL without its userinfo" (task-008) cloned *with*
+    credentials, so it is replaced. The new tests send a password URL and a token-as-user URL and
+    expect 422 with no `detail`. They check that no process is spawned (audited runner), the tree,
+    list and state are unchanged, and neither the answer nor the logs hold the secret. Further
+    tests: the refusal comes before every other check (an existing non-empty folder is not
+    reported), and `ssh://git@…` and the scp-like form reach the next check.
+  - The REQ-SEC-09 "refused credential" test of the git refusal was dropped too: such a URL never
+    reaches git now.
+  - e2e: S-07.3 takes the wrong password from a credential helper written with
+    `git config --file <console root>/.gitconfig` (the console's isolated global config). It asserts
+    that the remote received the helper's request (more than one request). W4-11 uses a URL
+    without userinfo; `displayUrl` keeps its unit rows. A new test, "bug-006 — Refuse a clone URL
+    holding credentials", checks: the alert's text, no `s3cret` on the page, 0 requests to the
+    remote, no folder, a secret scan of the state, axe, and an empty switcher.
+- **W5-17** (`fc630e9`): red unit test (the list read after a refusal never answers, yet the
+  error shows), then the `onError` that does not return the invalidation.
+- **W5-2, W5-4, W5-5** (`2b4a1eb`): `test/web/shell/page-title.test.tsx` was written red first.
+  - `useProjectName` and `useProjectTitle` are in `page-title.ts`. Memory, DNA, Team, Directives
+    (list and page) and Documentation (index and document) use `useProjectTitle`; the element
+    panel uses `useProjectName`. The three earlier helpers are removed.
+  - **Deviation (form, not substance):** the `title.app` fallback is the cleanup of
+    `usePageTitle`, not an effect of the root route. React runs a parent's effects after its
+    children's, so a root-route effect would overwrite every page's title. The cleanups of a page
+    that leaves run before the next page's effects. The outcome is the decided one: `title.app`
+    whenever no page has set a title.
+  - `withAppTitle(html, catalogue)` (`web/scripts/catalogue.mjs`) is used by the Vite
+    `transformIndexHtml` hook in both builds. `web/dist` has `<title>WingFoil UI</title>`;
+    `web/dist-keys` has `<title>title.app</title>`.
+- **W5-1** (`122fa7a`): the red test stubs `navigator.language` to `de-DE` and fires
+  `languagechange`; the popover's hidden button then read "Schließen". It reads "Dismiss" with
+  React Aria's `I18nProvider locale={CATALOGUE_LOCALE}` (`'en'`, exported by `i18n/index.tsx`).
+- **W5-13, W5-16** (`389956e`): both tests were red first.
+  - W5-13: the live region stays the same DOM node across a switch and receives the next
+    project's notice. W5-16: a 500 on the re-read shows the alert above the kept version line and
+    user; the next good read clears it.
+  - **Deviation (form):** `ProjectHeader` is no longer keyed. Its `section` (version line, loading
+    or error, and the polite notices region) persists across a project switch. The keyed part
+    moved into `ProjectRoleView` (key = pid): `useSetRoleView`, the refusal alert, and the header
+    end (selector, current user). This keeps the notices inside the *Project header* strip
+    (S-13.1 and the other tests read them there) instead of a separate `ProjectNotices` element in
+    `ProjectLayout`. The intent of W5-13 is met and task-016's R1 tests still pass.
+- **e2e** (`948a35f`): `accessibility.spec.ts` with `support/screens.ts` (16 screens),
+  `support/strings.ts`, and `focusRing`/`tabUntil` in `support/keyboard.ts`.
+  `harness/a11y-support.spec.ts` self-tests the X-09.1 check (it flags `Close`, `×` and
+  `Add project`) and the ring measure (a poor, a good and an inset ring).
+  - **X-09.1 project data (W5-3):** a text counts as project data when it is:
+    - a string, number or object key of the API answers;
+    - a form the UI derives from such data: path segments and folders, a repository path built on
+      a data path (`.wingfoil/` + a directive path), the 7-character hash, initials;
+    - a numeral;
+    - the `en` Intl rendering of an API date, or a relative age;
+    - inside a rendered Markdown article (`.doc-article`), a piece of the file's content
+      (whitespace collapsed).
+  - A key text is the key alone, or the key followed by its arguments' values.
+  - **X-06.1:** the dialog's own programmatic focus on open is not a control and is not
+    ring-checked. Every control reached by Tab, Shift+Tab or the arrow keys is checked, in both
+    themes: all solid, ≥ 2 px, contrast ≥ 3:1.
+- **Performance** (`36e0943`):
+  - `test/harness/fixtures/large.ts` builds the large fixture in about 7 s at load ≈ 1: the custom
+    fixture, then 300 tasks, 120 bugs and 80 decision-logs cycling through every state of their
+    type. Each is a copy of a CLI-made element of that type with a new id, title and status. One
+    `git fast-import` stream adds them and revises them in turn until `rev-list --count` = 2 000.
+    The worktree is clean afterwards.
+  - Each run starts from a view that reads none of the target's data: the Documentation index (DNA
+    for Documentation), or the task-filtered Memory list for the panel. The DNA's config is the
+    exception: the index reads it too.
+  - Measured in the page, from the Enter `keydown` (capture) to the first animation frame where the
+    target is visible and no loading status is left.
+  - No code split was needed (W5-8): every view is far below 1.0 s (gates below).
