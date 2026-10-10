@@ -1,17 +1,20 @@
 /**
- * The element panel (US-G-01; ux-reference §4.2, prototype drawer): a modal drawer on the right with
+ * The element panel (US-G-01; ux-reference §4.2, prototype drawer): a non-modal drawer on the right with
  * the type tag, id and Close; the title; the state machine; the rejection banner; the summary with
  * the missing required fields; the references (the frontmatter fields); the directives of the
  * current role view (task-019); the history with commits.
  * Read-only in v0.1: no Edit, no action footer (decision 6). It renders the server's data as is —
  * the tone of the current state is the descriptor's (spec-003 §8), never re-derived.
  *
- * Closes with Close or Escape, not with a click outside (ux-reference §5).
+ * Non-modal (decision W4-8, task-015): the header and the sidebar stay operable while it is open —
+ * the project switcher above all (S-16.2: a switch leaves the panel's route, so the panel goes). The
+ * focus moves into the panel when it opens; it closes with Close or Escape (pressed inside the
+ * panel and not handled by an inner control), not with a click outside (ux-reference §5).
  */
 import type { UseQueryResult } from '@tanstack/react-query';
 import type { DirectiveList, ElementDetail, MemoryHistory, ProjectHeader } from '@wingfoil-ui/contracts';
 import type { ReactNode } from 'react';
-import { Button, Dialog, Heading, Modal, ModalOverlay } from 'react-aria-components';
+import { Button, Dialog, Heading } from 'react-aria-components';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { ApiError } from '../api/client.js';
 import { ErrorText } from '../shell/ErrorText.js';
@@ -58,56 +61,58 @@ export function ElementPanel({
   const intl = useIntl();
   const detail = element.data;
   return (
-    <ModalOverlay
-      className="drawer-overlay"
-      isOpen
-      onOpenChange={(shown) => {
-        if (!shown) onClose();
+    // Escape pressed inside the panel closes it, unless an inner control handled it first (React
+    // handler: it sees the inner React and React Aria handlers' preventDefault, review R8). The
+    // portals of other overlays (the switcher's popover) are not React children of the panel.
+    <div
+      className="drawer"
+      onKeyDown={(event) => {
+        if (event.key !== 'Escape' || event.defaultPrevented) return;
+        event.preventDefault();
+        onClose();
       }}
     >
-      <Modal className="drawer">
-        <Dialog className="drawer-dialog">
-          <div className="drawer-header">
-            <div className="drawer-topline">
-              {detail && <span className="type-tag">{detail.element.type}</span>}
-              <span className="element-id">{eid}</span>
-              <Button className="button button-quiet" onPress={onClose}>
-                <FormattedMessage id="common.action.close" />
-              </Button>
-            </div>
-            <Heading slot="title" level={2} className="drawer-title">
-              {detail ? detail.element.title : eid}
-            </Heading>
-            {detail && (
-              <StateMachine
-                sequence={detail.states?.sequence}
-                current={detail.element.status}
-                tone={detail.descriptor?.tone}
-              />
-            )}
+      <Dialog className="drawer-dialog">
+        <div className="drawer-header">
+          <div className="drawer-topline">
+            {detail && <span className="type-tag">{detail.element.type}</span>}
+            <span className="element-id">{eid}</span>
+            <Button className="button button-quiet" onPress={onClose}>
+              <FormattedMessage id="common.action.close" />
+            </Button>
           </div>
-          {/* The body scrolls: focusable so that the keyboard can scroll it (axe scrollable-region-focusable). */}
-          <div
-            className="drawer-body"
-            role="region"
-            tabIndex={0}
-            aria-label={intl.formatMessage({ id: 'element.body.label' })}
-          >
-            {element.error ? (
-              <QueryError error={element.error} />
-            ) : detail ? (
-              <ElementContent detail={detail} history={history}>
-                <ElementDirectives pid={pid} directives={directives} header={header} />
-              </ElementContent>
-            ) : (
-              <p className="muted" role="status">
-                <FormattedMessage id="element.loading" />
-              </p>
-            )}
-          </div>
-        </Dialog>
-      </Modal>
-    </ModalOverlay>
+          <Heading slot="title" level={2} className="drawer-title">
+            {detail ? detail.element.title : eid}
+          </Heading>
+          {detail && (
+            <StateMachine
+              sequence={detail.states?.sequence}
+              current={detail.element.status}
+              tone={detail.descriptor?.tone}
+            />
+          )}
+        </div>
+        {/* The body scrolls: focusable so that the keyboard can scroll it (axe scrollable-region-focusable). */}
+        <div
+          className="drawer-body"
+          role="region"
+          tabIndex={0}
+          aria-label={intl.formatMessage({ id: 'element.body.label' })}
+        >
+          {element.error ? (
+            <QueryError error={element.error} />
+          ) : detail ? (
+            <ElementContent detail={detail} history={history}>
+              <ElementDirectives pid={pid} directives={directives} header={header} />
+            </ElementContent>
+          ) : (
+            <p className="muted" role="status">
+              <FormattedMessage id="element.loading" />
+            </p>
+          )}
+        </div>
+      </Dialog>
+    </div>
   );
 }
 

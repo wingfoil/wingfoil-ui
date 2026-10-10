@@ -51,15 +51,16 @@ it('shows the start page: landmarks, heading, the switcher and "Add project…",
   await waitFor(() => expect(document.title).toBe('Projects — WingFoil UI'));
 });
 
-it('opens the switcher menu from the keyboard and offers "Add project…"', async () => {
-  stubApi({ '/api/server': serverInfo() });
+it('opens the switcher from the keyboard and offers "Add project…"', async () => {
+  stubApi({ '/api/server': serverInfo(), '/api/projects': { status: 200, body: { projects: [] } } });
   const user = userEvent.setup();
   renderApp('/');
   const trigger = await screen.findByRole('button', { name: 'Projects' });
   trigger.focus();
   await user.keyboard('{Enter}');
-  const menu = await screen.findByRole('menu');
-  expect(within(menu).getByRole('menuitem', { name: 'Add project…' })).toBeTruthy();
+  const switcher = await screen.findByRole('dialog', { name: 'Projects' });
+  const add = within(switcher).getByRole('button', { name: 'Add project…' });
+  await waitFor(() => expect(document.activeElement).toBe(add));
   await user.keyboard('{Enter}');
   const dialog = await screen.findByRole('dialog', { name: 'Add project' });
   expect(dialog).toBeTruthy();

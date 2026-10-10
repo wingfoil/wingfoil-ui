@@ -36,6 +36,11 @@ export interface ConsoleOptions {
   args?: string[];
   /** More environment variables. */
   env?: NodeJS.ProcessEnv;
+  /**
+   * A state directory owned by the test, kept when the console stops (S-17.1: a second start reads
+   * the list the first one left). `projects` seeds it only when it holds no `state.json` yet.
+   */
+  stateDir?: string;
 }
 
 /** A running console. */
@@ -46,7 +51,7 @@ export interface RunningConsole {
   token: string;
   /** The URL the bin printed (`<origin>/#token=<token>`). */
   url: string;
-  /** Opaque ids of the seeded projects, in the order given. */
+  /** Opaque ids of the seeded projects, in the order given (none when `stateDir` was already seeded). */
   pids: string[];
   stateDir: string;
   /** Temporary root of this console (home, state, opener). */
@@ -101,10 +106,14 @@ export async function startConsole(options: ConsoleOptions = {}): Promise<Runnin
   const root = await mkdtemp(path.join(tmpdir(), 'wfui-e2e-'));
   const projects = options.projects ?? [];
   const base = projects[0]?.env ?? (await harnessEnv(root)).env;
-  const stateDir = path.join(root, 'state');
+  const stateDir = options.stateDir ?? path.join(root, 'state');
   await mkdir(stateDir, { recursive: true, mode: 0o700 });
-  const pids = projects.map(() => projectId());
-  if (options.stateFile !== undefined) {
+  const seeded =
+    options.stateDir !== undefined && (await stat(path.join(stateDir, 'state.json')).catch(() => undefined));
+  const pids = seeded ? [] : projects.map(() => projectId());
+  if (seeded) {
+    // A state left by a previous console: its list is the one to read.
+  } else if (options.stateFile !== undefined) {
     await writeFile(path.join(stateDir, 'state.json'), options.stateFile, { mode: 0o600 });
   } else if (projects.length > 0) {
     const entries: ProjectEntry[] = projects.map((fx, i) => ({

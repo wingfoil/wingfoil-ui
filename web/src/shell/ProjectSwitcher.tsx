@@ -1,40 +1,220 @@
 /**
- * The project switcher of the header (ux-reference §3): a menu button. In task-013 its menu holds
- * the *Add project…* action only; task-015 lists the projects above it (name and path, remove ×),
- * then a separator.
+ * The project switcher of the header (ux-reference §3, decisions W4-1…W4-7): a button opening a
+ * popover with the projects of the list in stored order (spec-006 §2) — name and path, the open one
+ * marked —, a *Remove* button on each row, then *Add project…* and a footnote.
+ *
+ * - The rows are a React Aria grid list (W4-1): the arrow keys move between the rows, Tab moves
+ *   from a row to its Remove button. A row is a link to the project (opaque id only, X-05.1); the
+ *   open project's row only closes the switcher (review R9). An ARIA menu could not hold the button.
+ *   A row is named by the project name and described by its current mark, path and reason.
+ * - A switch keeps the current view (W4-5, `switch-target.ts`); the element panel and every other
+ *   page of the previous project are left (S-16.2).
+ * - An unavailable entry (W4-3: folder not found, no `.wingfoil/`, no CLI) is not a link: it shows
+ *   its reason (and the install command) and keeps Remove (S-19.1, S-10.2).
+ * - The list is read again on every opening (W4-4, S-19.2): one request, files only on the server.
+ * - Remove asks for a confirmation (W4-2, `RemoveProjectDialog`); removing the open project goes to
+ *   the start page. The focus then returns to the trigger.
+ * - *Add project…* opens the shell's dialog (`add-project.tsx`, task-014).
  */
-import type { ReactNode } from 'react';
-import { Button, Menu, MenuItem, MenuTrigger, Popover } from 'react-aria-components';
-import { FormattedMessage, useIntl } from 'react-intl';
+import type { ProjectListItem } from '@wingfoil-ui/contracts';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useParams, useRouter, useRouterState } from '@tanstack/react-router';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { Button, Dialog, DialogTrigger, GridList, GridListItem, Popover, Text } from 'react-aria-components';
+import { defineMessages, FormattedMessage, useIntl } from 'react-intl';
+import { ApiError } from '../api/client.js';
+import { projectsQuery } from '../api/queries.js';
+import { navGroups } from '../routes/nav.js';
 import { useAddProject } from './add-project.js';
-import { Chevron } from './icons.js';
+import { ErrorText } from './ErrorText.js';
+import { Chevron, Cross } from './icons.js';
+import { RemoveProjectDialog } from './RemoveProjectDialog.js';
+import { switchTarget } from './switch-target.js';
 
-/** Key of the *Add project…* menu item. */
-const ADD_PROJECT = 'add-project';
+/** Reason of an unavailable entry, as an argument of `projects.switcher.unavailable`. */
+const REASONS: Readonly<Record<Exclude<ProjectListItem['availability'], 'ok'>, string>> = {
+  'folder-not-found': 'folderNotFound',
+  'not-wingfoil': 'notWingfoil',
+  'cli-not-found': 'cliNotFound',
+};
+
+const MESSAGES = defineMessages({ label: { id: 'projects.switcher.label' } });
+
+/** A failed list read as an API error (a non-API failure renders as `internal`). */
+function asApiError(error: Error): ApiError {
+  return error instanceof ApiError ? error : new ApiError(0, 'internal', error.message, undefined);
+}
+
+/** The path of the current page and the id of the open project (none on the start page). */
+function useLocation(): { pathname: string; pid: string | undefined } {
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const { pid } = useParams({ strict: false });
+  return { pathname, pid };
+}
 
 /** The project switcher. */
 export function ProjectSwitcher(): ReactNode {
   const intl = useIntl();
+  const router = useRouter();
+  const queryClient = useQueryClient();
   const addProject = useAddProject();
+  const list = useQuery(projectsQuery());
+  const { pathname, pid } = useLocation();
+  const [expanded, setExpanded] = useState(false);
+  // A switch (or any navigation) closes the popover.
+  useEffect(() => router.subscribe('onBeforeNavigate', () => setExpanded(false)), [router]);
+  const [removing, setRemoving] = useState<ProjectListItem | null>(null);
+  const trigger = useRef<HTMLButtonElement>(null);
+  const viewPaths = useMemo(
+    () => navGroups(Object.values(router.routesById)).flatMap((g) => g.items.map((i) => i.to)),
+    [router],
+  );
+  const open = pid === undefined ? undefined : list.data?.projects.find((p) => p.id === pid);
+
+  const onOpenChange = (next: boolean): void => {
+    setExpanded(next);
+    // W4-4: the list as it is now (availability included), not only as the last event left it.
+    if (next) void queryClient.invalidateQueries({ queryKey: projectsQuery().queryKey });
+  };
+
+  const projects = list.data?.projects ?? [];
   return (
-    <MenuTrigger>
-      <Button className="button">
-        <FormattedMessage id="projects.switcher.label" />
-        <Chevron />
-      </Button>
-      <Popover className="menu-popover" placement="bottom start">
-        <Menu
-          className="menu"
-          aria-label={intl.formatMessage({ id: 'projects.switcher.label' })}
-          onAction={(key) => {
-            if (key === ADD_PROJECT) addProject.show();
-          }}
+    <>
+      <DialogTrigger isOpen={expanded} onOpenChange={onOpenChange}>
+        <Button
+          ref={trigger}
+          className="button switcher-trigger"
+          {...(open
+            ? { 'aria-label': intl.formatMessage({ id: 'projects.switcher.current' }, { name: open.name }) }
+            : {})}
         >
-          <MenuItem id={ADD_PROJECT} className="menu-item menu-item-action">
-            <FormattedMessage id="projects.switcher.add" />
-          </MenuItem>
-        </Menu>
-      </Popover>
-    </MenuTrigger>
+          {open ? <span className="switcher-name">{open.name}</span> : <FormattedMessage {...MESSAGES.label} />}
+          <Chevron />
+        </Button>
+        <Popover className="menu-popover switcher-popover" placement="bottom start">
+          <Dialog className="switcher" aria-label={intl.formatMessage(MESSAGES.label)}>
+            {list.isPending ? (
+              <p role="status" className="switcher-note">
+                <FormattedMessage id="projects.switcher.loading" />
+              </p>
+            ) : list.isError && list.data === undefined ? (
+              <div role="alert" className="switcher-note">
+                <ErrorText error={asApiError(list.error)} />
+              </div>
+            ) : (
+              <GridList
+                className="switcher-list"
+                aria-label={intl.formatMessage(MESSAGES.label)}
+                items={projects}
+                keyboardNavigationBehavior="tab"
+                escapeKeyBehavior="none"
+                autoFocus={projects.length > 0 ? 'first' : false}
+                renderEmptyState={() => (
+                  <p className="switcher-note">
+                    <FormattedMessage id="projects.switcher.empty" />
+                  </p>
+                )}
+              >
+                {(p) => (
+                  <ProjectRow
+                    project={p}
+                    current={p.id === pid}
+                    href={switchTarget(p.id, pathname, viewPaths)}
+                    onRemove={() => {
+                      setExpanded(false);
+                      setRemoving(p);
+                    }}
+                    onStay={() => setExpanded(false)}
+                  />
+                )}
+              </GridList>
+            )}
+            <div className="switcher-separator" role="presentation" />
+            <Button
+              className="menu-item menu-item-action switcher-add"
+              autoFocus={!list.isPending && projects.length === 0}
+              onPress={() => {
+                setExpanded(false);
+                addProject.show();
+              }}
+            >
+              <FormattedMessage id="projects.switcher.add" />
+            </Button>
+            <p className="switcher-footnote">
+              <FormattedMessage id="projects.switcher.footnote" />
+            </p>
+          </Dialog>
+        </Popover>
+      </DialogTrigger>
+      <RemoveProjectDialog
+        project={removing}
+        openPid={pid}
+        onClose={() => {
+          setRemoving(null);
+          // The row that opened the dialog is gone with the popover: the focus returns to the
+          // trigger (W4-2), once the page under it settled (start page after removing the open one).
+          requestAnimationFrame(() => trigger.current?.focus());
+        }}
+      />
+    </>
+  );
+}
+
+/** Props of {@link ProjectRow}. */
+interface ProjectRowProps {
+  project: ProjectListItem;
+  current: boolean;
+  href: string;
+  onRemove(): void;
+  /** Pressing the open project's own row: close the switcher, nothing else (review R9). */
+  onStay(): void;
+}
+
+/** One project: a link when available, its reason otherwise; and its Remove button. */
+function ProjectRow({ project, current, href, onRemove, onStay }: ProjectRowProps): ReactNode {
+  const intl = useIntl();
+  const available = project.availability === 'ok';
+  return (
+    <GridListItem
+      id={project.id}
+      textValue={project.name}
+      className={`switcher-row${current ? ' switcher-row-current' : ''}${available ? '' : ' switcher-row-unavailable'}`}
+      {...(current ? { onAction: onStay } : available ? { href } : {})}
+    >
+      <div className="switcher-row-text">
+        <span className="switcher-row-name">{project.name}</span>
+        {/* React Aria names the row by its text value (the name) and describes it by this slot:
+            the current mark, the path and the reason of an unavailable entry reach assistive
+            technology through it (review R1). */}
+        <Text slot="description" elementType="div" className="switcher-row-details">
+          {current && (
+            <div className="visually-hidden">
+              <FormattedMessage id="projects.switcher.currentMark" />
+            </div>
+          )}
+          <div className="switcher-row-path">{project.path}</div>
+          {project.availability !== 'ok' && (
+            <div className="switcher-row-reason">
+              <FormattedMessage id="projects.switcher.unavailable" values={{ reason: REASONS[project.availability] }} />
+            </div>
+          )}
+          {project.availability === 'cli-not-found' && project.command !== undefined && (
+            <div className="switcher-row-reason">
+              <FormattedMessage
+                id="projects.switcher.install"
+                values={{ command: <code key="command">{project.command}</code> }}
+              />
+            </div>
+          )}
+        </Text>
+      </div>
+      <Button
+        className="icon-button switcher-remove"
+        aria-label={intl.formatMessage({ id: 'projects.switcher.remove' }, { name: project.name })}
+        onPress={onRemove}
+      >
+        <Cross />
+      </Button>
+    </GridListItem>
   );
 }

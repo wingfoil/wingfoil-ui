@@ -345,13 +345,40 @@ it('makes the scrollable body a focusable, named region (keyboard scrolling)', a
   expect(body.className).toContain('drawer-body');
 });
 
-it('focuses inside the panel and keeps the focus there', async () => {
+it('focuses inside the panel on open and leaves the header operable (non-modal, W4-8)', async () => {
   stubApi(api());
   renderApp(`/p/${PID}/e/${EID}`);
   const dialog = await screen.findByRole('dialog', { name: 'Password reset' });
   await waitFor(() => expect(dialog.contains(document.activeElement)).toBe(true));
-  await userEvent.tab();
-  expect(dialog.contains(document.activeElement)).toBe(true);
+  expect(dialog.getAttribute('aria-modal')).toBeNull();
+  // The header is not hidden from assistive technology: the project switcher stays reachable.
+  expect(screen.getByRole('banner').closest('[aria-hidden="true"]')).toBeNull();
+  expect(screen.getByRole('button', { name: /^Projects/ })).toBeTruthy();
+});
+
+it('closes with Escape only when pressed inside the panel', async () => {
+  stubApi(api());
+  const { router } = renderApp(`/p/${PID}/e/${EID}`);
+  await screen.findByRole('dialog', { name: 'Password reset' });
+  screen.getByRole('link', { name: 'Skip to content' }).focus();
+  await userEvent.keyboard('{Escape}');
+  expect(router.state.location.pathname).toBe(`/p/${PID}/e/${EID}`);
+  expect(screen.getByRole('dialog', { name: 'Password reset' })).toBeTruthy();
+});
+
+it('leaves an Escape that an inner control handled (preventDefault) to that control (R8)', async () => {
+  stubApi(api());
+  const { router } = renderApp(`/p/${PID}/e/${EID}`);
+  const dialog = await screen.findByRole('dialog', { name: 'Password reset' });
+  const body = within(dialog).getByRole('region', { name: 'Element details' });
+  // An inner control that consumes Escape (e.g. a future combo box in the panel).
+  body.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') e.preventDefault();
+  });
+  body.focus();
+  await userEvent.keyboard('{Escape}');
+  expect(router.state.location.pathname).toBe(`/p/${PID}/e/${EID}`);
+  expect(screen.getByRole('dialog', { name: 'Password reset' })).toBeTruthy();
 });
 
 it('shows only catalogue keys with the key catalogue (spec-008 §6)', async () => {

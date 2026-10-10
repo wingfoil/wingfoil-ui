@@ -261,6 +261,175 @@ p {
   font-weight: 500;
 }
 
+/* --- Project switcher (task-015: rows with Remove, ux-reference §3) --- */
+
+.switcher-popover {
+  width: 320px;
+  max-width: calc(100vw - 2 * var(--space-4));
+}
+
+.switcher {
+  display: flex;
+  flex-direction: column;
+  outline: none;
+}
+
+.switcher-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 60vh;
+  overflow-y: auto;
+  outline: none;
+}
+
+.switcher-row {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  border-radius: 7px;
+  outline: none;
+  cursor: pointer;
+}
+
+.switcher-row[data-hovered],
+.switcher-row[data-focused] {
+  background: var(--color-surface-2);
+}
+
+.switcher-row[data-focus-visible] {
+  outline: var(--focus-ring);
+  outline-offset: -2px;
+}
+
+.switcher-row-current {
+  background: var(--color-surface-2);
+}
+
+.switcher-row-unavailable {
+  cursor: default;
+}
+
+.switcher-row-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--space-2) 10px;
+}
+
+.switcher-row-name {
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.switcher-row-current .switcher-row-name {
+  font-weight: 600;
+}
+
+.switcher-row-details {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.switcher-row-path {
+  overflow: hidden;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--color-text-muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.switcher-row-reason {
+  font-size: 12px;
+  color: var(--color-danger);
+}
+
+.switcher-row-reason code {
+  font-family: var(--font-mono);
+}
+
+.icon-button {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  margin-right: 4px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+}
+
+.icon-button[data-hovered] {
+  color: var(--color-danger);
+}
+
+.icon-button[data-focus-visible],
+.switcher-add[data-focus-visible] {
+  outline: var(--focus-ring);
+  outline-offset: -2px;
+}
+
+.switcher-separator {
+  height: 1px;
+  margin: 6px 4px;
+  background: var(--color-divider);
+}
+
+.switcher-add {
+  border: none;
+  background: transparent;
+  text-align: left;
+}
+
+.switcher-note,
+.switcher-footnote {
+  margin: 0;
+  padding: var(--space-2) 10px;
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.switcher-name {
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.button-danger {
+  border-color: var(--color-danger);
+  background: var(--color-danger);
+  color: var(--color-on-danger);
+}
+
+.button-danger[data-hovered] {
+  background: var(--color-danger);
+  text-decoration: underline;
+}
+
+.dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+}
+
+.dialog-error {
+  color: var(--color-danger);
+}
+
+.dialog-error p {
+  margin: 0;
+}
+
 /* --- Dialog --- */
 
 .modal-overlay {
