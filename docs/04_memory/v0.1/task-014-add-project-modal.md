@@ -207,3 +207,79 @@ Screen: `docs/00_reference/ux-reference.md` §3 and the prototype (`docs/00_refe
   - **S-07.3 deviation accepted:** the refused authentication is reproduced offline by a dumb-HTTP
     server with Basic auth on 127.0.0.1 inside the test, not `https://git.example.test`.
   - The coordinator amends ux-reference §3 (0.9) for W4-11/12/13/15 on `main`.
+
+### red / green / refactor (2026-10-10)
+
+- **Red** (`db8a8fa`): `test/web/shell/add-project.test.tsx`, `test/web/shell/working-directory.test.ts`,
+  `test/web/shell/add-project-fields.test.ts` and the add/clone rows of `test/web/api/projects.test.tsx`
+  — 39 failing (modules missing, the dialog an empty frame). **Green** (`5dd7b5c`, `913ee92`):
+  `web/src/api/projects.ts` (`addProject`, `cloneProject`, `rememberProject`, `useAddLocalProject`,
+  `useCloneProject`), `web/src/shell/add-project.tsx` (form inside the task-013 frame),
+  `web/src/shell/working-directory.ts`, `web/src/shell/add-project-fields.ts`,
+  `web/src/shell/availability.ts` (the availability → `reason` map, moved out of
+  `ProjectSwitcher.tsx` and shared with W4-12), `en.json` (`projects.add.*`, `error.cliNotFound`
+  per W4-9), `theme/base.css` (segmented control, fields, progress bar, error block).
+- **Deviations / findings:**
+  - The form is mounted only while the dialog is open: it starts empty at every opening, and its
+    unmount aborts a running request — so Cancel, Close, Escape and any navigation (W4-10's link,
+    the browser's back) abort the same way. The provider closes the dialog on `onBeforeNavigate`
+    (as the switcher does).
+  - Disabling the fields while a request runs drops the focus of the focused field to `body`, where
+    Escape no longer reaches the dialog: the submit handler moves the focus to Cancel (the action
+    left). Done in the handler, not in an effect: a focus change inside a React effect during a
+    user-event dispatch threw React's "Should not already be working" in jsdom.
+  - Field checks use React Aria's native validation with a `validate` function returning the
+    catalogue text; `isRequired` is not used (its message would be the browser's own text, outside
+    the catalogue).
+  - The key build substitutes the arguments into the key text (`projects.add.cloning file:///x.git
+    ~/projects/x`); the key-catalogue test asserts that form.
+  - `test/e2e/support/switcher.ts`: the switcher helpers of `projects.spec.ts` (task-015) moved to
+    the shared support, unchanged, and used by both specs; `test/e2e/support/git-http.ts`: a
+    dumb-HTTP remote (Basic auth, held answers) and `bareRepository()`.
+  - The e2e consoles of the clone tests get an explicit `PATH`: no `wingfoil` (`envWithoutWingfoil`)
+    plus, for S-04.x, the pinned CLI linked as `wingfoil` (a fresh clone has no `node_modules`; npm's
+    own `.bin` on the test's PATH would otherwise decide the availability).
+- **e2e closure** (`test/e2e/add-project.spec.ts`, real bin, kanban fixture and remotes made by the
+  tests, offline; axe 0 serious/critical in light and dark on the dialog in local mode (S-03.1), in
+  remote mode (S-04.1), in an error state (S-03.2, S-07.1 with git's output), during a clone
+  (W4-11), with an unavailable new project (W4-12), and on the switcher's unavailable row (S-10.2)):
+
+  | Scenario | spec:test |
+  |----------|-----------|
+  | S-03.1 Add a local WingFoil folder | `add-project.spec.ts` › "S-03.1 — Add a local WingFoil folder" (empty list read first; keyboard only: start page *Add project…* with focus ring, Tab to the source and the field, typing, Enter; 201 with an opaque id; the page at `/p/<pid>/memory` with the Memory heading; "kanban added" announced; trigger "Projects: kanban"; the switcher's list read holds `kanban`) |
+  | S-03.2 Refuse a path that does not exist | same spec › "S-03.2 …" (422; the alert reads "Folder not found: /tmp/does-not-exist"; axe; the switcher's list read is empty) |
+  | S-04.1 Auto-fill the working directory | same spec › "S-04.1 …" (ArrowRight chooses *Remote git repository*; the fixture's `file://` remote typed; the field holds `~/projects/kanban`, its description the hint; axe) |
+  | S-04.3 Clone the remote on confirm | same spec › "S-04.3 …" (201; Memory list of the new pid; `~/projects/kanban` has the remote as `origin` and the remote's HEAD; listed). REQ-SEC-05 probe at API level in task-008 |
+  | S-04.2 Use a working directory I typed | same spec › "S-04.2 …" (`~/work/kanban-copy` is the clone; `~/projects/kanban` does not exist; listed as `kanban-copy`) |
+  | S-05.1 Refuse a folder without .wingfoil/ | same spec › "S-05.1 …" (a `git init` folder; "Not a WingFoil project: no .wingfoil/ folder in <path>"; nothing listed) |
+  | S-05.2 Refuse a remote whose clone has no .wingfoil/ | same spec › "S-05.2 …" (a bare `plain.git` as `file://`; "… in the cloned repository"; `~/projects/plain` does not exist; nothing listed) |
+  | S-06.1 Refuse the same local folder twice | same spec › "S-06.1 …" ("Already in the list: kanban", no "same remote"; link "Open kanban" to `/p/<pid>` with a focus ring; Enter closes the dialog and opens its Memory list; one project listed) |
+  | S-06.2 Refuse a second working copy of a known remote | same spec › "S-06.2 …" (kanban added through the dialog so the list holds its origin; a second `git clone` of the remote added from the switcher's *Add project…*; "Already in the list: kanban (same remote)" with the link; one project listed) |
+  | S-07.1 Report an unreachable remote | same spec › "S-07.1 …" (`https://git.invalid/team/project.git` — `.invalid` never resolves, no network; "Git refused the action:" + git's output verbatim in `pre` naming `git.invalid`; axe; `~/projects/project` does not exist; nothing listed) |
+  | S-07.2 Refuse a working directory that is not empty | same spec › "S-07.2 …" ("The working directory is not empty: ~/projects/kanban"; the folder holds only `notes.txt`; nothing listed) |
+  | S-07.3 Report a refused authentication | same spec › "S-07.3 …" — **deviation accepted by the user**: a dumb-HTTP remote on 127.0.0.1 inside the test refusing `alex:wrong` (401), not `https://git.example.test` (unreachable offline); git's "Authentication failed" verbatim, without the password; nothing cloned, nothing listed |
+  | S-10.1 Do not open a project with no CLI | same spec › "S-10.1 …" (copy without `node_modules/wingfoil`, console PATH without `wingfoil`; "WingFoil CLI not found for this project. Install it with: npm install --save-dev wingfoil" (W4-9); nothing listed) |
+  | S-10.2 Mark a listed project whose CLI disappeared | same spec › "S-10.2 …" (listed `ok`, CLI removed, the read sent by reopening the switcher answers `cli-not-found` with the command; the row's accessible name "kanban <path> Unavailable — WingFoil CLI not found Install it with: npm install --save-dev wingfoil"; axe; Enter on the row opens nothing) |
+
+  Mechanisms (same spec): "W4-11 — a clone in progress …" (held HTTP remote: progress bar named
+  "Cloning <url> into ~/projects/held… This can take a while.", fields and *Clone and add* disabled,
+  focus ring on Cancel, axe, Enter on Cancel closes; the server removes `~/projects/held`; nothing
+  listed) and "W4-12 — a clone with no CLI …" (201 `cli-not-found`; the dialog keeps "kanban was
+  added but is unavailable — WingFoil CLI not found" and the install command, no field, focus on
+  Close; axe; the switcher lists it unavailable).
+- **Checks** (HEAD `16c2b20` + README, load average 20 → 14 on 12 cores, other projects):
+  `npm run -s typecheck`, `lint` (ESLint + catalogue check) clean · `format:check` clean ·
+  `docs:api` OK · `check_tasks.py` OK · `npm run -s test:coverage` **112 files passed, 1
+  skipped; 1778 passed / 1 skipped** (load 20.1 → 20.8), coverage 96.58 % statements / 90.74 %
+  branches / 97.23 % functions / 98.26 % lines (`web/src/shell` 98.2 % / 93.86 %) ·
+  `npm run -s test:e2e` **87/87** (3.6 min, load 19.2 → 15.8) · `add-project.spec.ts` +
+  `projects.spec.ts` with `--repeat-each=2` **54/54** (load 14.6 → 14.4) ·
+  `npm run test:timing` **not run** (load ≥ 14 > 12).
+- **Hand-overs:**
+  - **task-016:** the dialog closes on any navigation (`onBeforeNavigate` in `AddProjectProvider`);
+    the shared availability → reason map is `web/src/shell/availability.ts`.
+  - **task-021:** the dialog's status region (progress, W4-12) and the provider's polite live region
+    ("<name> added") are `role="status"`; the switcher popover's React Aria "Dismiss" remains (015).
+  - **Coordinator:** ux-reference §3 (0.9) for W4-11/12/13/15 on `main`; run `npm run test:timing`
+    on a quiet machine. Known and deferred (task-008): a SIGKILLed console leaves a clone folder and
+    the retry shows "The working directory is not empty".
