@@ -259,3 +259,114 @@ it('renders every text from the catalogue (key build)', async () => {
   expect(screen.getByRole('group', { name: /^shell\.user\.label / })).toBeTruthy();
   expect(screen.getByRole('region', { name: 'shell.header.label' })).toBeTruthy();
 });
+
+// --- Review round 1: a pending or refused role view never leaks into another project ------------
+
+/** A deferred answer. */
+function deferred(): { promise: Promise<Response>; resolve(r: Response): void } {
+  let resolve!: (r: Response) => void;
+  const promise = new Promise<Response>((r) => (resolve = r));
+  return { promise, resolve };
+}
+
+/** Two projects (`p_a` Morgan, `p_b` Morgan); every PUT waits for `put` to be resolved by the test. */
+function stubTwo(heads: Record<string, () => ProjectHeader>) {
+  const calls: { method: string; url: string }[] = [];
+  const puts: { url: string; answer: ReturnType<typeof deferred> }[] = [];
+  const json = (status: number, body?: unknown) =>
+    new Response(body === undefined ? null : JSON.stringify(body), {
+      status,
+      headers: { 'content-type': 'application/json' },
+    });
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async (url: string, init?: RequestInit) => {
+      const method = init?.method ?? 'GET';
+      calls.push({ method, url });
+      if (method === 'PUT') {
+        const answer = deferred();
+        puts.push({ url, answer });
+        return answer.promise;
+      }
+      if (url === '/api/server') return json(200, serverInfo().body);
+      if (url === '/api/projects')
+        return json(200, {
+          projects: ['p_a', 'p_b'].map((id) => ({ id, name: id, path: `/x/${id}`, remote: '', availability: 'ok' })),
+        });
+      const pid = /^\/api\/p\/(p_[ab])$/.exec(url)?.[1];
+      if (pid) return json(200, { ...heads[pid]!(), id: pid });
+      return json(404, { error: { code: 'not-found', message: 'Not found' } });
+    }),
+  );
+  const reads = (pid: string) => calls.filter((c) => c.method === 'GET' && c.url === `/api/p/${pid}`).length;
+  return { calls, puts, reads, json };
+}
+
+const select = () => screen.getByRole('button', { name: /Role view$/ });
+
+async function pick(u: ReturnType<typeof userEvent.setup>, role: string): Promise<void> {
+  await u.click(await screen.findByRole('button', { name: /Role view$/ }));
+  await u.click(within(await screen.findByRole('listbox')).getByRole('option', { name: role }));
+}
+
+it('disables the selector while the PUT runs and keeps the old role until the header is read again (W4-20, R3)', async () => {
+  let current = 'tech-lead';
+  const { puts, reads, json } = stubTwo({ p_a: () => morgan(current), p_b: () => morgan() });
+  const u = userEvent.setup();
+  renderApp('/p/p_a/dna');
+  await pick(u, 'approver');
+  await waitFor(() => expect(puts).toHaveLength(1));
+  await waitFor(() =>
+    expect(select().hasAttribute('disabled') || select().dataset['disabled'] !== undefined).toBe(true),
+  );
+  expect(select().textContent).toContain('tech-lead');
+  const before = reads('p_a');
+  current = 'approver';
+  puts[0]!.answer.resolve(json(204));
+  await waitFor(() => expect(reads('p_a')).toBeGreaterThan(before));
+  await waitFor(() => expect(select().textContent).toContain('approver'));
+  expect(select().dataset['disabled']).toBeUndefined();
+});
+
+it('refreshes the project the PUT was sent for when the page moved to another one meanwhile (R1)', async () => {
+  const { puts, reads, json } = stubTwo({ p_a: () => morgan(), p_b: () => morgan() });
+  const u = userEvent.setup();
+  const { router } = renderApp('/p/p_a/dna');
+  await pick(u, 'approver');
+  await waitFor(() => expect(puts.map((p) => p.url)).toEqual(['/api/p/p_a/role-view']));
+  await router.navigate({ to: '/p/$pid/dna', params: { pid: 'p_b' } });
+  await waitFor(() => expect(reads('p_b')).toBe(1));
+  // B's selector is not held by A's request.
+  await waitFor(() => expect(select().dataset['disabled']).toBeUndefined());
+  const [a, b] = [reads('p_a'), reads('p_b')];
+  puts[0]!.answer.resolve(json(204));
+  // A's header (and directives) are stale now: read again on A's next visit; B is not read again.
+  await router.navigate({ to: '/p/$pid/dna', params: { pid: 'p_a' } });
+  await waitFor(() => expect(reads('p_a')).toBeGreaterThan(a));
+  expect(reads('p_b')).toBe(b);
+});
+
+it('does not carry a refusal to another project, and clears it on the next header read (R1, R5)', async () => {
+  const { puts, json } = stubTwo({ p_a: () => morgan(), p_b: () => morgan() });
+  const u = userEvent.setup();
+  const { router, queryClient } = renderApp('/p/p_a/dna');
+  await pick(u, 'approver');
+  await waitFor(() => expect(puts).toHaveLength(1));
+  puts[0]!.answer.resolve(json(403, { error: { code: 'not-in-team', message: 'x' } }));
+  // Reported after its own header read, and kept.
+  const alert = await within(strip()).findByRole('alert');
+  expect(alert.textContent).toMatch(/team/i);
+  await new Promise((r) => setTimeout(r, 50));
+  expect(within(strip()).queryByRole('alert')).not.toBeNull();
+  // The next header read (e.g. after a `repo` event) clears it.
+  await queryClient.invalidateQueries({ queryKey: ['p', 'p_a', 'header'] });
+  await waitFor(() => expect(within(strip()).queryByRole('alert')).toBeNull());
+  // Refused again, then another project: nothing carried over.
+  await pick(u, 'approver');
+  await waitFor(() => expect(puts).toHaveLength(2));
+  puts[1]!.answer.resolve(json(403, { error: { code: 'not-in-team', message: 'x' } }));
+  expect(await within(strip()).findByRole('alert')).toBeTruthy();
+  await router.navigate({ to: '/p/$pid/dna', params: { pid: 'p_b' } });
+  await waitFor(() => expect(screen.getByRole('button', { name: 'Projects: p_b' })).toBeTruthy());
+  await waitFor(() => expect(within(strip()).queryByRole('alert')).toBeNull());
+});

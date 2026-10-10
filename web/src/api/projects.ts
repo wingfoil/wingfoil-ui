@@ -2,7 +2,7 @@
  * The project list mutations (spec-004 §3, spec-006 §3), shared by the project switcher
  * (task-015: remove) and the *Add project* dialog (task-014: add, clone — {@link useAddLocalProject},
  * {@link useCloneProject}, an aborted request leaving the list alone), and the role view of a
- * project (task-016: {@link setRoleView}, {@link useSetRoleView}). The list itself is read
+ * project (task-016: {@link setRoleView}, {@link useSetRoleView}, the project in the variables). The list itself is read
  * by `projectsQuery()` only (`api/queries.ts`), refetched on the `projects` event of the stream.
  *
  * **Adding a mutation (task-014):** a plain function on {@link apiRequest} (`addProject(path)`,
@@ -145,22 +145,30 @@ export async function setRoleView(pid: string, role: string, signal?: AbortSigna
   await apiRequest<void>('PUT', `/api/p/${encodeURIComponent(pid)}/role-view`, { role }, signal);
 }
 
+/** Variables of {@link useSetRoleView}: the project and the role. */
+export interface RoleViewVariables {
+  pid: string;
+  role: string;
+}
+
 /**
- * The role view change of project `pid` as a mutation (variables: the role; task-016, W4-20). After
- * the 204 the header is read again (it carries the effective `roleView`) and so is every directives
- * query of the project: the server computes `directives[].mine` from the stored role view. A refusal
- * (403 `not-in-team`, 400 for a role no longer held) reads the header again, so that the selector
- * shows what the server holds.
+ * The role view change as a mutation (task-016, W4-20). The project travels in the variables, not
+ * in the hook: a request still running when the page moves to another project refreshes the
+ * project it was sent for (review R1). After the 204 that project's header is read again (it
+ * carries the effective `roleView`) and so is every directives query of it: the server computes
+ * `directives[].mine` from the stored role view. A refusal (403 `not-in-team`, 400 for a role no
+ * longer held) reads the header again before the error is reported, so that the selector shows what
+ * the server holds.
  */
-export function useSetRoleView(pid: string) {
+export function useSetRoleView() {
   const queryClient = useQueryClient();
-  return useMutation<void, ApiError, string>({
-    mutationFn: (role) => setRoleView(pid, role),
-    onSuccess: () =>
+  return useMutation<void, ApiError, RoleViewVariables>({
+    mutationFn: ({ pid, role }) => setRoleView(pid, role),
+    onSuccess: (_data, { pid }) =>
       Promise.all([
         queryClient.invalidateQueries({ queryKey: projectHeaderQuery(pid).queryKey }),
         queryClient.invalidateQueries({ queryKey: queryKeys.project(pid, 'directives') }),
       ]),
-    onError: () => queryClient.invalidateQueries({ queryKey: projectHeaderQuery(pid).queryKey }),
+    onError: (_error, { pid }) => queryClient.invalidateQueries({ queryKey: projectHeaderQuery(pid).queryKey }),
   });
 }

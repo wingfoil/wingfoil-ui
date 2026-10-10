@@ -1,7 +1,8 @@
 // @vitest-environment jsdom
 // task-016 — the role view mutation (spec-004 §3, W4-20): PUT /api/p/:pid/role-view {role} → 204,
 // then the header and the directives of the project are read again (the server computes
-// `directives[].mine` from the stored role view); a refusal reads the header again.
+// `directives[].mine` from the stored role view); a refusal reads the header again. The project is
+// in the variables (review R1).
 import { QueryClientProvider } from '@tanstack/react-query';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
@@ -49,7 +50,7 @@ function setup() {
   const wrapper = ({ children }: { children: ReactNode }) => (
     <QueryClientProvider client={client}>{children}</QueryClientProvider>
   );
-  const hook = renderHook(() => useSetRoleView('p_a'), { wrapper });
+  const hook = renderHook(() => useSetRoleView(), { wrapper });
   const stale = (key: readonly unknown[]) => client.getQueryState(key)?.isInvalidated;
   return { client, hook, stale };
 }
@@ -57,7 +58,7 @@ function setup() {
 it('useSetRoleView invalidates the header and every directives query of the project, nothing else', async () => {
   stubFetch(204);
   const { hook, stale } = setup();
-  await act(() => hook.result.current.mutateAsync('developer'));
+  await act(() => hook.result.current.mutateAsync({ pid: 'p_a', role: 'developer' }));
   expect(stale(projectHeaderQuery('p_a').queryKey)).toBe(true);
   expect(stale(directivesQuery('p_a').queryKey)).toBe(true);
   expect(stale(queryKeys.project('p_a', 'directives', 'testing'))).toBe(true);
@@ -69,9 +70,20 @@ it('useSetRoleView reads the header again after a refusal and keeps the error', 
   stubFetch(400, { error: { code: 'invalid-request', message: 'Bad' } });
   const { hook, stale } = setup();
   await act(async () => {
-    await hook.result.current.mutateAsync('nope').catch(() => undefined);
+    await hook.result.current.mutateAsync({ pid: 'p_a', role: 'nope' }).catch(() => undefined);
   });
   await waitFor(() => expect(hook.result.current.error).toMatchObject({ code: 'invalid-request' }));
   expect(stale(projectHeaderQuery('p_a').queryKey)).toBe(true);
+  expect(stale(directivesQuery('p_a').queryKey)).toBe(false);
+});
+
+it('useSetRoleView refreshes the project of the variables, not another one (review R1)', async () => {
+  stubFetch(204);
+  const { client, hook, stale } = setup();
+  client.setQueryData(directivesQuery('p_b').queryKey, { entries: [], warnings: [] });
+  await act(() => hook.result.current.mutateAsync({ pid: 'p_b', role: 'developer' }));
+  expect(stale(projectHeaderQuery('p_b').queryKey)).toBe(true);
+  expect(stale(directivesQuery('p_b').queryKey)).toBe(true);
+  expect(stale(projectHeaderQuery('p_a').queryKey)).toBe(false);
   expect(stale(directivesQuery('p_a').queryKey)).toBe(false);
 });

@@ -14,7 +14,7 @@
  */
 import type { ProjectHeader as HeaderData } from '@wingfoil-ui/contracts';
 import { useQuery } from '@tanstack/react-query';
-import type { ReactNode } from 'react';
+import { useEffect, useRef, type ReactNode } from 'react';
 import { Button, Label, ListBox, ListBoxItem, Popover, Select, SelectValue } from 'react-aria-components';
 import { defineMessages, FormattedMessage, useIntl, type MessageDescriptor } from 'react-intl';
 import { ApiError } from '../api/client.js';
@@ -60,8 +60,20 @@ export interface ProjectHeaderProps {
 export function ProjectHeader({ pid }: ProjectHeaderProps): ReactNode {
   const intl = useIntl();
   const header = useQuery(projectHeaderQuery(pid));
-  const roleView = useSetRoleView(pid);
+  const roleView = useSetRoleView();
   const data = header.data;
+  // A refusal is reported once the header was read again (`onError` awaits it); it stays until the
+  // header is read once more — a later change, e.g. a `repo` event — or another role is picked (R5).
+  const refusedAt = useRef(0);
+  const { isError, reset } = roleView;
+  useEffect(() => {
+    if (isError) refusedAt.current = header.dataUpdatedAt;
+    // Only when the refusal arrives: the header read that follows it is the baseline.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- dataUpdatedAt is read, not watched
+  }, [isError]);
+  useEffect(() => {
+    if (isError && header.dataUpdatedAt > refusedAt.current) reset();
+  }, [header.dataUpdatedAt, isError, reset]);
   return (
     <>
       <section className="project-header" aria-label={intl.formatMessage(MESSAGES.label)}>
@@ -92,7 +104,7 @@ export function ProjectHeader({ pid }: ProjectHeaderProps): ReactNode {
               roles={data.roleViews}
               current={data.roleView ?? data.roleViews[0]!}
               busy={roleView.isPending}
-              onChange={(role) => roleView.mutate(role)}
+              onChange={(role) => roleView.mutate({ pid, role })}
             />
           )}
           <CurrentUser header={data} />
@@ -115,7 +127,15 @@ function VersionLine({ header }: { header: HeaderData }): ReactNode {
       <p className="project-version project-version-unsupported">
         <WarningSign />
         {range ? (
-          <FormattedMessage id="shell.header.versionReadOnly" values={{ ...values, ...range }} />
+          <FormattedMessage
+            id="shell.header.versionReadOnly"
+            values={{
+              ...values,
+              reason: (
+                <FormattedMessage id="shell.reason.unsupportedVersion" values={{ min: range.min, max: range.max }} />
+              ),
+            }}
+          />
         ) : (
           <FormattedMessage id="shell.header.versionUnsupported" values={values} />
         )}
@@ -139,7 +159,10 @@ function VersionLine({ header }: { header: HeaderData }): ReactNode {
               <li key={m.id}>
                 <FormattedMessage
                   id="shell.header.missing"
-                  values={{ capability: name ? intl.formatMessage(name) : m.id, minVersion: m.minVersion }}
+                  values={{
+                    capability: name ? intl.formatMessage(name) : m.id,
+                    reason: <FormattedMessage id="shell.reason.needsVersion" values={{ minVersion: m.minVersion }} />,
+                  }}
                 />
               </li>
             );
@@ -165,6 +188,7 @@ function Notice({ notice }: { notice: ReadOnlyNotice }): ReactNode {
       text = (
         <FormattedMessage
           id="shell.header.notice.noIdentity"
+          description="'<your email>' is quoted with ICU apostrophes so that it is text, not a tag: keep the quotes when translating the placeholder"
           values={{ code: (chunks: ReactNode[]) => <code>{chunks}</code> }}
         />
       );

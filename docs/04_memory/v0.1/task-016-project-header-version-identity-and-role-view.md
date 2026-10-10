@@ -302,4 +302,35 @@ Screen: `docs/00_reference/ux-reference.md` §3 and the prototype (`docs/00_refe
     the role from `roleView ?? roleViews[0]`; a role-view change already refreshes the header and
     the directives — a new role-dependent query must be added to `useSetRoleView`'s invalidations.
   - **Coordinator:** spec-008 §2 — the capability names live under `shell.capability.*`; amend the
-    task-006 hand-over wording (`capability.<id>`) if wanted.
+    task-006 hand-over wording (`capability.<id>`) if wanted (confirmed sound in review R4).
+
+### review round 1 (2026-10-10)
+
+- Coordinator review: **FAIL** (1 major, minors, nits). Fixed:
+  - **R1 (major)** `ProjectLayout` is not remounted on a `$pid` change, and a pending mutation took
+    the new options: a refused PUT's `ErrorText` carried over to project B, and a PUT for A pending
+    at the switch refreshed B instead of A and disabled B's select. Fixed both ways:
+    `<ProjectHeader key={pid} pid={pid} />` (`routes/project.tsx`), and the project travels in the
+    variables — **shared API change:** `useSetRoleView()` takes no argument, `mutate({ pid, role })`
+    (`RoleViewVariables`), invalidations from the variables in `onSuccess`/`onError`;
+    `setRoleView(pid, role, signal?)` unchanged. Tests: `role-view.test.tsx` "refreshes the project
+    of the variables, not another one"; `project-header.test.tsx` "refreshes the project the PUT was
+    sent for when the page moved to another one meanwhile" (fails without the key: B's select stays
+    disabled) and "does not carry a refusal to another project …".
+  - **R2** S-22.1 waits for the selector to be enabled again (the approver mutation settled: header
+    and directives re-read, `onSuccess` awaits both) before waiting for the developer's directives.
+  - **R3** unit test with a deferred PUT: the select is disabled and keeps `tech-lead` until the
+    header is read again, then shows `approver` and is enabled.
+  - **R4** capability names `shell.capability.<camelId>` recorded (above, hand-overs). The reasons
+    now render through spec-008 §4 keys: `shell.reason.needsVersion` (`needs WingFoil {minVersion}`)
+    and `shell.reason.unsupportedVersion` (`supported {min} to {max}`), inside frame keys
+    `shell.header.missing` (`{capability} — {reason}`) and `shell.header.versionReadOnly`
+    (`WingFoil {version}… — read-only: {reason}`). Visible texts unchanged; catalogue check passes.
+  - **R5** the refusal's `ErrorText` is reported after its own header re-read (`onError` awaits
+    it) and cleared on the next header read (e.g. a `repo` event) or a new pick; tested.
+  - **R6** a failed re-read with cached data stays silent (v0.1) — task-021 hand-over below.
+  - **R7** the catalogue has no notes file: the translator note for the ICU-quoted `'<your
+    email>'` of `shell.header.notice.noIdentity` is the descriptor's `description` in
+    `ProjectHeader.tsx` (formatjs extracts it) and this note.
+- **Hand-over addition (task-021):** a failed header re-read while data is cached shows the cached
+  header silently (R6); decide whether to show a stale/error mark.

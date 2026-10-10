@@ -444,6 +444,9 @@ test.describe('US-S-22 — role views', () => {
     expect((await put).status()).toBe(204);
     expect((await reread).roleView).toBe('approver');
     await expect(roleView(page)).toHaveAccessibleName('approver Role view');
+    // The approver's header and directives re-reads are over (the selector is enabled again only
+    // when the mutation settled, review R2) before waiting for the developer's directives.
+    await expect(roleView(page)).toBeEnabled({ timeout: COLD_READ_MS });
     // When the role view "developer" is selected, the directives are read again for it.
     const directives = page.waitForEvent('requestfinished', {
       predicate: (r) => r.method() === 'GET' && new URL(r.url()).pathname === `/api/p/${pid}/directives`,
