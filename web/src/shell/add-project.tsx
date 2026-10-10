@@ -174,11 +174,6 @@ function AddProjectForm({ close, onAdded }: { close(): void; onAdded(item: Proje
   }, [unavailable]);
 
   const busy = local.isPending || clone.isPending;
-  // While the request runs the fields are disabled, the focused one included: the focus moves to
-  // Cancel, the action left, so that it stays inside the dialog (Escape, Tab).
-  useEffect(() => {
-    if (busy) cancelButton.current?.focus();
-  }, [busy]);
   const current = source === 'folder' ? local : clone;
   const error = current.error && !aborted(current.error) ? current.error : null;
   const listed = error ? listedEntry(error) : undefined;
@@ -195,14 +190,19 @@ function AddProjectForm({ close, onAdded }: { close(): void; onAdded(item: Proje
     event.preventDefault();
     if (busy) return;
     const controller = new AbortController();
+    // While the request runs the fields are disabled, the focused one included: the focus moves to
+    // Cancel, the action left, so that it stays inside the dialog (Escape, Tab).
+    const keepFocus = (): void => cancelButton.current?.focus();
     if (source === 'folder') {
       if (pathProblem(path)) return;
       request.current = controller;
       local.mutate({ path: path.trim(), signal: controller.signal }, { onSuccess: done });
+      keepFocus();
     } else {
       if (urlProblem(url) || directoryProblem(directory)) return;
       request.current = controller;
       clone.mutate({ url: url.trim(), directory: directory.trim(), signal: controller.signal }, { onSuccess: done });
+      keepFocus();
     }
   };
 

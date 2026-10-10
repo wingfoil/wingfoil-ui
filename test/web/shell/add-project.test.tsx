@@ -8,7 +8,9 @@ import type { ProjectListItem } from '@wingfoil-ui/contracts';
 import { cleanup, screen, waitFor, within } from '@testing-library/react';
 import { userEvent } from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { keyCatalogue } from '../../../web/scripts/catalogue.mjs';
 import { stopEventStream } from '../../../web/src/api/events.js';
+import en from '../../../web/src/i18n/en.json' with { type: 'json' };
 import { projectsQuery } from '../../../web/src/api/queries.js';
 import { resetSession } from '../../../web/src/session/session.js';
 import { renderApp, serverInfo } from './render.js';
@@ -427,6 +429,7 @@ describe('a request in progress (W4-11)', () => {
     expect(within(dialog).getByRole('textbox', { name: 'Local working directory' })).toHaveProperty('disabled', true);
     expect(within(dialog).getByRole('radio', { name: 'Local folder' })).toHaveProperty('disabled', true);
     expect(within(dialog).getByRole('button', { name: 'Clone and add' })).toHaveProperty('disabled', true);
+    expect(document.activeElement).toBe(within(dialog).getByRole('button', { name: 'Cancel' }));
     const signal = api.posts()[0]!.signal!;
     expect(signal.aborted).toBe(false);
     await user.click(within(dialog).getByRole('button', { name: 'Cancel' }));
@@ -460,4 +463,26 @@ describe('a request in progress (W4-11)', () => {
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
     expect(api.posts()[0]!.signal!.aborted).toBe(true);
   });
+});
+
+it('shows only catalogue keys with the key catalogue (spec-008 §6, X-09.1)', async () => {
+  fakeApi([], { clone: 'hang' });
+  const user = userEvent.setup();
+  renderApp('/', keyCatalogue(en));
+  await user.click(await screen.findByRole('button', { name: 'projects.start.add' }));
+  const dialog = await screen.findByRole('dialog', { name: 'projects.add.title' });
+  expect(within(dialog).getByText('projects.add.subtitle')).toBeTruthy();
+  within(dialog).getByRole('radio', { name: 'projects.add.sourceLocal' }).focus();
+  await user.keyboard('{ArrowRight}');
+  expect(within(dialog).getByRole('radiogroup', { name: 'projects.add.source' })).toBeTruthy();
+  const url = within(dialog).getByRole('textbox', { name: 'projects.add.url' });
+  expect(url.getAttribute('placeholder')).toBe('projects.add.urlPlaceholder');
+  expect(within(dialog).getByText('projects.add.directoryHint')).toBeTruthy();
+  await user.click(within(dialog).getByRole('button', { name: 'projects.add.submitClone' }));
+  expect(await within(dialog).findByText('projects.add.error.urlRequired')).toBeTruthy();
+  await user.type(url, 'file:///x.git{Enter}');
+  expect(
+    await within(dialog).findByRole('progressbar', { name: 'projects.add.cloning file:///x.git ~/projects/x' }),
+  ).toBeTruthy();
+  expect(within(dialog).getByRole('button', { name: 'projects.add.cancel' })).toBeTruthy();
 });
