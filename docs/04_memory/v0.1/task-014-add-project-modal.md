@@ -178,3 +178,32 @@ Screen: `docs/00_reference/ux-reference.md` §3 and the prototype (`docs/00_refe
     body, then retrying expects). axe 0 serious/critical in light and dark on the dialog (local
     mode, remote mode, an error state, the clone progress). Keyboard: the dialog driven with Tab,
     arrows, typing and Enter, visible focus. The closure table follows in the red/green notes.
+
+### design decisions (2026-10-10)
+
+- Decided by the user (coordinator), each option (a) as recommended:
+  - **W4-9** `error.cliNotFound` = "WingFoil CLI not found for this project. Install it with:
+    {command}" (`{path}` dropped; the server's `message` already says "for this project").
+  - **W4-10** `already-listed`: `ErrorText`, then a link "Open <name>" (new key) to
+    `/p/<detail.pid>`; pressing it closes the dialog and navigates.
+  - **W4-11** while a request runs: fields and the primary button disabled; a status line and an
+    indeterminate React Aria `ProgressBar` (catalogue label) — "Cloning <url> into <directory>…" or
+    "Adding…"; Cancel, Close and Escape abort the request (the server kills git and removes what it
+    created) and close the dialog.
+  - **W4-12** after a 201 the page navigates to `/p/<pid>` only when `availability` is `ok`; else
+    the dialog stays with "<name> was added but is unavailable — <reason>" (install command for
+    `cli-not-found`) and Close only.
+  - **W4-13** field-level validation (React Aria `FieldError`, catalogue texts): path filled and
+    absolute (`/`, `~`, `~/…`, a drive letter or UNC); URL filled and not starting with `-`;
+    working directory filled (and required when no folder name can be derived). No scheme check.
+  - **W4-14** `web/src/shell/working-directory.ts` mirrors the server's `repoName`; its unit test
+    replays the server's table; the client always sends the field's value.
+  - **W4-15** header Close and footer Cancel beside *Add* / *Clone and add*; the source is a React
+    Aria `RadioGroup` styled as the segmented control; no toast — a polite announcement
+    "<name> added".
+  - Shared API **confirmed**: `addProject`, `cloneProject`, `useAddLocalProject()`,
+    `useCloneProject()`, `rememberProject(queryClient, item)`; refusal → invalidate
+    `projectsQuery()`; abort → nothing.
+  - **S-07.3 deviation accepted:** the refused authentication is reproduced offline by a dumb-HTTP
+    server with Basic auth on 127.0.0.1 inside the test, not `https://git.example.test`.
+  - The coordinator amends ux-reference §3 (0.9) for W4-11/12/13/15 on `main`.
