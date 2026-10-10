@@ -2,7 +2,7 @@
 id: bug-006-clone-keeps-url-credentials-in-the-clone-git-config
 type: bug
 title: "Clone keeps URL credentials in the clone git config"
-status: planned
+status: in-progress
 severity: "low"        # REQUIRED — critical | high | medium | low
 release-origin: "v0.1" # optional — release where the bug was FOUND, e.g. "v0.1"
 release: ""            # optional — fix/implementation release, stamped by release-planning/build-backlog
@@ -66,3 +66,5 @@ with a catalogue reason pointing to a credential helper.
   `bug:` list + its own Acceptance Criterion), option (c) decided by the user: refuse clone URLs
   carrying a password with a new spec-006 §3 refusal code. `triaged → planned` set by hand (no CLI
   verb); it moves to `in-progress` when task-021 starts.
+- start (2026-10-10): task-021 started (Wave 5) → `planned → in-progress` by hand (bug.sync_state; no CLI
+  verb); it is submitted together with task-021.
