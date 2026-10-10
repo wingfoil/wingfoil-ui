@@ -1,6 +1,6 @@
 # Tests
 
-**Version:** 0.22 · **Date:** 2026-10-10 (0.1: workspace tooling and e2e harness — task-001; 0.2: `test/launcher/`, `test/server/` — task-002; 0.3: `test/contracts/`, local state isolation, secret scan — task-007; 0.4: `local-security` suite — task-003; 0.5: process runner fake, hand-made CLI packages, stub after global options — task-004; 0.6: CLI contract tests, captured samples, `test:contract` — task-005; 0.7: action descriptor tests, REQ-ARC-05 lint rule — task-011; 0.8: matrix builds of `cliBuildFor`, capability table and README checks — task-006; 0.9: identity tests, bin with a seeded state — task-009; 0.10: timing suite `test:timing`, `TempWorkspace`, snapshot audits and stand-ins — task-010 / bug-001; 0.11: project-list route tests, a dumb-HTTP git remote — task-008; 0.12: read routes, the read console replacing the stand-ins, spec-002 §3 event parse, confinement — task-012; 0.13: `test/web/` component tests, the shared e2e support of Wave 3, the shell e2e — task-013; 0.14: `test/web/element/` and the element panel e2e `element-panel.spec.ts` — task-018; 0.15: `test/web/docs/` and the documentation e2e `documentation.spec.ts` — task-020; 0.16: `test/web/memory/` and the Memory list e2e `memory-list.spec.ts` — task-017; 0.17: `test/web/dna/`, `directives/`, `team/`, the e2e `dna`, `directives`, `team` specs and G-02 in `element-panel.spec.ts`; load-independent waits, prebuilt fixtures and the console reaper of the e2e support, `test/harness/load.ts` — task-019 / bug-004; 0.18: the Playwright part of `test:timing` (strict live refresh) — task-019, W3-47; 0.19: `wingfoil-feedback.test.ts`, the WingFoil feedback inbox and the `wingfoil-cli` *Note* column — task-023; 0.20: the project switcher e2e `projects.spec.ts`, `stateDir` of the e2e console, `test/web/shell/project-switcher`, `switch-target`, `test/web/api/projects` — task-015; 0.21: the Add project e2e `add-project.spec.ts`, `support/switcher.ts`, `support/git-http.ts`, `test/web/shell/add-project`, `add-project-fields`, `working-directory` — task-014; 0.22: the project header e2e `project-header.spec.ts`, `test/web/project/`, `test/web/api/role-view` — task-016)
+**Version:** 0.23 · **Date:** 2026-10-10 (0.1: workspace tooling and e2e harness — task-001; 0.2: `test/launcher/`, `test/server/` — task-002; 0.3: `test/contracts/`, local state isolation, secret scan — task-007; 0.4: `local-security` suite — task-003; 0.5: process runner fake, hand-made CLI packages, stub after global options — task-004; 0.6: CLI contract tests, captured samples, `test:contract` — task-005; 0.7: action descriptor tests, REQ-ARC-05 lint rule — task-011; 0.8: matrix builds of `cliBuildFor`, capability table and README checks — task-006; 0.9: identity tests, bin with a seeded state — task-009; 0.10: timing suite `test:timing`, `TempWorkspace`, snapshot audits and stand-ins — task-010 / bug-001; 0.11: project-list route tests, a dumb-HTTP git remote — task-008; 0.12: read routes, the read console replacing the stand-ins, spec-002 §3 event parse, confinement — task-012; 0.13: `test/web/` component tests, the shared e2e support of Wave 3, the shell e2e — task-013; 0.14: `test/web/element/` and the element panel e2e `element-panel.spec.ts` — task-018; 0.15: `test/web/docs/` and the documentation e2e `documentation.spec.ts` — task-020; 0.16: `test/web/memory/` and the Memory list e2e `memory-list.spec.ts` — task-017; 0.17: `test/web/dna/`, `directives/`, `team/`, the e2e `dna`, `directives`, `team` specs and G-02 in `element-panel.spec.ts`; load-independent waits, prebuilt fixtures and the console reaper of the e2e support, `test/harness/load.ts` — task-019 / bug-004; 0.18: the Playwright part of `test:timing` (strict live refresh) — task-019, W3-47; 0.19: `wingfoil-feedback.test.ts`, the WingFoil feedback inbox and the `wingfoil-cli` *Note* column — task-023; 0.20: the project switcher e2e `projects.spec.ts`, `stateDir` of the e2e console, `test/web/shell/project-switcher`, `switch-target`, `test/web/api/projects` — task-015; 0.21: the Add project e2e `add-project.spec.ts`, `support/switcher.ts`, `support/git-http.ts`, `test/web/shell/add-project`, `add-project-fields`, `working-directory` — task-014; 0.22: the project header e2e `project-header.spec.ts`, `test/web/project/`, `test/web/api/role-view` — task-016; 0.23: the e2e-smoke `accessibility` spec `accessibility.spec.ts`, `performance.spec.ts` (`@perf`, TT-PERF-04) and the large fixture `test/harness/fixtures/large.ts`, `support/screens.ts`, `strings.ts`, `perf.ts`, `focusRing`/`tabUntil`, `test/web/shell/page-title` — task-021)
 
 Every test lives under `test/` (DNA `paths.tests`); sources stay in `server/src`, `web/src`,
 `contracts/src`.
@@ -34,7 +34,18 @@ Every test lives under `test/` (DNA `paths.tests`); sources stay in `server/src`
   - `support/events.ts`: `recordServerEvents(page)` (wraps the page's `EventSource` from an init
     script, test side only), `mutateAndWait(page, mutation, { event, pid? })` — no fixed sleeps —,
     `commitFile(fixture, file, content, message)`, `cli(fixture, args)`;
-  - `support/keyboard.ts`: `expectFocusVisible(locator)`;
+  - `support/keyboard.ts`: `expectFocusVisible(locator)`; `focusRing(page)` (the focused element's
+    outline and its contrast against the backdrop, TT-ARC-10) and `tabUntil(page, target, seen)`
+    (Tab / Shift+Tab until `target` has the focus, each ring on the way given to `seen`) — task-021;
+  - `support/screens.ts` (task-021): `SCREENS`, every v0.1 screen reached by URL and structure (no
+    English text), shared by the axe scan of X-06.4 and the key-build check of X-09.1;
+    `startScreensConsole` (kanban + custom, Morgan), `expectSettled(page)` (no loading status);
+  - `support/strings.ts` (task-021): `recordApiData(page)` and `textsOutsideCatalogue(page, data)` —
+    the X-09.1 check: every text node and accessible name is a key-catalogue text or project data
+    from the API answers the page read (React Aria's "Dismiss" the one library exception);
+  - `support/perf.ts` (task-021): `timeNavigation(page, target, ready)` (Enter → view rendered,
+    measured in the page), `percentile`, `reportRuns`; 20 runs and the 1.0 s p95 budget in
+    `test:timing`, 2 runs without a budget in `test:e2e`;
   - `support/cold-read.ts` (bug-004): `COLD_READ_MS` and `expectFirstLoad(locator)` /
     `expectLoaded(scope)` — every spec waits for its first, cold read with them (the CLI behind the
     API is slow under external load), later assertions keep Playwright's default; `refreshClock()`
@@ -51,7 +62,9 @@ Every test lives under `test/` (DNA `paths.tests`); sources stay in `server/src`
   - `support/git-http.ts` (task-014): `startGitHttpRemote(base, { credentials?, hold? })` — a dumb-HTTP
     git remote on 127.0.0.1 (Basic auth refusals, answers held until `release()`) — and
     `bareRepository(base, name, files, env)`; remotes stay offline.
-  `harness/` holds the self-tests of the support (axe helper, console + SSE helper).
+  `harness/` holds the self-tests of the support (axe helper, console + SSE helper, the X-09.1 check
+  and the focus ring helper). `test/harness/fixtures/large.ts` builds the SARD large fixture (custom +
+  500 generated elements + 2 000 commits through `git fast-import`) for `performance.spec.ts` only.
 - `test/web/` — unit and component tests of `web/src` (Vitest; `// @vitest-environment jsdom` per
   file, Testing Library): `shell/render.tsx` renders the whole application on a memory history with
   a stubbed `fetch` (`stubApi`) — optionally with the key catalogue; theme tokens and contrast pairs
@@ -142,7 +155,10 @@ at a time, with `WFUI_STRICT_REFRESH=1`: the screen must change within 5 s of th
 commit, the file write or the CLI verb that commits — watcher, event stream, refetch and render
 included), and each time is printed with the load (`refreshClock()` of
 `test/e2e/support/cold-read.ts`). The same tests in `npm run test:e2e` check the behaviour only (the
-screen changes by itself, without a reload) with the cold-read budget, at any load.
+screen changes by itself, without a reload) with the cold-read budget, at any load. It also runs
+TT-PERF-04 (tag `@perf`, `performance.spec.ts`, task-021): each other view reached by in-app
+navigation on the large fixture, 1 warm-up + 20 runs, p95 ≤ 1.0 s asserted and printed with the
+load; `npm run test:e2e` runs the same spec with 2 runs and no budget.
 
 A test that runs a long process in a temporary folder uses `TempWorkspace`
 (`test/harness/temp-workspace.ts`): `dispose()` in `afterAll` kills the processes still running
