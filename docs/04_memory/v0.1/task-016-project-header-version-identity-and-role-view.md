@@ -340,3 +340,10 @@ Screen: `docs/00_reference/ux-reference.md` §3 and the prototype (`docs/00_refe
   1 skipped**, 96.64 % statements / 90.92 % branches / 97.22 % functions / 98.31 % lines (load 9.6 →
   17.3) · `test:e2e` **104/104** (4.1 min, load 17.3 → 17.4) · `test:timing` **3 + 7 passed** (start
   load 10.3): S-12.3 798 ms, S-13.3 478 ms, S-15.3 722 ms from the mutation (budget 5 s).
+- Review round 2: **PASS**. Hand-over additions (task-021, no code change):
+  - **R8** `.project-notices` (the polite live region) is inside the keyed `ProjectHeader`, so it
+    remounts on a project switch: the notices of a project whose header is cached are usually not
+    announced after a switch. W4-19 only asks for live changes within a project; consider keeping
+    the region outside the keyed subtree.
+  - **R9** if the header re-read awaited by `onError` never settles, the refusal is never shown and
+    the role view select stays disabled (accepted for v0.1).
