@@ -347,3 +347,15 @@ Screen: `docs/00_reference/ux-reference.md` §3 and the prototype (`docs/00_refe
     the region outside the keyed subtree.
   - **R9** if the header re-read awaited by `onError` never settles, the refusal is never shown and
     the role view select stays disabled (accepted for v0.1).
+
+### integration (2026-10-10)
+
+- `main` (docs commit 4ec3ed6: ux-reference 1.0, §3 for W4-16…W4-22) merged into the branch
+  (`2c9c634`), authorised by the coordinator; no conflict.
+- Gates on the merge: typecheck, lint (catalogue check included), format:check clean · `docs:api`
+  OK · `check_tasks.py` OK · `test:coverage` **115 files passed, 1 skipped; 1837 passed / 1
+  skipped**, 96.64 % statements / 90.92 % branches / 97.22 % functions / 98.31 % lines (load 3.3 →
+  18.9) · `test:e2e` **104/104** (4.1 min, load 18.9 → 17.4) · `test:timing` **3 vitest files + 7
+  Playwright passed** (start load 10.4): S-12.3 814 ms, S-13.3 1055 ms, S-15.3 733 ms from the
+  mutation (budget 5 s).
+- Reviews: round 1 FAIL (R1 major + minors/nits, all fixed), round 2 PASS (R8, R9 hand-overs).
