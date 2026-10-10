@@ -328,3 +328,23 @@ Screen: `docs/00_reference/ux-reference.md` §3 and the prototype (`docs/00_refe
 - **Hand-over addition (R6):** a cancel racing the server's commit leaves the project listed
   (shown by the `projects` event) though the dialog closed as cancelled; the user removes it from
   the switcher if unwanted.
+
+### review round 2 (2026-10-10)
+
+- Coordinator re-review: R1–R7 verified. Fixed in `0f7d0ff`:
+  - **R8** (security) `displayUrl()` stopped at the first `@`: `https://u:p@ss@host/r.git` showed
+    `https://ss@host/r.git` (part of the password). The userinfo is now removed up to the last `@`
+    of the authority (`/^([a-z][a-z0-9+.-]*:\/\/)[^/?#]*@/i`, as the server's `split`); an `@` in
+    the query or fragment is never read as userinfo. Unit rows: `https://u:p@ss@host/r.git` →
+    `https://host/r.git`, `https://host?x=a@b` and `https://host#a@b` unchanged; the earlier rows
+    still pass.
+  - **R9** the header of `working-directory.ts` said the dialog always sends the field's value.
+    Since R4 it sends the value when filled; an empty field with a derivable folder name sends no
+    `directory`. **W4-13 takes precedence over that part of W4-14** ("sends the field's value when
+    filled").
+- Recorded, no code change: task-015's `useRemoveProject` returns (so TanStack awaits) the list
+  invalidation on a non-404 refusal — the same delay as R2. Left as is; a backlog nit for the
+  coordinator.
+- Checks: `test/web/shell` + `test/web/api` **252/252**; `typecheck`, `lint`, `format:check`
+  clean.
+- **Hand-over addition (coordinator):** the `useRemoveProject` nit above.
