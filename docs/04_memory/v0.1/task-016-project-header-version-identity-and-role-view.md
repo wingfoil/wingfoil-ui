@@ -225,3 +225,81 @@ Screen: `docs/00_reference/ux-reference.md` §3 and the prototype (`docs/00_refe
   - **W4-22 (a)** with `dnaError`: badge "team unknown" and notice "Read-only: the DNA could not be
     read, so the team is unknown."
   - The coordinator amends ux-reference §3 (1.0) on `main`.
+
+### red / green / refactor (2026-10-10)
+
+- **Red** (`3354b3c`): `test/web/project/{model,project-header}.test.tsx`, `test/web/api/role-view.test.tsx`
+  (fake headers in `test/web/project/header-data.ts`) — 20 of 21 failed on the missing modules.
+- **Green** (`3bc878b`), as designed:
+  - `web/src/api/projects.ts` — `setRoleView(pid, role, signal?)` and `useSetRoleView(pid)`
+    (W4-20, shared API confirmed): success → `projectHeaderQuery(pid)` and the
+    `['p', pid, 'directives']` prefix invalidated (list and directive pages); refusal → header
+    invalidated, the error kept for `ErrorText`.
+  - `web/src/shell/header-slot.tsx` — `HeaderSlotProvider`, `HeaderSlotTarget` (empty
+    `div.shell-header-end` in `Shell`'s header), `HeaderEnd` (portal) (W4-16).
+  - `web/src/project/model.ts` — `userView`, `readOnlyNotices`, `initials`, `versionOf`,
+    `supportedRange` (pure). `web/src/project/ProjectHeader.tsx` — the strip (section "Project
+    header": version line, capability notice or missing list, out-of-range line with a warning
+    sign, notices in an `aria-live="polite"` container, the role-view `ErrorText` in `role="alert"`)
+    and, through `HeaderEnd`, `RoleViewSelect` (React Aria `Select`, label "Role view", disabled
+    while the PUT runs, the value always the server's `roleView`) and `CurrentUser` (`role="group"`
+    named "Current user: …"; initials avatar, name / email / "No identity" / "Ambiguous identity",
+    role for a single-role member, badge "not in team" / "team unknown").
+    `web/src/project/project-header.css` (shared tokens; the notices reuse `.warning`).
+    `routes/project.tsx` renders it above `<Outlet/>`; `icons.tsx` + `WarningSign`.
+  - Catalogue: `shell.capability.*` (the 9 ids of `contracts/capabilities.json`),
+    `shell.header.*`, `shell.roleView.label`/`.hint`, `shell.user.*`.
+- **Deviations / findings:**
+  - Capability keys are `shell.capability.<camelId>`, not `capability.<id>` (hand-over of
+    task-006): spec-008 §2 allows only its listed areas (`capability` is not one, and the catalogue
+    check refuses it) and lowerCamelCase segments. With the matrix of one, `missing` is always
+    empty in v0.1; the keys are used by the missing list.
+  - The range comes from the capability reasons (`unsupported-version {range}`), else from
+    `GET /api/server` (cached by the shell warnings); the server's English `readOnly[].range` label
+    is not shown. Without either: "— read-only: this version is not supported".
+  - React Aria names the Select's button by value then label: "developer Role view". The e2e and
+    unit tests assert that computed name.
+  - The notice container is `aria-live`, not `role="status"`: other specs' `getByRole('status')`
+    and `expectLoaded` would otherwise match it. The header's loading line is a `status` ("Loading
+    the project header…"), so `expectLoaded(main)` also waits for the header.
+  - Other tests updated for the header in the layout: `test/web/dna/dna.test.tsx` and
+    `test/web/memory/list.test.tsx` (the request set now includes `GET /api/p/:pid`),
+    `test/web/element/panel.test.tsx` (complete header stub instead of a partial one).
+  - S-22.3: returning to a project shows its cached header, so the test also opens fresh pages
+    and asserts the header read bodies (`roleView` developer / approver) — no assertion on cache.
+- **e2e closure** (`test/e2e/project-header.spec.ts`, real bin; kanban/custom copies; axe 0
+  serious/critical in light and dark on the header in every identity state — member (S-12.1), not in
+  team (S-13.1), team unknown (W4-22), no identity (S-14.1), ambiguous (S-15.1) —, out of range
+  (S-09.1), after add (S-08.1) and with the role selector open (S-22.2); keyboard: selector opened
+  with Enter, focus ring, arrows + Enter, Escape back to the button with the ring):
+
+  | Scenario | spec:test |
+  |----------|-----------|
+  | S-08.1 Show the version on add | `project-header.spec.ts` › "S-08.1 — Show the version on add, nothing missing" (Add project dialog → "WingFoil 0.2.2", "Every capability of this release is available", axe) |
+  | S-08.2 CLI on the PATH | › "S-08.2 — Use the CLI on the PATH when the project pins none" (`removeCli` + `installGlobally` of the pinned package; "WingFoil 0.2.2 (from PATH)") |
+  | S-09.1 Newer CLI read-only | › "S-09.1 — Open a project with a newer, untested CLI read-only" (`installCliStub` 0.4.0; header body `above`; "WingFoil 0.4.0 — read-only: supported 0.2.2 to 0.2.x"; W4-21: every `GET /elements` verb `enabled: false` with `version-unsupported`, every view + the element panel without a Submit/Approve/Reject control; axe) |
+  | S-09.2 Older CLI read-only | › "S-09.2 — Open a project with an older CLI read-only" (0.2.0, `below`) |
+  | S-12.1 Single-role member | › "S-12.1 — Recognise a single-role member" (name "Current user: Jordan, developer", no selector, no notice, axe) |
+  | S-12.2 Letter case | › "S-12.2 — Match the email regardless of letter case" |
+  | S-12.3 Follow a git email change | › "S-12.3 — Follow a change of git email" `@live-refresh` (refreshClock; no reload; Morgan + selector) |
+  | S-13.1 Not in team | › "S-13.1 — Mark a user who is not in the team" (email + badge + notice, axe; Memory, DNA, Directives, Team, Documentation open) |
+  | S-13.3 Removed from the team | › "S-13.3 — Mark a member removed from the team" `@live-refresh` (`dna remove team.members`) |
+  | W4-22 Unreadable DNA | › "W4-22 — Say the team is unknown when the DNA cannot be read" (header `dnaError`; badge "team unknown", notice, axe) |
+  | S-14.1 No git email | › "S-14.1 — Open read-only when git has no email" ("No identity", notice with `<code>git config user.email <your email></code>`, axe) |
+  | S-14.2 Global email | › "S-14.2 — Use the global git email when the repository sets none" (Casey) |
+  | S-15.1 Two members | › "S-15.1 — Open read-only when the email matches two members" ("Ambiguous identity", "shared@example.test matches 2 members: Jordan, Sam", axe) |
+  | S-15.3 DNA fixed | › "S-15.3 — Recognise the member once the DNA is fixed" `@live-refresh` |
+  | S-22.1 Switch role view | › "S-22.1 — Switch role view" (Alex; approver by keyboard, then developer; PUT 204 and the header re-read with `roleView`; directives re-read: `mine` = developer-bound + global as `directives list`; *Only mine* shows them) |
+  | S-22.2 Only the member's roles | › "S-22.2 — Offer only the roles the member holds" (Morgan: `approver`, `tech-lead`; axe with the listbox open; Escape) |
+  | S-22.3 Per project | › "S-22.3 — Keep the role view per project" (kanban developer, custom approver, switch back; fresh pages read both from the console) |
+
+- **Hand-overs:**
+  - **task-021:** the header's live region is `.project-notices` (`aria-live="polite"`); the
+    selector is a React Aria `Select` (hidden native `<select>` for forms, its popover's own
+    "Dismiss"); the header strip's loading line is a `status`; every header string is a catalogue
+    key (component test with the key build).
+  - **Views (v0.2+):** read the read-only state from `projectHeaderQuery(pid)` (`readOnly`) and
+    the role from `roleView ?? roleViews[0]`; a role-view change already refreshes the header and
+    the directives — a new role-dependent query must be added to `useSetRoleView`'s invalidations.
+  - **Coordinator:** spec-008 §2 — the capability names live under `shell.capability.*`; amend the
+    task-006 hand-over wording (`capability.<id>`) if wanted.
