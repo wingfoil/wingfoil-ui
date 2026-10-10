@@ -8,7 +8,7 @@ module: "web"             # optional — server | web | contracts (dna.yaml modu
 priority: "medium"           # optional — high | medium | low
 tags: ["v0.1"]
 ref: "US-X-06"                # optional — backlog item ID, e.g. "TASK-001"
-bug: []                # optional — LIST of bug ids this task closes. Two cases: a fix task derived from a bug
+bug: ["bug-006-clone-keeps-url-credentials-in-the-clone-git-config"]  # optional — LIST of bug ids this task closes. Two cases: a fix task derived from a bug
                        # by release-planning, and a bug ABSORBED into an existing task's Acceptance Criteria because that
                        # task already owns the ground. `bug.sync_state` iterates this list; a bug with no task naming it
                        # here never advances past `triaged` (only a reject to `closed`).
@@ -46,6 +46,8 @@ The closing pass over every v0.1 screen: keyboard reachability with visible focu
   Scenarios (`@v0.1`): X-09.1, X-09.2.
 - **TT-ARC-11** (REQ-ARC-11 — Light and dark themes): [numeric] In each theme every text has a contrast ratio ≥ 4.5:1 (≥ 3:1 for large text) against its background, measured by axe-core on every screen of the release. *Verified by:* e2e-smoke `accessibility`.
   Scenarios (`@v0.1`): X-08.1, X-08.2.
+
+- **bug-006-clone-keeps-url-credentials-in-the-clone-git-config** (absorbed, dl-045; decided by the user 2026-10-10, option c): `POST /api/projects/clone` refuses a URL whose userinfo holds a password with a new spec-006 §3 refusal code (spec amended at this task's design, decided by the user) rendered from the catalogue with a hint to use SSH or a git credential helper; nothing is cloned and no credential reaches a command line, a file or the state; API + e2e tests.
 
 Screen: `docs/00_reference/ux-reference.md` every v0.1 screen and the prototype (`docs/00_reference/prototype/`), deviations only as recorded (directive `ux-consistency`). Accessibility bar: every screen and action of the task operable from the keyboard with visible focus; axe-core 0 serious/critical violations in both themes; every string from the catalogue (X-09.1).
 

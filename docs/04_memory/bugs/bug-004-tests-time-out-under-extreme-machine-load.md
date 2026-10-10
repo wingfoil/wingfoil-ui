@@ -76,3 +76,11 @@ tests may be slower under load but do not fail when the code is correct.
   On the merge with `main`: `test:coverage` and `test:e2e` 60/60 green at load 7–24, and
   `npm run test:timing` green at load < 10, including the strict live refresh 4/4 (S-27.2 487 ms,
   S-25.2 971 ms, S-26.1 1225 ms, S-26.2 1377 ms from the mutation, budget 5 s).
+- evidence (2026-10-10, Wave 4, plan `dev-loop-rel-v0.1-plan` Session 4): default gates of tasks
+  015, 014, 016 green at load 1–290 (e2e 71/71 at load 238–286; coverage and e2e on every merge),
+  except one run right after a machine reboot at load 39–82: `test:coverage` timeouts in
+  `test/launcher/launcher.test.ts` ("no running line after 10000 ms", "exits 130 on a second
+  signal") and `test/lint/no-shell.test.ts` (30 s), `test:e2e` 3 cold-read timeouts (60 s) in
+  `test/e2e/memory-list.spec.ts` (S-26.2, S-28.1) — all green re-run alone; the reviewer found no
+  link with the task's diff. Per the rule agreed with the user, the bug stays `resolved`; re-check
+  at release validation (or reopen and absorb then).
