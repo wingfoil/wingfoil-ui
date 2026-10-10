@@ -10,6 +10,7 @@ import path from 'node:path';
 import { REPO_ROOT } from '../harness/cli.js';
 import { envWithoutWingfoil, harnessEnv, removeCli } from '../harness/fixtures/index.js';
 import { git } from '../harness/run.js';
+import { scanForSecrets } from '../harness/secret-scan.js';
 import { scanThemes } from './support/axe.js';
 import { COLD_READ_MS, expectFirstLoad } from './support/cold-read.js';
 import { openConsole, type RunningConsole } from './support/console.js';
@@ -21,6 +22,9 @@ import { expectListed, openSwitcher, rows, switcher, trigger } from './support/s
 test.use({ prebuild: ['kanban'] });
 
 const INSTALL = 'npm install --save-dev wingfoil';
+
+/** A git credential helper answering the wrong password for any host (S-07.3). */
+const CREDENTIAL_HELPER = '!f() { echo username=alex; echo password=wrong; }; f';
 
 /** The Add project dialog. */
 function dialog(page: Page): Locator {
@@ -241,13 +245,12 @@ test.describe('US-S-04 — add from a remote', () => {
       const c = await consoles.start();
       await openDialog(page, c);
       await chooseRemote(page);
-      // A password typed in the URL is never shown nor announced (review R1).
-      await field(page, 'Repository URL').fill(`${remote.origin.replace('http://', 'http://alex:s3cret@')}/held.git`);
+      // No userinfo: a URL holding credentials is refused before cloning (bug-006, W5-15).
+      await field(page, 'Repository URL').fill(`${remote.origin}/held.git`);
       await field(page, 'Repository URL').press('Enter');
       const text = `Cloning ${remote.origin}/held.git into ~/projects/held… This can take a while.`;
       await expect(dialog(page).getByRole('progressbar', { name: text })).toBeVisible({ timeout: COLD_READ_MS });
       await expect(dialog(page).getByRole('status')).toHaveText(text);
-      expect(await page.locator('body').innerText()).not.toContain('s3cret');
       await expect(field(page, 'Repository URL')).toBeDisabled();
       await expect(dialog(page).getByRole('button', { name: 'Clone and add' })).toBeDisabled();
       // The focus waits on Cancel, the action left.
@@ -385,7 +388,9 @@ test.describe('US-S-07 — failed clone', () => {
   });
 
   // Deviation accepted by the user: the remote refusing the credentials is a local dumb-HTTP
-  // server with Basic authentication, not `https://git.example.test` (unreachable offline).
+  // server with Basic authentication, not `https://git.example.test` (unreachable offline). The
+  // credentials available to git come from a credential helper of the console's isolated global git
+  // configuration; the URL holds none (bug-006, W5-15).
   test('S-07.3 — Report a refused authentication', async ({ page, consoles }, testInfo) => {
     const { env } = await harnessEnv(testInfo.outputPath('git'));
     const base = testInfo.outputPath('served');
@@ -393,9 +398,14 @@ test.describe('US-S-07 — failed clone', () => {
     const remote = await startGitHttpRemote(base, { credentials: 'alex:right-secret' });
     try {
       const c = await consoles.start();
+      await git(
+        c.root,
+        ['config', '--file', path.join(c.root, '.gitconfig'), 'credential.helper', CREDENTIAL_HELPER],
+        env,
+      );
       await openDialog(page, c);
       await chooseRemote(page);
-      await field(page, 'Repository URL').fill(`${remote.origin.replace('http://', 'http://alex:wrong@')}/private.git`);
+      await field(page, 'Repository URL').fill(`${remote.origin}/private.git`);
       await expect(field(page, 'Local working directory')).toHaveValue('~/projects/private');
       await field(page, 'Repository URL').press('Enter');
       const alert = dialog(page).getByRole('alert');
@@ -403,8 +413,44 @@ test.describe('US-S-07 — failed clone', () => {
       // The authentication error printed by git, verbatim (git leaves the credentials out).
       await expect(alert.locator('pre')).toContainText('Authentication failed');
       await expect(alert.locator('pre')).not.toContainText('wrong');
-      expect(await page.locator('body').innerText()).not.toContain('alex:wrong');
+      expect(await page.locator('body').innerText()).not.toContain('wrong');
+      // The helper was asked: the remote saw the wrong credentials, not an anonymous request only.
+      expect(remote.requests()).toBeGreaterThan(1);
       expect(await exists(path.join(homeOf(c), 'projects', 'private'))).toBe(false);
+      await expectSwitcherLists(page, []);
+    } finally {
+      await remote.close();
+    }
+  });
+
+  // bug-006 (W5-14, W5-15, decided by the user 2026-10-10): a URL holding credentials is refused
+  // before anything runs — nothing cloned, no request to the remote, no credential on the page or in
+  // the state.
+  test('bug-006 — Refuse a clone URL holding credentials', async ({ page, consoles }, testInfo) => {
+    const { env } = await harnessEnv(testInfo.outputPath('git'));
+    const base = testInfo.outputPath('served');
+    await bareRepository(base, 'private', { '.wingfoil/dna.yaml': 'x: 1\n' }, env);
+    const remote = await startGitHttpRemote(base, { credentials: 'alex:s3cret-0123' });
+    try {
+      const c = await consoles.start();
+      await openDialog(page, c);
+      await chooseRemote(page);
+      await field(page, 'Repository URL').fill(
+        `${remote.origin.replace('http://', 'http://alex:s3cret-0123@')}/private.git`,
+      );
+      await expect(field(page, 'Local working directory')).toHaveValue('~/projects/private');
+      const answer = nextAdd(page, true);
+      await field(page, 'Repository URL').press('Enter');
+      expect((await answer).status).toBe(422);
+      await expect(dialog(page).getByRole('alert')).toHaveText(
+        "The URL holds credentials: WingFoil UI does not clone with them, because git would keep them in the clone's configuration. Clone over SSH, or enter the URL without them and let a git credential helper supply the password.",
+        { timeout: COLD_READ_MS },
+      );
+      expect(await page.locator('body').innerText()).not.toContain('s3cret');
+      expect(remote.requests()).toBe(0);
+      expect(await exists(path.join(homeOf(c), 'projects', 'private'))).toBe(false);
+      expect(await scanForSecrets([c.stateDir], ['s3cret-0123'])).toEqual([]);
+      expect(await scanThemes(page)).toEqual([]);
       await expectSwitcherLists(page, []);
     } finally {
       await remote.close();
