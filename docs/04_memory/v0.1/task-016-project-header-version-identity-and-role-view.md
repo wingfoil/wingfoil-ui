@@ -8,7 +8,7 @@ module: "web"             # optional — server | web | contracts (dna.yaml modu
 priority: "medium"           # optional — high | medium | low
 tags: ["v0.1"]
 ref: "US-S-08"                # optional — backlog item ID, e.g. "TASK-001"
-bug: []                # optional — LIST of bug ids this task closes. Two cases: a fix task derived from a bug
+bug: ["bug-005-snapshot-fingerprint-misses-a-same-size-rewrite-within-one-mtime-tick"]  # optional — LIST of bug ids this task closes. Two cases: a fix task derived from a bug
                        # by release-planning, and a bug ABSORBED into an existing task's Acceptance Criteria because that
                        # task already owns the ground. `bug.sync_state` iterates this list; a bug with no task naming it
                        # here never advances past `triaged` (only a reject to `closed`).
@@ -47,6 +47,8 @@ The project header: WingFoil version with the range state and missing capabiliti
   - `docs/02_requirements/02_bdd/features/s/identity.feature`: S-15.1 Open read-only when the email matches two members; S-15.3 Recognise the member once the DNA is fixed
 - **US-S-22** — every `@v0.1` scenario passes:
   - `docs/02_requirements/02_bdd/features/s/identity.feature`: S-22.1 Switch role view; S-22.2 Offer only the roles the member holds; S-22.3 Keep the role view per project
+
+- **bug-005-snapshot-fingerprint-misses-a-same-size-rewrite-within-one-mtime-tick** (absorbed, dl-045; decided by the user 2026-10-10): `test/server/snapshot/fingerprint.test.ts` › "reads a file again only when its lstat changed" passes deterministically (the change it makes is visible to `lstat`: different size or an explicit later mtime); 20 consecutive isolated runs green.
 
 Screen: `docs/00_reference/ux-reference.md` §3 and the prototype (`docs/00_reference/prototype/`), deviations only as recorded (directive `ux-consistency`). Accessibility bar: every screen and action of the task operable from the keyboard with visible focus; axe-core 0 serious/critical violations in both themes; every string from the catalogue (X-09.1).
 
