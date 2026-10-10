@@ -3,7 +3,7 @@
 // removed, then host + path compared whatever the scheme. And the default working directory of a
 // clone (`ux-reference` §3: `~/projects/<repo>`).
 import { describe, expect, it } from 'vitest';
-import { cloneSourceProblem, normaliseRemote, repoName, sameRemote } from '../../../server/src/projects/remote.js';
+import { cloneSourceProblem, credentialsInUrl, normaliseRemote, repoName, sameRemote } from '../../../server/src/projects/remote.js';
 
 describe('normaliseRemote', () => {
   it.each([
@@ -78,5 +78,35 @@ describe('cloneSourceProblem', () => {
       expect(cloneSourceProblem(url, 'win32'), url).toBeUndefined();
       expect(cloneSourceProblem(url, 'linux'), url).toBe('a local url must be an absolute path');
     }
+  });
+});
+
+// bug-006, W5-15 (decided by the user 2026-10-10): any userinfo of an http(s)/ftp(s) URL is a
+// credential (a password, or a token in the user's place); SSH logins stay allowed.
+describe('credentialsInUrl', () => {
+  it.each([
+    ['https://alex:s3cret@github.com/acme/kanban.git', true],
+    ['http://alex:@127.0.0.1:8080/private.git', true],
+    ['https://ghp_0123456789abcdef@github.com/acme/kanban.git', true],
+    ['https://alex@github.com/acme/kanban.git', true],
+    ['https://u:p@ss@host/r.git', true],
+    ['https://alex%3As3cret@host/r.git', true],
+    ['HTTPS://alex:x@HOST/r.git', true],
+    ['ftp://alex:x@host/r.git', true],
+    ['ftps://alex@host/r.git', true],
+    ['https://alex:x@host', true],
+    ['https://github.com/acme/kanban.git', false],
+    ['https://host/r.git?x=a@b', false],
+    ['https://host?x=a@b', false],
+    ['https://host#a@b', false],
+    ['https://host/a@b/r.git', false],
+    ['ssh://git@github.com/acme/kanban.git', false],
+    ['git@github.com:acme/kanban.git', false],
+    ['git://host/r.git', false],
+    ['file:///srv/remotes/kanban.git', false],
+    ['/srv/user@host/kanban.git', false],
+    ['  https://alex:x@host/r.git  ', true],
+  ])('%s → %s', (url, expected) => {
+    expect(credentialsInUrl(url)).toBe(expected);
   });
 });

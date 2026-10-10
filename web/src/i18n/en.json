@@ -84,6 +84,7 @@
   "error.cliOutput": "WingFoil answered with an output the UI does not understand",
   "error.cliRefused": "WingFoil refused the action:",
   "error.cliTimeout": "WingFoil did not answer within 30 seconds",
+  "error.credentialsInUrl": "The URL holds credentials: WingFoil UI does not clone with them, because git would keep them in the clone's configuration. Clone over SSH, or enter the URL without them and let a git credential helper supply the password.",
   "error.directoryInsideProject": "The working directory {path} lies inside a project already in the list",
   "error.directoryNotEmpty": "The working directory is not empty: {path}",
   "error.elementChanged": "This element changed since you opened it",

@@ -33,7 +33,7 @@ import type { Snapshots } from '../snapshot/snapshots.js';
 import { findProjectContaining, isWithin, realpathLoose } from '../state/location.js';
 import type { StateStore } from '../state/store.js';
 import { CloneTarget, GitCloneError, runClone } from './clone.js';
-import { cloneSourceProblem, repoName, sameRemote } from './remote.js';
+import { cloneSourceProblem, credentialsInUrl, repoName, sameRemote } from './remote.js';
 
 /** Interval of the availability check, in milliseconds (the snapshot fallback's). */
 export const DEFAULT_CHECK_MS = 10_000;
@@ -203,6 +203,13 @@ export class ProjectList {
     const url = input.url.trim();
     const problem = cloneSourceProblem(url);
     if (problem) throw new InvalidProjectRequest(problem);
+    // bug-006: before any file-system, state or git work; the message never holds the URL.
+    if (credentialsInUrl(url)) {
+      throw new ProjectRefusal(
+        'credentials-in-url',
+        'The URL holds credentials: clone over SSH, or enter the URL without them and use a git credential helper',
+      );
+    }
     let shown = input.directory?.trim();
     if (shown === undefined) {
       const name = repoName(url);

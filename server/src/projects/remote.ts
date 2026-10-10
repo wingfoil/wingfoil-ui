@@ -83,3 +83,21 @@ export function cloneSourceProblem(url: string, platform: NodeJS.Platform = proc
   if (host === '' && !absolute.test(path)) return 'a local url must be an absolute path';
   return undefined;
 }
+
+/** The URL schemes whose userinfo git keeps in the clone's `remote.origin.url` as a credential. */
+const CREDENTIAL_SCHEMES = new Set(['http', 'https', 'ftp', 'ftps']);
+
+/**
+ * Whether `url` carries credentials that `POST /api/projects/clone` refuses (spec-006 §3
+ * `credentials-in-url`, bug-006, decided by the user 2026-10-10): any userinfo of an http(s) or
+ * ftp(s) URL — a password, or a token in the user's place (`https://<token>@github.com/…`). Git
+ * would keep it in the clone's `.git/config` and show it in the process list. An SSH login
+ * (`ssh://git@host/…`, the scp-like `git@host:…`) holds no secret and stays allowed. The authority
+ * ends at the first `/`, `?` or `#`: an `@` in the path, query or fragment is not userinfo.
+ */
+export function credentialsInUrl(url: string): boolean {
+  const match = URL_FORM.exec(url.trim());
+  if (!match || !CREDENTIAL_SCHEMES.has(match[1]!.toLowerCase())) return false;
+  const authority = /^[^/?#]*/.exec(match[2]!)![0];
+  return authority.includes('@');
+}
