@@ -5,7 +5,7 @@
 // on every opening (W4-4, S-19.2), the removal with confirmation (W4-2, S-18.1, S-18.2) and the
 // keyboard.
 import type { ProjectListItem } from '@wingfoil-ui/contracts';
-import { cleanup, screen, waitFor, within } from '@testing-library/react';
+import { act, cleanup, screen, waitFor, within } from '@testing-library/react';
 import { userEvent } from '@testing-library/user-event';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { stopEventStream } from '../../../web/src/api/events.js';
@@ -359,4 +359,23 @@ it('shows the error of the list read inside the switcher', async () => {
     await within(dialog).findByText('Something went wrong in the console: see its log in the terminal'),
   ).toBeTruthy();
   expect(within(dialog).getByRole('button', { name: 'Add project…' })).toBeTruthy();
+});
+
+it("React Aria's own strings follow the catalogue's locale, not the browser's (W5-1)", async () => {
+  fakeApi([ALPHA]);
+  vi.spyOn(navigator, 'language', 'get').mockReturnValue('de-DE');
+  vi.spyOn(navigator, 'languages', 'get').mockReturnValue(['de-DE']);
+  const user = userEvent.setup();
+  renderApp('/');
+  await openSwitcher(user);
+  // React Aria follows a change of the browser's languages unless a locale is provided.
+  act(() => {
+    window.dispatchEvent(new Event('languagechange'));
+  });
+  // The popover's visually hidden dismiss button: the one library string of X-09.1 (W5-1).
+  await waitFor(() => {
+    const dismiss = document.querySelectorAll('button[aria-label][tabindex="-1"]');
+    expect([...dismiss].map((b) => b.getAttribute('aria-label'))).toEqual(['Dismiss', 'Dismiss']);
+  });
+  vi.restoreAllMocks();
 });
