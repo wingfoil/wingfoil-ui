@@ -309,3 +309,17 @@ Screen: `docs/00_reference/ux-reference.md` §3 and the prototype (`docs/00_refe
     `ok`, `ok`) before the folder is renamed, so the read captured after it is the opening's.
 - Checks: `typecheck`, `lint`, `format:check` clean · `projects.spec.ts --repeat-each=2`
   **22/22** (load 41 → 50). Full suites not re-run (test-only change in this spec).
+
+### integration (2026-10-10)
+
+- Review: round 3 **PASS** (round 1 FAIL → fixed; round 2 two test items → fixed).
+- `main` merged (`a77a458`, authorised by the coordinator): the ux-reference amendments (0.7 §3
+  for W4-1/2/3/6, 0.8 §4.2 for W4-8); no conflict.
+- Gates on the merge (load 1.6 at the start, 12.3 before e2e, 15.9 → 8.6 during the timing run):
+  `typecheck`, `lint`, `format:check` clean · `docs:api` OK · `check_tasks.py` OK ·
+  `test:coverage` **109 files passed, 1 skipped; 1686 passed / 1 skipped**, coverage 96.54 %
+  statements / 90.59 % branches / 97.14 % functions / 98.2 % lines · `test:e2e` **71/71** (3.0 min).
+  `npm run test:timing` **3/3 Vitest + 4/4 Playwright**: REQ-PERF-03 20/20 (max 412 ms),
+  TypeDoc 2425 ms, REQ-PERF-06 217–237 ms, strict live refresh 403–1105 ms. It started
+  automatically after the e2e at load 15.9, above the threshold of 12; during its measurements the
+  load was 12.6 → 8.6.
