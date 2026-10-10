@@ -26,17 +26,11 @@ import { ApiError } from '../api/client.js';
 import { projectsQuery } from '../api/queries.js';
 import { navGroups } from '../routes/nav.js';
 import { useAddProject } from './add-project.js';
+import { AVAILABILITY_REASONS } from './availability.js';
 import { ErrorText } from './ErrorText.js';
 import { Chevron, Cross } from './icons.js';
 import { RemoveProjectDialog } from './RemoveProjectDialog.js';
 import { switchTarget } from './switch-target.js';
-
-/** Reason of an unavailable entry, as an argument of `projects.switcher.unavailable`. */
-const REASONS: Readonly<Record<Exclude<ProjectListItem['availability'], 'ok'>, string>> = {
-  'folder-not-found': 'folderNotFound',
-  'not-wingfoil': 'notWingfoil',
-  'cli-not-found': 'cliNotFound',
-};
 
 const MESSAGES = defineMessages({ label: { id: 'projects.switcher.label' } });
 
@@ -195,7 +189,10 @@ function ProjectRow({ project, current, href, onRemove, onStay }: ProjectRowProp
           <div className="switcher-row-path">{project.path}</div>
           {project.availability !== 'ok' && (
             <div className="switcher-row-reason">
-              <FormattedMessage id="projects.switcher.unavailable" values={{ reason: REASONS[project.availability] }} />
+              <FormattedMessage
+                id="projects.switcher.unavailable"
+                values={{ reason: AVAILABILITY_REASONS[project.availability] }}
+              />
             </div>
           )}
           {project.availability === 'cli-not-found' && project.command !== undefined && (

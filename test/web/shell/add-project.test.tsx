@@ -180,12 +180,14 @@ describe('the form', () => {
     const api = fakeApi([]);
     const user = userEvent.setup();
     renderApp('/');
-    for (const how of ['Cancel', 'Close', 'Escape']) {
+    for (const how of ['Close', 'Cancel', 'Escape']) {
       const dialog = await openDialog(user);
       if (how === 'Escape') await user.keyboard('{Escape}');
       else await user.click(within(dialog).getByRole('button', { name: how }));
       await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
-      expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Add project…' }));
+      await waitFor(() =>
+        expect(document.activeElement, how).toBe(screen.getByRole('button', { name: 'Add project…' })),
+      );
     }
     expect(api.posts()).toEqual([]);
   });
@@ -212,7 +214,11 @@ describe('field checks (W4-13)', () => {
     ['', '', 'Enter the repository URL.'],
     ['--upload-pack=x', '/tmp/x', 'A repository URL cannot start with -.'],
     ['https://h/..', '', 'Enter the local working directory.'],
-    ['file:///srv/remotes/kanban.git', 'projects/kanban', 'Enter an absolute working directory, for example ~/projects/repo.'],
+    [
+      'file:///srv/remotes/kanban.git',
+      'projects/kanban',
+      'Enter an absolute working directory, for example ~/projects/repo.',
+    ],
   ])('refuses the URL %j with the directory %j: %s, no request', async (url, directory, text) => {
     const api = fakeApi([]);
     const user = userEvent.setup();
@@ -235,7 +241,10 @@ describe('a successful add', () => {
     const user = userEvent.setup();
     const { router, queryClient } = renderApp('/');
     const dialog = await openDialog(user);
-    await user.type(within(dialog).getByRole('textbox', { name: 'Folder path' }), '  /home/test/projects/kanban{Enter}');
+    await user.type(
+      within(dialog).getByRole('textbox', { name: 'Folder path' }),
+      '  /home/test/projects/kanban{Enter}',
+    );
     await waitFor(() => expect(router.state.location.pathname).toBe('/p/p_kanban/memory'));
     expect(api.posts()).toEqual([
       expect.objectContaining({ url: '/api/projects', body: { path: '/home/test/projects/kanban' } }),
@@ -344,12 +353,16 @@ describe('refusals from the catalogue', () => {
     renderApp('/');
     const dialog = await openDialog(user);
     await chooseRemote(user, dialog);
-    await user.type(within(dialog).getByRole('textbox', { name: 'Repository URL' }), 'file:///srv/remotes/kanban.git{Enter}');
+    await user.type(
+      within(dialog).getByRole('textbox', { name: 'Repository URL' }),
+      'file:///srv/remotes/kanban.git{Enter}',
+    );
     expect((await within(dialog).findByRole('alert')).textContent).toContain(text);
   });
 
   it("shows git's output verbatim inside the catalogue frame (S-07.1, S-07.3)", async () => {
-    const git = "Cloning into '/home/test/projects/project'...\nfatal: unable to access 'https://git.invalid/team/project.git/': Could not resolve host: git.invalid";
+    const git =
+      "Cloning into '/home/test/projects/project'...\nfatal: unable to access 'https://git.invalid/team/project.git/': Could not resolve host: git.invalid";
     fakeApi([], { clone: refusal('git-refused', undefined, git) });
     const user = userEvent.setup();
     renderApp('/');
@@ -378,7 +391,10 @@ describe('refusals from the catalogue', () => {
   });
 
   it('renders a 400 and an unanswered request', async () => {
-    fakeApi([], { add: { status: 400, body: { error: { code: 'invalid-request', message: 'x' } } }, clone: 'unreachable' });
+    fakeApi([], {
+      add: { status: 400, body: { error: { code: 'invalid-request', message: 'x' } } },
+      clone: 'unreachable',
+    });
     const user = userEvent.setup();
     renderApp('/');
     const dialog = await openDialog(user);
@@ -399,7 +415,10 @@ describe('a request in progress (W4-11)', () => {
     renderApp('/');
     const dialog = await openDialog(user);
     await chooseRemote(user, dialog);
-    await user.type(within(dialog).getByRole('textbox', { name: 'Repository URL' }), 'file:///srv/remotes/kanban.git{Enter}');
+    await user.type(
+      within(dialog).getByRole('textbox', { name: 'Repository URL' }),
+      'file:///srv/remotes/kanban.git{Enter}',
+    );
     const text = 'Cloning file:///srv/remotes/kanban.git into ~/projects/kanban… This can take a while.';
     const bar = await within(dialog).findByRole('progressbar', { name: text });
     expect(bar.getAttribute('aria-valuenow')).toBeNull();
@@ -422,6 +441,9 @@ describe('a request in progress (W4-11)', () => {
     const dialog = await openDialog(user);
     await user.type(within(dialog).getByRole('textbox', { name: 'Folder path' }), '/tmp/x{Enter}');
     expect(await within(dialog).findByRole('progressbar', { name: 'Adding…' })).toBeTruthy();
+    // The focused field is disabled: the focus moves to Cancel, the one action left, so that Escape
+    // still reaches the dialog.
+    await waitFor(() => expect(document.activeElement).toBe(within(dialog).getByRole('button', { name: 'Cancel' })));
     await user.keyboard('{Escape}');
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
     expect(api.posts()[0]!.signal!.aborted).toBe(true);

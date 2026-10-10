@@ -129,7 +129,9 @@ const NEW: ProjectListResponse['projects'][number] = {
 };
 
 function wrapperOf(client: ReturnType<typeof createQueryClient>) {
-  return ({ children }: { children: ReactNode }) => <QueryClientProvider client={client}>{children}</QueryClientProvider>;
+  return ({ children }: { children: ReactNode }) => (
+    <QueryClientProvider client={client}>{children}</QueryClientProvider>
+  );
 }
 
 it('addProject sends POST /api/projects {path} and returns the 201 item', async () => {
@@ -192,7 +194,9 @@ it('useCloneProject puts the new item into the cached list', async () => {
   const client = createQueryClient();
   client.setQueryData(projectsQuery().queryKey, LIST);
   const { result } = renderHook(() => useCloneProject(), { wrapper: wrapperOf(client) });
-  await act(() => result.current.mutateAsync({ url: 'file:///srv/remotes/kanban.git', directory: '~/projects/kanban' }));
+  await act(() =>
+    result.current.mutateAsync({ url: 'file:///srv/remotes/kanban.git', directory: '~/projects/kanban' }),
+  );
   expect(JSON.parse(fn.mock.calls[0]![1]?.body as string)).toEqual({
     url: 'file:///srv/remotes/kanban.git',
     directory: '~/projects/kanban',
