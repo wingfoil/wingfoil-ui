@@ -57,14 +57,21 @@ describe('contentFingerprint', () => {
 
   it('reads a file again only when its lstat changed (review R2)', async () => {
     const f = new Fingerprinter(dir, '', LATER);
+    // bug-005: explicit mtimes, so the rewrite below is always visible to lstat (a same-size rewrite
+    // inside one mtime tick is, correctly, not seen once the racy rule is disabled by the LATER clock).
+    const t0 = 1_700_000_000; // seconds
     await writeFile(path.join(dir, 'c1.md'), 'one');
     await writeFile(path.join(dir, 'c2.md'), 'two');
+    await utimes(path.join(dir, 'c1.md'), t0, t0);
+    await utimes(path.join(dir, 'c2.md'), t0, t0);
     const entries = [entry('c1.md'), entry('c2.md')];
     const first = await f.fingerprint(entries);
     expect(f.lastReads).toBe(2);
     expect(await f.fingerprint(entries)).toBe(first);
     expect(f.lastReads).toBe(0);
+    // Same size, later mtime: the change is seen through lstat alone.
     await writeFile(path.join(dir, 'c1.md'), 'ONE');
+    await utimes(path.join(dir, 'c1.md'), t0 + 10, t0 + 10);
     expect(await f.fingerprint(entries)).not.toBe(first);
     expect(f.lastReads).toBe(1);
   });
