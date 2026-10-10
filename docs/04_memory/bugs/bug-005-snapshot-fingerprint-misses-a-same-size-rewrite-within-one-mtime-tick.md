@@ -3,12 +3,12 @@ id: bug-005-snapshot-fingerprint-misses-a-same-size-rewrite-within-one-mtime-tic
 type: bug
 title: "Snapshot fingerprint misses a same-size rewrite within one mtime tick"
 status: draft
-severity: ""           # REQUIRED — critical | high | medium | low
-release-origin: ""     # optional — release where the bug was FOUND, e.g. "v0.1"
+severity: "low"        # REQUIRED — critical | high | medium | low
+release-origin: "v0.1" # optional — release where the bug was FOUND, e.g. "v0.1"
 release: ""            # optional — fix/implementation release, stamped by release-planning/build-backlog
 feature: ""            # optional — related feature ID from docs/01_vision/06_features.md
-module: ""             # optional — server | web | contracts
-wingfoil_version: ""   # optional — `wingfoil --version` of the OBSERVED project (the UI drives its CLI)
+module: "server"       # optional — server | web | contracts
+wingfoil_version: "0.2.2" # optional — `wingfoil --version` of the OBSERVED project (the UI drives its CLI)
 browser: ""            # optional — for `web`: browser name + version, e.g. "Firefox 131"
 contributor: ""        # optional — who originated this contribution, if not the git author; credited for AI-generated work derived from it
 credit: ""             # optional — free-text credit note
@@ -17,38 +17,40 @@ tmpl_version: 260703   # Orignal template version
 
 ## Summary
 
-<!-- One-sentence description of the defect. -->
+The unit test `test/server/snapshot/fingerprint.test.ts` › "reads a file again only when its lstat
+changed (review R2)" is flaky (2 failures in 5 runs at load < 1): it rewrites a file with content of
+the same size (`one` → `ONE`) right after writing it, on a fingerprinter whose clock is set past the
+racy window (`LATER`), so when both writes fall in one mtime tick the `lstat` is unchanged and the
+cached mark is (correctly) kept.
 
 ## Steps to Reproduce
 
-<!-- Start from the observed project's state (WingFoil version, branch, the elements involved),
-     then the numbered steps in the UI or against the server API.
-  1. ...
-  2. ...
-  3. ... -->
+1. On `main` at `9535af6` (after task-015), machine idle (load average < 1).
+2. Run `npx vitest run test/server/snapshot/fingerprint.test.ts` five times.
 
 ## Expected Behavior
 
-<!-- What should happen. -->
+The test passes deterministically: it proves that an entry is re-read when its `lstat` changes.
 
 ## Actual Behavior
 
-<!-- What actually happens. Include error messages or stack traces if available. -->
+2 runs out of 5 fail with `AssertionError: expected '56a4e8ad…' not to be '56a4e8ad…'` at the
+`not.toBe(first)` after the rewrite (and `lastReads` stays 0).
 
 ## Evidence
 
-<!-- Screenshot or recording (web), browser console output, server log lines, the CLI command the
-     server ran and its JSON output. Never paste secrets (directive security-secrets). -->
+- Post-merge checks of task-015 on `main` (2026-10-10): `test:coverage` 1685 passed, 1 failed (this
+  test); five isolated re-runs at load 0.6: 3 pass, 2 fail.
 
 ## Notes
 
-<!-- Optional: environment details, related ADRs, suspected root cause, or workaround. -->
+- No product code at fault: `server/src/snapshot/fingerprint.ts` already applies git's "racy git"
+  rule (`RACY_WINDOW_MS`, review round 3 N1 of task-010) — a mark taken within 3 s of the file's
+  mtime is not trusted. The test disables it on purpose (`LATER` clock) to count reads, but then
+  makes a change that the `lstat` cannot see: same size, possibly same mtime tick.
+- Proposed fix: make the change visible to `lstat` deterministically — different-size content, or
+  an explicit `utimes` to a later mtime before the second fingerprint.
+- Found during Wave 4 of v0.1 (plan `dev-loop-rel-v0.1-plan`, Session 4), post-merge checks of
+  task-015. To be absorbed into task-016 (dl-045), decided by the user.
 
 ## Triage & Execution Notes
-
-<!-- Running log, not the retrospective itself.
-     - triage (bug-ingest): severity call, wontfix/duplicate rationale if rejected to `closed`.
-     - fix: once fix task(s) exist (release-planning/build-backlog), day-to-day execution notes
-       live on those tasks (docs/04_memory/{release}/{id}.md, `bug: {this id}`, their own
-       Execution Notes section) — this section only needs a pointer plus anything that doesn't
-       belong on a specific fix task (e.g. why 2 tasks were needed instead of 1). -->
