@@ -200,3 +200,42 @@ Screen: `docs/00_reference/ux-reference.md` every v0.1 screen and the prototype 
   | X-10.1, X-10.2, X-10.3 | same spec › "X-10.1 …", "X-10.2 …", "X-10.3 …" |
   | M-01.1, G-01.1, R-05.1, R-06.1, R-07.1, R-08.1 (TT-PERF-04) | `test/e2e/performance.spec.ts` › "TT-PERF-04 — <view> renders within 1.0 s (p95, warm cache)" `@perf`; their functional assertions stay closed in 017/018/019/020 |
   | bug-006 | `test/e2e/add-project.spec.ts` › "bug-006 — Refuse a clone URL holding credentials" |
+
+### design decisions (2026-10-10)
+
+- Decided by the user 2026-10-10 (coordinator decisions W5-1…W5-17), every point option (a) of the
+  design list:
+  - **W5-1** React Aria `I18nProvider locale="en"` (the catalogue's locale); X-09.1 also checks
+    accessible names; React Aria's `DismissButton` label is the one documented library exception
+    (spec-008 §6 note by the coordinator).
+  - **W5-2** `title.app` written into `index.html` by a Vite `transformIndexHtml` hook from the
+    catalogue, and used by the root route as the fallback title.
+  - **W5-3** X-09.1 recognises project data from the API responses the page read (and their `en`
+    Intl renderings).
+  - **W5-4** new shared `useProjectTitle(pid, view)` in `web/src/shell/page-title.ts` replacing
+    the three name helpers (approved shared API).
+  - **W5-5** `title.projectView` with the document path / directive id (spec-008 §3 amended by the
+    coordinator).
+  - **W5-6** in-app navigation, warm server cache, cold client cache; p95 over 20 runs after
+    1 warm-up; the first load reported, not asserted.
+  - **W5-7** the SARD large fixture (custom + 500 elements + 2 000 commits via `git fast-import`),
+    a perf-only builder and worker fixture.
+  - **W5-8** no code split unless a view misses 1.0 s.
+  - **W5-9** tag `@perf`: `test:e2e` runs 1 warm-up + 2 runs without a budget; `test:timing` runs
+    20 and asserts p95 ≤ 1 000 ms.
+  - **W5-10** `accessibility.spec.ts` + `performance.spec.ts`; the bug-006 test in
+    `add-project.spec.ts`.
+  - **W5-11** aggregate axe scan over `test/e2e/support/screens.ts` + mapping table.
+  - **W5-12** computed-style focus-ring contrast on every control of the X-06.1 walk, both themes.
+  - **W5-13** unkeyed `ProjectNotices` in `ProjectLayout`.
+  - **W5-14** refusal `credentials-in-url`, no `detail`, key `error.credentialsInUrl`, checked
+    right after `cloneSourceProblem` before any file-system/state/git work, 422, no client
+    pre-check.
+  - **W5-15** (explicitly confirmed by the user) any userinfo in an http(s)/ftp(s) URL is refused;
+    `ssh://user@` and the scp-like form stay allowed; S-07.3 reworked with a credential helper in
+    the console's isolated global git config, W4-11 without userinfo.
+  - **W5-16** the `ErrorText` alert above the kept header on a failed re-read with cached data;
+    R9 accepted for v0.1.
+  - **W5-17** `useRemoveProject` does not await the list read on a refusal; unit test.
+- Spec amendments (spec-006 §3, spec-008 §3/§6) are applied by the coordinator on `main`, not on
+  this branch.
