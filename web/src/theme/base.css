@@ -472,6 +472,158 @@ p {
   font-weight: 600;
 }
 
+/* --- Add project dialog (task-014; prototype: segmented source, mono fields, hint) --- */
+
+.dialog-heading {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.dialog-subtitle {
+  color: var(--color-text-muted);
+  font-size: 13px;
+}
+
+.add-project-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.segmented {
+  display: flex;
+  align-self: flex-start;
+  gap: 2px;
+  padding: 3px;
+  border-radius: var(--radius-md);
+  background: var(--color-surface-2);
+}
+
+.segmented-option {
+  display: inline-flex;
+  align-items: center;
+  height: 30px;
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-2);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.segmented-option[data-selected] {
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-weight: 600;
+  box-shadow: var(--shadow-popover);
+}
+
+.segmented-option[data-disabled] {
+  cursor: default;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.field-label {
+  color: var(--color-text-2);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.field-input {
+  height: 38px;
+  padding: 0 var(--space-3);
+  border: 1px solid var(--color-control-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+  font-family: var(--font-mono);
+  font-size: 13px;
+}
+
+.field-input::placeholder {
+  color: var(--color-text-muted);
+}
+
+.field-input[data-invalid] {
+  border-color: var(--color-danger);
+}
+
+.field-input[data-disabled] {
+  background: var(--color-surface-2);
+}
+
+.field-hint {
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+
+.field-error {
+  color: var(--color-danger);
+  font-size: 12px;
+}
+
+.add-project-status:empty {
+  display: none;
+}
+
+.add-project-status {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.progress {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.progress-label {
+  color: var(--color-text-2);
+  overflow-wrap: anywhere;
+}
+
+.progress-track {
+  position: relative;
+  height: 4px;
+  overflow: hidden;
+  border-radius: 2px;
+  background: var(--color-surface-2);
+}
+
+.progress-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 40%;
+  border-radius: 2px;
+  background: var(--color-primary);
+  animation: progress-slide 1.4s ease-in-out infinite;
+}
+
+@keyframes progress-slide {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(250%);
+  }
+}
+
+.dialog-error .verbatim {
+  max-height: 160px;
+  overflow: auto;
+  color: var(--color-text);
+}
+
+.dialog-error a {
+  color: var(--color-danger);
+  font-weight: 500;
+}
+
 /* --- Warnings --- */
 
 .shell-warnings {

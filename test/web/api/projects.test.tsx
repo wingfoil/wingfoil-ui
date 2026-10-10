@@ -1,14 +1,25 @@
 // @vitest-environment jsdom
 // The project list mutations shared by the switcher (task-015) and the Add project dialog
 // (task-014): DELETE /api/projects/:pid (spec-004 §3, 204), and the cache after a removal — the
-// entry dropped from the list, every query of the project forgotten.
+// entry dropped from the list, every query of the project forgotten; POST /api/projects and
+// POST /api/projects/clone (201 with the item), the item put into the cached list, a refusal reading
+// the list again and an abort leaving it alone.
 import type { ProjectListResponse } from '@wingfoil-ui/contracts';
-import { QueryClientProvider } from '@tanstack/react-query';
+import { QueryClientProvider, useQuery } from '@tanstack/react-query';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { afterEach, expect, it, vi } from 'vitest';
 import { ApiError } from '../../../web/src/api/client.js';
-import { forgetProject, removeProject, useRemoveProject } from '../../../web/src/api/projects.js';
+import {
+  addProject,
+  cloneProject,
+  forgetProject,
+  rememberProject,
+  removeProject,
+  useAddLocalProject,
+  useCloneProject,
+  useRemoveProject,
+} from '../../../web/src/api/projects.js';
 import { createQueryClient, projectsQuery } from '../../../web/src/api/queries.js';
 import { queryKeys } from '../../../web/src/api/query-keys.js';
 
@@ -107,4 +118,162 @@ it('useRemoveProject keeps the list on another refusal, exposes the ApiError and
   expect(onRemoved).not.toHaveBeenCalled();
   expect(client.getQueryData(projectsQuery().queryKey)?.projects).toHaveLength(2);
   await waitFor(() => expect(client.getQueryState(projectsQuery().queryKey)?.isInvalidated).toBe(true));
+});
+
+const NEW: ProjectListResponse['projects'][number] = {
+  id: 'p_c',
+  name: 'kanban',
+  path: '/home/test/projects/kanban',
+  remote: 'file:///srv/remotes/kanban.git',
+  availability: 'ok',
+};
+
+function wrapperOf(client: ReturnType<typeof createQueryClient>) {
+  return ({ children }: { children: ReactNode }) => (
+    <QueryClientProvider client={client}>{children}</QueryClientProvider>
+  );
+}
+
+it('addProject sends POST /api/projects {path} and returns the 201 item', async () => {
+  const fn = stubFetch(201, NEW);
+  await expect(addProject('~/projects/kanban')).resolves.toEqual(NEW);
+  const [url, init] = fn.mock.calls[0]!;
+  expect(url).toBe('/api/projects');
+  expect(init?.method).toBe('POST');
+  expect(JSON.parse(init?.body as string)).toEqual({ path: '~/projects/kanban' });
+});
+
+it('cloneProject sends POST /api/projects/clone {url, directory}, without an empty directory', async () => {
+  const fn = stubFetch(201, NEW);
+  await expect(cloneProject('file:///srv/remotes/kanban.git', '~/work/kanban-copy')).resolves.toEqual(NEW);
+  await cloneProject('file:///srv/remotes/kanban.git', '');
+  await cloneProject('file:///srv/remotes/kanban.git');
+  expect(fn.mock.calls.map(([url]) => url)).toEqual([
+    '/api/projects/clone',
+    '/api/projects/clone',
+    '/api/projects/clone',
+  ]);
+  expect(fn.mock.calls.map(([, init]) => JSON.parse(init?.body as string))).toEqual([
+    { url: 'file:///srv/remotes/kanban.git', directory: '~/work/kanban-copy' },
+    { url: 'file:///srv/remotes/kanban.git' },
+    { url: 'file:///srv/remotes/kanban.git' },
+  ]);
+});
+
+it('passes the abort signal to fetch', async () => {
+  const fn = stubFetch(201, NEW);
+  const controller = new AbortController();
+  await addProject('/x', controller.signal);
+  await cloneProject('file:///x.git', '/y', controller.signal);
+  expect(fn.mock.calls.map(([, init]) => init?.signal)).toEqual([controller.signal, controller.signal]);
+});
+
+it('rememberProject appends the item once and leaves an unread list unread', () => {
+  const client = createQueryClient();
+  rememberProject(client, NEW);
+  expect(client.getQueryData(projectsQuery().queryKey)).toBeUndefined();
+  client.setQueryData(projectsQuery().queryKey, LIST);
+  rememberProject(client, NEW);
+  rememberProject(client, NEW);
+  expect(client.getQueryData(projectsQuery().queryKey)?.projects.map((p) => p.id)).toEqual(['p_a', 'p_b', 'p_c']);
+});
+
+it('useAddLocalProject puts the new item into the cached list', async () => {
+  stubFetch(201, NEW);
+  const client = createQueryClient();
+  client.setQueryData(projectsQuery().queryKey, LIST);
+  const { result } = renderHook(() => useAddLocalProject(), { wrapper: wrapperOf(client) });
+  await act(async () => {
+    await expect(result.current.mutateAsync({ path: '/home/test/projects/kanban' })).resolves.toEqual(NEW);
+  });
+  expect(client.getQueryData(projectsQuery().queryKey)?.projects.map((p) => p.id)).toEqual(['p_a', 'p_b', 'p_c']);
+});
+
+it('useCloneProject puts the new item into the cached list', async () => {
+  const fn = stubFetch(201, NEW);
+  const client = createQueryClient();
+  client.setQueryData(projectsQuery().queryKey, LIST);
+  const { result } = renderHook(() => useCloneProject(), { wrapper: wrapperOf(client) });
+  await act(() =>
+    result.current.mutateAsync({ url: 'file:///srv/remotes/kanban.git', directory: '~/projects/kanban' }),
+  );
+  expect(JSON.parse(fn.mock.calls[0]![1]?.body as string)).toEqual({
+    url: 'file:///srv/remotes/kanban.git',
+    directory: '~/projects/kanban',
+  });
+  expect(client.getQueryData(projectsQuery().queryKey)?.projects.map((p) => p.id)).toEqual(['p_a', 'p_b', 'p_c']);
+});
+
+it('a refusal exposes the ApiError, keeps the cached list and reads it again', async () => {
+  stubFetch(422, { error: { code: 'folder-not-found', message: 'x', detail: { path: '/tmp/does-not-exist' } } });
+  const client = createQueryClient();
+  client.setQueryData(projectsQuery().queryKey, LIST);
+  const { result } = renderHook(() => useAddLocalProject(), { wrapper: wrapperOf(client) });
+  act(() => result.current.mutate({ path: '/tmp/does-not-exist' }));
+  await waitFor(() => expect(result.current.error).toBeInstanceOf(ApiError));
+  expect(result.current.error).toMatchObject({ code: 'folder-not-found', detail: { path: '/tmp/does-not-exist' } });
+  expect(client.getQueryData(projectsQuery().queryKey)?.projects).toHaveLength(2);
+  await waitFor(() => expect(client.getQueryState(projectsQuery().queryKey)?.isInvalidated).toBe(true));
+});
+
+it('an aborted clone leaves the cached list alone (no read again)', async () => {
+  const fn = vi.fn(
+    (_url: string, init?: RequestInit) =>
+      new Promise<Response>((_resolve, reject) => {
+        init?.signal?.addEventListener('abort', () => reject(new DOMException('aborted', 'AbortError')));
+      }),
+  );
+  vi.stubGlobal('fetch', fn);
+  const client = createQueryClient();
+  client.setQueryData(projectsQuery().queryKey, LIST);
+  const controller = new AbortController();
+  const { result } = renderHook(() => useCloneProject(), { wrapper: wrapperOf(client) });
+  act(() => result.current.mutate({ url: 'file:///x.git', directory: '/y', signal: controller.signal }));
+  await waitFor(() => expect(fn).toHaveBeenCalled());
+  act(() => controller.abort());
+  await waitFor(() => expect(result.current.isError).toBe(true));
+  expect(client.getQueryState(projectsQuery().queryKey)?.isInvalidated).toBe(false);
+});
+
+it('an unanswered add is the unreachable error', async () => {
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async () => {
+      throw new TypeError('Failed to fetch');
+    }),
+  );
+  const client = createQueryClient();
+  const { result } = renderHook(() => useAddLocalProject(), { wrapper: wrapperOf(client) });
+  act(() => result.current.mutate({ path: '/x' }));
+  await waitFor(() => expect(result.current.error).toMatchObject({ status: 0, code: 'unreachable' }));
+});
+
+it('shows a refusal without waiting for the list read it starts (review R2)', async () => {
+  let reads = 0;
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async (url: string, init?: RequestInit) => {
+      if (url === '/api/projects' && (init?.method ?? 'GET') === 'GET') {
+        reads += 1;
+        // The first read answers; the one started by the refusal never does.
+        if (reads > 1) return new Promise<Response>(() => {});
+        return new Response(JSON.stringify(LIST), { status: 200 });
+      }
+      return new Response(
+        JSON.stringify({ error: { code: 'folder-not-found', message: 'x', detail: { path: '/x' } } }),
+        {
+          status: 422,
+        },
+      );
+    }),
+  );
+  const client = createQueryClient();
+  const { result } = renderHook(() => ({ list: useQuery(projectsQuery()), add: useAddLocalProject() }), {
+    wrapper: wrapperOf(client),
+  });
+  await waitFor(() => expect(result.current.list.data?.projects).toHaveLength(2));
+  act(() => result.current.add.mutate({ path: '/x' }));
+  await waitFor(() => expect(result.current.add.error?.code).toBe('folder-not-found'));
+  expect(reads).toBe(2);
+  expect(result.current.list.isFetching).toBe(true);
 });
