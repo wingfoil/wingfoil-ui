@@ -348,3 +348,14 @@ Screen: `docs/00_reference/ux-reference.md` §3 and the prototype (`docs/00_refe
 - Checks: `test/web/shell` + `test/web/api` **252/252**; `typecheck`, `lint`, `format:check`
   clean.
 - **Hand-over addition (coordinator):** the `useRemoveProject` nit above.
+
+### integration (2026-10-10)
+
+- Review: round 3 **PASS** (round 1 FAIL on minors R1–R7 → fixed; round 2 R8, R9 → fixed).
+- `main` merged (`f4069a9`, authorised by the coordinator): ux-reference 0.9 §3 (W4-11/12/13/15),
+  bug-005 and bug-006 files, task-016's `bug:` list; docs only, no conflict.
+- Gates on the merge: `typecheck`, `lint` (ESLint + catalogue check), `format:check` clean ·
+  `docs:api` OK · `check_tasks.py` OK · `test:coverage` **112 files passed, 1 skipped; 1794 passed /
+  1 skipped** (load 6.7 → 18.0), coverage 96.58 % statements / 90.81 % branches / 97.23 % functions /
+  98.26 % lines (bug-005's flaky fingerprint test passed) · `test:e2e` **87/87** (3.5 min, load
+  16.7 → 16.3) · `npm run test:timing` **not run** (load ≈ 16 > 12).
