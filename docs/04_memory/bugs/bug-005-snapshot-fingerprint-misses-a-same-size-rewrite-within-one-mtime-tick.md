@@ -2,7 +2,7 @@
 id: bug-005-snapshot-fingerprint-misses-a-same-size-rewrite-within-one-mtime-tick
 type: bug
 title: "Snapshot fingerprint misses a same-size rewrite within one mtime tick"
-status: triaged
+status: planned
 severity: "low"        # REQUIRED — critical | high | medium | low
 release-origin: "v0.1" # optional — release where the bug was FOUND, e.g. "v0.1"
 release: ""            # optional — fix/implementation release, stamped by release-planning/build-backlog
@@ -54,3 +54,8 @@ The test passes deterministically: it proves that an entry is re-read when its `
   task-015. To be absorbed into task-016 (dl-045), decided by the user.
 
 ## Triage & Execution Notes
+- triage (2026-10-10): approved by the user as **low** severity (flaky unit test, no product code at
+  fault).
+- fix: **absorbed into task-016-project-header-version-identity-and-role-view** (dl-045 pattern;
+  the task lists this bug in `bug:` with its own Acceptance Criterion). `triaged → planned` set by
+  hand (no CLI verb); it moves to `in-progress` when task-016 starts.
