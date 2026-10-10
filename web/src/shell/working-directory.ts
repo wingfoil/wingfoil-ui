@@ -47,3 +47,12 @@ export function defaultWorkingDirectory(url: string): string {
   const name = repoName(url);
   return name === undefined ? '' : `~/projects/${name}`;
 }
+
+/**
+ * `url` as the dialog shows and announces it: the userinfo of a URL form (`scheme://user:secret@`)
+ * removed, so that a password typed in the URL is never echoed (directive `security-secrets`). The
+ * scp-like `user@host:path` holds no password and stays as typed.
+ */
+export function displayUrl(url: string): string {
+  return url.trim().replace(/^([a-z][a-z0-9+.-]*:\/\/)[^@/]*@/i, '$1');
+}

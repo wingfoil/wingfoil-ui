@@ -284,12 +284,18 @@ describe('a successful add', () => {
     const user = userEvent.setup();
     const { router } = renderApp('/');
     const dialog = await openDialog(user);
+    // The status region is there from the start, so that the message is announced (review R5).
+    const status = within(dialog).getByRole('status');
     await chooseRemote(user, dialog);
     await user.type(within(dialog).getByRole('textbox', { name: 'Repository URL' }), 'file:///srv/remotes/kanban.git');
     await user.click(within(dialog).getByRole('button', { name: 'Clone and add' }));
     expect(
       await within(dialog).findByText('kanban was added but is unavailable — WingFoil CLI not found'),
     ).toBeTruthy();
+    expect(within(dialog).getByRole('status')).toBe(status);
+    expect(status.textContent).toBe(
+      'kanban was added but is unavailable — WingFoil CLI not foundInstall it with: npm install --save-dev wingfoil',
+    );
     expect(within(dialog).getByText('npm install --save-dev wingfoil')).toBeTruthy();
     expect(within(dialog).queryByRole('textbox')).toBeNull();
     expect(within(dialog).queryByRole('button', { name: 'Cancel' })).toBeNull();
@@ -411,6 +417,41 @@ describe('refusals from the catalogue', () => {
 });
 
 describe('a request in progress (W4-11)', () => {
+  it('never shows nor announces a password typed in the URL (review R1)', async () => {
+    fakeApi([], { clone: 'hang' });
+    const user = userEvent.setup();
+    renderApp('/');
+    const dialog = await openDialog(user);
+    await chooseRemote(user, dialog);
+    await user.type(
+      within(dialog).getByRole('textbox', { name: 'Repository URL' }),
+      'http://alex:s3cret@127.0.0.1:8080/private.git{Enter}',
+    );
+    const text = 'Cloning http://127.0.0.1:8080/private.git into ~/projects/private… This can take a while.';
+    expect(await within(dialog).findByRole('progressbar', { name: text })).toBeTruthy();
+    expect(within(dialog).getByRole('status').textContent).toBe(text);
+    expect(document.body.textContent).not.toContain('s3cret');
+  });
+
+  it('sends no working directory when the field is empty and the URL gives a name (W4-13, review R4)', async () => {
+    const api = fakeApi([], { clone: 'hang' });
+    const user = userEvent.setup();
+    renderApp('/');
+    const dialog = await openDialog(user);
+    await chooseRemote(user, dialog);
+    await user.type(within(dialog).getByRole('textbox', { name: 'Repository URL' }), 'file:///srv/remotes/kanban.git');
+    await user.clear(within(dialog).getByRole('textbox', { name: 'Local working directory' }));
+    await user.click(within(dialog).getByRole('button', { name: 'Clone and add' }));
+    expect(
+      await within(dialog).findByRole('progressbar', {
+        name: 'Cloning file:///srv/remotes/kanban.git into ~/projects/kanban… This can take a while.',
+      }),
+    ).toBeTruthy();
+    expect(api.posts()).toEqual([
+      expect.objectContaining({ url: '/api/projects/clone', body: { url: 'file:///srv/remotes/kanban.git' } }),
+    ]);
+  });
+
   it('shows the clone progress, disables the form, and Cancel aborts the request and closes', async () => {
     const api = fakeApi([], { clone: 'hang' });
     const user = userEvent.setup();

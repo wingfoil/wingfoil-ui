@@ -156,7 +156,9 @@ test.describe('US-S-03 — add a local folder', () => {
     const refused = nextAdd(page, false);
     await dialog(page).getByRole('button', { name: 'Add', exact: true }).click();
     expect((await refused).status).toBe(422);
-    await expect(dialog(page).getByRole('alert')).toHaveText('Folder not found: /tmp/does-not-exist');
+    await expect(dialog(page).getByRole('alert')).toHaveText('Folder not found: /tmp/does-not-exist', {
+      timeout: COLD_READ_MS,
+    });
     expect(await scanThemes(page)).toEqual([]);
     await expectSwitcherLists(page, []);
   });
@@ -239,21 +241,26 @@ test.describe('US-S-04 — add from a remote', () => {
       const c = await consoles.start();
       await openDialog(page, c);
       await chooseRemote(page);
-      const url = `${remote.origin}/held.git`;
-      await field(page, 'Repository URL').fill(url);
+      // A password typed in the URL is never shown nor announced (review R1).
+      await field(page, 'Repository URL').fill(`${remote.origin.replace('http://', 'http://alex:s3cret@')}/held.git`);
       await field(page, 'Repository URL').press('Enter');
-      const text = `Cloning ${url} into ~/projects/held… This can take a while.`;
-      await expect(dialog(page).getByRole('progressbar', { name: text })).toBeVisible();
+      const text = `Cloning ${remote.origin}/held.git into ~/projects/held… This can take a while.`;
+      await expect(dialog(page).getByRole('progressbar', { name: text })).toBeVisible({ timeout: COLD_READ_MS });
+      await expect(dialog(page).getByRole('status')).toHaveText(text);
+      expect(await page.locator('body').innerText()).not.toContain('s3cret');
       await expect(field(page, 'Repository URL')).toBeDisabled();
       await expect(dialog(page).getByRole('button', { name: 'Clone and add' })).toBeDisabled();
       // The focus waits on Cancel, the action left.
       await expectFocusVisible(dialog(page).getByRole('button', { name: 'Cancel' }));
       await expect.poll(() => remote.requests(), { timeout: COLD_READ_MS }).toBeGreaterThan(0);
+      // The clone's folder exists while git waits (review R3b): its removal below is not vacuous.
+      const held = path.join(homeOf(c), 'projects', 'held');
+      await expect.poll(() => exists(held), { timeout: COLD_READ_MS }).toBe(true);
       expect(await scanThemes(page)).toEqual([]);
       await page.keyboard.press('Enter');
       await expect(dialog(page)).toHaveCount(0);
       // The server killed git and removed what the clone created.
-      await expect.poll(() => exists(path.join(homeOf(c), 'projects', 'held')), { timeout: COLD_READ_MS }).toBe(false);
+      await expect.poll(() => exists(held), { timeout: COLD_READ_MS }).toBe(false);
       await expectSwitcherLists(page, []);
     } finally {
       await remote.close();
@@ -396,6 +403,7 @@ test.describe('US-S-07 — failed clone', () => {
       // The authentication error printed by git, verbatim (git leaves the credentials out).
       await expect(alert.locator('pre')).toContainText('Authentication failed');
       await expect(alert.locator('pre')).not.toContainText('wrong');
+      expect(await page.locator('body').innerText()).not.toContain('alex:wrong');
       expect(await exists(path.join(homeOf(c), 'projects', 'private'))).toBe(false);
       await expectSwitcherLists(page, []);
     } finally {
@@ -438,9 +446,20 @@ test.describe('US-S-10 — no WingFoil CLI', () => {
     );
     expect(await scanThemes(page)).toEqual([]);
     // Selecting it opens nothing: the row is no link.
+    await expect(row).not.toHaveAttribute('data-href');
+    // Selecting it (review R3a): any navigation would read the project (`/api/p/…`) and leave `/`.
+    const projectReads: string[] = [];
+    page.on('request', (r) => {
+      if (new URL(r.url()).pathname.startsWith('/api/p/')) projectReads.push(r.url());
+    });
     await row.focus();
     await page.keyboard.press('Enter');
-    expect(new URL(page.url()).pathname).toBe('/');
+    // Settle: the switcher reopened, its list read completed — after any navigation Enter caused.
+    await page.keyboard.press('Escape');
+    await openSwitcher(page);
+    await expect(page).toHaveURL(`${c.origin}/`);
+    expect(projectReads).toEqual([]);
+    await expect(rows(page).first()).toHaveAccessibleName(/Unavailable — WingFoil CLI not found/);
   });
 
   test('W4-12 — a clone with no CLI is added but not opened: the reason and the install command', async ({
@@ -456,7 +475,10 @@ test.describe('US-S-10 — no WingFoil CLI', () => {
     const cloned = nextAdd(page, true);
     await field(page, 'Repository URL').press('Enter');
     expect(await cloned).toMatchObject({ status: 201, body: { availability: 'cli-not-found', command: INSTALL } });
-    await expect(dialog(page).getByText('kanban was added but is unavailable — WingFoil CLI not found')).toBeVisible();
+    await expect(dialog(page).getByRole('status')).toContainText(
+      'kanban was added but is unavailable — WingFoil CLI not found',
+      { timeout: COLD_READ_MS },
+    );
     await expect(dialog(page).getByText(`Install it with: ${INSTALL}`)).toBeVisible();
     await expect(dialog(page).getByRole('textbox')).toHaveCount(0);
     await expect(dialog(page).getByRole('button', { name: 'Close' })).toBeFocused();

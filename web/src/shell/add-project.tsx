@@ -46,7 +46,7 @@ import { useAddLocalProject, useCloneProject } from '../api/projects.js';
 import { directoryProblem, pathProblem, urlProblem, type FieldProblem } from './add-project-fields.js';
 import { AVAILABILITY_REASONS } from './availability.js';
 import { ErrorText } from './ErrorText.js';
-import { defaultWorkingDirectory } from './working-directory.js';
+import { defaultWorkingDirectory, displayUrl } from './working-directory.js';
 
 /** The shell action opening the dialog. */
 export interface AddProjectAction {
@@ -199,9 +199,14 @@ function AddProjectForm({ close, onAdded }: { close(): void; onAdded(item: Proje
       local.mutate({ path: path.trim(), signal: controller.signal }, { onSuccess: done });
       keepFocus();
     } else {
-      if (urlProblem(url) || directoryProblem(directory)) return;
+      if (urlProblem(url) || directoryProblem(directory, url)) return;
       request.current = controller;
-      clone.mutate({ url: url.trim(), directory: directory.trim(), signal: controller.signal }, { onSuccess: done });
+      // An empty working directory (a name derivable from the URL, W4-13): the server's default.
+      const dir = directory.trim();
+      clone.mutate(
+        { url: url.trim(), ...(dir ? { directory: dir } : {}), signal: controller.signal },
+        { onSuccess: done },
+      );
       keepFocus();
     }
   };
@@ -222,163 +227,166 @@ function AddProjectForm({ close, onAdded }: { close(): void; onAdded(item: Proje
     </div>
   );
 
-  if (unavailable) {
-    // W4-12: added, but not available — the switcher lists it as unavailable; nothing to open.
-    const reason = unavailable.availability === 'ok' ? 'other' : AVAILABILITY_REASONS[unavailable.availability];
-    return (
-      <>
-        {header}
-        <div role="status" className="add-project-status">
-          <p>
-            <FormattedMessage id="projects.add.addedUnavailable" values={{ name: unavailable.name, reason }} />
-          </p>
-          {unavailable.availability === 'cli-not-found' && unavailable.command !== undefined && (
-            <p>
-              <FormattedMessage
-                id="projects.switcher.install"
-                values={{ command: <code key="command">{unavailable.command}</code> }}
-              />
-            </p>
-          )}
-        </div>
-      </>
-    );
-  }
-
+  const reason =
+    unavailable && unavailable.availability !== 'ok' ? AVAILABILITY_REASONS[unavailable.availability] : 'other';
   const progress =
     source === 'folder'
       ? intl.formatMessage({ id: 'projects.add.adding' })
-      : intl.formatMessage({ id: 'projects.add.cloning' }, { url: url.trim(), directory: directory.trim() });
+      : intl.formatMessage(
+          { id: 'projects.add.cloning' },
+          // The URL without its userinfo: a password typed in it is never shown nor announced (R1).
+          { url: displayUrl(url), directory: directory.trim() || defaultWorkingDirectory(url) },
+        );
 
   return (
     <>
       {header}
-      <Form className="add-project-form" onSubmit={submit}>
-        <RadioGroup
-          className="segmented"
-          orientation="horizontal"
-          aria-label={intl.formatMessage({ id: 'projects.add.source' })}
-          value={source}
-          isDisabled={busy}
-          onChange={(value) => {
-            setSource(value as Source);
-            local.reset();
-            clone.reset();
-          }}
-        >
-          <Radio className="segmented-option" value="folder">
-            <FormattedMessage id="projects.add.sourceLocal" />
-          </Radio>
-          <Radio className="segmented-option" value="repository">
-            <FormattedMessage id="projects.add.sourceRemote" />
-          </Radio>
-        </RadioGroup>
-        {source === 'folder' ? (
-          <TextField
-            className="field"
-            name="path"
-            value={path}
-            onChange={setPath}
-            isDisabled={busy}
-            validate={(v) => problem(PROBLEMS.path, pathProblem(v))}
-          >
-            <Label className="field-label">
-              <FormattedMessage id="projects.add.path" />
-            </Label>
-            <Input
-              className="field-input"
-              spellCheck={false}
-              autoComplete="off"
-              placeholder={intl.formatMessage({ id: 'projects.add.pathPlaceholder' })}
-            />
-            <FieldError className="field-error" />
-          </TextField>
-        ) : (
-          <>
-            <TextField
-              className="field"
-              name="url"
-              value={url}
-              onChange={(value) => {
-                setUrl(value);
-                if (!directoryTyped) setDirectory(defaultWorkingDirectory(value));
-              }}
-              isDisabled={busy}
-              validate={(v) => problem(PROBLEMS.url, urlProblem(v))}
-            >
-              <Label className="field-label">
-                <FormattedMessage id="projects.add.url" />
-              </Label>
-              <Input
-                className="field-input"
-                spellCheck={false}
-                autoComplete="off"
-                placeholder={intl.formatMessage({ id: 'projects.add.urlPlaceholder' })}
-              />
-              <FieldError className="field-error" />
-            </TextField>
-            <TextField
-              className="field"
-              name="directory"
-              value={directory}
-              onChange={(value) => {
-                setDirectory(value);
-                setDirectoryTyped(true);
-              }}
-              isDisabled={busy}
-              validate={(v) => problem(PROBLEMS.directory, directoryProblem(v))}
-            >
-              <Label className="field-label">
-                <FormattedMessage id="projects.add.directory" />
-              </Label>
-              <Input
-                className="field-input"
-                spellCheck={false}
-                autoComplete="off"
-                placeholder={intl.formatMessage({ id: 'projects.add.directoryPlaceholder' })}
-              />
-              <Text slot="description" className="field-hint">
-                <FormattedMessage id="projects.add.directoryHint" />
-              </Text>
-              <FieldError className="field-error" />
-            </TextField>
-          </>
+      {/* One status region for the dialog's whole life, so that its changes are announced: the
+          progress of the request (W4-11), then a new project that is not available (W4-12, R5). */}
+      <div role="status" className="add-project-status">
+        {busy && (
+          <ProgressBar className="progress" isIndeterminate>
+            <Label className="progress-label">{progress}</Label>
+            <div className="progress-track" aria-hidden="true">
+              <div className="progress-fill" />
+            </div>
+          </ProgressBar>
         )}
-        <div role="status" className="add-project-status">
-          {busy && (
-            <ProgressBar className="progress" isIndeterminate>
-              <Label className="progress-label">{progress}</Label>
-              <div className="progress-track" aria-hidden="true">
-                <div className="progress-fill" />
-              </div>
-            </ProgressBar>
-          )}
-        </div>
-        {error && (
-          <div role="alert" className="dialog-error">
-            <ErrorText error={error} />
-            {listed && (
+        {unavailable && (
+          <>
+            <p>
+              <FormattedMessage id="projects.add.addedUnavailable" values={{ name: unavailable.name, reason }} />
+            </p>
+            {unavailable.availability === 'cli-not-found' && unavailable.command !== undefined && (
               <p>
-                <Link className="link" href={`/p/${listed.pid}`}>
-                  <FormattedMessage id="projects.add.openExisting" values={{ name: listed.name }} />
-                </Link>
+                <FormattedMessage
+                  id="projects.switcher.install"
+                  values={{ command: <code key="command">{unavailable.command}</code> }}
+                />
               </p>
             )}
-          </div>
+          </>
         )}
-        <div className="dialog-actions">
-          <Button ref={cancelButton} className="button" onPress={close}>
-            <FormattedMessage id="projects.add.cancel" />
-          </Button>
-          <Button type="submit" className="button button-primary" isDisabled={busy}>
-            {source === 'folder' ? (
-              <FormattedMessage id="projects.add.submitLocal" />
-            ) : (
-              <FormattedMessage id="projects.add.submitClone" />
-            )}
-          </Button>
-        </div>
-      </Form>
+      </div>
+      {/* W4-12: added, but not available — the switcher lists it as unavailable; nothing to open. */}
+      {!unavailable && (
+        <Form className="add-project-form" onSubmit={submit}>
+          <RadioGroup
+            className="segmented"
+            orientation="horizontal"
+            aria-label={intl.formatMessage({ id: 'projects.add.source' })}
+            value={source}
+            isDisabled={busy}
+            onChange={(value) => {
+              setSource(value as Source);
+              local.reset();
+              clone.reset();
+            }}
+          >
+            <Radio className="segmented-option" value="folder">
+              <FormattedMessage id="projects.add.sourceLocal" />
+            </Radio>
+            <Radio className="segmented-option" value="repository">
+              <FormattedMessage id="projects.add.sourceRemote" />
+            </Radio>
+          </RadioGroup>
+          {source === 'folder' ? (
+            <TextField
+              className="field"
+              name="path"
+              value={path}
+              onChange={setPath}
+              isDisabled={busy}
+              validate={(v) => problem(PROBLEMS.path, pathProblem(v))}
+            >
+              <Label className="field-label">
+                <FormattedMessage id="projects.add.path" />
+              </Label>
+              <Input
+                className="field-input"
+                spellCheck={false}
+                autoComplete="off"
+                placeholder={intl.formatMessage({ id: 'projects.add.pathPlaceholder' })}
+              />
+              <FieldError className="field-error" />
+            </TextField>
+          ) : (
+            <>
+              <TextField
+                className="field"
+                name="url"
+                value={url}
+                onChange={(value) => {
+                  setUrl(value);
+                  if (!directoryTyped) setDirectory(defaultWorkingDirectory(value));
+                }}
+                isDisabled={busy}
+                validate={(v) => problem(PROBLEMS.url, urlProblem(v))}
+              >
+                <Label className="field-label">
+                  <FormattedMessage id="projects.add.url" />
+                </Label>
+                <Input
+                  className="field-input"
+                  spellCheck={false}
+                  autoComplete="off"
+                  placeholder={intl.formatMessage({ id: 'projects.add.urlPlaceholder' })}
+                />
+                <FieldError className="field-error" />
+              </TextField>
+              <TextField
+                className="field"
+                name="directory"
+                value={directory}
+                onChange={(value) => {
+                  setDirectory(value);
+                  setDirectoryTyped(true);
+                }}
+                isDisabled={busy}
+                validate={(v) => problem(PROBLEMS.directory, directoryProblem(v, url))}
+              >
+                <Label className="field-label">
+                  <FormattedMessage id="projects.add.directory" />
+                </Label>
+                <Input
+                  className="field-input"
+                  spellCheck={false}
+                  autoComplete="off"
+                  placeholder={intl.formatMessage({ id: 'projects.add.directoryPlaceholder' })}
+                />
+                <Text slot="description" className="field-hint">
+                  <FormattedMessage id="projects.add.directoryHint" />
+                </Text>
+                <FieldError className="field-error" />
+              </TextField>
+            </>
+          )}
+          {error && (
+            <div role="alert" className="dialog-error">
+              <ErrorText error={error} />
+              {listed && (
+                <p>
+                  <Link className="link" href={`/p/${listed.pid}`}>
+                    <FormattedMessage id="projects.add.openExisting" values={{ name: listed.name }} />
+                  </Link>
+                </p>
+              )}
+            </div>
+          )}
+          <div className="dialog-actions">
+            <Button ref={cancelButton} className="button" onPress={close}>
+              <FormattedMessage id="projects.add.cancel" />
+            </Button>
+            <Button type="submit" className="button button-primary" isDisabled={busy}>
+              {source === 'folder' ? (
+                <FormattedMessage id="projects.add.submitLocal" />
+              ) : (
+                <FormattedMessage id="projects.add.submitClone" />
+              )}
+            </Button>
+          </div>
+        </Form>
+      )}
     </>
   );
 }

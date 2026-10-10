@@ -5,7 +5,7 @@
 // POST /api/projects/clone (201 with the item), the item put into the cached list, a refusal reading
 // the list again and an abort leaving it alone.
 import type { ProjectListResponse } from '@wingfoil-ui/contracts';
-import { QueryClientProvider } from '@tanstack/react-query';
+import { QueryClientProvider, useQuery } from '@tanstack/react-query';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { afterEach, expect, it, vi } from 'vitest';
@@ -246,4 +246,34 @@ it('an unanswered add is the unreachable error', async () => {
   const { result } = renderHook(() => useAddLocalProject(), { wrapper: wrapperOf(client) });
   act(() => result.current.mutate({ path: '/x' }));
   await waitFor(() => expect(result.current.error).toMatchObject({ status: 0, code: 'unreachable' }));
+});
+
+it('shows a refusal without waiting for the list read it starts (review R2)', async () => {
+  let reads = 0;
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async (url: string, init?: RequestInit) => {
+      if (url === '/api/projects' && (init?.method ?? 'GET') === 'GET') {
+        reads += 1;
+        // The first read answers; the one started by the refusal never does.
+        if (reads > 1) return new Promise<Response>(() => {});
+        return new Response(JSON.stringify(LIST), { status: 200 });
+      }
+      return new Response(
+        JSON.stringify({ error: { code: 'folder-not-found', message: 'x', detail: { path: '/x' } } }),
+        {
+          status: 422,
+        },
+      );
+    }),
+  );
+  const client = createQueryClient();
+  const { result } = renderHook(() => ({ list: useQuery(projectsQuery()), add: useAddLocalProject() }), {
+    wrapper: wrapperOf(client),
+  });
+  await waitFor(() => expect(result.current.list.data?.projects).toHaveLength(2));
+  act(() => result.current.add.mutate({ path: '/x' }));
+  await waitFor(() => expect(result.current.add.error?.code).toBe('folder-not-found'));
+  expect(reads).toBe(2);
+  expect(result.current.list.isFetching).toBe(true);
 });

@@ -113,9 +113,10 @@ function useAddHandlers<V extends { signal?: AbortSignal }>() {
   const queryClient = useQueryClient();
   return {
     onSuccess: (item: ProjectListItem) => rememberProject(queryClient, item),
-    onError: async (_error: unknown, variables: V) => {
+    // Not awaited: the refusal is shown at once, the list is read again meanwhile (review R2).
+    onError: (_error: unknown, variables: V) => {
       if (variables.signal?.aborted) return;
-      await queryClient.invalidateQueries({ queryKey: projectsQuery().queryKey });
+      void queryClient.invalidateQueries({ queryKey: projectsQuery().queryKey });
     },
   };
 }

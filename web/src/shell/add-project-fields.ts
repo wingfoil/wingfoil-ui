@@ -3,6 +3,7 @@
  * server would refuse with a bare 400 `invalid-request` is said next to the field instead. There is
  * no check of the URL's scheme: git and the server judge the URL (the scenarios clone `file://`).
  */
+import { repoName } from './working-directory.js';
 
 /** What is wrong with a field's value. */
 export type FieldProblem = 'required' | 'relative' | 'option';
@@ -28,7 +29,12 @@ export function urlProblem(value: string): FieldProblem | undefined {
   return trimmed.startsWith('-') ? 'option' : undefined;
 }
 
-/** The working directory of a clone: filled and absolute. */
-export function directoryProblem(value: string): FieldProblem | undefined {
+/**
+ * The working directory of a clone: absolute when filled; required only when `url` gives no folder
+ * name (decision W4-13) — an empty field with a derivable name sends no directory and the server
+ * clones into its default `~/projects/<repo>`.
+ */
+export function directoryProblem(value: string, url: string): FieldProblem | undefined {
+  if (value.trim() === '') return repoName(url) === undefined ? 'required' : undefined;
   return pathLike(value);
 }

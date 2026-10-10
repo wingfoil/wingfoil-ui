@@ -3,7 +3,7 @@
 // replayed against the server function so the two rules cannot drift.
 import { describe, expect, it } from 'vitest';
 import { repoName as serverRepoName } from '../../../server/src/projects/remote.js';
-import { defaultWorkingDirectory, repoName } from '../../../web/src/shell/working-directory.js';
+import { defaultWorkingDirectory, displayUrl, repoName } from '../../../web/src/shell/working-directory.js';
 
 /** The server's table (`test/server/projects/remote.test.ts`) plus the forms a user types. */
 const URLS = [
@@ -46,5 +46,20 @@ describe('defaultWorkingDirectory', () => {
     ['', ''],
   ])('%s → %j', (url, directory) => {
     expect(defaultWorkingDirectory(url)).toBe(directory);
+  });
+});
+
+describe('displayUrl (review R1: no password shown or announced)', () => {
+  it.each([
+    ['http://alex:wrong@127.0.0.1:8080/private.git', 'http://127.0.0.1:8080/private.git'],
+    ['HTTPS://user:tok%40en@github.com/acme/kanban.git', 'HTTPS://github.com/acme/kanban.git'],
+    ['ssh://git@github.com:22/acme/kanban.git', 'ssh://github.com:22/acme/kanban.git'],
+    ['  https://github.com/acme/kanban.git  ', 'https://github.com/acme/kanban.git'],
+    ['file:///srv/remotes/kanban.git', 'file:///srv/remotes/kanban.git'],
+    ['https://github.com/a@b/kanban.git', 'https://github.com/a@b/kanban.git'],
+    // scp-like: no password possible, kept as typed.
+    ['git@github.com:acme/kanban.git', 'git@github.com:acme/kanban.git'],
+  ])('%s → %s', (url, shown) => {
+    expect(displayUrl(url)).toBe(shown);
   });
 });

@@ -1,6 +1,6 @@
 // Field checks of the Add project dialog (decision W4-13): the folder path filled and absolute
 // (`/`, `~`, `~/…`, a drive letter, UNC), the URL filled and not starting with `-`, the working
-// directory filled and absolute. No scheme check: git and the server judge the URL.
+// directory absolute when filled, required only when the URL gives no folder name. No scheme check: git and the server judge the URL.
 import { describe, expect, it } from 'vitest';
 import { directoryProblem, pathProblem, urlProblem } from '../../../web/src/shell/add-project-fields.js';
 
@@ -40,11 +40,16 @@ describe('urlProblem', () => {
 
 describe('directoryProblem', () => {
   it.each([
-    ['', 'required'],
-    ['projects/x', 'relative'],
-    ['~/work/kanban-copy', undefined],
-    ['/srv/x', undefined],
-  ])('%j → %s', (value, problem) => {
-    expect(directoryProblem(value)).toBe(problem);
+    // Empty: required only when the URL gives no folder name (W4-13, review R4).
+    ['', 'https://h/..', 'required'],
+    ['  ', '', 'required'],
+    ['', 'file:///srv/remotes/kanban.git', undefined],
+    // Filled: absolute.
+    ['projects/x', 'file:///srv/remotes/kanban.git', 'relative'],
+    ['projects/x', 'https://h/..', 'relative'],
+    ['~/work/kanban-copy', 'https://h/..', undefined],
+    ['/srv/x', 'file:///srv/remotes/kanban.git', undefined],
+  ])('%j with the URL %j → %s', (value, url, problem) => {
+    expect(directoryProblem(value, url)).toBe(problem);
   });
 });
