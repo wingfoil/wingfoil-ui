@@ -151,8 +151,9 @@ it('lists the declared types in order with counts, then undeclared types, and ev
   expect(typeFilters()).toEqual(['All types5', 'kind-a3', 'kind-m1', 'kind-e0', 'kind-z1']);
   expect(screen.getByText('3 types defined in .wingfoil/memory.yaml, each with its own life cycle.')).toBeTruthy();
   expect(rows()).toEqual(['k-001-alpha', 'k-002-beta', 'k-003-gamma', 'm-001-delta', 'z-001-stray']);
-  // The landing reads the configuration and the non-archived list only (TT-PERF-05), nothing per row.
-  expect(new Set(paths(fetch))).toEqual(new Set([CONFIG, LIST]));
+  // The landing reads the configuration and the non-archived list only (TT-PERF-05), nothing per row;
+  // plus the project header of the layout (task-016).
+  expect(new Set(paths(fetch))).toEqual(new Set([CONFIG, LIST, `/api/p/${PID}`]));
 });
 
 it('filters all types by bucket, the four buckets in the header order with counts', async () => {

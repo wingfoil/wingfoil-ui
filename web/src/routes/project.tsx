@@ -3,12 +3,13 @@
  * the child route in `<main>`. `$pid` is the opaque project id (REQ-SEC-04).
  *
  * **Adding a view (tasks 017–020):** see `routes/tree.ts` (route list) and `routes/nav.ts` (the
- * sidebar entry declared on the route). The project header (task-016) goes above `<Outlet/>` in
- * `ProjectLayout`.
+ * sidebar entry declared on the route). The project header (task-016) is above `<Outlet/>`; it
+ * also fills the right end of the global header (current user, role view).
  */
 import { createRoute, Link, Outlet, useRouter } from '@tanstack/react-router';
 import { useMemo, type ReactNode } from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
+import { ProjectHeader } from '../project/ProjectHeader.js';
 import { navGroups, type NavGroup } from './nav.js';
 import { rootRoute } from './root.js';
 
@@ -51,6 +52,7 @@ function ProjectLayout(): ReactNode {
     <>
       <ProjectNav pid={pid} groups={groups} />
       <main id="main" className="shell-main" tabIndex={-1}>
+        <ProjectHeader pid={pid} />
         <Outlet />
       </main>
     </>

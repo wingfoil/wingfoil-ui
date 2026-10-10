@@ -1,7 +1,8 @@
 /**
  * The project list mutations (spec-004 §3, spec-006 §3), shared by the project switcher
  * (task-015: remove) and the *Add project* dialog (task-014: add, clone — {@link useAddLocalProject},
- * {@link useCloneProject}, an aborted request leaving the list alone). The list itself is read
+ * {@link useCloneProject}, an aborted request leaving the list alone), and the role view of a
+ * project (task-016: {@link setRoleView}, {@link useSetRoleView}). The list itself is read
  * by `projectsQuery()` only (`api/queries.ts`), refetched on the `projects` event of the stream.
  *
  * **Adding a mutation (task-014):** a plain function on {@link apiRequest} (`addProject(path)`,
@@ -14,7 +15,7 @@
 import type { ProjectListItem, ProjectListResponse } from '@wingfoil-ui/contracts';
 import { useMutation, useQueryClient, type QueryClient } from '@tanstack/react-query';
 import { ApiError, apiRequest } from './client.js';
-import { projectsQuery } from './queries.js';
+import { projectHeaderQuery, projectsQuery } from './queries.js';
 import { queryKeys } from './query-keys.js';
 
 /** The API path of the list entry `pid` (opaque id, encoded: never a file-system path). */
@@ -136,5 +137,30 @@ export function useCloneProject() {
   return useMutation<ProjectListItem, ApiError, CloneVariables>({
     mutationFn: ({ url, directory, signal }) => cloneProject(url, directory, signal),
     ...handlers,
+  });
+}
+
+/** `PUT /api/p/:pid/role-view {role}`: remember the role view of the project (spec-006 `roleView`) → 204. */
+export async function setRoleView(pid: string, role: string, signal?: AbortSignal): Promise<void> {
+  await apiRequest<void>('PUT', `/api/p/${encodeURIComponent(pid)}/role-view`, { role }, signal);
+}
+
+/**
+ * The role view change of project `pid` as a mutation (variables: the role; task-016, W4-20). After
+ * the 204 the header is read again (it carries the effective `roleView`) and so is every directives
+ * query of the project: the server computes `directives[].mine` from the stored role view. A refusal
+ * (403 `not-in-team`, 400 for a role no longer held) reads the header again, so that the selector
+ * shows what the server holds.
+ */
+export function useSetRoleView(pid: string) {
+  const queryClient = useQueryClient();
+  return useMutation<void, ApiError, string>({
+    mutationFn: (role) => setRoleView(pid, role),
+    onSuccess: () =>
+      Promise.all([
+        queryClient.invalidateQueries({ queryKey: projectHeaderQuery(pid).queryKey }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.project(pid, 'directives') }),
+      ]),
+    onError: () => queryClient.invalidateQueries({ queryKey: projectHeaderQuery(pid).queryKey }),
   });
 }

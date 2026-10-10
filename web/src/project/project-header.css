@@ -1,0 +1,179 @@
+/* The project header (task-016, ux-reference §3, W4-16…W4-22): the strip above the view and the
+   current user / role view at the right end of the global header. Shared tokens only. */
+
+.shell-header-end {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.project-header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  max-width: 1180px;
+  margin-bottom: var(--space-5);
+  font-size: 13px;
+}
+
+.project-header p {
+  margin: 0;
+}
+
+.project-version-block {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-1) var(--space-3);
+}
+
+.project-version {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--color-text-2);
+}
+
+.project-version-unsupported {
+  align-self: flex-start;
+  padding: 6px var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--tone-human-bg);
+  color: var(--tone-human-fg);
+}
+
+.project-capabilities {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: var(--color-text-muted);
+}
+
+.project-notices {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.project-notices:empty {
+  display: none;
+}
+
+.project-notice {
+  justify-content: flex-start;
+}
+
+.project-notice code {
+  font-family: var(--font-mono);
+}
+
+.notice-icon {
+  flex: none;
+  width: 14px;
+  height: 14px;
+  margin-top: 2px;
+}
+
+.current-user {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.current-user-avatar {
+  flex: none;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.current-user-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.2;
+}
+
+.current-user-name {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--color-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.current-user-sub {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
+.current-user-badge {
+  flex: none;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  background: var(--tone-human-bg);
+  color: var(--tone-human-fg);
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.role-view {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.role-view-label {
+  font-size: 11px;
+  color: var(--color-text-muted);
+}
+
+.role-view-button {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.role-view-button[data-focus-visible] {
+  outline: var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.role-view-button[data-disabled] {
+  cursor: progress;
+  opacity: 0.7;
+}
+
+.role-view-popover {
+  min-width: 220px;
+}
+
+.role-view-hint {
+  margin: 0;
+  padding: 6px 10px 8px;
+  font-size: 11px;
+  color: var(--color-text-muted);
+}
+
+.role-view-popover .menu-item {
+  font-family: var(--font-mono);
+}
+
+.role-view-popover .menu-item[data-selected] {
+  font-weight: 600;
+}

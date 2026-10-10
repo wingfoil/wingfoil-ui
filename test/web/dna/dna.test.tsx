@@ -66,9 +66,10 @@ it('shows every section of the DNA: project, modules, stack, methodologies, team
   expect(paths.getByText('docs')).toBeTruthy();
   expect(paths.getByText('No path declared')).toBeTruthy();
   expect(document.title).toBe('demo · DNA — WingFoil UI');
-  // One read: the configuration (shared with the Memory list).
+  // One read for the view: the configuration (shared with the Memory list); plus the project header
+  // of the layout (task-016).
   const reads = fetch.mock.calls.map((c) => String(c[0])).filter((p) => p.startsWith(BASE));
-  expect(new Set(reads)).toEqual(new Set([`${BASE}/config`]));
+  expect(new Set(reads)).toEqual(new Set([`${BASE}/config`, BASE]));
 });
 
 it('shows an empty or absent section as empty and leaves absent optional fields out', async () => {

@@ -1,13 +1,7 @@
 // task-016 — the pure part of the project header: who the user is (W4-17, W4-22), the read-only
 // notices (W4-19), the version and its range (W4-18).
 import { describe, expect, it } from 'vitest';
-import {
-  initials,
-  readOnlyNotices,
-  supportedRange,
-  userView,
-  versionOf,
-} from '../../../web/src/project/model.js';
+import { initials, readOnlyNotices, supportedRange, userView, versionOf } from '../../../web/src/project/model.js';
 import { header, morgan, outOfRange, riley } from './header-data.js';
 
 const DNA_ERROR = { code: 'cli-refused', message: 'invalid dna.yaml' };
@@ -62,12 +56,18 @@ describe('readOnlyNotices', () => {
     expect(readOnlyNotices({ ...riley(), dnaError: DNA_ERROR })).toEqual([{ kind: 'teamUnknown' }]));
   it('no identity, even with an unreadable DNA', () =>
     expect(
-      readOnlyNotices(header({ identity: { kind: 'no-identity' }, roleViews: [], roleView: null, dnaError: DNA_ERROR })),
+      readOnlyNotices(
+        header({ identity: { kind: 'no-identity' }, roleViews: [], roleView: null, dnaError: DNA_ERROR }),
+      ),
     ).toEqual([{ kind: 'noIdentity' }]));
   it('ambiguous, with the members', () =>
     expect(
       readOnlyNotices(
-        header({ identity: { kind: 'ambiguous', email: 's@x.test', members: ['Jordan', 'Sam'] }, roleViews: [], roleView: null }),
+        header({
+          identity: { kind: 'ambiguous', email: 's@x.test', members: ['Jordan', 'Sam'] },
+          roleViews: [],
+          roleView: null,
+        }),
       ),
     ).toEqual([{ kind: 'ambiguous', email: 's@x.test', members: ['Jordan', 'Sam'] }]));
   it('the version is not a notice of its own (it is the version line, W4-18)', () =>

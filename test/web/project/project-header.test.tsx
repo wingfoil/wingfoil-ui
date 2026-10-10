@@ -63,7 +63,9 @@ const strip = () => screen.getByRole('region', { name: 'Project header' });
 it('shows the version, the notice and a single-role member with the role; no selector (S-08.1, S-12.1)', async () => {
   stub(header());
   renderApp('/p/p_a/dna');
-  expect(await within(await screen.findByRole('region', { name: 'Project header' })).findByText('WingFoil 0.2.2')).toBeTruthy();
+  expect(
+    await within(await screen.findByRole('region', { name: 'Project header' })).findByText('WingFoil 0.2.2'),
+  ).toBeTruthy();
   expect(within(strip()).getByText('Every capability of this release is available')).toBeTruthy();
   const chip = await screen.findByRole('group', { name: 'Current user: Jordan, developer' });
   expect(within(chip).getByText('Jordan')).toBeTruthy();
@@ -83,7 +85,13 @@ it('says "(from PATH)" for a CLI found on the PATH (S-08.2)', async () => {
 it('lists the capabilities the version lacks', async () => {
   stub(
     header({
-      capabilities: { capabilities: [], missing: [{ id: 'workflow-next-step', minVersion: '0.3.0' }, { id: 'odd', minVersion: '0.4.0' }] },
+      capabilities: {
+        capabilities: [],
+        missing: [
+          { id: 'workflow-next-step', minVersion: '0.3.0' },
+          { id: 'odd', minVersion: '0.4.0' },
+        ],
+      },
     }),
   );
   renderApp('/p/p_a/dna');
@@ -138,7 +146,9 @@ it('says the team is unknown when the DNA could not be read (W4-22)', async () =
 });
 
 it('shows "No identity" with the command to set it (S-14.1)', async () => {
-  stub(header({ identity: { kind: 'no-identity' }, roleViews: [], roleView: null, readOnly: [{ code: 'not-in-team' }] }));
+  stub(
+    header({ identity: { kind: 'no-identity' }, roleViews: [], roleView: null, readOnly: [{ code: 'not-in-team' }] }),
+  );
   renderApp('/p/p_a/dna');
   const chip = await screen.findByRole('group', { name: 'Current user: no identity' });
   expect(within(chip).getByText('No identity')).toBeTruthy();
@@ -172,26 +182,35 @@ it('offers the member roles in DNA order and switches the role view (S-22.1, S-2
   renderApp('/p/p_a/dna');
   const chip = await screen.findByRole('group', { name: 'Current user: Morgan Reyes' });
   expect(within(chip).getByText('MR')).toBeTruthy();
-  const button = await screen.findByRole('button', { name: /^Role view/ });
+  const button = await screen.findByRole('button', { name: /Role view$/ });
   expect(button.textContent).toContain('tech-lead');
+  // React Aria names the button by the value, then the label.
+  expect(button.getAttribute('aria-labelledby')).toBeTruthy();
+  expect(screen.getByRole('button', { name: 'tech-lead Role view' })).toBe(button);
   await u.click(button);
   const listbox = await screen.findByRole('listbox');
-  expect(within(listbox).getAllByRole('option').map((o) => o.textContent)).toEqual(['approver', 'tech-lead']);
+  expect(
+    within(listbox)
+      .getAllByRole('option')
+      .map((o) => o.textContent),
+  ).toEqual(['approver', 'tech-lead']);
   expect(screen.getByText('You hold several roles: choose the view')).toBeTruthy();
   current = 'approver';
   const headerReads = calls.filter((c) => c.url === BASE).length;
   await u.click(within(listbox).getByRole('option', { name: 'approver' }));
-  await waitFor(() => expect(calls).toContainEqual({ method: 'PUT', url: `${BASE}/role-view`, body: { role: 'approver' } }));
+  await waitFor(() =>
+    expect(calls).toContainEqual({ method: 'PUT', url: `${BASE}/role-view`, body: { role: 'approver' } }),
+  );
   // The header is read again after the 204, and its answer is what the selector shows.
   await waitFor(() => expect(calls.filter((c) => c.url === BASE).length).toBeGreaterThan(headerReads));
-  await waitFor(() => expect(screen.getByRole('button', { name: /^Role view/ }).textContent).toContain('approver'));
+  await waitFor(() => expect(screen.getByRole('button', { name: /Role view$/ }).textContent).toContain('approver'));
 });
 
 it('does not send a PUT when the current role is picked again', async () => {
   const calls = stub(morgan());
   const u = userEvent.setup();
   renderApp('/p/p_a/dna');
-  await u.click(await screen.findByRole('button', { name: /^Role view/ }));
+  await u.click(await screen.findByRole('button', { name: /Role view$/ }));
   await u.click(within(await screen.findByRole('listbox')).getByRole('option', { name: 'tech-lead' }));
   await waitFor(() => expect(screen.queryByRole('listbox')).toBeNull());
   expect(calls.filter((c) => c.method === 'PUT')).toEqual([]);
@@ -201,11 +220,11 @@ it('shows a refused role view change and keeps the role from the header', async 
   stub(morgan(), { status: 403, body: { error: { code: 'not-in-team', message: 'x' } } });
   const u = userEvent.setup();
   renderApp('/p/p_a/dna');
-  await u.click(await screen.findByRole('button', { name: /^Role view/ }));
+  await u.click(await screen.findByRole('button', { name: /Role view$/ }));
   await u.click(within(await screen.findByRole('listbox')).getByRole('option', { name: 'approver' }));
   const alert = await within(strip()).findByRole('alert');
   expect(alert.textContent).toMatch(/team/i);
-  expect(screen.getByRole('button', { name: /^Role view/ }).textContent).toContain('tech-lead');
+  expect(screen.getByRole('button', { name: /Role view$/ }).textContent).toContain('tech-lead');
 });
 
 it('shows a failed header read in the strip', async () => {
