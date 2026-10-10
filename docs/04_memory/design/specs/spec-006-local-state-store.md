@@ -125,6 +125,7 @@ list is notified by the `projects` event (spec-004 §6).
 | `state-dir-inside-project` | `{ path, stateDir }` | §1 (no scenario) |
 | `directory-inside-project` | `{ path }` — the clone target lies inside a listed project | (no scenario) |
 | `inside-state-dir` | `{ path }` — the clone target lies inside the state directory | §1 (no scenario) |
+| `credentials-in-url` | — : the clone URL is http(s) or ftp(s) and carries userinfo (a user name, a token or a password); checked right after the source validation, before any file-system, state or git work; nothing is cloned and the URL is never written to a command line, a file, the state or a log (REQ-SEC-09, bug-006). `ssh://user@host/…` and the scp-like `user@host:…` are allowed | (no scenario) |
 | `git-refused` | — (`message` = git's message verbatim, spec-004 §5): a failed clone, or a folder with `.wingfoil/` that is not a git repository | S-07.1, S-07.3 |
 
 ### 4. Reads and writes
@@ -202,3 +203,9 @@ a project (REQ-SEC-09). The secret scan of REQ-SEC-09 runs over the state direct
   new refusals `directory-inside-project` and `inside-state-dir` (`{path}`); no CLI of the
   cloned repository runs at clone time (name = folder base name until the first open), with the
   security note; decided by the user.
+- 2026-10-10 — amended in dev-loop task-021 (Wave 5, plan dev-loop-rel-v0.1-plan; absorbs
+  bug-006, option (c)): §3 new refusal `credentials-in-url` (no `detail`) for http(s)/ftp(s) clone
+  URLs carrying any userinfo — a token in the user-name position is a credential too — because
+  git would keep it in the clone's `.git/config` and expose it on the command line; `ssh://user@`
+  and scp-like URLs stay allowed; the web text suggests SSH or a git credential helper
+  (`error.credentialsInUrl`) (W5-14, W5-15); decided by the user.
