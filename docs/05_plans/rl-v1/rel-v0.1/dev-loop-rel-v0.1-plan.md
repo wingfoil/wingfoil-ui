@@ -3,7 +3,7 @@ id: dev-loop-rel-v0.1-plan
 type: plan
 title: "Implementation rel-v0.1"
 status: active
-version: "0.5"         # optional — plan version
+version: "0.6"         # optional — plan version
 workflow: "dev-loop"
 phase: "rel-v0.1"
 scope: "rl-v1/rel-v0.1"
@@ -14,7 +14,7 @@ tmpl_version: 260703   # Orignal template version
 
 ## Context
 
-**Version:** 0.5 · **Date:** 2026-10-09 (0.1: plan created, Wave 1 scope; 0.2: Wave 1 session log; 0.3: Wave 2 session log; 0.4: Wave 3 session log; 0.5: between-waves feedback-loop tasks 022, 023)
+**Version:** 0.6 · **Date:** 2026-10-10 (0.1: plan created, Wave 1 scope; 0.2: Wave 1 session log; 0.3: Wave 2 session log; 0.4: Wave 3 session log; 0.5: between-waves feedback-loop tasks 022, 023; 0.6: Wave 4 session log)
 **Workflows:** `sw-life-cycle` → `release-line-cycle` (`rl-v1`) phase `delivery` → `release-cycle`
 (`minor-v0.1`) phase `implementation` = `dev-loop` iterated over every task with status `backlog`
 and tag `v0.1` (`.wingfoil/workflows/custom/release-cycle.yaml` v1.1, `dev-loop.yaml` v1.4)
@@ -90,8 +90,7 @@ Per task (`dev-loop` v1.4):
   before each merge; end of each wave.
 - **Completion:** every v0.1 task `done` and merged; plan finalized by hand (`status: done`, commit
   `wf(plan): finalize dev-loop-rel-v0.1-plan [active → done]`, W-04).
-- **Next:** wave 4 (015, 014, 016) — see Session 3 and its addendum; M2 applied, waiting for the
-  approver's go.
+- **Next:** wave 5 (021, closing pass; absorbs bug-006) — see Session 4.
 
 ## Session log
 
@@ -319,3 +318,79 @@ Per task (`dev-loop` v1.4):
 - **Open:** `Source key` waits for WingFoil's svc id (its task-269); rule 7's `wingfoil-sync`
   procedure is not defined yet (WingFoil v0.3 user-docs); no sync due before WingFoil's v0.3
   retrospective.
+
+### Session 4 — Wave 4: project flows (2026-10-09 → 2026-10-10)
+
+- **Done and merged** (`--no-ff`, strictly one at a time in `depends_on` order 015 → 014 → 016 —
+  the user declined running 014 in parallel —, each after an independent fresh-context review
+  re-verified by the same reviewer until PASS, and the user's `approve`; `main` pushed after each
+  merge): task-015 (merge `7b6dc42`, done `9535af6`, 3 review rounds R1–R11), task-014 (`dcbcfb5`,
+  `48d3cba`, 3 rounds R1–R11), task-016 (`0156d3f`, `ca02d29`, 2 rounds R1–R10; absorbs bug-005).
+- **Decisions of the user (W4-1 … W4-22, all the recommended option)**, applied as amendments of
+  `ux-reference` (0.6 → 1.0, header notes "decided by the user"):
+  - task-015: W4-1 switcher = popover + dialog + React Aria grid list (rows link by opaque id,
+    *Remove <name>* ×, *Add project…* a button); W4-2 removal confirmed in a modal alert dialog
+    (removing the open project → `/`); W4-3 unavailable rows (not links, reason, install command,
+    Remove kept); W4-4 list re-read on every opening; W4-5 a switch keeps the current view;
+    W4-6 trigger = project name only; W4-7 no list on the start page; **W4-8 the element panel of
+    task-018 is non-modal** (switcher operable while it is open; supersedes the "modal" part of
+    task-018's decision 5) — ux-reference 0.7, 0.8 (`c5ac0e1`, `9d5a25f`, review wording `dd3275d`).
+  - task-014: W4-9 `error.cliNotFound` = "… not found for this project. Install it with:
+    {command}"; W4-10 *Open <name>* link on `already-listed`; W4-11 add/clone in progress (fields and
+    primary disabled, status + indeterminate progress bar; Cancel/Close/Escape abort and close);
+    W4-12 open the new project only when available, else keep the dialog with the reason; W4-13
+    field-level checks (no URL scheme check; working directory required only when no name is
+    derivable — takes precedence over W4-14's "always sends the field"); W4-14 web mirror of the
+    server's `repoName` tested against its table; W4-15 header Close + footer Cancel, segmented
+    radio group, no toast, polite announcement — ux-reference 0.9 (`72cd413`). Accepted test
+    deviation: S-07.3 uses a local Basic-auth HTTP remote (no network).
+  - task-016: W4-16 identity and role view at the right end of the global header (portal slot,
+    only inside a project), version line and read-only notices in a project header strip;
+    W4-17 initials + name always visible; W4-18 always-visible version line; W4-19 one persistent
+    notice per reason in a polite live region; W4-20 *Role view* select, re-reads header and
+    directives; W4-21 S-09.1 checked on every view + every descriptor `version-unsupported`;
+    W4-22 *team unknown* when the DNA cannot be read — ux-reference 1.0 (`4ec3ed6`).
+- **Coordinator decisions:** shared project mutations in `web/src/api/projects.ts` — 015
+  `removeProject`/`forgetProject`/`useRemoveProject`; 014 `addProject`/`cloneProject`/
+  `rememberProject`/`useAddLocalProject`/`useCloneProject` (refusal → invalidate the list without
+  awaiting it; abort → nothing); 016 `setRoleView` + `useSetRoleView()` called with
+  `mutate({ pid, role })` (the pid travels in the variables, the header is keyed by pid).
+  Catalogue: capability names are `shell.capability.<lowerCamel id>` (spec-008 §2 areas) — this
+  corrects the `capability.<id>` of the Session 2 hand-over —, version reasons through
+  `shell.reason.needsVersion` / `shell.reason.unsupportedVersion` (spec-008 §4). Recorded as
+  backlog nit: `useRemoveProject` still awaits the list re-read on a non-404 refusal.
+- **Bugs:** bug-005 (flaky fingerprint lstat test — same-size rewrite within one mtime tick with
+  the racy rule disabled; no product fault) — found in the post-merge checks of 015, `bug-ingest`,
+  triaged low by the user, absorbed into task-016 (fixed in the test, 20/20 isolated runs),
+  `resolved`. bug-006 (credentials of a clone URL kept in the clone's `.git/config` and visible in
+  `ps`) — found in task-014's review, triaged low, absorbed into **task-021** with option (c):
+  refuse clone URLs carrying a password with a new spec-006 §3 refusal code (spec amended at
+  021's design), `planned`. bug-004 stays `resolved` (Wave 4 evidence in its notes: timeouts only
+  in one post-reboot run at load 39–82, green alone); re-check at release validation.
+- **Facts learned:** TanStack Router does not remount a layout on a `$pid` change and react-query
+  moves new options onto a pending mutation — key per-project components by pid and carry the pid
+  in mutation variables (016 R1); React Aria grid rows take their name from `textValue` unless a
+  `slot="description"` is present (015 R1); TanStack awaits `onError` before reporting an error
+  (014 R2); git does not echo URL userinfo in its error messages (2.43).
+- **Lessons:** assertions after a re-read must wait for that response (or assert its body), never
+  pass on cached data; assert accessible names, not only visible text; every wait on a server read
+  uses `COLD_READ_MS`; agents were interrupted by rate limits, a network error, a machine reboot
+  and a session restart — resumed from their committed work each time; the session scratchpad in
+  `/tmp` does not survive a reboot (the agents' rules file had to be re-created).
+- **Environment:** load 0.6 to ≈ 290 (other projects' builds), one machine reboot; `test:timing`
+  green at 015's integration (load falling 12.6 → 8.6) and on 016's branch and merge (start
+  9.1 / 10.3 / 10.4; strict live refresh 405–1105 ms from the mutation, budget 5 s).
+- **Checks on `main` after the wave** (`ca02d29`): typecheck, lint (catalogue
+  check), format clean · `test:coverage` **1837 passed, 1 skipped** (96.64 % statements / 90.92 %
+  branches) · `docs:api` OK · `test:e2e` **104/104** · `check_tasks.py` OK (load 16–30;
+  `test:timing` not re-run on `main` — load ≥ 12; green on 016's merge branch at load 10.4).
+- **Open points for Wave 5 (task-021)** (details in the Execution Notes of 015, 014, 016): React
+  Aria's visually hidden "Dismiss" in the switcher popover and the role view select (X-09.1); the
+  header's live region remounts on a project switch (cached notices not announced, 016 R8); a
+  failed header re-read with cached data is silent and a never-settling re-read keeps the select
+  disabled (016 R6, R9); static `<title>` in `web/index.html`; entry bundle size (REQ-PERF-04);
+  later role-dependent views must join `useSetRoleView`'s invalidations; bug-006.
+- **Other sessions:** answered the "Wingfoil ecosystem .github sync" session's questions (published
+  items, conventions, pack/pin, what to keep private) with the user's OK; no change to the repo.
+- **Next:** Wave 5 — task-021 (closing pass), then release validation.
+
