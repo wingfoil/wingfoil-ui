@@ -3,7 +3,13 @@
 // removed, then host + path compared whatever the scheme. And the default working directory of a
 // clone (`ux-reference` §3: `~/projects/<repo>`).
 import { describe, expect, it } from 'vitest';
-import { cloneSourceProblem, credentialsInUrl, normaliseRemote, repoName, sameRemote } from '../../../server/src/projects/remote.js';
+import {
+  cloneSourceProblem,
+  credentialsInUrl,
+  normaliseRemote,
+  repoName,
+  sameRemote,
+} from '../../../server/src/projects/remote.js';
 
 describe('normaliseRemote', () => {
   it.each([
