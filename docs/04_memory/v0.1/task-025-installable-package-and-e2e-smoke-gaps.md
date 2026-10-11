@@ -305,3 +305,66 @@ map AC-4/AC-5 to their spec tests.
   `test/harness/repo-state.ts` + `no-commit.spec.ts` over `SCREENS`; **ES-16** bin mode 100755 in
   git; **ES-17** README "Install from a package", cli-reference, CHANGELOG, `test/README.md` 0.24.
 - AC-1 and AC-3 reworded accordingly (Process note under the Acceptance Criteria).
+
+### red / green / refactor (2026-10-11)
+
+- **Packaging (AC-1, AC-2):** red — `test/package/pack.test.ts` failed on the 649 paths outside
+  the allow-list, the missing builds, the bin mode, the undeclared dependencies and the missing
+  `prepack`. green — `package.json` `files` (ES-10), root `dependencies` = the server's (ES-9;
+  `package-lock.json` root entry, `npm install --package-lock-only --offline`), `prepack: npm run
+  build`, `test:smoke`; bin mode 100755 in git (ES-16); `test/global-setup.ts` also runs the Vite
+  build (ES-11). Tarball: 120 files, 589 kB packed, 1.67 MB unpacked (was 707 files). No change in
+  `server/src`, `web/src`, `contracts/src`; `private: true` and `0.0.0` unchanged.
+- **Launch smoke (AC-3):** `test/smoke/launch.smoke.test.ts` + `vitest.smoke.config.ts`; the
+  default `vitest.config.ts` excludes `test/smoke/**` (the file name also matches `*.test.ts`).
+  `npm`/`npx` run as `node npm-cli.js` / `npx-cli.js` (no shell); the `npm_*` variables of `npm
+  run` are stripped from the child environments; the stop runs find the bin's process as the leaf
+  of the `npx` process group (`ps -e -o pid,ppid,pgid,args`), so the smoke is POSIX-only (as the
+  rest of the launcher tests' signal checks).
+- **Scrum fixture (AC-4):** `BddFixtureKind` / `FixtureKind = BddFixtureKind | 'scrum'` (ES-14);
+  the BDD-only tests (contract capture and contract tests, descriptor oracle and tests,
+  memory-events) now type with `BddFixtureKind`. `FixtureProject.deprecate` added. Deviation from
+  the design: the element order — the first element commit sits exactly on the edge of the
+  10-minute window that `fixtures.test.ts` checks with a strict `>`, so the first element added
+  must not keep its add as its last commit: *Search story* (task-001, pending) is added before
+  *Login story* (task-002, draft). `fixtures.test.ts` builds the `scrum` fixture with the three
+  BDD ones and runs the per-kind checks on it; `memory search` is completed with
+  `--status deprecated` (W-19). The Memory list hides the deprecated task on the landing list and
+  shows it once the task type is selected (W3-24): `scrum.spec.ts` asserts both.
+- **No commit (AC-5):** `test/harness/repo-state.ts` + `repo-state.test.ts` (commit, ref,
+  untracked/modified file, index write by a plain `git status` after a touch, config, stash);
+  `no-commit.spec.ts` walks all 16 `SCREENS`, picks the `tech-lead` role view (PUT 204), switches
+  project with the switcher (it keeps the Team view), stops the console, then compares both
+  repositories: unchanged.
+- **Docs (ES-17):** README *Install from a package* + `test:smoke` row; `docs/cli-reference.md`
+  0.2 (`npx wingfoil-ui`, Ctrl-C under `npx` → 130, example); CHANGELOG `[0.1.0]` line;
+  `test/README.md` 0.24 (*Launch smoke* section, `test/package/`, `repo-state.ts`, `scrum`
+  fixture, the two specs).
+
+### checks (2026-10-11)
+
+- `npm run typecheck` · `npm run lint` · `npm run format:check`: clean.
+- `npm run test:coverage`: **118 files passed, 1 skipped; 1946 passed / 1 skipped** (172 s, load
+  4.6); coverage 96.67 % statements, 90.97 % branches, 97.22 % functions, 98.33 % lines.
+- `npm run docs:api`: OK.
+- `npm run test:e2e`: **129 passed** (7.0 min, load 11.0 at the start, 17.2 at the end); no
+  console left (`pgrep -af bin/wingfoil-ui.cjs`).
+- `npm run test:smoke`: **4 passed**. From a clean tree (load 2.8): pack with the `prepack` build
+  8.9 s, install 1.4 s, `--version` 0.6 s, start 0.6 s, ~13 s in all. On a built tree (load
+  17.2): pack 1.9 s, install 1.3 s, `--version` 0.5 s, start 0.6 s, 6.4 s in all. Tarball 120
+  files.
+- `python3 docs/03_backlog/X_tools/check_tasks.py`: OK (25 tasks, 72 backlog items).
+- `npm run test:timing`: **skipped** — load 15.2–17.2 after the e2e run (rule: only below 12).
+
+### e2e closure
+
+No BDD scenario is deferred to this task; the acceptance criteria map to:
+
+| AC | Test |
+|----|------|
+| AC-1 | `test/package/pack.test.ts` : `AC-1 runtime dependencies are declared and no workspace package is imported at run time`, `AC-1 prepack builds and the package stays private`; `test/smoke/launch.smoke.test.ts` : `AC-1 the tarball built by prepack holds only allowed paths and is installed with its bin` |
+| AC-2 | `test/package/pack.test.ts` : `AC-2 the allow-list refuses the paths of bug-007`, `AC-2 every packed path is on the allow-list`, `AC-2 every runtime file is packed`, `AC-2 the bin is packed executable (ES-16)` |
+| AC-3 | `test/smoke/launch.smoke.test.ts` : `AC-3 the installed package prints its version and help`, `AC-3 npx wingfoil-ui --no-open serves the UI and the API with the token; SIGINT to the server: exit 0, no process left`, `AC-3 Ctrl-C (SIGINT to the process group) stops the console, npx reports the signal, no process left` |
+| AC-4 | `test/harness/fixtures.test.ts` : `scrum fixture` (per-kind checks) and `AC-4 is a Scrum project of the pinned CLI with elements in every state of its default machine`; `test/e2e/scrum.spec.ts` : `AC-4.1 — the Memory list renders the Scrum elements with their states`, `AC-4.2 — the element panel opens a Scrum element`, `AC-4.3 — the DNA view shows the Scrum methodology` (axe in both themes in each) |
+| AC-5 | `test/harness/repo-state.test.ts` (6 tests); `test/e2e/no-commit.spec.ts` : `AC-5.1 — every v0.1 screen, a role view and a project switch leave HEAD, refs, index and working tree unchanged` |
+| AC-6 | the checks above; docs: README, `docs/cli-reference.md`, CHANGELOG, `test/README.md` |
