@@ -3,7 +3,7 @@ id: retrospective-rel-v0.1-plan
 type: plan
 title: "Retrospective rel-v0.1"
 status: active
-version: "0.2"         # optional — plan version
+version: "0.3"         # optional — plan version
 workflow: "retrospective"
 phase: "rel-v0.1"
 scope: "rl-v1/rel-v0.1"
@@ -14,7 +14,8 @@ tmpl_version: 260703   # Orignal template version
 
 ## Context
 
-**Version:** 0.2 · **Date:** 2026-10-11 (0.1: plan created; 0.2: explore — friction inventory)
+**Version:** 0.2 · **Date:** 2026-10-11 (0.1: plan created; 0.2: explore — friction inventory; 0.3:
+additional-points decisions)
 **Branch:** `main` (RT-1, as RV-1 for `release-submit` and `release-publishing`)
 **Workflows:** `sw-life-cycle` → `release-line-cycle` (`rl-v1`) phase `delivery` → `release-cycle`
 (`minor-v0.1`, v1.1) phase `retrospective` = `retrospective`
@@ -198,3 +199,24 @@ ids = `docs/05_plans/rl-v1/rel-v0.1/`; `F-NNN` = `docs/wingfoil-feedback/`; `W-N
 - Repository checkers negative-tested on injected defects; red-first commits cited in 10 tasks.
 - Process lessons turned into rules (load threshold, wait-at-checkpoint, phase-boundary rule for
   cross-project requests).
+
+### Additional points — decisions (the approver: "as recommended")
+
+- Step 3 — inventory and improvement themes presented; no further points from the approver.
+- **RT-7** — v0.2 task "load-independent tests" (T2, T3): one temp-dir convention (under
+  `TempWorkspace`) with bug-008; perf and fingerprint assertions prove a fresh read, not cached
+  data; the package smoke (`test:smoke`) as a gate at every wave. An Action of the retrospective
+  DL, not a separate DL.
+- **RT-8** — spin-off DL "hand transitions" (T4): `wingfoil-cli` W-entries for the release and bug
+  hand transitions; feedback note F-020 for WingFoil; the missing F-notes for W-22 and W-23.
+- **RT-9** — spin-off DL "tailor the inherited workflows" (T5), carried out within `wingfoil-sync`
+  (RV-10, RT-6): `release-publishing`, `release-submit` (tag name, release commit, bug check) and
+  `retrospective` (`produces`).
+- **RT-10** — v0.2 task "public-text check" (T9, dl-005 Actions): a test that fails on absolute
+  paths outside the repository in tracked text; session names stay a review-checklist item.
+- **RT-11** — v0.2 task for the spec amendments of UD-7 (spec-007 §1/§3/§6, spec-006 §1), planned
+  in `release-planning` of `minor-v0.2`.
+- **RT-12** — process rules recorded in the retrospective DL, no separate DLs: an adversarial
+  reviewer who runs the tool for security fixes; per-phase actuals in the release Execution Notes;
+  plan frontmatter `version` kept equal to the Context header; governance tasks planned at
+  `release-planning`.
