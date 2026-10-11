@@ -2,7 +2,7 @@
 id: bug-006-clone-keeps-url-credentials-in-the-clone-git-config
 type: bug
 title: "Clone keeps URL credentials in the clone git config"
-status: in-review
+status: resolved
 severity: "low"        # REQUIRED — critical | high | medium | low
 release-origin: "v0.1" # optional — release where the bug was FOUND, e.g. "v0.1"
 release: ""            # optional — fix/implementation release, stamped by release-planning/build-backlog
