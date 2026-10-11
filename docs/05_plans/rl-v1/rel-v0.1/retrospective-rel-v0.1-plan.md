@@ -3,7 +3,7 @@ id: retrospective-rel-v0.1-plan
 type: plan
 title: "Retrospective rel-v0.1"
 status: active
-version: "0.1"         # optional — plan version
+version: "0.2"         # optional — plan version
 workflow: "retrospective"
 phase: "rel-v0.1"
 scope: "rl-v1/rel-v0.1"
@@ -14,7 +14,7 @@ tmpl_version: 260703   # Orignal template version
 
 ## Context
 
-**Version:** 0.1 · **Date:** 2026-10-11 (0.1: plan created)
+**Version:** 0.2 · **Date:** 2026-10-11 (0.1: plan created; 0.2: explore — friction inventory)
 **Branch:** `main` (RT-1, as RV-1 for `release-submit` and `release-publishing`)
 **Workflows:** `sw-life-cycle` → `release-line-cycle` (`rl-v1`) phase `delivery` → `release-cycle`
 (`minor-v0.1`, v1.1) phase `retrospective` = `retrospective`
@@ -84,4 +84,117 @@ Decisions (checkpoint, the approver: "as recommended"):
 
 Steps:
 
-- Step 1: plan created (`3a9c23c` add).
+- Step 1: plan created (`3a9c23c` add, `09d3b04` submit → `active`).
+- Step 2 — explore: three read-only miners (RT-2), synthesis below. Counts are from the task,
+  bug and plan files cited; per-phase actual effort was not recorded, so no overrun is stated.
+
+### Friction inventory of `minor-v0.1`
+
+Sources: `task-NNN §…` = `docs/04_memory/v0.1/`; `bug-NNN §…` = `docs/04_memory/bugs/`; plan
+ids = `docs/05_plans/rl-v1/rel-v0.1/`; `F-NNN` = `docs/wingfoil-feedback/`; `W-NN` = directive
+`wingfoil-cli` *Known behaviours*.
+
+**T1 — Independent review is the main defect filter (positive, with a cost).**
+- At least one defect found by independent review in 23 of 25 tasks; task-022 clean PASS,
+  task-024 had only a coordinator check (`task-022`, `task-024 §review`).
+- Round 1 FAIL in 10 tasks (008, 010, 011, 012, 014, 015, 016, 020, 021, 025); 8 tasks needed 3
+  or more rounds (006, 008, 010, 011, 012, 014, 015, 021) (task Execution Notes §review).
+- task-021: three consecutive FAILs, each on a new clone-URL credential bypass; lesson: a
+  security fix needs an adversarial reviewer who runs git itself (`dev-loop-rel-v0.1-plan`
+  Session 5 Lessons; `task-021 §review rounds 1-4`).
+- Outside tasks: the backlog audit FAILED with 5 major (`release-planning-rel-v0.1-plan`
+  Session 4); the submit plan cited non-existent `.wingfoil/scripts/` paths, caught only by
+  review (`release-submit-rel-v0.1-plan` Session 1 step 4); task-025 review found a React
+  development bundle in the tarball (`NODE_ENV=test` reaching `prepack`, `task-025 §review round 1`).
+- 5 of 8 bugs came from reviews or release validation, not from tests: bug-002, 003, 006, 007, 008
+  (each `§Evidence`).
+
+**T2 — Tests that did not catch what they should.**
+- The harness hid two defects: the fixture builder stripped `GIT_*` (bug-002 §Evidence); every
+  launcher and e2e test ran from the checkout, so the packed package that could not start was
+  found only at release validation (bug-007 §Evidence). Guard added: `test/package/pack.test.ts`
+  and `npm run test:smoke`.
+- Tests written after the code in 8 tasks (001, 002, 004, 013, 017, 018, 019, 020), all
+  self-reported; review fixes were test-first (task Execution Notes §red/green/refactor).
+- Perf and fingerprint assertions passed on cached data: bug-005 (same-size rewrite in one mtime
+  tick, found post-merge in task-015); R-05.1 measured on cached data (`task-021 §review round 1`).
+- Temp folders leaked by tests and by the console: `/tmp/wfui-typedoc-*` (bug-001), e2e fixtures
+  and `wfui-no-hooks-*` (bug-008); no temp-dir convention in `test/README.md`.
+
+**T3 — Machine load.**
+- External load (40–300 on 12 cores) caused spurious failures in at least 15 tasks
+  (`task-003`…`task-021` §checks) across all five waves (`dev-loop-rel-v0.1-plan` Sessions 1–5).
+- It produced bug-001 (timing split into `test:timing`, landed only in Wave 2 with task-010),
+  bug-004 (timeouts; re-check partly below the load-15 bar, accepted at the gate) and the
+  flaky panel test run with `--retry=2` (`task-020 §integration`).
+- `test:timing` skipped for load in 5 tasks and at e2e-smoke (16.6) and submit (18); first green
+  release-level run at the tag step (load 1.6–5.8) (`release-publishing-rel-v0.1-plan` Session 1).
+- Concurrent suites race on `web/dist`; leaked e2e consoles outlived worktrees until a reaper was
+  added (`dev-loop-rel-v0.1-plan` Session 3).
+
+**T4 — Hand transitions and CLI workarounds.**
+- No verb: task `backlog → in-progress`, `approved → done` (W-20); plan `active → done` (W-04);
+  release `planning → in-development → releasing → released` (`df09286`, `677efa7`, `0f54194`);
+  approve-release (OK in chat, RS-6); bug `triaged → planned`, `planned → in-progress`,
+  `resolved → closed` (bug-001 … 007 §Triage & Execution Notes).
+- Release and bug hand transitions have no W-entry; `df09286` cites W-04, which is about plans
+  (`release-publishing-rel-v0.1-plan` Inputs).
+- 19 feedback notes, all `open`, inbox "Last sync: none" (`docs/wingfoil-feedback/README.md`);
+  about ten shaped daily work (F-003, 004, 010–016, 018, 019). W-22 and W-23 have no F-note.
+
+**T5 — Workflows inherited from WingFoil, not tailored.**
+- dl-001 Actions planned adapting the copied workflows before the first release-cycle;
+  `release-publishing` was still unadapted (dl-004 Context).
+- Absent artefacts cited: `.github/workflows/publish.yml`, adr-011, spec-015, dl-087, dl-024
+  (`release-publishing.yaml`); `wingfoil-released`, `check:lockfile`, `check:mcp`
+  (`release-planning-rel-v0.1-plan` Session 1, rewritten to v1.4).
+- Convention mismatches: tag `{release.version}` = `v0.1` vs `v0.1.0` (RV-7); release commit in
+  `submit` vs `tag` (RS-3); bug check `bugs where tags=[…]` vs bugs without `tags`
+  (`release-submit-rel-v0.1-plan` review round 1); `docs/examples/` N/A (UD-5); `produces`
+  `retro-{release.version}.md` vs the DL id pattern (RT-3); `e2e-smoke.yaml` rewritten for a web
+  dashboard (`e2e-smoke-rel-v0.1-plan` Context).
+- Repository checkers had to follow: `check_releases.py` accepted only `draft`; `check_tasks.py`
+  extended for `GOV` tasks (`1d55674`).
+
+**T6 — Specs amended while coding.**
+- Spec gaps or amendments in at least 9 tasks (003, 004, 005, 006, 008, 009, 011, 012, 021);
+  user decisions W3-1 … 47, W4-1 … 22 (`dev-loop-rel-v0.1-plan` Sessions 2–4). Positive: gaps
+  fed back to the specs with dated Process Notes, not left in code.
+- Still open: spec-007 §1/§3/§6 and spec-006 §1 differ from the code (UD-7); spec-002 §4
+  incremental parse deferred (CHANGELOG); spec-007 §7 Windows manual check.
+
+**T7 — Agents and coordination.**
+- At least 14 agent stops (usage limits, rate limits, network, reboot, session end) across Waves
+  2–5, all resumed from commits with no recorded loss (`dev-loop-rel-v0.1-plan` Sessions 2–5).
+- The rules file in `/tmp` was lost on a reboot, moved to a git-ignored `.notes/` (RV-9); an agent
+  acted on its own recommendations before the user answered → rule "when told to wait, wait"
+  (`dev-loop-rel-v0.1-plan` Session 3).
+- Merge collisions between parallel tasks: 004, 006 (async `cliBuildFor` broke task-011's test,
+  `6f9802e`), 008, 011 (task Execution Notes). Positive: explicit hand-overs and the
+  "depends_on acknowledged" step caught inherited conventions in 002, 003, 005, 010, 021.
+
+**T8 — Planning and scope.**
+- Budget raised from 6 to 9 active days at the load decision; calendar 2026-10-02 → 2026-10-11;
+  validation, submit and publishing all on 2026-10-11 (`release-planning-rel-v0.1-plan` Session 2;
+  `minor-v0.1` Execution Notes). No per-phase actuals recorded.
+- Four governance tasks (022–025) added outside the backlog; tasks 21 → 25 (`minor-v0.1`
+  Implementation; ES-5). Backlog and module counts in a commit message were wrong until the audit
+  (`release-planning-rel-v0.1-plan` Session 4 A7).
+- Bug fixes absorbed into later tasks tie them to a later wave (bug-001 fixed in Wave 2, bug-005
+  open from Wave 4 to the end) (bug Execution Notes).
+
+**T9 — Public repository hygiene.**
+- A local path outside the repository and internal session names reached committed text; found
+  after the tag by a cross-project request, fixed by dl-005; history and tag `v0.1.0` keep the old
+  text (dl-005 Context, Rationale). dl-005 Actions: consider a lint or review check.
+- Plan frontmatter `version` drifted from the Context header (`dev-loop-rel-v0.1-plan`: 0.7 vs
+  0.8).
+
+**T10 — What went well.**
+- Final gates: `test:coverage` 1949 passed (96.67 % statements), e2e 129/129, smoke 4/4,
+  `test:timing` green at the tag (`release-submit-rel-v0.1-plan`, `release-publishing-rel-v0.1-plan`).
+- bug-001 … 007 closed before release; bug-004 closed by a measured load experiment; eight
+  limitations documented in `CHANGELOG.md`.
+- Repository checkers negative-tested on injected defects; red-first commits cited in 10 tasks.
+- Process lessons turned into rules (load threshold, wait-at-checkpoint, phase-boundary rule for
+  cross-project requests).
