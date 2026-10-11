@@ -14,8 +14,8 @@ tmpl_version: 260703   # Orignal template version
 
 ## Context
 
-**Version:** 0.3 · **Date:** 2026-10-11 (0.1: plan created; 0.2: review round 1 fixes — check script paths, bug-008 reading;
-0.3: Session 1 log — review, pre-release-checks)
+**Version:** 0.4 · **Date:** 2026-10-11 (0.1: plan created; 0.2: review round 1 fixes — check script paths, bug-008 reading;
+0.3: Session 1 log — review, pre-release-checks; 0.4: approval, finalized)
 **Branch:** `main` (RV-1: `submit` and `publishing` work on `main`, no design branch)
 **Workflows:** `sw-life-cycle` → `release-line-cycle` (`rl-v1`) phase `delivery` → `release-cycle`
 (`minor-v0.1`, v1.1) phase `submit` = `release-submit` (`.wingfoil/workflows/custom/release-submit.yaml`
@@ -131,3 +131,10 @@ rebuild `web/dist`).
     branches 90.97 %, functions 97.22 %, lines 98.33 %.
   - After `ac3b5b5` only docs/governance files changed (`git diff --name-only ac3b5b5 HEAD`:
     dl-004, `minor-v0.1.md`, this plan, `docs/user-guide.md`); `prettier --check` on them ✓.
+- **Step 6 — enter-releasing:** `677efa7` `wf(release): minor-v0.1 [in-development → releasing]`
+  (hand transition); dl-004 submitted (`8a7d9ce` → `in-discussion`). Pushed.
+- **Step 7 — approve-release:** the approver, in chat on 2026-10-11: "approvo la release v0.1,
+  dl-004 approvato, procedi" — release `minor-v0.1` approved for publishing on `677efa7`
+  (pre-release-checks on `ac3b5b5`); dl-004 approved by the approver (`f830064`, `in-discussion →
+  ready`).
+- **Step 8:** plan finalized (separate commit). Next: `release-publishing-rel-v0.1-plan`.
