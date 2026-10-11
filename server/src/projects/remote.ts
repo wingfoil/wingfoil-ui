@@ -113,7 +113,7 @@ const CREDENTIAL_SCHEMES = new Set(['http', 'https', 'ftp', 'ftps']);
  * ftp(s) URL — a password, or a token in the user's place (`https://<token>@github.com/…`). Git
  * would keep it in the clone's `.git/config` and show it in the process list. An SSH login
  * (`ssh://git@host/…`, the scp-like `git@host:…`) holds no secret and stays allowed. The authority
- * is read by {@link SCHEME_AUTHORITY} (any slashes or backslashes after the scheme, up to `/`, `?`,
+ * is read by one normalisation (any slashes or backslashes after the scheme, up to `/`, `?`,
  * `#` or `\\`): an `@` in the path, query or fragment is not userinfo. git's
  * `<transport>::<address>` form is judged on its address (`https::https://alex:pw@host/r.git`).
  */
