@@ -14,7 +14,7 @@ tmpl_version: 260703   # Orignal template version
 
 ## Context
 
-**Version:** 0.1 · **Date:** 2026-10-11 (0.1: plan created)
+**Version:** 0.2 · **Date:** 2026-10-11 (0.1: plan created; 0.2: Session 1 — timing, tag)
 **Branch:** `main` (RV-1; the tag is created on `main`, WingFoil dl-024)
 **Workflows:** `sw-life-cycle` → `release-line-cycle` (`rl-v1`) phase `delivery` → `release-cycle`
 (`minor-v0.1`, v1.1) phase `publishing` = `release-publishing`
@@ -59,4 +59,9 @@ dl-004; release `minor-v0.1` `released`; the inputs for the retrospective.
 
 ### Session 1 — 2026-10-11
 
-- Plan created (`eb1c0a3` add).
+- Plan created (`eb1c0a3` add, `88fc010` submit → `active`).
+- **Step 1 — `test:timing`** on `f830064` (20:40–20:42, load 1.6 → 5.8; source unchanged since
+  `ac3b5b5`): **3/3 + 14/14 passed**. REQ-PERF-03 20/20 within 5 s (251–427 ms); REQ-PERF-06
+  10/10 within 3 s (217–268 ms); TT-PERF-04 p95 (warm cache, 20 runs): Memory list 97, element
+  panel 46, DNA 43, Directives 149, Team 58, Documentation 60 ms. Supersedes the skip recorded in
+  `release-submit-rel-v0.1-plan` (load 18).
