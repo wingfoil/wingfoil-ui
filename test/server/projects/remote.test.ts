@@ -79,6 +79,13 @@ describe('cloneSourceProblem', () => {
     expect(cloneSourceProblem(url, 'linux')).toBe(problem);
   });
 
+  it.each(['https\n://u:p@h/r', 'https://h/r\u0000', 'git@h:r\tx', 'a\u007fb'])(
+    'refuses control characters (%j): review round 3',
+    (url) => {
+      expect(cloneSourceProblem(url, 'linux')).toBe('url must not contain control characters');
+    },
+  );
+
   it('accepts drive-letter and UNC paths on Windows only', () => {
     for (const url of ['C:\\remotes\\kanban.git', 'C:/remotes/kanban.git', '\\\\server\\share\\kanban.git']) {
       expect(cloneSourceProblem(url, 'win32'), url).toBeUndefined();
@@ -149,6 +156,18 @@ describe('credentialsInUrl', () => {
     ['host:r.git', false],
     ['/srv/a:b@c/r.git', false],
     ['file:///srv/a:b@c:x', false],
+    // W5-19 (decided by the user 2026-10-11): any userinfo of a git:// URL.
+    ['git://alex:s3cret@host/r', true],
+    ['GIT:///alex@host/r', true],
+    ['https::git://tok@host/r', true],
+    ['git://host/r', false],
+    // Review round 3: a percent-encoded `:` is a password (git decodes the userinfo).
+    ['ssh://u%3Ap@h/r', true],
+    ['ssh://u%3ap@h/r', true],
+    ['ssh://u%zz@h/r', false],
+    // Review round 3: a password shape before the first `/` of a scp-like address.
+    ['alex:s3cret@host/p:x', true],
+    ['alex:p@ss@host:r', true],
   ])('%s → %s', (url, expected) => {
     expect(credentialsInUrl(url)).toBe(expected);
   });

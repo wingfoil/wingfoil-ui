@@ -116,7 +116,7 @@ export function stripUserinfo(remote: string): string {
   const match = URL_FORM.exec(trimmed);
   if (!match) {
     // The scp-like `user:password@host:path` keeps its login, never its password (W5-18).
-    const scp = /^([^@/:]+):[^@/]*@([^/:]+:.*)$/s.exec(trimmed);
+    const scp = /^([^@/:]+):[^/]*@([^/@:]+:.*)$/s.exec(trimmed);
     return scp ? `${scp[1]!}@${scp[2]!}` : trimmed;
   }
   if (!trimmed.includes('@')) return trimmed;

@@ -76,6 +76,9 @@ export function repoName(url: string): string | undefined {
 export function cloneSourceProblem(url: string, platform: NodeJS.Platform = process.platform): string | undefined {
   const trimmed = url.trim();
   if (trimmed.startsWith('-')) return 'url must not start with -';
+  // A control character makes git read the string in an unforeseen way (review round 3).
+  // eslint-disable-next-line no-control-regex -- control characters are what is refused
+  if (/[\u0000-\u001f\u007f]/.test(trimmed)) return 'url must not contain control characters';
   if (URL_FORM.test(trimmed)) return undefined;
   const { host, path } = split(trimmed);
   // Drive letters and UNC paths are absolute on Windows only.
@@ -108,7 +111,7 @@ const SCHEME_AUTHORITY = /^([A-Za-z][A-Za-z0-9+.-]*):[/\\]*([^/?#\\]*)/;
 const SSH_SCHEMES = new Set(['ssh', 'git+ssh', 'ssh+git']);
 
 /** The URL schemes whose userinfo git keeps in the clone's `remote.origin.url` as a credential. */
-const CREDENTIAL_SCHEMES = new Set(['http', 'https', 'ftp', 'ftps']);
+const CREDENTIAL_SCHEMES = new Set(['http', 'https', 'ftp', 'ftps', 'git']);
 
 /**
  * Whether `url` carries credentials that `POST /api/projects/clone` refuses (spec-006 §3
@@ -128,14 +131,22 @@ export function credentialsInUrl(url: string): boolean {
   const scheme = match?.[1]!.toLowerCase();
   if (scheme !== undefined && CREDENTIAL_SCHEMES.has(scheme)) return match![2]!.includes('@');
   if (scheme !== undefined && SSH_SCHEMES.has(scheme)) return hasPassword(match![2]!);
-  // The scp-like form `user[:password]@host:path` (W5-18): the part before the first `/`.
-  const head = /^[^/\\]*/.exec(address)![0];
-  const at = head.lastIndexOf('@');
-  return at > 0 && head.slice(at + 1).includes(':') && hasPassword(head);
+  // The scp-like form `user[:password]@host:path` (W5-18): a password shape in the part before
+  // the first `/` (review round 3: also when the host's `:` comes after it).
+  return hasPassword(/^[^/\\]*/.exec(address)![0]);
 }
 
-/** Whether the userinfo of `authority` (up to its last `@`) holds a password (a `:`). */
+/** Whether the userinfo of `authority` (up to its last `@`) holds a password (a `:`, also encoded). */
 function hasPassword(authority: string): boolean {
   const at = authority.lastIndexOf('@');
-  return at >= 0 && authority.slice(0, at).includes(':');
+  if (at < 0) return false;
+  const userinfo = authority.slice(0, at);
+  // git percent-decodes the userinfo: `u%3Ap` is user `u`, password `p` (review round 3).
+  let decoded = userinfo;
+  try {
+    decoded = decodeURIComponent(userinfo);
+  } catch {
+    // Not valid percent-encoding: judged as written.
+  }
+  return userinfo.includes(':') || decoded.includes(':');
 }

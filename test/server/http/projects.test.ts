@@ -639,6 +639,8 @@ describe('POST /api/projects/clone (S-04, S-05.2, S-06, S-07)', () => {
     // W5-18 (decided by the user 2026-10-11): a password in an ssh:// URL or a scp-like address.
     ['an ssh password', (host: string, secret: string) => `ssh://alex:${secret}@${host}/kanban.git`],
     ['a scp-like password', (_host: string, secret: string) => `alex:${secret}@git.invalid:acme/kanban.git`],
+    // W5-19 (decided by the user 2026-10-11): any userinfo of a git:// URL.
+    ['a git:// userinfo', (host: string, secret: string) => `git://alex:${secret}@${host}/kanban.git`],
   ])(
     'bug-006 refuses a clone URL holding %s: credentials-in-url, nothing run or written (REQ-SEC-09)',
     async (_name, urlOf) => {
@@ -662,6 +664,16 @@ describe('POST /api/projects/clone (S-04, S-05.2, S-06, S-07)', () => {
     },
     60_000,
   );
+
+  it('refuses a clone URL with a control character: invalid-request, nothing run (review round 3)', async () => {
+    const w = await world();
+    const spawned = runner.spawned.length;
+    const res = await post(w, '/api/projects/clone', { url: 'https\n://alex:pw@git.invalid/r.git', directory: '~/x' });
+    expect(res.statusCode).toBe(400);
+    expect((res.json() as { error: { code: string } }).error.code).toBe('invalid-request');
+    expect(res.body).not.toContain('alex:pw');
+    expect(runner.spawned.slice(spawned)).toEqual([]);
+  });
 
   it('bug-006 refuses credentials before any other check: an existing folder is not reported', async () => {
     const w = await world();
