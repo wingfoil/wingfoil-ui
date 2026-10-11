@@ -54,10 +54,10 @@ phase plans. The feedback inbox README also cites notes in a short form that dif
 - Replace the internal session names, and descriptions of the coordinating session, in the
   `rel-v0.1` plans and the Memory elements with neutral wording; drop the folder names of another
   local project from bug-001, task-004 and task-005 (tech-lead, now). Check, on `main` after the
-  change: `git grep -n -I -iE '<the private folder name>|proposals/|~/Workspaces|session "|
-  sessione|coordinating|local_[0-9a-f]{8}|<the session nicknames>|<another project's worktree
-  folder>' -- . ':!export*'` → no hit (the patterns are written here in placeholder form so this
-  record does not repeat them).
+  change: a case-insensitive `git grep` of the tracked tree (excluding `export*` and this
+  decision-log) for the private path and its segments, quoted session titles, session ids, the
+  session nicknames, "coordinating" and the other project's worktree folder → no hit, 2026-10-11.
+  The patterns are not written here, so this record does not repeat them.
 - Align the citation form in `docs/wingfoil-feedback/README.md` (tech-lead, now).
 - Retrospective of `minor-v0.1`: consider a check (lint or review rule) for local paths and
   session names in committed text (approver).

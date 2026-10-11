@@ -23,9 +23,9 @@ Record the WingFoil source key of this repository's feedback inbox. WingFoil (wi
 registered the inbox as service **`svc-019`**
 (`svc-019-github-repository-wingfoil-ui-a-private-consumer-project-and-its-feedback-inbox`, status
 `active`, approval pushed on WingFoil `origin/main` `30b268a3`, WingFoil task-269). Until now
-`docs/wingfoil-feedback/README.md` says "**Source key:** to be set". Requested in a
-cross-project request (item "task 001"), to be done at a wave boundary
-(approver ruling of 2026-10-10): end of Wave 5 of minor-v0.1, after task-021. Governance task:
+`docs/wingfoil-feedback/README.md` says "**Source key:** to be set". A cross-project
+request (item "task 001") asked for it, to be done at a wave boundary (approver ruling of
+2026-10-10): end of Wave 5 of minor-v0.1, after task-021. Governance task:
 `module: governance`, `ref: GOV` (no backlog item; accepted by `check_tasks.py`), as task-022/023.
 
 **Backlog items:** GOV (governance — no backlog item)
