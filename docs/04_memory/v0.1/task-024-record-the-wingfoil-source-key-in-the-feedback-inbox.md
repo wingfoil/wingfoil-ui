@@ -2,7 +2,7 @@
 id: task-024-record-the-wingfoil-source-key-in-the-feedback-inbox
 type: task
 title: "Record the WingFoil source key in the feedback inbox"
-status: in-review
+status: approved
 release: "v0.1"
 module: "governance"   # optional — server | web | contracts (dna.yaml modules)
 priority: "low"        # optional — high | medium | low
