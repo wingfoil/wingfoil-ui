@@ -47,3 +47,13 @@ coordinating the WingFoil ecosystem (cross-project item "task 001"), to be done 
 
 ## Execution Notes
 
+### red / green / refactor (2026-10-11)
+- `docs/wingfoil-feedback/README.md`: "**Source key:** to be set" → `svc-019`, the full service id
+  and "active since WingFoil `30b268a3`"; citation form kept, with the example
+  `svc-019/F-001@<sha>` (commit e6b022c). Nothing else in the inbox changed. The `wingfoil-cli`
+  directive (1.6) needs no change: it cites `<service id>/F-<nnn>@<sha>` and points to the README.
+
+### review (2026-10-11)
+- Coordinator check (one-paragraph doc edit, no code): `prettier --check` on the README clean;
+  `test/wingfoil-feedback.test.ts` 7/7; `check_tasks.py` OK. No independent review agent for a
+  one-paragraph edit of a value given by WingFoil (same as the M2 governance tasks' scale).
