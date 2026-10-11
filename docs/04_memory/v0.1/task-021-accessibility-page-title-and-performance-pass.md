@@ -454,4 +454,17 @@ above.
   - **R2-3 (minor)**: after a key, only the words of short data strings (≤ 200 characters) count
     as argument values; a document or element body no longer makes any word acceptable.
     Self-test line: `error.folderNotFound the`.
-- Round-1 finding F3 (a password in ssh/scp userinfo) is still pending the user's decision.
+- **W5-18** (decided by the user 2026-10-11, option (a); round-1 finding F3): `credentials-in-url`
+  also refuses an `ssh://` (`git+ssh://`, `ssh+git://`) URL or a scp-like address
+  (`user:pass@host:path`) whose userinfo holds a `:`. Plain logins (`git@host:…`,
+  `ssh://user@host/…`) stay allowed. The check runs after the same normalisation (prefixes
+  stripped, address trimmed, slashes skipped). `stripUserinfo` drops a scp-like password and keeps
+  the login.
+  - Rows (red first): `ssh://alex:s3cret@h/r`, `SSH://a:b@h/r`, `git+ssh://a:b@h/r`,
+    `ssh:///a:b@h/r`, `https::ssh://a:b@h/r`, `alex:s3cret@host:r.git`, `alex:@host:r` (an empty
+    password); allowed: `git@host:r`, `ssh://git@h/r`, `ssh://h/r`, `host:r.git`, a local path or
+    `file://` URL holding `a:b@`.
+  - API rows: an ssh password and a scp-like password → 422 with no process and no secret.
+  - Store row: the scp-like password is removed.
+  - spec-006 §3 (the `::` form, any slashes, ssh/scp passwords) is amended by the coordinator on
+    `main`.
