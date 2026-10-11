@@ -27,9 +27,9 @@ git-ignored for other local notes. The one-file-per-note format is task-023.
 
 It applies **WingFoil dl-163** ("Consumer projects' feedback sources and the feedback loop",
 `ready`, ratified 2026-10-07) **strictly, with no local extension** (approver ruling R9), as relayed by
-the session coordinating the loop (step M2, 2026-10-09). Background: proposal
-`~/Workspaces/WingFoil2-Market/proposals/2026-10-07-wingfoil-feedback-loop/README.md` (where it differs
-from dl-163, its table "WingFoil dl-163 supersedes…" wins). Reference implementation: WingFoil-Templates
+a cross-project request (step M2, 2026-10-09). Public sources: WingFoil dl-163 and WingFoil
+`COLLABORATION.md` `## Credit` (`wingfoil/wingfoil`, `origin/main`); citation revised 2026-10-11
+(dl-005). Reference implementation: WingFoil-Templates
 at `53090c2` (task-009, task-010). Governance task between Wave 3 and Wave 4: `module: governance`,
 `ref: GOV` (no backlog item; accepted by `check_tasks.py`).
 

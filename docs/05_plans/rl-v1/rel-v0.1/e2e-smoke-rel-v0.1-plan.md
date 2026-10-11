@@ -14,7 +14,7 @@ tmpl_version: 260703   # Orignal template version
 
 ## Context
 
-**Version:** 0.2 · **Date:** 2026-10-11 (0.1: plan created; 0.2: Session 1 log — task-025, smoke run, bug-004 re-check, bugs closed)
+**Version:** 0.3 · **Date:** 2026-10-11 (0.1: plan created; 0.2: Session 1 log — task-025, smoke run, bug-004 re-check, bugs closed; 0.3: dl-005 neutral wording)
 **Branch:** `design/e2e-smoke_v0.1` (merged to `main` with `--no-ff` at the end, on the approver's OK)
 **Workflows:** `sw-life-cycle` → `release-line-cycle` (`rl-v1`) phase `delivery` → `release-cycle`
 (`minor-v0.1`, v1.1) phase `e2e-smoke` = `e2e-smoke` (`.wingfoil/workflows/custom/e2e-smoke.yaml`
@@ -25,8 +25,8 @@ agent and runs the independent reviews (no approval authority)
 **Input:** release `docs/04_memory/planning/v1/minor-v0.1.md` (`in-development`, success criteria);
 `user-docs-rel-v0.1-plan` (`done`, merge `3a74e9c`; decisions RV-1…RV-10); `test/README.md` v0.23;
 bugs bug-004, bug-005, bug-006 (`resolved`)
-**Evidence:** `test:timing` green on `946ca4b` (user-docs plan, Session 1); handoff of session "WFUI
-v0.1 - 9. implementation W5"
+**Evidence:** `test:timing` green on `946ca4b` (user-docs plan, Session 1); the handoff of the
+previous session (end of Wave 5)
 
 Why now: `user-docs` is done; `release-cycle` v1.1 runs `e2e-smoke` before `submit`. The gate is
 **staged**: warn on failure until it runs green for a release, then hard-reject.

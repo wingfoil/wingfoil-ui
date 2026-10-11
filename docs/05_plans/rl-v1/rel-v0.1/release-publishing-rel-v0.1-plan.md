@@ -14,8 +14,8 @@ tmpl_version: 260703   # Orignal template version
 
 ## Context
 
-**Version:** 0.4 · **Date:** 2026-10-11 (0.1: plan created; 0.2: Session 1 — timing, tag; 0.3: tag pushed,
-released, retrospective inputs; 0.4: review nits)
+**Version:** 0.5 · **Date:** 2026-10-11 (0.1: plan created; 0.2: Session 1 — timing, tag; 0.3: tag pushed,
+released, retrospective inputs; 0.4: review nits; 0.5: dl-005 neutral wording)
 **Branch:** `main` (RV-1; the tag is created on `main`, WingFoil dl-024)
 **Workflows:** `sw-life-cycle` → `release-line-cycle` (`rl-v1`) phase `delivery` → `release-cycle`
 (`minor-v0.1`, v1.1) phase `publishing` = `release-publishing`
@@ -50,7 +50,7 @@ dl-004; release `minor-v0.1` `released`; the inputs for the retrospective.
 
 ## Handoff
 
-- **Approver:** the tag push (step 3); WFCoord told about the tag only with the approver's OK
+- **Approver:** the tag push (step 3); the cross-project requester told about the tag only with the approver's OK
   (RS-8); the plan finalization.
 - **Agent:** timing retry, tag, hand transition, Execution Notes, Session log, commits, push.
 - **Completion:** tag `v0.1.0` on `origin`, release `minor-v0.1` `released`, plan `done`. Next:
@@ -72,9 +72,9 @@ dl-004; release `minor-v0.1` `released`; the inputs for the retrospective.
   = dl-004, `minor-v0.1.md`, the two `release-*` plans, `docs/user-guide.md` (no source, test or
   package file). `git tag -a v0.1.0 -m "WingFoil UI v0.1.0 — Read-only console"` on `545d56c`
   (tag object `8a6e859`).
-- **Step 3 — tag push:** the approver's OK in chat ("ok push del tag, avvisa WFCoord, procedi");
-  `git push origin v0.1.0` → `refs/tags/v0.1.0` on `origin` (`git ls-remote`). WFCoord informed
-  (session message, informational).
+- **Step 3 — tag push:** the approver's OK in chat (push the tag, inform the cross-project requester, proceed);
+  `git push origin v0.1.0` → `refs/tags/v0.1.0` on `origin` (`git ls-remote`). The cross-project
+  requester informed (informational message).
 - **Step 4 — publish:** skipped by dl-004 (`ready`, `f830064`): no `publish.yml` run, no npm stage
   or approval, post-check not applicable; no GitHub Release (RS-7).
 - **Step 5 — mark-released:** `0f54194` `wf(release): minor-v0.1 [releasing → released]` (hand

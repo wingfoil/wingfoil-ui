@@ -19,8 +19,11 @@ repository pulls the answer at its own sync.
 
 **Source key:** `svc-019` — WingFoil service
 `svc-019-github-repository-wingfoil-ui-a-private-consumer-project-and-its-feedback-inbox`, registered
-as a feedback source by WingFoil task-269, active since WingFoil `30b268a3`. WingFoil cites a note as
-`<source key>/F-<nnn>@<sha>`, e.g. `svc-019/F-001@<sha>`.
+as a feedback source by WingFoil task-269, active since WingFoil `30b268a3`. WingFoil cites a note in
+`reported_by:` as `<service id>/F-<nnn>@<sha>` — the full service id and the full sha of the commit
+read (WingFoil `COLLABORATION.md` `## Credit`), e.g.
+`svc-019-github-repository-wingfoil-ui-a-private-consumer-project-and-its-feedback-inbox/F-001@<full sha>`;
+`svc-019` is the short key.
 
 **Last sync:** none.
 

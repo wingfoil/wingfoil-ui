@@ -14,8 +14,8 @@ tmpl_version: 260703   # Orignal template version
 
 ## Context
 
-**Version:** 0.4 · **Date:** 2026-10-11 (0.1: plan created; 0.2: review round 1 fixes — check script paths, bug-008 reading;
-0.3: Session 1 log — review, pre-release-checks; 0.4: approval, finalized)
+**Version:** 0.5 · **Date:** 2026-10-11 (0.1: plan created; 0.2: review round 1 fixes — check script paths, bug-008 reading;
+0.3: Session 1 log — review, pre-release-checks; 0.4: approval, finalized; 0.5: dl-005 neutral wording)
 **Branch:** `main` (RV-1: `submit` and `publishing` work on `main`, no design branch)
 **Workflows:** `sw-life-cycle` → `release-line-cycle` (`rl-v1`) phase `delivery` → `release-cycle`
 (`minor-v0.1`, v1.1) phase `submit` = `release-submit` (`.wingfoil/workflows/custom/release-submit.yaml`
@@ -27,7 +27,7 @@ the hand transition, and runs the independent review (no approval authority)
 `dev-loop-rel-v0.1-plan` (`done`, `946ca4b`); `user-docs-rel-v0.1-plan` (`done`, merge `3a74e9c`,
 decisions RV-1…RV-10, UD-1…UD-10); `e2e-smoke-rel-v0.1-plan` (`done`, merge `a33fca7`, decisions
 ES-1…ES-17, first green run of the staged gate on `0d719fe`)
-**Evidence:** handoff of session "WFUI v0.1 - 10. user-docs+e2e-smoke" (2026-10-11)
+**Evidence:** the previous session's handoff (end of user-docs and e2e-smoke, 2026-10-11)
 
 Why now: `implementation`, `user-docs` and `e2e-smoke` are done and merged; `release-cycle` v1.1
 runs `submit` next, then `publishing` (plan `release-publishing-rel-v0.1-plan`), then
@@ -79,7 +79,7 @@ rebuild `web/dist`).
 - RS-7 (for `publishing`) dl-004 records the skipped npm step (RV-8); tag `v0.1.0` annotated on
   `main` HEAD at the tag step, after checking that only governance/docs files changed since the
   gated release commit; push of the tag on a separate OK; no GitHub Release; mark-released by hand.
-- RS-8 Retrospective inputs in the publishing plan's Session log; WFCoord told about the tag only
+- RS-8 Retrospective inputs in the publishing plan's Session log; the cross-project requester told about the tag only
   after its push and with the approver's OK; merged local `design/*` branches and `/tmp/wfui-*`
   left in place (retrospective).
 

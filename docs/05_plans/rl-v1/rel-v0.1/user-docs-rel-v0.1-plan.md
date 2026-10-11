@@ -14,7 +14,7 @@ tmpl_version: 260703   # Orignal template version
 
 ## Context
 
-**Version:** 0.2 · **Date:** 2026-10-11 (0.1: plan created; 0.2: Session 1 log)
+**Version:** 0.3 · **Date:** 2026-10-11 (0.1: plan created; 0.2: Session 1 log; 0.3: dl-005 neutral wording)
 **Branch:** `design/user-docs_v0.1` (merged to `main` with `--no-ff` at the end, on the approver's OK)
 **Workflows:** `sw-life-cycle` → `release-line-cycle` (`rl-v1`) phase `delivery` → `release-cycle`
 (`minor-v0.1`, `.wingfoil/workflows/custom/release-cycle.yaml` v1.1) phase `user-docs` =
@@ -27,7 +27,7 @@ documents and runs the independent reviews (no approval authority)
 `docs/04_memory/v0.1/task-001` … `task-024` (`done`); plan `dev-loop-rel-v0.1-plan` (`done`,
 v0.7 — Session 1–5 logs: decisions, accepted deviations, deferrals); tech-specs `spec-001` …
 `spec-009`; ADRs `adr-001`, `adr-002`; `README.md`; `BOOTSTRAP.md`
-**Evidence:** handoff of session "WFUI v0.1 - 9. implementation W5" (2026-10-11); directives
+**Evidence:** the previous session's handoff (end of Wave 5, 2026-10-11); directives
 `wingfoil-cli` v1.6, `cli-only-writes`, `claim-evidence`
 
 Why now: the implementation phase is complete (every v0.1 task `done`, `dev-loop-rel-v0.1-plan`
@@ -93,7 +93,7 @@ Release-validation decisions (apply to this and the following phases):
   GitHub Release only on the approver's explicit OK.
 - RV-9 The agents' rules file (`dev-rules.md`) moves to `.notes/` (git-ignored), so it survives
   reboots.
-- RV-10 Messages from other sessions (WFCoord, "Meccanismo feedback wingfoil") wait for a phase
+- RV-10 Cross-project requests relayed from other sessions wait for a phase
   boundary and the approver's OK. `wingfoil-sync` and the alignment of `.wingfoil/` with the
   WingFoil-Templates base pack happen after the v0.1 retrospective, outside this cycle.
 

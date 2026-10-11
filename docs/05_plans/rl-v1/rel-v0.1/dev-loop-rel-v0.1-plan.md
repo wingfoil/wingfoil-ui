@@ -14,7 +14,7 @@ tmpl_version: 260703   # Orignal template version
 
 ## Context
 
-**Version:** 0.7 · **Date:** 2026-10-11 (0.1: plan created, Wave 1 scope; 0.2: Wave 1 session log; 0.3: Wave 2 session log; 0.4: Wave 3 session log; 0.5: between-waves feedback-loop tasks 022, 023; 0.6: Wave 4 session log; 0.7: Wave 5 session log, governance task 024)
+**Version:** 0.8 · **Date:** 2026-10-11 (0.1: plan created, Wave 1 scope; 0.2: Wave 1 session log; 0.3: Wave 2 session log; 0.4: Wave 3 session log; 0.5: between-waves feedback-loop tasks 022, 023; 0.6: Wave 4 session log; 0.7: Wave 5 session log, governance task 024; 0.8: dl-005 neutral wording)
 **Workflows:** `sw-life-cycle` → `release-line-cycle` (`rl-v1`) phase `delivery` → `release-cycle`
 (`minor-v0.1`) phase `implementation` = `dev-loop` iterated over every task with status `backlog`
 and tag `v0.1` (`.wingfoil/workflows/custom/release-cycle.yaml` v1.1, `dev-loop.yaml` v1.4)
@@ -290,12 +290,12 @@ Per task (`dev-loop` v1.4):
   `error.unreachable` (014); every new e2e spec declares `prebuild` and uses `expectFirstLoad`;
   Playwright test timeout 180 s.
 - **Next:** Wave 4 — 015, 014, 016. Not started: the user asked to apply the WingFoil feedback
-  mechanism (session "Meccanismo feedback wingfoil", changes M2) between waves first.
+  mechanism (a cross-project request, changes M2) between waves first.
 
 #### Session 3 addendum — between Wave 3 and Wave 4: WingFoil feedback loop (2026-10-09)
 
 - **Request:** step M2 of the WingFoil feedback loop (WingFoil dl-163 applied strictly, approver ruling
-  R9), relayed by the session "Meccanismo feedback wingfoil" and confirmed by the approver; applied
+  R9), relayed by a cross-project request and confirmed by the approver; applied
   between waves, one task per change.
 - **Tasks** (`docs/04_memory/v0.1/`, `module: governance`, `ref: GOV`, tags `v0.1`, `governance`,
   `feedback-loop`; `check_tasks.py` accepts a governance task only as that pair with `**Backlog
@@ -437,11 +437,10 @@ Per task (`dev-loop` v1.4):
   `902fc8e`); the review found the bypasses `https::https://u:p@…`, `https:///u:p@…`, `git://u:p@…`
   and ssh/scp passwords, all refused now. bug-004 stays `resolved`; bug-004/005/006 to be closed at
   release validation (user's choice).
-- **Governance task-024** (between waves, requested by the WingFoil coordination session
-  "WFCoord", cross-project item "task 001"): source key `svc-019` (WingFoil task-269, active since
+- **Governance task-024** (between waves, a cross-project request, item "task 001"): source key `svc-019` (WingFoil task-269, active since
   WingFoil `30b268a3`) recorded in `docs/wingfoil-feedback/README.md` (`e6b022c`); `add` →
   `pending` → approved → `in-progress` → `in-review` → approved → done (`7f921c8`), pushed;
-  WFCoord told task id, commit and push state.
+  the requester told task id, commit and push state.
 - **Facts learned:** curl accepts 1–3 slashes after the scheme and git's `<transport>::<address>`
   form passes the address to the remote helper — a URL check must normalise as git does, not
   enumerate cases; git's `git://` error echoes a userinfo verbatim ("unable to look up
@@ -460,7 +459,7 @@ Per task (`dev-loop` v1.4):
   **125/125** · `check_tasks.py` OK (load up to 21) · `test:timing` re-run on `main` after task-024 (`7f921c8`, load 6.9 → 8.3): 3 Vitest + 14
   Playwright green, TT-PERF-04 p95 Memory list 180 ms, element panel 63, DNA 47, Directives 50,
   Team 55, Documentation 60 (budget 1 000 ms).
-- **Other sessions:** WFCoord (task-024 above).
+- **Cross-project requests:** task-024 above.
 - **Next:** finalize this plan (W-04, user's OK given); then the `release-cycle` continues with
   release validation in a new session: re-check bug-004 under load, `test:timing` at low load, the
   `accessibility` e2e smoke; close bug-004/005/006 there.
