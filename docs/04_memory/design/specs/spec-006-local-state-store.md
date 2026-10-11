@@ -125,7 +125,7 @@ list is notified by the `projects` event (spec-004 §6).
 | `state-dir-inside-project` | `{ path, stateDir }` | §1 (no scenario) |
 | `directory-inside-project` | `{ path }` — the clone target lies inside a listed project | (no scenario) |
 | `inside-state-dir` | `{ path }` — the clone target lies inside the state directory | §1 (no scenario) |
-| `credentials-in-url` | — : the clone URL carries credentials: an http(s), ftp(s) or `git://` URL with any userinfo (a user name, a token or a password), or an `ssh://` URL or scp-like address whose userinfo holds a password (`user:pass@`). The address is judged as git uses it: every leading `<transport>::` prefix removed, leading whitespace trimmed, any number of `/` or `\` after `<scheme>:`. Checked right after the source validation, before any file-system, state or git work; nothing is cloned and the URL is never written to a command line, a file, the state or a log (REQ-SEC-09, bug-006). A plain login — `ssh://user@host/…`, scp-like `user@host:…` — is allowed | (no scenario) |
+| `credentials-in-url` | — : the clone URL carries credentials: an http(s), ftp(s) or `git://` URL with any userinfo (a user name, a token or a password), or an `ssh://` URL or scp-like address whose userinfo holds a password (`user:pass@`, a percent-encoded `:` included). A clone URL holding a control character (U+0000–U+001F, U+007F) is a malformed source: 400 `invalid-request` (spec-004 §5), nothing run, the URL not echoed. The address is judged as git uses it: every leading `<transport>::` prefix removed, leading whitespace trimmed, any number of `/` or `\` after `<scheme>:`. Checked right after the source validation, before any file-system, state or git work; nothing is cloned and the URL is never written to a command line, a file, the state or a log (REQ-SEC-09, bug-006). A plain login — `ssh://user@host/…`, scp-like `user@host:…` — is allowed | (no scenario) |
 | `git-refused` | — (`message` = git's message verbatim, spec-004 §5): a failed clone, or a folder with `.wingfoil/` that is not a git repository | S-07.1, S-07.3 |
 
 ### 4. Reads and writes
@@ -216,3 +216,5 @@ a project (REQ-SEC-09). The secret scan of REQ-SEC-09 runs over the state direct
 - 2026-10-11 — amended in dev-loop task-021 (Wave 5, independent review round 3): §3
   `credentials-in-url` also refuses any userinfo in a `git://` URL — the git protocol has no
   authentication and git's error would echo the password (W5-19); decided by the user.
+  Same round: a percent-encoded `:` counts as a password; a control character in a clone URL
+  is a malformed source (400 `invalid-request`).
