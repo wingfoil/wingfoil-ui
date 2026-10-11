@@ -3,7 +3,7 @@ id: user-docs-rel-v0.1-plan
 type: plan
 title: "User docs rel-v0.1"
 status: active
-version: "0.1"         # optional — plan version
+version: "0.2"         # optional — plan version
 workflow: "user-docs"
 phase: "rel-v0.1"
 scope: "rl-v1/rel-v0.1"
@@ -14,7 +14,7 @@ tmpl_version: 260703   # Orignal template version
 
 ## Context
 
-**Version:** 0.1 · **Date:** 2026-10-11 (0.1: plan created)
+**Version:** 0.2 · **Date:** 2026-10-11 (0.1: plan created; 0.2: Session 1 log)
 **Branch:** `design/user-docs_v0.1` (merged to `main` with `--no-ff` at the end, on the approver's OK)
 **Workflows:** `sw-life-cycle` → `release-line-cycle` (`rl-v1`) phase `delivery` → `release-cycle`
 (`minor-v0.1`, `.wingfoil/workflows/custom/release-cycle.yaml` v1.1) phase `user-docs` =
@@ -112,4 +112,56 @@ Release-validation decisions (apply to this and the following phases):
 ### Session 1 — 2026-10-11
 
 - Plan created (`6eb4189`); preconditions checked on `946ca4b` (see Context).
-- `test:timing` launched in background on `main` `946ca4b` (RV-6).
+- `test:timing` on `main` `946ca4b` (RV-6), 14:18–14:23, load 8.4 → 10.1 (12 cores): **green**,
+  3 Vitest + 14 Playwright. REQ-PERF-03 20/20 within 5 s (503–1227 ms); REQ-PERF-06 10/10 within
+  3 s (600–1130 ms); TypeDoc build 9488 ms; TT-PERF-04 p95 (budget 1000 ms): Memory list 121,
+  element panel 64, DNA 58, Directives 51, Team 79, Documentation 77 ms; `@live-refresh`
+  recoveries 644–1443 ms (budget 5000 ms). This is the release-validation timing evidence.
+- RV-9 applied: `dev-rules.md` copied to `.notes/dev-rules.md` (git-ignored).
+- **check-implementation-complete:** 24/24 tasks `done`; `check_tasks.py` OK; CLI `0.2.2`.
+- **align-user-docs / align-agent-docs:** drafts by a developer agent from code, specs, tests,
+  task notes and the dev-loop plan (`fc8de8e`): `README.md` (updated, 134 lines),
+  `docs/user-guide.md` (331), `docs/cli-reference.md` (148), `CHANGELOG.md` (95, `[0.1.0]` date
+  TBD until publishing), `CLAUDE.md` (63), `.wingfoil/README.md` (146, tables generated from
+  `memory.yaml`, `workflows.yaml`, `roles.yaml`). Prettier does not cover these files
+  (`.prettierignore`: `*.md`, `docs/`, `.wingfoil/`); `directives list` → `warnings: []` with
+  `.wingfoil/README.md` in place; `test/contracts/capabilities.test.ts` (README support section)
+  passes.
+- **Independent review** (fresh-context, read-only, adversarial; ran the launcher with every usage
+  error, an HTTP probe, a scripted link check and a YAML-parsed dl-025 check):
+  - Round 1 — FAIL: 0 blocker, 0 major, 4 minor (scp-like limit wording, header R9 trigger,
+    "every string from the catalogue" vs the React Aria "Dismiss" exception, CHANGELOG bug-006
+    claim vs the unknown-scheme limit), 7 nits (`Sec-Fetch-Site` on API requests only, the two
+    token lines, `startMs`, token-draw ordering, CLAUDE.md wording, "Nothing leaves your
+    machine", the 64-session cap). All fixed (`301c912`).
+  - Round 2 — **PASS**; two nits: line wrap (fixed, `0220d4e`) and document versions (decision 9).
+- **Spec vs code** (the docs follow the code): `--port=<n>` accepted, a repeated `--port` keeps the
+  last; `--help`/`--version` win only when the whole line parses (`--help --bogus` → exit 2);
+  "other" exit status = 70; relative `WINGFOIL_UI_STATE_DIR` resolved against the current
+  directory and `APPDATA` fallback `<home>\AppData\Roaming` (spec-006 §1); Node.js checked before
+  parsing; usage error = reason line + usage line (spec-007 §1, §3, §6). The spec-007 §7 manual
+  Windows check (`#token` through `rundll32`) is still open (task-002/004 notes).
+- **Decisions** (approver, 2026-10-11: "ok a tutto" = all as recommended):
+  - UD-1 CHANGELOG links point to github.com/wingfoil/wingfoil-ui (compare, tag `v0.1.0`).
+  - UD-2 README install steps keep `git checkout v0.1.0` (true from publishing, RV-7).
+  - UD-3 README status "v0.1 — Read-only console"; CLAUDE.md says release validation is under way
+    and is updated at submit/publishing.
+  - UD-4 Known limitations: seven items in the user guide and the CHANGELOG, including React
+    Aria's "Dismiss" (W5-1, spec-008 §6).
+  - UD-5 `docs/examples/` does not apply to a web dashboard: accepted deviation from
+    `user-docs.yaml` `align-user-docs` produces, recorded here only (RV-2).
+  - UD-6 CLAUDE.md references `.wingfoil/README.md` for the dl-025 tables instead of copying them.
+  - UD-7 The spec-vs-code differences above are fixed in spec-007 §1/§3/§6 and spec-006 §1 by a
+    governance task after v0.1 (input of the retrospective).
+  - UD-8 `bin/wingfoil-ui.cjs` is mode 100644: the docs use `node bin/…`; the executable bit is
+    examined by the packaged-launch smoke (task-025, RV-3).
+  - UD-9 Review-round fixes before the merge are part of draft 0.1 of each document; no version
+    bump.
+  - UD-10 `dev-loop-rel-v0.1-plan` (`done`) line 426 words the scp-like limit ambiguously; it is
+    left unchanged — the correct wording: only an `@` in the path after the host's `:` with no
+    `/` (e.g. `git@host:repo@v2.git`) is refused; `git@github.com:repo.git` is accepted.
+- **Gates:** `align-user-docs` and `align-agent-docs` approved by the approver (2026-10-11).
+- **Next:** `e2e-smoke` (plan `e2e-smoke-rel-v0.1-plan`, branch `design/e2e-smoke_v0.1`): task-025
+  (packaged-launch smoke, `wingfoil init` fixtures), bug-004 re-check under load (RV-4), closing
+  bug-004/005/006 (RV-5). Pending Memory tasks outside this phase: the spec-amendment governance
+  task (UD-7, after v0.1).
