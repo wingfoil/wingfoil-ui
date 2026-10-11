@@ -432,3 +432,26 @@ above.
       | Directives | 40 ms | 41 ms | 163 ms |
       | Team | 42 ms | 45 ms | 198 ms |
       | Documentation | 50 ms | 56 ms | 40 ms |
+
+### review round 2 (2026-10-11)
+
+- Re-review: the round-1 fixes were confirmed; **FAIL** on new findings. Fixed:
+  - **R2-1 (blocker)** (`9c780e2`): `https:///alex:pw@host/r.git` passed the check. curl accepts
+    1–3 slashes and still uses the userinfo. The check is now one normalisation instead of a list
+    of cases:
+    1. `transportAddress` strips every `<transport>::` prefix and trims each address.
+    2. `SCHEME_AUTHORITY` reads the scheme, skips every `/` or `\` after its `:`, and takes the
+       authority up to `/`, `?`, `#` or `\`.
+    3. An `@` in that authority of an http(s)/ftp(s) address is refused.
+    - Table-driven `remote.test.ts` rows (red first): `https:///u:p@h/r`, `https:/u:p@h/r`,
+      `https:u:p@h/r`, `HTTPS:///tok@h/r`, backslash variants, `https:: https://…` with a space or
+      a tab, chained prefixes, and the negatives (no userinfo, an `@` after a backslash or in the
+      query).
+    - API row: `http:///alex:<secret>@…` → 422 with no process and no secret.
+    - `stripUserinfo` also accepts whitespace after `::`.
+  - **R2-2 (minor)**: the malformed forms git rejects are covered by the same normalisation (rows
+    above).
+  - **R2-3 (minor)**: after a key, only the words of short data strings (≤ 200 characters) count
+    as argument values; a document or element body no longer makes any word acceptable.
+    Self-test line: `error.folderNotFound the`.
+- Round-1 finding F3 (a password in ssh/scp userinfo) is still pending the user's decision.
