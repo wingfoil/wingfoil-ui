@@ -149,6 +149,9 @@ describe.each([fileAdapter, memoryAdapter])('StateStore ($name)', (adapter) => {
     // The scp-like form names a login, never a password: kept as the user typed it.
     const d = await store.add({ ...CUSTOM, path: '/p/d', remote: 'git@github.com:acme/d.git' });
     expect(d.remote).toBe('git@github.com:acme/d.git');
+    // git's `<transport>::<address>` form: the address loses its userinfo too (bug-006 review).
+    const e = await store.add({ ...CUSTOM, path: '/p/e', remote: 'https::https://alex:s3cr3t@example.test/e.git' });
+    expect(e.remote).toBe('https::https://example.test/e.git');
     expect(JSON.stringify(store.snapshot())).not.toContain('s3cr3t');
   });
 

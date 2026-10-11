@@ -84,6 +84,16 @@ export function cloneSourceProblem(url: string, platform: NodeJS.Platform = proc
   return undefined;
 }
 
+/** git's `<transport>::<address>` prefix (`https::https://…`): git uses the address after it. */
+const TRANSPORT_PREFIX = /^[A-Za-z][A-Za-z0-9+.-]*::/;
+
+/** `url` without any `<transport>::` prefixes: the address git hands to the transport. */
+export function transportAddress(url: string): string {
+  let address = url.trim();
+  while (TRANSPORT_PREFIX.test(address)) address = address.replace(TRANSPORT_PREFIX, '');
+  return address;
+}
+
 /** The URL schemes whose userinfo git keeps in the clone's `remote.origin.url` as a credential. */
 const CREDENTIAL_SCHEMES = new Set(['http', 'https', 'ftp', 'ftps']);
 
@@ -93,10 +103,11 @@ const CREDENTIAL_SCHEMES = new Set(['http', 'https', 'ftp', 'ftps']);
  * ftp(s) URL — a password, or a token in the user's place (`https://<token>@github.com/…`). Git
  * would keep it in the clone's `.git/config` and show it in the process list. An SSH login
  * (`ssh://git@host/…`, the scp-like `git@host:…`) holds no secret and stays allowed. The authority
- * ends at the first `/`, `?` or `#`: an `@` in the path, query or fragment is not userinfo.
+ * ends at the first `/`, `?` or `#`: an `@` in the path, query or fragment is not userinfo. git's
+ * `<transport>::<address>` form is judged on its address (`https::https://alex:pw@host/r.git`).
  */
 export function credentialsInUrl(url: string): boolean {
-  const match = URL_FORM.exec(url.trim());
+  const match = URL_FORM.exec(transportAddress(url));
   if (!match || !CREDENTIAL_SCHEMES.has(match[1]!.toLowerCase())) return false;
   const authority = /^[^/?#]*/.exec(match[2]!)![0];
   return authority.includes('@');

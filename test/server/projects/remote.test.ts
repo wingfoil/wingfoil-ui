@@ -112,6 +112,13 @@ describe('credentialsInUrl', () => {
     ['file:///srv/remotes/kanban.git', false],
     ['/srv/user@host/kanban.git', false],
     ['  https://alex:x@host/r.git  ', true],
+    // git's `<transport>::<address>` form: the address is the URL git uses (review round 1).
+    ['https::https://alex:s3cret@host/r.git', true],
+    ['http::http://alex:s3cret@127.0.0.1:8080/r.git', true],
+    ['HTTPS::https://token@host/r.git', true],
+    ['https::https::https://alex:x@host/r.git', true],
+    ['https::https://host/r.git', false],
+    ['ext::ssh -o x=a@b host', false],
   ])('%s → %s', (url, expected) => {
     expect(credentialsInUrl(url)).toBe(expected);
   });

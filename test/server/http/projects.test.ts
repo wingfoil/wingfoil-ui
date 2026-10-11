@@ -615,11 +615,25 @@ describe('POST /api/projects/clone (S-04, S-05.2, S-06, S-07)', () => {
     expect(await list(w)).toEqual([]);
   }, 60_000);
 
+  it('S-06.2 refuses the same http remote written differently (scheme and host case, trailing /) before cloning', async () => {
+    const w = await world();
+    await git(w.fx.remoteDir, ['update-server-info'], w.env);
+    const host = await httpRemote(path.join(w.dir, 'remotes'));
+    const res = await clone(w, { url: `http://${host}/kanban.git`, directory: '~/projects/kanban' });
+    expect(res.statusCode, res.body).toBe(201);
+    expect((res.json() as { remote: string }).remote).toBe(`http://${host}/kanban.git`);
+    const spawned = runner.spawned.length;
+    await refusal(await clone(w, { url: `HTTP://${host.toUpperCase()}/kanban/`, directory: '~/x' }), 'already-listed');
+    expect(runner.spawned.slice(spawned).filter((r) => r.args.includes('clone'))).toEqual([]);
+  }, 60_000);
+
   // bug-006 (W5-14, W5-15, decided by the user 2026-10-10): a URL with userinfo in an http(s)/ftp(s)
   // URL is refused before anything runs, so no credential reaches a command line, a file or the state.
   it.each([
     ['a password', (host: string, secret: string) => `http://alex:${secret}@${host}/kanban.git`],
     ["a token in the user's place", (host: string, secret: string) => `http://${secret}@${host}/kanban.git`],
+    // git's `<transport>::<address>` form (review round 1): the address is judged.
+    ['the transport form', (host: string, secret: string) => `http::http://alex:${secret}@${host}/kanban.git`],
   ])(
     'bug-006 refuses a clone URL holding %s: credentials-in-url, nothing run or written (REQ-SEC-09)',
     async (_name, urlOf) => {

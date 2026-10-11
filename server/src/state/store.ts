@@ -106,9 +106,12 @@ const URL_FORM = /^([A-Za-z][A-Za-z0-9+.-]*:\/\/)(.*)$/s;
  * removed (`https://user:token@host/x.git` → `https://host/x.git`) and any other `@` is
  * percent-encoded, so no `@` is left; a URL that does not parse loses everything up to its last
  * `@`. The scp-like form `user@host:path` names a login, never a password, and is kept as written.
+ * git's `<transport>::<address>` form keeps its prefix and strips its address (bug-006 review).
  */
 export function stripUserinfo(remote: string): string {
   const trimmed = remote.trim();
+  const transport = /^((?:[A-Za-z][A-Za-z0-9+.-]*::)+)(.*)$/s.exec(trimmed);
+  if (transport) return `${transport[1]!}${stripUserinfo(transport[2]!)}`;
   const match = URL_FORM.exec(trimmed);
   if (!match || !trimmed.includes('@')) return trimmed;
   try {
