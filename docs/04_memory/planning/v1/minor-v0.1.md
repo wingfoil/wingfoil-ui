@@ -117,7 +117,8 @@ Bars common to every release (`08_mvp-canvas.md`, SARD v0.6):
   by 014's review, planned into task-021. Load up to ≈ 290 and one reboot. `main` `ca02d29`: 1837
   passed, e2e 104/104.
 - 2026-10-11 — Wave 5 (closing pass): task-021 merged (`6cad52a`, done `4d9a811`) after 4 review
-  rounds (R1 FAIL 1 blocker/1 major, R2 FAIL 1 blocker, R3 FAIL 1 minor, R4 PASS) — three rounds
+  rounds (R1 FAIL 1 blocker/1 major/4 minor/2 nits, R2 FAIL 1 blocker/2 minor, R3 FAIL 1 minor, R4
+  PASS) — three rounds
   each found a new clone-URL credential bypass. Decisions W5-1 … W5-19: W5-1 React Aria's
   "Dismiss" the one library-string exception (spec-008 §6); W5-8 no code split (entry ≈ 709 kB,
   215 kB gzip); W5-14 refusal `credentials-in-url` (spec-006 §3); W5-16 header re-read alert (R9
@@ -140,9 +141,11 @@ Bars common to every release (`08_mvp-canvas.md`, SARD v0.6):
 - 2026-10-11 — drafts (`fc8de8e`): `README.md` updated, `docs/user-guide.md`,
   `docs/cli-reference.md`, `CHANGELOG.md`, `CLAUDE.md`, `.wingfoil/README.md` (tables from
   `memory.yaml`, `workflows.yaml`, `roles.yaml`). Independent review round 1 FAIL (4 minor,
-  7 nits, fixed `301c912`), round 2 PASS (nit fixed `0220d4e`). Decisions UD-1 … UD-10; UD-5
+  7 nits, fixed `301c912`), round 2 PASS (2 nits: wrap fixed `0220d4e`,
+  document versions settled by UD-9). Decisions UD-1 … UD-10; UD-5
   `docs/examples/` N/A for a web dashboard (accepted deviation); UD-7 spec-vs-code differences of
   spec-007 §1/§3/§6 and spec-006 §1 (docs follow the code) fixed by a governance task after v0.1.
+  The spec-007 §7 manual Windows check (`#token` through `rundll32`) is still open.
   Gates approved; plan finalized `34862a3`, merged `3a74e9c`.
 
 ### E2E smoke (e2e-smoke)
@@ -155,13 +158,15 @@ Bars common to every release (`08_mvp-canvas.md`, SARD v0.6):
   cannot start, medium), absorbed into governance task-025 (accepted deviation ES-5).
 - 2026-10-11 — task-025: design decisions ES-8 … ES-17 (`files` allow-list, root runtime
   dependencies, `prepack` clean build, `test:smoke`, `scrum` fixture, no-commit check, bin mode
-  100755). Review round 1 FAIL (2 minor: React development bundle packed, stale `server/dist`;
-  3 nits), round 2 PASS. Tarball 120 files, 513 788 B packed. Merge `ad928af`, done `0d719fe`;
+  100755); AC-1 and AC-3 reworded at design by the approver (contracts JSON only; the bin's own
+  exit status). Review round 1 FAIL (2 minor: React development bundle packed, stale
+  `server/dist`; 3 nits), round 2 PASS. Tarball 120 files, 513 788 B packed. Merge `ad928af`, done `0d719fe`;
   bug-007 `resolved`. bug-008 (clone hooks temp folder left on a kill) triaged low, v0.2.
 - 2026-10-11 — smoke run on `main` `0d719fe`: `test:e2e` 129/129, local-security 136/136,
   accessibility 10/10, `test:contract` 144 passed, `test:smoke` 4/4, `test:coverage` 1949 passed;
   `test:timing` skipped (load 16.6, `946ca4b` run stands) — first green run of the staged gate
-  (ES-7). bug-004 re-check at load 13–41: two runs of coverage + e2e, no timeout. Bugs closed:
+  (ES-7). bug-004 re-check at load 13–41 (median 34; at times below
+  the RV-4/ES-6 bar of 15, accepted): two runs of coverage + e2e, no timeout. Bugs closed:
   bug-004 `a7e9c0c`, bug-005 `4f2034e`, bug-006 `facf55d`, bug-007 `cc09b60`. Plan finalized
   `6e98a9d`, merged `a33fca7`.
 

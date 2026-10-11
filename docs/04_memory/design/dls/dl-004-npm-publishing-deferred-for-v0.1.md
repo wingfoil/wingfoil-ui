@@ -16,13 +16,15 @@ tmpl_version: 260703   # Orignal template version
 WingFoil) has a `publish` step that pushes the tag so that `.github/workflows/publish.yml` runs the
 gate, a Verdaccio staging smoke and `npm stage publish` through an OIDC trusted publisher, after
 which the approver approves the staged version on npm with 2FA. WingFoil UI v0.1 has none of this:
-no `.github/` folder, no npm package name reserved, no trusted publisher, and `package.json` is
-`private: true`. The v0.1 package is correct and installable from a tarball (`npm pack`, guarded
-by `test/package/pack.test.ts` and smoke-tested by `npm run test:smoke`, task-025), but it is not
-meant to be on the registry yet.
+no `.github/` folder (`git ls-files .github` is empty), no npm package of its name
+(`https://registry.npmjs.org/wingfoil-ui` answers 404 on 2026-10-11), no trusted publisher, and
+`package.json` is `private: true`. The v0.1 package is correct and installable from a tarball
+(`npm pack`, guarded by `test/package/pack.test.ts` and smoke-tested by `npm run test:smoke`,
+task-025), but it is not meant to be on the registry yet.
 
-The approver decided at `user-docs` (RV-8, `docs/05_plans/rl-v1/rel-v0.1/user-docs-rel-v0.1-plan.md`)
-that v0.1 is published as a git tag only.
+The approver decided at `user-docs` (RV-8,
+`docs/05_plans/rl-v1/rel-v0.1/user-docs-rel-v0.1-plan.md`) that v0.1 is published as a git tag
+only.
 
 ## Decision
 

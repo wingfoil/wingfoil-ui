@@ -14,7 +14,7 @@ tmpl_version: 260703   # Orignal template version
 
 ## Context
 
-**Version:** 0.1 · **Date:** 2026-10-11 (0.1: plan created)
+**Version:** 0.2 · **Date:** 2026-10-11 (0.1: plan created; 0.2: review round 1 fixes — check script paths, bug-008 reading)
 **Branch:** `main` (RV-1: `submit` and `publishing` work on `main`, no design branch)
 **Workflows:** `sw-life-cycle` → `release-line-cycle` (`rl-v1`) phase `delivery` → `release-cycle`
 (`minor-v0.1`, v1.1) phase `submit` = `release-submit` (`.wingfoil/workflows/custom/release-submit.yaml`
@@ -44,7 +44,7 @@ on the release commit; release `minor-v0.1` `releasing`; the approver's approval
 
 | # | Step (`release-submit.yaml`) | Role | Output | Stop-check |
 |---|------------------------------|------|--------|------------|
-| 1 | This plan (`add` + `submit`) | qa | plan `active` | — |
+| 1 | This plan (`add` + `submit`) | tech-lead | plan `active` | — |
 | 2 | Execution Notes of `minor-v0.1` — "Implementation", "User docs", "E2E smoke" (what happened, not lessons) | tech-lead | `docs(release)` commit | review step 4 |
 | 3 | Release commit: version `0.1.0` in the root, `contracts`, `server`, `web` `package.json` and `package-lock.json` (`private: true` unchanged, RV-8); CHANGELOG `[0.1.0]` date; bug-008 in the known limitations of the user guide and the CHANGELOG (UD-4); `CLAUDE.md` project status (UD-3); Version/Date headers | tech-lead | `chore(release): v0.1.0` commit | review step 4 |
 | 4 | Independent fresh-context read-only review of steps 2–3, repeated until PASS | reviewer | review report | PASS (nothing above nit) |
@@ -57,8 +57,8 @@ on the release commit; release `minor-v0.1` `releasing`; the approver's approval
 
 | Check (`release-submit.yaml`) | How |
 |-------------------------------|-----|
-| all tasks tagged `v0.1` `done` | `python3 .wingfoil/scripts/check_tasks.py` + status of task-001…025 |
-| all bugs tagged `v0.1` `resolved`/`closed` | status of bug-001…007 (bug-008 is tagged `v0.2`) + `check_releases.py` |
+| all tasks tagged `v0.1` `done` | `python3 docs/03_backlog/X_tools/check_tasks.py` + status of task-001…025 |
+| all bugs tagged `v0.1` `resolved`/`closed` | bugs carry no `tags`: read as the bugs with `release`/`release-origin` v0.1 — bug-001…007 `closed`; bug-008 (origin v0.1) re-planned to `release: v0.2` at triage, an accepted known limitation (UD-4) · `python3 docs/03_backlog/X_tools/check_releases.py` |
 | `tests.passing` | `typecheck`, `lint`, `format:check`, `test:e2e`, `test:smoke` (prints `0.1.0`), `test:contract`, local-security, accessibility, `docs:api`; `test:timing` only if the 1-minute load is below 12, else recorded as skipped (the run on `946ca4b` stands) |
 | `tests.coverage(min: 80)` | `npm run test:coverage` |
 
@@ -68,7 +68,7 @@ rebuild `web/dist`).
 ### Decisions taken at the start (2026-10-11, approver: "tutto come consigliato")
 
 - RS-1 Two plans, one per phase: this one and `release-publishing-rel-v0.1-plan`.
-- RS-2 Work on `main` (RV-1); dl-024's "release branch merged to main" is met trivially.
+- RS-2 Work on `main` (RV-1); WingFoil dl-024's "release branch merged to main" is met trivially.
 - RS-3 Commit order: plan → Execution Notes → release commit → review → pre-release-checks →
   `releasing` → approval → finalize; push after each state commit.
 - RS-4 The CHANGELOG `[0.1.0]` date is the tag date (2026-10-11 if tagged today).
