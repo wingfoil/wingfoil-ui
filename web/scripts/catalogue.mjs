@@ -85,6 +85,24 @@ export function keyCatalogue(catalogue) {
   return keys;
 }
 
+/**
+ * `html` (`index.html`) with its static `<title>` set to the catalogue's `title.app` (W5-2): the tab
+ * title before the application sets one, from the catalogue like every UI string (the key build:
+ * the key).
+ * @param {string} html
+ * @param {Record<string, string>} catalogue
+ * @returns {string}
+ */
+export function withAppTitle(html, catalogue) {
+  const title = /<title>[^<]*<\/title>/;
+  if (!title.test(html)) throw new Error('index.html has no <title> element');
+  const text = String(catalogue['title.app'] ?? '')
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;');
+  return html.replace(title, `<title>${text}</title>`);
+}
+
 /** @param {string} dir @returns {Promise<string[]>} */
 async function sourceFiles(dir) {
   const entries = await readdir(dir, { recursive: true, withFileTypes: true });

@@ -16,8 +16,7 @@ import { directivesQuery, projectHeaderQuery } from '../api/queries.js';
 import { queryKeys } from '../api/query-keys.js';
 import { DirectiveList } from '../directives/DirectiveList.js';
 import { directivesSearch, SHOW_ALL } from '../directives/model.js';
-import { TITLES, usePageTitle } from '../shell/page-title.js';
-import { useProjectName } from './dna.js';
+import { useProjectTitle } from '../shell/page-title.js';
 import { NAV_ORDER } from './nav.js';
 import { projectRoute } from './project.js';
 
@@ -52,7 +51,7 @@ function DirectiveListPage(): ReactNode {
   const { show } = directiveListRoute.useSearch();
   const navigate = directiveListRoute.useNavigate();
   const intl = useIntl();
-  usePageTitle(TITLES.projectView, { project: useProjectName(pid), view: intl.formatMessage(DIRECTIVES_LABELS.nav) });
+  useProjectTitle(pid, intl.formatMessage(DIRECTIVES_LABELS.nav));
   return (
     <DirectiveList
       pid={pid}

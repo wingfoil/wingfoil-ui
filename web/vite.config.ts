@@ -1,14 +1,15 @@
 /**
  * Vite build of the browser application (adr-002), served by the local server from `web/dist`.
  * `--mode keys` builds the key-rendering variant into `web/dist-keys` (spec-008 §6): the catalogue
- * `src/i18n/en.json` is replaced by its key catalogue at load time.
+ * `src/i18n/en.json` is replaced by its key catalogue at load time. In both, the static `<title>` of
+ * `index.html` is the catalogue's `title.app`.
  */
 import react from '@vitejs/plugin-react';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { defineConfig, type Plugin } from 'vite';
-import { CATALOGUE_FILE, keyCatalogue } from './scripts/catalogue.mjs';
+import { CATALOGUE_FILE, keyCatalogue, withAppTitle } from './scripts/catalogue.mjs';
 
 const WEB = path.dirname(fileURLToPath(import.meta.url));
 
@@ -25,10 +26,21 @@ function keyRendering(): Plugin {
   };
 }
 
+/** Writes the catalogue's `title.app` into the static `<title>` of `index.html` (W5-2). */
+function appTitle(keys: boolean): Plugin {
+  return {
+    name: 'wfui-app-title',
+    async transformIndexHtml(html) {
+      const catalogue = JSON.parse(await readFile(CATALOGUE_FILE, 'utf8')) as Record<string, string>;
+      return withAppTitle(html, keys ? keyCatalogue(catalogue) : catalogue);
+    },
+  };
+}
+
 export default defineConfig(({ mode }) => ({
   root: WEB,
   base: '/',
-  plugins: [react(), ...(mode === 'keys' ? [keyRendering()] : [])],
+  plugins: [react(), appTitle(mode === 'keys'), ...(mode === 'keys' ? [keyRendering()] : [])],
   build: {
     outDir: path.join(WEB, mode === 'keys' ? 'dist-keys' : 'dist'),
     emptyOutDir: true,

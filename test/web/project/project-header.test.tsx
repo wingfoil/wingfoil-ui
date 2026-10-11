@@ -370,3 +370,45 @@ it('does not carry a refusal to another project, and clears it on the next heade
   await waitFor(() => expect(screen.getByRole('button', { name: 'Projects: p_b' })).toBeTruthy());
   await waitFor(() => expect(within(strip()).queryByRole('alert')).toBeNull());
 });
+
+it('keeps one live region for the notices across a project switch, so the new notices are announced (W5-13)', async () => {
+  const { reads } = stubTwo({ p_a: () => morgan(), p_b: () => ({ ...riley() }) });
+  const { router } = renderApp('/p/p_a/dna');
+  await waitFor(() => expect(reads('p_a')).toBe(1));
+  const region = await waitFor(() => {
+    const r = strip().querySelector('[aria-live="polite"]');
+    expect(r).not.toBeNull();
+    return r!;
+  });
+  expect(region.textContent).toBe('');
+  await router.navigate({ to: '/p/$pid/dna', params: { pid: 'p_b' } });
+  await waitFor(() => expect(region.textContent).toContain('Read-only: riley@example.test is not in the team'));
+  // The very element that was in the page before the switch: a screen reader announces the insertion.
+  expect(strip().querySelector('[aria-live="polite"]')).toBe(region);
+  expect(region.isConnected).toBe(true);
+});
+
+it('shows a failed re-read above the header it keeps, until the next read succeeds (W5-16)', async () => {
+  let fail = false;
+  const { json } = stubTwo({ p_a: () => morgan(), p_b: () => morgan() });
+  const base = globalThis.fetch;
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async (url: string, init?: RequestInit) =>
+      fail && url === '/api/p/p_a' ? json(500, { error: { code: 'internal', message: 'x' } }) : base(url, init),
+    ),
+  );
+  const { queryClient } = renderApp('/p/p_a/dna');
+  await within(await screen.findByRole('region', { name: 'Project header' })).findByText(/^WingFoil 0\.2\.2/);
+  expect(within(strip()).queryByRole('alert')).toBeNull();
+  fail = true;
+  await queryClient.invalidateQueries({ queryKey: ['p', 'p_a', 'header'] });
+  const alert = await within(strip()).findByRole('alert');
+  expect(alert.textContent).toBe('Something went wrong in the console: see its log in the terminal');
+  // The cached header stays: version line and current user.
+  expect(within(strip()).getByText(/^WingFoil 0\.2\.2/)).toBeTruthy();
+  expect(screen.getByRole('group', { name: /^Current user:/ })).toBeTruthy();
+  fail = false;
+  await queryClient.invalidateQueries({ queryKey: ['p', 'p_a', 'header'] });
+  await waitFor(() => expect(within(strip()).queryByRole('alert')).toBeNull());
+});

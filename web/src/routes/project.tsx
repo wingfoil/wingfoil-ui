@@ -52,8 +52,9 @@ function ProjectLayout(): ReactNode {
     <>
       <ProjectNav pid={pid} groups={groups} />
       <main id="main" className="shell-main" tabIndex={-1}>
-        {/* Keyed: nothing of one project's header (a pending or refused role view) reaches another (R1). */}
-        <ProjectHeader key={pid} pid={pid} />
+        {/* Not keyed: its notices live region survives a project switch (W5-13); the header keys its
+            role view part, so nothing of one project's role view reaches another (task-016 R1). */}
+        <ProjectHeader pid={pid} />
         <Outlet />
       </main>
     </>

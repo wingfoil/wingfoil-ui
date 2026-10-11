@@ -277,3 +277,28 @@ it('shows a refusal without waiting for the list read it starts (review R2)', as
   expect(reads).toBe(2);
   expect(result.current.list.isFetching).toBe(true);
 });
+
+it('useRemoveProject shows a refusal without waiting for the list read it starts (W5-17)', async () => {
+  let reads = 0;
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async (url: string, init?: RequestInit) => {
+      if (url === '/api/projects' && (init?.method ?? 'GET') === 'GET') {
+        reads += 1;
+        // The first read answers; the one started by the refusal never does.
+        if (reads > 1) return new Promise<Response>(() => {});
+        return new Response(JSON.stringify(LIST), { status: 200 });
+      }
+      return new Response(JSON.stringify({ error: { code: 'internal', message: 'x' } }), { status: 500 });
+    }),
+  );
+  const client = createQueryClient();
+  const { result } = renderHook(() => ({ list: useQuery(projectsQuery()), remove: useRemoveProject() }), {
+    wrapper: wrapperOf(client),
+  });
+  await waitFor(() => expect(result.current.list.data?.projects).toHaveLength(2));
+  act(() => result.current.remove.mutate('p_a'));
+  await waitFor(() => expect(result.current.remove.error?.code).toBe('internal'));
+  expect(reads).toBe(2);
+  expect(result.current.list.isFetching).toBe(true);
+});

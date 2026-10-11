@@ -3,7 +3,13 @@
 // removed, then host + path compared whatever the scheme. And the default working directory of a
 // clone (`ux-reference` §3: `~/projects/<repo>`).
 import { describe, expect, it } from 'vitest';
-import { cloneSourceProblem, normaliseRemote, repoName, sameRemote } from '../../../server/src/projects/remote.js';
+import {
+  cloneSourceProblem,
+  credentialsInUrl,
+  normaliseRemote,
+  repoName,
+  sameRemote,
+} from '../../../server/src/projects/remote.js';
 
 describe('normaliseRemote', () => {
   it.each([
@@ -73,10 +79,96 @@ describe('cloneSourceProblem', () => {
     expect(cloneSourceProblem(url, 'linux')).toBe(problem);
   });
 
+  it.each(['https\n://u:p@h/r', 'https://h/r\u0000', 'git@h:r\tx', 'a\u007fb'])(
+    'refuses control characters (%j): review round 3',
+    (url) => {
+      expect(cloneSourceProblem(url, 'linux')).toBe('url must not contain control characters');
+    },
+  );
+
   it('accepts drive-letter and UNC paths on Windows only', () => {
     for (const url of ['C:\\remotes\\kanban.git', 'C:/remotes/kanban.git', '\\\\server\\share\\kanban.git']) {
       expect(cloneSourceProblem(url, 'win32'), url).toBeUndefined();
       expect(cloneSourceProblem(url, 'linux'), url).toBe('a local url must be an absolute path');
     }
+  });
+});
+
+// bug-006, W5-15 (decided by the user 2026-10-10): any userinfo of an http(s)/ftp(s) URL is a
+// credential (a password, or a token in the user's place); SSH logins stay allowed.
+describe('credentialsInUrl', () => {
+  it.each([
+    ['https://alex:s3cret@github.com/acme/kanban.git', true],
+    ['http://alex:@127.0.0.1:8080/private.git', true],
+    ['https://ghp_0123456789abcdef@github.com/acme/kanban.git', true],
+    ['https://alex@github.com/acme/kanban.git', true],
+    ['https://u:p@ss@host/r.git', true],
+    ['https://alex%3As3cret@host/r.git', true],
+    ['HTTPS://alex:x@HOST/r.git', true],
+    ['ftp://alex:x@host/r.git', true],
+    ['ftps://alex@host/r.git', true],
+    ['https://alex:x@host', true],
+    ['https://github.com/acme/kanban.git', false],
+    ['https://host/r.git?x=a@b', false],
+    ['https://host?x=a@b', false],
+    ['https://host#a@b', false],
+    ['https://host/a@b/r.git', false],
+    ['ssh://git@github.com/acme/kanban.git', false],
+    ['git@github.com:acme/kanban.git', false],
+    ['git://host/r.git', false],
+    ['file:///srv/remotes/kanban.git', false],
+    ['/srv/user@host/kanban.git', false],
+    ['  https://alex:x@host/r.git  ', true],
+    // git's `<transport>::<address>` form: the address is the URL git uses (review round 1).
+    ['https::https://alex:s3cret@host/r.git', true],
+    ['http::http://alex:s3cret@127.0.0.1:8080/r.git', true],
+    ['HTTPS::https://token@host/r.git', true],
+    ['https::https::https://alex:x@host/r.git', true],
+    ['https::https://host/r.git', false],
+    ['ext::ssh -o x=a@b host', false],
+    // Review round 2: one normalisation — prefixes stripped, whitespace trimmed, any slashes or
+    // backslashes after the scheme skipped, the authority up to / ? # or \.
+    ['https:///u:p@h/r', true],
+    ['https:/u:p@h/r', true],
+    ['https:u:p@h/r', true],
+    ['HTTPS:///tok@h/r', true],
+    ['https:\\\\u:p@h\\r', true],
+    ['https:/\\/u:p@h/r', true],
+    ['https:: https://alex:s3cret@h/x', true],
+    ['https::\thttps://alex:s3cret@h/x', true],
+    ['  https:: http::  https:///alex@h/x', true],
+    ['https:/alex:s3cret@h/x', true],
+    ['https:///h/r.git', false],
+    ['https:\\\\h\\r@x', false],
+    ['https://h/r?u=a@b', false],
+    // W5-18 (decided by the user 2026-10-11): a password in an ssh:// URL or a scp-like address.
+    ['ssh://alex:s3cret@h/r', true],
+    ['SSH://a:b@h/r', true],
+    ['git+ssh://a:b@h/r', true],
+    ['ssh:///a:b@h/r', true],
+    ['https::ssh://a:b@h/r', true],
+    ['alex:s3cret@host:r.git', true],
+    ['alex:@host:r', true],
+    ['  alex:s3cret@host:owner/r.git', true],
+    ['git@host:r', false],
+    ['ssh://git@h/r', false],
+    ['ssh://h/r', false],
+    ['host:r.git', false],
+    ['/srv/a:b@c/r.git', false],
+    ['file:///srv/a:b@c:x', false],
+    // W5-19 (decided by the user 2026-10-11): any userinfo of a git:// URL.
+    ['git://alex:s3cret@host/r', true],
+    ['GIT:///alex@host/r', true],
+    ['https::git://tok@host/r', true],
+    ['git://host/r', false],
+    // Review round 3: a percent-encoded `:` is a password (git decodes the userinfo).
+    ['ssh://u%3Ap@h/r', true],
+    ['ssh://u%3ap@h/r', true],
+    ['ssh://u%zz@h/r', false],
+    // Review round 3: a password shape before the first `/` of a scp-like address.
+    ['alex:s3cret@host/p:x', true],
+    ['alex:p@ss@host:r', true],
+  ])('%s → %s', (url, expected) => {
+    expect(credentialsInUrl(url)).toBe(expected);
   });
 });

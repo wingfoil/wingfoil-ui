@@ -24,10 +24,13 @@ export interface AppIntlProviderProps {
   children: ReactNode;
 }
 
-/** Provides the catalogue to the application (locale `en`). */
+/** The locale of the catalogue, also given to React Aria for its own strings (W5-1). */
+export const CATALOGUE_LOCALE = 'en';
+
+/** Provides the catalogue to the application (locale {@link CATALOGUE_LOCALE}). */
 export function AppIntlProvider({ messages = MESSAGES, children }: AppIntlProviderProps): ReactNode {
   return (
-    <IntlProvider locale="en" defaultLocale="en" messages={messages}>
+    <IntlProvider locale={CATALOGUE_LOCALE} defaultLocale={CATALOGUE_LOCALE} messages={messages}>
       {children}
     </IntlProvider>
   );

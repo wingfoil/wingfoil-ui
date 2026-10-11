@@ -7,7 +7,8 @@
 // - TT-INT-06 (REQ-INT-06): every git process of this file runs an allowed subcommand (afterAll).
 // - TT-ARC-03 (REQ-ARC-03): no endpoint writes an existing repository; a clone adds no commit.
 // - REQ-SEC-05 probe through the clone route (task-001 hand-over), REQ-SEC-09 secret scan after a
-//   clone with a credential URL (task-007 hand-over).
+//   refused clone with a credential URL (task-007 hand-over; bug-006: such a URL is refused, 422
+//   `credentials-in-url`, before anything runs).
 import { Ajv } from 'ajv';
 import type { FastifyInstance } from 'fastify';
 import { createHash } from 'node:crypto';
@@ -614,33 +615,79 @@ describe('POST /api/projects/clone (S-04, S-05.2, S-06, S-07)', () => {
     expect(await list(w)).toEqual([]);
   }, 60_000);
 
-  it('stores a credential URL without its userinfo; the state directory holds no secret (REQ-SEC-09)', async () => {
+  it('S-06.2 refuses the same http remote written differently (scheme and host case, trailing /) before cloning', async () => {
     const w = await world();
-    const secret = 's3cret-token-0123456789';
     await git(w.fx.remoteDir, ['update-server-info'], w.env);
-    const host = await httpRemote(path.join(w.dir, 'remotes'), { credentials: `alex:${secret}` });
-    const res = await clone(w, { url: `http://alex:${secret}@${host}/kanban.git`, directory: '~/projects/kanban' });
+    const host = await httpRemote(path.join(w.dir, 'remotes'));
+    const res = await clone(w, { url: `http://${host}/kanban.git`, directory: '~/projects/kanban' });
     expect(res.statusCode, res.body).toBe(201);
     expect((res.json() as { remote: string }).remote).toBe(`http://${host}/kanban.git`);
-    expect(await scanForSecrets([w.stateDir], [secret])).toEqual([]);
-    expect(w.logs.length).toBeGreaterThan(0);
-    expect(w.logs.join('')).not.toContain(secret);
-    // The same remote again, written differently: refused before cloning.
+    const spawned = runner.spawned.length;
     await refusal(await clone(w, { url: `HTTP://${host.toUpperCase()}/kanban/`, directory: '~/x' }), 'already-listed');
+    expect(runner.spawned.slice(spawned).filter((r) => r.args.includes('clone'))).toEqual([]);
   }, 60_000);
 
-  it('REQ-SEC-09 keeps a refused credential out of the answer and the log', async () => {
+  // bug-006 (W5-14, W5-15, decided by the user 2026-10-10): a URL with userinfo in an http(s)/ftp(s)
+  // URL is refused before anything runs, so no credential reaches a command line, a file or the state.
+  it.each([
+    ['a password', (host: string, secret: string) => `http://alex:${secret}@${host}/kanban.git`],
+    ["a token in the user's place", (host: string, secret: string) => `http://${secret}@${host}/kanban.git`],
+    // git's `<transport>::<address>` form (review round 1): the address is judged.
+    ['the transport form', (host: string, secret: string) => `http::http://alex:${secret}@${host}/kanban.git`],
+    // Review round 2: extra slashes after the scheme (curl still reads the userinfo).
+    ['three slashes', (host: string, secret: string) => `http:///alex:${secret}@${host}/kanban.git`],
+    // W5-18 (decided by the user 2026-10-11): a password in an ssh:// URL or a scp-like address.
+    ['an ssh password', (host: string, secret: string) => `ssh://alex:${secret}@${host}/kanban.git`],
+    ['a scp-like password', (_host: string, secret: string) => `alex:${secret}@git.invalid:acme/kanban.git`],
+    // W5-19 (decided by the user 2026-10-11): any userinfo of a git:// URL.
+    ['a git:// userinfo', (host: string, secret: string) => `git://alex:${secret}@${host}/kanban.git`],
+  ])(
+    'bug-006 refuses a clone URL holding %s: credentials-in-url, nothing run or written (REQ-SEC-09)',
+    async (_name, urlOf) => {
+      const w = await world();
+      const secret = 's3cret-token-0123456789';
+      await git(w.fx.remoteDir, ['update-server-info'], w.env);
+      const host = await httpRemote(path.join(w.dir, 'remotes'), { credentials: `alex:${secret}` });
+      const before = await tree(w.dir);
+      const spawned = runner.spawned.length;
+      const res = await clone(w, { url: urlOf(host, secret), directory: '~/projects/kanban' });
+      const error = await refusal(res, 'credentials-in-url');
+      expect(error.detail).toBeUndefined();
+      expect(res.body).not.toContain(secret);
+      // No git process (nor any other) started for the request: nothing on a command line.
+      expect(runner.spawned.slice(spawned)).toEqual([]);
+      expect(await tree(w.dir)).toEqual(before);
+      expect(await list(w)).toEqual([]);
+      expect(w.logs.length).toBeGreaterThan(0);
+      expect(w.logs.join('')).not.toContain(secret);
+      expect(await scanForSecrets([w.stateDir], [secret])).toEqual([]);
+    },
+    60_000,
+  );
+
+  it('refuses a clone URL with a control character: invalid-request, nothing run (review round 3)', async () => {
     const w = await world();
-    const wrong = 'wr0ng-secret-9876543210';
-    await git(w.fx.remoteDir, ['update-server-info'], w.env);
-    const host = await httpRemote(path.join(w.dir, 'remotes'), { credentials: 'alex:right' });
-    const res = await clone(w, { url: `http://alex:${wrong}@${host}/kanban.git`, directory: '~/projects/kanban' });
-    await refusal(res, 'git-refused');
-    expect(res.body).not.toContain(wrong);
-    expect(w.logs.length).toBeGreaterThan(0);
-    expect(w.logs.join('')).not.toContain(wrong);
-    expect(await scanForSecrets([w.stateDir], [wrong])).toEqual([]);
-  }, 60_000);
+    const spawned = runner.spawned.length;
+    const res = await post(w, '/api/projects/clone', { url: 'https\n://alex:pw@git.invalid/r.git', directory: '~/x' });
+    expect(res.statusCode).toBe(400);
+    expect((res.json() as { error: { code: string } }).error.code).toBe('invalid-request');
+    expect(res.body).not.toContain('alex:pw');
+    expect(runner.spawned.slice(spawned)).toEqual([]);
+  });
+
+  it('bug-006 refuses credentials before any other check: an existing folder is not reported', async () => {
+    const w = await world();
+    const res = await clone(w, { url: 'https://alex:pw@git.invalid/team/project.git', directory: w.fx.dir });
+    await refusal(res, 'credentials-in-url');
+  });
+
+  it.each(['ssh://git@git.invalid/team/project.git', 'git@git.invalid:team/project.git'])(
+    'bug-006 keeps an SSH login (%s): the next check answers, not credentials-in-url',
+    async (url) => {
+      const w = await world();
+      await refusal(await clone(w, { url, directory: w.fx.dir }), 'directory-not-empty');
+    },
+  );
 
   it.each([
     ['ext::', `ext::sh -c touch% ${PWNED_PATH}`],

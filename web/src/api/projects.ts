@@ -69,7 +69,10 @@ export function useRemoveProject(options: RemoveProjectOptions = {}) {
       await onRemoved?.(pid);
       forgetProject(queryClient, pid);
     },
-    onError: () => queryClient.invalidateQueries({ queryKey: projectsQuery().queryKey }),
+    // Not awaited: the refusal is shown at once, the list is read again meanwhile (W5-17).
+    onError: () => {
+      void queryClient.invalidateQueries({ queryKey: projectsQuery().queryKey });
+    },
   });
 }
 

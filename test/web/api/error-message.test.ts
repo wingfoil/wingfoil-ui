@@ -91,6 +91,7 @@ it('reads every spec-006 §3 code from the refusal schema', () => {
     'directory-inside-project',
     'inside-state-dir',
     'git-refused',
+    'credentials-in-url',
   ];
   expect([...SPEC_006.keys()].sort()).toEqual([...expected].sort());
 });
@@ -147,4 +148,11 @@ it('keeps the tool output of cli-refused and git-refused verbatim', () => {
 
 it('renders an unknown code as an internal error', () => {
   expect(errorMessage(new ApiError(500, 'something-new', 'x', undefined)).descriptor.id).toBe('error.internal');
+});
+
+it('renders credentials-in-url without arguments and never shows its message (bug-006)', () => {
+  const rendering = errorMessage(new ApiError(422, 'credentials-in-url', 'The URL holds credentials', undefined));
+  expect(rendering.descriptor.id).toBe('error.credentialsInUrl');
+  expect(rendering.values).toEqual({});
+  expect(rendering.verbatim).toBeUndefined();
 });

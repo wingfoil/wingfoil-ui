@@ -76,10 +76,77 @@ export function repoName(url: string): string | undefined {
 export function cloneSourceProblem(url: string, platform: NodeJS.Platform = process.platform): string | undefined {
   const trimmed = url.trim();
   if (trimmed.startsWith('-')) return 'url must not start with -';
+  // A control character makes git read the string in an unforeseen way (review round 3).
+  // eslint-disable-next-line no-control-regex -- control characters are what is refused
+  if (/[\u0000-\u001f\u007f]/.test(trimmed)) return 'url must not contain control characters';
   if (URL_FORM.test(trimmed)) return undefined;
   const { host, path } = split(trimmed);
   // Drive letters and UNC paths are absolute on Windows only.
   const absolute = platform === 'win32' ? /^(\/|[A-Za-z]:[\\/]|\\\\)/ : /^\//;
   if (host === '' && !absolute.test(path)) return 'a local url must be an absolute path';
   return undefined;
+}
+
+/** git's `<transport>::<address>` prefix (`https::https://…`): git uses the address after it. */
+const TRANSPORT_PREFIX = /^[A-Za-z][A-Za-z0-9+.-]*::/;
+
+/**
+ * `url` without any `<transport>::` prefixes, each address trimmed: the address git hands to the
+ * transport (`https:: https://…` included, review round 2).
+ */
+export function transportAddress(url: string): string {
+  let address = url.trim();
+  while (TRANSPORT_PREFIX.test(address)) address = address.replace(TRANSPORT_PREFIX, '').trimStart();
+  return address;
+}
+
+/**
+ * The scheme and the authority of an address, by one normalisation (review round 2): the scheme,
+ * then every `/` or `\` after its `:` skipped (curl accepts `https:/`, `https:///`, backslashes),
+ * then the authority up to the first `/`, `?`, `#` or `\`.
+ */
+const SCHEME_AUTHORITY = /^([A-Za-z][A-Za-z0-9+.-]*):[/\\]*([^/?#\\]*)/;
+
+/** The SSH schemes of git: a login is allowed, a password is refused (W5-18). */
+const SSH_SCHEMES = new Set(['ssh', 'git+ssh', 'ssh+git']);
+
+/** The URL schemes whose userinfo git keeps in the clone's `remote.origin.url` as a credential. */
+const CREDENTIAL_SCHEMES = new Set(['http', 'https', 'ftp', 'ftps', 'git']);
+
+/**
+ * Whether `url` carries credentials that `POST /api/projects/clone` refuses (spec-006 §3
+ * `credentials-in-url`, bug-006, decided by the user 2026-10-10): any userinfo of an http(s) or
+ * ftp(s) URL — a password, or a token in the user's place (`https://<token>@github.com/…`). Git
+ * would keep it in the clone's `.git/config` and show it in the process list. An SSH login
+ * (`ssh://git@host/…`, the scp-like `git@host:…`) holds no secret and stays allowed; a password in
+ * an `ssh://` URL or a scp-like address (`user:pass@host:path`) is refused (W5-18, decided by the
+ * user 2026-10-11). The authority
+ * is read by one normalisation (any slashes or backslashes after the scheme, up to `/`, `?`,
+ * `#` or `\\`): an `@` in the path, query or fragment is not userinfo. git's
+ * `<transport>::<address>` form is judged on its address (`https::https://alex:pw@host/r.git`).
+ */
+export function credentialsInUrl(url: string): boolean {
+  const address = transportAddress(url);
+  const match = SCHEME_AUTHORITY.exec(address);
+  const scheme = match?.[1]!.toLowerCase();
+  if (scheme !== undefined && CREDENTIAL_SCHEMES.has(scheme)) return match![2]!.includes('@');
+  if (scheme !== undefined && SSH_SCHEMES.has(scheme)) return hasPassword(match![2]!);
+  // The scp-like form `user[:password]@host:path` (W5-18): a password shape in the part before
+  // the first `/` (review round 3: also when the host's `:` comes after it).
+  return hasPassword(/^[^/\\]*/.exec(address)![0]);
+}
+
+/** Whether the userinfo of `authority` (up to its last `@`) holds a password (a `:`, also encoded). */
+function hasPassword(authority: string): boolean {
+  const at = authority.lastIndexOf('@');
+  if (at < 0) return false;
+  const userinfo = authority.slice(0, at);
+  // git percent-decodes the userinfo: `u%3Ap` is user `u`, password `p` (review round 3).
+  let decoded = userinfo;
+  try {
+    decoded = decodeURIComponent(userinfo);
+  } catch {
+    // Not valid percent-encoding: judged as written.
+  }
+  return userinfo.includes(':') || decoded.includes(':');
 }

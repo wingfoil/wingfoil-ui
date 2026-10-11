@@ -29,7 +29,8 @@ export interface ProjectListItem {
 /**
  * The `code` of a refused add or clone (422, spec-006 §3; `contracts/api/projects.refusal.schema.json`).
  * `directory-inside-project` and `inside-state-dir` refuse a clone target inside a listed project or
- * the local state directory (decided by the user 2026-10-06).
+ * the local state directory (decided by the user 2026-10-06). `credentials-in-url` refuses a clone URL
+ * with userinfo in an http(s)/ftp(s) URL (bug-006, decided by the user 2026-10-10).
  */
 export type ProjectRefusalCode =
   | 'folder-not-found'
@@ -40,7 +41,8 @@ export type ProjectRefusalCode =
   | 'inside-state-dir'
   | 'cli-not-found'
   | 'state-dir-inside-project'
-  | 'git-refused';
+  | 'git-refused'
+  | 'credentials-in-url';
 
 /** The envelope of a refused add or clone (spec-004 §5); `detail` holds the catalogue arguments. */
 export interface ProjectRefusalBody {

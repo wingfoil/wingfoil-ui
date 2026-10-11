@@ -8,9 +8,9 @@ import { useQueries, useQuery } from '@tanstack/react-query';
 import { getRouteApi, useLocation, useRouter } from '@tanstack/react-router';
 import { useCallback, useMemo, type ReactNode } from 'react';
 import { useIntl } from 'react-intl';
-import { elementsQuery, projectsQuery } from '../api/queries.js';
+import { elementsQuery } from '../api/queries.js';
 import { DOCS_LABELS, docsIndexQuery, documentContentQuery } from '../routes/docs.js';
-import { TITLES, usePageTitle } from '../shell/page-title.js';
+import { useProjectTitle } from '../shell/page-title.js';
 import { DocsIndex } from './DocsIndex.js';
 import { DocumentView, useDocumentHtml, useResolvedLinks } from './DocumentView.js';
 import type { LinkLookup, ProbeAnswer } from './links.js';
@@ -30,15 +30,10 @@ function probeAnswer(result: { data?: unknown; error: unknown }): ProbeAnswer | 
   return kind === 'missing' || kind === 'outside' ? kind : 'hidden';
 }
 
-/** The project's name for the page title (the pid until the list is loaded). */
-function useProjectName(pid: string): string {
-  return useQuery(projectsQuery()).data?.projects.find((p) => p.id === pid)?.name ?? pid;
-}
-
 export function DocsIndexPage(): ReactNode {
   const { pid } = indexApi.useParams();
   const intl = useIntl();
-  usePageTitle(TITLES.projectView, { project: useProjectName(pid), view: intl.formatMessage(DOCS_LABELS.nav) });
+  useProjectTitle(pid, intl.formatMessage(DOCS_LABELS.nav));
   return <DocsIndex pid={pid} index={useQuery(docsIndexQuery(pid))} />;
 }
 
@@ -102,7 +97,8 @@ export function DocumentPage(): ReactNode {
   const path = _splat ?? '';
   const hash = useLocation({ select: (l) => l.hash });
   const router = useRouter();
-  usePageTitle(TITLES.projectView, { project: useProjectName(pid), view: path });
+  // The document's path is the view (project data, W5-5).
+  useProjectTitle(pid, path);
   const content = useQuery(documentContentQuery(pid, path));
   const safeHtml = useDocumentHtml(content.data?.content);
   const lookup = useLinkLookup(pid, path, safeHtml);

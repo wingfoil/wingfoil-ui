@@ -33,6 +33,8 @@ const MESSAGES = defineMessages({
   'state-dir-inside-project': { id: 'error.stateDirInsideProject' },
   'directory-inside-project': { id: 'error.directoryInsideProject' },
   'inside-state-dir': { id: 'error.insideStateDir' },
+  // bug-006 (decided by the user 2026-10-10): a clone URL with credentials.
+  'credentials-in-url': { id: 'error.credentialsInUrl' },
   // Client-side: no answer at all (W3-12).
   unreachable: { id: 'error.unreachable' },
 });

@@ -56,9 +56,47 @@ export interface ProjectHeaderProps {
   pid: string;
 }
 
-/** The header of project `pid`. */
+/**
+ * The header of project `pid`. Not keyed by the project: its notices region (a polite live region)
+ * stays the same element across a project switch, so that the next project's notices are announced
+ * (W5-13). What belongs to one project only — the role view change and its refusal — is the keyed
+ * {@link ProjectRoleView}, so nothing of it reaches another project (task-016 R1). A failed read
+ * shows its error; with a header already read, above that header, kept until a read succeeds
+ * (W5-16).
+ */
 export function ProjectHeader({ pid }: ProjectHeaderProps): ReactNode {
   const intl = useIntl();
+  const header = useQuery(projectHeaderQuery(pid));
+  const data = header.data;
+  return (
+    <section className="project-header" aria-label={intl.formatMessage(MESSAGES.label)}>
+      {header.error && (
+        <div role="alert" className="warning warning-danger">
+          <ErrorText error={asApiError(header.error)} />
+        </div>
+      )}
+      {data ? (
+        <VersionLine header={data} />
+      ) : (
+        !header.error && (
+          <p role="status" className="muted">
+            <FormattedMessage id="shell.header.loading" />
+          </p>
+        )
+      )}
+      <div aria-live="polite" className="project-notices">
+        {data && readOnlyNotices(data).map((n) => <Notice key={n.kind} notice={n} />)}
+      </div>
+      <ProjectRoleView key={pid} pid={pid} />
+    </section>
+  );
+}
+
+/**
+ * The role view of project `pid` (keyed by the project in {@link ProjectHeader}): the refusal of a
+ * change, in the strip, and at the right end of the global header the selector and the current user.
+ */
+function ProjectRoleView({ pid }: ProjectHeaderProps): ReactNode {
   const header = useQuery(projectHeaderQuery(pid));
   const roleView = useSetRoleView();
   const data = header.data;
@@ -76,27 +114,11 @@ export function ProjectHeader({ pid }: ProjectHeaderProps): ReactNode {
   }, [header.dataUpdatedAt, isError, reset]);
   return (
     <>
-      <section className="project-header" aria-label={intl.formatMessage(MESSAGES.label)}>
-        {header.error && !data ? (
-          <div role="alert" className="warning warning-danger">
-            <ErrorText error={asApiError(header.error)} />
-          </div>
-        ) : data ? (
-          <VersionLine header={data} />
-        ) : (
-          <p role="status" className="muted">
-            <FormattedMessage id="shell.header.loading" />
-          </p>
-        )}
-        <div aria-live="polite" className="project-notices">
-          {data && readOnlyNotices(data).map((n) => <Notice key={n.kind} notice={n} />)}
+      {roleView.error && (
+        <div role="alert" className="warning warning-danger">
+          <ErrorText error={roleView.error} />
         </div>
-        {roleView.error && (
-          <div role="alert" className="warning warning-danger">
-            <ErrorText error={roleView.error} />
-          </div>
-        )}
-      </section>
+      )}
       {data && (
         <HeaderEnd>
           {data.roleViews.length > 1 && (
