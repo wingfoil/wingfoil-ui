@@ -43,8 +43,9 @@ The package stays `private: true` and is not published (RV-8).
 ## Acceptance Criteria
 
 - **AC-1 (bug-007, packaging)** `npm pack` produces a tarball whose file list is an explicit
-  allow-list: `bin/wingfoil-ui.cjs`, the built server, web and contracts code the runtime needs,
-  the message catalogues the bin and server read, `package.json`, `LICENSE`, `README.md`,
+  allow-list: `bin/wingfoil-ui.cjs`, the built server and web code the runtime needs plus the
+  contracts' JSON files the server reads (no contracts code: it is type-only, ES-8), the message
+  catalogues the bin and server read, `package.json`, `LICENSE`, `README.md`,
   `CHANGELOG.md`; nothing git-ignored or development-only (`export*/`, `.idea/`, `.mcp.json`,
   `test/`, `docs/`, sources not needed at runtime, `node_modules/` of the workspaces). The runtime
   dependencies are declared so that an install of the tarball resolves them, including
@@ -56,7 +57,8 @@ The package stays `private: true` and is not published (RV-8).
   temporary folder (offline-capable where possible, e.g. `--prefer-offline`), runs
   `npx wingfoil-ui --no-open` there with an isolated `WINGFOIL_UI_STATE_DIR` and home, asserts the
   URL line with the token, an authenticated `GET` of the UI and of one API route, and a clean stop
-  (SIGINT → exit 0, no process left). Also `npx wingfoil-ui --version` and `--help` exit 0.
+  (the bin's own exit status 0 on SIGINT and no process left; under Ctrl-C to the process group
+  `npx` itself reports the signal, 130 — ES-13). Also `npx wingfoil-ui --version` and `--help` exit 0.
   It runs in an explicit script (e.g. `npm run test:smoke`), not in the default suite if it needs
   network or more than a few minutes; its run time is recorded.
 - **AC-4 (Scrum fixture)** The fixture builder offers a `scrum` kind (`wingfoil init --template
@@ -70,6 +72,9 @@ The package stays `private: true` and is not published (RV-8).
   green; `check_tasks.py` OK; `test/README.md` and the user docs (README install section,
   `docs/cli-reference.md`) updated where the package or the new scripts change them; bug-007
   follows this task's state (bug.sync_state).
+
+Process note: AC-1 and AC-3 were reworded at design (2026-10-11) by the approver's decision
+(ES-8, ES-13).
 
 ## Implementation Notes
 
@@ -286,3 +291,17 @@ The package stays `private: true` and is not published (RV-8).
 
 No BDD scenario is deferred to this task (no `e2e closure` rows owed); the e2e closure table will
 map AC-4/AC-5 to their spec tests.
+
+### design decisions (2026-10-11)
+
+- Decided by the approver 2026-10-11 ("tutto come consigliato"): every point option (a) of the
+  design list — **ES-8** type-only contracts, only their JSON packed, guard on `server/dist`
+  imports; **ES-9** root `dependencies` = `server/package.json` ones, guarded; **ES-10** the
+  `files` allow-list above, catalogue packed at `server/src/i18n/en.json`, `prepack` builds;
+  **ES-11** `test/package/pack.test.ts` in the default suite, `test/global-setup.ts` also builds
+  web; **ES-12** `npm run test:smoke` (`--prefer-offline`, own Vitest config); **ES-13** both stop
+  runs (SIGINT to the server → `npx` exit 0; Ctrl-C to the group → `npx` reports the signal);
+  **ES-14** `scrum` kind outside `FIXTURE_KINDS` (`BddFixtureKind`), `scrum.spec.ts`; **ES-15**
+  `test/harness/repo-state.ts` + `no-commit.spec.ts` over `SCREENS`; **ES-16** bin mode 100755 in
+  git; **ES-17** README "Install from a package", cli-reference, CHANGELOG, `test/README.md` 0.24.
+- AC-1 and AC-3 reworded accordingly (Process note under the Acceptance Criteria).
