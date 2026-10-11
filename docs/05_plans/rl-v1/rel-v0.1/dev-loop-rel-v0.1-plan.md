@@ -3,7 +3,7 @@ id: dev-loop-rel-v0.1-plan
 type: plan
 title: "Implementation rel-v0.1"
 status: active
-version: "0.6"         # optional — plan version
+version: "0.7"         # optional — plan version
 workflow: "dev-loop"
 phase: "rel-v0.1"
 scope: "rl-v1/rel-v0.1"
@@ -14,7 +14,7 @@ tmpl_version: 260703   # Orignal template version
 
 ## Context
 
-**Version:** 0.6 · **Date:** 2026-10-10 (0.1: plan created, Wave 1 scope; 0.2: Wave 1 session log; 0.3: Wave 2 session log; 0.4: Wave 3 session log; 0.5: between-waves feedback-loop tasks 022, 023; 0.6: Wave 4 session log)
+**Version:** 0.7 · **Date:** 2026-10-11 (0.1: plan created, Wave 1 scope; 0.2: Wave 1 session log; 0.3: Wave 2 session log; 0.4: Wave 3 session log; 0.5: between-waves feedback-loop tasks 022, 023; 0.6: Wave 4 session log; 0.7: Wave 5 session log, governance task 024)
 **Workflows:** `sw-life-cycle` → `release-line-cycle` (`rl-v1`) phase `delivery` → `release-cycle`
 (`minor-v0.1`) phase `implementation` = `dev-loop` iterated over every task with status `backlog`
 and tag `v0.1` (`.wingfoil/workflows/custom/release-cycle.yaml` v1.1, `dev-loop.yaml` v1.4)
@@ -90,7 +90,8 @@ Per task (`dev-loop` v1.4):
   before each merge; end of each wave.
 - **Completion:** every v0.1 task `done` and merged; plan finalized by hand (`status: done`, commit
   `wf(plan): finalize dev-loop-rel-v0.1-plan [active → done]`, W-04).
-- **Next:** wave 5 (021, closing pass; absorbs bug-006) — see Session 4.
+- **Next:** every v0.1 task is `done` (Session 5); finalize this plan (W-04), then the
+  `release-cycle` continues with release validation — see Session 5.
 
 ## Session log
 
@@ -394,3 +395,72 @@ Per task (`dev-loop` v1.4):
   items, conventions, pack/pin, what to keep private) with the user's OK; no change to the repo.
 - **Next:** Wave 5 — task-021 (closing pass), then release validation.
 
+### Session 5 — Wave 5: closing pass (2026-10-10 → 2026-10-11)
+
+- **Start:** handoff from the Wave 4 session; `main` = `origin/main` `59f7c38`. task-021
+  `backlog → in-progress` (`a92816a`) and bug-006 `planned → in-progress` (`7796f8b`, bug.sync_state
+  by hand) on `main`, pushed; one developer agent in `.worktrees/task-021-…` (rules file re-created
+  in the session scratchpad).
+- **Done and merged:** task-021 (merge `6cad52a`, done `4d9a811`, pushed) after 4 independent
+  review rounds by the same fresh-context reviewer (R1 FAIL: 1 blocker, 1 major, 4 minor, 2 nit;
+  R2 FAIL: 1 blocker, 2 minor; R3 FAIL: 1 minor; R4 PASS), the merge of `main` into the branch
+  (`a0dc440`, no conflicts) and the user's `approve` of task-021 (`42fde78`) and bug-006
+  (`8c11c43`, `in-review → resolved`, submitted with the task).
+- **Decisions of the user (W5-1 … W5-19, all the recommended option):** W5-1 React Aria under
+  `I18nProvider locale="en"`, X-09.1 also checks accessible names, its "Dismiss" the one documented
+  library-string exception; W5-2 `title.app` written into `index.html` at build time; W5-3 project
+  data recognised from the API responses the page read; W5-4 shared `useProjectTitle(pid, view)` /
+  `useProjectName(pid)` in `web/src/shell/page-title.ts` (replaces three helpers); W5-5 document
+  and directive pages use `title.projectView`; W5-6 TT-PERF-04 measured as in-app navigation, warm
+  server cache, cold client cache, p95 of 20 runs after 1 warm-up; W5-7 the SARD large fixture
+  (custom + 500 elements + 2 000 commits, `test/harness/fixtures/large.ts`); W5-8 no code split;
+  W5-9 `@perf` budgeted only in `test:timing`; W5-10 `accessibility.spec.ts` +
+  `performance.spec.ts`; W5-11 aggregate axe scan over a shared screen catalogue + mapping table;
+  W5-12 focus-ring contrast from computed styles on the X-06.1 keyboard walk; W5-13 notices live
+  region kept across a project switch; W5-14 refusal `credentials-in-url` (no `detail`,
+  `error.credentialsInUrl`); W5-15 any userinfo in http(s)/ftp(s) clone URLs; W5-16 a failed
+  header re-read with cached data shows its alert (R9 accepted); W5-17 `useRemoveProject` fix;
+  W5-18 a password in `ssh://` / scp-like userinfo refused, plain logins allowed; W5-19 any
+  userinfo in `git://` refused. Two forms confirmed by the user: W5-2 fallback restored by the
+  `usePageTitle` cleanup (not a root-route effect), W5-13 by keying only `ProjectRoleView` (not a
+  separate `ProjectNotices`). Two review nits accepted as limits: a scp-like address with an `@`
+  and no `/` in its path is refused; unknown schemes (`git+https://u:p@…`) reach `git clone`'s
+  argv before git refuses the transport (no connection, nothing stored, nothing echoed).
+- **Spec amendments on `main`** (Process Notes "decided by the user"): spec-006 §3
+  `credentials-in-url` row — the address judged as git reads it (`<transport>::` prefixes,
+  leading whitespace, any number of `/` or `\` after the scheme), http(s)/ftp(s)/`git://`
+  userinfo, `ssh://`/scp-like passwords incl. a percent-encoded `:`; a control character in a
+  clone URL → 400 `invalid-request` (`bbae3b0`, `28c31e4`, `1b96f1d`, `6bacc7d`); spec-008 §3
+  `title.app` and document/directive titles, §6 X-09.1 accessible names and the React Aria
+  exception (`bbae3b0`).
+- **Bugs:** bug-006 `resolved` (fix commits `5aa9f5b`, `b31dc0d`, `9c780e2`, `b53c0ee`,
+  `902fc8e`); the review found the bypasses `https::https://u:p@…`, `https:///u:p@…`, `git://u:p@…`
+  and ssh/scp passwords, all refused now. bug-004 stays `resolved`; bug-004/005/006 to be closed at
+  release validation (user's choice).
+- **Governance task-024** (between waves, requested by the WingFoil coordination session
+  "WFCoord", cross-project item "task 001"): source key `svc-019` (WingFoil task-269, active since
+  WingFoil `30b268a3`) recorded in `docs/wingfoil-feedback/README.md` (`e6b022c`); `add` →
+  `pending` → approved → `in-progress` → `in-review` → approved → done (`7f921c8`), pushed;
+  WFCoord told task id, commit and push state.
+- **Facts learned:** curl accepts 1–3 slashes after the scheme and git's `<transport>::<address>`
+  form passes the address to the remote helper — a URL check must normalise as git does, not
+  enumerate cases; git's `git://` error echoes a userinfo verbatim ("unable to look up
+  u:p@host"); the query client's `staleTime: Infinity` makes a "warm cache" measurement mean a
+  warm server cache and a cold client cache; React runs a parent's effects after its children's.
+- **Lessons:** a security fix needs an adversarial reviewer who runs git itself (`GIT_TRACE`) —
+  three rounds each found a new bypass; perf runs must assert the view's own read is sent only
+  after the key press (the first DNA run measured cached data); the developer agent was stopped
+  four times (two usage limits, two session ends) and resumed each time from its commits and logs.
+- **Gates of task-021** on the merge with `main`: coverage **1926 passed, 1 skipped** (96.67 % /
+  90.97 %), e2e **125/125**, `test:timing` 3 Vitest + 14 Playwright green (load 7.3); TT-PERF-04
+  p95 (budget 1 000 ms): Memory list 101 ms, element panel 49, DNA 45, Directives 47, Team 56,
+  Documentation 61.
+- **Checks on `main` after the wave** (`4d9a811`): typecheck, lint, format clean ·
+  `test:coverage` **1926 passed, 1 skipped** (96.71 % / 91 %) · `docs:api` OK · `test:e2e`
+  **125/125** · `check_tasks.py` OK (load up to 21) · `test:timing` re-run on `main` after task-024 (`7f921c8`, load 6.9 → 8.3): 3 Vitest + 14
+  Playwright green, TT-PERF-04 p95 Memory list 180 ms, element panel 63, DNA 47, Directives 50,
+  Team 55, Documentation 60 (budget 1 000 ms).
+- **Other sessions:** WFCoord (task-024 above).
+- **Next:** finalize this plan (W-04, user's OK given); then the `release-cycle` continues with
+  release validation in a new session: re-check bug-004 under load, `test:timing` at low load, the
+  `accessibility` e2e smoke; close bug-004/005/006 there.
