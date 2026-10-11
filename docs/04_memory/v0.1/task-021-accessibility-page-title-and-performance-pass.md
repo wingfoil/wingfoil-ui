@@ -317,3 +317,60 @@ Screen: `docs/00_reference/ux-reference.md` every v0.1 screen and the prototype 
   - Measured in the page, from the Enter `keydown` (capture) to the first animation frame where the
     target is visible and no loading status is left.
   - No code split was needed (W5-8): every view is far below 1.0 s (gates below).
+
+### checks (2026-10-11)
+
+- At HEAD `1f871e2` (the only change since is notes): `typecheck`, `lint` (ESLint and the catalogue
+  check) and `format:check` are clean; `docs:api` OK; `check_tasks.py` OK.
+- `test:coverage`: **116 files passed, 1 skipped; 1873 passed / 1 skipped**. Coverage is 96.65 %
+  statements, 90.92 % branches, 97.22 % functions, 98.32 % lines (load 3.6 → 16.2).
+- `test:e2e`: **124/124** in 4.5 min (load 0.9 → 13.5).
+- `test:timing`: **3 Vitest + 14 Playwright passed** (load 1.8 → 3.9).
+  - REQ-PERF-03: 20/20, max 490 ms. REQ-PERF-06: 214–305 ms. TypeDoc build: 2765 ms.
+  - Strict live refresh: S-27.2 412 ms, S-25.2 404 ms, S-26.1 602 ms, S-26.2 1100 ms, S-12.3
+    799 ms, S-13.3 1011 ms, S-15.3 1316 ms.
+  - TT-PERF-04, p95 over 20 runs (budget 1 000 ms):
+
+    | View | p95 | max | First open |
+    |------|-----|-----|------------|
+    | Memory list | 79 ms | 91 ms | 407 ms |
+    | Element panel | 51 ms | 52 ms | 371 ms |
+    | DNA | 19 ms | 19 ms | 13 ms |
+    | Directives | 43 ms | 43 ms | 165 ms |
+    | Team | 42 ms | 42 ms | 196 ms |
+    | Documentation | 55 ms | 58 ms | 25 ms |
+
+  - An earlier run was killed after its Vitest part had passed. External load (other projects'
+    worktrees) reached 162, and four `@live-refresh` cases failed. That run is invalid: the re-run
+    at load ≈ 2–4 passed everything.
+- Bundle unchanged in shape (W5-8, no split needed): the entry `index-*.js` is about 709 kB
+  (215 kB gzip), plus the lazy docs chunk.
+
+### e2e closure
+
+| Scenario | Spec › test |
+|----------|-------------|
+| X-06.1 | `test/e2e/accessibility.spec.ts` › "X-06.1 — Reach every v0.1 screen with the keyboard" (both themes; every ring solid, ≥ 2 px, contrast ≥ 3:1) |
+| X-06.3 | same spec › "X-06.3 — Close the element panel with Escape" |
+| X-06.4 (also task-001) | same spec › "X-06.4 — Pass the axe scan" (the 16 screens of `support/screens.ts`, both themes). State variants: `add-project.spec.ts` (refusals, progress, bug-006), `projects.spec.ts` (unavailable rows, removal), `project-header.spec.ts` (identity notices, out-of-range version), `shell.spec.ts` (unreachable banner, shell warnings, lost session) |
+| X-08.1 | same spec › "X-08.1 — Follow the system's dark preference" |
+| X-08.2 | same spec › "X-08.2 — Follow a change of the system preference" |
+| X-09.1 | same spec › "X-09.1 — Render every string from the message catalogue" (key build, every screen, text and accessible names, `<title>`) |
+| X-09.2 | same spec › "X-09.2 — Keep project data untranslated" |
+| X-10.1 | same spec › "X-10.1 — Name the project and the view in the tab title" |
+| X-10.2 | same spec › "X-10.2 — Name the open element in the tab title" |
+| X-10.3 | same spec › "X-10.3 — Title the project list when no project is open" |
+| M-01.1, G-01.1, R-05.1, R-06.1, R-07.1, R-08.1 (TT-PERF-04) | `test/e2e/performance.spec.ts` › "<scenario> — the <view> renders within 1.0 s (p95, warm cache)" `@perf`; the budget is asserted in `npm run test:timing`; the functional assertions are closed in 017–020 |
+| bug-006 | `test/e2e/add-project.spec.ts` › "bug-006 — Refuse a clone URL holding credentials"; API `test/server/http/projects.test.ts` › "bug-006 …" |
+
+e2e closure — every scenario of this task, and X-06.4 deferred by task-001, is closed in the table
+above.
+
+- **Hand-overs / open points:**
+  - **Coordinator:** spec amendments on `main`:
+    - spec-006 §3: row `credentials-in-url` (no `detail`; bug-006).
+    - spec-008 §3: `title.app`, and the document path / directive id as `{view}`.
+    - spec-008 §6: React Aria's "Dismiss" as the one library string of X-09.1.
+  - **W5-2 and W5-13:** the two deviations of form recorded above are in the code; please confirm.
+  - **bug-006 tests:** the task-008 API test of a successful clone with a credential URL was
+    replaced, because such a clone is now refused.
