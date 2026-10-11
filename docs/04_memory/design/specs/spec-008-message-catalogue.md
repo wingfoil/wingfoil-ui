@@ -62,7 +62,10 @@ same keys. Catalogues are JSON, one flat object, UTF-8, sorted by key (checked).
 - The page title (US-X-10) is composed by messages:
   `title.projectView` = `{project} · {view} — WingFoil UI`,
   `title.projectElement` = `{project} · {element} — WingFoil UI`,
-  `title.projects` = `Projects — WingFoil UI`; the state segment adds
+  `title.projects` = `Projects — WingFoil UI`, `title.app` = `WingFoil UI` (written into
+  `web/index.html` at build time and used until a page sets its title); a documentation
+  document and a directive page use `title.projectView` with the document path or the directive
+  id (project data) as `{view}`; the state segment adds
   `title.projectCompletionView` = `{project} · {completion} % · {view} — WingFoil UI` (v0.3,
   X-10.4) and `title.projectPhaseView` = `{project} · {phase} · {view} — WingFoil UI` (v0.4,
   X-10.5; the phase name is project data).
@@ -104,6 +107,12 @@ catalogue and its arguments (`warnings: [{ key, args }]` of `GET /api/server`, s
   argument is still rendered (X-09.2). X-09.1 runs the release's screens on this build and fails on any visible text that is
   neither a key nor project data. The key build is written to `web/dist-keys` and served to the
   e2e page by Playwright route interception; the bin serves `web/dist` only.
+- X-09.1 checks visible text **and accessible names** (`aria-label`, `alt`, `title`,
+  `placeholder`); project data is recognised from the API responses the page read (with its
+  English rendering of dates, relative ages and lists). React Aria runs under
+  `I18nProvider locale="en"` (the catalogue's locale); its own strings — the visually hidden
+  "Dismiss" button of a popover — are the one documented exception: library strings outside the
+  catalogue, to be localised with the library's locale when a second catalogue arrives.
 - ESLint `eslint-plugin-formatjs`: `no-literal-string-in-jsx` (including the `aria-label`,
   `title`, `alt` and `placeholder` attributes), `no-multiple-plurals` (`enforce-id` is not used: it
   targets generated hash ids); placeholders are checked by the project rule
@@ -153,3 +162,7 @@ catalogue and its arguments (`warnings: [{ key, args }]` of `GET /api/server`, s
   W3-20; "marked obsolete by" W3-21); decided by the user.
 - 2026-10-07 — amended in dev-loop task-017 (Wave 3, plan dev-loop-rel-v0.1-plan): §3 bucket labels are the UI's
   closed vocabulary (W3-27); decided by the user.
+- 2026-10-10 — amended in dev-loop task-021 (Wave 5, plan dev-loop-rel-v0.1-plan): §3
+  `title.app` and the titles of a document and a directive page (W5-2, W5-5); §6 X-09.1 covers
+  accessible names, project data from the API responses, React Aria library strings as the
+  documented exception under `I18nProvider locale="en"` (W5-1, W5-3); decided by the user.
