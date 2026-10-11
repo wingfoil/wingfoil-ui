@@ -17,8 +17,10 @@ repository pulls the answer at its own sync.
   `wingfoil-cli` directive (`.wingfoil/directives/custom/wingfoil-cli.md`).
 - If WingFoil's `COLLABORATION.md` refines the format, the next sync follows it.
 
-**Source key:** to be set — the `svc-NNN` id WingFoil assigns when it registers this repository as a
-feedback source (WingFoil task-269). WingFoil cites a note as `<source key>/F-<nnn>@<sha>`.
+**Source key:** `svc-019` — WingFoil service
+`svc-019-github-repository-wingfoil-ui-a-private-consumer-project-and-its-feedback-inbox`, registered
+as a feedback source by WingFoil task-269, active since WingFoil `30b268a3`. WingFoil cites a note as
+`<source key>/F-<nnn>@<sha>`, e.g. `svc-019/F-001@<sha>`.
 
 **Last sync:** none.
 
