@@ -2,7 +2,7 @@
 id: bug-007-packed-package-cannot-start-and-would-ship-private-and-development-files
 type: bug
 title: "Packed package cannot start and would ship private and development files"
-status: triaged
+status: planned
 severity: "medium"           # REQUIRED — critical | high | medium | low
 release-origin: "v0.1"     # optional — release where the bug was FOUND, e.g. "v0.1"
 release: ""            # optional — fix/implementation release, stamped by release-planning/build-backlog
@@ -65,3 +65,7 @@ and nothing git-ignored or development-only.
   Absorbed into task-025 (dl-045 pattern).
 
 ## Triage & Execution Notes
+- triage (2026-10-11): approved by the user as **medium** severity (release validation of
+  minor-v0.1, plan `e2e-smoke-rel-v0.1-plan` ES-1).
+- fix: **absorbed into task-025-installable-package-and-e2e-smoke-gaps** (dl-045 pattern; `bug:`
+  list + AC-1…AC-3). `triaged → planned` set by hand (no CLI verb).
