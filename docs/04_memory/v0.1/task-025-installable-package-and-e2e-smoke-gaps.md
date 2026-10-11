@@ -369,3 +369,36 @@ No BDD scenario is deferred to this task; the acceptance criteria map to:
 | AC-4 | `test/harness/fixtures.test.ts` : `scrum fixture` (per-kind checks) and `AC-4 is a Scrum project of the pinned CLI with elements in every state of its default machine`; `test/e2e/scrum.spec.ts` : `AC-4.1 — the Memory list renders the Scrum elements with their states`, `AC-4.2 — the element panel opens a Scrum element`, `AC-4.3 — the DNA view shows the Scrum methodology` (axe in both themes in each) |
 | AC-5 | `test/harness/repo-state.test.ts` (6 tests); `test/e2e/no-commit.spec.ts` : `AC-5.1 — every v0.1 screen, a role view and a project switch leave HEAD, refs, index and working tree unchanged` |
 | AC-6 | the checks above; docs: README, `docs/cli-reference.md`, CHANGELOG, `test/README.md` |
+
+### review round 1 (2026-10-11)
+
+Independent review of `325c733`: FAIL — 2 minor, 3 nits. Finding → fix → commit:
+
+1. **minor — the smoke packed a React development build** (Vitest's `NODE_ENV=test` reached
+   `prepack`'s Vite build; the Vitest global setup's new Vite build likewise). → The smoke's
+   `npm` environment and `test/global-setup.ts` drop `NODE_ENV`; the guard (`AC-2 the packed web
+   build is a production build`) and the smoke assert no `jsxDEV` in `web/dist` (checkout and
+   installed package). Tarball re-measured: **120 files, 513 788 B packed, 1 383 134 B unpacked**
+   (was 588 719 / 1 665 471). → `59fa054`.
+2. **minor — stale files under the built folders passed the guard.** → (a) `prepack` is now
+   `node scripts/clean-build.mjs && npm run build` (removes `server/dist`, `contracts/dist`,
+   `web/dist` and their `tsconfig.tsbuildinfo`; Node script, no shell `rm`); (b) the guard
+   (`AC-2 the packed server build holds exactly one module per server source: no stale file`) and
+   the smoke assert the packed `server/dist` set equals one module per `server/src` module;
+   `\.tsbuildinfo$` is in `FORBIDDEN`. Checked by hand: a `touch server/dist/stale.js` makes the
+   guard fail naming it. → `59fa054`.
+3. **nit — `npm test` and `test:e2e` run together race on `web/dist`.** → Documented in
+   `test/README.md` *Launch smoke*: do not run `test`/`test:coverage`, `test:e2e` and
+   `test:smoke` concurrently in one checkout. → `5df21e5`.
+4. **nit — a branch switch or detach at the same commit was not seen.** → `RepoState.headRef`
+   (`git symbolic-ref -q HEAD`, empty when detached) and `diffRepo` line `HEAD on <a> → <b>`;
+   test `AC-5 detects a branch switch and a detached HEAD at the same commit`. → `f3e8953`.
+5. **nit — `no-commit.spec.ts` covers kanban + custom only** (the `SCREENS` console): no change;
+   the Scrum fixture is read by `scrum.spec.ts`, not by the no-commit walk.
+
+Re-run after the fixes: typecheck, lint, format:check clean; `npm run test:coverage` **118 files
+passed, 1 skipped; 1949 passed / 1 skipped** (130 s, load 5.9; 96.67 % statements, 90.97 %
+branches, 97.22 % functions, 98.33 % lines); `test/package` 8/8, `test/harness/repo-state` 7/7;
+`npm run test:smoke` 4/4 (load 5.1: pack with the clean build 10.9 s, install 1.6 s, `--version`
+0.9 s, start 1.0 s, ~17 s in all); `scrum.spec.ts` + `no-commit.spec.ts` 4 passed (load 14.5); no
+console left.
