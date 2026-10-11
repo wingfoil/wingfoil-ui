@@ -60,3 +60,6 @@ The test passes deterministically: it proves that an entry is re-read when its `
   the task lists this bug in `bug:` with its own Acceptance Criterion). `triaged → planned` set by
   hand (no CLI verb); it moves to `in-progress` when task-016 starts.
 - start (2026-10-10): task-016 started (Wave 4) → `planned → in-progress` by hand (dev-loop `start` step `bug.sync_state`; no CLI verb for this edge).
+- close (2026-10-11): fixed by task-016 (`done`); its tests green in the e2e-smoke run on `main`
+  `0d719fe` (coverage 1949 passed, e2e 129/129) and in the bug-004 load runs — release validation of minor-v0.1 (plan `e2e-smoke-rel-v0.1-plan`, RV-5).
+  → `resolved → closed`.

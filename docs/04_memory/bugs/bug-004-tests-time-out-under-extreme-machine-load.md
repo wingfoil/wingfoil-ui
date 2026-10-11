@@ -84,3 +84,7 @@ tests may be slower under load but do not fail when the code is correct.
   `test/e2e/memory-list.spec.ts` (S-26.2, S-28.1) — all green re-run alone; the reviewer found no
   link with the task's diff. Per the rule agreed with the user, the bug stays `resolved`; re-check
   at release validation (or reopen and absorb then).
+- close (2026-10-11): re-checked at release validation of minor-v0.1 (plan `e2e-smoke-rel-v0.1-plan`, RV-5) on `main` `0d719fe` (ES-6): synthetic load from 14
+  busy processes on 12 cores, load 13–41 (median 34, 92 samples): two runs of `test:coverage`
+  (1949 passed, 1 skipped; 349 s, 344 s) and `test:e2e` (129/129; 16.3 min, 16.2 min) — no
+  timeout. The e2e-smoke run on `0d719fe` at load up to 18.6 was green too. → `resolved → closed`.

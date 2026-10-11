@@ -80,3 +80,8 @@ with a catalogue reason pointing to a credential helper.
   - Commits on the task branch: `5aa9f5b`, `b31dc0d`, `9c780e2`, `b53c0ee` (W5-18), `902fc8e`; tests in `test/server/projects/remote.test.ts`,
     `test/server/http/projects.test.ts`, `test/server/state/store.test.ts` and
     `test/e2e/add-project.spec.ts` › "bug-006 — Refuse a clone URL holding credentials".
+- close (2026-10-11): fixed by task-021 (`done`); its tests green in the e2e-smoke run on `main`
+  `0d719fe` (incl. `add-project.spec.ts` › "bug-006 — Refuse a clone URL holding credentials") —
+  release validation of minor-v0.1 (plan `e2e-smoke-rel-v0.1-plan`, RV-5). The two accepted limits (scp-like `@` in the path without `/`; unknown schemes reaching
+  `git clone`) are known limitations of v0.1 (`docs/user-guide.md`, `CHANGELOG.md`).
+  → `resolved → closed`.

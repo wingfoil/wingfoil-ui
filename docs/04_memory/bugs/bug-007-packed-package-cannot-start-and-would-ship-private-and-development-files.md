@@ -79,3 +79,6 @@ and nothing git-ignored or development-only.
   allow-list, forbidden paths, one `server/dist` module per source, production build, dependencies);
   launch smoke `npm run test:smoke` (pack → install in a temp folder → `npx wingfoil-ui`). Independent
   review: round 1 FAIL (2 minor: dev React build packed; stale outputs not caught), round 2 PASS.
+- close (2026-10-11): task-025 `done` (merge `ad928af`); on `main` `0d719fe` the guard
+  (`test/package/pack.test.ts`, in the default suite) and `npm run test:smoke` (4/4: pack →
+  install → `npx wingfoil-ui`) green — release validation of minor-v0.1 (plan `e2e-smoke-rel-v0.1-plan`, RV-5). → `resolved → closed`.
