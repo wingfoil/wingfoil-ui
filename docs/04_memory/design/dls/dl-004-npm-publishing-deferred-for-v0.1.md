@@ -2,7 +2,7 @@
 id: dl-004-npm-publishing-deferred-for-v0.1
 type: decision-log
 title: "npm publishing deferred for v0.1"
-status: in-discussion
+status: ready
 context: "release-publishing"  # optional — short label for the context, e.g. "retrospective", "planning", "ad-hoc"
 release: "v0.1"        # optional — implementation release this DL is assigned to (stamped at release-planning/build-backlog), e.g. "v0.1"
 contributor: ""        # optional — who originated this contribution, if not the git author; credited for AI-generated work derived from it
