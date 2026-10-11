@@ -119,6 +119,21 @@ describe('credentialsInUrl', () => {
     ['https::https::https://alex:x@host/r.git', true],
     ['https::https://host/r.git', false],
     ['ext::ssh -o x=a@b host', false],
+    // Review round 2: one normalisation — prefixes stripped, whitespace trimmed, any slashes or
+    // backslashes after the scheme skipped, the authority up to / ? # or \.
+    ['https:///u:p@h/r', true],
+    ['https:/u:p@h/r', true],
+    ['https:u:p@h/r', true],
+    ['HTTPS:///tok@h/r', true],
+    ['https:\\\\u:p@h\\r', true],
+    ['https:/\\/u:p@h/r', true],
+    ['https:: https://alex:s3cret@h/x', true],
+    ['https::\thttps://alex:s3cret@h/x', true],
+    ['  https:: http::  https:///alex@h/x', true],
+    ['https:/alex:s3cret@h/x', true],
+    ['https:///h/r.git', false],
+    ['https:\\\\h\\r@x', false],
+    ['https://h/r?u=a@b', false],
   ])('%s → %s', (url, expected) => {
     expect(credentialsInUrl(url)).toBe(expected);
   });

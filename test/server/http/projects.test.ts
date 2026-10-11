@@ -634,6 +634,8 @@ describe('POST /api/projects/clone (S-04, S-05.2, S-06, S-07)', () => {
     ["a token in the user's place", (host: string, secret: string) => `http://${secret}@${host}/kanban.git`],
     // git's `<transport>::<address>` form (review round 1): the address is judged.
     ['the transport form', (host: string, secret: string) => `http::http://alex:${secret}@${host}/kanban.git`],
+    // Review round 2: extra slashes after the scheme (curl still reads the userinfo).
+    ['three slashes', (host: string, secret: string) => `http:///alex:${secret}@${host}/kanban.git`],
   ])(
     'bug-006 refuses a clone URL holding %s: credentials-in-url, nothing run or written (REQ-SEC-09)',
     async (_name, urlOf) => {

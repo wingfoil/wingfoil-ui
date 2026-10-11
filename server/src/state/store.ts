@@ -110,7 +110,7 @@ const URL_FORM = /^([A-Za-z][A-Za-z0-9+.-]*:\/\/)(.*)$/s;
  */
 export function stripUserinfo(remote: string): string {
   const trimmed = remote.trim();
-  const transport = /^((?:[A-Za-z][A-Za-z0-9+.-]*::)+)(.*)$/s.exec(trimmed);
+  const transport = /^((?:[A-Za-z][A-Za-z0-9+.-]*::\s*)+)(.*)$/s.exec(trimmed);
   if (transport) return `${transport[1]!}${stripUserinfo(transport[2]!)}`;
   const match = URL_FORM.exec(trimmed);
   if (!match || !trimmed.includes('@')) return trimmed;
