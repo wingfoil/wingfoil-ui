@@ -28,7 +28,7 @@
   "scripts": {
     "wingfoil": "wingfoil",
     "build": "tsc -b && npm run -s build -w web",
-    "prepack": "npm run build",
+    "prepack": "node scripts/clean-build.mjs && npm run build",
     "typecheck": "tsc -b && tsc -p test",
     "lint": "eslint . && node web/scripts/check-catalogue.mjs",
     "format": "prettier --write .",

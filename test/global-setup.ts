@@ -10,8 +10,12 @@ import { fileURLToPath } from 'node:url';
 
 export default function setup(): void {
   const root = fileURLToPath(new URL('..', import.meta.url));
+  // Without Vitest's `NODE_ENV=test`: Vite would otherwise build React's development bundle
+  // (`jsxDEV`), and the packaging guard checks the production one (task-025 review round 1).
+  const env = { ...process.env };
+  delete env['NODE_ENV'];
   const node = (args: string[], cwd: string): void => {
-    execFileSync(process.execPath, args, { cwd, stdio: 'inherit', timeout: 180_000 });
+    execFileSync(process.execPath, args, { cwd, env, stdio: 'inherit', timeout: 180_000 });
   };
   node([fileURLToPath(new URL('../node_modules/typescript/bin/tsc', import.meta.url)), '-b', 'server'], root);
   node(

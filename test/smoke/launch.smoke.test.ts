@@ -15,12 +15,14 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { harnessEnv } from '../harness/fixtures/index.js';
 import { run } from '../harness/run.js';
 import {
+  developmentBuildFiles,
   forbiddenReason,
   isAllowed,
   npm,
   npmCli,
   parsePackReport,
   readManifest,
+  serverModules,
   type PackReport,
 } from '../package/allow-list.js';
 
@@ -38,7 +40,9 @@ const groups = new Set<number>();
 
 /** `env` without the variables `npm run` adds (`npm_config_*`, `npm_package_*`, `npm_lifecycle_*`). */
 function withoutNpmVars(env: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
-  return Object.fromEntries(Object.entries(env).filter(([key]) => !/^npm_/i.test(key)));
+  // Vitest's `NODE_ENV=test` goes too: `prepack`'s Vite build would make React's development
+  // bundle (review round 1).
+  return Object.fromEntries(Object.entries(env).filter(([key]) => !/^npm_/i.test(key) && key !== 'NODE_ENV'));
 }
 
 async function timed<T>(name: string, work: () => Promise<T>): Promise<T> {
@@ -182,7 +186,14 @@ describe('launch smoke: the packed package installs and starts (bug-007)', () =>
     expect(report.files.map((f) => f.path)).toEqual(
       expect.arrayContaining(['server/dist/main.js', 'web/dist/index.html']),
     );
-    const bin = await stat(path.join(app, 'node_modules', 'wingfoil-ui', 'bin', 'wingfoil-ui.cjs'));
+    // `prepack` builds from a clean tree: exactly one module per server source, no stale file.
+    expect(new Set(report.files.map((f) => f.path).filter((file) => file.startsWith('server/dist/')))).toEqual(
+      new Set(serverModules()),
+    );
+    // A production web build: no React development bundle (review round 1).
+    const installed = path.join(app, 'node_modules', 'wingfoil-ui');
+    expect(developmentBuildFiles(path.join(installed, 'web', 'dist'))).toEqual([]);
+    const bin = await stat(path.join(installed, 'bin', 'wingfoil-ui.cjs'));
     expect(bin.mode & 0o111).not.toBe(0);
     console.log(
       `launch smoke: tarball ${report.entryCount} files, ${report.size} B packed, ${report.unpackedSize} B unpacked`,

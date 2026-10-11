@@ -56,6 +56,7 @@ export const FORBIDDEN: readonly { pattern: RegExp; reason: string }[] = [
   { pattern: /\.map$/, reason: 'source maps' },
   { pattern: /\.d\.ts$/, reason: 'type declarations' },
   { pattern: /\.tsx?$/, reason: 'TypeScript sources' },
+  { pattern: /\.tsbuildinfo$/, reason: 'TypeScript build state' },
 ];
 
 /** Whether `file` is on the allow-list. */
@@ -87,9 +88,7 @@ export function filesUnder(dir: string, root = REPO_ROOT): string[] {
  * contract tracked under `contracts/` (but the workspace's own `package.json` / `tsconfig.json`).
  */
 export function requiredFiles(trackedContracts: readonly string[], root = REPO_ROOT): string[] {
-  const server = filesUnder(path.join(root, 'server', 'src'), root)
-    .filter((file) => file.endsWith('.ts') && !file.endsWith('.d.ts'))
-    .map((file) => file.replace(/^server\/src\//, 'server/dist/').replace(/\.ts$/, '.js'));
+  const server = serverModules(root);
   const contracts = trackedContracts.filter(
     (file) => file.endsWith('.json') && !/^contracts\/(package|tsconfig)\.json$/.test(file),
   );
@@ -104,6 +103,20 @@ export function requiredFiles(trackedContracts: readonly string[], root = REPO_R
     ...filesUnder(path.join(root, 'web', 'dist'), root),
     ...contracts,
   ];
+}
+
+/** The `server/dist` modules of the server sources: exactly what the tarball holds under `server/dist`. */
+export function serverModules(root = REPO_ROOT): string[] {
+  return filesUnder(path.join(root, 'server', 'src'), root)
+    .filter((file) => file.endsWith('.ts') && !file.endsWith('.d.ts'))
+    .map((file) => file.replace(/^server\/src\//, 'server/dist/').replace(/\.ts$/, '.js'));
+}
+
+/** JavaScript files under `dir` that hold React's development build (`jsxDEV`). */
+export function developmentBuildFiles(dir: string): string[] {
+  return walk(dir).filter(
+    (file) => file.endsWith('.js') && readFileSync(path.join(dir, file), 'utf8').includes('jsxDEV'),
+  );
 }
 
 /** The npm CLI script, run with this Node.js (no shell, REQ-SEC-05). */

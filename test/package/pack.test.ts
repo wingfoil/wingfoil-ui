@@ -10,11 +10,13 @@ import { REPO_ROOT } from '../harness/cli.js';
 import { git } from '../harness/run.js';
 import {
   bareImports,
+  developmentBuildFiles,
   dryRunPack,
   forbiddenReason,
   isAllowed,
   readManifest,
   requiredFiles,
+  serverModules,
   type PackReport,
 } from './allow-list.js';
 
@@ -42,6 +44,8 @@ describe('npm pack (bug-007)', () => {
       'contracts/src/index.ts',
       'web/src/main.tsx',
       'server/node_modules/x/index.js',
+      'web/dist/x.tsbuildinfo',
+      'server/tsconfig.tsbuildinfo',
     ]) {
       expect(isAllowed(file) && !forbiddenReason(file), file).toBe(false);
     }
@@ -67,6 +71,20 @@ describe('npm pack (bug-007)', () => {
     expect(packed.has('server/dist/main.js')).toBe(true);
   });
 
+  it('AC-2 the packed server build holds exactly one module per server source: no stale file', () => {
+    const packedServer = report.files.map((f) => f.path).filter((file) => file.startsWith('server/dist/'));
+    const expected = serverModules();
+    // A stale module (its source removed: `tsc -b` keeps the output) fails here; `prepack` builds
+    // from a clean tree (`scripts/clean-build.mjs`).
+    expect(packedServer.filter((file) => !expected.includes(file))).toEqual([]);
+    expect(new Set(packedServer)).toEqual(new Set(expected));
+  });
+
+  it('AC-2 the packed web build is a production build', () => {
+    // The Vitest global setup builds web/dist without the `NODE_ENV=test` of Vitest (review 1).
+    expect(developmentBuildFiles(path.join(REPO_ROOT, 'web', 'dist'))).toEqual([]);
+  });
+
   it('AC-2 the bin is packed executable (ES-16)', () => {
     const bin = report.files.find((f) => f.path === 'bin/wingfoil-ui.cjs');
     expect(bin?.mode).toBe(0o755);
@@ -89,7 +107,7 @@ describe('npm pack (bug-007)', () => {
 
   it('AC-1 prepack builds and the package stays private', () => {
     const root = readManifest();
-    expect(root.scripts?.prepack).toBe('npm run build');
+    expect(root.scripts?.prepack).toBe('node scripts/clean-build.mjs && npm run build');
     expect(root.private).toBe(true);
     expect(report.name).toBe('wingfoil-ui');
     expect(report.version).toBe(root.version);
