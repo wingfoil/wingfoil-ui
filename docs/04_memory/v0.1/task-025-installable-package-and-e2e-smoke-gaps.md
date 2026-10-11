@@ -2,7 +2,7 @@
 id: task-025-installable-package-and-e2e-smoke-gaps
 type: task
 title: "Installable package and e2e-smoke gaps"
-status: approved
+status: done
 release: "v0.1"
 module: "governance"   # optional — server | web | contracts (dna.yaml modules)
 priority: "high"       # optional — high | medium | low
