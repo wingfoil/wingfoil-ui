@@ -1,0 +1,335 @@
+# User guide — WingFoil UI v0.1
+
+**Version:** 0.1 · **Date:** 2026-10-11 (0.1: release v0.1)
+
+WingFoil UI v0.1 is a **read-only console** for WingFoil-governed projects: you open a project and
+read its Memory, elements, DNA, directives, team and documentation, kept up to date while you work
+in the repository. It changes nothing in a project; the only write it makes is cloning a remote
+repository into a new folder.
+
+Contents: [Launching](#launching) · [Session](#the-session-and-the-browser) ·
+[Projects](#projects) · [Project header](#the-project-header) · [Memory](#memory) ·
+[Element panel](#the-element-panel) · [DNA](#dna) · [Directives](#directives) · [Team](#team) ·
+[Documentation](#documentation) · [Themes, keyboard, accessibility](#themes-keyboard-and-accessibility) ·
+[Local security](#local-security) · [Local state](#where-the-local-state-lives) ·
+[Troubleshooting](#troubleshooting) · [Not in v0.1](#what-v01-does-not-do) ·
+[Known limitations](#known-limitations)
+
+## Launching
+
+Requirements and installation are in the [README](../README.md#install-and-run). From the
+checkout:
+
+```bash
+node bin/wingfoil-ui.cjs
+```
+
+The terminal prints one line:
+
+```
+WingFoil UI is running at http://127.0.0.1:<port>/#token=<token>
+```
+
+and the console opens in your default browser. If no browser can be opened, it prints
+`Open this URL in your browser: <url>` and keeps running: copy the URL into a browser. To choose
+the port or skip the browser, use `--port <n>` and `--no-open`
+([CLI reference](cli-reference.md)). Stop the console with Ctrl-C in its terminal; it prints
+`WingFoil UI stopped`.
+
+Starting reads no project: the URL is printed first, each project is read when you open it.
+
+## The session and the browser
+
+- The token after `#token=` is drawn anew at every start. The page reads it, removes it from the
+  address bar and exchanges it for a session cookie of this console; reloading the page keeps the
+  session.
+- After the console is stopped and started again (or when the page belongs to another console),
+  the page shows **This page is no longer recognised by the console**: open the URL the console
+  printed in its terminal.
+- The console keeps up to 64 browser sessions; opening one more evicts the oldest, whose page then
+  shows the same **This page is no longer recognised by the console**.
+- When the console cannot be reached for 10 s, a banner says so (**Cannot reach the console…**);
+  the page reconnects by itself when the console answers again.
+- Project pages have stable addresses (`/p/<id>/memory`, `/p/<id>/e/<element id>`, …): the id is
+  an opaque id issued by the console, never a path, and stays the same across restarts.
+
+## Projects
+
+With no project open, the start page shows **Projects** and **Add project…**. The project switcher
+at the left of the header lists the projects you added, in the order you added them, each with its
+name and path.
+
+### Add a local folder
+
+**Add project…** → *Local folder* → enter the **Folder path** (absolute, or starting with `~`) →
+**Add**. The folder must be a git repository with a `.wingfoil/` folder at its root, and the
+project must have a WingFoil CLI (pinned in its `node_modules`, else on the `PATH`). The project
+opens when it is available.
+
+Refusals you may see:
+
+| Message | Meaning |
+|---------|---------|
+| `Folder not found: <path>` | the path does not exist |
+| `Not a WingFoil project: no .wingfoil/ folder in <path>` | no `.wingfoil/` at the root |
+| `Git refused the action:` + git's message | e.g. the folder has `.wingfoil/` but is not a git repository |
+| `Already in the list: <name>` (with an **Open <name>** link) | the same folder, or a working copy of the same remote, is already listed |
+| `WingFoil CLI not found for this project. Install it with: npm install --save-dev wingfoil` | no CLI for this project |
+| `The state directory <stateDir> of WingFoil UI lies inside the project <path>` | see [local state](#where-the-local-state-lives) |
+
+### Clone a remote repository
+
+**Add project…** → *Remote git repository* → **Repository URL** (e.g.
+`https://github.com/org/repo.git` or `git@github.com:org/repo.git`) → **Local working directory**
+(filled in as `~/projects/<repo>`; you can change it) → **Clone and add**.
+
+- The URL is compared with the listed projects **before** cloning: a second working copy of a
+  known remote is refused (`Already in the list: <name> (same remote)`).
+- The working directory must be empty or not exist yet, and must not lie inside a listed project
+  or inside the state directory of WingFoil UI.
+- While cloning, the fields are disabled and a progress bar shows; **Cancel**, **Close** or Escape
+  stop the clone and remove what it created.
+- Nothing of the cloned repository runs during the clone: no hooks, no CLI. Its name is the folder
+  name until you first open it.
+- A clone without `.wingfoil/` is removed (`Not a WingFoil project: no .wingfoil/ folder in the
+  cloned repository`). A clone whose project has no CLI is kept and listed as unavailable, with
+  the install command.
+- Transports: `https`, `http`, `ssh`, `git` and `file`; git never prompts for a password. A failed
+  clone (unreachable remote, refused authentication) shows `Git refused the action:` and git's
+  message.
+
+**URLs with credentials are refused.** A URL holding a user name, token or password
+(`https://user:token@host/…`, any user info in `git://`, a password in an `ssh://` or
+`user:pass@host:` address) is refused before anything runs, with: *The URL holds credentials:
+WingFoil UI does not clone with them, because git would keep them in the clone's configuration.
+Clone over SSH, or enter the URL without them and let a git credential helper supply the
+password.* A plain SSH login (`git@github.com:org/repo.git`, `ssh://user@host/…`) is accepted.
+
+### Switch and remove
+
+- Open the switcher and choose a project: the console switches to it and keeps the current view
+  (e.g. from one project's DNA to the other's DNA). An open element panel is closed.
+- A project whose folder is missing, which has no `.wingfoil/` any more, or whose CLI is missing
+  shows **Unavailable — <reason>** (with the install command for a missing CLI) and cannot be
+  opened. It becomes available again by itself when the cause is fixed (e.g. the folder comes
+  back).
+- **Remove <name>** (×) asks *Remove <name> from the list?* — "Its folder and its files are not
+  touched." Removing the open project returns to the start page.
+
+## The project header
+
+Inside a project, the right end of the global header shows **you**: your initials and name (and
+your role, when you hold a single one), resolved from `git config user.email` — the repository's,
+else your global one — matched without regard to letter case against `dna.team.members` of the
+project. A change of your git email is followed without a reload.
+
+Above each view, the project header strip shows:
+
+- **The WingFoil version line:** `WingFoil <version>`, plus `(from PATH)` when the project pins no
+  CLI, then *Every capability of this release is available* or the capabilities the version lacks
+  with the version they need.
+- **Out of the supported range** (v0.1 supports **0.2.2 to 0.2.x**,
+  [README](../README.md#supported-wingfoil-versions)): `WingFoil <version> — read-only: supported
+  0.2.2 to 0.2.x`. A version that cannot be read shows `(unknown version)`.
+- **Read-only notices**, one per reason: you are not in the team (`<email>` with a *not in team*
+  badge), git has no `user.email` (with the `git config user.email` command to fix it), your email
+  matches several members (give each member an email of their own), or the DNA cannot be read
+  (*team unknown*).
+
+In v0.1 every project is read-only anyway: these notices tell you why actions would stay
+unavailable once they exist.
+
+**Role view.** When you hold several roles, a **Role view** select lists them in DNA order. The
+choice is remembered per project and changes what "mine" means in the Directives view and which
+directives the element panel lists.
+
+## Memory
+
+A project opens on its **Memory** list (`/p/<id>/memory`): every element of every type of
+`.wingfoil/memory.yaml`, each with its type, title, id, age in its state and state pill.
+
+- **Element types:** *All types* or one type, each with its count. Types found on elements but not
+  declared in `memory.yaml` are listed under their own names after the declared ones.
+- **States:** with *All types*, four buckets — *To approve*, *In progress*, *Waiting/drafts/closed*,
+  *Done*; with one type, that type's own states in their sequence, followed by any state found on
+  its elements that the type does not declare. Archived elements are read once you select a type.
+- Filters are kept in the address, so a filtered list can be bookmarked.
+- An element with uncommitted changes in your working copy is marked **local changes**; a new,
+  uncommitted element appears too.
+- **Live refresh:** when the repository changes (a commit, a checkout, an edit in the working
+  tree), the list updates by itself and screen readers hear *The list was updated.*
+
+If `memory.yaml` cannot be read, the list still shows, with a notice that some filters, buckets or
+tones may be missing.
+
+## The element panel
+
+Selecting an element opens its panel on the right (`/p/<id>/e/<element id>`, which you can also
+open directly from its address). The panel is **non-modal**: the header and the sidebar stay
+usable. **Close** or Escape close it and give the focus back to the row you came from.
+
+The panel shows, read-only:
+
+- the type, id and title, and the **state machine** of the type as chips (past, current, future
+  states; a state off the sequence is shown too);
+- a **rejection banner** when the last transition was a reject (*Rejected by <name>: <reason>*);
+- a **summary** — the first paragraph of the element's body;
+- **References** — the other frontmatter fields with their values; a required field that is
+  missing reads *<field> — required field, missing*;
+- the **directives** that apply to the current role view, plus the global ones, each linking to
+  its page;
+- the **history**: who created, submitted, signed off, rejected or edited the element, the
+  transition, the reason, the date and the commit (short hash; the full hash as its tooltip).
+
+An open panel refreshes when the element changes in the repository.
+
+## DNA
+
+**DNA** (`/p/<id>/dna`) shows the project's `dna.yaml`: Project (with its methodology), Modules,
+Stack (technologies and methodologies), Team and roles (members, roles, agents) and Paths. An empty
+section reads *No … declared*. If the DNA cannot be read, only this view shows the error; it
+recovers by itself when the file is fixed.
+
+## Directives
+
+**Directives** (`/p/<id>/directives`) lists the project's directives with the roles they are bound
+to; directives that apply to every role are marked *All roles*.
+
+- **Only mine / All**: a member starts on *Only mine* (the directives of the current role view and
+  the global ones). If you hold no role in the project, *Only mine* is disabled with the reason.
+- Selecting a directive opens its page with its body rendered (links: `http(s)` in a new tab,
+  another directive opens its page, other repository paths read *not shown in the UI*).
+
+## Team
+
+**Team** (`/p/<id>/team`) shows a card per member — initials, name, email, roles, *you* on your
+own card, and the number of pending gates on their roles — and then the agents, marked as
+executing as their roles and never approving. Filters: **Search by name or email**, **Roles**,
+**With pending gates**; they are kept in the address.
+
+## Documentation
+
+**Documentation** (`/p/<id>/docs`) indexes the files under the DNA's `paths.docs`, grouped by
+folder, **without** Memory element files and plan files. A Markdown document opens inside the UI.
+
+- A link to another indexed document stays inside the UI; a link to a Memory file opens the
+  element panel.
+- `http` and `https` links open in a new tab; any other scheme is marked *link not supported*.
+- A link to a repository file outside the index is checked with the console and marked *outside
+  the repository*, *broken link* or *not shown in the UI* (at most 100 distinct targets per
+  document are checked; the others read *not shown in the UI*).
+- Images are never loaded (*Image not shown: <alt text>*); raw HTML in Markdown is shown as text.
+
+## Themes, keyboard and accessibility
+
+- **Themes:** light and dark, following your system preference — the page follows a change without
+  a reload. A setting to force one arrives in v0.2.
+- **Keyboard:** every v0.1 screen is reachable with the keyboard; the first Tab stop is **Skip to
+  content**. Focus is always visible. In the project switcher the arrow keys move between projects
+  and Tab reaches a project's *Remove* button. Escape closes the element panel and the dialogs; a
+  dialog closes with its **Close** button or Escape, not with a click outside it.
+- **Screen readers:** status changes (a project added, the list updated, read-only notices) are
+  announced politely; the tab title names the project and the view, or the open element
+  (e.g. `kanban · Memory — WingFoil UI`).
+- **Target:** WCAG 2.1 AA; every screen of v0.1 passes an axe scan with no serious or critical
+  violation in both themes (`test/e2e/accessibility.spec.ts`).
+- **Language:** English. Every UI string comes from one message catalogue, except one
+  screen-reader-only library string (React Aria's "Dismiss"); project data (names, titles, states)
+  is shown as written.
+
+## Local security
+
+- The console listens on `127.0.0.1` and `::1` only: it cannot be reached from another machine.
+- Every API request and the event stream need the session of this start (cookie, or the token as
+  a Bearer header for scripts). The token sits in the URL fragment, which the browser never sends,
+  and is never written to the log or to disk.
+- Every request is checked for its `Host` and, when present, its `Origin` (`127.0.0.1`,
+  `localhost` or `[::1]` on the console's port): a request from another web page is refused (*The
+  console refused a request that did not come from its own page*).
+- URLs carry opaque project ids, never paths. Files are read only inside the project's repository:
+  a path that leaves it is refused (*This path is outside the repository.*).
+- `wingfoil` and `git` run without a shell, with a fixed set of git commands. Nothing of a cloned
+  repository runs at clone time.
+- The local state holds no token, no credential and no project content; the user info of a remote
+  URL is removed before it is stored.
+
+## Where the local state lives
+
+The project list and the role view of each project are kept outside every repository, in
+`state.json` of the state directory:
+
+| Platform | Directory |
+|----------|-----------|
+| Linux and other Unix | `$XDG_CONFIG_HOME/wingfoil-ui`, else `~/.config/wingfoil-ui` |
+| macOS | `~/Library/Application Support/wingfoil-ui` |
+| Windows | `%APPDATA%\wingfoil-ui` |
+| any (override) | `$WINGFOIL_UI_STATE_DIR` |
+
+- The directory is created on the first change (mode `0700`, the file `0600` on POSIX). You never
+  need to edit the file.
+- The state directory must not lie inside a listed project: such a project cannot be added, and a
+  list that already holds one stops the start with exit 4 (set `WINGFOIL_UI_STATE_DIR` to a folder
+  outside every project).
+- Two consoles started at once (on different ports) share the list and see each other's changes.
+- A `state.json` that cannot be parsed is kept aside as `state.json.corrupt-<timestamp>` and the
+  console starts with an empty list, with a warning naming the kept file. A file written by a newer
+  WingFoil UI is read but not changed (*Project list saved by a newer WingFoil UI — changes are not
+  saved*).
+
+## Troubleshooting
+
+| You see | Cause and fix |
+|---------|---------------|
+| `WingFoil UI needs Node.js 22.12 or later (found <major>.<minor>)` | install Node.js 22.12 or later |
+| `WingFoil UI stopped on an unexpected error: …` right at start | the checkout is not built (`npm run build`), or `state.json` cannot be read; the message names the cause |
+| `Port <n> is already in use` | choose another `--port`, or omit it to get a free port |
+| `No free port found after <tries> tries` | the loopback ports are exhausted or blocked; retry, or give a `--port` |
+| `The WingFoil UI state directory … lies inside the project …` | set `WINGFOIL_UI_STATE_DIR` to a folder outside every project |
+| `Open this URL in your browser: <url>` | no browser opener: open the URL by hand |
+| *This page is no longer recognised by the console* | the console was restarted: open the new URL from its terminal |
+| *Cannot reach the console…* banner | the console stopped: start it again and open the URL it prints |
+| `WingFoil CLI not found for this project. Install it with: npm install --save-dev wingfoil` / *Unavailable — WingFoil CLI not found* | install the CLI in the project (or put `wingfoil` on the `PATH`) |
+| `WingFoil <version> — read-only: supported 0.2.2 to 0.2.x` | the project's CLI is outside the supported range: pin a supported version in the project |
+| *Unavailable — folder not found* | the folder was moved or deleted: put it back, or remove the project and add the new path |
+| *Read-only: git has no user.email for this project…* | `git config user.email '<your email>'` |
+| *Read-only: <email> is not in the team of this project.* | your git email is not in `dna.team.members` |
+| `The working directory is not empty: <path>` | choose another working directory, or empty it |
+| `Git refused the action:` + git's message | read git's message (unreachable remote, refused authentication, not a git repository) |
+| `WingFoil did not answer within 30 seconds` | the project's CLI is slow or stuck; retry |
+| *Something went wrong in the console: see its log in the terminal* | read the log lines on the console's terminal |
+
+## What v0.1 does not do
+
+- **No governed write.** No submit, approve or reject, no ingestion, no editing of elements, DNA
+  or directives, no fetch, pull or push. The only write is cloning a remote into a new folder
+  (plus the console's own local state).
+- **No Today view** — it arrives in v0.2; until then a project opens on its Memory list.
+- **No UI settings** (forcing the theme arrives in v0.2), no `.wingfoil/ui.yaml` configuration,
+  no workflow, timeline, traceability, files or artifacts views, no command palette, no
+  notifications, no "Open on GitHub" link.
+- **Not on npm yet:** run it from a checkout ([README](../README.md#install-and-run)).
+
+## Known limitations
+
+Accepted for v0.1 and recorded in the implementation plan
+(`docs/05_plans/rl-v1/rel-v0.1/dev-loop-rel-v0.1-plan.md`) and the task notes:
+
+- **Clone URL check, two edge cases.** An scp-like address with an `@` in its path (after the
+  host's `:`) and no `/`, e.g. `git@host:repo@v2.git`, is refused as if it held credentials
+  (`git@github.com:repo.git` and `git@host:org/repo@v2.git` are accepted); a URL with an unknown
+  scheme and credentials (`git+https://user:pass@…`) is passed to `git clone`, which refuses the transport — nothing
+  connects, nothing is stored, the URL is not echoed.
+- **A killed clone leaves its folder.** If the console is killed (not stopped) during a clone, the
+  partial folder stays; a retry says *The working directory is not empty*. Delete the folder by
+  hand.
+- **Role view refusal.** If a *Role view* change is refused and the following header re-read never
+  completes, the refusal is not shown and the select stays disabled; reload the page.
+- **Windows** is tested only through simulated platform behaviour: opening the browser (the
+  `#token` fragment through `rundll32`), finding the CLI, and stopping child processes (a
+  `wingfoil` process may outlive the console briefly) have not been checked on a Windows machine.
+- **Browsers:** the end-to-end suite runs on Chromium only in v0.1; Firefox and WebKit from v0.2.
+- **Event streams:** the console sets no limit on the number of open pages (event streams).
+- **History reading:** after each new commit, the Memory history is re-read by walking the whole
+  git log, not incrementally; very long histories make this read slower.
+- **One string outside the catalogue:** a screen-reader-only library string (React Aria's
+  "Dismiss", in popovers).
