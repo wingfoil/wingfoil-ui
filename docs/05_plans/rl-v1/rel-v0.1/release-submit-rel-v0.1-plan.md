@@ -2,7 +2,7 @@
 id: release-submit-rel-v0.1-plan
 type: plan
 title: "Release submit rel-v0.1"
-status: active
+status: done
 version: "0.1"         # optional — plan version
 workflow: "release-submit"
 phase: "rel-v0.1"
