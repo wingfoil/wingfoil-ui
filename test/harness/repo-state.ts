@@ -8,11 +8,13 @@
 import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
-import { git } from './run.js';
+import { git, run } from './run.js';
 
 /** What a repository holds at one moment. */
 export interface RepoState {
   head: string;
+  /** The branch HEAD points to (`git symbolic-ref -q HEAD`), empty when detached. */
+  headRef: string;
   /** `<ref> <object>` of every ref. */
   refs: string[];
   stash: string;
@@ -43,6 +45,8 @@ export async function snapshotRepo(dir: string, env: NodeJS.ProcessEnv): Promise
   const gitDir = path.resolve(dir, await out(['rev-parse', '--git-dir']));
   return {
     head: await out(['rev-parse', 'HEAD']),
+    // Exit 1 when HEAD is detached: not an error.
+    headRef: (await run('git', ['symbolic-ref', '-q', 'HEAD'], { cwd: dir, env: e, allowFailure: true })).stdout.trim(),
     refs: (await out(['for-each-ref', '--format=%(refname) %(objectname)'])).split('\n').filter(Boolean),
     stash: await out(['stash', 'list']),
     status: await out(['status', '--porcelain=v1', '--untracked-files=all', '--ignored']),
@@ -63,6 +67,9 @@ export async function diffRepo(
     changes.push(`HEAD ${before.head} → ${after.head}`);
     const { stdout } = await git(dir, ['log', '--format=new commit %h %an: %s', `${before.head}..${after.head}`], env);
     changes.push(...stdout.trim().split('\n').filter(Boolean));
+  }
+  if (before.headRef !== after.headRef) {
+    changes.push(`HEAD on ${before.headRef || '(detached)'} → ${after.headRef || '(detached)'}`);
   }
   const refsBefore = new Set(before.refs);
   const refsAfter = new Set(after.refs);

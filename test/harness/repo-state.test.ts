@@ -69,6 +69,17 @@ describe('repository snapshot (AC-5)', () => {
     expect(await diff()).toEqual(['.git/index rewritten', '.git/config changed']);
   });
 
+  it('AC-5 detects a branch switch and a detached HEAD at the same commit', async () => {
+    await git(dir, ['checkout', '-q', '-b', 'other'], env);
+    expect(await diff()).toEqual([
+      'HEAD on refs/heads/main → refs/heads/other',
+      expect.stringMatching(/^ref added or moved: refs\/heads\/other /),
+    ]);
+    await git(dir, ['checkout', '-q', '--detach', 'main'], env);
+    await git(dir, ['branch', '-q', '-D', 'other'], env);
+    expect(await diff()).toEqual(['HEAD on refs/heads/main → (detached)']);
+  });
+
   it('AC-5 detects a stash', async () => {
     await writeFile(path.join(dir, 'a.md'), 'stashed\n');
     await git(dir, ['stash', '-q'], env);
