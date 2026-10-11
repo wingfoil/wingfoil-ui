@@ -354,7 +354,8 @@ map AC-4/AC-5 to their spec tests.
   17.2): pack 1.9 s, install 1.3 s, `--version` 0.5 s, start 0.6 s, 6.4 s in all. Tarball 120
   files.
 - `python3 docs/03_backlog/X_tools/check_tasks.py`: OK (25 tasks, 72 backlog items).
-- `npm run test:timing`: **skipped** — load 15.2–17.2 after the e2e run (rule: only below 12).
+- `npm run test:timing`: **green** — Vitest 3 files / 3 tests, Playwright 14 passed (2.5 min),
+  started at load 10.6 (it was 15.2–17.2 right after the e2e run, so it waited until below 12).
 
 ### e2e closure
 
