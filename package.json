@@ -6,6 +6,20 @@
   "bin": {
     "wingfoil-ui": "bin/wingfoil-ui.cjs"
   },
+  "files": [
+    "bin/wingfoil-ui.cjs",
+    "server/dist/**/*.js",
+    "server/src/i18n/en.json",
+    "web/dist/",
+    "contracts/api/*.schema.json",
+    "contracts/cli/*.schema.json",
+    "contracts/files/*.schema.json",
+    "contracts/state/*.schema.json",
+    "contracts/capabilities.json",
+    "contracts/capabilities.schema.json",
+    "contracts/matrix.json",
+    "CHANGELOG.md"
+  ],
   "workspaces": [
     "contracts",
     "server",
@@ -14,6 +28,7 @@
   "scripts": {
     "wingfoil": "wingfoil",
     "build": "tsc -b && npm run -s build -w web",
+    "prepack": "npm run build",
     "typecheck": "tsc -b && tsc -p test",
     "lint": "eslint . && node web/scripts/check-catalogue.mjs",
     "format": "prettier --write .",
@@ -22,6 +37,7 @@
     "test:coverage": "vitest run --coverage",
     "test:contract": "vitest run test/contracts",
     "test:timing": "vitest run --config vitest.timing.config.ts && playwright test --config playwright.timing.config.ts",
+    "test:smoke": "vitest run --config vitest.smoke.config.ts",
     "test:e2e": "playwright test",
     "docs:api": "typedoc --options typedoc.json"
   },
@@ -30,6 +46,14 @@
   "private": true,
   "engines": {
     "node": ">=22.12.0"
+  },
+  "dependencies": {
+    "@fastify/static": "^10.1.5",
+    "@formatjs/intl": "^6.1.2",
+    "ajv": "^8.20.0",
+    "fastify": "^5.12.5",
+    "pino": "^10.4.0",
+    "yaml": "^2.9.1"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.13.0",
