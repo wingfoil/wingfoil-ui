@@ -10,7 +10,8 @@ All notable changes to WingFoil UI are recorded in this file. The format follows
 
 **Read-only console.** Open any WingFoil project and read it safely. Supports WingFoil **0.2.2 to
 0.2.x** (contract-tested: 0.2.2). Run from a checkout: `npm ci && npm run build && node
-bin/wingfoil-ui.cjs` ([README](README.md#install-and-run)); not published on npm.
+bin/wingfoil-ui.cjs` ([README](README.md#install-and-run)), or `npm pack` it and install the tarball
+([README](README.md#install-from-a-package)); not published on npm.
 
 ### Added
 

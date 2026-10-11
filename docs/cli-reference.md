@@ -1,11 +1,13 @@
 # CLI reference — `wingfoil-ui`
 
-**Version:** 0.1 · **Date:** 2026-10-11 (0.1: release v0.1)
+**Version:** 0.2 · **Date:** 2026-10-11 (0.1: release v0.1; 0.2: `npx wingfoil-ui` from an installed package, Ctrl-C under `npx` — task-025)
 
 The `wingfoil-ui` command starts the WingFoil UI console: a local server on the loopback addresses
 and, unless told otherwise, the browser on its URL. It is the package `bin`
 (`bin/wingfoil-ui.cjs`); from a checkout, after `npm ci && npm run build`, run it as
-`node bin/wingfoil-ui.cjs [options]` ([README](../README.md#install-and-run)).
+`node bin/wingfoil-ui.cjs [options]`; from a folder where the package is installed
+([README](../README.md#install-from-a-package)), as `npx wingfoil-ui [options]`
+([README](../README.md#install-and-run)).
 
 Sources: `bin/wingfoil-ui.cjs`, `server/src/main.ts`, `server/src/launcher/` (`options.ts`,
 `start.ts`, `listen.ts`, `opener.ts`), messages in `server/src/i18n/en.json`; specification
@@ -127,6 +129,11 @@ second signal during the stop exits at once with status 130, after killing every
 still running. The token and every browser session end with the process: a new start draws a new
 token.
 
+Started with `npx wingfoil-ui`, Ctrl-C signals npm and the console together: the console stops as
+above (exit 0, `WingFoil UI stopped`), but `npx` itself reports the signal, so the shell shows
+status 130. A `SIGINT` sent to the console's own process alone ends `npx` with the console's
+status, 0 (`test/smoke/launch.smoke.test.ts`).
+
 ## Exit status
 
 | Status | Meaning |
@@ -145,4 +152,5 @@ token.
 node bin/wingfoil-ui.cjs                       # free port, opens the browser
 node bin/wingfoil-ui.cjs --port 4800 --no-open # fixed port, prints the URL only
 WINGFOIL_UI_STATE_DIR=/tmp/wfui-try node bin/wingfoil-ui.cjs   # separate project list
+npx wingfoil-ui --no-open                      # the installed package, from its folder
 ```
