@@ -54,6 +54,24 @@ The terminal prints `WingFoil UI is running at http://127.0.0.1:<port>/#token=<t
 console opens in your default browser. Stop it with Ctrl-C. Options (`--port`, `--no-open`, …):
 [CLI reference](docs/cli-reference.md).
 
+### Install from a package
+
+The same checkout packs an installable package (`npm pack` builds it first). Install the tarball
+in any folder and start it with `npx`:
+
+```bash
+npm pack                                   # in the checkout: wingfoil-ui-<version>.tgz
+mkdir ~/wingfoil-ui && cd ~/wingfoil-ui
+npm init -y
+npm install /path/to/wingfoil-ui-<version>.tgz
+npx wingfoil-ui                            # same options as above, e.g. --no-open
+```
+
+The package holds the launcher, the built server and browser application, the JSON contracts and
+the message catalogue; its runtime dependencies are installed from npm. Install it before running
+`npx wingfoil-ui`: this project publishes nothing on npm, and `npx` looks on the registry for a
+command it does not find installed.
+
 ## Documentation
 
 | Document | Content |
@@ -113,6 +131,7 @@ npm workspaces: `contracts/`, `server/`, `web/`. After `npm ci`:
 | `npm run test:contract` | the CLI JSON contract tests of `test/contracts/` |
 | `npm run test:timing` | the timing suite (performance budgets) — on a quiet machine only |
 | `npm run test:e2e` | Playwright end-to-end suite on the real launcher (Chromium; `npx playwright install chromium` once) |
+| `npm run test:smoke` | the launch smoke: packs the repository, installs the tarball into a temporary folder and starts it with `npx wingfoil-ui` |
 | `npm run docs:api` | TypeDoc of `server/` and `contracts/` into `docs-api/` |
 
 Details of every suite: [`test/README.md`](test/README.md). The governance CLI of this repository is

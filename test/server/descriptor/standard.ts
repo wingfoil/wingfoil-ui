@@ -4,7 +4,7 @@
 // the code under test. Shared by the unit test (captured samples) and the contract test (fixtures
 // built with the pinned CLI).
 import type { ActionDescriptor } from '../../../server/src/descriptor/descriptor.js';
-import type { FixtureKind } from '../../harness/fixtures/index.js';
+import type { BddFixtureKind } from '../../harness/fixtures/index.js';
 
 export const APPROVERS = ['Morgan', 'Alex'];
 export const TECH_LEADS = ['Morgan', 'Alex'];
@@ -43,7 +43,7 @@ export const LAST: Row = { kind: 'last', verbs: [], actor: { kind: 'none' }, ton
 const WAITING: Row = { kind: 'waiting', verbs: [], actor: { kind: 'engine' }, tone: 'neutral', bucket: 'waiting' };
 
 /** Every standard element of the three fixtures (`00_conventions.md`). */
-export const STANDARD: Record<FixtureKind, Record<string, Row>> = {
+export const STANDARD: Record<BddFixtureKind, Record<string, Row>> = {
   kanban: {
     'task-001-login-form': gate('approved', 'draft'),
     'task-002-password-reset': {
@@ -98,6 +98,6 @@ export function observed(d: ActionDescriptor): Row {
 }
 
 /** Every row: fixture, element id, expectation. */
-export const ROWS = (Object.entries(STANDARD) as [FixtureKind, Record<string, Row>][]).flatMap(([kind, rows]) =>
+export const ROWS = (Object.entries(STANDARD) as [BddFixtureKind, Record<string, Row>][]).flatMap(([kind, rows]) =>
   Object.entries(rows).map(([id, row]) => ({ kind, id, row })),
 );

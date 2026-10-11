@@ -10,12 +10,12 @@ import { describeElement, type ActionDescriptor } from '../../../server/src/desc
 import { compareRequiresYou, offeredVerbs, placement } from '../../../server/src/descriptor/placement.js';
 import { parseMemoryYaml } from '../../../server/src/reads/memory-yaml.js';
 import { REPO_ROOT } from '../../harness/cli.js';
-import { memberByName, type FixtureKind, type MemberName } from '../../harness/fixtures/index.js';
+import { memberByName, type BddFixtureKind, type MemberName } from '../../harness/fixtures/index.js';
 
 const SAMPLES = path.join(REPO_ROOT, 'test/contracts/samples/wingfoil-0.2.2');
-const read = (kind: FixtureKind, file: string) => readFileSync(path.join(SAMPLES, kind, file), 'utf8');
+const read = (kind: BddFixtureKind, file: string) => readFileSync(path.join(SAMPLES, kind, file), 'utf8');
 
-function descriptors(kind: FixtureKind): Map<string, ActionDescriptor> {
+function descriptors(kind: BddFixtureKind): Map<string, ActionDescriptor> {
   const project = {
     memoryYaml: parseMemoryYaml(read(kind, 'files/memory.yaml')),
     members: (JSON.parse(read(kind, 'dna-show.json')) as DnaShow).team.members,
@@ -35,7 +35,7 @@ const user = (name: MemberName) => {
 };
 
 /** Requires you and Waiting on others of `name` in `view`, as id → action / who. */
-function views(kind: FixtureKind, name: MemberName, view: string) {
+function views(kind: BddFixtureKind, name: MemberName, view: string) {
   const requires: Record<string, string> = {};
   const waiting: string[] = [];
   for (const [id, d] of descriptors(kind)) {

@@ -19,19 +19,19 @@ import {
 } from '../../../server/src/descriptor/descriptor.js';
 import { parseMemoryYaml, resolveStates } from '../../../server/src/reads/memory-yaml.js';
 import { REPO_ROOT } from '../../harness/cli.js';
-import type { FixtureKind } from '../../harness/fixtures/index.js';
+import type { BddFixtureKind } from '../../harness/fixtures/index.js';
 import { LAST, observed, ROWS, STANDARD, TECH_LEADS } from './standard.js';
 
 const SAMPLES = path.join(REPO_ROOT, 'test/contracts/samples/wingfoil-0.2.2');
-const sample = (kind: FixtureKind, file: string) => readFileSync(path.join(SAMPLES, kind, file), 'utf8');
-const memoryYaml = (kind: FixtureKind): MemoryYaml => parseMemoryYaml(sample(kind, 'files/memory.yaml'));
-const matches = (kind: FixtureKind) => (JSON.parse(sample(kind, 'memory-search.json')) as MemorySearch).matches;
-const history = (kind: FixtureKind, id: string) =>
+const sample = (kind: BddFixtureKind, file: string) => readFileSync(path.join(SAMPLES, kind, file), 'utf8');
+const memoryYaml = (kind: BddFixtureKind): MemoryYaml => parseMemoryYaml(sample(kind, 'files/memory.yaml'));
+const matches = (kind: BddFixtureKind) => (JSON.parse(sample(kind, 'memory-search.json')) as MemorySearch).matches;
+const history = (kind: BddFixtureKind, id: string) =>
   (JSON.parse(sample(kind, `memory-history/${id}.json`)) as MemoryHistory).entries;
-const members = (kind: FixtureKind) => (JSON.parse(sample(kind, 'dna-show.json')) as DnaShow).team.members;
+const members = (kind: BddFixtureKind) => (JSON.parse(sample(kind, 'dna-show.json')) as DnaShow).team.members;
 
 const OPEN: Enablement = { identified: true, version: { supported: true, range: '0.2.2' } };
-const project = (kind: FixtureKind, enablement: Enablement = OPEN): DescriptorProject => ({
+const project = (kind: BddFixtureKind, enablement: Enablement = OPEN): DescriptorProject => ({
   memoryYaml: memoryYaml(kind),
   members: members(kind),
   enablement,

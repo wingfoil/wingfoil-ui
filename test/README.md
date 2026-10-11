@@ -1,6 +1,6 @@
 # Tests
 
-**Version:** 0.23 · **Date:** 2026-10-10 (0.1: workspace tooling and e2e harness — task-001; 0.2: `test/launcher/`, `test/server/` — task-002; 0.3: `test/contracts/`, local state isolation, secret scan — task-007; 0.4: `local-security` suite — task-003; 0.5: process runner fake, hand-made CLI packages, stub after global options — task-004; 0.6: CLI contract tests, captured samples, `test:contract` — task-005; 0.7: action descriptor tests, REQ-ARC-05 lint rule — task-011; 0.8: matrix builds of `cliBuildFor`, capability table and README checks — task-006; 0.9: identity tests, bin with a seeded state — task-009; 0.10: timing suite `test:timing`, `TempWorkspace`, snapshot audits and stand-ins — task-010 / bug-001; 0.11: project-list route tests, a dumb-HTTP git remote — task-008; 0.12: read routes, the read console replacing the stand-ins, spec-002 §3 event parse, confinement — task-012; 0.13: `test/web/` component tests, the shared e2e support of Wave 3, the shell e2e — task-013; 0.14: `test/web/element/` and the element panel e2e `element-panel.spec.ts` — task-018; 0.15: `test/web/docs/` and the documentation e2e `documentation.spec.ts` — task-020; 0.16: `test/web/memory/` and the Memory list e2e `memory-list.spec.ts` — task-017; 0.17: `test/web/dna/`, `directives/`, `team/`, the e2e `dna`, `directives`, `team` specs and G-02 in `element-panel.spec.ts`; load-independent waits, prebuilt fixtures and the console reaper of the e2e support, `test/harness/load.ts` — task-019 / bug-004; 0.18: the Playwright part of `test:timing` (strict live refresh) — task-019, W3-47; 0.19: `wingfoil-feedback.test.ts`, the WingFoil feedback inbox and the `wingfoil-cli` *Note* column — task-023; 0.20: the project switcher e2e `projects.spec.ts`, `stateDir` of the e2e console, `test/web/shell/project-switcher`, `switch-target`, `test/web/api/projects` — task-015; 0.21: the Add project e2e `add-project.spec.ts`, `support/switcher.ts`, `support/git-http.ts`, `test/web/shell/add-project`, `add-project-fields`, `working-directory` — task-014; 0.22: the project header e2e `project-header.spec.ts`, `test/web/project/`, `test/web/api/role-view` — task-016; 0.23: the e2e-smoke `accessibility` spec `accessibility.spec.ts`, `performance.spec.ts` (`@perf`, TT-PERF-04) and the large fixture `test/harness/fixtures/large.ts`, `support/screens.ts`, `strings.ts`, `perf.ts`, `focusRing`/`tabUntil`, `test/web/shell/page-title` — task-021)
+**Version:** 0.24 · **Date:** 2026-10-11 (0.1: workspace tooling and e2e harness — task-001; 0.2: `test/launcher/`, `test/server/` — task-002; 0.3: `test/contracts/`, local state isolation, secret scan — task-007; 0.4: `local-security` suite — task-003; 0.5: process runner fake, hand-made CLI packages, stub after global options — task-004; 0.6: CLI contract tests, captured samples, `test:contract` — task-005; 0.7: action descriptor tests, REQ-ARC-05 lint rule — task-011; 0.8: matrix builds of `cliBuildFor`, capability table and README checks — task-006; 0.9: identity tests, bin with a seeded state — task-009; 0.10: timing suite `test:timing`, `TempWorkspace`, snapshot audits and stand-ins — task-010 / bug-001; 0.11: project-list route tests, a dumb-HTTP git remote — task-008; 0.12: read routes, the read console replacing the stand-ins, spec-002 §3 event parse, confinement — task-012; 0.13: `test/web/` component tests, the shared e2e support of Wave 3, the shell e2e — task-013; 0.14: `test/web/element/` and the element panel e2e `element-panel.spec.ts` — task-018; 0.15: `test/web/docs/` and the documentation e2e `documentation.spec.ts` — task-020; 0.16: `test/web/memory/` and the Memory list e2e `memory-list.spec.ts` — task-017; 0.17: `test/web/dna/`, `directives/`, `team/`, the e2e `dna`, `directives`, `team` specs and G-02 in `element-panel.spec.ts`; load-independent waits, prebuilt fixtures and the console reaper of the e2e support, `test/harness/load.ts` — task-019 / bug-004; 0.18: the Playwright part of `test:timing` (strict live refresh) — task-019, W3-47; 0.19: `wingfoil-feedback.test.ts`, the WingFoil feedback inbox and the `wingfoil-cli` *Note* column — task-023; 0.20: the project switcher e2e `projects.spec.ts`, `stateDir` of the e2e console, `test/web/shell/project-switcher`, `switch-target`, `test/web/api/projects` — task-015; 0.21: the Add project e2e `add-project.spec.ts`, `support/switcher.ts`, `support/git-http.ts`, `test/web/shell/add-project`, `add-project-fields`, `working-directory` — task-014; 0.22: the project header e2e `project-header.spec.ts`, `test/web/project/`, `test/web/api/role-view` — task-016; 0.23: the e2e-smoke `accessibility` spec `accessibility.spec.ts`, `performance.spec.ts` (`@perf`, TT-PERF-04) and the large fixture `test/harness/fixtures/large.ts`, `support/screens.ts`, `strings.ts`, `perf.ts`, `focusRing`/`tabUntil`, `test/web/shell/page-title` — task-021; 0.24: the packaging guard `test/package/`, the launch smoke `test/smoke/` and `test:smoke`, the `scrum` fixture and `scrum.spec.ts`, `test/harness/repo-state.ts` and `no-commit.spec.ts`; the Vitest global setup builds `web/dist` too — task-025 / bug-007)
 
 Every test lives under `test/` (DNA `paths.tests`); sources stay in `server/src`, `web/src`,
 `contracts/src`.
@@ -12,12 +12,26 @@ Every test lives under `test/` (DNA `paths.tests`); sources stay in `server/src`
 | `npm run test:contract` | the contract tests of `test/contracts/` (e2e-smoke `contract`, spec-001 §7) |
 | `npm run test:timing` | the timing suite: `test/timing/**/*.timing.test.ts`, one file at a time, each measurement printed with the load average — on a quiet machine only (see *Timing suite*) |
 | `npm run test:e2e` | Playwright: `test/e2e/**/*.spec.ts`, Chromium only in v0.1 (REQ-INT-08 staged) |
+| `npm run test:smoke` | the launch smoke (e2e-smoke `launch`): `test/smoke/**/*.smoke.test.ts` — packs the repository (`prepack` builds), installs the tarball into a temporary folder and runs `npx wingfoil-ui` there (see *Launch smoke*) |
 | `npm run lint` · `npm run format:check` · `npm run typecheck` · `npm run docs:api` | ESLint (with the REQ-SEC-05 no-shell rule on `server/`), Prettier, `tsc`, TypeDoc of `server/` and `contracts/` |
 
 ## Layout
 
 - `test/harness/` — the e2e harness: process runner (`run.ts`, `execFile` only), the pinned CLI
-  (`cli.ts`), and the fixture builder (`fixtures/`).
+  (`cli.ts`), and the fixture builder (`fixtures/`). `repo-state.ts` (task-025, AC-5):
+  `snapshotRepo(dir, env)` — HEAD, refs, stash, `git status --porcelain --untracked-files=all
+  --ignored`, hashes of `.git/index` and `.git/config`, read without optional locks — and
+  `diffRepo(dir, env, before, after)`, the differences with any new commit listed
+  (`repo-state.test.ts` proves each kind of change is seen).
+- `test/package/` (task-025, bug-007) — the package contract: `allow-list.ts` (the paths the
+  tarball may hold, those it must hold, the bare imports of `server/dist`, `npm` run with this
+  Node.js) and the packaging guard `pack.test.ts` (`npm pack --dry-run --json --ignore-scripts`,
+  no build: every path on the allow-list, every run-time file packed, the bin packed 755, the root
+  `dependencies` equal to `server/package.json`'s and covering every bare import of
+  `server/dist`, no run-time import of `@wingfoil-ui/*`, `prepack`, `private`; the packed
+  `server/dist` is exactly one module per `server/src` module — a stale output fails it — and
+  `web/dist` holds no React development bundle). The Vitest global setup builds `server/dist` and
+  `web/dist` for it, the latter without Vitest's `NODE_ENV=test` (a production bundle).
 - `test/e2e/` — Playwright specs on the real bin, one spec per task, one test per scenario titled
   with its id (`S-01.1 …`), assertions on what the user sees, `scanThemes` (`support/axe.ts`, X-06.4)
   on each screen in the light and the dark theme. Shared support (task-013), used by every web task:
@@ -65,6 +79,10 @@ Every test lives under `test/` (DNA `paths.tests`); sources stay in `server/src`
   `harness/` holds the self-tests of the support (axe helper, console + SSE helper, the X-09.1 check
   and the focus ring helper). `test/harness/fixtures/large.ts` builds the SARD large fixture (custom +
   500 generated elements + 2 000 commits through `git fast-import`) for `performance.spec.ts` only.
+  task-025 (e2e-smoke gaps): `scrum.spec.ts` opens the `scrum` fixture (Memory list, element panel,
+  DNA, axe in both themes, AC-4); `no-commit.spec.ts` walks `SCREENS`, picks a role view and
+  switches project, then checks with `harness/repo-state.ts` that both repositories are unchanged
+  (AC-5).
 - `test/web/` — unit and component tests of `web/src` (Vitest; `// @vitest-environment jsdom` per
   file, Testing Library): `shell/render.tsx` renders the whole application on a memory history with
   a stubbed `fetch` (`stubApi`) — optionally with the key catalogue; theme tokens and contrast pairs
@@ -137,6 +155,29 @@ Every test lives under `test/` (DNA `paths.tests`); sources stay in `server/src`
   `lint/methodology-literals.js` reads the fixtures' type and state names from the captured samples,
   so a re-capture updates it).
 
+## Launch smoke
+
+`npm run test:smoke` (`vitest.smoke.config.ts`, task-025 AC-3, e2e-smoke `launch`) — excluded
+from `npm test` and `test:coverage`, because its `npm pack` runs `prepack`
+(`scripts/clean-build.mjs`, which removes `server/dist`, `contracts/dist`, `web/dist` and their
+`tsbuildinfo`, then `npm run build`), which rewrites the builds under the bin tests. The smoke
+runs `npm` without Vitest's `NODE_ENV=test` (else Vite builds React's development bundle) and
+asserts the packed `server/dist` set and a production web bundle. `test/smoke/launch.smoke.test.ts`:
+`npm pack --pack-destination <tmp>`, then `npm install <tarball> --prefer-offline` into an empty
+folder with the user's npm cache (no network when the cache holds the packages and their
+metadata; a cold cache fetches what is missing), then `npx --no -- wingfoil-ui` there (`--no` and
+`--`: never a registry fallback) with an isolated home and `WINGFOIL_UI_STATE_DIR`: `--version`,
+`--help`, a `--no-open` start (URL line, `GET /` and its script, `GET /api/server` 401 without and
+200 with the token), a stop by SIGINT to the server process (`npx` exits 0) and a Ctrl-C (SIGINT
+to the process group: `npx` ends by the signal, as npm does), no process left after either. Each
+phase's duration is printed; measured on 2026-10-11 at load 5.1: pack (clean build included)
+10.9 s, install 1.6 s, `--version` 0.9 s, start 1.0 s, the whole file ~17 s; tarball 120 files,
+514 kB packed, 1.38 MB unpacked.
+
+Do not run `npm test` / `test:coverage`, `test:e2e` and `test:smoke` at the same time in one
+checkout: each rebuilds `web/dist` (and `server/dist`) in place — the Vitest and Playwright global
+setups, and `prepack` — so one could read a build the other is rewriting.
+
 ## Timing suite
 
 A test whose verdict depends on elapsed time — a performance budget (REQ-PERF-03, REQ-PERF-06) or
@@ -168,7 +209,11 @@ directory.
 ## Fixtures
 
 `buildFixture(kind, { root, now?, cli?, cliVersion? })` builds the `kanban`, `custom` or `unknown`
-fixture of `docs/02_requirements/02_bdd/00_conventions.md` with the pinned CLI (or another build,
+fixture of `docs/02_requirements/02_bdd/00_conventions.md` (`FIXTURE_KINDS`, type
+`BddFixtureKind`) or the `scrum` fixture (task-025 AC-4: `wingfoil init --template Scrum`, the
+standard team; tasks pending, draft, approved and deprecated, a bug rejected back to draft, an
+approved decision-log; not in `FIXTURE_KINDS`, so no contract samples or descriptor rows) with the
+pinned CLI (or another build,
 for contract tests across the support matrix): a git repository `<root>/<kind>` with the standard
 team and elements, its `package.json` pinning `wingfoil`, `node_modules/wingfoil` linked to the
 CLI package, and a bare remote `<root>/remotes/<kind>.git` (`origin`, `main` pushed). Setup

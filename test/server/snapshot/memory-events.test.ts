@@ -7,13 +7,13 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { Snapshots } from '../../../server/src/snapshot/snapshots.js';
-import { buildFixture, FIXTURE_KINDS, type Fixture, type FixtureKind } from '../../harness/fixtures/index.js';
+import { buildFixture, FIXTURE_KINDS, type Fixture, type BddFixtureKind } from '../../harness/fixtures/index.js';
 import { GitReadError } from '../../../server/src/git/git.js';
 import { git } from '../../harness/run.js';
 import { auditedSnapshots } from './support.js';
 
 let root: string;
-const fixtures = new Map<FixtureKind, Fixture>();
+const fixtures = new Map<BddFixtureKind, Fixture>();
 const registries: Snapshots[] = [];
 
 beforeAll(async () => {

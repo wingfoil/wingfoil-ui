@@ -14,14 +14,20 @@ import { discoverCli } from '../../server/src/cli/discovery.js';
 import { LocalProcessRunner } from '../../server/src/process/runner.js';
 import { resolveStates, transitionTarget } from '../../server/src/reads/memory-yaml.js';
 import { ProjectReads } from '../../server/src/reads/project-reads.js';
-import { buildFixture, copyFixture, FIXTURE_KINDS, type Fixture, type FixtureKind } from '../harness/fixtures/index.js';
+import {
+  buildFixture,
+  copyFixture,
+  FIXTURE_KINDS,
+  type Fixture,
+  type BddFixtureKind,
+} from '../harness/fixtures/index.js';
 import { actAs, archiveOne, cliBuildFor, matrixVersions } from './support.js';
 
 const VERSIONS = await matrixVersions();
 
 /** Writes run on a copy of each fixture: member, command, id, reason. */
 const WRITES: Record<
-  FixtureKind,
+  BddFixtureKind,
   ['Jordan' | 'Morgan', 'memory submit' | 'memory approve' | 'memory reject', string][]
 > = {
   kanban: [
@@ -39,7 +45,7 @@ const WRITES: Record<
     ['Morgan', 'memory reject', 'story-001-onboarding'],
   ],
 };
-const ADD: Record<FixtureKind, [string, string]> = {
+const ADD: Record<BddFixtureKind, [string, string]> = {
   kanban: ['task', 'Remember me'],
   custom: ['decision-log', 'Use pino'],
   unknown: ['story', 'Search'],
@@ -69,7 +75,7 @@ async function adapterFor(fx: Fixture, ran: Set<CliCommandName>) {
 }
 
 describe.each(VERSIONS)('contract — wingfoil %s', (version) => {
-  const fixtures = {} as Record<FixtureKind, Fixture>;
+  const fixtures = {} as Record<BddFixtureKind, Fixture>;
   const ran = new Set<CliCommandName>();
 
   beforeAll(async () => {

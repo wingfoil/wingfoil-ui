@@ -11,10 +11,17 @@ import { STANDARD_AGENT, STANDARD_TEAM } from './team.js';
 import { UNKNOWN_MEMORY_YAML, UNKNOWN_TEMPLATES } from './unknown-schema.js';
 
 /** The three fixtures of the BDD conventions (`@fx-kanban`, `@fx-custom`, `@fx-unknown`). */
-export type FixtureKind = 'kanban' | 'custom' | 'unknown';
+export type BddFixtureKind = 'kanban' | 'custom' | 'unknown';
 
-/** Every fixture kind. */
-export const FIXTURE_KINDS: readonly FixtureKind[] = ['kanban', 'custom', 'unknown'];
+/**
+ * Every fixture kind: the BDD ones and `scrum` — the pinned CLI's `Scrum` template, opened by the
+ * e2e-smoke `fixture-project` step (task-025 AC-4, ES-14). `scrum` is not a BDD fixture: the
+ * contract samples and the descriptor oracle cover {@link FIXTURE_KINDS} only.
+ */
+export type FixtureKind = BddFixtureKind | 'scrum';
+
+/** The BDD fixture kinds (contract samples, descriptor oracle, S-28.1). */
+export const FIXTURE_KINDS: readonly BddFixtureKind[] = ['kanban', 'custom', 'unknown'];
 
 /** Options of {@link buildFixture}. */
 export interface BuildOptions {
@@ -97,7 +104,7 @@ export async function buildFixture(kind: FixtureKind, options: BuildOptions): Pr
   });
   await project.init(kind);
   if (kind === 'custom') await importGovernance(project);
-  else await project.wingfoil(['init', '--template', 'Kanban'], 'setup');
+  else await project.wingfoil(['init', '--template', kind === 'scrum' ? 'Scrum' : 'Kanban'], 'setup');
   if (kind === 'unknown') await writeUnknownSchema(project);
   await setUpDna(project, kind);
   await BUILDERS[kind](project);
@@ -225,6 +232,26 @@ const BUILDERS: Record<FixtureKind, (project: FixtureProject) => Promise<void>> 
       requirements: '"docs/03_backlog/04_backlog/by-release/v0.1.json"',
     });
     await p.submit('Alex', rel.id);
+  },
+
+  async scrum(p) {
+    // The default state machine of the template (draft → pending → approved, deprecated) with one
+    // element in each state, a rejection and two types besides task.
+    // The first element commit is not an element's last one: it sits on the edge of the window.
+    const t1 = await p.add('Jordan', 'task', 'Search story');
+    await p.submit('Jordan', t1.id);
+    await p.add('Jordan', 'task', 'Login story');
+    const t3 = await p.add('Jordan', 'task', 'Export story');
+    await p.submit('Jordan', t3.id);
+    await p.approve('Morgan', t3.id);
+    const t4 = await p.add('Jordan', 'task', 'Obsolete spike');
+    await p.deprecate('Morgan', t4.id, 'Superseded by the search story');
+    const b1 = await p.add('Sam', 'bug', 'Burndown off by one');
+    await p.submit('Sam', b1.id);
+    await p.reject('Morgan', b1.id, 'Steps to reproduce missing');
+    const dl1 = await p.add('Alex', 'decision-log', 'Two-week sprints');
+    await p.submit('Alex', dl1.id);
+    await p.approve('Morgan', dl1.id);
   },
 
   async unknown(p) {

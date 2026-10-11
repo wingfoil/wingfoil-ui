@@ -2,7 +2,7 @@
 id: bug-007-packed-package-cannot-start-and-would-ship-private-and-development-files
 type: bug
 title: "Packed package cannot start and would ship private and development files"
-status: in-progress
+status: resolved
 severity: "medium"           # REQUIRED — critical | high | medium | low
 release-origin: "v0.1"     # optional — release where the bug was FOUND, e.g. "v0.1"
 release: ""            # optional — fix/implementation release, stamped by release-planning/build-backlog
@@ -71,3 +71,11 @@ and nothing git-ignored or development-only.
   list + AC-1…AC-3). `triaged → planned` set by hand (no CLI verb).
 - start (2026-10-11): task-025 started → `planned → in-progress` by hand (bug.sync_state; no CLI
   verb); it is submitted together with task-025.
+- fix (2026-10-11, task-025): `package.json` gets a `files` allow-list (bin, `server/dist/**/*.js`,
+  `server/src/i18n/en.json`, `web/dist/`, the contracts' JSON, README, LICENSE, CHANGELOG), root
+  `dependencies` equal to the server's, `prepack` = clean build (`scripts/clean-build.mjs`) + build;
+  `@wingfoil-ui/contracts` stays type-only (ES-8); bin mode 100755. Tarball 120 files, 513 788 B
+  (was 707 files, ~2.2 MB, no `dist/`). Guard `test/package/pack.test.ts` (default suite: exact
+  allow-list, forbidden paths, one `server/dist` module per source, production build, dependencies);
+  launch smoke `npm run test:smoke` (pack → install in a temp folder → `npx wingfoil-ui`). Independent
+  review: round 1 FAIL (2 minor: dev React build packed; stale outputs not caught), round 2 PASS.
