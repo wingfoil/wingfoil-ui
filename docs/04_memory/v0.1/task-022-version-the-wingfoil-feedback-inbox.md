@@ -26,12 +26,12 @@ can register this repository as a `repository` service with `feedback_inbox: doc
 git-ignored for other local notes. The one-file-per-note format is task-023.
 
 It applies **WingFoil dl-163** ("Consumer projects' feedback sources and the feedback loop",
-`ready`, ratified 2026-10-07) **strictly, with no local extension** (approver ruling R9), as relayed by
-a cross-project request (step M2, 2026-10-09). Public sources: WingFoil dl-163 and WingFoil
-`COLLABORATION.md` `## Credit` (`wingfoil/wingfoil`, `origin/main`); citation revised 2026-10-11
-(dl-005). Reference implementation: WingFoil-Templates
-at `53090c2` (task-009, task-010). Governance task between Wave 3 and Wave 4: `module: governance`,
-`ref: GOV` (no backlog item; accepted by `check_tasks.py`).
+`ready`, ratified 2026-10-07) **strictly, with no local extension** (approver ruling R9), as relayed
+in a cross-project request (step M2, 2026-10-09). Public sources: WingFoil dl-163 and WingFoil
+`COLLABORATION.md` `## Credit` (`wingfoil/wingfoil` at `ec6a7ba5`); citation revised 2026-10-11
+(dl-005). Reference implementation: WingFoil-Templates at `53090c2` (task-009, task-010). Governance
+task between Wave 3 and Wave 4: `module: governance`, `ref: GOV` (no backlog item; accepted by
+`check_tasks.py`).
 
 Also: `docs/03_backlog/X_tools/check_tasks.py` accepts a governance task of a release
 (`module: governance` with `ref: GOV`, no backlog item) — done with this task's authoring, so that
@@ -46,7 +46,7 @@ the release's stop-check stays green.
 - `check_tasks.py` passes with the governance tasks (and still refuses a `governance` module without
   `ref: GOV`, or `GOV` with another module).
 - `main` pushed to `origin` before and after (approver decision, 2026-10-09); the push state is
-  reported to the coordinating session.
+  reported to the cross-project requester.
 
 ## Implementation Notes
 
@@ -91,4 +91,4 @@ the release's stop-check stays green.
   `.notes/wingfoil-requests.md` removed after `cmp` against the versioned copy (identical); `.notes/`
   stays git-ignored and is now empty.
 - After-push: `main` pushed to `origin` with this `done` commit (range recorded in the plan and
-  reported to the session coordinating the feedback loop).
+  reported to the cross-project requester).

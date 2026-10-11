@@ -275,7 +275,7 @@ e2e closure — scenarios that need a screen are proved here by API and unit tes
   typecheck, lint, format:check clean · `docs:api` OK · `npm run -s test:coverage` **205/207**:
   the two failures are the timing tests of task-001/002 (TypeDoc build > 30 s, REQ-PERF-06
   > 3.0 s) with load average 64–68 on 12 cores from another project's builds
-  (`ps`: `.wf2-wt/task-*` tsc/typedoc/jest); to be re-run on a quiet machine before the merge.
+  (`ps`: tsc/typedoc/jest); to be re-run on a quiet machine before the merge.
 - **SIGHUP** (spec-007 §6 amended on `main`, commit `429aab3`, approved by the user 2026-10-05;
   not merged into this branch): `main.ts` registers the same stop handler on `SIGINT`, `SIGTERM`
   and `SIGHUP` (registered on Windows too: Node.js emits `SIGHUP` there when the console window

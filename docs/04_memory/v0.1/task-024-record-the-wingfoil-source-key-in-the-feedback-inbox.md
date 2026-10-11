@@ -23,8 +23,8 @@ Record the WingFoil source key of this repository's feedback inbox. WingFoil (wi
 registered the inbox as service **`svc-019`**
 (`svc-019-github-repository-wingfoil-ui-a-private-consumer-project-and-its-feedback-inbox`, status
 `active`, approval pushed on WingFoil `origin/main` `30b268a3`, WingFoil task-269). Until now
-`docs/wingfoil-feedback/README.md` says "**Source key:** to be set". Requested by the session
-coordinating the WingFoil ecosystem (cross-project item "task 001"), to be done at a wave boundary
+`docs/wingfoil-feedback/README.md` says "**Source key:** to be set". Requested in a
+cross-project request (item "task 001"), to be done at a wave boundary
 (approver ruling of 2026-10-10): end of Wave 5 of minor-v0.1, after task-021. Governance task:
 `module: governance`, `ref: GOV` (no backlog item; accepted by `check_tasks.py`), as task-022/023.
 
@@ -37,8 +37,8 @@ coordinating the WingFoil ecosystem (cross-project item "task 001"), to be done 
   `svc-019/F-001@<sha>`).
 - Nothing else in the inbox changes (notes F-001…F-019, ledger, rules); `test/wingfoil-feedback.test.ts`
   and `format:check` stay green.
-- Committed and pushed to `origin/main`; the coordinating session is told the task id, the commit and
-  the push state.
+- Committed and pushed to `origin/main`; the cross-project requester is told the task id, the
+  commit and the push state.
 
 ## Implementation Notes
 

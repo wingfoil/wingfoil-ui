@@ -30,7 +30,8 @@ phase plans. The feedback inbox README also cites notes in a short form that dif
   terms ("the approver", "a cross-project request", "the previous session's handoff").
 - The feedback inbox README cites a note in WingFoil's `reported_by:` form,
   `<service id>/F-<nnn>@<sha>` with the full service id and the full sha of the commit read;
-  `svc-019` stays the short key.
+  `svc-019` stays the short key. This replaces the short form `svc-019/F-<nnn>@<sha>` kept by
+  task-024 (its acceptance and notes stay as the record of that time).
 - Applied now to every occurrence found by `git grep` on `main`; files already in the history and
   in the tag `v0.1.0` keep their old text — rewriting history is a separate decision of the
   approver.
@@ -50,8 +51,13 @@ phase plans. The feedback inbox README also cites notes in a short form that dif
 
 - Rewrite the two background citations of task-022 and task-023 to WingFoil dl-163 and
   `COLLABORATION.md` `## Credit` (tech-lead, now).
-- Replace the internal session names in the `rel-v0.1` plans with neutral wording; record the
-  `git grep` check (tech-lead, now).
+- Replace the internal session names, and descriptions of the coordinating session, in the
+  `rel-v0.1` plans and the Memory elements with neutral wording; drop the folder names of another
+  local project from bug-001, task-004 and task-005 (tech-lead, now). Check, on `main` after the
+  change: `git grep -n -I -iE '<the private folder name>|proposals/|~/Workspaces|session "|
+  sessione|coordinating|local_[0-9a-f]{8}|<the session nicknames>|<another project's worktree
+  folder>' -- . ':!export*'` → no hit (the patterns are written here in placeholder form so this
+  record does not repeat them).
 - Align the citation form in `docs/wingfoil-feedback/README.md` (tech-lead, now).
 - Retrospective of `minor-v0.1`: consider a check (lint or review rule) for local paths and
   session names in committed text (approver).

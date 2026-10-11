@@ -79,9 +79,9 @@ rebuild `web/dist`).
 - RS-7 (for `publishing`) dl-004 records the skipped npm step (RV-8); tag `v0.1.0` annotated on
   `main` HEAD at the tag step, after checking that only governance/docs files changed since the
   gated release commit; push of the tag on a separate OK; no GitHub Release; mark-released by hand.
-- RS-8 Retrospective inputs in the publishing plan's Session log; the cross-project requester told about the tag only
-  after its push and with the approver's OK; merged local `design/*` branches and `/tmp/wfui-*`
-  left in place (retrospective).
+- RS-8 Retrospective inputs in the publishing plan's Session log; the cross-project requester told
+  about the tag only after its push and with the approver's OK; merged local `design/*` branches and
+  `/tmp/wfui-*` left in place (retrospective).
 
 ## Handoff
 

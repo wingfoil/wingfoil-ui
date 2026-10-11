@@ -50,8 +50,8 @@ dl-004; release `minor-v0.1` `released`; the inputs for the retrospective.
 
 ## Handoff
 
-- **Approver:** the tag push (step 3); the cross-project requester told about the tag only with the approver's OK
-  (RS-8); the plan finalization.
+- **Approver:** the tag push (step 3); the cross-project requester told about the tag only with the
+  approver's OK (RS-8); the plan finalization.
 - **Agent:** timing retry, tag, hand transition, Execution Notes, Session log, commits, push.
 - **Completion:** tag `v0.1.0` on `origin`, release `minor-v0.1` `released`, plan `done`. Next:
   `retrospective` of `minor-v0.1`, in a new session, from the inputs recorded below.
@@ -72,9 +72,9 @@ dl-004; release `minor-v0.1` `released`; the inputs for the retrospective.
   = dl-004, `minor-v0.1.md`, the two `release-*` plans, `docs/user-guide.md` (no source, test or
   package file). `git tag -a v0.1.0 -m "WingFoil UI v0.1.0 — Read-only console"` on `545d56c`
   (tag object `8a6e859`).
-- **Step 3 — tag push:** the approver's OK in chat (push the tag, inform the cross-project requester, proceed);
-  `git push origin v0.1.0` → `refs/tags/v0.1.0` on `origin` (`git ls-remote`). The cross-project
-  requester informed (informational message).
+- **Step 3 — tag push:** the approver's OK in chat (push the tag, inform the cross-project
+  requester, proceed); `git push origin v0.1.0` → `refs/tags/v0.1.0` on `origin`
+  (`git ls-remote`). The cross-project requester informed (informational message).
 - **Step 4 — publish:** skipped by dl-004 (`ready`, `f830064`): no `publish.yml` run, no npm stage
   or approval, post-check not applicable; no GitHub Release (RS-7).
 - **Step 5 — mark-released:** `0f54194` `wf(release): minor-v0.1 [releasing → released]` (hand

@@ -22,12 +22,12 @@ tmpl_version: 260703   # Orignal template version
 Turn the versioned inbox into dl-163 R4 notes and align the `wingfoil-cli` directive (steps S4a, S4b).
 
 It applies **WingFoil dl-163** ("Consumer projects' feedback sources and the feedback loop",
-`ready`, ratified 2026-10-07) **strictly, with no local extension** (approver ruling R9), as relayed by
-a cross-project request (step M2, 2026-10-09). Public sources: WingFoil dl-163 and WingFoil
-`COLLABORATION.md` `## Credit` (`wingfoil/wingfoil`, `origin/main`); citation revised 2026-10-11
-(dl-005). Reference implementation: WingFoil-Templates
-at `53090c2` (task-009, task-010). Governance task between Wave 3 and Wave 4: `module: governance`,
-`ref: GOV` (no backlog item; accepted by `check_tasks.py`).
+`ready`, ratified 2026-10-07) **strictly, with no local extension** (approver ruling R9), as relayed
+in a cross-project request (step M2, 2026-10-09). Public sources: WingFoil dl-163 and WingFoil
+`COLLABORATION.md` `## Credit` (`wingfoil/wingfoil` at `ec6a7ba5`); citation revised 2026-10-11
+(dl-005). Reference implementation: WingFoil-Templates at `53090c2` (task-009, task-010). Governance
+task between Wave 3 and Wave 4: `module: governance`, `ref: GOV` (no backlog item; accepted by
+`check_tasks.py`).
 
 **Backlog items:** GOV (governance — no backlog item)
 

@@ -25,8 +25,8 @@ timeout).
 ## Steps to Reproduce
 
 1. On `main` (`6b8a3cf`, WingFoil 0.2.2 pinned), with another project's builds running in
-   parallel (observed: the WingFoil2 dev-loop worktrees `.wf2-wt/task-*` running `tsc`, `typedoc`,
-   `jest`; load average 50–70 on 12 cores, `cat /proc/loadavg`).
+   parallel (observed: another project's worktrees running `tsc`, `typedoc`, `jest`; load average
+   50–70 on 12 cores, `cat /proc/loadavg`).
 2. Run `npm run -s test:coverage`.
 3. Run `npx vitest run test/launcher/launcher.test.ts -t REQ-PERF --silent=false`.
 

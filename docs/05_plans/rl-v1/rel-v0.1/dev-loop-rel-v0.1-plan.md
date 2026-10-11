@@ -295,8 +295,8 @@ Per task (`dev-loop` v1.4):
 #### Session 3 addendum — between Wave 3 and Wave 4: WingFoil feedback loop (2026-10-09)
 
 - **Request:** step M2 of the WingFoil feedback loop (WingFoil dl-163 applied strictly, approver ruling
-  R9), relayed by a cross-project request and confirmed by the approver; applied
-  between waves, one task per change.
+  R9), relayed in a cross-project request and confirmed by the approver; applied between waves,
+  one task per change.
 - **Tasks** (`docs/04_memory/v0.1/`, `module: governance`, `ref: GOV`, tags `v0.1`, `governance`,
   `feedback-loop`; `check_tasks.py` accepts a governance task only as that pair with `**Backlog
   items:** GOV`, `1d55674`), each through dev-loop with an independent review and the approver's
@@ -314,8 +314,8 @@ Per task (`dev-loop` v1.4):
   (54, 55); F-019 first-line form (56); WingFoil elements only as sentences until the first sync
   (57); W-12 corrected (58); W-24 added (59).
 - **Push:** `main` pushed for the first time (`851ef46..0349e08`), then `..8c96fa2` and
-  `..1d9348d`; the remote now carries the whole history of Waves 1–3. Reported to the coordinating
-  session with task ids and commits.
+  `..1d9348d`; the remote now carries the whole history of Waves 1–3. Reported to the cross-project
+  requester with task ids and commits.
 - **Open:** `Source key` waits for WingFoil's svc id (its task-269); rule 7's `wingfoil-sync`
   procedure is not defined yet (WingFoil v0.3 user-docs); no sync due before WingFoil's v0.3
   retrospective.
@@ -437,10 +437,11 @@ Per task (`dev-loop` v1.4):
   `902fc8e`); the review found the bypasses `https::https://u:p@…`, `https:///u:p@…`, `git://u:p@…`
   and ssh/scp passwords, all refused now. bug-004 stays `resolved`; bug-004/005/006 to be closed at
   release validation (user's choice).
-- **Governance task-024** (between waves, a cross-project request, item "task 001"): source key `svc-019` (WingFoil task-269, active since
-  WingFoil `30b268a3`) recorded in `docs/wingfoil-feedback/README.md` (`e6b022c`); `add` →
-  `pending` → approved → `in-progress` → `in-review` → approved → done (`7f921c8`), pushed;
-  the requester told task id, commit and push state.
+- **Governance task-024** (between waves, a cross-project request, item "task 001"): source key
+  `svc-019` (WingFoil task-269, active since WingFoil `30b268a3`) recorded in
+  `docs/wingfoil-feedback/README.md` (`e6b022c`); `add` → `pending` → approved → `in-progress` →
+  `in-review` → approved → done (`7f921c8`), pushed; the requester told task id, commit and push
+  state.
 - **Facts learned:** curl accepts 1–3 slashes after the scheme and git's `<transport>::<address>`
   form passes the address to the remote helper — a URL check must normalise as git does, not
   enumerate cases; git's `git://` error echoes a userinfo verbatim ("unable to look up

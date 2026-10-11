@@ -199,7 +199,7 @@ e2e closure — scenarios that need a screen are proved here by API and unit tes
     throws for a version other than the pinned one, so a matrix advance must add the install there
     (`test/contracts/support.ts`, documented in `test/README.md`).
   - Fixture-build hooks raised to 600 s, CLI-heavy tests to 120–300 s (`0f2be23`): under a load
-    average of ~50 (another project's builds, `ps`: `.wf2-wt/task-*` `tsc`/`cli.js`) the contract
+    average of ~50 (another project's builds, `ps`: `tsc`/`cli.js`) the contract
     suite's three builds exceeded the 180 s default hook timeout.
 - **CLI facts (wingfoil 0.2.2) — new, for the coordinator (directive not edited):**
   - `directives list` omits `frontmatter.tags` when the file has no `tags:` (custom fixture:
