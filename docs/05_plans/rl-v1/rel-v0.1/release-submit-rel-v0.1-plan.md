@@ -14,7 +14,8 @@ tmpl_version: 260703   # Orignal template version
 
 ## Context
 
-**Version:** 0.2 · **Date:** 2026-10-11 (0.1: plan created; 0.2: review round 1 fixes — check script paths, bug-008 reading)
+**Version:** 0.3 · **Date:** 2026-10-11 (0.1: plan created; 0.2: review round 1 fixes — check script paths, bug-008 reading;
+0.3: Session 1 log — review, pre-release-checks)
 **Branch:** `main` (RV-1: `submit` and `publishing` work on `main`, no design branch)
 **Workflows:** `sw-life-cycle` → `release-line-cycle` (`rl-v1`) phase `delivery` → `release-cycle`
 (`minor-v0.1`, v1.1) phase `submit` = `release-submit` (`.wingfoil/workflows/custom/release-submit.yaml`
@@ -95,4 +96,38 @@ rebuild `web/dist`).
 
 ### Session 1 — 2026-10-11
 
-- Plan created (`2de8140` add).
+- Plan created (`2de8140` add, `ca9cc26` submit → `active`); decisions RS-1 … RS-8 above.
+- **Step 2** — Execution Notes of `minor-v0.1` (`250840d`): "Implementation" (one bullet per
+  wave, W1 … W5, closing bullet), "User docs", "E2E smoke"; drafted by an agent from the three
+  phase plans and checked against `git log`.
+- **Step 3** — dl-004 (`90e22ee` add, body `76337d7`; created now because `CLAUDE.md` cites it).
+  Release commit `ac3b5b5` `chore(release): v0.1.0`: version `0.1.0` in `package.json`,
+  `contracts/`, `server/`, `web/` and five `package-lock.json` entries (`npm version 0.1.0
+  --no-git-tag-version --workspaces --include-workspace-root`; no other lockfile change),
+  `private: true` unchanged; CHANGELOG `[0.1.0] - 2026-10-11` and bug-008 line; user guide 0.2
+  bug-008 limitation; `CLAUDE.md` 0.2 project status (RS-5). Pushed.
+- **Step 4** — independent review: round 1 **FAIL** — 1 major (plan's check-script paths
+  `.wingfoil/scripts/` do not exist → `docs/03_backlog/X_tools/`), 4 minor (bug-008 "tagged v0.2":
+  bugs carry no `tags`; bug-004 load below 15 at times not stated; review figures incomplete;
+  AC-1/AC-3 rewording and open spec-007 §7 Windows check missing), 5 nits (dl-004 evidence,
+  user-guide bug-008 wording broader than the code — SIGINT/SIGTERM/SIGHUP clean up, "dl-024"
+  read as local, step 1 role, `CLAUDE.md` "released" before the tag — accepted as RS-5: if
+  approve-release falls back, the line is reverted). Fixed in `1579760` (user guide 0.3; registry
+  404 re-checked with `curl`). Round 2 **PASS**; its 3 nits (ragged wraps and "accepted" without
+  an author in the Execution Notes; checks run on `ac3b5b5` while HEAD moved) fixed in this
+  Session log commit — the third by the file list below.
+- **Step 5 — pre-release-checks** on `ac3b5b5` (18:43–18:56, sequential, background, no branch
+  switch; logs in the session scratchpad):
+  - tasks: `check_tasks.py` OK (25 tasks · 72 backlog items · 72 listed); task-001 … 025 `done`.
+  - bugs: bug-001 … 007 `closed`; bug-008 `triaged`, `release: v0.2` (known limitation, UD-4);
+    `check_releases.py` OK (5 releases · 44/44 MVP features).
+  - `tests.passing`: `npm ci`, build, typecheck, lint, format:check ✓ · `test:e2e` **129/129**
+    (6.6 min, load ~25) · `test:smoke` **4/4** (the installed package prints `0.1.0`; `node
+    bin/wingfoil-ui.cjs --version` → `0.1.0`) · `test:contract` **144 passed, 1 skipped** ·
+    local-security **136/136** · accessibility **10/10** · `docs:api` ✓ · `test:timing`
+    **skipped** (load 18.05 ≥ 12; the run on `946ca4b` stands — no source under `server/src`,
+    `web/src`, `contracts/src` changed since; to be retried before the tag, RV-6).
+  - `tests.coverage(min: 80)`: `test:coverage` **1949 passed, 1 skipped**, statements **96.67 %**,
+    branches 90.97 %, functions 97.22 %, lines 98.33 %.
+  - After `ac3b5b5` only docs/governance files changed (`git diff --name-only ac3b5b5 HEAD`:
+    dl-004, `minor-v0.1.md`, this plan, `docs/user-guide.md`); `prettier --check` on them ✓.
