@@ -3,8 +3,9 @@ import { defineConfig } from 'vitest/config';
 export default defineConfig({
   test: {
     include: ['test/**/*.test.{ts,tsx}'],
-    // The timing suite runs on its own (`npm run test:timing`, vitest.timing.config.ts, bug-001).
-    exclude: ['test/e2e/**', 'test/timing/**', '**/node_modules/**'],
+    // The timing suite runs on its own (`npm run test:timing`, vitest.timing.config.ts, bug-001), the
+    // launch smoke too (`npm run test:smoke`, vitest.smoke.config.ts, task-025).
+    exclude: ['test/e2e/**', 'test/timing/**', 'test/smoke/**', '**/node_modules/**'],
     // Builds server/dist once for the bin and child-process tests.
     globalSetup: ['test/global-setup.ts'],
     // Longer async waits of the component tests under external load (bug-004).
