@@ -28,8 +28,10 @@ Every test lives under `test/` (DNA `paths.tests`); sources stay in `server/src`
   Node.js) and the packaging guard `pack.test.ts` (`npm pack --dry-run --json --ignore-scripts`,
   no build: every path on the allow-list, every run-time file packed, the bin packed 755, the root
   `dependencies` equal to `server/package.json`'s and covering every bare import of
-  `server/dist`, no run-time import of `@wingfoil-ui/*`, `prepack`, `private`). The Vitest global
-  setup builds `server/dist` and `web/dist` for it.
+  `server/dist`, no run-time import of `@wingfoil-ui/*`, `prepack`, `private`; the packed
+  `server/dist` is exactly one module per `server/src` module — a stale output fails it — and
+  `web/dist` holds no React development bundle). The Vitest global setup builds `server/dist` and
+  `web/dist` for it, the latter without Vitest's `NODE_ENV=test` (a production bundle).
 - `test/e2e/` — Playwright specs on the real bin, one spec per task, one test per scenario titled
   with its id (`S-01.1 …`), assertions on what the user sees, `scanThemes` (`support/axe.ts`, X-06.4)
   on each screen in the light and the dark theme. Shared support (task-013), used by every web task:
@@ -156,8 +158,11 @@ Every test lives under `test/` (DNA `paths.tests`); sources stay in `server/src`
 ## Launch smoke
 
 `npm run test:smoke` (`vitest.smoke.config.ts`, task-025 AC-3, e2e-smoke `launch`) — excluded
-from `npm test` and `test:coverage`, because its `npm pack` runs `prepack` (`npm run build`), which
-rewrites `server/dist` and `web/dist` under the bin tests. `test/smoke/launch.smoke.test.ts`:
+from `npm test` and `test:coverage`, because its `npm pack` runs `prepack`
+(`scripts/clean-build.mjs`, which removes `server/dist`, `contracts/dist`, `web/dist` and their
+`tsbuildinfo`, then `npm run build`), which rewrites the builds under the bin tests. The smoke
+runs `npm` without Vitest's `NODE_ENV=test` (else Vite builds React's development bundle) and
+asserts the packed `server/dist` set and a production web bundle. `test/smoke/launch.smoke.test.ts`:
 `npm pack --pack-destination <tmp>`, then `npm install <tarball> --prefer-offline` into an empty
 folder with the user's npm cache (no network when the cache holds the packages and their
 metadata; a cold cache fetches what is missing), then `npx --no -- wingfoil-ui` there (`--no` and
@@ -165,8 +170,13 @@ metadata; a cold cache fetches what is missing), then `npx --no -- wingfoil-ui` 
 `--help`, a `--no-open` start (URL line, `GET /` and its script, `GET /api/server` 401 without and
 200 with the token), a stop by SIGINT to the server process (`npx` exits 0) and a Ctrl-C (SIGINT
 to the process group: `npx` ends by the signal, as npm does), no process left after either. Each
-phase's duration is printed; measured on 2026-10-11 from a clean tree, load 2.8: pack (build
-included) 8.9 s, install 1.4 s, `--version` 0.6 s, start 0.6 s, the whole file ~13 s.
+phase's duration is printed; measured on 2026-10-11 at load 5.1: pack (clean build included)
+10.9 s, install 1.6 s, `--version` 0.9 s, start 1.0 s, the whole file ~17 s; tarball 120 files,
+514 kB packed, 1.38 MB unpacked.
+
+Do not run `npm test` / `test:coverage`, `test:e2e` and `test:smoke` at the same time in one
+checkout: each rebuilds `web/dist` (and `server/dist`) in place — the Vitest and Playwright global
+setups, and `prepack` — so one could read a build the other is rewriting.
 
 ## Timing suite
 
