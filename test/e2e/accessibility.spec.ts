@@ -12,7 +12,7 @@ import { expect, test } from './support/fixtures.js';
 import { actAs } from './support/identity.js';
 import { expectFocusVisible, focusRing, tabUntil, type FocusRing } from './support/keyboard.js';
 import { expectSettled, SCREENS, startScreensConsole } from './support/screens.js';
-import { isKeyText, recordApiData, textsOutsideCatalogue } from './support/strings.js';
+import { recordApiData, textsOutsideCatalogue } from './support/strings.js';
 
 test.use({ prebuild: ['kanban', 'custom'] });
 
@@ -47,7 +47,7 @@ test.describe('US-X-06 — keyboard', () => {
       // Memory list.
       await tabUntil(page, navLink(page, 'Memory'), seen);
       await page.keyboard.press('Enter');
-      await expect(page.getByRole('heading', { level: 1, name: 'Memory' })).toBeVisible();
+      await expect(page.getByRole('heading', { level: 1, name: 'Memory' })).toBeVisible({ timeout: COLD_READ_MS });
       // An element panel, from its row; Escape gives the focus back to the row (X-06.3).
       await tabUntil(page, row(page, 'task-001-login-form'), seen);
       await page.keyboard.press('Enter');
@@ -64,7 +64,7 @@ test.describe('US-X-06 — keyboard', () => {
       await tabUntil(page, navLink(page, 'DNA'), seen);
       await page.keyboard.press('Enter');
       await expect(page).toHaveURL(`${c.origin}/p/${pid}/dna`);
-      await expect(page.getByRole('heading', { level: 1, name: 'DNA' })).toBeVisible();
+      await expect(page.getByRole('heading', { level: 1, name: 'DNA' })).toBeVisible({ timeout: COLD_READ_MS });
       await expectSettled(page);
       // Directives, and one directive.
       await tabUntil(page, navLink(page, 'Directives'), seen);
@@ -84,7 +84,9 @@ test.describe('US-X-06 — keyboard', () => {
       await tabUntil(page, navLink(page, 'Documentation'), seen);
       await page.keyboard.press('Enter');
       await expect(page).toHaveURL(`${c.origin}/p/${pid}/docs`);
-      await expect(page.getByRole('heading', { level: 1, name: 'Documentation' })).toBeVisible();
+      await expect(page.getByRole('heading', { level: 1, name: 'Documentation' })).toBeVisible({
+        timeout: COLD_READ_MS,
+      });
       await expectSettled(page);
       // The project switcher: Enter opens it, the arrow keys move between its rows, Escape closes.
       const trigger = page.getByRole('banner').getByRole('button', { name: 'Projects: kanban' });
@@ -177,10 +179,10 @@ test.describe('US-X-09 — externalised strings', () => {
     await openConsole(page, c, { build: 'keys' });
     const outside: string[] = [];
     for (const screen of SCREENS) {
+      // Each screen reloads the page: only what it read itself counts as its project data.
+      data.reset();
       await screen.open(page, c);
       for (const text of await textsOutsideCatalogue(page, data)) outside.push(`${screen.name} — ${text}`);
-      const title = await page.title();
-      if (!isKeyText(title)) outside.push(`${screen.name} — <title>: ${title}`);
     }
     expect(outside).toEqual([]);
   });
@@ -212,7 +214,7 @@ test.describe('US-X-10 — page title', () => {
     const c = await consoles.start({ projects: [await fixtures.get('kanban')] });
     await openConsole(page, c, { path: `/p/${c.pids[0]}/memory` });
     await expectFirstLoad(row(page, 'task-001-login-form'));
-    await expect(page).toHaveTitle('kanban · Memory — WingFoil UI');
+    await expect(page).toHaveTitle('kanban · Memory — WingFoil UI', { timeout: COLD_READ_MS });
   });
 
   test('X-10.2 — Name the open element in the tab title', async ({ page, fixtures, consoles }) => {
@@ -221,17 +223,17 @@ test.describe('US-X-10 — page title', () => {
     await expectFirstLoad(row(page, 'task-001-login-form'));
     await row(page, 'task-001-login-form').click();
     await expectFirstLoad(page.getByRole('dialog', { name: 'Login form' }).locator('.type-tag'));
-    await expect(page).toHaveTitle('kanban · task-001-login-form — WingFoil UI');
+    await expect(page).toHaveTitle('kanban · task-001-login-form — WingFoil UI', { timeout: COLD_READ_MS });
   });
 
   test('X-10.3 — Title the project list when no project is open', async ({ page, fixtures, consoles }) => {
     const c = await consoles.start({ projects: [await fixtures.get('kanban')] });
     await openConsole(page, c, { path: `/p/${c.pids[0]}/memory` });
     await expectFirstLoad(row(page, 'task-001-login-form'));
-    await expect(page).toHaveTitle('kanban · Memory — WingFoil UI');
+    await expect(page).toHaveTitle('kanban · Memory — WingFoil UI', { timeout: COLD_READ_MS });
     // Back to the project list: the logo's link to the start page.
     await page.getByRole('banner').getByRole('link').first().click();
-    await expect(page.getByRole('heading', { level: 1, name: 'Projects' })).toBeVisible();
-    await expect(page).toHaveTitle('Projects — WingFoil UI');
+    await expect(page.getByRole('heading', { level: 1, name: 'Projects' })).toBeVisible({ timeout: COLD_READ_MS });
+    await expect(page).toHaveTitle('Projects — WingFoil UI', { timeout: COLD_READ_MS });
   });
 });

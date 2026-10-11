@@ -12,8 +12,8 @@
  */
 import type { Locator, Page } from '@playwright/test';
 import { report } from '../../timing/load.js';
-import en from '../../../web/src/i18n/en.json' with { type: 'json' };
 import { STRICT_REFRESH } from './cold-read.js';
+import { installLoadingCheck, type LoadingCheckWindow } from './loading.js';
 
 /** The timing run (`npm run test:timing`): the budget is asserted. */
 export const STRICT_PERF = STRICT_REFRESH;
@@ -27,46 +27,36 @@ export const PERF_BUDGET_MS = 1_000;
 /** The tag of the tests that `npm run test:timing` runs with the budget. */
 export const PERF_TAG = '@perf';
 
-/** The loading statuses of the catalogue (their English text). */
-const LOADING = Object.entries(en)
-  .filter(([id]) => /\.loading$/.test(id))
-  .map(([, text]) => text);
-
 /**
  * Press Enter on `target` (already focused by the caller's keyboard path, or focused here) and
  * return the milliseconds until an element matching `ready` (CSS) is visible with no loading status.
  */
 export async function timeNavigation(page: Page, target: Locator, ready: string): Promise<number> {
   await target.focus();
-  await page.evaluate(
-    ({ selector, loading }) => {
-      const w = window as unknown as { wfuiPerf?: Promise<number> };
-      w.wfuiPerf = new Promise<number>((resolve) => {
-        let t0: number | undefined;
-        window.addEventListener(
-          'keydown',
-          (e) => {
-            if (e.key === 'Enter') t0 = performance.now();
-          },
-          { capture: true, once: true },
-        );
-        const isReady = () => {
-          const el = document.querySelector(selector);
-          if (!(el instanceof HTMLElement) || !el.checkVisibility()) return false;
-          for (const s of document.querySelectorAll('[role="status"]')) {
-            if (loading.some((t) => s.textContent?.includes(t))) return false;
-          }
-          return true;
-        };
-        const tick = () => {
-          if (t0 !== undefined && isReady()) resolve(performance.now() - t0);
-          else requestAnimationFrame(tick);
-        };
-        requestAnimationFrame(tick);
-      });
-    },
-    { selector: ready, loading: LOADING },
-  );
+  await installLoadingCheck(page);
+  await page.evaluate((selector) => {
+    const w = window as unknown as { wfuiPerf?: Promise<number> };
+    w.wfuiPerf = new Promise<number>((resolve) => {
+      let t0: number | undefined;
+      window.addEventListener(
+        'keydown',
+        (e) => {
+          if (e.key === 'Enter') t0 = performance.now();
+        },
+        { capture: true, once: true },
+      );
+      const isReady = () => {
+        const el = document.querySelector(selector);
+        if (!(el instanceof HTMLElement) || !el.checkVisibility()) return false;
+        return (window as unknown as LoadingCheckWindow).wfuiNoLoading();
+      };
+      const tick = () => {
+        if (t0 !== undefined && isReady()) resolve(performance.now() - t0);
+        else requestAnimationFrame(tick);
+      };
+      requestAnimationFrame(tick);
+    });
+  }, ready);
   await page.keyboard.press('Enter');
   return page.evaluate(() => (window as unknown as { wfuiPerf: Promise<number> }).wfuiPerf);
 }

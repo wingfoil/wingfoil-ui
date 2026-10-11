@@ -12,7 +12,7 @@ import { COLD_READ_MS } from './cold-read.js';
 import type { RunningConsole } from './console.js';
 import type { Consoles, FixtureBuilds } from './fixtures.js';
 import { actAs } from './identity.js';
-import en from '../../../web/src/i18n/en.json' with { type: 'json' };
+import { installLoadingCheck, type LoadingCheckWindow } from './loading.js';
 
 /** The console of the screens: kanban (`pids[0]`) and custom (`pids[1]`), Morgan in both. */
 export async function startScreensConsole(fixtures: FixtureBuilds, consoles: Consoles): Promise<RunningConsole> {
@@ -23,14 +23,10 @@ export async function startScreensConsole(fixtures: FixtureBuilds, consoles: Con
   return consoles.start({ projects: [kanban, custom] });
 }
 
-/** The loading statuses of the catalogue, in both builds (their English text and their key). */
-const LOADING = Object.entries(en)
-  .filter(([id]) => /\.loading$/.test(id))
-  .flatMap(([id, text]) => [id, text]);
-
 /** Wait until no loading status is shown (every first read answered), whatever the build. */
 export async function expectSettled(page: Page): Promise<void> {
-  await page.waitForFunction((loading) => !loading.some((t) => document.body.innerText.includes(t)), LOADING, {
+  await installLoadingCheck(page);
+  await page.waitForFunction(() => (window as unknown as LoadingCheckWindow).wfuiNoLoading(), undefined, {
     timeout: COLD_READ_MS,
   });
 }

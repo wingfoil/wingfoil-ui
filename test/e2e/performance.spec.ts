@@ -53,6 +53,11 @@ interface View {
   target: (page: Page) => ReturnType<Page['locator']>;
   /** The view's content (CSS), visible once it is rendered. */
   ready: string;
+  /**
+   * The path of the view's own read (W5-6 guard): never sent by the view a run starts on, sent
+   * after the key press — the target's data is not in the page's cache.
+   */
+  reads: (pid: string) => string;
 }
 
 const nav = (page: Page, name: string) =>
@@ -65,6 +70,7 @@ const VIEWS: View[] = [
     from: (pid) => `/p/${pid}/docs`,
     target: (page) => nav(page, 'Memory'),
     ready: '.memory-row',
+    reads: (pid) => `/api/p/${pid}/elements`,
   },
   {
     scenario: 'G-01.1',
@@ -72,13 +78,15 @@ const VIEWS: View[] = [
     from: (pid) => `/p/${pid}/memory?type=task`,
     target: (page) => page.locator('.memory-row[data-eid="task-250-generated-task-151"]'),
     ready: '.drawer .history-sha',
+    reads: (pid) => `/api/p/${pid}/elements/task-250-generated-task-151/history`,
   },
   {
     scenario: 'R-05.1',
     name: 'DNA',
-    from: (pid) => `/p/${pid}/memory`,
+    from: (pid) => `/p/${pid}/docs`,
     target: (p) => nav(p, 'DNA'),
     ready: '.rules-name',
+    reads: (pid) => `/api/p/${pid}/config`,
   },
   {
     scenario: 'R-06.1',
@@ -86,6 +94,7 @@ const VIEWS: View[] = [
     from: (pid) => `/p/${pid}/docs`,
     target: (p) => nav(p, 'Directives'),
     ready: '.directive-row',
+    reads: (pid) => `/api/p/${pid}/directives`,
   },
   {
     scenario: 'R-07.1',
@@ -93,6 +102,7 @@ const VIEWS: View[] = [
     from: (pid) => `/p/${pid}/docs`,
     target: (p) => nav(p, 'Team'),
     ready: '.member-card',
+    reads: (pid) => `/api/p/${pid}/config`,
   },
   {
     scenario: 'R-08.1',
@@ -100,15 +110,27 @@ const VIEWS: View[] = [
     from: (pid) => `/p/${pid}/dna`,
     target: (p) => nav(p, 'Documentation'),
     ready: '.docs-index .docs-path',
+    reads: (pid) => `/api/p/${pid}/docs`,
   },
 ];
 
-/** One run in a fresh page: open `from`, wait until settled, then time the navigation. */
+/**
+ * One run in a fresh page: open `from`, wait until settled, then time the navigation. The view's
+ * own read must not have been sent before the key press, and must be sent after it (W5-6).
+ */
 async function run(page: Page, c: RunningConsole, view: View): Promise<number> {
-  await openConsole(page, c, { path: view.from(c.pids[0]!) });
+  const pid = c.pids[0]!;
+  let reads = 0;
+  page.on('request', (r) => {
+    if (new URL(r.url()).pathname === view.reads(pid)) reads += 1;
+  });
+  await openConsole(page, c, { path: view.from(pid) });
   await expect(view.target(page)).toBeVisible({ timeout: COLD_READ_MS });
   await expectSettled(page);
-  return timeNavigation(page, view.target(page), view.ready);
+  expect(reads, `${view.reads(pid)} read before the key press`).toBe(0);
+  const ms = await timeNavigation(page, view.target(page), view.ready);
+  expect(reads, `${view.reads(pid)} not read after the key press`).toBeGreaterThan(0);
+  return ms;
 }
 
 test.describe(`TT-PERF-04 — other views ${PERF_TAG}`, () => {
