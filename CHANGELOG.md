@@ -80,9 +80,8 @@ bin/wingfoil-ui.cjs` ([README](README.md#install-and-run)); not published on npm
 ### Known limitations
 
 - An scp-like clone address with an `@` in its path (after the host's `:`) and no `/`, e.g.
-  `git@host:repo@v2.git`, is refused as if it held credentials; a URL
-  with an unknown scheme and credentials reaches `git clone`, which refuses the transport (nothing
-  connects or is stored).
+  `git@host:repo@v2.git`, is refused as if it held credentials; a URL with an unknown scheme and
+  credentials reaches `git clone`, which refuses the transport (nothing connects or is stored).
 - A clone interrupted by killing the console leaves its folder behind.
 - If a *Role view* change is refused and the following header re-read never completes, the
   refusal is not shown and the select stays disabled; reload the page.

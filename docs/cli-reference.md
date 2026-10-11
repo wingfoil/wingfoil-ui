@@ -106,8 +106,8 @@ stdout carries only these lines:
 These two URL lines are the only places the token is printed.
 
 stderr carries the refusals below and the server log: JSON lines (pino), level `info`, with the
-port, the bound addresses and the start duration (`startMs`) at start. The `authorization` and `cookie`
-request headers are redacted, so neither the token nor the session id reaches the log.
+port, the bound addresses and the start duration (`startMs`) at start. The `authorization` and
+`cookie` request headers are redacted, so neither the token nor the session id reaches the log.
 
 | Message on stderr | Exit |
 |-------------------|------|

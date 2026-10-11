@@ -316,8 +316,8 @@ Accepted for v0.1 and recorded in the implementation plan
 
 - **Clone URL check, two edge cases.** An scp-like address with an `@` in its path (after the
   host's `:`) and no `/`, e.g. `git@host:repo@v2.git`, is refused as if it held credentials
-  (`git@github.com:repo.git` and `git@host:org/repo@v2.git` are accepted); a URL with an unknown scheme and credentials
-  (`git+https://user:pass@…`) is passed to `git clone`, which refuses the transport — nothing
+  (`git@github.com:repo.git` and `git@host:org/repo@v2.git` are accepted); a URL with an unknown
+  scheme and credentials (`git+https://user:pass@…`) is passed to `git clone`, which refuses the transport — nothing
   connects, nothing is stored, the URL is not echoed.
 - **A killed clone leaves its folder.** If the console is killed (not stopped) during a clone, the
   partial folder stays; a retry says *The working directory is not empty*. Delete the folder by
