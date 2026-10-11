@@ -2,7 +2,7 @@
 id: bug-007-packed-package-cannot-start-and-would-ship-private-and-development-files
 type: bug
 title: "Packed package cannot start and would ship private and development files"
-status: open
+status: triaged
 severity: "medium"           # REQUIRED — critical | high | medium | low
 release-origin: "v0.1"     # optional — release where the bug was FOUND, e.g. "v0.1"
 release: ""            # optional — fix/implementation release, stamped by release-planning/build-backlog
