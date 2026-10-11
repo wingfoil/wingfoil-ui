@@ -14,7 +14,8 @@ tmpl_version: 260703   # Orignal template version
 
 ## Context
 
-**Version:** 0.2 · **Date:** 2026-10-11 (0.1: plan created; 0.2: Session 1 — timing, tag)
+**Version:** 0.3 · **Date:** 2026-10-11 (0.1: plan created; 0.2: Session 1 — timing, tag; 0.3: tag pushed,
+released, retrospective inputs)
 **Branch:** `main` (RV-1; the tag is created on `main`, WingFoil dl-024)
 **Workflows:** `sw-life-cycle` → `release-line-cycle` (`rl-v1`) phase `delivery` → `release-cycle`
 (`minor-v0.1`, v1.1) phase `publishing` = `release-publishing`
@@ -65,3 +66,49 @@ dl-004; release `minor-v0.1` `released`; the inputs for the retrospective.
   10/10 within 3 s (217–268 ms); TT-PERF-04 p95 (warm cache, 20 runs): Memory list 97, element
   panel 46, DNA 43, Directives 149, Team 58, Documentation 60 ms. Supersedes the skip recorded in
   `release-submit-rel-v0.1-plan` (load 18).
+- **Step 2 — tag:** on `main`, release work on `main` (RV-1); `git diff --name-only ac3b5b5 HEAD`
+  = dl-004, `minor-v0.1.md`, the two `release-*` plans, `docs/user-guide.md` (no source, test or
+  package file). `git tag -a v0.1.0 -m "WingFoil UI v0.1.0 — Read-only console"` on `545d56c`
+  (tag object `8a6e859`).
+- **Step 3 — tag push:** the approver's OK in chat ("ok push del tag, avvisa WFCoord, procedi");
+  `git push origin v0.1.0` → `refs/tags/v0.1.0` on `origin` (`git ls-remote`). WFCoord informed
+  (session message, informational).
+- **Step 4 — publish:** skipped by dl-004 (`ready`, `f830064`): no `publish.yml` run, no npm stage
+  or approval, post-check not applicable; no GitHub Release (RS-7).
+- **Step 5 — mark-released:** `0f54194` `wf(release): minor-v0.1 [releasing → released]` (hand
+  transition); `check_releases.py` OK.
+- **Step 6:** Execution Notes "Submit & Publishing" of `minor-v0.1` completed; plan finalized
+  (separate commit).
+
+### Inputs for the retrospective of `minor-v0.1`
+
+Raw material, gathered at the end of `publishing`; the retrospective decides what to keep.
+
+- **Where the record is:** `minor-v0.1.md` Execution Notes (planning → publishing); the six plans
+  of `docs/05_plans/rl-v1/rel-v0.1/` (Session logs, decisions W*, RV-*, UD-*, ES-*, RS-*); task
+  and bug Execution Notes (`docs/04_memory/v0.1/`, `docs/04_memory/bugs/`); `docs/wingfoil-feedback/`;
+  directive `wingfoil-cli` *Known behaviours*.
+- **Accepted deviations of v0.1:** `docs/examples/` N/A (UD-5); task-025 as a governance task
+  outside the backlog (ES-5), like 022–024; npm `publish` step skipped (dl-004); element panel
+  non-modal (W4-8); no code split, entry ≈ 709 kB (W5-8); e2e on Chromium only (TT-INT-08);
+  TT-ARC-07 moved to v0.3; bug-004 re-check partly below load 15; several e2e specs and fixture
+  tests written after the code (W1, W3); AC-1/AC-3 of task-025 reworded at design.
+- **Known limitations shipped** (user guide, CHANGELOG): bug-006's two edge cases, a killed clone
+  leaves its folder, header R9 (W5-16), Windows tested with mocks only (spec-007 §7 manual check
+  open), no cap on event streams, full git walk (spec-002 §4 → v0.2), React Aria "Dismiss"
+  (W5-1), bug-008 (temp hooks folder on a kill; v0.2).
+- **Work after v0.1:** spec-007 §1/§3/§6 and spec-006 §1 amendments to match the code (UD-7);
+  bug-008 (v0.2); the npm publishing pipeline and `private: true` removal (dl-004 Actions); the
+  `wingfoil-sync` procedure and `.wingfoil/` alignment with WingFoil-Templates (RV-10); merged
+  local `design/*` branches and `/tmp/wfui-*` folders left in place (RS-8).
+- **Observations from submit/publishing:** the release commit is made in `submit` (before the
+  checks) although `release-publishing.yaml` places `git.commit("release …")` in `tag`; the
+  bug check `bugs where tags=[…]` does not match this project's bugs (no `tags`; `release` /
+  `release-origin` used instead); release `in-development → releasing → released` and
+  approve-release have no verb (hand commits, OK in chat); `test:timing` depends on machine load
+  (skipped at 18, green at 1.6 an hour later); the plan of submit cited a wrong script path,
+  caught only by the independent review.
+- **Process lessons recorded by earlier phases:** Vitest's `NODE_ENV=test` reaching `prepack`
+  (task-025); concurrent suites racing on `web/dist`; agents interrupted by usage limits and
+  resumed from commits; rules file for agents in `.notes/dev-rules.md` (git-ignored, RV-9);
+  messages from other sessions deferred to phase boundaries (RV-10).
