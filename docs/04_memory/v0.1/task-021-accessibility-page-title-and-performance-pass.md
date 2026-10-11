@@ -312,8 +312,11 @@ Screen: `docs/00_reference/ux-reference.md` every v0.1 screen and the prototype 
     `git fast-import` stream adds them and revises them in turn until `rev-list --count` = 2 000.
     The worktree is clean afterwards.
   - Each run starts from a view that reads none of the target's data: the Documentation index (DNA
-    for Documentation), or the task-filtered Memory list for the panel. The DNA's config is the
-    exception: the index reads it too.
+    for Documentation), or the task-filtered Memory list for the panel. *(Corrected in review
+    round 1: the DNA run actually started from the Memory list, which already reads `/config`;
+    only `routes/{memory,team,dna}.tsx` read it, the Documentation index reads `/docs` only. The
+    run now starts from the index and every view's own read is checked to be sent after the key
+    press.)*
   - Measured in the page, from the Enter `keydown` (capture) to the first animation frame where the
     target is visible and no loading status is left.
   - No code split was needed (W5-8): every view is far below 1.0 s (gates below).
@@ -374,3 +377,40 @@ above.
   - **W5-2 and W5-13:** the two deviations of form recorded above are in the code; please confirm.
   - **bug-006 tests:** the task-008 API test of a successful clone with a credential URL was
     replaced, because such a clone is now refused.
+
+### review round 1 (2026-10-11)
+
+- Independent review: **FAIL** (1 blocker, 1 major, minors, nits). The user confirmed both
+  deviations of form: W5-2 (`title.app` restored by the cleanup of `usePageTitle`) and W5-13 (the
+  un-keyed `ProjectHeader`, the keyed `ProjectRoleView`). Fixed:
+  - **F1 (blocker)** (`b31dc0d`): git's `<transport>::<address>` form (`https::https://alex:pw@host/r.git`)
+    passed both checks, and its password would reach git's argv, `.git/config` and the state.
+    `credentialsInUrl` now strips every leading `<transport>::` prefix (`transportAddress`) and
+    judges the address. `stripUserinfo` keeps the prefix and strips the address. Red-first
+    `remote.test.ts` rows; an API row `http::http://alex:<secret>@…` → 422 with no process and
+    no secret; a store row.
+  - **F2 (major)** (`b3f176b`): R-05.1 started from the Memory list, which had already read
+    `/config`, so the DNA was measured with its data cached. Every view now declares its own read,
+    and the run fails if that read is sent before the Enter key press or is not sent after it. The
+    DNA run starts from the Documentation index. The Execution Notes claim is corrected above.
+  - **F3**: refusing a password in `ssh://` userinfo or the scp-like form is a user decision;
+    nothing is implemented.
+  - **F4** (`b3f176b`): X-09.1 tightened.
+    - Initials are accepted only in `.current-user-avatar` / `.member-initials`.
+    - API object keys are not data, except the memory type names and DNA path category names of
+      `/config`, which the Memory list and the DNA view show.
+    - The recorder is reset before each screen.
+    - After a key, only the values of its arguments are accepted (data, a numeral, a nested key,
+      the message's own select options). A key without arguments must stand alone.
+    - "Dismiss" is accepted only on `button[tabindex="-1"]` inside a `.menu-popover`.
+    - The tab title is checked with the same rule.
+    - Negative cases (`OK`, `ID`, a loose initial, an object key `name`, `shell.nav.dna
+      Hard-coded`, `error.folderNotFound Hard-coded`, a stray `Dismiss`, the reset) are in
+      `harness/a11y-support.spec.ts`. The full X-09.1 still passes on the 16 screens.
+  - **F5**: every `toHaveTitle` and every heading wait after a navigation in
+    `accessibility.spec.ts` uses `COLD_READ_MS`.
+  - **F6**: `strings()` awaits every pending JSON parse.
+  - **F7**: `support/loading.ts` holds the one rule (no `role="status"` shows a `*.loading`
+    message, English or key), used by `expectSettled` and `timeNavigation`.
+  - **F8** (`b31dc0d`): restored without credentials: an http remote cloned, then
+    `HTTP://<HOST>/kanban/` → `already-listed`, with no `clone` process.
