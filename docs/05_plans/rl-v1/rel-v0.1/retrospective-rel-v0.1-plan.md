@@ -14,7 +14,7 @@ tmpl_version: 260703   # Orignal template version
 
 ## Context
 
-**Version:** 0.2 · **Date:** 2026-10-11 (0.1: plan created; 0.2: explore — friction inventory; 0.3:
+**Version:** 0.3 · **Date:** 2026-10-11 (0.1: plan created; 0.2: explore — friction inventory; 0.3:
 additional-points decisions)
 **Branch:** `main` (RT-1, as RV-1 for `release-submit` and `release-publishing`)
 **Workflows:** `sw-life-cycle` → `release-line-cycle` (`rl-v1`) phase `delivery` → `release-cycle`
@@ -220,3 +220,12 @@ ids = `docs/05_plans/rl-v1/rel-v0.1/`; `F-NNN` = `docs/wingfoil-feedback/`; `W-N
   reviewer who runs the tool for security fixes; per-phase actuals in the release Execution Notes;
   plan frontmatter `version` kept equal to the Context header; governance tasks planned at
   `release-planning`.
+
+### Capture
+
+- Step 4: `memory add` of dl-006 (retrospective, `bea2d45`), dl-007 (hand transitions, RT-8,
+  `a54adfd`) and dl-008 (inherited workflows, RT-9, `2d133a5`); bodies filled by editing the
+  drafts. Independent read-only review: round 1 FAIL (5 major, 8 minor, 7 nits — a bug credited
+  to review instead of release validation, an unsourced load claim, a tag placeholder giving
+  `vv0.1.0` and not decided, an unsourced description of `wingfoil-sync`, an option not chosen by
+  the approver); round 2 FAIL (3 minor, 2 nits introduced by the fixes); round 3 PASS.
