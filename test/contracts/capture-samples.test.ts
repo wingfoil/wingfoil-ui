@@ -7,7 +7,13 @@ import { cp, mkdir, mkdtemp, readFile, realpath, rm, writeFile } from 'node:fs/p
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterAll, describe, expect, it } from 'vitest';
-import { buildFixture, copyFixture, FIXTURE_KINDS, type Fixture } from '../harness/fixtures/index.js';
+import {
+  buildFixture,
+  copyFixture,
+  FIXTURE_KINDS,
+  type BddFixtureKind,
+  type Fixture,
+} from '../harness/fixtures/index.js';
 import { actAs, archiveOne, cliBuildFor, matrixVersions, rawCli, samplesDir } from './support.js';
 
 const CAPTURE = process.env.WFUI_CAPTURE_SAMPLES === '1';
@@ -15,7 +21,7 @@ const CAPTURE = process.env.WFUI_CAPTURE_SAMPLES === '1';
 const NOW = new Date('2026-10-02T15:30:00Z');
 
 /** Writes captured on a copy of each fixture: [file, member, CLI arguments]. */
-const WRITES: Record<Fixture['kind'], [string, 'Jordan' | 'Morgan' | 'Alex', string[]][]> = {
+const WRITES: Record<BddFixtureKind, [string, 'Jordan' | 'Morgan' | 'Alex', string[]][]> = {
   kanban: [
     ['memory-submit', 'Jordan', ['memory', 'submit', 'task-004-session-timeout']],
     ['memory-approve', 'Morgan', ['memory', 'approve', 'task-001-login-form', '--reason', 'Looks good']],
@@ -34,7 +40,7 @@ const WRITES: Record<Fixture['kind'], [string, 'Jordan' | 'Morgan' | 'Alex', str
 };
 
 /** Directive files kept as samples (custom: one with `tags`, one without). */
-const DIRECTIVES: Record<Fixture['kind'], 'all' | string[]> = {
+const DIRECTIVES: Record<BddFixtureKind, 'all' | string[]> = {
   kanban: 'all',
   custom: ['directives/built-in/testing.md', 'directives/custom/determinism.md'],
   unknown: [],

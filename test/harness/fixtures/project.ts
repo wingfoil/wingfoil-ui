@@ -154,6 +154,11 @@ export class FixtureProject {
     await this.wingfoilAs(member, ['memory', 'reject', id, '--reason', reason]);
   }
 
+  /** `memory deprecate` as `member`. */
+  async deprecate(member: MemberName, id: string, reason: string): Promise<void> {
+    await this.wingfoilAs(member, ['memory', 'deprecate', id, '--reason', reason]);
+  }
+
   /**
    * Set frontmatter fields of an element file by hand (fields `--set` cannot write, W-01). The
    * edit is committed by the next CLI verb on the element, as on a real project.

@@ -19,7 +19,11 @@ const TYPES: Record<FixtureKind, string[]> = {
   kanban: ['adr', 'bug', 'decision-log', 'release', 'release-line', 'task', 'tech-spec'],
   custom: ['release-line', 'release', 'task', 'adr', 'decision-log', 'tech-spec', 'bug', 'plan', 'service'],
   unknown: ['story', 'note'],
+  scrum: ['adr', 'bug', 'decision-log', 'release', 'release-line', 'task', 'tech-spec'],
 };
+
+/** The fixtures built here: the BDD ones and the Scrum template (task-025 AC-4). */
+const KINDS: readonly FixtureKind[] = [...FIXTURE_KINDS, 'scrum'];
 
 /**
  * Standard and progress elements (BDD conventions): state, and the author and subject of the
@@ -53,6 +57,20 @@ const ELEMENTS: Record<FixtureKind, Record<string, [state: string, last: string]
     'note-001-kickoff': ['open', 'Casey|wf(note): add note-001-kickoff'],
     'note-002-retro': ['on-hold', 'Casey|wf(note): note-002-retro [open → on-hold]'],
   },
+  scrum: {
+    'task-001-search-story': ['pending', 'Jordan|wf(task): submit task-001-search-story'],
+    'task-002-login-story': ['draft', 'Jordan|wf(task): add task-002-login-story'],
+    'task-003-export-story': ['approved', 'Morgan|wf(task): approve task-003-export-story [pending → approved]'],
+    'task-004-obsolete-spike': [
+      'deprecated',
+      'Morgan|wf(task): deprecate task-004-obsolete-spike [draft → deprecated]',
+    ],
+    'bug-001-burndown-off-by-one': ['draft', 'Morgan|wf(bug): reject bug-001-burndown-off-by-one [pending → draft]'],
+    'dl-001-two-week-sprints': [
+      'approved',
+      'Morgan|wf(decision-log): approve dl-001-two-week-sprints [pending → approved]',
+    ],
+  },
 };
 
 interface SearchMatch {
@@ -66,6 +84,13 @@ const NOW = new Date('2026-10-05T12:00:00Z');
 let root: string;
 const built = new Map<FixtureKind, Fixture>();
 
+/** Every element, the archived ones too (`memory search` leaves out `deprecated` unless asked, W-19). */
+async function searchAll(fx: Fixture): Promise<SearchMatch[]> {
+  const active = (await cli(fx, ['memory', 'search'])) as { matches: SearchMatch[] };
+  const archived = (await cli(fx, ['memory', 'search', '--status', 'deprecated'])) as { matches: SearchMatch[] };
+  return [...active.matches, ...archived.matches];
+}
+
 async function cli(fx: Fixture, args: string[]): Promise<unknown> {
   const script = binScript(cliPackageDir(fx));
   const { stdout } = await run(process.execPath, [script, ...args, '--format', 'json'], { cwd: fx.dir, env: fx.env });
@@ -74,15 +99,15 @@ async function cli(fx: Fixture, args: string[]): Promise<unknown> {
 
 beforeAll(async () => {
   root = await mkdtemp(path.join(tmpdir(), 'wfui-fx-'));
-  await Promise.all(FIXTURE_KINDS.map(async (kind) => built.set(kind, await buildFixture(kind, { root, now: NOW }))));
-  // Three fixtures built with the real CLI and git: sized for the worst measured load (bug-004).
+  await Promise.all(KINDS.map(async (kind) => built.set(kind, await buildFixture(kind, { root, now: NOW }))));
+  // Four fixtures built with the real CLI and git: sized for the worst measured load (bug-004).
 }, HEAVY_MS);
 
 afterAll(async () => {
   await rm(root, { recursive: true, force: true });
 });
 
-describe.each(FIXTURE_KINDS)('%s fixture', (kind) => {
+describe.each(KINDS)('%s fixture', (kind) => {
   const fx = (): Fixture => built.get(kind)!;
 
   it('names the project after the fixture and declares the standard team', async () => {
@@ -102,16 +127,14 @@ describe.each(FIXTURE_KINDS)('%s fixture', (kind) => {
   });
 
   it('holds every standard element in its state, as memory search reports it', async () => {
-    const found = (await cli(fx(), ['memory', 'search'])) as { matches: SearchMatch[] };
-    const states = Object.fromEntries(found.matches.map((m) => [m.id, m.status]));
+    const states = Object.fromEntries((await searchAll(fx())).map((m) => [m.id, m.status]));
     expect(states).toEqual(Object.fromEntries(Object.entries(ELEMENTS[kind]).map(([id, [state]]) => [id, state])));
   });
 
   it('records the last transition of every element by the conventions member, 3 days before the clock', async () => {
     const f = fx();
-    const found = (await cli(f, ['memory', 'search'])) as { matches: SearchMatch[] };
     const threeDays = NOW.getTime() - 3 * 86_400_000;
-    for (const match of found.matches) {
+    for (const match of await searchAll(f)) {
       const { stdout } = await git(f.dir, ['log', '-1', '--format=%aI|%an|%s', '--', match.path], f.env);
       const [date, ...last] = stdout.trim().split('|');
       expect.soft(last.join('|'), match.id).toBe(ELEMENTS[kind][match.id]?.[1]);
@@ -145,6 +168,20 @@ describe.each(FIXTURE_KINDS)('%s fixture', (kind) => {
         .filter((k) => k.startsWith('GIT_'))
         .sort(),
     ).toEqual(['GIT_CONFIG_GLOBAL', 'GIT_CONFIG_NOSYSTEM']);
+  });
+});
+
+describe('scrum fixture (task-025 AC-4)', () => {
+  it('AC-4 is a Scrum project of the pinned CLI with elements in every state of its default machine', async () => {
+    const f = built.get('scrum')!;
+    const dna = (await cli(f, ['dna', 'show'])) as { project: { methodology: string } };
+    expect(dna.project.methodology).toBe('Scrum');
+    const workflows = await readFile(path.join(f.dir, '.wingfoil', 'workflows.yaml'), 'utf8');
+    expect(workflows).toContain('workflows/custom/scrum-delivery.yaml');
+    const states = new Set((await searchAll(f)).map((m) => m.status));
+    expect([...states].sort()).toEqual(['approved', 'deprecated', 'draft', 'pending']);
+    const { stdout } = await git(f.dir, ['log', '--format=%an|%s', '--grep', 'reject'], f.env);
+    expect(stdout.trim()).toBe('Morgan|wf(bug): reject bug-001-burndown-off-by-one [pending → draft]');
   });
 });
 

@@ -20,7 +20,13 @@ import {
 import { LocalProcessRunner } from '../../server/src/process/runner.js';
 import { resolveStates } from '../../server/src/reads/memory-yaml.js';
 import { ProjectReads } from '../../server/src/reads/project-reads.js';
-import { buildFixture, copyFixture, FIXTURE_KINDS, type Fixture, type FixtureKind } from '../harness/fixtures/index.js';
+import {
+  buildFixture,
+  copyFixture,
+  FIXTURE_KINDS,
+  type Fixture,
+  type BddFixtureKind,
+} from '../harness/fixtures/index.js';
 import { observed, STANDARD } from '../server/descriptor/standard.js';
 import { actAs, cliBuildFor, matrixVersions } from './support.js';
 
@@ -59,8 +65,8 @@ async function describeFixture(fx: Fixture): Promise<{ memoryYaml: MemoryYaml; d
 }
 
 describe.each(VERSIONS)('action descriptor — wingfoil %s', (version) => {
-  const fixtures = {} as Record<FixtureKind, Fixture>;
-  const described = {} as Record<FixtureKind, Awaited<ReturnType<typeof describeFixture>>>;
+  const fixtures = {} as Record<BddFixtureKind, Fixture>;
+  const described = {} as Record<BddFixtureKind, Awaited<ReturnType<typeof describeFixture>>>;
 
   beforeAll(async () => {
     root ??= await realpath(await mkdtemp(path.join(tmpdir(), 'wfui-descriptor-')));
@@ -77,7 +83,7 @@ describe.each(VERSIONS)('action descriptor — wingfoil %s', (version) => {
   });
 
   it('S-28.1 — the same build lists each fixture’s own types, every element with its own state', async () => {
-    const expected: Record<FixtureKind, string[]> = {
+    const expected: Record<BddFixtureKind, string[]> = {
       kanban: ['adr', 'bug', 'decision-log', 'release', 'release-line', 'task', 'tech-spec'],
       custom: ['release-line', 'release', 'task', 'adr', 'decision-log', 'tech-spec', 'bug', 'plan', 'service'],
       unknown: ['story', 'note'],
@@ -103,7 +109,7 @@ describe.each(VERSIONS)('action descriptor — wingfoil %s', (version) => {
   });
 
   it('M-02.2 / M-01.2 — the generic buckets', () => {
-    const bucket = (kind: FixtureKind, b: string) =>
+    const bucket = (kind: BddFixtureKind, b: string) =>
       described[kind].descriptors
         .filter((d) => d.bucket === b)
         .map((d) => d.id)
