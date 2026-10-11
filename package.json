@@ -1,6 +1,6 @@
 {
   "name": "wingfoil-ui",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "Local web UI for WingFoil-governed projects",
   "type": "module",
   "bin": {

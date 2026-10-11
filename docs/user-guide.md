@@ -1,6 +1,6 @@
 # User guide — WingFoil UI v0.1
 
-**Version:** 0.1 · **Date:** 2026-10-11 (0.1: release v0.1)
+**Version:** 0.2 · **Date:** 2026-10-11 (0.1: release v0.1; 0.2: bug-008 known limitation, release submit)
 
 WingFoil UI v0.1 is a **read-only console** for WingFoil-governed projects: you open a project and
 read its Memory, elements, DNA, directives, team and documentation, kept up to date while you work
@@ -312,7 +312,8 @@ The project list and the role view of each project are kept outside every reposi
 ## Known limitations
 
 Accepted for v0.1 and recorded in the implementation plan
-(`docs/05_plans/rl-v1/rel-v0.1/dev-loop-rel-v0.1-plan.md`) and the task notes:
+(`docs/05_plans/rl-v1/rel-v0.1/dev-loop-rel-v0.1-plan.md`), the task notes and the bug records
+(`docs/04_memory/bugs/`):
 
 - **Clone URL check, two edge cases.** An scp-like address with an `@` in its path (after the
   host's `:`) and no `/`, e.g. `git@host:repo@v2.git`, is refused as if it held credentials
@@ -333,3 +334,6 @@ Accepted for v0.1 and recorded in the implementation plan
   git log, not incrementally; very long histories make this read slower.
 - **One string outside the catalogue:** a screen-reader-only library string (React Aria's
   "Dismiss", in popovers).
+- **A killed console leaves a temporary folder.** If the console is killed (e.g. `kill -9`, not
+  stopped with Ctrl-C) after a clone, an empty folder `wfui-no-hooks-*` stays in the system
+  temporary directory; it holds no data and can be deleted by hand. Fix planned for v0.2.

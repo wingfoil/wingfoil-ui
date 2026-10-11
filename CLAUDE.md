@@ -1,6 +1,6 @@
 # CLAUDE.md — agent entry point
 
-**Version:** 0.1 · **Date:** 2026-10-11 (0.1: release v0.1, `user-docs` `align-agent-docs`)
+**Version:** 0.2 · **Date:** 2026-10-11 (0.1: release v0.1, `user-docs` `align-agent-docs`; 0.2: v0.1.0 released, release submit)
 
 WingFoil UI: a local web UI for WingFoil-governed projects. A Node.js server (`server/`) drives
 each project's pinned `wingfoil` CLI and reads git; a React app (`web/`) shows the result;
@@ -9,8 +9,9 @@ is itself governed by WingFoil (`.wingfoil/`).
 
 ## Project status
 
-Release **v0.1 — Read-only console** (`docs/04_memory/planning/v1/minor-v0.1.md`; implementation
-done, release validation under way). Shipped surface:
+Release **v0.1 — Read-only console** (`docs/04_memory/planning/v1/minor-v0.1.md`), released as
+git tag `v0.1.0` (`package.json` version `0.1.0`, `private: true`: not published on npm — dl-004).
+Next: the v0.1 retrospective, then release v0.2. Shipped surface:
 
 - the launcher command line `wingfoil-ui [--port <n>] [--no-open] [--version] [--help]` —
   [`docs/cli-reference.md`](docs/cli-reference.md), spec-007;

@@ -6,7 +6,7 @@ All notable changes to WingFoil UI are recorded in this file. The format follows
 
 ## [Unreleased]
 
-## [0.1.0] - TBD
+## [0.1.0] - 2026-10-11
 
 **Read-only console.** Open any WingFoil project and read it safely. Supports WingFoil **0.2.2 to
 0.2.x** (contract-tested: 0.2.2). Run from a checkout: `npm ci && npm run build && node
@@ -93,6 +93,9 @@ bin/wingfoil-ui.cjs` ([README](README.md#install-and-run)), or `npm pack` it and
 - Memory history is re-read by walking the whole git log after each new commit (not incremental).
 - One screen-reader-only library string (React Aria's "Dismiss", in popovers) is outside the
   message catalogue.
+- A console killed by a signal it does not handle (e.g. `kill -9`) after a clone leaves an empty
+  temporary folder `wfui-no-hooks-*` in the system temporary directory (bug-008, fix planned for
+  v0.2).
 
 Details: [user guide — Known limitations](docs/user-guide.md#known-limitations).
 
