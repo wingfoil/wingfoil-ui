@@ -468,3 +468,26 @@ above.
   - Store row: the scp-like password is removed.
   - spec-006 §3 (the `::` form, any slashes, ssh/scp passwords) is amended by the coordinator on
     `main`.
+
+### review round 3 (2026-10-11)
+
+- Re-review: earlier fixes confirmed (about 60 hostile inputs); **FAIL** on one minor and three
+  nits. Fixed in `902fc8e`, rows red first:
+  - **W5-19** (decided by the user 2026-10-11, option (a)): any userinfo of a `git://` URL is
+    refused with `credentials-in-url`, after the same normalisation (any slashes, upper case,
+    under `<transport>::`). Before, `git://alex:s3cret@host/r` reached git, and its "unable to look
+    up alex:s3cret@…" went verbatim into the 422 `git-refused` message. Rows:
+    `git://alex:s3cret@host/r`, `GIT:///alex@host/r`, `https::git://tok@host/r`; allowed
+    `git://host/r`. API row → 422 with no process and no secret.
+  - A percent-encoded `:` in ssh/scp userinfo is a password (git decodes it): `ssh://u%3Ap@h/r`
+    is refused. Invalid encoding is judged as written.
+  - `stripUserinfo` drops a scp-like password holding `@` whole: `alex:p@ss@host:r` →
+    `alex@host:r` (store row).
+  - **Control characters:** a clone URL holding a control character (U+0000–U+001F, U+007F) is
+    refused by `cloneSourceProblem` with "url must not contain control characters". That is the
+    existing invalid-source path: 400 `invalid-request`, the code `ProjectList.clone` already uses
+    for a URL starting with `-` or a relative local path. No new code. Unit rows and an API row
+    (`https\n://alex:pw@…` → 400, nothing run, the credential not echoed).
+  - A password shape (`user:pass@`) in the part of a scp-like address before its first `/` is
+    refused even when the host's `:` comes later (`alex:s3cret@host/p:x`).
+- spec-006 §3 (`git://`) is amended by the coordinator on `main`.
