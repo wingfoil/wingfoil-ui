@@ -491,3 +491,12 @@ above.
   - A password shape (`user:pass@`) in the part of a scp-like address before its first `/` is
     refused even when the host's `:` comes later (`alex:s3cret@host/p:x`).
 - spec-006 §3 (`git://`) is amended by the coordinator on `main`.
+
+### review round 4 (2026-10-11)
+
+- Re-review on `6be7622`: **PASS**. The user accepted two nits as recorded limits:
+  - A scp-like address with an `@` and no `/` in its path (e.g. `myhost:repo@2.git`) is refused as
+    `credentials-in-url`. This is rare, and errs on the safe side.
+  - `git+https://u:p@…` and other schemes git does not know appear on `git clone`'s own argv
+    before git refuses the transport. No connection is made, nothing is stored, and no URL is
+    echoed.
