@@ -414,3 +414,21 @@ above.
     message, English or key), used by `expectSettled` and `timeNavigation`.
   - **F8** (`b31dc0d`): restored without credentials: an http remote cloned, then
     `HTTP://<HOST>/kanban/` → `already-listed`, with no `clone` process.
+- Checks after the fixes (HEAD `bdbefb1`):
+  - `typecheck`, `lint` and `format:check` are clean; `docs:api` OK; `check_tasks.py` OK.
+  - `test:coverage`: **1881 passed / 1 skipped** (116 files). Coverage is 96.65 % statements,
+    90.93 % branches, 97.22 % functions, 98.32 % lines (load 2.8 → 13.8).
+  - `test:e2e`: **125/125** in 5.1 min (load ≈ 14 → 17.7).
+  - `test:timing`: **3 Vitest + 14 Playwright passed** (load 7.2 → 3.8).
+    - REQ-PERF-03: max 629 ms. REQ-PERF-06: 336–526 ms. TypeDoc build: 4741 ms.
+    - Strict live refresh: 318–1297 ms.
+    - TT-PERF-04, p95 over 20 runs, each view's own read checked to be sent after the key press:
+
+      | View | p95 | max | First open |
+      |------|-----|-----|------------|
+      | Memory list | 79 ms | 90 ms | 333 ms |
+      | Element panel | 47 ms | 51 ms | 349 ms |
+      | DNA (from the Documentation index) | 40 ms | 43 ms | 163 ms |
+      | Directives | 40 ms | 41 ms | 163 ms |
+      | Team | 42 ms | 45 ms | 198 ms |
+      | Documentation | 50 ms | 56 ms | 40 ms |
