@@ -500,3 +500,30 @@ above.
   - `git+https://u:p@…` and other schemes git does not know appear on `git clone`'s own argv
     before git refuses the transport. No connection is made, nothing is stored, and no URL is
     echoed.
+
+### integration (2026-10-11)
+
+- Reviews: round 1 FAIL → fixed; round 2 FAIL → fixed; round 3 FAIL (minor) → fixed; round 4
+  **PASS** (two limits accepted by the user, above).
+- `main` merged (`a0dc440`, authorised by the coordinator): the spec-006 §3 `credentials-in-url`
+  amendments and spec-008 §3/§6. Docs only, no conflict.
+- Gates on the merge:
+  - `typecheck`, `lint` (ESLint and the catalogue check) and `format:check` are clean;
+    `docs:api` OK; `check_tasks.py` OK.
+  - `test:coverage`: **116 files passed, 1 skipped; 1926 passed / 1 skipped**. Coverage is 96.67 %
+    statements, 90.97 % branches, 97.22 % functions, 98.33 % lines (load 4.2 → 15.0).
+  - `test:e2e`: **125/125** in 5.3 min (load 14.0 → 16.0).
+  - `npm run test:timing`: **3 Vitest + 14 Playwright passed** (load 7.3 → 7.2).
+    - REQ-PERF-03: 20/20, max 726 ms. REQ-PERF-06: 361–620 ms. TypeDoc build: 4844 ms.
+    - Strict live refresh: 805–1306 ms.
+    - TT-PERF-04, p95 over 20 runs (budget 1 000 ms):
+
+      | View | p95 | max | First open |
+      |------|-----|-----|------------|
+      | Memory list | 101 ms | 105 ms | 537 ms |
+      | Element panel | 49 ms | 52 ms | 499 ms |
+      | DNA | 45 ms | 47 ms | 220 ms |
+      | Directives | 47 ms | 51 ms | 394 ms |
+      | Team | 56 ms | 57 ms | 441 ms |
+      | Documentation | 61 ms | 61 ms | 53 ms |
+- bug-006: its fix note is in the bug's Triage & Execution Notes; it is submitted with this task.

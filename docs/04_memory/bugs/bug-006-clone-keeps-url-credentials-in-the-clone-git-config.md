@@ -68,3 +68,15 @@ with a catalogue reason pointing to a credential helper.
   verb); it moves to `in-progress` when task-021 starts.
 - start (2026-10-10): task-021 started (Wave 5) → `planned → in-progress` by hand (bug.sync_state; no CLI
   verb); it is submitted together with task-021.
+- fix (2026-10-11, task-021): `POST /api/projects/clone` refuses a URL holding credentials with 422
+  `credentials-in-url` (spec-006 §3, no `detail`, catalogue `error.credentialsInUrl` with the SSH /
+  credential-helper hint). The check runs before any file-system, state or git work, so nothing is
+  cloned and no credential reaches a command line, a file or the state.
+  - Decisions: W5-14 (code), W5-15 (any userinfo in http(s)/ftp(s)), W5-18 (a password in `ssh://`
+    and scp-like addresses), W5-19 (any userinfo in `git://`).
+  - Hardening across review rounds 1–3: the `<transport>::<address>` form; any slashes or
+    backslashes after the scheme; a percent-encoded `:`; control characters refused as an invalid
+    request (400).
+  - Commits on the task branch: `5aa9f5b`, `b31dc0d`, `9c780e2`, `b53c0ee` (W5-18), `902fc8e`; tests in `test/server/projects/remote.test.ts`,
+    `test/server/http/projects.test.ts`, `test/server/state/store.test.ts` and
+    `test/e2e/add-project.spec.ts` › "bug-006 — Refuse a clone URL holding credentials".
