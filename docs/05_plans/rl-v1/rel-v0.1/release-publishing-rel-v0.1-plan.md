@@ -14,8 +14,8 @@ tmpl_version: 260703   # Orignal template version
 
 ## Context
 
-**Version:** 0.3 · **Date:** 2026-10-11 (0.1: plan created; 0.2: Session 1 — timing, tag; 0.3: tag pushed,
-released, retrospective inputs)
+**Version:** 0.4 · **Date:** 2026-10-11 (0.1: plan created; 0.2: Session 1 — timing, tag; 0.3: tag pushed,
+released, retrospective inputs; 0.4: review nits)
 **Branch:** `main` (RV-1; the tag is created on `main`, WingFoil dl-024)
 **Workflows:** `sw-life-cycle` → `release-line-cycle` (`rl-v1`) phase `delivery` → `release-cycle`
 (`minor-v0.1`, v1.1) phase `publishing` = `release-publishing`
@@ -61,12 +61,14 @@ dl-004; release `minor-v0.1` `released`; the inputs for the retrospective.
 ### Session 1 — 2026-10-11
 
 - Plan created (`eb1c0a3` add, `88fc010` submit → `active`).
-- **Step 1 — `test:timing`** on `f830064` (20:40–20:42, load 1.6 → 5.8; source unchanged since
-  `ac3b5b5`): **3/3 + 14/14 passed**. REQ-PERF-03 20/20 within 5 s (251–427 ms); REQ-PERF-06
-  10/10 within 3 s (217–268 ms); TT-PERF-04 p95 (warm cache, 20 runs): Memory list 97, element
+- **Step 1 — `test:timing`** started on `f830064` (20:40–20:42, load 1.6 → 5.8; only plan and
+  governance commits landed during the run; source unchanged since `ac3b5b5`): **3/3 + 14/14
+  passed**. REQ-PERF-03 20/20 within 5 s (251–427 ms); REQ-PERF-06 10/10 within 3 s (217–268 ms);
+  TypeDoc build 2535 ms; S-27.2 DNA view recovered in 422 ms (`@live-refresh`); TT-PERF-04 p95 (warm cache, 20 runs): Memory list 97, element
   panel 46, DNA 43, Directives 149, Team 58, Documentation 60 ms. Supersedes the skip recorded in
   `release-submit-rel-v0.1-plan` (load 18).
-- **Step 2 — tag:** on `main`, release work on `main` (RV-1); `git diff --name-only ac3b5b5 HEAD`
+- **Step 2 — tag:** `v0.1.0` for release `v0.1` (RV-7; the workflow's `{release.version}` would
+  give `v0.1`); on `main`, release work on `main` (RV-1); `git diff --name-only ac3b5b5 HEAD`
   = dl-004, `minor-v0.1.md`, the two `release-*` plans, `docs/user-guide.md` (no source, test or
   package file). `git tag -a v0.1.0 -m "WingFoil UI v0.1.0 — Read-only console"` on `545d56c`
   (tag object `8a6e859`).
@@ -106,8 +108,13 @@ Raw material, gathered at the end of `publishing`; the retrospective decides wha
   bug check `bugs where tags=[…]` does not match this project's bugs (no `tags`; `release` /
   `release-origin` used instead); release `in-development → releasing → released` and
   approve-release have no verb (hand commits, OK in chat); `test:timing` depends on machine load
-  (skipped at 18, green at 1.6 an hour later); the plan of submit cited a wrong script path,
-  caught only by the independent review.
+  (skipped at 18:56 at load 18, green at 20:40 at load 1.6); the plan of submit cited a wrong
+  script path, caught only by the independent review; the tag is `{release.version}` in the
+  workflow (`v0.1`) but `v0.1.0` by RV-7; the `publish` phase cites WingFoil-only artefacts
+  absent here (`.github/workflows/publish.yml`, adr-011, spec-015, dl-087, dl-024) — input for
+  tailoring the workflow (`wingfoil-sync`); hand transitions of release states (`df09286`,
+  `677efa7`, `0f54194`) rest on the `memory.yaml` comment, with no `wingfoil-cli` W-entry
+  (`df09286` cites W-04, which is about plans).
 - **Process lessons recorded by earlier phases:** Vitest's `NODE_ENV=test` reaching `prepack`
   (task-025); concurrent suites racing on `web/dist`; agents interrupted by usage limits and
   resumed from commits; rules file for agents in `.notes/dev-rules.md` (git-ignored, RV-9);

@@ -178,8 +178,8 @@ Bars common to every release (`08_mvp-canvas.md`, SARD v0.6):
   paths in the plan; 4 minor), fixed `1579760`; round 2 PASS. pre-release-checks on `ac3b5b5` all
   green: coverage 1949 passed (96.67 % statements), e2e 129/129, smoke 4/4 (`0.1.0`), contract
   144, local-security 136, accessibility 10/10; `test:timing` skipped (load 18).
-- 2026-10-11 — approve-release: the approver's OK in chat, recorded in the submit plan; release
-  `releasing` (`677efa7`), plan finalized `c8201b7`. dl-004 approved (`f830064`).
+- 2026-10-11 — release `releasing` (`677efa7`); then approve-release: the approver's OK in chat,
+  recorded in the submit plan, plan finalized `c8201b7`. dl-004 approved (`f830064`).
 - 2026-10-11 — `release-publishing-rel-v0.1-plan`: `test:timing` green on `f830064` (load 1.6–5.8;
   REQ-PERF-03 20/20, REQ-PERF-06 10/10, TT-PERF-04 p95 ≤ 149 ms). Annotated tag `v0.1.0` on `main`
   `545d56c` (only docs/governance changed after `ac3b5b5`), pushed on the approver's OK. `publish`
