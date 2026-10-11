@@ -46,6 +46,8 @@ Starting reads no project: the URL is printed first, each project is read when y
 - After the console is stopped and started again (or when the page belongs to another console),
   the page shows **This page is no longer recognised by the console**: open the URL the console
   printed in its terminal.
+- The console keeps up to 64 browser sessions; opening one more evicts the oldest, whose page then
+  shows the same **This page is no longer recognised by the console**.
 - When the console cannot be reached for 10 s, a banner says so (**Cannot reach the console…**);
   the page reconnects by itself when the console answers again.
 - Project pages have stable addresses (`/p/<id>/memory`, `/p/<id>/e/<element id>`, …): the id is
@@ -231,8 +233,9 @@ folder, **without** Memory element files and plan files. A Markdown document ope
   (e.g. `kanban · Memory — WingFoil UI`).
 - **Target:** WCAG 2.1 AA; every screen of v0.1 passes an axe scan with no serious or critical
   violation in both themes (`test/e2e/accessibility.spec.ts`).
-- **Language:** English. Every UI string comes from one message catalogue; project data (names,
-  titles, states) is shown as written.
+- **Language:** English. Every UI string comes from one message catalogue, except one
+  screen-reader-only library string (React Aria's "Dismiss"); project data (names, titles, states)
+  is shown as written.
 
 ## Local security
 
@@ -311,15 +314,16 @@ The project list and the role view of each project are kept outside every reposi
 Accepted for v0.1 and recorded in the implementation plan
 (`docs/05_plans/rl-v1/rel-v0.1/dev-loop-rel-v0.1-plan.md`) and the task notes:
 
-- **Clone URL check, two edge cases.** An scp-like address with an `@` and no `/` in its path is
-  refused as if it held credentials; a URL with an unknown scheme and credentials
+- **Clone URL check, two edge cases.** An scp-like address with an `@` in its path (after the
+  host's `:`) and no `/`, e.g. `git@host:repo@v2.git`, is refused as if it held credentials
+  (`git@github.com:repo.git` and `git@host:org/repo@v2.git` are accepted); a URL with an unknown scheme and credentials
   (`git+https://user:pass@…`) is passed to `git clone`, which refuses the transport — nothing
   connects, nothing is stored, the URL is not echoed.
 - **A killed clone leaves its folder.** If the console is killed (not stopped) during a clone, the
   partial folder stays; a retry says *The working directory is not empty*. Delete the folder by
   hand.
-- **Project header re-read.** If a re-read of the project header never completes, its error is not
-  shown and the *Role view* select stays disabled; reload the page.
+- **Role view refusal.** If a *Role view* change is refused and the following header re-read never
+  completes, the refusal is not shown and the select stays disabled; reload the page.
 - **Windows** is tested only through simulated platform behaviour: opening the browser (the
   `#token` fragment through `rundll32`), finding the CLI, and stopping child processes (a
   `wingfoil` process may outlive the console briefly) have not been checked on a Windows machine.
@@ -327,5 +331,5 @@ Accepted for v0.1 and recorded in the implementation plan
 - **Event streams:** the console sets no limit on the number of open pages (event streams).
 - **History reading:** after each new commit, the Memory history is re-read by walking the whole
   git log, not incrementally; very long histories make this read slower.
-- One English string from a UI library (*Dismiss*, read only by screen readers in popovers) is
-  outside the message catalogue.
+- **One string outside the catalogue:** a screen-reader-only library string (React Aria's
+  "Dismiss", in popovers).

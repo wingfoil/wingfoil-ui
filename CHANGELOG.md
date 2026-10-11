@@ -52,8 +52,9 @@ bin/wingfoil-ui.cjs` ([README](README.md#install-and-run)); not published on npm
 - **Accessibility:** keyboard access to every screen, skip link, visible focus, polite
   announcements, tab titles naming project and view; axe scans with no serious or critical
   violation on every screen in both themes. (X1)
-- **Externalised strings:** every UI and launcher string from an English message catalogue; the
-  web catalogue is checked by `npm run lint`. (X2)
+- **Externalised strings:** every UI and launcher string from an English message catalogue,
+  except one screen-reader-only library string (React Aria's "Dismiss"); the web catalogue is
+  checked by `npm run lint`. (X2)
 - **Light and dark themes** following the system preference, AA contrast in both. (X3)
 - `README` section *Supported WingFoil versions* with the support matrix and capability table.
 
@@ -63,31 +64,35 @@ bin/wingfoil-ui.cjs` ([README](README.md#install-and-run)); not published on npm
 - Per-start session token in the URL fragment, exchanged for an `HttpOnly`, `SameSite=Strict`
   cookie; every API request and the event stream need it; token and session id never logged or
   stored. (X4)
-- `Host`, `Origin` and `Sec-Fetch-Site` checks on every request (cross-site requests, DNS
-  rebinding). (X4)
+- `Host` and `Origin` checks on every request, `Sec-Fetch-Site` on every API request (cross-site
+  requests, DNS rebinding). (X4)
 - Opaque project ids in URLs; file reads confined to the project's repository. (X4)
 - `wingfoil` and `git` run without a shell; inherited `GIT_*` variables that redirect git are
   dropped (bug-002); a confined read no longer blocks or exhausts memory when the file is swapped
   after the check (bug-003).
 - Clones: only the `https`, `http`, `ssh`, `git` and `file` transports; no hook and no CLI of the
   cloned repository runs; git never prompts. Clone URLs carrying credentials are refused before
-  anything runs, so no password lands in the clone's `.git/config` or on a command line (bug-006).
+  anything runs, so no password lands in the clone's `.git/config` or on a command line
+  (bug-006; except the unknown-scheme case under Known limitations).
 - The local state holds no token, credential or project content; remote URLs are stored without
   user info.
 
 ### Known limitations
 
-- An scp-like clone address with an `@` and no `/` in its path is refused as credentials; a URL
+- An scp-like clone address with an `@` in its path (after the host's `:`) and no `/`, e.g.
+  `git@host:repo@v2.git`, is refused as if it held credentials; a URL
   with an unknown scheme and credentials reaches `git clone`, which refuses the transport (nothing
   connects or is stored).
 - A clone interrupted by killing the console leaves its folder behind.
-- A project-header re-read that never completes leaves its error unshown and the *Role view*
-  select disabled.
+- If a *Role view* change is refused and the following header re-read never completes, the
+  refusal is not shown and the select stays disabled; reload the page.
 - Windows behaviour (browser opener, CLI discovery, child-process stop) is tested only with
   simulated platforms.
 - End-to-end tests run on Chromium only.
 - No limit on the number of open event streams.
 - Memory history is re-read by walking the whole git log after each new commit (not incremental).
+- One screen-reader-only library string (React Aria's "Dismiss", in popovers) is outside the
+  message catalogue.
 
 Details: [user guide — Known limitations](docs/user-guide.md#known-limitations).
 

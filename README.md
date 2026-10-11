@@ -13,8 +13,8 @@ local server that drives the `wingfoil` CLI.
 `wingfoil-ui` starts a small Node.js server on your machine and opens the console in your browser.
 For each project you add, the server runs **that project's own** `wingfoil` CLI (the one pinned in
 its `node_modules`, else the one on the `PATH`) and reads its git repository; the browser shows
-the result. Nothing leaves your machine: the server listens on the loopback addresses only, and
-every API request needs the session opened with the token printed at start.
+the result. The console is reachable only from your machine: the server listens on the loopback
+addresses only, and every API request needs the session opened with the token printed at start.
 
 What v0.1 shows:
 
@@ -26,7 +26,7 @@ What v0.1 shows:
 | Element panel | state machine, rejection banner, summary, references (missing required fields flagged), directives, history with commits |
 | DNA · Directives · Team | the project's DNA; directives with their bound roles and rendered body; team members with roles and pending gates, agents that never approve |
 | Documentation | index of the DNA's `paths.docs` (without Memory and plan files), Markdown rendered inside the UI |
-| Everywhere | keyboard access, WCAG 2.1 AA target, light and dark themes following the system, English strings from one catalogue |
+| Everywhere | keyboard access, WCAG 2.1 AA target, light and dark themes following the system, English strings from one catalogue (except React Aria's screen-reader-only "Dismiss") |
 
 ## Requirements
 

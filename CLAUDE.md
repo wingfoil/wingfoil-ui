@@ -39,10 +39,11 @@ accepted as a limitation: [`CHANGELOG.md`](CHANGELOG.md).
 ## Working with the WingFoil CLI
 
 - Run only the pinned CLI: `npm run -s wingfoil -- <command>` (`wingfoil@0.2.2`, devDependency).
-- Every governance change goes through a CLI verb (directive `cli-only-writes`) (`memory add`, `memory submit`, `memory approve`,
-  `memory reject`, …); hand edits only where directive `wingfoil-cli` says so — e.g. closing a
-  plan by hand (W-04) and the task transitions `backlog → in-progress`, `approved → done` (W-20).
-  Read that directive's *Known behaviours* table before running a verb; do not copy it here.
+- Every governance change goes through a CLI verb (`memory add`, `memory submit`, `memory approve`,
+  `memory reject`, …; directive `cli-only-writes`); hand edits only where directive
+  `wingfoil-cli` says so — e.g. closing a plan by hand (W-04) and the task transitions
+  `backlog → in-progress`, `approved → done` (W-20). Read that directive's
+  *Known behaviours* table before running a verb; do not copy it here.
 - The DNA's agent executes as developer, reviewer, qa and architect with **no approval
   authority**: `memory approve` / `reject` are run by the human approver.
 - A wrong or surprising CLI behaviour becomes a `wingfoil-cli` entry and, when it is a WingFoil

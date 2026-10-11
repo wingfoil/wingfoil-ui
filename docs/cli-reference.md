@@ -79,8 +79,8 @@ for a password in the terminal.
    is not available it continues on IPv4 only. Without `--port`, if `::1` refuses the port chosen
    for `127.0.0.1`, both are closed and another free port is tried, at most 5 times (exit 3 after
    that). A `--port` in use on either address → exit 3.
-5. A new session token (32 random bytes, base64url) is drawn for this start and the URL is
-   printed on stdout.
+5. A new session token (32 random bytes, base64url) is drawn for each start; once the server
+   listens, the URL with the token is printed on stdout.
 6. Unless `--no-open`, the browser is opened on the URL (below).
 
 ## Opening the browser
@@ -103,11 +103,11 @@ stdout carries only these lines:
 | `--version` | the version, e.g. `0.1.0` |
 | `--help` | the usage above |
 
-The URL line is the only place the token is printed.
+These two URL lines are the only places the token is printed.
 
 stderr carries the refusals below and the server log: JSON lines (pino), level `info`, with the
-port, the bound addresses and the start time at start. The `authorization` and `cookie` request
-headers are redacted, so neither the token nor the session id reaches the log.
+port, the bound addresses and the start duration (`startMs`) at start. The `authorization` and `cookie`
+request headers are redacted, so neither the token nor the session id reaches the log.
 
 | Message on stderr | Exit |
 |-------------------|------|
