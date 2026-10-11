@@ -104,6 +104,9 @@ export function transportAddress(url: string): string {
  */
 const SCHEME_AUTHORITY = /^([A-Za-z][A-Za-z0-9+.-]*):[/\\]*([^/?#\\]*)/;
 
+/** The SSH schemes of git: a login is allowed, a password is refused (W5-18). */
+const SSH_SCHEMES = new Set(['ssh', 'git+ssh', 'ssh+git']);
+
 /** The URL schemes whose userinfo git keeps in the clone's `remote.origin.url` as a credential. */
 const CREDENTIAL_SCHEMES = new Set(['http', 'https', 'ftp', 'ftps']);
 
@@ -112,12 +115,27 @@ const CREDENTIAL_SCHEMES = new Set(['http', 'https', 'ftp', 'ftps']);
  * `credentials-in-url`, bug-006, decided by the user 2026-10-10): any userinfo of an http(s) or
  * ftp(s) URL — a password, or a token in the user's place (`https://<token>@github.com/…`). Git
  * would keep it in the clone's `.git/config` and show it in the process list. An SSH login
- * (`ssh://git@host/…`, the scp-like `git@host:…`) holds no secret and stays allowed. The authority
+ * (`ssh://git@host/…`, the scp-like `git@host:…`) holds no secret and stays allowed; a password in
+ * an `ssh://` URL or a scp-like address (`user:pass@host:path`) is refused (W5-18, decided by the
+ * user 2026-10-11). The authority
  * is read by one normalisation (any slashes or backslashes after the scheme, up to `/`, `?`,
  * `#` or `\\`): an `@` in the path, query or fragment is not userinfo. git's
  * `<transport>::<address>` form is judged on its address (`https::https://alex:pw@host/r.git`).
  */
 export function credentialsInUrl(url: string): boolean {
-  const match = SCHEME_AUTHORITY.exec(transportAddress(url));
-  return match !== null && CREDENTIAL_SCHEMES.has(match[1]!.toLowerCase()) && match[2]!.includes('@');
+  const address = transportAddress(url);
+  const match = SCHEME_AUTHORITY.exec(address);
+  const scheme = match?.[1]!.toLowerCase();
+  if (scheme !== undefined && CREDENTIAL_SCHEMES.has(scheme)) return match![2]!.includes('@');
+  if (scheme !== undefined && SSH_SCHEMES.has(scheme)) return hasPassword(match![2]!);
+  // The scp-like form `user[:password]@host:path` (W5-18): the part before the first `/`.
+  const head = /^[^/\\]*/.exec(address)![0];
+  const at = head.lastIndexOf('@');
+  return at > 0 && head.slice(at + 1).includes(':') && hasPassword(head);
+}
+
+/** Whether the userinfo of `authority` (up to its last `@`) holds a password (a `:`). */
+function hasPassword(authority: string): boolean {
+  const at = authority.lastIndexOf('@');
+  return at >= 0 && authority.slice(0, at).includes(':');
 }

@@ -134,6 +134,21 @@ describe('credentialsInUrl', () => {
     ['https:///h/r.git', false],
     ['https:\\\\h\\r@x', false],
     ['https://h/r?u=a@b', false],
+    // W5-18 (decided by the user 2026-10-11): a password in an ssh:// URL or a scp-like address.
+    ['ssh://alex:s3cret@h/r', true],
+    ['SSH://a:b@h/r', true],
+    ['git+ssh://a:b@h/r', true],
+    ['ssh:///a:b@h/r', true],
+    ['https::ssh://a:b@h/r', true],
+    ['alex:s3cret@host:r.git', true],
+    ['alex:@host:r', true],
+    ['  alex:s3cret@host:owner/r.git', true],
+    ['git@host:r', false],
+    ['ssh://git@h/r', false],
+    ['ssh://h/r', false],
+    ['host:r.git', false],
+    ['/srv/a:b@c/r.git', false],
+    ['file:///srv/a:b@c:x', false],
   ])('%s → %s', (url, expected) => {
     expect(credentialsInUrl(url)).toBe(expected);
   });

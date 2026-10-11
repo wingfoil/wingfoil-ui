@@ -636,6 +636,9 @@ describe('POST /api/projects/clone (S-04, S-05.2, S-06, S-07)', () => {
     ['the transport form', (host: string, secret: string) => `http::http://alex:${secret}@${host}/kanban.git`],
     // Review round 2: extra slashes after the scheme (curl still reads the userinfo).
     ['three slashes', (host: string, secret: string) => `http:///alex:${secret}@${host}/kanban.git`],
+    // W5-18 (decided by the user 2026-10-11): a password in an ssh:// URL or a scp-like address.
+    ['an ssh password', (host: string, secret: string) => `ssh://alex:${secret}@${host}/kanban.git`],
+    ['a scp-like password', (_host: string, secret: string) => `alex:${secret}@git.invalid:acme/kanban.git`],
   ])(
     'bug-006 refuses a clone URL holding %s: credentials-in-url, nothing run or written (REQ-SEC-09)',
     async (_name, urlOf) => {
