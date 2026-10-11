@@ -2,13 +2,13 @@
 id: bug-007-packed-package-cannot-start-and-would-ship-private-and-development-files
 type: bug
 title: "Packed package cannot start and would ship private and development files"
-status: draft
-severity: ""           # REQUIRED — critical | high | medium | low
-release-origin: ""     # optional — release where the bug was FOUND, e.g. "v0.1"
+status: open
+severity: "medium"           # REQUIRED — critical | high | medium | low
+release-origin: "v0.1"     # optional — release where the bug was FOUND, e.g. "v0.1"
 release: ""            # optional — fix/implementation release, stamped by release-planning/build-backlog
-feature: ""            # optional — related feature ID from docs/01_vision/06_features.md
-module: ""             # optional — server | web | contracts
-wingfoil_version: ""   # optional — `wingfoil --version` of the OBSERVED project (the UI drives its CLI)
+feature: "S1"            # optional — related feature ID from docs/01_vision/06_features.md
+module: "server"             # optional — server | web | contracts
+wingfoil_version: "0.2.2"   # optional — `wingfoil --version` of the OBSERVED project (the UI drives its CLI)
 browser: ""            # optional — for `web`: browser name + version, e.g. "Firefox 131"
 contributor: ""        # optional — who originated this contribution, if not the git author; credited for AI-generated work derived from it
 credit: ""             # optional — free-text credit note
@@ -17,38 +17,51 @@ tmpl_version: 260703   # Orignal template version
 
 ## Summary
 
-<!-- One-sentence description of the defect. -->
+`npm pack` of the repository produces a package that cannot start with `npx wingfoil-ui`
+(US-S-01, TT-ARC-01) and would carry private and development files: the built `server/dist`,
+`web/dist`, `contracts/dist` are missing, the runtime dependencies are not declared at the root,
+and the git-ignored `export/`, `export1/`, `.idea/` plus `test/`, `docs/`, `.mcp.json` are included.
 
 ## Steps to Reproduce
 
-<!-- Start from the observed project's state (WingFoil version, branch, the elements involved),
-     then the numbered steps in the UI or against the server API.
-  1. ...
-  2. ...
-  3. ... -->
+1. On `main` (`3a74e9c`), with a built checkout: `npm pack --dry-run --json`.
+2. Look at the file list: 707 files, ~2.2 MB; no path under `server/dist/`, `web/dist/` or
+   `contracts/dist/`; `export/` (8 files), `export1/` (7), `.idea/` (3), `test/` (267),
+   `docs/` (163), `.mcp.json` listed.
+3. `package.json` (root): no `files` field, no `.npmignore` (npm then applies `.gitignore`, which
+   ignores every `dist/`), no `dependencies` (the runtime ones — `fastify`, `@fastify/static`,
+   `@formatjs/intl`, `ajv`, `pino`, `yaml` — are in `server/package.json`), and `server/dist` imports
+   the workspace package `@wingfoil-ui/contracts` (`private`, not packed).
 
 ## Expected Behavior
 
-<!-- What should happen. -->
+The packed tarball, installed in an empty folder, starts with `npx wingfoil-ui --no-open`, prints
+the URL and serves the UI on localhost (US-S-01, TT-ARC-01, spec-007 §2); it contains only what
+the app needs at runtime (bin, built server/web/contracts, catalogues, LICENSE, README, CHANGELOG)
+and nothing git-ignored or development-only.
 
 ## Actual Behavior
 
-<!-- What actually happens. Include error messages or stack traces if available. -->
+- Installed from the tarball, the bin finds no `server/dist/main.js` → `launcher.unexpected`,
+  exit 70 (derived from the file list; not run end to end).
+- Runtime dependencies and `@wingfoil-ui/contracts` would not be installed.
+- `export/`, `export1/` (the user's material, excluded from git by `.git/info/exclude`) and
+  `.idea/` would be published if `private: true` were removed.
 
 ## Evidence
 
-<!-- Screenshot or recording (web), browser console output, server log lines, the CLI command the
-     server ran and its JSON output. Never paste secrets (directive security-secrets). -->
+- Found on 2026-10-11 while mapping the `e2e-smoke` `launch` step (plan
+  `e2e-smoke-rel-v0.1-plan`, release validation of minor-v0.1): `npm pack --dry-run --json`.
+- The e2e suite and `test/launcher/` start `node bin/wingfoil-ui.cjs` inside the checkout, so no
+  test exercised the installed package.
 
 ## Notes
 
-<!-- Optional: environment details, related ADRs, suspected root cause, or workaround. -->
+- Not published: `private: true` blocks `npm publish`, and v0.1 ships as a git tag only (RV-8).
+- Fix direction (approver, 2026-10-11): a `files` allow-list, runtime dependencies at the root
+  (or a bundled server), `@wingfoil-ui/contracts` resolved inside the package, `prepack: npm run
+  build`; a packaged-launch smoke (pack → install in a temp folder → `npx wingfoil-ui --no-open`
+  → UI reachable) and a test that fails when the tarball holds a path outside the allow-list.
+  Absorbed into task-025 (dl-045 pattern).
 
 ## Triage & Execution Notes
-
-<!-- Running log, not the retrospective itself.
-     - triage (bug-ingest): severity call, wontfix/duplicate rationale if rejected to `closed`.
-     - fix: once fix task(s) exist (release-planning/build-backlog), day-to-day execution notes
-       live on those tasks (docs/04_memory/{release}/{id}.md, `bug: {this id}`, their own
-       Execution Notes section) — this section only needs a pointer plus anything that doesn't
-       belong on a specific fix task (e.g. why 2 tasks were needed instead of 1). -->
