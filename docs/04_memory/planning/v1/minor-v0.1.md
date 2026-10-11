@@ -2,7 +2,7 @@
 id: minor-v0.1
 type: release
 title: "WingFoil UI v0.1 — Read-only console"
-status: releasing
+status: released
 kind: "minor"
 patch-of: ""           # optional — when kind is "patch": id of the released minor it patches, e.g. "minor-v0.2"
 version: "v0.1"
