@@ -213,15 +213,20 @@ async function intlRenderings(page: Page, data: Set<string>): Promise<Set<string
   return new Set(rendered);
 }
 
+/** Data strings longer than this are file contents (a document, an element body), not values. */
+const LONG_DATA = 200;
+
 /** The texts of the page that are neither a key-catalogue text nor project data. */
 export async function textsOutsideCatalogue(page: Page, recorder: DataRecorder): Promise<string[]> {
   const data = await recorder.strings();
   const known = new Set([...data, ...derivedForms(data), ...(await intlRenderings(page, data))]);
-  const words = new Set([...known].flatMap((s) => s.split(/\s+/)));
+  // The words of short data strings only (a name, a title, a date): a whole document or element
+  // body would make any word acceptable after a key (review round 2).
+  const words = new Set([...known].filter((s) => s.length <= LONG_DATA).flatMap((s) => s.split(/\s+/)));
   const avatars = initials(data);
   // Whitespace compared collapsed: Markdown joins the lines of a paragraph.
   const flat = (t: string) => t.replace(/\s+/g, ' ');
-  const sources = flat([...data].filter((s) => s.length > 200).join('\u0000'));
+  const sources = flat([...data].filter((s) => s.length > LONG_DATA).join('\u0000'));
   // A repository path the UI builds from a data path (e.g. `.wingfoil/` + a directive's path).
   const isPathOfData = (t: string) => {
     const segments = t.split('/');

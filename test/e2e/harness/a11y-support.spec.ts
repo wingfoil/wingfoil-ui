@@ -17,6 +17,7 @@ test('X-09.1 check: flags English texts, accepts keys, data and derived data', a
     <p>Add project</p><p>OK</p><p>ID</p>
     <p class="extra">shell.nav.dna Hard-coded</p>
     <p class="arg">error.folderNotFound Hard-coded</p>
+    <p class="doc-word">error.folderNotFound the</p>
     <button aria-label="Dismiss" class="stray"></button>
     <div class="menu-popover"><button tabindex="-1" aria-label="Dismiss"></button></div>
     <article class="doc-article"><p>Some   words of the
@@ -42,6 +43,8 @@ test('X-09.1 check: flags English texts, accepts keys, data and derived data', a
       'span.loose: L',
       'p.extra: shell.nav.dna Hard-coded',
       'p.arg: error.folderNotFound Hard-coded',
+      // A word of a long data string (a document) is not an argument value (review round 2).
+      'p.doc-word: error.folderNotFound the',
       'button.stray@aria-label: Dismiss',
     ].sort(),
   );
