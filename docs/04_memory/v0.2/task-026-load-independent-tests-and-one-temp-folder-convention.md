@@ -176,7 +176,7 @@ test fail (recorded in *red / green / refactor*).
   swept at start; (b) fixed per-user folder under the state directory, checked before each clone;
   ★ (c) `core.hooksPath` = a regular file of the console's installation (the clone module), no
   folder at all.
-- **D26-2 — scope of the test temp convention.** (a) migrate all 57 `mkdtemp` callers to
+- **D26-2 — scope of the test temp convention.** (a) migrate all 57 (corrected from 58 in review round 1) `mkdtemp` callers to
   `TempWorkspace`; ★ (b) one temporary root per run (`TMPDIR`/`TMP`/`TEMP` set by every runner's
   global setup, removed by its teardown, stale roots of dead owners swept at the next start) +
   `TempWorkspace` as the per-file API for new tests, existing callers unchanged; (c) fix only the
@@ -225,7 +225,7 @@ coordinator:
   compiled module's `import.meta.url` holds — and the npm-packed install: the smoke had no clone
   path, so one was added (`launch.smoke.test.ts`: a repository with a committed hook and a
   relative `core.hooksPath` in the user's configuration, cloned through `npx wingfoil-ui`: 201,
-  the hook did not run; the fail-closed check would have answered 422). Fail closed:
+  the hook did not run; the fail-closed check would have answered 422 — 500 `internal` since review round 1, F1). Fail closed:
   `clone.test.ts` — missing file, a folder, a link to a folder → `HooksPathError`, no process.
 - **Temporary root (D26-2)** — `5f6a363`. Red first: `temp-root.test.ts` › "has its temporary
   directory under the run root" failed with the previous `test/global-setup.ts` (no root set);

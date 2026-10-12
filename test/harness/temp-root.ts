@@ -71,7 +71,7 @@ export function createTempRoot(base: string = tmpdir(), owner: number = process.
   const name = `${owner}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   const staging = path.join(base, `${TEMP_ROOT_STAGING_PREFIX}${name}`);
   // A setup killed between the mkdir and the rename leaves this staging folder: it is never swept
-  // (its name does not start with the root prefix) — a small, empty leftover, accepted.
+  // (its name does not start with the root prefix) — a small leftover (its `tmp/` and maybe `owner`), accepted.
   mkdirSync(path.join(staging, 'tmp'), { recursive: true, mode: 0o700 });
   writeFileSync(path.join(staging, TEMP_ROOT_OWNER), String(owner));
   const root = path.join(base, `${TEMP_ROOT_PREFIX}${name}`);
