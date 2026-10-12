@@ -15,7 +15,7 @@ tmpl_version: 260703   # Orignal template version
 ## Context
 
 **Version:** 0.2 · **Date:** 2026-10-12 (0.1: plan created, checkpoint decisions GA-1…GA-5; 0.2:
-steps 2–5, review round 1)
+steps 2–5, review rounds 1–2)
 **Branch:** `main` (GA-1)
 **Workflow:** none — an ad-hoc plan (GA-2). `workflows.yaml` has no workflow for this alignment;
 `governance-alignment` is the plan's `workflow` token only. Its outcome is an input of the
@@ -123,3 +123,6 @@ Steps:
     with uncommitted edits) (m6).
   - Nits: first lines "Reports W-NN." (n1), rewrapped headers (n2); W-22's example corrected to
     `--format json` (n3), directive 1.8.
+- Step 6 — review round 2 **PASS** (2 nits, both fixed: F-020 fills `requirements` as a string as
+  the template defines it, re-run with the same outputs; the `memory.yaml` base note merged into
+  one sentence on `amendable`).
