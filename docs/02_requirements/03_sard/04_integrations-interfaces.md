@@ -1,6 +1,6 @@
 # SARD — 4. Integrations & Interfaces
 
-**Version:** 0.7 · **Date:** 2026-10-09 (0.2: coherence audit fixes — session 6; 0.3: REQ-INT-06 Memory-event source fixed by spec-002 — initial-design session 5; 0.4: REQ-INT-08 staged, Chromium in v0.1 — release-planning v0.1 session 2; 0.5: REQ-INT-03 v0.1 scope — release-planning v0.1 session 4 (audit A4); 0.6: REQ-INT-02 range bounds, REQ-INT-03 `null` minimum — dev-loop task-006; 0.7: REQ-INT-01, REQ-INT-07 rationales cite the feedback notes F-001, F-002 — dev-loop task-023) · **Status:** Draft — specification-downcast session 4
+**Version:** 0.8 · **Date:** 2026-10-12 (0.2: coherence audit fixes — session 6; 0.3: REQ-INT-06 Memory-event source fixed by spec-002 — initial-design session 5; 0.4: REQ-INT-08 staged, Chromium in v0.1 — release-planning v0.1 session 2; 0.5: REQ-INT-03 v0.1 scope — release-planning v0.1 session 4 (audit A4); 0.6: REQ-INT-02 range bounds, REQ-INT-03 `null` minimum — dev-loop task-006; 0.7: REQ-INT-01, REQ-INT-07 rationales cite the feedback notes F-001, F-002 — dev-loop task-023; 0.8: G-14.2 dropped from REQ-INT-04's traceability — release-planning v0.2 session 2) · **Status:** Draft — specification-downcast session 4
 
 Shell and conventions: `00_sard.md`.
 
@@ -46,7 +46,7 @@ Shell and conventions: `00_sard.md`.
 | Release | v0.1 |
 | Description | CLI processes run with `execFile`, an argument array, the project root as working directory, and a timeout of 30 s (process killed, error reported). A refusal shows the CLI's own message in a red toast; the element is left as the CLI left it; when an ingestion's `add` succeeds and its `submit` fails, the created draft is named. |
 | Rationale | The CLI owns the rules — its message is the truth (G4); no partial state hidden from the user. |
-| Traceability | US-G-14, US-G-17, US-S-27 · G-14.1, G-14.2, G-17.1, G-17.2, S-27.1 · S1, G4, G5 |
+| Traceability | US-G-14, US-G-17, US-S-27 · G-14.1, G-17.1, G-17.2, S-27.1 · S1, G4, G5 |
 | Fit criterion | [boolean] Every listed scenario passes; a CLI stub that sleeps 40 s is killed at 30 s ± 1 s and its request returns an error. |
 | Verified by | unit (stub) · e2e |
 
@@ -116,3 +116,6 @@ Shell and conventions: `00_sard.md`.
   rationales of REQ-INT-01 and REQ-INT-07 cite the versioned WingFoil feedback notes F-001 and
   F-002 (`docs/wingfoil-feedback/`) in place of the local requests R-01 and R-02, which the split
   of the inbox retired; no requirement changed; decided by the user.
+- 2026-10-12 — amended in `release-planning` v0.2 (plan session 2, RP-30): G-14.2 dropped from
+  the traceability of REQ-INT-04 — amended by RP-12, it expects the server's 409
+  `element-changed` refusal (spec-004 §4 row 9), not the CLI's message; decided by the approver.

@@ -132,6 +132,22 @@ draws its chips from one request. `states` is absent when `descriptor` is absent
 configuration unreadable) and for a type `memory.yaml` does not declare (descriptor kind
 `undeclared`).
 
+**v0.2 bodies (addendum, release-planning v0.2, RP-11).** The v0.2 routes' bodies, in
+`contracts/api/` (created by the v0.2 tasks):
+
+| Route | Schema |
+|-------|--------|
+| `GET /api/p/:pid` — `repository` part, `conditions` | `repository.schema.json` (spec-010 §3), referenced by `project.schema.json` |
+| `GET /api/p/:pid/today?view=` | `today.schema.json` (spec-003 §5) |
+| `POST …/elements/:eid/submit` | request `element.submit.request.schema.json` `{expectedStatus}`; 200 `write.response.schema.json` (§5) |
+| `POST …/elements/:eid/approve`, `/reject` | request `element.decision.request.schema.json` `{expectedStatus, reason}` — `reason` holds at least one non-whitespace character (G-07.2); 200 `write.response.schema.json` |
+| `POST …/git/fetch`, `/git/update`, `/git/push` | no body; 200 `git.response.schema.json` `{repository}` (spec-010 §4) |
+| `GET /api/settings`, `PUT /api/settings` | `settings.schema.json` (spec-006 §2): `PUT` takes the whole object (every key; an invalid or out-of-range value → 400 `invalid-request`) and answers 200 with the stored settings |
+| `GET /api/p/:pid/events/memory?before=&limit=` | `memory-events.schema.json`: `{ events: [<spec-002 §1 event>], more: boolean }`, newest first; `limit` default 10 (Updates, spec-003 §5) |
+
+`?view=` must be a role view the member can choose (`roleViews`), else 400 `invalid-request`;
+absent → the remembered role view (`roleView`, or the default).
+
 ### 4. Write preconditions and refusals
 
 Checked by the server in this order (Fastify validates the body before the handler):
@@ -146,7 +162,7 @@ Checked by the server in this order (Fastify validates the body before the handl
 | 5a | role not held by the member (`PUT /api/p/:pid/role-view` only) | 400 | `invalid-request` | the watched identity |
 | 6 | WingFoil version outside the range (REQ-INT-02) | 409 | `unsupported-version` | the cached detection (`adr-001` D3) |
 | 7 | element file has local changes (REQ-STATE-03) | 409 | `local-changes` | **fresh** `git status --porcelain`, under the write lock |
-| 8 | copy behind, diverged or detached HEAD (REQ-STATE-04) | 409 | `stale-copy` | **fresh** `git rev-parse` / `rev-list --count`, under the write lock |
+| 8 | copy behind, diverged or detached HEAD (REQ-STATE-04) | 409 | `stale-copy` | **fresh** copy state (spec-010 §1: the `status --porcelain=v2 --branch` read), under the write lock |
 | 9 | `expectedStatus` differs | 409 | `element-changed` | **fresh** read of the element file, under the write lock |
 
 Rows 1–6 start **no process**. Rows 7–9 run read-only git commands and a file read, never a
@@ -163,11 +179,19 @@ particular row 6 (`unsupported-version`) does not, so a role view can be chosen 
 project. "Not identified" in row 5 covers the identity kinds `not-in-team`, `no-identity` and
 `ambiguous`; nothing is stored on a refusal.
 
+**v0.2 (RP-11, RP-14).** The git routes run rows 1–4 (fetch) or 1–5 (update, push), never 6–9,
+then the refusals of spec-010 §5 (spec-010 §8): fetch is allowed to an unidentified user.
+`PUT /api/settings` is a local-state write with no project: rows 1, 2 and 4 apply.
+
 ### 5. Responses
 
-- Success of a write: `{ result: <CLI output>, commits: [{ sha, subject }], pushed: boolean }`
-  (`pushed` when auto-push is on and succeeded, G4); an ingestion lists its `add` and `submit`
-  commits.
+- Success of a write: `{ result: <CLI output>, commits: [{ sha, subject }], push: { status,
+  message? } }` — `status` is `pushed`, `off` or `failed` (spec-010 §6); `message` is git's
+  verbatim error when git refused the push. A failed push is still a **success** of the write:
+  the commit is made and stays local (Y-08.1, G-13). Was `pushed: boolean` until 2026-10-12. An
+  ingestion lists its `add` and `submit` commits.
+- A `reason` that is empty or whitespace only fails the body schema: **400** `invalid-request`,
+  no process (G-07.2).
 - Partial failure of an ingestion (`add` succeeded, `submit` refused): **422** `cli-refused` with
   `detail: { created: { id, path }, commits: [{ sha, subject }] }` — the toast names the draft
   created (REQ-INT-04).
@@ -180,6 +204,7 @@ project. "Not identified" in row 5 covers the identity kinds `not-in-team`, `no-
 | 504 | `cli-timeout` | a `wingfoil` process killed after 30 s (git transport has no fixed timeout and is cancellable, `adr-001` D5) |
 | 500 | `internal` | adapter defect (exit 2) or unexpected error; details only in the log |
 | 422 | `git-refused` | a git transport command failed: git's message verbatim (REQ-INT-06) |
+| 409 | `no-remote`, `detached-head`, `no-upstream`, `diverged`, `local-changes-in-the-way` | refusals of the git routes before any transport process (spec-010 §5) |
 | 502 | `read-error` | a direct read of spec-001 §4 failed: `message` "Cannot read `<file>`" and the reason, `detail: { file, kind }` with `kind` one of `outside`, `missing`, `shape`, `mismatch` and `file` relative to the project (never absolute). Scoped to the element or directive read: a list never fails as a whole; an unreadable `memory.yaml` degrades only the type-dependent features. Logged as `{ kind, file }` only (`outside` at warn level) |
 | 422 | project-list codes | refusals of `POST /api/projects` and `/projects/clone`: spec-006 §3 (`folder-not-found`, `not-wingfoil`, `already-listed`, `directory-not-empty`, `cli-not-found`, `state-dir-inside-project`, `directory-inside-project`, `inside-state-dir`, `git-refused` — also for a folder with `.wingfoil/` that is not a git repository) |
 | 404 | `not-found` | also a refused working-tree path of `/files/tree` and `/files/content` (REQ-SEC-06): `detail.kind` one of `outside` (the "outside the repository" marker), `missing`, `not-allowed`, `too-large`; 0 bytes of the target |
@@ -198,7 +223,7 @@ project. "Not identified" in row 5 covers the identity kinds `not-in-team`, `no-
 
 | `event` | `data` | When |
 |---------|--------|------|
-| `repo` | `{pid, state}` | HEAD, working-tree status or effective `user.email` of a project changed (REQ-STATE-02) |
+| `repo` | `{pid, state}` | HEAD, working-tree status, branch, upstream, ahead/behind, the remote list or effective `user.email` of a project changed (REQ-STATE-02, spec-010 §2); also, with the same `state`, when its sync status changed (spec-010 §3) |
 | `projects` | `{}` | the project list or a project's availability changed |
 | `settings` | `{}` | UI settings changed (another tab) |
 | `write` | `{pid, eid?, commit}` | a write finished (other tabs show the result) |
@@ -272,3 +297,14 @@ goes away by itself when the stream reconnects. A network failure is not rendere
   list reads `GET /elements?archived=true` only once a type is selected, keeping a cold landing
   within TT-PERF-05 (W3-24); the documentation view asks `GET /files/content` once per distinct
   repository link target outside the index to mark it (W3-30); decided by the user.
+- 2026-10-12 — amended in `release-planning` v0.2 (plan session 2, RP-11, RP-14): §3 v0.2 bodies
+  addendum (schema names, `?view=` rule, `PUT /api/settings` whole object, Updates `limit` 10);
+  §4 row 8 evaluated from the copy state of spec-010 §1, and which rows apply to the git routes
+  (fetch allowed to unidentified users) and to `PUT /api/settings`; §5 `pushed: boolean` replaced
+  by `push: {status, message?}` (a failed push is a successful write), a blank reason → 400
+  `invalid-request`, the spec-010 §5 refusal codes; §6 the `repo` event also on copy-state and
+  sync-status changes. Decided by the approver at checkpoint 2.
+- 2026-10-12 — open points of the same session decided by the approver (RP-22, RP-28,
+  release-planning-rel-v0.2-plan session 2): a push refused before git runs (e.g. `no-upstream`)
+  gives `push.status: failed` with the catalogue text; `PUT /api/settings` takes the whole object,
+  validated by `settings.schema.json` (spec-006 §2).

@@ -1,6 +1,6 @@
 # SARD — 3. State & Context
 
-**Version:** 0.5 · **Date:** 2026-10-06 (0.2: coherence audit fixes — session 6; 0.3: REQ-STATE-08 last non-archived state — initial-design session 6; 0.4: REQ-STATE-06 v0.1 scope — release-planning v0.1 session 4 (audit A4); 0.5: REQ-STATE-02 content fingerprint in the state key — dev-loop task-010) · **Status:** Draft — specification-downcast session 4
+**Version:** 0.6 · **Date:** 2026-10-12 (0.2: coherence audit fixes — session 6; 0.3: REQ-STATE-08 last non-archived state — initial-design session 6; 0.4: REQ-STATE-06 v0.1 scope — release-planning v0.1 session 4 (audit A4); 0.5: REQ-STATE-02 content fingerprint in the state key — dev-loop task-010; 0.6: REQ-STATE-09 fetch interval and action-log cap as settings — release-planning v0.2 session 2, RP-19/RP-26) · **Status:** Draft — specification-downcast session 4
 
 Shell and conventions: `00_sard.md`.
 
@@ -99,7 +99,7 @@ Shell and conventions: `00_sard.md`.
 | Field | |
 |-------|--|
 | Release | v0.2 |
-| Description | Local per-user settings with defaults: auto-fetch on (every 60 s), auto-update off, auto-push off, theme *System*, confirm agent launch on; a change applies without a restart. |
+| Description | Local per-user settings with defaults: auto-fetch on (every 60 s by default; the interval is a setting, spec-006 §2), auto-update off, auto-push off, theme *System*, confirm agent launch on, action-log cap 5 000 entries (a setting, spec-006 §2); a change applies without a restart. |
 | Rationale | C4, Q4 (session 3 of inception): fetch is safe, pushing is a deliberate act. |
 | Traceability | US-C-07, US-Y-07 · C-07.1, C-07.3, Y-07.2 · C4 |
 | Fit criterion | [boolean] A first start shows exactly these defaults; changing one takes effect within 120 s without a restart. |
@@ -107,6 +107,9 @@ Shell and conventions: `00_sard.md`.
 
 ## Process Notes
 
+- 2026-10-12 — amended in release-planning v0.2 session 2 (plan release-planning-rel-v0.2-plan,
+  RP-19, RP-26): REQ-STATE-09 lists the auto-fetch interval (default 60 s) and the action-log cap
+  (default 5 000 entries) as settings; their ranges are in spec-006 §2; decided by the approver.
 - 2026-10-06 — amended in dev-loop task-010 (Wave 2, plan dev-loop-rel-v0.1-plan): REQ-STATE-02
   state key = hash of `git status --porcelain` plus a server-computed fingerprint of the
   working-tree content of each changed and untracked entry (no extra git command), so a second

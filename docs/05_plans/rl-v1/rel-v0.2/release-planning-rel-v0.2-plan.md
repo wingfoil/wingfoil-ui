@@ -171,6 +171,32 @@ Decisions (checkpoint 2, the approver: "as recommended"):
 - **RP-17** — spec-010 and the amendments are reviewed by an independent reviewer until PASS
   (`spec-review.passed`); then the approver runs one `memory approve` for spec-010.
 
+Decisions (checkpoint 2b, details found while drafting spec-010 and the amendments; the approver:
+"as recommended" except RP-19 and RP-26):
+
+- **RP-18** — the git scheduler syncs the projects with an open snapshot (opened since the server
+  started and still listed).
+- **RP-19** — the fetch interval is a UI setting (`fetchIntervalSeconds`, default 60 s; the
+  approver's choice), not a fixed value.
+- **RP-20** — an automatic fetch, which no one can cancel, is killed after 60 s and retried at the
+  next tick; recorded as a dated note on adr-001 D5 (whose "no fixed timeout" stays for transport
+  the user started and can cancel).
+- **RP-21** — fetch runs under the project's write lock (adr-001 D5).
+- **RP-22** — auto-push on a branch without upstream: `push.status: failed`, catalogue text.
+- **RP-23** — hooks run during pull and push as the repository configures them.
+- **RP-24** — fetch, pull and push set `GIT_SSH_COMMAND="ssh -o BatchMode=yes"` when the user has
+  configured no ssh command, so a passphrase or host-key prompt fails fast with git's message
+  instead of blocking the server.
+- **RP-25** — the `has-remote` condition hides the sync controls directly; no capability row.
+- **RP-26** — the `actionLog` cap is a UI setting (default 5 000 entries; the approver's choice).
+- **RP-27** — Today for an unidentified user still computes Waiting on others.
+- **RP-28** — `PUT /api/settings` takes the whole settings object.
+- **RP-29** — spec-006 §1 follows the code: `XDG_CONFIG_HOME` is used only when absolute.
+- **RP-30** — G-14.2 is dropped from REQ-INT-04's traceability (SARD version bump, backlog
+  rebuilt).
+- **RP-31** — the `release:` field of the amended specs stays `v0.1`.
+- **RP-32** — an upstream configured but never fetched (no tracking ref) is `no-upstream`.
+
 Steps:
 
 - spec-010 created (`e80a50e`, `memory add`).

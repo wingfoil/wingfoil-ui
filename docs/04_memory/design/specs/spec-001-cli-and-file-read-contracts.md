@@ -164,6 +164,18 @@ capability is in no released WingFoil version** (`field-editing` today); it is a
 or hidden according to its rule, with reason `not-released` (REQ-INT-03: `null` counts as a
 declared minimum).
 
+**Project conditions (v0.2, RP-11).** A condition id names a fact of the project the server
+evaluates per repository state and passes to the capability evaluation; the ids that hold are
+listed in `conditions` of `GET /api/p/:pid` (spec-004 §3). Ids:
+
+| Id | Holds when | Since |
+|----|------------|-------|
+| `has-remote` | `git remote` lists at least one remote (spec-010 §7) | v0.2 |
+
+No row of the table above uses a condition in v0.2: git sync is not a WingFoil capability, and
+its controls follow `has-remote` directly (spec-010 §7). A new id is added to this table with the
+spec that evaluates it.
+
 ### 7. Contract tests
 
 For every version in `matrix.json`: build the fixtures with that version's CLI (`e2e-smoke`
@@ -211,3 +223,6 @@ its schema, and run the §4.1 resolution check. A failure blocks the matrix adva
   exception to the direct-read allow-list — hash-only reads of changed and untracked entries for
   the repository state key (REQ-STATE-02); content is neither kept nor exposed; decided by the
   user as part of #18.
+- 2026-10-12 — amended in `release-planning` v0.2 (plan session 2, RP-10, RP-11): §6 project
+  condition ids (`has-remote`, evaluated by spec-010 §7) and their exposure in `GET /api/p/:pid`;
+  no capability row changes. Decided by the approver at checkpoint 2.

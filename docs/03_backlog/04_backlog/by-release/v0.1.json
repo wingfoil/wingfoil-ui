@@ -3,8 +3,8 @@
   "release": "v0.1",
   "generated_from": {
     "story_map": "docs/02_requirements/01_user_story_map/02_story-map.md v0.5",
-    "bdd": "docs/02_requirements/02_bdd/00_conventions.md v0.8",
-    "sard": "docs/02_requirements/03_sard/00_sard.md v0.8"
+    "bdd": "docs/02_requirements/02_bdd/00_conventions.md v0.9",
+    "sard": "docs/02_requirements/03_sard/00_sard.md v0.9"
   },
   "items": [
     {
@@ -5110,23 +5110,6 @@
             "Then a red toast shows the error message printed by `wingfoil memory submit`, naming \"sard_ref\"",
             "And \"adr-001-local-server\" is still in the state \"draft\"",
             "And the fixture's last commit is unchanged"
-          ]
-        },
-        {
-          "id": "G-14.2",
-          "title": "Show the CLI's reason when the element moved in the meantime",
-          "file": "docs/02_requirements/02_bdd/features/g/action-feedback.feature",
-          "release": "v0.2",
-          "kind": "edge",
-          "fixture": "kanban",
-          "steps": [
-            "Given the console is running",
-            "Given the kanban fixture is open and I am Morgan",
-            "And the gate footer of \"task-001-login-form\" is open",
-            "And \"task-001-login-form\" has been approved with the CLI in a terminal before the panel refreshed",
-            "When I click \"Reject → draft\" with the reason \"Too late\"",
-            "Then a red toast shows the error message printed by `wingfoil memory reject`",
-            "And the panel shows \"task-001-login-form\" in the state \"approved\""
           ]
         },
         {

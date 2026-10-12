@@ -3,8 +3,8 @@
   "release": "v0.3",
   "generated_from": {
     "story_map": "docs/02_requirements/01_user_story_map/02_story-map.md v0.5",
-    "bdd": "docs/02_requirements/02_bdd/00_conventions.md v0.8",
-    "sard": "docs/02_requirements/03_sard/00_sard.md v0.8"
+    "bdd": "docs/02_requirements/02_bdd/00_conventions.md v0.9",
+    "sard": "docs/02_requirements/03_sard/00_sard.md v0.9"
   },
   "items": [
     {

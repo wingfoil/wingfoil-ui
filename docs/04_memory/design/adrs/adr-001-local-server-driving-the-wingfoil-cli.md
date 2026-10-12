@@ -103,8 +103,10 @@ governed or git write at a time, queued — because each makes a commit; the cac
 after each write. Clones, which have no project yet, are serialised on the write-lock key `clone`
 (never a project id or a user path; spec-006 §3). Every `wingfoil` process and every git read has a 30 s timeout, after which it is
 killed and the request fails with the reason (REQ-INT-04). Git transport (`clone`, `fetch`, `pull
---ff-only`, `push`) has no fixed timeout — it can take longer on large repositories — and the UI
-offers to cancel it (the process is killed; git leaves the repository as it was).
+--ff-only`, `push`) started by the user has no fixed timeout — it can take longer on large
+repositories — and the UI offers to cancel it (the process is killed; git leaves the repository as
+it was). An automatic fetch (spec-010 §6), which no one can cancel and which holds the write lock,
+is killed after 60 s and retried at the next tick.
 
 **D6 — Snapshot and cache** (REQ-STATE-01…04, SEC-08). The UI shows the working tree, as the CLI
 reads it, and marks elements with *local changes*. Cached reads are keyed on HEAD, a hash of
@@ -209,3 +211,6 @@ PERF-05 · features S1, S3, S8, X4 · scenarios S-08.1, S-08.2, S-09.1, S-09.2, 
 - 2026-10-06 — amended in dev-loop task-008 (Wave 2, plan dev-loop-rel-v0.1-plan): D2 no CLI of a
   cloned repository runs at clone time, only when the user opens the project (the project's own
   CLI comes first); D5 clones serialised on the write-lock key `clone`; decided by the user.
+- 2026-10-12 — amended in `release-planning` v0.2 (plan session 2, RP-20): D5 "no fixed timeout"
+  applies to transport the user started and can cancel; an automatic fetch (spec-010 §6), which
+  no one can cancel, is killed after 60 s and retried at the next tick; decided by the approver.

@@ -1,7 +1,7 @@
 # BDD Scenarios — Conventions
 
-**Version:** 0.8
-**Date:** 2026-10-07 (0.2: v0.3–v1.0 conventions — session 3; 0.3: coherence audit fixes — session 6; 0.4: US-X-10 page title — initial-design session 2; 0.5: last *non-archived* state, X-02.2 API request — initial-design session 6; 0.6: CLI stub as the package `bin` script, version-fake and no-CLI variants — release-planning v0.1 session 4 (audit A6); 0.7: `memory-list.feature` bucket header aligned with spec-003 — dev-loop task-011; 0.8: R-08.2 lists asserted on `02_product-vision.md`, the custom fixture's `06_features.md` has none — dev-loop task-020, decided by the user)
+**Version:** 0.9
+**Date:** 2026-10-12 (0.2: v0.3–v1.0 conventions — session 3; 0.3: coherence audit fixes — session 6; 0.4: US-X-10 page title — initial-design session 2; 0.5: last *non-archived* state, X-02.2 API request — initial-design session 6; 0.6: CLI stub as the package `bin` script, version-fake and no-CLI variants — release-planning v0.1 session 4 (audit A6); 0.7: `memory-list.feature` bucket header aligned with spec-003 — dev-loop task-011; 0.8: R-08.2 lists asserted on `02_product-vision.md`, the custom fixture's `06_features.md` has none — dev-loop task-020, decided by the user; 0.9: G-14.2 expects the 409 `element-changed` text — release-planning v0.2, RP-12)
 **Status:** Draft — specification-downcast sessions 2–3 (`specification-by-examples`)
 **Input:** `../01_user_story_map/02_story-map.md` · `03_mvp-cut.md` · `docs/01_vision/` ·
 directives `wingfoil-cli` (v1.1), `cli-only-writes` (v1.3), `accessibility`
@@ -199,3 +199,10 @@ nominal and ≥ 1 edge scenario per story of the releases in scope).
   `r/documentation.feature` asserts lists on `docs/01_vision/02_product-vision.md`, since the
   custom fixture's `06_features.md` has headings and tables but no list (W3-37); decided by the
   user.
+- 2026-10-12 — amended in `release-planning` v0.2 (plan session 2, RP-12): G-14.2 in
+  `g/action-feedback.feature` — when the element changed since the panel was opened, the server
+  refuses with 409 `element-changed` before any CLI process (spec-004 §4 row 9), so the red toast
+  shows the catalogue text "This element changed since you opened it" (`error.elementChanged`),
+  not the message of `wingfoil memory reject`; no `memory reject` process runs; the panel shows
+  the new state. Title "Show the refusal when the element moved in the meantime". Decided by the
+  approver at checkpoint 2.

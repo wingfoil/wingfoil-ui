@@ -3,7 +3,7 @@ id: spec-006-local-state-store
 type: tech-spec
 title: "Local state store"
 status: approved
-scope: "local state file: project list, role view per project (v0.1); UI settings, action log (reserved)"              # REQUIRED — the artefact this spec covers, e.g. "server HTTP API", "CLI JSON contract: memory search", ".wingfoil/ui.yaml"
+scope: "local state file: project list, role view per project (v0.1); UI settings, action log (v0.2)"              # REQUIRED — the artefact this spec covers, e.g. "server HTTP API", "CLI JSON contract: memory search", ".wingfoil/ui.yaml"
 wingfoil_version: ""   # optional — for a CLI contract: the WingFoil version the shape was captured from
 supersedes: ""         # optional — id of the tech-spec this one replaces, e.g. "spec-002"
 release: "v0.1"            # optional — implementation release this spec is assigned to (stamped by release-planning/build-backlog), e.g. "v0.1"
@@ -29,10 +29,13 @@ Identified by `release-planning` v0.1 (`identify-specs`).
 
 The state directory is, in this order:
 
-1. `$WINGFOIL_UI_STATE_DIR` when set (absolute path; used by the e2e suite to isolate each run);
-2. Linux and other Unix except macOS: `$XDG_CONFIG_HOME/wingfoil-ui`, else `~/.config/wingfoil-ui`;
+1. `$WINGFOIL_UI_STATE_DIR` when set and not empty (used by the e2e suite to isolate each run); a
+   relative value is resolved against the current directory;
+2. Linux and other Unix except macOS: `$XDG_CONFIG_HOME/wingfoil-ui` when that variable holds an
+   absolute path, else `~/.config/wingfoil-ui`;
 3. macOS: `~/Library/Application Support/wingfoil-ui`;
-4. Windows: `%APPDATA%\wingfoil-ui`.
+4. Windows: `%APPDATA%\wingfoil-ui`, or `<home>\AppData\Roaming\wingfoil-ui` when `APPDATA` is
+   not set.
 
 The directory is created on first write with mode `0700` (POSIX). It holds `state.json` (mode
 `0600`) and nothing the user must edit. The state directory must never lie inside a project's
@@ -55,8 +58,16 @@ since) stops the start with a message naming both paths (spec-007 §6, exit 4).
       "roleView": "developer"
     }
   ],
-  "settings": {},
-  "actionLog": []
+  "settings": {
+    "autoFetch": true,
+    "fetchIntervalSeconds": 60,
+    "autoUpdate": false,
+    "autoPush": false,
+    "theme": "system",
+    "confirmAgentLaunch": true,
+    "actionLogCap": 5000
+  },
+  "actionLog": [{ "sha": "4c8ead30f976eccb7b48c3ba75a33ded9fd55e34", "at": "2026-10-12T09:30:02Z" }]
 }
 ```
 
@@ -70,8 +81,27 @@ since) stops the start with a message naming both paths (spec-007 §6, exit 4).
 | `remote` | URL of `origin` at add time, refreshed on every open, `""` when there is none; **userinfo removed** (`https://user:token@host/x.git` → `https://host/x.git`, REQ-SEC-09) |
 | `addedAt` | ISO 8601 UTC |
 | `roleView` | last role view chosen for this project (S-22.3); `""` = the shell's default (the member's first role) |
-| `settings` | reserved for the UI settings (v0.2, C4, REQ-ARC-11 setting); written as `{}` in v0.1 |
-| `actionLog` | reserved for the action log (REQ-SEC-10, from the first governed write); written as `[]` in v0.1 |
+| `settings` | the UI settings (v0.2, C4, REQ-STATE-09), global to every project; written as `{}` in v0.1. A missing key, or a stored value of the wrong type or out of range, reads as its default (below) — the file is not treated as corrupt — so a v0.1 file needs no migration; an unknown key (a newer build's) is kept unchanged on write |
+| `actionLog` | the action log (REQ-SEC-10, v0.2): `{ sha, at }` — the full commit hash and its ISO 8601 UTC time — appended for every commit in `commits[]` of a successful governed write from the UI (spec-004 §5), no other data; holds at most `settings.actionLogCap` entries: each append drops the oldest beyond the cap, so lowering the cap trims the log at the next append; written as `[]` in v0.1 |
+
+**Settings (v0.2, `contracts/api/settings.schema.json`; REQ-STATE-09, C-07.1):**
+
+| Key | Type | Default | Effect |
+|-----|------|---------|--------|
+| `autoFetch` | boolean | `true` | fetch every `fetchIntervalSeconds` (spec-010 §6) |
+| `fetchIntervalSeconds` | integer, 15–3600 | `60` | interval of the scheduler's ticks (spec-010 §6; REQ-PERF-07's default 60 s) |
+| `autoUpdate` | boolean | `false` | fast-forward after a successful automatic fetch (spec-010 §6) |
+| `autoPush` | boolean | `false` | push after each governed write from the UI (spec-010 §6) |
+| `theme` | `"system"` \| `"light"` \| `"dark"` | `"system"` | overrides `prefers-color-scheme` (spec-009 §1, X-08.3) |
+| `confirmAgentLaunch` | boolean | `true` | stored and shown; takes effect from WingFoil 0.3 (`agent execute` does not exist in 0.2.2, W-06; RP-15) |
+| `actionLogCap` | integer, 100–100 000 | `5000` | most entries kept in `actionLog` (REQ-SEC-10) |
+
+`PUT /api/settings` (spec-004 §3) takes the whole object: every key above, each of its type —
+the two integers whole numbers inside their range, `theme` one of its three values; any other
+body (a key missing, a wrong type, an out-of-range integer) → **400** `invalid-request`, nothing
+stored. It writes under the lock of §4 and sends the `settings` event. A change takes effect
+without a restart: the scheduler re-arms its timer on the `settings` event and reads the
+settings at each tick (spec-010 §6), within the 120 s of REQ-STATE-09. Settings hold no secret (REQ-SEC-09).
 
 Availability (folder found, `.wingfoil/` present, CLI found — REQ-STATE-07, S-10, S-19) is
 **computed** on every read of the list, never stored. `GET /api/projects` returns each entry as
@@ -218,3 +248,15 @@ a project (REQ-SEC-09). The secret scan of REQ-SEC-09 runs over the state direct
   authentication and git's error would echo the password (W5-19); decided by the user.
   Same round: a percent-encoded `:` counts as a password; a control character in a clone URL
   is a malformed source (400 `invalid-request`).
+- 2026-10-12 — amended in `release-planning` v0.2 (plan session 2, RP-11, RP-15; UD-7 of
+  `user-docs-rel-v0.1-plan`): §1 aligned with the v0.1 code (`server/src/state/location.ts`) — a
+  relative `WINGFOIL_UI_STATE_DIR` resolved against the current directory, `XDG_CONFIG_HOME` used
+  only when absolute, the Windows fallback `<home>\AppData\Roaming` without `APPDATA`; §2
+  `settings` keys, types and defaults (REQ-STATE-09; `confirmAgentLaunch` effective from WingFoil
+  0.3) and `actionLog` entries `{sha, at}`; missing or invalid stored settings read as defaults,
+  unknown keys kept. Decided by the approver at checkpoint 2.
+- 2026-10-12 — amended in `release-planning` v0.2 (plan session 2, RP-19, RP-26, RP-28, RP-29):
+  §2 settings `fetchIntervalSeconds` (integer 15–3600, default 60) and `actionLogCap` (integer
+  100–100 000, default 5 000; lowering it trims the oldest entries at the next append);
+  `PUT /api/settings` takes the whole object, an invalid or out-of-range value → 400
+  `invalid-request`; §1 `XDG_CONFIG_HOME` rule as in the code confirmed. Decided by the approver.
