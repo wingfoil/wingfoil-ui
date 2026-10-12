@@ -108,7 +108,8 @@ repositories. The UI offers to cancel a clone, a fetch or a push (the process is
 update (`pull --ff-only`) is not cancellable and runs to completion (spec-010 §4). An automatic
 fetch and an auto-push (spec-010 §6), which no one can cancel and which hold the write lock, are
 killed after 60 s counted from the start of the git process; the fetch is retried at the next
-tick, the push reported as failed.
+tick, the push reported as failed. The automatic update is a local `merge --ff-only` right after
+the tick's fetch (no network, no timeout); a tick skips a project whose write lock is busy.
 
 **D6 — Snapshot and cache** (REQ-STATE-01…04, SEC-08). The UI shows the working tree, as the CLI
 reads it, and marks elements with *local changes*. Cached reads are keyed on HEAD, a hash of
@@ -122,8 +123,9 @@ behind, diverged or on a detached HEAD, and with **403** for users not identifie
 **D7 — Write classes and git interface** (REQ-ARC-03, INT-06). The server writes only through
 (a) the CLI (`wf(…)` commits); (b) `.wingfoil/ui.yaml`, schema-validated, one `chore(ui)` commit
 touching only that file; (c) git transport — `clone` into a new empty folder, `fetch`,
-`pull --ff-only`, `push`; (d) repository files after v1.0 (L4). Git subcommands are a closed
-list (REQ-INT-06): it never merges, rebases, resets, stashes or checks out.
+`pull --ff-only` (the automatic update: a local `merge --ff-only`), `push`; (d) repository
+files after v1.0 (L4). Git subcommands are a closed list (REQ-INT-06): it never creates a merge
+commit, rebases, resets, stashes or checks out.
 
 **D8 — Local security** (REQ-SEC-01…06). Listen on loopback only (127.0.0.1, ::1); a new random
 session token (≥ 128 bits) per start, in the printed URL's fragment, removed from the address bar
@@ -221,3 +223,7 @@ PERF-05 · features S1, S3, S8, X4 · scenarios S-08.1, S-08.2, S-09.1, S-09.2, 
   push only, an update runs to completion (RP-37); the 60 s count from the start of the git
   process, not while waiting for the write lock (RP-40); decided by the approver. The former
   "git leaves the repository as it was" is removed: it was not established for `pull`.
+  Same day, independent spec review round 2 (RP-41, decided by the approver): the automatic update
+  is a local `merge --ff-only` (no network, no timeout) and a tick skips a project whose write lock
+  is busy, so the RP-40 "waiting for the write lock does not count" no longer applies; D7 names
+  `merge --ff-only` and reads "never creates a merge commit" (SARD REQ-INT-06, REQ-ARC-03).

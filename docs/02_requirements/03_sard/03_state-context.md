@@ -1,6 +1,6 @@
 # SARD — 3. State & Context
 
-**Version:** 0.6 · **Date:** 2026-10-12 (0.2: coherence audit fixes — session 6; 0.3: REQ-STATE-08 last non-archived state — initial-design session 6; 0.4: REQ-STATE-06 v0.1 scope — release-planning v0.1 session 4 (audit A4); 0.5: REQ-STATE-02 content fingerprint in the state key — dev-loop task-010; 0.6: REQ-STATE-09 fetch interval and action-log cap as settings — release-planning v0.2 session 2, RP-19/RP-26) · **Status:** Draft — specification-downcast session 4
+**Version:** 0.7 · **Date:** 2026-10-12 (0.2: coherence audit fixes — session 6; 0.3: REQ-STATE-08 last non-archived state — initial-design session 6; 0.4: REQ-STATE-06 v0.1 scope — release-planning v0.1 session 4 (audit A4); 0.5: REQ-STATE-02 content fingerprint in the state key — dev-loop task-010; 0.6: REQ-STATE-09 fetch interval and action-log cap as settings — release-planning v0.2 session 2, RP-19/RP-26; 0.7: REQ-STATE-04 rationale worded for the automatic `merge --ff-only` — RP-41) · **Status:** Draft — specification-downcast session 4
 
 Shell and conventions: `00_sard.md`.
 
@@ -45,7 +45,7 @@ Shell and conventions: `00_sard.md`.
 |-------|--|
 | Release | v0.2 |
 | Description | Governed actions and `ui.yaml` writes are refused while the copy is behind its fetched remote, has diverged from it, or has a detached HEAD; being only ahead does not block. *Update* is a fast-forward only. |
-| Rationale | Never act on a stale copy; the UI never merges or rebases (`03_is-isnot.md`). |
+| Rationale | Never act on a stale copy; the UI only fast-forwards — it never creates a merge commit or rebases (`03_is-isnot.md`). |
 | Traceability | US-G-12, US-Y-05, US-Y-06, US-Y-01, US-G-15, US-C-02 · G-12.1, G-12.2, G-12.3, Y-05.1, Y-06.1, Y-06.2, Y-01.3, G-15.4, C-02.4 · Y4, G2, G3, C1 |
 | Fit criterion | [percentage] 100 % of governed-action and `ui.yaml` write requests in those states get HTTP 409; after a successful fast-forward the same requests succeed. |
 | Verified by | e2e · API test |

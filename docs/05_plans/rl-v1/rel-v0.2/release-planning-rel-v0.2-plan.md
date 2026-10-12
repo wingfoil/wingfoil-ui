@@ -225,3 +225,24 @@ Decisions (checkpoint 2c, from the review; the approver: "as recommended"):
 - **RP-40** — an immediate scheduler tick only when `autoFetch` or `fetchIntervalSeconds` changes;
   projects fetched one at a time; waiting for the lock does not count toward the 60 s; `repo`
   fires only when the copy state or the last sync error changes.
+- Spec review round 2 **FAIL**: every round-1 finding fixed; 2 new minors (an unbounded automatic
+  update inside the scheduler tick; spec-004 §6 still sends `repo` on every successful fetch,
+  against RP-40) and 2 nits (fetch with no target reads as "no upstream"; remote-name prefix
+  ambiguity).
+
+Decision (checkpoint 2d; the approver: option A):
+
+- **RP-41** — the automatic update is `merge --ff-only @{u}` right after the tick's successful
+  fetch (local only, no network, so it needs no timeout); `merge` is added to the git allow-list of
+  REQ-INT-06; a manual update stays `pull --ff-only`. A tick skips a project whose write lock is
+  busy instead of waiting for it.
+- Round 2 fixes: RP-41 in spec-010 §4/§6 (automatic update
+  `merge --ff-only --no-edit --no-stat --no-autostash --quiet -- @{u}`, checked on git 2.43:
+  behind → fast-forward, diverged → exit 128, local changes in the way → exit 1, no merge commit
+  even with `merge.ff=false`), adr-001 D5/D7, SARD REQ-INT-06 and REQ-ARC-03 (class (c)),
+  REQ-STATE-04 rationale; directive `cli-only-writes` 1.6 (class (c) names the automatic
+  `merge --ff-only`); spec-004 §6 `repo` event per RP-40; new code `no-fetch-target`; the
+  upstream's remote read from `branch.<b>.remote`. The vision and story-map texts that describe
+  *Update* as `git pull --ff-only` (`03_is-isnot.md`, `05_journeys.md`, `06_features.md` Y4,
+  US-Y-05) stay: they describe the user's *Update*, which is still `pull --ff-only`; the automatic
+  update has the same effect (fast-forward only).

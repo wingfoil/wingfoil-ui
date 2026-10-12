@@ -209,7 +209,7 @@ REQ-SEC-08's fit criterion (SARD `05` v0.6), which excludes fetch and the per-us
 | 504 | `cli-timeout` | a `wingfoil` process killed after 30 s (git transport the user started has no fixed timeout; an automatic fetch and an auto-push are killed after 60 s — spec-010 §4, `adr-001` D5) |
 | 500 | `internal` | adapter defect (exit 2) or unexpected error; details only in the log |
 | 422 | `git-refused` | a git transport command failed: git's message verbatim (REQ-INT-06) |
-| 409 | `no-remote`, `detached-head`, `no-upstream`, `diverged`, `local-changes-in-the-way` | refusals of the git routes before any transport process (spec-010 §5); the §5 codes and `push-timeout` also appear as `push.code` of a write |
+| 409 | `no-remote`, `no-fetch-target`, `detached-head`, `no-upstream`, `diverged`, `local-changes-in-the-way` | refusals of the git routes before any transport process (spec-010 §5); the update and push codes and `push-timeout` also appear as `push.code` of a write |
 | 502 | `read-error` | a direct read of spec-001 §4 failed: `message` "Cannot read `<file>`" and the reason, `detail: { file, kind }` with `kind` one of `outside`, `missing`, `shape`, `mismatch` and `file` relative to the project (never absolute). Scoped to the element or directive read: a list never fails as a whole; an unreadable `memory.yaml` degrades only the type-dependent features. Logged as `{ kind, file }` only (`outside` at warn level) |
 | 422 | project-list codes | refusals of `POST /api/projects` and `/projects/clone`: spec-006 §3 (`folder-not-found`, `not-wingfoil`, `already-listed`, `directory-not-empty`, `cli-not-found`, `state-dir-inside-project`, `directory-inside-project`, `inside-state-dir`, `git-refused` — also for a folder with `.wingfoil/` that is not a git repository) |
 | 404 | `not-found` | also a refused working-tree path of `/files/tree` and `/files/content` (REQ-SEC-06): `detail.kind` one of `outside` (the "outside the repository" marker), `missing`, `not-allowed`, `too-large`; 0 bytes of the target |
@@ -228,7 +228,7 @@ REQ-SEC-08's fit criterion (SARD `05` v0.6), which excludes fetch and the per-us
 
 | `event` | `data` | When |
 |---------|--------|------|
-| `repo` | `{pid, state}` | HEAD, working-tree status, branch, upstream, ahead/behind, the remote list or effective `user.email` of a project changed (REQ-STATE-02, spec-010 §2); also, with the same `state`, when its sync status changed (spec-010 §3) |
+| `repo` | `{pid, state}` | HEAD, working-tree status, branch, upstream, ahead/behind, the remote list or effective `user.email` of a project changed (REQ-STATE-02, spec-010 §2); also, with the same `state`, only when `sync.fetch.lastError` or `sync.update.lastError` is set, changed or cleared (spec-010 §2–§3) — never for a new `lastSuccessAt` alone |
 | `projects` | `{}` | the project list or a project's availability changed |
 | `settings` | `{}` | UI settings changed (another tab) |
 | `write` | `{pid, eid?, commit}` | a write finished (other tabs show the result) |
@@ -318,3 +318,7 @@ goes away by itself when the stream reconnects. A network failure is not rendere
   `write.response.schema.json` named for the success body; §4 the 403 rule cites REQ-SEC-08's
   scoped fit criterion (RP-34, decided by the approver); §3 `conditions` placed at the top level
   of `project.schema.json`, apart from `repository` (drafting detail).
+- 2026-10-12 — independent spec review round 2 (release-planning v0.2 session 2, drafting
+  details): §6 the `repo` event with an unchanged `state` only when a sync error is set, changed
+  or cleared, never for `lastSuccessAt` alone (as spec-010 §2); §5 the fetch-only refusal
+  `no-fetch-target` (spec-010 §5).

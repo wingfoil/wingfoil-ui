@@ -4,7 +4,7 @@
   "generated_from": {
     "story_map": "docs/02_requirements/01_user_story_map/02_story-map.md v0.5",
     "bdd": "docs/02_requirements/02_bdd/00_conventions.md v0.9",
-    "sard": "docs/02_requirements/03_sard/00_sard.md v0.10"
+    "sard": "docs/02_requirements/03_sard/00_sard.md v0.11"
   },
   "items": [
     {
@@ -2606,7 +2606,7 @@
       "area": "ARC",
       "wingfoil_min": "0.2.2",
       "requirement": "REQ-ARC-03",
-      "description": "The server writes only through: (a) governed changes, by invoking the CLI (`wf(…)` commits); (b) `.wingfoil/ui.yaml`, schema-validated, one `chore(ui): …` commit touching only that file; (c) git transport — `clone` into a new, empty folder, fetch, `pull --ff-only`, push; (d) repository files after v1.0 (L4). It never writes `.wingfoil/` files (except `ui.yaml`), Memory element files or plans. The UI's own local state (REQ-ARC-08) lives outside every repository.",
+      "description": "The server writes only through: (a) governed changes, by invoking the CLI (`wf(…)` commits); (b) `.wingfoil/ui.yaml`, schema-validated, one `chore(ui): …` commit touching only that file; (c) git transport — `clone` into a new, empty folder, fetch, `pull --ff-only` (and, for the automatic update, a local `merge --ff-only` to the fetched upstream, REQ-INT-06), push; (d) repository files after v1.0 (L4). It never writes `.wingfoil/` files (except `ui.yaml`), Memory element files or plans. The UI's own local state (REQ-ARC-08) lives outside every repository.",
       "fit_criterion": "[percentage] After the full e2e suite, 100 % of the commits created in each fixture are `wf(…)` commits made by a CLI process or `chore(ui)` commits changing exactly `.wingfoil/ui.yaml`; the server process opens 0 files for writing under `.wingfoil/` (other than `ui.yaml`) or under a Memory path (file-system audit); in v0.1 the only write is a clone into a new, empty folder (0 endpoints write an existing repository).",
       "verified_by": "e2e-smoke `drive-browser` (git log check) · file-system audit",
       "stories": [
@@ -5175,8 +5175,8 @@
       "area": "INT",
       "wingfoil_min": "0.2.2",
       "requirement": "REQ-INT-06",
-      "description": "The server runs only these git operations: read (`rev-parse`, `status --porcelain`, `log`, `rev-list --count`, `config` — `user.email`, `core.sshCommand`, `branch.<b>.remote`/`.merge` —, `remote`), `clone` (adding a remote project, into a new empty folder), `fetch`, `pull --ff-only`, `push`, and `add -- .wingfoil/ui.yaml` + `commit -- .wingfoil/ui.yaml` for presets. It never merges, rebases, resets, stashes or checks out. Git's error message is shown verbatim on failure. Memory events (Timeline, Recent activity) are parsed from `wf(…)` subjects; `add` and `submit` subjects carry no transition, so a submit's `from → to` is read from the element file's `status` before and after the commit (project-wide views: one `git log -p` over the Memory directories; element panel: `memory history <id>`, which carries the states — `spec-002-memory-events-from-git`).",
-      "fit_criterion": "[percentage] 100 % of the git processes started during the e2e suite use a subcommand of the allowed list (process audit).",
+      "description": "The server runs only these git operations: read (`rev-parse`, `status --porcelain`, `log`, `rev-list --count`, `config` — `user.email`, `core.sshCommand`, `branch.<b>.remote`/`.merge` —, `remote`), `clone` (adding a remote project, into a new empty folder), `fetch`, `pull --ff-only` (manual update), `merge --ff-only` (automatic update, local fast-forward to the fetched upstream — spec-010 §4), `push`, and `add -- .wingfoil/ui.yaml` + `commit -- .wingfoil/ui.yaml` for presets. It never creates a merge commit, rebases, resets, stashes or checks out. Git's error message is shown verbatim on failure. Memory events (Timeline, Recent activity) are parsed from `wf(…)` subjects; `add` and `submit` subjects carry no transition, so a submit's `from → to` is read from the element file's `status` before and after the commit (project-wide views: one `git log -p` over the Memory directories; element panel: `memory history <id>`, which carries the states — `spec-002-memory-events-from-git`).",
+      "fit_criterion": "[percentage] 100 % of the git processes started during the e2e suite use a subcommand of the allowed list (process audit), and every `merge` process carries `--ff-only`.",
       "verified_by": "e2e (process audit)",
       "stories": [
         "US-C-02",
