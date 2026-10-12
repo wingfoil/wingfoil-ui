@@ -1,8 +1,7 @@
 // task-028 — the public-text check (dl-006 action 4, dl-005): no tracked text file names an
 // absolute filesystem path outside the repository, except the fictitious or generic examples of
 // `public-text.allow-list.ts`. The scanner is `public-text.ts`.
-import { writeFile } from 'node:fs/promises';
-import { homedir } from 'node:os';
+import { rm, symlink, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { REPO_ROOT } from '../harness/cli.js';
@@ -11,8 +10,10 @@ import { TempWorkspace } from '../harness/temp-workspace.js';
 import { ALLOWED } from './public-text.allow-list.js';
 import { allowedBy, CHECKED_ROOTS, findPaths, formatFindings, scanRepository, type Scan } from './public-text.js';
 
-/** A path outside any repository, built at run time so that no committed text holds it. */
-const OUTSIDE = ['', 'home', 'jo-' + 'probe', 'notes', 'plan.md'].join('/');
+/** Real-looking paths outside any repository, built at run time so that no committed text holds them. */
+const OUTSIDE = ['', 'home', 'jo-probe', 'notes', 'plan.md'].join('/');
+const OUTSIDE_WINDOWS = ['C:', 'Users', 'jo-probe', 'notes'].join('\\');
+const OUTSIDE_HOME = ['~', 'jo-probe', 'notes'].join('/');
 
 describe('findPaths', () => {
   it.each([
@@ -24,9 +25,10 @@ describe('findPaths', () => {
     ['a file URL', 'open file:///home/alex/x.md', '/home/alex/x.md'],
     ['a path in a JSON string', '"at \\"/home/test/projects/kanban\\""', '/home/test/projects/kanban'],
     ['a Windows drive path', 'C:\\Users\\alex\\kanban', 'C:\\Users\\alex\\kanban'],
-    ['an escaped Windows drive path', "'C:\\\\remotes\\\\kanban.git'", 'C:\\remotes\\kanban.git'],
+    ['an escaped Windows drive path', String.raw`'C:\\remotes\\kanban.git'`, 'C:\\remotes\\kanban.git'],
     ['a Windows drive path with slashes', 'C:/work/kanban', 'C:/work/kanban'],
     ['a home-relative path', 'clone into ~/projects/kanban.', '~/projects/kanban'],
+    ['a POSIX path before an escape', String.raw`'#!/bin/sh\necho'`, '/bin/sh'],
   ])('finds %s', (_name, text, expected) => {
     expect(findPaths(text).map((m) => m.path)).toEqual([expected]);
   });
@@ -39,9 +41,10 @@ describe('findPaths', () => {
     ['a placeholder prefix', '`<prefix>/bin/wingfoil` and `${dir}/tmp/x`'],
     ['an escaped regex', 'expect(x).toMatch(/^\\/home\\/alex\\//)'],
     ['a data URL', 'src="data:image/png;base64,AAAA"'],
-    ['a YAML escape after a one-letter key', "'types:\\n  a:\\n    path: a/{id}.md'"],
+    ['a YAML escape after a one-letter key', String.raw`'types:\n  a:\n    path: a/{id}.md'`],
     ['an unlisted root directory', '/assets/index.js and /docs/guide'],
     ['a word that only starts like a root', '/homepage and /tmpl/x'],
+    ['the bare home notation', 'a `~/` path, or the regex ~/\\.config/'],
   ])('ignores %s', (_name, text) => {
     expect(findPaths(text)).toEqual([]);
   });
@@ -85,12 +88,16 @@ describe('scanRepository', () => {
     ({ env } = await harnessEnv(path.join(workspace.dir, 'harness')));
     repo = path.join(workspace.dir, 'repo');
     await workspace.run('git', ['init', '-q', repo], { env });
-    // Two real-looking outside paths: this machine's home folder and one built from segments.
-    const text = `# Notes\n\nSee ${path.join(homedir(), 'private-notes')}.\nAlso ${OUTSIDE}\n`;
+    // One path per rule; none depends on this machine's home or temporary folder.
+    const text = `# Notes\n\nSee ${OUTSIDE}.\nAlso (${OUTSIDE_WINDOWS}) and "${OUTSIDE_HOME}"\n`;
     await writeFile(path.join(repo, 'tracked.md'), text);
     await writeFile(path.join(repo, 'untracked.md'), text);
     await writeFile(path.join(repo, 'image.bin'), Buffer.from([0x89, 0x50, 0x00, 0x00, ...Buffer.from(OUTSIDE)]));
-    await workspace.run('git', ['add', 'tracked.md', 'image.bin'], { cwd: repo, env });
+    // git stores a link's target as its text; a tracked file deleted from the working tree has none.
+    await symlink(OUTSIDE, path.join(repo, 'link'));
+    await writeFile(path.join(repo, 'gone.md'), text);
+    await workspace.run('git', ['add', 'tracked.md', 'image.bin', 'link', 'gone.md'], { cwd: repo, env });
+    await rm(path.join(repo, 'gone.md'));
     scan = await scanRepository(repo, env);
   });
 
@@ -99,13 +106,17 @@ describe('scanRepository', () => {
   });
 
   it('fails on a tracked file holding an outside path, naming file and line (AC-2)', () => {
-    expect(scan.findings.map((f) => `${f.file}:${f.line}`)).toEqual(['tracked.md:3', 'tracked.md:4']);
-    expect(formatFindings(scan.findings)).toContain(`tracked.md:4: ${OUTSIDE}`);
+    expect(formatFindings(scan.findings).split('\n')).toEqual([
+      `link:1: ${OUTSIDE}`,
+      `tracked.md:3: ${OUTSIDE}`,
+      `tracked.md:4: ${OUTSIDE_WINDOWS}`,
+      `tracked.md:4: ${OUTSIDE_HOME}`,
+    ]);
   });
 
-  it('never reads an untracked file nor a binary one', () => {
-    expect(scan.files).toBe(1);
-    expect(scan.findings.some((f) => f.file !== 'tracked.md')).toBe(false);
+  it('never reads an untracked file, a binary one or a deleted one', () => {
+    expect(scan.files).toBe(2);
+    expect(scan.findings.filter((f) => !['link', 'tracked.md'].includes(f.file))).toEqual([]);
   });
 });
 
