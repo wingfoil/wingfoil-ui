@@ -2,7 +2,7 @@
 id: bug-008-clone-hooks-temp-folder-left-behind-when-the-console-is-killed
 type: bug
 title: "Clone hooks temp folder left behind when the console is killed"
-status: in-progress
+status: in-review
 severity: "low"           # REQUIRED — critical | high | medium | low
 release-origin: "v0.1"     # optional — release where the bug was FOUND, e.g. "v0.1"
 release: "v0.2"            # optional — fix/implementation release, stamped by release-planning/build-backlog
