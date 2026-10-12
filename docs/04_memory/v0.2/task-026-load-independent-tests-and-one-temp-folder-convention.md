@@ -208,3 +208,67 @@ coordinator:
   sweep removes only roots whose owner process is gone — both shown in `temp-root.test.ts`. When
   task-028 merges (it uses `TempWorkspace` with the `wfui-` prefix), whichever merges second
   aligns.
+
+### red / green / refactor (2026-10-12 → 2026-10-13)
+
+- **bug-008 (D26-1, D26-5)** — `52ecd54`. Red first: `test/launcher/clone-hooks.test.ts` run
+  against the previous `clone.ts` failed twice — the hooks path git received was a
+  `wfui-no-hooks-*` folder in the console's temporary directory, not a file of `server/dist`; and
+  (with that assertion removed for the check) one `wfui-no-hooks-*` folder survived the SIGKILL.
+  Green: `NO_HOOKS_PATH` = the clone module's own file (`fileURLToPath(import.meta.url)`);
+  `noHooksPath()` checks it with `stat` (links followed) and rejects with `HooksPathError` (a
+  `GitCloneError`, so the route answers `git-refused` with the message; no new reason code) before
+  any git process. The `exit` handler and `mkdtemp` are gone. Every shipped form resolves to a
+  regular file: `server/src/projects/clone.ts` under Vitest (`clone.test.ts`), the compiled
+  `server/dist/projects/clone.js` through the bin (`clone-hooks.test.ts` asserts the recorded
+  `core.hooksPath=` argument lies under `server/dist`, is a file, and `<it>/post-checkout` gives
+  `ENOTDIR`) — `bin/wingfoil-ui.cjs` is not a bundle, it imports `server/dist/main.js`, so the
+  compiled module's `import.meta.url` holds — and the npm-packed install: the smoke had no clone
+  path, so one was added (`launch.smoke.test.ts`: a repository with a committed hook and a
+  relative `core.hooksPath` in the user's configuration, cloned through `npx wingfoil-ui`: 201,
+  the hook did not run; the fail-closed check would have answered 422). Fail closed:
+  `clone.test.ts` — missing file, a folder, a link to a folder → `HooksPathError`, no process.
+- **Temporary root (D26-2)** — `5f6a363`. Red first: `temp-root.test.ts` › "has its temporary
+  directory under the run root" failed with the previous `test/global-setup.ts` (no root set);
+  green after wiring. The owner rules are shown there: `removeTempRoot` removes only the root of
+  its own process (not one owned by the parent process, a dead pid, or nobody);
+  `sweepStaleTempRoots` removes a dead owner's root and an owner-less one older than the grace,
+  keeps the roots of running owners, young owner-less roots, staging folders and unrelated
+  `wfui-*` entries. Wired in `test/global-setup.ts` (now returns the teardown; `build()` split
+  out), `test/timing/global-setup.ts`, the new `test/smoke/global-setup.ts`
+  (`vitest.smoke.config.ts`), and the Playwright `global-setup.ts` / `global-teardown.ts` (the
+  teardown removes the root in `finally`, after the console reap). Deviation from the design:
+  Playwright uses its own `wfui-run-*` root rather than the run directory's `tmp/`, so every runner
+  follows the same owner/sweep rules; the run directory stays as it was. Vitest workers and child
+  processes inherit `TMPDIR` (checked in `temp-root.test.ts`). Worker fixtures of `fixtures.ts`
+  and `performance.spec.ts` remove their folder in `finally`.
+- **Fresh reads (D26-3)** — `5f6a363`. `fingerprint.test.ts`: a `mark()` of the `lstat`
+  (inode, size, mtime and ctime in ns) asserted changed or same before each comparison; the prefix
+  test now makes a change the `lstat` sees (another size and an explicit mtime) — negative check:
+  with the prefix filter of `Fingerprinter` broken, the test fails. `live-refresh.timing.test.ts`:
+  `trial` asserts `updated()` is false before the change. `performance.spec.ts`: the view's read
+  must also finish with a 2xx answer after the key press (`requestfinished`). `@live-refresh`:
+  S-26.2 asserts "signed off by Alex" absent and S-27.2 the *Modules* section absent before the
+  mutation (the other five already asserted the prior state).
+- **Docs (D26-4)**: `test/README.md` 0.25 (*Temporary folders*, fresh reads, `test:smoke` as a
+  wave gate, the smoke clone), `CLAUDE.md` 0.3 (checks line), `docs/user-guide.md` 0.4 (bug-008
+  limitation removed), `CHANGELOG.md` *Unreleased* › Fixed.
+- Note: subagents of one session share the scratchpad; an early coverage log of this task was
+  overwritten by a concurrent run of another checkout, so the run was repeated with its own log.
+
+### checks (2026-10-13, HEAD before this note `5f6a363`)
+
+| Gate | Result | Load |
+|------|--------|------|
+| `npm run typecheck`, `npm run lint`, `npm run format:check` | clean | — |
+| `npm run test:coverage` | 120 files passed, 1 skipped; **1961 passed / 1 skipped**; statements 96.76 %, branches 91.1 %, functions 97.39 %, lines 98.35 % | 31.3 → 30.3 |
+| `npm run docs:api` | OK | — |
+| `npm run test:e2e` (Chromium) | 128 passed, 1 failed: `memory-list.spec.ts` S-28.1 kanban (the type filter read 2 of 7 types — `filterNames` reads the list once, without retrying); the file re-run alone: **21/21 passed** | 24.8 → 20.9; re-run 16.7 → 19.2 |
+| `npm run test:smoke` | **4/4 passed**, clone through the installed console 102 ms (pack 20.9 s, install 4.2 s, start 1.6 s) | 18.3 → 13.9 |
+| `check_tasks.py v0.2` | OK | — |
+| `npm run test:timing` | **skipped**: load 13.2 (≥ 12) | 13.2 |
+
+AC-1 count of `wfui-*` entries in the system temporary directory: 1 before (the pre-existing
+`wfui-no-hooks-*` of an earlier run), 1 after `test:coverage` + `test:e2e` + `test:smoke` — **0
+new**; no `wfui-run-*` root left. During the coverage run, entries of a concurrent `test:coverage`
+in another checkout (main's code, no root) appeared and were removed by that run.
