@@ -133,7 +133,13 @@ of a person or a session was found. One match is the name of a past run's tempor
 test in a temporary repository; the repository check last, its failure message listing every
 `file:line: path`. `test/README.md` lists the suite (version line bumped).
 
-**Open decisions** (asked to the coordinator, recommendation ★; the design above assumes ★):
+**Decisions (approver, 2026-10-12):** all as recommended — D28-1 (b), D28-2 (a), D28-3 (b),
+D28-4 (a), D28-5 (a), D28-6 (a), D28-7 (a). With them: a stale allow-list entry's failure names
+the entry to delete (another task may remove an example's last occurrence); the test depends on
+no particular system temporary path (task-026 points `TMPDIR`/`TMP`/`TEMP` at a run-owned
+`wfui-*` root); the scanner's run time on the full tree is recorded below.
+
+**Open decisions as asked** (recommendation ★):
 
 - D28-1 — which absolute POSIX paths are checked: (a) home roots only; ★ (b) the standard
   top-level directories listed above; (c) any absolute path with two or more segments.
