@@ -2,7 +2,7 @@
 id: release-planning-rel-v0.2-plan
 type: plan
 title: "Release planning — rel-v0.2"
-status: active
+status: done
 version: "0.4"         # optional — plan version
 workflow: "release-planning"
 phase: "rel-v0.2"
