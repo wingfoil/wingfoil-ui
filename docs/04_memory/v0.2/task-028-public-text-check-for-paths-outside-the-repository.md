@@ -225,9 +225,9 @@ Verdict FAIL: 1 major, 1 minor, 6 nits. Each finding and the change made:
 - **N5:** `afterAll` runs `await workspace?.dispose()`.
 - **N6:** the run-time note above names the file count "at the time of measurement".
 
-Run time after the fixes: 1.0–1.4 s over five runs on the 739 tracked files at the time of
-measurement, at load 24. Each rule now tests its first character before its look-behinds,
-which brought one run from 1.5–3.0 s at load 27 down to this.
+Run time after the fixes: about 1–2 s depending on load. Measured: 1.0–1.4 s over five runs on
+the 739 tracked files at the time of measurement, at load 24. Each rule now tests its first
+character before its look-behinds; before that change, the same runs took 1.5–3.0 s at load 27.
 
 Gates (2026-10-13, load about 27):
 
@@ -237,3 +237,45 @@ Gates (2026-10-13, load about 27):
 - `test:coverage` was not re-run. Only `test/docs/public-text*.ts` changed, which is outside
   the coverage include and imported by no other test, so the round-0 run (119 files, 1980
   tests) still covers the rest.
+
+### review (round 2, 2026-10-13)
+
+Verdict FAIL: 1 minor regression and nits. F1, F2 and N1–N6 were verified fixed. Each finding
+and the change made:
+
+- **R1 (minor, regression from N3):** an allowed outer match hid a distinct path inside it
+  (`~/projects/kanban=` + a home path, `C:/A/-` + a home path, `/home/alex/x@` + a home path,
+  and more).
+  - Only a POSIX match that is the rest of a drive match (it starts right after the drive
+    letter and colon) is now dropped, which is exactly the N3 case. Every other match inside a
+    longer one is reported and checked against the allow-list on its own. An allowed outer
+    match therefore hides nothing.
+  - A match the start guard still skips inside a longer one continues a segment of that path
+    (`/home/alex/xhome`); it is not a separate path.
+  - The path end now also stops before `=` or `@` followed by `/`, `~`, `$` or `%`
+    (`(?![:=@][/~$%])`). `/srv/a:b@c:x` stays one path.
+  - Every reviewer input is a row of the "finds" table, built at run time.
+- **N-a:** the drive rule no longer fires after `-` or `@` (`/tmp/wfui-a:` + path,
+  `/srv/a:b@c:` + path). The POSIX path after the colon is reported instead.
+- **N-b:** home paths now also cover:
+  - `"${HOME}"` and `"$HOME"`, quoted;
+  - `%USERPROFILE%` in any case;
+  - PowerShell's `$env:USERPROFILE`.
+
+  `$home` is detected too. PowerShell variable names ignore case, and in a POSIX shell a
+  lower-case `$home` followed by a path is still worth a look. This is documented in the
+  scanner. There are 0 hits on the tree.
+- **N-c:** a path glued to a one-letter option is also found after `(` and `=`
+  (`(-C` + path, `opt=-C` + path).
+- **N-d:** accepted by the reviewer, no change.
+- **N-e:** the run-time note above now reads "about 1–2 s depending on load (measured …)".
+  After round 2: 0.57–1.16 s over five runs on the 739 tracked files at the time of
+  measurement, at load 11.7.
+
+Gates (2026-10-13, load about 12):
+
+- `npx vitest run test/docs/public-text.test.ts`: 67 passed.
+- `npm run typecheck` and `npm run lint`: 0. `npm run format:check`: clean.
+- `check_tasks.py v0.2`: "17 tasks · 46 backlog items · 46 listed", OK.
+- `test:coverage` was not re-run. Only `test/docs/public-text*.ts` changed, which is outside
+  the coverage include and imported by no other test.

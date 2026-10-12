@@ -80,12 +80,19 @@ const ROOTS = CHECKED_ROOTS.map((root) => (CASELESS_ROOTS.has(root) ? caseless(r
 const NOT_CONTINUING = String.raw`(?<![A-Za-z0-9.~/\\])(?<![A-Za-z0-9]_)(?<!\$\{[^{}]*\})`;
 // A path may also start right after a one-letter option (`-C/x`, `-v/x`). Each rule tests its
 // first character before these look-behinds (speed).
-const START = String.raw`(?:${NOT_CONTINUING}|(?<=(?:^|[\s'"\x60])-[A-Za-z]))`;
-// A path ends at whitespace, a quote, a bracket, a list separator, or a `:` that starts another
-// path (`-v /a/x:/b/y`); a `:` inside a segment stays (`/srv/a:b@c:x`).
-const PATH_CHAR = String.raw`(?:(?!:[/~$%])[^\s'"\x60()[\]{}<>,;|*])`;
-/** The home notations, POSIX shells and Windows. */
-const HOME_PREFIX = String.raw`(?:(?:~|\$HOME|\$\{HOME\})/|%USERPROFILE%[\\/])`;
+const START = String.raw`(?:${NOT_CONTINUING}|(?<=(?:^|[\s'"\x60(=])-[A-Za-z]))`;
+// A path ends at whitespace, a quote, a bracket, a list separator, or a `:`, `=` or `@` that
+// starts another path (`-v /a/x:/b/y`, `KEY=/x`, `x@/y`); one inside a segment stays
+// (`/srv/a:b@c:x`).
+const PATH_CHAR = String.raw`(?:(?![:=@][/~$%])[^\s'"\x60()[\]{}<>,;|*])`;
+/**
+ * The home notations: `~`, `$HOME` and `${HOME}` (also in double quotes) of POSIX shells and
+ * PowerShell, `%USERPROFILE%` of cmd and `$env:USERPROFILE` of PowerShell. Windows and PowerShell
+ * ignore the case of these names, so any case matches (`$home` in a POSIX shell is another
+ * variable, but a path below it is still worth a look).
+ */
+const HOME_PREFIX = String.raw`(?:(?:~|(?<q>"?)\$(?:${caseless('HOME')}|\{${caseless('HOME')}\})\k<q>)/|(?:%${caseless('USERPROFILE')}%|\$${caseless('env')}:${caseless('USERPROFILE')})[\\/])`;
+const HOME_CANDIDATE = /~\/|home|userprofile/i;
 /** A home notation alone, which names no folder. */
 const BARE_HOME = new RegExp(String.raw`^${HOME_PREFIX}$`);
 
@@ -103,18 +110,19 @@ const RULES: readonly Rule[] = [
     pattern: new RegExp(String.raw`(?=/)(?:${START}|(?<=file://))/(?:${ROOTS})(?![\w.-])${PATH_CHAR}*`, 'g'),
   },
   {
-    // `\\` is a backslash escaped in source; `a:\n` (a YAML escape after a one-letter key) is not a drive.
+    // `\\` is a backslash escaped in source; `a:\n` (a YAML escape after a one-letter key) is not a
+    // drive, nor a letter after `-` or `@` (`/tmp/wfui-a:/x`, `/srv/a:b@c:/x`: two POSIX paths).
     rule: 'windows',
     candidate: (line) => line.includes(':'),
     pattern: new RegExp(
-      String.raw`(?=[A-Za-z]:)(?:${START}|(?<=file:///))[A-Za-z]:(?:\\\\|\\(?![nrt0](?![A-Za-z0-9]))|/)${PATH_CHAR}+`,
+      String.raw`(?=[A-Za-z]:)(?:(?<![-@])${START}|(?<=file:///))[A-Za-z]:(?:\\\\|\\(?![nrt0](?![A-Za-z0-9]))|/)${PATH_CHAR}+`,
       'g',
     ),
   },
   {
     rule: 'home',
-    candidate: (line) => line.includes('~/') || line.includes('HOME') || line.includes('%USERPROFILE%'),
-    pattern: new RegExp(String.raw`(?=[~$%])${START}${HOME_PREFIX}${PATH_CHAR}*`, 'g'),
+    candidate: (line) => HOME_CANDIDATE.test(line),
+    pattern: new RegExp(String.raw`(?=["~$%])${START}${HOME_PREFIX}${PATH_CHAR}*`, 'g'),
   },
 ];
 
@@ -124,14 +132,15 @@ const RULES: readonly Rule[] = [
  */
 function clean(found: string, rule: PathRule): string {
   // A POSIX path, or a home path with `/`, holds no backslash: one starts an escape (`/bin/sh\necho`).
-  const windowsLike = rule === 'windows' || found.startsWith('%');
+  const windowsLike = rule === 'windows' || /^(?:%|\$env:)/i.test(found);
   const cut = windowsLike ? found : found.split('\\')[0]!;
   return cut.replace(/(?:\\+|[.:_])+$/, '').replace(/\\+/g, '\\');
 }
 
 /**
- * Every path of {@link RULES} in `text`, line by line, allowed or not. A match inside a longer one
- * on the same line (a POSIX path inside a drive path) is reported once, as the longer one.
+ * Every path of {@link RULES} in `text`, line by line, allowed or not. A POSIX path that is the
+ * rest of a drive path (after the drive letter and colon) is reported once, as the drive path; any other
+ * path inside a longer match is reported on its own, so an allowed match never hides it.
  */
 export function findPaths(text: string): PathMatch[] {
   const matches: PathMatch[] = [];
@@ -144,11 +153,10 @@ export function findPaths(text: string): PathMatch[] {
         if (!BARE_HOME.test(found)) spans.push({ start: match.index, end: match.index + match[0].length, path: found, rule });
       }
     }
-    spans.sort((a, b) => a.start - b.start || b.end - a.end);
-    let covered = -1;
+    const drives = new Set(spans.filter((span) => span.rule === 'windows').map((span) => span.start));
+    spans.sort((a, b) => a.start - b.start);
     for (const span of spans) {
-      if (span.end <= covered) continue;
-      covered = span.end;
+      if (span.rule === 'posix' && drives.has(span.start - 2)) continue;
       matches.push({ line: index + 1, path: span.path, rule: span.rule });
     }
   });

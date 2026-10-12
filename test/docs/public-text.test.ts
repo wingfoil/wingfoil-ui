@@ -26,6 +26,7 @@ const JDOE_TMP = ['', 'tmp', 'jdoe-err.log'].join('/');
 const DOLLAR_HOME = '$' + 'HOME';
 const BRACED_HOME = '$' + '{HOME}';
 const USERPROFILE = '%' + 'USERPROFILE%';
+const ENV_PROFILE = '$' + 'env:USERPROFILE';
 
 describe('findPaths', () => {
   it.each([
@@ -61,6 +62,20 @@ describe('findPaths', () => {
     ['two paths joined by a colon', `docker run -v /home/alex/x:${JDOE}/secret`, ['/home/alex/x', `${JDOE}/secret`]],
     ['a temporary path joined to a home path', `/tmp/x:${JDOE}`, ['/tmp/x', JDOE]],
     ['a colon inside a segment', "remote '/srv/a:b@c:x'", ['/srv/a:b@c:x']],
+    ['a path after an allowed home path and =', `~/projects/kanban=${JDOE}`, ['~/projects/kanban', JDOE]],
+    ['a home path after an allowed path and =', `/tmp/x/a=${JDOE_TILDE}`, ['/tmp/x/a', JDOE_TILDE]],
+    ['a $HOME path after an allowed path and =', `/home/alex/x=${DOLLAR_HOME}/jdoe`, ['/home/alex/x', `${DOLLAR_HOME}/jdoe`]],
+    ['a path after an allowed drive path and =', `C:/work/x=${JDOE}`, ['C:/work/x', JDOE]],
+    ['a path inside an allowed drive path', `C:/A/-${JDOE}`, [`C:/A/-${JDOE}`, JDOE]],
+    ['a path after an allowed path and @', `/home/alex/x@${JDOE}`, ['/home/alex/x', JDOE]],
+    ['a colon path after a dash, not a drive', `/tmp/wfui-a:${JDOE}`, ['/tmp/wfui-a', JDOE]],
+    ['a colon path after @, not a drive', `/srv/a:b@c:${JDOE}`, ['/srv/a:b@c', JDOE]],
+    ['a quoted ${HOME} path', `"${BRACED_HOME}"/x`, [`"${BRACED_HOME}"/x`]],
+    ['a %userprofile% path in any case', `${USERPROFILE.toLowerCase()}\\x`, [`${USERPROFILE.toLowerCase()}\\x`]],
+    ['a PowerShell $env:USERPROFILE path', `${ENV_PROFILE}\\x`, [`${ENV_PROFILE}\\x`]],
+    ['a lower-case $home path', `${DOLLAR_HOME.toLowerCase()}/x`, [`${DOLLAR_HOME.toLowerCase()}/x`]],
+    ['a path glued to an option in parentheses', `(-C${JDOE})`, [JDOE]],
+    ['a path glued to an option after =', `opt=-C${JDOE}`, [JDOE]],
   ])('finds %s', (_name, text, expected) => {
     expect(findPaths(text).map((m) => m.path)).toEqual(expected);
   });
