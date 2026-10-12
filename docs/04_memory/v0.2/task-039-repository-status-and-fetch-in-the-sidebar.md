@@ -2,7 +2,7 @@
 id: task-039-repository-status-and-fetch-in-the-sidebar
 type: task
 title: "Repository status and fetch in the sidebar"
-status: pending
+status: backlog
 release: "v0.2"
 module: "web"             # optional — server | web | contracts (dna.yaml modules)
 priority: "medium"           # optional — high | medium | low
