@@ -2,7 +2,7 @@
 id: governance-alignment-rel-v0.2-plan
 type: plan
 title: "Governance alignment rel-v0.2"
-status: active
+status: done
 version: "0.2"         # optional — plan version
 workflow: "governance-alignment"
 phase: "rel-v0.2"
@@ -126,3 +126,5 @@ Steps:
 - Step 6 — review round 2 **PASS** (2 nits, both fixed: F-020 fills `requirements` as a string as
   the template defines it, re-run with the same outputs; the `memory.yaml` base note merged into
   one sentence on `amendable`).
+- Step 7 — the approver's OK on the result ("as recommended", 2026-10-12), including keeping the
+  `version:` of the workflow files whose only change is the header line. Plan finalized.
