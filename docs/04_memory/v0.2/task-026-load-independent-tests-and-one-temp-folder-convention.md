@@ -192,3 +192,19 @@ test fail (recorded in *red / green / refactor*).
 - **D26-5 — where the SIGKILL test runs.** ★ (a) a bin test with the console's temporary
   directory pointed at a test-owned folder (isolated from concurrent runs in other checkouts);
   (b) an e2e test counting the system temporary directory (racy with concurrent runs).
+
+#### Decisions (approver, 2026-10-12)
+
+"All as recommended": D26-1 (c), D26-2 (b), D26-3 (a), D26-4 (b), D26-5 (a). Added by the
+coordinator:
+
+- D26-1: the hooks-path file resolves to an existing regular file in every shipped form (the
+  Vitest/tsx run of `server/src`, the compiled `server/dist`, the bin `bin/wingfoil-ui.cjs` — not
+  a bundle: it imports `server/dist/main.js`, so `import.meta.url` of the compiled module holds —
+  and the npm-packed install of `test:smoke`), covered by a bin test (the SIGKILL test) and by
+  the smoke if it has a clone path; fail closed (no git process) when the file is missing or not
+  a regular file, with a unit test.
+- D26-2: the global teardown removes only the root its own run owns (owner file check); the start
+  sweep removes only roots whose owner process is gone — both shown in `temp-root.test.ts`. When
+  task-028 merges (it uses `TempWorkspace` with the `wfui-` prefix), whichever merges second
+  aligns.
