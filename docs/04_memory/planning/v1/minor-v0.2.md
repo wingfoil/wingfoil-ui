@@ -2,7 +2,7 @@
 id: minor-v0.2
 type: release
 title: "WingFoil UI v0.2 — Unblock"
-status: draft
+status: planning
 kind: "minor"
 patch-of: ""           # optional — when kind is "patch": id of the released minor it patches, e.g. "minor-v0.2"
 version: "v0.2"
@@ -62,6 +62,13 @@ Bars common to every release (`08_mvp-canvas.md`, SARD v0.3):
 
 <!-- identify-specs: artefacts discovered late or missed; build-backlog: scope/estimation
      surprises, bugs selected for this release and their derived fix tasks. -->
+
+Actual effort per phase (dl-006 action 6; wall-clock of the working sessions, 2026-10-12 on):
+
+| Phase | Plan | Sessions | Effort |
+|-------|------|----------|--------|
+| Governance alignment (pre-step) | `governance-alignment-rel-v0.2-plan` | 2026-10-12 10:05–11:00 | ~1 h |
+| release-planning | `release-planning-rel-v0.2-plan` | session 1 from 2026-10-12 11:00 | in progress |
 
 ### Implementation (dev-loop, per task)
 
