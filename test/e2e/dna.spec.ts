@@ -139,6 +139,9 @@ test.describe('US-S-27 — a failed read confined to its view', () => {
     await recordServerEvents(page);
     await openDna(page, c);
     await expectFirstLoad(page.getByRole('main').getByRole('alert'));
+    const modules = section(page, 'Modules');
+    // The new state is not on screen before the change (task-026, AC-2).
+    await expect(modules).toHaveCount(0);
     await page.evaluate(() => ((window as unknown as { marker: number }).marker = 1));
     // The file restored to valid YAML and committed (W3-46).
     // By itself, without a reload; within 5 s of the file write under `npm run test:timing` (W3-47).
@@ -151,7 +154,6 @@ test.describe('US-S-27 — a failed read confined to its view', () => {
       },
       { event: 'repo', pid: c.pids[0]! },
     );
-    const modules = section(page, 'Modules');
     await expect(modules).toBeVisible({ timeout: clock.timeout() });
     clock.done('S-27.2 DNA view recovered');
     await expect(modules.getByText('No module declared', { exact: true })).toBeVisible();

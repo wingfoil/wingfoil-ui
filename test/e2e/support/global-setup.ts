@@ -7,6 +7,7 @@
 import { execFileSync } from 'node:child_process';
 import path from 'node:path';
 import { REPO_ROOT } from '../../harness/cli.js';
+import { createTempRoot, sweepStaleTempRoots, useTempRoot } from '../../harness/temp-root.js';
 import { createRunDir, RUN_DIR_ENV, sweepStaleRuns } from './reaper.js';
 
 function node(args: string[], cwd = REPO_ROOT): void {
@@ -24,6 +25,11 @@ export default function globalSetup(): void {
     );
   }
   process.env[RUN_DIR_ENV] = createRunDir();
+  // The run's temporary root (task-026): every temporary folder of the run — fixtures, consoles,
+  // browsers — lands under it; the global teardown removes it, the next run sweeps it if this run
+  // is killed first. Made after the run directory, which stays in the system temporary directory.
+  sweepStaleTempRoots();
+  useTempRoot(createTempRoot());
   node([path.join(REPO_ROOT, 'node_modules', 'typescript', 'bin', 'tsc'), '-b']);
   const vite = path.join(REPO_ROOT, 'node_modules', 'vite', 'bin', 'vite.js');
   const web = path.join(REPO_ROOT, 'web');

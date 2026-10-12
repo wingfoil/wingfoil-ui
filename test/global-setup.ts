@@ -3,12 +3,16 @@
  * application `web/dist` once, before any test file runs. The bin tests (`test/launcher/`) and the
  * child-process tests of the state store run the built `server/dist`; building per file made
  * concurrent `tsc -b` runs race on the same output. The packaging guard (`test/package/`) checks
- * that every built file is packed (task-025, ES-11).
+ * that every built file is packed (task-025, ES-11). The run's temporary root (task-026,
+ * `harness/temp-root.ts`): every temporary folder of the run lands under it; the returned
+ * teardown removes it.
  */
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+import { setUpTempRoot } from './harness/temp-root.js';
 
-export default function setup(): void {
+/** Build `server/dist` and `web/dist`. */
+export function build(): void {
   const root = fileURLToPath(new URL('..', import.meta.url));
   // Without Vitest's `NODE_ENV=test`: Vite would otherwise build React's development bundle
   // (`jsxDEV`), and the packaging guard checks the production one (task-025 review round 1).
@@ -22,4 +26,15 @@ export default function setup(): void {
     [fileURLToPath(new URL('../node_modules/vite/bin/vite.js', import.meta.url)), 'build', '--logLevel', 'warn'],
     fileURLToPath(new URL('../web', import.meta.url)),
   );
+}
+
+export default function setup(): () => void {
+  const teardown = setUpTempRoot();
+  try {
+    build();
+  } catch (error) {
+    teardown();
+    throw error;
+  }
+  return teardown;
 }
