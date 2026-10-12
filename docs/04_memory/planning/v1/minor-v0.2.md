@@ -2,7 +2,7 @@
 id: minor-v0.2
 type: release
 title: "WingFoil UI v0.2 — Unblock"
-status: planning
+status: in-development
 kind: "minor"
 patch-of: ""           # optional — when kind is "patch": id of the released minor it patches, e.g. "minor-v0.2"
 version: "v0.2"
@@ -68,7 +68,7 @@ Actual effort per phase (dl-006 action 6; wall-clock of the working sessions, 20
 | Phase | Plan | Sessions | Effort |
 |-------|------|----------|--------|
 | Governance alignment (pre-step) | `governance-alignment-rel-v0.2-plan` | 2026-10-12 10:05–11:00 | ~1 h |
-| release-planning | `release-planning-rel-v0.2-plan` | sessions 1–4 2026-10-12 11:00–19:55 (wall-clock, incl. waits; sessions 3–4 from 19:20) | in progress |
+| release-planning | `release-planning-rel-v0.2-plan` | sessions 1–4 2026-10-12 11:00–20:00 (wall-clock, incl. waits; sessions 3–4 from 19:20) | ~9 h wall-clock, 1 active day |
 
 - 2026-10-12 — `release-planning-rel-v0.2-plan` sessions 1–2 (branch `design/release-planning_v0.2`).
   `advance-pinned-build` no-op (0.2.2 newest); `minor-v0.2` `draft → planning` (`4c8ead3`);
@@ -91,6 +91,10 @@ Actual effort per phase (dl-006 action 6; wall-clock of the working sessions, 20
   dependencies on task-035 — 7 minor, 7 nits); decisions RP-52 … RP-55 (G-13.2 split closure,
   fetch-interval scenarios at 15 s in `test:e2e`, npm publishing as WingFoil's two-gate staged
   pipeline, append-only shell and merge order).
+- 2026-10-12 — audit round 2 FAIL (3 minor: Y-05.2 added to RP-53 with the approver's OK, plan
+  version, effort table), round 3 PASS (`4c13e9d`). The approver approved the 17 tasks into
+  `backlog`; release `planning → in-development` by hand (W-25). Planning took 1 active day
+  (2026-10-12) of the v0.2 budget of 8.
 
 ### Implementation (dev-loop, per task)
 
