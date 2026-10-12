@@ -2,7 +2,7 @@
 id: task-029-npm-publishing-pipeline-and-registry-setup-checklist
 type: task
 title: "npm publishing pipeline and registry setup checklist"
-status: pending
+status: backlog
 release: "v0.2"
 module: "governance"             # optional — server | web | contracts (dna.yaml modules)
 priority: "medium"           # optional — high | medium | low
