@@ -1,4 +1,4 @@
-# WingFoil UI — decision-log-ingest (MAIN workflow) — derived from wingfoil/wingfoil@c43221c4
+# WingFoil UI — decision-log-ingest (MAIN workflow) — derived from wingfoil/wingfoil@v0.2.2
 # Startable entry point to capture a single DECISION LOG (DL) into Memory, independent of the
 # delivery loop. Multiple mains are allowed: REQ-STATE-03 (multiple open mains).
 # Source: composition is user-defined; uses the `decision-log` Memory type (memory.yaml).

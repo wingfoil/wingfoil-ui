@@ -1,4 +1,4 @@
-# WingFoil UI — release-cycle (SUB workflow) — derived from wingfoil/wingfoil@c43221c4
+# WingFoil UI — release-cycle (SUB workflow) — derived from wingfoil/wingfoil@v0.2.2
 # One iteration per release wave (v0.1 .. v1.0). Composes planning, per-task dev loops,
 # submission, publishing, and retrospective. Best practice adapted to WingFoil's weekly,
 # per-pillar cadence. Include-only; sw-life-cycle iterates it over `release`.

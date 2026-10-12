@@ -1,7 +1,7 @@
 # `.wingfoil/` — WingFoil configuration of WingFoil UI
 
-**Version:** 0.2 · **Date:** 2026-10-12 (0.1: release v0.1, `user-docs` `align-agent-docs`; 0.2:
-W-25, W-26 — dl-007) ·
+**Version:** 0.3 · **Date:** 2026-10-12 (0.1: release v0.1, `user-docs` `align-agent-docs`; 0.2:
+W-25, W-26 — dl-007; 0.3: `release-submit`, `release-publishing`, `retrospective` tailored — dl-008) ·
 **Checked against:** `wingfoil@0.2.2` (the devDependency pin)
 
 This folder makes the WingFoil UI repository a project **governed by WingFoil**: its DNA, its Memory
@@ -69,7 +69,10 @@ Required frontmatter fields (`template.frontmatter.required`):
 `wingfoil@0.2.2` has no workflow engine: each phase is run by hand against its `plan` element
 (`docs/05_plans/`). Five workflows are startable (`kind: main`); the others are sub-workflows
 composed by `sw-life-cycle` (`kind: sub`, include-only). Listed in the `include` order of
-`workflows.yaml`; every file is in `workflows/custom/`.
+`workflows.yaml`; every file is in `workflows/custom/`. Each file except `e2e-smoke.yaml`
+(rewritten for a web dashboard), like `memory.yaml` and `workflows.yaml`, is derived from the
+WingFoil release this project pins, `wingfoil/wingfoil@v0.2.2` (the header line of the file); those
+adapted to this project are named in `workflows.yaml`.
 
 | Workflow | Kind | Version | Element | Phases |
 |----------|------|---------|---------|--------|
@@ -92,9 +95,9 @@ composed by `sw-life-cycle` (`kind: sub`, include-only). Listed in the `include`
 | `dev-loop` | sub | 1.4 | task | start · design · red · green · refactor · review · done |
 | `user-docs` | sub | 1.1 | release | check-implementation-complete · align-user-docs · align-agent-docs |
 | `e2e-smoke` | sub | 1.0 | release | fixture-project · drive-browser · local-security · accessibility · contract · launch · gate |
-| `release-submit` | sub | 1.0 | release | pre-release-checks · enter-releasing · approve-release |
-| `release-publishing` | sub | 1.1 | release | tag · publish · mark-released |
-| `retrospective` | sub | 1.1 | release | explore · additional-points · capture · approve |
+| `release-submit` | sub | 1.1 | release | release-commit · pre-release-checks · enter-releasing · approve-release |
+| `release-publishing` | sub | 1.2 | release | tag · publish · mark-released |
+| `retrospective` | sub | 1.2 | release | explore · additional-points · capture · approve |
 | `end-of-life` | sub | 1.0 | — | announce · deprecate · archive |
 
 ## Roles and directives (`roles.yaml`)

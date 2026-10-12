@@ -1,4 +1,4 @@
-# WingFoil UI — specification-by-examples (SUB workflow) — derived from wingfoil/wingfoil@c43221c4
+# WingFoil UI — specification-by-examples (SUB workflow) — derived from wingfoil/wingfoil@v0.2.2
 # Specification Downcast Module 2 — BDD (Gojko Adzic). Include-only.
 # Source: docs/02_requirements/X_specs-downcast-plan.md §Module 2.
 name: specification-by-examples

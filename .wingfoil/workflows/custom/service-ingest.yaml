@@ -1,4 +1,4 @@
-# WingFoil UI — service-ingest (MAIN workflow) — derived from wingfoil/wingfoil@c43221c4
+# WingFoil UI — service-ingest (MAIN workflow) — derived from wingfoil/wingfoil@v0.2.2
 # Startable entry point to record a single SERVICE into Memory: one unit of state outside the git
 # repository that the project owns, depends on, or presents itself through (dl-088). Run by whoever
 # set the external state up, once it exists — a `service` describes something that has been set up,

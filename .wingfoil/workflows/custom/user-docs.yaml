@@ -1,4 +1,4 @@
-# WingFoil UI — user-docs (SUB workflow) — derived from wingfoil/wingfoil@c43221c4
+# WingFoil UI — user-docs (SUB workflow) — derived from wingfoil/wingfoil@v0.2.2
 # dl-013 — user-facing documentation gate, between implementation and release-submit. Include-only.
 # dl-025 (v1.1) — extended to own AGENT-facing docs too, as a sibling phase rather than by widening
 #   align-user-docs: verifying CLAUDE.md against dna.yaml/memory.yaml/workflows.yaml/roles.yaml is

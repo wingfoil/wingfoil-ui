@@ -1,4 +1,4 @@
-# WingFoil UI — backlog-export (SUB workflow) — derived from wingfoil/wingfoil@c43221c4
+# WingFoil UI — backlog-export (SUB workflow) — derived from wingfoil/wingfoil@v0.2.2
 # Specification Downcast Module 4 — operational backlog export. Include-only.
 # Source: docs/02_requirements/X_specs-downcast-plan.md §Module 4.
 name: backlog-export

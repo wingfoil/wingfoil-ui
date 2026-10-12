@@ -1,4 +1,4 @@
-# WingFoil UI — specification-downcast (SUB workflow) — derived from wingfoil/wingfoil@c43221c4
+# WingFoil UI — specification-downcast (SUB workflow) — derived from wingfoil/wingfoil@v0.2.2
 # Modeled from docs/02_requirements/X_specs-downcast-plan.md.
 # Transforms the Vision Package into engineering requirements via three frameworks, then exports a backlog.
 # Strict sequence with Stop-Check gates between modules. Include-only.

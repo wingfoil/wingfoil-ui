@@ -1,4 +1,4 @@
-# WingFoil UI — sw-life-cycle (MAIN workflow) — derived from wingfoil/wingfoil@c43221c4
+# WingFoil UI — sw-life-cycle (MAIN workflow) — derived from wingfoil/wingfoil@v0.2.2
 # The end-to-end software life cycle for WingFoil UI: init -> inception -> specification ->
 # delivery (per release-line / release) -> sunset.
 # Deviation from WingFoil: `init` runs FIRST (WingFoil ran it after specification only because the

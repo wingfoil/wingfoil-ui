@@ -1,48 +1,47 @@
-# WingFoil UI — release-publishing (SUB workflow) — derived from wingfoil/wingfoil@c43221c4
+# WingFoil UI — release-publishing (SUB workflow) — derived from wingfoil/wingfoil@v0.2.2
 # Best practice adapted to WingFoil. Include-only.
+# Tailored to this project by dl-008 (version 1.2): the release commit moved to release-submit
+# (release-submit-rel-v0.1-plan RS-3); the tag is `v{package.version}` (user-docs-rel-v0.1-plan
+# RV-7); the references to WingFoil's own publish pipeline are removed — this project's npm
+# pipeline is planned for minor-v0.2 (governance-alignment-rel-v0.2-plan GA-4, dl-004).
 name: release-publishing
 kind: sub
 description: >-
-  Publish an approved release: tag, build, publish to the npm registry, and mark the release
-  element as released.
-version: 1.1
+  Publish an approved release: tag it on `main`, publish the tagged version to the npm registry,
+  and mark the release element as released.
+version: 1.2
 element: release
 
 phases:
   - name: tag
     description: >-
-      Create the semver git tag for the release ON `main`, after the release branch has merged —
-      never on a phase branch (dl-024). The tag must be a stable ref reachable from main's permanent
-      history so it survives phase-branch cleanup.
+      Create the annotated semver git tag `v{package.version}` ON `main`, on the release commit
+      made by release-submit or on a later `main` commit that changes only governance or docs
+      files (release-submit-rel-v0.1-plan RS-7) — never on a phase branch, so the tag stays
+      reachable after branch cleanup. `package.version` is `X.Y.0` for a minor release `vX.Y` and
+      `X.Y.Z` for a patch release `vX.Y.Z` (user-docs-rel-v0.1-plan RV-7: tag `v0.1.0` for
+      release `v0.1`). Pushing the tag needs the approver's OK.
     role: tech-lead
     checks:
-      pre: ["on-branch-is-main", "release-branch-merged-to-main"]   # dl-024
+      pre: ["on-branch-is-main", "release-branch-merged-to-main"]
     actions:
-      - 'git.commit("release {release.version}")'
-      - 'git.tag("{release.version}", on: main)'      # dl-024 — tag on main, not on a design/release_* branch
+      - 'git.tag("v{package.version}", on: main)'
 
   - name: publish
     description: >-
-      Run the tag's publish pipeline, then make the staged version live. The tag push runs
-      `.github/workflows/publish.yml`: gate, Verdaccio staging + dl-023 smoke, then promote, which
-      STAGES the same tarball on npm with `npm stage publish` through the stage-only OIDC trusted
-      publisher — no token (adr-011, spec-015 §3 stage 4). A staged version is not live: after the
-      pipeline run, the approver inspects it (`npm stage view <stage-id>`) and approves it on npm
-      with 2FA (`npm stage approve <stage-id>`, or Approve on npmjs.com), or discards it with
-      `npm stage reject` (dl-087 Action 3). The runbook in publish.yml's header lists the one-time
-      registry-side setup this step presupposes.
+      Publish the tagged version of `wingfoil-ui` to the npm registry through this project's
+      publish pipeline, with the approver's approval. Until the pipeline exists, the step is
+      skipped and a decision-log records why (dl-004 for release v0.1).
     role: tech-lead
     actions:
-      - agent.execute        # push the tag; publish.yml runs gate → stage → promote (`npm stage publish`)
-      - agent.execute        # after the run: report the stage id promote printed; nothing is live yet
-      - 'approver.execute("npm stage approve <stage-id>")'   # 2FA on npm — the version goes live (adr-011 point 3)
+      - agent.execute        # run the publish pipeline for the pushed tag and report its result
     checks:
       pre: ["tests.passing"]
-      post: ["staged version approved on npm and live on the npm registry"]
-    approval: { by_role: approver }   # the npm-publish environment deployment AND the npm stage approval (adr-011 point 3, dl-087 Q2 (iii))
+      post: ["the tagged version is live on the npm registry, or a decision-log records the skipped step"]
+    approval: { by_role: approver }
 
   - name: mark-released
     description: "Mark the release element released."
     role: tech-lead
     actions:
-      - element.set_state(released)            # release: releasing -> released
+      - element.set_state(released)            # release: releasing -> released (hand transition, wingfoil-cli W-25)

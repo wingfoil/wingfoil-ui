@@ -1,4 +1,4 @@
-# WingFoil UI — release-line-cycle (SUB workflow) — derived from wingfoil/wingfoil@c43221c4
+# WingFoil UI — release-line-cycle (SUB workflow) — derived from wingfoil/wingfoil@v0.2.2
 # One iteration per release-line (major version: v1, v2, ...). Composes initial-design (roadmap +
 # ADRs/DLs/tech-specs for this release-line) and delivery (one release-cycle per minor release
 # scoped to this release-line). Include-only; sw-life-cycle iterates it over `release-line`.

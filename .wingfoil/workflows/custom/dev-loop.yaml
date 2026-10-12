@@ -1,4 +1,4 @@
-# WingFoil UI — dev-loop (SUB workflow) — TDD — derived from wingfoil/wingfoil@c43221c4
+# WingFoil UI — dev-loop (SUB workflow) — TDD — derived from wingfoil/wingfoil@v0.2.2
 # Runs once per backlog task (release-cycle iterates it over `task`). Include-only.
 # Encodes the test-first cycle and the review gate with fallback-on-rejection (P4.15).
 # Atomic actions per P4.10 / REQ-INT-06; atomic step execution per REQ-STATE-04.

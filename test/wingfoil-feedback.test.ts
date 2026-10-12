@@ -14,7 +14,7 @@ const KINDS = ['defect', 'gap', 'request'];
 const STATUSES = ['open', 'needs-info', 'captured', 'resolved', 'declined', 'duplicate'];
 /** The first body line: the id the note was migrated from (task-023), or the W-entries it reports (dl-007). */
 const FIRST_LINE =
-  /^\n(?:Formerly R-\d{2}\.|Formerly W-\d{2} candidate\.|Formerly W-\d{2} and W-\d{2} candidates\.|Formerly an unnamed W-xx candidate\.)\n/;
+  /^\n(?:Formerly R-\d{2}\.|Formerly W-\d{2} candidate\.|Reports W-\d{2}(?: and W-\d{2})?\.|Formerly an unnamed W-xx candidate\.)\n/;
 
 interface Note {
   file: string;

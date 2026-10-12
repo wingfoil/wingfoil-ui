@@ -1,4 +1,4 @@
-# WingFoil UI — release-planning (SUB workflow) — derived from wingfoil/wingfoil@c43221c4
+# WingFoil UI — release-planning (SUB workflow) — derived from wingfoil/wingfoil@v0.2.2
 # Best practice adapted to WingFoil. Include-only.
 name: release-planning
 kind: sub

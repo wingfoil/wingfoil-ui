@@ -1,4 +1,4 @@
-# WingFoil UI — wingfoil-init (SUB workflow) — derived from wingfoil/wingfoil@c43221c4
+# WingFoil UI — wingfoil-init (SUB workflow) — derived from wingfoil/wingfoil@v0.2.2
 # First phase of sw-life-cycle (moved before inception, see the bootstrap decision-log): initialise
 # the WingFoil configuration with the pinned CLI (`wingfoil init`), then align it with the WingFoil
 # repository (BOOTSTRAP.md §2). Pure config/tooling bootstrap — no Memory seeding except the

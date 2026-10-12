@@ -3,10 +3,14 @@
 # There is no global state machine: CLI verbs (submit/approve/reject/deprecate) are validated
 # against each type's graph.
 #
-# Derived from the WingFoil repository's .wingfoil/memory.yaml (wingfoil/wingfoil@c43221c4): same
+# Derived from the WingFoil repository's .wingfoil/memory.yaml (wingfoil/wingfoil@v0.2.2): same
 # types, paths, id patterns, required fields and state machines, so both projects read alike.
-# Not yet adopted: the per-type `amendable` key (WingFoil dl-108, `memory amend`), unknown to the
-# pinned wingfoil@0.2.2 — add it when the pin advances to a version that ships `memory amend`.
+# The base is the WingFoil release this project pins (governance-alignment-rel-v0.2-plan GA-3).
+# Until 2026-10-12 the header named wingfoil/wingfoil@c43221c4, a later `main` commit whose
+# `.wingfoil/` differs from v0.2.2 only in WingFoil's own memory.yaml (comments, version key, the
+# per-type `amendable` keys) and in its command-baseline directive; none of it is adopted here.
+# `amendable` (WingFoil dl-108, `memory amend`) is unknown to the pinned wingfoil@0.2.2 — add it
+# when the pin advances to a version that ships `memory amend`.
 #
 # Template ↔ workflow rule: `template.frontmatter.required` lists the fields to fill after
 # `memory add`; workflow steps producing a type declare the same list as a post check. If they

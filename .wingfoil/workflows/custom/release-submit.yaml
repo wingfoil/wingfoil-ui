@@ -1,24 +1,41 @@
-# WingFoil UI — release-submit (SUB workflow) — derived from wingfoil/wingfoil@c43221c4
+# WingFoil UI — release-submit (SUB workflow) — derived from wingfoil/wingfoil@v0.2.2
 # Best practice adapted to WingFoil. Include-only.
+# Tailored to this project by dl-008 (version 1.1): the release commit is made here, before the
+# checks (release-submit-rel-v0.1-plan RS-3), and the bug check reads the `release` and
+# `release-origin` fields this project's bugs carry (they carry no release tag).
 name: release-submit
 kind: sub
 description: >-
-  Assemble the release once its tasks are done: run pre-release checks, move the release into
-  `releasing`, and gate on approval before publishing.
-version: 1.0
+  Assemble the release once its tasks are done: make the release commit, run pre-release checks,
+  move the release into `releasing`, and gate on approval before publishing.
+version: 1.1
 element: release
 
 phases:
+  - name: release-commit
+    description: >-
+      Make the release commit on `main` (release-submit-rel-v0.1-plan RS-3): the version (`X.Y.0`
+      for a minor `vX.Y`, `X.Y.Z` for a patch `vX.Y.Z`) in the root and workspace `package.json`
+      files and the lockfile, the CHANGELOG section with the tag date, and the project status in
+      `CLAUDE.md`. The checks below run on this commit.
+    role: tech-lead
+    actions:
+      - 'git.commit("chore(release): v{package.version}")'   # v0.1: ac3b5b5 chore(release): v0.1.0
+
   - name: pre-release-checks
     description: >-
       Verify all release tasks are done and the suite is green. Bugs have no independent status
       here — their state is derived by dev-loop's `bug.sync_state` from their fix tasks, so the
       task check below covers them; the bug check is a redundant sanity check on the sync itself.
+      A bug belongs to this release when its `release` is this release, or when its `release` is
+      empty and its `release-origin` is this release (a bug absorbed mid-release by a running
+      task); a bug found here but planned for a later release (`release` set to that release) is
+      checked by that release.
     role: qa
     checks:
       pre:
         - "all tasks where tags=[{release.version}] are status: done"
-        - "all bugs where tags=[{release.version}] are status: [resolved, closed]"
+        - "all bugs where release={release.version}, or release is empty and release-origin={release.version}, are status: [resolved, closed]"
         - "tests.passing"
         - "tests.coverage(min: 80)"
 
@@ -26,10 +43,13 @@ phases:
     description: "Move the release element into the releasing state."
     role: tech-lead
     actions:
-      - element.set_state(releasing)           # release: in-development -> releasing
+      - element.set_state(releasing)           # release: in-development -> releasing (hand transition, wingfoil-cli W-25)
 
   - name: approve-release
-    description: "Final human approval before publishing."
+    description: >-
+      Final human approval before publishing. The release has no gate in `releasing`: the approval
+      is the approver's OK in chat, recorded in the plan's Session log (wingfoil-cli W-25;
+      release-submit-rel-v0.1-plan RS-6).
     role: approver
     approval: { by_role: approver }
     fallback: { step: pre-release-checks }

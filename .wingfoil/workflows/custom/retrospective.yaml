@@ -1,12 +1,14 @@
-# WingFoil UI — retrospective (SUB workflow) — derived from wingfoil/wingfoil@c43221c4
+# WingFoil UI — retrospective (SUB workflow) — derived from wingfoil/wingfoil@v0.2.2
 # Best practice adapted to WingFoil. Include-only.
+# Tailored to this project by dl-008 (version 1.2): `capture` produces a decision-log with the
+# `dl-{n}-{slug}` id of memory.yaml (dl-006 Context; retrospective-rel-v0.1-plan RT-3).
 name: retrospective
 kind: sub
 description: >-
   Close the release loop: EXPLORE the release's Execution Notes for friction, let the approver add
   points, capture what went well / what to improve as Memory, and feed adjustments into the next
   release planning.
-version: 1.1                     # dl-019/retro-v0.1 — added explore + additional-points phases
+version: 1.2                     # 1.1: WingFoil dl-019 — explore + additional-points; 1.2: dl-008
 element: release
 
 phases:
@@ -37,7 +39,7 @@ phases:
       - 'memory.add(type: decision-log, title: "Retrospective {release.version}")'
       - memory.submit
     produces:
-      - "docs/04_memory/design/dls/retro-{release.version}.md"
+      - "docs/04_memory/design/dls/dl-{n}-{slug}.md (title \"Retrospective {release.version}\")"
     checks:
       post: ["frontmatter.required: [title]"]   # title always set by action above
 

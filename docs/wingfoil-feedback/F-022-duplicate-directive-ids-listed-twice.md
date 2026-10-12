@@ -7,7 +7,7 @@ wingfoil_version: 0.2.2
 answered_by: []
 ---
 
-Formerly W-23 candidate.
+Reports W-23.
 
 ## Observed
 

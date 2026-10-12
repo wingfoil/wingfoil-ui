@@ -1,4 +1,4 @@
-# WingFoil UI — adr-ingest (MAIN workflow) — derived from wingfoil/wingfoil@c43221c4
+# WingFoil UI — adr-ingest (MAIN workflow) — derived from wingfoil/wingfoil@v0.2.2
 # Startable entry point to capture a single ADR (Architectural Decision Record) into Memory.
 # Used during dev-loop and other development phases to record new decisions on demand.
 # Multiple mains are allowed: REQ-STATE-03 (multiple open mains).

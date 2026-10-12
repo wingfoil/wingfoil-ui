@@ -1,4 +1,4 @@
-# WingFoil UI — initial-design (SUB workflow) — derived from wingfoil/wingfoil@c43221c4
+# WingFoil UI — initial-design (SUB workflow) — derived from wingfoil/wingfoil@v0.2.2
 # Runs once per release-line, as the first phase of `release-line-cycle` (after that release-line
 # is approved, before its `delivery`). Produces the minor-release roadmap for this release-line and
 # records the architecture/product decisions and shared-artefact specs already implied by it —

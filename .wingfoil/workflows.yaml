@@ -1,5 +1,5 @@
 # WingFoil UI — Project Workflow main configuration
-# Derived from the WingFoil repository's workflows.yaml (wingfoil/wingfoil@c43221c4). This is the
+# Derived from the WingFoil repository's workflows.yaml (wingfoil/wingfoil@v0.2.2). This is the
 # MAIN config file: it include()s the custom workflow files. Several `kind: main` workflows are
 # startable (sw-life-cycle + the ingest mains); every non-main is `kind: sub` (include-only).
 # wingfoil@0.2.2 has no workflow engine: phases are run by hand against their `plan` element.
@@ -25,9 +25,12 @@ include:
   - workflows/custom/volere-requirements.yaml
   - workflows/custom/backlog-export.yaml
   # --- Delivery ---
-  # TODO before the first release-cycle: adapt release-planning, dev-loop, user-docs,
-  # release-submit, release-publishing to a web dashboard (BOOTSTRAP.md §2.2). e2e-smoke is
-  # already rewritten.
+  # Adapted to this project (beyond the header line, against wingfoil/wingfoil@v0.2.2):
+  # sw-life-cycle, wingfoil-init, initial-design, release-planning (1.4), e2e-smoke (rewritten),
+  # and by dl-008 release-submit (1.1), release-publishing (1.2), retrospective (1.2). The other
+  # files, dev-loop and user-docs included, differ from v0.2.2 only in the header line; user-docs'
+  # `docs/examples/` output does not apply to this project (accepted deviation UD-5 of
+  # user-docs-rel-v0.1-plan).
   - workflows/custom/initial-design.yaml
   - workflows/custom/release-line-cycle.yaml
   - workflows/custom/release-cycle.yaml
