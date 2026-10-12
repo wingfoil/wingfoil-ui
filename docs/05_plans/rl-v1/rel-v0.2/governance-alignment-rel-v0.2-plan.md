@@ -3,7 +3,7 @@ id: governance-alignment-rel-v0.2-plan
 type: plan
 title: "Governance alignment rel-v0.2"
 status: active
-version: "0.1"         # optional — plan version
+version: "0.2"         # optional — plan version
 workflow: "governance-alignment"
 phase: "rel-v0.2"
 scope: "rl-v1/rel-v0.2"
@@ -14,7 +14,8 @@ tmpl_version: 260703   # Orignal template version
 
 ## Context
 
-**Version:** 0.1 · **Date:** 2026-10-12 (0.1: plan created, checkpoint decisions GA-1…GA-5)
+**Version:** 0.2 · **Date:** 2026-10-12 (0.1: plan created, checkpoint decisions GA-1…GA-5; 0.2:
+steps 2–5, review round 1)
 **Branch:** `main` (GA-1)
 **Workflow:** none — an ad-hoc plan (GA-2). `workflows.yaml` has no workflow for this alignment;
 `governance-alignment` is the plan's `workflow` token only. Its outcome is an input of the
@@ -92,4 +93,33 @@ Decisions (checkpoint, the approver: "as recommended", after two corrections):
 
 Steps:
 
-- Step 1: plan created (`d72f8dc` add).
+- Step 1: plan created (`d72f8dc` add, `12d7d6e` submit → `active`).
+- Step 2 — dl-007 (`7af83f1`): directive `wingfoil-cli` W-25 (release waiting states and
+  approve-release) and W-26 (bug waiting states and the close note); notes F-020 (W-25, W-26),
+  F-021 (W-22), F-022 (W-23), each reproduced on 2026-10-12 with `wingfoil@0.2.2` in a scratch
+  repository (F-020 with WingFoil's own `.wingfoil/` at `v0.2.2`; F-021, F-022 with
+  `wingfoil init --template Kanban`); ledger rows; `.wingfoil/README.md` 0.2. The inbox test
+  accepts a first line naming the W-entries a note reports.
+- Step 5 — the `Last sync:` note of GA-5 went into the same commit.
+- Steps 3–4 — one change, as dl-008 asks: `release-submit` 1.1 (new first phase `release-commit`,
+  commit form `chore(release): v{package.version}` as `ac3b5b5`; bug check on `release` /
+  `release-origin`), `release-publishing` 1.2 (tag `v{package.version}`; `publish` without
+  WingFoil's pipeline references), `retrospective` 1.2 (`produces` a `dl-{n}-{slug}`
+  decision-log); every "derived from" header now names `wingfoil/wingfoil@v0.2.2`; the
+  `workflows.yaml` comment lists the adapted files; `memory.yaml` records the former base.
+  Workflow files whose only change is the header line keep their `version:`.
+  `npm run -s wingfoil -- workflow list`: no warnings. typecheck, lint, `npm test` (1949 passed,
+  1 skipped) green on the round-1 tree.
+- Step 6 — review round 1 **FAIL** (2 major, 6 minor, 3 nits), all fixed:
+  - M1 the task check had been changed to `release=` beyond dl-008, but tasks carry the release
+    tag (`tags: ["v0.1"]` in every v0.1 task; `release-planning` adds it): restored to
+    `tags=[{release.version}]`.
+  - M2 v0.1's bugs carry `release: ""` and `release-origin: "v0.1"` (absorbed mid-release): the
+    bug check selects `release={release.version}`, or `release` empty and
+    `release-origin={release.version}`.
+  - Minor: the release commit form (m1), the list of adapted workflows (m2), the former base's
+    `amendable` keys (m3), F-020's transcript made complete (m4) and its task-226 wording (m5),
+    W-26's role (product-owner at `build-backlog`) and reason (`memory approve` refuses a target
+    with uncommitted edits) (m6).
+  - Nits: first lines "Reports W-NN." (n1), rewrapped headers (n2); W-22's example corrected to
+    `--format json` (n3), directive 1.8.
