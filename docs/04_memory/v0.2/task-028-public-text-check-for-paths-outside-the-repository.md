@@ -155,3 +155,43 @@ no particular system temporary path (task-026 points `TMPDIR`/`TMP`/`TEMP` at a 
   plus the `scanText` rule table; (b) `scanText` on a temporary file only.
 - D28-7 — temporary folder: ★ (a) `TempWorkspace` with the `wfui-` prefix now, aligned with
   task-026's convention by whichever task merges second; (b) wait for task-026.
+
+### red / green / refactor (2026-10-12)
+
+- **Red:** `test/docs/public-text.test.ts` committed first (`5f98297`): the module did not exist,
+  so the file failed to load.
+- **Green:** `test/docs/public-text.ts` (scanner), `test/docs/public-text.allow-list.ts` (20
+  entries, each with its reason and a comment per group), `test/README.md` 0.25 (listing).
+  31 tests in the file: 12 detection cases, 11 guard cases and line numbering of `findPaths`, three allow-list
+  self-checks, the negative test (two tests) and the tracked tree (two tests).
+- **Deviations from the design:**
+  - The negative test does not use `os.homedir()`. The scratch file in the temporary
+    repository holds one path per rule, built at run time from segments, so the result
+    depends on no home or temporary folder of the machine (task-026 moves the temporary
+    root). It also covers a tracked symbolic link (git stores its target as text: reported),
+    a tracked file deleted from the working tree, a binary file and an untracked file (none
+    read).
+  - A POSIX or `~/` path ends at its first backslash, because in source text a backslash
+    starts an escape (`'#!/bin/sh\necho'`). A bare `~/` (the notation, or a regex such as
+    `~/\.config`) is not reported.
+  - The allow-list has two kinds of entry. `entry()` allows a path and everything below it.
+    `exact()` allows only the path itself: `/dev/null`, `/etc/hosts`, `/proc/loadavg`, the
+    program locations, and a top-level directory named alone. This keeps the "no whole
+    root" self-check true for `/etc`, `/proc`, `/bin` and `/tmp`.
+  - A stale entry's failure message gives the entry's pattern and reason and says to delete
+    it from the allow-list.
+- **Run time:** `scanRepository` on the full tree (737 files, 0 binary, about 6 MB) took
+  0.53 to 0.71 s over five runs at load 10.3. A first version without the per-line substring
+  pre-filter took 0.95 to 1.42 s at load 10.9. The scan runs one `git ls-files -z`, then one
+  `lstat` and one read per file.
+- **Gates** (worktree, 2026-10-12):
+  - `npm run typecheck`, `npm run lint`, `npm run format:check` and `npm run docs:api`: all
+    green.
+  - `python3 docs/03_backlog/X_tools/check_tasks.py v0.2`: "17 tasks · 46 backlog items · 46
+    listed", OK.
+  - `npm run test:coverage`: 119 files passed, 1 skipped; 1980 tests passed, 1 skipped;
+    360 s at load 30.1 to 31.6. Coverage: statements 96.67 %, branches 90.97 %, functions
+    97.22 %, lines 98.33 %. The new files are under `test/` and outside the coverage
+    include.
+  - `test:e2e` was not run because no UI changed. `test:timing` was skipped because the load
+    was above 12.
