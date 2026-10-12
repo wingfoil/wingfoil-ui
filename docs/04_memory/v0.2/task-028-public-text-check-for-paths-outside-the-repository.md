@@ -2,7 +2,7 @@
 id: task-028-public-text-check-for-paths-outside-the-repository
 type: task
 title: "Public text check for paths outside the repository"
-status: in-review
+status: approved
 release: "v0.2"
 module: "governance"             # optional — server | web | contracts (dna.yaml modules)
 priority: "medium"           # optional — high | medium | low
