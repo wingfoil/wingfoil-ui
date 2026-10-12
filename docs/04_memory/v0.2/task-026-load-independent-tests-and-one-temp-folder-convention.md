@@ -305,3 +305,16 @@ the same as F1); its pre-existing items P1–P3 are reported to the approver, ou
   statements 96.78 %, branches 91.14 %, functions 97.39 %, lines 98.41 % (load 6.8 → 23.7);
   `performance.spec.ts` alone (F5): 7 passed (load 22.1 → 18.9). `wfui-*` entries in the system
   temporary directory after the runs: the 1 pre-existing one; no console left.
+
+### review (round 2, 2026-10-13)
+
+- Independent fresh-context review: round 1 **FAIL** (2 minor, 6 nits), round 2 **PASS** on
+  `d2a9dbc` (nits N1, N2 on these notes and a code comment, fixed in `d386997`). Adversarial
+  security review of the `clone.ts` change (RP-47): **PASS** (one nit, S1 = F1, fixed).
+- `main` merged into the task branch before submit (`7cb5a21`).
+- `npm run test:timing` on the task branch after the merge (load 7.0 → 10.2, 12 cores): Vitest
+  3 files, 3 passed; Playwright 14 passed (5.5 min) — the new fresh-read preconditions of
+  `live-refresh.timing.test.ts` and the strict `performance.spec.ts` included; 0 new `wfui-*`
+  entries in the system temporary directory (1 before, 1 after).
+- Still open, outside this task: the S-28.1 `filterNames` flake seen once in `test:e2e` under
+  load — bug-009, proposed for absorption into task-027.
