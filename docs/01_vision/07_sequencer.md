@@ -1,8 +1,8 @@
 # Sequencer — WingFoil UI v1 (v0.1 → v1.0)
 
-**Version:** 0.6
-**Date:** 2026-10-03 (0.2: J0 completion and v0.1 landing screen — coherence audit; 0.3: external
-review — session 7; 0.4: permissions left to WingFoil — specification session 3; 0.5: input count, v0.1 exit (clone) — coherence audit of the specification — session 6; 0.6: v0.1 budget 6 → 9 active days — release-planning v0.1 session 2)
+**Version:** 0.7
+**Date:** 2026-10-12 (0.2: J0 completion and v0.1 landing screen — coherence audit; 0.3: external
+review — session 7; 0.4: permissions left to WingFoil — specification session 3; 0.5: input count, v0.1 exit (clone) — coherence audit of the specification — session 6; 0.6: v0.1 budget 6 → 9 active days — release-planning v0.1 session 2; 0.7: v0.2 budget 5 → 8 active days — release-planning v0.2 session 2)
 **Status:** Accepted in lean-inception session 5 (2026-10-01)
 **Input:** `06_features.md` (44 MVP features, areas, WingFoil versions, scores) · `05_journeys.md` ·
 `02_product-vision.md` (Q2: WingFoil floor) · starting hypothesis in `BOOTSTRAP.md` §7
@@ -124,7 +124,7 @@ Reference: WingFoil spent 9 active days on inception + specification and 5 on it
 |---------|----------------------|-----------|
 | Specification + initial design | 5 | after this inception |
 | v0.1 | 9 | after initial design |
-| v0.2 | 5 | after v0.1 |
+| v0.2 | 8 | after v0.1 |
 | v0.3 | 7 | after v0.2 |
 | v0.4 | 4 | after v0.3 **and** a WingFoil 0.3 release |
 | v1.0 | 3 | after v0.4 **and** WingFoil 1.0 |

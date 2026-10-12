@@ -3,7 +3,7 @@ id: release-planning-rel-v0.2-plan
 type: plan
 title: "Release planning — rel-v0.2"
 status: active
-version: "0.1"         # optional — plan version
+version: "0.2"         # optional — plan version
 workflow: "release-planning"
 phase: "rel-v0.2"
 scope: "rl-v1/rel-v0.2"
@@ -14,7 +14,8 @@ tmpl_version: 260703   # Orignal template version
 
 ## Context
 
-**Version:** 0.1 · **Date:** 2026-10-12 (0.1: plan created, checkpoint 1 decisions RP-1…RP-7)
+**Version:** 0.2 · **Date:** 2026-10-12 (0.1: plan created, checkpoint 1 decisions RP-1…RP-7; 0.2:
+checkpoint 2 decisions RP-8…RP-17)
 **Branch:** `design/release-planning_v0.2` (merged to `main` with `--no-ff` at the end; RP-1)
 **Workflows:** `sw-life-cycle` → `release-line-cycle` (`rl-v1`) phase `delivery` → `release-cycle`
 (`minor-v0.2`, v1.1) phase `planning` = `release-planning`
@@ -122,3 +123,54 @@ Steps:
     `pending` → no match; the governance changes of dl-007 and dl-008 are already carried out
     (`governance-alignment-rel-v0.2-plan`, `done`).
   - `record-adrs`: none (RP-7).
+
+### Session 2 — 2026-10-12
+
+Input: a read-only survey of the v0.2 scope against spec-001 … spec-009 and the v0.1 code (every
+artefact with its covering spec section, gaps, and conflicts with `wingfoil@0.2.2`).
+
+Decisions (checkpoint 2, the approver: "as recommended"):
+
+- **RP-8** — load: all 46 backlog records stay in v0.2; the v0.2 budget goes from 5 to 8 active
+  days (`07_sequencer.md`), because the records carry the exit criteria of the first usable
+  release, v0.1 took 1.5× its first budget (6 → 9, dl-006), and v0.2 adds the RP-3 tasks, e2e on
+  three engines and the first governed writes (adversarial security review, dl-006 action 6).
+- **RP-9** — spec-002 §4 (incremental parse) moves to v0.3: TT-PERF-01 does not need it (warm
+  cache = same HEAD, first open = full parse by definition; Memory list first open 333–407 ms on
+  the large fixture, task-021). spec-002 §4 is amended now ("not implemented, v0.3"); the Today
+  task adds an "after one commit" run on the large fixture, and the question is reopened if its
+  p95 exceeds ~1 s.
+- **RP-10** — `identify-specs`: one new tech-spec, spec-010 "Git sync, repository status and
+  transport": copy state from the existing `status --porcelain=v2 --branch` read (in sync, ahead,
+  behind, diverged, detached, no remote, no upstream); the repository-state key and `repo` event
+  changing on fetch and remote changes; the repository-status body of `GET /api/p/:pid`;
+  arguments, environment and policies of fetch, fast-forward update and push (upstream only, never
+  force, `GIT_TERMINAL_PROMPT=0`); update refusal codes; the auto-fetch / auto-update / auto-push
+  scheduler (60 s, a settings change applied within 120 s); capability condition `has-remote`;
+  which rows of spec-004 §4 apply to the git routes.
+- **RP-11** — amendments of approved specs, in place with dated Process Notes: spec-003 §5 Today
+  output and `actor.basis`; spec-004 §3 v0.2 body schemas, §4 rows for git routes and
+  `PUT /api/settings`, §5 push outcome `push: {status, message?}` and a blank reason → 400;
+  spec-006 §2 `settings` keys, types, defaults and `actionLog` `{sha, at}` with a cap, §1 UD-7;
+  spec-007 §1/§3/§6 UD-7; spec-001 §6 capability condition ids; spec-002 §4 (RP-9). The npm
+  pipeline, the temp-dir convention and the public-text check are left to their tasks' design.
+  Consequence on RP-3: the UD-7 amendments are made here, so task (c) is dropped — three
+  governance/technical tasks remain (a, b, d).
+- **RP-12** — G-14.2 is amended: when the element changed since the panel was opened, the toast
+  shows the catalogue text of 409 `element-changed` (spec-004 §4 row 9, no CLI process) and the
+  panel shows the new state; it no longer expects the message of `wingfoil memory reject`.
+- **RP-13** — hand transitions in this repository (W-04, W-20, W-25, W-26) are a documented v0.2
+  limitation: the UI shows "Waiting for the workflow engine" there and never makes those commits
+  (REQ-ARC-03); spec-002 is not extended. Dogfooding (REQ-SEC-10) counts approve/reject only.
+- **RP-14** — unidentified users (TT-SEC-08): fetch is allowed, update and push are refused; stated
+  in spec-010.
+- **RP-15** — the "Confirm agent launch" setting (C-07.1) is stored and shown, with a note that it
+  takes effect from WingFoil 0.3 (`agent execute` does not exist in 0.2.2, W-06).
+- **RP-16** — X-08.3 (theme setting, `@v0.2`), which no v0.2 backlog record carries, is attached
+  to the settings task at `build-backlog`.
+- **RP-17** — spec-010 and the amendments are reviewed by an independent reviewer until PASS
+  (`spec-review.passed`); then the approver runs one `memory approve` for spec-010.
+
+Steps:
+
+- spec-010 created (`e80a50e`, `memory add`).
