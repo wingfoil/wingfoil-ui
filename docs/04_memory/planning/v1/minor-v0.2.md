@@ -68,7 +68,7 @@ Actual effort per phase (dl-006 action 6; wall-clock of the working sessions, 20
 | Phase | Plan | Sessions | Effort |
 |-------|------|----------|--------|
 | Governance alignment (pre-step) | `governance-alignment-rel-v0.2-plan` | 2026-10-12 10:05–11:00 | ~1 h |
-| release-planning | `release-planning-rel-v0.2-plan` | sessions 1–2 2026-10-12 11:00–14:45 | in progress |
+| release-planning | `release-planning-rel-v0.2-plan` | sessions 1–2 2026-10-12 11:00–19:20 (wall-clock, incl. waits) | in progress |
 
 - 2026-10-12 — `release-planning-rel-v0.2-plan` sessions 1–2 (branch `design/release-planning_v0.2`).
   `advance-pinned-build` no-op (0.2.2 newest); `minor-v0.2` `draft → planning` (`4c8ead3`);
