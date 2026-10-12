@@ -3,7 +3,7 @@ id: retrospective-rel-v0.1-plan
 type: plan
 title: "Retrospective rel-v0.1"
 status: active
-version: "0.3"         # optional — plan version
+version: "0.4"         # optional — plan version
 workflow: "retrospective"
 phase: "rel-v0.1"
 scope: "rl-v1/rel-v0.1"
@@ -14,8 +14,8 @@ tmpl_version: 260703   # Orignal template version
 
 ## Context
 
-**Version:** 0.3 · **Date:** 2026-10-11 (0.1: plan created; 0.2: explore — friction inventory; 0.3:
-additional-points decisions)
+**Version:** 0.4 · **Date:** 2026-10-12 (0.1: plan created; 0.2: explore — friction inventory; 0.3:
+additional-points decisions; 0.4: capture, approve, closing)
 **Branch:** `main` (RT-1, as RV-1 for `release-submit` and `release-publishing`)
 **Workflows:** `sw-life-cycle` → `release-line-cycle` (`rl-v1`) phase `delivery` → `release-cycle`
 (`minor-v0.1`, v1.1) phase `retrospective` = `retrospective`
@@ -229,3 +229,12 @@ ids = `docs/05_plans/rl-v1/rel-v0.1/`; `F-NNN` = `docs/wingfoil-feedback/`; `W-N
   to review instead of release validation, an unsourced load claim, a tag placeholder giving
   `vv0.1.0` and not decided, an unsourced description of `wingfoil-sync`, an option not chosen by
   the approver); round 2 FAIL (3 minor, 2 nits introduced by the fixes); round 3 PASS.
+- Step 4 (cont.): `memory submit` of the three DLs → `in-discussion` (`3033eca`, `4d92fad`,
+  `1c62f26`).
+- Step 5 — approve: the approver ran `memory approve` on dl-006, dl-007, dl-008 →
+  `ready` (`1a553a6`, `e4a87eb`, `ac4a132`).
+- Step 6: Execution Notes "Retrospective" of `minor-v0.1` added. Housekeeping (RT-5): the
+  `/tmp/wfui-no-hooks-*` folders deleted (8 found); local branches `design/initial-design_v1`,
+  `design/release-planning_v0.1`, `design/specification_v1` deleted (`git branch -d`, merged);
+  `design/inception_v1` kept; no `/tmp/wfui-e2e-*` folder found. Plan finalized (separate commit).
+

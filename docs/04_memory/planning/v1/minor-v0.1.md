@@ -184,3 +184,15 @@ Bars common to every release (`08_mvp-canvas.md`, SARD v0.6):
   REQ-PERF-03 20/20, REQ-PERF-06 10/10, TT-PERF-04 p95 ≤ 149 ms). Annotated tag `v0.1.0` on `main`
   `545d56c` (only docs/governance changed after `ac3b5b5`), pushed on the approver's OK. `publish`
   step skipped (dl-004): not on npm, no GitHub Release. Release `released` (`0f54194`).
+
+### Retrospective
+
+- 2026-10-11 → 2026-10-12 — `retrospective-rel-v0.1-plan` on `main` (RT-1). explore: three
+  read-only miners over tasks, bugs + DLs + feedback, and this document + plans; friction
+  inventory T1 … T10 in the plan. additional-points: decisions RT-7 … RT-12. capture: dl-006
+  (retrospective; CLI id instead of `retro-v0.1.md`, RT-3), dl-007 (hand transitions), dl-008
+  (inherited workflows); independent review round 1 FAIL (5 major), round 2 FAIL (3 minor),
+  round 3 PASS. approve: the three DLs `ready` (`1a553a6`, `e4a87eb`, `ac4a132`).
+- Carried to `minor-v0.2` `release-planning`: the tasks of dl-006 actions 1, 4, 5 (bug-008 under
+  action 1); dl-007 and dl-008 before it, dl-008 within `wingfoil-sync` (RT-6, RT-9).
+
