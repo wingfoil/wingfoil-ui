@@ -279,3 +279,12 @@ Gates (2026-10-13, load about 12):
 - `check_tasks.py v0.2`: "17 tasks · 46 backlog items · 46 listed", OK.
 - `test:coverage` was not re-run. Only `test/docs/public-text*.ts` changed, which is outside
   the coverage include and imported by no other test.
+
+### review (round 3, 2026-10-13)
+
+- Independent fresh-context review: round 1 **FAIL** (1 major, 1 minor, 6 nits), round 2
+  **FAIL** (1 minor regression from the N3 dedup, 4 nits), round 3 **PASS** on `75b919e` (no
+  finding): every round-1/round-2 input re-checked, no regression; the tracked tree scans with 0
+  findings (739 files).
+- `main` merged into the task branch before submit (`d25bce0`); after the merge the test file
+  passes 67/67 and `check_tasks.py v0.2` is OK.
