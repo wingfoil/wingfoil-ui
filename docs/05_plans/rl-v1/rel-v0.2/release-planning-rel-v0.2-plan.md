@@ -336,3 +336,6 @@ Decisions (checkpoint 4, the approver: "as recommended", RP-54 after checking Wi
   header still read 0.3; the effort table stopped at sessions 1–2. Fixed, with nits n1 (RP-55 in
   task-035) and n3 (round-1 counts); n2 (task-038 wording, explained by the RP-52 note) and n4
   (the clipboard claim, settled by task-027's self-test) accepted.
+- Backlog audit round 3 **PASS** (no finding above nit): `check_tasks.py v0.2` 17 tasks · 46
+  items · 46 listed OK; 93 `@v0.2` scenarios each owned once; dependencies acyclic and consistent
+  with RP-43. The 17 tasks go to the approver for `memory approve` (`pending → backlog`).
