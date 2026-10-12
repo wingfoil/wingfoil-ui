@@ -1,6 +1,6 @@
 # SARD — 5. Security, Roles & Governance
 
-**Version:** 0.5 · **Date:** 2026-10-09 (0.2: coherence audit fixes — session 6; 0.3: REQ-SEC-02 session derived from the token, static files exempt — initial-design session 6; 0.4: REQ-SEC-05 v0.1 scope — release-planning v0.1 session 4 (audit A4); 0.5: REQ-SEC-07 cites the feedback note F-009 — dev-loop task-023) · **Status:** Draft — specification-downcast session 4
+**Version:** 0.6 · **Date:** 2026-10-12 (0.2: coherence audit fixes — session 6; 0.3: REQ-SEC-02 session derived from the token, static files exempt — initial-design session 6; 0.4: REQ-SEC-05 v0.1 scope — release-planning v0.1 session 4 (audit A4); 0.5: REQ-SEC-07 cites the feedback note F-009 — dev-loop task-023; 0.6: REQ-SEC-08 fit criterion scoped to governed writes, update and push — release-planning v0.2 session 2) · **Status:** Draft — specification-downcast session 4
 
 Shell and conventions: `00_sard.md`. The protection of the local server (X4) is mandatory and
 distinct from permissions between team members, which belong to WingFoil (L6).
@@ -92,7 +92,7 @@ distinct from permissions between team members, which belong to WingFoil (L6).
 | Description | Users not in the team, with no git email or with an ambiguous one get no write action in the UI, and the server refuses their write requests; *How to join* names the tech leads (or says none is declared) and gives the exact `wingfoil dna add team.members …` command. |
 | Rationale | Q5; joining is a governed change made by the team. |
 | Traceability | US-S-13, US-S-15, US-T-01, US-C-08, US-C-09, US-C-02 · S-13.2, S-15.2, T-01.2, C-08.1, C-08.2, C-09.1, C-09.2, C-02.5 · S4, C2 |
-| Fit criterion | [percentage] 100 % of write requests from such users get HTTP 403 and start 0 processes; every listed scenario passes. |
+| Fit criterion | [percentage] 100 % of governed-write, update and push requests from such users get HTTP 403 and start 0 processes; a fetch (it changes only remote-tracking refs) and the per-user local settings are not in scope; every listed scenario passes. |
 | Verified by | e2e · API test |
 
 ### REQ-SEC-09 — No secrets stored
@@ -122,3 +122,7 @@ distinct from permissions between team members, which belong to WingFoil (L6).
 - 2026-10-09 — amended in dev-loop task-023 (governance, WingFoil dl-163 feedback loop): REQ-SEC-07
   cites the versioned WingFoil feedback note F-009 (`docs/wingfoil-feedback/`) in place of the local
   request R-09, which the split of the inbox retired; no requirement changed; decided by the user.
+- 2026-10-12 — amended in `release-planning` v0.2 (plan session 2, RP-34): REQ-SEC-08's fit
+  criterion counts governed writes, update and push; a fetch (remote-tracking refs only, RP-14)
+  and the per-user local settings are excluded (spec-010 §8, spec-004 §4); decided by the
+  approver.

@@ -97,9 +97,12 @@ For each record:
 ### 4. Caching and incremental reads
 
 - Cache key: HEAD only (events are commits; the working tree is irrelevant).
-- After a fast-forward from a cached HEAD `old`, only `old..<HEAD sha>` is parsed (both reads)
-  and prepended; when `old` is not an ancestor of HEAD — `git rev-list --count HEAD..old` is not 0
-  (an allowed read, REQ-INT-06) — the whole log is re-parsed.
+- **Incremental reads — not implemented; moved to v0.3 (RP-9).** Until then every new HEAD is a
+  full parse (§3). The v0.3 design: after a fast-forward from a cached HEAD `old`, only
+  `old..<HEAD sha>` is parsed (both reads) and prepended; when `old` is not an ancestor of HEAD —
+  `git rev-list --count HEAD..old` is not 0 (an allowed read, REQ-INT-06) — the whole log is
+  re-parsed. Evidence rule: the v0.2 Today task measures Today on the large fixture also *after
+  one commit* (a full re-parse); if that p95 exceeds about 1 s, the move is reopened.
 - Views read from the parsed list: Updates = last 10, Recent activity = last 5 (REQ-PERF-11),
   Timeline = grouped by local day of `timestamp`, paginated.
 
@@ -116,7 +119,7 @@ For each record:
   match the sha list (refused).
 - Performance: on the large fixture (500 elements, 2 000 commits) the first parse runs in two git
   processes (the patch read and the sha list); an incremental parse after one commit reads one
-  commit.
+  commit (v0.3, §4).
 
 ## Consequences
 
@@ -146,3 +149,8 @@ For each record:
   patch touches `<id>.md`; `--no-textconv --no-ext-diff -c log.showSignature=false`; "one git
   process" → two per HEAD (§2, §5, Consequences; within REQ-PERF-05, which counts CLI
   processes); decided by the user.
+- 2026-10-12 — amended in `release-planning` v0.2 (plan session 2, RP-9): §4 incremental reads
+  marked not implemented and moved to v0.3 (TT-PERF-01 does not need them: a warm cache is the
+  same HEAD, a first open is a full parse; Memory list first open 333–407 ms on the large fixture,
+  task-021), with the "after one commit" evidence rule; §5 the incremental check is v0.3. Decided
+  by the approver at checkpoint 2.

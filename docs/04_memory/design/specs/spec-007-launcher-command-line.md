@@ -31,12 +31,16 @@ wingfoil-ui [--port <n>] [--no-open] [--version] [--help]
 
 | Option | Meaning |
 |--------|---------|
-| `--port <n>` | listen on port `n` (1024–65535); default: a free port chosen by the OS |
+| `--port <n>`, `--port=<n>` | listen on port `n` (1024–65535); default: a free port chosen by the OS; when repeated, the last one counts |
 | `--no-open` | do not open a browser; print the URL only |
 | `--version` | print the package version (e.g. `0.1.0`) on stdout and exit 0 |
 | `--help` | print the synopsis on stdout and exit 0 |
 
-Unknown options or a malformed `--port` → usage message on stderr, exit 2. Environment: the only
+Unknown options, a malformed or missing `--port` value, or a value given to `--no-open`,
+`--version` or `--help` (`--help=x`) → usage error: on stderr the reason line (e.g. `Unknown
+option: --bogus`) followed by the usage line, exit 2. `--help` and `--version` win over the other
+options only when the whole line parses (`--help --bogus` → exit 2; `--help` before `--version`
+when both are given). Environment: the only
 variable specific to WingFoil UI is `WINGFOIL_UI_STATE_DIR` (spec-006 §1); standard platform
 variables (`HOME`, `XDG_CONFIG_HOME`, `APPDATA`, `PATH`) are read as usual.
 
@@ -51,7 +55,8 @@ FormatJS is loaded before the check.
 
 ### 3. Start sequence
 
-1. Parse options; check Node.js.
+1. Check Node.js (the `bin` stub, §2), then parse options (§1): on an old Node.js every command
+   line, `--help` and `--version` included, exits 1.
 2. Resolve the state directory and read `state.json` (spec-006) — no project is read, no CLI is
    started before listening (REQ-PERF-06: URL printed ≤ 3.0 s). A listed project whose working
    tree contains the state directory (spec-006 §1) → stderr message naming both paths, exit 4.
@@ -97,7 +102,7 @@ server. Every token and session dies with the process
 | 3 | `--port` in use, or no free port after 5 tries |
 | 4 | the state directory lies inside a listed project (spec-006 §1) |
 | 130 | forced stop (second signal) |
-| other | unexpected failure (message on stderr) |
+| 70 | unexpected failure (`launcher.unexpected` on stderr) |
 
 ### 7. Verification
 
@@ -131,3 +136,9 @@ server. Every token and session dies with the process
   `SIGHUP` handled like `SIGTERM`; a forced stop and any process exit kill the remaining child
   process groups synchronously (children run in their own process group, so the terminal's
   signals no longer reach them).
+- 2026-10-12 — amended in `release-planning` v0.2 (plan session 2, RP-11; UD-7 of
+  `user-docs-rel-v0.1-plan`): the spec follows the v0.1 code (`bin/wingfoil-ui.cjs`,
+  `server/src/launcher/options.ts`, `start.ts`) — §1 `--port=<n>` accepted, a repeated `--port`
+  keeps the last, `--help`/`--version` win only when the whole line parses, usage error = reason
+  line + usage line; §3 Node.js checked before parsing; §6 the unexpected-failure status is 70.
+  Decided by the approver at checkpoint 2.

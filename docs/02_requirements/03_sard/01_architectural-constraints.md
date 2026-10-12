@@ -1,6 +1,6 @@
 # SARD — 1. Architectural Constraints
 
-**Version:** 0.8 · **Date:** 2026-10-06 (0.2: coherence audit fixes — session 6; 0.3: page title, REQ-ARC-10 — initial-design session 2; 0.4: REQ-ARC-04 allow-list of direct reads — initial-design session 5; 0.5: REQ-ARC-06 last non-archived state — initial-design session 6; 0.6: REQ-ARC-07 moved to v0.3 — release-planning v0.1 session 2; 0.7: REQ-ARC-05, REQ-ARC-10 v0.1 scope — release-planning v0.1 session 4 (audit A4); 0.8: REQ-ARC-05 lint scope — dev-loop task-011; REQ-ARC-04 hash-only reads for the state key — dev-loop task-010) · **Status:** Draft — specification-downcast session 4
+**Version:** 0.9 · **Date:** 2026-10-12 (0.2: coherence audit fixes — session 6; 0.3: page title, REQ-ARC-10 — initial-design session 2; 0.4: REQ-ARC-04 allow-list of direct reads — initial-design session 5; 0.5: REQ-ARC-06 last non-archived state — initial-design session 6; 0.6: REQ-ARC-07 moved to v0.3 — release-planning v0.1 session 2; 0.7: REQ-ARC-05, REQ-ARC-10 v0.1 scope — release-planning v0.1 session 4 (audit A4); 0.8: REQ-ARC-05 lint scope — dev-loop task-011; REQ-ARC-04 hash-only reads for the state key — dev-loop task-010; 0.9: REQ-ARC-03 write class (c) includes the automatic update's local `merge --ff-only` — release-planning v0.2 session 2, RP-41) · **Status:** Draft — specification-downcast session 4
 
 Shell and conventions: `00_sard.md`.
 
@@ -33,7 +33,7 @@ Shell and conventions: `00_sard.md`.
 | Field | |
 |-------|--|
 | Release | v0.1 (clone only) · v0.2 onward |
-| Description | The server writes only through: (a) governed changes, by invoking the CLI (`wf(…)` commits); (b) `.wingfoil/ui.yaml`, schema-validated, one `chore(ui): …` commit touching only that file; (c) git transport — `clone` into a new, empty folder, fetch, `pull --ff-only`, push; (d) repository files after v1.0 (L4). It never writes `.wingfoil/` files (except `ui.yaml`), Memory element files or plans. The UI's own local state (REQ-ARC-08) lives outside every repository. |
+| Description | The server writes only through: (a) governed changes, by invoking the CLI (`wf(…)` commits); (b) `.wingfoil/ui.yaml`, schema-validated, one `chore(ui): …` commit touching only that file; (c) git transport — `clone` into a new, empty folder, fetch, `pull --ff-only` (and, for the automatic update, a local `merge --ff-only` to the fetched upstream, REQ-INT-06), push; (d) repository files after v1.0 (L4). It never writes `.wingfoil/` files (except `ui.yaml`), Memory element files or plans. The UI's own local state (REQ-ARC-08) lives outside every repository. |
 | Rationale | WingFoil is the only writer of governed state; the one exception is explicit and testable (`02_product-vision.md`, *Write classes*; MVP canvas metric *No divergence*). |
 | Traceability | US-G-04, US-G-10, US-G-15, US-C-02, US-Y-05, US-Y-07, US-S-04 · G-04.1, G-10.1, G-15.1, C-02.1, C-02.2, Y-05.1, Y-07.1, S-04.3 · S1, C1, Y3, Y4 · directive `cli-only-writes` |
 | Fit criterion | [percentage] After the full e2e suite, 100 % of the commits created in each fixture are `wf(…)` commits made by a CLI process or `chore(ui)` commits changing exactly `.wingfoil/ui.yaml`; the server process opens 0 files for writing under `.wingfoil/` (other than `ui.yaml`) or under a Memory path (file-system audit); in v0.1 the only write is a clone into a new, empty folder (0 endpoints write an existing repository). |
@@ -141,3 +141,6 @@ Shell and conventions: `00_sard.md`.
   fingerprint). Audit follow-up of the Wave 2 amendments: the exception scoped to the whole
   fs-spy count of the fit criterion (spec-001 §4.4) and moved after "The server writes none of
   these files." in the Description.
+- 2026-10-12 — amended in `release-planning` v0.2 (plan session 2, RP-41): REQ-ARC-03 write
+  class (c) names the automatic update's local `merge --ff-only` (spec-010 §4, REQ-INT-06); no
+  other write class changes; decided by the approver.

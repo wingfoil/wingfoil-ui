@@ -87,3 +87,6 @@ criteria in the SARD):
   REQ-ARC-07 (`ui.yaml`) moved to v0.3; REQ-INT-08 staged (Chromium in v0.1); v0.1 scope written
   into six SARD requirements whose fit criteria named later capabilities (SARD v0.7); four new
   tech-specs (spec-006…009). The roadmap itself (five releases, features) is unchanged.
+- 2026-10-12 — v0.2 `release-planning`: budget v0.2 5 → 8 active days (sequencer v0.7, line ≈ 36),
+  all 46 v0.2 backlog records kept; spec-002 §4 incremental parse moved to v0.3; one new tech-spec
+  (spec-010, git sync). The roadmap itself is unchanged.

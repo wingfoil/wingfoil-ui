@@ -2,7 +2,7 @@
 id: minor-v0.2
 type: release
 title: "WingFoil UI v0.2 — Unblock"
-status: draft
+status: in-development
 kind: "minor"
 patch-of: ""           # optional — when kind is "patch": id of the released minor it patches, e.g. "minor-v0.2"
 version: "v0.2"
@@ -62,6 +62,39 @@ Bars common to every release (`08_mvp-canvas.md`, SARD v0.3):
 
 <!-- identify-specs: artefacts discovered late or missed; build-backlog: scope/estimation
      surprises, bugs selected for this release and their derived fix tasks. -->
+
+Actual effort per phase (dl-006 action 6; wall-clock of the working sessions, 2026-10-12 on):
+
+| Phase | Plan | Sessions | Effort |
+|-------|------|----------|--------|
+| Governance alignment (pre-step) | `governance-alignment-rel-v0.2-plan` | 2026-10-12 10:05–11:00 | ~1 h |
+| release-planning | `release-planning-rel-v0.2-plan` | sessions 1–4 2026-10-12 11:00–20:00 (wall-clock, incl. waits; sessions 3–4 from 19:20) | ~9 h wall-clock, 1 active day |
+
+- 2026-10-12 — `release-planning-rel-v0.2-plan` sessions 1–2 (branch `design/release-planning_v0.2`).
+  `advance-pinned-build` no-op (0.2.2 newest); `minor-v0.2` `draft → planning` (`4c8ead3`);
+  `triage-bugs`, `reconcile-governance` empty; no ADR. Load: all 46 backlog records kept, budget
+  5 → 8 active days (sequencer v0.7, RP-8); spec-002 §4 incremental parse moved to v0.3 (RP-9).
+  `identify-specs`: one uncovered artefact — spec-010 git sync (approved `1fcedfb`) — and
+  amendments of spec-001/002/003/004/006/007, adr-001 D5/D7, SARD 0.11, BDD G-14.2, directive
+  `cli-only-writes` 1.6 (RP-10 … RP-41); independent spec review PASS at round 3 (FAIL 2 major/10
+  minor, FAIL 2 minor, PASS). Governance/technical tasks for build-backlog: load-independent tests
+  with bug-008, public-text check, npm publishing pipeline (RP-3, RP-11).
+- 2026-10-12 — `build-backlog` (plan session 3): 17 tasks `task-026` … `task-042` (4 governance —
+  026 load-independent tests absorbing bug-008, 027 e2e on Firefox and WebKit, 028 public-text
+  check, 029 npm publishing pipeline — 5 server, 8 web) cover the 46 backlog records exactly once
+  (`check_tasks.py v0.2`); all `pending`. bug-008 `triaged → planned` (`c01d13f`); dl-006 stamped
+  `v0.2`. Surprise: `memory add` numbers tasks per folder (`wingfoil-cli` W-27); the first run
+  (`task-001` … `017`) was dropped from the branch history at the approver's request and redone
+  as `task-026` … `042`.
+- 2026-10-12 — `commit-backlog` gate (plan session 4): independent audit round 1 FAIL (3 major —
+  ids shifted by the renumbering in the plan, G-13.2 closable only after task-040, missing
+  dependencies on task-035 — 7 minor, 7 nits); decisions RP-52 … RP-55 (G-13.2 split closure,
+  fetch-interval scenarios at 15 s in `test:e2e`, npm publishing as WingFoil's two-gate staged
+  pipeline, append-only shell and merge order).
+- 2026-10-12 — audit round 2 FAIL (3 minor: Y-05.2 added to RP-53 with the approver's OK, plan
+  version, effort table), round 3 PASS (`4c13e9d`). The approver approved the 17 tasks into
+  `backlog`; release `planning → in-development` by hand (W-25). Planning took 1 active day
+  (2026-10-12) of the v0.2 budget of 8.
 
 ### Implementation (dev-loop, per task)
 

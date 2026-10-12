@@ -108,6 +108,39 @@ For the current user `U` with role view `R`:
   gates*; members holding `approver` see their reject outcome in the gate footer (the `reject` is
   offered to `approver` holders only).
 - Order in Requires you: rejected work first, then by time in the current state, oldest first.
+- **Hand transitions (v0.2 limitation, RP-13).** A state that WingFoil 0.2.2 leaves only by a
+  hand-edited commit (directive `wingfoil-cli` W-04, W-20, W-25, W-26 — in this repository e.g.
+  `plan` `active`, `task` `backlog`, `release` `planning`, `bug` `triaged`) is declared `waiting`
+  (kind `waiting` or `gate-waiting`): the UI shows "Waiting for the workflow engine" there and
+  never makes those commits (REQ-ARC-03); spec-002 is not extended for them.
+
+**Today output (v0.2, `GET /api/p/:pid/today?view=<role>`, `contracts/api/today.schema.json`).**
+
+```
+{ view: string | null,                          # the role view used; null when not identified
+  requiresYou: [Row & { action }] | null,       # null when the user is not identified (T-01.2)
+  waitingOnOthers: [Row],
+  summary?: [{ role, count, items: [Row & { action }], more }] }
+Row = { element: { id, type, title, status, localChanges }, descriptor }   # descriptor: §8
+```
+
+- `requiresYou` lists the elements placed in Requires you of `view`, in the order above; `action`
+  is `submit`, `rework`, `review`, `approve` or `resolve` (`undeclared`). The row's button label
+  (web catalogue): `submit` and `rework` → "Submit" (T-03.1; a `rework` row also shows the
+  rejection), `review` → "Review" (T-04.1), `approve` → "Approve" (T-02.1), `resolve` → "Open"
+  (T-05.1: the element panel opens, no verb is run). Its length is the
+  greeting's count and the bell's *To unblock* count (S-21.1, T-01.1); the bell's *To unblock*
+  list is the same rows.
+- `waitingOnOthers` lists the elements placed in Waiting on others of the user, an element of
+  `requiresYou` excluded (T-11.3). For a user not identified in the team (identity kinds
+  `not-in-team`, `no-identity`, `ambiguous`), `view` and `requiresYou` are `null` and
+  `waitingOnOthers` is computed as for a member holding no role; there is no `summary`.
+- `summary` — the all-roles summary (S5): one line per role the member holds, in the order of
+  `dna.team.members[].roles`; `count` = the length of Requires you of that role view, `items` its
+  first ≤ 3 rows, `more` = `count − 3` when positive, else 0 (REQ-PERF-11, S-23.4). **Absent**
+  for a member holding one role (S-23.3).
+- The bell's *Updates* are not part of this output: `GET /api/p/:pid/events/memory?limit=10`
+  (spec-004 §3, spec-002).
 
 ### 6. Enablement
 
@@ -142,7 +175,8 @@ The server re-evaluates the four rules on every write request (403 `not-in-team`
 ```
 { id, type, status, kind, tone, bucket?,
   verbs: [{ verb, to, role, enabled, reason? }],
-  actor: { kind: "member" | "role" | "engine" | "none", member?, role?, members?, fallback? },
+  actor: { kind: "member" | "role" | "engine" | "none", member?, role?, members?, fallback?,
+           basis? },
   rejection?: { by, reason, at },
   since? }                                 # time of the last event into the current state
 ```
@@ -154,6 +188,9 @@ The server re-evaluates the four rules on every write request (403 `not-in-team`
 - `verbs[].role` is `null` for `submit` (no role required); `reason` is the code of §6.
 - `actor.member` is `{ name, email }`; `actor.members` lists names; `actor.fallback` is
   `"author-not-in-team"` on the `tech-lead` fallback of §4.
+- `actor.basis` (v0.2) — for a member actor, which rule of §4 named them: `submitter` (the
+  submit that was rejected), `creator` (the `add` event) or `last-transition`; rendered as
+  "Jordan (submitter) must act" (T-11.1). Absent for other actor kinds.
 - `rejection` is set when the last event is a reject into the current state; `rejection.reason`
   is `null` when the reject commit carries none. `since` is absent when no event is known.
 
@@ -216,3 +253,11 @@ element list; `web/` renders it and never re-derives it.
   view's pending gates per member are counted in the web from the descriptors of `GET /elements`
   (`kind: gate` whose `actor.members` lists the member; `gate-waiting` excluded) — an aggregation
   of descriptor data, not a re-derivation (§8); no server change (W3-39); decided by the user.
+- 2026-10-12 — amended in `release-planning` v0.2 (plan session 2, RP-11, RP-13): §5 the Today
+  output of `GET /api/p/:pid/today` (Requires you with its action, Waiting on others, all-roles
+  summary absent for single-role members, greeting count = bell *To unblock*, the shape for
+  unidentified users) and the hand-transition limitation of this repository (W-04, W-20, W-25,
+  W-26: "Waiting for the workflow engine", no hand commit from the UI); §8 `actor.basis`
+  (`submitter`, `creator`, `last-transition`) for T-11.1. Decided by the approver at checkpoint 2.
+- 2026-10-12 — independent spec review round 1 (release-planning v0.2 session 2, drafting
+  detail): §5 the Requires you `action` → button label mapping (`resolve` → "Open", T-05.1).

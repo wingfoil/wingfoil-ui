@@ -3,8 +3,8 @@
   "release": "v0.2",
   "generated_from": {
     "story_map": "docs/02_requirements/01_user_story_map/02_story-map.md v0.5",
-    "bdd": "docs/02_requirements/02_bdd/00_conventions.md v0.8",
-    "sard": "docs/02_requirements/03_sard/00_sard.md v0.8"
+    "bdd": "docs/02_requirements/02_bdd/00_conventions.md v0.9",
+    "sard": "docs/02_requirements/03_sard/00_sard.md v0.11"
   },
   "items": [
     {
@@ -1358,7 +1358,7 @@
         },
         {
           "id": "G-14.2",
-          "title": "Show the CLI's reason when the element moved in the meantime",
+          "title": "Show the refusal when the element moved in the meantime",
           "file": "docs/02_requirements/02_bdd/features/g/action-feedback.feature",
           "release": "v0.2",
           "kind": "edge",
@@ -1369,7 +1369,8 @@
             "And the gate footer of \"task-001-login-form\" is open",
             "And \"task-001-login-form\" has been approved with the CLI in a terminal before the panel refreshed",
             "When I click \"Reject → draft\" with the reason \"Too late\"",
-            "Then a red toast shows the error message printed by `wingfoil memory reject`",
+            "Then a red toast shows \"This element changed since you opened it\"",
+            "And the server has run no `wingfoil memory reject` process",
             "And the panel shows \"task-001-login-form\" in the state \"approved\""
           ]
         }
@@ -2766,7 +2767,7 @@
       "area": "STATE",
       "wingfoil_min": "0.2.2",
       "requirement": "REQ-STATE-09",
-      "description": "Local per-user settings with defaults: auto-fetch on (every 60 s), auto-update off, auto-push off, theme *System*, confirm agent launch on; a change applies without a restart.",
+      "description": "Local per-user settings with defaults: auto-fetch on (every 60 s by default; the interval is a setting, spec-006 §2), auto-update off, auto-push off, theme *System*, confirm agent launch on, action-log cap 5 000 entries (a setting, spec-006 §2); a change applies without a restart.",
       "fit_criterion": "[boolean] A first start shows exactly these defaults; changing one takes effect within 120 s without a restart.",
       "verified_by": "e2e",
       "stories": [
@@ -2984,7 +2985,7 @@
       "wingfoil_min": "0.2.2",
       "requirement": "REQ-SEC-08",
       "description": "Users not in the team, with no git email or with an ambiguous one get no write action in the UI, and the server refuses their write requests; *How to join* names the tech leads (or says none is declared) and gives the exact `wingfoil dna add team.members …` command.",
-      "fit_criterion": "[percentage] 100 % of write requests from such users get HTTP 403 and start 0 processes; every listed scenario passes.",
+      "fit_criterion": "[percentage] 100 % of governed-write, update and push requests from such users get HTTP 403 and start 0 processes; a fetch (it changes only remote-tracking refs) and the per-user local settings are not in scope; every listed scenario passes.",
       "verified_by": "e2e · API test",
       "stories": [
         "US-C-02",

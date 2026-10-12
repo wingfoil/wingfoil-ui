@@ -1,6 +1,6 @@
 # SARD — 3. State & Context
 
-**Version:** 0.5 · **Date:** 2026-10-06 (0.2: coherence audit fixes — session 6; 0.3: REQ-STATE-08 last non-archived state — initial-design session 6; 0.4: REQ-STATE-06 v0.1 scope — release-planning v0.1 session 4 (audit A4); 0.5: REQ-STATE-02 content fingerprint in the state key — dev-loop task-010) · **Status:** Draft — specification-downcast session 4
+**Version:** 0.7 · **Date:** 2026-10-12 (0.2: coherence audit fixes — session 6; 0.3: REQ-STATE-08 last non-archived state — initial-design session 6; 0.4: REQ-STATE-06 v0.1 scope — release-planning v0.1 session 4 (audit A4); 0.5: REQ-STATE-02 content fingerprint in the state key — dev-loop task-010; 0.6: REQ-STATE-09 fetch interval and action-log cap as settings — release-planning v0.2 session 2, RP-19/RP-26; 0.7: REQ-STATE-04 rationale worded for the automatic `merge --ff-only` — RP-41) · **Status:** Draft — specification-downcast session 4
 
 Shell and conventions: `00_sard.md`.
 
@@ -45,7 +45,7 @@ Shell and conventions: `00_sard.md`.
 |-------|--|
 | Release | v0.2 |
 | Description | Governed actions and `ui.yaml` writes are refused while the copy is behind its fetched remote, has diverged from it, or has a detached HEAD; being only ahead does not block. *Update* is a fast-forward only. |
-| Rationale | Never act on a stale copy; the UI never merges or rebases (`03_is-isnot.md`). |
+| Rationale | Never act on a stale copy; the UI only fast-forwards — it never creates a merge commit or rebases (`03_is-isnot.md`). |
 | Traceability | US-G-12, US-Y-05, US-Y-06, US-Y-01, US-G-15, US-C-02 · G-12.1, G-12.2, G-12.3, Y-05.1, Y-06.1, Y-06.2, Y-01.3, G-15.4, C-02.4 · Y4, G2, G3, C1 |
 | Fit criterion | [percentage] 100 % of governed-action and `ui.yaml` write requests in those states get HTTP 409; after a successful fast-forward the same requests succeed. |
 | Verified by | e2e · API test |
@@ -99,7 +99,7 @@ Shell and conventions: `00_sard.md`.
 | Field | |
 |-------|--|
 | Release | v0.2 |
-| Description | Local per-user settings with defaults: auto-fetch on (every 60 s), auto-update off, auto-push off, theme *System*, confirm agent launch on; a change applies without a restart. |
+| Description | Local per-user settings with defaults: auto-fetch on (every 60 s by default; the interval is a setting, spec-006 §2), auto-update off, auto-push off, theme *System*, confirm agent launch on, action-log cap 5 000 entries (a setting, spec-006 §2); a change applies without a restart. |
 | Rationale | C4, Q4 (session 3 of inception): fetch is safe, pushing is a deliberate act. |
 | Traceability | US-C-07, US-Y-07 · C-07.1, C-07.3, Y-07.2 · C4 |
 | Fit criterion | [boolean] A first start shows exactly these defaults; changing one takes effect within 120 s without a restart. |
@@ -107,6 +107,9 @@ Shell and conventions: `00_sard.md`.
 
 ## Process Notes
 
+- 2026-10-12 — amended in release-planning v0.2 session 2 (plan release-planning-rel-v0.2-plan,
+  RP-19, RP-26): REQ-STATE-09 lists the auto-fetch interval (default 60 s) and the action-log cap
+  (default 5 000 entries) as settings; their ranges are in spec-006 §2; decided by the approver.
 - 2026-10-06 — amended in dev-loop task-010 (Wave 2, plan dev-loop-rel-v0.1-plan): REQ-STATE-02
   state key = hash of `git status --porcelain` plus a server-computed fingerprint of the
   working-tree content of each changed and untracked entry (no extra git command), so a second

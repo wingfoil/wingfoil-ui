@@ -35,10 +35,11 @@ Feature: Action feedback
     And the fixture's last commit is unchanged
 
   @US-G-14 @v0.2 @edge @fx-kanban
-  Scenario: G-14.2 — Show the CLI's reason when the element moved in the meantime
+  Scenario: G-14.2 — Show the refusal when the element moved in the meantime
     Given the kanban fixture is open and I am Morgan
     And the gate footer of "task-001-login-form" is open
     And "task-001-login-form" has been approved with the CLI in a terminal before the panel refreshed
     When I click "Reject → draft" with the reason "Too late"
-    Then a red toast shows the error message printed by `wingfoil memory reject`
+    Then a red toast shows "This element changed since you opened it"
+    And the server has run no `wingfoil memory reject` process
     And the panel shows "task-001-login-form" in the state "approved"
