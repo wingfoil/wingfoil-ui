@@ -2,7 +2,7 @@
 id: dl-008-workflows-inherited-from-wingfoil-are-tailored-at-wingfoil-sync
 type: decision-log
 title: "Workflows inherited from WingFoil are tailored at wingfoil-sync"
-status: in-discussion
+status: ready
 context: "retrospective" # optional — short label for the context, e.g. "retrospective", "planning", "ad-hoc"
 release: ""            # optional — implementation release this DL is assigned to (stamped at release-planning/build-backlog), e.g. "v0.1"
 contributor: ""        # optional — who originated this contribution, if not the git author; credited for AI-generated work derived from it
