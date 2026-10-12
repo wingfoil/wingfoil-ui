@@ -2,7 +2,7 @@
 id: task-026-load-independent-tests-and-one-temp-folder-convention
 type: task
 title: "Load-independent tests and one temp folder convention"
-status: in-review
+status: approved
 release: "v0.2"
 module: "governance"             # optional — server | web | contracts (dna.yaml modules)
 priority: "high"           # optional — high | medium | low
