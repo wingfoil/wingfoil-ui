@@ -135,9 +135,14 @@ async function run(page: Page, c: RunningConsole, view: View): Promise<number> {
   });
   page.on('requestfinished', (r) => {
     if (!own(r.url())) return;
-    void r.response().then((res) => {
-      if (res?.ok()) answered += 1;
-    });
+    void r
+      .response()
+      .then((res) => {
+        if (res?.ok()) answered += 1;
+      })
+      .catch(() => {
+        // the page closed meanwhile: not an answer
+      });
   });
   await openConsole(page, c, { path: view.from(pid) });
   await expect(view.target(page)).toBeVisible({ timeout: COLD_READ_MS });

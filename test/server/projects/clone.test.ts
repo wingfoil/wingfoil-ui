@@ -109,9 +109,9 @@ describe('the hooks path of a clone (bug-008)', () => {
     const runner = new FakeProcessRunner().answer({ exitCode: 0 });
     const target = (await CloneTarget.inspect(path.join(root, 'hooks-refused', 'kanban')))!;
     const cloning = runClone('file:///nowhere/kanban.git', target, { git: '/usr/bin/git', runner, env: {}, hooksPath });
-    // A GitCloneError: the route answers `git-refused` (spec-004 §5) with the message.
-    await expect(cloning).rejects.toBeInstanceOf(GitCloneError);
-    await expect(cloning).rejects.toThrow(/hooks path/);
+    // Not git's refusal (review round 1 F1): an internal error, answered as spec-004 §5 `internal`.
+    await expect(cloning).rejects.toBeInstanceOf(HooksPathError);
+    await expect(cloning).rejects.not.toBeInstanceOf(GitCloneError);
     expect(runner.requests).toEqual([]);
   });
 });

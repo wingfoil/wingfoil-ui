@@ -83,7 +83,7 @@ RT-7, task-021 (v0.1) *review round 1* F2, `test/README.md`, `server/src/project
 Playwright configs. No `depends_on`. No spec describes the hooks folder: only
 `docs/user-guide.md` *Known limitations* (bug-008 bullet) and the `cloneArgs` comment.
 
-**State found.** 58 test files create `mkdtemp(tmpdir(), 'wfui-…')` folders and remove them in
+**State found.** 57 test files call `mkdtemp` with a `wfui-` prefix (base `f3f214d`) and remove them in
 `afterAll` / a worker-fixture teardown; 2 suites use `TempWorkspace` (plus its self-test). Leaks come from teardowns that
 never run: a killed Vitest/Playwright run or worker (`wfui-e2e-fx-*`, `wfui-e2e-large-*`, the
 console's `wfui-e2e-*`), and the console's `process.once('exit')` that SIGKILL skips
@@ -176,7 +176,7 @@ test fail (recorded in *red / green / refactor*).
   swept at start; (b) fixed per-user folder under the state directory, checked before each clone;
   ★ (c) `core.hooksPath` = a regular file of the console's installation (the clone module), no
   folder at all.
-- **D26-2 — scope of the test temp convention.** (a) migrate all 58 `mkdtemp` callers to
+- **D26-2 — scope of the test temp convention.** (a) migrate all 57 `mkdtemp` callers to
   `TempWorkspace`; ★ (b) one temporary root per run (`TMPDIR`/`TMP`/`TEMP` set by every runner's
   global setup, removed by its teardown, stale roots of dead owners swept at the next start) +
   `TempWorkspace` as the per-file API for new tests, existing callers unchanged; (c) fix only the
@@ -216,9 +216,8 @@ coordinator:
   `wfui-no-hooks-*` folder in the console's temporary directory, not a file of `server/dist`; and
   (with that assertion removed for the check) one `wfui-no-hooks-*` folder survived the SIGKILL.
   Green: `NO_HOOKS_PATH` = the clone module's own file (`fileURLToPath(import.meta.url)`);
-  `noHooksPath()` checks it with `stat` (links followed) and rejects with `HooksPathError` (a
-  `GitCloneError`, so the route answers `git-refused` with the message; no new reason code) before
-  any git process. The `exit` handler and `mkdtemp` are gone. Every shipped form resolves to a
+  `noHooksPath()` checks it with `stat` (links followed) and rejects with `HooksPathError` before any
+  git process (first a `GitCloneError` answered as `git-refused`; changed in review round 1, F1). The `exit` handler and `mkdtemp` are gone. Every shipped form resolves to a
   regular file: `server/src/projects/clone.ts` under Vitest (`clone.test.ts`), the compiled
   `server/dist/projects/clone.js` through the bin (`clone-hooks.test.ts` asserts the recorded
   `core.hooksPath=` argument lies under `server/dist`, is a file, and `<it>/post-checkout` gives
@@ -253,8 +252,8 @@ coordinator:
 - **Docs (D26-4)**: `test/README.md` 0.25 (*Temporary folders*, fresh reads, `test:smoke` as a
   wave gate, the smoke clone), `CLAUDE.md` 0.3 (checks line), `docs/user-guide.md` 0.4 (bug-008
   limitation removed), `CHANGELOG.md` *Unreleased* › Fixed.
-- Note: subagents of one session share the scratchpad; an early coverage log of this task was
-  overwritten by a concurrent run of another checkout, so the run was repeated with its own log.
+- Note: an early coverage log was overwritten by a concurrent run in another checkout; the run
+  was repeated with its own log.
 
 ### checks (2026-10-13, HEAD before this note `5f6a363`)
 
@@ -272,3 +271,31 @@ AC-1 count of `wfui-*` entries in the system temporary directory: 1 before (the 
 `wfui-no-hooks-*` of an earlier run), 1 after `test:coverage` + `test:e2e` + `test:smoke` — **0
 new**; no `wfui-run-*` root left. During the coverage run, entries of a concurrent `test:coverage`
 in another checkout (main's code, no root) appeared and were removed by that run.
+
+### review (round 1, 2026-10-13)
+
+Independent review: **FAIL** (2 minor, 6 nits). Adversarial security review: **PASS** (1 nit,
+the same as F1); its pre-existing items P1–P3 are reported to the approver, outside this task.
+
+- **F1 (minor, = security S1)** — `HooksPathError` answered `git-refused` with a console-written
+  message holding the absolute install path; `git-refused` carries git's own message only
+  (spec-004 §5, spec-006 §3, spec-008). Change (coordinator's decision, within the specs):
+  `HooksPathError` is no longer a `GitCloneError`, so it reaches the application's error handler —
+  spec-004 §5 `internal`, 500, `Internal error`, the details (path included) in the server log
+  only. Red first: `projects.test.ts` › "answers internal (500) with no path and runs no git when
+  the hooks path is unusable" failed on the previous class (422 `git-refused` with the path),
+  passes now (no `clone` process, no folder, the path only in the log). `ProjectListOptions`
+  gets a test-only `hooksPath`; `clone.test.ts` asserts the error is not a `GitCloneError`.
+- **F2 (minor)** — `test/harness/temp-root.ts` header: Playwright's global setup/teardown listed
+  as a runner with its own root; name pattern `wfui-run-<pid>-<time>-<random>`.
+- **F3** — `docs/user-guide.md`: the bug-008 limitation stays in the v0.1 list, worded "fixed after
+  0.1.0 (see `CHANGELOG.md`, *Unreleased*)".
+- **F4** — `processRuns` kept as a copy of the reaper's `isRunning`, with a comment: it differs on
+  purpose (`EPERM` counts as running, so the sweep never removes a root whose owner may run);
+  sharing one function would change the reaper's behaviour.
+- **F5** — `performance.spec.ts`: the `requestfinished` handler catches a rejected `response()`.
+- **F6** — the count corrected: 57 test files call `mkdtemp` with a `wfui-` prefix (base
+  `f3f214d`).
+- **F7** — the log note reworded.
+- **F8** — `createTempRoot`: a comment on the staging-folder window (a killed setup leaves an
+  empty staging folder, never swept).

@@ -1,7 +1,9 @@
 /**
- * One temporary root per test run (task-026, D26-2): the global setup of every runner (Vitest
- * `npm test` / `test:coverage`, `test:timing`, `test:smoke`; Playwright through its run directory,
- * `test/e2e/support/reaper.ts`) creates `<system tmp>/wfui-run-<pid>-<time>/`, owned by its
+ * One temporary root per test run (task-026, D26-2): the global setup of every runner — Vitest
+ * (`npm test` / `test:coverage` and `test:timing` through `test/global-setup.ts`, `test:smoke`
+ * through `test/smoke/global-setup.ts`) and Playwright (`test:e2e` and the Playwright part of
+ * `test:timing`, `test/e2e/support/global-setup.ts` / `global-teardown.ts`, a root of its own next
+ * to its run directory) — creates `<system tmp>/wfui-run-<pid>-<time>-<random>/`, owned by its
  * process (an `owner` file), and points `TMPDIR`, `TMP` and `TEMP` at its `tmp/` folder: every
  * `os.tmpdir()` of the run — test files, workers, the consoles and git processes they start —
  * lands there. The global teardown removes the root it owns, and only that one; the next start
@@ -30,7 +32,12 @@ export const TEMP_ROOT_GRACE_MS = 60_000;
 /** The variables that name the temporary directory on Linux, macOS and Windows. */
 export const TEMP_DIR_VARS = ['TMPDIR', 'TMP', 'TEMP'] as const;
 
-/** True while `pid` runs (a zombie counts as gone). */
+/**
+ * True while `pid` runs (a zombie counts as gone). A copy of `isRunning` of
+ * `test/e2e/support/reaper.ts` with one difference kept on purpose: a process of another user
+ * (`EPERM`) counts as running here, so the sweep never removes a root whose owner may still run;
+ * the reaper, which kills, treats it as not its own.
+ */
 export function processRuns(pid: number): boolean {
   try {
     process.kill(pid, 0);
@@ -63,6 +70,8 @@ export function tempRootOwner(root: string): number | undefined {
 export function createTempRoot(base: string = tmpdir(), owner: number = process.pid): string {
   const name = `${owner}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   const staging = path.join(base, `${TEMP_ROOT_STAGING_PREFIX}${name}`);
+  // A setup killed between the mkdir and the rename leaves this staging folder: it is never swept
+  // (its name does not start with the root prefix) — a small, empty leftover, accepted.
   mkdirSync(path.join(staging, 'tmp'), { recursive: true, mode: 0o700 });
   writeFileSync(path.join(staging, TEMP_ROOT_OWNER), String(owner));
   const root = path.join(base, `${TEMP_ROOT_PREFIX}${name}`);

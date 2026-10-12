@@ -104,8 +104,12 @@ export class CloneTarget {
  */
 export const NO_HOOKS_PATH: string = fileURLToPath(import.meta.url);
 
-/** The hooks path could not be used: the clone is refused before any git process (fail closed). */
-export class HooksPathError extends GitCloneError {
+/**
+ * The hooks path could not be used: the clone is refused before any git process (fail closed). An
+ * internal error, not git's refusal: the route answers spec-004 §5 `internal` (500) and the path
+ * goes to the server log only (`git-refused` carries git's own message).
+ */
+export class HooksPathError extends Error {
   constructor(file: string) {
     super(`The empty hooks path of the clone is not a regular file: ${file}`);
     this.name = 'HooksPathError';
@@ -128,7 +132,7 @@ export interface CloneOptions {
   env: NodeJS.ProcessEnv;
   /** Cancels the clone (the process is killed). */
   signal?: AbortSignal;
-  /** The hooks path (default {@link NO_HOOKS_PATH}); tests only. */
+  /** The hooks path (default {@link NO_HOOKS_PATH}); tests only. A bad one rejects with {@link HooksPathError}. */
   hooksPath?: string;
 }
 

@@ -91,6 +91,8 @@ export interface ProjectListOptions {
   /** Home directory a leading `~` stands for (default: `os.homedir()`). */
   homedir?: string;
   logger?: ProjectListLogger;
+  /** The hooks path of a clone (default: `clone.ts` `NO_HOOKS_PATH`); tests only. */
+  hooksPath?: string;
 }
 
 /** A clone request (`POST /api/projects/clone`). */
@@ -248,6 +250,7 @@ export class ProjectList {
             runner: this.options.runner,
             env: this.env,
             ...(signal ? { signal } : {}),
+            ...(this.options.hooksPath !== undefined ? { hooksPath: this.options.hooksPath } : {}),
           });
         } catch (error) {
           if (error instanceof GitCloneError) throw new ProjectRefusal('git-refused', error.message);
