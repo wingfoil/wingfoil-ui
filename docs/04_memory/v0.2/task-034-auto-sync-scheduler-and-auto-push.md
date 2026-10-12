@@ -45,7 +45,7 @@ write from the UI, reported in the write response's `push` field (spec-004 §5).
   (SARD REQ-INT-06 v0.10, always with `--ff-only`) and its "Never merge…" comment is corrected to
   "never a merge commit"; a unit test proves no merge commit even with `merge.ff=false`.
 
-RP-53: Y-02.1, Y-02.3 and C-07.3 run in `test:e2e` on the three engines with `fetchIntervalSeconds`
+RP-53: Y-02.1, Y-02.3, Y-05.2 and C-07.3 run in `test:e2e` on the three engines with `fetchIntervalSeconds`
 = 15 (its minimum, RP-19); the real 60 s interval and the 65 s / 120 s budgets are measured only
 in `test:timing`, on Chromium (RP-44).
 

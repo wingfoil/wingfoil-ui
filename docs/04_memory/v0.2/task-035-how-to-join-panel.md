@@ -49,6 +49,8 @@ Screen: `docs/00_reference/ux-reference.md` §3 (*Current user*, "not in team" b
 - Copy to clipboard: Firefox and WebKit grant no clipboard permission in Playwright — assert the
   copied text with the cross-engine clipboard helper of task-027-e2e-suite-on-firefox-and-webkit
   (its AC-1b).
+- RP-55: the append-only rule of RP-43 also covers the web shell layout; in wave 1 this task
+  merges after task-030 and task-031 (task-number order), rebased on `main` before its merge.
 
 ## Execution Notes
 

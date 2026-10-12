@@ -68,7 +68,7 @@ Actual effort per phase (dl-006 action 6; wall-clock of the working sessions, 20
 | Phase | Plan | Sessions | Effort |
 |-------|------|----------|--------|
 | Governance alignment (pre-step) | `governance-alignment-rel-v0.2-plan` | 2026-10-12 10:05–11:00 | ~1 h |
-| release-planning | `release-planning-rel-v0.2-plan` | sessions 1–2 2026-10-12 11:00–19:20 (wall-clock, incl. waits) | in progress |
+| release-planning | `release-planning-rel-v0.2-plan` | sessions 1–4 2026-10-12 11:00–19:55 (wall-clock, incl. waits; sessions 3–4 from 19:20) | in progress |
 
 - 2026-10-12 — `release-planning-rel-v0.2-plan` sessions 1–2 (branch `design/release-planning_v0.2`).
   `advance-pinned-build` no-op (0.2.2 newest); `minor-v0.2` `draft → planning` (`4c8ead3`);
@@ -88,7 +88,7 @@ Actual effort per phase (dl-006 action 6; wall-clock of the working sessions, 20
   as `task-026` … `042`.
 - 2026-10-12 — `commit-backlog` gate (plan session 4): independent audit round 1 FAIL (3 major —
   ids shifted by the renumbering in the plan, G-13.2 closable only after task-040, missing
-  dependencies on task-035 — 7 minor, 6 nits); decisions RP-52 … RP-55 (G-13.2 split closure,
+  dependencies on task-035 — 7 minor, 7 nits); decisions RP-52 … RP-55 (G-13.2 split closure,
   fetch-interval scenarios at 15 s in `test:e2e`, npm publishing as WingFoil's two-gate staged
   pipeline, append-only shell and merge order).
 

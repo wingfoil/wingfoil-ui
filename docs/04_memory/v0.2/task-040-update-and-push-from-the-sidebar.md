@@ -62,6 +62,9 @@ Screen: `docs/00_reference/ux-reference.md` §3 (*Git status*: "N commits to pus
 
 ## Implementation Notes
 
+- RP-53: Y-05.2 (automatic update within 65 s) runs in `test:e2e` on the three engines with
+  `fetchIntervalSeconds` = 15 (its minimum, RP-19); the real 65 s budget is measured only in
+  `test:timing`, on Chromium (RP-44).
 - `spec-010` §4 (manual update not cancellable, RP-37), §5 (catalogue texts, `{files}` with
   `formatList`), §6 (`push` outcome); `spec-003` §6 reasons `copy-behind {commits}`,
   `copy-diverged`, `copy-detached`; `spec-004` §5.

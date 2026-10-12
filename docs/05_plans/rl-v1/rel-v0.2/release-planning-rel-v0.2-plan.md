@@ -14,7 +14,7 @@ tmpl_version: 260703   # Orignal template version
 
 ## Context
 
-**Version:** 0.3 · **Date:** 2026-10-12 (0.1: plan created, checkpoint 1 decisions RP-1…RP-7; 0.2:
+**Version:** 0.4 · **Date:** 2026-10-12 (0.1: plan created, checkpoint 1 decisions RP-1…RP-7; 0.2:
 checkpoint 2 decisions RP-8…RP-17; 0.3: checkpoints 2b and 2c, RP-18…RP-40, spec review; 0.4: RP-41, session 3 RP-42…RP-51, session 4 audit and
 RP-52…RP-55)
 **Branch:** `design/release-planning_v0.2` (merged to `main` with `--no-ff` at the end; RP-1)
@@ -308,7 +308,7 @@ Steps:
 
 ### Session 4 — 2026-10-12
 
-- Independent backlog audit round 1 **FAIL** (3 major, 7 minor, 6 nits). Verified as correct: 93
+- Independent backlog audit round 1 **FAIL** (3 major, 7 minor, 7 nits). Verified as correct: 93
   `@v0.2` scenarios each owned by exactly one task (script), every minor-v0.2 Success Criterion
   owned, acyclic dependencies consistent with RP-43, complete frontmatter and GOV pattern, no v0.2
   `task-001…017` id in `git log 0df01a8..HEAD`, dl-005. Major: M1 four ids in this plan's Session 3
@@ -320,7 +320,8 @@ Decisions (checkpoint 4, the approver: "as recommended", RP-54 after checking Wi
 
 - **RP-52** — task-038 proves the toast part of G-13.2; its sidebar step closes in task-040; both
   tasks say so.
-- **RP-53** — the scenarios bound to the fetch interval (Y-02.1 65 s, Y-02.3 and C-07.3 120 s) run
+- **RP-53** — the scenarios bound to the fetch interval (Y-02.1 and Y-05.2 65 s, Y-02.3 and C-07.3 120 s; Y-05.2
+  added after audit round 2 with the approver's OK) run
   in `test:e2e` on the three engines with `fetchIntervalSeconds` set to its minimum (15 s, RP-19);
   the real 60/65/120 s budgets are measured only in `test:timing`, on Chromium (as RP-44).
 - **RP-54** — npm publishing follows WingFoil's own pipeline (`publish.yml` of the WingFoil
@@ -330,3 +331,8 @@ Decisions (checkpoint 4, the approver: "as recommended", RP-54 after checking Wi
 - **RP-55** — the append-only rule of RP-43 also covers the web shell layout and
   `test/launcher/local-security.test.ts`; within a wave, tasks merge in task-number order, each
   rebased before its merge.
+- Backlog audit round 2 **FAIL** (3 minor, 4 nits): the round-1 majors resolved; Y-05.2 is bound
+  to the fetch interval too (added to RP-53, the approver: "as recommended"); the plan's Context
+  header still read 0.3; the effort table stopped at sessions 1–2. Fixed, with nits n1 (RP-55 in
+  task-035) and n3 (round-1 counts); n2 (task-038 wording, explained by the RP-52 note) and n4
+  (the clipboard claim, settled by task-027's self-test) accepted.
