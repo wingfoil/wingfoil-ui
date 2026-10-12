@@ -107,5 +107,18 @@ Decisions (checkpoint 1, the approver: "as recommended", except point 1):
 
 Steps:
 
-- Step 1: plan created (`memory add`); branch `design/release-planning_v0.2` from `main` at
-  `91aa630`.
+- Step 1: plan created (`memory add`, `f8f5671` submit → `active`); branch
+  `design/release-planning_v0.2` from `main` at `91aa630`.
+  - `advance-pinned-build`: no switch. `npm run -s wingfoil -- --version` → `0.2.2`;
+    `npm view wingfoil versions` → `["0.2.1","0.2.2"]` (2026-10-12): the pin is the newest
+    published build; `directives list` → `"warnings": []`.
+  - `define-scope`: `minor-v0.2` `draft → planning` (`4c8ead3`, `memory submit`); the
+    required fields (`title`, `kind`, `version`, `pillar`, `features`, `requirements`,
+    `release-line`) were already set at initial-design; scope unchanged (13 features, 46 backlog
+    records); the submit carries the release's first Execution Notes entry (effort table, RP-5).
+  - `triage-bugs`: `memory search --type bug --status open` → no match; bug-008 is already
+    `triaged` with `release: v0.2` (taken in step 3 under RP-3 (a)).
+  - `reconcile-governance`: `memory search` for `decision-log` `in-discussion` and `adr`
+    `pending` → no match; the governance changes of dl-007 and dl-008 are already carried out
+    (`governance-alignment-rel-v0.2-plan`, `done`).
+  - `record-adrs`: none (RP-7).
