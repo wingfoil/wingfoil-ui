@@ -2,7 +2,7 @@
 id: task-035-how-to-join-panel
 type: task
 title: "How to join panel"
-status: pending
+status: backlog
 release: "v0.2"
 module: "web"             # optional — server | web | contracts (dna.yaml modules)
 priority: "medium"           # optional — high | medium | low
