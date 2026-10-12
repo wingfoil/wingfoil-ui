@@ -299,3 +299,9 @@ the same as F1); its pre-existing items P1–P3 are reported to the approver, ou
 - **F7** — the log note reworded.
 - **F8** — `createTempRoot`: a comment on the staging-folder window (a killed setup leaves an
   empty staging folder, never swept).
+- Checks after the fixes (`8137362`): `typecheck`, `lint`, `format:check` clean; `check_tasks.py
+  v0.2` OK; targeted `clone.test.ts`, `temp-root.test.ts`, `clone-hooks.test.ts`,
+  `projects.test.ts`: 95 passed; `test:coverage` **1962 passed / 1 skipped** (120 files),
+  statements 96.78 %, branches 91.14 %, functions 97.39 %, lines 98.41 % (load 6.8 → 23.7);
+  `performance.spec.ts` alone (F5): 7 passed (load 22.1 → 18.9). `wfui-*` entries in the system
+  temporary directory after the runs: the 1 pre-existing one; no console left.
