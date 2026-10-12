@@ -4,7 +4,7 @@
   "generated_from": {
     "story_map": "docs/02_requirements/01_user_story_map/02_story-map.md v0.5",
     "bdd": "docs/02_requirements/02_bdd/00_conventions.md v0.9",
-    "sard": "docs/02_requirements/03_sard/00_sard.md v0.9"
+    "sard": "docs/02_requirements/03_sard/00_sard.md v0.10"
   },
   "items": [
     {
@@ -2985,7 +2985,7 @@
       "wingfoil_min": "0.2.2",
       "requirement": "REQ-SEC-08",
       "description": "Users not in the team, with no git email or with an ambiguous one get no write action in the UI, and the server refuses their write requests; *How to join* names the tech leads (or says none is declared) and gives the exact `wingfoil dna add team.members …` command.",
-      "fit_criterion": "[percentage] 100 % of write requests from such users get HTTP 403 and start 0 processes; every listed scenario passes.",
+      "fit_criterion": "[percentage] 100 % of governed-write, update and push requests from such users get HTTP 403 and start 0 processes; a fetch (it changes only remote-tracking refs) and the per-user local settings are not in scope; every listed scenario passes.",
       "verified_by": "e2e · API test",
       "stories": [
         "US-C-02",

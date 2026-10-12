@@ -137,7 +137,8 @@ configuration unreadable) and for a type `memory.yaml` does not declare (descrip
 
 | Route | Schema |
 |-------|--------|
-| `GET /api/p/:pid` — `repository` part, `conditions` | `repository.schema.json` (spec-010 §3), referenced by `project.schema.json` |
+| `GET /api/p/:pid` — `repository` part | `repository.schema.json` (spec-010 §3), referenced by `project.schema.json` |
+| `GET /api/p/:pid` — top-level `conditions: string[]` (spec-001 §6, spec-010 §7) | `project.schema.json` |
 | `GET /api/p/:pid/today?view=` | `today.schema.json` (spec-003 §5) |
 | `POST …/elements/:eid/submit` | request `element.submit.request.schema.json` `{expectedStatus}`; 200 `write.response.schema.json` (§5) |
 | `POST …/elements/:eid/approve`, `/reject` | request `element.decision.request.schema.json` `{expectedStatus, reason}` — `reason` holds at least one non-whitespace character (G-07.2); 200 `write.response.schema.json` |
@@ -181,13 +182,17 @@ project. "Not identified" in row 5 covers the identity kinds `not-in-team`, `no-
 
 **v0.2 (RP-11, RP-14).** The git routes run rows 1–4 (fetch) or 1–5 (update, push), never 6–9,
 then the refusals of spec-010 §5 (spec-010 §8): fetch is allowed to an unidentified user.
-`PUT /api/settings` is a local-state write with no project: rows 1, 2 and 4 apply.
+`PUT /api/settings` is a local-state write with no project: rows 1, 2 and 4 apply. Row 5's 403
+with 0 processes is thus required for governed writes, update and push — the scope of
+REQ-SEC-08's fit criterion (SARD `05` v0.6), which excludes fetch and the per-user settings.
 
 ### 5. Responses
 
-- Success of a write: `{ result: <CLI output>, commits: [{ sha, subject }], push: { status,
-  message? } }` — `status` is `pushed`, `off` or `failed` (spec-010 §6); `message` is git's
-  verbatim error when git refused the push. A failed push is still a **success** of the write:
+- Success of a write (`write.response.schema.json`): `{ result: <CLI output>, commits: [{ sha,
+  subject }], push: { status, code?, message? } }` — `status` is `pushed`, `off` or `failed`
+  (spec-010 §6); on `failed`, `message` is git's verbatim error when git refused the push, and
+  `code` is a spec-010 §5 code (refused before git ran) or `push-timeout` (auto-push killed
+  after 60 s), rendered from the catalogue. A failed push is still a **success** of the write:
   the commit is made and stays local (Y-08.1, G-13). Was `pushed: boolean` until 2026-10-12. An
   ingestion lists its `add` and `submit` commits.
 - A `reason` that is empty or whitespace only fails the body schema: **400** `invalid-request`,
@@ -201,10 +206,10 @@ then the refusals of spec-010 §5 (spec-010 §8): fetch is allowed to an unident
 |--------|--------|------|
 | 422 | `cli-refused` | CLI exit 1: `message` = the CLI's message verbatim (REQ-INT-04) |
 | 502 | `cli-output` | exit 0 with output failing its schema (spec-001 §2) |
-| 504 | `cli-timeout` | a `wingfoil` process killed after 30 s (git transport has no fixed timeout and is cancellable, `adr-001` D5) |
+| 504 | `cli-timeout` | a `wingfoil` process killed after 30 s (git transport the user started has no fixed timeout; an automatic fetch and an auto-push are killed after 60 s — spec-010 §4, `adr-001` D5) |
 | 500 | `internal` | adapter defect (exit 2) or unexpected error; details only in the log |
 | 422 | `git-refused` | a git transport command failed: git's message verbatim (REQ-INT-06) |
-| 409 | `no-remote`, `detached-head`, `no-upstream`, `diverged`, `local-changes-in-the-way` | refusals of the git routes before any transport process (spec-010 §5) |
+| 409 | `no-remote`, `detached-head`, `no-upstream`, `diverged`, `local-changes-in-the-way` | refusals of the git routes before any transport process (spec-010 §5); the §5 codes and `push-timeout` also appear as `push.code` of a write |
 | 502 | `read-error` | a direct read of spec-001 §4 failed: `message` "Cannot read `<file>`" and the reason, `detail: { file, kind }` with `kind` one of `outside`, `missing`, `shape`, `mismatch` and `file` relative to the project (never absolute). Scoped to the element or directive read: a list never fails as a whole; an unreadable `memory.yaml` degrades only the type-dependent features. Logged as `{ kind, file }` only (`outside` at warn level) |
 | 422 | project-list codes | refusals of `POST /api/projects` and `/projects/clone`: spec-006 §3 (`folder-not-found`, `not-wingfoil`, `already-listed`, `directory-not-empty`, `cli-not-found`, `state-dir-inside-project`, `directory-inside-project`, `inside-state-dir`, `git-refused` — also for a folder with `.wingfoil/` that is not a git repository) |
 | 404 | `not-found` | also a refused working-tree path of `/files/tree` and `/files/content` (REQ-SEC-06): `detail.kind` one of `outside` (the "outside the repository" marker), `missing`, `not-allowed`, `too-large`; 0 bytes of the target |
@@ -308,3 +313,8 @@ goes away by itself when the stream reconnects. A network failure is not rendere
   release-planning-rel-v0.2-plan session 2): a push refused before git runs (e.g. `no-upstream`)
   gives `push.status: failed` with the catalogue text; `PUT /api/settings` takes the whole object,
   validated by `settings.schema.json` (spec-006 §2).
+- 2026-10-12 — independent spec review round 1 (release-planning v0.2 session 2): `push.code`
+  (spec-010 §5 codes, `push-timeout` — RP-33, decided by the approver) and
+  `write.response.schema.json` named for the success body; §4 the 403 rule cites REQ-SEC-08's
+  scoped fit criterion (RP-34, decided by the approver); §3 `conditions` placed at the top level
+  of `project.schema.json`, apart from `repository` (drafting detail).

@@ -31,16 +31,19 @@ RP-10).
 ### 1. Copy state (REQ-STATE-04, Y-01.1…Y-01.3)
 
 Read from the existing status read (`git status --porcelain=v2 --branch`, `GIT_READ_ARGS.status`;
-no new process): `# branch.head <name> | (detached)`, `# branch.upstream <remote>/<branch>` (when
-an upstream is configured) and `# branch.ab +<ahead> -<behind>` (when the upstream's tracking ref
+no new process): `# branch.head <name> | (detached)`, `# branch.upstream <name>` (when an
+upstream is configured) and `# branch.ab +<ahead> -<behind>` (when the upstream's tracking ref
 exists; checked on git 2.43.0: without that ref git prints no `branch.ab`). Remotes come from
 `git remote` (an allowed read, REQ-INT-06), run with the status in every check of the snapshot.
+The upstream is a **remote upstream** when its name starts with `<r>/` for a remote `r` that
+`git remote` lists; a local upstream (`branch.<b>.remote = .`, printed without a remote prefix)
+counts as none: sync is with a remote only.
 
 | `copy` | Condition (first match wins) | Blocks governed writes (spec-004 §4 row 8) |
 |--------|------------------------------|---------------------------------------------|
 | `detached` | `branch.head (detached)` | yes — descriptor reason `copy-detached` |
 | `no-remote` | `git remote` lists none | no |
-| `no-upstream` | no `branch.upstream`, or no `branch.ab` | no |
+| `no-upstream` | no remote upstream, or no `branch.ab` (the tracking ref is missing: never fetched, or pruned after the branch was deleted on the remote, §4) | no |
 | `diverged` | ahead > 0 and behind > 0 | yes — `copy-diverged` |
 | `behind` | behind > 0 | yes — `copy-behind {commits}` |
 | `ahead` | ahead > 0 | no (REQ-STATE-04: only ahead does not block) |
@@ -56,134 +59,159 @@ The status hash of the key `<HEAD sha>.<status hash>` (spec-004 §5) also covers
 key format is unchanged. Hence a fetch that moves the tracking ref, a branch switch, an upstream
 change and a `git remote add`/`remove` change the key and send `repo {pid, state}` (spec-004 §6):
 the repository watcher already watches `refs/` and the git directory's `config` (`watcher.ts`);
-Y-04.2's 5 s is met by it, the 10 s periodic check is the fallback. A change of the sync status of
-§3 (a fetch or update result) sends `repo` with the unchanged `state`, so pages refetch the header.
+Y-04.2's 5 s is met by it, the 10 s periodic check is the fallback. Besides, `repo` is sent with
+the unchanged `state` when `sync.fetch.lastError` or `sync.update.lastError` (§3) is set,
+changed or cleared; a new `lastSuccessAt` alone sends nothing — it is read by the next `GET`.
 
 ### 3. Repository status in `GET /api/p/:pid`
 
-`repository` (schema `contracts/api/repository.schema.json`, referenced by `project.schema.json`)
-keeps its v0.1 fields and adds:
+`repository` (schema `contracts/api/repository.schema.json`, referenced by
+`project.schema.json`) keeps its v0.1 fields and adds:
 
 ```
 { state, head, localChanges,                       # v0.1
   branch: string | null,                           # null when detached
   copy: "in-sync" | "ahead" | "behind" | "diverged" | "detached" | "no-remote" | "no-upstream",
   ahead: integer, behind: integer,                 # 0 when unknown
-  upstream: string | null,                         # e.g. "origin/main"
+  upstream: string | null,                         # the remote upstream's name, e.g. "origin/main"
   sync: { fetch: { lastSuccessAt: string | null,  # ISO 8601 UTC, since the server start
                    lastError: { message, at } | null },
           update: { lastError: { code, detail?, message?, at } | null } } }
 ```
 
-The project header also carries `conditions: string[]`, the project conditions that hold
-(spec-001 §6; v0.2: `has-remote`).
+`upstream` is the printed `branch.upstream` whenever it is a remote upstream (§1) — also in
+`no-upstream` when only its tracking ref is missing, so the sidebar can name it — and `null`
+otherwise. The project conditions that hold (spec-001 §6; v0.2: `has-remote`) are not part of
+`repository`: they are the top-level `conditions: string[]` of the project header
+(`project.schema.json`).
 
 ### 4. Transport commands (write class (c), REQ-ARC-03, REQ-INT-06)
 
 | Operation | Arguments (after the protocol settings) |
 |-----------|-----------------------------------------|
-| fetch | `fetch --quiet` — git's default remote (the upstream's remote, else `origin`) |
-| update | `pull --ff-only --no-rebase --no-autostash --quiet` — the upstream only |
+| fetch | `fetch --quiet --prune --no-recurse-submodules -- <remote>` |
+| update | `pull --ff-only --no-rebase --no-autostash --no-recurse-submodules --quiet` — the upstream only |
 | push | `push --quiet --no-follow-tags --recurse-submodules=no -- <remote> HEAD:<merge ref>` — `<remote>` and `<merge ref>` from `git config --get branch.<branch>.remote` / `.merge`; an explicit refspec without `+`, so configured push refspecs and `push.default` play no part and the push is **never forced** |
 
+- **Fetch target:** the upstream's remote (`git config --get branch.<branch>.remote`); with no
+  remote upstream (§1): the only remote when `git remote` lists exactly one, else `origin` when
+  it is listed; otherwise a manual fetch is refused with `no-upstream` (§5) and the scheduler
+  skips the project. `--prune` removes tracking refs of branches deleted on the remote, so such
+  an upstream reads `no-upstream` (§1) and push is refused.
 - Every command is prefixed with `CLONE_SETTINGS` (`protocol.allow=never`, then `https`, `http`,
   `ssh`, `git`, `file` allowed — `ext::` and `fd::` refused) and `--no-optional-locks`; argument
   array, no shell (REQ-SEC-05); environment = `gitEnv(…)` plus `GIT_TERMINAL_PROMPT=0` (as
   `projects/clone.ts`): git never prompts, a missing credential fails with git's message.
   When the user has configured no ssh command — neither `GIT_SSH_COMMAND` nor `GIT_SSH` in the
-  server's environment, and `git config --get core.sshCommand` (an allowed read, run before the
-  command; exit 1 = unset) prints nothing — the environment also gets
-  `GIT_SSH_COMMAND=ssh -o BatchMode=yes`, so a passphrase or host-key prompt fails at once and its
-  message reaches the toast (`git-refused`). A configured ssh command is used as is.
-  Authentication is the user's git configuration (credential helper, ssh agent; REQ-SEC-09).
-  Hooks run as the repository configures them, as for the CLI's own commits (the project's own
-  CLI already runs from it, `adr-001` D2).
+  server's environment, and `git config --get core.sshCommand` (run before the command; exit 1 =
+  unset) prints nothing — the environment also gets `GIT_SSH_COMMAND=ssh -o BatchMode=yes`, so a
+  passphrase or host-key prompt fails at once and its message reaches the toast (`git-refused`).
+  A configured ssh command is used as is. Authentication is the user's git configuration
+  (credential helper, ssh agent; REQ-SEC-09). Hooks run as the repository configures them, as for
+  the CLI's own commits (the project's own CLI already runs from it, `adr-001` D2).
+- The reads this section adds — `git config --get` of `core.sshCommand` and
+  `branch.<branch>.remote`/`.merge`, `git log --name-only` of §5 — are of the `config` and `log`
+  subcommands that REQ-INT-06 allows (listed in its description since SARD `04` v0.9).
 - All three run under the per-project write lock (`adr-001` D5), with a **fresh** status read
-  inside it. Transport the user started has no fixed timeout (`adr-001` D5): when the page aborts the request (the UI's
-  *Cancel*), the server kills the process group; git leaves the repository as it was. An
-  automatic fetch (§6), which no one can cancel, is killed after 60 s and recorded as failed; the
-  next tick retries (`adr-001` D5, note of 2026-10-12).
-- Failure → **422 `git-refused`**, git's standard error verbatim (spec-004 §5); a fetch failure is
-  also kept as `sync.fetch.lastError` (Y-03.1, Y-03.2) — in memory only, never logged (the log
-  gets `{pid, op, exitCode}`) nor stored, since git may echo a URL.
+  inside it. Transport the user started has no fixed timeout (`adr-001` D5). **Cancel** is
+  offered for fetch and push: when the page aborts the request, the server kills the process
+  group, and the next status read shows where the refs stand. An update (`pull --ff-only`) is not
+  cancellable and always runs to completion (`GIT_TERMINAL_PROMPT=0` and, unless the user
+  configured an ssh command, `BatchMode` keep prompts from holding it). An automatic fetch and
+  an auto-push (§6), which no one can cancel, are killed after 60 s, counted from the start of
+  the git process — waiting for the write lock does not count (`adr-001` D5, note of
+  2026-10-12).
+- Failure → **422 `git-refused`**, git's standard error verbatim (spec-004 §5). A fetch failure is
+  also kept as `sync.fetch.lastError` (Y-03.1, Y-03.2), an update failure as
+  `sync.update.lastError` with `code: "git-refused"` and the `message` — in memory only, never
+  logged (the log gets `{pid, op, exitCode}`) nor stored, since git may echo a URL.
 - Success → **200** `{ repository }` (§3), read after the command (`git.response.schema.json`).
   Nothing to do (update with behind = 0, push with ahead = 0) → 200, no process.
 
-### 5. Update and push refusals
+### 5. Transport refusals
 
 Evaluated in this order under the write lock, from the fresh status; **409**, no transport
-process; rendered from the web catalogue as `error.<code>` (spec-008 §4):
+process; rendered from the web catalogue as `error.<code>` (spec-008 §4; every code has a key,
+spec-008 §7):
 
 | `code` | `detail` | Applies to | Catalogue text (English) |
 |--------|----------|------------|--------------------------|
-| `no-remote` | — | fetch, update, push | — (the controls are hidden, §7) |
+| `no-remote` | — | fetch, update, push | "This repository has no remote — add one with git in a terminal" (normally unseen: the controls are hidden, §7) |
 | `detached-head` | — | update, push | "Blocked: no branch checked out" (Y-01.3) |
-| `no-upstream` | — | update, push | "This branch has no upstream — set one with git in a terminal" |
+| `no-upstream` | — | fetch (no target, §4), update, push | "This branch has no upstream on the remote — set one with git in a terminal" |
 | `diverged` | — | update | "Cannot fast-forward: your copy and the remote have diverged — run git pull --rebase or git merge in a terminal" (Y-06.1) |
 | `local-changes-in-the-way` | `{ files }` | update | "Cannot fast-forward: local changes to {files} are in the way — commit or stash them in a terminal" (Y-06.2) |
 
 `local-changes-in-the-way`: the files changed by the incoming commits
-(`git log --no-renames --name-only -z --format= HEAD..@{u}`, an allowed read) intersected with
-the status entries (changed, staged, untracked); `detail.files` are paths relative to the project
-(never absolute), shown by their base name. Local changes to other files do not refuse (Y-05.3).
-A refusal of an update — manual or automatic — is kept as `sync.update.lastError` until the next
-successful update or a change of the copy state, so the sidebar shows it (Y-06.1, Y-06.2).
+(`git log --no-renames --name-only -z --format= HEAD..@{u}`) intersected with the status entries
+(changed, staged, untracked); `detail.files` is an array of paths relative to the project (never
+absolute). The web renders the `{files}` argument as one string: the base names joined with the
+locale's conjunction list format (FormatJS `formatList`, e.g. "a.md, b.md and c.md"). Local
+changes to other files do not refuse (Y-05.3). A refusal of an update — manual or automatic — is
+kept as `sync.update.lastError` until the next successful update or a change of the copy state,
+so the sidebar shows it (Y-06.1, Y-06.2).
 
-### 6. Scheduler (REQ-PERF-07, REQ-STATE-09, C-07.3)
+### 6. Scheduler and auto-push (REQ-PERF-07, REQ-STATE-09, C-07.3)
 
-- One timer per server, ticking every `fetchIntervalSeconds` (spec-006 §2: default 60 s, 15–3600 s;
-  REQ-PERF-07's 65 s is measured with the default). Each tick reads the settings. A settings change
-  (`settings` event) re-arms the timer: one tick runs at once, then every new interval — so any
-  change, including `autoFetch` turned on with a long interval, takes effect within the 120 s of
-  REQ-STATE-09 (C-07.3).
+- One timer per server, ticking every `fetchIntervalSeconds` (spec-006 §2: default 60 s, range
+  15–3600 s; REQ-PERF-07's 65 s is measured with the default). Each tick reads the settings. A
+  change of `autoFetch` or `fetchIntervalSeconds` re-arms the timer: one tick runs at once, then
+  every interval — so such a change takes effect within the 120 s of REQ-STATE-09 (C-07.3); any
+  other change is read at the next tick.
 - Scope: the projects with an open snapshot (opened since the start and still listed), whose
-  `has-remote` holds. A tick skips a project whose previous automatic fetch still runs (possible
-  with an interval below the 60 s kill of §4).
-- `autoFetch` on → fetch (§4). After a successful fetch, `autoUpdate` on, the user identified in
-  the team (RP-14) and copy `behind` → update (§4–§5) (Y-05.2).
-- Auto-push: after each successful governed write from the UI, with `autoPush` on and
-  `has-remote` holding, a push (§4) runs under the same write lock. The `push` field of the write
-  response (spec-004 §5) is `off` when no push was attempted, `pushed` on success, `failed` with
-  git's `message` when git refuses (Y-08.1: the commit stays, the copy is `ahead`) and `failed`
-  without `message` on a §5 refusal (e.g. `no-upstream`), the toast then showing that code's
-  catalogue text. A failed push never fails the write.
-  There is no periodic push.
-- `autoFetch` off → the scheduler starts 0 `git fetch` processes (Y-02.3); manual *Fetch* still
-  works.
+  `has-remote` holds and that have a fetch target (§4). A tick fetches them **one at a time**; a
+  tick that falls while the previous one still runs is skipped.
+- `autoFetch` on → fetch (§4), killed after 60 s and recorded as failed; the next tick retries.
+  After a successful fetch, `autoUpdate` on, the user identified in the team (RP-14) and copy
+  `behind` → update (§4–§5) (Y-05.2). `autoFetch` off → the scheduler starts 0 `git fetch`
+  processes (Y-02.3); manual *Fetch* still works.
+- **Auto-push:** after each successful governed write from the UI, with `autoPush` on and
+  `has-remote` holding, a push (§4) runs under the same write lock, killed after 60 s. The `push`
+  field of the write response (spec-004 §5, `write.response.schema.json`) is
+  `{ status, code?, message? }`: `off` when no push was attempted; `pushed` on success; `failed`
+  with git's `message` when git refuses (Y-08.1: the commit stays, the copy is `ahead`); `failed`
+  with `code` = the §5 code when refused before git runs (e.g. `no-upstream`); `failed` with
+  `code: "push-timeout"` when killed after 60 s (catalogue: "Not pushed: the push did not finish
+  within 60 s — use Push to try again"). The toast renders `code` from the catalogue. A failed
+  push never fails the write. There is no periodic push.
 
 ### 7. Condition `has-remote` and the sync controls (REQ-INT-03, S-11.2, Y-04)
 
 `has-remote` holds when `git remote` lists at least one remote; it is evaluated per repository
-state (§2) and listed in `conditions` (§3). Git sync is not a WingFoil capability (it does not
-depend on the WingFoil version), so it has no row in `contracts/capabilities.json`: the *Fetch*,
-*Update* and *Push* controls and the ahead/behind counts are hidden when `has-remote` does not
-hold — the hidden rule of REQ-INT-03 — and shown again with the next `repo` event (Y-04.2). The
-branch and the local changes are always shown (Y-04.1).
+state (§2) and listed in the project header's `conditions` (§3). Git sync is not a WingFoil
+capability (it does not depend on the WingFoil version), so it has no row in
+`contracts/capabilities.json`: the *Fetch*, *Update* and *Push* controls and the ahead/behind
+counts are hidden when `has-remote` does not hold — the hidden rule of REQ-INT-03 — and shown
+again with the next `repo` event (Y-04.2). The branch and the local changes are always shown
+(Y-04.1). *Cancel* is shown for a running fetch or push only (§4).
 
 ### 8. Preconditions of the git routes (spec-004 §4)
 
 | Route | Rows of spec-004 §4 | Then |
 |-------|---------------------|------|
-| `POST …/git/fetch` | 1–4 (no body) | §5 `no-remote` |
+| `POST …/git/fetch` | 1–4 (no body) | §5 `no-remote`, `no-upstream` |
 | `POST …/git/update` | 1–5 | §5 |
 | `POST …/git/push` | 1–5 | §5 |
 
-Fetch is allowed to an unidentified user (RP-14: it changes no branch and no file); update and
-push are refused with 403 `not-in-team` (TT-SEC-08). Row 6 (`unsupported-version`) does not apply:
-transport runs no `wingfoil` process. Rows 7–9 do not apply (no element).
+Fetch is allowed to an unidentified user (RP-14: it changes only remote-tracking refs, no branch
+and no file); update and push are refused with 403 `not-in-team` and start 0 processes — the
+scope of REQ-SEC-08's fit criterion (SARD `05` v0.6), which excludes fetch and the per-user local
+settings. Row 6 (`unsupported-version`) does not apply: transport runs no `wingfoil` process.
+Rows 7–9 do not apply (no element).
 
 ### 9. Verification
 
-- Unit: copy state per row of §1 from recorded porcelain outputs; the key changes on `branch.ab`,
-  upstream and remote-list changes, not on a re-read of the same state; argument arrays of §4
-  (no `+`, `--ff-only`, protocol settings, `GIT_TERMINAL_PROMPT=0`; `GIT_SSH_COMMAND` set only
-  when no ssh command is configured); the automatic fetch killed at 60 s; timer re-armed on a
-  settings change.
-- API: every row of §5 and §8 (status, `code`, 0 transport processes); push outcome values.
+- Unit: copy state per row of §1 from recorded porcelain outputs (local upstream, upstream
+  without a tracking ref); fetch target per case of §4; the key changes on `branch.ab`, upstream
+  and remote-list changes, not on a re-read of the same state; argument arrays of §4 (no `+`,
+  `--ff-only`, `--prune`, `--no-recurse-submodules`, protocol settings, `GIT_TERMINAL_PROMPT=0`;
+  `GIT_SSH_COMMAND` set only when no ssh command is configured); the automatic fetch and the
+  auto-push killed at 60 s of process time; the timer re-armed only on an `autoFetch` or
+  `fetchIntervalSeconds` change.
+- API: every row of §5 and §8 (status, `code`, 0 transport processes); every `push` outcome.
 - e2e (fixtures with a local bare remote): `features/y/*.feature`, G-12.1…G-12.3, G-13.1/G-13.2,
   S-11.2, C-07.3; REQ-PERF-07 with the default interval (10 of 10 within 65 s; 0 `git fetch` in
-  120 s when off);
-  REQ-INT-06 process audit.
+  120 s when off); REQ-INT-06 process audit.
 
 ## Consequences
 
@@ -208,3 +236,17 @@ transport runs no `wingfoil` process. Rows 7–9 do not apply (no element).
   hooks as configured (RP-23); `GIT_SSH_COMMAND=ssh -o BatchMode=yes` when no ssh command is
   configured (RP-24); `has-remote` without a capability row (RP-25); a configured upstream with
   no tracking ref = `no-upstream` (RP-32).
+- 2026-10-12 — independent spec review round 1 (FAIL) fixed. Decided by the approver
+  (release-planning-rel-v0.2-plan session 2): auto-push killed after 60 s → `failed` with
+  `code: "push-timeout"` (RP-33); REQ-SEC-08's fit criterion scoped to governed writes, update and
+  push (RP-34, §8); fetch with `--prune`, a deleted upstream reads `no-upstream` (RP-35); fetch
+  target rule (RP-36); *Cancel* for fetch and push only, update runs to completion (RP-37); an
+  immediate tick only on an `autoFetch` or `fetchIntervalSeconds` change, projects fetched one at
+  a time, the 60 s counted from the process start, `repo` only on copy-state or sync-error
+  changes, `lastSuccessAt` read by `GET` (RP-40). Drafting details (review mechanical fixes):
+  `push.code`; `conditions` on the project header only; a git-refused update kept as
+  `sync.update.lastError`; `upstream` named in `no-upstream` when only its tracking ref is
+  missing; a local upstream counts as none; `no-remote` catalogue text; `--no-recurse-submodules`
+  on fetch and pull; the added `config`/`log` reads covered by REQ-INT-06; `{files}` rendered as
+  a list of base names; §5 renamed "Transport refusals"; the "git leaves the repository as it
+  was" claim removed for pull.

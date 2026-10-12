@@ -3,7 +3,7 @@
   "generated_from": {
     "story_map": "docs/02_requirements/01_user_story_map/02_story-map.md v0.5",
     "bdd": "docs/02_requirements/02_bdd/00_conventions.md v0.9",
-    "sard": "docs/02_requirements/03_sard/00_sard.md v0.9"
+    "sard": "docs/02_requirements/03_sard/00_sard.md v0.10"
   },
   "items": [
     {
@@ -10922,7 +10922,7 @@
       "area": "INT",
       "wingfoil_min": "0.2.2",
       "requirement": "REQ-INT-06",
-      "description": "The server runs only these git operations: read (`rev-parse`, `status --porcelain`, `log`, `rev-list --count`, `config user.email`, `remote`), `clone` (adding a remote project, into a new empty folder), `fetch`, `pull --ff-only`, `push`, and `add -- .wingfoil/ui.yaml` + `commit -- .wingfoil/ui.yaml` for presets. It never merges, rebases, resets, stashes or checks out. Git's error message is shown verbatim on failure. Memory events (Timeline, Recent activity) are parsed from `wf(…)` subjects; `add` and `submit` subjects carry no transition, so a submit's `from → to` is read from the element file's `status` before and after the commit (project-wide views: one `git log -p` over the Memory directories; element panel: `memory history <id>`, which carries the states — `spec-002-memory-events-from-git`).",
+      "description": "The server runs only these git operations: read (`rev-parse`, `status --porcelain`, `log`, `rev-list --count`, `config` — `user.email`, `core.sshCommand`, `branch.<b>.remote`/`.merge` —, `remote`), `clone` (adding a remote project, into a new empty folder), `fetch`, `pull --ff-only`, `push`, and `add -- .wingfoil/ui.yaml` + `commit -- .wingfoil/ui.yaml` for presets. It never merges, rebases, resets, stashes or checks out. Git's error message is shown verbatim on failure. Memory events (Timeline, Recent activity) are parsed from `wf(…)` subjects; `add` and `submit` subjects carry no transition, so a submit's `from → to` is read from the element file's `status` before and after the commit (project-wide views: one `git log -p` over the Memory directories; element panel: `memory history <id>`, which carries the states — `spec-002-memory-events-from-git`).",
       "fit_criterion": "[percentage] 100 % of the git processes started during the e2e suite use a subcommand of the allowed list (process audit).",
       "verified_by": "e2e (process audit)",
       "stories": [
@@ -12051,7 +12051,7 @@
       "wingfoil_min": "0.2.2",
       "requirement": "REQ-SEC-08",
       "description": "Users not in the team, with no git email or with an ambiguous one get no write action in the UI, and the server refuses their write requests; *How to join* names the tech leads (or says none is declared) and gives the exact `wingfoil dna add team.members …` command.",
-      "fit_criterion": "[percentage] 100 % of write requests from such users get HTTP 403 and start 0 processes; every listed scenario passes.",
+      "fit_criterion": "[percentage] 100 % of governed-write, update and push requests from such users get HTTP 403 and start 0 processes; a fetch (it changes only remote-tracking refs) and the per-user local settings are not in scope; every listed scenario passes.",
       "verified_by": "e2e · API test",
       "stories": [
         "US-C-02",

@@ -1,6 +1,6 @@
 # SARD — 4. Integrations & Interfaces
 
-**Version:** 0.8 · **Date:** 2026-10-12 (0.2: coherence audit fixes — session 6; 0.3: REQ-INT-06 Memory-event source fixed by spec-002 — initial-design session 5; 0.4: REQ-INT-08 staged, Chromium in v0.1 — release-planning v0.1 session 2; 0.5: REQ-INT-03 v0.1 scope — release-planning v0.1 session 4 (audit A4); 0.6: REQ-INT-02 range bounds, REQ-INT-03 `null` minimum — dev-loop task-006; 0.7: REQ-INT-01, REQ-INT-07 rationales cite the feedback notes F-001, F-002 — dev-loop task-023; 0.8: G-14.2 dropped from REQ-INT-04's traceability — release-planning v0.2 session 2) · **Status:** Draft — specification-downcast session 4
+**Version:** 0.9 · **Date:** 2026-10-12 (0.2: coherence audit fixes — session 6; 0.3: REQ-INT-06 Memory-event source fixed by spec-002 — initial-design session 5; 0.4: REQ-INT-08 staged, Chromium in v0.1 — release-planning v0.1 session 2; 0.5: REQ-INT-03 v0.1 scope — release-planning v0.1 session 4 (audit A4); 0.6: REQ-INT-02 range bounds, REQ-INT-03 `null` minimum — dev-loop task-006; 0.7: REQ-INT-01, REQ-INT-07 rationales cite the feedback notes F-001, F-002 — dev-loop task-023; 0.8: G-14.2 dropped from REQ-INT-04's traceability — release-planning v0.2 session 2; 0.9: REQ-INT-06 lists the `config` reads of git transport — release-planning v0.2 session 2) · **Status:** Draft — specification-downcast session 4
 
 Shell and conventions: `00_sard.md`.
 
@@ -66,7 +66,7 @@ Shell and conventions: `00_sard.md`.
 | Field | |
 |-------|--|
 | Release | v0.1 (read, clone) · v0.2 (transport) |
-| Description | The server runs only these git operations: read (`rev-parse`, `status --porcelain`, `log`, `rev-list --count`, `config user.email`, `remote`), `clone` (adding a remote project, into a new empty folder), `fetch`, `pull --ff-only`, `push`, and `add -- .wingfoil/ui.yaml` + `commit -- .wingfoil/ui.yaml` for presets. It never merges, rebases, resets, stashes or checks out. Git's error message is shown verbatim on failure. Memory events (Timeline, Recent activity) are parsed from `wf(…)` subjects; `add` and `submit` subjects carry no transition, so a submit's `from → to` is read from the element file's `status` before and after the commit (project-wide views: one `git log -p` over the Memory directories; element panel: `memory history <id>`, which carries the states — `spec-002-memory-events-from-git`). |
+| Description | The server runs only these git operations: read (`rev-parse`, `status --porcelain`, `log`, `rev-list --count`, `config` — `user.email`, `core.sshCommand`, `branch.<b>.remote`/`.merge` —, `remote`), `clone` (adding a remote project, into a new empty folder), `fetch`, `pull --ff-only`, `push`, and `add -- .wingfoil/ui.yaml` + `commit -- .wingfoil/ui.yaml` for presets. It never merges, rebases, resets, stashes or checks out. Git's error message is shown verbatim on failure. Memory events (Timeline, Recent activity) are parsed from `wf(…)` subjects; `add` and `submit` subjects carry no transition, so a submit's `from → to` is read from the element file's `status` before and after the commit (project-wide views: one `git log -p` over the Memory directories; element panel: `memory history <id>`, which carries the states — `spec-002-memory-events-from-git`). |
 | Rationale | Not a git client (`03_is-isnot.md`); write classes (c). |
 | Traceability | US-Y-01, US-Y-02, US-Y-03, US-Y-05, US-Y-06, US-Y-07, US-Y-08, US-S-04, US-S-07, US-C-02 · Y-01.1, Y-02.2, Y-03.1, Y-03.2, Y-05.1, Y-05.3, Y-06.1, Y-07.1, Y-07.3, Y-08.1, Y-08.2, S-04.3, S-07.1, C-02.2 · Y1–Y4, S2, C1 |
 | Fit criterion | [percentage] 100 % of the git processes started during the e2e suite use a subcommand of the allowed list (process audit). |
@@ -119,3 +119,7 @@ Shell and conventions: `00_sard.md`.
 - 2026-10-12 — amended in `release-planning` v0.2 (plan session 2, RP-30): G-14.2 dropped from
   the traceability of REQ-INT-04 — amended by RP-12, it expects the server's 409
   `element-changed` refusal (spec-004 §4 row 9), not the CLI's message; decided by the approver.
+- 2026-10-12 — amended in `release-planning` v0.2 (plan session 2, independent spec review
+  round 1, drafting detail): REQ-INT-06's read list names the `config` reads of git transport
+  (`core.sshCommand`, `branch.<b>.remote`/`.merge`, spec-010 §4); the allowed subcommands and the
+  fit criterion are unchanged.

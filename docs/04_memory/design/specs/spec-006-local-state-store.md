@@ -81,8 +81,8 @@ since) stops the start with a message naming both paths (spec-007 §6, exit 4).
 | `remote` | URL of `origin` at add time, refreshed on every open, `""` when there is none; **userinfo removed** (`https://user:token@host/x.git` → `https://host/x.git`, REQ-SEC-09) |
 | `addedAt` | ISO 8601 UTC |
 | `roleView` | last role view chosen for this project (S-22.3); `""` = the shell's default (the member's first role) |
-| `settings` | the UI settings (v0.2, C4, REQ-STATE-09), global to every project; written as `{}` in v0.1. A missing key, or a stored value of the wrong type or out of range, reads as its default (below) — the file is not treated as corrupt — so a v0.1 file needs no migration; an unknown key (a newer build's) is kept unchanged on write |
-| `actionLog` | the action log (REQ-SEC-10, v0.2): `{ sha, at }` — the full commit hash and its ISO 8601 UTC time — appended for every commit in `commits[]` of a successful governed write from the UI (spec-004 §5), no other data; holds at most `settings.actionLogCap` entries: each append drops the oldest beyond the cap, so lowering the cap trims the log at the next append; written as `[]` in v0.1 |
+| `settings` | the UI settings (v0.2, C4, REQ-STATE-09), global to every project; written as `{}` in v0.1. A missing key, or a stored value of the wrong type or out of range, reads as its default (below) — the file is not treated as corrupt — so a v0.1 file needs no migration; an unknown key (e.g. a newer build's) is ignored on read and dropped at the next write |
+| `actionLog` | the action log (REQ-SEC-10, v0.2): `{ sha, at }` — the full commit hash and its ISO 8601 UTC time — appended for every commit in `commits[]` of a successful governed write from the UI (spec-004 §5), no other data; holds at most `settings.actionLogCap` entries: an append drops the oldest beyond the cap, and a `PUT /api/settings` that lowers the cap trims the oldest entries in the same write; written as `[]` in v0.1 |
 
 **Settings (v0.2, `contracts/api/settings.schema.json`; REQ-STATE-09, C-07.1):**
 
@@ -93,15 +93,17 @@ since) stops the start with a message naming both paths (spec-007 §6, exit 4).
 | `autoUpdate` | boolean | `false` | fast-forward after a successful automatic fetch (spec-010 §6) |
 | `autoPush` | boolean | `false` | push after each governed write from the UI (spec-010 §6) |
 | `theme` | `"system"` \| `"light"` \| `"dark"` | `"system"` | overrides `prefers-color-scheme` (spec-009 §1, X-08.3) |
-| `confirmAgentLaunch` | boolean | `true` | stored and shown; takes effect from WingFoil 0.3 (`agent execute` does not exist in 0.2.2, W-06; RP-15) |
+| `confirmAgentLaunch` | boolean | `true` | stored and shown; takes effect from WingFoil 0.3 — capability `agent-launch`, `minVersion` `0.3.0` in `contracts/capabilities.json` (spec-001 §6; RP-15) |
 | `actionLogCap` | integer, 100–100 000 | `5000` | most entries kept in `actionLog` (REQ-SEC-10) |
 
 `PUT /api/settings` (spec-004 §3) takes the whole object: every key above, each of its type —
 the two integers whole numbers inside their range, `theme` one of its three values; any other
 body (a key missing, a wrong type, an out-of-range integer) → **400** `invalid-request`, nothing
-stored. It writes under the lock of §4 and sends the `settings` event. A change takes effect
-without a restart: the scheduler re-arms its timer on the `settings` event and reads the
-settings at each tick (spec-010 §6), within the 120 s of REQ-STATE-09. Settings hold no secret (REQ-SEC-09).
+stored; the schema has no additional properties, and `GET /api/settings` returns exactly these
+keys. It writes under the lock of §4 (with the `actionLog` trim when the cap is lowered) and
+sends the `settings` event. A change takes effect without a restart: the scheduler reads the
+settings at each tick and re-arms its timer when `autoFetch` or `fetchIntervalSeconds` changes
+(spec-010 §6), within the 120 s of REQ-STATE-09. Settings hold no secret (REQ-SEC-09).
 
 Availability (folder found, `.wingfoil/` present, CLI found — REQ-STATE-07, S-10, S-19) is
 **computed** on every read of the list, never stored. `GET /api/projects` returns each entry as
@@ -260,3 +262,9 @@ a project (REQ-SEC-09). The secret scan of REQ-SEC-09 runs over the state direct
   100–100 000, default 5 000; lowering it trims the oldest entries at the next append);
   `PUT /api/settings` takes the whole object, an invalid or out-of-range value → 400
   `invalid-request`; §1 `XDG_CONFIG_HOME` rule as in the code confirmed. Decided by the approver.
+- 2026-10-12 — independent spec review round 1 (release-planning v0.2 session 2). Decided by the
+  approver: a `PUT` that lowers `actionLogCap` trims the log in the same write (RP-38); ranges
+  15–3600 s and 100–100 000 confirmed, a stored invalid value reads as its default, unknown
+  settings keys dropped — `GET` returns only the known keys, the schema has no additional
+  properties (RP-39). Drafting detail: `confirmAgentLaunch` cites the `agent-launch` capability
+  (`minVersion` `0.3.0`) instead of W-06.

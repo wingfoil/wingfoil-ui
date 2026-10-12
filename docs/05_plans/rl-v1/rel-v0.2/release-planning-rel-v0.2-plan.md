@@ -3,7 +3,7 @@ id: release-planning-rel-v0.2-plan
 type: plan
 title: "Release planning — rel-v0.2"
 status: active
-version: "0.2"         # optional — plan version
+version: "0.3"         # optional — plan version
 workflow: "release-planning"
 phase: "rel-v0.2"
 scope: "rl-v1/rel-v0.2"
@@ -14,8 +14,8 @@ tmpl_version: 260703   # Orignal template version
 
 ## Context
 
-**Version:** 0.2 · **Date:** 2026-10-12 (0.1: plan created, checkpoint 1 decisions RP-1…RP-7; 0.2:
-checkpoint 2 decisions RP-8…RP-17)
+**Version:** 0.3 · **Date:** 2026-10-12 (0.1: plan created, checkpoint 1 decisions RP-1…RP-7; 0.2:
+checkpoint 2 decisions RP-8…RP-17; 0.3: checkpoints 2b and 2c, RP-18…RP-40, spec review)
 **Branch:** `design/release-planning_v0.2` (merged to `main` with `--no-ff` at the end; RP-1)
 **Workflows:** `sw-life-cycle` → `release-line-cycle` (`rl-v1`) phase `delivery` → `release-cycle`
 (`minor-v0.2`, v1.1) phase `planning` = `release-planning`
@@ -200,3 +200,28 @@ Decisions (checkpoint 2b, details found while drafting spec-010 and the amendmen
 Steps:
 
 - spec-010 created (`e80a50e`, `memory add`).
+- Identify-specs draft committed (`76a9cd8`): spec-010 and the amendments of spec-001, 002, 003,
+  004, 006, 007; adr-001 D5 note; G-14.2 (BDD conventions 0.9); SARD 0.9; backlog rebuilt;
+  `check_backlog.py`, `check_releases.py`, `check_tasks.py` OK.
+- Spec review round 1 **FAIL** (2 major, 10 minor, 8 nits). Verified as correct: the porcelain v2
+  branch headers on git 2.43 (RP-32), the git allow-list, the UD-7 amendments against the code
+  (`--help`, `--port` variants, exit 70), the G-14.2 text against the catalogue, a byte-identical
+  backlog rebuild.
+
+Decisions (checkpoint 2c, from the review; the approver: "as recommended"):
+
+- **RP-33** — auto-push is killed after 60 s → `push.status: failed` with a catalogue code
+  (added to the adr-001 D5 note).
+- **RP-34** — REQ-SEC-08's fit criterion is amended: 403 and 0 processes apply to governed writes,
+  update and push of unidentified users; fetch and the per-user local settings are excluded.
+- **RP-35** — fetch runs with `--prune`: an upstream deleted on the remote reads `no-upstream` and
+  push is refused.
+- **RP-36** — fetch target: the upstream's remote; with no upstream, the only remote, else
+  `origin`; otherwise a manual fetch is refused (`no-upstream`) and the scheduler skips it.
+- **RP-37** — Cancel is offered for fetch and push only; update always runs to completion.
+- **RP-38** — lowering `actionLogCap` trims the log at the settings `PUT`.
+- **RP-39** — ranges 15–3600 s and 100–100 000 confirmed; a stored invalid value reads as its
+  default; unknown settings keys are dropped (`GET` returns the known keys only).
+- **RP-40** — an immediate scheduler tick only when `autoFetch` or `fetchIntervalSeconds` changes;
+  projects fetched one at a time; waiting for the lock does not count toward the 60 s; `repo`
+  fires only when the copy state or the last sync error changes.

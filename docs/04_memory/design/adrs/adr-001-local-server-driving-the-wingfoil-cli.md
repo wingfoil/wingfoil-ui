@@ -104,9 +104,11 @@ after each write. Clones, which have no project yet, are serialised on the write
 (never a project id or a user path; spec-006 §3). Every `wingfoil` process and every git read has a 30 s timeout, after which it is
 killed and the request fails with the reason (REQ-INT-04). Git transport (`clone`, `fetch`, `pull
 --ff-only`, `push`) started by the user has no fixed timeout — it can take longer on large
-repositories — and the UI offers to cancel it (the process is killed; git leaves the repository as
-it was). An automatic fetch (spec-010 §6), which no one can cancel and which holds the write lock,
-is killed after 60 s and retried at the next tick.
+repositories. The UI offers to cancel a clone, a fetch or a push (the process is killed); an
+update (`pull --ff-only`) is not cancellable and runs to completion (spec-010 §4). An automatic
+fetch and an auto-push (spec-010 §6), which no one can cancel and which hold the write lock, are
+killed after 60 s counted from the start of the git process; the fetch is retried at the next
+tick, the push reported as failed.
 
 **D6 — Snapshot and cache** (REQ-STATE-01…04, SEC-08). The UI shows the working tree, as the CLI
 reads it, and marks elements with *local changes*. Cached reads are keyed on HEAD, a hash of
@@ -214,3 +216,8 @@ PERF-05 · features S1, S3, S8, X4 · scenarios S-08.1, S-08.2, S-09.1, S-09.2, 
 - 2026-10-12 — amended in `release-planning` v0.2 (plan session 2, RP-20): D5 "no fixed timeout"
   applies to transport the user started and can cancel; an automatic fetch (spec-010 §6), which
   no one can cancel, is killed after 60 s and retried at the next tick; decided by the approver.
+  Same day, independent spec review round 1: the auto-push is killed after 60 s too and reported
+  as `push.status: failed`, `code: "push-timeout"` (RP-33); *Cancel* is offered for fetch and
+  push only, an update runs to completion (RP-37); the 60 s count from the start of the git
+  process, not while waiting for the write lock (RP-40); decided by the approver. The former
+  "git leaves the repository as it was" is removed: it was not established for `pull`.

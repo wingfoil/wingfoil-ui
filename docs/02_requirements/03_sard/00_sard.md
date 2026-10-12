@@ -1,7 +1,7 @@
 # SARD — WingFoil UI
 
-**Version:** 0.9
-**Date:** 2026-10-12 (0.2: coherence audit fixes — session 6; 0.3: page title in REQ-ARC-10 — initial-design session 2; 0.4: REQ-ARC-04 allow-list of direct reads, REQ-INT-06 Memory-event source — initial-design session 5; 0.5: REQ-SEC-02 session and static files, last non-archived state (ARC-06, STATE-08) — initial-design session 6; 0.6: REQ-ARC-07 to v0.3, REQ-INT-08 staged (Chromium in v0.1) — release-planning v0.1 session 2; 0.7: v0.1 scope of REQ-ARC-05, ARC-10, INT-03, PERF-05, SEC-05, STATE-06 — release-planning v0.1 session 4 (audit A4); 0.8: REQ-INT-02 range bounds, REQ-INT-03 `null` minimum, REQ-STATE-02 content fingerprint, REQ-ARC-05 lint scope, REQ-ARC-04 hash-only reads — dev-loop tasks 006, 010, 011; 0.9: G-14.2 dropped from REQ-INT-04's traceability, the auto-fetch interval a setting (REQ-STATE-09) — release-planning v0.2 session 2, RP-30, RP-19)
+**Version:** 0.10
+**Date:** 2026-10-12 (0.2: coherence audit fixes — session 6; 0.3: page title in REQ-ARC-10 — initial-design session 2; 0.4: REQ-ARC-04 allow-list of direct reads, REQ-INT-06 Memory-event source — initial-design session 5; 0.5: REQ-SEC-02 session and static files, last non-archived state (ARC-06, STATE-08) — initial-design session 6; 0.6: REQ-ARC-07 to v0.3, REQ-INT-08 staged (Chromium in v0.1) — release-planning v0.1 session 2; 0.7: v0.1 scope of REQ-ARC-05, ARC-10, INT-03, PERF-05, SEC-05, STATE-06 — release-planning v0.1 session 4 (audit A4); 0.8: REQ-INT-02 range bounds, REQ-INT-03 `null` minimum, REQ-STATE-02 content fingerprint, REQ-ARC-05 lint scope, REQ-ARC-04 hash-only reads — dev-loop tasks 006, 010, 011; 0.9: G-14.2 dropped from REQ-INT-04's traceability, the auto-fetch interval a setting (REQ-STATE-09) — release-planning v0.2 session 2, RP-30, RP-19; 0.10: REQ-SEC-08 fit criterion scoped to governed writes, update and push (RP-34), REQ-INT-06 `config` reads, settings row — release-planning v0.2 session 2)
 **Status:** Draft — specification-downcast session 4 (`volere-requirements`)
 **Input:** `../02_bdd/` (scenarios and conventions) · `../01_user_story_map/` ·
 `docs/01_vision/` (`02_product-vision.md` v0.5, `06_features.md` v0.8, `08_mvp-canvas.md` v0.3) ·
@@ -91,7 +91,7 @@ Timings (`PERF`) are measured on:
 | Agent log lines ≤ 2 s | REQ-PERF-08 |
 | Focus contrast ≥ 3:1, axe in both themes | REQ-ARC-10, REQ-ARC-11 |
 | Node.js ≥ 22.12 refused below | REQ-ARC-01 |
-| Settings defaults (auto-fetch on, auto-update off, auto-push off, theme System, confirm agent on) | REQ-STATE-09 |
+| Settings defaults (auto-fetch on every 60 s — the interval a setting, 15–3600 s —, auto-update off, auto-push off, theme System, confirm agent on, action-log cap 5 000 — 100–100 000) | REQ-STATE-09 |
 
 ### New values set in this session
 

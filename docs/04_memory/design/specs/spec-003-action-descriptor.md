@@ -125,7 +125,10 @@ Row = { element: { id, type, title, status, localChanges }, descriptor }   # des
 ```
 
 - `requiresYou` lists the elements placed in Requires you of `view`, in the order above; `action`
-  is `submit`, `rework`, `review`, `approve` or `resolve` (`undeclared`). Its length is the
+  is `submit`, `rework`, `review`, `approve` or `resolve` (`undeclared`). The row's button label
+  (web catalogue): `submit` and `rework` → "Submit" (T-03.1; a `rework` row also shows the
+  rejection), `review` → "Review" (T-04.1), `approve` → "Approve" (T-02.1), `resolve` → "Open"
+  (T-05.1: the element panel opens, no verb is run). Its length is the
   greeting's count and the bell's *To unblock* count (S-21.1, T-01.1); the bell's *To unblock*
   list is the same rows.
 - `waitingOnOthers` lists the elements placed in Waiting on others of the user, an element of
@@ -256,3 +259,5 @@ element list; `web/` renders it and never re-derives it.
   unidentified users) and the hand-transition limitation of this repository (W-04, W-20, W-25,
   W-26: "Waiting for the workflow engine", no hand commit from the UI); §8 `actor.basis`
   (`submitter`, `creator`, `last-transition`) for T-11.1. Decided by the approver at checkpoint 2.
+- 2026-10-12 — independent spec review round 1 (release-planning v0.2 session 2, drafting
+  detail): §5 the Requires you `action` → button label mapping (`resolve` → "Open", T-05.1).
