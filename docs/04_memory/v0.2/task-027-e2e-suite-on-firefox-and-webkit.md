@@ -33,9 +33,12 @@ this governance task, run early so that every later web task's e2e runs on the t
 - **AC-1** `playwright.config.ts` declares the projects `chromium`, `firefox` and `webkit` (the
   engines of the pinned Playwright); REQ-INT-08 fit criterion: [percentage] 100 % of the e2e
   scenarios pass on each of the three engines — the whole v0.1 suite, unchanged in what it asserts.
-  An engine-specific difference is handled in `test/e2e/support/` (e.g. clipboard permissions,
-  which Playwright grants on Chromium only); a scenario skipped on an engine needs the approver's
+  An engine-specific difference is handled in `test/e2e/support/`; a scenario skipped on an engine needs the approver's
   decision, recorded in this task.
+- **AC-1b (clipboard, m7)** A cross-engine clipboard helper in `test/e2e/support/` (Playwright
+  grants clipboard permissions on Chromium only): it returns the text a *Copy* button wrote, on
+  each of the three engines, with a self-test in `test/e2e/harness/`; task-035-how-to-join-panel
+  (C-08.2) uses it.
 - **AC-2 (RP-44)** Timing and perf runs stay on Chromium only: `playwright.timing.config.ts` and
   the `@perf` runs are not multiplied by engine.
 - **AC-3 (RP-44)** The browser setup is documented in `test/README.md` (and the README's developer

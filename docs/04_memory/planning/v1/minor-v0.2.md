@@ -79,6 +79,18 @@ Actual effort per phase (dl-006 action 6; wall-clock of the working sessions, 20
   `cli-only-writes` 1.6 (RP-10 … RP-41); independent spec review PASS at round 3 (FAIL 2 major/10
   minor, FAIL 2 minor, PASS). Governance/technical tasks for build-backlog: load-independent tests
   with bug-008, public-text check, npm publishing pipeline (RP-3, RP-11).
+- 2026-10-12 — `build-backlog` (plan session 3): 17 tasks `task-026` … `task-042` (4 governance —
+  026 load-independent tests absorbing bug-008, 027 e2e on Firefox and WebKit, 028 public-text
+  check, 029 npm publishing pipeline — 5 server, 8 web) cover the 46 backlog records exactly once
+  (`check_tasks.py v0.2`); all `pending`. bug-008 `triaged → planned` (`c01d13f`); dl-006 stamped
+  `v0.2`. Surprise: `memory add` numbers tasks per folder (`wingfoil-cli` W-27); the first run
+  (`task-001` … `017`) was dropped from the branch history at the approver's request and redone
+  as `task-026` … `042`.
+- 2026-10-12 — `commit-backlog` gate (plan session 4): independent audit round 1 FAIL (3 major —
+  ids shifted by the renumbering in the plan, G-13.2 closable only after task-040, missing
+  dependencies on task-035 — 7 minor, 6 nits); decisions RP-52 … RP-55 (G-13.2 split closure,
+  fetch-interval scenarios at 15 s in `test:e2e`, npm publishing as WingFoil's two-gate staged
+  pipeline, append-only shell and merge order).
 
 ### Implementation (dev-loop, per task)
 

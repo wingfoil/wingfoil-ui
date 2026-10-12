@@ -36,7 +36,8 @@ still gives the command. Reads the v0.1 identity and DNA only, so it can run in 
 - **US-C-09** — every `@v0.2` scenario passes:
   - `docs/02_requirements/02_bdd/features/c/how-to-join.feature`: C-09.1 Say that no tech lead is declared; C-09.2 Explain an empty team
 
-These scenarios are also cited by TT-SEC-08 (task-033-git-copy-state-repository-status-and-transport-routes).
+C-08.2 asserts the copied command with the clipboard helper of task-027-e2e-suite-on-firefox-and-webkit
+(AC-1b). These scenarios are also cited by TT-SEC-08 (task-033-git-copy-state-repository-status-and-transport-routes).
 
 Screen: `docs/00_reference/ux-reference.md` §3 (*Current user*, "not in team" badge), §4.11 *Identity* and the prototype (`docs/00_reference/prototype/`), deviations only as recorded (directive `ux-consistency`). Accessibility bar: every screen and action of the task operable from the keyboard with visible focus; axe-core 0 serious/critical violations in both themes; every string from the catalogue (X-09.1). Cross-cutting: the task's e2e spec passes on Chromium, Firefox and WebKit (REQ-INT-08, task-027-e2e-suite-on-firefox-and-webkit); its screens are added to `SCREENS` (`test/e2e/support/screens.ts`) so the X-06.4 axe scan and the X-09.1 key-build check cover them; catalogue, `SCREENS` and route registration changes are append-only (RP-43).
 
@@ -46,7 +47,8 @@ Screen: `docs/00_reference/ux-reference.md` §3 (*Current user*, "not in team" b
   `spec-008` (the command is data, not a catalogue text: its placeholders are translated, the
   command words are not).
 - Copy to clipboard: Firefox and WebKit grant no clipboard permission in Playwright — assert the
-  copied text through the support helper of task-027-e2e-suite-on-firefox-and-webkit.
+  copied text with the cross-engine clipboard helper of task-027-e2e-suite-on-firefox-and-webkit
+  (its AC-1b).
 
 ## Execution Notes
 

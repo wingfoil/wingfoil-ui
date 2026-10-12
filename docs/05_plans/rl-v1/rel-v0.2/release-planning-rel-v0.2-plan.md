@@ -3,7 +3,7 @@ id: release-planning-rel-v0.2-plan
 type: plan
 title: "Release planning — rel-v0.2"
 status: active
-version: "0.3"         # optional — plan version
+version: "0.4"         # optional — plan version
 workflow: "release-planning"
 phase: "rel-v0.2"
 scope: "rl-v1/rel-v0.2"
@@ -15,7 +15,8 @@ tmpl_version: 260703   # Orignal template version
 ## Context
 
 **Version:** 0.3 · **Date:** 2026-10-12 (0.1: plan created, checkpoint 1 decisions RP-1…RP-7; 0.2:
-checkpoint 2 decisions RP-8…RP-17; 0.3: checkpoints 2b and 2c, RP-18…RP-40, spec review)
+checkpoint 2 decisions RP-8…RP-17; 0.3: checkpoints 2b and 2c, RP-18…RP-40, spec review; 0.4: RP-41, session 3 RP-42…RP-51, session 4 audit and
+RP-52…RP-55)
 **Branch:** `design/release-planning_v0.2` (merged to `main` with `--no-ff` at the end; RP-1)
 **Workflows:** `sw-life-cycle` → `release-line-cycle` (`rl-v1`) phase `delivery` → `release-cycle`
 (`minor-v0.2`, v1.1) phase `planning` = `release-planning`
@@ -263,8 +264,8 @@ acyclic dependency order, both checked by script).
 Decisions (checkpoint 3, the approver: "as recommended"):
 
 - **RP-42** — 17 tasks: four governance tasks (026 load-independent tests and one temp-folder
-  convention absorbing bug-033; 027 e2e on Firefox and WebKit, REQ-INT-08; 028 public-text check;
-  029 npm publishing pipeline and registry checklist, dl-029) and 13 product tasks (030–034
+  convention absorbing bug-008; 027 e2e on Firefox and WebKit, REQ-INT-08; 028 public-text check;
+  029 npm publishing pipeline and registry checklist, dl-004) and 13 product tasks (030–034
   server, 035–042 web), each owning the backlog records listed in its body.
 - **RP-43** — waves: 0 = 026, 028, then 027; 1 = 030, 031, 035; 2 = 032, 036; 3 = 033, 037;
   4 = 034, 042; 5 = 038, 039, 041; 6 = 040; 029 any time before release validation. Server tasks
@@ -276,10 +277,10 @@ Decisions (checkpoint 3, the approver: "as recommended"):
   recorded at the retrospective between v0.2 and v0.3.
 - **RP-46** — 029 is done with the pipeline, the checklist and a local smoke; the approver does
   the registry-side setup before `release-submit`, otherwise v0.2 ships as a tag only with a
-  decision-log (as dl-029).
-- **RP-47** — adversarial security review (dl-031 action 6) for 032, 033, 034 and 026's
+  decision-log (as dl-004).
+- **RP-47** — adversarial security review (dl-006 action 6) for 032, 033, 034 and 026's
   `clone.ts` change.
-- **RP-48** — TT-SEC-08 belongs to 033; 032 implements spec-029 §4 row 5 for governed writes.
+- **RP-48** — TT-SEC-08 belongs to 033; 032 implements spec-004 §4 row 5 for governed writes.
 - **RP-49** — US-G-13 stays in 038 (038 depends on 034).
 - **RP-50** — X-08.3 (041) and REQ-INT-08 (027), carried by no backlog record, join the session-4
   audit checklist.
@@ -304,3 +305,28 @@ Steps:
   S-11.1 cited under TT-SEC-07 in task-037 but run in task-039, the TT-SEC-08 scenarios closed by
   web tasks that do not depend on task-033, and the names chosen in the bodies (task-032 ratio
   script, task-029 workflow and smoke script, task-028 allow-list examples). Session 3 closed.
+
+### Session 4 — 2026-10-12
+
+- Independent backlog audit round 1 **FAIL** (3 major, 7 minor, 6 nits). Verified as correct: 93
+  `@v0.2` scenarios each owned by exactly one task (script), every minor-v0.2 Success Criterion
+  owned, acyclic dependencies consistent with RP-43, complete frontmatter and GOV pattern, no v0.2
+  `task-001…017` id in `git log 0df01a8..HEAD`, dl-005. Major: M1 four ids in this plan's Session 3
+  shifted by +25 with the task renumbering (bug-008, dl-004, dl-006, spec-004 — fixed); M2 G-13.2
+  asserts the sidebar "1 commit to push" line of task-040 while task-038 precedes it; M3 T-01.2 and
+  S-13.2 show *How to join* (task-035) without a dependency on it.
+
+Decisions (checkpoint 4, the approver: "as recommended", RP-54 after checking WingFoil's pipeline):
+
+- **RP-52** — task-038 proves the toast part of G-13.2; its sidebar step closes in task-040; both
+  tasks say so.
+- **RP-53** — the scenarios bound to the fetch interval (Y-02.1 65 s, Y-02.3 and C-07.3 120 s) run
+  in `test:e2e` on the three engines with `fetchIntervalSeconds` set to its minimum (15 s, RP-19);
+  the real 60/65/120 s budgets are measured only in `test:timing`, on Chromium (as RP-44).
+- **RP-54** — npm publishing follows WingFoil's own pipeline (`publish.yml` of the WingFoil
+  repository, 2026-10-11): two gates — the GitHub environment `npm-publish` (the approver reviews
+  the deployment, tags `v*`) and `npm stage publish` through an OIDC trusted publisher limited to
+  staging; the version goes live only when the approver runs `npm stage approve` with 2FA.
+- **RP-55** — the append-only rule of RP-43 also covers the web shell layout and
+  `test/launcher/local-security.test.ts`; within a wave, tasks merge in task-number order, each
+  rebased before its merge.

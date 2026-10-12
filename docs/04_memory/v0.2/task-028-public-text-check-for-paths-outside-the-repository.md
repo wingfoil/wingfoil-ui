@@ -30,7 +30,8 @@ stay an item of the review checklist: no pattern list naming private material is
 ## Acceptance Criteria
 
 - **AC-1** A test in the default suite (e.g. `test/docs/public-text.test.ts`) reads every tracked
-  text file (`git ls-files`, binary files and `export*` excluded) and fails, naming file and line,
+  text file (`git ls-files`, binary files excluded; untracked local files are never listed) and
+  fails, naming file and line,
   on an absolute filesystem path outside the repository (POSIX home and root paths, Windows drive
   paths, `~/`-prefixed paths), except an explicit, commented allow-list of fictitious or generic
   example paths (e.g. the spec-006 `/home/alex/projects/kanban` example, `/tmp`, `/dev/null`).

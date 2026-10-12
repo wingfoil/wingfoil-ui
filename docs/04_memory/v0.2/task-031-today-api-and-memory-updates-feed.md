@@ -43,6 +43,9 @@ project-wide event parse (`server/src/git/memory-log.ts`). Server foundation of 
 e2e closure — S-21.1, S-23.4 close in task-042-notification-bell-all-roles-summary-and-empty-today; the Today rows close in task-036-today-requires-you-and-waiting-on-others.
 
 Cross-cutting: the task's `contracts/api` schemas are committed first (RP-43) and checked against every response of its routes; every new `/api/` route adds its rows to `test/launcher/local-security.test.ts` (REQ-SEC-02/03); process audits as in `test/server/snapshot/support.ts` (`AuditedRunner`).
+RP-55: the append-only rule of RP-43 also covers the web shell layout and
+`test/launcher/local-security.test.ts`; within the wave, tasks merge in task-number order, each
+rebased on `main` before its merge.
 
 ## Implementation Notes
 

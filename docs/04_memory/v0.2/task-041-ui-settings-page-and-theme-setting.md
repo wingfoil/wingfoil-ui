@@ -36,10 +36,16 @@ here by RP-16 — no v0.2 backlog record carries it; on the session-4 audit chec
   the system with the theme setting.
 
 Also closes C-07.1, C-07.3 of TT-STATE-09 (task-030-ui-settings-store-and-settings-api) and C-07.3 of TT-PERF-07 (task-034-auto-sync-scheduler-and-auto-push).
+RP-53: Y-02.1, Y-02.3 and C-07.3 run in `test:e2e` on the three engines with `fetchIntervalSeconds`
+= 15 (its minimum, RP-19); the real 60 s interval and the 65 s / 120 s budgets are measured only
+in `test:timing`, on Chromium (RP-44).
 RP-15: "Confirm agent launch" is stored and shown with a note that it takes effect from WingFoil
 0.3.
 
 Screen: `docs/00_reference/ux-reference.md` §4.11 (*Configuration*, UI settings part only) and the prototype (`docs/00_reference/prototype/`), deviations only as recorded (directive `ux-consistency`). Accessibility bar: every screen and action of the task operable from the keyboard with visible focus; axe-core 0 serious/critical violations in both themes; every string from the catalogue (X-09.1). Cross-cutting: the task's e2e spec passes on Chromium, Firefox and WebKit (REQ-INT-08, task-027-e2e-suite-on-firefox-and-webkit); its screens are added to `SCREENS` (`test/e2e/support/screens.ts`) so the X-06.4 axe scan and the X-09.1 key-build check cover them; catalogue, `SCREENS` and route registration changes are append-only (RP-43).
+RP-55: the append-only rule of RP-43 also covers the web shell layout and
+`test/launcher/local-security.test.ts`; within the wave, tasks merge in task-number order, each
+rebased on `main` before its merge.
 
 ## Implementation Notes
 

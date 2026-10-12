@@ -49,10 +49,17 @@ in the meantime (RP-12). Toasts and refusals announced to screen readers.
   Scenarios (`@v0.2`): G-04.1, G-10.1, G-13.2.
   Timed on the large fixture in `test:timing` (Chromium only, RP-44): click on the outcome or *Submit* → toast with the commit, p95 printed with the load; `test:e2e` behaviour only. G-04.1 is task-037-gate-footer-with-every-outcome's scenario.
 
+RP-52: G-13.2 is proved here up to the toast (the commit line without "pushed"), also for its
+TT-PERF-02 citation; its last step, the sidebar's "1 commit to push", closes in
+task-040-update-and-push-from-the-sidebar, which adds that assertion to the same scenario.
+
 Also closes G-11.1, G-11.2, G-11.3, X-07.3 of TT-STATE-03 (task-032-governed-writes-submit-approve-and-reject). RP-49: US-G-13 stays here;
 G-13.1 needs the auto-push of task-034-auto-sync-scheduler-and-auto-push.
 
 Screen: `docs/00_reference/ux-reference.md` §4.2 (*Single-action footer*), §5 (*Feedback*) and the prototype (`docs/00_reference/prototype/`), deviations only as recorded (directive `ux-consistency`). Accessibility bar: every screen and action of the task operable from the keyboard with visible focus; axe-core 0 serious/critical violations in both themes; every string from the catalogue (X-09.1). Cross-cutting: the task's e2e spec passes on Chromium, Firefox and WebKit (REQ-INT-08, task-027-e2e-suite-on-firefox-and-webkit); its screens are added to `SCREENS` (`test/e2e/support/screens.ts`) so the X-06.4 axe scan and the X-09.1 key-build check cover them; catalogue, `SCREENS` and route registration changes are append-only (RP-43).
+RP-55: the append-only rule of RP-43 also covers the web shell layout and
+`test/launcher/local-security.test.ts`; within the wave, tasks merge in task-number order, each
+rebased on `main` before its merge.
 
 ## Implementation Notes
 

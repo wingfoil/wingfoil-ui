@@ -45,6 +45,10 @@ actions blocked while the copy is behind, with an *Update* link in the footer's 
 - **US-G-12** — every `@v0.2` scenario passes:
   - `docs/02_requirements/02_bdd/features/g/blocked-actions.feature`: G-12.1 Block governed actions while behind; G-12.2 Unblock after the update; G-12.3 Do not block when the copy is only ahead
 
+Also closes the sidebar step of G-13.2 ("1 commit to push", RP-52): the scenario is owned by
+task-038-submit-footer-action-toasts-and-blocked-actions (US-G-13), which proves its toast; this
+task adds the sidebar assertion to the same e2e test.
+
 Also closes G-12.1, G-12.2, G-12.3, Y-05.1, Y-06.1, Y-06.2 of TT-STATE-04 (task-033-git-copy-state-repository-status-and-transport-routes), Y-05.2 of
 TT-PERF-07 (task-034-auto-sync-scheduler-and-auto-push) and Y-07.2 of TT-STATE-09 (task-030-ui-settings-store-and-settings-api).
 

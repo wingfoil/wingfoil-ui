@@ -37,8 +37,8 @@ full dev-loop.
   not created at all. A test kills a console with SIGKILL after a clone and shows that no
   `wfui-no-hooks-*` folder of it survives the next start (or none was created); at most one exists
   per running console. The e2e support's `wfui-e2e-fx-*` and `wfui-e2e-large-*` folders
-  (`test/e2e/support/fixtures.ts`, `test/harness/fixtures/large.ts`) are removed by the worker
-  teardown or the global teardown; a full `npm test` + `npm run test:e2e` run leaves 0 new
+  (created in `test/e2e/support/fixtures.ts` and `test/e2e/performance.spec.ts`) are removed by the worker
+  teardown or the global teardown (`test/e2e/support/global-teardown.ts`); a full `npm test` + `npm run test:e2e` run leaves 0 new
   `wfui-*` entries in the temporary directory (counted before and after).
 - **AC-2 (fresh reads)** The perf and fingerprint assertions prove that the read they measure is a
   fresh one, not cached data (bug-005; R-05.1 of task-021-accessibility-page-title-and-performance-pass, v0.1): each of `test/e2e/performance.spec.ts`,
@@ -58,7 +58,7 @@ point at a folder another user or process can write).
   console's run directory with stale ones removed at start, (b) a fixed per-user path, (c)
   `core.hooksPath` to a path git accepts as empty — to be checked with git itself.
 - `test/README.md` *Timing suite* and *Local state*; the e2e reaper of bug-004
-  (`test/e2e/support/reaper.ts`, `global-teardown.ts`) already kills leftover consoles: reuse it.
+  (`test/e2e/support/reaper.ts`, `test/e2e/support/global-teardown.ts`) already kills leftover consoles: reuse it.
 - Do not run `npm test`, `test:e2e` and `test:smoke` together in one checkout (`test/README.md`).
 
 ## Execution Notes

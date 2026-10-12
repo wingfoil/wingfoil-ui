@@ -13,7 +13,7 @@ bug: []                # optional — LIST of bug ids this task closes. Two case
                        # task already owns the ground. `bug.sync_state` iterates this list; a bug with no task naming it
                        # here never advances past `triaged` (only a reject to `closed`).
                        # dev-loop keeps the source bug's state in sync with this task via bug.sync_state
-depends_on: ["task-027-e2e-suite-on-firefox-and-webkit", "task-031-today-api-and-memory-updates-feed"]         # optional — ids of tasks whose Execution Notes constrain this one; authored at planning time, may be appended during design
+depends_on: ["task-027-e2e-suite-on-firefox-and-webkit", "task-031-today-api-and-memory-updates-feed", "task-035-how-to-join-panel"]         # optional — ids of tasks whose Execution Notes constrain this one; authored at planning time, may be appended during design
 tmpl_version: 260703   # Orignal template version
 ---
 
@@ -69,7 +69,7 @@ Screen: `docs/00_reference/ux-reference.md` §4.1 (greeting, *Requires you*, *Wa
 
 - `spec-003` §5 (placement, Today output, button labels per `action`), §7 (tone), §8 (`actor.basis`);
   `spec-004` §3 (`today?view=`), §6 (`repo` → refetch; T-03.2 and T-04.2 within 5 s).
-- Moving the landing route touches `web/src/routes/project` and the v0.1 e2e specs that assume
+- Moving the landing route touches `web/src/routes/project.tsx` and the v0.1 e2e specs that assume
   the Memory list on `/p/:pid` (e.g. `no-commit.spec.ts`, `SCREENS`).
 
 ## Execution Notes

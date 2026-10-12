@@ -30,7 +30,7 @@ write from the UI, reported in the write response's `push` field (spec-004 §5).
 
 - **TT-PERF-07** (REQ-PERF-07 — Remote freshness): [numeric] Remote commit → "1 behind" (or fast-forward) within 65 s in 10 out of 10 trials; with auto-fetch off, 0 `git fetch` processes in 120 s. *Verified by:* e2e.
   Scenarios (`@v0.2`): Y-02.1, Y-05.2, C-07.3.
-  Here: with the default interval, a commit pushed to the fixture's bare remote shows as `behind: 1` in `GET /api/p/:pid` (or is fast-forwarded with `autoUpdate` on) within 65 s in 10 of 10 trials; with `autoFetch` off the process audit counts 0 `git fetch` in 120 s. Both are elapsed-time runs: `test:timing` (RP-44), with a behaviour-only variant in the default suite.
+  Here: with the default interval, a commit pushed to the fixture's bare remote shows as `behind: 1` in `GET /api/p/:pid` (or is fast-forwarded with `autoUpdate` on) within 65 s in 10 of 10 trials; with `autoFetch` off the process audit counts 0 `git fetch` in 120 s. Both are elapsed-time runs: `test:timing` on Chromium (RP-44); the default suite and the e2e closures run with `fetchIntervalSeconds` = 15 (RP-53).
 
 - Scheduler (spec-010 §6, RP-18, RP-40): scope = projects with an open snapshot, `has-remote` and
   a fetch target; one project at a time; an overlapping tick is skipped; a project whose write
@@ -44,6 +44,10 @@ write from the UI, reported in the write response's `push` field (spec-004 §5).
 - Round-3 note of spec review: `server/src/git/git.ts` `GIT_ALLOWED_SUBCOMMANDS` gains `merge`
   (SARD REQ-INT-06 v0.10, always with `--ff-only`) and its "Never merge…" comment is corrected to
   "never a merge commit"; a unit test proves no merge commit even with `merge.ff=false`.
+
+RP-53: Y-02.1, Y-02.3 and C-07.3 run in `test:e2e` on the three engines with `fetchIntervalSeconds`
+= 15 (its minimum, RP-19); the real 60 s interval and the 65 s / 120 s budgets are measured only
+in `test:timing`, on Chromium (RP-44).
 
 e2e closure — Y-02.1 closes in task-039-repository-status-and-fetch-in-the-sidebar; Y-05.2 in task-040-update-and-push-from-the-sidebar; C-07.3 in task-041-ui-settings-page-and-theme-setting; the
 "pushed" toast (G-13.1) in task-038-submit-footer-action-toasts-and-blocked-actions; Y-07.3 in task-040-update-and-push-from-the-sidebar.

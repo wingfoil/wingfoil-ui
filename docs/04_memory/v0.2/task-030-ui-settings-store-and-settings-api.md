@@ -30,12 +30,15 @@ and the `settings` event of spec-004 §6. Server foundation of wave 1 (RP-43).
 
 - **TT-STATE-09** (REQ-STATE-09 — UI settings defaults): [boolean] A first start shows exactly these defaults; changing one takes effect within 120 s without a restart. *Verified by:* e2e.
   Scenarios (`@v0.2`): C-07.1, C-07.3, Y-07.2.
-  Here: a first start (no `settings` in `state.json`, or a v0.1 file with `{}`) reads exactly the defaults of spec-006 §2; a stored value of the wrong type or out of range reads as its default, an unknown key is dropped at the next write (RP-39); `PUT` with any key missing, a wrong type or an out-of-range integer → 400 `invalid-request`, nothing stored; a valid `PUT` → 200 with the stored settings and one `settings` event; lowering `actionLogCap` trims the oldest `actionLog` entries in the same write (RP-38). The "within 120 s" part is proved by task-034-auto-sync-scheduler-and-auto-push.
+  Here: a first start (no `settings` in `state.json`, or a v0.1 file with `{}`) reads exactly the defaults of spec-006 §2; a stored value of the wrong type or out of range reads as its default, an unknown key is dropped at the next write (RP-39); `PUT` with any key missing, a wrong type or an out-of-range integer → 400 `invalid-request`, nothing stored; a valid `PUT` → 200 with the stored settings and one `settings` event; lowering `actionLogCap` trims the oldest `actionLog` entries in the same write (RP-38). The "within 120 s" part is proved by task-034-auto-sync-scheduler-and-auto-push (`test:timing` on Chromium; in `test:e2e`, C-07.3 runs with `fetchIntervalSeconds` = 15, RP-53).
 
 e2e closure — scenarios that need a screen are proved here by API and unit tests and close in:
 task-041-ui-settings-page-and-theme-setting: C-07.1, C-07.3; task-040-update-and-push-from-the-sidebar: Y-07.2.
 
 Cross-cutting: the task's `contracts/api` schemas are committed first (RP-43) and checked against every response of its routes; every new `/api/` route adds its rows to `test/launcher/local-security.test.ts` (REQ-SEC-02/03); process audits as in `test/server/snapshot/support.ts` (`AuditedRunner`).
+RP-55: the append-only rule of RP-43 also covers the web shell layout and
+`test/launcher/local-security.test.ts`; within the wave, tasks merge in task-number order, each
+rebased on `main` before its merge.
 
 ## Implementation Notes
 

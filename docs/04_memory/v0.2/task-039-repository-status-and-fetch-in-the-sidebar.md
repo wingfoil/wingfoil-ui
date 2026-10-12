@@ -45,11 +45,16 @@ a capability that does not apply hidden, one my role lacks read-only with the re
 - **US-S-11** — every `@v0.2` scenario passes:
   - `docs/02_requirements/02_bdd/features/s/capabilities.feature`: S-11.1 Show a capability my role lacks as read-only with the reason; S-11.2 Hide a capability that does not apply to the project
 
-Also closes Y-01.3 of TT-STATE-04 (task-033-git-copy-state-repository-status-and-transport-routes) and Y-02.1 of TT-PERF-07 (task-034-auto-sync-scheduler-and-auto-push, behaviour
-only; the 65 s budget is task-034-auto-sync-scheduler-and-auto-push's timing run). S-11.1 uses the informational footer of
+Also closes Y-01.3 of TT-STATE-04 (task-033-git-copy-state-repository-status-and-transport-routes) and Y-02.1 of TT-PERF-07 (task-034-auto-sync-scheduler-and-auto-push).
+RP-53: Y-02.1, Y-02.3 and C-07.3 run in `test:e2e` on the three engines with `fetchIntervalSeconds`
+= 15 (its minimum, RP-19); the real 60 s interval and the 65 s / 120 s budgets are measured only
+in `test:timing`, on Chromium (RP-44). S-11.1 uses the informational footer of
 task-037-gate-footer-with-every-outcome.
 
 Screen: `docs/00_reference/ux-reference.md` §3 (*Git status* in the sidebar, *Sidebar*) and the prototype (`docs/00_reference/prototype/`), deviations only as recorded (directive `ux-consistency`). Accessibility bar: every screen and action of the task operable from the keyboard with visible focus; axe-core 0 serious/critical violations in both themes; every string from the catalogue (X-09.1). Cross-cutting: the task's e2e spec passes on Chromium, Firefox and WebKit (REQ-INT-08, task-027-e2e-suite-on-firefox-and-webkit); its screens are added to `SCREENS` (`test/e2e/support/screens.ts`) so the X-06.4 axe scan and the X-09.1 key-build check cover them; catalogue, `SCREENS` and route registration changes are append-only (RP-43).
+RP-55: the append-only rule of RP-43 also covers the web shell layout and
+`test/launcher/local-security.test.ts`; within the wave, tasks merge in task-number order, each
+rebased on `main` before its merge.
 
 ## Implementation Notes
 

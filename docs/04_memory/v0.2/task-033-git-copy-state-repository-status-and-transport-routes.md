@@ -13,7 +13,7 @@ bug: []                # optional — LIST of bug ids this task closes. Two case
                        # task already owns the ground. `bug.sync_state` iterates this list; a bug with no task naming it
                        # here never advances past `triaged` (only a reject to `closed`).
                        # dev-loop keeps the source bug's state in sync with this task via bug.sync_state
-depends_on: ["task-032-governed-writes-submit-approve-and-reject"]         # optional — ids of tasks whose Execution Notes constrain this one; authored at planning time, may be appended during design
+depends_on: ["task-031-today-api-and-memory-updates-feed", "task-032-governed-writes-submit-approve-and-reject"]         # optional — ids of tasks whose Execution Notes constrain this one; authored at planning time, may be appended during design
 tmpl_version: 260703   # Orignal template version
 ---
 
@@ -67,7 +67,7 @@ transports, `GIT_SSH_COMMAND` handling, credentials in errors and logs, hooks du
   `spec-001` §6 project conditions; `spec-003` §6 rule 4; `adr-001` D5, D7.
 - RP-14, RP-21 (fetch under the write lock), RP-23, RP-24, RP-25, RP-32, RP-34, RP-35, RP-36,
   RP-37. The `merge` subcommand and the `git.ts` comment belong to task-034-auto-sync-scheduler-and-auto-push.
-- Every new refusal code gets its `error.<code>` key in the web catalogue (spec-008 §7).
+- Every new refusal code gets its `error.<code>` key in the web catalogue (spec-008 §4).
 
 ## Execution Notes
 
