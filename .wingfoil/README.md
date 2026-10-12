@@ -1,6 +1,7 @@
 # `.wingfoil/` — WingFoil configuration of WingFoil UI
 
-**Version:** 0.1 · **Date:** 2026-10-11 (0.1: release v0.1, `user-docs` `align-agent-docs`) ·
+**Version:** 0.2 · **Date:** 2026-10-12 (0.1: release v0.1, `user-docs` `align-agent-docs`; 0.2:
+W-25, W-26 — dl-007) ·
 **Checked against:** `wingfoil@0.2.2` (the devDependency pin)
 
 This folder makes the WingFoil UI repository a project **governed by WingFoil**: its DNA, its Memory
@@ -31,7 +32,8 @@ machine: `memory submit` moves an element out of `draft` to the next state of it
 the next state of the sequence;
 `memory reject --reason` moves it from a gate state to the gate's reject target. A **waiting**
 state is left by a workflow phase, not by a verb: with `wingfoil@0.2.2` those transitions are hand
-edits committed as `wf(<type>): <id> [<from> → <to>]` (directive `wingfoil-cli`, W-04, W-20).
+edits committed as `wf(<type>): <id> [<from> → <to>]` (directive `wingfoil-cli`: W-04 plan, W-20
+task, W-25 release and approve-release, W-26 bug).
 
 | Type | Path | `id_pattern` | States (`sequence`) | Gates (reject →) | Waiting |
 |------|------|--------------|---------------------|------------------|---------|

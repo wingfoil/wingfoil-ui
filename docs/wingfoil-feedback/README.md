@@ -25,7 +25,9 @@ read (WingFoil `COLLABORATION.md` `## Credit`), e.g.
 `svc-019-github-repository-wingfoil-ui-a-private-consumer-project-and-its-feedback-inbox/F-001@<full sha>`;
 `svc-019` is the short key.
 
-**Last sync:** none.
+**Last sync:** none. The sync due at `release-planning` of `minor-v0.2` was skipped on 2026-10-12:
+WingFoil has not defined the sync procedure yet (task-023 Implementation Notes); no status was
+changed (`governance-alignment-rel-v0.2-plan` GA-5).
 
 ## Ledger
 
@@ -50,6 +52,9 @@ read (WingFoil `COLLABORATION.md` `## Credit`), e.g.
 | [F-017](F-017-wingfoil-directives-carry-unknown-scope-field.md) | WingFoil's own directives carry a scope field that 0.2.2 reports as unknown | defect | open | |
 | [F-018](F-018-no-per-gate-role.md) | No per-gate role: approve and reject always need the approver role | gap | open | |
 | [F-019](F-019-search-reads-working-tree-while-writes-gate-on-head.md) | memory search reads the working tree while writes gate on HEAD, and submit commits uncommitted edits | gap | open | |
+| [F-020](F-020-release-and-bug-waiting-states-have-no-verb.md) | Release and bug waiting states have no verb, and approve-release has no gate | gap | open | |
+| [F-021](F-021-usage-errors-mix-json-and-plain-text.md) | With --format json, usage errors (exit 2) are JSON or plain text depending on the error | defect | open | |
+| [F-022](F-022-duplicate-directive-ids-listed-twice.md) | directives list returns both files of a duplicated directive id, and only a warning names the one in force | gap | open | |
 
 ## Context
 
@@ -60,7 +65,8 @@ W-03, W-07, W-08, W-09, W-12, W-13 are F-013…F-018, and the unnamed candidate 
 the working tree while writes gate on HEAD" is F-019; each note says so on its first line. The
 unnamed candidate "ingestion from a client needs every required field settable by the CLI" is part
 of F-003 (its ingestion use case). The candidates W-01 (covered by R-03, now F-003) and W-04
-(covered by WingFoil task-226) had no request and have no note.
+(covered by WingFoil task-226) had no request and have no note. F-020…F-022 were added after
+the migration, by dl-007: F-020 reports W-25 and W-26, F-021 W-22 and F-022 W-23.
 
 **The former header.** The needs collected here were discovered while designing WingFoil UI and
 belong to **WingFoil**, not to the UI. Each was to be captured in the WingFoil project through its
