@@ -65,47 +65,102 @@ export interface Scan {
   used: Set<AllowEntry>;
 }
 
-// A path does not continue a word, a relative path, a URL, a placeholder (`<prefix>/bin`,
-// `${dir}/tmp`) or an escaped regex (`\/home\/`); a `file://` URL is still checked.
-const NOT_CONTINUING = String.raw`(?<![\w.~/\\>})\]$*@-])`;
-// A path ends at whitespace, a quote, a bracket or a list separator.
-const PATH_CHAR = String.raw`[^\s'"\x60()[\]{}<>,;|*]`;
-// Each rule with a substring every match holds: a line without it is skipped (speed).
-const RULES: readonly (readonly [PathRule, string, RegExp])[] = [
-  ['posix', '/', new RegExp(String.raw`(?:${NOT_CONTINUING}|(?<=file://))/(?:${CHECKED_ROOTS.join('|')})(?![\w.-])${PATH_CHAR}*`, 'g')],
-  // `\\` is a backslash escaped in source; `a:\n` (a YAML escape after a one-letter key) is not a drive.
-  ['windows', ':', new RegExp(String.raw`${NOT_CONTINUING}[A-Za-z]:(?:\\\\|\\(?![nrt0](?![A-Za-z0-9]))|/)${PATH_CHAR}+`, 'g')],
-  ['home', '~/', new RegExp(String.raw`${NOT_CONTINUING}~/${PATH_CHAR}+`, 'g')],
+/** The roots of macOS, whose default file system ignores case (`/users/alex` is `/Users/alex`). */
+const CASELESS_ROOTS: ReadonlySet<string> = new Set(['Users', 'Volumes', 'Library', 'Applications', 'System', 'private']);
+
+/** `word` matching in any case, without the `i` flag (the other roots are case-sensitive). */
+function caseless(word: string): string {
+  return [...word].map((c) => `[${c.toUpperCase()}${c.toLowerCase()}]`).join('');
+}
+
+const ROOTS = CHECKED_ROOTS.map((root) => (CASELESS_ROOTS.has(root) ? caseless(root) : root)).join('|');
+// A path does not continue a word (`snake_/x` either, while `_/x_` emphasis starts one), a
+// relative path, a URL, a `${…}` placeholder or an escaped regex (`\/home\/`). Markdown or HTML
+// around a path (`**`, `<td>`), an option (`-C/x`) or a redirection (`2>/x`) does not hide it.
+const NOT_CONTINUING = String.raw`(?<![A-Za-z0-9.~/\\])(?<![A-Za-z0-9]_)(?<!\$\{[^{}]*\})`;
+// A path may also start right after a one-letter option (`-C/x`, `-v/x`). Each rule tests its
+// first character before these look-behinds (speed).
+const START = String.raw`(?:${NOT_CONTINUING}|(?<=(?:^|[\s'"\x60])-[A-Za-z]))`;
+// A path ends at whitespace, a quote, a bracket, a list separator, or a `:` that starts another
+// path (`-v /a/x:/b/y`); a `:` inside a segment stays (`/srv/a:b@c:x`).
+const PATH_CHAR = String.raw`(?:(?!:[/~$%])[^\s'"\x60()[\]{}<>,;|*])`;
+/** The home notations, POSIX shells and Windows. */
+const HOME_PREFIX = String.raw`(?:(?:~|\$HOME|\$\{HOME\})/|%USERPROFILE%[\\/])`;
+/** A home notation alone, which names no folder. */
+const BARE_HOME = new RegExp(String.raw`^${HOME_PREFIX}$`);
+
+interface Rule {
+  rule: PathRule;
+  /** A cheap test every line holding a match passes (speed). */
+  candidate: (line: string) => boolean;
+  pattern: RegExp;
+}
+
+const RULES: readonly Rule[] = [
+  {
+    rule: 'posix',
+    candidate: (line) => line.includes('/'),
+    pattern: new RegExp(String.raw`(?=/)(?:${START}|(?<=file://))/(?:${ROOTS})(?![\w.-])${PATH_CHAR}*`, 'g'),
+  },
+  {
+    // `\\` is a backslash escaped in source; `a:\n` (a YAML escape after a one-letter key) is not a drive.
+    rule: 'windows',
+    candidate: (line) => line.includes(':'),
+    pattern: new RegExp(
+      String.raw`(?=[A-Za-z]:)(?:${START}|(?<=file:///))[A-Za-z]:(?:\\\\|\\(?![nrt0](?![A-Za-z0-9]))|/)${PATH_CHAR}+`,
+      'g',
+    ),
+  },
+  {
+    rule: 'home',
+    candidate: (line) => line.includes('~/') || line.includes('HOME') || line.includes('%USERPROFILE%'),
+    pattern: new RegExp(String.raw`(?=[~$%])${START}${HOME_PREFIX}${PATH_CHAR}*`, 'g'),
+  },
 ];
 
 /**
- * Drop what a sentence or an escape leaves at the end of a path (`.`, `:`, an escape such as
- * `\"` or `\n`) and read a backslash escaped in source (`C:\\work`) as one.
+ * Drop what a sentence, emphasis or an escape leaves at the end of a path (`.`, `:`, `_`, an
+ * escape such as `\"` or `\n`) and read a backslash escaped in source (`C:\\work`) as one.
  */
 function clean(found: string, rule: PathRule): string {
-  // A POSIX or home path holds no backslash: one starts an escape (`/bin/sh\necho`).
-  const cut = rule === 'windows' ? found : found.split('\\')[0]!;
-  return cut.replace(/(?:\\+|[.:])+$/, '').replace(/\\+/g, '\\');
+  // A POSIX path, or a home path with `/`, holds no backslash: one starts an escape (`/bin/sh\necho`).
+  const windowsLike = rule === 'windows' || found.startsWith('%');
+  const cut = windowsLike ? found : found.split('\\')[0]!;
+  return cut.replace(/(?:\\+|[.:_])+$/, '').replace(/\\+/g, '\\');
 }
 
-/** Every path of {@link RULES} in `text`, line by line, allowed or not. */
+/**
+ * Every path of {@link RULES} in `text`, line by line, allowed or not. A match inside a longer one
+ * on the same line (a POSIX path inside a drive path) is reported once, as the longer one.
+ */
 export function findPaths(text: string): PathMatch[] {
   const matches: PathMatch[] = [];
   text.split('\n').forEach((content, index) => {
-    for (const [rule, needle, pattern] of RULES) {
-      if (!content.includes(needle)) continue;
+    const spans: { start: number; end: number; path: string; rule: PathRule }[] = [];
+    for (const { rule, candidate, pattern } of RULES) {
+      if (!candidate(content)) continue;
       for (const match of content.matchAll(pattern)) {
         const found = clean(match[0], rule);
-        // A bare `~/` (the notation itself, or one before an escape as in a regex) names nothing.
-        if (found !== '~/') matches.push({ line: index + 1, path: found, rule });
+        if (!BARE_HOME.test(found)) spans.push({ start: match.index, end: match.index + match[0].length, path: found, rule });
       }
     }
+    spans.sort((a, b) => a.start - b.start || b.end - a.end);
+    let covered = -1;
+    for (const span of spans) {
+      if (span.end <= covered) continue;
+      covered = span.end;
+      matches.push({ line: index + 1, path: span.path, rule: span.rule });
+    }
   });
-  return matches.sort((a, b) => a.line - b.line);
+  return matches;
 }
 
-/** The allow-list entry that allows `found`, if any. */
+/** A `..` segment: the path may leave the folder an entry allows. */
+const PARENT_SEGMENT = /(?:^|[/\\])\.\.(?:[/\\]|$)/;
+
+/** The allow-list entry that allows `found`, if any; none for a path with a `..` segment. */
 export function allowedBy(found: string, entries: readonly AllowEntry[] = ALLOWED): AllowEntry | undefined {
+  if (PARENT_SEGMENT.test(found)) return undefined;
   return entries.find((entry) => entry.pattern.test(found));
 }
 

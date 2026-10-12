@@ -15,22 +15,54 @@ const OUTSIDE = ['', 'home', 'jo-probe', 'notes', 'plan.md'].join('/');
 const OUTSIDE_WINDOWS = ['C:', 'Users', 'jo-probe', 'notes'].join('\\');
 const OUTSIDE_HOME = ['~', 'jo-probe', 'notes'].join('/');
 
+// Not allow-listed, so built at run time: in committed text the tracked-tree check would flag them.
+const JDOE = ['', 'home', 'jdoe'].join('/');
+const JDOE_TILDE = ['~', 'jdoe'].join('/');
+const JDOE_WINDOWS = ['C:', 'Users', 'jdoe'].join('\\');
+const JDOE_WINDOWS_SLASH = ['C:', 'Users', 'jdoe', 'x'].join('/');
+const JDOE_MACOS_LOWER = ['', 'users', 'jdoe'].join('/');
+const JDOE_DRIVE_URL = ['c:', 'users', 'jdoe', 'x'].join('/');
+const JDOE_TMP = ['', 'tmp', 'jdoe-err.log'].join('/');
+const DOLLAR_HOME = '$' + 'HOME';
+const BRACED_HOME = '$' + '{HOME}';
+const USERPROFILE = '%' + 'USERPROFILE%';
+
 describe('findPaths', () => {
   it.each([
-    ['a POSIX home path', 'see /home/alex/projects/kanban here', '/home/alex/projects/kanban'],
-    ['a macOS home path', "path: '/Users/alex'", '/Users/alex'],
-    ['a root-level system path', 'reads /proc/loadavg', '/proc/loadavg'],
-    ['a temporary folder', '`/tmp/pwned`', '/tmp/pwned'],
-    ['a bare root directory', 'PATH: "/bin"', '/bin'],
-    ['a file URL', 'open file:///home/alex/x.md', '/home/alex/x.md'],
-    ['a path in a JSON string', '"at \\"/home/test/projects/kanban\\""', '/home/test/projects/kanban'],
-    ['a Windows drive path', 'C:\\Users\\alex\\kanban', 'C:\\Users\\alex\\kanban'],
-    ['an escaped Windows drive path', String.raw`'C:\\remotes\\kanban.git'`, 'C:\\remotes\\kanban.git'],
-    ['a Windows drive path with slashes', 'C:/work/kanban', 'C:/work/kanban'],
-    ['a home-relative path', 'clone into ~/projects/kanban.', '~/projects/kanban'],
-    ['a POSIX path before an escape', String.raw`'#!/bin/sh\necho'`, '/bin/sh'],
+    ['a POSIX home path', 'see /home/alex/projects/kanban here', ['/home/alex/projects/kanban']],
+    ['a macOS home path', "path: '/Users/alex'", ['/Users/alex']],
+    ['a macOS root in another case', `see ${JDOE_MACOS_LOWER}`, [JDOE_MACOS_LOWER]],
+    ['a root-level system path', 'reads /proc/loadavg', ['/proc/loadavg']],
+    ['a temporary folder', '`/tmp/pwned`', ['/tmp/pwned']],
+    ['a bare root directory', 'PATH: "/bin"', ['/bin']],
+    ['a file URL', 'open file:///home/alex/x.md', ['/home/alex/x.md']],
+    ['a file URL with a drive, once', `open file:///${JDOE_DRIVE_URL}`, [JDOE_DRIVE_URL]],
+    ['a path in a JSON string', '"at \\"/home/test/projects/kanban\\""', ['/home/test/projects/kanban']],
+    ['a Windows drive path', 'C:\\Users\\alex\\kanban', ['C:\\Users\\alex\\kanban']],
+    ['an escaped Windows drive path', String.raw`'C:\\remotes\\kanban.git'`, ['C:\\remotes\\kanban.git']],
+    ['a Windows drive path with slashes, once', JDOE_WINDOWS_SLASH, [JDOE_WINDOWS_SLASH]],
+    ['a drive-like YAML key before a path, once', `a:${JDOE}/x`, [`a:${JDOE}/x`]],
+    ['a home-relative path', 'clone into ~/projects/kanban.', ['~/projects/kanban']],
+    ['a $HOME path', `${DOLLAR_HOME}/x and ${BRACED_HOME}/y`, [`${DOLLAR_HOME}/x`, `${BRACED_HOME}/y`]],
+    ['a %USERPROFILE% path', `${USERPROFILE}\\x`, [`${USERPROFILE}\\x`]],
+    ['a POSIX path before an escape', String.raw`'#!/bin/sh\necho'`, ['/bin/sh']],
+    ['a path in Markdown bold', `**${JDOE}/x**`, [`${JDOE}/x`]],
+    ['a path in Markdown emphasis', `*${JDOE}/x*`, [`${JDOE}/x`]],
+    ['a path in underscore emphasis', `_${JDOE}/x_`, [`${JDOE}/x`]],
+    ['a home path in Markdown bold', `**${JDOE_TILDE}/x**`, [`${JDOE_TILDE}/x`]],
+    ['a Windows path in Markdown emphasis', `*${JDOE_WINDOWS}*`, [JDOE_WINDOWS]],
+    ['a redirection target', `cmd 2>${JDOE_TMP}`, [JDOE_TMP]],
+    ['a path after >', `>${JDOE}/x`, [`${JDOE}/x`]],
+    ['a path in an HTML cell', `<td>${JDOE}</td>`, [JDOE]],
+    ['a path in HTML code', `<code>${JDOE}/x</code>`, [`${JDOE}/x`]],
+    ['a path glued to an option', `git -C${JDOE}/x status`, [`${JDOE}/x`]],
+    ['a path glued to a volume option', `docker -v${JDOE}/x:/data`, [`${JDOE}/x`]],
+    ['a path after $', `$${JDOE}/x`, [`${JDOE}/x`]],
+    ['two paths joined by a colon', `docker run -v /home/alex/x:${JDOE}/secret`, ['/home/alex/x', `${JDOE}/secret`]],
+    ['a temporary path joined to a home path', `/tmp/x:${JDOE}`, ['/tmp/x', JDOE]],
+    ['a colon inside a segment', "remote '/srv/a:b@c:x'", ['/srv/a:b@c:x']],
   ])('finds %s', (_name, text, expected) => {
-    expect(findPaths(text).map((m) => m.path)).toEqual([expected]);
+    expect(findPaths(text).map((m) => m.path)).toEqual(expected);
   });
 
   it.each([
@@ -38,13 +70,14 @@ describe('findPaths', () => {
     ['a URL path', 'https://git.example.test/srv/remotes/home/x.git'],
     ['a repository-relative path', 'docs/tmp/x and test/server/process/runner.ts'],
     ['a parent-relative path', "the id '../../etc'"],
-    ['a placeholder prefix', '`<prefix>/bin/wingfoil` and `${dir}/tmp/x`'],
+    ['a template placeholder', '`${dir}/tmp/x`'],
+    ['a word continued by an underscore', 'snake_/tmp/x'],
     ['an escaped regex', 'expect(x).toMatch(/^\\/home\\/alex\\//)'],
     ['a data URL', 'src="data:image/png;base64,AAAA"'],
     ['a YAML escape after a one-letter key', String.raw`'types:\n  a:\n    path: a/{id}.md'`],
     ['an unlisted root directory', '/assets/index.js and /docs/guide'],
     ['a word that only starts like a root', '/homepage and /tmpl/x'],
-    ['the bare home notation', 'a `~/` path, or the regex ~/\\.config/'],
+    ['the bare home notation', `a \`~/\` path, the regex ~/\\.config/, ${DOLLAR_HOME}/ alone`],
   ])('ignores %s', (_name, text) => {
     expect(findPaths(text)).toEqual([]);
   });
@@ -75,10 +108,18 @@ describe('the allow-list', () => {
     expect(allowedBy(['', 'home', 'alexandra', 'kanban'].join('/'))).toBeUndefined();
     expect(allowedBy(OUTSIDE)).toBeUndefined();
   });
+
+  it('allows no path with a parent segment', () => {
+    // Split so that the committed text holds no `..` path below an allowed folder.
+    for (const probe of ['/home/alex/' + '../jdoe', '~/projects/' + '../jdoe', '/tmp/wfui-x/' + '../../home/jdoe']) {
+      expect(allowedBy(probe), probe).toBeUndefined();
+    }
+    expect(allowedBy('/home/alex/kanban/..state')).toBeDefined();
+  });
 });
 
 describe('scanRepository', () => {
-  let workspace: TempWorkspace;
+  let workspace: TempWorkspace | undefined;
   let repo: string;
   let env: NodeJS.ProcessEnv;
   let scan: Scan;
@@ -102,7 +143,7 @@ describe('scanRepository', () => {
   });
 
   afterAll(async () => {
-    await workspace.dispose();
+    await workspace?.dispose();
   });
 
   it('fails on a tracked file holding an outside path, naming file and line (AC-2)', () => {

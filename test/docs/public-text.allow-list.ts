@@ -33,7 +33,7 @@ export const ALLOWED: readonly AllowEntry[] = [
   // the one-letter or "secret" homes of unit tests; `/home/…` elides a fixture folder.
   entry(String.raw`/home/(?:alex|test|a|secret|…)`, 'fictitious users of the BDD conventions, specs and unit tests'),
   entry(String.raw`/Users/alex`, 'the fictitious BDD user Alex on macOS (state location tests)', 'i'),
-  entry(String.raw`[A-Z]:\\Users\\alex`, 'the fictitious BDD user Alex on Windows (state location tests)', 'i'),
+  entry(String.raw`[A-Z]:[\\/]Users[\\/]alex`, 'the fictitious BDD user Alex on Windows (state location tests)', 'i'),
 
   // The product's own default folders: the clone folder `~/projects/<repo>` (spec-006, the Add
   // project dialog), the BDD scenarios' `~/work/…`, the state directory and git's
@@ -51,7 +51,9 @@ export const ALLOWED: readonly AllowEntry[] = [
   exact(String.raw`/dev/(?:null|zero)`, 'standard device files'),
   exact(String.raw`/etc(?:/hosts|/passwd)?`, 'standard system files, read-outside-the-repository probes'),
   exact(String.raw`/proc(?:/loadavg|/net|/…)?(?:/\$)?`, 'the process filesystem (load average, sockets, process tables)'),
-  exact(String.raw`/usr/(?:bin/(?:env|git|wingfoil)|local/bin)|/bin(?:/sh)?`, 'standard program locations'),
+  exact(String.raw`/usr/(?:bin/(?:env|git|wingfoil)|local/bin)|/bin(?:/sh|/wingfoil)?`, 'standard program locations'),
+  // npm's global layout below a `<prefix>` placeholder (`<prefix>/lib/node_modules/wingfoil/…`).
+  entry(String.raw`/lib/node_modules/wingfoil`, "npm's global package layout, shown below a prefix placeholder"),
   entry(String.raw`[A-Z]:\\Windows\\win\.ini`, 'a standard Windows file, a read-outside-the-repository probe', 'i'),
 
   // Fictitious remotes and project folders of the remote, clone and state tests.

@@ -180,7 +180,7 @@ no particular system temporary path (task-026 points `TMPDIR`/`TMP`/`TEMP` at a 
     root" self-check true for `/etc`, `/proc`, `/bin` and `/tmp`.
   - A stale entry's failure message gives the entry's pattern and reason and says to delete
     it from the allow-list.
-- **Run time:** `scanRepository` on the full tree (737 files, 0 binary, about 6 MB) took
+- **Run time:** `scanRepository` on the full tree (737 tracked files at the time of measurement, 0 binary, about 6 MB) took
   0.53 to 0.71 s over five runs at load 10.3. A first version without the per-line substring
   pre-filter took 0.95 to 1.42 s at load 10.9. The scan runs one `git ls-files -z`, then one
   `lstat` and one read per file.
@@ -195,3 +195,45 @@ no particular system temporary path (task-026 points `TMPDIR`/`TMP`/`TEMP` at a 
     include.
   - `test:e2e` was not run because no UI changed. `test:timing` was skipped because the load
     was above 12.
+
+### review (round 1, 2026-10-13)
+
+Verdict FAIL: 1 major, 1 minor, 6 nits. Each finding and the change made:
+
+- **F1 (major):** the look-behind of a path start skipped `*`, `>`, `-`, `$`, `@`, `)`, `]` and
+  `_`. As a result, a path in Markdown emphasis, in an HTML cell, after a redirection, glued to
+  an option, or after `$` was not seen.
+  - The guard now skips only a letter, a digit, `.`, `~`, `/` or `\` (word, relative path, URL,
+    escaped regex). It also skips `_` after a letter or a digit, and a `${…}` placeholder.
+  - A path right after a one-letter option (`-C`, `-v`) is found.
+  - The `<prefix>` placeholders this exposed are now allow-listed: `/bin/wingfoil` (exact) and
+    `/lib/node_modules/wingfoil`. `<root>/home` was already allowed as a bare root, and in
+    `<port>/private.git` the `.` already ends the root name.
+  - Every reviewer input is a row of the "finds" table, built at run time from segments.
+- **F2 (minor):** a path now ends before a `:` that starts another path (`:/`, `:~`, `:$`, `:%`).
+  `-v /home/alex/x:/…` gives two paths, and the second is checked on its own. `/srv/a:b@c:x`
+  stays one path. Table rows added.
+- **N1:** a path below `$HOME`, `${HOME}` or `%USERPROFILE%` is a home path, like one below `~`.
+  A bare notation is not reported. 0 hits on the tree.
+- **N2:** the macOS roots (`Users`, `Volumes`, `Library`, `Applications`, `System`, `private`)
+  match in any case. A drive path right after `file:///` is found. The Alex entries accept `/`
+  as well as `\` on Windows, and `/Users/alex` was already case-insensitive (it covers
+  `test/server/state/location.test.ts:110`).
+- **N3:** a match inside a longer one on the same line is reported once, as the longer one: a
+  drive path, or a drive-like YAML key before a POSIX path.
+- **N4:** `allowedBy` refuses a path with a `..` segment (`..state` is not one). New test.
+- **N5:** `afterAll` runs `await workspace?.dispose()`.
+- **N6:** the run-time note above names the file count "at the time of measurement".
+
+Run time after the fixes: 1.0–1.4 s over five runs on the 739 tracked files at the time of
+measurement, at load 24. Each rule now tests its first character before its look-behinds,
+which brought one run from 1.5–3.0 s at load 27 down to this.
+
+Gates (2026-10-13, load about 27):
+
+- `npx vitest run test/docs/public-text.test.ts`: 53 passed.
+- `npm run typecheck` and `npm run lint`: 0. `npm run format:check`: clean.
+- `check_tasks.py v0.2`: "17 tasks · 46 backlog items · 46 listed", OK.
+- `test:coverage` was not re-run. Only `test/docs/public-text*.ts` changed, which is outside
+  the coverage include and imported by no other test, so the round-0 run (119 files, 1980
+  tests) still covers the rest.
