@@ -145,7 +145,7 @@ spec-008 §7):
 |--------|----------|------------|--------------------------|
 | `no-remote` | — | fetch, update, push | "This repository has no remote — add one with git in a terminal" (normally unseen: the controls are hidden, §7) |
 | `detached-head` | — | update, push | "Blocked: no branch checked out" (Y-01.3) |
-| `no-fetch-target` | — | fetch | "Nothing to fetch from: this branch has no upstream and the repository has several remotes, none named origin — set an upstream with git in a terminal" |
+| `no-fetch-target` | — | fetch | "Nothing to fetch from: no upstream is set and the repository has several remotes, none named origin — set an upstream with git in a terminal" |
 | `no-upstream` | — | update, push | "This branch has no upstream on the remote — set one with git in a terminal" |
 | `diverged` | — | update | "Cannot fast-forward: your copy and the remote have diverged — run git pull --rebase or git merge in a terminal" (Y-06.1) |
 | `local-changes-in-the-way` | `{ files }` | update | "Cannot fast-forward: local changes to {files} are in the way — commit or stash them in a terminal" (Y-06.2) |

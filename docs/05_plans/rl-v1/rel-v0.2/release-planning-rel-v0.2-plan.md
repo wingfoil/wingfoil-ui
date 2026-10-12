@@ -246,3 +246,9 @@ Decision (checkpoint 2d; the approver: option A):
   *Update* as `git pull --ff-only` (`03_is-isnot.md`, `05_journeys.md`, `06_features.md` Y4,
   US-Y-05) stay: they describe the user's *Update*, which is still `pull --ff-only`; the automatic
   update has the same effect (fast-forward only).
+- Spec review round 3 **PASS** (`spec-review.passed`), 4 nits: the `no-fetch-target` text made
+  neutral for a detached HEAD (fixed); the vision and story-map *Update* wording and the
+  `update.feature` header left as decided above (to be reworded when those files are next
+  touched); `server/src/git/git.ts` "Never merge" comment and `GIT_ALLOWED_SUBCOMMANDS` change
+  belong to the git-sync task (carried to `build-backlog`); git's `hint:` lines in a verbatim
+  `sync.update.lastError` accepted as cosmetic.
