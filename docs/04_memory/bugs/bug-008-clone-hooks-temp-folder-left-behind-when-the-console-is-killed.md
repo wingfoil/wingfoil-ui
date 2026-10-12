@@ -2,7 +2,7 @@
 id: bug-008-clone-hooks-temp-folder-left-behind-when-the-console-is-killed
 type: bug
 title: "Clone hooks temp folder left behind when the console is killed"
-status: triaged
+status: planned
 severity: "low"           # REQUIRED — critical | high | medium | low
 release-origin: "v0.1"     # optional — release where the bug was FOUND, e.g. "v0.1"
 release: "v0.2"            # optional — fix/implementation release, stamped by release-planning/build-backlog
@@ -58,3 +58,7 @@ most one exists per running console.
   submit.
 
 ## Triage & Execution Notes
+- fix: **planned into task-026-load-independent-tests-and-one-temp-folder-convention**
+  (release-planning v0.2 build-backlog, plan `release-planning-rel-v0.2-plan` RP-42; dl-006
+  action 1; `bug:` list of the task). `triaged → planned` set by hand (directive `wingfoil-cli`
+  W-26).
