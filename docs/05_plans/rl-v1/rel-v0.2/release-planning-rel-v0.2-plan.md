@@ -254,3 +254,45 @@ Decision (checkpoint 2d; the approver: option A):
   `sync.update.lastError` accepted as cosmetic.
 - spec-010 submitted (`5c1c3c1`) and approved by the approver (`1fcedfb`, `pending → approved`).
   Session 2 closed.
+
+### Session 3 — 2026-10-12
+
+Input: a read-only grouping proposal (17 tasks, coverage of the 46 records exactly once and an
+acyclic dependency order, both checked by script).
+
+Decisions (checkpoint 3, the approver: "as recommended"):
+
+- **RP-42** — 17 tasks: four governance tasks (026 load-independent tests and one temp-folder
+  convention absorbing bug-033; 027 e2e on Firefox and WebKit, REQ-INT-08; 028 public-text check;
+  029 npm publishing pipeline and registry checklist, dl-029) and 13 product tasks (030–034
+  server, 035–042 web), each owning the backlog records listed in its body.
+- **RP-43** — waves: 0 = 026, 028, then 027; 1 = 030, 031, 035; 2 = 032, 036; 3 = 033, 037;
+  4 = 034, 042; 5 = 038, 039, 041; 6 = 040; 029 any time before release validation. Server tasks
+  commit their `contracts/api` schemas first; the shared catalogue, `SCREENS` and `app.ts` are
+  append-only.
+- **RP-44** — 027 is a separate, early task; the approver installs the WebKit system dependencies
+  (`npx playwright install-deps`, sudo); timing and perf runs stay on Chromium only.
+- **RP-45** — TT-SEC-10: 032 delivers the action log and a scripted ratio check; the number is
+  recorded at the retrospective between v0.2 and v0.3.
+- **RP-46** — 029 is done with the pipeline, the checklist and a local smoke; the approver does
+  the registry-side setup before `release-submit`, otherwise v0.2 ships as a tag only with a
+  decision-log (as dl-029).
+- **RP-47** — adversarial security review (dl-031 action 6) for 032, 033, 034 and 026's
+  `clone.ts` change.
+- **RP-48** — TT-SEC-08 belongs to 033; 032 implements spec-029 §4 row 5 for governed writes.
+- **RP-49** — US-G-13 stays in 038 (038 depends on 034).
+- **RP-50** — X-08.3 (041) and REQ-INT-08 (027), carried by no backlog record, join the session-4
+  audit checklist.
+- **RP-51** — 17 tasks in 8 active days accepted, actual effort recorded per task; 042 and 029
+  are the first candidates to defer if the budget runs short.
+
+Steps:
+
+- 17 task drafts created with `memory add --set release=v0.2`: `task-026` … `task-042`, numbered
+  after v0.1's `task-025`. With `wingfoil@0.2.2` the `{n}` counter is the number of elements in the
+  destination folder plus one (directive `wingfoil-cli` W-27): a first run in the new folder
+  `docs/04_memory/v0.2/` produced `task-001` … `task-017`; at the approver's request that run was
+  dropped from the branch history (branch reset to `0df01a8`, force-pushed) and the tasks were
+  created again with 25 untracked placeholder files in the folder, removed afterwards (no commit
+  contains them). Bodies filled from the grouping proposal; `check_tasks.py v0.2` → 17 tasks ·
+  46 backlog items · 46 listed, OK.
