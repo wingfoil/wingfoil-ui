@@ -2,7 +2,7 @@
 id: task-027-e2e-suite-on-firefox-and-webkit
 type: task
 title: "E2e suite on Firefox and WebKit"
-status: pending
+status: backlog
 release: "v0.2"
 module: "governance"             # optional — server | web | contracts (dna.yaml modules)
 priority: "high"           # optional — high | medium | low
