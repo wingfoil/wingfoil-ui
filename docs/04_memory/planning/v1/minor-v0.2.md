@@ -68,7 +68,17 @@ Actual effort per phase (dl-006 action 6; wall-clock of the working sessions, 20
 | Phase | Plan | Sessions | Effort |
 |-------|------|----------|--------|
 | Governance alignment (pre-step) | `governance-alignment-rel-v0.2-plan` | 2026-10-12 10:05–11:00 | ~1 h |
-| release-planning | `release-planning-rel-v0.2-plan` | session 1 from 2026-10-12 11:00 | in progress |
+| release-planning | `release-planning-rel-v0.2-plan` | sessions 1–2 2026-10-12 11:00–14:45 | in progress |
+
+- 2026-10-12 — `release-planning-rel-v0.2-plan` sessions 1–2 (branch `design/release-planning_v0.2`).
+  `advance-pinned-build` no-op (0.2.2 newest); `minor-v0.2` `draft → planning` (`4c8ead3`);
+  `triage-bugs`, `reconcile-governance` empty; no ADR. Load: all 46 backlog records kept, budget
+  5 → 8 active days (sequencer v0.7, RP-8); spec-002 §4 incremental parse moved to v0.3 (RP-9).
+  `identify-specs`: one uncovered artefact — spec-010 git sync (approved `1fcedfb`) — and
+  amendments of spec-001/002/003/004/006/007, adr-001 D5/D7, SARD 0.11, BDD G-14.2, directive
+  `cli-only-writes` 1.6 (RP-10 … RP-41); independent spec review PASS at round 3 (FAIL 2 major/10
+  minor, FAIL 2 minor, PASS). Governance/technical tasks for build-backlog: load-independent tests
+  with bug-008, public-text check, npm publishing pipeline (RP-3, RP-11).
 
 ### Implementation (dev-loop, per task)
 

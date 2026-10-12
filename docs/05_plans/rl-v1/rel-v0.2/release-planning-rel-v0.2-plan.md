@@ -252,3 +252,5 @@ Decision (checkpoint 2d; the approver: option A):
   touched); `server/src/git/git.ts` "Never merge" comment and `GIT_ALLOWED_SUBCOMMANDS` change
   belong to the git-sync task (carried to `build-backlog`); git's `hint:` lines in a verbatim
   `sync.update.lastError` accepted as cosmetic.
+- spec-010 submitted (`5c1c3c1`) and approved by the approver (`1fcedfb`, `pending → approved`).
+  Session 2 closed.
