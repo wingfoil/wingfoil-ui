@@ -2,7 +2,7 @@
 id: spec-010-git-sync-repository-status-and-transport
 type: tech-spec
 title: "Git sync, repository status and transport"
-status: pending
+status: approved
 scope: "copy state, repository status, git transport (fetch, fast-forward update, push) and the auto-sync scheduler"              # REQUIRED — the artefact this spec covers, e.g. "server HTTP API", "CLI JSON contract: memory search", ".wingfoil/ui.yaml"
 wingfoil_version: ""   # optional — for a CLI contract: the WingFoil version the shape was captured from
 supersedes: ""         # optional — id of the tech-spec this one replaces, e.g. "spec-002"
