@@ -339,3 +339,8 @@ Decisions (checkpoint 4, the approver: "as recommended", RP-54 after checking Wi
 - Backlog audit round 3 **PASS** (no finding above nit): `check_tasks.py v0.2` 17 tasks · 46
   items · 46 listed OK; 93 `@v0.2` scenarios each owned once; dependencies acyclic and consistent
   with RP-43. The 17 tasks go to the approver for `memory approve` (`pending → backlog`).
+- The approver approved the 17 tasks (`pending → backlog`, 17 `wf(task): approve` commits);
+  release `minor-v0.2` `planning → in-development` by hand (`24c2dbe`, W-25);
+  release Execution Notes and effort table updated. Next: `release-cycle` phase `implementation`
+  (dev-loop per task, waves of RP-43, starting with task-026 and task-028); the approver installs
+  the WebKit system dependencies before task-027 (RP-44).
