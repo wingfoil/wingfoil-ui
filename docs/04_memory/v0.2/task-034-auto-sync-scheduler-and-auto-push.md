@@ -2,7 +2,7 @@
 id: task-034-auto-sync-scheduler-and-auto-push
 type: task
 title: "Auto sync scheduler and auto-push"
-status: pending
+status: backlog
 release: "v0.2"
 module: "server"             # optional — server | web | contracts (dna.yaml modules)
 priority: "high"           # optional — high | medium | low
