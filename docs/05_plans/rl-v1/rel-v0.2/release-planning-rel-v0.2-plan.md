@@ -296,3 +296,11 @@ Steps:
   created again with 25 untracked placeholder files in the folder, removed afterwards (no commit
   contains them). Bodies filled from the grouping proposal; `check_tasks.py v0.2` → 17 tasks ·
   46 backlog items · 46 listed, OK.
+- bug-008 `triaged → planned`, absorbed into task-026 (`c01d13f`, W-26); dl-006 `release: v0.2`
+  (`4709552`, RP-6); dl-007, dl-008 left empty, dl-004 keeps `v0.1`; spec-010 already `v0.2`.
+- The 17 tasks submitted (`draft → pending`), each submit carrying its body. Bodies cite DLs in
+  the text (no `kind:` or `dl:` frontmatter field: neither the task template nor `memory.yaml`
+  defines one). For the session-4 audit (RP-50): X-08.3 (task-041), REQ-INT-08 (task-027),
+  S-11.1 cited under TT-SEC-07 in task-037 but run in task-039, the TT-SEC-08 scenarios closed by
+  web tasks that do not depend on task-033, and the names chosen in the bodies (task-032 ratio
+  script, task-029 workflow and smoke script, task-028 allow-list examples). Session 3 closed.
