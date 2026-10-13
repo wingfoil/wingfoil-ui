@@ -240,3 +240,15 @@ New shared names for consumers: the types above; `GET /api/p/:pid/today?view=` a
   `memoryEventsQuery` (key `queryKeys.project(pid, 'events', 'memory', { limit })`) to
   `web/src/api/queries.ts`, keys fixed now; (b) this task adds both factories to `queries.ts` now
   (a server task touching a web hot spot, with no consumer to test them).
+
+#### Decisions (approver, 2026-10-13)
+
+"All as recommended": D31-1 (a), D31-2 (a), D31-3 (a), D31-4 (a), D31-5 (a), D31-6 (a). The
+shared shapes are fixed as proposed (the `contracts` types, `TodayAction` moved out of
+`placement.ts`, `actor.basis` in `descriptor.schema.json`, no new event-stream event; the web
+queries are task-036's and task-042's with the keys named above). The observation on
+`GET …/elements?archived=<bad>` answering 400 before 404 on an unknown pid stays as it is
+(spec-004 §4's order table is written for writes); noted here only. Amended in place with dated
+Process Notes: spec-004 §3 (`before`, `limit`) and spec-003 §5 (Waiting on others order, no
+partial Today on a failed input, a member with no role, an unidentified user with `?view=`).
+task-030 merges first; `main` is merged into this branch before submit.

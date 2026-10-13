@@ -149,6 +149,14 @@ configuration unreadable) and for a type `memory.yaml` does not declare (descrip
 `?view=` must be a role view the member can choose (`roleViews`), else 400 `invalid-request`;
 absent → the remembered role view (`roleView`, or the default).
 
+`GET /api/p/:pid/events/memory`: `limit` is an integer from 1 to 100 (default 10); `before` is
+the `sha` of an event the client holds (the oldest of its last page) and gives the events after
+it in the newest-first order, exclusive; a `limit` out of range or not an integer, or a `before`
+that is not the sha of an event of the current log (e.g. history rewritten), → 400
+`invalid-request` (the client starts again from the top). An unknown `:pid` answers 404 before
+any 400. A `memory.yaml` that cannot be read → 502 `read-error`; a failed or refused Memory event
+read → 500 `internal` (details in the log only).
+
 ### 4. Write preconditions and refusals
 
 Checked by the server in this order (Fastify validates the body before the handler):
@@ -322,3 +330,7 @@ goes away by itself when the stream reconnects. A network failure is not rendere
   details): §6 the `repo` event with an unchanged `state` only when a sync error is set, changed
   or cleared, never for `lastSuccessAt` alone (as spec-010 §2); §5 the fetch-only refusal
   `no-fetch-target` (spec-010 §5).
+- 2026-10-13 — amended in dev-loop task-031 (minor-v0.2 Wave 1, plan dev-loop-rel-v0.2-plan,
+  D31-1, D31-2): §3 `events/memory` — `limit` 1 to 100 (default 10), `before` = an event's sha,
+  exclusive, an unknown sha or an out-of-range `limit` → 400 `invalid-request`, 404 for an
+  unknown project first, `read-error` / `internal` for a failed input. Decided by the approver.
