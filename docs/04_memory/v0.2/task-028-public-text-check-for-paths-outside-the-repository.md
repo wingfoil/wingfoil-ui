@@ -295,5 +295,6 @@ Gates (2026-10-13, load about 12):
   conflict resolved as 0.26 (task-026 took 0.25).
 - On the merged tree the check flagged two lines of task-026's Execution Notes: git's hook probe
   `/dev/null/post-checkout` (allow-list: the `/dev/null` entry now covers it, with its reason) and
-  a `<state>/run/…` placeholder (reworded in task-026's notes). After the fix the test file passes
-  67/67 — the check working as intended on another task's text.
+  a placeholder for a folder in the state directory (reworded in task-026's notes). After the
+  fix the test file passes 67/67 — the check working as intended on another task's text. The
+  first wording of this note quoted that placeholder and was flagged too (reworded on `main`).
