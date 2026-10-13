@@ -48,7 +48,7 @@ export const ALLOWED: readonly AllowEntry[] = [
 
   // Generic system files and directories, the same on every machine.
   // `$` is where a template placeholder (`/proc/${pid}`) starts.
-  exact(String.raw`/dev/(?:null|zero)`, 'standard device files'),
+  exact(String.raw`/dev/(?:null|zero)(?:/post-checkout)?`, 'standard device files; git probes a hook below /dev/null when it is the hooks path'),
   exact(String.raw`/etc(?:/hosts|/passwd)?`, 'standard system files, read-outside-the-repository probes'),
   exact(String.raw`/proc(?:/loadavg|/net|/…)?(?:/\$)?`, 'the process filesystem (load average, sockets, process tables)'),
   exact(String.raw`/usr/(?:bin/(?:env|git|wingfoil)|local/bin)|/bin(?:/sh|/wingfoil)?`, 'standard program locations'),

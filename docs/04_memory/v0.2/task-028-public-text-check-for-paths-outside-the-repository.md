@@ -288,3 +288,12 @@ Gates (2026-10-13, load about 12):
   findings (739 files).
 - `main` merged into the task branch before submit (`d25bce0`); after the merge the test file
   passes 67/67 and `check_tasks.py v0.2` is OK.
+
+### integration (2026-10-13)
+
+- `main` with task-026 merged into the branch (`e920779`); `test/README.md` version line
+  conflict resolved as 0.26 (task-026 took 0.25).
+- On the merged tree the check flagged two lines of task-026's Execution Notes: git's hook probe
+  `/dev/null/post-checkout` (allow-list: the `/dev/null` entry now covers it, with its reason) and
+  a `<state>/run/…` placeholder (reworded in task-026's notes). After the fix the test file passes
+  67/67 — the check working as intended on another task's text.
