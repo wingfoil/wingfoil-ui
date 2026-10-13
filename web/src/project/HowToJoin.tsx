@@ -23,6 +23,8 @@ import { Button, Dialog, Heading, Modal, ModalOverlay } from 'react-aria-compone
 import { defineMessages, FormattedMessage, useIntl } from 'react-intl';
 import { ApiError } from '../api/client.js';
 import { projectConfigQuery, projectHeaderQuery } from '../api/queries.js';
+import { RoleChips } from '../dna/DnaView.js';
+import '../dna/rules.css';
 import { ErrorText } from '../shell/ErrorText.js';
 import { joinCommand, joinEmail, joinTeam, type JoinTeam } from './join.js';
 import './how-to-join.css';
@@ -234,12 +236,13 @@ function Team({ team }: { team: JoinTeam }): ReactNode {
         </p>
       )}
       {team.kind !== 'noMember' && team.roles.length > 0 && (
-        <p className="how-to-join-roles">
-          <FormattedMessage
-            id="shell.howToJoin.roles"
-            values={{ roles: intl.formatList(team.roles, { type: 'unit', style: 'short' }) }}
-          />
-        </p>
+        <div className="how-to-join-roles">
+          <p>
+            <FormattedMessage id="shell.howToJoin.roles" />
+          </p>
+          {/* One chip per role, as the DNA and Team views show them: each role is data. */}
+          <RoleChips roles={team.roles} />
+        </div>
       )}
     </>
   );

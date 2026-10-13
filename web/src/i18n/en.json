@@ -206,7 +206,7 @@
   "shell.howToJoin.open": "How to join",
   "shell.howToJoin.placeholderName": "'<Your Name>'",
   "shell.howToJoin.placeholderRoles": "'<roles>'",
-  "shell.howToJoin.roles": "Roles this project declares: {roles}",
+  "shell.howToJoin.roles": "Roles this project declares:",
   "shell.howToJoin.title": "How to join this project",
   "shell.nav.directives": "Directives",
   "shell.nav.dna": "DNA",

@@ -107,7 +107,12 @@ it('opens from the badge: the tech leads, the command and the declared roles (C-
   const command = d.querySelector('code.cli-command');
   expect(command?.textContent).toBe(COMMAND);
   expect(command?.getAttribute('translate')).toBe('no');
-  expect(within(d).getByText('Roles this project declares: developer, tech-lead, approver')).toBeTruthy();
+  const roles = within(d).getByText('Roles this project declares:').parentElement!;
+  expect(
+    within(roles)
+      .getAllByRole('listitem')
+      .map((li) => li.textContent),
+  ).toEqual(['developer', 'tech-lead', 'approver']);
 });
 
 it('reads the configuration only once the panel opens', async () => {

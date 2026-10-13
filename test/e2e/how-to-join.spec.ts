@@ -65,9 +65,16 @@ test.describe('How to join (US-C-08, US-C-09)', () => {
       { timeout: COLD_READ_MS },
     );
     await expect(command(page)).toHaveText(COMMAND);
-    await expect(p.getByText(/^Roles this project declares: /)).toHaveText(
-      'Roles this project declares: developer, reviewer, qa, architect, product-owner, tech-lead, approver',
-    );
+    await expect(p.locator('.how-to-join-roles .role-chip')).toHaveText([
+      'developer',
+      'reviewer',
+      'qa',
+      'architect',
+      'product-owner',
+      'tech-lead',
+      'approver',
+    ]);
+    await expect(p.locator('.how-to-join-roles p')).toHaveText('Roles this project declares:');
     expect(await scanThemes(page)).toEqual([]);
 
     // The keyboard path: Escape closes and the focus is back on the badge; Tab reaches the badge,
