@@ -53,9 +53,15 @@ describe('state.schema.json', () => {
 
   it('accepts action-log entries with a SHA-1 or a SHA-256 hash', () => {
     const at = '2026-10-12T09:30:02Z';
-    expect(validate({ ...example, actionLog: [{ sha: SHA1, at }, { sha: SHA256, at: '2026-10-12T09:30:02.5Z' }] })).toBe(
-      true,
-    );
+    expect(
+      validate({
+        ...example,
+        actionLog: [
+          { sha: SHA1, at },
+          { sha: SHA256, at: '2026-10-12T09:30:02.5Z' },
+        ],
+      }),
+    ).toBe(true);
   });
 
   it.each([
