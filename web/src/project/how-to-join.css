@@ -1,0 +1,67 @@
+/* The How to join panel (task-035) and the not-in-team badge as its opener (spec-009 tokens). */
+
+.how-to-join p {
+  margin: 0;
+}
+
+.how-to-join-command {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.how-to-join-command pre {
+  margin: 0;
+  padding: var(--space-3);
+  overflow-x: auto;
+  border: 1px solid var(--color-divider);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-2);
+  color: var(--color-text);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.how-to-join-command code {
+  font-family: var(--font-mono);
+  font-size: 13px;
+}
+
+.how-to-join-copy {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.how-to-join-copied:empty {
+  display: none;
+}
+
+.how-to-join-leads {
+  margin: var(--space-2) 0 0;
+  padding-left: var(--space-5);
+}
+
+.how-to-join-roles {
+  color: var(--color-text-muted);
+  font-size: 13px;
+}
+
+/* The badge is a button (D35-2): the badge's look, plus a pointer and the focus ring. */
+button.current-user-badge {
+  border: none;
+  font: inherit;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+button.current-user-badge[data-hovered] {
+  text-decoration: underline;
+}
+
+.project-notice-join {
+  flex: none;
+  height: auto;
+  padding: 2px var(--space-2);
+  font-size: 13px;
+}

@@ -9,6 +9,7 @@
 import { createRoute, Link, Outlet, useRouter } from '@tanstack/react-router';
 import { useMemo, type ReactNode } from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
+import { HowToJoinProvider } from '../project/HowToJoin.js';
 import { ProjectHeader } from '../project/ProjectHeader.js';
 import { navGroups, type NavGroup } from './nav.js';
 import { rootRoute } from './root.js';
@@ -49,7 +50,7 @@ function ProjectLayout(): ReactNode {
   const router = useRouter();
   const groups = useMemo(() => navGroups(Object.values(router.routesById)), [router]);
   return (
-    <>
+    <HowToJoinProvider pid={pid}>
       <ProjectNav pid={pid} groups={groups} />
       <main id="main" className="shell-main" tabIndex={-1}>
         {/* Not keyed: its notices live region survives a project switch (W5-13); the header keys its
@@ -57,7 +58,7 @@ function ProjectLayout(): ReactNode {
         <ProjectHeader pid={pid} />
         <Outlet />
       </main>
-    </>
+    </HowToJoinProvider>
   );
 }
 
