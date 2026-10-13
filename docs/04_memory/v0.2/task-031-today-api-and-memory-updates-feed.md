@@ -329,3 +329,9 @@ substitute red check of the route tests accepted.
 - Checks after the fixes: `typecheck`, `lint`, `format:check` clean; `today-routes.test.ts`,
   `process-audit.test.ts`, public-text check: 85 passed (3 files); `check_tasks.py v0.2` OK. No
   server code changed, so `test:coverage` was not re-run.
+
+### review (round 2, 2026-10-13)
+
+- Independent fresh-context review: round 1 **FAIL** (1 minor, 4 nits), round 2 **PASS** on
+  `1e2f8fb` (no finding): F1–F5 re-verified; the warmed-up 0-process check proves an option-like
+  `before` never reaches git; `/today` and `events/memory` share one event cache per HEAD.
