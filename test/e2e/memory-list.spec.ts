@@ -177,8 +177,9 @@ test.describe('US-M-01 — Memory list', () => {
   test('M-01.4 — Show a type with no element', async ({ page, fixtures, consoles }) => {
     const c = await consoles.start({ projects: [await fixtures.get('kanban')] });
     await openList(page, c);
+    // A type with no element comes from `GET /config` only, which may answer after the rows (bug-009).
     const adr = typeList(page).getByRole('link', { name: 'adr, 0 elements' });
-    await expect(adr).toBeVisible();
+    await expect(adr).toBeVisible({ timeout: COLD_READ_MS });
     await adr.click();
     await expect(page.getByText('No adr yet', { exact: true })).toBeVisible();
     expect(await scanThemes(page)).toEqual([]);

@@ -34,8 +34,9 @@ What v0.1 shows:
 - **git**, with `user.email` set (it identifies you in each project's team).
 - In each project you open: a **WingFoil CLI** — pinned in the project (`npm install --save-dev
   wingfoil`) or on the `PATH` — inside the supported range below.
-- A current desktop browser: Chrome, Edge, Firefox or Safari. On `main` the end-to-end suite runs
-  on the **Chromium**, **Firefox** and **WebKit** engines; release v0.1.0 was tested on Chromium only.
+- A current desktop browser: Chrome, Edge, Firefox or Safari. On `main` the end-to-end suite
+  runs on the **Chromium**, **Firefox** and **WebKit** engines; release v0.1.0 was tested on
+  Chromium only.
 
 ## Install and run
 
@@ -136,10 +137,11 @@ npm workspaces: `contracts/`, `server/`, `web/`. After `npm ci`:
 | `npm run test:smoke` | the launch smoke: packs the repository, installs the tarball into a temporary folder and starts it with `npx wingfoil-ui` |
 | `npm run docs:api` | TypeDoc of `server/` and `contracts/` into `docs-api/` |
 
-Browsers for the end-to-end suite, once per machine: `npx playwright install chromium firefox webkit`
-and the WebKit system libraries `sudo npx playwright install-deps` (Linux; needs administrator
-rights). Details of every suite: [`test/README.md`](test/README.md). The governance CLI of this repository is
-the pinned devDependency: `npm run -s wingfoil -- <command>`.
+Browsers for the end-to-end suite, once per machine:
+`npx playwright install chromium firefox webkit` and the WebKit system libraries
+`sudo npx playwright install-deps` (Linux; needs administrator rights). Details of every suite:
+[`test/README.md`](test/README.md). The governance CLI of this repository is the pinned
+devDependency: `npm run -s wingfoil -- <command>`.
 
 | Path | Content |
 |------|---------|

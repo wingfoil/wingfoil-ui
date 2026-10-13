@@ -36,6 +36,23 @@ describe('playwright.config.ts (npm run test:e2e)', () => {
       expect(matches(p.grepInvert, '@live-refresh'), p.name).toBe(false);
     }
   });
+
+  it('hides no test from any engine but @perf (no other filter, review F1)', () => {
+    // No suite-wide filter either: it would hide tests from every engine.
+    for (const key of ['grep', 'grepInvert', 'testIgnore', 'testMatch'] as const) {
+      expect(config[key], key).toBeUndefined();
+    }
+    for (const p of projects) {
+      // Exactly a name, the device, and on firefox/webkit the @perf exclusion: no project-level
+      // grep, testIgnore, testMatch, testDir or a widened grepInvert can skip a scenario on an engine.
+      const keys = p.name === 'chromium' ? ['name', 'use'] : ['grepInvert', 'name', 'use'];
+      expect(Object.keys(p).sort(), p.name).toEqual(keys);
+      const invert = p.grepInvert as RegExp | undefined;
+      expect(invert === undefined ? undefined : [invert.source, invert.flags], p.name).toEqual(
+        p.name === 'chromium' ? undefined : ['@perf', ''],
+      );
+    }
+  });
 });
 
 describe('playwright.timing.config.ts (npm run test:timing)', () => {

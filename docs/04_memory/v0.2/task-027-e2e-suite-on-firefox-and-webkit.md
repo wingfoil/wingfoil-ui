@@ -289,3 +289,39 @@ AC-1: 100 % of the scenarios pass on each engine (the full run above; no skip, t
 measurement on Chromium only by D27-2). `wfui-*` entries in the system temporary directory: 1
 before (the pre-existing `wfui-no-hooks-*`), 1 after all the runs — 0 new, no `wfui-run-*` root, no
 console left (`pgrep -af bin/wingfoil-ui.cjs`).
+
+### review (round 1, 2026-10-13)
+
+Independent review: **FAIL** (2 minor, 2 nits; the rest verified).
+
+- **F1 (minor)** — `playwright-config.test.ts` would miss an engine skip hidden in another
+  project key (`testIgnore`, `testMatch`, `grep`) or a widened `grepInvert` (e.g.
+  `/@perf|M-01/`). Change: a new test "hides no test from any engine but @perf" — no suite-wide
+  `grep`/`grepInvert`/`testIgnore`/`testMatch`; each project's keys exactly `name` + `use` (+
+  `grepInvert` on `firefox`/`webkit`); `grepInvert` source and flags exactly `@perf` / `''` on
+  `firefox` and `webkit`, none on `chromium`. Red check (not committed): `PERF = /@perf|M-01/` →
+  the new test fails (the old ones still passed); `testIgnore: /clipboard/` on `webkit` → fails;
+  restored → 5/5.
+- **F2 (minor)** — M-01.4 waited for `adr, 0 elements` (a link only `GET /config` gives) with the
+  default 5 s: the bug-009 race. Change: `{ timeout: COLD_READ_MS }` with a comment. Sweep of the
+  suite for other assertions on something only the configuration shows (declared types or states
+  with no element) — a type or state filter that exists among the elements also shows before
+  `/config` answers, so only zero-element entries race: `memory-list.spec.ts` M-01.1 (`task, 4`,
+  `bug, 1` — elements), M-01.2 (*All types*, the bucket links — elements' descriptors), M-01.5
+  (`task, 4`; the state names polled), M-02.1 (`story`, `note` — elements, after the poll), M-02.2
+  (bucket links, *Done* with 0 included — descriptor buckets, not configuration), M-02.3
+  (`story` — elements); `scrum.spec.ts` (`task, 3`); **`projects.spec.ts` S-16.1 (switch to custom):
+  `plan, …` — the custom fixture has no `plan` element, so config-only with 5 s: fixed the same
+  way**; `decision-log, …` there has elements. The DNA, directives, team, documentation and header
+  views read the configuration as their own first read, waited for with `expectFirstLoad` /
+  `COLD_READ_MS` already (single query, no race).
+- **F3 (nit)** — `clipboard.spec.ts`: `.rejects.toThrow(/nothing was copied/)` (the helper's
+  message).
+- **F4 (nit)** — the lines this task added over 100 columns re-wrapped: `test/README.md` (the
+  `harness/` paragraph, the *Timing suite* Playwright paragraph), `README.md` (browser
+  requirement, browser setup). Longer lines elsewhere in the file predate this task.
+- Checks after the fixes: `typecheck`, `lint`, `format:check` clean; `playwright-config.test.ts`
+  + `public-text.test.ts` 72 passed; `check_tasks.py v0.2` OK; `npm run test:e2e --
+  memory-list.spec.ts harness/clipboard.spec.ts projects.spec.ts` on the three engines **108
+  passed** (7.0 min, load 10.3 → 27.8); `wfui-*` entries 1 before, 1 after (the pre-existing one);
+  no console left.

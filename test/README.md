@@ -83,9 +83,10 @@ Every test lives under `test/` (DNA `paths.tests`); sources stay in `server/src`
   - `support/git-http.ts` (task-014): `startGitHttpRemote(base, { credentials?, hold? })` — a dumb-HTTP
     git remote on 127.0.0.1 (Basic auth refusals, answers held until `release()`) — and
     `bareRepository(base, name, files, env)`; remotes stay offline.
-  `harness/` holds the self-tests of the support (axe helper, console + SSE helper, the X-09.1 check,
-  the focus ring helper and the clipboard helper), run on the three engines like every spec. `test/harness/fixtures/large.ts` builds the SARD large fixture (custom +
-  500 generated elements + 2 000 commits through `git fast-import`) for `performance.spec.ts` only.
+  `harness/` holds the self-tests of the support (axe helper, console + SSE helper, the X-09.1
+  check, the focus ring helper and the clipboard helper), run on the three engines like every
+  spec. `test/harness/fixtures/large.ts` builds the SARD large fixture (custom + 500 generated
+  elements + 2 000 commits through `git fast-import`) for `performance.spec.ts` only.
   task-025 (e2e-smoke gaps): `scrum.spec.ts` opens the `scrum` fixture (Memory list, element panel,
   DNA, axe in both themes, AC-4); `no-commit.spec.ts` walks `SCREENS`, picks a role view and
   switches project, then checks with `harness/repo-state.ts` that both repositories are unchanged
@@ -246,11 +247,11 @@ them. Run the timing suite on a quiet machine (load average well below the core 
 the printed load with the result; a failure under load is re-run, not "fixed". Counting tests
 (processes, events) are not timing tests and stay in the default suite.
 
-`npm run test:timing` also runs a Playwright part (`playwright.timing.config.ts`, W3-47; Chromium only, task-027): the
-live-refresh scenarios S-25.2, S-26.1, S-26.2 and S-27.2 (tag `@live-refresh`) on the real bin, one
-at a time, with `WFUI_STRICT_REFRESH=1`: the screen must change within 5 s of the mutation (the
-commit, the file write or the CLI verb that commits — watcher, event stream, refetch and render
-included), and each time is printed with the load (`refreshClock()` of
+`npm run test:timing` also runs a Playwright part (`playwright.timing.config.ts`, W3-47; Chromium
+only, task-027): the live-refresh scenarios S-25.2, S-26.1, S-26.2 and S-27.2 (tag `@live-refresh`)
+on the real bin, one at a time, with `WFUI_STRICT_REFRESH=1`: the screen must change within 5 s of
+the mutation (the commit, the file write or the CLI verb that commits — watcher, event stream,
+refetch and render included), and each time is printed with the load (`refreshClock()` of
 `test/e2e/support/cold-read.ts`). The same tests in `npm run test:e2e` check the behaviour only (the
 screen changes by itself, without a reload) with the cold-read budget, at any load. It also runs
 TT-PERF-04 (tag `@perf`, `performance.spec.ts`, task-021): each other view reached by in-app

@@ -50,5 +50,5 @@ test('fails when the action copies nothing', async ({ page }) => {
   await copiedBy(page, () => page.getByRole('button', { name: 'Copy', exact: true }).click());
   await expect(
     copiedBy(page, () => page.getByRole('button', { name: 'Does not copy' }).click(), { timeout: 1_000 }),
-  ).rejects.toThrow();
+  ).rejects.toThrow(/nothing was copied/);
 });
