@@ -2,7 +2,7 @@
 id: bug-009-memory-list-e2e-reads-the-filter-names-once-and-fails-under-load
 type: bug
 title: "Memory list e2e reads the filter names once and fails under load"
-status: in-review
+status: resolved
 severity: "low"        # REQUIRED — critical | high | medium | low
 release-origin: "v0.1" # optional — release where the bug was FOUND, e.g. "v0.1"
 release: ""            # optional — fix/implementation release, stamped by release-planning/build-backlog
