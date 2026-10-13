@@ -234,3 +234,15 @@ New shared functions and types other tasks will use (to be fixed by the coordina
   written), the `settings` event is sent; the shell already shows `state.newerVersion` ("changes
   are not saved"); (b) refuse with 409 and a new code (`state-read-only`): a spec-004 §5 addition
   and a catalogue string for task-041.
+
+#### Decisions (approver, 2026-10-13)
+
+"All as recommended": D30-1 (a), D30-2 (a), D30-3 (a), D30-4 (a), D30-5 (a). spec-006 amended in
+place (§2 `settings` and `actionLog` rows, §4 reads and the newer-version rule) with a dated
+Process Note for D30-1, D30-2, D30-3, D30-5. The shared shapes are fixed as stated above
+(`UiSettings`, `UiTheme`, `ActionLogEntry`; `StateStore.settings()` / `putSettings()`;
+`StateDraft.settings` / `actionLog` with the cap applied by the store; `registerSettingsRoutes` /
+`SETTINGS_PATH`; the bus event `{ event: 'settings', data: {} }`); the web `settingsQuery` /
+`['settings']` key is left to task-041. Shared files stay append-only (task-031 also appends to
+`contracts/src/index.ts`, `local-security.test.ts` and the `test/README.md` version line; 030
+merges first).
