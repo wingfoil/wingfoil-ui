@@ -6,6 +6,13 @@ All notable changes to WingFoil UI are recorded in this file. The format follows
 
 ## [Unreleased]
 
+### Fixed
+
+- **No temporary folder left by a killed console** (bug-008): a clone no longer creates the empty
+  hooks folder `wfui-no-hooks-*` in the system temporary directory; git runs with its hooks path
+  on a regular file of the console's own installation, so no hook runs and nothing is left behind
+  when the console is killed (`kill -9`).
+
 ## [0.1.0] - 2026-10-11
 
 **Read-only console.** Open any WingFoil project and read it safely. Supports WingFoil **0.2.2 to

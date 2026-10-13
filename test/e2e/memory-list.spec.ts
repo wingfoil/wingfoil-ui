@@ -322,6 +322,9 @@ test.describe('US-S-26 — refresh by itself', () => {
     await row(page, 'task-001-login-form').click();
     const panel = page.getByRole('dialog', { name: 'Login form', exact: true });
     await expectFirstLoad(panel.getByRole('listitem').filter({ hasText: 'submitted by Jordan' }));
+    const line = panel.getByRole('listitem').filter({ hasText: 'signed off by Alex' });
+    // The new state is not on screen before the change (task-026, AC-2).
+    await expect(line).toHaveCount(0);
     const clock = refreshClock();
     await mutateAndWait(
       page,
@@ -331,7 +334,6 @@ test.describe('US-S-26 — refresh by itself', () => {
       },
       { event: 'repo', pid: c.pids[0]! },
     );
-    const line = panel.getByRole('listitem').filter({ hasText: 'signed off by Alex' });
     await expect(line).toBeVisible({ timeout: clock.timeout() });
     clock.done('S-26.2 open panel refreshed');
     const head = (await git(kanban.dir, ['rev-parse', 'HEAD'], kanban.env)).stdout.trim();

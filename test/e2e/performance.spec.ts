@@ -30,10 +30,15 @@ const test = base.extend<object, { large: LargeFixture }>({
     // eslint-disable-next-line no-empty-pattern -- Playwright requires the destructuring
     async ({}, use) => {
       const root = await realpath(await mkdtemp(path.join(tmpdir(), 'wfui-e2e-large-')));
-      const fx = await buildLargeFixture({ root });
-      await actAs(fx, 'Morgan');
-      await use(fx);
-      await rm(root, { recursive: true, force: true });
+      // Removed even when the build or the worker fails (task-026); the global teardown removes the
+      // run's temporary root after a killed worker.
+      try {
+        const fx = await buildLargeFixture({ root });
+        await actAs(fx, 'Morgan');
+        await use(fx);
+      } finally {
+        await rm(root, { recursive: true, force: true, maxRetries: 5 });
+      }
     },
     { scope: 'worker', timeout: 600_000 },
   ],
@@ -116,13 +121,28 @@ const VIEWS: View[] = [
 
 /**
  * One run in a fresh page: open `from`, wait until settled, then time the navigation. The view's
- * own read must not have been sent before the key press, and must be sent after it (W5-6).
+ * own read must not have been sent before the key press, and must be sent after it (W5-6) and
+ * answered from the server — a finished request with a 2xx status, no cached or failed answer
+ * (task-026, AC-2).
  */
 async function run(page: Page, c: RunningConsole, view: View): Promise<number> {
   const pid = c.pids[0]!;
+  const own = (url: string) => new URL(url).pathname === view.reads(pid);
   let reads = 0;
+  let answered = 0;
   page.on('request', (r) => {
-    if (new URL(r.url()).pathname === view.reads(pid)) reads += 1;
+    if (own(r.url())) reads += 1;
+  });
+  page.on('requestfinished', (r) => {
+    if (!own(r.url())) return;
+    void r
+      .response()
+      .then((res) => {
+        if (res?.ok()) answered += 1;
+      })
+      .catch(() => {
+        // the page closed meanwhile: not an answer
+      });
   });
   await openConsole(page, c, { path: view.from(pid) });
   await expect(view.target(page)).toBeVisible({ timeout: COLD_READ_MS });
@@ -130,6 +150,9 @@ async function run(page: Page, c: RunningConsole, view: View): Promise<number> {
   expect(reads, `${view.reads(pid)} read before the key press`).toBe(0);
   const ms = await timeNavigation(page, view.target(page), view.ready);
   expect(reads, `${view.reads(pid)} not read after the key press`).toBeGreaterThan(0);
+  await expect
+    .poll(() => answered, { message: `${view.reads(pid)} not answered (2xx) after the key press` })
+    .toBeGreaterThan(0);
   return ms;
 }
 

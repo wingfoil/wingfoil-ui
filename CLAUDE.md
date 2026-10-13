@@ -1,6 +1,6 @@
 # CLAUDE.md — agent entry point
 
-**Version:** 0.2 · **Date:** 2026-10-11 (0.1: release v0.1, `user-docs` `align-agent-docs`; 0.2: v0.1.0 released, release submit)
+**Version:** 0.3 · **Date:** 2026-10-12 (0.1: release v0.1, `user-docs` `align-agent-docs`; 0.2: v0.1.0 released, release submit; 0.3: `test:smoke` wave gate — task-026)
 
 WingFoil UI: a local web UI for WingFoil-governed projects. A Node.js server (`server/`) drives
 each project's pinned `wingfoil` CLI and reads git; a React app (`web/`) shows the result;
@@ -60,6 +60,7 @@ accepted as a limitation: [`CHANGELOG.md`](CHANGELOG.md).
   (`doc-versioning`); update the affected docs in the same change as the behaviour (`documentation`).
 - **Checks before handing work back:** `npm run typecheck`, `npm run lint`, `npm run format:check`,
   `npm test` (or `test:coverage`), `npm run test:e2e` when the UI changes; `test:timing` only on a
-  quiet machine.
+  quiet machine; `npm run test:smoke` at the end of every wave and when packaging, the launcher or
+  the bin changes ([`test/README.md`](test/README.md) *Launch smoke*, *Temporary folders*).
 - **Never** edit `.wingfoil/` or Memory files to change a state a verb owns; never put secrets in
   the repository or the local state (`security-secrets`).

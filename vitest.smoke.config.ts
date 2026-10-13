@@ -8,6 +8,8 @@ export default defineConfig({
   test: {
     include: ['test/smoke/**/*.smoke.test.ts'],
     exclude: ['**/node_modules/**'],
+    // The run's temporary root (task-026).
+    globalSetup: ['test/smoke/global-setup.ts'],
     fileParallelism: false,
     sequence: { concurrent: false },
     testTimeout: 120_000,

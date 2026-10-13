@@ -1,6 +1,6 @@
 # User guide — WingFoil UI v0.1
 
-**Version:** 0.3 · **Date:** 2026-10-11 (0.1: release v0.1; 0.2: bug-008 known limitation, release submit; 0.3: bug-008 wording)
+**Version:** 0.4 · **Date:** 2026-10-12 (0.1: release v0.1; 0.2: bug-008 known limitation, release submit; 0.3: bug-008 wording; 0.4: bug-008 marked fixed after 0.1.0 — task-026)
 
 WingFoil UI v0.1 is a **read-only console** for WingFoil-governed projects: you open a project and
 read its Memory, elements, DNA, directives, team and documentation, kept up to date while you work
@@ -334,7 +334,8 @@ Accepted for v0.1 and recorded in the implementation plan
   git log, not incrementally; very long histories make this read slower.
 - **One string outside the catalogue:** a screen-reader-only library string (React Aria's
   "Dismiss", in popovers).
-- **A killed console leaves a temporary folder.** If the console is killed by a signal it does not
-  handle (e.g. `kill -9`; Ctrl-C, `kill` and closing the terminal clean up) after a clone, an
-  empty folder `wfui-no-hooks-*` stays in the system temporary directory; it holds no data and can
-  be deleted by hand. Fix planned for v0.2.
+- **A killed console leaves a temporary folder** (fixed after 0.1.0, see `CHANGELOG.md`,
+  *Unreleased*). In 0.1.0, if the console is killed by a signal it does not handle (e.g. `kill -9`;
+  Ctrl-C, `kill` and closing the terminal clean up) after a clone, an empty folder
+  `wfui-no-hooks-*` stays in the system temporary directory; it holds no data and can be deleted
+  by hand.
