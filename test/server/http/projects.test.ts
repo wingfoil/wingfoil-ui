@@ -115,7 +115,9 @@ interface World {
  * `PATH` holds no `wingfoil` but the pinned package installed globally (a fresh clone has no
  * `node_modules`), unless `cliOnPath` is false.
  */
-async function world(options: { cliOnPath?: boolean; stateDir?: (fx: Fixture) => string } = {}): Promise<World> {
+async function world(
+  options: { cliOnPath?: boolean; stateDir?: (fx: Fixture) => string; hooksPath?: string } = {},
+): Promise<World> {
   n += 1;
   const dir = path.join(root, `w${n}`);
   const fx = await copyFixture(template, dir);
@@ -140,6 +142,7 @@ async function world(options: { cliOnPath?: boolean; stateDir?: (fx: Fixture) =>
     stateDir,
     env,
     homedir: fx.home,
+    ...(options.hooksPath !== undefined ? { hooksPath: options.hooksPath } : {}),
   });
   const logs: string[] = [];
   const captured = new Writable({
@@ -764,6 +767,25 @@ describe('POST /api/projects/clone (S-04, S-05.2, S-06, S-07)', () => {
       await expect(lstat(marker)).rejects.toThrow();
     },
   );
+
+  it('answers internal (500) with no path and runs no git when the hooks path is unusable (task-026 F1)', async () => {
+    const missing = path.join(root, 'no-such-hooks-file');
+    const w = await world({ hooksPath: missing });
+    const spawned = runner.spawned.length;
+    const res = await post(w, '/api/projects/clone', {
+      url: `file://${w.fx.remoteDir}`,
+      directory: '~/projects/no-hooks',
+    });
+    expect(res.statusCode, res.body).toBe(500);
+    expect(res.json()).toEqual({ error: { code: 'internal', message: 'Internal error' } });
+    expect(res.body).not.toContain(missing);
+    expect(res.body).not.toContain('hooks');
+    expect(runner.spawned.slice(spawned).filter((r) => gitSubcommand(r.args) === 'clone')).toEqual([]);
+    await expect(lstat(path.join(w.home, 'projects', 'no-hooks'))).rejects.toThrow();
+    // The details go to the server log only.
+    expect(w.logs.join('')).toContain(missing);
+    expect(await list(w)).toEqual([]);
+  });
 
   it('runs no CLI of the cloned repository: a committed node_modules/wingfoil never runs, name = folder', async () => {
     const w = await world();

@@ -80,8 +80,13 @@ export const test = base.extend<{ consoles: Consoles }, WorkerFixtures>({
         }
         return b;
       };
-      await use({ get, copy: async (kind) => copyFixture(await get(kind), path.join(root, `copy-${++copies}`)) });
-      await rm(root, { recursive: true, force: true });
+      // Removed even when the worker fails; a worker killed before this runs leaves it under the
+      // run's temporary root, which the global teardown removes (task-026).
+      try {
+        await use({ get, copy: async (kind) => copyFixture(await get(kind), path.join(root, `copy-${++copies}`)) });
+      } finally {
+        await rm(root, { recursive: true, force: true, maxRetries: 5 });
+      }
     },
     { scope: 'worker', timeout: 300_000 },
   ],

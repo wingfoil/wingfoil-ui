@@ -1,6 +1,6 @@
 # Tests
 
-**Version:** 0.25 · **Date:** 2026-10-12 (0.1: workspace tooling and e2e harness — task-001; 0.2: `test/launcher/`, `test/server/` — task-002; 0.3: `test/contracts/`, local state isolation, secret scan — task-007; 0.4: `local-security` suite — task-003; 0.5: process runner fake, hand-made CLI packages, stub after global options — task-004; 0.6: CLI contract tests, captured samples, `test:contract` — task-005; 0.7: action descriptor tests, REQ-ARC-05 lint rule — task-011; 0.8: matrix builds of `cliBuildFor`, capability table and README checks — task-006; 0.9: identity tests, bin with a seeded state — task-009; 0.10: timing suite `test:timing`, `TempWorkspace`, snapshot audits and stand-ins — task-010 / bug-001; 0.11: project-list route tests, a dumb-HTTP git remote — task-008; 0.12: read routes, the read console replacing the stand-ins, spec-002 §3 event parse, confinement — task-012; 0.13: `test/web/` component tests, the shared e2e support of Wave 3, the shell e2e — task-013; 0.14: `test/web/element/` and the element panel e2e `element-panel.spec.ts` — task-018; 0.15: `test/web/docs/` and the documentation e2e `documentation.spec.ts` — task-020; 0.16: `test/web/memory/` and the Memory list e2e `memory-list.spec.ts` — task-017; 0.17: `test/web/dna/`, `directives/`, `team/`, the e2e `dna`, `directives`, `team` specs and G-02 in `element-panel.spec.ts`; load-independent waits, prebuilt fixtures and the console reaper of the e2e support, `test/harness/load.ts` — task-019 / bug-004; 0.18: the Playwright part of `test:timing` (strict live refresh) — task-019, W3-47; 0.19: `wingfoil-feedback.test.ts`, the WingFoil feedback inbox and the `wingfoil-cli` *Note* column — task-023; 0.20: the project switcher e2e `projects.spec.ts`, `stateDir` of the e2e console, `test/web/shell/project-switcher`, `switch-target`, `test/web/api/projects` — task-015; 0.21: the Add project e2e `add-project.spec.ts`, `support/switcher.ts`, `support/git-http.ts`, `test/web/shell/add-project`, `add-project-fields`, `working-directory` — task-014; 0.22: the project header e2e `project-header.spec.ts`, `test/web/project/`, `test/web/api/role-view` — task-016; 0.23: the e2e-smoke `accessibility` spec `accessibility.spec.ts`, `performance.spec.ts` (`@perf`, TT-PERF-04) and the large fixture `test/harness/fixtures/large.ts`, `support/screens.ts`, `strings.ts`, `perf.ts`, `focusRing`/`tabUntil`, `test/web/shell/page-title` — task-021; 0.24: the packaging guard `test/package/`, the launch smoke `test/smoke/` and `test:smoke`, the `scrum` fixture and `scrum.spec.ts`, `test/harness/repo-state.ts` and `no-commit.spec.ts`; the Vitest global setup builds `web/dist` too — task-025 / bug-007; 0.25: the public-text check `test/docs/public-text.test.ts` — task-028)
+**Version:** 0.26 · **Date:** 2026-10-13 (0.1: workspace tooling and e2e harness — task-001; 0.2: `test/launcher/`, `test/server/` — task-002; 0.3: `test/contracts/`, local state isolation, secret scan — task-007; 0.4: `local-security` suite — task-003; 0.5: process runner fake, hand-made CLI packages, stub after global options — task-004; 0.6: CLI contract tests, captured samples, `test:contract` — task-005; 0.7: action descriptor tests, REQ-ARC-05 lint rule — task-011; 0.8: matrix builds of `cliBuildFor`, capability table and README checks — task-006; 0.9: identity tests, bin with a seeded state — task-009; 0.10: timing suite `test:timing`, `TempWorkspace`, snapshot audits and stand-ins — task-010 / bug-001; 0.11: project-list route tests, a dumb-HTTP git remote — task-008; 0.12: read routes, the read console replacing the stand-ins, spec-002 §3 event parse, confinement — task-012; 0.13: `test/web/` component tests, the shared e2e support of Wave 3, the shell e2e — task-013; 0.14: `test/web/element/` and the element panel e2e `element-panel.spec.ts` — task-018; 0.15: `test/web/docs/` and the documentation e2e `documentation.spec.ts` — task-020; 0.16: `test/web/memory/` and the Memory list e2e `memory-list.spec.ts` — task-017; 0.17: `test/web/dna/`, `directives/`, `team/`, the e2e `dna`, `directives`, `team` specs and G-02 in `element-panel.spec.ts`; load-independent waits, prebuilt fixtures and the console reaper of the e2e support, `test/harness/load.ts` — task-019 / bug-004; 0.18: the Playwright part of `test:timing` (strict live refresh) — task-019, W3-47; 0.19: `wingfoil-feedback.test.ts`, the WingFoil feedback inbox and the `wingfoil-cli` *Note* column — task-023; 0.20: the project switcher e2e `projects.spec.ts`, `stateDir` of the e2e console, `test/web/shell/project-switcher`, `switch-target`, `test/web/api/projects` — task-015; 0.21: the Add project e2e `add-project.spec.ts`, `support/switcher.ts`, `support/git-http.ts`, `test/web/shell/add-project`, `add-project-fields`, `working-directory` — task-014; 0.22: the project header e2e `project-header.spec.ts`, `test/web/project/`, `test/web/api/role-view` — task-016; 0.23: the e2e-smoke `accessibility` spec `accessibility.spec.ts`, `performance.spec.ts` (`@perf`, TT-PERF-04) and the large fixture `test/harness/fixtures/large.ts`, `support/screens.ts`, `strings.ts`, `perf.ts`, `focusRing`/`tabUntil`, `test/web/shell/page-title` — task-021; 0.24: the packaging guard `test/package/`, the launch smoke `test/smoke/` and `test:smoke`, the `scrum` fixture and `scrum.spec.ts`, `test/harness/repo-state.ts` and `no-commit.spec.ts`; the Vitest global setup builds `web/dist` too — task-025 / bug-007; 0.25: *Temporary folders* (the run's temporary root `harness/temp-root.ts`, the clone hooks path, `launcher/clone-hooks.test.ts`), fresh-read preconditions, `test:smoke` as a wave gate — task-026 / bug-008; 0.26: the public-text check `test/docs/public-text.test.ts` — task-028)
 
 Every test lives under `test/` (DNA `paths.tests`); sources stay in `server/src`, `web/src`,
 `contracts/src`.
@@ -185,6 +185,12 @@ phase's duration is printed; measured on 2026-10-11 at load 5.1: pack (clean bui
 10.9 s, install 1.6 s, `--version` 0.9 s, start 1.0 s, the whole file ~17 s; tarball 120 files,
 514 kB packed, 1.38 MB unpacked.
 
+`npm run test:smoke` is a **gate of every wave** (task-026, AC-3; bug-007 was found only at
+release validation): run it at the end of each dev-loop wave, after the wave's tasks are
+integrated, besides release validation and any task that touches packaging, the launcher or the
+bin. The smoke also clones a repository with a committed hook through the installed console
+(bug-008): the hooks path of the packed `server/dist` is a regular file and no hook runs.
+
 Do not run `npm test` / `test:coverage`, `test:e2e` and `test:smoke` at the same time in one
 checkout: each rebuilds `web/dist` (and `server/dist`) in place — the Vitest and Playwright global
 setups, and `prepack` — so one could read a build the other is rewriting.
@@ -216,6 +222,41 @@ A test that runs a long process in a temporary folder uses `TempWorkspace`
 (`test/harness/temp-workspace.ts`): `dispose()` in `afterAll` kills the processes still running
 (after a test timeout), waits for them, then removes the folder — nothing is left in the temporary
 directory.
+
+## Temporary folders
+
+One convention for every temporary folder of the tests and of the console (task-026, bug-008);
+a run leaves no `wfui-*` entry in the system temporary directory:
+
+- **The run's temporary root** (`test/harness/temp-root.ts`). The global setup of every runner —
+  `test/global-setup.ts` (`npm test`, `test:coverage`, and `test:timing` through
+  `test/timing/global-setup.ts`), `test/smoke/global-setup.ts` (`test:smoke`),
+  `test/e2e/support/global-setup.ts` (`test:e2e` and the Playwright part of `test:timing`) —
+  creates `<system tmp>/wfui-run-<pid>-<time>-<random>/` with an `owner` file (made under a
+  staging name, then renamed) and points `TMPDIR`, `TMP` and `TEMP` at its `tmp/` folder
+  (`WFUI_TEMP_ROOT` names the root). Every `os.tmpdir()` of the run lands there: test files,
+  workers, fixtures, consoles, git, the browsers. The global teardown removes the root its
+  process owns, never another one; the next start removes the roots whose owner process is gone
+  (a run killed before its teardown) and leaves those of concurrent runs (other checkouts) alone
+  (`harness/temp-root.test.ts`).
+- **A test's own folder:** `TempWorkspace.create('wfui-<name>-')` (`test/harness/temp-workspace.ts`)
+  in `beforeAll`, `dispose()` in `afterAll` — the convention for new tests, required when the
+  test runs a process in the folder. Older files with `mkdtemp(path.join(tmpdir(), 'wfui-…'))` and
+  `rm` in `afterAll` are kept: they are under the run's root too. A Playwright worker fixture
+  removes its folder in `finally` (`support/fixtures.ts`, `performance.spec.ts`).
+- **The console** creates no temporary folder: the hooks path of a clone is a regular file of the
+  console's own installation (`server/src/projects/clone.ts` `NO_HOOKS_PATH`; git finds no hook
+  below a file), so a console killed by SIGKILL leaves nothing behind
+  (`test/launcher/clone-hooks.test.ts`: the bin with its own `TMPDIR`, a clone, SIGKILL, restart).
+- **Checking a run:** count the `wfui-*` entries of the system temporary directory before and
+  after (`ls -d "${TMPDIR:-/tmp}"/wfui-* | wc -l`); entries of runs in other checkouts that are
+  still going are theirs.
+
+Fresh reads (task-026, AC-2; bug-005, task-021 F2): a test that measures or compares a read first
+asserts the state it depends on — the `lstat` change or sameness in `fingerprint.test.ts`, the
+expected state absent before the change in `live-refresh.timing.test.ts` and in the
+`@live-refresh` e2e tests, the view's own read sent after the key press and answered with a 2xx
+status in `performance.spec.ts`.
 
 ## Fixtures
 

@@ -87,13 +87,14 @@ export const CLONE_SETTINGS: readonly string[] = [
 /**
  * `git clone` of `url` into `directory` (write class (c)): quiet, so that the standard error holds
  * git's error message only; `url` and `directory` after `--`, never read as options.
- * `core.hooksPath` is set to `hooksDir`, an empty folder of the server's own: a relative
+ * `core.hooksPath` is set to `hooksPath`, a regular file of the server's own (nothing can exist
+ * below it, so git finds no hook; `projects/clone.ts` `NO_HOOKS_PATH`, bug-008): a relative
  * `core.hooksPath` in the user's configuration (`.githooks`, `.husky`) would otherwise be resolved
  * in the new working tree and run the remote's committed `post-checkout` hook — no code of the
  * cloned repository runs at clone time (decided by the user 2026-10-06).
  */
-export function cloneArgs(url: string, directory: string, hooksDir: string): string[] {
-  return [...CLONE_SETTINGS, '-c', `core.hooksPath=${hooksDir}`, 'clone', '--quiet', '--', url, directory];
+export function cloneArgs(url: string, directory: string, hooksPath: string): string[] {
+  return [...CLONE_SETTINGS, '-c', `core.hooksPath=${hooksPath}`, 'clone', '--quiet', '--', url, directory];
 }
 
 /** The subcommand of a git argument list: the first word after the global options (`-c k=v`, `-C dir`, `--…`). */

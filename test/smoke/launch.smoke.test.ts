@@ -5,15 +5,17 @@
  * `npm run test:smoke` only (`vitest.smoke.config.ts`): the build rewrites `server/dist` and
  * `web/dist`, which the default suite reads. The install uses the user's npm cache with
  * `--prefer-offline`: no network when the cache holds the packages and their metadata.
- * Each phase's duration is printed.
+ * Each phase's duration is printed. task-026 (bug-008, D26-1): the installed console clones a
+ * repository with a committed hook — the hooks path of the packed `server/dist` is a regular file,
+ * the clone succeeds and runs no hook.
  */
 import { spawn } from 'node:child_process';
-import { mkdir, mkdtemp, realpath, rm, stat, writeFile } from 'node:fs/promises';
+import { appendFile, chmod, lstat, mkdir, mkdtemp, realpath, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { harnessEnv } from '../harness/fixtures/index.js';
-import { run } from '../harness/run.js';
+import { git, run } from '../harness/run.js';
 import {
   developmentBuildFiles,
   forbiddenReason,
@@ -211,7 +213,7 @@ describe('launch smoke: the packed package installs and starts (bug-007)', () =>
     expect(help.stdout).toMatch(/^Usage: wingfoil-ui \[--port <n>\] \[--no-open\] \[--version\] \[--help\]/);
   });
 
-  it('AC-3 npx wingfoil-ui --no-open serves the UI and the API with the token; SIGINT to the server: exit 0, no process left', async () => {
+  it('AC-3 npx wingfoil-ui --no-open serves the UI and the API with the token, clones with no hook (bug-008); SIGINT to the server: exit 0, no process left', async () => {
     const c = await timed('start (spawn → running line)', () => start());
     // The UI: the page and the application script it loads.
     const page = await fetch(`${c.origin}/`);
@@ -227,6 +229,32 @@ describe('launch smoke: the packed package installs and starts (bug-007)', () =>
     const api = await fetch(`${c.origin}/api/server`, { headers: { authorization: `Bearer ${c.token}` } });
     expect(api.status).toBe(200);
     expect(((await api.json()) as { version: string }).version).toBe(version);
+    // A clone through the installed console (bug-008): a committed hook, a relative
+    // `core.hooksPath` in the user's configuration; the clone succeeds and the hook never runs.
+    const marker = path.join(tmp, 'hook-ran.txt');
+    const src = path.join(tmp, 'hooked-src');
+    await mkdir(path.join(src, '.wingfoil'), { recursive: true });
+    await mkdir(path.join(src, '.githooks'));
+    await writeFile(path.join(src, '.wingfoil', 'dna.yaml'), 'version: 1\n');
+    await writeFile(path.join(src, '.githooks', 'post-checkout'), `#!/bin/sh\necho ran >> '${marker}'\n`);
+    await chmod(path.join(src, '.githooks', 'post-checkout'), 0o755);
+    await git(tmp, ['init', '--quiet', src], runEnv);
+    await git(src, ['add', '.'], runEnv);
+    await git(src, ['-c', 'user.name=T', '-c', 'user.email=t@example.test', 'commit', '-qm', 'hooks'], runEnv);
+    await git(tmp, ['clone', '--quiet', '--bare', src, path.join(tmp, 'hooked.git')], runEnv);
+    await appendFile(runEnv['GIT_CONFIG_GLOBAL']!, '[core]\n\thooksPath = .githooks\n');
+    const cloned = await timed('clone through the installed console', () =>
+      fetch(`${c.origin}/api/projects/clone`, {
+        method: 'POST',
+        headers: { authorization: `Bearer ${c.token}`, 'content-type': 'application/json' },
+        body: JSON.stringify({ url: `file://${path.join(tmp, 'hooked.git')}`, directory: '~/projects/hooked' }),
+      }),
+    );
+    expect(cloned.status, await cloned.clone().text()).toBe(201);
+    expect((await lstat(path.join(runEnv['HOME']!, 'projects', 'hooked', '.githooks', 'post-checkout'))).isFile()).toBe(
+      true,
+    );
+    await expect(lstat(marker)).rejects.toThrow();
     // Stop: SIGINT to the bin's own process; its exit status 0 reaches `npx`.
     const server = await serverProcess(c.pgid);
     expect(server.args).toMatch(/wingfoil-ui/);

@@ -5,10 +5,9 @@
  * clone leaves the file system as it was (REQ-STATE-07): {@link CloneTarget.discard} removes what
  * the clone created, and only that.
  */
-import { rmSync } from 'node:fs';
-import { lstat, mkdtemp, readdir, rm, rmdir, stat } from 'node:fs/promises';
-import os from 'node:os';
+import { lstat, readdir, rm, rmdir, stat } from 'node:fs/promises';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { cloneArgs } from '../git/git.js';
 import type { ProcessRunner } from '../process/runner.js';
 
@@ -96,24 +95,32 @@ export class CloneTarget {
   }
 }
 
-let hooksDir: Promise<string> | undefined;
+/**
+ * The hooks path of every clone ({@link cloneArgs}): this module's own file. Git looks for a hook
+ * at `<hooks path>/<hook name>` and nothing can exist below a regular file (`ENOTDIR`), so no hook
+ * runs — not the cloned repository's, not one planted by someone else. Nothing is created, so
+ * nothing is left behind when the console is killed (bug-008); turning this file into a folder
+ * needs write access to the console's own installation. Checked by {@link noHooksPath}.
+ */
+export const NO_HOOKS_PATH: string = fileURLToPath(import.meta.url);
 
 /**
- * The empty hooks folder of every clone ({@link cloneArgs}): created once per process under the
- * OS temporary directory (mode 0700, `mkdtemp`), removed when the process exits; never persisted.
+ * The hooks path could not be used: the clone is refused before any git process (fail closed). An
+ * internal error, not git's refusal: the route answers spec-004 §5 `internal` (500) and the path
+ * goes to the server log only (`git-refused` carries git's own message).
  */
-export function noHooksDir(): Promise<string> {
-  if (!hooksDir) {
-    const creating = mkdtemp(path.join(os.tmpdir(), 'wfui-no-hooks-'));
-    hooksDir = creating;
-    creating.then(
-      (dir) => process.once('exit', () => rmSync(dir, { recursive: true, force: true })),
-      () => {
-        if (hooksDir === creating) hooksDir = undefined;
-      },
-    );
+export class HooksPathError extends Error {
+  constructor(file: string) {
+    super(`The empty hooks path of the clone is not a regular file: ${file}`);
+    this.name = 'HooksPathError';
   }
-  return hooksDir;
+}
+
+/** `file` when it is an existing regular file (links followed), else rejects with {@link HooksPathError}. */
+export async function noHooksPath(file: string = NO_HOOKS_PATH): Promise<string> {
+  const info = await stat(file).catch(() => undefined);
+  if (!info?.isFile()) throw new HooksPathError(file);
+  return file;
 }
 
 /** What {@link runClone} needs. */
@@ -125,6 +132,8 @@ export interface CloneOptions {
   env: NodeJS.ProcessEnv;
   /** Cancels the clone (the process is killed). */
   signal?: AbortSignal;
+  /** The hooks path (default {@link NO_HOOKS_PATH}); tests only. A bad one rejects with {@link HooksPathError}. */
+  hooksPath?: string;
 }
 
 /**
@@ -136,7 +145,7 @@ export interface CloneOptions {
 export async function runClone(url: string, target: CloneTarget, options: CloneOptions): Promise<void> {
   const result = await options.runner.run({
     file: options.git,
-    args: cloneArgs(url, target.directory, await noHooksDir()),
+    args: cloneArgs(url, target.directory, await noHooksPath(options.hooksPath)),
     cwd: target.existingParent,
     env: { ...options.env, GIT_TERMINAL_PROMPT: '0' },
     timeoutMs: null,

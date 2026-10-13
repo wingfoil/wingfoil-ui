@@ -43,8 +43,13 @@ async function header(): Promise<{ name: string; email: string | null }> {
   return { name: body.name, email: body.identity.email ?? null };
 }
 
-/** Make the change, then measure until `updated()` holds on data refetched after a `repo` event. */
+/**
+ * Make the change, then measure until `updated()` holds on data refetched after a `repo` event.
+ * `updated()` must not hold before the change (task-026, AC-2): the measured read is a fresh one,
+ * not the state the console already served.
+ */
 async function trial(change: () => Promise<void>, updated: () => Promise<boolean>): Promise<number> {
+  expect(await updated(), 'the expected state is already served before the change').toBe(false);
   const seen = stream.events().length;
   await change();
   const t0 = performance.now();
