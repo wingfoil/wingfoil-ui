@@ -325,3 +325,13 @@ Independent review: **FAIL** (2 minor, 2 nits; the rest verified).
   memory-list.spec.ts harness/clipboard.spec.ts projects.spec.ts` on the three engines **108
   passed** (7.0 min, load 10.3 → 27.8); `wfui-*` entries 1 before, 1 after (the pre-existing one);
   no console left.
+
+### review (round 2, 2026-10-13)
+
+- Independent fresh-context review: round 1 **FAIL** (2 minor, 2 nits), round 2 **PASS** on
+  `29b2aca` (no finding): F1 red cases re-derived from the assertions, the F2 sweep claim checked
+  against `web/src/memory/model.ts` (only zero-element filter entries depend on `GET /config`),
+  the clipboard self-test re-run on the three engines (12/12), the re-wraps changed no words.
+- `main` merged into the task branch before submit (`5bf34eb`). The full three-engine `test:e2e`
+  (385) predates `29b2aca`; the changed specs were re-run on the three engines (108/108) and the
+  wave 0 gate on `main` runs the full suite after the merge.
