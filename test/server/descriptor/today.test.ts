@@ -33,16 +33,14 @@ function rows(kind: BddFixtureKind, members = (JSON.parse(read(kind, 'dna-show.j
     members,
     enablement: { identified: true, version: { supported: true, range: '0.2.2' } },
   };
-  return (JSON.parse(read(kind, 'memory-search.json')) as MemorySearch).matches.map(
-    (m): TodayRow => ({
-      element: { id: m.id, type: m.type, title: m.title, status: m.status, localChanges: false },
-      descriptor: describeElement(
-        m,
-        (JSON.parse(read(kind, `memory-history/${m.id}.json`)) as MemoryHistory).entries,
-        project,
-      ),
-    }),
-  );
+  return (JSON.parse(read(kind, 'memory-search.json')) as MemorySearch).matches.map((m): TodayRow => ({
+    element: { id: m.id, type: m.type, title: m.title, status: m.status, localChanges: false },
+    descriptor: describeElement(
+      m,
+      (JSON.parse(read(kind, `memory-history/${m.id}.json`)) as MemoryHistory).entries,
+      project,
+    ),
+  }));
 }
 
 const member = (name: MemberName, roles?: readonly string[]): Identity => {
@@ -94,7 +92,9 @@ describe('Today — the scenarios (rows written by hand)', () => {
       ['bug-001-crash-on-save', 'approve'],
       ['task-001-login-form', 'approve'],
     ]);
-    expect(t.waitingOnOthers.map((r) => [r.element.id, r.descriptor.actor.member?.name, r.descriptor.actor.basis])).toEqual([
+    expect(
+      t.waitingOnOthers.map((r) => [r.element.id, r.descriptor.actor.member?.name, r.descriptor.actor.basis]),
+    ).toEqual([
       ['task-002-password-reset', 'Jordan', 'submitter'],
       ['task-004-session-timeout', 'Jordan', 'creator'],
     ]);
@@ -118,7 +118,10 @@ describe('Today — the scenarios (rows written by hand)', () => {
       ['task-002-password-reset', 'rework'],
       ['task-004-session-timeout', 'submit'],
     ]);
-    expect(t.requiresYou![0]!.descriptor.rejection).toMatchObject({ by: 'Morgan', reason: 'Missing acceptance criteria' });
+    expect(t.requiresYou![0]!.descriptor.rejection).toMatchObject({
+      by: 'Morgan',
+      reason: 'Missing acceptance criteria',
+    });
     expect(t).not.toHaveProperty('summary');
   });
 
@@ -180,12 +183,10 @@ describe('Today — the scenarios (rows written by hand)', () => {
   it('S-23.4: at most 3 items per role, and "N more"', () => {
     const base = rows('kanban');
     const gate = base.find((r) => r.element.id === 'task-001-login-form')!;
-    const five = [1, 2, 3, 4, 5].map(
-      (n): TodayRow => ({
-        element: { ...gate.element, id: `task-10${n}` },
-        descriptor: { ...gate.descriptor, id: `task-10${n}`, since: `2026-10-0${n}T10:00:00+00:00` },
-      }),
-    );
+    const five = [1, 2, 3, 4, 5].map((n): TodayRow => ({
+      element: { ...gate.element, id: `task-10${n}` },
+      descriptor: { ...gate.descriptor, id: `task-10${n}`, since: `2026-10-0${n}T10:00:00+00:00` },
+    }));
     const line = today(five, member('Alex'), 'developer').summary!.find((l) => l.role === 'approver')!;
     expect(line.count).toBe(5);
     expect(ids(line.items)).toEqual(['task-101', 'task-102', 'task-103']);
