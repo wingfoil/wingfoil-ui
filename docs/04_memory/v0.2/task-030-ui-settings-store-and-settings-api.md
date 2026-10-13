@@ -246,3 +246,53 @@ Process Note for D30-1, D30-2, D30-3, D30-5. The shared shapes are fixed as stat
 `['settings']` key is left to task-041. Shared files stay append-only (task-031 also appends to
 `contracts/src/index.ts`, `local-security.test.ts` and the `test/README.md` version line; 030
 merges first).
+
+### red / green / refactor (2026-10-13)
+
+- **Contracts first (RP-43)** — `d456041`: `contracts/api/settings.schema.json`, the `actionLog`
+  item shape in `state.schema.json` (D30-1), `UiSettings` / `UiTheme` / `ActionLogEntry` in
+  `contracts/src/state.ts` (exported by a new, appended line of `contracts/src/index.ts`).
+  `api-settings-schema.test.ts` and the rewritten `state-schema.test.ts` rows; red check: against
+  the previous `state.schema.json` the six new action-log refusal rows fail.
+- **Red** — `215b90e`: `test/server/state/settings.test.ts`, the settings blocks of
+  `store.test.ts` (both adapters) and `file-store.test.ts`, `test/server/http/settings.test.ts`
+  (with the process audit): 21 failing tests plus two files that did not load (no module yet).
+  The `file-store.test.ts` characterisation "keep settings and actionLog written by another build"
+  was rewritten on purpose (its `{ sha: 'a1' }` entry is now invalid, D30-1; it now also shows the
+  unknown and invalid keys dropped at a write, D30-2).
+- **Green** — `server/src/state/settings.ts` (defaults, `readSettings`, `storedSettings`,
+  `trimActionLog`, `validateSettings` — all from the schema), `store.ts` (`settings()`,
+  `putSettings()`, `StateDraft.settings` / `actionLog`; "changed" judged on the effective settings,
+  the projects and the trimmed log, so a no-op still writes nothing; a draft whose settings fail
+  the schema is refused with `InvalidStateError`), `server/src/http/settings.ts`
+  (`SETTINGS_PATH`, `registerSettingsRoutes`, strict Ajv validator as `role-view.ts`), one
+  appended registration in `server/src/launcher/start.ts`. Then `test/launcher/settings.test.ts`
+  (bin: defaults on a first start and on a v0.1 file, invalid stored value, restart, the event on
+  `GET /api/events`, a second console — D30-3) and the appended settings block of
+  `local-security.test.ts`. Red check of the bin tests: with the registration line disabled, 7 of
+  the 9 settings tests fail (the two that pass are the 401/403 guard rows, which hold before routing).
+- Process audit: `settings.test.ts` › "GET and PUT /api/settings start 0 processes" — an
+  `AuditedRunner` registry with the kanban fixture open (precondition: opening it started
+  processes); `GET`, a valid `PUT`, a refused `PUT` → 0 new processes, exactly one `settings` event.
+- Deviations from the design: none in behaviour. `contracts/src/index.ts` got a new appended
+  export line instead of an extended one (append-only, coordinator). spec-006 has no
+  `Version`/`Date` line (its history is the *Process Notes*), so the amendment is recorded only by
+  its dated Process Note. No new temporary-folder convention: new suites use `TempWorkspace`
+  (`wfui-task-030-*`).
+
+### checks (2026-10-13, HEAD before this note `see git log`)
+
+| Gate | Result | Load |
+|------|--------|------|
+| `npm run typecheck`, `npm run lint`, `npm run format:check` | clean | — |
+| `npm run docs:api` | OK | — |
+| `check_tasks.py v0.2` | OK (17 tasks · 46 items) | — |
+| `npm run test:coverage` (includes the public-text check) | 125 files passed, 1 skipped; **2149 passed / 1 skipped**; statements 96.81 %, branches 91.09 %, functions 97.42 %, lines 98.42 % | 8.5 → 21.1 |
+| `npm run test:smoke` | **4/4 passed** | 19.3 → 15.8 |
+| `npm run test:e2e:chromium` (regression; no e2e spec of this task) | **133 passed** (18.4 min) | 15.8 → 44.5 |
+| `npm run test:timing` | **skipped**: load 44.5 (≥ 12) | 44.5 |
+
+`wfui-*` entries in the system temporary directory: 2 before, 5 after — the 3 new ones are the
+`wfui-run-*` / `wfui-e2e-run-*` roots of the concurrent runs of task-031 and task-035 (owner pids
+alive in those worktrees) and the pre-existing `wfui-no-hooks-*`; none from this worktree; no
+console of this worktree left running.
