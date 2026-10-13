@@ -1,6 +1,6 @@
 # User guide — WingFoil UI v0.1
 
-**Version:** 0.4 · **Date:** 2026-10-12 (0.1: release v0.1; 0.2: bug-008 known limitation, release submit; 0.3: bug-008 wording; 0.4: bug-008 marked fixed after 0.1.0 — task-026)
+**Version:** 0.5 · **Date:** 2026-10-13 (0.1: release v0.1; 0.2: bug-008 known limitation, release submit; 0.3: bug-008 wording; 0.4: bug-008 marked fixed after 0.1.0 — task-026; 0.5: *How to join*, unreleased v0.2 — task-035)
 
 WingFoil UI v0.1 is a **read-only console** for WingFoil-governed projects: you open a project and
 read its Memory, elements, DNA, directives, team and documentation, kept up to date while you work
@@ -138,6 +138,20 @@ Above each view, the project header strip shows:
 
 In v0.1 every project is read-only anyway: these notices tell you why actions would stay
 unavailable once they exist.
+
+**How to join** (v0.2, not released yet). When you are not in the team, the *not in team* badge
+and the notice's **How to join** button open a panel that names the project's tech leads (the
+members holding the `tech-lead` role, as *Name <email>*) — or says that the project declares no
+tech lead, or no member at all — and gives the exact command a member runs to add you, for your
+git email:
+
+```sh
+wingfoil dna add team.members --value "<Your Name>" --entry-email <your email> --entry-roles <roles>
+```
+
+**Copy command** puts it on the clipboard; replace `<Your Name>` and `<roles>` (comma-separated,
+among the roles the panel lists — WingFoil refuses a role the DNA does not declare) before running
+it. Close or Escape closes the panel.
 
 **Role view.** When you hold several roles, a **Role view** select lists them in DNA order. The
 choice is remembered per project and changes what "mine" means in the Directives view and which

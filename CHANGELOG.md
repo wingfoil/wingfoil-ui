@@ -6,6 +6,13 @@ All notable changes to WingFoil UI are recorded in this file. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- **How to join** (US-C-08, US-C-09): for a user not in the team, the *not in team* badge and the
+  header notice open a panel naming the project's tech leads (or saying none, or no member, is
+  declared) with the exact `wingfoil dna add team.members …` command for the user's git email and
+  a *Copy command* button.
+
 ### Changed
 
 - **Supported browsers verified on three engines** (REQ-INT-08): the end-to-end suite runs on
