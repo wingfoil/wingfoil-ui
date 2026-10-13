@@ -68,3 +68,155 @@ this governance task, run early so that every later web task's e2e runs on the t
      - design: tech-specs found missing/needing revision (dev-loop/design safety net).
      - red/green/refactor: deviations from the plan above, blockers, scope surprises.
      - review: rejection reasons and what changed on the next pass. -->
+
+### design (2026-10-13)
+
+Read: this task, bug-009, task-026 Execution Notes (design, decisions, red/green/refactor,
+reviews), `release-planning-rel-v0.2-plan` RP-44, RP-50, RP-53, SARD `04` REQ-INT-08,
+`test/README.md` (0.26), `README.md` (developer setup), `playwright.config.ts`,
+`playwright.timing.config.ts`, `test/e2e/support/*` (`axe.ts`, `cold-read.ts`, `fixtures.ts`,
+`global-setup.ts`, `keyboard.ts`, `perf.ts`), `test/e2e/harness/axe.spec.ts`,
+`test/e2e/memory-list.spec.ts`, `test/e2e/performance.spec.ts`, `web/src/memory/MemoryList.tsx`
+and `model.ts` (`typeFilters`), task-035 (the clipboard consumer, C-08.2).
+
+**depends_on — task-026 (dl-015 gate).** Its rules bind this task: (1) every runner's temporary
+folders land under the run's root `wfui-run-*` (`test/harness/temp-root.ts`); the Firefox and
+WebKit profiles Playwright creates under `os.tmpdir()` do too, and the global teardown removes them
+with the root — checked by counting `wfui-*` entries in the system temporary directory before and
+after each three-engine run (probes below: 1 before, the pre-existing `wfui-no-hooks-*` of an earlier
+run, 1 after; no `wfui-run-*` root and no console left). (2) Fresh reads: an assertion on a list
+that a refetch or a second query fills must retry until the screen shows it (AC-5 is exactly this);
+no new measured read is added. (3) Load independence (bug-004): no load-adaptive branch;
+`COLD_READ_MS` and the 180 s test timeout stay; a timeout under load is re-run alone and reported.
+
+#### AC classification
+
+| AC | kind | red-first / check |
+|----|------|-------------------|
+| AC-1 | configuration + characterization | red: `npx playwright test --project firefox` / `webkit` fails today (no such project). The probe below is the characterization; the one WebKit failure is fixed test-side (D27-1). |
+| AC-1b | **red-first** | `test/e2e/harness/clipboard.spec.ts` (runs on the three projects): a routed `http://localhost/` page with a *Copy* button calling `navigator.clipboard.writeText`; the helper returns that text; a second case shows a click that writes nothing fails (sentinel kept), so a stale clipboard cannot pass. Fails today: no helper. |
+| AC-2 | **red-first** | `test/harness/playwright-config.test.ts` (Vitest, imports the two configs): `playwright.timing.config.ts` has exactly one project, `chromium`; in `playwright.config.ts` the `firefox` and `webkit` projects exclude `@perf` (D27-2) and every project includes `@live-refresh`. Fails today on the projects list. |
+| AC-3 | documentation | `test/README.md`, `README.md`; per-engine time recorded below and again after green. |
+| AC-5 (bug-009) | **red-first by fault injection** | a one-off run (not committed) with `GET /api/…/config` held back by `page.route` until the rows show: the current single-shot `filterNames` comparisons fail (S-28.1, M-01.x state filter, M-02.1); with `expect.poll` they pass. Recorded in *red / green / refactor*. |
+| AC-4 | gates | — |
+
+#### Probe (2026-10-13, Playwright 1.63.0: Chromium 153.0, Firefox 155.0, WebKit 26.6)
+
+Each engine alone, the whole suite (129 tests) with the current specs, a temporary config adding
+the projects (not committed), default workers (6 on 12 cores), the coordinator's full gate running
+in another checkout at the same time:
+
+| Engine | Result | Wall time | Sum of test durations | Load start → end |
+|--------|--------|-----------|-----------------------|------------------|
+| Chromium | **129/129 passed** | 8.2 min | 938 s | 12.7 → 16.1 |
+| Firefox | **129/129 passed** | 14.0 min | 1 913 s | 16.1 → 14.9 |
+| WebKit | **128/129 passed**, 1 failed | 8.8 min | 1 175 s | 11.6 → 19.2 |
+
+Failure inventory:
+
+1. WebKit — `test/e2e/harness/axe.spec.ts` › "reports nothing for an accessible page in both
+   themes": axe `color-contrast` (serious) on the static page's `<button>` in the dark theme. Cause:
+   WebKit's user-agent style for a button under `color-scheme: dark` is white text on
+   `rgb(192, 192, 192)` (≈ 1.8:1); Chromium gives white on `rgb(107, 107, 107)`, Firefox
+   `rgb(251, 251, 254)` on `rgb(43, 42, 51)`. The page is the self-test's own fixture with no
+   button style. **Not a product defect**: every product screen's axe scan passed on WebKit in both
+   themes (`accessibility.spec.ts` X-06.4 over `SCREENS`, and each spec's `scanThemes`) — the
+   console styles its buttons. Plan: D27-1.
+
+No other failure on any engine: keyboard walks (`tabUntil`, `expectFocusVisible` — WebKit included),
+focus-ring contrast, the event stream, `recordServerEvents`, the X-09.1 key build, the clone
+flows and the `@live-refresh` tests (behaviour mode) all pass. bug-009 did not reproduce in these
+runs (load ≤ 19); its cause is understood (below), so the fix does not wait for a reproduction.
+
+#### Plan per item
+
+- **Projects (AC-1)** — `playwright.config.ts`: `chromium` (`Desktop Chrome`), `firefox`
+  (`Desktop Firefox`), `webkit` (`Desktop Safari`); comment rewritten (REQ-INT-08 v0.2: three
+  engines). No engine branch in any spec; an engine difference goes into `test/e2e/support/` (the
+  clipboard grant is the only one found).
+- **D27-1** — the axe self-test fixture (below).
+- **Clipboard helper (AC-1b)** — `test/e2e/support/clipboard.ts`. Probe on the three engines with
+  the pinned Playwright: Chromium denies `writeText` and `readText` unless the context is granted
+  `clipboard-read` + `clipboard-write`; Firefox writes and reads with no grant, and
+  `grantPermissions(['clipboard-read'])` **throws** "Unknown permission"; WebKit writes with no
+  grant, needs `clipboard-read` to read, and throws on `clipboard-write`. A page's `writeText`
+  outside a user gesture works on all three once granted (checked). Design (D27-3 ★):
+  `allowClipboard(context, browserName)` grants per engine (Chromium read+write, WebKit read,
+  Firefox nothing); `copiedBy(page, action)` writes a unique sentinel to the clipboard, runs the
+  action (the click on *Copy*), then `expect.poll` reads `navigator.clipboard.readText()` until it
+  differs from the sentinel and returns it — so the test asserts what the browser's clipboard holds,
+  never a stale value. Self-test in `test/e2e/harness/clipboard.spec.ts`. Contexts of one browser
+  share its clipboard, but tests of one worker run one at a time and every worker has its own
+  browser process, so parallel tests do not interfere.
+- **Timing and perf on Chromium only (AC-2, RP-44, RP-53)** — `playwright.timing.config.ts` sets
+  `projects` to the `chromium` project only (it spreads the base config today, so it would inherit
+  three). In `npm run test:e2e`, `@perf` (`performance.spec.ts`, TT-PERF-04, 2 runs without a
+  budget, the large fixture built once per worker) is excluded from `firefox` and `webkit` with a
+  project `grepInvert` (D27-2 ★). It is a measurement, not a BDD scenario: the functional
+  scenarios it times (M-01.1, G-01.1, R-05.1 … R-08.1) run on the three engines in their own specs.
+  `@live-refresh` tests are scenarios: in `test:e2e` they run on the three engines (behaviour,
+  cold-read budget); the strict 5 s and the RP-53 60/65/120 s budgets only in `test:timing` on
+  Chromium.
+- **Workers and parallelism (bug-004)** — keep `fullyParallel`, `COLD_READ_MS`, the 180 s
+  timeout, default workers. One `playwright test` run with three projects (D27-4 ★): the same
+  worker pool runs the 129 × 3 − 14 tests (the 7 `@perf` tests run once); Playwright binds a worker
+  to one project, so each engine's workers build their own fixtures (the `prebuild` worker fixture,
+  300 s, is unchanged). Expected wall time ≈ the sum of the three probes (~30 min at this load);
+  measured in green, at least once alone (load recorded), before any change to workers.
+  `npx playwright test --project <engine>` runs one engine (documented).
+- **bug-009 (AC-5)** — cause: the type filters are `typeFilters(memory.yaml types, elements)`
+  (`web/src/memory/model.ts`): the declared types come from `GET /config`, the counts and any
+  undeclared type from `GET /elements`. `openList` waits for the first row (the elements read);
+  if `/config` has not answered yet, the filter row shows only the types present among the elements
+  (S-28.1 kanban: 2 of 7), then the full list once `/config` lands. The UI converges (no product
+  defect); the test reads too early. Fix: the four `filterNames` comparisons of
+  `memory-list.spec.ts` (lines 128, 185, 198 — already polled — and 376) become
+  `await expect.poll(() => filterNames(…), { timeout: COLD_READ_MS })…` (the first one after a
+  cold read; COLD_READ_MS so a slow `/config` under load is waited for, as every first read).
+  Other single-shot list reads in the suite (`team`, `directives`, `dna`, `documentation`,
+  `element-panel`, `listed()` in `memory-list`) were checked: each reads a list filled by one
+  query after a wait on it (a count or the first item), so they do not have this two-query race;
+  left unchanged.
+- **Docs (AC-3, AC-4)** — `test/README.md` 0.27: `npm run test:e2e` row (three engines;
+  `--project`), *Layout* (`support/clipboard.ts`, `harness/clipboard.spec.ts`), a *Browsers*
+  paragraph (`npx playwright install chromium firefox webkit`; WebKit system dependencies
+  `npx playwright install-deps`, sudo, done by the approver; the per-engine run time), *Timing
+  suite* (Chromium only); `README.md` developer setup (browser line, `test:e2e` row);
+  `playwright.config.ts` comment; `CHANGELOG.md` *Unreleased* › Changed (the e2e suite runs on
+  Chromium, Firefox and WebKit, REQ-INT-08). SARD REQ-INT-08 already states the v0.2 staging: no
+  change.
+
+#### Test plan
+
+Vitest: `test/harness/playwright-config.test.ts` (AC-2). Playwright: `harness/clipboard.spec.ts`
+(AC-1b, three engines), `harness/axe.spec.ts` (D27-1), `memory-list.spec.ts` (AC-5); the whole
+suite on the three projects (AC-1). Negative checks: AC-5 fault injection (above); the clipboard
+self-test's "nothing copied" case; the axe self-test's two violation cases unchanged on the three
+engines. e2e closure: this task closes no BDD scenario (it runs all of them on two more engines).
+
+#### Open decisions
+
+- **D27-1 — WebKit: the axe self-test's fixture page fails `color-contrast` in the dark theme**
+  (the engine's default button colours; test fixture only, no product screen affected).
+  ★ (a) give the self-test's static page a button style from its own tokens (`color: var(--fg);
+  background: var(--bg); border: 1px solid var(--fg)`), so the page is accessible on every engine;
+  the assertion ("nothing reported for an accessible page") and the two violation cases stay as
+  they are; (b) skip that one self-test on WebKit (an approver's skip, recorded here);
+  (c) drop the button from `THEMED` and build `NAMELESS_BUTTON` by adding one.
+- **D27-2 — `@perf` in `npm run test:e2e`.** ★ (a) Chromium only: `grepInvert: /@perf/` on the
+  `firefox` and `webkit` projects (AC-2 "not multiplied by engine"; TT-PERF-04 is a measurement,
+  its scenarios run on every engine in their own specs); (b) run the 2-run `@perf` smoke on the
+  three engines in `test:e2e` and keep only `test:timing` on Chromium (~+2 min per engine, three
+  large-fixture builds); (c) `test.skip(browserName !== 'chromium')` in `performance.spec.ts`
+  (an engine branch in a spec, against AC-1's "in `test/e2e/support/`").
+- **D27-3 — clipboard helper mechanism (new shared support function).** ★ (a) the real clipboard:
+  per-engine grant + sentinel + polled `navigator.clipboard.readText()` (above);
+  (b) an init-script spy on `navigator.clipboard.writeText` (no grant needed, but it proves the
+  page called the API, not that the clipboard holds the text, and misses `execCommand('copy')`);
+  (c) paste with Ctrl/Cmd+V into a scratch `<textarea>` injected into the page (works on the three
+  engines with the same grants, but changes the DOM of the screen under test and its focus).
+- **D27-4 — how `test:e2e` runs the three engines.** ★ (a) one `playwright test` run, three
+  projects, default workers, `fullyParallel` (bug-004: measure before changing workers);
+  (b) three sequential runs in the npm script (`--project chromium && … firefox && … webkit`):
+  same total, but a failure on the first engine hides the others and the build runs three times;
+  (c) (a) with `workers` raised to use the cores Firefox leaves idle — only after measuring (a).
