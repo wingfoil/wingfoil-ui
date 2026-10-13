@@ -1,0 +1,59 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://wingfoil-ui.local/contracts/api/settings.schema.json",
+  "title": "UI settings (GET and PUT /api/settings)",
+  "description": "The UI settings of spec-006 §2 (REQ-STATE-09, C4): the body of GET /api/settings, of the PUT /api/settings request (the whole object, RP-28) and of its 200 answer (spec-004 §3). Global to every project, local to the user's machine, never a secret (REQ-SEC-09). Each property's default is the value read when the key is missing or invalid in state.json.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "autoFetch",
+    "fetchIntervalSeconds",
+    "autoUpdate",
+    "autoPush",
+    "theme",
+    "confirmAgentLaunch",
+    "actionLogCap"
+  ],
+  "properties": {
+    "autoFetch": {
+      "description": "Fetch every fetchIntervalSeconds (spec-010 §6).",
+      "type": "boolean",
+      "default": true
+    },
+    "fetchIntervalSeconds": {
+      "description": "Interval of the scheduler's ticks, in seconds (spec-010 §6, RP-19).",
+      "type": "integer",
+      "minimum": 15,
+      "maximum": 3600,
+      "default": 60
+    },
+    "autoUpdate": {
+      "description": "Fast-forward after a successful automatic fetch (spec-010 §6).",
+      "type": "boolean",
+      "default": false
+    },
+    "autoPush": {
+      "description": "Push after each governed write from the UI (spec-010 §6).",
+      "type": "boolean",
+      "default": false
+    },
+    "theme": {
+      "description": "Overrides prefers-color-scheme (spec-009 §1).",
+      "type": "string",
+      "enum": ["system", "light", "dark"],
+      "default": "system"
+    },
+    "confirmAgentLaunch": {
+      "description": "Stored and shown; takes effect from WingFoil 0.3 (capability agent-launch, RP-15).",
+      "type": "boolean",
+      "default": true
+    },
+    "actionLogCap": {
+      "description": "Most entries kept in the action log (REQ-SEC-10, RP-26); lowering it trims the oldest entries in the same write (RP-38).",
+      "type": "integer",
+      "minimum": 100,
+      "maximum": 100000,
+      "default": 5000
+    }
+  }
+}
