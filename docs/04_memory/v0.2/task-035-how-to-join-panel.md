@@ -284,3 +284,17 @@ Not touched: `queries.ts`, `query-keys.ts`, `projects.ts`, `PROJECT_ROUTES`/`tre
   ★ (a) the panel follows the data; if the user becomes a member it shows "You are now a member of
   this team." with Close (focus not moved); (b) it closes itself when the identity is no longer
   `not-in-team` (focus returns to a badge that no longer exists).
+
+#### Decisions (approver, 2026-10-13)
+
+"As recommended": **D35-1 (a)** modal dialog, `HowToJoinProvider` + `useHowToJoin().show()` in the
+project layout (fixed as the shared opener for task-036 and task-037); **D35-2 (a)** badge button
+and a *How to join* button after the not-in-team notice (S-13.1's assertion updated);
+**D35-3 (a)** the command built in code, `code.cli-command[translate=no]`, an X-09.1 rule in
+`strings.ts`, spec-008 §6 amended in place with a dated Process Note; **D35-4 (a)** a web
+constant pinned to the server preset by a unit test; **D35-5 (a)** a third screens-console
+project (Riley) and one appended screen; **D35-6 (a)** the declared roles listed, only the
+no-member sentence for an empty team; **D35-7 (a)** POSIX quoting only when needed; **D35-8 (a)**
+only *not in team* with a readable DNA; **D35-9 (a)** the panel follows the data. Also: a short
+*How to join* paragraph in the UX reference (`docs/00_reference/ux-reference.md`, version bump),
+closing journey 6 step 3's GAP; shell layout `routes/project.tsx`: the minimal change only.
