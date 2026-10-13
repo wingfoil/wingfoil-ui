@@ -1,6 +1,6 @@
 # CLAUDE.md — agent entry point
 
-**Version:** 0.3 · **Date:** 2026-10-12 (0.1: release v0.1, `user-docs` `align-agent-docs`; 0.2: v0.1.0 released, release submit; 0.3: `test:smoke` wave gate — task-026)
+**Version:** 0.4 · **Date:** 2026-10-13 (0.1: release v0.1, `user-docs` `align-agent-docs`; 0.2: v0.1.0 released, release submit; 0.3: `test:smoke` wave gate — task-026; 0.4: e2e on three engines, inner-loop Chromium run — task-027)
 
 WingFoil UI: a local web UI for WingFoil-governed projects. A Node.js server (`server/`) drives
 each project's pinned `wingfoil` CLI and reads git; a React app (`web/`) shows the result;
@@ -59,7 +59,9 @@ accepted as a limitation: [`CHANGELOG.md`](CHANGELOG.md).
 - **Docs:** bump a document's `Version`/`Date` on its first edit after a commit
   (`doc-versioning`); update the affected docs in the same change as the behaviour (`documentation`).
 - **Checks before handing work back:** `npm run typecheck`, `npm run lint`, `npm run format:check`,
-  `npm test` (or `test:coverage`), `npm run test:e2e` when the UI changes; `test:timing` only on a
+  `npm test` (or `test:coverage`); when the UI changes `npm run test:e2e:chromium` plus the task's
+  own specs on the three engines (`npm run test:e2e -- <spec files>`); `npm run test:e2e` (Chromium,
+  Firefox, WebKit) at the end of every wave and at release validation; `test:timing` only on a
   quiet machine; `npm run test:smoke` at the end of every wave and when packaging, the launcher or
   the bin changes ([`test/README.md`](test/README.md) *Launch smoke*, *Temporary folders*).
 - **Never** edit `.wingfoil/` or Memory files to change a state a verb owns; never put secrets in

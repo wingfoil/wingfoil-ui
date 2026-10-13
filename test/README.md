@@ -1,6 +1,6 @@
 # Tests
 
-**Version:** 0.26 · **Date:** 2026-10-13 (0.1: workspace tooling and e2e harness — task-001; 0.2: `test/launcher/`, `test/server/` — task-002; 0.3: `test/contracts/`, local state isolation, secret scan — task-007; 0.4: `local-security` suite — task-003; 0.5: process runner fake, hand-made CLI packages, stub after global options — task-004; 0.6: CLI contract tests, captured samples, `test:contract` — task-005; 0.7: action descriptor tests, REQ-ARC-05 lint rule — task-011; 0.8: matrix builds of `cliBuildFor`, capability table and README checks — task-006; 0.9: identity tests, bin with a seeded state — task-009; 0.10: timing suite `test:timing`, `TempWorkspace`, snapshot audits and stand-ins — task-010 / bug-001; 0.11: project-list route tests, a dumb-HTTP git remote — task-008; 0.12: read routes, the read console replacing the stand-ins, spec-002 §3 event parse, confinement — task-012; 0.13: `test/web/` component tests, the shared e2e support of Wave 3, the shell e2e — task-013; 0.14: `test/web/element/` and the element panel e2e `element-panel.spec.ts` — task-018; 0.15: `test/web/docs/` and the documentation e2e `documentation.spec.ts` — task-020; 0.16: `test/web/memory/` and the Memory list e2e `memory-list.spec.ts` — task-017; 0.17: `test/web/dna/`, `directives/`, `team/`, the e2e `dna`, `directives`, `team` specs and G-02 in `element-panel.spec.ts`; load-independent waits, prebuilt fixtures and the console reaper of the e2e support, `test/harness/load.ts` — task-019 / bug-004; 0.18: the Playwright part of `test:timing` (strict live refresh) — task-019, W3-47; 0.19: `wingfoil-feedback.test.ts`, the WingFoil feedback inbox and the `wingfoil-cli` *Note* column — task-023; 0.20: the project switcher e2e `projects.spec.ts`, `stateDir` of the e2e console, `test/web/shell/project-switcher`, `switch-target`, `test/web/api/projects` — task-015; 0.21: the Add project e2e `add-project.spec.ts`, `support/switcher.ts`, `support/git-http.ts`, `test/web/shell/add-project`, `add-project-fields`, `working-directory` — task-014; 0.22: the project header e2e `project-header.spec.ts`, `test/web/project/`, `test/web/api/role-view` — task-016; 0.23: the e2e-smoke `accessibility` spec `accessibility.spec.ts`, `performance.spec.ts` (`@perf`, TT-PERF-04) and the large fixture `test/harness/fixtures/large.ts`, `support/screens.ts`, `strings.ts`, `perf.ts`, `focusRing`/`tabUntil`, `test/web/shell/page-title` — task-021; 0.24: the packaging guard `test/package/`, the launch smoke `test/smoke/` and `test:smoke`, the `scrum` fixture and `scrum.spec.ts`, `test/harness/repo-state.ts` and `no-commit.spec.ts`; the Vitest global setup builds `web/dist` too — task-025 / bug-007; 0.25: *Temporary folders* (the run's temporary root `harness/temp-root.ts`, the clone hooks path, `launcher/clone-hooks.test.ts`), fresh-read preconditions, `test:smoke` as a wave gate — task-026 / bug-008; 0.26: the public-text check `test/docs/public-text.test.ts` — task-028)
+**Version:** 0.27 · **Date:** 2026-10-13 (0.1: workspace tooling and e2e harness — task-001; 0.2: `test/launcher/`, `test/server/` — task-002; 0.3: `test/contracts/`, local state isolation, secret scan — task-007; 0.4: `local-security` suite — task-003; 0.5: process runner fake, hand-made CLI packages, stub after global options — task-004; 0.6: CLI contract tests, captured samples, `test:contract` — task-005; 0.7: action descriptor tests, REQ-ARC-05 lint rule — task-011; 0.8: matrix builds of `cliBuildFor`, capability table and README checks — task-006; 0.9: identity tests, bin with a seeded state — task-009; 0.10: timing suite `test:timing`, `TempWorkspace`, snapshot audits and stand-ins — task-010 / bug-001; 0.11: project-list route tests, a dumb-HTTP git remote — task-008; 0.12: read routes, the read console replacing the stand-ins, spec-002 §3 event parse, confinement — task-012; 0.13: `test/web/` component tests, the shared e2e support of Wave 3, the shell e2e — task-013; 0.14: `test/web/element/` and the element panel e2e `element-panel.spec.ts` — task-018; 0.15: `test/web/docs/` and the documentation e2e `documentation.spec.ts` — task-020; 0.16: `test/web/memory/` and the Memory list e2e `memory-list.spec.ts` — task-017; 0.17: `test/web/dna/`, `directives/`, `team/`, the e2e `dna`, `directives`, `team` specs and G-02 in `element-panel.spec.ts`; load-independent waits, prebuilt fixtures and the console reaper of the e2e support, `test/harness/load.ts` — task-019 / bug-004; 0.18: the Playwright part of `test:timing` (strict live refresh) — task-019, W3-47; 0.19: `wingfoil-feedback.test.ts`, the WingFoil feedback inbox and the `wingfoil-cli` *Note* column — task-023; 0.20: the project switcher e2e `projects.spec.ts`, `stateDir` of the e2e console, `test/web/shell/project-switcher`, `switch-target`, `test/web/api/projects` — task-015; 0.21: the Add project e2e `add-project.spec.ts`, `support/switcher.ts`, `support/git-http.ts`, `test/web/shell/add-project`, `add-project-fields`, `working-directory` — task-014; 0.22: the project header e2e `project-header.spec.ts`, `test/web/project/`, `test/web/api/role-view` — task-016; 0.23: the e2e-smoke `accessibility` spec `accessibility.spec.ts`, `performance.spec.ts` (`@perf`, TT-PERF-04) and the large fixture `test/harness/fixtures/large.ts`, `support/screens.ts`, `strings.ts`, `perf.ts`, `focusRing`/`tabUntil`, `test/web/shell/page-title` — task-021; 0.24: the packaging guard `test/package/`, the launch smoke `test/smoke/` and `test:smoke`, the `scrum` fixture and `scrum.spec.ts`, `test/harness/repo-state.ts` and `no-commit.spec.ts`; the Vitest global setup builds `web/dist` too — task-025 / bug-007; 0.25: *Temporary folders* (the run's temporary root `harness/temp-root.ts`, the clone hooks path, `launcher/clone-hooks.test.ts`), fresh-read preconditions, `test:smoke` as a wave gate — task-026 / bug-008; 0.26: the public-text check `test/docs/public-text.test.ts` — task-028; 0.27: the e2e suite on Chromium, Firefox and WebKit, `test:e2e:chromium`, *Browsers*, `support/clipboard.ts` — task-027 / bug-009)
 
 Every test lives under `test/` (DNA `paths.tests`); sources stay in `server/src`, `web/src`,
 `contracts/src`.
@@ -11,7 +11,8 @@ Every test lives under `test/` (DNA `paths.tests`); sources stay in `server/src`
 | `npm run test:coverage` | the same with v8 coverage of `server/`, `contracts/`, `web/` (threshold 80 %, dev-loop `refactor`) |
 | `npm run test:contract` | the contract tests of `test/contracts/` (e2e-smoke `contract`, spec-001 §7) |
 | `npm run test:timing` | the timing suite: `test/timing/**/*.timing.test.ts`, one file at a time, each measurement printed with the load average — on a quiet machine only (see *Timing suite*) |
-| `npm run test:e2e` | Playwright: `test/e2e/**/*.spec.ts`, Chromium only in v0.1 (REQ-INT-08 staged) |
+| `npm run test:e2e` | Playwright: `test/e2e/**/*.spec.ts` on the three projects `chromium`, `firefox`, `webkit` (REQ-INT-08; `@perf` on Chromium only) — the gate at the end of every wave and at release validation; `npm run test:e2e -- <spec files>` runs only those files on the three engines (see *Browsers*) |
+| `npm run test:e2e:chromium` | the same suite on the `chromium` project only — the inner development loop; `-- <spec files>` narrows it too |
 | `npm run test:smoke` | the launch smoke (e2e-smoke `launch`): `test/smoke/**/*.smoke.test.ts` — packs the repository (`prepack` builds), installs the tarball into a temporary folder and runs `npx wingfoil-ui` there (see *Launch smoke*) |
 | `npm run lint` · `npm run format:check` · `npm run typecheck` · `npm run docs:api` | ESLint (with the REQ-SEC-05 no-shell rule on `server/`), Prettier, `tsc`, TypeDoc of `server/` and `contracts/` |
 
@@ -73,11 +74,17 @@ Every test lives under `test/` (DNA `paths.tests`); sources stay in `server/src`
   - `support/identity.ts`: `actAs(fixture, name)` — "I am <member>" by `git config user.email`;
   - `support/switcher.ts` (task-015/014): the switcher's trigger, popover and rows,
     `openSwitcher(page)` returning the list read its opening sent, `expectListed`, `expectMemoryList`;
+  - `support/clipboard.ts` (task-027, AC-1b): `allowClipboard(context, browserName)` grants each
+    engine the clipboard permissions it needs (Chromium read + write, WebKit read, Firefox none —
+    it rejects both) and `copiedBy(page, action)` returns the text a *Copy* button wrote: a unique
+    sentinel goes on the clipboard first, the action runs, the clipboard is polled until it no
+    longer holds the sentinel — a stale value never passes, nothing copied fails
+    (`harness/clipboard.spec.ts`);
   - `support/git-http.ts` (task-014): `startGitHttpRemote(base, { credentials?, hold? })` — a dumb-HTTP
     git remote on 127.0.0.1 (Basic auth refusals, answers held until `release()`) — and
     `bareRepository(base, name, files, env)`; remotes stay offline.
-  `harness/` holds the self-tests of the support (axe helper, console + SSE helper, the X-09.1 check
-  and the focus ring helper). `test/harness/fixtures/large.ts` builds the SARD large fixture (custom +
+  `harness/` holds the self-tests of the support (axe helper, console + SSE helper, the X-09.1 check,
+  the focus ring helper and the clipboard helper), run on the three engines like every spec. `test/harness/fixtures/large.ts` builds the SARD large fixture (custom +
   500 generated elements + 2 000 commits through `git fast-import`) for `performance.spec.ts` only.
   task-025 (e2e-smoke gaps): `scrum.spec.ts` opens the `scrum` fixture (Memory list, element panel,
   DNA, axe in both themes, AC-4); `no-commit.spec.ts` walks `SCREENS`, picks a role view and
@@ -166,6 +173,36 @@ Every test lives under `test/` (DNA `paths.tests`); sources stay in `server/src`
   example path goes on the allow-list only when it is fictitious or generic; session names stay
   an item of the review checklist (no pattern list is committed, dl-005).
 
+## Browsers
+
+REQ-INT-08 (task-027): the e2e suite runs on the three engines of the pinned Playwright — the
+projects `chromium` (Desktop Chrome), `firefox` (Desktop Firefox) and `webkit` (Desktop Safari) of
+`playwright.config.ts`, every scenario on each, 100 % passing on each engine. Setup, once per
+machine: `npx playwright install chromium firefox webkit` (the browser builds, no administrator
+rights) and, for WebKit on Linux, its system libraries `sudo npx playwright install-deps` (done by
+the approver on the development machine; a missing library makes every `webkit` test fail at
+launch — stop and ask). An engine difference is handled in `test/e2e/support/`, never in a spec
+(the clipboard grants of `support/clipboard.ts` are the only one so far); a scenario skipped on an
+engine needs the approver's decision, recorded in the task. The `@perf` tests (TT-PERF-04) run on
+Chromium only (`grepInvert` of the other two projects) and the timing suite's Playwright part
+(`playwright.timing.config.ts`) is Chromium only (RP-44); `test/harness/playwright-config.test.ts`
+checks both configs and the scripts.
+
+Which run when (task-027 D27-4, the approver's "hybrid"):
+
+- **Inner loop (each task, before handing work back):** `npm run test:e2e:chromium` (the whole
+  suite on Chromium) plus the task's own spec files on the three engines,
+  `npm run test:e2e -- test/e2e/<own>.spec.ts …` (the global setup builds as for a full run).
+- **Gate at the end of every wave and at release validation:** `npm run test:e2e` — the whole
+  suite on the three engines; AC-1 of task-027 (100 % on each engine) is proved there.
+
+Note for a narrower run: `--project` takes several values, so `--project chromium <files>` reads
+the files as project names; write `--project=chromium` (as the script does).
+
+Run time (one `playwright test` run, default workers — 6 on 12 cores —, `fullyParallel`), measured
+on 2026-10-13: see task-027's Execution Notes for the load of each measurement. Each engine alone,
+whole suite: Chromium 8.2 min, Firefox 14.0 min, WebKit 8.8 min (load 12–19).
+
 ## Launch smoke
 
 `npm run test:smoke` (`vitest.smoke.config.ts`, task-025 AC-3, e2e-smoke `launch`) — excluded
@@ -207,7 +244,7 @@ them. Run the timing suite on a quiet machine (load average well below the core 
 the printed load with the result; a failure under load is re-run, not "fixed". Counting tests
 (processes, events) are not timing tests and stay in the default suite.
 
-`npm run test:timing` also runs a Playwright part (`playwright.timing.config.ts`, W3-47): the
+`npm run test:timing` also runs a Playwright part (`playwright.timing.config.ts`, W3-47; Chromium only, task-027): the
 live-refresh scenarios S-25.2, S-26.1, S-26.2 and S-27.2 (tag `@live-refresh`) on the real bin, one
 at a time, with `WFUI_STRICT_REFRESH=1`: the screen must change within 5 s of the mutation (the
 commit, the file write or the CLI verb that commits — watcher, event stream, refetch and render

@@ -34,7 +34,8 @@ What v0.1 shows:
 - **git**, with `user.email` set (it identifies you in each project's team).
 - In each project you open: a **WingFoil CLI** — pinned in the project (`npm install --save-dev
   wingfoil`) or on the `PATH` — inside the supported range below.
-- A current browser. The end-to-end suite of v0.1 runs on **Chromium** only.
+- A current desktop browser: Chrome, Edge, Firefox or Safari. On `main` the end-to-end suite runs
+  on the **Chromium**, **Firefox** and **WebKit** engines; release v0.1.0 was tested on Chromium only.
 
 ## Install and run
 
@@ -130,11 +131,14 @@ npm workspaces: `contracts/`, `server/`, `web/`. After `npm ci`:
 | `npm run test:coverage` | the same with v8 coverage (threshold 80 %) |
 | `npm run test:contract` | the CLI JSON contract tests of `test/contracts/` |
 | `npm run test:timing` | the timing suite (performance budgets) — on a quiet machine only |
-| `npm run test:e2e` | Playwright end-to-end suite on the real launcher (Chromium; `npx playwright install chromium` once) |
+| `npm run test:e2e` | Playwright end-to-end suite on the real launcher, on Chromium, Firefox and WebKit — the gate at the end of every wave and at release validation; `npm run test:e2e -- <spec files>` runs only those specs on the three engines |
+| `npm run test:e2e:chromium` | the same suite on Chromium only — the inner development loop (with the task's own specs on the three engines) |
 | `npm run test:smoke` | the launch smoke: packs the repository, installs the tarball into a temporary folder and starts it with `npx wingfoil-ui` |
 | `npm run docs:api` | TypeDoc of `server/` and `contracts/` into `docs-api/` |
 
-Details of every suite: [`test/README.md`](test/README.md). The governance CLI of this repository is
+Browsers for the end-to-end suite, once per machine: `npx playwright install chromium firefox webkit`
+and the WebKit system libraries `sudo npx playwright install-deps` (Linux; needs administrator
+rights). Details of every suite: [`test/README.md`](test/README.md). The governance CLI of this repository is
 the pinned devDependency: `npm run -s wingfoil -- <command>`.
 
 | Path | Content |

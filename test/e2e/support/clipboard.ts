@@ -62,7 +62,10 @@ export async function copiedBy(
         copied = await readClipboard(page);
         return copied;
       },
-      { message: 'the clipboard still holds the sentinel: nothing was copied', timeout: options.timeout },
+      {
+        message: 'the clipboard still holds the sentinel: nothing was copied',
+        ...(options.timeout === undefined ? {} : { timeout: options.timeout }),
+      },
     )
     .not.toBe(sentinel);
   return copied;
