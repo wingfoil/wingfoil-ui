@@ -105,7 +105,7 @@ A source repository with a committed, executable `.githooks/post-checkout`, a us
 
 Options of bug-008 *Notes*:
 
-- (a) a folder per console under the state directory (e.g. `<state>/run/no-hooks-<pid>`), stale
+- (a) a folder per console under the state directory (e.g. a `run/no-hooks-<pid>` folder in the state directory), stale
   ones (owner pid gone) removed at start: private (the state directory is 0700), but adds a run
   folder to spec-006 §1's state directory, pid-reuse handling and a sweep; at most one per console.
 - (b) a fixed per-user folder: safe only under the state directory (a fixed name under the shared
