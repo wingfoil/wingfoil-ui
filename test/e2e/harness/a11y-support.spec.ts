@@ -22,6 +22,10 @@ test('X-09.1 check: flags English texts, accepts keys, data and derived data', a
     <div class="menu-popover"><button tabindex="-1" aria-label="Dismiss"></button></div>
     <article class="doc-article"><p>Some   words of the
       document</p></article>
+    <pre><code class="cli-command" translate="no">wingfoil dna add team.members --value "shell.howToJoin.placeholderName" --entry-email riley@x.test --entry-roles shell.howToJoin.placeholderRoles</code></pre>
+    <pre><code class="cli-command" translate="no">wingfoil dna add team.members --value "Your Name" --entry-email riley@x.test --entry-roles shell.howToJoin.placeholderRoles</code></pre>
+    <pre><code class="cli-command" translate="no">wingfoil dna add team.members --value "shell.howToJoin.placeholderName" --entry-email other@x.test --entry-roles shell.howToJoin.placeholderRoles</code></pre>
+    <pre><code class="not-marked">wingfoil dna add team.members --value "shell.howToJoin.placeholderName" --entry-email riley@x.test --entry-roles shell.howToJoin.placeholderRoles</code></pre>
   </body></html>`);
   const outside = await textsOutsideCatalogue(
     page,
@@ -30,6 +34,7 @@ test('X-09.1 check: flags English texts, accepts keys, data and derived data', a
       '/x/y',
       '0123abcdef0123abcdef0123abcdef0123abcdef',
       'docs/01_vision/02_product-vision.md',
+      'riley@x.test',
       `# Title\n\nSome words of the document, and more text so that the source is long enough to be a content source of a rendered article: ${'x'.repeat(200)}`,
     ),
   );
@@ -46,6 +51,11 @@ test('X-09.1 check: flags English texts, accepts keys, data and derived data', a
       // A word of a long data string (a document) is not an argument value (review round 2).
       'p.doc-word: error.folderNotFound the',
       'button.stray@aria-label: Dismiss',
+      // A command shown as data (D35-3): only the exact command with the key placeholders and an
+      // email read; an English placeholder, an email not read, or an unmarked element are flagged.
+      'code.cli-command: wingfoil dna add team.members --value "Your Name" --entry-email riley@x.test --entry-roles shell.howToJoin.placeholderRoles',
+      'code.cli-command: wingfoil dna add team.members --value "shell.howToJoin.placeholderName" --entry-email other@x.test --entry-roles shell.howToJoin.placeholderRoles',
+      'code.not-marked: wingfoil dna add team.members --value "shell.howToJoin.placeholderName" --entry-email riley@x.test --entry-roles shell.howToJoin.placeholderRoles',
     ].sort(),
   );
   expect(isKeyText('shell.nav.dna')).toBe(true);

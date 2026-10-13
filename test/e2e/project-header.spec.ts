@@ -286,7 +286,12 @@ test.describe('US-S-13 — not in team', () => {
     await expect(currentUser(page)).toHaveAccessibleName('Current user: riley@example.test, not in team');
     await expect(currentUser(page).getByText('riley@example.test', { exact: true })).toBeVisible();
     await expect(currentUser(page).getByText('not in team', { exact: true })).toBeVisible();
-    await expect(notices(page)).toHaveText(['Read-only: riley@example.test is not in the team of this project.']);
+    // The notice's sentence, then its *How to join* button (task-035, D35-2).
+    await expect(notices(page).locator('p')).toHaveText([
+      'Read-only: riley@example.test is not in the team of this project.',
+    ]);
+    await expect(notices(page).getByRole('button', { name: 'How to join' })).toBeVisible();
+    await expect(currentUser(page).getByRole('button', { name: 'Not in team — how to join' })).toBeVisible();
     await expect(roleView(page)).toHaveCount(0);
     expect(await scanThemes(page)).toEqual([]);
     // Every view opens, the badge stays.
@@ -313,7 +318,9 @@ test.describe('US-S-13 — not in team', () => {
       });
       clock.done('S-13.3 not in team');
       await expect(currentUser(page).getByText('not in team', { exact: true })).toBeVisible();
-      await expect(notices(page)).toHaveText(['Read-only: jordan@example.test is not in the team of this project.']);
+      await expect(notices(page).locator('p')).toHaveText([
+        'Read-only: jordan@example.test is not in the team of this project.',
+      ]);
       await expectNoReload(page);
     },
   );

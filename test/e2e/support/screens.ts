@@ -4,7 +4,8 @@
  * the catalogue check of X-09.1 (key-rendering build). A screen is reached by its URL and by
  * structure (roles, classes), never by an English text, so the same list runs on the key build.
  * The console holds the kanban fixture and the custom fixture, the user is Morgan in both
- * (`startScreensConsole`); state variants (refusals, notices of other identities, the unreachable
+ * (`startScreensConsole`), and a second kanban copy where the user is Riley, not in the team
+ * (`pids[2]`, the *How to join* panel — task-035, D35-5); state variants (refusals, notices of other identities, the unreachable
  * banner, a lost session) are scanned in the specs of their tasks (closure table of task-021).
  */
 import { expect, type Locator, type Page } from '@playwright/test';
@@ -14,13 +15,18 @@ import type { Consoles, FixtureBuilds } from './fixtures.js';
 import { actAs } from './identity.js';
 import { installLoadingCheck, type LoadingCheckWindow } from './loading.js';
 
-/** The console of the screens: kanban (`pids[0]`) and custom (`pids[1]`), Morgan in both. */
+/**
+ * The console of the screens: kanban (`pids[0]`) and custom (`pids[1]`), Morgan in both; a kanban
+ * copy where the user is Riley (`pids[2]`, task-035).
+ */
 export async function startScreensConsole(fixtures: FixtureBuilds, consoles: Consoles): Promise<RunningConsole> {
   const kanban = await fixtures.copy('kanban');
   const custom = await fixtures.copy('custom');
+  const outsider = await fixtures.copy('kanban');
   await actAs(kanban, 'Morgan');
   await actAs(custom, 'Morgan');
-  return consoles.start({ projects: [kanban, custom] });
+  await actAs(outsider, 'Riley');
+  return consoles.start({ projects: [kanban, custom, outsider] });
 }
 
 /** Wait until no loading status is shown (every first read answered), whatever the build. */
@@ -150,6 +156,17 @@ export const SCREENS: readonly Screen[] = [
     name: 'document',
     open: (page, c) =>
       project(page, c, `/p/${c.pids[1]}/docs/docs/01_vision/02_product-vision.md`, (p) => p.locator('article h1')),
+  },
+  {
+    name: 'how to join panel',
+    open: async (page, c) => {
+      await project(page, c, `/p/${c.pids[2]}/team`, (p) => p.locator('.member-card'));
+      await page.locator('button.current-user-badge').click();
+      const dialog = page.locator('.modal .dialog.how-to-join');
+      await expect(dialog.locator('.how-to-join-leads li').first()).toBeVisible({ timeout: COLD_READ_MS });
+      await expect(dialog.locator('code.cli-command')).toBeVisible();
+      await expectSettled(page);
+    },
   },
   {
     name: 'page not found',
