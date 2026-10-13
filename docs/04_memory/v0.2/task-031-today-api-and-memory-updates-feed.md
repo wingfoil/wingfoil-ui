@@ -252,3 +252,57 @@ queries are task-036's and task-042's with the keys named above). The observatio
 Process Notes: spec-004 §3 (`before`, `limit`) and spec-003 §5 (Waiting on others order, no
 partial Today on a failed input, a member with no role, an unidentified user with `?view=`).
 task-030 merges first; `main` is merged into this branch before submit.
+
+### red / green / refactor (2026-10-13)
+
+- **Contracts first (RP-43)** — `e6398b0`: `contracts/api/today.schema.json`,
+  `memory-events.schema.json`, `actor.basis` in `descriptor.schema.json`; types in a new
+  `contracts/src/today.ts` (not in `api.ts`, so that task-030's appends there cannot collide) and
+  `ActorBasis` in `descriptor.ts`; `index.ts` gets two export blocks at its end (append-only).
+- **`actor.basis`** — `d344f05`. Red first: the `standard.ts` oracle and two synthetic rows of
+  `descriptor.test.ts` expected `basis` — 7 failures before `descriptor.ts` changed, 50/50 after.
+  The contract test over built fixtures (`descriptor-contract.test.ts`) uses the same oracle.
+- **Today and the events page (pure)** — `206ec4b`. `server/src/descriptor/today.ts` (`today()`,
+  `SUMMARY_ITEMS`); `memoryEventsPage()`, `MEMORY_EVENTS_LIMIT`, `MEMORY_EVENTS_MAX_LIMIT` in
+  `memory-log.ts`. Red first: `today.test.ts` failed to load (no module); the four page tests of
+  `memory-log.test.ts` failed (`memoryEventsPage is not a function`). `RequiresYouAction` of
+  `placement.ts` is now an alias of the contracts' `TodayAction`. The snapshot's per-HEAD event
+  cache keeps the flat newest-first list next to the per-element map (`SnapshotView.eventLog()`).
+- **Routes** — `8aaaa7f`. Two handlers appended to `project-routes.ts` (no `app.ts`/`start.ts`
+  change); query parameters checked in the handlers after the pid lookup. Order of the Today
+  reads: `dna show` (its refusal), then the `?view=` check (a 400 costs no `memory search` on a
+  cold cache), `memory.yaml`, the events, `memory search`. The rows are memoised per state
+  (`derived('today rows')`). `ProjectRead.log` became readonly-public for the events refusal.
+  The route tests were written right after the handlers, so they were not red on their own;
+  negative check instead: with the two `route(...)` lines removed, `today-routes.test.ts` (the
+  Morgan and `limit` tests) failed, 2/2; restored.
+- **Audits and rows** — `387e789`: `process-audit.test.ts` — cold Today **3 CLI processes**
+  (`dna show`, `--version`, `memory search`) and 5 git (2 `git log`); warm Today, the seven role
+  views of Alex and `events/memory`: **0 processes**; after an empty commit (the new state key
+  asserted first) `events/memory` runs exactly 2 `git log`. `local-security.test.ts`: six
+  `READ_ROUTES` entries appended (98 passed). `test/README.md` 0.28.
+- Observation kept as is (approver, 2026-10-13): `GET …/elements?archived=<bad>` on an unknown pid
+  answers 400 before 404 (Fastify querystring schema); spec-004 §4's order is written for writes.
+- No deviation from the design otherwise. No web change, no catalogue string, no new event.
+
+### checks (2026-10-13, HEAD `30d2a0e`)
+
+| Gate | Result | Load |
+|------|--------|------|
+| `npm run typecheck`, `lint`, `format:check` | clean | — |
+| `npm run test:coverage` | 123 files passed, 1 skipped; **2090 passed / 1 skipped**; statements 96.84 %, branches 91.25 %, functions 97.43 %, lines 98.46 % | 36.4 → 39.9 |
+| `npm run docs:api` | OK | — |
+| `check_tasks.py v0.2` | OK | — |
+| public-text check (`test/docs/public-text.test.ts`) | 67 passed | — |
+| `npm run test:e2e:chromium` (regression; no e2e spec of its own) | **133 passed** (14.0 min) | 38.1 → 22.0 |
+| `npm run test:timing` | **skipped**: load 19.5 (≥ 12) | 19.5 |
+
+`wfui-*` entries in the system temporary directory after the runs: the 1 pre-existing
+`wfui-no-hooks-*` (an earlier v0.1 run); none of this task's; no console left.
+
+e2e closure — none in this task: S-21.1, S-23.4 close in task-042; the Today rows (T-xx) in
+task-036. Hand-over to task-036/042: `todayQuery` key `queryKeys.project(pid, 'today', { view })`,
+`memoryEventsQuery` key `queryKeys.project(pid, 'events', 'memory', { limit })`; pass the
+header's `roleView` as `view` (omit when `null`); `actor.basis` → "Jordan (submitter) must act";
+a Today refusal (502 `read-error`, CLI codes, 500 `internal`) is shown as an error, never as
+"Nothing requires you".
