@@ -82,7 +82,7 @@ since) stops the start with a message naming both paths (spec-007 §6, exit 4).
 | `addedAt` | ISO 8601 UTC |
 | `roleView` | last role view chosen for this project (S-22.3); `""` = the shell's default (the member's first role) |
 | `settings` | the UI settings (v0.2, C4, REQ-STATE-09), global to every project; written as `{}` in v0.1. A missing key, or a stored value of the wrong type or out of range, reads as its default (below) — the file is not treated as corrupt — so a v0.1 file needs no migration; an unknown key (e.g. a newer build's) is ignored on read; unknown and invalid keys are dropped at the next write that changes the state (any mutation, not only a settings `PUT`) — the written object holds, in the order of `settings.schema.json`, each known key whose value the mutation changed and each one already stored with a valid value — a missing unchanged key stays missing (read as its default) —, and a mutation that changes no effective value (compared key by key, whatever the order of a `PUT` body) still writes nothing (§4) |
-| `actionLog` | the action log (REQ-SEC-10, v0.2): `{ sha, at }` — the full commit hash and its ISO 8601 UTC time — appended for every commit in `commits[]` of a successful governed write from the UI (spec-004 §5), no other data; holds at most `settings.actionLogCap` entries: an append drops the oldest beyond the cap, and a `PUT /api/settings` that lowers the cap trims the oldest entries in the same write; written as `[]` in v0.1. Each entry has exactly `sha` (40 or 64 lower-case hexadecimal characters: SHA-1 or SHA-256 object format) and `at` (ISO 8601 UTC, as `addedAt`); an entry of any other shape makes the file schema-invalid (§4, as an invalid project entry) |
+| `actionLog` | the action log (REQ-SEC-10, v0.2): `{ sha, at }` — the full commit hash and its ISO 8601 UTC time — appended for every commit in `commits[]` of a successful governed write from the UI (spec-004 §5), no other data; holds at most `settings.actionLogCap` entries: an append drops the oldest beyond the cap, and a `PUT /api/settings` that lowers the cap trims the oldest entries in the same write; written as `[]` in v0.1. Each entry has exactly `sha` (40 or 64 lower-case hexadecimal characters: SHA-1 or SHA-256 object format) and `at` (ISO 8601 UTC, as `addedAt`); an entry of any other shape makes a file of this version schema-invalid (§4, as an invalid project entry; a newer build's file: §4) |
 
 **Settings (v0.2, `contracts/api/settings.schema.json`; REQ-STATE-09, C-07.1):**
 
@@ -186,8 +186,9 @@ list is notified by the `projects` event (spec-004 §6).
   file (`state.corruptKept`). The file is never deleted silently.
 - **`version` greater than 1** (written by a newer build) → the state is read for the fields this
   version knows — each `actionLog` entry read for `sha` and `at`, an entry still not of this
-  version's shape left out instead of failing the file —, nothing is written back, and the shell warns "Project list saved by a newer
-  WingFoil UI — changes are not saved" (`state.newerVersion`). Every mutation still applies for
+  version's shape left out instead of failing the file —, nothing is written back, and the shell
+  warns "Project list saved by a newer WingFoil UI — changes are not saved"
+  (`state.newerVersion`). Every mutation still applies for
   this run only, in memory: a `PUT /api/settings` answers 200 with the settings, sends the
   `settings` event and takes effect until the console stops.
 

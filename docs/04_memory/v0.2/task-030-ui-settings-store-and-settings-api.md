@@ -333,3 +333,12 @@ local-security rows, test hygiene).
   `test/launcher/settings.test.ts`, `test/contracts`: all passed; `test:coverage` 125 files passed,
   1 skipped, **2157 passed / 1 skipped**, statements 96.82 %, branches 91.11 %, functions
   97.43 %, lines 98.43 % (load 15.2 → 21.7).
+
+### review (round 2, 2026-10-13)
+
+- Independent fresh-context review: round 1 **FAIL** (2 minor, 2 nits), round 2 **PASS** on
+  `4607754`: F1–F4 re-verified with the original probes; edge cases probed (a key set back to its
+  default is written explicitly; an invalid stored key dropped at an unrelated write; two consoles
+  PUT concurrently → whole-object last-writer-wins under the lock, spec-006 §4). Nits N1 (re-wrap
+  of the spec-006 §4 newer-version bullet) and N2 (spec-006 §2 `actionLog` row cross-reference to
+  §4 for a newer build's file) fixed by the coordinator.
