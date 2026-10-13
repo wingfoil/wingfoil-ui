@@ -8,7 +8,7 @@ module: "server"             # optional — server | web | contracts (dna.yaml m
 priority: "high"           # optional — high | medium | low
 tags: ["v0.2"]               # optional — additional labels, e.g. [today, a11y]
 ref: "TT-STATE-04"                # optional — backlog item ID, e.g. "TASK-001"
-bug: []                # optional — LIST of bug ids this task closes. Two cases: a fix task derived from a bug
+bug: ["bug-010-clone-runs-the-user-s-own-git-commands-and-needs-no-minimum-git-version"]                # optional — LIST of bug ids this task closes. Two cases: a fix task derived from a bug
                        # by release-planning, and a bug ABSORBED into an existing task's Acceptance Criteria because that
                        # task already owns the ground. `bug.sync_state` iterates this list; a bug with no task naming it
                        # here never advances past `triaged` (only a reject to `closed`).
@@ -55,6 +55,14 @@ task-035-how-to-join-panel (those screens rely on the v0.1 identity and row 5 of
 proof over all five routes).
 
 Cross-cutting: the task's `contracts/api` schemas are committed first (RP-43) and checked against every response of its routes; every new `/api/` route adds its rows to `test/launcher/local-security.test.ts` (REQ-SEC-02/03); process audits as in `test/server/snapshot/support.ts` (`AuditedRunner`).
+
+- **bug-010 (clone: the user's own git commands, minimum git version)** The documentation of the
+  clone (`docs/user-guide.md` *Add a project*, spec-006 §3) states exactly what runs during a
+  clone and a transport: nothing of the cloned repository; the user's own configured tools
+  (filter drivers, `core.sshCommand`, config-defined hooks) may run. A minimum git version is
+  documented (CVE-2024-32004, CVE-2024-32465) and, per the option the approver picks at this
+  task's design among bug-010 *Notes* (a), (b), (c), enforced or hardened, with tests. The same
+  statement covers fetch, update and push of this task.
 
 Review: adversarial security review (dl-006 action 6, RP-47) — a reviewer who runs the tool itself tries to break the task's guards, besides the independent review. Scope: argument and ref injection through remote and branch names, `ext::`/`fd::`
 transports, `GIT_SSH_COMMAND` handling, credentials in errors and logs, hooks during pull/push
