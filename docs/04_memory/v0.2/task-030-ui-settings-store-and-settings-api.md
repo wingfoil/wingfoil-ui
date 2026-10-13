@@ -328,3 +328,8 @@ local-security rows, test hygiene).
   changing one setting writes that key only" (red before), `settings.test.ts` (unit) ›
   `settingsToStore` rows, and the bin test's expected file content (`{ autoPush, theme }`).
   `storedSettings` is replaced by `settingsToStore`.
+- Checks after the fixes (`d11d19c`): `typecheck`, `lint`, `format:check` clean; `docs:api` OK;
+  `check_tasks.py v0.2` OK; targeted `test/server/state`, `test/server/http/settings.test.ts`,
+  `test/launcher/settings.test.ts`, `test/contracts`: all passed; `test:coverage` 125 files passed,
+  1 skipped, **2157 passed / 1 skipped**, statements 96.82 %, branches 91.11 %, functions
+  97.43 %, lines 98.43 % (load 15.2 → 21.7).
