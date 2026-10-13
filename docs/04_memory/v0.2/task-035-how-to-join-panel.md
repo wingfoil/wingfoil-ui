@@ -298,3 +298,65 @@ no-member sentence for an empty team; **D35-7 (a)** POSIX quoting only when need
 only *not in team* with a readable DNA; **D35-9 (a)** the panel follows the data. Also: a short
 *How to join* paragraph in the UX reference (`docs/00_reference/ux-reference.md`, version bump),
 closing journey 6 step 3's GAP; shell layout `routes/project.tsx`: the minimal change only.
+
+### red / green / refactor (2026-10-13)
+
+- **Pure part (`2796012`)** — red first: `test/web/project/join.test.ts` failed to load (no
+  module); green: `web/src/project/join.ts` (`TECH_LEAD_ROLE` pinned to the server preset,
+  `joinEmail`, `joinTeam`, `shellWord`, `joinCommand`), 10/10.
+- **Panel (`2796012`)** — red first: `test/web/project/how-to-join.test.tsx` 13 of 14 failed (no
+  badge button, no dialog; the one passing case asserts an absence). Green:
+  `web/src/project/HowToJoin.tsx` (`HowToJoinProvider`, `useHowToJoin`), `how-to-join.css`, the
+  badge button and the notice button in `ProjectHeader.tsx`, the provider in
+  `routes/project.tsx` (2 lines + 1 import), 18 `shell.howToJoin.*` keys. Deviations from the
+  design: `commandLabel` dropped (an `aria-label` on a `<pre>` is a prohibited ARIA attribute; the
+  intro sentence "…with this command:" labels it visibly), `leadsLabel` added (the leads list's
+  accessible name "Tech leads"). Focus return asserted with `waitFor` (React Aria restores it
+  asynchronously), from the keyboard.
+- **e2e (`afaf666`)** — `how-to-join.spec.ts` C-08.1 … C-09.2; `support/strings.ts` command rule
+  with three negative self-test cases in `harness/a11y-support.spec.ts` (English placeholder, an
+  email not read, an unmarked element: all flagged); `support/screens.ts` third project (Riley) and
+  the screen *how to join panel*; `no-commit.spec.ts` builds the same three repositories and checks
+  the Riley copy is unchanged too; `project-header.spec.ts` S-13.1 and S-13.3 assert the notice's
+  sentence (`p`) — S-13.1 also the notice button and the badge button. First Chromium run of the
+  spec: 7/7 (with the self-tests).
+- **X-09.1 finding of the new screen** (full Chromium run, below): (1) the declared roles rendered
+  as one `formatList` argument ("developer, reviewer, …") failed the key-text check (a word with
+  its comma is not data) — fixed in `beaf52f`: the roles are role chips (`RoleChips` of the DNA
+  view), each one data, `shell.howToJoin.roles` without arguments; (2) **`span.current-user-avatar:
+  ?`** — the v0.1 avatar of a user who is not one member (`NO_INITIALS = '?'`,
+  `web/src/project/model.ts`, task-016), never scanned before because `SCREENS` ran as Morgan
+  only. Reported to the coordinator as **D35-10** (options: ★ (a) the X-09.1 check accepts `?`
+  in an avatar — aria-hidden, language-neutral; (b) a catalogue key for it; (c) an icon). Not
+  fixed pending the decision: X-09.1 is red on the three engines for this one text.
+- **Docs (`3571950`)** — spec-008 §6 amended in place + dated Process Note (specs carry no
+  Version line; the Process Note is the record); ux-reference 1.1 §3 *How to join* row (closes
+  journey 6 step 3's GAP); `docs/user-guide.md` 0.5 (*How to join*, marked v0.2 not released);
+  `CHANGELOG.md` *Unreleased* › Added; `test/README.md` 0.28.
+
+### checks (2026-10-13, HEAD `beaf52f` + this note)
+
+| Gate | Result | Load |
+|------|--------|------|
+| `npm run typecheck`, `npm run lint`, `npm run format:check` | clean | 15.8 |
+| `npm run test:coverage` (on `3571950`) | 123 files passed, 1 skipped; **2057 passed / 1 skipped**; statements 96.69 %, branches 90.96 %, functions 97.44 %, lines 98.32 % (`HowToJoin.tsx` 84 % statements: the header-error and header-loading branches are reachable only from the later openers of task-036/037) | 15.1 → 41.2 |
+| `npm run docs:api` | OK | — |
+| `check_tasks.py v0.2` | OK (17 tasks · 46 items) | — |
+| `test/docs/public-text.test.ts` | 67 passed | — |
+| `npm run test:e2e:chromium` (on `3571950`) | **136 passed, 1 failed** (X-09.1: the two texts above); 18.0 min | 41.0 → 34.7 |
+| `npm run test:e2e -- how-to-join.spec.ts project-header.spec.ts accessibility.spec.ts no-commit.spec.ts harness/a11y-support.spec.ts` (three engines, on `beaf52f`) | **102 passed, 3 failed** — X-09.1 on each engine, only `span.current-user-avatar: ?` (D35-10); every How to join scenario, axe in both themes (C-08.1, C-09.1, C-09.2, X-06.4 over `SCREENS`), the clipboard copy and `no-commit` pass on Chromium, Firefox and WebKit; 8.2 min | 17.1 → 23.6 |
+| `npm run test:timing` | **skipped**: load ≥ 12 throughout | — |
+
+No console left after the runs (`pgrep -af bin/wingfoil-ui.cjs`); `wfui-*` entries in the system
+temporary directory: 4 before, 2 after (other checkouts' runs share the machine; none from this
+worktree).
+
+e2e closure (scenario → spec file:test):
+
+| Scenario | spec file › test |
+|----------|------------------|
+| C-08.1 | `test/e2e/how-to-join.spec.ts` › "C-08.1 — Name the tech leads and give the command" |
+| C-08.2 | `test/e2e/how-to-join.spec.ts` › "with the clipboard" › "C-08.2 — Copy the command" |
+| C-09.1 | `test/e2e/how-to-join.spec.ts` › "C-09.1 — Say that no tech lead is declared" |
+| C-09.2 | `test/e2e/how-to-join.spec.ts` › "C-09.2 — Explain an empty team" |
+| X-06.4 / X-09.1 coverage | `test/e2e/accessibility.spec.ts` over `SCREENS` › screen "how to join panel" |
