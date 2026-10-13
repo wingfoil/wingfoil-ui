@@ -2,7 +2,7 @@
 id: bug-009-memory-list-e2e-reads-the-filter-names-once-and-fails-under-load
 type: bug
 title: "Memory list e2e reads the filter names once and fails under load"
-status: triaged
+status: planned
 severity: "low"        # REQUIRED — critical | high | medium | low
 release-origin: "v0.1" # optional — release where the bug was FOUND, e.g. "v0.1"
 release: ""            # optional — fix/implementation release, stamped by release-planning/build-backlog
@@ -53,3 +53,6 @@ passes at any load; the default gates are load-independent (bug-004, dl-006 acti
   spec on three engines.
 
 ## Triage & Execution Notes
+- fix: **absorbed into task-027-e2e-suite-on-firefox-and-webkit** (AC-5, `bug:` list of the task;
+  the approver's triage, 2026-10-13); `triaged → planned` set by hand (directive `wingfoil-cli`
+  W-26).

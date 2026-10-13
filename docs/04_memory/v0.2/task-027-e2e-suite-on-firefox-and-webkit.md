@@ -8,7 +8,7 @@ module: "governance"             # optional — server | web | contracts (dna.ya
 priority: "high"           # optional — high | medium | low
 tags: ["v0.2","governance","e2e"]               # optional — additional labels, e.g. [today, a11y]
 ref: "GOV"                # optional — backlog item ID, e.g. "TASK-001"
-bug: []                # optional — LIST of bug ids this task closes. Two cases: a fix task derived from a bug
+bug: ["bug-009-memory-list-e2e-reads-the-filter-names-once-and-fails-under-load"]                # optional — LIST of bug ids this task closes. Two cases: a fix task derived from a bug
                        # by release-planning, and a bug ABSORBED into an existing task's Acceptance Criteria because that
                        # task already owns the ground. `bug.sync_state` iterates this list; a bug with no task naming it
                        # here never advances past `triaged` (only a reject to `closed`).
@@ -45,6 +45,10 @@ this governance task, run early so that every later web task's e2e runs on the t
   setup): `npx playwright install firefox webkit` and the WebKit system dependencies
   `npx playwright install-deps` (sudo — performed by the approver on the development machine; the
   task stops and asks when they are missing). The e2e run time per engine is recorded.
+- **AC-5 (bug-009)** Every comparison of filter names in `test/e2e/memory-list.spec.ts`
+  (`filterNames`) retries until the list shows what the user reads (`expect.poll` or a retrying
+  locator assertion): no single-shot read of a list that is still rendering, on any of the three
+  engines; the spec passes in the full `test:e2e` run, not only alone.
 - **AC-4** `test/README.md` (`npm run test:e2e` row, *Layout*) and the `playwright.config.ts`
   comment updated; `typecheck`, `lint`, `format:check`, `test:coverage`, `test:e2e` (three
   engines) green.
