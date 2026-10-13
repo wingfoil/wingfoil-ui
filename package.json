@@ -39,6 +39,7 @@
     "test:timing": "vitest run --config vitest.timing.config.ts && playwright test --config playwright.timing.config.ts",
     "test:smoke": "vitest run --config vitest.smoke.config.ts",
     "test:e2e": "playwright test",
+    "test:e2e:chromium": "playwright test --project chromium",
     "docs:api": "typedoc --options typedoc.json"
   },
   "author": "Roberto Pompermaier <robypomper@gmail.com>",

@@ -15,11 +15,12 @@ process.env['WFUI_STRICT_REFRESH'] = '1';
  * screen changed within 5 s of the mutation, and TT-PERF-04 (tag `@perf`, task-021, W5-9): each
  * other view rendered within 1.0 s at p95 over 20 runs with a warm cache, on the large fixture. One worker, one test at a time, on a quiet machine only
  * (load below 12, as REQ-PERF-03/06); the default `npm run test:e2e` checks the same behaviour
- * without the budget.
+ * without the budget. Chromium only (task-027 AC-2, RP-44): the budgets are not multiplied by engine.
  */
 export default defineConfig({
   ...base,
   grep: /@live-refresh|@perf/,
+  projects: (base.projects ?? []).filter((p) => p.name === 'chromium'),
   workers: 1,
   fullyParallel: false,
   outputDir: path.join(root, 'test-results', 'timing'),

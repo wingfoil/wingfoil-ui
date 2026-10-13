@@ -220,3 +220,18 @@ engines. e2e closure: this task closes no BDD scenario (it runs all of them on t
   (b) three sequential runs in the npm script (`--project chromium && … firefox && … webkit`):
   same total, but a failure on the first engine hides the others and the build runs three times;
   (c) (a) with `workers` raised to use the cores Firefox leaves idle — only after measuring (a).
+
+#### Decisions (approver, 2026-10-13)
+
+- **D27-1 (a)** — the axe self-test's static page gets a button style from its own tokens.
+- **D27-2 (a)** — `@perf` runs on Chromium only (`grepInvert` on the `firefox` and `webkit`
+  projects).
+- **D27-3 (a)** — the real clipboard: per-engine grant, sentinel, polled `readText()`.
+- **D27-4 (C, "hybrid", a new option)** — `npm run test:e2e` runs the three engines (one run,
+  three projects, default workers, `fullyParallel`; measure before touching workers): it is the
+  gate at the end of every wave and at release validation, and AC-1 (100 % on each engine) is
+  proved there. A second script runs the whole suite on Chromium only for the inner dev loop, and
+  a documented command runs a task's own spec files on the three engines. Developer agents run the
+  Chromium suite plus their own specs on the three engines. Rationale (the coordinator's cost
+  estimate): about 43 e2e runs are left in v0.2; three engines on every run ≈ 25 h of machine time
+  and +6–7 h on the critical path, the hybrid ≈ 13–14 h.
