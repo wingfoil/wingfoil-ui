@@ -66,7 +66,7 @@ rebased on `main` before its merge.
 
 ### design (2026-10-13)
 
-Read: this task; `.notes`-level dev rules; `CLAUDE.md`; the Execution Notes of `depends_on`
+Read: this task; `CLAUDE.md`; the Execution Notes of `depends_on`
 task-026 (design, decisions, red/green/refactor, reviews); `release-planning-rel-v0.2-plan` RP-3,
 RP-4, RP-9, RP-11, RP-13, RP-27, RP-43, RP-53, RP-55; `dev-loop-rel-v0.2-plan` session 1 (W0-1 …
 W0-10, hand-overs); spec-002 (§1–§5), spec-003 (§1–§9), spec-004 (§1–§7, v0.2 addendum);
