@@ -280,7 +280,7 @@ merges first).
   its dated Process Note. No new temporary-folder convention: new suites use `TempWorkspace`
   (`wfui-task-030-*`).
 
-### checks (2026-10-13, HEAD before this note `see git log`)
+### checks (2026-10-13, HEAD before this note `302dc6a`)
 
 | Gate | Result | Load |
 |------|--------|------|
