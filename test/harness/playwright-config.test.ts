@@ -69,6 +69,6 @@ describe('package.json e2e scripts', () => {
 
   it('runs the three engines in test:e2e and Chromium only in test:e2e:chromium', () => {
     expect(scripts['test:e2e']).toBe('playwright test');
-    expect(scripts['test:e2e:chromium']).toBe('playwright test --project chromium');
+    expect(scripts['test:e2e:chromium']).toBe('playwright test --project=chromium');
   });
 });
