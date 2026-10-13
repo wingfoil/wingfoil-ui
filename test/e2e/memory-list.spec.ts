@@ -74,7 +74,12 @@ function row(page: Page, eid: string): Locator {
   return page.locator(`.memory-row[data-eid="${eid}"]`);
 }
 
-/** The filter names of a filter list, without the "All …" entry, as the user reads them. */
+/**
+ * The filter names of a filter list, without the "All …" entry, as the user reads them. Read once:
+ * compare them only with `expect.poll` — the type filters join `GET /config` (the declared types)
+ * and `GET /elements` (counts, undeclared types), which answer independently, so the list can show
+ * only the element types for a moment after the rows appear (bug-009).
+ */
 async function filterNames(list: Locator): Promise<string[]> {
   const names = await list
     .getByRole('link')
@@ -125,7 +130,9 @@ test.describe('US-M-01 — Memory list', () => {
     await expect
       .poll(() => listed(page))
       .toEqual(['task-001-login-form', 'task-002-password-reset', 'task-003-logout', 'task-004-session-timeout']);
-    expect(await filterNames(stateList(page))).toEqual(['draft', 'pending', 'approved']);
+    await expect
+      .poll(() => filterNames(stateList(page)), { timeout: COLD_READ_MS })
+      .toEqual(['draft', 'pending', 'approved']);
     // Each state pill carries its state name (not colour alone) and the descriptor's tone.
     await expect(row(page, 'task-001-login-form').locator('.state-pill')).toHaveText('pending');
     await expect(row(page, 'task-001-login-form').locator('.state-pill')).toHaveClass(/\btone-human\b/);
@@ -170,8 +177,9 @@ test.describe('US-M-01 — Memory list', () => {
   test('M-01.4 — Show a type with no element', async ({ page, fixtures, consoles }) => {
     const c = await consoles.start({ projects: [await fixtures.get('kanban')] });
     await openList(page, c);
+    // A type with no element comes from `GET /config` only, which may answer after the rows (bug-009).
     const adr = typeList(page).getByRole('link', { name: 'adr, 0 elements' });
-    await expect(adr).toBeVisible();
+    await expect(adr).toBeVisible({ timeout: COLD_READ_MS });
     await adr.click();
     await expect(page.getByText('No adr yet', { exact: true })).toBeVisible();
     expect(await scanThemes(page)).toEqual([]);
@@ -182,7 +190,7 @@ test.describe('US-M-02 — unknown types and states', () => {
   test('M-02.1 — List unknown types under their own names', async ({ page, fixtures, consoles }) => {
     const c = await consoles.start({ projects: [await fixtures.get('unknown')] });
     await openList(page, c);
-    expect(await filterNames(typeList(page))).toEqual(['story', 'note']);
+    await expect.poll(() => filterNames(typeList(page)), { timeout: COLD_READ_MS }).toEqual(['story', 'note']);
     await expect(typeList(page).getByRole('link', { name: 'story, 2 elements' })).toBeVisible();
     await expect(typeList(page).getByRole('link', { name: 'note, 2 elements' })).toBeVisible();
     expect(await scanThemes(page)).toEqual([]);
@@ -195,7 +203,9 @@ test.describe('US-M-02 — unknown types and states', () => {
       .getByRole('link', { name: /^story,/ })
       .click();
     await expect(typeList(page).getByRole('link', { name: /^story,/ })).toHaveAttribute('aria-current', 'page');
-    await expect.poll(() => filterNames(stateList(page))).toEqual(['idea', 'shaping', 'ready-to-build', 'shipped']);
+    await expect
+      .poll(() => filterNames(stateList(page)), { timeout: COLD_READ_MS })
+      .toEqual(['idea', 'shaping', 'ready-to-build', 'shipped']);
   });
 
   for (const [bucket, elements] of [
@@ -373,7 +383,7 @@ test.describe('US-S-28 — three fixtures, no UI change', () => {
       const fx = await fixtures.get(kind);
       const c = await consoles.start({ projects: [fx] });
       await openList(page, c);
-      expect(await filterNames(typeList(page))).toEqual([...TYPES[kind]]);
+      await expect.poll(() => filterNames(typeList(page)), { timeout: COLD_READ_MS }).toEqual([...TYPES[kind]]);
       // Every element of the fixture (as the CLI lists it) with its own state name.
       const search = JSON.parse(await cli(fx, ['--format', 'json', 'memory', 'search'])) as MemorySearch;
       expect((await listed(page)).sort()).toEqual(search.matches.map((m) => m.id).sort());

@@ -82,7 +82,9 @@ test.describe('US-S-16 — switch project', () => {
     await expect(switcher(page)).toBeHidden();
     await expectMemoryList(page);
     await expect(typeList(page).getByRole('link', { name: /^decision-log, / })).toBeVisible();
-    await expect(typeList(page).getByRole('link', { name: /^plan, / })).toBeVisible();
+    // `plan` has no element in the custom fixture: it comes from `GET /config` only, which may answer
+    // after the rows (bug-009, task-027 review F2).
+    await expect(typeList(page).getByRole('link', { name: /^plan, / })).toBeVisible({ timeout: COLD_READ_MS });
     await expect(trigger(page)).toHaveAccessibleName('Projects: custom');
     // No element id of the kanban fixture is shown on the page.
     const text = await page.locator('body').innerText();

@@ -6,6 +6,11 @@ All notable changes to WingFoil UI are recorded in this file. The format follows
 
 ## [Unreleased]
 
+### Changed
+
+- **Supported browsers verified on three engines** (REQ-INT-08): the end-to-end suite runs on
+  Chromium, Firefox and WebKit (Chrome, Edge, Firefox, Safari); v0.1 ran it on Chromium only.
+
 ### Fixed
 
 - **No temporary folder left by a killed console** (bug-008): a clone no longer creates the empty

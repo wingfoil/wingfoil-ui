@@ -7,6 +7,8 @@ const THEMED = `<!doctype html><html lang="en"><head><title>Fixture</title>
   :root { color-scheme: light; --bg: #ffffff; --fg: #1a1f2b; }
   @media (prefers-color-scheme: dark) { :root { color-scheme: dark; --bg: #11151c; --fg: #e8ecf3; } }
   body { background: var(--bg); color: var(--fg); }
+  /* The page's own button colours: WebKit's default dark button is white on light grey (task-027 D27-1). */
+  button { background: var(--bg); color: var(--fg); border: 1px solid var(--fg); }
 </style></head>
 <body><main><h1>Fixture</h1><p>Readable in both themes.</p><button type="button">Add project…</button></main></body></html>`;
 

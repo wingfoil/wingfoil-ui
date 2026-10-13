@@ -4,9 +4,15 @@ import { fileURLToPath } from 'node:url';
 
 const root = path.dirname(fileURLToPath(import.meta.url));
 
+/** The tag of the TT-PERF-04 tests (test/e2e/support/perf.ts): measured on Chromium only (RP-44). */
+const PERF = /@perf/;
+
 /**
- * e2e suite (e2e-smoke `drive-browser`). REQ-INT-08 is staged: v0.1 runs on Chromium only;
- * Firefox and WebKit join in v0.2 (SARD 04 v0.4).
+ * e2e suite (e2e-smoke `drive-browser`). REQ-INT-08: the suite runs on the three engines of the
+ * pinned Playwright — Chromium, Firefox and WebKit (v0.2, task-027; v0.1 ran Chromium only). The
+ * `@perf` tests run on Chromium only (task-027 D27-2, RP-44); the timing suite
+ * (playwright.timing.config.ts) is Chromium only too. `npm run test:e2e` runs the three projects
+ * (the wave and release gate), `npm run test:e2e:chromium` the inner-loop run (task-027 D27-4).
  */
 export default defineConfig({
   testDir: path.join(root, 'test', 'e2e'),
@@ -23,5 +29,9 @@ export default defineConfig({
   retries: 0,
   reporter: process.env.CI ? 'github' : 'list',
   use: { trace: 'retain-on-failure' },
-  projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
+  projects: [
+    { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
+    { name: 'firefox', use: { ...devices['Desktop Firefox'] }, grepInvert: PERF },
+    { name: 'webkit', use: { ...devices['Desktop Safari'] }, grepInvert: PERF },
+  ],
 });
