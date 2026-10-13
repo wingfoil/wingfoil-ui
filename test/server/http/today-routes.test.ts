@@ -88,7 +88,7 @@ interface Console {
 
 async function start(
   kind: 'kanban' | 'custom' | 'unknown',
-  options: { fs?: ReadFs; prepare?: (fx: Fixture) => Promise<void>; failLog?: boolean } = {},
+  options: { fs?: ReadFs; prepare?: (fx: Fixture) => Promise<void>; failLog?: boolean; failSearch?: boolean } = {},
 ): Promise<Console> {
   n += 1;
   const fx = await copyFixture(templates[kind]!, path.join(await realpath(ws.dir), `copy-${n}`));
@@ -99,6 +99,14 @@ async function start(
     audited.runner.run = async (request) =>
       request.args.includes('log')
         ? { exitCode: null, signal: 'SIGKILL', stdout: '', stderr: '', ended: 'overflow', durationMs: 1 }
+        : run(request);
+  }
+  if (options.failSearch) {
+    // `memory search` refused by the CLI (exit 1), every other process real.
+    const run = audited.runner.run.bind(audited.runner);
+    audited.runner.run = async (request) =>
+      request.args.includes('search')
+        ? { exitCode: 1, signal: null, stdout: '', stderr: 'Error: search refused', ended: 'exit', durationMs: 1 }
         : run(request);
   }
   registries.push(audited.snapshots);
@@ -272,6 +280,13 @@ describe('no partial Today (D31-3)', () => {
     }
   });
 
+  it('a failed memory search: the CLI refusal', async () => {
+    const c = await start('kanban', { failSearch: true });
+    const res = await c.get(`/api/p/${c.pid}/today`);
+    expect(res.status).toBe(422);
+    expect(res.body).toEqual({ error: { code: 'cli-refused', message: expect.stringMatching(/search refused/) } });
+  });
+
   it('a failed dna show: the CLI refusal', async () => {
     const c = await start('kanban', {
       prepare: (fx) => appendFile(path.join(fx.dir, '.wingfoil', 'dna.yaml'), 'project: [unclosed\n  : :\n'),
@@ -324,5 +339,18 @@ describe('GET /api/p/:pid/events/memory (spec-004 §3, D31-1, D31-2)', () => {
       expect(res.body).toEqual({ error: { code: 'invalid-request', message: expect.any(String) } });
     }
     expect((await c.get(`/api/p/${c.pid}/events/memory?limit=100`)).status).toBe(200);
+  });
+
+  it('never passes before to git: option-like values are refused with no git process', async () => {
+    const c = await start('kanban');
+    // Warm the events first: the refusals below must then start no process at all.
+    expect((await c.get(`/api/p/${c.pid}/events/memory`)).status).toBe(200);
+    const before = c.runner.spawned.length;
+    for (const value of ['--all', '..%2F..', '-p', 'HEAD', `${'0'.repeat(40)}..HEAD`]) {
+      const res = await c.get(`/api/p/${c.pid}/events/memory?before=${value}`);
+      expect(res.status, value).toBe(400);
+      expect(res.body.error.code).toBe('invalid-request');
+    }
+    expect(c.runner.spawned.length).toBe(before);
   });
 });

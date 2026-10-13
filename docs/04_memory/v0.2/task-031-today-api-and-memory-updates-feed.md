@@ -305,4 +305,27 @@ task-036. Hand-over to task-036/042: `todayQuery` key `queryKeys.project(pid, 't
 `memoryEventsQuery` key `queryKeys.project(pid, 'events', 'memory', { limit })`; pass the
 header's `roleView` as `view` (omit when `null`); `actor.basis` → "Jordan (submitter) must act";
 a Today refusal (502 `read-error`, CLI codes, 500 `internal`) is shown as an error, never as
-"Nothing requires you".
+"Nothing requires you". The `memory search` warnings and message are not part of Today
+(spec-003 §5): an element the CLI skipped as malformed is silent on Today (the Memory list shows
+the warning).
+
+### review (round 1, 2026-10-13)
+
+Independent review: **FAIL** (1 minor, 4 nits); code and tests otherwise verified against D31-1 …
+D31-6 (budget, cache keys, `before` never reaching git, the partition, the summary); the
+substitute red check of the route tests accepted.
+
+- **F1 (minor)** — spec-003 §5 shape block: `view` "null when not identified" contradicted the
+  new bullet, the code and the contracts → "null when there is no role view (not identified, or a
+  member holding no role)"; noted in the same Process Note.
+- **F2** — `today-routes.test.ts` *no partial Today*: a `memory search` refused by the CLI (a
+  stand-in runner, exit 1) → 422 `cli-refused`.
+- **F3** — `process-audit.test.ts`: after the new HEAD, `/today` runs exactly 2 `git log`, then
+  `events/memory` shares them (0 more).
+- **F4** — `today-routes.test.ts`: option-like `before` values (`--all`, `..%2F..`, `-p`,
+  `HEAD`, a range) → 400 with 0 processes (events warmed first).
+- **F5** — hand-over line above: `memory search` warnings and message are not part of Today.
+
+- Checks after the fixes: `typecheck`, `lint`, `format:check` clean; `today-routes.test.ts`,
+  `process-audit.test.ts`, public-text check: 85 passed (3 files); `check_tasks.py v0.2` OK. No
+  server code changed, so `test:coverage` was not re-run.

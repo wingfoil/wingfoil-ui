@@ -117,7 +117,7 @@ For the current user `U` with role view `R`:
 **Today output (v0.2, `GET /api/p/:pid/today?view=<role>`, `contracts/api/today.schema.json`).**
 
 ```
-{ view: string | null,                          # the role view used; null when not identified
+{ view: string | null,                          # the role view used; null when there is no role view (not identified, or a member holding no role)
   requiresYou: [Row & { action }] | null,       # null when the user is not identified (T-01.2)
   waitingOnOthers: [Row],
   summary?: [{ role, count, items: [Row & { action }], more }] }
@@ -273,4 +273,6 @@ element list; `web/` renders it and never re-derives it.
 - 2026-10-13 — amended in dev-loop task-031 (minor-v0.2 Wave 1, plan dev-loop-rel-v0.2-plan,
   D31-3 … D31-5): §5 Today output — Waiting on others in the order of Requires you; no partial
   Today on a failed input (the read's refusal); a member with no role (`view` `null`, their own
-  rows, no `summary`); an unidentified user's `?view=` → 400. Decided by the approver.
+  rows, no `summary`); an unidentified user's `?view=` → 400. Decided by the approver. Same day,
+  review round 1 (F1): the shape block's `view` comment aligned ("null when there is no role
+  view").

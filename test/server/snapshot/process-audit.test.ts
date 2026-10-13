@@ -155,6 +155,11 @@ describe('Today and the Memory events (task-031)', () => {
     const next = await (await snapshots.open(pid, fx.dir)).check();
     expect(next.key).not.toBe(cold.state);
     const logs = runner.spawned.filter((r) => r.args.includes('log')).length;
+    const today = await standIn.get(`/api/p/${pid}/today`);
+    expect(today.status).toBe(200);
+    expect(today.state).toBe(next.key);
+    expect(runner.spawned.filter((r) => r.args.includes('log')).length).toBe(logs + 2);
+    // The events of the new HEAD are shared with Today: no further git log.
     const after = await standIn.get(`/api/p/${pid}/events/memory`);
     expect(after.status).toBe(200);
     expect(after.state).toBe(next.key);
