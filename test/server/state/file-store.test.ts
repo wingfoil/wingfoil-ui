@@ -406,3 +406,73 @@ describe('UI settings', () => {
     expect(await readFile(file, 'utf8')).toBe(content);
   });
 });
+
+// task-030 review round 1 (F1, F2, F4).
+describe('UI settings (review round 1)', () => {
+  const STORED = {
+    autoFetch: false,
+    fetchIntervalSeconds: 15,
+    autoUpdate: true,
+    autoPush: true,
+    theme: 'light' as const,
+    confirmAgentLaunch: false,
+    actionLogCap: 100,
+  };
+
+  it('F1 — a putSettings with the same values in another key order writes nothing', async () => {
+    await seed(`${JSON.stringify({ version: 1, projects: [ENTRY], settings: STORED, actionLog: [] })}\n`);
+    const before = await stat(file);
+    const store = await openFileStateStore({ dir });
+    const reordered = Object.fromEntries(Object.entries(STORED).reverse()) as typeof STORED;
+    expect(await store.putSettings(reordered)).toEqual(STORED);
+    expect((await stat(file)).mtimeMs).toBe(before.mtimeMs);
+  });
+
+  it('F1 — a changed putSettings writes the keys in the schema order, whatever the body order', async () => {
+    const store = await openFileStateStore({ dir });
+    await store.putSettings(Object.fromEntries(Object.entries(STORED).reverse()) as typeof STORED);
+    const written = JSON.parse(await readFile(file, 'utf8')) as { settings: Record<string, unknown> };
+    expect(Object.keys(written.settings)).toEqual(Object.keys(STORED));
+  });
+
+  it('F4 — a draft changing one setting writes that key only; missing keys stay missing', async () => {
+    await seed(JSON.stringify({ version: 1, projects: [ENTRY], settings: { theme: 'dark' }, actionLog: [] }));
+    const store = await openFileStateStore({ dir });
+    await store.transaction((draft) => {
+      draft.settings.autoPush = true;
+    });
+    const written = JSON.parse(await readFile(file, 'utf8')) as { settings: Record<string, unknown> };
+    expect(written.settings).toEqual({ autoPush: true, theme: 'dark' });
+  });
+
+  it('F2 — a newer build’s richer action log keeps the file readable: projects, read-only, warning', async () => {
+    const sha = 'b2'.repeat(20);
+    const content = JSON.stringify({
+      version: 2,
+      projects: [ENTRY],
+      settings: {},
+      actionLog: [{ sha, at: '2026-10-12T09:30:02Z', kind: 'approve' }, { sha: 'short', at: 'x' }, 'text'],
+    });
+    await seed(content);
+    const store = await openFileStateStore({ dir });
+    expect(store.projects()).toEqual([ENTRY]);
+    expect(store.readOnly).toBe(true);
+    expect(store.warnings()).toEqual([{ key: 'state.newerVersion', args: {} }]);
+    expect(store.snapshot().actionLog).toEqual([{ sha, at: '2026-10-12T09:30:02Z' }]);
+    expect(await readFile(file, 'utf8')).toBe(content);
+  });
+
+  it('D30-1 stays: the same richer entry in a version-1 file makes it corrupt', async () => {
+    await seed(
+      JSON.stringify({
+        version: 1,
+        projects: [ENTRY],
+        settings: {},
+        actionLog: [{ sha: 'b2'.repeat(20), at: '2026-10-12T09:30:02Z', kind: 'approve' }],
+      }),
+    );
+    const store = await openFileStateStore({ dir, now: () => NOW });
+    expect(store.projects()).toEqual([]);
+    expect(store.warnings()[0]?.key).toBe('state.corruptKept');
+  });
+});

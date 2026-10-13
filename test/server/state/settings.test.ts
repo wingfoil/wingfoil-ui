@@ -3,7 +3,7 @@
 // what a write keeps of them, and the action-log cap (RP-38).
 import type { ActionLogEntry, UiSettings } from '@wingfoil-ui/contracts';
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_SETTINGS, readSettings, storedSettings, trimActionLog } from '../../../server/src/state/settings.js';
+import { DEFAULT_SETTINGS, readSettings, settingsToStore, trimActionLog } from '../../../server/src/state/settings.js';
 
 const DEFAULTS: UiSettings = {
   autoFetch: true,
@@ -68,14 +68,29 @@ describe('readSettings', () => {
   });
 });
 
-describe('storedSettings (what a write keeps, D30-2)', () => {
-  it('keeps the known keys with valid values, drops unknown and invalid ones, adds no default', () => {
-    expect(storedSettings({ autoPush: true, theme: 'blue', newer: 1, fetchIntervalSeconds: 3600 })).toEqual({
-      autoPush: true,
-      fetchIntervalSeconds: 3600,
+describe('settingsToStore (what a write keeps, D30-2, review F1/F4)', () => {
+  it('keeps valid stored keys, drops unknown and invalid ones, adds no default when nothing changed', () => {
+    const stored = { autoPush: true, theme: 'blue', newer: 1, fetchIntervalSeconds: 3600 };
+    const effective = readSettings(stored);
+    expect(settingsToStore(stored, effective, effective)).toEqual({
+      settings: { fetchIntervalSeconds: 3600, autoPush: true },
+      changed: false,
     });
-    expect(storedSettings({})).toEqual({});
-    expect(storedSettings({ ...CHANGED })).toEqual(CHANGED);
+    expect(settingsToStore({}, DEFAULTS, DEFAULTS)).toEqual({ settings: {}, changed: false });
+  });
+
+  it('writes a changed key, keeps a missing unchanged key missing', () => {
+    expect(settingsToStore({}, DEFAULTS, { ...DEFAULTS, autoPush: true })).toEqual({
+      settings: { autoPush: true },
+      changed: true,
+    });
+  });
+
+  it('compares per key, not by key order, and writes the schema order', () => {
+    const reordered = Object.fromEntries(Object.entries(CHANGED).reverse()) as unknown as UiSettings;
+    const result = settingsToStore({ ...reordered }, CHANGED, reordered);
+    expect(result.changed).toBe(false);
+    expect(Object.keys(result.settings)).toEqual(Object.keys(DEFAULTS));
   });
 });
 

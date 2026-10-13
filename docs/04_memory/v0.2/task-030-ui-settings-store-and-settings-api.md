@@ -296,3 +296,35 @@ merges first).
 `wfui-run-*` / `wfui-e2e-run-*` roots of the concurrent runs of task-031 and task-035 (owner pids
 alive in those worktrees) and the pre-existing `wfui-no-hooks-*`; none from this worktree; no
 console of this worktree left running.
+
+### review (round 1, 2026-10-13)
+
+Independent review: **FAIL** (2 minor, 2 nits); the rest verified (ACs, D30-1 … D30-5, the
+schema as single source, strict `PUT` including `__proto__`, `1e300` and a 2 MB body, locking,
+local-security rows, test hygiene).
+
+- **F1 (minor)** — a `PUT` with the same values in another key order rewrote `state.json` (the
+  no-op was judged by `JSON.stringify`, key order included) and stored the keys in the client's
+  order. Change: `settingsToStore(stored, before, next)` in `server/src/state/settings.ts`
+  compares key by key over the schema's key list and builds the written object in the schema's
+  order; `putSettings` answers `readSettings(...)` (schema order). Red first: `file-store.test.ts`
+  › "F1 — … another key order writes nothing" (mtime unchanged) and "… writes the keys in the
+  schema order", `settings.test.ts` (route) › "review F1 — …" (the store's snapshot compared byte
+  for byte; `toEqual` alone passed on the old code, so the assertion was tightened) — all failed
+  on the previous `store.ts`/`settings.ts`, pass now.
+- **F2 (minor)** — a newer build's `state.json` whose `actionLog` items carry more fields failed
+  the schema in `knownFields` and fell back to an empty state (projects lost). Change:
+  `knownFields` (`server/src/state/schema.ts`) reads each entry for `sha` and `at` and leaves out
+  the entries still not of this version's shape; a version-1 file stays strict (D30-1). Red first:
+  `file-store.test.ts` › "F2 — a newer build's richer action log keeps the file readable"
+  (projects read, read-only, `state.newerVersion`, the file untouched) failed before; "D30-1
+  stays" shows the same entry in a version-1 file is still corrupt.
+- **F3 (nit)** — `putSettings` returns the settings from inside its transaction.
+- **F4 (nit)** — decided: a write stores only the keys whose effective value changed plus those
+  already stored with a valid value (consistent with D30-2 "a missing key stays missing"); a `PUT`
+  follows the same rule (on a `{}` file a `PUT` changing `autoPush` stores `{ autoPush }`; the
+  other keys still read as their defaults). `StateDraft.settings` TypeDoc and spec-006 §2/§4 (the
+  2026-10-13 Process Note, review addendum) say so. Tests: `file-store.test.ts` › "F4 — a draft
+  changing one setting writes that key only" (red before), `settings.test.ts` (unit) ›
+  `settingsToStore` rows, and the bin test's expected file content (`{ autoPush, theme }`).
+  `storedSettings` is replaced by `settingsToStore`.

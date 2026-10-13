@@ -136,6 +136,18 @@ describe('PUT /api/settings', () => {
     expect((await get()).json()).toEqual(CHANGED);
   });
 
+  it('review F1 — a PUT with the same values in another key order stores nothing new', async () => {
+    const { store } = await setUp({ version: 1, projects: [], settings: { ...CHANGED }, actionLog: [] });
+    const before = store.snapshot();
+    const reordered = Object.fromEntries(Object.entries(CHANGED).reverse());
+    const res = await put(reordered);
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toEqual(CHANGED);
+    expect(Object.keys(res.json() as object)).toEqual(Object.keys(DEFAULTS));
+    // Byte for byte: `toEqual` would ignore a key order rewritten by the store.
+    expect(JSON.stringify(store.snapshot())).toBe(JSON.stringify(before));
+  });
+
   it('sends one event per valid PUT, also when nothing changed', async () => {
     const { events } = await setUp();
     expect((await put(DEFAULTS)).statusCode).toBe(200);

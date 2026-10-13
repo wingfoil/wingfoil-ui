@@ -7,7 +7,7 @@
 import type { ActionLogEntry, ProjectEntry, StateFile, StateWarning, UiSettings } from '@wingfoil-ui/contracts';
 import { newProjectId, type RandomSource } from './ids.js';
 import { InvalidStateError, STATE_VERSION, stateProblem } from './schema.js';
-import { readSettings, storedSettings, trimActionLog, validateSettings } from './settings.js';
+import { readSettings, settingsToStore, trimActionLog, validateSettings } from './settings.js';
 
 /** What the caller gives to add a project; the store draws the id and the add time. */
 export interface NewProject {
@@ -38,7 +38,9 @@ export interface StateDraft {
   create(project: NewProject): ProjectEntry;
   /**
    * A copy of the effective UI settings (spec-006 §2); change it in place or replace it. A
-   * settings object that fails `contracts/api/settings.schema.json` refuses the transaction.
+   * settings object that fails `contracts/api/settings.schema.json` refuses the transaction. The
+   * write stores only the keys whose value changed and those already stored with a valid value
+   * (D30-2): a missing key that stays unchanged stays missing.
    */
   settings: UiSettings;
   /**
@@ -215,11 +217,13 @@ class BackedStateStore implements StateStore {
     return readSettings(this.#state.settings);
   }
 
-  async putSettings(next: UiSettings): Promise<UiSettings> {
-    await this.transaction((draft) => {
+  putSettings(next: UiSettings): Promise<UiSettings> {
+    return this.transaction((draft) => {
       draft.settings = { ...next };
+      // The stored settings are the effective ones of this very write, in the schema's key order
+      // whatever the order of `next` (review F1, F3).
+      return readSettings(draft.settings);
     });
-    return this.settings();
   }
 
   /**
@@ -276,14 +280,14 @@ class BackedStateStore implements StateStore {
       const why = validateSettings.errors?.map((e) => `${e.instancePath || '/'} ${e.message ?? ''}`).join('; ');
       throw new InvalidStateError(`invalid state: settings ${why ?? ''}`);
     }
-    // D30-2: changed settings are written whole; otherwise the stored ones lose only their unknown
-    // and invalid keys. Whether anything changed is judged on the effective settings, so a no-op
-    // (or a file holding only unknown keys) writes nothing.
-    const settingsChanged = JSON.stringify(draft.settings) !== JSON.stringify(current);
+    // D30-2: a key is written when changed or when stored with a valid value, in the schema's key
+    // order; whether anything changed is judged per key on the effective settings, so a no-op (a
+    // reordered PUT, or a file holding only unknown keys) writes nothing (review F1, F4).
+    const { settings, changed: settingsChanged } = settingsToStore(this.#state.settings, current, draft.settings);
     const next: StateFile = {
       ...this.#state,
       projects: draft.projects.map((p) => ({ ...p, remote: stripUserinfo(p.remote) })),
-      settings: settingsChanged ? { ...draft.settings } : storedSettings(this.#state.settings),
+      settings,
       actionLog: trimActionLog(draft.actionLog, draft.settings.actionLogCap),
     };
     const same =

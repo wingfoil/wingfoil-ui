@@ -112,7 +112,8 @@ describe('UI settings on the bin', () => {
     expect((await call(l, 'GET')).json).toEqual({ ...DEFAULTS, autoPush: true });
     const next = { ...DEFAULTS, autoPush: true, theme: 'dark' };
     expect(await call(l, 'PUT', next)).toEqual({ status: 200, json: next });
-    expect((await readState(dir)).settings).toEqual(next);
+    // D30-2 (review F4): the changed key and the valid stored one; the invalid and unknown keys gone.
+    expect((await readState(dir)).settings).toEqual({ autoPush: true, theme: 'dark' });
   });
 
   it('C-07.2 — a PUT is announced on the event stream and kept across a restart', async () => {
