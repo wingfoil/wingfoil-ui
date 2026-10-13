@@ -235,3 +235,57 @@ engines. e2e closure: this task closes no BDD scenario (it runs all of them on t
   Chromium suite plus their own specs on the three engines. Rationale (the coordinator's cost
   estimate): about 43 e2e runs are left in v0.2; three engines on every run ≈ 25 h of machine time
   and +6–7 h on the critical path, the hybrid ≈ 13–14 h.
+
+### red / green / refactor (2026-10-13)
+
+- **Projects, timing, scripts (AC-1, AC-2, D27-2, D27-4 C)** — `8204bf6`, `5ee1f55`. Red first:
+  `test/harness/playwright-config.test.ts` (it held the v0.1 "exactly one project, chromium"
+  check) rewritten: three projects on their own engines (`defaultBrowserType` of the device),
+  `fullyParallel`, no `workers`; `@perf` excluded on `firefox`/`webkit` and `@live-refresh` on
+  none; the timing config one `chromium` project, one worker, both tags; `package.json`
+  `test:e2e` and `test:e2e:chromium`. 3 of 4 failed before the change, 4/4 after. The timing
+  config is imported with `WFUI_STRICT_REFRESH` restored afterwards (the config sets it).
+  Deviation found while running: `--project` is variadic, so `playwright test --project chromium
+  <files>` reads the files as project names ("Project(s) … not found"); the script uses
+  `--project=chromium`, so `npm run test:e2e:chromium -- <files>` works (documented in
+  `test/README.md` *Browsers*).
+- **D27-1** — `f6faff4`: the axe self-test page styles its button from its own tokens. Red: the
+  WebKit probe failure (design); green on the three engines (the two violation cases unchanged).
+- **Clipboard helper (AC-1b, D27-3)** — `f6faff4`: `test/e2e/support/clipboard.ts`
+  (`allowClipboard`, `copiedBy`), self-test `test/e2e/harness/clipboard.spec.ts` — Clipboard API,
+  `execCommand('copy')`, the same text copied twice, nothing copied fails. Red first: the spec
+  failed to load (no module). Green: 12/12 on the three engines. Negative check (not committed):
+  with the sentinel write removed, "fails when the action copies nothing" fails on all three
+  engines (the helper returns the stale text) — 3 failed, 9 passed.
+- **bug-009 (AC-5)** — `5ee1f55`. Red by fault injection (not committed): `openList` with
+  `GET /api/p/*/config` held 3 s by `page.route`, current code, Chromium: **5 failed** (M-01.5,
+  M-02.1, S-28.1 kanban/custom/unknown — the single-shot `filterNames`), 1 passed (M-02.3, the one
+  already polled). Green: every `filterNames` comparison is `expect.poll(…, { timeout:
+  COLD_READ_MS })` (the four of the file, M-02.3's included, so a slow `/config` under load is
+  waited for like every first read); with the injection still in place **6/6 passed**; injection
+  removed, `memory-list.spec.ts` on the three engines **63/63 passed** (5.4 min). The helper's
+  comment states why (two queries answer independently).
+- **Docs** — `32ce12f`: `test/README.md` 0.27 (commands table, *Layout*, new *Browsers* section
+  with the inner-loop / wave-gate rule and the run times, *Timing suite* Chromium only),
+  `README.md` (browser requirement, scripts table, browser setup), `CLAUDE.md` 0.4 (the *Checks*
+  line follows D27-4 C), `CHANGELOG.md` *Unreleased* › Changed, `playwright.config.ts` and
+  `playwright.timing.config.ts` comments.
+
+### checks (2026-10-13, HEAD `32ce12f`)
+
+| Gate | Result | Load |
+|------|--------|------|
+| `npm run typecheck`, `npm run lint`, `npm run format:check` | clean | 10.5 |
+| `npm run test:coverage` | 121 files passed, 1 skipped; **2032 passed / 1 skipped**; statements 96.8 %, branches 91.17 %, functions 97.39 %, lines 98.41 % | 9.0 → 21.3 |
+| `npm run docs:api` | OK | — |
+| `check_tasks.py v0.2` | OK (17 tasks · 46 items) | — |
+| `npm run test:e2e` (three engines) | **385 passed** (133 Chromium, 126 Firefox, 126 WebKit — the 7 `@perf` on Chromium only), 0 failed, 0 flaky; wall **28.5 min**; sum of test durations Chromium 1 260 s, Firefox 1 485 s, WebKit 1 134 s | 20.0 → 19.1 (trace 17–22) |
+| `npm run test:e2e:chromium` | **133 passed**, 8.3 min | 14.5 → 16.2 |
+| `npm run test:e2e -- harness/clipboard.spec.ts harness/axe.spec.ts memory-list.spec.ts` (own specs, three engines) | **84 passed**, 4.8 min | 15.2 → 32.3 |
+| `npm run test:smoke` | **4/4 passed** | 30.6 → 24.0 |
+| `npm run test:timing` | **skipped**: load 22.7 (≥ 12). AC-2 checked without running it: `playwright test --config playwright.timing.config.ts --list` → 14 tests, all `[chromium]`; `playwright-config.test.ts` green | 22.7 |
+
+AC-1: 100 % of the scenarios pass on each engine (the full run above; no skip, the `@perf`
+measurement on Chromium only by D27-2). `wfui-*` entries in the system temporary directory: 1
+before (the pre-existing `wfui-no-hooks-*`), 1 after all the runs — 0 new, no `wfui-run-*` root, no
+console left (`pgrep -af bin/wingfoil-ui.cjs`).

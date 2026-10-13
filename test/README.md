@@ -199,9 +199,11 @@ Which run when (task-027 D27-4, the approver's "hybrid"):
 Note for a narrower run: `--project` takes several values, so `--project chromium <files>` reads
 the files as project names; write `--project=chromium` (as the script does).
 
-Run time (one `playwright test` run, default workers — 6 on 12 cores —, `fullyParallel`), measured
-on 2026-10-13: see task-027's Execution Notes for the load of each measurement. Each engine alone,
-whole suite: Chromium 8.2 min, Firefox 14.0 min, WebKit 8.8 min (load 12–19).
+Run time, measured on 2026-10-13 (default workers — 6 on 12 cores —, `fullyParallel`, other
+checkouts running; loads in task-027's Execution Notes): `npm run test:e2e`, 385 tests on the three
+engines, **28.5 min** at load 20 → 19 (sum of test durations: Chromium 21 min, Firefox 25 min,
+WebKit 19 min); `npm run test:e2e:chromium`, 133 tests, **8.3 min** at load 14.5 → 16.2. Each
+engine alone, before task-027's own specs: Chromium 8.2 min, Firefox 14.0 min, WebKit 8.8 min.
 
 ## Launch smoke
 
