@@ -63,6 +63,8 @@ export interface DescriptorActor {
   members?: string[];
   /** Set on the tech-lead fallback: the author is not in the team, or there is no event. */
   fallback?: 'author-not-in-team';
+  /** For a member actor: the rule of spec-003 §4 that named them (v0.2, T-11.1). */
+  basis?: ActorBasis;
 }
 
 /** The last reject, when it led to the current state. */
@@ -91,3 +93,10 @@ export interface ActionDescriptor {
   /** ISO 8601 time of the last event into the current state; absent when none is known. */
   since?: string;
 }
+
+/**
+ * Which rule of spec-003 §4 named a member actor (v0.2): the author of the submit that was
+ * rejected, the creator (the `add` event), or the author of the last transition into the state.
+ * Rendered as "Jordan (submitter) must act" (T-11.1).
+ */
+export type ActorBasis = 'submitter' | 'creator' | 'last-transition';

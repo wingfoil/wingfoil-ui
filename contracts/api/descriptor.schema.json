@@ -80,6 +80,10 @@
         },
         "fallback": {
           "const": "author-not-in-team"
+        },
+        "basis": {
+          "description": "For a member actor, the rule of spec-003 §4 that named them (v0.2, T-11.1).",
+          "enum": ["submitter", "creator", "last-transition"]
         }
       },
       "additionalProperties": false
