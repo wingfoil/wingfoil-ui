@@ -47,13 +47,18 @@ describe('missing file', () => {
 });
 
 describe('writes', () => {
-  it('keep settings and actionLog written by another build of the same version', async () => {
-    await seed(JSON.stringify({ version: 1, projects: [], settings: { theme: 'dark' }, actionLog: [{ sha: 'a1' }] }));
+  // Changed in task-030 (D30-1, D30-2): a write keeps the valid settings and the action log, and
+  // drops unknown and invalid settings keys.
+  it('keep valid settings and the action log; drop unknown and invalid settings keys', async () => {
+    const actionLog = [{ sha: 'a1'.repeat(20), at: '2026-10-12T09:30:02Z' }];
+    await seed(
+      JSON.stringify({ version: 1, projects: [], settings: { theme: 'dark', autoPush: 'yes', newer: 1 }, actionLog }),
+    );
     const store = await openFileStateStore({ dir });
     await store.add(KANBAN);
     const written = JSON.parse(await readFile(file, 'utf8')) as Record<string, unknown>;
     expect(written.settings).toEqual({ theme: 'dark' });
-    expect(written.actionLog).toEqual([{ sha: 'a1' }]);
+    expect(written.actionLog).toEqual(actionLog);
   });
 
   it('two consoles on the same state directory do not drop each other’s additions', async () => {
@@ -319,5 +324,83 @@ describe('lock between processes (state.json.lock)', () => {
     const store = await openFileStateStore({ dir });
     await store.add(KANBAN);
     expect(await readdir(dir)).toEqual(['state.json']);
+  });
+});
+
+// task-030 — the UI settings in `state.json` (spec-006 §2, §4; RP-38, RP-39, D30-1 … D30-3, D30-5).
+describe('UI settings', () => {
+  const SHA = (n: number): string => n.toString(16).padStart(40, '0');
+  const CHANGED = {
+    autoFetch: false,
+    fetchIntervalSeconds: 15,
+    autoUpdate: true,
+    autoPush: true,
+    theme: 'light' as const,
+    confirmAgentLaunch: false,
+    actionLogCap: 100,
+  };
+
+  it('C-07.1 — a v0.1 file ({}) reads the defaults; a stored invalid value reads as its default', async () => {
+    await seed(JSON.stringify({ version: 1, projects: [ENTRY], settings: {}, actionLog: [] }));
+    expect((await openFileStateStore({ dir })).settings()).toMatchObject({ autoFetch: true, autoPush: false });
+    await seed(JSON.stringify({ version: 1, projects: [ENTRY], settings: { fetchIntervalSeconds: 5 }, actionLog: [] }));
+    const store = await openFileStateStore({ dir });
+    expect(store.settings().fetchIntervalSeconds).toBe(60);
+    expect(store.warnings()).toEqual([]);
+  });
+
+  it('a malformed action-log entry makes the file corrupt (D30-1): kept aside, empty state', async () => {
+    await seed(JSON.stringify({ version: 1, projects: [ENTRY], settings: {}, actionLog: [{ sha: 'a1' }] }));
+    const store = await openFileStateStore({ dir, now: () => NOW });
+    expect(store.projects()).toEqual([]);
+    expect(store.warnings()).toEqual([{ key: 'state.corruptKept', args: { file: expect.stringContaining('corrupt') } }]);
+  });
+
+  it('putSettings writes the whole object and trims the action log in the same write', async () => {
+    const log = Array.from({ length: 150 }, (_, i) => ({ sha: SHA(i), at: '2026-10-12T09:30:02Z' }));
+    await seed(JSON.stringify({ version: 1, projects: [ENTRY], settings: { newer: true }, actionLog: log }));
+    const store = await openFileStateStore({ dir });
+    expect(await store.putSettings(CHANGED)).toEqual(CHANGED);
+    const written = JSON.parse(await readFile(file, 'utf8')) as Record<string, unknown>;
+    expect(written).toEqual({ version: 1, projects: [ENTRY], settings: CHANGED, actionLog: log.slice(50) });
+    expect(await readdir(dir)).toEqual(['state.json']);
+  });
+
+  it('a putSettings that changes nothing writes nothing; a no-op keeps unknown keys', async () => {
+    await seed(`${JSON.stringify({ version: 1, projects: [ENTRY], settings: { newer: 1 }, actionLog: [] })}\n`);
+    const before = await stat(file);
+    const store = await openFileStateStore({ dir });
+    const defaults = store.settings();
+    expect(await store.putSettings(defaults)).toEqual(defaults);
+    await store.update(ENTRY.id, { roleView: ENTRY.roleView });
+    const after = await stat(file);
+    expect(after.mtimeMs).toBe(before.mtimeMs);
+    expect(JSON.parse(await readFile(file, 'utf8'))).toMatchObject({ settings: { newer: 1 } });
+  });
+
+  it('a putSettings with no state yet writes it (the first settings change creates the file)', async () => {
+    const store = await openFileStateStore({ dir });
+    await store.putSettings(CHANGED);
+    expect(JSON.parse(await readFile(file, 'utf8'))).toMatchObject({ settings: CHANGED, projects: [] });
+  });
+
+  it('D30-3 — reload() shows the settings another console stored', async () => {
+    const a = await openFileStateStore({ dir });
+    const b = await openFileStateStore({ dir });
+    await a.putSettings(CHANGED);
+    // Fresh-read precondition: b still has what it read at open.
+    expect(b.settings().autoPush).toBe(false);
+    await b.reload();
+    expect(b.settings()).toEqual(CHANGED);
+  });
+
+  it('D30-5 — a newer build’s file: putSettings applies for the run, nothing is written', async () => {
+    const content = JSON.stringify({ version: 2, projects: [ENTRY], settings: {}, actionLog: [] });
+    await seed(content);
+    const store = await openFileStateStore({ dir });
+    expect(store.readOnly).toBe(true);
+    expect(await store.putSettings(CHANGED)).toEqual(CHANGED);
+    expect(store.settings()).toEqual(CHANGED);
+    expect(await readFile(file, 'utf8')).toBe(content);
   });
 });
