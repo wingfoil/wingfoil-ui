@@ -69,6 +69,7 @@ Actual effort per phase (dl-006 action 6; wall-clock of the working sessions, 20
 |-------|------|----------|--------|
 | Governance alignment (pre-step) | `governance-alignment-rel-v0.2-plan` | 2026-10-12 10:05–11:00 | ~1 h |
 | release-planning | `release-planning-rel-v0.2-plan` | sessions 1–4 2026-10-12 11:00–20:00 (wall-clock, incl. waits; sessions 3–4 from 19:20) | ~9 h wall-clock, 1 active day |
+| implementation — Wave 0 (task-026, task-028, task-027) | `dev-loop-rel-v0.2-plan` session 1 | 2026-10-12 23:30 – 2026-10-13 15:20 (overnight pause) | ~9 h working time, 1 active day |
 
 - 2026-10-12 — `release-planning-rel-v0.2-plan` sessions 1–2 (branch `design/release-planning_v0.2`).
   `advance-pinned-build` no-op (0.2.2 newest); `minor-v0.2` `draft → planning` (`4c8ead3`);
@@ -100,6 +101,13 @@ Actual effort per phase (dl-006 action 6; wall-clock of the working sessions, 20
 
 <!-- Recurring blockers across tasks, tech-specs revised mid-release, review rejections and why,
      anything that deviated from the plan in Scope/Pillar Focus above. -->
+
+- 2026-10-13 — Wave 0 (`dev-loop-rel-v0.2-plan` session 1): task-026, task-028, task-027 done;
+  review rounds 2, 3, 2 (task-026 also an adversarial security review, PASS). bug-008 resolved
+  (task-026), bug-009 ingested and resolved (task-027), bug-010 ingested and planned into task-033.
+  Deviation: e2e on three engines only at wave gates and release validation; tasks run Chromium
+  plus their own specs on three engines (W0-9, cost-driven). `test:timing` not yet run on `main`
+  (load).
 
 ### Submit & Publishing
 
