@@ -309,3 +309,30 @@ export function memoryDirectories(memoryYaml: MemoryYaml): string[] {
   const sorted = [...dirs].sort();
   return sorted.filter((dir) => !sorted.some((other) => other !== dir && dir.startsWith(`${other}/`)));
 }
+
+/** The bell's *Updates*: events of one page when no `limit` is given (spec-004 §3, REQ-PERF-11). */
+export const MEMORY_EVENTS_LIMIT = 10;
+
+/** The largest `limit` of one page (D31-2). */
+export const MEMORY_EVENTS_MAX_LIMIT = 100;
+
+/**
+ * One page of `events` (newest first): at most `limit` events (default
+ * {@link MEMORY_EVENTS_LIMIT}) after the event whose sha is `before` (exclusive; the newest when
+ * absent), and whether older ones follow (spec-004 §3, D31-1). `undefined` when `before` names no
+ * event of the log (history rewritten: the client starts again from the top). `limit` is checked
+ * by the route.
+ */
+export function memoryEventsPage(
+  events: readonly MemoryEvent[],
+  page: { before?: string; limit?: number },
+): { events: MemoryEvent[]; more: boolean } | undefined {
+  let start = 0;
+  if (page.before !== undefined) {
+    const at = events.findIndex((e) => e.sha === page.before);
+    if (at < 0) return undefined;
+    start = at + 1;
+  }
+  const end = start + (page.limit ?? MEMORY_EVENTS_LIMIT);
+  return { events: events.slice(start, end), more: end < events.length };
+}
