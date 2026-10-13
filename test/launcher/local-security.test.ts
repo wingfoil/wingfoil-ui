@@ -200,6 +200,13 @@ describe('X-04.1 — refuse requests without a valid session', () => {
     '/docs',
     '/files/tree',
     '/files/content?path=docs%2Fa.md',
+    // task-031 (v0.2): Today and the Memory events; an invalid query on an unknown id is 404 too.
+    '/today',
+    '/today?view=approver',
+    '/today?view=nope',
+    '/events/memory',
+    '/events/memory?limit=5',
+    '/events/memory?limit=0',
   ];
   it.each(
     READ_ROUTES.flatMap((suffix) =>
