@@ -4,9 +4,10 @@
  * checked against the schema, remotes stored without userinfo (REQ-SEC-09), warnings for the
  * shell (`GET /api/server`). Adapters only read and write the whole state.
  */
-import type { ProjectEntry, StateFile, StateWarning } from '@wingfoil-ui/contracts';
+import type { ActionLogEntry, ProjectEntry, StateFile, StateWarning, UiSettings } from '@wingfoil-ui/contracts';
 import { newProjectId, type RandomSource } from './ids.js';
 import { InvalidStateError, STATE_VERSION, stateProblem } from './schema.js';
+import { readSettings, storedSettings, trimActionLog, validateSettings } from './settings.js';
 
 /** What the caller gives to add a project; the store draws the id and the add time. */
 export interface NewProject {
@@ -35,6 +36,16 @@ export interface StateDraft {
   projects: ProjectEntry[];
   /** A new entry for `project` with a fresh id unique in `projects` (not added: push it). */
   create(project: NewProject): ProjectEntry;
+  /**
+   * A copy of the effective UI settings (spec-006 §2); change it in place or replace it. A
+   * settings object that fails `contracts/api/settings.schema.json` refuses the transaction.
+   */
+  settings: UiSettings;
+  /**
+   * A copy of the action log, oldest first; push new entries (task-032). The store keeps the
+   * newest `settings.actionLogCap` entries when it writes (RP-38, D30-4).
+   */
+  actionLog: ActionLogEntry[];
 }
 
 /** The local-state store port. Every value handed out is a copy. */
@@ -56,6 +67,17 @@ export interface StateStore {
   warnings(): StateWarning[];
   /** The whole state as last read or written. */
   snapshot(): StateFile;
+  /**
+   * The effective UI settings as last read or written (spec-006 §2): a missing or invalid stored
+   * value reads as its default. Call {@link reload} first to see another console's change.
+   */
+  settings(): UiSettings;
+  /**
+   * Store the whole settings object (RP-28) in one transaction, trimming the action log to the
+   * new cap (RP-38); resolves with the stored settings. An object failing
+   * `contracts/api/settings.schema.json` is refused with {@link InvalidStateError}.
+   */
+  putSettings(next: UiSettings): Promise<UiSettings>;
   /**
    * Re-read the state, run `fn` on a draft under the lock, and write the result if it changed.
    * When `fn` throws (a refusal), nothing is written. Resolves with what `fn` returned.
@@ -189,6 +211,17 @@ class BackedStateStore implements StateStore {
     return structuredClone(this.#state);
   }
 
+  settings(): UiSettings {
+    return readSettings(this.#state.settings);
+  }
+
+  async putSettings(next: UiSettings): Promise<UiSettings> {
+    await this.transaction((draft) => {
+      draft.settings = { ...next };
+    });
+    return this.settings();
+  }
+
   /**
    * Run `fn` after every earlier operation of this store (in-process lock). The lock between
    * processes is taken by {@link transaction}; a plain read needs none (writes are atomic renames).
@@ -231,13 +264,33 @@ class BackedStateStore implements StateStore {
     // Re-read first: another console on the same directory may have changed the list.
     if (reread) this.#accept(await this.#backend.read());
     const projects = structuredClone(this.#state.projects);
-    const draft: StateDraft = { projects, create: (project) => this.#create(project, projects) };
+    const current = this.settings();
+    const draft: StateDraft = {
+      projects,
+      create: (project) => this.#create(project, projects),
+      settings: readSettings(this.#state.settings),
+      actionLog: structuredClone(this.#state.actionLog),
+    };
     const result = await fn(draft);
+    if (!validateSettings(draft.settings)) {
+      const why = validateSettings.errors?.map((e) => `${e.instancePath || '/'} ${e.message ?? ''}`).join('; ');
+      throw new InvalidStateError(`invalid state: settings ${why ?? ''}`);
+    }
+    // D30-2: changed settings are written whole; otherwise the stored ones lose only their unknown
+    // and invalid keys. Whether anything changed is judged on the effective settings, so a no-op
+    // (or a file holding only unknown keys) writes nothing.
+    const settingsChanged = JSON.stringify(draft.settings) !== JSON.stringify(current);
     const next: StateFile = {
       ...this.#state,
       projects: draft.projects.map((p) => ({ ...p, remote: stripUserinfo(p.remote) })),
+      settings: settingsChanged ? { ...draft.settings } : storedSettings(this.#state.settings),
+      actionLog: trimActionLog(draft.actionLog, draft.settings.actionLogCap),
     };
-    if (JSON.stringify(next) === JSON.stringify(this.#state)) return { result, changed: false };
+    const same =
+      !settingsChanged &&
+      JSON.stringify(next.projects) === JSON.stringify(this.#state.projects) &&
+      JSON.stringify(next.actionLog) === JSON.stringify(this.#state.actionLog);
+    if (same) return { result, changed: false };
     const problem = stateProblem(next);
     if (problem !== undefined) throw new InvalidStateError(`invalid state: ${problem}`);
     if (write) await this.#backend.write(next);

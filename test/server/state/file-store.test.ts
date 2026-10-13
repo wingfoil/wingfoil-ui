@@ -353,7 +353,9 @@ describe('UI settings', () => {
     await seed(JSON.stringify({ version: 1, projects: [ENTRY], settings: {}, actionLog: [{ sha: 'a1' }] }));
     const store = await openFileStateStore({ dir, now: () => NOW });
     expect(store.projects()).toEqual([]);
-    expect(store.warnings()).toEqual([{ key: 'state.corruptKept', args: { file: expect.stringContaining('corrupt') } }]);
+    expect(store.warnings()).toEqual([
+      { key: 'state.corruptKept', args: { file: expect.stringContaining('corrupt') } },
+    ]);
   });
 
   it('putSettings writes the whole object and trims the action log in the same write', async () => {

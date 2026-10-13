@@ -3,12 +3,7 @@
 // what a write keeps of them, and the action-log cap (RP-38).
 import type { ActionLogEntry, UiSettings } from '@wingfoil-ui/contracts';
 import { describe, expect, it } from 'vitest';
-import {
-  DEFAULT_SETTINGS,
-  readSettings,
-  storedSettings,
-  trimActionLog,
-} from '../../../server/src/state/settings.js';
+import { DEFAULT_SETTINGS, readSettings, storedSettings, trimActionLog } from '../../../server/src/state/settings.js';
 
 const DEFAULTS: UiSettings = {
   autoFetch: true,
