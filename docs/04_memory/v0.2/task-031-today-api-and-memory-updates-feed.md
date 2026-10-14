@@ -2,7 +2,7 @@
 id: task-031-today-api-and-memory-updates-feed
 type: task
 title: "Today API and Memory updates feed"
-status: in-progress
+status: in-review
 release: "v0.2"
 module: "server"             # optional — server | web | contracts (dna.yaml modules)
 priority: "high"           # optional — high | medium | low
