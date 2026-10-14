@@ -165,7 +165,7 @@ it('closes the element panel of the previous project on switch (S-16.2)', async 
   const grid = await openSwitcher(user, 'Projects: alpha');
   expect(grid.querySelector('[data-href="/p/p_beta"]')).not.toBeNull();
   await user.click(within(grid).getByText('beta'));
-  await waitFor(() => expect(router.state.location.pathname).toBe('/p/p_beta/memory'));
+  await waitFor(() => expect(router.state.location.pathname).toBe('/p/p_beta/today'));
   expect(screen.queryByRole('dialog', { name: 'task-001-login-form' })).toBeNull();
   expect(screen.queryByText('task-001-login-form')).toBeNull();
 });
@@ -182,7 +182,8 @@ it('operates from the keyboard: open, move between rows, open a project', async 
   await user.keyboard('{ArrowDown}');
   await waitFor(() => expect(document.activeElement?.textContent).toContain('beta'));
   await user.keyboard('{Enter}');
-  await waitFor(() => expect(router.state.location.pathname).toBe('/p/p_beta/memory'));
+  // The project's landing view, Today (task-036).
+  await waitFor(() => expect(router.state.location.pathname).toBe('/p/p_beta/today'));
 });
 
 it('reaches Remove from a row with Tab, then "Add project…"', async () => {

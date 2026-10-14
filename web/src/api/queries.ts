@@ -10,6 +10,7 @@ import type {
   ProjectHeader,
   ProjectListResponse,
   ServerInfo,
+  Today,
 } from '@wingfoil-ui/contracts';
 import { QueryClient, queryOptions } from '@tanstack/react-query';
 import { ApiError, apiGet } from './client.js';
@@ -91,5 +92,19 @@ export function directivesQuery(pid: string) {
   return queryOptions({
     queryKey: queryKeys.project(pid, 'directives'),
     queryFn: ({ signal }) => apiGet<DirectiveList>(`${projectPath(pid)}/directives`, signal),
+  });
+}
+
+/**
+ * `GET /api/p/:pid/today[?view=<role>]`: Requires you, Waiting on others and the all-roles summary
+ * (spec-003 §5; task-036). `view` is the header's `roleView`, `null` sending none (an unidentified
+ * user may send no `?view=`, D31-5), so Today and the notification bell share one entry per role
+ * view (D31-6). A refusal is an error, never an empty Today (D31-3).
+ */
+export function todayQuery(pid: string, view: string | null) {
+  return queryOptions({
+    queryKey: queryKeys.project(pid, 'today', { view }),
+    queryFn: ({ signal }) =>
+      apiGet<Today>(`${projectPath(pid)}/today${view === null ? '' : `?view=${encodeURIComponent(view)}`}`, signal),
   });
 }

@@ -27,10 +27,12 @@ export function ProjectNav({ pid, groups }: ProjectNavProps): ReactNode {
     <nav className="project-nav" aria-label={intl.formatMessage({ id: 'shell.nav.label' })}>
       {groups.map((g) => (
         <div key={g.id}>
-          <div className="nav-group-label" id={`nav-group-${g.id}`}>
-            <FormattedMessage {...g.label} />
-          </div>
-          <ul aria-labelledby={`nav-group-${g.id}`}>
+          {g.label && (
+            <div className="nav-group-label" id={`nav-group-${g.id}`}>
+              <FormattedMessage {...g.label} />
+            </div>
+          )}
+          <ul aria-labelledby={g.label ? `nav-group-${g.id}` : undefined}>
             {g.items.map((item) => (
               <li key={item.id}>
                 <Link className="nav-link" to={item.to} params={{ pid }} activeProps={{ 'aria-current': 'page' }}>

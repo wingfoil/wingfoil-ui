@@ -1,6 +1,6 @@
 # User guide — WingFoil UI v0.1
 
-**Version:** 0.5 · **Date:** 2026-10-13 (0.1: release v0.1; 0.2: bug-008 known limitation, release submit; 0.3: bug-008 wording; 0.4: bug-008 marked fixed after 0.1.0 — task-026; 0.5: *How to join*, unreleased v0.2 — task-035)
+**Version:** 0.6 · **Date:** 2026-10-14 (0.1: release v0.1; 0.2: bug-008 known limitation, release submit; 0.3: bug-008 wording; 0.4: bug-008 marked fixed after 0.1.0 — task-026; 0.5: *How to join*, unreleased v0.2 — task-035; 0.6: *Today*, unreleased v0.2 — task-036)
 
 WingFoil UI v0.1 is a **read-only console** for WingFoil-governed projects: you open a project and
 read its Memory, elements, DNA, directives, team and documentation, kept up to date while you work
@@ -8,7 +8,7 @@ in the repository. It changes nothing in a project; the only write it makes is c
 repository into a new folder.
 
 Contents: [Launching](#launching) · [Session](#the-session-and-the-browser) ·
-[Projects](#projects) · [Project header](#the-project-header) · [Memory](#memory) ·
+[Projects](#projects) · [Project header](#the-project-header) · [Today](#today) · [Memory](#memory) ·
 [Element panel](#the-element-panel) · [DNA](#dna) · [Directives](#directives) · [Team](#team) ·
 [Documentation](#documentation) · [Themes, keyboard, accessibility](#themes-keyboard-and-accessibility) ·
 [Local security](#local-security) · [Local state](#where-the-local-state-lives) ·
@@ -157,9 +157,31 @@ it. Close or Escape closes the panel.
 choice is remembered per project and changes what "mine" means in the Directives view and which
 directives the element panel lists.
 
+## Today
+
+**v0.2, not released yet.** A project opens on **Today** (`/p/<id>/today`), the first entry of the
+sidebar (in v0.1 it opened on the Memory list). The greeting counts what requires you in your role
+view — *Morgan, 2 things require you* — and names the role view (*Role view: approver*).
+
+- **Requires you** lists the elements whose next move needs you or a role of your view: type, title,
+  the reason (the state and how long the element has been in it, e.g. *pending for 3 days*; your
+  work rejected back, listed first, with *Rejected by <name>: <reason>*; *Action required* for a
+  state its type does not declare), the state pill and **one action** — *Approve*, *Review*,
+  *Submit* or *Open*. The action and the title open the element panel; nothing is run from Today.
+  With nothing to do it says **Nothing requires you**.
+- **Waiting on others** lists the elements blocked on someone else, with who must act: a member
+  (*Jordan (submitter) must act*), a role you do not hold with the members holding it (*Reserved to
+  approver — Morgan, Alex*), or *Waiting for the workflow engine* for a state WingFoil 0.2.2 leaves
+  only by a hand-edited commit.
+- Changing the **Role view** changes the list; a change in the repository updates it by itself and
+  screen readers hear the new count.
+- When you are not in the team, Today shows Waiting on others only, with *You are not in this
+  project's team —* **How to join**; with no git identity, or an ambiguous one, it points to the
+  read-only notice of the header.
+
 ## Memory
 
-A project opens on its **Memory** list (`/p/<id>/memory`): every element of every type of
+The **Memory** list (`/p/<id>/memory`) shows every element of every type of
 `.wingfoil/memory.yaml`, each with its type, title, id, age in its state and state pill.
 
 - **Element types:** *All types* or one type, each with its count. Types found on elements but not

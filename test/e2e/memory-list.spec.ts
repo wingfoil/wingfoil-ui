@@ -104,9 +104,8 @@ async function editTitle(fx: Fixture, file: string, title: string): Promise<void
 test.describe('US-M-01 — Memory list', () => {
   test('M-01.1 — Filter by type with counts', async ({ page, fixtures, consoles }) => {
     const c = await consoles.start({ projects: [await fixtures.get('kanban')] });
-    // The project opens on its Memory list (W3-22).
-    await openConsole(page, c, { path: `/p/${c.pids[0]}` });
-    await expect(page).toHaveURL(`${c.origin}/p/${c.pids[0]}/memory`);
+    // The Memory list by its URL (the project's landing view is Today since task-036, D36-1).
+    await openConsole(page, c, { path: `/p/${c.pids[0]}/memory` });
     await expect(page.getByRole('heading', { level: 1, name: 'Memory' })).toBeVisible();
     await expect(rows(page).first()).toBeVisible({ timeout: COLD_READ_MS });
     await expect(typeList(page).getByRole('link', { name: 'task, 4 elements' })).toBeVisible();

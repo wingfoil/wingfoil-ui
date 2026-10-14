@@ -31,6 +31,7 @@ export const AREAS = [
   'directives',
   'team',
   'docs',
+  'today',
   'title',
   'error',
   'state',

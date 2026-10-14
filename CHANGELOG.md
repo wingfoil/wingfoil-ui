@@ -12,8 +12,16 @@ All notable changes to WingFoil UI are recorded in this file. The format follows
   header notice open a panel naming the project's tech leads (or saying none, or no member, is
   declared) with the exact `wingfoil dna add team.members …` command for the user's git email and
   a *Copy command* button.
+- **Today** (US-T-01…US-T-06, US-T-11): the greeting with what requires you in your role view;
+  *Requires you* — type, title, reason (time in the state, your rejected work first with the
+  reason, *Action required* for an undeclared state), state and one action opening the element
+  panel; *Waiting on others* with who must act (a member, the members of a role, or the workflow
+  engine). Live-refreshed; read-only for a user not in the team, with *How to join*.
 
 ### Changed
+
+- **A project opens on Today** (US-T-01): `/p/<id>` lands on Today, the first sidebar entry;
+  v0.1 opened the Memory list.
 
 - **Supported browsers verified on three engines** (REQ-INT-08): the end-to-end suite runs on
   Chromium, Firefox and WebKit (Chrome, Edge, Firefox, Safari); v0.1 ran it on Chromium only.

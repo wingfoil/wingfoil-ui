@@ -5,7 +5,7 @@
  * structure (roles, classes), never by an English text, so the same list runs on the key build.
  * The console holds the kanban fixture and the custom fixture, the user is Morgan in both
  * (`startScreensConsole`), and a second kanban copy where the user is Riley, not in the team
- * (`pids[2]`, the *How to join* panel — task-035, D35-5); state variants (refusals, notices of other identities, the unreachable
+ * (`pids[2]`, the *How to join* panel — task-035, D35-5; Today not in the team — task-036); state variants (refusals, notices of other identities, the unreachable
  * banner, a lost session) are scanned in the specs of their tasks (closure table of task-021).
  */
 import { expect, type Locator, type Page } from '@playwright/test';
@@ -174,5 +174,15 @@ export const SCREENS: readonly Screen[] = [
       await go(page, c, '/no/such/page');
       await expect(page.getByRole('heading', { level: 1 })).toBeVisible({ timeout: COLD_READ_MS });
     },
+  },
+  {
+    // task-036: Today as Morgan (Requires you, Waiting on others), the landing view of a project.
+    name: 'today',
+    open: (page, c) => project(page, c, `/p/${c.pids[0]}/today`, (p) => p.locator('.today-row')),
+  },
+  {
+    // task-036: Today as Riley, not in the team (the identity sentence with How to join, D36-8).
+    name: 'today — not in team',
+    open: (page, c) => project(page, c, `/p/${c.pids[2]}/today`, (p) => p.locator('.today-identity button')),
   },
 ];

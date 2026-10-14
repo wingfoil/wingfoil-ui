@@ -2,17 +2,46 @@
 // every v0.1 screen. US-X-06 (keyboard with a visible focus ring of contrast ≥ 3:1, Escape, the axe
 // scan of every screen), US-X-08 (themes), US-X-09 (every string from the catalogue, on the
 // key-rendering build), US-X-10 (the tab title). Decisions W5-1…W5-12 (2026-10-10). The screens are
-// listed once in `support/screens.ts`, shared by X-06.4 and X-09.1.
+// listed once in `support/screens.ts`, shared by X-06.4 and X-09.1 — one test per screen on one
+// console per worker (bug-011).
 import type { Page } from '@playwright/test';
 import type { ElementDetail } from '@wingfoil-ui/contracts';
 import { scanThemes, type BlockingViolation, type Theme } from './support/axe.js';
 import { COLD_READ_MS, expectFirstLoad } from './support/cold-read.js';
-import { openConsole } from './support/console.js';
-import { expect, test } from './support/fixtures.js';
+import { openConsole, startConsole, type RunningConsole } from './support/console.js';
+import { expect, test as base } from './support/fixtures.js';
 import { actAs } from './support/identity.js';
 import { expectFocusVisible, focusRing, tabUntil, type FocusRing } from './support/keyboard.js';
 import { expectSettled, SCREENS, startScreensConsole } from './support/screens.js';
 import { recordApiData, textsOutsideCatalogue } from './support/strings.js';
+
+/**
+ * The console of `SCREENS` (`startScreensConsole`), one per worker (bug-011): X-06.4 and X-09.1 run
+ * one test per screen, so a scenario's duration does not grow with the screens of the release, and
+ * the three fixture copies and their cold reads are paid once per worker, not once per screen. The
+ * screens only read (`no-commit.spec.ts` proves it), so the tests can share it. It is stopped when
+ * the worker ends, and the worker's reaper kills it if the stop fails (bug-004).
+ */
+const test = base.extend<object, { screensConsole: RunningConsole }>({
+  screensConsole: [
+    async ({ fixtures }, use) => {
+      const started: RunningConsole[] = [];
+      const c = await startScreensConsole(fixtures, {
+        start: async (options) => {
+          const running = await startConsole(options);
+          started.push(running);
+          return running;
+        },
+      });
+      try {
+        await use(c);
+      } finally {
+        await Promise.allSettled(started.map((s) => s.stop()));
+      }
+    },
+    { scope: 'worker', timeout: 300_000 },
+  ],
+});
 
 test.use({ prebuild: ['kanban', 'custom'] });
 
@@ -128,17 +157,18 @@ test.describe('US-X-06 — keyboard', () => {
     await expectFocusVisible(row(page, 'task-001-login-form'));
   });
 
-  test('X-06.4 — Pass the axe scan', async ({ page, fixtures, consoles }) => {
-    const c = await startScreensConsole(fixtures, consoles);
-    await openConsole(page, c);
-    const found: (BlockingViolation & { screen: string })[] = [];
-    for (const screen of SCREENS) {
+  // One test per screen (bug-011), on the worker's screens console.
+  for (const screen of SCREENS) {
+    test(`X-06.4 — Pass the axe scan: ${screen.name}`, async ({ page, screensConsole: c }) => {
+      await openConsole(page, c);
       await screen.open(page, c);
-      for (const v of await scanThemes(page)) found.push({ ...v, screen: screen.name });
-      await page.emulateMedia({ colorScheme: 'light' });
-    }
-    expect(found).toEqual([]);
-  });
+      const found: (BlockingViolation & { screen: string })[] = (await scanThemes(page)).map((v) => ({
+        ...v,
+        screen: screen.name,
+      }));
+      expect(found).toEqual([]);
+    });
+  }
 });
 
 test.describe('US-X-08 — themes', () => {
@@ -173,19 +203,21 @@ test.describe('US-X-08 — themes', () => {
 });
 
 test.describe('US-X-09 — externalised strings', () => {
-  test('X-09.1 — Render every string from the message catalogue', async ({ page, fixtures, consoles }) => {
-    const c = await startScreensConsole(fixtures, consoles);
-    const data = recordApiData(page);
-    await openConsole(page, c, { build: 'keys' });
-    const outside: string[] = [];
-    for (const screen of SCREENS) {
-      // Each screen reloads the page: only what it read itself counts as its project data.
+  // One test per screen (bug-011), on the worker's screens console.
+  for (const screen of SCREENS) {
+    test(`X-09.1 — Render every string from the message catalogue: ${screen.name}`, async ({
+      page,
+      screensConsole: c,
+    }) => {
+      const data = recordApiData(page);
+      await openConsole(page, c, { build: 'keys' });
+      // The screen reloads the page: only what it read itself counts as its project data.
       data.reset();
       await screen.open(page, c);
-      for (const text of await textsOutsideCatalogue(page, data)) outside.push(`${screen.name} — ${text}`);
-    }
-    expect(outside).toEqual([]);
-  });
+      const outside = (await textsOutsideCatalogue(page, data)).map((text) => `${screen.name} — ${text}`);
+      expect(outside).toEqual([]);
+    });
+  }
 
   test('X-09.2 — Keep project data untranslated', async ({ page, fixtures, consoles }) => {
     const c = await consoles.start({ projects: [await fixtures.get('kanban')] });

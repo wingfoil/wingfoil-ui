@@ -1,6 +1,6 @@
 # UX reference — WingFoil UI
 
-**Version:** 1.1 · **Date:** 2026-10-13 (0.2: §9 colours aligned with spec-009 — release-planning v0.1 session 2; 0.3: §3 start page with no project open, §5 modal dismissal — dev-loop task-013, decided by the user; 0.4: §4.2 v0.1 read-only panel — dev-loop task-018, decided by the user; 0.5: §4.4 and §4.9 in v0.1 — dev-loop tasks 017 and 020, decided by the user; 0.6: §4.2 panel directives, §4.5, §4.6, §4.10 in v0.1 — dev-loop task-019, decided by the user; 0.7: §3 project switcher in v0.1 (grid rows, removal confirmation, unavailable entries, trigger text) — dev-loop task-015, Wave 4, decided by the user; 0.8: §4.2 non-modal drawer — dev-loop task-015, W4-8, decided by the user; §3 keyboard wording and §4.2 v0.1 bullet aligned after review; 0.9: §3 add-project modal in v0.1 — dev-loop task-014, Wave 4, decided by the user; 1.0: §3 current user, role view and project header strip in v0.1 — dev-loop task-016, Wave 4, decided by the user; 1.1: §3 *How to join* panel — dev-loop task-035, D35-1…D35-9, decided by the approver; identity changes while open — review round 1) · **Status:** Reference for `lean-inception` and `specification-downcast`
+**Version:** 1.2 · **Date:** 2026-10-14 (0.2: §9 colours aligned with spec-009 — release-planning v0.1 session 2; 0.3: §3 start page with no project open, §5 modal dismissal — dev-loop task-013, decided by the user; 0.4: §4.2 v0.1 read-only panel — dev-loop task-018, decided by the user; 0.5: §4.4 and §4.9 in v0.1 — dev-loop tasks 017 and 020, decided by the user; 0.6: §4.2 panel directives, §4.5, §4.6, §4.10 in v0.1 — dev-loop task-019, decided by the user; 0.7: §3 project switcher in v0.1 (grid rows, removal confirmation, unavailable entries, trigger text) — dev-loop task-015, Wave 4, decided by the user; 0.8: §4.2 non-modal drawer — dev-loop task-015, W4-8, decided by the user; §3 keyboard wording and §4.2 v0.1 bullet aligned after review; 0.9: §3 add-project modal in v0.1 — dev-loop task-014, Wave 4, decided by the user; 1.0: §3 current user, role view and project header strip in v0.1 — dev-loop task-016, Wave 4, decided by the user; 1.1: §3 *How to join* panel — dev-loop task-035, D35-1…D35-9, decided by the approver; identity changes while open — review round 1; 1.2: §4.1 *Today* in v0.2 — dev-loop task-036, D36-1…D36-11, decided by the approver) · **Status:** Reference for `lean-inception` and `specification-downcast`
 **Prototype:** `docs/00_reference/prototype/` (interactive HTML; sample data from the WingFoil
 repository and from a fictional Kanban project `acme-checkout`)
 
@@ -69,6 +69,22 @@ Overlay: element panel (right) · command palette · modals (ingestion, agent la
 6. **Recent activity** — full-width card, link to the Timeline.
 
 All cards are stacked full width, in this order.
+
+**v0.2 (dev-loop task-036, decided by the approver, D36-1…D36-11):** Today is the route
+`/p/<id>/today`, the landing view of a project (`/p/<id>` redirects there) and the first sidebar
+entry, above the named groups and without a heading. It shows the greeting, *Requires you* and
+*Waiting on others* only (the progress card, *Next workflow step* and *Recent activity* come later).
+The greeting's second line is "Role view: <view>" — the project name is in the switcher and the
+roles in the header's selector (deviation from "project · view · roles"). *Requires you*: the reason
+is "<state> for <age>", the rejection ("Rejected by <name>: <reason>", danger colour) for rework, or
+"Action required — state <s> is not declared for <type>"; the one primary action (*Approve*,
+*Review*, *Submit*, *Open*) and the title open the element panel — the gate and submit footers act
+there (§5); empty, the card reads "Nothing requires you" and the greeting "<name>, nothing requires
+you". *Waiting on others* (hidden when empty) shows type, title, state pill and who must act: "Jordan
+(submitter) must act", "Reserved to approver — Morgan, Alex", "Waiting for the workflow engine". A
+user not in the team sees no *Requires you* card but "You are not in this project's team — *How to
+join*" (§3); *No identity* and *Ambiguous* point to the read-only notice. A refresh that changes the
+rows is announced politely with the new count; a failed read is an error, never the empty state.
 
 ### 4.2 Element panel (right drawer)
 - **v0.1 (dev-loop task-015, decided by the user, W4-8):** the drawer is **non-modal** — no backdrop over the header and sidebar and no focus trap, so the shell (project switcher included) stays operable while it is open; focus moves into the panel on open, *Close* and Escape close it and return focus.

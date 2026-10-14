@@ -3,7 +3,7 @@
 // large fixture of the SARD reference environment (custom + 500 elements + 2 000 commits, W5-7),
 // Morgan's view; each view reached by in-app navigation in a fresh page (W5-6). Tag `@perf`: the
 // budget is asserted under `npm run test:timing` only (W3-47, W5-9).
-import { mkdtemp, realpath, rm } from 'node:fs/promises';
+import { cp, mkdtemp, realpath, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import type { Page } from '@playwright/test';
@@ -21,6 +21,9 @@ import {
   reportRuns,
   STRICT_PERF,
   timeNavigation,
+  TODAY_AFTER_COMMIT_REOPEN_MS,
+  TODAY_BUDGET_MS,
+  TODAY_FIRST_OPEN_BUDGET_MS,
 } from './support/perf.js';
 import { expectSettled } from './support/screens.js';
 
@@ -190,4 +193,81 @@ test.describe(`TT-PERF-04 — other views ${PERF_TAG}`, () => {
       if (STRICT_PERF) expect(percentile(times, 95)).toBeLessThanOrEqual(PERF_BUDGET_MS);
     });
   }
+});
+
+// task-036 — TT-PERF-01 (REQ-PERF-01 "Today first render": p95 ≤ 2.0 s with a warm cache, ≤ 5.0 s for
+// the first open after the server starts; scenarios T-01.1, T-02.1; D36-9): the same measurement as
+// TT-PERF-04 — a fresh page on the Documentation index, Enter on the sidebar's *Today*, until a
+// Requires you row shows with no loading status. The warm-up run is the first open after the start
+// (one sample, its own budget); the RP-9 "after one commit" runs make an empty commit before each run
+// (a new HEAD: the Memory events are parsed again in full, spec-002 §4) on a copy of the large
+// fixture, printed with the load, not asserted (above ~1 s spec-002 §4 is reopened with the approver).
+const TODAY: View = {
+  scenario: 'T-01.1, T-02.1',
+  name: 'Today',
+  from: (pid) => `/p/${pid}/docs`,
+  target: (p) => nav(p, 'Today'),
+  ready: '.today-row',
+  reads: (pid) => `/api/p/${pid}/today`,
+};
+
+test.describe(`TT-PERF-01 — Today ${PERF_TAG}`, () => {
+  test('T-01.1, T-02.1 — Today renders within 2.0 s (p95, warm cache), the first open within 5.0 s', async ({
+    browser,
+    large,
+    consoles,
+  }) => {
+    test.setTimeout(STRICT_PERF ? 600_000 : 240_000);
+    const c = await consoles.start({ projects: [large] });
+    const times: number[] = [];
+    let firstOpen = 0;
+    for (let i = 0; i <= PERF_RUNS; i++) {
+      const context = await browser.newContext();
+      const page = await context.newPage();
+      try {
+        const ms = await run(page, c, TODAY);
+        if (i === 0) firstOpen = ms;
+        else times.push(ms);
+      } finally {
+        await context.close();
+      }
+    }
+    reportRuns(TODAY.name, firstOpen, times, `TT-PERF-01 Today (${times.length} runs, warm cache)`);
+    expect(times).toHaveLength(PERF_RUNS);
+    if (STRICT_PERF) {
+      expect(firstOpen).toBeLessThanOrEqual(TODAY_FIRST_OPEN_BUDGET_MS);
+      expect(percentile(times, 95)).toBeLessThanOrEqual(TODAY_BUDGET_MS);
+    }
+  });
+
+  test('RP-9 — Today after one commit (printed, not asserted)', async ({ browser, large, consoles }, testInfo) => {
+    test.setTimeout(STRICT_PERF ? 900_000 : 300_000);
+    // A copy: the commits must not change the worker's large fixture for the other tests.
+    const dir = testInfo.outputPath('large-after-commit');
+    await cp(large.dir, dir, { recursive: true });
+    const copy = { ...large, dir };
+    const c = await consoles.start({ projects: [copy] });
+    const times: number[] = [];
+    let firstOpen = 0;
+    for (let i = 0; i <= PERF_RUNS; i++) {
+      // Run 0 is the first open after the start; every later run follows a new commit.
+      if (i > 0) await git(dir, ['commit', '--quiet', '--allow-empty', '-m', `perf: commit ${i}`], large.env);
+      const context = await browser.newContext();
+      const page = await context.newPage();
+      try {
+        const ms = await run(page, c, TODAY);
+        if (i === 0) firstOpen = ms;
+        else times.push(ms);
+      } finally {
+        await context.close();
+      }
+    }
+    reportRuns(
+      TODAY.name,
+      firstOpen,
+      times,
+      `TT-PERF-01 Today after one commit (${times.length} runs; spec-002 §4 reopened above ${TODAY_AFTER_COMMIT_REOPEN_MS} ms)`,
+    );
+    expect(times).toHaveLength(PERF_RUNS);
+  });
 });

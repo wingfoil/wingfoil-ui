@@ -1,7 +1,7 @@
 /**
  * The Memory list `/p/$pid/memory` (US-M-01, US-M-02, US-S-25, US-S-26; ux-reference §4.4), the
- * landing view of a project in v0.1: `/p/$pid` redirects here (W3-22; Today takes the index in
- * v0.2). The filters live in the URL (`?type=&state=` or `?bucket=`), so the back navigation from
+ * landing view of a project in v0.1 (W3-22); from v0.2 `/p/$pid` opens Today (`routes/today.tsx`,
+ * task-036 D36-1). The filters live in the URL (`?type=&state=` or `?bucket=`), so the back navigation from
  * the element panel restores them (W3-23) and a filtered list can be shared.
  *
  * Reads: `GET /config` (the types of `memory.yaml`) and `GET /elements` (non-archived) — the
@@ -10,7 +10,7 @@
  * (S-26.1, S-25.2).
  */
 import { useQuery } from '@tanstack/react-query';
-import { createRoute, redirect } from '@tanstack/react-router';
+import { createRoute } from '@tanstack/react-router';
 import type { ReactNode } from 'react';
 import { defineMessages, useIntl } from 'react-intl';
 import { elementsQuery, projectConfigQuery } from '../api/queries.js';
@@ -67,13 +67,4 @@ export const memoryRoute = createRoute({
   validateSearch: memorySearch,
   component: MemoryPage,
   staticData: { nav: { group: 'work', order: NAV_ORDER.memory, label: LABELS.memory } },
-});
-
-/** `/p/$pid`: the project's landing view — the Memory list in v0.1 (W3-22). */
-export const projectIndexRoute = createRoute({
-  getParentRoute: () => projectRoute,
-  path: '/',
-  beforeLoad: ({ params }) => {
-    throw redirect({ to: '/p/$pid/memory', params, replace: true });
-  },
 });
