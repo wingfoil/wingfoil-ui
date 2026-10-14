@@ -2,7 +2,7 @@
 id: task-032-governed-writes-submit-approve-and-reject
 type: task
 title: "Governed writes submit approve and reject"
-status: in-progress
+status: in-review
 release: "v0.2"
 module: "server"             # optional — server | web | contracts (dna.yaml modules)
 priority: "high"           # optional — high | medium | low
