@@ -14,7 +14,7 @@ tmpl_version: 260703   # Orignal template version
 
 ## Context
 
-**Version:** 0.3 · **Date:** 2026-10-14 (0.1: plan created, Wave 0 scope; 0.2: Wave 0 session log, e2e engine rule W0-9; 0.3: Wave 1 session log)
+**Version:** 0.4 · **Date:** 2026-10-14 (0.1: plan created, Wave 0 scope; 0.2: Wave 0 session log, e2e engine rule W0-9; 0.3: Wave 1 session log; 0.4: Wave 2 session log)
 **Workflows:** `sw-life-cycle` → `release-line-cycle` (`rl-v1`) phase `delivery` → `release-cycle`
 (`minor-v0.2`) phase `implementation` = `dev-loop` iterated over every task with status `backlog`
 and `release: v0.2` (`.wingfoil/workflows/custom/release-cycle.yaml` v1.1, `dev-loop.yaml` v1.4)
@@ -95,7 +95,7 @@ Rules for every wave:
 - **Checkpoints:** design decisions; end of review (approve); before each merge; end of each wave.
 - **Completion:** every v0.2 task `done` and merged; plan finalized by hand (`status: done`, commit
   `wf(plan): finalize dev-loop-rel-v0.2-plan [active → done]`, W-04).
-- **Next:** Wave 2 — task-032, task-036 (task-032 with the adversarial security review, RP-47).
+- **Next:** Wave 3 — task-033 (absorbs bug-010; adversarial security review, RP-47), task-037.
 
 ## Session log
 
@@ -211,3 +211,68 @@ Rules for every wave:
   (`queryKeys.project(pid, 'today', { view })`), never shows a Today error as "Nothing requires
   you", knows that `memory search` warnings are not part of Today, and opens How to join with
   `useHowToJoin().show()`.
+
+### Session 3 — Wave 2: governed writes, Today (2026-10-14)
+
+- Start confirmed by the approver: task-032 and task-036 in parallel; task-029 later, before
+  release validation (load: three agents pushed Wave 1 to 35–45). A `wfui-no-hooks-*` folder left
+  from before task-026 (2026-10-12) was removed. The session was interrupted once (about
+  14:42–16:34): agents resumed from their worktrees, an orphan review console killed, the dead
+  run's temporary roots removed.
+- **Done and merged** in task-number order (RP-55), each after its reviews, `main` merged into the
+  branch before submit and the approver's `memory approve`: task-032 (merge `f03509e`, done
+  `88d1bdf`; independent review 3 rounds, adversarial security review 3 rounds, RP-47), task-036
+  (`f0e91d8`, `bf4ae2e`; 3 rounds, the third on bug-011; `main` with task-032 merged before
+  submit). Conflict only on the `test/README.md` version line (0.31 task-032, 0.32 task-036).
+- **Decisions** (the approver, "as recommended"; details in each task's Execution Notes):
+  - **W2-0 (D32-1 … D32-10)** governed writes: row 7 compares the element's whole index entry —
+    HEAD, index and working tree (later widened by review S2 from the blob alone); the write lock
+    is keyed by the repository's git common directory (adr-001 D5 Process Note; task-033 and
+    task-034 take it with `ProjectSnapshot.lockKey`); rows 5–6 and the `:eid` lookup from the
+    snapshot's cache; only the write's own commit is reported and logged; a reason the CLI refuses
+    with exit 2 → 422 `cli-refused`; bounds on `reason` (no NUL, ≤ 10 000 characters) and
+    `expectedStatus`; a `WritePushPort` answering `off` until task-034; an action-log append
+    failure still answers 200; `scripts/action-log-ratio.mjs`; unknown `:eid` → 404.
+  - **W2-0 (D36-1 … D36-11)** Today: route `/p/$pid/today`, `/p/$pid` redirects there; a first
+    sidebar group without heading; one action button per row opening the element panel (no write
+    from Today); the empty state "Nothing requires you" built now (T-07 stays with task-042);
+    "Role view: X"; who must act; reason and age; not-in-team → *How to join*; TT-PERF-01 in
+    `performance.spec.ts`; TT-PERF-09 per fixture and role view; a polite status region.
+  - **W2-1** a CLI failure that leaves the element file changed without its commit (stale
+    `index.lock`, failing pre-commit hook) → 500 `write-incomplete` with the repo-relative
+    `detail.file` and a fixed message; the CLI's message (it quotes the repository's absolute path
+    and, on approve/reject, the reason) is never sent and never logged; no automatic restore.
+  - **W2-2, W2-4** WingFoil feedback F-023 … F-026 and `wingfoil-cli` W-28 … W-31 (1.12): hidden
+    edits committed by approve/submit; reason defects as usage errors; transitions not atomic;
+    governed verbs pick the file of an id themselves.
+  - **W2-3** bug-011 (X-06.4 and X-09.1 scan every screen in one test; Firefox timed out under
+    load) ingested and absorbed into task-036: one test per screen with a shared console per worker
+    (slowest per-screen test about 34 s, was 2–3.5 min).
+  - **W2-4** the CLI answering for another path than the checked one → 500 `write-incomplete`
+    with that path and the commit found there (replaces an accepted residual).
+  - **W2-5** the CLI failing after its own commit → the commit is logged and announced (not
+    pushed), 500 `write-incomplete` with `detail.commit`.
+- **Review highlights:** task-032 — an untracked duplicate id committed through the watcher's lag
+  (S1), a hidden mode change and a symlink passing a blob-only check (S2), forged-subject commits
+  logged (S4), the ratio script counting first-parent commits only (6 of 32 decisions), the
+  reason reaching the server log on the W2-1 path (N1); all fixed with tests, and the residual
+  races reported to WingFoil. task-036 — false "Requires you updated" announcements on a project
+  or role-view change (fixed, component keyed by pid). Probes: HTTP guards, CSRF, reason
+  injection and 20 concurrent approves held (one commit).
+- **Open points:** a CLI refusal on the v0.1 read routes and two residual 422 paths still carries
+  the CLI's text verbatim, which may quote the repository's absolute path (loopback client only;
+  candidate for a later bug-ingest); the error log level of a W-29 reason refusal (follow-up).
+- **`test:timing`** passed on task-036's branch (TT-PERF-01 p95 110 ms, first open 414 ms, after
+  one commit p95 539 ms); on `main` `bf4ae2e` (2026-10-14 22:40–22:47, load 7.5 → 6.9): Vitest 3/3, Playwright 18/18.
+- **Gate at the end of the wave** on `main` `bf4ae2e` (2026-10-14 22:40–23:14): `test:coverage`
+  2439 passed, 1 skipped (statements 96.61 %, branches 91.32 %); `test:e2e` three engines 564
+  passed (Chromium 194, Firefox 185, WebKit 185; 23.4 min) at load 15–20; `test:smoke` 4/4; no
+  new `wfui-*` entry, no console left.
+- **Effort:** 2026-10-14 13:20 – 23:15 wall-clock (about 8 h of working time; an interruption of
+  about 2 h).
+- **Hand-overs to Wave 3:** task-033 adds row 8 `stale-copy` to `write.refusal.schema.json`, takes
+  the write lock with `ProjectSnapshot.lockKey`, and edits `server/src/git/git.ts` (allow-list now
+  includes `hash-object`, `ls-tree`, `ls-files`, `diff-tree`); task-037 and task-038 close G-04.1,
+  G-11.x and X-07.3 against task-032's routes and add the catalogue text for `write-incomplete`;
+  task-034 decides whether a commit left by a failed CLI is pushed by the next tick; screens are
+  appended to `SCREENS` (one axe/strings test each now, bug-011).

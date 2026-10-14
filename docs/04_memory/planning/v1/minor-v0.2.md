@@ -71,6 +71,7 @@ Actual effort per phase (dl-006 action 6; wall-clock of the working sessions, 20
 | release-planning | `release-planning-rel-v0.2-plan` | sessions 1–4 2026-10-12 11:00–20:00 (wall-clock, incl. waits; sessions 3–4 from 19:20) | ~9 h wall-clock, 1 active day |
 | implementation — Wave 0 (task-026, task-028, task-027) | `dev-loop-rel-v0.2-plan` session 1 | 2026-10-12 23:30 – 2026-10-13 15:20 (overnight pause) | ~9 h working time, 1 active day |
 | implementation — Wave 1 (task-030, task-031, task-035) | `dev-loop-rel-v0.2-plan` session 2 | 2026-10-13 15:56 – 2026-10-14 09:55 (overnight pause) | ~8 h working time, 1 active day |
+| implementation — Wave 2 (task-032, task-036) | `dev-loop-rel-v0.2-plan` session 3 | 2026-10-14 13:20 – 23:15 (interruption ~2 h) | ~8 h working time, 1 active day |
 
 - 2026-10-12 — `release-planning-rel-v0.2-plan` sessions 1–2 (branch `design/release-planning_v0.2`).
   `advance-pinned-build` no-op (0.2.2 newest); `minor-v0.2` `draft → planning` (`4c8ead3`);
