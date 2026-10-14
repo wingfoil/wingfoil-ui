@@ -389,3 +389,17 @@ Independent review **FAIL** (1 major, 2 minor, 4 nits); adversarial security rev
   (part A: the commit is logged, the error answered as it is), or when the element file disappears
   between the fresh check and the CLI's own read. The v0.1 read routes (`dna show`, `memory search`,
   `memory history`, …) map any CLI refusal the same way.
+
+### checks after review round 1 (2026-10-14, `8f29ab5` + `d840d91`)
+
+| Gate | Result | Load |
+|------|--------|------|
+| `npm run typecheck` | failed on `8f29ab5` (a missing `WriteRefusalCode` import in `api-writes-schema.test.ts`), clean on `d840d91` | 11.8 |
+| `npm run lint`, `npm run format:check` | clean | 11.8 |
+| `npm run docs:api`, `check_tasks.py v0.2` | OK | 11.8 |
+| `npm run test:coverage` (on `8f29ab5`; `d840d91` changes one test import only, its file passes) | 135 files passed, 1 skipped; **2410 passed / 1 skipped**; statements 96.55 %, branches 91.07 %, functions 97.31 %, lines 98.26 % | 12.5 → 27.9 |
+| `npm run test:e2e:chromium` | **137 passed** (17.0 min) | 27.9 → 34.0 |
+| `npm run test:smoke` | **4/4 passed** | 34.0 → 29.6 |
+| `npm run test:timing` | skipped (load ≥ 12) | 29.6 |
+
+No `wfui-task-032-*` entry left in the system temporary directory.
