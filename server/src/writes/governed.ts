@@ -26,6 +26,7 @@
  * leaving the element file changed without a commit (W2-1). The reason is a user value: it reaches
  * the CLI as one argument and is never logged.
  */
+import path from 'node:path';
 import type {
   ApiError,
   MemoryMatch,
@@ -43,7 +44,6 @@ import {
   type WingfoilCli,
 } from '../cli/adapter.js';
 import { CliNotFoundError } from '../cli/discovery.js';
-import path from 'node:path';
 import type { EventBus } from '../events/bus.js';
 import { matchIdentity } from '../identity/identity.js';
 import type { WriteLock } from '../process/write-lock.js';
