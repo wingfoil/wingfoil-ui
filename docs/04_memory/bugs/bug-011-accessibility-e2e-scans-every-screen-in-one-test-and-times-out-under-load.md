@@ -2,7 +2,7 @@
 id: bug-011-accessibility-e2e-scans-every-screen-in-one-test-and-times-out-under-load
 type: bug
 title: "Accessibility e2e scans every screen in one test and times out under load"
-status: triaged
+status: planned
 severity: "low"        # REQUIRED — critical | high | medium | low
 release-origin: "v0.2" # optional — release where the bug was FOUND, e.g. "v0.1"
 release: ""            # optional — fix/implementation release, stamped by release-planning/build-backlog
@@ -59,3 +59,6 @@ Firefox.
   `SCREENS` to 19), so the Wave 2 three-engine gate runs with the fix.
 
 ## Triage & Execution Notes
+- fix: **absorbed into task-036-today-requires-you-and-waiting-on-others** (AC bug-011, `bug:`
+  list of the task; the approver's triage, 2026-10-14); `triaged → planned` set by hand (directive
+  `wingfoil-cli` W-26).
