@@ -73,6 +73,12 @@ export interface ProjectSnapshotOptions {
 /** The Memory events of each element, oldest first (spec-002 §3). */
 export type ElementEvents = ReadonlyMap<string, readonly MemoryEvent[]>;
 
+/** The parsed Memory events of one HEAD: newest first as git lists them, and per element. */
+interface MemoryEvents {
+  all: readonly MemoryEvent[];
+  byElement: ElementEvents;
+}
+
 /** A `memory search` match with its marker. */
 export interface MarkedElement {
   match: MemoryMatch;
@@ -130,7 +136,7 @@ export class ProjectSnapshot {
 
   private readonly fingerprints: Fingerprinter;
   private readonly versions: VersionCache;
-  private events: { key: string; value: Promise<ElementEvents> } | undefined;
+  private events: { key: string; value: Promise<MemoryEvents> } | undefined;
   private originCache: { key: string; value: Promise<string> } | undefined;
 
   constructor(private readonly options: ProjectSnapshotOptions) {
@@ -211,11 +217,11 @@ export class ProjectSnapshot {
    * set of directories, shared by concurrent callers; a refused shape or an oversized log is kept
    * for the HEAD, other failures are not. An unborn HEAD has none.
    */
-  private memoryEvents(head: string, dirs: readonly string[]): Promise<ElementEvents> {
+  private memoryEvents(head: string, dirs: readonly string[]): Promise<MemoryEvents> {
     const key = `${head}\0${dirs.join('\0')}`;
     if (this.events?.key === key) return this.events.value;
-    const value = (async (): Promise<ElementEvents> => {
-      if (head === UNBORN_HEAD) return new Map();
+    const value = (async (): Promise<MemoryEvents> => {
+      if (head === UNBORN_HEAD) return { all: [], byElement: new Map() };
       const [stdout, shas] = await Promise.all([
         this.options.git.memoryLog(dirs, head),
         this.options.git.memoryLogShas(dirs, head),
@@ -224,7 +230,7 @@ export class ProjectSnapshot {
       for (const sha of log.warnings) {
         this.options.logger?.warn({ pid: this.pid, sha }, 'memory event skipped or without a status line');
       }
-      return eventsByElement(log.events);
+      return { all: log.events, byElement: eventsByElement(log.events) };
     })();
     const entry = { key, value };
     this.events = entry;
@@ -315,7 +321,7 @@ type Memo = <T>(name: string, read: (tools: { cli: WingfoilCli; reads: ProjectRe
 
 /** What a view reads beyond its memo: the snapshot's event cache and the version cache. */
 interface ViewSources {
-  events(dirs: readonly string[]): Promise<ElementEvents>;
+  events(dirs: readonly string[]): Promise<MemoryEvents>;
   origin(): Promise<string>;
   versions: VersionCache;
 }
@@ -359,6 +365,18 @@ export class SnapshotView {
    * Memory directories of `memory.yaml` — cached per HEAD. Rejects as {@link memoryTypes} does.
    */
   events(): Promise<ElementEvents> {
+    return this.memoryEvents().then((events) => events.byElement);
+  }
+
+  /**
+   * The Memory events of the project, newest first in git's order (spec-002 §3; the bell's
+   * *Updates*, spec-004 §3): the same read and cache as {@link events}, no other process.
+   */
+  eventLog(): Promise<readonly MemoryEvent[]> {
+    return this.memoryEvents().then((events) => events.all);
+  }
+
+  private memoryEvents(): Promise<MemoryEvents> {
     return this.memo('memory events', async () => this.sources.events(memoryDirectories(await this.memoryTypes())));
   }
 

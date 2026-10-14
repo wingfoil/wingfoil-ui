@@ -11,6 +11,7 @@ import { registerProjectRoutes } from '../http/project-routes.js';
 import { registerProjectListRoutes } from '../http/projects.js';
 import { registerRoleViewRoute } from '../http/role-view.js';
 import { registerServerRoute } from '../http/server-route.js';
+import { registerSettingsRoutes } from '../http/settings.js';
 import { createSnapshotIdentitySource } from '../identity/snapshot-identity.js';
 import { message } from '../i18n/messages.js';
 import { createLogger } from '../logging.js';
@@ -154,6 +155,8 @@ export async function runLauncher(argv: readonly string[], io: LauncherIo): Prom
       registerRoleViewRoute(routes, { store: state, identity });
       streams.events = registerEventStream(routes, { bus });
       registerProjectListRoutes(routes, { projects });
+      // task-030: the UI settings (spec-004 §3, spec-006 §2).
+      registerSettingsRoutes(routes, { store: state, bus });
     },
   });
   // Stop sequence (spec-007 §6): close the event streams and the watchers, then terminate the CLI

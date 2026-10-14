@@ -14,7 +14,7 @@ export interface Row {
   kind: string;
   verbs: V[];
   actor:
-    | { kind: 'member'; member: string }
+    | { kind: 'member'; member: string; basis: string }
     | { kind: 'role'; role: string; members: string[] }
     | { kind: 'engine' | 'none' };
   rejection?: { by: string; reason: string };
@@ -32,10 +32,10 @@ const gate = (approveTo: string, rejectTo: string): Row => ({
   tone: 'human',
   bucket: 'to-approve',
 });
-const first = (submitTo: string, member: string): Row => ({
+const first = (submitTo: string, member: string, basis = 'creator'): Row => ({
   kind: 'first',
   verbs: [['submit', submitTo, null]],
-  actor: { kind: 'member', member },
+  actor: { kind: 'member', member, basis },
   tone: 'neutral',
   bucket: 'waiting',
 });
@@ -47,7 +47,7 @@ export const STANDARD: Record<BddFixtureKind, Record<string, Row>> = {
   kanban: {
     'task-001-login-form': gate('approved', 'draft'),
     'task-002-password-reset': {
-      ...first('pending', 'Jordan'),
+      ...first('pending', 'Jordan', 'submitter'),
       rejection: { by: 'Morgan', reason: 'Missing acceptance criteria' },
     },
     'task-003-logout': LAST,
@@ -83,7 +83,7 @@ export const STANDARD: Record<BddFixtureKind, Record<string, Row>> = {
 export function observed(d: ActionDescriptor): Row {
   const actor =
     d.actor.kind === 'member'
-      ? { kind: 'member' as const, member: d.actor.member!.name }
+      ? { kind: 'member' as const, member: d.actor.member!.name, basis: d.actor.basis! }
       : d.actor.kind === 'role'
         ? { kind: 'role' as const, role: d.actor.role!, members: d.actor.members! }
         : { kind: d.actor.kind };

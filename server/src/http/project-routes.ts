@@ -13,6 +13,8 @@
  * | `GET /api/p/:pid/directives`, `/directives/:did` | `directives.schema.json`, `directive.schema.json` |
  * | `GET /api/p/:pid/docs` | `docs.schema.json` — the documentation index |
  * | `GET /api/p/:pid/files/tree?path=`, `/files/content?path=` | `file-tree.schema.json`, `file-content.schema.json` |
+ * | `GET /api/p/:pid/today?view=` | `today.schema.json` — Requires you, Waiting on others, all-roles summary (v0.2, task-031) |
+ * | `GET /api/p/:pid/events/memory?before=&limit=` | `memory-events.schema.json` — Memory events, newest first (v0.2, task-031) |
  *
  * Every read goes through the project's snapshot view — one CLI process per command and repository
  * state (REQ-PERF-05) — and answers `X-Repo-State`. An unknown `:pid` is 404 before anything is
@@ -42,13 +44,17 @@ import type {
   ReadOnlyReason,
   RequiredField,
   StateMachine,
+  Today,
+  TodayRow,
+  MemoryEventsPage,
 } from '@wingfoil-ui/contracts';
 import { CliError, cliErrorEnvelope, type CliOutput } from '../cli/adapter.js';
 import { evaluateCapabilities } from '../cli/capabilities.js';
 import { CliNotFoundError } from '../cli/discovery.js';
 import { supportedRange, type DetectedVersion } from '../cli/version.js';
 import { describeElement } from '../descriptor/descriptor.js';
-import { memoryDirectories } from '../git/memory-log.js';
+import { today } from '../descriptor/today.js';
+import { MEMORY_EVENTS_MAX_LIMIT, memoryDirectories, memoryEventsPage } from '../git/memory-log.js';
 import { directivesForRoleView, identityView } from '../identity/identity.js';
 import { identityOf } from '../identity/snapshot-identity.js';
 import { ARCHIVED_QUERY } from '../presets/api.js';
@@ -201,7 +207,7 @@ class ProjectRead {
     readonly entry: ProjectEntry,
     readonly root: string,
     readonly view: SnapshotView,
-    private readonly log: FastifyBaseLogger,
+    readonly log: FastifyBaseLogger,
     private readonly store: StateStore,
   ) {}
 
@@ -434,6 +440,78 @@ async function docs(read: ProjectRead): Promise<DocumentationIndex> {
   return { roots: paths.data.docs ?? [], documents: await documentationIndex(read.root, scope) };
 }
 
+const invalidRequest = (): Refused =>
+  new Refused({ status: 400, error: { code: 'invalid-request', message: 'Invalid request' } });
+
+/**
+ * A failed Memory event read as spec-004 §5 `internal` (D31-3): logged by kind only, never a
+ * partial answer; an unreadable `memory.yaml` stays its own `read-error`.
+ */
+async function eventsOrRefuse<T>(read: Promise<T>, log: FastifyBaseLogger): Promise<T> {
+  try {
+    return await read;
+  } catch (error) {
+    if (error instanceof DirectReadError) throw error;
+    log.warn({ kind: (error as Error).name }, 'memory events unavailable');
+    throw new Refused({ status: 500, error: { code: 'internal', message: 'Internal error' } });
+  }
+}
+
+/**
+ * `GET /api/p/:pid/today?view=` (spec-003 §5, spec-004 §3). `view` must be one of the member's
+ * role views (an unidentified user has none), else 400 `invalid-request`, checked after the DNA
+ * read and before the other reads; absent → the remembered role view. No partial Today (D31-3):
+ * a failed `dna show` or `memory search` answers the CLI's refusal, an unreadable `memory.yaml`
+ * `read-error`, a failed Memory event read `internal`.
+ */
+async function todayOf(read: ProjectRead, query: Record<string, unknown>): Promise<Today> {
+  const { view, entry } = read;
+  const requested = query['view'];
+  if (requested !== undefined && typeof requested !== 'string') throw invalidRequest();
+  const dna = valueOf(await read.settle(view.dna()));
+  const ids = identityView(identityOf(view, dna.data.team.members), entry.roleView);
+  if (requested !== undefined && !ids.roleViews.includes(requested)) throw invalidRequest();
+  const inputs = await read.descriptorInputs();
+  if (!inputs.ok) throw new Refused(inputs.refusal);
+  const events = await eventsOrRefuse(view.events(), read.log);
+  // Once per state: every role view and the summary place the same rows.
+  const rows = await view.derived('today rows', async () =>
+    (await view.elements()).matches.map(({ match, localChanges }): TodayRow => ({
+      element: { id: match.id, type: match.type, title: match.title, status: match.status, localChanges },
+      descriptor: inputs.describe(match, localChanges, events),
+    })),
+  );
+  return today(rows, ids.identity, requested ?? ids.roleView);
+}
+
+/** A `limit` of spec-004 §3: an integer from 1 to {@link MEMORY_EVENTS_MAX_LIMIT} (D31-2). */
+const LIMIT = /^[1-9][0-9]*$/;
+
+/**
+ * `GET /api/p/:pid/events/memory?before=&limit=` (spec-004 §3, D31-1, D31-2): the events of the
+ * cached project-wide parse (spec-002 §3), newest first; an invalid `limit` or a `before` that is
+ * not an event's sha → 400 `invalid-request`.
+ */
+async function memoryEventsOf(read: ProjectRead, query: Record<string, unknown>): Promise<MemoryEventsPage> {
+  const { before, limit } = query;
+  if (before !== undefined && typeof before !== 'string') throw invalidRequest();
+  if (
+    limit !== undefined &&
+    (typeof limit !== 'string' || !LIMIT.test(limit) || Number(limit) > MEMORY_EVENTS_MAX_LIMIT)
+  ) {
+    throw invalidRequest();
+  }
+  // An unreadable `memory.yaml` is its `read-error` (the Memory directories come from it).
+  valueOf(await read.settle(read.view.memoryTypes(), '.wingfoil/'));
+  const log = await eventsOrRefuse(read.view.eventLog(), read.log);
+  const page = memoryEventsPage(log, {
+    ...(before !== undefined ? { before } : {}),
+    ...(limit !== undefined ? { limit: Number(limit) } : {}),
+  });
+  if (!page) throw invalidRequest();
+  return page;
+}
+
 type Handler<P, Q> = (read: ProjectRead, params: P, query: Q) => Promise<unknown>;
 
 /** Register the routes of this module. */
@@ -497,5 +575,10 @@ export function registerProjectRoutes(app: FastifyInstance, options: ProjectRout
     `${PROJECT_PATH}/files/content`,
     async (read, _p, query) => readWorkingTreeFile(read.root, query.path, await read.documentationScope()),
     pathQuery(true),
+  );
+  // task-031 (v0.2): query parameters checked in the handlers, after the project lookup (404 first).
+  route<object, Record<string, unknown>>(`${PROJECT_PATH}/today`, (read, _p, query) => todayOf(read, query));
+  route<object, Record<string, unknown>>(`${PROJECT_PATH}/events/memory`, (read, _p, query) =>
+    memoryEventsOf(read, query),
   );
 }

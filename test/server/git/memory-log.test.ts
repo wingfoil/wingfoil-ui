@@ -11,8 +11,10 @@ import {
   MEMORY_LOG_FORMAT,
   MemoryLogFormatError,
   memoryDirectories,
+  memoryEventsPage,
   normalizeReason,
   parseMemoryLog,
+  type MemoryEvent,
 } from '../../../server/src/git/memory-log.js';
 
 const SHA = (n: number): string => String(n).repeat(40).slice(0, 40);
@@ -381,5 +383,51 @@ describe('the git read', () => {
       '--no-renames',
       '--format=%H%x00',
     ]);
+  });
+});
+
+// spec-004 §3 (task-031, D31-1, D31-2): one page of the newest-first Memory events — `limit`
+// (default 10, the bell's *Updates*), `before` = the sha of an event the client holds, exclusive,
+// and `more`.
+describe('memoryEventsPage (spec-004 §3)', () => {
+  const event = (n: number): MemoryEvent => ({
+    sha: n.toString(16).padStart(40, '0'),
+    timestamp: `2026-10-01T10:00:${String(n % 60).padStart(2, '0')}+00:00`,
+    author: 'Jordan <jordan@example.test>',
+    operation: 'submit',
+    type: 'task',
+    id: `task-${n}`,
+    from: 'draft',
+    to: 'pending',
+    approver: null,
+    reason: null,
+  });
+  const log = Array.from({ length: 25 }, (_, i) => event(25 - i)); // newest first
+  const shas = (page: { events: MemoryEvent[] } | undefined) => page?.events.map((e) => e.id);
+
+  it('gives the last 10 events by default, newest first, with more', () => {
+    const page = memoryEventsPage(log, {});
+    expect(shas(page)).toEqual(log.slice(0, 10).map((e) => e.id));
+    expect(page?.more).toBe(true);
+  });
+
+  it('continues after the event named by before (exclusive), up to limit', () => {
+    const page = memoryEventsPage(log, { before: log[9]!.sha, limit: 10 });
+    expect(shas(page)).toEqual(log.slice(10, 20).map((e) => e.id));
+    expect(page?.more).toBe(true);
+    const last = memoryEventsPage(log, { before: log[19]!.sha, limit: 10 });
+    expect(shas(last)).toEqual(log.slice(20).map((e) => e.id));
+    expect(last?.more).toBe(false);
+    expect(memoryEventsPage(log, { before: log[24]!.sha })).toEqual({ events: [], more: false });
+  });
+
+  it('says more is false when the page reaches the oldest event exactly', () => {
+    expect(memoryEventsPage(log, { limit: 25 })?.more).toBe(false);
+    expect(memoryEventsPage([], {})).toEqual({ events: [], more: false });
+  });
+
+  it('answers undefined for a before that is not an event of the log', () => {
+    expect(memoryEventsPage(log, { before: 'f'.repeat(40) })).toBeUndefined();
+    expect(memoryEventsPage(log, { before: '' })).toBeUndefined();
   });
 });
