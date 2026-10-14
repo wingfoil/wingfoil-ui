@@ -17,8 +17,11 @@
 import type { StaticDataRouteOption, ToOptions } from '@tanstack/react-router';
 import { defineMessages, type MessageDescriptor } from 'react-intl';
 
-/** The sidebar groups, in their order (ux-reference §2). */
-export type NavGroupId = 'work' | 'rules' | 'repository';
+/**
+ * The sidebar groups, in their order (ux-reference §2). `start` is the heading-less first group that
+ * holds *Today* above the three named groups (task-036, D36-2).
+ */
+export type NavGroupId = 'start' | 'work' | 'rules' | 'repository';
 
 /** The sidebar entry a view route declares in `staticData.nav`. */
 export interface NavEntry {
@@ -36,8 +39,9 @@ declare module '@tanstack/react-router' {
   }
 }
 
-/** In-group order of every view of ux-reference §2 (v0.1 builds Memory, DNA, Directives, Team, Documentation). */
+/** In-group order of every view of ux-reference §2 (v0.1 builds Memory, DNA, Directives, Team, Documentation; v0.2 Today). */
 export const NAV_ORDER = {
+  today: 10,
   workflow: 10,
   memory: 20,
   traceability: 30,
@@ -50,14 +54,15 @@ export const NAV_ORDER = {
   artifacts: 20,
 } as const;
 
-/** Group headings, in sidebar order. */
-export const NAV_GROUPS: readonly { id: NavGroupId; label: MessageDescriptor }[] = (() => {
+/** Group headings, in sidebar order; the `start` group has none (D36-2). */
+export const NAV_GROUPS: readonly { id: NavGroupId; label?: MessageDescriptor }[] = (() => {
   const m = defineMessages({
     work: { id: 'shell.nav.group.work' },
     rules: { id: 'shell.nav.group.rules' },
     repository: { id: 'shell.nav.group.repository' },
   });
   return [
+    { id: 'start' },
     { id: 'work', label: m.work },
     { id: 'rules', label: m.rules },
     { id: 'repository', label: m.repository },
@@ -80,7 +85,8 @@ export interface NavItem {
 /** A group of the sidebar with its views. */
 export interface NavGroup {
   id: NavGroupId;
-  label: MessageDescriptor;
+  /** The group's heading; absent for the `start` group (D36-2). */
+  label?: MessageDescriptor;
   items: NavItem[];
 }
 

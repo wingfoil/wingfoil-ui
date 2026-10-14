@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 // task-017 — the Memory list (US-M-01, US-M-02, US-S-25; ux-reference §4.4) at component level, on
-// the whole application with a stubbed API: the route and its sidebar entry, the index redirect
-// (W3-22), filters as links kept in the URL, buckets from the descriptor, rows opening the panel and
+// the whole application with a stubbed API: the route and its sidebar entry (the index redirect to
+// Today since task-036), filters as links kept in the URL, buckets from the descriptor, rows opening the panel and
 // the focus back on the row (W3-23), the archived read on the first type selection (W3-24),
 // undeclared states and types (W3-25), the age from `since` (W3-26), notices, the refresh
 // announcement and the catalogue (every text a key).
@@ -134,9 +134,9 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-it('redirects the project to its Memory list and shows the sidebar entry as current (W3-22)', async () => {
+it('shows the Memory list with its sidebar entry as current (W3-22; the landing is Today from v0.2, D36-1)', async () => {
   stubApi(api());
-  const { router } = renderApp(`/p/${PID}`);
+  const { router } = renderApp(`/p/${PID}/memory`);
   await screen.findByRole('heading', { level: 1, name: 'Memory' });
   expect(router.state.location.pathname).toBe(`/p/${PID}/memory`);
   const nav = screen.getByRole('navigation', { name: 'Project views' });
@@ -364,12 +364,12 @@ it('drops the return row when the user moved the focus before the rows were comp
   expect(document.activeElement).toBe(allTypes);
 });
 
-it('closes a panel opened by URL to the Memory list (W3-22 fallback)', async () => {
+it('closes a panel opened by URL to the project, which lands on Today (W3-22 fallback, D36-1)', async () => {
   stubApi(api());
   const { router } = renderApp(`/p/${PID}/e/k-001-alpha`);
   await screen.findByRole('dialog');
   await userEvent.keyboard('{Escape}');
-  await waitFor(() => expect(router.state.location.pathname).toBe(`/p/${PID}/memory`));
+  await waitFor(() => expect(router.state.location.pathname).toBe(`/p/${PID}/today`));
 });
 
 it('degrades without the type definitions: types from the elements, no buckets, a notice', async () => {

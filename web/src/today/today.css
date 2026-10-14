@@ -1,0 +1,153 @@
+/*
+ * Today (ux-reference §4.1, prototype Today): the greeting, then full-width cards — Requires you and
+ * Waiting on others — with one row per element. Colours only through the tokens of tokens.css; state
+ * colours through tones.css (data). The type tag (element.css) and the state pill (memory.css) are
+ * the shared classes of the other views.
+ */
+.today-head {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.today-head .page-intro {
+  margin: 0;
+  font-size: 14px;
+}
+
+.today-identity {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+}
+
+.today-card {
+  overflow: hidden;
+  border: 1px solid var(--color-divider);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg);
+}
+
+.today-card-title {
+  margin: 0;
+  padding: 14px 16px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.today-rows {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.today-rows > li {
+  border-top: 1px solid var(--color-divider);
+}
+
+.today-row,
+.today-waiting-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+}
+
+.today-waiting-row {
+  padding: 11px 16px;
+  color: var(--color-text);
+  text-decoration: none;
+}
+
+.today-waiting-row:hover {
+  background: var(--color-surface);
+}
+
+.today-waiting-row:focus-visible {
+  outline-offset: -2px;
+}
+
+.today-tag {
+  flex: none;
+  min-width: 44px;
+  text-align: center;
+}
+
+.today-names {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.today-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--color-text);
+  font-size: 14px;
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.today-title:hover {
+  text-decoration: underline;
+}
+
+.today-reason {
+  color: var(--color-text-2);
+  font-size: 12px;
+}
+
+.today-reason-rejection {
+  color: var(--color-danger);
+}
+
+.today-waiting-title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+}
+
+.today-who {
+  flex: none;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--tone-human-bg);
+  color: var(--tone-human-fg);
+  font-size: 12px;
+}
+
+.today-action {
+  flex: none;
+  height: 32px;
+}
+
+.today-empty {
+  margin: 0;
+  padding: 28px 16px;
+  border-top: 1px solid var(--color-divider);
+  color: var(--color-text-2);
+  text-align: center;
+}
+
+.today-error {
+  color: var(--color-danger);
+}
+
+@media (max-width: 720px) {
+  .today-row,
+  .today-waiting-row {
+    flex-wrap: wrap;
+  }
+
+  .today-who {
+    white-space: normal;
+  }
+}

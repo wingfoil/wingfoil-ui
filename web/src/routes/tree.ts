@@ -8,11 +8,12 @@ import { directivesViewRoute } from './directives.js';
 import { documentationRoute } from './docs.js';
 import { dnaRoute } from './dna.js';
 import { elementRoute } from './element.js';
-import { memoryRoute, projectIndexRoute } from './memory.js';
+import { memoryRoute } from './memory.js';
 import { projectRoute } from './project.js';
 import { rootRoute } from './root.js';
 import { startRoute } from './start.js';
 import { teamRoute } from './team.js';
+import { projectIndexRoute, todayRoute } from './today.js';
 
 /**
  * The views under `/p/$pid`. **Adding a view:** write `routes/<view>.tsx` exporting
@@ -30,6 +31,7 @@ export const PROJECT_ROUTES = [
   dnaRoute,
   directivesViewRoute,
   teamRoute,
+  todayRoute,
 ] as const;
 
 /** Every route of the application. */

@@ -3,7 +3,7 @@
 import { expect, it } from 'vitest';
 import { NAV_ORDER, navGroups, type NavRoute } from '../../../web/src/routes/nav.js';
 
-const route = (id: string, group: 'work' | 'rules' | 'repository', order: number): NavRoute => ({
+const route = (id: string, group: 'start' | 'work' | 'rules' | 'repository', order: number): NavRoute => ({
   id,
   fullPath: id,
   options: { staticData: { nav: { group, order, label: { id: `shell.nav.${id}` } } } },
@@ -34,4 +34,15 @@ it('follows ux-reference §2 in each group', () => {
   expect(NAV_ORDER.traceability < NAV_ORDER.timeline).toBe(true);
   expect(NAV_ORDER.dna < NAV_ORDER.directives && NAV_ORDER.directives < NAV_ORDER.team).toBe(true);
   expect(NAV_ORDER.team < NAV_ORDER.documentation && NAV_ORDER.files < NAV_ORDER.artifacts).toBe(true);
+});
+
+it('puts Today first, in the heading-less start group (task-036, D36-2)', () => {
+  const groups = navGroups([
+    route('/p/$pid/memory', 'work', NAV_ORDER.memory),
+    route('/p/$pid/today', 'start', NAV_ORDER.today),
+  ]);
+  expect(groups.map((g) => [g.id, g.label?.id, g.items.map((i) => i.to)])).toEqual([
+    ['start', undefined, ['/p/$pid/today']],
+    ['work', 'shell.nav.group.work', ['/p/$pid/memory']],
+  ]);
 });
