@@ -365,3 +365,27 @@ Independent review **FAIL** (1 major, 2 minor, 4 nits); adversarial security rev
   and reject), that changes the element's path only (`diff-tree`) and holds there the blob the
   working tree holds (`ProjectSnapshot.isWriteCommit`); none or several → 502 `cli-output`. Test: a
   concurrent commit forging the subject (another file) is neither reported, logged nor announced.
+
+#### Decisions after review round 1 (approver, 2026-10-14)
+
+- **W2-1 (S3 part B) = (a)** — a CLI that fails leaving the element file changed (modified or
+  staged) without the write's commit → 500 `write-incomplete`, `detail: { file }` (relative to the
+  project); the CLI's message (it quotes local absolute paths) is logged, truncated to 200
+  characters, never sent; nothing is restored. Implemented in `governed.ts` (`leftChanged`: a fresh
+  check and the entry comparison after a failed CLI with no commit of its own). The bodies of every
+  write refusal are now in `contracts/api/write.refusal.schema.json` (`WriteRefusalCode` in
+  `contracts/src/writes.ts`), checked on every non-200 answer of `element-writes.test.ts`. Tests: a
+  stale `.git/index.lock` and a failing `pre-commit` hook → 500 `write-incomplete` with
+  `detail.file`, no absolute path in the body, nothing logged, no event, the file left changed.
+  spec-004 §5 row added (Process Note extended).
+- **W2-2 = (a)** — F-025 ("transitions are not atomic") and W-30 committed (`wingfoil-cli` 1.11).
+- **Hand-overs:** task-038 adds the catalogue string of `write-incomplete` (`error.writeIncomplete`,
+  argument `file`) to `web/src/api/error-message.ts` and `en.json`; task-033 adds `stale-copy` (row 8)
+  to `write.refusal.schema.json`.
+- **Other `cli-refused` answers that can carry a local absolute path** (reported, not changed): the
+  CLI's message is sent verbatim (REQ-INT-04), and the pinned CLI wraps a failed git command as
+  `Command failed: git -C <the repository's path> …` and a Node.js file error with its path. In a
+  governed write this reaches the client when the CLI fails on a git command **after** its commit
+  (part A: the commit is logged, the error answered as it is), or when the element file disappears
+  between the fresh check and the CLI's own read. The v0.1 read routes (`dna show`, `memory search`,
+  `memory history`, …) map any CLI refusal the same way.

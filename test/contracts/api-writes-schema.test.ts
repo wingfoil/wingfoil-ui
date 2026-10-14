@@ -96,3 +96,39 @@ describe('write.response.schema.json', () => {
     expect(response(body)).toBe(false);
   });
 });
+
+describe('write.refusal.schema.json (W2-1)', () => {
+  const refusal = compile('write.refusal.schema.json');
+  const envelope = (code: WriteRefusalCode, detail?: object) => ({
+    error: { code, message: 'm', ...(detail ? { detail } : {}) },
+  });
+
+  it.each<WriteRefusalCode>([
+    'not-found',
+    'invalid-request',
+    'not-in-team',
+    'unsupported-version',
+    'local-changes',
+    'element-changed',
+    'cli-refused',
+    'cli-output',
+    'cli-timeout',
+    'internal',
+  ])('accepts %s without detail', (code) => {
+    expect(refusal(envelope(code))).toBe(true);
+    expect(refusal(envelope(code, { file: 'x' }))).toBe(false);
+  });
+
+  it('write-incomplete and read-error need their detail; cli-not-found its path and command', () => {
+    expect(refusal(envelope('write-incomplete', { file: 'docs/task-001-x.md' }))).toBe(true);
+    expect(refusal(envelope('write-incomplete'))).toBe(false);
+    expect(refusal(envelope('write-incomplete', { file: 'x', message: 'Command failed: …' }))).toBe(false);
+    expect(refusal(envelope('read-error', { file: 'x.md', kind: 'shape' }))).toBe(true);
+    expect(refusal(envelope('read-error', { file: 'x.md', kind: 'other' }))).toBe(false);
+    expect(refusal(envelope('cli-not-found', { path: 'p', command: 'npm i' }))).toBe(true);
+  });
+
+  it('refuses an unknown code', () => {
+    expect(refusal({ error: { code: 'stale-copy', message: 'm' } })).toBe(false);
+  });
+});

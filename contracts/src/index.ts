@@ -106,5 +106,6 @@ export type {
   WriteCommit,
   WritePush,
   WritePushStatus,
+  WriteRefusalCode,
   WriteResponse,
 } from './writes.js';

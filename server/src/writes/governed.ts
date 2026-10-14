@@ -21,7 +21,9 @@
  * written (D32-4, review S4) — else 502 `cli-output`. That commit is appended to the action log
  * (`{sha, at}`, spec-006 §2; D32-8), the snapshot moves to the new state, the push port runs
  * (D32-7) and one `write` event goes out, all under the lock. A CLI that fails after its commit
- * (review F4, S3) still has that commit logged and announced; the error is answered. The reason
+ * (review F4, S3) still has that commit logged and announced; the error is answered. A CLI that
+ * fails leaving the element file changed without a commit answers 500 `write-incomplete` with
+ * `detail.file` (W2-1), never the CLI's message. The reason
  * is a user value: it reaches the CLI as one argument and is never logged.
  */
 import type {
@@ -284,6 +286,24 @@ export class GovernedWrites {
         if (made) {
           log.warn({ verb: request.verb, kind: error.kind }, 'governed write: the CLI failed after its commit');
           this.announce(request, made);
+        } else if (await this.leftChanged(snapshot, match.path)) {
+          // W2-1 (review S3 part B, W-30): the element file is left rewritten without the write's
+          // commit. The CLI's message quotes local absolute paths: logged here (truncated, W-22),
+          // never sent; nothing is restored (no git write).
+          log.warn(
+            { verb: request.verb, kind: error.kind, message: error.message.slice(0, 200) },
+            'governed write: the element file is left changed without a commit',
+          );
+          return {
+            status: 500,
+            body: {
+              error: {
+                code: 'write-incomplete',
+                message: 'The write did not finish: the element file is left changed',
+                detail: { file: match.path },
+              },
+            },
+          };
         }
       }
       throw error;
@@ -300,6 +320,17 @@ export class GovernedWrites {
       status: 200,
       body: { result: output.data as unknown as Record<string, unknown>, commits: [commit], push },
     };
+  }
+
+  /** Whether `file` has local changes now (fresh status and entry), after a failed CLI. */
+  private async leftChanged(snapshot: ProjectSnapshot, file: string): Promise<boolean> {
+    try {
+      const state = await snapshot.check();
+      return state.changed.has(file) || !(await snapshot.sameEntryEverywhere(file));
+    } catch {
+      // Unknown: the CLI's error is answered as it is.
+      return false;
+    }
   }
 
   /**

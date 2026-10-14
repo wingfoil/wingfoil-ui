@@ -233,6 +233,7 @@ REQ-SEC-08's fit criterion (SARD `05` v0.6), which excludes fetch and the per-us
 | 502 | `cli-output` | exit 0 with output failing its schema (spec-001 §2) |
 | 504 | `cli-timeout` | a `wingfoil` process killed after 30 s (git transport the user started has no fixed timeout; an automatic fetch and an auto-push are killed after 60 s — spec-010 §4, `adr-001` D5) |
 | 500 | `internal` | adapter defect (exit 2) or unexpected error; details only in the log |
+| 500 | `write-incomplete` | a governed write whose CLI failed leaving the element file changed (modified or staged) without the write's commit: `detail: { file }` relative to the project; the CLI's message (it quotes local absolute paths) only in the log; nothing is restored |
 | 422 | `git-refused` | a git transport command failed: git's message verbatim (REQ-INT-06) |
 | 409 | `no-remote`, `no-fetch-target`, `detached-head`, `no-upstream`, `diverged`, `local-changes-in-the-way` | refusals of the git routes before any transport process (spec-010 §5); the update and push codes and `push-timeout` also appear as `push.code` of a write |
 | 502 | `read-error` | a direct read of spec-001 §4 failed: `message` "Cannot read `<file>`" and the reason, `detail: { file, kind }` with `kind` one of `outside`, `missing`, `shape`, `mismatch` and `file` relative to the project (never absolute). Scoped to the element or directive read: a list never fails as a whole; an unreadable `memory.yaml` degrades only the type-dependent features. Logged as `{ kind, file }` only (`outside` at warn level) |
@@ -361,4 +362,7 @@ goes away by itself when the stream reconnects. A network failure is not rendere
   repository's write lock (its git common directory)"; adversarial review S1–S4: §4 row 7 compares
   the whole entry (mode included, a symlink refused), the element is listed again on a state that
   moved and a duplicated id is refused; §5 the write's commit identified by its exact subject, its
-  only path and its content, and logged when the CLI fails after it.
+  only path and its content, and logged when the CLI fails after it. Same day, decision W2-1 of
+  the approver: §5 `500 write-incomplete` with `detail.file` when the CLI fails and leaves the
+  element file changed without a commit (W-30); the bodies of every write refusal in
+  `contracts/api/write.refusal.schema.json`.

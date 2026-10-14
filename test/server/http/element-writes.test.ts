@@ -176,7 +176,10 @@ async function start(options: StartOptions = {}): Promise<Console> {
       headers: { ...AUTH, 'content-type': 'application/json' },
       payload: JSON.stringify(body),
     });
-    return { status: res.statusCode, body: res.json() };
+    const answer = { status: res.statusCode, body: res.json() };
+    // Every refusal has the shape of write.refusal.schema.json (W2-1).
+    if (answer.status !== 200) expectSchema('write.refusal.schema.json', answer.body);
+    return answer;
   };
   const warm = async () => {
     for (const pid of [entry.id, ...(twin ? [twin] : []), ...others]) {
@@ -861,5 +864,41 @@ describe('reviews F4, S3 (part A), S4 — the commit the write made, whatever th
     expect(res.body.commits).toEqual([{ sha: head, subject: `wf(task): approve ${LOGIN} [pending → approved]` }]);
     expect(c.store.snapshot().actionLog.map((e) => e.sha)).toEqual([head]);
     expect(writes(c)).toEqual([{ event: 'write', data: { pid: c.pid, eid: LOGIN, commit: head } }]);
+  });
+});
+
+describe('W2-1 (review S3 part B) — the CLI fails leaving the element file changed without a commit', () => {
+  it.each([
+    [
+      'a stale .git/index.lock',
+      async (fx: Fixture) => void (await writeFile(path.join(fx.dir, '.git', 'index.lock'), '')),
+    ],
+    [
+      'a pre-commit hook that fails',
+      async (fx: Fixture) => {
+        const hook = path.join(fx.dir, '.git', 'hooks', 'pre-commit');
+        await mkdir(path.dirname(hook), { recursive: true });
+        await writeFile(hook, '#!/bin/sh\nexit 1\n');
+        await chmod(hook, 0o755);
+      },
+    ],
+  ])('%s → 500 write-incomplete with detail.file, no CLI message, nothing logged, no event', async (_l, prepare) => {
+    const log: string[] = [];
+    const c = await start({ as: memberByName('Jordan').email, log });
+    await c.warm();
+    const rel = await c.pathOf(TIMEOUT);
+    const before = await c.head();
+    await prepare(c.fx);
+    const res = await c.post('submit', TIMEOUT, { expectedStatus: 'draft' });
+    expect(res.status, JSON.stringify(res.body)).toBe(500);
+    expect(res.body.error.code).toBe('write-incomplete');
+    expect(res.body.error.detail).toEqual({ file: rel });
+    expect(JSON.stringify(res.body)).not.toContain(c.fx.dir);
+    expect(await c.head()).toBe(before);
+    expect(c.store.snapshot().actionLog).toEqual([]);
+    expect(writes(c)).toEqual([]);
+    expect(log.join('')).toMatch(/left changed without a commit/);
+    // Nothing restored: the element file is still changed.
+    expect((await git(c.fx.dir, ['status', '--porcelain', '--', rel], c.fx.env)).stdout).not.toBe('');
   });
 });

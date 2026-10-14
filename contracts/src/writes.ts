@@ -41,3 +41,22 @@ export interface WriteResponse {
   commits: WriteCommit[];
   push: WritePush;
 }
+
+/** The codes a governed write refuses with (`contracts/api/write.refusal.schema.json`). */
+export type WriteRefusalCode =
+  | 'forbidden-origin'
+  | 'unauthenticated'
+  | 'not-found'
+  | 'invalid-request'
+  | 'not-in-team'
+  | 'unsupported-version'
+  | 'local-changes'
+  | 'element-changed'
+  | 'cli-refused'
+  | 'cli-output'
+  | 'cli-timeout'
+  | 'cli-not-found'
+  | 'internal'
+  | 'read-error'
+  /** The CLI failed and left the element file changed without the write's commit (W2-1); `detail.file`. */
+  | 'write-incomplete';
