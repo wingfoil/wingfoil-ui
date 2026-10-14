@@ -25,10 +25,45 @@ export interface StateFile {
   version: number;
   /** The project list, in insertion order. */
   projects: ProjectEntry[];
-  /** Reserved for the UI settings (v0.2); `{}` in v0.1. */
+  /**
+   * The UI settings as stored (v0.2; `{}` in v0.1): any key, any value — a missing or invalid key
+   * reads as its default ({@link UiSettings}), spec-006 §2.
+   */
   settings: Record<string, unknown>;
-  /** Reserved for the action log (REQ-SEC-10); `[]` in v0.1. */
-  actionLog: unknown[];
+  /** The action log (REQ-SEC-10, v0.2), oldest first; `[]` in v0.1. */
+  actionLog: ActionLogEntry[];
+}
+
+/** One entry of the action log (spec-006 §2): a commit of a governed write from the UI. */
+export interface ActionLogEntry {
+  /** Full commit hash (SHA-1 or SHA-256, lower-case hexadecimal). */
+  sha: string;
+  /** ISO 8601 UTC time the commit was logged. */
+  at: string;
+}
+
+/** The theme setting (spec-009 §1). */
+export type UiTheme = 'system' | 'light' | 'dark';
+
+/**
+ * The UI settings (spec-006 §2, REQ-STATE-09), matching `contracts/api/settings.schema.json`: the
+ * body of `GET /api/settings` and of `PUT /api/settings` (the whole object, RP-28).
+ */
+export interface UiSettings {
+  /** Fetch every `fetchIntervalSeconds` (default `true`). */
+  autoFetch: boolean;
+  /** Interval of the scheduler's ticks, integer 15–3600 (default 60). */
+  fetchIntervalSeconds: number;
+  /** Fast-forward after a successful automatic fetch (default `false`). */
+  autoUpdate: boolean;
+  /** Push after each governed write from the UI (default `false`). */
+  autoPush: boolean;
+  /** Overrides `prefers-color-scheme` (default `system`). */
+  theme: UiTheme;
+  /** Stored and shown; takes effect from WingFoil 0.3 (default `true`, RP-15). */
+  confirmAgentLaunch: boolean;
+  /** Most entries kept in the action log, integer 100–100 000 (default 5 000). */
+  actionLogCap: number;
 }
 
 /**

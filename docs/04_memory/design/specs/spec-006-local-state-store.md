@@ -81,8 +81,8 @@ since) stops the start with a message naming both paths (spec-007 §6, exit 4).
 | `remote` | URL of `origin` at add time, refreshed on every open, `""` when there is none; **userinfo removed** (`https://user:token@host/x.git` → `https://host/x.git`, REQ-SEC-09) |
 | `addedAt` | ISO 8601 UTC |
 | `roleView` | last role view chosen for this project (S-22.3); `""` = the shell's default (the member's first role) |
-| `settings` | the UI settings (v0.2, C4, REQ-STATE-09), global to every project; written as `{}` in v0.1. A missing key, or a stored value of the wrong type or out of range, reads as its default (below) — the file is not treated as corrupt — so a v0.1 file needs no migration; an unknown key (e.g. a newer build's) is ignored on read and dropped at the next write |
-| `actionLog` | the action log (REQ-SEC-10, v0.2): `{ sha, at }` — the full commit hash and its ISO 8601 UTC time — appended for every commit in `commits[]` of a successful governed write from the UI (spec-004 §5), no other data; holds at most `settings.actionLogCap` entries: an append drops the oldest beyond the cap, and a `PUT /api/settings` that lowers the cap trims the oldest entries in the same write; written as `[]` in v0.1 |
+| `settings` | the UI settings (v0.2, C4, REQ-STATE-09), global to every project; written as `{}` in v0.1. A missing key, or a stored value of the wrong type or out of range, reads as its default (below) — the file is not treated as corrupt — so a v0.1 file needs no migration; an unknown key (e.g. a newer build's) is ignored on read; unknown and invalid keys are dropped at the next write that changes the state (any mutation, not only a settings `PUT`) — the written object holds, in the order of `settings.schema.json`, each known key whose value the mutation changed and each one already stored with a valid value — a missing unchanged key stays missing (read as its default) —, and a mutation that changes no effective value (compared key by key, whatever the order of a `PUT` body) still writes nothing (§4) |
+| `actionLog` | the action log (REQ-SEC-10, v0.2): `{ sha, at }` — the full commit hash and its ISO 8601 UTC time — appended for every commit in `commits[]` of a successful governed write from the UI (spec-004 §5), no other data; holds at most `settings.actionLogCap` entries: an append drops the oldest beyond the cap, and a `PUT /api/settings` that lowers the cap trims the oldest entries in the same write; written as `[]` in v0.1. Each entry has exactly `sha` (40 or 64 lower-case hexadecimal characters: SHA-1 or SHA-256 object format) and `at` (ISO 8601 UTC, as `addedAt`); an entry of any other shape makes a file of this version schema-invalid (§4, as an invalid project entry; a newer build's file: §4) |
 
 **Settings (v0.2, `contracts/api/settings.schema.json`; REQ-STATE-09, C-07.1):**
 
@@ -162,7 +162,8 @@ list is notified by the `projects` event (spec-004 §6).
 
 ### 4. Reads and writes
 
-- Read once at start, before every mutation (re-read, modify, write) and when the list is served
+- Read once at start, before every mutation (re-read, modify, write) and when the list or the
+  settings are served (`GET /api/projects`, `GET /api/settings`)
   (`reload`), so that two consoles on different ports (spec-004 §2) see and keep each other's
   additions; a mutation of the same entry by both is last-writer-wins.
 - **Lock between consoles:** every re-read → write runs under `state.json.lock` in the state
@@ -184,8 +185,12 @@ list is notified by the `projects` event (spec-004 §6).
   server starts with an empty state, and the shell shows a dismissible warning naming the kept
   file (`state.corruptKept`). The file is never deleted silently.
 - **`version` greater than 1** (written by a newer build) → the state is read for the fields this
-  version knows, nothing is written back, and the shell warns "Project list saved by a newer
-  WingFoil UI — changes are not saved" (`state.newerVersion`).
+  version knows — each `actionLog` entry read for `sha` and `at`, an entry still not of this
+  version's shape left out instead of failing the file —, nothing is written back, and the shell
+  warns "Project list saved by a newer WingFoil UI — changes are not saved"
+  (`state.newerVersion`). Every mutation still applies for
+  this run only, in memory: a `PUT /api/settings` answers 200 with the settings, sends the
+  `settings` event and takes effect until the console stops.
 
 ### 5. What the file never holds
 
@@ -268,3 +273,14 @@ a project (REQ-SEC-09). The secret scan of REQ-SEC-09 runs over the state direct
   settings keys dropped — `GET` returns only the known keys, the schema has no additional
   properties (RP-39). Drafting detail: `confirmAgentLaunch` cites the `agent-launch` capability
   (`minVersion` `0.3.0`) instead of W-06.
+- 2026-10-13 — amended in dev-loop task-030 (Wave 1, plan dev-loop-rel-v0.2-plan, design
+  decisions D30-1, D30-2, D30-3, D30-5): §2 `actionLog` entries have exactly `{sha, at}` (40 or 64
+  lower-case hex, ISO 8601 UTC) and any other shape makes the file schema-invalid; unknown and
+  invalid `settings` keys are dropped at the next write that changes the state, a missing key is
+  never filled in, a no-op still writes nothing; §4 `GET /api/settings` re-reads the file like the
+  list, so a second console sees a change at its next read; a settings `PUT` on a newer build's
+  state applies in memory for the run (200, `settings` event). Decided by the approver.
+  Same day, independent review round 1 of task-030 (coordinator, within D30-1/D30-2): a settings
+  write stores each changed key and each validly stored one, in the schema's order, and judges a
+  no-op key by key; a newer build's `actionLog` entries are read for `sha` and `at` and the ones
+  still invalid are left out (§4), so its project list is never lost.

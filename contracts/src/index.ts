@@ -88,6 +88,7 @@ export type {
 } from './events.js';
 export type { ElementFrontmatter, MemoryTypeDef, MemoryYaml, StateMachine } from './files.js';
 export type { ProjectEntry, StateFile, StateWarning } from './state.js';
+export type { ActionLogEntry, UiSettings, UiTheme } from './state.js';
 export type { ActorBasis } from './descriptor.js';
 export type {
   MemoryEventEntry,
