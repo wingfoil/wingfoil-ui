@@ -2,7 +2,7 @@
 id: task-036-today-requires-you-and-waiting-on-others
 type: task
 title: "Today requires you and waiting on others"
-status: in-progress
+status: in-review
 release: "v0.2"
 module: "web"             # optional — server | web | contracts (dna.yaml modules)
 priority: "high"           # optional — high | medium | low
