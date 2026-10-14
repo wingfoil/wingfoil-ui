@@ -12,7 +12,9 @@
  *   the string and number values of their JSON bodies — not their object keys, except the names
  *   of the project's memory types and DNA path categories, which the Memory list and the DNA view
  *   show (data by spec-008 §3); the forms the UI derives from data (path segments and folders, a
- *   path built on a data path, the 7-character commit hash; initials only inside an avatar); the
+ *   path built on a data path, the 7-character commit hash; initials only inside an avatar, and
+ *   the no-initials glyph `?` only inside the current user's avatar — aria-hidden, not language,
+ *   task-035 D35-10); the
  *   `en` Intl rendering of their dates and of relative ages, which follow the catalogue's locale;
  *   and, inside a rendered Markdown article, a piece of the file's content.
  * - React Aria's "Dismiss" is accepted only as the name of a popover's hidden dismiss button
@@ -26,6 +28,9 @@ import type { Page } from '@playwright/test';
 import { parse, TYPE, type MessageFormatElement } from '@formatjs/icu-messageformat-parser';
 import en from '../../../web/src/i18n/en.json' with { type: 'json' };
 import { joinCommand } from '../../../web/src/project/join.js';
+
+/** The avatar's glyph for a user who is not one member (`web/src/project/model.ts`; D35-10). */
+export const NO_INITIALS = '?';
 
 /** React Aria's own string (spec-008 §6 exception, W5-1). */
 export const LIBRARY_DISMISS = 'Dismiss';
@@ -125,6 +130,8 @@ interface PageText {
   content: boolean;
   /** An avatar's initials. */
   avatar: boolean;
+  /** Inside the current user's avatar (`.current-user-avatar`, aria-hidden; D35-10). */
+  userAvatar: boolean;
   /** The name of a popover's hidden dismiss button (React Aria). */
   dismiss: boolean;
   /** Inside a CLI command shown as data (`code.cli-command[translate="no"]`, D35-3). */
@@ -142,6 +149,7 @@ async function pageTexts(page: Page): Promise<PageText[]> {
     const flags = (el: Element | null) => ({
       content: el?.closest('.doc-article') != null,
       avatar: el?.closest('.current-user-avatar, .member-initials') != null,
+      userAvatar: el?.closest('.current-user-avatar') != null,
       command: el?.closest('code.cli-command[translate="no"]') != null,
     });
     const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
@@ -174,6 +182,7 @@ async function pageTexts(page: Page): Promise<PageText[]> {
       where: '<title>',
       content: false,
       avatar: false,
+      userAvatar: false,
       dismiss: false,
       command: false,
     });
@@ -264,9 +273,10 @@ export async function textsOutsideCatalogue(page: Page, recorder: DataRecorder):
     isPathOfData(t) ||
     (content && sources.includes(flat(t)));
   const bad = new Set<string>();
-  for (const { text, where, content, avatar, dismiss, command } of await pageTexts(page)) {
+  for (const { text, where, content, avatar, userAvatar, dismiss, command } of await pageTexts(page)) {
     if (isKeyText(text, (w) => words.has(w)) || isData(text, content)) continue;
     if (avatar && avatars.has(text)) continue;
+    if (userAvatar && text === NO_INITIALS) continue;
     if (dismiss && text === LIBRARY_DISMISS) continue;
     if (command && commands.has(text)) continue;
     bad.add(`${where}: ${text}`);

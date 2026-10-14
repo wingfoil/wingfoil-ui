@@ -299,6 +299,12 @@ only *not in team* with a readable DNA; **D35-9 (a)** the panel follows the data
 *How to join* paragraph in the UX reference (`docs/00_reference/ux-reference.md`, version bump),
 closing journey 6 step 3's GAP; shell layout `routes/project.tsx`: the minimal change only.
 
+- **D35-10 (a)** (approver, 2026-10-14) — the X-09.1 check (`test/e2e/support/strings.ts`) accepts
+  the no-initials glyph `?` only inside the current user's avatar (`.current-user-avatar`,
+  aria-hidden): one rule plus self-test cases in `harness/a11y-support.spec.ts` (`?` in that
+  avatar passes; `?` elsewhere, `?` in a member card's initials and another text in that avatar
+  are flagged). No product change.
+
 ### red / green / refactor (2026-10-13)
 
 - **Pure part (`2796012`)** — red first: `test/web/project/join.test.ts` failed to load (no

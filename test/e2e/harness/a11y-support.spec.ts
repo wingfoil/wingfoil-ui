@@ -13,6 +13,8 @@ test('X-09.1 check: flags English texts, accepts keys, data and derived data', a
     <p>error.folderNotFound /x/y</p>
     <span>Login form</span><code>0123abc</code><span>docs/01_vision</span><span>12</span>
     <span class="current-user-avatar">L</span><span class="loose">L</span>
+    <span class="current-user-avatar">?</span><span class="loose-glyph">?</span>
+    <span class="member-initials">?</span><span class="current-user-avatar">Zz</span>
     <button aria-label="Close">×</button>
     <p>Add project</p><p>OK</p><p>ID</p>
     <p class="extra">shell.nav.dna Hard-coded</p>
@@ -46,6 +48,11 @@ test('X-09.1 check: flags English texts, accepts keys, data and derived data', a
       'p: OK',
       'p: ID',
       'span.loose: L',
+      // The no-initials glyph only in the current user's avatar (D35-10): elsewhere, in a member
+      // card's initials, and another text in the avatar are flagged.
+      'span.loose-glyph: ?',
+      'span.member-initials: ?',
+      'span.current-user-avatar: Zz',
       'p.extra: shell.nav.dna Hard-coded',
       'p.arg: error.folderNotFound Hard-coded',
       // A word of a long data string (a document) is not an argument value (review round 2).
