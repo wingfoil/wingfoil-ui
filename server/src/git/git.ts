@@ -11,6 +11,9 @@
  * | the layout, once per project | `git rev-parse --show-prefix --absolute-git-dir --git-common-dir` |
  * | the URL of `origin`, when a project is added (duplicate check) and on every open (spec-006 §2, once per state) | `git remote get-url origin` |
  * | the Memory events, once per HEAD (spec-002 §3), with their sha order (`log --format=%H%x00`) | `git log --no-color --no-renames --no-ext-diff --no-textconv --unified=0 -p --format=… <HEAD> -- <Memory directories>` |
+ * | a governed write's element file, at HEAD and in the index (task-032, D32-1) | `git rev-parse HEAD:./<path> :0:./<path>` |
+ * | the same file in the working tree as `git add` would store it (clean filters applied, nothing written) | `git hash-object -- <path>` |
+ * | the commits a governed write made (D32-4) | `git log --first-parent --format=… <before>..HEAD` |
  *
  * Git is never used to change a repository. The one write of v0.1 is the clone into a new, empty
  * folder ({@link cloneArgs}, write class (c), adr-001 D7), run by `projects/clone.ts`.
@@ -50,6 +53,21 @@ export const GIT_READ_ARGS = {
   ],
   // The same walk without the patch: the authoritative sha order the patch read is cut at.
   memoryShas: ['--no-optional-locks', '-c', 'log.showSignature=false', 'log', '--no-renames', '--format=%H%x00'],
+  // task-032 (D32-1): the blob ids of an element file at HEAD and in the index…
+  blobs: ['--no-optional-locks', 'rev-parse'],
+  // …and of the working-tree file as `git add` would store it: `hash-object` without `-w` writes nothing.
+  hashObject: ['--no-optional-locks', 'hash-object', '--'],
+  // task-032 (D32-4): sha, committer time (epoch seconds) and subject of each commit since a write began.
+  commits: [
+    '--no-optional-locks',
+    '-c',
+    'log.showSignature=false',
+    'log',
+    '--first-parent',
+    '--no-color',
+    '--max-count=50',
+    '--format=%H%x1f%ct%x1f%s%x1e',
+  ],
 } as const;
 
 /**
@@ -70,6 +88,8 @@ export const GIT_ALLOWED_SUBCOMMANDS: readonly string[] = [
   'push',
   'add',
   'commit',
+  // task-032 (D32-1): the working-tree blob id of an element file, never with `-w`.
+  'hash-object',
 ];
 
 /**
@@ -124,6 +144,14 @@ export interface WorkingTreeStatus {
   entries: StatusEntry[];
   /** First 16 hex digits of the SHA-256 of the entries (headers excluded). */
   hash: string;
+}
+
+/** A commit listed by {@link GitReads.commitsSince}. */
+export interface CommitSummary {
+  sha: string;
+  /** Committer time. */
+  at: Date;
+  subject: string;
 }
 
 /** Where a project sits in its repository. */
@@ -322,6 +350,39 @@ export class GitReads {
       .split(String.fromCharCode(0))
       .map((s) => s.trim())
       .filter((s) => s !== '');
+  }
+
+  /**
+   * Whether the file at `file` (relative to the project root) is the same blob at HEAD, in the index
+   * and in the working tree as `git add` would store it (task-032, D32-1) — whatever the status
+   * shows: an edit hidden by `assume-unchanged`, `skip-worktree`, `core.ignoreStat` or an fsmonitor
+   * still differs here. A file missing at HEAD, in the index or in the working tree is not the same.
+   */
+  async sameBlobEverywhere(file: string): Promise<boolean> {
+    const relative = `./${file}`;
+    const stored = await this.run([...GIT_READ_ARGS.blobs, `HEAD:${relative}`, `:0:${relative}`]);
+    if (stored.ended === 'exit' && stored.exitCode !== 0) return false;
+    const [atHead, inIndex] = this.check(stored)
+      .stdout.split(/\r?\n/)
+      .map((l) => l.trim());
+    if (!atHead || atHead !== inIndex) return false;
+    const worktree = await this.run([...GIT_READ_ARGS.hashObject, file]);
+    if (worktree.ended === 'exit' && worktree.exitCode !== 0) return false;
+    return this.check(worktree).stdout.trim() === atHead;
+  }
+
+  /** The first-parent commits of `<before>..HEAD`, newest first, at most 50 (task-032, D32-4). */
+  async commitsSince(before: string): Promise<CommitSummary[]> {
+    const out = (await this.read([...GIT_READ_ARGS.commits, `${commitArg(before)}..HEAD`])).stdout;
+    return out
+      .split('\x1e')
+      .map((record) => record.replace(/^\s+/, ''))
+      .filter((record) => record !== '')
+      .flatMap((record) => {
+        const [sha = '', time = '', ...subject] = record.split('\x1f');
+        if (!/^(?:[0-9a-f]{40}|[0-9a-f]{64})$/.test(sha) || !/^\d+$/.test(time)) return [];
+        return [{ sha, at: new Date(Number(time) * 1000), subject: subject.join('\x1f') }];
+      });
   }
 
   private run(args: readonly string[]): Promise<ProcessResult> {

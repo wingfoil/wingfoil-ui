@@ -27,7 +27,7 @@ import type { CliCommandOutputs } from '../cli/commands.js';
 import { CliNotFoundError, type ResolvedCli } from '../cli/discovery.js';
 import type { DetectedVersion } from '../cli/version.js';
 import { VersionCache } from '../cli/version.js';
-import { GitReadError, UNBORN_HEAD, type GitReads } from '../git/git.js';
+import { GitReadError, UNBORN_HEAD, type CommitSummary, type GitReads } from '../git/git.js';
 import {
   eventsByElement,
   memoryDirectories,
@@ -68,6 +68,18 @@ export interface ProjectSnapshotOptions {
   versions?: VersionCache;
   /** Where parse warnings of the Memory events go (`{ pid, sha }` only). */
   logger?: { warn(object: object, message: string): void };
+  /**
+   * The repository's git common directory (realpath): the key of the write lock (task-032, D32-2).
+   * Default: the project root.
+   */
+  commonDir?: string;
+}
+
+/** HEAD and the paths with local changes, read fresh for a write (spec-004 §4 row 7). */
+export interface FreshStatus {
+  head: string;
+  /** Paths relative to the project root, as {@link RepoState.changed}. */
+  changed: ReadonlySet<string>;
 }
 
 /** The Memory events of each element, oldest first (spec-002 §3). */
@@ -179,6 +191,39 @@ export class ProjectSnapshot {
       return this.queued;
     }
     return this.runCheck();
+  }
+
+  /**
+   * Key of the write lock (adr-001 D5, task-032 D32-2): the repository's git common directory, so
+   * two listed projects in one repository (sub-folders, linked worktrees) queue together.
+   */
+  get lockKey(): string {
+    return this.options.commonDir ?? this.root;
+  }
+
+  /**
+   * HEAD and the paths with local changes, read now (`git status`), never from the last observed
+   * state: what a write checks under its lock (spec-004 §4 row 7). Does not move the snapshot.
+   */
+  async freshStatus(): Promise<FreshStatus> {
+    const status = await this.options.git.status();
+    const { head, changed } = repoState(status, undefined, this.options.prefix);
+    return { head, changed };
+  }
+
+  /** {@link GitReads.sameBlobEverywhere} for a write (D32-1). */
+  sameBlobEverywhere(file: string): Promise<boolean> {
+    return this.options.git.sameBlobEverywhere(file);
+  }
+
+  /** {@link GitReads.commitsSince}: the commits a write made (D32-4). */
+  commitsSince(before: string): Promise<CommitSummary[]> {
+    return this.options.git.commitsSince(before);
+  }
+
+  /** The adapter of the current CLI generation (resolved on first use), for a write. */
+  async cli(): Promise<WingfoilCli> {
+    return (await this.tools(this.generationId)).cli;
   }
 
   /** The project's CLI may have changed: the next view resolves it again and reads afresh. */

@@ -43,7 +43,9 @@ function wingfoil(fx: Fixture, args: readonly string[]) {
 
 async function pathOf(fx: Fixture, id: string): Promise<string> {
   const out = await wingfoil(fx, ['memory', 'search']);
-  const match = (JSON.parse(out.stdout) as { matches: { id: string; path: string }[] }).matches.find((m) => m.id === id);
+  const match = (JSON.parse(out.stdout) as { matches: { id: string; path: string }[] }).matches.find(
+    (m) => m.id === id,
+  );
   if (!match) throw new Error(`no ${id}`);
   return match.path;
 }

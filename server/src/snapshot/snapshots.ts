@@ -8,6 +8,7 @@
  * {@link Snapshots.open} with the project's id and root, {@link Snapshots.close} when a project is
  * removed from the list; the launcher calls {@link Snapshots.closeAll} in the stop sequence.
  */
+import { realpath } from 'node:fs/promises';
 import { WingfoilCli, type CliLogger } from '../cli/adapter.js';
 import { discoverCli } from '../cli/discovery.js';
 import { VersionCache } from '../cli/version.js';
@@ -138,6 +139,8 @@ export class Snapshots {
     const env = this.options.env ?? process.env;
     const git = new GitReads({ git: await this.resolveGit(env), runner, cwd: root, env });
     const layout = await git.layout();
+    // The write lock's key (D32-2): one per repository, whatever folder of it a project is.
+    const commonDir = await realpath(layout.commonDir).catch(() => layout.commonDir);
     const snapshot = new ProjectSnapshot({
       pid,
       root,
@@ -148,6 +151,7 @@ export class Snapshots {
       ...(this.options.fs ? { fs: this.options.fs } : {}),
       onChange: (state) => bus.publish({ event: 'repo', data: { pid, state: state.key } }),
       versions: this.versions,
+      commonDir,
       ...(logger ? { logger } : {}),
     });
     const entry: Entry = { root, snapshot, watcher: undefined, timers: new Set() };
