@@ -26,6 +26,9 @@ const example: StateFile = {
   actionLog: [],
 };
 
+const SHA1 = '4c8ead30f976eccb7b48c3ba75a33ded9fd55e34';
+const SHA256 = 'a'.repeat(64);
+
 function withProject(patch: Record<string, unknown>): unknown {
   return { ...example, projects: [{ ...example.projects[0], ...patch }] };
 }
@@ -41,8 +44,39 @@ describe('state.schema.json', () => {
     expect(validate(withProject({ remote: 'git@github.com:acme/kanban.git' }))).toBe(true);
   });
 
-  it('keeps settings and actionLog open for v0.2 (no version bump)', () => {
-    expect(validate({ ...example, settings: { theme: 'dark' }, actionLog: [{ sha: 'abc' }] })).toBe(true);
+  // Rewritten in task-030 (D30-1): `settings` stays open — a missing, invalid or unknown key reads
+  // as its default and never makes the file corrupt —, `actionLog` entries have their v0.2 shape.
+  it('keeps settings open: invalid and unknown keys do not make the file invalid', () => {
+    expect(validate({ ...example, settings: { theme: 'dark' } })).toBe(true);
+    expect(validate({ ...example, settings: { theme: 'blue', fetchIntervalSeconds: 'x', newer: 1 } })).toBe(true);
+  });
+
+  it('accepts action-log entries with a SHA-1 or a SHA-256 hash', () => {
+    const at = '2026-10-12T09:30:02Z';
+    expect(
+      validate({
+        ...example,
+        actionLog: [
+          { sha: SHA1, at },
+          { sha: SHA256, at: '2026-10-12T09:30:02.5Z' },
+        ],
+      }),
+    ).toBe(true);
+  });
+
+  it.each([
+    ['a short hash', { sha: 'abc', at: '2026-10-12T09:30:02Z' }],
+    ['an upper-case hash', { sha: SHA1.toUpperCase(), at: '2026-10-12T09:30:02Z' }],
+    ['a local time', { sha: SHA1, at: '2026-10-12T09:30:02+02:00' }],
+    ['a missing time', { sha: SHA1 }],
+    ['an extra field', { sha: SHA1, at: '2026-10-12T09:30:02Z', subject: 'x' }],
+    ['a string', SHA1],
+  ])('refuses an action-log entry with %s', (_label, entry) => {
+    expect(validate({ ...example, actionLog: [entry] })).toBe(false);
+  });
+
+  it('refuses settings that are not an object', () => {
+    expect(validate({ ...example, settings: [] })).toBe(false);
   });
 
   it.each([

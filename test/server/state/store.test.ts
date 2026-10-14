@@ -7,6 +7,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { openFileStateStore } from '../../../server/src/state/file-store.js';
 import { createMemoryStateStore } from '../../../server/src/state/memory-store.js';
 import type { StateStore, StoreOptions } from '../../../server/src/state/store.js';
+import type { ActionLogEntry, UiSettings } from '@wingfoil-ui/contracts';
 
 const dirs: string[] = [];
 
@@ -225,4 +226,92 @@ it('the file adapter writes the spec-006 §2 shape', async () => {
   await store.add(KANBAN);
   const file = JSON.parse(await readFile(path.join(store.location, 'state.json'), 'utf8')) as unknown;
   expect(file).toEqual({ version: 1, projects: store.projects(), settings: {}, actionLog: [] });
+});
+
+// task-030 — the UI settings and the action-log cap through the port (spec-006 §2; RP-38, D30-4).
+describe.each([fileAdapter, memoryAdapter])('StateStore settings ($name)', (adapter) => {
+  const CHANGED: UiSettings = {
+    autoFetch: false,
+    fetchIntervalSeconds: 3600,
+    autoUpdate: true,
+    autoPush: true,
+    theme: 'dark',
+    confirmAgentLaunch: false,
+    actionLogCap: 100,
+  };
+  const entry = (n: number): ActionLogEntry => ({ sha: n.toString(16).padStart(40, '0'), at: '2026-10-12T09:30:02Z' });
+
+  it('C-07.1, Y-07.2 — a first start reads exactly the defaults', async () => {
+    const store = await adapter.open();
+    expect(store.settings()).toEqual({
+      autoFetch: true,
+      fetchIntervalSeconds: 60,
+      autoUpdate: false,
+      autoPush: false,
+      theme: 'system',
+      confirmAgentLaunch: true,
+      actionLogCap: 5000,
+    });
+  });
+
+  it('C-07.2 — putSettings stores the whole object, across a restart; settings() hands out a copy', async () => {
+    const store = await adapter.open();
+    expect(await store.putSettings(CHANGED)).toEqual(CHANGED);
+    const read = store.settings();
+    read.autoPush = false;
+    expect(store.settings()).toEqual(CHANGED);
+    expect((await adapter.reopen(store)).settings()).toEqual(CHANGED);
+  });
+
+  it('putSettings keeps the project list', async () => {
+    const store = await adapter.open();
+    const kanban = await store.add(KANBAN);
+    await store.putSettings(CHANGED);
+    expect(store.projects()).toEqual([kanban]);
+  });
+
+  it('RP-38 — lowering the cap trims the oldest entries in the same write; raising it trims nothing', async () => {
+    const store = await adapter.open();
+    await store.transaction((draft) => {
+      draft.actionLog.push(...Array.from({ length: 150 }, (_, i) => entry(i)));
+    });
+    expect(store.snapshot().actionLog).toHaveLength(150);
+    await store.putSettings(CHANGED); // cap 100
+    expect(store.snapshot().actionLog).toEqual(Array.from({ length: 100 }, (_, i) => entry(i + 50)));
+    await store.putSettings({ ...CHANGED, actionLogCap: 5000 });
+    expect(store.snapshot().actionLog).toHaveLength(100);
+  });
+
+  it('D30-4 — an append in a transaction is capped by the store (oldest dropped)', async () => {
+    const store = await adapter.open();
+    await store.putSettings(CHANGED); // cap 100
+    await store.transaction((draft) => {
+      draft.actionLog.push(...Array.from({ length: 120 }, (_, i) => entry(i)));
+    });
+    const log = store.snapshot().actionLog;
+    expect(log).toHaveLength(100);
+    expect(log[0]).toEqual(entry(20));
+    expect(log.at(-1)).toEqual(entry(119));
+  });
+
+  it('a transaction sees the effective settings in its draft and may change them', async () => {
+    const store = await adapter.open();
+    const seen = await store.transaction((draft) => {
+      const before = { ...draft.settings };
+      draft.settings.autoPush = true;
+      return before;
+    });
+    expect(seen.autoPush).toBe(false);
+    expect(store.settings().autoPush).toBe(true);
+  });
+
+  it('a transaction that leaves an invalid setting is refused, nothing stored', async () => {
+    const store = await adapter.open();
+    await expect(
+      store.transaction((draft) => {
+        draft.settings.fetchIntervalSeconds = 5;
+      }),
+    ).rejects.toThrow(/invalid/);
+    expect(store.settings().fetchIntervalSeconds).toBe(60);
+  });
 });

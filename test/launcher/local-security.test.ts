@@ -488,3 +488,44 @@ describe('the project-list routes on the bin (spec-004 §1–3)', () => {
     if (status === 200) expect(JSON.parse(res.body)).toEqual({ projects: [] });
   });
 });
+
+// task-030: the UI settings routes (spec-004 §3, §4 rows 1, 2, 4) — refused by the guards; past
+// them, `GET` answers the settings (200) and `PUT {}` fails its schema (400).
+describe('the settings routes on the bin (spec-004 §1–3)', () => {
+  let l: Launcher;
+  beforeAll(async () => {
+    l = await launch();
+  });
+
+  it.each([['GET'], ['PUT']] as const)(
+    '%s /api/settings → 401 without a session, 403 from another origin or site',
+    async (method) => {
+      const unauthenticated = await request(l, method, '/api/settings');
+      expect(unauthenticated.status).toBe(401);
+      expect(JSON.parse(unauthenticated.body)).toEqual({
+        error: { code: 'unauthenticated', message: expect.any(String) },
+      });
+      const auth = { authorization: `Bearer ${l.token}` };
+      for (const headers of [
+        { ...auth, origin: 'https://evil.test' },
+        { ...auth, host: `evil.test:${l.port}` },
+        { ...auth, 'sec-fetch-site': 'cross-site' },
+        { ...auth, 'sec-fetch-site': 'same-site' },
+      ]) {
+        const res = await request(l, method, '/api/settings', headers);
+        expect(res.status, JSON.stringify(headers)).toBe(403);
+        expect(JSON.parse(res.body)).toEqual({ error: { code: 'forbidden-origin', message: expect.any(String) } });
+      }
+    },
+  );
+
+  it.each([
+    ['GET', 200, 'unknown'],
+    ['PUT', 400, 'invalid-request'],
+  ] as const)('%s /api/settings → %i past the guards', async (method, status, code) => {
+    const res = await request(l, method, '/api/settings', { authorization: `Bearer ${l.token}` });
+    expect(res.status).toBe(status);
+    if (status === 200) expect(JSON.parse(res.body)).toMatchObject({ autoPush: false, actionLogCap: 5000 });
+    else expect(JSON.parse(res.body)).toEqual({ error: { code, message: expect.any(String) } });
+  });
+});
