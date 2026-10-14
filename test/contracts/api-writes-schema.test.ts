@@ -127,6 +127,9 @@ describe('write.refusal.schema.json (W2-1)', () => {
   it('write-incomplete and read-error need their detail; cli-not-found its path and command', () => {
     expect(refusal(envelope('write-incomplete', { file: 'docs/task-001-x.md' }))).toBe(true);
     expect(refusal(envelope('write-incomplete'))).toBe(false);
+    expect(refusal(envelope('write-incomplete', { file: 'x', commit: 'a'.repeat(40) }))).toBe(true);
+    expect(refusal(envelope('write-incomplete', { file: 'x', commit: 'HEAD' }))).toBe(false);
+    expect(refusal(envelope('write-incomplete', { commit: 'a'.repeat(40) }))).toBe(false);
     expect(refusal(envelope('write-incomplete', { file: 'x', message: 'Command failed: …' }))).toBe(false);
     expect(refusal(envelope('read-error', { file: 'x.md', kind: 'shape' }))).toBe(true);
     expect(refusal(envelope('read-error', { file: 'x.md', kind: 'other' }))).toBe(false);

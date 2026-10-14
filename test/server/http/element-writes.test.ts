@@ -507,13 +507,15 @@ describe('the CLI decides: refusals verbatim (REQ-INT-04, D32-5)', () => {
   });
 
   it('CLI exit 0 without its commit → 502 cli-output, nothing logged, no write event (D32-4)', async () => {
+    // The CLI's answer names the checked path (W2-4 aside); it made no commit.
+    let elementPath = '';
     const c = await start({
       intercept: async (request) =>
         request.args.includes('approve')
           ? {
               exitCode: 0,
               signal: null,
-              stdout: JSON.stringify({ id: LOGIN, path: 'x.md', from: 'pending', to: 'approved' }),
+              stdout: JSON.stringify({ id: LOGIN, path: elementPath, from: 'pending', to: 'approved' }),
               stderr: '',
               ended: 'exit',
               durationMs: 1,
@@ -521,6 +523,7 @@ describe('the CLI decides: refusals verbatim (REQ-INT-04, D32-5)', () => {
           : undefined,
     });
     await c.warm();
+    elementPath = await c.pathOf(LOGIN);
     const res = await c.post('approve', LOGIN, { expectedStatus: 'pending', reason: 'ok' });
     expect(res.status).toBe(502);
     expect(res.body.error.code).toBe('cli-output');
@@ -759,7 +762,7 @@ describe('review S1 — the element as the fresh state lists it', () => {
     expect(res.body.result.path).toBe(moved);
   });
 
-  it('the CLI answering for another path → 502 cli-output', async () => {
+  it('W2-4: the CLI answering for another path → 500 write-incomplete with that path, no CLI text', async () => {
     const c = await start({
       intercept: async (request, real) => {
         if (!request.args.includes('approve')) return undefined;
@@ -770,8 +773,30 @@ describe('review S1 — the element as the fresh state lists it', () => {
     });
     await c.warm();
     const res = await c.post('approve', LOGIN, { expectedStatus: 'pending', reason: 'ok' });
-    expect(res.status).toBe(502);
-    expect(res.body.error.code).toBe('cli-output');
+    expect(res.status).toBe(500);
+    // No commit on that path (the real one is on the checked path): no `commit` in the detail.
+    expect(res.body.error).toEqual({
+      code: 'write-incomplete',
+      message: 'The write did not finish: WingFoil wrote another file',
+      detail: { file: 'docs/elsewhere.md' },
+    });
+  });
+
+  it('W2-4: an absolute or escaping path from the CLI is never sent back', async () => {
+    for (const other of [path.join('/', 'tmp', 'x.md'), '../outside.md']) {
+      const c = await start({
+        intercept: async (request, real) => {
+          if (!request.args.includes('approve')) return undefined;
+          const result = await real(request);
+          return { ...result, stdout: JSON.stringify({ ...(JSON.parse(result.stdout) as object), path: other }) };
+        },
+      });
+      await c.warm();
+      const res = await c.post('approve', LOGIN, { expectedStatus: 'pending', reason: 'ok' });
+      expect(res.status).toBe(500);
+      // The checked path instead, with the commit the CLI made there.
+      expect(res.body.error.detail).toEqual({ file: await c.pathOf(LOGIN), commit: await c.head() });
+    }
   });
 });
 
@@ -805,7 +830,7 @@ describe('review S2 — the whole entry of the element file', () => {
 });
 
 describe('reviews F4, S3 (part A), S4 — the commit the write made, whatever the CLI answers', () => {
-  it('the CLI fails after its commit (exit 1) → 422, the commit logged and announced', async () => {
+  it('W2-5: the CLI fails after its commit (exit 1) → 500 write-incomplete with the commit, logged and announced', async () => {
     const c = await start({
       intercept: async (request, real) =>
         request.args.includes('approve')
@@ -814,14 +839,20 @@ describe('reviews F4, S3 (part A), S4 — the commit the write made, whatever th
     });
     await c.warm();
     const res = await c.post('approve', LOGIN, { expectedStatus: 'pending', reason: 'ok' });
-    expect(res.status).toBe(422);
-    expect(res.body.error).toEqual({ code: 'cli-refused', message: 'failed after the commit' });
     const head = await c.head();
+    expect(res.status).toBe(500);
+    expect(res.body.error).toEqual({
+      code: 'write-incomplete',
+      message: 'The write did not finish: WingFoil failed after its commit',
+      detail: { file: await c.pathOf(LOGIN), commit: head },
+    });
+    expect(JSON.stringify(res.body)).not.toContain('failed after the commit');
+    expect(JSON.stringify(res.body)).not.toContain(c.fx.dir);
     expect(c.store.snapshot().actionLog.map((e) => e.sha)).toEqual([head]);
     expect(writes(c)).toEqual([{ event: 'write', data: { pid: c.pid, eid: LOGIN, commit: head } }]);
   });
 
-  it('the CLI killed after its commit (timeout) → 504, the commit logged', async () => {
+  it('W2-5: the CLI killed after its commit (timeout) → 500 write-incomplete with the commit, logged', async () => {
     const c = await start({
       intercept: async (request, real) =>
         request.args.includes('reject')
@@ -830,8 +861,12 @@ describe('reviews F4, S3 (part A), S4 — the commit the write made, whatever th
     });
     await c.warm();
     const res = await c.post('reject', LOGIN, { expectedStatus: 'pending', reason: 'no' });
-    expect(res.status).toBe(504);
-    expect(c.store.snapshot().actionLog.map((e) => e.sha)).toEqual([await c.head()]);
+    const head = await c.head();
+    expect(res.status).toBe(500);
+    expect(res.body.error.code).toBe('write-incomplete');
+    expect(res.body.error.detail).toEqual({ file: await c.pathOf(LOGIN), commit: head });
+    expect(JSON.stringify(res.body)).not.toContain(c.fx.dir);
+    expect(c.store.snapshot().actionLog.map((e) => e.sha)).toEqual([head]);
   });
 
   it('a CLI refusal with no commit logs nothing and sends no event', async () => {
@@ -929,7 +964,7 @@ describe('review round 2 N1 — the reason never reaches the server log on a fai
     expect(log.join('')).not.toContain(c.fx.dir);
   });
 
-  it('killed after the commit (504) and the CLI answering another path (502): no reason in the log', async () => {
+  it('killed after the commit and the CLI answering another path (500): no reason in the log', async () => {
     for (const [verb, answer] of [
       ['reject', (r: ProcessResult): ProcessResult => ({ ...r, ended: 'timeout', exitCode: null, signal: 'SIGKILL' })],
       [
@@ -947,7 +982,8 @@ describe('review round 2 N1 — the reason never reaches the server log on a fai
       });
       await c.warm();
       const res = await c.post(verb, LOGIN, { expectedStatus: 'pending', reason: SECRET });
-      expect([502, 504]).toContain(res.status);
+      expect(res.status).toBe(500);
+      expect(res.body.error.code).toBe('write-incomplete');
       expect(log.join('')).toMatch(/governed write/);
       expect(log.join('')).not.toContain(SECRET);
     }

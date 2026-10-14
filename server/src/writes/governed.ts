@@ -16,15 +16,15 @@
  * Rows 1–4 are the guards and the route's. Rows 5–6 start no process once the console has read the
  * project in its current state (the page has); no `wingfoil` write verb starts before row 9 passes
  * (a state that moved meanwhile is listed again first: a read). The role is the CLI's to check
- * (dl-002, REQ-SEC-07). After the CLI: its output names the element's path, and exactly one commit
- * since the write began has the CLI's subject for it, changes that path only and holds the file just
- * written (D32-4, review S4) — else 502 `cli-output`. That commit is appended to the action log
- * (`{sha, at}`, spec-006 §2; D32-8), the snapshot moves to the new state, the push port runs
- * (D32-7) and one `write` event goes out, all under the lock. A CLI that fails after its commit
- * (review F4, S3) still has that commit logged and announced; the error is answered. A CLI that
- * fails leaving the element file changed without a commit answers 500 `write-incomplete` with
- * `detail.file` (W2-1), never the CLI's message. The reason
- * is a user value: it reaches the CLI as one argument and is never logged.
+ * (dl-002, REQ-SEC-07). After the CLI: exactly one commit since the write began has the CLI's
+ * subject for it, changes the element's path only and holds the file just written (D32-4, review
+ * S4) — else 502 `cli-output`. That commit is appended to the action log (`{sha, at}`, spec-006 §2;
+ * D32-8), the snapshot moves to the new state, the push port runs (D32-7) and one `write` event goes
+ * out, all under the lock. 500 `write-incomplete` (a fixed message, never the CLI's text) when the
+ * CLI answers for another path (W2-4: `detail.file` that path, `detail.commit` when found), fails
+ * after its commit (W2-5: the commit logged and announced, not pushed; `detail.commit`) or fails
+ * leaving the element file changed without a commit (W2-1). The reason is a user value: it reaches
+ * the CLI as one argument and is never logged.
  */
 import type {
   ApiError,
@@ -37,13 +37,13 @@ import type {
 import {
   CliError,
   CliInternalError,
-  CliOutputError,
   cliErrorEnvelope,
   usageKind,
   type CliOutput,
   type WingfoilCli,
 } from '../cli/adapter.js';
 import { CliNotFoundError } from '../cli/discovery.js';
+import path from 'node:path';
 import type { EventBus } from '../events/bus.js';
 import { matchIdentity } from '../identity/identity.js';
 import type { WriteLock } from '../process/write-lock.js';
@@ -146,6 +146,14 @@ export function isWriteSubject(
 /** ISO 8601 UTC to the second (spec-006 §2 `at`). */
 function isoSeconds(date: Date): string {
   return date.toISOString().replace(/\.\d+Z$/, 'Z');
+}
+
+/** 500 `write-incomplete` (W2-1, W2-4, W2-5): a fixed message, never the CLI's text. */
+function incomplete(what: string, detail: { file: string; commit?: string }): WriteOutcome {
+  return {
+    status: 500,
+    body: { error: { code: 'write-incomplete', message: `The write did not finish: ${what}`, detail } },
+  };
 }
 
 const LOCAL_CHANGES = refuse(409, 'local-changes', 'The element file has local changes');
@@ -265,50 +273,35 @@ export class GovernedWrites {
         },
       };
     }
-    const write = { type: match.type, verb: request.verb, id: request.eid, from: request.expectedStatus };
+    const write: Parameters<typeof isWriteSubject>[1] = {
+      type: match.type,
+      verb: request.verb,
+      id: request.eid,
+      from: request.expectedStatus,
+    };
     let output: CliOutput;
     try {
       output = await this.verb(await snapshot.cli(), request);
-      const data = output.data as { path?: unknown; from?: unknown; to?: unknown };
-      // The CLI acted on the element the checks were made on (review S1).
-      if (data.path !== match.path) {
-        log.warn({ verb: request.verb }, 'governed write: the CLI answered for another path');
-        throw new CliOutputError({ words: ['memory', request.verb], options: [] }, ['/path differs']);
-      }
-      if (request.verb !== 'submit' && typeof data.to === 'string') Object.assign(write, { to: data.to });
     } catch (error) {
-      // The CLI may fail after its commit (a timeout after `git commit`, a post-commit check that
-      // exits 1, W-28): that commit is still logged and announced (review F4, S3 part A).
       if (error instanceof CliError) {
-        const made = await this.settle(snapshot, state.head, match, write, log).catch((e: unknown) => {
-          log.warn({ kind: (e as Error).name }, 'governed write: commits after a CLI failure not read');
-          return undefined;
-        });
-        if (made) {
-          log.warn({ verb: request.verb, kind: error.kind }, 'governed write: the CLI failed after its commit');
-          this.announce(request, made);
-        } else if (await this.leftChanged(snapshot, match.path)) {
-          // W2-1 (review S3 part B, W-30): the element file is left rewritten without the write's
-          // commit. The CLI's message quotes local absolute paths and the failed git command, whose
-          // `-m` holds the reason: only its kind is logged (review round 2 N1), nothing is sent but
-          // the file; nothing is restored (no git write).
-          log.warn(
-            { verb: request.verb, kind: error.kind, cli: usageKind(error.message) },
-            'governed write: the element file is left changed without a commit',
-          );
-          return {
-            status: 500,
-            body: {
-              error: {
-                code: 'write-incomplete',
-                message: 'The write did not finish: the element file is left changed',
-                detail: { file: match.path },
-              },
-            },
-          };
-        }
+        const incomplete = await this.afterFailure(snapshot, state.head, match, write, error, request, log);
+        if (incomplete) return incomplete;
       }
       throw error;
+    }
+    const data = output.data as { path?: unknown; to?: unknown };
+    if (request.verb !== 'submit' && typeof data.to === 'string') write.to = data.to;
+    // The CLI acted on the element the checks were made on (review S1); else W2-4.
+    if (data.path !== match.path) {
+      return this.otherPath(
+        snapshot,
+        state.head,
+        typeof data.path === 'string' ? data.path : '',
+        match,
+        write,
+        request,
+        log,
+      );
     }
     const commit = await this.settle(snapshot, state.head, match, write, log);
     if (!commit) {
@@ -322,6 +315,79 @@ export class GovernedWrites {
       status: 200,
       body: { result: output.data as unknown as Record<string, unknown>, commits: [commit], push },
     };
+  }
+
+  /**
+   * After a failed CLI (review F4, S3, W2-1, W2-5): the write's commit, when the CLI made it before
+   * failing, is logged, announced (not pushed) and answered as 500 `write-incomplete` with
+   * `detail.commit`; without a commit, an element file left changed is 500 `write-incomplete` too.
+   * Never the CLI's text: it quotes local absolute paths and the git command line holding the reason
+   * (review round 2 N1). `undefined`: nothing was left — the CLI's error is answered.
+   */
+  private async afterFailure(
+    snapshot: ProjectSnapshot,
+    before: string,
+    match: MemoryMatch,
+    write: Parameters<typeof isWriteSubject>[1],
+    error: CliError,
+    request: GovernedWriteRequest,
+    log: WriteLogger,
+  ): Promise<WriteOutcome | undefined> {
+    const made = await this.settle(snapshot, before, match, write, log).catch((e: unknown) => {
+      log.warn({ kind: (e as Error).name }, 'governed write: commits after a CLI failure not read');
+      return undefined;
+    });
+    if (made) {
+      log.warn(
+        { verb: request.verb, kind: error.kind, commit: made.sha },
+        'governed write: the CLI failed after its commit',
+      );
+      this.announce(request, made);
+      return incomplete('WingFoil failed after its commit', { file: match.path, commit: made.sha });
+    }
+    if (await this.leftChanged(snapshot, match.path)) {
+      // Nothing is restored (no git write).
+      log.warn(
+        { verb: request.verb, kind: error.kind, cli: usageKind(error.message) },
+        'governed write: the element file is left changed without a commit',
+      );
+      return incomplete('the element file is left changed', { file: match.path });
+    }
+    return undefined;
+  }
+
+  /**
+   * The CLI answered for another path than the one checked (review S1, W2-4): 500
+   * `write-incomplete` with that path (relative to the project, as the CLI gives it) and the commit
+   * the CLI made there, when one is found — logged by sha only, not in the action log, no event.
+   */
+  private async otherPath(
+    snapshot: ProjectSnapshot,
+    before: string,
+    other: string,
+    match: MemoryMatch,
+    write: Parameters<typeof isWriteSubject>[1],
+    request: GovernedWriteRequest,
+    log: WriteLogger,
+  ): Promise<WriteOutcome> {
+    // Only a relative path of the project is sent; anything else names the checked file.
+    const file = other !== '' && !path.isAbsolute(other) && !other.split(/[\\/]/).includes('..') ? other : match.path;
+    let commit: string | undefined;
+    try {
+      const found = [];
+      for (const c of await snapshot.commitsSince(before)) {
+        if (isWriteSubject(c.subject, write) && (await snapshot.isWriteCommit(c.sha, file))) found.push(c.sha);
+      }
+      if (found.length === 1) commit = found[0];
+    } catch (error) {
+      log.warn({ kind: (error as Error).name }, 'governed write: commits on another path not read');
+    }
+    await snapshot.check().catch(() => undefined);
+    log.warn(
+      { verb: request.verb, ...(commit ? { commit } : {}) },
+      'governed write: the CLI answered for another path',
+    );
+    return incomplete('WingFoil wrote another file', { file, ...(commit ? { commit } : {}) });
   }
 
   /** Whether `file` has local changes now (fresh status and entry), after a failed CLI. */

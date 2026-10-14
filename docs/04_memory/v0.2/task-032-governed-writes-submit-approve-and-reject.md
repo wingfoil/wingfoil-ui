@@ -350,11 +350,11 @@ Independent review **FAIL** (1 major, 2 minor, 4 nits); adversarial security rev
   element is listed again on it (a `memory search`, a read); an id listed at more than one path →
   409 `local-changes` when one of those paths has local changes, else 409 `element-changed` (the
   CLI's choice would depend on its order; no new code); an element moved by a commit is written at
-  its new path; the CLI's answer must name the checked path, else 502 `cli-output` (accepted
-  residual, review round 2 N4: a commit the CLI made on that other path is neither logged nor
-  announced). Tests: the
+  its new path; the CLI's answer must name the checked path, else 500 `write-incomplete` (W2-4,
+  below; it replaces the round-2 N4 accepted residual). Tests: the
   untracked copy (409 `local-changes`, nothing committed), a committed duplicate (409
-  `element-changed`), a moved element (200 on the new path), the CLI answering another path (502).
+  `element-changed`), a moved element (200 on the new path), the CLI answering another path (500
+  `write-incomplete`, W2-4).
 - **S2 (low)** — row 7 compares the whole entry: `ls-tree` at HEAD and `ls-files --stage` (one
   stage-0 entry, regular file, same mode and blob), `lstat` of the working file (regular file, not a
   symlink, the executable bit of the mode when `core.fileMode` holds) and `hash-object`, all with
@@ -423,3 +423,19 @@ Independent review round 2 **FAIL** (1 major, 2 minor, 2 nits). Changes:
   commits.
 - **N4 (nit)** — accepted residual recorded in the S1 bullet above.
 - **N5 (nit)** — the W2-1 test title reads "nothing in the action log".
+
+#### Decisions on the adversarial round-2 residuals (approver, 2026-10-14; security verdict PASS on `c435f26`)
+
+- **W2-4 (R1) = (a)** — the CLI answering for another path than the one checked → 500
+  `write-incomplete`, `detail.file` = that path (only when relative to the project and not leaving
+  it; else the checked path), `detail.commit` when the CLI's commit on that path is found (subject,
+  only path, content); the sha logged, no CLI text, no reason, not in the action log, no event.
+  Replaces the N4 accepted residual. WingFoil feedback F-026 and `wingfoil-cli` W-31 (1.12): only the
+  CLI can close the race between its lookup and its write. Tests: the other-path answer → 500 with
+  `detail.file`; an absolute or `..` path from the CLI is never sent back.
+- **W2-5 (R2) = (a)** — the CLI failing after its own commit → the commit is still logged and
+  announced (not pushed), and the write answers 500 `write-incomplete` with `detail.file` (the
+  element) and `detail.commit`, a fixed message, never the CLI's text. `write.refusal.schema.json`:
+  `detail.commit` optional (a sha). spec-004 §5 (`write-incomplete` row covering the three cases)
+  and its 2026-10-14 Process Note. Tests: exit 1 and a timeout after the commit → 500 with
+  `detail.commit`, no CLI text and no absolute path in the body.

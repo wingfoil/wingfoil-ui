@@ -58,6 +58,7 @@ changed (`governance-alignment-rel-v0.2-plan` GA-5).
 | [F-023](F-023-transitions-commit-edits-hidden-from-git-status.md) | A transition commits an edit of the element that git status does not show (assume-unchanged, core.ignoreStat) | defect | open | |
 | [F-024](F-024-reason-defects-are-usage-errors.md) | A --reason WingFoil will not record is a usage error (exit 2), not a refusal (exit 1) | defect | open | |
 | [F-025](F-025-transitions-are-not-atomic.md) | A transition is not atomic: a failed commit leaves the element file rewritten, and a late failure leaves the commit | defect | open | |
+| [F-026](F-026-governed-verbs-cannot-be-bound-to-a-path.md) | Governed verbs pick the file of an id themselves: a duplicated id is not refused and no expected path can be given | gap | open | |
 
 ## Context
 
