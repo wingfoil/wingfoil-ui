@@ -238,3 +238,73 @@ describe('gitEnv — inherited GIT_* variables never redirect a read (review F2)
     expect(runner.requests[0]!.env).toEqual({ HOME: '/h' });
   });
 });
+
+// task-032 (D32-1, D32-4): the two reads of a governed write.
+describe('GitReads — the governed-write reads (task-032)', () => {
+  async function repo(name: string): Promise<{ dir: string; r: GitReads }> {
+    const dir = path.join(root, name);
+    await mkdir(dir, { recursive: true });
+    await git(dir, ['init', '--quiet', '--initial-branch=main'], env);
+    await git(dir, ['config', 'user.email', 'alex@example.test'], env);
+    await git(dir, ['config', 'user.name', 'Alex'], env);
+    await writeFile(path.join(dir, 'e.md'), 'one\n');
+    await writeFile(path.join(dir, '-dash.md'), 'dash\n');
+    await git(dir, ['add', '.'], env);
+    await git(dir, ['commit', '--quiet', '-m', 'init'], env);
+    return { dir, r: new GitReads({ git: gitFile, runner: new LocalProcessRunner(), cwd: dir, env }) };
+  }
+
+  it('sameBlobEverywhere: true when HEAD, index and working tree agree; false on any difference git status may hide', async () => {
+    const { dir, r } = await repo('blobs');
+    expect(await r.sameBlobEverywhere('e.md')).toBe(true);
+    expect(await r.sameBlobEverywhere('-dash.md')).toBe(true);
+    await git(dir, ['update-index', '--assume-unchanged', 'e.md'], env);
+    await writeFile(path.join(dir, 'e.md'), 'two\n');
+    expect((await git(dir, ['status', '--porcelain'], env)).stdout).toBe('');
+    expect(await r.sameBlobEverywhere('e.md')).toBe(false);
+    await writeFile(path.join(dir, 'e.md'), 'one\n');
+    expect(await r.sameBlobEverywhere('e.md')).toBe(true);
+    await writeFile(path.join(dir, 'new.md'), 'untracked\n');
+    expect(await r.sameBlobEverywhere('new.md')).toBe(false);
+    await git(dir, ['add', 'new.md'], env);
+    expect(await r.sameBlobEverywhere('new.md')).toBe(false);
+    await rm(path.join(dir, '-dash.md'));
+    expect(await r.sameBlobEverywhere('-dash.md')).toBe(false);
+  });
+
+  it('sameBlobEverywhere: the index differing from HEAD (staged) is not the same', async () => {
+    const { dir, r } = await repo('staged');
+    await writeFile(path.join(dir, 'e.md'), 'two\n');
+    await git(dir, ['add', 'e.md'], env);
+    await writeFile(path.join(dir, 'e.md'), 'one\n');
+    expect(await r.sameBlobEverywhere('e.md')).toBe(false);
+  });
+
+  it('commitsSince: the first-parent commits after `before`, newest first, with time and subject', async () => {
+    const { dir, r } = await repo('since');
+    const before = (await git(dir, ['rev-parse', 'HEAD'], env)).stdout.trim();
+    expect(await r.commitsSince(before)).toEqual([]);
+    await writeFile(path.join(dir, 'e.md'), 'two\n');
+    await git(dir, ['commit', '--quiet', '-am', 'wf(task): submit e [a → b] | odd'], env);
+    await writeFile(path.join(dir, 'e.md'), 'three\n');
+    await git(dir, ['commit', '--quiet', '-am', 'second'], env);
+    const commits = await r.commitsSince(before);
+    expect(commits.map((c) => c.subject)).toEqual(['second', 'wf(task): submit e [a → b] | odd']);
+    expect(commits[0]!.sha).toBe((await git(dir, ['rev-parse', 'HEAD'], env)).stdout.trim());
+    expect(commits[0]!.at).toBeInstanceOf(Date);
+    expect(Math.abs(commits[0]!.at.getTime() - Date.now())).toBeLessThan(120_000);
+  });
+
+  it('commitsSince refuses a `before` that is not a sha (never an option)', async () => {
+    const runner = new FakeProcessRunner();
+    const r = new GitReads({ git: '/usr/bin/git', runner, cwd: '/p', env: {} });
+    await expect(r.commitsSince('--all')).rejects.toBeInstanceOf(GitReadError);
+    expect(runner.requests).toEqual([]);
+  });
+
+  it('a timed-out blob read is a GitReadError, not a difference', async () => {
+    const runner = new FakeProcessRunner().answer({ ended: 'timeout', exitCode: null });
+    const r = new GitReads({ git: '/usr/bin/git', runner, cwd: '/p', env: {} });
+    await expect(r.sameBlobEverywhere('e.md')).rejects.toBeInstanceOf(GitReadError);
+  });
+});

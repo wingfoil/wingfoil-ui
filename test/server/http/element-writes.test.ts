@@ -22,6 +22,7 @@ import { buildApp } from '../../../server/src/http/app.js';
 import { registerElementWriteRoutes } from '../../../server/src/http/element-writes.js';
 import { registerProjectRoutes } from '../../../server/src/http/project-routes.js';
 import { createLogger } from '../../../server/src/logging.js';
+import type { ProcessRequest, ProcessResult } from '../../../server/src/process/runner.js';
 import { InProcessWriteLock, type WriteLock } from '../../../server/src/process/write-lock.js';
 import type { Snapshots } from '../../../server/src/snapshot/snapshots.js';
 import { createMemoryStateStore } from '../../../server/src/state/memory-store.js';
@@ -91,8 +92,8 @@ interface StartOptions {
   lock?: WriteLock;
   /** A second project entry on the same folder (D32-2). */
   twin?: boolean;
-  /** Replaces the runner's answer for some requests. */
-  intercept?: AuditedRunner['run'];
+  /** Replaces the runner's answer for some requests (`undefined`: the real process). */
+  intercept?: (request: ProcessRequest) => Promise<ProcessResult | undefined>;
   /** Where the logger writes. */
   log?: string[];
 }
