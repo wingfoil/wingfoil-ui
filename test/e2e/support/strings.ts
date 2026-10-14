@@ -21,16 +21,14 @@
  *   (`button[tabindex="-1"]` in a `.menu-popover`), the one library exception (W5-1).
  * - A CLI command shown as data (spec-008 §6, task-035 D35-3): the text of a
  *   `code.cli-command[translate="no"]` is accepted only when it is exactly the *How to join*
- *   command (`joinCommand` of `web/src/project/join.ts`) rebuilt from an email the page read and
- *   the key texts of its two placeholders — its words are WingFoil's CLI, never catalogue text.
+ *   command (`joinCommand` of `web/src/project/join.ts`) rebuilt from a string value the page
+ *   read (the email is one) and the key texts of its two placeholders — its words are WingFoil's CLI, never catalogue text.
  */
 import type { Page } from '@playwright/test';
 import { parse, TYPE, type MessageFormatElement } from '@formatjs/icu-messageformat-parser';
 import en from '../../../web/src/i18n/en.json' with { type: 'json' };
 import { joinCommand } from '../../../web/src/project/join.js';
-
-/** The avatar's glyph for a user who is not one member (`web/src/project/model.ts`; D35-10). */
-export const NO_INITIALS = '?';
+import { NO_INITIALS } from '../../../web/src/project/model.js';
 
 /** React Aria's own string (spec-008 §6 exception, W5-1). */
 export const LIBRARY_DISMISS = 'Dismiss';

@@ -119,8 +119,9 @@ catalogue and its arguments (`warnings: [{ key, args }]` of `GET /api/server`, s
   only its placeholders (`<Your Name>`, `<roles>`) are catalogue messages and the email is data.
   It is rendered in a `code.cli-command` with `translate="no"`, built by one function of the web
   (`joinCommand`, `web/src/project/join.ts`), which is also what *Copy command* copies. X-09.1
-  accepts the text of such an element only when it equals that function's output for an email the
-  page read and the key texts of the two placeholders; any other text there is reported.
+  accepts the text of such an element only when it equals that function's output for a string
+  value the page read from the API (the user's email is one) and the key texts of the two
+  placeholders; any other text there is reported.
 - ESLint `eslint-plugin-formatjs`: `no-literal-string-in-jsx` (including the `aria-label`,
   `title`, `alt` and `placeholder` attributes), `no-multiple-plurals` (`enforce-id` is not used: it
   targets generated hash ids); placeholders are checked by the project rule
@@ -177,4 +178,5 @@ catalogue and its arguments (`warnings: [{ key, args }]` of `GET /api/server`, s
 - 2026-10-13 — amended in dev-loop task-035 (minor-v0.2, Wave 1, plan dev-loop-rel-v0.2-plan):
   §6 a CLI command shown as data (the *How to join* command): words from code, placeholders from
   the catalogue, `code.cli-command[translate="no"]`, X-09.1 rebuilds it from the page's data
-  (D35-3); decided by the approver.
+  (D35-3); decided by the approver. Review round 1 (F5, 2026-10-14): the wording says "a string
+  value the page read" (the check rebuilds the command for each one), not "an email".

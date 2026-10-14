@@ -202,6 +202,7 @@
   "shell.howToJoin.loading": "Reading the team…",
   "shell.howToJoin.noLead": "This project declares no tech lead — ask any member to run the command",
   "shell.howToJoin.noMember": "This project declares no team member — anyone with write access to the repository can run the command",
+  "shell.howToJoin.notApplicable": "How to join no longer applies to you: the notice above the view says why this project is read-only.",
   "shell.howToJoin.nowMember": "You are now a member of this team.",
   "shell.howToJoin.open": "How to join",
   "shell.howToJoin.placeholderName": "'<Your Name>'",

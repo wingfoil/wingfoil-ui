@@ -3,7 +3,14 @@
 import type { DnaShow } from '@wingfoil-ui/contracts';
 import { describe, expect, it } from 'vitest';
 import { TECH_LEAD_ROLE as SERVER_TECH_LEAD } from '../../../server/src/presets/wingfoil.js';
-import { joinCommand, joinEmail, joinTeam, shellWord, TECH_LEAD_ROLE } from '../../../web/src/project/join.js';
+import {
+  doubleQuoted,
+  joinCommand,
+  joinEmail,
+  joinTeam,
+  shellWord,
+  TECH_LEAD_ROLE,
+} from '../../../web/src/project/join.js';
 import { header, riley } from './header-data.js';
 
 type Team = DnaShow['team'];
@@ -78,10 +85,28 @@ describe('shellWord (D35-7)', () => {
   });
 });
 
+describe('doubleQuoted (review F4)', () => {
+  it('quotes a plain text as is', () => {
+    expect(doubleQuoted('<Your Name>')).toBe('"<Your Name>"');
+  });
+
+  it('escapes what ends or expands inside double quotes', () => {
+    expect(doubleQuoted('a"b')).toBe(String.raw`"a\"b"`);
+    expect(doubleQuoted('$(id) `id` $HOME')).toBe(String.raw`"\$(id) \`id\` \$HOME"`);
+    expect(doubleQuoted(String.raw`back\slash`)).toBe(String.raw`"back\\slash"`);
+  });
+});
+
 describe('joinCommand', () => {
   it('is the scenario command, with the placeholders as given (C-08.1)', () => {
     expect(joinCommand({ name: '<Your Name>', email: 'riley@example.test', roles: '<roles>' })).toBe(
       'wingfoil dna add team.members --value "<Your Name>" --entry-email riley@example.test --entry-roles <roles>',
+    );
+  });
+
+  it('escapes a name placeholder a translation could break out of (F4)', () => {
+    expect(joinCommand({ name: 'N" $(x)', email: 'a@b.test', roles: 'R' })).toBe(
+      String.raw`wingfoil dna add team.members --value "N\" \$(x)" --entry-email a@b.test --entry-roles R`,
     );
   });
 

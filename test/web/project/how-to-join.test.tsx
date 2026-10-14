@@ -97,6 +97,11 @@ it('opens from the badge: the tech leads, the command and the declared roles (C-
   await user.click(await badge());
   const d = await dialog();
   expect(within(d).getByText('riley@example.test is not in the team of this project.', { exact: false })).toBeTruthy();
+  // The intro sentence describes the dialog (F7).
+  const describedBy = d.getAttribute('aria-describedby');
+  expect(describedBy && document.getElementById(describedBy)?.textContent).toMatch(
+    /^riley@example\.test is not in the team of this project\./,
+  );
   expect(await within(d).findByText('Ask a tech lead to run it:')).toBeTruthy();
   const leads = within(d).getByRole('list', { name: 'Tech leads' });
   expect(
@@ -231,12 +236,18 @@ it('names a tech lead without an email by the name alone', async () => {
   ).toEqual(['Pat Doe']);
 });
 
-it('offers no panel for a team unknown, no identity or a member (D35-8)', async () => {
+it('offers no panel for a team unknown, no identity or a member (D35-8, F7)', async () => {
   stub(() => ({ ...riley(), dnaError: { code: 'cli-refused', message: 'x' } }));
   renderApp('/p/p_a/memory');
   const chip = await screen.findByRole('group', { name: 'Current user: riley@example.test, team unknown' });
   expect(within(chip).queryByRole('button')).toBeNull();
   expect(screen.queryByRole('button', { name: 'How to join' })).toBeNull();
+  cleanup();
+  stub(() => header({ identity: { kind: 'no-identity' }, roleViews: [], roleView: null }));
+  renderApp('/p/p_a/memory');
+  const none = await screen.findByRole('group', { name: 'Current user: no identity' });
+  expect(within(none).queryByRole('button')).toBeNull();
+  expect(screen.queryByRole('button', { name: /how to join/i })).toBeNull();
   cleanup();
   stub(() => header());
   renderApp('/p/p_a/memory');
@@ -244,21 +255,70 @@ it('offers no panel for a team unknown, no identity or a member (D35-8)', async 
   expect(screen.queryByRole('button', { name: /how to join/i })).toBeNull();
 });
 
-it('follows the data: says the user is now a member after a refetch (D35-9)', async () => {
+/** Open the panel as Riley, then answer the header with `next` and refetch (D35-9). */
+async function openThenChange(next: ProjectHeader) {
   let current: ProjectHeader = riley();
   stub(() => current);
   const user = userEvent.setup();
   const { queryClient } = renderApp('/p/p_a/memory');
-  await user.click(await badge());
+  const b = await badge();
+  act(() => b.focus());
+  await user.keyboard('{Enter}');
   const d = await dialog();
   await within(d).findByText('Ask a tech lead to run it:');
-  current = header({
-    identity: { kind: 'member', email: 'riley@example.test', name: 'Riley', roles: ['developer'] },
-  });
+  // The status region exists before the change, so that the change is announced (F2).
+  expect(d.querySelector('[role="status"].how-to-join-change')).not.toBeNull();
+  current = next;
   await act(() => queryClient.invalidateQueries({ queryKey: ['p', 'p_a'] }));
-  expect(await within(d).findByText('You are now a member of this team.')).toBeTruthy();
+  return { d, user };
+}
+
+/** `text` is shown in the panel's status region and the command is gone. */
+async function expectChange(d: HTMLElement, text: string) {
+  const shown = await within(d).findByText(text);
+  expect(shown.closest('[role="status"]')).not.toBeNull();
   expect(d.querySelector('code.cli-command')).toBeNull();
   expect(within(d).getByRole('button', { name: 'Close' })).toBeTruthy();
+}
+
+const NOW_MEMBER = 'You are now a member of this team.';
+const NOT_APPLICABLE =
+  'How to join no longer applies to you: the notice above the view says why this project is read-only.';
+
+it('follows the data: says the user is now a member after a refetch, announced (D35-9, F2)', async () => {
+  const { d } = await openThenChange(
+    header({ identity: { kind: 'member', email: 'riley@example.test', name: 'Riley', roles: ['developer'] } }),
+  );
+  await expectChange(d, NOW_MEMBER);
+});
+
+it('says "now a member" when the email now matches several members (F1)', async () => {
+  const { d } = await openThenChange(
+    header({ identity: { kind: 'ambiguous', email: 'riley@example.test', members: ['Riley', 'Rob'] } }),
+  );
+  await expectChange(d, NOW_MEMBER);
+});
+
+it('says How to join no longer applies when git has no email any more (F1)', async () => {
+  const { d } = await openThenChange(header({ identity: { kind: 'no-identity' } }));
+  await expectChange(d, NOT_APPLICABLE);
+});
+
+it('says How to join no longer applies when the DNA can no longer be read (F1)', async () => {
+  const { d } = await openThenChange({ ...riley(), dnaError: { code: 'cli-refused', message: 'x' } });
+  await expectChange(d, NOT_APPLICABLE);
+});
+
+it('gives the focus to the main region when the opener has gone (F3)', async () => {
+  const { d, user } = await openThenChange(
+    header({ identity: { kind: 'member', email: 'riley@example.test', name: 'Riley', roles: ['developer'] } }),
+  );
+  await within(d).findByText(NOW_MEMBER);
+  // The badge is gone: Riley is a member now.
+  await waitFor(() => expect(screen.queryByRole('button', { name: 'Not in team — how to join' })).toBeNull());
+  await user.keyboard('{Escape}');
+  await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+  await waitFor(() => expect(document.activeElement).toBe(document.getElementById('main')));
 });
 
 it('closes the panel of one project when another opens (keyed by the project)', async () => {

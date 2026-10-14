@@ -61,6 +61,14 @@ export function shellWord(value: string): string {
   return PLAIN_WORD.test(value) ? value : `'${value.replaceAll("'", `'\\''`)}'`;
 }
 
+/**
+ * `value` inside POSIX double quotes (review F4): `\`, `"`, `$` and the backtick escaped, so a
+ * translated placeholder can neither end the quotes nor expand anything.
+ */
+export function doubleQuoted(value: string): string {
+  return `"${value.replace(/[\\"$`]/g, (c) => `\\${c}`)}"`;
+}
+
 /** The parts of the command: the user's email and the two placeholders (catalogue texts). */
 export interface JoinCommandParts {
   /** The name placeholder, e.g. `<Your Name>`, written in double quotes. */
@@ -72,5 +80,5 @@ export interface JoinCommandParts {
 
 /** The command a member runs to add the user to `dna.team.members` (C-08.1). */
 export function joinCommand({ name, email, roles }: JoinCommandParts): string {
-  return `wingfoil dna add team.members --value "${name}" --entry-email ${shellWord(email)} --entry-roles ${roles}`;
+  return `wingfoil dna add team.members --value ${doubleQuoted(name)} --entry-email ${shellWord(email)} --entry-roles ${roles}`;
 }

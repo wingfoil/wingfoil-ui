@@ -59,8 +59,8 @@ Every test lives under `test/` (DNA `paths.tests`); sources stay in `server/src`
   - `support/strings.ts` (task-021): `recordApiData(page)` and `textsOutsideCatalogue(page, data)` —
     the X-09.1 check: every text node and accessible name is a key-catalogue text or project data
     from the API answers the page read (React Aria's "Dismiss" the one library exception); a
-    `code.cli-command[translate="no"]` passes only as the *How to join* command rebuilt from an
-    email read and the placeholder keys (spec-008 §6, task-035 D35-3);
+    `code.cli-command[translate="no"]` passes only as the *How to join* command rebuilt from a
+    string value read (the email) and the placeholder keys (spec-008 §6, task-035 D35-3);
   - `support/perf.ts` (task-021): `timeNavigation(page, target, ready)` (Enter → view rendered,
     measured in the page), `percentile`, `reportRuns`; 20 runs and the 1.0 s p95 budget in
     `test:timing`, 2 runs without a budget in `test:e2e`;

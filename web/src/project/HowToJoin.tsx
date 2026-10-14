@@ -14,11 +14,14 @@
  *
  * Data: `GET /api/p/:pid` (who the user is) and `GET /api/p/:pid/config` (the team), the shared
  * queries; the configuration is read when the panel opens. Both refresh on the `repo` event, and
- * the panel follows them (D35-9): a user who became a member is told so.
+ * the panel follows them (D35-9, review F1/F2): a user who became a member — or whose email now
+ * matches several members — is told so, any other identity that has no panel (D35-8) is told that
+ * How to join no longer applies, in a status region so that the change is announced. Closing the
+ * panel gives the focus back to its opener, or to the main region when the opener is gone (F3).
  */
 import type { ApiError as ApiErrorBody } from '@wingfoil-ui/contracts';
 import { useQuery } from '@tanstack/react-query';
-import { createContext, useContext, useMemo, useState, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useId, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Button, Dialog, Heading, Modal, ModalOverlay } from 'react-aria-components';
 import { defineMessages, FormattedMessage, useIntl } from 'react-intl';
 import { ApiError } from '../api/client.js';
@@ -64,20 +67,44 @@ export interface HowToJoinProviderProps {
  */
 export function HowToJoinProvider({ pid, children }: HowToJoinProviderProps): ReactNode {
   const [shownFor, setShownFor] = useState<string | null>(null);
-  const action = useMemo<HowToJoinAction>(() => ({ show: () => setShownFor(pid) }), [pid]);
+  const opener = useRef<Element | null>(null);
+  const introId = useId();
+  const action = useMemo<HowToJoinAction>(
+    () => ({
+      show: () => {
+        opener.current = document.activeElement;
+        setShownFor(pid);
+      },
+    }),
+    [pid],
+  );
+  const shown = shownFor === pid;
+  // React Aria gives the focus back to the opener; when the opener has gone (e.g. the badge of a
+  // user who became a member), the focus would fall to the page: the main region takes it (F3).
+  useEffect(() => {
+    if (shown || opener.current === null) return;
+    const gone = opener.current;
+    opener.current = null;
+    const frame = requestAnimationFrame(() => {
+      if (!gone.isConnected) document.getElementById('main')?.focus();
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [shown]);
   return (
     <HowToJoinContext.Provider value={action}>
       {children}
       <ModalOverlay
         key={pid}
         className="modal-overlay"
-        isOpen={shownFor === pid}
+        isOpen={shown}
         onOpenChange={(next) => {
           if (!next) setShownFor(null);
         }}
       >
         <Modal className="modal">
-          <Dialog className="dialog how-to-join">{({ close }) => <HowToJoinPanel pid={pid} close={close} />}</Dialog>
+          <Dialog className="dialog how-to-join" aria-describedby={introId}>
+            {({ close }) => <HowToJoinPanel pid={pid} introId={introId} close={close} />}
+          </Dialog>
         </Modal>
       </ModalOverlay>
     </HowToJoinContext.Provider>
@@ -92,22 +119,23 @@ function asApiError(error: Error | ApiErrorBody): ApiError {
 }
 
 /** The panel's content. */
-function HowToJoinPanel({ pid, close }: { pid: string; close(): void }): ReactNode {
+function HowToJoinPanel({ pid, introId, close }: { pid: string; introId: string; close(): void }): ReactNode {
   const header = useQuery(projectHeaderQuery(pid));
   const config = useQuery(projectConfigQuery(pid));
   const identity = header.data?.identity;
   const email = header.data ? joinEmail(header.data) : undefined;
+  // Read, but no panel any more (D35-8): already a member, or another reason (F1).
+  let change: ReactNode;
+  if (identity?.kind === 'member' || identity?.kind === 'ambiguous') {
+    change = <FormattedMessage id="shell.howToJoin.nowMember" />;
+  } else if (identity && email === undefined) {
+    change = <FormattedMessage id="shell.howToJoin.notApplicable" />;
+  }
   let body: ReactNode;
-  if (identity?.kind === 'member') {
-    body = (
-      <p>
-        <FormattedMessage id="shell.howToJoin.nowMember" />
-      </p>
-    );
-  } else if (email !== undefined) {
+  if (email !== undefined) {
     body = (
       <>
-        <p>
+        <p id={introId}>
           <FormattedMessage id="shell.howToJoin.intro" values={{ email }} />
         </p>
         <Command email={email} />
@@ -136,7 +164,7 @@ function HowToJoinPanel({ pid, close }: { pid: string; close(): void }): ReactNo
         <ErrorText error={asApiError(header.error)} />
       </div>
     );
-  } else if (!header.data) {
+  } else if (!identity) {
     body = (
       <p role="status" className="muted">
         <FormattedMessage id="shell.howToJoin.loading" />
@@ -152,6 +180,10 @@ function HowToJoinPanel({ pid, close }: { pid: string; close(): void }): ReactNo
         <Button className="button button-quiet" onPress={close}>
           <FormattedMessage id="common.action.close" />
         </Button>
+      </div>
+      {/* Always present, so that a change of identity while the panel is open is announced (F2). */}
+      <div role="status" className="how-to-join-change">
+        {change !== undefined && <p>{change}</p>}
       </div>
       {body}
     </>
