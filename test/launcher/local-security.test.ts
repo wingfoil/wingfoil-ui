@@ -536,3 +536,41 @@ describe('the settings routes on the bin (spec-004 §1–3)', () => {
     else expect(JSON.parse(res.body)).toEqual({ error: { code, message: expect.any(String) } });
   });
 });
+
+// task-032: the governed write routes (spec-004 §3, §4 rows 1–3) — refused by the guards; past
+// them, an unknown project answers 404 before its body is read.
+describe('the governed write routes on the bin (spec-004 §1–4)', () => {
+  let l: Launcher;
+  beforeAll(async () => {
+    l = await launch();
+  });
+
+  const routes = ['submit', 'approve', 'reject'].map(
+    (verb) => [`/api/p/p_abcdefghijkl/elements/task-001-login-form/${verb}`] as const,
+  );
+
+  it.each(routes)('POST %s → 401 without a session, 403 from another origin or site', async (urlPath) => {
+    const unauthenticated = await request(l, 'POST', urlPath);
+    expect(unauthenticated.status).toBe(401);
+    expect(JSON.parse(unauthenticated.body)).toEqual({
+      error: { code: 'unauthenticated', message: expect.any(String) },
+    });
+    const auth = { authorization: `Bearer ${l.token}` };
+    for (const headers of [
+      { ...auth, origin: 'https://evil.test' },
+      { ...auth, host: `evil.test:${l.port}` },
+      { ...auth, 'sec-fetch-site': 'cross-site' },
+      { ...auth, 'sec-fetch-site': 'same-site' },
+    ]) {
+      const res = await request(l, 'POST', urlPath, headers);
+      expect(res.status, JSON.stringify(headers)).toBe(403);
+      expect(JSON.parse(res.body)).toEqual({ error: { code: 'forbidden-origin', message: expect.any(String) } });
+    }
+  });
+
+  it.each(routes)('POST %s → 404 past the guards (unknown project, before the body)', async (urlPath) => {
+    const res = await request(l, 'POST', urlPath, { authorization: `Bearer ${l.token}` });
+    expect(res.status).toBe(404);
+    expect(JSON.parse(res.body)).toEqual({ error: { code: 'not-found', message: expect.any(String) } });
+  });
+});

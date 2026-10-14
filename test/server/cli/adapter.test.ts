@@ -220,7 +220,8 @@ describe('TT-INT-04 — result classification (spec-001 §2)', () => {
       words: ['dna', 'show'],
       options: ['--bogus'],
       exitCode: 2,
-      stderr: "error: unknown option '--bogus'",
+      // The kind only (task-032 review I1); the option names are in `options`.
+      stderr: 'error',
     });
     expect(cliErrorEnvelope(error as CliInternalError)).toEqual({
       status: 500,
@@ -396,18 +397,27 @@ describe('classification without processes (fake runner)', () => {
     }
   });
 
-  it('logs at most the first 200 characters of an exit-2 stderr', async () => {
+  it.each([
+    [`error: ${'x'.repeat(500)}`, 'error'],
+    [
+      '{"error":"invalid flag value: --reason must not contain a line starting with \\"Approver:\\""}',
+      'invalid flag value',
+    ],
+    ['{"error":"missing required argument: --reason"}', 'missing required argument'],
+    ["error: unknown option '--secret-value'", 'error'],
+    ['no colon here secret-value', 'usage error'],
+  ])('logs only the kind of an exit-2 message, never a value (task-032 review I1): %s', async (stderr, kind) => {
     const { FakeProcessRunner } = await import('../process/fake-runner.js');
     const logger = { error: vi.fn() };
     const cli = new WingfoilCli({
       cli: { source: 'project', projectRoot: root, file: process.execPath, prefixArgs: ['/x/cli.js'] },
-      runner: new FakeProcessRunner().answer({ exitCode: 2, stderr: `error: ${'x'.repeat(500)}` }),
+      runner: new FakeProcessRunner().answer({ exitCode: 2, stderr }),
       logger,
     });
     await expect(cli.json(['paths'])).rejects.toBeInstanceOf(CliInternalError);
     const logged = logger.error.mock.calls[0]?.[0] as { stderr: string };
-    expect(logged.stderr).toHaveLength(200);
-    expect(logged.stderr.startsWith('error: xxx')).toBe(true);
+    expect(logged.stderr).toBe(kind);
+    expect(JSON.stringify(logged)).not.toContain('secret-value');
   });
 
   it('exit 1 with an empty stderr is a refusal that says so', async () => {

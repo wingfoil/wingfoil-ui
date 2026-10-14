@@ -264,10 +264,10 @@ export class WingfoilCli {
       throw new CliRefusedError(command, refusalMessage(result.stderr));
     }
     if (result.ended === 'exit' && result.exitCode === 2) {
-      // A usage error names options, but it may quote a value (`missing required argument`,
-      // a rejected option value): the log keeps its first 200 characters only.
+      // A usage error may quote a value (a rejected option value, a reason WingFoil will not record,
+      // W-29): the log keeps only its kind, the text before the first colon (task-032 review I1).
       const detail = result.stderr.trim();
-      this.log(command, { exitCode: 2, stderr: detail.slice(0, 200) }, 'CLI invocation rejected as malformed');
+      this.log(command, { exitCode: 2, stderr: usageKind(detail) }, 'CLI invocation rejected as malformed');
       throw new CliInternalError(command, detail);
     }
     const error =
@@ -305,6 +305,22 @@ function reason(result: ProcessResult): string {
         ? `WingFoil was killed by ${result.signal ?? 'a signal'}`
         : `WingFoil exited with status ${result.exitCode}`;
   }
+}
+
+/**
+ * The kind of a CLI message, never a value: the text before the first colon of its message
+ * (`{"error": …}` or plain), e.g. `invalid flag value`, `missing required argument`, `error`,
+ * `Command failed`.
+ */
+export function usageKind(stderr: string): string {
+  let text = stderr.trim();
+  try {
+    const parsed = JSON.parse(text) as { error?: unknown };
+    if (typeof parsed.error === 'string') text = parsed.error;
+  } catch {
+    // Not JSON: the text itself.
+  }
+  return /^([A-Za-z][A-Za-z ]{0,60}):/.exec(text)?.[1] ?? 'usage error';
 }
 
 /** The CLI's refusal message: stderr `{"error": "<message>"}`, else the stderr text, else the exit. */

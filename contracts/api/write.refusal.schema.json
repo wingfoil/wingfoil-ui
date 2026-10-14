@@ -1,0 +1,90 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://wingfoil-ui.local/contracts/api/write.refusal.schema.json",
+  "title": "Refusal of a governed write (POST /api/p/:pid/elements/:eid/submit, /approve, /reject)",
+  "description": "The error envelope of spec-004 §5 with the codes a governed write answers (spec-004 §4 rows 1–7 and 9, §5); detail holds the arguments of the web catalogue (spec-008 §4). write-incomplete: the write did not finish — the CLI failed leaving the element file changed without its commit (W2-1), wrote another path (W2-4) or failed after its commit (W2-5); the CLI's message is never sent.",
+  "type": "object",
+  "required": ["error"],
+  "additionalProperties": false,
+  "properties": {
+    "error": {
+      "type": "object",
+      "required": ["code", "message"],
+      "additionalProperties": false,
+      "properties": {
+        "code": { "type": "string" },
+        "message": { "type": "string" },
+        "detail": { "type": "object" }
+      },
+      "oneOf": [
+        {
+          "properties": {
+            "code": {
+              "enum": [
+                "forbidden-origin",
+                "unauthenticated",
+                "not-found",
+                "invalid-request",
+                "not-in-team",
+                "unsupported-version",
+                "local-changes",
+                "element-changed",
+                "cli-refused",
+                "cli-output",
+                "cli-timeout",
+                "internal"
+              ]
+            }
+          },
+          "not": { "required": ["detail"] }
+        },
+        {
+          "properties": {
+            "code": { "const": "read-error" },
+            "detail": {
+              "type": "object",
+              "required": ["file", "kind"],
+              "additionalProperties": false,
+              "properties": {
+                "file": { "type": "string" },
+                "kind": { "enum": ["outside", "missing", "shape", "mismatch"] }
+              }
+            }
+          },
+          "required": ["detail"]
+        },
+        {
+          "properties": {
+            "code": { "const": "cli-not-found" },
+            "detail": {
+              "type": "object",
+              "required": ["path", "command"],
+              "additionalProperties": false,
+              "properties": { "path": { "type": "string" }, "command": { "type": "string" } }
+            }
+          },
+          "required": ["detail"]
+        },
+        {
+          "properties": {
+            "code": { "const": "write-incomplete" },
+            "detail": {
+              "type": "object",
+              "required": ["file"],
+              "additionalProperties": false,
+              "properties": {
+                "file": { "description": "The file the write left, relative to the project.", "type": "string" },
+                "commit": {
+                  "description": "The commit WingFoil made before failing, or on another path (W2-4, W2-5).",
+                  "type": "string",
+                  "pattern": "^([0-9a-f]{40}|[0-9a-f]{64})$"
+                }
+              }
+            }
+          },
+          "required": ["detail"]
+        }
+      ]
+    }
+  }
+}
