@@ -94,7 +94,7 @@ JSON; every request and response body has a schema in `contracts/api/`.
 | `POST /api/p/:pid/ui-config/preset` `{preset}` | apply a UI preset (write class b, spec-005) | v0.3 |
 | `GET /api/p/:pid/workflow/status`, `/workflow/next`; `POST /api/p/:pid/workflow/start`; `POST /api/p/:pid/agents` | WingFoil 0.3 verbs; shapes fixed by v0.4 `release-planning` | v0.4 |
 
-Write routes run through the per-project write lock (`adr-001` D5). `expectedStatus` is the
+Write routes run through the repository's write lock (its git common directory, `adr-001` D5). `expectedStatus` is the
 status the page showed: when the element's status differs, the write is refused with **409**
 "This element changed since you opened it" — the user never decides on a stale view.
 
@@ -170,14 +170,17 @@ Checked by the server in this order (Fastify validates the body before the handl
 | 5 | user not identified in the team (REQ-SEC-08) | 403 | `not-in-team` | the watched identity (REQ-STATE-02) |
 | 5a | role not held by the member (`PUT /api/p/:pid/role-view` only) | 400 | `invalid-request` | the watched identity |
 | 6 | WingFoil version outside the range (REQ-INT-02) | 409 | `unsupported-version` | the cached detection (`adr-001` D3) |
-| 7 | element file has local changes (REQ-STATE-03) | 409 | `local-changes` | **fresh** `git status --porcelain`, plus the blob ids of the file at HEAD, in the index and in the working tree (`git hash-object`, nothing written) being equal, under the write lock |
+| 7 | element file has local changes (REQ-STATE-03) | 409 | `local-changes` | **fresh** `git status --porcelain`, plus the whole entry of the file being the same at HEAD, in the index (one stage-0 entry) and in the working tree (a regular file, the executable bit of its mode, the blob `git hash-object` gives — nothing written), under the write lock |
 | 8 | copy behind, diverged or detached HEAD (REQ-STATE-04) | 409 | `stale-copy` | **fresh** copy state (spec-010 §1: the `status --porcelain=v2 --branch` read), under the write lock |
 | 9 | `expectedStatus` differs | 409 | `element-changed` | **fresh** read of the element file, under the write lock |
 
 Rows 1–6 start **no process** once the console has read the project in its current repository
 state (the page has: rows 5–6 read the cache of its reads; a request on a state no read has seen
 runs the reads a `GET` would, never a write verb). An unknown `:eid` — looked up in that state's
-`memory search`, never a path built from it — is 404 `not-found`, after row 6. The write lock is
+`memory search`, never a path built from it — is 404 `not-found`, after row 6. Under the lock, when
+the fresh state differs from the one the lookup used, the element is listed again on the fresh
+state; an id listed at more than one path is refused (409 `local-changes` when one of them has
+local changes, else 409 `element-changed`). The write lock is
 one per repository (its git common directory), so two listed projects of one repository queue
 together. Rows 7–9 run read-only git commands and a file read, never a
 cached answer: `memory submit` commits the target's uncommitted edits (checked on WingFoil 0.2.2),
@@ -211,8 +214,12 @@ REQ-SEC-08's fit criterion (SARD `05` v0.6), which excludes fetch and the per-us
   the commit is made and stays local (Y-08.1, G-13). Was `pushed: boolean` until 2026-10-12. An
   ingestion lists its `add` and `submit` commits. `commits` are the first-parent commits made
   since the write's fresh HEAD whose subject is the CLI's for that write (`wf(<type>): <verb>
-  <id>`, W-15): a commit made meanwhile by another program is neither listed nor logged; a CLI exit
-  0 with no such commit → 502 `cli-output`, nothing logged, no `write` event.
+  <id>`, plus ` [<from> → <to>]` from the CLI's answer for approve and reject, W-15) that changes
+  the element's path only and holds the file just written — exactly one, else 502 `cli-output`,
+  nothing logged, no `write` event; the CLI's answer must name the element's path (else 502). A
+  commit made meanwhile by another program is neither listed nor logged. When the CLI fails after
+  its commit (any CLI error: exit ≠ 0, timeout, unreadable output), that commit is still logged and
+  announced, and the error is answered.
 - A `reason` that is empty or whitespace only fails the body schema: **400** `invalid-request`,
   no process (G-07.2).
 - Partial failure of an ingestion (`add` succeeded, `submit` refused): **422** `cli-refused` with
@@ -350,4 +357,8 @@ goes away by itself when the stream reconnects. A network failure is not rendere
   `git status` is still committed, W-28), rows 1–6 start no process on a state the console has read,
   an unknown `:eid` → 404 after row 6, one write lock per repository; §5 which commits a write
   reports and logs, and a reason WingFoil refuses as a usage error → 422 `cli-refused`. Decided by
-  the approver.
+  the approver. Same day, independent review F2: §3 "per-project write lock" reads "the
+  repository's write lock (its git common directory)"; adversarial review S1–S4: §4 row 7 compares
+  the whole entry (mode included, a symlink refused), the element is listed again on a state that
+  moved and a duplicated id is refused; §5 the write's commit identified by its exact subject, its
+  only path and its content, and logged when the CLI fails after it.
