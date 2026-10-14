@@ -432,3 +432,26 @@ Checks after the fixes (HEAD `2dedc34`):
 | `npm run test:e2e -- how-to-join.spec.ts accessibility.spec.ts harness/a11y-support.spec.ts` (three engines) | **51 passed**, 0 failed; 4.4 min | 17.4 → 21.3 |
 | `npm run test:e2e:chromium` (whole suite) | **137 passed**, 0 failed; 7.8 min | → 18.5 |
 | `npm run test:timing` | skipped (load ≥ 12) | — |
+
+### review (round 2, 2026-10-14)
+
+Independent review: **PASS** (F1–F7 verified, the UX reference row matches). Three non-blocking
+nits fixed (`e06bdc2`):
+
+- **N1** — `!` cannot be escaped inside double quotes under bash history expansion. Change: the
+  translator description of `shell.howToJoin.placeholderName` (in `defineMessages`, the
+  mechanism task-016 uses) says the text must not contain `!`; `doubleQuoted`'s comment says so
+  too; a unit test checks that the English placeholder holds no `!`.
+- **N2** — `aria-describedby` pointed at a missing intro once the panel showed *now a member* /
+  *no longer applies*. Change: the provider sets it only while the intro is rendered (the same
+  condition, `joinEmail` of the cached header); the member-transition test asserts the attribute
+  is gone. Fault injection (not committed): attribute always set → that test fails.
+- **N3** — a mouse click that does not focus its button (WebKit) records `body` as the opener, so
+  closing left the focus on `<body>`. Change: the `#main` fallback also applies when the recorded
+  opener is `document.body`; test "gives the focus to the main region when a click focused no
+  opener" (`fireEvent.click`, no focus move). Fault injection: condition removed → that test
+  fails.
+
+Checks (HEAD `e06bdc2`): `test/web/project/` 73 passed; typecheck, lint, format:check clean;
+public-text 67 passed; `check_tasks.py v0.2` OK; `npm run test:e2e -- how-to-join.spec.ts
+harness/a11y-support.spec.ts` on the three engines **21 passed** (1.0 min, load 5.6 → 12.4).
