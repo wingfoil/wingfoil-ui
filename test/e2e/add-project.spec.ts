@@ -85,9 +85,16 @@ async function expectSwitcherLists(page: Page, names: string[]): Promise<Project
   return list.projects;
 }
 
-/** The Memory list heading of the opened project (first, cold read). */
-async function expectMemoryHeading(page: Page): Promise<void> {
-  await expect(page.getByRole('heading', { level: 1, name: 'Memory' })).toBeVisible({ timeout: COLD_READ_MS });
+/**
+ * The opened project shows Today, its landing view since v0.2 (task-036, D36-1): the sidebar entry
+ * is current and Today's heading is shown (first, cold read; the greeting depends on the identity).
+ */
+async function expectTodayHeading(page: Page): Promise<void> {
+  const nav = page.getByRole('navigation', { name: 'Project views' });
+  await expect(nav.getByRole('link', { name: 'Today', exact: true })).toHaveAttribute('aria-current', 'page', {
+    timeout: COLD_READ_MS,
+  });
+  await expect(page.locator('.today').getByRole('heading', { level: 1 })).toBeVisible({ timeout: COLD_READ_MS });
 }
 
 /**
@@ -142,9 +149,9 @@ test.describe('US-S-03 — add a local folder', () => {
     expect(answer.status).toBe(201);
     const item = answer.body as ProjectListItem;
     expect(item.id).toMatch(/^p_[0-9a-z]{12}$/);
-    // The project opens on its Memory list, by its opaque id; the dialog is gone.
-    await expectMemoryHeading(page);
-    expect(page.url()).toBe(`${c.origin}/p/${item.id}/memory`);
+    // The project opens on Today (task-036), by its opaque id; the dialog is gone.
+    await expectTodayHeading(page);
+    expect(page.url()).toBe(`${c.origin}/p/${item.id}/today`);
     await expect(dialog(page)).toHaveCount(0);
     await expect(page.getByRole('status').filter({ hasText: 'kanban added' })).toHaveCount(1);
     // Listed with its name from dna.project.name.
@@ -200,8 +207,8 @@ test.describe('US-S-04 — add from a remote', () => {
     const answer = await cloned;
     expect(answer.status).toBe(201);
     const item = answer.body as ProjectListItem;
-    await expectMemoryHeading(page);
-    expect(page.url()).toBe(`${c.origin}/p/${item.id}/memory`);
+    await expectTodayHeading(page);
+    expect(page.url()).toBe(`${c.origin}/p/${item.id}/today`);
     // "~/projects/kanban" is a clone of the remote: its origin, the remote's commit.
     const dir = path.join(homeOf(c), 'projects', 'kanban');
     expect((await git(dir, ['remote', 'get-url', 'origin'], kanban.env)).stdout.trim()).toBe(kanban.remoteUrl);
@@ -226,7 +233,7 @@ test.describe('US-S-04 — add from a remote', () => {
     const cloned = nextAdd(page, true);
     await field(page, 'Local working directory').press('Enter');
     expect((await cloned).status).toBe(201);
-    await expectMemoryHeading(page);
+    await expectTodayHeading(page);
     const dir = path.join(homeOf(c), 'work', 'kanban-copy');
     expect((await git(dir, ['remote', 'get-url', 'origin'], kanban.env)).stdout.trim()).toBe(kanban.remoteUrl);
     expect(await exists(path.join(homeOf(c), 'projects', 'kanban'))).toBe(false);
@@ -323,8 +330,8 @@ test.describe('US-S-06 — same repository twice', () => {
     await expectFocusVisible(link);
     await page.keyboard.press('Enter');
     await expect(dialog(page)).toHaveCount(0);
-    await expectMemoryHeading(page);
-    expect(page.url()).toBe(`${c.origin}/p/${c.pids[0]}/memory`);
+    await expectTodayHeading(page);
+    expect(page.url()).toBe(`${c.origin}/p/${c.pids[0]}/today`);
     await expectSwitcherLists(page, ['kanban']);
   });
 
@@ -338,7 +345,7 @@ test.describe('US-S-06 — same repository twice', () => {
     await openDialog(page, c);
     await field(page, 'Folder path').fill(kanban.dir);
     await field(page, 'Folder path').press('Enter');
-    await expectMemoryHeading(page);
+    await expectTodayHeading(page);
     // Then its second working copy, from the switcher's Add project….
     await openSwitcher(page);
     await switcher(page).getByRole('button', { name: 'Add project…' }).click();

@@ -67,11 +67,28 @@ export function percentile(values: readonly number[], p: number): number {
   return sorted[Math.max(0, Math.ceil((p / 100) * sorted.length) - 1)]!;
 }
 
-/** Print the runs of `view`: warm-up (first open), p50, p95, max, with the load average. */
-export function reportRuns(view: string, warmUp: number, runs: readonly number[]): void {
+/**
+ * Print the runs of `view`: warm-up (first open), p50, p95, max, with the load average; `measure`
+ * names the requirement and the condition (TT-PERF-04 by default).
+ */
+export function reportRuns(
+  view: string,
+  warmUp: number,
+  runs: readonly number[],
+  measure = `TT-PERF-04 ${view} (${runs.length} runs, warm cache)`,
+): void {
   const fmt = (ms: number) => `${Math.round(ms)} ms`;
   report(
-    `TT-PERF-04 ${view} (${runs.length} runs, warm cache)`,
+    measure,
     `p50 ${fmt(percentile(runs, 50))}, p95 ${fmt(percentile(runs, 95))}, max ${fmt(Math.max(...runs))}; first open ${fmt(warmUp)}`,
   );
 }
+
+/** REQ-PERF-01 (task-036): Today, p95 ≤ 2.0 s with a warm cache. */
+export const TODAY_BUDGET_MS = 2_000;
+
+/** REQ-PERF-01: Today, ≤ 5.0 s for the first open after the server starts. */
+export const TODAY_FIRST_OPEN_BUDGET_MS = 5_000;
+
+/** RP-9: the "after one commit" p95 above which spec-002 §4 (incremental parse) is reopened. */
+export const TODAY_AFTER_COMMIT_REOPEN_MS = 1_000;

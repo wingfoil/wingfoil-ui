@@ -27,6 +27,14 @@ import {
 // The fixtures of this spec, built before its first test (shared support, bug-004).
 test.use({ prebuild: ['kanban', 'custom'] });
 
+/** Today, the landing view of a project (task-036, D36-1): its heading after the first, cold read. */
+async function expectToday(page: Page): Promise<void> {
+  await expect(page.locator('.today').getByRole('heading', { level: 1 })).toBeVisible({ timeout: COLD_READ_MS });
+  await expect(
+    page.getByRole('navigation', { name: 'Project views' }).getByRole('link', { name: 'Today', exact: true }),
+  ).toHaveAttribute('aria-current', 'page');
+}
+
 /** The Memory list's type filters (task-017). */
 function typeList(page: Page): Locator {
   return page.getByRole('list', { name: 'Element types' });
@@ -99,9 +107,10 @@ test.describe('US-S-16 — switch project', () => {
     // The panel is not modal (W4-8): the switcher stays operable while it is open.
     await openSwitcher(page);
     await rows(page).filter({ hasText: 'custom' }).click();
-    await expect(page).toHaveURL(`${c.origin}/p/${c.pids[1]}/memory`);
+    // A panel is not a view: the switch lands on the project's landing view, Today (task-036).
+    await expect(page).toHaveURL(`${c.origin}/p/${c.pids[1]}/today`);
     await expect(panel).toBeHidden();
-    await expectMemoryList(page);
+    await expectToday(page);
     await expect(page.getByRole('dialog')).toHaveCount(0);
   });
 });
@@ -218,10 +227,10 @@ test.describe('US-S-19 — missing folder', () => {
     // Not a link (W4-3).
     expect(await entry.getAttribute('data-href')).toBeNull();
     expect(await scanThemes(page)).toEqual([]);
-    // The other project still opens on its Memory list.
+    // The other project still opens, on Today (its landing view, task-036).
     await rows(page).filter({ hasText: 'custom' }).click();
-    await expect(page).toHaveURL(`${c.origin}/p/${c.pids[1]}/memory`);
-    await expectMemoryList(page);
+    await expect(page).toHaveURL(`${c.origin}/p/${c.pids[1]}/today`);
+    await expectToday(page);
   });
 
   test('S-19.2 — Recover when the folder comes back', async ({ page, fixtures, consoles }) => {
@@ -250,7 +259,7 @@ test.describe('US-X-05 — opaque project ids', () => {
     await openConsole(page, c);
     await openSwitcher(page);
     await rows(page).filter({ hasText: 'kanban' }).click();
-    await expectMemoryList(page);
+    await expectToday(page);
     const parent = path.basename(path.dirname(kanban.dir));
     // The scenario's "/home/test" is the folder holding the fixture; "projects/kanban" its last two
     // segments.
@@ -258,7 +267,7 @@ test.describe('US-X-05 — opaque project ids', () => {
     const forbidden = [holder, encodeURIComponent(holder), `${parent}/kanban`, `${parent}%2Fkanban`];
     expect(urls.length).toBeGreaterThan(3);
     for (const url of urls) for (const f of forbidden) expect(url).not.toContain(f);
-    expect(page.url()).toBe(`${c.origin}/p/${c.pids[0]}/memory`);
+    expect(page.url()).toBe(`${c.origin}/p/${c.pids[0]}/today`);
   });
 
   test('X-05.2 — Refuse a project id that is not in the list', async ({ page, fixtures, consoles }) => {
