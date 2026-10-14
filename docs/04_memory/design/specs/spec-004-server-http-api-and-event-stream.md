@@ -141,7 +141,7 @@ configuration unreadable) and for a type `memory.yaml` does not declare (descrip
 | `GET /api/p/:pid` — top-level `conditions: string[]` (spec-001 §6, spec-010 §7) | `project.schema.json` |
 | `GET /api/p/:pid/today?view=` | `today.schema.json` (spec-003 §5) |
 | `POST …/elements/:eid/submit` | request `element.submit.request.schema.json` `{expectedStatus}`; 200 `write.response.schema.json` (§5) |
-| `POST …/elements/:eid/approve`, `/reject` | request `element.decision.request.schema.json` `{expectedStatus, reason}` — `reason` holds at least one non-whitespace character (G-07.2); 200 `write.response.schema.json` |
+| `POST …/elements/:eid/approve`, `/reject` | request `element.decision.request.schema.json` `{expectedStatus, reason}` — `reason` holds at least one non-whitespace character (G-07.2), no NUL character and at most 10 000 characters; `expectedStatus` 1–200 characters (both requests); 200 `write.response.schema.json` |
 | `POST …/git/fetch`, `/git/update`, `/git/push` | no body; 200 `git.response.schema.json` `{repository}` (spec-010 §4) |
 | `GET /api/settings`, `PUT /api/settings` | `settings.schema.json` (spec-006 §2): `PUT` takes the whole object (every key; an invalid or out-of-range value → 400 `invalid-request`) and answers 200 with the stored settings |
 | `GET /api/p/:pid/events/memory?before=&limit=` | `memory-events.schema.json`: `{ events: [<spec-002 §1 event>], more: boolean }`, newest first; `limit` default 10 (Updates, spec-003 §5) |
@@ -170,13 +170,20 @@ Checked by the server in this order (Fastify validates the body before the handl
 | 5 | user not identified in the team (REQ-SEC-08) | 403 | `not-in-team` | the watched identity (REQ-STATE-02) |
 | 5a | role not held by the member (`PUT /api/p/:pid/role-view` only) | 400 | `invalid-request` | the watched identity |
 | 6 | WingFoil version outside the range (REQ-INT-02) | 409 | `unsupported-version` | the cached detection (`adr-001` D3) |
-| 7 | element file has local changes (REQ-STATE-03) | 409 | `local-changes` | **fresh** `git status --porcelain`, under the write lock |
+| 7 | element file has local changes (REQ-STATE-03) | 409 | `local-changes` | **fresh** `git status --porcelain`, plus the blob ids of the file at HEAD, in the index and in the working tree (`git hash-object`, nothing written) being equal, under the write lock |
 | 8 | copy behind, diverged or detached HEAD (REQ-STATE-04) | 409 | `stale-copy` | **fresh** copy state (spec-010 §1: the `status --porcelain=v2 --branch` read), under the write lock |
 | 9 | `expectedStatus` differs | 409 | `element-changed` | **fresh** read of the element file, under the write lock |
 
-Rows 1–6 start **no process**. Rows 7–9 run read-only git commands and a file read, never a
+Rows 1–6 start **no process** once the console has read the project in its current repository
+state (the page has: rows 5–6 read the cache of its reads; a request on a state no read has seen
+runs the reads a `GET` would, never a write verb). An unknown `:eid` — looked up in that state's
+`memory search`, never a path built from it — is 404 `not-found`, after row 6. The write lock is
+one per repository (its git common directory), so two listed projects of one repository queue
+together. Rows 7–9 run read-only git commands and a file read, never a
 cached answer: `memory submit` commits the target's uncommitted edits (checked on WingFoil 0.2.2),
-so a stale "no local changes" would let a UI action commit someone's work. No `wingfoil` process
+so a stale "no local changes" would let a UI action commit someone's work. The status alone is not
+enough: an edit hidden from it (`assume-unchanged`, `core.ignoreStat`, an fsmonitor) is still
+committed by `git add` + `git commit --only`, hence the blob comparison. No `wingfoil` process
 starts before row 9 passes.
 
 The role required by a gate is **not** checked by the server: the CLI refuses it (REQ-SEC-07).
@@ -202,7 +209,10 @@ REQ-SEC-08's fit criterion (SARD `05` v0.6), which excludes fetch and the per-us
   `code` is a spec-010 §5 code (refused before git ran) or `push-timeout` (auto-push killed
   after 60 s), rendered from the catalogue. A failed push is still a **success** of the write:
   the commit is made and stays local (Y-08.1, G-13). Was `pushed: boolean` until 2026-10-12. An
-  ingestion lists its `add` and `submit` commits.
+  ingestion lists its `add` and `submit` commits. `commits` are the first-parent commits made
+  since the write's fresh HEAD whose subject is the CLI's for that write (`wf(<type>): <verb>
+  <id>`, W-15): a commit made meanwhile by another program is neither listed nor logged; a CLI exit
+  0 with no such commit → 502 `cli-output`, nothing logged, no `write` event.
 - A `reason` that is empty or whitespace only fails the body schema: **400** `invalid-request`,
   no process (G-07.2).
 - Partial failure of an ingestion (`add` succeeded, `submit` refused): **422** `cli-refused` with
@@ -212,7 +222,7 @@ REQ-SEC-08's fit criterion (SARD `05` v0.6), which excludes fetch and the per-us
 
 | Status | `code` | When |
 |--------|--------|------|
-| 422 | `cli-refused` | CLI exit 1: `message` = the CLI's message verbatim (REQ-INT-04) |
+| 422 | `cli-refused` | CLI exit 1: `message` = the CLI's message verbatim (REQ-INT-04); also the exit 2 of `approve`/`reject` whose message names `--reason` (a reason WingFoil will not record, W-29) |
 | 502 | `cli-output` | exit 0 with output failing its schema (spec-001 §2) |
 | 504 | `cli-timeout` | a `wingfoil` process killed after 30 s (git transport the user started has no fixed timeout; an automatic fetch and an auto-push are killed after 60 s — spec-010 §4, `adr-001` D5) |
 | 500 | `internal` | adapter defect (exit 2) or unexpected error; details only in the log |
@@ -334,3 +344,10 @@ goes away by itself when the stream reconnects. A network failure is not rendere
   D31-1, D31-2): §3 `events/memory` — `limit` 1 to 100 (default 10), `before` = an event's sha,
   exclusive, an unknown sha or an out-of-range `limit` → 400 `invalid-request`, 404 for an
   unknown project first, `read-error` / `internal` for a failed input. Decided by the approver.
+- 2026-10-14 — amended in dev-loop task-032 (minor-v0.2 Wave 2, plan dev-loop-rel-v0.2-plan,
+  D32-1 … D32-6, D32-10): §3 bounds of `reason` and `expectedStatus`; §4 row 7 also compares the
+  blob ids of the element file at HEAD, in the index and in the working tree (an edit hidden from
+  `git status` is still committed, W-28), rows 1–6 start no process on a state the console has read,
+  an unknown `:eid` → 404 after row 6, one write lock per repository; §5 which commits a write
+  reports and logs, and a reason WingFoil refuses as a usage error → 422 `cli-refused`. Decided by
+  the approver.

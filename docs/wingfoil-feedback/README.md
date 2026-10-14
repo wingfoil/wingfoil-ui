@@ -55,6 +55,8 @@ changed (`governance-alignment-rel-v0.2-plan` GA-5).
 | [F-020](F-020-release-and-bug-waiting-states-have-no-verb.md) | Release and bug waiting states have no verb, and approve-release has no gate | gap | open | |
 | [F-021](F-021-usage-errors-mix-json-and-plain-text.md) | With --format json, usage errors (exit 2) are JSON or plain text depending on the error | defect | open | |
 | [F-022](F-022-duplicate-directive-ids-listed-twice.md) | directives list returns both files of a duplicated directive id, and only a warning names the one in force | gap | open | |
+| [F-023](F-023-transitions-commit-edits-hidden-from-git-status.md) | A transition commits an edit of the element that git status does not show (assume-unchanged, core.ignoreStat) | defect | open | |
+| [F-024](F-024-reason-defects-are-usage-errors.md) | A --reason WingFoil will not record is a usage error (exit 2), not a refusal (exit 1) | defect | open | |
 
 ## Context
 
