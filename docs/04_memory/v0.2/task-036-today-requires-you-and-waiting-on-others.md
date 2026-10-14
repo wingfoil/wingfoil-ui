@@ -424,3 +424,23 @@ e2e closure (scenario → spec file › test):
 | TT-PERF-09 (T-01.1, T-02.1) | `today.spec.ts` › "TT-PERF-09 — every role view lists the API's Requires you (kanban / custom / unknown)"; S-23.1 closes in task-042 |
 | TT-PERF-01 (T-01.1, T-02.1) | `test/e2e/performance.spec.ts` › "TT-PERF-01 — Today @perf" (both tests) |
 | X-06.4 / X-09.1 | `test/e2e/accessibility.spec.ts` over `SCREENS` › "today", "today — not in team" |
+
+### review (round 1, 2026-10-14)
+
+Independent review: **FAIL** (1 major, 1 minor, 2 nits; F3 — X-06.4/X-09.1 growing with `SCREENS` —
+left to the approver, not changed here). Changes (`a74beeb`):
+
+- **F1 (major)** — false "Requires you updated" announcements on a project switch, on a role view
+  change and on a refetch where only Waiting on others changed. Change: `routes/today.tsx` renders
+  `<TodayView key={pid} …>`; the effect announces only when the view is the same and the Requires
+  you rows changed (the query's structural sharing keeps their reference otherwise); another view
+  clears the announcement. Red on the previous code: the three new component cases failed (3 of 18);
+  green 25/25.
+- **F2 (minor)** — `openToday` ends on a positive loaded signal (a card, the identity sentence or an
+  alert, `COLD_READ_MS`); T-02.1 and T-03.1 read the rows with `expect.poll(…, COLD_READ_MS)`.
+- **F4 (nit)** — axe in both themes on T-03.1 (the rejection's colour).
+- **F5 (nit)** — the Ambiguous identity in the "points other unidentified users…" component test.
+
+Checks: typecheck, lint, format:check clean; `test/web/today` 25 passed; `npm run test:e2e --
+today.spec.ts` on the three engines **57 passed** (3.0 min, load 3.9 → 17.4). Only `TodayView.tsx`
+and `routes/today.tsx` changed outside tests: `test:coverage` not re-run.
