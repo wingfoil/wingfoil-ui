@@ -75,13 +75,6 @@ export interface ProjectSnapshotOptions {
   commonDir?: string;
 }
 
-/** HEAD and the paths with local changes, read fresh for a write (spec-004 §4 row 7). */
-export interface FreshStatus {
-  head: string;
-  /** Paths relative to the project root, as {@link RepoState.changed}. */
-  changed: ReadonlySet<string>;
-}
-
 /** The Memory events of each element, oldest first (spec-002 §3). */
 export type ElementEvents = ReadonlyMap<string, readonly MemoryEvent[]>;
 
@@ -201,19 +194,24 @@ export class ProjectSnapshot {
     return this.options.commonDir ?? this.root;
   }
 
-  /**
-   * HEAD and the paths with local changes, read now (`git status`), never from the last observed
-   * state: what a write checks under its lock (spec-004 §4 row 7). Does not move the snapshot.
-   */
-  async freshStatus(): Promise<FreshStatus> {
-    const status = await this.options.git.status();
-    const { head, changed } = repoState(status, undefined, this.options.prefix);
-    return { head, changed };
+  /** {@link GitReads.sameEntryEverywhere} for a write (D32-1, review S2). */
+  sameEntryEverywhere(file: string): Promise<boolean> {
+    return this.options.git.sameEntryEverywhere(file);
   }
 
-  /** {@link GitReads.sameBlobEverywhere} for a write (D32-1). */
-  sameBlobEverywhere(file: string): Promise<boolean> {
-    return this.options.git.sameBlobEverywhere(file);
+  /**
+   * Whether the commit `sha` is a write on `file` (relative to the project root; review S4): it
+   * changes that path only, and holds there the blob the working tree holds now (the file the CLI
+   * just wrote).
+   */
+  async isWriteCommit(sha: string, file: string): Promise<boolean> {
+    const changed = await this.options.git.changedPaths(sha);
+    if (changed.length !== 1 || changed[0] !== `${this.options.prefix}${file}`) return false;
+    const [committed, written] = await Promise.all([
+      this.options.git.fileAt(sha, file),
+      this.options.git.worktreeBlob(file),
+    ]);
+    return committed !== undefined && committed.blob === written;
   }
 
   /** {@link GitReads.commitsSince}: the commits a write made (D32-4). */

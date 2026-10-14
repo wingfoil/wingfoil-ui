@@ -313,3 +313,55 @@ fixed as listed above; shared files stay append-only.
 
 No console of this worktree left running; no `wfui-task-032-*` entry left in the system temporary
 directory.
+
+### review (round 1, 2026-10-14)
+
+Independent review **FAIL** (1 major, 2 minor, 4 nits); adversarial security review **FAIL**
+(S1 medium, S2–S4 low, I1 info). Changes:
+
+- **F1 (major)** — the ratio script counted first-parent commits only, missing the decisions made on
+  task branches merged with `--no-ff`. `scripts/action-log-ratio.mjs` reads the whole range; D32-9
+  wording and the script header amended. Red first: `test/scripts/action-log-ratio.test.ts` › "a
+  task branch merged with --no-ff" fails with `--first-parent` put back, passes without.
+- **F2 (minor)** — spec-004 §3 and spec-010 §4 read "the repository's write lock (its git common
+  directory)"; Process Notes (spec-010 new, spec-004 extended).
+  **Hand-over:** the git routes and the scheduler (task-033, task-034) take the write lock with
+  `ProjectSnapshot.lockKey`, never the pid.
+- **F3 (minor)** — the `write` event is published inside the lock, after the push, before the 200.
+- **F4 (minor) + S3 part A** — any CLI error under the lock (exit ≠ 0, timeout, unreadable output)
+  re-reads the commits since the fresh HEAD with the S4 matcher; the one found is logged,
+  `snapshot.check()` runs, the event goes out, then the error is answered. Tests: exit 1 after the
+  commit → 422 with the commit in `actionLog` and the event; killed after the commit → 504 with the
+  commit logged; a refusal with no commit logs nothing. **S3 part B** (an element file left
+  rewritten without a commit) waits for the approver; F-025 / W-30 drafted, not committed.
+- **F5 (nit)** — the dead `Refusal` class removed.
+- **F6 (nit)** — D32-2 also tested with a real `git worktree add` (another root, the same common
+  directory): equal keys, the two writes never overlap. Both answer 200: a linked worktree has its
+  own branch, so each decision is made on its branch — the "one 200, one 409" outcome holds for two
+  entries on one folder (the existing twin test).
+- **F7 / I1** — the adapter logs only the kind of an exit-2 message (the text before its first
+  colon: `invalid flag value`, `error`, …), never a value (`usageKind`, `adapter.test.ts`). Still
+  at error level for a W-29 reason refusal (`CLI invocation rejected as malformed`): follow-up
+  candidate (a lower level for a refusal the route maps to 422).
+- **S1 (medium)** — the `:eid` lookup used the watcher's last state while the CLI acts on the
+  fresh one (an untracked copy with the same id, made within the watcher lag, was committed).
+  Under the lock the state is read fresh (`snapshot.check()`); row 7 runs first on the path the
+  page's state listed (no `wingfoil` process for a plain local change); when the state moved, the
+  element is listed again on it (a `memory search`, a read); an id listed at more than one path →
+  409 `local-changes` when one of those paths has local changes, else 409 `element-changed` (the
+  CLI's choice would depend on its order; no new code); an element moved by a commit is written at
+  its new path; the CLI's answer must name the checked path, else 502 `cli-output`. Tests: the
+  untracked copy (409 `local-changes`, nothing committed), a committed duplicate (409
+  `element-changed`), a moved element (200 on the new path), the CLI answering another path (502).
+- **S2 (low)** — row 7 compares the whole entry: `ls-tree` at HEAD and `ls-files --stage` (one
+  stage-0 entry, regular file, same mode and blob), `lstat` of the working file (regular file, not a
+  symlink, the executable bit of the mode when `core.fileMode` holds) and `hash-object`, all with
+  `--literal-pathspecs`. `ls-tree`, `ls-files`, `diff-tree` join `GIT_ALLOWED_SUBCOMMANDS` (reads).
+  `GitReads.sameBlobEverywhere` is replaced by `sameEntryEverywhere`, `fileAt`, `worktreeBlob`,
+  `changedPaths`; `ProjectSnapshot.freshStatus` is gone (the fresh read is `check()`). Tests: a
+  hidden mode change and a symlink to an identical copy → 409 (API and `git.test.ts`).
+- **S4 (low)** — the write's commit is the only one since the fresh HEAD whose subject is exactly
+  the CLI's (`wf(<type>): <verb> <id>`, plus ` [<from> → <to>]` from the CLI's answer for approve
+  and reject), that changes the element's path only (`diff-tree`) and holds there the blob the
+  working tree holds (`ProjectSnapshot.isWriteCommit`); none or several → 502 `cli-output`. Test: a
+  concurrent commit forging the subject (another file) is neither reported, logged nor announced.

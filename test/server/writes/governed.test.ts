@@ -29,18 +29,23 @@ describe('reasonRefusal (D32-5)', () => {
   });
 });
 
-describe('isWriteSubject (D32-4)', () => {
+describe('isWriteSubject (D32-4, review S4)', () => {
+  const write = { type: 'task', id: 'task-001-x', from: 'pending' } as const;
   it.each([
-    ['wf(task): submit task-001-x', 'submit', true],
-    ['wf(task): approve task-001-x [pending → approved]', 'approve', true],
-    ['wf(task): reject task-001-x [pending → draft]', 'reject', true],
-    ['wf(task): approve task-001-xy [pending → approved]', 'approve', false],
-    ['wf(task): reject task-001-x [pending → draft]', 'approve', false],
-    ['wf(bug): approve task-001-x [pending → approved]', 'approve', false],
-    ['fix: approve task-001-x', 'approve', false],
-    ['wf(task): task-001-x [backlog → in-progress]', 'submit', false],
-  ] as const)('%s as %s → %s', (subject, verb, expected) => {
-    expect(isWriteSubject(subject, 'task', verb, 'task-001-x')).toBe(expected);
+    ['wf(task): submit task-001-x', { ...write, verb: 'submit' }, true],
+    ['wf(task): submit task-001-x [draft → pending]', { ...write, verb: 'submit' }, false],
+    ['wf(task): approve task-001-x [pending → approved]', { ...write, verb: 'approve', to: 'approved' }, true],
+    ['wf(task): approve task-001-x [pending → approved]', { ...write, verb: 'approve', to: 'done' }, false],
+    ['wf(task): approve task-001-x [pending → approved]', { ...write, verb: 'approve' }, true],
+    ['wf(task): approve task-001-x [pending → approved] extra', { ...write, verb: 'approve' }, false],
+    ['wf(task): approve task-001-x [draft → approved]', { ...write, verb: 'approve' }, false],
+    ['wf(task): reject task-001-x [pending → draft]', { ...write, verb: 'reject', to: 'draft' }, true],
+    ['wf(task): approve task-001-xy [pending → approved]', { ...write, verb: 'approve' }, false],
+    ['wf(task): reject task-001-x [pending → draft]', { ...write, verb: 'approve' }, false],
+    ['wf(bug): approve task-001-x [pending → approved]', { ...write, verb: 'approve' }, false],
+    ['wf(task): task-001-x [backlog → in-progress]', { ...write, verb: 'submit' }, false],
+  ] as const)('%s for %j → %s', (subject, w, expected) => {
+    expect(isWriteSubject(subject, w)).toBe(expected);
   });
 });
 

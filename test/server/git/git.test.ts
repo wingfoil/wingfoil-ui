@@ -1,7 +1,7 @@
 // REQ-STATE-01/02, REQ-INT-06 (read operations) — the git reads of the snapshot: one
 // `git status --porcelain=v2` for HEAD and the working tree, `git config user.email`, `git
 // rev-parse` for the layout; nothing else, no optional lock (a read never writes `.git/index`).
-import { chmod, mkdir, mkdtemp, realpath, rm, writeFile } from 'node:fs/promises';
+import { chmod, mkdir, mkdtemp, realpath, rm, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -254,30 +254,68 @@ describe('GitReads — the governed-write reads (task-032)', () => {
     return { dir, r: new GitReads({ git: gitFile, runner: new LocalProcessRunner(), cwd: dir, env }) };
   }
 
-  it('sameBlobEverywhere: true when HEAD, index and working tree agree; false on any difference git status may hide', async () => {
+  it('sameEntryEverywhere: true when HEAD, index and working tree agree; false on any difference git status may hide', async () => {
     const { dir, r } = await repo('blobs');
-    expect(await r.sameBlobEverywhere('e.md')).toBe(true);
-    expect(await r.sameBlobEverywhere('-dash.md')).toBe(true);
+    expect(await r.sameEntryEverywhere('e.md')).toBe(true);
+    expect(await r.sameEntryEverywhere('-dash.md')).toBe(true);
     await git(dir, ['update-index', '--assume-unchanged', 'e.md'], env);
     await writeFile(path.join(dir, 'e.md'), 'two\n');
     expect((await git(dir, ['status', '--porcelain'], env)).stdout).toBe('');
-    expect(await r.sameBlobEverywhere('e.md')).toBe(false);
+    expect(await r.sameEntryEverywhere('e.md')).toBe(false);
     await writeFile(path.join(dir, 'e.md'), 'one\n');
-    expect(await r.sameBlobEverywhere('e.md')).toBe(true);
+    expect(await r.sameEntryEverywhere('e.md')).toBe(true);
     await writeFile(path.join(dir, 'new.md'), 'untracked\n');
-    expect(await r.sameBlobEverywhere('new.md')).toBe(false);
+    expect(await r.sameEntryEverywhere('new.md')).toBe(false);
     await git(dir, ['add', 'new.md'], env);
-    expect(await r.sameBlobEverywhere('new.md')).toBe(false);
+    expect(await r.sameEntryEverywhere('new.md')).toBe(false);
     await rm(path.join(dir, '-dash.md'));
-    expect(await r.sameBlobEverywhere('-dash.md')).toBe(false);
+    expect(await r.sameEntryEverywhere('-dash.md')).toBe(false);
   });
 
-  it('sameBlobEverywhere: the index differing from HEAD (staged) is not the same', async () => {
+  it('sameEntryEverywhere: a mode change hidden by assume-unchanged, a symlink to an identical copy (review S2)', async () => {
+    const { dir, r } = await repo('modes');
+    await git(dir, ['update-index', '--assume-unchanged', 'e.md'], env);
+    await chmod(path.join(dir, 'e.md'), 0o755);
+    expect((await git(dir, ['status', '--porcelain'], env)).stdout).toBe('');
+    expect(await r.sameEntryEverywhere('e.md')).toBe(false);
+    // Not tracked by git (core.fileMode false): the bit no longer counts.
+    await git(dir, ['config', 'core.fileMode', 'false'], env);
+    expect(await r.sameEntryEverywhere('e.md')).toBe(true);
+    await git(dir, ['config', 'core.fileMode', 'true'], env);
+    await chmod(path.join(dir, 'e.md'), 0o644);
+    expect(await r.sameEntryEverywhere('e.md')).toBe(true);
+    await writeFile(path.join(root, 'modes-copy.md'), 'one\n');
+    await rm(path.join(dir, 'e.md'));
+    await symlink(path.join(root, 'modes-copy.md'), path.join(dir, 'e.md'));
+    expect(await r.worktreeBlob('e.md')).toBe((await r.fileAt('HEAD', 'e.md'))?.blob);
+    expect(await r.sameEntryEverywhere('e.md')).toBe(false);
+  });
+
+  it('fileAt and changedPaths: regular files only; the paths a commit changes', async () => {
+    const { dir, r } = await repo('entries');
+    await symlink('e.md', path.join(dir, 'link.md'));
+    await mkdir(path.join(dir, 'sub'));
+    await writeFile(path.join(dir, 'sub', 'x*.md'), 'glob\n');
+    await git(dir, ['add', '.'], env);
+    await git(dir, ['commit', '--quiet', '-m', 'more'], env);
+    const sha = (await git(dir, ['rev-parse', 'HEAD'], env)).stdout.trim();
+    expect(await r.fileAt('HEAD', 'e.md')).toMatchObject({ mode: '100644' });
+    expect(await r.fileAt('HEAD', 'link.md')).toBeUndefined();
+    expect(await r.fileAt('HEAD', 'sub')).toBeUndefined();
+    expect(await r.fileAt('HEAD', 'missing.md')).toBeUndefined();
+    // Literal pathspecs: `x*.md` names that file, not a pattern.
+    expect(await r.fileAt(sha, 'sub/x*.md')).toMatchObject({ mode: '100644' });
+    expect(await r.sameEntryEverywhere('sub/x*.md')).toBe(true);
+    expect((await r.changedPaths(sha)).sort()).toEqual(['link.md', 'sub/x*.md']);
+    await expect(r.changedPaths('--all')).rejects.toBeInstanceOf(GitReadError);
+  });
+
+  it('sameEntryEverywhere: the index differing from HEAD (staged) is not the same', async () => {
     const { dir, r } = await repo('staged');
     await writeFile(path.join(dir, 'e.md'), 'two\n');
     await git(dir, ['add', 'e.md'], env);
     await writeFile(path.join(dir, 'e.md'), 'one\n');
-    expect(await r.sameBlobEverywhere('e.md')).toBe(false);
+    expect(await r.sameEntryEverywhere('e.md')).toBe(false);
   });
 
   it('commitsSince: the first-parent commits after `before`, newest first, with time and subject', async () => {
@@ -305,6 +343,6 @@ describe('GitReads — the governed-write reads (task-032)', () => {
   it('a timed-out blob read is a GitReadError, not a difference', async () => {
     const runner = new FakeProcessRunner().answer({ ended: 'timeout', exitCode: null });
     const r = new GitReads({ git: '/usr/bin/git', runner, cwd: '/p', env: {} });
-    await expect(r.sameBlobEverywhere('e.md')).rejects.toBeInstanceOf(GitReadError);
+    await expect(r.sameEntryEverywhere('e.md')).rejects.toBeInstanceOf(GitReadError);
   });
 });

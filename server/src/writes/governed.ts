@@ -8,16 +8,21 @@
  * | 5 | the user is one member of the team | 403 `not-in-team` | the snapshot view (D32-3) |
  * | 6 | the WingFoil version is in the range | 409 `unsupported-version` | the version cache |
  * | — | `:eid` is listed by `memory search` | 404 `not-found` | the snapshot view (D32-10) |
- * | 7 | the element file has no local changes | 409 `local-changes` | **fresh** `git status` and the blob identity of the file (D32-1), under the lock |
+ * | 7 | the element file has no local changes | 409 `local-changes` | **fresh** `git status` and the whole entry of the file at HEAD, in the index and in the working tree (D32-1, review S2), under the lock |
+ * | — | the fresh state lists `:eid` at exactly one path (review S1) | 409 `local-changes` when a listed path has local changes, else 409 `element-changed` | `memory search` of the fresh state, re-read only when the state moved |
  * | 8 | (task-033: the copy is not behind, diverged or detached) | | |
  * | 9 | the element file's status is `expectedStatus` | 409 `element-changed` | **fresh** direct read, under the lock |
  *
  * Rows 1–4 are the guards and the route's. Rows 5–6 start no process once the console has read the
- * project in its current state (the page has); no `wingfoil` process starts before row 9 passes.
- * The role is the CLI's to check (dl-002, REQ-SEC-07). On success: the commits the CLI made
- * (D32-4), each appended to the action log (`{sha, at}`, spec-006 §2; D32-8), the snapshot moved to
- * the new state, the push port (D32-7), then one `write` event. The reason is a user value: it
- * reaches the CLI as one argument and is never logged.
+ * project in its current state (the page has); no `wingfoil` write verb starts before row 9 passes
+ * (a state that moved meanwhile is listed again first: a read). The role is the CLI's to check
+ * (dl-002, REQ-SEC-07). After the CLI: its output names the element's path, and exactly one commit
+ * since the write began has the CLI's subject for it, changes that path only and holds the file just
+ * written (D32-4, review S4) — else 502 `cli-output`. That commit is appended to the action log
+ * (`{sha, at}`, spec-006 §2; D32-8), the snapshot moves to the new state, the push port runs
+ * (D32-7) and one `write` event goes out, all under the lock. A CLI that fails after its commit
+ * (review F4, S3) still has that commit logged and announced; the error is answered. The reason
+ * is a user value: it reaches the CLI as one argument and is never logged.
  */
 import type {
   ApiError,
@@ -27,14 +32,21 @@ import type {
   WritePush,
   WriteResponse,
 } from '@wingfoil-ui/contracts';
-import { CliError, CliInternalError, cliErrorEnvelope, type CliOutput, type WingfoilCli } from '../cli/adapter.js';
+import {
+  CliError,
+  CliInternalError,
+  CliOutputError,
+  cliErrorEnvelope,
+  type CliOutput,
+  type WingfoilCli,
+} from '../cli/adapter.js';
 import { CliNotFoundError } from '../cli/discovery.js';
 import type { EventBus } from '../events/bus.js';
 import { matchIdentity } from '../identity/identity.js';
 import type { WriteLock } from '../process/write-lock.js';
 import { DirectReadError } from '../reads/confine.js';
 import { readElement } from '../reads/element.js';
-import type { ProjectSnapshot } from '../snapshot/snapshot.js';
+import type { ProjectSnapshot, SnapshotView } from '../snapshot/snapshot.js';
 import type { Snapshots } from '../snapshot/snapshots.js';
 import type { StateStore } from '../state/store.js';
 
@@ -96,13 +108,6 @@ const refuse = (status: number, code: string, message: string): WriteOutcome => 
   body: { error: { code, message } },
 });
 
-/** An expected end of the write, answered as its envelope. */
-class Refusal extends Error {
-  constructor(readonly outcome: WriteOutcome) {
-    super('refused');
-  }
-}
-
 /**
  * The message of a CLI usage error (exit 2) caused by the reason (D32-5): WingFoil reports a reason
  * it will not record (`invalid flag value: --reason …`) as a usage error; only the reason, a user
@@ -120,18 +125,28 @@ export function reasonRefusal(error: CliInternalError): string | undefined {
 }
 
 /**
- * Whether `subject` is the one the CLI writes for `verb` on `id` of type `type` (W-15):
- * `wf(<type>): <verb> <id>`, then the end or ` [<from> → <to>]`.
+ * The subject the CLI writes for a transition (W-15): `wf(<type>): submit <id>`, or
+ * `wf(<type>): <verb> <id> [<from> → <to>]` for `approve` and `reject`. With `to` unknown (the CLI
+ * failed before answering), any target after `<from> → ` matches.
  */
-export function isWriteSubject(subject: string, type: string, verb: GovernedVerb, id: string): boolean {
-  const prefix = `wf(${type}): ${verb} ${id}`;
-  return subject === prefix || subject.startsWith(`${prefix} [`);
+export function isWriteSubject(
+  subject: string,
+  write: { type: string; verb: GovernedVerb; id: string; from: string; to?: string },
+): boolean {
+  const base = `wf(${write.type}): ${write.verb} ${write.id}`;
+  if (write.verb === 'submit') return subject === base;
+  if (write.to !== undefined) return subject === `${base} [${write.from} → ${write.to}]`;
+  const open = `${base} [${write.from} → `;
+  return subject.startsWith(open) && /^[^[\]]+\]$/.test(subject.slice(open.length));
 }
 
 /** ISO 8601 UTC to the second (spec-006 §2 `at`). */
 function isoSeconds(date: Date): string {
   return date.toISOString().replace(/\.\d+Z$/, 'Z');
 }
+
+const LOCAL_CHANGES = refuse(409, 'local-changes', 'The element file has local changes');
+const ELEMENT_CHANGED = refuse(409, 'element-changed', 'This element changed since you opened it');
 
 /** The governed writes of the server. */
 export class GovernedWrites {
@@ -146,7 +161,6 @@ export class GovernedWrites {
     try {
       return await this.run(entry, request, log);
     } catch (error) {
-      if (error instanceof Refusal) return error.outcome;
       if (error instanceof CliInternalError && request.verb !== 'submit') {
         const message = reasonRefusal(error);
         if (message !== undefined) return refuse(422, 'cli-refused', message);
@@ -160,9 +174,18 @@ export class GovernedWrites {
   }
 
   private async run(entry: ProjectEntry, request: GovernedWriteRequest, log: WriteLogger): Promise<WriteOutcome> {
-    const { snapshots, writeLock, bus } = this.options;
-    const snapshot = await snapshots.open(entry.id, entry.path);
+    const snapshot = await this.options.snapshots.open(entry.id, entry.path);
     const view = await snapshot.view();
+    const refused = await this.identifiedInRange(view);
+    if (refused) return refused;
+    // The element, looked up in the state's list — never a path built from `:eid` (D32-10).
+    const listed = await this.listed(view, request.eid);
+    if (listed.length === 0) return refuse(404, 'not-found', 'Not found');
+    return this.options.writeLock.run(snapshot.lockKey, () => this.locked(snapshot, view, listed, request, log));
+  }
+
+  /** Rows 5 and 6 on `view`, or the refusal. */
+  private async identifiedInRange(view: SnapshotView): Promise<WriteOutcome | undefined> {
     // Row 5: the watched identity (a failed `dna show` matches no member, as the header shows it).
     const members = await view.dna().then(
       (dna) => dna.data.team.members,
@@ -175,38 +198,58 @@ export class GovernedWrites {
     if (!(await view.detected()).inRange) {
       return refuse(409, 'unsupported-version', 'WingFoil version outside the supported range');
     }
-    // The element, looked up in the state's list — never a path built from `:eid` (D32-10).
-    const match = (await view.elements()).matches.find((m) => m.match.id === request.eid)?.match;
-    if (match === undefined) return refuse(404, 'not-found', 'Not found');
+    return undefined;
+  }
 
-    const done = await writeLock.run(snapshot.lockKey, () => this.locked(snapshot, match, request, log));
-    if (!('commits' in done.body)) return done;
-    const commit = done.body.commits.at(-1)!.sha;
-    bus.publish({ event: 'write', data: { pid: request.pid, eid: request.eid, commit } });
-    return done;
+  /** Every match of `id` in the `memory search` of `view` (more than one: a duplicated id). */
+  private async listed(view: SnapshotView, id: string): Promise<MemoryMatch[]> {
+    return (await view.elements()).matches.filter((m) => m.match.id === id).map((m) => m.match);
   }
 
   /** Rows 7–9, the CLI and what follows, under the lock. */
   private async locked(
     snapshot: ProjectSnapshot,
-    match: MemoryMatch,
+    seen: SnapshotView,
+    listed: MemoryMatch[],
     request: GovernedWriteRequest,
     log: WriteLogger,
   ): Promise<WriteOutcome> {
-    // Row 7, fresh: the status, then what the status cannot show (D32-1).
-    const fresh = await snapshot.freshStatus();
-    if (fresh.changed.has(match.path) || !(await snapshot.sameBlobEverywhere(match.path))) {
-      return refuse(409, 'local-changes', 'The element file has local changes');
+    // Fresh: the state now (git only), not the watcher's last one.
+    const state = await snapshot.check();
+    const clean = new Map<string, Promise<boolean>>();
+    const isClean = (file: string): Promise<boolean> => {
+      let value = clean.get(file);
+      if (!value) {
+        // Row 7: the status, then what the status cannot show (D32-1, review S2).
+        value = state.changed.has(file) ? Promise.resolve(false) : snapshot.sameEntryEverywhere(file);
+        clean.set(file, value);
+      }
+      return value;
+    };
+    const moved = state.key !== seen.state.key || state.email !== seen.state.email;
+    // Row 7 on the path the page's state listed, before any other process — unless that path is
+    // gone from a state that moved (e.g. the element was moved by a commit): then listed again.
+    const first = listed[0]!.path;
+    if (!(await isClean(first)) && (!moved || state.changed.has(first))) return LOCAL_CHANGES;
+    // Review S1: the state moved since the lookup — list the element again, on the fresh state.
+    if (moved) {
+      const view = await snapshot.view();
+      const refused = await this.identifiedInRange(view);
+      if (refused) return refused;
+      listed = await this.listed(view, request.eid);
+      if (listed.length === 0) return ELEMENT_CHANGED;
     }
+    for (const match of listed) if (!(await isClean(match.path))) return LOCAL_CHANGES;
+    // A duplicated id: which file the CLI would take depends on its order (review S1).
+    if (listed.length > 1) return ELEMENT_CHANGED;
+    const match = listed[0]!;
     // Row 8 (task-033) goes here.
     // Row 9, fresh: the file at its listed path holds this element in the status the page showed.
     try {
       await readElement(snapshot.root, { ...match, status: request.expectedStatus });
     } catch (error) {
       if (!(error instanceof DirectReadError)) throw error;
-      if (error.kind === 'mismatch' || error.kind === 'missing') {
-        return refuse(409, 'element-changed', 'This element changed since you opened it');
-      }
+      if (error.kind === 'mismatch' || error.kind === 'missing') return ELEMENT_CHANGED;
       log.warn({ kind: error.kind }, 'governed write: element file unreadable');
       return {
         status: 502,
@@ -219,26 +262,74 @@ export class GovernedWrites {
         },
       };
     }
-    const cli = await snapshot.cli();
-    const output = await this.verb(cli, request);
-    const commits = (await snapshot.commitsSince(fresh.head))
-      .filter((c) => isWriteSubject(c.subject, match.type, request.verb, request.eid))
-      .reverse();
-    if (commits.length === 0) {
+    const write = { type: match.type, verb: request.verb, id: request.eid, from: request.expectedStatus };
+    let output: CliOutput;
+    try {
+      output = await this.verb(await snapshot.cli(), request);
+      const data = output.data as { path?: unknown; from?: unknown; to?: unknown };
+      // The CLI acted on the element the checks were made on (review S1).
+      if (data.path !== match.path) {
+        log.warn({ verb: request.verb }, 'governed write: the CLI answered for another path');
+        throw new CliOutputError({ words: ['memory', request.verb], options: [] }, ['/path differs']);
+      }
+      if (request.verb !== 'submit' && typeof data.to === 'string') Object.assign(write, { to: data.to });
+    } catch (error) {
+      // The CLI may fail after its commit (a timeout after `git commit`, a post-commit check that
+      // exits 1, W-28): that commit is still logged and announced (review F4, S3 part A).
+      if (error instanceof CliError) {
+        const made = await this.settle(snapshot, state.head, match, write, log).catch((e: unknown) => {
+          log.warn({ kind: (e as Error).name }, 'governed write: commits after a CLI failure not read');
+          return undefined;
+        });
+        if (made) {
+          log.warn({ verb: request.verb, kind: error.kind }, 'governed write: the CLI failed after its commit');
+          this.announce(request, made);
+        }
+      }
+      throw error;
+    }
+    const commit = await this.settle(snapshot, state.head, match, write, log);
+    if (!commit) {
       log.warn({ verb: request.verb }, 'governed write: the CLI answered without its commit');
       return refuse(502, 'cli-output', `Unexpected output of memory ${request.verb}`);
     }
-    await this.logActions(
-      commits.map((c) => ({ sha: c.sha, at: isoSeconds(c.at) })),
-      log,
-    );
-    // A read after the `write` event sees the new state (git only).
+    const push = await this.push.push({ pid: request.pid, snapshot });
+    // Inside the lock: no other write starts before the event is out (review F3).
+    this.announce(request, commit);
+    return {
+      status: 200,
+      body: { result: output.data as unknown as Record<string, unknown>, commits: [commit], push },
+    };
+  }
+
+  /**
+   * The commit this write made (D32-4, review S4): of the first-parent commits since `before`, the
+   * only one with the CLI's subject for `write` that changes `match.path` alone and holds the file
+   * just written. Found: appended to the action log and the snapshot moved to the new state (a read
+   * after the `write` event sees it). None, or more than one: `undefined`, nothing logged.
+   */
+  private async settle(
+    snapshot: ProjectSnapshot,
+    before: string,
+    match: MemoryMatch,
+    write: Parameters<typeof isWriteSubject>[1],
+    log: WriteLogger,
+  ): Promise<WriteCommit | undefined> {
+    const candidates = (await snapshot.commitsSince(before)).filter((c) => isWriteSubject(c.subject, write));
+    const found = [];
+    for (const c of candidates) if (await snapshot.isWriteCommit(c.sha, match.path)) found.push(c);
+    if (found.length !== 1) return undefined;
+    const [commit] = found as [(typeof found)[number]];
+    await this.logActions([{ sha: commit.sha, at: isoSeconds(commit.at) }], log);
     await snapshot.check().catch((error: unknown) => {
       log.warn({ kind: (error as Error).name }, 'governed write: state check failed');
     });
-    const push = await this.push.push({ pid: request.pid, snapshot });
-    const listed: WriteCommit[] = commits.map(({ sha, subject }) => ({ sha, subject }));
-    return { status: 200, body: { result: output.data as unknown as Record<string, unknown>, commits: listed, push } };
+    return { sha: commit.sha, subject: commit.subject };
+  }
+
+  /** The `write` event of spec-004 §6. */
+  private announce(request: GovernedWriteRequest, commit: WriteCommit): void {
+    this.options.bus.publish({ event: 'write', data: { pid: request.pid, eid: request.eid, commit: commit.sha } });
   }
 
   private verb(cli: WingfoilCli, request: GovernedWriteRequest): Promise<CliOutput> {

@@ -10,7 +10,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any -- JSON bodies, each validated against its schema */
 import { Ajv } from 'ajv';
 import type { FastifyInstance } from 'fastify';
-import { readdir, readFile, realpath, rm, writeFile } from 'node:fs/promises';
+import { chmod, mkdir, readdir, readFile, realpath, rm, symlink, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { Writable } from 'node:stream';
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
@@ -93,7 +93,12 @@ interface StartOptions {
   /** A second project entry on the same folder (D32-2). */
   twin?: boolean;
   /** Replaces the runner's answer for some requests (`undefined`: the real process). */
-  intercept?: (request: ProcessRequest) => Promise<ProcessResult | undefined>;
+  intercept?: (
+    request: ProcessRequest,
+    real: (request: ProcessRequest) => Promise<ProcessResult>,
+  ) => Promise<ProcessResult | undefined>;
+  /** More listed projects, on folders made by `prepare` (D32-2: a linked worktree). */
+  more?: (fx: Fixture) => Promise<string[]>;
   /** Where the logger writes. */
   log?: string[];
 }
@@ -102,6 +107,7 @@ interface Console {
   fx: Fixture;
   pid: string;
   twin: string | undefined;
+  others: string[];
   runner: AuditedRunner;
   bus: EventBus;
   events: ServerEvent[];
@@ -127,12 +133,16 @@ async function start(options: StartOptions = {}): Promise<Console> {
   if (options.intercept) {
     const real = audited.runner.run.bind(audited.runner);
     const intercept = options.intercept;
-    audited.runner.run = async (request) => (await intercept(request)) ?? real(request);
+    audited.runner.run = async (request) => (await intercept(request, real)) ?? real(request);
   }
   registries.push(audited.snapshots);
   const memory = await createMemoryStateStore();
   const entry = await memory.add({ path: fx.dir, name: fx.name, remote: '' });
   const twin = options.twin ? (await memory.add({ path: fx.dir, name: fx.name, remote: '' })).id : undefined;
+  const others: string[] = [];
+  for (const dir of (await options.more?.(fx)) ?? []) {
+    others.push((await memory.add({ path: dir, name: fx.name, remote: '' })).id);
+  }
   const store = options.store ? options.store(memory) : memory;
   const sink = new Writable({
     write: (chunk: Buffer, _e, cb) => {
@@ -169,7 +179,7 @@ async function start(options: StartOptions = {}): Promise<Console> {
     return { status: res.statusCode, body: res.json() };
   };
   const warm = async () => {
-    for (const pid of [entry.id, ...(twin ? [twin] : [])]) {
+    for (const pid of [entry.id, ...(twin ? [twin] : []), ...others]) {
       expect((await get(`/api/p/${pid}`)).status).toBe(200);
       expect((await get(`/api/p/${pid}/elements`)).status).toBe(200);
     }
@@ -203,6 +213,7 @@ async function start(options: StartOptions = {}): Promise<Console> {
     fx,
     pid: entry.id,
     twin,
+    others,
     runner: audited.runner,
     bus: audited.bus,
     events: audited.events as ServerEvent[],
@@ -649,5 +660,206 @@ describe('D32-2 — the write lock key is the repository', () => {
     expect(results.map((r) => r.status).sort()).toEqual([200, 409]);
     const common = await realpath(path.join(c.fx.dir, '.git'));
     expect(keys).toEqual([common, common]);
+  });
+});
+
+describe('D32-2 — a linked worktree shares the lock (review F6)', () => {
+  it('a project in a `git worktree` of the same repository: same key, the writes queue', async () => {
+    const keys: string[] = [];
+    let running = 0;
+    let overlapped = false;
+    const inner = new InProcessWriteLock();
+    const lock: WriteLock = {
+      run: (key, task) => {
+        keys.push(key);
+        return inner.run(key, async () => {
+          running += 1;
+          if (running > 1) overlapped = true;
+          try {
+            return await task();
+          } finally {
+            running -= 1;
+          }
+        });
+      },
+    };
+    const c = await start({
+      lock,
+      more: async (fx) => {
+        const wt = path.join(path.dirname(fx.dir), `${path.basename(fx.dir)}-wt`);
+        await git(fx.dir, ['worktree', 'add', '--quiet', '-b', 'side', wt], fx.env);
+        // The CLI of the worktree: the same pinned package (node_modules is not versioned).
+        await mkdir(path.join(wt, 'node_modules'), { recursive: true });
+        await symlink(
+          await realpath(path.join(fx.dir, 'node_modules', 'wingfoil')),
+          path.join(wt, 'node_modules', 'wingfoil'),
+        );
+        return [await realpath(wt)];
+      },
+    });
+    await c.warm();
+    const results = await Promise.all([
+      c.post('approve', LOGIN, { expectedStatus: 'pending', reason: 'main' }),
+      c.post('reject', LOGIN, { expectedStatus: 'pending', reason: 'side' }, c.others[0]),
+    ]);
+    // Two branches: both decisions are made, one after the other.
+    expect(results.map((r) => r.status)).toEqual([200, 200]);
+    const common = await realpath(path.join(c.fx.dir, '.git'));
+    expect(keys).toEqual([common, common]);
+    expect(overlapped).toBe(false);
+  });
+});
+
+describe('review S1 — the element as the fresh state lists it', () => {
+  it('an untracked copy with the same id made within the watcher lag → 409 local-changes, nothing committed', async () => {
+    const c = await start({ as: memberByName('Jordan').email });
+    await c.warm();
+    const rel = await c.pathOf(TIMEOUT);
+    const before = await c.head();
+    // Sorts before the real file; the console has not seen it (no check since).
+    await writeFile(
+      path.join(c.fx.dir, path.dirname(rel), 'task-000-a-copy.md'),
+      await readFile(path.join(c.fx.dir, rel), 'utf8'),
+    );
+    const res = await c.post('submit', TIMEOUT, { expectedStatus: 'draft' });
+    expect(res.status, JSON.stringify(res.body)).toBe(409);
+    expect(res.body.error.code).toBe('local-changes');
+    expect(await c.head()).toBe(before);
+    expect((await git(c.fx.dir, ['status', '--porcelain'], c.fx.env)).stdout).toContain('?? ');
+  });
+
+  it('a committed duplicate id → 409 element-changed (the CLI would pick one by its order)', async () => {
+    const c = await start({ as: memberByName('Jordan').email });
+    const rel = await c.pathOf(TIMEOUT);
+    const copy = path.join(path.dirname(rel), 'task-000-a-copy.md');
+    await writeFile(path.join(c.fx.dir, copy), await readFile(path.join(c.fx.dir, rel), 'utf8'));
+    await git(c.fx.dir, ['add', '--', copy], c.fx.env);
+    await git(c.fx.dir, ['commit', '--quiet', '-m', 'docs: a copy', '--', copy], c.fx.env);
+    await (await c.snapshots.open(c.pid, c.fx.dir)).check();
+    await c.warm();
+    const before = await c.head();
+    const res = await c.post('submit', TIMEOUT, { expectedStatus: 'draft' });
+    expect(res.status, JSON.stringify(res.body)).toBe(409);
+    expect(res.body.error.code).toBe('element-changed');
+    expect(await c.head()).toBe(before);
+  });
+
+  it('an element moved by a commit the console has not seen → the write acts on its new path', async () => {
+    const c = await start();
+    await c.warm();
+    const rel = await c.pathOf(LOGIN);
+    const moved = path.join(path.dirname(rel), 'task-001-login-form-moved.md');
+    await git(c.fx.dir, ['mv', '--', rel, moved], c.fx.env);
+    await git(c.fx.dir, ['commit', '--quiet', '-m', 'docs: move'], c.fx.env);
+    const res = await c.post('approve', LOGIN, { expectedStatus: 'pending', reason: 'ok' });
+    expect(res.status, JSON.stringify(res.body)).toBe(200);
+    expect(res.body.result.path).toBe(moved);
+  });
+
+  it('the CLI answering for another path → 502 cli-output', async () => {
+    const c = await start({
+      intercept: async (request, real) => {
+        if (!request.args.includes('approve')) return undefined;
+        const result = await real(request);
+        const data = JSON.parse(result.stdout) as Record<string, unknown>;
+        return { ...result, stdout: JSON.stringify({ ...data, path: 'docs/elsewhere.md' }) };
+      },
+    });
+    await c.warm();
+    const res = await c.post('approve', LOGIN, { expectedStatus: 'pending', reason: 'ok' });
+    expect(res.status).toBe(502);
+    expect(res.body.error.code).toBe('cli-output');
+  });
+});
+
+describe('review S2 — the whole entry of the element file', () => {
+  it('a mode change hidden by assume-unchanged → 409 local-changes', async () => {
+    const c = await start();
+    await c.warm();
+    const rel = await c.pathOf(LOGIN);
+    await git(c.fx.dir, ['update-index', '--assume-unchanged', '--', rel], c.fx.env);
+    await chmod(path.join(c.fx.dir, rel), 0o755);
+    expect((await git(c.fx.dir, ['status', '--porcelain'], c.fx.env)).stdout).toBe('');
+    const res = await c.post('approve', LOGIN, { expectedStatus: 'pending', reason: 'ok' });
+    expect(res.status).toBe(409);
+    expect(res.body.error.code).toBe('local-changes');
+  });
+
+  it('a symlink to an identical copy, hidden by assume-unchanged → 409 local-changes', async () => {
+    const c = await start();
+    await c.warm();
+    const rel = await c.pathOf(LOGIN);
+    const file = path.join(c.fx.dir, rel);
+    const copy = path.join(path.dirname(c.fx.dir), `${path.basename(c.fx.dir)}-copy.md`);
+    await writeFile(copy, await readFile(file, 'utf8'));
+    await git(c.fx.dir, ['update-index', '--assume-unchanged', '--', rel], c.fx.env);
+    await rm(file);
+    await symlink(copy, file);
+    const res = await c.post('approve', LOGIN, { expectedStatus: 'pending', reason: 'ok' });
+    expect(res.status).toBe(409);
+    expect(res.body.error.code).toBe('local-changes');
+  });
+});
+
+describe('reviews F4, S3 (part A), S4 — the commit the write made, whatever the CLI answers', () => {
+  it('the CLI fails after its commit (exit 1) → 422, the commit logged and announced', async () => {
+    const c = await start({
+      intercept: async (request, real) =>
+        request.args.includes('approve')
+          ? { ...(await real(request)), exitCode: 1, stdout: '', stderr: '{"error":"failed after the commit"}' }
+          : undefined,
+    });
+    await c.warm();
+    const res = await c.post('approve', LOGIN, { expectedStatus: 'pending', reason: 'ok' });
+    expect(res.status).toBe(422);
+    expect(res.body.error).toEqual({ code: 'cli-refused', message: 'failed after the commit' });
+    const head = await c.head();
+    expect(c.store.snapshot().actionLog.map((e) => e.sha)).toEqual([head]);
+    expect(writes(c)).toEqual([{ event: 'write', data: { pid: c.pid, eid: LOGIN, commit: head } }]);
+  });
+
+  it('the CLI killed after its commit (timeout) → 504, the commit logged', async () => {
+    const c = await start({
+      intercept: async (request, real) =>
+        request.args.includes('reject')
+          ? { ...(await real(request)), ended: 'timeout', exitCode: null, signal: 'SIGKILL' }
+          : undefined,
+    });
+    await c.warm();
+    const res = await c.post('reject', LOGIN, { expectedStatus: 'pending', reason: 'no' });
+    expect(res.status).toBe(504);
+    expect(c.store.snapshot().actionLog.map((e) => e.sha)).toEqual([await c.head()]);
+  });
+
+  it('a CLI refusal with no commit logs nothing and sends no event', async () => {
+    const c = await start({ as: memberByName('Jordan').email });
+    await c.warm();
+    expect((await c.post('approve', LOGIN, { expectedStatus: 'pending', reason: 'ok' })).status).toBe(422);
+    expect(c.store.snapshot().actionLog).toEqual([]);
+    expect(writes(c)).toEqual([]);
+  });
+
+  it('a concurrent commit forging the subject is neither reported, logged nor announced', async () => {
+    let forged = '';
+    const c = await start({
+      intercept: async (request, real) => {
+        if (!request.args.includes('approve')) return undefined;
+        const cwd = request.cwd!;
+        await writeFile(path.join(cwd, 'forged.txt'), 'forged\n');
+        await git(cwd, ['add', 'forged.txt'], c.fx.env);
+        await git(cwd, ['commit', '--quiet', '-m', `wf(task): approve ${LOGIN} [pending → approved]`], c.fx.env);
+        forged = (await git(cwd, ['rev-parse', 'HEAD'], c.fx.env)).stdout.trim();
+        return real(request);
+      },
+    });
+    await c.warm();
+    const res = await c.post('approve', LOGIN, { expectedStatus: 'pending', reason: 'ok' });
+    expect(res.status, JSON.stringify(res.body)).toBe(200);
+    const head = await c.head();
+    expect(forged).not.toBe('');
+    expect(head).not.toBe(forged);
+    expect(res.body.commits).toEqual([{ sha: head, subject: `wf(task): approve ${LOGIN} [pending → approved]` }]);
+    expect(c.store.snapshot().actionLog.map((e) => e.sha)).toEqual([head]);
+    expect(writes(c)).toEqual([{ event: 'write', data: { pid: c.pid, eid: LOGIN, commit: head } }]);
   });
 });
