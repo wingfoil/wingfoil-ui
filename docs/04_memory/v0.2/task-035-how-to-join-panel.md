@@ -455,3 +455,9 @@ nits fixed (`e06bdc2`):
 Checks (HEAD `e06bdc2`): `test/web/project/` 73 passed; typecheck, lint, format:check clean;
 public-text 67 passed; `check_tasks.py v0.2` OK; `npm run test:e2e -- how-to-join.spec.ts
 harness/a11y-support.spec.ts` on the three engines **21 passed** (1.0 min, load 5.6 → 12.4).
+- `main` with task-030 and task-031 merged into the branch before submit (`3962fd2`): one
+  conflict, the `test/README.md` version line (0.30 after 0.28 task-030, 0.29 task-031). On the
+  merged branch: typecheck, lint, format:check clean; `check_tasks.py v0.2` OK; `test:coverage`
+  2249 passed, 1 skipped (129 files), statements 96.78 %, branches 91.16 % (load 2.4 → 15);
+  `npm run test:e2e -- how-to-join.spec.ts project-header.spec.ts accessibility.spec.ts
+  no-commit.spec.ts harness/a11y-support.spec.ts` on three engines 105 passed in 8.1 min (load 15 → 23).
