@@ -337,3 +337,14 @@ decisions record: §2/§4.1), `CHANGELOG.md` *Unreleased* › Added and › Chan
 Not touched: server, contracts, `api/projects.ts`, `api/query-keys.ts`, `shell/page-title.ts`,
 `theme/base.css`, `test/launcher/local-security.test.ts`, `test/e2e/support/strings.ts` (the members
 list rendered in its own element passes the existing `, `-split data rule).
+
+#### Decisions (approver, 2026-10-14)
+
+"All as recommended": **D36-1 (a)** `/p/$pid/today`, `/p/$pid` redirects there; **D36-2 (a)** a
+label-less first nav group `start`; **D36-3 (a)** one `Button` per row opening the element panel,
+the title a link to it, nothing of task-032; **D36-4 (a)** the empty state now (the T-07 e2e closure
+stays with task-042); **D36-5 (a)** "Role view: <view>"; **D36-6 (a)**; **D36-7 (a)**; **D36-8 (a)**;
+**D36-9 (a)**; **D36-10 (a)**; **D36-11 (a)**. Shared shapes as listed (`todayQuery` appended to
+`queries.ts`, the `start` nav group, `SCREENS` appended, sorted catalogue inserts). Deviations from
+the UX reference recorded with a version bump; approved specs amended in place with a dated Process
+Note. `test/README.md` 0.31 also taken by task-032: resolved by the coordinator at merge.
