@@ -5,7 +5,7 @@
  * offered; its footer is informational). Pure functions over the descriptor; the identity and the
  * role view come from task-009.
  */
-import type { ActionDescriptor, DescriptorActor, DescriptorVerb } from '@wingfoil-ui/contracts';
+import type { ActionDescriptor, DescriptorActor, DescriptorVerb, TodayAction } from '@wingfoil-ui/contracts';
 import { APPROVER_ROLE, REVIEWER_ROLE, TECH_LEAD_ROLE } from '../presets/wingfoil.js';
 
 /** The current user: the member matched by `git config user.email` (REQ-STATE-05). */
@@ -14,8 +14,8 @@ export interface PlacementUser {
   roles: readonly string[];
 }
 
-/** What *Requires you* asks of the user. */
-export type RequiresYouAction = 'submit' | 'rework' | 'review' | 'approve' | 'resolve';
+/** What *Requires you* asks of the user (`TodayAction` of the contracts, spec-003 §5). */
+export type RequiresYouAction = TodayAction;
 
 /** Where an element goes in the user's role view. */
 export type Placement =

@@ -117,7 +117,7 @@ For the current user `U` with role view `R`:
 **Today output (v0.2, `GET /api/p/:pid/today?view=<role>`, `contracts/api/today.schema.json`).**
 
 ```
-{ view: string | null,                          # the role view used; null when not identified
+{ view: string | null,                          # the role view used; null when there is no role view (not identified, or a member holding no role)
   requiresYou: [Row & { action }] | null,       # null when the user is not identified (T-01.2)
   waitingOnOthers: [Row],
   summary?: [{ role, count, items: [Row & { action }], more }] }
@@ -132,9 +132,18 @@ Row = { element: { id, type, title, status, localChanges }, descriptor }   # des
   greeting's count and the bell's *To unblock* count (S-21.1, T-01.1); the bell's *To unblock*
   list is the same rows.
 - `waitingOnOthers` lists the elements placed in Waiting on others of the user, an element of
-  `requiresYou` excluded (T-11.3). For a user not identified in the team (identity kinds
-  `not-in-team`, `no-identity`, `ambiguous`), `view` and `requiresYou` are `null` and
-  `waitingOnOthers` is computed as for a member holding no role; there is no `summary`.
+  `requiresYou` excluded (T-11.3), in the order of Requires you (rejected first, then by time in
+  the current state, oldest first, then by id). For a user not identified in the team (identity
+  kinds `not-in-team`, `no-identity`, `ambiguous`), `view` and `requiresYou` are `null` and
+  `waitingOnOthers` is computed as for a member holding no role; there is no `summary`; any
+  `?view=` is refused (400 `invalid-request`: there is no role view to choose). A member whose
+  DNA entry holds no role has no role view: `view` is `null`, `requiresYou` lists the elements
+  whose member actor is them (an array: they are identified), and there is no `summary`.
+- No partial Today: when one of its inputs cannot be read, the route answers that read's refusal
+  (spec-004 §5) instead of lists computed without it — 502 `read-error` for `memory.yaml`, the CLI
+  envelope for `memory search` or `dna show`, 500 `internal` for the Memory events (without
+  events every actor would fall back to `tech-lead`; without the DNA the user would look
+  unidentified).
 - `summary` — the all-roles summary (S5): one line per role the member holds, in the order of
   `dna.team.members[].roles`; `count` = the length of Requires you of that role view, `items` its
   first ≤ 3 rows, `more` = `count − 3` when positive, else 0 (REQ-PERF-11, S-23.4). **Absent**
@@ -261,3 +270,9 @@ element list; `web/` renders it and never re-derives it.
   (`submitter`, `creator`, `last-transition`) for T-11.1. Decided by the approver at checkpoint 2.
 - 2026-10-12 — independent spec review round 1 (release-planning v0.2 session 2, drafting
   detail): §5 the Requires you `action` → button label mapping (`resolve` → "Open", T-05.1).
+- 2026-10-13 — amended in dev-loop task-031 (minor-v0.2 Wave 1, plan dev-loop-rel-v0.2-plan,
+  D31-3 … D31-5): §5 Today output — Waiting on others in the order of Requires you; no partial
+  Today on a failed input (the read's refusal); a member with no role (`view` `null`, their own
+  rows, no `summary`); an unidentified user's `?view=` → 400. Decided by the approver. Same day,
+  review round 1 (F1): the shape block's `view` comment aligned ("null when there is no role
+  view").

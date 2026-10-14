@@ -137,7 +137,7 @@ describe('spec-003 §9 — the synthetic rows', () => {
     expect(observed(d)).toEqual({
       kind: 'work',
       verbs: [['submit', 'in-review', null]],
-      actor: { kind: 'member', member: 'Alex' },
+      actor: { kind: 'member', member: 'Alex', basis: 'last-transition' },
       tone: 'active',
       bucket: 'in-progress',
     });
@@ -154,7 +154,11 @@ describe('spec-003 §9 — the synthetic rows', () => {
       }),
     ];
     const d = describeElement(el('task', 'in-progress'), events, custom);
-    expect(d.actor).toEqual({ kind: 'member', member: { name: 'Jordan', email: 'jordan@example.test' } });
+    expect(d.actor).toEqual({
+      kind: 'member',
+      member: { name: 'Jordan', email: 'jordan@example.test' },
+      basis: 'submitter',
+    });
     expect(d.rejection).toEqual({ by: 'Morgan', reason: 'Tests missing', at: T(3) });
   });
 
@@ -211,6 +215,8 @@ describe('spec-003 §9 — the synthetic rows', () => {
     const fallback = { kind: 'role', role: 'tech-lead', members: TECH_LEADS, fallback: 'author-not-in-team' };
     const outsider = describeElement(el('adr', 'draft'), [ev('add', null, 'draft', 'Riley', T(1))], custom);
     expect(outsider.actor).toEqual(fallback);
+    // `basis` names a member actor's rule only (spec-003 §8): never on the fallback.
+    expect(outsider.actor.basis).toBeUndefined();
     expect(describeElement(el('adr', 'draft'), [], custom).actor).toEqual(fallback);
     expect(describeElement(el('adr', 'draft'), [], custom).since).toBeUndefined();
     // A member with no email (optional in 0.2.2) is never matched.

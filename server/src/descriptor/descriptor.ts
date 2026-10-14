@@ -10,6 +10,7 @@
  */
 import type {
   ActionDescriptor,
+  ActorBasis,
   Bucket,
   DescriptorActor,
   DescriptorRejection,
@@ -168,19 +169,22 @@ function emailOf(person: string): string | undefined {
 class Team {
   constructor(private readonly members: readonly DnaMember[]) {}
 
-  member(author: string | undefined): DescriptorActor | undefined {
+  member(author: string | undefined, basis: ActorBasis): DescriptorActor | undefined {
     const email = author === undefined ? undefined : emailOf(author);
     const m = email ? this.members.find((x) => x.email?.toLowerCase() === email) : undefined;
-    return m?.email ? { kind: 'member', member: { name: m.name, email: m.email } } : undefined;
+    return m?.email ? { kind: 'member', member: { name: m.name, email: m.email }, basis } : undefined;
   }
 
   role(role: string): DescriptorActor {
     return { kind: 'role', role, members: this.members.filter((m) => m.roles.includes(role)).map((m) => m.name) };
   }
 
-  /** The member who authored `author`, else the tech-lead role "Author not in the team". */
-  memberOrFallback(author: string | undefined): DescriptorActor {
-    return this.member(author) ?? { ...this.role(TECH_LEAD_ROLE), fallback: 'author-not-in-team' };
+  /**
+   * The member who authored `author`, named by the rule `basis` (spec-003 §8), else the tech-lead
+   * role "Author not in the team" (no `basis`).
+   */
+  memberOrFallback(author: string | undefined, basis: ActorBasis): DescriptorActor {
+    return this.member(author, basis) ?? { ...this.role(TECH_LEAD_ROLE), fallback: 'author-not-in-team' };
   }
 }
 
@@ -196,10 +200,12 @@ function actorOf(kind: StateKind, status: string, moves: readonly DescriptorEven
       const last = moves.at(-1);
       if (last?.operation === 'reject') {
         const before = moves.slice(0, -1);
-        return team.memberOrFallback(before.findLast((e) => e.operation === 'submit')?.author);
+        return team.memberOrFallback(before.findLast((e) => e.operation === 'submit')?.author, 'submitter');
       }
-      if (kind === 'first') return team.memberOrFallback(moves.find((e) => e.operation === 'add')?.author);
-      return team.memberOrFallback(moves.findLast((e) => e.to === status)?.author);
+      if (kind === 'first') {
+        return team.memberOrFallback(moves.find((e) => e.operation === 'add')?.author, 'creator');
+      }
+      return team.memberOrFallback(moves.findLast((e) => e.to === status)?.author, 'last-transition');
     }
     case 'gate':
       return team.role(APPROVER_ROLE);

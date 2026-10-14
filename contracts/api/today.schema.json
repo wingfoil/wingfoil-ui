@@ -1,0 +1,114 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://wingfoil-ui.local/contracts/api/today.schema.json",
+  "title": "GET /api/p/:pid/today?view=<role>",
+  "description": "The Today output (spec-003 §5): Requires you of the role view with each row's action, Waiting on others, and the all-roles summary of a member holding two or more roles. view and requiresYou are null for a user not identified in the team.",
+  "type": "object",
+  "required": ["view", "requiresYou", "waitingOnOthers"],
+  "properties": {
+    "view": {
+      "type": ["string", "null"]
+    },
+    "requiresYou": {
+      "oneOf": [
+        {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/actionRow"
+          }
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "waitingOnOthers": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/row"
+      }
+    },
+    "summary": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["role", "count", "items", "more"],
+        "properties": {
+          "role": {
+            "type": "string"
+          },
+          "count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "items": {
+            "type": "array",
+            "maxItems": 3,
+            "items": {
+              "$ref": "#/definitions/actionRow"
+            }
+          },
+          "more": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false,
+  "definitions": {
+    "element": {
+      "type": "object",
+      "required": ["id", "type", "title", "status", "localChanges"],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "localChanges": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false
+    },
+    "row": {
+      "type": "object",
+      "required": ["element", "descriptor"],
+      "properties": {
+        "element": {
+          "$ref": "#/definitions/element"
+        },
+        "descriptor": {
+          "$ref": "https://wingfoil-ui.local/contracts/api/descriptor.schema.json"
+        }
+      },
+      "additionalProperties": false
+    },
+    "actionRow": {
+      "type": "object",
+      "required": ["element", "descriptor", "action"],
+      "properties": {
+        "element": {
+          "$ref": "#/definitions/element"
+        },
+        "descriptor": {
+          "$ref": "https://wingfoil-ui.local/contracts/api/descriptor.schema.json"
+        },
+        "action": {
+          "enum": ["submit", "rework", "review", "approve", "resolve"]
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}
