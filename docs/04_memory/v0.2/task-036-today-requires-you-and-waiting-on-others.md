@@ -449,3 +449,22 @@ left to the approver, not changed here). Changes (`a74beeb`):
 Checks: typecheck, lint, format:check clean; `test/web/today` 25 passed; `npm run test:e2e --
 today.spec.ts` on the three engines **57 passed** (3.0 min, load 3.9 → 17.4). Only `TodayView.tsx`
 and `routes/today.tsx` changed outside tests: `test:coverage` not re-run.
+
+### bug-011 (absorbed, approver W2-3, 2026-10-14)
+
+- **Change (`1950e18`)** — `test/e2e/accessibility.spec.ts`: X-06.4 and X-09.1 are generated as one
+  test per `SCREENS` entry, titled "X-06.4 — Pass the axe scan: <screen>" and "X-09.1 — Render every
+  string from the message catalogue: <screen>"; they share a worker-scoped `screensConsole`
+  (`startScreensConsole` started with `startConsole`, stopped in the fixture's teardown; the
+  worker's reaper still kills a console whose stop failed, bug-004). X-09.1 keeps its per-screen
+  `data.reset()` before `screen.open`. The screens only read (`no-commit.spec.ts`), so sharing the
+  console is safe. `test/README.md` (`support/screens.ts` line, version line 0.31).
+- **Red/green** — the failure is load-bound (Firefox X-06.4 past 180 s at load 27, see *checks*), not
+  reproducible on demand; characterization instead: `npm run test:e2e -- accessibility.spec.ts`
+  on the three engines **138 passed** in 9.7 min at load 32 → 52 (heavier than the failing run).
+  Longest per-screen test: Firefox "X-06.4 — Pass the axe scan: directive page" **33.5 s** (WebKit
+  27.8 s, Chromium 25.6 s; X-09.1 at most 14.6 s), against 3.5 min for the single X-06.4 test
+  before. The longest test of the file is now X-06.1 (the keyboard walk, unchanged): 59.9 s on
+  Firefox.
+- `npm run test:e2e:chromium` (whole suite) **194 passed**, 0 failed, 13.9 min (load → 30.1).
+- e2e closure: the X-06.4 / X-09.1 row above names the per-screen tests; the scenario ids are kept.
