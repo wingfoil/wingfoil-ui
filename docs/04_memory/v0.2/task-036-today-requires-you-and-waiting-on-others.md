@@ -8,7 +8,7 @@ module: "web"             # optional — server | web | contracts (dna.yaml modu
 priority: "high"           # optional — high | medium | low
 tags: ["v0.2"]               # optional — additional labels, e.g. [today, a11y]
 ref: "US-T-02"                # optional — backlog item ID, e.g. "TASK-001"
-bug: []                # optional — LIST of bug ids this task closes. Two cases: a fix task derived from a bug
+bug: ["bug-011-accessibility-e2e-scans-every-screen-in-one-test-and-times-out-under-load"]                # optional — LIST of bug ids this task closes. Two cases: a fix task derived from a bug
                        # by release-planning, and a bug ABSORBED into an existing task's Acceptance Criteria because that
                        # task already owns the ground. `bug.sync_state` iterates this list; a bug with no task naming it
                        # here never advances past `triaged` (only a reject to `closed`).
@@ -59,6 +59,11 @@ footer behind them is task-037-gate-footer-with-every-outcome. The progress card
 - **TT-PERF-09** (REQ-PERF-09 — Zero navigation to what requires me): [percentage] On each fixture and role view, 100 % of the items the action descriptor assigns to the view's roles are listed on Today, reached with 0 navigation steps after opening the project. *Verified by:* e2e.
   Scenarios (`@v0.2`): T-01.1, T-02.1, S-23.1.
   Here: on kanban, custom and unknown, for every role view of each member, the Today rows equal the `requiresYou` of the API (no navigation after opening the project). S-23.1 closes in task-042-notification-bell-all-roles-summary-and-empty-today.
+- **bug-011** X-06.4 (axe scan) and X-09.1 (every string from the catalogue) in
+  `test/e2e/accessibility.spec.ts` run one test per `SCREENS` entry, titled with the scenario id
+  and the screen name, sharing one console per worker: a scenario's duration no longer grows
+  with the number of screens; the spec passes on the three engines in the full `test:e2e` run,
+  not only alone; the e2e closure rows keep the scenario ids.
 
 RP-13: hand-transition states (e.g. `task` `backlog`, `plan` `active` in this repository) appear
 in Waiting on others as "Waiting for the workflow engine"; Today offers no action for them.
