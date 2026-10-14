@@ -159,7 +159,7 @@ server code (D36-3).
   type tag, title link to the panel, reason, state pill `tone-${tone}`, one action `Button`), the
   *Waiting on others* card (rows linking to the panel, who-must-act text; members in their own
   element), loading `role="status"`, refusal `role="alert"` with `ErrorText` (never the empty
-  text), the update status region (D36-12).
+  text), the update status region (D36-11).
 - `web/src/today/today.css` (new) — tokens of spec-009 only; `tones.css` classes reused for pills.
 - `web/src/routes/today.tsx` (new) — `todayRoute` (`path: 'today'`, `staticData.nav`, D36-2) and
   `projectIndexRoute` (moved here from `memory.tsx`, redirect target `/p/$pid/today`, D36-1);
@@ -189,7 +189,7 @@ transition}}) must act", `today.waiting.memberNoBasis` "{name} must act", `today
 "Reserved to {role} — {members}" / `today.waiting.roleNoMember` "Reserved to {role}",
 `today.waiting.engine` "Waiting for the workflow engine"; `today.notInTeam` "You are not in this
 project's team —" + the existing `shell.howToJoin.open` "How to join"; `today.unidentified`
-(D36-8); `today.loading` "Reading Today…"; `today.updates.label` (D36-12). Final texts follow the
+(D36-8); `today.loading` "Reading Today…"; `today.updates.label` (D36-11). Final texts follow the
 decisions.
 
 #### Test plan
