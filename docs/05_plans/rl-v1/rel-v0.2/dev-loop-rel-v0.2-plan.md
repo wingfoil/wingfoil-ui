@@ -3,7 +3,7 @@ id: dev-loop-rel-v0.2-plan
 type: plan
 title: "Dev-loop — rel-v0.2"
 status: active
-version: "0.2"         # optional — plan version
+version: "0.3"         # optional — plan version
 workflow: "dev-loop"
 phase: "rel-v0.2"
 scope: "rl-v1/rel-v0.2"
@@ -14,7 +14,7 @@ tmpl_version: 260703   # Orignal template version
 
 ## Context
 
-**Version:** 0.2 · **Date:** 2026-10-13 (0.1: plan created, Wave 0 scope; 0.2: Wave 0 session log, e2e engine rule W0-9)
+**Version:** 0.3 · **Date:** 2026-10-14 (0.1: plan created, Wave 0 scope; 0.2: Wave 0 session log, e2e engine rule W0-9; 0.3: Wave 1 session log)
 **Workflows:** `sw-life-cycle` → `release-line-cycle` (`rl-v1`) phase `delivery` → `release-cycle`
 (`minor-v0.2`) phase `implementation` = `dev-loop` iterated over every task with status `backlog`
 and `release: v0.2` (`.wingfoil/workflows/custom/release-cycle.yaml` v1.1, `dev-loop.yaml` v1.4)
@@ -95,7 +95,7 @@ Rules for every wave:
 - **Checkpoints:** design decisions; end of review (approve); before each merge; end of each wave.
 - **Completion:** every v0.2 task `done` and merged; plan finalized by hand (`status: done`, commit
   `wf(plan): finalize dev-loop-rel-v0.2-plan [active → done]`, W-04).
-- **Next:** Wave 1 — task-030, task-031, task-035 (merge in task-number order, RP-55).
+- **Next:** Wave 2 — task-032, task-036 (task-032 with the adversarial security review, RP-47).
 
 ## Session log
 
@@ -159,3 +159,55 @@ Rules for every wave:
 - **Hand-overs to Wave 1:** temporary folders follow `test/README.md` *Temporary folders*; new
   absolute example paths must be allow-listed or reworded (public-text check); copy buttons are
   tested with `test/e2e/support/clipboard.ts` (task-035, C-08.2); e2e per W0-9.
+
+### Session 2 — Wave 1: settings, Today API, How to join (2026-10-13 – 2026-10-14)
+
+- **Done and merged** in task-number order (RP-55), each after an independent fresh-context review
+  repeated until PASS, `main` merged into the branch before submit and the approver's `memory
+  approve`: task-030 (merge `1e95144`, done `76fab75`; 2 rounds), task-031 (`83149a1`, `87697b0`;
+  2 rounds; `main` with task-030 merged before submit), task-035 (`bd19748`, `119bd60`; 2 rounds
+  plus three round-2 nits fixed before submit; `main` with task-030 and task-031 merged before
+  submit). Conflicts only on append-only lines: `contracts/src/index.ts` exports and the
+  `test/README.md` version line (0.28 task-030, 0.29 task-031, 0.30 task-035).
+- **Decisions** (the approver, "as recommended"; details in each task's Execution Notes):
+  - **W1-1 (D30-1 … D30-5)** settings and action log: strict `actionLog` items `{sha, at}` in a
+    file of this version (a newer build's file is read for `sha` and `at`, review F2); unknown or
+    invalid settings keys dropped at the next changing write, a missing key stays missing (review
+    F4); `GET /api/settings` re-reads the file; the store applies the `actionLogCap` on every write
+    and task-032 only appends; a `PUT` on a read-only (newer) file answers 200 for this run.
+    spec-006 §2/§4 amended (Process Note 2026-10-13).
+  - **W1-2 (D31-1 … D31-6)** Today and the memory feed: `before` = an event sha, exclusive;
+    `limit` 1–100, default 10; no partial Today on a failed input; Waiting on others in the
+    Requires-you order; `?view=` from an unidentified user → 400, a member with no role → `view:
+    null` and their own rows; web queries left to task-036/task-042. spec-004 §3 and spec-003 §5
+    amended. A 400-before-404 on `GET …/elements?archived=<bad>` for an unknown pid is left as is
+    (spec-004 §4's order table is for writes).
+  - **W1-3 (D35-1 … D35-9)** How to join: a modal dialog with a shared opener
+    (`HowToJoinProvider`, `useHowToJoin().show()`, for task-036 and task-037), opened from the
+    badge and the not-in-team notice; the command built in code and accepted by X-09.1 only when it
+    equals the rebuilt command (spec-008 §6 amended); `tech-lead` as a web constant pinned to the
+    server preset; a third SCREENS project; declared roles listed; POSIX single-quote email
+    quoting; the panel follows the data. The UX reference 1.1 gains the *How to join* row (journey
+    6 step 3 GAP closed).
+  - **W1-4 (D35-10)** the no-initials glyph `?` of the v0.1 avatar, first scanned by the new
+    SCREENS entry: accepted by X-09.1 only inside the current user's avatar (test side, no product
+    change).
+- **Review highlights:** a reordered no-op settings `PUT` rewrote the file and a newer build's
+  state file lost its projects (task-030, fixed); a spec-003 §5 comment contradicted the
+  decision (task-031, fixed); an open How to join panel went empty on some identity changes and
+  its change was not announced (task-035, fixed: status region, focus fallback to the main
+  region). Probes of the join command through bash (quotes, `$( )`, backticks, newlines, `!!`)
+  ran nothing.
+- **`test:timing`** passed on `main` `e331692` (2026-10-13 15:56–16:04, load 4.7 → 8.8: Vitest
+  3/3, Playwright 14/14) — closes the Wave 0 open point.
+- **Gate at the end of the wave** on `main` `119bd60` (2026-10-14 09:21–09:54): `test:coverage`
+  2249 passed, 1 skipped (statements 96.78 %, branches 91.16 %); `test:e2e` three engines 397
+  passed (Chromium 137, Firefox 130, WebKit 130; 28.4 min) at load 22–24; `test:smoke` 4/4; no
+  new `wfui-*` entry, no console left. `test:timing` skipped (load 20.4).
+- **Effort:** 2026-10-13 15:56 – 2026-10-14 09:55 wall-clock with an overnight pause (about
+  8 h of working time). Three agents in parallel pushed the load to 35–45 during their suites.
+- **Hand-overs to Wave 2:** task-032 appends `{sha, at}` through `StateDraft.actionLog` in a
+  transaction and reads `autoPush` with `StateStore.settings()`; task-036 adds `todayQuery`
+  (`queryKeys.project(pid, 'today', { view })`), never shows a Today error as "Nothing requires
+  you", knows that `memory search` warnings are not part of Today, and opens How to join with
+  `useHowToJoin().show()`.
