@@ -6,6 +6,7 @@ import { randomBytes } from 'node:crypto';
 import { createTokenAuthentication } from '../auth/authentication.js';
 import { InProcessEventBus } from '../events/bus.js';
 import { buildApp } from '../http/app.js';
+import { registerElementWriteRoutes } from '../http/element-writes.js';
 import { registerEventStream, type EventStreams } from '../http/events.js';
 import { registerProjectRoutes } from '../http/project-routes.js';
 import { registerProjectListRoutes } from '../http/projects.js';
@@ -133,13 +134,15 @@ export async function runLauncher(argv: readonly string[], io: LauncherIo): Prom
   const bus = new InProcessEventBus();
   const snapshots = new Snapshots({ runner: processes, bus, logger });
   const streams: { events?: EventStreams } = {};
-  // The project list (task-008): one write lock for the server (clones now, governed writes later).
+  // One write lock for the server: the clones (task-008) and the governed writes (task-032).
+  const writeLock = new InProcessWriteLock();
+  // The project list (task-008).
   const projects = new ProjectList({
     store: state,
     snapshots,
     bus,
     runner: processes,
-    writeLock: new InProcessWriteLock(),
+    writeLock,
     stateDir: io.stateDir,
     logger,
   });
@@ -157,6 +160,8 @@ export async function runLauncher(argv: readonly string[], io: LauncherIo): Prom
       registerProjectListRoutes(routes, { projects });
       // task-030: the UI settings (spec-004 §3, spec-006 §2).
       registerSettingsRoutes(routes, { store: state, bus });
+      // task-032: the governed writes on an element (spec-004 §3–§6).
+      registerElementWriteRoutes(routes, { store: state, snapshots, writeLock, bus });
     },
   });
   // Stop sequence (spec-007 §6): close the event streams and the watchers, then terminate the CLI

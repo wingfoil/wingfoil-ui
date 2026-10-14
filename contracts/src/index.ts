@@ -100,3 +100,12 @@ export type {
   TodayRow,
   TodaySummaryLine,
 } from './today.js';
+export type {
+  ElementDecisionRequest,
+  ElementSubmitRequest,
+  WriteCommit,
+  WritePush,
+  WritePushStatus,
+  WriteRefusalCode,
+  WriteResponse,
+} from './writes.js';

@@ -94,7 +94,7 @@ JSON; every request and response body has a schema in `contracts/api/`.
 | `POST /api/p/:pid/ui-config/preset` `{preset}` | apply a UI preset (write class b, spec-005) | v0.3 |
 | `GET /api/p/:pid/workflow/status`, `/workflow/next`; `POST /api/p/:pid/workflow/start`; `POST /api/p/:pid/agents` | WingFoil 0.3 verbs; shapes fixed by v0.4 `release-planning` | v0.4 |
 
-Write routes run through the per-project write lock (`adr-001` D5). `expectedStatus` is the
+Write routes run through the repository's write lock (its git common directory, `adr-001` D5). `expectedStatus` is the
 status the page showed: when the element's status differs, the write is refused with **409**
 "This element changed since you opened it" — the user never decides on a stale view.
 
@@ -141,7 +141,7 @@ configuration unreadable) and for a type `memory.yaml` does not declare (descrip
 | `GET /api/p/:pid` — top-level `conditions: string[]` (spec-001 §6, spec-010 §7) | `project.schema.json` |
 | `GET /api/p/:pid/today?view=` | `today.schema.json` (spec-003 §5) |
 | `POST …/elements/:eid/submit` | request `element.submit.request.schema.json` `{expectedStatus}`; 200 `write.response.schema.json` (§5) |
-| `POST …/elements/:eid/approve`, `/reject` | request `element.decision.request.schema.json` `{expectedStatus, reason}` — `reason` holds at least one non-whitespace character (G-07.2); 200 `write.response.schema.json` |
+| `POST …/elements/:eid/approve`, `/reject` | request `element.decision.request.schema.json` `{expectedStatus, reason}` — `reason` holds at least one non-whitespace character (G-07.2), no NUL character and at most 10 000 characters; `expectedStatus` 1–200 characters (both requests); 200 `write.response.schema.json` |
 | `POST …/git/fetch`, `/git/update`, `/git/push` | no body; 200 `git.response.schema.json` `{repository}` (spec-010 §4) |
 | `GET /api/settings`, `PUT /api/settings` | `settings.schema.json` (spec-006 §2): `PUT` takes the whole object (every key; an invalid or out-of-range value → 400 `invalid-request`) and answers 200 with the stored settings |
 | `GET /api/p/:pid/events/memory?before=&limit=` | `memory-events.schema.json`: `{ events: [<spec-002 §1 event>], more: boolean }`, newest first; `limit` default 10 (Updates, spec-003 §5) |
@@ -170,14 +170,25 @@ Checked by the server in this order (Fastify validates the body before the handl
 | 5 | user not identified in the team (REQ-SEC-08) | 403 | `not-in-team` | the watched identity (REQ-STATE-02) |
 | 5a | role not held by the member (`PUT /api/p/:pid/role-view` only) | 400 | `invalid-request` | the watched identity |
 | 6 | WingFoil version outside the range (REQ-INT-02) | 409 | `unsupported-version` | the cached detection (`adr-001` D3) |
-| 7 | element file has local changes (REQ-STATE-03) | 409 | `local-changes` | **fresh** `git status --porcelain`, under the write lock |
+| 7 | element file has local changes (REQ-STATE-03) | 409 | `local-changes` | **fresh** `git status --porcelain`, plus the whole entry of the file being the same at HEAD, in the index (one stage-0 entry) and in the working tree (a regular file, the executable bit of its mode, the blob `git hash-object` gives — nothing written), under the write lock |
 | 8 | copy behind, diverged or detached HEAD (REQ-STATE-04) | 409 | `stale-copy` | **fresh** copy state (spec-010 §1: the `status --porcelain=v2 --branch` read), under the write lock |
 | 9 | `expectedStatus` differs | 409 | `element-changed` | **fresh** read of the element file, under the write lock |
 
-Rows 1–6 start **no process**. Rows 7–9 run read-only git commands and a file read, never a
+Rows 1–6 start **no process** once the console has read the project in its current repository
+state (the page has: rows 5–6 read the cache of its reads; a request on a state no read has seen
+runs the reads a `GET` would, never a write verb). An unknown `:eid` — looked up in that state's
+`memory search`, never a path built from it — is 404 `not-found`, after row 6. Under the lock, when
+the fresh state differs from the one the lookup used, the element is listed again on the fresh
+state; an id listed at more than one path is refused (409 `local-changes` when one of them has
+local changes, else 409 `element-changed`). The write lock is
+one per repository (its git common directory), so two listed projects of one repository queue
+together. Rows 7–9 run read-only git commands and a file read, never a
 cached answer: `memory submit` commits the target's uncommitted edits (checked on WingFoil 0.2.2),
-so a stale "no local changes" would let a UI action commit someone's work. No `wingfoil` process
-starts before row 9 passes.
+so a stale "no local changes" would let a UI action commit someone's work. The status alone is not
+enough: an edit hidden from it (`assume-unchanged`, `core.ignoreStat`, an fsmonitor) is still
+committed by `git add` + `git commit --only`, hence the entry comparison. No `wingfoil` write verb
+starts before row 9 passes (a state that moved since the lookup is read again first: the reads a
+`GET` would run).
 
 The role required by a gate is **not** checked by the server: the CLI refuses it (REQ-SEC-07).
 
@@ -202,7 +213,15 @@ REQ-SEC-08's fit criterion (SARD `05` v0.6), which excludes fetch and the per-us
   `code` is a spec-010 §5 code (refused before git ran) or `push-timeout` (auto-push killed
   after 60 s), rendered from the catalogue. A failed push is still a **success** of the write:
   the commit is made and stays local (Y-08.1, G-13). Was `pushed: boolean` until 2026-10-12. An
-  ingestion lists its `add` and `submit` commits.
+  ingestion lists its `add` and `submit` commits. `commits` are the first-parent commits made
+  since the write's fresh HEAD whose subject is the CLI's for that write (`wf(<type>): <verb>
+  <id>`, plus ` [<from> → <to>]` from the CLI's answer for approve and reject, W-15) that changes
+  the element's path only and holds the file just written — exactly one, else 502 `cli-output`,
+  nothing logged, no `write` event. A commit made meanwhile by another program is neither listed
+  nor logged. When the CLI fails after its commit (any CLI error: exit ≠ 0, timeout, unreadable
+  output), that commit is still logged and announced, not auto-pushed, and the write answers 500
+  `write-incomplete` with `detail.commit`; when the CLI answers for another path than the one
+  checked, 500 `write-incomplete` with that path.
 - A `reason` that is empty or whitespace only fails the body schema: **400** `invalid-request`,
   no process (G-07.2).
 - Partial failure of an ingestion (`add` succeeded, `submit` refused): **422** `cli-refused` with
@@ -212,10 +231,11 @@ REQ-SEC-08's fit criterion (SARD `05` v0.6), which excludes fetch and the per-us
 
 | Status | `code` | When |
 |--------|--------|------|
-| 422 | `cli-refused` | CLI exit 1: `message` = the CLI's message verbatim (REQ-INT-04) |
+| 422 | `cli-refused` | CLI exit 1: `message` = the CLI's message verbatim (REQ-INT-04); also the exit 2 of `approve`/`reject` whose message names `--reason` (a reason WingFoil will not record, W-29) |
 | 502 | `cli-output` | exit 0 with output failing its schema (spec-001 §2) |
 | 504 | `cli-timeout` | a `wingfoil` process killed after 30 s (git transport the user started has no fixed timeout; an automatic fetch and an auto-push are killed after 60 s — spec-010 §4, `adr-001` D5) |
 | 500 | `internal` | adapter defect (exit 2) or unexpected error; details only in the log |
+| 500 | `write-incomplete` | a governed write that did not finish: its CLI failed leaving the element file changed (modified or staged) without the write's commit, failed after its commit (`detail.commit`: the commit is logged and announced, not pushed), or answered for another path than the one checked (`detail.file` that path, `detail.commit` when its commit is found). `detail.file` relative to the project; a fixed `message`, never the CLI's text (it quotes local absolute paths and the reason), which is not logged either; nothing is restored |
 | 422 | `git-refused` | a git transport command failed: git's message verbatim (REQ-INT-06) |
 | 409 | `no-remote`, `no-fetch-target`, `detached-head`, `no-upstream`, `diverged`, `local-changes-in-the-way` | refusals of the git routes before any transport process (spec-010 §5); the update and push codes and `push-timeout` also appear as `push.code` of a write |
 | 502 | `read-error` | a direct read of spec-001 §4 failed: `message` "Cannot read `<file>`" and the reason, `detail: { file, kind }` with `kind` one of `outside`, `missing`, `shape`, `mismatch` and `file` relative to the project (never absolute). Scoped to the element or directive read: a list never fails as a whole; an unreadable `memory.yaml` degrades only the type-dependent features. Logged as `{ kind, file }` only (`outside` at warn level) |
@@ -334,3 +354,21 @@ goes away by itself when the stream reconnects. A network failure is not rendere
   D31-1, D31-2): §3 `events/memory` — `limit` 1 to 100 (default 10), `before` = an event's sha,
   exclusive, an unknown sha or an out-of-range `limit` → 400 `invalid-request`, 404 for an
   unknown project first, `read-error` / `internal` for a failed input. Decided by the approver.
+- 2026-10-14 — amended in dev-loop task-032 (minor-v0.2 Wave 2, plan dev-loop-rel-v0.2-plan,
+  D32-1 … D32-6, D32-10): §3 bounds of `reason` and `expectedStatus`; §4 row 7 also compares the
+  blob ids of the element file at HEAD, in the index and in the working tree (an edit hidden from
+  `git status` is still committed, W-28), rows 1–6 start no process on a state the console has read,
+  an unknown `:eid` → 404 after row 6, one write lock per repository; §5 which commits a write
+  reports and logs, and a reason WingFoil refuses as a usage error → 422 `cli-refused`. Decided by
+  the approver. Same day, independent review F2: §3 "per-project write lock" reads "the
+  repository's write lock (its git common directory)"; adversarial review S1–S4: §4 row 7 compares
+  the whole entry (mode included, a symlink refused), the element is listed again on a state that
+  moved and a duplicated id is refused; §5 the write's commit identified by its exact subject, its
+  only path and its content, and logged when the CLI fails after it. Same day, decision W2-1 of
+  the approver: §5 `500 write-incomplete` with `detail.file` when the CLI fails and leaves the
+  element file changed without a commit (W-30); the bodies of every write refusal in
+  `contracts/api/write.refusal.schema.json`. Independent review round 2: §4 "no `wingfoil` write
+  verb before row 9" (a moved state is read again first); §5 a commit of a CLI that then failed is
+  not auto-pushed. Decisions W2-4 and W2-5 of the approver: §5 `write-incomplete` also when the CLI
+  answers for another path (`detail.file` that path) and when it fails after its commit
+  (`detail.commit`), with a fixed message.

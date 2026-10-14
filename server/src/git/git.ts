@@ -11,13 +11,16 @@
  * | the layout, once per project | `git rev-parse --show-prefix --absolute-git-dir --git-common-dir` |
  * | the URL of `origin`, when a project is added (duplicate check) and on every open (spec-006 §2, once per state) | `git remote get-url origin` |
  * | the Memory events, once per HEAD (spec-002 §3), with their sha order (`log --format=%H%x00`) | `git log --no-color --no-renames --no-ext-diff --no-textconv --unified=0 -p --format=… <HEAD> -- <Memory directories>` |
+ * | a governed write's element file: its entry at HEAD and in the index, whether the executable bit counts (task-032, D32-1, review S2) | `git ls-tree -z HEAD -- <path>`, `git ls-files --stage -z -- <path>`, `git config --bool core.fileMode` |
+ * | the same file in the working tree as `git add` would store it (clean filters applied, nothing written) | `git hash-object -- <path>` |
+ * | the commits a governed write made, and the paths each changes (D32-4, review S4) | `git log --first-parent --format=… <before>..HEAD`, `git diff-tree … <sha>` |
  *
  * Git is never used to change a repository. The one write of v0.1 is the clone into a new, empty
  * folder ({@link cloneArgs}, write class (c), adr-001 D7), run by `projects/clone.ts`.
  */
 import { createHash } from 'node:crypto';
 import { constants } from 'node:fs';
-import { access, stat } from 'node:fs/promises';
+import { access, lstat, stat } from 'node:fs/promises';
 import path from 'node:path';
 import type { ProcessResult, ProcessRunner } from '../process/runner.js';
 import { MEMORY_LOG_FORMAT } from './memory-log.js';
@@ -50,6 +53,36 @@ export const GIT_READ_ARGS = {
   ],
   // The same walk without the patch: the authoritative sha order the patch read is cut at.
   memoryShas: ['--no-optional-locks', '-c', 'log.showSignature=false', 'log', '--no-renames', '--format=%H%x00'],
+  // task-032 (D32-1, review S2): an element file's entry at a commit (mode, type, blob)…
+  lsTree: ['--no-optional-locks', '--literal-pathspecs', 'ls-tree', '-z'],
+  // …in the index (mode, blob, stage)…
+  lsFiles: ['--no-optional-locks', '--literal-pathspecs', 'ls-files', '--stage', '-z'],
+  // …whether the executable bit is tracked…
+  fileMode: ['--no-optional-locks', 'config', '--bool', 'core.fileMode'],
+  // …and the working-tree file as `git add` would store it: `hash-object` without `-w` writes nothing.
+  hashObject: ['--no-optional-locks', 'hash-object', '--'],
+  // task-032 (review S4): the paths a commit changes, relative to the repository's top level.
+  changedPaths: [
+    '--no-optional-locks',
+    'diff-tree',
+    '--no-commit-id',
+    '--name-only',
+    '-r',
+    '-z',
+    '--root',
+    '--no-renames',
+  ],
+  // task-032 (D32-4): sha, committer time (epoch seconds) and subject of each commit since a write began.
+  commits: [
+    '--no-optional-locks',
+    '-c',
+    'log.showSignature=false',
+    'log',
+    '--first-parent',
+    '--no-color',
+    '--max-count=50',
+    '--format=%H%x1f%ct%x1f%s%x1e',
+  ],
 } as const;
 
 /**
@@ -70,6 +103,11 @@ export const GIT_ALLOWED_SUBCOMMANDS: readonly string[] = [
   'push',
   'add',
   'commit',
+  // task-032 (D32-1, reviews S2, S4): reads of a governed write; `hash-object` never with `-w`.
+  'hash-object',
+  'ls-tree',
+  'ls-files',
+  'diff-tree',
 ];
 
 /**
@@ -124,6 +162,21 @@ export interface WorkingTreeStatus {
   entries: StatusEntry[];
   /** First 16 hex digits of the SHA-256 of the entries (headers excluded). */
   hash: string;
+}
+
+/** A regular file tracked at a commit. */
+export interface TrackedFile {
+  /** `100644` or `100755`. */
+  mode: string;
+  blob: string;
+}
+
+/** A commit listed by {@link GitReads.commitsSince}. */
+export interface CommitSummary {
+  sha: string;
+  /** Committer time. */
+  at: Date;
+  subject: string;
 }
 
 /** Where a project sits in its repository. */
@@ -198,6 +251,11 @@ export class GitNotFoundError extends Error {
 function commitArg(head: string): string {
   if (!/^(?:[0-9a-f]{40}|[0-9a-f]{64})$/.test(head)) throw new GitReadError(`not a commit sha: ${head}`);
   return head;
+}
+
+/** The NUL-terminated records of a `-z` output. */
+function splitNul(stdout: string): string[] {
+  return stdout.split(String.fromCharCode(0)).filter((record) => record !== '');
 }
 
 /** Parse the output of {@link GIT_READ_ARGS}`.status` (porcelain v2, NUL-terminated records). */
@@ -322,6 +380,85 @@ export class GitReads {
       .split(String.fromCharCode(0))
       .map((s) => s.trim())
       .filter((s) => s !== '');
+  }
+
+  /**
+   * The entry of `file` (relative to the project root) at the commit `rev`: a regular file (mode
+   * `100644` or `100755`) and its blob, or `undefined` (absent, a symlink, a folder, a submodule).
+   */
+  async fileAt(rev: string, file: string): Promise<TrackedFile | undefined> {
+    const result = await this.run([...GIT_READ_ARGS.lsTree, rev === 'HEAD' ? rev : commitArg(rev), '--', file]);
+    if (result.ended === 'exit' && result.exitCode !== 0) return undefined;
+    const records = splitNul(this.check(result).stdout);
+    const entry = records.length === 1 ? /^(100644|100755) blob ([0-9a-f]+)\t/.exec(records[0]!) : null;
+    return entry ? { mode: entry[1]!, blob: entry[2]! } : undefined;
+  }
+
+  /**
+   * The blob `git add` would store for `file` (clean filters applied, nothing written), or
+   * `undefined` when there is no file to read.
+   */
+  async worktreeBlob(file: string): Promise<string | undefined> {
+    const result = await this.run([...GIT_READ_ARGS.hashObject, file]);
+    if (result.ended === 'exit' && result.exitCode !== 0) return undefined;
+    return this.check(result).stdout.trim();
+  }
+
+  /**
+   * Whether `file` (relative to the project root) is the same entry at HEAD, in the index and in
+   * the working tree (task-032, D32-1, review S2) — whatever the status shows: an edit or a mode
+   * change hidden by `assume-unchanged`, `skip-worktree`, `core.ignoreStat` or an fsmonitor still
+   * differs here. HEAD and the index: one stage-0 entry each, a regular file, same mode and blob;
+   * the working tree: a regular file (not a symlink), with the executable bit of that mode when
+   * `core.fileMode` holds, and the blob `git add` would store. Anything missing is not the same.
+   */
+  async sameEntryEverywhere(file: string): Promise<boolean> {
+    const atHead = await this.fileAt('HEAD', file);
+    if (!atHead) return false;
+    const staged = await this.run([...GIT_READ_ARGS.lsFiles, '--', file]);
+    if (staged.ended === 'exit' && staged.exitCode !== 0) return false;
+    const records = splitNul(this.check(staged).stdout);
+    const index = records.length === 1 ? /^(\d{6}) ([0-9a-f]+) (\d)\t/.exec(records[0]!) : null;
+    if (!index || index[3] !== '0' || index[1] !== atHead.mode || index[2] !== atHead.blob) return false;
+    let stats;
+    try {
+      stats = await lstat(path.join(this.options.cwd, file));
+    } catch {
+      return false;
+    }
+    if (!stats.isFile()) return false;
+    if (await this.fileModeTracked()) {
+      const executable = (stats.mode & 0o100) !== 0;
+      if (executable !== (atHead.mode === '100755')) return false;
+    }
+    return (await this.worktreeBlob(file)) === atHead.blob;
+  }
+
+  /** The paths the commit `sha` changes (against its first parent), relative to the repository's top level. */
+  async changedPaths(sha: string): Promise<string[]> {
+    return splitNul((await this.read([...GIT_READ_ARGS.changedPaths, commitArg(sha)])).stdout);
+  }
+
+  /** `core.fileMode` (default `true`): whether git tracks the executable bit. */
+  private async fileModeTracked(): Promise<boolean> {
+    const result = await this.run(GIT_READ_ARGS.fileMode);
+    // `git config` exits 1 when the key is not set.
+    if (result.ended === 'exit' && result.exitCode === 1) return true;
+    return this.check(result).stdout.trim() !== 'false';
+  }
+
+  /** The first-parent commits of `<before>..HEAD`, newest first, at most 50 (task-032, D32-4). */
+  async commitsSince(before: string): Promise<CommitSummary[]> {
+    const out = (await this.read([...GIT_READ_ARGS.commits, `${commitArg(before)}..HEAD`])).stdout;
+    return out
+      .split('\x1e')
+      .map((record) => record.replace(/^\s+/, ''))
+      .filter((record) => record !== '')
+      .flatMap((record) => {
+        const [sha = '', time = '', ...subject] = record.split('\x1f');
+        if (!/^(?:[0-9a-f]{40}|[0-9a-f]{64})$/.test(sha) || !/^\d+$/.test(time)) return [];
+        return [{ sha, at: new Date(Number(time) * 1000), subject: subject.join('\x1f') }];
+      });
   }
 
   private run(args: readonly string[]): Promise<ProcessResult> {

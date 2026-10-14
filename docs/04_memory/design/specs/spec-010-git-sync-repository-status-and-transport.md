@@ -115,7 +115,7 @@ otherwise. The project conditions that hold (spec-001 §6; v0.2: `has-remote`) a
 - The reads this section adds — `git config --get` of `core.sshCommand` and
   `branch.<branch>.remote`/`.merge`, `git log --name-only` of §5 — are of the `config` and `log`
   subcommands that REQ-INT-06 allows (listed in its description since SARD `04` v0.9).
-- Every command of the table runs under the per-project write lock (`adr-001` D5), with a
+- Every command of the table runs under the repository's write lock (its git common directory, `adr-001` D5), with a
   **fresh** status read inside it. Transport the user started has no fixed timeout (`adr-001` D5). **Cancel** is
   offered for fetch and push: when the page aborts the request, the server kills the process
   group, and the next status read shows where the refs stand. A manual update (`pull --ff-only`) is not
@@ -274,3 +274,7 @@ Rows 7–9 do not apply (no element).
   HEAD unchanged; in sync → exit 0, no-op. Drafting details: `no-fetch-target` (a fetch with no
   target) separate from `no-upstream`; the upstream's remote read from `branch.<branch>.remote`,
   never from the name's prefix (§1, §3, §4); the "waiting for the write lock" clause removed.
+- 2026-10-14 — amended in dev-loop task-032 (minor-v0.2 Wave 2, D32-2, independent review F2): §4
+  the write lock is the repository's (its git common directory, `adr-001` D5), shared by two listed
+  projects of one repository; the git routes and the scheduler take it with
+  `ProjectSnapshot.lockKey`. Decided by the approver.

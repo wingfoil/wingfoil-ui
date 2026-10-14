@@ -100,7 +100,8 @@ re-run, directive `wingfoil-cli` re-checked).
 **D5 — Process model.** Reads are batched: one CLI process per consumed command and repository
 state, shared by every view and page (REQ-PERF-05). Writes are **serialised per project** — one
 governed or git write at a time, queued — because each makes a commit; the cache is invalidated
-after each write. Clones, which have no project yet, are serialised on the write-lock key `clone`
+after each write. The lock key is the project's repository (its git common directory), so two
+listed projects of one repository queue together. Clones, which have no project yet, are serialised on the write-lock key `clone`
 (never a project id or a user path; spec-006 §3). Every `wingfoil` process and every git read has a 30 s timeout, after which it is
 killed and the request fails with the reason (REQ-INT-04). Git transport (`clone`, `fetch`, `pull
 --ff-only`, `push`) started by the user has no fixed timeout — it can take longer on large
@@ -227,3 +228,6 @@ PERF-05 · features S1, S3, S8, X4 · scenarios S-08.1, S-08.2, S-09.1, S-09.2, 
   is a local `merge --ff-only` (no network, no timeout) and a tick skips a project whose write lock
   is busy, so the RP-40 "waiting for the write lock does not count" no longer applies; D7 names
   `merge --ff-only` and reads "never creates a merge commit" (SARD REQ-INT-06, REQ-ARC-03).
+- 2026-10-14 — amended in dev-loop task-032 (minor-v0.2 Wave 2, D32-2): D5 the write lock is keyed
+  by the repository's git common directory, not the project id: two listed projects of one
+  repository (sub-folders, linked worktrees) share index and refs. Decided by the approver.
