@@ -250,3 +250,14 @@ for approve/reject); another console or a terminal writing at the same time (git
 makes one fail: a 422/500 with git's message); the repository's own commit hooks run inside
 `git commit` (as for any commit the user makes; the clone-time hooks question is bug-010,
 task-033).
+
+#### Decisions (approver, 2026-10-14)
+
+"All as recommended": D32-1 (b) fresh status plus the blob identity of the element file
+(`hash-object`, never `-w`, joins `GIT_ALLOWED_SUBCOMMANDS`); D32-2 (b) the lock key is the
+repository's git common directory (adr-001 D5 Process Note); D32-3 (a); D32-4 (b); D32-5 (b) 422
+`cli-refused` (spec-004 Process Note); D32-6 (b); D32-7 (a) the `WritePush` port with `PUSH_OFF`;
+D32-8 (a); D32-9 (a); D32-10 (a). Approved specs and ADRs are amended in place with a dated
+Process Note (2026-10-14). The two WingFoil findings are written on this branch as
+`docs/wingfoil-feedback/` notes and `wingfoil-cli` *Known behaviours* entries. The shared shapes are
+fixed as listed above; shared files stay append-only.

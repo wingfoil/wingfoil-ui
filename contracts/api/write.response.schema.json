@@ -1,0 +1,45 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://wingfoil-ui.local/contracts/api/write.response.schema.json",
+  "title": "Governed write response",
+  "description": "200 of a governed write (spec-004 §5): the CLI's output, the commits the write made (`wf(…)` commits of the CLI, REQ-ARC-03) and the auto-push outcome (spec-010 §6). A failed push is still a successful write.",
+  "type": "object",
+  "required": ["result", "commits", "push"],
+  "additionalProperties": false,
+  "properties": {
+    "result": {
+      "description": "The CLI's JSON output, as `contracts/cli/memory-<verb>.schema.json` describes it.",
+      "type": "object"
+    },
+    "commits": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["sha", "subject"],
+        "additionalProperties": false,
+        "properties": {
+          "sha": { "type": "string", "pattern": "^([0-9a-f]{40}|[0-9a-f]{64})$" },
+          "subject": { "type": "string" }
+        }
+      }
+    },
+    "push": {
+      "type": "object",
+      "required": ["status"],
+      "additionalProperties": false,
+      "properties": {
+        "status": {
+          "description": "`off`: no push attempted; `pushed`: pushed; `failed`: not pushed (the commit stays local).",
+          "enum": ["pushed", "off", "failed"]
+        },
+        "code": {
+          "description": "On `failed`: a spec-010 §5 code (refused before git ran) or `push-timeout`.",
+          "type": "string"
+        },
+        "message": { "description": "On `failed`: git's message, verbatim.", "type": "string" }
+      },
+      "if": { "properties": { "status": { "enum": ["pushed", "off"] } } },
+      "then": { "not": { "anyOf": [{ "required": ["code"] }, { "required": ["message"] }] } }
+    }
+  }
+}
