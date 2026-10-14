@@ -12,15 +12,23 @@
  *   the string and number values of their JSON bodies — not their object keys, except the names
  *   of the project's memory types and DNA path categories, which the Memory list and the DNA view
  *   show (data by spec-008 §3); the forms the UI derives from data (path segments and folders, a
- *   path built on a data path, the 7-character commit hash; initials only inside an avatar); the
+ *   path built on a data path, the 7-character commit hash; initials only inside an avatar, and
+ *   the no-initials glyph `?` only inside the current user's avatar — aria-hidden, not language,
+ *   task-035 D35-10); the
  *   `en` Intl rendering of their dates and of relative ages, which follow the catalogue's locale;
  *   and, inside a rendered Markdown article, a piece of the file's content.
  * - React Aria's "Dismiss" is accepted only as the name of a popover's hidden dismiss button
  *   (`button[tabindex="-1"]` in a `.menu-popover`), the one library exception (W5-1).
+ * - A CLI command shown as data (spec-008 §6, task-035 D35-3): the text of a
+ *   `code.cli-command[translate="no"]` is accepted only when it is exactly the *How to join*
+ *   command (`joinCommand` of `web/src/project/join.ts`) rebuilt from a string value the page
+ *   read (the email is one) and the key texts of its two placeholders — its words are WingFoil's CLI, never catalogue text.
  */
 import type { Page } from '@playwright/test';
 import { parse, TYPE, type MessageFormatElement } from '@formatjs/icu-messageformat-parser';
 import en from '../../../web/src/i18n/en.json' with { type: 'json' };
+import { joinCommand } from '../../../web/src/project/join.js';
+import { NO_INITIALS } from '../../../web/src/project/model.js';
 
 /** React Aria's own string (spec-008 §6 exception, W5-1). */
 export const LIBRARY_DISMISS = 'Dismiss';
@@ -120,8 +128,12 @@ interface PageText {
   content: boolean;
   /** An avatar's initials. */
   avatar: boolean;
+  /** Inside the current user's avatar (`.current-user-avatar`, aria-hidden; D35-10). */
+  userAvatar: boolean;
   /** The name of a popover's hidden dismiss button (React Aria). */
   dismiss: boolean;
+  /** Inside a CLI command shown as data (`code.cli-command[translate="no"]`, D35-3). */
+  command: boolean;
 }
 
 /** The texts of the page: text nodes and the name/description attributes of every element. */
@@ -135,6 +147,8 @@ async function pageTexts(page: Page): Promise<PageText[]> {
     const flags = (el: Element | null) => ({
       content: el?.closest('.doc-article') != null,
       avatar: el?.closest('.current-user-avatar, .member-initials') != null,
+      userAvatar: el?.closest('.current-user-avatar') != null,
+      command: el?.closest('code.cli-command[translate="no"]') != null,
     });
     const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
     for (let n = walker.nextNode(); n; n = walker.nextNode()) {
@@ -161,7 +175,15 @@ async function pageTexts(page: Page): Promise<PageText[]> {
         out.push({ text: v, where: `${where(el)}@${a}`, dismiss, ...flags(el) });
       }
     }
-    out.push({ text: document.title, where: '<title>', content: false, avatar: false, dismiss: false });
+    out.push({
+      text: document.title,
+      where: '<title>',
+      content: false,
+      avatar: false,
+      userAvatar: false,
+      dismiss: false,
+      command: false,
+    });
     return out;
   });
 }
@@ -213,6 +235,15 @@ async function intlRenderings(page: Page, data: Set<string>): Promise<Set<string
   return new Set(rendered);
 }
 
+/** The *How to join* commands the key build shows for the emails among `data` (D35-3). */
+function joinCommands(data: Set<string>): Set<string> {
+  const out = new Set<string>();
+  for (const email of data) {
+    out.add(joinCommand({ name: 'shell.howToJoin.placeholderName', email, roles: 'shell.howToJoin.placeholderRoles' }));
+  }
+  return out;
+}
+
 /** Data strings longer than this are file contents (a document, an element body), not values. */
 const LONG_DATA = 200;
 
@@ -224,6 +255,7 @@ export async function textsOutsideCatalogue(page: Page, recorder: DataRecorder):
   // body would make any word acceptable after a key (review round 2).
   const words = new Set([...known].filter((s) => s.length <= LONG_DATA).flatMap((s) => s.split(/\s+/)));
   const avatars = initials(data);
+  const commands = joinCommands(data);
   // Whitespace compared collapsed: Markdown joins the lines of a paragraph.
   const flat = (t: string) => t.replace(/\s+/g, ' ');
   const sources = flat([...data].filter((s) => s.length > LONG_DATA).join('\u0000'));
@@ -239,10 +271,12 @@ export async function textsOutsideCatalogue(page: Page, recorder: DataRecorder):
     isPathOfData(t) ||
     (content && sources.includes(flat(t)));
   const bad = new Set<string>();
-  for (const { text, where, content, avatar, dismiss } of await pageTexts(page)) {
+  for (const { text, where, content, avatar, userAvatar, dismiss, command } of await pageTexts(page)) {
     if (isKeyText(text, (w) => words.has(w)) || isData(text, content)) continue;
     if (avatar && avatars.has(text)) continue;
+    if (userAvatar && text === NO_INITIALS) continue;
     if (dismiss && text === LIBRARY_DISMISS) continue;
+    if (command && commands.has(text)) continue;
     bad.add(`${where}: ${text}`);
   }
   return [...bad];

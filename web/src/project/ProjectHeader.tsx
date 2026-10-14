@@ -11,6 +11,9 @@
  *
  * The data is `GET /api/p/:pid` (`projectHeaderQuery`, shared with the views that depend on who the
  * user is), refreshed by the `repo` event; the project name is in the switcher's trigger.
+ *
+ * For a user not in the team (task-035, D35-2, D35-8) the *not in team* badge is a button and the
+ * notice ends with *How to join*: both open the *How to join* panel (`HowToJoin.tsx`).
  */
 import type { ProjectHeader as HeaderData } from '@wingfoil-ui/contracts';
 import { useQuery } from '@tanstack/react-query';
@@ -23,6 +26,7 @@ import { projectHeaderQuery, serverQuery } from '../api/queries.js';
 import { HeaderEnd } from '../shell/header-slot.js';
 import { ErrorText } from '../shell/ErrorText.js';
 import { Chevron, WarningSign } from '../shell/icons.js';
+import { useHowToJoin } from './HowToJoin.js';
 import { readOnlyNotices, supportedRange, userView, versionOf, type ReadOnlyNotice } from './model.js';
 import './project-header.css';
 
@@ -31,6 +35,7 @@ const MESSAGES = defineMessages({
   unknownVersion: { id: 'shell.header.unknownVersion' },
   missingLabel: { id: 'shell.header.missingLabel' },
   roleView: { id: 'shell.roleView.label' },
+  joinBadge: { id: 'shell.howToJoin.badgeLabel' },
 });
 
 /** Names of the capabilities (`contracts/capabilities.json`); an id not listed is shown as written. */
@@ -198,6 +203,7 @@ function VersionLine({ header }: { header: HeaderData }): ReactNode {
 /** One read-only notice of the identity (W4-19, W4-22). */
 function Notice({ notice }: { notice: ReadOnlyNotice }): ReactNode {
   const intl = useIntl();
+  const howToJoin = useHowToJoin();
   let text: ReactNode;
   switch (notice.kind) {
     case 'notInTeam':
@@ -232,6 +238,11 @@ function Notice({ notice }: { notice: ReadOnlyNotice }): ReactNode {
     <div className="warning project-notice">
       <WarningSign />
       <p>{text}</p>
+      {notice.kind === 'notInTeam' && (
+        <Button className="button project-notice-join" onPress={howToJoin.show}>
+          <FormattedMessage id="shell.howToJoin.open" />
+        </Button>
+      )}
     </div>
   );
 }
@@ -239,6 +250,7 @@ function Notice({ notice }: { notice: ReadOnlyNotice }): ReactNode {
 /** The current user of the global header (W4-17). */
 function CurrentUser({ header }: { header: HeaderData }): ReactNode {
   const intl = useIntl();
+  const howToJoin = useHowToJoin();
   const user = userView(header);
   const name = 'name' in user ? user.name : undefined;
   const email = 'email' in user ? user.email : undefined;
@@ -257,11 +269,23 @@ function CurrentUser({ header }: { header: HeaderData }): ReactNode {
       break;
     case 'notInTeam':
       main = email;
-      badge = <FormattedMessage id="shell.user.badge.notInTeam" />;
+      badge = (
+        <Button
+          className="current-user-badge"
+          aria-label={intl.formatMessage(MESSAGES.joinBadge)}
+          onPress={howToJoin.show}
+        >
+          <FormattedMessage id="shell.user.badge.notInTeam" />
+        </Button>
+      );
       break;
     case 'teamUnknown':
       main = email;
-      badge = <FormattedMessage id="shell.user.badge.teamUnknown" />;
+      badge = (
+        <span className="current-user-badge">
+          <FormattedMessage id="shell.user.badge.teamUnknown" />
+        </span>
+      );
       break;
     case 'ambiguous':
       main = <FormattedMessage id="shell.user.ambiguous" />;
@@ -280,7 +304,7 @@ function CurrentUser({ header }: { header: HeaderData }): ReactNode {
         <span className="current-user-name">{main}</span>
         {sub && <span className="current-user-sub">{sub}</span>}
       </span>
-      {badge && <span className="current-user-badge">{badge}</span>}
+      {badge}
     </div>
   );
 }

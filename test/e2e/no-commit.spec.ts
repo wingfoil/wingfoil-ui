@@ -21,12 +21,15 @@ test.describe('task-025 AC-5 — a console session commits nothing', () => {
     fixtures,
     consoles,
   }) => {
-    // The console of the screens (`startScreensConsole`): kanban and custom, Morgan in both.
+    // The console of the screens (`startScreensConsole`): kanban and custom, Morgan in both, and a
+    // kanban copy where the user is Riley (the How to join panel, task-035).
     const kanban = await fixtures.copy('kanban');
     const custom = await fixtures.copy('custom');
+    const outsider = await fixtures.copy('kanban');
     await actAs(kanban, 'Morgan');
     await actAs(custom, 'Morgan');
-    const repos = [kanban, custom];
+    await actAs(outsider, 'Riley');
+    const repos = [kanban, custom, outsider];
     const before: RepoState[] = await Promise.all(repos.map((fx) => snapshotRepo(fx.dir, fx.env)));
     const c = await consoles.start({ projects: repos });
     await openConsole(page, c);

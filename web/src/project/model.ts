@@ -23,8 +23,8 @@ export type ReadOnlyNotice =
   | { kind: 'noIdentity' }
   | { kind: 'ambiguous'; email: string; members: string[] };
 
-/** The avatar's text when the user is not one member. */
-const NO_INITIALS = '?';
+/** The avatar's text when the user is not one member (also read by the X-09.1 check, D35-10). */
+export const NO_INITIALS = '?';
 
 /** The initials of `name`: the first letter of its first two words, `?` when it has none. */
 export function initials(name: string): string {
