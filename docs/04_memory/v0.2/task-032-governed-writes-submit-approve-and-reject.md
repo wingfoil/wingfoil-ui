@@ -439,3 +439,16 @@ Independent review round 2 **FAIL** (1 major, 2 minor, 2 nits). Changes:
   `detail.commit` optional (a sha). spec-004 §5 (`write-incomplete` row covering the three cases)
   and its 2026-10-14 Process Note. Tests: exit 1 and a timeout after the commit → 500 with
   `detail.commit`, no CLI text and no absolute path in the body.
+
+### checks after W2-4 / W2-5 (2026-10-14, `a0d8ab6`)
+
+| Gate | Result | Load |
+|------|--------|------|
+| `npm run typecheck`, `npm run lint`, `npm run format:check` | clean | 7.1 |
+| `npm run docs:api`, `check_tasks.py v0.2`, public-text check | OK (public-text 67 passed) | 7.1 |
+| `npm run test:coverage` | 135 files passed, 1 skipped; **2413 passed / 1 skipped**; statements 96.59 %, branches 91.12 %, functions 97.24 %, lines 98.31 % | 7.5 → 8.7 |
+| `npm run test:e2e:chromium` | **137 passed** (8.6 min) | 8.7 → 16.7 |
+| `npm run test:smoke` | **4/4 passed** | 16.7 → 13.2 |
+| `npm run test:timing` | skipped (load 12.2 ≥ 12 after the suites) | 12.2 |
+
+No `wfui-task-032-*` entry left in the system temporary directory.
