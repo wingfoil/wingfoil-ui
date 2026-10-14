@@ -52,7 +52,7 @@ Firefox.
 ## Notes
 
 - Severity low: test-only, no product defect; the scans pass when the run is not starved.
-- Fix: generate one test per screen (`for (const s of SCREENS) test(\`X-06.4 — ${s.name}\`, …)`),
+- Fix: generate one test per `SCREENS` entry, titled with the scenario id and the screen name,
   sharing one console per worker (worker-scoped fixture or `beforeAll`); the same for X-09.1.
   The e2e closure rows keep the scenario ids.
 - Proposed absorption: task-036-today-requires-you-and-waiting-on-others (in progress; it brought
