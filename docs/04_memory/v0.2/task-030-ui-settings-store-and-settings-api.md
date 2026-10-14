@@ -2,7 +2,7 @@
 id: task-030-ui-settings-store-and-settings-api
 type: task
 title: "UI settings store and settings API"
-status: approved
+status: done
 release: "v0.2"
 module: "server"             # optional — server | web | contracts (dna.yaml modules)
 priority: "high"           # optional — high | medium | low
