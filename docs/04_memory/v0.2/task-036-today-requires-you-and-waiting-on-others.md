@@ -348,3 +348,79 @@ stays with task-042); **D36-5 (a)** "Role view: <view>"; **D36-6 (a)**; **D36-7 
 `queries.ts`, the `start` nav group, `SCREENS` appended, sorted catalogue inserts). Deviations from
 the UX reference recorded with a version bump; approved specs amended in place with a dated Process
 Note. `test/README.md` 0.31 also taken by task-032: resolved by the coordinator at merge.
+
+### red / green / refactor (2026-10-14)
+
+- **Pure part and view (`2e39334`)** — red first: `test/web/today/today.test.tsx` 15 of 16 failed
+  before any Today code (no route, `/p/<pid>` redirected to the Memory list; the one passing case
+  checks the key factory alone). Green: `web/src/today/{model.ts,TodayView.tsx,today.css}`,
+  `web/src/routes/today.tsx` (`todayRoute`, `projectIndexRoute` moved here, D36-1),
+  `todayQuery` appended to `web/src/api/queries.ts` (D31-6), the `start` nav group (D36-2:
+  `nav.ts`; `ProjectNav` renders a heading only for a labelled group, 3 lines of the shell
+  layout), 22 catalogue keys. `test/web/today/model.test.ts` 8/8 (written with the model; not red
+  on its own).
+- **Deviations from the design.** (1) The catalogue area `today` is new: `AREAS` of
+  `web/scripts/catalogue.mjs` gains it (spec-008 §2 already says later releases add `today` the
+  same way — no amendment). (2) The action's accessible name is its own message
+  `today.actionLabel` (`{action, select, …} {id}`), not a `{label} {id}` composition: in the key
+  build a nested key's select option would not be an option of the outer message (X-09.1). (3) The
+  age ("3 days") and the members ("Morgan, Alex") are rendered in their own elements, so X-09.1
+  reads them as a key text and as data alone. (4) The rejection reuses the element panel's
+  `element.rejection.*` keys. (5) An empty Waiting on others is hidden (as the prototype).
+- **e2e (`eed24bb`)** — `test/e2e/today.spec.ts` (16 scenarios + TT-PERF-09 on kanban, custom,
+  unknown): first Chromium run 19/19. TT-PERF-01 appended to `performance.spec.ts` (D36-9) with
+  the RP-9 "after one commit" run on a copy of the large fixture (so the worker's fixture keeps its
+  2 000 commits); `perf.ts` `reportRuns` takes the measure label, Today budgets added. `SCREENS`:
+  *today*, *today — not in team* (X-06.4 and X-09.1 green on them in the full run).
+- **Landing assertions (`eed24bb`, `252d328`)** — the v0.1 tests that expected the Memory list on
+  `/p/<pid>` now expect Today: e2e `add-project.spec.ts` (S-03.1, S-04.1, S-04.2, S-06.1, S-06.2),
+  `projects.spec.ts` (S-16.2, S-19.1, X-05.1), `memory-list.spec.ts` M-01.1 (opens `/memory`),
+  `element-panel.spec.ts` G-01.1 (close of a panel opened by URL); unit `memory/list.test.tsx`,
+  `element/panel.test.tsx`, `shell/add-project.test.tsx`, `shell/project-switcher.test.tsx`. The
+  G-01.1 failure of the first full Chromium run (157 passed, 1 failed: `toHaveURL …/memory`,
+  received `…/today`) was this landing change, fixed in `252d328`.
+- Docs: `docs/user-guide.md` 0.6 (*Today*), ux-reference 1.2 §4.1 (v0.2 Today, the deviation of the
+  greeting's second line), `CHANGELOG.md` *Unreleased* (Added: Today; Changed: landing view),
+  `test/README.md` 0.31.
+
+### checks (2026-10-14, HEAD `252d328` + these notes)
+
+| Gate | Result | Load |
+|------|--------|------|
+| `npm run typecheck`, `npm run lint`, `npm run format:check` | clean | — |
+| `npm run test:coverage` | 131 files passed, 1 skipped; **2272 passed / 1 skipped**; statements 96.85 %, branches 91.45 %, functions 97.56 %, lines 98.44 % (`web/src/today` 98.57 % / 97.64 %) | 25.4 → 34.4 |
+| `npm run docs:api` | OK | — |
+| `check_tasks.py v0.2`; public-text check | OK; 68 passed | — |
+| `npm run test:e2e:chromium` (whole suite) | **158 passed**, 0 failed; 10.5 min (the earlier run's G-01.1 failure was the landing change, fixed in `252d328`) | 4.2 → 29.1 |
+| `npm run test:e2e -- today.spec.ts accessibility.spec.ts add-project.spec.ts projects.spec.ts memory-list.spec.ts element-panel.spec.ts no-commit.spec.ts` (three engines) | **257 passed, 1 failed**: Firefox X-06.4 hit the 180 s test timeout at 3.5 min (the console torn down at the timeout, so the next `goto` was refused); Chromium 2.1 min, WebKit 2.0 min. Re-run alone (bug-004): `npx playwright test --project=firefox accessibility.spec.ts` **10 passed**, X-06.4 2.1 min | 27.4 → 27.8; alone 20.0 → 10.4 |
+| `npm run test:timing` | **3 + 18 passed**: TT-PERF-01 Today p95 **110 ms** (20 warm runs), first open after the start **414 ms**; RP-9 after one commit p95 **539 ms** (< ~1 s: spec-002 §4 stays in v0.3); T-03.2 749 ms, T-04.2 1 169 ms (budget 5 s) | 10.1 → 5.4 |
+
+Observation for the coordinator: X-06.4 scans every `SCREENS` entry in both themes in one test
+(19 screens with this task's two); on Firefox under load it is close to the 180 s test timeout.
+
+No console left (`pgrep -af bin/wingfoil-ui.cjs`); no `wfui-*` entry left in the system temporary
+directory by this worktree's runs.
+
+e2e closure (scenario → spec file › test):
+
+| Scenario | spec file › test |
+|----------|------------------|
+| T-01.1 | `test/e2e/today.spec.ts` › "T-01.1 — Open a newly added project on Today" |
+| T-01.2 | `today.spec.ts` › "T-01.2 — Open on Today read-only for a user who is not in the team" |
+| T-02.1 | `today.spec.ts` › "T-02.1 — List the items requiring the approver" |
+| T-02.2 | `today.spec.ts` › "T-02.2 — Show one primary action per row" |
+| T-02.3 | `today.spec.ts` › "T-02.3 — Follow the role view" |
+| T-03.1 | `today.spec.ts` › "T-03.1 — List my rejected work first, with the reason" |
+| T-03.2 | `today.spec.ts` › "T-03.2 — Drop the rejection once the work is submitted again" (`@live-refresh`) |
+| T-04.1 | `today.spec.ts` › "T-04.1 — List the items in a review state for a reviewer holding approver" |
+| T-04.2 | `today.spec.ts` › "T-04.2 — Drop an item that leaves the review state" (`@live-refresh`) |
+| T-05.1 | `today.spec.ts` › "T-05.1 — List an undeclared state as "Action required"" |
+| T-05.2 | `today.spec.ts` › "T-05.2 — Derive the actions of a declared but unfamiliar gate" |
+| T-06.1 | `today.spec.ts` › "T-06.1 — Show a gate as informational to a reviewer without approver" |
+| T-06.2 | `today.spec.ts` › "T-06.2 — Show the same gate as informational to a product owner without approver" |
+| T-11.1 | `today.spec.ts` › "T-11.1 — List the items blocked on another member" |
+| T-11.2 | `today.spec.ts` › "T-11.2 — Name the workflow engine for an engine-waiting state" |
+| T-11.3 | `today.spec.ts` › "T-11.3 — Do not repeat an item that requires me" |
+| TT-PERF-09 (T-01.1, T-02.1) | `today.spec.ts` › "TT-PERF-09 — every role view lists the API's Requires you (kanban / custom / unknown)"; S-23.1 closes in task-042 |
+| TT-PERF-01 (T-01.1, T-02.1) | `test/e2e/performance.spec.ts` › "TT-PERF-01 — Today @perf" (both tests) |
+| X-06.4 / X-09.1 | `test/e2e/accessibility.spec.ts` over `SCREENS` › "today", "today — not in team" |
