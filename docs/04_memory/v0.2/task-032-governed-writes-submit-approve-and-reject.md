@@ -350,7 +350,9 @@ Independent review **FAIL** (1 major, 2 minor, 4 nits); adversarial security rev
   element is listed again on it (a `memory search`, a read); an id listed at more than one path →
   409 `local-changes` when one of those paths has local changes, else 409 `element-changed` (the
   CLI's choice would depend on its order; no new code); an element moved by a commit is written at
-  its new path; the CLI's answer must name the checked path, else 502 `cli-output`. Tests: the
+  its new path; the CLI's answer must name the checked path, else 502 `cli-output` (accepted
+  residual, review round 2 N4: a commit the CLI made on that other path is neither logged nor
+  announced). Tests: the
   untracked copy (409 `local-changes`, nothing committed), a committed duplicate (409
   `element-changed`), a moved element (200 on the new path), the CLI answering another path (502).
 - **S2 (low)** — row 7 compares the whole entry: `ls-tree` at HEAD and `ls-files --stage` (one
@@ -403,3 +405,21 @@ Independent review **FAIL** (1 major, 2 minor, 4 nits); adversarial security rev
 | `npm run test:timing` | skipped (load ≥ 12) | 29.6 |
 
 No `wfui-task-032-*` entry left in the system temporary directory.
+
+### review (round 2, 2026-10-14)
+
+Independent review round 2 **FAIL** (1 major, 2 minor, 2 nits). Changes:
+
+- **N1 (major)** — the W2-1 log line held the CLI's message, i.e. `Command failed: git -C <root>
+  commit … -m <commit message>` with the reason. Now `{ verb, kind, cli: usageKind(message) }`
+  (`Command failed`). Tests: `reject` with a failing `pre-commit` hook and the reason
+  `secret-reason-text-4711` → 500 `write-incomplete`, the log holds neither the reason nor the
+  project root; the 504 (killed after the commit) and 502 (another path) paths with the same
+  reason → not in the log. The other logs of a write carry kinds, verbs and codes only.
+- **N2 (minor)** — spec-004 §4: "no `wingfoil` write verb starts before row 9 passes (a state that
+  moved since the lookup is read again first)".
+- **N3 (minor)** — a commit made by a CLI that then failed is logged and announced, **not
+  auto-pushed** (spec-004 §5). **Hand-over to task-034:** decide whether the next tick pushes such
+  commits.
+- **N4 (nit)** — accepted residual recorded in the S1 bullet above.
+- **N5 (nit)** — the W2-1 test title reads "nothing in the action log".

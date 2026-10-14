@@ -186,8 +186,9 @@ together. Rows 7–9 run read-only git commands and a file read, never a
 cached answer: `memory submit` commits the target's uncommitted edits (checked on WingFoil 0.2.2),
 so a stale "no local changes" would let a UI action commit someone's work. The status alone is not
 enough: an edit hidden from it (`assume-unchanged`, `core.ignoreStat`, an fsmonitor) is still
-committed by `git add` + `git commit --only`, hence the blob comparison. No `wingfoil` process
-starts before row 9 passes.
+committed by `git add` + `git commit --only`, hence the entry comparison. No `wingfoil` write verb
+starts before row 9 passes (a state that moved since the lookup is read again first: the reads a
+`GET` would run).
 
 The role required by a gate is **not** checked by the server: the CLI refuses it (REQ-SEC-07).
 
@@ -219,7 +220,7 @@ REQ-SEC-08's fit criterion (SARD `05` v0.6), which excludes fetch and the per-us
   nothing logged, no `write` event; the CLI's answer must name the element's path (else 502). A
   commit made meanwhile by another program is neither listed nor logged. When the CLI fails after
   its commit (any CLI error: exit ≠ 0, timeout, unreadable output), that commit is still logged and
-  announced, and the error is answered.
+  announced, not auto-pushed, and the error is answered.
 - A `reason` that is empty or whitespace only fails the body schema: **400** `invalid-request`,
   no process (G-07.2).
 - Partial failure of an ingestion (`add` succeeded, `submit` refused): **422** `cli-refused` with
@@ -365,4 +366,6 @@ goes away by itself when the stream reconnects. A network failure is not rendere
   only path and its content, and logged when the CLI fails after it. Same day, decision W2-1 of
   the approver: §5 `500 write-incomplete` with `detail.file` when the CLI fails and leaves the
   element file changed without a commit (W-30); the bodies of every write refusal in
-  `contracts/api/write.refusal.schema.json`.
+  `contracts/api/write.refusal.schema.json`. Independent review round 2: §4 "no `wingfoil` write
+  verb before row 9" (a moved state is read again first); §5 a commit of a CLI that then failed is
+  not auto-pushed.

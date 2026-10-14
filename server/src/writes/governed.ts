@@ -39,6 +39,7 @@ import {
   CliInternalError,
   CliOutputError,
   cliErrorEnvelope,
+  usageKind,
   type CliOutput,
   type WingfoilCli,
 } from '../cli/adapter.js';
@@ -288,10 +289,11 @@ export class GovernedWrites {
           this.announce(request, made);
         } else if (await this.leftChanged(snapshot, match.path)) {
           // W2-1 (review S3 part B, W-30): the element file is left rewritten without the write's
-          // commit. The CLI's message quotes local absolute paths: logged here (truncated, W-22),
-          // never sent; nothing is restored (no git write).
+          // commit. The CLI's message quotes local absolute paths and the failed git command, whose
+          // `-m` holds the reason: only its kind is logged (review round 2 N1), nothing is sent but
+          // the file; nothing is restored (no git write).
           log.warn(
-            { verb: request.verb, kind: error.kind, message: error.message.slice(0, 200) },
+            { verb: request.verb, kind: error.kind, cli: usageKind(error.message) },
             'governed write: the element file is left changed without a commit',
           );
           return {

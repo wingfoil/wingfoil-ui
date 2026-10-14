@@ -882,23 +882,74 @@ describe('W2-1 (review S3 part B) — the CLI fails leaving the element file cha
         await chmod(hook, 0o755);
       },
     ],
-  ])('%s → 500 write-incomplete with detail.file, no CLI message, nothing logged, no event', async (_l, prepare) => {
+  ])(
+    '%s → 500 write-incomplete with detail.file, no CLI message, nothing in the action log, no event',
+    async (_l, prepare) => {
+      const log: string[] = [];
+      const c = await start({ as: memberByName('Jordan').email, log });
+      await c.warm();
+      const rel = await c.pathOf(TIMEOUT);
+      const before = await c.head();
+      await prepare(c.fx);
+      const res = await c.post('submit', TIMEOUT, { expectedStatus: 'draft' });
+      expect(res.status, JSON.stringify(res.body)).toBe(500);
+      expect(res.body.error.code).toBe('write-incomplete');
+      expect(res.body.error.detail).toEqual({ file: rel });
+      expect(JSON.stringify(res.body)).not.toContain(c.fx.dir);
+      expect(await c.head()).toBe(before);
+      expect(c.store.snapshot().actionLog).toEqual([]);
+      expect(writes(c)).toEqual([]);
+      expect(log.join('')).toMatch(/left changed without a commit/);
+      // Nothing restored: the element file is still changed.
+      expect((await git(c.fx.dir, ['status', '--porcelain', '--', rel], c.fx.env)).stdout).not.toBe('');
+    },
+  );
+});
+
+describe('review round 2 N1 — the reason never reaches the server log on a failed write', () => {
+  const SECRET = 'secret-reason-text-4711';
+
+  it('reject with a failing pre-commit hook → 500 write-incomplete; the log holds no reason, no root', async () => {
     const log: string[] = [];
-    const c = await start({ as: memberByName('Jordan').email, log });
+    const c = await start({
+      log,
+      prepare: async (fx) => {
+        const hook = path.join(fx.dir, '.git', 'hooks', 'pre-commit');
+        await mkdir(path.dirname(hook), { recursive: true });
+        await writeFile(hook, '#!/bin/sh\nexit 1\n');
+        await chmod(hook, 0o755);
+      },
+    });
     await c.warm();
-    const rel = await c.pathOf(TIMEOUT);
-    const before = await c.head();
-    await prepare(c.fx);
-    const res = await c.post('submit', TIMEOUT, { expectedStatus: 'draft' });
-    expect(res.status, JSON.stringify(res.body)).toBe(500);
+    const res = await c.post('reject', LOGIN, { expectedStatus: 'pending', reason: SECRET });
+    expect(res.status).toBe(500);
     expect(res.body.error.code).toBe('write-incomplete');
-    expect(res.body.error.detail).toEqual({ file: rel });
-    expect(JSON.stringify(res.body)).not.toContain(c.fx.dir);
-    expect(await c.head()).toBe(before);
-    expect(c.store.snapshot().actionLog).toEqual([]);
-    expect(writes(c)).toEqual([]);
-    expect(log.join('')).toMatch(/left changed without a commit/);
-    // Nothing restored: the element file is still changed.
-    expect((await git(c.fx.dir, ['status', '--porcelain', '--', rel], c.fx.env)).stdout).not.toBe('');
+    expect(log.join('')).toMatch(/"cli":"Command failed"/);
+    expect(log.join('')).not.toContain(SECRET);
+    expect(log.join('')).not.toContain(c.fx.dir);
+  });
+
+  it('killed after the commit (504) and the CLI answering another path (502): no reason in the log', async () => {
+    for (const [verb, answer] of [
+      ['reject', (r: ProcessResult): ProcessResult => ({ ...r, ended: 'timeout', exitCode: null, signal: 'SIGKILL' })],
+      [
+        'approve',
+        (r: ProcessResult): ProcessResult => ({
+          ...r,
+          stdout: JSON.stringify({ ...(JSON.parse(r.stdout) as object), path: 'docs/elsewhere.md' }),
+        }),
+      ],
+    ] as const) {
+      const log: string[] = [];
+      const c = await start({
+        log,
+        intercept: async (request, real) => (request.args.includes(verb) ? answer(await real(request)) : undefined),
+      });
+      await c.warm();
+      const res = await c.post(verb, LOGIN, { expectedStatus: 'pending', reason: SECRET });
+      expect([502, 504]).toContain(res.status);
+      expect(log.join('')).toMatch(/governed write/);
+      expect(log.join('')).not.toContain(SECRET);
+    }
   });
 });

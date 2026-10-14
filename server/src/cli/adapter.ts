@@ -308,8 +308,9 @@ function reason(result: ProcessResult): string {
 }
 
 /**
- * The kind of a usage error, never a value: the text before the first colon of its message
- * (`{"error": …}` or plain), e.g. `invalid flag value`, `missing required argument`, `error`.
+ * The kind of a CLI message, never a value: the text before the first colon of its message
+ * (`{"error": …}` or plain), e.g. `invalid flag value`, `missing required argument`, `error`,
+ * `Command failed`.
  */
 export function usageKind(stderr: string): string {
   let text = stderr.trim();
