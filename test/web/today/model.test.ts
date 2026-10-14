@@ -2,7 +2,7 @@
 // a Waiting on others row, the greeting's name and the identity sentence.
 import type { ActionDescriptor, TodayActionRow, TodayRow } from '@wingfoil-ui/contracts';
 import { expect, it } from 'vitest';
-import { durationOf, greetingName, identityNote, rowIds, rowReason, waitingWho } from '../../../web/src/today/model.js';
+import { durationOf, greetingName, identityNote, rowReason, waitingWho } from '../../../web/src/today/model.js';
 import { header, morgan, riley } from '../project/header-data.js';
 
 const NOW = Date.parse('2026-10-14T12:00:00Z');
@@ -117,8 +117,4 @@ it('says How to join only to a user not in the team with a readable DNA (D36-8, 
       }),
     ),
   ).toBe('unidentified');
-});
-
-it('lists the ids of rows in order', () => {
-  expect(rowIds([row(), { ...row(), element: { ...row().element, id: 'x-002' } }])).toEqual(['x-001', 'x-002']);
 });

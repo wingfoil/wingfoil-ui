@@ -238,7 +238,7 @@ describe('field checks (W4-13)', () => {
 });
 
 describe('a successful add', () => {
-  it('adds a local folder with Enter, puts it in the list and opens it on the Memory list (S-03.1)', async () => {
+  it('adds a local folder with Enter, puts it in the list and opens it on Today (S-03.1; the landing view since task-036)', async () => {
     const api = fakeApi([], { add: { status: 201, body: KANBAN } });
     const user = userEvent.setup();
     const { router, queryClient } = renderApp('/');
@@ -247,7 +247,7 @@ describe('a successful add', () => {
       within(dialog).getByRole('textbox', { name: 'Folder path' }),
       '  /home/test/projects/kanban{Enter}',
     );
-    await waitFor(() => expect(router.state.location.pathname).toBe('/p/p_kanban/memory'));
+    await waitFor(() => expect(router.state.location.pathname).toBe('/p/p_kanban/today'));
     expect(api.posts()).toEqual([
       expect.objectContaining({ url: '/api/projects', body: { path: '/home/test/projects/kanban' } }),
     ]);
@@ -265,7 +265,7 @@ describe('a successful add', () => {
     await chooseRemote(user, dialog);
     await user.type(within(dialog).getByRole('textbox', { name: 'Repository URL' }), 'file:///srv/remotes/kanban.git');
     await user.click(within(dialog).getByRole('button', { name: 'Clone and add' }));
-    await waitFor(() => expect(router.state.location.pathname).toBe('/p/p_kanban/memory'));
+    await waitFor(() => expect(router.state.location.pathname).toBe('/p/p_kanban/today'));
     expect(api.posts()).toEqual([
       expect.objectContaining({
         url: '/api/projects/clone',
@@ -394,7 +394,7 @@ describe('refusals from the catalogue', () => {
     const link = await within(dialog).findByRole('link', { name: 'Open alpha' });
     expect(link.getAttribute('href')).toBe('/p/p_alpha');
     await user.click(link);
-    await waitFor(() => expect(router.state.location.pathname).toBe('/p/p_alpha/memory'));
+    await waitFor(() => expect(router.state.location.pathname).toBe('/p/p_alpha/today'));
     await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Add project' })).toBeNull());
   });
 

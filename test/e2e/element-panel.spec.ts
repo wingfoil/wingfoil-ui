@@ -86,8 +86,8 @@ test.describe('US-G-01 — element panel', () => {
     expect(await scanThemes(page)).toEqual([]);
     await page.keyboard.press('Escape');
     await expect(panel).toBeHidden();
-    // Opened from its URL: Close goes to the project, whose landing view is the Memory list (W3-22).
-    await expect(page).toHaveURL(`${c.origin}/p/${c.pids[0]}/memory`);
+    // Opened from its URL: Close goes to the project, whose landing view is Today (W3-22; task-036, D36-1).
+    await expect(page).toHaveURL(`${c.origin}/p/${c.pids[0]}/today`);
     await expect(page.locator('main#main')).toBeFocused();
   });
 

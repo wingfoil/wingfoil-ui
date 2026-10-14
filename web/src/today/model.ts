@@ -85,8 +85,3 @@ export function identityNote(header: ProjectHeader): IdentityNote | undefined {
   if (identity.kind === 'member') return undefined;
   return identity.kind === 'not-in-team' && !header.dnaError ? 'notInTeam' : 'unidentified';
 }
-
-/** The ids of rows, in order (the comparison of TT-PERF-09). */
-export function rowIds(rows: readonly TodayRow[]): string[] {
-  return rows.map((r) => r.element.id);
-}
