@@ -428,7 +428,7 @@ e2e closure (scenario → spec file › test):
 | T-11.3 | `today.spec.ts` › "T-11.3 — Do not repeat an item that requires me" |
 | TT-PERF-09 (T-01.1, T-02.1) | `today.spec.ts` › "TT-PERF-09 — every role view lists the API's Requires you (kanban / custom / unknown)"; S-23.1 closes in task-042 |
 | TT-PERF-01 (T-01.1, T-02.1) | `test/e2e/performance.spec.ts` › "TT-PERF-01 — Today @perf" (both tests) |
-| X-06.4 / X-09.1 | `test/e2e/accessibility.spec.ts` over `SCREENS` › "today", "today — not in team" |
+| X-06.4 / X-09.1 | `test/e2e/accessibility.spec.ts` › "X-06.4 — Pass the axe scan: today", "…: today — not in team"; "X-09.1 — Render every string from the message catalogue: today", "…: today — not in team" (one test per `SCREENS` entry since bug-011) |
 
 ### review (round 1, 2026-10-14)
 
