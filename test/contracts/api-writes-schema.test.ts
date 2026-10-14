@@ -4,7 +4,12 @@ import { Ajv } from 'ajv';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
-import type { ElementDecisionRequest, ElementSubmitRequest, WriteResponse } from '../../contracts/src/writes.js';
+import type {
+  ElementDecisionRequest,
+  ElementSubmitRequest,
+  WriteRefusalCode,
+  WriteResponse,
+} from '../../contracts/src/writes.js';
 import { REPO_ROOT } from '../harness/cli.js';
 
 const compile = (file: string) =>
