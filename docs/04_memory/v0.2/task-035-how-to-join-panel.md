@@ -366,3 +366,22 @@ e2e closure (scenario → spec file:test):
 | C-09.1 | `test/e2e/how-to-join.spec.ts` › "C-09.1 — Say that no tech lead is declared" |
 | C-09.2 | `test/e2e/how-to-join.spec.ts` › "C-09.2 — Explain an empty team" |
 | X-06.4 / X-09.1 coverage | `test/e2e/accessibility.spec.ts` over `SCREENS` › screen "how to join panel" |
+
+### checks after D35-10 (2026-10-14, HEAD `991c698`)
+
+- D35-10 red by fault injection (not committed): with the new rule commented out, the X-09.1
+  self-test (`harness/a11y-support.spec.ts`) fails on the expected `span.current-user-avatar: ?`;
+  restored → 3/3 on Chromium.
+
+| Gate | Result | Load |
+|------|--------|------|
+| `npm run typecheck`, `npm run lint`, `npm run format:check` | clean | 13.7 |
+| `check_tasks.py v0.2` | OK | — |
+| `test/docs/public-text.test.ts` | 67 passed | — |
+| `npm run test:e2e -- accessibility.spec.ts how-to-join.spec.ts project-header.spec.ts no-commit.spec.ts harness/a11y-support.spec.ts` (three engines) | **105 passed**, 0 failed (X-09.1 and X-06.4 over `SCREENS` incl. *how to join panel*, C-08.1 … C-09.2 with axe in both themes, the clipboard copy, `no-commit`); 8.1 min | 14.3 → 19.8 |
+| `npm run test:e2e:chromium` (whole suite) | **137 passed**, 0 failed; 6.6 min | → 17.2 |
+| `npm run test:timing` | **skipped**: load ≥ 12 | — |
+| `npm run test:coverage` | not re-run: the change since the run above (`3571950`, 2057 passed) is test support only (`test/e2e/`), outside Vitest and coverage | — |
+
+No console left (`pgrep -af bin/wingfoil-ui.cjs`). Ready for review; `main` (task-030, task-031)
+to be merged into the branch by the coordinator before submit (RP-55).
