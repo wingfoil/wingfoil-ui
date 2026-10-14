@@ -11,6 +11,7 @@ import {
   shellWord,
   TECH_LEAD_ROLE,
 } from '../../../web/src/project/join.js';
+import en from '../../../web/src/i18n/en.json' with { type: 'json' };
 import { header, riley } from './header-data.js';
 
 type Team = DnaShow['team'];
@@ -94,6 +95,12 @@ describe('doubleQuoted (review F4)', () => {
     expect(doubleQuoted('a"b')).toBe(String.raw`"a\"b"`);
     expect(doubleQuoted('$(id) `id` $HOME')).toBe(String.raw`"\$(id) \`id\` \$HOME"`);
     expect(doubleQuoted(String.raw`back\slash`)).toBe(String.raw`"back\\slash"`);
+  });
+});
+
+describe('the name placeholder of the catalogue (review round 2, N1)', () => {
+  it("holds no '!', which bash history expansion would act on inside double quotes", () => {
+    expect(en['shell.howToJoin.placeholderName']).not.toContain('!');
   });
 });
 

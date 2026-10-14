@@ -5,7 +5,7 @@
 // and Escape giving the focus back, a DNA read error, the panel following a refetch, and the
 // catalogue (every text a key, the command's words data).
 import type { DnaShow, ProjectConfig, ProjectHeader } from '@wingfoil-ui/contracts';
-import { act, cleanup, screen, waitFor, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { userEvent } from '@testing-library/user-event';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { keyCatalogue } from '../../../web/scripts/catalogue.mjs';
@@ -290,6 +290,8 @@ it('follows the data: says the user is now a member after a refetch, announced (
     header({ identity: { kind: 'member', email: 'riley@example.test', name: 'Riley', roles: ['developer'] } }),
   );
   await expectChange(d, NOW_MEMBER);
+  // No intro sentence any more, so no description pointing at it (review round 2, N2).
+  await waitFor(() => expect(d.hasAttribute('aria-describedby')).toBe(false));
 });
 
 it('says "now a member" when the email now matches several members (F1)', async () => {
@@ -317,6 +319,20 @@ it('gives the focus to the main region when the opener has gone (F3)', async () 
   // The badge is gone: Riley is a member now.
   await waitFor(() => expect(screen.queryByRole('button', { name: 'Not in team — how to join' })).toBeNull());
   await user.keyboard('{Escape}');
+  await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+  await waitFor(() => expect(document.activeElement).toBe(document.getElementById('main')));
+});
+
+it('gives the focus to the main region when a click focused no opener (WebKit, review round 2 N3)', async () => {
+  stub(riley);
+  const user = userEvent.setup();
+  renderApp('/p/p_a/memory');
+  const b = await badge();
+  // A click that does not move the focus (WebKit does not focus a clicked button): body is the opener.
+  expect(document.activeElement).toBe(document.body);
+  fireEvent.click(b);
+  const d = await dialog();
+  await user.click(within(d).getByRole('button', { name: 'Close' }));
   await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
   await waitFor(() => expect(document.activeElement).toBe(document.getElementById('main')));
 });

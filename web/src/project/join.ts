@@ -63,7 +63,9 @@ export function shellWord(value: string): string {
 
 /**
  * `value` inside POSIX double quotes (review F4): `\`, `"`, `$` and the backtick escaped, so a
- * translated placeholder can neither end the quotes nor expand anything.
+ * translated placeholder can neither end the quotes nor expand anything. `!` cannot be escaped
+ * there under bash's interactive history expansion: the placeholder's catalogue text must not
+ * contain it (its translator description says so; a unit test checks the English text).
  */
 export function doubleQuoted(value: string): string {
   return `"${value.replace(/[\\"$`]/g, (c) => `\\${c}`)}"`;

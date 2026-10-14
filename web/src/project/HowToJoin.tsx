@@ -34,7 +34,11 @@ import './how-to-join.css';
 
 const MESSAGES = defineMessages({
   leadsLabel: { id: 'shell.howToJoin.leadsLabel' },
-  placeholderName: { id: 'shell.howToJoin.placeholderName' },
+  placeholderName: {
+    id: 'shell.howToJoin.placeholderName',
+    description:
+      "Goes inside double quotes of a shell command: never use '!' (bash history expansion cannot be escaped there); keep the ICU apostrophes around '<…>'",
+  },
   placeholderRoles: { id: 'shell.howToJoin.placeholderRoles' },
 });
 
@@ -69,6 +73,10 @@ export function HowToJoinProvider({ pid, children }: HowToJoinProviderProps): Re
   const [shownFor, setShownFor] = useState<string | null>(null);
   const opener = useRef<Element | null>(null);
   const introId = useId();
+  // The intro sentence describes the dialog only while it is shown (review round 2, N2): it is
+  // rendered exactly when the user has an email for the command (`joinEmail`).
+  const header = useQuery(projectHeaderQuery(pid));
+  const described = header.data !== undefined && joinEmail(header.data) !== undefined;
   const action = useMemo<HowToJoinAction>(
     () => ({
       show: () => {
@@ -86,7 +94,8 @@ export function HowToJoinProvider({ pid, children }: HowToJoinProviderProps): Re
     const gone = opener.current;
     opener.current = null;
     const frame = requestAnimationFrame(() => {
-      if (!gone.isConnected) document.getElementById('main')?.focus();
+      // `body`: a mouse click that does not focus its button (WebKit) recorded no opener (N3).
+      if (!gone.isConnected || gone === document.body) document.getElementById('main')?.focus();
     });
     return () => cancelAnimationFrame(frame);
   }, [shown]);
@@ -102,7 +111,7 @@ export function HowToJoinProvider({ pid, children }: HowToJoinProviderProps): Re
         }}
       >
         <Modal className="modal">
-          <Dialog className="dialog how-to-join" aria-describedby={introId}>
+          <Dialog className="dialog how-to-join" {...(described ? { 'aria-describedby': introId } : {})}>
             {({ close }) => <HowToJoinPanel pid={pid} introId={introId} close={close} />}
           </Dialog>
         </Modal>
