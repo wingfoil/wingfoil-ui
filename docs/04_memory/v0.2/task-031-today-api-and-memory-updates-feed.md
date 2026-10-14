@@ -335,3 +335,8 @@ substitute red check of the route tests accepted.
 - Independent fresh-context review: round 1 **FAIL** (1 minor, 4 nits), round 2 **PASS** on
   `1e2f8fb` (no finding): F1–F5 re-verified; the warmed-up 0-process check proves an option-like
   `before` never reaches git; `/today` and `events/memory` share one event cache per HEAD.
+- `main` with task-030 merged into the branch before submit (`407d1b9`): conflicts in
+  `contracts/src/index.ts` (both export lines kept) and the `test/README.md` version line (0.29
+  after task-030's 0.28). On the merged branch: typecheck, lint, format:check clean;
+  `check_tasks.py v0.2` OK; `test:coverage` 2216 passed, 1 skipped (127 files), statements
+  96.83 %, branches 91.21 % (load 3.5 → 26).
