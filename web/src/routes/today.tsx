@@ -27,7 +27,8 @@ function TodayPage(): ReactNode {
   const header = useQuery(projectHeaderQuery(pid));
   // The role view of the header (`null`: no `?view=`, D31-5); read once the header is known.
   const today = useQuery({ ...todayQuery(pid, header.data?.roleView ?? null), enabled: header.data !== undefined });
-  return <TodayView pid={pid} header={header} today={today} />;
+  // Keyed by the project: the layout is not remounted on a `$pid` change (review F1).
+  return <TodayView key={pid} pid={pid} header={header} today={today} />;
 }
 
 /** `/p/$pid/today`: Today. */

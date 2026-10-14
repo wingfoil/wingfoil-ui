@@ -189,18 +189,26 @@ export function TodayView({ pid, header, today }: TodayViewProps): ReactNode {
   const name = header.data ? greetingName(header.data) : undefined;
   const rows = data?.requiresYou ?? null;
 
-  // A refetch that changed the rows is announced (directive `accessibility`, D36-11): each one
-  // renders a new node in the live region (keyed by a counter). The ages count from the last read.
+  // A refetch that changed the Requires you rows of the same role view is announced (directive
+  // `accessibility`, D36-11): each one renders a new node in the live region (keyed by a counter).
+  // The first read of another role view is not a change, and clears the announcement; a refetch
+  // where only Waiting on others changed keeps the rows' reference (the query's structural
+  // sharing), so it is not announced (review F1). The view is keyed by the project (`routes/today.tsx`):
+  // nothing of one project is compared with another. The ages count from the last read.
   const [announcement, setAnnouncement] = useState<{ n: number; count: number } | undefined>(undefined);
   const [now, setNow] = useState(Date.now);
   const previous = useRef<Today | undefined>(undefined);
   useEffect(() => {
-    if (previous.current !== undefined && data !== undefined && previous.current !== data && data.requiresYou) {
+    const before = previous.current;
+    if (data === undefined) return;
+    previous.current = data;
+    if (before === undefined || before === data) return;
+    setNow(Date.now());
+    if (before.view !== data.view) setAnnouncement(undefined);
+    else if (before.requiresYou !== data.requiresYou && data.requiresYou) {
       const count = data.requiresYou.length;
       setAnnouncement((a) => ({ n: (a?.n ?? 0) + 1, count }));
-      setNow(Date.now());
     }
-    if (data !== undefined) previous.current = data;
   }, [data]);
 
   const error = header.error ?? today.error;

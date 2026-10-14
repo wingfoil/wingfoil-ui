@@ -61,6 +61,10 @@ async function openToday(page: Page, c: RunningConsole, pid = c.pids[0]!): Promi
     timeout: COLD_READ_MS,
   });
   await expect(heading(page)).toBeVisible({ timeout: COLD_READ_MS });
+  // A positive signal that Today's read answered: a card, the identity sentence or an error (review F2).
+  await expect(page.locator('.today').locator('.today-card, .today-identity, [role="alert"]').first()).toBeVisible({
+    timeout: COLD_READ_MS,
+  });
 }
 
 /** Choose `role` in the role view selector and wait for its Today. */
@@ -134,7 +138,9 @@ test.describe('US-T-02 — Requires you', () => {
     await openToday(page, c);
     await expect(heading(page)).toHaveText('Morgan, 2 things require you');
     await expect(page.locator('.today .page-intro')).toHaveText('Role view: approver');
-    expect((await idsOf(requiresYou(page))).sort()).toEqual(['bug-001-crash-on-save', 'task-001-login-form']);
+    await expect
+      .poll(async () => (await idsOf(requiresYou(page))).sort(), { timeout: COLD_READ_MS })
+      .toEqual(['bug-001-crash-on-save', 'task-001-login-form']);
     const row = rowOf(requiresYou(page), 'task-001-login-form');
     await expect(row.locator('.type-tag')).toHaveText('task');
     await expect(row.getByRole('link', { name: 'Login form', exact: true })).toBeVisible();
@@ -181,12 +187,16 @@ test.describe('US-T-03 — rejected work first', () => {
   test('T-03.1 — List my rejected work first, with the reason', async ({ page, fixtures, consoles }) => {
     const c = await consoles.start({ projects: [await copyAs(fixtures, 'kanban', 'Jordan')] });
     await openToday(page, c);
-    expect(await idsOf(requiresYou(page))).toEqual(['task-002-password-reset', 'task-004-session-timeout']);
+    await expect
+      .poll(() => idsOf(requiresYou(page)), { timeout: COLD_READ_MS })
+      .toEqual(['task-002-password-reset', 'task-004-session-timeout']);
     const first = rowOf(requiresYou(page), 'task-002-password-reset');
     await expect(first.locator('.today-reason')).toHaveText('Rejected by Morgan: Missing acceptance criteria');
     // Shown as a rejection: the danger colour of the theme.
     await expect(first.locator('.today-reason')).toHaveClass(/today-reason-rejection/);
     await expect(rowOf(requiresYou(page), 'task-004-session-timeout').getByRole('button')).toHaveText('Submit');
+    // The rejection's colour in both themes (review F4).
+    expect(await scanThemes(page)).toEqual([]);
   });
 
   test(

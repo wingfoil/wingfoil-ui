@@ -290,18 +290,25 @@ it('opens Today read-only for a user not in the team, with How to join (T-01.2, 
   expect(await screen.findByRole('dialog', { name: 'How to join this project' })).toBeTruthy();
 });
 
-it('points other unidentified users to the read-only notice, without How to join (D36-8)', async () => {
-  stubApi(
-    api({
-      [HEADER]: { status: 200, body: header({ identity: { kind: 'no-identity' }, roleViews: [], roleView: null }) },
-      [TODAY]: { status: 200, body: { view: null, requiresYou: null, waitingOnOthers: [] } },
-    }),
-  );
-  renderApp(`/p/${PID}/today`);
-  const note = await screen.findByText('Today cannot list what requires you: see the read-only notice above.');
-  expect(within(note.closest('.today-identity') as HTMLElement).queryByRole('button')).toBeNull();
-  expect(screen.queryByRole('region', { name: 'Requires you' })).toBeNull();
-});
+const UNIDENTIFIED: [string, ProjectHeader['identity']][] = [
+  ['No identity', { kind: 'no-identity' }],
+  ['Ambiguous', { kind: 'ambiguous', email: 'twin@example.test', members: ['Morgan', 'Alex'] }],
+];
+
+for (const [label, identity] of UNIDENTIFIED) {
+  it(`points other unidentified users to the read-only notice, without How to join (D36-8): ${label}`, async () => {
+    stubApi(
+      api({
+        [HEADER]: { status: 200, body: header({ identity, roleViews: [], roleView: null }) },
+        [TODAY]: { status: 200, body: { view: null, requiresYou: null, waitingOnOthers: [] } },
+      }),
+    );
+    renderApp(`/p/${PID}/today`);
+    const note = await screen.findByText('Today cannot list what requires you: see the read-only notice above.');
+    expect(within(note.closest('.today-identity') as HTMLElement).queryByRole('button')).toBeNull();
+    expect(screen.queryByRole('region', { name: 'Requires you' })).toBeNull();
+  });
+}
 
 it('greets a member holding no role without a role view line', async () => {
   stubApi(
@@ -341,6 +348,8 @@ it('follows the role view: a new view reads its own Today (T-02.3)', async () =>
   await screen.findByRole('heading', { level: 1, name: 'Morgan, nothing requires you' });
   expect(screen.getByText('Role view: tech-lead')).toBeTruthy();
   expect(paths(fetch)).toContain(`${TODAY}?view=tech-lead`);
+  // The first read of another view is not an update (D36-11, review F1).
+  expect(screen.getByRole('status', { name: 'Today updates' }).textContent).toBe('');
 });
 
 it('refreshes on a repository change and announces the new count (D36-11)', async () => {
@@ -359,4 +368,46 @@ it('refreshes on a repository change and announces the new count (D36-11)', asyn
   await screen.findByRole('heading', { level: 1, name: 'Morgan, 1 thing requires you' });
   await waitFor(() => expect(region.textContent).toBe('Requires you updated: 1 item'));
   expect(rowsOf(requiresYou())).toHaveLength(1);
+});
+
+it('announces nothing when only Waiting on others changed (review F1)', async () => {
+  const fake = api();
+  stubApi(fake);
+  const { queryClient } = renderApp(`/p/${PID}/today`);
+  await screen.findByRole('heading', { level: 1, name: 'Morgan, 2 things require you' });
+  // Requires you equal (a new body), Waiting on others one row shorter.
+  fake[`${TODAY}?view=approver`] = {
+    status: 200,
+    body: JSON.parse(JSON.stringify({ ...MORGAN_TODAY, waitingOnOthers: MORGAN_TODAY.waitingOnOthers.slice(1) })),
+  };
+  await act(() => queryClient.invalidateQueries({ queryKey: queryKeys.project(PID) }));
+  await waitFor(() => expect(rowsOf(waitingCard())).toHaveLength(5));
+  expect(screen.getByRole('status', { name: 'Today updates' }).textContent).toBe('');
+});
+
+it('announces nothing when another project opens on Today (review F1)', async () => {
+  const OTHER = 'p_b';
+  stubApi(
+    api({
+      '/api/projects': {
+        status: 200,
+        body: {
+          projects: [
+            { id: PID, name: 'demo', path: '/x', remote: null, availability: 'available' },
+            { id: OTHER, name: 'other', path: '/y', remote: null, availability: 'available' },
+          ],
+        },
+      },
+      [`/api/p/${OTHER}`]: { status: 200, body: { ...morgan(), id: OTHER } },
+      [`/api/p/${OTHER}/today?view=approver`]: {
+        status: 200,
+        body: { ...MORGAN_TODAY, requiresYou: MORGAN_TODAY.requiresYou!.slice(1) },
+      },
+    }),
+  );
+  const { router } = renderApp(`/p/${PID}/today`);
+  await screen.findByRole('heading', { level: 1, name: 'Morgan, 2 things require you' });
+  await act(() => router.navigate({ to: '/p/$pid/today', params: { pid: OTHER } }));
+  await screen.findByRole('heading', { level: 1, name: 'Morgan, 1 thing requires you' });
+  expect(screen.getByRole('status', { name: 'Today updates' }).textContent).toBe('');
 });
