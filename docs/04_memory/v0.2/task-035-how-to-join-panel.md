@@ -385,3 +385,50 @@ e2e closure (scenario → spec file:test):
 
 No console left (`pgrep -af bin/wingfoil-ui.cjs`). Ready for review; `main` (task-030, task-031)
 to be merged into the branch by the coordinator before submit (RP-55).
+
+### review (round 1, 2026-10-14)
+
+Independent review: **FAIL** (2 minor, 5 nits). Verified as correct: the command against the
+pinned CLI, D35-7 quoting (bash probes), shown == copied, catalogue sorted, both `strings.ts`
+rules narrow with failing self-tests, the minimal shell change, docs, dl-005. Changes (`2dedc34`):
+
+- **F1 (minor)** — an open panel whose identity changed to something other than `member` showed
+  only title and Close. Change: *You are now a member of this team.* also for `ambiguous` (the
+  email matches members, D35-8); any other identity without a panel (`no-identity`,
+  `not-in-team` with an unreadable DNA) shows the new `shell.howToJoin.notApplicable` ("How to
+  join no longer applies to you: the notice above the view says why this project is
+  read-only."). One component test per transition (member, ambiguous, no identity, DNA
+  unreadable).
+- **F2 (minor)** — the swap was not announced. Change: the sentence is rendered in an
+  always-present `role="status"` region of the panel (empty: `position: absolute`, out of the flex
+  flow, still in the accessibility tree); the tests assert the region exists before the change
+  and the sentence's closest `[role="status"]`.
+- **F3 (nit)** — closing after the opener unmounted (the badge of a new member) left the focus on
+  `<body>`. Change: the provider records the opener at `show()`; after closing, when the opener
+  is no longer connected, `#main` (tabIndex -1) takes the focus. Test "gives the focus to the main
+  region when the opener has gone"; fault injection (not committed): the focus line commented →
+  that test fails, restored → passes.
+- **F4 (nit)** — the name placeholder (a catalogue text) went into double quotes unescaped.
+  Change: `doubleQuoted` escapes `\`, `"`, `$` and the backtick; unit tests for it and for a
+  `joinCommand` with `N" $(x)`. The scenario's `"<Your Name>"` is unchanged.
+- **F5 (nit)** — spec-008 §6 said "an email the page read" while the check rebuilds the command
+  for every string value read. Change: the spec, the `strings.ts` comment and `test/README.md` say
+  "a string value the page read (the email is one)"; the 2026-10-13 Process Note records it (F5).
+- **F6 (nit)** — `NO_INITIALS` is exported from `web/src/project/model.ts` and imported by
+  `test/e2e/support/strings.ts` (no copy).
+- **F7 (nit)** — a D35-8 component case for *No identity* (no badge button, no *How to join*);
+  the dialog has `aria-describedby` on the intro sentence (asserted). `rules.css` stays imported
+  by `HowToJoin.tsx`: `RoleChips` is the DNA view's component and its styles live there; moving
+  them to a shared file would touch task-019's CSS for no behaviour change.
+
+Checks after the fixes (HEAD `2dedc34`):
+
+| Gate | Result | Load |
+|------|--------|------|
+| `test/web/project/` | 71 passed | — |
+| `npm run typecheck`, `npm run lint`, `npm run format:check` | clean | — |
+| `check_tasks.py v0.2`; public-text check | OK; 67 passed | — |
+| `npm run test:coverage` | 123 files passed, 1 skipped; **2064 passed / 1 skipped**; statements 96.72 %, branches 91.06 %, functions 97.45 %, lines 98.38 % (`HowToJoin.tsx` 91.8 % / 84.9 %) | 4.6 → 22.7 |
+| `npm run test:e2e -- how-to-join.spec.ts accessibility.spec.ts harness/a11y-support.spec.ts` (three engines) | **51 passed**, 0 failed; 4.4 min | 17.4 → 21.3 |
+| `npm run test:e2e:chromium` (whole suite) | **137 passed**, 0 failed; 7.8 min | → 18.5 |
+| `npm run test:timing` | skipped (load ≥ 12) | — |
