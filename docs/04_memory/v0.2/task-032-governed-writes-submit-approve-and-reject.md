@@ -261,3 +261,54 @@ D32-8 (a); D32-9 (a); D32-10 (a). Approved specs and ADRs are amended in place w
 Process Note (2026-10-14). The two WingFoil findings are written on this branch as
 `docs/wingfoil-feedback/` notes and `wingfoil-cli` *Known behaviours* entries. The shared shapes are
 fixed as listed above; shared files stay append-only.
+
+### red / green / refactor (2026-10-14)
+
+- **Contracts first (RP-43)** — `31a9ae2`: `element.submit.request`, `element.decision.request`,
+  `write.response` schemas, `contracts/src/writes.ts` (one appended export line in
+  `contracts/src/index.ts`), `test/contracts/api-writes-schema.test.ts`. A first draft of the reason
+  pattern (`\S` between `[^\u0000]*`) accepted a NUL (`\S` matches it); the test caught it and
+  the pattern now uses `[^\u0000\s]`.
+- **Characterisation** — `92acf1d`: `test/server/cli/governed-verbs.test.ts`. One finding changed
+  the design note: on an edit hidden by `assume-unchanged`, `memory approve` **commits it and then
+  exits 1** (its post-commit scope check), leaving the commit; `memory submit` commits it with exit
+  0. Both are W-28 / F-023; the reason defects are W-29 / F-024.
+- **Red** — `ec8b83a`: `test/server/http/element-writes.test.ts` (did not load: no module).
+- **Green** — `42e2ad6`: `server/src/writes/governed.ts` (`GovernedWrites`, `GOVERNED_VERBS`,
+  `WritePushPort` + `PUSH_OFF`, `reasonRefusal`, `isWriteSubject`), `server/src/http/element-writes.ts`
+  (`ELEMENT_WRITE_PATHS`, `registerElementWriteRoutes`), `GitReads.sameBlobEverywhere` /
+  `commitsSince` and `hash-object` in `GIT_ALLOWED_SUBCOMMANDS` (`server/src/git/git.ts`),
+  `ProjectSnapshot.lockKey` / `freshStatus` / `sameBlobEverywhere` / `commitsSince` / `cli()` and
+  the realpath of the common directory passed by `Snapshots`; `start.ts`: the one `writeLock`
+  shared by `ProjectList` and the routes, one appended registration. `test/launcher/element-writes.test.ts`
+  (bin) and the appended `local-security.test.ts` block. Red checks: with the blob comparison
+  removed, the three hidden-edit tests fail (assume-unchanged, skip-worktree, `core.ignoreStat`);
+  with the registration line commented out, the bin test fails. The local-security rows pass
+  without the routes too (guards before routing, 404 for an unknown route) — as in task-030.
+- `3c9c3f9`: `test/server/git/git.test.ts` (appended), `test/server/writes/governed.test.ts`,
+  `scripts/action-log-ratio.mjs` with `test/scripts/action-log-ratio.test.ts` (D32-9; git runs with
+  `--end-of-options` before the range).
+- `773ece2`: spec-004 (§3 bounds, §4 row 7 and the rows-1–6 / `:eid` / lock-key text, §5 commits
+  and the `cli-refused` row) and adr-001 D5 amended in place with dated Process Notes; `wingfoil-cli`
+  1.10 (W-28, W-29); `docs/wingfoil-feedback/` F-023, F-024 and their ledger rows; `test/README.md`
+  0.31.
+- Deviations from the design: the push port is named `WritePushPort` (the contract type
+  `WritePush` is the `push` body shape — one name could not be both); the `write` event is published
+  after the lock is released (the snapshot has already moved to the new state, checked by the
+  tests). Row 5 with a failed `dna show` matches no member → 403 `not-in-team`, as the header
+  shows it (`readOnly: not-in-team`).
+
+### checks (2026-10-14, HEAD before this note `773ece2`)
+
+| Gate | Result | Load |
+|------|--------|------|
+| `npm run typecheck`, `npm run lint`, `npm run format:check` | clean | 19.8 |
+| `npm run docs:api` | OK | — |
+| `check_tasks.py v0.2` | OK | — |
+| `npm run test:coverage` (includes the public-text check) | 135 files passed, 1 skipped; **2374 passed / 1 skipped**; statements 96.64 %, branches 91.09 %, functions 97.29 %, lines 98.30 % (`governed.ts` 89.5 % statements) | 19.8 → 24.4 |
+| `npm run test:e2e:chromium` (regression; this task has no e2e spec, W0-9) | **137 passed** (12.8 min) | 23.8 → 25.8 |
+| `npm run test:smoke` (`start.ts` changed) | **4/4 passed** | 25.8 → 21.5 |
+| `npm run test:timing` | **skipped**: load ≥ 12 | 21.5 |
+
+No console of this worktree left running; no `wfui-task-032-*` entry left in the system temporary
+directory.
