@@ -1,6 +1,7 @@
 // The dogfooding ratio of TT-SEC-10 (REQ-SEC-10, RP-45, task-032 D32-9): of the approve and reject
-// commits of a range of this repository's history (first parent, the `wf(<type>): approve|reject
-// <id> …` subjects WingFoil writes, W-15), how many have their hash in the action log of a WingFoil
+// commits of a range of this repository's history (every commit of the range, including those of
+// task branches merged with `--no-ff`; the `wf(<type>): approve|reject <id> …` subjects WingFoil
+// writes, W-15), how many have their hash in the action log of a WingFoil
 // UI state file (spec-006 §2 `actionLog`). Hand transitions are not counted (RP-13).
 //
 //   node scripts/action-log-ratio.mjs --state <state.json> <rev-range> [--json] [--repo <folder>]
@@ -48,7 +49,7 @@ try {
 let out;
 try {
   // `--end-of-options`: the range is never read as an option.
-  out = execFileSync('git', ['log', '--first-parent', '--format=%H%x1f%s', '--end-of-options', options.range], {
+  out = execFileSync('git', ['log', '--format=%H%x1f%s', '--end-of-options', options.range], {
     cwd: options.repo,
     encoding: 'utf8',
     stdio: ['ignore', 'pipe', 'pipe'],

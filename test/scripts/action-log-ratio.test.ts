@@ -92,3 +92,44 @@ describe('scripts/action-log-ratio.mjs', () => {
     expect(res.code).toBe(2);
   });
 });
+
+// Review F1: decisions made on a task branch merged with `--no-ff` are not on the first-parent
+// path of `main`; they are counted all the same.
+describe('scripts/action-log-ratio.mjs — a task branch merged with --no-ff', () => {
+  it('counts the decision commits of the merged branch, logged and unlogged', async () => {
+    const side = path.join(ws.dir, 'side');
+    await mkdir(side);
+    const g = (args: string[]) => git(side, args, env);
+    const at = async () => (await g(['rev-parse', 'HEAD'])).stdout.trim();
+    const step = async (subject: string, content: string) => {
+      await writeFile(path.join(side, 'f.md'), `${content}\n`);
+      await g(['add', 'f.md']);
+      await g(['commit', '--quiet', '-m', subject]);
+      return at();
+    };
+    await g(['init', '--quiet', '--initial-branch=main']);
+    await g(['config', 'user.email', 'alex@example.test']);
+    await g(['config', 'user.name', 'Alex']);
+    const start = await step('start', 'start');
+    await g(['switch', '--quiet', '-c', 'task/x']);
+    const approved = await step('wf(task): approve task-001-a [in-review → approved]', 'a');
+    const rejected = await step('wf(task): reject task-002-b [in-review → in-progress]', 'b');
+    await g(['switch', '--quiet', 'main']);
+    await writeFile(path.join(side, 'g.md'), 'main\n');
+    await g(['add', 'g.md']);
+    await g(['commit', '--quiet', '-m', 'docs: on main']);
+    await g(['merge', '--quiet', '--no-ff', '-m', 'Merge task/x', 'task/x']);
+    const file = await state([approved]);
+    const res = await run(process.execPath, [SCRIPT, '--json', '--state', file, `${start}..main`], {
+      cwd: side,
+      env,
+    });
+    expect(JSON.parse(res.stdout)).toEqual({
+      range: `${start}..main`,
+      total: 2,
+      logged: 1,
+      ratio: 0.5,
+      unlogged: [rejected],
+    });
+  });
+});

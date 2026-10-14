@@ -237,7 +237,8 @@ e2e: none in this task (no screen). Closure table:
   write answers 200 (the commit exists); the failure is logged by kind; on a read-only store the
   entries stay in memory (D30-5); (b) 500 `internal` although the commit was made.
 - **D32-9 — ratio script interface.** (a) ★ `node scripts/action-log-ratio.mjs --state <file>
-  <rev-range>`: counts the first-parent `wf(<type>): approve|reject <id>` commits in the range,
+  <rev-range>`: counts the `wf(<type>): approve|reject <id>` commits in the range (all of them, not
+  only the first parent: review F1 — decisions made on task branches merged with `--no-ff`),
   prints `<logged>/<total> (<pct> %)` and the unlogged shas, `--json` for a machine form; (b) the
   state file resolved as the server does (imports `server/dist`, needs a build).
 - **D32-10 — unknown `:eid`.** (a) ★ 404 `not-found` after row 6, looked up in the state's
