@@ -452,3 +452,28 @@ Independent review round 2 **FAIL** (1 major, 2 minor, 2 nits). Changes:
 | `npm run test:timing` | skipped (load 12.2 ≥ 12 after the suites) | 12.2 |
 
 No `wfui-task-032-*` entry left in the system temporary directory.
+
+### review (round 3) and merge of `main` before submit (2026-10-14)
+
+- Independent review round 3 on `bd2a1fa`: **PASS** (N1–N5 closed; W2-4 and W2-5 paths correct);
+  one nit — the `node:path` import moved to the top of `server/src/writes/governed.ts`
+  (`c1803ae`, by the coordinator).
+- Adversarial security review round 3 on `bd2a1fa`: **PASS** — R1 reproduced three times (slow
+  clean filter, untracked duplicate created mid-write) → 500 `write-incomplete` with the
+  repo-relative `detail.file` and `detail.commit`, action log +0; R2 triggered by a CLI timeout
+  after the commit and by the CLI's post-commit check → 500 `write-incomplete` with
+  `detail.commit`, action log +1; no reason marker and no scratch path in the body or the console
+  log. Rounds: independent 3, adversarial 3 (RP-47).
+- `main` (`2458a45`: bug-011 ingest and absorption into task-036) merged into the branch
+  (`e3d84ab`), no conflict. Gates on the merge:
+
+| Gate | Result | Load |
+|------|--------|------|
+| `npm run typecheck`, `npm run lint`, `npm run format:check`, `npm run docs:api`, `check_tasks.py v0.2` | clean / OK | — |
+| `npm run test:coverage` | 135 files passed, 1 skipped; **2413 passed / 1 skipped**; statements 96.57 %, branches 91.12 % | → 20.7 |
+| `npm run test:e2e:chromium` | **137 passed** (11.0 min) | → 24.6 |
+| `npm run test:smoke` | **4/4 passed** | → 19.0 |
+| `npm run test:timing` | skipped (load ≥ 12) | 19.0 |
+
+  The task has no e2e spec of its own (its scenarios close in task-037 and task-038), so no
+  three-engine run. No console and no `wfui-*` entry left behind.
