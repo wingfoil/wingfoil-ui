@@ -468,3 +468,21 @@ and `routes/today.tsx` changed outside tests: `test:coverage` not re-run.
   Firefox.
 - `npm run test:e2e:chromium` (whole suite) **194 passed**, 0 failed, 13.9 min (load → 30.1).
 - e2e closure: the X-06.4 / X-09.1 row above names the per-screen tests; the scenario ids are kept.
+
+### reviews and merge of `main` before submit (2026-10-14)
+
+- Independent review: round 1 FAIL (F1 major: false "Requires you updated" announcements; F2
+  minor; F4, F5 nits; F3 → bug-011), round 2 **PASS** (`8b6ca48`), round 3 on the bug-011 fix
+  **PASS** (`41d7367`; the reviewer re-ran `accessibility.spec.ts` on three engines: 138 passed).
+- `main` (`88d1bdf`: task-032 merged) merged into the branch (`01cebc9`). The only conflict was
+  the `test/README.md` version line: 0.31 stays task-032's, this task's entry becomes **0.32**
+  (the "0.31" mentions above refer to it). Gates on the merge:
+
+| Gate | Result | Load |
+|------|--------|------|
+| `npm run typecheck`, `npm run lint`, `npm run format:check`, `npm run docs:api`, `check_tasks.py v0.2` | clean / OK | — |
+| `npm run test:coverage` | 137 files passed, 1 skipped; **2439 passed / 1 skipped**; statements 96.65 %, branches 91.38 % | → 19.6 |
+| `npm run test:e2e --` today, accessibility, add-project, projects, memory-list, element-panel, no-commit (three engines) | **366 passed**, 0 failed (18.8 min) | → 20.5 |
+| `npm run test:timing` | passed earlier on the branch (TT-PERF-01 p95 110 ms); skipped on the merge (load ≥ 12) | 20.5 |
+
+  No console and no `wfui-*` entry left behind.
