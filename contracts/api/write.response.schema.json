@@ -33,7 +33,7 @@
           "enum": ["pushed", "off", "failed"]
         },
         "code": {
-          "description": "On `failed`: a spec-010 §5 code (refused before git ran) or `push-timeout`.",
+          "description": "On `failed`: a spec-010 §5 code (refused before git ran), `push-timeout` (killed after 60 s) or `internal` (an unexpected error before or around the push, task-034 W4-4).",
           "type": "string"
         },
         "message": { "description": "On `failed`: git's message, verbatim.", "type": "string" }

@@ -115,11 +115,15 @@ describe('task-034 — sync.fetch.lastError.code (D34-9) and refspec-outside-rem
     expect(repository(withFetchError({ code: 'fetch-timeout', at: AT }))).toBe(false);
   });
 
-  it('refspec-outside-remotes is a fetch refusal only, never an update error', () => {
+  it('W4-3, W4-9: update.lastError accepts refspec-outside-remotes and merge-not-fast-forward', () => {
+    for (const code of ['refspec-outside-remotes', 'merge-not-fast-forward'] as const) {
+      const typed: RepositoryStatus = { ...STATUS, sync: { ...STATUS.sync, update: { lastError: { code, at: AT } } } };
+      expect(repository(typed), `${code} ${JSON.stringify(repository.errors)}`).toBe(true);
+    }
     expect(
       repository({
         ...STATUS,
-        sync: { ...STATUS.sync, update: { lastError: { code: 'refspec-outside-remotes', at: AT } } },
+        sync: { ...STATUS.sync, update: { lastError: { code: 'config-in-worktree', at: AT } } },
       }),
     ).toBe(false);
   });

@@ -28,7 +28,10 @@ export type WritePushStatus = 'pushed' | 'off' | 'failed';
 /** The `push` part of a write response. */
 export interface WritePush {
   status: WritePushStatus;
-  /** On `failed`: a spec-010 §5 code or `push-timeout`, rendered from the catalogue. */
+  /**
+   * On `failed`: a spec-010 §5 code, `push-timeout` or `internal` (an unexpected error, task-034
+   * W4-4), rendered from the catalogue.
+   */
   code?: string;
   /** On `failed`: git's message, verbatim. */
   message?: string;

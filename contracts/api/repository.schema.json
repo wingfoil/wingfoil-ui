@@ -2,7 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://wingfoil-ui.local/contracts/api/repository.schema.json",
   "title": "Repository status of GET /api/p/:pid",
-  "description": "spec-010 §3: the v0.1 fields (state, head, localChanges) plus the branch, the copy state against the remote upstream (§1), ahead/behind (0 when unknown), the upstream's name and the sync status kept in memory since the server start (§3, §5). Messages never hold a local absolute path (task-033 D33-5). A fetch error may carry code fetch-timeout (task-034 D34-9).",
+  "description": "spec-010 §3: the v0.1 fields (state, head, localChanges) plus the branch, the copy state against the remote upstream (§1), ahead/behind (0 when unknown), the upstream's name and the sync status kept in memory since the server start (§3, §5). Messages never hold a local absolute path (task-033 D33-5). A fetch error may carry code fetch-timeout (task-034 D34-9); an update error refspec-outside-remotes (W4-3) or merge-not-fast-forward (an automatic merge that exited 0 without fast-forwarding, W4-9).",
   "type": "object",
   "required": ["state", "head", "localChanges", "branch", "copy", "ahead", "behind", "upstream", "sync"],
   "properties": {
@@ -66,7 +66,9 @@
                         "diverged",
                         "local-changes-in-the-way",
                         "remote-not-owned",
-                        "remote-unreadable"
+                        "remote-unreadable",
+                        "refspec-outside-remotes",
+                        "merge-not-fast-forward"
                       ]
                     },
                     "detail": { "$ref": "#/definitions/files" },

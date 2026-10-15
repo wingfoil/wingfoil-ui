@@ -50,7 +50,11 @@ export interface SyncError {
 
 /** The last refused or failed update (manual or automatic). */
 export interface UpdateSyncError {
-  code: Exclude<GitTransportRefusalCode, 'no-fetch-target' | 'refspec-outside-remotes'> | 'git-refused';
+  code:
+    | Exclude<GitTransportRefusalCode, 'no-fetch-target'>
+    | 'git-refused'
+    /** An automatic merge that exited 0 without fast-forwarding (task-034 W4-9). */
+    | 'merge-not-fast-forward';
   /** `local-changes-in-the-way`: the files in the way, relative to the project. */
   detail?: { files: string[] };
   /** `git-refused`: git's message (local paths redacted). */
