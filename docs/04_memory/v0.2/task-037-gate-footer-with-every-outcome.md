@@ -473,3 +473,31 @@ Checks after review round 1 (HEAD `5dc48c8`):
 | `npm run test:timing` | skipped (load ≥ 12) | 27.4 |
 
 No console left, no `wfui-*` entry in the system temporary directory.
+
+### review round 2 (2026-10-15)
+
+Independent review: **CHANGES REQUESTED** (round-1 fixes verified; 1 major, 2 nits). Changes
+(`918c81a`); red first: the three new `gate-footer.test.tsx` cases failed with `ElementFooter.tsx`
+at `01220c8` (fault injection, not committed), and pass on the fix.
+
+- **F12 (major)** — `decidedFrom` was never reset (`ElementFooter` stays mounted per element): an
+  element coming back to the status a decision was made from (a reject then a new submit, a live
+  refresh) kept every outcome disabled with no reason. Change: the `decided` flag lives in the gate
+  footer, keyed by id and status, so a new state resets it (F4 still holds: a refetch answering the
+  old state keeps the outcomes disabled). Test: approve, refetch to the final state, a later
+  refetch back to the gate → outcomes enabled.
+- **F13 (nit)** — an Approve click that gave no focus did not restore the default after the
+  reject rule (D37-4). Change: the click path restores it and sends nothing (mirror of F1). Test
+  with `fireEvent.click`.
+- **F14 (nit)** — the refusal reused `.element-footer` (two nodes for a `.element-footer` locator).
+  Change: its own class `element-footer-alert` with its band styling in `element.css`. Test.
+
+Checks (HEAD `918c81a`):
+
+| Gate | Result | Load |
+|------|--------|------|
+| `npm run typecheck`, `npm run lint`, `npm run format:check` | clean | — |
+| `npm run test:coverage` | **2488 passed / 1 skipped**; statements 96.72 %, branches 91.65 % | 7.5 → 24.2 |
+| `npm run test:e2e -- gate-footer.spec.ts element-panel.spec.ts` (three engines) | **87 passed**, 0 failed (5.8 min) | 24.2 → 27.4 |
+
+No console left, no `wfui-*` entry in the system temporary directory.
