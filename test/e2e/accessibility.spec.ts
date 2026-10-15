@@ -214,8 +214,13 @@ test.describe('US-X-09 — externalised strings', () => {
       // The screen reloads the page: only what it read itself counts as its project data.
       data.reset();
       await screen.open(page, c);
-      const outside = (await textsOutsideCatalogue(page, data)).map((text) => `${screen.name} — ${text}`);
-      expect(outside).toEqual([]);
+      // Retried within a cold read (bug-015): a text the page shows before the recorder has its
+      // answer passes once the answer is learnt; what stays flagged fails with the recorder's causes.
+      await expect
+        .poll(async () => (await textsOutsideCatalogue(page, data)).map((text) => `${screen.name} — ${text}`), {
+          timeout: COLD_READ_MS,
+        })
+        .toEqual([]);
     });
   }
 
