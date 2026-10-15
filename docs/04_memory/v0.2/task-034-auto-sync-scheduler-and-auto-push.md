@@ -222,8 +222,8 @@ failure → `updateFailed(git-refused, redacted message)`.
 `timeoutMs` 60 000, no cancel signal, the manual push's environment (hooks per RP-23: the user just
 acted); exit 0 → `pushed`; `timeout` → `{failed, code: "push-timeout"}`; other → `{failed,
 message}` (redacted). Then `check()` (copy in-sync → `repo`). Log `{project, op: 'auto-push',
-ended, exitCode}` only. Never throws (any error → `{failed, code: "internal"}`? no: logged by kind,
-`{failed, message: "git ended: …"}` as task-033's fallback text).
+ended, exitCode}` only. Never throws: an unexpected error (a git read under the lock) is logged by
+kind and answered `{failed, message}` with task-033's fallback text (`git ended: …`).
 
 #### File layout (planned)
 
