@@ -581,3 +581,8 @@ minors). Changes:
 - Relative `PATH` entries still reach the non-transport children (the `wingfoil` CLI and the git
   reads), as before (`adr-001` D2: the project's own CLI runs from its repository anyway).
 
+
+Checks after review round 3 (HEAD before this note `c969ca5`): `typecheck`, `lint`, `format:check`
+clean; `docs:api` 0 warnings; `check_tasks.py v0.2` OK; `test:coverage` 146 files passed, 1
+skipped, **2659 passed / 1 skipped** (statements 96.60 %, branches 91.22 %; the public-text check
+included), load 9.2 → 28.3. No web or e2e code changed in this round, so no e2e run.
