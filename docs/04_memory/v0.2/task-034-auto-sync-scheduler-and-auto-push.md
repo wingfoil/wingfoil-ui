@@ -548,3 +548,25 @@ All as recommended:
   `sync.update.lastError` where it fits), catalogue `error.configInWorktree`.
 - **R2-1** — the `refspec-outside-remotes` text is neutral (fetch or update); **R2-4** — CHANGELOG
   re-wrap.
+
+### review round 2 — changes (2026-10-15)
+
+| Id | Red | Fix | What |
+|----|-----|-----|------|
+| contracts (RP-43) | `1e854df` | `c3a285f` | `sync.fetch.lastError.code` + `config-in-worktree`; `update.lastError.code` + `config-in-worktree`, `config-uses-incoming-path` |
+| catalogue, R2-1, R2-4 | `f8fea68` | `c4b3bca` | `error.configInWorktree`, `error.configUsesIncomingPath`, `MESSAGES` rows; `refspec-outside-remotes` text "Not fetched or updated: … — use git in a terminal" (catalogue, spec-010 §5, CHANGELOG); CHANGELOG bug-014 entry re-wrapped |
+| W4-13 (S2-3, R2-3) | `1a84b79` | `dc00050` | `ProcessResult.drained`; the runner logs `{op, kind: 'pipes-held'}` (launcher passes its logger); `GitReads`, the CLI adapter (`CliProcessError`) and `readGitEmail` refuse a drained result; clone and transport read only the exit status and stderr |
+| empty merge values | `2250a9c` | `98d310e` | `config -z --get-all`: empty values counted (an empty second `branch.<b>.merge` → `no-upstream`) |
+| W4-14 (R2-2) | `f141fbb` | `531a73b` | `config-in-worktree` recorded as `sync.fetch.lastError` (empty message) and, when it shows before the merge, `sync.update.lastError` |
+| W4-11 (S2-1) | `5a9013a` | `7e52c17` | `include.path` / `includeif.<cond>.path` directives of any scope resolved as git does (folder of the holding file, `~/`, `~user/` via `expandUser`, the nearest existing ancestor realpath'd) → inside the working tree outside the git directories = `config-in-worktree`; tests: a missing file, `onbranch:` of another branch, `hasconfig:` not met, a global include of a missing file of the working tree |
+| W4-12 (a) (S2-2) | `0a3e9ec` | `2080dc0` | `configUsesPaths`: tokens of every configuration value vs `incomingPaths()` → `config-uses-incoming-path`, **recorded** as `sync.update.lastError` and logged; tests: `filter.<x>.smudge = ./x`, `credential.helper = !x --store`, `core.sshCommand = sh "x" -v`, and a non-incoming path still updates |
+| stop | `d43ef2e` | `21bb83e` | the stop logs `{op: 'stop', code: 'waiting-for-update'}` "send the signal again to stop at once"; user guide says so |
+| docs | — | `b45d7e9` | spec-010 (§3, §6, Process Note), adr-001 D5 note, user guide (0.10 history kept) |
+
+Checks (HEAD before this note `b45d7e9`): `typecheck`, `lint`, `format:check` clean; `docs:api`,
+`check_tasks.py v0.2` OK; `test:coverage` 153 files passed, 1 skipped, **2854 passed / 1
+skipped** (statements 96.42 %, branches 91.02 %), load 5 → 13; `test:smoke` 4/4 (load 10);
+`test:timing` **passed** (load 9.5 → 4.5): Vitest 5/5 — TT-PERF-07 10/10 trials 59.8–60.0 s
+(each remote commit lands right after a tick: the worst case, within 65 s), Y-02.3 0 `git fetch`
+in 120 s — and Playwright 18/18; `test:e2e:chromium` **223 passed** (7.9 min, load → 16.5). No
+console and no `wfui-task-034-*` entry left.
