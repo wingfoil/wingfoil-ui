@@ -240,7 +240,10 @@ export class GitTransport {
       return { args: automatic ? mergeArgs(branch) : pullArgs(branch, remote), urls, remote };
     }
     // push
-    const mergeRef = await snapshot.git.configValue(`branch.${state.branch ?? ''}.merge`);
+    // Every value: git's `@{u}` takes the first, `config --get` the last — exactly one, or none is
+    // trusted as the destination (security review S2, W4-6).
+    const mergeRefs = await snapshot.git.configValues(`branch.${state.branch ?? ''}.merge`);
+    const mergeRef = mergeRefs.length === 1 ? mergeRefs[0] : undefined;
     if (mergeRef === undefined || !isMergeRef(mergeRef)) return refuse('no-upstream');
     if (state.ahead === 0) return { args: undefined, urls: [] };
     // Every push URL: a push goes to each of them (review round 1 S2).
