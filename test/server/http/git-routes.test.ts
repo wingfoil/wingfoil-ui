@@ -161,7 +161,8 @@ describe('fetch (spec-010 §4, §5, RP-36, RP-40)', () => {
     const log: string[] = [];
     const c = await start({ log });
     await c.warm();
-    // A folder of the user's that is not a repository (a missing local path fails closed, D33-1).
+    // A folder of the user's that is not a repository: git refuses it (a missing local path answers
+    // 409 remote-unreadable instead, review round 2 F9).
     const missing = path.join(c.fx.dir, `${SECRET}.git`);
     await mkdir(missing);
     await git(c.fx.dir, ['remote', 'set-url', 'origin', missing], c.fx.env);

@@ -58,7 +58,8 @@
                         "no-upstream",
                         "diverged",
                         "local-changes-in-the-way",
-                        "remote-not-owned"
+                        "remote-not-owned",
+                        "remote-unreadable"
                       ]
                     },
                     "detail": { "$ref": "#/definitions/files" },

@@ -521,3 +521,20 @@ README.
 | `npm run test:timing` | skipped (load ≥ 12) | 15.1 |
 
 No console left running; no `wfui-task-033-*` entry in the system temporary directory.
+
+### review round 2 (2026-10-15)
+
+Independent and adversarial reviews round 2 **CHANGES REQUESTED** (every round-1 fix verified).
+Decided by the approver (2026-10-15), each fixed with a red test first (the `test(server): red —
+review round 2` commit):
+
+| Id | Decision and change | Test |
+|----|---------------------|------|
+| F9 | a local remote or clone source no folder of which git could read is refused with the new code `remote-unreadable` (409 on fetch, update, push; 422 on a clone; catalogue `error.remoteUnreadable`), not `remote-not-owned`; `localRemoteProblem` replaces `foreignLocalRemote` and answers which (another user's folder wins over an unreadable URL); schemas `git.refusal`, `projects.refusal`, `repository` (`update.lastError.code`), `GitTransportRefusalCode`, `ProjectRefusalCode`. The git-refused test keeps an existing folder that is not a repository (git refuses it); a missing local path now answers `remote-unreadable` | `local-remote.test.ts` › F9; `git-routes.test.ts` › F9 (no "another user" text); `projects.test.ts` › F9 |
+| F10, S11 | `~` (the git environment's `HOME`) and `~user` (the user database: `os.userInfo()` for the server's own user, `/etc/passwd` for another — a user known only through NSS/LDAP is not expandable) expanded as git's `enter_repo` for fetch, update, push; not expandable → `remote-unreadable`; the clone does not expand (`git clone` takes the path as written) | `local-remote.test.ts` › F10, S11, clone; `git-routes.test.ts` › F10 (own `~/…` → 200), S11 (`~root` → 409 `remote-not-owned`; a committed `~root/x.git` folder does not bypass) |
+| S10 | `X::` is a remote helper only when `X` matches `^[A-Za-z][A-Za-z0-9+.-]*` from the start; anything else follows git's local rule | `local-remote.test.ts` › `own/u::sr`; `git-routes.test.ts` › S10 (R1 redaction covers its path) |
+| S12 | the clone's environment keeps the absolute `PATH` entries only (`cloneEnv`, `absolutePath`) | `clone.test.ts` › S12 (a relative `.` in `PATH`, the user's LFS filter, a committed executable `git-lfs`: no marker after the clone; red: the marker was written) |
+| F11, S13 | the scheme-less `user:password@` is removed only after the start, a space or a quote, with a user part of `[A-Za-z0-9._~%+-]`: `unable to look up u:tok@host` → `host`; `x,u:tok@host` and `[u:tok@host]` kept; `Author: a:b@c.d` → `Author: c.d` | `redact.test.ts` › F11/S13 |
+
+Docs: spec-010 §4, §5, §8, spec-006 §3, spec-004 §5 (Process Notes 2026-10-15).
+

@@ -89,7 +89,7 @@ describe.runIf(posix)('localRemoteProblem', () => {
     const top = path.join(root, 'top');
     expect(await check(['sibling.git'], top)).toBeUndefined();
     expect(await check(['outside.git'], top)).toBe('remote-not-owned');
-    expect(await check(['../top/outside'], path.join(top, 'proj'))).toBe('remote-not-owned');
+    expect(await check(['../outside'], path.join(top, 'proj'))).toBe('remote-not-owned');
   });
 
   it('S5: `..` after a symbolic link is resolved on the file system, not lexically', async () => {

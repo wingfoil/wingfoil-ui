@@ -43,6 +43,8 @@ const MESSAGES = defineMessages({
   diverged: { id: 'error.diverged' },
   'local-changes-in-the-way': { id: 'error.localChangesInTheWay' },
   'remote-not-owned': { id: 'error.remoteNotOwned' },
+  // Review round 2 F9: a local remote or clone source git cannot read.
+  'remote-unreadable': { id: 'error.remoteUnreadable' },
   // Client-side: no answer at all (W3-12).
   unreachable: { id: 'error.unreachable' },
 });

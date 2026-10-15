@@ -26,7 +26,7 @@ import type {
 import { fetchTarget, isMergeRef } from '../git/copy.js';
 import type { ProcessResult } from '../process/runner.js';
 import type { GitReadError } from '../git/git.js';
-import { foreignLocalRemote, localPathOf } from '../git/local-remote.js';
+import { localPathOf, localRemoteProblem } from '../git/local-remote.js';
 import { redactLocalPaths } from '../git/redact.js';
 import { repositoryStatus } from '../git/sync-status.js';
 import { fetchArgs, pullArgs, pushArgs, sshInEnvironment, transportEnv } from '../git/transport.js';
@@ -67,6 +67,7 @@ const MESSAGES: Record<GitTransportRefusalCode, string> = {
   diverged: 'Your copy and the remote have diverged',
   'local-changes-in-the-way': 'Local changes are in the way',
   'remote-not-owned': 'The local remote repository belongs to another user',
+  'remote-unreadable': 'Git cannot read the repository of this remote',
 };
 
 const notInTeam = (): GitOutcome => ({
@@ -200,7 +201,8 @@ export class GitTransport {
       const remote = fetchTarget(state, state.remotes);
       if (remote === undefined) return refuse('no-fetch-target');
       const urls = await snapshot.git.remoteUrls(remote);
-      if (await foreignLocalRemote(urls, snapshot.topLevel)) return refuse('remote-not-owned');
+      const local = await localRemoteProblem(urls, snapshot.topLevel, { ...this.home() });
+      if (local) return refuse(local);
       return { args: fetchArgs(remote), urls };
     }
     if (state.copy === 'detached') return refuse('detached-head');
@@ -214,7 +216,8 @@ export class GitTransport {
       if (inTheWay.length > 0)
         return refuse('local-changes-in-the-way', { files: relativeToProject(inTheWay, snapshot.prefix) });
       const urls = await snapshot.git.remoteUrls(remote);
-      if (await foreignLocalRemote(urls, snapshot.topLevel)) return refuse('remote-not-owned');
+      const local = await localRemoteProblem(urls, snapshot.topLevel, { ...this.home() });
+      if (local) return refuse(local);
       return { args: pullArgs(), urls };
     }
     // push
@@ -223,8 +226,14 @@ export class GitTransport {
     if (state.ahead === 0) return { args: undefined, urls: [] };
     // Every push URL: a push goes to each of them (review round 1 S2).
     const urls = await snapshot.git.remoteUrls(remote, true);
-    if (await foreignLocalRemote(urls, snapshot.topLevel)) return refuse('remote-not-owned');
+    const local = await localRemoteProblem(urls, snapshot.topLevel, { ...this.home() });
+    if (local) return refuse(local);
     return { args: pushArgs(remote, mergeRef), urls };
+  }
+
+  /** `~` as git sees it: the `HOME` of the transport's environment (review round 2 F10). */
+  private home(): { home?: string } {
+    return this.env.HOME ? { home: this.env.HOME } : {};
   }
 
   /**

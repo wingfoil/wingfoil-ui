@@ -22,7 +22,9 @@ export type GitTransportRefusalCode =
   | 'no-upstream'
   | 'diverged'
   | 'local-changes-in-the-way'
-  | 'remote-not-owned';
+  | 'remote-not-owned'
+  /** A local remote with no folder git could read (review round 2 F9). */
+  | 'remote-unreadable';
 
 /** Every code a git route answers with (`git.refusal.schema.json`). */
 export type GitRefusalCode =

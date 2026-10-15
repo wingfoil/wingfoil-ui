@@ -23,7 +23,7 @@ import os from 'node:os';
 import path from 'node:path';
 import type { Availability, ProjectEntry, ProjectListItem, ProjectRefusalCode } from '@wingfoil-ui/contracts';
 import { CliOutputError, CliRefusedError, WingfoilCli, type CliLogger } from '../cli/adapter.js';
-import { foreignLocalRemote } from '../git/local-remote.js';
+import { localRemoteProblem } from '../git/local-remote.js';
 import { CliNotFoundError, discoverCli, INSTALL_COMMAND } from '../cli/discovery.js';
 import type { EventBus } from '../events/bus.js';
 import { GitReadError, GitReads, resolveGit } from '../git/git.js';
@@ -243,8 +243,13 @@ export class ProjectList {
       const target = await CloneTarget.inspect(directory);
       if (!target) throw this.notEmpty(shown);
       // bug-010 (task-033 D33-1): a local repository another user owns is never cloned.
-      if (await foreignLocalRemote([url], target.existingParent)) {
+      // `git clone` takes a local path as written: no `~` expansion (review round 2 F10).
+      const local = await localRemoteProblem([url], target.existingParent, { expandUser: false });
+      if (local === 'remote-not-owned') {
         throw new ProjectRefusal('remote-not-owned', 'The local repository to clone belongs to another user');
+      }
+      if (local === 'remote-unreadable') {
+        throw new ProjectRefusal('remote-unreadable', 'Git cannot read the local repository to clone');
       }
       const known = new Set(listedBefore.map((p) => p.id));
       this.cloning.add(directory);

@@ -140,8 +140,11 @@ list is notified by the `projects` event (spec-004 §6).
   the same list (that variable, inherited from the server's environment, would override the
   settings: bug-013). A **local** source (any `file://` URL whatever its host, or a path) for which
   a folder git could open — `<p>/.git`, `<p>`, `<p>.git/.git`, `<p>.git`, a `gitdir:` file
-  followed — belongs to another user than the server's, or none can be read, is refused before
-  any git process
+  followed — belongs to another user than the server's is refused before any git process
+  (`remote-not-owned`); one no folder of which can be read is refused as `remote-unreadable`. A
+  leading `~` is not expanded: `git clone` takes a local path as written. The clone's `PATH` keeps
+  its absolute entries only (a relative one would run a program the clone just wrote, e.g. a
+  filter driver named by the user's configuration)
   (`remote-not-owned`; POSIX only — Windows has no owner id to compare): the class of
   CVE-2024-32004. The README names the minimum git version (2.43.4 / 2.45.1, or a distribution
   build with the fixes of CVE-2024-32004 and CVE-2024-32465), which the console does not check.
@@ -173,6 +176,7 @@ list is notified by the `projects` event (spec-004 §6).
 | `inside-state-dir` | `{ path }` — the clone target lies inside the state directory | §1 (no scenario) |
 | `credentials-in-url` | — : the clone URL carries credentials: an http(s), ftp(s) or `git://` URL with any userinfo (a user name, a token or a password), or an `ssh://` URL or scp-like address whose userinfo holds a password (`user:pass@`, a percent-encoded `:` included). A clone URL holding a control character (U+0000–U+001F, U+007F) is a malformed source: 400 `invalid-request` (spec-004 §5), nothing run, the URL not echoed. The address is judged as git uses it: every leading `<transport>::` prefix removed, leading whitespace trimmed, any number of `/` or `\` after `<scheme>:`. Checked right after the source validation, before any file-system, state or git work; nothing is cloned and the URL is never written to a command line, a file, the state or a log (REQ-SEC-09, bug-006). A plain login — `ssh://user@host/…`, scp-like `user@host:…` — is allowed | (no scenario) |
 | `git-refused` | — (`message` = git's message verbatim, spec-004 §5): a failed clone, or a folder with `.wingfoil/` that is not a git repository | S-07.1, S-07.3 |
+| `remote-unreadable` | — : a local clone source (a `file://` URL or a path) git cannot read: no folder git could open exists or can be read (review round 2 F9); nothing is cloned | (no scenario) |
 | `remote-not-owned` | — : a local clone source (a `file://` URL or a path) whose repository belongs to another user (bug-010, task-033 D33-1); nothing is cloned | (no scenario) |
 
 ### 4. Reads and writes
@@ -307,3 +311,6 @@ a project (REQ-SEC-09). The secret scan of REQ-SEC-09 runs over the state direct
   approver.
 - 2026-10-15 — review round 1 of task-033: §3 the owner check of a local clone source follows what
   git opens (every `file://` host, git's suffixes and `gitdir:`, fail closed).
+- 2026-10-15 — review round 2 of task-033 (decided by the approver): §3 `remote-unreadable` for a
+  local source git cannot read (F9); no `~` expansion on a clone (F10); the clone's `PATH` keeps
+  its absolute entries only (S12).

@@ -131,8 +131,12 @@ cancelled process group or the server) and `--no-optional-locks`.
   remote with no URL is the path of its name), every `file://` URL whatever its host, any string
   with no `:` or a `/` before its first `:`; git's suffixes `<p>/.git`, `<p>`, `<p>.git/.git`,
   `<p>.git` and a `gitdir:` file are followed; a relative path is resolved at the repository's
-  top level by the file system (no lexical `..` first); a local URL no folder of which can be read
-  is refused too (fail closed). POSIX only: Windows has no owner id to compare. The children of a
+  top level by the file system (no lexical `..` first); a leading `~` or `~user` is expanded as
+  git's `enter_repo` does (the git environment's `HOME`; a user's home folder from the user
+  database: `os.userInfo()` for the server's own user, `/etc/passwd` for another); `::` makes a
+  remote helper only after a name matching `^[A-Za-z][A-Za-z0-9+.-]*`. A local URL no folder of
+  which can be read, or whose `~user` cannot be expanded (a user known only through NSS/LDAP), is
+  refused with `remote-unreadable` (fail closed). POSIX only: Windows has no owner id to compare. The children of a
   transport command get the absolute entries of the server's `PATH` only (a relative entry would
   run a program of the repository: `ssh`, `git-remote-*`, a credential helper).
 - Accepted residual (S6, decided by the approver 2026-10-15): a push to a local remote runs
@@ -185,6 +189,7 @@ spec-008 §7):
 | `no-upstream` | — | update, push | "This branch has no upstream on the remote — set one with git in a terminal" |
 | `diverged` | — | update | "Cannot fast-forward: your copy and the remote have diverged — run git pull --rebase or git merge in a terminal" (Y-06.1) |
 | `local-changes-in-the-way` | `{ files }` | update | "Cannot fast-forward: local changes to {files} are in the way — commit or stash them in a terminal" (Y-06.2) |
+| `remote-unreadable` | — | fetch, update, push | "Git cannot read the repository of this remote: check its path with git in a terminal" (review round 2 F9) |
 | `remote-not-owned` | — | fetch, update, push | "The repository of this remote is a folder of another user of this computer: git could run that user's code, so WingFoil UI does not use it — use a repository you own" (bug-010) |
 
 `local-changes-in-the-way`: the files changed by the incoming commits
@@ -238,9 +243,9 @@ again with the next `repo` event (Y-04.2). The branch and the local changes are 
 
 | Route | Rows of spec-004 §4 | Then |
 |-------|---------------------|------|
-| `POST …/git/fetch` | 1–4 (no body) | §5 `no-remote`, `no-fetch-target`, `remote-not-owned` |
-| `POST …/git/update` | 1–5 | §5 (`remote-not-owned` included) |
-| `POST …/git/push` | 1–5 | §5 `no-remote`, `detached-head`, `no-upstream`, `remote-not-owned` |
+| `POST …/git/fetch` | 1–4 (no body) | §5 `no-remote`, `no-fetch-target`, `remote-not-owned`, `remote-unreadable` |
+| `POST …/git/update` | 1–5 | §5 (`remote-not-owned`, `remote-unreadable` included) |
+| `POST …/git/push` | 1–5 | §5 `no-remote`, `detached-head`, `no-upstream`, `remote-not-owned`, `remote-unreadable` |
 
 Fetch is allowed to an unidentified user (RP-14: it changes only remote-tracking refs, no branch
 and no file); update and push are refused with 403 `not-in-team` and start 0 processes — the
@@ -329,3 +334,7 @@ Rows 7–9 do not apply (no element).
   the `receive-pack` `gc --auto` of a push to a local remote is an accepted residual (R2); the
   transport's children get only the absolute `PATH` entries (R3); §8 `remote-not-owned` in the
   rows.
+- 2026-10-15 — review round 2 of task-033 (decided by the approver): §4 a local remote git cannot
+  read is refused with the new code `remote-unreadable` (F9), `~` and `~user` expanded as
+  `enter_repo` does before the owner check (F10, S11), the remote-helper prefix rule (S10); §5 and
+  §8 `remote-unreadable`.

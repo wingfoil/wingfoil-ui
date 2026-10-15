@@ -89,9 +89,9 @@ describe('the hooks path of a clone (bug-008)', () => {
     await runClone('file:///nowhere/kanban.git', target, {
       git: 'git',
       runner,
-      env: { GIT_ALLOW_PROTOCOL: 'ext:fd', PATH: 'x' },
+      env: { GIT_ALLOW_PROTOCOL: 'ext:fd', PATH: '/x' },
     });
-    expect(runner.requests[0]!.env).toMatchObject({ GIT_ALLOW_PROTOCOL: 'https:http:ssh:git:file', PATH: 'x' });
+    expect(runner.requests[0]!.env).toMatchObject({ GIT_ALLOW_PROTOCOL: 'https:http:ssh:git:file', PATH: '/x' });
   });
 
   it('F5: a real clone of an ext:: URL with GIT_ALLOW_PROTOCOL=ext in its environment is refused and runs nothing (bug-013)', async () => {

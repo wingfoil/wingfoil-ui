@@ -106,6 +106,7 @@
   "error.notWingfoil": "{source, select, clone {Not a WingFoil project: no .wingfoil/ folder in the cloned repository} other {Not a WingFoil project: no .wingfoil/ folder in {path}}}",
   "error.readError": "Cannot read {file}",
   "error.remoteNotOwned": "The repository of this remote is a folder of another user of this computer: git could run that user's code, so WingFoil UI does not use it — use a repository you own",
+  "error.remoteUnreadable": "Git cannot read the repository of this remote: check its path with git in a terminal",
   "error.staleCopy": "Your working copy is behind, diverged from or detached from its remote branch",
   "error.stateDirInsideProject": "The state directory {stateDir} of WingFoil UI lies inside the project {path}",
   "error.unauthenticated": "This page is no longer connected to the console",

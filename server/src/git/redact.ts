@@ -85,6 +85,7 @@ export function redactLocalPaths(text: string, roots: LocalRoots): string {
   out = out.replace(/\b([A-Za-z][A-Za-z0-9+.-]*:\/\/)[^\s/]*@/g, '$1');
   // `user:password@host` without a scheme (git's `unable to look up u:tok@host`); a plain e-mail
   // address (no `:`) stays.
-  out = out.replace(/(^|[\s'"(<=])[^\s/:@'"]+:[^\s/]*@(?=[A-Za-z0-9[])/g, '$1');
+  // Only after the start, a space or a quote (review round 2 F11, S13).
+  out = out.replace(/(^|[\s'"])[A-Za-z0-9._~%+-]+:[^\s/]*@(?=[A-Za-z0-9[])/g, '$1');
   return out.length > MAX_MESSAGE ? `${out.slice(0, MAX_MESSAGE)}…` : out;
 }

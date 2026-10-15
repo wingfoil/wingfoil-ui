@@ -45,7 +45,9 @@ export type ProjectRefusalCode =
   | 'git-refused'
   | 'credentials-in-url'
   /** A local repository to clone that another user owns (bug-010, task-033 D33-1). */
-  | 'remote-not-owned';
+  | 'remote-not-owned'
+  /** A local repository to clone that git cannot read (review round 2 F9). */
+  | 'remote-unreadable';
 
 /** The envelope of a refused add or clone (spec-004 §5); `detail` holds the catalogue arguments. */
 export interface ProjectRefusalBody {

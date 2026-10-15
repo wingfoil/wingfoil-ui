@@ -121,6 +121,7 @@ describe('git.refusal.schema.json (spec-010 §5, §8)', () => {
     'no-upstream',
     'diverged',
     'remote-not-owned',
+    'remote-unreadable',
     'git-refused',
     'internal',
   ])('accepts %s without detail', (code) => {
