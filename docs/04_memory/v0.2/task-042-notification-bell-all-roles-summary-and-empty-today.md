@@ -332,3 +332,30 @@ Checks (HEAD `4904a7a`): typecheck, lint, format:check, `docs:api`, `check_tasks
 `performance.spec.ts` (Chromium) **9 passed** (TT-PERF-01 2 runs p95 223 ms, first open 1 556 ms;
 load 138 — not representative). No shell/header layout change: the full Chromium run was not
 repeated. `test:timing` skipped (load ≥ 12).
+
+### review round 2 (2026-10-15)
+
+Independent review: **CHANGES REQUIRED** (R2-1 minor, a regression of the R2 fix; R2-2, R2-3 nits;
+R2-4 no action).
+
+- **R2-1** — the refusal alert of a summary switch stayed for the page's life. Red first
+  (`ee6679f`: the R1 test now also expects no alert after the header selector's successful
+  switch — failed), fix `6c22565`: the header's pattern — the header read that follows the refusal
+  is the baseline, the refusal is reset when the header is read again, and at the start of a new
+  switch. Deviation: the baseline is read from the query cache
+  (`getQueryState(projectHeaderQuery(pid).queryKey).dataUpdatedAt`), not from the rendered prop —
+  in jsdom the refusal rendered before the re-read header did, so the prop's value was the read
+  *before* the refusal and the alert vanished at once (seen with a debug trace, then removed).
+- **R2-3** (`eb30b47`) — the description of a summary switch is a `hidden` element
+  (`aria-describedby` resolves it; browse mode does not read it). The X-09.1 check still covers it:
+  `pageTexts` walks every text node of the body, hidden ones included.
+- **R2-2** — `npm run test:e2e -- notification-bell.spec.ts today.spec.ts accessibility.spec.ts`
+  (three engines): **245 passed, 1 failed** — Firefox "X-09.1 — …: memory list" flagged the type
+  filters that only `GET /config` declares (`adr`, `decision-log`, …) at load 158; re-run alone
+  (bug-004): `npx playwright test --project=firefox accessibility.spec.ts -g 'X-09.1'
+  --repeat-each=3` **69 passed** (the memory list screen 3/3), load 156. Reported to the
+  coordinator as a load-bound race of the X-09.1 data recorder (the `response` events against the
+  rendered page), not changed here.
+
+Checks (HEAD `eb30b47`): typecheck, lint, format:check clean; `test:coverage` 2739 passed, 1 skipped
+(statements 96.64 %, branches 91.41 %).
