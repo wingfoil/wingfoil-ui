@@ -212,7 +212,7 @@ function UpdateItem({
 }): ReactNode {
   const age = durationOf(line.timestamp, now);
   return (
-    <li className="bell-update">
+    <li className="bell-update" data-sha={line.sha}>
       <span className="bell-update-main">
         <Link
           className="bell-link bell-update-id"
