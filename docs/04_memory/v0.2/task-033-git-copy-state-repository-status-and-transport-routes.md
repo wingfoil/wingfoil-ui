@@ -2,7 +2,7 @@
 id: task-033-git-copy-state-repository-status-and-transport-routes
 type: task
 title: "Git copy state repository status and transport routes"
-status: in-review
+status: approved
 release: "v0.2"
 module: "server"             # optional — server | web | contracts (dna.yaml modules)
 priority: "high"           # optional — high | medium | low
