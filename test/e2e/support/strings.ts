@@ -25,12 +25,14 @@
  *   read (the email is one) and the key texts of its two placeholders — its words are WingFoil's CLI, never catalogue text.
  * - A frontmatter field name of the element panel's References (task-037 D37-13): the text of a
  *   `dt.field-name` inside `.drawer` is accepted only when it is a key of the `frontmatter` of a
- *   `GET /api/p/:pid/elements/:eid` answer read since `reset()` — the project's own field names.
+ *   `GET /api/p/:pid/elements/:eid` answer read since `reset()` that the panel lists (`fieldEntries`) —
+ *   the project's own field names.
  */
 import type { Page } from '@playwright/test';
 import { parse, TYPE, type MessageFormatElement } from '@formatjs/icu-messageformat-parser';
 import en from '../../../web/src/i18n/en.json' with { type: 'json' };
 import { joinCommand } from '../../../web/src/project/join.js';
+import { fieldEntries } from '../../../web/src/element/model.js';
 import { NO_INITIALS } from '../../../web/src/project/model.js';
 
 /** React Aria's own string (spec-008 §6 exception, W5-1). */
@@ -116,7 +118,8 @@ export function recordApiData(page: Page): DataRecorder {
         if (ELEMENT_READ.test(url.pathname)) {
           const frontmatter = (body as { frontmatter?: unknown } | null)?.frontmatter;
           if (frontmatter !== null && typeof frontmatter === 'object') {
-            for (const k of Object.keys(frontmatter)) fieldsInto.add(k);
+            // Only the fields the panel lists under References (review F11).
+            for (const e of fieldEntries(frontmatter as Record<string, unknown>)) fieldsInto.add(e.field);
           }
         }
       },
