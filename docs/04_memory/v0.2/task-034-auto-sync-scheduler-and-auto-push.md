@@ -445,3 +445,39 @@ expected fail, 1 skipped** (statements 96.54 %, branches 91.31 %; `auto-push.ts`
 `auto-sync.ts` 91.6 %), load 120 → 148; `test:smoke` 4/4 and `launcher/auto-sync.test.ts`
 3/3 at load 134. No web or e2e-visible change beyond one catalogue text, so no e2e run. No console
 or `wfui-task-034-*` entry left.
+
+#### Adversarial security review round 1 and decisions (approver, 2026-10-15; plan refs W4-3 … W4-10)
+
+Findings: **S1** (medium) incoming commits change the configuration through `include.path` /
+`includeIf` to a tracked file, and the next tick runs `remote.<r>.uploadpack`, `core.fsmonitor`,
+`filter.<x>.smudge`, `core.sshCommand`, a `!` credential helper or `core.gitProxy` unattended;
+**S2** (medium) the push destination read with `config --get branch.<b>.merge` takes the LAST
+value while `@{u}` takes the first; **S3** (low/medium) a remote without `url` in the
+configuration reads `remotes/<r>` (or `branches/<r>`) whose refspecs the prune guard did not see;
+**S4** (low) the runner settles on `close`: a child that keeps stderr open in a new session holds
+the write lock and the stop sequence forever; **S5** = review R4.
+
+All as recommended:
+
+- **W4-3** (R1 WAIT) — the manual update also refuses `refspec-outside-remotes` (spec-010 §5/§8,
+  `UpdateSyncError`); the automatic update skips it, as the fetch does.
+- **W4-4** (R3 WAIT) — `push.code: "internal"` stays; spec-010 §6, the `write.response` schema
+  description and `WritePush.code` list it.
+- **W4-5** (S1) — before an unattended fetch or merge, under the lock, `git config --list
+  --show-origin --show-scope`; any `file:` origin that resolves (realpath) inside the working tree —
+  not the git directory, the common directory, `config.worktree` in the git directory, the global
+  or the system files — skips the run, logged by code `config-in-worktree`; `-c core.fsmonitor=false`
+  on unattended runs and on the server's own status and reads.
+- **W4-6** (S2) — `--get-all branch.<b>.merge`: exactly one value, else `no-upstream`, for the
+  auto-push and the manual push.
+- **W4-7** (S3) — `refspec-outside-remotes` also when `remote.<r>.url` is not set in the
+  configuration, or `remotes/<r>` / `branches/<r>` exists in the common directory (manual and
+  automatic fetch, and the update per W4-3).
+- **W4-8** (S4) — the runner settles on `exit` (or after a kill) plus a drain grace of about 2 s,
+  then destroys the pipes and resolves with what it collected.
+- **W4-9** (S5 / R4) — a merge that exits 0 without fast-forwarding is recorded as an update error
+  with the new code `merge-not-fast-forward` (schema, type, `error.mergeNotFastForward`).
+- **W4-10** — (a) accepted residual, stated in the user guide and spec-010: hooks an automatic
+  merge brought in (relative `core.hooksPath`) run at the user's next governed write or auto-push;
+  (b) at stop no new automatic merge (R5) and the stop sequence awaits a running automatic merge
+  before `terminateAll` (a second signal still forces).
