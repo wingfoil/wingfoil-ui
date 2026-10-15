@@ -2,7 +2,7 @@
 id: task-037-gate-footer-with-every-outcome
 type: task
 title: "Gate footer with every outcome"
-status: in-progress
+status: in-review
 release: "v0.2"
 module: "web"             # optional — server | web | contracts (dna.yaml modules)
 priority: "high"           # optional — high | medium | low
