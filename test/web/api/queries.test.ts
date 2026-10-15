@@ -6,6 +6,7 @@ import { ApiError } from '../../../web/src/api/client.js';
 import {
   createQueryClient,
   directivesQuery,
+  memoryEventsQuery,
   projectHeaderQuery,
   projectsQuery,
   serverQuery,
@@ -55,4 +56,14 @@ it.each([
   expect(query('p_a').queryKey).toEqual(key);
   expect(await client.fetchQuery(query('p_a') as never)).toEqual({ ok: true });
   expect((fetchFn.mock.calls[0] as unknown as [string])[0]).toBe(path);
+});
+
+// task-042 (D31-6, D42-2): the bell's Updates, under the project's prefix.
+it('reads the last Memory events with their limit under the project key', async () => {
+  const fetchFn = vi.fn(async () => new Response('{"events":[],"more":false}', { status: 200 }));
+  vi.stubGlobal('fetch', fetchFn);
+  const client = createQueryClient();
+  expect(memoryEventsQuery('p a', 10).queryKey).toEqual(['p', 'p a', 'events', 'memory', { limit: 10 }]);
+  expect(await client.fetchQuery(memoryEventsQuery('p a', 10))).toEqual({ events: [], more: false });
+  expect((fetchFn.mock.calls[0] as unknown as [string])[0]).toBe('/api/p/p%20a/events/memory?limit=10');
 });
