@@ -298,3 +298,37 @@ e2e closure (scenario → spec file › test):
 | T-07.2 | `notification-bell.spec.ts` › "T-07.2 — Reach the empty state after the last action" |
 | X-06.4 / X-09.1 | `test/e2e/accessibility.spec.ts` › "X-06.4 — Pass the axe scan: notification panel", "X-09.1 — Render every string from the message catalogue: notification panel"; the summary in "…: today" (Morgan holds two roles) |
 | TT-PERF-01 (measurement changed by D42-9) | `test/e2e/performance.spec.ts` › "TT-PERF-01 — Today @perf" (both tests) |
+
+### review round 1 (2026-10-15)
+
+Independent review: **PASS with minor findings** (R1–R4 minor, R5–R8 nits; all fixed before submit).
+Red first: `331c859` / `427d2ca` (R1, R2, R6, R7 failed — 5 tests; R4's unit test passed on the
+product as it was: the reason does take the focus, so only the assertion changed), fixes `0b0083b`.
+
+- **R1** — the summary's focus request survived a refused switch or a failed Today read. Change:
+  the switch is now Today's (`TodayView` owns `useSetRoleView()`); the request `{role, from}` is
+  cleared on the mutation's `onError`, on a Today read error, and when another view is read first.
+  Test: refused switch, then the header selector picks that role → no focus move.
+- **R2** — the refusal alert lived in the summary card, which the refetch after a refusal can remove
+  (403 `not-in-team`: the header read changes the role view). Change: the alert is rendered by
+  `TodayView` (keyed by pid) outside the card (`.today-switch-error`). Tests: the alert is outside
+  the card; with a 403 and a header read that drops the role view, the alert stays.
+- **R3** (`5b6f538`) — `test/README.md` (TT-PERF-01 paragraph) and the `View.from` comment of
+  `performance.spec.ts` describe the D42-9 start.
+- **R4** (`331c859`, `4904a7a`) — the unit test asserts that the reason textbox is the focused
+  element after a *To unblock* click; S-21.1 (e2e, three engines) opens `task-001-login-form` from
+  the panel and expects the reason focused.
+- **R5** — the "no alert in the banner" assertion now runs after the refused Today read is known and
+  the panel closed.
+- **R6** — no count while the Today read is in error (a refused refetch keeps the last data).
+- **R7** — each summary switch is described by "Switches the role view" (`today.summary.switchHint`,
+  a visually hidden element named by `aria-describedby`).
+- **R8** (`5b6f538`) — the read console's `openMemoryList` adds the bell's `GET …/today?view=` after
+  the header; TT-PERF-05 cold Memory list: **5 CLI processes, 8 git** (unchanged counts).
+
+Checks (HEAD `4904a7a`): typecheck, lint, format:check, `docs:api`, `check_tasks.py v0.2` clean / OK;
+`test:coverage` 2739 passed, 1 skipped (statements 96.64 %, branches 91.42 %);
+`npm run test:e2e -- notification-bell.spec.ts today.spec.ts` (three engines) **84 passed**;
+`performance.spec.ts` (Chromium) **9 passed** (TT-PERF-01 2 runs p95 223 ms, first open 1 556 ms;
+load 138 — not representative). No shell/header layout change: the full Chromium run was not
+repeated. `test:timing` skipped (load ≥ 12).
