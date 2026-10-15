@@ -72,6 +72,32 @@ export async function configInWorktree(snapshot: ProjectSnapshot, home?: string)
   return false;
 }
 
+/**
+ * Whether a value of the effective configuration names one of `paths` (relative to the repository's
+ * top level) — W4-12, security review S2-2: a relative command of the user's own configuration
+ * (`filter.<x>.clean = tools/clean.sh`, `credential.helper = !./x`, `core.sshCommand = sh x`, …)
+ * would run the file the incoming commits change. A guard on what git may execute, not a key list:
+ * every value is split into tokens (whitespace, quotes, shell punctuation), a helper's `!` dropped,
+ * `./` and separators normalised; an absolute token counts when it lies in the top level.
+ */
+export async function configUsesPaths(snapshot: ProjectSnapshot, paths: readonly string[]): Promise<boolean> {
+  if (paths.length === 0) return false;
+  const normal = (p: string): string => path.posix.normalize(p.replace(/\\/g, '/')).replace(/^(\.\/)+/, '');
+  const changed = new Set(paths.map(normal));
+  for (const { value } of await snapshot.git.configOrigins()) {
+    for (const raw of value.split(/[\s"'`;|&()<>=,]+/)) {
+      let token = raw.replace(/^!+/, '');
+      if (token === '') continue;
+      if (path.isAbsolute(token)) {
+        token = path.relative(snapshot.topLevel, token);
+        if (token.startsWith('..')) continue;
+      }
+      if (changed.has(normal(token))) return true;
+    }
+  }
+  return false;
+}
+
 /** An include path resolved as git does: `~/` and `~user/` expanded, relative to the including file's folder. */
 function includeTarget(value: string, folder: string, home: string | undefined): string | undefined {
   const expanded = expandUser(value, home);
@@ -254,6 +280,11 @@ export class AutoSync implements SyncWork {
     if (await configInWorktree(snapshot, this.options.transport.environment.HOME)) {
       logger.warn({ project: pid, op: 'auto-update', code: 'config-in-worktree' }, 'automatic update skipped');
       sync.updateFailed(pid, { code: 'config-in-worktree' }, state.copy, new Date());
+      return;
+    }
+    if (await configUsesPaths(snapshot, await snapshot.git.incomingPaths())) {
+      logger.warn({ project: pid, op: 'auto-update', code: 'config-uses-incoming-path' }, 'automatic update skipped');
+      sync.updateFailed(pid, { code: 'config-uses-incoming-path' }, state.copy, new Date());
       return;
     }
     if (await snapshot.operationInProgress()) {
