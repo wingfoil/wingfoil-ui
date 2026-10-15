@@ -228,7 +228,18 @@ it('describes what a role line does (review R7)', async () => {
   stubApi(api());
   renderApp(`/p/${PID}/today`);
   const region = await card();
-  const line = within(region).getByRole('button', { name: 'approver · 5' });
+  // The accessible description: the text of the element its `aria-describedby` names.
+  const description = (el: HTMLElement) =>
+    (el.getAttribute('aria-describedby') ?? '')
+      .split(/\s+/)
+      .map((id) => (id ? document.getElementById(id)?.textContent : undefined))
+      .join(' ')
+      .trim();
+  expect(description(within(region).getByRole('button', { name: 'approver · 5' }))).toBe('Switches the role view');
+  expect(description(within(region).getByRole('button', { name: '2 more for approver' }))).toBe(
+    'Switches the role view',
+  );
+});
   expect(line).toHaveAccessibleDescription('Switches the role view');
   expect(within(region).getByRole('button', { name: '2 more for approver' })).toHaveAccessibleDescription(
     'Switches the role view',
