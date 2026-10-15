@@ -35,6 +35,9 @@ const MESSAGES = defineMessages({
   'inside-state-dir': { id: 'error.insideStateDir' },
   // bug-006 (decided by the user 2026-10-10): a clone URL with credentials.
   'credentials-in-url': { id: 'error.credentialsInUrl' },
+  // task-037, D37-11: a governed write that did not finish (W2-1, W2-4, W2-5); `detail.file`,
+  // optional `detail.commit`.
+  'write-incomplete': { id: 'error.writeIncomplete' },
   // Client-side: no answer at all (W3-12).
   unreachable: { id: 'error.unreachable' },
 });
@@ -70,6 +73,10 @@ export function errorMessage(error: Pick<ApiError, 'code' | 'message' | 'detail'
     // Two detail shapes (projects.refusal.schema.json): `{path}` for a folder, `{source}` for a clone.
     values['source'] ??= 'local';
     values['path'] ??= '';
+  }
+  if (code === 'write-incomplete') {
+    // `detail.commit` is optional (write.refusal.schema.json): the message selects on `none`.
+    values['commit'] ??= 'none';
   }
   return {
     descriptor: MESSAGES[code],

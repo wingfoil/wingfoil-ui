@@ -69,6 +69,8 @@ const SPEC_004: Record<string, Record<string, unknown>[]> = {
   internal: [{}],
   'git-refused': [{}],
   'read-error': [{ file: 'docs/x.md', kind: 'missing' }],
+  // task-032 W2-1, W2-4, W2-5 (write.refusal.schema.json); its text is task-037's (D37-11).
+  'write-incomplete': [{ file: 'docs/x.md' }, { file: 'docs/x.md', commit: 'a'.repeat(40) }],
 };
 /** Client-side code (W3-12): no answer at all. */
 const CLIENT: Record<string, Record<string, unknown>[]> = { unreachable: [{}] };
@@ -155,4 +157,17 @@ it('renders credentials-in-url without arguments and never shows its message (bu
   expect(rendering.descriptor.id).toBe('error.credentialsInUrl');
   expect(rendering.values).toEqual({});
   expect(rendering.verbatim).toBeUndefined();
+});
+
+it('write-incomplete: the commit selector is `none` when the write left no commit (task-037, D37-11)', () => {
+  expect(errorMessage(new ApiError(500, 'write-incomplete', 'x', { file: 'docs/x.md' })).values).toEqual({
+    file: 'docs/x.md',
+    commit: 'none',
+  });
+  const sha = 'b'.repeat(40);
+  expect(errorMessage(new ApiError(500, 'write-incomplete', 'x', { file: 'docs/x.md', commit: sha })).values).toEqual({
+    file: 'docs/x.md',
+    commit: sha,
+  });
+  expect(errorMessage(new ApiError(500, 'write-incomplete', 'x', { file: 'f' })).verbatim).toBeUndefined();
 });

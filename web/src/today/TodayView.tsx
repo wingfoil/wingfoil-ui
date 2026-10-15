@@ -101,7 +101,14 @@ function RequiresYouRow({ pid, row, now }: { pid: string; row: TodayActionRow; n
       <Button
         className="button button-primary today-action"
         aria-label={intl.formatMessage({ id: 'today.actionLabel' }, { action, id: element.id })}
-        onPress={() => void navigate({ to: '/p/$pid/e/$eid', params: { pid, eid: element.id } })}
+        onPress={() =>
+          // A gate opens with its reason focused (task-037, G-04.3, D37-1): the second click decides.
+          void navigate({
+            to: '/p/$pid/e/$eid',
+            params: { pid, eid: element.id },
+            state: { gateFocus: action === 'approve' || action === 'review' },
+          })
+        }
       >
         <FormattedMessage id="today.action" values={{ action }} />
       </Button>

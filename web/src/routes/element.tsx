@@ -8,7 +8,7 @@
  */
 import type { ElementDetail, MemoryHistory } from '@wingfoil-ui/contracts';
 import { queryOptions, useQuery } from '@tanstack/react-query';
-import { createRoute, useCanGoBack, useRouter } from '@tanstack/react-router';
+import { createRoute, useCanGoBack, useRouter, useRouterState } from '@tanstack/react-router';
 import { useCallback, type ReactNode } from 'react';
 import { apiGet } from '../api/client.js';
 import { directivesQuery, projectHeaderQuery } from '../api/queries.js';
@@ -16,6 +16,13 @@ import { queryKeys } from '../api/query-keys.js';
 import { ElementPanel } from '../element/ElementPanel.js';
 import { TITLES, usePageTitle, useProjectName } from '../shell/page-title.js';
 import { projectRoute } from './project.js';
+
+declare module '@tanstack/history' {
+  interface HistoryState {
+    /** Set by Today's *Approve* / *Review*: the gate footer's reason takes the focus (task-037, D37-1). */
+    gateFocus?: boolean;
+  }
+}
 
 /** Query keys of the element panel (on `queryKeys.project`, refreshed by `repo`). */
 export const elementKeys = {
@@ -54,6 +61,7 @@ function ElementPage(): ReactNode {
   const { pid, eid } = elementRoute.useParams();
   const router = useRouter();
   const canGoBack = useCanGoBack();
+  const focusReason = useRouterState({ select: (s) => s.location.state.gateFocus === true });
   usePageTitle(TITLES.projectElement, { project: useProjectName(pid), element: eid });
   // Back to where the panel was opened from inside the application, else to the project; then the
   // focus goes to the destination's main region, unless the destination placed it itself (e.g. the
@@ -74,6 +82,7 @@ function ElementPage(): ReactNode {
       history={useQuery(historyQuery(pid, eid))}
       directives={useQuery(directivesQuery(pid))}
       header={useQuery(projectHeaderQuery(pid))}
+      focusReason={focusReason}
       onClose={close}
     />
   );

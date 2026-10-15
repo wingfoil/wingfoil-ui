@@ -3,7 +3,8 @@
  * type's `sequence` (`model.stateChips`). The current chip takes the descriptor's tone as data
  * (`tone-<tone>`, spec-003 §7–§8). Assistive technology reads one message per chip — the state and
  * its position, e.g. "pending, current state" — instead of the visible name; the current chip is
- * `aria-current="step"`.
+ * `aria-current="step"`. A final current state — no verb and no one to act (task-037, S-24.1,
+ * D37-7) — reads "ready, final state".
  */
 import type { Tone } from '@wingfoil-ui/contracts';
 import type { ReactNode } from 'react';
@@ -18,6 +19,9 @@ const POSITION: Readonly<Record<ChipPosition, MessageDescriptor>> = defineMessag
   other: { id: 'element.states.other' },
 });
 
+/** The accessible text of the current chip of a final state (task-037, D37-7). */
+const FINAL: MessageDescriptor = defineMessages({ final: { id: 'element.states.final' } }).final;
+
 /** Props of {@link StateMachine}. */
 export interface StateMachineProps {
   /** The type's `sequence`; absent when the type definitions could not be read. */
@@ -25,6 +29,8 @@ export interface StateMachineProps {
   current: string;
   /** The descriptor's tone of the current state; absent without a descriptor. */
   tone: Tone | undefined;
+  /** The current state is final (`isFinal` of the descriptor). */
+  final?: boolean;
 }
 
 function chipClass(position: ChipPosition, tone: Tone | undefined): string {
@@ -33,7 +39,7 @@ function chipClass(position: ChipPosition, tone: Tone | undefined): string {
 }
 
 /** The chips of the state machine. */
-export function StateMachine({ sequence, current, tone }: StateMachineProps): ReactNode {
+export function StateMachine({ sequence, current, tone, final = false }: StateMachineProps): ReactNode {
   const intl = useIntl();
   return (
     <ol className="state-machine" aria-label={intl.formatMessage({ id: 'element.states.label' })}>
@@ -45,7 +51,11 @@ export function StateMachine({ sequence, current, tone }: StateMachineProps): Re
           aria-current={chip.position === 'current' ? 'step' : undefined}
         >
           <span aria-hidden="true">{chip.name}</span>
-          <span className="visually-hidden">{intl.formatMessage(POSITION[chip.position], { state: chip.name })}</span>
+          <span className="visually-hidden">
+            {intl.formatMessage(final && chip.position === 'current' ? FINAL : POSITION[chip.position], {
+              state: chip.name,
+            })}
+          </span>
         </li>
       ))}
     </ol>

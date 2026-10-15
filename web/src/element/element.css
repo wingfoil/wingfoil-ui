@@ -238,3 +238,86 @@
 .history-sha {
   font-family: var(--font-mono);
 }
+
+/* --- Footer (task-037): gate footer, read-only, reserved, waiting and final lines --- */
+
+.element-footer {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px var(--space-5) 16px;
+  border-top: 1px solid var(--color-divider);
+  background: var(--color-surface);
+  margin: 0;
+}
+
+.element-footer-note {
+  color: var(--color-text-2);
+  font-size: 13px;
+}
+
+.element-footer-note p {
+  margin: 0;
+}
+
+.element-footer-join {
+  height: auto;
+  padding: 0 var(--space-1);
+  text-decoration: underline;
+}
+
+.gate-footer .section-title {
+  margin: 0;
+}
+
+.gate-reason {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  font-size: 12px;
+  color: var(--color-text-2);
+}
+
+.gate-reason-field {
+  width: 100%;
+  resize: vertical;
+  padding: 8px 10px;
+  border: 1px solid var(--color-control-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+  color: var(--color-text);
+  font: inherit;
+  font-size: 13px;
+}
+
+.gate-hint {
+  margin: 0;
+  color: var(--color-text-2);
+  font-size: 12px;
+}
+
+.gate-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.gate-spacer {
+  flex: 1;
+}
+
+.gate-outcome[aria-disabled='true'] {
+  opacity: 0.55;
+  cursor: not-allowed;
+  text-decoration: none;
+}
+
+.gate-error {
+  color: var(--color-text);
+  font-size: 13px;
+}
+
+.gate-error p {
+  margin: 0;
+}

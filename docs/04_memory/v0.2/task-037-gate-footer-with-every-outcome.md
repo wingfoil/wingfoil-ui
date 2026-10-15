@@ -333,3 +333,15 @@ e2e closure (scenario → spec file › test):
   `minor-v0.1`), "element panel — read-only, not in team" (`pids[2]`); the reserved line is scanned
   in G-09.1's `scanThemes` (no Sam project in the screens console); (b) as (a) plus a fourth
   screens project (Sam) for the reserved line; (c) no new screen.
+
+#### Decisions (approver, 2026-10-15)
+
+"All as recommended": **D37-1 (a)** … **D37-12 (a)**. D37-11: this task adds `error.writeIncomplete`
+(and the `commit` default `none` in `errorMessage`); the task-032 hand-over ("task-038 adds the
+catalogue string of `write-incomplete`") is amended here: task-038 reuses it. Shared shapes fixed
+by the coordinator (C3): task-033 merges first; this task's `test/README.md` version line is 0.34;
+in `en.json`, `error-message.ts` and `error-message.test.ts` only this task's entries are added
+(task-033 adds the git transport `error.*` keys and a `{files}` rendering);
+`element.reason.copyBehind` takes `{commits}` exactly; `cli-refused` stays verbatim (task-033
+redacts local paths, bug-012) and no e2e depends on its exact text; `web/src/api/writes.ts` is
+this task's; no change to `contracts/`, schemas or the server.
