@@ -17,7 +17,7 @@
  * that changed the rows is announced in a polite status region (D36-11). Rows, order, actor, tone
  * and action are data of the server (spec-003 §8), never re-derived.
  */
-import type { UseQueryResult } from '@tanstack/react-query';
+import { useQueryClient, type UseQueryResult } from '@tanstack/react-query';
 import type { ProjectHeader, Today, TodayActionRow, TodayRow } from '@wingfoil-ui/contracts';
 import { Link, useNavigate } from '@tanstack/react-router';
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
@@ -25,6 +25,7 @@ import { Button } from 'react-aria-components';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { ApiError } from '../api/client.js';
 import { useSetRoleView } from '../api/projects.js';
+import { projectHeaderQuery } from '../api/queries.js';
 import { useHowToJoin } from '../project/HowToJoin.js';
 import { ErrorText } from '../shell/ErrorText.js';
 import { greetingName, identityNote, rowReason, waitingWho } from './model.js';
@@ -36,7 +37,8 @@ type Read<T> = Pick<UseQueryResult<T>, 'data' | 'error'>;
 /** Props of {@link TodayView}. */
 export interface TodayViewProps {
   pid: string;
-  header: Read<ProjectHeader>;
+  /** The project header; `dataUpdatedAt` clears a refused summary switch once read again (R2-1). */
+  header: Read<ProjectHeader> & Pick<UseQueryResult<ProjectHeader>, 'dataUpdatedAt'>;
   /** `GET /today` for the header's role view; not started until the header is read. */
   today: Read<Today>;
 }
@@ -218,8 +220,23 @@ export function TodayView({ pid, header, today }: TodayViewProps): ReactNode {
   const roleView = useSetRoleView();
   const switchRequest = useRef<{ role: string; from: string | null } | null>(null);
   const requiresHeading = useRef<HTMLHeadingElement>(null);
+  // A refusal is reported once the header was read again (the hook's `onError` awaits it); it stays
+  // until the header is read once more — a later switch from the header, a `repo` event — or another
+  // switch starts here (review round 2, R2-1; the header's own pattern, `ProjectHeader.tsx`).
+  const refusedAt = useRef(0);
+  const { isError, reset } = roleView;
+  const queryClient = useQueryClient();
+  useEffect(() => {
+    // Only when the refusal arrives: the header read that follows it is the baseline — read from the
+    // cache, which may hold it before this render does.
+    if (isError) refusedAt.current = queryClient.getQueryState(projectHeaderQuery(pid).queryKey)?.dataUpdatedAt ?? 0;
+  }, [isError, queryClient, pid]);
+  useEffect(() => {
+    if (isError && header.dataUpdatedAt > refusedAt.current) reset();
+  }, [header.dataUpdatedAt, isError, reset]);
   const switchTo = (role: string): void => {
     if (roleView.isPending) return;
+    reset();
     switchRequest.current = { role, from: data?.view ?? null };
     roleView.mutate(
       { pid, role },
