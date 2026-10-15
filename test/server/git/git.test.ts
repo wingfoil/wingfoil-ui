@@ -144,6 +144,14 @@ describe('GitReads — the commands it runs', () => {
     expect((error as GitReadError).message).toBe('fatal: not a git repository');
   });
 
+  it('W4-13: a read whose pipes were cut (drained) is a GitReadError, though git exited 0', async () => {
+    const runner = new FakeProcessRunner().answer({ stdout: '# branch.oid', drained: true });
+    const error = await reads(runner)
+      .status()
+      .catch((e: unknown) => e);
+    expect(error).toBeInstanceOf(GitReadError);
+  });
+
   it('a timed-out read is a GitReadError too', async () => {
     const runner = new FakeProcessRunner().answer({ ended: 'timeout', exitCode: null });
     await expect(reads(runner).email()).rejects.toBeInstanceOf(GitReadError);

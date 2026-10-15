@@ -91,6 +91,11 @@ describe('gitEnv (shared with the snapshot and the runner, bug-002)', () => {
     expect(cleaned).toEqual({ HOME: '/h', GIT_CONFIG_GLOBAL: '/h/.gitconfig', GIT_CONFIG_NOSYSTEM: '1', PATH: '/bin' });
   });
 
+  it('W4-13: an answer whose pipes were cut (drained) is refused, not read', async () => {
+    const runner = new FakeProcessRunner().answer({ stdout: 'a@b\n', drained: true });
+    await expect(readGitEmail('/p', { runner, git: '/g' })).rejects.toThrow();
+  });
+
   it("is applied to the server's own environment by default", async () => {
     const runner = new FakeProcessRunner().answer({ stdout: 'a@b\n' });
     process.env.GIT_DIR = '/elsewhere/.git';

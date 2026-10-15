@@ -277,12 +277,16 @@ if (process.argv[2] === 'stay') setTimeout(() => {}, 60000);`;
 
     it('a child that exits leaving such a grandchild → resolved soon after its exit, with what it wrote', async () => {
       const pidFile = path.join(dir, 'keeper-exit.pid');
-      const r = runner({ drainMs: 500 });
+      const warnings: object[] = [];
+      const r = runner({ drainMs: 500, logger: { warn: (o) => warnings.push(o) } });
       const started = Date.now();
       const result = await r.run({ ...node(KEEPER, [pidFile]), timeoutMs: null });
       await keeper(pidFile);
       expect(Date.now() - started).toBeLessThan(KILLED_WELL_BEFORE_MS);
       expect(result).toMatchObject({ ended: 'exit', exitCode: 0, stdout: 'out', stderr: 'err' });
+      // W4-13 (security review S2-3): the result says its pipes were cut; logged without content.
+      expect(result.drained).toBe(true);
+      expect(warnings).toEqual([{ op: path.basename(process.execPath), kind: 'pipes-held' }]);
       expect(r.running).toBe(0);
     }, 30_000);
 
@@ -312,6 +316,7 @@ if (process.argv[2] === 'stay') setTimeout(() => {}, 60000);`;
         node('process.stdout.write("x".repeat(8 * 1024 * 1024)); process.stderr.write("e".repeat(1024 * 1024))'),
       );
       expect(result.stdout.length).toBe(8 * 1024 * 1024);
+      expect(result.drained).toBeUndefined();
       expect(result.stderr.length).toBe(1024 * 1024);
       expect(result.exitCode).toBe(0);
     }, 30_000);
