@@ -3,11 +3,8 @@
 import { mkdir, realpath, symlink, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { localPathOf, localRemoteProblem, userHome } from '../../../server/src/git/local-remote.js';
+import { expandUser, localPathOf, localRemoteProblem, userHome } from '../../../server/src/git/local-remote.js';
 import { TempWorkspace } from '../../harness/temp-workspace.js';
-
-// `~` built at run time: the public-text check reads a literal `~/…` as a home path.
-const TILDE = String.fromCharCode(126);
 
 const posix = process.platform !== 'win32';
 let ws: TempWorkspace;
@@ -19,10 +16,13 @@ beforeAll(async () => {
   root = await realpath(ws.dir);
   fsRoot = path.parse(root).root;
   await mkdir(path.join(root, 'mine.git'));
+  // `~/x/…` with the home folder `root`.
+  await mkdir(path.join(root, 'x', 'mine.git'), { recursive: true });
   await mkdir(path.join(root, 'top', 'proj'), { recursive: true });
   await mkdir(path.join(root, 'top', 'sibling.git'));
   // `foreign.git` is another user's repository (a link to the file-system root).
   await symlink(fsRoot, path.join(root, 'foreign.git'));
+  await symlink(fsRoot, path.join(root, 'x', 'foreign.git'));
   await symlink(fsRoot, path.join(root, 'top', 'outside.git'));
   // A working tree whose `.git` file points at another user's folder.
   await mkdir(path.join(root, 'wt'));
@@ -52,7 +52,9 @@ describe('localPathOf — git’s rule for a local URL (S1)', () => {
     // S10: `::` makes a remote helper only after a scheme-like name from the start.
     ['own/u::sr', 'own/u::sr'],
     ['./x::y', './x::y'],
-    [`${TILDE}/repos/x.git`, `${TILDE}/repos/x.git`],
+    ['~/x/repos.git', '~/x/repos.git'],
+    // S15: an encoded `/` is decoded, as git does.
+    ['file:///repos/a%2Fb.git', '/repos/a/b.git'],
     ['', undefined],
   ])('%j → %j', (url, expected) => {
     expect(localPathOf(url)).toBe(expected);
@@ -113,8 +115,8 @@ describe.runIf(posix)('localRemoteProblem', () => {
   });
 
   it("F10: a leading ~ is the git environment's home folder (git's enter_repo)", async () => {
-    expect(await check([`${TILDE}/mine.git`])).toBeUndefined();
-    expect(await check([`${TILDE}/foreign.git`])).toBe('remote-not-owned');
+    expect(await check(['~/x/mine.git'])).toBeUndefined();
+    expect(await check(['~/x/foreign.git'])).toBe('remote-not-owned');
     expect(await check(['~'], root, { home: fsRoot })).toBe('remote-not-owned');
   });
 
@@ -128,9 +130,15 @@ describe.runIf(posix)('localRemoteProblem', () => {
     expect(await check(['~no-such-user-4711/x.git'])).toBe('remote-unreadable');
   });
 
+  it('S14: an empty HOME is used as git uses it: `~/<rest>` becomes `/<rest>`', () => {
+    expect(expandUser('~/x/a.git', '')).toBe('/x/a.git');
+    expect(expandUser('~/x/a.git', undefined)).toBeUndefined();
+    expect(expandUser('x/a.git', undefined)).toBe('x/a.git');
+  });
+
   it('the clone does not expand ~ (git clone takes the path as written): `~/x` is relative to the base', async () => {
-    await mkdir(path.join(root, '~', 'mine.git'), { recursive: true });
-    expect(await check([`${TILDE}/mine.git`], root, { home: fsRoot, expandUser: false })).toBeUndefined();
+    await mkdir(path.join(root, '~', 'x', 'mine.git'), { recursive: true });
+    expect(await check(['~/x/mine.git'], root, { home: fsRoot, expandUser: false })).toBeUndefined();
   });
 
   it('is undefined without an owner id (Windows)', async () => {

@@ -53,14 +53,17 @@ export function userHome(user: string): string | undefined {
   return undefined;
 }
 
-/** `raw` with a leading `~` or `~user` expanded as git's `enter_repo`; `undefined`: not expandable. */
-function expandUser(raw: string, home: string | undefined): string | undefined {
+/**
+ * `raw` with a leading `~` or `~user` expanded as git's `enter_repo`; `undefined`: not expandable.
+ * An empty `home` is used as git uses it: `~/<rest>` becomes `/<rest>` (review round 3 S14).
+ */
+export function expandUser(raw: string, home: string | undefined): string | undefined {
   if (!raw.startsWith('~')) return raw;
   const slash = raw.indexOf('/');
   const name = raw.slice(1, slash < 0 ? undefined : slash);
   const rest = slash < 0 ? '' : raw.slice(slash);
   const folder = name === '' ? home : userHome(name);
-  return folder ? `${folder}${rest}` : undefined;
+  return folder === undefined ? undefined : `${folder}${rest}`;
 }
 
 /**
@@ -78,7 +81,12 @@ export function localPathOf(url: string): string | undefined {
     try {
       return fileURLToPath(new URL(`file://${pathname}`));
     } catch {
-      return pathname;
+      // An encoded `/` (`%2F`), which `fileURLToPath` refuses: decoded as git does (review round 3 S15).
+      try {
+        return decodeURIComponent(pathname);
+      } catch {
+        return pathname;
+      }
     }
   }
   if (SCHEME.test(trimmed) || HELPER.test(trimmed)) return undefined;

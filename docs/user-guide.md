@@ -1,6 +1,6 @@
 # User guide — WingFoil UI v0.1
 
-**Version:** 0.7 · **Date:** 2026-10-15 (0.1: release v0.1; 0.2: bug-008 known limitation, release submit; 0.3: bug-008 wording; 0.4: bug-008 marked fixed after 0.1.0 — task-026; 0.5: *How to join*, unreleased v0.2 — task-035; 0.6: *Today*, unreleased v0.2 — task-036; 0.7: what runs during a clone, a local repository of another user, unreleased v0.2 — task-033 / bug-010, bug-013)
+**Version:** 0.8 · **Date:** 2026-10-15 (0.1: release v0.1; 0.2: bug-008 known limitation, release submit; 0.3: bug-008 wording; 0.4: bug-008 marked fixed after 0.1.0 — task-026; 0.5: *How to join*, unreleased v0.2 — task-035; 0.6: *Today*, unreleased v0.2 — task-036; 0.7: what runs during a clone, a local repository of another user, unreleased v0.2 — task-033 / bug-010, bug-013; 0.8: a local source git cannot read — task-033 review round 3)
 
 WingFoil UI v0.1 is a **read-only console** for WingFoil-governed projects: you open a project and
 read its Memory, elements, DNA, directives, team and documentation, kept up to date while you work
@@ -98,6 +98,9 @@ Refusals you may see:
   computer is refused (*The repository of this remote is a folder of another user…*): cloning it
   could run that user's code in your git. Use a git version with the fixes of CVE-2024-32004 and
   CVE-2024-32465 (README *Requirements*).
+- A local source that git cannot read — the folder does not exist or cannot be opened — is
+  refused before git runs (*Git cannot read the repository of this remote: check its path with git
+  in a terminal*).
 - A clone without `.wingfoil/` is removed (`Not a WingFoil project: no .wingfoil/ folder in the
   cloned repository`). A clone whose project has no CLI is kept and listed as unavailable, with
   the install command.

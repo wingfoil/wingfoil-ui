@@ -233,7 +233,8 @@ export class GitTransport {
 
   /** `~` as git sees it: the `HOME` of the transport's environment (review round 2 F10). */
   private home(): { home?: string } {
-    return this.env.HOME ? { home: this.env.HOME } : {};
+    // Also an empty HOME: git then expands `~/<rest>` to `/<rest>` (review round 3 S14).
+    return this.env.HOME !== undefined ? { home: this.env.HOME } : {};
   }
 
   /**

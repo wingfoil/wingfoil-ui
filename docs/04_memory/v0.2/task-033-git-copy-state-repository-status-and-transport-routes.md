@@ -552,3 +552,32 @@ Docs: spec-010 §4, §5, §8, spec-006 §3, spec-004 §5 (Process Notes 2026-10-
 | `npm run test:timing` | **passed**: Vitest 3/3, Playwright 18/18 | 9.1 → 5.5 |
 
 No console left running; no `wfui-task-033-*` entry in the system temporary directory.
+
+### review round 3 (2026-10-15)
+
+Adversarial security review round 3 **PASS**; independent review **CHANGES REQUESTED** (two
+minors). Changes:
+
+- **F12 (minor)** — the run-time `~` of three tests (`String.fromCharCode(126)`) is gone: the tests
+  write their literals with names the allow-list entry `~/(?:x|kanban|k|…)` already accepts
+  (`~/x/mine.git`, `~/x/foreign.git`, `~/x/repos.git`, `~/kanban/home.git`, `~/x/notes`); no
+  allow-list entry added.
+- **F13 (minor)** — `docs/user-guide.md` 0.8: the *remote-unreadable* bullet of *Clone a remote
+  repository* next to the other-user bullet.
+- **S14 (info)** — an empty `HOME` in the transport environment is passed through: git then
+  expands `~/<rest>` to `/<rest>` (`expandUser`, exported). Test: `local-remote.test.ts` › S14.
+- **S15 (info)** — a `file://` path with an encoded `/` (`%2F`), which `fileURLToPath` refuses, is
+  decoded with `decodeURIComponent`, as git does. Test: `localPathOf` row.
+- Red checks: with each of the S14 and S15 lines put back, its test fails (2 failures), restored.
+
+**Accepted residual risks (round 3, stated, no code):**
+
+- The check → open race: when another user can write the remote's parent folder, they can create
+  `<p>/.git` or `<p>` (which git tries before `<p>.git`) between the owner check and git's open.
+- A linked-worktree `gitdir:` owned by the user whose `commondir` points into another user's
+  repository is not followed (the `commondir` file is not read).
+- S16: `~user` homes come from `os.userInfo()` and `/etc/passwd`; a user known only through NSS
+  (LDAP, SSSD) is not expandable and fails closed (`remote-unreadable`).
+- Relative `PATH` entries still reach the non-transport children (the `wingfoil` CLI and the git
+  reads), as before (`adr-001` D2: the project's own CLI runs from its repository anyway).
+
