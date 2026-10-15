@@ -81,6 +81,8 @@ const SPEC_004: Record<string, Record<string, unknown>[]> = {
   'push-timeout': [{}],
   'fetch-timeout': [{}],
   'refspec-outside-remotes': [{}],
+  // W4-9: an automatic merge that exited 0 without fast-forwarding (`sync.update.lastError.code`).
+  'merge-not-fast-forward': [{}],
   // task-032 W2-1, W2-4, W2-5 (write.refusal.schema.json); its text is task-037's (D37-11).
   'write-incomplete': [{ file: 'docs/x.md' }, { file: 'docs/x.md', commit: 'a'.repeat(40) }],
 };
