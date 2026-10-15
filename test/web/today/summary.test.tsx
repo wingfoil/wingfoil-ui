@@ -222,6 +222,8 @@ it('forgets the focus request of a refused switch (review R1)', async () => {
   await screen.findByText('Role view: approver');
   await screen.findByRole('region', { name: 'Requires you' });
   expect(document.activeElement).not.toBe(screen.getByRole('heading', { level: 2, name: 'Requires you' }));
+  // The refusal does not outlive the header read of a later successful switch (review round 2, R2-1).
+  await waitFor(() => expect(screen.queryByRole('alert')).toBeNull());
 });
 
 it('describes what a role line does (review R7)', async () => {
