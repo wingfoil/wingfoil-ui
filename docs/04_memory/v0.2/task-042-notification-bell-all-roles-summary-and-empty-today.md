@@ -454,3 +454,43 @@ the ~1 s at which RP-9 reopens spec-002 §4. The slowdown is not caused by the b
 keeps the bell's read off the server; (1) shows that the server read alone takes 1.3–1.7 s on a
 new HEAD. This branch also carries everything merged since task-036's measurement (task-033's git
 copy state). The decision on spec-002 §4 stays with the approver.
+
+#### RP-9 — locating the slowdown (2026-10-15)
+
+This was a measurement only; no product, spec or budget change was made.
+
+**Method.**
+- The server measurement (1) above was re-run on detached checkouts of `main`'s first-parent history, in a scratch worktree that was removed afterwards. All four checkouts share one `package-lock.json`.
+- Commits measured:
+  - (a) `bf4ae2e`, task-036 done (task-036's own measurement point);
+  - (b) `f059093` = `be7bdfd^1`, just before task-033's merge;
+  - (c) `be7bdfd`, task-033's merge;
+  - (d) `23a6d1e`, task-037's merge;
+  - plus this branch (`26bcf07`).
+- Chromium, `--workers=1`, 20 samples each, p50 / p95 in ms; the load is the 1-minute average when each run started.
+
+| Commit | 1st series | 2nd series | 3rd series |
+|--------|-----------|-----------|-----------|
+| (a) `bf4ae2e` | 683 / 873 (load 6.8) | 646 / 870 (6.3) | — |
+| (b) `f059093` | 563 / 675 (7.5) | — | — |
+| (c) `be7bdfd` | 564 / 748 (6.2) | 779 / 1 150 (6.6) | 545 / 595 (5.0) |
+| (d) `23a6d1e` | 1 048 / 1 402 (5.0) | 612 / 771 (7.1) | 646 / 820 (5.2) |
+| this branch `26bcf07` | 1 271 / 1 713 (first run, above) | 548 / 604 (5.5) | 680 / 826 (4.0); 679 / 910 (5.2) |
+
+- Client measurement (2) on this branch, re-run twice: p50 / p95 552 / **658 ms** (load 4.0) and 462 / **672 ms** (load 5.2). The first open after the start took 559 ms and 537 ms. Task-036 measured 539 ms.
+
+**Reading.**
+- There is no code regression. `be7bdfd` → `23a6d1e` changes no file under `server/`, `contracts/` or the fixture builder (`git diff --stat`), yet the same commit varies from 595 to 1 150 ms at p95 between series.
+- Today after one commit on the large fixture is about 0.6–0.9 s at p95 on every commit since task-036.
+- The 1.4–1.7 s values are run-to-run noise. Another worktree's Vitest suites were running during these runs: per-process CPU bursts that the 1-minute load average does not show.
+- The comparable client number (≈ 0.66 s at p95) is within ~0.1 s of task-036's 539 ms, and below RP-9's ~1 s threshold.
+- This changes my first report, which was 1.49 s from a single noisy run.
+
+**Process audit.** Scratch Vitest on the stand-in console (`auditedSnapshots`, kanban fixture, Morgan, view `approver`): one empty commit, the state check, then `GET /today`.
+
+| Commit | State check | `GET /today` after the commit |
+|--------|-------------|-------------------------------|
+| `bf4ae2e` | 2 git (`status`, `config user.email`) | 6 processes: 2 CLI (`dna show`, `memory search`) and 4 git (`status`, `user.email`, `log -p`, its sha list) |
+| `26bcf07` | 4 git (+ `git remote`, `config --get branch.main.remote`, task-033 D33-7, spec-010 §1) | 8 processes: the same 2 CLI and 6 git (the 2 more of the check) |
+
+The difference is two short git config reads per state check, not a parse or a CLI process.
