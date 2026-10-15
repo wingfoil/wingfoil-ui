@@ -2,7 +2,7 @@
 id: bug-015-catalogue-strings-e2e-check-can-miss-an-api-answer-under-load-and-flag-data-as-uncatalogued-text
 type: bug
 title: "Catalogue strings e2e check can miss an API answer under load and flag data as uncatalogued text"
-status: open
+status: triaged
 severity: "low"        # REQUIRED — critical | high | medium | low
 release-origin: "v0.1" # optional — release where the bug was FOUND, e.g. "v0.1"
 release: ""            # optional — fix/implementation release, stamped by release-planning/build-backlog
