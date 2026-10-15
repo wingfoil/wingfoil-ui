@@ -42,6 +42,8 @@ export const GIT_READ_ARGS = {
   // task-033 (spec-010 §1, §4, §5).
   remotes: ['--no-optional-locks', 'remote'],
   configGet: ['--no-optional-locks', 'config', '--get'],
+  // task-034 (D34-5): every value of a multi-valued key (`remote.<r>.fetch`).
+  configGetAll: ['--no-optional-locks', 'config', '--get-all'],
   remoteUrl: ['--no-optional-locks', 'remote', 'get-url'],
   incoming: [
     '--no-optional-locks',
@@ -110,8 +112,10 @@ export const GIT_READ_ARGS = {
 
 /**
  * The git subcommands the server may run (REQ-INT-06): reads, `clone` into a new empty folder,
- * transport (v0.2) and the `ui.yaml` preset commit (v0.3). Never merge, rebase, reset, stash or
- * checkout. The process audit checks every git process against it.
+ * transport (v0.2) and the `ui.yaml` preset commit (v0.3). Never a merge commit — `merge` only as the
+ * automatic update, `--ff-only` with the configured strategy and squash overridden (spec-010 §4,
+ * task-034 D34-2) — and never rebase, reset, stash or checkout. The process audit checks every git
+ * process against it.
  */
 export const GIT_ALLOWED_SUBCOMMANDS: readonly string[] = [
   'rev-parse',
@@ -131,6 +135,8 @@ export const GIT_ALLOWED_SUBCOMMANDS: readonly string[] = [
   'ls-tree',
   'ls-files',
   'diff-tree',
+  // task-034 (SARD REQ-INT-06 v0.10, RP-41): the automatic update, `merge --ff-only` only.
+  'merge',
 ];
 
 /**
@@ -418,6 +424,15 @@ export class GitReads {
     if (result.ended === 'exit' && result.exitCode === 1) return undefined;
     const value = this.check(result).stdout.replace(/\r?\n$/, '');
     return value === '' ? undefined : value;
+  }
+
+  /** Every value of `key` in git's order; `[]` when unset (exit 1). `key` is the server's own. */
+  async configValues(key: string): Promise<string[]> {
+    const result = await this.run([...GIT_READ_ARGS.configGetAll, key]);
+    if (result.ended === 'exit' && result.exitCode === 1) return [];
+    return this.check(result)
+      .stdout.split(/\r?\n/)
+      .filter((v) => v !== '');
   }
 
   /**
