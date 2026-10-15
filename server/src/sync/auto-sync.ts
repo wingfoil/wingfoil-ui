@@ -158,6 +158,12 @@ export class AutoSync implements SyncWork {
    */
   stop(): Promise<void> {
     this.stopping = true;
+    if (this.merging) {
+      this.options.logger.warn(
+        { op: 'stop', code: 'waiting-for-update' },
+        'stopping: the automatic update finishes first — send the signal again to stop at once',
+      );
+    }
     // A merge already running completes (W4-10 b): the stop sequence terminates processes after this.
     return (this.merging ?? Promise.resolve()).then(
       () => undefined,
