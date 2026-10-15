@@ -82,7 +82,7 @@ the copy (spec-003 §6 rule 4), follow the whole key.
   upstream: string | null,                         # the remote upstream's name, e.g. "origin/main"
   sync: { fetch: { lastSuccessAt: string | null,  # ISO 8601 UTC, since the server start
                    lastError: { code?, message, at } | null },  # code: "fetch-timeout" (§6)
-          update: { lastError: { code, detail?, message?, at } | null } } }
+          update: { lastError: { code, detail?, message?, at } | null } } }  # code: §5, "git-refused", "merge-not-fast-forward" (§6)
 ```
 
 `upstream` is the printed `branch.upstream` whenever it is a remote upstream (§1) — also in
@@ -102,7 +102,7 @@ cancelled process group or the server) and `--no-optional-locks`.
 | fetch | `-c fetch.pruneTags=false --config-env=remote.<remote>.pruneTags=<empty> fetch --quiet --prune --no-recurse-submodules -- <remote>` — prunes remote-tracking refs only |
 | update (manual) | `-c fetch.pruneTags=false --config-env=remote.<remote>.pruneTags=<empty> --config-env=branch.<b>.mergeOptions=<empty> pull --no-prune --ff-only --no-squash --strategy=ort --no-rebase --no-autostash --no-recurse-submodules --quiet` — the upstream only |
 | update (automatic, §6) | `--config-env=branch.<b>.mergeOptions=<empty> merge --ff-only --no-squash --strategy=ort --no-edit --no-stat --no-autostash --quiet -- @{u}` — local only: fast-forwards to the tracking ref the tick's fetch just updated, no network |
-| push | `push --quiet --no-follow-tags --recurse-submodules=no -- <remote> HEAD:<merge ref>` — `<remote>` and `<merge ref>` from `git config --get branch.<branch>.remote` / `.merge`; an explicit refspec without `+`, so configured push refspecs and `push.default` play no part and the push is **never forced** |
+| push | `push --quiet --no-follow-tags --recurse-submodules=no -- <remote> HEAD:<merge ref>` — `<remote>` and `<merge ref>` from `git config --get branch.<branch>.remote` / `--get-all branch.<branch>.merge` — exactly one merge value, else `no-upstream` (git's `@{u}` takes the first value, `--get` the last; task-034 W4-6); an explicit refspec without `+`, so configured push refspecs and `push.default` play no part and the push is **never forced** |
 
 - **Never a merge commit, never a pruned local ref** (task-034, bug-014): `--ff-only` alone does
   not hold — `branch.<b>.mergeOptions = -s ours` or `pull.twohead = ours` make git create a merge
@@ -203,7 +203,7 @@ spec-008 §7):
 | `local-changes-in-the-way` | `{ files }` | update | "Cannot fast-forward: local changes to {files} are in the way — commit or stash them in a terminal" (Y-06.2) |
 | `remote-unreadable` | — | fetch, update, push | "Git cannot read the repository of this remote: check its path with git in a terminal" (review round 2 F9) |
 | `remote-not-owned` | — | fetch, update, push | "The repository of this remote is a folder of another user of this computer: git could run that user's code, so WingFoil UI does not use it — use a repository you own" (bug-010) |
-| `refspec-outside-remotes` | — | fetch | "Not fetched: this remote has no fetch refspec, or one writes outside refs/remotes/, so pruning could delete your local branches or tags — fetch with git in a terminal" (bug-014) |
+| `refspec-outside-remotes` | — | fetch, update | "Not fetched: this remote has no fetch refspec, or one writes outside refs/remotes/, so pruning could delete your local branches or tags — fetch with git in a terminal" (bug-014) |
 
 `local-changes-in-the-way`: the files changed by the incoming commits
 (`git log --no-renames --name-only -z --format= HEAD..@{u}`) intersected with the status entries
@@ -235,7 +235,24 @@ so the sidebar shows it (Y-06.1, Y-06.2).
   hooks path, which a fetch's `reference-transaction` and a merge's `post-merge` would run; and no
   askpass program (`GIT_ASKPASS` empty, which git reads as "none" for `GIT_ASKPASS`,
   `core.askPass` and `SSH_ASKPASS`; `SSH_ASKPASS_REQUIRE=never`) — credential helpers still run.
-  The manual transport and the auto-push keep both (RP-23): the user just acted.
+  The manual transport and the auto-push keep both (RP-23): the user just acted. Accepted
+  residual (W4-10 a): hooks an automatic merge brought in through a relative hooks path run at the
+  user's next governed write (the CLI's commit) or auto-push.
+- **Configuration from the working tree** (W4-5, security review S1): before an unattended fetch
+  and again before an automatic merge, under the lock, `git config --list --show-origin
+  --show-scope`: when a setting of the repository's scopes (`local`, `worktree`) comes from a file
+  other than its own `config` / `config.worktree` in the git directories — e.g. `include.path` or
+  `includeIf` to a tracked file, which incoming commits would change to run `remote.<r>.uploadpack`,
+  `core.fsmonitor`, a filter driver, `core.sshCommand`, a `!` credential helper or `core.gitProxy`
+  — or any file origin resolves inside the working tree outside the git directories, or an origin
+  cannot be resolved, the run is skipped, logged by code `config-in-worktree` (nothing recorded:
+  no `lastError` code fits the fetch). Includes of the user's global configuration count as the
+  user's own. Unattended runs and the server's own git reads (status, …) also run with
+  `-c core.fsmonitor=false`.
+- **Legacy remote files** (W4-7, security review S3): a remote without `remote.<r>.url` in the
+  configuration makes git read `remotes/<r>` or `branches/<r>` of the common directory, whose
+  refspecs the configuration does not show; such a remote, or one with such a file, is refused
+  `refspec-outside-remotes` (fetch, manual update) or skipped (scheduler).
 - `autoFetch` on → fetch (§4), killed after 60 s and recorded as failed with `code:
   "fetch-timeout"` (`message`: git's standard error so far, possibly empty); the next tick
   retries. Right after a successful fetch, still under the same write lock, per project:
@@ -246,9 +263,11 @@ so the sidebar shows it (Y-06.1, Y-06.2).
   nothing recorded) → the automatic update (§4: `merge --ff-only`) after the §5 checks
   `detached-head`, `no-upstream`, `diverged` and `local-changes-in-the-way` on a fresh status; a
   refusal or a failed merge is kept as `sync.update.lastError` (Y-05.2). The merge has no time
-  limit: a merge killed during its checkout leaves the working tree half updated. After a merge
-  that exits 0 the copy must be in sync; otherwise the server logs `merge-not-fast-forward` at
-  error level. `autoFetch` off → the scheduler starts 0 `git fetch` processes (Y-02.3); manual
+  limit: a merge killed during its checkout leaves the working tree half updated — at stop, no new
+  automatic merge starts and the stop sequence waits for one already running before terminating
+  the processes (a second signal still forces, W4-10 b). After a merge that exits 0 the copy must be
+  in sync; otherwise the server logs `merge-not-fast-forward` at error level and records it as
+  `sync.update.lastError` with that code (W4-9). `autoFetch` off → the scheduler starts 0 `git fetch` processes (Y-02.3); manual
   *Fetch* still works.
 - **Auto-push:** after each successful governed write from the UI, with `autoPush` on and
   `has-remote` holding, a push (§4) runs under the same write lock, killed after 60 s. The `push`
@@ -257,7 +276,8 @@ so the sidebar shows it (Y-06.1, Y-06.2).
   with git's `message` when git refuses (Y-08.1: the commit stays, the copy is `ahead`); `failed`
   with `code` = the §5 code when refused before git runs (e.g. `no-upstream`); `failed` with
   `code: "push-timeout"` when killed after 60 s (catalogue: "Not pushed: the push did not finish
-  within 60 s — use Push to try again"). The toast renders `code` from the catalogue. A failed
+  within 60 s — use Push to try again"); `failed` with `code: "internal"` on an unexpected error
+  around the push, logged by kind (W4-4). The toast renders `code` from the catalogue. A failed
   push never fails the write. There is no periodic push. The push is HEAD, as the manual push: the
   user's own commits not yet on the remote go with it, and so does a commit a failed CLI left
   (spec-004 §5 `write-incomplete`, not pushed by itself).
@@ -277,7 +297,7 @@ again with the next `repo` event (Y-04.2). The branch and the local changes are 
 | Route | Rows of spec-004 §4 | Then |
 |-------|---------------------|------|
 | `POST …/git/fetch` | 1–4 (no body) | §5 `no-remote`, `no-fetch-target`, `refspec-outside-remotes`, `remote-not-owned`, `remote-unreadable` |
-| `POST …/git/update` | 1–5 | §5 (`remote-not-owned`, `remote-unreadable` included) |
+| `POST …/git/update` | 1–5 | §5 (`refspec-outside-remotes`, `remote-not-owned`, `remote-unreadable` included) |
 | `POST …/git/push` | 1–5 | §5 `no-remote`, `detached-head`, `no-upstream`, `remote-not-owned`, `remote-unreadable` |
 
 Fetch is allowed to an unidentified user (RP-14: it changes only remote-tracking refs, no branch
@@ -385,3 +405,12 @@ Rows 7–9 do not apply (no element).
   the copy is behind its upstream (`behind > 0`), diverged included, so a diverged copy records
   `diverged` in `sync.update.lastError`, as the manual update does. Review round 1 (R1): the
   manual update's own fetch prunes nothing (`--no-prune`, tag pruning off).
+- 2026-10-15 — adversarial security review round 1 of task-034 (decisions W4-3 … W4-10 of the
+  approver): §3 and §6 `merge-not-fast-forward` recorded (W4-9); §4 the push's merge ref read with
+  `--get-all`, exactly one (W4-6); §5 and §8 `refspec-outside-remotes` also for the update (W4-3),
+  also for a remote without configured URL or with a legacy `remotes/` / `branches/` file (W4-7);
+  §6 configuration from the working tree skips unattended runs, no fsmonitor in unattended runs
+  and the server's reads (W4-5), `push.code` `internal` (W4-4), the stop waits for a running
+  automatic merge and the accepted residual of hooks an automatic merge brought in (W4-10). The
+  process runner settles at most 2 s after a process exited, so a program left in another session
+  holding the pipes cannot hold a write lock or the stop sequence (W4-8, `adr-001` D5).

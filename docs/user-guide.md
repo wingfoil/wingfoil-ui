@@ -1,6 +1,6 @@
 # User guide — WingFoil UI v0.1
 
-**Version:** 0.10 · **Date:** 2026-10-15 (0.1: release v0.1; 0.2: bug-008 known limitation, release submit; 0.3: bug-008 wording; 0.4: bug-008 marked fixed after 0.1.0 — task-026; 0.5: *How to join*, unreleased v0.2 — task-035; 0.6: *Today*, unreleased v0.2 — task-036; 0.7: what runs during a clone, a local repository of another user, unreleased v0.2 — task-033 / bug-010, bug-013; 0.8: a local source git cannot read — task-033 review round 3; 0.9: *Deciding a gate*, unreleased v0.2 — task-037; 0.10: *Automatic sync with the remote*, unreleased v0.2 — task-034 / bug-014)
+**Version:** 0.10 · **Date:** 2026-10-15 (0.1: release v0.1; 0.2: bug-008 known limitation, release submit; 0.3: bug-008 wording; 0.4: bug-008 marked fixed after 0.1.0 — task-026; 0.5: *How to join*, unreleased v0.2 — task-035; 0.6: *Today*, unreleased v0.2 — task-036; 0.7: what runs during a clone, a local repository of another user, unreleased v0.2 — task-033 / bug-010, bug-013; 0.8: a local source git cannot read — task-033 review round 3; 0.9: *Deciding a gate*, unreleased v0.2 — task-037; 0.10: *Automatic sync with the remote*, unreleased v0.2 — task-034 / bug-014, its security review)
 
 WingFoil UI v0.1 is a **read-only console** for WingFoil-governed projects: you open a project and
 read its Memory, elements, DNA, directives, team and documentation, kept up to date while you work
@@ -320,6 +320,16 @@ it started up to date with their remote, by itself. Three settings drive it (spe
   fetch fail with git's message instead of opening a dialog. Your own git tools still run (filter
   drivers such as git-lfs, your ssh command, credential helpers). A fetch is stopped after 60 s and
   tried again at the next round.
+- **Not when the repository configures itself.** If the repository's own configuration includes
+  another file (`include.path`, `includeIf` — e.g. a `.gitconfig` committed in the project), the
+  console does not fetch or update it by itself: the commits it would bring could change that file
+  and make git run a command. Includes of your global configuration (`~/.gitconfig`) are yours and
+  do not count.
+- **Stopping the console during an automatic update** lets the update finish first (a second
+  Ctrl-C still stops at once), so the working tree is never left half updated.
+- **Hooks come back with your next action.** Hooks an automatic update brought in through a hooks
+  folder of the project (`core.hooksPath`, e.g. husky) run at your next submit, approve or reject
+  (WingFoil's commit) or auto-push — as they would after your own `git pull`.
 - **What is never done by itself.** No merge commit, no rebase, no stash: a copy that diverged from
   the remote, a local change to a file the incoming commits change, or a git operation you have in
   progress (a merge, rebase, cherry-pick, revert, `git am` or bisect) is not updated — fast-forward

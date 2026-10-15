@@ -212,8 +212,8 @@ REQ-SEC-08's fit criterion (SARD `05` v0.6), which excludes fetch and the per-us
 - Success of a write (`write.response.schema.json`): `{ result: <CLI output>, commits: [{ sha,
   subject }], push: { status, code?, message? } }` — `status` is `pushed`, `off` or `failed`
   (spec-010 §6); on `failed`, `message` is git's verbatim error when git refused the push, and
-  `code` is a spec-010 §5 code (refused before git ran) or `push-timeout` (auto-push killed
-  after 60 s), rendered from the catalogue. A failed push is still a **success** of the write:
+  `code` is a spec-010 §5 code (refused before git ran), `push-timeout` (auto-push killed
+  after 60 s) or `internal` (an unexpected error around the push), rendered from the catalogue. A failed push is still a **success** of the write:
   the commit is made and stays local (Y-08.1, G-13). Was `pushed: boolean` until 2026-10-12. An
   ingestion lists its `add` and `submit` commits. `commits` are the first-parent commits made
   since the write's fresh HEAD whose subject is the CLI's for that write (`wf(<type>): <verb>
@@ -386,3 +386,4 @@ goes away by itself when the stream reconnects. A network failure is not rendere
   project-list codes. Decided by the approver.
 - 2026-10-15 — amended in dev-loop task-034 (minor-v0.2 Wave 4, D34-8, bug-014): §5 the 409 code
   `refspec-outside-remotes` of the fetch route (spec-010 §5). Decided by the approver.
+- 2026-10-15 — task-034 security review round 1 (W4-4): §5 `push.code` may be `internal`.

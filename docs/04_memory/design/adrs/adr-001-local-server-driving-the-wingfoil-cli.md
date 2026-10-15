@@ -235,3 +235,7 @@ PERF-05 · features S1, S3, S8, X4 · scenarios S-08.1, S-08.2, S-09.1, S-09.2, 
   hash also covers the copy against the remote (branch, upstream, ahead/behind, remotes — spec-010
   §2); the CLI reads are cached on HEAD and the working-tree part only, since the CLI cannot see
   the tracking refs, while the descriptors follow the whole key. Decided by the approver.
+- 2026-10-15 — amended in dev-loop task-034 (W4-8, W4-10 b): D5 a process is settled when its pipes
+  close or at the latest 2 s after it exited (a program it left in another session may hold them);
+  the stop sequence waits for an automatic merge already running before terminating the processes.
+  Decided by the approver.

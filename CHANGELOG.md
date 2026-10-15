@@ -12,8 +12,9 @@ All notable changes to WingFoil UI are recorded in this file. The format follows
   every opened project's remote every 60 s (on by default), can fast-forward a copy that is behind
   right after (*Auto-update*, off by default) and push the branch after each decision made in the
   console (*Auto-push*, off by default; the push is the branch's, the user's own unpushed commits
-  included). Unattended runs start no repository hook and no askpass program; an automatic fetch
-  or an auto-push is stopped after 60 s.
+  included). Unattended runs start no repository hook, no fsmonitor and no askpass program, and do
+  not run at all when the repository's configuration includes another file; an automatic fetch or
+  an auto-push is stopped after 60 s; stopping the console lets a running automatic update finish.
 - **How to join** (US-C-08, US-C-09): for a user not in the team, the *not in team* badge and the
   header notice open a panel naming the project's tech leads (or saying none, or no member, is
   declared) with the exact `wingfoil dna add team.members …` command for the user's git email and
