@@ -359,3 +359,24 @@ git's message); push goes to the upstream's remote, never `branch.<b>.pushRemote
 explicit refspec); the user's environment (`GIT_TRACE*`, `GIT_SSH`, `GIT_EXEC_PATH`) is used as
 is. Observation outside bug-012's wording: `cli-not-found` sends `detail.path` = the project's
 absolute root (spec-006 §3 shape; the catalogue does not use it).
+
+#### Decisions (approver, 2026-10-15)
+
+"All as recommended": D33-1 (c) — documentation plus a local remote whose repository is not owned
+by the server's user refused with the new code `remote-not-owned` (422 on the clone, 409 on fetch,
+update and push); D33-2 (a); D33-3 (a); D33-4 (a); D33-5 (a); D33-6 (a) with an adr-001 D6
+Process Note; D33-7 (a); D33-8 (a); D33-9 (a); D33-10 (a); D33-11 (a); D33-12 (a); D33-13 (a);
+D33-14 (a). Approved specs and ADRs are amended in place with dated Process Notes (2026-10-15).
+
+Coordinator (2026-10-15):
+
+- **C1** — the `GIT_ALLOW_PROTOCOL` finding is bug-013-clone-runs-ext-transport-commands-when-git-allow-protocol-allows-them
+  (`open`, awaiting triage, proposed absorption here); its fix is D33-2. bug-012 and bug-013 are
+  cited by the tests and the closure rows; the `bug:` list and the AC are the coordinator's.
+- **C2** — bug-012's scope includes `cli-not-found`'s `detail.path` (the project's absolute root):
+  no local absolute path in that body either; spec-006 §3 amended with a dated Process Note.
+- **C3** — merge order task-033 then task-037; `test/README.md` 0.33 here (0.34 task-037). In the
+  web catalogue, `error-message.ts` and its test this task adds only its own entries (the transport
+  `error.*` keys, `error.remoteNotOwned`, the `{files}` list rendering); `element.reason.*` keys
+  (copy reasons included) and `write-incomplete` are task-037's. Only this task touches
+  `contracts/` and the schemas.
