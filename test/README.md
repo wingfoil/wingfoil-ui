@@ -67,7 +67,8 @@ Every test lives under `test/` (DNA `paths.tests`); sources stay in `server/src`
     most), a failed body read or a hung answer is reported with what the check flags, and
     `screenTextsOutsideCatalogue` (used by `accessibility.spec.ts`) repeats the check only while new
     answers were learnt, within `COLD_READ_MS`; `reset({ untilNavigation: true })` also forgets what
-    the page being left reads until the next navigation (bug-015, task-042);
+    the page being left reads until the next navigation, named as a cause when something is flagged
+    (bug-015, task-042);
   - `support/perf.ts` (task-021): `timeNavigation(page, target, ready)` (Enter → view rendered,
     measured in the page), `percentile`, `reportRuns`; 20 runs and the 1.0 s p95 budget in
     `test:timing`, 2 runs without a budget in `test:e2e`;

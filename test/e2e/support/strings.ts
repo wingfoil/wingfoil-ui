@@ -88,7 +88,10 @@ export interface DataRecorder {
   reset(options?: { untilNavigation?: boolean }): void;
   /** The frontmatter keys of the elements read since the last `reset()` (D37-13); none if absent. */
   fieldNames?(): Promise<Set<string>>;
-  /** Why answers since the last `reset()` could not be learnt (bug-015); none if absent. */
+  /**
+   * Why answers since the last `reset()` could not be learnt (bug-015), and the reads set aside as
+   * the page left's at the navigation (R5-1); none if absent.
+   */
   failures?(): Promise<string[]>;
   /** How many answers were learnt (or failed) since the last `reset()`: new data since an attempt. */
   answers?(): number;
@@ -113,6 +116,14 @@ interface Generation {
   pending: Map<Promise<void>, string>;
   /** Answers learnt or failed. */
   answers: number;
+  /** The request lines filed here, in order. */
+  lines: string[];
+  /**
+   * The reads set aside at the navigation that started this generation, as the page left's
+   * (R4-2): named as a possible cause of what is flagged (review R5-1) — a `request` event of the
+   * new page can reach the test before the navigation's.
+   */
+  ignored: string[];
 }
 
 /**
@@ -131,13 +142,17 @@ export function recordApiData(page: Page, options: RecordOptions = {}): DataReco
     failures: [],
     pending: new Map(),
     answers: 0,
+    lines: [],
+    ignored: [],
   });
   let current = fresh();
   let resetAtNavigation = false;
   page.on('framenavigated', (frame) => {
     if (frame !== page.mainFrame() || !resetAtNavigation) return;
     resetAtNavigation = false;
+    const left = current;
     current = fresh();
+    current.ignored = [...left.lines];
   });
   const settle = new Map<Request, (finished: boolean) => void>();
   const collect = (into: Set<string>, v: unknown): void => {
@@ -185,6 +200,7 @@ export function recordApiData(page: Page, options: RecordOptions = {}): DataReco
         );
       }
     });
+    gen.lines.push(line);
     gen.pending.set(work, line);
     void work.finally(() => gen.pending.delete(work));
   });
@@ -227,7 +243,7 @@ export function recordApiData(page: Page, options: RecordOptions = {}): DataReco
     failures: async () => {
       const gen = current;
       await settled(gen);
-      return [...gen.failures];
+      return [...gen.failures, ...gen.ignored.map((line) => `ignored as a read of the page left: ${line}`)];
     },
     answers: () => current.answers,
   };
