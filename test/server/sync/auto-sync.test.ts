@@ -366,7 +366,7 @@ describe('review round 1 (R4, R5)', () => {
     expect(JSON.stringify(s.log.lines)).not.toContain(await realpath(ws.dir));
   });
 
-  it('R4: a merge that exits 0 without fast-forwarding → merge-not-fast-forward at error level, the update error kept', async () => {
+  it('R4 / W4-9: a merge that exits 0 without fast-forwarding → merge-not-fast-forward at error level and as the update error', async () => {
     let fake = false;
     const s = await start(
       { autoUpdate: true },
@@ -390,7 +390,8 @@ describe('review round 1 (R4, R5)', () => {
     );
     const repo = await header(s.c);
     expect(repo).toMatchObject({ copy: 'behind' });
-    expect(repo.sync.update.lastError).toMatchObject({ code: 'git-refused' });
+    // W4-9 (security review S5): recorded as an update error of its own.
+    expect(repo.sync.update.lastError).toMatchObject({ code: 'merge-not-fast-forward' });
   });
 
   it('R5: stopped during the fetch → no merge starts afterwards', async () => {
