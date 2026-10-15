@@ -210,3 +210,20 @@ reuses `today.action`. `today.summary.title` "Your roles"; `today.summary.line` 
 
 #### Open decisions — see the report to the coordinator (D42-1 … D42-8); nothing depending on them
 is built before the answer.
+
+#### Decisions (approver, 2026-10-15, plan W4-2)
+
+"All as recommended": **D42-1 (a)** the bell at the right end of the global header (inside
+`ProjectRoleView`'s `HeaderEnd`, between the role view selector and the current user), inside a
+project, for every identity; **D42-2 (a)** *Updates* read only while the panel is open;
+**D42-3 (a)** the panel lists **all** `requiresYou` rows (spec-003 §5), *Updates* the last 10
+events, no "more" link and no channel footer; **D42-4 (a)** a badge only for a count > 0, the count
+in the button's accessible name, no live region of its own; **D42-5 (a)** a "Your roles" card
+between the greeting and Requires you; **D42-6 (a)** switching with the card's own
+`useSetRoleView()`, focus to the Requires you heading once the new view is read; **D42-7 (a)**
+"N more" switches to that role view; **D42-8 (a)** one appended screen, *notification panel*.
+The ux-reference gaps go into ux-reference 1.4. Shared files (coordinator C1–C5): task-034 merges
+first; `test/README.md` 0.36, `docs/user-guide.md` 0.11, ux-reference 1.4; this task alone touches
+`web/src/api/queries.ts` (`memoryEventsQuery` as proposed) and `ProjectHeader.tsx`; `en.json` and
+`CHANGELOG.md` *Unreleased*: only this task's entries, in sorted place. After task-034 every
+real-bin console auto-fetches every 60 s: assertions stay on what the user sees.
