@@ -66,7 +66,7 @@ interface Synced {
 
 async function start(
   settings: Partial<UiSettings> = {},
-  options: GitConsoleOptions & { timeoutMs?: number; open?: boolean } = {},
+  options: GitConsoleOptions & { timeoutMs?: number; open?: boolean; hooksPath?: string } = {},
 ): Promise<Synced> {
   const c = await startGitConsole(template, ws.dir, apps, registries, options);
   await c.store.putSettings({ ...DEFAULT_SETTINGS, ...settings });
@@ -77,6 +77,7 @@ async function start(
     transport: new GitTransport({ snapshots: c.snapshots, writeLock: c.writeLock, env: c.env }),
     logger: log.logger,
     ...(options.timeoutMs !== undefined ? { timeoutMs: options.timeoutMs } : {}),
+    ...(options.hooksPath !== undefined ? { hooksPath: options.hooksPath } : {}),
   });
   const scheduler = new SyncScheduler({ store: c.store, work: sync, lock: c.writeLock, bus: c.bus });
   // The page has read the project: its snapshot is open (RP-18).
@@ -340,5 +341,74 @@ describe('the automatic update (spec-010 §6, RP-41; Y-05.2 API side)', () => {
     expect(error.message).not.toContain(s.c.fx.dir);
     expect(JSON.stringify(s.log.lines)).not.toContain('index.lock');
     expect(JSON.stringify(s.log.lines)).not.toContain(s.c.fx.dir);
+  });
+});
+
+describe('review round 1 (R4, R5)', () => {
+  it('R4: a hooks path that is not a regular file → nothing runs unattended, an error logged by code', async () => {
+    const s = await start({ autoUpdate: true }, { hooksPath: await realpath(ws.dir) });
+    await s.c.remoteCommit('from-jordan.md', 'hi\n');
+    const p = await s.tick();
+    expect(p.git + p.wingfoil).toBe(0);
+    expect(s.log.lines).toContainEqual(expect.objectContaining({ level: 'error', code: 'hooks-path-unusable' }));
+    expect(JSON.stringify(s.log.lines)).not.toContain(await realpath(ws.dir));
+  });
+
+  it('R4: a merge that exits 0 without fast-forwarding → merge-not-fast-forward at error level, the update error kept', async () => {
+    let fake = false;
+    const s = await start(
+      { autoUpdate: true },
+      {
+        intercept: async (request) =>
+          fake && gitSubcommand(request.args) === 'merge'
+            ? { exitCode: 0, signal: null, stdout: '', stderr: '', ended: 'exit', durationMs: 1 }
+            : undefined,
+      },
+    );
+    await s.c.remoteCommit('from-jordan.md', 'hi\n');
+    await writeFile(path.join(s.c.fx.dir, '.git', 'index.lock'), '');
+    await s.tick();
+    expect((await header(s.c)).sync.update.lastError).toMatchObject({ code: 'git-refused' });
+    const { rm } = await import('node:fs/promises');
+    await rm(path.join(s.c.fx.dir, '.git', 'index.lock'));
+    fake = true;
+    await s.tick();
+    expect(s.log.lines).toContainEqual(
+      expect.objectContaining({ level: 'error', code: 'merge-not-fast-forward', op: 'auto-update' }),
+    );
+    const repo = await header(s.c);
+    expect(repo).toMatchObject({ copy: 'behind' });
+    expect(repo.sync.update.lastError).toMatchObject({ code: 'git-refused' });
+  });
+
+  it('R5: stopped during the fetch → no merge starts afterwards', async () => {
+    const holder: { scheduler?: SyncScheduler } = {};
+    const s = await start(
+      { autoUpdate: true },
+      {
+        intercept: async (request, real) => {
+          if (gitSubcommand(request.args) !== 'fetch') return undefined;
+          const result = await real(request);
+          holder.scheduler?.stop();
+          return result;
+        },
+      },
+    );
+    holder.scheduler = s.scheduler;
+    await s.c.remoteCommit('from-jordan.md', 'hi\n');
+    await s.tick();
+    expect(spawnedOf(s.c, 'fetch')).toHaveLength(1);
+    expect(spawnedOf(s.c, 'merge')).toHaveLength(0);
+  });
+
+  it('R5: stopped → the projects left in the group are not synced', async () => {
+    const s = await start();
+    const sub = path.join(s.c.fx.dir, 'docs');
+    const second = await s.c.store.add({ path: sub, name: 'docs', remote: '' });
+    await s.c.snapshots.open(second.id, sub);
+    const [group] = s.sync.groups();
+    s.sync.stop();
+    const p = await s.c.processes(() => s.sync.sync(group!));
+    expect(p.git).toBe(0);
   });
 });

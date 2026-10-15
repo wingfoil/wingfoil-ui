@@ -239,3 +239,36 @@ describe('the rules of a tick (spec-010 §6, RP-40, RP-41)', () => {
     expect(work.synced).toEqual(['repo-b']);
   });
 });
+
+describe('review round 1 (R5, R9)', () => {
+  it('R9: a failing work port (groups() throws) never rejects a tick; it is logged by kind', async () => {
+    const lines: unknown[] = [];
+    const failing = new SyncScheduler({
+      store: settings,
+      work: {
+        groups: () => {
+          throw new Error('marker-task-034-r9');
+        },
+        sync: () => Promise.resolve(),
+      },
+      lock,
+      bus,
+      logger: { warn: (o) => lines.push(o) },
+    });
+    await expect(failing.tick()).resolves.toBeUndefined();
+    expect(lines).toEqual([expect.objectContaining({ kind: 'Error' })]);
+    expect(JSON.stringify(lines)).not.toContain('marker-task-034-r9');
+  });
+
+  it('R5: stop() tells the work port to stop', () => {
+    let stopped = 0;
+    const s = new SyncScheduler({
+      store: settings,
+      work: { groups: () => [], sync: () => Promise.resolve(), stop: () => (stopped += 1) },
+      lock,
+      bus,
+    });
+    s.stop();
+    expect(stopped).toBe(1);
+  });
+});

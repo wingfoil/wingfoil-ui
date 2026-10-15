@@ -187,3 +187,37 @@ describe('auto-push (spec-010 §6; Y-07.3, G-13.1 API side)', () => {
     await git(c.fx.remoteDir, ['merge-base', '--is-ancestor', left, 'main'], c.fx.env);
   });
 });
+
+describe('review round 1 (R3)', () => {
+  it('a git read of the push plan fails → the write is 200, push failed, the log holds the kind only', async () => {
+    const MARKER = 'marker-task-034-r3';
+    const log: string[] = [];
+    let root = '';
+    const c = await start(
+      { autoPush: true },
+      {
+        log,
+        intercept: async (request) =>
+          gitSubcommand(request.args) === 'remote' && request.args.includes('--push')
+            ? {
+                exitCode: 128,
+                signal: null,
+                stdout: '',
+                stderr: `fatal: ${MARKER} ${root}`,
+                ended: 'exit',
+                durationMs: 1,
+              }
+            : undefined,
+      },
+    );
+    root = c.fx.dir;
+    const res = await approve(c);
+    expect(res.status).toBe(200);
+    expect(res.body.push).toEqual({ status: 'failed', code: 'internal' });
+    expect(pushes(c)).toHaveLength(0);
+    const text = log.join('');
+    expect(text).toMatch(/auto-push failed/);
+    expect(text).not.toContain(MARKER);
+    expect(text).not.toContain(root);
+  });
+});
