@@ -91,6 +91,33 @@ test('X-09.1 recorder: values are data, object keys are not, reset forgets', asy
   expect((await textsOutsideCatalogue(page, recorder)).sort()).toEqual(['p: kanban', 'p: name']);
 });
 
+test('X-09.1 check: a References field name only when an element read holds that key (D37-13)', async ({ page }) => {
+  await page.route('http://wfui.test/**', (route) =>
+    new URL(route.request().url()).pathname === '/api/p/p_1/elements/e-1'
+      ? route.fulfill({
+          contentType: 'application/json',
+          body: JSON.stringify({ frontmatter: { id: 'e-1', depends_on: [], priority: 'high' } }),
+        })
+      : route.fulfill({
+          contentType: 'text/html',
+          body: `<!doctype html><title>title.projects</title>
+            <div class="drawer"><dl><dt class="field-name">depends_on</dt><dt class="field-name">module</dt>
+            <dt class="field-name">Hard-coded</dt><dt class="field-name">id</dt></dl></div>
+            <dl><dt class="field-name">priority</dt></dl>`,
+        }),
+  );
+  await page.goto('http://wfui.test/');
+  const recorder = recordApiData(page);
+  await page.evaluate(() => fetch('/api/p/p_1/elements/e-1').then((r) => r.text()));
+  // A key read passes inside the drawer; a key not read, English text, a key the panel never lists
+  // under References (`id`, review F11) and a field name outside the drawer are flagged.
+  expect((await textsOutsideCatalogue(page, recorder)).sort()).toEqual(
+    ['dt.field-name: module', 'dt.field-name: Hard-coded', 'dt.field-name: id', 'dt.field-name: priority'].sort(),
+  );
+  recorder.reset();
+  expect(await textsOutsideCatalogue(page, recorder)).toContain('dt.field-name: depends_on');
+});
+
 test('focus ring: a poor and a good ring, measured against the backdrop', async ({ page }) => {
   await page.setContent(`<!doctype html><html lang="en"><head><title>t</title><style>
     body { background: #ffffff; }

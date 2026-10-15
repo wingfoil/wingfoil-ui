@@ -157,6 +157,11 @@ Row = { element: { id, type, title, status, localChanges }, descriptor }   # des
 informational — "Reserved to approver — <members> can act" — with no outcome button (G-09.1,
 REQ-SEC-07). The role is not an enablement rule.
 
+**Identity first (v0.2, task-037).** A user who is not identified as one member gets no outcome at
+all: the footer is a read-only line ("Read-only: <email> is not in the team — How to join", or a
+pointer to the header's notice; S-13.2, S-15.2). Rule 1 below then only reaches the server's
+re-evaluation (403 `not-in-team`).
+
 An offered verb is **enabled** only when all hold; otherwise it is shown disabled with the first
 failing reason (also its accessible description, REQ-ARC-10):
 
@@ -276,3 +281,11 @@ element list; `web/` renders it and never re-derives it.
   rows, no `summary`); an unidentified user's `?view=` → 400. Decided by the approver. Same day,
   review round 1 (F1): the shape block's `view` comment aligned ("null when there is no role
   view").
+- 2026-10-15 — amended in dev-loop task-037 (minor-v0.2 Wave 3, plan dev-loop-rel-v0.2-plan,
+  D37-5, D37-6): §6 rule 1 for the gate footer — a user not identified as one member (identity
+  `not-in-team`, `no-identity`, `ambiguous`) is offered no outcome at all, only a read-only line
+  ("Read-only: <email> is not in the team — How to join", or a pointer to the header's notice;
+  S-13.2, S-15.2), rather than outcomes disabled with `not-in-team`; the role rule is applied after
+  it (informational footer); a `gate-waiting` state shown to a member without `approver` reads
+  "Reserved to approver" without names (its actor is the engine) with "Waiting for the workflow
+  engine to advance". Decided by the approver.

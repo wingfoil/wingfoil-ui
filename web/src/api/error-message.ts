@@ -45,6 +45,9 @@ const MESSAGES = defineMessages({
   'remote-not-owned': { id: 'error.remoteNotOwned' },
   // Review round 2 F9: a local remote or clone source git cannot read.
   'remote-unreadable': { id: 'error.remoteUnreadable' },
+  // task-037, D37-11: a governed write that did not finish (W2-1, W2-4, W2-5); `detail.file`,
+  // optional `detail.commit`.
+  'write-incomplete': { id: 'error.writeIncomplete' },
   // Client-side: no answer at all (W3-12).
   unreachable: { id: 'error.unreachable' },
 });
@@ -99,6 +102,10 @@ export function errorMessage(
     // Two detail shapes (projects.refusal.schema.json): `{path}` for a folder, `{source}` for a clone.
     values['source'] ??= 'local';
     values['path'] ??= '';
+  }
+  if (code === 'write-incomplete') {
+    // `detail.commit` is optional (write.refusal.schema.json): the message selects on `none`.
+    values['commit'] ??= 'none';
   }
   return {
     descriptor: MESSAGES[code],

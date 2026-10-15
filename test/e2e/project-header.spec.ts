@@ -216,8 +216,13 @@ test.describe('US-S-09 — version outside the supported range', () => {
       .click();
     const panel = page.getByRole('dialog');
     await expectFirstLoad(panel.locator('.type-tag'));
-    await expect(panel.getByRole('button', { name: GOVERNED })).toHaveCount(0);
-    await expect(page.getByRole('button', { name: GOVERNED })).toHaveCount(0);
+    // v0.2 (task-037): the gate footer shows the outcomes, none enabled, with the version reason.
+    const outcomes = panel.getByRole('button', { name: GOVERNED });
+    await expect(outcomes).toHaveCount(2, { timeout: COLD_READ_MS });
+    for (const b of await outcomes.all()) {
+      await expect(b).toBeDisabled();
+      await expect(b).toHaveAccessibleDescription(`Read-only: ${RANGE}`);
+    }
     await panel.getByRole('button', { name: 'Close' }).click();
     expect(await scanThemes(page)).toEqual([]);
   });

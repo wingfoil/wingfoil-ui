@@ -76,6 +76,8 @@ const SPEC_004: Record<string, Record<string, unknown>[]> = {
   'no-upstream': [{}],
   diverged: [{}],
   'local-changes-in-the-way': [{ files: ['docs/a.md'] }],
+  // task-032 W2-1, W2-4, W2-5 (write.refusal.schema.json); its text is task-037's (D37-11).
+  'write-incomplete': [{ file: 'docs/x.md' }, { file: 'docs/x.md', commit: 'a'.repeat(40) }],
 };
 /** Client-side code (W3-12): no answer at all. */
 const CLIENT: Record<string, Record<string, unknown>[]> = { unreachable: [{}] };
@@ -176,4 +178,17 @@ it('renders the files in the way as one list of base names (spec-010 §5, task-0
   expect(errorMessage(new ApiError(409, 'local-changes-in-the-way', 'x', { files: ['one.md'] })).values).toEqual({
     files: 'one.md',
   });
+});
+
+it('write-incomplete: the commit selector is `none` when the write left no commit (task-037, D37-11)', () => {
+  expect(errorMessage(new ApiError(500, 'write-incomplete', 'x', { file: 'docs/x.md' })).values).toEqual({
+    file: 'docs/x.md',
+    commit: 'none',
+  });
+  const sha = 'b'.repeat(40);
+  expect(errorMessage(new ApiError(500, 'write-incomplete', 'x', { file: 'docs/x.md', commit: sha })).values).toEqual({
+    file: 'docs/x.md',
+    commit: sha,
+  });
+  expect(errorMessage(new ApiError(500, 'write-incomplete', 'x', { file: 'f' })).verbatim).toBeUndefined();
 });

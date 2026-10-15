@@ -201,11 +201,26 @@ it('opens the element panel from the action, with no write (D36-3)', async () =>
   button.focus();
   await user.keyboard('{Enter}');
   await waitFor(() => expect(router.state.location.pathname).toBe(`/p/${PID}/e/task-001-login`));
+  // task-037 (G-04.3, D37-1): a gate opens with its reason focused.
+  expect(router.state.location.state.gateFocus).toBe(true);
   expect(
     fetch.mock.calls.some(
       (c) => (c[1] as RequestInit | undefined)?.method === 'POST' && String(c[0]).startsWith('/api/p/'),
     ),
   ).toBe(false);
+});
+
+it('asks no reason focus for an action that is not a gate (task-037, D37-1)', async () => {
+  const body: Today = {
+    view: 'approver',
+    requiresYou: [action('task-004-timeout', 'draft', 'submit')],
+    waitingOnOthers: [],
+  };
+  stubApi(api({ [`${TODAY}?view=approver`]: { status: 200, body } }));
+  const { router } = renderApp(`/p/${PID}/today`);
+  await userEvent.click(await screen.findByRole('button', { name: 'Submit task-004-timeout' }));
+  await waitFor(() => expect(router.state.location.pathname).toBe(`/p/${PID}/e/task-004-timeout`));
+  expect(router.state.location.state.gateFocus).toBe(false);
 });
 
 it('lists Waiting on others with who must act (T-11.1, T-11.2, T-06.1, D36-6)', async () => {

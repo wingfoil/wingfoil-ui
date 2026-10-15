@@ -185,4 +185,24 @@ export const SCREENS: readonly Screen[] = [
     name: 'today — not in team',
     open: (page, c) => project(page, c, `/p/${c.pids[2]}/today`, (p) => p.locator('.today-identity button')),
   },
+  {
+    // task-037 (D37-12): the gate footer with its reason cleared — outcomes disabled, the hint shown.
+    name: 'element panel — gate footer, reason empty',
+    open: async (page, c) => {
+      await project(page, c, `/p/${c.pids[0]}/e/task-001-login-form`, (p) => p.locator('.drawer .gate-reason-field'));
+      await page.locator('.drawer .gate-reason-field').fill('');
+      await expect(page.locator('.drawer .gate-hint')).toBeVisible();
+    },
+  },
+  {
+    // task-037: a state the workflow engine leaves (custom `release` `planning`, S-24.2, RP-13).
+    name: 'element panel — waiting for the workflow engine',
+    open: (page, c) => project(page, c, `/p/${c.pids[1]}/e/minor-v0.1`, (p) => p.locator('.drawer .element-footer')),
+  },
+  {
+    // task-037: Riley, not in the team — the read-only line with How to join (S-13.2).
+    name: 'element panel — read-only, not in team',
+    open: (page, c) =>
+      project(page, c, `/p/${c.pids[2]}/e/task-001-login-form`, (p) => p.locator('.drawer .element-footer button')),
+  },
 ];

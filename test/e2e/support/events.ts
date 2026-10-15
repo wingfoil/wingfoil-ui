@@ -102,3 +102,9 @@ export async function cli(fixture: Fixture, args: readonly string[]): Promise<st
   const { stdout } = await run(process.execPath, [pinnedCli().script, ...args], { cwd: fixture.dir, env: fixture.env });
   return stdout;
 }
+
+/** The subject of the last commit of `fixture` (task-037: the `wf(…)` commit of a decision). */
+export async function lastCommitSubject(fixture: Fixture): Promise<string> {
+  const { stdout } = await git(fixture.dir, ['log', '-1', '--format=%s'], fixture.env);
+  return stdout.trim();
+}

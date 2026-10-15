@@ -35,8 +35,9 @@ const DETAIL: ElementDetail = {
     status: 's1',
     kind: 'first',
     tone: 'neutral',
-    verbs: [],
-    actor: { kind: 'none' },
+    // A first state offers its submit (task-038's footer): no gate footer, not final (task-037).
+    verbs: [{ verb: 'submit', to: 's2', role: null, enabled: true }],
+    actor: { kind: 'member', member: { name: 'Jordan', email: 'jordan@example.test' } },
     rejection: { by: 'Morgan', reason: 'Missing acceptance criteria', at: '2026-09-29T15:20:04+00:00' },
   },
   required: [
@@ -177,7 +178,7 @@ it('shows the element: type, id, title, chips, banner, summary, missing field, r
   expect(lines[2]).toContain('2222222');
   expect(lines[3]).toContain('created by Jordan');
   expect(d.getByText('2222222').getAttribute('title')).toBe(HISTORY.entries[1]?.sha);
-  // Read-only: no Edit, no verb.
+  // No Edit; no verb for a user who is not identified (task-037: the read-only line has no button).
   expect(d.getAllByRole('button').map((b) => b.textContent)).toEqual(['Close']);
   await waitFor(() => expect(document.title).toBe(`kanban · ${EID} — WingFoil UI`));
   // The element and its history, plus the project's directives and header (task-019, once per

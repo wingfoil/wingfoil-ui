@@ -1,6 +1,6 @@
 # User guide — WingFoil UI v0.1
 
-**Version:** 0.8 · **Date:** 2026-10-15 (0.1: release v0.1; 0.2: bug-008 known limitation, release submit; 0.3: bug-008 wording; 0.4: bug-008 marked fixed after 0.1.0 — task-026; 0.5: *How to join*, unreleased v0.2 — task-035; 0.6: *Today*, unreleased v0.2 — task-036; 0.7: what runs during a clone, a local repository of another user, unreleased v0.2 — task-033 / bug-010, bug-013; 0.8: a local source git cannot read — task-033 review round 3)
+**Version:** 0.9 · **Date:** 2026-10-15 (0.1: release v0.1; 0.2: bug-008 known limitation, release submit; 0.3: bug-008 wording; 0.4: bug-008 marked fixed after 0.1.0 — task-026; 0.5: *How to join*, unreleased v0.2 — task-035; 0.6: *Today*, unreleased v0.2 — task-036; 0.7: what runs during a clone, a local repository of another user, unreleased v0.2 — task-033 / bug-010, bug-013; 0.8: a local source git cannot read — task-033 review round 3; 0.9: *Deciding a gate*, unreleased v0.2 — task-037)
 
 WingFoil UI v0.1 is a **read-only console** for WingFoil-governed projects: you open a project and
 read its Memory, elements, DNA, directives, team and documentation, kept up to date while you work
@@ -179,6 +179,8 @@ view — *Morgan, 2 things require you* — and names the role view (*Role view:
   work rejected back, listed first, with *Rejected by <name>: <reason>*; *Action required* for a
   state its type does not declare), the state pill and **one action** — *Approve*, *Review*,
   *Submit* or *Open*. The action and the title open the element panel; nothing is run from Today.
+  *Approve* and *Review* open it with the reason of the gate focused: the second click decides
+  (see *Deciding a gate*).
   With nothing to do it says **Nothing requires you**.
 - **Waiting on others** lists the elements blocked on someone else, with who must act: a member
   (*Jordan (submitter) must act*), a role you do not hold with the members holding it (*Reserved to
@@ -229,6 +231,36 @@ The panel shows, read-only:
   transition, the reason, the date and the commit (short hash; the full hash as its tooltip).
 
 An open panel refreshes when the element changes in the repository.
+
+### Deciding a gate
+
+**v0.2, not released yet.** At the bottom of the panel of an element waiting on a gate, a member
+holding the gate's role (`approver` on WingFoil 0.2.2) sees the **gate footer**:
+
+- a **reason**, recorded in the commit and required for every outcome. For an approval it is
+  pre-filled with *Approved via WingFoil UI*, selected so that typing replaces it; moving to a
+  reject clears that untouched text, moving back to approve restores it. While the reason is empty
+  (or only spaces) the outcomes are disabled and the footer says *A reason is required*;
+- **every outcome side by side**: *Approve → <next state>* first, then each *Reject → <state>*,
+  then *Cancel*, which closes the panel without running anything. From Today the gate takes two
+  clicks (or Tab and Enter): *Approve* on the row, then *Approve → …* in the panel;
+- the outcome runs `wingfoil memory approve` or `memory reject` with your reason; the panel then
+  shows the new state and screen readers hear *<id> is now <state>*. A refusal is shown in the
+  footer — WingFoil's own message when the CLI refused — and the reason is kept;
+- an outcome is also disabled, with the reason, when the element has local changes, the WingFoil
+  version is not supported or your copy is behind, diverged or detached.
+
+Instead of the gate footer the panel says:
+
+- *Reserved to approver — Morgan, Alex can act* when you do not hold the gate's role;
+- *Read-only: <email> is not in the team —* **How to join**, or *Read-only: see the notice above
+  the view* (no git identity, an ambiguous one), when you are not identified as one member;
+- *Waiting for the workflow engine (state: <state>)* for a state WingFoil advances by itself or
+  that this repository leaves by a hand-edited commit; a gate that is also such a state offers only
+  its reject, with *Waiting for the workflow engine to advance*;
+- *Final state: no action is possible* on a final state (the state chip reads *final state*).
+
+Submitting a draft from the panel comes with a later v0.2 task.
 
 ## DNA
 

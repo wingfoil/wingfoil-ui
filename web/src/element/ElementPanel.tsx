@@ -3,7 +3,8 @@
  * the type tag, id and Close; the title; the state machine; the rejection banner; the summary with
  * the missing required fields; the references (the frontmatter fields); the directives of the
  * current role view (task-019); the history with commits.
- * Read-only in v0.1: no Edit, no action footer (decision 6). It renders the server's data as is —
+ * Read-only in v0.1 (decision 6); from v0.2 the footer below the body (task-037, `ElementFooter`):
+ * the gate footer, or what the user is told instead. No Edit. It renders the server's data as is —
  * the tone of the current state is the descriptor's (spec-003 §8), never re-derived.
  *
  * Non-modal (decision W4-8, task-015): the header and the sidebar stay operable while it is open —
@@ -19,6 +20,8 @@ import { FormattedMessage, useIntl } from 'react-intl';
 import { ApiError } from '../api/client.js';
 import { ErrorText } from '../shell/ErrorText.js';
 import { ElementDirectives } from './Directives.js';
+import { ElementFooter } from './ElementFooter.js';
+import { isFinal } from './footer.js';
 import { History } from './History.js';
 import { fieldEntries, summaryOf } from './model.js';
 import { StateMachine } from './StateMachine.js';
@@ -35,6 +38,10 @@ export interface ElementPanelProps {
   directives: Pick<UseQueryResult<DirectiveList>, 'data' | 'error'>;
   /** `GET /api/p/:pid`: whether the user holds a role (the panel's directives, W3-38). */
   header: Pick<UseQueryResult<ProjectHeader>, 'data'>;
+  /** Opened from Today: the gate footer's reason takes the focus (task-037, G-04.3, D37-1). */
+  focusReason?: boolean;
+  /** Called once the reason took that focus (the route forgets the request, review F7). */
+  onFocusReasonUsed?(): void;
   onClose(): void;
 }
 
@@ -56,6 +63,8 @@ export function ElementPanel({
   history,
   directives,
   header,
+  focusReason = false,
+  onFocusReasonUsed,
   onClose,
 }: ElementPanelProps): ReactNode {
   const intl = useIntl();
@@ -81,7 +90,7 @@ export function ElementPanel({
               <FormattedMessage id="common.action.close" />
             </Button>
           </div>
-          <Heading slot="title" level={2} className="drawer-title">
+          <Heading slot="title" level={2} className="drawer-title" tabIndex={-1}>
             {detail ? detail.element.title : eid}
           </Heading>
           {detail && (
@@ -89,6 +98,7 @@ export function ElementPanel({
               sequence={detail.states?.sequence}
               current={detail.element.status}
               tone={detail.descriptor?.tone}
+              final={isFinal(detail.descriptor)}
             />
           )}
         </div>
@@ -111,6 +121,17 @@ export function ElementPanel({
             </p>
           )}
         </div>
+        {detail && !element.error && (
+          <ElementFooter
+            key={`${pid}:${eid}`}
+            pid={pid}
+            detail={detail}
+            header={header.data}
+            focusReason={focusReason}
+            onClose={onClose}
+            {...(onFocusReasonUsed ? { onFocusReasonUsed } : {})}
+          />
+        )}
       </Dialog>
     </div>
   );
