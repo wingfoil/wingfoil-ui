@@ -2,7 +2,7 @@
 id: bug-015-catalogue-strings-e2e-check-can-miss-an-api-answer-under-load-and-flag-data-as-uncatalogued-text
 type: bug
 title: "Catalogue strings e2e check can miss an API answer under load and flag data as uncatalogued text"
-status: triaged
+status: planned
 severity: "low"        # REQUIRED — critical | high | medium | low
 release-origin: "v0.1" # optional — release where the bug was FOUND, e.g. "v0.1"
 release: ""            # optional — fix/implementation release, stamped by release-planning/build-backlog
@@ -60,3 +60,4 @@ The test failed once listing the 0-element type filters (`adr`, `decision-log`, 
 - Severity low: a test-only false failure under extreme load; the product is not affected.
 
 ## Triage & Execution Notes
+- fix: **absorbed into task-042-notification-bell-all-roles-summary-and-empty-today** (AC "bug-015", `bug:` list of the task; the approver's triage, 2026-10-15); `triaged → planned` set by hand (directive `wingfoil-cli` W-26).
