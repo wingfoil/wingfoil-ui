@@ -260,4 +260,76 @@ e2e closure (scenario → spec file › test):
 - `docs/user-guide.md` (*Element panel* › *Deciding a gate*), `CHANGELOG.md` *Unreleased* › Added,
   `test/README.md` version line + layout lines.
 
-#### Open decisions — see the coordinator report (D37-1 … D37-12); nothing depending on them is built before the answer.
+#### Open decisions (STOP: nothing depending on them is built before the answer)
+
+- **D37-1 — the "opened from Today" signal (G-04.3).** ★ (a) router history state
+  `{ gateFocus: true }` set by Today's *Approve*/*Review* button, read once by the panel (no URL
+  change; a reload or a Memory-list open does not move the focus); (b) a search parameter
+  `?focus=reason` (visible, survives a reload and a copied link); (c) always focus the reason when a
+  gate footer is shown (every opener; the selected default would be replaced by the first key typed).
+- **D37-2 — order of the footer.** ★ (a) reason, then *Approve → x* (primary), each *Reject → y*
+  (danger), then *Cancel* last — Tab from the reason reaches Approve before any reject, so X-06.2
+  never crosses a reject (which would clear the default by G-06.3); deviation from the prototype
+  (Cancel · rejects · Approve) recorded in the UX reference; (b) the prototype's order (X-06.2 then
+  crosses *Reject → draft*, the default is cleared and Approve is disabled); (c) the prototype's
+  visual order with CSS `order` over an approve-first DOM (focus order ≠ visual order, WCAG 2.4.3).
+- **D37-3 — disabled outcomes.** ★ (a) focusable: `aria-disabled="true"`, press ignored,
+  `aria-describedby` → the hint or the blocked reason (G-06.3 focuses a reject that becomes
+  disabled when the default clears: a `disabled` button drops the focus to `<body>`; X-07.3 needs
+  the description reachable); a small `OutcomeButton` on a native `<button>` (React Aria's `Button`
+  has no focusable-disabled mode); (b) native `disabled` (React Aria `isDisabled`); (c) never
+  disabled: a press with a blank reason focuses the field and shows the hint (against G-07.1).
+- **D37-4 — the default reason.** ★ (a) catalogue text `element.gate.reason.default`, only when the
+  footer offers an approve, selected when the field takes the focus; cleared when the focus moves
+  to a reject while untouched (G-06.3), **restored** when the focus moves to Approve while the
+  field is still empty from that automatic clear (keyboard users who passed a reject); a
+  reject-only footer starts empty; (b) as (a) without the restore; (c) as (a) but the default is a
+  code constant (always English: it lands in the repository's commit).
+- **D37-5 — what the footer shows, in this order.** ★ (a) identity not `member` → only a read-only
+  line (`not-in-team` with readable DNA: "Read-only: <email> is not in the team — *How to join*"
+  via `useHowToJoin().show()`; other kinds: "Read-only: see the notice above the view") — S-13.2,
+  S-15.2, amending spec-003 §6 rule 1 (no disabled outcomes for them); then no gate verb → waiting
+  note (actor `engine`), final note (actor `none`), nothing otherwise (submit-only: task-038;
+  undeclared); then a gate verb whose role the member lacks → reserved line; else the gate footer
+  (enablement per verb from the descriptor, engine note for gate-waiting); (b) as (a) but the
+  unidentified users see the reserved line too (more text, S-13.2's line still needed);
+  (c) unidentified users see the outcomes disabled with "Read-only: not in the team" (spec-003 §6
+  literal; against S-13.2/S-15.2 "no action footer").
+- **D37-6 — a gate-waiting state for a member without `approver`** (actor = engine: no member
+  names in the descriptor). ★ (a) the engine note "Waiting for the workflow engine to advance" plus
+  "Reserved to approver" without names (no new read); (b) names from `projectConfigQuery` (the DNA:
+  a cold panel adds the config reads); (c) the engine note only.
+- **D37-7 — "marked as the final state" (S-24.1).** ★ (a) no verb and actor `none`: the current
+  chip reads "<state>, final state" and the footer slot shows "Final state: no action is possible"
+  (no button); (b) the chip's accessible text only; (c) the note only.
+- **D37-8 — disabled reasons (spec-003 §6 codes) in this footer.** ★ (a) all six now,
+  `element.reason.*` (spec-003 §6 English; `copy-behind` "Blocked: your copy is {commits} commit(s)
+  behind the remote" — task-040 appends "— Update"), shown under the outcomes and as their
+  description; task-038 reuses them for *Submit* and closes G-11.x / X-07.3 e2e on this footer;
+  (b) only `local-changes` and `version-unsupported`, a generic text for the others; (c) none here:
+  disabled outcomes without a reason until task-038 (fails REQ-ARC-10 in between).
+- **D37-9 — feedback before task-038's toasts.** ★ (a) success: invalidate `['p', pid]` (the
+  `repo` event would too) so the panel shows the new state; the panel stays open; focus to the
+  panel heading (the focused outcome is gone); polite status "<id> is now <state>" (no commit
+  line: task-038's toast); refusal: `role="alert"` in the footer with `ErrorText` (codes from the
+  catalogue, `cli-refused` verbatim), the reason kept, `['p', pid]` invalidated (RP-12: the panel
+  shows the new state after `element-changed`); task-038 moves both to its toasts; (b) success
+  goes back to Today (history back); (c) no message, only the refreshed state.
+- **D37-10 — the write mutation (shared).** ★ (a) `web/src/api/writes.ts`: `postElementWrite(pid,
+  eid, verb, body, signal?)` and `useElementWrite()` = `useMutation<WriteResponse, ApiError,
+  ElementWriteVariables>`, `ElementWriteVariables = { pid, eid, verb: 'submit' | 'approve' |
+  'reject', expectedStatus, reason? }`, `onSettled` invalidates `queryKeys.project(pid)`; task-038
+  calls it for *Submit* and reads `data`/`error` for its toasts; (b) approve/reject only
+  (`useDecideElement`), task-038 adds submit; (c) in `web/src/api/projects.ts` (a merge hot spot).
+- **D37-11 — `write-incomplete` catalogue text.** ★ (a) added here (approve/reject can answer it;
+  until then it renders as `internal`, "see its log", while nothing is logged): `error.writeIncomplete`
+  "WingFoil did not finish the action: check {file} with git before trying again{commit, select,
+  none {} other { — WingFoil made the commit {commit}}}", `errorMessage` defaulting `commit` to
+  `none`; task-032's hand-over to task-038 amended (task-038 reuses it); (b) left to task-038 as
+  task-032 handed it over.
+- **D37-12 — SCREENS.** ★ (a) the existing *element panel* screen now shows the gate footer with
+  the default; append "element panel — gate footer, reason empty" (`pids[0]`, field cleared:
+  disabled outcomes and the hint), "element panel — waiting for the workflow engine" (`pids[1]`
+  `minor-v0.1`), "element panel — read-only, not in team" (`pids[2]`); the reserved line is scanned
+  in G-09.1's `scanThemes` (no Sam project in the screens console); (b) as (a) plus a fourth
+  screens project (Sam) for the reserved line; (c) no new screen.
