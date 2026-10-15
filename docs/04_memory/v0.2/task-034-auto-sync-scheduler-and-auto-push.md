@@ -401,3 +401,21 @@ transport processes; the automatic fetch skips it. *Verified by:* `test/server/g
   unattended runs; the scheduler takes the lock as `{ isBusy, run }` (no port change). No existing
   suite counts git processes over time on the real bin (the process audits build their own app
   without a scheduler); `test/README.md` says how a new one must seed `autoFetch: false`.
+
+### checks (2026-10-15, HEAD before this note `7d6c18b`)
+
+| Gate | Result | Load |
+|------|--------|------|
+| `npm run typecheck`, `npm run lint`, `npm run format:check` | clean | — |
+| `npm run docs:api`, `check_tasks.py v0.2` | OK | — |
+| `npm run test:coverage` (includes the public-text check) | 153 files passed, 1 skipped; **2801 passed / 1 skipped**; statements 96.43 %, branches 91.25 %, functions 97.31 %, lines 98.19 % (`sync/scheduler.ts` 95.1 %, `sync/auto-sync.ts` 87.5 %, `writes/auto-push.ts` 77.8 % statements) | ~74 → 85 |
+| `npm run test:e2e:chromium` (regression; no e2e spec of this task, W0-9) | **223 passed** (17.1 min) | → 100 |
+| `npm run test:smoke` (`start.ts` changed) | **4/4 passed** | 92 |
+| `test/timing/auto-sync.timing.test.ts` (run once as a functional check, load ≥ 12 — the verdict is not a quiet-machine measurement) | **2/2 passed**: TT-PERF-07 10/10 trials 58.4–60.0 s (each remote commit lands right after a tick, so every trial waits almost a full interval: the worst case); Y-02.3 0 `git fetch` in 120 s | 42 → 74 |
+| `npm run test:timing` (whole) | **skipped**: load ≥ 12 | — |
+
+No console of this worktree left running; no `wfui-task-034-*` entry in the system temporary
+directory.
+
+e2e closure — none of this task's own; scenarios close in task-038, task-039, task-040 and
+task-041 (closure table of the design).
