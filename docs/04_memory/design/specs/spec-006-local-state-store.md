@@ -131,6 +131,18 @@ list is notified by the `projects` event (spec-004 §6).
   successful open"). Security note (`adr-001` D2, REQ-ARC-02): the project's own CLI comes first
   in discovery, so a freshly cloned repository could ship its own `node_modules/wingfoil`; it is
   run only when the user opens the project, never as a side effect of the clone.
+- **What runs during a clone** (bug-010, task-033): nothing of the cloned repository — no hook
+  (`core.hooksPath` is the console's own regular file, bug-008), no CLI. The user's own git
+  configuration applies as in a terminal: the tools it names may run — filter drivers such as
+  git-lfs (selected by the repository's `.gitattributes`), `core.sshCommand`, credential helpers,
+  config-defined hooks (`hook.<name>.command`, recent git versions). Only `https`, `http`, `ssh`,
+  `git` and `file` are allowed, by the `-c protocol.*` settings and by `GIT_ALLOW_PROTOCOL` set to
+  the same list (that variable, inherited from the server's environment, would override the
+  settings: bug-013). A **local** source (a `file://` URL or a path) whose repository folder, or
+  its `.git`, belongs to another user than the server's is refused before any git process
+  (`remote-not-owned`; POSIX only — Windows has no owner id to compare): the class of
+  CVE-2024-32004. The README names the minimum git version (2.43.4 / 2.45.1, or a distribution
+  build with the fixes of CVE-2024-32004 and CVE-2024-32465), which the console does not check.
 - **Clone without a CLI:** a clone whose project has no CLI (pinned or on the `PATH`) is **kept**
   and listed with availability `cli-not-found` (S-10.2, with the install command); the
   `cli-not-found` refusal below applies to adding a local folder only.
@@ -153,12 +165,13 @@ list is notified by the `projects` event (spec-004 §6).
 | `not-wingfoil` | `{ path }` or `{ source: "clone" }` (the clone is removed) | S-05.1, S-05.2 |
 | `already-listed` | `{ pid, name, sameRemote: boolean }` | S-06.1, S-06.2 |
 | `directory-not-empty` | `{ path }` | S-07.2 |
-| `cli-not-found` | `{ path, command: "npm install --save-dev wingfoil" }` (local folder only) | S-10.1 |
+| `cli-not-found` | `{ command: "npm install --save-dev wingfoil" }` (local folder only; no path, bug-012) | S-10.1 |
 | `state-dir-inside-project` | `{ path, stateDir }` | §1 (no scenario) |
 | `directory-inside-project` | `{ path }` — the clone target lies inside a listed project | (no scenario) |
 | `inside-state-dir` | `{ path }` — the clone target lies inside the state directory | §1 (no scenario) |
 | `credentials-in-url` | — : the clone URL carries credentials: an http(s), ftp(s) or `git://` URL with any userinfo (a user name, a token or a password), or an `ssh://` URL or scp-like address whose userinfo holds a password (`user:pass@`, a percent-encoded `:` included). A clone URL holding a control character (U+0000–U+001F, U+007F) is a malformed source: 400 `invalid-request` (spec-004 §5), nothing run, the URL not echoed. The address is judged as git uses it: every leading `<transport>::` prefix removed, leading whitespace trimmed, any number of `/` or `\` after `<scheme>:`. Checked right after the source validation, before any file-system, state or git work; nothing is cloned and the URL is never written to a command line, a file, the state or a log (REQ-SEC-09, bug-006). A plain login — `ssh://user@host/…`, scp-like `user@host:…` — is allowed | (no scenario) |
 | `git-refused` | — (`message` = git's message verbatim, spec-004 §5): a failed clone, or a folder with `.wingfoil/` that is not a git repository | S-07.1, S-07.3 |
+| `remote-not-owned` | — : a local clone source (a `file://` URL or a path) whose repository belongs to another user (bug-010, task-033 D33-1); nothing is cloned | (no scenario) |
 
 ### 4. Reads and writes
 
@@ -284,3 +297,9 @@ a project (REQ-SEC-09). The secret scan of REQ-SEC-09 runs over the state direct
   write stores each changed key and each validly stored one, in the schema's order, and judges a
   no-op key by key; a newer build's `actionLog` entries are read for `sha` and `at` and the ones
   still invalid are left out (§4), so its project list is never lost.
+- 2026-10-15 — amended in dev-loop task-033 (minor-v0.2 Wave 3, plan dev-loop-rel-v0.2-plan;
+  D33-1, D33-2, coordinator C2; bug-010, bug-012, bug-013): §3 what runs during a clone (nothing
+  of the cloned repository; the user's own git tools may), `GIT_ALLOW_PROTOCOL` set to the allowed
+  list, the refusal `remote-not-owned` of a local source owned by another user, the minimum git
+  version; `cli-not-found` sends `{ command }` only (no absolute path in a body). Decided by the
+  approver.

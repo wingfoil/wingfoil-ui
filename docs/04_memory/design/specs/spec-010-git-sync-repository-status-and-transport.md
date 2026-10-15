@@ -64,6 +64,10 @@ the repository watcher already watches `refs/` and the git directory's `config` 
 Y-04.2's 5 s is met by it, the 10 s periodic check is the fallback. Besides, `repo` is sent with
 the unchanged `state` when `sync.fetch.lastError` or `sync.update.lastError` (§3) is set,
 changed or cleared; a new `lastSuccessAt` alone sends nothing — it is read by the next `GET`.
+The hash covers the upstream's remote (`branch.<branch>.remote`) too, every input of §1. The
+CLI reads of the snapshot are cached on HEAD and the working-tree part only (`adr-001` D6): a
+fetch that moves only a tracking ref re-runs no `wingfoil` process; the descriptors, which hold
+the copy (spec-003 §6 rule 4), follow the whole key.
 
 ### 3. Repository status in `GET /api/p/:pid`
 
@@ -89,7 +93,11 @@ otherwise. The project conditions that hold (spec-001 §6; v0.2: `has-remote`) a
 
 ### 4. Transport commands (write class (c), REQ-ARC-03, REQ-INT-06)
 
-| Operation | Arguments (after the protocol settings) |
+Every command starts with the protocol settings (`CLONE_SETTINGS`), then `-c maintenance.auto=false
+-c gc.auto=0` (no automatic `maintenance` / `gc --auto` child, which could detach and outlive a
+cancelled process group or the server) and `--no-optional-locks`.
+
+| Operation | Arguments (after the settings) |
 |-----------|-----------------------------------------|
 | fetch | `fetch --quiet --prune --no-recurse-submodules -- <remote>` |
 | update (manual) | `pull --ff-only --no-rebase --no-autostash --no-recurse-submodules --quiet` — the upstream only |
@@ -109,9 +117,21 @@ otherwise. The project conditions that hold (spec-001 §6; v0.2: `has-remote`) a
   server's environment, and `git config --get core.sshCommand` (run before the command; exit 1 =
   unset) prints nothing — the environment also gets `GIT_SSH_COMMAND=ssh -o BatchMode=yes`, so a
   passphrase or host-key prompt fails at once and its message reaches the toast (`git-refused`).
+  `GIT_ALLOW_PROTOCOL` is set to the allowed list (`https:http:ssh:git:file`): inherited from the
+  server's environment, it would override the protocol settings (bug-013).
   A configured ssh command is used as is. Authentication is the user's git configuration
   (credential helper, ssh agent; REQ-SEC-09). Hooks run as the repository configures them, as for
-  the CLI's own commits (the project's own CLI already runs from it, `adr-001` D2).
+  the CLI's own commits (the project's own CLI already runs from it, `adr-001` D2) — with a
+  relative `core.hooksPath` (e.g. husky's), the hook files the incoming commits bring run after
+  the fast-forward, as in the user's own `git pull`. Nothing else of the repository runs; the
+  user's own git tools may, as in a terminal (filter drivers, `core.sshCommand`, credential
+  helpers, askpass programs, config-defined hooks — bug-010). A **local** remote (its URL, from
+  `git remote get-url [--push] -- <remote>`, is a `file://` URL or a path) whose repository belongs
+  to another user than the server's is refused before the command (`remote-not-owned`, §5).
+- The push's `<merge ref>` must be `refs/heads/<name>` with no `:`, `+`, `*`, `?`, `[`, `\`, `^`,
+  `~`, space or control character, no `..` or `@{`, no empty, `.`-led or `.lock` component, not
+  ending in `/` or `.`; otherwise the push is refused with `no-upstream` (git could read it as two
+  refs or a forced update).
 - The reads this section adds — `git config --get` of `core.sshCommand` and
   `branch.<branch>.remote`/`.merge`, `git log --name-only` of §5 — are of the `config` and `log`
   subcommands that REQ-INT-06 allows (listed in its description since SARD `04` v0.9).
@@ -128,12 +148,16 @@ otherwise. The project conditions that hold (spec-001 §6; v0.2: `has-remote`) a
   (checked on git 2.43.0 with `merge.ff=false` and `merge.autoStash=true` configured: a
   fast-forward, one parent). `server/src/git/git.ts` `GIT_ALLOWED_SUBCOMMANDS` gains `merge`
   (SARD REQ-INT-06 v0.10 of `04`; the code change belongs to the implementing task).
-- Failure → **422 `git-refused`**, git's standard error verbatim (spec-004 §5). A fetch failure is
+- Failure → **422 `git-refused`**, git's standard error verbatim (spec-004 §5) except for the
+  local folders it quotes (the project's → `<project>`, the repository's → `<repository>`, the home
+  folder → `~`), URL userinfo removed, at most 4 000 characters — also in `lastError`. A fetch failure is
   also kept as `sync.fetch.lastError` (Y-03.1, Y-03.2), an update failure as
   `sync.update.lastError` with `code: "git-refused"` and the `message` — in memory only, never
   logged (the log gets `{pid, op, exitCode}`) nor stored, since git may echo a URL.
 - Success → **200** `{ repository }` (§3), read after the command (`git.response.schema.json`).
-  Nothing to do (update with behind = 0, push with ahead = 0) → 200, no process.
+  Nothing to do (update with behind = 0, push with ahead = 0) → 200, no transport process (the
+  fresh reads under the lock run). The routes take no body: none or `{}`; anything else → 400
+  `invalid-request` (spec-004 §4 row 4).
 
 ### 5. Transport refusals
 
@@ -149,11 +173,12 @@ spec-008 §7):
 | `no-upstream` | — | update, push | "This branch has no upstream on the remote — set one with git in a terminal" |
 | `diverged` | — | update | "Cannot fast-forward: your copy and the remote have diverged — run git pull --rebase or git merge in a terminal" (Y-06.1) |
 | `local-changes-in-the-way` | `{ files }` | update | "Cannot fast-forward: local changes to {files} are in the way — commit or stash them in a terminal" (Y-06.2) |
+| `remote-not-owned` | — | fetch, update, push | "The repository of this remote is a folder of another user of this computer: git could run that user's code, so WingFoil UI does not use it — use a repository you own" (bug-010) |
 
 `local-changes-in-the-way`: the files changed by the incoming commits
 (`git log --no-renames --name-only -z --format= HEAD..@{u}`) intersected with the status entries
 (changed, staged, untracked); `detail.files` is an array of paths relative to the project (never
-absolute). The web renders the `{files}` argument as one string: the base names joined with the
+absolute; a file outside the project folder of a repository is written with `../`). The web renders the `{files}` argument as one string: the base names joined with the
 locale's conjunction list format (FormatJS `formatList`, e.g. "a.md, b.md and c.md"). Local
 changes to other files do not refuse (Y-05.3). A refusal of an update — manual or automatic — is
 kept as `sync.update.lastError` until the next successful update or a change of the copy state,
@@ -278,3 +303,11 @@ Rows 7–9 do not apply (no element).
   the write lock is the repository's (its git common directory, `adr-001` D5), shared by two listed
   projects of one repository; the git routes and the scheduler take it with
   `ProjectSnapshot.lockKey`. Decided by the approver.
+- 2026-10-15 — amended in dev-loop task-033 (minor-v0.2 Wave 3, plan dev-loop-rel-v0.2-plan;
+  D33-1 … D33-11; bug-010, bug-012, bug-013): §2 the key covers the upstream's remote, the CLI
+  cache keyed on HEAD and the working tree only; §4 `-c maintenance.auto=false -c gc.auto=0` after
+  the protocol settings, `GIT_ALLOW_PROTOCOL` set to the allowed list, the hooks wording and what
+  else may run (the user's own tools), the owner check of a local remote, the merge-ref rule, git's
+  message with local folders redacted, "no process" = no transport process, no body or `{}`; §5
+  `remote-not-owned`, `detail.files` with `../` outside the project folder. Decided by the
+  approver.

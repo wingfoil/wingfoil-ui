@@ -1,6 +1,6 @@
 # User guide — WingFoil UI v0.1
 
-**Version:** 0.6 · **Date:** 2026-10-14 (0.1: release v0.1; 0.2: bug-008 known limitation, release submit; 0.3: bug-008 wording; 0.4: bug-008 marked fixed after 0.1.0 — task-026; 0.5: *How to join*, unreleased v0.2 — task-035; 0.6: *Today*, unreleased v0.2 — task-036)
+**Version:** 0.7 · **Date:** 2026-10-15 (0.1: release v0.1; 0.2: bug-008 known limitation, release submit; 0.3: bug-008 wording; 0.4: bug-008 marked fixed after 0.1.0 — task-026; 0.5: *How to join*, unreleased v0.2 — task-035; 0.6: *Today*, unreleased v0.2 — task-036; 0.7: what runs during a clone, a local repository of another user, unreleased v0.2 — task-033 / bug-010, bug-013)
 
 WingFoil UI v0.1 is a **read-only console** for WingFoil-governed projects: you open a project and
 read its Memory, elements, DNA, directives, team and documentation, kept up to date while you work
@@ -90,11 +90,19 @@ Refusals you may see:
 - While cloning, the fields are disabled and a progress bar shows; **Cancel**, **Close** or Escape
   stop the clone and remove what it created.
 - Nothing of the cloned repository runs during the clone: no hooks, no CLI. Its name is the folder
-  name until you first open it.
+  name until you first open it. Your own git configuration still applies, as in a terminal: the
+  tools it names may run — filter drivers such as git-lfs (chosen by the repository's
+  `.gitattributes`), your ssh command (`core.sshCommand`), your credential helper, and hooks your
+  configuration defines itself (`hook.<name>.command`, recent git versions).
+- A local repository (a `file://` URL or a folder path) that belongs to another user of the
+  computer is refused (*The repository of this remote is a folder of another user…*): cloning it
+  could run that user's code in your git. Use a git version with the fixes of CVE-2024-32004 and
+  CVE-2024-32465 (README *Requirements*).
 - A clone without `.wingfoil/` is removed (`Not a WingFoil project: no .wingfoil/ folder in the
   cloned repository`). A clone whose project has no CLI is kept and listed as unavailable, with
   the install command.
-- Transports: `https`, `http`, `ssh`, `git` and `file`; git never prompts for a password. A failed
+- Transports: `https`, `http`, `ssh`, `git` and `file` — also when `GIT_ALLOW_PROTOCOL` is set in
+  your environment; git never prompts for a password. A failed
   clone (unreachable remote, refused authentication) shows `Git refused the action:` and git's
   message.
 

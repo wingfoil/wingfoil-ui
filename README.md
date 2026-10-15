@@ -31,7 +31,11 @@ What v0.1 shows:
 ## Requirements
 
 - **Node.js 22.12 or later** (`engines` of `package.json`; the launcher refuses an older version).
-- **git**, with `user.email` set (it identifies you in each project's team).
+- **git**, with `user.email` set (it identifies you in each project's team): **2.43.4, 2.45.1 or
+  later**, or a distribution build that carries the fixes of CVE-2024-32004 and CVE-2024-32465
+  (cloning a local repository that someone else prepared could run their code). The console does
+  not check the version — a distribution may ship the fixes under an older number — and refuses a
+  local repository owned by another user whatever the version.
 - In each project you open: a **WingFoil CLI** — pinned in the project (`npm install --save-dev
   wingfoil`) or on the `PATH` — inside the supported range below.
 - A current desktop browser: Chrome, Edge, Firefox or Safari. On `main` the end-to-end suite

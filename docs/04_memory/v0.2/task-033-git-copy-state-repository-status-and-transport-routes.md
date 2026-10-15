@@ -380,3 +380,69 @@ Coordinator (2026-10-15):
   `error.*` keys, `error.remoteNotOwned`, the `{files}` list rendering); `element.reason.*` keys
   (copy reasons included) and `write-incomplete` are task-037's. Only this task touches
   `contracts/` and the schemas.
+
+### red / green / refactor (2026-10-15)
+
+- **Contracts first (RP-43)** — `9d06e55`: `repository.schema.json`, `git.response.schema.json`,
+  `git.refusal.schema.json` (new); `project.schema.json` (`repository` → `$ref`, required
+  `conditions`, D33-14); `write.refusal.schema.json` (`stale-copy`; `cli-not-found` with
+  `{command}` only, C2); `projects.refusal.schema.json` (`remote-not-owned`, `cli-not-found`
+  `{command}`); `contracts/src/git.ts` and one appended export block in `contracts/src/index.ts`;
+  `ProjectHeader.repository` / `conditions`; `WriteRefusalCode` + `stale-copy`;
+  `ProjectRefusalCode` + `remote-not-owned`. Red: `test/contracts/api-git-schema.test.ts` and the
+  server build (the header did not send the new fields).
+- **Green** — `b7a1508`: `server/src/git/copy.ts`, `sync-status.ts`, `transport.ts`,
+  `local-remote.ts`, `redact.ts`; `GitReads` (`remotes`, `configValue`, `remoteUrl`,
+  `incomingPaths`, `transport`), `parseStatus` reads the branch headers; `RepoState` gains the
+  copy, `paths`, `contentKey`; the snapshot's check reads `git remote` and `branch.<b>.remote`
+  (D33-7), the CLI memo keyed on `contentKey`, `derived` on the full key (D33-6);
+  `writes/transport.ts` (`GitTransport`), `http/git-routes.ts` (`GIT_PATHS`, `registerGitRoutes`),
+  one appended registration in `start.ts`; row 8 in `governed.ts`; header `repository`,
+  `conditions` and the descriptor copy in `project-routes.ts`; the adapter's refusal redacted
+  (default roots, or the snapshot's via the new `redact` option); `cli-not-found` without a path
+  (adapter and project list); the clone's `GIT_ALLOW_PROTOCOL` and owner check; the web
+  catalogue keys, `MESSAGES` rows and the `{files}` list (`errorMessage(error, options?)`).
+- **Tests** — `2699d5a`, `a09acaa`: see the test plan; the copy-key cases planned for
+  `test/server/snapshot/copy-key.test.ts` live in `test/server/http/repository-status.test.ts`
+  (one console helper for both, `test/server/http/git-console.ts`); row 8 is proved there (fresh
+  state) and in `git-routes.test.ts` (G-12.x), not appended to the hot `element-writes.test.ts`.
+  Characterization updates (D33-7, with the reason in each comment): the check's git processes
+  (`snapshot.test.ts` 3 → 5 for the first state, ≤ 4 → ≤ 8 for coalesced checks;
+  `process-audit.test.ts` cold Memory list 6 → 8 git); the key's status hash now covers the copy
+  (`state.test.ts`, `snapshot.test.ts` compare `contentKey`); `cli-not-found` details
+  (`adapter.test.ts`, `projects.test.ts`, the two contract tests).
+- **Red checks** (the code was written before most of its tests in this pass, so each guard was
+  removed in turn and its test seen failing, then restored): the `registerGitRoutes` line
+  (`launcher/git-routes.test.ts` fails); row 8 (`repository-status.test.ts` › row 8 fails);
+  `GIT_ALLOW_PROTOCOL` in `transportEnv` (`git-routes.test.ts` › bug-013 fails); the adapter's
+  redaction (`adapter.test.ts` › bug-012 fails); the owner check (`git-routes.test.ts` › D33-1
+  fails); `maintenance.auto=false` (`transport-facts.test.ts` › maintenance fails).
+- **Deviations from the design:** the `SyncStatus` is owned by `Snapshots` (`snapshots.sync`, so
+  it is dropped when a project closes and needs no `start.ts` wiring); `registerProjectRoutes`
+  options are unchanged. A refused update (409) is also kept as `sync.update.lastError` (spec-010
+  §5, manual or automatic); a refused or failed fetch keeps only git failures. A cancelled fetch
+  or push answers 500 `internal` to a client that has left; nothing is recorded.
+- **bug-012 scope (C2):** `cli-not-found` drops `detail.path` (not redacted): the web reads only
+  `detail.command` (`web/src/api/error-message.ts` passes every string detail; the catalogue text
+  `error.cliNotFound` uses `{command}` only; the add-project and switcher code read the list item's
+  `command`).
+- Docs: spec-010, spec-004, spec-006 and adr-001 D6 amended in place (Process Notes 2026-10-15);
+  `docs/user-guide.md` 0.7 (what runs during a clone, a local repository of another user, the
+  transports with `GIT_ALLOW_PROTOCOL`); `README.md` minimum git version; `test/README.md` 0.33;
+  `CHANGELOG.md` *Unreleased* › *Fixed* (bug-010, bug-012, bug-013). The user guide states the clone
+  only: the transport statement is in spec-010 §4 until the sidebar tasks (039, 040) ship the
+  controls and document them.
+
+#### AC closure
+
+| AC | Proved by |
+|----|-----------|
+| TT-STATE-04 | `test/server/git/copy-state.test.ts` (§1 rows); `test/server/http/repository-status.test.ts` › row 8 on the FRESH state; `test/server/http/git-routes.test.ts` › update (G-12.1 / Y-05.1, Y-06.1, Y-06.2, Y-01.3, not cancellable) |
+| TT-SEC-08 | `git-routes.test.ts` › TT-SEC-08 (three identity kinds × update, push, submit, approve, reject → 403, 0 processes; fetch 200; identity again under the lock) |
+| Transport | `test/server/git/transport.test.ts` (arguments, environment); `git-routes.test.ts` › fetch (RP-36, `git-refused` + `lastError`, never logged, cancel), push (never forced, D33-8), nothing to do |
+| Key and events | `repository-status.test.ts` › the key and the CLI cache; `git-routes.test.ts` › repo events on a last-error change only |
+| REQ-INT-06 | `git-routes.test.ts` › REQ-INT-06; `process-audit.test.ts` (updated counts) |
+| bug-010 | docs above; `test/server/git/local-remote.test.ts`; `test/server/http/projects.test.ts` › bug-010 (clone 422); `git-routes.test.ts` › D33-1 (fetch 409) |
+| bug-012 | `test/server/git/redact.test.ts`; `adapter.test.ts` › bug-012; `git-routes.test.ts` › bug-012 route families (a read route, a governed write) and the fetch `git-refused` message; `cli-not-found` without a path: `adapter.test.ts`, `projects.test.ts`, `api-writes-schema.test.ts` |
+| bug-013 | `test/server/git/transport-facts.test.ts` › bug-013 (the override reproduced, then refused); `clone.test.ts` › `GIT_ALLOW_PROTOCOL`; `git-routes.test.ts` › D33-2 (`ext::` remote with `GIT_ALLOW_PROTOCOL=ext`) |
+| Catalogue | `test/web/api/error-message.test.ts` (the new codes, the `{files}` list) |
