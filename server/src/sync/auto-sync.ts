@@ -163,6 +163,8 @@ export class AutoSync implements SyncWork {
     if (state.remotes.length === 0) return;
     if (await configInWorktree(snapshot)) {
       logger.warn({ project: pid, op: 'auto-fetch', code: 'config-in-worktree' }, 'automatic fetch skipped');
+      // Visible in the sidebar (W4-14): the user can fetch by hand.
+      this.options.snapshots.sync.fetchFailed(pid, '', new Date(), 'config-in-worktree');
       return;
     }
     const plan = await transport.plan(snapshot, state, 'fetch');
@@ -220,6 +222,7 @@ export class AutoSync implements SyncWork {
     if (!(await identified(await snapshot.view()))) return;
     if (await configInWorktree(snapshot)) {
       logger.warn({ project: pid, op: 'auto-update', code: 'config-in-worktree' }, 'automatic update skipped');
+      sync.updateFailed(pid, { code: 'config-in-worktree' }, state.copy, new Date());
       return;
     }
     if (await snapshot.operationInProgress()) {
