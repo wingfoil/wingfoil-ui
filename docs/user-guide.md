@@ -325,8 +325,7 @@ it started up to date with their remote, by itself. Three settings drive it (spe
   progress (a merge, rebase, cherry-pick, revert, `git am` or bisect) is not updated — fast-forward
   it yourself once done. Your local branches and tags are never pruned: a remote whose fetch
   refspecs write outside `refs/remotes/` (a mirror configuration), or that has none, is not fetched
-  automatically,
-  and a manual fetch refuses it with a message.
+  automatically, and a manual fetch refuses it with a message.
 - **Auto-push pushes the branch, not only the console's commit.** It is the same push as *Push*:
   every local commit of the branch not yet on the remote goes with it, your own included. It runs
   the repository's `pre-push` hook, is stopped after 60 s, and never forces: a remote that moved
