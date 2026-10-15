@@ -383,3 +383,18 @@ failed `response.json()` was swallowed; `accessibility.spec.ts` compared once.
   the check, even a late one (bug-015)", "X-09.1 recorder: a failed body read is reported as the
   cause of what is flagged (bug-015)"; and `test/e2e/accessibility.spec.ts` › "X-09.1 — Render every
   string from the message catalogue: <screen>" (every `SCREENS` entry).
+
+Checks after bug-015 (HEAD `9c9cd10`):
+
+| Gate | Result | Load |
+|------|--------|------|
+| typecheck, lint, format:check | clean | — |
+| `test:coverage` | 2739 passed, 1 skipped; statements 96.66 %, branches 91.44 % | — |
+| `npm run test:e2e -- accessibility.spec.ts notification-bell.spec.ts today.spec.ts harness/a11y-support.spec.ts` (three engines) | **264 passed**, 0 failed (13.9 min) | — |
+| `npm run test:e2e:chromium` (whole suite) | **236 passed**, 0 failed (11.6 min) | → 15.5 |
+| `npm run test:timing` | **Vitest 3/3, Playwright 18/18** (4.5 min). TT-PERF-01 under the D42-9 start: 20 warm runs p95 **226 ms** (p50 192), first open **1 281 ms**; RP-9 after one commit p95 **1 357 ms** (p50 1 125, printed, not asserted) | 11.9 → 6.2 |
+
+The RP-9 "after one commit" p95 is above the ~1 s at which spec-002 §4 is reopened with the
+approver (RP-9). The measured path now includes opening the project after the new commit (the
+header and the CLI reads of the new state), which task-036's 539 ms did not, so the number is not
+directly comparable. Reported to the coordinator; not changed here.
