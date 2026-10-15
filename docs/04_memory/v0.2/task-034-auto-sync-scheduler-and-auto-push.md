@@ -519,3 +519,32 @@ Checks (HEAD before this note `a894eb4`): `typecheck`, `lint`, `format:check` cl
 skipped** (statements 96.5 %, branches 91.22 %), load 6.7 → 35; `test:smoke` 4/4 (load 33);
 `test:e2e:chromium` **223 passed** (13.0 min, load → 27); `test:timing` **skipped** (load 21–35
 after the suites, ≥ 12). No console and no `wfui-task-034-*` entry left.
+
+#### Review round 2 and decisions (approver, 2026-10-15; plan refs W4-11 … W4-14)
+
+Independent review round 2: **PASS** with R2-1 … R2-4. Adversarial security review round 2:
+**CHANGES REQUIRED** — S2-1 (medium) an include directive whose target does not exist yet or
+whose condition is false now has no origin, so W4-5 passes, then the automatic merge lands the
+file and the server's own status reads run its `filter.<x>.clean`; S2-2 (medium/low) a relative
+command path of the user's own configuration runs a tracked script the incoming commits changed;
+S2-3 (low) a drained result answers `ended: 'exit'` with possibly truncated output; low: empty
+`branch.<b>.merge` values not counted; a stuck merge holds the stop until a second signal.
+
+All as recommended:
+
+- **W4-11** (S2-1) — the guard also reads the include directives (`include.path`,
+  `includeif.<cond>.path`) of the same listing, resolved as git does (relative to the directory of
+  the file holding them, `~/` and `~user/`), any scope: a target inside the working tree outside the
+  git directories is `config-in-worktree`. The `filter.<x>.clean` of an included tracked file in
+  the server's status reads becomes an accepted residual (configuration only arrives through the
+  user's own pull or Update), stated in spec-010 and the user guide.
+- **W4-12 (a)** (S2-2) — the automatic update is skipped when an incoming path occurs as a path
+  token of any value of the effective configuration (normalised), logged by code.
+- **W4-13** (S2-3, R2-3) — a drained result is marked `drained: true`; `GitReads` fails closed on
+  it; the drain logs `{op, kind: 'pipes-held'}`. Empty `branch.<b>.merge` values are counted.
+  The stop log line and the user guide say a second signal forces the stop.
+- **W4-14** (R2-2) — the fail-closed rule stays and becomes visible: `config-in-worktree` is
+  recorded as `sync.fetch.lastError.code` (and the update's skip likewise as
+  `sync.update.lastError` where it fits), catalogue `error.configInWorktree`.
+- **R2-1** — the `refspec-outside-remotes` text is neutral (fetch or update); **R2-4** — CHANGELOG
+  re-wrap.
