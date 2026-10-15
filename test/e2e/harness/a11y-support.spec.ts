@@ -3,7 +3,13 @@
 // poor and a good ring. On static pages, without a console.
 import { expect, test } from '@playwright/test';
 import { focusRing, tabUntil } from '../support/keyboard.js';
-import { isKeyText, recordApiData, textsOutsideCatalogue, type DataRecorder } from '../support/strings.js';
+import {
+  isKeyText,
+  recordApiData,
+  screenTextsOutsideCatalogue,
+  textsOutsideCatalogue,
+  type DataRecorder,
+} from '../support/strings.js';
 
 const data = (...strings: string[]): DataRecorder => ({ strings: async () => new Set(strings), reset: () => {} });
 
@@ -179,4 +185,60 @@ test('X-09.1 recorder: a failed body read is reported as the cause of what is fl
   const outside = await textsOutsideCatalogue(page, recorder);
   expect(outside).toContain('p: kanban');
   expect(outside.some((t) => t.startsWith('answer not read: GET /api/broken'))).toBe(true);
+});
+
+// bug-015, review round 4.
+test('X-09.1 check: an answer that never arrives is the cause of what is flagged (R4-1)', async ({ page }) => {
+  await page.route('http://wfui.test/**', async (route) => {
+    if (new URL(route.request().url()).pathname === '/api/hang') return; // never answered
+    await route.fulfill({
+      contentType: 'text/html',
+      body: '<!doctype html><title>title.projects</title><p>kanban</p>',
+    });
+  });
+  await page.goto('http://wfui.test/');
+  const recorder = recordApiData(page, { answerTimeoutMs: 1_000 });
+  const sent = page.waitForEvent('request', (r) => new URL(r.url()).pathname === '/api/hang');
+  await page.evaluate(() => {
+    void fetch('/api/hang');
+  });
+  await sent;
+  const outside = await screenTextsOutsideCatalogue(page, recorder);
+  expect(outside).toContain('p: kanban');
+  expect(outside).toContain('answer not received in 1000 ms: GET /api/hang');
+});
+
+test('X-09.1 recorder: a request of the page left after a reset is not the next page’s data (R4-2)', async ({
+  page,
+}) => {
+  await page.route('http://wfui.test/**', (route) => {
+    const { pathname } = new URL(route.request().url());
+    if (pathname === '/api/old') {
+      return route.fulfill({ contentType: 'application/json', body: JSON.stringify({ name: 'kanban' }) });
+    }
+    return route.fulfill({
+      contentType: 'text/html',
+      body: `<!doctype html><title>title.projects</title>${pathname === '/next' ? '<p>kanban</p>' : ''}`,
+    });
+  });
+  await page.goto('http://wfui.test/');
+  const recorder = recordApiData(page);
+  recorder.reset({ untilNavigation: true });
+  // The old page reads between the reset and the navigation of the next screen.
+  await page.evaluate(() => fetch('/api/old').then((r) => r.text()));
+  await page.goto('http://wfui.test/next');
+  expect(await screenTextsOutsideCatalogue(page, recorder)).toEqual(['p: kanban']);
+});
+
+test('X-09.1 check: no retry without new data — a transient text is flagged (R4-3)', async ({ page }) => {
+  await page.route('http://wfui.test/**', (route) =>
+    route.fulfill({
+      contentType: 'text/html',
+      body: `<!doctype html><title>title.projects</title><p id="t">Transient</p>
+        <script>setTimeout(() => document.getElementById('t').remove(), 300)</script>`,
+    }),
+  );
+  await page.goto('http://wfui.test/');
+  const recorder = recordApiData(page);
+  expect(await screenTextsOutsideCatalogue(page, recorder)).toEqual(['p: Transient']);
 });
