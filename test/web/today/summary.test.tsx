@@ -240,11 +240,6 @@ it('describes what a role line does (review R7)', async () => {
     'Switches the role view',
   );
 });
-  expect(line).toHaveAccessibleDescription('Switches the role view');
-  expect(within(region).getByRole('button', { name: '2 more for approver' })).toHaveAccessibleDescription(
-    'Switches the role view',
-  );
-});
 
 it('shows no summary when the server sends none (S-23.3)', async () => {
   stubApi(
