@@ -1,6 +1,6 @@
 # User guide — WingFoil UI v0.1
 
-**Version:** 0.9 · **Date:** 2026-10-15 (0.1: release v0.1; 0.2: bug-008 known limitation, release submit; 0.3: bug-008 wording; 0.4: bug-008 marked fixed after 0.1.0 — task-026; 0.5: *How to join*, unreleased v0.2 — task-035; 0.6: *Today*, unreleased v0.2 — task-036; 0.7: what runs during a clone, a local repository of another user, unreleased v0.2 — task-033 / bug-010, bug-013; 0.8: a local source git cannot read — task-033 review round 3; 0.9: *Deciding a gate*, unreleased v0.2 — task-037)
+**Version:** 0.11 · **Date:** 2026-10-15 (0.1: release v0.1; 0.2: bug-008 known limitation, release submit; 0.3: bug-008 wording; 0.4: bug-008 marked fixed after 0.1.0 — task-026; 0.5: *How to join*, unreleased v0.2 — task-035; 0.6: *Today*, unreleased v0.2 — task-036; 0.7: what runs during a clone, a local repository of another user, unreleased v0.2 — task-033 / bug-010, bug-013; 0.8: a local source git cannot read — task-033 review round 3; 0.9: *Deciding a gate*, unreleased v0.2 — task-037; 0.11: the notification bell and *Your roles* on Today, unreleased v0.2 — task-042)
 
 WingFoil UI v0.1 is a **read-only console** for WingFoil-governed projects: you open a project and
 read its Memory, elements, DNA, directives, team and documentation, kept up to date while you work
@@ -188,6 +188,17 @@ view — *Morgan, 2 things require you* — and names the role view (*Role view:
   only by a hand-edited commit.
 - Changing the **Role view** changes the list; a change in the repository updates it by itself and
   screen readers hear the new count.
+- **Your roles** — when you hold several roles, a card between the greeting and Requires you gives
+  one line per role, in the order of the DNA: the role with how many items require it (*approver ·
+  2*), its first three items (links to the element panel) and *N more* when there are others.
+  Pressing a role, or its *N more*, switches the role view to it; the focus moves to Requires you
+  once it is read. The line of your current view is marked *current view*.
+- **The notification bell** — in the header of every project view, between the role view and your
+  name, the bell shows how many items Requires you lists in your role view (no number when there
+  is none). It opens a panel (Escape closes it) with **To unblock** — the same items as Requires
+  you, each a link to the element panel — and **Updates** — the last 10 Memory events, newest
+  first: the element, what happened and who did it, the transition and how long ago. *Open Today*
+  goes to Today. The count follows every change, also an approval you make.
 - When you are not in the team, Today shows Waiting on others only, with *You are not in this
   project's team —* **How to join**; with no git identity, or an ambiguous one, it points to the
   read-only notice of the header.
