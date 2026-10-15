@@ -292,7 +292,7 @@ describe('update (spec-010 §4–§5; TT-STATE-04; Y-05.1, Y-06.1, Y-06.2, G-12.
       expect(res.body.repository).toMatchObject({ copy: 'in-sync', behind: 0 });
     });
     expect(u.transport).toBe(1);
-    expect(c.runner.spawned.find((r) => gitSubcommand(r.args) === 'pull')!.args).toEqual(pullArgs());
+    expect(c.runner.spawned.find((r) => gitSubcommand(r.args) === 'pull')!.args).toEqual(pullArgs('main'));
     expect(await c.head()).toBe(remoteHead);
     expect(await readFile(path.join(c.fx.dir, 'from-jordan.md'), 'utf8')).toBe('hi\n');
     await c.warm();
@@ -789,5 +789,72 @@ describe('review round 2', () => {
     await git(c.fx.dir, ['remote', 'set-url', 'origin', 'own/u::sr'], c.fx.env);
     await c.check();
     expect((await c.op('fetch')).body.error.code).toBe('remote-not-owned');
+  });
+});
+
+describe('bug-014 (task-034 D34-8) — the manual update never makes a merge commit; the manual fetch never prunes a local tag or branch', () => {
+  const parents = async (c: GitConsole) =>
+    (await git(c.fx.dir, ['log', '-1', '--format=%p'], c.fx.env)).stdout.trim().split(' ').length;
+
+  it.each<[string, string]>([
+    ['branch.main.mergeOptions', '-s ours'],
+    ['branch.main.mergeOptions', '--squash'],
+    ['branch.main.mergeOptions', '--no-ff'],
+    ['pull.twohead', 'ours'],
+  ])('with %s = %s, Update fast-forwards: HEAD = the remote, one parent, nothing staged', async (key, value) => {
+    const c = await start({ prepare: (fx) => git(fx.dir, ['config', key, value], fx.env).then(() => undefined) });
+    await c.remoteCommit('from-jordan.md', 'hi\n');
+    expect((await c.op('fetch')).body.repository.copy).toBe('behind');
+    const remoteHead = (await git(c.fx.remoteDir, ['rev-parse', 'main'], c.fx.env)).stdout.trim();
+    const res = await c.op('update');
+    expect(res.status).toBe(200);
+    expect(res.body.repository).toMatchObject({ copy: 'in-sync', ahead: 0, behind: 0, localChanges: 0 });
+    expect(await c.head()).toBe(remoteHead);
+    expect(await parents(c)).toBe(1);
+    expect((await git(c.fx.dir, ['status', '--porcelain'], c.fx.env)).stdout).toBe('');
+  });
+
+  it('with fetch.pruneTags and remote.origin.pruneTags set, Fetch keeps a local tag', async () => {
+    const c = await start({
+      prepare: async (fx) => {
+        await git(fx.dir, ['config', 'fetch.pruneTags', 'true'], fx.env);
+        await git(fx.dir, ['config', 'remote.origin.pruneTags', 'true'], fx.env);
+        await git(fx.dir, ['tag', 'mine'], fx.env);
+      },
+    });
+    expect((await c.op('fetch')).status).toBe(200);
+    expect((await git(c.fx.dir, ['tag', '--list', 'mine'], c.fx.env)).stdout.trim()).toBe('mine');
+  });
+
+  it.each([['+refs/heads/*:refs/heads/*'], ['+refs/*:refs/*'], ['refs/tags/*:refs/tags/*']])(
+    'a configured refspec %s writing outside refs/remotes/ → 409 refspec-outside-remotes, 0 transport processes, local branches kept',
+    async (refspec) => {
+      const c = await start({
+        prepare: async (fx) => {
+          await git(fx.dir, ['branch', '-q', 'local-only'], fx.env);
+          await git(fx.dir, ['checkout', '-q', '--detach'], fx.env);
+          await git(fx.dir, ['config', '--add', 'remote.origin.fetch', refspec], fx.env);
+        },
+      });
+      const p = await c.processes(async () => {
+        const res = await c.op('fetch');
+        expect(res.status).toBe(409);
+        expect(res.body.error.code).toBe('refspec-outside-remotes');
+      });
+      expect(p.transport).toBe(0);
+      expect((await git(c.fx.dir, ['branch', '--list', 'local-only'], c.fx.env)).stdout.trim()).toBe('local-only');
+    },
+  );
+
+  it('no configured fetch refspec (fail closed) → 409 refspec-outside-remotes; a negative refspec beside the tracking one → 200', async () => {
+    const none = await start({
+      prepare: (fx) => git(fx.dir, ['config', '--unset-all', 'remote.origin.fetch'], fx.env).then(() => undefined),
+    });
+    expect((await none.op('fetch')).body.error.code).toBe('refspec-outside-remotes');
+    const negative = await start({
+      prepare: (fx) =>
+        git(fx.dir, ['config', '--add', 'remote.origin.fetch', '^refs/heads/tmp/*'], fx.env).then(() => undefined),
+    });
+    expect((await negative.op('fetch')).status).toBe(200);
   });
 });
