@@ -501,3 +501,23 @@ Checks (HEAD `918c81a`):
 | `npm run test:e2e -- gate-footer.spec.ts element-panel.spec.ts` (three engines) | **87 passed**, 0 failed (5.8 min) | 24.2 → 27.4 |
 
 No console left, no `wfui-*` entry in the system temporary directory.
+
+### reviews and merge of `main` before submit (2026-10-15)
+
+- Independent review: round 1 CHANGES REQUESTED (F1, F2 major; F3, F4 minor; F5–F11 nits, F10
+  the coordinator's plan hand-over), round 2 CHANGES REQUESTED (F12 major; F13, F14 nits), round 3
+  **PASS** (`c8463f1`).
+- `main` (`83f58ac`: task-033 merged) merged into the branch (`5488d30`). Conflicts only on
+  append-only lines: the `docs/user-guide.md` version line (0.7 and 0.8 are task-033's, this
+  task's entry becomes **0.9**; the "user-guide 0.7" mentions above refer to it), the
+  `test/README.md` version line (0.33 task-033, 0.34 this task), the `MESSAGES` entries of
+  `web/src/api/error-message.ts` and the `SPEC_004` rows and tests of
+  `test/web/api/error-message.test.ts` (both tasks' entries kept, task-033's first). Gates on the
+  merge (the first Chromium run was cut by a crash of the coordinator's session; re-run whole):
+
+| Gate | Result | Load |
+|------|--------|------|
+| `npm run typecheck`, `npm run lint`, `npm run format:check`, `npm run docs:api`, `check_tasks.py v0.2` | clean / OK | 7.6 |
+| `npm run test:coverage` | 149 files passed, 1 skipped; **2708 passed / 1 skipped**; statements 96.67 %, branches 91.44 % | → 24.2 |
+| `npm run test:e2e:chromium` (full) | **223 passed** (10.9 min) | 2.8 → 30.4 |
+| own specs on three engines: gate-footer, element-panel, accessibility, today, project-header, no-commit, harness/a11y-support | **366 passed** (20.0 min) | → 31.2 |
