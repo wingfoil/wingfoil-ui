@@ -81,8 +81,8 @@ the copy (spec-003 §6 rule 4), follow the whole key.
   ahead: integer, behind: integer,                 # 0 when unknown
   upstream: string | null,                         # the remote upstream's name, e.g. "origin/main"
   sync: { fetch: { lastSuccessAt: string | null,  # ISO 8601 UTC, since the server start
-                   lastError: { code?, message, at } | null },  # code: "fetch-timeout" (§6)
-          update: { lastError: { code, detail?, message?, at } | null } } }  # code: §5, "git-refused", "merge-not-fast-forward" (§6)
+                   lastError: { code?, message, at } | null },  # code: "fetch-timeout", "config-in-worktree" (§6)
+          update: { lastError: { code, detail?, message?, at } | null } } }  # code: §5, "git-refused", "merge-not-fast-forward", "config-in-worktree", "config-uses-incoming-path" (§6)
 ```
 
 `upstream` is the printed `branch.upstream` whenever it is a remote upstream (§1) — also in
@@ -245,10 +245,23 @@ so the sidebar shows it (Y-06.1, Y-06.2).
   `includeIf` to a tracked file, which incoming commits would change to run `remote.<r>.uploadpack`,
   `core.fsmonitor`, a filter driver, `core.sshCommand`, a `!` credential helper or `core.gitProxy`
   — or any file origin resolves inside the working tree outside the git directories, or an origin
-  cannot be resolved, the run is skipped, logged by code `config-in-worktree` (nothing recorded:
-  no `lastError` code fits the fetch). Includes of the user's global configuration count as the
-  user's own. Unattended runs and the server's own git reads (status, …) also run with
-  `-c core.fsmonitor=false`.
+  cannot be resolved, the run is skipped, logged and recorded with the code `config-in-worktree`
+  (`sync.fetch.lastError`, empty `message`; `sync.update.lastError` when it shows before the merge —
+  W4-14). The include directives themselves count (W4-11): an `include.path` or
+  `includeif.<cond>.path` of any scope whose target — resolved as git does, relative to the folder
+  of the file holding it, `~/` and `~user/` expanded — lies inside the working tree outside the git
+  directories skips too, whether the file exists yet and whether the condition holds now. Includes
+  of the user's global configuration to files outside the working tree count as the user's own.
+  Unattended runs and the server's own git reads (status, …) also run with
+  `-c core.fsmonitor=false`. Accepted residual (W4-11): a `filter.<x>.clean` that such a
+  configuration names still runs in the server's status reads once the user's own pull or Update
+  brought it, as in the user's own `git status`.
+- **Configured commands the incoming commits change** (W4-12, security review S2-2): before an
+  automatic merge, when a token of any value of the effective configuration (split on whitespace,
+  quotes and shell punctuation, a helper's `!` dropped, `./` and separators normalised, an absolute
+  token taken relative to the top level) is a path the incoming commits change, the update is
+  skipped and recorded as `sync.update.lastError` `config-uses-incoming-path` — e.g.
+  `filter.<x>.clean = tools/clean.sh` or `credential.helper = !./tools/cred`.
 - **Legacy remote files** (W4-7, security review S3): a remote without `remote.<r>.url` in the
   configuration makes git read `remotes/<r>` or `branches/<r>` of the common directory, whose
   refspecs the configuration does not show; such a remote, or one with such a file, is refused
@@ -265,7 +278,7 @@ so the sidebar shows it (Y-06.1, Y-06.2).
   refusal or a failed merge is kept as `sync.update.lastError` (Y-05.2). The merge has no time
   limit: a merge killed during its checkout leaves the working tree half updated — at stop, no new
   automatic merge starts and the stop sequence waits for one already running before terminating
-  the processes (a second signal still forces, W4-10 b). After a merge that exits 0 the copy must be
+  the processes, saying so in its log; a second signal forces the stop (W4-10 b). After a merge that exits 0 the copy must be
   in sync; otherwise the server logs `merge-not-fast-forward` at error level and records it as
   `sync.update.lastError` with that code (W4-9). `autoFetch` off → the scheduler starts 0 `git fetch` processes (Y-02.3); manual
   *Fetch* still works.
@@ -414,3 +427,9 @@ Rows 7–9 do not apply (no element).
   automatic merge and the accepted residual of hooks an automatic merge brought in (W4-10). The
   process runner settles at most 2 s after a process exited, so a program left in another session
   holding the pipes cannot hold a write lock or the stop sequence (W4-8, `adr-001` D5).
+- 2026-10-15 — review round 2 of task-034 (decisions W4-11 … W4-14 of the approver): §6 the
+  include directives count whatever their file or condition (W4-11), a configured value naming an
+  incoming path skips the automatic update (W4-12), `config-in-worktree` recorded for the fetch and
+  the update (W4-14), the residual of a `filter.<x>.clean` in the status reads, the stop's log line;
+  §3 the new codes; §5 the `refspec-outside-remotes` text names the fetch and the update (R2-1). A
+  process result whose pipes were cut after its exit is marked `drained` and never read (W4-13).

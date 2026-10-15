@@ -321,15 +321,21 @@ it started up to date with their remote, by itself. Three settings drive it (spe
   drivers such as git-lfs, your ssh command, credential helpers). A fetch is stopped after 60 s and
   tried again at the next round.
 - **Not when the repository configures itself.** If the repository's own configuration includes
-  another file (`include.path`, `includeIf` — e.g. a `.gitconfig` committed in the project), the
-  console does not fetch or update it by itself: the commits it would bring could change that file
-  and make git run a command. Includes of your global configuration (`~/.gitconfig`) are yours and
-  do not count.
-- **Stopping the console during an automatic update** lets the update finish first (a second
-  Ctrl-C still stops at once), so the working tree is never left half updated.
+  another file (`include.path`, `includeIf` — e.g. a `.gitconfig` committed in the project, even
+  one not there yet or for another branch), the console does not fetch or update it by itself: the
+  commits it would bring could change that file and make git run a command. The sidebar shows why;
+  fetch and update with git in a terminal. Includes of your global configuration (`~/.gitconfig`)
+  are yours and do not count, unless they point into the project's folder.
+- **Not when your configuration runs a file the update brings.** If a value of your git
+  configuration names a file the incoming commits change (a filter, credential helper or ssh
+  command such as `./tools/clean.sh`), the console does not update by itself.
+- **Stopping the console during an automatic update** lets the update finish first, so the working
+  tree is never left half updated; the log says so, and a second Ctrl-C (or signal) stops at once.
 - **Hooks come back with your next action.** Hooks an automatic update brought in through a hooks
   folder of the project (`core.hooksPath`, e.g. husky) run at your next submit, approve or reject
-  (WingFoil's commit) or auto-push — as they would after your own `git pull`.
+  (WingFoil's commit) or auto-push — as they would after your own `git pull`. Likewise a clean
+  filter that a configuration file of the project names runs when the console reads the status,
+  once your own pull or Update brought that file — as in your own `git status`.
 - **What is never done by itself.** No merge commit, no rebase, no stash: a copy that diverged from
   the remote, a local change to a file the incoming commits change, or a git operation you have in
   progress (a merge, rebase, cherry-pick, revert, `git am` or bisect) is not updated — fast-forward

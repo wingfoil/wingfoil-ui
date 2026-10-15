@@ -239,3 +239,5 @@ PERF-05 · features S1, S3, S8, X4 · scenarios S-08.1, S-08.2, S-09.1, S-09.2, 
   close or at the latest 2 s after it exited (a program it left in another session may hold them);
   the stop sequence waits for an automatic merge already running before terminating the processes.
   Decided by the approver.
+- 2026-10-15 — task-034 review round 2 (W4-13): D5 such a cut result is marked `drained`, logged
+  as `pipes-held` (no output), and the git reads and the CLI adapter refuse it (fail closed).
