@@ -660,3 +660,35 @@ describe('W4-11 (security review S2-1) — include directives whose file is miss
     expect((await header(s.c)).sync.fetch.lastError).toMatchObject({ code: 'config-in-worktree' });
   });
 });
+
+describe('W4-12 (security review S2-2) — the configuration names a path the incoming commits change', () => {
+  it.each<[string, string]>([
+    ['filter.wfui.smudge', './wfui-tool.sh'],
+    ['credential.helper', '!wfui-tool.sh --store'],
+    ['core.sshCommand', 'sh "wfui-tool.sh" -v'],
+  ])('%s = %s → no automatic update, recorded config-uses-incoming-path', async (key, value) => {
+    const s = await start(
+      { autoUpdate: true },
+      { prepare: (fx) => git(fx.dir, ['config', key, value], fx.env).then(() => undefined) },
+    );
+    await s.c.remoteCommit('wfui-tool.sh', '#!/bin/sh\nexit 0\n');
+    const head = await s.c.head();
+    await s.tick();
+    expect(spawnedOf(s.c, 'merge')).toHaveLength(0);
+    expect(await s.c.head()).toBe(head);
+    expect((await header(s.c)).sync.update.lastError).toMatchObject({ code: 'config-uses-incoming-path' });
+    expect(s.log.lines).toContainEqual(expect.objectContaining({ code: 'config-uses-incoming-path' }));
+  });
+
+  it('a configured path the incoming commits do not change → updated', async () => {
+    const s = await start(
+      { autoUpdate: true },
+      {
+        prepare: (fx) => git(fx.dir, ['config', 'filter.wfui.smudge', './other-tool.sh'], fx.env).then(() => undefined),
+      },
+    );
+    await s.c.remoteCommit('wfui-tool.sh', '#!/bin/sh\nexit 0\n');
+    await s.tick();
+    expect(await s.c.head()).toBe(await remoteHead(s.c));
+  });
+});
