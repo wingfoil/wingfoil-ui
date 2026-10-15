@@ -481,3 +481,41 @@ All as recommended:
   merge brought in (relative `core.hooksPath`) run at the user's next governed write or auto-push;
   (b) at stop no new automatic merge (R5) and the stop sequence awaits a running automatic merge
   before `terminateAll` (a second signal still forces).
+
+### security review round 1 — changes (2026-10-15)
+
+| Id | Red | Fix | What |
+|----|-----|-----|------|
+| contracts (RP-43) | — | `47b2498` | `update.lastError.code` + `refspec-outside-remotes`, `merge-not-fast-forward`; `push.code` `internal` documented (schema description, `WritePush.code`) |
+| catalogue | red commit before `3efc576` | `3efc576` | `error.mergeNotFastForward`, `MESSAGES` row |
+| W4-8 (S4) | red commit, corrected in `074ca78` (still red on the old runner) | `301b22e` | the runner settles on `close` or 2 s after `exit` (pipes destroyed); tests: a child exiting with, killed with, or terminated with a grandchild in a new session holding the pipes; 8 MiB + 1 MiB output still exact |
+| W4-6 (S2) | `19fb759` | `22ec205` | `--get-all branch.<b>.merge`, exactly one, else `no-upstream` (manual push and auto-push) |
+| W4-3, W4-7 (S3) | (red commit before `d57acd0`) | `d57acd0` | the update refuses `refspec-outside-remotes` (recorded); a remote without configured URL, or with `remotes/<r>` / `branches/<r>` in the common directory, is refused (fetch, update) or skipped (scheduler); the R1 `it.fails` became a normal test |
+| W4-9 (S5) | `215da07` | `114e6d5` | `merge-not-fast-forward` recorded as the update error |
+| W4-5 (S1) | (red commit before `bf572bd`) | `bf572bd` | `configInWorktree` (`git config --list --show-origin --show-scope -z`, realpaths) before the unattended fetch and before the merge → skipped, logged `config-in-worktree` (**log only**: no fetch `lastError` code fits); `-c core.fsmonitor=false` in `noHooksArgs` and every `GitReads` read |
+| W4-10 (b) | (red commit before `4d4a1a8`) | `4d4a1a8` | `SyncScheduler.stop()` → `AutoSync.stop()` awaits a running merge; the stop hook awaits it before `terminateAll` |
+| docs | — | `a894eb4` | spec-010, spec-004, adr-001 D5 Process Notes; user guide (0.10, its history note extended), CHANGELOG, test README |
+
+- **S1 rule as implemented:** a `file:` origin of scope `local` or `worktree` must be the
+  repository's own `config` (git directory or common directory) or `config.worktree`; any file
+  origin resolving inside the working tree outside the git directories, or not resolvable, also
+  skips. This is the decision's allow-list for the repository's scopes: a repository include to a
+  file outside the working tree skips too (fail closed; a linked worktree including the main
+  worktree's tracked file is caught by it); includes of the global configuration are the user's
+  own and are allowed. Every S1 variant was reproduced red first (the configured program ran):
+  `remote.<r>.uploadpack` through `include.path`, `includeIf.gitdir:`, `includeIf.onbranch:`;
+  `core.fsmonitor` (merge and the server's status read); `filter.<x>.smudge`;
+  `core.sshCommand` (an `ssh://` URL without port: git's "simple" variant refuses a port
+  before running the command); `core.gitProxy` (a program: git execs it without a shell); a
+  `!` credential helper (an HTTP remote answering 401).
+- **Residual noted:** `filter.<x>.clean` of an included tracked configuration still runs in the
+  server's status reads when the index is stat-dirty, as in the user's own `git status` (S1 asked
+  for fsmonitor only there).
+- Guard-removal: the tests that passed on their first run were the S3 scheduler row (same
+  `trackingOnly` as the route tests, which were red) and the allow-list companion tests.
+
+Checks (HEAD before this note `a894eb4`): `typecheck`, `lint`, `format:check` clean; `docs:api`,
+`check_tasks.py v0.2` OK; `test:coverage` 153 files passed, 1 skipped, **2835 passed, 1
+skipped** (statements 96.5 %, branches 91.22 %), load 6.7 → 35; `test:smoke` 4/4 (load 33);
+`test:e2e:chromium` **223 passed** (13.0 min, load → 27); `test:timing` **skipped** (load 21–35
+after the suites, ≥ 12). No console and no `wfui-task-034-*` entry left.
