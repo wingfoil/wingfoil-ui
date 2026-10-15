@@ -239,3 +239,62 @@ Today and the timer stops at the first `.today-row`; the RP-9 runs use the same 
 after the key press" guard stays (`View.prepare` in `test/e2e/performance.spec.ts`). The measured
 path now includes opening the project (the header read): its p95 is not directly comparable with
 task-036's 110 ms.
+
+### red / green / refactor (2026-10-15)
+
+- **Red (`7a82728`)** — `test/web/shell/notifications.test.ts` (no module), `notification-bell.test.tsx`
+  (12 of 13 failed: the one passing case asserts that there is no bell outside a project),
+  `test/web/today/summary.test.tsx` (6 of 7 failed: the passing case asserts that there is no
+  card without a summary), `test/web/api/queries.test.ts` (`memoryEventsQuery`, failed).
+- **Green (`b9bde4f`)** — `web/src/shell/{NotificationBell.tsx,notification-bell.css,notifications.ts}`,
+  the `Bell` icon, `memoryEventsQuery` (`web/src/api/queries.ts`, D31-6 key), one element in
+  `ProjectRoleView`'s `HeaderEnd` (`ProjectHeader.tsx`), `web/src/today/RoleSummary.tsx`, the
+  summary card and the Requires you heading as focus target in `TodayView.tsx`, appended rules in
+  `today.css`, 16 catalogue keys (sorted inserts). The focus request of D42-6 is a ref read when the
+  new view's data arrives (a state set in an effect is refused by the React lint rule).
+  Characterization updated: the read sets asserted by `test/web/{directives/directives,team/team,element/panel}.test.tsx`
+  now include the bell's `GET …/today` (D42-1).
+- **Deviations from the design.** (1) *Updates* are read by the panel's own component, which is
+  mounted only while the panel is open (no `enabled` flag needed, D42-2). (2) The summary's
+  "N more" has its own accessible name "2 more for approver" (visible text first, WCAG 2.5.3); the
+  role line's name is its visible text "approver · 2". (3) Update rows carry `data-sha` (the e2e
+  compares them with the API's order). (4) No `today.summary.none` and no `lineLabel` key were
+  needed.
+- **e2e (`255e375`)** — `test/e2e/notification-bell.spec.ts`, 9 tests, first Chromium run 9/9;
+  checked by fault injection (not committed): with the bell and the summary not rendered, S-21.1,
+  S-23.1 and S-23.4 fail. `SCREENS` gains *notification panel*.
+- **D42-9 (`b5304d8`)** — TT-PERF-01 starts from the project switcher on `/` (see above).
+- Docs (`b42b1ac`): `docs/user-guide.md` 0.11, ux-reference 1.4 (§3, §4.1), `CHANGELOG.md`
+  *Unreleased* › Added, `test/README.md` 0.36 (C2).
+
+### checks (2026-10-15, HEAD `b5304d8`)
+
+| Gate | Result | Load |
+|------|--------|------|
+| `npm run typecheck`, `npm run lint`, `npm run format:check`, `npm run docs:api`, `check_tasks.py v0.2` | clean / OK | — |
+| `npm run test:coverage` (includes the public-text check) | 152 files passed, 1 skipped; **2734 passed / 1 skipped**; statements 96.69 %, branches 91.47 %, functions 97.42 %, lines 98.32 % | 13.2 → 22.8 |
+| `npm run test:e2e:chromium` (whole suite, before D42-9) | 232 passed, 2 failed (the TT-PERF-01 guard, D42-9) | ~23 |
+| `npx playwright test --project=chromium performance.spec.ts` (after D42-9) | **9 passed**; TT-PERF-01 2 runs p95 608 ms, first open 4 482 ms; after one commit p95 3 917 ms (not asserted; measured at load 80, not representative) | 76 → 81 |
+| `npm run test:e2e:chromium` (whole suite, after D42-9) | **234 passed**, 0 failed (18.8 min) | → 104.9 |
+| `npm run test:e2e -- notification-bell.spec.ts accessibility.spec.ts today.spec.ts project-header.spec.ts no-commit.spec.ts` (three engines) | **300 passed**, 0 failed (16.4 min) | → 75.9 |
+| `npm run test:smoke` | not run: no packaging, launcher or bin change | — |
+| `npm run test:timing` | **skipped**: load ≥ 12 (76–105 during the runs; other worktrees' suites) — TT-PERF-01 numbers to be taken at the wave gate | — |
+
+No console of this worktree left (`pgrep -af bin/wingfoil-ui.cjs`); the `wfui-*` entries seen in the
+system temporary directory belong to another worktree's running Playwright.
+
+e2e closure (scenario → spec file › test):
+
+| Scenario | spec file › test |
+|----------|------------------|
+| S-21.1 (TT-PERF-11) | `test/e2e/notification-bell.spec.ts` › "S-21.1 — Count the items to unblock" |
+| S-21.2 | `notification-bell.spec.ts` › "S-21.2 — Show no count when nothing requires me" |
+| S-21.3 | `notification-bell.spec.ts` › "S-21.3 — Update the count after an action" |
+| S-23.1 (TT-PERF-09) | `notification-bell.spec.ts` › "S-23.1 — Summarise what requires each of my roles" |
+| S-23.2 | `notification-bell.spec.ts` › "S-23.2 — Switch role view from the summary" |
+| S-23.3 | `notification-bell.spec.ts` › "S-23.3 — Show no summary to a single-role member" |
+| S-23.4 (TT-PERF-11) | `notification-bell.spec.ts` › "S-23.4 — Show at most 3 items per role" |
+| T-07.1 | `notification-bell.spec.ts` › "T-07.1 — Say that nothing requires me" |
+| T-07.2 | `notification-bell.spec.ts` › "T-07.2 — Reach the empty state after the last action" |
+| X-06.4 / X-09.1 | `test/e2e/accessibility.spec.ts` › "X-06.4 — Pass the axe scan: notification panel", "X-09.1 — Render every string from the message catalogue: notification panel"; the summary in "…: today" (Morgan holds two roles) |
+| TT-PERF-01 (measurement changed by D42-9) | `test/e2e/performance.spec.ts` › "TT-PERF-01 — Today @perf" (both tests) |
