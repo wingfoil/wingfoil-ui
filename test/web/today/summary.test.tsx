@@ -28,13 +28,21 @@ function alex(roleView: string): ProjectHeader {
 function row(id: string): TodayActionRow {
   return {
     element: { id, type: 'task', title: `Title of ${id}`, status: 'pending', localChanges: false },
-    descriptor: { id, type: 'task', status: 'pending', kind: 'gate', tone: 'human', verbs: [], actor: { kind: 'none' } },
+    descriptor: {
+      id,
+      type: 'task',
+      status: 'pending',
+      kind: 'gate',
+      tone: 'human',
+      verbs: [],
+      actor: { kind: 'none' },
+    },
     action: 'approve',
   };
 }
 
 const APPROVER_ROWS = ['task-001', 'task-002', 'task-003', 'task-004', 'task-005'].map(row);
-const SUMMARY: Today['summary'] = [
+const SUMMARY: NonNullable<Today['summary']> = [
   { role: 'approver', count: 5, items: APPROVER_ROWS.slice(0, 3), more: 2 },
   { role: 'developer', count: 0, items: [], more: 0 },
   { role: 'tech-lead', count: 1, items: [row('note-001')], more: 0 },

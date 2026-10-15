@@ -24,11 +24,11 @@ describe('bellCount (D42-4)', () => {
   const today = (requiresYou: Today['requiresYou']): Today => ({ view: null, requiresYou, waitingOnOthers: [] });
 
   it('is the length of Requires you (spec-003 §5)', () => {
-    const row = {
+    const row: NonNullable<Today['requiresYou']>[number] = {
       element: { id: 'x', type: 't', title: 'X', status: 's', localChanges: false },
       descriptor: { id: 'x', type: 't', status: 's', kind: 'gate', tone: 'human', verbs: [], actor: { kind: 'none' } },
       action: 'approve',
-    } as const;
+    };
     expect(bellCount(today([row, row]))).toBe(2);
     expect(bellCount(today([]))).toBe(0);
   });

@@ -8,7 +8,10 @@
  *   reason (D36-7), state pill with the descriptor's tone, and one primary action, a button that
  *   opens the element panel (D36-3: no write here; the gate and submit footers are task-037's and
  *   task-038's); "Nothing requires you" when empty (D36-4);
- * - *Waiting on others* — rows linking to the panel, with who must act (D36-6); hidden when empty.
+ * - *Waiting on others* — rows linking to the panel, with who must act (D36-6); hidden when empty;
+ * - the all-roles summary of a member holding several roles, between the greeting and Requires you
+ *   (task-042, D42-5; `RoleSummary.tsx`): a switch from it moves the focus to the Requires you
+ *   heading once the new view is read (D42-6).
  *
  * A refusal of `GET /today` (no partial Today, D31-3) is an error, never an empty list. A refetch
  * that changed the rows is announced in a polite status region (D36-11). Rows, order, actor, tone
@@ -24,6 +27,7 @@ import { ApiError } from '../api/client.js';
 import { useHowToJoin } from '../project/HowToJoin.js';
 import { ErrorText } from '../shell/ErrorText.js';
 import { greetingName, identityNote, rowReason, waitingWho } from './model.js';
+import { RoleSummary } from './RoleSummary.js';
 import './today.css';
 
 type Read<T> = Pick<UseQueryResult<T>, 'data' | 'error'>;
@@ -205,6 +209,15 @@ export function TodayView({ pid, header, today }: TodayViewProps): ReactNode {
   const [announcement, setAnnouncement] = useState<{ n: number; count: number } | undefined>(undefined);
   const [now, setNow] = useState(Date.now);
   const previous = useRef<Today | undefined>(undefined);
+  // D42-6: the role view a summary switch asked for; the Requires you heading takes the focus once
+  // that view is read (the pressed button is gone while it loads).
+  const focusView = useRef<string | null>(null);
+  const requiresHeading = useRef<HTMLHeadingElement>(null);
+  useEffect(() => {
+    if (focusView.current === null || data?.view !== focusView.current) return;
+    requiresHeading.current?.focus();
+    focusView.current = null;
+  }, [data]);
   useEffect(() => {
     const before = previous.current;
     if (data === undefined) return;
@@ -253,9 +266,17 @@ export function TodayView({ pid, header, today }: TodayViewProps): ReactNode {
       ) : (
         <>
           <IdentitySentence header={header.data} />
+          {data.summary && (
+            <RoleSummary
+              pid={pid}
+              lines={data.summary}
+              view={data.view}
+              onSwitch={(role) => (focusView.current = role)}
+            />
+          )}
           {rows !== null && (
             <section className="today-card" aria-labelledby={requiresId}>
-              <h2 className="today-card-title" id={requiresId}>
+              <h2 className="today-card-title" id={requiresId} ref={requiresHeading} tabIndex={-1}>
                 <FormattedMessage id="today.requiresYou.title" />
               </h2>
               {rows.length === 0 ? (

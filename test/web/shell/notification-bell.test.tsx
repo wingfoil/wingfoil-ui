@@ -102,7 +102,8 @@ function paths(fetch: ReturnType<typeof stubApi>): string[] {
 }
 
 const banner = () => screen.getByRole('banner');
-const bell = (name: string | RegExp = /^Notifications/) => within(banner()).findByRole('button', { name });
+const bell = async (name: string | RegExp = /^Notifications/) =>
+  within(await screen.findByRole('banner')).findByRole('button', { name });
 const panel = () => screen.findByRole('dialog', { name: 'Notifications' });
 const section = (dialog: HTMLElement, name: string) => within(dialog).getByRole('region', { name });
 
@@ -175,7 +176,7 @@ it('opens with the keyboard, lists the Requires you rows and closes with Escape 
   expect(within(dialog).getByRole('link', { name: 'Open Today' }).getAttribute('href')).toBe(`/p/${PID}/today`);
   await user.keyboard('{Escape}');
   await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Notifications' })).toBeNull());
-  expect(document.activeElement).toBe(button);
+  await waitFor(() => expect(document.activeElement).toBe(button));
 });
 
 it('opens the element panel from a row with the gate reason focused, and closes (D42-3, D37-1)', async () => {
@@ -238,9 +239,7 @@ it('shows a refused Updates read as an error inside the panel', async () => {
 });
 
 it('shows a refused Today as an error inside the panel only, never as "Nothing to unblock" (D31-3)', async () => {
-  stubApi(
-    api({ [`${TODAY}?view=approver`]: { status: 500, body: { error: { code: 'internal', message: 'x' } } } }),
-  );
+  stubApi(api({ [`${TODAY}?view=approver`]: { status: 500, body: { error: { code: 'internal', message: 'x' } } } }));
   const user = userEvent.setup();
   renderApp(`/p/${PID}/team`);
   const button = await bell('Notifications');
@@ -309,8 +308,12 @@ it('shows no count of one project in another (keyed by the project)', async () =
   await bell('Notifications, 2 to unblock');
   await act(() => router.navigate({ to: '/p/$pid/team', params: { pid: OTHER } }));
   // The other project's Today is refused (unknown path → 404): no count is carried over.
-  await waitFor(() => expect(within(banner()).getByRole('button', { name: /^Notifications/ }).textContent).not.toContain('2'));
-  expect(within(banner()).getByRole('button', { name: /^Notifications/ }).getAttribute('aria-label')).toBe(
-    'Notifications',
+  await waitFor(() =>
+    expect(within(banner()).getByRole('button', { name: /^Notifications/ }).textContent).not.toContain('2'),
   );
+  expect(
+    within(banner())
+      .getByRole('button', { name: /^Notifications/ })
+      .getAttribute('aria-label'),
+  ).toBe('Notifications');
 });

@@ -29,3 +29,19 @@ export function WarningSign(): ReactNode {
     </svg>
   );
 }
+
+/** The bell of the notifications button (its accessible name says what it is). */
+export function Bell(): ReactNode {
+  return (
+    <svg className="bell-icon" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+      <path
+        d="M4 11.5V7a4 4 0 0 1 8 0v4.5l1.2 1.2H2.8z"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.4"
+        strokeLinejoin="round"
+      />
+      <path d="M6.5 14a1.6 1.6 0 0 0 3 0" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+    </svg>
+  );
+}

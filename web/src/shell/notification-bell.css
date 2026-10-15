@@ -1,0 +1,143 @@
+/* The notification bell (task-042, ux-reference §3 *Notifications*, D42-1…D42-4): the button at the
+   right end of the global header and its panel. Shared tokens only (spec-009). */
+
+.bell-trigger {
+  position: relative;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+}
+
+.bell-icon {
+  width: 16px;
+  height: 16px;
+}
+
+.bell-count {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border: 2px solid var(--color-bg);
+  border-radius: 9px;
+  background: var(--color-danger);
+  color: var(--color-on-danger);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 14px;
+  text-align: center;
+}
+
+.bell-popover {
+  width: 360px;
+  max-width: calc(100vw - 32px);
+  padding: 0;
+}
+
+.bell-panel {
+  display: flex;
+  flex-direction: column;
+  max-height: min(70vh, 560px);
+  overflow-y: auto;
+  outline: none;
+}
+
+.bell-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--color-divider);
+}
+
+.bell-title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.bell-open-today {
+  font-size: 12px;
+}
+
+.bell-section + .bell-section {
+  border-top: 1px solid var(--color-divider);
+}
+
+.bell-section-title {
+  margin: 0;
+  padding: var(--space-2) var(--space-4) var(--space-1);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.bell-note {
+  margin: 0;
+  padding: var(--space-1) var(--space-4) var(--space-3);
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.bell-list {
+  margin: 0;
+  padding: 0 0 var(--space-2);
+  list-style: none;
+}
+
+.bell-item {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  padding: 6px var(--space-4);
+  font-size: 13px;
+  min-width: 0;
+}
+
+.bell-tag {
+  flex: none;
+}
+
+.bell-verb {
+  flex: none;
+  color: var(--color-text-2);
+}
+
+.bell-link {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.bell-update {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px var(--space-4);
+  font-size: 12px;
+  color: var(--color-text-2);
+}
+
+.bell-update-id {
+  font-family: var(--font-mono);
+}
+
+.bell-update-time {
+  font-size: 11px;
+  color: var(--color-text-muted);
+}
+
+.bell-update-main {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 var(--space-1);
+}

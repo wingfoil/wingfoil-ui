@@ -90,7 +90,8 @@ it('shows a card per member with roles, "you" and the pending gates, and the age
   expect(screen.getByRole('link', { name: 'Team' }).getAttribute('aria-current')).toBe('page');
   expect(document.title).toBe('demo · Team — WingFoil UI');
   const reads = new Set(fetch.mock.calls.map((c) => String(c[0])).filter((p) => p.startsWith(BASE)));
-  expect(reads).toEqual(new Set([BASE, `${BASE}/config`, `${BASE}/elements`]));
+  // Plus the notification bell's Today read of the role view (task-042, D42-1).
+  expect(reads).toEqual(new Set([BASE, `${BASE}/config`, `${BASE}/elements`, `${BASE}/today?view=r-dev`]));
 });
 
 it('filters by pending gates, role and text, kept in the URL', async () => {
