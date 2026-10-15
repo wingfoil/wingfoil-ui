@@ -20,7 +20,10 @@ const status: WorkingTreeStatus = {
 describe('repoState', () => {
   it('keys the state `<HEAD>.<status hash>` and keeps the identity', () => {
     const state = repoState(status, 'alex@example.test', '');
-    expect(state.key).toBe(`${HEAD}.0123456789abcdef`);
+    // The key's status hash covers the working tree and the copy's inputs (spec-010 §2, task-033);
+    // `contentKey` the working tree only (D33-6).
+    expect(state.key).toMatch(new RegExp(`^${HEAD}\\.[0-9a-f]{16}$`));
+    expect(state.contentKey).toBe(`${HEAD}.0123456789abcdef`);
     expect(repoStateHeader(state)).toBe(state.key);
     expect(REPO_STATE_HEADER).toBe('X-Repo-State');
     expect(state.email).toBe('alex@example.test');

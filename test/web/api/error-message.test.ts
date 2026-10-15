@@ -69,6 +69,13 @@ const SPEC_004: Record<string, Record<string, unknown>[]> = {
   internal: [{}],
   'git-refused': [{}],
   'read-error': [{ file: 'docs/x.md', kind: 'missing' }],
+  // task-033 (spec-010 §5, D33-13).
+  'no-remote': [{}],
+  'no-fetch-target': [{}],
+  'detached-head': [{}],
+  'no-upstream': [{}],
+  diverged: [{}],
+  'local-changes-in-the-way': [{ files: ['docs/a.md'] }],
   // task-032 W2-1, W2-4, W2-5 (write.refusal.schema.json); its text is task-037's (D37-11).
   'write-incomplete': [{ file: 'docs/x.md' }, { file: 'docs/x.md', commit: 'a'.repeat(40) }],
 };
@@ -94,6 +101,9 @@ it('reads every spec-006 §3 code from the refusal schema', () => {
     'inside-state-dir',
     'git-refused',
     'credentials-in-url',
+    // bug-010 (task-033 D33-1; review round 2 F9).
+    'remote-not-owned',
+    'remote-unreadable',
   ];
   expect([...SPEC_006.keys()].sort()).toEqual([...expected].sort());
 });
@@ -157,6 +167,17 @@ it('renders credentials-in-url without arguments and never shows its message (bu
   expect(rendering.descriptor.id).toBe('error.credentialsInUrl');
   expect(rendering.values).toEqual({});
   expect(rendering.verbatim).toBeUndefined();
+});
+
+it('renders the files in the way as one list of base names (spec-010 §5, task-033 D33-13)', () => {
+  const error = new ApiError(409, 'local-changes-in-the-way', 'x', { files: ['docs/a.md', 'b.md', '../other/c.md'] });
+  expect(errorMessage(error).values).toEqual({ files: 'a.md, b.md, and c.md' });
+  expect(errorMessage(error, { formatList: (items) => items.join(' + ') }).values).toEqual({
+    files: 'a.md + b.md + c.md',
+  });
+  expect(errorMessage(new ApiError(409, 'local-changes-in-the-way', 'x', { files: ['one.md'] })).values).toEqual({
+    files: 'one.md',
+  });
 });
 
 it('write-incomplete: the commit selector is `none` when the write left no commit (task-037, D37-11)', () => {

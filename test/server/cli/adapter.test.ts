@@ -157,7 +157,8 @@ describe('S-08 / S-10 — the CLI that runs (adapter side)', () => {
         error: {
           code: 'cli-not-found',
           message: 'WingFoil CLI not found for this project',
-          detail: { path: fx.dir, command: 'npm install --save-dev wingfoil' },
+          // No absolute path in the body (bug-012, coordinator C2): the install command only.
+          detail: { command: 'npm install --save-dev wingfoil' },
         },
       },
     });
@@ -418,6 +419,22 @@ describe('classification without processes (fake runner)', () => {
     const logged = logger.error.mock.calls[0]?.[0] as { stderr: string };
     expect(logged.stderr).toBe(kind);
     expect(JSON.stringify(logged)).not.toContain('secret-value');
+  });
+
+  it('a refusal quoting the project root and the CLI package keeps its wording, not the folders (task-033 D33-5, bug-012)', async () => {
+    const { FakeProcessRunner } = await import('../process/fake-runner.js');
+    const packageDir = path.join(root, 'elsewhere', 'wingfoil');
+    const message = `Command failed: git -C ${root} log -- x\nat ${packageDir}/dist/cli.js:1`;
+    const cli = new WingfoilCli({
+      cli: { source: 'path', projectRoot: root, file: process.execPath, prefixArgs: ['/x/cli.js'], packageDir },
+      runner: new FakeProcessRunner().answer({ exitCode: 1, stderr: JSON.stringify({ error: message }) }),
+    });
+    const error = (await cli.json(['paths']).catch((e: unknown) => e)) as CliRefusedError;
+    expect(error).toBeInstanceOf(CliRefusedError);
+    expect(error.cliMessage).toBe(
+      'Command failed: git -C <project> log -- x\nat <project>/elsewhere/wingfoil/dist/cli.js:1',
+    );
+    expect(cliErrorEnvelope(error).body.error.message).not.toContain(root);
   });
 
   it('exit 1 with an empty stderr is a refusal that says so', async () => {

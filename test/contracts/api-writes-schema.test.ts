@@ -114,6 +114,8 @@ describe('write.refusal.schema.json (W2-1)', () => {
     'not-in-team',
     'unsupported-version',
     'local-changes',
+    // Row 8 (task-033).
+    'stale-copy',
     'element-changed',
     'cli-refused',
     'cli-output',
@@ -124,7 +126,7 @@ describe('write.refusal.schema.json (W2-1)', () => {
     expect(refusal(envelope(code, { file: 'x' }))).toBe(false);
   });
 
-  it('write-incomplete and read-error need their detail; cli-not-found its path and command', () => {
+  it('write-incomplete and read-error need their detail; cli-not-found its command, never a path (bug-012)', () => {
     expect(refusal(envelope('write-incomplete', { file: 'docs/task-001-x.md' }))).toBe(true);
     expect(refusal(envelope('write-incomplete'))).toBe(false);
     expect(refusal(envelope('write-incomplete', { file: 'x', commit: 'a'.repeat(40) }))).toBe(true);
@@ -133,10 +135,11 @@ describe('write.refusal.schema.json (W2-1)', () => {
     expect(refusal(envelope('write-incomplete', { file: 'x', message: 'Command failed: …' }))).toBe(false);
     expect(refusal(envelope('read-error', { file: 'x.md', kind: 'shape' }))).toBe(true);
     expect(refusal(envelope('read-error', { file: 'x.md', kind: 'other' }))).toBe(false);
-    expect(refusal(envelope('cli-not-found', { path: 'p', command: 'npm i' }))).toBe(true);
+    expect(refusal(envelope('cli-not-found', { command: 'npm i' }))).toBe(true);
+    expect(refusal(envelope('cli-not-found', { path: 'p', command: 'npm i' }))).toBe(false);
   });
 
   it('refuses an unknown code', () => {
-    expect(refusal({ error: { code: 'stale-copy', message: 'm' } })).toBe(false);
+    expect(refusal({ error: { code: 'stale-copyish', message: 'm' } })).toBe(false);
   });
 });

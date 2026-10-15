@@ -51,6 +51,8 @@ export type WriteRefusalCode =
   | 'not-in-team'
   | 'unsupported-version'
   | 'local-changes'
+  /** Row 8: the copy is behind, diverged or on a detached HEAD (task-033). */
+  | 'stale-copy'
   | 'element-changed'
   | 'cli-refused'
   | 'cli-output'

@@ -7,6 +7,7 @@ import { createTokenAuthentication } from '../auth/authentication.js';
 import { InProcessEventBus } from '../events/bus.js';
 import { buildApp } from '../http/app.js';
 import { registerElementWriteRoutes } from '../http/element-writes.js';
+import { registerGitRoutes } from '../http/git-routes.js';
 import { registerEventStream, type EventStreams } from '../http/events.js';
 import { registerProjectRoutes } from '../http/project-routes.js';
 import { registerProjectListRoutes } from '../http/projects.js';
@@ -134,7 +135,8 @@ export async function runLauncher(argv: readonly string[], io: LauncherIo): Prom
   const bus = new InProcessEventBus();
   const snapshots = new Snapshots({ runner: processes, bus, logger });
   const streams: { events?: EventStreams } = {};
-  // One write lock for the server: the clones (task-008) and the governed writes (task-032).
+  // One write lock for the server: the clones (task-008), the governed writes (task-032) and the
+  // git routes (task-033).
   const writeLock = new InProcessWriteLock();
   // The project list (task-008).
   const projects = new ProjectList({
@@ -162,6 +164,8 @@ export async function runLauncher(argv: readonly string[], io: LauncherIo): Prom
       registerSettingsRoutes(routes, { store: state, bus });
       // task-032: the governed writes on an element (spec-004 §3–§6).
       registerElementWriteRoutes(routes, { store: state, snapshots, writeLock, bus });
+      // task-033: the git routes (spec-010 §4–§5, §8).
+      registerGitRoutes(routes, { store: state, snapshots, writeLock });
     },
   });
   // Stop sequence (spec-007 §6): close the event streams and the watchers, then terminate the CLI

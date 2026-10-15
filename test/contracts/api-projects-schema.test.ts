@@ -101,11 +101,14 @@ describe('projects.refusal.schema.json', () => {
       error: {
         code: 'cli-not-found',
         message: 'm',
-        detail: { path: '/k', command: 'npm install --save-dev wingfoil' },
+        detail: { command: 'npm install --save-dev wingfoil' },
       },
     },
     { error: { code: 'state-dir-inside-project', message: 'm', detail: { path: '/k', stateDir: '/k/.s' } } },
     { error: { code: 'git-refused', message: 'fatal: repository not found' } },
+    // bug-010 (task-033 D33-1).
+    { error: { code: 'remote-not-owned', message: 'm' } },
+    { error: { code: 'remote-unreadable', message: 'm' } },
   ];
 
   it.each(refusals.map((r) => [r.error.code, r] as const))('accepts %s', (_code, body) => {

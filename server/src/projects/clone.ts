@@ -8,7 +8,8 @@
 import { lstat, readdir, rm, rmdir, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { cloneArgs } from '../git/git.js';
+import { ALLOWED_PROTOCOLS, cloneArgs } from '../git/git.js';
+import { absolutePath } from '../git/transport.js';
 import type { ProcessRunner } from '../process/runner.js';
 
 /** The clone failed: git's message, verbatim (spec-004 §5 `git-refused`). */
@@ -123,12 +124,26 @@ export async function noHooksPath(file: string = NO_HOOKS_PATH): Promise<string>
   return file;
 }
 
+/**
+ * The clone's environment: `GIT_TERMINAL_PROMPT=0`, `GIT_ALLOW_PROTOCOL` = the allowed list (D33-2,
+ * bug-013) and the absolute `PATH` entries only (review round 2 S12).
+ */
+export function cloneEnv(env: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
+  const { key, value } = absolutePath(env);
+  return {
+    ...env,
+    ...(value !== undefined ? { [key]: value } : {}),
+    GIT_TERMINAL_PROMPT: '0',
+    GIT_ALLOW_PROTOCOL: ALLOWED_PROTOCOLS,
+  };
+}
+
 /** What {@link runClone} needs. */
 export interface CloneOptions {
   /** Absolute path of `git`. */
   git: string;
   runner: ProcessRunner;
-  /** Environment of git (the server's); `GIT_TERMINAL_PROMPT=0` is added. */
+  /** Environment of git (the server's); `GIT_TERMINAL_PROMPT=0` and `GIT_ALLOW_PROTOCOL` are set. */
   env: NodeJS.ProcessEnv;
   /** Cancels the clone (the process is killed). */
   signal?: AbortSignal;
@@ -147,7 +162,10 @@ export async function runClone(url: string, target: CloneTarget, options: CloneO
     file: options.git,
     args: cloneArgs(url, target.directory, await noHooksPath(options.hooksPath)),
     cwd: target.existingParent,
-    env: { ...options.env, GIT_TERMINAL_PROMPT: '0' },
+    // `GIT_ALLOW_PROTOCOL` overrides `protocol.allow` (task-033 D33-2, bug-013): set to the same list.
+    // `PATH` keeps its absolute entries only: a relative one would run a program the clone just
+    // wrote (a filter driver, review round 2 S12).
+    env: cloneEnv(options.env),
     timeoutMs: null,
     ...(options.signal ? { signal: options.signal } : {}),
   });

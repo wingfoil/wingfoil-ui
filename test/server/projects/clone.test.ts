@@ -3,7 +3,7 @@
 // in those ancestors meanwhile. task-026 / bug-008: the hooks path of a clone is a regular file of
 // the console (nothing below it, nothing created); a hooks path that is not one refuses the clone
 // before any git process (fail closed).
-import { lstat, mkdir, mkdtemp, readdir, rm, stat, symlink, writeFile } from 'node:fs/promises';
+import { chmod, lstat, mkdir, mkdtemp, readdir, rm, stat, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -82,6 +82,64 @@ describe('the hooks path of a clone (bug-008)', () => {
     expect(runner.requests[0]!.args).toContain(`core.hooksPath=${NO_HOOKS_PATH}`);
     expect((await readdir(tmpdir())).filter((e) => e.startsWith('wfui-no-hooks-') && !before.includes(e))).toEqual([]);
   });
+
+  it('sets GIT_ALLOW_PROTOCOL to the allowed list whatever the server environment holds (task-033 D33-2, bug-013)', async () => {
+    const runner = new FakeProcessRunner().answer({ exitCode: 0 });
+    const target = (await CloneTarget.inspect(path.join(root, 'protocols', 'kanban')))!;
+    await runClone('file:///nowhere/kanban.git', target, {
+      git: 'git',
+      runner,
+      env: { GIT_ALLOW_PROTOCOL: 'ext:fd', PATH: '/x' },
+    });
+    expect(runner.requests[0]!.env).toMatchObject({ GIT_ALLOW_PROTOCOL: 'https:http:ssh:git:file', PATH: '/x' });
+  });
+
+  it('F5: a real clone of an ext:: URL with GIT_ALLOW_PROTOCOL=ext in its environment is refused and runs nothing (bug-013)', async () => {
+    const { LocalProcessRunner } = await import('../../../server/src/process/runner.js');
+    const { resolveGit } = await import('../../../server/src/git/git.js');
+    const marker = path.join(root, 'f5-ext-ran');
+    const target = (await CloneTarget.inspect(path.join(root, 'f5', 'kanban')))!;
+    const error = await runClone(`ext::sh -c touch% ${marker}`, target, {
+      git: await resolveGit(),
+      runner: new LocalProcessRunner(),
+      env: { ...process.env, GIT_ALLOW_PROTOCOL: 'ext' },
+    }).catch((e: unknown) => e);
+    expect(error).toBeInstanceOf(GitCloneError);
+    expect((error as Error).message).toMatch(/transport 'ext' not allowed/);
+    await expect(stat(marker)).rejects.toThrow();
+  });
+
+  it.runIf(process.platform !== 'win32')(
+    'S12: a relative PATH entry never reaches the clone (a git-lfs the repository ships does not run as a filter)',
+    async () => {
+      const { LocalProcessRunner } = await import('../../../server/src/process/runner.js');
+      const { resolveGit } = await import('../../../server/src/git/git.js');
+      const { run } = await import('../../harness/run.js');
+      const base = path.join(root, 's12');
+      const src = path.join(base, 'src');
+      const marker = path.join(base, 'lfs-ran');
+      await mkdir(src, { recursive: true });
+      const gitconfig = path.join(base, 'gitconfig');
+      // The user's own filter, as git-lfs installs it.
+      await writeFile(gitconfig, '[filter "lfs"]\n\tsmudge = git-lfs smudge -- %f\n\trequired = false\n');
+      const env = { ...process.env, GIT_CONFIG_GLOBAL: gitconfig, GIT_CONFIG_NOSYSTEM: '1' };
+      const g = (args: string[], cwd = src) => run('git', args, { cwd, env });
+      await g(['init', '-q', '-b', 'main']);
+      await writeFile(path.join(src, '.gitattributes'), '*.txt filter=lfs\n');
+      await writeFile(path.join(src, 'git-lfs'), `#!/bin/sh\ntouch '${marker}'\ncat\n`);
+      await chmod(path.join(src, 'git-lfs'), 0o755);
+      await writeFile(path.join(src, 'z.txt'), 'z\n');
+      await g(['add', '-A']);
+      await g(['-c', 'user.email=a@example.test', '-c', 'user.name=A', 'commit', '-qm', 's12']);
+      const target = (await CloneTarget.inspect(path.join(base, 'clone')))!;
+      await runClone(`file://${src}`, target, {
+        git: await resolveGit(),
+        runner: new LocalProcessRunner(),
+        env: { ...env, PATH: `.:${process.env.PATH ?? ''}` },
+      });
+      await expect(stat(marker)).rejects.toThrow();
+    },
+  );
 
   it.each([
     ['missing', async () => path.join(root, 'no-such-file')],

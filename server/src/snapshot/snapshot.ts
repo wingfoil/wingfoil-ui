@@ -2,13 +2,16 @@
  * The snapshot of one project (adr-001 D6, REQ-STATE-01/02, REQ-PERF-05): the last observed
  * repository state and the reads cached for it.
  *
- * - **State.** {@link ProjectSnapshot.check} reads git (2 processes: status, `user.email`);
+ * - **State.** {@link ProjectSnapshot.check} reads git (3–4 processes: status, `user.email`,
+ *   `git remote`, and `branch.<b>.remote` when an upstream is printed — spec-010 §1, task-033 D33-7);
  *   concurrent checks are coalesced (one running, at most one queued). A read request never
  *   checks: it uses the last state, moved only by the repository watcher and the periodic check
  *   (`snapshots.ts`) — so reopening a view with no change starts no process (S-26.3). Writes
  *   (spec-004 §4 rows 7–9) must not trust it: they read git fresh, under the write lock.
  * - **Cache.** A {@link SnapshotView} is bound to one state; its reads are memoised per
- *   `<CLI generation>:<HEAD>.<status hash>:<user.email>` and shared by every caller of that key:
+ *   `<CLI generation>:<HEAD>.<working-tree hash>:<user.email>` (the state's `contentKey`: a fetch
+ *   that moves only a tracking ref re-runs no CLI read, task-033 D33-6), its derived values (the
+ *   descriptors, which hold the copy) per full state key, and shared by every caller of that key:
  *   one CLI process per command and state. CLI refusals, unreadable output and direct-read errors
  *   are kept for the state (they would answer the same); timeouts and process failures are not.
  * - **CLI.** `discoverCli` runs once per CLI generation; {@link ProjectSnapshot.cliChanged}
@@ -73,6 +76,8 @@ export interface ProjectSnapshotOptions {
    * Default: the project root.
    */
   commonDir?: string;
+  /** The git directory (absolute), for the redaction of git's messages (task-033 D33-5). */
+  gitDir?: string;
 }
 
 /** The Memory events of each element, oldest first (spec-002 §3). */
@@ -138,6 +143,7 @@ export class ProjectSnapshot {
   private generationId = 0;
   private generation: Generation | undefined;
   private memo: { key: string; values: Map<string, Promise<unknown>> } | undefined;
+  private derivedMemo: { key: string; values: Map<string, Promise<unknown>> } | undefined;
 
   private readonly fingerprints: Fingerprinter;
   private readonly versions: VersionCache;
@@ -194,6 +200,32 @@ export class ProjectSnapshot {
     return this.options.commonDir ?? this.root;
   }
 
+  /** The git reads and transport of the project (task-033). */
+  get git(): GitReads {
+    return this.options.git;
+  }
+
+  /** The project folder relative to the repository's top level (`""` or ending in `/`). */
+  get prefix(): string {
+    return this.options.prefix;
+  }
+
+  /** The repository's top level (absolute): where git resolves a remote's relative path. */
+  get topLevel(): string {
+    const depth = this.options.prefix.split('/').filter(Boolean).length;
+    return path.resolve(this.root, ...Array<string>(depth).fill('..'));
+  }
+
+  /**
+   * The local folders a git or CLI message may quote, for `redactLocalPaths` (task-033 D33-5):
+   * the project root and the repository's top level, git directory and common directory.
+   */
+  get localRoots(): { project: string[]; repository: string[] } {
+    const top = this.topLevel;
+    const repository = [top, this.options.gitDir, this.options.commonDir].filter((p): p is string => p !== undefined);
+    return { project: [this.root], repository };
+  }
+
   /** {@link GitReads.sameEntryEverywhere} for a write (D32-1, review S2). */
   sameEntryEverywhere(file: string): Promise<boolean> {
     return this.options.git.sameEntryEverywhere(file);
@@ -234,10 +266,15 @@ export class ProjectSnapshot {
   async view(): Promise<SnapshotView> {
     const state = await this.state();
     const generation = this.generationId;
-    const key = `${generation}:${state.key}:${state.email ?? ''}`;
+    // The CLI reads on what the CLI can see (D33-6); derived values (descriptors) on the full key.
+    const key = `${generation}:${state.contentKey}:${state.email ?? ''}`;
     if (this.memo?.key !== key) this.memo = { key, values: new Map() };
-    const values = this.memo.values;
+    const fullKey = `${generation}:${state.key}:${state.email ?? ''}`;
+    if (this.derivedMemo?.key !== fullKey) this.derivedMemo = { key: fullKey, values: new Map() };
+    const readValues = this.memo.values;
+    const derivedValues = this.derivedMemo.values;
     const memo = <T>(name: string, read: (tools: Awaited<Generation['tools']>) => Promise<T>): Promise<T> => {
+      const values = name.startsWith('derived\0') ? derivedValues : readValues;
       let value = values.get(name) as Promise<T> | undefined;
       if (!value) {
         value = this.tools(generation).then(read);
@@ -298,11 +335,20 @@ export class ProjectSnapshot {
 
   private runCheck(): Promise<RepoState> {
     const run = (async () => {
-      const [status, email] = await Promise.all([this.options.git.status(), this.options.git.email()]);
+      const git = this.options.git;
+      const [status, email, remotes] = await Promise.all([git.status(), git.email(), git.remotes()]);
+      // spec-010 §1: a remote upstream is one whose `branch.<b>.remote` is a listed remote.
+      const branchRemote =
+        status.upstream !== undefined && status.branch
+          ? await git.configValue(`branch.${status.branch}.remote`)
+          : undefined;
       // The content of the listed files too: a second edit of a modified or untracked file leaves
       // the porcelain status unchanged (review F1).
       const fingerprint = await this.fingerprints.fingerprint(status.entries);
-      const next = repoState({ ...status, hash: combinedHash(status.hash, fingerprint) }, email, this.options.prefix);
+      const next = repoState({ ...status, hash: combinedHash(status.hash, fingerprint) }, email, this.options.prefix, {
+        remotes,
+        ...(branchRemote !== undefined ? { branchRemote } : {}),
+      });
       const previous = this.last;
       this.last = next;
       const cliFound = await this.cliFoundAgain();

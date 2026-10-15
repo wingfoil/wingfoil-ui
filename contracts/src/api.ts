@@ -5,6 +5,7 @@
 import type { DirectiveEntry, DirectiveFrontmatter, DnaPaths, DnaShow, MemoryMatch, WorkflowList } from './cli.js';
 import type { ActionDescriptor } from './descriptor.js';
 import type { ElementFrontmatter, MemoryYaml, StateMachine } from './files.js';
+import type { ProjectCondition, RepositoryStatus } from './git.js';
 
 /**
  * Who the user is in a project (REQ-STATE-05): the effective `git config user.email` matched,
@@ -137,14 +138,10 @@ export interface ProjectHeader extends IdentityView {
   capabilities: ApiCapabilities;
   /** Empty when the user may act; otherwise every reason, identity first. */
   readOnly: ReadOnlyReason[];
-  repository: {
-    /** The `X-Repo-State` value. */
-    state: string;
-    /** HEAD commit (40 zeros before the first commit). */
-    head: string;
-    /** Number of entries of the working-tree status (files with local changes). */
-    localChanges: number;
-  };
+  /** The repository status (spec-010 §3). */
+  repository: RepositoryStatus;
+  /** The project conditions that hold (spec-001 §6, spec-010 §7). */
+  conditions: ProjectCondition[];
   /** Present when `dna show` failed: the identity is then matched against no member (S-27.1). */
   dnaError?: ApiError;
 }

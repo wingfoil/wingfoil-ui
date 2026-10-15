@@ -5,7 +5,7 @@
  *
  * | Route | Body (`contracts/api/`) |
  * |-------|-------------------------|
- * | `GET /api/p/:pid` | `project.schema.json` — header: name, version and range state, capabilities, identity, role views, read-only reasons, repository status |
+ * | `GET /api/p/:pid` | `project.schema.json` — header: name, version and range state, capabilities, identity, role views, read-only reasons, repository status and conditions (v0.2, task-033: spec-010 §3, §7) |
  * | `GET /api/p/:pid/config` | `config.schema.json` — DNA, paths, workflows, resolved types; each section its read or its error |
  * | `GET /api/p/:pid/elements[?archived=true]` | `elements.schema.json` — elements with marker and descriptor |
  * | `GET /api/p/:pid/elements/:eid` | `element.schema.json` — frontmatter, body, descriptor, required fields, type states |
@@ -52,8 +52,9 @@ import { CliError, cliErrorEnvelope, type CliOutput } from '../cli/adapter.js';
 import { evaluateCapabilities } from '../cli/capabilities.js';
 import { CliNotFoundError } from '../cli/discovery.js';
 import { supportedRange, type DetectedVersion } from '../cli/version.js';
-import { describeElement } from '../descriptor/descriptor.js';
+import { describeElement, type CopyState } from '../descriptor/descriptor.js';
 import { today } from '../descriptor/today.js';
+import { repositoryStatus, type SyncStatus } from '../git/sync-status.js';
 import { MEMORY_EVENTS_MAX_LIMIT, memoryDirectories, memoryEventsPage } from '../git/memory-log.js';
 import { directivesForRoleView, identityView } from '../identity/identity.js';
 import { identityOf } from '../identity/snapshot-identity.js';
@@ -70,7 +71,7 @@ import {
   type DocumentationScope,
 } from '../reads/working-tree.js';
 import type { ElementEvents, SnapshotView } from '../snapshot/snapshot.js';
-import { REPO_STATE_HEADER, repoStateHeader } from '../snapshot/state.js';
+import { REPO_STATE_HEADER, repoStateHeader, type RepoState } from '../snapshot/state.js';
 import type { Snapshots } from '../snapshot/snapshots.js';
 import { stripUserinfo, type StateStore } from '../state/store.js';
 import { envelope } from './app.js';
@@ -209,6 +210,8 @@ class ProjectRead {
     readonly view: SnapshotView,
     readonly log: FastifyBaseLogger,
     private readonly store: StateStore,
+    /** The sync status (spec-010 §3, task-033). */
+    readonly sync: SyncStatus,
   ) {}
 
   settle<T>(read: Promise<T>, base: ReadBase = ''): ReturnType<typeof settle<T>> {
@@ -226,6 +229,8 @@ class ProjectRead {
       const enablement = {
         identified: identityOf(this.view, members).kind === 'member',
         version: { supported: detected.inRange, range: rangeLabel() },
+        // Rule 4 of spec-003 §6 (REQ-STATE-04, task-033): the copy of this state.
+        copy: descriptorCopy(this.view.state),
       };
       const none: ReadonlySet<string> = new Set();
       return {
@@ -306,6 +311,20 @@ class ProjectRead {
   }
 }
 
+/** The descriptor input of rule 4 (spec-003 §6) from a state's copy (spec-010 §1). */
+function descriptorCopy(state: RepoState): CopyState {
+  switch (state.copy) {
+    case 'behind':
+      return { state: 'behind', commits: state.behind };
+    case 'diverged':
+      return { state: 'diverged' };
+    case 'detached':
+      return { state: 'detached' };
+    default:
+      return { state: 'ok' };
+  }
+}
+
 /** `GET /api/p/:pid`. */
 async function header(read: ProjectRead): Promise<ProjectHeader> {
   const { view, entry } = read;
@@ -325,7 +344,9 @@ async function header(read: ProjectRead): Promise<ProjectHeader> {
     capabilities: evaluateCapabilities(detected, range),
     ...ids,
     readOnly,
-    repository: { state: view.state.key, head: view.state.head, localChanges: view.state.changed.size },
+    repository: repositoryStatus(view.state, read.sync.of(entry.id, view.state.copy)),
+    // spec-001 §6, spec-010 §7 (RP-25).
+    conditions: view.state.remotes.length > 0 ? ['has-remote'] : [],
     ...(dna.ok ? {} : { dnaError: dna.refusal.error }),
   };
 }
@@ -533,7 +554,7 @@ export function registerProjectRoutes(app: FastifyInstance, options: ProjectRout
           const snapshot = await snapshots.open(entry.id, entry.path);
           const view = await snapshot.view();
           reply.header(REPO_STATE_HEADER, repoStateHeader(view.state));
-          const read = new ProjectRead(entry, snapshot.root, view, request.log, store);
+          const read = new ProjectRead(entry, snapshot.root, view, request.log, store, snapshots.sync);
           const body = await handler(read, params, request.query as Q);
           return reply.send(body);
         } catch (error) {

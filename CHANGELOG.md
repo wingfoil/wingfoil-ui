@@ -33,6 +33,19 @@ All notable changes to WingFoil UI are recorded in this file. The format follows
 
 ### Fixed
 
+- **A clone runs no `ext::` command, whatever the environment** (bug-013): with
+  `GIT_ALLOW_PROTOCOL` set in the environment the console was started from, git allowed the
+  transports it names (`ext::` runs a command) despite the console's own protocol settings; every
+  clone now sets it to `https`, `http`, `ssh`, `git` and `file`.
+- **A local repository of another user is not cloned** (bug-010): a `file://` URL or a path whose
+  repository folder belongs to another user of the computer is refused (*The repository of this
+  remote is a folder of another user…*): cloning such a repository can run that user's code in your
+  git. The user guide states what may run during a clone (your own git tools: filter drivers such
+  as git-lfs, your ssh command, credential helpers) and the README a minimum git version.
+- **No absolute folder of the machine in WingFoil's refusals** (bug-012): the message of a refused
+  WingFoil command shows the project's folder as `<project>` (the repository's as `<repository>`,
+  the home folder as `~`); a project without a CLI no longer sends its folder with the install
+  command.
 - **No temporary folder left by a killed console** (bug-008): a clone no longer creates the empty
   hooks folder `wfui-no-hooks-*` in the system temporary directory; git runs with its hooks path
   on a regular file of the console's own installation, so no hook runs and nothing is left behind

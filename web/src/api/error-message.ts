@@ -35,6 +35,16 @@ const MESSAGES = defineMessages({
   'inside-state-dir': { id: 'error.insideStateDir' },
   // bug-006 (decided by the user 2026-10-10): a clone URL with credentials.
   'credentials-in-url': { id: 'error.credentialsInUrl' },
+  // task-033 (spec-010 §5): the transport refusals; remote-not-owned also on a clone (bug-010, D33-1).
+  'no-remote': { id: 'error.noRemote' },
+  'no-fetch-target': { id: 'error.noFetchTarget' },
+  'detached-head': { id: 'error.detachedHead' },
+  'no-upstream': { id: 'error.noUpstream' },
+  diverged: { id: 'error.diverged' },
+  'local-changes-in-the-way': { id: 'error.localChangesInTheWay' },
+  'remote-not-owned': { id: 'error.remoteNotOwned' },
+  // Review round 2 F9: a local remote or clone source git cannot read.
+  'remote-unreadable': { id: 'error.remoteUnreadable' },
   // task-037, D37-11: a governed write that did not finish (W2-1, W2-4, W2-5); `detail.file`,
   // optional `detail.commit`.
   'write-incomplete': { id: 'error.writeIncomplete' },
@@ -60,13 +70,32 @@ export interface ErrorRendering {
   verbatim?: string;
 }
 
-/** The catalogue message for an error answer (an unknown code renders as `internal`). */
-export function errorMessage(error: Pick<ApiError, 'code' | 'message' | 'detail'>): ErrorRendering {
+/** Options of {@link errorMessage}. */
+export interface ErrorMessageOptions {
+  /** Joins a list argument in the locale's conjunction format (default: `Intl.ListFormat` of `en`). */
+  formatList?: (items: string[]) => string;
+}
+
+const EN_LIST = new Intl.ListFormat('en', { style: 'long', type: 'conjunction' });
+
+/**
+ * The catalogue message for an error answer (an unknown code renders as `internal`). A list of
+ * paths in `detail` (`local-changes-in-the-way` `files`, spec-010 §5) becomes one argument: the
+ * base names joined by `options.formatList`.
+ */
+export function errorMessage(
+  error: Pick<ApiError, 'code' | 'message' | 'detail'>,
+  options: ErrorMessageOptions = {},
+): ErrorRendering {
   const code: ErrorCode = Object.hasOwn(MESSAGES, error.code) ? (error.code as ErrorCode) : 'internal';
   const values: Record<string, string> = {};
   if (error.detail !== null && typeof error.detail === 'object') {
     for (const [k, v] of Object.entries(error.detail)) {
       if (typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean') values[k] = String(v);
+      else if (Array.isArray(v) && v.every((item) => typeof item === 'string')) {
+        const names = v.map((item) => item.split(/[\\/]/).filter(Boolean).at(-1) ?? item);
+        values[k] = options.formatList ? options.formatList(names) : EN_LIST.format(names);
+      }
     }
   }
   if (code === 'not-wingfoil') {
