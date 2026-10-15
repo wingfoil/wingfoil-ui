@@ -14,9 +14,14 @@
  * | a governed write's element file: its entry at HEAD and in the index, whether the executable bit counts (task-032, D32-1, review S2) | `git ls-tree -z HEAD -- <path>`, `git ls-files --stage -z -- <path>`, `git config --bool core.fileMode` |
  * | the same file in the working tree as `git add` would store it (clean filters applied, nothing written) | `git hash-object -- <path>` |
  * | the commits a governed write made, and the paths each changes (D32-4, review S4) | `git log --first-parent --format=… <before>..HEAD`, `git diff-tree … <sha>` |
+ * | the remotes, with the status in every check (spec-010 §1, task-033) | `git remote` |
+ * | the upstream's remote and merge ref of the branch; the user's ssh command (spec-010 §1, §4) | `git config --get branch.<branch>.remote`, `… .merge`, `git config --get core.sshCommand` |
+ * | a remote's URL (`insteadOf` applied), for the owner check of a local remote (D33-1) | `git remote get-url [--push] -- <remote>` |
+ * | the files the incoming commits change (spec-010 §5 `local-changes-in-the-way`) | `git log --no-renames --name-only -z --format= HEAD..@{u}` |
  *
- * Git is never used to change a repository. The one write of v0.1 is the clone into a new, empty
- * folder ({@link cloneArgs}, write class (c), adr-001 D7), run by `projects/clone.ts`.
+ * Git is never used to change a repository by these reads. The writes are git transport (write
+ * class (c), adr-001 D7): the clone into a new, empty folder ({@link cloneArgs}, run by
+ * `projects/clone.ts`) and, from v0.2, fetch, `pull --ff-only` and push (`git/transport.ts`).
  */
 import { createHash } from 'node:crypto';
 import { constants } from 'node:fs';
@@ -34,6 +39,24 @@ export const GIT_READ_ARGS = {
   email: ['--no-optional-locks', 'config', 'user.email'],
   layout: ['--no-optional-locks', 'rev-parse', '--show-prefix', '--absolute-git-dir', '--git-common-dir'],
   origin: ['--no-optional-locks', 'remote', 'get-url', 'origin'],
+  // task-033 (spec-010 §1, §4, §5).
+  remotes: ['--no-optional-locks', 'remote'],
+  configGet: ['--no-optional-locks', 'config', '--get'],
+  remoteUrl: ['--no-optional-locks', 'remote', 'get-url'],
+  incoming: [
+    '--no-optional-locks',
+    '-c',
+    'core.quotePath=false',
+    '-c',
+    'log.showSignature=false',
+    'log',
+    '--no-color',
+    '--no-renames',
+    '--name-only',
+    '-z',
+    '--format=',
+    'HEAD..@{u}',
+  ],
   // `core.quotePath=false` for this invocation only: file names arrive as UTF-8, not escaped.
   memoryLog: [
     '--no-optional-locks',
@@ -123,6 +146,13 @@ export const CLONE_SETTINGS: readonly string[] = [
 ];
 
 /**
+ * The transports of {@link CLONE_SETTINGS}, as `GIT_ALLOW_PROTOCOL` takes them (task-033 D33-2,
+ * bug-013): that variable, when the server's environment holds it, overrides `protocol.allow`
+ * whatever `-c` says, so every clone and transport sets it to exactly this list.
+ */
+export const ALLOWED_PROTOCOLS = 'https:http:ssh:git:file';
+
+/**
  * `git clone` of `url` into `directory` (write class (c)): quiet, so that the standard error holds
  * git's error message only; `url` and `directory` after `--`, never read as options.
  * `core.hooksPath` is set to `hooksPath`, a regular file of the server's own (nothing can exist
@@ -162,6 +192,12 @@ export interface WorkingTreeStatus {
   entries: StatusEntry[];
   /** First 16 hex digits of the SHA-256 of the entries (headers excluded). */
   hash: string;
+  /** `# branch.head`: the branch checked out, `null` when detached (spec-010 §1). */
+  branch?: string | null;
+  /** `# branch.upstream`, when an upstream is configured. */
+  upstream?: string;
+  /** `# branch.ab`, printed only when the upstream's tracking ref exists. */
+  ab?: { ahead: number; behind: number };
 }
 
 /** A regular file tracked at a commit. */
@@ -262,6 +298,9 @@ function splitNul(stdout: string): string[] {
 export function parseStatus(stdout: string): WorkingTreeStatus {
   const records = stdout.split('\0');
   let head = UNBORN_HEAD;
+  let branch: string | null | undefined;
+  let upstream: string | undefined;
+  let ab: { ahead: number; behind: number } | undefined;
   const entries: StatusEntry[] = [];
   const hashed: string[] = [];
   for (let i = 0; i < records.length; i += 1) {
@@ -270,6 +309,12 @@ export function parseStatus(stdout: string): WorkingTreeStatus {
     if (record.startsWith('# ')) {
       const oid = /^# branch\.oid (\S+)$/.exec(record)?.[1];
       if (oid && /^[0-9a-f]{40,64}$/.test(oid)) head = oid;
+      const name = /^# branch\.head (.+)$/s.exec(record)?.[1];
+      if (name !== undefined) branch = name === '(detached)' ? null : name;
+      const upstreamName = /^# branch\.upstream (.+)$/s.exec(record)?.[1];
+      if (upstreamName !== undefined) upstream = upstreamName;
+      const counts = /^# branch\.ab \+(\d+) -(\d+)$/.exec(record);
+      if (counts) ab = { ahead: Number(counts[1]), behind: Number(counts[2]) };
       continue;
     }
     hashed.push(record);
@@ -295,7 +340,14 @@ export function parseStatus(stdout: string): WorkingTreeStatus {
     }
   }
   const hash = createHash('sha256').update(hashed.join('\0')).digest('hex').slice(0, 16);
-  return { head, entries, hash };
+  return {
+    head,
+    entries,
+    hash,
+    ...(branch !== undefined ? { branch } : {}),
+    ...(upstream !== undefined ? { upstream } : {}),
+    ...(ab ? { ab } : {}),
+  };
 }
 
 /** What follows the first `spaces` spaces of `record` (the path, which may hold spaces). */
@@ -347,6 +399,58 @@ export class GitReads {
     // `git remote get-url` exits 2 when the remote does not exist.
     if (result.ended === 'exit' && result.exitCode === 2) return '';
     return this.check(result).stdout.trim();
+  }
+
+  /** The remotes `git remote` lists (spec-010 §1), in its order. */
+  async remotes(): Promise<string[]> {
+    return (await this.read(GIT_READ_ARGS.remotes)).stdout
+      .split(/\r?\n/)
+      .map((l) => l.trim())
+      .filter((l) => l !== '');
+  }
+
+  /**
+   * `git config --get <key>` (repository, global and system configuration, as git reads them), or
+   * `undefined` when unset (exit 1) or empty. `key` is the server's own (`branch.<name>.remote`, …).
+   */
+  async configValue(key: string): Promise<string | undefined> {
+    const result = await this.run([...GIT_READ_ARGS.configGet, key]);
+    if (result.ended === 'exit' && result.exitCode === 1) return undefined;
+    const value = this.check(result).stdout.replace(/\r?\n$/, '');
+    return value === '' ? undefined : value;
+  }
+
+  /** The URL git uses for the remote `name` (`insteadOf` applied; `push`: the push URL), or `undefined`. */
+  async remoteUrl(name: string, push = false): Promise<string | undefined> {
+    const result = await this.run([...GIT_READ_ARGS.remoteUrl, ...(push ? ['--push'] : []), '--', name]);
+    // `git remote get-url` exits 2 when the remote does not exist.
+    if (result.ended === 'exit' && result.exitCode === 2) return undefined;
+    const url = this.check(result).stdout.split(/\r?\n/)[0]?.trim() ?? '';
+    return url === '' ? undefined : url;
+  }
+
+  /** The paths the commits of `HEAD..@{u}` change, relative to the repository's top level (spec-010 §5). */
+  async incomingPaths(): Promise<string[]> {
+    return [...new Set(splitNul((await this.read(GIT_READ_ARGS.incoming)).stdout).map((p) => p.replace(/^\n+/, '')))];
+  }
+
+  /**
+   * Run a git transport command (task-033): no timeout unless given, `signal` cancels it (the
+   * process group is killed), `env` added to the reads' environment. The outcome as it is.
+   */
+  transport(
+    args: readonly string[],
+    options: { env?: NodeJS.ProcessEnv; signal?: AbortSignal; timeoutMs?: number | null } = {},
+  ): Promise<ProcessResult> {
+    const { git, runner, cwd } = this.options;
+    return runner.run({
+      file: git,
+      args,
+      cwd,
+      env: { ...this.env, ...options.env },
+      timeoutMs: options.timeoutMs ?? null,
+      ...(options.signal ? { signal: options.signal } : {}),
+    });
   }
 
   /** Prefix, git directory and common directory (one process). */

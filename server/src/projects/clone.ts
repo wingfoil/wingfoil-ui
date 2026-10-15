@@ -8,7 +8,7 @@
 import { lstat, readdir, rm, rmdir, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { cloneArgs } from '../git/git.js';
+import { ALLOWED_PROTOCOLS, cloneArgs } from '../git/git.js';
 import type { ProcessRunner } from '../process/runner.js';
 
 /** The clone failed: git's message, verbatim (spec-004 §5 `git-refused`). */
@@ -128,7 +128,7 @@ export interface CloneOptions {
   /** Absolute path of `git`. */
   git: string;
   runner: ProcessRunner;
-  /** Environment of git (the server's); `GIT_TERMINAL_PROMPT=0` is added. */
+  /** Environment of git (the server's); `GIT_TERMINAL_PROMPT=0` and `GIT_ALLOW_PROTOCOL` are set. */
   env: NodeJS.ProcessEnv;
   /** Cancels the clone (the process is killed). */
   signal?: AbortSignal;
@@ -147,7 +147,8 @@ export async function runClone(url: string, target: CloneTarget, options: CloneO
     file: options.git,
     args: cloneArgs(url, target.directory, await noHooksPath(options.hooksPath)),
     cwd: target.existingParent,
-    env: { ...options.env, GIT_TERMINAL_PROMPT: '0' },
+    // `GIT_ALLOW_PROTOCOL` overrides `protocol.allow` (task-033 D33-2, bug-013): set to the same list.
+    env: { ...options.env, GIT_TERMINAL_PROMPT: '0', GIT_ALLOW_PROTOCOL: ALLOWED_PROTOCOLS },
     timeoutMs: null,
     ...(options.signal ? { signal: options.signal } : {}),
   });

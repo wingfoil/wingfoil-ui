@@ -20,7 +20,19 @@ export function header(over: Partial<ProjectHeader> = {}): ProjectHeader {
       missing: [],
     },
     readOnly: [],
-    repository: { state: 's1', head: '0'.repeat(40), localChanges: 0 },
+    repository: {
+      state: 's1',
+      head: '0'.repeat(40),
+      localChanges: 0,
+      // spec-010 §3 (task-033).
+      branch: 'main',
+      copy: 'in-sync',
+      ahead: 0,
+      behind: 0,
+      upstream: 'origin/main',
+      sync: { fetch: { lastSuccessAt: null, lastError: null }, update: { lastError: null } },
+    },
+    conditions: ['has-remote'],
     ...over,
   };
 }

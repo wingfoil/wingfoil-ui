@@ -31,6 +31,7 @@ export interface ProjectListItem {
  * `directory-inside-project` and `inside-state-dir` refuse a clone target inside a listed project or
  * the local state directory (decided by the user 2026-10-06). `credentials-in-url` refuses a clone URL
  * with userinfo in an http(s)/ftp(s) URL (bug-006, decided by the user 2026-10-10).
+ * `remote-not-owned` refuses a local repository another user owns (bug-010, task-033 D33-1).
  */
 export type ProjectRefusalCode =
   | 'folder-not-found'
@@ -42,7 +43,9 @@ export type ProjectRefusalCode =
   | 'cli-not-found'
   | 'state-dir-inside-project'
   | 'git-refused'
-  | 'credentials-in-url';
+  | 'credentials-in-url'
+  /** A local repository to clone that another user owns (bug-010, task-033 D33-1). */
+  | 'remote-not-owned';
 
 /** The envelope of a refused add or clone (spec-004 §5); `detail` holds the catalogue arguments. */
 export interface ProjectRefusalBody {

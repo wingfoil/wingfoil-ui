@@ -345,7 +345,9 @@ describe('GET /api/projects and POST /api/projects (local folder)', () => {
     await removeCli(w.fx);
     const before = await tree(w.dir);
     const error = await refusal(await add(w, w.fx.dir), 'cli-not-found');
-    expect(error.detail).toEqual({ path: w.fx.dir, command: INSTALL });
+    // No absolute path in the body (bug-012, coordinator C2).
+    expect(error.detail).toEqual({ command: INSTALL });
+    expect(JSON.stringify(error)).not.toContain(w.fx.dir);
     expect(await list(w)).toEqual([]);
     expect(await tree(w.dir)).toEqual(before);
   });

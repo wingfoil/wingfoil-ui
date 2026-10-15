@@ -1,0 +1,60 @@
+// task-033 D33-5 (bug-012) — local folders out of the tool messages the API sends.
+import { mkdir, realpath, symlink } from 'node:fs/promises';
+import path from 'node:path';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { MAX_MESSAGE, redactLocalPaths } from '../../../server/src/git/redact.js';
+import { TempWorkspace } from '../../harness/temp-workspace.js';
+
+let ws: TempWorkspace;
+let root: string;
+beforeAll(async () => {
+  ws = await TempWorkspace.create('wfui-task-033-redact-');
+  root = await realpath(ws.dir);
+  await mkdir(path.join(root, 'repo', 'proj'), { recursive: true });
+  await symlink(path.join(root, 'repo'), path.join(root, 'link'));
+});
+afterAll(() => ws.dispose());
+
+describe('redactLocalPaths', () => {
+  it('replaces the project root, the repository and the home folder, longest first', () => {
+    const project = path.join(root, 'repo', 'proj');
+    const top = path.join(root, 'repo');
+    const text = `Command failed: git -C ${project} commit\nfatal: Unable to create '${top}/.git/index.lock': File exists.\nsee ${root}/notes`;
+    expect(redactLocalPaths(text, { project: [project], repository: [top, path.join(top, '.git')], home: root })).toBe(
+      "Command failed: git -C <project> commit\nfatal: Unable to create '<repository>/.git/index.lock': File exists.\nsee ~/notes",
+    );
+  });
+
+  it('matches whole paths only, also as the real path of a link, and at the end of a sentence', () => {
+    const project = path.join(root, 'repo', 'proj');
+    const viaLink = path.join(root, 'link', 'proj');
+    expect(redactLocalPaths(`${project}-two and ${project}.git`, { project: [project], home: null })).toBe(
+      `${project}-two and ${project}.git`,
+    );
+    expect(redactLocalPaths(`not a repository: ${project}.`, { project: [viaLink], home: null })).toBe(
+      'not a repository: <project>.',
+    );
+  });
+
+  it('removes the userinfo of URLs and caps the text', () => {
+    expect(
+      redactLocalPaths("fatal: unable to access 'https://alex:s3cret-token@git.example.test/x.git/': 403", {
+        home: null,
+      }),
+    ).toBe("fatal: unable to access 'https://git.example.test/x.git/': 403");
+    const long = redactLocalPaths('x'.repeat(MAX_MESSAGE + 50), { home: null });
+    expect(long).toHaveLength(MAX_MESSAGE + 1);
+    expect(long.endsWith('…')).toBe(true);
+  });
+
+  it('names a CLI from the PATH <wingfoil>, a CLI inside the project as the project', () => {
+    const project = path.join(root, 'repo', 'proj');
+    expect(
+      redactLocalPaths(`${root}/global/wingfoil/dist/cli.js and ${project}/node_modules/wingfoil`, {
+        project: [project],
+        wingfoil: [path.join(root, 'global', 'wingfoil'), path.join(project, 'node_modules', 'wingfoil')],
+        home: null,
+      }),
+    ).toBe('<wingfoil>/dist/cli.js and <project>/node_modules/wingfoil');
+  });
+});

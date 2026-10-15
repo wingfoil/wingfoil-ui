@@ -10,7 +10,7 @@
  * | — | `:eid` is listed by `memory search` | 404 `not-found` | the snapshot view (D32-10) |
  * | 7 | the element file has no local changes | 409 `local-changes` | **fresh** `git status` and the whole entry of the file at HEAD, in the index and in the working tree (D32-1, review S2), under the lock |
  * | — | the fresh state lists `:eid` at exactly one path (review S1) | 409 `local-changes` when a listed path has local changes, else 409 `element-changed` | `memory search` of the fresh state, re-read only when the state moved |
- * | 8 | (task-033: the copy is not behind, diverged or detached) | | |
+ * | 8 | the copy is not behind, diverged or on a detached HEAD (REQ-STATE-04, task-033) | 409 `stale-copy` | the **fresh** state's copy (spec-010 §1), under the lock |
  * | 9 | the element file's status is `expectedStatus` | 409 `element-changed` | **fresh** direct read, under the lock |
  *
  * Rows 1–4 are the guards and the route's. Rows 5–6 start no process once the console has read the
@@ -45,6 +45,7 @@ import {
 } from '../cli/adapter.js';
 import { CliNotFoundError } from '../cli/discovery.js';
 import type { EventBus } from '../events/bus.js';
+import { blocksWrites } from '../git/copy.js';
 import { matchIdentity } from '../identity/identity.js';
 import type { WriteLock } from '../process/write-lock.js';
 import { DirectReadError } from '../reads/confine.js';
@@ -158,6 +159,7 @@ function incomplete(what: string, detail: { file: string; commit?: string }): Wr
 
 const LOCAL_CHANGES = refuse(409, 'local-changes', 'The element file has local changes');
 const ELEMENT_CHANGED = refuse(409, 'element-changed', 'This element changed since you opened it');
+const STALE_COPY = refuse(409, 'stale-copy', 'The copy is behind, diverged or on a detached HEAD');
 
 /** The governed writes of the server. */
 export class GovernedWrites {
@@ -238,6 +240,7 @@ export class GovernedWrites {
       return value;
     };
     const moved = state.key !== seen.state.key || state.email !== seen.state.email;
+    let fresh = state;
     // Row 7 on the path the page's state listed, before any other process — unless that path is
     // gone from a state that moved (e.g. the element was moved by a commit): then listed again.
     const first = listed[0]!.path;
@@ -245,6 +248,7 @@ export class GovernedWrites {
     // Review S1: the state moved since the lookup — list the element again, on the fresh state.
     if (moved) {
       const view = await snapshot.view();
+      fresh = view.state;
       const refused = await this.identifiedInRange(view);
       if (refused) return refused;
       listed = await this.listed(view, request.eid);
@@ -254,7 +258,8 @@ export class GovernedWrites {
     // A duplicated id: which file the CLI would take depends on its order (review S1).
     if (listed.length > 1) return ELEMENT_CHANGED;
     const match = listed[0]!;
-    // Row 8 (task-033) goes here.
+    // Row 8 (task-033): the copy of the fresh state (spec-010 §1), never a fetch first.
+    if (blocksWrites(fresh.copy)) return STALE_COPY;
     // Row 9, fresh: the file at its listed path holds this element in the status the page showed.
     try {
       await readElement(snapshot.root, { ...match, status: request.expectedStatus });

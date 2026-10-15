@@ -21,6 +21,7 @@
 import { envelope, type ErrorEnvelope } from '../http/app.js';
 import { DEFAULT_TIMEOUT_MS, type ProcessResult, type ProcessRunner } from '../process/runner.js';
 import { commandFor, outputProblem, type CliCommandName, type CliCommandOutputs } from './commands.js';
+import { redactLocalPaths } from '../git/redact.js';
 import { CliNotFoundError, type CliSource, type ResolvedCli } from './discovery.js';
 
 /** Timeout of every `wingfoil` process (REQ-INT-04). */
@@ -51,6 +52,11 @@ export interface WingfoilCliOptions {
   /** Timeout in milliseconds (default 30 s). */
   timeoutMs?: number;
   logger?: CliLogger;
+  /**
+   * Removes the local folders a refusal message quotes (task-033 D33-5, bug-012). Default: the
+   * project root, the CLI's package folder and the home directory ({@link redactLocalPaths}).
+   */
+  redact?: (text: string) => string;
 }
 
 /** Kinds of CLI failure (spec-001 §2). */
@@ -261,7 +267,8 @@ export class WingfoilCli {
     });
     if (result.ended === 'exit' && result.exitCode === 0) return result;
     if (result.ended === 'exit' && result.exitCode === 1) {
-      throw new CliRefusedError(command, refusalMessage(result.stderr));
+      // The CLI's wording verbatim, the machine's folders removed (D33-5, bug-012).
+      throw new CliRefusedError(command, this.redact(refusalMessage(result.stderr)));
     }
     if (result.ended === 'exit' && result.exitCode === 2) {
       // A usage error may quote a value (a rejected option value, a reason WingFoil will not record,
@@ -281,6 +288,15 @@ export class WingfoilCli {
       error.reason,
     );
     throw error;
+  }
+
+  private redact(text: string): string {
+    if (this.options.redact) return this.options.redact(text);
+    const { cli } = this.options;
+    return redactLocalPaths(text, {
+      project: [cli.projectRoot],
+      ...(cli.packageDir !== undefined ? { wingfoil: [cli.packageDir] } : {}),
+    });
   }
 
   private log(command: CliCommand, fields: object, message: string): void {
@@ -352,7 +368,8 @@ export function cliErrorEnvelope(error: CliError | CliNotFoundError): { status: 
         error: {
           code: error.code,
           message: 'WingFoil CLI not found for this project',
-          detail: { path: error.projectRoot, command: error.installCommand },
+          // Never the project's absolute root (bug-012, coordinator C2): the catalogue uses the command.
+          detail: { command: error.installCommand },
         },
       },
     };

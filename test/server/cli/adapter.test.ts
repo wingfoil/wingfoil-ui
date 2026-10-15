@@ -157,7 +157,8 @@ describe('S-08 / S-10 — the CLI that runs (adapter side)', () => {
         error: {
           code: 'cli-not-found',
           message: 'WingFoil CLI not found for this project',
-          detail: { path: fx.dir, command: 'npm install --save-dev wingfoil' },
+          // No absolute path in the body (bug-012, coordinator C2): the install command only.
+          detail: { command: 'npm install --save-dev wingfoil' },
         },
       },
     });
