@@ -845,11 +845,9 @@ describe('bug-014 (task-034 D34-8) — the manual update never makes a merge com
     expect((await git(c.fx.dir, ['branch', '--list', 'local-only'], c.fx.env)).stdout.trim()).toBe('local-only');
   });
 
-  // Review R1, pending the approver (WAIT): with a forced refspec into refs/heads, the update's own
-  // fetch force-overwrites a local branch the remote has with another history (reflog
-  // `forced-update`), --no-prune or not. `it.fails` records what git does today; it becomes an
-  // `it` with the decided guard (e.g. `refspec-outside-remotes` on the update too).
-  it.fails('review R1 (WAIT): a forced refspec into refs/heads — Update keeps a diverged local branch', async () => {
+  // Review R1 / W4-3: with a forced refspec into refs/heads, the update's own fetch would
+  // force-overwrite a local branch the remote has with another history (reflog `forced-update`).
+  it('W4-3: a forced refspec into refs/heads → Update refuses refspec-outside-remotes, 0 transport, the diverged local branch kept, recorded', async () => {
     const c = await start({
       prepare: async (fx) => {
         await git(fx.dir, ['push', '-q', 'origin', 'main:feature'], fx.env);
@@ -866,8 +864,16 @@ describe('bug-014 (task-034 D34-8) — the manual update never makes a merge com
     await c.remoteCommit('from-jordan.md', 'hi\n');
     expect((await c.op('fetch')).body.repository.copy).toBe('behind');
     await git(c.fx.dir, ['config', '--add', 'remote.origin.fetch', '+refs/heads/*:refs/heads/*'], c.fx.env);
-    await c.op('update');
+    const p = await c.processes(async () => {
+      const res = await c.op('update');
+      expect(res.status).toBe(409);
+      expect(res.body.error.code).toBe('refspec-outside-remotes');
+    });
+    expect(p.transport).toBe(0);
     expect((await git(c.fx.dir, ['rev-parse', 'feature'], c.fx.env)).stdout.trim()).toBe(mine);
+    expect((await c.get(`/api/p/${c.pid}`)).body.repository.sync.update.lastError).toMatchObject({
+      code: 'refspec-outside-remotes',
+    });
   });
 
   it('with fetch.pruneTags and remote.origin.pruneTags set, Fetch keeps a local tag', async () => {
@@ -933,5 +939,43 @@ describe('security review S2 (task-034 W4-6) — the push destination is the one
     expect(p.transport).toBe(0);
     const branches = (await git(c.fx.remoteDir, ['branch', '--list', 'production'], c.fx.env)).stdout.trim();
     expect(branches).toBe('');
+  });
+});
+
+describe('security review S3 (task-034 W4-7) — refspecs git reads from legacy remote files', () => {
+  /** A copy whose `origin` has no URL in the configuration: git reads `<common dir>/<kind>/origin`. */
+  const legacy = (kind: 'remotes' | 'branches') => async (fx: Fixture) => {
+    await git(fx.dir, ['branch', '-q', 'local-only'], fx.env);
+    await git(fx.dir, ['checkout', '-q', '--detach'], fx.env);
+    await git(fx.dir, ['config', '--unset', 'remote.origin.url'], fx.env);
+    await mkdir(path.join(fx.dir, '.git', kind), { recursive: true });
+    await writeFile(
+      path.join(fx.dir, '.git', kind, 'origin'),
+      kind === 'remotes' ? `URL: ${fx.remoteDir}\nPull: +refs/heads/*:refs/heads/*\n` : `${fx.remoteDir}\n`,
+    );
+  };
+
+  it.each(['remotes', 'branches'] as const)(
+    'a remote without url in the configuration and a %s file → Fetch refuses refspec-outside-remotes, 0 transport, local branches kept',
+    async (kind) => {
+      const c = await start({ prepare: legacy(kind) });
+      const p = await c.processes(async () => {
+        const res = await c.op('fetch');
+        expect(res.status).toBe(409);
+        expect(res.body.error.code).toBe('refspec-outside-remotes');
+      });
+      expect(p.transport).toBe(0);
+      expect((await git(c.fx.dir, ['branch', '--list', 'local-only'], c.fx.env)).stdout.trim()).toBe('local-only');
+    },
+  );
+
+  it('a remotes/<r> file beside a configured url → refused too (fail closed)', async () => {
+    const c = await start({
+      prepare: async (fx) => {
+        await mkdir(path.join(fx.dir, '.git', 'remotes'), { recursive: true });
+        await writeFile(path.join(fx.dir, '.git', 'remotes', 'origin'), 'Pull: +refs/heads/*:refs/heads/*\n');
+      },
+    });
+    expect((await c.op('fetch')).body.error.code).toBe('refspec-outside-remotes');
   });
 });
