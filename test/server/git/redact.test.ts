@@ -86,4 +86,17 @@ describe('redactLocalPaths', () => {
       redactLocalPaths(`fatal: '${remote}' does not appear to be a git repository`, { remote: [remote], home: null }),
     ).toBe("fatal: '<remote>' does not appear to be a git repository");
   });
+
+  it('F11/S13: a scheme-less user:password@ is removed only after the start, a space or a quote', () => {
+    const r = (t: string) => redactLocalPaths(t, { home: null });
+    // git's own message: stripped.
+    expect(r('unable to look up u:tok@git.example.test')).toBe('unable to look up git.example.test');
+    expect(r("'u:tok@git.example.test'")).toBe("'git.example.test'");
+    expect(r('u:tok@git.example.test is down')).toBe('git.example.test is down');
+    // After another character: kept as it is.
+    expect(r('x,u:tok@host')).toBe('x,u:tok@host');
+    expect(r('[u:tok@host]')).toBe('[u:tok@host]');
+    // After a space: read as userinfo and removed (a `name: a:b@c` line loses `a:b@`).
+    expect(r('Author: a:b@c.d')).toBe('Author: c.d');
+  });
 });

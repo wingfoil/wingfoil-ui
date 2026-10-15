@@ -1112,4 +1112,13 @@ describe('bug-010 (task-033 D33-1) — a local repository of another user is nev
       expect(await list(w)).toEqual([]);
     },
   );
+
+  it('F9: a missing local source → 422 remote-unreadable, nothing cloned', async () => {
+    const w = await world();
+    await refusal(
+      await clone(w, { url: `file://${path.join(w.dir, 'no-such-source.git')}`, directory: '~/projects/none' }),
+      'remote-unreadable',
+    );
+    expect(await list(w)).toEqual([]);
+  });
 });

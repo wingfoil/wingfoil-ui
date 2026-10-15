@@ -99,8 +99,9 @@ it('reads every spec-006 §3 code from the refusal schema', () => {
     'inside-state-dir',
     'git-refused',
     'credentials-in-url',
-    // bug-010 (task-033 D33-1).
+    // bug-010 (task-033 D33-1; review round 2 F9).
     'remote-not-owned',
+    'remote-unreadable',
   ];
   expect([...SPEC_006.keys()].sort()).toEqual([...expected].sort());
 });

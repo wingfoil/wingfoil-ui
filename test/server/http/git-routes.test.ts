@@ -737,3 +737,55 @@ describe('review round 1', () => {
     },
   );
 });
+
+describe('review round 2', () => {
+  it('F9: a local remote with no folder git could read → 409 remote-unreadable, never the "another user" text', async () => {
+    const c = await start();
+    await git(c.fx.dir, ['remote', 'set-url', 'origin', path.join(c.fx.dir, 'no-such-remote.git')], c.fx.env);
+    await c.check();
+    const p = await c.processes(async () => {
+      const res = await c.op('fetch');
+      expect(res.status).toBe(409);
+      expect(res.body.error.code).toBe('remote-unreadable');
+      expect(res.body.error.message).not.toMatch(/another user/);
+    });
+    expect(p.transport).toBe(0);
+  });
+
+  it("F10: an own `~/…` remote (the git environment's home) → 200", async () => {
+    const c = await start();
+    await symlink(c.fx.remoteDir, path.join(c.fx.home, 'kanban-home.git'));
+    await git(c.fx.dir, ['remote', 'set-url', 'origin', '~/kanban-home.git'], c.fx.env);
+    await c.check();
+    const res = await c.op('fetch');
+    expect(res.status, JSON.stringify(res.body)).toBe(200);
+  });
+
+  it.runIf(posix)(
+    'S11: `~root` → 409 remote-not-owned; a committed `~root/x.git` folder in the repository does not bypass it',
+    async () => {
+      const c = await start();
+      await git(c.fx.dir, ['remote', 'set-url', 'origin', '~root'], c.fx.env);
+      await c.check();
+      expect((await c.op('fetch')).body.error.code).toBe('remote-not-owned');
+      await git(c.fx.dir, ['init', '-q', '--bare', path.join(c.fx.dir, '~root', 'x.git')], c.fx.env);
+      await git(c.fx.dir, ['remote', 'set-url', 'origin', '~root/x.git'], c.fx.env);
+      await c.check();
+      const p = await c.processes(async () => {
+        const res = await c.op('fetch');
+        expect(res.status).toBe(409);
+        expect(['remote-not-owned', 'remote-unreadable']).toContain(res.body.error.code);
+      });
+      expect(p.transport).toBe(0);
+    },
+  );
+
+  it.runIf(posix)('S10: a relative remote `own/u::sr` is a path (not a remote helper) and is checked', async () => {
+    const c = await start();
+    await mkdir(path.join(c.fx.dir, 'own'));
+    await symlink(path.parse(c.fx.dir).root, path.join(c.fx.dir, 'own', 'u::sr'));
+    await git(c.fx.dir, ['remote', 'set-url', 'origin', 'own/u::sr'], c.fx.env);
+    await c.check();
+    expect((await c.op('fetch')).body.error.code).toBe('remote-not-owned');
+  });
+});
