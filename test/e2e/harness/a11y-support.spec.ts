@@ -135,3 +135,48 @@ test('focus ring: a poor and a good ring, measured against the backdrop', async 
   expect(rings[2]).toBeCloseTo(21, 0);
   expect((await focusRing(page))?.style).toBe('solid');
 });
+
+// bug-015 (absorbed into task-042): the recorder must not miss an answer the page already shows,
+// and must not lose a failed body read silently.
+test('X-09.1 recorder: waits for an API answer requested before the check, even a late one (bug-015)', async ({
+  page,
+}) => {
+  let release: () => void = () => {};
+  const held = new Promise<void>((r) => (release = r));
+  await page.route('http://wfui.test/**', async (route) => {
+    if (new URL(route.request().url()).pathname === '/api/late') {
+      await held;
+      await route.fulfill({ contentType: 'application/json', body: JSON.stringify({ name: 'kanban' }) });
+    } else {
+      await route.fulfill({
+        contentType: 'text/html',
+        body: '<!doctype html><title>title.projects</title><p>kanban</p><p>name</p>',
+      });
+    }
+  });
+  await page.goto('http://wfui.test/');
+  const recorder = recordApiData(page);
+  const sent = page.waitForEvent('request', (r) => new URL(r.url()).pathname === '/api/late');
+  await page.evaluate(() => {
+    void fetch('/api/late').then((r) => r.text());
+  });
+  await sent;
+  // The check starts while the answer is still on its way; it arrives meanwhile.
+  const check = textsOutsideCatalogue(page, recorder);
+  setTimeout(release, 500);
+  expect(await check).toEqual(['p: name']);
+});
+
+test('X-09.1 recorder: a failed body read is reported as the cause of what is flagged (bug-015)', async ({ page }) => {
+  await page.route('http://wfui.test/**', (route) =>
+    new URL(route.request().url()).pathname === '/api/broken'
+      ? route.fulfill({ contentType: 'application/json', body: '{"name": "kanban"' })
+      : route.fulfill({ contentType: 'text/html', body: '<!doctype html><title>title.projects</title><p>kanban</p>' }),
+  );
+  await page.goto('http://wfui.test/');
+  const recorder = recordApiData(page);
+  await page.evaluate(() => fetch('/api/broken').then((r) => r.text()));
+  const outside = await textsOutsideCatalogue(page, recorder);
+  expect(outside).toContain('p: kanban');
+  expect(outside.some((t) => t.startsWith('answer not read: GET /api/broken'))).toBe(true);
+});
