@@ -159,3 +159,30 @@ describe('the stop sequence (unattended processes)', () => {
     200_000,
   );
 });
+
+describe('W4-10 (b) — the stop sequence lets a running automatic merge finish', () => {
+  it.runIf(process.platform !== 'win32')(
+    'SIGINT during an automatic merge (a slow smudge filter of the repository’s own configuration) → the merge completes, the tree is clean',
+    async () => {
+      const { l, fx } = await console_('merge-stop', { autoUpdate: true });
+      const started = path.join(path.dirname(fx.dir), 'smudge-started');
+      await git(fx.dir, ['config', 'filter.slow.smudge', `touch '${started}'; sleep 4; cat`], fx.env);
+      await git(fx.dir, ['config', 'filter.slow.clean', 'cat'], fx.env);
+      await writeFile(path.join(fx.dir, '.git', 'info', 'attributes'), '*.md filter=slow\n');
+      expect((await call(l, 'GET', `/api/p/${KANBAN}`)).status).toBe(200);
+      const remote = await remoteCommit(fx, 'from-jordan.md');
+      const exists = () =>
+        import('node:fs/promises').then((fs) =>
+          fs.access(started).then(
+            () => true,
+            () => false,
+          ),
+        );
+      await expect.poll(exists, { timeout: BUDGET_MS, interval: 200 }).toBe(true);
+      expect(await l.stop()).toBe(0);
+      expect((await git(fx.dir, ['rev-parse', 'HEAD'], fx.env)).stdout.trim()).toBe(remote);
+      expect((await git(fx.dir, ['status', '--porcelain'], fx.env)).stdout).toBe('');
+    },
+    200_000,
+  );
+});

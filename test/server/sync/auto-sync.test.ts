@@ -567,3 +567,34 @@ describe('security review S1 (task-034 W4-5) — configuration from the working 
     expect(await exists(m)).toBe(false);
   });
 });
+
+describe('W4-10 (b) — the stop waits for a running automatic merge', () => {
+  it('stop() resolves only once the running merge has ended; the merge completes', async () => {
+    let release!: () => void;
+    const held = new Promise<void>((r) => (release = r));
+    let merging!: () => void;
+    const started = new Promise<void>((r) => (merging = r));
+    const s = await start(
+      { autoUpdate: true },
+      {
+        intercept: async (request, real) => {
+          if (gitSubcommand(request.args) !== 'merge') return undefined;
+          merging();
+          await held;
+          return real(request);
+        },
+      },
+    );
+    await s.c.remoteCommit('from-jordan.md', 'hi\n');
+    const tick = s.scheduler.tick();
+    await started;
+    let stopped = false;
+    const stopping = s.scheduler.stop().then(() => (stopped = true));
+    await new Promise((r) => setTimeout(r, 300));
+    expect(stopped).toBe(false);
+    release();
+    await stopping;
+    await tick;
+    expect(await s.c.head()).toBe(await remoteHead(s.c));
+  });
+});
