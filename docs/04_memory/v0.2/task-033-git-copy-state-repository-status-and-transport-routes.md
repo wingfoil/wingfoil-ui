@@ -507,3 +507,17 @@ Decisions of the approver (2026-10-15):
 
 Docs: spec-010 (§4, §8, Process Note), spec-004 §5, spec-006 §3 (Process Notes 2026-10-15),
 README.
+
+### checks after review round 1 (2026-10-15, HEAD before this note `8ca635c`)
+
+| Gate | Result | Load |
+|------|--------|------|
+| `npm run typecheck`, `npm run lint`, `npm run format:check` | clean | — |
+| `npm run docs:api`, `check_tasks.py v0.2` | OK (0 warnings) | — |
+| `npm run test:coverage` | 146 files passed, 1 skipped; **2638 passed / 1 skipped**; statements 96.60 %, branches 91.22 %, functions 97.30 %, lines 98.26 % | 6.0 → 21.2 |
+| `npm run test:e2e:chromium` | **194 passed** (8.6 min) | 16.8 → 21.9 |
+| own e2e spec on three engines | `test/e2e/dna.spec.ts` unchanged since its 12/12 run above | — |
+| `npm run test:smoke` | **4/4 passed** | 15.1 |
+| `npm run test:timing` | skipped (load ≥ 12) | 15.1 |
+
+No console left running; no `wfui-task-033-*` entry in the system temporary directory.
