@@ -144,6 +144,12 @@ describe('GitReads — the commands it runs', () => {
     expect((error as GitReadError).message).toBe('fatal: not a git repository');
   });
 
+  it('configValues: every value, empty ones counted (security round 2)', async () => {
+    const runner = new FakeProcessRunner().answer({ stdout: `refs/heads/main\0\0` });
+    expect(await reads(runner).configValues('branch.main.merge')).toEqual(['refs/heads/main', '']);
+    expect(runner.requests[0]!.args).toContain('-z');
+  });
+
   it('W4-13: a read whose pipes were cut (drained) is a GitReadError, though git exited 0', async () => {
     const runner = new FakeProcessRunner().answer({ stdout: '# branch.oid', drained: true });
     const error = await reads(runner)
