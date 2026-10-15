@@ -630,3 +630,33 @@ describe('W4-14 — the update skipped for its configuration is recorded', () =>
     expect((await header(s.c)).sync.update.lastError).toMatchObject({ code: 'config-in-worktree' });
   });
 });
+
+describe('W4-11 (security review S2-1) — include directives whose file is missing or whose condition is false', () => {
+  const cases: [string, (fx: Fixture) => Promise<unknown>][] = [
+    ['include.path to a file not there yet', (fx) => git(fx.dir, ['config', 'include.path', '../.wfui-later'], fx.env)],
+    [
+      'includeIf.onbranch: of another branch',
+      async (fx) => {
+        await writeFile(path.join(fx.dir, '.wfui-config'), '[wfui]\n\tx = 1\n');
+        await git(fx.dir, ['config', 'includeIf.onbranch:other.path', '../.wfui-config'], fx.env);
+      },
+    ],
+    [
+      'includeIf.hasconfig: not met',
+      (fx) =>
+        git(fx.dir, ['config', 'includeIf.hasconfig:remote.*.url:https://nowhere/**.path', '../.wfui-later'], fx.env),
+    ],
+    [
+      'a global include of a missing file of the working tree',
+      (fx) => git(fx.dir, ['config', '--global', 'include.path', path.join(fx.dir, '.wfui-later')], fx.env),
+    ],
+  ];
+
+  it.each(cases)('%s → no automatic fetch, recorded config-in-worktree', async (_name, prepare) => {
+    const s = await start({ autoUpdate: true }, { prepare: (fx) => prepare(fx).then(() => undefined) });
+    await s.c.remoteCommit('from-jordan.md', 'hi\n');
+    const p = await s.tick();
+    expect(p.transport).toBe(0);
+    expect((await header(s.c)).sync.fetch.lastError).toMatchObject({ code: 'config-in-worktree' });
+  });
+});
