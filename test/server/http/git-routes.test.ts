@@ -814,6 +814,62 @@ describe('bug-014 (task-034 D34-8) — the manual update never makes a merge com
     expect((await git(c.fx.dir, ['status', '--porcelain'], c.fx.env)).stdout).toBe('');
   });
 
+  it('review R1: with fetch.prune and fetch.pruneTags set, Update (its own fetch) keeps a local tag', async () => {
+    const c = await start({
+      prepare: async (fx) => {
+        await git(fx.dir, ['config', 'fetch.prune', 'true'], fx.env);
+        await git(fx.dir, ['config', 'fetch.pruneTags', 'true'], fx.env);
+        await git(fx.dir, ['config', 'remote.origin.pruneTags', 'true'], fx.env);
+        await git(fx.dir, ['tag', 'mine'], fx.env);
+      },
+    });
+    await c.remoteCommit('from-jordan.md', 'hi\n');
+    expect((await c.op('fetch')).body.repository.copy).toBe('behind');
+    expect((await c.op('update')).status).toBe(200);
+    expect((await git(c.fx.dir, ['tag', '--list', 'mine'], c.fx.env)).stdout.trim()).toBe('mine');
+  });
+
+  it('review R1: with fetch.prune set, Update (its own fetch) keeps a local-only branch', async () => {
+    const c = await start({
+      prepare: async (fx) => {
+        await git(fx.dir, ['config', 'fetch.prune', 'true'], fx.env);
+        await git(fx.dir, ['config', 'remote.origin.prune', 'true'], fx.env);
+        await git(fx.dir, ['branch', '-q', 'local-only'], fx.env);
+      },
+    });
+    await c.remoteCommit('from-jordan.md', 'hi\n');
+    expect((await c.op('fetch')).body.repository.copy).toBe('behind');
+    // The refspec writing into refs/heads is configured after the fetch, which would refuse it.
+    await git(c.fx.dir, ['config', '--add', 'remote.origin.fetch', 'refs/heads/*:refs/heads/*'], c.fx.env);
+    await c.op('update');
+    expect((await git(c.fx.dir, ['branch', '--list', 'local-only'], c.fx.env)).stdout.trim()).toBe('local-only');
+  });
+
+  // Review R1, pending the approver (WAIT): with a forced refspec into refs/heads, the update's own
+  // fetch force-overwrites a local branch the remote has with another history (reflog
+  // `forced-update`), --no-prune or not. `it.fails` records what git does today; it becomes an
+  // `it` with the decided guard (e.g. `refspec-outside-remotes` on the update too).
+  it.fails('review R1 (WAIT): a forced refspec into refs/heads — Update keeps a diverged local branch', async () => {
+    const c = await start({
+      prepare: async (fx) => {
+        await git(fx.dir, ['push', '-q', 'origin', 'main:feature'], fx.env);
+        await git(fx.dir, ['fetch', '-q', 'origin'], fx.env);
+        await git(fx.dir, ['branch', '-q', 'feature', 'origin/feature'], fx.env);
+        await git(fx.dir, ['checkout', '-q', 'feature'], fx.env);
+        await writeFile(path.join(fx.dir, 'mine.md'), 'mine\n');
+        await git(fx.dir, ['add', 'mine.md'], fx.env);
+        await git(fx.dir, ['commit', '-qm', 'mine'], fx.env);
+        await git(fx.dir, ['checkout', '-q', 'main'], fx.env);
+      },
+    });
+    const mine = (await git(c.fx.dir, ['rev-parse', 'feature'], c.fx.env)).stdout.trim();
+    await c.remoteCommit('from-jordan.md', 'hi\n');
+    expect((await c.op('fetch')).body.repository.copy).toBe('behind');
+    await git(c.fx.dir, ['config', '--add', 'remote.origin.fetch', '+refs/heads/*:refs/heads/*'], c.fx.env);
+    await c.op('update');
+    expect((await git(c.fx.dir, ['rev-parse', 'feature'], c.fx.env)).stdout.trim()).toBe(mine);
+  });
+
   it('with fetch.pruneTags and remote.origin.pruneTags set, Fetch keeps a local tag', async () => {
     const c = await start({
       prepare: async (fx) => {
