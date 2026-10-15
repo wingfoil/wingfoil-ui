@@ -78,15 +78,13 @@ export function ElementFooter({
 }: ElementFooterProps): ReactNode {
   const [done, setDone] = useState<{ id: string; state: string } | null>(null);
   const [error, setError] = useState<ApiError | null>(null);
-  // The status a successful decision was made from: its outcomes stay disabled until it changes.
-  const [decidedFrom, setDecidedFrom] = useState<string | null>(null);
   const write = useElementWrite();
   const root = useRef<HTMLDivElement>(null);
   // The focus request is used once per panel: a refetch remounting the footer must not move it.
   const focusPendingRef = useRef(focusReason);
   const view: FooterView | undefined = detail.descriptor && header ? footerView(detail.descriptor, header) : undefined;
 
-  const decide = (o: GateOutcome, reason: string) => {
+  const decide = (o: GateOutcome, reason: string, onDecided: () => void) => {
     setDone(null);
     setError(null);
     const from = detail.element.status;
@@ -96,7 +94,7 @@ export function ElementFooter({
         onSuccess: (data) => {
           const to = data.result['to'];
           setDone({ id: detail.element.id, state: typeof to === 'string' ? to : o.to });
-          setDecidedFrom(from);
+          onDecided();
           // The outcome that had the focus goes with the new state: the panel's heading takes it.
           (root.current?.closest('[role="dialog"]')?.querySelector('.drawer-title') as HTMLElement | null)?.focus();
         },
@@ -118,7 +116,7 @@ export function ElementFooter({
         <FooterContent
           view={view}
           detail={detail}
-          busy={write.isPending || decidedFrom === detail.element.status}
+          busy={write.isPending}
           focusPendingRef={focusPendingRef}
           onDecide={decide}
           onClose={onClose}
@@ -126,7 +124,7 @@ export function ElementFooter({
         />
       )}
       {error && (
-        <div className="element-footer gate-error" role="alert">
+        <div className="element-footer-alert" role="alert">
           <ErrorText error={error} />
         </div>
       )}
@@ -147,7 +145,7 @@ function FooterContent({
   detail: ElementDetail;
   busy: boolean;
   focusPendingRef: { current: boolean };
-  onDecide(o: GateOutcome, reason: string): void;
+  onDecide(o: GateOutcome, reason: string, onDecided: () => void): void;
   onClose(): void;
   onFocusReasonUsed: (() => void) | undefined;
 }): ReactNode {
@@ -246,7 +244,7 @@ function GateFooter({
   view: Extract<FooterView, { kind: 'gate' }>;
   busy: boolean;
   focusPendingRef: { current: boolean };
-  onDecide(o: GateOutcome, reason: string): void;
+  onDecide(o: GateOutcome, reason: string, onDecided: () => void): void;
   onClose(): void;
   onFocusReasonUsed: (() => void) | undefined;
 }): ReactNode {
@@ -256,6 +254,9 @@ function GateFooter({
   // Whether the user edited the field, and whether the last clear was the reject rule's (D37-4).
   const [touched, setTouched] = useState(false);
   const [autoCleared, setAutoCleared] = useState(false);
+  // A decision succeeded from this state: its outcomes stay disabled until the new state arrives,
+  // which remounts this footer (keyed by id and status; reviews F4, F12).
+  const [decided, setDecided] = useState(false);
   const field = useRef<HTMLTextAreaElement>(null);
   const titleId = useId();
   const hintId = useId();
@@ -272,12 +273,15 @@ function GateFooter({
   /** G-06.3: a reject chosen while the default is untouched clears it (focus or a click without one). */
   const clearsDefault = (o: GateOutcome) => !touched && o.verb === 'reject' && reason === fallback && fallback !== '';
 
+  /** D37-4: Approve chosen after the reject rule emptied the field restores the default. */
+  const restoresDefault = (o: GateOutcome) => !touched && o.verb === 'approve' && autoCleared && reason === '';
+
   const onOutcomeFocus = (o: GateOutcome) => {
     if (touched) return;
     if (clearsDefault(o)) {
       setReason('');
       setAutoCleared(true);
-    } else if (o.verb === 'approve' && autoCleared && reason === '') {
+    } else if (restoresDefault(o)) {
       setReason(fallback);
       setAutoCleared(false);
     }
@@ -330,7 +334,7 @@ function GateFooter({
       )}
       <div className="gate-actions">
         {view.outcomes.map((o) => {
-          const disabled = !o.enabled || blank || busy;
+          const disabled = !o.enabled || blank || busy || decided;
           const describedBy = !o.enabled && blockedText ? blockedId : blank ? hintId : undefined;
           return (
             // A native button: React Aria's Button drops the focus when disabled (D37-3).
@@ -349,7 +353,13 @@ function GateFooter({
                   setAutoCleared(true);
                   return;
                 }
-                if (!disabled) onDecide(o, reason);
+                // Its mirror: Approve after that automatic clear restores the default (D37-4, F13).
+                if (restoresDefault(o)) {
+                  setReason(fallback);
+                  setAutoCleared(false);
+                  return;
+                }
+                if (!disabled) onDecide(o, reason, () => setDecided(true));
               }}
             >
               <FormattedMessage id="element.gate.outcome" values={{ verb: o.verb, to: o.to }} />

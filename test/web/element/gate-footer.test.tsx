@@ -475,3 +475,50 @@ it('review F7 — the focus request is forgotten once used (a reload or Back doe
   await waitFor(() => expect(router.state.location.state.gateFocus).toBeUndefined());
   expect(router.state.location.pathname).toBe(`/p/${PID}/e/${EID}`);
 });
+
+it('review F12 — outcomes are enabled again when the element comes back to the state it was decided from', async () => {
+  stub(
+    GATE,
+    MO,
+    { [`${BASE}/approve`]: { status: 200, body: OK } },
+    {
+      ...GATE,
+      status: 's3',
+      kind: 'last',
+      tone: 'done',
+      verbs: [],
+      actor: { kind: 'none' },
+    },
+  );
+  const { queryClient } = renderApp(`/p/${PID}/e/${EID}`);
+  await userEvent.click(outcome(await footer(), 'Approve → s3'));
+  const dialog = screen.getByRole('dialog', { name: 'A gated element' });
+  expect(await within(dialog).findByText('Final state: no action is possible')).toBeTruthy();
+  // A later change (e.g. a hand edit, a live refresh) brings the element back to the gate.
+  stub(GATE);
+  await act(() => queryClient.invalidateQueries({ queryKey: ['p', PID] }));
+  const f = await footer();
+  for (const name of ['Approve → s3', 'Reject → s1']) {
+    await waitFor(() => expect(outcome(f, name).getAttribute('aria-disabled')).toBeNull());
+  }
+});
+
+it('review F13 — an Approve click without focus after the reject rule restores the default and sends nothing', async () => {
+  const fetch = stub(GATE, MO, { [`${BASE}/approve`]: { status: 200, body: OK } });
+  renderApp(`/p/${PID}/e/${EID}`);
+  const f = await footer();
+  fireEvent.click(outcome(f, 'Reject → s1'));
+  expect((reasonField(f) as HTMLTextAreaElement).value).toBe('');
+  fireEvent.click(outcome(f, 'Approve → s3'));
+  expect((reasonField(f) as HTMLTextAreaElement).value).toBe(DEFAULT_REASON);
+  expect(posts(fetch)).toEqual([]);
+});
+
+it('review F14 — the refusal has its own band, not a second footer', async () => {
+  stub(GATE, MO, { [`${BASE}/approve`]: { status: 409, body: { error: { code: 'element-changed', message: 'x' } } } });
+  renderApp(`/p/${PID}/e/${EID}`);
+  await userEvent.click(outcome(await footer(), 'Approve → s3'));
+  const alert = await screen.findByRole('alert');
+  expect(alert.className).toBe('element-footer-alert');
+  expect(document.querySelectorAll('.drawer .element-footer')).toHaveLength(1);
+});
