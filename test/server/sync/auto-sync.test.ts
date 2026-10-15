@@ -597,6 +597,8 @@ describe('W4-10 (b) — the stop waits for a running automatic merge', () => {
     const stopping = s.scheduler.stop().then(() => (stopped = true));
     await new Promise((r) => setTimeout(r, 300));
     expect(stopped).toBe(false);
+    // The log says why the stop waits, and how to force it (security review round 2).
+    expect(s.log.lines).toContainEqual(expect.objectContaining({ op: 'stop', code: 'waiting-for-update' }));
     release();
     await stopping;
     await tick;
