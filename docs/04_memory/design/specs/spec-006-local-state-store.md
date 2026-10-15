@@ -138,8 +138,10 @@ list is notified by the `projects` event (spec-004 §6).
   config-defined hooks (`hook.<name>.command`, recent git versions). Only `https`, `http`, `ssh`,
   `git` and `file` are allowed, by the `-c protocol.*` settings and by `GIT_ALLOW_PROTOCOL` set to
   the same list (that variable, inherited from the server's environment, would override the
-  settings: bug-013). A **local** source (a `file://` URL or a path) whose repository folder, or
-  its `.git`, belongs to another user than the server's is refused before any git process
+  settings: bug-013). A **local** source (any `file://` URL whatever its host, or a path) for which
+  a folder git could open — `<p>/.git`, `<p>`, `<p>.git/.git`, `<p>.git`, a `gitdir:` file
+  followed — belongs to another user than the server's, or none can be read, is refused before
+  any git process
   (`remote-not-owned`; POSIX only — Windows has no owner id to compare): the class of
   CVE-2024-32004. The README names the minimum git version (2.43.4 / 2.45.1, or a distribution
   build with the fixes of CVE-2024-32004 and CVE-2024-32465), which the console does not check.
@@ -303,3 +305,5 @@ a project (REQ-SEC-09). The secret scan of REQ-SEC-09 runs over the state direct
   list, the refusal `remote-not-owned` of a local source owned by another user, the minimum git
   version; `cli-not-found` sends `{ command }` only (no absolute path in a body). Decided by the
   approver.
+- 2026-10-15 — review round 1 of task-033: §3 the owner check of a local clone source follows what
+  git opens (every `file://` host, git's suffixes and `gitdir:`, fail closed).

@@ -443,7 +443,7 @@ Coordinator (2026-10-15):
 | Key and events | `repository-status.test.ts` › the key and the CLI cache; `git-routes.test.ts` › repo events on a last-error change only |
 | REQ-INT-06 | `git-routes.test.ts` › REQ-INT-06; `process-audit.test.ts` (updated counts) |
 | bug-010 | docs above; `test/server/git/local-remote.test.ts`; `test/server/http/projects.test.ts` › bug-010 (clone 422); `git-routes.test.ts` › D33-1 (fetch 409) |
-| bug-012 | `test/server/git/redact.test.ts`; `adapter.test.ts` › bug-012; `git-routes.test.ts` › bug-012 route families (a read route, a governed write) and the fetch `git-refused` message; `cli-not-found` without a path: `adapter.test.ts`, `projects.test.ts`, `api-writes-schema.test.ts` |
+| bug-012 | the project list is proven by `cli-not-found` (no path, `projects.test.ts`): its `dna show` refusal never reaches a body, the name falls back to the folder's (`project-list.ts`, S-27.1); `test/server/git/redact.test.ts`; `adapter.test.ts` › bug-012; `git-routes.test.ts` › bug-012 route families (a read route, a governed write) and the fetch `git-refused` message; `cli-not-found` without a path: `adapter.test.ts`, `projects.test.ts`, `api-writes-schema.test.ts` |
 | bug-013 | `test/server/git/transport-facts.test.ts` › bug-013 (the override reproduced, then refused); `clone.test.ts` › `GIT_ALLOW_PROTOCOL`; `git-routes.test.ts` › D33-2 (`ext::` remote with `GIT_ALLOW_PROTOCOL=ext`) |
 | Catalogue | `test/web/api/error-message.test.ts` (the new codes, the `{files}` list) |
 
@@ -467,3 +467,43 @@ system temporary directory.
 
 e2e closure — none of this task's own (see the closure table of the design); the one e2e change
 is S-27.1's expectation (bug-012).
+
+### review round 1 (2026-10-15)
+
+Independent review **CHANGES REQUESTED** (F1–F8), adversarial security review **CHANGES
+REQUESTED** (S1–S9). Red tests first: `ee8…` is not a hash here — the red commits are the two
+`test(server): red — …` commits before `c945c50`; the route cases of S1–S5, F4 and F5 passed on
+first run (the helper had been rewritten against its unit tests first), so each was checked by
+removing its guard (S1 clone, S2 `--all`, S4 top level: each test fails, then restored).
+
+| Id | Change | Test |
+|----|--------|------|
+| F1, S1–S5 | one helper `foreignLocalRemote(urls, base)` (`server/src/git/local-remote.ts`) for the clone and the three routes: every `file://` URL whatever its host (S1); every URL of `git remote get-url --all [--push]` (`GitReads.remoteUrls`, S2; a remote without URL = the path of its name); git's suffixes and `gitdir:` files (S3); relative paths joined to the repository's top level (`ProjectSnapshot.topLevel`, S4), the clone's base unchanged; resolved by `realpath`, never `path.resolve` first (S5); no readable folder → refused (fail closed) | `test/server/git/local-remote.test.ts` (rewritten); `git-routes.test.ts` › review round 1 (S1 fetch, S2 push, S3/S5, S4 sub-folder project); `projects.test.ts` › S1 clone |
+| F2 | `GitTransport.run` catches any unexpected error (a git read under the lock, the layout): 500 `internal`, logged `{project, op, kind, exitCode}` only | `git-routes.test.ts` › F2 (marker in git's stderr and the root never logged) |
+| F3 | — (row 8 already ran before any `wingfoil` process on a warm state: the CLI cache is keyed on `contentKey`, D33-6) | `git-routes.test.ts` › F3 table (behind / diverged / detached × submit / approve / reject); `repository-status.test.ts` › row 8 asserts `p.wingfoil === 0` |
+| F4 | — | `git-routes.test.ts` › F4 (push cancelled against the held remote); both cancel tests assert the process group is gone (`process.kill(-pid, 0)`) |
+| F5 | — | `clone.test.ts` › F5 (real `runClone` of `ext::sh -c touch% <marker>` with `GIT_ALLOW_PROTOCOL=ext`: refused, no marker) |
+| F6 | the `--reason` usage error answered as `cli-refused` goes through `redactLocalPaths` (`governed.ts`) | `git-routes.test.ts` › F6 |
+| F7 | spec-010 §8 rows name `remote-not-owned`; README "POSIX only, not checked on Windows" | — |
+| F8 | the bug-012 row of the AC closure names how the project list is proven | — |
+| S7 | userinfo removed up to the last `@` before the host and with quotes; `user:password@host` without a scheme; wider punctuation after a root | `redact.test.ts` › S7 |
+| S9 | a JSON `null` body → 400; the transport logs `project` (pino's `pid` is the process id); `sshInEnvironment` case-sensitive on POSIX | `git-routes.test.ts` › S9; `transport.test.ts` |
+| S6 | accepted residual (R2) | — |
+| S8 | R3 | below |
+
+Decisions of the approver (2026-10-15):
+
+- **R1 = (a)** — a local remote's path (every path its URLs resolve to, inside the home folder or
+  the project or not) is shown as `<remote>` in `git-refused` and `lastError`. Test:
+  `git-routes.test.ts` › git refuses (marker in the remote's path), `redact.test.ts` › R1. spec-004
+  §5 and spec-010 §4 Process Notes.
+- **R2 = (a)** — S6 accepted residual: a push to a local remote runs `git-receive-pack` there
+  without the `-c` settings (git drops `GIT_CONFIG_PARAMETERS`), so the remote repository may run
+  `gc --auto`, which can outlive a cancel or the stop sequence. Stated in spec-010 §4 next to D33-3;
+  no code change.
+- **R3 = (a)** — transport children get the absolute entries of `PATH` only (`absolutePath`,
+  `transportEnv(sshConfigured, env)`). Test: `git-routes.test.ts` › R3 (a relative `.` entry and an
+  `ssh` script in the repository: no marker), `transport.test.ts` › R3.
+
+Docs: spec-010 (§4, §8, Process Note), spec-004 §5, spec-006 §3 (Process Notes 2026-10-15),
+README.

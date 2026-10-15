@@ -125,9 +125,20 @@ cancelled process group or the server) and `--no-optional-locks`.
   relative `core.hooksPath` (e.g. husky's), the hook files the incoming commits bring run after
   the fast-forward, as in the user's own `git pull`. Nothing else of the repository runs; the
   user's own git tools may, as in a terminal (filter drivers, `core.sshCommand`, credential
-  helpers, askpass programs, config-defined hooks — bug-010). A **local** remote (its URL, from
-  `git remote get-url [--push] -- <remote>`, is a `file://` URL or a path) whose repository belongs
-  to another user than the server's is refused before the command (`remote-not-owned`, §5).
+  helpers, askpass programs, config-defined hooks — bug-010). A **local** remote is refused before
+  the command (`remote-not-owned`, §5) when a folder git could open for it belongs to another user
+  than the server's: every URL of `git remote get-url --all [--push] -- <remote>` is checked (a
+  remote with no URL is the path of its name), every `file://` URL whatever its host, any string
+  with no `:` or a `/` before its first `:`; git's suffixes `<p>/.git`, `<p>`, `<p>.git/.git`,
+  `<p>.git` and a `gitdir:` file are followed; a relative path is resolved at the repository's
+  top level by the file system (no lexical `..` first); a local URL no folder of which can be read
+  is refused too (fail closed). POSIX only: Windows has no owner id to compare. The children of a
+  transport command get the absolute entries of the server's `PATH` only (a relative entry would
+  run a program of the repository: `ssh`, `git-remote-*`, a credential helper).
+- Accepted residual (S6, decided by the approver 2026-10-15): a push to a local remote runs
+  `git-receive-pack` in the remote repository without the `-c` settings (git drops
+  `GIT_CONFIG_PARAMETERS` for it), so the remote repository's own configuration may start
+  `gc --auto` there, which can outlive a cancelled push or the server.
 - The push's `<merge ref>` must be `refs/heads/<name>` with no `:`, `+`, `*`, `?`, `[`, `\`, `^`,
   `~`, space or control character, no `..` or `@{`, no empty, `.`-led or `.lock` component, not
   ending in `/` or `.`; otherwise the push is refused with `no-upstream` (git could read it as two
@@ -149,8 +160,9 @@ cancelled process group or the server) and `--no-optional-locks`.
   fast-forward, one parent). `server/src/git/git.ts` `GIT_ALLOWED_SUBCOMMANDS` gains `merge`
   (SARD REQ-INT-06 v0.10 of `04`; the code change belongs to the implementing task).
 - Failure → **422 `git-refused`**, git's standard error verbatim (spec-004 §5) except for the
-  local folders it quotes (the project's → `<project>`, the repository's → `<repository>`, the home
-  folder → `~`), URL userinfo removed, at most 4 000 characters — also in `lastError`. A fetch failure is
+  local folders it quotes (the project's → `<project>`, the repository's → `<repository>`, a local
+  remote's path wherever it is → `<remote>`, the home folder → `~`), URL userinfo removed (also a
+  `user:password@host` without a scheme), at most 4 000 characters — also in `lastError`. A fetch failure is
   also kept as `sync.fetch.lastError` (Y-03.1, Y-03.2), an update failure as
   `sync.update.lastError` with `code: "git-refused"` and the `message` — in memory only, never
   logged (the log gets `{pid, op, exitCode}`) nor stored, since git may echo a URL.
@@ -226,9 +238,9 @@ again with the next `repo` event (Y-04.2). The branch and the local changes are 
 
 | Route | Rows of spec-004 §4 | Then |
 |-------|---------------------|------|
-| `POST …/git/fetch` | 1–4 (no body) | §5 `no-remote`, `no-fetch-target` |
-| `POST …/git/update` | 1–5 | §5 |
-| `POST …/git/push` | 1–5 | §5 |
+| `POST …/git/fetch` | 1–4 (no body) | §5 `no-remote`, `no-fetch-target`, `remote-not-owned` |
+| `POST …/git/update` | 1–5 | §5 (`remote-not-owned` included) |
+| `POST …/git/push` | 1–5 | §5 `no-remote`, `detached-head`, `no-upstream`, `remote-not-owned` |
 
 Fetch is allowed to an unidentified user (RP-14: it changes only remote-tracking refs, no branch
 and no file); update and push are refused with 403 `not-in-team` and start 0 processes — the
@@ -311,3 +323,9 @@ Rows 7–9 do not apply (no element).
   message with local folders redacted, "no process" = no transport process, no body or `{}`; §5
   `remote-not-owned`, `detail.files` with `../` outside the project folder. Decided by the
   approver.
+- 2026-10-15 — review round 1 of task-033 (decisions R1–R3 of the approver): §4 the owner check
+  of a local remote follows what git opens (every URL, every `file://` host, git's suffixes and
+  `gitdir:`, top-level resolution, fail closed); a local remote's path shown as `<remote>` (R1);
+  the `receive-pack` `gc --auto` of a push to a local remote is an accepted residual (R2); the
+  transport's children get only the absolute `PATH` entries (R3); §8 `remote-not-owned` in the
+  rows.

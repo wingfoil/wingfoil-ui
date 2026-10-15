@@ -35,7 +35,8 @@ What v0.1 shows:
   later**, or a distribution build that carries the fixes of CVE-2024-32004 and CVE-2024-32465
   (cloning a local repository that someone else prepared could run their code). The console does
   not check the version — a distribution may ship the fixes under an older number — and refuses a
-  local repository owned by another user whatever the version.
+  local repository owned by another user whatever the version (POSIX only, not checked on
+  Windows).
 - In each project you open: a **WingFoil CLI** — pinned in the project (`npm install --save-dev
   wingfoil`) or on the `PATH` — inside the supported range below.
 - A current desktop browser: Chrome, Edge, Firefox or Safari. On `main` the end-to-end suite
