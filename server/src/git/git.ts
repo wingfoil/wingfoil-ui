@@ -119,6 +119,9 @@ export const NO_FSMONITOR: readonly string[] = ['-c', 'core.fsmonitor=false'];
 export interface ConfigOrigin {
   scope: string;
   origin: string;
+  /** The setting's key (lower-case section and name) and value, as git lists them. */
+  key: string;
+  value: string;
 }
 
 /**
@@ -441,7 +444,16 @@ export class GitReads {
   async configOrigins(): Promise<ConfigOrigin[]> {
     const fields = (await this.read(GIT_READ_ARGS.configOrigins)).stdout.split(String.fromCharCode(0));
     const origins: ConfigOrigin[] = [];
-    for (let i = 0; i + 2 < fields.length; i += 3) origins.push({ scope: fields[i]!, origin: fields[i + 1]! });
+    for (let i = 0; i + 2 < fields.length; i += 3) {
+      const entry = fields[i + 2]!;
+      const newline = entry.indexOf('\n');
+      origins.push({
+        scope: fields[i]!,
+        origin: fields[i + 1]!,
+        key: newline < 0 ? entry : entry.slice(0, newline),
+        value: newline < 0 ? '' : entry.slice(newline + 1),
+      });
+    }
     return origins;
   }
 

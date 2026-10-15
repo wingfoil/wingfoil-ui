@@ -15,6 +15,7 @@
 import { realpath } from 'node:fs/promises';
 import path from 'node:path';
 import type { SyncError } from '@wingfoil-ui/contracts';
+import { expandUser } from '../git/local-remote.js';
 import { noHooksArgs, UNATTENDED_TIMEOUT_MS, unattendedEnv } from '../git/transport.js';
 import { NO_HOOKS_PATH, noHooksPath } from '../projects/clone.js';
 import type { ProcessResult } from '../process/runner.js';
@@ -40,11 +41,12 @@ const within = (file: string, dir: string): boolean => file === dir || file.star
  * files, when any file origin resolves inside the working tree outside the git directories, or when
  * an origin cannot be resolved. Relative origins are git's, relative to the repository's top level.
  */
-export async function configInWorktree(snapshot: ProjectSnapshot): Promise<boolean> {
+export async function configInWorktree(snapshot: ProjectSnapshot, home?: string): Promise<boolean> {
   const top = await real(snapshot.topLevel);
   const gitDir = await real(snapshot.gitDir);
   const commonDir = await real(snapshot.commonDir);
   if (top === undefined || gitDir === undefined || commonDir === undefined) return true;
+  const inTree = (file: string): boolean => within(file, top) && !within(file, gitDir) && !within(file, commonDir);
   const own = new Set(
     (
       await Promise.all(
@@ -52,14 +54,43 @@ export async function configInWorktree(snapshot: ProjectSnapshot): Promise<boole
       )
     ).filter((p): p is string => p !== undefined),
   );
-  for (const { scope, origin } of await snapshot.git.configOrigins()) {
+  for (const { scope, origin, key, value } of await snapshot.git.configOrigins()) {
     if (!origin.startsWith('file:')) continue;
-    const file = await real(path.resolve(snapshot.topLevel, origin.slice('file:'.length)));
+    const holder = path.resolve(snapshot.topLevel, origin.slice('file:'.length));
+    const file = await real(holder);
     if (file === undefined) return true;
     if ((scope === 'local' || scope === 'worktree') && !own.has(file)) return true;
-    if (within(file, top) && !within(file, gitDir) && !within(file, commonDir)) return true;
+    if (inTree(file)) return true;
+    // W4-11 (security review S2-1): an include directive counts whether its file exists yet and
+    // whether its condition holds now — a merge could bring the file, a checkout make it apply.
+    if (key === 'include.path' || (key.startsWith('includeif.') && key.endsWith('.path'))) {
+      const target = includeTarget(value, path.dirname(file), home);
+      if (target === undefined) return true;
+      if (inTree(await existingRealpath(target))) return true;
+    }
   }
   return false;
+}
+
+/** An include path resolved as git does: `~/` and `~user/` expanded, relative to the including file's folder. */
+function includeTarget(value: string, folder: string, home: string | undefined): string | undefined {
+  const expanded = expandUser(value, home);
+  if (expanded === undefined) return undefined;
+  return path.resolve(folder, expanded);
+}
+
+/** The realpath of `file`'s nearest existing ancestor, joined with the rest (the file may not exist yet). */
+async function existingRealpath(file: string): Promise<string> {
+  const rest: string[] = [];
+  let current = file;
+  for (;;) {
+    const resolved = await real(current);
+    if (resolved !== undefined) return path.join(resolved, ...rest.reverse());
+    const parent = path.dirname(current);
+    if (parent === current) return file;
+    rest.push(path.basename(current));
+    current = parent;
+  }
 }
 
 /** Where the automatic sync logs: codes and kinds only. */
@@ -161,7 +192,7 @@ export class AutoSync implements SyncWork {
     const { transport, logger } = this.options;
     const state = await snapshot.check();
     if (state.remotes.length === 0) return;
-    if (await configInWorktree(snapshot)) {
+    if (await configInWorktree(snapshot, this.options.transport.environment.HOME)) {
       logger.warn({ project: pid, op: 'auto-fetch', code: 'config-in-worktree' }, 'automatic fetch skipped');
       // Visible in the sidebar (W4-14): the user can fetch by hand.
       this.options.snapshots.sync.fetchFailed(pid, '', new Date(), 'config-in-worktree');
@@ -220,7 +251,7 @@ export class AutoSync implements SyncWork {
     if (!store.settings().autoUpdate || state.behind === 0) return;
     // RP-14: only for a user identified in the team (the team is cached on HEAD and the working tree).
     if (!(await identified(await snapshot.view()))) return;
-    if (await configInWorktree(snapshot)) {
+    if (await configInWorktree(snapshot, this.options.transport.environment.HOME)) {
       logger.warn({ project: pid, op: 'auto-update', code: 'config-in-worktree' }, 'automatic update skipped');
       sync.updateFailed(pid, { code: 'config-in-worktree' }, state.copy, new Date());
       return;
