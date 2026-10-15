@@ -195,6 +195,11 @@ export const SCREENS: readonly Screen[] = [
     },
   },
   {
+    // task-037: a state the workflow engine leaves (custom `release` `planning`, S-24.2, RP-13).
+    name: 'element panel — waiting for the workflow engine',
+    open: (page, c) => project(page, c, `/p/${c.pids[1]}/e/minor-v0.1`, (p) => p.locator('.drawer .element-footer')),
+  },
+  {
     // task-037: Riley, not in the team — the read-only line with How to join (S-13.2).
     name: 'element panel — read-only, not in team',
     open: (page, c) =>

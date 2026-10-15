@@ -23,6 +23,9 @@
  *   `code.cli-command[translate="no"]` is accepted only when it is exactly the *How to join*
  *   command (`joinCommand` of `web/src/project/join.ts`) rebuilt from a string value the page
  *   read (the email is one) and the key texts of its two placeholders — its words are WingFoil's CLI, never catalogue text.
+ * - A frontmatter field name of the element panel's References (task-037 D37-13): the text of a
+ *   `dt.field-name` inside `.drawer` is accepted only when it is a key of the `frontmatter` of a
+ *   `GET /api/p/:pid/elements/:eid` answer read since `reset()` — the project's own field names.
  */
 import type { Page } from '@playwright/test';
 import { parse, TYPE, type MessageFormatElement } from '@formatjs/icu-messageformat-parser';
@@ -76,11 +79,17 @@ export interface DataRecorder {
   strings(): Promise<Set<string>>;
   /** Forget what was read: a screen is opened anew (each screen reloads the page). */
   reset(): void;
+  /** The frontmatter keys of the elements read since the last `reset()` (D37-13); none if absent. */
+  fieldNames?(): Promise<Set<string>>;
 }
+
+/** The path of one element's read (`GET /api/p/:pid/elements/:eid`). */
+const ELEMENT_READ = /^\/api\/p\/[^/]+\/elements\/[^/]+$/;
 
 /** Record the JSON answers of the console's API that `page` reads from now on. */
 export function recordApiData(page: Page): DataRecorder {
   let found = new Set<string>();
+  let fields = new Set<string>();
   const pending = new Set<Promise<void>>();
   const collect = (into: Set<string>, v: unknown): void => {
     if (typeof v === 'string') into.add(v.trim());
@@ -99,10 +108,17 @@ export function recordApiData(page: Page): DataRecorder {
     if (!url.pathname.startsWith('/api/') || url.pathname === '/api/events') return;
     if (!(response.headers()['content-type'] ?? '').includes('json')) return;
     const into = found;
+    const fieldsInto = fields;
     const parsing = response.json().then(
       (body: unknown) => {
         collect(into, body);
         if (url.pathname.endsWith('/config')) names(into, body);
+        if (ELEMENT_READ.test(url.pathname)) {
+          const frontmatter = (body as { frontmatter?: unknown } | null)?.frontmatter;
+          if (frontmatter !== null && typeof frontmatter === 'object') {
+            for (const k of Object.keys(frontmatter)) fieldsInto.add(k);
+          }
+        }
       },
       () => {},
     );
@@ -116,6 +132,11 @@ export function recordApiData(page: Page): DataRecorder {
     },
     reset: () => {
       found = new Set();
+      fields = new Set();
+    },
+    fieldNames: async () => {
+      await Promise.all([...pending]);
+      return fields;
     },
   };
 }
@@ -134,6 +155,8 @@ interface PageText {
   dismiss: boolean;
   /** Inside a CLI command shown as data (`code.cli-command[translate="no"]`, D35-3). */
   command: boolean;
+  /** A field name of the element panel's References (`.drawer dt.field-name`, D37-13). */
+  fieldName: boolean;
 }
 
 /** The texts of the page: text nodes and the name/description attributes of every element. */
@@ -149,6 +172,7 @@ async function pageTexts(page: Page): Promise<PageText[]> {
       avatar: el?.closest('.current-user-avatar, .member-initials') != null,
       userAvatar: el?.closest('.current-user-avatar') != null,
       command: el?.closest('code.cli-command[translate="no"]') != null,
+      fieldName: el?.closest('.drawer dt.field-name') != null,
     });
     const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
     for (let n = walker.nextNode(); n; n = walker.nextNode()) {
@@ -183,6 +207,7 @@ async function pageTexts(page: Page): Promise<PageText[]> {
       userAvatar: false,
       dismiss: false,
       command: false,
+      fieldName: false,
     });
     return out;
   });
@@ -256,6 +281,7 @@ export async function textsOutsideCatalogue(page: Page, recorder: DataRecorder):
   const words = new Set([...known].filter((s) => s.length <= LONG_DATA).flatMap((s) => s.split(/\s+/)));
   const avatars = initials(data);
   const commands = joinCommands(data);
+  const fieldNames = (await recorder.fieldNames?.()) ?? new Set<string>();
   // Whitespace compared collapsed: Markdown joins the lines of a paragraph.
   const flat = (t: string) => t.replace(/\s+/g, ' ');
   const sources = flat([...data].filter((s) => s.length > LONG_DATA).join('\u0000'));
@@ -271,12 +297,13 @@ export async function textsOutsideCatalogue(page: Page, recorder: DataRecorder):
     isPathOfData(t) ||
     (content && sources.includes(flat(t)));
   const bad = new Set<string>();
-  for (const { text, where, content, avatar, userAvatar, dismiss, command } of await pageTexts(page)) {
+  for (const { text, where, content, avatar, userAvatar, dismiss, command, fieldName } of await pageTexts(page)) {
     if (isKeyText(text, (w) => words.has(w)) || isData(text, content)) continue;
     if (avatar && avatars.has(text)) continue;
     if (userAvatar && text === NO_INITIALS) continue;
     if (dismiss && text === LIBRARY_DISMISS) continue;
     if (command && commands.has(text)) continue;
+    if (fieldName && fieldNames.has(text)) continue;
     bad.add(`${where}: ${text}`);
   }
   return [...bad];

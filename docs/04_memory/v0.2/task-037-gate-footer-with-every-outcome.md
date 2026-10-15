@@ -345,3 +345,47 @@ in `en.json`, `error-message.ts` and `error-message.test.ts` only this task's en
 `element.reason.copyBehind` takes `{commits}` exactly; `cli-refused` stays verbatim (task-033
 redacts local paths, bug-012) and no e2e depends on its exact text; `web/src/api/writes.ts` is
 this task's; no change to `contracts/`, schemas or the server.
+
+### red / green / refactor (2026-10-15)
+
+- **Component (`5fc454a`)** — red first: `test/web/element/gate-footer.test.tsx` 23 of 24 failed
+  before the footer existed (the passing case asserts an absence). Green:
+  `web/src/element/footer.ts` (`footerView`, `isBlank`, `isFinal`), `web/src/element/ElementFooter.tsx`
+  (the footer slot with its always-present status region, the gate footer, the read-only, reserved,
+  waiting and final lines), `web/src/api/writes.ts` (`postElementWrite`, `useElementWrite`,
+  `ElementWriteVerb`, `ElementWriteVariables`, D37-10), the final chip text in `StateMachine.tsx`,
+  the history state `gateFocus` (`routes/element.tsx`, set by Today's *Approve*/*Review*,
+  `TodayView.tsx`), 24 catalogue keys, `error.writeIncomplete` with the `commit` default `none`
+  (`error-message.ts`, D37-11). `test/web/element/footer.test.ts` was written with the model (not red
+  on its own). Red by fault injection (not committed): with `error-message.ts` and `TodayView.tsx`
+  back at `HEAD`, the appended `error-message.test.ts` and `today.test.tsx` cases fail (5 of 78).
+- **Deviations from the design.** (1) The footer component is `ElementFooter.tsx` (the gate footer
+  is one of its parts), not `GateFooter.tsx`. (2) `HistoryState` is augmented on
+  `@tanstack/history`, where the router declares it. (3) The characterization case of
+  `panel.test.tsx` ("only Close") now uses a descriptor a first state really has (a `submit` verb,
+  a member actor): with no verb and no actor the element would be final (D37-7). (4) The outcome
+  buttons are native `<button>`s with `aria-disabled` (D37-3); *Cancel* and *How to join* stay
+  React Aria buttons.
+- **e2e (`460b125`)** — `test/e2e/gate-footer.spec.ts`, 22 tests, first Chromium run 22/22 (1.4 min);
+  `lastCommitSubject` appended to `support/events.ts`; `SCREENS` gains *element panel — gate footer,
+  reason empty* and *element panel — read-only, not in team*.
+- **Found and decided (D37-13):** the third D37-12 screen, *element panel — waiting for
+  the workflow engine* on the custom fixture, fails X-09.1 on the References field names
+  (`dt.field-name: module`, `tags`, `depends_on`, …): `support/strings.ts` does not accept
+  frontmatter keys as data (they are JSON object keys; the kanban screen passes only because its
+  fields are also values of `required`). A v0.1 checker gap (task-021), no product change.
+- **D37-13 (a)** (approver, 2026-10-15) — the X-09.1 check (`test/e2e/support/strings.ts`) accepts
+  the text of a `dt.field-name` inside `.drawer` only when it is a key of the `frontmatter` of a
+  `GET /api/p/:pid/elements/:eid` answer read since `reset()` (`DataRecorder.fieldNames`); self-test
+  in `harness/a11y-support.spec.ts` (a key read passes; a key not read, English text and a field
+  name outside the drawer are flagged; after `reset()` the key read before is flagged). The screen
+  *element panel — waiting for the workflow engine* (custom `minor-v0.1`) is appended to `SCREENS`.
+- **Docs (`c6e0b5a`)** — `docs/user-guide.md` 0.7 (*Deciding a gate*), ux-reference 1.3 §4.2,
+  spec-003 §6 amended in place + dated Process Note (D37-5, D37-6), `CHANGELOG.md` *Unreleased* ›
+  Added, `test/README.md` 0.34 (C3).
+- **v0.1 S-09.1 characterization updated** — the first full Chromium run (219 passed, 1 failed,
+  11.4 min, load 13 → 22) failed `project-header.spec.ts` S-09.1: it asserted that the element panel
+  renders no Submit/Approve/Reject control (W4-21, v0.1 had none). The scenario says "no action
+  button is **enabled** on any screen": the panel now shows the two outcomes, both disabled with
+  "Read-only: supported 0.2.2 to 0.2.x" as their description, which the test asserts.
+
