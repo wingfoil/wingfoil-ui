@@ -77,3 +77,187 @@ Screen: `docs/00_reference/ux-reference.md` §4.2 (*Gate footer*, *Single-action
      - design: tech-specs found missing/needing revision (dev-loop/design safety net).
      - red/green/refactor: deviations from the plan above, blockers, scope surprises.
      - review: rejection reasons and what changed on the next pass. -->
+
+### design (2026-10-15)
+
+Read: this task; `CLAUDE.md`; the Execution Notes of `depends_on` task-032 (D32-1 … D32-10, W2-1,
+W2-4, W2-5, reviews, hand-overs), task-035 (D35-1 … D35-10, reviews), task-036 (D36-1 … D36-11,
+review F1, bug-011); `release-planning-rel-v0.2-plan` RP-11, RP-12, RP-13, RP-43, RP-47, RP-48,
+RP-55 and the session-3 note on S-11.1; `dev-loop-rel-v0.2-plan` sessions 1–3 (W0-9, W1-3, W2-0,
+W2-1, W2-4, W2-5, hand-overs to Wave 3); task-033 and task-038 descriptions (parallel and next
+neighbours); `gate-footer.feature`, `action-descriptor.feature` S-24.x, `identity.feature` S-13.2,
+S-15.2, `accessibility.feature` X-06.2, `capabilities.feature` S-11.1, `blocked-actions.feature`,
+`action-feedback.feature` G-14.2; spec-003 §2–§8, spec-004 §3–§5 (with the 2026-10-14 Process
+Notes), spec-008 §2, §4, §6; `contracts/src/{descriptor,writes,api,events}.ts`,
+`contracts/api/write.refusal.schema.json`; ux-reference 1.2 §4.2, §5, §7; the prototype's drawer
+footer (gate label, 2-row reason, Cancel · rejects · approve); directives (`directives list`:
+`accessibility`, `ux-consistency`, `cli-only-writes`, `documentation`, `doc-versioning`,
+`claim-evidence`); code: `web/src/element/*`, `web/src/routes/element.tsx`, `web/src/today/TodayView.tsx`,
+`web/src/api/{client,error-message,queries,query-keys,projects,events}.ts`, `web/src/shell/ErrorText.tsx`,
+`web/src/project/HowToJoin.tsx`, `server/src/descriptor/descriptor.ts` (verbs carry `role`
+whatever the user), `server/src/http/element-writes.ts`; tests: `test/e2e/support/*`,
+`test/e2e/{element-panel,today,accessibility,no-commit}.spec.ts`, `test/web/element/panel.test.tsx`;
+fixture conventions (`02_bdd/00_conventions.md`).
+
+**depends_on (dl-015 hard gate).**
+- task-032: the routes `POST /api/p/:pid/elements/:eid/{approve,reject}` take
+  `{expectedStatus, reason}` (`ElementDecisionRequest`; reason ≥ 1 non-whitespace character, no
+  NUL, ≤ 10 000 characters → else 400); 200 `WriteResponse {result, commits, push}`; refusals of
+  `write.refusal.schema.json`: 403 `not-in-team`, 409 `local-changes` / `element-changed` (row 9,
+  RP-12), 422 `cli-refused` verbatim (also a reason refused by the CLI's usage check, W-29/D32-5,
+  and approve without `approver`, W-13), 500 `write-incomplete` `{file, commit?}` (W2-1, W2-4,
+  W2-5, a fixed message, never the CLI's text), 502/504 CLI envelope; one `write` event and the
+  snapshot already moved when the 200 arrives (so a refetch after it sees the new state). The role
+  is not checked by the server (dl-002): the footer's "offered iff the member holds the role" is
+  the only place the role shows (TT-SEC-07). Hand-over: G-04.1 closes here; G-11.x / X-07.3 in
+  task-038; the catalogue text of `write-incomplete` was handed to task-038 — the Session 3 hand-over
+  names both tasks (D37-11).
+- task-035: How to join is opened with `useHowToJoin().show()` (provider in the project layout);
+  it applies only to *not in team* with a readable DNA (D35-8); the panel records the opener and
+  gives the focus to `#main` when the opener is gone.
+- task-036: Today's action is a `Button` that navigates to `/p/$pid/e/$eid` (D36-3) — "task-037
+  adds the 'opened from Today' signal"; lists filled by two queries are asserted with retrying
+  expects and `COLD_READ_MS`; names lists in their own element for X-09.1; per-project components
+  keyed by pid, announcements guarded on a view change (review F1); one axe/strings test per
+  `SCREENS` entry (bug-011).
+- v0.1 task-018 / task-015 (cited by the panel): the drawer is non-modal, focus moves into it on
+  open, Escape and Close go back in history (`onClose`), focus to `#main` when lost.
+
+#### AC classification
+
+| AC part | kind | first test |
+|---------|------|------------|
+| US-G-04 G-04.1 (two clicks, `wf(task): approve … [pending → approved]`), G-04.3 (reason focused from Today), G-04.2 (Cancel closes, no commit) | **red-first** | `test/web/element/gate-footer.test.tsx` (footer absent today); e2e `gate-footer.spec.ts` |
+| US-G-05 G-05.1 … G-05.3 (every outcome side by side, approve primary, unknown type) | **red-first** | `test/web/element/footer.test.ts` (pure view), component, e2e |
+| US-G-06 G-06.1 … G-06.4 (default selected, typed reason used, untouched default cleared on a reject, typed reason kept) | **red-first** | component (focus/selection), e2e (history lists the reason) |
+| US-G-07 G-07.1, G-07.2 (disabled while empty / only spaces, "A reason is required") | **red-first** | component (no request sent), e2e (no `POST …/approve` request seen; server side already 400 by task-032) |
+| US-G-09 G-09.1 … G-09.3 (informational footer without `approver`) | **red-first** | pure view + component, e2e on custom (Sam, Casey; `dna update` before the console starts) |
+| US-S-24 S-24.1 … S-24.4 (no footer on a final state, engine-waiting notes, reject-only gate-waiting) | **red-first** | pure view + component, e2e (custom, unknown; S-24.4 approved with `cli(…)` first); S-24.4's "Requires you does not list it" is **characterization** (server rule of spec-003 §5, task-031/036) |
+| S-13.2, S-15.2 (no governed action for not-in-team / ambiguous; the read-only line with *How to join*) | **red-first** | component, e2e (Riley; a copy whose email matches Jordan and Sam) |
+| TT-PERF-10 (≤ 2 clicks, G-04.1 / G-04.3 / X-06.2) | **red-first** | e2e click counter in G-04.1; X-06.2 keyboard only |
+| TT-SEC-07 — offered iff the member holds `approver` | **red-first** (web) | G-09.1 … G-09.3 here; T-06.1, T-06.2 already closed by task-036 (`today.spec.ts`, **characterization**); S-11.1 runs in task-039 |
+| TT-SEC-07 — 0 permission rules in the server | **characterization** | task-032 `test/server/http/element-writes.test.ts` (approve without `approver` reaches the CLI → 422 `cli-refused`, W-13); no `ui.yaml` read in v0.2 |
+| RP-13 hand-transition states show the waiting note | **red-first** | S-24.2 (custom `release` `planning`) + component |
+| v0.1 "read-only panel: only Close" (`test/web/element/panel.test.tsx`) | **characterization**, rewritten | the case keeps "no Edit"; the footer cases move to `gate-footer.test.tsx` |
+| SCREENS / X-06.4 / X-09.1 | **red-first** | appended screens (D37-12) |
+| REQ-INT-08 | check | own specs on the three engines (W0-9) |
+
+#### What the footer shows (pure, `web/src/element/footer.ts`)
+
+`footerView(descriptor, header)` → one tagged value, from the descriptor's data (`verbs`,
+`actor.kind`, `actor.role/members`) and the header's identity — no type, state or kind name in
+code (REQ-ARC-05; spec-003 §8: rendered, not re-derived). Order of the rules (D37-5):
+
+1. identity not `member` → `readOnly` (`notInTeam {email}` with *How to join* when the DNA is
+   readable, else `other`): no outcome (S-13.2, S-15.2);
+2. no `approve`/`reject` verb: actor `engine` → `waiting {state}` (S-24.2, S-24.3, RP-13); no verb
+   and actor `none` → `final` (S-24.1, D37-7); otherwise (only `submit`: task-038's single-action
+   footer; *undeclared*: the state chip already says it) → `none`;
+3. a gate verb whose `role` the member does not hold → `reserved {role, members}` (G-09.x;
+   members from `actor.members`, D37-6 for the engine actor of a gate-waiting state);
+4. otherwise `gate {outcomes: [{verb, to, enabled, reason?}], approve?: boolean, engineAdvance:
+   actor.kind === 'engine'}` in the order of D37-2.
+
+#### Component and file layout
+
+- `web/src/element/footer.ts` (new, pure) — `footerView`, `isBlank(reason)` (`/^\s*$/`),
+  `outcomeOrder` (D37-2).
+- `web/src/element/GateFooter.tsx` (new) — `<section aria-labelledby>` at the bottom of the drawer
+  (outside the scrolling body, as the prototype): heading, labelled `<textarea rows=2>`
+  (placeholder "Reason (required)"), the hint "A reason is required" (`id`, referenced by every
+  outcome's `aria-describedby` while blank), the outcome buttons (D37-3), *Cancel* (= `onClose`),
+  the engine note, the blocked-reason line (D37-8), an always-present polite status region and a
+  `role="alert"` region for a refusal (D37-9). Default and clear/restore of D37-4. While the
+  request runs: outcomes aria-disabled, the status says "Recording the decision…".
+- `web/src/element/ElementPanel.tsx` — renders `<ElementFooter>` (gate footer, read-only line,
+  reserved line, waiting note or final note) after the body; props gain `focusReason: boolean`.
+- `web/src/element/StateMachine.tsx` — the current chip of a `final` view reads
+  "<state>, final state" (`element.states.final`, D37-7); a `final?: boolean` prop.
+- `web/src/element/element.css` — footer styles (tokens of spec-009 only; `.button-primary`,
+  `.button-danger` if absent from `base.css` they are declared here, not in `base.css`).
+- `web/src/routes/element.tsx` — reads the history state `gateFocus` once (D37-1) and passes
+  `focusReason`; its own `declare module '@tanstack/react-router' { interface HistoryState {
+  gateFocus?: boolean } }` (no shared file).
+- `web/src/today/TodayView.tsx` (task-036's) — the action button's `navigate` gains
+  `state: { gateFocus: true }` for the `approve` and `review` actions (one line).
+- `web/src/api/writes.ts` (new, **shared**, D37-10) — the write mutation.
+- `web/src/api/error-message.ts` — one appended entry `'write-incomplete'` and its `commit`
+  default (D37-11).
+
+#### Catalogue keys (new, inserted sorted; RP-43; texts follow the decisions)
+
+`common.action.cancel` "Cancel"; `element.gate.title` "Decision";
+`element.gate.reason.label` "Reason, recorded in the commit"; `element.gate.reason.placeholder`
+"Reason (required)"; `element.gate.reason.default` "Approved via WingFoil UI" (D37-4);
+`element.gate.reason.required` "A reason is required"; `element.gate.outcome` "{verb, select,
+approve {Approve} other {Reject}} → {to}"; `element.gate.engineAdvance` "Waiting for the workflow
+engine to advance"; `element.gate.reserved` "Reserved to {role} — {members} can act" (members in
+their own element) and `element.gate.reservedNoMember` "Reserved to {role}"; `element.gate.pending`
+"Recording the decision…"; `element.gate.done` "{id} is now {state}" (D37-9);
+`element.waiting.engine` "Waiting for the workflow engine (state: {state})";
+`element.final` "Final state: no action is possible"; `element.states.final` "{state}, final
+state"; `element.readOnly.notInTeam` "Read-only: {email} is not in the team —" + the existing
+`shell.howToJoin.open` button; `element.readOnly.other` "Read-only: see the notice above the
+view"; `element.reason.notInTeam`, `.versionUnsupported` {range}, `.localChanges`,
+`.copyBehind` {commits}, `.copyDiverged`, `.copyDetached` (D37-8); `error.writeIncomplete`
+(D37-11).
+
+#### Test plan
+
+- Vitest (jsdom): `test/web/element/footer.test.ts` (every rule of `footerView` on descriptors of
+  the three fixtures' shapes: kanban gate, custom bug gate, unknown story gate, gate-waiting,
+  last-gate reject-only, waiting, final, undeclared, submit-only; each identity kind; role held /
+  not held; `isBlank`); `test/web/element/gate-footer.test.tsx` (default selected and replaced by
+  typing; clear on a reject's focus and restore on Approve's; typed reason kept; blank and spaces →
+  aria-disabled, hint described, no request; pressing an outcome sends `POST …/approve|reject` with
+  `{expectedStatus, reason}`; pending state; success → the project's queries invalidated, status
+  "… is now …", focus to the panel heading; refusal → alert with `ErrorText` (`cli-refused`
+  verbatim, `element-changed`, `write-incomplete` with and without `commit`), reason kept; Cancel →
+  `onClose`; focus on the reason only with `focusReason`; read-only lines and the *How to join*
+  button calling the provider; reserved line; notes; final chip text; keyed by pid);
+  `test/web/api/writes.test.ts` (path, method, body; invalidation of `['p', pid]` on success and on
+  refusal); `test/web/api/error-message.test.ts` (appended: `write-incomplete`);
+  `test/web/today/today.test.tsx` (appended: the Approve/Review action navigates with the state);
+  `test/web/element/panel.test.tsx` (read-only case rewritten).
+- Playwright `test/e2e/gate-footer.spec.ts` (`prebuild: ['kanban', 'custom', 'unknown']`), one test
+  per scenario, each on its own fixture copy (writes), `scanThemes` on the open footer in G-04.3,
+  G-05.1, G-07.1, G-09.1, S-24.2, S-13.2; commit subjects read with git on the copy (a small
+  appended helper `lastCommitSubject(fixture)` in `test/e2e/support/events.ts`).
+
+e2e closure (scenario → spec file › test):
+
+| Scenario | spec file › test |
+|----------|------------------|
+| G-04.1 (+ TT-PERF-10 click count, TT-SEC-10 G-04.1) | `test/e2e/gate-footer.spec.ts` › "G-04.1 — Approve a gate in two clicks from Today" |
+| G-04.3 | `gate-footer.spec.ts` › "G-04.3 — Open the gate footer with the reason focused" |
+| G-04.2 | `gate-footer.spec.ts` › "G-04.2 — Cancel without running the CLI" |
+| G-05.1 | `gate-footer.spec.ts` › "G-05.1 — Show approve and the reject target of a bug gate" |
+| G-05.2 | `gate-footer.spec.ts` › "G-05.2 — Reject to the gate's target" |
+| G-05.3 | `gate-footer.spec.ts` › "G-05.3 — Derive the outcomes of an unknown type's gate" |
+| G-06.1 … G-06.4 | `gate-footer.spec.ts` › "G-06.1 — …", "G-06.2 — …", "G-06.3 — …", "G-06.4 — …" |
+| G-07.1, G-07.2 | `gate-footer.spec.ts` › "G-07.1 — …", "G-07.2 — …" |
+| G-09.1 … G-09.3 (TT-SEC-07) | `gate-footer.spec.ts` › "G-09.1 — …", "G-09.2 — …", "G-09.3 — …" |
+| S-24.1 … S-24.4 | `gate-footer.spec.ts` › "S-24.1 — …" … "S-24.4 — …" |
+| S-13.2, S-15.2 (TT-SEC-08 UI side) | `gate-footer.spec.ts` › "S-13.2 — …", "S-15.2 — …" |
+| X-06.2 (TT-PERF-10) | `gate-footer.spec.ts` › "X-06.2 — Decide a gate with the keyboard only" |
+| T-06.1, T-06.2 (TT-SEC-07) | closed by task-036: `test/e2e/today.spec.ts` |
+| S-11.1 (TT-SEC-07) | task-039-repository-status-and-fetch-in-the-sidebar, on this footer |
+| X-06.4 / X-09.1 | `test/e2e/accessibility.spec.ts` over `SCREENS` › the appended screens (D37-12) |
+
+- Gates: typecheck, lint, format:check, `test:coverage`, `docs:api`, `test:e2e:chromium` + own
+  specs (`gate-footer.spec.ts`, `accessibility.spec.ts`, `element-panel.spec.ts`, `today.spec.ts`,
+  `no-commit.spec.ts`) on the three engines, `check_tasks.py v0.2`; `test:timing` only at load < 12
+  (no timed scenario of its own: TT-PERF-02 is task-038's).
+
+#### Spec / UX amendments needed
+
+- spec-003 §6 (Process Note): an unidentified user gets no outcome, only the read-only line
+  (S-13.2, S-15.2) — rule 1 is applied as "no footer", not as disabled outcomes; the informational
+  footer of a gate-waiting state (D37-6).
+- ux-reference §4.2 (version bump, `ux-consistency`): reason required for approve with an editable
+  default (US-G-06, the BDD over the reference's "optional to approve"); the outcome order (D37-2);
+  the read-only, reserved, waiting and final footers.
+- `docs/user-guide.md` (*Element panel* › *Deciding a gate*), `CHANGELOG.md` *Unreleased* › Added,
+  `test/README.md` version line + layout lines.
+
+#### Open decisions — see the coordinator report (D37-1 … D37-12); nothing depending on them is built before the answer.
