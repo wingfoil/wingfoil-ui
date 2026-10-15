@@ -471,7 +471,7 @@ is S-27.1's expectation (bug-012).
 ### review round 1 (2026-10-15)
 
 Independent review **CHANGES REQUESTED** (F1–F8), adversarial security review **CHANGES
-REQUESTED** (S1–S9). Red tests first: `ee8…` is not a hash here — the red commits are the two
+REQUESTED** (S1–S9). Red tests first: the red commits are the two
 `test(server): red — …` commits before `c945c50`; the route cases of S1–S5, F4 and F5 passed on
 first run (the helper had been rewritten against its unit tests first), so each was checked by
 removing its guard (S1 clone, S2 `--all`, S4 top level: each test fails, then restored).
