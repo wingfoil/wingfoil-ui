@@ -108,6 +108,14 @@ test.describe('US-S-21 — notification bell', () => {
     await page.keyboard.press('Escape');
     await expect(panel(page)).toHaveCount(0);
     await expect(bell(page)).toBeFocused();
+    // A row opens the element panel with the gate reason focused, as Today's action (review R4).
+    await bell(page).click();
+    await panel(page).getByRole('link', { name: 'Login form' }).click();
+    await expect(page).toHaveURL(`${c.origin}/p/${c.pids[0]}/e/task-001-login-form`, { timeout: COLD_READ_MS });
+    await expect(panel(page)).toHaveCount(0);
+    await expect(page.locator('.drawer').getByRole('textbox', { name: 'Reason, recorded in the commit' })).toBeFocused({
+      timeout: COLD_READ_MS,
+    });
   });
 
   test('S-21.2 — Show no count when nothing requires me', async ({ page, fixtures, consoles }) => {
