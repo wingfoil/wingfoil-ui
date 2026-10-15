@@ -538,3 +538,17 @@ review round 2` commit):
 
 Docs: spec-010 §4, §5, §8, spec-006 §3, spec-004 §5 (Process Notes 2026-10-15).
 
+
+### checks after review round 2 (2026-10-15, HEAD before this note `22fbd92`)
+
+| Gate | Result | Load |
+|------|--------|------|
+| `npm run typecheck`, `npm run lint`, `npm run format:check` | clean | — |
+| `npm run docs:api`, `check_tasks.py v0.2` | OK (0 warnings) | — |
+| `npm run test:coverage` | 146 files passed, 1 skipped; **2657 passed / 1 skipped**; statements 96.58 %, branches 91.20 %, functions 97.31 %, lines 98.27 % (a first run failed the public-text check on literal `~/…` test strings, now built at run time) | 6.4 → 20.4 |
+| `npm run test:e2e:chromium` | **194 passed** (6.7 min) | 16.0 → 16.9 |
+| own e2e spec on three engines | none touched in this round | — |
+| `npm run test:smoke` | **4/4 passed** | 10.4 |
+| `npm run test:timing` | **passed**: Vitest 3/3, Playwright 18/18 | 9.1 → 5.5 |
+
+No console left running; no `wfui-task-033-*` entry in the system temporary directory.
