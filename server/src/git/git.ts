@@ -618,6 +618,9 @@ export class GitReads {
   }
 
   private check(result: ProcessResult): ProcessResult {
+    // A cut output may be incomplete: never read (task-034 W4-13), fail closed.
+    if (result.drained)
+      throw new GitReadError('git output cut: its pipes were held open', result.ended, result.exitCode);
     if (result.ended === 'exit' && result.exitCode === 0) return result;
     const message =
       result.stderr.trim() ||

@@ -128,7 +128,7 @@ export async function runLauncher(argv: readonly string[], io: LauncherIo): Prom
   for (const warning of state.warnings()) logger.warn({ warning }, 'local state');
   // Drawn before the application is built: the session guards (task-003) need it.
   const token = drawToken();
-  const processes = io.processes ?? new LocalProcessRunner();
+  const processes = io.processes ?? new LocalProcessRunner({ logger });
   // Children lead their own process group (no terminal signal reaches them): whatever ends the
   // process, the ones still running are killed with it (spec-007 §6).
   io.onExit?.(() => processes.killAllNow());

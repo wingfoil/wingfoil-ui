@@ -13,7 +13,8 @@
  * the result holds what was read.
  */
 import { spawn, type ChildProcess } from 'node:child_process';
-import { gitEnv } from '../git/git.js';
+import path from 'node:path';
+import { gitEnv, gitSubcommand } from '../git/git.js';
 
 /** Timeout of every `wingfoil` process and git read (adr-001 D5, REQ-INT-04). */
 export const DEFAULT_TIMEOUT_MS = 30_000;
@@ -54,6 +55,12 @@ export interface ProcessResult {
   ended: ProcessEnd;
   /** From start to end, in milliseconds. */
   durationMs: number;
+  /**
+   * The pipes were still held open {@link DEFAULT_DRAIN_MS} after the process exited (a program it
+   * left in another session) and were cut: the output may be incomplete (task-034 W4-13). Callers
+   * that read the output fail closed on it.
+   */
+  drained?: true;
 }
 
 /** The port: runs one process to its end. */
@@ -80,6 +87,8 @@ export interface LocalRunnerOptions {
   maxOutputBytes?: number;
   /** Wait for the pipes after the process exited (default {@link DEFAULT_DRAIN_MS}). */
   drainMs?: number;
+  /** Where a cut of held pipes is logged (`{ op, kind: 'pipes-held' }`, never the output). */
+  logger?: { warn(object: object, message: string): void };
 }
 
 /** A process could not be started (missing program, or the runner is stopping). */
@@ -230,7 +239,7 @@ export class LocalProcessRunner implements ProcessRunner {
         if (timeoutMs !== null) timer = setTimeout(() => kill('timeout'), timeoutMs);
       });
       let settled = false;
-      const finish = (exitCode: number | null, signal: NodeJS.Signals | null): void => {
+      const finish = (exitCode: number | null, signal: NodeJS.Signals | null, drained = false): void => {
         if (settled) return;
         settled = true;
         cleanUp();
@@ -240,6 +249,7 @@ export class LocalProcessRunner implements ProcessRunner {
             signal,
             stdout: Buffer.concat(stdout).toString('utf8'),
             stderr: Buffer.concat(stderr).toString('utf8'),
+            ...(drained ? { drained: true as const } : {}),
           }),
         );
       };
@@ -248,7 +258,10 @@ export class LocalProcessRunner implements ProcessRunner {
         drain = setTimeout(() => {
           child.stdout.destroy();
           child.stderr.destroy();
-          finish(exitCode, signal);
+          const program = path.basename(request.file).replace(/\.exe$/i, '');
+          const op = program === 'git' ? (gitSubcommand(request.args) ?? 'git') : program;
+          this.options.logger?.warn({ op, kind: 'pipes-held' }, 'process output cut after its exit');
+          finish(exitCode, signal, true);
         }, this.drainMs);
       });
       child.on('close', (exitCode, signal) => finish(exitCode, signal));
