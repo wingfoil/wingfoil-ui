@@ -2,7 +2,7 @@
 id: bug-012-cli-refusal-messages-can-quote-the-repository-s-absolute-path
 type: bug
 title: "CLI refusal messages can quote the repository's absolute path"
-status: in-progress
+status: in-review
 severity: "low"        # REQUIRED — critical | high | medium | low
 release-origin: "v0.2" # optional — release where the bug was FOUND, e.g. "v0.1"
 release: ""            # optional — fix/implementation release, stamped by release-planning/build-backlog
