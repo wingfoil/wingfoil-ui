@@ -98,6 +98,33 @@ describe('repository.schema.json (spec-010 §3)', () => {
   });
 });
 
+describe('task-034 — sync.fetch.lastError.code (D34-9) and refspec-outside-remotes (D34-8)', () => {
+  const withFetchError = (lastError: unknown) => ({
+    ...STATUS,
+    sync: { ...STATUS.sync, fetch: { lastSuccessAt: null, lastError } },
+  });
+
+  it("accepts an automatic fetch killed after 60 s: code fetch-timeout with git's message so far", () => {
+    const typed: RepositoryStatus = withFetchError({ code: 'fetch-timeout', message: '', at: AT }) as RepositoryStatus;
+    expect(repository(typed), JSON.stringify(repository.errors)).toBe(true);
+    expect(repository(withFetchError({ code: 'fetch-timeout', message: 'fatal: x', at: AT }))).toBe(true);
+  });
+
+  it('refuses another fetch code, or a code without its message', () => {
+    expect(repository(withFetchError({ code: 'push-timeout', message: '', at: AT }))).toBe(false);
+    expect(repository(withFetchError({ code: 'fetch-timeout', at: AT }))).toBe(false);
+  });
+
+  it('refspec-outside-remotes is a fetch refusal only, never an update error', () => {
+    expect(
+      repository({
+        ...STATUS,
+        sync: { ...STATUS.sync, update: { lastError: { code: 'refspec-outside-remotes', at: AT } } },
+      }),
+    ).toBe(false);
+  });
+});
+
 describe('git.response.schema.json (spec-010 §4)', () => {
   it('accepts {repository}', () => {
     const body: GitResponse = { repository: STATUS };
@@ -122,6 +149,7 @@ describe('git.refusal.schema.json (spec-010 §5, §8)', () => {
     'diverged',
     'remote-not-owned',
     'remote-unreadable',
+    'refspec-outside-remotes',
     'git-refused',
     'internal',
   ])('accepts %s without detail', (code) => {

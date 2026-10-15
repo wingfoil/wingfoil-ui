@@ -68,6 +68,7 @@ const MESSAGES: Record<GitTransportRefusalCode, string> = {
   'local-changes-in-the-way': 'Local changes are in the way',
   'remote-not-owned': 'The local remote repository belongs to another user',
   'remote-unreadable': 'Git cannot read the repository of this remote',
+  'refspec-outside-remotes': 'A fetch refspec of this remote writes outside refs/remotes/',
 };
 
 const notInTeam = (): GitOutcome => ({
@@ -142,7 +143,7 @@ export class GitTransport {
     if ('refusal' in plan) {
       if (op === 'update') {
         const { code, detail } = plan.refusal;
-        if (code !== 'no-fetch-target') {
+        if (code !== 'no-fetch-target' && code !== 'refspec-outside-remotes') {
           this.options.snapshots.sync.updateFailed(
             pid,
             { code, ...(detail ? { detail } : {}) },
