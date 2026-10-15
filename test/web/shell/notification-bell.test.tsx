@@ -97,6 +97,11 @@ function api(over: FakeApi = {}): FakeApi {
   };
 }
 
+/** The paths the page fetched so far (of the last stubbed `fetch`). */
+function fetchCalls(): string[] {
+  return (globalThis.fetch as unknown as ReturnType<typeof stubApi>).mock.calls.map((c) => String(c[0]));
+}
+
 function paths(fetch: ReturnType<typeof stubApi>): string[] {
   return fetch.mock.calls.map((c) => String(c[0])).filter((p) => p.startsWith('/api/p/'));
 }
@@ -243,12 +248,16 @@ it('shows a refused Today as an error inside the panel only, never as "Nothing t
   const user = userEvent.setup();
   renderApp(`/p/${PID}/team`);
   const button = await bell('Notifications');
-  await waitFor(() => expect(button.querySelector('.bell-count')).toBeNull());
-  expect(within(banner()).queryByRole('alert')).toBeNull();
+  // The refusal is known (the Today read answered) before the absence of an alert is asserted.
+  await waitFor(() => expect(fetchCalls().some((c) => c.startsWith(`${TODAY}?view=approver`))).toBe(true));
   await user.click(button);
   const dialog = await panel();
   const toUnblock = section(dialog, 'To unblock');
   expect(await within(toUnblock).findByRole('alert')).toBeTruthy();
+  expect(button.querySelector('.bell-count')).toBeNull();
+  await user.keyboard('{Escape}');
+  await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Notifications' })).toBeNull());
+  expect(within(banner()).queryByRole('alert')).toBeNull();
   expect(within(toUnblock).queryByText('Nothing to unblock')).toBeNull();
 });
 
@@ -316,4 +325,63 @@ it('shows no count of one project in another (keyed by the project)', async () =
       .getByRole('button', { name: /^Notifications/ })
       .getAttribute('aria-label'),
   ).toBe('Notifications');
+});
+
+it('shows no count once a refetch of Today is refused (review R6)', async () => {
+  const fake = api();
+  stubApi(fake);
+  const { queryClient } = renderApp(`/p/${PID}/team`);
+  await bell('Notifications, 2 to unblock');
+  fake[`${TODAY}?view=approver`] = { status: 500, body: { error: { code: 'internal', message: 'x' } } };
+  await act(() => queryClient.invalidateQueries({ queryKey: queryKeys.project(PID) }));
+  expect(await bell('Notifications')).toBeTruthy();
+  expect((await bell('Notifications')).querySelector('.bell-count')).toBeNull();
+});
+
+it('opens the element panel from To unblock with the gate reason focused (review R4, G-04.3)', async () => {
+  const EID = 'task-001-login';
+  const descriptor = {
+    id: EID,
+    type: 'task',
+    status: 'pending',
+    kind: 'gate' as const,
+    tone: 'human' as const,
+    verbs: [
+      { verb: 'approve' as const, to: 'approved', role: 'approver', enabled: true },
+      { verb: 'reject' as const, to: 'draft', role: 'approver', enabled: true },
+    ],
+    actor: { kind: 'role' as const, role: 'approver', members: ['Morgan'] },
+  };
+  stubApi(
+    api({
+      [`/api/p/${PID}/elements/${EID}`]: {
+        status: 200,
+        body: {
+          element: {
+            path: 'docs/t.md',
+            id: EID,
+            title: 'Title of task-001-login',
+            type: 'task',
+            status: 'pending',
+            tags: [],
+            localChanges: false,
+          },
+          frontmatter: { id: EID, type: 'task', title: 'Title of task-001-login', status: 'pending' },
+          body: 'Summary.\n',
+          descriptor,
+          required: [],
+          states: { sequence: ['draft', 'pending', 'approved'], gates: { pending: { reject: 'draft' } } },
+        },
+      },
+      [`/api/p/${PID}/elements/${EID}/history`]: { status: 200, body: { id: EID, path: 'docs/t.md', entries: [] } },
+      [`/api/p/${PID}/directives`]: { status: 200, body: { entries: [], warnings: [] } },
+    }),
+  );
+  const user = userEvent.setup();
+  renderApp(`/p/${PID}/team`);
+  await user.click(await bell('Notifications, 2 to unblock'));
+  const dialog = await panel();
+  await user.click(within(dialog).getByRole('link', { name: 'Title of task-001-login' }));
+  const reason = await screen.findByRole('textbox', { name: 'Reason, recorded in the commit' });
+  await waitFor(() => expect(document.activeElement).toBe(reason));
 });

@@ -161,7 +161,7 @@ it('switches the role view from "N more" (D42-7)', async () => {
   await screen.findByText('Role view: approver');
 });
 
-it('shows a refused switch in the summary', async () => {
+it('shows a refused switch on Today, outside the summary card (review R2)', async () => {
   stubApi(
     api({ [`${HEADER}/role-view`]: { status: 400, body: { error: { code: 'invalid-request', message: 'x' } } } }),
   );
@@ -169,8 +169,70 @@ it('shows a refused switch in the summary', async () => {
   renderApp(`/p/${PID}/today`);
   const region = await card();
   await user.click(within(region).getByRole('button', { name: 'tech-lead · 1' }));
-  expect(await within(await card()).findByRole('alert')).toBeTruthy();
+  const alert = await screen.findByRole('alert');
+  expect(alert.closest('.today')).not.toBeNull();
+  expect(alert.closest('.today-summary')).toBeNull();
   expect(screen.getByText('Role view: developer')).toBeTruthy();
+});
+
+it('keeps a refusal shown when the header read after it changes the role view (review R2)', async () => {
+  const fake = api({
+    [`${HEADER}/role-view`]: {
+      status: 403,
+      body: { error: { code: 'not-in-team', message: 'x', detail: { email: 'alex@example.test' } } },
+    },
+    [TODAY]: { status: 200, body: { view: null, requiresYou: null, waitingOnOthers: [] } },
+  });
+  stubApi(fake);
+  const user = userEvent.setup();
+  renderApp(`/p/${PID}/today`);
+  const region = await card();
+  // The user left the team meanwhile: the header read after the refusal has no role view.
+  fake[HEADER] = {
+    status: 200,
+    body: header({
+      identity: { kind: 'not-in-team', email: 'alex@example.test' },
+      roleViews: [],
+      roleView: null,
+      readOnly: [{ code: 'not-in-team' }],
+    }),
+  };
+  await user.click(within(region).getByRole('button', { name: 'approver · 5' }));
+  await screen.findByText(/You are not in this project's team/);
+  expect(screen.queryByRole('region', { name: 'Your roles' })).toBeNull();
+  const alert = await screen.findByRole('alert');
+  expect(alert.closest('.today')).not.toBeNull();
+});
+
+it('forgets the focus request of a refused switch (review R1)', async () => {
+  const fake = api({
+    [`${HEADER}/role-view`]: { status: 400, body: { error: { code: 'invalid-request', message: 'x' } } },
+  });
+  stubApi(fake);
+  const user = userEvent.setup();
+  renderApp(`/p/${PID}/today`);
+  const region = await card();
+  await user.click(within(region).getByRole('button', { name: 'approver · 5' }));
+  await screen.findByRole('alert');
+  // Later, the role view becomes approver by the header's selector: no jump of the focus.
+  fake[`${HEADER}/role-view`] = { status: 204 };
+  fake[HEADER] = { status: 200, body: alex('approver') };
+  await user.click(screen.getByRole('button', { name: /Role view/ }));
+  await user.click(await screen.findByRole('option', { name: 'approver' }));
+  await screen.findByText('Role view: approver');
+  await screen.findByRole('region', { name: 'Requires you' });
+  expect(document.activeElement).not.toBe(screen.getByRole('heading', { level: 2, name: 'Requires you' }));
+});
+
+it('describes what a role line does (review R7)', async () => {
+  stubApi(api());
+  renderApp(`/p/${PID}/today`);
+  const region = await card();
+  const line = within(region).getByRole('button', { name: 'approver · 5' });
+  expect(line).toHaveAccessibleDescription('Switches the role view');
+  expect(within(region).getByRole('button', { name: '2 more for approver' })).toHaveAccessibleDescription(
+    'Switches the role view',
+  );
 });
 
 it('shows no summary when the server sends none (S-23.3)', async () => {
