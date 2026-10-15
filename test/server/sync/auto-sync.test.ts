@@ -145,6 +145,18 @@ describe('the automatic fetch (spec-010 §6; Y-02.1, Y-02.3 API side)', () => {
         'refspec-outside-remotes',
         (fx) => git(fx.dir, ['config', '--add', 'remote.origin.fetch', '+refs/heads/*:refs/heads/*'], fx.env),
       ],
+      [
+        // W4-7 (security review S3): no URL in the configuration, a legacy `remotes/<r>` file.
+        'refspec-outside-remotes',
+        async (fx) => {
+          await git(fx.dir, ['config', '--unset', 'remote.origin.url'], fx.env);
+          await mkdir(path.join(fx.dir, '.git', 'remotes'), { recursive: true });
+          await writeFile(
+            path.join(fx.dir, '.git', 'remotes', 'origin'),
+            `URL: ${fx.remoteDir}\nPull: +refs/heads/*:refs/heads/*\n`,
+          );
+        },
+      ],
     ];
     for (const [code, prepare] of cases) {
       const s = await start({}, { prepare: (fx) => prepare(fx).then(() => undefined) });

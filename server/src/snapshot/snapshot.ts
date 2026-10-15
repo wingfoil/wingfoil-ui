@@ -212,6 +212,11 @@ export class ProjectSnapshot {
     return this.options.commonDir ?? this.root;
   }
 
+  /** The repository's git common directory (the git directory when unknown), task-034 W4-7. */
+  get commonDir(): string {
+    return this.options.commonDir ?? this.options.gitDir ?? path.join(this.topLevel, '.git');
+  }
+
   /** The git reads and transport of the project (task-033). */
   get git(): GitReads {
     return this.options.git;

@@ -15,6 +15,7 @@
  * and 200 `{repository}` or 422 `git-refused` with git's message, local folders redacted (D33-5).
  * Git's message is never logged: the log gets `{pid, op, exitCode, ended}` only.
  */
+import { lstat } from 'node:fs/promises';
 import path from 'node:path';
 import type {
   ApiError,
@@ -158,7 +159,7 @@ export class GitTransport {
     if ('refusal' in plan) {
       if (op === 'update') {
         const { code, detail } = plan.refusal;
-        if (code !== 'no-fetch-target' && code !== 'refspec-outside-remotes') {
+        if (code !== 'no-fetch-target') {
           this.options.snapshots.sync.updateFailed(
             pid,
             { code, ...(detail ? { detail } : {}) },
@@ -215,9 +216,7 @@ export class GitTransport {
       const remote = fetchTarget(state, state.remotes);
       if (remote === undefined) return refuse('no-fetch-target');
       // `--prune` must delete tracking refs only (task-034 D34-5, D34-8 / bug-014).
-      if (!trackingRefspecs(await snapshot.git.configValues(`remote.${remote}.fetch`))) {
-        return refuse('refspec-outside-remotes');
-      }
+      if (!(await this.trackingOnly(snapshot, remote))) return refuse('refspec-outside-remotes');
       const urls = await snapshot.git.remoteUrls(remote);
       const local = await localRemoteProblem(urls, snapshot.topLevel, { ...this.home() });
       if (local) return refuse(local);
@@ -229,6 +228,9 @@ export class GitTransport {
     if (op === 'update') {
       if (state.copy === 'diverged') return refuse('diverged');
       if (state.behind === 0) return { args: undefined, urls: [] };
+      // The pull's own fetch reads the same refspecs (W4-3): a forced one into refs/heads would
+      // overwrite local branches.
+      if (!(await this.trackingOnly(snapshot, remote))) return refuse('refspec-outside-remotes');
       const incoming = await snapshot.git.incomingPaths();
       const inTheWay = incoming.filter((f) => state.paths.has(f));
       if (inTheWay.length > 0)
@@ -251,6 +253,25 @@ export class GitTransport {
     const local = await localRemoteProblem(urls, snapshot.topLevel, { ...this.home() });
     if (local) return refuse(local);
     return { args: pushArgs(remote, mergeRef), urls, remote };
+  }
+
+  /**
+   * Whether a fetch of `remote` writes only remote-tracking refs (D34-5, W4-7 / security review S3):
+   * its URL is in the configuration — without one git reads `remotes/<r>` or `branches/<r>` of the
+   * common directory, whose refspecs the configuration does not show — no such legacy file exists,
+   * and every configured fetch refspec writes under `refs/remotes/`. Fails closed.
+   */
+  private async trackingOnly(snapshot: ProjectSnapshot, remote: string): Promise<boolean> {
+    if (remote.split('/').includes('..')) return false;
+    if ((await snapshot.git.configValues(`remote.${remote}.url`)).length === 0) return false;
+    for (const kind of ['remotes', 'branches']) {
+      const legacy = await lstat(path.join(snapshot.commonDir, kind, remote)).then(
+        () => true,
+        (error: NodeJS.ErrnoException) => error.code !== 'ENOENT',
+      );
+      if (legacy) return false;
+    }
+    return trackingRefspecs(await snapshot.git.configValues(`remote.${remote}.fetch`));
   }
 
   /** Whether the user configured an ssh command (the environment or `core.sshCommand`, RP-24). */
