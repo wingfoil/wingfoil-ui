@@ -3,7 +3,7 @@
 // custom and kanban fixtures (copies when a test mutates one or sets the user).
 import type { Page } from '@playwright/test';
 import type { DnaShow } from '@wingfoil-ui/contracts';
-import { readFile } from 'node:fs/promises';
+import { readFile, realpath } from 'node:fs/promises';
 import path from 'node:path';
 import { pinnedCli } from '../harness/cli.js';
 import { run } from '../harness/run.js';
@@ -114,7 +114,10 @@ test.describe('US-S-27 — a failed read confined to its view', () => {
     const alert = page.getByRole('main').getByRole('alert');
     await expectFirstLoad(alert);
     await expect(alert).toContainText('The DNA could not be read.');
-    await expect(alert.locator('.verbatim')).toHaveText(message);
+    // The CLI's wording, with the project's folder shown as <project> (bug-012, task-033 D33-5).
+    const root = await realpath(kanban.dir);
+    expect(message).toContain(root);
+    await expect(alert.locator('.verbatim')).toHaveText(message.split(root).join('<project>'));
     await expect(section(page, 'Modules')).toHaveCount(0);
     expect(await scanThemes(page)).toEqual([]);
     // The Memory list opens and lists the fixture's elements.
