@@ -2,7 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://wingfoil-ui.local/contracts/api/projects.refusal.schema.json",
   "title": "422 refusal of POST /api/projects and POST /api/projects/clone",
-  "description": "The error envelope of spec-004 §5 with the project-list codes of spec-006 §3; detail holds the arguments of the web catalogue (spec-008 §4). directory-inside-project and inside-state-dir: decided by the user 2026-10-06. credentials-in-url (bug-006): decided by the user 2026-10-10.",
+  "description": "The error envelope of spec-004 §5 with the project-list codes of spec-006 §3; detail holds the arguments of the web catalogue (spec-008 §4). directory-inside-project and inside-state-dir: decided by the user 2026-10-06. credentials-in-url (bug-006): decided by the user 2026-10-10. remote-not-owned (bug-010, task-033 D33-1): a local remote whose repository the server's user does not own. cli-not-found: detail.command only (bug-012, task-033).",
   "type": "object",
   "required": ["error"],
   "additionalProperties": false,
@@ -64,9 +64,9 @@
             "code": { "const": "cli-not-found" },
             "detail": {
               "type": "object",
-              "required": ["path", "command"],
+              "required": ["command"],
               "additionalProperties": false,
-              "properties": { "path": { "type": "string" }, "command": { "type": "string" } }
+              "properties": { "command": { "type": "string" } }
             }
           },
           "required": ["detail"]
@@ -84,7 +84,8 @@
           "required": ["detail"]
         },
         { "properties": { "code": { "const": "git-refused" } }, "not": { "required": ["detail"] } },
-        { "properties": { "code": { "const": "credentials-in-url" } }, "not": { "required": ["detail"] } }
+        { "properties": { "code": { "const": "credentials-in-url" } }, "not": { "required": ["detail"] } },
+        { "properties": { "code": { "const": "remote-not-owned" } }, "not": { "required": ["detail"] } }
       ]
     }
   },

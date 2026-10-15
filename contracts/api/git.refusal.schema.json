@@ -1,0 +1,52 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://wingfoil-ui.local/contracts/api/git.refusal.schema.json",
+  "title": "Refusal of POST /api/p/:pid/git/fetch, /git/update, /git/push",
+  "description": "The error envelope of spec-004 §5 with the codes of the git routes (spec-010 §5, §8): rows 1–5 of spec-004 §4, the transport refusals (409, before any transport process), remote-not-owned (task-033 D33-1: a local remote whose repository the server's user does not own), git-refused (422: git's message, local paths redacted, D33-5).",
+  "type": "object",
+  "required": ["error"],
+  "additionalProperties": false,
+  "properties": {
+    "error": {
+      "type": "object",
+      "required": ["code", "message"],
+      "additionalProperties": false,
+      "properties": {
+        "code": { "type": "string" },
+        "message": { "type": "string" },
+        "detail": { "type": "object" }
+      },
+      "oneOf": [
+        {
+          "properties": {
+            "code": {
+              "enum": [
+                "forbidden-origin",
+                "unauthenticated",
+                "not-found",
+                "invalid-request",
+                "not-in-team",
+                "no-remote",
+                "no-fetch-target",
+                "detached-head",
+                "no-upstream",
+                "diverged",
+                "remote-not-owned",
+                "git-refused",
+                "internal"
+              ]
+            }
+          },
+          "not": { "required": ["detail"] }
+        },
+        {
+          "properties": {
+            "code": { "const": "local-changes-in-the-way" },
+            "detail": { "$ref": "repository.schema.json#/definitions/files" }
+          },
+          "required": ["detail"]
+        }
+      ]
+    }
+  }
+}
