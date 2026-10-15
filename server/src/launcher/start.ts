@@ -187,10 +187,8 @@ export async function runLauncher(argv: readonly string[], io: LauncherIo): Prom
   // and git children (adr-001 D5); registered once the application exists, removed again if the
   // listen fails.
   // task-034: no tick starts once stopping; a running automatic process is terminated below.
-  const offScheduler = onStop(() => {
-    scheduler.stop();
-    return Promise.resolve();
-  });
+  // W4-10 (b): an automatic merge already running completes first (a second signal still forces).
+  const offScheduler = onStop(() => scheduler.stop());
   const offStreams = onStop(async () => {
     projects.stop();
     streams.events?.close();

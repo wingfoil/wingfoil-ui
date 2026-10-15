@@ -90,6 +90,8 @@ type FetchOutcome =
 export class AutoSync implements SyncWork {
   /** Set by the stop sequence: no further project, no further process (review R5). */
   private stopping = false;
+  /** The automatic merge running now, if any. */
+  private merging: Promise<unknown> | undefined;
 
   constructor(private readonly options: AutoSyncOptions) {}
 
@@ -97,8 +99,13 @@ export class AutoSync implements SyncWork {
    * The server stops: no project is started any more and no merge is spawned — a merge the stop
    * sequence killed during its checkout would leave the working tree half updated (D34-7).
    */
-  stop(): void {
+  stop(): Promise<void> {
     this.stopping = true;
+    // A merge already running completes (W4-10 b): the stop sequence terminates processes after this.
+    return (this.merging ?? Promise.resolve()).then(
+      () => undefined,
+      () => undefined,
+    );
   }
 
   groups(): SyncGroup[] {
@@ -227,11 +234,20 @@ export class AutoSync implements SyncWork {
       return;
     }
     if (plan.args === undefined || this.stopping) return;
-    const result = await snapshot.git.transport([...noHooksArgs(hooksPath), ...plan.args], {
-      env: unattendedEnv(await transport.sshConfigured(snapshot), transport.environment),
+    const env = unattendedEnv(await transport.sshConfigured(snapshot), transport.environment);
+    if (this.stopping) return;
+    const running = snapshot.git.transport([...noHooksArgs(hooksPath), ...plan.args], {
+      env,
       // D34-7: no time limit — a killed checkout leaves the working tree half updated.
       timeoutMs: null,
     });
+    this.merging = running;
+    let result: ProcessResult;
+    try {
+      result = await running;
+    } finally {
+      this.merging = undefined;
+    }
     this.logged(pid, 'auto-update', result);
     const after = await snapshot.check();
     if (result.ended === 'terminated' || result.ended === 'cancelled') return;

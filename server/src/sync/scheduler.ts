@@ -29,8 +29,8 @@ export interface SyncWork {
   groups(): SyncGroup[];
   /** Sync `group`; called inside its write lock. */
   sync(group: SyncGroup): Promise<void>;
-  /** The server stops: start nothing more (review R5). */
-  stop?(): void;
+  /** The server stops: start nothing more (review R5); resolves once a running merge ended (W4-10). */
+  stop?(): void | Promise<void>;
 }
 
 /** The settings source (the `StateStore` fits). */
@@ -90,14 +90,18 @@ export class SyncScheduler {
     });
   }
 
-  /** No further tick; a running one starts no further group. Its process is the stop sequence's. */
-  stop(): void {
+  /**
+   * No further tick; a running one starts no further group. Resolves once the work port stopped (a
+   * running automatic merge ended, W4-10); a fetch is the stop sequence's to terminate.
+   */
+  stop(): Promise<void> {
     this.stopped = true;
-    this.options.work.stop?.();
     clearInterval(this.timer);
     this.timer = undefined;
     this.unsubscribe?.();
     this.unsubscribe = undefined;
+    // The work port waits for an automatic merge already running (W4-10 b).
+    return Promise.resolve(this.options.work.stop?.()).then(() => undefined);
   }
 
   /** One tick (also called by the timer); resolves when it ended or was skipped. */

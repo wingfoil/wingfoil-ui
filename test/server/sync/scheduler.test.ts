@@ -264,7 +264,13 @@ describe('review round 1 (R5, R9)', () => {
     let stopped = 0;
     const s = new SyncScheduler({
       store: settings,
-      work: { groups: () => [], sync: () => Promise.resolve(), stop: () => (stopped += 1) },
+      work: {
+        groups: () => [],
+        sync: () => Promise.resolve(),
+        stop: () => {
+          stopped += 1;
+        },
+      },
       lock,
       bus,
     });
