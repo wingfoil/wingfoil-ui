@@ -398,3 +398,26 @@ The RP-9 "after one commit" p95 is above the ~1 s at which spec-002 §4 is reope
 approver (RP-9). The measured path now includes opening the project after the new commit (the
 header and the CLI reads of the new state), which task-036's 539 ms did not, so the number is not
 directly comparable. Reported to the coordinator; not changed here.
+
+### review round 4 (bug-015 fix, 2026-10-15)
+
+Independent review: **PASS** with R4-1 (minor), R4-2, R4-3 (nits), all fixed. Red first (`2ba925d`:
+three self-tests in `test/e2e/harness/a11y-support.spec.ts`, failing to compile against the old
+support), fix `8295d53`:
+
+- **R4-1** — a hung answer lost its cause behind `expect.poll`'s timeout. The poll is gone:
+  `screenTextsOutsideCatalogue(page, recorder)` (`support/strings.ts`) waits once for every answer
+  (the recorder's bound, `recordApiData(page, { answerTimeoutMs })`, default `COLD_READ_MS`) and
+  returns what is flagged with "answer not received in … ms: GET …". Self-test with a 1 s bound.
+- **R4-2** — `reset({ untilNavigation: true })` also forgets what is read until the main frame's
+  next navigation (the requests of the page being left); `accessibility.spec.ts` uses it.
+  Self-test: a read of the old page between the reset and `goto` is not the next page's data.
+  Residual: a same-document navigation of the old page between the reset and the screen's `goto`
+  would end the window early (the screens' `go()` is the first navigation in practice).
+- **R4-3** — the check is repeated only while new answers were learnt during the previous attempt
+  (`DataRecorder.answers()`), within `COLD_READ_MS`; otherwise the flagged texts are reported at
+  once. Self-test: a text removed after 5 s is still flagged.
+- `test/README.md` (the `support/strings.ts` line).
+
+Checks: typecheck, lint, format:check clean; `npm run test:e2e -- accessibility.spec.ts
+harness/a11y-support.spec.ts` (three engines) **189 passed**, 0 failed (8.4 min, load 9 → 35).
