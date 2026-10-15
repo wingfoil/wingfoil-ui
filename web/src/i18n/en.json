@@ -122,6 +122,7 @@
   "error.invalidRequest": "The console refused an invalid request",
   "error.localChanges": "This element has local changes: commit or discard them first",
   "error.localChangesInTheWay": "Cannot fast-forward: local changes to {files} are in the way — commit or stash them in a terminal",
+  "error.mergeNotFastForward": "Not updated: git reported success but your copy is not at the remote's commit — check it with git in a terminal",
   "error.noFetchTarget": "Nothing to fetch from: no upstream is set and the repository has several remotes, none named origin — set an upstream with git in a terminal",
   "error.noRemote": "This repository has no remote — add one with git in a terminal",
   "error.noUpstream": "This branch has no upstream on the remote — set one with git in a terminal",

@@ -50,6 +50,8 @@ const MESSAGES = defineMessages({
   'push-timeout': { id: 'error.pushTimeout' },
   'fetch-timeout': { id: 'error.fetchTimeout' },
   'refspec-outside-remotes': { id: 'error.refspecOutsideRemotes' },
+  // W4-9: an automatic merge that exited 0 without fast-forwarding.
+  'merge-not-fast-forward': { id: 'error.mergeNotFastForward' },
   // task-037, D37-11: a governed write that did not finish (W2-1, W2-4, W2-5); `detail.file`,
   // optional `detail.commit`.
   'write-incomplete': { id: 'error.writeIncomplete' },
