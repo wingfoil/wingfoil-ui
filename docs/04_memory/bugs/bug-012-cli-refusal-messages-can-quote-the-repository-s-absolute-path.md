@@ -2,7 +2,7 @@
 id: bug-012-cli-refusal-messages-can-quote-the-repository-s-absolute-path
 type: bug
 title: "CLI refusal messages can quote the repository's absolute path"
-status: triaged
+status: planned
 severity: "low"        # REQUIRED — critical | high | medium | low
 release-origin: "v0.2" # optional — release where the bug was FOUND, e.g. "v0.1"
 release: ""            # optional — fix/implementation release, stamped by release-planning/build-backlog
@@ -64,3 +64,4 @@ its path, so the body can carry the absolute path of the repository.
   adds the git transport routes and their refusals, and edits the same refusal mapping).
 
 ## Triage & Execution Notes
+- fix: **absorbed into task-033-git-copy-state-repository-status-and-transport-routes** (AC "bug-012", `bug:` list of the task; the approver's triage, 2026-10-15); `triaged → planned` set by hand (directive `wingfoil-cli` W-26).

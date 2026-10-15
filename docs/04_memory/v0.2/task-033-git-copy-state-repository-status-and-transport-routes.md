@@ -8,7 +8,7 @@ module: "server"             # optional — server | web | contracts (dna.yaml m
 priority: "high"           # optional — high | medium | low
 tags: ["v0.2"]               # optional — additional labels, e.g. [today, a11y]
 ref: "TT-STATE-04"                # optional — backlog item ID, e.g. "TASK-001"
-bug: ["bug-010-clone-runs-the-user-s-own-git-commands-and-needs-no-minimum-git-version"]                # optional — LIST of bug ids this task closes. Two cases: a fix task derived from a bug
+bug: ["bug-010-clone-runs-the-user-s-own-git-commands-and-needs-no-minimum-git-version", "bug-012-cli-refusal-messages-can-quote-the-repository-s-absolute-path", "bug-013-clone-runs-ext-transport-commands-when-git-allow-protocol-allows-them"]                # optional — LIST of bug ids this task closes. Two cases: a fix task derived from a bug
                        # by release-planning, and a bug ABSORBED into an existing task's Acceptance Criteria because that
                        # task already owns the ground. `bug.sync_state` iterates this list; a bug with no task naming it
                        # here never advances past `triaged` (only a reject to `closed`).
@@ -63,6 +63,17 @@ Cross-cutting: the task's `contracts/api` schemas are committed first (RP-43) an
   documented (CVE-2024-32004, CVE-2024-32465) and, per the option the approver picks at this
   task's design among bug-010 *Notes* (a), (b), (c), enforced or hardened, with tests. The same
   statement covers fetch, update and push of this task.
+- **bug-012 (CLI refusal messages can quote the repository's absolute path)** No HTTP body
+  carries a local absolute path: the `cli-refused` message of the CLI (read routes, governed
+  writes, the project list), the `git-refused` message and `sync.*.lastError` of the transport
+  routes, and `cli-not-found`'s `detail.path` (spec-006 §3 amended) have the project root, the
+  repository paths and the home folder replaced by placeholders, the CLI's wording otherwise
+  verbatim; one test per route family with a marker root.
+- **bug-013 (clone runs `ext` transport commands when `GIT_ALLOW_PROTOCOL` allows them)** The
+  clone and the transport routes set `GIT_ALLOW_PROTOCOL` to exactly the allowed transports (the
+  constant behind `CLONE_SETTINGS`), whatever the server's environment holds: with
+  `GIT_ALLOW_PROTOCOL=ext` in the environment, an `ext::` URL is refused and its command does not
+  run (marker test).
 
 Review: adversarial security review (dl-006 action 6, RP-47) — a reviewer who runs the tool itself tries to break the task's guards, besides the independent review. Scope: argument and ref injection through remote and branch names, `ext::`/`fd::`
 transports, `GIT_SSH_COMMAND` handling, credentials in errors and logs, hooks during pull/push
