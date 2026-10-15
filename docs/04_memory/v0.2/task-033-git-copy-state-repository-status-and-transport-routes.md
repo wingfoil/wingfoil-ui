@@ -446,3 +446,24 @@ Coordinator (2026-10-15):
 | bug-012 | `test/server/git/redact.test.ts`; `adapter.test.ts` › bug-012; `git-routes.test.ts` › bug-012 route families (a read route, a governed write) and the fetch `git-refused` message; `cli-not-found` without a path: `adapter.test.ts`, `projects.test.ts`, `api-writes-schema.test.ts` |
 | bug-013 | `test/server/git/transport-facts.test.ts` › bug-013 (the override reproduced, then refused); `clone.test.ts` › `GIT_ALLOW_PROTOCOL`; `git-routes.test.ts` › D33-2 (`ext::` remote with `GIT_ALLOW_PROTOCOL=ext`) |
 | Catalogue | `test/web/api/error-message.test.ts` (the new codes, the `{files}` list) |
+
+### checks (2026-10-15, HEAD before this note `8cd1f2e`)
+
+| Gate | Result | Load |
+|------|--------|------|
+| `npm run typecheck`, `npm run lint`, `npm run format:check` | clean | — |
+| `npm run docs:api` | OK (0 warnings after a TypeDoc link was made plain text) | — |
+| `check_tasks.py v0.2` | OK | — |
+| `npm run test:coverage` (on `8e043fe`; includes the public-text check) | 146 files passed, 1 skipped; **2613 passed / 1 skipped**; statements 96.62 %, branches 91.40 %, functions 97.29 %, lines 98.27 % (`writes/transport.ts` 92.9 %, `git/sync-status.ts` 95.1 %) | 5.9 → 38.6 |
+| `npm run test:e2e:chromium` (on `8e043fe`) | **193 passed, 1 failed** (16.6 min): S-27.1 expected the CLI's message with the absolute project path, which bug-012 now redacts — the test changed to expect `<project>` (`test/e2e/dna.spec.ts`), then `dna.spec.ts` passed on Chromium (4/4) and on the three engines (12/12) | 36.8 |
+| `npm run test:smoke` (`clone.ts`, `start.ts` changed) | **4/4 passed** | 27.1 |
+| `npm run test:timing` | **skipped**: load ≥ 12 | 27.1 |
+
+A first `test:coverage` run on `a09acaa` failed 2 tests, fixed in `8e043fe`: the public-text check
+read a Windows path and a home-folder form in two new tests (built from parts now), and the pack
+guard read a refusal message ending in "fetch from" followed by a quoted string as an import (the
+message reworded). No console of this worktree left running; no `wfui-task-033-*` entry in the
+system temporary directory.
+
+e2e closure — none of this task's own (see the closure table of the design); the one e2e change
+is S-27.1's expectation (bug-012).
