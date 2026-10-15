@@ -190,9 +190,9 @@ export class AutoSync implements SyncWork {
     if (result.ended === 'terminated' || result.ended === 'cancelled') return;
     if (result.ended === 'exit' && result.exitCode === 0) {
       if (after.ahead !== 0 || after.behind !== 0) {
-        // D34-2 post-condition: a fast-forward leaves HEAD at the upstream. No update code fits, so
-        // it is logged only, and a previous update error is kept (review R4).
+        // D34-2 post-condition: a fast-forward leaves HEAD at the upstream (review R4, W4-9).
         logger.error({ project: pid, op: 'auto-update', code: 'merge-not-fast-forward' }, 'automatic update');
+        sync.updateFailed(pid, { code: 'merge-not-fast-forward' }, after.copy, new Date());
         return;
       }
       sync.updated(pid);
