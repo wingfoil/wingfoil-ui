@@ -2,7 +2,7 @@
 id: bug-014-manual-update-can-make-a-merge-commit-and-manual-fetch-can-prune-local-tags-and-branches
 type: bug
 title: "Manual update can make a merge commit and manual fetch can prune local tags and branches"
-status: triaged
+status: planned
 severity: "medium"     # REQUIRED — critical | high | medium | low
 release-origin: "v0.2" # optional — release where the bug was FOUND, e.g. "v0.1"
 release: ""            # optional — fix/implementation release, stamped by release-planning/build-backlog
@@ -71,3 +71,4 @@ branches are never deleted.
   hardened arguments for the unattended runs and has an adversarial security review, RP-47).
 
 ## Triage & Execution Notes
+- fix: **absorbed into task-034-auto-sync-scheduler-and-auto-push** (AC "bug-014", `bug:` list of the task; the approver's triage, 2026-10-15, D34-8); `triaged → planned` set by hand (directive `wingfoil-cli` W-26).

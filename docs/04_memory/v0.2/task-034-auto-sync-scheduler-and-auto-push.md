@@ -8,7 +8,7 @@ module: "server"             # optional — server | web | contracts (dna.yaml m
 priority: "high"           # optional — high | medium | low
 tags: ["v0.2"]               # optional — additional labels, e.g. [today, a11y]
 ref: "TT-PERF-07"                # optional — backlog item ID, e.g. "TASK-001"
-bug: []                # optional — LIST of bug ids this task closes. Two cases: a fix task derived from a bug
+bug: ["bug-014-manual-update-can-make-a-merge-commit-and-manual-fetch-can-prune-local-tags-and-branches"]                # optional — LIST of bug ids this task closes. Two cases: a fix task derived from a bug
                        # by release-planning, and a bug ABSORBED into an existing task's Acceptance Criteria because that
                        # task already owns the ground. `bug.sync_state` iterates this list; a bug with no task naming it
                        # here never advances past `triaged` (only a reject to `closed`).
@@ -44,6 +44,13 @@ write from the UI, reported in the write response's `push` field (spec-004 §5).
 - Round-3 note of spec review: `server/src/git/git.ts` `GIT_ALLOWED_SUBCOMMANDS` gains `merge`
   (SARD REQ-INT-06 v0.10, always with `--ff-only`) and its "Never merge…" comment is corrected to
   "never a merge commit"; a unit test proves no merge commit even with `merge.ff=false`.
+- **bug-014 (manual update can make a merge commit and manual fetch can prune local tags and
+  branches)** The manual update (`POST /api/p/:pid/git/update`) only fast-forwards, whatever
+  `branch.<b>.mergeOptions` (`-s ours`, `--squash`, also for a branch name containing `=`) or
+  `pull.twohead` say: one parent, HEAD = upstream, nothing staged. The manual fetch
+  (`POST /api/p/:pid/git/fetch`) never deletes a local tag (`fetch.pruneTags`,
+  `remote.<r>.pruneTags`) and is refused with a 409 code of its own when a configured refspec
+  writes outside `refs/remotes/` (D34-8). Red tests reproduce each case first.
 
 RP-53: Y-02.1, Y-02.3, Y-05.2 and C-07.3 run in `test:e2e` on the three engines with `fetchIntervalSeconds`
 = 15 (its minimum, RP-19); the real 60 s interval and the 65 s / 120 s budgets are measured only
