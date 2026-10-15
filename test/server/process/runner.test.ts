@@ -244,4 +244,75 @@ setTimeout(() => {}, 60000);`;
     expect(result).toMatchObject({ ended: 'terminated', signal: 'SIGKILL' });
     await expect(r.run(node('0'))).rejects.toBeInstanceOf(ProcessStartError);
   });
+
+  describe('task-034 W4-8 (security review S4): a grandchild in a new session keeping the pipes open', () => {
+    // The child starts a grandchild in its own session (out of the child's process group, so no
+    // group kill reaches it) that inherits stdout and stderr, writes its pid, and sleeps.
+    const KEEPER = `const { spawn } = require('node:child_process');
+const g = spawn(process.execPath, ['-e', 'setTimeout(() => {}, 60000)'], { stdio: 'inherit', detached: true });
+require('node:fs').writeFileSync(process.argv[1], String(g.pid));
+process.stdout.write('out');
+process.stderr.write('err');
+if (process.argv[2] === 'stay') setTimeout(() => {}, 60000);`;
+    const keepers: number[] = [];
+
+    afterEach(() => {
+      for (const pid of keepers.splice(0)) {
+        try {
+          process.kill(pid, 'SIGKILL');
+        } catch {
+          // Gone.
+        }
+      }
+    });
+
+    async function keeper(pidFile: string): Promise<void> {
+      await vi.waitFor(async () => {
+        const pid = Number(await readFile(pidFile, 'utf8'));
+        expect(pid).toBeGreaterThan(0);
+        keepers.push(pid);
+      });
+    }
+
+    it('a child that exits leaving such a grandchild → resolved soon after its exit, with what it wrote', async () => {
+      const pidFile = path.join(dir, 'keeper-exit.pid');
+      const r = runner({ drainMs: 500 });
+      const started = Date.now();
+      const result = await r.run({ ...node(KEEPER, [pidFile]), timeoutMs: null });
+      await keeper(pidFile);
+      expect(Date.now() - started).toBeLessThan(KILLED_WELL_BEFORE_MS);
+      expect(result).toMatchObject({ ended: 'exit', exitCode: 0, stdout: 'out', stderr: 'err' });
+      expect(r.running).toBe(0);
+    }, 30_000);
+
+    it('a child killed at its timeout with such a grandchild → the result comes back', async () => {
+      const pidFile = path.join(dir, 'keeper-timeout.pid');
+      const r = runner({ killGraceMs: 500, drainMs: 500 });
+      const result = await r.run({ ...node(KEEPER, [pidFile, 'stay']), timeoutMs: 3_000 });
+      await keeper(pidFile);
+      expect(result.ended).toBe('timeout');
+      expect(r.running).toBe(0);
+    }, 30_000);
+
+    it('terminateAll returns although such a grandchild holds the pipes', async () => {
+      const pidFile = path.join(dir, 'keeper-stop.pid');
+      const r = runner({ killGraceMs: 500, drainMs: 500 });
+      const pending = r.run({ ...node(KEEPER, [pidFile, 'stay']), timeoutMs: null });
+      await keeper(pidFile);
+      const started = Date.now();
+      await r.terminateAll();
+      expect(Date.now() - started).toBeLessThan(KILLED_WELL_BEFORE_MS);
+      expect((await pending).ended).toBe('terminated');
+    }, 30_000);
+
+    it('output stays complete for a process that writes a lot and exits at once', async () => {
+      const r = runner({ drainMs: 500 });
+      const result = await r.run(
+        node('process.stdout.write("x".repeat(8 * 1024 * 1024)); process.stderr.write("e".repeat(1024 * 1024))'),
+      );
+      expect(result.stdout.length).toBe(8 * 1024 * 1024);
+      expect(result.stderr.length).toBe(1024 * 1024);
+      expect(result.exitCode).toBe(0);
+    }, 30_000);
+  });
 });
