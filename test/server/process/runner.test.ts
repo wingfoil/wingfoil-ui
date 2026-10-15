@@ -250,6 +250,7 @@ setTimeout(() => {}, 60000);`;
     // group kill reaches it) that inherits stdout and stderr, writes its pid, and sleeps.
     const KEEPER = `const { spawn } = require('node:child_process');
 const g = spawn(process.execPath, ['-e', 'setTimeout(() => {}, 60000)'], { stdio: 'inherit', detached: true });
+g.unref();
 require('node:fs').writeFileSync(process.argv[1], String(g.pid));
 process.stdout.write('out');
 process.stderr.write('err');
