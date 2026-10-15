@@ -12,6 +12,7 @@
  * `<remote>` is always a name `git remote` lists and `<merge ref>` a checked branch ref (D33-8), both
  * after `--`.
  */
+import path from 'node:path';
 import { ALLOWED_PROTOCOLS, CLONE_SETTINGS } from './git.js';
 
 /**
@@ -61,11 +62,44 @@ export function pushArgs(remote: string, mergeRef: string): string[] {
   ];
 }
 
-/** Whether the user configured an ssh command in the server's environment (`GIT_SSH_COMMAND`, `GIT_SSH`). */
-export function sshInEnvironment(env: NodeJS.ProcessEnv): boolean {
+/**
+ * Whether the user configured an ssh command in the server's environment (`GIT_SSH_COMMAND`,
+ * `GIT_SSH`); names compared as the platform does (case-sensitive on POSIX, review round 1 S9).
+ */
+export function sshInEnvironment(env: NodeJS.ProcessEnv, platform: NodeJS.Platform = process.platform): boolean {
+  const fold = (key: string) => (platform === 'win32' ? key.toUpperCase() : key);
   return Object.entries(env).some(
-    ([key, value]) => ['GIT_SSH_COMMAND', 'GIT_SSH'].includes(key.toUpperCase()) && value !== undefined && value !== '',
+    ([key, value]) => ['GIT_SSH_COMMAND', 'GIT_SSH'].includes(fold(key)) && value !== undefined && value !== '',
   );
+}
+
+/**
+ * `PATH` of `env` with its absolute entries only (review round 1 R3): a relative entry would be
+ * resolved in the repository, where git and its helpers run (`ssh`, `git-remote-*`, a credential
+ * helper), and run a program the repository ships. The rule of `resolveGit`.
+ */
+export function absolutePath(
+  env: NodeJS.ProcessEnv,
+  platform: NodeJS.Platform = process.platform,
+): {
+  key: string;
+  value: string | undefined;
+} {
+  const key =
+    Object.keys(env).find((k) => (platform === 'win32' ? k.toUpperCase() === 'PATH' : k === 'PATH')) ?? 'PATH';
+  const sep = platform === 'win32' ? ';' : ':';
+  const isAbsolute = platform === 'win32' ? path.win32.isAbsolute : path.posix.isAbsolute;
+  const value = env[key];
+  return {
+    key,
+    value:
+      value === undefined
+        ? undefined
+        : value
+            .split(sep)
+            .filter((e) => e !== '' && isAbsolute(e))
+            .join(sep),
+  };
 }
 
 /**
@@ -73,10 +107,13 @@ export function sshInEnvironment(env: NodeJS.ProcessEnv): boolean {
  * never prompts (`GIT_TERMINAL_PROMPT=0`); `GIT_ALLOW_PROTOCOL` is the allowed list, whatever the
  * server's environment says (bug-013); `GIT_SSH_COMMAND=ssh -o BatchMode=yes` only when no ssh
  * command is configured (`sshConfigured`: the environment or `core.sshCommand`), so a passphrase or
- * host-key prompt fails at once. A configured ssh command is used as is.
+ * host-key prompt fails at once. A configured ssh command is used as is. `PATH` (from `env`, the
+ * server's environment) keeps its absolute entries only (R3).
  */
-export function transportEnv(sshConfigured: boolean): NodeJS.ProcessEnv {
+export function transportEnv(sshConfigured: boolean, env: NodeJS.ProcessEnv = {}): NodeJS.ProcessEnv {
+  const { key, value } = absolutePath(env);
   return {
+    ...(value !== undefined ? { [key]: value } : {}),
     GIT_TERMINAL_PROMPT: '0',
     GIT_ALLOW_PROTOCOL: ALLOWED_PROTOCOLS,
     ...(sshConfigured ? {} : { GIT_SSH_COMMAND: 'ssh -o BatchMode=yes' }),

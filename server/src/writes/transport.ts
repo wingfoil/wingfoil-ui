@@ -25,7 +25,8 @@ import type {
 } from '@wingfoil-ui/contracts';
 import { fetchTarget, isMergeRef } from '../git/copy.js';
 import type { ProcessResult } from '../process/runner.js';
-import { ownedByAnother, localRemotePath } from '../git/local-remote.js';
+import type { GitReadError } from '../git/git.js';
+import { foreignLocalRemote, localPathOf } from '../git/local-remote.js';
 import { redactLocalPaths } from '../git/redact.js';
 import { repositoryStatus } from '../git/sync-status.js';
 import { fetchArgs, pullArgs, pushArgs, sshInEnvironment, transportEnv } from '../git/transport.js';
@@ -87,8 +88,30 @@ export class GitTransport {
     this.env = options.env ?? process.env;
   }
 
-  /** Run `op` on the listed project `entry`; `signal` cancels a fetch or a push (not an update). */
+  /**
+   * Run `op` on the listed project `entry`; `signal` cancels a fetch or a push (not an update). An
+   * unexpected failure (a git read under the lock, the project's layout) answers 500 `internal`
+   * and is logged by kind only — git's message may quote local paths (review round 1 F2).
+   */
   async run(entry: ProjectEntry, op: GitOperation, log: TransportLogger, signal?: AbortSignal): Promise<GitOutcome> {
+    try {
+      return await this.runChecked(entry, op, log, signal);
+    } catch (error) {
+      const e = error as Partial<GitReadError> & Error;
+      log.warn(
+        { project: entry.id, op, kind: e.name, ...(e.exitCode !== undefined ? { exitCode: e.exitCode } : {}) },
+        'git transport failed',
+      );
+      return { status: 500, body: { error: { code: 'internal', message: 'Internal error' } } };
+    }
+  }
+
+  private async runChecked(
+    entry: ProjectEntry,
+    op: GitOperation,
+    log: TransportLogger,
+    signal?: AbortSignal,
+  ): Promise<GitOutcome> {
     const snapshot = await this.options.snapshots.open(entry.id, entry.path);
     let seen: SnapshotView | undefined;
     if (op !== 'fetch') {
@@ -138,12 +161,13 @@ export class GitTransport {
     const sshConfigured =
       sshInEnvironment(this.env) || (await snapshot.git.configValue('core.sshCommand')) !== undefined;
     const result = await snapshot.git.transport(plan.args, {
-      env: transportEnv(sshConfigured),
+      env: transportEnv(sshConfigured, this.env),
       ...(signal ? { signal } : {}),
     });
-    log.info({ pid, op, ended: result.ended, exitCode: result.exitCode }, 'git transport');
+    // `project`, not `pid`: the logger's own `pid` is the server's process id (review round 1 S9).
+    log.info({ project: pid, op, ended: result.ended, exitCode: result.exitCode }, 'git transport');
     const after = await snapshot.check().catch((error: unknown) => {
-      log.warn({ pid, op, kind: (error as Error).name }, 'git transport: state check failed');
+      log.warn({ project: pid, op, kind: (error as Error).name }, 'git transport: state check failed');
       return snapshot.current() ?? state;
     });
     if (result.ended === 'cancelled' || result.ended === 'terminated') {
@@ -156,7 +180,7 @@ export class GitTransport {
       if (op === 'update') sync.updated(pid);
       return this.answer(pid, after);
     }
-    const message = this.message(snapshot, result);
+    const message = this.message(snapshot, result, plan.urls);
     if (op === 'fetch') sync.fetchFailed(pid, message, new Date());
     if (op === 'update') sync.updateFailed(pid, { code: 'git-refused', message }, after.copy, new Date());
     return { status: 422, body: { error: { code: 'git-refused', message } } };
@@ -167,7 +191,7 @@ export class GitTransport {
     snapshot: ProjectSnapshot,
     state: RepoState,
     op: GitOperation,
-  ): Promise<{ args: string[] | undefined } | { refusal: Refusal }> {
+  ): Promise<{ args: string[] | undefined; urls: readonly string[] } | { refusal: Refusal }> {
     const refuse = (code: GitTransportRefusalCode, detail?: { files: string[] }) => ({
       refusal: { code, ...(detail ? { detail } : {}) },
     });
@@ -175,43 +199,48 @@ export class GitTransport {
     if (op === 'fetch') {
       const remote = fetchTarget(state, state.remotes);
       if (remote === undefined) return refuse('no-fetch-target');
-      if (await this.foreign(snapshot, remote, false)) return refuse('remote-not-owned');
-      return { args: fetchArgs(remote) };
+      const urls = await snapshot.git.remoteUrls(remote);
+      if (await foreignLocalRemote(urls, snapshot.topLevel)) return refuse('remote-not-owned');
+      return { args: fetchArgs(remote), urls };
     }
     if (state.copy === 'detached') return refuse('detached-head');
     if (state.copy === 'no-upstream' || state.upstreamRemote === null) return refuse('no-upstream');
     const remote = state.upstreamRemote;
     if (op === 'update') {
       if (state.copy === 'diverged') return refuse('diverged');
-      if (state.behind === 0) return { args: undefined };
+      if (state.behind === 0) return { args: undefined, urls: [] };
       const incoming = await snapshot.git.incomingPaths();
       const inTheWay = incoming.filter((f) => state.paths.has(f));
       if (inTheWay.length > 0)
         return refuse('local-changes-in-the-way', { files: relativeToProject(inTheWay, snapshot.prefix) });
-      if (await this.foreign(snapshot, remote, false)) return refuse('remote-not-owned');
-      return { args: pullArgs() };
+      const urls = await snapshot.git.remoteUrls(remote);
+      if (await foreignLocalRemote(urls, snapshot.topLevel)) return refuse('remote-not-owned');
+      return { args: pullArgs(), urls };
     }
     // push
     const mergeRef = await snapshot.git.configValue(`branch.${state.branch ?? ''}.merge`);
     if (mergeRef === undefined || !isMergeRef(mergeRef)) return refuse('no-upstream');
-    if (state.ahead === 0) return { args: undefined };
-    if (await this.foreign(snapshot, remote, true)) return refuse('remote-not-owned');
-    return { args: pushArgs(remote, mergeRef) };
+    if (state.ahead === 0) return { args: undefined, urls: [] };
+    // Every push URL: a push goes to each of them (review round 1 S2).
+    const urls = await snapshot.git.remoteUrls(remote, true);
+    if (await foreignLocalRemote(urls, snapshot.topLevel)) return refuse('remote-not-owned');
+    return { args: pushArgs(remote, mergeRef), urls };
   }
 
-  /** D33-1: the remote's URL names a local repository another user owns. */
-  private async foreign(snapshot: ProjectSnapshot, remote: string, push: boolean): Promise<boolean> {
-    const url = await snapshot.git.remoteUrl(remote, push);
-    const local = url === undefined ? undefined : localRemotePath(url, snapshot.root);
-    return local !== undefined && (await ownedByAnother(local));
-  }
-
-  /** Git's standard error, local folders and URL userinfo removed (D33-5). */
-  private message(snapshot: ProjectSnapshot, result: ProcessResult): string {
+  /**
+   * Git's standard error, local folders and URL userinfo removed (D33-5); a local remote's path,
+   * wherever it is, shown as `<remote>` (review round 1 R1).
+   */
+  private message(snapshot: ProjectSnapshot, result: ProcessResult, urls: readonly string[]): string {
     const text =
       result.stderr.trim() ||
       (result.ended === 'exit' ? `git exited with status ${String(result.exitCode)}` : `git ended: ${result.ended}`);
-    return redactLocalPaths(text, snapshot.localRoots);
+    const remote = urls.flatMap((url) => {
+      const raw = localPathOf(url);
+      if (raw === undefined) return [];
+      return path.isAbsolute(raw) ? [raw] : [path.join(snapshot.topLevel, raw), raw];
+    });
+    return redactLocalPaths(text, { ...snapshot.localRoots, remote });
   }
 
   private answer(pid: string, state: RepoState): GitOutcome {

@@ -16,7 +16,7 @@
  * | the commits a governed write made, and the paths each changes (D32-4, review S4) | `git log --first-parent --format=… <before>..HEAD`, `git diff-tree … <sha>` |
  * | the remotes, with the status in every check (spec-010 §1, task-033) | `git remote` |
  * | the upstream's remote and merge ref of the branch; the user's ssh command (spec-010 §1, §4) | `git config --get branch.<branch>.remote`, `… .merge`, `git config --get core.sshCommand` |
- * | a remote's URL (`insteadOf` applied), for the owner check of a local remote (D33-1) | `git remote get-url [--push] -- <remote>` |
+ * | every URL of a remote (`insteadOf` applied), for the owner check of a local remote (D33-1) | `git remote get-url --all [--push] -- <remote>` |
  * | the files the incoming commits change (spec-010 §5 `local-changes-in-the-way`) | `git log --no-renames --name-only -z --format= HEAD..@{u}` |
  *
  * Git is never used to change a repository by these reads. The writes are git transport (write
@@ -420,13 +420,20 @@ export class GitReads {
     return value === '' ? undefined : value;
   }
 
-  /** The URL git uses for the remote `name` (`insteadOf` applied; `push`: the push URL), or `undefined`. */
-  async remoteUrl(name: string, push = false): Promise<string | undefined> {
-    const result = await this.run([...GIT_READ_ARGS.remoteUrl, ...(push ? ['--push'] : []), '--', name]);
+  /**
+   * Every URL git uses for the remote `name` (`insteadOf` applied; `push`: the push URLs), in its
+   * order (review round 1 S2). A remote with no URL is opened by git as the path `name` itself:
+   * `[name]` then (review round 1 S4).
+   */
+  async remoteUrls(name: string, push = false): Promise<string[]> {
+    const result = await this.run([...GIT_READ_ARGS.remoteUrl, '--all', ...(push ? ['--push'] : []), '--', name]);
     // `git remote get-url` exits 2 when the remote does not exist.
-    if (result.ended === 'exit' && result.exitCode === 2) return undefined;
-    const url = this.check(result).stdout.split(/\r?\n/)[0]?.trim() ?? '';
-    return url === '' ? undefined : url;
+    if (result.ended === 'exit' && result.exitCode === 2) return [name];
+    const urls = this.check(result)
+      .stdout.split(/\r?\n/)
+      .map((u) => u.trim())
+      .filter((u) => u !== '');
+    return urls.length > 0 ? urls : [name];
   }
 
   /** The paths the commits of `HEAD..@{u}` change, relative to the repository's top level (spec-010 §5). */

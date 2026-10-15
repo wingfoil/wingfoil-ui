@@ -210,13 +210,18 @@ export class ProjectSnapshot {
     return this.options.prefix;
   }
 
+  /** The repository's top level (absolute): where git resolves a remote's relative path. */
+  get topLevel(): string {
+    const depth = this.options.prefix.split('/').filter(Boolean).length;
+    return path.resolve(this.root, ...Array<string>(depth).fill('..'));
+  }
+
   /**
    * The local folders a git or CLI message may quote, for `redactLocalPaths` (task-033 D33-5):
    * the project root and the repository's top level, git directory and common directory.
    */
   get localRoots(): { project: string[]; repository: string[] } {
-    const depth = this.options.prefix.split('/').filter(Boolean).length;
-    const top = path.resolve(this.root, ...Array<string>(depth).fill('..'));
+    const top = this.topLevel;
     const repository = [top, this.options.gitDir, this.options.commonDir].filter((p): p is string => p !== undefined);
     return { project: [this.root], repository };
   }

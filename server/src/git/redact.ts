@@ -8,9 +8,10 @@
  * |-------|---------|
  * | the project root (as listed and as its real path) | `<project>` |
  * | the repository's top level, git directory, common directory (when not inside the project root) | `<repository>` |
+ * | a local remote's path, wherever it is (review round 1 R1) | `<remote>` |
  * | the CLI's own package folder (a CLI from the `PATH`) | `<wingfoil>` |
  * | the home directory | `~` |
- * | the userinfo of a URL (`https://user:token@host`) | removed |
+ * | the userinfo of a URL (`https://user:token@host`, up to the last `@` before the host), and a `user:password@` without a scheme (`git://` lookups) | removed |
  *
  * Longest folder first, only as a whole path (`/a/project` never matches inside `/a/project-two`);
  * the text is capped at {@link MAX_MESSAGE} characters.
@@ -27,6 +28,8 @@ export interface LocalRoots {
   project?: readonly string[];
   repository?: readonly string[];
   wingfoil?: readonly string[];
+  /** The local paths a remote's URLs resolve to (review round 1 R1): shown as `<remote>`. */
+  remote?: readonly string[];
   /** Default: the server's home directory; `null`: none. */
   home?: string | null;
 }
@@ -64,6 +67,7 @@ export function redactLocalPaths(text: string, roots: LocalRoots): string {
   for (const w of (roots.wingfoil ?? []).flatMap(forms)) {
     if (!project.some((p) => inside(w, p))) pairs.push([w, '<wingfoil>']);
   }
+  for (const r of (roots.remote ?? []).flatMap(forms)) pairs.push([r, '<remote>']);
   const home = roots.home === undefined ? homedir() : roots.home;
   if (home) for (const h of forms(home)) pairs.push([h, '~']);
   pairs.sort((a, b) => b[0].length - a[0].length);
@@ -71,9 +75,16 @@ export function redactLocalPaths(text: string, roots: LocalRoots): string {
   for (const [folder, token] of pairs) {
     // A whole path only: followed by a separator, the end, a quote or punctuation (a full stop only
     // at the end of a sentence).
-    out = out.replace(new RegExp(`${escape(folder)}(?=$|[\\s/\\\\'"\`:;,)\\]>]|\\.(?:$|\\s))`, 'g'), token);
+    out = out.replace(
+      new RegExp(`${escape(folder)}(?=$|[\\s/\\\\'"\`:;,)\\]>?!|*&=#}{(<@+%~^$]|\\.(?:$|\\s))`, 'g'),
+      token,
+    );
   }
-  // `scheme://userinfo@host` → `scheme://host`.
-  out = out.replace(/\b([A-Za-z][A-Za-z0-9+.-]*:\/\/)[^\s/@'"]+@/g, '$1');
+  // `scheme://userinfo@host` → `scheme://host`: the userinfo runs to the last `@` before the host
+  // and may hold quotes (review round 1 S7).
+  out = out.replace(/\b([A-Za-z][A-Za-z0-9+.-]*:\/\/)[^\s/]*@/g, '$1');
+  // `user:password@host` without a scheme (git's `unable to look up u:tok@host`); a plain e-mail
+  // address (no `:`) stays.
+  out = out.replace(/(^|[\s'"(<=])[^\s/:@'"]+:[^\s/]*@(?=[A-Za-z0-9[])/g, '$1');
   return out.length > MAX_MESSAGE ? `${out.slice(0, MAX_MESSAGE)}…` : out;
 }

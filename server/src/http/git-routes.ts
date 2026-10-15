@@ -46,9 +46,10 @@ function notFound(reply: FastifyReply): FastifyReply {
   return reply.code(404).send(envelope('not-found', 'Not found'));
 }
 
-/** No body, or an empty object (D33-9). */
+/** No body, or an empty object (D33-9); a JSON `null` is a body (review round 1 S9). */
 function emptyBody(body: unknown): boolean {
-  if (body === undefined || body === null) return true;
+  if (body === undefined) return true;
+  if (body === null) return false;
   return typeof body === 'object' && !Array.isArray(body) && Object.keys(body).length === 0;
 }
 

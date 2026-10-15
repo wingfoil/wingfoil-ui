@@ -46,6 +46,7 @@ import {
 import { CliNotFoundError } from '../cli/discovery.js';
 import type { EventBus } from '../events/bus.js';
 import { blocksWrites } from '../git/copy.js';
+import { redactLocalPaths } from '../git/redact.js';
 import { matchIdentity } from '../identity/identity.js';
 import type { WriteLock } from '../process/write-lock.js';
 import { DirectReadError } from '../reads/confine.js';
@@ -176,7 +177,9 @@ export class GovernedWrites {
     } catch (error) {
       if (error instanceof CliInternalError && request.verb !== 'submit') {
         const message = reasonRefusal(error);
-        if (message !== undefined) return refuse(422, 'cli-refused', message);
+        // Redacted like every refusal (review round 1 F6, bug-012).
+        const roots = this.options.snapshots.get(entry.id)?.localRoots ?? { project: [entry.path] };
+        if (message !== undefined) return refuse(422, 'cli-refused', redactLocalPaths(message, roots));
       }
       if (error instanceof CliError || error instanceof CliNotFoundError) {
         const { status, body } = cliErrorEnvelope(error);

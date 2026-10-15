@@ -23,7 +23,7 @@ import os from 'node:os';
 import path from 'node:path';
 import type { Availability, ProjectEntry, ProjectListItem, ProjectRefusalCode } from '@wingfoil-ui/contracts';
 import { CliOutputError, CliRefusedError, WingfoilCli, type CliLogger } from '../cli/adapter.js';
-import { localRemotePath, ownedByAnother } from '../git/local-remote.js';
+import { foreignLocalRemote } from '../git/local-remote.js';
 import { CliNotFoundError, discoverCli, INSTALL_COMMAND } from '../cli/discovery.js';
 import type { EventBus } from '../events/bus.js';
 import { GitReadError, GitReads, resolveGit } from '../git/git.js';
@@ -243,8 +243,7 @@ export class ProjectList {
       const target = await CloneTarget.inspect(directory);
       if (!target) throw this.notEmpty(shown);
       // bug-010 (task-033 D33-1): a local repository another user owns is never cloned.
-      const local = localRemotePath(url, target.existingParent);
-      if (local !== undefined && (await ownedByAnother(local))) {
+      if (await foreignLocalRemote([url], target.existingParent)) {
         throw new ProjectRefusal('remote-not-owned', 'The local repository to clone belongs to another user');
       }
       const known = new Set(listedBefore.map((p) => p.id));
