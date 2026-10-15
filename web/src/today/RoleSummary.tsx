@@ -6,16 +6,16 @@
  *
  * A line is a button "approver · 2" that switches the role view (S-23.2), followed by its items
  * (links to the element panel) and "N more", which switches to that view too (D42-7). The line of
- * the current view is marked and is no switch. The switch is this card's own role view mutation, so
- * its refusal shows here; once the new view is read, Today moves the focus to Requires you (D42-6).
+ * the current view is marked and is no switch. Each switch is described by "Switches the role view"
+ * (review R7). The switch itself is Today's (`onSwitch`): its refusal is shown by Today, outside this
+ * card, which a refetch may remove (review R2); once the new view is read, Today moves the focus to
+ * Requires you (D42-6).
  */
 import type { TodaySummaryLine } from '@wingfoil-ui/contracts';
 import { Link } from '@tanstack/react-router';
 import { useId, type ReactNode } from 'react';
 import { Button } from 'react-aria-components';
 import { FormattedMessage, useIntl } from 'react-intl';
-import { useSetRoleView } from '../api/projects.js';
-import { ErrorText } from '../shell/ErrorText.js';
 
 /** Props of {@link RoleSummary}. */
 export interface RoleSummaryProps {
@@ -23,7 +23,7 @@ export interface RoleSummaryProps {
   lines: readonly TodaySummaryLine[];
   /** The current role view. */
   view: string | null;
-  /** Called with the role the user switches to, before the request (Today then moves the focus). */
+  /** Switch the role view to `role` (Today runs the request and moves the focus, D42-6). */
   onSwitch(role: string): void;
 }
 
@@ -31,22 +31,15 @@ export interface RoleSummaryProps {
 export function RoleSummary({ pid, lines, view, onSwitch }: RoleSummaryProps): ReactNode {
   const intl = useIntl();
   const titleId = useId();
-  const roleView = useSetRoleView();
-  const switchTo = (role: string): void => {
-    if (roleView.isPending) return;
-    onSwitch(role);
-    roleView.mutate({ pid, role });
-  };
+  const hintId = useId();
   return (
     <section className="today-card today-summary" aria-labelledby={titleId}>
       <h2 className="today-card-title" id={titleId}>
         <FormattedMessage id="today.summary.title" />
       </h2>
-      {roleView.error && (
-        <div role="alert" className="today-summary-error">
-          <ErrorText error={roleView.error} />
-        </div>
-      )}
+      <span id={hintId} className="visually-hidden">
+        <FormattedMessage id="today.summary.switchHint" />
+      </span>
       <ul className="today-summary-lines">
         {lines.map((line) => {
           const current = line.role === view;
@@ -62,7 +55,11 @@ export function RoleSummary({ pid, lines, view, onSwitch }: RoleSummaryProps): R
                     </span>
                   </>
                 ) : (
-                  <Button className="button today-summary-role" onPress={() => switchTo(line.role)}>
+                  <Button
+                    className="button today-summary-role"
+                    aria-describedby={hintId}
+                    onPress={() => onSwitch(line.role)}
+                  >
                     {label}
                   </Button>
                 )}
@@ -90,7 +87,8 @@ export function RoleSummary({ pid, lines, view, onSwitch }: RoleSummaryProps): R
                       { id: 'today.summary.moreLabel' },
                       { more: line.more, role: line.role },
                     )}
-                    onPress={() => switchTo(line.role)}
+                    aria-describedby={hintId}
+                    onPress={() => onSwitch(line.role)}
                   >
                     <FormattedMessage id="today.summary.more" values={{ more: line.more }} />
                   </Button>

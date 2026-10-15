@@ -24,6 +24,7 @@ import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { Button } from 'react-aria-components';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { ApiError } from '../api/client.js';
+import { useSetRoleView } from '../api/projects.js';
 import { useHowToJoin } from '../project/HowToJoin.js';
 import { ErrorText } from '../shell/ErrorText.js';
 import { greetingName, identityNote, rowReason, waitingWho } from './model.js';
@@ -209,15 +210,37 @@ export function TodayView({ pid, header, today }: TodayViewProps): ReactNode {
   const [announcement, setAnnouncement] = useState<{ n: number; count: number } | undefined>(undefined);
   const [now, setNow] = useState(Date.now);
   const previous = useRef<Today | undefined>(undefined);
-  // D42-6: the role view a summary switch asked for; the Requires you heading takes the focus once
-  // that view is read (the pressed button is gone while it loads).
-  const focusView = useRef<string | null>(null);
+  // D42-6: a switch from the all-roles summary. The Requires you heading takes the focus once the
+  // asked view is read (the pressed button is gone while it loads). The request is forgotten on a
+  // refusal, on a failed Today read, or when another view is read first (review R1). The refusal is
+  // shown here, outside the summary that a refetch may remove (review R2); the view is keyed by the
+  // project, so nothing of it reaches another project.
+  const roleView = useSetRoleView();
+  const switchRequest = useRef<{ role: string; from: string | null } | null>(null);
   const requiresHeading = useRef<HTMLHeadingElement>(null);
+  const switchTo = (role: string): void => {
+    if (roleView.isPending) return;
+    switchRequest.current = { role, from: data?.view ?? null };
+    roleView.mutate(
+      { pid, role },
+      {
+        onError: () => {
+          switchRequest.current = null;
+        },
+      },
+    );
+  };
   useEffect(() => {
-    if (focusView.current === null || data?.view !== focusView.current) return;
-    requiresHeading.current?.focus();
-    focusView.current = null;
-  }, [data]);
+    const request = switchRequest.current;
+    if (request === null) return;
+    if (today.error) {
+      switchRequest.current = null;
+      return;
+    }
+    if (data === undefined || data.view === request.from) return;
+    if (data.view === request.role) requiresHeading.current?.focus();
+    switchRequest.current = null;
+  }, [data, today.error]);
   useEffect(() => {
     const before = previous.current;
     if (data === undefined) return;
@@ -255,6 +278,11 @@ export function TodayView({ pid, header, today }: TodayViewProps): ReactNode {
           </span>
         )}
       </div>
+      {roleView.error && (
+        <div className="today-switch-error" role="alert">
+          <ErrorText error={roleView.error} />
+        </div>
+      )}
       {error ? (
         <div className="today-error" role="alert">
           <ErrorText error={asApiError(error)} />
@@ -266,14 +294,7 @@ export function TodayView({ pid, header, today }: TodayViewProps): ReactNode {
       ) : (
         <>
           <IdentitySentence header={header.data} />
-          {data.summary && (
-            <RoleSummary
-              pid={pid}
-              lines={data.summary}
-              view={data.view}
-              onSwitch={(role) => (focusView.current = role)}
-            />
-          )}
+          {data.summary && <RoleSummary pid={pid} lines={data.summary} view={data.view} onSwitch={switchTo} />}
           {rows !== null && (
             <section className="today-card" aria-labelledby={requiresId}>
               <h2 className="today-card-title" id={requiresId} ref={requiresHeading} tabIndex={-1}>

@@ -153,8 +153,8 @@
 }
 
 /* The all-roles summary (task-042, D42-5): one line per role — the switch, its first items, "N more". */
-.today-summary-error {
-  margin: 0 16px 12px;
+.today-switch-error {
+  color: var(--color-danger);
 }
 
 .today-summary-lines {

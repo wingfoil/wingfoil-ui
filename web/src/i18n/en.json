@@ -320,6 +320,7 @@
   "today.summary.line": "{role} · {count}",
   "today.summary.more": "{more} more",
   "today.summary.moreLabel": "{more} more for {role}",
+  "today.summary.switchHint": "Switches the role view",
   "today.summary.title": "Your roles",
   "today.title": "Today",
   "today.unidentified": "Today cannot list what requires you: see the read-only notice above.",

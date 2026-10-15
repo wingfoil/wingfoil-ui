@@ -49,7 +49,8 @@ export function NotificationBell({ pid, header }: NotificationBellProps): ReactN
   const intl = useIntl();
   const [expanded, setExpanded] = useState(false);
   const today = useQuery(todayQuery(pid, header.roleView ?? null));
-  const count = bellCount(today.data);
+  // A refused refetch keeps the last data: no count then, the panel shows the error (review R6).
+  const count = today.error ? undefined : bellCount(today.data);
   const close = (): void => setExpanded(false);
   return (
     <DialogTrigger isOpen={expanded} onOpenChange={setExpanded}>
