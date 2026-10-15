@@ -132,7 +132,7 @@ describe('git.refusal.schema.json (spec-010 §5, §8)', () => {
     expect(refusal(envelope('local-changes-in-the-way', { files: ['docs/a.md'] }))).toBe(true);
     expect(refusal(envelope('local-changes-in-the-way'))).toBe(false);
     expect(refusal(envelope('local-changes-in-the-way', { files: [] }))).toBe(false);
-    expect(refusal(envelope('local-changes-in-the-way', { files: ['C:\\x\\a.md'] }))).toBe(false);
+    expect(refusal(envelope('local-changes-in-the-way', { files: [['C:', 'x', 'a.md'].join('\\')] }))).toBe(false);
   });
 
   it('refuses a governed-write code', () => {

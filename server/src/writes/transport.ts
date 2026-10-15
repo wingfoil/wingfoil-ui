@@ -60,7 +60,7 @@ interface Refusal {
 
 const MESSAGES: Record<GitTransportRefusalCode, string> = {
   'no-remote': 'This repository has no remote',
-  'no-fetch-target': 'Nothing to fetch from',
+  'no-fetch-target': 'No remote to fetch: no upstream and no single or origin remote',
   'detached-head': 'No branch checked out',
   'no-upstream': 'This branch has no upstream on the remote',
   diverged: 'Your copy and the remote have diverged',

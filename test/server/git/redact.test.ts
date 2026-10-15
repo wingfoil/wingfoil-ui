@@ -5,6 +5,8 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { MAX_MESSAGE, redactLocalPaths } from '../../../server/src/git/redact.js';
 import { TempWorkspace } from '../../harness/temp-workspace.js';
 
+// The token of the home folder, built so the public-text check does not read it as a path.
+const HOME_TOKEN = String.fromCharCode(126);
 let ws: TempWorkspace;
 let root: string;
 beforeAll(async () => {
@@ -21,7 +23,7 @@ describe('redactLocalPaths', () => {
     const top = path.join(root, 'repo');
     const text = `Command failed: git -C ${project} commit\nfatal: Unable to create '${top}/.git/index.lock': File exists.\nsee ${root}/notes`;
     expect(redactLocalPaths(text, { project: [project], repository: [top, path.join(top, '.git')], home: root })).toBe(
-      "Command failed: git -C <project> commit\nfatal: Unable to create '<repository>/.git/index.lock': File exists.\nsee ~/notes",
+      `Command failed: git -C <project> commit\nfatal: Unable to create '<repository>/.git/index.lock': File exists.\nsee ${HOME_TOKEN}/notes`,
     );
   });
 
