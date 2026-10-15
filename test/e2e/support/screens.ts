@@ -185,4 +185,19 @@ export const SCREENS: readonly Screen[] = [
     name: 'today — not in team',
     open: (page, c) => project(page, c, `/p/${c.pids[2]}/today`, (p) => p.locator('.today-identity button')),
   },
+  {
+    // task-037 (D37-12): the gate footer with its reason cleared — outcomes disabled, the hint shown.
+    name: 'element panel — gate footer, reason empty',
+    open: async (page, c) => {
+      await project(page, c, `/p/${c.pids[0]}/e/task-001-login-form`, (p) => p.locator('.drawer .gate-reason-field'));
+      await page.locator('.drawer .gate-reason-field').fill('');
+      await expect(page.locator('.drawer .gate-hint')).toBeVisible();
+    },
+  },
+  {
+    // task-037: Riley, not in the team — the read-only line with How to join (S-13.2).
+    name: 'element panel — read-only, not in team',
+    open: (page, c) =>
+      project(page, c, `/p/${c.pids[2]}/e/task-001-login-form`, (p) => p.locator('.drawer .element-footer button')),
+  },
 ];
