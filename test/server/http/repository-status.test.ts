@@ -180,7 +180,9 @@ describe('spec-004 §4 row 8 on the FRESH state (TT-STATE-04)', () => {
         error: { code: 'stale-copy', message: 'The copy is behind, diverged or on a detached HEAD' },
       });
     });
-    expect(p.commands.filter((x) => x.includes('memory approve'))).toEqual([]);
+    // Row 8 is decided on the fresh state before the element is listed again: no wingfoil process
+    // at all (review round 1 F3).
+    expect(p.wingfoil).toBe(0);
     expect(await c.head()).toBe(head);
   });
 });

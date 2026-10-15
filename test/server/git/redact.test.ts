@@ -59,4 +59,31 @@ describe('redactLocalPaths', () => {
       }),
     ).toBe('<wingfoil>/dist/cli.js and <project>/node_modules/wingfoil');
   });
+
+  it('S7: userinfo without a scheme, a password holding @ or quotes, and more punctuation after a root', () => {
+    expect(redactLocalPaths('fatal: unable to look up u:tok3n@git.example.test (port 9418)', { home: null })).toBe(
+      'fatal: unable to look up git.example.test (port 9418)',
+    );
+    expect(redactLocalPaths("unable to access 'https://user:p@ss@git.example.test/x'", { home: null })).toBe(
+      "unable to access 'https://git.example.test/x'",
+    );
+    expect(redactLocalPaths(`unable to access https://us'er:p"w@git.example.test/x`, { home: null })).toBe(
+      'unable to access https://git.example.test/x',
+    );
+    // A plain e-mail address (no password) stays.
+    expect(redactLocalPaths('author alex@example.test', { home: null })).toBe('author alex@example.test');
+    const project = path.join(root, 'repo', 'proj');
+    for (const after of ['?', '!', '|', '*', '&', '=', '#', '}']) {
+      expect(redactLocalPaths(`at ${project}${after} x`, { project: [project], home: null })).toBe(
+        `at <project>${after} x`,
+      );
+    }
+  });
+
+  it('R1: a local remote is shown as <remote>, inside the project or not', () => {
+    const remote = path.join(root, 'elsewhere', 'origin.git');
+    expect(
+      redactLocalPaths(`fatal: '${remote}' does not appear to be a git repository`, { remote: [remote], home: null }),
+    ).toBe("fatal: '<remote>' does not appear to be a git repository");
+  });
 });

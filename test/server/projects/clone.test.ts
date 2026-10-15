@@ -94,6 +94,21 @@ describe('the hooks path of a clone (bug-008)', () => {
     expect(runner.requests[0]!.env).toMatchObject({ GIT_ALLOW_PROTOCOL: 'https:http:ssh:git:file', PATH: 'x' });
   });
 
+  it('F5: a real clone of an ext:: URL with GIT_ALLOW_PROTOCOL=ext in its environment is refused and runs nothing (bug-013)', async () => {
+    const { LocalProcessRunner } = await import('../../../server/src/process/runner.js');
+    const { resolveGit } = await import('../../../server/src/git/git.js');
+    const marker = path.join(root, 'f5-ext-ran');
+    const target = (await CloneTarget.inspect(path.join(root, 'f5', 'kanban')))!;
+    const error = await runClone(`ext::sh -c touch% ${marker}`, target, {
+      git: await resolveGit(),
+      runner: new LocalProcessRunner(),
+      env: { ...process.env, GIT_ALLOW_PROTOCOL: 'ext' },
+    }).catch((e: unknown) => e);
+    expect(error).toBeInstanceOf(GitCloneError);
+    expect((error as Error).message).toMatch(/transport 'ext' not allowed/);
+    await expect(stat(marker)).rejects.toThrow();
+  });
+
   it.each([
     ['missing', async () => path.join(root, 'no-such-file')],
     [

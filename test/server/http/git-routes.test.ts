@@ -6,7 +6,7 @@
 // sync status and its `repo` events, git's message redacted and never logged, cancellation, the
 // identity rule over the five write routes, and the allow-list of every git process.
 import type { FastifyInstance } from 'fastify';
-import { access, readFile, realpath, rm, writeFile } from 'node:fs/promises';
+import { access, chmod, mkdir, readFile, realpath, rm, symlink, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 import { GIT_ALLOWED_SUBCOMMANDS, gitSubcommand } from '../../../server/src/git/git.js';
@@ -21,6 +21,7 @@ import { startGitHttpRemote } from '../../e2e/support/git-http.js';
 import { processKind } from '../snapshot/support.js';
 import { startGitConsole, type GitConsole, type GitConsoleOptions } from './git-console.js';
 
+const posix = process.platform !== 'win32' && process.getuid?.() !== 0;
 const LOGIN = 'task-001-login-form'; // kanban: pending (gate); Morgan holds approver
 const TIMEOUT = 'task-004-session-timeout'; // kanban: draft
 const SECRET = 'marker-reason-task-033-9137';
@@ -160,15 +161,19 @@ describe('fetch (spec-010 §4, §5, RP-36, RP-40)', () => {
     const log: string[] = [];
     const c = await start({ log });
     await c.warm();
+    // A folder of the user's that is not a repository (a missing local path fails closed, D33-1).
     const missing = path.join(c.fx.dir, `${SECRET}.git`);
+    await mkdir(missing);
     await git(c.fx.dir, ['remote', 'set-url', 'origin', missing], c.fx.env);
     await c.check();
     const before = repoEvents(c).length;
     const res = await c.op('fetch');
     expect(res.status).toBe(422);
     expect(res.body.error.code).toBe('git-refused');
-    expect(res.body.error.message).toContain(`<project>/${SECRET}.git`);
+    // R1: a local remote's path is shown as <remote>, wherever it is.
+    expect(res.body.error.message).toContain('<remote>');
     expect(res.body.error.message).not.toContain(c.fx.dir);
+    expect(res.body.error.message).not.toContain(SECRET);
     const header = (await c.get(`/api/p/${c.pid}`)).body;
     expect(header.repository.sync.fetch.lastError).toEqual({ message: res.body.error.message, at: expect.any(String) });
     expect(repoEvents(c).length).toBe(before + 1);
@@ -227,6 +232,7 @@ describe('fetch (spec-010 §4, §5, RP-36, RP-40)', () => {
       const answered = await outcome;
       expect(answered.status).toBe(500);
       expect(c.runner.running).toBe(0);
+      await expectGroupGone(c, 'fetch');
       expect((await c.get(`/api/p/${c.pid}`)).body.repository.sync.fetch.lastError).toBeNull();
     } finally {
       remote.release();
@@ -234,6 +240,21 @@ describe('fetch (spec-010 §4, §5, RP-36, RP-40)', () => {
     }
   });
 });
+
+/** Review round 1 F4: no process of the transport's group survives (the git-remote-http child included). */
+async function expectGroupGone(c: GitConsole, op: string): Promise<void> {
+  const record = c.runner.spawned.find((r) => gitSubcommand(r.args) === op)!;
+  expect(record.pid).toBeDefined();
+  const alive = () => {
+    try {
+      process.kill(-record.pid!, 0);
+      return true;
+    } catch {
+      return false;
+    }
+  };
+  await expect.poll(alive, { timeout: 15_000 }).toBe(false);
+}
 
 describe('update (spec-010 §4–§5; TT-STATE-04; Y-05.1, Y-06.1, Y-06.2, G-12.x API side)', () => {
   it('in sync or only ahead: 200 with nothing to do, 0 transport processes (D33-9)', async () => {
@@ -514,6 +535,23 @@ describe('bug-012 (D33-5) — no local absolute path in a cli-refused body, per 
     expect(JSON.stringify(res.body)).not.toContain(c.fx.dir);
   });
 
+  it('F6: a reason WingFoil refuses as a usage error (exit 2) is answered without the local folders', async () => {
+    const c = await start({
+      intercept: async (request) => {
+        if (!request.args.join(' ').includes('memory approve')) return undefined;
+        const stderr = JSON.stringify({
+          error: `invalid flag value: --reason (see ${request.cwd}/.wingfoil/memory.yaml)`,
+        });
+        return { exitCode: 2, signal: null, stdout: '', stderr, ended: 'exit' as const, durationMs: 1 };
+      },
+    });
+    await c.warm();
+    const res = await c.write('approve', LOGIN, { expectedStatus: 'pending', reason: 'ok' });
+    expect(res.status).toBe(422);
+    expect(res.body.error.message).toContain('<project>/.wingfoil/memory.yaml');
+    expect(JSON.stringify(res.body)).not.toContain(c.fx.dir);
+  });
+
   it('a governed write (approve refused)', async () => {
     const c = await start({ intercept: refusing('memory approve') });
     await c.warm();
@@ -523,4 +561,179 @@ describe('bug-012 (D33-5) — no local absolute path in a cli-refused body, per 
     expect(res.body.error.message).toContain('<project>/.git/index.lock');
     expect(JSON.stringify(res.body)).not.toContain(c.fx.dir);
   });
+});
+
+describe('review round 1', () => {
+  it.runIf(posix)('S1: a file:// URL with a host to another user’s folder → 409 remote-not-owned (fetch)', async () => {
+    const c = await start();
+    await git(c.fx.dir, ['remote', 'set-url', 'origin', `file://127.0.0.1${path.parse(c.fx.dir).root}`], c.fx.env);
+    const p = await c.processes(async () => expect((await c.op('fetch')).body.error.code).toBe('remote-not-owned'));
+    expect(p.transport).toBe(0);
+  });
+
+  it.runIf(posix)(
+    'S2: a second push URL to another user’s folder → 409 remote-not-owned (push), the first one ours',
+    async () => {
+      const c = await start();
+      await git(c.fx.dir, ['remote', 'set-url', '--add', '--push', 'origin', c.fx.remoteDir], c.fx.env);
+      await git(c.fx.dir, ['remote', 'set-url', '--add', '--push', 'origin', path.parse(c.fx.dir).root], c.fx.env);
+      await writeFile(path.join(c.fx.dir, 'p.md'), 'p\n');
+      await git(c.fx.dir, ['add', 'p.md'], c.fx.env);
+      await git(c.fx.dir, ['commit', '-qm', 'p'], c.fx.env);
+      await c.check();
+      const p = await c.processes(async () => expect((await c.op('push')).body.error.code).toBe('remote-not-owned'));
+      expect(p.transport).toBe(0);
+    },
+  );
+
+  it.runIf(posix)(
+    'S3/S5: a remote written without .git, or through a link and .., to another user’s folder → refused',
+    async () => {
+      const c = await start();
+      const base = path.dirname(c.fx.dir);
+      await symlink(path.parse(base).root, path.join(base, 'theirs.git'));
+      await symlink(path.parse(base).root, path.join(base, 'link'));
+      for (const url of [path.join(base, 'theirs'), `${path.join(base, 'link')}/..`]) {
+        await git(c.fx.dir, ['remote', 'set-url', 'origin', url], c.fx.env);
+        await c.check();
+        expect((await c.op('fetch')).body.error.code, url).toBe('remote-not-owned');
+      }
+    },
+  );
+
+  it.runIf(posix)(
+    'S4/F1: a relative remote of a project in a sub-folder is resolved against the repository’s top level',
+    async () => {
+      const top = path.join(await realpath(ws.dir), 'sub-folder-repo');
+      const env = template.env;
+      await mkdir(path.join(top, 'proj'), { recursive: true });
+      await git(top, ['init', '-q', '-b', 'main'], env);
+      await writeFile(path.join(top, 'proj', 'a.md'), 'a\n');
+      await git(top, ['add', '-A'], env);
+      await git(top, ['-c', 'user.email=a@example.test', '-c', 'user.name=A', 'commit', '-qm', 'a'], env);
+      // `rel.git` next to the project is ours; at the top level it is another user's folder.
+      await git(path.join(top, 'proj'), ['init', '-q', '--bare', 'rel.git'], env);
+      await symlink(path.parse(top).root, path.join(top, 'rel.git'));
+      await git(top, ['remote', 'add', 'origin', 'rel.git'], env);
+      const { InProcessWriteLock } = await import('../../../server/src/process/write-lock.js');
+      const { createMemoryStateStore } = await import('../../../server/src/state/memory-store.js');
+      const { auditedSnapshots } = await import('../snapshot/support.js');
+      const audited = auditedSnapshots(env);
+      registries.push(audited.snapshots);
+      const store = await createMemoryStateStore();
+      const entry = await store.add({ path: path.join(top, 'proj'), name: 'proj', remote: '' });
+      const transport = new GitTransport({ snapshots: audited.snapshots, writeLock: new InProcessWriteLock(), env });
+      const outcome = await transport.run(entry, 'fetch', { info: () => {}, warn: () => {} });
+      expect(outcome.body).toMatchObject({ error: { code: 'remote-not-owned' } });
+      expect(audited.runner.spawned.filter((r) => gitSubcommand(r.args) === 'fetch')).toEqual([]);
+    },
+  );
+
+  it('F2: a git read failing under the lock → 500 internal, git’s message never logged', async () => {
+    const log: string[] = [];
+    let armed = false;
+    const c = await start({
+      log,
+      intercept: async (request) => {
+        if (!armed || gitSubcommand(request.args) !== 'remote') return undefined;
+        return {
+          exitCode: 128,
+          signal: null,
+          stdout: '',
+          stderr: `fatal: ${SECRET} in ${request.cwd}`,
+          ended: 'exit',
+          durationMs: 1,
+        };
+      },
+    });
+    await c.warm();
+    armed = true;
+    const res = await c.op('fetch');
+    expect(res).toEqual({ status: 500, body: { error: { code: 'internal', message: 'Internal error' } } });
+    const text = log.join('');
+    expect(text).not.toContain(SECRET);
+    expect(text).not.toContain(c.fx.dir);
+    expect(text).toContain('"project"');
+  });
+
+  it.each([
+    [
+      'behind',
+      async (c: GitConsole) => {
+        await c.remoteCommit('b.md', 'b\n');
+        await git(c.fx.dir, ['fetch', '-q', 'origin'], c.fx.env);
+      },
+    ],
+    [
+      'diverged',
+      async (c: GitConsole) => {
+        await c.remoteCommit('b.md', 'b\n');
+        await git(c.fx.dir, ['fetch', '-q', 'origin'], c.fx.env);
+        await writeFile(path.join(c.fx.dir, 'm.md'), 'm\n');
+        await git(c.fx.dir, ['add', 'm.md'], c.fx.env);
+        await git(c.fx.dir, ['commit', '-qm', 'm'], c.fx.env);
+      },
+    ],
+    ['detached', (c: GitConsole) => git(c.fx.dir, ['checkout', '-q', '--detach'], c.fx.env)],
+  ] as const)('F3: %s × submit, approve, reject → 409 stale-copy, 0 wingfoil processes', async (_copy, make) => {
+    const c = await start();
+    await make(c);
+    await c.check();
+    await c.warm();
+    for (const [verb, eid, body] of [
+      ['submit', TIMEOUT, { expectedStatus: 'draft' }],
+      ['approve', LOGIN, { expectedStatus: 'pending', reason: 'ok' }],
+      ['reject', LOGIN, { expectedStatus: 'pending', reason: 'no' }],
+    ] as const) {
+      const p = await c.processes(async () => {
+        const res = await c.write(verb, eid, body);
+        expect(res.status, verb).toBe(409);
+        expect(res.body.error.code).toBe('stale-copy');
+      });
+      expect(p.wingfoil, verb).toBe(0);
+    }
+  });
+
+  it('F4: a push is cancelled when the client leaves — no process of its group survives', async () => {
+    const remote = await startGitHttpRemote(path.join(await realpath(ws.dir), 'http-push'), { hold: true });
+    try {
+      const c = await start();
+      await git(c.fx.dir, ['remote', 'set-url', 'origin', `${remote.origin}/held.git`], c.fx.env);
+      await writeFile(path.join(c.fx.dir, 'held.md'), 'h\n');
+      await git(c.fx.dir, ['add', 'held.md'], c.fx.env);
+      await git(c.fx.dir, ['commit', '-qm', 'held'], c.fx.env);
+      const transport = new GitTransport({ snapshots: c.snapshots, writeLock: c.writeLock, env: c.fx.env });
+      const abort = new AbortController();
+      const outcome = transport.run(c.store.get(c.pid)!, 'push', { info: () => {}, warn: () => {} }, abort.signal);
+      await expect.poll(() => remote.requests(), { timeout: 60_000 }).toBeGreaterThan(0);
+      abort.abort();
+      expect((await outcome).status).toBe(500);
+      expect(c.runner.running).toBe(0);
+      await expectGroupGone(c, 'push');
+    } finally {
+      remote.release();
+      await remote.close();
+    }
+  });
+
+  it('S9: a JSON null body → 400 invalid-request', async () => {
+    const c = await start();
+    const res = await c.op('fetch', { payload: 'null', contentType: 'application/json' });
+    expect(res.status).toBe(400);
+    expect(res.body.error.code).toBe('invalid-request');
+  });
+
+  it.runIf(posix)(
+    'R3: a relative PATH entry never reaches the transport (an `ssh` in the repository does not run)',
+    async () => {
+      const marker = path.join(await realpath(ws.dir), `ssh-ran-${Date.now()}`);
+      const c = await start({ env: (fx) => ({ ...fx.env, PATH: `.:${fx.env.PATH ?? ''}` }) });
+      await writeFile(path.join(c.fx.dir, 'ssh'), `#!/bin/sh\ntouch '${marker}'\nexit 1\n`);
+      await chmod(path.join(c.fx.dir, 'ssh'), 0o755);
+      await git(c.fx.dir, ['remote', 'set-url', 'origin', 'ssh://git@example.invalid/x.git'], c.fx.env);
+      await c.check();
+      expect((await c.op('fetch')).status).toBe(422);
+      expect(await exists(marker)).toBe(false);
+    },
+  );
 });

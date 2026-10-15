@@ -104,6 +104,12 @@ describe('transport environment (spec-010 §4, RP-24, D33-2)', () => {
     expect(ALLOWED_PROTOCOLS.split(':')).toEqual(fromSettings);
   });
 
+  it('R3: keeps only the absolute entries of PATH (a relative entry would resolve in the repository)', () => {
+    const sep = process.platform === 'win32' ? ';' : ':';
+    const env = transportEnv(true, { PATH: ['.', '/a/bin', 'rel/bin', '', '/b'].join(sep) });
+    expect(env.PATH).toBe(['/a/bin', '/b'].join(sep));
+  });
+
   it('adds ssh BatchMode only when no ssh command is configured', () => {
     expect(transportEnv(false)).toEqual({
       GIT_TERMINAL_PROMPT: '0',
@@ -116,7 +122,8 @@ describe('transport environment (spec-010 §4, RP-24, D33-2)', () => {
     [{}, false],
     [{ GIT_SSH_COMMAND: 'ssh -i k' }, true],
     [{ GIT_SSH: 'plink' }, true],
-    [{ git_ssh_command: 'ssh' }, true],
+    // POSIX names are case-sensitive (review round 1 S9): a lower-case name is another variable.
+    [{ git_ssh_command: 'ssh' }, process.platform === 'win32'],
     [{ GIT_SSH_COMMAND: '' }, false],
   ])('ssh command in the environment %j → %s', (env, expected) => {
     expect(sshInEnvironment(env)).toBe(expected);

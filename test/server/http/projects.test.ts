@@ -1100,4 +1100,16 @@ describe('bug-010 (task-033 D33-1) — a local repository of another user is nev
       expect(await list(w)).toEqual([]);
     },
   );
+
+  it.runIf(process.platform !== 'win32' && process.getuid?.() !== 0)(
+    'S1: a file:// URL with a host is a local path too → 422 remote-not-owned',
+    async () => {
+      const w = await world();
+      await refusal(
+        await clone(w, { url: `file://127.0.0.1${path.parse(w.dir).root}`, directory: '~/projects/rooted-2' }),
+        'remote-not-owned',
+      );
+      expect(await list(w)).toEqual([]);
+    },
+  );
 });
