@@ -17,6 +17,11 @@ All notable changes to WingFoil UI are recorded in this file. The format follows
   reason, *Action required* for an undeclared state), state and one action opening the element
   panel; *Waiting on others* with who must act (a member, the members of a role, or the workflow
   engine). Live-refreshed; read-only for a user not in the team, with *How to join*.
+- **Gate footer** (US-G-04…US-G-07, US-G-09, US-S-24): the element panel decides a gate — every
+  outcome side by side (*Approve → …*, each *Reject → …*), a reason required for every outcome and
+  pre-filled for an approval, two clicks from Today; an informational footer for a member without
+  the gate's role, a read-only line for a user not in the team, and the *Waiting for the workflow
+  engine* and *Final state* notes where no action is possible.
 
 ### Changed
 

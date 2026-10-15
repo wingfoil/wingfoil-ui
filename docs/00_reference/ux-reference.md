@@ -1,6 +1,6 @@
 # UX reference — WingFoil UI
 
-**Version:** 1.2 · **Date:** 2026-10-14 (0.2: §9 colours aligned with spec-009 — release-planning v0.1 session 2; 0.3: §3 start page with no project open, §5 modal dismissal — dev-loop task-013, decided by the user; 0.4: §4.2 v0.1 read-only panel — dev-loop task-018, decided by the user; 0.5: §4.4 and §4.9 in v0.1 — dev-loop tasks 017 and 020, decided by the user; 0.6: §4.2 panel directives, §4.5, §4.6, §4.10 in v0.1 — dev-loop task-019, decided by the user; 0.7: §3 project switcher in v0.1 (grid rows, removal confirmation, unavailable entries, trigger text) — dev-loop task-015, Wave 4, decided by the user; 0.8: §4.2 non-modal drawer — dev-loop task-015, W4-8, decided by the user; §3 keyboard wording and §4.2 v0.1 bullet aligned after review; 0.9: §3 add-project modal in v0.1 — dev-loop task-014, Wave 4, decided by the user; 1.0: §3 current user, role view and project header strip in v0.1 — dev-loop task-016, Wave 4, decided by the user; 1.1: §3 *How to join* panel — dev-loop task-035, D35-1…D35-9, decided by the approver; identity changes while open — review round 1; 1.2: §4.1 *Today* in v0.2 — dev-loop task-036, D36-1…D36-11, decided by the approver) · **Status:** Reference for `lean-inception` and `specification-downcast`
+**Version:** 1.3 · **Date:** 2026-10-15 (0.2: §9 colours aligned with spec-009 — release-planning v0.1 session 2; 0.3: §3 start page with no project open, §5 modal dismissal — dev-loop task-013, decided by the user; 0.4: §4.2 v0.1 read-only panel — dev-loop task-018, decided by the user; 0.5: §4.4 and §4.9 in v0.1 — dev-loop tasks 017 and 020, decided by the user; 0.6: §4.2 panel directives, §4.5, §4.6, §4.10 in v0.1 — dev-loop task-019, decided by the user; 0.7: §3 project switcher in v0.1 (grid rows, removal confirmation, unavailable entries, trigger text) — dev-loop task-015, Wave 4, decided by the user; 0.8: §4.2 non-modal drawer — dev-loop task-015, W4-8, decided by the user; §3 keyboard wording and §4.2 v0.1 bullet aligned after review; 0.9: §3 add-project modal in v0.1 — dev-loop task-014, Wave 4, decided by the user; 1.0: §3 current user, role view and project header strip in v0.1 — dev-loop task-016, Wave 4, decided by the user; 1.1: §3 *How to join* panel — dev-loop task-035, D35-1…D35-9, decided by the approver; identity changes while open — review round 1; 1.2: §4.1 *Today* in v0.2 — dev-loop task-036, D36-1…D36-11, decided by the approver; 1.3: §4.2 *Gate footer* in v0.2 — dev-loop task-037, D37-1…D37-12, decided by the approver) · **Status:** Reference for `lean-inception` and `specification-downcast`
 **Prototype:** `docs/00_reference/prototype/` (interactive HTML; sample data from the WingFoil
 repository and from a fictional Kanban project `acme-checkout`)
 
@@ -99,6 +99,19 @@ rows is announced politely with the new count; a failed read is an error, never 
   as primary. Reason optional to approve (configurable), mandatory to reject. If
   self-approval is forbidden and the user submitted the element, an explanation replaces
   the action.
+- **v0.2 gate footer (dev-loop task-037, decided by the approver, D37-1…D37-12):** deviations from
+  the prototype and the bullet above — the reason is **required for approve too**, pre-filled with an
+  editable default ("Approved via WingFoil UI", selected on focus; an untouched default is cleared
+  when a reject takes the focus and restored when Approve takes it back), as US-G-06 states; the
+  order is reason · **Approve → <state>** (primary) · each **Reject → <state>** · *Cancel* (approve
+  first, so Tab from the reason never crosses a reject); outcomes stay focusable when disabled, the
+  reason ("A reason is required", or the descriptor's blocked reason) being their description;
+  opened from Today's *Approve*/*Review* the reason has the focus. Where the user cannot decide the
+  footer is a line instead: "Reserved to <role> — <members> can act" (role not held), "Read-only:
+  <email> is not in the team — How to join" or "Read-only: see the notice above the view" (not
+  identified), "Waiting for the workflow engine (state: <s>)", "Final state: no action is possible";
+  a gate that is also a waiting state offers only its reject, with "Waiting for the workflow engine
+  to advance". After a decision the panel stays open on the new state (the toast is task-038's).
 - **Single-action footer** otherwise (Submit for review, Launch agent, Start review).
 - **Edit mode**: title, summary, references (add with Enter, remove ×) → "Save and commit".
 - **v0.1 (read-only, dev-loop task-018):** the panel is the route `/p/:pid/e/:eid`, a drawer
