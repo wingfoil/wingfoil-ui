@@ -6,7 +6,7 @@
  * | Operation | Arguments (after the settings) |
  * |-----------|--------------------------------|
  * | fetch | `-c fetch.pruneTags=false --config-env=remote.<remote>.pruneTags=<empty> fetch --quiet --prune --no-recurse-submodules -- <remote>` — prunes tracking refs only (task-034 D34-5, bug-014) |
- * | update (manual) | `--config-env=branch.<b>.mergeOptions=<empty> pull --ff-only --no-squash --strategy=ort --no-rebase --no-autostash --no-recurse-submodules --quiet` |
+ * | update (manual) | `-c fetch.pruneTags=false --config-env=remote.<r>.pruneTags=<empty> --config-env=branch.<b>.mergeOptions=<empty> pull --no-prune --ff-only --no-squash --strategy=ort --no-rebase --no-autostash --no-recurse-submodules --quiet` |
  * | update (automatic) | `--config-env=branch.<b>.mergeOptions=<empty> merge --ff-only --no-squash --strategy=ort --no-edit --no-stat --no-autostash --quiet -- @{u}` (task-034, RP-41) |
  * | push | `push --quiet --no-follow-tags --recurse-submodules=no -- <remote> HEAD:<merge ref>` — never forced: no `+`, an explicit refspec |
  *
@@ -71,14 +71,20 @@ export function fetchArgs(remote: string): string[] {
 }
 
 /**
- * The manual update: `git pull --ff-only` of the upstream of `branch` (spec-010 §4, RP-37: not
- * cancellable), never a merge commit nor a squash (bug-014).
+ * The manual update: `git pull --ff-only` of the upstream of `branch` on `remote` (spec-010 §4,
+ * RP-37: not cancellable), never a merge commit nor a squash (bug-014), and its own fetch prunes
+ * nothing (`--no-prune`, tag pruning off: `fetch.prune` would otherwise apply, review R1).
  */
-export function pullArgs(branch: string): string[] {
+export function pullArgs(branch: string, remote: string): string[] {
   return [
     ...TRANSPORT_SETTINGS,
+    // The pull's own fetch follows `fetch.prune` / `remote.<r>.prune*`: no pruning there (review R1).
+    '-c',
+    'fetch.pruneTags=false',
+    emptied(`remote.${remote}.pruneTags`),
     emptied(`branch.${branch}.mergeOptions`),
     'pull',
+    '--no-prune',
     '--ff-only',
     '--no-squash',
     '--strategy=ort',

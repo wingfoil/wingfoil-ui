@@ -64,10 +64,14 @@ describe('transport arguments (spec-010 §4)', () => {
   });
 
   it('update: pull --ff-only of the upstream, never a merge commit nor a squash (D34-2 / bug-014), no rebase, no autostash, no submodules', () => {
-    expect(pullArgs('main')).toEqual([
+    expect(pullArgs('main', 'origin')).toEqual([
       ...SETTINGS,
+      '-c',
+      'fetch.pruneTags=false',
+      '--config-env=remote.origin.pruneTags=WINGFOIL_UI_EMPTY',
       '--config-env=branch.main.mergeOptions=WINGFOIL_UI_EMPTY',
       'pull',
+      '--no-prune',
       '--ff-only',
       '--no-squash',
       '--strategy=ort',
@@ -124,14 +128,14 @@ describe('transport arguments (spec-010 §4)', () => {
   it('uses allowed subcommands only (REQ-INT-06)', () => {
     for (const args of [
       fetchArgs('origin'),
-      pullArgs('main'),
+      pullArgs('main', 'origin'),
       mergeArgs('main'),
       pushArgs('origin', 'refs/heads/main'),
     ]) {
       expect(GIT_ALLOWED_SUBCOMMANDS).toContain(gitSubcommand(args));
     }
     expect(['fetch', 'pull', 'merge', 'push']).toEqual(
-      [fetchArgs('o'), pullArgs('m'), mergeArgs('m'), pushArgs('o', 'refs/heads/m')].map(gitSubcommand),
+      [fetchArgs('o'), pullArgs('m', 'o'), mergeArgs('m'), pushArgs('o', 'refs/heads/m')].map(gitSubcommand),
     );
     expect(gitSubcommand([...noHooksArgs('/x'), ...mergeArgs('m')])).toBe('merge');
   });

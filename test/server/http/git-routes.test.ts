@@ -292,7 +292,7 @@ describe('update (spec-010 §4–§5; TT-STATE-04; Y-05.1, Y-06.1, Y-06.2, G-12.
       expect(res.body.repository).toMatchObject({ copy: 'in-sync', behind: 0 });
     });
     expect(u.transport).toBe(1);
-    expect(c.runner.spawned.find((r) => gitSubcommand(r.args) === 'pull')!.args).toEqual(pullArgs('main'));
+    expect(c.runner.spawned.find((r) => gitSubcommand(r.args) === 'pull')!.args).toEqual(pullArgs('main', 'origin'));
     expect(await c.head()).toBe(remoteHead);
     expect(await readFile(path.join(c.fx.dir, 'from-jordan.md'), 'utf8')).toBe('hi\n');
     await c.warm();

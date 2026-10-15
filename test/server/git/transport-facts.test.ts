@@ -99,7 +99,7 @@ describe('D33-3 — automatic maintenance', () => {
     const plain = await run('git', ['fetch', '-q', '--', 'origin'], { cwd: work(), env: { ...env, GIT_TRACE: '1' } });
     expect(plain.stderr).toMatch(/run_command: git maintenance run --auto/);
     await remoteCommit('m2.md');
-    for (const args of [fetchArgs('origin'), pullArgs('main')]) {
+    for (const args of [fetchArgs('origin'), pullArgs('main', 'origin')]) {
       const traced = await run('git', args, { cwd: work(), env: { ...env, GIT_TRACE: '1', ...transportEnv(true) } });
       expect(traced.stderr, args.join(' ')).not.toMatch(/maintenance|\bgc\b/);
     }
@@ -126,7 +126,7 @@ describe('spec-010 §1, §4', () => {
     await git(work(), ['add', '-A'], env);
     await git(work(), ['commit', '-qm', 'mine'], env);
     const head = (await git(work(), ['rev-parse', 'HEAD'], env)).stdout.trim();
-    const result = await run('git', pullArgs('main'), {
+    const result = await run('git', pullArgs('main', 'origin'), {
       cwd: work(),
       env: { ...env, ...transportEnv(true) },
       allowFailure: true,
@@ -231,7 +231,7 @@ describe('task-034 — bug-014, D34-1 … D34-3: what git does, and the argument
   ])(
     'D34-2 / bug-014: on branch %s with %s = %s, pullArgs and mergeArgs fast-forward: one parent, HEAD = upstream, nothing staged',
     async (branch, key, value) => {
-      for (const args of [pullArgs(branch), mergeArgs(branch)]) {
+      for (const args of [pullArgs(branch, 'origin'), mergeArgs(branch)]) {
         const dir = await behind(branch);
         await git(dir, ['config', key, value], env);
         await run('git', args, { cwd: dir, env: transport() });

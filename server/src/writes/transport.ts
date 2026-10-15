@@ -237,7 +237,7 @@ export class GitTransport {
       const local = await localRemoteProblem(urls, snapshot.topLevel, { ...this.home() });
       if (local) return refuse(local);
       const branch = state.branch ?? '';
-      return { args: automatic ? mergeArgs(branch) : pullArgs(branch), urls, remote };
+      return { args: automatic ? mergeArgs(branch) : pullArgs(branch, remote), urls, remote };
     }
     // push
     const mergeRef = await snapshot.git.configValue(`branch.${state.branch ?? ''}.merge`);

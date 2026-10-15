@@ -100,7 +100,7 @@ cancelled process group or the server) and `--no-optional-locks`.
 | Operation | Arguments (after the settings) |
 |-----------|-----------------------------------------|
 | fetch | `-c fetch.pruneTags=false --config-env=remote.<remote>.pruneTags=<empty> fetch --quiet --prune --no-recurse-submodules -- <remote>` — prunes remote-tracking refs only |
-| update (manual) | `--config-env=branch.<b>.mergeOptions=<empty> pull --ff-only --no-squash --strategy=ort --no-rebase --no-autostash --no-recurse-submodules --quiet` — the upstream only |
+| update (manual) | `-c fetch.pruneTags=false --config-env=remote.<remote>.pruneTags=<empty> --config-env=branch.<b>.mergeOptions=<empty> pull --no-prune --ff-only --no-squash --strategy=ort --no-rebase --no-autostash --no-recurse-submodules --quiet` — the upstream only |
 | update (automatic, §6) | `--config-env=branch.<b>.mergeOptions=<empty> merge --ff-only --no-squash --strategy=ort --no-edit --no-stat --no-autostash --quiet -- @{u}` — local only: fast-forwards to the tracking ref the tick's fetch just updated, no network |
 | push | `push --quiet --no-follow-tags --recurse-submodules=no -- <remote> HEAD:<merge ref>` — `<remote>` and `<merge ref>` from `git config --get branch.<branch>.remote` / `.merge`; an explicit refspec without `+`, so configured push refspecs and `push.default` play no part and the push is **never forced** |
 
@@ -111,7 +111,8 @@ cancelled process group or the server) and `--no-optional-locks`.
   squash, and the branch's `mergeOptions` is emptied with `--config-env` (`<empty>` is a variable of
   the command's environment set to the empty string; `-c` would split a branch name holding `=` at
   its first `=` and be ignored). `fetch.pruneTags` / `remote.<r>.pruneTags` would make `--prune`
-  delete local tags: both are turned off. A fetch whose remote has a configured refspec
+  delete local tags: both are turned off, and the pull's own fetch prunes nothing (`--no-prune`:
+  `fetch.prune` / `remote.<r>.prune` would apply there, task-034 review R1). A fetch whose remote has a configured refspec
   (`remote.<r>.fetch`) writing outside `refs/remotes/` — or none at all — is refused before any
   transport process (`refspec-outside-remotes`, §5): with a detached HEAD, `--prune` would delete
   local branches and their reflogs; a negative refspec or one without destination writes nothing.
