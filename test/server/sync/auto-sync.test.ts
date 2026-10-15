@@ -503,7 +503,11 @@ describe('security review S1 (task-034 W4-5) — configuration from the working 
       expect(p.transport).toBe(0);
       expect(spawnedOf(s.c, 'merge')).toHaveLength(0);
       expect(s.log.lines).toContainEqual(expect.objectContaining({ code: 'config-in-worktree' }));
-      expect((await header(s.c)).sync.fetch).toEqual({ lastSuccessAt: null, lastError: null });
+      // W4-14: visible — recorded as the fetch's last error.
+      expect((await header(s.c)).sync.fetch).toMatchObject({
+        lastSuccessAt: null,
+        lastError: { code: 'config-in-worktree', message: '' },
+      });
     },
   );
 
@@ -553,6 +557,7 @@ describe('security review S1 (task-034 W4-5) — configuration from the working 
     );
     expect((await s.tick()).transport).toBe(0);
     expect(s.log.lines).toContainEqual(expect.objectContaining({ code: 'config-in-worktree' }));
+    expect((await header(s.c)).sync.fetch.lastError).toMatchObject({ code: 'config-in-worktree' });
   });
 
   it('the server’s own status reads run no fsmonitor program (included from the working tree)', async () => {
@@ -596,5 +601,32 @@ describe('W4-10 (b) — the stop waits for a running automatic merge', () => {
     await stopping;
     await tick;
     expect(await s.c.head()).toBe(await remoteHead(s.c));
+  });
+});
+
+describe('W4-14 — the update skipped for its configuration is recorded', () => {
+  it('configuration clean at the fetch, an include into the working tree before the merge → update.lastError config-in-worktree, no merge', async () => {
+    let listings = 0;
+    let dir = '';
+    const s = await start(
+      { autoUpdate: true },
+      {
+        intercept: async (request, real) => {
+          if (gitSubcommand(request.args) !== 'config' || !request.args.includes('--show-origin')) return undefined;
+          listings += 1;
+          const answer = await real(request);
+          if (listings < 2) return answer;
+          // The second listing (before the merge) shows a setting from a file of the working tree.
+          return { ...answer, stdout: `${answer.stdout}local\0file:${dir}/.wfui-config\0wfui.x\n1\0` };
+        },
+      },
+    );
+    dir = s.c.fx.dir;
+    await writeFile(path.join(dir, '.wfui-config'), '[wfui]\n\tx = 1\n');
+    await s.c.remoteCommit('from-jordan.md', 'hi\n');
+    await s.tick();
+    expect(listings).toBeGreaterThanOrEqual(2);
+    expect(spawnedOf(s.c, 'merge')).toHaveLength(0);
+    expect((await header(s.c)).sync.update.lastError).toMatchObject({ code: 'config-in-worktree' });
   });
 });
