@@ -353,3 +353,51 @@ whose configured refspecs write outside `refs/remotes/` → 409 `refspec-outside
 transport processes; the automatic fetch skips it. *Verified by:* `test/server/git/transport-facts.test.ts`
 (the bug reproduced with git's defaults), `test/server/http/git-routes.test.ts`,
 `test/server/sync/auto-sync.test.ts`."
+
+### red / green / refactor (2026-10-15)
+
+- **Contracts first (RP-43)** — `f25f307`: `repository.schema.json` `sync.fetch.lastError.code`
+  (`fetch-timeout`, D34-9), `git.refusal.schema.json` `refspec-outside-remotes` (D34-8),
+  `SyncError.code?`, `GitTransportRefusalCode` + `refspec-outside-remotes` (excluded from
+  `UpdateSyncError`); rows of `test/contracts/api-git-schema.test.ts`, seen failing (2) against the
+  previous schemas before the schema change, committed together.
+- **Catalogue** — red `75cb249` (`push-timeout`, `fetch-timeout`, `refspec-outside-remotes` rows of
+  `test/web/api/error-message.test.ts`: 4 failures), green `ffb1988` (`MESSAGES` rows,
+  `error.fetchTimeout`, `error.pushTimeout`, `error.refspecOutsideRemotes` inserted in sorted place).
+- **bug-014 and the D34 arguments** — red `7bc9fd9`: `transport.test.ts` (argument arrays,
+  `trackingRefspecs`, `unattendedEnv`), `transport-facts.test.ts` (probes 1, 3, 4, 6, 8 reproduced
+  with git's defaults, then held by the arguments), `git-routes.test.ts` › bug-014 (8 failures on
+  the routes: merge commit with `-s ours` / `pull.twohead=ours`, a staged squash, a pruned tag, the
+  refspec refusals). Green `0195f60`: `fetchArgs` / `pullArgs(branch)` / `mergeArgs(branch)` /
+  `noHooksArgs` / `trackingRefspecs` / `unattendedEnv` / `EMPTY_VARIABLE` /
+  `UNATTENDED_TIMEOUT_MS` (`server/src/git/transport.ts`), `merge` in `GIT_ALLOWED_SUBCOMMANDS` (the
+  comment now "never a merge commit"), `GitReads.configValues`, `GitTransport.plan` public (the
+  fetch refuses `refspec-outside-remotes`; `automatic` selects `mergeArgs`).
+- **Scheduler, automatic sync, auto-push** — red `8f107eb` (`test/server/sync/scheduler.test.ts`,
+  `test/server/sync/auto-sync.test.ts`, `test/server/http/auto-push.test.ts`; files did not load),
+  green `56bf45d`: `server/src/sync/scheduler.ts` (`SyncScheduler`), `server/src/sync/auto-sync.ts`
+  (`AutoSync`), `server/src/writes/auto-push.ts` (`AutoPush`), `Snapshots.openProjects()`,
+  `ProjectSnapshot.operationInProgress()` / `OPERATION_MARKERS`, `SyncStatus.fetchFailed(…, code?)`;
+  `git-console.ts` gains `autoPush`, `bus`, `env`. The tests passed on their first run after the
+  module existed, so each guard was removed in turn and its test seen failing, then restored:
+  scheduler — the busy-lock skip, the overlapping-tick skip (the test then also asserts the skipped
+  ticks read no settings: without it the lock skip hid the missing guard), `autoFetch` read per
+  group, the re-arm during a tick, the `settings` subscription; auto-sync — `noHooksArgs` on the
+  fetch and on the merge, `unattendedEnv`, the identity check (RP-14), the in-progress check, the
+  one-fetch-per-group reuse; auto-push — `autoPush` off, the `push-timeout` mapping.
+- **Launcher** — red `8d7e307` (`test/launcher/auto-sync.test.ts`: the auto-push test failed on the
+  bin), green `97bfe0f` (`start.ts`: one `GitTransport`, `AutoPush` passed to the element-write
+  routes, `SyncScheduler` + `AutoSync` started after `projects.start()`, a stop hook registered
+  before the process termination). A first green run showed a race in the test (it polled HEAD,
+  then read the header before the console's own check): it now polls the header.
+- **Timing** — `eafbca2`: `test/timing/auto-sync.timing.test.ts` (TT-PERF-07; the `GIT_TRACE` file
+  must hold the header's `git status`, so 0 fetches is not vacuous).
+- **Docs** — `93457d1`: spec-010 §3–§6, §8, §9 and spec-004 §5 amended with dated Process Notes;
+  `docs/user-guide.md` 0.10 (*Automatic sync with the remote*); `CHANGELOG.md` *Unreleased* (Added:
+  automatic sync; Fixed: bug-014); `test/README.md` 0.35.
+- **Deviations from the design:** the automatic update runs when the copy is behind its upstream
+  (`behind > 0`), so a diverged copy records `diverged` (as the manual update does) instead of
+  being ignored; a `GitTransport` getter `environment` and method `sshConfigured` were added for the
+  unattended runs; the scheduler takes the lock as `{ isBusy, run }` (no port change). No existing
+  suite counts git processes over time on the real bin (the process audits build their own app
+  without a scheduler); `test/README.md` says how a new one must seed `autoFetch: false`.
