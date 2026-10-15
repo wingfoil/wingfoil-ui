@@ -227,7 +227,12 @@ test('X-09.1 recorder: a request of the page left after a reset is not the next 
   // The old page reads between the reset and the navigation of the next screen.
   await page.evaluate(() => fetch('/api/old').then((r) => r.text()));
   await page.goto('http://wfui.test/next');
-  expect(await screenTextsOutsideCatalogue(page, recorder)).toEqual(['p: kanban']);
+  // What is flagged names the reads set aside as the left page's (R5-1): a read of the new page
+  // whose request event came before the navigation's would show here as the cause.
+  expect(await screenTextsOutsideCatalogue(page, recorder)).toEqual([
+    'p: kanban',
+    'ignored as a read of the page left: GET /api/old',
+  ]);
 });
 
 test('X-09.1 check: no retry without new data — a transient text is flagged (R4-3)', async ({ page }) => {
