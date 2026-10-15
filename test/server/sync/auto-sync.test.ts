@@ -179,8 +179,9 @@ describe('the automatic fetch (spec-010 §6; Y-02.1, Y-02.3 API side)', () => {
       await s.tick();
       await expect(access(asked)).rejects.toThrow();
       const error = (await header(s.c)).sync.fetch.lastError;
-      expect(error.message).toContain(MARKER);
+      expect(error.message).toMatch(/terminal prompts disabled/);
       expect(error.code).toBeUndefined();
+      expect(JSON.stringify(s.log.lines)).not.toContain('terminal prompts');
       expect(JSON.stringify(s.log.lines)).not.toContain(MARKER);
     } finally {
       await new Promise((r) => server.close(r));

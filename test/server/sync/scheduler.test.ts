@@ -188,6 +188,8 @@ describe('the rules of a tick (spec-010 §6, RP-40, RP-41)', () => {
     await advance(60);
     await advance(60);
     expect(work.synced.length).toBe(1);
+    // The skipped ticks did not even read the settings.
+    expect(settings.reloads).toBe(1);
     work.release();
     await flush();
     expect(work.synced.length).toBe(1);

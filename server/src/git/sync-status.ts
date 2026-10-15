@@ -8,13 +8,19 @@
  * until the next successful update or a change of the copy state (spec-010 §5), which sends its
  * own `repo` event (the key moves).
  */
-import type { RepositoryCopy, RepositoryStatus, RepositorySync, UpdateSyncError } from '@wingfoil-ui/contracts';
+import type {
+  RepositoryCopy,
+  RepositoryStatus,
+  RepositorySync,
+  SyncError,
+  UpdateSyncError,
+} from '@wingfoil-ui/contracts';
 import type { EventBus } from '../events/bus.js';
 import type { RepoState } from '../snapshot/state.js';
 
 interface Entry {
   lastSuccessAt: string | null;
-  fetchError: { message: string; at: string } | null;
+  fetchError: SyncError | null;
   updateError: UpdateSyncError | null;
   /** The copy when the update error was recorded. */
   updateCopy: RepositoryCopy | undefined;
@@ -62,11 +68,14 @@ export class SyncStatus {
     }
   }
 
-  /** A fetch failed with git's (redacted) `message`. */
-  fetchFailed(pid: string, message: string, at: Date): void {
+  /**
+   * A fetch failed with git's (redacted) `message`; `code` `fetch-timeout`: an automatic fetch
+   * killed after 60 s (task-034 D34-9).
+   */
+  fetchFailed(pid: string, message: string, at: Date, code?: SyncError['code']): void {
     const entry = this.entry(pid);
-    const same = entry.fetchError?.message === message;
-    entry.fetchError = { message, at: isoSeconds(at) };
+    const same = entry.fetchError?.message === message && entry.fetchError.code === code;
+    entry.fetchError = { ...(code ? { code } : {}), message, at: isoSeconds(at) };
     if (!same) this.changed(pid);
   }
 
