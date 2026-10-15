@@ -424,3 +424,52 @@ e2e closure (scenario → spec file › test):
 | S-11.1 (TT-SEC-07) | task-039-repository-status-and-fetch-in-the-sidebar, on this footer |
 | TT-SEC-07 server part (0 role rules) | task-032 `test/server/http/element-writes.test.ts` (approve without `approver` → 422 `cli-refused`) |
 | X-06.4 / X-09.1 | `test/e2e/accessibility.spec.ts` › "X-06.4 — Pass the axe scan: element panel — gate footer, reason empty", "… : element panel — waiting for the workflow engine", "… : element panel — read-only, not in team" and the X-09.1 tests of the same screens |
+
+### review round 1 (2026-10-15)
+
+Independent review: **CHANGES REQUESTED** (2 major, 2 minor, 6 nits; F10 is the coordinator's plan
+hand-over). Changes (`f0291b7`, `5dc48c8`); red first: the five new `gate-footer.test.tsx` cases
+failed with `ElementFooter.tsx`, `ElementPanel.tsx` and `routes/element.tsx` at `e993d48` (fault
+injection, not committed), and pass on the fixes.
+
+- **F1 (major)** — a Reject click that does not focus its button (Safari and Firefox on macOS, a
+  tap) sent the approval's default as the rejection reason. Change: the G-06.3 rule also runs in the
+  click path — a reject with the untouched default clears the field (`autoCleared`) and sends
+  nothing. Test: `fireEvent.click` without focus → field empty, no `POST`.
+- **F2 (major)** — the refusal alert lived inside the gate footer, so a refetch to a final,
+  waiting, reserved or empty footer removed it. Change: the `role="alert"` region is rendered by
+  `ElementFooter` next to the status region, outside the part that follows the state. Test: 409
+  `element-changed`, the refetch answers a final element, the alert is still shown.
+- **F3 (minor)** — `docs/user-guide.md` Version line → 0.7 · 2026-10-15.
+- **F4 (minor)** — after a success the old outcomes were enabled again until the refetch landed.
+  Change: `decidedFrom` (the status the decision was made from) keeps them disabled while the
+  element still has that status. Test: a refetch answering the old state → both outcomes
+  `aria-disabled`.
+- **F5 (nit)** — D37-9 said the heading, the code focused the dialog. Change: the panel title
+  (`Heading`, `tabIndex={-1}`) takes the focus. Test asserted.
+- **F6 (nit)** — the status text now uses the server's `result.to` (the client's `to` only when
+  the answer has none). Test: the answer's `s9` is announced.
+- **F7 (nit)** — the history state `gateFocus` survived a reload or a Back to the panel. Change:
+  once the reason took the focus, the route replaces its history entry without `gateFocus`
+  (`router.history.replace`, same `href`, the other state kept). D37-1's rationale is corrected
+  accordingly: a reload or a Back does not move the focus because the request is dropped once
+  used, not because history state does not survive. Test asserted.
+- **F8 (nit)** — the native outcome buttons get the hover of `base.css`'s buttons
+  (`.gate-outcome:hover:not([aria-disabled='true'])`, primary and danger variants) in
+  `element.css`.
+- **F9 (nit)** — the reason textarea is described by "A reason is required" while blank. Test.
+- **F11 (nit)** — the D37-13 rule accepts only the field names the panel lists under References
+  (`fieldEntries` of `web/src/element/model.ts`, so `id`, `type`, `title`, `status` are not);
+  self-test case `dt.field-name: id` flagged.
+
+Checks after review round 1 (HEAD `5dc48c8`):
+
+| Gate | Result | Load |
+|------|--------|------|
+| `npm run typecheck`, `npm run lint`, `npm run format:check`, `npm run docs:api`, `check_tasks.py v0.2` | clean / OK | — |
+| `npm run test:coverage` | 140 files passed, 1 skipped; **2485 passed / 1 skipped**; statements 96.73 %, branches 91.61 %, functions 97.35 %, lines 98.36 % | 34.9 → 33.1 |
+| `npm run test:e2e:chromium` (whole suite) | **223 passed**, 0 failed (16.8 min) | 33.1 → 31.8 |
+| `npm run test:e2e -- gate-footer.spec.ts element-panel.spec.ts harness/a11y-support.spec.ts` (three engines) | **99 passed**, 0 failed (6.1 min) | 31.8 → 27.4 |
+| `npm run test:timing` | skipped (load ≥ 12) | 27.4 |
+
+No console left, no `wfui-*` entry in the system temporary directory.
