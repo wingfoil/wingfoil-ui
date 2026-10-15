@@ -22,6 +22,10 @@ import { InProcessWriteLock } from '../process/write-lock.js';
 import { ProjectList } from '../projects/project-list.js';
 import { Snapshots } from '../snapshot/snapshots.js';
 import { openFileStateStore } from '../state/file-store.js';
+import { AutoSync } from '../sync/auto-sync.js';
+import { SyncScheduler } from '../sync/scheduler.js';
+import { AutoPush } from '../writes/auto-push.js';
+import { GitTransport } from '../writes/transport.js';
 import { findProjectContaining } from '../state/location.js';
 import { listenLoopback, NoFreePortError, PortInUseError } from './listen.js';
 import { openBrowser, type Spawner } from './opener.js';
@@ -139,6 +143,17 @@ export async function runLauncher(argv: readonly string[], io: LauncherIo): Prom
   // git routes (task-033).
   const writeLock = new InProcessWriteLock();
   // The project list (task-008).
+  // task-034: the auto-push of the governed writes and the auto-sync scheduler (spec-010 §6), on the
+  // routes' transport (its plan and redaction) and the one write lock.
+  const transport = new GitTransport({ snapshots, writeLock });
+  const autoPush = new AutoPush({ store: state, transport, logger });
+  const scheduler = new SyncScheduler({
+    store: state,
+    work: new AutoSync({ store: state, snapshots, transport, logger }),
+    lock: writeLock,
+    bus,
+    logger,
+  });
   const projects = new ProjectList({
     store: state,
     snapshots,
@@ -163,7 +178,7 @@ export async function runLauncher(argv: readonly string[], io: LauncherIo): Prom
       // task-030: the UI settings (spec-004 §3, spec-006 §2).
       registerSettingsRoutes(routes, { store: state, bus });
       // task-032: the governed writes on an element (spec-004 §3–§6).
-      registerElementWriteRoutes(routes, { store: state, snapshots, writeLock, bus });
+      registerElementWriteRoutes(routes, { store: state, snapshots, writeLock, bus, push: autoPush });
       // task-033: the git routes (spec-010 §4–§5, §8).
       registerGitRoutes(routes, { store: state, snapshots, writeLock });
     },
@@ -171,6 +186,11 @@ export async function runLauncher(argv: readonly string[], io: LauncherIo): Prom
   // Stop sequence (spec-007 §6): close the event streams and the watchers, then terminate the CLI
   // and git children (adr-001 D5); registered once the application exists, removed again if the
   // listen fails.
+  // task-034: no tick starts once stopping; a running automatic process is terminated below.
+  const offScheduler = onStop(() => {
+    scheduler.stop();
+    return Promise.resolve();
+  });
   const offStreams = onStop(async () => {
     projects.stop();
     streams.events?.close();
@@ -184,6 +204,7 @@ export async function runLauncher(argv: readonly string[], io: LauncherIo): Prom
       onError: (error) => logger.error({ err: error }, 'listener error'),
     });
   } catch (error) {
+    offScheduler();
     offStreams();
     offProcesses();
     await app.close();
@@ -200,6 +221,8 @@ export async function runLauncher(argv: readonly string[], io: LauncherIo): Prom
   listening.port = listeners.port;
   // Availability changes and another console's list are noticed without a page asking (file reads only).
   projects.start();
+  // task-034: the first tick after one fetch interval (spec-010 §6).
+  scheduler.start();
   // Signals are handled before the URL is printed: a stop sent right after it is never lost.
   let stopping = false;
   io.onSignal(() => {

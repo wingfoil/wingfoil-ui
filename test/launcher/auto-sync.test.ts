@@ -97,14 +97,15 @@ describe('the scheduler through the launcher (spec-010 §6; Y-02.1, Y-05.2 at 15
     // The page reads the project: its snapshot is open (RP-18).
     expect((await call(l, 'GET', `/api/p/${KANBAN}`)).status).toBe(200);
     const remote = await remoteCommit(fx, 'from-jordan.md');
+    // The console moves to the new state by itself (no request triggers it): the header shows it.
     await expect
-      .poll(async () => (await git(fx.dir, ['rev-parse', 'HEAD'], fx.env)).stdout.trim(), {
+      .poll(async () => (await call(l, 'GET', `/api/p/${KANBAN}`)).body.repository, {
         timeout: BUDGET_MS,
         interval: 1_000,
       })
-      .toBe(remote);
+      .toMatchObject({ head: remote, copy: 'in-sync', behind: 0 });
+    expect((await git(fx.dir, ['rev-parse', 'HEAD'], fx.env)).stdout.trim()).toBe(remote);
     const repository = (await call(l, 'GET', `/api/p/${KANBAN}`)).body.repository;
-    expect(repository).toMatchObject({ copy: 'in-sync', behind: 0 });
     expect(repository.sync.fetch.lastSuccessAt).not.toBeNull();
   }, 200_000);
 });
