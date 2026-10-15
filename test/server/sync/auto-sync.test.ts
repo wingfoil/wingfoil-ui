@@ -425,3 +425,134 @@ describe('review round 1 (R4, R5)', () => {
     expect(p.git).toBe(0);
   });
 });
+
+describe('security review S1 (task-034 W4-5) — configuration from the working tree', () => {
+  /** A config file inside the working tree, included by the repository's own configuration. */
+  async function included(fx: Fixture, body: string, how: 'include' | 'gitdir' | 'onbranch'): Promise<void> {
+    await writeFile(path.join(fx.dir, '.wfui-config'), body);
+    const key =
+      how === 'include'
+        ? 'include.path'
+        : how === 'gitdir'
+          ? `includeIf.gitdir:${fx.dir}/.path`
+          : 'includeIf.onbranch:main.path';
+    await git(fx.dir, ['config', key, '../.wfui-config'], fx.env);
+  }
+  const marker = (name: string) => path.join(path.dirname(ws.dir), `${MARKER}-s1-${name}`);
+  const exists = (file: string) =>
+    access(file).then(
+      () => true,
+      () => false,
+    );
+
+  const cases: [string, 'include' | 'gitdir' | 'onbranch', (fx: Fixture, m: string) => Promise<string>][] = [
+    [
+      'remote.<r>.uploadpack',
+      'include',
+      async (_fx, m) => `[remote "origin"]\n\tuploadpack = touch '${m}'; git-upload-pack\n`,
+    ],
+    [
+      'remote.<r>.uploadpack',
+      'gitdir',
+      async (_fx, m) => `[remote "origin"]\n\tuploadpack = touch '${m}'; git-upload-pack\n`,
+    ],
+    [
+      'remote.<r>.uploadpack',
+      'onbranch',
+      async (_fx, m) => `[remote "origin"]\n\tuploadpack = touch '${m}'; git-upload-pack\n`,
+    ],
+    ['core.fsmonitor', 'include', async (_fx, m) => `[core]\n\tfsmonitor = touch '${m}'; echo\n`],
+    [
+      'filter.<x>.smudge',
+      'include',
+      async (fx, m) => {
+        await writeFile(path.join(fx.dir, '.git', 'info', 'attributes'), '*.md filter=wfui\n');
+        return `[filter "wfui"]\n\tsmudge = touch '${m}'; cat\n\tclean = cat\n`;
+      },
+    ],
+    [
+      'core.sshCommand',
+      'include',
+      async (fx, m) => {
+        // No port: git's "simple" ssh variant refuses one before running the command.
+        await git(fx.dir, ['remote', 'set-url', 'origin', 'ssh://127.0.0.1/x.git'], fx.env);
+        return `[core]\n\tsshCommand = touch '${m}'; false\n`;
+      },
+    ],
+    [
+      'core.gitProxy',
+      'include',
+      async (fx, m) => {
+        await git(fx.dir, ['remote', 'set-url', 'origin', 'git://127.0.0.1:9/x.git'], fx.env);
+        // git execs the proxy without a shell: a program.
+        await writeFile(`${m}.sh`, `#!/bin/sh\ntouch '${m}'\nexit 1\n`);
+        await chmod(`${m}.sh`, 0o755);
+        return `[core]\n\tgitProxy = ${m}.sh\n`;
+      },
+    ],
+  ];
+
+  it.each(cases)(
+    '%s through %s → no automatic fetch nor update, nothing runs, logged by code',
+    async (name, how, body) => {
+      const m = marker(`${name.replace(/\W/g, '')}-${how}`);
+      const s = await start({ autoUpdate: true }, { prepare: async (fx) => included(fx, await body(fx, m), how) });
+      await s.c.remoteCommit('from-jordan.md', 'hi\n');
+      const p = await s.tick();
+      expect(await exists(m), 'the configured program ran').toBe(false);
+      expect(p.transport).toBe(0);
+      expect(spawnedOf(s.c, 'merge')).toHaveLength(0);
+      expect(s.log.lines).toContainEqual(expect.objectContaining({ code: 'config-in-worktree' }));
+      expect((await header(s.c)).sync.fetch).toEqual({ lastSuccessAt: null, lastError: null });
+    },
+  );
+
+  it('credential.helper "!cmd" through include → the automatic fetch does not run it', async () => {
+    const server: Server = createServer((_req, res) => {
+      res.writeHead(401, { 'WWW-Authenticate': 'Basic realm="x"', 'Content-Length': '0' });
+      res.end();
+    });
+    await new Promise<void>((r) => server.listen(0, '127.0.0.1', r));
+    try {
+      const port = (server.address() as AddressInfo).port;
+      const m = marker('credential');
+      const s = await start(
+        {},
+        {
+          prepare: async (fx) => {
+            await git(fx.dir, ['remote', 'set-url', 'origin', `http://127.0.0.1:${port}/x.git`], fx.env);
+            await included(fx, `[credential]\n\thelper = "!touch '${m}'; false"\n`, 'include');
+          },
+        },
+      );
+      const p = await s.tick();
+      expect(await exists(m), 'the helper ran').toBe(false);
+      expect(p.transport).toBe(0);
+    } finally {
+      await new Promise((r) => server.close(r));
+    }
+  });
+
+  it('an include to a file outside the working tree (the user’s own) does not stop the fetch', async () => {
+    const outside = path.join(path.dirname(ws.dir), `${MARKER}-outside.config`);
+    await writeFile(outside, '[wfui]\n\tsetting = 1\n');
+    const s = await start(
+      {},
+      { prepare: (fx) => git(fx.dir, ['config', 'include.path', outside], fx.env).then(() => undefined) },
+    );
+    await s.c.remoteCommit('from-jordan.md', 'hi\n');
+    expect((await s.tick()).transport).toBe(1);
+  });
+
+  it('the server’s own status reads run no fsmonitor program (included from the working tree)', async () => {
+    const m = marker('fsmonitor-status');
+    const s = await start(
+      {},
+      { prepare: (fx) => included(fx, `[core]\n\tfsmonitor = touch '${m}'; echo\n`, 'include') },
+    );
+    await writeFile(path.join(s.c.fx.dir, 'touched.md'), 'x\n');
+    await s.c.check();
+    await s.c.warm();
+    expect(await exists(m)).toBe(false);
+  });
+});

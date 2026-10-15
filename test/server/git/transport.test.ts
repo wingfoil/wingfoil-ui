@@ -101,8 +101,8 @@ describe('transport arguments (spec-010 §4)', () => {
     expect(mergeArgs('main').some((a) => a.includes('+'))).toBe(false);
   });
 
-  it('unattended runs (D34-1): no hook — core.hooksPath is the given regular file', () => {
-    expect(noHooksArgs('/x/clone.js')).toEqual(['-c', 'core.hooksPath=/x/clone.js']);
+  it('unattended runs (D34-1, W4-5): no hook — core.hooksPath is the given regular file — and no fsmonitor', () => {
+    expect(noHooksArgs('/x/clone.js')).toEqual(['-c', 'core.hooksPath=/x/clone.js', '-c', 'core.fsmonitor=false']);
     expect(UNATTENDED_TIMEOUT_MS).toBe(60_000);
   });
 
