@@ -914,3 +914,24 @@ describe('bug-014 (task-034 D34-8) — the manual update never makes a merge com
     expect((await negative.op('fetch')).status).toBe(200);
   });
 });
+
+describe('security review S2 (task-034 W4-6) — the push destination is the one upstream', () => {
+  it('two values of branch.<b>.merge → Push refuses no-upstream, 0 transport processes, nothing pushed to the second ref', async () => {
+    const c = await start({
+      prepare: async (fx) => {
+        await git(fx.dir, ['config', '--add', 'branch.main.merge', 'refs/heads/production'], fx.env);
+        await writeFile(path.join(fx.dir, 'mine.md'), 'mine\n');
+        await git(fx.dir, ['add', 'mine.md'], fx.env);
+        await git(fx.dir, ['commit', '-qm', 'mine'], fx.env);
+      },
+    });
+    const p = await c.processes(async () => {
+      const res = await c.op('push');
+      expect(res.status).toBe(409);
+      expect(res.body.error.code).toBe('no-upstream');
+    });
+    expect(p.transport).toBe(0);
+    const branches = (await git(c.fx.remoteDir, ['branch', '--list', 'production'], c.fx.env)).stdout.trim();
+    expect(branches).toBe('');
+  });
+});

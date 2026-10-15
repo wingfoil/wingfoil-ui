@@ -221,3 +221,19 @@ describe('review round 1 (R3)', () => {
     expect(text).not.toContain(root);
   });
 });
+
+describe('security review S2 (task-034 W4-6)', () => {
+  it('two values of branch.<b>.merge → push failed no-upstream, no push process, the write 200', async () => {
+    const c = await start(
+      { autoPush: true },
+      {
+        prepare: (fx) =>
+          git(fx.dir, ['config', '--add', 'branch.main.merge', 'refs/heads/production'], fx.env).then(() => undefined),
+      },
+    );
+    const res = await approve(c);
+    expect(res.status).toBe(200);
+    expect(res.body.push).toEqual({ status: 'failed', code: 'no-upstream' });
+    expect(pushes(c)).toHaveLength(0);
+  });
+});
