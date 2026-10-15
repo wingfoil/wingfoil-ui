@@ -487,13 +487,13 @@ All as recommended:
 | Id | Red | Fix | What |
 |----|-----|-----|------|
 | contracts (RP-43) | — | `47b2498` | `update.lastError.code` + `refspec-outside-remotes`, `merge-not-fast-forward`; `push.code` `internal` documented (schema description, `WritePush.code`) |
-| catalogue | red commit before `3efc576` | `3efc576` | `error.mergeNotFastForward`, `MESSAGES` row |
-| W4-8 (S4) | red commit, corrected in `074ca78` (still red on the old runner) | `301b22e` | the runner settles on `close` or 2 s after `exit` (pipes destroyed); tests: a child exiting with, killed with, or terminated with a grandchild in a new session holding the pipes; 8 MiB + 1 MiB output still exact |
+| catalogue | `748ff61` | `3efc576` | `error.mergeNotFastForward`, `MESSAGES` row |
+| W4-8 (S4) | `b0b03d1`, corrected in `074ca78` (still red on the old runner) | `301b22e` | the runner settles on `close` or 2 s after `exit` (pipes destroyed); tests: a child exiting with, killed with, or terminated with a grandchild in a new session holding the pipes; 8 MiB + 1 MiB output still exact |
 | W4-6 (S2) | `19fb759` | `22ec205` | `--get-all branch.<b>.merge`, exactly one, else `no-upstream` (manual push and auto-push) |
-| W4-3, W4-7 (S3) | (red commit before `d57acd0`) | `d57acd0` | the update refuses `refspec-outside-remotes` (recorded); a remote without configured URL, or with `remotes/<r>` / `branches/<r>` in the common directory, is refused (fetch, update) or skipped (scheduler); the R1 `it.fails` became a normal test |
+| W4-3, W4-7 (S3) | `2413daa` | `d57acd0` | the update refuses `refspec-outside-remotes` (recorded); a remote without configured URL, or with `remotes/<r>` / `branches/<r>` in the common directory, is refused (fetch, update) or skipped (scheduler); the R1 `it.fails` became a normal test |
 | W4-9 (S5) | `215da07` | `114e6d5` | `merge-not-fast-forward` recorded as the update error |
-| W4-5 (S1) | (red commit before `bf572bd`) | `bf572bd` | `configInWorktree` (`git config --list --show-origin --show-scope -z`, realpaths) before the unattended fetch and before the merge → skipped, logged `config-in-worktree` (**log only**: no fetch `lastError` code fits); `-c core.fsmonitor=false` in `noHooksArgs` and every `GitReads` read |
-| W4-10 (b) | (red commit before `4d4a1a8`) | `4d4a1a8` | `SyncScheduler.stop()` → `AutoSync.stop()` awaits a running merge; the stop hook awaits it before `terminateAll` |
+| W4-5 (S1) | `97a263f` | `bf572bd` | `configInWorktree` (`git config --list --show-origin --show-scope -z`, realpaths) before the unattended fetch and before the merge → skipped, logged `config-in-worktree` (**log only**: no fetch `lastError` code fits); `-c core.fsmonitor=false` in `noHooksArgs` and every `GitReads` read |
+| W4-10 (b) | `de58c62` | `4d4a1a8` | `SyncScheduler.stop()` → `AutoSync.stop()` awaits a running merge; the stop hook awaits it before `terminateAll` |
 | docs | — | `a894eb4` | spec-010, spec-004, adr-001 D5 Process Notes; user guide (0.10, its history note extended), CHANGELOG, test README |
 
 - **S1 rule as implemented:** a `file:` origin of scope `local` or `worktree` must be the
