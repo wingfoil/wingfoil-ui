@@ -80,12 +80,24 @@ export function isKeyText(text: string, isData: (word: string) => boolean = () =
 export interface DataRecorder {
   /** Every string and number value read since the last `reset()`, once every answer is parsed. */
   strings(): Promise<Set<string>>;
-  /** Forget what was read: a screen is opened anew (each screen reloads the page). */
-  reset(): void;
+  /**
+   * Forget what was read: a screen is opened anew (each screen reloads the page). With
+   * `untilNavigation`, what is read until the main frame's next navigation is forgotten too — the
+   * requests of the page being left (review round 4, R4-2).
+   */
+  reset(options?: { untilNavigation?: boolean }): void;
   /** The frontmatter keys of the elements read since the last `reset()` (D37-13); none if absent. */
   fieldNames?(): Promise<Set<string>>;
   /** Why answers since the last `reset()` could not be learnt (bug-015); none if absent. */
   failures?(): Promise<string[]>;
+  /** How many answers were learnt (or failed) since the last `reset()`: new data since an attempt. */
+  answers?(): number;
+}
+
+/** Options of {@link recordApiData}. */
+export interface RecordOptions {
+  /** How long the data waits for an answer the page asked for (default `COLD_READ_MS`). */
+  answerTimeoutMs?: number;
 }
 
 /** The path of one element's read (`GET /api/p/:pid/elements/:eid`). */
@@ -99,6 +111,8 @@ interface Generation {
   failures: string[];
   /** The answers still on their way or being parsed, with their request line. */
   pending: Map<Promise<void>, string>;
+  /** Answers learnt or failed. */
+  answers: number;
 }
 
 /**
@@ -109,9 +123,22 @@ interface Generation {
  * brings no data and is no error; a body that cannot be read is recorded as a failure, reported
  * with what the check flags (`textsOutsideCatalogue`), never swallowed.
  */
-export function recordApiData(page: Page): DataRecorder {
-  const fresh = (): Generation => ({ found: new Set(), fields: new Set(), failures: [], pending: new Map() });
+export function recordApiData(page: Page, options: RecordOptions = {}): DataRecorder {
+  const answerTimeoutMs = options.answerTimeoutMs ?? COLD_READ_MS;
+  const fresh = (): Generation => ({
+    found: new Set(),
+    fields: new Set(),
+    failures: [],
+    pending: new Map(),
+    answers: 0,
+  });
   let current = fresh();
+  let resetAtNavigation = false;
+  page.on('framenavigated', (frame) => {
+    if (frame !== page.mainFrame() || !resetAtNavigation) return;
+    resetAtNavigation = false;
+    current = fresh();
+  });
   const settle = new Map<Request, (finished: boolean) => void>();
   const collect = (into: Set<string>, v: unknown): void => {
     if (typeof v === 'string') into.add(v.trim());
@@ -150,7 +177,9 @@ export function recordApiData(page: Page): DataRecorder {
         const response = await request.response();
         if (!response || !(response.headers()['content-type'] ?? '').includes('json')) return;
         learn(gen, url.pathname, await response.json());
+        gen.answers += 1;
       } catch (error) {
+        gen.answers += 1;
         gen.failures.push(
           `answer not read: ${line} (${error instanceof Error ? error.message.split('\n')[0] : String(error)})`,
         );
@@ -163,12 +192,12 @@ export function recordApiData(page: Page): DataRecorder {
   page.on('requestfailed', (request) => settle.get(request)?.(false));
   /** Wait for every answer of `gen` requested so far (and those requested meanwhile), bounded. */
   const settled = async (gen: Generation): Promise<void> => {
-    const deadline = Date.now() + COLD_READ_MS;
+    const deadline = Date.now() + answerTimeoutMs;
     while (gen.pending.size > 0) {
       const left = deadline - Date.now();
       if (left <= 0) {
         for (const line of gen.pending.values())
-          gen.failures.push(`answer not received in ${COLD_READ_MS} ms: ${line}`);
+          gen.failures.push(`answer not received in ${answerTimeoutMs} ms: ${line}`);
         gen.pending.clear();
         return;
       }
@@ -186,8 +215,9 @@ export function recordApiData(page: Page): DataRecorder {
       await settled(gen);
       return gen.found;
     },
-    reset: () => {
+    reset: (opts) => {
       current = fresh();
+      resetAtNavigation = opts?.untilNavigation === true;
     },
     fieldNames: async () => {
       const gen = current;
@@ -199,6 +229,7 @@ export function recordApiData(page: Page): DataRecorder {
       await settled(gen);
       return [...gen.failures];
     },
+    answers: () => current.answers,
   };
 }
 
@@ -370,4 +401,23 @@ export async function textsOutsideCatalogue(page: Page, recorder: DataRecorder):
   // A text flagged may be data of an answer the recorder could not read: say so (bug-015).
   if (bad.size > 0) for (const failure of (await recorder.failures?.()) ?? []) bad.add(failure);
   return [...bad];
+}
+
+/**
+ * The X-09.1 check of a screen (bug-015, review round 4): {@link textsOutsideCatalogue} once every
+ * answer the page asked for is learnt (each waited for within the recorder's bound, a hung one
+ * recorded as the cause), repeated only while the recorder learnt new data during the previous
+ * attempt (an answer whose request reached the test late), at most `COLD_READ_MS`; a text still
+ * flagged with no new data is reported at once — a transient text is not waited away (R4-3).
+ */
+export async function screenTextsOutsideCatalogue(page: Page, recorder: DataRecorder): Promise<string[]> {
+  const deadline = Date.now() + COLD_READ_MS;
+  await recorder.strings();
+  for (;;) {
+    const before = recorder.answers?.() ?? 0;
+    const outside = await textsOutsideCatalogue(page, recorder);
+    if (outside.length === 0) return outside;
+    const learnt = (recorder.answers?.() ?? 0) > before;
+    if (!learnt || Date.now() >= deadline) return outside;
+  }
 }

@@ -235,7 +235,7 @@ test('X-09.1 check: no retry without new data — a transient text is flagged (R
     route.fulfill({
       contentType: 'text/html',
       body: `<!doctype html><title>title.projects</title><p id="t">Transient</p>
-        <script>setTimeout(() => document.getElementById('t').remove(), 300)</script>`,
+        <script>setTimeout(() => document.getElementById('t').remove(), 5000)</script>`,
     }),
   );
   await page.goto('http://wfui.test/');
