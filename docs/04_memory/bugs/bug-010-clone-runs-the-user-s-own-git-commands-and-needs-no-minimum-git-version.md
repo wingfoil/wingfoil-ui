@@ -2,7 +2,7 @@
 id: bug-010-clone-runs-the-user-s-own-git-commands-and-needs-no-minimum-git-version
 type: bug
 title: "Clone runs the user's own git commands and needs no minimum git version"
-status: planned
+status: in-progress
 severity: "medium"     # REQUIRED — critical | high | medium | low
 release-origin: "v0.1" # optional — release where the bug was FOUND, e.g. "v0.1"
 release: ""            # optional — fix/implementation release, stamped by release-planning/build-backlog
@@ -75,3 +75,4 @@ repositories.
 - fix: **absorbed into task-033-git-copy-state-repository-status-and-transport-routes** (AC
   "bug-010", `bug:` list of the task; the approver's triage, 2026-10-13); `triaged → planned` set by
   hand (directive `wingfoil-cli` W-26). The option among (a), (b), (c) is chosen at task-033's design.
+- 2026-10-15: `planned → in-progress` by hand (W-26), task-033 started.
