@@ -52,7 +52,10 @@ describe('TT-PERF-05 — batched CLI reads (S-26.3)', () => {
     // The watcher on, the periodic check out of the way: under load the cold half can last past
     // its first tick, which would add git processes to the warm half (review F5).
     const { pid, standIn, runner } = await fresh(3_600_000);
+    // With the notification bell's Today read (task-042, review R8): the real cold page.
     const cold = await standIn.openMemoryList(pid);
+    expect(cold).toHaveLength(4);
+    expect(cold.every((r) => r.state !== null)).toBe(true);
     const commands = runner.wingfoilCommands();
     console.info(
       `TT-PERF-05 cold Memory list: ${commands.length} CLI processes (${commands.join(', ')}), ${runner.count('git')} git`,

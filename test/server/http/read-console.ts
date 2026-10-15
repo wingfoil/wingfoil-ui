@@ -32,7 +32,11 @@ export interface ReadConsole {
   token: string;
   /** `GET <path>` with the token: status, `X-Repo-State` and the JSON body. */
   get(path: string): Promise<{ status: number; state: string | null; body: unknown }>;
-  /** The three reads of the Memory list, as a page loads them (in parallel). */
+  /**
+   * The reads of the Memory list as a page loads them: the header, the config and the elements in
+   * parallel, then the notification bell's Today read of the header's role view (task-042, D42-1;
+   * review R8) — in this order in the answer.
+   */
   openMemoryList(pid: string): Promise<{ state: string | null; body: unknown }[]>;
   /** Open the page's event stream. */
   events(): Promise<SseStream>;
@@ -97,8 +101,12 @@ export async function startReadConsole(
     port,
     token: TOKEN,
     get,
-    openMemoryList: (pid) =>
-      Promise.all([get(`/api/p/${pid}`), get(`/api/p/${pid}/config`), get(`/api/p/${pid}/elements`)]),
+    openMemoryList: async (pid) => {
+      const reads = [get(`/api/p/${pid}`), get(`/api/p/${pid}/config`), get(`/api/p/${pid}/elements`)];
+      const view = ((await reads[0]!).body as { roleView?: string | null }).roleView ?? null;
+      const today = get(`/api/p/${pid}/today${view === null ? '' : `?view=${encodeURIComponent(view)}`}`);
+      return Promise.all([...reads, today]);
+    },
     events: async () => {
       const s = await openSse(port, EVENTS_PATH, { authorization: `Bearer ${TOKEN}` });
       opened.push(s);

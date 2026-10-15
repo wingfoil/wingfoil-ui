@@ -279,8 +279,11 @@ screen changes by itself, without a reload) with the cold-read budget, at any lo
 TT-PERF-04 (tag `@perf`, `performance.spec.ts`, task-021): each other view reached by in-app
 navigation on the large fixture, 1 warm-up + 20 runs, p95 ≤ 1.0 s asserted and printed with the
 load; `npm run test:e2e` runs the same spec with 2 runs and no budget. TT-PERF-01 (task-036, same
-spec and tag): Today reached from the sidebar, the first open after the start ≤ 5.0 s and 20 warm
-runs p95 ≤ 2.0 s; the RP-9 "after one commit" runs (an empty commit before each, on a copy of the
+spec and tag): Today reached by opening the project — since task-042 (D42-9) a run starts on the
+start page `/` (no project, so no notification bell reading Today), opens the project switcher and
+presses Enter on the project's row, so the measured path includes opening the project (the header
+read) and is not directly comparable with task-036's numbers —, the first open after the start
+≤ 5.0 s and 20 warm runs p95 ≤ 2.0 s; the RP-9 "after one commit" runs (an empty commit before each, on a copy of the
 large fixture) are printed with the load, not asserted.
 
 A test that runs a long process in a temporary folder uses `TempWorkspace`

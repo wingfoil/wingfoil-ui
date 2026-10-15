@@ -53,9 +53,11 @@ interface View {
   scenario: string;
   name: string;
   /**
-   * The view a run starts on: another view of the project that reads none of the target's data
+   * The page a run starts on: another view of the project that reads none of the target's data
    * (the Documentation index, or the DNA for Documentation), so the target's reads all happen
-   * after the key press; the project header and list are shared by every view.
+   * after the key press; the project header and list are shared by every view. Today (TT-PERF-01)
+   * starts on the start page `/` instead: every project view reads Today for the notification bell
+   * (task-042, D42-9).
    */
   from: (pid: string) => string;
   /** The element the keyboard activates (Enter). */
