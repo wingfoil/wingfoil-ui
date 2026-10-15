@@ -3,7 +3,7 @@ id: dev-loop-rel-v0.2-plan
 type: plan
 title: "Dev-loop — rel-v0.2"
 status: active
-version: "0.3"         # optional — plan version
+version: "0.5"         # optional — plan version
 workflow: "dev-loop"
 phase: "rel-v0.2"
 scope: "rl-v1/rel-v0.2"
@@ -14,7 +14,7 @@ tmpl_version: 260703   # Orignal template version
 
 ## Context
 
-**Version:** 0.4 · **Date:** 2026-10-14 (0.1: plan created, Wave 0 scope; 0.2: Wave 0 session log, e2e engine rule W0-9; 0.3: Wave 1 session log; 0.4: Wave 2 session log)
+**Version:** 0.5 · **Date:** 2026-10-15 (0.1: plan created, Wave 0 scope; 0.2: Wave 0 session log, e2e engine rule W0-9; 0.3: Wave 1 session log; 0.4: Wave 2 session log; 0.5: Wave 3 session log, frontmatter version aligned)
 **Workflows:** `sw-life-cycle` → `release-line-cycle` (`rl-v1`) phase `delivery` → `release-cycle`
 (`minor-v0.2`) phase `implementation` = `dev-loop` iterated over every task with status `backlog`
 and `release: v0.2` (`.wingfoil/workflows/custom/release-cycle.yaml` v1.1, `dev-loop.yaml` v1.4)
@@ -95,7 +95,8 @@ Rules for every wave:
 - **Checkpoints:** design decisions; end of review (approve); before each merge; end of each wave.
 - **Completion:** every v0.2 task `done` and merged; plan finalized by hand (`status: done`, commit
   `wf(plan): finalize dev-loop-rel-v0.2-plan [active → done]`, W-04).
-- **Next:** Wave 3 — task-033 (absorbs bug-010; adversarial security review, RP-47), task-037.
+- **Next:** Wave 4 — task-034 (auto-sync scheduler and auto-push; adversarial security review,
+  RP-47), task-042.
 
 ## Session log
 
@@ -276,3 +277,90 @@ Rules for every wave:
   G-11.x and X-07.3 against task-032's routes and add the catalogue text for `write-incomplete`;
   task-034 decides whether a commit left by a failed CLI is pushed by the next tick; screens are
   appended to `SCREENS` (one axe/strings test each now, bug-011).
+
+### Session 4 — Wave 3: git copy state and transport routes, gate footer (2026-10-15)
+
+- Start confirmed by the approver: task-033 and task-037 in parallel, shared shapes fixed by the
+  coordinator after both designs (C3: merge order 033 → 037, `test/README.md` 0.33 / 0.34, each
+  task appends only its own catalogue entries, only task-033 touches `contracts/`, task-037 owns
+  `web/src/api/writes.ts`); task-029 still later, before release validation. The coordinator's
+  session ended unexpectedly once (about 14:20–14:28) during task-037's pre-submit gates: the
+  dead run's temporary roots were removed and the cut Chromium run was repeated whole.
+- **Done and merged** in task-number order (RP-55), each after its reviews, `main` merged into the
+  branch before submit and the approver's `memory approve`: task-033 (merge `be7bdfd`, done
+  `83f58ac`; independent review 4 rounds, adversarial security review 3 rounds, RP-47),
+  task-037 (`23a6d1e`, `ef227ec`; 3 rounds; `main` with task-033 merged before submit). Conflicts
+  only on append-only lines: the `docs/user-guide.md` and `test/README.md` version lines, the
+  `MESSAGES` entries of `web/src/api/error-message.ts` and its test.
+- **Bugs:** bug-010 (absorbed at Wave 0) resolved by task-033; bug-012 (a CLI refusal can quote
+  the repository's absolute path — the Wave 2 open point) and bug-013 (`GIT_ALLOW_PROTOCOL` in the
+  server's environment lets a v0.1 clone run an `ext::` command; found by a probe at task-033's
+  design) ingested, triaged by the approver, absorbed into task-033 and resolved. All three are
+  closed at release validation (W0-10).
+- **Decisions** (the approver, "as recommended" unless noted; details in each task's Execution
+  Notes):
+  - **W3-1 (D33-1 … D33-14)** git copy state and transport: bug-010 documented (what runs, a
+    minimum git version) and a local remote or clone source of another user refused
+    (`remote-not-owned`, POSIX only); `GIT_ALLOW_PROTOCOL` set to the allowed transports on clone
+    and transport (bug-013); `-c maintenance.auto=false -c gc.auto=0` on fetch, pull, push; hooks
+    on update and push per RP-23; one `redactLocalPaths` at the mapping points (bug-012);
+    `RepoState.contentKey` keys the CLI memo (adr-001 D6 note); the spec's reads per check
+    (3–4 git processes); a strict push target; no body or `{}`; sync state per pid in memory;
+    `detail.files` relative to the project; row 5 re-checked under the lock; the transport
+    catalogue keys; required header fields. spec-010, spec-004 §5, spec-006 §3 amended.
+  - **W3-2 (C1, C2)** bug-013 ingested and absorbed into task-033; `cli-not-found`'s
+    `detail.path` (the project's absolute root) dropped under bug-012 (spec-006 §3).
+  - **W3-3 (D37-1 … D37-13)** gate footer: `gateFocus` history state from Today (dropped after
+    use); reason, Approve, Rejects, Cancel in that order (a deviation from the prototype,
+    UX reference 1.3); outcomes focusable while disabled; the default reason cleared on an
+    untouched reject and restored on Approve, also on a click that does not focus; a read-only
+    line for non-members (spec-003 §6 Process Note); the six `element.reason.*` keys; inline
+    status and alert until task-038's toasts; `web/src/api/writes.ts` for submit, approve,
+    reject; `error.writeIncomplete` added here (the Wave 2 hand-over gave it to task-038); three
+    `SCREENS` entries; the X-09.1 checker accepts the References field names of an element read
+    (D37-13, a v0.1 test-support gap).
+  - **W3-4 (security round 1, R1–R3)** a local remote's absolute path redacted as `<remote>`;
+    a local `receive-pack`'s `gc --auto` (git strips `GIT_CONFIG_PARAMETERS`) accepted as a
+    residual (spec-010 §4); transport children get a `PATH` of absolute entries only.
+  - **W3-5 (review round 2)** a local source with no readable candidate → new code
+    `remote-unreadable` (not the misleading "another user" text); `~` and `~user` expanded as git
+    does for fetch, update, push; `X::` is a helper only for a URL scheme; the clone's `PATH`
+    filtered too; scheme-less userinfo redaction bounded by start, whitespace or a quote.
+- **Review highlights:** task-033 — the owner check could be bypassed five ways because it did
+  not resolve a local URL as git does (`file://<host>`, every push URL, git's `.git` suffix order
+  and `gitdir:` files, the top-level base, lexical `..` before symlinks), then by `::` and `~`
+  paths; the clone still ran a cloned repository's `git-lfs` through a relative `PATH` entry;
+  git error text reached the server log from reads under the lock; redaction gaps in userinfo;
+  all fixed with red tests (the first pass and some round fixes wrote code before tests; each
+  guard was then removed in turn to see its test fail). task-037 — a reject click without focus
+  (Safari, iOS) committed the default approval text as the rejection reason; the refusal alert
+  vanished when the refetched state had no gate; outcomes stayed disabled after a decision.
+  Probes that held: `ext::`/`fd::` through url, pushurl, `insteadOf`, `remote.<n>.vcs` and a
+  hostile environment; option-like remote names; HTTP guards; 20 parallel pushes or updates (one
+  git process); fetch cancel; row 8 on the fresh state.
+- **Accepted residuals:** the check → open race when another user can write a remote's parent
+  folder; a linked-worktree `commondir` into another user's repository; `~user` homes from
+  `/etc/passwd` (NSS-only users fail closed); relative `PATH` entries for non-transport children
+  (adr-001 D2); a local `receive-pack`'s `gc --auto` (W3-4).
+- **Open points:** a cancelled fetch or push answers 500 `internal` to a client that has left and
+  records nothing; sync status per pid (two projects of one repository: a fetch moves the other's
+  copy state but not its `lastSuccessAt`, D33-10); push goes to the upstream's remote, never
+  `pushRemote`; a mouse click on the untouched default reason places the caret instead of
+  selecting it (G-06.1 covers keyboard and programmatic focus).
+- **`test:timing`** passed on task-033's branch (load 9: Vitest 3/3, Playwright 18/18); on `main`
+  `ef227ec` (2026-10-15 15:07–15:15, started at load 12.6, just above the threshold, it rose
+  from 11.4 at launch): Vitest 3/3, Playwright 18/18.
+- **Gate at the end of the wave** on `main` `ef227ec` (2026-10-15 15:07–15:59): `test:coverage`
+  2708 passed, 1 skipped (statements 96.67 %, branches 91.44 %); `test:e2e` three engines 651
+  passed (Chromium 223, Firefox 214, WebKit 214; 38.2 min) at load 15–29; `test:smoke` 4/4; no new `wfui-*`
+  entry, no console left.
+- **Effort:** 2026-10-15 08:50 – 16:05 wall-clock (about 7 h of working time; a crash of the
+  coordinator's session of about 10 min).
+- **Hand-overs to Wave 4:** task-034 reuses `SyncStatus` (`snapshots.sync`), the transport
+  module (`TRANSPORT_SETTINGS`, `ALLOWED_PROTOCOLS`, `fetchArgs`/`pullArgs`/`pushArgs`,
+  `transportEnv`), the locked part of `GitTransport`, `localRemoteProblem` and `redactLocalPaths`,
+  and adds `merge` to `GIT_ALLOWED_SUBCOMMANDS`; task-038 reuses `useElementWrite` for Submit,
+  the `element.reason.*` keys and `error.writeIncomplete`, closes G-11.x and X-07.3, and moves the
+  footer's status and alert into its toasts (the alert has its own `element-footer-alert`
+  class); task-039 reads `repository`, `sync` and `conditions` from `GET /api/p/:pid`; task-040
+  appends "Update" to the copy-behind reason.

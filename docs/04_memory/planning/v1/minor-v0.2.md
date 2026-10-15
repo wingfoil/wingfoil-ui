@@ -72,6 +72,7 @@ Actual effort per phase (dl-006 action 6; wall-clock of the working sessions, 20
 | implementation — Wave 0 (task-026, task-028, task-027) | `dev-loop-rel-v0.2-plan` session 1 | 2026-10-12 23:30 – 2026-10-13 15:20 (overnight pause) | ~9 h working time, 1 active day |
 | implementation — Wave 1 (task-030, task-031, task-035) | `dev-loop-rel-v0.2-plan` session 2 | 2026-10-13 15:56 – 2026-10-14 09:55 (overnight pause) | ~8 h working time, 1 active day |
 | implementation — Wave 2 (task-032, task-036) | `dev-loop-rel-v0.2-plan` session 3 | 2026-10-14 13:20 – 23:15 (interruption ~2 h) | ~8 h working time, 1 active day |
+| implementation — Wave 3 (task-033, task-037) | `dev-loop-rel-v0.2-plan` session 4 | 2026-10-15 08:50 – 16:05 (a crash of ~10 min) | ~7 h working time, 1 active day |
 
 - 2026-10-12 — `release-planning-rel-v0.2-plan` sessions 1–2 (branch `design/release-planning_v0.2`).
   `advance-pinned-build` no-op (0.2.2 newest); `minor-v0.2` `draft → planning` (`4c8ead3`);
@@ -114,6 +115,15 @@ Actual effort per phase (dl-006 action 6; wall-clock of the working sessions, 20
   review rounds each. Approved specs amended in place: spec-006 §2/§4, spec-004 §3, spec-003 §5,
   spec-008 §6; UX reference 1.1 (*How to join*). `test:timing` passed on `main` at low load
   (2026-10-13).
+- 2026-10-14 — Wave 2 (`dev-loop-rel-v0.2-plan` session 3): task-032, task-036 done; review rounds
+  3 each (task-032 also an adversarial security review, 3 rounds). bug-011 ingested and resolved
+  (task-036). WingFoil feedback F-023 … F-026. Open point: CLI refusal texts quoting the
+  repository's absolute path (became bug-012).
+- 2026-10-15 — Wave 3 (`dev-loop-rel-v0.2-plan` session 4): task-033, task-037 done; review rounds
+  4 and 3 (task-033 also an adversarial security review, 3 rounds). bug-010 resolved; bug-012 and
+  bug-013 (a v0.1 clone could run an `ext::` command through `GIT_ALLOW_PROTOCOL`) ingested,
+  absorbed into task-033 and resolved. Approved specs amended in place: spec-010, spec-004 §5,
+  spec-006 §3, spec-003 §6, adr-001 D6; UX reference 1.3. Budget: 5 of 8 active days used.
 
 ### Submit & Publishing
 
