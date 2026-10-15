@@ -419,3 +419,29 @@ directory.
 
 e2e closure — none of this task's own; scenarios close in task-038, task-039, task-040 and
 task-041 (closure table of the design).
+
+### review (round 1, 2026-10-15)
+
+Independent review round 1: **CHANGES REQUIRED** (R1 major, R2–R5 minor, R6–R10 nits); the
+adversarial security review runs separately. Red tests first (each red commit before its fix).
+
+| Id | Change | Test |
+|----|--------|------|
+| R1 | the manual update's own fetch followed `fetch.prune` / `fetch.pruneTags`: `pullArgs(branch, remote)` now carries `--no-prune`, `-c fetch.pruneTags=false` and `--config-env=remote.<r>.pruneTags=<empty>` (probed: tag and local-only branch kept); spec-010 §4 | `git-routes.test.ts` › review R1 (2 red, then green) |
+| R1 (WAIT) | probe: with `+refs/heads/*:refs/heads/*` the update's own fetch **force-overwrites** a local branch the remote has with another history (reflog `forced-update`), `--no-prune` or not; without `+` the branch is kept; the checked-out branch itself is fetched into and fast-forwarded ("fetch updated the current branch head") | `git-routes.test.ts` › `it.fails` "review R1 (WAIT)" (fails today for that reason, checked) — pending the approver |
+| R2 | `docs/user-guide.md` Version 0.10 | — |
+| R3 | — (behaviour kept: `{failed, code: "internal"}`, the form is the approver's — WAIT) | `auto-push.test.ts` › R3 (a failing push-URL read: write 200, push failed, the log holds the kind only); guard-removal: rethrowing in the catch fails it |
+| R4 | the post-condition runs before `sync.updated`: a merge that exits 0 without fast-forwarding logs `merge-not-fast-forward` and keeps the previous update error (no update code fits; logged only) | `auto-sync.test.ts` › R4 ×2 (hooks path a directory: 0 processes, error by code — passed first, guard removal fails it; the stubbed merge — red) |
+| R5 | `AutoSync.stop()` (called by `SyncScheduler.stop()` through `SyncWork.stop?`): checked before each project, before the fetch and before spawning the merge | `auto-sync.test.ts` › R5 ×2, `scheduler.test.ts` › R5 (red) |
+| R6 | spec-010 Process Note states the `behind > 0` deviation | — |
+| R7 | `refspec-outside-remotes` text "this remote has no fetch refspec, or one writes outside refs/remotes/…" (catalogue, spec-010 §5, CHANGELOG, guide) | — |
+| R8 | CHANGELOG "an automatic fetch or an auto-push"; guide's Auto-update row "only when you are identified in the team" | — |
+| R9 | `SyncScheduler.run` catches everything (kind logged) | `scheduler.test.ts` › R9 (red) |
+| R10 | `PUSH_OFF` comment | — |
+
+Checks (HEAD before this note `f0cdaad`): `typecheck`, `lint`, `format:check` clean; `docs:api`,
+`check_tasks.py v0.2` OK; `test:coverage` 153 files passed, 1 skipped, **2810 passed, 1
+expected fail, 1 skipped** (statements 96.54 %, branches 91.31 %; `auto-push.ts` 88.9 %,
+`auto-sync.ts` 91.6 %), load 120 → 148; `test:smoke` 4/4 and `launcher/auto-sync.test.ts`
+3/3 at load 134. No web or e2e-visible change beyond one catalogue text, so no e2e run. No console
+or `wfui-task-034-*` entry left.
