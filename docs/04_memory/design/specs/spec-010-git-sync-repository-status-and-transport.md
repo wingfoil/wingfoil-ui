@@ -203,7 +203,7 @@ spec-008 §7):
 | `local-changes-in-the-way` | `{ files }` | update | "Cannot fast-forward: local changes to {files} are in the way — commit or stash them in a terminal" (Y-06.2) |
 | `remote-unreadable` | — | fetch, update, push | "Git cannot read the repository of this remote: check its path with git in a terminal" (review round 2 F9) |
 | `remote-not-owned` | — | fetch, update, push | "The repository of this remote is a folder of another user of this computer: git could run that user's code, so WingFoil UI does not use it — use a repository you own" (bug-010) |
-| `refspec-outside-remotes` | — | fetch | "Not fetched: a fetch refspec of this remote writes outside refs/remotes/, so pruning could delete your local branches or tags — fetch with git in a terminal" (bug-014) |
+| `refspec-outside-remotes` | — | fetch | "Not fetched: this remote has no fetch refspec, or one writes outside refs/remotes/, so pruning could delete your local branches or tags — fetch with git in a terminal" (bug-014) |
 
 `local-changes-in-the-way`: the files changed by the incoming commits
 (`git log --no-renames --name-only -z --format= HEAD..@{u}`) intersected with the status entries
@@ -381,4 +381,7 @@ Rows 7–9 do not apply (no element).
   `refspec-outside-remotes`; §6 one fetch per repository and target, `autoFetch` read before each
   repository, unattended runs without hooks and askpass programs, the automatic update skipped
   during a git operation in progress, its post-condition, the push is HEAD; §8, §9. Decided by the
-  approver.
+  approver. Declared deviation of the implementation (review R6): the automatic update runs when
+  the copy is behind its upstream (`behind > 0`), diverged included, so a diverged copy records
+  `diverged` in `sync.update.lastError`, as the manual update does. Review round 1 (R1): the
+  manual update's own fetch prunes nothing (`--no-prune`, tag pruning off).

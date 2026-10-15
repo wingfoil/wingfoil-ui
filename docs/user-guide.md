@@ -1,6 +1,6 @@
 # User guide — WingFoil UI v0.1
 
-**Version:** 0.9 · **Date:** 2026-10-15 (0.1: release v0.1; 0.2: bug-008 known limitation, release submit; 0.3: bug-008 wording; 0.4: bug-008 marked fixed after 0.1.0 — task-026; 0.5: *How to join*, unreleased v0.2 — task-035; 0.6: *Today*, unreleased v0.2 — task-036; 0.7: what runs during a clone, a local repository of another user, unreleased v0.2 — task-033 / bug-010, bug-013; 0.8: a local source git cannot read — task-033 review round 3; 0.9: *Deciding a gate*, unreleased v0.2 — task-037; 0.10: *Automatic sync with the remote*, unreleased v0.2 — task-034 / bug-014)
+**Version:** 0.10 · **Date:** 2026-10-15 (0.1: release v0.1; 0.2: bug-008 known limitation, release submit; 0.3: bug-008 wording; 0.4: bug-008 marked fixed after 0.1.0 — task-026; 0.5: *How to join*, unreleased v0.2 — task-035; 0.6: *Today*, unreleased v0.2 — task-036; 0.7: what runs during a clone, a local repository of another user, unreleased v0.2 — task-033 / bug-010, bug-013; 0.8: a local source git cannot read — task-033 review round 3; 0.9: *Deciding a gate*, unreleased v0.2 — task-037; 0.10: *Automatic sync with the remote*, unreleased v0.2 — task-034 / bug-014)
 
 WingFoil UI v0.1 is a **read-only console** for WingFoil-governed projects: you open a project and
 read its Memory, elements, DNA, directives, team and documentation, kept up to date while you work
@@ -309,7 +309,7 @@ it started up to date with their remote, by itself. Three settings drive it (spe
 | Setting | Default | What the console does |
 |---------|---------|-----------------------|
 | Auto-fetch, every *Fetch interval* | on, 60 s | fetches each opened project's remote: the upstream's remote, else the only remote, else `origin` |
-| Auto-update | off | right after a fetch, fast-forwards a copy that is behind (`git merge --ff-only`) |
+| Auto-update | off | right after a fetch, fast-forwards a copy that is behind (`git merge --ff-only`) — only when you are identified in the team |
 | Auto-push | off | after each submit, approve or reject made in the console, pushes the branch to its upstream |
 
 - **Projects one at a time.** A project whose repository is busy with a write of the console is
@@ -324,7 +324,8 @@ it started up to date with their remote, by itself. Three settings drive it (spe
   the remote, a local change to a file the incoming commits change, or a git operation you have in
   progress (a merge, rebase, cherry-pick, revert, `git am` or bisect) is not updated — fast-forward
   it yourself once done. Your local branches and tags are never pruned: a remote whose fetch
-  refspecs write outside `refs/remotes/` (a mirror configuration) is not fetched automatically,
+  refspecs write outside `refs/remotes/` (a mirror configuration), or that has none, is not fetched
+  automatically,
   and a manual fetch refuses it with a message.
 - **Auto-push pushes the branch, not only the console's commit.** It is the same push as *Push*:
   every local commit of the branch not yet on the remote goes with it, your own included. It runs
