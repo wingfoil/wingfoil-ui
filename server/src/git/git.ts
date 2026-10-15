@@ -43,7 +43,7 @@ export const GIT_READ_ARGS = {
   remotes: ['--no-optional-locks', 'remote'],
   configGet: ['--no-optional-locks', 'config', '--get'],
   // task-034 (D34-5): every value of a multi-valued key (`remote.<r>.fetch`).
-  configGetAll: ['--no-optional-locks', 'config', '--get-all'],
+  configGetAll: ['--no-optional-locks', 'config', '-z', '--get-all'],
   // task-034 (W4-5): where every setting comes from (scope, origin), NUL-separated.
   configOrigins: ['--no-optional-locks', 'config', '--list', '--show-origin', '--show-scope', '-z'],
   remoteUrl: ['--no-optional-locks', 'remote', 'get-url'],
@@ -445,13 +445,16 @@ export class GitReads {
     return origins;
   }
 
-  /** Every value of `key` in git's order; `[]` when unset (exit 1). `key` is the server's own. */
+  /**
+   * Every value of `key` in git's order, empty values included (NUL-terminated, security review
+   * round 2); `[]` when unset (exit 1). `key` is the server's own.
+   */
   async configValues(key: string): Promise<string[]> {
     const result = await this.run([...GIT_READ_ARGS.configGetAll, key]);
     if (result.ended === 'exit' && result.exitCode === 1) return [];
-    return this.check(result)
-      .stdout.split(/\r?\n/)
-      .filter((v) => v !== '');
+    const values = this.check(result).stdout.split(String.fromCharCode(0));
+    // Every value ends with a NUL: the last field is the empty rest.
+    return values.slice(0, -1);
   }
 
   /**
