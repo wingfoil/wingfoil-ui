@@ -22,6 +22,9 @@ import { createLogger } from '../../../server/src/logging.js';
 import type { ProcessRequest, ProcessResult } from '../../../server/src/process/runner.js';
 import { InProcessWriteLock } from '../../../server/src/process/write-lock.js';
 import type { Snapshots } from '../../../server/src/snapshot/snapshots.js';
+import { AutoPush } from '../../../server/src/writes/auto-push.js';
+import { GitTransport } from '../../../server/src/writes/transport.js';
+import type { EventBus } from '../../../server/src/events/bus.js';
 import { createMemoryStateStore } from '../../../server/src/state/memory-store.js';
 import type { StateStore } from '../../../server/src/state/store.js';
 import { REPO_ROOT } from '../../harness/cli.js';
@@ -62,6 +65,8 @@ export interface GitConsoleOptions {
   log?: string[];
   /** The server's environment (default: the fixture's): of every git and CLI process. */
   env?: (fx: Fixture) => NodeJS.ProcessEnv;
+  /** task-034: the governed writes get the auto-push (reading `autoPush` from the store), with this time limit. */
+  autoPush?: { timeoutMs?: number };
 }
 
 /** A started console on one fixture copy. */
@@ -74,6 +79,10 @@ export interface GitConsole {
   snapshots: Snapshots;
   app: FastifyInstance;
   writeLock: InProcessWriteLock;
+  /** The registry's event bus (task-034). */
+  bus: EventBus;
+  /** The server's environment of the console (task-034). */
+  env: NodeJS.ProcessEnv;
   get(url: string): Promise<{ status: number; body: any; headers: Record<string, unknown> }>;
   /** `POST /api/p/:pid/git/<op>` (no body); every refusal checked against `git.refusal.schema.json`, every 200 against `git.response.schema.json`. */
   op(
@@ -127,13 +136,28 @@ export async function startGitConsole(
     },
   });
   const writeLock = new InProcessWriteLock();
+  const logger = createLogger(sink);
+  const push = options.autoPush
+    ? new AutoPush({
+        store,
+        transport: new GitTransport({ snapshots: audited.snapshots, writeLock, env }),
+        logger,
+        ...(options.autoPush.timeoutMs !== undefined ? { timeoutMs: options.autoPush.timeoutMs } : {}),
+      })
+    : undefined;
   const app = await buildApp({
     staticDir: '/nonexistent',
-    logger: createLogger(sink),
+    logger,
     security,
     register: (a) => {
       registerProjectRoutes(a, { store, snapshots: audited.snapshots });
-      registerElementWriteRoutes(a, { store, snapshots: audited.snapshots, writeLock, bus: audited.bus });
+      registerElementWriteRoutes(a, {
+        store,
+        snapshots: audited.snapshots,
+        writeLock,
+        bus: audited.bus,
+        ...(push ? { push } : {}),
+      });
       registerGitRoutes(a, { store, snapshots: audited.snapshots, writeLock, env });
     },
   });
@@ -206,6 +230,8 @@ export async function startGitConsole(
     snapshots: audited.snapshots,
     app,
     writeLock,
+    bus: audited.bus,
+    env,
     get,
     op,
     write,
