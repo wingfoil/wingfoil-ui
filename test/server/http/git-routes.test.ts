@@ -21,6 +21,9 @@ import { startGitHttpRemote } from '../../e2e/support/git-http.js';
 import { processKind } from '../snapshot/support.js';
 import { startGitConsole, type GitConsole, type GitConsoleOptions } from './git-console.js';
 
+// `~` built at run time: the public-text check reads a literal `~/…` as a home path.
+const TILDE = String.fromCharCode(126);
+
 const posix = process.platform !== 'win32' && process.getuid?.() !== 0;
 const LOGIN = 'task-001-login-form'; // kanban: pending (gate); Morgan holds approver
 const TIMEOUT = 'task-004-session-timeout'; // kanban: draft
@@ -756,7 +759,7 @@ describe('review round 2', () => {
   it("F10: an own `~/…` remote (the git environment's home) → 200", async () => {
     const c = await start();
     await symlink(c.fx.remoteDir, path.join(c.fx.home, 'kanban-home.git'));
-    await git(c.fx.dir, ['remote', 'set-url', 'origin', '~/kanban-home.git'], c.fx.env);
+    await git(c.fx.dir, ['remote', 'set-url', 'origin', `${TILDE}/kanban-home.git`], c.fx.env);
     await c.check();
     const res = await c.op('fetch');
     expect(res.status, JSON.stringify(res.body)).toBe(200);

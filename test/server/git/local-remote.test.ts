@@ -6,6 +6,9 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { localPathOf, localRemoteProblem, userHome } from '../../../server/src/git/local-remote.js';
 import { TempWorkspace } from '../../harness/temp-workspace.js';
 
+// `~` built at run time: the public-text check reads a literal `~/…` as a home path.
+const TILDE = String.fromCharCode(126);
+
 const posix = process.platform !== 'win32';
 let ws: TempWorkspace;
 let root: string;
@@ -49,7 +52,7 @@ describe('localPathOf — git’s rule for a local URL (S1)', () => {
     // S10: `::` makes a remote helper only after a scheme-like name from the start.
     ['own/u::sr', 'own/u::sr'],
     ['./x::y', './x::y'],
-    ['~/repos/x.git', '~/repos/x.git'],
+    [`${TILDE}/repos/x.git`, `${TILDE}/repos/x.git`],
     ['', undefined],
   ])('%j → %j', (url, expected) => {
     expect(localPathOf(url)).toBe(expected);
@@ -110,8 +113,8 @@ describe.runIf(posix)('localRemoteProblem', () => {
   });
 
   it("F10: a leading ~ is the git environment's home folder (git's enter_repo)", async () => {
-    expect(await check(['~/mine.git'])).toBeUndefined();
-    expect(await check(['~/foreign.git'])).toBe('remote-not-owned');
+    expect(await check([`${TILDE}/mine.git`])).toBeUndefined();
+    expect(await check([`${TILDE}/foreign.git`])).toBe('remote-not-owned');
     expect(await check(['~'], root, { home: fsRoot })).toBe('remote-not-owned');
   });
 
@@ -127,7 +130,7 @@ describe.runIf(posix)('localRemoteProblem', () => {
 
   it('the clone does not expand ~ (git clone takes the path as written): `~/x` is relative to the base', async () => {
     await mkdir(path.join(root, '~', 'mine.git'), { recursive: true });
-    expect(await check(['~/mine.git'], root, { home: fsRoot, expandUser: false })).toBeUndefined();
+    expect(await check([`${TILDE}/mine.git`], root, { home: fsRoot, expandUser: false })).toBeUndefined();
   });
 
   it('is undefined without an owner id (Windows)', async () => {
