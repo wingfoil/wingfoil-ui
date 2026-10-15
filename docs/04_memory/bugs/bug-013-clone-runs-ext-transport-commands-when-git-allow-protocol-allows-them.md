@@ -2,7 +2,7 @@
 id: bug-013-clone-runs-ext-transport-commands-when-git-allow-protocol-allows-them
 type: bug
 title: "Clone runs ext transport commands when GIT_ALLOW_PROTOCOL allows them"
-status: triaged
+status: planned
 severity: "medium"     # REQUIRED — critical | high | medium | low
 release-origin: "v0.1" # optional — release where the bug was FOUND, e.g. "v0.1"
 release: ""            # optional — fix/implementation release, stamped by release-planning/build-backlog
@@ -59,3 +59,4 @@ one. The `ext::` helper runs the command.
   owns the git transport, edits `clone.ts` and has an adversarial security review).
 
 ## Triage & Execution Notes
+- fix: **absorbed into task-033-git-copy-state-repository-status-and-transport-routes** (AC "bug-013", `bug:` list of the task; the approver's triage, 2026-10-15); `triaged → planned` set by hand (directive `wingfoil-cli` W-26).
