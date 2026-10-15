@@ -211,7 +211,7 @@ export class ProjectSnapshot {
   }
 
   /**
-   * The local folders a git or CLI message may quote, for {@link redactLocalPaths} (task-033 D33-5):
+   * The local folders a git or CLI message may quote, for `redactLocalPaths` (task-033 D33-5):
    * the project root and the repository's top level, git directory and common directory.
    */
   get localRoots(): { project: string[]; repository: string[] } {
