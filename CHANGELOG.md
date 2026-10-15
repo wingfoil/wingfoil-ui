@@ -44,10 +44,11 @@ All notable changes to WingFoil UI are recorded in this file. The format follows
   (bug-014, unreleased git routes `POST /api/p/<id>/git/update` and `/git/fetch`): with
   `branch.<b>.mergeOptions = -s ours` or `pull.twohead = ours` the update created a merge commit
   that dropped the incoming changes, and with `--squash` it left them staged; with
-  `fetch.pruneTags` the fetch — and the update's own fetch, with `fetch.prune` — deleted local tags. The update now only fast-forwards whatever the
-  configuration says, the fetch prunes remote-tracking branches only, and a remote whose fetch
-  refspecs write outside `refs/remotes/` is refused (*Not fetched: this remote has no fetch refspec, or
-  one writes outside refs/remotes/…*).
+  `fetch.pruneTags` the fetch — and the update's own fetch, with `fetch.prune` — deleted local
+  tags. The update now only fast-forwards whatever the configuration says, the fetch prunes
+  remote-tracking branches only, and a remote whose fetch refspecs write outside `refs/remotes/`
+  (or that has none) is refused by both (*Not fetched or updated: this remote has no fetch
+  refspec, or one writes outside refs/remotes/…*).
 - **A clone runs no `ext::` command, whatever the environment** (bug-013): with
   `GIT_ALLOW_PROTOCOL` set in the environment the console was started from, git allowed the
   transports it names (`ext::` runs a command) despite the console's own protocol settings; every

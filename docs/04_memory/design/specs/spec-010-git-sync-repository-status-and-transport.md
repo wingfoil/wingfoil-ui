@@ -203,7 +203,7 @@ spec-008 §7):
 | `local-changes-in-the-way` | `{ files }` | update | "Cannot fast-forward: local changes to {files} are in the way — commit or stash them in a terminal" (Y-06.2) |
 | `remote-unreadable` | — | fetch, update, push | "Git cannot read the repository of this remote: check its path with git in a terminal" (review round 2 F9) |
 | `remote-not-owned` | — | fetch, update, push | "The repository of this remote is a folder of another user of this computer: git could run that user's code, so WingFoil UI does not use it — use a repository you own" (bug-010) |
-| `refspec-outside-remotes` | — | fetch, update | "Not fetched: this remote has no fetch refspec, or one writes outside refs/remotes/, so pruning could delete your local branches or tags — fetch with git in a terminal" (bug-014) |
+| `refspec-outside-remotes` | — | fetch, update | "Not fetched or updated: this remote has no fetch refspec, or one writes outside refs/remotes/, so git could delete or overwrite your local branches or tags — use git in a terminal" (bug-014) |
 
 `local-changes-in-the-way`: the files changed by the incoming commits
 (`git log --no-renames --name-only -z --format= HEAD..@{u}`) intersected with the status entries
