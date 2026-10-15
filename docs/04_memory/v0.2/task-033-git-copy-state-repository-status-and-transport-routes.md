@@ -597,3 +597,21 @@ Checks after review round 3 (HEAD before this note `c969ca5`): `typecheck`, `lin
 clean; `docs:api` 0 warnings; `check_tasks.py v0.2` OK; `test:coverage` 146 files passed, 1
 skipped, **2659 passed / 1 skipped** (statements 96.60 %, branches 91.22 %; the public-text check
 included), load 9.2 → 28.3. No web or e2e code changed in this round, so no e2e run.
+
+### reviews and merge of `main` before submit (2026-10-15)
+
+- Independent review: round 1 CHANGES REQUESTED (F1 major: owner check bypass; F2–F6 minor; F7,
+  F8 nits), round 2 CHANGES REQUESTED (F9, F10 minor; F11 nit), round 3 CHANGES REQUESTED (F12,
+  F13 minor), round 4 **PASS** (`994fec6`).
+- Adversarial security review (RP-47): round 1 CHANGES REQUESTED (S1–S9), round 2 CHANGES
+  REQUESTED (S10–S13), round 3 **PASS** (`1b856a1`; S14, S15 info items then applied, verified by
+  the independent round 4).
+- `main` (`f059093`: bug-012 and bug-013 absorbed into this task) merged into the branch
+  (`2c1ef0e`), no conflict. Gates on the merge:
+
+| Gate | Result | Load |
+|------|--------|------|
+| `npm run typecheck`, `npm run lint`, `npm run format:check`, `check_tasks.py v0.2` | clean / OK | 7.6 |
+| `npm run test:coverage` | 146 files passed, 1 skipped; **2659 passed / 1 skipped**; statements 96.60 %, branches 91.22 % | → 23.2 |
+| `npm run test:e2e -- test/e2e/dna.spec.ts` (the task's only e2e change, three engines) | 12 passed | → 23.8 |
+| `npm run test:smoke` | 4/4 | → 23.8 |
