@@ -85,3 +85,277 @@ transports, `GIT_SSH_COMMAND` handling, credentials in errors and logs, hooks du
      - design: tech-specs found missing/needing revision (dev-loop/design safety net).
      - red/green/refactor: deviations from the plan above, blockers, scope surprises.
      - review: rejection reasons and what changed on the next pass. -->
+
+### design (2026-10-15)
+
+Read: this task; `CLAUDE.md`; the developer rules of the dev-loop (v0.2 additions, e2e engines
+W0-9, lessons of Waves 0–2); the Execution Notes of `depends_on` task-031 and task-032 (design,
+decisions, red/green/refactor, every review round); `release-planning-rel-v0.2-plan` RP-14, RP-21,
+RP-23, RP-24, RP-25, RP-32, RP-34, RP-35, RP-36, RP-37, RP-40, RP-41, RP-43, RP-47, RP-48, RP-55;
+`dev-loop-rel-v0.2-plan` Sessions 1–3 (W0-1 … W0-10, W1-1 … W1-4, W2-0 … W2-5, hand-overs to
+Wave 3); spec-010 (all), spec-004 §3–§6, spec-003 §6, spec-001 §6, spec-006 §3, spec-008 §4;
+adr-001 D2, D5, D6, D7; bug-010, bug-012; directives (`directives list`: `wingfoil-cli`,
+`cli-only-writes`, `security-secrets`, `claim-evidence`, `documentation`, `doc-versioning`) — no
+*Known behaviours* row concerns git transport (they are the CLI's); code: `server/src/git/git.ts`,
+`server/src/snapshot/` (`snapshot.ts`, `snapshots.ts`, `state.ts`, `watcher.ts`),
+`server/src/writes/governed.ts`, `server/src/http/` (`element-writes.ts`, `project-routes.ts`,
+`projects.ts`, `app.ts`), `server/src/process/` (`runner.ts`, `write-lock.ts`),
+`server/src/projects/clone.ts`, `server/src/cli/adapter.ts`, `server/src/launcher/start.ts`,
+`server/src/descriptor/descriptor.ts`, `contracts/api/` (`project`, `descriptor`,
+`write.refusal`), `contracts/src/` (`api.ts`, `writes.ts`), `web/src/api/error-message.ts`,
+`web/src/i18n/en.json`; tests `test/server/snapshot/support.ts`, `process-audit.test.ts`,
+`test/harness/fixtures/` (every fixture has a bare `origin` it tracks), `test/e2e/support/git-http.ts`
+(`hold`), `test/launcher/local-security.test.ts`, `test/web/api/error-message.test.ts`.
+
+**depends_on (dl-015 hard gate) — task-031, task-032, acknowledged.**
+
+- task-032: the write lock is taken with `ProjectSnapshot.lockKey` (the realpath of the git common
+  directory, W2-0 / D32-2), never the pid; row 8 goes where `governed.ts` says "Row 8 (task-033)
+  goes here", i.e. **after** row 7 and the S1 re-listing, **before** row 9, on the state of the
+  `snapshot.check()` made at the start of `locked()` (the FRESH state, review S1); `stale-copy` is
+  added to `write.refusal.schema.json` and `WriteRefusalCode`; rows 5–6 read the snapshot view
+  (D32-3) and are evaluated again on the fresh view when the state moved; no CLI or git error text is
+  logged (N1: kinds, codes, exit status only) — tested with a marker on every error path; the
+  `GIT_ALLOWED_SUBCOMMANDS` list already holds `fetch`, `pull`, `push`, `remote`, `config`, `log`:
+  this task adds **no** subcommand (`merge` is task-034's, with the "Never merge" comment).
+- task-031: no partial answer on a failed input; the descriptor inputs are memoised per state
+  (`descriptorInputs()`, `derived(...)`), which this task feeds with the copy (spec-003 §6 rule 4);
+  the Today and element routes inherit the copy reasons through it.
+- Both: new suites use `TempWorkspace` and the run's temporary root (W0-2); fresh-read
+  preconditions (W0-3): every "after a change" assertion first asserts that the state key moved
+  (or did not).
+
+**What git actually does (probes on git 2.43.0, scratch repositories, removed).**
+
+- `GIT_ALLOW_PROTOCOL=ext` in the server's environment **overrides** `-c protocol.allow=never`: a
+  clone of `ext::sh -c touch% <marker>` with `CLONE_SETTINGS` wrote the marker. `gitEnv` keeps that
+  variable, so the v0.1 clone's "`ext::` refused whatever the user's configuration says" does not
+  hold against the environment (D33-2). `remote.<n>.vcs` (a remote helper) and an `ext::` URL in the
+  repository's configuration are refused by the protocol settings (`transport '…' not allowed`).
+- `fetch`, `pull` (and the `merge` that `pull` runs) each start `git maintenance run --auto`
+  (GIT_TRACE); `gc --auto` may detach into the background and outlive the killed process group and
+  the server (D33-3). `-c maintenance.auto=false` removes every such child (probed: 0).
+- A **local** upstream (`branch.<b>.remote = .`) prints `# branch.upstream <b>` **and**
+  `# branch.ab +0 -0`: the `branch.<b>.remote` read of spec-010 §1 is required, the headers alone
+  cannot tell it from a remote upstream.
+- `git log --no-renames --name-only -z --format= <range>` gives NUL-separated paths relative to the
+  repository's top level (no headers).
+- `pull` runs the repository's hooks (post-merge, reference-transaction), its fsmonitor, the user's
+  filter drivers and credential helpers / askpass programs; `GIT_TERMINAL_PROMPT=0` does not stop an
+  askpass program (git's prompt asks it first) — D33-4 and the accepted residuals.
+
+#### AC classification
+
+| AC part | kind | first test |
+|---------|------|------------|
+| contracts first (RP-43): `repository.schema.json`, `git.response.schema.json`, `git.refusal.schema.json` (new); `project.schema.json` (`repository` → `$ref`, top-level `conditions`); `write.refusal.schema.json` + `stale-copy` | **red-first** | `test/contracts/api-git-schema.test.ts` (new): spec examples accepted, every `copy` value, `sync` shapes, `detail.files` absolute path refused by pattern, unknown keys refused |
+| copy state per row of spec-010 §1 from recorded porcelain outputs (detached, no remote, local upstream, upstream without tracking ref = `no-upstream` RP-32, diverged, behind, ahead, in sync, initial); fetch target per RP-36; merge-ref validation (D33-8) | **red-first** | `test/server/git/copy-state.test.ts` (new, pure) |
+| the git facts relied on (above; prune → `no-upstream`, RP-35; `pull --ff-only` on diverged / in-the-way refuses and leaves HEAD and the edit; protocol settings refuse `ext::` and `vcs`; `GIT_ALLOW_PROTOCOL` overrides them; maintenance children) | **characterization** | `test/server/git/transport-facts.test.ts` (new), real git on fixture copies with their bare `origin` |
+| argument arrays exactly as spec-010 §4 (+ D33-3 settings), environment (`GIT_TERMINAL_PROMPT=0`; `GIT_SSH_COMMAND=ssh -o BatchMode=yes` only when neither `GIT_SSH_COMMAND`, `GIT_SSH` nor `core.sshCommand` is set; D33-2 `GIT_ALLOW_PROTOCOL`) | **red-first** | `test/server/git/transport.test.ts` (new, unit over a recording runner) |
+| key and events (§2, RP-40): the key moves on `branch.ab`, upstream, branch switch, `git remote add`/`remove`, not on a re-read; `repo` on a copy-state or last-error change, never for `lastSuccessAt` alone; D33-6 (CLI reads not re-run when only the copy part moved) | **red-first** | `test/server/snapshot/copy-key.test.ts` (new) |
+| `GET /api/p/:pid` `repository` (§3) and `conditions: ["has-remote"]` (§7, RP-25); descriptor reasons `copy-behind {commits}`, `copy-diverged`, `copy-detached` (spec-003 §6 rule 4) on `/elements`, `/elements/:eid`, `/today` | **red-first** | `test/server/http/repository-status.test.ts` (new; not appended to the hot `project-routes.test.ts`) |
+| §5 and §8 on the three routes: each refusal 409 with its `code`, 0 transport processes; nothing to do → 200, 0 transport processes (D33-9); 422 `git-refused` with the message (redacted, D33-5) kept in `sync.*.lastError`, never logged (marker in the remote path and in git's message); manual update = `pull --ff-only`, not cancellable (RP-37); fetch and push cancelled by the client leaving: process group killed (git-http remote with `hold`), no `lastError`; REQ-INT-06: every git process of the routes has an allowed subcommand | **red-first** | `test/server/http/git-routes.test.ts` (new): real `Snapshots` over `AuditedRunner`, fixture copies, a second clone pushing to the same bare remote (behind / diverged), `InProcessEventBus`, every non-200 body validated by `git.refusal.schema.json` and every 200 by `git.response.schema.json` |
+| TT-SEC-08 (RP-34, RP-48, RP-14): for `not-in-team`, `no-identity`, `ambiguous`: update, push and the three governed writes → 403 `not-in-team`, 0 processes on a warm state; fetch → 200 | **red-first** for the git routes; **characterization** for the governed writes (task-032 row 5) | `git-routes.test.ts` › TT-SEC-08 table over the five routes |
+| TT-STATE-04 row 8: copy behind, diverged, detached → 409 `stale-copy`, 0 `wingfoil` processes; the copy moved after the last observed state is seen (fresh, under the lock); after a successful `POST …/git/update` the same write → 200 | **red-first** | `test/server/http/element-writes.test.ts` (appended `describe`) |
+| local-security rows of the three routes (REQ-SEC-02/03) | **characterization** (pass before the routes exist, as in task-031/032) | `test/launcher/local-security.test.ts` (appended block) |
+| the routes registered in the bin | **red-first** | `test/launcher/git-routes.test.ts` (new; fails with the registration line removed) |
+| process audit: the check's git processes (D33-7) | **characterization** (counts updated with the reason) | `test/server/snapshot/process-audit.test.ts`, `snapshot.test.ts`, `memory-events.test.ts` |
+| bug-010 statement (user guide, spec-006 §3, spec-010 §4, minimum git version in the README) | documentation (public-text check) | — |
+| bug-010 guard per D33-1 (local remote not owned by the user refused) and D33-2 (`GIT_ALLOW_PROTOCOL`) on the clone | **red-first** | `test/server/projects/clone.test.ts` (appended: the `ext::` marker reproduced with `GIT_ALLOW_PROTOCOL=ext`, then refused); `git-routes.test.ts` for transport |
+| bug-012 (**pending triage**): no local absolute path in a `cli-refused` / `git-refused` body or a `lastError` | **red-first** | `test/server/cli/adapter.test.ts` (appended, unit) + one test per route family with a marker root: a read route (`project-routes`), a governed write (`element-writes`), the project list (`projects.test.ts`), a git route |
+| `error.<code>` keys of the new codes (spec-008 §4) | **red-first** | `test/web/api/error-message.test.ts` (`SPEC_004` rows appended) |
+
+#### Request flow (one `GitTransport` for the three routes)
+
+1. Guards (rows 1–2). 2. `onRequest`: unknown `:pid` → 404 before the body (as task-032). 3. Body:
+none or `{}`, anything else → 400 `invalid-request` (D33-9). 4. Update and push only — row 5 on
+the snapshot view (D32-3: no process on a warm state) → 403 `not-in-team`. 5.
+`writeLock.run(snapshot.lockKey, …)`: `snapshot.check()` (fresh: status, `user.email`,
+`git remote`, `branch.<b>.remote`); update/push: row 5 again when the fresh identity moved; §5
+refusals in their order from the fresh copy (fetch: `no-remote`, `no-fetch-target`; update:
+`no-remote`, `detached-head`, `no-upstream`, `diverged`, `local-changes-in-the-way` — the `log`
+read `HEAD..@{u}` ∩ the fresh status; push: `no-remote`, `detached-head`, `no-upstream`, merge ref
+valid D33-8); D33-1 owner check of a local remote (`git remote get-url [--push] -- <remote>`);
+nothing to do → step 7. 6. `core.sshCommand` read, then the transport process (argument array,
+`timeoutMs: null`; fetch and push get the client-gone signal, update none). 7. `snapshot.check()`;
+the sync record updated (`lastSuccessAt`, `lastError` set or cleared; `repo` with the same state
+when only a last error changed); 200 `{repository}` or 422 `git-refused`. Logs: `{pid, op,
+exitCode, ended}` only.
+
+Row 8 of the governed writes: in `GovernedWrites.locked()`, from the `state` of its first
+`snapshot.check()` (or of the re-listed view's state when it moved): `copy` ∈ {`behind`,
+`diverged`, `detached`} → 409 `stale-copy`, before row 9 and any `wingfoil` process.
+
+#### File layout (planned)
+
+- `contracts/api/repository.schema.json`, `git.response.schema.json`, `git.refusal.schema.json`
+  (new, committed first with their test); `project.schema.json` (`repository` → `$ref`,
+  `conditions`); `write.refusal.schema.json` (`stale-copy` in the no-detail enum).
+- `contracts/src/git.ts` (new): `RepositoryCopy`, `RepositoryStatus`, `RepositorySync`,
+  `SyncError`, `UpdateSyncError`, `ProjectCondition`, `GitOperation`, `GitResponse`,
+  `GitTransportRefusalCode`, `GitRefusalCode`; one appended export line in `contracts/src/index.ts`;
+  `contracts/src/api.ts` `ProjectHeader.repository: RepositoryStatus`, `ProjectHeader.conditions`;
+  `contracts/src/writes.ts` `WriteRefusalCode` + `'stale-copy'`.
+- `server/src/git/git.ts`: `parseStatus` also returns `branch` (`head` name or `null`),
+  `upstream`, `ab` and hashes those header lines; `GIT_READ_ARGS` + `remotes` (`remote`),
+  `branchConfig` (`config --get`), `sshCommand`, `remoteUrl` (`remote get-url`), `incoming`
+  (`log --no-renames --name-only -z --format=`); `GitReads.remotes()`, `branchRemote(b)`,
+  `branchMerge(b)`, `sshCommand()`, `remoteUrl(name, push)`, `incomingPaths()`; the module header
+  table gains these reads (the "Never merge" comment stays for task-034).
+- `server/src/git/copy.ts` (new, pure): `copyOf(status, remotes, branchRemote)`,
+  `fetchTarget(...)`, `isMergeRef(ref)`.
+- `server/src/git/transport.ts` (new): `TRANSPORT_SETTINGS` (`CLONE_SETTINGS` + D33-3),
+  `ALLOWED_PROTOCOLS` (one list for `CLONE_SETTINGS` and `GIT_ALLOW_PROTOCOL`), `fetchArgs(remote)`,
+  `pullArgs()`, `pushArgs(remote, mergeRef)`, `transportEnv(env, sshConfigured)`.
+- `server/src/git/redact.ts` (new): `redactLocalPaths(text, roots)` (D33-5), used by the adapter
+  and the transport.
+- `server/src/git/sync-status.ts` (new): `SyncStatus` (per pid, in memory, D33-10).
+- `server/src/writes/transport.ts` (new): `GitTransport` (the flow above; `fetch`, `update`,
+  `push`; the locked part exported for task-034's scheduler and auto-push).
+- `server/src/http/git-routes.ts` (new): `GIT_PATHS`, `registerGitRoutes(app, { store, snapshots,
+  writeLock, bus, sync })`; `clientGone` exported from `server/src/http/projects.ts` (reused).
+- `server/src/snapshot/state.ts`: `RepoState` + `branch`, `upstream`, `copy`, `ahead`, `behind`,
+  `remotes`, `contentKey` (D33-6); `snapshot.ts`: the check reads the remotes and the branch's remote;
+  the CLI memo on `contentKey`, `derived` on `key`; `snapshots.ts`: `SyncStatus` forgotten on close.
+- `server/src/writes/governed.ts`: row 8.
+- `server/src/http/project-routes.ts`: header `repository` + `sync` + `conditions`; `copy` in the
+  descriptor enablement (`registerProjectRoutes` options gain `sync`).
+- `server/src/cli/adapter.ts`: the refusal message redacted (D33-5, pending triage).
+- `server/src/projects/clone.ts`: D33-2 environment, D33-1 owner check.
+- `server/src/launcher/start.ts`: one `SyncStatus`, passed to the project routes; one appended
+  `registerGitRoutes(...)` line.
+- `web/src/i18n/en.json`, `web/src/api/error-message.ts`: the new `error.*` keys (D33-13).
+- Docs: spec-010, spec-004, spec-006 (and adr-001 D6 if D33-6) amended in place with dated Process
+  Notes; `docs/user-guide.md` *Add a project* (bug-010; version bump); `README.md` minimum git
+  version; `test/README.md` 0.33; `CHANGELOG.md` *Unreleased* (Security: the `GIT_ALLOW_PROTOCOL`
+  hole, D33-1; Changed: no absolute path in tool messages — if bug-012 is absorbed).
+
+#### Test plan (scenario → file)
+
+| Suite | File | What |
+|-------|------|------|
+| contract | `test/contracts/api-git-schema.test.ts` (new) | the three new schemas, `project.schema.json` additions, `stale-copy` |
+| unit | `test/server/git/copy-state.test.ts` (new) | §1 rows, RP-32, RP-36, D33-8 |
+| unit | `test/server/git/transport.test.ts` (new) | §4 arrays, environment, D33-2, D33-3 |
+| unit | `test/server/git/redact.test.ts` (new) | D33-5: given and real roots, longest first, home, URL userinfo, cap |
+| characterization | `test/server/git/transport-facts.test.ts` (new) | the git facts above |
+| snapshot | `test/server/snapshot/copy-key.test.ts` (new) | §2 key, RP-40 events, D33-6 |
+| API | `test/server/http/repository-status.test.ts` (new) | §3, §7, spec-003 §6 rule 4 (Y-01.3 API side) |
+| API | `test/server/http/git-routes.test.ts` (new) | §5, §8, TT-SEC-08 (S-13.2, S-15.2, T-01.2, C-08.x, C-09.x API side), Y-05.1, Y-06.1, Y-06.2 API side, cancel, git-refused, REQ-INT-06 audit, bug-012 marker |
+| API | `test/server/http/element-writes.test.ts` (appended) | row 8 (G-12.1, G-12.2, G-12.3 API side) |
+| bin | `test/launcher/git-routes.test.ts` (new), `local-security.test.ts` (appended) | registration; rows 1–3 |
+| web unit | `test/web/api/error-message.test.ts` (appended rows) | the new codes |
+| audits | `process-audit.test.ts`, `snapshot.test.ts`, `memory-events.test.ts` | updated git counts (D33-7) |
+
+e2e: none in this task (no screen). Closure table:
+
+| Scenario | Proved here by (API side) | Closes (e2e) in |
+|----------|---------------------------|-----------------|
+| G-12.1, G-12.2, G-12.3 | `element-writes.test.ts` › row 8; `git-routes.test.ts` › update then write | task-040-update-and-push-from-the-sidebar |
+| Y-05.1, Y-06.1, Y-06.2 | `git-routes.test.ts` › update (behind, diverged, in the way) | task-040-update-and-push-from-the-sidebar |
+| Y-01.3 | `repository-status.test.ts` › detached; `git-routes.test.ts` › `detached-head` | task-039-repository-status-and-fetch-in-the-sidebar |
+| S-13.2, S-15.2 | `git-routes.test.ts` › TT-SEC-08 | task-037-gate-footer-with-every-outcome |
+| T-01.2 | `git-routes.test.ts` › TT-SEC-08 | task-036-today-requires-you-and-waiting-on-others |
+| C-08.1, C-08.2, C-09.1, C-09.2 | `git-routes.test.ts` › TT-SEC-08 | task-035-how-to-join-panel |
+
+#### Spec amendments needed (after the decisions)
+
+spec-010 §2 (the key covers the resolved upstream remote; D33-6), §4 (D33-2, D33-3, D33-8, D33-9,
+D33-4 wording, the bug-010 statement, `git remote get-url` for D33-1), §5 (D33-11, D33-1 code);
+spec-004 §5 (D33-5 for `cli-refused` and `git-refused`, the D33-1 code in the code tables);
+spec-006 §3 (bug-010: what runs during a clone, D33-1, D33-2); adr-001 D6 (D33-6) — dated Process
+Notes (2026-10-15).
+
+#### Open decisions (approver)
+
+- **D33-1 — bug-010 option.** (a) document only: the user guide *Add a project*, spec-006 §3 and
+  spec-010 §4 say exactly what runs (nothing of the cloned or fetched repository's own code at
+  clone time; the user's configured tools — filter drivers such as git-lfs, `core.sshCommand`,
+  credential helpers, config-defined hooks — may run; during update and push the repository's
+  hooks run, D33-4), and the README names a minimum git version (2.43.4 / 2.45.1 or later, or a
+  distribution build carrying the fixes of CVE-2024-32004 and CVE-2024-32465), not checked
+  (a distribution's "2.43.0" may carry the backports); (b) (a) plus `GIT_LFS_SKIP_SMUDGE=1` and
+  emptied `filter.lfs.*` on the clone (an enumeration of one tool; leaves LFS working trees with
+  pointer files); (c) ★ (a) plus, on POSIX, refusing a **local** remote (a `file://` URL or a path)
+  whose repository folder (and its `.git`, when not bare) is not owned by the server's user — the
+  clone (422, new spec-006 §3 code `remote-not-owned`) and fetch, update and push (409, same code
+  in spec-010 §5; the URL from `git remote get-url`, `insteadOf` applied) — before any transport
+  process; the CVE class is "a repository owned by another local user", which this checks whatever
+  the git version; Windows documented as unchecked.
+- **D33-2 — `GIT_ALLOW_PROTOCOL` in the server's environment** (probed: it re-enables `ext::`
+  against `CLONE_SETTINGS`). (a) ★ the clone and the transport set `GIT_ALLOW_PROTOCOL` to exactly
+  the allowed list (`https:http:ssh:git:file`), built from the same constant as `CLONE_SETTINGS`;
+  (b) `gitEnv` drops `GIT_ALLOW_PROTOCOL` for every child (the `-c` settings then hold; the CLI's
+  own git calls are local); (c) leave it (the user's environment) and document.
+- **D33-3 — git's own background work during transport.** (a) ★ `-c maintenance.auto=false
+  -c gc.auto=0` on fetch, pull and push (after `CLONE_SETTINGS`): no `maintenance`/`gc` child, so
+  nothing outlives the process group a cancel or the stop sequence kills, and a cancel never lands
+  in a repack (spec-010 §4 amended); (b) as the spec: git maintains as configured (a detached
+  `gc --auto` may outlive a cancelled fetch and the server).
+- **D33-4 — hooks and the user's tools during update and push** (RP-23, confirmation of the
+  wording). (a) ★ as RP-23: hooks run as the repository configures them — stated precisely: with a
+  relative `core.hooksPath` (e.g. husky's) the hook files the incoming commits bring run after the
+  fast-forward, exactly as in the user's own `git pull`; the project's CLI from `node_modules`
+  already runs the repository's code (adr-001 D2), so no trust boundary is crossed; (b) the manual
+  update runs with `core.hooksPath` = the clone's `NO_HOOKS_PATH` (no post-merge/post-checkout hook
+  from the UI's pull), push keeps `pre-push` (changes RP-23); (c) no hook on update nor push.
+- **D33-5 — bug-012 (pending triage), the redaction.** (a) ★ one `redactLocalPaths` applied at
+  the two mapping points — the adapter's exit-1 refusal (`cli-refused`, every route family) and the
+  transport's failure (`git-refused`, `lastError`): every occurrence of the project root (as listed
+  and as its realpath), the repository's top level, git directory and common directory, longest
+  first, replaced by `<project>` (inside the project) or `<repository>` (the top level and the git
+  directories outside it), the home directory by `~`, userinfo removed from URLs, the text capped
+  at 4 000 characters; the CLI's and git's wording otherwise verbatim (REQ-INT-04, REQ-INT-06);
+  (b) only the project root (the bug's minimal fix); (c) not here: bug-012 stays for its own task.
+- **D33-6 — the CLI read cache and the copy part of the key.** (a) ★ `RepoState.contentKey` =
+  HEAD + working-tree hash: the CLI reads (and `--version`) are memoised on it, the descriptors and
+  every `derived` value on the full key — a fetch that moves only a tracking ref starts 0 CLI
+  processes on the next refetch (REQ-PERF-05: the CLI cannot see the tracking refs); adr-001 D6
+  Process Note; (b) one key for everything: each such fetch re-runs up to 3 CLI reads per page
+  refetch.
+- **D33-7 — the reads of each check.** (a) ★ spec literal: `git remote` with the status (in
+  parallel with the status and `user.email`), then `git config --get branch.<b>.remote` when an
+  upstream is printed: 3–4 git processes per check (2 today), process-audit counts updated; the
+  merge ref, `core.sshCommand` and the remote URL are read only under the lock, at transport time;
+  (b) one `git config -z --get-regexp` for remotes and the branch's remote (misses remotes defined
+  in `.git/remotes/` files; a regular expression over a branch name).
+- **D33-8 — the push target.** (a) ★ the remote must be one `git remote` lists (spec) and the merge
+  ref `refs/heads/<name>` with no `:`, `+`, `*`, `?`, `[`, `\`, `^`, `~`, space or control
+  character, no `..` or `@{`, not ending in `/` or `.lock`; otherwise push → 409 `no-upstream`
+  (never a refspec git could read as forced or as two refs); (b) whatever the configuration holds,
+  after `--` (git refuses most malformed refspecs itself).
+- **D33-9 — "no body" and "nothing to do → no process".** (a) ★ the routes accept no body or `{}`,
+  anything else 400 `invalid-request` (row 4); "no process" = no transport process — the fresh
+  reads under the lock run (status, remotes, branch config), else "nothing to do" could be answered
+  from a stale state; (b) ignore any body; answer "nothing to do" from the watcher's state with 0
+  processes.
+- **D33-10 — scope of `sync`.** (a) ★ per pid, in memory since the start, dropped when the project
+  leaves the list (spec "per project"); a fetch from one of two listed projects of one repository
+  moves the other's copy (refs are shared) but not its `lastSuccessAt`; (b) per repository
+  (`lockKey`) for fetch, per pid for update.
+- **D33-11 — `detail.files` outside the project folder** (a project in a sub-folder of its
+  repository). (a) ★ every in-the-way path relative to the project, `../` included (POSIX
+  separators), never absolute; (b) relative to the repository's top level; (c) only the files inside
+  the project, the others counted in `detail.others`.
+- **D33-12 — row 5 of update and push.** (a) ★ as D32-3: from the snapshot view before the lock
+  (0 processes once the page has read the state), and again under the lock when the fresh state's
+  identity moved; (b) only under the lock (a check process for every refused request).
+- **D33-13 — catalogue of the new codes** (spec-008 §4). (a) ★ this task adds `error.noRemote`,
+  `error.noFetchTarget`, `error.detachedHead`, `error.noUpstream`, `error.diverged`,
+  `error.localChangesInTheWay` (`{files}`) — and `error.remoteNotOwned` with D33-1 (c) — with the
+  spec-010 §5 English texts, their `MESSAGES` rows, and `errorMessage(error, options?)` rendering an
+  array `detail.files` as one `{files}` argument (base names joined by an optional
+  `options.formatList`, default `Intl.ListFormat` of `en`); (b) keys and rows only; the list
+  rendering is task-040's (until then `{files}` is the raw ", " join).
+- **D33-14 — new header fields.** (a) ★ `repository`'s new fields and `conditions` required in the
+  schema and the type (the server always sends them); the two web test mocks
+  (`test/web/project/header-data.ts`, `test/web/dna/data.ts`) gain them; (b) optional.
+
+**Accepted residual risks (stated, not decided):** a credential helper or askpass program that
+shows a dialog holds an update, which no one can cancel (RP-37; it is the user's authentication,
+REQ-SEC-09); a configuration change between the server's reads and git's own (milliseconds); another
+console or a terminal using the repository at the same time (git's lock files make one fail with
+git's message); push goes to the upstream's remote, never `branch.<b>.pushRemote` (spec-010 §4
+explicit refspec); the user's environment (`GIT_TRACE*`, `GIT_SSH`, `GIT_EXEC_PATH`) is used as
+is. Observation outside bug-012's wording: `cli-not-found` sends `detail.path` = the project's
+absolute root (spec-006 §3 shape; the catalogue does not use it).
