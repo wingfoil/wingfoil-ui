@@ -49,7 +49,18 @@ type FetchOutcome =
 
 /** The automatic fetch and update. */
 export class AutoSync implements SyncWork {
+  /** Set by the stop sequence: no further project, no further process (review R5). */
+  private stopping = false;
+
   constructor(private readonly options: AutoSyncOptions) {}
+
+  /**
+   * The server stops: no project is started any more and no merge is spawned — a merge the stop
+   * sequence killed during its checkout would leave the working tree half updated (D34-7).
+   */
+  stop(): void {
+    this.stopping = true;
+  }
 
   groups(): SyncGroup[] {
     const listed = new Set(this.options.store.projects().map((p) => p.id));
@@ -74,6 +85,7 @@ export class AutoSync implements SyncWork {
     }
     const fetched = new Map<string, FetchOutcome>();
     for (const pid of group.pids) {
+      if (this.stopping) return;
       const snapshot = this.options.snapshots.get(pid);
       if (!snapshot || snapshot.lockKey !== group.key) continue;
       try {
@@ -111,6 +123,7 @@ export class AutoSync implements SyncWork {
     const remote = plan.remote ?? '';
     let outcome = fetched.get(remote);
     if (!outcome) {
+      if (this.stopping) return;
       outcome = await this.fetch(pid, snapshot, plan, hooksPath);
       fetched.set(remote, outcome);
     }
@@ -166,7 +179,7 @@ export class AutoSync implements SyncWork {
       sync.updateFailed(pid, { code, ...(detail ? { detail } : {}) }, state.copy, new Date());
       return;
     }
-    if (plan.args === undefined) return;
+    if (plan.args === undefined || this.stopping) return;
     const result = await snapshot.git.transport([...noHooksArgs(hooksPath), ...plan.args], {
       env: unattendedEnv(await transport.sshConfigured(snapshot), transport.environment),
       // D34-7: no time limit — a killed checkout leaves the working tree half updated.
@@ -176,11 +189,13 @@ export class AutoSync implements SyncWork {
     const after = await snapshot.check();
     if (result.ended === 'terminated' || result.ended === 'cancelled') return;
     if (result.ended === 'exit' && result.exitCode === 0) {
-      sync.updated(pid);
       if (after.ahead !== 0 || after.behind !== 0) {
-        // D34-2 post-condition: a fast-forward leaves HEAD at the upstream.
+        // D34-2 post-condition: a fast-forward leaves HEAD at the upstream. No update code fits, so
+        // it is logged only, and a previous update error is kept (review R4).
         logger.error({ project: pid, op: 'auto-update', code: 'merge-not-fast-forward' }, 'automatic update');
+        return;
       }
+      sync.updated(pid);
       return;
     }
     sync.updateFailed(

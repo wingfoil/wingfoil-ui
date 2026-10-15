@@ -29,6 +29,8 @@ export interface SyncWork {
   groups(): SyncGroup[];
   /** Sync `group`; called inside its write lock. */
   sync(group: SyncGroup): Promise<void>;
+  /** The server stops: start nothing more (review R5). */
+  stop?(): void;
 }
 
 /** The settings source (the `StateStore` fits). */
@@ -91,6 +93,7 @@ export class SyncScheduler {
   /** No further tick; a running one starts no further group. Its process is the stop sequence's. */
   stop(): void {
     this.stopped = true;
+    this.options.work.stop?.();
     clearInterval(this.timer);
     this.timer = undefined;
     this.unsubscribe?.();
@@ -113,6 +116,15 @@ export class SyncScheduler {
   }
 
   private async run(): Promise<void> {
+    try {
+      await this.syncAll();
+    } catch (error) {
+      // The timer calls `tick()` without awaiting it: nothing may reject (review R9). Kind only.
+      this.options.logger?.warn({ kind: (error as Error).name }, 'auto-sync: the tick failed');
+    }
+  }
+
+  private async syncAll(): Promise<void> {
     const { store, work, lock, logger } = this.options;
     try {
       await store.reload();
