@@ -421,3 +421,16 @@ support), fix `8295d53`:
 
 Checks: typecheck, lint, format:check clean; `npm run test:e2e -- accessibility.spec.ts
 harness/a11y-support.spec.ts` (three engines) **189 passed**, 0 failed (8.4 min, load 9 → 35).
+
+### confirmation round (bug-015, 2026-10-15)
+
+Review: **PASS** with R5-1 (minor). A `request` event of the new page that reaches the test before
+the main frame's `framenavigated` (possible in Firefox under load) was filed into the window the
+navigation throws away, and lost without a cause. Playwright gives a request its frame but no
+document identity, so a request cannot be filed by its document; the diagnostic option was taken:
+the generation started by the navigation keeps the request lines set aside (`ignored`), and
+`failures()` names them — "ignored as a read of the page left: GET …" — so a text flagged for this
+reason states it. Red first (`a50cf6d`: the R4-2 self-test expects the cause), fix `1115733`
+(`support/strings.ts`, `test/README.md`). Checks: typecheck, lint, format:check clean;
+`npm run test:e2e -- accessibility.spec.ts harness/a11y-support.spec.ts` (three engines)
+**189 passed**, 0 failed (7.6 min, load 21 → 42).
