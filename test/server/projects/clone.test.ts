@@ -83,6 +83,17 @@ describe('the hooks path of a clone (bug-008)', () => {
     expect((await readdir(tmpdir())).filter((e) => e.startsWith('wfui-no-hooks-') && !before.includes(e))).toEqual([]);
   });
 
+  it('sets GIT_ALLOW_PROTOCOL to the allowed list whatever the server environment holds (task-033 D33-2, bug-013)', async () => {
+    const runner = new FakeProcessRunner().answer({ exitCode: 0 });
+    const target = (await CloneTarget.inspect(path.join(root, 'protocols', 'kanban')))!;
+    await runClone('file:///nowhere/kanban.git', target, {
+      git: 'git',
+      runner,
+      env: { GIT_ALLOW_PROTOCOL: 'ext:fd', PATH: 'x' },
+    });
+    expect(runner.requests[0]!.env).toMatchObject({ GIT_ALLOW_PROTOCOL: 'https:http:ssh:git:file', PATH: 'x' });
+  });
+
   it.each([
     ['missing', async () => path.join(root, 'no-such-file')],
     [

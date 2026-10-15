@@ -421,6 +421,20 @@ describe('classification without processes (fake runner)', () => {
     expect(JSON.stringify(logged)).not.toContain('secret-value');
   });
 
+  it('a refusal quoting the project root and the CLI package keeps its wording, not the folders (task-033 D33-5, bug-012)', async () => {
+    const { FakeProcessRunner } = await import('../process/fake-runner.js');
+    const packageDir = path.join(root, 'elsewhere', 'wingfoil');
+    const message = `Command failed: git -C ${root} log -- x\nat ${packageDir}/dist/cli.js:1`;
+    const cli = new WingfoilCli({
+      cli: { source: 'path', projectRoot: root, file: process.execPath, prefixArgs: ['/x/cli.js'], packageDir },
+      runner: new FakeProcessRunner().answer({ exitCode: 1, stderr: JSON.stringify({ error: message }) }),
+    });
+    const error = (await cli.json(['paths']).catch((e: unknown) => e)) as CliRefusedError;
+    expect(error).toBeInstanceOf(CliRefusedError);
+    expect(error.cliMessage).toBe('Command failed: git -C <project> log -- x\nat <project>/elsewhere/wingfoil/dist/cli.js:1');
+    expect(cliErrorEnvelope(error).body.error.message).not.toContain(root);
+  });
+
   it('exit 1 with an empty stderr is a refusal that says so', async () => {
     const { FakeProcessRunner } = await import('../process/fake-runner.js');
     const cli = new WingfoilCli({

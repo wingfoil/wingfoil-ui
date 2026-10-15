@@ -1084,3 +1084,17 @@ describe('TT-INT-06 — process audit of this file', () => {
     expect(new Set(runner.wingfoilCommands())).toEqual(new Set(['dna show']));
   });
 });
+
+describe('bug-010 (task-033 D33-1) — a local repository of another user is never cloned', () => {
+  it.runIf(process.platform !== 'win32' && process.getuid?.() !== 0)(
+    'a file:// remote owned by another user → 422 remote-not-owned, nothing cloned or listed',
+    async () => {
+      const w = await world();
+      const before = await tree(w.dir);
+      // The file-system root belongs to root, not to the user running the tests.
+      await refusal(await clone(w, { url: `file://${path.parse(w.dir).root}`, directory: '~/projects/rooted' }), 'remote-not-owned');
+      expect(await tree(w.dir)).toEqual(before);
+      expect(await list(w)).toEqual([]);
+    },
+  );
+});
