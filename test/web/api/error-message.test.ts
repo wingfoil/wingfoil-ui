@@ -76,6 +76,11 @@ const SPEC_004: Record<string, Record<string, unknown>[]> = {
   'no-upstream': [{}],
   diverged: [{}],
   'local-changes-in-the-way': [{ files: ['docs/a.md'] }],
+  // task-034 (spec-010 §6): push.code of a write (D34-10), the automatic fetch killed after 60 s
+  // (D34-9), a fetch refused for its refspecs (D34-8, bug-014).
+  'push-timeout': [{}],
+  'fetch-timeout': [{}],
+  'refspec-outside-remotes': [{}],
   // task-032 W2-1, W2-4, W2-5 (write.refusal.schema.json); its text is task-037's (D37-11).
   'write-incomplete': [{ file: 'docs/x.md' }, { file: 'docs/x.md', commit: 'a'.repeat(40) }],
 };
