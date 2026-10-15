@@ -2,13 +2,13 @@
 id: bug-012-cli-refusal-messages-can-quote-the-repository-s-absolute-path
 type: bug
 title: "CLI refusal messages can quote the repository's absolute path"
-status: draft
-severity: ""           # REQUIRED — critical | high | medium | low
-release-origin: ""     # optional — release where the bug was FOUND, e.g. "v0.1"
+status: open
+severity: "low"        # REQUIRED — critical | high | medium | low
+release-origin: "v0.2" # optional — release where the bug was FOUND, e.g. "v0.1"
 release: ""            # optional — fix/implementation release, stamped by release-planning/build-backlog
 feature: ""            # optional — related feature ID from docs/01_vision/06_features.md
-module: ""             # optional — server | web | contracts
-wingfoil_version: ""   # optional — `wingfoil --version` of the OBSERVED project (the UI drives its CLI)
+module: "server"       # optional — server | web | contracts
+wingfoil_version: "0.2.2" # optional — `wingfoil --version` of the OBSERVED project (the UI drives its CLI)
 browser: ""            # optional — for `web`: browser name + version, e.g. "Firefox 131"
 contributor: ""        # optional — who originated this contribution, if not the git author; credited for AI-generated work derived from it
 credit: ""             # optional — free-text credit note
@@ -17,38 +17,50 @@ tmpl_version: 260703   # Orignal template version
 
 ## Summary
 
-<!-- One-sentence description of the defect. -->
+A refusal of the pinned CLI is answered as 422 `cli-refused` with the CLI's message verbatim, and
+that message can quote the repository's absolute local path (a failed git command or a Node.js
+file error), so the path reaches the browser.
 
 ## Steps to Reproduce
 
-<!-- Start from the observed project's state (WingFoil version, branch, the elements involved),
-     then the numbered steps in the UI or against the server API.
-  1. ...
-  2. ...
-  3. ... -->
+1. Any listed project with `wingfoil@0.2.2`.
+2. Make a CLI call of the server fail inside one of its git commands or on a file read, e.g. a
+   read route (`dna show`, `memory search`, `memory history`, …) or a governed write whose
+   element file disappears between the server's fresh check and the CLI's own read.
+3. Read the 422 body of the route.
 
 ## Expected Behavior
 
-<!-- What should happen. -->
+No local absolute path in an HTTP body (spec-004 §5: details of the machine only in the server
+log, and since task-032 W2-1 not even there): the CLI's message still reaches the user
+(REQ-INT-04, the CLI owns the rules), with the repository's path replaced by a repo-relative
+form or a neutral placeholder.
 
 ## Actual Behavior
 
-<!-- What actually happens. Include error messages or stack traces if available. -->
+`cliErrorEnvelope` in `server/src/cli/adapter.ts` maps kind `refused` to
+`envelope('cli-refused', error.message)`, and `GovernedWrites.write` in
+`server/src/writes/governed.ts` returns the CLI's reason refusal the same way. The pinned CLI wraps
+a failed git command as `Command failed: git -C <the repository's path> …` and a file error with
+its path, so the body can carry the absolute path of the repository.
 
 ## Evidence
 
-<!-- Screenshot or recording (web), browser console output, server log lines, the CLI command the
-     server ran and its JSON output. Never paste secrets (directive security-secrets). -->
+- task-032-governed-writes-submit-approve-and-reject Execution Notes, *Other `cli-refused`
+  answers that can carry a local absolute path* (reported, not changed).
+- `dev-loop-rel-v0.2-plan` Session 3, *Open points*.
 
 ## Notes
 
-<!-- Optional: environment details, related ADRs, suspected root cause, or workaround. -->
+- Severity low: the server is loopback-only with a session token (spec-007), so the reader is the
+  user of the same machine; the path is theirs. It still contradicts the rule that machine
+  details stay out of HTTP bodies, and a screenshot or a shared log would carry it.
+- The governed-write paths that commit before failing are already covered by task-032 W2-1,
+  W2-4, W2-5 (`write-incomplete`, fixed message).
+- Fix: one server-side redaction of the repository root (and the CLI's own install path) in
+  every `cli-refused` message, at the single mapping point, with a test per route family and a
+  marker path; the CLI's wording stays otherwise verbatim.
+- Proposed absorption: task-033-git-copy-state-repository-status-and-transport-routes (Wave 3; it
+  adds the git transport routes and their refusals, and edits the same refusal mapping).
 
 ## Triage & Execution Notes
-
-<!-- Running log, not the retrospective itself.
-     - triage (bug-ingest): severity call, wontfix/duplicate rationale if rejected to `closed`.
-     - fix: once fix task(s) exist (release-planning/build-backlog), day-to-day execution notes
-       live on those tasks (docs/04_memory/{release}/{id}.md, `bug: {this id}`, their own
-       Execution Notes section) — this section only needs a pointer plus anything that doesn't
-       belong on a specific fix task (e.g. why 2 tasks were needed instead of 1). -->
