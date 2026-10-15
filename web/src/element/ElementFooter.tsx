@@ -13,10 +13,11 @@
  *   when it applies; **reserved line** for a member without the gate's role (G-09.x); the engine
  *   notes (S-24.2 … S-24.4, RP-13); the final note (S-24.1).
  *
- * The write's feedback until task-038's toasts (D37-9): a polite status region (always present
- * while the panel is, so it survives the footer changing with the new state) says "<id> is now
- * <state>"; a refusal is an alert in the footer, the reason kept. The focus, on an outcome that
- * the new state removes, moves to the panel itself.
+ * The write's feedback until task-038's toasts (D37-9): a polite status region says "<id> is now
+ * <state>" (the state the server answered) and a refusal is an alert; both live outside the part
+ * that changes with the refetched state (review F2), the reason is kept. After a success the
+ * outcomes stay disabled until the new state arrives (review F4), and the focus moves to the
+ * panel's heading (review F5).
  */
 import type { ElementDetail, ProjectHeader } from '@wingfoil-ui/contracts';
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
@@ -62,12 +63,23 @@ export interface ElementFooterProps {
   focusReason: boolean;
   /** Cancel: what Close does. */
   onClose(): void;
+  /** Called once the reason took the focus asked by `focusReason` (review F7). */
+  onFocusReasonUsed?(): void;
 }
 
 /** The footer, and the panel's write status (keyed by element by the caller). */
-export function ElementFooter({ pid, detail, header, focusReason, onClose }: ElementFooterProps): ReactNode {
+export function ElementFooter({
+  pid,
+  detail,
+  header,
+  focusReason,
+  onClose,
+  onFocusReasonUsed,
+}: ElementFooterProps): ReactNode {
   const [done, setDone] = useState<{ id: string; state: string } | null>(null);
   const [error, setError] = useState<ApiError | null>(null);
+  // The status a successful decision was made from: its outcomes stay disabled until it changes.
+  const [decidedFrom, setDecidedFrom] = useState<string | null>(null);
   const write = useElementWrite();
   const root = useRef<HTMLDivElement>(null);
   // The focus request is used once per panel: a refetch remounting the footer must not move it.
@@ -77,13 +89,16 @@ export function ElementFooter({ pid, detail, header, focusReason, onClose }: Ele
   const decide = (o: GateOutcome, reason: string) => {
     setDone(null);
     setError(null);
+    const from = detail.element.status;
     write.mutate(
-      { pid, eid: detail.element.id, verb: o.verb, expectedStatus: detail.element.status, reason },
+      { pid, eid: detail.element.id, verb: o.verb, expectedStatus: from, reason },
       {
-        onSuccess: () => {
-          setDone({ id: detail.element.id, state: o.to });
-          // The outcome that had the focus goes with the new state: keep the focus in the panel.
-          (root.current?.closest('[role="dialog"]') as HTMLElement | null)?.focus();
+        onSuccess: (data) => {
+          const to = data.result['to'];
+          setDone({ id: detail.element.id, state: typeof to === 'string' ? to : o.to });
+          setDecidedFrom(from);
+          // The outcome that had the focus goes with the new state: the panel's heading takes it.
+          (root.current?.closest('[role="dialog"]')?.querySelector('.drawer-title') as HTMLElement | null)?.focus();
         },
         onError: (e) => setError(e),
       },
@@ -103,12 +118,17 @@ export function ElementFooter({ pid, detail, header, focusReason, onClose }: Ele
         <FooterContent
           view={view}
           detail={detail}
-          busy={write.isPending}
-          error={error}
+          busy={write.isPending || decidedFrom === detail.element.status}
           focusPendingRef={focusPendingRef}
           onDecide={decide}
           onClose={onClose}
+          onFocusReasonUsed={onFocusReasonUsed}
         />
+      )}
+      {error && (
+        <div className="element-footer gate-error" role="alert">
+          <ErrorText error={error} />
+        </div>
       )}
     </div>
   );
@@ -118,18 +138,18 @@ function FooterContent({
   view,
   detail,
   busy,
-  error,
   focusPendingRef,
   onDecide,
   onClose,
+  onFocusReasonUsed,
 }: {
   view: FooterView;
   detail: ElementDetail;
   busy: boolean;
-  error: ApiError | null;
   focusPendingRef: { current: boolean };
   onDecide(o: GateOutcome, reason: string): void;
   onClose(): void;
+  onFocusReasonUsed: (() => void) | undefined;
 }): ReactNode {
   switch (view.kind) {
     case 'none':
@@ -177,10 +197,10 @@ function FooterContent({
           key={`${detail.element.id}:${detail.element.status}`}
           view={view}
           busy={busy}
-          error={error}
           focusPendingRef={focusPendingRef}
           onDecide={onDecide}
           onClose={onClose}
+          onFocusReasonUsed={onFocusReasonUsed}
         />
       );
   }
@@ -218,17 +238,17 @@ const TEXTS = defineMessages({
 function GateFooter({
   view,
   busy,
-  error,
   focusPendingRef,
   onDecide,
   onClose,
+  onFocusReasonUsed,
 }: {
   view: Extract<FooterView, { kind: 'gate' }>;
   busy: boolean;
-  error: ApiError | null;
   focusPendingRef: { current: boolean };
   onDecide(o: GateOutcome, reason: string): void;
   onClose(): void;
+  onFocusReasonUsed: (() => void) | undefined;
 }): ReactNode {
   const intl = useIntl();
   const fallback = view.approve ? intl.formatMessage(TEXTS.defaultReason) : '';
@@ -246,11 +266,15 @@ function GateFooter({
     if (!focusPendingRef.current) return;
     focusPendingRef.current = false;
     field.current?.focus();
-  }, [focusPendingRef]);
+    onFocusReasonUsed?.();
+  }, [focusPendingRef, onFocusReasonUsed]);
+
+  /** G-06.3: a reject chosen while the default is untouched clears it (focus or a click without one). */
+  const clearsDefault = (o: GateOutcome) => !touched && o.verb === 'reject' && reason === fallback && fallback !== '';
 
   const onOutcomeFocus = (o: GateOutcome) => {
     if (touched) return;
-    if (o.verb === 'reject' && reason === fallback && fallback !== '') {
+    if (clearsDefault(o)) {
       setReason('');
       setAutoCleared(true);
     } else if (o.verb === 'approve' && autoCleared && reason === '') {
@@ -278,6 +302,7 @@ function GateFooter({
           rows={2}
           value={reason}
           placeholder={intl.formatMessage({ id: 'element.gate.reason.placeholder' })}
+          aria-describedby={blank ? hintId : undefined}
           onFocus={(e) => {
             if (!touched && reason !== '' && reason === fallback) e.currentTarget.select();
           }}
@@ -317,6 +342,13 @@ function GateFooter({
               aria-describedby={describedBy}
               onFocus={() => onOutcomeFocus(o)}
               onClick={() => {
+                // A click that did not focus the button (Safari, Firefox on macOS, a tap) must not
+                // send the approval's default as a rejection reason (review F1).
+                if (clearsDefault(o)) {
+                  setReason('');
+                  setAutoCleared(true);
+                  return;
+                }
                 if (!disabled) onDecide(o, reason);
               }}
             >
@@ -329,11 +361,6 @@ function GateFooter({
           <FormattedMessage id="common.action.cancel" />
         </Button>
       </div>
-      {error && (
-        <div className="gate-error" role="alert">
-          <ErrorText error={error} />
-        </div>
-      )}
     </section>
   );
 }

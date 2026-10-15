@@ -307,6 +307,21 @@
   flex: 1;
 }
 
+/* Native buttons (D37-3): the hover of base.css's React Aria buttons (`[data-hovered]`), review F8. */
+.gate-outcome:hover:not([aria-disabled='true']) {
+  background: var(--color-surface-2);
+}
+
+.gate-outcome.button-primary:hover:not([aria-disabled='true']) {
+  background: var(--color-primary);
+  text-decoration: underline;
+}
+
+.gate-outcome.button-danger:hover:not([aria-disabled='true']) {
+  background: var(--color-danger);
+  text-decoration: underline;
+}
+
 .gate-outcome[aria-disabled='true'] {
   opacity: 0.55;
   cursor: not-allowed;

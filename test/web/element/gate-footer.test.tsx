@@ -4,7 +4,7 @@
 // default, disabled outcomes that keep the focus (D37-3), the write and its feedback (D37-9), and
 // the read-only, reserved, waiting and final footers (D37-5 … D37-7).
 import type { ActionDescriptor, ElementDetail, Identity } from '@wingfoil-ui/contracts';
-import { act, cleanup, screen, waitFor, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { userEvent } from '@testing-library/user-event';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { stopEventStream } from '../../../web/src/api/events.js';
@@ -52,7 +52,14 @@ function detail(descriptor: ActionDescriptor): ElementDetail {
 }
 
 /** The reads of the panel, plus `posts` answered by path for `POST`. */
-function stub(descriptor: ActionDescriptor, identity: Identity = MO, posts: FakeApi = {}): ReturnType<typeof vi.fn> {
+function stub(
+  descriptor: ActionDescriptor,
+  identity: Identity = MO,
+  posts: FakeApi = {},
+  /** The descriptor the element is read with once a POST was sent (the refetch after a write). */
+  after?: ActionDescriptor,
+): ReturnType<typeof vi.fn> {
+  let posted = false;
   const api: FakeApi = {
     '/api/server': serverInfo(),
     '/api/projects': {
@@ -66,7 +73,9 @@ function stub(descriptor: ActionDescriptor, identity: Identity = MO, posts: Fake
     [`/api/p/${PID}/today?view=${ROLE}`]: { status: 200, body: { view: ROLE, requiresYou: [], waitingOnOthers: [] } },
   };
   const fn = vi.fn(async (url: string, init?: RequestInit) => {
-    const a = (init?.method === 'POST' ? posts[url] : api[url]) ?? {
+    if (init?.method === 'POST') posted = true;
+    const reread = posted && after !== undefined && url === BASE && init?.method !== 'POST';
+    const a = (reread ? { status: 200, body: detail(after) } : init?.method === 'POST' ? posts[url] : api[url]) ?? {
       status: 404,
       body: { error: { code: 'not-found', message: 'Not found' } },
     };
@@ -242,7 +251,7 @@ it('D37-9 — a refusal is an alert from the catalogue (CLI text verbatim); the 
   renderApp(`/p/${PID}/e/${EID}`);
   const f = await footer();
   await userEvent.click(outcome(f, 'Approve → s3'));
-  const alert = await within(f).findByRole('alert');
+  const alert = await screen.findByRole('alert');
   expect(alert.textContent).toContain('WingFoil refused the action:');
   expect(alert.textContent).toContain('Error: role approver required');
   expect((reasonField(f) as HTMLTextAreaElement).value).toBe(DEFAULT_REASON);
@@ -264,14 +273,14 @@ it('D37-11 — write-incomplete names the file, and the commit when there is one
   renderApp(`/p/${PID}/e/${EID}`);
   const f = await footer();
   await userEvent.click(outcome(f, 'Approve → s3'));
-  expect((await within(f).findByRole('alert')).textContent).toBe(
+  expect((await screen.findByRole('alert')).textContent).toBe(
     'WingFoil did not finish the action: check docs/el.md with git before trying again',
   );
   await userEvent.clear(reasonField(f));
   await userEvent.type(reasonField(f), 'No');
   await userEvent.click(outcome(f, 'Reject → s1'));
   await waitFor(() =>
-    expect(within(f).getByRole('alert').textContent).toContain(`WingFoil made the commit ${'b'.repeat(40)}`),
+    expect(screen.getByRole('alert').textContent).toContain(`WingFoil made the commit ${'b'.repeat(40)}`),
   );
 });
 
@@ -404,4 +413,65 @@ it('shows no footer for a submit-only element (task-038) nor without a descripto
   await within(dialog).findByText('Summary.');
   expect(within(dialog).queryByRole('region', { name: 'Decision' })).toBeNull();
   expect(within(dialog).queryByText(/Final state|Waiting for the workflow engine/)).toBeNull();
+});
+
+const OK = { result: { id: EID, from: 's2', to: 's3' }, commits: [], push: { status: 'off' } };
+
+it('review F1 — a Reject click that gave no focus clears the untouched default and sends nothing', async () => {
+  const fetch = stub(GATE, MO, { [`${BASE}/reject`]: { status: 200, body: OK } });
+  renderApp(`/p/${PID}/e/${EID}`);
+  const f = await footer();
+  fireEvent.click(outcome(f, 'Reject → s1'));
+  expect((reasonField(f) as HTMLTextAreaElement).value).toBe('');
+  expect(outcome(f, 'Reject → s1').getAttribute('aria-disabled')).toBe('true');
+  fireEvent.click(outcome(f, 'Reject → s1'));
+  expect(posts(fetch)).toEqual([]);
+});
+
+it('review F2 — a refusal stays shown when the refetched element has no gate footer any more', async () => {
+  stub(
+    GATE,
+    MO,
+    { [`${BASE}/approve`]: { status: 409, body: { error: { code: 'element-changed', message: 'x' } } } },
+    { ...GATE, status: 's3', kind: 'last', tone: 'done', verbs: [], actor: { kind: 'none' } },
+  );
+  renderApp(`/p/${PID}/e/${EID}`);
+  await userEvent.click(outcome(await footer(), 'Approve → s3'));
+  const dialog = screen.getByRole('dialog', { name: 'A gated element' });
+  expect(await within(dialog).findByText('Final state: no action is possible')).toBeTruthy();
+  expect(within(dialog).getByRole('alert').textContent).toBe('This element changed since you opened it');
+});
+
+it("review F4, F5, F6 — after a success the outcomes stay disabled until the state changes; the heading has the focus; the state is the server's", async () => {
+  // The refetch still answers the old state (the new one has not arrived yet).
+  stub(GATE, MO, { [`${BASE}/approve`]: { status: 200, body: { ...OK, result: { id: EID, from: 's2', to: 's9' } } } });
+  renderApp(`/p/${PID}/e/${EID}`);
+  const f = await footer();
+  await userEvent.click(outcome(f, 'Approve → s3'));
+  expect(await screen.findByText(`${EID} is now s9`)).toBeTruthy();
+  for (const name of ['Approve → s3', 'Reject → s1']) {
+    expect(outcome(await footer(), name).getAttribute('aria-disabled')).toBe('true');
+  }
+  expect(document.activeElement).toBe(screen.getByRole('heading', { level: 2, name: 'A gated element' }));
+});
+
+it('review F9 — the blank reason field is described by the hint', async () => {
+  stub(GATE);
+  renderApp(`/p/${PID}/e/${EID}`);
+  const f = await footer();
+  expect(reasonField(f).getAttribute('aria-describedby')).toBeNull();
+  await userEvent.clear(reasonField(f));
+  expect(reasonField(f).getAttribute('aria-describedby')).toBe(within(f).getByText('A reason is required').id);
+});
+
+it('review F7 — the focus request is forgotten once used (a reload or Back does not move the focus)', async () => {
+  stub(GATE);
+  const { router } = renderApp(`/p/${PID}/e/other`);
+  await act(() =>
+    router.navigate({ to: '/p/$pid/e/$eid', params: { pid: PID, eid: EID }, state: { gateFocus: true } }),
+  );
+  const field = reasonField(await footer());
+  await waitFor(() => expect(document.activeElement).toBe(field));
+  await waitFor(() => expect(router.state.location.state.gateFocus).toBeUndefined());
+  expect(router.state.location.pathname).toBe(`/p/${PID}/e/${EID}`);
 });

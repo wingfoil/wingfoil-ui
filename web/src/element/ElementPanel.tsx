@@ -40,6 +40,8 @@ export interface ElementPanelProps {
   header: Pick<UseQueryResult<ProjectHeader>, 'data'>;
   /** Opened from Today: the gate footer's reason takes the focus (task-037, G-04.3, D37-1). */
   focusReason?: boolean;
+  /** Called once the reason took that focus (the route forgets the request, review F7). */
+  onFocusReasonUsed?(): void;
   onClose(): void;
 }
 
@@ -62,6 +64,7 @@ export function ElementPanel({
   directives,
   header,
   focusReason = false,
+  onFocusReasonUsed,
   onClose,
 }: ElementPanelProps): ReactNode {
   const intl = useIntl();
@@ -87,7 +90,7 @@ export function ElementPanel({
               <FormattedMessage id="common.action.close" />
             </Button>
           </div>
-          <Heading slot="title" level={2} className="drawer-title">
+          <Heading slot="title" level={2} className="drawer-title" tabIndex={-1}>
             {detail ? detail.element.title : eid}
           </Heading>
           {detail && (
@@ -126,6 +129,7 @@ export function ElementPanel({
             header={header.data}
             focusReason={focusReason}
             onClose={onClose}
+            {...(onFocusReasonUsed ? { onFocusReasonUsed } : {})}
           />
         )}
       </Dialog>

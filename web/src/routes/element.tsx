@@ -62,6 +62,14 @@ function ElementPage(): ReactNode {
   const router = useRouter();
   const canGoBack = useCanGoBack();
   const focusReason = useRouterState({ select: (s) => s.location.state.gateFocus === true });
+  // The request is used once: the entry is replaced without it, so a reload or a Back to this
+  // panel does not move the focus again (review F7).
+  const forgetFocusReason = useCallback(() => {
+    const { href, state } = router.state.location;
+    const next: Record<string, unknown> = { ...state };
+    delete next['gateFocus'];
+    router.history.replace(href, next);
+  }, [router]);
   usePageTitle(TITLES.projectElement, { project: useProjectName(pid), element: eid });
   // Back to where the panel was opened from inside the application, else to the project; then the
   // focus goes to the destination's main region, unless the destination placed it itself (e.g. the
@@ -83,6 +91,7 @@ function ElementPage(): ReactNode {
       directives={useQuery(directivesQuery(pid))}
       header={useQuery(projectHeaderQuery(pid))}
       focusReason={focusReason}
+      onFocusReasonUsed={forgetFocusReason}
       onClose={close}
     />
   );
