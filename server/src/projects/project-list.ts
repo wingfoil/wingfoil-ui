@@ -23,6 +23,7 @@ import os from 'node:os';
 import path from 'node:path';
 import type { Availability, ProjectEntry, ProjectListItem, ProjectRefusalCode } from '@wingfoil-ui/contracts';
 import { CliOutputError, CliRefusedError, WingfoilCli, type CliLogger } from '../cli/adapter.js';
+import { localRemoteProblem } from '../git/local-remote.js';
 import { CliNotFoundError, discoverCli, INSTALL_COMMAND } from '../cli/discovery.js';
 import type { EventBus } from '../events/bus.js';
 import { GitReadError, GitReads, resolveGit } from '../git/git.js';
@@ -241,6 +242,15 @@ export class ProjectList {
       this.refuseListed(listedBefore, url, directory, shown);
       const target = await CloneTarget.inspect(directory);
       if (!target) throw this.notEmpty(shown);
+      // bug-010 (task-033 D33-1): a local repository another user owns is never cloned.
+      // `git clone` takes a local path as written: no `~` expansion (review round 2 F10).
+      const local = await localRemoteProblem([url], target.existingParent, { expandUser: false });
+      if (local === 'remote-not-owned') {
+        throw new ProjectRefusal('remote-not-owned', 'The local repository to clone belongs to another user');
+      }
+      if (local === 'remote-unreadable') {
+        throw new ProjectRefusal('remote-unreadable', 'Git cannot read the local repository to clone');
+      }
       const known = new Set(listedBefore.map((p) => p.id));
       this.cloning.add(directory);
       try {
@@ -374,15 +384,15 @@ export class ProjectList {
     }
   }
 
-  private async discover(root: string, shown: string): Promise<WingfoilCli> {
+  private async discover(root: string): Promise<WingfoilCli> {
     try {
       const cli = await discoverCli(root, { env: this.env });
       const { logger } = this.options;
       return new WingfoilCli({ cli, runner: this.options.runner, env: this.env, ...(logger ? { logger } : {}) });
     } catch (error) {
       if (error instanceof CliNotFoundError) {
+        // No path (bug-012, coordinator C2): the catalogue shows the install command only.
         throw new ProjectRefusal('cli-not-found', 'WingFoil CLI not found for this project', {
-          path: shown,
           command: INSTALL_COMMAND,
         });
       }
@@ -395,7 +405,7 @@ export class ProjectList {
    * unreadable `dna show` (S-27.1) does not stop the add; a timeout or a process failure does.
    */
   private async name(root: string, shown: string, signal?: AbortSignal): Promise<string> {
-    const cli = await this.discover(root, shown);
+    const cli = await this.discover(root);
     try {
       const name = (await new ProjectReads({ root, cli }).dna(signal)).data.project?.name?.trim();
       if (name) return name;

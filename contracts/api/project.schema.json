@@ -2,9 +2,20 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://wingfoil-ui.local/contracts/api/project.schema.json",
   "title": "GET /api/p/:pid",
-  "description": "The project header (spec-004 §3): name, WingFoil version and range state, capabilities, identity and role views (identity.schema.json), read-only reasons, repository status; dnaError when dna show failed (S-27.1).",
+  "description": "The project header (spec-004 §3): name, WingFoil version and range state, capabilities, identity and role views (identity.schema.json), read-only reasons, repository status (repository.schema.json, spec-010 §3) and the project conditions (spec-010 §7); dnaError when dna show failed (S-27.1).",
   "type": "object",
-  "required": ["id", "name", "wingfoil", "capabilities", "readOnly", "repository", "identity", "roleViews", "roleView"],
+  "required": [
+    "id",
+    "name",
+    "wingfoil",
+    "capabilities",
+    "readOnly",
+    "repository",
+    "conditions",
+    "identity",
+    "roleViews",
+    "roleView"
+  ],
   "properties": {
     "id": {
       "type": "string",
@@ -155,22 +166,15 @@
       }
     },
     "repository": {
-      "type": "object",
-      "required": ["state", "head", "localChanges"],
-      "properties": {
-        "state": {
-          "type": "string",
-          "pattern": "^[0-9a-f]{40,64}\\.[0-9a-f]{16}$"
-        },
-        "head": {
-          "type": "string"
-        },
-        "localChanges": {
-          "type": "integer",
-          "minimum": 0
-        }
-      },
-      "additionalProperties": false
+      "$ref": "repository.schema.json"
+    },
+    "conditions": {
+      "description": "The project conditions that hold (spec-001 §6, spec-010 §7).",
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "enum": ["has-remote"]
+      }
     },
     "dnaError": {
       "$ref": "error.schema.json"

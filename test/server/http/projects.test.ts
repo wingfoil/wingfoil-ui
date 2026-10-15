@@ -345,7 +345,9 @@ describe('GET /api/projects and POST /api/projects (local folder)', () => {
     await removeCli(w.fx);
     const before = await tree(w.dir);
     const error = await refusal(await add(w, w.fx.dir), 'cli-not-found');
-    expect(error.detail).toEqual({ path: w.fx.dir, command: INSTALL });
+    // No absolute path in the body (bug-012, coordinator C2).
+    expect(error.detail).toEqual({ command: INSTALL });
+    expect(JSON.stringify(error)).not.toContain(w.fx.dir);
     expect(await list(w)).toEqual([]);
     expect(await tree(w.dir)).toEqual(before);
   });
@@ -1080,5 +1082,43 @@ describe('TT-INT-06 — process audit of this file', () => {
     for (const sub of used) expect(['clone', 'config', 'remote', 'rev-parse', 'status']).toContain(sub);
     expect(used.has('clone')).toBe(true);
     expect(new Set(runner.wingfoilCommands())).toEqual(new Set(['dna show']));
+  });
+});
+
+describe('bug-010 (task-033 D33-1) — a local repository of another user is never cloned', () => {
+  it.runIf(process.platform !== 'win32' && process.getuid?.() !== 0)(
+    'a file:// remote owned by another user → 422 remote-not-owned, nothing cloned or listed',
+    async () => {
+      const w = await world();
+      const before = await tree(w.dir);
+      // The file-system root belongs to root, not to the user running the tests.
+      await refusal(
+        await clone(w, { url: `file://${path.parse(w.dir).root}`, directory: '~/projects/rooted' }),
+        'remote-not-owned',
+      );
+      expect(await tree(w.dir)).toEqual(before);
+      expect(await list(w)).toEqual([]);
+    },
+  );
+
+  it.runIf(process.platform !== 'win32' && process.getuid?.() !== 0)(
+    'S1: a file:// URL with a host is a local path too → 422 remote-not-owned',
+    async () => {
+      const w = await world();
+      await refusal(
+        await clone(w, { url: `file://127.0.0.1${path.parse(w.dir).root}`, directory: '~/projects/rooted-2' }),
+        'remote-not-owned',
+      );
+      expect(await list(w)).toEqual([]);
+    },
+  );
+
+  it('F9: a missing local source → 422 remote-unreadable, nothing cloned', async () => {
+    const w = await world();
+    await refusal(
+      await clone(w, { url: `file://${path.join(w.dir, 'no-such-source.git')}`, directory: '~/projects/none' }),
+      'remote-unreadable',
+    );
+    expect(await list(w)).toEqual([]);
   });
 });

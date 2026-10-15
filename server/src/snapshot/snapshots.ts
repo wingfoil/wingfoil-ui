@@ -14,6 +14,8 @@ import { discoverCli } from '../cli/discovery.js';
 import { VersionCache } from '../cli/version.js';
 import type { EventBus } from '../events/bus.js';
 import { GitReads, resolveGit, type GitReadError } from '../git/git.js';
+import { redactLocalPaths } from '../git/redact.js';
+import { SyncStatus } from '../git/sync-status.js';
 import type { ProcessRunner } from '../process/runner.js';
 import type { ReadFs } from '../reads/confine.js';
 import { ProjectSnapshot } from './snapshot.js';
@@ -70,9 +72,12 @@ export class Snapshots {
   private git: Promise<string> | undefined;
   /** The server-wide version cache (adr-001 D3): one `--version` per CLI resolution. */
   readonly versions: VersionCache;
+  /** The sync status of the open projects (spec-010 §3, task-033): dropped when a project closes. */
+  readonly sync: SyncStatus;
 
   constructor(private readonly options: SnapshotsOptions) {
     this.versions = options.versions ?? new VersionCache();
+    this.sync = new SyncStatus({ bus: options.bus, stateOf: (pid) => this.get(pid)?.current()?.key });
   }
 
   /** The snapshot of `pid`, if open. */
@@ -111,6 +116,7 @@ export class Snapshots {
     const entry = this.entries.get(pid);
     if (!entry) return;
     this.entries.delete(pid);
+    this.sync.forget(pid);
     entry.watcher?.close();
     for (const timer of entry.timers) clearTimeout(timer);
     entry.timers.clear();
@@ -141,17 +147,30 @@ export class Snapshots {
     const layout = await git.layout();
     // The write lock's key (D32-2): one per repository, whatever folder of it a project is.
     const commonDir = await realpath(layout.commonDir).catch(() => layout.commonDir);
-    const snapshot = new ProjectSnapshot({
+    const snapshot: ProjectSnapshot = new ProjectSnapshot({
       pid,
       root,
       prefix: layout.prefix,
       git,
       discover: () => discoverCli(root, { env }),
-      cli: (resolved) => new WingfoilCli({ cli: resolved, runner, env, ...(logger ? { logger } : {}) }),
+      cli: (resolved): WingfoilCli =>
+        new WingfoilCli({
+          cli: resolved,
+          runner,
+          env,
+          // D33-5 (bug-012): the project's and the repository's folders out of every refusal message.
+          redact: (text: string): string =>
+            redactLocalPaths(text, {
+              ...snapshot.localRoots,
+              ...(resolved.packageDir !== undefined ? { wingfoil: [resolved.packageDir] } : {}),
+            }),
+          ...(logger ? { logger } : {}),
+        }),
       ...(this.options.fs ? { fs: this.options.fs } : {}),
       onChange: (state) => bus.publish({ event: 'repo', data: { pid, state: state.key } }),
       versions: this.versions,
       commonDir,
+      gitDir: layout.gitDir,
       ...(logger ? { logger } : {}),
     });
     const entry: Entry = { root, snapshot, watcher: undefined, timers: new Set() };

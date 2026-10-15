@@ -99,7 +99,10 @@ describe('TT-STATE-02 — cache keyed on HEAD, working-tree status and user.emai
     await snapshot.check();
     const committed = await snapshot.view();
     expect(committed.state.head).not.toBe(first.state.head);
-    expect(committed.state.statusHash).toBe(first.state.statusHash);
+    // The working tree is clean again; the copy is now ahead of origin/main, so the key's status hash
+    // (which covers the copy, spec-010 §2) differs while the working-tree part does not.
+    expect(committed.state.contentKey.split('.')[1]).toBe(first.state.contentKey.split('.')[1]);
+    expect(committed.state.copy).toBe('ahead');
     await committed.elements();
     expect(runner.count('wingfoil')).toBe(3);
 
@@ -234,10 +237,11 @@ describe('TT-STATE-02 — cache keyed on HEAD, working-tree status and user.emai
 
   it('shares the first check between concurrent first views (review F4)', async () => {
     const { snapshot, runner } = await fresh();
-    // open() ran one `git rev-parse`; the first state is one status + one user.email.
+    // open() ran one `git rev-parse`; the first state is one status, one user.email, one `git remote`
+    // and the branch's `branch.main.remote` (the fixture tracks origin/main; spec-010 §1, task-033 D33-7).
     expect(runner.count('git')).toBe(1);
     await Promise.all([snapshot.view(), snapshot.view(), snapshot.state()]);
-    expect(runner.count('git')).toBe(3);
+    expect(runner.count('git')).toBe(5);
   });
 
   it('looks for a missing CLI again at the next check (review F9)', async () => {
@@ -259,8 +263,8 @@ describe('TT-STATE-02 — cache keyed on HEAD, working-tree status and user.emai
     await snapshot.state();
     const before = runner.count('git');
     await Promise.all([snapshot.check(), snapshot.check(), snapshot.check(), snapshot.check()]);
-    // One running check and at most one queued after it: 2 git processes each.
-    expect(runner.count('git') - before).toBeLessThanOrEqual(4);
+    // One running check and at most one queued after it: 4 git processes each (task-033 D33-7).
+    expect(runner.count('git') - before).toBeLessThanOrEqual(8);
   });
 });
 

@@ -231,3 +231,7 @@ PERF-05 · features S1, S3, S8, X4 · scenarios S-08.1, S-08.2, S-09.1, S-09.2, 
 - 2026-10-14 — amended in dev-loop task-032 (minor-v0.2 Wave 2, D32-2): D5 the write lock is keyed
   by the repository's git common directory, not the project id: two listed projects of one
   repository (sub-folders, linked worktrees) share index and refs. Decided by the approver.
+- 2026-10-15 — amended in dev-loop task-033 (minor-v0.2 Wave 3, D33-6): D6 the cache key's status
+  hash also covers the copy against the remote (branch, upstream, ahead/behind, remotes — spec-010
+  §2); the CLI reads are cached on HEAD and the working-tree part only, since the CLI cannot see
+  the tracking refs, while the descriptors follow the whole key. Decided by the approver.

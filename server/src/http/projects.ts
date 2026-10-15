@@ -43,7 +43,7 @@ export interface ProjectListRoutesOptions {
 }
 
 /** A signal aborted when the client leaves before the answer (the clone and the reads are cancelled). */
-function clientGone(reply: FastifyReply): { signal: AbortSignal; detach(): void } {
+export function clientGone(reply: FastifyReply): { signal: AbortSignal; detach(): void } {
   const gone = new AbortController();
   const onClose = (): void => {
     if (!reply.raw.writableFinished) gone.abort();

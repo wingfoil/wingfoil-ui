@@ -109,3 +109,15 @@ export type {
   WriteRefusalCode,
   WriteResponse,
 } from './writes.js';
+export type {
+  GitOperation,
+  GitRefusalCode,
+  GitResponse,
+  GitTransportRefusalCode,
+  ProjectCondition,
+  RepositoryCopy,
+  RepositoryStatus,
+  RepositorySync,
+  SyncError,
+  UpdateSyncError,
+} from './git.js';

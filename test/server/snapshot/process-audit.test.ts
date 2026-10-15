@@ -58,10 +58,11 @@ describe('TT-PERF-05 — batched CLI reads (S-26.3)', () => {
       `TT-PERF-05 cold Memory list: ${commands.length} CLI processes (${commands.join(', ')}), ${runner.count('git')} git`,
     );
     expect(commands.length).toBeLessThanOrEqual(6);
-    // open(): one rev-parse; the first state: one status, one user.email (review F4); the actor
-    // events of the descriptors: one `git log -p` (spec-002 §3) and its header-only sha list; the
-    // header's `origin` (spec-006 §2 refresh on open).
-    expect(runner.count('git')).toBe(6);
+    // open(): one rev-parse; the first state: one status, one user.email (review F4), one `git remote`
+    // and `branch.main.remote` (spec-010 §1, task-033 D33-7); the actor events of the descriptors: one
+    // `git log -p` (spec-002 §3) and its header-only sha list; the header's `origin` (spec-006 §2
+    // refresh on open).
+    expect(runner.count('git')).toBe(8);
     expect(runner.spawned.filter((r) => r.args.includes('log'))).toHaveLength(2);
     // REQ-INT-06: every git process of the read routes uses a subcommand of the allowed list.
     for (const r of runner.spawned.filter((x) => processKind(x) === 'git')) {

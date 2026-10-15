@@ -2,7 +2,7 @@
 id: bug-013-clone-runs-ext-transport-commands-when-git-allow-protocol-allows-them
 type: bug
 title: "Clone runs ext transport commands when GIT_ALLOW_PROTOCOL allows them"
-status: in-progress
+status: resolved
 severity: "medium"     # REQUIRED — critical | high | medium | low
 release-origin: "v0.1" # optional — release where the bug was FOUND, e.g. "v0.1"
 release: ""            # optional — fix/implementation release, stamped by release-planning/build-backlog
