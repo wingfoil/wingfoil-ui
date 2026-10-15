@@ -300,3 +300,56 @@ the repository at the same moment (lock files make one fail; the next tick retri
 is shown as `git-refused` until the next success); a configuration change between the fresh reads
 and git's own (milliseconds; git re-checks fast-forward and local changes itself); filter drivers
 (e.g. git-lfs smudge) may use the network during the "local" automatic merge.
+
+#### Decisions (approver, 2026-10-15; plan ref W4-1)
+
+"All as recommended":
+
+- **D34-1 (b)** — the scheduler's fetch and the automatic merge run with `core.hooksPath` =
+  `NO_HOOKS_PATH` (no hook runs without a user action); the manual Update and Push and the
+  auto-push keep the repository's hooks (RP-23).
+- **D34-2 (b)** — the automatic merge is `merge --ff-only --no-squash --strategy=ort --no-edit
+  --no-stat --no-autostash --quiet -- @{u}` with `--config-env=branch.<b>.mergeOptions=<an empty
+  variable>`; after it, the fresh copy must be in sync, otherwise an error-level log by code
+  (`merge-not-fast-forward`); characterization rows `merge.ff=false`, `pull.twohead=ours`,
+  `mergeOptions` `-s ours` / `--squash` / `--no-ff`, a branch named `a=b`.
+- **D34-3 (b)** — scheduler processes get `GIT_ASKPASS` empty and `SSH_ASKPASS_REQUIRE=never`; the
+  automatic update is skipped silently (logged by code, nothing recorded) while the worktree's git
+  directory holds `rebase-apply`, `rebase-merge`, `MERGE_HEAD`, `CHERRY_PICK_HEAD`, `REVERT_HEAD`,
+  `sequencer` or `BISECT_LOG`.
+- **D34-4 (b)** — one fetch per repository (`lockKey`) and fetch target per tick, its outcome
+  recorded on every listed project of the group; the automatic update per project.
+- **D34-5 (b)** — every fetch adds `-c fetch.pruneTags=false` and
+  `--config-env=remote.<r>.pruneTags=<empty>`; the automatic fetch runs only when every configured
+  `remote.<r>.fetch` destination is under `refs/remotes/` (negative refspecs allowed), else it is
+  skipped and logged by code.
+- **D34-6 (a)** — no periodic push: the W2-5 commit leaves with the next push of HEAD (the next
+  successful write's auto-push or a manual Push).
+- **D34-7 (a)** — no timeout on the automatic merge (spec-010 §4 as written).
+- **D34-8 (b)** — bug-014-manual-update-can-make-a-merge-commit-and-manual-fetch-can-prune-local-tags-and-branches
+  (ingested on `main` by the coordinator) is absorbed here: the manual `pull` gets the D34-2
+  arguments, the manual fetch the D34-5 `pruneTags` overrides, and a manual fetch whose configured
+  refspecs write outside `refs/remotes/` is refused with a 409 code of its own,
+  `refspec-outside-remotes` (schema, catalogue, `MESSAGES` rows). Red tests first reproduce each
+  bug-014 case (probes 3 and 8). The bug's state and the task's `bug:` list are the coordinator's.
+- **D34-9 (b)** — `sync.fetch.lastError` gains an optional `code: "fetch-timeout"` (schema,
+  `SyncError`, `error.fetchTimeout`); `message` stays (git's standard error so far, redacted, may
+  be empty).
+- **D34-10 (a)** — this task adds `error.pushTimeout` with its `MESSAGES` and test rows.
+- **D34-11 (a)** — the auto-push pushes HEAD (the user's own unpushed commits too), as the manual
+  Push; stated in the user guide and `CHANGELOG.md`.
+
+Coordinator rules: merge order task-034 → task-042; `test/README.md` 0.35, `docs/user-guide.md`
+0.10; only this task touches `web/src/api/error-message.ts` `MESSAGES` and `contracts/`; `en.json`
+and `CHANGELOG.md` *Unreleased*: own entries only, inserted in sorted place; the e2e settings seed
+helper is left to task-039/040/041.
+
+**bug-014 acceptance (proposed AC text):** "bug-014: the manual update (`POST …/git/update`) and the
+automatic update never create a merge commit nor stage a squash, whatever `branch.<b>.mergeOptions`
+(`-s ours`, `--squash`, `--no-ff`, also for a branch name containing `=`), `pull.twohead` or
+`merge.ff` say — HEAD is the upstream's commit, one parent; a fetch (manual or automatic) never
+deletes a local tag (`fetch.pruneTags`, `remote.<r>.pruneTags`) or a local branch: a manual fetch
+whose configured refspecs write outside `refs/remotes/` → 409 `refspec-outside-remotes`, 0
+transport processes; the automatic fetch skips it. *Verified by:* `test/server/git/transport-facts.test.ts`
+(the bug reproduced with git's defaults), `test/server/http/git-routes.test.ts`,
+`test/server/sync/auto-sync.test.ts`."
