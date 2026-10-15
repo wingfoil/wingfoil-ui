@@ -26,6 +26,7 @@ import {
   TODAY_FIRST_OPEN_BUDGET_MS,
 } from './support/perf.js';
 import { expectSettled } from './support/screens.js';
+import { openSwitcher, rows } from './support/switcher.js';
 
 /** The large fixture, built once per worker (perf only, not a fixture kind). */
 const test = base.extend<object, { large: LargeFixture }>({
@@ -66,6 +67,8 @@ interface View {
    * after the key press — the target's data is not in the page's cache.
    */
   reads: (pid: string) => string;
+  /** What to do on `from` before the run is timed (task-042, D42-9: open the project switcher). */
+  prepare?: (page: Page) => Promise<void>;
 }
 
 const nav = (page: Page, name: string) =>
@@ -148,6 +151,7 @@ async function run(page: Page, c: RunningConsole, view: View): Promise<number> {
       });
   });
   await openConsole(page, c, { path: view.from(pid) });
+  if (view.prepare) await view.prepare(page);
   await expect(view.target(page)).toBeVisible({ timeout: COLD_READ_MS });
   await expectSettled(page);
   expect(reads, `${view.reads(pid)} read before the key press`).toBe(0);
@@ -197,16 +201,24 @@ test.describe(`TT-PERF-04 — other views ${PERF_TAG}`, () => {
 
 // task-036 — TT-PERF-01 (REQ-PERF-01 "Today first render": p95 ≤ 2.0 s with a warm cache, ≤ 5.0 s for
 // the first open after the server starts; scenarios T-01.1, T-02.1; D36-9): the same measurement as
-// TT-PERF-04 — a fresh page on the Documentation index, Enter on the sidebar's *Today*, until a
+// TT-PERF-04 — a fresh page, Enter on the way to Today (task-042: the switcher's row), until a
 // Requires you row shows with no loading status. The warm-up run is the first open after the start
 // (one sample, its own budget); the RP-9 "after one commit" runs make an empty commit before each run
 // (a new HEAD: the Memory events are parsed again in full, spec-002 §4) on a copy of the large
 // fixture, printed with the load, not asserted (above ~1 s spec-002 §4 is reopened with the approver).
+// task-042 (D42-9, decided by the approver): the notification bell reads Today on every project view,
+// so a run starting on a project view would find Today in the page's cache. A run now starts on the
+// start page `/` (no project, no bell), opens the project switcher and presses Enter on the project's
+// row: the project opens on Today (T-01.1) and its read is sent after the key press. The measured path
+// includes opening the project (the header read): not directly comparable with task-036's numbers.
 const TODAY: View = {
   scenario: 'T-01.1, T-02.1',
   name: 'Today',
-  from: (pid) => `/p/${pid}/docs`,
-  target: (p) => nav(p, 'Today'),
+  from: () => '/',
+  prepare: async (page) => {
+    await openSwitcher(page);
+  },
+  target: (p) => rows(p).first(),
   ready: '.today-row',
   reads: (pid) => `/api/p/${pid}/today`,
 };

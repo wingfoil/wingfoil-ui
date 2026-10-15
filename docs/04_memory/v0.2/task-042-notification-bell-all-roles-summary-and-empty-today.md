@@ -227,3 +227,15 @@ first; `test/README.md` 0.36, `docs/user-guide.md` 0.11, ux-reference 1.4; this 
 `web/src/api/queries.ts` (`memoryEventsQuery` as proposed) and `ProjectHeader.tsx`; `en.json` and
 `CHANGELOG.md` *Unreleased*: only this task's entries, in sorted place. After task-034 every
 real-bin console auto-fetches every 60 s: assertions stay on what the user sees.
+
+#### D42-9 (approver, 2026-10-15, plan W4-2)
+
+Found by the first full Chromium run: the bell reads `GET /today` on every project view (D42-1), so
+TT-PERF-01's run (task-036, D36-9: a fresh page on the Documentation index, Enter on *Today*) found
+Today in the page's cache and its guard "read before the key press" failed (both `TT-PERF-01 — Today
+@perf` tests). **D42-9 (a):** for TT-PERF-01 only, a run starts on the start page `/` (no project, no
+bell), opens the project switcher and presses Enter on the project's row; the project opens on
+Today and the timer stops at the first `.today-row`; the RP-9 runs use the same start; the "read
+after the key press" guard stays (`View.prepare` in `test/e2e/performance.spec.ts`). The measured
+path now includes opening the project (the header read): its p95 is not directly comparable with
+task-036's 110 ms.
