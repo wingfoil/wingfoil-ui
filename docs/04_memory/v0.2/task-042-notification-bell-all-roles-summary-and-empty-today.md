@@ -434,3 +434,23 @@ reason states it. Red first (`a50cf6d`: the R4-2 self-test expects the cause), f
 (`support/strings.ts`, `test/README.md`). Checks: typecheck, lint, format:check clean;
 `npm run test:e2e -- accessibility.spec.ts harness/a11y-support.spec.ts` (three engines)
 **189 passed**, 0 failed (7.6 min, load 21 → 42).
+
+### RP-9 — comparable measurement of "Today after one commit" (2026-10-15)
+
+The approver's option (a): a measurement only, with no budget and no change to TT-PERF-01, spec-002
+or any other budget. It ran as a scratch spec, kept out of the repository: Chromium,
+`--workers=1`, a copy of the large fixture (500 elements, 2 000 commits), Morgan, view
+`approver`, 20 samples each, one empty commit before each sample. Load 2.7–5.8.
+
+| Measurement | p50 | p95 | max |
+|-------------|-----|-----|-----|
+| (1) Server: `GET /api/p/<pid>/today?view=approver` issued right after the `repo` event of the new commit. The page sits on `/`, so no other read warms the new state first; the request is sent with the page's session. | 1 271 ms | **1 713 ms** | 1 770 ms |
+| (2) Client, as task-036 measured it: a fresh page on the Documentation index, then Enter on the sidebar's *Today* until the first `.today-row`. The bell's `GET /today` is aborted with `page.route` until the key press, so Today is not in the page's cache; a guard checks that the read is sent after the key press. | 1 260 ms | **1 486 ms** | 1 492 ms |
+
+The first open after the console started (client) took 934 ms.
+
+Reading: the number comparable with task-036's 539 ms (p95) is (2), now 1 486 ms. That is above
+the ~1 s at which RP-9 reopens spec-002 §4. The slowdown is not caused by the bell, since (2)
+keeps the bell's read off the server; (1) shows that the server read alone takes 1.3–1.7 s on a
+new HEAD. This branch also carries everything merged since task-036's measurement (task-033's git
+copy state). The decision on spec-002 §4 stays with the approver.
