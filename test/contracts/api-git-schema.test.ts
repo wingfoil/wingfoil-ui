@@ -123,7 +123,31 @@ describe('task-034 — sync.fetch.lastError.code (D34-9) and refspec-outside-rem
     expect(
       repository({
         ...STATUS,
-        sync: { ...STATUS.sync, update: { lastError: { code: 'config-in-worktree', at: AT } } },
+        sync: { ...STATUS.sync, update: { lastError: { code: 'fetch-timeout', at: AT } } },
+      }),
+    ).toBe(false);
+  });
+
+  it('W4-12, W4-14: update.lastError config-in-worktree and config-uses-incoming-path; fetch.lastError config-in-worktree', () => {
+    for (const code of ['config-in-worktree', 'config-uses-incoming-path'] as const) {
+      const typed: RepositoryStatus = { ...STATUS, sync: { ...STATUS.sync, update: { lastError: { code, at: AT } } } };
+      expect(repository(typed), `${code} ${JSON.stringify(repository.errors)}`).toBe(true);
+    }
+    const fetch: RepositoryStatus = {
+      ...STATUS,
+      sync: {
+        ...STATUS.sync,
+        fetch: { lastSuccessAt: null, lastError: { code: 'config-in-worktree', message: '', at: AT } },
+      },
+    };
+    expect(repository(fetch), JSON.stringify(repository.errors)).toBe(true);
+    expect(
+      repository({
+        ...STATUS,
+        sync: {
+          ...STATUS.sync,
+          fetch: { lastSuccessAt: null, lastError: { code: 'config-uses-incoming-path', message: '', at: AT } },
+        },
       }),
     ).toBe(false);
   });
