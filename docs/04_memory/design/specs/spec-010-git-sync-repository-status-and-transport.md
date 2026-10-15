@@ -81,7 +81,7 @@ the copy (spec-003 §6 rule 4), follow the whole key.
   ahead: integer, behind: integer,                 # 0 when unknown
   upstream: string | null,                         # the remote upstream's name, e.g. "origin/main"
   sync: { fetch: { lastSuccessAt: string | null,  # ISO 8601 UTC, since the server start
-                   lastError: { message, at } | null },
+                   lastError: { code?, message, at } | null },  # code: "fetch-timeout" (§6)
           update: { lastError: { code, detail?, message?, at } | null } } }
 ```
 
@@ -99,11 +99,22 @@ cancelled process group or the server) and `--no-optional-locks`.
 
 | Operation | Arguments (after the settings) |
 |-----------|-----------------------------------------|
-| fetch | `fetch --quiet --prune --no-recurse-submodules -- <remote>` |
-| update (manual) | `pull --ff-only --no-rebase --no-autostash --no-recurse-submodules --quiet` — the upstream only |
-| update (automatic, §6) | `merge --ff-only --no-edit --no-stat --no-autostash --quiet -- @{u}` — local only: fast-forwards to the tracking ref the tick's fetch just updated, no network |
+| fetch | `-c fetch.pruneTags=false --config-env=remote.<remote>.pruneTags=<empty> fetch --quiet --prune --no-recurse-submodules -- <remote>` — prunes remote-tracking refs only |
+| update (manual) | `--config-env=branch.<b>.mergeOptions=<empty> pull --ff-only --no-squash --strategy=ort --no-rebase --no-autostash --no-recurse-submodules --quiet` — the upstream only |
+| update (automatic, §6) | `--config-env=branch.<b>.mergeOptions=<empty> merge --ff-only --no-squash --strategy=ort --no-edit --no-stat --no-autostash --quiet -- @{u}` — local only: fast-forwards to the tracking ref the tick's fetch just updated, no network |
 | push | `push --quiet --no-follow-tags --recurse-submodules=no -- <remote> HEAD:<merge ref>` — `<remote>` and `<merge ref>` from `git config --get branch.<branch>.remote` / `.merge`; an explicit refspec without `+`, so configured push refspecs and `push.default` play no part and the push is **never forced** |
 
+- **Never a merge commit, never a pruned local ref** (task-034, bug-014): `--ff-only` alone does
+  not hold — `branch.<b>.mergeOptions = -s ours` or `pull.twohead = ours` make git create a merge
+  commit that keeps the local tree, `--squash` there stages the incoming change without moving HEAD
+  (checked on git 2.43.0). `--strategy=ort` replaces `pull.twohead`, `--no-squash` a configured
+  squash, and the branch's `mergeOptions` is emptied with `--config-env` (`<empty>` is a variable of
+  the command's environment set to the empty string; `-c` would split a branch name holding `=` at
+  its first `=` and be ignored). `fetch.pruneTags` / `remote.<r>.pruneTags` would make `--prune`
+  delete local tags: both are turned off. A fetch whose remote has a configured refspec
+  (`remote.<r>.fetch`) writing outside `refs/remotes/` — or none at all — is refused before any
+  transport process (`refspec-outside-remotes`, §5): with a detached HEAD, `--prune` would delete
+  local branches and their reflogs; a negative refspec or one without destination writes nothing.
 - **Fetch target:** the remote upstream's remote (§1, `branch.<branch>.remote`); with no remote
   upstream: the only remote when `git remote` lists exactly one, else `origin` when it is listed;
   otherwise a manual fetch is refused with `no-fetch-target` (§5) and the scheduler skips the
@@ -191,6 +202,7 @@ spec-008 §7):
 | `local-changes-in-the-way` | `{ files }` | update | "Cannot fast-forward: local changes to {files} are in the way — commit or stash them in a terminal" (Y-06.2) |
 | `remote-unreadable` | — | fetch, update, push | "Git cannot read the repository of this remote: check its path with git in a terminal" (review round 2 F9) |
 | `remote-not-owned` | — | fetch, update, push | "The repository of this remote is a folder of another user of this computer: git could run that user's code, so WingFoil UI does not use it — use a repository you own" (bug-010) |
+| `refspec-outside-remotes` | — | fetch | "Not fetched: a fetch refspec of this remote writes outside refs/remotes/, so pruning could delete your local branches or tags — fetch with git in a terminal" (bug-014) |
 
 `local-changes-in-the-way`: the files changed by the incoming commits
 (`git log --no-renames --name-only -z --format= HEAD..@{u}`) intersected with the status entries
@@ -209,16 +221,34 @@ so the sidebar shows it (Y-06.1, Y-06.2).
   every interval — so such a change takes effect within the 120 s of REQ-STATE-09 (C-07.3); any
   other change is read at the next tick.
 - Scope: the projects with an open snapshot (opened since the start and still listed), whose
-  `has-remote` holds and that have a fetch target (§4). A tick handles them **one at a time**; a
-  tick that falls while the previous one still runs is skipped, and a tick skips a project whose
-  write lock is busy (it never waits for it).
-- `autoFetch` on → fetch (§4), killed after 60 s and recorded as failed; the next tick retries.
-  Right after a successful fetch, still under the same write lock: `autoUpdate` on, the user
-  identified in the team (RP-14) and copy `behind` → the automatic update (§4: `merge --ff-only`)
-  after the §5 checks `detached-head`, `no-upstream`, `diverged` and `local-changes-in-the-way`
-  on a fresh status; a refusal or a failed merge is kept as `sync.update.lastError` (Y-05.2).
-  `autoFetch` off → the scheduler starts 0 `git fetch` processes (Y-02.3); manual *Fetch* still
-  works.
+  `has-remote` holds and that have a fetch target (§4). A tick handles them **one repository at a
+  time** (the projects of one write-lock key together: one fetch per fetch target, its outcome
+  recorded on each of them); a tick that falls while the previous one still runs is skipped, and a
+  tick skips a repository whose write lock is busy (it never waits for it). `autoFetch` is read
+  again before each repository, so turning it off stops a running tick; a re-arm asked during a
+  tick runs its immediate tick when that one ends. A fetch refused before git runs (no fetch
+  target, `refspec-outside-remotes`, `remote-not-owned`, `remote-unreadable`) is skipped and logged
+  by code, nothing recorded.
+- **Unattended runs** (the automatic fetch and update): `core.hooksPath` is the clone's empty hooks
+  path, so no hook runs — the repository's, or one the incoming commits bring through a relative
+  hooks path, which a fetch's `reference-transaction` and a merge's `post-merge` would run; and no
+  askpass program (`GIT_ASKPASS` empty, which git reads as "none" for `GIT_ASKPASS`,
+  `core.askPass` and `SSH_ASKPASS`; `SSH_ASKPASS_REQUIRE=never`) — credential helpers still run.
+  The manual transport and the auto-push keep both (RP-23): the user just acted.
+- `autoFetch` on → fetch (§4), killed after 60 s and recorded as failed with `code:
+  "fetch-timeout"` (`message`: git's standard error so far, possibly empty); the next tick
+  retries. Right after a successful fetch, still under the same write lock, per project:
+  `autoUpdate` on, the user identified in the team (RP-14), the copy behind its upstream and no
+  git operation in progress in the worktree (one of git's markers in its git directory:
+  `rebase-apply`, `rebase-merge`, `MERGE_HEAD`, `CHERRY_PICK_HEAD`, `REVERT_HEAD`, `sequencer`,
+  `BISECT_LOG` — git does not refuse a merge under a stopped `git am`; skipped and logged by code,
+  nothing recorded) → the automatic update (§4: `merge --ff-only`) after the §5 checks
+  `detached-head`, `no-upstream`, `diverged` and `local-changes-in-the-way` on a fresh status; a
+  refusal or a failed merge is kept as `sync.update.lastError` (Y-05.2). The merge has no time
+  limit: a merge killed during its checkout leaves the working tree half updated. After a merge
+  that exits 0 the copy must be in sync; otherwise the server logs `merge-not-fast-forward` at
+  error level. `autoFetch` off → the scheduler starts 0 `git fetch` processes (Y-02.3); manual
+  *Fetch* still works.
 - **Auto-push:** after each successful governed write from the UI, with `autoPush` on and
   `has-remote` holding, a push (§4) runs under the same write lock, killed after 60 s. The `push`
   field of the write response (spec-004 §5, `write.response.schema.json`) is
@@ -227,7 +257,9 @@ so the sidebar shows it (Y-06.1, Y-06.2).
   with `code` = the §5 code when refused before git runs (e.g. `no-upstream`); `failed` with
   `code: "push-timeout"` when killed after 60 s (catalogue: "Not pushed: the push did not finish
   within 60 s — use Push to try again"). The toast renders `code` from the catalogue. A failed
-  push never fails the write. There is no periodic push.
+  push never fails the write. There is no periodic push. The push is HEAD, as the manual push: the
+  user's own commits not yet on the remote go with it, and so does a commit a failed CLI left
+  (spec-004 §5 `write-incomplete`, not pushed by itself).
 
 ### 7. Condition `has-remote` and the sync controls (REQ-INT-03, S-11.2, Y-04)
 
@@ -243,7 +275,7 @@ again with the next `repo` event (Y-04.2). The branch and the local changes are 
 
 | Route | Rows of spec-004 §4 | Then |
 |-------|---------------------|------|
-| `POST …/git/fetch` | 1–4 (no body) | §5 `no-remote`, `no-fetch-target`, `remote-not-owned`, `remote-unreadable` |
+| `POST …/git/fetch` | 1–4 (no body) | §5 `no-remote`, `no-fetch-target`, `refspec-outside-remotes`, `remote-not-owned`, `remote-unreadable` |
 | `POST …/git/update` | 1–5 | §5 (`remote-not-owned`, `remote-unreadable` included) |
 | `POST …/git/push` | 1–5 | §5 `no-remote`, `detached-head`, `no-upstream`, `remote-not-owned`, `remote-unreadable` |
 
@@ -262,7 +294,9 @@ Rows 7–9 do not apply (no element).
   `GIT_SSH_COMMAND` set only when no ssh command is configured); the automatic fetch and the
   auto-push killed at 60 s of process time; the automatic update's `merge --ff-only` argument
   list and its §5 checks; a tick skipping a project whose write lock is busy; the timer re-armed
-  only on an `autoFetch` or `fetchIntervalSeconds` change.
+  only on an `autoFetch` or `fetchIntervalSeconds` change; the hardened update arguments against
+  `mergeOptions` / `pull.twohead` / `merge.ff` (one parent, HEAD = upstream, nothing staged); no
+  tag or branch pruned; no hook or askpass program in an unattended run.
 - API: every row of §5 and §8 (status, `code`, 0 transport processes); every `push` outcome.
 - e2e (fixtures with a local bare remote): `features/y/*.feature`, G-12.1…G-12.3, G-13.1/G-13.2,
   S-11.2, C-07.3; REQ-PERF-07 with the default interval (10 of 10 within 65 s; 0 `git fetch` in
@@ -338,3 +372,12 @@ Rows 7–9 do not apply (no element).
   read is refused with the new code `remote-unreadable` (F9), `~` and `~user` expanded as
   `enter_repo` does before the owner check (F10, S11), the remote-helper prefix rule (S10); §5 and
   §8 `remote-unreadable`.
+- 2026-10-15 — amended in dev-loop task-034 (minor-v0.2 Wave 4, plan dev-loop-rel-v0.2-plan W4-1;
+  D34-1 … D34-11; bug-014), from git probes on 2.43.0: §3 `sync.fetch.lastError.code`
+  (`fetch-timeout`); §4 the fetch prunes remote-tracking refs only (`pruneTags` off, refspecs
+  outside `refs/remotes/` refused), the manual and automatic updates never make a merge commit nor
+  a squash (`--no-squash --strategy=ort`, the branch's `mergeOptions` emptied); §5
+  `refspec-outside-remotes`; §6 one fetch per repository and target, `autoFetch` read before each
+  repository, unattended runs without hooks and askpass programs, the automatic update skipped
+  during a git operation in progress, its post-condition, the push is HEAD; §8, §9. Decided by the
+  approver.
