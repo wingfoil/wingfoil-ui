@@ -5,7 +5,6 @@
 // and 0 transport processes, nothing to do without a transport process, the commands that run, the
 // sync status and its `repo` events, git's message redacted and never logged, cancellation, the
 // identity rule over the five write routes, and the allow-list of every git process.
-/* eslint-disable @typescript-eslint/no-explicit-any -- JSON bodies, each validated against its schema */
 import type { FastifyInstance } from 'fastify';
 import { access, readFile, realpath, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';

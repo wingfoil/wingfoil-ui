@@ -1092,7 +1092,10 @@ describe('bug-010 (task-033 D33-1) — a local repository of another user is nev
       const w = await world();
       const before = await tree(w.dir);
       // The file-system root belongs to root, not to the user running the tests.
-      await refusal(await clone(w, { url: `file://${path.parse(w.dir).root}`, directory: '~/projects/rooted' }), 'remote-not-owned');
+      await refusal(
+        await clone(w, { url: `file://${path.parse(w.dir).root}`, directory: '~/projects/rooted' }),
+        'remote-not-owned',
+      );
       expect(await tree(w.dir)).toEqual(before);
       expect(await list(w)).toEqual([]);
     },

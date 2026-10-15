@@ -431,7 +431,9 @@ describe('classification without processes (fake runner)', () => {
     });
     const error = (await cli.json(['paths']).catch((e: unknown) => e)) as CliRefusedError;
     expect(error).toBeInstanceOf(CliRefusedError);
-    expect(error.cliMessage).toBe('Command failed: git -C <project> log -- x\nat <project>/elsewhere/wingfoil/dist/cli.js:1');
+    expect(error.cliMessage).toBe(
+      'Command failed: git -C <project> log -- x\nat <project>/elsewhere/wingfoil/dist/cli.js:1',
+    );
     expect(cliErrorEnvelope(error).body.error.message).not.toContain(root);
   });
 
