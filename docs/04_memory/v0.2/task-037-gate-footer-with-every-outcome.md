@@ -389,3 +389,38 @@ this task's; no change to `contracts/`, schemas or the server.
   button is **enabled** on any screen": the panel now shows the two outcomes, both disabled with
   "Read-only: supported 0.2.2 to 0.2.x" as their description, which the test asserts.
 
+
+### checks (2026-10-15, HEAD `355bf52`)
+
+| Gate | Result | Load |
+|------|--------|------|
+| `npm run typecheck`, `npm run lint`, `npm run format:check` | clean | 20.3 |
+| `npm run docs:api`, `check_tasks.py v0.2` | OK | — |
+| `npm run test:coverage` (includes the public-text check) | 140 files passed, 1 skipped; **2480 passed / 1 skipped**; statements 96.68 %, branches 91.62 %, functions 97.35 %, lines 98.33 % | 14.3 → 21.5 |
+| `npm run test:e2e:chromium` (whole suite, on `c6e0b5a`) | **219 passed, 1 failed** (S-09.1, the v0.1 assertion updated above); 11.4 min | 13 → 22 |
+| `npx playwright test --project=chromium project-header.spec.ts accessibility.spec.ts no-commit.spec.ts harness/a11y-support.spec.ts` (after the S-09.1 update and D37-13) | **74 passed** (2.1 min) | 22 |
+| `npm run test:e2e -- gate-footer.spec.ts accessibility.spec.ts element-panel.spec.ts today.spec.ts no-commit.spec.ts project-header.spec.ts harness/a11y-support.spec.ts` (three engines) | **366 passed**, 0 failed (26.4 min) | 16.9 → 37.3 |
+| `npm run test:smoke` | not run: no packaging, launcher or bin change | — |
+| `npm run test:timing` | **skipped**: load ≥ 12 (no timed scenario of its own) | 20.3 |
+
+No console left (`pgrep -af bin/wingfoil-ui.cjs`), no `wfui-*` entry in the system temporary
+directory.
+
+e2e closure (scenario → spec file › test):
+
+| Scenario | spec file › test |
+|----------|------------------|
+| G-04.1 (TT-PERF-10 click count, TT-SEC-10) | `test/e2e/gate-footer.spec.ts` › "G-04.1 — Approve a gate in two clicks from Today" |
+| G-04.3 | `gate-footer.spec.ts` › "G-04.3 — Open the gate footer with the reason focused" |
+| G-04.2 | `gate-footer.spec.ts` › "G-04.2 — Cancel without running the CLI" |
+| G-05.1, G-05.2, G-05.3 | `gate-footer.spec.ts` › "G-05.1 — Show approve and the reject target of a bug gate", "G-05.2 — Reject to the gate's target", "G-05.3 — Derive the outcomes of an unknown type's gate" |
+| G-06.1 … G-06.4 | `gate-footer.spec.ts` › "G-06.1 — Pre-fill the reason for approve", "G-06.2 — Use the reason I typed", "G-06.3 — Clear an untouched default when a reject is chosen", "G-06.4 — Keep a reason I typed when a reject is chosen" |
+| G-07.1, G-07.2 | `gate-footer.spec.ts` › "G-07.1 — Disable the outcomes while the reason is empty", "G-07.2 — Treat a reason of only spaces as empty" |
+| G-09.1 … G-09.3 (TT-SEC-07) | `gate-footer.spec.ts` › "G-09.1 — …", "G-09.2 — …", "G-09.3 — …" |
+| S-24.1 … S-24.4 | `gate-footer.spec.ts` › "S-24.1 — Offer no action on a terminal state", "S-24.2 — Show an engine-waiting state as waiting", "S-24.3 — Treat a declared waiting state of an unknown type the same way", "S-24.4 — Offer only the reject of a state that is both a gate and a waiting state" |
+| S-13.2, S-15.2 (TT-SEC-08 UI side) | `gate-footer.spec.ts` › "S-13.2 — Offer no governed action to a user who is not in the team", "S-15.2 — Offer no governed action under an ambiguous identity" |
+| X-06.2 (TT-PERF-10) | `gate-footer.spec.ts` › "X-06.2 — Decide a gate with the keyboard only" |
+| T-06.1, T-06.2 (TT-SEC-07) | closed by task-036: `test/e2e/today.spec.ts` |
+| S-11.1 (TT-SEC-07) | task-039-repository-status-and-fetch-in-the-sidebar, on this footer |
+| TT-SEC-07 server part (0 role rules) | task-032 `test/server/http/element-writes.test.ts` (approve without `approver` → 422 `cli-refused`) |
+| X-06.4 / X-09.1 | `test/e2e/accessibility.spec.ts` › "X-06.4 — Pass the axe scan: element panel — gate footer, reason empty", "… : element panel — waiting for the workflow engine", "… : element panel — read-only, not in team" and the X-09.1 tests of the same screens |
