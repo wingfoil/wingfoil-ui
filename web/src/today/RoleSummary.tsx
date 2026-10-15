@@ -7,9 +7,10 @@
  * A line is a button "approver · 2" that switches the role view (S-23.2), followed by its items
  * (links to the element panel) and "N more", which switches to that view too (D42-7). The line of
  * the current view is marked and is no switch. Each switch is described by "Switches the role view"
- * (review R7). The switch itself is Today's (`onSwitch`): its refusal is shown by Today, outside this
- * card, which a refetch may remove (review R2); once the new view is read, Today moves the focus to
- * Requires you (D42-6).
+ * (review R7) — a `hidden` element: `aria-describedby` still resolves it and browse mode does not
+ * read it as stray text (review round 2, R2-3). The switch itself is Today's (`onSwitch`): its
+ * refusal is shown by Today, outside this card, which a refetch may remove (review R2); once the new
+ * view is read, Today moves the focus to Requires you (D42-6).
  */
 import type { TodaySummaryLine } from '@wingfoil-ui/contracts';
 import { Link } from '@tanstack/react-router';
@@ -37,7 +38,7 @@ export function RoleSummary({ pid, lines, view, onSwitch }: RoleSummaryProps): R
       <h2 className="today-card-title" id={titleId}>
         <FormattedMessage id="today.summary.title" />
       </h2>
-      <span id={hintId} className="visually-hidden">
+      <span id={hintId} hidden>
         <FormattedMessage id="today.summary.switchHint" />
       </span>
       <ul className="today-summary-lines">
