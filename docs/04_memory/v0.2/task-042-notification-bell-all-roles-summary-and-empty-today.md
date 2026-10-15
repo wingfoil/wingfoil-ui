@@ -359,3 +359,27 @@ R2-4 no action).
 
 Checks (HEAD `eb30b47`): typecheck, lint, format:check clean; `test:coverage` 2739 passed, 1 skipped
 (statements 96.64 %, branches 91.41 %).
+
+### bug-015 (2026-10-15)
+
+Absorbed by the approver (`bug:` list and AC on `main`; the coordinator merges `main` before
+submit). Cause, as the review found it: `recordApiData` (`test/e2e/support/strings.ts`) learnt an
+answer only through `page.on('response')`; `strings()` awaited only the parses already pending; a
+failed `response.json()` was swallowed; `accessibility.spec.ts` compared once.
+
+- **Red (`bb1ecaa`)** — two self-tests in `test/e2e/harness/a11y-support.spec.ts`: a request sent
+  before the check whose answer is held back and released while the check runs (the data was
+  flagged, `p: kanban`); a JSON body that cannot be parsed (no cause reported). Both failed.
+- **Fix (`9b00a48`)** — the recorder follows each API request from its `request` event, in the
+  opening (`reset()` generation) that sent it; `strings()` / `fieldNames()` wait for every answer
+  requested so far and those requested meanwhile, at most `COLD_READ_MS` (no fixed sleep; an answer
+  not received in time is recorded); a request that fails (aborted by a navigation) brings no data
+  and no error; a body that cannot be read is recorded (`failures()`) and `textsOutsideCatalogue`
+  adds the failures to what it flags, so a failure states its cause; `accessibility.spec.ts`
+  retries the X-09.1 comparison with `expect.poll` within `COLD_READ_MS` (still one test per
+  screen). `test/README.md` (the `support/strings.ts` line, the 0.36 entry).
+- Closure: the bug's scenario (X-09.1 on the *memory list* screen under load) →
+  `test/e2e/harness/a11y-support.spec.ts` › "X-09.1 recorder: waits for an API answer requested before
+  the check, even a late one (bug-015)", "X-09.1 recorder: a failed body read is reported as the
+  cause of what is flagged (bug-015)"; and `test/e2e/accessibility.spec.ts` › "X-09.1 — Render every
+  string from the message catalogue: <screen>" (every `SCREENS` entry).
