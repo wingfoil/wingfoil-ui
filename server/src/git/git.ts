@@ -44,6 +44,8 @@ export const GIT_READ_ARGS = {
   configGet: ['--no-optional-locks', 'config', '--get'],
   // task-034 (D34-5): every value of a multi-valued key (`remote.<r>.fetch`).
   configGetAll: ['--no-optional-locks', 'config', '--get-all'],
+  // task-034 (W4-5): where every setting comes from (scope, origin), NUL-separated.
+  configOrigins: ['--no-optional-locks', 'config', '--list', '--show-origin', '--show-scope', '-z'],
   remoteUrl: ['--no-optional-locks', 'remote', 'get-url'],
   incoming: [
     '--no-optional-locks',
@@ -109,6 +111,15 @@ export const GIT_READ_ARGS = {
     '--format=%H%x1f%ct%x1f%s%x1e',
   ],
 } as const;
+
+/** No fsmonitor program (task-034 W4-5): prefixed to every read of {@link GitReads}. */
+export const NO_FSMONITOR: readonly string[] = ['-c', 'core.fsmonitor=false'];
+
+/** One setting's scope (`system`, `global`, `local`, `worktree`, `command`) and origin (`file:<path>`, …). */
+export interface ConfigOrigin {
+  scope: string;
+  origin: string;
+}
 
 /**
  * The git subcommands the server may run (REQ-INT-06): reads, `clone` into a new empty folder,
@@ -426,6 +437,14 @@ export class GitReads {
     return value === '' ? undefined : value;
   }
 
+  /** Where each setting of the effective configuration comes from (task-034 W4-5). */
+  async configOrigins(): Promise<ConfigOrigin[]> {
+    const fields = (await this.read(GIT_READ_ARGS.configOrigins)).stdout.split(String.fromCharCode(0));
+    const origins: ConfigOrigin[] = [];
+    for (let i = 0; i + 2 < fields.length; i += 3) origins.push({ scope: fields[i]!, origin: fields[i + 1]! });
+    return origins;
+  }
+
   /** Every value of `key` in git's order; `[]` when unset (exit 1). `key` is the server's own. */
   async configValues(key: string): Promise<string[]> {
     const result = await this.run([...GIT_READ_ARGS.configGetAll, key]);
@@ -589,7 +608,9 @@ export class GitReads {
 
   private run(args: readonly string[]): Promise<ProcessResult> {
     const { git, runner, cwd } = this.options;
-    return runner.run({ file: git, args, cwd, env: this.env });
+    // No fsmonitor program in the server's own reads: the configuration may name one from the
+    // working tree (task-034 W4-5, security review S1).
+    return runner.run({ file: git, args: [...NO_FSMONITOR, ...args], cwd, env: this.env });
   }
 
   private async read(args: readonly string[]): Promise<ProcessResult> {

@@ -22,7 +22,7 @@
  * RP-33); the automatic merge has no limit (D34-7: a killed checkout leaves the tree half updated).
  */
 import path from 'node:path';
-import { ALLOWED_PROTOCOLS, CLONE_SETTINGS } from './git.js';
+import { ALLOWED_PROTOCOLS, CLONE_SETTINGS, NO_FSMONITOR } from './git.js';
 
 /**
  * The settings of every transport command: the protocols of {@link CLONE_SETTINGS} (`ext::`, `fd::`
@@ -122,7 +122,8 @@ export function mergeArgs(branch: string): string[] {
  * incoming commits bring through a relative hooks path.
  */
 export function noHooksArgs(hooksPath: string): string[] {
-  return ['-c', `core.hooksPath=${hooksPath}`];
+  // And no fsmonitor program (W4-5, security review S1).
+  return ['-c', `core.hooksPath=${hooksPath}`, ...NO_FSMONITOR];
 }
 
 /**

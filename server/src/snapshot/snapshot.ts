@@ -212,6 +212,11 @@ export class ProjectSnapshot {
     return this.options.commonDir ?? this.root;
   }
 
+  /** The worktree's git directory (task-034 W4-5). */
+  get gitDir(): string {
+    return this.options.gitDir ?? path.join(this.topLevel, '.git');
+  }
+
   /** The repository's git common directory (the git directory when unknown), task-034 W4-7. */
   get commonDir(): string {
     return this.options.commonDir ?? this.options.gitDir ?? path.join(this.topLevel, '.git');

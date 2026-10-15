@@ -533,15 +533,26 @@ describe('security review S1 (task-034 W4-5) — configuration from the working 
     }
   });
 
-  it('an include to a file outside the working tree (the user’s own) does not stop the fetch', async () => {
-    const outside = path.join(path.dirname(ws.dir), `${MARKER}-outside.config`);
+  it('an include in the global configuration (the user’s own file) does not stop the fetch', async () => {
+    const outside = path.join(path.dirname(ws.dir), `${MARKER}-global.config`);
+    await writeFile(outside, '[wfui]\n\tsetting = 1\n');
+    const s = await start(
+      {},
+      { prepare: (fx) => git(fx.dir, ['config', '--global', 'include.path', outside], fx.env).then(() => undefined) },
+    );
+    await s.c.remoteCommit('from-jordan.md', 'hi\n');
+    expect((await s.tick()).transport).toBe(1);
+  });
+
+  it('a repository include to any other file (outside the working tree too) → skipped, fail closed (W4-5 allow-list)', async () => {
+    const outside = path.join(path.dirname(ws.dir), `${MARKER}-local.config`);
     await writeFile(outside, '[wfui]\n\tsetting = 1\n');
     const s = await start(
       {},
       { prepare: (fx) => git(fx.dir, ['config', 'include.path', outside], fx.env).then(() => undefined) },
     );
-    await s.c.remoteCommit('from-jordan.md', 'hi\n');
-    expect((await s.tick()).transport).toBe(1);
+    expect((await s.tick()).transport).toBe(0);
+    expect(s.log.lines).toContainEqual(expect.objectContaining({ code: 'config-in-worktree' }));
   });
 
   it('the server’s own status reads run no fsmonitor program (included from the working tree)', async () => {

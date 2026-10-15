@@ -12,6 +12,8 @@
  * Logs carry the project, the operation, codes, `ended` and the exit status — never git's text
  * (it may quote local paths and URLs).
  */
+import { realpath } from 'node:fs/promises';
+import path from 'node:path';
 import type { SyncError } from '@wingfoil-ui/contracts';
 import { noHooksArgs, UNATTENDED_TIMEOUT_MS, unattendedEnv } from '../git/transport.js';
 import { NO_HOOKS_PATH, noHooksPath } from '../projects/clone.js';
@@ -22,6 +24,43 @@ import type { RepoState } from '../snapshot/state.js';
 import type { StateStore } from '../state/store.js';
 import { identified, type GitTransport, type TransportPlan } from '../writes/transport.js';
 import type { SyncGroup, SyncWork } from './scheduler.js';
+
+/** `file` resolved by the file system; `undefined` when it cannot be. */
+const real = (file: string): Promise<string | undefined> => realpath(file).catch(() => undefined);
+
+/** Whether `file` is `dir` or inside it. */
+const within = (file: string, dir: string): boolean => file === dir || file.startsWith(dir + path.sep);
+
+/**
+ * Whether the effective configuration reads a file the repository's commits can change (task-034
+ * W4-5, security review S1): an `include.path` / `includeIf` to a tracked file would let incoming
+ * commits set `remote.<r>.uploadpack`, `core.fsmonitor`, a filter driver, `core.sshCommand`, a
+ * credential helper or `core.gitProxy`, which an unattended run would execute. True — fail closed —
+ * when a file origin of the repository's scopes (`local`, `worktree`) is not one of its own config
+ * files, when any file origin resolves inside the working tree outside the git directories, or when
+ * an origin cannot be resolved. Relative origins are git's, relative to the repository's top level.
+ */
+export async function configInWorktree(snapshot: ProjectSnapshot): Promise<boolean> {
+  const top = await real(snapshot.topLevel);
+  const gitDir = await real(snapshot.gitDir);
+  const commonDir = await real(snapshot.commonDir);
+  if (top === undefined || gitDir === undefined || commonDir === undefined) return true;
+  const own = new Set(
+    (
+      await Promise.all(
+        [path.join(gitDir, 'config'), path.join(commonDir, 'config'), path.join(gitDir, 'config.worktree')].map(real),
+      )
+    ).filter((p): p is string => p !== undefined),
+  );
+  for (const { scope, origin } of await snapshot.git.configOrigins()) {
+    if (!origin.startsWith('file:')) continue;
+    const file = await real(path.resolve(snapshot.topLevel, origin.slice('file:'.length)));
+    if (file === undefined) return true;
+    if ((scope === 'local' || scope === 'worktree') && !own.has(file)) return true;
+    if (within(file, top) && !within(file, gitDir) && !within(file, commonDir)) return true;
+  }
+  return false;
+}
 
 /** Where the automatic sync logs: codes and kinds only. */
 export interface AutoSyncLogger {
@@ -115,6 +154,10 @@ export class AutoSync implements SyncWork {
     const { transport, logger } = this.options;
     const state = await snapshot.check();
     if (state.remotes.length === 0) return;
+    if (await configInWorktree(snapshot)) {
+      logger.warn({ project: pid, op: 'auto-fetch', code: 'config-in-worktree' }, 'automatic fetch skipped');
+      return;
+    }
     const plan = await transport.plan(snapshot, state, 'fetch');
     if ('refusal' in plan) {
       logger.info({ project: pid, op: 'auto-fetch', code: plan.refusal.code }, 'automatic fetch skipped');
@@ -168,6 +211,10 @@ export class AutoSync implements SyncWork {
     if (!store.settings().autoUpdate || state.behind === 0) return;
     // RP-14: only for a user identified in the team (the team is cached on HEAD and the working tree).
     if (!(await identified(await snapshot.view()))) return;
+    if (await configInWorktree(snapshot)) {
+      logger.warn({ project: pid, op: 'auto-update', code: 'config-in-worktree' }, 'automatic update skipped');
+      return;
+    }
     if (await snapshot.operationInProgress()) {
       logger.info({ project: pid, op: 'auto-update', code: 'operation-in-progress' }, 'automatic update skipped');
       return;
