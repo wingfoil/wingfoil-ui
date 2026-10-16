@@ -128,11 +128,18 @@ describe('task-034 — sync.fetch.lastError.code (D34-9) and refspec-outside-rem
     ).toBe(false);
   });
 
-  it('W4-12, W4-14: update.lastError config-in-worktree and config-uses-incoming-path; fetch.lastError config-in-worktree', () => {
-    for (const code of ['config-in-worktree', 'config-uses-incoming-path'] as const) {
-      const typed: RepositoryStatus = { ...STATUS, sync: { ...STATUS.sync, update: { lastError: { code, at: AT } } } };
-      expect(repository(typed), `${code} ${JSON.stringify(repository.errors)}`).toBe(true);
-    }
+  it('W4-14: update and fetch lastError config-in-worktree; W4-16: config-uses-incoming-path removed', () => {
+    const update: RepositoryStatus = {
+      ...STATUS,
+      sync: { ...STATUS.sync, update: { lastError: { code: 'config-in-worktree', at: AT } } },
+    };
+    expect(repository(update), JSON.stringify(repository.errors)).toBe(true);
+    expect(
+      repository({
+        ...STATUS,
+        sync: { ...STATUS.sync, update: { lastError: { code: 'config-uses-incoming-path', at: AT } } },
+      }),
+    ).toBe(false);
     const fetch: RepositoryStatus = {
       ...STATUS,
       sync: {

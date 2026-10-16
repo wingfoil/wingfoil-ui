@@ -83,9 +83,8 @@ const SPEC_004: Record<string, Record<string, unknown>[]> = {
   'refspec-outside-remotes': [{}],
   // W4-9: an automatic merge that exited 0 without fast-forwarding (`sync.update.lastError.code`).
   'merge-not-fast-forward': [{}],
-  // W4-14, W4-12: the automatic fetch or update not run (`sync.*.lastError.code`).
+  // W4-14: the automatic fetch or update not run (`sync.*.lastError.code`).
   'config-in-worktree': [{}],
-  'config-uses-incoming-path': [{}],
   // task-032 W2-1, W2-4, W2-5 (write.refusal.schema.json); its text is task-037's (D37-11).
   'write-incomplete': [{ file: 'docs/x.md' }, { file: 'docs/x.md', commit: 'a'.repeat(40) }],
 };

@@ -511,6 +511,21 @@ describe('security review S1 (task-034 W4-5) — configuration from the working 
     },
   );
 
+  it('R4-2: the log names the triggering key by section and name only — never its value, subsection or a path', async () => {
+    const m = marker('r4-2');
+    const s = await start(
+      {},
+      {
+        prepare: (fx) => included(fx, `[remote "origin"]\n\tuploadpack = touch '${m}'; git-upload-pack\n`, 'onbranch'),
+      },
+    );
+    await s.tick();
+    const entry = s.log.lines.find((l: any) => l.code === 'config-in-worktree') as Record<string, unknown>;
+    expect(entry).toMatchObject({ key: 'includeif.path' });
+    const text = JSON.stringify(s.log.lines);
+    for (const secret of ['.wfui-config', 'onbranch', m, s.c.fx.dir]) expect(text).not.toContain(secret);
+  });
+
   it('credential.helper "!cmd" through include → the automatic fetch does not run it', async () => {
     const server: Server = createServer((_req, res) => {
       res.writeHead(401, { 'WWW-Authenticate': 'Basic realm="x"', 'Content-Length': '0' });
@@ -663,180 +678,29 @@ describe('W4-11 (security review S2-1) — include directives whose file is miss
   });
 });
 
-describe('W4-12 (security review S2-2) — the configuration names a path the incoming commits change', () => {
-  it.each<[string, string]>([
-    ['filter.wfui.smudge', './wfui-tool.sh'],
-    ['credential.helper', '!wfui-tool.sh --store'],
-    ['core.sshCommand', 'sh "wfui-tool.sh" -v'],
-  ])('%s = %s → no automatic update, recorded config-uses-incoming-path', async (key, value) => {
-    const s = await start(
-      { autoUpdate: true },
-      { prepare: (fx) => git(fx.dir, ['config', key, value], fx.env).then(() => undefined) },
-    );
-    await s.c.remoteCommit('wfui-tool.sh', '#!/bin/sh\nexit 0\n');
-    const head = await s.c.head();
-    await s.tick();
-    expect(spawnedOf(s.c, 'merge')).toHaveLength(0);
-    expect(await s.c.head()).toBe(head);
-    expect((await header(s.c)).sync.update.lastError).toMatchObject({ code: 'config-uses-incoming-path' });
-    expect(s.log.lines).toContainEqual(expect.objectContaining({ code: 'config-uses-incoming-path' }));
-  });
-
-  it('a configured path the incoming commits do not change → updated', async () => {
-    const s = await start(
-      { autoUpdate: true },
-      {
-        prepare: (fx) => git(fx.dir, ['config', 'filter.wfui.smudge', './other-tool.sh'], fx.env).then(() => undefined),
-      },
-    );
-    await s.c.remoteCommit('wfui-tool.sh', '#!/bin/sh\nexit 0\n');
-    await s.tick();
-    expect(await s.c.head()).toBe(await remoteHead(s.c));
-  });
-});
-
-describe('W4-15 (security review S3-1) — a configured value naming any file of the working tree', () => {
-  /** Commit `files` (path → content, `link:` for a symlink) and push them, so the copy stays in sync. */
-  async function tracked(fx: Fixture, files: Record<string, string>): Promise<void> {
-    for (const [file, content] of Object.entries(files)) {
-      await mkdir(path.dirname(path.join(fx.dir, file)), { recursive: true });
-      if (content.startsWith('link:')) await symlink(content.slice('link:'.length), path.join(fx.dir, file));
-      else await writeFile(path.join(fx.dir, file), content, { mode: 0o755 });
-      await git(fx.dir, ['add', '--', file], fx.env);
-    }
-    await git(fx.dir, ['commit', '-qm', 'tools'], fx.env);
-    await git(fx.dir, ['push', '-q', 'origin', 'HEAD:main'], fx.env);
-  }
-  const TOOLS = {
-    'tools/run.sh': '#!/bin/sh\n. "$(dirname "$0")/lib.sh"\ncat\n',
-    'tools/lib.sh': ':\n',
-    'tools/clean.sh': '#!/bin/sh\ncat\n',
-  };
-
-  const cases: [string, string, Record<string, string>, string][] = [
-    ['a script sourcing an incoming file', 'sh tools/run.sh', TOOLS, 'tools/lib.sh'],
-    ['$PWD', '$PWD/tools/clean.sh', TOOLS, 'tools/clean.sh'],
-    ['${PWD}', '${PWD}/tools/clean.sh', TOOLS, 'tools/clean.sh'],
-    ['$(git rev-parse --show-toplevel)', '"$(git rev-parse --show-toplevel)/tools/clean.sh"', TOOLS, 'tools/clean.sh'],
-    [
-      'a quoted path with a space',
-      'sh "my tools/clean.sh"',
-      { 'my tools/clean.sh': '#!/bin/sh\ncat\n' },
-      'my tools/clean.sh',
-    ],
-    [
-      'a backslash-escaped space',
-      'sh my\\ tools/clean.sh',
-      { 'my tools/clean.sh': '#!/bin/sh\ncat\n' },
-      'my tools/clean.sh',
-    ],
-    ['a tracked symlink', 'alias/clean.sh', { ...TOOLS, alias: 'link:tools' }, 'tools/clean.sh'],
-    ['make -C <dir>', 'make -C tools clean', TOOLS, 'tools/lib.sh'],
-    ['a file not incoming', 'sh tools/clean.sh', TOOLS, 'other.md'],
-    ['--option=<path>', 'tool --script=tools/clean.sh', TOOLS, 'other.md'],
-  ];
-
-  it.each(cases)(
-    '%s (%s) → no automatic update, recorded config-uses-incoming-path',
-    async (_name, value, files, incoming) => {
-      const s = await start(
-        { autoUpdate: true },
-        {
-          prepare: async (fx) => {
-            await tracked(fx, files);
-            await git(fx.dir, ['config', 'filter.wfui.clean', value], fx.env);
-          },
-        },
-      );
-      await s.c.remoteCommit(incoming, ': incoming\n');
-      const head = await s.c.head();
-      await s.tick();
-      expect(spawnedOf(s.c, 'merge')).toHaveLength(0);
-      expect(await s.c.head()).toBe(head);
-      expect((await header(s.c)).sync.update.lastError).toMatchObject({ code: 'config-uses-incoming-path' });
-    },
-  );
-
-  it('~/ — the home folder expanded (the copy is the folder kanban of HOME)', async () => {
-    const s = await start(
-      { autoUpdate: true },
-      {
-        env: (fx) => ({ ...fx.env, HOME: path.dirname(fx.dir) }),
-        prepare: async (fx) => {
-          await tracked(fx, TOOLS);
-          await git(fx.dir, ['config', 'filter.wfui.clean', '~/kanban/tools/clean.sh'], fx.env);
-        },
-      },
-    );
-    await s.c.remoteCommit('other.md', ':\n');
-    await s.tick();
-    expect(spawnedOf(s.c, 'merge')).toHaveLength(0);
-  });
-
-  it('run to execution: a smudge filter whose script sources an incoming file never runs it', async () => {
-    const m = path.join(path.dirname(ws.dir), `${MARKER}-s3-sourced`);
+describe('W4-16 — declared residual: the user’s own configuration naming a working-tree file does not stop the update', () => {
+  // With autoUpdate on (off by default), the console does what `git pull` does on a timer: a
+  // command the user's own configuration points at may run a file the incoming commits change.
+  // The value heuristics of W4-12 / W4-15 were dropped (bypassable by shell expansion, noisy on
+  // common configurations); this characterises the declared behaviour.
+  it('filter.<x>.clean = sh tools/run.sh with an incoming tools/run.sh → updated, nothing recorded', async () => {
     const s = await start(
       { autoUpdate: true },
       {
         prepare: async (fx) => {
-          await tracked(fx, TOOLS);
-          await git(fx.dir, ['config', 'filter.wfui.smudge', 'sh tools/run.sh'], fx.env);
-          await writeFile(path.join(fx.dir, '.git', 'info', 'attributes'), '*.md filter=wfui\n');
+          await mkdir(path.join(fx.dir, 'tools'), { recursive: true });
+          await writeFile(path.join(fx.dir, 'tools', 'run.sh'), 'cat\n');
+          await git(fx.dir, ['add', 'tools/run.sh'], fx.env);
+          await git(fx.dir, ['commit', '-qm', 'tools'], fx.env);
+          await git(fx.dir, ['push', '-q', 'origin', 'HEAD:main'], fx.env);
+          await git(fx.dir, ['config', 'filter.wfui.clean', 'sh tools/run.sh'], fx.env);
         },
       },
     );
-    // The incoming lib.sh writes the marker when sourced; the incoming .md file, checked out after
-    // it (paths in order), triggers the smudge.
-    await s.c.remoteCommit('tools/lib.sh', `touch '${m}'\n`);
-    await s.c.remoteCommit('zz-incoming.md', 'x\n');
-    await s.tick();
-    expect(
-      await access(m).then(
-        () => true,
-        () => false,
-      ),
-    ).toBe(false);
-  });
-
-  it.each<[string, string, boolean]>([
-    ['branch.<b>.remote = . (a local upstream, a remote name)', 'branch.side.remote', false],
-    ['safe.directory = the top level (compared, never opened)', 'safe.directory', false],
-  ])('%s does not stop the update', async (_name, key) => {
-    const s = await start(
-      { autoUpdate: true },
-      {
-        prepare: (fx) =>
-          git(fx.dir, ['config', '--add', key, key === 'safe.directory' ? fx.dir : '.'], fx.env).then(() => undefined),
-      },
-    );
-    await s.c.remoteCommit('other.md', ':\n');
+    await s.c.remoteCommit('tools/run.sh', 'cat # changed\n');
     await s.tick();
     expect(await s.c.head()).toBe(await remoteHead(s.c));
-  });
-
-  it('a key the unattended run overrides (core.hooksPath = a tracked hooks folder) does not stop the update', async () => {
-    const s = await start(
-      { autoUpdate: true },
-      {
-        prepare: async (fx) => {
-          await tracked(fx, { '.husky/pre-commit': '#!/bin/sh\n' });
-          await git(fx.dir, ['config', 'core.hooksPath', '.husky'], fx.env);
-        },
-      },
-    );
-    await s.c.remoteCommit('other.md', ':\n');
-    await s.tick();
-    expect(await s.c.head()).toBe(await remoteHead(s.c));
-  });
-
-  it('a value naming the top level itself (make -C .) stops it — fail closed', async () => {
-    const s = await start(
-      { autoUpdate: true },
-      { prepare: (fx) => git(fx.dir, ['config', 'filter.wfui.clean', 'make -C .'], fx.env).then(() => undefined) },
-    );
-    await s.c.remoteCommit('other.md', ':\n');
-    await s.tick();
-    expect(spawnedOf(s.c, 'merge')).toHaveLength(0);
+    expect((await header(s.c)).sync.update.lastError).toBeNull();
   });
 });
 
