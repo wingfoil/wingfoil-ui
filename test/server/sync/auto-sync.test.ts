@@ -520,7 +520,7 @@ describe('security review S1 (task-034 W4-5) — configuration from the working 
       },
     );
     await s.tick();
-    const entry = s.log.lines.find((l: any) => l.code === 'config-in-worktree') as Record<string, unknown>;
+    const entry = s.log.lines.find((l) => (l as { code?: string }).code === 'config-in-worktree');
     expect(entry).toMatchObject({ key: 'includeif.path' });
     const text = JSON.stringify(s.log.lines);
     for (const secret of ['.wfui-config', 'onbranch', m, s.c.fx.dir]) expect(text).not.toContain(secret);

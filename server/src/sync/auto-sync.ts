@@ -12,7 +12,7 @@
  * Logs carry the project, the operation, codes, `ended` and the exit status — never git's text
  * (it may quote local paths and URLs).
  */
-import { lstat, realpath } from 'node:fs/promises';
+import { realpath } from 'node:fs/promises';
 import path from 'node:path';
 import type { SyncError } from '@wingfoil-ui/contracts';
 import { expandUser } from '../git/local-remote.js';
@@ -36,16 +36,18 @@ const within = (file: string, dir: string): boolean => file === dir || file.star
  * Whether the effective configuration reads a file the repository's commits can change (task-034
  * W4-5, security review S1): an `include.path` / `includeIf` to a tracked file would let incoming
  * commits set `remote.<r>.uploadpack`, `core.fsmonitor`, a filter driver, `core.sshCommand`, a
- * credential helper or `core.gitProxy`, which an unattended run would execute. True — fail closed —
- * when a file origin of the repository's scopes (`local`, `worktree`) is not one of its own config
+ * credential helper or `core.gitProxy`, which an unattended run would execute. The triggering key —
+ * by section and name only, review R4-2 (`unresolved` when the git directories cannot be) — fail
+ * closed — when a file origin of the repository's scopes (`local`, `worktree`) is not one of its own config
  * files, when any file origin resolves inside the working tree outside the git directories, or when
- * an origin cannot be resolved. Relative origins are git's, relative to the repository's top level.
+ * an origin cannot be resolved; `undefined` otherwise. Relative origins are git's, relative to the
+ * repository's top level.
  */
-export async function configInWorktree(snapshot: ProjectSnapshot, home?: string): Promise<boolean> {
+export async function configInWorktree(snapshot: ProjectSnapshot, home?: string): Promise<string | undefined> {
   const top = await real(snapshot.topLevel);
   const gitDir = await real(snapshot.gitDir);
   const commonDir = await real(snapshot.commonDir);
-  if (top === undefined || gitDir === undefined || commonDir === undefined) return true;
+  if (top === undefined || gitDir === undefined || commonDir === undefined) return 'unresolved';
   const inTree = (file: string): boolean => within(file, top) && !within(file, gitDir) && !within(file, commonDir);
   const own = new Set(
     (
@@ -56,128 +58,31 @@ export async function configInWorktree(snapshot: ProjectSnapshot, home?: string)
   );
   for (const { scope, origin, key, value } of await snapshot.git.configOrigins()) {
     if (!origin.startsWith('file:')) continue;
+    // The key by section and name only: a subsection may hold a path or a URL (review R4-2).
+    const named = sectionAndName(key);
     // The path as git opened it (no lexical `..` collapsing: the file system resolves it, S3-2).
     const opened = origin.slice('file:'.length);
     const holder = path.isAbsolute(opened) ? opened : `${snapshot.topLevel}/${opened}`;
     const file = await real(holder);
-    if (file === undefined) return true;
-    if ((scope === 'local' || scope === 'worktree') && !own.has(file)) return true;
-    if (inTree(file)) return true;
+    if (file === undefined) return named;
+    if ((scope === 'local' || scope === 'worktree') && !own.has(file)) return named;
+    if (inTree(file)) return named;
     // W4-11 (security review S2-1): an include directive counts whether its file exists yet and
     // whether its condition holds now — a merge could bring the file, a checkout make it apply.
     if (key === 'include.path' || (key.startsWith('includeif.') && key.endsWith('.path'))) {
       // Relative to the folder of the holder as git opened it (a symlinked dotfile resolves from the
       // link's folder, S3-2).
       const target = await includeTarget(value, holder.slice(0, holder.lastIndexOf('/')) || '/', home);
-      if (target === undefined || inTree(target)) return true;
+      if (target === undefined || inTree(target)) return named;
     }
   }
-  return false;
+  return undefined;
 }
 
-/**
- * The keys an unattended run sets itself, whatever the configuration says (D34-1, D34-2, D34-5,
- * W4-5): their configured values are never used there.
- */
-const OVERRIDDEN =
-  /^(core\.hookspath|core\.fsmonitor|fetch\.prunetags|remote\..*\.prunetags|branch\..*\.mergeoptions)$/;
-
-/**
- * Whether a value of the effective configuration (any scope) names something of the working tree —
- * W4-15 (a), security review S3-1, replacing W4-12's match on the incoming paths only: a command of
- * the configuration that runs or reads a file of the working tree (a script that sources another,
- * `make -C tools`, a tracked symlink) would run what the incoming commits change. True when
- * - a token of the value (shell-like: quotes, backslash escapes, `;|&()<>` separate; also its parts
- *   around `=`, `:` and `,`; a helper's `!` dropped; `~`, `~user`, `$PWD`, `${PWD}` and
- *   `$(git rev-parse --show-toplevel)` expanded) resolves — relative tokens from the top level, by
- *   the file system — to an existing path inside the top level outside the git directories; the
- *   top level itself counts (`make -C .`, fail closed);
- * - the value holds the top level's path or its realpath;
- * - a token is an incoming path (normalised: `./x`, separators — it may not exist before the merge),
- *   or the value holds one with no path character around it (a space, an escape).
- * Not counted: the keys an unattended run overrides; `safe.directory` (a path git compares, never
- * opens); `branch.<b>.remote = .` (the remote name of a local upstream).
- */
-export async function configUsesWorktree(
-  snapshot: ProjectSnapshot,
-  incoming: readonly string[],
-  home: string | undefined,
-): Promise<boolean> {
-  const top = snapshot.topLevel;
-  const realTop = (await real(top)) ?? top;
-  const gitDirs = (await Promise.all([snapshot.gitDir, snapshot.commonDir].map(real))).filter(
-    (p): p is string => p !== undefined,
-  );
-  const normal = (p: string): string => path.posix.normalize(p.replace(/\\/g, '/')).replace(/^(\.\/)+/, '');
-  const changed = new Set(incoming.map(normal));
-  const named = (file: string): boolean =>
-    (file === realTop || within(file, realTop) || file === top || within(file, top)) &&
-    !gitDirs.some((d) => within(file, d));
-  for (const { key, value } of await snapshot.git.configOrigins()) {
-    if (OVERRIDDEN.test(key) || key === 'safe.directory') continue;
-    if (/^branch\..*\.remote$/.test(key) && value === '.') continue;
-    const expanded = value
-      .split('$(git rev-parse --show-toplevel)')
-      .join(top)
-      .split('${PWD}')
-      .join(top)
-      .replace(/\$PWD(?![A-Za-z0-9_])/g, top);
-    if (expanded.includes(top) || expanded.includes(realTop)) return true;
-    const unescaped = expanded.replace(/\\(.)/g, '$1');
-    for (const file of incoming) {
-      const escaped = file.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      if (new RegExp(`(^|[^A-Za-z0-9._/-])${escaped}($|[^A-Za-z0-9._-])`).test(unescaped)) return true;
-    }
-    for (const raw of shellTokens(expanded)) {
-      const token = expandUser(raw.replace(/^!+/, ''), home);
-      if (token === undefined || token === '') continue;
-      const candidate = path.isAbsolute(token) ? token : `${top}/${token}`;
-      // An incoming path, normalised (`./x`, separators): it may not exist before the merge (W4-12).
-      if (changed.has(normal(path.isAbsolute(token) ? path.relative(top, token) : token))) return true;
-      // The link itself (a tracked symlink the commits can retarget) and where it leads.
-      const exists = await lstat(candidate).then(
-        () => true,
-        () => false,
-      );
-      if (exists && named(path.resolve(candidate))) return true;
-      const resolved = await real(candidate);
-      if (resolved !== undefined && named(resolved)) return true;
-    }
-  }
-  return false;
-}
-
-/** The words of a shell-like `value` (quotes, backslash escapes), each also split around `=`, `:`, `,`. */
-export function shellTokens(value: string): string[] {
-  const words: string[] = [];
-  let word = '';
-  let started = false;
-  let quote: string | undefined;
-  for (let i = 0; i < value.length; i += 1) {
-    const ch = value[i]!;
-    if (quote !== undefined) {
-      if (ch === quote) quote = undefined;
-      else if (ch === '\\' && quote === '"' && i + 1 < value.length) word += value[++i];
-      else word += ch;
-      continue;
-    }
-    if (ch === '\\' && i + 1 < value.length) {
-      word += value[++i];
-      started = true;
-    } else if (ch === '"' || ch === "'") {
-      quote = ch;
-      started = true;
-    } else if (/[\s;|&()<>`]/.test(ch)) {
-      if (started) words.push(word);
-      word = '';
-      started = false;
-    } else {
-      word += ch;
-      started = true;
-    }
-  }
-  if (started) words.push(word);
-  return words.flatMap((w) => [w, ...w.split(/[=:,]/)]).filter((w) => w !== '');
+/** `section.name` of a configuration key (`remote.origin.url` → `remote.url`): never the subsection. */
+function sectionAndName(key: string): string {
+  const parts = key.split('.');
+  return parts.length > 2 ? `${parts[0]}.${parts[parts.length - 1]}` : key;
 }
 
 /**
@@ -315,8 +220,12 @@ export class AutoSync implements SyncWork {
     const { transport, logger } = this.options;
     const state = await snapshot.check();
     if (state.remotes.length === 0) return;
-    if (await configInWorktree(snapshot, this.options.transport.environment.HOME)) {
-      logger.warn({ project: pid, op: 'auto-fetch', code: 'config-in-worktree' }, 'automatic fetch skipped');
+    const configKey = await configInWorktree(snapshot, this.options.transport.environment.HOME);
+    if (configKey !== undefined) {
+      logger.warn(
+        { project: pid, op: 'auto-fetch', code: 'config-in-worktree', key: configKey },
+        'automatic fetch skipped',
+      );
       // Visible in the sidebar (W4-14): the user can fetch by hand.
       this.options.snapshots.sync.fetchFailed(pid, '', new Date(), 'config-in-worktree');
       return;
@@ -374,14 +283,13 @@ export class AutoSync implements SyncWork {
     if (!store.settings().autoUpdate || state.behind === 0) return;
     // RP-14: only for a user identified in the team (the team is cached on HEAD and the working tree).
     if (!(await identified(await snapshot.view()))) return;
-    if (await configInWorktree(snapshot, this.options.transport.environment.HOME)) {
-      logger.warn({ project: pid, op: 'auto-update', code: 'config-in-worktree' }, 'automatic update skipped');
+    const configKey = await configInWorktree(snapshot, this.options.transport.environment.HOME);
+    if (configKey !== undefined) {
+      logger.warn(
+        { project: pid, op: 'auto-update', code: 'config-in-worktree', key: configKey },
+        'automatic update skipped',
+      );
       sync.updateFailed(pid, { code: 'config-in-worktree' }, state.copy, new Date());
-      return;
-    }
-    if (await configUsesWorktree(snapshot, await snapshot.git.incomingPaths(), transport.environment.HOME)) {
-      logger.warn({ project: pid, op: 'auto-update', code: 'config-uses-incoming-path' }, 'automatic update skipped');
-      sync.updateFailed(pid, { code: 'config-uses-incoming-path' }, state.copy, new Date());
       return;
     }
     if (await snapshot.operationInProgress()) {
