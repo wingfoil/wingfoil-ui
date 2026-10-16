@@ -76,3 +76,154 @@ rebased on `main` before its merge.
      - design: tech-specs found missing/needing revision (dev-loop/design safety net).
      - red/green/refactor: deviations from the plan above, blockers, scope surprises.
      - review: rejection reasons and what changed on the next pass. -->
+
+### design (2026-10-16)
+
+Read: this task; `CLAUDE.md`; the developer rules of the dev-loop (hard rules, v0.2 additions, e2e
+engines W0-9, lessons of Waves 0–4, the machine-free slot for heavy gates); the Execution Notes of
+the `depends_on` tasks task-034 and task-037 and of those they build on, task-032 and task-033
+(design, decisions, red/green/refactor, every review round); `release-planning-rel-v0.2-plan`
+RP-12, RP-43, RP-44, RP-49, RP-52, RP-55; `dev-loop-rel-v0.2-plan` Sessions 1–5 and the hand-overs
+to Wave 5; the descriptions of the parallel task-039 and task-041 and of the next task-040 (it
+reuses the toast for push refusals); `submit.feature`, `blocked-actions.feature` (G-11.x, and G-12.x
+of task-040), `action-feedback.feature`, `accessibility.feature` X-07.x; spec-003 §3, §6, §8,
+spec-004 §4–§5, spec-008 §4; `contracts/src/{descriptor,writes}.ts`; ux-reference 1.4 §3, §4.2, §5;
+the prototype's single-action footer (Close · verb, primary, right-aligned) and its toast (one at a
+time, bottom centre, dark or red, text + extra + monospaced commit line, removed after 4.2 s);
+fixture conventions (`02_bdd/00_conventions.md`: kanban and custom standard elements, standard
+team); code: `web/src/element/{footer.ts,ElementFooter.tsx,ElementPanel.tsx}`,
+`web/src/api/{writes,error-message}.ts`, `web/src/shell/{Shell,ErrorText}.tsx`,
+`web/src/i18n/en.json`, `server/src/descriptor/descriptor.ts` (the `local-changes` reason);
+tests: `test/e2e/support/*` (console, screens, events, identity, perf), `test/e2e/gate-footer.spec.ts`,
+`test/e2e/notification-bell.spec.ts`, `test/e2e/project-header.spec.ts` S-09.1,
+`test/e2e/performance.spec.ts`, `playwright.timing.config.ts`, `test/harness/fixtures/{builder,large}.ts`,
+`test/web/element/gate-footer.test.tsx`, `test/web/i18n/catalogue.test.ts` (unused keys fail).
+
+**depends_on (dl-015 hard gate) — acknowledged.**
+
+- task-037: `useElementWrite()` (`web/src/api/writes.ts`, D37-10) carries `{pid, eid, verb,
+  expectedStatus, reason?}` and invalidates `['p', pid]` once settled; the six `element.reason.*`
+  keys (D37-8) and `error.writeIncomplete` with the `commit` default `none` (D37-11) are reused;
+  the gate footer's polite status ("<id> is now <state>") and its refusal alert
+  (`element-footer-alert`, review F2/F14) are the placeholders this task replaces with toasts
+  (D37-9); outcomes are native buttons with `aria-disabled` and the reason as description (D37-3),
+  which already gives X-07.3 on the gate; `footerView` returns `none` for a submit-only state — this
+  task's footer; the "decided" flag lives in the part keyed by id and status (F12); a refusal must
+  live outside the part that follows the refetched state (F2).
+- task-034: `push` = `{status: off | pushed | failed, code?, message?}`; on `failed` a `code`
+  (`detached-head`, `no-upstream`, `remote-not-owned`, `remote-unreadable`, `push-timeout`,
+  `internal`) rendered from the catalogue, or git's `message` (redacted) shown verbatim; a failed push
+  is still a 200 of the write; the W2-5 commit (CLI failed after its commit) is not pushed. The
+  catalogue already has `error.pushTimeout` ("Not pushed: …"), `error.internal`, `error.noUpstream`,
+  `error.detachedHead`, `error.remoteNotOwned`, `error.remoteUnreadable`. Every real-bin console
+  fetches every 60 s (`autoFetch` on); auto-push is off by default; e2e settings are seeded through
+  `ConsoleOptions.stateDir` (C5).
+- task-032: 200 `{result, commits: [{sha, subject}], push}` with exactly one `wf(…)` commit for a
+  governed verb; 409 `local-changes` (row 7, fresh, also hidden edits), 409 `element-changed`
+  (row 9, no `wingfoil` process — `element-writes.test.ts`), 422 `cli-refused` verbatim (bug-012
+  redaction), 500 `write-incomplete` `{file, commit?}`; G-11.1, G-11.2, G-11.3, X-07.3 are proved
+  API-side there and close here in e2e.
+- task-033: 409 `stale-copy` (row 8) renders from the catalogue; the copy reasons `copy-behind`
+  `{commits}`, `copy-diverged`, `copy-detached` come with the descriptor (task-040 appends
+  "— Update").
+- task-042: the notification bell sits in the shell header (keyboard walks and `SCREENS` count it);
+  `notification-bell.spec.ts` S-21.3 asserts the inline "… is now approved" status this task removes.
+
+#### AC classification
+
+| AC part | kind | first test |
+|---------|------|------------|
+| G-10.1, G-10.2 (Submit commits `wf(task): submit <id>`, state → pending, banner gone) | **red-first** | `test/web/element/submit-footer.test.tsx` (no Submit today: `footerView` → `none`); e2e |
+| G-10.3 (no Submit on a gate element) | **characterization** | e2e (task-037's footer already shows the reserved line / gate for `task-001-login-form`) |
+| G-11.1, G-11.3, X-07.3 on the gate (disabled with the reason as description; another file does not block) | **characterization** | e2e (task-037's outcomes and the server's descriptor already do it; task-032 proved the API side) |
+| G-11.2 (Submit disabled with the reason) | **red-first** | component, e2e |
+| G-13.1, G-13.2 (toast: result, commit line with short hash, "pushed" only when pushed) | **red-first** | `test/web/shell/toasts.test.tsx`, `test/web/api/writes.test.ts` (appended), e2e |
+| `push: failed` codes incl. `push-timeout`, `internal`, and git's message verbatim (hand-over) | **red-first** | `writes.test.ts` / toast component |
+| G-14.1, G-14.2 (red toast, CLI text verbatim; `element-changed` catalogue text, panel shows the new state) | **red-first** | component, e2e |
+| X-07.1, X-07.2 (polite / assertive live regions) | **red-first** | toast component, e2e |
+| TT-PERF-02 (p95 ≤ 3.0 s click → toast with the commit, large fixture, `test:timing` Chromium) | **red-first** | `@perf` test (D38-12) |
+| D37-9 inline status and alert moved to toasts | **characterization, rewritten** | `gate-footer.test.tsx`, `gate-footer.spec.ts` G-04.1, `notification-bell.spec.ts` S-21.3 |
+| S-09.1 (no enabled governed button on an unsupported version) | **characterization** | `project-header.spec.ts` unchanged (it opens the gate element; a Submit would be disabled with the same reason) |
+| `SCREENS` / X-06.4 / X-09.1 | **red-first** | appended screen (D38-13) |
+| REQ-INT-08 | check | own specs on the three engines (W0-9) |
+
+#### What changes (pending the decisions below)
+
+- `web/src/element/footer.ts` — a new view `{ kind: 'submit', to, enabled, reason? }` for a
+  member when the descriptor's only verb is `submit` (rule 2 of D37-5 keeps `none` for an
+  undeclared state); rule 1 (identity) unchanged.
+- `web/src/element/ElementFooter.tsx` — the single-action footer (D38-6/D38-7): the Submit button
+  (native, `aria-disabled` + described by the reason, as D37-3), Cancel; the slot's polite region
+  keeps only the "in progress" text (`element.gate.pending`, a new `element.submit.pending`);
+  `element.gate.done` and the `element-footer-alert` region are removed (D38-10).
+- `web/src/api/writes.ts` — the toasts are raised from the mutation's own callbacks
+  (D38-11), so a panel closed while the write runs still gets its result.
+- `web/src/shell/toasts.ts` (new, **shared**) — the toast store (D38-1): `showToast(toast)` →
+  id, `dismissToast(id)`, `useToasts()`; `web/src/shell/Toasts.tsx` (new) — the two live regions
+  and the toast list; `web/src/shell/toasts.css` (new); `web/src/shell/Shell.tsx` — one appended
+  `<Toasts />` line (and its import).
+- `web/src/element/write-toast.tsx` (new) — the toast content of a governed write (D38-3, D38-4,
+  D38-5) built from `WriteResponse` / `ApiError` with `ErrorText`.
+
+#### Catalogue keys (new, inserted sorted; RP-43; texts follow the decisions)
+
+`element.submit.action` "Submit → {to}"; `element.submit.pending` "Submitting…";
+`element.write.done` "{verb, select, submit {Submitted} approve {Approved} other {Rejected}} {id}";
+`element.write.commit` "{sha} {subject}" (`sha` the first 7 characters, in a `<code>`);
+`element.write.pushed` "pushed"; `element.write.notPushed` "Not pushed — the commit stays local";
+`element.write.refused` "{verb, select, submit {Submit} approve {Approve} other {Reject}} of {id}
+not done"; `shell.toast.close` "Close notification"; `shell.toast.region.polite` /
+`.assertive` (region labels). Removed: `element.gate.done` (unused after D38-10). Changed:
+`error.pushTimeout` without its "Not pushed:" prefix (D38-4 a).
+
+#### Test plan
+
+- Vitest (jsdom): `test/web/element/footer.test.ts` (appended: the `submit` view, enabled and with
+  each reason, identity first, gate states unchanged); `test/web/element/submit-footer.test.tsx`
+  (new: offered, primary, `POST …/submit` with `{expectedStatus}`, pending text, disabled with the
+  reason as description and no request, keyboard press, Cancel → `onClose`, no Submit on a gate);
+  `test/web/shell/toasts.test.tsx` (new: polite vs assertive region always present, order, at most
+  3, replace by key, auto-dismiss with fake timers, paused on hover and focus-within, sticky toasts,
+  Close returns the focus to `#main` when the toast had it); `test/web/api/writes.test.ts`
+  (appended: one toast per success with result, commit lines, `pushed` / nothing / not-pushed with
+  each `push.code` and with git's message verbatim; one red toast per refusal — `cli-refused`
+  verbatim, `element-changed`, `local-changes`, `stale-copy`, `write-incomplete` with and without
+  `commit`, `unreachable`; raised after the caller unmounted); `test/web/element/gate-footer.test.tsx`
+  (status/alert cases rewritten to toasts); `test/web/i18n/*` unchanged (they cover the new keys).
+- Playwright `test/e2e/submit-footer.spec.ts` (new, `prebuild: ['kanban', 'custom']`), one test per
+  scenario, each on its own fixture copy; `scanThemes` on the submit footer (G-10.1), the blocked
+  footer (G-11.2), a success toast (G-13.1) and a red toast (G-14.1); a keyboard-only test (Submit
+  and closing the toast, visible focus). Rewritten: `gate-footer.spec.ts` G-04.1 and
+  `notification-bell.spec.ts` S-21.3 read the toast instead of the drawer's status.
+
+e2e closure (scenario → spec file › test), planned:
+
+| Scenario | spec file › test |
+|----------|------------------|
+| G-10.1, G-10.2, G-10.3 | `test/e2e/submit-footer.spec.ts` › "G-10.1 — Submit a draft", "G-10.2 — Submit rejected work again", "G-10.3 — Offer no submit on an element waiting on a gate" |
+| G-11.1, G-11.2, G-11.3 (TT-STATE-03) | `submit-footer.spec.ts` › "G-11.1 — Block a gate on an element with local changes", "G-11.2 — Block a submit on an element with local changes", "G-11.3 — Do not block an element when only another file has local changes" |
+| G-13.1 | `submit-footer.spec.ts` › "G-13.1 — Show the commit and \"pushed\" after an approval" |
+| G-13.2 (TT-PERF-02; up to the toast, RP-52) | `submit-footer.spec.ts` › "G-13.2 — Show the commit without \"pushed\" when auto-push is off"; the sidebar step: task-040-update-and-push-from-the-sidebar |
+| G-14.1, G-14.2 | `submit-footer.spec.ts` › "G-14.1 — Show the CLI's reason when a submit is refused", "G-14.2 — Show the refusal when the element moved in the meantime" |
+| X-07.1, X-07.2, X-07.3 (TT-STATE-03) | `submit-footer.spec.ts` › "X-07.1 — Announce a toast", "X-07.2 — Announce a refusal assertively", "X-07.3 — Expose the reason of a blocked action" |
+| TT-PERF-02 (G-04.1, G-10.1, G-13.2) | D38-12 `@perf` tests (`test:timing`, Chromium); behaviour only in `test:e2e` |
+| X-06.4 / X-09.1 | `test/e2e/accessibility.spec.ts` over `SCREENS` › the appended screen (D38-13) |
+
+- Gates: typecheck, lint, format:check, `test:coverage`, `docs:api`, `test:e2e:chromium` + own and
+  touched specs (`submit-footer`, `gate-footer`, `notification-bell`, `accessibility`,
+  `element-panel`, `project-header`) on the three engines, `check_tasks.py v0.2`, `test:timing`
+  only at load < 12 (TT-PERF-02 is this task's: otherwise recorded as deferred to the wave gate).
+
+#### Spec / UX amendments needed
+
+- ux-reference §4.2 (*Single-action footer* in v0.2) and §5 (*Feedback*: stack, lifetime, live
+  regions, the not-pushed line) — version 1.5, deviations from the prototype recorded
+  (`ux-consistency`).
+- `docs/user-guide.md` (*Element panel* › *Submitting*, *What the console tells you after an
+  action*), `CHANGELOG.md` *Unreleased* › Added, `test/README.md` version line + the new suite lines.
+- No change to `contracts/`, the schemas or the server.
+
+#### Open decisions (STOP: nothing depending on them is built before the answer)
+
+D38-1 … D38-13 as reported to the coordinator (options and the recommended one in the report);
+recorded here with the approver's answer.
