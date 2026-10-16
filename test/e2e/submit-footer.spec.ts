@@ -168,7 +168,14 @@ test.describe('US-G-11 — actions blocked on local changes', () => {
     await expect(submitButton(page)).toHaveAccessibleDescription(LOCAL_CHANGES);
     await expect(drawer(page).locator('.submit-footer').getByText(LOCAL_CHANGES, { exact: true })).toBeVisible();
     expect(await scanThemes(page)).toEqual([]);
-    await submitButton(page).click();
+    // A press on the disabled button sends nothing (force: Playwright waits for an enabled button).
+    const writes: string[] = [];
+    page.on('request', (r) => {
+      if (r.method() === 'POST') writes.push(r.url());
+    });
+    await submitButton(page).click({ force: true });
+    await submitButton(page).press('Enter');
+    expect(writes).toEqual([]);
     expect(await lastCommitSubject(kanban)).toBe(before);
   });
 
