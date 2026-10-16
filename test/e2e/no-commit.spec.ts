@@ -10,7 +10,7 @@ import { COLD_READ_MS } from './support/cold-read.js';
 import { openConsole } from './support/console.js';
 import { expect, test } from './support/fixtures.js';
 import { actAs } from './support/identity.js';
-import { expectSettled, SCREENS } from './support/screens.js';
+import { expectSettled, offlineCopy, SCREENS } from './support/screens.js';
 import { openSwitcher, rows } from './support/switcher.js';
 
 test.use({ prebuild: ['kanban', 'custom'] });
@@ -29,7 +29,10 @@ test.describe('task-025 AC-5 — a console session commits nothing', () => {
     await actAs(kanban, 'Morgan');
     await actAs(custom, 'Morgan');
     await actAs(outsider, 'Riley');
-    const repos = [kanban, custom, outsider];
+    // task-039: the fourth project of the screens console, whose remote cannot be reached (a failed
+    // fetch moves no ref).
+    const offline = await offlineCopy(fixtures);
+    const repos = [kanban, custom, outsider, offline];
     const before: RepoState[] = await Promise.all(repos.map((fx) => snapshotRepo(fx.dir, fx.env)));
     const c = await consoles.start({ projects: repos });
     await openConsole(page, c);

@@ -9,7 +9,7 @@ import { constants } from 'node:fs';
 import { access, chmod, mkdir, mkdtemp, readFile, rm, stat, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import type { ProjectEntry, StateFile } from '../../../contracts/src/index.js';
+import type { ProjectEntry, StateFile, UiSettings } from '../../../contracts/src/index.js';
 import { REPO_ROOT } from '../../harness/cli.js';
 import { harnessEnv, type Fixture } from '../../harness/fixtures/index.js';
 import { startLauncher, type Launcher } from '../../launcher/launcher.js';
@@ -41,6 +41,12 @@ export interface ConsoleOptions {
    * the list the first one left). `projects` seeds it only when it holds no `state.json` yet.
    */
   stateDir?: string;
+  /**
+   * UI settings written into the seeded `state.json` (C2 of Wave 5; e.g. `autoFetch: false` for a
+   * test counting git processes, `fetchIntervalSeconds: 15` for RP-53) — also with `stateDir` when
+   * it holds no `state.json` yet.
+   */
+  settings?: Partial<UiSettings>;
 }
 
 /** A running console. */
@@ -115,7 +121,7 @@ export async function startConsole(options: ConsoleOptions = {}): Promise<Runnin
     // A state left by a previous console: its list is the one to read.
   } else if (options.stateFile !== undefined) {
     await writeFile(path.join(stateDir, 'state.json'), options.stateFile, { mode: 0o600 });
-  } else if (projects.length > 0) {
+  } else if (projects.length > 0 || options.settings !== undefined) {
     const entries: ProjectEntry[] = projects.map((fx, i) => ({
       id: pids[i]!,
       path: fx.dir,
@@ -124,7 +130,7 @@ export async function startConsole(options: ConsoleOptions = {}): Promise<Runnin
       addedAt: new Date(0).toISOString(),
       roleView: '',
     }));
-    const state: StateFile = { version: 1, projects: entries, settings: {}, actionLog: [] };
+    const state: StateFile = { version: 1, projects: entries, settings: { ...options.settings }, actionLog: [] };
     await writeFile(path.join(stateDir, 'state.json'), JSON.stringify(state, null, 2), { mode: 0o600 });
   }
   const opener = options.opener ?? 'flag';

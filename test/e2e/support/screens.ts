@@ -10,14 +10,28 @@
  */
 import { expect, type Locator, type Page } from '@playwright/test';
 import { COLD_READ_MS } from './cold-read.js';
+import type { Fixture } from '../../harness/fixtures/index.js';
 import type { RunningConsole } from './console.js';
 import type { Consoles, FixtureBuilds } from './fixtures.js';
 import { actAs } from './identity.js';
 import { installLoadingCheck, type LoadingCheckWindow } from './loading.js';
+import { setRemoteUrl } from './remote.js';
+
+/** An `origin` nothing listens on: every fetch fails (task-039, the "fetch failed" screen). */
+export const UNREACHABLE_ORIGIN = 'http://127.0.0.1:9/kanban.git';
+
+/** A kanban copy as Morgan whose `origin` git cannot reach (task-039, D39-12; `pids[3]`). */
+export async function offlineCopy(fixtures: FixtureBuilds): Promise<Fixture> {
+  const offline = await fixtures.copy('kanban');
+  await actAs(offline, 'Morgan');
+  await setRemoteUrl(offline, UNREACHABLE_ORIGIN);
+  return offline;
+}
 
 /**
  * The console of the screens: kanban (`pids[0]`) and custom (`pids[1]`), Morgan in both; a kanban
- * copy where the user is Riley (`pids[2]`, task-035).
+ * copy where the user is Riley (`pids[2]`, task-035); a kanban copy as Morgan whose remote cannot be
+ * reached (`pids[3]`, task-039).
  */
 export async function startScreensConsole(fixtures: FixtureBuilds, consoles: Consoles): Promise<RunningConsole> {
   const kanban = await fixtures.copy('kanban');
@@ -26,7 +40,8 @@ export async function startScreensConsole(fixtures: FixtureBuilds, consoles: Con
   await actAs(kanban, 'Morgan');
   await actAs(custom, 'Morgan');
   await actAs(outsider, 'Riley');
-  return consoles.start({ projects: [kanban, custom, outsider] });
+  const offline = await offlineCopy(fixtures);
+  return consoles.start({ projects: [kanban, custom, outsider, offline] });
 }
 
 /** Wait until no loading status is shown (every first read answered), whatever the build. */
@@ -213,6 +228,24 @@ export const SCREENS: readonly Screen[] = [
       await page.locator('.bell-trigger').click();
       await expect(page.locator('.bell-panel .bell-item').first()).toBeVisible({ timeout: COLD_READ_MS });
       await expect(page.locator('.bell-panel .bell-update').first()).toBeVisible({ timeout: COLD_READ_MS });
+      await expectSettled(page);
+    },
+  },
+  {
+    // task-039 (D39-12): the sidebar's git status after a failed fetch, git's message open.
+    name: 'git status — fetch failed',
+    open: async (page, c) => {
+      await project(page, c, `/p/${c.pids[3]}/team`, (p) => p.locator('.member-card'));
+      const status = page.locator('.git-status');
+      const answer = page.waitForResponse(
+        (r) => r.request().method() === 'POST' && new URL(r.url()).pathname.endsWith('/git/fetch'),
+        { timeout: COLD_READ_MS },
+      );
+      await status.locator('.git-fetch').click();
+      await answer;
+      await expect(status.locator('.git-error')).toBeVisible({ timeout: COLD_READ_MS });
+      await status.locator('.git-info').first().hover();
+      await expect(page.locator('.git-tooltip')).toBeVisible();
       await expectSettled(page);
     },
   },
