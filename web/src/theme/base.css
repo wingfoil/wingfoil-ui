@@ -658,17 +658,35 @@ p {
 
 /* --- Project layout --- */
 
-.project-nav {
+/* The sidebar (task-039, D39-1): sticky, the views on top, the git status pinned at the bottom. */
+.project-sidebar {
   position: sticky;
   top: var(--header-height);
   align-self: flex-start;
+  display: flex;
+  flex-direction: column;
   width: var(--sidebar-width);
   height: calc(100vh - var(--header-height));
   flex: none;
-  overflow-y: auto;
-  padding: var(--space-4) var(--space-3);
   border-right: 1px solid var(--color-divider);
   background: var(--color-bg);
+}
+
+.project-nav {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--space-4) var(--space-3);
+}
+
+.sidebar-foot {
+  flex: none;
+  padding: 10px var(--space-3) var(--space-3);
+  border-top: 1px solid var(--color-divider);
+}
+
+.sidebar-foot:empty {
+  display: none;
 }
 
 .project-nav ul {
@@ -725,7 +743,7 @@ p {
     flex-direction: column;
   }
 
-  .project-nav {
+  .project-sidebar {
     position: static;
     width: auto;
     height: auto;

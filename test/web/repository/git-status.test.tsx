@@ -102,7 +102,8 @@ describe('what the sidebar shows', () => {
 
   it('Y-01.3 — a detached HEAD with the short hash, Fetch still offered', () => {
     show(withRepo({ copy: 'detached', branch: null }));
-    expect(within(region()).getByText('Detached HEAD at 41c0e2a')).toBeTruthy();
+    // The hash is in a <code> of its own inside the sentence.
+    expect(region().querySelector('.git-head')?.textContent).toBe('Detached HEAD at 41c0e2a');
     expect(within(region()).queryByText('main')).toBeNull();
     expect(within(region()).getByRole('button', { name: 'Fetch' })).toBeTruthy();
   });
@@ -123,7 +124,10 @@ describe('what the sidebar shows', () => {
 
   it('renders nothing before the header is read', () => {
     const queryClient = createQueryClient();
-    vi.stubGlobal('fetch', vi.fn(() => new Promise(() => {})));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(() => new Promise(() => {})),
+    );
     render(
       <AppIntlProvider>
         <QueryClientProvider client={queryClient}>
@@ -148,7 +152,8 @@ describe('what the sidebar shows', () => {
       }),
       keyCatalogue(en),
     );
-    const text = region().textContent ?? '';
+    const r = screen.getByRole('region', { name: 'shell.git.label' });
+    const text = r.textContent ?? '';
     expect(text).toContain('shell.git.diverged');
     expect(text).toContain('shell.git.localChanges');
     expect(text).toContain('shell.git.fetchFailed');
@@ -214,7 +219,9 @@ describe('failure lines (Y-03.1, Y-03.2, D39-4, D39-6, D39-8, D39-9)', () => {
       withRepo({
         sync: {
           fetch: { lastSuccessAt: null, lastError: null },
-          update: { lastError: { code: 'local-changes-in-the-way', detail: { files: ['docs/a.md', 'b.md'] }, at: 'x' } },
+          update: {
+            lastError: { code: 'local-changes-in-the-way', detail: { files: ['docs/a.md', 'b.md'] }, at: 'x' },
+          },
         },
       }),
     );
@@ -266,7 +273,7 @@ describe('Fetch (Y-02.2, D39-5, D39-13)', () => {
     const fetchButton = await within(region()).findByRole('button', { name: 'Fetch' });
     expect(within(region()).queryByRole('button', { name: 'Cancel' })).toBeNull();
     expect(document.activeElement).toBe(fetchButton);
-    expect(within(region()).getByRole('alert').textContent).toBe('');
+    expect(within(region()).queryByRole('alert')).toBeNull();
     expect(posts[0]?.init?.signal?.aborted).toBe(true);
   });
 
@@ -275,18 +282,16 @@ describe('Fetch (Y-02.2, D39-5, D39-13)', () => {
     show(withRepo());
     const user = userEvent.setup();
     await user.click(within(region()).getByRole('button', { name: 'Fetch' }));
-    const alert = within(region()).getByRole('alert');
-    await waitFor(() => expect(alert.textContent).toBe(en['error.noFetchTarget']));
+    expect((await within(region()).findByRole('alert')).textContent).toBe(en['error.noFetchTarget']);
     await user.click(within(region()).getByRole('button', { name: 'Fetch' }));
-    await waitFor(() => expect(alert.textContent).toBe(''));
+    await waitFor(() => expect(within(region()).queryByRole('alert')).toBeNull());
   });
 
   it('a refusal is cleared once a later fetch succeeded (lastSuccessAt moved)', async () => {
     stubApi(() => withRepo(), [{ status: 409, body: { error: { code: 'remote-unreadable', message: 'x' } } }]);
     const { queryClient } = show(withRepo());
     await userEvent.click(within(region()).getByRole('button', { name: 'Fetch' }));
-    const alert = within(region()).getByRole('alert');
-    await waitFor(() => expect(alert.textContent).toBe(en['error.remoteUnreadable']));
+    expect((await within(region()).findByRole('alert')).textContent).toBe(en['error.remoteUnreadable']);
     act(() => {
       queryClient.setQueryData(
         projectHeaderQuery('p_a').queryKey,
@@ -295,7 +300,7 @@ describe('Fetch (Y-02.2, D39-5, D39-13)', () => {
         }),
       );
     });
-    await waitFor(() => expect(alert.textContent).toBe(''));
+    await waitFor(() => expect(within(region()).queryByRole('alert')).toBeNull());
   });
 
   it('a git failure (422) is not an alert: the recorded lastError shows after the header read', async () => {
@@ -303,10 +308,13 @@ describe('Fetch (Y-02.2, D39-5, D39-13)', () => {
     stubApi(() => h, [{ status: 422, body: { error: { code: 'git-refused', message: 'fatal: x' } } }]);
     show(h);
     h = withRepo({
-      sync: { fetch: { lastSuccessAt: null, lastError: { message: 'fatal: x', at: 'x' } }, update: { lastError: null } },
+      sync: {
+        fetch: { lastSuccessAt: null, lastError: { message: 'fatal: x', at: 'x' } },
+        update: { lastError: null },
+      },
     });
     await userEvent.click(within(region()).getByRole('button', { name: 'Fetch' }));
     expect(await within(region()).findByText('Fetch failed — not fetched since the console started')).toBeTruthy();
-    expect(within(region()).getByRole('alert').textContent).toBe('');
+    expect(within(region()).queryByRole('alert')).toBeNull();
   });
 });

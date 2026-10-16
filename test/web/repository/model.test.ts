@@ -49,11 +49,26 @@ describe('head line and local changes (Y-01.1, Y-01.3, Y-04.1)', () => {
 describe('copy line (spec-010 §1, D39-7)', () => {
   it.each([
     [{ copy: 'in-sync' }, { kind: 'inSync' }],
-    [{ copy: 'ahead', ahead: 1 }, { kind: 'ahead', ahead: 1 }],
-    [{ copy: 'behind', behind: 2 }, { kind: 'behind', behind: 2 }],
-    [{ copy: 'diverged', ahead: 1, behind: 2 }, { kind: 'diverged', ahead: 1, behind: 2 }],
-    [{ copy: 'no-upstream', upstream: null }, { kind: 'noUpstream', upstream: null }],
-    [{ copy: 'no-upstream', upstream: 'origin/feature' }, { kind: 'noUpstream', upstream: 'origin/feature' }],
+    [
+      { copy: 'ahead', ahead: 1 },
+      { kind: 'ahead', ahead: 1 },
+    ],
+    [
+      { copy: 'behind', behind: 2 },
+      { kind: 'behind', behind: 2 },
+    ],
+    [
+      { copy: 'diverged', ahead: 1, behind: 2 },
+      { kind: 'diverged', ahead: 1, behind: 2 },
+    ],
+    [
+      { copy: 'no-upstream', upstream: null },
+      { kind: 'noUpstream', upstream: null },
+    ],
+    [
+      { copy: 'no-upstream', upstream: 'origin/feature' },
+      { kind: 'noUpstream', upstream: 'origin/feature' },
+    ],
     [{ copy: 'detached', branch: null }, { kind: 'none' }],
   ] as const)('%o → %o', (over, line) => {
     expect(gitStatusView(repo(over), ['has-remote']).sync?.line).toEqual(line);
@@ -78,7 +93,10 @@ describe('failure lines (Y-03.1, Y-03.2, D39-6)', () => {
       }),
       ['has-remote'],
     );
-    expect(v.sync?.fetchError).toEqual({ message: 'fatal: unable to access', lastSuccessAt: '2026-10-16T10:02:00.000Z' });
+    expect(v.sync?.fetchError).toEqual({
+      message: 'fatal: unable to access',
+      lastSuccessAt: '2026-10-16T10:02:00.000Z',
+    });
     expect(v.sync?.updateError).toBeNull();
   });
 
