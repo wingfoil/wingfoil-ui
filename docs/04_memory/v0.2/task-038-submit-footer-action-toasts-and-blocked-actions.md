@@ -351,3 +351,32 @@ the declared `error.pushTimeout` value and the removal of `element.gate.done` (C
   1.5 (§4.2 single-action footer, §5 *Feedback*), `CHANGELOG.md` *Unreleased* › Added, `test/README.md`
   0.37. No approved spec needed an amendment: spec-003 §3 already says `submit` requires no role,
   spec-004 §5 and spec-008 §4 already describe the push outcome and the verbatim texts.
+
+### checks (2026-10-16, HEAD `870e362` + notes)
+
+| Gate | Result | Load |
+|------|--------|------|
+| `npm run typecheck`, `npm run lint`, `npm run format:check` | clean | — |
+| `npm run docs:api`, `check_tasks.py v0.2` | OK | — |
+| `npm run test:coverage` (includes the public-text check) | 158 files passed, 1 skipped; **2913 passed / 1 skipped**; statements 96.52 %, branches 91.06 %, functions 97.39 %, lines 98.32 % | ~5 |
+| `npm run test:e2e:chromium` (whole suite) | **257 passed** (8.2 min) | 4.2 → 15.9 |
+| `npm run test:e2e -- submit-footer.spec.ts gate-footer.spec.ts notification-bell.spec.ts accessibility.spec.ts element-panel.spec.ts project-header.spec.ts` (three engines) | **375 passed**, 0 failed (17.1 min) | 3.6 → 20.4 |
+| `npm run test:smoke` | not run: no packaging, launcher or bin change | — |
+| `npm run test:timing` (TT-PERF-02 with the 3.0 s budget) | **skipped**: load ≥ 12 after the runs (20.4); deferred to the wave gate on `main` | 20.4 |
+
+No console left (`pgrep -af bin/wingfoil-ui.cjs`), no `wfui-*` entry in the system temporary
+directory. Every heavy gate took the machine-free slot.
+
+e2e closure (scenario → spec file › test):
+
+| Scenario | spec file › test |
+|----------|------------------|
+| G-10.1, G-10.2, G-10.3 | `test/e2e/submit-footer.spec.ts` › "G-10.1 — Submit a draft", "G-10.2 — Submit rejected work again", "G-10.3 — Offer no submit on an element waiting on a gate" |
+| G-11.1, G-11.2, G-11.3 (TT-STATE-03) | `submit-footer.spec.ts` › "G-11.1 — Block a gate on an element with local changes", "G-11.2 — Block a submit on an element with local changes", "G-11.3 — Do not block an element when only another file has local changes" |
+| G-13.1 | `submit-footer.spec.ts` › "G-13.1 — Show the commit and \"pushed\" after an approval" |
+| G-13.2 (up to the toast, RP-52) | `submit-footer.spec.ts` › "G-13.2 — Show the commit without \"pushed\" when auto-push is off"; the sidebar step: task-040-update-and-push-from-the-sidebar |
+| G-14.1, G-14.2 | `submit-footer.spec.ts` › "G-14.1 — Show the CLI's reason when a submit is refused", "G-14.2 — Show the refusal when the element moved in the meantime" (no `memory reject` process: task-032 `test/server/http/element-writes.test.ts` row 9) |
+| X-07.1, X-07.2, X-07.3 (TT-STATE-03) | `submit-footer.spec.ts` › "X-07.1 — Announce a toast", "X-07.2 — Announce a refusal assertively", "X-07.3 — Expose the reason of a blocked action" |
+| keyboard (accessibility bar) | `submit-footer.spec.ts` › "Submit and close the toast with the keyboard only" |
+| TT-PERF-02 (G-04.1, G-10.1, G-13.2) | `test/e2e/performance.spec.ts` › "TT-PERF-02 — gate and submit latency @perf" › "G-04.1, G-13.2 — approve …", "G-10.1 — submit …" (budget in `test:timing`) |
+| X-06.4 / X-09.1 | `test/e2e/accessibility.spec.ts` › "X-06.4 — Pass the axe scan: element panel — submit footer", "X-09.1 — Render every string from the message catalogue: element panel — submit footer" |
