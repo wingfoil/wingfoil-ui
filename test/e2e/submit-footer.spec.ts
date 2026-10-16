@@ -349,21 +349,25 @@ test.describe('review R2-3 — a stack taller than the window', () => {
     await openPanel(page, c, 'task-004-session-timeout');
     await submitButton(page).click({ timeout: COLD_READ_MS });
     await expect(refusals).toHaveCount(1, { timeout: COLD_READ_MS });
+    // The refusals stay on screen while the next ones are made: reach the controls with the keyboard
+    // (the stack may cover them on a window this small; that is what its Close buttons are for).
     for (const [n, eid] of [
       [2, 'task-001-login-form'],
       [3, 'bug-001-crash-on-save'],
     ] as const) {
-      await drawer(page).getByRole('button', { name: 'Close' }).first().click();
+      await drawer(page).getByRole('button', { name: 'Close' }).first().press('Enter');
       await page
         .getByRole('region', { name: 'Requires you' })
         .locator(`li[data-eid="${eid}"]`)
         .getByRole('button')
-        .click({ timeout: COLD_READ_MS });
+        .press('Enter', { timeout: COLD_READ_MS });
       await drawer(page)
         .getByRole('button', { name: /^Approve → / })
-        .click({ timeout: COLD_READ_MS });
+        .press('Enter', { timeout: COLD_READ_MS });
       await expect(refusals).toHaveCount(n, { timeout: COLD_READ_MS });
     }
+    // The drawer's own Close is not under the stack (below its header).
+    await expectOnTop(page, drawer(page).getByRole('button', { name: 'Close' }).first());
     await expect(page.locator('.toasts')).toHaveClass(/toasts-overflow/);
     const oldest = refusals.first().getByRole('button', { name: 'Close notification' });
     await oldest.focus();

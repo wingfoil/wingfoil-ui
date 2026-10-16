@@ -100,8 +100,11 @@ export interface ToastLayout {
   headerBottom: number;
   /** Left edge of the main region (`#main`; the sidebar is left of it), 0 without one. */
   mainLeft: number;
-  /** The element panel, when open: its left edge and, once rendered, its footer's top edge. */
-  drawer?: { left: number; footerTop?: number };
+  /**
+   * The element panel, when open: its left edge, the bottom edge of its header (its Close) and, once
+   * rendered, its footer's top edge.
+   */
+  drawer?: { left: number; headerBottom?: number; footerTop?: number };
 }
 
 /** The narrowest area between the main region's left edge and the drawer for the stack (px). */
@@ -116,19 +119,22 @@ const TOP_MARGIN = 16;
  * (loading, a read error), the stylesheet's bottom centre; with one, centred between the main
  * region's left edge and the drawer when that area is at least {@link TOAST_MIN_ROOM} wide (the
  * sidebar, with the Git status at its foot, stays clear), otherwise just above the drawer's footer
- * (never over its actions). Never taller than the room between the header and its bottom.
+ * (never over its actions). Never taller than the room between the header — when the stack is
+ * over the drawer, the drawer's own header, so that its Close stays reachable — and its bottom.
  */
 export function toastPlacement(layout: ToastLayout): ToastPlacement {
   const { viewport, headerBottom, mainLeft, drawer } = layout;
-  const maxHeight = (bottom: number) => viewport.height - bottom - headerBottom - TOP_MARGIN;
+  const maxHeight = (bottom: number, top = headerBottom) => viewport.height - bottom - top - TOP_MARGIN;
   if (drawer === undefined) return { maxHeight: maxHeight(DEFAULT_BOTTOM) };
   const room = drawer.left - mainLeft;
   if (room >= TOAST_MIN_ROOM) {
     return { left: (mainLeft + drawer.left) / 2, maxWidth: room - 32, maxHeight: maxHeight(DEFAULT_BOTTOM) };
   }
-  if (drawer.footerTop === undefined) return { maxHeight: maxHeight(DEFAULT_BOTTOM) };
+  // Over the drawer: below its header too.
+  const top = Math.max(headerBottom, drawer.headerBottom ?? headerBottom);
+  if (drawer.footerTop === undefined) return { maxHeight: maxHeight(DEFAULT_BOTTOM, top) };
   const bottom = viewport.height - drawer.footerTop + 8;
-  return { bottom, maxHeight: maxHeight(bottom) };
+  return { bottom, maxHeight: maxHeight(bottom, top) };
 }
 
 /** Remove every toast (tests). */

@@ -51,6 +51,7 @@ function usePlacement(active: boolean, stack: RefObject<HTMLDivElement | null>):
     function place(): void {
       const drawer = shell.querySelector('.drawer') ?? undefined;
       const footer = drawer?.querySelector('.element-footer-slot') ?? undefined;
+      const drawerHeader = drawer?.querySelector('.drawer-header') ?? undefined;
       const targets = [drawer, footer].filter((e): e is Element => e !== undefined);
       if (sizes && (targets.length !== watched.length || targets.some((t, k) => t !== watched[k]))) {
         sizes.disconnect();
@@ -65,6 +66,7 @@ function usePlacement(active: boolean, stack: RefObject<HTMLDivElement | null>):
           ? {
               drawer: {
                 left: drawer.getBoundingClientRect().left,
+                ...(drawerHeader ? { headerBottom: drawerHeader.getBoundingClientRect().bottom } : {}),
                 ...(footer ? { footerTop: footer.getBoundingClientRect().top } : {}),
               },
             }
