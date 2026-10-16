@@ -45,6 +45,15 @@ const MESSAGES = defineMessages({
   'remote-not-owned': { id: 'error.remoteNotOwned' },
   // Review round 2 F9: a local remote or clone source git cannot read.
   'remote-unreadable': { id: 'error.remoteUnreadable' },
+  // task-034 (spec-010 §6): `push.code` of a write killed after 60 s (D34-10), the automatic fetch
+  // killed after 60 s (`sync.fetch.lastError.code`, D34-9), a fetch refused for its refspecs (D34-8).
+  'push-timeout': { id: 'error.pushTimeout' },
+  'fetch-timeout': { id: 'error.fetchTimeout' },
+  'refspec-outside-remotes': { id: 'error.refspecOutsideRemotes' },
+  // W4-9: an automatic merge that exited 0 without fast-forwarding.
+  'merge-not-fast-forward': { id: 'error.mergeNotFastForward' },
+  // W4-14: the automatic fetch or update not run.
+  'config-in-worktree': { id: 'error.configInWorktree' },
   // task-037, D37-11: a governed write that did not finish (W2-1, W2-4, W2-5); `detail.file`,
   // optional `detail.commit`.
   'write-incomplete': { id: 'error.writeIncomplete' },

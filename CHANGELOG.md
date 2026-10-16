@@ -8,6 +8,16 @@ All notable changes to WingFoil UI are recorded in this file. The format follows
 
 ### Added
 
+- **Automatic sync with the remote** (US-Y-02, US-Y-05, US-Y-07, REQ-PERF-07): the console fetches
+  every opened project's remote every 60 s (on by default), can fast-forward a copy that is behind
+  right after (*Auto-update*, off by default) and push the branch after each decision made in the
+  console (*Auto-push*, off by default; the push is the branch's, the user's own unpushed commits
+  included). Unattended runs start no repository hook, no fsmonitor and no askpass program, and do
+  not run at all when the repository's configuration includes another file; an automatic fetch or
+  an auto-push is stopped after 60 s; stopping the console lets a running automatic update finish.
+  Declared risk: *Auto-update* does on a timer what `git pull` does — incoming commits can run
+  commands your own git configuration points at (filters, `core.sshCommand`, credential helpers,
+  aliases) when they read project files; it is off by default.
 - **How to join** (US-C-08, US-C-09): for a user not in the team, the *not in team* badge and the
   header notice open a panel naming the project's tech leads (or saying none, or no member, is
   declared) with the exact `wingfoil dna add team.members …` command for the user's git email and
@@ -38,6 +48,15 @@ All notable changes to WingFoil UI are recorded in this file. The format follows
 
 ### Fixed
 
+- **An update never makes a merge commit, a fetch never deletes a local tag or branch**
+  (bug-014, unreleased git routes `POST /api/p/<id>/git/update` and `/git/fetch`): with
+  `branch.<b>.mergeOptions = -s ours` or `pull.twohead = ours` the update created a merge commit
+  that dropped the incoming changes, and with `--squash` it left them staged; with
+  `fetch.pruneTags` the fetch — and the update's own fetch, with `fetch.prune` — deleted local
+  tags. The update now only fast-forwards whatever the configuration says, the fetch prunes
+  remote-tracking branches only, and a remote whose fetch refspecs write outside `refs/remotes/`
+  (or that has none) is refused by both (*Not fetched or updated: this remote has no fetch
+  refspec, or one writes outside refs/remotes/…*).
 - **A clone runs no `ext::` command, whatever the environment** (bug-013): with
   `GIT_ALLOW_PROTOCOL` set in the environment the console was started from, git allowed the
   transports it names (`ext::` runs a command) despite the console's own protocol settings; every

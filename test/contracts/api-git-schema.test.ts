@@ -98,6 +98,68 @@ describe('repository.schema.json (spec-010 §3)', () => {
   });
 });
 
+describe('task-034 — sync.fetch.lastError.code (D34-9) and refspec-outside-remotes (D34-8)', () => {
+  const withFetchError = (lastError: unknown) => ({
+    ...STATUS,
+    sync: { ...STATUS.sync, fetch: { lastSuccessAt: null, lastError } },
+  });
+
+  it("accepts an automatic fetch killed after 60 s: code fetch-timeout with git's message so far", () => {
+    const typed: RepositoryStatus = withFetchError({ code: 'fetch-timeout', message: '', at: AT }) as RepositoryStatus;
+    expect(repository(typed), JSON.stringify(repository.errors)).toBe(true);
+    expect(repository(withFetchError({ code: 'fetch-timeout', message: 'fatal: x', at: AT }))).toBe(true);
+  });
+
+  it('refuses another fetch code, or a code without its message', () => {
+    expect(repository(withFetchError({ code: 'push-timeout', message: '', at: AT }))).toBe(false);
+    expect(repository(withFetchError({ code: 'fetch-timeout', at: AT }))).toBe(false);
+  });
+
+  it('W4-3, W4-9: update.lastError accepts refspec-outside-remotes and merge-not-fast-forward', () => {
+    for (const code of ['refspec-outside-remotes', 'merge-not-fast-forward'] as const) {
+      const typed: RepositoryStatus = { ...STATUS, sync: { ...STATUS.sync, update: { lastError: { code, at: AT } } } };
+      expect(repository(typed), `${code} ${JSON.stringify(repository.errors)}`).toBe(true);
+    }
+    expect(
+      repository({
+        ...STATUS,
+        sync: { ...STATUS.sync, update: { lastError: { code: 'fetch-timeout', at: AT } } },
+      }),
+    ).toBe(false);
+  });
+
+  it('W4-14: update and fetch lastError config-in-worktree; W4-16: config-uses-incoming-path removed', () => {
+    const update: RepositoryStatus = {
+      ...STATUS,
+      sync: { ...STATUS.sync, update: { lastError: { code: 'config-in-worktree', at: AT } } },
+    };
+    expect(repository(update), JSON.stringify(repository.errors)).toBe(true);
+    expect(
+      repository({
+        ...STATUS,
+        sync: { ...STATUS.sync, update: { lastError: { code: 'config-uses-incoming-path', at: AT } } },
+      }),
+    ).toBe(false);
+    const fetch: RepositoryStatus = {
+      ...STATUS,
+      sync: {
+        ...STATUS.sync,
+        fetch: { lastSuccessAt: null, lastError: { code: 'config-in-worktree', message: '', at: AT } },
+      },
+    };
+    expect(repository(fetch), JSON.stringify(repository.errors)).toBe(true);
+    expect(
+      repository({
+        ...STATUS,
+        sync: {
+          ...STATUS.sync,
+          fetch: { lastSuccessAt: null, lastError: { code: 'config-uses-incoming-path', message: '', at: AT } },
+        },
+      }),
+    ).toBe(false);
+  });
+});
+
 describe('git.response.schema.json (spec-010 §4)', () => {
   it('accepts {repository}', () => {
     const body: GitResponse = { repository: STATUS };
@@ -122,6 +184,7 @@ describe('git.refusal.schema.json (spec-010 §5, §8)', () => {
     'diverged',
     'remote-not-owned',
     'remote-unreadable',
+    'refspec-outside-remotes',
     'git-refused',
     'internal',
   ])('accepts %s without detail', (code) => {

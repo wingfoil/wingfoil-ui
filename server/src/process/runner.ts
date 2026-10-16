@@ -7,12 +7,20 @@
  * a git read to another repository or configuration.
  * On POSIX each child leads its own process group and every kill (timeout, cancel, stop) goes to the
  * group, so the processes it started end with it; on Windows the child alone is killed.
+ * A process is settled when its pipes close, or at the latest {@link DEFAULT_DRAIN_MS} after it
+ * exited (task-034 W4-8, security review S4): a program it started in another session (a filter, an
+ * fsmonitor, `setsid … &`) may keep stdout or stderr open forever; the pipes are then destroyed and
+ * the result holds what was read.
  */
 import { spawn, type ChildProcess } from 'node:child_process';
-import { gitEnv } from '../git/git.js';
+import path from 'node:path';
+import { gitEnv, gitSubcommand } from '../git/git.js';
 
 /** Timeout of every `wingfoil` process and git read (adr-001 D5, REQ-INT-04). */
 export const DEFAULT_TIMEOUT_MS = 30_000;
+
+/** Wait for the pipes to close after the process exited (W4-8). */
+export const DEFAULT_DRAIN_MS = 2_000;
 
 /** One process to run. */
 export interface ProcessRequest {
@@ -47,6 +55,12 @@ export interface ProcessResult {
   ended: ProcessEnd;
   /** From start to end, in milliseconds. */
   durationMs: number;
+  /**
+   * The pipes were still held open {@link DEFAULT_DRAIN_MS} after the process exited (a program it
+   * left in another session) and were cut: the output may be incomplete (task-034 W4-13). Callers
+   * that read the output fail closed on it.
+   */
+  drained?: true;
 }
 
 /** The port: runs one process to its end. */
@@ -71,6 +85,10 @@ export interface LocalRunnerOptions {
   killGraceMs?: number;
   /** Most bytes kept of stdout plus stderr; a process writing more is killed (default 64 MiB). */
   maxOutputBytes?: number;
+  /** Wait for the pipes after the process exited (default {@link DEFAULT_DRAIN_MS}). */
+  drainMs?: number;
+  /** Where a cut of held pipes is logged (`{ op, kind: 'pipes-held' }`, never the output). */
+  logger?: { warn(object: object, message: string): void };
 }
 
 /** A process could not be started (missing program, or the runner is stopping). */
@@ -99,10 +117,12 @@ export class LocalProcessRunner implements ProcessRunner {
   private stopping = false;
   private readonly killGraceMs: number;
   private readonly maxOutputBytes: number;
+  private readonly drainMs: number;
 
   constructor(private readonly options: LocalRunnerOptions = {}) {
     this.killGraceMs = options.killGraceMs ?? 2_000;
     this.maxOutputBytes = options.maxOutputBytes ?? 64 * 1024 * 1024;
+    this.drainMs = options.drainMs ?? DEFAULT_DRAIN_MS;
   }
 
   /** Number of processes still running. */
@@ -144,6 +164,7 @@ export class LocalProcessRunner implements ProcessRunner {
       let end: ProcessEnd = 'exit';
       let timer: NodeJS.Timeout | undefined;
       let escalation: NodeJS.Timeout | undefined;
+      let drain: NodeJS.Timeout | undefined;
       let settle!: () => void;
       const done = new Promise<void>((r) => (settle = r));
 
@@ -182,6 +203,7 @@ export class LocalProcessRunner implements ProcessRunner {
       const cleanUp = (): void => {
         clearTimeout(timer);
         clearTimeout(escalation);
+        clearTimeout(drain);
         request.signal?.removeEventListener('abort', onAbort);
         this.children.delete(entry);
         settle();
@@ -216,7 +238,10 @@ export class LocalProcessRunner implements ProcessRunner {
         const timeoutMs = request.timeoutMs === undefined ? DEFAULT_TIMEOUT_MS : request.timeoutMs;
         if (timeoutMs !== null) timer = setTimeout(() => kill('timeout'), timeoutMs);
       });
-      child.on('close', (exitCode, signal) => {
+      let settled = false;
+      const finish = (exitCode: number | null, signal: NodeJS.Signals | null, drained = false): void => {
+        if (settled) return;
+        settled = true;
         cleanUp();
         resolve(
           result(end, {
@@ -224,9 +249,22 @@ export class LocalProcessRunner implements ProcessRunner {
             signal,
             stdout: Buffer.concat(stdout).toString('utf8'),
             stderr: Buffer.concat(stderr).toString('utf8'),
+            ...(drained ? { drained: true as const } : {}),
           }),
         );
+      };
+      child.on('exit', (exitCode, signal) => {
+        // The pipes normally close right after; a program left in another session may hold them.
+        drain = setTimeout(() => {
+          child.stdout.destroy();
+          child.stderr.destroy();
+          const program = path.basename(request.file).replace(/\.exe$/i, '');
+          const op = program === 'git' ? (gitSubcommand(request.args) ?? 'git') : program;
+          this.options.logger?.warn({ op, kind: 'pipes-held' }, 'process output cut after its exit');
+          finish(exitCode, signal, true);
+        }, this.drainMs);
       });
+      child.on('close', (exitCode, signal) => finish(exitCode, signal));
     });
   }
 

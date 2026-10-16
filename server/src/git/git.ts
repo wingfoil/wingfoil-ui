@@ -42,6 +42,10 @@ export const GIT_READ_ARGS = {
   // task-033 (spec-010 §1, §4, §5).
   remotes: ['--no-optional-locks', 'remote'],
   configGet: ['--no-optional-locks', 'config', '--get'],
+  // task-034 (D34-5): every value of a multi-valued key (`remote.<r>.fetch`).
+  configGetAll: ['--no-optional-locks', 'config', '-z', '--get-all'],
+  // task-034 (W4-5): where every setting comes from (scope, origin), NUL-separated.
+  configOrigins: ['--no-optional-locks', 'config', '--list', '--show-origin', '--show-scope', '-z'],
   remoteUrl: ['--no-optional-locks', 'remote', 'get-url'],
   incoming: [
     '--no-optional-locks',
@@ -108,10 +112,24 @@ export const GIT_READ_ARGS = {
   ],
 } as const;
 
+/** No fsmonitor program (task-034 W4-5): prefixed to every read of {@link GitReads}. */
+export const NO_FSMONITOR: readonly string[] = ['-c', 'core.fsmonitor=false'];
+
+/** One setting's scope (`system`, `global`, `local`, `worktree`, `command`) and origin (`file:<path>`, …). */
+export interface ConfigOrigin {
+  scope: string;
+  origin: string;
+  /** The setting's key (lower-case section and name) and value, as git lists them. */
+  key: string;
+  value: string;
+}
+
 /**
  * The git subcommands the server may run (REQ-INT-06): reads, `clone` into a new empty folder,
- * transport (v0.2) and the `ui.yaml` preset commit (v0.3). Never merge, rebase, reset, stash or
- * checkout. The process audit checks every git process against it.
+ * transport (v0.2) and the `ui.yaml` preset commit (v0.3). Never a merge commit — `merge` only as the
+ * automatic update, `--ff-only` with the configured strategy and squash overridden (spec-010 §4,
+ * task-034 D34-2) — and never rebase, reset, stash or checkout. The process audit checks every git
+ * process against it.
  */
 export const GIT_ALLOWED_SUBCOMMANDS: readonly string[] = [
   'rev-parse',
@@ -131,6 +149,8 @@ export const GIT_ALLOWED_SUBCOMMANDS: readonly string[] = [
   'ls-tree',
   'ls-files',
   'diff-tree',
+  // task-034 (SARD REQ-INT-06 v0.10, RP-41): the automatic update, `merge --ff-only` only.
+  'merge',
 ];
 
 /**
@@ -420,6 +440,35 @@ export class GitReads {
     return value === '' ? undefined : value;
   }
 
+  /** Where each setting of the effective configuration comes from (task-034 W4-5). */
+  async configOrigins(): Promise<ConfigOrigin[]> {
+    const fields = (await this.read(GIT_READ_ARGS.configOrigins)).stdout.split(String.fromCharCode(0));
+    const origins: ConfigOrigin[] = [];
+    for (let i = 0; i + 2 < fields.length; i += 3) {
+      const entry = fields[i + 2]!;
+      const newline = entry.indexOf('\n');
+      origins.push({
+        scope: fields[i]!,
+        origin: fields[i + 1]!,
+        key: newline < 0 ? entry : entry.slice(0, newline),
+        value: newline < 0 ? '' : entry.slice(newline + 1),
+      });
+    }
+    return origins;
+  }
+
+  /**
+   * Every value of `key` in git's order, empty values included (NUL-terminated, security review
+   * round 2); `[]` when unset (exit 1). `key` is the server's own.
+   */
+  async configValues(key: string): Promise<string[]> {
+    const result = await this.run([...GIT_READ_ARGS.configGetAll, key]);
+    if (result.ended === 'exit' && result.exitCode === 1) return [];
+    const values = this.check(result).stdout.split(String.fromCharCode(0));
+    // Every value ends with a NUL: the last field is the empty rest.
+    return values.slice(0, -1);
+  }
+
   /**
    * Every URL git uses for the remote `name` (`insteadOf` applied; `push`: the push URLs), in its
    * order (review round 1 S2). A remote with no URL is opened by git as the path `name` itself:
@@ -574,7 +623,9 @@ export class GitReads {
 
   private run(args: readonly string[]): Promise<ProcessResult> {
     const { git, runner, cwd } = this.options;
-    return runner.run({ file: git, args, cwd, env: this.env });
+    // No fsmonitor program in the server's own reads: the configuration may name one from the
+    // working tree (task-034 W4-5, security review S1).
+    return runner.run({ file: git, args: [...NO_FSMONITOR, ...args], cwd, env: this.env });
   }
 
   private async read(args: readonly string[]): Promise<ProcessResult> {
@@ -582,6 +633,9 @@ export class GitReads {
   }
 
   private check(result: ProcessResult): ProcessResult {
+    // A cut output may be incomplete: never read (task-034 W4-13), fail closed.
+    if (result.drained)
+      throw new GitReadError('git output cut: its pipes were held open', result.ended, result.exitCode);
     if (result.ended === 'exit' && result.exitCode === 0) return result;
     const message =
       result.stderr.trim() ||

@@ -8,7 +8,7 @@ module: "web"             # optional — server | web | contracts (dna.yaml modu
 priority: "medium"           # optional — high | medium | low
 tags: ["v0.2"]               # optional — additional labels, e.g. [today, a11y]
 ref: "US-S-21"                # optional — backlog item ID, e.g. "TASK-001"
-bug: []                # optional — LIST of bug ids this task closes. Two cases: a fix task derived from a bug
+bug: ["bug-015-catalogue-strings-e2e-check-can-miss-an-api-answer-under-load-and-flag-data-as-uncatalogued-text"]                # optional — LIST of bug ids this task closes. Two cases: a fix task derived from a bug
                        # by release-planning, and a bug ABSORBED into an existing task's Acceptance Criteria because that
                        # task already owns the ground. `bug.sync_state` iterates this list; a bug with no task naming it
                        # here never advances past `triaged` (only a reject to `closed`).
@@ -39,6 +39,11 @@ budget runs short (RP-51).
   - `docs/02_requirements/02_bdd/features/s/shell.feature`: S-23.1 Summarise what requires each of my roles; S-23.2 Switch role view from the summary; S-23.3 Show no summary to a single-role member; S-23.4 Show at most 3 items per role
 - **US-T-07** — every `@v0.2` scenario passes:
   - `docs/02_requirements/02_bdd/features/t/requires-you.feature`: T-07.1 Say that nothing requires me; T-07.2 Reach the empty state after the last action
+- **bug-015 (catalogue strings e2e check can miss an API answer under load)** The X-09.1 check
+  never reports data the page shows as uncatalogued text because an API answer reached the test
+  late or its body read failed: the comparison waits for or retries on the screen's answers
+  (bounded by `COLD_READ_MS`, no fixed sleep) and a failed body read is recorded and reported with
+  its cause, not swallowed; a test reproduces a late answer first.
 
 Also closes S-21.1, S-23.4 of TT-PERF-11 (task-031-today-api-and-memory-updates-feed) and S-23.1 of TT-PERF-09 (task-036-today-requires-you-and-waiting-on-others).
 
