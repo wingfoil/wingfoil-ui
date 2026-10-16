@@ -136,3 +136,25 @@ it('sends nothing before the settings were read', async () => {
   await waitFor(() => expect(failed).toHaveLength(1));
   expect(api.calls.filter((c) => c.method === 'PUT')).toEqual([]);
 });
+
+it("a change made while a save is on its way survives that save's answer", async () => {
+  const api = stubSettings();
+  const { hook, cache, saved } = setup();
+  act(() => hook.result.current.mutate({ autoPush: true }));
+  await waitFor(() => expect(api.waiting()).toBe(1));
+  // The first request is out without the second change.
+  act(() => hook.result.current.mutate({ theme: 'dark' }));
+  expect(api.calls.filter((c) => c.method === 'PUT').map((c) => c.body)).toEqual([{ ...DEFAULTS, autoPush: true }]);
+  api.release();
+  await waitFor(() => expect(saved).toHaveLength(1));
+  // The first answer ({autoPush}) does not hide the waiting theme change.
+  expect(cache()).toEqual({ ...DEFAULTS, autoPush: true, theme: 'dark' });
+  await waitFor(() => expect(api.waiting()).toBe(1));
+  api.release();
+  await waitFor(() => expect(saved).toHaveLength(2));
+  expect(api.calls.filter((c) => c.method === 'PUT').map((c) => c.body)).toEqual([
+    { ...DEFAULTS, autoPush: true },
+    { ...DEFAULTS, autoPush: true, theme: 'dark' },
+  ]);
+  expect(cache()).toEqual({ ...DEFAULTS, autoPush: true, theme: 'dark' });
+});

@@ -178,8 +178,11 @@ it('saves a number on Enter or when the field is left, once valid; an invalid on
   await user.tab();
   await waitFor(() => expect(puts).toHaveLength(2));
   expect(puts[1]).toEqual({ ...DEFAULTS, fetchIntervalSeconds: 15, actionLogCap: 200 });
-  // Unchanged value: nothing sent.
+  // Unchanged value: nothing sent (left untouched, or typed again).
   await user.click(cap);
+  await user.tab();
+  await user.clear(cap);
+  await user.type(cap, '200');
   await user.tab();
   expect(puts).toHaveLength(2);
   // Escape puts the stored value back.

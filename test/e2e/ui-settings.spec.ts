@@ -31,6 +31,9 @@ const cap = (page: Page) => page.getByRole('textbox', { name: 'Entries kept' });
 const configurationLink = (page: Page) =>
   page.getByRole('navigation', { name: 'Project views' }).getByRole('link', { name: 'Configuration' });
 
+/** Click the label that draws a switch or a radio, as the user does (their input is visually hidden). */
+const press = (control: Locator) => control.locator('xpath=ancestor::label[1]').click();
+
 /** A kanban copy where the user is Morgan (the feature's Background). */
 async function morganKanban(fixtures: { copy(kind: 'kanban'): Promise<Fixture> }): Promise<Fixture> {
   const kanban = await fixtures.copy('kanban');
@@ -115,7 +118,7 @@ test.describe('UI settings (US-C-07)', () => {
       const first = await consoles.start({ projects: [kanban], stateDir });
       await openSettings(page, first);
       const saved = nextSave(page);
-      await sw(page, 'Auto-push').click();
+      await press(sw(page, 'Auto-push'));
       expect((await saved).status()).toBe(200);
       await expect(sw(page, 'Auto-push')).toBeChecked();
       await expect(page.getByRole('status').filter({ hasText: 'Settings saved' })).toBeVisible();
@@ -151,7 +154,7 @@ test.describe('UI settings (US-C-07)', () => {
     await expect.poll(() => lastFetch(page, c), { timeout: COLD_READ_MS }).not.toBe(before);
     expect(await fetches(trace)).toBeGreaterThan(0);
     const saved = nextSave(page);
-    await sw(page, 'Auto-fetch').click();
+    await press(sw(page, 'Auto-fetch'));
     expect((await saved).status()).toBe(200);
     await expect(sw(page, 'Auto-fetch')).not.toBeChecked();
     const count = await fetches(trace);
@@ -173,7 +176,7 @@ test.describe('UI settings (US-C-07)', () => {
     await expectFirstLoad(sw(other, 'Auto-push'));
     await expect(sw(other, 'Auto-push')).not.toBeChecked();
     const saved = nextSave(page);
-    await sw(page, 'Auto-push').click();
+    await press(sw(page, 'Auto-push'));
     expect((await saved).status()).toBe(200);
     await expect(sw(other, 'Auto-push')).toBeChecked({ timeout: COLD_READ_MS });
     await other.close();
@@ -247,7 +250,7 @@ test.describe('US-X-08 — themes', () => {
     await expect(html).toHaveAttribute('data-theme', 'dark');
     const dark = await background();
     const saved = nextSave(page);
-    await radio(page, 'Light').click();
+    await press(radio(page, 'Light'));
     expect((await saved).status()).toBe(200);
     await expect(html).toHaveAttribute('data-theme', 'light');
     // What the user sees: the light page background (spec-009 `--color-bg` #FFFFFF).
@@ -262,7 +265,7 @@ test.describe('US-X-08 — themes', () => {
     await page.emulateMedia({ colorScheme: 'dark' });
     await expect(html).toHaveAttribute('data-theme', 'light');
     // Back to System: the dark preference again.
-    await radio(page, 'System').click();
+    await press(radio(page, 'System'));
     await expect(html).toHaveAttribute('data-theme', 'dark');
     await expect.poll(background).toBe(dark);
   });

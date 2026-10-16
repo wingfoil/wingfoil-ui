@@ -68,3 +68,27 @@ it('leaves the system theme in place while the settings cannot be read', async (
   await waitFor(() => expect(client.getQueryState(settingsQuery().queryKey)?.status).toBe('error'));
   expect(attr()).toBeNull();
 });
+
+it('is mounted by the application once the session is connected (App)', async () => {
+  const { bootstrapSession, resetSession } = await import('../../../web/src/session/session.js');
+  const { renderApp } = await import('../shell/render.js');
+  const { stopEventStream } = await import('../../../web/src/api/events.js');
+  resetSession();
+  vi.stubGlobal(
+    'EventSource',
+    class {
+      addEventListener(): void {}
+      close(): void {}
+    },
+  );
+  vi.stubGlobal('fetch', async (url: string) =>
+    url === '/api/settings'
+      ? new Response(JSON.stringify({ ...DEFAULTS, theme: 'dark' }), { status: 200 })
+      : new Response(JSON.stringify({ error: { code: 'not-found', message: 'x' } }), { status: 404 }),
+  );
+  await bootstrapSession();
+  renderApp('/');
+  await waitFor(() => expect(attr()).toBe('dark'));
+  stopEventStream();
+  resetSession();
+});
