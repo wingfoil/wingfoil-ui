@@ -37,6 +37,12 @@ All notable changes to WingFoil UI are recorded in this file. The format follows
   Requires you items) and *Updates* (the last 10 Memory events); Today shows, to a member holding
   several roles, one line per role with its count and first three items, a switch to that role
   view; the explicit *Nothing requires you* state, also after the last action.
+- **Git status in the sidebar** (US-Y-01…US-Y-04, US-S-11): the bottom of the project sidebar
+  shows the branch and short hash (or a detached HEAD), the local changes and, when the repository
+  has a remote, *In sync with git* or the commits ahead and behind, *Fetch* with *Cancel*, and a
+  failed fetch with the time of the last successful one and git's message; without a remote no
+  sync control is shown. A governed action on a detached HEAD reads *Blocked: no branch checked
+  out*.
 
 ### Changed
 
