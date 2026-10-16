@@ -499,3 +499,16 @@ This was a measurement only; no product, spec or budget change was made.
 | `26bcf07` | 4 git (+ `git remote`, `config --get branch.main.remote`, task-033 D33-7, spec-010 §1) | 8 processes: the same 2 CLI and 6 git (the 2 more of the check) |
 
 The difference is two short git config reads per state check, not a parse or a CLI process.
+
+### merge of main before submit (2026-10-16, coordinator)
+
+- `main` with task-034-auto-sync-scheduler-and-auto-push merged (6801c57) merged into the branch
+  (268ee09); conflicts only on the version lines of `docs/user-guide.md` (0.10 task-034, 0.11
+  this task) and `test/README.md` (0.35 task-034, 0.36 this task), both entries kept in task order.
+- Gates on the merge: typecheck, lint, format:check, `docs:api`, `check_tasks.py v0.2` clean / OK;
+  `test:coverage` 2883 passed, 1 skipped (statements 96.51 %, branches 91.12 %);
+  `test:e2e:chromium` 239 passed (7.2 min); `npm run test:e2e -- notification-bell.spec.ts
+  today.spec.ts accessibility.spec.ts harness/a11y-support.spec.ts` on the three engines 273 passed
+  (6.8 min). No console and no `wfui-*` entry left.
+- Reviews: independent review rounds 1–4 and a confirmation round, all PASS (bug-015 included);
+  decisions D42-1 … D42-9 (W4-2) and RP-9 measured: no regression (above).
