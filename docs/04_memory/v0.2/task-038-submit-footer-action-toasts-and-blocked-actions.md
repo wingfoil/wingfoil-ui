@@ -304,3 +304,15 @@ e2e closure (scenario → spec file › test), planned:
   scanned in G-11.2, G-13.1 and G-14.1 (`scanThemes`): a write or a local edit would change the
   shared screens console; the toasts' strings are checked by the unit tests (catalogue ids);
   (b) as (a) plus a fourth screens project with a local edit; (c) no new screen (against the AC).
+
+#### Decisions (approver, 2026-10-16)
+
+"All as recommended": **D38-1 (a)** … **D38-13 (a)**. Shared shapes fixed by the coordinator for
+Wave 5 (C1–C10): merge order 038 → 039 → 041; this task owns `ConsoleOptions.settings?:
+Partial<UiSettings>` (C2, written into the seeded `state.json`, also with a `stateDir` that holds
+no `state.json` yet), `web/src/shell/toasts.ts`, `Toasts.tsx`, `toasts.css` (C4), is the only task
+editing `web/src/api/writes.ts` (C5), and creates `test/e2e/support/remote.ts` with
+`remoteHead(fixture)` (C8, not in `events.ts`); catalogue edits other than sorted inserts are only
+the declared `error.pushTimeout` value and the removal of `element.gate.done` (C6); version lines
+`test/README.md` 0.37, `docs/user-guide.md` 0.12, ux-reference 1.5 (C7); `SCREENS` appended first
+(C9); no change to `contracts/` or `server/` (C10).
