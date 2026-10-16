@@ -622,3 +622,24 @@ skipped** (statements 96.37 %, branches 90.9 %), load 5 → 10.7; `test:smoke` 4
 `test:timing` **passed** (load 8.5 → 11): Vitest 5/5 (TT-PERF-07 10/10 at 59.9–60.1 s, Y-02.3 0
 fetches) and Playwright 18/18. `test:e2e:chromium` not run: the only console-visible change is
 catalogue text. No console and no `wfui-task-034-*` entry left.
+
+#### Review round 4 and decision (approver, 2026-10-16; plan ref W4-16)
+
+Independent review round 4 and adversarial security review round 4: **CHANGES REQUIRED**. S4-1:
+ten shell spellings bypass `configUsesWorktree` to execution (`$HOME/…`, `${HOME}`, `"$(pwd)/…"`,
+backticks, `$(git rev-parse --show-cdup)`, `--show-toplevel )` with a space, `${PWD%/}`, globs
+`t*/`, `tool?/`, …); S4-2 / R4-2: noise — `core.editor = code --wait` with a `code/` folder,
+`credential.helper = cache` with `cache/`, `alias.t = !npm test` with `test/`, git-lfs `%f` with a
+one-letter file each skip forever with a message that does not say why; R4-1: the top-level
+substring without a boundary makes a sibling `<top>.git` remote skip; R4-3: the CHANGELOG says
+nothing of the risk.
+
+- **W4-16 (A)** — stop the heuristic arms race: remove the W4-12 / W4-15 value heuristics
+  (`configUsesWorktree`, the skip, the code `config-uses-incoming-path` from the schema, the type,
+  the catalogue, spec-010, the user guide and the CHANGELOG — the task is unreleased); keep every
+  structural guard (no hooks, no fsmonitor, `config-in-worktree` with the include directives and
+  the S3-2 resolution, the hardened merge, the refspec and legacy-remote guards, the in-progress
+  skip, the drained refusal, the stop behaviour); declare the residual: with `autoUpdate` on
+  (off by default) the console does what `git pull` does on a timer, so incoming commits can run
+  commands the user's own git configuration points at. The `config-in-worktree` log names the
+  triggering key's section and name only (R4-2); the CHANGELOG states the risk (R4-3).
