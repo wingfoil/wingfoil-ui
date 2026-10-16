@@ -1,9 +1,9 @@
 // The sidebar registry (routes/nav.ts): built from the routes' `staticData.nav`, ordered by group
 // (ux-reference §2) and by NAV_ORDER whatever the order of the routes in the tree (merge-friendly).
 import { expect, it } from 'vitest';
-import { NAV_ORDER, navGroups, type NavRoute } from '../../../web/src/routes/nav.js';
+import { NAV_ORDER, navGroups, type NavGroupId, type NavRoute } from '../../../web/src/routes/nav.js';
 
-const route = (id: string, group: 'start' | 'work' | 'rules' | 'repository', order: number): NavRoute => ({
+const route = (id: string, group: NavGroupId, order: number): NavRoute => ({
   id,
   fullPath: id,
   options: { staticData: { nav: { group, order, label: { id: `shell.nav.${id}` } } } },
@@ -44,5 +44,21 @@ it('puts Today first, in the heading-less start group (task-036, D36-2)', () => 
   expect(groups.map((g) => [g.id, g.label?.id, g.items.map((i) => i.to)])).toEqual([
     ['start', undefined, ['/p/$pid/today']],
     ['work', 'shell.nav.group.work', ['/p/$pid/memory']],
+  ]);
+});
+
+// task-041 (D41-2, Wave 5 C3; ux-reference §2 "pinned at bottom → Configuration · git status"):
+// Configuration is in the heading-less `pinned` group, always the last group of the nav (the CSS
+// pushes the last group to the bottom of the sidebar).
+it('puts Configuration last, in the heading-less pinned group', () => {
+  const groups = navGroups([
+    route('/p/$pid/configuration', 'pinned', NAV_ORDER.configuration),
+    route('/p/$pid/files', 'repository', NAV_ORDER.files),
+    route('/p/$pid/today', 'start', NAV_ORDER.today),
+  ]);
+  expect(groups.map((g) => [g.id, g.label?.id, g.items.map((i) => i.to)])).toEqual([
+    ['start', undefined, ['/p/$pid/today']],
+    ['repository', 'shell.nav.group.repository', ['/p/$pid/files']],
+    ['pinned', undefined, ['/p/$pid/configuration']],
   ]);
 });
