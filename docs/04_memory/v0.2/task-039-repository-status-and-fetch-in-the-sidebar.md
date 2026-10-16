@@ -307,3 +307,30 @@ Accepted / stated (not decided): the sidebar shows the header's data, so a heade
 shown only by the project header (the sidebar renders nothing then); *Fetch* is shown to every
 identity and on an unsupported WingFoil version (RP-14; transport runs no CLI); a cancelled fetch
 leaves whatever git wrote (the next status read shows it).
+
+#### Decisions (approver, 2026-10-16)
+
+"All as recommended": D39-1 (a) … D39-13 (a). Coordinator's shared shapes of Wave 5 (C1–C10):
+
+- **C1** merge order 038 → 039 → 041.
+- **C2** `ConsoleOptions.settings?: Partial<UiSettings>` is owned by task-038; this branch carries an
+  identical copy (same place in `test/e2e/support/console.ts`) until 038 merges.
+- **C3** this task owns `<div class="project-sidebar">` and `<div class="sidebar-foot">` in
+  `web/src/routes/project.tsx` and the move of the sticky rule in `base.css`; task-041 puts
+  *Configuration* as a pinned group inside the nav (`routes/nav.ts`), not in `sidebar-foot`.
+- **C4** toasts are task-038's; fetch refusals stay in this task's own alert (D39-5).
+- **C5** this task adds `web/src/api/git.ts` (`useGitOperation`) and uses `projectHeaderQuery`.
+- **C6** the one declared catalogue value edit of this task: `element.reason.copyDetached` →
+  "Blocked: no branch checked out" (D39-11); otherwise sorted inserts only.
+- **C7** `test/README.md` 0.38, `docs/user-guide.md` 0.13, ux-reference 1.6; one *Unreleased* ›
+  Added entry in `CHANGELOG.md`.
+- **C8** `test/e2e/support/remote.ts` is created by task-038 (`remoteHead`); this task appends
+  `remoteCommit` and `setRemoteUrl` (the file holds only them on this branch until 038 merges);
+  `strings.ts` time-only rendering is this task's only.
+- **C9** SCREENS appended in merge order; this task adds the fourth project of
+  `startScreensConsole`.
+- **C10** no change to `contracts/` or `server/`.
+
+Spec amendments: none needed — spec-010 §3/§7 already describe what the sidebar reads, and the
+copy-reason texts are the catalogue's (spec-003 §6 names codes, not this text). ux-reference §3
+*Git status* gains the v0.2 bullet (1.6).
