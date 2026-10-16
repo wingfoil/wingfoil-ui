@@ -302,7 +302,7 @@ it('R1 — a read sent before a save was stored and answered after it does not p
   open('PUT');
   await waitFor(() => expect(puts).toHaveLength(2));
   // The old read answers now, after the first save's answer.
-  if (gates.some((g) => g.kind === 'GET')) open('GET');
+  open('GET');
   await settle();
   expect(shown()).toEqual({ ...DEFAULTS, autoPush: true, theme: 'dark' });
   open('PUT');
@@ -311,5 +311,41 @@ it('R1 — a read sent before a save was stored and answered after it does not p
   await settle();
   while (gates.length > 0) gates.shift()!.open();
   await settle();
+  expect(client.getQueryData(settingsQuery().queryKey)).toEqual({ ...DEFAULTS, autoPush: true, theme: 'dark' });
+});
+
+it('review R2-1 — a read sent after the save was stored, cancelled by its answer, is sent again', async () => {
+  let stored: UiSettings = { ...DEFAULTS };
+  const gates: { kind: string; open: () => void }[] = [];
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async (_url: string, init?: RequestInit) => {
+      if ((init?.method ?? 'GET') === 'PUT') {
+        stored = JSON.parse(String(init!.body)) as UiSettings;
+        const answer = { ...stored };
+        await new Promise<void>((r) => gates.push({ kind: 'PUT', open: r }));
+        return new Response(JSON.stringify(answer), { status: 200 });
+      }
+      const snapshot = { ...stored };
+      await new Promise<void>((r) => gates.push({ kind: 'GET', open: r }));
+      return new Response(JSON.stringify(snapshot), { status: 200 });
+    }),
+  );
+  const { client, hook, settle, shown } = await viewSetup();
+  act(() => hook.result.current.save.mutate({ autoPush: true }));
+  await waitFor(() => expect(gates.map((g) => g.kind)).toEqual(['PUT']));
+  // Another tab saves after ours was stored; its event sends a read.
+  stored = { ...stored, theme: 'dark' };
+  void act(async () => client.invalidateQueries({ queryKey: settingsQuery().queryKey }));
+  await waitFor(() => expect(gates.map((g) => g.kind)).toEqual(['PUT', 'GET']));
+  // Our answer arrives before the newer read's.
+  gates.splice(0, 1)[0]!.open();
+  await waitFor(() => expect(client.isMutating()).toBe(0));
+  // Answer every read, the one sent again included.
+  for (let i = 0; i < 20 && shown()?.theme !== 'dark'; i++) {
+    while (gates.length > 0) gates.shift()!.open();
+    await settle();
+  }
+  expect(shown()).toEqual({ ...DEFAULTS, autoPush: true, theme: 'dark' });
   expect(client.getQueryData(settingsQuery().queryKey)).toEqual({ ...DEFAULTS, autoPush: true, theme: 'dark' });
 });
