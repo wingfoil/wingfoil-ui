@@ -334,3 +334,66 @@ leaves whatever git wrote (the next status read shows it).
 Spec amendments: none needed — spec-010 §3/§7 already describe what the sidebar reads, and the
 copy-reason texts are the catalogue's (spec-003 §6 names codes, not this text). ux-reference §3
 *Git status* gains the v0.2 bullet (1.6).
+
+### red / green / refactor (2026-10-16)
+
+- **Red (web)** — `31ba227`: `test/web/repository/model.test.ts`, `git-status.test.tsx`,
+  `sidebar.test.tsx`, `test/web/api/git.test.tsx` (4 files failed: the modules did not exist; the
+  layout test found no "Git status" region).
+- **Green** — `0e87c39`: `web/src/api/git.ts` (`postGitOperation`, `useGitOperation`, `CANCELLED`),
+  `web/src/repository/{model.ts,GitStatus.tsx,git-status.css}`, the sidebar wrapper
+  `.project-sidebar` / `.sidebar-foot` in `routes/project.tsx` with the sticky rule moved in
+  `base.css` (C3), `InfoSign` appended to `shell/icons.tsx`, 14 `shell.git.*` keys inserted in
+  sorted place and the C6 value edit of `element.reason.copyDetached` (its row in
+  `test/web/element/gate-footer.test.tsx` updated with the reason). Two test corrections on the
+  first green run, not guards: the detached sentence holds the hash in its own `<code>` (asserted on
+  the line's text), and the key build names the region by its key.
+- **Deviation found on the first full web run:** an always-present empty `role="alert"` in the
+  sidebar made the existing `getByRole('alert')` assertions of the gate footer, Today and the
+  summary ambiguous (9 failures). The alert is now inserted with its content (announced on
+  insertion), still outside the parts that change with the header's data (D39-5 unchanged).
+- **Guard removal (web, each restored):** the `has-remote` guard (3 failures: model ×2, Y-04.1 /
+  S-11.2 component), the ignored second press while pending (1), the refusal cleared when
+  `lastSuccessAt` moves (1), `git-refused` kept out of the alert (1), the abort mapped to
+  `cancelled` (2).
+- **e2e** — `613f701`: `test/e2e/git-status.spec.ts` (13 tests), `ConsoleOptions.settings` (C2, an
+  identical copy of task-038's shape), `support/remote.ts` (`remoteCommit`, `setRemoteUrl`; C8),
+  the time-only rendering of the X-09.1 checker (D39-8), the fourth `SCREENS` project
+  (`offlineCopy`, also in `no-commit.spec.ts`) and *git status — fetch failed* (D39-12). Written
+  after the web code (the web unit tests were the red ones), so all passed on their first run
+  (13/13 Chromium); guard removal on the bin: with the `has-remote` guard removed and the old
+  `copyDetached` text back, Y-01.3, Y-04.1, Y-04.2 and S-11.2 failed (4/4), then restored. S-11.1
+  is characterization of task-037's footer (passed as expected).
+- Docs — `a4bb0fa`: `docs/user-guide.md` 0.13 (*Git status in the sidebar*),
+  `docs/00_reference/ux-reference.md` 1.6 (§3 *Git status* and *Sidebar* v0.2 bullets),
+  `test/README.md` 0.38 (layout, *Timing suite*), `CHANGELOG.md` *Unreleased* › Added.
+
+#### e2e closure
+
+| Scenario | spec file › test |
+|----------|------------------|
+| Y-01.1, Y-01.2 | `test/e2e/git-status.spec.ts` › "Y-01.1 — Show branch, ahead/behind and local changes", "Y-01.2 — Show an up-to-date copy" |
+| Y-01.3 (TT-STATE-04 of task-033) | `git-status.spec.ts` › "Y-01.3 — Show a detached HEAD" (sidebar line; `task-001-login-form` outcomes aria-disabled, described "Blocked: no branch checked out") |
+| Y-02.1 (TT-PERF-07 of task-034) | `git-status.spec.ts` › "Y-02.1 — Fetch automatically" (`@live-refresh`: 15 s in `test:e2e`, 60 s / ≤ 65 s under `test:timing`) |
+| Y-02.2, Y-02.3 | `git-status.spec.ts` › "Y-02.2 — Fetch on demand", "Y-02.3 — Do not fetch when auto-fetch is off" |
+| Y-03.1, Y-03.2 | `git-status.spec.ts` › "Y-03.1 — Report a failed fetch with the last successful time", "Y-03.2 — Report a fetch refused for authentication" |
+| Y-04.1, Y-04.2 | `git-status.spec.ts` › "Y-04.1 — Hide sync controls without a remote", "Y-04.2 — Show the controls once a remote is added" (`@live-refresh`) |
+| S-11.1, S-11.2 | `git-status.spec.ts` › "S-11.1 — Show a capability my role lacks as read-only with the reason", "S-11.2 — Hide a capability that does not apply to the project" |
+| Cancel (RP-37) | `git-status.spec.ts` › "Fetch can be cancelled while it runs (RP-37, D39-13)" |
+| X-06.4 / X-09.1 | `test/e2e/accessibility.spec.ts` › *git status — fetch failed* (and every project screen, which now shows the default git status) |
+
+### checks (2026-10-16, HEAD before this note `a4bb0fa`)
+
+Every heavy gate through the machine-free slot (`waitslot.sh`), load printed at its start.
+
+| Gate | Result | Load |
+|------|--------|------|
+| `npm run typecheck`, `npm run lint`, `npm run format:check` | clean | — |
+| `npm run docs:api`, `check_tasks.py v0.2` | OK (0 warnings) | — |
+| `npm run test:coverage` (includes the public-text check) | 160 files passed, 1 skipped; **2930 passed / 1 skipped**; statements 96.55 %, branches 91.22 %, functions 97.32 %, lines 98.33 % (`web/src/repository` 98.7 %) | 3.0 |
+| `npm run test:e2e:chromium` | **254 passed** (9.0 min) | 9.9 |
+| `npm run test:e2e -- git-status accessibility no-commit gate-footer` (three engines) | **276 passed** (9.9 min) | 3.6 |
+| `npm run test:timing` | **passed**: Vitest 5/5, Playwright 20/20 — Y-02.1 59.2 s from the remote commit to "1 behind" (budget 65 s, default 60 s interval), Y-04.2 227 ms (budget 5 s) | 3.4 |
+| `npm run test:smoke` | not run: no packaging, launcher or bin change | — |
+
+No console of this worktree left running; no `wfui-*` entry in the system temporary directory.
