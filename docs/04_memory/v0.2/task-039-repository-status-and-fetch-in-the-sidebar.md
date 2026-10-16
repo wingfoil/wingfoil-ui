@@ -214,3 +214,96 @@ a table keyed by the contract type, not as bare literals where the lint applies.
 
 #### Open decisions (STOP: reported to the coordinator as D39-1 … D39-13; nothing depending on
 them is built before the answer)
+
+- **D39-1 — sidebar structure (shell layout, shared with task-041's *Configuration*).** ★ (a) a
+  wrapper `<div class="project-sidebar">` in `ProjectLayout` holds `<ProjectNav>` (unchanged
+  markup, landmark "Project views") and a `<div class="sidebar-foot">` pinned at the bottom
+  (ux-reference §2) holding `<GitStatus pid>` as a labelled region "Git status"; the sticky/size/
+  border rule moves from `.project-nav` to `.project-sidebar` (one rule of `base.css` and its
+  narrow-screen variant); task-041 adds its entry as one line in `sidebar-foot` above
+  `<GitStatus>`; (b) `<GitStatus>` appended as the last child inside `<nav>` (append-only, no
+  `base.css` edit; a region with a button inside the navigation landmark); (c) a sibling
+  `<aside>` positioned fixed at the bottom of the sidebar column (fragile with the sticky nav and
+  the narrow layout).
+- **D39-2 — the transport mutation (shared with task-040).** ★ (a) `web/src/api/git.ts`:
+  `postGitOperation(pid, op: GitOperation, signal?)` and `useGitOperation()` =
+  `useMutation<GitResponse, ApiError, { pid, op, signal? }>` — the caller owns the
+  `AbortController` (Cancel for fetch and push, RP-37); on 200 the header's `repository` is set from
+  the response (`setQueryData` on `projectHeaderQuery(pid)`: no extra read; a moved state also
+  sends `repo`); on an error other than the page's own abort the header key is invalidated (a 422
+  records `lastError`); an abort is reported as `cancelled`, never as an error; (b) one hook per
+  operation (`useGitFetch`, task-040 adds `useGitUpdate`, `useGitPush`); (c) in
+  `web/src/api/projects.ts` (merge hot spot).
+- **D39-3 — e2e settings seed (shared with task-038, task-040, task-041; C5).** ★ (a)
+  `ConsoleOptions.settings?: Partial<UiSettings>` written into the seeded `state.json`'s
+  `settings` (also with `stateDir` when not yet seeded); owned by the first task to merge (task-038)
+  or, if 038 does not need it, by this task — one identical shape either way; (b) each spec writes
+  `state.json` itself through `stateFile`; (c) a separate `seedSettings(stateDir, settings)` helper.
+- **D39-4 — git's message (Y-03.1 "on hover", Y-03.2).** ★ (a) the failure line ends with a small
+  focusable info button whose React Aria `Tooltip` shows git's message on hover **and** on keyboard
+  focus (Escape closes it), the message also the button's accessible description (WCAG 1.4.13,
+  2.1.1); long messages wrap (`pre-wrap`, max height with scroll); (b) a `<details>` disclosure
+  "Git's message" under the line (keyboard and touch friendly, no hover); (c) a native `title`
+  attribute (hover only: not reachable by keyboard or touch).
+- **D39-5 — refusals of a manual fetch (409, not recorded).** ★ (a) an alert inside the git status
+  block (`ErrorText`, catalogue text), outside the parts that re-render on refetch, cleared when the
+  next fetch starts or a later fetch succeeds (`lastSuccessAt` moves); (b) task-038's toast (a
+  dependency on its toast API, being built in parallel); (c) both.
+- **D39-6 — `sync.update.lastError` (hand-over says 039; task-040 lists "the last update error").**
+  ★ (a) this task renders it — the catalogue text of its code (`errorMessage`, `{files}` list;
+  `git-refused`: "Update failed" + git's message as in D39-4) under the copy line, so the automatic
+  update's errors (`autoUpdate` exists since task-034) are visible now; task-040 adds the *Update*
+  and *Push* buttons next to it and its scenarios assert the texts; (b) fetch errors only, the update
+  error line is task-040's.
+- **D39-7 — copy-line texts (new keys `shell.git.*`, ux-reference §3 v0.2 bullet).** ★ (a) `in-sync`
+  "In sync with git"; `ahead` "{count} ahead"; `behind` "{count} behind"; `diverged` "{ahead} ahead ·
+  {behind} behind"; `no-upstream` "No upstream branch on the remote" or, when `upstream` is named,
+  "{upstream} is not on the remote yet — Fetch reads it"; `detached` "Detached HEAD at {commit}";
+  the head line `main` and `41c0e2a` in mono (prototype's `main @ <hash>`); local changes "{count,
+  plural, one {# local change} other {# local changes}}" when > 0. The "N commits to push" line
+  with *Push* stays task-040's (Y-07.2/G-13.2 next to Y-08.1's "1 ahead"); (b) as (a) but
+  `no-upstream` one text without the name; (c) the prototype only ("In sync with git" or counts), no
+  `no-upstream` / detached wording beyond the scenarios.
+- **D39-8 — time of the last successful fetch.** ★ (a) `timeStyle: 'short'` when the fetch was
+  today ("Fetch failed — last fetched at 10:02 AM"), `dateStyle: 'medium', timeStyle: 'short'`
+  otherwise (as the element history), "not fetched since the console started" when `null`; one
+  appended `timeStyle`-only rendering in the X-09.1 checker (`strings.ts`); (b) always date and time
+  (no checker change; longer in a 220 px sidebar); (c) 24-hour `10:02` (`hourCycle: 'h23'`, the
+  scenario's literal, not the locale's).
+- **D39-9 — where `lastSuccessAt` shows.** ★ (a) only in the failure line: a successful automatic
+  fetch that moves nothing sends no `repo` (RP-40), so a permanent "Last fetched at …" would go
+  stale; (b) always ("Last fetched at …" under the copy line), stale until the next refetch; (c)
+  always, amending spec-010 §2 so a new `lastSuccessAt` sends `repo` (one event and header read per
+  project per tick, against RP-40).
+- **D39-10 — elapsed-time scenarios.** ★ (a) Y-02.1 in `test:e2e` with `fetchIntervalSeconds` 15
+  (RP-53), the "1 behind" waited for with interval + `COLD_READ_MS`; the same test tagged
+  `@live-refresh` runs in `test:timing` with the default 60 s and asserts ≤ 65 s from the remote
+  commit, once (the 10-of-10 stays in task-034's API timing test); Y-02.3 in `test:e2e`: autoFetch
+  off, interval 15 s, a remote commit, then two intervals plus 5 s (a stated, justified fixed wait:
+  the scenario is about time passing) → the sidebar still reads "In sync with git" and the bin's
+  `GIT_TRACE` file holds 0 `git fetch` and ≥ 1 `git status`; Y-04.2 `@live-refresh` with
+  `refreshClock` (5 s only in `test:timing`); (b) as (a) without the Y-02.1 timing run (its budget
+  proved API-side by task-034 only); (c) Y-02.3 only API-side (task-034), no e2e (against RP-53).
+- **D39-11 — Y-01.3's "Blocked: no branch checked out" vs `element.reason.copyDetached`
+  ("Blocked: your copy is on a detached HEAD", task-037 D37-8).** ★ (a) change the catalogue value
+  of `element.reason.copyDetached` to "Blocked: no branch checked out" (the scenario's and
+  `error.detachedHead`'s text; one value edit, no key change); (b) keep task-037's text and amend
+  Y-01.3 in `repository-status.feature` (BDD version bump); (c) keep both and assert only that the
+  footer is blocked (scenario text not met).
+- **D39-12 — SCREENS.** ★ (a) the default git status is already on every project screen; append one
+  entry "git status — fetch failed" on a fourth project of `startScreensConsole` (a kanban copy whose
+  `origin` points to an unused `127.0.0.1` port; its `open` clicks *Fetch*, waits for the failure
+  and opens the tooltip) — one more project in the switcher screen; the detached / no-remote /
+  fetching states scanned in the own spec; (b) no SCREENS change, every state scanned in the own
+  spec (`scanThemes` + strings check); (c) one entry per state (four consoles' worth of projects).
+- **D39-13 — fetch while pending and focus.** ★ (a) *Fetch* stays in place, `aria-disabled` with
+  the text "Fetching…" (focus kept, D37-3 pattern), *Cancel* appears after it; a polite status
+  region says "Fetching…" and then nothing (the copy line and the failure line are the outcome, in a
+  polite region); after Cancel the focus returns to *Fetch*; (b) the *Fetch* button turns into
+  *Cancel* (one button; a double click cancels); (c) *Fetch* hidden while pending, focus moved to
+  *Cancel*, back to *Fetch* at the end.
+
+Accepted / stated (not decided): the sidebar shows the header's data, so a header read error is
+shown only by the project header (the sidebar renders nothing then); *Fetch* is shown to every
+identity and on an unsupported WingFoil version (RP-14; transport runs no CLI); a cancelled fetch
+leaves whatever git wrote (the next status read shows it).
