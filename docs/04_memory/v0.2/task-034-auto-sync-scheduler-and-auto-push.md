@@ -570,3 +570,24 @@ skipped** (statements 96.42 %, branches 91.02 %), load 5 → 13; `test:smoke` 4/
 (each remote commit lands right after a tick: the worst case, within 65 s), Y-02.3 0 `git fetch`
 in 120 s — and Playwright 18/18; `test:e2e:chromium` **223 passed** (7.9 min, load → 16.5). No
 console and no `wfui-task-034-*` entry left.
+
+#### Review round 3 and decision (approver, 2026-10-16; plan ref W4-15)
+
+Independent review round 3: **PASS** with nits R3-1 … R3-3. Adversarial security review round 3:
+**CHANGES REQUIRED** — S3-1 (medium) the W4-12 token matcher is bypassed (a script sourcing an
+incoming file, `$PWD/…`, `${PWD}/…`, `$(git rev-parse --show-toplevel)/…`, a path with a space or
+a backslash escape, `~/…`, a tracked symlink, `make -C tools`); S3-2 (low/medium) W4-11 resolves a
+relative include from the holder's realpath and collapses `..` lexically, while git resolves from
+the path it opened and follows the file system.
+
+- **W4-15 (a)** (S3-1) — the automatic update is skipped whenever any configuration value (any
+  scope) names something inside the working tree, incoming or not: a token resolving (after `~`,
+  `~user`, `$PWD`, `${PWD}`, `$(git rev-parse --show-toplevel)`; relative tokens from the top level)
+  to an existing path inside the top level outside the git directories; or the raw value holding
+  the top level's path or its realpath; or a boundary-aware occurrence of an incoming path in the
+  raw value. Code `config-uses-incoming-path` kept, its text broadened. Accepted residual: commands
+  found through `PATH` or non-path forms (`python -m pkg.mod`) that load repository files.
+- **S3-2** — a relative include resolves from the folder of the holder as git opened it; a `..`
+  after a non-`..` component fails closed.
+- **R3-1 … R3-3** — the new codes' catalogue texts in spec-010; the user guide says any configured
+  value naming a working-tree file counts; `error.configInWorktree` neutral wording.
