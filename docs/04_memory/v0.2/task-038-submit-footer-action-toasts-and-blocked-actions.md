@@ -380,3 +380,47 @@ e2e closure (scenario → spec file › test):
 | keyboard (accessibility bar) | `submit-footer.spec.ts` › "Submit and close the toast with the keyboard only" |
 | TT-PERF-02 (G-04.1, G-10.1, G-13.2) | `test/e2e/performance.spec.ts` › "TT-PERF-02 — gate and submit latency @perf" › "G-04.1, G-13.2 — approve …", "G-10.1 — submit …" (budget in `test:timing`) |
 | X-06.4 / X-09.1 | `test/e2e/accessibility.spec.ts` › "X-06.4 — Pass the axe scan: element panel — submit footer", "X-09.1 — Render every string from the message catalogue: element panel — submit footer" |
+
+### review round 1 (2026-10-16)
+
+Independent review: **CHANGES REQUESTED** (R1, R2 major; R3–R5 minor; R6–R8 nits; the D38-1
+deviation accepted with option A). Red first (`7be21e1`), fixes (`c67cfcc`).
+
+- **R1 (major)** — at 1280×720 the bottom-centre stack covered the drawer footer's main button
+  (hidden in e2e: Playwright waits until the button receives events). Change: `toastPlacement`
+  (`web/src/shell/toasts.ts`) and `usePlacement` (`Toasts.tsx`, followed while toasts are shown:
+  resize, DOM changes): with the drawer open the stack is centred in the area left of it, or —
+  when that area is narrower than 360 px (`TOAST_MIN_ROOM`) — just above the drawer's footer;
+  ux-reference 1.5 §5 and the user guide say so. Tests: `toasts.test.tsx` › placement table (4
+  cases); `submit-footer.spec.ts` G-14.1 (`document.elementFromPoint` at Submit's centre is Submit,
+  a second click without `force`, then at 600×720 the toast's bottom is above Submit) and G-14.2
+  (Approve and Reject under the refusal). Red by fault injection (placement disabled, not
+  committed): G-14.1 and G-14.2 failed on `expectOnTop`.
+- **R2 (major)** — the 8 s timer raced the refetch wait (G-10.1) and the Tab walk (keyboard test).
+  Change: G-10.1 (and G-13.1, G-13.2) assert and hover the toast right after the click, before any
+  state or commit check; the keyboard test hovers the toast before the walk (paused, D38-2). No
+  time-based branch.
+- **R3 (minor)** — React Aria's popovers (`ariaHideOutside`) hide everything but its top layer, so
+  a toast raised while the role-view select, the bell or the switcher was open was never
+  announced. Change: `data-react-aria-top-layer` on `.toasts`. Test: `toasts.test.tsx` › R3 (a
+  `Popover` open, `main` aria-hidden, `.toasts` neither aria-hidden nor inert) — red before.
+- **R4 (minor)** — `ConsoleOptions.settings` was ignored with a raw `stateFile` or an
+  already-seeded `stateDir`. Change: `startConsole` throws in both cases (shape of C2 unchanged;
+  JSDoc and `test/README.md`). Test: `test/e2e/harness/support.spec.ts` › "startConsole({ settings
+  }) …" (the settings read back through `GET /api/settings`, both refusals) — red with the checks
+  removed (fault injection).
+- **R5 (minor)** — the limit evicted a sticky refusal. Change: the oldest **non-sticky** toast is
+  evicted; with only sticky toasts a new one is added anyway; a toast removed while it held the
+  focus (closed, evicted, replaced by its key) gives the focus to `#main` (a layout cleanup, the
+  node still in the document). Tests: `toasts.test.tsx` › R5 ×2 — red before. User guide and
+  ux-reference §5 aligned.
+- **D38-1 option A** — every `.toast` is `aria-atomic="true"`, the two regions are not. Test:
+  `toasts.test.tsx` › "every toast is aria-atomic" — red before.
+- **R6 (nit)** — `test/README.md`: the `settings` text in the `support/console.ts` bullet, task-038's
+  e2e text on a line of its own; `playwright.timing.config.ts` header lists TT-PERF-01 and TT-PERF-02
+  under `@perf`.
+- **R7 (nit, kept)** — the Submit footer shows its blocked reason above the actions, as task-037's
+  gate footer does (D38-6 named "the reason under it": aligned with the gate footer instead).
+- **R8 (nit, kept)** — `web/src/api/writes.ts` imports the toast content from
+  `web/src/element/write-toast.tsx`: the mutation raises its own toast (D38-11), so the API module
+  depends on that UI piece; no cycle (`write-toast.tsx` imports only types from `writes.ts`).
