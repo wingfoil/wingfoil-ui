@@ -107,6 +107,10 @@ test.describe('UI settings (US-C-07)', () => {
     await expect(sw(page, 'Auto-update')).toHaveAccessibleDescription(new RegExp(RESIDUAL.replace(/[().]/g, '\\$&')));
     await expect(sw(page, 'Confirm agent launch')).toHaveAccessibleDescription(/WingFoil 0\.3/);
     await expect(configurationLink(page)).toHaveAttribute('aria-current', 'page');
+    // Review R5: the pinned group stays visible when the nav scrolls (ux-reference §3).
+    expect(
+      await configurationLink(page).evaluate((el) => getComputedStyle(el.closest('ul')!.parentElement!).position),
+    ).toBe('sticky');
     expect(await scanThemes(page)).toEqual([]);
   });
 

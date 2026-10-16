@@ -258,3 +258,49 @@ it('renders every text from the catalogue (key build)', async () => {
     expect(screen.getByRole('radio', { name: id })).toBeTruthy();
   }
 });
+
+it('review R2 — the alert of a refused setting stays until that setting is stored as wanted', async () => {
+  let fail = true;
+  const s = stubAll();
+  const inner = globalThis.fetch as unknown as (url: string, init?: RequestInit) => Promise<Response>;
+  vi.stubGlobal('fetch', async (url: string, init?: RequestInit) => {
+    if (url === '/api/settings' && init?.method === 'PUT' && fail) {
+      fail = false;
+      return new Response(JSON.stringify({ error: { code: 'internal', message: 'x' } }), { status: 500 });
+    }
+    return inner(url, init);
+  });
+  renderApp(PAGE);
+  await openPage();
+  const user = userEvent.setup();
+  await user.click(sw('Auto-update'));
+  expect(await screen.findByText('Auto-update was not saved.')).toBeTruthy();
+  // Another setting saved: Auto-update is still not what the user wanted.
+  await user.click(screen.getByRole('radio', { name: 'Light' }));
+  await waitFor(() => expect(s.puts).toEqual([{ ...DEFAULTS, theme: 'light' }]));
+  await waitFor(() => expect(checked(screen.getByRole('radio', { name: 'Light' }))).toBe(true));
+  expect(screen.getByText('Auto-update was not saved.')).toBeTruthy();
+  expect(checked(sw('Auto-update'))).toBe(false);
+  // Auto-update stored as wanted: the alert goes.
+  await user.click(sw('Auto-update'));
+  await waitFor(() => expect(screen.queryByText('Auto-update was not saved.')).toBeNull());
+  expect(s.puts.at(-1)).toEqual({ ...DEFAULTS, theme: 'light', autoUpdate: true });
+});
+
+it('review R3 — every save changes the status region, so a second save is announced too', async () => {
+  stubAll();
+  renderApp(PAGE);
+  await openPage();
+  const user = userEvent.setup();
+  await user.click(sw('Auto-push'));
+  await screen.findByText('Settings saved');
+  const region = document.querySelector('.settings-status')!;
+  const changes: MutationRecord[] = [];
+  const observer = new MutationObserver((m) => changes.push(...m));
+  observer.observe(region, { subtree: true, childList: true, characterData: true });
+  await user.click(sw('Auto-update'));
+  await waitFor(() => expect(checked(sw('Auto-update'))).toBe(true));
+  await waitFor(() => expect(changes.length).toBeGreaterThan(0));
+  observer.disconnect();
+  expect(region.textContent).toBe('Settings saved');
+});

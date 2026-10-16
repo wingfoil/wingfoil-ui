@@ -104,10 +104,15 @@ it(
     expect((await request(l, 'PUT', '/api/settings', { ...settings, autoFetch: false })).status).toBe(200);
     const before = await fetches(trace);
     expect(before).toBeGreaterThan(0);
+    const offset = (await readFile(trace, 'utf8')).length;
     await new Promise((r) => setTimeout(r, QUIET_MS));
+    // Review R6: the trace is still written after the change (a read of the project runs
+    // `git status`), so 0 fetches in the window is not a trace that stopped.
+    expect((await request(l, 'GET', `/api/p/${PID}`)).status).toBe(200);
     const count = (await fetches(trace)) - before;
     report('C-07.3 git fetch in 120 s after autoFetch was turned off', String(count));
     expect(count).toBe(0);
+    expect((await readFile(trace, 'utf8')).slice(offset)).toMatch(/built-in: git status\b/);
   },
   QUIET_MS + 3 * INTERVAL_MS + 60_000,
 );

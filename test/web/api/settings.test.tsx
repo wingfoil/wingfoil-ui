@@ -158,3 +158,105 @@ it("a change made while a save is on its way survives that save's answer", async
   ]);
   expect(cache()).toEqual({ ...DEFAULTS, autoPush: true, theme: 'dark' });
 });
+
+// --- Review round 1 (R1, R2): the settings shown and sent are the last server answer plus every
+// save still pending, in the order they were made; a `settings` event (another tab, or the echo of
+// an earlier save) that reads the settings again while saves are pending neither loses a change
+// nor flips a control back; a failed change is left out of every later request.
+
+/** A settings API whose PUTs wait for `release()`; `failAt` lists the PUTs (1-based) answered 500. */
+function gatedApi(failAt: number[] = []) {
+  const state = { stored: { ...DEFAULTS } as UiSettings };
+  const puts: UiSettings[] = [];
+  const pending: (() => void)[] = [];
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async (_url: string, init?: RequestInit) => {
+      if ((init?.method ?? 'GET') === 'PUT') {
+        const body = JSON.parse(String(init!.body)) as UiSettings;
+        puts.push(body);
+        const n = puts.length;
+        await new Promise<void>((r) => pending.push(r));
+        if (failAt.includes(n)) {
+          return new Response(JSON.stringify({ error: { code: 'internal', message: 'x' } }), { status: 500 });
+        }
+        state.stored = body;
+      }
+      return new Response(JSON.stringify(state.stored), { status: 200 });
+    }),
+  );
+  return { state, puts, release: () => pending.shift()?.(), waiting: () => pending.length };
+}
+
+/** The save hook and the settings as the page shows them, on a client that observes the query. */
+async function viewSetup() {
+  const { useSettingsView } = await import('../../../web/src/api/settings.js');
+  const client = createQueryClient();
+  client.setQueryData(settingsQuery().queryKey, DEFAULTS);
+  const wrapper = ({ children }: { children: ReactNode }) => (
+    <QueryClientProvider client={client}>{children}</QueryClientProvider>
+  );
+  const hook = renderHook(() => ({ save: useSaveSettings(), view: useSettingsView() }), { wrapper });
+  const event = () => act(async () => client.invalidateQueries({ queryKey: settingsQuery().queryKey }));
+  return { client, hook, event, shown: () => hook.result.current.view.settings };
+}
+
+it("R1 — another tab's settings event while one save is out and one waits loses nothing", async () => {
+  const api = gatedApi();
+  const { client, hook, event, shown } = await viewSetup();
+  act(() => hook.result.current.save.mutate({ autoPush: true }));
+  await waitFor(() => expect(api.waiting()).toBe(1));
+  act(() => hook.result.current.save.mutate({ theme: 'dark' }));
+  await event();
+  // No flicker: the pending changes stay shown over the fresh read.
+  expect(shown()).toEqual({ ...DEFAULTS, autoPush: true, theme: 'dark' });
+  api.release();
+  await waitFor(() => expect(api.waiting()).toBe(1));
+  expect(shown()).toEqual({ ...DEFAULTS, autoPush: true, theme: 'dark' });
+  api.release();
+  await waitFor(() => expect(client.isMutating()).toBe(0));
+  expect(api.puts.map((p) => [p.autoPush, p.theme])).toEqual([
+    [true, 'system'],
+    [true, 'dark'],
+  ]);
+  expect(api.state.stored).toEqual({ ...DEFAULTS, autoPush: true, theme: 'dark' });
+  await waitFor(() => expect(shown()).toEqual({ ...DEFAULTS, autoPush: true, theme: 'dark' }));
+});
+
+it('R1 — the echo of a save while two more are pending loses nothing', async () => {
+  const api = gatedApi();
+  const { client, hook, event, shown } = await viewSetup();
+  act(() => hook.result.current.save.mutate({ autoPush: true }));
+  await waitFor(() => expect(api.waiting()).toBe(1));
+  act(() => hook.result.current.save.mutate({ theme: 'dark' }));
+  act(() => hook.result.current.save.mutate({ autoUpdate: true }));
+  api.release();
+  // The second save is out; the first save's own `settings` event comes back now.
+  await waitFor(() => expect(api.waiting()).toBe(1));
+  await event();
+  expect(shown()).toEqual({ ...DEFAULTS, autoPush: true, theme: 'dark', autoUpdate: true });
+  api.release();
+  await waitFor(() => expect(api.waiting()).toBe(1));
+  await event();
+  expect(shown()).toEqual({ ...DEFAULTS, autoPush: true, theme: 'dark', autoUpdate: true });
+  api.release();
+  await waitFor(() => expect(client.isMutating()).toBe(0));
+  expect(api.state.stored).toEqual({ ...DEFAULTS, autoPush: true, theme: 'dark', autoUpdate: true });
+  expect(api.puts.at(-1)).toEqual({ ...DEFAULTS, autoPush: true, theme: 'dark', autoUpdate: true });
+});
+
+it('R2 — a refused change is left out of the next request, the shown settings and the cache', async () => {
+  const api = gatedApi([1]);
+  const { client, hook, shown } = await viewSetup();
+  act(() => hook.result.current.save.mutate({ autoUpdate: true }));
+  await waitFor(() => expect(api.waiting()).toBe(1));
+  act(() => hook.result.current.save.mutate({ theme: 'dark' }));
+  api.release();
+  await waitFor(() => expect(api.waiting()).toBe(1));
+  api.release();
+  await waitFor(() => expect(client.isMutating()).toBe(0));
+  expect(api.puts[1]).toEqual({ ...DEFAULTS, theme: 'dark' });
+  expect(api.state.stored.autoUpdate).toBe(false);
+  await waitFor(() => expect(shown()).toEqual({ ...DEFAULTS, theme: 'dark' }));
+  expect(client.getQueryData(settingsQuery().queryKey)).toEqual({ ...DEFAULTS, theme: 'dark' });
+});
