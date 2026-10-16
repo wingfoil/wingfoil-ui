@@ -394,7 +394,8 @@ never in a project and never committed, and they apply at once, without a restar
 - **Saving.** Each setting is saved as soon as you change it: a switch or the theme at once, a
   number when you leave its field or press Enter (Escape puts the saved value back). A number out
   of its range is shown as an error under its field and is not saved. *Settings saved* confirms a
-  save; a save that fails is reported with the setting's name, and the page shows what is stored.
+  save; a save that fails is reported with the setting's name until that setting is saved as you
+  wanted, and the page shows what is stored.
 - **Other tabs** of the same console follow a change by themselves. A second console started on the
   same state directory shows it the next time it reads the settings (e.g. on a reload).
 - **Under the Auto-update switch** the page states its risk and points to

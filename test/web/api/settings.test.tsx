@@ -5,7 +5,7 @@
 // pending change (`useSettingsView`); a refusal reads the settings again and reports the change.
 import type { UiSettings } from '@wingfoil-ui/contracts';
 import { QueryClientProvider } from '@tanstack/react-query';
-import { act, renderHook, waitFor } from '@testing-library/react';
+import { act, cleanup, renderHook, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { afterEach, expect, it, vi } from 'vitest';
 import { createQueryClient, settingsQuery } from '../../../web/src/api/queries.js';
@@ -21,7 +21,10 @@ const DEFAULTS: UiSettings = {
   actionLogCap: 5000,
 };
 
-afterEach(() => vi.unstubAllGlobals());
+afterEach(() => {
+  cleanup();
+  vi.unstubAllGlobals();
+});
 
 interface Call {
   method: string;
@@ -296,7 +299,8 @@ it('R1 — a read sent before a save was stored and answered after it does not p
   act(() => hook.result.current.save.mutate({ autoPush: true }));
   await waitFor(() => expect(gates.map((g) => g.kind)).toEqual(['PUT']));
   // Another tab's event: a read goes out before the save is stored.
-  void act(async () => client.invalidateQueries({ queryKey: settingsQuery().queryKey }));
+  // Not inside act(): this read stays out across later steps.
+  void client.invalidateQueries({ queryKey: settingsQuery().queryKey });
   await waitFor(() => expect(gates.map((g) => g.kind)).toEqual(['PUT', 'GET']));
   act(() => hook.result.current.save.mutate({ theme: 'dark' }));
   open('PUT');
@@ -336,7 +340,8 @@ it('review R2-1 — a read sent after the save was stored, cancelled by its answ
   await waitFor(() => expect(gates.map((g) => g.kind)).toEqual(['PUT']));
   // Another tab saves after ours was stored; its event sends a read.
   stored = { ...stored, theme: 'dark' };
-  void act(async () => client.invalidateQueries({ queryKey: settingsQuery().queryKey }));
+  // Not inside act(): this read stays out across later steps.
+  void client.invalidateQueries({ queryKey: settingsQuery().queryKey });
   await waitFor(() => expect(gates.map((g) => g.kind)).toEqual(['PUT', 'GET']));
   // Our answer arrives before the newer read's.
   gates.splice(0, 1)[0]!.open();

@@ -10,7 +10,8 @@
  *   pending does not flip a control back.
  * - Saves run one at a time (one mutation scope). Each request is built when it runs: the last
  *   server answer with the pending changes up to its own — so a refetch in between loses no earlier
- *   change, and a refused change is never carried by a later request.
+ *   change, and a refused change is never carried by a later request. A read in flight when a save
+ *   is answered is cancelled and sent again after the answer.
  */
 import type { UiSettings } from '@wingfoil-ui/contracts';
 import {
@@ -90,9 +91,13 @@ export function useSaveSettings(options: SaveSettingsOptions = {}) {
       return putSettings(withChanges(base, own ? changes : [...changes, change]));
     },
     onSuccess: async (stored, change) => {
-      // A read started before this answer would put an older state back: cancel it.
+      // A read in flight may have been sent before this save was stored and would put an older
+      // state back: cancel it. It may also have been sent after (another tab's change): read again
+      // once the answer is in (review R2-1).
+      const reading = queryClient.isFetching({ queryKey: key }) > 0;
       await queryClient.cancelQueries({ queryKey: key });
       queryClient.setQueryData(key, stored);
+      if (reading) void queryClient.invalidateQueries({ queryKey: key });
       options.onSaved?.(change, stored);
     },
     onError: (error, change) => {

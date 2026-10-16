@@ -257,8 +257,9 @@ Sub-tabs (one row, scrolls horizontally when narrow):
   per setting with its label, a description and a switch, the segmented control or a number field.
   Each control saves on its own (no Save button): a switch or the theme at once, a number when its
   field is left or on Enter once it is a whole number in range (otherwise a field error, nothing
-  saved; Escape restores it). A polite *Settings saved*; a failed save in an alert naming the
-  setting, cleared by the next save; no toast. Next to Auto-update its declared risk (the approver's
+  saved; Escape restores it). A polite *Settings saved* at every save; a failed save in an alert naming
+  the setting, cleared only by a save whose answer holds the value the user wanted for it (review
+  round 1, R2); no toast. Next to Auto-update its declared risk (the approver's
   text, task-034 W4-16) and a pointer to the user guide's *Before you turn Auto-update on*, both its
   switch's description. The Theme overrides `prefers-color-scheme` (spec-009 §1).
 
