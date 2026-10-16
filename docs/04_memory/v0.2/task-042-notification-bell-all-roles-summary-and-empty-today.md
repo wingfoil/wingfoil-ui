@@ -2,7 +2,7 @@
 id: task-042-notification-bell-all-roles-summary-and-empty-today
 type: task
 title: "Notification bell all-roles summary and empty Today"
-status: approved
+status: done
 release: "v0.2"
 module: "web"             # optional — server | web | contracts (dna.yaml modules)
 priority: "medium"           # optional — high | medium | low
