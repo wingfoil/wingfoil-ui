@@ -36,8 +36,11 @@ afterEach(() => {
 
 it('X-07.1, X-07.2 — the polite and the assertive regions are present before any toast', () => {
   mount();
-  expect(polite().getAttribute('role')).toBe('status');
-  expect(assertive().getAttribute('role')).toBe('alert');
+  expect(polite()).not.toBeNull();
+  expect(assertive()).not.toBeNull();
+  // No status/alert role: a page keeps a single alert of its own.
+  expect(screen.queryByRole('alert')).toBeNull();
+  expect(screen.queryByRole('status')).toBeNull();
   expect(polite().textContent).toBe('');
   expect(assertive().textContent).toBe('');
 });

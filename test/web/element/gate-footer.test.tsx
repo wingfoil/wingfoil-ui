@@ -288,9 +288,7 @@ it('D37-11 — write-incomplete names the file, and the commit when there is one
   await userEvent.clear(reasonField(f));
   await userEvent.type(reasonField(f), 'No');
   await userEvent.click(outcome(f, 'Reject → s1'));
-  await waitFor(() =>
-    expect(assertiveToasts().textContent).toContain(`WingFoil made the commit ${'b'.repeat(40)}`),
-  );
+  await waitFor(() => expect(assertiveToasts().textContent).toContain(`WingFoil made the commit ${'b'.repeat(40)}`));
 });
 
 it('G-04.2 — Cancel closes the panel and sends nothing', async () => {

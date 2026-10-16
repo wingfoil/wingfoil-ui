@@ -92,11 +92,7 @@ const APPROVED = {
 const politeText = () => document.querySelector('.toasts [aria-live="polite"]')?.textContent ?? '';
 const assertiveText = () => document.querySelector('.toasts [aria-live="assertive"]')?.textContent ?? '';
 
-async function write(
-  status: number,
-  body: unknown,
-  verb: 'submit' | 'approve' | 'reject' = 'approve',
-): Promise<void> {
+async function write(status: number, body: unknown, verb: 'submit' | 'approve' | 'reject' = 'approve'): Promise<void> {
   stubFetch(status, body);
   const { Wrapper } = toastWrapper();
   const { result } = renderHook(() => useElementWrite(), { wrapper: Wrapper });

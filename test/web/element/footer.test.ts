@@ -126,7 +126,13 @@ describe('footerView', () => {
   });
 
   it('a submit for a user who is not identified: the read-only line first (S-13.2)', () => {
-    const submit = { verb: 'submit' as const, to: 's2', role: null, enabled: false, reason: { code: 'not-in-team' } as const };
+    const submit = {
+      verb: 'submit' as const,
+      to: 's2',
+      role: null,
+      enabled: false,
+      reason: { code: 'not-in-team' } as const,
+    };
     expect(footerView(descriptor({ verbs: [submit] }), header({ kind: 'no-identity' }))).toEqual({ kind: 'readOnly' });
   });
 });

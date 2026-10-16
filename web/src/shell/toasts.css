@@ -1,0 +1,97 @@
+/* The toasts of the shell (task-038, ux-reference §5 *Feedback*, D38-2): a stack at the bottom
+   centre, above the drawer. Shared tokens only (spec-009); a refusal has the danger accent. */
+
+.toasts {
+  position: fixed;
+  bottom: var(--space-6);
+  left: 50%;
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  width: min(520px, calc(100vw - 2 * var(--space-4)));
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.toast-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.toast {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-3) var(--space-3) var(--space-4);
+  border: 1px solid var(--color-divider);
+  border-left: 4px solid var(--color-primary);
+  border-radius: 10px;
+  background: var(--color-bg);
+  color: var(--color-text);
+  box-shadow: var(--shadow-popover);
+  pointer-events: auto;
+}
+
+.toast-error {
+  border-left-color: var(--color-danger);
+}
+
+.toast-content {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+  font-size: 13px;
+}
+
+.toast-content p,
+.toast-content ul {
+  margin: 0;
+}
+
+.toast-title {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.toast-error .toast-title {
+  color: var(--tone-attention-fg);
+}
+
+.toast-commits {
+  padding: 0;
+  list-style: none;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.toast-commits code {
+  color: var(--color-text-2);
+}
+
+.toast-pushed {
+  color: var(--tone-done-fg);
+  font-weight: 500;
+}
+
+.toast-attention {
+  color: var(--tone-attention-fg);
+  font-weight: 500;
+}
+
+.toast .verbatim {
+  max-height: 160px;
+  overflow: auto;
+}
+
+.toast-close {
+  flex: none;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  justify-content: center;
+}
