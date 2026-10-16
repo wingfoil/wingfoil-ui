@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
-// task-041 (D41-3, D41-7; spec-004 §3, RP-28): `PUT /api/settings` takes the whole object. The save
-// hook sends the cached settings with the change, one request at a time (later changes wait and are
-// carried by their own request), updates the cache at once (optimistic) and takes the server's
-// answer; a refusal reads the settings again and reports the change that failed.
+// task-041 (D41-3, D41-7; spec-004 §3, RP-28; review round 1 R1, R2): `PUT /api/settings` takes the
+// whole object. The query cache holds server answers only; a save sends the last answer with the
+// pending changes up to its own, one request at a time; the page shows the last answer with every
+// pending change (`useSettingsView`); a refusal reads the settings again and reports the change.
 import type { UiSettings } from '@wingfoil-ui/contracts';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { act, renderHook, waitFor } from '@testing-library/react';
@@ -88,7 +88,8 @@ it('sends the cached settings with the change, shows it at once and keeps the an
   const { hook, cache, saved } = setup();
   act(() => hook.result.current.mutate({ autoPush: true }));
   await waitFor(() => expect(api.waiting()).toBe(1));
-  expect(cache()).toEqual({ ...DEFAULTS, autoPush: true });
+  // The cache holds server answers only (the page shows the pending change, review R1).
+  expect(cache()).toEqual(DEFAULTS);
   api.release();
   await waitFor(() => expect(saved).toEqual([{ autoPush: true }]));
   expect(api.calls).toEqual([{ method: 'PUT', url: '/api/settings', body: { ...DEFAULTS, autoPush: true } }]);
@@ -101,28 +102,26 @@ it('runs one request at a time: a second change waits and is sent with the first
   act(() => hook.result.current.mutate({ autoPush: true }));
   act(() => hook.result.current.mutate({ theme: 'dark' }));
   await waitFor(() => expect(api.waiting()).toBe(1));
-  expect(cache()).toEqual({ ...DEFAULTS, autoPush: true, theme: 'dark' });
-  // Only the first request is out.
+  // Only the first request is out, with the changes up to its own.
   expect(api.calls.filter((c) => c.method === 'PUT')).toHaveLength(1);
   api.release();
   await waitFor(() => expect(api.waiting()).toBe(1));
-  // The first answer does not hide the second change while it waits.
-  expect(cache()).toEqual({ ...DEFAULTS, autoPush: true, theme: 'dark' });
+  expect(cache()).toEqual({ ...DEFAULTS, autoPush: true });
   api.release();
   await waitFor(() => expect(saved).toHaveLength(2));
   expect(api.calls.filter((c) => c.method === 'PUT').map((c) => c.body)).toEqual([
-    { ...DEFAULTS, autoPush: true, theme: 'dark' },
+    { ...DEFAULTS, autoPush: true },
     { ...DEFAULTS, autoPush: true, theme: 'dark' },
   ]);
   expect(cache()).toEqual({ ...DEFAULTS, autoPush: true, theme: 'dark' });
 });
 
-it('a refusal reads the settings again (the change is undone) and reports the failed change', async () => {
+it('a refusal reads the settings again and reports the failed change', async () => {
   const api = stubSettings({ fail: true });
   const { hook, cache, failed } = setup();
   act(() => hook.result.current.mutate({ autoUpdate: true }));
   await waitFor(() => expect(api.waiting()).toBe(1));
-  expect(cache()).toEqual({ ...DEFAULTS, autoUpdate: true });
+  expect(cache()).toEqual(DEFAULTS);
   api.release();
   await waitFor(() => expect(failed).toEqual([['invalid-request', { autoUpdate: true }]]));
   await waitFor(() => expect(cache()).toEqual(DEFAULTS));
@@ -147,8 +146,8 @@ it("a change made while a save is on its way survives that save's answer", async
   expect(api.calls.filter((c) => c.method === 'PUT').map((c) => c.body)).toEqual([{ ...DEFAULTS, autoPush: true }]);
   api.release();
   await waitFor(() => expect(saved).toHaveLength(1));
-  // The first answer ({autoPush}) does not hide the waiting theme change.
-  expect(cache()).toEqual({ ...DEFAULTS, autoPush: true, theme: 'dark' });
+  // The cache takes the first answer; the waiting change is still pending (shown: review R1 tests).
+  expect(cache()).toEqual({ ...DEFAULTS, autoPush: true });
   await waitFor(() => expect(api.waiting()).toBe(1));
   api.release();
   await waitFor(() => expect(saved).toHaveLength(2));
@@ -197,16 +196,23 @@ async function viewSetup() {
     <QueryClientProvider client={client}>{children}</QueryClientProvider>
   );
   const hook = renderHook(() => ({ save: useSaveSettings(), view: useSettingsView() }), { wrapper });
-  const event = () => act(async () => client.invalidateQueries({ queryKey: settingsQuery().queryKey }));
-  return { client, hook, event, shown: () => hook.result.current.view.settings };
+  // TanStack Query notifies observers on a timer: give the render a few ticks after each step.
+  const settle = () => act(() => new Promise((r) => setTimeout(r, 20)));
+  const event = async () => {
+    await act(async () => client.invalidateQueries({ queryKey: settingsQuery().queryKey }));
+    await settle();
+  };
+  return { client, hook, event, settle, shown: () => hook.result.current.view.settings };
 }
 
 it("R1 — another tab's settings event while one save is out and one waits loses nothing", async () => {
   const api = gatedApi();
-  const { client, hook, event, shown } = await viewSetup();
+  const { client, hook, event, settle, shown } = await viewSetup();
   act(() => hook.result.current.save.mutate({ autoPush: true }));
   await waitFor(() => expect(api.waiting()).toBe(1));
   act(() => hook.result.current.save.mutate({ theme: 'dark' }));
+  await settle();
+  expect(shown()).toEqual({ ...DEFAULTS, autoPush: true, theme: 'dark' });
   await event();
   // No flicker: the pending changes stay shown over the fresh read.
   expect(shown()).toEqual({ ...DEFAULTS, autoPush: true, theme: 'dark' });
@@ -259,4 +265,51 @@ it('R2 — a refused change is left out of the next request, the shown settings 
   expect(api.state.stored.autoUpdate).toBe(false);
   await waitFor(() => expect(shown()).toEqual({ ...DEFAULTS, theme: 'dark' }));
   expect(client.getQueryData(settingsQuery().queryKey)).toEqual({ ...DEFAULTS, theme: 'dark' });
+});
+
+it('R1 — a read sent before a save was stored and answered after it does not put the old state back', async () => {
+  let stored: UiSettings = { ...DEFAULTS };
+  const puts: UiSettings[] = [];
+  const gates: { kind: string; open: () => void }[] = [];
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async (_url: string, init?: RequestInit) => {
+      const method = init?.method ?? 'GET';
+      if (method === 'PUT') {
+        const body = JSON.parse(String(init!.body)) as UiSettings;
+        puts.push(body);
+        await new Promise<void>((r) => gates.push({ kind: 'PUT', open: r }));
+        stored = body;
+        return new Response(JSON.stringify(stored), { status: 200 });
+      }
+      // The state at the time of the request, answered when released.
+      const snapshot = { ...stored };
+      await new Promise<void>((r) => gates.push({ kind: 'GET', open: r }));
+      return new Response(JSON.stringify(snapshot), { status: 200 });
+    }),
+  );
+  const { client, hook, settle, shown } = await viewSetup();
+  const open = (kind: string) => {
+    const i = gates.findIndex((g) => g.kind === kind);
+    gates.splice(i, 1)[0]!.open();
+  };
+  act(() => hook.result.current.save.mutate({ autoPush: true }));
+  await waitFor(() => expect(gates.map((g) => g.kind)).toEqual(['PUT']));
+  // Another tab's event: a read goes out before the save is stored.
+  void act(async () => client.invalidateQueries({ queryKey: settingsQuery().queryKey }));
+  await waitFor(() => expect(gates.map((g) => g.kind)).toEqual(['PUT', 'GET']));
+  act(() => hook.result.current.save.mutate({ theme: 'dark' }));
+  open('PUT');
+  await waitFor(() => expect(puts).toHaveLength(2));
+  // The old read answers now, after the first save's answer.
+  if (gates.some((g) => g.kind === 'GET')) open('GET');
+  await settle();
+  expect(shown()).toEqual({ ...DEFAULTS, autoPush: true, theme: 'dark' });
+  open('PUT');
+  await waitFor(() => expect(client.isMutating()).toBe(0));
+  expect(puts[1]).toEqual({ ...DEFAULTS, autoPush: true, theme: 'dark' });
+  await settle();
+  while (gates.length > 0) gates.shift()!.open();
+  await settle();
+  expect(client.getQueryData(settingsQuery().queryKey)).toEqual({ ...DEFAULTS, autoPush: true, theme: 'dark' });
 });

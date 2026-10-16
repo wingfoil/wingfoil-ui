@@ -7,9 +7,8 @@
  * `settings` event).
  */
 import type { UiTheme } from '@wingfoil-ui/contracts';
-import { useQuery } from '@tanstack/react-query';
 import { useEffect } from 'react';
-import { settingsQuery } from '../api/queries.js';
+import { useSettingsView } from '../api/settings.js';
 
 /** The attribute the inline theme script reads. */
 export const THEME_SETTING_ATTRIBUTE = 'data-theme-setting';
@@ -23,7 +22,8 @@ export function applyThemeSetting(theme: UiTheme | undefined): void {
 
 /** Keeps the page's theme on the UI setting (renders nothing). */
 export function ThemeSetting(): null {
-  const theme = useQuery(settingsQuery()).data?.theme;
+  // The settings as shown: a theme being saved applies at once (review R1).
+  const theme = useSettingsView().settings?.theme;
   useEffect(() => applyThemeSetting(theme), [theme]);
   return null;
 }

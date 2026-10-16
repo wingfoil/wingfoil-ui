@@ -746,3 +746,10 @@ p {
   margin-top: auto;
   padding-top: var(--space-4);
 }
+
+/* Review R5: the pinned group stays visible at the bottom when the nav scrolls (ux-reference §3). */
+.project-nav > div:last-child:not(:first-child) {
+  position: sticky;
+  bottom: 0;
+  background: var(--color-bg);
+}

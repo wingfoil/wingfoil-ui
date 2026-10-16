@@ -9,13 +9,11 @@
  * their switches.
  */
 import type { UiSettings, UiTheme } from '@wingfoil-ui/contracts';
-import { useQuery } from '@tanstack/react-query';
 import { useId, useState, type ReactNode } from 'react';
 import { FieldError, Input, Label, Radio, RadioGroup, Switch, Text, TextField } from 'react-aria-components';
 import { defineMessages, FormattedMessage, useIntl, type MessageDescriptor } from 'react-intl';
 import { ApiError } from '../api/client.js';
-import { settingsQuery } from '../api/queries.js';
-import { useSaveSettings } from '../api/settings.js';
+import { useSaveSettings, useSettingsView } from '../api/settings.js';
 import { ErrorText } from '../shell/ErrorText.js';
 import { NUMBER_RANGES, parseWholeNumber, type NumberSettingKey } from './model.js';
 import './settings.css';
@@ -235,25 +233,28 @@ function SettingsForm({
   );
 }
 
-/** A failed save: the setting it was for and the error. */
+/** A failed save: the setting it was for, the value the user wanted and the error. */
 interface Failure {
   setting: keyof UiSettings;
+  wanted: unknown;
   error: ApiError;
 }
 
 /** The UI settings tab. */
 export function UiSettingsView(): ReactNode {
-  const query = useQuery(settingsQuery());
+  const { query, settings } = useSettingsView();
   const [saved, setSaved] = useState(0);
   const [failure, setFailure] = useState<Failure | undefined>(undefined);
   const save = useSaveSettings({
-    onSaved: () => {
-      setFailure(undefined);
+    onSaved: (_change, stored) => {
+      // The alert stays until its setting is stored as the user wanted (review R2).
+      setFailure((f) => (f && stored[f.setting] === f.wanted ? undefined : f));
       setSaved((n) => n + 1);
     },
     onFailed: (error, change) => {
       setSaved(0);
-      setFailure({ setting: Object.keys(change)[0] as keyof UiSettings, error });
+      const setting = Object.keys(change)[0] as keyof UiSettings;
+      setFailure({ setting, wanted: change[setting], error });
     },
   });
   return (
@@ -262,7 +263,12 @@ export function UiSettingsView(): ReactNode {
         <FormattedMessage id="settings.intro" />
       </p>
       <p className="settings-status" role="status">
-        {saved > 0 && <FormattedMessage id="settings.saved" />}
+        {/* Keyed by the save count: every save is a change of the region, so each is announced (review R3). */}
+        {saved > 0 && (
+          <span key={saved}>
+            <FormattedMessage id="settings.saved" />
+          </span>
+        )}
       </p>
       <div className="settings-alert-region">
         {failure && (
@@ -290,8 +296,8 @@ export function UiSettingsView(): ReactNode {
             }
           />
         </div>
-      ) : query.data ? (
-        <SettingsForm settings={query.data} save={(change) => save.mutate(change)} />
+      ) : settings ? (
+        <SettingsForm settings={settings} save={(change) => save.mutate(change)} />
       ) : (
         <p className="muted" role="status">
           <FormattedMessage id="settings.loading" />
