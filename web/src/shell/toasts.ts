@@ -82,30 +82,53 @@ export function useToasts(): readonly Toast[] {
   return useSyncExternalStore(subscribe, getToasts, getToasts);
 }
 
-/** The placement of the stack, inline (review R1): out of the drawer's column. */
+/** The placement of the stack, inline (reviews R1, R2): out of the drawer's column. */
 export interface ToastPlacement {
   /** Centre of the stack (px from the left of the viewport). */
   left?: number;
   maxWidth?: number;
   /** Distance of the stack from the bottom of the viewport (px). */
   bottom?: number;
+  /** Most height of the stack (px): it scrolls beyond (R2-3). */
+  maxHeight: number;
 }
 
-/** The narrowest area left of the drawer where the stack is put beside it (px). */
+/** What the placement is computed from (px, viewport coordinates). */
+export interface ToastLayout {
+  viewport: { width: number; height: number };
+  /** Bottom edge of the shell header: the stack never goes above it. */
+  headerBottom: number;
+  /** Left edge of the main region (`#main`; the sidebar is left of it), 0 without one. */
+  mainLeft: number;
+  /** The element panel, when open: its left edge and, once rendered, its footer's top edge. */
+  drawer?: { left: number; footerTop?: number };
+}
+
+/** The narrowest area between the main region's left edge and the drawer for the stack (px). */
 export const TOAST_MIN_ROOM = 360;
 
+/** The stylesheet's distance of the stack from the bottom (`--space-6`), and its top margin. */
+const DEFAULT_BOTTOM = 24;
+const TOP_MARGIN = 16;
+
 /**
- * Where the stack goes (review R1): without a drawer, the stylesheet's bottom centre (`{}`); with
- * one, centred in the area left of it when that area is at least {@link TOAST_MIN_ROOM} wide,
- * otherwise just above the drawer's footer (so the stack never covers the footer's actions).
+ * Where the stack goes (reviews R1, R2): without a drawer, or with a drawer that has no footer yet
+ * (loading, a read error), the stylesheet's bottom centre; with one, centred between the main
+ * region's left edge and the drawer when that area is at least {@link TOAST_MIN_ROOM} wide (the
+ * sidebar, with the Git status at its foot, stays clear), otherwise just above the drawer's footer
+ * (never over its actions). Never taller than the room between the header and its bottom.
  */
-export function toastPlacement(
-  viewport: { width: number; height: number },
-  drawer: { left: number; footerTop: number } | undefined,
-): ToastPlacement {
-  if (drawer === undefined) return {};
-  if (drawer.left >= TOAST_MIN_ROOM) return { left: drawer.left / 2, maxWidth: drawer.left - 32 };
-  return { bottom: viewport.height - drawer.footerTop + 8 };
+export function toastPlacement(layout: ToastLayout): ToastPlacement {
+  const { viewport, headerBottom, mainLeft, drawer } = layout;
+  const maxHeight = (bottom: number) => viewport.height - bottom - headerBottom - TOP_MARGIN;
+  if (drawer === undefined) return { maxHeight: maxHeight(DEFAULT_BOTTOM) };
+  const room = drawer.left - mainLeft;
+  if (room >= TOAST_MIN_ROOM) {
+    return { left: (mainLeft + drawer.left) / 2, maxWidth: room - 32, maxHeight: maxHeight(DEFAULT_BOTTOM) };
+  }
+  if (drawer.footerTop === undefined) return { maxHeight: maxHeight(DEFAULT_BOTTOM) };
+  const bottom = viewport.height - drawer.footerTop + 8;
+  return { bottom, maxHeight: maxHeight(bottom) };
 }
 
 /** Remove every toast (tests). */

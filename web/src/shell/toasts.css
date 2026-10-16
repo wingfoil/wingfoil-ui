@@ -10,8 +10,17 @@
   flex-direction: column;
   gap: var(--space-2);
   width: min(520px, calc(100vw - 2 * var(--space-4)));
+  max-height: calc(100vh - var(--header-height) - var(--space-6) - var(--space-4));
+  overflow-y: auto;
   transform: translateX(-50%);
   pointer-events: none;
+}
+
+/* Taller than its room (only sticky refusals left, review R2-3): the stack scrolls and takes the
+   pointer; its toasts' Close buttons keep it reachable from the keyboard. */
+.toasts-overflow {
+  pointer-events: auto;
+  overscroll-behavior: contain;
 }
 
 .toast-list {
