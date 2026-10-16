@@ -643,3 +643,61 @@ nothing of the risk.
   (off by default) the console does what `git pull` does on a timer, so incoming commits can run
   commands the user's own git configuration points at. The `config-in-worktree` log names the
   triggering key's section and name only (R4-2); the CHANGELOG states the risk (R4-3).
+
+### review round 4 — changes (2026-10-16)
+
+| Item | Red | Fix | What |
+|------|-----|-----|------|
+| W4-16 (A), removal | `bb30589` | `ab7acd3` | `configUsesWorktree`, `shellTokens`, the key exemptions and the skip removed from `server/src/sync/auto-sync.ts`; `config-uses-incoming-path` removed from `repository.schema.json`, `UpdateSyncError`, `en.json`, `MESSAGES` and the test rows; the W4-12 / W4-15 tests replaced by one characterization of the declared residual (a value `sh tools/run.sh` with an incoming `tools/run.sh` → updated, nothing recorded; red on the previous code) |
+| R4-2 | `bb30589` | `ab7acd3` | `configInWorktree` returns the triggering key by section and name only (`includeif.path`, `remote.uploadpack`, `unresolved`); the skip's log carries it as `key`; tested: no value, subsection, included file name or path in the log |
+| W4-16 declared residual, R4-3 | — | `82b0202` | spec-010 §6 *Declared residual of the automatic update* (with the S3-1 / S4-1 shell forms as examples) and Process Note; §3 / §5 code removed; user guide: a warning paragraph right after the settings table, next to Auto-update; CHANGELOG *Added* states the risk |
+
+Every structural guard is kept: no hooks (D34-1), `core.fsmonitor=false`, `config-in-worktree`
+with the include directives and the S3-2 resolution (W4-5, W4-11, W4-14), the hardened merge
+(D34-2), the refspec and legacy-remote guards (W4-3, W4-7), the in-progress skip (D34-3), the
+drained refusal (W4-13) and the stop behaviour (R5, W4-10).
+
+**Hand-over to task-041-ui-settings-page-and-theme-setting:** show the declared residual next to
+the *Auto-update* setting — with it on, the console does on a timer what `git pull` does, and the
+incoming commits can run commands the user's own git configuration points at (filters,
+`core.sshCommand`, credential helpers, aliases) when they read project files; off by default
+(spec-010 §6 *Declared residual of the automatic update*, user guide *Automatic sync with the
+remote*).
+
+Checks (HEAD before this note `82b0202`): `typecheck`, `lint`, `format:check` clean; `docs:api`,
+`check_tasks.py v0.2` OK; `test:coverage` (public-text check included) 153 files passed, 1
+skipped, **2852 passed / 1 skipped** (statements 96.53 %, branches 91.14 %), load 1.9 → 16;
+`test:smoke` 4/4 (load 14.5); `test:timing` **skipped** (load ≥ 12 after the suites; the
+round-3 run passed and nothing on its paths changed since); Chromium e2e not needed (catalogue and
+docs only in the console). No console and no `wfui-task-034-*` entry left.
+
+#### For the retrospective
+
+Four adversarial security rounds went to one question: can the unattended fetch and update run
+code that arrives with the remote's commits, through configuration rather than hooks? Round 1
+(S1) showed an `include.path` / `includeIf` to a tracked file making incoming commits set
+`uploadpack`, `fsmonitor`, filters, `sshCommand`, credential helpers or `gitProxy` — fixed
+structurally with the configuration-origin guard (`config-in-worktree`) and `core.fsmonitor=false`.
+Round 2 (S2-1) found include directives whose file did not exist yet or whose condition was false
+— fixed by guarding the directives themselves; (S2-2) a relative command of the user's own
+configuration running a tracked script — answered with a token match on the incoming paths
+(W4-12). Round 3 (S3-1) bypassed it with a script sourcing another file, `$PWD`, quoting and
+symlinks, and (S3-2) showed include paths must resolve as git opens them — W4-15 widened the match
+to any configured value naming the working tree, and S3-2 was fixed structurally. Round 4 (S4-1)
+bypassed that again with ten shell spellings (`${HOME}`, `"$(pwd)/…"`, backticks,
+`--show-cdup`, `${PWD%/}`, globs) and (S4-2) showed it stopping the update forever on common
+configurations (`core.editor = code --wait` with a `code/` folder, `credential.helper = cache`,
+`alias.t = !npm test`, git-lfs `%f`) with a message that could not say why. The token and path
+heuristics were dropped (W4-16): a shell command's file accesses cannot be decided from its text,
+and every widening added noise on ordinary setups. Instead the residual is declared:
+`autoUpdate` (off by default) does on a timer what `git pull` does, so commands the user's own
+configuration points at may run files the incoming commits change; the structural guards (no
+hooks, no fsmonitor, no configuration brought by the repository, the hardened merge) stay.
+
+Open question for the v0.2 retrospective — keep the declared risk, or invest in a structural fix?
+Options, not decided: (1) keep the declared risk with the warning next to the setting (task-041);
+(2) run the automatic update with filters disabled through a temporary `info/attributes`
+override, then let the user's next read smudge as git would; (3) fast-forward automatically only
+when no incoming path is referenced by a `.gitattributes` filter, diff or merge driver; (4) a
+sandboxed checkout (a separate worktree or a restricted environment) before moving the user's
+branch; (5) drop `autoUpdate` and keep the manual Update only.
