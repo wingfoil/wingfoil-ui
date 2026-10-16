@@ -142,25 +142,41 @@ it('review R5 — the limit never evicts a sticky toast', () => {
   expect(getToasts().map((t) => t.title)).toEqual(['e1', 'e2', 'e3', 'e4']);
 });
 
-it('review R5 — a toast removed or replaced while it held the focus gives it to the main region', async () => {
+// Review rounds 1 and 3 (R5, R3-3): a toast removed while it held the focus (closed, evicted,
+// replaced) gives it to the Close of the nearest toast left — the next one, else the previous one —
+// and to the main region only when none is left.
+const closeOf = (title: string) =>
+  within(screen.getByText(title).closest('.toast') as HTMLElement).getByRole('button', { name: 'Close notification' });
+
+it('review R5, R3-3 — replaced or evicted while focused: the focus goes to the nearest toast left', () => {
   mount();
   act(() => void showToast({ key: 'k', tone: 'error', title: 'refused' }));
-  act(() => screen.getByRole('button', { name: 'Close notification' }).focus());
+  act(() => closeOf('refused').focus());
   act(() => void showToast({ key: 'k', tone: 'success', title: 'done' }));
-  await act(async () => {});
-  expect(document.activeElement?.id).toBe('main');
-  // Evicted by the limit while focused.
+  expect(document.activeElement).toBe(closeOf('done'));
+  // Evicted by the limit while focused: the next toast takes it.
   act(() => {
     resetToasts();
     showToast({ tone: 'success', title: 'first' });
   });
-  act(() =>
-    (within(screen.getByText('first').closest('.toast') as HTMLElement).getByRole('button') as HTMLElement).focus(),
-  );
+  act(() => closeOf('first').focus());
   act(() => {
     for (const n of [1, 2, 3]) showToast({ tone: 'success', title: `t${n}` });
   });
-  await act(async () => {});
+  expect(document.activeElement).toBe(closeOf('t1'));
+});
+
+it('review R3-3 — closed while focused: the next toast, else the previous one, else the main region', () => {
+  mount();
+  act(() => {
+    for (const n of [1, 2, 3]) showToast({ tone: 'error', title: `e${n}` });
+  });
+  act(() => closeOf('e2').focus());
+  act(() => closeOf('e2').click());
+  expect(document.activeElement).toBe(closeOf('e3'));
+  act(() => closeOf('e3').click());
+  expect(document.activeElement).toBe(closeOf('e1'));
+  act(() => closeOf('e1').click());
   expect(document.activeElement?.id).toBe('main');
 });
 
@@ -259,5 +275,49 @@ it('review R2-3 — an overflowing stack becomes a scroll container that takes t
   } finally {
     sizes.mockRestore();
     client.mockRestore();
+  }
+});
+
+// Review round 3 (R3-1, R3-4): an overflowing stack scrolls only when a toast is added, to that
+// toast's top (its title and Close); the user's own scroll is kept on a dismiss or a re-placement.
+function overflowingLayout(): () => void {
+  const spies = [
+    vi.spyOn(HTMLElement.prototype, 'scrollHeight', 'get').mockReturnValue(900),
+    vi.spyOn(HTMLElement.prototype, 'clientHeight', 'get').mockReturnValue(400),
+    vi.spyOn(HTMLElement.prototype, 'offsetTop', 'get').mockImplementation(function (this: HTMLElement) {
+      const id = this.getAttribute('data-toast-id');
+      return id === null ? 0 : 100 * Number(id);
+    }),
+  ];
+  return () => {
+    for (const s of spies) s.mockRestore();
+  };
+}
+
+it("review R3-1 — a new toast is scrolled to its top; the user's scroll stays on a dismiss and a re-placement", () => {
+  const restore = overflowingLayout();
+  try {
+    mount();
+    const stack = document.querySelector('.toasts') as HTMLElement;
+    let ids: number[] = [];
+    act(() => {
+      ids = [1, 2, 3].map((n) => showToast({ tone: 'error', title: `e${n}` }));
+    });
+    expect(stack.scrollTop).toBe(100 * ids[2]!);
+    // React owns the class (R3-4).
+    expect(stack.className).toBe('toasts toasts-overflow');
+    stack.scrollTop = 50;
+    act(() => dismissToast(ids[0]!));
+    expect(stack.scrollTop).toBe(50);
+    act(() => {
+      window.innerHeight = 500;
+      window.dispatchEvent(new Event('resize'));
+    });
+    expect(stack.scrollTop).toBe(50);
+    let added = 0;
+    act(() => void (added = showToast({ tone: 'error', title: 'e4' })));
+    expect(stack.scrollTop).toBe(100 * added);
+  } finally {
+    restore();
   }
 });
