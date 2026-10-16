@@ -205,6 +205,17 @@ spec-008 §7):
 | `remote-not-owned` | — | fetch, update, push | "The repository of this remote is a folder of another user of this computer: git could run that user's code, so WingFoil UI does not use it — use a repository you own" (bug-010) |
 | `refspec-outside-remotes` | — | fetch, update | "Not fetched or updated: this remote has no fetch refspec, or one writes outside refs/remotes/, so git could delete or overwrite your local branches or tags — use git in a terminal" (bug-014) |
 
+Codes of the sync status (§3, §6), not answered by a route; rendered from the web catalogue as
+`error.<code>` too:
+
+| `code` | Recorded in | Catalogue text (English) |
+|--------|-------------|--------------------------|
+| `fetch-timeout` | `sync.fetch.lastError` | "Fetch stopped: the remote did not answer within 60 s — the next automatic fetch tries again" |
+| `config-in-worktree` | `sync.fetch.lastError`, `sync.update.lastError` | "Not synced automatically: this repository's git configuration includes another file — fetch and update with git in a terminal" |
+| `merge-not-fast-forward` | `sync.update.lastError` | "Not updated: git reported success but your copy is not at the remote's commit — check it with git in a terminal" |
+| `config-uses-incoming-path` | `sync.update.lastError` | "Not updated automatically: your git configuration uses a file of the working tree — update by hand or with git in a terminal" |
+| `push-timeout`, `internal` | `push.code` of a write (spec-004 §5) | "Not pushed: the push did not finish within 60 s — use Push to try again"; `error.internal` |
+
 `local-changes-in-the-way`: the files changed by the incoming commits
 (`git log --no-renames --name-only -z --format= HEAD..@{u}`) intersected with the status entries
 (changed, staged, untracked); `detail.files` is an array of paths relative to the project (never
@@ -256,12 +267,22 @@ so the sidebar shows it (Y-06.1, Y-06.2).
   `-c core.fsmonitor=false`. Accepted residual (W4-11): a `filter.<x>.clean` that such a
   configuration names still runs in the server's status reads once the user's own pull or Update
   brought it, as in the user's own `git status`.
-- **Configured commands the incoming commits change** (W4-12, security review S2-2): before an
-  automatic merge, when a token of any value of the effective configuration (split on whitespace,
-  quotes and shell punctuation, a helper's `!` dropped, `./` and separators normalised, an absolute
-  token taken relative to the top level) is a path the incoming commits change, the update is
-  skipped and recorded as `sync.update.lastError` `config-uses-incoming-path` — e.g.
-  `filter.<x>.clean = tools/clean.sh` or `credential.helper = !./tools/cred`.
+- **Configured values naming the working tree** (W4-12, widened by W4-15 (a), security review
+  S2-2, S3-1): before an automatic merge, the update is skipped and recorded as
+  `sync.update.lastError` `config-uses-incoming-path` when any value of the effective configuration
+  (any scope) names something of the working tree, incoming or not: a token (shell-like words —
+  quotes, backslash escapes, `;|&()<>` — and their parts around `=`, `:`, `,`; a helper's `!`
+  dropped; `~`, `~user`, `$PWD`, `${PWD}`, `$(git rev-parse --show-toplevel)` expanded) that is an
+  incoming path or resolves — relative tokens from the top level, by the file system, a tracked
+  symlink itself included — to an existing path inside the top level outside the git directories;
+  the value holding the top level's path or its realpath; or the value holding an incoming path
+  with no path character around it. E.g. `filter.<x>.clean = sh tools/run.sh` (which may source an
+  incoming file), `make -C tools`, `"$(git rev-parse --show-toplevel)/tools/clean.sh"`. The top
+  level itself counts (`make -C .`: fail closed). Not counted: the keys an unattended run sets
+  itself (`core.hooksPath`, `core.fsmonitor`, `fetch.pruneTags`, `remote.<r>.pruneTags`,
+  `branch.<b>.mergeOptions`), `safe.directory` (a path git compares, never opens) and
+  `branch.<b>.remote = .` (the remote name of a local upstream). Accepted residual: commands found
+  through `PATH` or non-path forms (`python -m pkg.mod`) that load files of the repository.
 - **Legacy remote files** (W4-7, security review S3): a remote without `remote.<r>.url` in the
   configuration makes git read `remotes/<r>` or `branches/<r>` of the common directory, whose
   refspecs the configuration does not show; such a remote, or one with such a file, is refused
@@ -433,3 +454,8 @@ Rows 7–9 do not apply (no element).
   the update (W4-14), the residual of a `filter.<x>.clean` in the status reads, the stop's log line;
   §3 the new codes; §5 the `refspec-outside-remotes` text names the fetch and the update (R2-1). A
   process result whose pipes were cut after its exit is marked `drained` and never read (W4-13).
+- 2026-10-16 — review round 3 of task-034 (decision W4-15 (a) of the approver; R3-1 … R3-3): §6
+  any configured value naming the working tree skips the automatic update (`config-uses-incoming-path`,
+  its text widened), the exemptions and the `PATH` residual; include paths resolved from the holder
+  as git opened it, a `..` in a part that does not exist yet failing closed (S3-2); §5 the catalogue
+  texts of the sync-status codes.

@@ -1,6 +1,6 @@
 # User guide — WingFoil UI v0.1
 
-**Version:** 0.10 · **Date:** 2026-10-15 (0.1: release v0.1; 0.2: bug-008 known limitation, release submit; 0.3: bug-008 wording; 0.4: bug-008 marked fixed after 0.1.0 — task-026; 0.5: *How to join*, unreleased v0.2 — task-035; 0.6: *Today*, unreleased v0.2 — task-036; 0.7: what runs during a clone, a local repository of another user, unreleased v0.2 — task-033 / bug-010, bug-013; 0.8: a local source git cannot read — task-033 review round 3; 0.9: *Deciding a gate*, unreleased v0.2 — task-037; 0.10: *Automatic sync with the remote*, unreleased v0.2 — task-034 / bug-014, its security review)
+**Version:** 0.10 · **Date:** 2026-10-15 (0.1: release v0.1; 0.2: bug-008 known limitation, release submit; 0.3: bug-008 wording; 0.4: bug-008 marked fixed after 0.1.0 — task-026; 0.5: *How to join*, unreleased v0.2 — task-035; 0.6: *Today*, unreleased v0.2 — task-036; 0.7: what runs during a clone, a local repository of another user, unreleased v0.2 — task-033 / bug-010, bug-013; 0.8: a local source git cannot read — task-033 review round 3; 0.9: *Deciding a gate*, unreleased v0.2 — task-037; 0.10: *Automatic sync with the remote*, unreleased v0.2 — task-034 / bug-014, its security reviews)
 
 WingFoil UI v0.1 is a **read-only console** for WingFoil-governed projects: you open a project and
 read its Memory, elements, DNA, directives, team and documentation, kept up to date while you work
@@ -326,9 +326,13 @@ it started up to date with their remote, by itself. Three settings drive it (spe
   commits it would bring could change that file and make git run a command. The sidebar shows why;
   fetch and update with git in a terminal. Includes of your global configuration (`~/.gitconfig`)
   are yours and do not count, unless they point into the project's folder.
-- **Not when your configuration runs a file the update brings.** If a value of your git
-  configuration names a file the incoming commits change (a filter, credential helper or ssh
-  command such as `./tools/clean.sh`), the console does not update by itself.
+- **Not when your configuration uses a file of the project.** If any value of your git
+  configuration names a file or folder of the project's working tree — a filter, credential helper
+  or ssh command such as `./tools/clean.sh` or `make -C tools`, even one git would not run, and
+  whether or not the update changes it — the console does not update by itself (the sidebar shows
+  why): the incoming commits could change what that command runs. Your hooks folder setting and
+  `safe.directory` do not count. A command found through your `PATH` that reads files of the
+  project is not detected.
 - **Stopping the console during an automatic update** lets the update finish first, so the working
   tree is never left half updated; the log says so, and a second Ctrl-C (or signal) stops at once.
 - **Hooks come back with your next action.** Hooks an automatic update brought in through a hooks
