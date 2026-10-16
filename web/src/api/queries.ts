@@ -6,6 +6,7 @@
 import type {
   DirectiveList,
   ElementList,
+  MemoryEventsPage,
   ProjectConfig,
   ProjectHeader,
   ProjectListResponse,
@@ -106,5 +107,17 @@ export function todayQuery(pid: string, view: string | null) {
     queryKey: queryKeys.project(pid, 'today', { view }),
     queryFn: ({ signal }) =>
       apiGet<Today>(`${projectPath(pid)}/today${view === null ? '' : `?view=${encodeURIComponent(view)}`}`, signal),
+  });
+}
+
+/**
+ * `GET /api/p/:pid/events/memory?limit=<n>`: the last `limit` Memory events, newest first (spec-004
+ * §3) — the notification bell's *Updates* (task-042, `limit` 10, TT-PERF-11), read only while its
+ * panel is open (D42-2). Key fixed by D31-6.
+ */
+export function memoryEventsQuery(pid: string, limit: number) {
+  return queryOptions({
+    queryKey: queryKeys.project(pid, 'events', 'memory', { limit }),
+    queryFn: ({ signal }) => apiGet<MemoryEventsPage>(`${projectPath(pid)}/events/memory?limit=${limit}`, signal),
   });
 }

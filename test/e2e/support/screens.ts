@@ -205,4 +205,15 @@ export const SCREENS: readonly Screen[] = [
     open: (page, c) =>
       project(page, c, `/p/${c.pids[2]}/e/task-001-login-form`, (p) => p.locator('.drawer .element-footer button')),
   },
+  {
+    // task-042 (D42-8): the notification bell's panel as Morgan — To unblock and Updates.
+    name: 'notification panel',
+    open: async (page, c) => {
+      await project(page, c, `/p/${c.pids[0]}/today`, (p) => p.locator('.today-row'));
+      await page.locator('.bell-trigger').click();
+      await expect(page.locator('.bell-panel .bell-item').first()).toBeVisible({ timeout: COLD_READ_MS });
+      await expect(page.locator('.bell-panel .bell-update').first()).toBeVisible({ timeout: COLD_READ_MS });
+      await expectSettled(page);
+    },
+  },
 ];

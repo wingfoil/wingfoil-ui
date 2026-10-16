@@ -151,3 +151,64 @@
     white-space: normal;
   }
 }
+
+/* The all-roles summary (task-042, D42-5): one line per role — the switch, its first items, "N more". */
+.today-switch-error {
+  color: var(--color-danger);
+}
+
+.today-summary-lines {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.today-summary-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-2) var(--space-3);
+  padding: 10px 16px;
+  border-top: 1px solid var(--color-divider);
+}
+
+.today-summary-head {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  flex: none;
+}
+
+span.today-summary-role {
+  font-weight: 600;
+}
+
+.today-summary-current {
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.today-summary-items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  min-width: 0;
+  font-size: 13px;
+}
+
+.today-summary-item {
+  overflow-wrap: anywhere;
+}
+
+span.today-summary-more {
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+.today-card-title[tabindex='-1']:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: -2px;
+}

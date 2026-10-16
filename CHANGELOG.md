@@ -32,6 +32,11 @@ All notable changes to WingFoil UI are recorded in this file. The format follows
   pre-filled for an approval, two clicks from Today; an informational footer for a member without
   the gate's role, a read-only line for a user not in the team, and the *Waiting for the workflow
   engine* and *Final state* notes where no action is possible.
+- **Notification bell and all-roles summary** (US-S-21, US-S-23, US-T-07): a bell in the header of
+  every project view counts what requires you in your role view and opens *To unblock* (the
+  Requires you items) and *Updates* (the last 10 Memory events); Today shows, to a member holding
+  several roles, one line per role with its count and first three items, a switch to that role
+  view; the explicit *Nothing requires you* state, also after the last action.
 
 ### Changed
 

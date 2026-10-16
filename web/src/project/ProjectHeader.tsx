@@ -12,6 +12,8 @@
  * The data is `GET /api/p/:pid` (`projectHeaderQuery`, shared with the views that depend on who the
  * user is), refreshed by the `repo` event; the project name is in the switcher's trigger.
  *
+ * Between the two sits the notification bell (task-042, D42-1; `shell/NotificationBell.tsx`).
+ *
  * For a user not in the team (task-035, D35-2, D35-8) the *not in team* badge is a button and the
  * notice ends with *How to join*: both open the *How to join* panel (`HowToJoin.tsx`).
  */
@@ -24,6 +26,7 @@ import { ApiError } from '../api/client.js';
 import { useSetRoleView } from '../api/projects.js';
 import { projectHeaderQuery, serverQuery } from '../api/queries.js';
 import { HeaderEnd } from '../shell/header-slot.js';
+import { NotificationBell } from '../shell/NotificationBell.js';
 import { ErrorText } from '../shell/ErrorText.js';
 import { Chevron, WarningSign } from '../shell/icons.js';
 import { useHowToJoin } from './HowToJoin.js';
@@ -134,6 +137,8 @@ function ProjectRoleView({ pid }: ProjectHeaderProps): ReactNode {
               onChange={(role) => roleView.mutate({ pid, role })}
             />
           )}
+          {/* task-042 (D42-1): role view · notifications · user (ux-reference §2). */}
+          <NotificationBell pid={pid} header={data} />
           <CurrentUser header={data} />
         </HeaderEnd>
       )}

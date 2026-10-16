@@ -61,7 +61,8 @@ it('lists only mine by default for a member, each with its bound roles, the view
   expect(screen.getByRole('link', { name: 'Directives' }).getAttribute('aria-current')).toBe('page');
   expect(document.title).toBe('demo · Directives — WingFoil UI');
   const reads = new Set(fetch.mock.calls.map((c) => String(c[0])).filter((p) => p.startsWith(BASE)));
-  expect(reads).toEqual(new Set([BASE, `${BASE}/directives`]));
+  // Plus the notification bell's Today read of the role view (task-042, D42-1).
+  expect(reads).toEqual(new Set([BASE, `${BASE}/directives`, `${BASE}/today?view=r-dev`]));
 });
 
 it('shows every directive with "all", kept in the URL, and back to only mine', async () => {

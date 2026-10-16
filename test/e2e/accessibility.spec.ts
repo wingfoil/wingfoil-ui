@@ -13,7 +13,7 @@ import { expect, test as base } from './support/fixtures.js';
 import { actAs } from './support/identity.js';
 import { expectFocusVisible, focusRing, tabUntil, type FocusRing } from './support/keyboard.js';
 import { expectSettled, SCREENS, startScreensConsole } from './support/screens.js';
-import { recordApiData, textsOutsideCatalogue } from './support/strings.js';
+import { recordApiData, screenTextsOutsideCatalogue } from './support/strings.js';
 
 /**
  * The console of `SCREENS` (`startScreensConsole`), one per worker (bug-011): X-06.4 and X-09.1 run
@@ -211,10 +211,13 @@ test.describe('US-X-09 — externalised strings', () => {
     }) => {
       const data = recordApiData(page);
       await openConsole(page, c, { build: 'keys' });
-      // The screen reloads the page: only what it read itself counts as its project data.
-      data.reset();
+      // The screen reloads the page: only what it read itself counts as its project data — what the
+      // page being left reads until the navigation counts for nothing (R4-2).
+      data.reset({ untilNavigation: true });
       await screen.open(page, c);
-      const outside = (await textsOutsideCatalogue(page, data)).map((text) => `${screen.name} — ${text}`);
+      // Every answer the page asked for, a late one included; a text flagged with no new data is
+      // reported at once, with the recorder's causes (bug-015).
+      const outside = (await screenTextsOutsideCatalogue(page, data)).map((text) => `${screen.name} — ${text}`);
       expect(outside).toEqual([]);
     });
   }

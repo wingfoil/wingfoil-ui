@@ -8,22 +8,28 @@
  *   reason (D36-7), state pill with the descriptor's tone, and one primary action, a button that
  *   opens the element panel (D36-3: no write here; the gate and submit footers are task-037's and
  *   task-038's); "Nothing requires you" when empty (D36-4);
- * - *Waiting on others* — rows linking to the panel, with who must act (D36-6); hidden when empty.
+ * - *Waiting on others* — rows linking to the panel, with who must act (D36-6); hidden when empty;
+ * - the all-roles summary of a member holding several roles, between the greeting and Requires you
+ *   (task-042, D42-5; `RoleSummary.tsx`): a switch from it moves the focus to the Requires you
+ *   heading once the new view is read (D42-6).
  *
  * A refusal of `GET /today` (no partial Today, D31-3) is an error, never an empty list. A refetch
  * that changed the rows is announced in a polite status region (D36-11). Rows, order, actor, tone
  * and action are data of the server (spec-003 §8), never re-derived.
  */
-import type { UseQueryResult } from '@tanstack/react-query';
+import { useQueryClient, type UseQueryResult } from '@tanstack/react-query';
 import type { ProjectHeader, Today, TodayActionRow, TodayRow } from '@wingfoil-ui/contracts';
 import { Link, useNavigate } from '@tanstack/react-router';
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { Button } from 'react-aria-components';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { ApiError } from '../api/client.js';
+import { useSetRoleView } from '../api/projects.js';
+import { projectHeaderQuery } from '../api/queries.js';
 import { useHowToJoin } from '../project/HowToJoin.js';
 import { ErrorText } from '../shell/ErrorText.js';
 import { greetingName, identityNote, rowReason, waitingWho } from './model.js';
+import { RoleSummary } from './RoleSummary.js';
 import './today.css';
 
 type Read<T> = Pick<UseQueryResult<T>, 'data' | 'error'>;
@@ -31,7 +37,8 @@ type Read<T> = Pick<UseQueryResult<T>, 'data' | 'error'>;
 /** Props of {@link TodayView}. */
 export interface TodayViewProps {
   pid: string;
-  header: Read<ProjectHeader>;
+  /** The project header; `dataUpdatedAt` clears a refused summary switch once read again (R2-1). */
+  header: Read<ProjectHeader> & Pick<UseQueryResult<ProjectHeader>, 'dataUpdatedAt'>;
   /** `GET /today` for the header's role view; not started until the header is read. */
   today: Read<Today>;
 }
@@ -205,6 +212,52 @@ export function TodayView({ pid, header, today }: TodayViewProps): ReactNode {
   const [announcement, setAnnouncement] = useState<{ n: number; count: number } | undefined>(undefined);
   const [now, setNow] = useState(Date.now);
   const previous = useRef<Today | undefined>(undefined);
+  // D42-6: a switch from the all-roles summary. The Requires you heading takes the focus once the
+  // asked view is read (the pressed button is gone while it loads). The request is forgotten on a
+  // refusal, on a failed Today read, or when another view is read first (review R1). The refusal is
+  // shown here, outside the summary that a refetch may remove (review R2); the view is keyed by the
+  // project, so nothing of it reaches another project.
+  const roleView = useSetRoleView();
+  const switchRequest = useRef<{ role: string; from: string | null } | null>(null);
+  const requiresHeading = useRef<HTMLHeadingElement>(null);
+  // A refusal is reported once the header was read again (the hook's `onError` awaits it); it stays
+  // until the header is read once more — a later switch from the header, a `repo` event — or another
+  // switch starts here (review round 2, R2-1; the header's own pattern, `ProjectHeader.tsx`).
+  const refusedAt = useRef(0);
+  const { isError, reset } = roleView;
+  const queryClient = useQueryClient();
+  useEffect(() => {
+    // Only when the refusal arrives: the header read that follows it is the baseline — read from the
+    // cache, which may hold it before this render does.
+    if (isError) refusedAt.current = queryClient.getQueryState(projectHeaderQuery(pid).queryKey)?.dataUpdatedAt ?? 0;
+  }, [isError, queryClient, pid]);
+  useEffect(() => {
+    if (isError && header.dataUpdatedAt > refusedAt.current) reset();
+  }, [header.dataUpdatedAt, isError, reset]);
+  const switchTo = (role: string): void => {
+    if (roleView.isPending) return;
+    reset();
+    switchRequest.current = { role, from: data?.view ?? null };
+    roleView.mutate(
+      { pid, role },
+      {
+        onError: () => {
+          switchRequest.current = null;
+        },
+      },
+    );
+  };
+  useEffect(() => {
+    const request = switchRequest.current;
+    if (request === null) return;
+    if (today.error) {
+      switchRequest.current = null;
+      return;
+    }
+    if (data === undefined || data.view === request.from) return;
+    if (data.view === request.role) requiresHeading.current?.focus();
+    switchRequest.current = null;
+  }, [data, today.error]);
   useEffect(() => {
     const before = previous.current;
     if (data === undefined) return;
@@ -242,6 +295,11 @@ export function TodayView({ pid, header, today }: TodayViewProps): ReactNode {
           </span>
         )}
       </div>
+      {roleView.error && (
+        <div className="today-switch-error" role="alert">
+          <ErrorText error={roleView.error} />
+        </div>
+      )}
       {error ? (
         <div className="today-error" role="alert">
           <ErrorText error={asApiError(error)} />
@@ -253,9 +311,10 @@ export function TodayView({ pid, header, today }: TodayViewProps): ReactNode {
       ) : (
         <>
           <IdentitySentence header={header.data} />
+          {data.summary && <RoleSummary pid={pid} lines={data.summary} view={data.view} onSwitch={switchTo} />}
           {rows !== null && (
             <section className="today-card" aria-labelledby={requiresId}>
-              <h2 className="today-card-title" id={requiresId}>
+              <h2 className="today-card-title" id={requiresId} ref={requiresHeading} tabIndex={-1}>
                 <FormattedMessage id="today.requiresYou.title" />
               </h2>
               {rows.length === 0 ? (

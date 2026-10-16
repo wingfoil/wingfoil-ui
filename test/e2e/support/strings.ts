@@ -28,7 +28,8 @@
  *   `GET /api/p/:pid/elements/:eid` answer read since `reset()` that the panel lists (`fieldEntries`) —
  *   the project's own field names.
  */
-import type { Page } from '@playwright/test';
+import type { Page, Request } from '@playwright/test';
+import { COLD_READ_MS } from './cold-read.js';
 import { parse, TYPE, type MessageFormatElement } from '@formatjs/icu-messageformat-parser';
 import en from '../../../web/src/i18n/en.json' with { type: 'json' };
 import { joinCommand } from '../../../web/src/project/join.js';
@@ -79,20 +80,81 @@ export function isKeyText(text: string, isData: (word: string) => boolean = () =
 export interface DataRecorder {
   /** Every string and number value read since the last `reset()`, once every answer is parsed. */
   strings(): Promise<Set<string>>;
-  /** Forget what was read: a screen is opened anew (each screen reloads the page). */
-  reset(): void;
+  /**
+   * Forget what was read: a screen is opened anew (each screen reloads the page). With
+   * `untilNavigation`, what is read until the main frame's next navigation is forgotten too — the
+   * requests of the page being left (review round 4, R4-2).
+   */
+  reset(options?: { untilNavigation?: boolean }): void;
   /** The frontmatter keys of the elements read since the last `reset()` (D37-13); none if absent. */
   fieldNames?(): Promise<Set<string>>;
+  /**
+   * Why answers since the last `reset()` could not be learnt (bug-015), and the reads set aside as
+   * the page left's at the navigation (R5-1); none if absent.
+   */
+  failures?(): Promise<string[]>;
+  /** How many answers were learnt (or failed) since the last `reset()`: new data since an attempt. */
+  answers?(): number;
+}
+
+/** Options of {@link recordApiData}. */
+export interface RecordOptions {
+  /** How long the data waits for an answer the page asked for (default `COLD_READ_MS`). */
+  answerTimeoutMs?: number;
 }
 
 /** The path of one element's read (`GET /api/p/:pid/elements/:eid`). */
 const ELEMENT_READ = /^\/api\/p\/[^/]+\/elements\/[^/]+$/;
 
-/** Record the JSON answers of the console's API that `page` reads from now on. */
-export function recordApiData(page: Page): DataRecorder {
-  let found = new Set<string>();
-  let fields = new Set<string>();
-  const pending = new Set<Promise<void>>();
+/** The data of the answers read since one `reset()` (one screen opening). */
+interface Generation {
+  found: Set<string>;
+  fields: Set<string>;
+  /** Why an answer could not be learnt (bug-015): a failed body read, or no answer in time. */
+  failures: string[];
+  /** The answers still on their way or being parsed, with their request line. */
+  pending: Map<Promise<void>, string>;
+  /** Answers learnt or failed. */
+  answers: number;
+  /** The request lines filed here, in order. */
+  lines: string[];
+  /**
+   * The reads set aside at the navigation that started this generation, as the page left's
+   * (R4-2): named as a possible cause of what is flagged (review R5-1) — a `request` event of the
+   * new page can reach the test before the navigation's.
+   */
+  ignored: string[];
+}
+
+/**
+ * Record the JSON answers of the console's API that `page` reads from now on. A request is followed
+ * from the moment the page sends it (bug-015): the data of every answer the page asked for before
+ * the check reads it is waited for (`COLD_READ_MS` at most), even when its answer or its `response`
+ * event arrives after the page already shows it; a request that fails (aborted by a navigation)
+ * brings no data and is no error; a body that cannot be read is recorded as a failure, reported
+ * with what the check flags (`textsOutsideCatalogue`), never swallowed.
+ */
+export function recordApiData(page: Page, options: RecordOptions = {}): DataRecorder {
+  const answerTimeoutMs = options.answerTimeoutMs ?? COLD_READ_MS;
+  const fresh = (): Generation => ({
+    found: new Set(),
+    fields: new Set(),
+    failures: [],
+    pending: new Map(),
+    answers: 0,
+    lines: [],
+    ignored: [],
+  });
+  let current = fresh();
+  let resetAtNavigation = false;
+  page.on('framenavigated', (frame) => {
+    if (frame !== page.mainFrame() || !resetAtNavigation) return;
+    resetAtNavigation = false;
+    const left = current;
+    current = fresh();
+    current.ignored = [...left.lines];
+  });
+  const settle = new Map<Request, (finished: boolean) => void>();
   const collect = (into: Set<string>, v: unknown): void => {
     if (typeof v === 'string') into.add(v.trim());
     else if (typeof v === 'number') into.add(String(v));
@@ -105,42 +167,85 @@ export function recordApiData(page: Page): DataRecorder {
     for (const k of Object.keys(config.types?.data?.types ?? {})) into.add(k);
     for (const k of Object.keys(config.paths?.data ?? {})) into.add(k);
   };
-  page.on('response', (response) => {
-    const url = new URL(response.url());
+  const learn = (gen: Generation, pathname: string, body: unknown): void => {
+    collect(gen.found, body);
+    if (pathname.endsWith('/config')) names(gen.found, body);
+    if (ELEMENT_READ.test(pathname)) {
+      const frontmatter = (body as { frontmatter?: unknown } | null)?.frontmatter;
+      if (frontmatter !== null && typeof frontmatter === 'object') {
+        // Only the fields the panel lists under References (review F11).
+        for (const e of fieldEntries(frontmatter as Record<string, unknown>)) gen.fields.add(e.field);
+      }
+    }
+  };
+  page.on('request', (request) => {
+    const url = new URL(request.url());
     if (!url.pathname.startsWith('/api/') || url.pathname === '/api/events') return;
-    if (!(response.headers()['content-type'] ?? '').includes('json')) return;
-    const into = found;
-    const fieldsInto = fields;
-    const parsing = response.json().then(
-      (body: unknown) => {
-        collect(into, body);
-        if (url.pathname.endsWith('/config')) names(into, body);
-        if (ELEMENT_READ.test(url.pathname)) {
-          const frontmatter = (body as { frontmatter?: unknown } | null)?.frontmatter;
-          if (frontmatter !== null && typeof frontmatter === 'object') {
-            // Only the fields the panel lists under References (review F11).
-            for (const e of fieldEntries(frontmatter as Record<string, unknown>)) fieldsInto.add(e.field);
-          }
-        }
-      },
-      () => {},
-    );
-    pending.add(parsing);
-    void parsing.finally(() => pending.delete(parsing));
+    // The data belongs to the opening that asked for it, whenever the answer arrives.
+    const gen = current;
+    const line = `${request.method()} ${url.pathname}${url.search}`;
+    const answered = new Promise<boolean>((resolve) => settle.set(request, resolve));
+    const work = answered.then(async (finished) => {
+      settle.delete(request);
+      if (!finished) return;
+      try {
+        const response = await request.response();
+        if (!response || !(response.headers()['content-type'] ?? '').includes('json')) return;
+        learn(gen, url.pathname, await response.json());
+        gen.answers += 1;
+      } catch (error) {
+        gen.answers += 1;
+        gen.failures.push(
+          `answer not read: ${line} (${error instanceof Error ? error.message.split('\n')[0] : String(error)})`,
+        );
+      }
+    });
+    gen.lines.push(line);
+    gen.pending.set(work, line);
+    void work.finally(() => gen.pending.delete(work));
   });
+  page.on('requestfinished', (request) => settle.get(request)?.(true));
+  page.on('requestfailed', (request) => settle.get(request)?.(false));
+  /** Wait for every answer of `gen` requested so far (and those requested meanwhile), bounded. */
+  const settled = async (gen: Generation): Promise<void> => {
+    const deadline = Date.now() + answerTimeoutMs;
+    while (gen.pending.size > 0) {
+      const left = deadline - Date.now();
+      if (left <= 0) {
+        for (const line of gen.pending.values())
+          gen.failures.push(`answer not received in ${answerTimeoutMs} ms: ${line}`);
+        gen.pending.clear();
+        return;
+      }
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      await Promise.race([
+        Promise.all([...gen.pending.keys()]),
+        new Promise((resolve) => (timer = setTimeout(resolve, left))),
+      ]);
+      clearTimeout(timer);
+    }
+  };
   return {
     strings: async () => {
-      await Promise.all([...pending]);
-      return found;
+      const gen = current;
+      await settled(gen);
+      return gen.found;
     },
-    reset: () => {
-      found = new Set();
-      fields = new Set();
+    reset: (opts) => {
+      current = fresh();
+      resetAtNavigation = opts?.untilNavigation === true;
     },
     fieldNames: async () => {
-      await Promise.all([...pending]);
-      return fields;
+      const gen = current;
+      await settled(gen);
+      return gen.fields;
     },
+    failures: async () => {
+      const gen = current;
+      await settled(gen);
+      return [...gen.failures, ...gen.ignored.map((line) => `ignored as a read of the page left: ${line}`)];
+    },
+    answers: () => current.answers,
   };
 }
 
@@ -309,5 +414,26 @@ export async function textsOutsideCatalogue(page: Page, recorder: DataRecorder):
     if (fieldName && fieldNames.has(text)) continue;
     bad.add(`${where}: ${text}`);
   }
+  // A text flagged may be data of an answer the recorder could not read: say so (bug-015).
+  if (bad.size > 0) for (const failure of (await recorder.failures?.()) ?? []) bad.add(failure);
   return [...bad];
+}
+
+/**
+ * The X-09.1 check of a screen (bug-015, review round 4): {@link textsOutsideCatalogue} once every
+ * answer the page asked for is learnt (each waited for within the recorder's bound, a hung one
+ * recorded as the cause), repeated only while the recorder learnt new data during the previous
+ * attempt (an answer whose request reached the test late), at most `COLD_READ_MS`; a text still
+ * flagged with no new data is reported at once — a transient text is not waited away (R4-3).
+ */
+export async function screenTextsOutsideCatalogue(page: Page, recorder: DataRecorder): Promise<string[]> {
+  const deadline = Date.now() + COLD_READ_MS;
+  await recorder.strings();
+  for (;;) {
+    const before = recorder.answers?.() ?? 0;
+    const outside = await textsOutsideCatalogue(page, recorder);
+    if (outside.length === 0) return outside;
+    const learnt = (recorder.answers?.() ?? 0) > before;
+    if (!learnt || Date.now() >= deadline) return outside;
+  }
 }
