@@ -701,3 +701,22 @@ override, then let the user's next read smudge as git would; (3) fast-forward au
 when no incoming path is referenced by a `.gitattributes` filter, diff or merge driver; (4) a
 sandboxed checkout (a separate worktree or a restricted environment) before moving the user's
 branch; (5) drop `autoUpdate` and keep the manual Update only.
+
+### review round 5 (2026-10-16)
+
+Independent review and adversarial security review round 5: **PASS**, with documentation nits
+fixed in `1693ede` (no behaviour change):
+
+- **R5-1** — the JSDoc of the configuration guard rewritten in sentences; the function renamed
+  `worktreeConfigKey` (it returns the triggering key; used only in `server/src/sync/auto-sync.ts`).
+- **R5-2** — user guide: the console's log names the setting that stopped the automatic sync
+  (e.g. `includeif.path`), and `git config --list --show-origin` shows where it comes from.
+- **S5-1** — spec-010 §6, §9 and the user guide say "no hook of the repository"; hooks the user's
+  own configuration defines (`hook.<name>.command`, newer git) are part of the declared residual,
+  which now cross-references the residual of hooks an automatic merge brought in (W4-10 a);
+  spec-010 Process Note.
+
+Checks on `1693ede`: `typecheck`, `lint`, `format:check` clean; `docs:api`, `check_tasks.py v0.2`
+OK; `test:coverage` (public-text check included) 153 files passed, 1 skipped, **2852 passed / 1
+skipped** (statements 96.53 %, branches 91.14 %), load 1.5 → 15.5. No `wfui-task-034-*` entry
+left. `main` not merged (the coordinator merges it before submit).
