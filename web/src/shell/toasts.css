@@ -92,9 +92,9 @@
   font-weight: 500;
 }
 
+/* No scroll of its own (axe scrollable-region-focusable): a long tool text makes the stack scroll. */
 .toast .verbatim {
-  max-height: 160px;
-  overflow: auto;
+  overflow-wrap: anywhere;
 }
 
 .toast-close {
