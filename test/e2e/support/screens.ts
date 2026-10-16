@@ -216,4 +216,10 @@ export const SCREENS: readonly Screen[] = [
       await expectSettled(page);
     },
   },
+  {
+    // task-038 (D38-13): the single-action footer, Submit enabled (a draft of the kanban fixture).
+    name: 'element panel — submit footer',
+    open: (page, c) =>
+      project(page, c, `/p/${c.pids[0]}/e/task-004-session-timeout`, (p) => p.locator('.drawer .submit-footer')),
+  },
 ];
