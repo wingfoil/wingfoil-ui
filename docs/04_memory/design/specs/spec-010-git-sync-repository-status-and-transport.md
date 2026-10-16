@@ -241,8 +241,10 @@ so the sidebar shows it (Y-06.1, Y-06.2).
   target, `refspec-outside-remotes`, `remote-not-owned`, `remote-unreadable`) is skipped and logged
   by code, nothing recorded.
 - **Unattended runs** (the automatic fetch and update): `core.hooksPath` is the clone's empty hooks
-  path, so no hook runs — the repository's, or one the incoming commits bring through a relative
-  hooks path, which a fetch's `reference-transaction` and a merge's `post-merge` would run; and no
+  path, so no hook of the repository runs — neither `.git/hooks` nor one the incoming commits
+  bring through a relative hooks path, which a fetch's `reference-transaction` and a merge's
+  `post-merge` would run (hooks the user's own configuration defines, `hook.<name>.command` in
+  newer git, belong to the declared residual below); and no
   askpass program (`GIT_ASKPASS` empty, which git reads as "none" for `GIT_ASKPASS`,
   `core.askPass` and `SSH_ASKPASS`; `SSH_ASKPASS_REQUIRE=never`) — credential helpers still run.
   The manual transport and the auto-push keep both (RP-23): the user just acted. Accepted
@@ -271,8 +273,10 @@ so the sidebar shows it (Y-06.1, Y-06.2).
   incoming commits can run commands that the user's **own** git configuration points at — a filter
   driver (`filter.<x>.smudge`/`clean`), `core.sshCommand`, a credential helper,
   `remote.<r>.uploadpack`, an alias they call — when such a command reads or runs a file of the
-  working tree; never a hook (no hooks run, D34-1), never an fsmonitor (W4-5), never configuration
-  the repository brings (`config-in-worktree`, W4-5/W4-11/W4-14). It is not detected: the value
+  working tree, and hooks that configuration defines (`hook.<name>.command`, newer git); never a
+  hook of the repository (D34-1), never an fsmonitor (W4-5), never configuration the repository
+  brings (`config-in-worktree`, W4-5/W4-11/W4-14). See also the residual of hooks an automatic
+  merge brought in, which run at the user's next governed write or auto-push (W4-10 a, above). It is not detected: the value
   heuristics tried in review (W4-12, W4-15) were bypassed by shell expansion — a `$HOME` path,
   `${HOME}`, `"$(pwd)/…"`, backticks, `$(git rev-parse --show-toplevel)`/`--show-cdup`, `${PWD%/}`,
   globs such as `t*/`, a script that sources another file — and stopped the update forever on
@@ -347,7 +351,7 @@ Rows 7–9 do not apply (no element).
   list and its §5 checks; a tick skipping a project whose write lock is busy; the timer re-armed
   only on an `autoFetch` or `fetchIntervalSeconds` change; the hardened update arguments against
   `mergeOptions` / `pull.twohead` / `merge.ff` (one parent, HEAD = upstream, nothing staged); no
-  tag or branch pruned; no hook or askpass program in an unattended run.
+  tag or branch pruned; no hook of the repository and no askpass program in an unattended run.
 - API: every row of §5 and §8 (status, `code`, 0 transport processes); every `push` outcome.
 - e2e (fixtures with a local bare remote): `features/y/*.feature`, G-12.1…G-12.3, G-13.1/G-13.2,
   S-11.2, C-07.3; REQ-PERF-07 with the default interval (10 of 10 within 65 s; 0 `git fetch` in
@@ -459,3 +463,6 @@ Rows 7–9 do not apply (no element).
   heuristics of W4-12 / W4-15 and the code `config-uses-incoming-path` removed, the residual of the
   automatic update declared; §5 its catalogue row removed. The `config-in-worktree` log names the
   triggering key by section and name only (R4-2).
+- 2026-10-16 — review round 5 of task-034 (S5-1): §6 "no hook of the repository"; hooks the user's
+  own configuration defines (`hook.<name>.command`) counted under the declared residual, with a
+  cross-reference to the residual of hooks an automatic merge brought in.

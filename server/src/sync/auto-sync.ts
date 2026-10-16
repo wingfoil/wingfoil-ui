@@ -33,17 +33,19 @@ const real = (file: string): Promise<string | undefined> => realpath(file).catch
 const within = (file: string, dir: string): boolean => file === dir || file.startsWith(dir + path.sep);
 
 /**
- * Whether the effective configuration reads a file the repository's commits can change (task-034
- * W4-5, security review S1): an `include.path` / `includeIf` to a tracked file would let incoming
+ * The configuration key that makes an unattended run unsafe, or `undefined` (task-034 W4-5,
+ * security review S1). An `include.path` / `includeIf` to a tracked file would let the incoming
  * commits set `remote.<r>.uploadpack`, `core.fsmonitor`, a filter driver, `core.sshCommand`, a
- * credential helper or `core.gitProxy`, which an unattended run would execute. The triggering key —
- * by section and name only, review R4-2 (`unresolved` when the git directories cannot be) — fail
- * closed — when a file origin of the repository's scopes (`local`, `worktree`) is not one of its own config
- * files, when any file origin resolves inside the working tree outside the git directories, or when
- * an origin cannot be resolved; `undefined` otherwise. Relative origins are git's, relative to the
- * repository's top level.
+ * credential helper or `core.gitProxy`, which an unattended run would execute.
+ *
+ * Returns the triggering key — by section and name only (review R4-2), or `unresolved` when the git
+ * directories cannot be resolved — when a file origin of the repository's scopes (`local`,
+ * `worktree`) is not one of its own config files, when any file origin resolves inside the working
+ * tree outside the git directories, when an include directive's target does (W4-11), or when an
+ * origin cannot be resolved (fail closed); `undefined` otherwise. Relative origins are git's,
+ * relative to the repository's top level.
  */
-export async function configInWorktree(snapshot: ProjectSnapshot, home?: string): Promise<string | undefined> {
+export async function worktreeConfigKey(snapshot: ProjectSnapshot, home?: string): Promise<string | undefined> {
   const top = await real(snapshot.topLevel);
   const gitDir = await real(snapshot.gitDir);
   const commonDir = await real(snapshot.commonDir);
@@ -220,7 +222,7 @@ export class AutoSync implements SyncWork {
     const { transport, logger } = this.options;
     const state = await snapshot.check();
     if (state.remotes.length === 0) return;
-    const configKey = await configInWorktree(snapshot, this.options.transport.environment.HOME);
+    const configKey = await worktreeConfigKey(snapshot, this.options.transport.environment.HOME);
     if (configKey !== undefined) {
       logger.warn(
         { project: pid, op: 'auto-fetch', code: 'config-in-worktree', key: configKey },
@@ -283,7 +285,7 @@ export class AutoSync implements SyncWork {
     if (!store.settings().autoUpdate || state.behind === 0) return;
     // RP-14: only for a user identified in the team (the team is cached on HEAD and the working tree).
     if (!(await identified(await snapshot.view()))) return;
-    const configKey = await configInWorktree(snapshot, this.options.transport.environment.HOME);
+    const configKey = await worktreeConfigKey(snapshot, this.options.transport.environment.HOME);
     if (configKey !== undefined) {
       logger.warn(
         { project: pid, op: 'auto-update', code: 'config-in-worktree', key: configKey },

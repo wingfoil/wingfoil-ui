@@ -316,8 +316,9 @@ it started up to date with their remote, by itself. Three settings drive it (spe
 the commits someone pushes can run commands that **your own** git configuration points at — a
 filter driver (for example git-lfs or a `filter.<x>.clean` script), your `core.sshCommand`, a
 credential helper, an `uploadpack` command or an alias they call — when such a command reads or
-runs a file of the project. The console runs no hook, no fsmonitor and no configuration that
-comes with the repository, but it cannot tell from your configuration whether a command reads
+runs a file of the project, and hooks your configuration defines (`hook.<name>.command` in newer
+git). The console runs no hook of the repository, no fsmonitor and no configuration that comes
+with the repository (see also *Hooks come back with your next action* below), but it cannot tell from your configuration whether a command reads
 project files: shell forms such as a `$HOME` path, `$(pwd)/…`, backticks or a script that sources
 another file all hide it. Leave Auto-update off if your configuration runs scripts from your
 projects.
@@ -333,8 +334,10 @@ projects.
 - **Not when the repository configures itself.** If the repository's own configuration includes
   another file (`include.path`, `includeIf` — e.g. a `.gitconfig` committed in the project, even
   one not there yet or for another branch), the console does not fetch or update it by itself: the
-  commits it would bring could change that file and make git run a command. The sidebar shows why;
-  fetch and update with git in a terminal. Includes of your global configuration (`~/.gitconfig`)
+  commits it would bring could change that file and make git run a command. The sidebar shows why,
+  and the console's log names the setting that stopped it (for example `includeif.path`);
+  `git config --list --show-origin` shows where it comes from. Fetch and update with git in a
+  terminal. Includes of your global configuration (`~/.gitconfig`)
   are yours and do not count, unless they point into the project's folder.
 - **Stopping the console during an automatic update** lets the update finish first, so the working
   tree is never left half updated; the log says so, and a second Ctrl-C (or signal) stops at once.
