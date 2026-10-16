@@ -415,3 +415,37 @@ describe('review round 1', () => {
     expect(descriptions).toEqual(['fatal: marker message', 'error: update marker']);
   });
 });
+
+describe('review round 2', () => {
+  const failed = () =>
+    withRepo({
+      sync: {
+        fetch: { lastSuccessAt: null, lastError: { message: 'fatal: could not read Username', at: 'x' } },
+        update: { lastError: null },
+      },
+    });
+
+  it('R2-1, R2-3 — the press opens a dialog that takes the focus; Escape closes it and gives the focus back', async () => {
+    show(failed());
+    const user = userEvent.setup();
+    const info = within(region()).getByRole('button', { name: "Git's message" });
+    expect(info.getAttribute('aria-expanded')).not.toBe('true');
+    await user.click(info);
+    const dialog = await screen.findByRole('dialog', { name: "Git's message" });
+    expect(dialog.textContent).toBe('fatal: could not read Username');
+    await waitFor(() => expect(dialog.contains(document.activeElement)).toBe(true));
+    expect(info.getAttribute('aria-expanded')).toBe('true');
+    await user.keyboard('{Escape}');
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    await waitFor(() => expect(document.activeElement).toBe(info));
+  });
+
+  it('R2-1 — a press outside the dialog closes it', async () => {
+    show(failed());
+    const user = userEvent.setup();
+    await user.click(within(region()).getByRole('button', { name: "Git's message" }));
+    await screen.findByRole('dialog', { name: "Git's message" });
+    await user.click(document.body);
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+  });
+});

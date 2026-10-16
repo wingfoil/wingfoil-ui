@@ -86,6 +86,32 @@ async function openGitMessage(page: Page): Promise<Locator> {
   return tip;
 }
 
+/** Press at the centre of `locator` with the mouse (a modal popover's underlay covers the page). */
+async function pressAt(page: Page, locator: Locator): Promise<void> {
+  const box = (await locator.boundingBox())!;
+  await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
+}
+
+/** Tap at the centre of `locator` (touch screen). */
+async function tapAt(page: Page, locator: Locator): Promise<void> {
+  const box = (await locator.boundingBox())!;
+  await page.touchscreen.tap(box.x + box.width / 2, box.y + box.height / 2);
+}
+
+/** A console on a kanban copy whose fetch failed: the failure line is shown. */
+async function failedFetch(
+  page: Page,
+  fixtures: { copy(kind: FixtureKind): Promise<Fixture> },
+  consoles: { start(o?: ConsoleOptions): Promise<RunningConsole> },
+): Promise<RunningConsole> {
+  const fx = await copyAs(fixtures, 'kanban', 'Morgan', (f) => setRemoteUrl(f, UNREACHABLE));
+  const c = await start(consoles, fx);
+  await openView(page, c);
+  expect((await clickFetch(page)).status).toBe(422);
+  await expect(gitStatus(page)).toContainText('Fetch failed', { timeout: COLD_READ_MS });
+  return c;
+}
+
 async function start(
   consoles: { start(o?: ConsoleOptions): Promise<RunningConsole> },
   fx: Fixture,
@@ -271,11 +297,68 @@ test.describe('US-Y-03 — a failed fetch never blocks reading', () => {
       // A press (a tap on a touch screen) opens the same message (review R6).
       await gitStatus(page).getByRole('button', { name: "Git's message" }).click();
       await expect(page.getByRole('dialog', { name: "Git's message" })).toContainText('could not read Username');
+      // The open dialog in both themes (review R2-4).
+      expect(await scanThemes(page)).toEqual([]);
       await expect(gitStatus(page).getByRole('button', { name: "Git's message" })).toHaveAccessibleDescription(
         /could not read Username/,
       );
     } finally {
       await remote.close();
+    }
+  });
+});
+
+test.describe("git's message on press (review round 2: R2-1 … R2-3)", () => {
+  test("a press without hover opens git's message, focused; a second press, a press outside or Escape closes it", async ({
+    page,
+    fixtures,
+    consoles,
+  }) => {
+    await failedFetch(page, fixtures, consoles);
+    const info = gitStatus(page).getByRole('button', { name: "Git's message" });
+    const dialog = page.getByRole('dialog', { name: "Git's message" });
+    // R2-2: a click with no hover before it (Playwright moves and presses at once).
+    await info.click();
+    await expect(dialog).toContainText('unable to access');
+    await expect(dialog).toBeFocused();
+    await expect(info).toHaveAttribute('aria-expanded', 'true');
+    // The same button again.
+    await pressAt(page, info);
+    await expect(dialog).toHaveCount(0);
+    // Outside.
+    await info.click();
+    await expect(dialog).toBeVisible();
+    await pressAt(page, page.getByRole('heading', { level: 1 }));
+    await expect(dialog).toHaveCount(0);
+    // Escape: closed, the focus back on the button.
+    await info.click();
+    await expect(dialog).toBeFocused();
+    await page.keyboard.press('Escape');
+    await expect(dialog).toHaveCount(0);
+    await expect(info).toBeFocused();
+  });
+
+  test("on a touch screen a tap opens git's message; a second tap or a tap outside closes it", async ({
+    browser,
+    fixtures,
+    consoles,
+  }) => {
+    const context = await browser.newContext({ hasTouch: true });
+    try {
+      const page = await context.newPage();
+      await failedFetch(page, fixtures, consoles);
+      const info = gitStatus(page).getByRole('button', { name: "Git's message" });
+      const dialog = page.getByRole('dialog', { name: "Git's message" });
+      await info.tap();
+      await expect(dialog).toContainText('unable to access');
+      await tapAt(page, info);
+      await expect(dialog).toHaveCount(0);
+      await info.tap();
+      await expect(dialog).toBeVisible();
+      await tapAt(page, page.getByRole('heading', { level: 1 }));
+      await expect(dialog).toHaveCount(0);
+    } finally {
+      await context.close();
     }
   });
 });
