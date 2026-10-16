@@ -415,3 +415,9 @@ the key already held — and was checked by guard removal).
 | R7 | the refusal alert also clears when `repository.state` moves or the sync part goes (`has-remote` false) | component › R7 ×2 (red) |
 | R8 | the description span is `hidden` (`aria-describedby` still resolves), so the polite live region no longer announces git's message | component › R8 (red); with `visually-hidden` instead of `hidden` it fails (checked, restored) |
 | R9 | the dead `.git-alert:empty` rule removed | — |
+
+Checks after review round 1 (HEAD before this note `11ea0dd`, via the machine-free slot):
+typecheck, lint, format:check clean; web suite 810 passed; `test:coverage` 160 files passed, 1
+skipped, **2936 passed / 1 skipped** (statements 96.55 %, branches 91.26 %; load 11.6);
+`test:e2e:chromium` **255 passed** (load 3.6); own specs (git-status, accessibility, no-commit,
+gate-footer) on the three engines **279 passed** (load 10.2). No console left running.
