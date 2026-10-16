@@ -89,6 +89,30 @@ async function successToast(page: Page, title: string): Promise<Locator> {
   return toast;
 }
 
+/** `target` is the element a pointer reaches at its centre (nothing, a toast included, covers it). */
+async function expectOnTop(page: Page, target: Locator): Promise<void> {
+  await expect
+    .poll(async () => {
+      const box = await target.boundingBox();
+      if (!box) return false;
+      const handle = await target.elementHandle();
+      return page.evaluate(
+        ([x, y, t]) => {
+          const hit = document.elementFromPoint(x, y);
+          return hit !== null && (hit === t || t.contains(hit));
+        },
+        [box.x + box.width / 2, box.y + box.height / 2, handle] as const,
+      );
+    })
+    .toBe(true);
+}
+
+/** The bottom edge of `locator` in the viewport. */
+async function bottomOf(locator: Locator): Promise<number> {
+  const box = await locator.boundingBox();
+  return box ? box.y + box.height : Number.POSITIVE_INFINITY;
+}
+
 test.describe('US-G-10 — submit from the single-action footer', () => {
   test('G-10.1 — Submit a draft', async ({ page, fixtures, consoles }) => {
     const kanban = await copyAs(fixtures, 'kanban', 'Jordan');
@@ -98,12 +122,13 @@ test.describe('US-G-10 — submit from the single-action footer', () => {
     await expect(submitButton(page)).toHaveClass(/button-primary/);
     expect(await scanThemes(page)).toEqual([]);
     await submitButton(page).click();
-    await expectLastCommit(kanban, 'wf(task): submit task-004-session-timeout');
-    await expect(currentState(page)).toHaveText('pending, current state', { timeout: COLD_READ_MS });
+    // The toast first: its 8 s timer must not race the refetch of the panel (review R2).
     const toast = await successToast(page, 'Submitted task-004-session-timeout');
+    await expectLastCommit(kanban, 'wf(task): submit task-004-session-timeout');
     await expect(toast.locator('.toast-commits li')).toHaveText(
       `${(await head(kanban)).slice(0, 7)} wf(task): submit task-004-session-timeout`,
     );
+    await expect(currentState(page)).toHaveText('pending, current state', { timeout: COLD_READ_MS });
   });
 
   test('G-10.2 — Submit rejected work again', async ({ page, fixtures, consoles }) => {
@@ -137,7 +162,9 @@ test.describe('US-G-10 — submit from the single-action footer', () => {
     await expectLastCommit(kanban, 'wf(task): submit task-004-session-timeout');
     const close = politeToasts(page).getByRole('button', { name: 'Close notification' });
     await expect(close).toBeVisible({ timeout: COLD_READ_MS });
-    // Focus inside the toast pauses its timer (D38-2): it stays while the keyboard reaches it.
+    // Held without a time dependence while the keyboard reaches it (review R2): hovered, its timer
+    // is paused (D38-2); then the focus inside it keeps it paused.
+    await politeToasts(page).locator('.toast').hover();
     await tabUntil(page, close);
     await expectFocusVisible(close);
     await page.keyboard.press('Enter');
@@ -204,8 +231,8 @@ test.describe('US-G-13 — the result and the commit', () => {
     await openPanel(page, c, 'task-001-login-form');
     await approveWith(page, 'OK');
     const subject = 'wf(task): approve task-001-login-form [pending → approved]';
-    await expectLastCommit(kanban, subject);
     const toast = await successToast(page, 'Approved task-001-login-form');
+    await expectLastCommit(kanban, subject);
     const sha = await head(kanban);
     await expect(toast.locator('.toast-commits li')).toHaveText(`${sha.slice(0, 7)} ${subject}`);
     await expect(toast.locator('.toast-commits code')).toHaveText(sha.slice(0, 7));
@@ -222,8 +249,8 @@ test.describe('US-G-13 — the result and the commit', () => {
     await openPanel(page, c, 'task-001-login-form');
     await approveWith(page, 'OK');
     const subject = 'wf(task): approve task-001-login-form [pending → approved]';
-    await expectLastCommit(kanban, subject);
     const toast = await successToast(page, 'Approved task-001-login-form');
+    await expectLastCommit(kanban, subject);
     await expect(toast.locator('.toast-commits li')).toHaveText(`${(await head(kanban)).slice(0, 7)} ${subject}`);
     await expect(toast.locator('.toast-pushed')).toHaveCount(0);
     await expect(toast).not.toContainText('pushed');
@@ -248,7 +275,17 @@ test.describe('US-G-14 — a refusal as a red toast', () => {
     await expect(toast).toContainText('WingFoil refused the action:');
     await expect(toast.locator('pre.verbatim')).toContainText('sard_ref');
     await expect(toast).toHaveClass(/toast-error/);
+    // Review R1: the toast stays out of the drawer's footer — Submit is the element at its centre,
+    // and a second click (no force) reaches it: the new refusal replaces the toast (one key).
+    await expectOnTop(page, submitButton(page));
+    await submitButton(page).click();
+    await expect(assertiveToasts(page).locator('.toast')).toHaveCount(1);
+    await expect(toast).toContainText('sard_ref', { timeout: COLD_READ_MS });
     expect(await scanThemes(page)).toEqual([]);
+    // Too narrow for the toasts beside the drawer: stacked above its footer.
+    await page.setViewportSize({ width: 600, height: 720 });
+    await expectOnTop(page, submitButton(page));
+    await expect.poll(() => bottomOf(toast)).toBeLessThanOrEqual((await submitButton(page).boundingBox())!.y);
     await expect(currentState(page)).toHaveText('draft, current state');
     expect(await lastCommitSubject(custom)).toBe(before);
   });
@@ -276,6 +313,9 @@ test.describe('US-G-14 — a refusal as a red toast', () => {
     const toast = assertiveToasts(page).locator('.toast');
     await expect(toast).toContainText('This element changed since you opened it', { timeout: COLD_READ_MS });
     await expect(toast).toContainText('Reject of task-001-login-form not done');
+    // Review R1: the gate footer's outcomes stay reachable under the refusal.
+    await expectOnTop(page, outcome(page, 'Reject → draft'));
+    await expectOnTop(page, outcome(page, 'Approve → approved'));
     await page.unrouteAll({ behavior: 'ignoreErrors' });
     for (const r of held) await r.continue().catch(() => {});
     // No reject ran: the last commit is the terminal's approve (task-032 counts 0 CLI processes, row 9).

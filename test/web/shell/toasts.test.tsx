@@ -4,12 +4,15 @@
 // X-07.2), both regions always present; at most 3 toasts, newest last; one key replaces its previous
 // toast; a success goes after 8 s unless hovered or focused; sticky toasts stay until closed.
 import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react';
+import { userEvent } from '@testing-library/user-event';
+import { Button, Dialog, DialogTrigger, Popover } from 'react-aria-components';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { AppIntlProvider } from '../../../web/src/i18n/index.js';
 import {
   TOAST_DISMISS_MS,
   TOAST_LIMIT,
   dismissToast,
+  toastPlacement,
   getToasts,
   resetToasts,
   showToast,
@@ -59,7 +62,7 @@ it('a success goes into the polite region, an error into the assertive one', () 
 it('at most 3 toasts, newest last; the oldest goes', () => {
   mount();
   act(() => {
-    for (const n of [1, 2, 3, 4]) showToast({ tone: 'success', title: `t${n}`, sticky: true });
+    for (const n of [1, 2, 3, 4]) showToast({ tone: 'success', title: `t${n}` });
   });
   expect(TOAST_LIMIT).toBe(3);
   expect(getToasts().map((t) => t.title)).toEqual(['t2', 't3', 't4']);
@@ -121,4 +124,94 @@ it('Close removes the toast; the focus it had goes to the main region', () => {
   // Dismissing an id that is gone is a no-op.
   act(() => dismissToast(id));
   expect(getToasts()).toEqual([]);
+});
+
+// Review round 1 (R5): the limit evicts the oldest toast that is not sticky; a sticky one (a refusal,
+// a failed push) leaves only by Close or by its key; with only sticky toasts a new one is added.
+it('review R5 — the limit never evicts a sticky toast', () => {
+  mount();
+  act(() => {
+    showToast({ tone: 'error', title: 'refused' });
+    for (const n of [1, 2, 3]) showToast({ tone: 'success', title: `t${n}` });
+  });
+  expect(getToasts().map((t) => t.title)).toEqual(['refused', 't2', 't3']);
+  act(() => {
+    resetToasts();
+    for (const n of [1, 2, 3, 4]) showToast({ tone: 'error', title: `e${n}` });
+  });
+  expect(getToasts().map((t) => t.title)).toEqual(['e1', 'e2', 'e3', 'e4']);
+});
+
+it('review R5 — a toast removed or replaced while it held the focus gives it to the main region', async () => {
+  mount();
+  act(() => void showToast({ key: 'k', tone: 'error', title: 'refused' }));
+  act(() => screen.getByRole('button', { name: 'Close notification' }).focus());
+  act(() => void showToast({ key: 'k', tone: 'success', title: 'done' }));
+  await act(async () => {});
+  expect(document.activeElement?.id).toBe('main');
+  // Evicted by the limit while focused.
+  act(() => {
+    resetToasts();
+    showToast({ tone: 'success', title: 'first' });
+  });
+  act(() =>
+    (within(screen.getByText('first').closest('.toast') as HTMLElement).getByRole('button') as HTMLElement).focus(),
+  );
+  act(() => {
+    for (const n of [1, 2, 3]) showToast({ tone: 'success', title: `t${n}` });
+  });
+  await act(async () => {});
+  expect(document.activeElement?.id).toBe('main');
+});
+
+// Review round 1 (D38-1 option A): each toast is read as a whole; the regions are not atomic.
+it('D38-1 — every toast is aria-atomic, the regions are not', () => {
+  mount();
+  act(() => {
+    showToast({ tone: 'success', title: 'ok' });
+    showToast({ tone: 'error', title: 'no' });
+  });
+  for (const t of document.querySelectorAll('.toast')) expect(t.getAttribute('aria-atomic')).toBe('true');
+  expect(polite().getAttribute('aria-atomic')).toBeNull();
+  expect(assertive().getAttribute('aria-atomic')).toBeNull();
+});
+
+// Review round 1 (R3): a React Aria popover hides everything outside it but its top layer.
+it('review R3 — a toast raised while a popover is open is not hidden from assistive technology', async () => {
+  render(
+    <AppIntlProvider>
+      <main id="main" tabIndex={-1}>
+        <DialogTrigger>
+          <Button>Open</Button>
+          <Popover>
+            <Dialog aria-label="A popover">Inside</Dialog>
+          </Popover>
+        </DialogTrigger>
+      </main>
+      <Toasts />
+    </AppIntlProvider>,
+  );
+  await userEvent.click(screen.getByRole('button', { name: 'Open' }));
+  await screen.findByRole('dialog', { name: 'A popover' });
+  act(() => void showToast({ tone: 'success', title: 'Approved e-1' }));
+  const toasts = document.querySelector('.toasts') as HTMLElement;
+  expect(toasts.closest('[aria-hidden="true"]')).toBeNull();
+  expect(toasts.closest('[inert]')).toBeNull();
+  expect(document.querySelector('main')?.getAttribute('aria-hidden')).toBe('true');
+});
+
+// Review round 1 (R1): out of the drawer's column — centred in the area left of the drawer, or above
+// the drawer's footer when that area is too narrow; centred in the viewport without a drawer.
+it.each([
+  ['no drawer', { width: 1280, height: 720 }, undefined, {}],
+  [
+    'a drawer, room on its left',
+    { width: 1280, height: 720 },
+    { left: 800, footerTop: 650 },
+    { left: 400, maxWidth: 768 },
+  ],
+  ['a drawer, little room on its left', { width: 700, height: 720 }, { left: 220, footerTop: 600 }, { bottom: 128 }],
+  ['a drawer over the whole viewport', { width: 400, height: 720 }, { left: 0, footerTop: 560 }, { bottom: 168 }],
+] as const)('review R1 — placement with %s', (_name, viewport, drawer, expected) => {
+  expect(toastPlacement(viewport, drawer)).toEqual(expected);
 });
