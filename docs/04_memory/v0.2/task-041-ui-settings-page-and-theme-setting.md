@@ -305,3 +305,23 @@ e2e closure
 | C-07.2 | `test/e2e/ui-settings.spec.ts`: C-07.2 — Keep a setting across restarts without touching the project |
 | C-07.3 | `test/e2e/ui-settings.spec.ts`: C-07.3 — Apply a setting change without a restart (15 s, RP-53); 60 s / 120 s: `test/timing/ui-settings.timing.test.ts` |
 | X-08.3 | `test/e2e/ui-settings.spec.ts`: X-08.3 — Override the system with the theme setting |
+
+### review (round 1, 2026-10-16)
+
+Independent review round 1: **CHANGES REQUESTED** (R1 major, R2 and R3 minor, R4–R6 nits). Red
+tests first: `5a7c175` (all failing before the fix: the R1/R2 hook tests on the missing
+`useSettingsView`, which the fix introduces — the reviewer's probes reproduced the behaviour on the
+previous hook; the R2 alert, R3 and R5 tests on the behaviour itself); fix `339ba59`.
+
+| Id | Change | Test (guard removed → fails) |
+|----|--------|------------------------------|
+| R1 | `web/src/api/settings.ts` rewritten as a **ledger over server answers**: the query cache holds only server answers (no optimistic write); the pending saves are the settings mutations not yet settled, ordered by `mutationId`; each `PUT` is built when it runs from the last server answer plus the pending changes up to its own; the page and the theme read `useSettingsView()` — the last answer plus every pending change — so a refetch in between neither loses a change nor flips a control; a save's success cancels a read still in flight before it takes the answer (a read sent before the save was stored would put the old state back). Chosen over deferring the `settings` invalidation: it holds whatever starts a read (event, reconnect, a failure's read) and needs no event-side state | `settings.test.tsx` › R1 other tab (two saves), R1 own echo (three saves), R1 stale read; without the merge in `useSettingsView` 3 fail, without `cancelQueries` the stale-read test fails |
+| R2 | a refused save leaves the ledger, so no later request carries it; the page's alert records the wanted value and is cleared only by a save whose answer holds that value | `settings.test.tsx` › R2 (B's body without A's change, stored, shown and cached values); `ui-settings.test.tsx` › review R2 (clearing on any save fails it) |
+| R3 | the "Settings saved" text is keyed by the save count: every save is a change of the status region | `ui-settings.test.tsx` › review R3 (without the key: no mutation of the region on the second save) |
+| R5 | the pinned group is `position: sticky; bottom: 0` on `--color-bg` (the nav's background) | e2e C-07.1 asserts `sticky`; axe in both themes (C-07.1, `SCREENS`) |
+| R6 | the timing test reads the project after the quiet window and asserts a `built-in: git status` line after the change's offset of the trace | `ui-settings.timing.test.ts` |
+| R4 | no change: at the merge the coordinator keeps task-038's `ConsoleOptions.settings` (this task's specs are compatible) | — |
+
+- The old hook tests asserted the optimistic cache; they now assert server answers in the cache
+  (the shown values are the R1 tests'). The `pending` status is selected with a predicate
+  (`unsettled`): the REQ-ARC-05 lint refuses the literal.
