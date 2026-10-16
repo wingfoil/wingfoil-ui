@@ -208,3 +208,29 @@ for a pinned entry's markup: recorded as v0.2 additions after D41-1/D41-2 (direc
 `ux-consistency`).
 
 #### Open decisions — listed in the report to the coordinator as D41-1 … D41-13
+
+- **D41-1** — route `/p/$pid/configuration` (→ `/p/$pid/configuration/ui-settings`), sub-tab row of links. Options: (a) ★; (b) a global `/settings`; (c) both.
+- **D41-2** — *Configuration* in a heading-less `pinned` nav group, last, pushed to the bottom of the nav. (b) in *Repository*; (c) a hand-written link.
+- **D41-3** — every control saves on its own, whole object, serialized optimistic mutations, rollback and alert on failure. (b) Save/Cancel form; (c) not optimistic.
+- **D41-4** — number fields as a TextField with catalogue errors, an invalid value never sent. (b) NumberField (clamps, library strings); (c) presets.
+- **D41-5** — the inline script is the only writer of `data-theme`; React writes `data-theme-setting`. (b) React writes `data-theme`; (c) server-rendered.
+- **D41-6** — the setting applies when the settings query answers. (b) prefetch before the first render; (c) localStorage cache.
+- **D41-7** — `settingsQuery` / `queryKeys.settings()` = `['settings']`, a built-in `settings` rule in `events.ts`, `web/src/api/settings.ts`. (b) local subscription; (c) private to the page.
+- **D41-8** — the residual as the *Auto-update* switch's description (`aria-describedby`), `git pull` as code, a text pointer to the user guide (no link); the guide's paragraph becomes a heading. (b) external link; (c) collapsed disclosure.
+- **D41-9** — no toast: a polite "Saved" status and an alert for a failed save. (b) task-038's toasts; (c) failure alert only.
+- **D41-10** — C-07.3 e2e at 15 s: after a fetch has ended, turn Auto-fetch off, then 35 s with no `git fetch`. (b) count from the `PUT` alone; (c) 120 s at 15 s.
+- **D41-11** — C-07.3 at 60 s / 120 s in a Vitest timing test. (b) Playwright timing; (c) none.
+- **D41-12** — e2e seed `ConsoleOptions.settings?: Partial<UiSettings>`. (b) `seedState` helper; (c) raw `stateFile`.
+- **D41-13** — "Confirm agent launch": a fixed note "takes effect from WingFoil 0.3" as its description. (b) per capability; (c) disabled.
+
+#### Decisions (approver, 2026-10-16)
+
+"All as recommended": D41-1 … D41-13 (a). Coordinator's Wave 5 shared shapes: C1 merge order
+038 → 039 → 041; C2 `ConsoleOptions.settings` owned by task-038 — an identical copy carried here
+until it merges; C3 task-039 owns the `.project-sidebar` wrapper and `.sidebar-foot` in
+`routes/project.tsx` — this task does not touch that file, it adds the `pinned` group in `nav.ts` and
+the CSS that pushes it to the bottom of the nav; C4 no toast here; C5 this task owns `settingsQuery`,
+`queryKeys.settings()`, the `settings` rule of `events.ts` and `web/src/api/settings.ts`; C6
+catalogue: sorted in-place inserts only; C7 `test/README.md` 0.39, `docs/user-guide.md` 0.14,
+ux-reference 1.7, one CHANGELOG entry; C9 the `SCREENS` entry appended after 038's and 039's, no
+shared console stores a forced theme; C10 no `contracts/` or `server/` change.
