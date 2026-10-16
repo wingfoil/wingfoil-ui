@@ -278,3 +278,30 @@ shared console stores a forced theme; C10 no `contracts/` or `server/` change.
   it yet when this was written: the merge must keep one of the two (same shape, same place).
 - Deviations from the design: none in behaviour. The `settings` catalogue area is a one-line
   addition to `AREAS` (not listed among the shared files of the design).
+- **Timing test fix:** the first run of `ui-settings.timing.test.ts` failed on its own project id
+  (`p_settings00000` is not `p_` + 12 Crockford base32 characters: the route answered 404);
+  now `p_setngs000000`. It does not run in the default suite.
+
+### checks (2026-10-16, HEAD before this note `e6918af`)
+
+| Gate | Result | Load |
+|------|--------|------|
+| `npm run typecheck`, `npm run lint` (catalogue check included), `npm run format:check` | clean | — |
+| `npm run docs:api`, `check_tasks.py v0.2` | OK (17 tasks · 46 items) | — |
+| `npm run test:coverage` (public-text check included) | 160 files passed, 1 skipped; **2939 passed / 1 skipped**; statements 96.54 %, branches 91.23 %, functions 97.22 %, lines 98.31 % | 12.7 → 11.4 |
+| own spec on three engines (`npm run test:e2e -- test/e2e/ui-settings.spec.ts`) | **21 passed** (7 × Chromium, Firefox, WebKit; 1.9 min) | low |
+| `npm run test:e2e:chromium` (whole suite, the new `SCREENS` entry included) | **248 passed** (11.5 min) | 11.3 at start |
+| `npm run test:timing` | **passed**: Vitest 6/6 — TT-PERF-07 10/10 at 59.8–60.1 s, Y-02.3 0 fetches, **C-07.3 0 `git fetch` in 120 s after Auto-fetch was turned off** — and Playwright 18/18 | 11.1 → 2.4 |
+| `npm run test:smoke` | not run: no packaging, launcher or bin change | — |
+
+Every heavy gate ran through the machine-free slot. No console of this worktree left running; no
+`wfui-*` entry in the system temporary directory.
+
+e2e closure
+
+| Scenario | Spec file: test |
+|----------|-----------------|
+| C-07.1 | `test/e2e/ui-settings.spec.ts`: C-07.1 — Show the settings with their defaults |
+| C-07.2 | `test/e2e/ui-settings.spec.ts`: C-07.2 — Keep a setting across restarts without touching the project |
+| C-07.3 | `test/e2e/ui-settings.spec.ts`: C-07.3 — Apply a setting change without a restart (15 s, RP-53); 60 s / 120 s: `test/timing/ui-settings.timing.test.ts` |
+| X-08.3 | `test/e2e/ui-settings.spec.ts`: X-08.3 — Override the system with the theme setting |
