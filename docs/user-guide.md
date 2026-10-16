@@ -285,7 +285,8 @@ supported or when your copy is behind, diverged or detached. An element waiting 
 ### After an action
 
 **v0.2, not released yet.** Every submit or decision ends with a **toast** at the bottom of the
-window:
+window — beside the element panel while it is open, or just above its buttons when the window is
+too narrow, so the toast never covers them:
 
 - the result (*Approved <id>*, *Submitted <id>*, *Rejected <id>*), the commit line — short hash
   and `wf(…)` subject — and *pushed* when auto-push pushed it. When auto-push is on and the push
@@ -298,6 +299,8 @@ window:
 
 A result toast goes after 8 s, not while the pointer is over it or the focus is inside it; each
 toast has a *Close notification* button, and a new result for the same element replaces its toast.
+At most three are shown: a new one removes the oldest result toast, never a refusal or a failed
+push (those leave only when you close them).
 Screen readers hear results politely and refusals at once.
 
 ## DNA

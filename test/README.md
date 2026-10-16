@@ -43,6 +43,8 @@ Every test lives under `test/` (DNA `paths.tests`); sources stay in `server/src`
     `pids`), `opener: 'recording' | 'none'` for S-01.1/S-01.3 (default `--no-open`);
     `openConsole(page, console, { path?, build?: 'keys' })` opens the page with the token in the
     fragment and waits for the shell; `build: 'keys'` serves `web/dist-keys` by route interception;
+    `settings` (task-038) writes UI settings (e.g. `autoPush: true`) into the seeded `state.json`,
+    and throws when given with a raw `stateFile` or a `stateDir` that already holds a `state.json`;
   - `support/fixtures.ts`: the Playwright `test` with worker-scoped `fixtures.get(kind)` (built once
     per worker) / `fixtures.copy(kind)` (a copy to mutate) and test-scoped `consoles.start()`,
     stopped after the test;
@@ -50,8 +52,7 @@ Every test lives under `test/` (DNA `paths.tests`); sources stay in `server/src`
     script, test side only), `mutateAndWait(page, mutation, { event, pid? })` — no fixed sleeps —,
     `commitFile(fixture, file, content, message)`, `cli(fixture, args)`;
   - `support/remote.ts` (task-038): `remoteHead(fixture, branch?)` — the commit the copy's bare
-    remote points at; `startConsole({ settings })` (task-038) writes UI settings (e.g.
-    `autoPush: true`) into the seeded `state.json`;
+    remote points at;
   - `support/keyboard.ts`: `expectFocusVisible(locator)`; `focusRing(page)` (the focused element's
     outline and its contrast against the backdrop, TT-ARC-10) and `tabUntil(page, target, seen)`
     (Tab / Shift+Tab until `target` has the focus, each ring on the way given to `seen`) — task-021;
@@ -116,8 +117,8 @@ Every test lives under `test/` (DNA `paths.tests`); sources stay in `server/src`
   and *element panel — read-only, not in team*. task-042: `notification-bell.spec.ts` (S-21.1 …
   S-21.3, S-23.1 … S-23.4, T-07.1, T-07.2; element states moved with the pinned CLI on the copy
   before the console starts, approvals made from Today through the gate footer); `SCREENS` gains
-  *notification panel* (the existing *today* screen shows Morgan's all-roles summary). task-038:
-  `submit-footer.spec.ts` (G-10.1 … G-10.3, G-11.1 … G-11.3, G-13.1, G-13.2, G-14.1, G-14.2,
+  *notification panel* (the existing *today* screen shows Morgan's all-roles summary).
+  task-038: `submit-footer.spec.ts` (G-10.1 … G-10.3, G-11.1 … G-11.3, G-13.1, G-13.2, G-14.1, G-14.2,
   X-07.1 … X-07.3, a keyboard-only Submit; G-13.1 seeds `autoPush: true` and reads the remote with
   `remoteHead`; G-14.2 holds the page's re-reads with `page.route` until the click, so the real
   server answers 409 `element-changed`); `gate-footer.spec.ts` G-04.1 and `notification-bell.spec.ts`

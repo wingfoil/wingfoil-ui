@@ -5,10 +5,12 @@
  * raise a toast after the component that started it is gone (D38-11), with no provider around the
  * shell (RP-55). Reused by task-040 (push refusals).
  *
- * At most {@link TOAST_LIMIT} toasts, newest last (the oldest goes); a toast with the `key` of one
- * already shown replaces it (one result per element); a success goes after {@link TOAST_DISMISS_MS}
- * unless `sticky` (the timer is paused while it is hovered or focused, `Toasts.tsx`); an error is
- * always sticky. The content is React nodes, rendered inside the application's providers.
+ * At most {@link TOAST_LIMIT} toasts, newest last: a new one evicts the oldest toast that is not
+ * sticky; a sticky one (a refusal, a failed push) leaves only by Close or by its key, so with only
+ * sticky toasts shown a new one is added anyway (review R5). A toast with the `key` of one already
+ * shown replaces it (one result per element); a success goes after {@link TOAST_DISMISS_MS} unless
+ * `sticky` (the timer is paused while it is hovered or focused, `Toasts.tsx`); an error is always
+ * sticky. The content is React nodes, rendered inside the application's providers.
  */
 import { useSyncExternalStore, type ReactNode } from 'react';
 
@@ -50,8 +52,13 @@ function set(next: readonly Toast[]): void {
 export function showToast(input: ToastInput): number {
   const id = nextId++;
   const toast: Toast = { ...input, ...(input.tone === 'error' ? { sticky: true } : {}), id };
-  const kept = input.key === undefined ? toasts : toasts.filter((t) => t.key !== input.key);
-  set([...kept, toast].slice(-TOAST_LIMIT));
+  const next = [...(input.key === undefined ? toasts : toasts.filter((t) => t.key !== input.key)), toast];
+  while (next.length > TOAST_LIMIT) {
+    const oldest = next.findIndex((t) => !t.sticky);
+    if (oldest < 0) break;
+    next.splice(oldest, 1);
+  }
+  set(next);
   return id;
 }
 
@@ -73,6 +80,32 @@ function subscribe(listener: () => void): () => void {
 /** The toasts shown, as React state. */
 export function useToasts(): readonly Toast[] {
   return useSyncExternalStore(subscribe, getToasts, getToasts);
+}
+
+/** The placement of the stack, inline (review R1): out of the drawer's column. */
+export interface ToastPlacement {
+  /** Centre of the stack (px from the left of the viewport). */
+  left?: number;
+  maxWidth?: number;
+  /** Distance of the stack from the bottom of the viewport (px). */
+  bottom?: number;
+}
+
+/** The narrowest area left of the drawer where the stack is put beside it (px). */
+export const TOAST_MIN_ROOM = 360;
+
+/**
+ * Where the stack goes (review R1): without a drawer, the stylesheet's bottom centre (`{}`); with
+ * one, centred in the area left of it when that area is at least {@link TOAST_MIN_ROOM} wide,
+ * otherwise just above the drawer's footer (so the stack never covers the footer's actions).
+ */
+export function toastPlacement(
+  viewport: { width: number; height: number },
+  drawer: { left: number; footerTop: number } | undefined,
+): ToastPlacement {
+  if (drawer === undefined) return {};
+  if (drawer.left >= TOAST_MIN_ROOM) return { left: drawer.left / 2, maxWidth: drawer.left - 32 };
+  return { bottom: viewport.height - drawer.footerTop + 8 };
 }
 
 /** Remove every toast (tests). */
