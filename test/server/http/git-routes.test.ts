@@ -292,7 +292,7 @@ describe('update (spec-010 §4–§5; TT-STATE-04; Y-05.1, Y-06.1, Y-06.2, G-12.
       expect(res.body.repository).toMatchObject({ copy: 'in-sync', behind: 0 });
     });
     expect(u.transport).toBe(1);
-    expect(c.runner.spawned.find((r) => gitSubcommand(r.args) === 'pull')!.args).toEqual(pullArgs());
+    expect(c.runner.spawned.find((r) => gitSubcommand(r.args) === 'pull')!.args).toEqual(pullArgs('main', 'origin'));
     expect(await c.head()).toBe(remoteHead);
     expect(await readFile(path.join(c.fx.dir, 'from-jordan.md'), 'utf8')).toBe('hi\n');
     await c.warm();
@@ -789,5 +789,207 @@ describe('review round 2', () => {
     await git(c.fx.dir, ['remote', 'set-url', 'origin', 'own/u::sr'], c.fx.env);
     await c.check();
     expect((await c.op('fetch')).body.error.code).toBe('remote-not-owned');
+  });
+});
+
+describe('bug-014 (task-034 D34-8) — the manual update never makes a merge commit; the manual fetch never prunes a local tag or branch', () => {
+  const parents = async (c: GitConsole) =>
+    (await git(c.fx.dir, ['log', '-1', '--format=%p'], c.fx.env)).stdout.trim().split(' ').length;
+
+  it.each<[string, string]>([
+    ['branch.main.mergeOptions', '-s ours'],
+    ['branch.main.mergeOptions', '--squash'],
+    ['branch.main.mergeOptions', '--no-ff'],
+    ['pull.twohead', 'ours'],
+  ])('with %s = %s, Update fast-forwards: HEAD = the remote, one parent, nothing staged', async (key, value) => {
+    const c = await start({ prepare: (fx) => git(fx.dir, ['config', key, value], fx.env).then(() => undefined) });
+    await c.remoteCommit('from-jordan.md', 'hi\n');
+    expect((await c.op('fetch')).body.repository.copy).toBe('behind');
+    const remoteHead = (await git(c.fx.remoteDir, ['rev-parse', 'main'], c.fx.env)).stdout.trim();
+    const res = await c.op('update');
+    expect(res.status).toBe(200);
+    expect(res.body.repository).toMatchObject({ copy: 'in-sync', ahead: 0, behind: 0, localChanges: 0 });
+    expect(await c.head()).toBe(remoteHead);
+    expect(await parents(c)).toBe(1);
+    expect((await git(c.fx.dir, ['status', '--porcelain'], c.fx.env)).stdout).toBe('');
+  });
+
+  it('review R1: with fetch.prune and fetch.pruneTags set, Update (its own fetch) keeps a local tag', async () => {
+    const c = await start({
+      prepare: async (fx) => {
+        await git(fx.dir, ['config', 'fetch.prune', 'true'], fx.env);
+        await git(fx.dir, ['config', 'fetch.pruneTags', 'true'], fx.env);
+        await git(fx.dir, ['config', 'remote.origin.pruneTags', 'true'], fx.env);
+        await git(fx.dir, ['tag', 'mine'], fx.env);
+      },
+    });
+    await c.remoteCommit('from-jordan.md', 'hi\n');
+    expect((await c.op('fetch')).body.repository.copy).toBe('behind');
+    expect((await c.op('update')).status).toBe(200);
+    expect((await git(c.fx.dir, ['tag', '--list', 'mine'], c.fx.env)).stdout.trim()).toBe('mine');
+  });
+
+  it('review R1: with fetch.prune set, Update (its own fetch) keeps a local-only branch', async () => {
+    const c = await start({
+      prepare: async (fx) => {
+        await git(fx.dir, ['config', 'fetch.prune', 'true'], fx.env);
+        await git(fx.dir, ['config', 'remote.origin.prune', 'true'], fx.env);
+        await git(fx.dir, ['branch', '-q', 'local-only'], fx.env);
+      },
+    });
+    await c.remoteCommit('from-jordan.md', 'hi\n');
+    expect((await c.op('fetch')).body.repository.copy).toBe('behind');
+    // The refspec writing into refs/heads is configured after the fetch, which would refuse it.
+    await git(c.fx.dir, ['config', '--add', 'remote.origin.fetch', 'refs/heads/*:refs/heads/*'], c.fx.env);
+    await c.op('update');
+    expect((await git(c.fx.dir, ['branch', '--list', 'local-only'], c.fx.env)).stdout.trim()).toBe('local-only');
+  });
+
+  // Review R1 / W4-3: with a forced refspec into refs/heads, the update's own fetch would
+  // force-overwrite a local branch the remote has with another history (reflog `forced-update`).
+  it('W4-3: a forced refspec into refs/heads → Update refuses refspec-outside-remotes, 0 transport, the diverged local branch kept, recorded', async () => {
+    const c = await start({
+      prepare: async (fx) => {
+        await git(fx.dir, ['push', '-q', 'origin', 'main:feature'], fx.env);
+        await git(fx.dir, ['fetch', '-q', 'origin'], fx.env);
+        await git(fx.dir, ['branch', '-q', 'feature', 'origin/feature'], fx.env);
+        await git(fx.dir, ['checkout', '-q', 'feature'], fx.env);
+        await writeFile(path.join(fx.dir, 'mine.md'), 'mine\n');
+        await git(fx.dir, ['add', 'mine.md'], fx.env);
+        await git(fx.dir, ['commit', '-qm', 'mine'], fx.env);
+        await git(fx.dir, ['checkout', '-q', 'main'], fx.env);
+      },
+    });
+    const mine = (await git(c.fx.dir, ['rev-parse', 'feature'], c.fx.env)).stdout.trim();
+    await c.remoteCommit('from-jordan.md', 'hi\n');
+    expect((await c.op('fetch')).body.repository.copy).toBe('behind');
+    await git(c.fx.dir, ['config', '--add', 'remote.origin.fetch', '+refs/heads/*:refs/heads/*'], c.fx.env);
+    const p = await c.processes(async () => {
+      const res = await c.op('update');
+      expect(res.status).toBe(409);
+      expect(res.body.error.code).toBe('refspec-outside-remotes');
+    });
+    expect(p.transport).toBe(0);
+    expect((await git(c.fx.dir, ['rev-parse', 'feature'], c.fx.env)).stdout.trim()).toBe(mine);
+    expect((await c.get(`/api/p/${c.pid}`)).body.repository.sync.update.lastError).toMatchObject({
+      code: 'refspec-outside-remotes',
+    });
+  });
+
+  it('with fetch.pruneTags and remote.origin.pruneTags set, Fetch keeps a local tag', async () => {
+    const c = await start({
+      prepare: async (fx) => {
+        await git(fx.dir, ['config', 'fetch.pruneTags', 'true'], fx.env);
+        await git(fx.dir, ['config', 'remote.origin.pruneTags', 'true'], fx.env);
+        await git(fx.dir, ['tag', 'mine'], fx.env);
+      },
+    });
+    expect((await c.op('fetch')).status).toBe(200);
+    expect((await git(c.fx.dir, ['tag', '--list', 'mine'], c.fx.env)).stdout.trim()).toBe('mine');
+  });
+
+  it.each([['+refs/heads/*:refs/heads/*'], ['+refs/*:refs/*'], ['refs/tags/*:refs/tags/*']])(
+    'a configured refspec %s writing outside refs/remotes/ → 409 refspec-outside-remotes, 0 transport processes, local branches kept',
+    async (refspec) => {
+      const c = await start({
+        prepare: async (fx) => {
+          await git(fx.dir, ['branch', '-q', 'local-only'], fx.env);
+          await git(fx.dir, ['checkout', '-q', '--detach'], fx.env);
+          await git(fx.dir, ['config', '--add', 'remote.origin.fetch', refspec], fx.env);
+        },
+      });
+      const p = await c.processes(async () => {
+        const res = await c.op('fetch');
+        expect(res.status).toBe(409);
+        expect(res.body.error.code).toBe('refspec-outside-remotes');
+      });
+      expect(p.transport).toBe(0);
+      expect((await git(c.fx.dir, ['branch', '--list', 'local-only'], c.fx.env)).stdout.trim()).toBe('local-only');
+    },
+  );
+
+  it('no configured fetch refspec (fail closed) → 409 refspec-outside-remotes; a negative refspec beside the tracking one → 200', async () => {
+    const none = await start({
+      prepare: (fx) => git(fx.dir, ['config', '--unset-all', 'remote.origin.fetch'], fx.env).then(() => undefined),
+    });
+    expect((await none.op('fetch')).body.error.code).toBe('refspec-outside-remotes');
+    const negative = await start({
+      prepare: (fx) =>
+        git(fx.dir, ['config', '--add', 'remote.origin.fetch', '^refs/heads/tmp/*'], fx.env).then(() => undefined),
+    });
+    expect((await negative.op('fetch')).status).toBe(200);
+  });
+});
+
+describe('security review S2 (task-034 W4-6) — the push destination is the one upstream', () => {
+  it('security round 2: an empty branch.<b>.merge value counts → Push refuses no-upstream', async () => {
+    const c = await start({
+      prepare: async (fx) => {
+        await git(fx.dir, ['config', '--add', 'branch.main.merge', ''], fx.env);
+        await writeFile(path.join(fx.dir, 'mine.md'), 'mine\n');
+        await git(fx.dir, ['add', 'mine.md'], fx.env);
+        await git(fx.dir, ['commit', '-qm', 'mine'], fx.env);
+      },
+    });
+    const res = await c.op('push');
+    expect(res.status).toBe(409);
+    expect(res.body.error.code).toBe('no-upstream');
+  });
+
+  it('two values of branch.<b>.merge → Push refuses no-upstream, 0 transport processes, nothing pushed to the second ref', async () => {
+    const c = await start({
+      prepare: async (fx) => {
+        await git(fx.dir, ['config', '--add', 'branch.main.merge', 'refs/heads/production'], fx.env);
+        await writeFile(path.join(fx.dir, 'mine.md'), 'mine\n');
+        await git(fx.dir, ['add', 'mine.md'], fx.env);
+        await git(fx.dir, ['commit', '-qm', 'mine'], fx.env);
+      },
+    });
+    const p = await c.processes(async () => {
+      const res = await c.op('push');
+      expect(res.status).toBe(409);
+      expect(res.body.error.code).toBe('no-upstream');
+    });
+    expect(p.transport).toBe(0);
+    const branches = (await git(c.fx.remoteDir, ['branch', '--list', 'production'], c.fx.env)).stdout.trim();
+    expect(branches).toBe('');
+  });
+});
+
+describe('security review S3 (task-034 W4-7) — refspecs git reads from legacy remote files', () => {
+  /** A copy whose `origin` has no URL in the configuration: git reads `<common dir>/<kind>/origin`. */
+  const legacy = (kind: 'remotes' | 'branches') => async (fx: Fixture) => {
+    await git(fx.dir, ['branch', '-q', 'local-only'], fx.env);
+    await git(fx.dir, ['checkout', '-q', '--detach'], fx.env);
+    await git(fx.dir, ['config', '--unset', 'remote.origin.url'], fx.env);
+    await mkdir(path.join(fx.dir, '.git', kind), { recursive: true });
+    await writeFile(
+      path.join(fx.dir, '.git', kind, 'origin'),
+      kind === 'remotes' ? `URL: ${fx.remoteDir}\nPull: +refs/heads/*:refs/heads/*\n` : `${fx.remoteDir}\n`,
+    );
+  };
+
+  it.each(['remotes', 'branches'] as const)(
+    'a remote without url in the configuration and a %s file → Fetch refuses refspec-outside-remotes, 0 transport, local branches kept',
+    async (kind) => {
+      const c = await start({ prepare: legacy(kind) });
+      const p = await c.processes(async () => {
+        const res = await c.op('fetch');
+        expect(res.status).toBe(409);
+        expect(res.body.error.code).toBe('refspec-outside-remotes');
+      });
+      expect(p.transport).toBe(0);
+      expect((await git(c.fx.dir, ['branch', '--list', 'local-only'], c.fx.env)).stdout.trim()).toBe('local-only');
+    },
+  );
+
+  it('a remotes/<r> file beside a configured url → refused too (fail closed)', async () => {
+    const c = await start({
+      prepare: async (fx) => {
+        await mkdir(path.join(fx.dir, '.git', 'remotes'), { recursive: true });
+        await writeFile(path.join(fx.dir, '.git', 'remotes', 'origin'), 'Pull: +refs/heads/*:refs/heads/*\n');
+      },
+    });
+    expect((await c.op('fetch')).body.error.code).toBe('refspec-outside-remotes');
   });
 });

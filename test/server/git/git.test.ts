@@ -89,7 +89,17 @@ describe('GitReads — the commands it runs', () => {
       file: '/usr/bin/git',
       cwd: '/p',
       env: { HOME: '/h' },
-      args: ['--no-optional-locks', 'status', '--porcelain=v2', '--branch', '-z', '--untracked-files=all'],
+      // W4-5 (security review S1): no fsmonitor program in the server's own reads.
+      args: [
+        '-c',
+        'core.fsmonitor=false',
+        '--no-optional-locks',
+        'status',
+        '--porcelain=v2',
+        '--branch',
+        '-z',
+        '--untracked-files=all',
+      ],
     });
   });
 
@@ -102,13 +112,21 @@ describe('GitReads — the commands it runs', () => {
     expect(await r.email()).toBe('alex@example.test');
     expect(await r.email()).toBeUndefined();
     expect(await r.email()).toBeUndefined();
-    expect(runner.requests[0]!.args).toEqual(['--no-optional-locks', 'config', 'user.email']);
+    expect(runner.requests[0]!.args).toEqual([
+      '-c',
+      'core.fsmonitor=false',
+      '--no-optional-locks',
+      'config',
+      'user.email',
+    ]);
   });
 
   it('layout: prefix, git dir and common dir in one rev-parse, resolved against the project', async () => {
     const runner = new FakeProcessRunner().answer({ stdout: 'sub/\n/repo/.git\n../.git\n' });
     expect(await reads(runner).layout()).toEqual({ prefix: 'sub/', gitDir: '/repo/.git', commonDir: '/.git' });
     expect(runner.requests[0]!.args).toEqual([
+      '-c',
+      'core.fsmonitor=false',
       '--no-optional-locks',
       'rev-parse',
       '--show-prefix',
@@ -124,6 +142,20 @@ describe('GitReads — the commands it runs', () => {
       .catch((e: unknown) => e);
     expect(error).toBeInstanceOf(GitReadError);
     expect((error as GitReadError).message).toBe('fatal: not a git repository');
+  });
+
+  it('configValues: every value, empty ones counted (security round 2)', async () => {
+    const runner = new FakeProcessRunner().answer({ stdout: `refs/heads/main\0\0` });
+    expect(await reads(runner).configValues('branch.main.merge')).toEqual(['refs/heads/main', '']);
+    expect(runner.requests[0]!.args).toContain('-z');
+  });
+
+  it('W4-13: a read whose pipes were cut (drained) is a GitReadError, though git exited 0', async () => {
+    const runner = new FakeProcessRunner().answer({ stdout: '# branch.oid', drained: true });
+    const error = await reads(runner)
+      .status()
+      .catch((e: unknown) => e);
+    expect(error).toBeInstanceOf(GitReadError);
   });
 
   it('a timed-out read is a GitReadError too', async () => {

@@ -1,6 +1,6 @@
 # User guide — WingFoil UI v0.1
 
-**Version:** 0.9 · **Date:** 2026-10-15 (0.1: release v0.1; 0.2: bug-008 known limitation, release submit; 0.3: bug-008 wording; 0.4: bug-008 marked fixed after 0.1.0 — task-026; 0.5: *How to join*, unreleased v0.2 — task-035; 0.6: *Today*, unreleased v0.2 — task-036; 0.7: what runs during a clone, a local repository of another user, unreleased v0.2 — task-033 / bug-010, bug-013; 0.8: a local source git cannot read — task-033 review round 3; 0.9: *Deciding a gate*, unreleased v0.2 — task-037)
+**Version:** 0.10 · **Date:** 2026-10-15 (0.1: release v0.1; 0.2: bug-008 known limitation, release submit; 0.3: bug-008 wording; 0.4: bug-008 marked fixed after 0.1.0 — task-026; 0.5: *How to join*, unreleased v0.2 — task-035; 0.6: *Today*, unreleased v0.2 — task-036; 0.7: what runs during a clone, a local repository of another user, unreleased v0.2 — task-033 / bug-010, bug-013; 0.8: a local source git cannot read — task-033 review round 3; 0.9: *Deciding a gate*, unreleased v0.2 — task-037; 0.10: *Automatic sync with the remote*, unreleased v0.2 — task-034 / bug-014, its security reviews)
 
 WingFoil UI v0.1 is a **read-only console** for WingFoil-governed projects: you open a project and
 read its Memory, elements, DNA, directives, team and documentation, kept up to date while you work
@@ -10,7 +10,8 @@ repository into a new folder.
 Contents: [Launching](#launching) · [Session](#the-session-and-the-browser) ·
 [Projects](#projects) · [Project header](#the-project-header) · [Today](#today) · [Memory](#memory) ·
 [Element panel](#the-element-panel) · [DNA](#dna) · [Directives](#directives) · [Team](#team) ·
-[Documentation](#documentation) · [Themes, keyboard, accessibility](#themes-keyboard-and-accessibility) ·
+[Documentation](#documentation) · [Automatic sync](#automatic-sync-with-the-remote) ·
+[Themes, keyboard, accessibility](#themes-keyboard-and-accessibility) ·
 [Local security](#local-security) · [Local state](#where-the-local-state-lives) ·
 [Troubleshooting](#troubleshooting) · [Not in v0.1](#what-v01-does-not-do) ·
 [Known limitations](#known-limitations)
@@ -298,6 +299,64 @@ folder, **without** Memory element files and plan files. A Markdown document ope
   the repository*, *broken link* or *not shown in the UI* (at most 100 distinct targets per
   document are checked; the others read *not shown in the UI*).
 - Images are never loaded (*Image not shown: <alt text>*); raw HTML in Markdown is shown as text.
+
+## Automatic sync with the remote
+
+**v0.2, not released yet.** While it runs, the console keeps the projects you have opened since
+it started up to date with their remote, by itself. Three settings drive it (spec-006 §2; the
+*Settings* page that changes them is not shipped yet, so the defaults apply):
+
+| Setting | Default | What the console does |
+|---------|---------|-----------------------|
+| Auto-fetch, every *Fetch interval* | on, 60 s | fetches each opened project's remote: the upstream's remote, else the only remote, else `origin` |
+| Auto-update | off | right after a fetch, fast-forwards a copy that is behind (`git merge --ff-only`) — only when you are identified in the team |
+| Auto-push | off | after each submit, approve or reject made in the console, pushes the branch to its upstream |
+
+**Before you turn Auto-update on.** It makes the console do what `git pull` does, on a timer:
+the commits someone pushes can run commands that **your own** git configuration points at — a
+filter driver (for example git-lfs or a `filter.<x>.clean` script), your `core.sshCommand`, a
+credential helper, an `uploadpack` command or an alias they call — when such a command reads or
+runs a file of the project, and hooks your configuration defines (`hook.<name>.command` in newer
+git). The console runs no hook of the repository, no fsmonitor and no configuration that comes
+with the repository (see also *Hooks come back with your next action* below), but it cannot tell from your configuration whether a command reads
+project files: shell forms such as a `$HOME` path, `$(pwd)/…`, backticks or a script that sources
+another file all hide it. Leave Auto-update off if your configuration runs scripts from your
+projects.
+
+- **Projects one at a time.** A project whose repository is busy with a write of the console is
+  left to the next round; two projects of one repository are fetched once.
+- **What runs, unattended.** The automatic fetch and update run **no hook** of the repository —
+  neither `.git/hooks` nor a hooks folder the incoming commits bring (`core.hooksPath`) — and no
+  askpass program: a credential git cannot get from your credential helper or ssh agent makes the
+  fetch fail with git's message instead of opening a dialog. Your own git tools still run (filter
+  drivers such as git-lfs, your ssh command, credential helpers). A fetch is stopped after 60 s and
+  tried again at the next round.
+- **Not when the repository configures itself.** If the repository's own configuration includes
+  another file (`include.path`, `includeIf` — e.g. a `.gitconfig` committed in the project, even
+  one not there yet or for another branch), the console does not fetch or update it by itself: the
+  commits it would bring could change that file and make git run a command. The sidebar shows why,
+  and the console's log names the setting that stopped it (for example `includeif.path`);
+  `git config --list --show-origin` shows where it comes from. Fetch and update with git in a
+  terminal. Includes of your global configuration (`~/.gitconfig`)
+  are yours and do not count, unless they point into the project's folder.
+- **Stopping the console during an automatic update** lets the update finish first, so the working
+  tree is never left half updated; the log says so, and a second Ctrl-C (or signal) stops at once.
+- **Hooks come back with your next action.** Hooks an automatic update brought in through a hooks
+  folder of the project (`core.hooksPath`, e.g. husky) run at your next submit, approve or reject
+  (WingFoil's commit) or auto-push — as they would after your own `git pull`. Likewise a clean
+  filter that a configuration file of the project names runs when the console reads the status,
+  once your own pull or Update brought that file — as in your own `git status`.
+- **What is never done by itself.** No merge commit, no rebase, no stash: a copy that diverged from
+  the remote, a local change to a file the incoming commits change, or a git operation you have in
+  progress (a merge, rebase, cherry-pick, revert, `git am` or bisect) is not updated — fast-forward
+  it yourself once done. Your local branches and tags are never pruned: a remote whose fetch
+  refspecs write outside `refs/remotes/` (a mirror configuration), or that has none, is not fetched
+  automatically, and a manual fetch refuses it with a message.
+- **Auto-push pushes the branch, not only the console's commit.** It is the same push as *Push*:
+  every local commit of the branch not yet on the remote goes with it, your own included. It runs
+  the repository's `pre-push` hook, is stopped after 60 s, and never forces: a remote that moved
+  rejects it, and the commit stays local (the copy is *ahead*). A commit left by a WingFoil command
+  that failed after committing is not pushed by itself: it goes with the next push.
 
 ## Themes, keyboard and accessibility
 

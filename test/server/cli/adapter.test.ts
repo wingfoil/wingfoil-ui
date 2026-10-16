@@ -356,6 +356,16 @@ describe('classification without processes (fake runner)', () => {
     }
   });
 
+  it('W4-13: exit 0 with its pipes cut (drained) is a process error, never parsed', async () => {
+    const { FakeProcessRunner } = await import('../process/fake-runner.js');
+    const runner = new FakeProcessRunner().answer({ stdout: '{"id":"x","path":"y"}', drained: true });
+    const cli = new WingfoilCli({
+      cli: { source: 'project', projectRoot: root, file: process.execPath, prefixArgs: ['/x/cli.js'] },
+      runner,
+    });
+    await expect(cli.json(['paths'])).rejects.toBeInstanceOf(CliProcessError);
+  });
+
   it('renders options after the words, a repeated option once per value', async () => {
     const { FakeProcessRunner } = await import('../process/fake-runner.js');
     const runner = new FakeProcessRunner().answer({ stdout: '{"id":"x","path":"y"}' });

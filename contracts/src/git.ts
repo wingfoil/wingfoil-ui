@@ -24,7 +24,9 @@ export type GitTransportRefusalCode =
   | 'local-changes-in-the-way'
   | 'remote-not-owned'
   /** A local remote with no folder git could read (review round 2 F9). */
-  | 'remote-unreadable';
+  | 'remote-unreadable'
+  /** Fetch only: a configured fetch refspec writes outside `refs/remotes/` (task-034 D34-8, bug-014). */
+  | 'refspec-outside-remotes';
 
 /** Every code a git route answers with (`git.refusal.schema.json`). */
 export type GitRefusalCode =
@@ -39,6 +41,12 @@ export type GitRefusalCode =
 
 /** The last failed fetch: git's message (local paths redacted) and when. */
 export interface SyncError {
+  /**
+   * `fetch-timeout`: an automatic fetch killed after 60 s (task-034 D34-9), `message` git's output
+   * so far; `config-in-worktree`: not run, the configuration reads a file other than the
+   * repository's own (W4-5, W4-14), `message` empty.
+   */
+  code?: 'fetch-timeout' | 'config-in-worktree';
   message: string;
   /** ISO 8601 UTC. */
   at: string;
@@ -46,7 +54,13 @@ export interface SyncError {
 
 /** The last refused or failed update (manual or automatic). */
 export interface UpdateSyncError {
-  code: Exclude<GitTransportRefusalCode, 'no-fetch-target'> | 'git-refused';
+  code:
+    | Exclude<GitTransportRefusalCode, 'no-fetch-target'>
+    | 'git-refused'
+    /** An automatic merge that exited 0 without fast-forwarding (task-034 W4-9). */
+    | 'merge-not-fast-forward'
+    /** The automatic update not run: the configuration reads a file other than the repository's own (W4-14). */
+    | 'config-in-worktree';
   /** `local-changes-in-the-way`: the files in the way, relative to the project. */
   detail?: { files: string[] };
   /** `git-refused`: git's message (local paths redacted). */

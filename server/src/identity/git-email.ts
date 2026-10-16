@@ -41,6 +41,8 @@ export async function readGitEmail(root: string, options: GitEmailOptions): Prom
     env: gitEnv(options.env ?? process.env),
     ...(options.signal ? { signal: options.signal } : {}),
   });
+  // A cut output may be incomplete (task-034 W4-13).
+  if (result.drained) throw new GitConfigError('pipes-held');
   if (result.ended === 'exit' && result.exitCode === 1) return undefined;
   if (result.ended !== 'exit' || result.exitCode !== 0) {
     // stderr may quote the configuration: only how the process ended is kept.

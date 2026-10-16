@@ -265,6 +265,12 @@ export class WingfoilCli {
       ...(env ? { env } : {}),
       ...(signal ? { signal } : {}),
     });
+    if (result.drained) {
+      // The output was cut after the exit (a program left holding the pipes, task-034 W4-13).
+      const error = new CliProcessError(command, 'WingFoil left its output open after it exited');
+      this.log(command, { ended: result.ended, exitCode: result.exitCode, kind: 'pipes-held' }, error.reason);
+      throw error;
+    }
     if (result.ended === 'exit' && result.exitCode === 0) return result;
     if (result.ended === 'exit' && result.exitCode === 1) {
       // The CLI's wording verbatim, the machine's folders removed (D33-5, bug-012).

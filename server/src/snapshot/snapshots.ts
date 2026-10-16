@@ -80,6 +80,11 @@ export class Snapshots {
     this.sync = new SyncStatus({ bus: options.bus, stateOf: (pid) => this.get(pid)?.current()?.key });
   }
 
+  /** The open snapshots, in opening order (the scheduler's scope, spec-010 §6, RP-18). */
+  openProjects(): { pid: string; snapshot: ProjectSnapshot }[] {
+    return [...this.entries].map(([pid, entry]) => ({ pid, snapshot: entry.snapshot }));
+  }
+
   /** The snapshot of `pid`, if open. */
   get(pid: string): ProjectSnapshot | undefined {
     return this.entries.get(pid)?.snapshot;

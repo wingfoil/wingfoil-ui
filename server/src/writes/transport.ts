@@ -6,7 +6,7 @@
  * | Step | Check | Refusal | Read from |
  * |------|-------|---------|-----------|
  * | row 5 (update, push) | the user is one member of the team (REQ-SEC-08, RP-14, RP-34) | 403 `not-in-team` | the snapshot view (D33-12: no process once read); again under the lock when the fresh state moved |
- * | §5 | fetch: `no-remote`, `no-fetch-target`; update: `no-remote`, `detached-head`, `no-upstream`, `diverged`, `local-changes-in-the-way`; push: `no-remote`, `detached-head`, `no-upstream` (also an unusable merge ref, D33-8) | 409 | the fresh check (status, `git remote`, `branch.<b>.remote`); the incoming files (`git log HEAD..@{u}`), the merge ref |
+ * | §5 | fetch: `no-remote`, `no-fetch-target`, `refspec-outside-remotes` (a configured refspec writes outside `refs/remotes/`, task-034 D34-8 / bug-014); update: `no-remote`, `detached-head`, `no-upstream`, `diverged`, `local-changes-in-the-way`; push: `no-remote`, `detached-head`, `no-upstream` (also an unusable merge ref, D33-8) | 409 | the fresh check (status, `git remote`, `branch.<b>.remote`); the incoming files (`git log HEAD..@{u}`), the merge ref |
  * | D33-1 | a local remote is owned by the server's user | 409 `remote-not-owned` | `git remote get-url`, the file system |
  * | — | nothing to do (update: behind = 0; push: ahead = 0) | 200, no transport process (D33-9) | the fresh check |
  *
@@ -15,6 +15,7 @@
  * and 200 `{repository}` or 422 `git-refused` with git's message, local folders redacted (D33-5).
  * Git's message is never logged: the log gets `{pid, op, exitCode, ended}` only.
  */
+import { lstat } from 'node:fs/promises';
 import path from 'node:path';
 import type {
   ApiError,
@@ -29,7 +30,15 @@ import type { GitReadError } from '../git/git.js';
 import { localPathOf, localRemoteProblem } from '../git/local-remote.js';
 import { redactLocalPaths } from '../git/redact.js';
 import { repositoryStatus } from '../git/sync-status.js';
-import { fetchArgs, pullArgs, pushArgs, sshInEnvironment, transportEnv } from '../git/transport.js';
+import {
+  fetchArgs,
+  mergeArgs,
+  pullArgs,
+  pushArgs,
+  sshInEnvironment,
+  trackingRefspecs,
+  transportEnv,
+} from '../git/transport.js';
 import { matchIdentity } from '../identity/identity.js';
 import type { WriteLock } from '../process/write-lock.js';
 import type { ProjectSnapshot, SnapshotView } from '../snapshot/snapshot.js';
@@ -54,10 +63,17 @@ export interface GitTransportOptions {
 export type GitOutcome = { status: 200; body: GitResponse } | { status: number; body: { error: ApiError } };
 
 /** A transport refusal of spec-010 §5. */
-interface Refusal {
+export interface Refusal {
   code: GitTransportRefusalCode;
   detail?: { files: string[] };
 }
+
+/**
+ * What a transport operation will do on a fresh state: run `args` (`remote` the remote it talks to,
+ * `urls` its URLs, for the redaction), nothing (`args` undefined: nothing to do, D33-9), or refuse.
+ */
+export type TransportPlan =
+  { args: string[] | undefined; urls: readonly string[]; remote?: string } | { refusal: Refusal };
 
 const MESSAGES: Record<GitTransportRefusalCode, string> = {
   'no-remote': 'This repository has no remote',
@@ -68,6 +84,7 @@ const MESSAGES: Record<GitTransportRefusalCode, string> = {
   'local-changes-in-the-way': 'Local changes are in the way',
   'remote-not-owned': 'The local remote repository belongs to another user',
   'remote-unreadable': 'Git cannot read the repository of this remote',
+  'refspec-outside-remotes': 'A fetch refspec of this remote writes outside refs/remotes/',
 };
 
 const notInTeam = (): GitOutcome => ({
@@ -159,10 +176,8 @@ export class GitTransport {
       if (op === 'update') this.options.snapshots.sync.updated(pid);
       return this.answer(pid, state);
     }
-    const sshConfigured =
-      sshInEnvironment(this.env) || (await snapshot.git.configValue('core.sshCommand')) !== undefined;
     const result = await snapshot.git.transport(plan.args, {
-      env: transportEnv(sshConfigured, this.env),
+      env: transportEnv(await this.sshConfigured(snapshot), this.env),
       ...(signal ? { signal } : {}),
     });
     // `project`, not `pid`: the logger's own `pid` is the server's process id (review round 1 S9).
@@ -187,12 +202,12 @@ export class GitTransport {
     return { status: 422, body: { error: { code: 'git-refused', message } } };
   }
 
-  /** The command to run, nothing to do (`args` undefined), or the refusal — from the fresh `state`. */
-  private async plan(
-    snapshot: ProjectSnapshot,
-    state: RepoState,
-    op: GitOperation,
-  ): Promise<{ args: string[] | undefined; urls: readonly string[] } | { refusal: Refusal }> {
+  /**
+   * The command to run, nothing to do (`args` undefined), or the refusal — from the fresh `state`,
+   * under the write lock. `automatic`: the update is the scheduler's `merge --ff-only` (spec-010
+   * §6, RP-41) instead of the manual `pull --ff-only`, with the same checks.
+   */
+  async plan(snapshot: ProjectSnapshot, state: RepoState, op: GitOperation, automatic = false): Promise<TransportPlan> {
     const refuse = (code: GitTransportRefusalCode, detail?: { files: string[] }) => ({
       refusal: { code, ...(detail ? { detail } : {}) },
     });
@@ -200,10 +215,12 @@ export class GitTransport {
     if (op === 'fetch') {
       const remote = fetchTarget(state, state.remotes);
       if (remote === undefined) return refuse('no-fetch-target');
+      // `--prune` must delete tracking refs only (task-034 D34-5, D34-8 / bug-014).
+      if (!(await this.trackingOnly(snapshot, remote))) return refuse('refspec-outside-remotes');
       const urls = await snapshot.git.remoteUrls(remote);
       const local = await localRemoteProblem(urls, snapshot.topLevel, { ...this.home() });
       if (local) return refuse(local);
-      return { args: fetchArgs(remote), urls };
+      return { args: fetchArgs(remote), urls, remote };
     }
     if (state.copy === 'detached') return refuse('detached-head');
     if (state.copy === 'no-upstream' || state.upstreamRemote === null) return refuse('no-upstream');
@@ -211,6 +228,9 @@ export class GitTransport {
     if (op === 'update') {
       if (state.copy === 'diverged') return refuse('diverged');
       if (state.behind === 0) return { args: undefined, urls: [] };
+      // The pull's own fetch reads the same refspecs (W4-3): a forced one into refs/heads would
+      // overwrite local branches.
+      if (!(await this.trackingOnly(snapshot, remote))) return refuse('refspec-outside-remotes');
       const incoming = await snapshot.git.incomingPaths();
       const inTheWay = incoming.filter((f) => state.paths.has(f));
       if (inTheWay.length > 0)
@@ -218,17 +238,50 @@ export class GitTransport {
       const urls = await snapshot.git.remoteUrls(remote);
       const local = await localRemoteProblem(urls, snapshot.topLevel, { ...this.home() });
       if (local) return refuse(local);
-      return { args: pullArgs(), urls };
+      const branch = state.branch ?? '';
+      return { args: automatic ? mergeArgs(branch) : pullArgs(branch, remote), urls, remote };
     }
     // push
-    const mergeRef = await snapshot.git.configValue(`branch.${state.branch ?? ''}.merge`);
+    // Every value: git's `@{u}` takes the first, `config --get` the last — exactly one, or none is
+    // trusted as the destination (security review S2, W4-6).
+    const mergeRefs = await snapshot.git.configValues(`branch.${state.branch ?? ''}.merge`);
+    const mergeRef = mergeRefs.length === 1 ? mergeRefs[0] : undefined;
     if (mergeRef === undefined || !isMergeRef(mergeRef)) return refuse('no-upstream');
     if (state.ahead === 0) return { args: undefined, urls: [] };
     // Every push URL: a push goes to each of them (review round 1 S2).
     const urls = await snapshot.git.remoteUrls(remote, true);
     const local = await localRemoteProblem(urls, snapshot.topLevel, { ...this.home() });
     if (local) return refuse(local);
-    return { args: pushArgs(remote, mergeRef), urls };
+    return { args: pushArgs(remote, mergeRef), urls, remote };
+  }
+
+  /**
+   * Whether a fetch of `remote` writes only remote-tracking refs (D34-5, W4-7 / security review S3):
+   * its URL is in the configuration — without one git reads `remotes/<r>` or `branches/<r>` of the
+   * common directory, whose refspecs the configuration does not show — no such legacy file exists,
+   * and every configured fetch refspec writes under `refs/remotes/`. Fails closed.
+   */
+  private async trackingOnly(snapshot: ProjectSnapshot, remote: string): Promise<boolean> {
+    if (remote.split('/').includes('..')) return false;
+    if ((await snapshot.git.configValues(`remote.${remote}.url`)).length === 0) return false;
+    for (const kind of ['remotes', 'branches']) {
+      const legacy = await lstat(path.join(snapshot.commonDir, kind, remote)).then(
+        () => true,
+        (error: NodeJS.ErrnoException) => error.code !== 'ENOENT',
+      );
+      if (legacy) return false;
+    }
+    return trackingRefspecs(await snapshot.git.configValues(`remote.${remote}.fetch`));
+  }
+
+  /** Whether the user configured an ssh command (the environment or `core.sshCommand`, RP-24). */
+  async sshConfigured(snapshot: ProjectSnapshot): Promise<boolean> {
+    return sshInEnvironment(this.env) || (await snapshot.git.configValue('core.sshCommand')) !== undefined;
+  }
+
+  /** The server's environment the transport builds on. */
+  get environment(): NodeJS.ProcessEnv {
+    return this.env;
   }
 
   /** `~` as git sees it: the `HOME` of the transport's environment (review round 2 F10). */
@@ -241,7 +294,7 @@ export class GitTransport {
    * Git's standard error, local folders and URL userinfo removed (D33-5); a local remote's path,
    * wherever it is, shown as `<remote>` (review round 1 R1).
    */
-  private message(snapshot: ProjectSnapshot, result: ProcessResult, urls: readonly string[]): string {
+  message(snapshot: ProjectSnapshot, result: ProcessResult, urls: readonly string[]): string {
     const text =
       result.stderr.trim() ||
       (result.ended === 'exit' ? `git exited with status ${String(result.exitCode)}` : `git ended: ${result.ended}`);
@@ -262,7 +315,7 @@ export class GitTransport {
 }
 
 /** Row 5 on `view`: one member of the team (a failed `dna show` matches no member). */
-async function identified(view: SnapshotView): Promise<boolean> {
+export async function identified(view: SnapshotView): Promise<boolean> {
   const members = await view.dna().then(
     (dna) => dna.data.team.members,
     () => [],

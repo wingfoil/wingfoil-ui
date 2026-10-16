@@ -23,6 +23,7 @@
  * - **Version.** The detected CLI version comes from the registry's {@link VersionCache}: one
  *   `--version` per CLI resolution (adr-001 D3).
  */
+import { lstat } from 'node:fs/promises';
 import path from 'node:path';
 import type { DirectivesList, DnaPaths, DnaShow, MemoryMatch, MemoryYaml, WorkflowList } from '@wingfoil-ui/contracts';
 import { CliOutputError, CliRefusedError, type CliOutput, type WingfoilCli } from '../cli/adapter.js';
@@ -49,6 +50,17 @@ import {
 } from '../reads/project-reads.js';
 import { combinedHash, Fingerprinter } from './fingerprint.js';
 import { repoState, sameState, type RepoState } from './state.js';
+
+/** git's markers of an operation in progress, in the worktree's git directory (task-034 D34-3). */
+export const OPERATION_MARKERS: readonly string[] = [
+  'rebase-apply',
+  'rebase-merge',
+  'MERGE_HEAD',
+  'CHERRY_PICK_HEAD',
+  'REVERT_HEAD',
+  'sequencer',
+  'BISECT_LOG',
+];
 
 /** Options of {@link ProjectSnapshot}. */
 export interface ProjectSnapshotOptions {
@@ -200,6 +212,16 @@ export class ProjectSnapshot {
     return this.options.commonDir ?? this.root;
   }
 
+  /** The worktree's git directory (task-034 W4-5). */
+  get gitDir(): string {
+    return this.options.gitDir ?? path.join(this.topLevel, '.git');
+  }
+
+  /** The repository's git common directory (the git directory when unknown), task-034 W4-7. */
+  get commonDir(): string {
+    return this.options.commonDir ?? this.options.gitDir ?? path.join(this.topLevel, '.git');
+  }
+
   /** The git reads and transport of the project (task-033). */
   get git(): GitReads {
     return this.options.git;
@@ -224,6 +246,26 @@ export class ProjectSnapshot {
     const top = this.topLevel;
     const repository = [top, this.options.gitDir, this.options.commonDir].filter((p): p is string => p !== undefined);
     return { project: [this.root], repository };
+  }
+
+  /**
+   * Whether a git operation is in progress in this worktree (task-034 D34-3): one of git's own
+   * markers (`wt-status.c`) in its git directory — a stopped `am` or rebase, a merge, cherry-pick or
+   * revert not concluded, a sequence, a bisect. File checks only, no process; `false` without a
+   * known git directory.
+   */
+  async operationInProgress(): Promise<boolean> {
+    const gitDir = this.options.gitDir;
+    if (gitDir === undefined) return false;
+    const found = await Promise.all(
+      OPERATION_MARKERS.map((name) =>
+        lstat(path.join(gitDir, name)).then(
+          () => true,
+          () => false,
+        ),
+      ),
+    );
+    return found.includes(true);
   }
 
   /** {@link GitReads.sameEntryEverywhere} for a write (D32-1, review S2). */

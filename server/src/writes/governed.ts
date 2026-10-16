@@ -86,7 +86,7 @@ export interface WritePushPort {
   push(target: PushTarget): Promise<WritePush>;
 }
 
-/** No push attempted: `{ status: "off" }` (until task-034). */
+/** No push attempted: `{ status: "off" }` (the default; the launcher wires task-034's `AutoPush`). */
 export const PUSH_OFF: WritePushPort = {
   push: () => Promise.resolve({ status: 'off' }),
 };
