@@ -318,3 +318,98 @@ describe('Fetch (Y-02.2, D39-5, D39-13)', () => {
     expect(within(region()).queryByRole('alert')).toBeNull();
   });
 });
+
+describe('review round 1', () => {
+  it('R2 — keyed by pid: another project shows no running fetch nor alert, the first fetch is aborted', async () => {
+    const posts = stubApi(() => withRepo(), ['hang']);
+    const queryClient = createQueryClient();
+    queryClient.setQueryData(projectHeaderQuery('p_a').queryKey, withRepo());
+    queryClient.setQueryData(projectHeaderQuery('p_b').queryKey, withRepo());
+    const tree = (pid: string) => (
+      <AppIntlProvider>
+        <QueryClientProvider client={queryClient}>
+          <GitStatus pid={pid} />
+        </QueryClientProvider>
+      </AppIntlProvider>
+    );
+    const { rerender } = render(tree('p_a'));
+    await userEvent.click(within(region()).getByRole('button', { name: 'Fetch' }));
+    expect(await within(region()).findByRole('button', { name: 'Fetching…' })).toBeTruthy();
+    rerender(tree('p_b'));
+    const fetchB = await within(region()).findByRole('button', { name: 'Fetch' });
+    expect(fetchB.getAttribute('aria-disabled')).toBeNull();
+    expect(within(region()).queryByRole('button', { name: 'Cancel' })).toBeNull();
+    expect(within(region()).queryByRole('alert')).toBeNull();
+    expect(posts[0]?.init?.signal?.aborted).toBe(true);
+  });
+
+  it('R3 — a fetch that settles while Cancel has the focus gives the focus to Fetch', async () => {
+    let answer: (r: Response) => void = () => {};
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((_url: string, init?: RequestInit) =>
+        (init?.method ?? 'GET') === 'GET'
+          ? Promise.resolve(new Response(JSON.stringify(withRepo()), { status: 200 }))
+          : new Promise<Response>((resolve) => (answer = resolve)),
+      ),
+    );
+    show(withRepo());
+    const user = userEvent.setup();
+    await user.click(within(region()).getByRole('button', { name: 'Fetch' }));
+    const cancel = await within(region()).findByRole('button', { name: 'Cancel' });
+    cancel.focus();
+    expect(document.activeElement).toBe(cancel);
+    act(() => answer(new Response(JSON.stringify({ repository: repo() }), { status: 200 })));
+    const fetchButton = await within(region()).findByRole('button', { name: 'Fetch' });
+    await waitFor(() => expect(document.activeElement).toBe(fetchButton));
+  });
+
+  it('R6 — pressing the info button (a tap) opens git’s message', async () => {
+    show(
+      withRepo({
+        sync: {
+          fetch: { lastSuccessAt: null, lastError: { message: 'fatal: could not read Username', at: 'x' } },
+          update: { lastError: null },
+        },
+      }),
+    );
+    await userEvent.click(within(region()).getByRole('button', { name: "Git's message" }));
+    const shown = await screen.findByRole('dialog', { name: "Git's message" });
+    expect(shown.textContent).toBe('fatal: could not read Username');
+  });
+
+  it.each([
+    ['the repository state moved', (h: ProjectHeader) => ({ ...h, repository: { ...h.repository, state: 's2' } })],
+    [
+      'has-remote no longer holds',
+      (h: ProjectHeader) => ({ ...h, conditions: [], repository: { ...h.repository, copy: 'no-remote' as const } }),
+    ],
+  ])('R7 — the refusal alert clears when %s', async (_label, next) => {
+    stubApi(() => withRepo(), [{ status: 409, body: { error: { code: 'remote-unreadable', message: 'x' } } }]);
+    const { queryClient } = show(withRepo());
+    await userEvent.click(within(region()).getByRole('button', { name: 'Fetch' }));
+    expect((await within(region()).findByRole('alert')).textContent).toBe(en['error.remoteUnreadable']);
+    act(() => {
+      queryClient.setQueryData(projectHeaderQuery('p_a').queryKey, next(withRepo()));
+    });
+    await waitFor(() => expect(within(region()).queryByRole('alert')).toBeNull());
+  });
+
+  it('R8 — git’s message is not part of the polite live region', () => {
+    show(
+      withRepo({
+        sync: {
+          fetch: { lastSuccessAt: null, lastError: { message: 'fatal: marker message', at: 'x' } },
+          update: { lastError: { code: 'git-refused', message: 'error: update marker', at: 'x' } },
+        },
+      }),
+    );
+    const live = region().querySelector('[aria-live="polite"]');
+    expect(live?.textContent).toContain('Fetch failed');
+    expect(live?.textContent).not.toContain('marker');
+    // Still the info buttons' descriptions.
+    const infos = within(region()).getAllByRole('button', { name: "Git's message" });
+    const descriptions = infos.map((b) => document.getElementById(b.getAttribute('aria-describedby')!)?.textContent);
+    expect(descriptions).toEqual(['fatal: marker message', 'error: update marker']);
+  });
+});
