@@ -327,3 +327,25 @@ previous hook; the R2 alert, R3 and R5 tests on the behaviour itself); fix `339b
   (`unsettled`): the REQ-ARC-05 lint refuses the literal.
 
 Checks after round 1 (HEAD before this note `8995fbe`): typecheck, lint, format:check clean; docs:api, `check_tasks.py v0.2` OK; `test:coverage` 160 files passed, 1 skipped, **2945 passed / 1 skipped** (statements 96.55 %, branches 91.23 %, functions 97.24 %, lines 98.32 %; load 11.7 → 18.6); own spec on three engines **21 passed**; `test:e2e:chromium` **248 passed** (9.8 min, load 1.5 → 6.3); `ui-settings.timing.test.ts` **passed** (0 `git fetch` in 120 s, a `git status` written after the change; load 4.1 → 0.8). No console of this worktree left; the two `wfui-*` entries in the system temporary directory belong to a running task-039 Playwright run (owner pid alive).
+
+### review (round 2, 2026-10-17)
+
+Independent review round 2: **PASS** (the round-1 probes re-run on the new hook: fixed; the new
+tests against the old hook: 8 of 10 fail on the behaviour), with three points fixed before submit.
+Red `0b17032`, fix `f264680`.
+
+| Id | Change | Test |
+|----|--------|------|
+| R2-1 | a save's answer cancelled every settings read in flight, also one sent after the save was stored (another tab's change, a reconnect): the page and the theme stayed stale. `onSuccess` now notes whether a read was in flight, cancels it, takes the answer and, if one was cancelled, invalidates again | `settings.test.tsx` › review R2-1 (the reviewer's ordering): without the new invalidation it fails (theme `system` instead of `dark`) |
+| R2-2 | ux-reference §4.11 (1.7 kept) and the user guide (0.14 kept): the failed-save alert is cleared only by a save whose answer holds the wanted value | — |
+| R2-3 | the stale-read test releases its read unconditionally | — |
+
+- Test hygiene: the red commit's R2-1 test failed on the behaviour alone, but in the file run it
+  first met an overlapping `act()` left by the stale-read test (a read kept out across steps); both
+  tests now send that read outside `act()`, and the file unmounts its hooks after each test.
+
+Checks (HEAD before this note `f264680`): typecheck, lint, format:check clean; `check_tasks.py v0.2` OK;
+`test:coverage` 160 files passed, 1 skipped, **2946 passed / 1 skipped** (statements 96.55 %,
+branches 91.23 %, functions 97.24 %, lines 98.32 %; load 12.2 → 17.2); own spec on three engines
+**21 passed** (load → 4.6). Only `web/src/api/settings.ts` changed in the web code: no full Chromium
+run (as asked).
