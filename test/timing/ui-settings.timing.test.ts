@@ -16,7 +16,8 @@ import { TempWorkspace } from '../harness/temp-workspace.js';
 import { startLauncher, type Launcher } from '../launcher/launcher.js';
 import { report } from './load.js';
 
-const PID = 'p_settings00000';
+// `p_` + 12 Crockford base32 characters (spec-006 §2), or the routes answer 404.
+const PID = 'p_setngs000000';
 const QUIET_MS = 120_000;
 const INTERVAL_MS = 60_000;
 let ws: TempWorkspace;
