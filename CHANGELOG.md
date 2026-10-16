@@ -37,6 +37,12 @@ All notable changes to WingFoil UI are recorded in this file. The format follows
   Requires you items) and *Updates* (the last 10 Memory events); Today shows, to a member holding
   several roles, one line per role with its count and first three items, a switch to that role
   view; the explicit *Nothing requires you* state, also after the last action.
+- **UI settings and the theme setting** (US-C-07, X-08.3): *Configuration › UI settings*, pinned at
+  the bottom of the sidebar, shows and changes Auto-fetch and its interval, Auto-update (with its
+  declared risk next to it), Auto-push, Theme (*System*, *Light*, *Dark* — overrides the system
+  preference), Confirm agent launch (takes effect from WingFoil 0.3) and the number of action-log
+  entries kept. Settings are kept on this computer for every project, never committed, and apply
+  without a restart; other tabs follow.
 
 ### Changed
 

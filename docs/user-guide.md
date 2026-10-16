@@ -1,6 +1,6 @@
 # User guide — WingFoil UI v0.1
 
-**Version:** 0.11 · **Date:** 2026-10-15 (0.1: release v0.1; 0.2: bug-008 known limitation, release submit; 0.3: bug-008 wording; 0.4: bug-008 marked fixed after 0.1.0 — task-026; 0.5: *How to join*, unreleased v0.2 — task-035; 0.6: *Today*, unreleased v0.2 — task-036; 0.7: what runs during a clone, a local repository of another user, unreleased v0.2 — task-033 / bug-010, bug-013; 0.8: a local source git cannot read — task-033 review round 3; 0.9: *Deciding a gate*, unreleased v0.2 — task-037; 0.10: *Automatic sync with the remote*, unreleased v0.2 — task-034 / bug-014, its security reviews; 0.11: the notification bell and *Your roles* on Today, unreleased v0.2 — task-042)
+**Version:** 0.14 · **Date:** 2026-10-16 (0.1: release v0.1; 0.2: bug-008 known limitation, release submit; 0.3: bug-008 wording; 0.4: bug-008 marked fixed after 0.1.0 — task-026; 0.5: *How to join*, unreleased v0.2 — task-035; 0.6: *Today*, unreleased v0.2 — task-036; 0.7: what runs during a clone, a local repository of another user, unreleased v0.2 — task-033 / bug-010, bug-013; 0.8: a local source git cannot read — task-033 review round 3; 0.9: *Deciding a gate*, unreleased v0.2 — task-037; 0.10: *Automatic sync with the remote*, unreleased v0.2 — task-034 / bug-014, its security reviews; 0.11: the notification bell and *Your roles* on Today, unreleased v0.2 — task-042; 0.14: *UI settings*, unreleased v0.2 — task-041)
 
 WingFoil UI v0.1 is a **read-only console** for WingFoil-governed projects: you open a project and
 read its Memory, elements, DNA, directives, team and documentation, kept up to date while you work
@@ -11,6 +11,7 @@ Contents: [Launching](#launching) · [Session](#the-session-and-the-browser) ·
 [Projects](#projects) · [Project header](#the-project-header) · [Today](#today) · [Memory](#memory) ·
 [Element panel](#the-element-panel) · [DNA](#dna) · [Directives](#directives) · [Team](#team) ·
 [Documentation](#documentation) · [Automatic sync](#automatic-sync-with-the-remote) ·
+[UI settings](#ui-settings) ·
 [Themes, keyboard, accessibility](#themes-keyboard-and-accessibility) ·
 [Local security](#local-security) · [Local state](#where-the-local-state-lives) ·
 [Troubleshooting](#troubleshooting) · [Not in v0.1](#what-v01-does-not-do) ·
@@ -314,8 +315,8 @@ folder, **without** Memory element files and plan files. A Markdown document ope
 ## Automatic sync with the remote
 
 **v0.2, not released yet.** While it runs, the console keeps the projects you have opened since
-it started up to date with their remote, by itself. Three settings drive it (spec-006 §2; the
-*Settings* page that changes them is not shipped yet, so the defaults apply):
+it started up to date with their remote, by itself. Three settings drive it (spec-006 §2; change
+them in *Configuration › UI settings*, see [UI settings](#ui-settings)):
 
 | Setting | Default | What the console does |
 |---------|---------|-----------------------|
@@ -323,7 +324,9 @@ it started up to date with their remote, by itself. Three settings drive it (spe
 | Auto-update | off | right after a fetch, fast-forwards a copy that is behind (`git merge --ff-only`) — only when you are identified in the team |
 | Auto-push | off | after each submit, approve or reject made in the console, pushes the branch to its upstream |
 
-**Before you turn Auto-update on.** It makes the console do what `git pull` does, on a timer:
+### Before you turn Auto-update on
+
+Auto-update makes the console do what `git pull` does, on a timer:
 the commits someone pushes can run commands that **your own** git configuration points at — a
 filter driver (for example git-lfs or a `filter.<x>.clean` script), your `core.sshCommand`, a
 credential helper, an `uploadpack` command or an alias they call — when such a command reads or
@@ -333,6 +336,8 @@ with the repository (see also *Hooks come back with your next action* below), bu
 project files: shell forms such as a `$HOME` path, `$(pwd)/…`, backticks or a script that sources
 another file all hide it. Leave Auto-update off if your configuration runs scripts from your
 projects.
+
+### How the automatic sync runs
 
 - **Projects one at a time.** A project whose repository is busy with a write of the console is
   left to the next round; two projects of one repository are fetched once.
@@ -369,10 +374,37 @@ projects.
   rejects it, and the commit stays local (the copy is *ahead*). A commit left by a WingFoil command
   that failed after committing is not pushed by itself: it goes with the next push.
 
+## UI settings
+
+**v0.2, not released yet.** *Configuration* at the bottom of a project's sidebar opens
+*Configuration › UI settings*: your own settings for the console, the same under every project.
+They are kept in the local state on this computer (see [Where the local state lives](#where-the-local-state-lives)),
+never in a project and never committed, and they apply at once, without a restart.
+
+| Setting | Default | What it does |
+|---------|---------|--------------|
+| Auto-fetch | on | fetches the remote of every project opened in the console ([Automatic sync](#automatic-sync-with-the-remote)) |
+| Fetch interval (seconds) | 60 | how often Auto-fetch runs, from 15 to 3600 seconds |
+| Auto-update | off | fast-forwards a copy that is behind right after a fetch — read [Before you turn Auto-update on](#before-you-turn-auto-update-on) first |
+| Auto-push | off | pushes the branch after each submit, approve or reject made in the console |
+| Theme | System | *System* follows your system's light or dark preference; *Light* or *Dark* forces one |
+| Confirm agent launch | on | asks before an agent is launched on a step; kept now, takes effect from WingFoil 0.3 |
+| Entries kept (action log) | 5000 | how many commits of the console's decisions the action log keeps, from 100 to 100000; lowering it removes the oldest entries at once |
+
+- **Saving.** Each setting is saved as soon as you change it: a switch or the theme at once, a
+  number when you leave its field or press Enter (Escape puts the saved value back). A number out
+  of its range is shown as an error under its field and is not saved. *Settings saved* confirms a
+  save; a save that fails is reported with the setting's name, and the page shows what is stored.
+- **Other tabs** of the same console follow a change by themselves. A second console started on the
+  same state directory shows it the next time it reads the settings (e.g. on a reload).
+- **Under the Auto-update switch** the page states its risk and points to
+  [Before you turn Auto-update on](#before-you-turn-auto-update-on).
+
 ## Themes, keyboard and accessibility
 
 - **Themes:** light and dark, following your system preference — the page follows a change without
-  a reload. A setting to force one arrives in v0.2.
+  a reload. From v0.2 (not released yet) the *Theme* UI setting forces *Light* or *Dark*
+  ([UI settings](#ui-settings)); until the settings are read, a page opens in the system's theme.
 - **Keyboard:** every v0.1 screen is reachable with the keyboard; the first Tab stop is **Skip to
   content**. Focus is always visible. In the project switcher the arrow keys move between projects
   and Tab reaches a project's *Remove* button. Escape closes the element panel and the dialogs; a
@@ -404,8 +436,8 @@ projects.
 
 ## Where the local state lives
 
-The project list and the role view of each project are kept outside every repository, in
-`state.json` of the state directory:
+The project list, the role view of each project and (v0.2) the [UI settings](#ui-settings) are
+kept outside every repository, in `state.json` of the state directory:
 
 | Platform | Directory |
 |----------|-----------|
