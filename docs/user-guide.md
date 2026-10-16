@@ -302,8 +302,10 @@ A result toast goes after 8 s, not while the pointer is over it or the focus is 
 toast has a *Close notification* button, and a new result for the same element replaces its toast.
 At most three toasts that close by themselves are kept: a new toast removes the oldest of them.
 Refusals and failed pushes stay until you close them (or a new result for the same element
-replaces them); when the toasts are taller than the window, the stack scrolls, and Tab reaches
-every *Close notification*.
+replaces them); when the toasts are taller than the window, the stack scrolls (to a new toast's
+top when one arrives, otherwise where you left it), and Tab reaches every *Close notification*.
+Closing a toast with the keyboard moves the focus to the next toast's *Close notification* (or the
+previous one; back to the page when none is left).
 Screen readers hear results politely and refusals at once.
 
 ## DNA
