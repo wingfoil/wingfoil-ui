@@ -330,7 +330,7 @@ with git each time the repository changes:
   helpers, never a prompt — a missing credential fails with git's own message.
 - **A failed fetch** — offline, refused credentials, a remote that does not answer — shows
   *Fetch failed — last fetched at <time>* (the last successful fetch since the console started),
-  with git's message behind the ⓘ button (hover, focus or tap it). Nothing else is blocked: every view
+  with git's message behind the ⓘ button: hover or focus it, or press or tap it to open the message — press it again, press outside or use Escape to close it. Nothing else is blocked: every view
   still reads the project. A fetch refused before git runs (several remotes and no upstream, a
   remote of another user, a mirror configuration) shows the reason under the button.
 - **A failed update** — automatic (*Auto-update*) — shows its reason there too, e.g. *Cannot

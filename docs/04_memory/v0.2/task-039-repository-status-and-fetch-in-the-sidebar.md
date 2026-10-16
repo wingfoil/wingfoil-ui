@@ -421,3 +421,22 @@ typecheck, lint, format:check clean; web suite 810 passed; `test:coverage` 160 f
 skipped, **2936 passed / 1 skipped** (statements 96.55 %, branches 91.26 %; load 11.6);
 `test:e2e:chromium` **255 passed** (load 3.6); own specs (git-status, accessibility, no-commit,
 gate-footer) on the three engines **279 passed** (load 10.2). No console left running.
+
+### review round 2 (2026-10-17)
+
+Independent review round 2: R1–R9 verified, **CHANGES REQUESTED** on the R6 fix (the reviewer's
+probes: a non-modal popover reopened by a second press, never closed by a press outside — on a touch
+screen it could not be closed). Red tests first, `604b5d0`: `git-status.spec.ts` › *git's message on
+press (review round 2)* — both tests failed on Chromium (the second press left the dialog open);
+the component tests of round 2 (focus into the dialog and back after Escape; a press outside) —
+the press-outside case failed, the focus case passed in jsdom (the browser case is the e2e one).
+
+| Id | Change | Test |
+|----|--------|------|
+| R2-1 | React Aria's own pattern: `DialogTrigger` (controlled, the tooltip disabled while open) around the `TooltipTrigger` + `Button`, and a dismissable `Popover` (no `isNonModal`) with the `Dialog` "Git's message"; the hidden description stays. Probed first in a scratch page on the three engines (second press, press outside, Escape, touch taps: all closed; WebKit touch only on a tap that lands on an element, as in the app). D39-4 now reads: tooltip on hover and keyboard focus while closed, a dismissable popover dialog on press | e2e › "a press without hover … closes it" (second press at the button's centre — the underlay covers the page —, outside on the view heading, Escape) and "on a touch screen …" (`hasTouch` context: tap, tap again, tap outside); component › press outside |
+| R2-2 | — (the press no longer races the tooltip: `DialogTrigger` owns the press) | e2e › the first `info.click()` has no hover before it |
+| R2-3 | the dialog takes the focus on open and gives it back to ⓘ after Escape; `aria-expanded` from `DialogTrigger` | e2e (`toBeFocused`), component R2-1/R2-3 |
+| R2-4 | `scanThemes` while the dialog is open | `git-status.spec.ts` › Y-03.2 |
+
+Docs: user guide (how to open and close the message) and ux-reference §3 bullet, versions kept at
+0.13 / 1.6 (C7, the coordinator's rule for round fixes).

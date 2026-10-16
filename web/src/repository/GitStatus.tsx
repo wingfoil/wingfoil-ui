@@ -16,7 +16,7 @@
  */
 import { useQuery } from '@tanstack/react-query';
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
-import { Button, Dialog, Popover, Tooltip, TooltipTrigger } from 'react-aria-components';
+import { Button, Dialog, DialogTrigger, Popover, Tooltip, TooltipTrigger } from 'react-aria-components';
 import { FormattedMessage, useIntl } from 'react-intl';
 import type { ApiError } from '../api/client.js';
 import { errorMessage } from '../api/error-message.js';
@@ -263,46 +263,35 @@ function UpdateFailure({ error }: { error: UpdateSyncError }): ReactNode {
 }
 
 /**
- * An info button with git's message (D39-4, review R6): a tooltip on hover and keyboard focus, the
- * same message in a non-modal popover on press (a tap shows no tooltip), and the message as the
- * button's description — kept out of the polite live region (`hidden`, review R8).
+ * An info button with git's message (D39-4; reviews R6, R2-1 … R2-3): a tooltip on hover and
+ * keyboard focus while closed, and on press (a tap shows no tooltip) React Aria's dismissable
+ * popover dialog "Git's message" — it takes the focus, closes on a second press, a press outside
+ * or Escape, and gives the focus back to the button. The message is also the button's description,
+ * kept out of the polite live region (`hidden`, review R8).
  */
 function GitMessage({ message }: { message: string }): ReactNode {
   const intl = useIntl();
   const id = useId();
-  const trigger = useRef<HTMLButtonElement>(null);
   const [open, setOpen] = useState(false);
   const label = intl.formatMessage({ id: 'shell.git.message' });
   return (
     <>
       {' '}
-      <TooltipTrigger delay={300} isDisabled={open}>
-        <Button
-          ref={trigger}
-          className="icon-button git-info"
-          aria-label={label}
-          aria-describedby={id}
-          aria-expanded={open}
-          onPress={() => setOpen((o) => !o)}
-        >
-          <InfoSign />
-        </Button>
-        <Tooltip className="git-tooltip" placement="end">
-          {message}
-        </Tooltip>
-      </TooltipTrigger>
-      <Popover
-        triggerRef={trigger}
-        isOpen={open}
-        onOpenChange={setOpen}
-        isNonModal
-        placement="end"
-        className="git-tooltip git-message-popover"
-      >
-        <Dialog aria-label={label} className="git-message">
-          {message}
-        </Dialog>
-      </Popover>
+      <DialogTrigger isOpen={open} onOpenChange={setOpen}>
+        <TooltipTrigger delay={300} isDisabled={open}>
+          <Button className="icon-button git-info" aria-label={label} aria-describedby={id}>
+            <InfoSign />
+          </Button>
+          <Tooltip className="git-tooltip" placement="end">
+            {message}
+          </Tooltip>
+        </TooltipTrigger>
+        <Popover placement="end" className="git-tooltip git-message-popover">
+          <Dialog aria-label={label} className="git-message">
+            {message}
+          </Dialog>
+        </Popover>
+      </DialogTrigger>
       <span id={id} hidden>
         {message}
       </span>
