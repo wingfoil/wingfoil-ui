@@ -325,3 +325,5 @@ previous hook; the R2 alert, R3 and R5 tests on the behaviour itself); fix `339b
 - The old hook tests asserted the optimistic cache; they now assert server answers in the cache
   (the shown values are the R1 tests'). The `pending` status is selected with a predicate
   (`unsettled`): the REQ-ARC-05 lint refuses the literal.
+
+Checks after round 1 (HEAD before this note `8995fbe`): typecheck, lint, format:check clean; docs:api, `check_tasks.py v0.2` OK; `test:coverage` 160 files passed, 1 skipped, **2945 passed / 1 skipped** (statements 96.55 %, branches 91.23 %, functions 97.24 %, lines 98.32 %; load 11.7 → 18.6); own spec on three engines **21 passed**; `test:e2e:chromium` **248 passed** (9.8 min, load 1.5 → 6.3); `ui-settings.timing.test.ts` **passed** (0 `git fetch` in 120 s, a `git status` written after the change; load 4.1 → 0.8). No console and no `wfui-*` entry left.
