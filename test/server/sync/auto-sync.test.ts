@@ -814,6 +814,21 @@ describe('W4-15 (security review S3-1) — a configured value naming any file of
     expect(await s.c.head()).toBe(await remoteHead(s.c));
   });
 
+  it('a key the unattended run overrides (core.hooksPath = a tracked hooks folder) does not stop the update', async () => {
+    const s = await start(
+      { autoUpdate: true },
+      {
+        prepare: async (fx) => {
+          await tracked(fx, { '.husky/pre-commit': '#!/bin/sh\n' });
+          await git(fx.dir, ['config', 'core.hooksPath', '.husky'], fx.env);
+        },
+      },
+    );
+    await s.c.remoteCommit('other.md', ':\n');
+    await s.tick();
+    expect(await s.c.head()).toBe(await remoteHead(s.c));
+  });
+
   it('a value naming the top level itself (make -C .) stops it — fail closed', async () => {
     const s = await start(
       { autoUpdate: true },

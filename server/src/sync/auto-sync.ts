@@ -12,7 +12,7 @@
  * Logs carry the project, the operation, codes, `ended` and the exit status — never git's text
  * (it may quote local paths and URLs).
  */
-import { realpath } from 'node:fs/promises';
+import { lstat, realpath } from 'node:fs/promises';
 import path from 'node:path';
 import type { SyncError } from '@wingfoil-ui/contracts';
 import { expandUser } from '../git/local-remote.js';
@@ -56,7 +56,9 @@ export async function configInWorktree(snapshot: ProjectSnapshot, home?: string)
   );
   for (const { scope, origin, key, value } of await snapshot.git.configOrigins()) {
     if (!origin.startsWith('file:')) continue;
-    const holder = path.resolve(snapshot.topLevel, origin.slice('file:'.length));
+    // The path as git opened it (no lexical `..` collapsing: the file system resolves it, S3-2).
+    const opened = origin.slice('file:'.length);
+    const holder = path.isAbsolute(opened) ? opened : `${snapshot.topLevel}/${opened}`;
     const file = await real(holder);
     if (file === undefined) return true;
     if ((scope === 'local' || scope === 'worktree') && !own.has(file)) return true;
@@ -64,59 +66,148 @@ export async function configInWorktree(snapshot: ProjectSnapshot, home?: string)
     // W4-11 (security review S2-1): an include directive counts whether its file exists yet and
     // whether its condition holds now — a merge could bring the file, a checkout make it apply.
     if (key === 'include.path' || (key.startsWith('includeif.') && key.endsWith('.path'))) {
-      const target = includeTarget(value, path.dirname(file), home);
-      if (target === undefined) return true;
-      if (inTree(await existingRealpath(target))) return true;
+      // Relative to the folder of the holder as git opened it (a symlinked dotfile resolves from the
+      // link's folder, S3-2).
+      const target = await includeTarget(value, holder.slice(0, holder.lastIndexOf('/')) || '/', home);
+      if (target === undefined || inTree(target)) return true;
     }
   }
   return false;
 }
 
 /**
- * Whether a value of the effective configuration names one of `paths` (relative to the repository's
- * top level) — W4-12, security review S2-2: a relative command of the user's own configuration
- * (`filter.<x>.clean = tools/clean.sh`, `credential.helper = !./x`, `core.sshCommand = sh x`, …)
- * would run the file the incoming commits change. A guard on what git may execute, not a key list:
- * every value is split into tokens (whitespace, quotes, shell punctuation), a helper's `!` dropped,
- * `./` and separators normalised; an absolute token counts when it lies in the top level.
+ * The keys an unattended run sets itself, whatever the configuration says (D34-1, D34-2, D34-5,
+ * W4-5): their configured values are never used there.
  */
-export async function configUsesPaths(snapshot: ProjectSnapshot, paths: readonly string[]): Promise<boolean> {
-  if (paths.length === 0) return false;
+const OVERRIDDEN =
+  /^(core\.hookspath|core\.fsmonitor|fetch\.prunetags|remote\..*\.prunetags|branch\..*\.mergeoptions)$/;
+
+/**
+ * Whether a value of the effective configuration (any scope) names something of the working tree —
+ * W4-15 (a), security review S3-1, replacing W4-12's match on the incoming paths only: a command of
+ * the configuration that runs or reads a file of the working tree (a script that sources another,
+ * `make -C tools`, a tracked symlink) would run what the incoming commits change. True when
+ * - a token of the value (shell-like: quotes, backslash escapes, `;|&()<>` separate; also its parts
+ *   around `=`, `:` and `,`; a helper's `!` dropped; `~`, `~user`, `$PWD`, `${PWD}` and
+ *   `$(git rev-parse --show-toplevel)` expanded) resolves — relative tokens from the top level, by
+ *   the file system — to an existing path inside the top level outside the git directories; the
+ *   top level itself counts (`make -C .`, fail closed);
+ * - the value holds the top level's path or its realpath;
+ * - a token is an incoming path (normalised: `./x`, separators — it may not exist before the merge),
+ *   or the value holds one with no path character around it (a space, an escape).
+ * Not counted: the keys an unattended run overrides; `safe.directory` (a path git compares, never
+ * opens); `branch.<b>.remote = .` (the remote name of a local upstream).
+ */
+export async function configUsesWorktree(
+  snapshot: ProjectSnapshot,
+  incoming: readonly string[],
+  home: string | undefined,
+): Promise<boolean> {
+  const top = snapshot.topLevel;
+  const realTop = (await real(top)) ?? top;
+  const gitDirs = (await Promise.all([snapshot.gitDir, snapshot.commonDir].map(real))).filter(
+    (p): p is string => p !== undefined,
+  );
   const normal = (p: string): string => path.posix.normalize(p.replace(/\\/g, '/')).replace(/^(\.\/)+/, '');
-  const changed = new Set(paths.map(normal));
-  for (const { value } of await snapshot.git.configOrigins()) {
-    for (const raw of value.split(/[\s"'`;|&()<>=,]+/)) {
-      let token = raw.replace(/^!+/, '');
-      if (token === '') continue;
-      if (path.isAbsolute(token)) {
-        token = path.relative(snapshot.topLevel, token);
-        if (token.startsWith('..')) continue;
-      }
-      if (changed.has(normal(token))) return true;
+  const changed = new Set(incoming.map(normal));
+  const named = (file: string): boolean =>
+    (file === realTop || within(file, realTop) || file === top || within(file, top)) &&
+    !gitDirs.some((d) => within(file, d));
+  for (const { key, value } of await snapshot.git.configOrigins()) {
+    if (OVERRIDDEN.test(key) || key === 'safe.directory') continue;
+    if (/^branch\..*\.remote$/.test(key) && value === '.') continue;
+    const expanded = value
+      .split('$(git rev-parse --show-toplevel)')
+      .join(top)
+      .split('${PWD}')
+      .join(top)
+      .replace(/\$PWD(?![A-Za-z0-9_])/g, top);
+    if (expanded.includes(top) || expanded.includes(realTop)) return true;
+    const unescaped = expanded.replace(/\\(.)/g, '$1');
+    for (const file of incoming) {
+      const escaped = file.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      if (new RegExp(`(^|[^A-Za-z0-9._/-])${escaped}($|[^A-Za-z0-9._-])`).test(unescaped)) return true;
+    }
+    for (const raw of shellTokens(expanded)) {
+      const token = expandUser(raw.replace(/^!+/, ''), home);
+      if (token === undefined || token === '') continue;
+      const candidate = path.isAbsolute(token) ? token : `${top}/${token}`;
+      // An incoming path, normalised (`./x`, separators): it may not exist before the merge (W4-12).
+      if (changed.has(normal(path.isAbsolute(token) ? path.relative(top, token) : token))) return true;
+      // The link itself (a tracked symlink the commits can retarget) and where it leads.
+      const exists = await lstat(candidate).then(
+        () => true,
+        () => false,
+      );
+      if (exists && named(path.resolve(candidate))) return true;
+      const resolved = await real(candidate);
+      if (resolved !== undefined && named(resolved)) return true;
     }
   }
   return false;
 }
 
-/** An include path resolved as git does: `~/` and `~user/` expanded, relative to the including file's folder. */
-function includeTarget(value: string, folder: string, home: string | undefined): string | undefined {
-  const expanded = expandUser(value, home);
-  if (expanded === undefined) return undefined;
-  return path.resolve(folder, expanded);
+/** The words of a shell-like `value` (quotes, backslash escapes), each also split around `=`, `:`, `,`. */
+export function shellTokens(value: string): string[] {
+  const words: string[] = [];
+  let word = '';
+  let started = false;
+  let quote: string | undefined;
+  for (let i = 0; i < value.length; i += 1) {
+    const ch = value[i]!;
+    if (quote !== undefined) {
+      if (ch === quote) quote = undefined;
+      else if (ch === '\\' && quote === '"' && i + 1 < value.length) word += value[++i];
+      else word += ch;
+      continue;
+    }
+    if (ch === '\\' && i + 1 < value.length) {
+      word += value[++i];
+      started = true;
+    } else if (ch === '"' || ch === "'") {
+      quote = ch;
+      started = true;
+    } else if (/[\s;|&()<>`]/.test(ch)) {
+      if (started) words.push(word);
+      word = '';
+      started = false;
+    } else {
+      word += ch;
+      started = true;
+    }
+  }
+  if (started) words.push(word);
+  return words.flatMap((w) => [w, ...w.split(/[=:,]/)]).filter((w) => w !== '');
 }
 
-/** The realpath of `file`'s nearest existing ancestor, joined with the rest (the file may not exist yet). */
-async function existingRealpath(file: string): Promise<string> {
-  const rest: string[] = [];
-  let current = file;
-  for (;;) {
-    const resolved = await real(current);
-    if (resolved !== undefined) return path.join(resolved, ...rest.reverse());
-    const parent = path.dirname(current);
-    if (parent === current) return file;
-    rest.push(path.basename(current));
-    current = parent;
+/**
+ * An include path resolved as git does: `~/` and `~user/` expanded, a relative one joined to the
+ * folder of the including file as git opened it, then resolved by the file system (S3-2).
+ * `undefined` (fail closed) when it cannot be resolved for sure.
+ */
+async function includeTarget(value: string, folder: string, home: string | undefined): Promise<string | undefined> {
+  const expanded = expandUser(value, home);
+  if (expanded === undefined) return undefined;
+  return physicalPath(path.isAbsolute(expanded) ? expanded : `${folder}/${expanded}`);
+}
+
+/**
+ * `file` resolved by the file system as git would open it (`..` after a symlink follows the link):
+ * the realpath of its longest existing prefix, joined with the rest. `undefined` — fail closed —
+ * when the rest holds `..` or `.` (a folder created later, e.g. a symlink, would change where it
+ * leads; security review S3-2).
+ */
+async function physicalPath(file: string): Promise<string | undefined> {
+  const parts = file.split('/');
+  for (let n = parts.length; n > 0; n -= 1) {
+    const prefix = parts.slice(0, n).join('/') || '/';
+    const resolved = await real(prefix);
+    if (resolved === undefined) continue;
+    const rest = parts.slice(n).filter((p) => p !== '');
+    if (rest.some((p) => p === '..' || p === '.')) return undefined;
+    return path.join(resolved, ...rest);
   }
+  return undefined;
 }
 
 /** Where the automatic sync logs: codes and kinds only. */
@@ -288,7 +379,7 @@ export class AutoSync implements SyncWork {
       sync.updateFailed(pid, { code: 'config-in-worktree' }, state.copy, new Date());
       return;
     }
-    if (await configUsesPaths(snapshot, await snapshot.git.incomingPaths())) {
+    if (await configUsesWorktree(snapshot, await snapshot.git.incomingPaths(), transport.environment.HOME)) {
       logger.warn({ project: pid, op: 'auto-update', code: 'config-uses-incoming-path' }, 'automatic update skipped');
       sync.updateFailed(pid, { code: 'config-uses-incoming-path' }, state.copy, new Date());
       return;
