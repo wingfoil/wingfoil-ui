@@ -440,3 +440,10 @@ the press-outside case failed, the focus case passed in jsdom (the browser case 
 
 Docs: user guide (how to open and close the message) and ux-reference §3 bullet, versions kept at
 0.13 / 1.6 (C7, the coordinator's rule for round fixes).
+
+Checks after review round 2 (HEAD before this note `f76b8d7`, via the machine-free slot):
+typecheck, lint, format:check clean; web suite 812 passed; own specs (git-status, accessibility,
+no-commit, gate-footer) on the three engines **285 passed** (load 12.7 at the grant, rising from
+the slot's ≤ 14 check); `test:coverage` 160 files passed, 1 skipped, **2938 passed / 1 skipped**
+(statements 96.55 %, branches 91.26 %; load 10.5); `test:e2e:chromium` **257 passed** (load 3.6).
+No console left running.
