@@ -200,18 +200,58 @@ it('review R3 — a toast raised while a popover is open is not hidden from assi
   expect(document.querySelector('main')?.getAttribute('aria-hidden')).toBe('true');
 });
 
-// Review round 1 (R1): out of the drawer's column — centred in the area left of the drawer, or above
-// the drawer's footer when that area is too narrow; centred in the viewport without a drawer.
+// Review rounds 1 and 2 (R1, R2-1, R2-2, R2-3): out of the drawer's column — centred in the area
+// between the main region's left edge (the sidebar is outside it) and the drawer, or above the
+// drawer's footer when that area is too narrow; the default bottom centre without a drawer or
+// without a footer yet; never taller than the room between the header and the stack's bottom.
+const LAYOUT = { headerBottom: 56, mainLeft: 220 };
 it.each([
-  ['no drawer', { width: 1280, height: 720 }, undefined, {}],
+  ['no drawer', { ...LAYOUT, viewport: { width: 1280, height: 720 } }, { maxHeight: 624 }],
   [
-    'a drawer, room on its left',
-    { width: 1280, height: 720 },
-    { left: 800, footerTop: 650 },
-    { left: 400, maxWidth: 768 },
+    'a drawer, room between the sidebar and it',
+    { ...LAYOUT, viewport: { width: 1280, height: 720 }, drawer: { left: 800, footerTop: 650 } },
+    { left: 510, maxWidth: 548, maxHeight: 624 },
   ],
-  ['a drawer, little room on its left', { width: 700, height: 720 }, { left: 220, footerTop: 600 }, { bottom: 128 }],
-  ['a drawer over the whole viewport', { width: 400, height: 720 }, { left: 0, footerTop: 560 }, { bottom: 168 }],
-] as const)('review R1 — placement with %s', (_name, viewport, drawer, expected) => {
-  expect(toastPlacement(viewport, drawer)).toEqual(expected);
+  [
+    'a drawer leaving less than 360 px right of the sidebar',
+    { ...LAYOUT, viewport: { width: 1000, height: 720 }, drawer: { left: 520, footerTop: 650 } },
+    { bottom: 78, maxHeight: 570 },
+  ],
+  [
+    'a drawer, little room on its left (no sidebar)',
+    { headerBottom: 56, mainLeft: 0, viewport: { width: 700, height: 720 }, drawer: { left: 220, footerTop: 600 } },
+    { bottom: 128, maxHeight: 520 },
+  ],
+  [
+    'a drawer over the whole viewport',
+    { headerBottom: 56, mainLeft: 0, viewport: { width: 400, height: 720 }, drawer: { left: 0, footerTop: 560 } },
+    { bottom: 168, maxHeight: 480 },
+  ],
+  [
+    'a narrow drawer with no footer yet (loading, read error)',
+    { headerBottom: 56, mainLeft: 0, viewport: { width: 400, height: 720 }, drawer: { left: 0 } },
+    { maxHeight: 624 },
+  ],
+] as const)('review R1, R2 — placement with %s', (_name, layout, expected) => {
+  expect(toastPlacement(layout)).toEqual(expected);
+});
+
+// Review round 2 (R2-3): a stack taller than its room scrolls; only then does it take the pointer.
+it('review R2-3 — an overflowing stack becomes a scroll container that takes the pointer', () => {
+  const sizes = vi.spyOn(HTMLElement.prototype, 'scrollHeight', 'get').mockReturnValue(900);
+  const client = vi.spyOn(HTMLElement.prototype, 'clientHeight', 'get').mockReturnValue(400);
+  try {
+    mount();
+    const stack = document.querySelector('.toasts') as HTMLElement;
+    expect(stack.classList.contains('toasts-overflow')).toBe(false);
+    act(() => {
+      for (const n of [1, 2, 3]) showToast({ tone: 'error', title: `e${n}` });
+    });
+    expect(stack.classList.contains('toasts-overflow')).toBe(true);
+    act(() => resetToasts());
+    expect(stack.classList.contains('toasts-overflow')).toBe(false);
+  } finally {
+    sizes.mockRestore();
+    client.mockRestore();
+  }
 });

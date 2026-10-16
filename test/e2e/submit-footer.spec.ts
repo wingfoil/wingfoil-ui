@@ -281,6 +281,10 @@ test.describe('US-G-14 — a refusal as a red toast', () => {
     await submitButton(page).click();
     await expect(assertiveToasts(page).locator('.toast')).toHaveCount(1);
     await expect(toast).toContainText('sard_ref', { timeout: COLD_READ_MS });
+    // Review R2-2: beside the drawer but right of the sidebar (its foot holds the Git status).
+    await expect
+      .poll(async () => (await toast.boundingBox())!.x - (await page.locator('#main').boundingBox())!.x)
+      .toBeGreaterThanOrEqual(0);
     expect(await scanThemes(page)).toEqual([]);
     // Too narrow for the toasts beside the drawer: stacked above its footer.
     await page.setViewportSize({ width: 600, height: 720 });
@@ -323,6 +327,50 @@ test.describe('US-G-14 — a refusal as a red toast', () => {
     const { stdout } = await git(kanban.dir, ['log', '--format=%s'], kanban.env);
     expect(stdout).not.toContain('reject task-001-login-form');
     await expect(currentState(page)).toHaveText('approved, final state', { timeout: COLD_READ_MS });
+  });
+});
+
+// Review round 2 (R2-3): refusals stay until closed, so on a small window they can outgrow it; the
+// stack then scrolls and the oldest toast's Close stays reachable.
+test.describe('review R2-3 — a stack taller than the window', () => {
+  test('Refusals that overflow the window stay reachable', async ({ page, fixtures, consoles }) => {
+    const kanban = await copyAs(fixtures, 'kanban', 'Morgan');
+    const c = await consoles.start({ projects: [kanban] });
+    const message = Array.from({ length: 12 }, (_, i) => `Error: refused, line ${i + 1}`).join('\n');
+    await page.route(/\/elements\/[^/]+\/(submit|approve)$/, (route) =>
+      route.fulfill({
+        status: 422,
+        contentType: 'application/json',
+        body: JSON.stringify({ error: { code: 'cli-refused', message } }),
+      }),
+    );
+    await page.setViewportSize({ width: 400, height: 600 });
+    const refusals = assertiveToasts(page).locator('.toast');
+    await openPanel(page, c, 'task-004-session-timeout');
+    await submitButton(page).click({ timeout: COLD_READ_MS });
+    await expect(refusals).toHaveCount(1, { timeout: COLD_READ_MS });
+    for (const [n, eid] of [
+      [2, 'task-001-login-form'],
+      [3, 'bug-001-crash-on-save'],
+    ] as const) {
+      await drawer(page).getByRole('button', { name: 'Close' }).first().click();
+      await page
+        .getByRole('region', { name: 'Requires you' })
+        .locator(`li[data-eid="${eid}"]`)
+        .getByRole('button')
+        .click({ timeout: COLD_READ_MS });
+      await drawer(page)
+        .getByRole('button', { name: /^Approve → / })
+        .click({ timeout: COLD_READ_MS });
+      await expect(refusals).toHaveCount(n, { timeout: COLD_READ_MS });
+    }
+    await expect(page.locator('.toasts')).toHaveClass(/toasts-overflow/);
+    const oldest = refusals.first().getByRole('button', { name: 'Close notification' });
+    await oldest.focus();
+    await expectOnTop(page, oldest);
+    await oldest.click();
+    await expect(refusals).toHaveCount(2);
+    expect(await scanThemes(page)).toEqual([]);
   });
 });
 
