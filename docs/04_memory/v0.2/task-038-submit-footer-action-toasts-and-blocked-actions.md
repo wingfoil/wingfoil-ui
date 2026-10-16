@@ -437,3 +437,53 @@ Checks after review round 1 (HEAD `c67cfcc` + notes):
 | `npm run test:smoke` | not run: no packaging, launcher or bin change | — |
 
 No console left, no `wfui-*` entry in the system temporary directory.
+
+### review round 2 (2026-10-17)
+
+Independent review: round-1 findings verified closed (8 of 15 `toasts.test.tsx` cases fail on
+`7be21e1`); **CHANGES REQUESTED** for three regressions of the R1 fix and a nit. Red first
+(`67cb908`, `bc0b9b1`), fixes (`470db65`, `94ed656`, `2e80680`).
+
+- **R2-1** — in narrow mode a drawer without `.element-footer-slot` (loading, read error) used the
+  drawer's top as the footer's: the stack went off-screen. Change: `toastPlacement` takes
+  `drawer.footerTop` as optional; without it the stack keeps the default bottom. Test: placement
+  row "a narrow drawer with no footer yet".
+- **R2-2** — the area left of the drawer included the 220 px sidebar, so the stack covered the
+  sidebar foot (task-039's Git status, task-040's Update/Push). Change: the area is bounded by
+  `#main`'s left edge — centre `(mainLeft + drawerLeft) / 2`, room `drawerLeft − mainLeft` (no
+  `#main` → 0); ux-reference §5 and the user guide reworded. Tests: placement rows "room between the
+  sidebar and it" and "less than 360 px right of the sidebar"; `submit-footer.spec.ts` G-14.1 checks
+  the toast's left edge is not left of `#main`.
+- **R2-3** — an all-sticky stack was unbounded. Change: `maxHeight` from the placement (the room
+  between the shell header and the stack's bottom; a CSS fallback), `overflow-y: auto`; when it
+  overflows the stack gets `toasts-overflow` (pointer events on, the newest toast scrolled into
+  view; a DOM measure in a layout effect); its Close buttons keep it keyboard-reachable. User
+  guide: "at most three toasts that close by themselves …; refusals and failed pushes stay until
+  you close them". Tests: `toasts.test.tsx` › R2-3 (class only while it overflows); e2e
+  `submit-footer.spec.ts` › "Refusals that overflow the window stay reachable" (400×600, three
+  `cli-refused` answers of 12 lines through `page.route`, the oldest toast's Close on top and closing
+  it, axe in both themes).
+- **Found while making R2-3's e2e pass (fixed here, recorded):** (a) on a window this small the
+  stack also covered the drawer's own header and its Close: the stack over the drawer is now bounded
+  below the drawer's header too (`drawer.headerBottom`; placement rows updated; red `test(web): red —
+  a narrow toast stack stays below the drawer's header`); the e2e reaches the next controls with the
+  keyboard (the stack may cover the page under three tall refusals — what their Close is for) and
+  checks the drawer's Close is on top. (b) axe `scrollable-region-focusable` (serious) on the
+  `pre.verbatim` of a toast (its own `max-height` scroll, since round 0): the toast's verbatim text
+  no longer scrolls by itself (the stack does).
+- **R2-4 (nit)** — the placement observed `childList` of the whole `document.body` and missed
+  non-`childList` footer moves. Change: a `ResizeObserver` on `.drawer` and `.element-footer-slot`
+  (re-targeted when they change), a `childList` observer on the shell root only, both disconnected
+  when no toast is left (guarded where `ResizeObserver` does not exist, e.g. jsdom).
+
+Checks after review round 2 (HEAD `2e80680` + notes):
+
+| Gate | Result | Load |
+|------|--------|------|
+| `npm run typecheck`, `npm run lint`, `npm run format:check`, `npm run docs:api`, `check_tasks.py v0.2` | clean / OK | — |
+| `npm run test:coverage` | **2924 passed / 1 skipped**; statements 96.44 %, branches 91.00 %, functions 97.29 %, lines 98.28 % | — |
+| `npm run test:e2e:chromium` (whole suite) | **259 passed** (9.5 min); TT-PERF-02 default runs approve p95 1 394 ms, submit p95 1 477 ms (no budget) | 16.9 |
+| `npm run test:e2e -- submit-footer.spec.ts gate-footer.spec.ts notification-bell.spec.ts accessibility.spec.ts element-panel.spec.ts project-header.spec.ts harness/support.spec.ts` (three engines) | **384 passed**, 0 failed (13.6 min) | — |
+| `npm run test:timing` | not repeated (passed after round 1 at load 10.7; the placement change does not touch the write path) | — |
+
+No console left, no `wfui-*` entry in the system temporary directory.
