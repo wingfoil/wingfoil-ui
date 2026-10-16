@@ -82,7 +82,7 @@ the copy (spec-003 §6 rule 4), follow the whole key.
   upstream: string | null,                         # the remote upstream's name, e.g. "origin/main"
   sync: { fetch: { lastSuccessAt: string | null,  # ISO 8601 UTC, since the server start
                    lastError: { code?, message, at } | null },  # code: "fetch-timeout", "config-in-worktree" (§6)
-          update: { lastError: { code, detail?, message?, at } | null } } }  # code: §5, "git-refused", "merge-not-fast-forward", "config-in-worktree", "config-uses-incoming-path" (§6)
+          update: { lastError: { code, detail?, message?, at } | null } } }  # code: §5, "git-refused", "merge-not-fast-forward", "config-in-worktree" (§6)
 ```
 
 `upstream` is the printed `branch.upstream` whenever it is a remote upstream (§1) — also in
@@ -213,7 +213,6 @@ Codes of the sync status (§3, §6), not answered by a route; rendered from the 
 | `fetch-timeout` | `sync.fetch.lastError` | "Fetch stopped: the remote did not answer within 60 s — the next automatic fetch tries again" |
 | `config-in-worktree` | `sync.fetch.lastError`, `sync.update.lastError` | "Not synced automatically: this repository's git configuration includes another file — fetch and update with git in a terminal" |
 | `merge-not-fast-forward` | `sync.update.lastError` | "Not updated: git reported success but your copy is not at the remote's commit — check it with git in a terminal" |
-| `config-uses-incoming-path` | `sync.update.lastError` | "Not updated automatically: your git configuration uses a file of the working tree — update by hand or with git in a terminal" |
 | `push-timeout`, `internal` | `push.code` of a write (spec-004 §5) | "Not pushed: the push did not finish within 60 s — use Push to try again"; `error.internal` |
 
 `local-changes-in-the-way`: the files changed by the incoming commits
@@ -267,22 +266,19 @@ so the sidebar shows it (Y-06.1, Y-06.2).
   `-c core.fsmonitor=false`. Accepted residual (W4-11): a `filter.<x>.clean` that such a
   configuration names still runs in the server's status reads once the user's own pull or Update
   brought it, as in the user's own `git status`.
-- **Configured values naming the working tree** (W4-12, widened by W4-15 (a), security review
-  S2-2, S3-1): before an automatic merge, the update is skipped and recorded as
-  `sync.update.lastError` `config-uses-incoming-path` when any value of the effective configuration
-  (any scope) names something of the working tree, incoming or not: a token (shell-like words —
-  quotes, backslash escapes, `;|&()<>` — and their parts around `=`, `:`, `,`; a helper's `!`
-  dropped; `~`, `~user`, `$PWD`, `${PWD}`, `$(git rev-parse --show-toplevel)` expanded) that is an
-  incoming path or resolves — relative tokens from the top level, by the file system, a tracked
-  symlink itself included — to an existing path inside the top level outside the git directories;
-  the value holding the top level's path or its realpath; or the value holding an incoming path
-  with no path character around it. E.g. `filter.<x>.clean = sh tools/run.sh` (which may source an
-  incoming file), `make -C tools`, `"$(git rev-parse --show-toplevel)/tools/clean.sh"`. The top
-  level itself counts (`make -C .`: fail closed). Not counted: the keys an unattended run sets
-  itself (`core.hooksPath`, `core.fsmonitor`, `fetch.pruneTags`, `remote.<r>.pruneTags`,
-  `branch.<b>.mergeOptions`), `safe.directory` (a path git compares, never opens) and
-  `branch.<b>.remote = .` (the remote name of a local upstream). Accepted residual: commands found
-  through `PATH` or non-path forms (`python -m pkg.mod`) that load files of the repository.
+- **Declared residual of the automatic update** (W4-16, decided by the approver): `autoUpdate` is
+  off by default (spec-006 §2). Turned on, the console does on a timer what `git pull` does: the
+  incoming commits can run commands that the user's **own** git configuration points at — a filter
+  driver (`filter.<x>.smudge`/`clean`), `core.sshCommand`, a credential helper,
+  `remote.<r>.uploadpack`, an alias they call — when such a command reads or runs a file of the
+  working tree; never a hook (no hooks run, D34-1), never an fsmonitor (W4-5), never configuration
+  the repository brings (`config-in-worktree`, W4-5/W4-11/W4-14). It is not detected: the value
+  heuristics tried in review (W4-12, W4-15) were bypassed by shell expansion — a `$HOME` path,
+  `${HOME}`, `"$(pwd)/…"`, backticks, `$(git rev-parse --show-toplevel)`/`--show-cdup`, `${PWD%/}`,
+  globs such as `t*/`, a script that sources another file — and stopped the update forever on
+  common configurations (`core.editor = code --wait` with a `code/` folder,
+  `credential.helper = cache` with `cache/`, an alias `!npm test` with `test/`), so they were
+  removed.
 - **Legacy remote files** (W4-7, security review S3): a remote without `remote.<r>.url` in the
   configuration makes git read `remotes/<r>` or `branches/<r>` of the common directory, whose
   refspecs the configuration does not show; such a remote, or one with such a file, is refused
@@ -459,3 +455,7 @@ Rows 7–9 do not apply (no element).
   its text widened), the exemptions and the `PATH` residual; include paths resolved from the holder
   as git opened it, a `..` in a part that does not exist yet failing closed (S3-2); §5 the catalogue
   texts of the sync-status codes.
+- 2026-10-16 — review round 4 of task-034 (decision W4-16 (A) of the approver): §6 the value
+  heuristics of W4-12 / W4-15 and the code `config-uses-incoming-path` removed, the residual of the
+  automatic update declared; §5 its catalogue row removed. The `config-in-worktree` log names the
+  triggering key by section and name only (R4-2).

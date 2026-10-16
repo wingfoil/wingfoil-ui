@@ -626,7 +626,7 @@ catalogue text. No console and no `wfui-task-034-*` entry left.
 #### Review round 4 and decision (approver, 2026-10-16; plan ref W4-16)
 
 Independent review round 4 and adversarial security review round 4: **CHANGES REQUIRED**. S4-1:
-ten shell spellings bypass `configUsesWorktree` to execution (`$HOME/…`, `${HOME}`, `"$(pwd)/…"`,
+ten shell spellings bypass `configUsesWorktree` to execution (a `$HOME` path, `${HOME}`, `"$(pwd)/…"`,
 backticks, `$(git rev-parse --show-cdup)`, `--show-toplevel )` with a space, `${PWD%/}`, globs
 `t*/`, `tool?/`, …); S4-2 / R4-2: noise — `core.editor = code --wait` with a `code/` folder,
 `credential.helper = cache` with `cache/`, `alias.t = !npm test` with `test/`, git-lfs `%f` with a

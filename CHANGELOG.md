@@ -15,6 +15,9 @@ All notable changes to WingFoil UI are recorded in this file. The format follows
   included). Unattended runs start no repository hook, no fsmonitor and no askpass program, and do
   not run at all when the repository's configuration includes another file; an automatic fetch or
   an auto-push is stopped after 60 s; stopping the console lets a running automatic update finish.
+  Declared risk: *Auto-update* does on a timer what `git pull` does — incoming commits can run
+  commands your own git configuration points at (filters, `core.sshCommand`, credential helpers,
+  aliases) when they read project files; it is off by default.
 - **How to join** (US-C-08, US-C-09): for a user not in the team, the *not in team* badge and the
   header notice open a panel naming the project's tech leads (or saying none, or no member, is
   declared) with the exact `wingfoil dna add team.members …` command for the user's git email and

@@ -312,6 +312,16 @@ it started up to date with their remote, by itself. Three settings drive it (spe
 | Auto-update | off | right after a fetch, fast-forwards a copy that is behind (`git merge --ff-only`) — only when you are identified in the team |
 | Auto-push | off | after each submit, approve or reject made in the console, pushes the branch to its upstream |
 
+**Before you turn Auto-update on.** It makes the console do what `git pull` does, on a timer:
+the commits someone pushes can run commands that **your own** git configuration points at — a
+filter driver (for example git-lfs or a `filter.<x>.clean` script), your `core.sshCommand`, a
+credential helper, an `uploadpack` command or an alias they call — when such a command reads or
+runs a file of the project. The console runs no hook, no fsmonitor and no configuration that
+comes with the repository, but it cannot tell from your configuration whether a command reads
+project files: shell forms such as a `$HOME` path, `$(pwd)/…`, backticks or a script that sources
+another file all hide it. Leave Auto-update off if your configuration runs scripts from your
+projects.
+
 - **Projects one at a time.** A project whose repository is busy with a write of the console is
   left to the next round; two projects of one repository are fetched once.
 - **What runs, unattended.** The automatic fetch and update run **no hook** of the repository —
@@ -326,13 +336,6 @@ it started up to date with their remote, by itself. Three settings drive it (spe
   commits it would bring could change that file and make git run a command. The sidebar shows why;
   fetch and update with git in a terminal. Includes of your global configuration (`~/.gitconfig`)
   are yours and do not count, unless they point into the project's folder.
-- **Not when your configuration uses a file of the project.** If any value of your git
-  configuration names a file or folder of the project's working tree — a filter, credential helper
-  or ssh command such as `./tools/clean.sh` or `make -C tools`, even one git would not run, and
-  whether or not the update changes it — the console does not update by itself (the sidebar shows
-  why): the incoming commits could change what that command runs. Your hooks folder setting and
-  `safe.directory` do not count. A command found through your `PATH` that reads files of the
-  project is not detected.
 - **Stopping the console during an automatic update** lets the update finish first, so the working
   tree is never left half updated; the log says so, and a second Ctrl-C (or signal) stops at once.
 - **Hooks come back with your next action.** Hooks an automatic update brought in through a hooks
