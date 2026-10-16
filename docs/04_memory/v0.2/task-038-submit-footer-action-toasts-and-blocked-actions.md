@@ -424,3 +424,16 @@ deviation accepted with option A). Red first (`7be21e1`), fixes (`c67cfcc`).
 - **R8 (nit, kept)** — `web/src/api/writes.ts` imports the toast content from
   `web/src/element/write-toast.tsx`: the mutation raises its own toast (D38-11), so the API module
   depends on that UI piece; no cycle (`write-toast.tsx` imports only types from `writes.ts`).
+
+Checks after review round 1 (HEAD `c67cfcc` + notes):
+
+| Gate | Result | Load |
+|------|--------|------|
+| `npm run typecheck`, `npm run lint`, `npm run format:check`, `npm run docs:api`, `check_tasks.py v0.2` | clean / OK | — |
+| `npm run test:coverage` | 158 files passed, 1 skipped; **2921 passed / 1 skipped**; statements 96.54 %, branches 91.08 %, functions 97.41 %, lines 98.33 % | — |
+| `npm run test:e2e:chromium` (whole suite) | **258 passed** (8.9 min) | → 16.9 |
+| `npm run test:e2e -- submit-footer.spec.ts gate-footer.spec.ts notification-bell.spec.ts accessibility.spec.ts element-panel.spec.ts project-header.spec.ts harness/support.spec.ts` (three engines) | **381 passed**, 0 failed (15.0 min) | — |
+| `npm run test:timing` (started at load 10.7, via the slot) | Vitest **5/5** (TT-PERF-07 10/10 at ~60.0 s), Playwright **20/20**; **TT-PERF-02** approve p95 **477 ms**, submit p95 **425 ms** (20 runs each, budget 3.0 s); TT-PERF-01 p95 114 ms; TT-PERF-04 within budget | 10.7 → 3.8 |
+| `npm run test:smoke` | not run: no packaging, launcher or bin change | — |
+
+No console left, no `wfui-*` entry in the system temporary directory.
