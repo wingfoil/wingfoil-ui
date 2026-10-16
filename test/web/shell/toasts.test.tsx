@@ -224,13 +224,19 @@ it.each([
   ],
   [
     'a drawer over the whole viewport',
-    { headerBottom: 56, mainLeft: 0, viewport: { width: 400, height: 720 }, drawer: { left: 0, footerTop: 560 } },
-    { bottom: 168, maxHeight: 480 },
+    {
+      headerBottom: 56,
+      mainLeft: 0,
+      viewport: { width: 400, height: 720 },
+      drawer: { left: 0, footerTop: 560, headerBottom: 150 },
+    },
+    // Narrow: also below the drawer's own header (its Close stays reachable).
+    { bottom: 168, maxHeight: 386 },
   ],
   [
     'a narrow drawer with no footer yet (loading, read error)',
-    { headerBottom: 56, mainLeft: 0, viewport: { width: 400, height: 720 }, drawer: { left: 0 } },
-    { maxHeight: 624 },
+    { headerBottom: 56, mainLeft: 0, viewport: { width: 400, height: 720 }, drawer: { left: 0, headerBottom: 150 } },
+    { maxHeight: 530 },
   ],
 ] as const)('review R1, R2 — placement with %s', (_name, layout, expected) => {
   expect(toastPlacement(layout)).toEqual(expected);
