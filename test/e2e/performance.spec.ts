@@ -6,7 +6,7 @@
 import { cp, mkdtemp, realpath, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import type { Page } from '@playwright/test';
+import type { Locator, Page } from '@playwright/test';
 import { buildLargeFixture, LARGE_ELEMENTS, type LargeFixture } from '../harness/fixtures/large.js';
 import { git } from '../harness/run.js';
 import { COLD_READ_MS } from './support/cold-read.js';
@@ -284,4 +284,78 @@ test.describe(`TT-PERF-01 — Today ${PERF_TAG}`, () => {
     );
     expect(times).toHaveLength(PERF_RUNS);
   });
+});
+
+// task-038 — TT-PERF-02 (REQ-PERF-02 "Gate and submit latency": p95 ≤ 3.0 s on the large fixture;
+// scenarios G-04.1, G-10.1, G-13.2; D38-12): from the click on *Approve → <state>* (the default
+// reason pre-filled, one click) or on *Submit → <state>* to the frame where the toast shows the
+// write's commit line, auto-push off (the default). Two series on a copy of the large fixture (the
+// writes must not change the worker's fixture): approvals of distinct `pending` tasks and submits of
+// distinct `draft` tasks, each element opened by its URL first. The budget is asserted only under
+// `npm run test:timing` (Chromium, RP-44); `npm run test:e2e` runs 2 of each.
+const WRITE_BUDGET_MS = 3_000;
+
+/** Click `button` and return the milliseconds until a toast shows a commit line naming `eid`. */
+async function timeWrite(page: Page, button: Locator, eid: string): Promise<number> {
+  await expect(button).toBeVisible({ timeout: COLD_READ_MS });
+  await expect(button).not.toHaveAttribute('aria-disabled', 'true', { timeout: COLD_READ_MS });
+  await page.evaluate((id) => {
+    const w = window as unknown as { wfuiWrite?: Promise<number> };
+    w.wfuiWrite = new Promise<number>((resolve) => {
+      let t0: number | undefined;
+      window.addEventListener('click', () => (t0 = performance.now()), { capture: true, once: true });
+      const tick = () => {
+        const shown = [...document.querySelectorAll('.toasts .toast-commits li')].some((li) =>
+          li.textContent?.includes(` ${id}`),
+        );
+        if (t0 !== undefined && shown) resolve(performance.now() - t0);
+        else requestAnimationFrame(tick);
+      };
+      requestAnimationFrame(tick);
+    });
+  }, eid);
+  await button.click();
+  return page.evaluate(() => (window as unknown as { wfuiWrite: Promise<number> }).wfuiWrite);
+}
+
+test.describe(`TT-PERF-02 — gate and submit latency ${PERF_TAG}`, () => {
+  for (const series of [
+    { scenario: 'G-04.1, G-13.2', from: 'pending', name: 'approve', button: /^Approve → / },
+    { scenario: 'G-10.1', from: 'draft', name: 'submit', button: /^Submit → / },
+  ] as const) {
+    test(`${series.scenario} — ${series.name} shows its commit within 3.0 s (p95)`, async ({
+      page,
+      large,
+      consoles,
+    }, testInfo) => {
+      test.setTimeout(STRICT_PERF ? 900_000 : 300_000);
+      const dir = testInfo.outputPath(`large-${series.name}`);
+      await cp(large.dir, dir, { recursive: true });
+      const copy = { ...large, dir };
+      const elements = large.elements
+        .filter((e) => e.type === 'task' && e.status === series.from)
+        .slice(0, PERF_RUNS + 1);
+      expect(elements).toHaveLength(PERF_RUNS + 1);
+      const c = await consoles.start({ projects: [copy] });
+      const pid = c.pids[0]!;
+      const times: number[] = [];
+      let warmUp = 0;
+      for (const [i, element] of elements.entries()) {
+        if (i === 0) await openConsole(page, c, { path: `/p/${pid}/e/${element.id}` });
+        else await page.goto(`${c.origin}/p/${pid}/e/${element.id}`, { timeout: COLD_READ_MS });
+        const button = page.locator('.drawer').getByRole('button', { name: series.button });
+        const ms = await timeWrite(page, button, element.id);
+        if (i === 0) warmUp = ms;
+        else times.push(ms);
+      }
+      reportRuns(
+        series.name,
+        warmUp,
+        times,
+        `TT-PERF-02 ${series.name} → toast with the commit (${times.length} runs, large fixture)`,
+      );
+      expect(times).toHaveLength(PERF_RUNS);
+      if (STRICT_PERF) expect(percentile(times, 95)).toBeLessThanOrEqual(WRITE_BUDGET_MS);
+    });
+  }
 });
