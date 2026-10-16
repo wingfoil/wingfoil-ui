@@ -727,3 +727,13 @@ Checks on `1693ede`: `typecheck`, `lint`, `format:check` clean; `docs:api`, `che
 OK; `test:coverage` (public-text check included) 153 files passed, 1 skipped, **2852 passed / 1
 skipped** (statements 96.53 %, branches 91.14 %), load 1.5 → 15.5. No `wfui-task-034-*` entry
 left. `main` not merged (the coordinator merges it before submit).
+
+### merge of main before submit (2026-10-16, coordinator)
+
+- `main` (8f025af…4bd3212: bug-014 and bug-015 ingested and absorbed — bug-014 into this task, its
+  AC and `bug:` entry) merged into the branch (76b267c), no conflict.
+- Gates on the merge: typecheck, lint, format:check, `check_tasks.py v0.2` clean / OK;
+  `test:coverage` 153 files, 2852 passed, 1 skipped (statements 96.53 %, branches 91.14 %);
+  `test:e2e:chromium` 223 passed (7.0 min, load about 8). No console and no `wfui-*` entry left.
+- Reviews: independent review 5 rounds (PASS), adversarial security review 5 rounds (PASS, RP-47);
+  decisions W4-1, W4-3 … W4-16 recorded above.
