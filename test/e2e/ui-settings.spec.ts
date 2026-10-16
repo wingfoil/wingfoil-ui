@@ -253,9 +253,9 @@ test.describe('US-X-08 — themes', () => {
     await press(radio(page, 'Light'));
     expect((await saved).status()).toBe(200);
     await expect(html).toHaveAttribute('data-theme', 'light');
-    // What the user sees: the light page background (spec-009 `--color-bg` #FFFFFF).
-    await expect.poll(background).toBe('rgb(255, 255, 255)');
-    expect(dark).not.toBe('rgb(255, 255, 255)');
+    // What the user sees: the light body background (spec-009 `--color-surface` light #F5F7FA).
+    await expect.poll(background).toBe('rgb(245, 247, 250)');
+    expect(dark).not.toBe('rgb(245, 247, 250)');
     // Kept after a reload, and the system preference no longer moves it.
     await page.reload();
     await expectFirstLoad(radio(page, 'Light'));
