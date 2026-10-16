@@ -16,7 +16,7 @@
  */
 import { useQuery } from '@tanstack/react-query';
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
-import { Button, Tooltip, TooltipTrigger } from 'react-aria-components';
+import { Button, Dialog, Popover, Tooltip, TooltipTrigger } from 'react-aria-components';
 import { FormattedMessage, useIntl } from 'react-intl';
 import type { ApiError } from '../api/client.js';
 import { errorMessage } from '../api/error-message.js';
@@ -33,10 +33,14 @@ export function GitStatus({ pid }: { pid: string }): ReactNode {
   return <GitStatusOf key={pid} pid={pid} />;
 }
 
-/** A refusal of the manual fetch, and the last success it was seen against (D39-5). */
+/**
+ * A refusal of the manual fetch, and the read it was seen against (D39-5): it clears when a later
+ * fetch succeeded, when the repository state moved or when the sync part goes (review R7).
+ */
 interface Refusal {
   error: ApiError;
   lastSuccessAt: string | null;
+  state: string;
 }
 
 /** Codes the server records in `sync.fetch.lastError`: shown by the failure line, not the alert. */
@@ -48,6 +52,7 @@ function GitStatusOf({ pid }: { pid: string }): ReactNode {
   const operation = useGitOperation();
   const controller = useRef<AbortController | null>(null);
   const fetchButton = useRef<HTMLButtonElement>(null);
+  const cancelButton = useRef<HTMLButtonElement>(null);
   const [refusal, setRefusal] = useState<Refusal | null>(null);
   const [running, setRunning] = useState(false);
   const refocus = useRef(false);
@@ -65,7 +70,10 @@ function GitStatusOf({ pid }: { pid: string }): ReactNode {
   const { repository, conditions } = header.data;
   const view = gitStatusView(repository, conditions);
   const lastSuccessAt = repository.sync.fetch.lastSuccessAt;
-  const shownRefusal = refusal && refusal.lastSuccessAt === lastSuccessAt ? refusal.error : null;
+  const shownRefusal =
+    refusal && view.sync && refusal.lastSuccessAt === lastSuccessAt && refusal.state === repository.state
+      ? refusal.error
+      : null;
 
   const startFetch = (): void => {
     if (running) return;
@@ -77,10 +85,14 @@ function GitStatusOf({ pid }: { pid: string }): ReactNode {
       { pid, op: 'fetch', signal: c.signal },
       {
         onError: (error) => {
-          if (error.code !== CANCELLED && error.code !== RECORDED) setRefusal({ error, lastSuccessAt });
+          if (error.code !== CANCELLED && error.code !== RECORDED) {
+            setRefusal({ error, lastSuccessAt, state: repository.state });
+          }
         },
         onSettled: () => {
           controller.current = null;
+          // Cancel goes away with the run: its focus moves to Fetch, never to the page (review R3).
+          if (cancelButton.current !== null && document.activeElement === cancelButton.current) refocus.current = true;
           setRunning(false);
         },
       },
@@ -141,7 +153,7 @@ function GitStatusOf({ pid }: { pid: string }): ReactNode {
             {running ? <FormattedMessage id="shell.git.fetching" /> : <FormattedMessage id="shell.git.fetch" />}
           </button>
           {running && (
-            <button type="button" className="button button-quiet" onClick={cancel}>
+            <button ref={cancelButton} type="button" className="button button-quiet" onClick={cancel}>
               <FormattedMessage id="common.action.cancel" />
             </button>
           )}
@@ -250,18 +262,28 @@ function UpdateFailure({ error }: { error: UpdateSyncError }): ReactNode {
   );
 }
 
-/** An info button showing git's message on hover and keyboard focus, also its description (D39-4). */
+/**
+ * An info button with git's message (D39-4, review R6): a tooltip on hover and keyboard focus, the
+ * same message in a non-modal popover on press (a tap shows no tooltip), and the message as the
+ * button's description — kept out of the polite live region (`hidden`, review R8).
+ */
 function GitMessage({ message }: { message: string }): ReactNode {
   const intl = useIntl();
   const id = useId();
+  const trigger = useRef<HTMLButtonElement>(null);
+  const [open, setOpen] = useState(false);
+  const label = intl.formatMessage({ id: 'shell.git.message' });
   return (
     <>
       {' '}
-      <TooltipTrigger delay={300}>
+      <TooltipTrigger delay={300} isDisabled={open}>
         <Button
+          ref={trigger}
           className="icon-button git-info"
-          aria-label={intl.formatMessage({ id: 'shell.git.message' })}
+          aria-label={label}
           aria-describedby={id}
+          aria-expanded={open}
+          onPress={() => setOpen((o) => !o)}
         >
           <InfoSign />
         </Button>
@@ -269,7 +291,19 @@ function GitMessage({ message }: { message: string }): ReactNode {
           {message}
         </Tooltip>
       </TooltipTrigger>
-      <span id={id} className="visually-hidden">
+      <Popover
+        triggerRef={trigger}
+        isOpen={open}
+        onOpenChange={setOpen}
+        isNonModal
+        placement="end"
+        className="git-tooltip git-message-popover"
+      >
+        <Dialog aria-label={label} className="git-message">
+          {message}
+        </Dialog>
+      </Popover>
+      <span id={id} hidden>
         {message}
       </span>
     </>

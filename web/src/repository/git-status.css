@@ -122,11 +122,11 @@
   overflow-wrap: anywhere;
 }
 
-.git-alert:empty {
-  display: none;
-}
-
 .git-alert p {
   margin: 0;
   color: var(--color-danger);
+}
+
+.git-message {
+  outline: none;
 }

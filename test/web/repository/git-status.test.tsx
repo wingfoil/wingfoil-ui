@@ -404,9 +404,11 @@ describe('review round 1', () => {
         },
       }),
     );
-    const live = region().querySelector('[aria-live="polite"]');
-    expect(live?.textContent).toContain('Fetch failed');
-    expect(live?.textContent).not.toContain('marker');
+    // What the live region announces: its text without the `hidden` subtrees.
+    const live = region().querySelector('[aria-live="polite"]')!.cloneNode(true) as HTMLElement;
+    for (const h of live.querySelectorAll('[hidden]')) h.remove();
+    expect(live.textContent).toContain('Fetch failed');
+    expect(live.textContent).not.toContain('marker');
     // Still the info buttons' descriptions.
     const infos = within(region()).getAllByRole('button', { name: "Git's message" });
     const descriptions = infos.map((b) => document.getElementById(b.getAttribute('aria-describedby')!)?.textContent);

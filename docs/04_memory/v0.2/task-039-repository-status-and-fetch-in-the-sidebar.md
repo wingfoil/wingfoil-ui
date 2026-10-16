@@ -397,3 +397,21 @@ Every heavy gate through the machine-free slot (`waitslot.sh`), load printed at 
 | `npm run test:smoke` | not run: no packaging, launcher or bin change | — |
 
 No console of this worktree left running; no `wfui-*` entry in the system temporary directory.
+
+### review round 1 (2026-10-16)
+
+Independent review **CHANGES REQUESTED** (no blocker, no major; R1–R9). Red tests first: `ee3cf9c`
+(`test/web/repository/git-status.test.tsx` › review round 1: R3, R6, R7 ×2, R8 failed; R2 passed —
+the key already held — and was checked by guard removal).
+
+| Id | Change | Test |
+|----|--------|------|
+| R1 | the "Fetch failed …" expects of Y-03.1 / Y-03.2 (shown after a header re-read) and Y-02.2's "1 behind" wait with `COLD_READ_MS` | `git-status.spec.ts` |
+| R2 | — (`key={pid}` already there) | component › R2: another pid → Fetch enabled, no Cancel, no alert, the first signal aborted; fails with the key removed (checked, restored) |
+| R3 | a fetch that settles while *Cancel* holds the focus moves it to *Fetch* | component › R3 (red) |
+| R4 | `scanThemes` on the "Fetching…" state, before Cancel | `git-status.spec.ts` › Cancel test |
+| R5 | `.sidebar-foot { max-height: 50%; overflow-y: auto }` (`base.css`, the C3 rule): a tall git status scrolls, the views stay | `git-status.spec.ts` › "a tall git status never pushes the views out (review R5)" at 1280×700 — red with the two lines removed (see below), nav 32 px tall without them (Chromium), green with them |
+| R6 | the ⓘ button also opens git's message on press, in a non-modal React Aria `Popover` with a `Dialog` named "Git's message" (`shell.git.message`); the tooltip stays for hover and keyboard focus (disabled while the popover is open), the description too. D39-4 now reads: tooltip on hover and focus, popover on press (a tap shows no tooltip). User guide "hover, focus or tap it"; ux-reference §3 bullet (versions kept at 0.13 / 1.6, the numbers assigned for this task) | component › R6 (red); `git-status.spec.ts` › Y-03.2 clicks the button and reads the dialog |
+| R7 | the refusal alert also clears when `repository.state` moves or the sync part goes (`has-remote` false) | component › R7 ×2 (red) |
+| R8 | the description span is `hidden` (`aria-describedby` still resolves), so the polite live region no longer announces git's message | component › R8 (red); with `visually-hidden` instead of `hidden` it fails (checked, restored) |
+| R9 | the dead `.git-alert:empty` rule removed | — |

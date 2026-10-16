@@ -121,6 +121,26 @@ test.describe('US-Y-01 — branch, ahead/behind and local changes', () => {
     await expect(gitStatus(page)).not.toContainText('local change');
   });
 
+  test('a tall git status never pushes the views out (review R5)', async ({ page, fixtures, consoles }) => {
+    await page.setViewportSize({ width: 1280, height: 700 });
+    const c = await start(consoles, await copyAs(fixtures, 'kanban', 'Morgan'));
+    await openView(page, c);
+    // A git status taller than the sidebar (long error texts): the foot scrolls, the views stay.
+    await gitStatus(page).evaluate((el) => {
+      const filler = document.createElement('p');
+      filler.style.height = '2000px';
+      el.prepend(filler);
+    });
+    const box = (sel: string) => page.locator(sel).evaluate((el) => el.getBoundingClientRect().height);
+    expect(await box('.project-nav')).toBeGreaterThan(200);
+    expect(await box('.sidebar-foot')).toBeLessThanOrEqual((await box('.project-sidebar')) / 2 + 1);
+    await fetchButton(page).scrollIntoViewIfNeeded();
+    await expect(fetchButton(page)).toBeInViewport();
+    await expect(
+      page.getByRole('navigation', { name: 'Project views' }).getByRole('link', { name: 'Today', exact: true }),
+    ).toBeInViewport();
+  });
+
   test('Y-01.3 — Show a detached HEAD', async ({ page, fixtures, consoles }) => {
     const fx = await copyAs(fixtures, 'kanban', 'Morgan', (f) => git(f.dir, ['checkout', '-q', '--detach'], f.env));
     const short = (await git(fx.dir, ['rev-parse', '--short=7', 'HEAD'], fx.env)).stdout.trim();
@@ -165,7 +185,7 @@ test.describe('US-Y-02 — fetch automatically and on demand', () => {
     await openView(page, c);
     await expect(gitStatus(page)).toContainText('In sync with git');
     expect((await clickFetch(page)).status).toBe(200);
-    await expect(gitStatus(page)).toContainText('1 behind');
+    await expect(gitStatus(page)).toContainText('1 behind', { timeout: COLD_READ_MS });
   });
 
   test('Y-02.3 — Do not fetch when auto-fetch is off', async ({ page, fixtures, consoles }) => {
@@ -198,6 +218,8 @@ test.describe('US-Y-02 — fetch automatically and on demand', () => {
       const busy = gitStatus(page).getByRole('button', { name: 'Fetching…' });
       await expect(busy).toHaveAttribute('aria-disabled', 'true', { timeout: COLD_READ_MS });
       await expect.poll(() => remote.requests(), { timeout: COLD_READ_MS }).toBeGreaterThan(0);
+      // The "Fetching…" state in both themes (D39-12, review R4).
+      expect(await scanThemes(page)).toEqual([]);
       await gitStatus(page).getByRole('button', { name: 'Cancel' }).click();
       await expect(fetchButton(page)).toBeFocused();
       await expect(gitStatus(page).getByRole('button', { name: 'Cancel' })).toHaveCount(0);
@@ -221,8 +243,10 @@ test.describe('US-Y-03 — a failed fetch never blocks reading', () => {
       .fetch.lastSuccessAt;
     await setRemoteUrl(fx, UNREACHABLE);
     expect((await clickFetch(page)).status).toBe(422);
+    // Shown after the header is read again (review R1).
     await expect(gitStatus(page)).toContainText(
       `Fetch failed — last fetched at ${await timeInPage(page, lastSuccessAt)}`,
+      { timeout: COLD_READ_MS },
     );
     const tip = await openGitMessage(page);
     await expect(tip).toContainText('unable to access');
@@ -241,9 +265,12 @@ test.describe('US-Y-03 — a failed fetch never blocks reading', () => {
       const c = await start(consoles, fx);
       await openView(page, c);
       expect((await clickFetch(page)).status).toBe(422);
-      await expect(gitStatus(page)).toContainText('Fetch failed');
+      await expect(gitStatus(page)).toContainText('Fetch failed', { timeout: COLD_READ_MS });
       const tip = await openGitMessage(page);
       await expect(tip).toContainText('could not read Username');
+      // A press (a tap on a touch screen) opens the same message (review R6).
+      await gitStatus(page).getByRole('button', { name: "Git's message" }).click();
+      await expect(page.getByRole('dialog', { name: "Git's message" })).toContainText('could not read Username');
       await expect(gitStatus(page).getByRole('button', { name: "Git's message" })).toHaveAccessibleDescription(
         /could not read Username/,
       );
