@@ -225,5 +225,82 @@ e2e closure (scenario → spec file › test), planned:
 
 #### Open decisions (STOP: nothing depending on them is built before the answer)
 
-D38-1 … D38-13 as reported to the coordinator (options and the recommended one in the report);
-recorded here with the approver's answer.
+- **D38-1 — the toast mechanism (shared, task-040 reuses it).** ★ (a) a module store
+  `web/src/shell/toasts.ts` (`showToast({key?, tone: 'success' | 'error', title, body?, sticky?})`
+  → id, `dismissToast(id)`, `useToasts()` on `useSyncExternalStore`; `title`/`body` are React
+  nodes, so each task composes its own content) and one `<Toasts />` rendered by `Shell` (one
+  appended line): callable from a mutation's callbacks, survives the panel closing, no provider
+  re-indenting the shell (RP-55); (b) a React context provider wrapping the shell tree (re-indents
+  `Shell.tsx`, a conflict with task-039/041); (c) toasts inside the element panel (lost on close;
+  task-040 cannot reuse them).
+- **D38-2 — lifetime and stacking.** ★ (a) a stack at the bottom centre (prototype position),
+  newest last, at most 3 (the oldest goes); a success toast is removed after 8 s, the timer paused
+  while hovered or while the focus is inside it; a refusal toast and a success toast with a failed
+  push stay until closed; every toast has a Close button; a new result for the same element
+  replaces its previous toast (key `write:<pid>:<eid>`); the focus is never moved to a toast;
+  (b) the prototype: one toast, 4.2 s for every toast (a CLI refusal disappears before it is read,
+  WCAG 2.2.1; flaky e2e under load); (c) every toast stays until closed.
+- **D38-3 — the success toast.** ★ (a) title "Approved <id>" / "Submitted <id>" / "Rejected <id>"
+  (G-13.1 literal); one line per commit: the short hash (first 7 characters, monospaced) and the
+  subject; "pushed" after the commit line when `push.status` is `pushed`, nothing when `off`;
+  (b) as (a) with the full sha; (c) the title and the subject only (no hash; against G-13.1).
+- **D38-4 — `push: failed` in the success toast** (hand-over). ★ (a) the toast stays polite (the
+  write succeeded) but sticky, with an attention line "Not pushed — the commit stays local" then
+  the reason: a `code` from the catalogue (`error.<code>`: `push-timeout`, `internal`,
+  `detached-head`, `no-upstream`, `remote-not-owned`, `remote-unreadable`; an unknown code renders
+  as `internal`), git's `message` verbatim inside the `error.gitRefused` frame; `error.pushTimeout`
+  loses its own "Not pushed:" prefix (one changed value of task-034's key, used only here);
+  (b) a second, red and assertive toast for the push; (c) only "not pushed" without the reason
+  (the sidebar of task-039/040 shows the commit to push).
+- **D38-5 — the refusal toast.** ★ (a) red, assertive, sticky: title "<Verb> of <id> not done",
+  then `ErrorText` (catalogue text; `cli-refused` verbatim in its frame; `element-changed`,
+  `local-changes`, `stale-copy`, `write-incomplete` with the commit, `unreachable`); the reason
+  typed in the gate footer is kept; (b) `ErrorText` alone, no title (the element is not named once
+  the panel is closed); (c) the alert stays in the footer and only success becomes a toast.
+- **D38-6 — the single-action footer's label and layout.** ★ (a) "Submit → <to>" (primary), then
+  *Cancel* (= Close, as the gate footer, D37-2), the reason under it when disabled; the e2e steps
+  "click Submit" match the name by its start; (b) "Submit" only (the BDD's literal; the target
+  state not shown); (c) "Submit for review" (ux-reference §4.2, the prototype; wrong where the next
+  state is not a review, e.g. a custom type).
+- **D38-7 — who is offered Submit.** ★ (a) every member identified in the team (spec-003 §3:
+  `submit` requires no role, WingFoil accepts it from any member), enabled per descriptor;
+  (b) only the member actor of the descriptor (the prototype's "assignee"), the others reading
+  "<name> must act"; (c) everyone, with a note when the user is not the actor.
+- **D38-8 — reproducing G-14.2 in e2e.** ★ (a) after the CLI's approve in a terminal the test
+  holds the page's `GET /api/p/<pid>/…` reads (`page.route`, released after the click; the event
+  stream untouched), so the footer still shows `pending`; the real server answers 409
+  `element-changed`; then the reads are released and the panel shows `approved`; "no `wingfoil
+  memory reject` process" is asserted as the fixture's last commit still being the approve (no
+  reject commit) and cited from task-032's `element-writes.test.ts` row 9 (0 processes) — e2e does
+  not count CLI processes (dev rules); (b) abort the event stream before the approve (the
+  reconnect then refetches everything: a different path); (c) answer the 409 from `page.route`
+  (not the real server).
+- **D38-9 — auto-push on for G-13.1 (shared e2e support).** ★ (a) an appended
+  `settings?: Partial<Settings>` in `ConsoleOptions` (`test/e2e/support/console.ts`) written into
+  the seeded `state.json` — task-039 (`autoFetch: false`) and task-041 can reuse it; "the remote's
+  branch is at that commit" read with git on the copy's bare remote (a small appended
+  `remoteHead(fixture)` in `support/events.ts`); (b) `PUT /api/settings` from the test through
+  the page's session before the action; (c) a hand-written `state.json` in a test-owned
+  `stateDir` in this spec only (C5 literal).
+- **D38-10 — the footer's inline feedback (D37-9).** ★ (a) the footer keeps only its polite "in
+  progress" text while the request runs; "<id> is now <state>" and the `element-footer-alert` go
+  (the toasts say it; `element.gate.done` is removed, the catalogue test fails on unused keys);
+  `gate-footer.spec.ts` G-04.1, `notification-bell.spec.ts` S-21.3 and `gate-footer.test.tsx`
+  read the toast instead; (b) keep both (two announcements of one result); (c) remove the
+  in-progress text too.
+- **D38-11 — where the toasts are raised.** ★ (a) in `useElementWrite`'s own `onSuccess` /
+  `onError` (mutation-level callbacks run even when the panel unmounted, e.g. Escape while the CLI
+  runs); the footers' per-call callbacks keep only focus and the "decided" flag; (b) per-call
+  callbacks in the footer (the result is lost when the panel closes first); (c) a separate wrapper
+  hook in `web/src/element/`.
+- **D38-12 — TT-PERF-02.** ★ (a) appended to `test/e2e/performance.spec.ts` (`@perf`, it already
+  builds the large fixture): Morgan, auto-push off (default), 20 approvals of distinct `pending`
+  tasks and 20 submits of distinct `draft` tasks, each timed from the click to the toast showing
+  its commit line; p95 ≤ 3.0 s for each series, printed with the load (`reportRuns`); `test:e2e`
+  runs 2 of each without the budget (`PERF_RUNS`); (b) one mixed series of 20; (c) an API-only
+  timing (not what the user sees).
+- **D38-13 — `SCREENS`.** ★ (a) append "element panel — submit footer" (`pids[0]`,
+  `task-004-session-timeout`, Morgan: Submit enabled); the blocked footer and the two toasts are
+  scanned in G-11.2, G-13.1 and G-14.1 (`scanThemes`): a write or a local edit would change the
+  shared screens console; the toasts' strings are checked by the unit tests (catalogue ids);
+  (b) as (a) plus a fourth screens project with a local edit; (c) no new screen (against the AC).
