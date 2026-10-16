@@ -316,3 +316,38 @@ editing `web/src/api/writes.ts` (C5), and creates `test/e2e/support/remote.ts` w
 the declared `error.pushTimeout` value and the removal of `element.gate.done` (C6); version lines
 `test/README.md` 0.37, `docs/user-guide.md` 0.12, ux-reference 1.5 (C7); `SCREENS` appended first
 (C9); no change to `contracts/` or `server/` (C10).
+
+### red / green / refactor (2026-10-16)
+
+- **Red (`a340422`)** — `test/web/shell/toasts.test.tsx` (new), `test/web/element/submit-footer.test.tsx`
+  (new), `test/web/api/writes.test.tsx` (appended toasts), `test/web/element/footer.test.ts` (the
+  `submit` view), `test/web/element/gate-footer.test.tsx` (the D37-9 status and alert cases read the
+  toasts): 4 files failed to load (no `toasts.ts`), the `submit` view case failed (`none`).
+- **Green (`008bf8f`)** — `web/src/shell/toasts.ts`, `Toasts.tsx`, `toasts.css` (D38-1, D38-2),
+  `web/src/element/write-toast.tsx` (D38-3 … D38-5), `useElementWrite`'s own `onSuccess`/`onError`
+  (D38-11), the `submit` view of `footerView` and the `SubmitFooter` in `ElementFooter.tsx` (D38-6,
+  D38-7), the inline result and `element-footer-alert` removed (D38-10), one appended `<Toasts />`
+  line in `Shell.tsx`; catalogue: 8 sorted inserts and the two declared edits (C6).
+- **Deviation (decided within D38-1, recorded here):** the two always-present live regions carry
+  `aria-live="polite"` / `"assertive"` but **no `status` / `alert` role**. With the roles, the
+  empty alert region stood beside every view's own alert and 17 existing component tests
+  (`findByRole('alert')`: DNA, directives, docs, Memory list, team, Today, summary, panel) found two;
+  e2e locators of the same form would have broken too. Announcement is the same (the live
+  politeness is what X-07.1 / X-07.2 state); `toasts.test.tsx` asserts no `status`/`alert` role.
+- **e2e (`5efbd7d`, `870e362`)** — `test/e2e/submit-footer.spec.ts` (14 tests); `ConsoleOptions.settings`
+  (C2), `test/e2e/support/remote.ts` `remoteHead` (C8), *element panel — submit footer* appended to
+  `SCREENS` (D38-13, C9); `gate-footer.spec.ts` G-04.1 and `notification-bell.spec.ts`
+  `approveFromToday` read the toast (D38-10). First Chromium run: 44 of 45 passed; G-11.2 failed in
+  the test (Playwright's `click` waits for an enabled button, the button is `aria-disabled`):
+  pressed with `force` and Enter, the requests recorded.
+- **Fault injection (not committed):** with `<Toasts />` removed from `Shell.tsx` and the `submit`
+  view disabled in `footer.ts`, `submit-footer.spec.ts` on Chromium: **10 failed, 4 passed** — the
+  four passing are the characterization scenarios (G-10.3, G-11.1, G-11.3, X-07.3: task-037's gate
+  footer and the server's descriptor), as classified at design.
+- **TT-PERF-02 (D38-12)** — appended to `test/e2e/performance.spec.ts`: two series on a copy of
+  the large fixture (approve of `pending` tasks, submit of `draft` tasks). Default run (2 runs
+  each, no budget, load 15.9): approve p95 1 258 ms, submit p95 1 299 ms.
+- **Docs (`92617d2`)** — `docs/user-guide.md` 0.12 (*Submitting*, *After an action*), ux-reference
+  1.5 (§4.2 single-action footer, §5 *Feedback*), `CHANGELOG.md` *Unreleased* › Added, `test/README.md`
+  0.37. No approved spec needed an amendment: spec-003 §3 already says `submit` requires no role,
+  spec-004 §5 and spec-008 §4 already describe the push outcome and the verbatim texts.
