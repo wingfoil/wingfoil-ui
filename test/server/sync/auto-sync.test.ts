@@ -757,14 +757,14 @@ describe('W4-15 (security review S3-1) — a configured value naming any file of
     },
   );
 
-  it('~/ — the home folder expanded', async () => {
+  it('~/ — the home folder expanded (the copy is the folder kanban of HOME)', async () => {
     const s = await start(
       { autoUpdate: true },
       {
         env: (fx) => ({ ...fx.env, HOME: path.dirname(fx.dir) }),
         prepare: async (fx) => {
           await tracked(fx, TOOLS);
-          await git(fx.dir, ['config', 'filter.wfui.clean', `~/${path.basename(fx.dir)}/tools/clean.sh`], fx.env);
+          await git(fx.dir, ['config', 'filter.wfui.clean', '~/kanban/tools/clean.sh'], fx.env);
         },
       },
     );
