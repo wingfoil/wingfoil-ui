@@ -1,0 +1,159 @@
+/* Configuration › UI settings (task-041; prototype *Configurazione*: sub-tab row, cards by group,
+   one row per setting with its label, description and a switch or a segmented control). */
+
+.settings-tabs {
+  display: flex;
+  gap: 2px;
+  overflow-x: auto;
+  border-bottom: 1px solid var(--color-divider);
+}
+
+.settings-tab {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  height: 36px;
+  padding: 0 10px;
+  margin-bottom: -1px;
+  border-bottom: 2px solid transparent;
+  color: var(--color-text-2);
+  font-size: 13px;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.settings-tab[aria-current='page'] {
+  border-bottom-color: var(--color-primary);
+  color: var(--color-primary);
+  font-weight: 600;
+}
+
+.settings {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.settings-status:empty {
+  display: none;
+}
+
+.settings-status {
+  color: var(--color-text-2);
+  font-size: 13px;
+}
+
+.settings-alert {
+  padding: 10px 14px;
+  border: 1px solid var(--color-danger);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+
+.settings-alert > p:first-child {
+  color: var(--color-danger);
+  font-weight: 600;
+}
+
+.settings-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(420px, 100%), 1fr));
+  gap: var(--space-3);
+  align-items: start;
+}
+
+.settings-card {
+  border: 1px solid var(--color-divider);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg);
+  overflow: hidden;
+}
+
+.settings-card-title {
+  margin: 0;
+  padding: 12px 16px 8px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.setting-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 16px;
+  border-top: 1px solid var(--color-divider);
+}
+
+.setting-label {
+  color: var(--color-text);
+  font-size: 13px;
+}
+
+.setting-description {
+  margin: 0;
+  max-width: 620px;
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+
+.setting-description code {
+  font-family: var(--font-mono);
+}
+
+/* A switch: the label on the left, the track on the right (the whole row's label is the target). */
+.setting-switch {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.switch-track {
+  flex: none;
+  position: relative;
+  width: 36px;
+  height: 22px;
+  border: 1px solid var(--color-control-border);
+  border-radius: 11px;
+  background: var(--color-surface-2);
+}
+
+.switch-knob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--color-control-border);
+  transition: left 0.12s ease;
+}
+
+.setting-switch[data-selected] .switch-track {
+  border-color: var(--color-primary);
+  background: var(--color-primary);
+}
+
+.setting-switch[data-selected] .switch-knob {
+  left: 16px;
+  background: var(--color-on-primary);
+}
+
+.setting-field .setting-number {
+  width: 120px;
+}
+
+.setting-radio {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .switch-knob {
+    transition: none;
+  }
+}

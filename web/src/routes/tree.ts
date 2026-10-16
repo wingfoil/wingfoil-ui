@@ -4,6 +4,7 @@
  */
 import type { QueryClient } from '@tanstack/react-query';
 import { createRouter, type RouterHistory } from '@tanstack/react-router';
+import { configurationRoutes } from './configuration.js';
 import { directivesViewRoute } from './directives.js';
 import { documentationRoute } from './docs.js';
 import { dnaRoute } from './dna.js';
@@ -32,6 +33,7 @@ export const PROJECT_ROUTES = [
   directivesViewRoute,
   teamRoute,
   todayRoute,
+  configurationRoutes,
 ] as const;
 
 /** Every route of the application. */

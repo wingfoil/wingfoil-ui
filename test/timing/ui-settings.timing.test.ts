@@ -78,7 +78,11 @@ it(
     };
     await writeFile(path.join(stateDir, 'state.json'), JSON.stringify(state, null, 2), { mode: 0o600 });
     const trace = path.join(root, 'git-trace.log');
-    const l = await startLauncher(['--no-open'], { ...fx.env, WINGFOIL_UI_STATE_DIR: stateDir, GIT_TRACE: trace }, 30_000);
+    const l = await startLauncher(
+      ['--no-open'],
+      { ...fx.env, WINGFOIL_UI_STATE_DIR: stateDir, GIT_TRACE: trace },
+      30_000,
+    );
     launchers.push(l);
     const lastFetch = async () => (await request(l, 'GET', `/api/p/${PID}`)).body.repository.sync.fetch.lastSuccessAt;
     // Open the project (the scheduler syncs opened projects, RP-18), then wait for a tick that ends

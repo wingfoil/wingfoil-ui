@@ -216,4 +216,11 @@ export const SCREENS: readonly Screen[] = [
       await expectSettled(page);
     },
   },
+  {
+    // task-041 (D41-1): Configuration › UI settings as Morgan; opened only — no setting is changed on
+    // this shared console (C9: no forced theme).
+    name: 'configuration — UI settings',
+    open: (page, c) =>
+      project(page, c, `/p/${c.pids[0]}/configuration/ui-settings`, (p) => p.getByRole('switch').first()),
+  },
 ];

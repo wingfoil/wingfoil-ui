@@ -248,11 +248,7 @@ it('renders every text from the catalogue (key build)', async () => {
   renderApp(PAGE, keyCatalogue(en));
   expect(await screen.findByRole('heading', { level: 1, name: 'settings.title' })).toBeTruthy();
   await screen.findByRole('switch', { name: 'settings.autoFetch.label' });
-  for (const id of [
-    'settings.autoUpdate.label',
-    'settings.autoPush.label',
-    'settings.confirmAgentLaunch.label',
-  ]) {
+  for (const id of ['settings.autoUpdate.label', 'settings.autoPush.label', 'settings.confirmAgentLaunch.label']) {
     expect(screen.getByRole('switch', { name: id })).toBeTruthy();
   }
   for (const id of ['settings.theme.system', 'settings.theme.light', 'settings.theme.dark']) {

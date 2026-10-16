@@ -20,8 +20,10 @@ import { defineMessages, type MessageDescriptor } from 'react-intl';
 /**
  * The sidebar groups, in their order (ux-reference §2). `start` is the heading-less first group that
  * holds *Today* above the three named groups (task-036, D36-2).
+ * `pinned` is the heading-less last group, pinned at the bottom of the sidebar: *Configuration*
+ * (task-041, D41-2).
  */
-export type NavGroupId = 'start' | 'work' | 'rules' | 'repository';
+export type NavGroupId = 'start' | 'work' | 'rules' | 'repository' | 'pinned';
 
 /** The sidebar entry a view route declares in `staticData.nav`. */
 export interface NavEntry {
@@ -52,6 +54,7 @@ export const NAV_ORDER = {
   documentation: 40,
   files: 10,
   artifacts: 20,
+  configuration: 10,
 } as const;
 
 /** Group headings, in sidebar order; the `start` group has none (D36-2). */
@@ -66,6 +69,8 @@ export const NAV_GROUPS: readonly { id: NavGroupId; label?: MessageDescriptor }[
     { id: 'work', label: m.work },
     { id: 'rules', label: m.rules },
     { id: 'repository', label: m.repository },
+    // task-041 (D41-2, Wave 5 C3): heading-less, always last — pushed to the bottom of the sidebar.
+    { id: 'pinned' },
   ];
 })();
 

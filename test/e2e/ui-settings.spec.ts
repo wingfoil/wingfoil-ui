@@ -6,7 +6,7 @@
 // `GIT_TRACE` file, as task-034's timing test; the real 60 s / 120 s are measured in
 // `test/timing/ui-settings.timing.test.ts` (Chromium-free, RP-44). Every console of this spec is
 // its own: a forced theme never reaches the shared screens console (C9).
-import type { Page, Response } from '@playwright/test';
+import type { Locator, Page, Response } from '@playwright/test';
 import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -17,7 +17,7 @@ import { COLD_READ_MS, expectFirstLoad } from './support/cold-read.js';
 import { openConsole, type RunningConsole } from './support/console.js';
 import { expect, test } from './support/fixtures.js';
 import { actAs } from './support/identity.js';
-import { expectFocusVisible, tabUntil } from './support/keyboard.js';
+import { tabUntil } from './support/keyboard.js';
 
 test.use({ prebuild: ['kanban'] });
 
@@ -48,6 +48,23 @@ async function openSettings(page: Page, c: RunningConsole): Promise<void> {
   await expectFirstLoad(sw(page, 'Auto-fetch'));
 }
 
+/**
+ * `control` has the focus and the user sees the focus ring of spec-009 (2 px solid): on the control
+ * itself, or — for a switch or a radio, whose focused input is visually hidden — on the label that
+ * draws it (React Aria's `data-focus-visible`).
+ */
+async function expectRingShown(control: Locator): Promise<void> {
+  await expect(control).toBeFocused();
+  const ring = await control.evaluate((el) => {
+    const shown = el.closest('label') ?? el;
+    const s = getComputedStyle(shown);
+    return { style: s.outlineStyle, width: parseFloat(s.outlineWidth), box: shown.getBoundingClientRect().width };
+  });
+  expect(ring.style).toBe('solid');
+  expect(ring.width).toBeGreaterThanOrEqual(2);
+  expect(ring.box).toBeGreaterThan(10);
+}
+
 /** The answer of the next settings `PUT`. */
 function nextSave(page: Page): Promise<Response> {
   return page.waitForResponse((r) => r.url().endsWith('/api/settings') && r.request().method() === 'PUT', {
@@ -57,9 +74,8 @@ function nextSave(page: Page): Promise<Response> {
 
 /** The `git fetch` processes the bin started so far (its `GIT_TRACE` file). */
 async function fetches(trace: string): Promise<number> {
-  return (await readFile(trace, 'utf8').catch(() => ''))
-    .split('\n')
-    .filter((l) => /built-in: git fetch\b/.test(l)).length;
+  return (await readFile(trace, 'utf8').catch(() => '')).split('\n').filter((l) => /built-in: git fetch\b/.test(l))
+    .length;
 }
 
 /** `sync.fetch.lastSuccessAt` of the project, read with the page's session. */
@@ -91,11 +107,7 @@ test.describe('UI settings (US-C-07)', () => {
     expect(await scanThemes(page)).toEqual([]);
   });
 
-  test('C-07.2 — Keep a setting across restarts without touching the project', async ({
-    page,
-    fixtures,
-    consoles,
-  }) => {
+  test('C-07.2 — Keep a setting across restarts without touching the project', async ({ page, fixtures, consoles }) => {
     const stateDir = await mkdtemp(path.join(tmpdir(), 'wfui-e2e-state-'));
     try {
       const kanban = await morganKanban(fixtures);
@@ -192,13 +204,13 @@ test.describe('UI settings (US-C-07)', () => {
     const c = await consoles.start({ projects: [await morganKanban(fixtures)] });
     await openSettings(page, c);
     await tabUntil(page, sw(page, 'Auto-push'));
-    await expectFocusVisible(sw(page, 'Auto-push'));
+    await expectRingShown(sw(page, 'Auto-push'));
     let saved = nextSave(page);
     await page.keyboard.press('Space');
     expect((await saved).status()).toBe(200);
     await expect(sw(page, 'Auto-push')).toBeChecked();
     await tabUntil(page, interval(page));
-    await expectFocusVisible(interval(page));
+    await expectRingShown(interval(page));
     await page.keyboard.press('ControlOrMeta+a');
     await page.keyboard.type('30');
     saved = nextSave(page);
@@ -208,14 +220,19 @@ test.describe('UI settings (US-C-07)', () => {
       fetchIntervalSeconds: 30,
     });
     await tabUntil(page, radio(page, 'System'));
-    await expectFocusVisible(radio(page, 'System'));
+    await expectRingShown(radio(page, 'System'));
     saved = nextSave(page);
     await page.keyboard.press('ArrowRight');
     expect(JSON.parse((await saved).request().postData() ?? '{}')).toMatchObject({ theme: 'light' });
     await expect(radio(page, 'Light')).toBeChecked();
-    for (const control of [sw(page, 'Auto-fetch'), sw(page, 'Auto-update'), sw(page, 'Confirm agent launch'), cap(page)]) {
+    for (const control of [
+      sw(page, 'Auto-fetch'),
+      sw(page, 'Auto-update'),
+      sw(page, 'Confirm agent launch'),
+      cap(page),
+    ]) {
       await tabUntil(page, control);
-      await expectFocusVisible(control);
+      await expectRingShown(control);
     }
   });
 });

@@ -55,7 +55,7 @@ function stubSettings(options: { fail?: boolean } = {}) {
   };
 }
 
-function setup(cached: UiSettings | undefined = DEFAULTS) {
+function setup(cached: UiSettings | null = DEFAULTS) {
   const client = createQueryClient();
   if (cached) client.setQueryData(settingsQuery().queryKey, cached);
   const saved: Partial<UiSettings>[] = [];
@@ -131,7 +131,7 @@ it('a refusal reads the settings again (the change is undone) and reports the fa
 
 it('sends nothing before the settings were read', async () => {
   const api = stubSettings();
-  const { hook, failed } = setup(undefined);
+  const { hook, failed } = setup(null);
   act(() => hook.result.current.mutate({ autoPush: true }));
   await waitFor(() => expect(failed).toHaveLength(1));
   expect(api.calls.filter((c) => c.method === 'PUT')).toEqual([]);

@@ -733,3 +733,16 @@ p {
     border-bottom: 1px solid var(--color-divider);
   }
 }
+
+/* --- Pinned sidebar group (task-041, D41-2, Wave 5 C3): the heading-less `pinned` group —
+   Configuration — is always the last group of the nav (routes/nav.ts NAV_GROUPS) and sits at its
+   bottom; the nav is a column that fills the sidebar. --- */
+.project-nav {
+  display: flex;
+  flex-direction: column;
+}
+
+.project-nav > div:last-child:not(:first-child) {
+  margin-top: auto;
+  padding-top: var(--space-4);
+}
