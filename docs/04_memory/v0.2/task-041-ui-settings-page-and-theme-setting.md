@@ -234,3 +234,47 @@ the CSS that pushes it to the bottom of the nav; C4 no toast here; C5 this task 
 catalogue: sorted in-place inserts only; C7 `test/README.md` 0.39, `docs/user-guide.md` 0.14,
 ux-reference 1.7, one CHANGELOG entry; C9 the `SCREENS` entry appended after 038's and 039's, no
 shared console stores a forced theme; C10 no `contracts/` or `server/` change.
+
+### red / green / refactor (2026-10-16)
+
+- **Red** — `932a404`: `test/web/settings/` (`model`, `ui-settings`, `theme-setting`),
+  `test/web/api/settings.test.tsx`, appended rows of `theme-script.test.ts`, `events.test.ts`,
+  `queries.test.ts`, `nav.test.ts`, `test/e2e/ui-settings.spec.ts`,
+  `test/timing/ui-settings.timing.test.ts`, and the C2 settings seed of `test/e2e/support/console.ts`
+  (an identical copy of task-038's shape, see below). Run before any production code: 19 failing
+  tests and 3 files that did not load (`settings.test.tsx`, `model.test.ts`, `theme-setting.test.tsx`:
+  no module); in `theme-script.test.ts` the 4 override rows failed and the "unknown value is
+  ignored" companion passed (the old script ignores every attribute).
+- **Green** — `e9f2378`: the inline script of `web/index.html` (`data-theme-setting` over the
+  media query, a `MutationObserver` on the attribute); `settingsQuery` (`api/queries.ts`),
+  `queryKeys.settings()` (`api/query-keys.ts`), the `settings` rule of `api/events.ts`;
+  `web/src/api/settings.ts` (`putSettings`, `useSaveSettings`, `SAVE_SETTINGS_KEY`: mutation scope
+  `settings`, optimistic `onMutate`, the body built when the save runs, the answer taken only when no
+  other save waits, a fresh `GET` after a failure); `web/src/settings/` (`model.ts`,
+  `UiSettingsView.tsx`, `ThemeSetting.tsx`, `settings.css`); `web/src/routes/configuration.tsx` (one
+  `PROJECT_ROUTES` line), the `pinned` group and `NAV_ORDER.configuration` (`routes/nav.ts`), the
+  CSS pushing the nav's last group to its bottom (`theme/base.css`, appended); `<ThemeSetting />` in
+  `app.tsx` once the session is connected; 33 catalogue keys and the `settings` area of
+  `web/scripts/catalogue.mjs` (spec-008 §2: "later releases add areas the same way"); the
+  *configuration — UI settings* `SCREENS` entry. Docs `6e87ae2`: user guide 0.14 (*UI settings*;
+  *Before you turn Auto-update on* and *How the automatic sync runs* as headings; the
+  "not shipped yet" lines updated), CHANGELOG *Added*, `test/README.md` 0.39, ux-reference 1.7,
+  spec-009 §1 Process Note.
+- **Guard proofs** (`e06a963`; each guard removed, its test seen failing, restored): mutation scope
+  (the one-at-a-time test fails); the "answer only when no other save waits" rule (passed with the
+  guard removed in the first test set, because the first body already carried both changes — a new
+  test with the second change made after the first request left fails without it); the fresh read
+  after a failure (3 failures); Escape restoring a number; the alert cleared by the next save; the
+  unchanged-number check (passed at first: the test never typed — it now types the stored value
+  again); the script's `MutationObserver` (3 failures); `<ThemeSetting />` in `App` (a new test
+  through the whole application fails without it).
+- **Test-only fixes:** the hook test's `setup(undefined)` fell back to the default cache (now
+  `null`); the e2e clicks a switch or radio by its label (the input is visually hidden — Playwright
+  refused to click it), and the keyboard walk checks the ring the user sees, on the label that draws
+  it (`expectRingShown` in the spec; the shared `expectFocusVisible` reads the focused, hidden
+  input); X-08.3 asserts the body's light background `--color-surface` (`#F5F7FA`), not `--color-bg`.
+- **C2 copy:** `ConsoleOptions.settings?: Partial<UiSettings>` written as `settings: { ...options.settings }`
+  of the seeded `state.json`, also when only `settings` is given. task-038's branch had no code for
+  it yet when this was written: the merge must keep one of the two (same shape, same place).
+- Deviations from the design: none in behaviour. The `settings` catalogue area is a one-line
+  addition to `AREAS` (not listed among the shared files of the design).
