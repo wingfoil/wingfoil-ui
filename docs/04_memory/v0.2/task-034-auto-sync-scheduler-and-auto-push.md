@@ -591,3 +591,34 @@ the path it opened and follows the file system.
   after a non-`..` component fails closed.
 - **R3-1 … R3-3** — the new codes' catalogue texts in spec-010; the user guide says any configured
   value naming a working-tree file counts; `error.configInWorktree` neutral wording.
+
+### review round 3 — changes (2026-10-16)
+
+| Id | Red | Fix | What |
+|----|-----|-----|------|
+| W4-15 (a) (S3-1), S3-2 | `51cf33c` | `b79a53c` | `configUsesWorktree` replaces `configUsesPaths`: any configured value (any scope) naming the working tree skips the automatic update, recorded `config-uses-incoming-path` (code kept, text widened); `shellTokens` (quotes, backslash escapes, parts around `=`, `:`, `,`); `~`, `~user`, `$PWD`, `${PWD}`, `$(git rev-parse --show-toplevel)` expanded; existing paths (the link itself and its realpath) inside the top level outside the git directories; the top level's path or realpath in the value; an incoming path as a token (normalised) or bounded substring. Include paths resolved from the holder as git opened it and by the file system (`physicalPath`), a `..` or `.` in a part that does not exist yet failing closed |
+| R3-1 … R3-3 | — | `ac3ef49` | spec-010 §5: a table of the sync-status codes with their catalogue texts; §6 the widened rule, exemptions and the `PATH` residual; user guide: any configured value naming a working-tree file counts; `error.configInWorktree` "includes another file", `error.configUsesIncomingPath` "uses a file of the working tree" |
+
+- **Run to execution:** a smudge filter `sh tools/run.sh` whose script sources `tools/lib.sh`,
+  an incoming `lib.sh` writing a marker and an incoming `zz-incoming.md` checked out after it: red
+  before the fix (the marker was written; the incoming `.md` must sort after `tools/lib.sh`, else
+  the smudge sources the old file), no marker after. The other S3-1 cases assert no merge and the
+  recorded code (red before: the merge ran).
+- **`.` / top-level tokens — chosen: fail closed.** A token resolving to the top level itself
+  counts (`make -C .`, tested). Not counted, each with a test and a guard-removal proof (the test
+  fails without the exemption): the keys an unattended run sets itself (`core.hooksPath` — e.g.
+  husky's `.husky` —, `core.fsmonitor`, `fetch.pruneTags`, `remote.<r>.pruneTags`,
+  `branch.<b>.mergeOptions`), `safe.directory` (git compares it, never opens it) and
+  `branch.<b>.remote = .` (the remote name of a local upstream, which would otherwise stop every
+  repository with a local tracking branch).
+- **Accepted residual:** commands found through `PATH` or non-path forms (`python -m pkg.mod`)
+  that load repository files (spec-010 §6, user guide).
+- The public-text check refused the `~/` test's run-time path: the test names the copy literally
+  (`~/kanban/…`, a name the allow-list accepts).
+
+Checks (HEAD before this note `d5882b0`): `typecheck`, `lint`, `format:check` clean; `docs:api`,
+`check_tasks.py v0.2` OK; `test:coverage` 153 files passed, 1 skipped, **2872 passed / 1
+skipped** (statements 96.37 %, branches 90.9 %), load 5 → 10.7; `test:smoke` 4/4 (load 9);
+`test:timing` **passed** (load 8.5 → 11): Vitest 5/5 (TT-PERF-07 10/10 at 59.9–60.1 s, Y-02.3 0
+fetches) and Playwright 18/18. `test:e2e:chromium` not run: the only console-visible change is
+catalogue text. No console and no `wfui-task-034-*` entry left.
