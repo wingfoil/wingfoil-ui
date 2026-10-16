@@ -3,7 +3,7 @@ id: dev-loop-rel-v0.2-plan
 type: plan
 title: "Dev-loop — rel-v0.2"
 status: active
-version: "0.5"         # optional — plan version
+version: "0.6"         # optional — plan version
 workflow: "dev-loop"
 phase: "rel-v0.2"
 scope: "rl-v1/rel-v0.2"
@@ -14,7 +14,7 @@ tmpl_version: 260703   # Orignal template version
 
 ## Context
 
-**Version:** 0.5 · **Date:** 2026-10-15 (0.1: plan created, Wave 0 scope; 0.2: Wave 0 session log, e2e engine rule W0-9; 0.3: Wave 1 session log; 0.4: Wave 2 session log; 0.5: Wave 3 session log, frontmatter version aligned)
+**Version:** 0.6 · **Date:** 2026-10-16 (0.1: plan created, Wave 0 scope; 0.2: Wave 0 session log, e2e engine rule W0-9; 0.3: Wave 1 session log; 0.4: Wave 2 session log; 0.5: Wave 3 session log, frontmatter version aligned; 0.6: Wave 4 session log)
 **Workflows:** `sw-life-cycle` → `release-line-cycle` (`rl-v1`) phase `delivery` → `release-cycle`
 (`minor-v0.2`) phase `implementation` = `dev-loop` iterated over every task with status `backlog`
 and `release: v0.2` (`.wingfoil/workflows/custom/release-cycle.yaml` v1.1, `dev-loop.yaml` v1.4)
@@ -95,8 +95,8 @@ Rules for every wave:
 - **Checkpoints:** design decisions; end of review (approve); before each merge; end of each wave.
 - **Completion:** every v0.2 task `done` and merged; plan finalized by hand (`status: done`, commit
   `wf(plan): finalize dev-loop-rel-v0.2-plan [active → done]`, W-04).
-- **Next:** Wave 4 — task-034 (auto-sync scheduler and auto-push; adversarial security review,
-  RP-47), task-042.
+- **Next:** Wave 5 — task-038, task-039, task-041 (shell shared: append-only, task-number
+  order); then Wave 6 — task-040; task-029 before release validation.
 
 ## Session log
 
@@ -364,3 +364,96 @@ Rules for every wave:
   footer's status and alert into its toasts (the alert has its own `element-footer-alert`
   class); task-039 reads `repository`, `sync` and `conditions` from `GET /api/p/:pid`; task-040
   appends "Update" to the copy-behind reason.
+
+### Session 5 — Wave 4: auto-sync and auto-push, notification bell (2026-10-15 – 2026-10-16)
+
+- Start confirmed by the approver: task-034 and task-042 in parallel; shared shapes fixed by the
+  coordinator after both designs (C1 merge order 034 → 042; C2 `test/README.md` 0.35 / 0.36,
+  `docs/user-guide.md` 0.10 / 0.11, UX reference 1.4 for task-042; C3 only task-034 touches
+  `contracts/` and `MESSAGES`, only task-042 `web/src/api/queries.ts` and `ProjectHeader.tsx`;
+  C4 catalogue and CHANGELOG append-only; C5 the e2e settings seed left to tasks 039–041);
+  task-029 still later, before release validation. The machine rebooted once (2026-10-15 about
+  20:54) while both agents waited for decisions: worktrees intact, nothing to repeat.
+- **Done and merged** in task-number order (RP-55), each after its reviews, `main` merged into the
+  branch before submit and the approver's `memory approve`: task-034 (merge `abd2ef2`, done
+  `6801c57`; independent review 5 rounds, adversarial security review 5 rounds, RP-47), task-042
+  (`dedd367`, `28edb56`; 4 rounds and a confirmation round; `main` with task-034 merged before
+  submit). Conflicts only on the `docs/user-guide.md` and `test/README.md` version lines.
+- **Bugs:** bug-014 (the manual Update could make a merge commit and the manual Fetch could prune
+  local tags and branches — task-033's routes, found by task-034's design probes) and bug-015 (the
+  X-09.1 strings check could miss an API answer under load; a pre-existing test-support race) ingested,
+  triaged by the approver, absorbed into task-034 and task-042 and resolved. With bug-008 … bug-013
+  they are closed at release validation (W0-10).
+- **Decisions** (the approver, "as recommended" unless noted; details in each task's Execution
+  Notes):
+  - **W4-1 (D34-1 … D34-11)** auto-sync: no hook in unattended runs (`core.hooksPath` = the clone's
+    no-hooks file; manual Update/Push and auto-push keep hooks, RP-23); the automatic merge
+    hardened (`--no-squash --strategy=ort`, `--config-env=branch.<b>.mergeOptions=`, post-check);
+    no askpass program and a skip while a git operation is in progress; one fetch per repository
+    and target per tick; prune overrides and a refspec guard; no periodic push (the W2-5 commit
+    leaves with the next push of HEAD); no timeout on the automatic merge; bug-014 absorbed (409
+    `refspec-outside-remotes`); `fetch-timeout` and `push-timeout` codes; auto-push pushes HEAD as
+    the manual Push does.
+  - **W4-2 (D42-1 … D42-8)** bell and summary: the bell in the global header for every identity;
+    *Updates* read only while the panel is open; all *Requires you* rows (spec-003 §5, not the
+    prototype's 6); a badge only above 0 with the count in the accessible name; a "Your roles"
+    card between the greeting and *Requires you*; switch from the card with focus on *Requires
+    you*; "N more" switches the role view; one appended `SCREENS` entry. UX reference 1.4.
+  - **D42-9** TT-PERF-01 starts on `/` and opens the project with the switcher (the bell warms
+    Today's query on every project view); the "read after the key press" guard stays.
+  - **RP-9 measured, no regression:** a first "after one commit" p95 of 1 357 ms (D42-9 path) and
+    1 486 ms (comparable path) came from a noisy run; repeated runs at each merge point since
+    task-036 gave 0.6–0.9 s server-side and 0.66 s p95 on task-036's path (task-036: 0.54 s);
+    task-033 adds two short `git config` reads per state check. spec-002 §4 not reopened.
+  - **W4-3 … W4-10 (security round 1, independent round 1)** the manual Update refuses
+    `refspec-outside-remotes` too; `internal` listed for auto-push; configuration from the work
+    tree skips the unattended fetch and merge, `core.fsmonitor=false` on unattended runs and every
+    read; exactly one `branch.<b>.merge` value or `no-upstream` (manual Push too); legacy
+    `remotes/`/`branches/` files fail closed; the runner settles at most 2 s after `exit`;
+    `merge-not-fast-forward` recorded; hooks landed by an automatic merge run at the user's next
+    write (declared residual), and the stop waits for a running automatic merge.
+  - **W4-11 … W4-14 (security round 2)** include directives checked whether or not their file
+    exists or their condition holds; a token guard on configuration values (W4-12, later
+    removed); drained results refused by every reader; `config-in-worktree` recorded in
+    `sync.fetch.lastError`.
+  - **W4-15 (security round 3)** a broader value guard (any value naming the work tree; later
+    removed); relative includes resolved from the path git opened.
+  - **W4-16 (security round 4)** the value heuristics (W4-12, W4-15) are removed: shell expansion
+    bypassed them (ten forms run to execution) and common configurations (`core.editor = code
+    --wait` with a `code/` folder, aliases, `credential.helper = cache`) stopped the automatic
+    update for good. Declared instead (spec-010 §6, user guide, CHANGELOG): `autoUpdate` is off by
+    default and, turned on, does what `git pull` does on a timer — incoming commits can run
+    commands the user's own configuration points at, without hooks of the repository and without
+    configuration the repository brings. Kept: every structural guard above.
+- **Review highlights:** task-034 — the manual Update's own fetch still pruned (R1); configuration
+  brought by incoming commits ran `uploadpack`, `fsmonitor` and filters unattended (S1, then an
+  include of a file not yet there, S2-1); the push destination read the last of several
+  `branch.<b>.merge` values (S2); a legacy `remotes/` file bypassed the prune guard (S3); a filter
+  child holding stderr hung the runner, the write lock and the stop (S4). task-042 — a stale focus
+  request and a refusal alert lost on refetch (R1, R2), then a refusal alert that never cleared
+  (R2-1); bug-015's fix reviewed twice more (a hung answer losing its cause, the old page's reads
+  filed to the next screen).
+- **For the retrospective (approver's request, W4-16):** decide whether to keep the declared risk
+  of `autoUpdate` or invest in a structural fix. Options, not decided: keep the declared risk; run
+  the automatic update with filters disabled through a temporary `info/attributes` override;
+  fast-forward only when no incoming path is referenced by a `.gitattributes` filter, diff or merge
+  driver; a sandboxed checkout; drop `autoUpdate`. Background: task-034's Execution Notes, *For the
+  retrospective*.
+- **Open points:** none new beyond the Wave 3 ones still standing (a cancelled fetch or push
+  answers 500 `internal` with nothing recorded; push never to `pushRemote`); sync status per pid is
+  now recorded on every project of one repository (D34-4).
+- **Gate at the end of the wave** on `main` `28edb56` (2026-10-16 16:14–17:12, load 1.2 at
+  start): `test:timing` Vitest 5/5 (TT-PERF-07 10/10 at 59.9–60.0 s) and Playwright 18/18;
+  `test:coverage` 2883 passed, 1 skipped (statements 96.53 %, branches 91.15 %); `test:e2e` three
+  engines 699 passed (Chromium 239, Firefox 230, WebKit 230; 36.6 min); `test:smoke` 4/4; no
+  `wfui-*` entry, no console left.
+- **Effort:** 2026-10-15 17:45 – 23:30 and 2026-10-16 07:00 – 17:15 with pauses (about 11 h of
+  working time; a reboot of the machine).
+- **Hand-overs to Wave 5:** task-041 shows the declared residual of `autoUpdate` next to the
+  setting (user guide *Before you turn Auto-update on*) and seeds settings for its e2e through
+  `ConsoleOptions.stateDir` (C5); task-039 renders `sync.fetch.lastError` / `sync.update.lastError`
+  codes from the catalogue (`fetch-timeout`, `config-in-worktree`, `refspec-outside-remotes`,
+  `merge-not-fast-forward`, …) and knows that every real-bin console now fetches every 60 s
+  (`autoFetch` on by default; seed `autoFetch: false` for a test counting git processes);
+  task-038 renders `push: failed` codes including `push-timeout` and `internal`; the shell header
+  now holds the notification bell (task-042) — keyboard walks and `SCREENS` count it.

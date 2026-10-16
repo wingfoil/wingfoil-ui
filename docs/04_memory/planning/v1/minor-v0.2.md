@@ -73,6 +73,7 @@ Actual effort per phase (dl-006 action 6; wall-clock of the working sessions, 20
 | implementation — Wave 1 (task-030, task-031, task-035) | `dev-loop-rel-v0.2-plan` session 2 | 2026-10-13 15:56 – 2026-10-14 09:55 (overnight pause) | ~8 h working time, 1 active day |
 | implementation — Wave 2 (task-032, task-036) | `dev-loop-rel-v0.2-plan` session 3 | 2026-10-14 13:20 – 23:15 (interruption ~2 h) | ~8 h working time, 1 active day |
 | implementation — Wave 3 (task-033, task-037) | `dev-loop-rel-v0.2-plan` session 4 | 2026-10-15 08:50 – 16:05 (a crash of ~10 min) | ~7 h working time, 1 active day |
+| implementation — Wave 4 (task-034, task-042) | `dev-loop-rel-v0.2-plan` session 5 | 2026-10-15 17:45 – 2026-10-16 17:15 (pauses, a reboot) | ~11 h working time, 1 active day |
 
 - 2026-10-12 — `release-planning-rel-v0.2-plan` sessions 1–2 (branch `design/release-planning_v0.2`).
   `advance-pinned-build` no-op (0.2.2 newest); `minor-v0.2` `draft → planning` (`4c8ead3`);
@@ -124,6 +125,12 @@ Actual effort per phase (dl-006 action 6; wall-clock of the working sessions, 20
   bug-013 (a v0.1 clone could run an `ext::` command through `GIT_ALLOW_PROTOCOL`) ingested,
   absorbed into task-033 and resolved. Approved specs amended in place: spec-010, spec-004 §5,
   spec-006 §3, spec-003 §6, adr-001 D6; UX reference 1.3. Budget: 5 of 8 active days used.
+- 2026-10-16 — Wave 4 (`dev-loop-rel-v0.2-plan` session 5): task-034, task-042 done; review rounds
+  5 and 4 + a confirmation round (task-034 also an adversarial security review, 5 rounds). bug-014
+  and bug-015 ingested, absorbed and resolved. Deviation: the automatic update's value guards were
+  removed and its risk declared instead (W4-16; a retrospective question). Approved specs amended
+  in place: spec-010, spec-004 §5, adr-001 D5; UX reference 1.4. Budget: 6 of 8 active days
+  used.
 
 ### Submit & Publishing
 
