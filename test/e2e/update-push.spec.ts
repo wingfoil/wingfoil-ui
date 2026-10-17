@@ -112,20 +112,23 @@ async function clickAndAnswer(page: Page, button: Locator, op: string): Promise<
 }
 
 /** `target` is the element a pointer reaches at its centre (nothing, a toast included, covers it). */
-async function expectOnTop(page: Page, target: Locator): Promise<void> {
+async function expectOnTop(page: Page, target: Locator, what = 'the control'): Promise<void> {
   await expect
-    .poll(async () => {
-      const box = await target.boundingBox();
-      if (!box) return false;
-      const handle = await target.elementHandle();
-      return page.evaluate(
-        ([x, y, t]) => {
-          const hit = document.elementFromPoint(x, y);
-          return hit !== null && (hit === t || t.contains(hit));
-        },
-        [box.x + box.width / 2, box.y + box.height / 2, handle] as const,
-      );
-    })
+    .poll(
+      async () => {
+        const box = await target.boundingBox();
+        if (!box) return false;
+        const handle = await target.elementHandle();
+        return page.evaluate(
+          ([x, y, t]) => {
+            const hit = document.elementFromPoint(x, y);
+            return hit !== null && (hit === t || t.contains(hit));
+          },
+          [box.x + box.width / 2, box.y + box.height / 2, handle] as const,
+        );
+      },
+      { message: `${what} is on top at its centre` },
+    )
     .toBe(true);
 }
 
@@ -596,7 +599,7 @@ test.describe('review round 1', () => {
       await page.setViewportSize(size);
       for (const control of [syncButton(page, 'Push'), syncButton(page, 'Fetch')]) {
         await control.evaluate((el) => el.scrollIntoView({ block: 'center' }));
-        await expectOnTop(page, control);
+        await expectOnTop(page, control, `${await control.textContent()} at ${size.width}×${size.height}`);
       }
     }
     await page.setViewportSize(sizes[0]!);
@@ -613,10 +616,17 @@ test.describe('review round 1', () => {
     await expect(toast).toBeVisible();
     for (const size of sizes) {
       await page.setViewportSize(size);
-      for (const control of [link, syncButton(page, 'Update')]) {
-        await control.evaluate((el) => el.scrollIntoView({ block: 'center' }));
-        await expectOnTop(page, control);
-      }
+      await link.evaluate((el) => el.scrollIntoView({ block: 'center' }));
+      await expectOnTop(page, link, `the footer's Update at ${size.width}×${size.height}`);
+    }
+    // The sidebar's Update, with the panel closed (a narrow panel covers the page by design).
+    await page.keyboard.press('Escape');
+    await expect(drawer(page)).toHaveCount(0, { timeout: COLD_READ_MS });
+    await expect(toast).toBeVisible();
+    for (const size of sizes) {
+      await page.setViewportSize(size);
+      await syncButton(page, 'Update').evaluate((el) => el.scrollIntoView({ block: 'center' }));
+      await expectOnTop(page, syncButton(page, 'Update'), `the sidebar's Update at ${size.width}×${size.height}`);
     }
   });
 });
