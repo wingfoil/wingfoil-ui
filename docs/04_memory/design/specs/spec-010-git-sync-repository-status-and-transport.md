@@ -178,7 +178,10 @@ cancelled process group or the server) and `--no-optional-locks`.
 - Failure → **422 `git-refused`**, git's standard error verbatim (spec-004 §5) except for the
   local folders it quotes (the project's → `<project>`, the repository's → `<repository>`, a local
   remote's path wherever it is → `<remote>`, the home folder → `~`), URL userinfo removed (also a
-  `user:password@host` without a scheme), at most 4 000 characters — also in `lastError`.
+  `user:password@host` without a scheme), then every control character other than newline and tab
+  and every bidirectional control (U+202A–U+202E, U+2066–U+2069) written as a visible escape (`\x1b`,
+  `\u202e`), then at most 4 000 characters kept as the head and the tail around a `…` line, a cut
+  never splitting an escape or a redaction token (bug-017) — also in `lastError`.
   Declared residual (task-040, D40-9): other absolute paths that git or a hook prints (a folder
   outside the project, the repository, a local remote and the home folder) are shown as printed —
   git's text stays verbatim (REQ-INT-06); the console is the user's own, on loopback. A fetch failure is
@@ -476,3 +479,10 @@ Rows 7–9 do not apply (no element).
   offered whatever `autoPush` says (D40-1, ux-reference 1.8) and *Push* stays the upstream's remote
   only (D40-12, §4 explicit refspec); a cancelled push still answers 500 `internal` to the client
   that left, nothing recorded (D40-11). Decided by the approver.
+- 2026-10-17 — bug-017, absorbed into task-040 (minor-v0.2 Wave 6, review round 1 S3, S4, decided by
+  the approver): §4 a tool message sent by the API (`git-refused`, `cli-refused`, `lastError`; the one
+  redaction point `server/src/git/redact.ts`) carries no control character (except newline and tab)
+  and no bidirectional control — each becomes a visible escape — and a message over 4 000 characters
+  keeps its head and its tail, so git's own concluding lines (`! [rejected]`, `error:`, `fatal:`)
+  survive a long hook output. Proved by `test/server/git/redact.test.ts` and end to end by
+  `test/e2e/update-push.spec.ts` › Y-08.2.

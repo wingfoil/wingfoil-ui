@@ -74,6 +74,10 @@ All notable changes to WingFoil UI are recorded in this file. The format follows
 
 ### Fixed
 
+- **Tool messages are shown safely** (bug-017): a message of git or WingFoil shown by the console
+  (a refused push, update or fetch, a refused action) has its control characters and the
+  characters that reverse text direction written as visible escapes (`\x1b`, `\u202e`), and a very
+  long one keeps its beginning and its end, where git's own reason is.
 - **A console URL pasted into an open tab is read without a reload** (bug-016): the page reads the
   new `#token=…`, exchanges it and shows the console as a new tab does; a page whose session is
   still valid ignores a token it did not need.

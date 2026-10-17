@@ -384,7 +384,11 @@ with git each time the repository changes:
   `branch.<name>.pushRemote` or `remote.pushDefault` you configured, and never forced — and runs
   the repository's `pre-push` hook. While it runs the button reads *Pushing…* and **Cancel** stops
   it: nothing is shown then, and the sidebar shows where your copy stands (also when the push
-  finished just before the cancel). A rejected push — the remote moved, no permission — is a **red
+  finished just before the cancel). A push goes on when you switch to another project (back on
+  it, the sidebar still reads *Pushing…* with *Cancel*); a fetch is cancelled when you leave its
+  project. A push cancelled while a local remote receives it can leave git's temporary folder
+  `objects/tmp_objdir-incoming-*` in that remote until git's own clean-up (`git gc`) removes it.
+  A rejected push — the remote moved, no permission — is a **red
   toast** *Not pushed — the commit stays local* with git's message, and the sidebar still offers
   *Push*.
 - **One at a time.** While a fetch, an update or a push runs, the other buttons wait; when the
@@ -403,7 +407,10 @@ with git each time the repository changes:
   console knows replaced — the project's (`<project>`), the repository's (`<repository>`), a local
   remote's (`<remote>`) and your home folder (`~`) — and the credentials of a URL removed. Other
   absolute paths that git or a hook prints (a folder outside your home, for example) are shown as
-  printed.
+  printed. Control characters (an escape sequence, a carriage return) and the characters that
+  reverse the direction of text are shown as visible escapes such as `\x1b` or `\u202e`, and a
+  very long message keeps its beginning and its end — where git says why it refused — around a
+  `…` line.
 
 ## Automatic sync with the remote
 

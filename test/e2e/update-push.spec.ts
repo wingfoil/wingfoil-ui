@@ -128,6 +128,17 @@ async function expectOnTop(page: Page, target: Locator): Promise<void> {
     .toBe(true);
 }
 
+/** Switch to the console's project `index` with the project switcher (no page load). */
+async function switchTo(page: Page, index: number): Promise<void> {
+  await page
+    .getByRole('banner')
+    .getByRole('button', { name: /^Projects(: .*)?$/ })
+    .click();
+  const rows = page.getByRole('dialog', { name: 'Projects' }).getByRole('grid', { name: 'Projects' }).getByRole('row');
+  await expect(rows.nth(index)).toBeVisible({ timeout: COLD_READ_MS });
+  await rows.nth(index).getByRole('link').click();
+}
+
 /** The pid the held hook wrote (`hook.pid` in the remote), once it runs. */
 async function hookPid(fx: Fixture): Promise<number | undefined> {
   const text = await readFile(path.join(fx.remoteDir, 'hook.pid'), 'utf8').catch(() => '');
@@ -429,7 +440,10 @@ test.describe('US-Y-08 — a rejected push', () => {
     expect(text).not.toContain(fx.remoteDir);
     expect(text).not.toContain(fx.home);
     // bug-017: shown as visible escapes, never as the characters; the head and the tail are kept.
-    expect(text).toContain('colour \\x1b[31mred\\x1b[0m and\\x0drewritten and \\u202etxt.exe');
+    // (git's side band starts a new "remote:" line at a carriage return, so the CR shows there.)
+    expect(text).toContain('colour \\x1b[31mred\\x1b[0m and');
+    expect(text).toContain('\\x0d');
+    expect(text).toContain('rewritten and \\u202etxt.exe');
     for (const raw of [String.fromCharCode(0x1b), '\r', String.fromCharCode(0x202e)]) expect(text).not.toContain(raw);
     expect(text).toContain('\n…\n');
     expect(text.length).toBeLessThanOrEqual(4_000);
@@ -518,11 +532,16 @@ test.describe('review round 1', () => {
     await expect(gitStatus(page)).toContainText('1 commit to push');
     await syncButton(page, 'Push').click();
     await expect.poll(() => hookPid(fx), { timeout: COLD_READ_MS }).toBeDefined();
-    // To the other project and back: the push still runs.
-    await page.goto(`${c.origin}/p/${c.pids[1]}/team`, { timeout: COLD_READ_MS });
+    // To the other project and back with the switcher (a page load would end the request): the
+    // push still runs, and the sidebar says so again.
+    await switchTo(page, 1);
+    await expect(page).toHaveURL(`${c.origin}/p/${c.pids[1]}/team`, { timeout: COLD_READ_MS });
     await expect(page.locator('.member-card').first()).toBeVisible({ timeout: COLD_READ_MS });
     expect(alive((await hookPid(fx))!)).toBe(true);
-    await page.goto(`${c.origin}/p/${c.pids[0]}/team`, { timeout: COLD_READ_MS });
+    await switchTo(page, 0);
+    await expect(page).toHaveURL(`${c.origin}/p/${c.pids[0]}/team`, { timeout: COLD_READ_MS });
+    await expect(syncButton(page, 'Pushing…')).toBeVisible({ timeout: COLD_READ_MS });
+    await expect(syncButton(page, 'Cancel')).toBeVisible();
     await writeFile(path.join(fx.remoteDir, 'released'), '');
     await expect.poll(() => remoteHead(fx), { timeout: COLD_READ_MS }).toBe(await head(fx));
     await expect(gitStatus(page)).toContainText('In sync with git', { timeout: COLD_READ_MS });
@@ -581,8 +600,14 @@ test.describe('review round 1', () => {
     expect(await clickAndAnswer(page, syncButton(page, 'Push'), 'push')).toBe(422);
     const toast = assertiveToasts(page).locator('.toast');
     await expect(toast).toContainText('Not pushed', { timeout: COLD_READ_MS });
-    // …stays while this project's footer offers Update.
-    await page.goto(`${c.origin}/p/${c.pids[0]}/e/task-001-login-form`, { timeout: COLD_READ_MS });
+    // …stays while this project's footer offers Update (reached without a page load).
+    await switchTo(page, 0);
+    await expect(page).toHaveURL(`${c.origin}/p/${c.pids[0]}/team`, { timeout: COLD_READ_MS });
+    await page
+      .getByRole('navigation', { name: 'Project views' })
+      .getByRole('link', { name: 'Memory', exact: true })
+      .click();
+    await page.locator('.memory-row[data-eid="task-001-login-form"]').click({ timeout: COLD_READ_MS });
     const link = gate(page).locator('.gate-blocked').getByRole('button', { name: 'Update', exact: true });
     await expect(link).toBeVisible({ timeout: COLD_READ_MS });
     await expect(toast).toBeVisible();
