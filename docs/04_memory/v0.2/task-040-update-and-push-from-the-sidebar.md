@@ -383,3 +383,18 @@ e2e closure (planned):
   upstream's remote, `HEAD:<merge ref>`, every push URL owner-checked) and stated in the user guide's
   *Push*; (b) honour `branch.<b>.pushRemote` / `remote.pushDefault` (a security-relevant change to
   task-033/034's routes and owner checks, out of this task's scope).
+
+#### Decisions (approver, 2026-10-17)
+
+"All as recommended": **D40-1 (a)** … **D40-12 (a)**, deviations included: D40-1 (a) amends the
+ux-reference's "(when auto-push is off)" (a deviation recorded per `ux-consistency`); D40-6 (a)
+rewords Y-08.1 with a dated Process Note in `00_conventions.md`; D40-8 (a) rewording with version
+bumps; D40-9 (a) with the declared residual in the user guide and spec-010; D40-11, D40-12 stated in
+the user guide. Coordinator's shared shapes (C1–C6): task-029 merges first, this task second (the
+coordinator merges `main` before submit); version lines `test/README.md` 0.41, `docs/user-guide.md`
+0.15, ux-reference 1.8, `00_conventions.md` 0.10, `03_is-isnot.md` 0.7, `05_journeys.md` 0.4,
+`06_features.md` 0.9, story map: its next version; `CHANGELOG.md` *Unreleased*: own entries only;
+this task alone edits `en.json`, `test/e2e/support/screens.ts`, `remote.ts`, `web/src/api/git.ts`
+(`mutationKey ['git']`, `useRunningGitOperation(pid)` approved), `ElementFooter.tsx`, `session.ts`,
+`main.tsx`; no change to `package.json`, `package-lock.json`, `README.md`, `CLAUDE.md`,
+`test/smoke/*`, `test/package/*`.
