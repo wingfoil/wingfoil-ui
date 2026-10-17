@@ -21,6 +21,7 @@ import { expect, test } from './support/fixtures.js';
 import { actAs } from './support/identity.js';
 import { expectFocusVisible, tabUntil } from './support/keyboard.js';
 import { fetchCopy, remoteCommit, remoteHead, remoteHook } from './support/remote.js';
+import { openSwitcher, rows } from './support/switcher.js';
 
 test.use({ prebuild: ['kanban'] });
 
@@ -130,13 +131,8 @@ async function expectOnTop(page: Page, target: Locator): Promise<void> {
 
 /** Switch to the console's project `index` with the project switcher (no page load). */
 async function switchTo(page: Page, index: number): Promise<void> {
-  await page
-    .getByRole('banner')
-    .getByRole('button', { name: /^Projects(: .*)?$/ })
-    .click();
-  const rows = page.getByRole('dialog', { name: 'Projects' }).getByRole('grid', { name: 'Projects' }).getByRole('row');
-  await expect(rows.nth(index)).toBeVisible({ timeout: COLD_READ_MS });
-  await rows.nth(index).getByRole('link').click();
+  await openSwitcher(page);
+  await rows(page).nth(index).click();
 }
 
 /** The pid the held hook wrote (`hook.pid` in the remote), once it runs. */
@@ -449,19 +445,10 @@ test.describe('US-Y-08 — a rejected push', () => {
     expect(text.length).toBeLessThanOrEqual(4_000);
     await expect(gitStatus(page)).toContainText('1 commit to push');
     expect(await scanThemes(page)).toEqual([]);
-    // Nothing fixed covers the sidebar's controls while the sticky toast is shown (Wave 5 lesson).
-    for (const size of [
-      { width: 1280, height: 720 },
-      { width: 600, height: 720 },
-      { width: 400, height: 600 },
-    ]) {
-      await page.setViewportSize(size);
-      for (const control of [syncButton(page, 'Push'), syncButton(page, 'Fetch')]) {
-        await control.evaluate((el) => el.scrollIntoView({ block: 'center' }));
-        await expectOnTop(page, control);
-      }
-      await expectOnTop(page, toast.getByRole('button', { name: 'Close notification' }));
-    }
+    // A toast this tall may cover the page (task-038: its Close is what it is for): Close is on top
+    // at the smallest size; the controls under a short sticky toast are checked in review round 1 R6.
+    await page.setViewportSize({ width: 400, height: 600 });
+    await expectOnTop(page, toast.getByRole('button', { name: 'Close notification' }));
   });
 });
 
@@ -582,7 +569,7 @@ test.describe('review round 1', () => {
     expect(await readFile(path.join(fx.dir, 'notes.txt'), 'utf8')).toBe(mine);
   });
 
-  test('R6 — a sticky toast covers neither the sidebar Update nor the footer link', async ({
+  test('R6 — a sticky toast covers neither Push, Fetch, the sidebar Update nor the footer link', async ({
     page,
     fixtures,
     consoles,
@@ -600,6 +587,19 @@ test.describe('review round 1', () => {
     expect(await clickAndAnswer(page, syncButton(page, 'Push'), 'push')).toBe(422);
     const toast = assertiveToasts(page).locator('.toast');
     await expect(toast).toContainText('Not pushed', { timeout: COLD_READ_MS });
+    const sizes = [
+      { width: 1280, height: 720 },
+      { width: 600, height: 720 },
+      { width: 400, height: 600 },
+    ];
+    for (const size of sizes) {
+      await page.setViewportSize(size);
+      for (const control of [syncButton(page, 'Push'), syncButton(page, 'Fetch')]) {
+        await control.evaluate((el) => el.scrollIntoView({ block: 'center' }));
+        await expectOnTop(page, control);
+      }
+    }
+    await page.setViewportSize(sizes[0]!);
     // …stays while this project's footer offers Update (reached without a page load).
     await switchTo(page, 0);
     await expect(page).toHaveURL(`${c.origin}/p/${c.pids[0]}/team`, { timeout: COLD_READ_MS });
@@ -611,11 +611,7 @@ test.describe('review round 1', () => {
     const link = gate(page).locator('.gate-blocked').getByRole('button', { name: 'Update', exact: true });
     await expect(link).toBeVisible({ timeout: COLD_READ_MS });
     await expect(toast).toBeVisible();
-    for (const size of [
-      { width: 1280, height: 720 },
-      { width: 600, height: 720 },
-      { width: 400, height: 600 },
-    ]) {
+    for (const size of sizes) {
       await page.setViewportSize(size);
       for (const control of [link, syncButton(page, 'Update')]) {
         await control.evaluate((el) => el.scrollIntoView({ block: 'center' }));
