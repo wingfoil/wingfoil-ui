@@ -90,6 +90,8 @@ function stripFragment(): void {
 export interface WatchFragmentOptions {
   /** Reloads the page (default `location.reload()`; tests). */
   reload?: () => void;
+  /** Longest wait for the probe's answer (default 10 s; review round 2 S2-8). */
+  probeTimeoutMs?: number;
 }
 
 /**
@@ -104,6 +106,7 @@ export interface WatchFragmentOptions {
  */
 export function watchFragmentToken(options: WatchFragmentOptions = {}): () => void {
   const reload = options.reload ?? (() => window.location.reload());
+  const timeoutMs = options.probeTimeoutMs ?? 10_000;
   // One probe at a time: a storm of fragment changes sends no more (review round 1 S6).
   let probing = false;
   const onChange = (): void => {
@@ -114,7 +117,7 @@ export function watchFragmentToken(options: WatchFragmentOptions = {}): () => vo
     }
     if (probing) return;
     probing = true;
-    void fetch('/api/server', { credentials: 'same-origin' })
+    void fetch('/api/server', { credentials: 'same-origin', signal: AbortSignal.timeout(timeoutMs) })
       .then(
         (response) => {
           if (fragmentToken(window.location.hash) === undefined) return;
@@ -122,7 +125,8 @@ export function watchFragmentToken(options: WatchFragmentOptions = {}): () => vo
           // Known to the console: the fragment is not needed. Any other answer leaves it (S5).
           else if (response.ok) stripFragment();
         },
-        // The console is not reachable: the fragment stays, a reload by the user retries it.
+        // The console is not reachable, or did not answer in time: the fragment stays, a reload by
+        // the user retries it.
         () => undefined,
       )
       .finally(() => {

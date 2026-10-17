@@ -22,6 +22,8 @@ import { header, riley } from '../project/header-data.js';
 beforeEach(() => {
   resetToasts();
   resetGitOperations();
+  // The page shows project p_a (a push of another project names it in its toast, R2-4).
+  history.replaceState(null, '', '/p/p_a/team');
 });
 afterEach(() => {
   cleanup();

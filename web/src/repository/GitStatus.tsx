@@ -52,18 +52,6 @@ export function GitStatus({ pid }: { pid: string }): ReactNode {
   return <GitStatusOf key={pid} pid={pid} />;
 }
 
-/**
- * The read an alert was first seen against (D39-5, D40-5): a refusal the server does not record — of
- * a fetch or of an update, from this sidebar or the footer's link (R2) — clears when a later fetch
- * succeeded, when the repository state moved or when the sync part goes (review R7), and when the
- * next transport of the project starts (it is then no longer the last one).
- */
-interface Seen {
-  at: number;
-  state: string;
-  lastSuccessAt: string | null;
-}
-
 /** Codes the server records (`sync.fetch.lastError`, `sync.update.lastError`): not the alert. */
 const RECORDED = 'git-refused';
 
@@ -106,12 +94,9 @@ function GitStatusOf({ pid }: { pid: string }): ReactNode {
   // Which sync control holds the focus, and which transport the shown Cancel belongs to (R4).
   const focused = useRef<GitOperation | 'cancel' | null>(null);
   const cancelFor = useRef<GitOperation>('fetch');
-  // The read a shown alert was first seen against (D39-5, review R7).
-  const [seen, setSeen] = useState<Seen | null>(null);
 
   const data = header.data;
   const view = data ? gitStatusView(data.repository, data.conditions, data.identity.kind === 'member') : null;
-  const pushable = view?.sync?.actions.push != null;
   const runningNow = running ?? runningGitOperation(pid);
 
   // A control that held the focus and went with the new state — whoever moved the state: this
@@ -129,26 +114,26 @@ function GitStatusOf({ pid }: { pid: string }): ReactNode {
       f === 'cancel' ? (buttons[cancelFor.current].current ?? buttons.fetch.current) : buttons.fetch.current;
     target?.focus();
   });
-  // "Not pushed" stays only while there is still something to push (R1).
+  // "Not pushed" stays while a commit is still local (R1; also on a diverged copy, R2-1).
+  const nothingLocal = data !== undefined && data.repository.ahead === 0;
   useEffect(() => {
-    if (data && !pushable && runningNow !== 'push') dismissToastKey(pushToastKey(pid));
-  }, [data, pushable, runningNow, pid]);
+    if (nothingLocal && runningNow !== 'push') dismissToastKey(pushToastKey(pid));
+  }, [nothingLocal, runningNow, pid]);
   // Leaving the project cancels a fetch still running; a push goes on (S2).
   useEffect(() => () => cancelGitOperation(pid, ['fetch']), [pid]);
 
   const alert = last && alerts(last.op, last.error) ? last : undefined;
-  // Recorded during the render that first shows it (React's "state from the previous render").
-  if (alert && data && seen?.at !== alert.at) {
-    setSeen({ at: alert.at, state: data.repository.state, lastSuccessAt: data.repository.sync.fetch.lastSuccessAt });
-  }
 
   if (!data || !view) return null;
   const { repository } = data;
   const lastSuccessAt = repository.sync.fetch.lastSuccessAt;
+  // Shown while the repository is still as the operation found it (D39-5, review R7), a reference
+  // kept with the mutation, so it holds when the sidebar is shown again (R2-2).
   const shownRefusal =
     alert &&
     view.sync &&
-    (seen?.at !== alert.at || (seen.state === repository.state && seen.lastSuccessAt === lastSuccessAt))
+    (alert.from.state === undefined || alert.from.state === repository.state) &&
+    (alert.from.lastSuccessAt === undefined || alert.from.lastSuccessAt === lastSuccessAt)
       ? alert.error
       : null;
   const busy = runningNow !== undefined;
@@ -232,8 +217,16 @@ function GitStatusOf({ pid }: { pid: string }): ReactNode {
             if (op === 'cancel' && runningNow !== undefined) cancelFor.current = runningNow;
           }}
           onBlur={(e: FocusEvent<HTMLDivElement>) => {
-            // A control removed from the page loses the focus with no next element: keep tracking it.
-            if (e.relatedTarget !== null) focused.current = null;
+            if (e.relatedTarget !== null) {
+              focused.current = null;
+              return;
+            }
+            // No next element: a control removed from the page keeps being tracked; one still in the
+            // page lost the focus to a press on a part that takes none (review round 2 R2-3).
+            const control = e.target;
+            queueMicrotask(() => {
+              if (control.isConnected) focused.current = null;
+            });
           }}
         >
           {syncButton('fetch')}

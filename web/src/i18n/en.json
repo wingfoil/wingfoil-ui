@@ -277,6 +277,7 @@
   "shell.git.noUpstream": "No upstream branch on the remote",
   "shell.git.push": "Push",
   "shell.git.pushFailed": "Not pushed — {count, plural, one {the commit stays} other {# commits stay}} local",
+  "shell.git.pushFailedIn": "Not pushed — {project}: {count, plural, one {the commit stays} other {# commits stay}} local",
   "shell.git.pushing": "Pushing…",
   "shell.git.readOnly": "Read-only: Update and Push need you identified in the team",
   "shell.git.toPush": "{count, plural, one {# commit to push} other {# commits to push}}",

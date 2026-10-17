@@ -15,17 +15,26 @@ export function pushToastKey(pid: string): string {
   return `push:${pid}`;
 }
 
-/** The toast of a push of `commits` commits that `error` refused. */
+/**
+ * The toast of a push of `commits` commits that `error` refused; `project` names the project when
+ * the page shows another one (review round 2 R2-4).
+ */
 export function pushFailureToast(
   pid: string,
   commits: number,
   error: Pick<ApiError, 'code' | 'message' | 'detail'>,
+  project?: string,
 ): ToastInput {
   return {
     key: pushToastKey(pid),
     tone: 'error',
     sticky: true,
-    title: <FormattedMessage id="shell.git.pushFailed" values={{ count: commits }} />,
+    title:
+      project === undefined ? (
+        <FormattedMessage id="shell.git.pushFailed" values={{ count: commits }} />
+      ) : (
+        <FormattedMessage id="shell.git.pushFailedIn" values={{ count: commits, project }} />
+      ),
     body: <ErrorText error={error} />,
   };
 }

@@ -101,7 +101,7 @@ export async function postGitOperation(pid: string, op: GitOperation, signal?: A
 /** A git transport as a mutation (see the module comment). */
 export function useGitOperation() {
   const queryClient = useQueryClient();
-  return useMutation<GitResponse, ApiError, GitOperationVariables>({
+  return useMutation<GitResponse, ApiError, GitOperationVariables, GitOperationContext>({
     mutationKey: GIT_MUTATION_KEY,
     mutationFn: async (v) => {
       try {
@@ -111,8 +111,14 @@ export function useGitOperation() {
         throw error;
       }
     },
-    onMutate: (v) => {
+    onMutate: (v): GitOperationContext => {
       if (v.op === 'push') dismissToastKey(pushToastKey(v.pid));
+      // The read the operation starts from: a refusal shown against it clears once the state moves,
+      // also after the sidebar was gone and shown again (review round 2 R2-2).
+      const header = queryClient.getQueryData<ProjectHeader>(projectHeaderQuery(v.pid).queryKey);
+      return header
+        ? { state: header.repository.state, lastSuccessAt: header.repository.sync.fetch.lastSuccessAt }
+        : {};
     },
     onSettled: (_data, _error, v) => {
       if (v.run !== undefined && transports.get(v.pid)?.run === v.run) transports.delete(v.pid);
@@ -123,7 +129,11 @@ export function useGitOperation() {
       );
     },
     onError: (error, v) => {
-      if (v.op === 'push' && error.code !== CANCELLED) showToast(pushFailureToast(v.pid, v.commits ?? 1, error));
+      if (v.op === 'push' && error.code !== CANCELLED) {
+        // Named when the user has gone to another project meanwhile (review round 2 R2-4).
+        const project = shownProject() === v.pid ? undefined : projectName(queryClient, v.pid);
+        showToast(pushFailureToast(v.pid, v.commits ?? 1, error, project));
+      }
       // Not awaited: the caller's onError must not wait for the read (Wave 4 lesson).
       void queryClient.invalidateQueries({ queryKey: projectHeaderQuery(v.pid).queryKey });
     },
@@ -144,12 +154,31 @@ export function useRunningGitOperation(pid: string): GitOperation | undefined {
   return running.find((v) => v?.pid === pid)?.op;
 }
 
+/** The read an operation started from (`onMutate`'s context, R2-2): empty when none was cached. */
+export interface GitOperationContext {
+  state?: string;
+  lastSuccessAt?: string | null;
+}
+
+/** The project the page shows (`/p/<pid>/…`), if any. */
+function shownProject(): string | undefined {
+  const [, first, pid] = window.location.pathname.split('/');
+  return first === 'p' && pid ? decodeURIComponent(pid) : undefined;
+}
+
+/** The name of project `pid` from its cached header, else its id. */
+function projectName(queryClient: ReturnType<typeof useQueryClient>, pid: string): string {
+  return queryClient.getQueryData<ProjectHeader>(projectHeaderQuery(pid).queryKey)?.name ?? pid;
+}
+
 /** The last transport of a project and its error, if it failed (R2). */
 export interface LastGitError {
   op: GitOperation;
   error: ApiError;
   /** When it was submitted: tells one failure from the next. */
   at: number;
+  /** The read it started from (R2-2). */
+  from: GitOperationContext;
 }
 
 /** The last transport started for `pid` (any component), with its error when it failed (R2). */
@@ -163,11 +192,12 @@ export function useLastGitError(pid: string): LastGitError | undefined {
       op: (m.state.variables as GitOperationVariables).op,
       error: m.state.error as ApiError | null,
       at: m.state.submittedAt,
+      from: (m.state.context ?? {}) as GitOperationContext,
     }),
   });
   const last = all.reduce<(typeof all)[number] | undefined>(
     (a, b) => (a === undefined || b.at >= a.at ? b : a),
     undefined,
   );
-  return last?.error ? { op: last.op, error: last.error, at: last.at } : undefined;
+  return last?.error ? { op: last.op, error: last.error, at: last.at, from: last.from } : undefined;
 }
