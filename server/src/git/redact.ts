@@ -111,7 +111,7 @@ const hex4 = (n: number): string => `\\u${n.toString(16).padStart(4, '0')}`;
 /** One {@link UNSAFE_RANGES} character (built from the code points: no control in the source). */
 const UNSAFE = new RegExp(`[${UNSAFE_RANGES.map(([a, b]) => `${hex4(a)}-${hex4(b)}`).join('')}]`);
 
-/** `text` with every {@link UNSAFE} character written as a visible escape (`\x1b`, `\u202e`). */
+/** `text` with every unsafe character (control, bidirectional) written as a visible escape (`\x1b`, `\u202e`). */
 export function neutralise(text: string): string {
   return text.replace(new RegExp(UNSAFE.source, 'g'), (c) => {
     const code = c.charCodeAt(0);
