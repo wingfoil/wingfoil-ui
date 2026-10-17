@@ -398,3 +398,75 @@ this task alone edits `en.json`, `test/e2e/support/screens.ts`, `remote.ts`, `we
 (`mutationKey ['git']`, `useRunningGitOperation(pid)` approved), `ElementFooter.tsx`, `session.ts`,
 `main.tsx`; no change to `package.json`, `package-lock.json`, `README.md`, `CLAUDE.md`,
 `test/smoke/*`, `test/package/*`.
+
+### red / green / refactor (2026-10-17)
+
+- **Red (web)** — `7ece116`: `test/web/repository/update-push.test.tsx` (new), `model.test.ts`
+  (actions), `test/web/api/git.test.tsx` (`useRunningGitOperation`), `test/web/session/session.test.ts`
+  (`watchFragmentToken`), `test/web/element/gate-footer.test.tsx` (G-12.1 text and link, G-12.2): 16
+  tests failed and one file failed to load (no `UpdateLink`), before any product code.
+- **Green** — `79d87e3`: `web/src/repository/model.ts` (`SyncActions`, D40-1, D40-3),
+  `GitStatus.tsx` (Update, Push, Cancel for fetch and push, one transport at a time, focus handed to
+  *Fetch*, the alert for unrecorded update refusals, the push toast — D40-4, D40-5),
+  `push-toast.tsx`, `UpdateLink.tsx`, `git-status.css`; `web/src/api/git.ts` (`GIT_MUTATION_KEY`,
+  `useRunningGitOperation`, approved shared shape); `ElementFooter.tsx` (the `<update>` rich-text
+  value of the copy-behind reason through a context, the focus moved to the reason or the first
+  enabled action once the link is gone — D40-2); `session.ts` `watchFragmentToken` and one line in
+  `main.tsx` (D40-7); seven sorted catalogue inserts and the declared value edit of
+  `element.reason.copyBehind`. The full web suite passed on the first run (960 tests).
+- **Deviation (found by the REQ-ARC-05 audit test, `e37658b`):** the first `useRunningGitOperation`
+  filtered on TanStack's `status: 'pending'` with a justified inline lint disable; the audit test
+  (`test/lint/methodology-literals.test.ts`) admits no literal beyond its two `open`s. The running
+  mutation is now found by its state (submitted, no data, no error), no literal.
+- **e2e** — `994cd49` (then fixes in the commits after it): `test/e2e/update-push.spec.ts` (15 tests),
+  `submit-footer.spec.ts` G-13.2's sidebar assertion (RP-52), `shell.spec.ts` bug-016 (two tests),
+  `support/remote.ts` (`fetchCopy`, `remoteHook`), the fifth `SCREENS` project (`behindCopy`, also in
+  `no-commit.spec.ts`) and its entry. First Chromium run: two test errors, not product defects —
+  the kanban fixture has no `README.md` (Y-05.3 now commits and pushes one first), and the held
+  hook runs as a relative `hooks/pre-receive` (the cancel test now reads the hook's pid file). The
+  *behind* screen waited for the reason's link, which the key-rendering build does not render
+  (rich-text tags are dropped): it now waits for the reason's paragraph (`a6202dd`).
+- **Guard removal on the bin (not committed):** with `watchFragmentToken()` removed from
+  `main.tsx`, the actions forced off in `model.ts` and the `<update>` value rendering nothing,
+  the e2e on Chromium (`update-push`, `shell` bug-016, `submit-footer` G-13.2): **14 failed, 4
+  passed** — the four passing are the characterization scenarios classified at design (Y-05.2,
+  Y-07.3, Y-08.1, G-12.3); bug-016's test failed on the lost-session page still shown after
+  `page.goto` of the token URL (the browser did not reload: the bug reproduced). Restored.
+- Docs — `1637701`: `docs/user-guide.md` 0.15, ux-reference 1.8 (§3 *Git status* with the D40-1
+  deviation), spec-010 §4 declared residual and Process Note (D40-9, D40-11, D40-12),
+  `00_conventions.md` 0.10 and Y-08.1 / `update.feature` header (D40-6, D40-8), the D40-8 wording in
+  `03_is-isnot.md` 0.7, `05_journeys.md` 0.4, `06_features.md` 0.9, story map 0.6, `CHANGELOG.md`
+  *Unreleased* (Added, Fixed), `test/README.md` 0.41, `playwright.timing.config.ts` header.
+
+#### e2e closure
+
+| Scenario | spec file › test |
+|----------|------------------|
+| Y-05.1 (TT-STATE-04 of task-033), Y-05.3 | `test/e2e/update-push.spec.ts` › "Y-05.1 — Update a copy that is behind", "Y-05.3 — Update with local changes that do not touch the incoming files" |
+| Y-05.2 (TT-PERF-07 of task-034) | `update-push.spec.ts` › "Y-05.2 — Update automatically after a fetch" (`@live-refresh`: 15 s in `test:e2e`, 60 s / ≤ 65 s under `test:timing`) |
+| Y-06.1, Y-06.2 (TT-STATE-04) | `update-push.spec.ts` › "Y-06.1 — Refuse to merge diverged histories", "Y-06.2 — Refuse an update that local changes are in the way of" |
+| Y-07.1, Y-07.2 (TT-STATE-09 of task-030), Y-07.3 | `update-push.spec.ts` › "Y-07.1 — Push with the button", "Y-07.2 — Keep auto-push off by default", "Y-07.3 — Push automatically after a UI action" |
+| Y-08.1, Y-08.2 | `update-push.spec.ts` › "Y-08.1 — Report a push rejected because the remote moved", "Y-08.2 — Report a push refused for permission" (redaction of git's text end to end; `elementFromPoint` at 1280×720, 600×720, 400×600) |
+| G-12.1, G-12.2, G-12.3 (TT-STATE-04) | `update-push.spec.ts` › "G-12.1 — Block governed actions while behind", "G-12.2 — Unblock after the update", "G-12.3 — Do not block when the copy is only ahead" |
+| G-13.2 sidebar step (RP-52) | `test/e2e/submit-footer.spec.ts` › "G-13.2 — Show the commit without \"pushed\" when auto-push is off" |
+| Cancel of a push (RP-37) | `update-push.spec.ts` › "Push can be cancelled while it runs (RP-37, D40-4)" |
+| keyboard (accessibility bar) | `update-push.spec.ts` › "Update and Push with the keyboard only, the focus kept (D40-4)" |
+| bug-016 | `test/e2e/shell.spec.ts` › "bug-016 — a token pasted into an open tab starts the session without a reload", "a valid session keeps working when a wrong token arrives in the fragment" |
+| X-06.4 / X-09.1 | `test/e2e/accessibility.spec.ts` › *git status — behind, Update in the sidebar and the footer* |
+
+### checks (2026-10-17, HEAD before this note `a6202dd`)
+
+Every heavy gate through the machine-free slot (`waitslot.sh`), load at the grant.
+
+| Gate | Result | Load |
+|------|--------|------|
+| `npm run typecheck`, `npm run lint`, `npm run format:check` | clean | — |
+| `npm run docs:api`, `check_tasks.py v0.2`, public-text check | OK | — |
+| `npm run test:coverage` (on `a6202dd`) | 167 files passed, 1 skipped; **3086 passed / 1 skipped**; statements 96.48 %, branches 91.29 %, functions 97.12 %, lines 98.27 % (`web/src/repository` 99.13 %, `session.ts` 93.75 %) | 11.0 |
+| `npm run test:e2e:chromium` (whole suite, on `e37658b`) | **304 passed, 1 failed** (11.3 min): the X-09.1 key-build check of the new screen (fixed in `a6202dd`, see above) | 8.9 |
+| `npm run test:e2e -- update-push shell submit-footer git-status gate-footer accessibility no-commit` (three engines, on `e37658b`) | **426 passed, 3 failed** (13.6 min): the same X-09.1 screen on each engine | 4.0 |
+| `npm run test:e2e -- accessibility.spec.ts` (three engines, on `a6202dd`) | **186 passed** (3.8 min) | 5.6 |
+| `npm run test:timing` | **skipped**: load 12.08 at the grant (Y-05.2's 65 s budget to be measured on a quiet machine) | 12.1 |
+| `npm run test:smoke` | not run: no packaging, launcher or bin change | — |
+
+No console of this worktree left running; no `wfui-*` entry in the system temporary directory.
