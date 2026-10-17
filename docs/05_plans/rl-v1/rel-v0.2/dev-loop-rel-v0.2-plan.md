@@ -3,7 +3,7 @@ id: dev-loop-rel-v0.2-plan
 type: plan
 title: "Dev-loop — rel-v0.2"
 status: active
-version: "0.6"         # optional — plan version
+version: "0.7"         # optional — plan version
 workflow: "dev-loop"
 phase: "rel-v0.2"
 scope: "rl-v1/rel-v0.2"
@@ -14,7 +14,7 @@ tmpl_version: 260703   # Orignal template version
 
 ## Context
 
-**Version:** 0.6 · **Date:** 2026-10-16 (0.1: plan created, Wave 0 scope; 0.2: Wave 0 session log, e2e engine rule W0-9; 0.3: Wave 1 session log; 0.4: Wave 2 session log; 0.5: Wave 3 session log, frontmatter version aligned; 0.6: Wave 4 session log)
+**Version:** 0.7 · **Date:** 2026-10-17 (0.1: plan created, Wave 0 scope; 0.2: Wave 0 session log, e2e engine rule W0-9; 0.3: Wave 1 session log; 0.4: Wave 2 session log; 0.5: Wave 3 session log, frontmatter version aligned; 0.6: Wave 4 session log; 0.7: Wave 5 session log, machine-free slot for heavy gates)
 **Workflows:** `sw-life-cycle` → `release-line-cycle` (`rl-v1`) phase `delivery` → `release-cycle`
 (`minor-v0.2`) phase `implementation` = `dev-loop` iterated over every task with status `backlog`
 and `release: v0.2` (`.wingfoil/workflows/custom/release-cycle.yaml` v1.1, `dev-loop.yaml` v1.4)
@@ -95,8 +95,8 @@ Rules for every wave:
 - **Checkpoints:** design decisions; end of review (approve); before each merge; end of each wave.
 - **Completion:** every v0.2 task `done` and merged; plan finalized by hand (`status: done`, commit
   `wf(plan): finalize dev-loop-rel-v0.2-plan [active → done]`, W-04).
-- **Next:** Wave 5 — task-038, task-039, task-041 (shell shared: append-only, task-number
-  order); then Wave 6 — task-040; task-029 before release validation.
+- **Next:** Wave 6 — task-040 (closes G-13.2's sidebar step, RP-52); task-029 before release
+  validation.
 
 ## Session log
 
@@ -457,3 +457,66 @@ Rules for every wave:
   (`autoFetch` on by default; seed `autoFetch: false` for a test counting git processes);
   task-038 renders `push: failed` codes including `push-timeout` and `internal`; the shell header
   now holds the notification bell (task-042) — keyboard walks and `SCREENS` count it.
+
+### Session 6 — Wave 5: submit footer and toasts, sidebar git status, UI settings (2026-10-16 – 2026-10-17)
+
+- Start confirmed by the approver: task-038, task-039, task-041 in parallel, with a **machine-free check
+  for heavy gates** added by the approver: every Playwright run, `test:coverage`, `test:smoke` and
+  `test:timing` waits for a FIFO slot that is granted only when no heavy gate of this project or of
+  another project's worktrees runs and the 1-minute load is ≤ 14 (re-checked after 5 s); the slot
+  script lives outside the repository (approver's rule). Shared shapes fixed by the coordinator after the
+  three designs (C1–C10): merge order 038 → 039 → 041; `ConsoleOptions.settings` owned by task-038;
+  the sidebar column `.project-sidebar` / `.sidebar-foot` by task-039 and the pinned *Configuration*
+  group by task-041; toasts by task-038; `settingsQuery` and `web/src/api/settings.ts` by task-041,
+  `web/src/api/git.ts` by task-039; three declared catalogue edits; version lines `test/README.md`
+  0.37 / 0.38 / 0.39, user guide 0.12 / 0.13 / 0.14, UX reference 1.5 / 1.6 / 1.7.
+- **Done and merged** in task-number order (RP-55), each after its independent review, `main` merged
+  into the branch before submit and the approver's `memory approve`: task-038 (merge `abb19cb`, done
+  `a930ae3`; 4 rounds), task-039 (`b0c11a1`, `674a543`; 3 rounds; `main` with task-038 merged before
+  submit), task-041 (`1959692`, `ea9ef76`; 2 rounds and a confirmation round; `main` with task-038 and
+  task-039 merged before submit). Conflicts only on append-only lines and version lines (CHANGELOG,
+  `test/README.md`, user guide, UX reference, `SCREENS`, the add/add of `test/e2e/support/remote.ts`)
+  and on the two copies of `ConsoleOptions.settings` (task-038's kept).
+- **Decisions** (the approver, "as recommended" unless noted; details in each task's Execution Notes):
+  - **W5-1 (D38-1 … D38-13)** submit footer and toasts: a module toast store rendered once in the shell;
+    a stack of at most three toasts that close by themselves (8 s, paused on hover and focus), refusals
+    and failed pushes stay until closed; the commit's short hash and *pushed*; `push: failed` reasons
+    from the catalogue; *Submit → <state>* offered to every identified member; toasts raised by
+    `useElementWrite` itself; the footer keeps only the in-progress text; TT-PERF-02 in the `@perf` run.
+  - **W5-2 (D38-1 deviation, confirmed by the approver)** the two always-present live regions are
+    `aria-live` polite / assertive with no `status` / `alert` role, `aria-atomic` on each toast.
+  - **W5-3 (D39-1 … D39-13)** git status in the sidebar: a *Git status* region below the views
+    navigation; `useGitOperation` (an abort is *cancelled*, never an error); git's message on hover,
+    focus or press; refusals of a manual fetch in an alert of the block; the last update error shown
+    here (task-040 adds the buttons); `element.reason.copyDetached` → "Blocked: no branch checked out"
+    (Y-01.3); a fourth `SCREENS` project with an unreachable remote.
+  - **W5-4 (D41-1 … D41-13)** UI settings: `/p/$pid/configuration/ui-settings`, *Configuration* pinned at
+    the bottom of the views navigation; every control saves on its own; the inline script stays the only
+    writer of `data-theme` (spec-009 §1 Process Note); the approver's Auto-update warning text as the
+    switch's description with a pointer to the user guide; C-07.3 at 15 s in e2e and at 60 s in
+    `test:timing`.
+  - **W5-5 (coordinator, review rounds)** toasts placed beside an open drawer, bounded by the main
+    region and kept below the drawer's header, the stack scrolls when it overflows (task-038 R1, R2-1 …
+    R2-3); a closed toast that held the focus hands it to the next toast's Close (R3-3); the sidebar's
+    git status at most half the column (task-039 R5); git's message opened on press in a dismissable
+    popover (R6, R2-1).
+- **Review highlights:** task-038 — the bottom-centre stack covered the drawer's Submit at 1280×720,
+  two e2e raced the 8 s timer under load, toasts were hidden from screen readers while a React Aria
+  popover was open, then the placement fix left a narrow drawer's toasts off-screen and covered the
+  sidebar foot, and the auto-scroll took the user's scroll position; task-039 — git's message could not
+  be seen on touch, then could not be closed by a press; a tall git status pushed the views off the
+  viewport; task-041 — a `settings` event during a save could lose a change and a refused Auto-update
+  could be stored by the next save (security-relevant; fixed with a ledger of pending saves over the
+  server's answers), then a save's answer could cancel a newer read.
+- **Open points:** none new beyond the Wave 3 ones still standing (a cancelled fetch or push answers 500
+  `internal` with nothing recorded; push never to `pushRemote`). A page opened in a tab that already
+  shows the console does not read a token pasted later (fragment change only, no reload): seen by the
+  approver, ingested as bug-016 (`open`, `low`, v0.1 code), to triage.
+- **Gate at the end of the wave** on `main` `ea9ef76` (2026-10-17 13:29–14:22, load 1.4 at start: `test:timing` Vitest 6/6 (C-07.3: 0 `git fetch` in 120 s) and Playwright 22/22 (Y-02.1 59.7 s of 65 s; TT-PERF-02 p95 310 ms approve, 277 ms submit; TT-PERF-01 p95 87 ms, after one commit 502 ms); `test:coverage` 3045 passed, 1 skipped (statements 96.53 %, branches 91.24 %); `test:e2e` three engines 836 passed (Chromium 286, Firefox 275, WebKit 275; 28.3 min); `test:smoke` 4/4; no `wfui-*` entry, no console left; every step took the machine-free slot).
+- **Effort:** 2026-10-16 19:25 – 2026-10-17 14:25 wall-clock with an overnight pause (about
+  10 h of working time); heavy gates waited for the slot while the other project's gates ran.
+- **Hand-overs to Wave 6:** task-040 reuses `useGitOperation` (`web/src/api/git.ts`), the toasts
+  (`showToast`, keyed per element; the placement keeps the sidebar foot clear), `settingsQuery` for
+  "Push when auto-push is off", the `.sidebar-foot` block and `test/e2e/support/remote.ts`
+  (`remoteHead`, `remoteCommit`, `setRemoteUrl`); appends "Update" to the copy-behind reason; closes
+  G-13.2's sidebar step (RP-52).
