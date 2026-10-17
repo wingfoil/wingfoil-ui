@@ -140,3 +140,41 @@ describe('lastFetched (D39-8)', () => {
     expect(lastFetched(at.toISOString(), now)).toEqual({ when: 'other', at });
   });
 });
+
+// task-040 — Update and Push (D40-1, D40-3): Update while behind (behind or diverged), Push with the
+// count while the copy is only ahead, both read-only for a user who is not one member.
+describe('actions (task-040, D40-1, D40-3)', () => {
+  it.each([
+    [{ copy: 'in-sync' }, { update: false, push: null }],
+    [
+      { copy: 'behind', behind: 2 },
+      { update: true, push: null },
+    ],
+    [
+      { copy: 'diverged', ahead: 1, behind: 2 },
+      { update: true, push: null },
+    ],
+    [
+      { copy: 'ahead', ahead: 3 },
+      { update: false, push: { commits: 3 } },
+    ],
+    [
+      { copy: 'detached', branch: null },
+      { update: false, push: null },
+    ],
+    [
+      { copy: 'no-upstream', upstream: null },
+      { update: false, push: null },
+    ],
+  ] as const)('%o → %o', (over, actions) => {
+    expect(gitStatusView(repo(over), ['has-remote']).sync?.actions).toEqual({ ...actions, readOnly: false });
+  });
+
+  it('a user who is not one member: read-only', () => {
+    expect(gitStatusView(repo({ copy: 'behind', behind: 1 }), ['has-remote'], false).sync?.actions).toEqual({
+      update: true,
+      push: null,
+      readOnly: true,
+    });
+  });
+});

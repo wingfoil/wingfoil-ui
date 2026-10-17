@@ -307,7 +307,10 @@ it('D37-8 — an outcome disabled by the descriptor shows the reason and describ
   });
   renderApp(`/p/${PID}/e/${EID}`);
   const f = await footer();
-  const text = within(f).getByText('Blocked: your copy is 2 commits behind the remote');
+  // task-040 (G-12.1, D40-2): the reason ends with an Update link.
+  const text = f.querySelector('.gate-blocked')!;
+  expect(text.textContent).toBe('Blocked: your copy is 2 commits behind the remote — Update');
+  expect(within(text as HTMLElement).getByRole('button', { name: 'Update' })).toBeTruthy();
   for (const name of ['Approve → s3', 'Reject → s1']) {
     expect(outcome(f, name).getAttribute('aria-disabled')).toBe('true');
     expect(outcome(f, name).getAttribute('aria-describedby')).toBe(text.id);
@@ -532,4 +535,39 @@ it('D38-10 — the panel shows no result of its own: the refusal is a toast outs
   expect(document.querySelector('.element-footer-alert')).toBeNull();
   expect(within(dialog).getByRole('status').textContent).toBe('');
   expect(document.querySelectorAll('.drawer .element-footer')).toHaveLength(1);
+});
+
+// task-040 — G-12.2 (D40-2): the Update link of the copy-behind reason runs the update of the project
+// (no body); after the new descriptor arrives the focus moves to the gate's next step, the reason.
+it('G-12.2 — the Update link of the reason updates the copy, then the focus goes to the reason field', async () => {
+  const behind = {
+    ...GATE,
+    verbs: GATE.verbs.map((v) => ({ ...v, enabled: false, reason: { code: 'copy-behind', commits: 1 } as const })),
+  };
+  const update = `/api/p/${PID}/git/update`;
+  const fetch = stub(
+    behind,
+    MO,
+    { [update]: { status: 200, body: { repository: header(MO, ROLE).repository } } },
+    GATE,
+  );
+  const { queryClient } = renderApp(`/p/${PID}/e/${EID}`);
+  const f = await footer();
+  const link = within(f.querySelector('.gate-blocked') as HTMLElement).getByRole('button', { name: 'Update' });
+  await userEvent.click(link);
+  await waitFor(() =>
+    expect(fetch.mock.calls.filter((c) => (c[1] as RequestInit | undefined)?.method === 'POST')).toHaveLength(1),
+  );
+  const [url, init] = fetch.mock.calls.find((c) => (c[1] as RequestInit | undefined)?.method === 'POST')! as [
+    string,
+    RequestInit,
+  ];
+  expect(url).toBe(update);
+  expect(init.body).toBeUndefined();
+  // The update moved the copy: the console's `repo` event invalidates the project (events.ts).
+  await act(async () => {
+    await queryClient.invalidateQueries({ queryKey: ['p', PID] });
+  });
+  await waitFor(() => expect(outcome(f, 'Approve → s3').getAttribute('aria-disabled')).toBeNull());
+  await waitFor(() => expect(document.activeElement).toBe(reasonField(f)));
 });
