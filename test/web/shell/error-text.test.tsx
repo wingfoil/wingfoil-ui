@@ -27,3 +27,14 @@ it('renders the CLI refusal inside its frame, verbatim', () => {
   expect(screen.getByText('WingFoil refused the action:')).toBeTruthy();
   expect(screen.getByText('Error: <sard_ref> is required').tagName).toBe('PRE');
 });
+
+// task-040 review round 2 (S2-2, S2-6): a tool's verbatim text is shown in logical order, left to
+// right, and clipped to its box — the rule lives in the stylesheet (`web/src/theme/base.css`).
+it('the verbatim block is shown left to right with no bidi reordering, clipped', async () => {
+  const { readFile } = await import('node:fs/promises');
+  const css = await readFile(new URL('../../../web/src/theme/base.css', import.meta.url), 'utf8');
+  const rule = /\n\.verbatim \{([^}]*)\}/.exec(css)?.[1] ?? '';
+  expect(rule).toMatch(/direction: ltr;/);
+  expect(rule).toMatch(/unicode-bidi: bidi-override;/);
+  expect(rule).toMatch(/overflow: hidden;/);
+});

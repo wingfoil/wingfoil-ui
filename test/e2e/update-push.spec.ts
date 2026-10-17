@@ -446,6 +446,13 @@ test.describe('US-Y-08 — a rejected push', () => {
     for (const raw of [String.fromCharCode(0x1b), '\r', String.fromCharCode(0x202e)]) expect(text).not.toContain(raw);
     expect(text).toContain('\n…\n');
     expect(text.length).toBeLessThanOrEqual(4_000);
+    // Shown in logical order, left to right, and clipped to its box (review round 2 S2-2, S2-6).
+    expect(
+      await verbatim.evaluate((el) => {
+        const s = getComputedStyle(el);
+        return [s.direction, s.unicodeBidi, s.overflowX, s.overflowY];
+      }),
+    ).toEqual(['ltr', 'bidi-override', 'hidden', 'hidden']);
     await expect(gitStatus(page)).toContainText('1 commit to push');
     expect(await scanThemes(page)).toEqual([]);
     // A toast this tall may cover the page (task-038: its Close is what it is for): Close is on top
