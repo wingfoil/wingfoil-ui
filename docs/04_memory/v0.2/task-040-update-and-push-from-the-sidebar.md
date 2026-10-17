@@ -145,7 +145,7 @@ decisions, red/green/refactor, every review round, before submit).**
 (`--quiet`, local bare remote) prints `To <absolute remote path>`, `! [rejected] HEAD -> main
 (fetch first)`, `error: failed to push some refs to '<absolute remote path>'` and four `hint:` lines
 naming `git pull`; a local remote's `pre-receive` hook runs in `git-receive-pack` and its output
-reaches the pusher as `remote: …` lines (it printed `$HOME/secret` and a URL with `u:tok@`
+reaches the pusher as `remote: …` lines (it printed a file of the home folder and a URL with `u:tok@`
 verbatim); `pull --ff-only` on diverged history exits 128 with `hint:` lines and `fatal: Not
 possible to fast-forward, aborting.` The server's redaction (task-033 R1, D33-5) covers the remote
 path, the home folder and the userinfo of these texts; this task proves it end to end (Y-08.2).
@@ -362,10 +362,10 @@ e2e closure (planned):
   only "when this task touches" them).
 - **D40-9 — Y-08.2's refusal and the redaction proof.** ★ (a) the fixture's own bare remote with a
   `pre-receive` hook (`remoteHook`) that declines with a permission message also printing the
-  remote's path, `$HOME/…` and `https://u:<marker>@example.invalid/x`: the toast shows git's
-  `! [remote rejected] … (pre-receive hook declined)`, `<remote>`, `~/…` and no marker — git's real
+  remote's path, a file of the home folder and `https://u:<marker>@example.invalid/x`: the toast shows git's
+  `! [remote rejected] … (pre-receive hook declined)`, `<remote>`, the home folder as `~` and no marker — git's real
   output end to end; declared residual: absolute paths outside the project, repository, remote and
-  home folders that a hook or git prints (e.g. `/opt/…`) are shown as printed (git's text verbatim,
+  home folders that a hook or git prints (e.g. a system folder) are shown as printed (git's text verbatim,
   REQ-INT-06; the user's own tools); (b) the git-http remote with `credentials` (a 401: "terminal
   prompts disabled", an authentication refusal that blocks fetch too, no redaction proof); (c) a new
   smart-HTTP remote answering 403 to `git-receive-pack` (new test support).
