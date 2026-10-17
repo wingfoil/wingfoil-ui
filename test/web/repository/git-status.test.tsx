@@ -7,14 +7,16 @@ import type { ProjectHeader, RepositoryStatus } from '@wingfoil-ui/contracts';
 import { QueryClientProvider, type QueryClient } from '@tanstack/react-query';
 import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import { userEvent } from '@testing-library/user-event';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { keyCatalogue } from '../../../web/scripts/catalogue.mjs';
+import { resetGitOperations } from '../../../web/src/api/git.js';
 import { createQueryClient, projectHeaderQuery } from '../../../web/src/api/queries.js';
 import en from '../../../web/src/i18n/en.json' with { type: 'json' };
 import { AppIntlProvider, type MessageId } from '../../../web/src/i18n/index.js';
 import { GitStatus } from '../../../web/src/repository/GitStatus.js';
 import { header } from '../project/header-data.js';
 
+beforeEach(() => resetGitOperations());
 afterEach(() => {
   cleanup();
   vi.unstubAllGlobals();

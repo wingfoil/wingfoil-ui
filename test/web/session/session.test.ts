@@ -169,6 +169,35 @@ describe('watchFragmentToken (bug-016)', () => {
     }
   });
 
+  it('S5 — an answer that is neither OK nor 401 leaves the fragment and the page alone', async () => {
+    const reload = vi.fn();
+    fetchAnswering(204);
+    await bootstrapSession();
+    fetchAnswering(503);
+    stop = watchFragmentToken({ reload });
+    paste(`#token=${TOKEN}`);
+    await new Promise((r) => setTimeout(r, 0));
+    await new Promise((r) => setTimeout(r, 0));
+    expect(reload).not.toHaveBeenCalled();
+    expect(location.hash).toBe(`#token=${TOKEN}`);
+  });
+
+  it('S6 — a storm of fragment changes sends one probe at a time', async () => {
+    const reload = vi.fn();
+    fetchAnswering(204);
+    await bootstrapSession();
+    let answer: (r: Response) => void = () => {};
+    const fetchFn = vi.fn(() => new Promise<Response>((r) => (answer = r)));
+    vi.stubGlobal('fetch', fetchFn);
+    stop = watchFragmentToken({ reload });
+    for (let i = 0; i < 5; i++) paste(`#token=${TOKEN}${i}`);
+    expect(fetchFn).toHaveBeenCalledTimes(1);
+    answer(new Response(null, { status: 200 }));
+    await vi.waitFor(() => expect(location.hash).toBe(''));
+    paste(`#token=${TOKEN}`);
+    expect(fetchFn).toHaveBeenCalledTimes(2);
+  });
+
   it('stops listening once disposed', () => {
     const reload = vi.fn();
     markSessionLost();

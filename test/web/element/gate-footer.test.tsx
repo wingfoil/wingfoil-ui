@@ -571,3 +571,59 @@ it('G-12.2 — the Update link of the reason updates the copy, then the focus go
   await waitFor(() => expect(outcome(f, 'Approve → s3').getAttribute('aria-disabled')).toBeNull());
   await waitFor(() => expect(document.activeElement).toBe(reasonField(f)));
 });
+
+// task-040 review round 1 (R3, D40-2): the focus moves after the link's update only from the footer
+// (or from nowhere), never after a refusal, and to a stable element when no action is enabled.
+const BEHIND = {
+  ...GATE,
+  verbs: GATE.verbs.map((v) => ({ ...v, enabled: false, reason: { code: 'copy-behind', commits: 1 } as const })),
+};
+const UPDATE = `/api/p/${PID}/git/update`;
+const updateLink = (f: HTMLElement) =>
+  within(f.querySelector('.gate-blocked') as HTMLElement).getByRole('button', { name: 'Update' });
+
+it('R3 — after a refusal of the update the focus stays on the link', async () => {
+  stub(BEHIND, MO, {
+    [UPDATE]: {
+      status: 409,
+      body: { error: { code: 'local-changes-in-the-way', message: 'x', detail: { files: ['a.md'] } } },
+    },
+  });
+  renderApp(`/p/${PID}/e/${EID}`);
+  const f = await footer();
+  const link = updateLink(f);
+  link.focus();
+  await userEvent.keyboard('{Enter}');
+  await waitFor(() => expect(link.getAttribute('aria-disabled')).toBeNull());
+  expect(document.activeElement).toBe(link);
+});
+
+it('R3 — a focus the user moved out of the footer meanwhile is left alone', async () => {
+  stub(BEHIND, MO, { [UPDATE]: { status: 200, body: { repository: header(MO, ROLE).repository } } }, GATE);
+  const { queryClient } = renderApp(`/p/${PID}/e/${EID}`);
+  const f = await footer();
+  await userEvent.click(updateLink(f));
+  await waitFor(() => expect(updateLink(f).getAttribute('aria-disabled')).toBeNull());
+  const close = within(screen.getByRole('dialog', { name: 'A gated element' })).getAllByRole('button', {
+    name: /close/i,
+  })[0]!;
+  close.focus();
+  await act(async () => {
+    await queryClient.invalidateQueries({ queryKey: ['p', PID] });
+  });
+  await waitFor(() => expect(outcome(f, 'Approve → s3').getAttribute('aria-disabled')).toBeNull());
+  expect(document.activeElement).toBe(close);
+});
+
+it('R3 — with no action left to take, the focus goes to the panel heading', async () => {
+  const final: ActionDescriptor = { ...GATE, kind: 'final', verbs: [], actor: { kind: 'none' } };
+  stub(BEHIND, MO, { [UPDATE]: { status: 200, body: { repository: header(MO, ROLE).repository } } }, final);
+  const { queryClient } = renderApp(`/p/${PID}/e/${EID}`);
+  const f = await footer();
+  await userEvent.click(updateLink(f));
+  await waitFor(() => expect(updateLink(f).getAttribute('aria-disabled')).toBeNull());
+  await act(async () => {
+    await queryClient.invalidateQueries({ queryKey: ['p', PID] });
+  });
+  await waitFor(() => expect(document.activeElement?.classList.contains('drawer-title')).toBe(true));
+});

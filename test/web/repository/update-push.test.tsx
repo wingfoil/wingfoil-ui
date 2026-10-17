@@ -9,6 +9,7 @@ import { act, cleanup, render, screen, waitFor, within } from '@testing-library/
 import { userEvent } from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { keyCatalogue } from '../../../web/scripts/catalogue.mjs';
+import { resetGitOperations } from '../../../web/src/api/git.js';
 import { createQueryClient, projectHeaderQuery } from '../../../web/src/api/queries.js';
 import en from '../../../web/src/i18n/en.json' with { type: 'json' };
 import { AppIntlProvider, type MessageId } from '../../../web/src/i18n/index.js';
@@ -18,7 +19,10 @@ import { getToasts, resetToasts } from '../../../web/src/shell/toasts.js';
 import { Toasts } from '../../../web/src/shell/Toasts.js';
 import { header, riley } from '../project/header-data.js';
 
-beforeEach(() => resetToasts());
+beforeEach(() => {
+  resetToasts();
+  resetGitOperations();
+});
 afterEach(() => {
   cleanup();
   vi.unstubAllGlobals();
@@ -341,5 +345,122 @@ describe('a user who is not one member (D40-3, RP-14)', () => {
     cleanup();
     show(withRepo({ copy: 'ahead', ahead: 1 }, riley()));
     expect(button('Push').getAttribute('aria-disabled')).toBe('true');
+  });
+});
+
+describe('review round 1', () => {
+  it('R1 — a push that fails, then one that succeeds: no "Not pushed" toast is left', async () => {
+    let h = ahead();
+    stubApi(
+      () => h,
+      [
+        { status: 422, body: { error: { code: 'git-refused', message: 'fatal: one' } } },
+        { status: 200, body: { repository: repo({ copy: 'in-sync' }) } },
+      ],
+    );
+    show(h);
+    await userEvent.click(button('Push'));
+    await waitFor(() => expect(getToasts()).toHaveLength(1));
+    await waitFor(() => expect(button('Push').getAttribute('aria-disabled')).toBeNull());
+    h = withRepo();
+    await userEvent.click(button('Push'));
+    expect(await within(region()).findByText('In sync with git')).toBeTruthy();
+    expect(getToasts()).toHaveLength(0);
+  });
+
+  it('R1 — the toast leaves when the copy is no longer ahead by other means (auto-push, a terminal)', async () => {
+    stubApi(() => ahead(), [{ status: 422, body: { error: { code: 'git-refused', message: 'fatal: one' } } }]);
+    const { queryClient } = show(ahead());
+    await userEvent.click(button('Push'));
+    await waitFor(() => expect(getToasts()).toHaveLength(1));
+    act(() => queryClient.setQueryData(projectHeaderQuery('p_a').queryKey, withRepo()));
+    await waitFor(() => expect(getToasts()).toHaveLength(0));
+  });
+
+  it('R1 — a push that starts removes the previous toast at once (a cancel leaves none)', async () => {
+    stubApi(() => ahead(), [{ status: 422, body: { error: { code: 'git-refused', message: 'fatal: one' } } }, 'hang']);
+    show(ahead());
+    await userEvent.click(button('Push'));
+    await waitFor(() => expect(getToasts()).toHaveLength(1));
+    await waitFor(() => expect(button('Push').getAttribute('aria-disabled')).toBeNull());
+    await userEvent.click(button('Push'));
+    await within(region()).findByRole('button', { name: 'Pushing…' });
+    expect(getToasts()).toHaveLength(0);
+    await userEvent.click(button('Cancel'));
+    await within(region()).findByRole('button', { name: 'Push' });
+    expect(getToasts()).toHaveLength(0);
+  });
+
+  it('R2 — an update from the footer link that the server does not record (500) shows in the sidebar alert', async () => {
+    stubApi(() => behind(), [{ status: 500, body: { error: { code: 'internal', message: 'x' } } }]);
+    show(behind(), { link: true });
+    await userEvent.click(within(screen.getByTestId('reason')).getByRole('button', { name: 'Update' }));
+    expect((await within(region()).findByRole('alert')).textContent).toBe(en['error.internal']);
+  });
+
+  it('R4 — the focused Push goes with a state change the sidebar did not start: the focus moves to Fetch', async () => {
+    stubApi(() => ahead(), []);
+    const { queryClient } = show(ahead());
+    button('Push').focus();
+    act(() => queryClient.setQueryData(projectHeaderQuery('p_a').queryKey, withRepo()));
+    await waitFor(() => expect(within(region()).queryByRole('button', { name: 'Push' })).toBeNull());
+    await waitFor(() => expect(document.activeElement).toBe(button('Fetch')));
+  });
+
+  it('R4 — a focus elsewhere is left alone when a button goes', async () => {
+    stubApi(() => ahead(), []);
+    const { queryClient } = show(ahead());
+    const outside = document.createElement('input');
+    document.body.append(outside);
+    outside.focus();
+    act(() => queryClient.setQueryData(projectHeaderQuery('p_a').queryKey, withRepo()));
+    await waitFor(() => expect(within(region()).queryByRole('button', { name: 'Push' })).toBeNull());
+    expect(document.activeElement).toBe(outside);
+    outside.remove();
+  });
+
+  it('S2 — leaving the project does not cancel a push: back on it, "Pushing…" and Cancel still work', async () => {
+    const { posts } = stubApi(() => ahead(), ['hang']);
+    const queryClient = createQueryClient();
+    queryClient.setQueryData(projectHeaderQuery('p_a').queryKey, ahead());
+    queryClient.setQueryData(projectHeaderQuery('p_b').queryKey, { ...ahead(), id: 'p_b' });
+    const view = (pid: string) => (
+      <AppIntlProvider>
+        <QueryClientProvider client={queryClient}>
+          <GitStatus pid={pid} />
+          <Toasts />
+        </QueryClientProvider>
+      </AppIntlProvider>
+    );
+    const { rerender } = render(view('p_a'));
+    await userEvent.click(button('Push'));
+    await within(region()).findByRole('button', { name: 'Pushing…' });
+    rerender(view('p_b'));
+    expect(posts[0]?.init?.signal?.aborted).toBe(false);
+    rerender(view('p_a'));
+    expect(await within(region()).findByRole('button', { name: 'Pushing…' })).toBeTruthy();
+    await userEvent.click(button('Cancel'));
+    await waitFor(() => expect(posts[0]?.init?.signal?.aborted).toBe(true));
+    expect(await within(region()).findByRole('button', { name: 'Push' })).toBeTruthy();
+    expect(getToasts()).toHaveLength(0);
+  });
+
+  it('S2 — leaving the project still cancels a fetch (task-039)', async () => {
+    const { posts } = stubApi(() => ahead(), ['hang']);
+    const queryClient = createQueryClient();
+    queryClient.setQueryData(projectHeaderQuery('p_a').queryKey, ahead());
+    queryClient.setQueryData(projectHeaderQuery('p_b').queryKey, { ...ahead(), id: 'p_b' });
+    const view = (pid: string) => (
+      <AppIntlProvider>
+        <QueryClientProvider client={queryClient}>
+          <GitStatus pid={pid} />
+        </QueryClientProvider>
+      </AppIntlProvider>
+    );
+    const { rerender } = render(view('p_a'));
+    await userEvent.click(button('Fetch'));
+    await within(region()).findByRole('button', { name: 'Fetching…' });
+    rerender(view('p_b'));
+    await waitFor(() => expect(posts[0]?.init?.signal?.aborted).toBe(true));
   });
 });
