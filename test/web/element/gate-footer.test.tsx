@@ -1,14 +1,16 @@
 // @vitest-environment jsdom
 // task-037 — the gate footer of the element panel (US-G-04 … G-07, G-09, S-24; ux-reference §4.2)
 // on the whole application with a stubbed API: every outcome side by side, the reason with its
-// default, disabled outcomes that keep the focus (D37-3), the write and its feedback (D37-9), and
-// the read-only, reserved, waiting and final footers (D37-5 … D37-7).
+// default, disabled outcomes that keep the focus (D37-3), the write and its feedback (D37-9; since
+// task-038 the result is a toast of the shell, D38-10), and the read-only, reserved, waiting and
+// final footers (D37-5 … D37-7).
 import type { ActionDescriptor, ElementDetail, Identity } from '@wingfoil-ui/contracts';
 import { act, cleanup, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { userEvent } from '@testing-library/user-event';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { stopEventStream } from '../../../web/src/api/events.js';
 import { resetSession } from '../../../web/src/session/session.js';
+import { resetToasts } from '../../../web/src/shell/toasts.js';
 import { header } from '../dna/data.js';
 import { renderApp, serverInfo, type FakeApi } from '../shell/render.js';
 
@@ -102,8 +104,13 @@ async function footer(): Promise<HTMLElement> {
 const reasonField = (f: HTMLElement) => within(f).getByRole('textbox', { name: 'Reason, recorded in the commit' });
 const outcome = (f: HTMLElement, name: string) => within(f).getByRole('button', { name });
 
+/** The shell's toast regions (task-038). */
+const politeToasts = () => document.querySelector('.toasts [aria-live="polite"]') as HTMLElement;
+const assertiveToasts = () => document.querySelector('.toasts [aria-live="assertive"]') as HTMLElement;
+
 beforeEach(() => {
   resetSession();
+  resetToasts();
   vi.stubGlobal(
     'EventSource',
     class {
@@ -200,7 +207,7 @@ it('G-07.1 / G-07.2 — an empty or blank reason disables every outcome, which k
   expect(posts(fetch)).toEqual([]);
 });
 
-it('G-06.2 — an outcome posts the decision; the panel says the new state and keeps the focus inside', async () => {
+it('G-06.2 — an outcome posts the decision; a toast says the result; the focus stays inside the panel', async () => {
   const fetch = stub(GATE, MO, {
     [`${BASE}/approve`]: {
       status: 200,
@@ -218,8 +225,7 @@ it('G-06.2 — an outcome posts the decision; the panel says the new state and k
   await userEvent.type(field, 'Matches the mock-up');
   const reads = fetch.mock.calls.filter((c) => String(c[0]) === BASE).length;
   await userEvent.click(outcome(f, 'Approve → s3'));
-  expect(await screen.findByText(`${EID} is now s3`)).toBeTruthy();
-  expect(screen.getByText(`${EID} is now s3`).closest('[role="status"]')).not.toBeNull();
+  expect(await within(politeToasts()).findByText(`Approved ${EID}`)).toBeTruthy();
   expect(posts(fetch)).toEqual([
     { url: `${BASE}/approve`, body: { expectedStatus: 's2', reason: 'Matches the mock-up' } },
   ]);
@@ -237,11 +243,11 @@ it('G-05.2 — a reject posts to /reject with the reason', async () => {
   await userEvent.clear(reasonField(f));
   await userEvent.type(reasonField(f), 'Cannot reproduce');
   await userEvent.click(outcome(f, 'Reject → s1'));
-  await screen.findByText(`${EID} is now s1`);
+  await within(politeToasts()).findByText(`Rejected ${EID}`);
   expect(posts(fetch)).toEqual([{ url: `${BASE}/reject`, body: { expectedStatus: 's2', reason: 'Cannot reproduce' } }]);
 });
 
-it('D37-9 — a refusal is an alert from the catalogue (CLI text verbatim); the reason is kept', async () => {
+it('D37-9, D38-5 — a refusal is a red toast from the catalogue (CLI text verbatim); the reason is kept', async () => {
   stub(GATE, MO, {
     [`${BASE}/approve`]: {
       status: 422,
@@ -251,9 +257,9 @@ it('D37-9 — a refusal is an alert from the catalogue (CLI text verbatim); the 
   renderApp(`/p/${PID}/e/${EID}`);
   const f = await footer();
   await userEvent.click(outcome(f, 'Approve → s3'));
-  const alert = await screen.findByRole('alert');
-  expect(alert.textContent).toContain('WingFoil refused the action:');
-  expect(alert.textContent).toContain('Error: role approver required');
+  await waitFor(() => expect(assertiveToasts().textContent).toContain('WingFoil refused the action:'));
+  expect(assertiveToasts().textContent).toContain(`Approve of ${EID} not done`);
+  expect(assertiveToasts().textContent).toContain('Error: role approver required');
   expect((reasonField(f) as HTMLTextAreaElement).value).toBe(DEFAULT_REASON);
 });
 
@@ -273,15 +279,16 @@ it('D37-11 — write-incomplete names the file, and the commit when there is one
   renderApp(`/p/${PID}/e/${EID}`);
   const f = await footer();
   await userEvent.click(outcome(f, 'Approve → s3'));
-  expect((await screen.findByRole('alert')).textContent).toBe(
-    'WingFoil did not finish the action: check docs/el.md with git before trying again',
+  await waitFor(() =>
+    expect(assertiveToasts().textContent).toContain(
+      'WingFoil did not finish the action: check docs/el.md with git before trying again',
+    ),
   );
+  expect(assertiveToasts().textContent).not.toContain('WingFoil made the commit');
   await userEvent.clear(reasonField(f));
   await userEvent.type(reasonField(f), 'No');
   await userEvent.click(outcome(f, 'Reject → s1'));
-  await waitFor(() =>
-    expect(screen.getByRole('alert').textContent).toContain(`WingFoil made the commit ${'b'.repeat(40)}`),
-  );
+  await waitFor(() => expect(assertiveToasts().textContent).toContain(`WingFoil made the commit ${'b'.repeat(40)}`));
 });
 
 it('G-04.2 — Cancel closes the panel and sends nothing', async () => {
@@ -440,16 +447,16 @@ it('review F2 — a refusal stays shown when the refetched element has no gate f
   await userEvent.click(outcome(await footer(), 'Approve → s3'));
   const dialog = screen.getByRole('dialog', { name: 'A gated element' });
   expect(await within(dialog).findByText('Final state: no action is possible')).toBeTruthy();
-  expect(within(dialog).getByRole('alert').textContent).toBe('This element changed since you opened it');
+  expect(assertiveToasts().textContent).toContain('This element changed since you opened it');
 });
 
-it("review F4, F5, F6 — after a success the outcomes stay disabled until the state changes; the heading has the focus; the state is the server's", async () => {
+it('review F4, F5 — after a success the outcomes stay disabled until the state changes; the heading has the focus', async () => {
   // The refetch still answers the old state (the new one has not arrived yet).
   stub(GATE, MO, { [`${BASE}/approve`]: { status: 200, body: { ...OK, result: { id: EID, from: 's2', to: 's9' } } } });
   renderApp(`/p/${PID}/e/${EID}`);
   const f = await footer();
   await userEvent.click(outcome(f, 'Approve → s3'));
-  expect(await screen.findByText(`${EID} is now s9`)).toBeTruthy();
+  expect(await within(politeToasts()).findByText(`Approved ${EID}`)).toBeTruthy();
   for (const name of ['Approve → s3', 'Reject → s1']) {
     expect(outcome(await footer(), name).getAttribute('aria-disabled')).toBe('true');
   }
@@ -515,11 +522,14 @@ it('review F13 — an Approve click without focus after the reject rule restores
   expect(posts(fetch)).toEqual([]);
 });
 
-it('review F14 — the refusal has its own band, not a second footer', async () => {
+it('D38-10 — the panel shows no result of its own: the refusal is a toast outside the drawer', async () => {
   stub(GATE, MO, { [`${BASE}/approve`]: { status: 409, body: { error: { code: 'element-changed', message: 'x' } } } });
   renderApp(`/p/${PID}/e/${EID}`);
   await userEvent.click(outcome(await footer(), 'Approve → s3'));
-  const alert = await screen.findByRole('alert');
-  expect(alert.className).toBe('element-footer-alert');
+  await waitFor(() => expect(assertiveToasts().textContent).toContain('This element changed since you opened it'));
+  const dialog = screen.getByRole('dialog', { name: 'A gated element' });
+  expect(within(dialog).queryByRole('alert')).toBeNull();
+  expect(document.querySelector('.element-footer-alert')).toBeNull();
+  expect(within(dialog).getByRole('status').textContent).toBe('');
   expect(document.querySelectorAll('.drawer .element-footer')).toHaveLength(1);
 });

@@ -37,6 +37,13 @@ All notable changes to WingFoil UI are recorded in this file. The format follows
   Requires you items) and *Updates* (the last 10 Memory events); Today shows, to a member holding
   several roles, one line per role with its count and first three items, a switch to that role
   view; the explicit *Nothing requires you* state, also after the last action.
+- **Submit and action feedback** (US-G-10, US-G-11, US-G-13, US-G-14, US-X-07, REQ-PERF-02): the
+  element panel submits a draft or rejected work with *Submit → <state>*; gate and submit actions
+  are disabled, with the reason as their description, while the element has local changes; every
+  decision or submit ends with a toast — the result and the `wf(…)` commit with its short hash,
+  *pushed* when auto-push pushed it or why it was not pushed — and a refusal with a red toast
+  carrying WingFoil's own message, or *This element changed since you opened it* when it moved
+  meanwhile; toasts are announced to screen readers (refusals assertively).
 - **Git status in the sidebar** (US-Y-01…US-Y-04, US-S-11): the bottom of the project sidebar
   shows the branch and short hash (or a detached HEAD), the local changes and, when the repository
   has a remote, *In sync with git* or the commits ahead and behind, *Fetch* with *Cancel*, and a

@@ -9,24 +9,25 @@
  *   moves to Approve while that clear left the field empty (D37-4). Outcomes stay focusable when
  *   disabled (`aria-disabled`, D37-3): the reason (empty, or the descriptor's rule of spec-003 §6)
  *   is shown and is their accessible description.
+ * - **Single-action footer** (G3, task-038, D38-6, D38-7): *Submit → <to>* (primary) and *Cancel*
+ *   for every member identified in the team; disabled like the outcomes (focusable, the reason as
+ *   its description, G-11.2, X-07.3).
  * - **Read-only line** for a user not identified as one member (S-13.2, S-15.2), with *How to join*
  *   when it applies; **reserved line** for a member without the gate's role (G-09.x); the engine
  *   notes (S-24.2 … S-24.4, RP-13); the final note (S-24.1).
  *
- * The write's feedback until task-038's toasts (D37-9): a polite status region says "<id> is now
- * <state>" (the state the server answered) and a refusal is an alert; both live outside the part
- * that changes with the refetched state (review F2), the reason is kept. After a success the
- * outcomes stay disabled until the new state arrives (review F4), and the focus moves to the
- * panel's heading (review F5).
+ * The write's result is a toast of the shell, raised by `useElementWrite` (task-038, D38-10,
+ * D38-11); the footer's polite status region only says that the write is running. The reason is
+ * kept on a refusal. After a success the actions stay disabled until the new state arrives (review
+ * F4), and the focus moves to the panel's heading (review F5).
  */
 import type { ElementDetail, ProjectHeader } from '@wingfoil-ui/contracts';
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { FormattedMessage, defineMessages, useIntl, type MessageDescriptor } from 'react-intl';
 import { Button } from 'react-aria-components';
-import type { ApiError } from '../api/client.js';
-import { useElementWrite } from '../api/writes.js';
+import type { DisabledReason } from '@wingfoil-ui/contracts';
+import { useElementWrite, type ElementWriteVerb } from '../api/writes.js';
 import { useHowToJoin } from '../project/HowToJoin.js';
-import { ErrorText } from '../shell/ErrorText.js';
 import { footerView, isBlank, type FooterView, type GateOutcome } from './footer.js';
 
 /** The catalogue texts of the disabled reasons (spec-003 §6, spec-008 §4 `<area>.reason.<code>`). */
@@ -40,7 +41,7 @@ const REASONS = defineMessages({
 });
 
 /** The reason's message and its arguments. */
-function reasonMessage(reason: NonNullable<GateOutcome['reason']>): {
+function reasonMessage(reason: DisabledReason): {
   descriptor: MessageDescriptor;
   values: Record<string, string | number>;
 } {
@@ -76,41 +77,43 @@ export function ElementFooter({
   onClose,
   onFocusReasonUsed,
 }: ElementFooterProps): ReactNode {
-  const [done, setDone] = useState<{ id: string; state: string } | null>(null);
-  const [error, setError] = useState<ApiError | null>(null);
   const write = useElementWrite();
   const root = useRef<HTMLDivElement>(null);
   // The focus request is used once per panel: a refetch remounting the footer must not move it.
   const focusPendingRef = useRef(focusReason);
   const view: FooterView | undefined = detail.descriptor && header ? footerView(detail.descriptor, header) : undefined;
 
-  const decide = (o: GateOutcome, reason: string, onDecided: () => void) => {
-    setDone(null);
-    setError(null);
-    const from = detail.element.status;
+  // The result and a refusal are toasts (`useElementWrite`); here only what follows a success.
+  const run = (verb: ElementWriteVerb, reason: string | undefined, onDone: () => void) => {
     write.mutate(
-      { pid, eid: detail.element.id, verb: o.verb, expectedStatus: from, reason },
       {
-        onSuccess: (data) => {
-          const to = data.result['to'];
-          setDone({ id: detail.element.id, state: typeof to === 'string' ? to : o.to });
-          onDecided();
-          // The outcome that had the focus goes with the new state: the panel's heading takes it.
+        pid,
+        eid: detail.element.id,
+        verb,
+        expectedStatus: detail.element.status,
+        ...(reason !== undefined ? { reason } : {}),
+      },
+      {
+        onSuccess: () => {
+          onDone();
+          // The action that had the focus goes with the new state: the panel's heading takes it.
           (root.current?.closest('[role="dialog"]')?.querySelector('.drawer-title') as HTMLElement | null)?.focus();
         },
-        onError: (e) => setError(e),
       },
     );
   };
+  const decide = (o: GateOutcome, reason: string, onDecided: () => void) => run(o.verb, reason, onDecided);
+  const submit = (onSubmitted: () => void) => run('submit', undefined, onSubmitted);
 
   return (
     <div ref={root} className="element-footer-slot">
       <p className="visually-hidden" role="status">
-        {write.isPending ? (
-          <FormattedMessage id="element.gate.pending" />
-        ) : done ? (
-          <FormattedMessage id="element.gate.done" values={done} />
-        ) : null}
+        {write.isPending &&
+          (write.variables.verb === 'submit' ? (
+            <FormattedMessage id="element.submit.pending" />
+          ) : (
+            <FormattedMessage id="element.gate.pending" />
+          ))}
       </p>
       {view && (
         <FooterContent
@@ -119,14 +122,10 @@ export function ElementFooter({
           busy={write.isPending}
           focusPendingRef={focusPendingRef}
           onDecide={decide}
+          onSubmit={submit}
           onClose={onClose}
           onFocusReasonUsed={onFocusReasonUsed}
         />
-      )}
-      {error && (
-        <div className="element-footer-alert" role="alert">
-          <ErrorText error={error} />
-        </div>
       )}
     </div>
   );
@@ -138,6 +137,7 @@ function FooterContent({
   busy,
   focusPendingRef,
   onDecide,
+  onSubmit,
   onClose,
   onFocusReasonUsed,
 }: {
@@ -146,6 +146,7 @@ function FooterContent({
   busy: boolean;
   focusPendingRef: { current: boolean };
   onDecide(o: GateOutcome, reason: string, onDecided: () => void): void;
+  onSubmit(onSubmitted: () => void): void;
   onClose(): void;
   onFocusReasonUsed: (() => void) | undefined;
 }): ReactNode {
@@ -189,6 +190,16 @@ function FooterContent({
           )}
         </div>
       );
+    case 'submit':
+      return (
+        <SubmitFooter
+          key={`${detail.element.id}:${detail.element.status}`}
+          view={view}
+          busy={busy}
+          onSubmit={onSubmit}
+          onClose={onClose}
+        />
+      );
     case 'gate':
       return (
         <GateFooter
@@ -202,6 +213,52 @@ function FooterContent({
         />
       );
   }
+}
+
+/** The single-action footer (G3, task-038): *Submit → <to>*, then *Cancel*. */
+function SubmitFooter({
+  view,
+  busy,
+  onSubmit,
+  onClose,
+}: {
+  view: Extract<FooterView, { kind: 'submit' }>;
+  busy: boolean;
+  onSubmit(onSubmitted: () => void): void;
+  onClose(): void;
+}): ReactNode {
+  // Submitted from this state: disabled until the new state remounts this footer (reviews F4, F12).
+  const [submitted, setSubmitted] = useState(false);
+  const blockedId = useId();
+  const blockedText = !view.enabled && view.reason ? reasonMessage(view.reason) : undefined;
+  const disabled = !view.enabled || busy || submitted;
+  return (
+    <div className="element-footer submit-footer">
+      {blockedText && (
+        <p id={blockedId} className="gate-hint gate-blocked">
+          <FormattedMessage {...blockedText.descriptor} values={blockedText.values} />
+        </p>
+      )}
+      <div className="gate-actions">
+        {/* A native button: focusable while disabled, the reason as its description (D37-3). */}
+        <button
+          type="button"
+          className="button button-primary gate-outcome"
+          aria-disabled={disabled ? true : undefined}
+          aria-describedby={blockedText ? blockedId : undefined}
+          onClick={() => {
+            if (!disabled) onSubmit(() => setSubmitted(true));
+          }}
+        >
+          <FormattedMessage id="element.submit.action" values={{ to: view.to }} />
+        </button>
+        <span className="gate-spacer" />
+        <Button className="button button-quiet" onPress={onClose}>
+          <FormattedMessage id="common.action.cancel" />
+        </Button>
+      </div>
+    </div>
+  );
 }
 
 /** "Read-only: … — How to join" (S-13.2), or a pointer to the header's notice (S-15.2). */

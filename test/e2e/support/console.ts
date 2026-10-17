@@ -42,9 +42,10 @@ export interface ConsoleOptions {
    */
   stateDir?: string;
   /**
-   * UI settings written into the seeded `state.json` (C2 of Wave 5; e.g. `autoFetch: false` for a
-   * test counting git processes, `fetchIntervalSeconds: 15` for RP-53) — also with `stateDir` when
-   * it holds no `state.json` yet.
+   * UI settings written into the seeded `state.json` (task-038, Wave 5 C2; e.g. `autoPush: true`,
+   * `autoFetch: false`): also with a `stateDir` that holds no `state.json` yet. Given with a raw
+   * `stateFile`, or with a `stateDir` that already holds a `state.json`, {@link startConsole} throws
+   * (it would be ignored; review R4).
    */
   settings?: Partial<UiSettings>;
 }
@@ -109,6 +110,9 @@ async function isolatedPath(root: string, envPath: string, recordTo?: string): P
 
 /** Start the bin (see {@link ConsoleOptions}). */
 export async function startConsole(options: ConsoleOptions = {}): Promise<RunningConsole> {
+  if (options.settings !== undefined && options.stateFile !== undefined) {
+    throw new Error('startConsole: `settings` cannot be seeded with a raw `stateFile` (put them in the file)');
+  }
   const root = await mkdtemp(path.join(tmpdir(), 'wfui-e2e-'));
   const projects = options.projects ?? [];
   const base = projects[0]?.env ?? (await harnessEnv(root)).env;
@@ -116,6 +120,10 @@ export async function startConsole(options: ConsoleOptions = {}): Promise<Runnin
   await mkdir(stateDir, { recursive: true, mode: 0o700 });
   const seeded =
     options.stateDir !== undefined && (await stat(path.join(stateDir, 'state.json')).catch(() => undefined));
+  if (seeded && options.settings !== undefined) {
+    await rm(root, { recursive: true, force: true });
+    throw new Error('startConsole: `settings` cannot be seeded into a `stateDir` that already holds a state.json');
+  }
   const pids = seeded ? [] : projects.map(() => projectId());
   if (seeded) {
     // A state left by a previous console: its list is the one to read.

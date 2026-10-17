@@ -7,10 +7,15 @@
  * Whatever the answer, the project's queries are invalidated (`['p', pid]`): after a success the
  * server's state has already moved (the `repo` event would refetch too), and after a refusal such
  * as 409 `element-changed` the panel must show what the repository holds now (RP-12).
+ *
+ * The result is a toast of the shell (task-038, D38-11), raised by the mutation's own callbacks:
+ * they run even when the panel that started the write was closed before the answer.
  */
 import type { ElementDecisionRequest, ElementSubmitRequest, WriteResponse } from '@wingfoil-ui/contracts';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { ApiError, apiRequest } from './client.js';
+import { writeRefusalToast, writeSuccessToast } from '../element/write-toast.js';
+import { showToast } from '../shell/toasts.js';
 import { queryKeys } from './query-keys.js';
 
 /** A governed verb on an element. */
@@ -51,6 +56,8 @@ export function useElementWrite() {
   const queryClient = useQueryClient();
   return useMutation<WriteResponse, ApiError, ElementWriteVariables>({
     mutationFn: (v) => postElementWrite(v.pid, v.eid, v.verb, bodyOf(v)),
+    onSuccess: (data, v) => void showToast(writeSuccessToast(v, data)),
+    onError: (error, v) => void showToast(writeRefusalToast(v, error)),
     onSettled: (_data, _error, v) => {
       // Not awaited: the caller's onSuccess / onError must not wait for the reads (Wave 4 lesson).
       void queryClient.invalidateQueries({ queryKey: queryKeys.project(v.pid) });
