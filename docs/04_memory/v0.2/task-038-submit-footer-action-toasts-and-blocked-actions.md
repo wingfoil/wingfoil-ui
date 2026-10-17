@@ -520,3 +520,10 @@ Checks after review round 3 (HEAD `0740045` + notes):
 | `npm run test:e2e -- submit-footer.spec.ts gate-footer.spec.ts notification-bell.spec.ts accessibility.spec.ts element-panel.spec.ts project-header.spec.ts harness/support.spec.ts` (three engines) | **384 passed**, 0 failed (13.5 min) |
 
 No console left, no `wfui-*` entry in the system temporary directory.
+
+### review round 4 (2026-10-17)
+
+Independent review: **PASS**. Optional nit added (test only, no product change): **R4-1** —
+`toasts.test.tsx` › "closed, evicted, replaced or timed out while the focus is elsewhere: the focus
+stays" (a textarea outside the stack keeps the focus through each of the four removals). Checks:
+`npx vitest run test/web/shell` 11 files, 192 passed; typecheck, lint, format:check clean.

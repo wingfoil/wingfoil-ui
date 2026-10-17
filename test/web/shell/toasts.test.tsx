@@ -321,3 +321,39 @@ it("review R3-1 — a new toast is scrolled to its top; the user's scroll stays 
     restore();
   }
 });
+
+// Review round 4 (R4-1): a toast removed while the focus is elsewhere leaves the focus where it is.
+it('review R4-1 — closed, evicted, replaced or timed out while the focus is elsewhere: the focus stays', () => {
+  vi.useFakeTimers();
+  render(
+    <AppIntlProvider>
+      <main id="main" tabIndex={-1}>
+        <textarea aria-label="Elsewhere" />
+      </main>
+      <Toasts />
+    </AppIntlProvider>,
+  );
+  const elsewhere = screen.getByRole('textbox', { name: 'Elsewhere' });
+  act(() => elsewhere.focus());
+  act(() => {
+    showToast({ key: 'k', tone: 'error', title: 'refused' });
+    showToast({ tone: 'success', title: 'goes' });
+  });
+  // Replaced by its key.
+  act(() => void showToast({ key: 'k', tone: 'error', title: 'refused again' }));
+  expect(document.activeElement).toBe(elsewhere);
+  // Its timer.
+  act(() => void vi.advanceTimersByTime(TOAST_DISMISS_MS + 10));
+  expect(getToasts().map((t) => t.title)).toEqual(['refused again']);
+  expect(document.activeElement).toBe(elsewhere);
+  // Evicted by the limit.
+  act(() => {
+    for (const n of [1, 2, 3]) showToast({ tone: 'success', title: `t${n}` });
+  });
+  expect(getToasts().map((t) => t.title)).toEqual(['refused again', 't2', 't3']);
+  expect(document.activeElement).toBe(elsewhere);
+  // Closed (a pointer click that does not move the focus).
+  act(() => closeOf('refused again').dispatchEvent(new MouseEvent('click', { bubbles: true })));
+  expect(getToasts().map((t) => t.title)).toEqual(['t2', 't3']);
+  expect(document.activeElement).toBe(elsewhere);
+});
