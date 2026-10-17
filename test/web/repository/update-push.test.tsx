@@ -464,3 +464,107 @@ describe('review round 1', () => {
     await waitFor(() => expect(posts[0]?.init?.signal?.aborted).toBe(true));
   });
 });
+
+describe('review round 2', () => {
+  it('R2-1 — the "Not pushed" toast stays when the copy becomes diverged (the commit is still local)', async () => {
+    stubApi(() => ahead(), [{ status: 422, body: { error: { code: 'git-refused', message: 'fatal: one' } } }]);
+    const { queryClient } = show(ahead());
+    await userEvent.click(button('Push'));
+    await waitFor(() => expect(getToasts()).toHaveLength(1));
+    act(() =>
+      queryClient.setQueryData(projectHeaderQuery('p_a').queryKey, withRepo({ copy: 'diverged', ahead: 1, behind: 1 })),
+    );
+    await within(region()).findByText('1 ahead · 1 behind');
+    expect(getToasts()).toHaveLength(1);
+  });
+
+  it('R2-2 — an alert cleared by a moved state does not come back when the sidebar is shown again', async () => {
+    stubApi(() => behind(), [{ status: 403, body: { error: { code: 'not-in-team', message: 'x' } } }]);
+    const queryClient = createQueryClient();
+    queryClient.setQueryData(projectHeaderQuery('p_a').queryKey, behind());
+    const view = (shown: boolean) => (
+      <AppIntlProvider>
+        <QueryClientProvider client={queryClient}>{shown && <GitStatus pid="p_a" />}</QueryClientProvider>
+      </AppIntlProvider>
+    );
+    const { rerender } = render(view(true));
+    await userEvent.click(button('Update'));
+    expect(await within(region()).findByRole('alert')).toBeTruthy();
+    act(() =>
+      queryClient.setQueryData(projectHeaderQuery('p_a').queryKey, {
+        ...behind(),
+        repository: { ...behind().repository, state: 's2' },
+      }),
+    );
+    await waitFor(() => expect(within(region()).queryByRole('alert')).toBeNull());
+    rerender(view(false));
+    rerender(view(true));
+    await within(region()).findByRole('button', { name: 'Update' });
+    expect(within(region()).queryByRole('alert')).toBeNull();
+  });
+
+  it('R2-3 — a click on a part of the page that takes no focus does not send the focus to Fetch', async () => {
+    stubApi(() => ahead(), []);
+    const { queryClient } = show(ahead());
+    button('Push').focus();
+    // A press on plain text: the button loses the focus to the body, and stays in the page.
+    act(() => button('Push').blur());
+    await act(async () => {
+      await Promise.resolve();
+    });
+    act(() => queryClient.setQueryData(projectHeaderQuery('p_a').queryKey, withRepo()));
+    await waitFor(() => expect(within(region()).queryByRole('button', { name: 'Push' })).toBeNull());
+    expect(document.activeElement).toBe(document.body);
+  });
+
+  it('R2-4 — a push of another project that fails names that project in its toast', async () => {
+    stubApi(() => ahead(), ['hang']);
+    const queryClient = createQueryClient();
+    queryClient.setQueryData(projectHeaderQuery('p_a').queryKey, { ...ahead(), name: 'kanban-a' });
+    queryClient.setQueryData(projectHeaderQuery('p_b').queryKey, { ...ahead(), id: 'p_b', name: 'kanban-b' });
+    const fetchFn = vi.fn((url: string, init?: RequestInit) => {
+      if ((init?.method ?? 'GET') === 'GET')
+        return Promise.resolve(new Response(JSON.stringify(ahead()), { status: 200 }));
+      return new Promise<Response>((resolve) => {
+        release = () =>
+          resolve(
+            new Response(JSON.stringify({ error: { code: 'git-refused', message: 'fatal: denied' } }), {
+              status: 422,
+              headers: { 'content-type': 'application/json' },
+            }),
+          );
+      });
+    });
+    let release: () => void = () => {};
+    vi.stubGlobal('fetch', fetchFn);
+    history.replaceState(null, '', '/p/p_a/team');
+    const view = (pid: string) => (
+      <AppIntlProvider>
+        <QueryClientProvider client={queryClient}>
+          <GitStatus pid={pid} />
+          <Toasts />
+        </QueryClientProvider>
+      </AppIntlProvider>
+    );
+    const { rerender } = render(view('p_a'));
+    await userEvent.click(button('Push'));
+    await within(region()).findByRole('button', { name: 'Pushing…' });
+    // The user goes to project B; A's push fails there.
+    history.replaceState(null, '', '/p/p_b/team');
+    rerender(view('p_b'));
+    act(() => release());
+    await waitFor(() => expect(getToasts()).toHaveLength(1));
+    expect(document.querySelector('.toast')?.textContent).toContain('Not pushed — kanban-a: the commit stays local');
+    history.replaceState(null, '', '/');
+  });
+
+  it('R2-4 — on its own project the toast keeps its wording', async () => {
+    history.replaceState(null, '', '/p/p_a/team');
+    stubApi(() => ahead(), [{ status: 422, body: { error: { code: 'git-refused', message: 'fatal: denied' } } }]);
+    show(ahead());
+    await userEvent.click(button('Push'));
+    await waitFor(() => expect(getToasts()).toHaveLength(1));
+    expect(document.querySelector('.toast')?.textContent).toContain('Not pushed — the commit stays local');
+    history.replaceState(null, '', '/');
+  });
+});

@@ -198,6 +198,27 @@ describe('watchFragmentToken (bug-016)', () => {
     expect(fetchFn).toHaveBeenCalledTimes(2);
   });
 
+  it('S2-8 — a probe that gets no answer in time leaves the fragment, as an unreachable console', async () => {
+    const reload = vi.fn();
+    fetchAnswering(204);
+    await bootstrapSession();
+    const fetchFn = vi.fn(
+      (_url: string, init?: RequestInit) =>
+        new Promise<Response>((_resolve, reject) => {
+          init?.signal?.addEventListener('abort', () => reject(new DOMException('timed out', 'TimeoutError')));
+        }),
+    );
+    vi.stubGlobal('fetch', fetchFn);
+    stop = watchFragmentToken({ reload, probeTimeoutMs: 20 });
+    paste(`#token=${TOKEN}`);
+    await new Promise((r) => setTimeout(r, 60));
+    expect(reload).not.toHaveBeenCalled();
+    expect(location.hash).toBe(`#token=${TOKEN}`);
+    // The guard is free again: the next change probes.
+    paste(`#token=${TOKEN}x`);
+    expect(fetchFn).toHaveBeenCalledTimes(2);
+  });
+
   it('stops listening once disposed', () => {
     const reload = vi.fn();
     markSessionLost();
