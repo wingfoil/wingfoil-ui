@@ -466,7 +466,7 @@ Every heavy gate through the machine-free slot (`waitslot.sh`), load at the gran
 | `npm run test:e2e:chromium` (whole suite, on `e37658b`) | **304 passed, 1 failed** (11.3 min): the X-09.1 key-build check of the new screen (fixed in `a6202dd`, see above) | 8.9 |
 | `npm run test:e2e -- update-push shell submit-footer git-status gate-footer accessibility no-commit` (three engines, on `e37658b`) | **426 passed, 3 failed** (13.6 min): the same X-09.1 screen on each engine | 4.0 |
 | `npm run test:e2e -- accessibility.spec.ts` (three engines, on `a6202dd`) | **186 passed** (3.8 min) | 5.6 |
-| `npm run test:timing` | **skipped**: load 12.08 at the grant (Y-05.2's 65 s budget to be measured on a quiet machine) | 12.1 |
+| `npm run test:timing` (first attempt skipped at load 12.08; run on `9c42838`) | **passed**: Vitest 6/6, Playwright 23/23 — Y-05.2 60.2 s from the remote commit to the copy's HEAD at it (budget 65 s, default 60 s interval), Y-02.1 59.7 s | 5.2 |
 | `npm run test:smoke` | not run: no packaging, launcher or bin change | — |
 
 No console of this worktree left running; no `wfui-*` entry in the system temporary directory.
