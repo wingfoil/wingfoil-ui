@@ -42,8 +42,7 @@ let regEnv: NodeJS.ProcessEnv;
 let app: string;
 let seeded: number;
 
-const timed = <T>(name: string, work: () => Promise<T>): Promise<T> =>
-  timedIn(timings, 'publish smoke', name, work);
+const timed = <T>(name: string, work: () => Promise<T>): Promise<T> => timedIn(timings, 'publish smoke', name, work);
 
 /** `npm <args>` with the local registry's environment; resolves on failure too. */
 function npmReg(args: readonly string[], cwd = tmp) {
@@ -114,7 +113,15 @@ describe('staging publish smoke: publish to a local registry, install by name, s
     expect(absent.code).not.toBe(0);
     expect(absent.stderr).toMatch(/E404|404 Not Found/);
     // The dead proxy bites: the public registry is unreachable from this environment.
-    const outside = await npmReg(['view', 'yaml', 'version', '--registry', 'https://registry.npmjs.org/', '--fetch-retries', '0']);
+    const outside = await npmReg([
+      'view',
+      'yaml',
+      'version',
+      '--registry',
+      'https://registry.npmjs.org/',
+      '--fetch-retries',
+      '0',
+    ]);
     expect(outside.code).not.toBe(0);
     expect(outside.stderr).toMatch(/ECONNREFUSED|proxy|EPROXY/i);
   });
@@ -135,9 +142,9 @@ describe('staging publish smoke: publish to a local registry, install by name, s
     );
     expect(install.code, install.stderr).toBe(0);
     const installed = path.join(app, 'node_modules', PACKAGE);
-    expect((JSON.parse(await readFile(path.join(installed, 'package.json'), 'utf8')) as { version: string }).version).toBe(
-      version,
-    );
+    expect(
+      (JSON.parse(await readFile(path.join(installed, 'package.json'), 'utf8')) as { version: string }).version,
+    ).toBe(version);
     expect((await stat(path.join(installed, 'bin', 'wingfoil-ui.cjs'))).mode & 0o111).not.toBe(0);
     // Every installed tarball came from the local registry.
     const lock = JSON.parse(await readFile(path.join(app, 'package-lock.json'), 'utf8')) as {

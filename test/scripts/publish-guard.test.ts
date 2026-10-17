@@ -49,7 +49,16 @@ describe('publish guard (task-029, D29-8)', () => {
   it('stops npm publish from a checkout (dry run, a registry nobody serves)', async () => {
     const r = await run(
       process.execPath,
-      [npmCli(), 'publish', '--dry-run', '--registry', 'http://127.0.0.1:9/', '--fetch-retries', '0', '--no-update-notifier'],
+      [
+        npmCli(),
+        'publish',
+        '--dry-run',
+        '--registry',
+        'http://127.0.0.1:9/',
+        '--fetch-retries',
+        '0',
+        '--no-update-notifier',
+      ],
       { cwd: ws.dir, env, allowFailure: true },
     );
     expect(r.code).not.toBe(0);

@@ -97,7 +97,10 @@ describe('publish.yml (task-029, AC-1)', () => {
       'npm pack',
     ];
     const at = order.map((cmd) => runs(gate).findIndex((r) => r.includes(cmd)));
-    expect(at.every((i) => i >= 0), JSON.stringify(at)).toBe(true);
+    expect(
+      at.every((i) => i >= 0),
+      JSON.stringify(at),
+    ).toBe(true);
     expect([...at].sort((a, b) => a - b)).toEqual(at);
     expect(runs(gate).filter((r) => r.includes('npm pack'))).toHaveLength(1);
     expect(gate.steps.some((s) => s.uses?.startsWith('actions/upload-artifact@'))).toBe(true);
