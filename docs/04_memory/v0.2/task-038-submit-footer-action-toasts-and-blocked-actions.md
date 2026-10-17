@@ -2,7 +2,7 @@
 id: task-038-submit-footer-action-toasts-and-blocked-actions
 type: task
 title: "Submit footer action toasts and blocked actions"
-status: approved
+status: done
 release: "v0.2"
 module: "web"             # optional — server | web | contracts (dna.yaml modules)
 priority: "medium"           # optional — high | medium | low
