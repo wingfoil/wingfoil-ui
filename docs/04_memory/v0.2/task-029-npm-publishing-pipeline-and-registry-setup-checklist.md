@@ -207,3 +207,68 @@ through it (recorded in *red / green / refactor*).
 
 D29-1 … D29-14 in the report of 2026-10-17; nothing that depends on them is implemented before the
 answer.
+
+#### Decisions (approver, 2026-10-17)
+
+"All as recommended": D29-1 (a) — the one-off download of `verdaccio@6.10.5` as an exact-pinned
+devDependency approved — D29-2 (b), D29-3 (a), D29-4 (b), D29-5 (a), D29-6 (a), D29-7 (a),
+D29-8 (a), D29-9 (a), D29-10 (a), D29-11 (a), D29-12 (a), D29-13 (a), D29-14 (a). Added by the
+approver: `CLAUDE.md` checks line "`npm run test:publish-smoke` when packaging or
+`.github/workflows/publish.yml` changes"; a section *Differences from WingFoil's pipeline* in
+`docs/publishing.md`, referenced from the workflow header. Coordinator: this task merges before
+task-040; `test/README.md` 0.40 is this task's.
+
+### red / green / refactor (2026-10-17)
+
+- **Red** — `7bda929`: `test/package/publish-workflow.test.ts` (the workflow file did not exist:
+  the file failed to load), `test/scripts/check-release-tag.test.ts` (7 failing: no script),
+  `test/scripts/publish-guard.test.ts` (3 failing: no `prepublishOnly`, no script; the dry-run
+  publish timed out against the closed registry port), `pack.test.ts` (2 failing: `private` still
+  set, no `repository`), and `test/smoke/staging.publish.test.ts` (fails to load: no
+  `test/smoke/registry.ts`). The launch smoke's helpers moved unchanged to `test/smoke/support.ts`
+  in the same commit (D29-3).
+- **Green** — `619e7b5`: `.github/workflows/publish.yml`, `scripts/check-release-tag.mjs`,
+  `scripts/publish-guard.mjs`, `test/smoke/registry.ts`, `vitest.publish-smoke.config.ts`;
+  `package.json` (no `private`; `repository`, `homepage`, `bugs`; `prepublishOnly`;
+  `test:publish-smoke`; `verdaccio` 6.10.5 exact). `package-lock.json`: 296 entries added, none
+  removed or changed in version or `dev` flag (compared with a script against `HEAD~`'s lockfile).
+  One fix during green: the workflow header said "no .npmrc is written", which the credential
+  check (no `.npmrc` anywhere in the file) refused — reworded "no npm user config".
+- **Negative checks** (guards removed or broken once, then restored):
+  `publish-workflow.test.ts` failed for each of a `secrets.` reference in promote, an unpinned
+  `actions/checkout@v7`, an added `npm publish` line, `id-token: read`, and another environment
+  name (1 failed / 10 passed each). The staging smoke with `...deadProxyEnv()` removed from the
+  npm environment: the AC-3 test failed (`npm view yaml --registry https://registry.npmjs.org/`
+  succeeded, exit 0) — the dead proxy is what keeps npm off the public registry.
+- **Docs** — `7f44f81`: `docs/publishing.md` 0.1 (pipeline, approver checklist, release runbook,
+  local staging smoke, *Differences from WingFoil's pipeline*), README (install text no longer
+  says `private`; documentation and script rows), `CHANGELOG.md` *Unreleased* (Added: the
+  pipeline; Changed: the package is publishable), `CLAUDE.md` 0.5, `test/README.md` 0.40 (*Publish
+  smoke*, layout lines).
+- **Differences from WingFoil's pipeline** (approver's addition): compared against the public
+  repository `wingfoil/wingfoil`, `main` at `07292cf` (2026-10-17; `publish.yml` last changed in
+  `17bb863`): 14 rows in `docs/publishing.md` — triggers, release line, tag checks, gate content,
+  staging registry, staging install and check, staging implementation, Node versions, dist-tag,
+  after-stage jobs, `prepublishOnly`, `publishConfig`, first publish, action pins. The workflow
+  header points to that section (`publish-workflow.test.ts` checks it). Candidates for WingFoil
+  feedback are in the report (not written: a separate decision).
+- Not done, by design: no `act` run (no Docker run here; `workflow_dispatch` is the dry run), no
+  Playwright run (nothing the e2e suite runs changed: no `server/`, `web/`, `bin/` file).
+
+### checks (2026-10-17, code at `7f44f81`)
+
+| Gate | Result | Load |
+|------|--------|------|
+| `npm run typecheck`, `npm run lint`, `npm run format:check` | clean | — |
+| `npm run test:coverage` | 169 files passed, 1 skipped; **3068 passed / 1 skipped**; statements 96.53 %, branches 91.24 %, functions 97.2 %, lines 98.29 % | 7.29 → 12.80 |
+| `npm run docs:api` | OK | — |
+| `npm run test:smoke` | **4/4 passed**; pack 11.4 s, install 1.7 s, `--version` 0.8 s, start 0.8 s, clone 73 ms; tarball 145 files, 577 683 B packed, 1 625 509 B unpacked | 4.73 → 5.96 |
+| `npm run test:publish-smoke` | **5/5 passed**; pack 12.3 s, registry start 1.6 s, seed 10.6 s (75 run-time dependencies), publish 0.7 s, install from the local registry with a fresh cache 19.1 s, `--version` 1.2 s, start 1.3 s | 9.51 → 8.86 |
+| `test:e2e:chromium` | not run: no file the e2e suite runs changed | — |
+| `check_tasks.py v0.2` | OK (17 tasks · 46 backlog items) | — |
+| `npm run test:timing` | not run: no timing-relevant change | — |
+
+Every heavy gate ran through the machine-free slot. `wfui-*` entries in the system temporary
+directory: 0 before; after, only the `wfui-e2e-run-*` / `wfui-run-*` roots of task-040's Playwright
+run going on in its own worktree (owner pid of that run) — none of this task's. No Verdaccio
+process left (`ps -eo pid,args | grep verdaccio`: nothing).
