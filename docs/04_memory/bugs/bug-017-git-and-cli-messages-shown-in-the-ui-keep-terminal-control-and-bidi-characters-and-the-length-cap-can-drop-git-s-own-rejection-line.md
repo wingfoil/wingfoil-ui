@@ -63,6 +63,13 @@ lines the message ends after 4 000 characters of the hook's output with an ellip
 - Suggested fix (structural, in the one choke point): neutralise C0/C1 controls except `\n` and
   `\t` and the bidi controls as visible escapes; cap by keeping head and tail, or always keep git's
   own non-`remote:` lines (`! [`, `error:`, `fatal:`, `hint:`).
+- Same defect on the clone and add-folder paths (adversarial review of task-040, round 2): a failed
+  clone answers 422 `git-refused` with git's stderr as it is (`server/src/projects/project-list.ts`
+  `GitCloneError`, `GitReadError`), without the neutralising rule and the cap — a remote's pkt-line
+  `ERR` with U+202E reaches the add-project dialog. The fix covers every producer of a verbatim
+  `git-refused` / `cli-refused` message (one sanitiser at one choke point), and neutralises by
+  Unicode general category (Cc, Cf, Cs, Zl, Zp; newline and tab kept) rather than a list of ranges
+  (U+200E/200F, U+061C, U+FEFF, zero-width characters, U+2028/2029 also passed).
 - Found during task-040 (Wave 6 of the v0.2 dev-loop); the code is task-033's (v0.2, not released).
 
 ## Triage & Execution Notes
