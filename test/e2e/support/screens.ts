@@ -281,7 +281,8 @@ export const SCREENS: readonly Screen[] = [
     // sidebar's *Update*; opened only (nothing is updated on this shared console).
     name: 'git status — behind, Update in the sidebar and the footer',
     open: async (page, c) => {
-      await project(page, c, `/p/${c.pids[4]}/e/task-001-login-form`, (p) => p.locator('.drawer .update-link'));
+      // The reason's paragraph, not its link: the key-rendering build drops rich-text tags (X-09.1).
+      await project(page, c, `/p/${c.pids[4]}/e/task-001-login-form`, (p) => p.locator('.drawer .gate-blocked'));
       await expect(page.locator('.git-status .git-update')).toBeVisible({ timeout: COLD_READ_MS });
     },
   },
