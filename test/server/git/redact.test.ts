@@ -185,7 +185,7 @@ describe('bug-017 — review round 2', () => {
   });
 
   it('a literal backslash is written \\\\, so a printed "\\x1b" is told from a real ESC', () => {
-    expect(redactLocalPaths('C:\\dir and \\x1b', { home: null })).toBe('C:\\\\dir and \\\\x1b');
+    expect(redactLocalPaths('a\\b and \\x1b', { home: null })).toBe('a\\\\b and \\\\x1b');
     expect(redactLocalPaths(`${c(0x1b)}`, { home: null })).toBe('\\x1b');
   });
 
