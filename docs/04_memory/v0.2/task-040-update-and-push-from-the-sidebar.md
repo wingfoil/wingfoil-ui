@@ -8,7 +8,7 @@ module: "web"             # optional — server | web | contracts (dna.yaml modu
 priority: "medium"           # optional — high | medium | low
 tags: ["v0.2"]               # optional — additional labels, e.g. [today, a11y]
 ref: "US-Y-05"                # optional — backlog item ID, e.g. "TASK-001"
-bug: []                # optional — LIST of bug ids this task closes. Two cases: a fix task derived from a bug
+bug: ["bug-016-a-token-pasted-into-a-tab-that-already-shows-the-console-is-not-read-without-a-reload"]                # optional — LIST of bug ids this task closes. Two cases: a fix task derived from a bug
                        # by release-planning, and a bug ABSORBED into an existing task's Acceptance Criteria because that
                        # task already owns the ground. `bug.sync_state` iterates this list; a bug with no task naming it
                        # here never advances past `triaged` (only a reject to `closed`).
@@ -44,6 +44,11 @@ actions blocked while the copy is behind, with an *Update* link in the footer's 
   - `docs/02_requirements/02_bdd/features/y/push.feature`: Y-08.1 Report a push rejected because the remote moved; Y-08.2 Report a push refused for permission
 - **US-G-12** — every `@v0.2` scenario passes:
   - `docs/02_requirements/02_bdd/features/g/blocked-actions.feature`: G-12.1 Block governed actions while behind; G-12.2 Unblock after the update; G-12.3 Do not block when the copy is only ahead
+- **bug-016 (a token pasted into a tab that already shows the console is not read without a
+  reload)** A console URL with a new `#token=…` pasted into a tab that already shows that console
+  (only the fragment changes, so the browser does not reload) starts the session as a fresh tab
+  does: the page reads the new fragment, exchanges it (`POST /api/session`), removes it from the
+  address bar and shows the console; a test reproduces the paste in an open tab first.
 
 Also closes the sidebar step of G-13.2 ("1 commit to push", RP-52): the scenario is owned by
 task-038-submit-footer-action-toasts-and-blocked-actions (US-G-13), which proves its toast; this

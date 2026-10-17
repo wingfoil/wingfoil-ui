@@ -2,7 +2,7 @@
 id: bug-016-a-token-pasted-into-a-tab-that-already-shows-the-console-is-not-read-without-a-reload
 type: bug
 title: "A token pasted into a tab that already shows the console is not read without a reload"
-status: triaged
+status: planned
 severity: "low"        # REQUIRED — critical | high | medium | low
 release-origin: "v0.1" # optional — release where the bug was FOUND, e.g. "v0.1"
 release: ""            # optional — fix/implementation release, stamped by release-planning/build-backlog
@@ -71,3 +71,4 @@ Opening the same URL in a new tab, or pressing F5 after pasting it, works.
        live on those tasks (docs/04_memory/{release}/{id}.md, `bug: {this id}`, their own
        Execution Notes section) — this section only needs a pointer plus anything that doesn't
        belong on a specific fix task (e.g. why 2 tasks were needed instead of 1). -->
+- fix: **absorbed into task-040-update-and-push-from-the-sidebar** (AC "bug-016", `bug:` list of the task; the approver's choice at the start of Wave 6, 2026-10-17); `triaged → planned` set by hand (directive `wingfoil-cli` W-26).
