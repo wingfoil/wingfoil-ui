@@ -515,3 +515,43 @@ branches 91.29 %; load 2.3); `test:e2e:chromium` **308 passed** (10.9 min; load 
 no-commit` (three engines) **438 passed** (13.7 min; load 7.5); `test:timing` **passed** — Vitest
 6/6, Playwright 23/23, Y-05.2 59.7 s (budget 65 s), Y-02.1 59.6 s (granted at load 12.56, 1-min load
 1.5–2.0 during the measured tests). No console left, no `wfui-*` entry.
+
+### review round 2 (2026-10-18)
+
+Independent review **CHANGES REQUESTED** (R2-1 … R2-4 minor, R2-5 … R2-7 nit); adversarial security
+review **CHANGES REQUESTED** (minor only; push survival, the one-transport guard, the toast after
+leaving, the footer alert, S5/S6 and neutralise + cap on push held). S2-1 absorbed into bug-017 by
+the coordinator (main `e9cabc8`); S2-4 recorded as a follow-up, not in this task. Red tests first:
+`b22e134` (server: 17 failures), `f5020fe` (web: 5 failures), the verbatim-style tests (`2e5830c`'s
+red commit — the unit test first failed on its own file URL, fixed in `b25df2b`, then proved by
+removing the `unicode-bidi` line: it fails, restored). The add and clone producer tests were also
+proved by removing the sanitiser call in `project-list.ts` (both fail, restored). R2-4's "own
+project keeps its wording" passed first: a characterization.
+
+| Id | Change | Test |
+|----|--------|------|
+| R2-1 = S2-3 | the "Not pushed" toast is removed only when no commit is local (`ahead` 0) or a new push starts | `update-push.test.tsx` › R2-1 (diverged → toast kept) |
+| R2-2 | the read an operation started from (state key, `lastSuccessAt`) is `onMutate`'s context, kept with the mutation (the footer's link too); the alert shows only while the header still matches it — no component state | `update-push.test.tsx` › R2-2 (refusal → state moves → unmount, remount → no alert) |
+| R2-3 | a blur with no next element keeps tracking the control only if it was removed (checked in a microtask) | `update-push.test.tsx` › R2-3 |
+| R2-4 | a push that fails while the page shows another project names it: `shell.git.pushFailedIn` "Not pushed — {project}: {count, plural, one {the commit stays} other {# commits stay}} local" (sorted insert; the singular is the coordinator's wording) | `update-push.test.tsx` › R2-4 ×2 |
+| S2-1 (bug-017) | the project list's add and clone refusals go through `redactLocalPaths` (the home folder as `~`); `test/server/tool-messages.test.ts` enumerates every producer from the source (transport, auto-sync, auto-push, governed writes, CLI adapter, project list) and feeds the transport's and the adapter's a control/bidi marker; the add and clone routes in `projects.test.ts` (git writes an ESC as `?` itself; a control character in a clone URL is refused before git, 400) | `tool-messages.test.ts`, `projects.test.ts` › bug-017 ×2 |
+| S2-2 | escapes by Unicode category (Cc, Cf, Cs, Zl, Zp but newline and tab; `\u{…}` beyond U+FFFF); the web shows `.verbatim` left to right with `unicode-bidi: bidi-override` | `redact.test.ts` › round 2 (11 code points, a lone surrogate, an emoji and U+034F kept); `error-text.test.tsx` (the rule); e2e Y-08.2 (computed style) |
+| R2-5 = S2-5 | the cap never splits a surrogate pair; units matched from the start | `redact.test.ts` › surrogate pair, long escapes |
+| R2-6 | CR LF → newline before escaping; the scheme-less userinfo rule accepts a control/format character as its left context | `redact.test.ts` › CRLF, userinfo after ESC / U+200E |
+| S2-6 | `.verbatim` `overflow: hidden` (no server collapse of combining marks) | `error-text.test.tsx`, e2e Y-08.2 |
+| S2-7 | a backslash is written `\\` first (documented in the `redact.ts` table); the literal-token residual stated in spec-010 §4 | `redact.test.ts` › backslash |
+| S2-8 | the probe has a 10 s timeout (`probeTimeoutMs`), a timed-out probe leaves the fragment and frees the guard | `session.test.ts` › S2-8 |
+| R2-7 | user guide 0.15 note names bug-017 | — |
+
+Docs: spec-010 §4 text and Process Note (2026-10-18), the `redact.ts` doc table, `CHANGELOG.md`
+bug-017 entry (add and clone, categories, backslash, left to right), user guide (escapes, the named
+toast, when it goes). Versions kept (the coordinator's rule for round fixes).
+
+Checks after review round 2 (HEAD before this note `b74e809`; every heavy gate through the slot as a
+tracked background command): typecheck, lint, format:check clean; `docs:api` 0 warnings;
+`check_tasks.py v0.2` OK; public-text check passed; `test:coverage` **3138 passed / 1 skipped**
+(statements 96.51 %, branches 91.27 %; load 1.8); `test:e2e:chromium` **308 passed** (10.7 min;
+granted at load 12.45); `npm run test:e2e -- update-push submit-footer shell git-status gate-footer
+accessibility no-commit add-project` (three engines) **489 passed** (14.6 min; load 7.7);
+`test:timing` **skipped** (load 18.3 after the suites; the round-1 run passed and no timed path
+changed). No console left, no `wfui-*` entry.
