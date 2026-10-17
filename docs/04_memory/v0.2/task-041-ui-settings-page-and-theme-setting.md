@@ -349,3 +349,21 @@ Checks (HEAD before this note `f264680`): typecheck, lint, format:check clean; `
 branches 91.23 %, functions 97.24 %, lines 98.32 %; load 12.2 → 17.2); own spec on three engines
 **21 passed** (load → 4.6). Only `web/src/api/settings.ts` changed in the web code: no full Chromium
 run (as asked).
+
+### before submit (2026-10-17, coordinator)
+
+- Review: round 2 **PASS**, confirmation round **PASS** (no new finding).
+- `main` (`674a543`, with task-038 and task-039 merged) merged into the branch (`6e8e2e8`, C1). Conflicts on
+  append-only lines and version lines only: CHANGELOG (entries of task-038, task-039, then this task),
+  `test/README.md` 0.39 (0.37, 0.38 kept in the history line), `docs/user-guide.md` 0.14 (0.12, 0.13 kept),
+  ux-reference 1.7 (1.5, 1.6 kept; the §3 *Sidebar* row carries both notes, and task-039's "(it does not)
+  scroll" became "it scrolls on its own only when taller than half the column", its review R5),
+  `SCREENS` (entries of task-038, task-039, then this task), `test/e2e/support/console.ts` (task-038's
+  `ConsoleOptions.settings`, which throws for a `stateFile` or an already seeded `stateDir`; this task's
+  specs do neither — review R4). `base.css` merged without conflict (task-039's `.project-sidebar` /
+  `.sidebar-foot`, this task's pinned group).
+- Checks after the merge (each heavy gate through the machine-free slot): typecheck, lint, format:check
+  clean; `test:coverage` **3045 passed / 1 skipped** (statements 96.53 %, branches 91.24 %);
+  `test:e2e:chromium` **286 passed** (9.9 min); `npm run test:e2e -- ui-settings.spec.ts git-status.spec.ts
+  accessibility.spec.ts submit-footer.spec.ts` (three engines) **294 passed** (8.6 min). No console left,
+  no `wfui-*` entry.
