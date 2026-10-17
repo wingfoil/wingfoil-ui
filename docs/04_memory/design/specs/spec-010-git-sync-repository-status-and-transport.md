@@ -178,13 +178,19 @@ cancelled process group or the server) and `--no-optional-locks`.
 - Failure → **422 `git-refused`**, git's standard error verbatim (spec-004 §5) except for the
   local folders it quotes (the project's → `<project>`, the repository's → `<repository>`, a local
   remote's path wherever it is → `<remote>`, the home folder → `~`), URL userinfo removed (also a
-  `user:password@host` without a scheme), then every control character other than newline and tab
-  and every bidirectional control (U+202A–U+202E, U+2066–U+2069) written as a visible escape (`\x1b`,
-  `\u202e`), then at most 4 000 characters kept as the head and the tail around a `…` line, a cut
-  never splitting an escape or a redaction token (bug-017) — also in `lastError`.
+  `user:password@host` without a scheme, also after a control character), then CR LF folded to a
+  newline, a backslash written `\\` and every character of the Unicode categories Cc, Cf, Cs, Zl
+  and Zp other than newline and tab written as a visible escape (`\x1b`, `\u202e`, `\u{e0001}`),
+  then at most 4 000 characters kept as the head and the tail around a `…` line, a cut never
+  splitting an escape, a redaction token or a surrogate pair (bug-017) — also in `lastError`. This
+  one sanitiser (`server/src/git/redact.ts`) makes every verbatim tool message the API sends: the
+  transport, the sync status, the auto-push, the governed writes, the CLI adapter, the project
+  list's add and clone (`test/server/tool-messages.test.ts`); the web shows such text left to right
+  without bidi reordering, clipped to its box.
   Declared residual (task-040, D40-9): other absolute paths that git or a hook prints (a folder
   outside the project, the repository, a local remote and the home folder) are shown as printed —
-  git's text stays verbatim (REQ-INT-06); the console is the user's own, on loopback. A fetch failure is
+  git's text stays verbatim (REQ-INT-06); the console is the user's own, on loopback. A literal
+  `<project>` (or `<remote>`, …) printed by a hook cannot be told from the redaction token. A fetch failure is
   also kept as `sync.fetch.lastError` (Y-03.1, Y-03.2), an update failure as
   `sync.update.lastError` with `code: "git-refused"` and the `message` — in memory only, never
   logged (the log gets `{pid, op, exitCode}`) nor stored, since git may echo a URL.
@@ -486,3 +492,8 @@ Rows 7–9 do not apply (no element).
   keeps its head and its tail, so git's own concluding lines (`! [rejected]`, `error:`, `fatal:`)
   survive a long hook output. Proved by `test/server/git/redact.test.ts` and end to end by
   `test/e2e/update-push.spec.ts` › Y-08.2.
+- 2026-10-18 — bug-017, review round 2 of task-040 (S2-1 … S2-7, R2-5, R2-6, decided by the
+  approver): §4 the sanitiser escapes by Unicode category (Cc, Cf, Cs, Zl, Zp but newline and tab),
+  doubles a backslash first, folds CR LF, removes a scheme-less userinfo after a control character,
+  never splits a surrogate pair at the cap, and is the one producer of every verbatim tool message —
+  the project list's add and clone included; the residual of a literal redaction token stated.

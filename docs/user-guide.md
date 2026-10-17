@@ -1,6 +1,6 @@
 # User guide — WingFoil UI v0.1
 
-**Version:** 0.15 · **Date:** 2026-10-17 (0.1: release v0.1; 0.2: bug-008 known limitation, release submit; 0.3: bug-008 wording; 0.4: bug-008 marked fixed after 0.1.0 — task-026; 0.5: *How to join*, unreleased v0.2 — task-035; 0.6: *Today*, unreleased v0.2 — task-036; 0.7: what runs during a clone, a local repository of another user, unreleased v0.2 — task-033 / bug-010, bug-013; 0.8: a local source git cannot read — task-033 review round 3; 0.9: *Deciding a gate*, unreleased v0.2 — task-037; 0.10: *Automatic sync with the remote*, unreleased v0.2 — task-034 / bug-014, its security reviews; 0.11: the notification bell and *Your roles* on Today, unreleased v0.2 — task-042; 0.12: *Submitting* and *After an action*, unreleased v0.2 — task-038; 0.13: *Git status in the sidebar*, unreleased v0.2 — task-039; 0.14: *UI settings*, unreleased v0.2 — task-041; 0.15: *Update* and *Push* in the sidebar, a URL pasted into an open tab, unreleased v0.2 — task-040 / bug-016)
+**Version:** 0.15 · **Date:** 2026-10-17 (0.1: release v0.1; 0.2: bug-008 known limitation, release submit; 0.3: bug-008 wording; 0.4: bug-008 marked fixed after 0.1.0 — task-026; 0.5: *How to join*, unreleased v0.2 — task-035; 0.6: *Today*, unreleased v0.2 — task-036; 0.7: what runs during a clone, a local repository of another user, unreleased v0.2 — task-033 / bug-010, bug-013; 0.8: a local source git cannot read — task-033 review round 3; 0.9: *Deciding a gate*, unreleased v0.2 — task-037; 0.10: *Automatic sync with the remote*, unreleased v0.2 — task-034 / bug-014, its security reviews; 0.11: the notification bell and *Your roles* on Today, unreleased v0.2 — task-042; 0.12: *Submitting* and *After an action*, unreleased v0.2 — task-038; 0.13: *Git status in the sidebar*, unreleased v0.2 — task-039; 0.14: *UI settings*, unreleased v0.2 — task-041; 0.15: *Update* and *Push* in the sidebar, a URL pasted into an open tab, tool messages shown safely, unreleased v0.2 — task-040 / bug-016, bug-017)
 
 WingFoil UI v0.1 is a **read-only console** for WingFoil-governed projects: you open a project and
 read its Memory, elements, DNA, directives, team and documentation, kept up to date while you work
@@ -389,8 +389,9 @@ with git each time the repository changes:
   project. A push cancelled while a local remote receives it can leave git's temporary folder
   `objects/tmp_objdir-incoming-*` in that remote until git's own clean-up (`git gc`) removes it.
   A rejected push — the remote moved, no permission — is a **red
-  toast** *Not pushed — the commit stays local* with git's message, and the sidebar still offers
-  *Push*.
+  toast** *Not pushed — the commit stays local* with git's message (*Not pushed — <project>: …*
+  when you are on another project by then), and the sidebar still offers *Push*; the toast goes
+  when a new push starts or when no commit is left to push.
 - **One at a time.** While a fetch, an update or a push runs, the other buttons wait; when the
   button you used goes away with the result (e.g. *Update* once in sync), the focus moves to
   *Fetch*.
@@ -407,10 +408,13 @@ with git each time the repository changes:
   console knows replaced — the project's (`<project>`), the repository's (`<repository>`), a local
   remote's (`<remote>`) and your home folder (`~`) — and the credentials of a URL removed. Other
   absolute paths that git or a hook prints (a folder outside your home, for example) are shown as
-  printed. Control characters (an escape sequence, a carriage return) and the characters that
-  reverse the direction of text are shown as visible escapes such as `\x1b` or `\u202e`, and a
-  very long message keeps its beginning and its end — where git says why it refused — around a
-  `…` line.
+  printed (and a hook that prints `<project>` itself cannot be told from the console's
+  replacement). Control characters (an escape sequence, a carriage return), invisible format
+  characters (those that reverse the direction of text, zero-width ones) and line separators are
+  shown as visible escapes such as `\x1b` or `\u202e`, a backslash git printed as `\\`, and the
+  text is shown left to right in the order git printed it. A very long message keeps its beginning
+  and its end — where git says why it refused — around a `…` line. The same holds for the messages
+  of a refused *Add project* or clone and of WingFoil's refusals.
 
 ## Automatic sync with the remote
 
