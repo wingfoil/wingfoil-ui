@@ -272,3 +272,70 @@ Every heavy gate ran through the machine-free slot. `wfui-*` entries in the syst
 directory: 0 before; after, only the `wfui-e2e-run-*` / `wfui-run-*` roots of task-040's Playwright
 run going on in its own worktree (owner pid of that run) — none of this task's. No Verdaccio
 process left (`ps -eo pid,args | grep verdaccio`: nothing).
+
+### review round 1 (2026-10-17)
+
+Independent review: **CHANGES REQUESTED** (1 major, 6 minor, 2 nits). Red first: `4a1135d` (the
+failing tests), fixes `1e88dcc`.
+
+- **R1 (major)** — `workflow_dispatch` started on a tag ref has `ref_type == 'tag'` and
+  `refs/tags/v…`, so it could reach `promote`. Promote's `if:` is now exactly
+  `github.event_name == 'push' && github.ref_type == 'tag' && startsWith(github.ref, 'refs/tags/v')`,
+  asserted as a whole string; the workflow header and `docs/publishing.md` say a dispatch on any ref
+  never promotes. Red: the job-chain test failed on the old condition.
+- **R2 (minor)** — `npm audit` with `verdaccio@6.10.5`: 9 findings, 3 critical (`handlebars` via
+  `@verdaccio/hooks`, `@verdaccio/hooks`, `verdaccio`) and 6 high (`braces`, `micromatch`,
+  `fast-glob`, `globby` via `@verdaccio/local-storage-legacy`, `compression`); `npm audit
+  --omit=dev`: 0; the lockfile before this task (`26fbafb`): 0 (`npm audit --package-lock-only`).
+  **D29-1 rationale, amended:** the findings are a dev-only, loopback-only, short-lived exposure —
+  the registry runs only during the smoke (about a minute), bound to 127.0.0.1, with no uplink,
+  serving only what the smoke put into it; nothing reaches the published package. Status:
+  **accepted risk — pending the approver's confirmation**. `docs/publishing.md` *Local staging
+  smoke* records it and *Every release* adds a re-check at release validation (`npm audit
+  --omit=dev` = 0; `npm audit` compared with this list).
+- **R3 (minor)** — the static test accepted mutants. Now: every `permissions:` is a map (top level
+  and each job), promote's `if:` exact, `secrets` banned in any form plus `github.token` and
+  `GITHUB_TOKEN`, promote's steps exactly setup-node, download-artifact, the stage step, and the
+  downloaded artifact's name equals the uploaded one in `stage` and `promote`. Each mutant applied
+  to a copy of the workflow, then restored — 1 failed / 10 passed for each: `permissions: write-all`
+  on gate, the same on stage, `if: … || true`, `secrets['X']`, `github.token`, `GITHUB_TOKEN=x`, a
+  checkout in promote, an `npm ci` in promote, another artifact name in promote; the unchanged file
+  11/11.
+- **R4 (minor)** — `test/README.md`: `test:publish-smoke` added to the runs that rebuild `server/dist`
+  and `web/dist` in place and must not run together; *Temporary folders* names the publish smoke's
+  folder and its cleanup.
+- **R5 (minor)** — `test/smoke/registry-cleanup.ts` `killGroupOnExit(pgid)`: once-handlers for
+  SIGINT, SIGTERM, SIGHUP and `exit` that SIGKILL the registry's process group (then the signal is
+  raised again), removed by the normal stop; `startRegistry` installs it right after the spawn.
+  `registry-cleanup.publish.test.ts` (in `test:publish-smoke`): a child Node.js process (type
+  stripping, the module has no import) starts a detached stand-in, is signalled with each signal or
+  exits — the stand-in's group is gone — and `remove()` leaves the group alone. Red: the module did
+  not exist (6 failing). Guard removal: with the group kill replaced by a no-op, the three signal
+  tests and the exit test failed (4 failed / 2 passed).
+- **R6 (minor)** — the `stage` job has not run on Node 22.12.0: every local run used Node 22.21.0
+  and no Node build was downloaded. `docs/publishing.md` lists it under *Not verified yet*: first
+  verified by the `workflow_dispatch` dry run.
+- **R7 (nit)** — differences table: a *Stage job install* row (WingFoil's stage runs no `npm ci`,
+  ours a full dev `npm ci`) and, in *Staging install and check*, WingFoil's `--expect-commit
+  "$GITHUB_SHA"`, which ties the installed tarball to the tagged commit; ours cannot (the launcher
+  prints no commit).
+- **R8 (nit)** — `check-release-tag.mjs`: `<sha>` peeled with `rev-parse <sha>^{commit}` before the
+  comparison; the lockfile's `version`, `packages[""]` and each workspace's `packages["<folder>"]`
+  compared too (release-submit `release-commit` bumps "the root and workspace `package.json` files
+  and the lockfile"); a glob workspace entry is refused with its own message. Red: 5 new tests
+  failed; green 12/12. A run of the script on this checkout fetched `origin/main` (read-only).
+- **R9 (nit)** — wording: the guard is "a plain `npm publish` from a checkout stops", with
+  `--ignore-scripts` skipping it; the control is the trusted publisher limited to staging and
+  "disallow tokens" (checklist steps 5 and 6) — in `docs/publishing.md`, the workflow header,
+  `scripts/publish-guard.mjs`, `CHANGELOG.md`. The lockfile change, correctly stated: additions only
+  (296 dev entries, Verdaccio's closure); the large diff is git's diff alignment (`git log
+  --diff-algorithm=patience --stat`: 3810 insertions, 0 deletions), not npm reformatting.
+- `docs/publishing.md` 0.2; `test/README.md` stays 0.40 (the version assigned to this task, not
+  merged yet).
+
+Checks after the fixes (code at `1e88dcc`): `typecheck`, `lint`, `format:check` clean; targeted
+`publish-workflow`, `test/scripts`, `pack`, `test/docs`: 113 passed; `test:coverage` **3073 passed /
+1 skipped** (169 files), statements 96.53 %, branches 91.24 %, functions 97.2 %, lines 98.29 % (load
+11.02 → 16.47); `test:publish-smoke` **11/11** (2 files; pack 5.5 s, seed 6.1 s, install 9.7 s)
+(load 11.78 → 8.41); `check_tasks.py v0.2` OK. `wfui-*` before: only task-040's running Playwright
+roots; after: none. No Verdaccio process left.
