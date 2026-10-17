@@ -1,7 +1,7 @@
 # User Story Map — Stories
 
-**Version:** 0.5
-**Date:** 2026-10-01 (0.2: US-S-11, US-X-07 moved to v0.2 — session 2; 0.3: US-C-05, US-C-06 dropped with C3 — session 3; 0.4: input versions — session 6; 0.5: US-X-10 page title — initial-design session 2)
+**Version:** 0.6
+**Date:** 2026-10-17 (0.2: US-S-11, US-X-07 moved to v0.2 — session 2; 0.3: US-C-05, US-C-06 dropped with C3 — session 3; 0.4: input versions — session 6; 0.5: US-X-10 page title — initial-design session 2; 0.6: *Update* is `git pull --ff-only`, the automatic update a fast-forward `merge --ff-only` of the fetched upstream — dev-loop task-040, D40-8)
 **Status:** Draft — specification-downcast session 1 (`user-story-mapping`, phases
 `vertical-explosion` and `mvp-cut`)
 **Input:** `01_backbone.md` · `docs/01_vision/05_journeys.md` (v0.3) · `06_features.md` (v0.6) ·
@@ -274,7 +274,7 @@ means any of them.
 
 | ID | Story | Features | Journey | Release | Kind |
 |----|-------|----------|---------|---------|------|
-| US-Y-05 | As a member, I want *Update* to fast-forward my copy (`git pull --ff-only`), automatically when my settings say so, so that governed actions are unblocked | Y4, C4 | J8.2 | [MVP · v0.2] | N |
+| US-Y-05 | As a member, I want *Update* to fast-forward my copy (`git pull --ff-only`), and an automatic fast-forward (`git merge --ff-only` of the fetched upstream) when my settings say so, so that governed actions are unblocked | Y4, C4 | J8.2 | [MVP · v0.2] | N |
 | US-Y-06 | As a member, I want an update that cannot fast-forward (diverged history, local changes in the way) to leave actions blocked and tell me what to run in the terminal, so that the UI never merges or rebases | Y4 | J8.3 | [MVP · v0.2] | E |
 
 ### 8.3 Share what was committed

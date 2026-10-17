@@ -1,5 +1,6 @@
 Feature: Update (fast-forward)
-  *Update* runs `git pull --ff-only`, automatically when the setting says so; when it cannot
+  *Update* runs `git pull --ff-only`; with the setting on, the automatic update fast-forwards to
+  the fetched upstream (`git merge --ff-only`) right after an automatic fetch; when it cannot
   fast-forward the UI stays blocked and says what to run in the terminal (Y4, C4).
 
   Background:

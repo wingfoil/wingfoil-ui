@@ -178,7 +178,10 @@ cancelled process group or the server) and `--no-optional-locks`.
 - Failure → **422 `git-refused`**, git's standard error verbatim (spec-004 §5) except for the
   local folders it quotes (the project's → `<project>`, the repository's → `<repository>`, a local
   remote's path wherever it is → `<remote>`, the home folder → `~`), URL userinfo removed (also a
-  `user:password@host` without a scheme), at most 4 000 characters — also in `lastError`. A fetch failure is
+  `user:password@host` without a scheme), at most 4 000 characters — also in `lastError`.
+  Declared residual (task-040, D40-9): other absolute paths that git or a hook prints (a folder
+  outside the project, the repository, a local remote and the home folder) are shown as printed —
+  git's text stays verbatim (REQ-INT-06); the console is the user's own, on loopback. A fetch failure is
   also kept as `sync.fetch.lastError` (Y-03.1, Y-03.2), an update failure as
   `sync.update.lastError` with `code: "git-refused"` and the `message` — in memory only, never
   logged (the log gets `{pid, op, exitCode}`) nor stored, since git may echo a URL.
@@ -466,3 +469,10 @@ Rows 7–9 do not apply (no element).
 - 2026-10-16 — review round 5 of task-034 (S5-1): §6 "no hook of the repository"; hooks the user's
   own configuration defines (`hook.<name>.command`) counted under the declared residual, with a
   cross-reference to the residual of hooks an automatic merge brought in.
+- 2026-10-17 — amended in dev-loop task-040 (minor-v0.2 Wave 6, plan dev-loop-rel-v0.2-plan,
+  D40-9): §4 declares the residual of the `git-refused` redaction — absolute paths outside the
+  folders it knows are shown as git or a hook printed them; proved end to end on a push declined by
+  a remote's `pre-receive` hook (`test/e2e/update-push.spec.ts` › Y-08.2). The sidebar's *Push* is
+  offered whatever `autoPush` says (D40-1, ux-reference 1.8) and *Push* stays the upstream's remote
+  only (D40-12, §4 explicit refspec); a cancelled push still answers 500 `internal` to the client
+  that left, nothing recorded (D40-11). Decided by the approver.

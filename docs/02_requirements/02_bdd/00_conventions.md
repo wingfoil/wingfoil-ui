@@ -1,7 +1,7 @@
 # BDD Scenarios — Conventions
 
-**Version:** 0.9
-**Date:** 2026-10-12 (0.2: v0.3–v1.0 conventions — session 3; 0.3: coherence audit fixes — session 6; 0.4: US-X-10 page title — initial-design session 2; 0.5: last *non-archived* state, X-02.2 API request — initial-design session 6; 0.6: CLI stub as the package `bin` script, version-fake and no-CLI variants — release-planning v0.1 session 4 (audit A6); 0.7: `memory-list.feature` bucket header aligned with spec-003 — dev-loop task-011; 0.8: R-08.2 lists asserted on `02_product-vision.md`, the custom fixture's `06_features.md` has none — dev-loop task-020, decided by the user; 0.9: G-14.2 expects the 409 `element-changed` text — release-planning v0.2, RP-12)
+**Version:** 0.10
+**Date:** 2026-10-17 (0.2: v0.3–v1.0 conventions — session 3; 0.3: coherence audit fixes — session 6; 0.4: US-X-10 page title — initial-design session 2; 0.5: last *non-archived* state, X-02.2 API request — initial-design session 6; 0.6: CLI stub as the package `bin` script, version-fake and no-CLI variants — release-planning v0.1 session 4 (audit A6); 0.7: `memory-list.feature` bucket header aligned with spec-003 — dev-loop task-011; 0.8: R-08.2 lists asserted on `02_product-vision.md`, the custom fixture's `06_features.md` has none — dev-loop task-020, decided by the user; 0.9: G-14.2 expects the 409 `element-changed` text — release-planning v0.2, RP-12; 0.10: Y-08.1 toast wording, `update.feature` header — dev-loop task-040, D40-6, D40-8)
 **Status:** Draft — specification-downcast sessions 2–3 (`specification-by-examples`)
 **Input:** `../01_user_story_map/02_story-map.md` · `03_mvp-cut.md` · `docs/01_vision/` ·
 directives `wingfoil-cli` (v1.1), `cli-only-writes` (v1.3), `accessibility`
@@ -206,3 +206,10 @@ nominal and ≥ 1 edge scenario per story of the releases in scope).
   not the message of `wingfoil memory reject`; no `memory reject` process runs; the panel shows
   the new state. Title "Show the refusal when the element moved in the meantime". Decided by the
   approver at checkpoint 2.
+- 2026-10-17 — amended in dev-loop task-040 (minor-v0.2 Wave 6, plan dev-loop-rel-v0.2-plan,
+  D40-6, D40-8): Y-08.1 in `y/push.feature` reads "a toast shows "Not pushed" in red with the
+  rejection printed by git" — a failed auto-push is the write's own toast, polite and sticky, with
+  the red line "Not pushed — the commit stays local" and git's text (task-038 D38-4: the write
+  succeeded); a failed *Push* from the sidebar (Y-08.2) is a red toast. The `y/update.feature`
+  header says that the automatic update is a fast-forward `git merge --ff-only` of the fetched
+  upstream, *Update* `git pull --ff-only`. Decided by the approver.

@@ -391,7 +391,7 @@ test.describe('US-Y-08 — a rejected push', () => {
       fx,
       [
         `echo "permission denied: morgan may not push here" >&2`,
-        `printf '%s/wfui-probe-secret https://morgan:TOKEN-MARKER@example.invalid/kanban.git\\n' "$HOME" >&2`,
+        `printf '%s/x/probe-secret https://morgan:TOKEN-MARKER@example.invalid/kanban.git\\n' "$HOME" >&2`,
         'exit 1',
       ].join('\n'),
     );
@@ -408,7 +408,7 @@ test.describe('US-Y-08 — a rejected push', () => {
     // Redacted end to end: the remote's path, the home folder, the URL's credentials.
     const text = (await verbatim.textContent()) ?? '';
     expect(text).toContain('<remote>');
-    expect(text).toContain('~/wfui-probe-secret');
+    expect(text).toContain('~/x/probe-secret');
     expect(text).toContain('https://example.invalid/kanban.git');
     expect(text).not.toContain('TOKEN-MARKER');
     expect(text).not.toContain(fx.remoteDir);

@@ -1,7 +1,7 @@
 # User Journeys — WingFoil UI
 
-**Version:** 0.3
-**Date:** 2026-10-01 (0.2: J4 obstacle, J0 landing in v0.1 — coherence audit; 0.3: external review — session 7)
+**Version:** 0.4
+**Date:** 2026-10-17 (0.2: J4 obstacle, J0 landing in v0.1 — coherence audit; 0.3: external review — session 7; 0.4: *Update* is `git pull --ff-only`, the automatic update a fast-forward `merge --ff-only` of the fetched upstream — dev-loop task-040, D40-8)
 **Status:** Accepted in lean-inception session 3 (2026-10-01)
 **Input:** `04_personas.md` · `02_product-vision.md` · `03_is-isnot.md`
 **Evidence:** `docs/00_reference/ux-reference.md` (screen references below as §n) and the prototype
@@ -190,7 +190,7 @@ read-only with the reason.
 | # | Action | Screen | WF | Outcome |
 |---|--------|--------|----|---------|
 | 1 | The UI fetches the remote automatically (option) and shows ahead/behind and local changes | Sidebar · git status (§3) | — | Knows if the copy is behind or has local changes |
-| 2 | When behind: *Update* (`git pull --ff-only`), automatic when the option is on | Sidebar · git status (§3) · **GAP** update control | — | Copy back in line; governed actions unblocked |
+| 2 | When behind: *Update* (`git pull --ff-only`); with the option on, an automatic fast-forward (`git merge --ff-only`) of the upstream just fetched | Sidebar · git status (§3) · **GAP** update control | — | Copy back in line; governed actions unblocked |
 | 3 | If the update cannot fast-forward (diverged history, local changes in the way) | **GAP** blocked-update notice | — | Governed actions stay blocked; the UI says what to run in the terminal |
 | 4 | A gate or submit commits through the CLI | Element panel (§4.2) | 0.2.2 | New `wf(…)` commit |
 | 5 | The commit is pushed automatically (option), or with *Push* when the option is off | Sidebar · git status (§3) | — | Remote updated; toast says "pushed" |

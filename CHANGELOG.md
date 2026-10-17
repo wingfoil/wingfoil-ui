@@ -57,6 +57,13 @@ All notable changes to WingFoil UI are recorded in this file. The format follows
   entries kept. Settings are kept on this computer for every project, never committed, and apply
   without a restart; other tabs follow.
 
+- **Update and Push from the sidebar** (US-Y-05…US-Y-08, US-G-12): *Update* while the copy is
+  behind (`git pull --ff-only`, never a merge, rebase or stash; refusals name the command to run in
+  a terminal), "N commits to push" and *Push* (with *Cancel*) while it is only ahead, whatever
+  *Auto-push* says; one transport at a time; a rejected push is a red toast with git's message
+  (local folders and URL credentials redacted); governed actions blocked while behind end with an
+  *Update* link; *Update* and *Push* read-only for a user who is not one member of the team.
+
 ### Changed
 
 - **A project opens on Today** (US-T-01): `/p/<id>` lands on Today, the first sidebar entry;
@@ -67,6 +74,9 @@ All notable changes to WingFoil UI are recorded in this file. The format follows
 
 ### Fixed
 
+- **A console URL pasted into an open tab is read without a reload** (bug-016): the page reads the
+  new `#token=…`, exchanges it and shows the console as a new tab does; a page whose session is
+  still valid ignores a token it did not need.
 - **An update never makes a merge commit, a fetch never deletes a local tag or branch**
   (bug-014, unreleased git routes `POST /api/p/<id>/git/update` and `/git/fetch`): with
   `branch.<b>.mergeOptions = -s ours` or `pull.twohead = ours` the update created a merge commit
