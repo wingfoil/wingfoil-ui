@@ -1,6 +1,6 @@
 # CLAUDE.md — agent entry point
 
-**Version:** 0.4 · **Date:** 2026-10-13 (0.1: release v0.1, `user-docs` `align-agent-docs`; 0.2: v0.1.0 released, release submit; 0.3: `test:smoke` wave gate — task-026; 0.4: e2e on three engines, inner-loop Chromium run — task-027)
+**Version:** 0.5 · **Date:** 2026-10-17 (0.1: release v0.1, `user-docs` `align-agent-docs`; 0.2: v0.1.0 released, release submit; 0.3: `test:smoke` wave gate — task-026; 0.4: e2e on three engines, inner-loop Chromium run — task-027; 0.5: `test:publish-smoke`, the publishing guide — task-029)
 
 WingFoil UI: a local web UI for WingFoil-governed projects. A Node.js server (`server/`) drives
 each project's pinned `wingfoil` CLI and reads git; a React app (`web/`) shows the result;
@@ -36,6 +36,7 @@ accepted as a limitation: [`CHANGELOG.md`](CHANGELOG.md).
 | Tasks, specs, ADRs, decision logs, bugs | `docs/04_memory/` (`v0.1/`, `design/specs/`, `design/adrs/`, `design/dls/`, `bugs/`) |
 | UX reference and prototype | `docs/00_reference/` |
 | Tests and their suites | [`test/README.md`](test/README.md) |
+| npm publishing: pipeline, approver checklist, release runbook (agents never publish or configure the registry) | [`docs/publishing.md`](docs/publishing.md) |
 
 ## Working with the WingFoil CLI
 
@@ -63,6 +64,8 @@ accepted as a limitation: [`CHANGELOG.md`](CHANGELOG.md).
   own specs on the three engines (`npm run test:e2e -- <spec files>`); `npm run test:e2e` (Chromium,
   Firefox, WebKit) at the end of every wave and at release validation; `test:timing` only on a
   quiet machine; `npm run test:smoke` at the end of every wave and when packaging, the launcher or
-  the bin changes ([`test/README.md`](test/README.md) *Launch smoke*, *Temporary folders*).
+  the bin changes ([`test/README.md`](test/README.md) *Launch smoke*, *Temporary folders*);
+  `npm run test:publish-smoke` when packaging or `.github/workflows/publish.yml` changes
+  ([`docs/publishing.md`](docs/publishing.md) *Local staging smoke*).
 - **Never** edit `.wingfoil/` or Memory files to change a state a verb owns; never put secrets in
   the repository or the local state (`security-secrets`).

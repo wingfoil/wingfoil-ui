@@ -2,7 +2,9 @@
  * Packaging guard (task-025 AC-1, AC-2; bug-007; decisions ES-8…ES-11, ES-16): the file list of
  * `npm pack` is an allow-list, every run-time file is in it, and the installed package resolves
  * every module the built server imports. Runs `npm pack --dry-run --ignore-scripts` (no build):
- * `test/global-setup.ts` has built `server/dist` and `web/dist`.
+ * `test/global-setup.ts` has built `server/dist` and `web/dist`. task-029 (AC-2, D29-9): the root
+ * package is publishable — no `private` (the workspaces keep it) — and names the GitHub repository,
+ * as npm's provenance and trusted publisher require; the file list is unchanged.
  */
 import path from 'node:path';
 import { beforeAll, describe, expect, it } from 'vitest';
