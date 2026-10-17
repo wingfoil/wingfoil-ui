@@ -53,3 +53,27 @@ test('seeds the console, opens the page and waits for repo and projects events',
     { event: 'projects' },
   );
 });
+
+// task-038 (C2) and its review R4: `settings` is written into the seeded `state.json`; given with a
+// raw `stateFile` or a `stateDir` that already holds a `state.json`, it is refused, never ignored.
+test('startConsole({ settings }) seeds the settings and refuses what it would ignore', async ({
+  page,
+  fixtures,
+  consoles,
+}, testInfo) => {
+  const kanban = await fixtures.copy('kanban');
+  const c = await consoles.start({ projects: [kanban], settings: { autoPush: true, autoFetch: false } });
+  await openConsole(page, c);
+  const settings = await page.evaluate(
+    async () => (await (await fetch('/api/settings')).json()) as Record<string, unknown>,
+  );
+  expect(settings).toMatchObject({ autoPush: true, autoFetch: false });
+
+  await expect(consoles.start({ stateFile: '{}', settings: { autoPush: true } })).rejects.toThrow(
+    /settings.*stateFile/,
+  );
+  const stateDir = testInfo.outputPath('seeded-state');
+  const first = await consoles.start({ projects: [kanban], stateDir });
+  await first.stop();
+  await expect(consoles.start({ stateDir, settings: { autoPush: true } })).rejects.toThrow(/settings.*state\.json/);
+});

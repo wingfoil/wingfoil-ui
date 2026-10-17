@@ -111,10 +111,29 @@ describe('footerView', () => {
     });
   });
 
-  it('a submit: nothing in this footer (task-038)', () => {
+  // task-038 (D38-6, D38-7): the single-action footer, for every member identified in the team.
+  it('a submit: the single-action footer for any member, with the descriptor enablement', () => {
+    const submit = { verb: 'submit' as const, to: 's2', role: null, enabled: true };
+    expect(footerView(descriptor({ kind: 'first', verbs: [submit] }), header(OTHER))).toEqual({
+      kind: 'submit',
+      to: 's2',
+      enabled: true,
+    });
+    const reason = { code: 'local-changes' } as const;
     expect(
-      footerView(descriptor({ verbs: [{ verb: 'submit', to: 's2', role: null, enabled: true }] }), header(OTHER)),
-    ).toEqual({ kind: 'none' });
+      footerView(descriptor({ kind: 'first', verbs: [{ ...submit, enabled: false, reason }] }), header(MEMBER)),
+    ).toEqual({ kind: 'submit', to: 's2', enabled: false, reason });
+  });
+
+  it('a submit for a user who is not identified: the read-only line first (S-13.2)', () => {
+    const submit = {
+      verb: 'submit' as const,
+      to: 's2',
+      role: null,
+      enabled: false,
+      reason: { code: 'not-in-team' } as const,
+    };
+    expect(footerView(descriptor({ verbs: [submit] }), header({ kind: 'no-identity' }))).toEqual({ kind: 'readOnly' });
   });
 });
 
