@@ -1,6 +1,6 @@
 # User guide — WingFoil UI v0.1
 
-**Version:** 0.11 · **Date:** 2026-10-15 (0.1: release v0.1; 0.2: bug-008 known limitation, release submit; 0.3: bug-008 wording; 0.4: bug-008 marked fixed after 0.1.0 — task-026; 0.5: *How to join*, unreleased v0.2 — task-035; 0.6: *Today*, unreleased v0.2 — task-036; 0.7: what runs during a clone, a local repository of another user, unreleased v0.2 — task-033 / bug-010, bug-013; 0.8: a local source git cannot read — task-033 review round 3; 0.9: *Deciding a gate*, unreleased v0.2 — task-037; 0.10: *Automatic sync with the remote*, unreleased v0.2 — task-034 / bug-014, its security reviews; 0.11: the notification bell and *Your roles* on Today, unreleased v0.2 — task-042)
+**Version:** 0.12 · **Date:** 2026-10-16 (0.1: release v0.1; 0.2: bug-008 known limitation, release submit; 0.3: bug-008 wording; 0.4: bug-008 marked fixed after 0.1.0 — task-026; 0.5: *How to join*, unreleased v0.2 — task-035; 0.6: *Today*, unreleased v0.2 — task-036; 0.7: what runs during a clone, a local repository of another user, unreleased v0.2 — task-033 / bug-010, bug-013; 0.8: a local source git cannot read — task-033 review round 3; 0.9: *Deciding a gate*, unreleased v0.2 — task-037; 0.10: *Automatic sync with the remote*, unreleased v0.2 — task-034 / bug-014, its security reviews; 0.11: the notification bell and *Your roles* on Today, unreleased v0.2 — task-042; 0.12: *Submitting* and *After an action*, unreleased v0.2 — task-038)
 
 WingFoil UI v0.1 is a **read-only console** for WingFoil-governed projects: you open a project and
 read its Memory, elements, DNA, directives, team and documentation, kept up to date while you work
@@ -257,8 +257,8 @@ holding the gate's role (`approver` on WingFoil 0.2.2) sees the **gate footer**:
   then *Cancel*, which closes the panel without running anything. From Today the gate takes two
   clicks (or Tab and Enter): *Approve* on the row, then *Approve → …* in the panel;
 - the outcome runs `wingfoil memory approve` or `memory reject` with your reason; the panel then
-  shows the new state and screen readers hear *<id> is now <state>*. A refusal is shown in the
-  footer — WingFoil's own message when the CLI refused — and the reason is kept;
+  shows the new state and a toast says the result (see *After an action*). On a refusal the
+  reason is kept;
 - an outcome is also disabled, with the reason, when the element has local changes, the WingFoil
   version is not supported or your copy is behind, diverged or detached.
 
@@ -272,7 +272,41 @@ Instead of the gate footer the panel says:
   its reject, with *Waiting for the workflow engine to advance*;
 - *Final state: no action is possible* on a final state (the state chip reads *final state*).
 
-Submitting a draft from the panel comes with a later v0.2 task.
+### Submitting
+
+**v0.2, not released yet.** On an element whose state moves on by `memory submit` (a draft, work
+sent back by a reject), every member of the team sees *Submit → <next state>* and *Cancel* at the
+bottom of the panel: one click runs `wingfoil memory submit`. *Submit* is disabled, with the
+reason, when the element has local changes (*Blocked: this element has local changes — commit or
+discard them first*: `memory submit` would commit them), when the WingFoil version is not
+supported or when your copy is behind, diverged or detached. An element waiting on a gate offers no
+*Submit*.
+
+### After an action
+
+**v0.2, not released yet.** Every submit or decision ends with a **toast** at the bottom of the
+window — while the element panel is open, between the sidebar and the panel, or just above the
+panel's buttons when the window is too narrow, so a toast covers neither those buttons nor the
+sidebar:
+
+- the result (*Approved <id>*, *Submitted <id>*, *Rejected <id>*), the commit line — short hash
+  and `wf(…)` subject — and *pushed* when auto-push pushed it. When auto-push is on and the push
+  failed, the toast says *Not pushed — the commit stays local* with the reason (git's own message,
+  or e.g. *The push did not finish within 60 s*) and stays until you close it;
+- a refusal is a **red toast** that stays until you close it: *Submit of <id> not done* with
+  WingFoil's own message (e.g. a required field left empty), *This element changed since you
+  opened it* when someone moved it meanwhile (the panel then shows its new state), or *This element
+  has local changes …*.
+
+A result toast goes after 8 s, not while the pointer is over it or the focus is inside it; each
+toast has a *Close notification* button, and a new result for the same element replaces its toast.
+At most three toasts that close by themselves are kept: a new toast removes the oldest of them.
+Refusals and failed pushes stay until you close them (or a new result for the same element
+replaces them); when the toasts are taller than the window, the stack scrolls (to a new toast's
+top when one arrives, otherwise where you left it), and Tab reaches every *Close notification*.
+Closing a toast with the keyboard moves the focus to the next toast's *Close notification* (or the
+previous one; back to the page when none is left).
+Screen readers hear results politely and refusals at once.
 
 ## DNA
 

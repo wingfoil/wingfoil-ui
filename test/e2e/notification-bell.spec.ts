@@ -69,9 +69,10 @@ async function approveFromToday(page: Page, c: RunningConsole, eid: string): Pro
   await requiresYou(page).locator(`li[data-eid="${eid}"]`).getByRole('button').click();
   const drawer = page.locator('.drawer');
   await drawer.getByRole('button', { name: 'Approve → approved', exact: true }).click({ timeout: COLD_READ_MS });
-  await expect(drawer.getByRole('status').filter({ hasText: `${eid} is now approved` })).toHaveCount(1, {
-    timeout: COLD_READ_MS,
-  });
+  // task-038: the result is a toast of the shell (D38-10).
+  await expect(
+    page.locator('.toasts [aria-live="polite"] .toast-title').filter({ hasText: `Approved ${eid}` }),
+  ).toHaveCount(1, { timeout: COLD_READ_MS });
   await drawer.getByRole('button', { name: 'Close' }).first().click();
   await expect(page).toHaveURL(`${c.origin}/p/${c.pids[0]}/today`, { timeout: COLD_READ_MS });
 }

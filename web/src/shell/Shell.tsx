@@ -15,6 +15,7 @@ import { HeaderSlotProvider, HeaderSlotTarget } from './header-slot.js';
 import { SessionLostPage } from './pages.js';
 import { ProjectSwitcher } from './ProjectSwitcher.js';
 import { ShellWarnings } from './ShellWarnings.js';
+import { Toasts } from './Toasts.js';
 import { UnreachableBanner } from './UnreachableBanner.js';
 
 function Header({ children }: { children?: ReactNode }): ReactNode {
@@ -57,6 +58,7 @@ export function Shell(): ReactNode {
           <div className="shell-body">
             <Outlet />
           </div>
+          <Toasts />
         </div>
       </HeaderSlotProvider>
     </AddProjectProvider>

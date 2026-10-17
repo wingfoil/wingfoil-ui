@@ -9,7 +9,7 @@ import { constants } from 'node:fs';
 import { access, chmod, mkdir, mkdtemp, readFile, rm, stat, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import type { ProjectEntry, StateFile } from '../../../contracts/src/index.js';
+import type { ProjectEntry, StateFile, UiSettings } from '../../../contracts/src/index.js';
 import { REPO_ROOT } from '../../harness/cli.js';
 import { harnessEnv, type Fixture } from '../../harness/fixtures/index.js';
 import { startLauncher, type Launcher } from '../../launcher/launcher.js';
@@ -41,6 +41,13 @@ export interface ConsoleOptions {
    * the list the first one left). `projects` seeds it only when it holds no `state.json` yet.
    */
   stateDir?: string;
+  /**
+   * UI settings written into the seeded `state.json` (task-038, Wave 5 C2; e.g. `autoPush: true`,
+   * `autoFetch: false`): also with a `stateDir` that holds no `state.json` yet. Given with a raw
+   * `stateFile`, or with a `stateDir` that already holds a `state.json`, {@link startConsole} throws
+   * (it would be ignored; review R4).
+   */
+  settings?: Partial<UiSettings>;
 }
 
 /** A running console. */
@@ -103,6 +110,9 @@ async function isolatedPath(root: string, envPath: string, recordTo?: string): P
 
 /** Start the bin (see {@link ConsoleOptions}). */
 export async function startConsole(options: ConsoleOptions = {}): Promise<RunningConsole> {
+  if (options.settings !== undefined && options.stateFile !== undefined) {
+    throw new Error('startConsole: `settings` cannot be seeded with a raw `stateFile` (put them in the file)');
+  }
   const root = await mkdtemp(path.join(tmpdir(), 'wfui-e2e-'));
   const projects = options.projects ?? [];
   const base = projects[0]?.env ?? (await harnessEnv(root)).env;
@@ -110,12 +120,16 @@ export async function startConsole(options: ConsoleOptions = {}): Promise<Runnin
   await mkdir(stateDir, { recursive: true, mode: 0o700 });
   const seeded =
     options.stateDir !== undefined && (await stat(path.join(stateDir, 'state.json')).catch(() => undefined));
+  if (seeded && options.settings !== undefined) {
+    await rm(root, { recursive: true, force: true });
+    throw new Error('startConsole: `settings` cannot be seeded into a `stateDir` that already holds a state.json');
+  }
   const pids = seeded ? [] : projects.map(() => projectId());
   if (seeded) {
     // A state left by a previous console: its list is the one to read.
   } else if (options.stateFile !== undefined) {
     await writeFile(path.join(stateDir, 'state.json'), options.stateFile, { mode: 0o600 });
-  } else if (projects.length > 0) {
+  } else if (projects.length > 0 || options.settings !== undefined) {
     const entries: ProjectEntry[] = projects.map((fx, i) => ({
       id: pids[i]!,
       path: fx.dir,
@@ -124,7 +138,7 @@ export async function startConsole(options: ConsoleOptions = {}): Promise<Runnin
       addedAt: new Date(0).toISOString(),
       roleView: '',
     }));
-    const state: StateFile = { version: 1, projects: entries, settings: {}, actionLog: [] };
+    const state: StateFile = { version: 1, projects: entries, settings: { ...options.settings }, actionLog: [] };
     await writeFile(path.join(stateDir, 'state.json'), JSON.stringify(state, null, 2), { mode: 0o600 });
   }
   const opener = options.opener ?? 'flag';

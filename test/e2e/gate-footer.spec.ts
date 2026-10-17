@@ -102,8 +102,9 @@ test.describe('US-G-04 — two clicks from Today', () => {
     await todayAction(page, 'task-001-login-form').click();
     await outcome(page, 'Approve → approved').click({ timeout: COLD_READ_MS });
     await expectLastCommit(kanban, 'wf(task): approve task-001-login-form [pending → approved]');
+    // task-038: the result is a toast of the shell (D38-10).
     await expect(
-      drawer(page).getByRole('status').filter({ hasText: 'task-001-login-form is now approved' }),
+      page.locator('.toasts [aria-live="polite"] .toast-title').filter({ hasText: 'Approved task-001-login-form' }),
     ).toHaveCount(1, { timeout: COLD_READ_MS });
     expect(await page.evaluate(() => (window as unknown as { wfuiClicks: number }).wfuiClicks)).toBe(2);
     // The panel shows the new state: approved is the last state of the kanban default (S-24.1's footer).

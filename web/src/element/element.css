@@ -327,16 +327,3 @@
   cursor: not-allowed;
   text-decoration: none;
 }
-
-/* The refusal of a decision: its own band, outside the footer that follows the state (F2, F14). */
-.element-footer-alert {
-  padding: 10px var(--space-5);
-  border-top: 1px solid var(--color-divider);
-  background: var(--color-surface);
-  color: var(--color-text);
-  font-size: 13px;
-}
-
-.element-footer-alert p {
-  margin: 0;
-}
