@@ -156,3 +156,62 @@ describe('bug-017 — control characters and the cap', () => {
     }
   });
 });
+
+// task-040 review round 2 (bug-017: S2-2, R2-5, R2-6, S2-7): neutralised by Unicode category, a
+// backslash written `\\` first so every escape in the output is one, CRLF folded to a newline, the
+// scheme-less userinfo rule seeing through a control character, a cap that never splits a pair.
+describe('bug-017 — review round 2', () => {
+  const c = (n: number) => String.fromCodePoint(n);
+
+  it.each([
+    [0x200e, '\\u200e'],
+    [0x200f, '\\u200f'],
+    [0x061c, '\\u061c'],
+    [0xfeff, '\\ufeff'],
+    [0x200b, '\\u200b'],
+    [0x200d, '\\u200d'],
+    [0x2028, '\\u2028'],
+    [0x2029, '\\u2029'],
+    [0x00ad, '\\xad'],
+    [0x180e, '\\u180e'],
+    [0xe0001, '\\u{e0001}'],
+  ])('code point %d (Cf, Zl, Zp) becomes a visible escape', (code, escaped) => {
+    expect(redactLocalPaths(`a${c(code)}b`, { home: null })).toBe(`a${escaped}b`);
+  });
+
+  it('a lone surrogate (Cs) becomes a visible escape; a pair (an emoji) and a combining mark stay', () => {
+    expect(redactLocalPaths(`a${String.fromCharCode(0xd800)}b`, { home: null })).toBe('a\\ud800b');
+    expect(redactLocalPaths('ok 😀 a\u034fb', { home: null })).toBe('ok 😀 a\u034fb');
+  });
+
+  it('a literal backslash is written \\\\, so a printed "\\x1b" is told from a real ESC', () => {
+    expect(redactLocalPaths('C:\\dir and \\x1b', { home: null })).toBe('C:\\\\dir and \\\\x1b');
+    expect(redactLocalPaths(`${c(0x1b)}`, { home: null })).toBe('\\x1b');
+  });
+
+  it('CRLF becomes a newline, a lone CR stays visible', () => {
+    expect(redactLocalPaths('a\r\nb\rc', { home: null })).toBe('a\nb\\x0dc');
+  });
+
+  it('the scheme-less userinfo rule sees through a control character before it', () => {
+    expect(redactLocalPaths(`${c(0x1b)}u:tok@git.example.test`, { home: null })).toBe('\\x1bgit.example.test');
+    expect(redactLocalPaths(`x${c(0x200e)}u:tok@git.example.test`, { home: null })).toBe('x\\u200egit.example.test');
+  });
+
+  it('the cap never splits a surrogate pair, whatever the offset', () => {
+    const lone = /[\ud800-\udbff](?![\udc00-\udfff])|(?<![\ud800-\udbff])[\udc00-\udfff]/;
+    for (let shift = 0; shift < 4; shift++) {
+      const out = redactLocalPaths('y'.repeat(shift) + '😀'.repeat(MAX_MESSAGE), { home: null });
+      expect(out.length).toBeLessThanOrEqual(MAX_MESSAGE);
+      expect(lone.test(out)).toBe(false);
+    }
+  });
+
+  it('the cap never splits an escaped backslash or a long escape', () => {
+    for (let shift = 0; shift < 12; shift++) {
+      const out = redactLocalPaths('y'.repeat(shift) + `\\${c(0xe0001)}`.repeat(MAX_MESSAGE), { home: null });
+      const [head, tail] = out.split('\n…\n');
+      for (const part of [head!, tail!]) expect(part.replace(/\\\\|\\u\{e0001\}/g, '')).toMatch(/^y*$/);
+    }
+  });
+});

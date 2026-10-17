@@ -1122,3 +1122,32 @@ describe('bug-010 (task-033 D33-1) — a local repository of another user is nev
     expect(await list(w)).toEqual([]);
   });
 });
+
+// bug-017 (task-040 review round 2, S2-1): git's text of a refused add or clone reaches the body
+// through the one sanitiser — control and bidi characters as visible escapes, never raw.
+describe('bug-017 — git-refused of the project list through the sanitiser', () => {
+  const ESC = String.fromCharCode(0x1b);
+  const RLO = String.fromCharCode(0x202e);
+  const raw = (text: string) => [ESC, RLO].filter((c) => text.includes(c));
+
+  it('add: git quoting a gitdir with control and bidi characters', async () => {
+    const w = await world();
+    const loose = path.join(w.dir, 'loose-gitdir');
+    await cp(path.join(w.fx.dir, '.wingfoil'), path.join(loose, '.wingfoil'), { recursive: true });
+    await writeFile(path.join(loose, '.git'), `gitdir: ${path.join(w.dir, `missing${RLO}${ESC}[31m`)}\n`);
+    const error = await refusal(await add(w, loose), 'git-refused');
+    expect(raw(error.message)).toEqual([]);
+    expect(error.message).toContain('\\u202e\\x1b[31m');
+  });
+
+  it('clone: git quoting a URL with control and bidi characters', async () => {
+    const w = await world();
+    const host = await httpRemote(path.join(w.dir, 'remotes'));
+    const error = await refusal(
+      await clone(w, { url: `http://${host}/no${RLO}pe${ESC}[31m.git`, directory: '~/projects/nope' }),
+      'git-refused',
+    );
+    expect(raw(error.message)).toEqual([]);
+    expect(error.message).toMatch(/\\u202e|%E2%80%AE/i);
+  }, 60_000);
+});
