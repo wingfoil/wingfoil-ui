@@ -18,6 +18,7 @@
  * seen; the check runs on every list read and periodically ({@link ProjectList.start}). It reads
  * files only — no process (REQ-INT-09).
  */
+import { redactLocalPaths } from '../git/redact.js';
 import { realpath, stat } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
@@ -263,7 +264,9 @@ export class ProjectList {
             ...(this.options.hooksPath !== undefined ? { hooksPath: this.options.hooksPath } : {}),
           });
         } catch (error) {
-          if (error instanceof GitCloneError) throw new ProjectRefusal('git-refused', error.message);
+          // git's text through the one sanitiser of tool messages (bug-017): the home folder as `~`.
+          if (error instanceof GitCloneError)
+            throw new ProjectRefusal('git-refused', redactLocalPaths(error.message, {}));
           throw error;
         }
         const root = await realpath(directory);
@@ -379,7 +382,8 @@ export class ProjectList {
     try {
       return await git.origin();
     } catch (error) {
-      if (error instanceof GitReadError) throw new ProjectRefusal('git-refused', error.message);
+      // git's text through the one sanitiser of tool messages (bug-017).
+      if (error instanceof GitReadError) throw new ProjectRefusal('git-refused', redactLocalPaths(error.message, {}));
       throw error;
     }
   }

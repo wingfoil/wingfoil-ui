@@ -14,16 +14,22 @@
  * | the userinfo of a URL (`https://user:token@host`, up to the last `@` before the host), and a `user:password@` without a scheme (`git://` lookups) | removed |
  *
  * Longest folder first, only as a whole path (`/a/project` never matches inside `/a/project-two`).
- * Then (bug-017, task-040) what is sent is made safe to show, whatever a hook or a remote printed:
+ * Then (bug-017, task-040) what is sent is made safe to show, whatever a hook or a remote printed —
+ * this function is the one sanitiser of every verbatim tool message the API sends (`git-refused`,
+ * `cli-refused`, the sync status's `lastError`, a write's `push.message`, the project list's refusals;
+ * `test/server/tool-messages.test.ts` enumerates the producers):
  *
  * | Found | Becomes |
  * |-------|---------|
- * | a C0 or C1 control character other than newline and tab (ESC, CR, BEL, NUL, DEL, …) | a visible escape `\xHH` (e.g. `\x1b`) |
- * | a bidirectional control (U+202A–U+202E, U+2066–U+2069) | a visible escape `\uHHHH` (e.g. `\u202e`) |
+ * | CR LF | a newline |
+ * | a backslash | `\\` (so that every `\x…`/`\u…` in the output is an escape made here) |
+ * | a character of the Unicode categories Cc, Cf, Cs, Zl, Zp other than newline and tab (ESC, CR, NUL, DEL, the C1 controls, the bidi controls and marks, U+FEFF, U+200B, U+00AD, a lone surrogate, U+2028, U+2029, …) | a visible escape: `\xHH` up to U+00FF, `\uHHHH` up to U+FFFF, `\u{HHHHH}` beyond |
  *
  * Last, the text is capped at {@link MAX_MESSAGE} characters by keeping its head and its tail
  * around a `…` line — git's own concluding lines (`! [rejected]`, `error:`, `fatal:`) come after a
- * hook's output — and a cut never splits an escape or a redaction token.
+ * hook's output —; a cut never splits an escape, a redaction token or a surrogate pair. A literal
+ * `<project>` printed by a hook stays indistinguishable from the redaction token (declared residual,
+ * spec-010 §4).
  */
 import { realpathSync } from 'node:fs';
 import { homedir } from 'node:os';
@@ -85,7 +91,7 @@ export function redactLocalPaths(text: string, roots: LocalRoots): string {
     // A whole path only: followed by a separator, the end, a quote or punctuation (a full stop only
     // at the end of a sentence).
     out = out.replace(
-      new RegExp(`${escape(folder)}(?=$|[\\s/\\\\'"\`:;,)\\]>?!|*&=#}{(<@+%~^$]|${UNSAFE.source}|\\.(?:$|\\s))`, 'g'),
+      new RegExp(`${escape(folder)}(?=$|[\\s/\\\\'"\`:;,)\\]>?!|*&=#}{(<@+%~^$]|${UNSAFE.source}|\\.(?:$|\\s))`, 'gu'),
       token,
     );
   }
@@ -95,27 +101,30 @@ export function redactLocalPaths(text: string, roots: LocalRoots): string {
   // `user:password@host` without a scheme (git's `unable to look up u:tok@host`); a plain e-mail
   // address (no `:`) stays.
   // Only after the start, a space or a quote (review round 2 F11, S13).
-  out = out.replace(/(^|[\s'"])[A-Za-z0-9._~%+-]+:[^\s/]*@(?=[A-Za-z0-9[])/g, '$1');
+  // A control or format character before it counts as a start too (review round 2 R2-6).
+  out = out.replace(new RegExp(`(^|[\\s'"]|${UNSAFE.source})[A-Za-z0-9._~%+-]+:[^\\s/]*@(?=[A-Za-z0-9[])`, 'gu'), '$1');
   return cap(neutralise(out));
 }
 
-/** Control characters other than newline and tab, and the bidirectional controls (bug-017). */
-const UNSAFE_RANGES: readonly (readonly [number, number])[] = [
-  [0x00, 0x08],
-  [0x0b, 0x1f],
-  [0x7f, 0x9f],
-  [0x202a, 0x202e],
-  [0x2066, 0x2069],
-];
-const hex4 = (n: number): string => `\\u${n.toString(16).padStart(4, '0')}`;
-/** One {@link UNSAFE_RANGES} character (built from the code points: no control in the source). */
-const UNSAFE = new RegExp(`[${UNSAFE_RANGES.map(([a, b]) => `${hex4(a)}-${hex4(b)}`).join('')}]`);
+/**
+ * A character to write as an escape (bug-017, review round 2 S2-2): the Unicode categories Cc
+ * (controls), Cf (format: bidi controls and marks, U+FEFF, U+200B, U+00AD, …), Cs (a lone
+ * surrogate), Zl and Zp (line and paragraph separators) — except newline and tab.
+ */
+const UNSAFE = /(?![\n\t])[\p{Cc}\p{Cf}\p{Cs}\p{Zl}\p{Zp}]/u;
 
-/** `text` with every unsafe character (control, bidirectional) written as a visible escape (`\x1b`, `\u202e`). */
+/**
+ * `text` with CR LF folded to a newline, a backslash doubled and every unsafe character (Cc, Cf,
+ * Cs, Zl, Zp but newline and tab) written as a visible escape (`\x1b`, `\u202e`, `\u{e0001}`).
+ */
 export function neutralise(text: string): string {
-  return text.replace(new RegExp(UNSAFE.source, 'g'), (c) => {
-    const code = c.charCodeAt(0);
-    return code <= 0xff ? `\\x${code.toString(16).padStart(2, '0')}` : `\\u${code.toString(16).padStart(4, '0')}`;
+  return text.replace(/\r\n/g, '\n').replace(new RegExp(`\\\\|${UNSAFE.source}`, 'gu'), (ch) => {
+    if (ch === '\\') return '\\\\';
+    const code = ch.codePointAt(0)!;
+    const hex = code.toString(16);
+    if (code <= 0xff) return `\\x${hex.padStart(2, '0')}`;
+    if (code <= 0xffff) return `\\u${hex.padStart(4, '0')}`;
+    return `\\u{${hex}}`;
   });
 }
 
@@ -123,19 +132,26 @@ export function neutralise(text: string): string {
 const ELLIPSIS = '\n…\n';
 
 /** An escape or a redaction token: one unit a cut must not split. */
-const UNIT = /\\x[0-9a-f]{2}|\\u[0-9a-f]{4}|<(?:project|repository|remote|wingfoil)>/g;
+const UNIT = /\\\\|\\x[0-9a-f]{2}|\\u\{[0-9a-f]{5,6}\}|\\u[0-9a-f]{4}|<(?:project|repository|remote|wingfoil)>/g;
 
-/** The longest length of a {@link UNIT}. */
-const UNIT_MAX = '<repository>'.length;
-
-/** A cut at `at` moved off any unit it would split: backwards (`back`) or forwards. */
+/**
+ * A cut at `at` moved off any unit it would split, and off a surrogate pair (review round 2 R2-5):
+ * backwards (`back`) or forwards. Units are matched from the start, so an escaped backslash is never
+ * read as the start of an escape.
+ */
 function safeCut(text: string, at: number, back: boolean): number {
-  UNIT.lastIndex = Math.max(0, at - UNIT_MAX);
-  for (let m = UNIT.exec(text); m !== null && m.index < at; m = UNIT.exec(text)) {
+  let cut = at;
+  UNIT.lastIndex = 0;
+  for (let m = UNIT.exec(text); m !== null && m.index < cut; m = UNIT.exec(text)) {
     const end = m.index + m[0].length;
-    if (end > at) return back ? m.index : end;
+    if (end > cut) {
+      cut = back ? m.index : end;
+      break;
+    }
   }
-  return at;
+  const high = text.charCodeAt(cut - 1);
+  if (cut > 0 && cut < text.length && high >= 0xd800 && high <= 0xdbff) cut += back ? -1 : 1;
+  return cut;
 }
 
 /** `text`, or its head and tail around {@link ELLIPSIS}, at most {@link MAX_MESSAGE} characters. */

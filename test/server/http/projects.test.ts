@@ -1137,14 +1137,16 @@ describe('bug-017 — git-refused of the project list through the sanitiser', ()
     await writeFile(path.join(loose, '.git'), `gitdir: ${path.join(w.dir, `missing${RLO}${ESC}[31m`)}\n`);
     const error = await refusal(await add(w, loose), 'git-refused');
     expect(raw(error.message)).toEqual([]);
-    expect(error.message).toContain('\\u202e\\x1b[31m');
+    // (git writes the ESC as "?" itself; the RIGHT-TO-LEFT OVERRIDE it passes on.)
+    expect(error.message).toContain('\\u202e');
   });
 
   it('clone: git quoting a URL with control and bidi characters', async () => {
     const w = await world();
     const host = await httpRemote(path.join(w.dir, 'remotes'));
     const error = await refusal(
-      await clone(w, { url: `http://${host}/no${RLO}pe${ESC}[31m.git`, directory: '~/projects/nope' }),
+      // (a control character in the URL is refused before git, 400; a bidi override is not)
+      await clone(w, { url: `http://${host}/no${RLO}pe.git`, directory: '~/projects/nope' }),
       'git-refused',
     );
     expect(raw(error.message)).toEqual([]);
