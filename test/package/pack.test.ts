@@ -105,11 +105,25 @@ describe('npm pack (bug-007)', () => {
     expect([...imports.keys()].filter((name) => name.startsWith('@wingfoil-ui/'))).toEqual([]);
   });
 
-  it('AC-1 prepack builds and the package stays private', () => {
+  it('AC-1 prepack builds', () => {
     const root = readManifest();
     expect(root.scripts?.prepack).toBe('node scripts/clean-build.mjs && npm run build');
-    expect(root.private).toBe(true);
     expect(report.name).toBe('wingfoil-ui');
     expect(report.version).toBe(root.version);
+  });
+
+  it('task-029 AC-2 the root package is publishable, the workspaces stay private', () => {
+    const root = readManifest();
+    // dl-004 kept `private: true` for v0.1; task-029 drops it from the root only.
+    expect(root).not.toHaveProperty('private');
+    for (const ws of root.workspaces ?? []) expect(readManifest(path.join(REPO_ROOT, ws)).private, ws).toBe(true);
+    expect(root.workspaces).toEqual(['contracts', 'server', 'web']);
+  });
+
+  it('task-029 D29-9 the repository field matches the GitHub repository (npm provenance, trusted publisher)', () => {
+    const root = readManifest();
+    expect(root.repository).toEqual({ type: 'git', url: 'git+https://github.com/wingfoil/wingfoil-ui.git' });
+    expect(root.homepage).toBe('https://github.com/wingfoil/wingfoil-ui#readme');
+    expect(root.bugs).toEqual({ url: 'https://github.com/wingfoil/wingfoil-ui/issues' });
   });
 });
