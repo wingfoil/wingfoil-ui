@@ -152,8 +152,10 @@ is unknown to the local registry. It needs a warm npm cache holding the lockfile
 `micromatch`, `fast-glob`, `globby` (through `@verdaccio/local-storage-legacy`) and `compression`.
 `npm audit --omit=dev` reports 0: none reaches the published package. The exposure is a
 devDependency running only during the smoke, bound to the loopback, with no uplink, for about a
-minute, serving packages the smoke itself put there. Status: **accepted risk — pending the
-approver's confirmation** (task-029 review round 1, R2); re-checked at release validation. The run leaves no `wfui-*` entry and no Verdaccio process ([`test/README.md`](../test/README.md),
+minute, serving packages the smoke itself put there. Status: **accepted risk (the approver,
+2026-10-17)** (task-029 review round 1, R2); re-checked at release validation.
+
+The run leaves no `wfui-*` entry and no Verdaccio process ([`test/README.md`](../test/README.md),
 *Publish smoke*, *Temporary folders*).
 
 ## Differences from WingFoil's pipeline

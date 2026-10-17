@@ -290,7 +290,7 @@ failing tests), fixes `1e88dcc`.
   **D29-1 rationale, amended:** the findings are a dev-only, loopback-only, short-lived exposure —
   the registry runs only during the smoke (about a minute), bound to 127.0.0.1, with no uplink,
   serving only what the smoke put into it; nothing reaches the published package. Status:
-  **accepted risk — pending the approver's confirmation**. `docs/publishing.md` *Local staging
+  **accepted risk (the approver, 2026-10-17)**. `docs/publishing.md` *Local staging
   smoke* records it and *Every release* adds a re-check at release validation (`npm audit
   --omit=dev` = 0; `npm audit` compared with this list).
 - **R3 (minor)** — the static test accepted mutants. Now: every `permissions:` is a map (top level
@@ -348,5 +348,5 @@ Independent review: **PASS** with three nits, fixed (red first `7423063`): R2-1 
 removed); R2-3 a missing or unparsable `package.json` / `package-lock.json` gives a `refused:` line
 and exit 1, no stack trace (`check-release-tag.test.ts`, two new tests, red then green 14/14).
 Checks: `typecheck`, `lint`, `format:check` clean; `check-release-tag.test.ts` 14/14,
-`registry-cleanup.publish.test.ts` 6/6; `check_tasks.py v0.2` OK. R2 accepted risk still pending
-the approver's confirmation.
+`registry-cleanup.publish.test.ts` 6/6; `check_tasks.py v0.2` OK. R2: accepted risk (the approver,
+2026-10-17).
