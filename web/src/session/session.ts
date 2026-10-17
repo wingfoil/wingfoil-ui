@@ -96,29 +96,38 @@ export interface WatchFragmentOptions {
  * bug-016 (task-040, D40-7): when the fragment changes to one carrying a `token` — a console URL
  * pasted into this tab — a lost page reloads, so the fresh-tab bootstrap reads it, removes it from
  * the address bar and exchanges it, and every state of the page starts over. A page that is not lost
- * first asks the console whether it still knows it (`GET /api/server` with the session cookie): a
- * 401 reloads the same way; an answer means the session is valid — the fragment is removed and
- * ignored, so a `#token=…` link in rendered content cannot end it (a failed exchange is final). A
+ * first asks the console whether it still knows it (`GET /api/server` with the session cookie, one
+ * probe at a time): a 401 reloads the same way; an OK answer means the session is valid — the
+ * fragment is removed and ignored (any other answer leaves it, as an unreachable console does), so a `#token=…` link in rendered content cannot end it (a failed exchange is final). A
  * fragment without a token (a skip link) is left alone. The token is only ever read from
  * `location.hash`, and is never kept, logged or shown. Returns the function that stops listening.
  */
 export function watchFragmentToken(options: WatchFragmentOptions = {}): () => void {
   const reload = options.reload ?? (() => window.location.reload());
+  // One probe at a time: a storm of fragment changes sends no more (review round 1 S6).
+  let probing = false;
   const onChange = (): void => {
     if (fragmentToken(window.location.hash) === undefined) return;
     if (status === 'lost') {
       reload();
       return;
     }
-    void fetch('/api/server', { credentials: 'same-origin' }).then(
-      (response) => {
-        if (fragmentToken(window.location.hash) === undefined) return;
-        if (response.status === 401) reload();
-        else stripFragment();
-      },
-      // The console is not reachable: the fragment stays, a reload by the user retries it.
-      () => undefined,
-    );
+    if (probing) return;
+    probing = true;
+    void fetch('/api/server', { credentials: 'same-origin' })
+      .then(
+        (response) => {
+          if (fragmentToken(window.location.hash) === undefined) return;
+          if (response.status === 401) reload();
+          // Known to the console: the fragment is not needed. Any other answer leaves it (S5).
+          else if (response.ok) stripFragment();
+        },
+        // The console is not reachable: the fragment stays, a reload by the user retries it.
+        () => undefined,
+      )
+      .finally(() => {
+        probing = false;
+      });
   };
   window.addEventListener('hashchange', onChange);
   return () => window.removeEventListener('hashchange', onChange);

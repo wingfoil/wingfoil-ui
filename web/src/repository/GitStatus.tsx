@@ -24,19 +24,27 @@
  * Keyed by pid: nothing of one project's running transport or alert reaches another.
  */
 import { useQuery } from '@tanstack/react-query';
-import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useId, useRef, useState, type FocusEvent, type ReactNode } from 'react';
 import { Button, Dialog, DialogTrigger, Popover, Tooltip, TooltipTrigger } from 'react-aria-components';
 import { FormattedMessage, defineMessages, useIntl } from 'react-intl';
 import type { ApiError } from '../api/client.js';
 import { errorMessage } from '../api/error-message.js';
-import { CANCELLED, useGitOperation, useRunningGitOperation } from '../api/git.js';
+import {
+  CANCELLED,
+  cancelGitOperation,
+  runningGitOperation,
+  startGitOperation,
+  useGitOperation,
+  useLastGitError,
+  useRunningGitOperation,
+} from '../api/git.js';
 import { projectHeaderQuery } from '../api/queries.js';
 import { ErrorText } from '../shell/ErrorText.js';
 import { InfoSign } from '../shell/icons.js';
 import { gitStatusView, lastFetched, type CopyLine, type FetchErrorView } from './model.js';
 import type { GitOperation, UpdateSyncError } from '@wingfoil-ui/contracts';
-import { showToast } from '../shell/toasts.js';
-import { pushFailureToast } from './push-toast.js';
+import { dismissToastKey } from '../shell/toasts.js';
+import { pushToastKey } from './push-toast.js';
 import './git-status.css';
 
 /** The git status of project `pid`. */
@@ -45,14 +53,15 @@ export function GitStatus({ pid }: { pid: string }): ReactNode {
 }
 
 /**
- * A refusal the server does not record — of a manual fetch (D39-5) or update (D40-5) — and the read
- * it was seen against: it clears when a later fetch succeeded, when the repository state moved or
- * when the sync part goes (review R7), and when the next transport starts.
+ * The read an alert was first seen against (D39-5, D40-5): a refusal the server does not record — of
+ * a fetch or of an update, from this sidebar or the footer's link (R2) — clears when a later fetch
+ * succeeded, when the repository state moved or when the sync part goes (review R7), and when the
+ * next transport of the project starts (it is then no longer the last one).
  */
-interface Refusal {
-  error: ApiError;
-  lastSuccessAt: string | null;
+interface Seen {
+  at: number;
   state: string;
+  lastSuccessAt: string | null;
 }
 
 /** Codes the server records (`sync.fetch.lastError`, `sync.update.lastError`): not the alert. */
@@ -85,68 +94,72 @@ function GitStatusOf({ pid }: { pid: string }): ReactNode {
   const header = useQuery(projectHeaderQuery(pid));
   const operation = useGitOperation();
   const running = useRunningGitOperation(pid);
+  const last = useLastGitError(pid);
   const readOnlyId = useId();
-  const controller = useRef<AbortController | null>(null);
+  const [, rerender] = useState(0);
   const buttons = {
     fetch: useRef<HTMLButtonElement>(null),
     update: useRef<HTMLButtonElement>(null),
     push: useRef<HTMLButtonElement>(null),
   };
   const cancelButton = useRef<HTMLButtonElement>(null);
-  const [refusal, setRefusal] = useState<Refusal | null>(null);
-  const [own, setOwn] = useState<GitOperation | null>(null);
-  // The control to give the focus back to once the transport ended (R3, D40-4).
-  const refocus = useRef<GitOperation | null>(null);
+  // Which sync control holds the focus, and which transport the shown Cancel belongs to (R4).
+  const focused = useRef<GitOperation | 'cancel' | null>(null);
+  const cancelFor = useRef<GitOperation>('fetch');
+  // The read a shown alert was first seen against (D39-5, review R7).
+  const [seen, setSeen] = useState<Seen | null>(null);
 
+  const data = header.data;
+  const view = data ? gitStatusView(data.repository, data.conditions, data.identity.kind === 'member') : null;
+  const pushable = view?.sync?.actions.push != null;
+  const runningNow = running ?? runningGitOperation(pid);
+
+  // A control that held the focus and went with the new state — whoever moved the state: this
+  // sidebar, the footer's link, the automatic sync, a terminal, another tab — hands the focus to
+  // Fetch (Cancel to the control of its transport), unless the focus has gone elsewhere (R4).
   useEffect(() => {
-    if (own === null && refocus.current !== null) {
-      const target = buttons[refocus.current].current ?? buttons.fetch.current;
-      refocus.current = null;
-      target?.focus();
-    }
+    const f = focused.current;
+    if (f === null) return;
+    const el = f === 'cancel' ? cancelButton.current : buttons[f].current;
+    if (el?.isConnected) return;
+    focused.current = null;
+    const active = document.activeElement;
+    if (active !== null && active !== document.body) return;
+    const target =
+      f === 'cancel' ? (buttons[cancelFor.current].current ?? buttons.fetch.current) : buttons.fetch.current;
+    target?.focus();
   });
-  // Leaving the project (or the page) cancels a fetch or a push still running.
-  useEffect(() => () => controller.current?.abort(), []);
+  // "Not pushed" stays only while there is still something to push (R1).
+  useEffect(() => {
+    if (data && !pushable && runningNow !== 'push') dismissToastKey(pushToastKey(pid));
+  }, [data, pushable, runningNow, pid]);
+  // Leaving the project cancels a fetch still running; a push goes on (S2).
+  useEffect(() => () => cancelGitOperation(pid, ['fetch']), [pid]);
 
-  if (!header.data) return null;
-  const { repository, conditions, identity } = header.data;
-  const view = gitStatusView(repository, conditions, identity.kind === 'member');
+  const alert = last && alerts(last.op, last.error) ? last : undefined;
+  // Recorded during the render that first shows it (React's "state from the previous render").
+  if (alert && data && seen?.at !== alert.at) {
+    setSeen({ at: alert.at, state: data.repository.state, lastSuccessAt: data.repository.sync.fetch.lastSuccessAt });
+  }
+
+  if (!data || !view) return null;
+  const { repository } = data;
   const lastSuccessAt = repository.sync.fetch.lastSuccessAt;
   const shownRefusal =
-    refusal && view.sync && refusal.lastSuccessAt === lastSuccessAt && refusal.state === repository.state
-      ? refusal.error
+    alert &&
+    view.sync &&
+    (seen?.at !== alert.at || (seen.state === repository.state && seen.lastSuccessAt === lastSuccessAt))
+      ? alert.error
       : null;
-  const busy = running !== undefined || own !== null;
+  const busy = runningNow !== undefined;
   const pushCommits = view.sync?.actions.push?.commits ?? 0;
 
   const start = (op: GitOperation): void => {
     if (busy) return;
     if (op !== 'fetch' && view.sync?.actions.readOnly) return;
-    // An update cannot be cancelled (RP-37): no signal.
-    const c = op === 'update' ? null : new AbortController();
-    controller.current = c;
-    setRefusal(null);
-    setOwn(op);
-    operation.mutate(
-      { pid, op, ...(c ? { signal: c.signal } : {}) },
-      {
-        onError: (error) => {
-          if (alerts(op, error)) setRefusal({ error, lastSuccessAt, state: repository.state });
-          if (op === 'push' && error.code !== CANCELLED) showToast(pushFailureToast(pid, pushCommits, error));
-        },
-        onSettled: () => {
-          controller.current = null;
-          const active = document.activeElement;
-          if (active !== null && (active === cancelButton.current || active === buttons[op].current)) {
-            refocus.current = op;
-          }
-          setOwn(null);
-        },
-      },
-    );
-  };
-  const cancel = (): void => {
-    controller.current?.abort();
+    if (startGitOperation(operation.mutate, { pid, op, ...(op === 'push' ? { commits: pushCommits } : {}) })) {
+      rerender((n) => n + 1);
+    }
   };
   const syncButton = (op: GitOperation) => {
     const readOnly = op !== 'fetch' && view.sync?.actions.readOnly === true;
@@ -158,13 +171,14 @@ function GitStatusOf({ pid }: { pid: string }): ReactNode {
         // Focusable while disabled (D37-3 pattern): a press is ignored.
         aria-disabled={busy || readOnly ? true : undefined}
         aria-describedby={readOnly ? readOnlyId : undefined}
+        data-op={op}
         onClick={() => start(op)}
       >
-        <FormattedMessage {...((own ?? running) === op ? RUNNING[op] : IDLE[op])} />
+        <FormattedMessage {...(runningNow === op ? RUNNING[op] : IDLE[op])} />
       </button>
     );
   };
-  const runningNow = own ?? running;
+  const showCancel = (runningNow === 'fetch' || runningNow === 'push') && runningGitOperation(pid) !== undefined;
 
   return (
     <section className="git-status" aria-label={intl.formatMessage({ id: 'shell.git.label' })}>
@@ -209,12 +223,30 @@ function GitStatusOf({ pid }: { pid: string }): ReactNode {
         {view.sync?.updateError && <UpdateFailure error={view.sync.updateError} />}
       </div>
       {view.sync && (
-        <div className="git-actions">
+        <div
+          className="git-actions"
+          onFocus={(e: FocusEvent<HTMLDivElement>) => {
+            const op = (e.target as HTMLElement).dataset['op'] as GitOperation | 'cancel' | undefined;
+            if (op === undefined) return;
+            focused.current = op;
+            if (op === 'cancel' && runningNow !== undefined) cancelFor.current = runningNow;
+          }}
+          onBlur={(e: FocusEvent<HTMLDivElement>) => {
+            // A control removed from the page loses the focus with no next element: keep tracking it.
+            if (e.relatedTarget !== null) focused.current = null;
+          }}
+        >
           {syncButton('fetch')}
           {view.sync.actions.update && syncButton('update')}
           {view.sync.actions.push && syncButton('push')}
-          {own !== null && own !== 'update' && (
-            <button ref={cancelButton} type="button" className="button button-quiet" onClick={cancel}>
+          {showCancel && (
+            <button
+              ref={cancelButton}
+              type="button"
+              className="button button-quiet"
+              data-op="cancel"
+              onClick={() => cancelGitOperation(pid)}
+            >
               <FormattedMessage id="common.action.cancel" />
             </button>
           )}
@@ -226,7 +258,7 @@ function GitStatusOf({ pid }: { pid: string }): ReactNode {
         </p>
       )}
       <p role="status" className="visually-hidden">
-        {runningNow !== undefined && runningNow !== null && <FormattedMessage {...RUNNING[runningNow]} />}
+        {runningNow !== undefined && <FormattedMessage {...RUNNING[runningNow]} />}
       </p>
       {/* Outside the parts that change with the header's data (Wave 4 lesson); inserted with its
           content, so it is announced and the page holds no empty alert besides the views' own. */}

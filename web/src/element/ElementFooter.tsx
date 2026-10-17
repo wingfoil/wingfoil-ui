@@ -105,15 +105,20 @@ export function ElementFooter({
   const focusPendingRef = useRef(focusReason);
   const view: FooterView | undefined = detail.descriptor && header ? footerView(detail.descriptor, header) : undefined;
   // After the reason's *Update* succeeded: once the new descriptor no longer blocks (the link is
-  // gone), the focus goes to the footer's next step — the gate's reason, else its first action (D40-2).
+  // gone) the request is used, and the focus goes to the footer's next step — the gate's reason, else
+  // its first enabled action, else the panel's heading — only when it is still in the footer or
+  // nowhere (D40-2, review R3).
   const focusAfterUpdate = useRef(false);
   useEffect(() => {
     const slot = root.current;
     if (!focusAfterUpdate.current || slot === null || slot.querySelector('.update-link') !== null) return;
-    const next = slot.querySelector<HTMLElement>('.gate-reason-field, .gate-outcome:not([aria-disabled="true"])');
-    if (next === null) return;
     focusAfterUpdate.current = false;
-    next.focus();
+    const active = document.activeElement;
+    if (active !== null && active !== document.body && !slot.contains(active)) return;
+    const next =
+      slot.querySelector<HTMLElement>('.gate-reason-field, .gate-outcome:not([aria-disabled="true"])') ??
+      (slot.closest('[role="dialog"]')?.querySelector('.drawer-title') as HTMLElement | null);
+    next?.focus();
   });
 
   // The result and a refusal are toasts (`useElementWrite`); here only what follows a success.

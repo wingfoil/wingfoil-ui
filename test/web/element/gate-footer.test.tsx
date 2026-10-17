@@ -616,7 +616,7 @@ it('R3 — a focus the user moved out of the footer meanwhile is left alone', as
 });
 
 it('R3 — with no action left to take, the focus goes to the panel heading', async () => {
-  const final: ActionDescriptor = { ...GATE, kind: 'final', verbs: [], actor: { kind: 'none' } };
+  const final: ActionDescriptor = { ...GATE, kind: 'last', verbs: [], actor: { kind: 'none' } };
   stub(BEHIND, MO, { [UPDATE]: { status: 200, body: { repository: header(MO, ROLE).repository } } }, final);
   const { queryClient } = renderApp(`/p/${PID}/e/${EID}`);
   const f = await footer();
