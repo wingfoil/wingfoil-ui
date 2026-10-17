@@ -487,3 +487,36 @@ Checks after review round 2 (HEAD `2e80680` + notes):
 | `npm run test:timing` | not repeated (passed after round 1 at load 10.7; the placement change does not touch the write path) | — |
 
 No console left, no `wfui-*` entry in the system temporary directory.
+
+### review round 3 (2026-10-17)
+
+Independent review: round-2 findings and the extras (a), (b) verified (7 of 18 `toasts.test.tsx`
+cases fail on `0ada464`); **CHANGES REQUESTED** (1 minor, 3 nits). Red first (`0c6b94f`), fix
+(`0740045`).
+
+- **R3-1 (minor)** — the overflow effect scrolled to the end on every toasts or placement change:
+  the user's scroll was lost on a dismiss or a re-placement, and a tall newest toast showed only its
+  end. Change: the stack scrolls only when a toast was **added** (its id above the newest seen), to
+  that toast's top (`offsetTop` in the stack: title and Close shown), and only once the stack has
+  its overflow class. Test: `toasts.test.tsx` › R3-1 (scroll to the added toast's top; a user
+  scroll kept on a dismiss and on a resize; a later toast scrolled to again).
+- **R3-2 (nit)** — `overflow-y: auto` only on `.toasts-overflow` (a scroll container clips the
+  shadows); `max-height` stays on `.toasts`.
+- **R3-3 (nit, refines R5)** — a toast removed while it held the focus hands its position to the
+  stack, which focuses the Close of the toast now at that position (the next one), else the last
+  (the previous one), else `#main`. Tests: R5/R3-3 (replaced by key → the replacing toast's Close;
+  evicted → the next toast's) and R3-3 (close the middle → next, the last → previous, the only one
+  → `#main`). User guide and ux-reference §5 reworded.
+- **R3-4 (nit)** — `toasts-overflow` is React state in `className` (the DOM measure sets the
+  state), not a `classList` toggle. Test: R3-1 asserts the class string.
+
+Checks after review round 3 (HEAD `0740045` + notes):
+
+| Gate | Result |
+|------|--------|
+| `npm run typecheck`, `npm run lint`, `npm run format:check`, `npm run docs:api`, `check_tasks.py v0.2` | clean / OK |
+| `npm run test:coverage` | **2926 passed / 1 skipped**; statements 96.47 %, branches 91.02 %, functions 97.30 %, lines 98.28 % |
+| `npm run test:e2e:chromium` (whole suite) | **259 passed** (8.5 min) |
+| `npm run test:e2e -- submit-footer.spec.ts gate-footer.spec.ts notification-bell.spec.ts accessibility.spec.ts element-panel.spec.ts project-header.spec.ts harness/support.spec.ts` (three engines) | **384 passed**, 0 failed (13.5 min) |
+
+No console left, no `wfui-*` entry in the system temporary directory.
