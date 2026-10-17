@@ -2,7 +2,7 @@
 id: task-041-ui-settings-page-and-theme-setting
 type: task
 title: "UI settings page and theme setting"
-status: in-progress
+status: in-review
 release: "v0.2"
 module: "web"             # optional — server | web | contracts (dna.yaml modules)
 priority: "medium"           # optional — high | medium | low
