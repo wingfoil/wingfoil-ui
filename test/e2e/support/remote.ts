@@ -1,8 +1,8 @@
 /**
  * The bare remote of a fixture copy (each copy has its own, `origin`; `test/harness/fixtures`):
- * what the e2e specs read or change on the remote side (task-038, Wave 5 C8; task-039 appends here).
+ * what the e2e specs read or change on the remote side (task-038, Wave 5 C8; task-039 and task-040 append here).
  */
-import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { chmod, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import type { Fixture } from '../../harness/fixtures/index.js';
 import { git } from '../../harness/run.js';
@@ -38,4 +38,21 @@ export async function remoteCommit(fixture: Fixture, file: string, content: stri
 /** Point the copy's `origin` at `url` (task-039: an unreachable or authenticating remote). */
 export async function setRemoteUrl(fixture: Fixture, url: string): Promise<void> {
   await git(fixture.dir, ['remote', 'set-url', 'origin', url], fixture.env);
+}
+
+/** Fetch the copy's `origin` with git (task-040: "… and it has been fetched"). */
+export async function fetchCopy(fixture: Fixture): Promise<void> {
+  await git(fixture.dir, ['fetch', '-q', 'origin'], fixture.env);
+}
+
+/**
+ * Install `script` as the remote's `pre-receive` hook (task-040, D40-9): `git-receive-pack` runs it
+ * for every push to this local remote — to decline a push with a message, or to hold one. Returns the
+ * hook's path (a held hook is found by it with `pgrep -f`).
+ */
+export async function remoteHook(fixture: Fixture, script: string): Promise<string> {
+  const hook = path.join(fixture.remoteDir, 'hooks', 'pre-receive');
+  await writeFile(hook, `#!/bin/sh\n${script}\n`);
+  await chmod(hook, 0o755);
+  return hook;
 }

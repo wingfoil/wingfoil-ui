@@ -6,7 +6,7 @@ import type { Page } from '@playwright/test';
 import { keyCatalogue } from '../../web/scripts/catalogue.mjs';
 import en from '../../web/src/i18n/en.json' with { type: 'json' };
 import { scanThemes } from './support/axe.js';
-import { expectFirstLoad } from './support/cold-read.js';
+import { COLD_READ_MS, expectFirstLoad } from './support/cold-read.js';
 import { openConsole } from './support/console.js';
 import { expect, test } from './support/fixtures.js';
 import { expectFocusVisible } from './support/keyboard.js';
@@ -224,5 +224,41 @@ test.describe('shell mechanisms', () => {
     // The rest of the page stays usable.
     await expect(page.getByRole('heading', { level: 1, name: 'Projects' })).toBeVisible();
     expect(await scanThemes(page)).toEqual([]);
+  });
+});
+
+// task-040 — bug-016 (D40-7): a console URL pasted into a tab that already shows the console changes
+// only the fragment, so the browser does not reload; the page reads the new token as a fresh tab
+// does. `page.goto` to the same document with another fragment is a fragment navigation (no load).
+test.describe('bug-016 — a token pasted into an open tab', () => {
+  test('bug-016 — a token pasted into an open tab starts the session without a reload', async ({ page, consoles }) => {
+    const c = await consoles.start();
+    const logged: string[] = [];
+    page.on('console', (m) => logged.push(m.text()));
+    await page.goto(`${c.origin}/`, { timeout: COLD_READ_MS });
+    await expectFirstLoad(page.getByRole('heading', { level: 1, name: LOST }));
+    const exchanges: number[] = [];
+    page.on('response', (r) => {
+      if (new URL(r.url()).pathname === '/api/session') exchanges.push(r.status());
+    });
+    await page.goto(c.url, { timeout: COLD_READ_MS });
+    await expect(page.getByRole('heading', { level: 1, name: 'Projects' })).toBeVisible({ timeout: COLD_READ_MS });
+    expect(exchanges).toEqual([204]);
+    await expect(page).toHaveURL(`${c.origin}/`);
+    expect(logged.join('\n')).not.toContain(c.token);
+  });
+
+  test('a valid session keeps working when a wrong token arrives in the fragment', async ({ page, consoles }) => {
+    const c = await consoles.start();
+    await openConsole(page, c);
+    const exchanges: string[] = [];
+    page.on('request', (r) => {
+      if (new URL(r.url()).pathname === '/api/session') exchanges.push(r.method());
+    });
+    await page.goto(`${c.origin}/#token=${'x'.repeat(43)}`);
+    await expect(page).toHaveURL(`${c.origin}/`, { timeout: COLD_READ_MS });
+    await expect(page.getByRole('heading', { level: 1, name: 'Projects' })).toBeVisible();
+    expect(exchanges).toEqual([]);
+    expect(await page.evaluate(async () => (await fetch('/api/server')).status)).toBe(200);
   });
 });
