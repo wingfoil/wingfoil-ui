@@ -65,10 +65,13 @@ export function useGitOperation() {
 
 /** The transport running for project `pid`, from any component of the page (D40-4). */
 export function useRunningGitOperation(pid: string): GitOperation | undefined {
+  // A transport still running: submitted, with neither an answer nor an error yet (TanStack Query's
+  // status names are not compared as literals here: REQ-ARC-05 reserves them for project states).
   const running = useMutationState({
-    // TanStack Query's own mutation status (`MutationStatus`), not a methodology state of a project.
-    // eslint-disable-next-line wfui/no-methodology-literal
-    filters: { mutationKey: GIT_MUTATION_KEY, status: 'pending' },
+    filters: {
+      mutationKey: GIT_MUTATION_KEY,
+      predicate: (m) => m.state.submittedAt > 0 && m.state.data === undefined && m.state.error === null,
+    },
     select: (mutation) => mutation.state.variables as GitOperationVariables | undefined,
   });
   return running.find((v) => v?.pid === pid)?.op;
