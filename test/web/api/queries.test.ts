@@ -67,3 +67,15 @@ it('reads the last Memory events with their limit under the project key', async 
   expect(await client.fetchQuery(memoryEventsQuery('p a', 10))).toEqual({ events: [], more: false });
   expect((fetchFn.mock.calls[0] as unknown as [string])[0]).toBe('/api/p/p%20a/events/memory?limit=10');
 });
+
+// task-041 (D41-7; key proposed by task-030): the UI settings are global — `['settings']`, not
+// under a project — and read from `GET /api/settings`.
+it('settingsQuery reads GET /api/settings under the global key ["settings"]', async () => {
+  const { settingsQuery } = await import('../../../web/src/api/queries.js');
+  const fetchFn = vi.fn(async () => new Response('{"theme":"dark"}', { status: 200 }));
+  vi.stubGlobal('fetch', fetchFn);
+  expect(settingsQuery().queryKey).toEqual(['settings']);
+  expect(queryKeys.settings()).toEqual(['settings']);
+  expect(await createQueryClient().fetchQuery(settingsQuery())).toEqual({ theme: 'dark' });
+  expect((fetchFn.mock.calls[0] as unknown as [string])[0]).toBe('/api/settings');
+});

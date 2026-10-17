@@ -32,6 +32,11 @@ Identified by `release-planning` v0.1 (`identify-specs`).
   `matchMedia("(prefers-color-scheme: dark)")` and listens to its `change` event, so the theme
   follows the system without a reload (X-08.1, X-08.2). From v0.2 the UI setting `Theme`
   (`System` | `Light` | `Dark`, spec-006 `settings`) overrides it (X-08.3).
+  The application writes the setting on `<html>` as `data-theme-setting` (`light` or `dark`; no
+  attribute for `system`) once `GET /api/settings` answers, and on every change of it; the inline
+  script stays the only writer of `data-theme`: the attribute when it is `light` or `dark`, else
+  the media query — re-applied on a change of either (a `MutationObserver` on the attribute). Until
+  the settings are read the system preference applies (amended 2026-10-16, task-041).
 - Components use **only** the semantic tokens below — no colour literal outside `tokens.css`
   (checked, §5).
 
@@ -128,3 +133,7 @@ Recorded as deviations under directive `ux-consistency`.
   `--shadow-popover` for menus, popovers and dialogs; decided by the user.
 - 2026-10-06 — amended in dev-loop task-013 (Wave 3, plan dev-loop-rel-v0.1-plan, independent review): §2 decorative token
   `--color-backdrop` behind a modal (W3-13); decided by the user.
+- 2026-10-16 — amended in dev-loop task-041 (minor-v0.2, Wave 5, plan dev-loop-rel-v0.2-plan): §1
+  how the v0.2 Theme setting reaches the page — `data-theme-setting` written by the application,
+  `data-theme` still written only by the inline script (D41-5); the theme applies when the settings
+  are read, the system's until then (D41-6); decided by the approver.

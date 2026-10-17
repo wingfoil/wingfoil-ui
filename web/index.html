@@ -8,14 +8,21 @@
     <title>title.app</title>
     <script id="wfui-theme">
       // spec-009 §1: the theme follows prefers-color-scheme, set before the first paint and on
-      // every change of the system preference (X-08.1, X-08.2).
+      // every change of the system preference (X-08.1, X-08.2). The UI setting Theme (X-08.3,
+      // task-041) arrives as data-theme-setting on <html>, written by the application once the
+      // settings are read: "light" or "dark" wins over the system preference; without it the
+      // system preference applies. This script is the only writer of data-theme.
       (function () {
+        var root = document.documentElement;
         var query = window.matchMedia('(prefers-color-scheme: dark)');
         function apply() {
-          document.documentElement.setAttribute('data-theme', query.matches ? 'dark' : 'light');
+          var forced = root.getAttribute('data-theme-setting');
+          var theme = forced === 'light' || forced === 'dark' ? forced : query.matches ? 'dark' : 'light';
+          if (root.getAttribute('data-theme') !== theme) root.setAttribute('data-theme', theme);
         }
         apply();
         query.addEventListener('change', apply);
+        new MutationObserver(apply).observe(root, { attributes: true, attributeFilter: ['data-theme-setting'] });
       })();
     </script>
   </head>

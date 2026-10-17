@@ -322,3 +322,13 @@ describe('reachability (W3-12)', () => {
     expect(result.current).toBe('reachable');
   });
 });
+
+// task-041 (D41-7, spec-004 §6): another tab changed the UI settings → the settings are read again
+// (also this tab's own PUT, whose event comes back); nothing else is invalidated.
+it('invalidates the UI settings on a settings event, nothing else', () => {
+  client.setQueryData(queryKeys.settings(), { cached: true });
+  start();
+  latest().open();
+  latest().emit('settings', '{}');
+  expect(stale()).toEqual([JSON.stringify(['settings'])]);
+});

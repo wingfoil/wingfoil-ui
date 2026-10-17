@@ -50,6 +50,12 @@ All notable changes to WingFoil UI are recorded in this file. The format follows
   failed fetch with the time of the last successful one and git's message; without a remote no
   sync control is shown. A governed action on a detached HEAD reads *Blocked: no branch checked
   out*.
+- **UI settings and the theme setting** (US-C-07, X-08.3): *Configuration › UI settings*, pinned at
+  the bottom of the sidebar, shows and changes Auto-fetch and its interval, Auto-update (with its
+  declared risk next to it), Auto-push, Theme (*System*, *Light*, *Dark* — overrides the system
+  preference), Confirm agent launch (takes effect from WingFoil 0.3) and the number of action-log
+  entries kept. Settings are kept on this computer for every project, never committed, and apply
+  without a restart; other tabs follow.
 
 ### Changed
 

@@ -10,6 +10,7 @@ import { startEventStream } from './api/events.js';
 import { AppIntlProvider, CATALOGUE_LOCALE, type MessageId } from './i18n/index.js';
 import type { createAppRouter } from './routes/tree.js';
 import { useSessionStatus } from './session/session.js';
+import { ThemeSetting } from './settings/ThemeSetting.js';
 
 declare module 'react-aria-components' {
   interface RouterConfig {
@@ -36,6 +37,8 @@ export function App({ queryClient, router, messages }: AppProps): ReactNode {
   return (
     <AppIntlProvider {...(messages ? { messages } : {})}>
       <QueryClientProvider client={queryClient}>
+        {/* The UI setting Theme over the system preference, once the session is connected (task-041). */}
+        {connected && <ThemeSetting />}
         {/* React Aria's own strings (a popover's hidden "Dismiss") in the catalogue's locale, not
             the browser's (W5-1). */}
         <AriaI18nProvider locale={CATALOGUE_LOCALE}>

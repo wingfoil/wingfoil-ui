@@ -25,4 +25,6 @@ export const queryKeys = {
   /** Every query of project `pid`; `rest` names the resource under it. */
   project: <R extends readonly unknown[]>(pid: string, ...rest: R): readonly ['p', string, ...R] =>
     ['p', pid, ...rest] as const,
+  /** `GET /api/settings`: the UI settings, global to every project (task-041), refetched on the `settings` event. */
+  settings: () => ['settings'] as const,
 };

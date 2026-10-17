@@ -6,6 +6,7 @@
  *   when its `state` did not move (a CLI change publishes `repo` with the same state); `projects`
  *   invalidates the project list; a stream that opens again after an error invalidates everything
  *   (it may have missed events).
+ * - `settings` invalidates the UI settings (`['settings']`, task-041).
  * - Screens subscribe with {@link useServerEvent} (or {@link onServerEvent}): the subscription does
  *   not create the stream, and it holds whether the stream starts before or after it.
  * - The browser retries a dropped stream by itself; a stream that ends `CLOSED` (e.g. the console
@@ -145,6 +146,9 @@ export function startEventStream(queryClient: QueryClient, options: EventStreamO
       if (typeof pid === 'string') void queryClient.invalidateQueries({ queryKey: queryKeys.project(pid) });
     } else if (name === 'projects') {
       void queryClient.invalidateQueries({ queryKey: queryKeys.projects() });
+    } else if (name === 'settings') {
+      // task-041 (D41-7): the UI settings changed (another tab, or this tab's own save).
+      void queryClient.invalidateQueries({ queryKey: queryKeys.settings() });
     }
     for (const h of [...(handlers.get(name) ?? [])]) (h as (d: unknown) => void)(data);
   };

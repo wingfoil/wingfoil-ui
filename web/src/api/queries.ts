@@ -12,6 +12,7 @@ import type {
   ProjectListResponse,
   ServerInfo,
   Today,
+  UiSettings,
 } from '@wingfoil-ui/contracts';
 import { QueryClient, queryOptions } from '@tanstack/react-query';
 import { ApiError, apiGet } from './client.js';
@@ -119,5 +120,18 @@ export function memoryEventsQuery(pid: string, limit: number) {
   return queryOptions({
     queryKey: queryKeys.project(pid, 'events', 'memory', { limit }),
     queryFn: ({ signal }) => apiGet<MemoryEventsPage>(`${projectPath(pid)}/events/memory?limit=${limit}`, signal),
+  });
+}
+
+/**
+ * `GET /api/settings`: the UI settings (spec-006 §2) — global to every project, kept in the local
+ * state, the 7 keys with their effective values. Read by the settings page and the theme
+ * (`settings/`, task-041); the `settings` event invalidates it (another tab saved). Key fixed by
+ * task-041 (D41-7): `['settings']`, not under a project.
+ */
+export function settingsQuery() {
+  return queryOptions({
+    queryKey: queryKeys.settings(),
+    queryFn: ({ signal }) => apiGet<UiSettings>('/api/settings', signal),
   });
 }

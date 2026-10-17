@@ -32,6 +32,8 @@ export const AREAS = [
   'team',
   'docs',
   'today',
+  // task-041: Configuration › UI settings.
+  'settings',
   'title',
   'error',
   'state',
