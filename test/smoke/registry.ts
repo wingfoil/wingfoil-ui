@@ -18,6 +18,7 @@ import { gunzipSync } from 'node:zlib';
 import { REPO_ROOT } from '../harness/cli.js';
 import { run } from '../harness/run.js';
 import { npmCli } from '../package/allow-list.js';
+import { killGroupOnExit } from './registry-cleanup.js';
 
 const START_MS = 60_000;
 const STOP_MS = 10_000;
@@ -196,6 +197,8 @@ export async function startRegistry(dir: string, env: NodeJS.ProcessEnv): Promis
     stdio: ['ignore', 'pipe', 'pipe'],
   });
   const pgid = child.pid!;
+  // An interrupted run (Ctrl-C, SIGTERM, SIGHUP, exit) kills the detached registry too (review R5).
+  const removeCleanup = killGroupOnExit(pgid);
   let out = '';
   child.stdout.on('data', (d: Buffer) => (out += String(d)));
   child.stderr.on('data', (d: Buffer) => (out += String(d)));
@@ -207,7 +210,10 @@ export async function startRegistry(dir: string, env: NodeJS.ProcessEnv): Promis
     }),
   );
   const stop = async (): Promise<void> => {
-    if (exited) return;
+    if (exited) {
+      removeCleanup();
+      return;
+    }
     try {
       process.kill(-pgid, 'SIGTERM');
     } catch {
@@ -222,6 +228,7 @@ export async function startRegistry(dir: string, env: NodeJS.ProcessEnv): Promis
       }
       await gone;
     }
+    removeCleanup();
   };
   try {
     const t0 = Date.now();

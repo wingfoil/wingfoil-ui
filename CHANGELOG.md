@@ -73,8 +73,9 @@ All notable changes to WingFoil UI are recorded in this file. The format follows
   Chromium, Firefox and WebKit (Chrome, Edge, Firefox, Safari); v0.1 ran it on Chromium only.
 
 - **The package is publishable** (task-029): the root `package.json` is no longer `private` (the
-  workspaces stay private) and names the repository; `npm publish` from a checkout is refused —
-  the publish pipeline is the only way to publish. The tarball's files are unchanged.
+  workspaces stay private) and names the repository; a plain `npm publish` from a checkout stops
+  with a pointer to the publish pipeline (`--ignore-scripts` skips that guard: the control is the
+  registry setup in `docs/publishing.md`). The tarball's files are unchanged.
 
 ### Fixed
 

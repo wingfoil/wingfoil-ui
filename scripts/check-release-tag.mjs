@@ -2,9 +2,12 @@
 // task-029 D29-13, release-publishing `tag`): before anything is built for a release tag,
 //
 //   1. the tag is `v<major>.<minor>.<patch>` and equals `v` + the `version` of the root
-//      `package.json` and of every workspace `package.json` (release-submit `release-commit`);
+//      `package.json`, of every workspace `package.json`, and of the lockfile — its `version`,
+//      `packages[""]` and each workspace's `packages["<folder>"]` (release-submit `release-commit`
+//      bumps the root, the workspaces and the lockfile); a glob workspace entry is refused;
 //   2. it is an annotated tag (release-publishing `tag`: an annotated semver tag);
-//   3. it points at the commit the run builds (`<sha>`, `$GITHUB_SHA` in the workflow);
+//   3. it points at the commit the run builds (`<sha>`, `$GITHUB_SHA` in the workflow, peeled to
+//      its commit first);
 //   4. that commit is on `origin/main` (fetched here with `--no-tags`): never a tag on a phase or
 //      task branch.
 //
@@ -32,8 +35,8 @@ function tryGit(args) {
   }
 }
 
-function manifest(folder) {
-  return JSON.parse(readFileSync(path.join(folder, 'package.json'), 'utf8'));
+function manifest(folder, file = 'package.json') {
+  return JSON.parse(readFileSync(path.join(folder, file), 'utf8'));
 }
 
 const [tag, sha, ...rest] = process.argv.slice(2);
@@ -51,13 +54,24 @@ if (!m) {
   failures.push(`tag ${tag} is not v<major>.<minor>.<patch>`);
 } else {
   const root = manifest('.');
-  const versions = [['package.json', root.version]];
-  for (const ws of root.workspaces ?? []) versions.push([`${ws}/package.json`, manifest(ws).version]);
-  const wrong = versions.filter(([, v]) => v !== m[1]);
-  if (wrong.length > 0) {
-    for (const [file, v] of wrong) failures.push(`tag ${tag} does not match ${file} version ${v}`);
-  } else {
-    passed.push(`tag ${tag} matches the version of package.json and its ${versions.length - 1} workspaces`);
+  const workspaces = root.workspaces ?? [];
+  const globs = workspaces.filter((ws) => /[*?[\]{}!]/.test(ws));
+  for (const ws of globs) failures.push(`workspace entry ${ws} is a glob: list each workspace folder in package.json`);
+  if (globs.length === 0) {
+    const lock = manifest('.', 'package-lock.json');
+    const versions = [
+      ['package.json', root.version],
+      ...workspaces.map((ws) => [`${ws}/package.json`, manifest(ws).version]),
+      ['package-lock.json', lock.version],
+      ['package-lock.json packages[""]', lock.packages?.['']?.version],
+      ...workspaces.map((ws) => [`package-lock.json packages["${ws}"]`, lock.packages?.[ws]?.version]),
+    ];
+    const wrong = versions.filter(([, v]) => v !== m[1]);
+    if (wrong.length > 0) {
+      for (const [file, v] of wrong) failures.push(`tag ${tag} does not match ${file} version ${v ?? '(none)'}`);
+    } else {
+      passed.push(`tag ${tag} matches package.json, its ${workspaces.length} workspaces and package-lock.json`);
+    }
   }
 }
 
@@ -67,18 +81,22 @@ if (kind === null) failures.push(`tag ${tag} does not exist`);
 else if (kind !== 'tag') failures.push(`tag ${tag} is not an annotated tag (${kind})`);
 else passed.push(`tag ${tag} is annotated`);
 
-// 3. The commit the run builds.
+// 3. The commit the run builds (peeled: an annotated tag's object id names the same commit).
+const built = tryGit(['rev-parse', '--verify', '--quiet', `${sha}^{commit}`]);
 const target = tryGit(['rev-parse', '--verify', '--quiet', `refs/tags/${tag}^{commit}`]);
-if (target !== null && target !== sha) failures.push(`tag ${tag} points at ${target}, the run builds ${sha}`);
-else if (target !== null) passed.push(`tag ${tag} points at ${sha}`);
+if (built === null) failures.push(`${sha} is not a commit of this repository`);
+else if (target !== null && target !== built) failures.push(`tag ${tag} points at ${target}, the run builds ${built}`);
+else if (target !== null) passed.push(`tag ${tag} points at ${built}`);
 
 // 4. On origin/main.
-if (tryGit(['fetch', '--quiet', '--no-tags', 'origin', '+refs/heads/main:refs/remotes/origin/main']) === null) {
+if (built === null) {
+  // reported above
+} else if (tryGit(['fetch', '--quiet', '--no-tags', 'origin', '+refs/heads/main:refs/remotes/origin/main']) === null) {
   failures.push('origin/main could not be fetched');
-} else if (tryGit(['merge-base', '--is-ancestor', sha, 'refs/remotes/origin/main']) === null) {
-  failures.push(`commit ${sha} is not on origin/main`);
+} else if (tryGit(['merge-base', '--is-ancestor', built, 'refs/remotes/origin/main']) === null) {
+  failures.push(`commit ${built} is not on origin/main`);
 } else {
-  passed.push(`commit ${sha} is on origin/main`);
+  passed.push(`commit ${built} is on origin/main`);
 }
 
 for (const line of passed) process.stdout.write(`ok: ${line}\n`);

@@ -4,7 +4,7 @@
 # the "Differences from WingFoil's pipeline" table — is docs/publishing.md. Keep the two in step.
 #
 #   gate    → on a tag: scripts/check-release-tag.mjs (the tag is annotated, equals v<package.json version>
-#             of the root and of every workspace, points at the commit built, and that commit is on
+#             of the root, of every workspace and of package-lock.json, points at the commit built, and that commit is on
 #             origin/main — release-publishing `tag`); `npm ci`; the repository gates `typecheck`, `lint`,
 #             `format:check`, `test:coverage`, `test:smoke`; then `npm pack` ONCE (its `prepack` builds from a
 #             clean tree) and the tarball is uploaded as the run's artifact.
@@ -20,12 +20,15 @@
 #
 # Credentials: none. No secret is read, no token variable is set, no npm user config is written, setup-node gets no
 # `registry-url`; promote authenticates as the trusted publisher (`id-token: write`, granted to promote alone).
-# `npm publish` from a checkout is refused by the root `prepublishOnly` (scripts/publish-guard.mjs).
+# A plain `npm publish` from a checkout stops at the root `prepublishOnly` (scripts/publish-guard.mjs) — a
+# guard against mistakes that `--ignore-scripts` skips; the control is the registry setup (trusted publisher
+# limited to staging, "disallow tokens": docs/publishing.md, approver checklist steps 5 and 6).
 #
-# Triggers: a `vX.Y.Z` tag push runs all three jobs. `workflow_dispatch` (Actions → publish → Run workflow,
-# on `main`) runs gate and stage only — a dry run of the gates on a GitHub runner before tagging, and the
-# smoked tarball as an artifact; promote is skipped (`github.ref_type == 'tag'`) and the environment admits
-# `v*` tags only.
+# Triggers: a `vX.Y.Z` tag push runs all three jobs. `workflow_dispatch` (Actions → publish → Run workflow)
+# runs gate and stage only, on ANY ref it is started on — a branch or a tag: a dry run of the gates on a
+# GitHub runner before tagging, and the smoked tarball as an artifact. A dispatch never promotes: promote
+# requires `github.event_name == 'push'` (a manual run on a tag ref has `ref_type == 'tag'` too), and the
+# environment admits `v*` tags only.
 #
 # Node: gate on 22.22.2, the floor of the dev toolchain (jsdom declares ^22.22.2); stage on 22.12.0, the
 # package's `engines.node` floor, so the installed package is started on the oldest Node it claims; promote
@@ -117,7 +120,7 @@ jobs:
 
   promote:
     needs: stage
-    if: ${{ github.ref_type == 'tag' && startsWith(github.ref, 'refs/tags/v') }}
+    if: ${{ github.event_name == 'push' && github.ref_type == 'tag' && startsWith(github.ref, 'refs/tags/v') }}
     runs-on: ubuntu-24.04
     environment: npm-publish
     timeout-minutes: 30

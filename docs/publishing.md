@@ -1,7 +1,8 @@
 # Publishing to npm
 
-**Version:** 0.1 · **Date:** 2026-10-17 (0.1: the publish pipeline, the approver's checklist, the
-local staging smoke, the differences from WingFoil's pipeline — task-029)
+**Version:** 0.2 · **Date:** 2026-10-17 (0.1: the publish pipeline, the approver's checklist, the
+local staging smoke, the differences from WingFoil's pipeline — task-029; 0.2: review round 1 — a
+dispatch never promotes, the guard's limit, the dev-only audit findings, what is not verified yet)
 
 How `wingfoil-ui` reaches the npm registry: the pipeline `.github/workflows/publish.yml`, the
 registry-side setup the **approver** performs once, the steps of every release, and the staging
@@ -19,25 +20,33 @@ marked *approver* is a human act (CLAUDE.md, *Working with the WingFoil CLI*).
 
 | Job | What it does | Gate it adds |
 |-----|--------------|--------------|
-| `gate` | `scripts/check-release-tag.mjs <tag> <sha>`: the tag is annotated, equals `v` + the version of the root and of every workspace `package.json`, points at the commit built, and that commit is on `origin/main`. Then `npm ci`, `typecheck`, `lint`, `format:check`, `test:coverage`, `test:smoke`, and `npm pack` **once** (its `prepack` builds from a clean tree); the tarball is the run's artifact. | the repository gates |
+| `gate` | `scripts/check-release-tag.mjs <tag> <sha>`: the tag is annotated, equals `v` + the version of the root and of every workspace `package.json` and of `package-lock.json` (its `version`, `packages[""]` and each workspace entry), points at the commit built (`<sha>` peeled to its commit), and that commit is on `origin/main`. Then `npm ci`, `typecheck`, `lint`, `format:check`, `test:coverage`, `test:smoke`, and `npm pack` **once** (its `prepack` builds from a clean tree); the tarball is the run's artifact. | the repository gates |
 | `stage` | `npm run test:publish-smoke` on **that** tarball, on Node 22.12.0 (the `engines` floor): see [Local staging smoke](#local-staging-smoke). | the package installs from a registry and starts |
 | `promote` | Only for a tag, in the GitHub environment `npm-publish`: waits until the approver approves the deployment, then `npm stage publish ./dist-pack/*.tgz --provenance --access public` through the npm trusted publisher (GitHub OIDC, `id-token: write`, permission limited to staging). | (1) the `npm-publish` approval; (2) the npm stage queue |
 
 The staged version is **not live**: it goes live only when the approver runs `npm stage approve`
 with 2FA. The workflow holds no credential — no secret, no token variable, no npm user config, no
-`registry-url` — and `npm publish` from a checkout is refused by the root `prepublishOnly`
-(`scripts/publish-guard.mjs`). `test/package/publish-workflow.test.ts` (default suite) freezes these
+`registry-url`. A plain `npm publish` from a checkout stops at the root `prepublishOnly`
+(`scripts/publish-guard.mjs`): a guard against mistakes, which `npm publish --ignore-scripts`
+skips — the control is on the registry: the trusted publisher limited to staging and "disallow
+tokens" (checklist steps 5 and 6). `test/package/publish-workflow.test.ts` (default suite) freezes these
 invariants: triggers, permissions, the job chain and environment, the gates in order, the staging
 smoke on the gate tarball, `npm stage publish` with `set +x` first, no live publish, no
 credential, every action pinned to a commit SHA.
 
-**Dry run before tagging.** *Actions → publish → Run workflow* on `main` (`workflow_dispatch`) runs
-`gate` and `stage` only: the gates on a GitHub runner and the smoked tarball as an artifact.
-`promote` is skipped (`github.ref_type == 'tag'`), and the environment admits `v*` tags only.
+**Dry run before tagging.** *Actions → publish → Run workflow* (`workflow_dispatch`) runs `gate`
+and `stage` only, on whatever ref it is started on — `main`, another branch or a tag: the gates on
+a GitHub runner and the smoked tarball as an artifact. A dispatch **never promotes**: `promote`
+requires `github.event_name == 'push'` (a manual run on a tag ref has `ref_type == 'tag'` too),
+and the environment admits `v*` tags only. On a branch the tag checks are skipped.
 
 **Only a real tag push proves** the OIDC trusted publisher, the `npm-publish` approval,
 `npm stage publish` and the provenance statement: the local npm (11.6.2 on 2026-10-17) has no
 `stage` command, and none of these exist outside GitHub Actions and npmjs.com.
+
+**Not verified yet:** the `stage` job on Node 22.12.0. Every local run of the staging smoke used
+the machine's Node (22.21.0); no Node build was downloaded for it. It is first verified by the
+`workflow_dispatch` dry run, before the first tag.
 
 ## Approver checklist (registry-side setup, once)
 
@@ -96,6 +105,12 @@ for v0.1 (RP-46).
 5. `release-publishing` `publish` post-check: `npm view wingfoil-ui@X.Y.Z version` answers the
    version; then `mark-released`.
 
+**At release validation** (before `release-submit`), re-check the dependency audit: `npm audit
+--omit=dev` must report 0 vulnerabilities (what the published package installs), and `npm audit`
+is compared with the accepted dev-only findings of the local registry (see
+[Local staging smoke](#local-staging-smoke)); a new finding outside that list is a decision for the
+approver.
+
 **A failed gate or stage** stages nothing (`promote` needs `stage`). Fix on `main`; the approver
 decides whether the same version is tagged again on the fixed commit (nothing was published) or a
 patch version follows. **A bad version that went live** is never unpublished (npm's policy, and
@@ -130,7 +145,15 @@ outside the loopback (`npm_config_proxy`, `npm_config_https_proxy` and the usual
 pointing at a closed loopback port, `noproxy` = the loopback), and the test shows both that a
 request to `https://registry.npmjs.org/` fails in that environment and that a package nobody seeded
 is unknown to the local registry. It needs a warm npm cache holding the lockfile's tarballs — what
-`npm ci` leaves. The run leaves no `wfui-*` entry and no Verdaccio process ([`test/README.md`](../test/README.md),
+`npm ci` leaves.
+
+**Audit findings of the registry (dev-only).** `verdaccio@6.10.5` brings 9 `npm audit` findings
+(3 critical, 6 high on 2026-10-17): `handlebars` (through `@verdaccio/hooks`), `braces`,
+`micromatch`, `fast-glob`, `globby` (through `@verdaccio/local-storage-legacy`) and `compression`.
+`npm audit --omit=dev` reports 0: none reaches the published package. The exposure is a
+devDependency running only during the smoke, bound to the loopback, with no uplink, for about a
+minute, serving packages the smoke itself put there. Status: **accepted risk — pending the
+approver's confirmation** (task-029 review round 1, R2); re-checked at release validation. The run leaves no `wfui-*` entry and no Verdaccio process ([`test/README.md`](../test/README.md),
 *Publish smoke*, *Temporary folders*).
 
 ## Differences from WingFoil's pipeline
@@ -143,17 +166,18 @@ publisher, made live by the approver's `npm stage approve` with 2FA — are the 
 
 | Topic | WingFoil | WingFoil UI | Why |
 |-------|----------|-------------|-----|
-| Triggers | `vX.Y.Z` tag push only; local runs with `act` (`if: !env.ACT` guards) | tag push, plus `workflow_dispatch` running `gate` and `stage` only; no `act` guards | this repository has no other CI: without a manual run the tag would be the suite's first run on a GitHub runner (D29-4); `promote` needs a tag, so a local `act` run cannot stage either |
+| Triggers | `vX.Y.Z` tag push only; local runs with `act` (`if: !env.ACT` guards) | tag push, plus `workflow_dispatch` running `gate` and `stage` only, on any ref (promote needs a `push` event); no `act` guards | this repository has no other CI: without a manual run the tag would be the suite's first run on a GitHub runner (D29-4); `promote` needs a tag, so a local `act` run cannot stage either |
 | Release line | the tag's commit on `main` or on `release/X.Y` of its own X.Y | on `origin/main` only | release-publishing tags on `main`; no maintenance branches yet |
-| Tag checks | `check-release-tag.cjs` in three steps, also `server.json` versions | `check-release-tag.mjs`, one step: annotated, `v` + root and workspace versions, the commit built, on `origin/main` | no `server.json`; the workspaces carry the version (release-submit `release-commit`) (D29-13) |
+| Tag checks | `check-release-tag.cjs` in three steps, also `server.json` versions | `check-release-tag.mjs`, one step: annotated, `v` + root, workspace and lockfile versions (a glob workspace entry is refused), the commit built (peeled), on `origin/main` | no `server.json`; the workspaces carry the version (release-submit `release-commit`) (D29-13) |
 | Gate content | `build`, `test:report` (Jest with coverage and JSON), `lint`, a test-results summary, `npm publish --dry-run`, `npm pack --ignore-scripts`; test reports uploaded | `typecheck`, `lint`, `format:check`, `test:coverage`, `test:smoke`, `npm pack` with `prepack` (clean build); no test reports | the gates named by task-029 AC-1; the reports exist in WingFoil to be attached to a GitHub Release, which this repository does not create |
+| Stage job install | no `npm ci`: the staging script installs Verdaccio itself into its work folder | a full `npm ci` (dev dependencies included) before the smoke | the smoke is a Vitest file, the pinned Verdaccio comes from the lockfile, and the npm cache it fills is what the registry is seeded from offline |
 | Staging registry | `verdaccio@6` installed at run time into the work folder, fixed port 4873, an uplink to npmjs for the dependencies (none for the package under test) | `verdaccio@6.10.5` as an exact-pinned devDependency, a free loopback port, **no uplink**: seeded offline with the lockfile's run-time closure; npm behind a dead proxy | AC-3: the smoke never contacts the public registry; the lockfile pins Verdaccio and its dependencies by integrity; worktrees run concurrently (D29-1, D29-2) |
-| Staging install and check | `npm install -g`, then `wingfoil --version` must be `<version> (<commit>)`, plus an init smoke | `npm install wingfoil-ui@<version>` into an empty folder, `npx wingfoil-ui --version` = the version, a `--no-open` start with an authenticated API read, SIGINT stop | the README's install path is a local install and `npx`; the launcher prints no commit |
+| Staging install and check | `npm install -g`, then `wingfoil --version` must be `<version> (<commit>)` — `--expect-commit "$GITHUB_SHA"` ties the installed tarball to the tagged commit — plus an init smoke | `npm install wingfoil-ui@<version>` into an empty folder, `npx wingfoil-ui --version` = the version, a `--no-open` start with an authenticated API read, SIGINT stop; the published tarball's integrity equals the gate's | the README's install path is a local install and `npx`; the launcher prints no commit, so nothing ties the tarball to `$GITHUB_SHA` beyond the gate's tag checks and the artifact hand-over |
 | Staging implementation | a standalone script (`npm run publish:staging`) with its own signal handling and teardown | a Vitest file reusing the launch smoke's helpers (`test/smoke/support.ts`), teardown in `afterAll`, folders under the run's temporary root | task-029 Implementation Notes: reuse `test/smoke/`; the temp-folder convention of task-026 (D29-3) |
 | Node versions | `gate` and `stage` 22.12.0, `promote` 24.21.0 | `gate` 22.22.2, `stage` 22.12.0, `promote` 24.21.0 | the dev toolchain declares more than the runtime floor (`jsdom` `^22.22.2`); the installed package still starts on the `engines` floor in `stage` (D29-5) |
 | dist-tag | explicit `--tag`: `latest`, or `latest-X.Y` for a patch of an older line (`npm-dist-tag.cjs`) | no `--tag`: npm applies `latest` and refuses a version lower than the current `latest` | one release line; WingFoil's header notes that an explicit tag switches npm's guard off (D29-6) |
 | After the stage | `release` job (GitHub Release with the CHANGELOG section and the test reports, once the version is live) and `mcp-registry` job | none | dl-004: no GitHub Release unless the approver asks; WingFoil UI is not an MCP server (D29-7) |
-| `prepublishOnly` | build, test with coverage, lint (the gate of a publish from a checkout) | refuses every `npm publish` from a checkout (`scripts/publish-guard.mjs`) | the pipeline is the only way to publish; the staged tarball runs no lifecycle script (D29-8) |
+| `prepublishOnly` | build, test with coverage, lint (the gate of a publish from a checkout) | stops a plain `npm publish` from a checkout (`scripts/publish-guard.mjs`; `--ignore-scripts` skips it) | the pipeline is the only way to publish, enforced on the registry (checklist steps 5, 6); the staged tarball runs no lifecycle script (D29-8) |
 | `publishConfig` | `registry`, `access: public`, `provenance: true` in `package.json` | none: `--provenance --access public` on the `npm stage publish` line | keeps the local registry's publish free of provenance without an override flag in `package.json` |
 | First publish | the runbook records a stage-only token, revoked once the trusted publisher existed | no token at any time: if npm requires an existing package for a trusted publisher, the approver publishes the first version by hand from the pipeline's smoked tarball | task-029 AC-1: no token in the repository or the workflow (D29-10) |
 | Action pins | the same SHA-pinned releases; a test freezes the SHA ↔ tag table | the same SHAs; a test checks every `uses:` is a 40-hex SHA with a release-tag comment | the table is checked by hand (`git ls-remote`) when a pin changes |
