@@ -350,3 +350,14 @@ and exit 1, no stack trace (`check-release-tag.test.ts`, two new tests, red then
 Checks: `typecheck`, `lint`, `format:check` clean; `check-release-tag.test.ts` 14/14,
 `registry-cleanup.publish.test.ts` 6/6; `check_tasks.py v0.2` OK. R2: accepted risk (the approver,
 2026-10-17).
+
+### before submit (2026-10-17, coordinator)
+
+- Review: round 1 CHANGES REQUESTED (R1–R9, fixed), round 2 **PASS** (three nits, fixed); R2 accepted risk
+  confirmed by the approver.
+- `main` (`71eec75`: bug-017 added and submitted, a bug file only) merged into the branch (`783a35b`), no
+  conflict.
+- Checks after the merge (each heavy gate through the machine-free slot): typecheck, lint, format:check clean;
+  `check_tasks.py v0.2` OK; `test:coverage` **3075 passed / 1 skipped** (statements 96.53 %, branches
+  91.24 %); `test:smoke` **4/4**; `test:publish-smoke` **11/11** (2 files). No e2e run: no file the e2e suite
+  runs changed. No Verdaccio process left, no `wfui-*` entry.
