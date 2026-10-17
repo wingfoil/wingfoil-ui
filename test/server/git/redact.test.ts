@@ -42,9 +42,10 @@ describe('redactLocalPaths', () => {
         home: null,
       }),
     ).toBe("fatal: unable to access 'https://git.example.test/x.git/': 403");
+    // bug-017 (task-040): the cap keeps the head and the tail of the text.
     const long = redactLocalPaths('x'.repeat(MAX_MESSAGE + 50), { home: null });
-    expect(long).toHaveLength(MAX_MESSAGE + 1);
-    expect(long.endsWith('…')).toBe(true);
+    expect(long.length).toBeLessThanOrEqual(MAX_MESSAGE);
+    expect(long).toContain('\n…\n');
   });
 
   it('names a CLI from the PATH <wingfoil>, a CLI inside the project as the project', () => {
@@ -96,5 +97,62 @@ describe('redactLocalPaths', () => {
     expect(r('[u:tok@host]')).toBe('[u:tok@host]');
     // After a space: read as userinfo and removed (a `name: a:b@c` line loses `a:b@`).
     expect(r('Author: a:b@c.d')).toBe('Author: c.d');
+  });
+});
+
+// bug-017 (task-040, review round 1 S3, S4): what is sent is safe to show — control characters
+// (except newline and tab) and the bidirectional controls become visible escapes; a long text keeps
+// its end, where git's own rejection line is (a hook's output comes first), and the cap never
+// splits an escape or a redaction token.
+describe('bug-017 — control characters and the cap', () => {
+  it.each([
+    ['ESC (ANSI colour)', 'remote: \u001b[31mdenied\u001b[0m', 'remote: \\x1b[31mdenied\\x1b[0m'],
+    ['CR (a line rewritten)', 'ok\rfatal: fake', 'ok\\x0dfatal: fake'],
+    ['BEL, NUL, DEL and a C1 control', 'a\u0007b\u0000c\u007fd\u009be', 'a\\x07b\\x00c\\x7fd\\x9be'],
+    ['RIGHT-TO-LEFT OVERRIDE', 'file \u202etxt.exe', 'file \\u202etxt.exe'],
+    [
+      'the other bidi controls',
+      '\u202a\u202b\u202c\u202d\u2066\u2067\u2068\u2069',
+      '\\u202a\\u202b\\u202c\\u202d\\u2066\\u2067\\u2068\\u2069',
+    ],
+  ])('%s becomes a visible escape', (_name, text, expected) => {
+    expect(redactLocalPaths(text, { home: null })).toBe(expected);
+  });
+
+  it('keeps newlines and tabs, and an ordinary non-ASCII text', () => {
+    expect(redactLocalPaths('a\tb\nc — è ü 中', { home: null })).toBe('a\tb\nc — è ü 中');
+  });
+
+  it('neutralises after the paths are redacted: a path followed by ESC is still redacted', () => {
+    const project = path.join(root, 'repo', 'proj');
+    expect(redactLocalPaths(`${project}\u001b[K`, { project: [project], home: null })).toBe('<project>\\x1b[K');
+  });
+
+  it("a long hook output keeps git's concluding lines", () => {
+    const text = `${'remote: noise\n'.repeat(2000)} ! [remote rejected] HEAD -> main (pre-receive hook declined)\nerror: failed to push some refs to '<remote>'`;
+    const out = redactLocalPaths(text, { home: null });
+    expect(out.length).toBeLessThanOrEqual(MAX_MESSAGE);
+    expect(out.startsWith('remote: noise')).toBe(true);
+    expect(out).toContain('\n…\n');
+    expect(
+      out.endsWith(
+        "! [remote rejected] HEAD -> main (pre-receive hook declined)\nerror: failed to push some refs to '<remote>'",
+      ),
+    ).toBe(true);
+  });
+
+  it('the cap never splits an escape or a redaction token', () => {
+    const project = path.join(root, 'repo', 'proj');
+    for (let shift = 0; shift < 12; shift++) {
+      const unit = `\u001b${project}`;
+      const text = 'y'.repeat(shift) + unit.repeat(Math.ceil((MAX_MESSAGE * 2) / unit.length));
+      const out = redactLocalPaths(text, { project: [project], home: null });
+      expect(out.length).toBeLessThanOrEqual(MAX_MESSAGE);
+      const [head, tail] = out.split('\n…\n');
+      // Every backslash starts a whole escape, every `<` a whole token.
+      for (const part of [head!, tail!]) {
+        expect(part.replace(/\\x1b|<project>/g, '')).toMatch(/^y*$/);
+      }
+    }
   });
 });
