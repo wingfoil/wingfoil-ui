@@ -522,8 +522,8 @@ Independent review **CHANGES REQUESTED** (R2-1 … R2-4 minor, R2-5 … R2-7 nit
 review **CHANGES REQUESTED** (minor only; push survival, the one-transport guard, the toast after
 leaving, the footer alert, S5/S6 and neutralise + cap on push held). S2-1 absorbed into bug-017 by
 the coordinator (main `e9cabc8`); S2-4 recorded as a follow-up, not in this task. Red tests first:
-`b22e134` (server: 17 failures), `f5020fe` (web: 5 failures), the verbatim-style tests (`2e5830c`'s
-red commit — the unit test first failed on its own file URL, fixed in `b25df2b`, then proved by
+`b22e134` (server: 17 failures), `f5020fe` (web: 5 failures), the verbatim-style tests (`1615b12`,
+the unit test first failed on its own file URL, fixed in `b25df2b`, then proved by
 removing the `unicode-bidi` line: it fails, restored). The add and clone producer tests were also
 proved by removing the sanitiser call in `project-list.ts` (both fail, restored). R2-4's "own
 project keeps its wording" passed first: a characterization.
