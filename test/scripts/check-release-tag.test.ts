@@ -18,18 +18,38 @@ let env: NodeJS.ProcessEnv;
 let onMain: string;
 let onSide: string;
 
-async function manifests(root: string, rootVersion: string, workspaceVersion = rootVersion): Promise<void> {
+interface Versions {
+  /** The `version` of `web/package.json` (default: the root's). */
+  web?: string;
+  /** `package-lock.json` `version`, `packages[""].version`, `packages.web.version` (default: the root's). */
+  lock?: string;
+  lockRoot?: string;
+  lockWeb?: string;
+  /** The root `workspaces` (default: the three folders). */
+  workspaces?: string[];
+}
+
+async function manifests(root: string, rootVersion: string, v: Versions = {}): Promise<void> {
+  const workspaces = v.workspaces ?? ['contracts', 'server', 'web'];
   await writeFile(
     path.join(root, 'package.json'),
-    JSON.stringify({ name: 'wingfoil-ui', version: rootVersion, workspaces: ['contracts', 'server', 'web'] }),
+    JSON.stringify({ name: 'wingfoil-ui', version: rootVersion, workspaces }),
   );
+  const lockPackages: Record<string, { name?: string; version: string }> = {
+    '': { name: 'wingfoil-ui', version: v.lockRoot ?? rootVersion },
+  };
   for (const ws of ['contracts', 'server', 'web']) {
     await mkdir(path.join(root, ws), { recursive: true });
     await writeFile(
       path.join(root, ws, 'package.json'),
-      JSON.stringify({ name: `@wingfoil-ui/${ws}`, version: ws === 'web' ? workspaceVersion : rootVersion }),
+      JSON.stringify({ name: `@wingfoil-ui/${ws}`, version: ws === 'web' ? (v.web ?? rootVersion) : rootVersion }),
     );
+    lockPackages[ws] = { name: `@wingfoil-ui/${ws}`, version: ws === 'web' ? (v.lockWeb ?? rootVersion) : rootVersion };
   }
+  await writeFile(
+    path.join(root, 'package-lock.json'),
+    JSON.stringify({ name: 'wingfoil-ui', version: v.lock ?? rootVersion, lockfileVersion: 3, packages: lockPackages }),
+  );
 }
 
 async function commitAll(subject: string): Promise<string> {
@@ -85,7 +105,7 @@ describe('check-release-tag (task-029, D29-13)', () => {
   });
 
   it('refuses when a workspace version differs from the root version', async () => {
-    await manifests(repo, '0.2.0', '0.1.0');
+    await manifests(repo, '0.2.0', { web: '0.1.0' });
     try {
       const r = await check('v0.2.0', onMain);
       expect(r.code).toBe(1);
@@ -126,6 +146,40 @@ describe('check-release-tag (task-029, D29-13)', () => {
     } finally {
       await git(repo, ['tag', '-d', 'v0.2.0'], env);
       await git(repo, ['tag', '-a', '-m', 'v0.2.0', 'v0.2.0', onMain], env);
+    }
+  });
+
+  it('peels the commit given as an annotated tag object id (review R8)', async () => {
+    const object = (await git(repo, ['rev-parse', 'refs/tags/v0.2.0'], env)).stdout.trim();
+    expect(object).not.toBe(onMain);
+    const r = await check('v0.2.0', object);
+    expect(r.stderr).toBe('');
+    expect(r.code).toBe(0);
+  });
+
+  it.each([
+    ['package-lock.json version', { lock: '0.1.0' }, /package-lock\.json version 0\.1\.0/],
+    ['package-lock.json packages[""]', { lockRoot: '0.1.0' }, /package-lock\.json packages\[""\] version 0\.1\.0/],
+    ['package-lock.json packages.web', { lockWeb: '0.1.0' }, /package-lock\.json packages\["web"\] version 0\.1\.0/],
+  ] as const)('refuses when the %s differs from the tag (review R8)', async (_what, versions, message) => {
+    await manifests(repo, '0.2.0', versions);
+    try {
+      const r = await check('v0.2.0', onMain);
+      expect(r.code).toBe(1);
+      expect(r.stderr).toMatch(message);
+    } finally {
+      await manifests(repo, '0.2.0');
+    }
+  });
+
+  it('refuses a glob workspace entry clearly instead of guessing its folders (review R8)', async () => {
+    await manifests(repo, '0.2.0', { workspaces: ['packages/*'] });
+    try {
+      const r = await check('v0.2.0', onMain);
+      expect(r.code).toBe(1);
+      expect(r.stderr).toMatch(/workspace entry packages\/\* is a glob/);
+    } finally {
+      await manifests(repo, '0.2.0');
     }
   });
 

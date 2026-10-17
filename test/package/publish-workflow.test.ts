@@ -63,6 +63,12 @@ describe('publish.yml (task-029, AC-1)', () => {
 
   it('grants contents: read by default and id-token: write to the promote job alone', () => {
     expect(wf.permissions).toEqual({ contents: 'read' });
+    // A string (`write-all`, `read-all`) is not a map: every `permissions:` must be one (review R3).
+    const isMap = (value: unknown): boolean => typeof value === 'object' && value !== null && !Array.isArray(value);
+    expect(isMap(wf.permissions)).toBe(true);
+    for (const [name, job] of Object.entries(jobs)) {
+      if ('permissions' in job) expect(isMap(job.permissions), name).toBe(true);
+    }
     for (const [name, job] of Object.entries(jobs)) {
       if (name === 'promote') expect(job.permissions).toEqual({ contents: 'read', 'id-token': 'write' });
       else expect(job.permissions ?? {}, name).not.toHaveProperty('id-token');
@@ -77,7 +83,10 @@ describe('publish.yml (task-029, AC-1)', () => {
     expect(jobs.stage!.needs).toBe('gate');
     expect(jobs.promote!.needs).toBe('stage');
     expect(jobs.promote!.environment).toBe('npm-publish');
-    expect(jobs.promote!.if).toMatch(/github\.ref_type == 'tag'/);
+    // A manual run on a tag ref has ref_type `tag` too: only a push event promotes (review R1).
+    expect(jobs.promote!.if).toBe(
+      "${{ github.event_name == 'push' && github.ref_type == 'tag' && startsWith(github.ref, 'refs/tags/v') }}",
+    );
     for (const [name, job] of Object.entries(jobs)) expect(job['timeout-minutes'], name).toBeGreaterThan(0);
   });
 
@@ -120,7 +129,19 @@ describe('publish.yml (task-029, AC-1)', () => {
     expect(step!.shell).toBeUndefined();
     expect(step!.run!.trim().split('\n')[0]).toBe('set +x');
     expect(step!.run).toMatch(/npm stage publish \.\/dist-pack\/\*\.tgz --provenance --access public/);
-    expect(promote.steps.some((s) => s.uses?.startsWith('actions/download-artifact@'))).toBe(true);
+    // Exactly: Node, the gate's tarball, the stage step — nothing else runs next to the OIDC token
+    // (no checkout, no install; review R3).
+    expect(
+      promote.steps.map((s) => s.uses?.split('@')[0] ?? (s.run?.includes('npm stage publish') ? 'stage' : s.run)),
+    ).toEqual(['actions/setup-node', 'actions/download-artifact', 'stage']);
+    // The tarball downloaded is the one the gate uploaded.
+    const uploaded = jobs.gate!.steps.find((s) => s.uses?.startsWith('actions/upload-artifact@'))!;
+    for (const name of ['stage', 'promote']) {
+      const job = jobs[name]!;
+      const download = job.steps.find((s) => s.uses?.startsWith('actions/download-artifact@'))!;
+      expect(resolve(job, download.with?.['name']), name).toBe(resolve(jobs.gate!, uploaded.with?.['name']));
+      expect(resolve(job, download.with?.['name']), name).not.toBe('');
+    }
     // Live publishing and the approval are the approver's acts, never the workflow's.
     const commands = Object.values(jobs).flatMap(runs).join('\n');
     expect(commands).not.toMatch(/\bnpm\s+publish\b/);
@@ -128,7 +149,9 @@ describe('publish.yml (task-029, AC-1)', () => {
   });
 
   it('holds no credential: no secret, no token variable, no .npmrc, no registry-url', () => {
-    expect(text).not.toMatch(/secrets\./);
+    // `secrets` in any form (`secrets.X`, `secrets['X']`, `toJSON(secrets)`), the job token (review R3).
+    expect(text).not.toMatch(/\bsecrets\b/);
+    expect(text).not.toMatch(/github\.token|GITHUB_TOKEN/);
     expect(text).not.toMatch(/NPM_TOKEN|NODE_AUTH_TOKEN|_authToken|\.npmrc/);
     for (const job of Object.values(jobs)) {
       for (const s of job.steps) expect(s.with ?? {}).not.toHaveProperty('registry-url');
