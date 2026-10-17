@@ -74,3 +74,136 @@ budget runs short (RP-51).
      - design: tech-specs found missing/needing revision (dev-loop/design safety net).
      - red/green/refactor: deviations from the plan above, blockers, scope surprises.
      - review: rejection reasons and what changed on the next pass. -->
+
+### design (2026-10-17)
+
+Read: this task; dl-004 (*Context*, *Decision*, *Actions*) and dl-005; plan
+`release-planning-rel-v0.2-plan` RP-3 (d), RP-6, RP-7, RP-42, RP-43, RP-46, RP-51, RP-54, RP-55;
+`governance-alignment-rel-v0.2-plan` GA-4; `dev-loop-rel-v0.2-plan` (wave table: 029 "any time
+before release validation", Session logs); `.wingfoil/workflows/custom/release-publishing.yaml`
+v1.2 (`tag`, `publish`, `mark-released`) and `release-submit.yaml` v1.1; `test/README.md` 0.39
+(*Layout* › `test/package/`, *Launch smoke*, *Temporary folders*); `package.json`;
+`test/package/pack.test.ts`, `allow-list.ts`; `test/smoke/launch.smoke.test.ts`,
+`global-setup.ts`, `vitest.smoke.config.ts`; README *Install and run*, *Install from a package*;
+directives `security-secrets`, `documentation`, `doc-versioning`, `claim-evidence`,
+`wingfoil-cli` (`npm run -s wingfoil -- directives list`). The model pipeline, read from the public
+repository `wingfoil/wingfoil` (`main`, 2026-10-17): `.github/workflows/publish.yml` (header
+runbook; jobs `gate`, `stage`, `promote`, `release`, `mcp-registry`), `scripts/publish-staging.cjs`
+and the `publish:staging` script of its `package.json`; npm's documentation page *Trusted
+publishers* (docs.npmjs.com).
+
+**depends_on (task-026, hard gate dl-015).** task-026's Execution Notes (design D26-1…D26-5,
+red/green/refactor, reviews) and, through it, task-025 (v0.1: ES-8…ES-13, the allow-list and the
+launch smoke). What constrains this task: every temporary folder of the publish smoke lives under
+the run's temporary root (`setUpTempRoot()` in the smoke's global setup; a test's own folder named
+`wfui-…`, removed in `afterAll`), so a run leaves no `wfui-*` entry; `test:smoke` is a wave gate and
+runs whenever packaging, the launcher or the bin changes — this task changes packaging
+(`private`, `repository`), so `test:smoke` runs in its checks; ES-12: the install uses the user's
+npm cache, `npx --no --` (never a registry fallback), `withoutNpmVars` (no `npm_*`, no
+`NODE_ENV=test`); ES-13: the stop by SIGINT to the server process; the packed tarball must stay
+exactly the allow-list (AC-2: "file list unchanged").
+
+**State found.**
+
+- No `.github/` folder (`git ls-files .github` empty): no CI of any kind exists, so the repository
+  suite has never run on a GitHub runner; the tag run of this pipeline would be the first.
+- `https://registry.npmjs.org/wingfoil-ui` answers 404 (curl, 2026-10-17): the name is unused.
+- `origin` is `github.com/wingfoil/wingfoil-ui`; `package.json` has no `repository` field. npm's
+  *Trusted publishers* page: "your package's `repository.url` field in `package.json` must exactly
+  match your GitHub repository"; trusted publishing needs npm ≥ 11.5.1 and Node ≥ 22.14.0;
+  `npm stage publish` "is always allowed" for a trusted publisher. The page does **not** say
+  whether a trusted publisher can be configured for a name that has never been published
+  (unverified — D29-10).
+- Local npm is 11.6.2 (`npm --version`): it has no `stage` command (WingFoil's header: staged
+  publishing needs npm ≥ 11.15.0, bundled from Node 24.18.0). The promote job can only be exercised
+  by a real tag push.
+- Verdaccio is not in the local npm cache (`npm view verdaccio@6 version --offline` → ENOTCACHED):
+  **any Verdaccio option needs one download** (latest `verdaccio@6.10.5`, MIT, `engines.node
+  >=22`, 30 direct dependencies, 1.27 MB unpacked for the package itself — registry metadata).
+- WingFoil's staging script installs `verdaccio@6` at run time into its work folder, registers a
+  throwaway user and token, proxies the dependencies to npmjs (uplink) and gives the package under
+  test no uplink; it listens on the fixed port 4873.
+- The lockfile's runtime tarballs are in the npm cache after `npm ci`: `npm pack
+  <lockfile resolved URL> --offline` packed `yaml-2.9.1.tgz` in 0.2 s with no network (probe in the
+  session scratchpad). This makes a fully offline local registry possible (D29-2 (b)).
+- Engines in the lockfile (`package-lock.json`): the production closure accepts 22.12.0 (the
+  `engines` floor); the dev toolchain does not — `jsdom` declares `^22.22.2 || ^24.15.0 || >=26`,
+  `undici` (dev) `>=22.19.0`, `eslint` `^22.13.0`. The local Node is 22.21.0 (below jsdom's floor;
+  no `engine-strict`, the suite runs — noted, not this task's).
+- `package-lock.json` root entry has no `private` key: dropping `private` does not change the
+  lockfile; adding a devDependency does.
+- Prettier ignores `*.yml` (`.prettierignore`); ESLint covers `scripts/*.mjs`.
+
+#### AC classification
+
+| AC | kind | verified locally | verified only in CI / by the approver |
+|----|------|------------------|---------------------------------------|
+| AC-1 pipeline | config + static guard (red-first) | `test/package/publish-workflow.test.ts` (default suite) parses `.github/workflows/publish.yml` with `yaml`: trigger `v*` tags (+ D29-4), top-level `permissions: contents: read`, `id-token: write` only on promote, `environment: npm-publish` on promote, the five gates in order, the staging smoke on the gate's tarball, `npm stage publish` and never a live `npm publish`, no `secrets.`/`NPM_TOKEN`/`NODE_AUTH_TOKEN`/`.npmrc` write, every `uses:` pinned to a 40-hex SHA, `persist-credentials: false`, `set +x` first in the promote step. Red first: written before the YAML. The gate's tag checks: `scripts/check-release-tag.mjs` + `test/scripts/check-release-tag.test.ts` (red first). The gate and stage commands are the same npm scripts run locally. | the OIDC trusted publisher, the `npm-publish` approval, `npm stage publish`, provenance: only at the first real tag push (release-publishing `publish`). |
+| AC-2 package | red-first | `pack.test.ts`: root `private` absent, every workspace `private: true`, `repository.url` = the GitHub repository; tarball list unchanged (existing allow-list assertions); `npm run test:smoke`. | — |
+| AC-3 local smoke | red-first + recorded run | `npm run test:publish-smoke` (heavy gate, slot), run recorded here with durations; "never contacts the public registry" shown by running every npm and Verdaccio process with a dead proxy (`npm_config_proxy`/`https_proxy` and `HTTP(S)_PROXY` to a closed loopback port, `noproxy` loopback only): any request outside loopback fails the run. | the same smoke is the pipeline's `stage` job. |
+| AC-4 checklist | documentation | review of `docs/publishing.md` against the workflow and the RP-54 steps | performed by the approver before `release-submit`. |
+| AC-5 workflow text / docs | documentation | `release-publishing` `publish` re-read: still matches (no edit, proposals below); docs in the same change. | — |
+
+#### File layout (planned, recommended options)
+
+- `.github/workflows/publish.yml` (new): header runbook (short; points to `docs/publishing.md`),
+  jobs `gate` (tag checks; `npm ci`; `typecheck`, `lint`, `format:check`, `test:coverage`,
+  `test:smoke`; `npm pack` once → artifact), `stage` (downloads that tarball; `npm ci`; `npm run
+  test:publish-smoke` with `WFUI_PUBLISH_TARBALL`), `promote` (`environment: npm-publish`,
+  `id-token: write`, Node 24, `npm stage publish <the tarball> --provenance --access public`).
+  Actions pinned to the SHAs WingFoil's public pipeline uses (same releases, comment with the tag).
+- `scripts/check-release-tag.mjs` (new): the tag equals `v` + root and workspace versions, is
+  annotated, and its commit is on `origin/main` (release-publishing `tag`); `--on-main`,
+  `--annotated` modes as WingFoil's. Unit tests `test/scripts/check-release-tag.test.ts` on scratch
+  repositories (TempWorkspace).
+- `scripts/publish-guard.mjs` (new, D29-8): `prepublishOnly` refusing every `npm publish` run from
+  a checkout. Test in `test/scripts/publish-guard.test.ts`.
+- `test/smoke/support.ts` (new): the helpers of `launch.smoke.test.ts` moved there unchanged
+  (`withoutNpmVars`, `timed`, `npxArgs`, `processes`, `group`, `serverProcess`, `expectGroupGone`,
+  `start`); `launch.smoke.test.ts` imports them (behaviour unchanged).
+- `test/smoke/registry.ts` (new): the local registry — Verdaccio from `node_modules` on a free
+  loopback port, a config with no uplink, anonymous publish, storage in the test's own `wfui-`
+  folder; seeding of the runtime closure (D29-2 (b)); stop (SIGTERM, then SIGKILL of its process
+  group) in `afterAll` whatever happened.
+- `test/smoke/staging.publish.test.ts` (new) with `vitest.publish-smoke.config.ts` (global setup =
+  `test/smoke/global-setup.ts`, the run's temporary root) and the script `test:publish-smoke`: pack
+  (or take `WFUI_PUBLISH_TARBALL`), start the registry, `npm publish <tgz> --registry <local>
+  --provenance=false`, `npm view` answers the version and the tarball's integrity, `npm install
+  wingfoil-ui@<version> --registry <local>` into an empty folder, `npx --no -- wingfoil-ui
+  --version` (= the version), a `--no-open` start (URL line, `GET /api/server` 200 with the token),
+  stop by SIGINT, no process left, registry stopped, no `wfui-*` left.
+- `test/package/publish-workflow.test.ts` (new), `test/package/pack.test.ts` and
+  `test/package/allow-list.ts` (`private`, `repository`).
+- `docs/publishing.md` (new, D29-11): the pipeline, the approver's checklist (AC-4), the per-release
+  runbook (`npm stage list/view/approve`, reject, deprecate instead of unpublish), the local smoke,
+  what is verified only at the first tag.
+- Shared files: listed in the report (version lines assigned by the coordinator).
+
+#### Test plan
+
+Default suite (no slot): `publish-workflow.test.ts`, `check-release-tag.test.ts`,
+`publish-guard.test.ts`, `pack.test.ts`. Heavy gates (slot, one at a time): `test:coverage`,
+`test:smoke` (packaging changed), `test:publish-smoke` (recorded: durations, tarball size, count of
+`wfui-*` entries before/after, `pgrep -af verdaccio` empty after). No Playwright run: no UI change,
+no BDD scenario (`e2e closure`: none). `check_tasks.py v0.2`. Negative checks: each static guard
+broken once in a scratch copy of the YAML (a `secrets.` reference, an unpinned `uses:`, a live
+`npm publish`) to see it fail; the dead proxy removed once to show the smoke would otherwise pass
+through it (recorded in *red / green / refactor*).
+
+#### Spec / DL gaps
+
+- No tech-spec covers the pipeline (RP-7: one only if `identify-specs` found the need; it did
+  not). Proposed: the workflow header + `docs/publishing.md` + these notes (D29-14).
+- AC-3 "never contacts the public registry" holds literally only with D29-2 (b); (a) needs the AC
+  reworded by the approver.
+- The first publish of a new name through a stage-only trusted publisher is not documented by npm
+  (D29-10); the checklist makes it the approver's first check.
+- `release-publishing` `publish` (v1.2) still matches: "through this project's publish pipeline,
+  with the approver's approval"; its "Until the pipeline exists, the step is skipped" sentence
+  becomes historical. No `.wingfoil/` edit (AC-5); a wording proposal for the next alignment is in
+  the report.
+
+#### Open decisions (reported to the coordinator, awaiting the approver)
+
+D29-1 … D29-14 in the report of 2026-10-17; nothing that depends on them is implemented before the
+answer.
