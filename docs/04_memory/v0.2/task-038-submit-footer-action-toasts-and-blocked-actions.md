@@ -527,3 +527,11 @@ Independent review: **PASS**. Optional nit added (test only, no product change):
 `toasts.test.tsx` › "closed, evicted, replaced or timed out while the focus is elsewhere: the focus
 stays" (a textarea outside the stack keeps the focus through each of the four removals). Checks:
 `npx vitest run test/web/shell` 11 files, 192 passed; typecheck, lint, format:check clean.
+
+### before submit (2026-10-17, coordinator)
+
+- The approver confirmed the D38-1 deviation (live regions without `status` / `alert` role, `aria-atomic`
+  on each toast — option A of review round 1).
+- `main` (`cce3656`) is already contained in the branch: no merge of `main` needed (C1, first in the
+  merge order). The gates of review round 3 (HEAD `0740045`) stand for the submitted code; round 4
+  added one unit test only. `check_tasks.py v0.2` OK.
