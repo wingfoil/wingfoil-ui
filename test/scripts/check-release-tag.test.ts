@@ -2,7 +2,7 @@
 // pipeline's gate job: the tag is `v` + the version of the root and of every workspace
 // `package.json`, it is annotated, it points at the commit the run builds, and that commit is on
 // `origin/main` (release-publishing `tag`). Run on a throwaway repository with a bare `origin`.
-import { mkdir, writeFile } from 'node:fs/promises';
+import { mkdir, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { REPO_ROOT } from '../harness/cli.js';
@@ -178,6 +178,21 @@ describe('check-release-tag (task-029, D29-13)', () => {
       const r = await check('v0.2.0', onMain);
       expect(r.code).toBe(1);
       expect(r.stderr).toMatch(/workspace entry packages\/\* is a glob/);
+    } finally {
+      await manifests(repo, '0.2.0');
+    }
+  });
+
+  it.each([
+    ['package-lock.json', 'package-lock.json'],
+    ['a workspace package.json', path.join('server', 'package.json')],
+  ])('refuses with a refused: line, not a stack trace, when %s is missing (review round 2)', async (_what, file) => {
+    await rm(path.join(repo, file));
+    try {
+      const r = await check('v0.2.0', onMain);
+      expect(r.code).toBe(1);
+      expect(r.stderr).toMatch(new RegExp(`^refused: .*${file.replace(/[./\\]/g, '.')}.*cannot be read`, 'm'));
+      expect(r.stderr).not.toMatch(/\n\s+at /);
     } finally {
       await manifests(repo, '0.2.0');
     }

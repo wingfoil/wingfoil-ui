@@ -75,6 +75,9 @@ describe('the registry process group is killed when the smoke is interrupted (re
     const source = await readFile(path.join(REPO_ROOT, 'test', 'smoke', 'registry.ts'), 'utf8');
     expect(source).toMatch(/const removeCleanup = killGroupOnExit\(pgid\);/);
     expect(source).toMatch(/removeCleanup\(\);/);
+    // A registry that exits on its own takes the handlers off too: a later exit of the test process
+    // must never signal a process group whose id was reused (review round 2).
+    expect(source).toMatch(/child\.once\('exit', \(\) => \{\s*exited = true;\s*removeCleanup\(\);/);
   });
 
   it.each(['SIGINT', 'SIGTERM', 'SIGHUP'] as const)(
