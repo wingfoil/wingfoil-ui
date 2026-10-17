@@ -470,3 +470,48 @@ Every heavy gate through the machine-free slot (`waitslot.sh`), load at the gran
 | `npm run test:smoke` | not run: no packaging, launcher or bin change | — |
 
 No console of this worktree left running; no `wfui-*` entry in the system temporary directory.
+
+### review round 1 (2026-10-17 – 2026-10-18)
+
+Independent review **CHANGES REQUESTED** (R1 major, R2–R4 minor, R5–R6 nit); adversarial security
+review **CHANGES REQUESTED** (minor only, S1–S7). Decided by the approver: S2 — a push goes on when
+its project is left; S3 + S4 = bug-017 (ingested, absorbed into this task). Red tests first:
+`2a45cc3` (server, 9 failures), `f6e9a1c` (web: the new tests and those importing the new
+`resetGitOperations` failed to load). Because most web reds failed on the missing export, each fix
+was also proved by removing its guard (each removal fails at least one test, then restored): R1 the
+dismiss at the push's start, R1 the dismiss when nothing is left to push, R2 the update alert, R3
+the "focus elsewhere" check, R3 the heading fallback, R4 the general hand-off, S2 the fetch-only
+cancel on leaving, S5 the `ok` rule, S6 the one-probe guard; the server's `safeCut` likewise (its
+test failed on a split `<project>`).
+
+| Id | Change | Test |
+|----|--------|------|
+| R1 | `dismissToastKey(key)` appended to `web/src/shell/toasts.ts`; the push toast is raised and removed by the mutation itself (`useGitOperation`: `onMutate` removes `push:<pid>`, `onError` raises it — also after the sidebar is gone), and `GitStatus` removes it when nothing is left to push | `toasts.test.tsx` › dismissToastKey; `update-push.test.tsx` › R1 ×3 (fail → succeed, the copy no longer ahead, a cancel) |
+| R2 = S1 | `useLastGitError(pid)` (the last transport of the project in the mutation cache, any starter); the alert is derived from it with the `alerts()` rule and cleared by the staleness rules (state recorded on the render that first shows it) | `update-push.test.tsx` › R2 (the link + 500 → sidebar alert) |
+| R3 | the footer moves the focus after the link's update only when it is in the footer or nowhere; disarmed once the link is gone; no enabled target → the panel heading | `gate-footer.test.tsx` › R3 ×3 (refusal keeps the focus on the link — D40-2 characterization —, focus moved out left alone, heading fallback) |
+| R4 | `GitStatus` tracks the focused sync control (focus/blur on the actions row); in an effect, when it is gone and the focus is on the body, Fetch takes it (Cancel → its transport's control) — whoever moved the state | `update-push.test.tsx` › R4 ×2 (a header change it did not start; a focus elsewhere kept) |
+| S2 | `startGitOperation`, `cancelGitOperation`, `runningGitOperation`, `resetGitOperations` in `web/src/api/git.ts`: one transport per project with its `AbortController` outside any component and a synchronous guard; leaving a project cancels only a fetch | `update-push.test.tsx` › S2 ×2; e2e `update-push.spec.ts` › "S2 — a push goes on when its project is left, and completes" (switcher, no page load; red with the cancel-everything rule, `alive(pid)` false) |
+| S3, S4 (bug-017) | `server/src/git/redact.ts`: after the path and userinfo redaction, every C0/C1 control except newline and tab and every bidi control becomes a visible escape (`\x1b`, `‮`); the cap keeps the head and the tail around a `…` line, never splitting an escape or a redaction token; the whole-path rule also accepts a control character after a path. spec-010 §4 text and Process Note, CHANGELOG *Fixed*, user guide | `test/server/git/redact.test.ts` › bug-017 (7); e2e Y-08.2 (the hook prints ESC, CR, U+202E and about 20 KB: visible escapes, no raw character, head and tail kept; red on the old `redact.ts`) |
+| S5 | strip the fragment only on an OK answer; 401 reloads; anything else leaves it | `session.test.ts` › S5 |
+| S6 | one probe at a time | `session.test.ts` › S6 |
+| S7 | user guide: a cancelled push to a local remote can leave `objects/tmp_objdir-incoming-*` until `git gc` | — |
+| R5 | `support/remote.ts` comment (the hook's pid file, not `pgrep`) | — |
+| R6 | e2e: the footer's *Update* by keyboard, a refusal keeping its focus; `elementFromPoint` on Push, Fetch, the footer link and the sidebar Update under a sticky toast at 1280×720, 600×720, 400×600 | `update-push.spec.ts` › R6 ×2 |
+
+Found while making the e2e pass (recorded, not product defects): a `page.goto` between projects is a
+page load, which ends the push's request (the page's unload, by design): S2 and R6 switch with the
+project switcher; git's side band starts a new `remote:` line at a carriage return (Y-08.2 asserts
+the parts); a narrow open panel covers the sidebar by design (R6 checks the sidebar Update with the
+panel closed); Y-08.2's toast, 4 000 characters tall, may cover the page as task-038 accepted for
+tall sticky toasts — its Close stays on top (checked at 400×600), the controls are checked under a
+short sticky toast in R6. Also: the `docs:api` warning on a link to an unexported symbol (comment
+reworded, `144c052`); a test descriptor kind corrected after the red commit (`last`, typecheck).
+
+Checks after review round 1 (HEAD before this note `144c052`; every heavy gate through the slot):
+typecheck, lint, format:check clean; `docs:api` 0 warnings (after `144c052`); `check_tasks.py v0.2`
+OK; public-text check passed; `test:coverage` **3109 passed / 1 skipped** (statements 96.49 %,
+branches 91.29 %; load 2.3); `test:e2e:chromium` **308 passed** (10.9 min; load 11.2);
+`npm run -s test:e2e -- update-push submit-footer shell git-status gate-footer accessibility
+no-commit` (three engines) **438 passed** (13.7 min; load 7.5); `test:timing` **passed** — Vitest
+6/6, Playwright 23/23, Y-05.2 59.7 s (budget 65 s), Y-02.1 59.6 s (granted at load 12.56, 1-min load
+1.5–2.0 during the measured tests). No console left, no `wfui-*` entry.
