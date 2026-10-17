@@ -403,6 +403,10 @@ test.describe('US-Y-08 — a rejected push', () => {
       [
         `echo "permission denied: morgan may not push here" >&2`,
         `printf '%s/x/probe-secret https://morgan:TOKEN-MARKER@example.invalid/kanban.git\\n' "$HOME" >&2`,
+        // bug-017: control characters (ESC, CR) and a RIGHT-TO-LEFT OVERRIDE, then 20 KB of output
+        // that must not push git's own concluding lines out of the capped message.
+        `printf 'colour \\033[31mred\\033[0m and\\rrewritten and \\342\\200\\256txt.exe\\n' >&2`,
+        `i=0; while [ "$i" -lt 400 ]; do echo "noise noise noise noise noise noise noise noise $i" >&2; i=$((i+1)); done`,
         'exit 1',
       ].join('\n'),
     );
@@ -424,6 +428,11 @@ test.describe('US-Y-08 — a rejected push', () => {
     expect(text).not.toContain('TOKEN-MARKER');
     expect(text).not.toContain(fx.remoteDir);
     expect(text).not.toContain(fx.home);
+    // bug-017: shown as visible escapes, never as the characters; the head and the tail are kept.
+    expect(text).toContain('colour \\x1b[31mred\\x1b[0m and\\x0drewritten and \\u202etxt.exe');
+    for (const raw of [String.fromCharCode(0x1b), '\r', String.fromCharCode(0x202e)]) expect(text).not.toContain(raw);
+    expect(text).toContain('\n…\n');
+    expect(text.length).toBeLessThanOrEqual(4_000);
     await expect(gitStatus(page)).toContainText('1 commit to push');
     expect(await scanThemes(page)).toEqual([]);
     // Nothing fixed covers the sidebar's controls while the sticky toast is shown (Wave 5 lesson).
@@ -492,5 +501,101 @@ test.describe('US-G-12 — governed actions blocked while behind', () => {
     await expect(reasonField(page)).toBeVisible({ timeout: COLD_READ_MS });
     await expect(approve(page)).not.toHaveAttribute('aria-disabled', 'true');
     await expect(gate(page).locator('.gate-blocked')).toHaveCount(0);
+  });
+});
+
+test.describe('review round 1', () => {
+  test('S2 — a push goes on when its project is left, and completes', async ({ page, fixtures, consoles }) => {
+    const fx = await copy(fixtures, (f) => commitFile(f, 'mine.txt', 'mine\n', 'local work'));
+    const other = await copy(fixtures);
+    // Holds the push until the test writes `released`, then accepts it.
+    await remoteHook(
+      fx,
+      'echo $$ > hook.pid; i=0; while [ ! -f released ] && [ "$i" -lt 600 ]; do sleep 0.2; i=$((i+1)); done; exit 0',
+    );
+    const c = await consoles.start({ projects: [fx, other], settings: QUIET });
+    await openView(page, c);
+    await expect(gitStatus(page)).toContainText('1 commit to push');
+    await syncButton(page, 'Push').click();
+    await expect.poll(() => hookPid(fx), { timeout: COLD_READ_MS }).toBeDefined();
+    // To the other project and back: the push still runs.
+    await page.goto(`${c.origin}/p/${c.pids[1]}/team`, { timeout: COLD_READ_MS });
+    await expect(page.locator('.member-card').first()).toBeVisible({ timeout: COLD_READ_MS });
+    expect(alive((await hookPid(fx))!)).toBe(true);
+    await page.goto(`${c.origin}/p/${c.pids[0]}/team`, { timeout: COLD_READ_MS });
+    await writeFile(path.join(fx.remoteDir, 'released'), '');
+    await expect.poll(() => remoteHead(fx), { timeout: COLD_READ_MS }).toBe(await head(fx));
+    await expect(gitStatus(page)).toContainText('In sync with git', { timeout: COLD_READ_MS });
+  });
+
+  test("R6 — the footer's Update from the keyboard; a refusal keeps the focus on it (D40-2)", async ({
+    page,
+    fixtures,
+    consoles,
+  }) => {
+    let mine = '';
+    const fx = await copy(fixtures, async (f) => {
+      await commitFile(f, 'notes.txt', 'base\n', 'add notes');
+      await git(f.dir, ['push', '-q', 'origin', 'HEAD:main'], f.env);
+      await remoteCommit(f, 'notes.txt', 'theirs\n');
+      await fetchCopy(f);
+      mine = 'my uncommitted edit\n';
+      await writeFile(path.join(f.dir, 'notes.txt'), mine);
+    });
+    const before = await head(fx);
+    const c = await start(consoles, fx);
+    await openTask001(page, c);
+    const link = gate(page).locator('.gate-blocked').getByRole('button', { name: 'Update', exact: true });
+    await expect(link).toBeVisible({ timeout: COLD_READ_MS });
+    await tabUntil(page, link);
+    await expectFocusVisible(link);
+    const answer = page.waitForResponse((r) => new URL(r.url()).pathname.endsWith('/git/update'), {
+      timeout: COLD_READ_MS,
+    });
+    await page.keyboard.press('Enter');
+    expect((await answer).status()).toBe(409);
+    await expect(gitStatus(page)).toContainText(
+      'Cannot fast-forward: local changes to notes.txt are in the way — commit or stash them in a terminal',
+      { timeout: COLD_READ_MS },
+    );
+    await expect(link).toBeFocused();
+    expect(await head(fx)).toBe(before);
+    expect(await readFile(path.join(fx.dir, 'notes.txt'), 'utf8')).toBe(mine);
+  });
+
+  test('R6 — a sticky toast covers neither the sidebar Update nor the footer link', async ({
+    page,
+    fixtures,
+    consoles,
+  }) => {
+    const behindFx = await copy(fixtures, async (f) => {
+      await remoteCommit(f, 'outside.txt', 'theirs\n');
+      await fetchCopy(f);
+    });
+    const aheadFx = await copy(fixtures, (f) => commitFile(f, 'mine.txt', 'mine\n', 'local work'));
+    await remoteHook(aheadFx, 'echo "permission denied" >&2; exit 1');
+    const c = await consoles.start({ projects: [behindFx, aheadFx], settings: QUIET });
+    // A red, sticky toast from the other project's push…
+    await openConsole(page, c, { path: `/p/${c.pids[1]}/team` });
+    await expect(gitStatus(page)).toContainText('1 commit to push', { timeout: COLD_READ_MS });
+    expect(await clickAndAnswer(page, syncButton(page, 'Push'), 'push')).toBe(422);
+    const toast = assertiveToasts(page).locator('.toast');
+    await expect(toast).toContainText('Not pushed', { timeout: COLD_READ_MS });
+    // …stays while this project's footer offers Update.
+    await page.goto(`${c.origin}/p/${c.pids[0]}/e/task-001-login-form`, { timeout: COLD_READ_MS });
+    const link = gate(page).locator('.gate-blocked').getByRole('button', { name: 'Update', exact: true });
+    await expect(link).toBeVisible({ timeout: COLD_READ_MS });
+    await expect(toast).toBeVisible();
+    for (const size of [
+      { width: 1280, height: 720 },
+      { width: 600, height: 720 },
+      { width: 400, height: 600 },
+    ]) {
+      await page.setViewportSize(size);
+      for (const control of [link, syncButton(page, 'Update')]) {
+        await control.evaluate((el) => el.scrollIntoView({ block: 'center' }));
+        await expectOnTop(page, control);
+      }
+    }
   });
 });

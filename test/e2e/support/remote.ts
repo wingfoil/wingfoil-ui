@@ -47,8 +47,9 @@ export async function fetchCopy(fixture: Fixture): Promise<void> {
 
 /**
  * Install `script` as the remote's `pre-receive` hook (task-040, D40-9): `git-receive-pack` runs it
- * for every push to this local remote — to decline a push with a message, or to hold one. Returns the
- * hook's path (a held hook is found by it with `pgrep -f`).
+ * for every push to this local remote — to decline a push with a message, or to hold one (a held hook
+ * writes its pid to a file of the remote, e.g. `hook.pid`: git runs it by a relative path, so it is
+ * not found by its path). Returns the hook's path.
  */
 export async function remoteHook(fixture: Fixture, script: string): Promise<string> {
   const hook = path.join(fixture.remoteDir, 'hooks', 'pre-receive');
