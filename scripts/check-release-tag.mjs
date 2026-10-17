@@ -14,7 +14,8 @@
 //   node scripts/check-release-tag.mjs <tag> <sha>
 //
 // Run in the repository's top folder. Prints one line per check passed; on any failure prints every
-// failed check on stderr and exits 1; exit 2 on a usage error. Git runs with an argument array, no shell.
+// failed check on stderr and exits 1 (a missing or unparsable `package.json` / `package-lock.json` is
+// one of them); exit 2 on a usage error. Git runs with an argument array, no shell.
 import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
@@ -35,8 +36,16 @@ function tryGit(args) {
   }
 }
 
+/** A manifest that cannot be read or parsed: reported as a refusal, not a stack trace. */
+class Unreadable extends Error {}
+
 function manifest(folder, file = 'package.json') {
-  return JSON.parse(readFileSync(path.join(folder, file), 'utf8'));
+  const name = path.join(folder, file);
+  try {
+    return JSON.parse(readFileSync(name, 'utf8'));
+  } catch (error) {
+    throw new Unreadable(`${name} cannot be read (${error?.code ?? 'not valid JSON'})`);
+  }
 }
 
 const [tag, sha, ...rest] = process.argv.slice(2);
@@ -50,29 +59,35 @@ const passed = [];
 
 // 1. Name and versions.
 const m = TAG.exec(tag);
-if (!m) {
-  failures.push(`tag ${tag} is not v<major>.<minor>.<patch>`);
-} else {
-  const root = manifest('.');
-  const workspaces = root.workspaces ?? [];
-  const globs = workspaces.filter((ws) => /[*?[\]{}!]/.test(ws));
-  for (const ws of globs) failures.push(`workspace entry ${ws} is a glob: list each workspace folder in package.json`);
-  if (globs.length === 0) {
-    const lock = manifest('.', 'package-lock.json');
-    const versions = [
-      ['package.json', root.version],
-      ...workspaces.map((ws) => [`${ws}/package.json`, manifest(ws).version]),
-      ['package-lock.json', lock.version],
-      ['package-lock.json packages[""]', lock.packages?.['']?.version],
-      ...workspaces.map((ws) => [`package-lock.json packages["${ws}"]`, lock.packages?.[ws]?.version]),
-    ];
-    const wrong = versions.filter(([, v]) => v !== m[1]);
-    if (wrong.length > 0) {
-      for (const [file, v] of wrong) failures.push(`tag ${tag} does not match ${file} version ${v ?? '(none)'}`);
-    } else {
-      passed.push(`tag ${tag} matches package.json, its ${workspaces.length} workspaces and package-lock.json`);
+try {
+  if (!m) {
+    failures.push(`tag ${tag} is not v<major>.<minor>.<patch>`);
+  } else {
+    const root = manifest('.');
+    const workspaces = root.workspaces ?? [];
+    const globs = workspaces.filter((ws) => /[*?[\]{}!]/.test(ws));
+    for (const ws of globs)
+      failures.push(`workspace entry ${ws} is a glob: list each workspace folder in package.json`);
+    if (globs.length === 0) {
+      const lock = manifest('.', 'package-lock.json');
+      const versions = [
+        ['package.json', root.version],
+        ...workspaces.map((ws) => [`${ws}/package.json`, manifest(ws).version]),
+        ['package-lock.json', lock.version],
+        ['package-lock.json packages[""]', lock.packages?.['']?.version],
+        ...workspaces.map((ws) => [`package-lock.json packages["${ws}"]`, lock.packages?.[ws]?.version]),
+      ];
+      const wrong = versions.filter(([, v]) => v !== m[1]);
+      if (wrong.length > 0) {
+        for (const [file, v] of wrong) failures.push(`tag ${tag} does not match ${file} version ${v ?? '(none)'}`);
+      } else {
+        passed.push(`tag ${tag} matches package.json, its ${workspaces.length} workspaces and package-lock.json`);
+      }
     }
   }
+} catch (error) {
+  if (!(error instanceof Unreadable)) throw error;
+  failures.push(error.message);
 }
 
 // 2. Annotated.

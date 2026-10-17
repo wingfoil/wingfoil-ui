@@ -339,3 +339,14 @@ Checks after the fixes (code at `1e88dcc`): `typecheck`, `lint`, `format:check` 
 11.02 → 16.47); `test:publish-smoke` **11/11** (2 files; pack 5.5 s, seed 6.1 s, install 9.7 s)
 (load 11.78 → 8.41); `check_tasks.py v0.2` OK. `wfui-*` before: only task-040's running Playwright
 roots; after: none. No Verdaccio process left.
+
+### review round 2 (2026-10-17)
+
+Independent review: **PASS** with three nits, fixed (red first `7423063`): R2-1 `test/README.md`
+0.40 entry names "review round 1"; R2-2 the registry's own exit takes the cleanup handlers off
+(`registry.ts`; static check in `registry-cleanup.publish.test.ts`, which fails with the call
+removed); R2-3 a missing or unparsable `package.json` / `package-lock.json` gives a `refused:` line
+and exit 1, no stack trace (`check-release-tag.test.ts`, two new tests, red then green 14/14).
+Checks: `typecheck`, `lint`, `format:check` clean; `check-release-tag.test.ts` 14/14,
+`registry-cleanup.publish.test.ts` 6/6; `check_tasks.py v0.2` OK. R2 accepted risk still pending
+the approver's confirmation.

@@ -206,6 +206,8 @@ export async function startRegistry(dir: string, env: NodeJS.ProcessEnv): Promis
   const gone = new Promise<void>((resolve) =>
     child.once('exit', () => {
       exited = true;
+      // Gone on its own: take the handlers off, so a later exit never signals a reused group id.
+      removeCleanup();
       resolve();
     }),
   );
