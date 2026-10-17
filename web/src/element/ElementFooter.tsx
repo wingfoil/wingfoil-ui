@@ -22,12 +22,13 @@
  * F4), and the focus moves to the panel's heading (review F5).
  */
 import type { ElementDetail, ProjectHeader } from '@wingfoil-ui/contracts';
-import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { FormattedMessage, defineMessages, useIntl, type MessageDescriptor } from 'react-intl';
 import { Button } from 'react-aria-components';
 import type { DisabledReason } from '@wingfoil-ui/contracts';
 import { useElementWrite, type ElementWriteVerb } from '../api/writes.js';
 import { useHowToJoin } from '../project/HowToJoin.js';
+import { UpdateLink } from '../repository/UpdateLink.js';
 import { footerView, isBlank, type FooterView, type GateOutcome } from './footer.js';
 
 /** The catalogue texts of the disabled reasons (spec-003 §6, spec-008 §4 `<area>.reason.<code>`). */
@@ -40,16 +41,37 @@ const REASONS = defineMessages({
   'copy-detached': { id: 'element.reason.copyDetached' },
 });
 
+/** The project and the footer's callback for the *Update* link of the copy-behind reason (D40-2). */
+const ReasonLink = createContext<{ pid: string; onUpdated(): void } | null>(null);
+
+/** *Update* in the copy-behind reason (G-12.1, G-12.2): the sidebar's update, from the footer. */
+function ReasonUpdateLink({ children }: { children: ReactNode }): ReactNode {
+  const link = useContext(ReasonLink);
+  if (!link) return children;
+  return (
+    <UpdateLink pid={link.pid} onUpdated={link.onUpdated}>
+      {children}
+    </UpdateLink>
+  );
+}
+
 /** The reason's message and its arguments. */
 function reasonMessage(reason: DisabledReason): {
   descriptor: MessageDescriptor;
-  values: Record<string, string | number>;
+  values: Record<string, string | number | ((chunks: ReactNode[]) => ReactNode)>;
 } {
   switch (reason.code) {
     case 'version-unsupported':
       return { descriptor: REASONS[reason.code], values: { range: reason.range } };
     case 'copy-behind':
-      return { descriptor: REASONS[reason.code], values: { commits: reason.commits } };
+      return {
+        descriptor: REASONS[reason.code],
+        values: {
+          commits: reason.commits,
+          // task-040: the reason ends with "— Update", the update of the project (D40-2).
+          update: (chunks) => <ReasonUpdateLink key="update">{chunks}</ReasonUpdateLink>,
+        },
+      };
     default:
       return { descriptor: REASONS[reason.code], values: {} };
   }
@@ -82,6 +104,17 @@ export function ElementFooter({
   // The focus request is used once per panel: a refetch remounting the footer must not move it.
   const focusPendingRef = useRef(focusReason);
   const view: FooterView | undefined = detail.descriptor && header ? footerView(detail.descriptor, header) : undefined;
+  // After the reason's *Update* succeeded: once the new descriptor no longer blocks (the link is
+  // gone), the focus goes to the footer's next step — the gate's reason, else its first action (D40-2).
+  const focusAfterUpdate = useRef(false);
+  useEffect(() => {
+    const slot = root.current;
+    if (!focusAfterUpdate.current || slot === null || slot.querySelector('.update-link') !== null) return;
+    const next = slot.querySelector<HTMLElement>('.gate-reason-field, .gate-outcome:not([aria-disabled="true"])');
+    if (next === null) return;
+    focusAfterUpdate.current = false;
+    next.focus();
+  });
 
   // The result and a refusal are toasts (`useElementWrite`); here only what follows a success.
   const run = (verb: ElementWriteVerb, reason: string | undefined, onDone: () => void) => {
@@ -116,16 +149,25 @@ export function ElementFooter({
           ))}
       </p>
       {view && (
-        <FooterContent
-          view={view}
-          detail={detail}
-          busy={write.isPending}
-          focusPendingRef={focusPendingRef}
-          onDecide={decide}
-          onSubmit={submit}
-          onClose={onClose}
-          onFocusReasonUsed={onFocusReasonUsed}
-        />
+        <ReasonLink.Provider
+          value={{
+            pid,
+            onUpdated: () => {
+              focusAfterUpdate.current = true;
+            },
+          }}
+        >
+          <FooterContent
+            view={view}
+            detail={detail}
+            busy={write.isPending}
+            focusPendingRef={focusPendingRef}
+            onDecide={decide}
+            onSubmit={submit}
+            onClose={onClose}
+            onFocusReasonUsed={onFocusReasonUsed}
+          />
+        </ReasonLink.Provider>
       )}
     </div>
   );

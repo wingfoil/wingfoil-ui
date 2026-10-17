@@ -130,3 +130,25 @@
 .git-message {
   outline: none;
 }
+
+/* task-040 — "N commits to push" and the read-only line (D40-1, D40-3). */
+.git-to-push {
+  color: var(--color-text);
+}
+
+/* task-040 — *Update* inside the element footer's copy-behind reason (D40-2): a button that reads as
+   a link of the sentence; aria-disabled while a transport of the project runs. */
+.update-link {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--color-primary);
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.update-link[aria-disabled='true'] {
+  cursor: default;
+  color: var(--color-text-muted);
+}

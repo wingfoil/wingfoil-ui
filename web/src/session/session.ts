@@ -5,6 +5,9 @@
  * without a token (a reload) relies on that cookie. A 401 anywhere — the exchange, an API call, the
  * event stream's probe — means the console no longer knows this page (stopped or started again):
  * the session is **lost** for good and the shell shows the lost-session notice (decision W3-7).
+ *
+ * A console URL pasted into a tab that already shows the console changes only the fragment, which
+ * the browser does not reload for (bug-016): {@link watchFragmentToken} handles that case.
  */
 import { useSyncExternalStore } from 'react';
 
@@ -64,7 +67,7 @@ export async function bootstrapSession(): Promise<SessionStatus> {
     setStatus('connected');
     return status;
   }
-  window.history.replaceState(window.history.state, '', window.location.pathname + window.location.search);
+  stripFragment();
   try {
     const response = await fetch('/api/session', {
       method: 'POST',
@@ -76,4 +79,47 @@ export async function bootstrapSession(): Promise<SessionStatus> {
     setStatus('lost');
   }
   return status;
+}
+
+/** Remove the fragment from the address bar (path and query kept), as the bootstrap does. */
+function stripFragment(): void {
+  window.history.replaceState(window.history.state, '', window.location.pathname + window.location.search);
+}
+
+/** Options of {@link watchFragmentToken}. */
+export interface WatchFragmentOptions {
+  /** Reloads the page (default `location.reload()`; tests). */
+  reload?: () => void;
+}
+
+/**
+ * bug-016 (task-040, D40-7): when the fragment changes to one carrying a `token` — a console URL
+ * pasted into this tab — a lost page reloads, so the fresh-tab bootstrap reads it, removes it from
+ * the address bar and exchanges it, and every state of the page starts over. A page that is not lost
+ * first asks the console whether it still knows it (`GET /api/server` with the session cookie): a
+ * 401 reloads the same way; an answer means the session is valid — the fragment is removed and
+ * ignored, so a `#token=…` link in rendered content cannot end it (a failed exchange is final). A
+ * fragment without a token (a skip link) is left alone. The token is only ever read from
+ * `location.hash`, and is never kept, logged or shown. Returns the function that stops listening.
+ */
+export function watchFragmentToken(options: WatchFragmentOptions = {}): () => void {
+  const reload = options.reload ?? (() => window.location.reload());
+  const onChange = (): void => {
+    if (fragmentToken(window.location.hash) === undefined) return;
+    if (status === 'lost') {
+      reload();
+      return;
+    }
+    void fetch('/api/server', { credentials: 'same-origin' }).then(
+      (response) => {
+        if (fragmentToken(window.location.hash) === undefined) return;
+        if (response.status === 401) reload();
+        else stripFragment();
+      },
+      // The console is not reachable: the fragment stays, a reload by the user retries it.
+      () => undefined,
+    );
+  };
+  window.addEventListener('hashchange', onChange);
+  return () => window.removeEventListener('hashchange', onChange);
 }

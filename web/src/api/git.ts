@@ -10,14 +10,20 @@
  * - Cancel (fetch and push, RP-37): the caller owns the `AbortController` and passes its signal; the
  *   page's own abort is reported as {@link CANCELLED}, never as the server's answer (the server
  *   answers 500 `internal` to a client that has left and records nothing).
+ * - One transport at a time per project (task-040, D40-4): every transport mutation carries
+ *   {@link GIT_MUTATION_KEY}, so {@link useRunningGitOperation} tells any component of the page — the
+ *   sidebar's buttons, the element footer's *Update* link — which one runs for a project.
  */
 import type { GitOperation, GitResponse, ProjectHeader } from '@wingfoil-ui/contracts';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useMutationState, useQueryClient } from '@tanstack/react-query';
 import { ApiError, apiRequest } from './client.js';
 import { projectHeaderQuery } from './queries.js';
 
 /** Client-side code of a transport the page cancelled itself. */
 export const CANCELLED = 'cancelled';
+
+/** The mutation key of every git transport (D40-4). */
+export const GIT_MUTATION_KEY = ['git'] as const;
 
 /** Variables of {@link useGitOperation}: the project in them (Wave 4 lesson). */
 export interface GitOperationVariables {
@@ -36,6 +42,7 @@ export async function postGitOperation(pid: string, op: GitOperation, signal?: A
 export function useGitOperation() {
   const queryClient = useQueryClient();
   return useMutation<GitResponse, ApiError, GitOperationVariables>({
+    mutationKey: GIT_MUTATION_KEY,
     mutationFn: async (v) => {
       try {
         return await postGitOperation(v.pid, v.op, v.signal);
@@ -54,4 +61,15 @@ export function useGitOperation() {
       void queryClient.invalidateQueries({ queryKey: projectHeaderQuery(v.pid).queryKey });
     },
   });
+}
+
+/** The transport running for project `pid`, from any component of the page (D40-4). */
+export function useRunningGitOperation(pid: string): GitOperation | undefined {
+  const running = useMutationState({
+    // TanStack Query's own mutation status (`MutationStatus`), not a methodology state of a project.
+    // eslint-disable-next-line wfui/no-methodology-literal
+    filters: { mutationKey: GIT_MUTATION_KEY, status: 'pending' },
+    select: (mutation) => mutation.state.variables as GitOperationVariables | undefined,
+  });
+  return running.find((v) => v?.pid === pid)?.op;
 }
