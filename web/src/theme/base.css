@@ -735,6 +735,11 @@ p {
   font-family: var(--font-mono);
   font-size: 12px;
   white-space: pre-wrap;
+  /* A tool's text in logical order, left to right whatever bidi characters it holds, and nothing
+     painted outside the box (a flood of combining marks) — task-040, review round 2 S2-2, S2-6. */
+  direction: ltr;
+  unicode-bidi: bidi-override;
+  overflow: hidden;
 }
 
 @media (max-width: 720px) {
