@@ -44,6 +44,12 @@ All notable changes to WingFoil UI are recorded in this file. The format follows
   *pushed* when auto-push pushed it or why it was not pushed — and a refusal with a red toast
   carrying WingFoil's own message, or *This element changed since you opened it* when it moved
   meanwhile; toasts are announced to screen readers (refusals assertively).
+- **Git status in the sidebar** (US-Y-01…US-Y-04, US-S-11): the bottom of the project sidebar
+  shows the branch and short hash (or a detached HEAD), the local changes and, when the repository
+  has a remote, *In sync with git* or the commits ahead and behind, *Fetch* with *Cancel*, and a
+  failed fetch with the time of the last successful one and git's message; without a remote no
+  sync control is shown. A governed action on a detached HEAD reads *Blocked: no branch checked
+  out*.
 
 ### Changed
 

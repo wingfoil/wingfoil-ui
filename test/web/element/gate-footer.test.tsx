@@ -318,7 +318,8 @@ it.each([
   [{ code: 'local-changes' } as const, 'Blocked: this element has local changes — commit or discard them first'],
   [{ code: 'version-unsupported', range: '0.2.2 to 0.2.x' } as const, 'Read-only: supported 0.2.2 to 0.2.x'],
   [{ code: 'copy-diverged' } as const, 'Blocked: your copy has diverged from the remote'],
-  [{ code: 'copy-detached' } as const, 'Blocked: your copy is on a detached HEAD'],
+  // task-039 D39-11 (C6): the text of Y-01.3 and of error.detachedHead.
+  [{ code: 'copy-detached' } as const, 'Blocked: no branch checked out'],
   [{ code: 'not-in-team' } as const, 'Read-only: not in the team'],
 ])('D37-8 — renders the reason %o', async (reason, text) => {
   stub({ ...GATE, verbs: GATE.verbs.map((v) => ({ ...v, enabled: false, reason })) });

@@ -1,6 +1,6 @@
 # User guide — WingFoil UI v0.1
 
-**Version:** 0.12 · **Date:** 2026-10-16 (0.1: release v0.1; 0.2: bug-008 known limitation, release submit; 0.3: bug-008 wording; 0.4: bug-008 marked fixed after 0.1.0 — task-026; 0.5: *How to join*, unreleased v0.2 — task-035; 0.6: *Today*, unreleased v0.2 — task-036; 0.7: what runs during a clone, a local repository of another user, unreleased v0.2 — task-033 / bug-010, bug-013; 0.8: a local source git cannot read — task-033 review round 3; 0.9: *Deciding a gate*, unreleased v0.2 — task-037; 0.10: *Automatic sync with the remote*, unreleased v0.2 — task-034 / bug-014, its security reviews; 0.11: the notification bell and *Your roles* on Today, unreleased v0.2 — task-042; 0.12: *Submitting* and *After an action*, unreleased v0.2 — task-038)
+**Version:** 0.13 · **Date:** 2026-10-16 (0.1: release v0.1; 0.2: bug-008 known limitation, release submit; 0.3: bug-008 wording; 0.4: bug-008 marked fixed after 0.1.0 — task-026; 0.5: *How to join*, unreleased v0.2 — task-035; 0.6: *Today*, unreleased v0.2 — task-036; 0.7: what runs during a clone, a local repository of another user, unreleased v0.2 — task-033 / bug-010, bug-013; 0.8: a local source git cannot read — task-033 review round 3; 0.9: *Deciding a gate*, unreleased v0.2 — task-037; 0.10: *Automatic sync with the remote*, unreleased v0.2 — task-034 / bug-014, its security reviews; 0.11: the notification bell and *Your roles* on Today, unreleased v0.2 — task-042; 0.12: *Submitting* and *After an action*, unreleased v0.2 — task-038; 0.13: *Git status in the sidebar*, unreleased v0.2 — task-039)
 
 WingFoil UI v0.1 is a **read-only console** for WingFoil-governed projects: you open a project and
 read its Memory, elements, DNA, directives, team and documentation, kept up to date while you work
@@ -344,6 +344,31 @@ folder, **without** Memory element files and plan files. A Markdown document ope
   the repository*, *broken link* or *not shown in the UI* (at most 100 distinct targets per
   document are checked; the others read *not shown in the UI*).
 - Images are never loaded (*Image not shown: <alt text>*); raw HTML in Markdown is shown as text.
+
+## Git status in the sidebar
+
+**v0.2, not released yet.** The bottom of the project sidebar shows where your copy stands, read
+with git each time the repository changes:
+
+- **Always:** the branch and its short commit hash (or *Detached HEAD at <hash>* when no branch is
+  checked out — governed actions are then blocked with *Blocked: no branch checked out*) and the
+  number of files with local changes, when there are any.
+- **When the repository has a remote:** *In sync with git*, or how many commits your copy is
+  *ahead* of and *behind* the last fetched state of its upstream (*No upstream branch on the
+  remote* when the branch tracks none), and **Fetch**. Without a remote none of this is shown —
+  no count, no *Fetch*; it appears by itself once you add one with `git remote add`.
+- **Fetch** asks git to fetch the upstream's remote now (the only remote, or `origin`, when the
+  branch has no upstream); it never changes your branch or your files. While it runs the button
+  reads *Fetching…* and **Cancel** stops it. Anyone may fetch, also a user not in the team. The
+  fetch runs as described in *Automatic sync with the remote* below: your ssh agent and credential
+  helpers, never a prompt — a missing credential fails with git's own message.
+- **A failed fetch** — offline, refused credentials, a remote that does not answer — shows
+  *Fetch failed — last fetched at <time>* (the last successful fetch since the console started),
+  with git's message behind the ⓘ button: hover or focus it, or press or tap it to open the message — press it again, press outside or use Escape to close it. Nothing else is blocked: every view
+  still reads the project. A fetch refused before git runs (several remotes and no upstream, a
+  remote of another user, a mirror configuration) shows the reason under the button.
+- **A failed update** — automatic (*Auto-update*) — shows its reason there too, e.g. *Cannot
+  fast-forward: your copy and the remote have diverged — …*.
 
 ## Automatic sync with the remote
 

@@ -15,7 +15,7 @@
  *   path built on a data path, the 7-character commit hash; initials only inside an avatar, and
  *   the no-initials glyph `?` only inside the current user's avatar — aria-hidden, not language,
  *   task-035 D35-10); the
- *   `en` Intl rendering of their dates and of relative ages, which follow the catalogue's locale;
+ *   `en` Intl rendering of their dates (date and time, or the time alone — task-039) and of relative ages, which follow the catalogue's locale;
  *   and, inside a rendered Markdown article, a piece of the file's content.
  * - React Aria's "Dismiss" is accepted only as the name of a popover's hidden dismiss button
  *   (`button[tabindex="-1"]` in a `.menu-popover`), the one library exception (W5-1).
@@ -359,6 +359,9 @@ async function intlRenderings(page: Page, data: Set<string>): Promise<Set<string
     const out: string[] = [];
     const date = new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeStyle: 'short' });
     for (const d of iso) out.push(date.format(new Date(d)));
+    // task-039 D39-8: the time alone of a fetch made today (the sidebar's failure line).
+    const time = new Intl.DateTimeFormat('en', { timeStyle: 'short' });
+    for (const d of iso) out.push(time.format(new Date(d)));
     const rel = new Intl.RelativeTimeFormat('en', { numeric: 'auto' });
     for (const unit of ['second', 'minute', 'hour', 'day', 'week', 'month', 'year'] as const) {
       for (let v = -400; v <= 0; v++) out.push(rel.format(v, unit));
