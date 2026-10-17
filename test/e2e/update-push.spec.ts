@@ -6,10 +6,8 @@
 // every 60 s by default, task-034) except Y-05.2, which runs the scheduler at its minimum interval of
 // 15 s (RP-53; the real 60 s / 65 s budget under `npm run test:timing`, `@live-refresh`, Chromium), and
 // Y-07.2, whose settings were never changed. Every first read is waited for with `COLD_READ_MS`.
-import { execFile } from 'node:child_process';
 import { readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
-import { promisify } from 'node:util';
 import type { Locator, Page } from '@playwright/test';
 import type { UiSettings } from '@wingfoil-ui/contracts';
 import type { Fixture, FixtureKind } from '../harness/fixtures/index.js';
@@ -130,12 +128,20 @@ async function expectOnTop(page: Page, target: Locator): Promise<void> {
     .toBe(true);
 }
 
-/** Whether a process whose command line holds `pattern` runs. */
-async function running(pattern: string): Promise<boolean> {
-  return promisify(execFile)('pgrep', ['-f', pattern]).then(
-    () => true,
-    () => false,
-  );
+/** The pid the held hook wrote (`hook.pid` in the remote), once it runs. */
+async function hookPid(fx: Fixture): Promise<number | undefined> {
+  const text = await readFile(path.join(fx.remoteDir, 'hook.pid'), 'utf8').catch(() => '');
+  return text.trim() === '' ? undefined : Number(text.trim());
+}
+
+/** Whether process `pid` still runs. */
+function alive(pid: number): boolean {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 test.describe('US-Y-05 — update fast-forward', () => {
@@ -202,6 +208,9 @@ test.describe('US-Y-05 — update fast-forward', () => {
     consoles,
   }) => {
     const fx = await copy(fixtures, async (f) => {
+      // The kanban fixture has no README.md: one, committed and pushed, so the copy stays in line.
+      await commitFile(f, 'README.md', '# kanban\n', 'add a README');
+      await git(f.dir, ['push', '-q', 'origin', 'HEAD:main'], f.env);
       await remoteCommit(f, TASK_003, await withLine(f, TASK_003, 'An edit from someone else.'));
       await fetchCopy(f);
       await writeFile(path.join(f.dir, 'README.md'), await withLine(f, 'README.md', 'My uncommitted edit.'));
@@ -309,9 +318,9 @@ test.describe('US-Y-07 — push with the button or automatically', () => {
   test('Push can be cancelled while it runs (RP-37, D40-4)', async ({ page, fixtures, consoles }) => {
     const fx = await copy(fixtures, (f) => commitFile(f, 'mine.txt', 'mine\n', 'local work'));
     // Holds every push until a file the test never writes appears (bounded: about 2 minutes).
-    const hook = await remoteHook(
+    await remoteHook(
       fx,
-      'i=0; while [ ! -f released ] && [ "$i" -lt 600 ]; do sleep 0.2; i=$((i+1)); done; exit 1',
+      'echo $$ > hook.pid; i=0; while [ ! -f released ] && [ "$i" -lt 600 ]; do sleep 0.2; i=$((i+1)); done; exit 1',
     );
     const remoteBefore = await remoteHead(fx);
     const c = await start(consoles, fx);
@@ -319,13 +328,15 @@ test.describe('US-Y-07 — push with the button or automatically', () => {
     await expect(gitStatus(page)).toContainText('1 commit to push');
     await syncButton(page, 'Push').click();
     await expect(syncButton(page, 'Pushing…')).toHaveAttribute('aria-disabled', 'true');
-    await expect.poll(() => running(hook), { timeout: COLD_READ_MS }).toBe(true);
+    await expect.poll(() => hookPid(fx), { timeout: COLD_READ_MS }).toBeDefined();
+    const pid = (await hookPid(fx))!;
+    expect(alive(pid)).toBe(true);
     expect(await scanThemes(page)).toEqual([]);
     await syncButton(page, 'Cancel').click();
     await expect(syncButton(page, 'Push')).toBeFocused({ timeout: COLD_READ_MS });
     await expect(syncButton(page, 'Cancel')).toHaveCount(0);
     // The process group is gone (the hook with it); the remote is untouched; nothing is shown.
-    await expect.poll(() => running(hook), { timeout: COLD_READ_MS }).toBe(false);
+    await expect.poll(() => alive(pid), { timeout: COLD_READ_MS }).toBe(false);
     expect(await remoteHead(fx)).toBe(remoteBefore);
     await expect(page.locator('.toast')).toHaveCount(0);
     await expect(gitStatus(page).getByRole('alert')).toHaveCount(0);
