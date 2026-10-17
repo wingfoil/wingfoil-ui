@@ -303,4 +303,83 @@ e2e closure (planned):
 
 #### Open decisions (STOP: reported to the coordinator as D40-1 … D40-12; nothing depending on them is built before the answer)
 
-Listed in the report; the answer is recorded under *Decisions* below.
+- **D40-1 — when *Push* shows, and its line.** ★ (a) *Push* with "N commits to push" whenever the
+  copy is `ahead` (ahead > 0, behind = 0), whatever `autoPush` says; the copy line "N ahead" of
+  task-039 stays above it, so Y-08.1 ("1 ahead") and Y-07.2 / Y-08.2 / G-13.2 ("1 commit to push")
+  hold as written; no settings read; ux-reference §3 "(when auto-push is off)" replaced (a failed or
+  timed-out auto-push is retried with *Push*, as `error.pushTimeout` says); not on `diverged` (git
+  would reject it; the update refusal names the terminal commands); (b) only while `autoPush` is off
+  (`settingsQuery`; ux-reference and description literal) — after a failed auto-push nothing in the
+  UI can push, against `error.pushTimeout`'s text; (c) "N commits to push" replaces the "N ahead"
+  copy line in `ahead` and Y-08.1 is amended to "1 commit to push".
+- **D40-2 — the footer's *Update* (G-12.2).** ★ (a) a link-styled native button inside the reason
+  that runs the same update as the sidebar (shared running state, D40-4); after a success the focus
+  moves to the footer's next step (the gate's reason field, or *Submit*) once the new descriptor
+  arrives, after a refusal it stays on the link (the sidebar shows the refusal); (b) the link moves
+  the focus to the sidebar's *Update* without running it (G-12.2's "click Update in that message →
+  at the remote's commit" not met); (c) no link, the text only (against G-12.1's literal).
+- **D40-3 — a user not identified as one member** (update and push → 403, RP-14).
+  ★ (a) *Update* and *Push* shown aria-disabled (focusable), described by a new
+  `shell.git.readOnly` "Read-only: Update and Push need you identified in the team" (S-11.1 pattern;
+  *Fetch* stays enabled, RP-14); (b) hidden; (c) enabled, the 403 shown in the block's alert.
+- **D40-4 — one transport at a time per project, focus.** ★ (a) while a fetch, update or push of the
+  project runs — from the sidebar or the footer link — every sync button stays in place,
+  aria-disabled (a press ignored), the running one reads "Fetching…" / "Updating…" / "Pushing…",
+  *Cancel* only for fetch and push; a polite status says it; a button that held the focus and goes
+  with the new state (Update at behind 0, Push at ahead 0, Cancel at the end) hands it to *Fetch*
+  (always there while `has-remote` holds); the running state comes from the mutation cache —
+  `mutationKey: ['git']` on `useGitOperation` and a new shared `useRunningGitOperation(pid)` in
+  `web/src/api/git.ts`; (b) independent buttons, the server's write lock serialises (two "…ing"
+  at once); (c) the buttons hidden while one runs (the focus jumps).
+- **D40-5 — what *Update* and *Push* show.** ★ (a) success: no toast — the copy line ("In sync with
+  git") in the polite region is the result; an update refusal or failure the server records
+  (409 §5, 422) shows only as the sidebar's last-update-error line (Y-06.x "the sidebar shows",
+  task-039's render), one not recorded (403, 500, unreachable) in the block's alert (the D39-5
+  pattern); every push failure (422 with git's text, 409 §5 codes, 403, 500, unreachable) is a red,
+  sticky toast "Not pushed — {the commit stays / N commits stay} local" + `ErrorText`, key
+  `push:<pid>` (a new push replaces it); a cancel shows nothing; (b) a toast for every outcome,
+  success included; (c) update refusals also as a red toast (twice on screen).
+- **D40-6 — Y-08.1 "a red toast" vs task-038 D38-4.** ★ (a) keep D38-4 (the write succeeded: the
+  polite, sticky success toast with the red attention line "Not pushed — the commit stays local" and
+  git's text); the e2e asserts that line, its tone colour token and git's text; Y-08.1 reworded to
+  "a toast shows "Not pushed" in red with the rejection printed by git" (`00_conventions.md` Process
+  Note and version); (b) a failed push turns the write's toast red and assertive (changes an approved
+  decision and task-038's tests); (c) a second, red toast for the push (D38-4's rejected option).
+- **D40-7 — bug-016.** ★ (a) a `hashchange` listener (`watchFragmentToken`) acting only on a fragment
+  with a `token`: when the session is lost → `location.reload()`, so the fresh-tab bootstrap reads,
+  strips (`replaceState`) and exchanges it and every state starts over (queries, event stream, the
+  final `lost` of W3-7, toasts) by construction; when connecting/connected → one probe `GET
+  /api/server` with the current cookie: 401 (session lost) → reload as above; answered → this
+  console already knows the page, the fragment is removed (`replaceState`) and ignored — so a
+  `#token=…` link in rendered project content cannot end a valid session (a failed exchange is
+  final); (b) an in-page re-bootstrap without reload (exchange, strip, un-final `lost`, reset every
+  query, restart the stream, clear toasts) — more state to get right, changes W3-7; (c) reload on any
+  token fragment (a crafted in-page link logs a connected page out).
+- **D40-8 — the task's wording note** (*Update* = `git pull --ff-only`, the automatic update a
+  fast-forward `merge --ff-only` of the fetched upstream). ★ (a) done here: `03_is-isnot.md`,
+  `05_journeys.md`, `06_features.md` Y4, story map US-Y-05, `update.feature` header, versions bumped
+  (the user guide and ux-reference already change in this task); (b) left as is (the note applies
+  only "when this task touches" them).
+- **D40-9 — Y-08.2's refusal and the redaction proof.** ★ (a) the fixture's own bare remote with a
+  `pre-receive` hook (`remoteHook`) that declines with a permission message also printing the
+  remote's path, `$HOME/…` and `https://u:<marker>@example.invalid/x`: the toast shows git's
+  `! [remote rejected] … (pre-receive hook declined)`, `<remote>`, `~/…` and no marker — git's real
+  output end to end; declared residual: absolute paths outside the project, repository, remote and
+  home folders that a hook or git prints (e.g. `/opt/…`) are shown as printed (git's text verbatim,
+  REQ-INT-06; the user's own tools); (b) the git-http remote with `credentials` (a 401: "terminal
+  prompts disabled", an authentication refusal that blocks fetch too, no redaction proof); (c) a new
+  smart-HTTP remote answering 403 to `git-receive-pack` (new test support).
+- **D40-10 — SCREENS.** ★ (a) one appended entry on a fifth project of `startScreensConsole`, a
+  kanban copy as Morgan 1 commit behind its fetched remote: the gate footer of `task-001-login-form`
+  with "— Update" and the sidebar's *Update*; "N commits to push", the "…ing" states and the push
+  toast scanned in the own spec (a write or a push would change the shared console); (b) as (a) plus
+  a sixth, ahead project; (c) no entry (against the AC).
+- **D40-11 — Wave 3 open point: a cancelled push answers 500 `internal` with nothing recorded.**
+  ★ (a) unchanged (no server or contract change): the page treats its own abort as cancelled and
+  re-reads the header, which shows where the refs stand (also when the push finished before the
+  abort); stated in the user guide; (b) a distinct `cancelled` answer and record (contract change
+  for an answer no client reads).
+- **D40-12 — Wave 3 open point: push never to `pushRemote`.** ★ (a) kept (spec-010 §4: the
+  upstream's remote, `HEAD:<merge ref>`, every push URL owner-checked) and stated in the user guide's
+  *Push*; (b) honour `branch.<b>.pushRemote` / `remote.pushDefault` (a security-relevant change to
+  task-033/034's routes and owner checks, out of this task's scope).
