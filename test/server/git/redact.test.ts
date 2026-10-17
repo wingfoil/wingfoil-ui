@@ -145,7 +145,7 @@ describe('bug-017 — control characters and the cap', () => {
     const project = path.join(root, 'repo', 'proj');
     for (let shift = 0; shift < 12; shift++) {
       const unit = `\u001b${project}`;
-      const text = 'y'.repeat(shift) + unit.repeat(Math.ceil((MAX_MESSAGE * 2) / unit.length));
+      const text = 'y'.repeat(shift) + unit.repeat(MAX_MESSAGE); // 13 characters each once redacted
       const out = redactLocalPaths(text, { project: [project], home: null });
       expect(out.length).toBeLessThanOrEqual(MAX_MESSAGE);
       const [head, tail] = out.split('\n…\n');

@@ -13,8 +13,17 @@
  * | the home directory | `~` |
  * | the userinfo of a URL (`https://user:token@host`, up to the last `@` before the host), and a `user:password@` without a scheme (`git://` lookups) | removed |
  *
- * Longest folder first, only as a whole path (`/a/project` never matches inside `/a/project-two`);
- * the text is capped at {@link MAX_MESSAGE} characters.
+ * Longest folder first, only as a whole path (`/a/project` never matches inside `/a/project-two`).
+ * Then (bug-017, task-040) what is sent is made safe to show, whatever a hook or a remote printed:
+ *
+ * | Found | Becomes |
+ * |-------|---------|
+ * | a C0 or C1 control character other than newline and tab (ESC, CR, BEL, NUL, DEL, …) | a visible escape `\xHH` (e.g. `\x1b`) |
+ * | a bidirectional control (U+202A–U+202E, U+2066–U+2069) | a visible escape `\uHHHH` (e.g. `\u202e`) |
+ *
+ * Last, the text is capped at {@link MAX_MESSAGE} characters by keeping its head and its tail
+ * around a `…` line — git's own concluding lines (`! [rejected]`, `error:`, `fatal:`) come after a
+ * hook's output — and a cut never splits an escape or a redaction token.
  */
 import { realpathSync } from 'node:fs';
 import { homedir } from 'node:os';
@@ -76,7 +85,7 @@ export function redactLocalPaths(text: string, roots: LocalRoots): string {
     // A whole path only: followed by a separator, the end, a quote or punctuation (a full stop only
     // at the end of a sentence).
     out = out.replace(
-      new RegExp(`${escape(folder)}(?=$|[\\s/\\\\'"\`:;,)\\]>?!|*&=#}{(<@+%~^$]|\\.(?:$|\\s))`, 'g'),
+      new RegExp(`${escape(folder)}(?=$|[\\s/\\\\'"\`:;,)\\]>?!|*&=#}{(<@+%~^$]|${UNSAFE.source}|\\.(?:$|\\s))`, 'g'),
       token,
     );
   }
@@ -87,5 +96,53 @@ export function redactLocalPaths(text: string, roots: LocalRoots): string {
   // address (no `:`) stays.
   // Only after the start, a space or a quote (review round 2 F11, S13).
   out = out.replace(/(^|[\s'"])[A-Za-z0-9._~%+-]+:[^\s/]*@(?=[A-Za-z0-9[])/g, '$1');
-  return out.length > MAX_MESSAGE ? `${out.slice(0, MAX_MESSAGE)}…` : out;
+  return cap(neutralise(out));
+}
+
+/** Control characters other than newline and tab, and the bidirectional controls (bug-017). */
+const UNSAFE_RANGES: readonly (readonly [number, number])[] = [
+  [0x00, 0x08],
+  [0x0b, 0x1f],
+  [0x7f, 0x9f],
+  [0x202a, 0x202e],
+  [0x2066, 0x2069],
+];
+const hex4 = (n: number): string => `\\u${n.toString(16).padStart(4, '0')}`;
+/** One {@link UNSAFE_RANGES} character (built from the code points: no control in the source). */
+const UNSAFE = new RegExp(`[${UNSAFE_RANGES.map(([a, b]) => `${hex4(a)}-${hex4(b)}`).join('')}]`);
+
+/** `text` with every {@link UNSAFE} character written as a visible escape (`\x1b`, `\u202e`). */
+export function neutralise(text: string): string {
+  return text.replace(new RegExp(UNSAFE.source, 'g'), (c) => {
+    const code = c.charCodeAt(0);
+    return code <= 0xff ? `\\x${code.toString(16).padStart(2, '0')}` : `\\u${code.toString(16).padStart(4, '0')}`;
+  });
+}
+
+/** The line that stands for the part a capped text leaves out. */
+const ELLIPSIS = '\n…\n';
+
+/** An escape or a redaction token: one unit a cut must not split. */
+const UNIT = /\\x[0-9a-f]{2}|\\u[0-9a-f]{4}|<(?:project|repository|remote|wingfoil)>/g;
+
+/** The longest length of a {@link UNIT}. */
+const UNIT_MAX = '<repository>'.length;
+
+/** A cut at `at` moved off any unit it would split: backwards (`back`) or forwards. */
+function safeCut(text: string, at: number, back: boolean): number {
+  UNIT.lastIndex = Math.max(0, at - UNIT_MAX);
+  for (let m = UNIT.exec(text); m !== null && m.index < at; m = UNIT.exec(text)) {
+    const end = m.index + m[0].length;
+    if (end > at) return back ? m.index : end;
+  }
+  return at;
+}
+
+/** `text`, or its head and tail around {@link ELLIPSIS}, at most {@link MAX_MESSAGE} characters. */
+function cap(text: string): string {
+  if (text.length <= MAX_MESSAGE) return text;
+  const room = MAX_MESSAGE - ELLIPSIS.length;
+  const head = safeCut(text, Math.floor(room / 2), true);
+  const tail = safeCut(text, text.length - (room - head), false);
+  return `${text.slice(0, head)}${ELLIPSIS}${text.slice(tail)}`;
 }
