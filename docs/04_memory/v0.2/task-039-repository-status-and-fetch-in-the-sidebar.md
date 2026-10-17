@@ -447,3 +447,18 @@ no-commit, gate-footer) on the three engines **285 passed** (load 12.7 at the gr
 the slot's ≤ 14 check); `test:coverage` 160 files passed, 1 skipped, **2938 passed / 1 skipped**
 (statements 96.55 %, branches 91.26 %; load 10.5); `test:e2e:chromium` **257 passed** (load 3.6).
 No console left running.
+
+### before submit (2026-10-17, coordinator)
+
+- Review round 3: **PASS** (no new finding).
+- `main` (`a930ae3`, with task-038 merged) merged into the branch (`ae45c2b`, C1). Conflicts on append-only
+  lines and version lines only: CHANGELOG (task-038's entry first), `test/README.md` 0.38 (0.37 kept in the
+  history line), `docs/user-guide.md` 0.13 (0.12 kept), ux-reference 1.6 (1.5 kept), `SCREENS` (task-038's
+  entry first), `test/e2e/support/remote.ts` (task-038's header and `remoteHead`, then `remoteCommit`,
+  `setRemoteUrl`), `test/e2e/support/console.ts` (task-038's `ConsoleOptions.settings`, which throws for a
+  `stateFile` or an already seeded `stateDir`; same seeding logic as this branch's copy).
+- Checks after the merge (each heavy gate through the machine-free slot): typecheck, lint, format:check
+  clean; `test:coverage` **2982 passed / 1 skipped** (statements 96.49 %, branches 91.11 %);
+  `test:e2e:chromium` **277 passed** (9.5 min); `npm run test:e2e -- git-status.spec.ts accessibility.spec.ts
+  no-commit.spec.ts gate-footer.spec.ts submit-footer.spec.ts` (three engines) **336 passed** (10.7 min).
+  No console left, no `wfui-*` entry.
