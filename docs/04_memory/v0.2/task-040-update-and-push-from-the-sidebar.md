@@ -2,7 +2,7 @@
 id: task-040-update-and-push-from-the-sidebar
 type: task
 title: "Update and push from the sidebar"
-status: approved
+status: done
 release: "v0.2"
 module: "web"             # optional — server | web | contracts (dna.yaml modules)
 priority: "medium"           # optional — high | medium | low
