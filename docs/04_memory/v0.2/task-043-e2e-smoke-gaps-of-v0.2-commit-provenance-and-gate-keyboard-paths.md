@@ -310,3 +310,33 @@ launcher or bin change); every heavy gate through the machine-free slot.
 `#main` after *Cancel* of a gate footer opened from Today is a defect — ingested by the coordinator
 as bug-018 and absorbed into this task (its own AC and the fix arrive with the coordinator's merge
 of the design branch); the AC-3 Cancel walk is written after that merge, red first.
+
+### red / green / refactor (2026-10-18)
+
+- **Checker, red first (`6677805`)** — `test/harness/commit-provenance.test.ts` (10 cases on a
+  scratch repository with a bare remote) failed to load before the module existed. **Green
+  (`2756be6`)** — `test/harness/commit-provenance.ts` (`SUBMIT_SUBJECT`, `DECISION_SUBJECT`,
+  `governedId`, `sessionCommits`, `remoteRefs`, `provenanceProblems`): 10/10. Each rule has its own
+  failing case (an extra `chore(ui)` commit, a reject without its transition, a governed commit with
+  a second file, a merge commit, a new tag, a moved branch, a stash, a `.git/config` change, an
+  untracked file, not pushed — remote branch and tracking ref not at HEAD —, a ref added on the
+  remote, a remote commit that is not the test's, the remote's commit not in HEAD) and the clean
+  session reports nothing.
+- **e2e (`9cd0cd4`)** — `test/e2e/commit-provenance.spec.ts` (AC-1), `gate-footer.spec.ts` › G-04.1
+  with auto-push (AC-2) and X-06.2's keyboard Reject (AC-3), `update-push.spec.ts` › G-12.1's Submit
+  while behind (AC-4). First Chromium run: 3 passed, 1 failed — the Reject walk asserted "Rejected by
+  Morgan: …", but the banner names the commit's **author**, and e2e identities set only `user.email`
+  (the copy's commits are authored by the harness identity; ES2-3 "the commit author is never
+  asserted"): the banner is now matched as "Rejected by <anyone>: <reason>" (`a test fix, not a
+  product defect`). Second run: **4 passed** (Chromium, 18.5 s).
+- **Guard removal (not committed; the four tests on Chromium on the faulted tree, then restored with
+  `git checkout --` of the three files): 4 failed.**
+  - AC-1 (the by-hand demonstration of the AC): one extra commit `chore: an extra commit`, committed
+    and pushed by the test after the session's Push → `provenanceProblems` reported
+    `not a governed subject: 7cff31c chore: an extra commit` and the subject list differing from the
+    session's three.
+  - AC-2: the console started without `autoPush` → `.toast-pushed` not found.
+  - AC-3: `tabIndex={-1}` on the reject outcomes (`ElementFooter.tsx`) → "the focus never reached …
+    'Reject → draft' in 60 presses".
+  - AC-4: the Submit footer's `disabled` ignoring `view.enabled` (`ElementFooter.tsx`) → *Submit →
+    pending* not `aria-disabled`.
