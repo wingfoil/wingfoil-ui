@@ -227,11 +227,14 @@ function boundParts(raw: string): Bounded | undefined {
   }
   if (tail <= head) return undefined;
   const headBreak = raw.lastIndexOf('\n', head - 1);
-  const keptHead = headBreak < 0 ? '' : raw.slice(0, headBreak);
+  // A CR of a CRLF at a cut belongs to the line break: neither kept nor counted (review round 5 R5-2).
+  const headEnd = headBreak > 0 && raw.charCodeAt(headBreak - 1) === 0x0d ? headBreak - 1 : headBreak;
+  const keptHead = headBreak < 0 ? '' : raw.slice(0, headEnd);
   const tailBreak = raw.indexOf('\n', tail);
   const keptTail = tailBreak < 0 ? '' : raw.slice(tailBreak + 1);
   const from = headBreak < 0 ? 0 : headBreak + 1;
-  const to = tailBreak < 0 ? raw.length : tailBreak;
+  const to =
+    tailBreak < 0 ? raw.length : tailBreak > from && raw.charCodeAt(tailBreak - 1) === 0x0d ? tailBreak - 1 : tailBreak;
   const omitted = raw.slice(from, Math.max(from, to));
   const marker = omitted.includes('\n') ? '…' : `… ${codePoints(omitted)} characters without a line break omitted`;
   return { head: keptHead, marker, tail: keptTail };
@@ -252,10 +255,14 @@ function joinCapped(head: string, marker: string, tail: string): string {
   const join = (h: string, t: string): string => [h, marker, t].filter((part, i) => i === 1 || part !== '').join('\n');
   const whole = join(head, tail);
   if (whole.length <= MAX_MESSAGE) return whole;
+  // The cap cuts more than the omission line counts: it stands bare for all that is left out
+  // (review round 5 R5-1).
+  marker = '…';
   const room = MAX_MESSAGE - marker.length - 2;
   const headRoom = Math.min(head.length, Math.max(Math.floor(room / 2), room - tail.length));
   const tailRoom = Math.max(0, room - headRoom);
-  const h = head.slice(0, safeCut(head, headRoom, true));
-  const t = tail.slice(safeCut(tail, Math.max(0, tail.length - tailRoom), false));
+  // A cut on a line boundary leaves no blank line next to the omission line (R5-3).
+  const h = head.slice(0, safeCut(head, headRoom, true)).replace(/\n$/, '');
+  const t = tail.slice(safeCut(tail, Math.max(0, tail.length - tailRoom), false)).replace(/^\n/, '');
   return join(h, t);
 }
