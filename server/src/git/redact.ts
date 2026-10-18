@@ -237,7 +237,7 @@ function boundParts(raw: string): Bounded | undefined {
   return { head: keptHead, marker, tail: keptTail };
 }
 
-/** {@link boundParts} as one text (`raw` itself when short enough). */
+/** The bounded text as one string, the omission line included (`raw` itself when short enough). */
 export function boundRaw(raw: string): string {
   const b = boundParts(raw);
   return b === undefined ? raw : [b.head, b.marker, b.tail].filter((part, i) => i === 1 || part !== '').join('\n');

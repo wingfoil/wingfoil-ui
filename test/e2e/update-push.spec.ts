@@ -284,16 +284,20 @@ test.describe('US-Y-06 — an update that cannot fast-forward', () => {
       { width: 400, height: 600 },
     ]) {
       await page.setViewportSize(size);
-      const [lineTop, nameTop, items] = await gitStatus(page)
+      // Inline flow: the name starts where the text before it ends, or at the start of a line; as a
+      // flex column of its own it would start a gap after the column of that text.
+      const [nameLeft, before, lineLeft] = await gitStatus(page)
         .locator('.git-error')
         .filter({ hasText: 'Cannot fast-forward' })
-        .evaluate((el) => [
-          el.firstElementChild!.getBoundingClientRect().top,
-          el.querySelector('.git-name')!.getClientRects()[0]!.top,
-          el.children.length,
-        ]);
-      expect(items).toBe(1);
-      expect(Math.abs(nameTop - lineTop)).toBeLessThanOrEqual(30);
+        .evaluate((el) => {
+          const name = el.querySelector('.git-name')!;
+          const text = name.previousSibling!;
+          const range = document.createRange();
+          range.selectNodeContents(text);
+          const rects = range.getClientRects();
+          return [name.getClientRects()[0]!.left, rects[rects.length - 1]!.right, el.getBoundingClientRect().left];
+        });
+      expect(Math.abs(nameLeft - before) <= 1 || Math.abs(nameLeft - lineLeft) <= 1).toBe(true);
     }
   });
 });
