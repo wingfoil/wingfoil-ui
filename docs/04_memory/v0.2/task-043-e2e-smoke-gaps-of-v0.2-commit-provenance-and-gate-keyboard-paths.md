@@ -302,3 +302,11 @@ launcher or bin change); every heavy gate through the machine-free slot.
   engines (as task-040 appended to `submit-footer.spec.ts` and `shell.spec.ts`); (b) all four in
   `commit-provenance.spec.ts` (one spec per task; helpers duplicated); (c) one new
   `gate-paths.spec.ts` for AC-2 … AC-4. **Recommended: (a).**
+
+#### Decisions answered 2026-10-18 (approver)
+
+"All as recommended": **D43-1 (b)**, **D43-2 (a)**, **D43-3 (a)**, **D43-4 (a)**, **D43-5 (a)**,
+**D43-6 (a)**, **D43-7 (a)**, **D43-8 (a)**, **D43-9 (a)**. D43-5 (a): the focus returning to
+`#main` after *Cancel* of a gate footer opened from Today is a defect — ingested by the coordinator
+as bug-018 and absorbed into this task (its own AC and the fix arrive with the coordinator's merge
+of the design branch); the AC-3 Cancel walk is written after that merge, red first.
