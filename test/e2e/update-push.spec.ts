@@ -278,7 +278,23 @@ test.describe('US-Y-06 — an update that cannot fast-forward', () => {
     );
     expect(await head(fx)).toBe(before);
     expect(await readFile(path.join(fx.dir, TASK_001), 'utf8')).toBe(edited);
-  });
+    // Review round 4 (S4-4): the quoted file name flows in the sentence, not in a column of its own.
+    for (const size of [
+      { width: 1280, height: 720 },
+      { width: 400, height: 600 },
+    ]) {
+      await page.setViewportSize(size);
+      const [lineTop, nameTop, items] = await gitStatus(page)
+        .locator('.git-error')
+        .filter({ hasText: 'Cannot fast-forward' })
+        .evaluate((el) => [
+          el.firstElementChild!.getBoundingClientRect().top,
+          el.querySelector('.git-name')!.getClientRects()[0]!.top,
+          el.children.length,
+        ]);
+      expect(items).toBe(1);
+      expect(Math.abs(nameTop - lineTop)).toBeLessThanOrEqual(30);
+    }
 });
 
 test.describe('US-Y-07 — push with the button or automatically', () => {
@@ -665,5 +681,22 @@ test.describe('review round 3', () => {
         return [s.direction, s.unicodeBidi, el.scrollWidth <= el.clientWidth];
       }),
     ).toEqual(['ltr', 'bidi-override', true]);
+  });
+});
+
+test.describe('review round 4', () => {
+  test('S4-1 — a branch name with a RIGHT-TO-LEFT OVERRIDE shows the escape as text', async ({
+    page,
+    fixtures,
+    consoles,
+  }) => {
+    const fx = await copy(fixtures, (f) =>
+      git(f.dir, ['checkout', '-q', '-b', `feat${String.fromCharCode(0x202e)}gpj.exe`], f.env),
+    );
+    const c = await start(consoles, fx);
+    await openView(page, c);
+    const branch = gitStatus(page).locator('.git-branch');
+    await expect(branch).toHaveText('feat\\u202egpj.exe', { timeout: COLD_READ_MS });
+    expect(await branch.textContent()).not.toContain(String.fromCharCode(0x202e));
   });
 });

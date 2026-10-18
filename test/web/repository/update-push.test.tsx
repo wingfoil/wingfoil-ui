@@ -626,3 +626,21 @@ describe('review round 3', () => {
     expect(names).toEqual(['fe\\u202eat', 'origin/fe\\u202eat', 'a\\u202eb.md']);
   });
 });
+
+describe('review round 4', () => {
+  it('S4-4 — a refusal line quoting a file is one flex item: the sentence flows inline', () => {
+    show(
+      withRepo({
+        copy: 'behind',
+        behind: 1,
+        sync: {
+          fetch: { lastSuccessAt: null, lastError: null },
+          update: { lastError: { code: 'local-changes-in-the-way', detail: { files: ['a.md'] }, at: 'x' } },
+        },
+      }),
+    );
+    const line = region().querySelector('.git-error')!;
+    expect(line.children).toHaveLength(1);
+    expect(line.children[0]!.querySelector('.git-name')?.textContent).toBe('a.md');
+  });
+});
