@@ -75,6 +75,7 @@ Actual effort per phase (dl-006 action 6; wall-clock of the working sessions, 20
 | implementation — Wave 3 (task-033, task-037) | `dev-loop-rel-v0.2-plan` session 4 | 2026-10-15 08:50 – 16:05 (a crash of ~10 min) | ~7 h working time, 1 active day |
 | implementation — Wave 4 (task-034, task-042) | `dev-loop-rel-v0.2-plan` session 5 | 2026-10-15 17:45 – 2026-10-16 17:15 (pauses, a reboot) | ~11 h working time, 1 active day |
 | implementation — Wave 5 (task-038, task-039, task-041) | `dev-loop-rel-v0.2-plan` session 6 | 2026-10-16 19:25 – 2026-10-17 14:25 (overnight pause) | ~10 h working time, 1 active day |
+| implementation — Wave 6 (task-040, task-029) | `dev-loop-rel-v0.2-plan` session 7 | 2026-10-17 15:05 – 2026-10-18 19:50 (overnight pause) | ~14 h working time, 1 active day |
 
 - 2026-10-12 — `release-planning-rel-v0.2-plan` sessions 1–2 (branch `design/release-planning_v0.2`).
   `advance-pinned-build` no-op (0.2.2 newest); `minor-v0.2` `draft → planning` (`4c8ead3`);
@@ -138,6 +139,13 @@ Actual effort per phase (dl-006 action 6; wall-clock of the working sessions, 20
   waited for a machine-free slot shared with another project's worktrees (approver's rule); the
   D38-1 live regions carry no `status`/`alert` role (approved). Approved specs amended in place:
   spec-009 §1; UX reference 1.7. Budget: 7 of 8 active days used.
+- 2026-10-18 — Wave 6 (`dev-loop-rel-v0.2-plan` session 7): task-040, task-029 done — every v0.2 task done;
+  review rounds: task-029 2; task-040 5 independent + 5 adversarial security (approver's extension of RP-47).
+  bug-016 and bug-017 (ingested during task-040's security review) resolved by task-040. Deviations: Push
+  shown whatever auto-push says (UX reference 1.8); Y-08.1 reworded (BDD conventions 0.10); root
+  `package.json` no longer `private` (publish pipeline, dl-004 follow-up). Approved specs amended in place:
+  spec-010 §4. Budget: 8 of 8 active days used; release validation on a 9th (overrun accepted by the
+  approver).
 
 ### Submit & Publishing
 

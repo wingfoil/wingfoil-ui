@@ -3,7 +3,7 @@ id: dev-loop-rel-v0.2-plan
 type: plan
 title: "Dev-loop — rel-v0.2"
 status: active
-version: "0.7"         # optional — plan version
+version: "0.8"         # optional — plan version
 workflow: "dev-loop"
 phase: "rel-v0.2"
 scope: "rl-v1/rel-v0.2"
@@ -14,7 +14,7 @@ tmpl_version: 260703   # Orignal template version
 
 ## Context
 
-**Version:** 0.7 · **Date:** 2026-10-17 (0.1: plan created, Wave 0 scope; 0.2: Wave 0 session log, e2e engine rule W0-9; 0.3: Wave 1 session log; 0.4: Wave 2 session log; 0.5: Wave 3 session log, frontmatter version aligned; 0.6: Wave 4 session log; 0.7: Wave 5 session log, machine-free slot for heavy gates)
+**Version:** 0.8 · **Date:** 2026-10-18 (0.1: plan created, Wave 0 scope; 0.2: Wave 0 session log, e2e engine rule W0-9; 0.3: Wave 1 session log; 0.4: Wave 2 session log; 0.5: Wave 3 session log, frontmatter version aligned; 0.6: Wave 4 session log; 0.7: Wave 5 session log, machine-free slot for heavy gates; 0.8: Wave 6 session log, every task done)
 **Workflows:** `sw-life-cycle` → `release-line-cycle` (`rl-v1`) phase `delivery` → `release-cycle`
 (`minor-v0.2`) phase `implementation` = `dev-loop` iterated over every task with status `backlog`
 and `release: v0.2` (`.wingfoil/workflows/custom/release-cycle.yaml` v1.1, `dev-loop.yaml` v1.4)
@@ -95,8 +95,8 @@ Rules for every wave:
 - **Checkpoints:** design decisions; end of review (approve); before each merge; end of each wave.
 - **Completion:** every v0.2 task `done` and merged; plan finalized by hand (`status: done`, commit
   `wf(plan): finalize dev-loop-rel-v0.2-plan [active → done]`, W-04).
-- **Next:** Wave 6 — task-040 (closes G-13.2's sidebar step, RP-52); task-029 before release
-  validation.
+- **Next:** release validation (`release-cycle` after `implementation`): every v0.2 task is done; see
+  Session 7 *Hand-overs to release validation*.
 
 ## Session log
 
@@ -520,3 +520,80 @@ Rules for every wave:
   "Push when auto-push is off", the `.sidebar-foot` block and `test/e2e/support/remote.ts`
   (`remoteHead`, `remoteCommit`, `setRemoteUrl`); appends "Update" to the copy-behind reason; closes
   G-13.2's sidebar step (RP-52).
+
+### Session 7 — Wave 6: update and push from the sidebar, npm publishing pipeline (2026-10-17 – 2026-10-18)
+
+- Start confirmed by the approver: bug-016 (triaged) absorbed into task-040; task-029 in parallel
+  with task-040 (merge order 029 → 040, RP-55); task-040 reviewed by the independent reviewer AND an
+  adversarial security reviewer who runs the tools (RP-47 extended by the approver); the budget overrun
+  accepted (Wave 6 is the 8th active day, release validation a 9th). Shared shapes fixed by the
+  coordinator after both designs (C1–C6): merge order; `test/README.md` 0.40 / 0.41; task-040 alone on the
+  user guide (0.15), UX reference (1.8), BDD conventions (0.10) and vision docs; task-029 alone on
+  `package.json`, `package-lock.json`, README, `CLAUDE.md`, `test/smoke/`, `test/package/`; `npm ci` in each
+  worktree. Every heavy gate took the machine-free slot (its pattern now also counts `test:publish-smoke`).
+- **Done and merged** in task-number order (RP-55), each after its reviews, `main` merged into the branch
+  before submit and the approver's `memory approve`: task-029 (merge `2c63463`, done `1a9f474`; independent
+  review 2 rounds), task-040 (`082d83a`, `33ab602`; independent review 5 rounds, adversarial security
+  review 5 rounds; `main` with task-029 merged before submit). Conflicts only on append-only lines
+  (CHANGELOG, the `test/README.md` version line).
+- **Bugs:** bug-016 (absorbed at the start) and bug-017 (git and CLI messages kept terminal control and
+  bidi characters and the length cap could drop git's own rejection line — found by task-040's adversarial
+  review, ingested, triaged by the approver, absorbed into task-040) resolved by task-040. With bug-008 …
+  bug-015 they are closed at release validation (W0-10).
+- **Decisions** (the approver, "as recommended" unless noted; details in each task's Execution Notes):
+  - **W6-1 (D29-1 … D29-14)** npm publishing: `.github/workflows/publish.yml` (gate, stage, promote) for a
+    pushed `v*` tag, plus `workflow_dispatch` for gate and stage only; promote only on a tag push, in the
+    `npm-publish` environment, `npm stage publish --provenance` through a trusted publisher (no token);
+    Verdaccio 6.10.5 as an exact devDependency and a staging smoke with no uplink, seeded offline from the
+    lockfile (`npm run test:publish-smoke`); Node 22.22.2 / 22.12.0 / 24.21.0 per job; no GitHub Release or
+    MCP job; a `prepublishOnly` guard; `repository`, `homepage`, `bugs` in `package.json` (root no longer
+    `private`); the approver's checklist and runbook in `docs/publishing.md`; a static test of the workflow's
+    security invariants; `scripts/check-release-tag.mjs`; no new spec or DL.
+  - **W6-2 (approver)** `docs/publishing.md` documents every divergence from WingFoil's public pipeline
+    (compared at `wingfoil/wingfoil` `07292cf`).
+  - **W6-3 (approver, task-029 review R2)** the 9 `npm audit` findings Verdaccio brings into the dev tree are an
+    accepted risk (dev only, loopback, short-lived; `npm audit --omit=dev` = 0); re-checked at release
+    validation.
+  - **W6-4 (D40-1 … D40-12)** update and push: *Push* whenever the copy is only ahead, whatever auto-push says
+    (UX reference deviation, 1.8); the footer's *Update* link runs the same update; *Update*/*Push* disabled
+    with a description for a user who is not one member; one transport at a time per project; outcomes as in
+    D40-5 (a red sticky toast for every push failure); Y-08.1 reworded to D38-4's toast (BDD conventions
+    Process Note); bug-016 by a `hashchange` watcher that probes the session and reloads only on a 401; the
+    *Update* wording; a pre-receive hook proves Y-08.2's redaction (declared residual: other absolute paths);
+    a fifth `SCREENS` project; the Wave 3 open points (cancelled push → 500 `internal`; never to `pushRemote`)
+    kept and stated in the user guide.
+  - **W6-5 (approver, security review S2)** a push survives leaving its project (the transport's controller
+    lives outside the components); a fetch is still cancelled on leaving.
+  - **W6-6 (approver, security reviews S3/S4 and rounds 2–3)** bug-017 absorbed into task-040: one sanitiser for
+    every verbatim tool message (git and CLI refusals, `sync.*.lastError`, CLI `warnings`, file names in
+    `detail.files`, branch and upstream names, clone and add-folder refusals): control and format characters
+    (Unicode Cc, Cf, Cs, Zl, Zp except newline and tab) as visible escapes, a backslash doubled first, CRLF
+    folded; the input bounded before it is transformed and the 4 000-character cap keeping head and tail, so
+    git's concluding lines survive; verbatim text rendered left to right with `bidi-override`. spec-010 §4
+    Process Notes.
+  - **W6-7 (coordinator, review rounds)** `shell.git.pushFailedIn` names the project when a push fails while
+    another project is shown; the raw bound cuts only at line breaks and one omission line stands for what is
+    cut; the scheme-less `user:pass@` rule is a declared residual (left-context heuristic), not extended.
+- **Review highlights:** task-029 — a manual run on a tag could reach the promote job (fixed: tag push only);
+  the static workflow test let realistic mutants pass (fixed, each mutant now fails it). task-040 — the red
+  push toast outlived a successful push; a failed update from the footer link showed nothing; leaving a
+  project silently cancelled a push; terminal control and bidi characters from a remote reached the toast,
+  then also through the clone path, the CLI warnings and file and branch names; the escaping first ran
+  before the cap (60 MB of hook output blocked the server ~8 s, 1.8 GB; now ~0.1 s); a branch name with a
+  right-to-left override still displayed reversed until the server escaped it.
+- **Open points:** none new in scope. Follow-ups recorded for the retrospective: git-sourced project data
+  still shown raw (memory-event `author`, descriptor `by`/`reason`; a candidate to extend bug-017's rule);
+  the project list's refusal details render user-typed paths unsanitised; TanStack's `networkMode: 'online'`
+  pauses loopback requests while the system reports offline; the key-rendering build drops rich-text tags
+  (X-09.1 cannot see the footer link); a typed `SafeToolMessage` instead of the source-scanning tripwire;
+  WingFoil feedback from task-029 (Verdaccio unpinned at run time, npmjs uplink in staging, fixed port): the
+  approver asked for a note, but the inbox admits only notes tied to a `wingfoil-cli` W-entry (dl-163 R4 as
+  checked by `test/wingfoil-feedback.test.ts`) and this one concerns WingFoil's release pipeline, not its CLI —
+  the retrospective decides how such a note is filed (the draft is kept in the session notes).
+- **Gate at the end of the wave** on `main` `33ab602` (2026-10-18 18:13–19:25, every step through the machine-free slot: `test:timing` Vitest 6/6 (TT-PERF-07 10/10 at 59.6–60.1 s; C-07.3: 0 `git fetch` in 120 s) and Playwright 23/23 (Y-05.2 59.0 s, Y-02.1 59.1 s of 65 s); `test:coverage` 3193 passed, 1 skipped (statements 96.56 %, branches 91.39 %); `test:e2e` three engines 908 passed (Chromium 310, Firefox 299, WebKit 299; 35.1 min); `test:smoke` 4/4; `test:publish-smoke` 11/11; no `wfui-*` entry, no console or registry left. The first timing run measured TT-PERF-01 "after one commit" p95 2 127 ms and TT-PERF-02 p95 1 377 / 1 270 ms while another project's build ran; repeated alone (19:25–19:48, load 2–5): TT-PERF-01 p95 134 ms warm, 744 ms after one commit (under spec-002 §4's 1 000 ms, Wave 5: 502 ms), TT-PERF-02 p95 525 ms approve, 533 ms submit (budget 3 s; Wave 5: 310 / 277 ms), Y-05.2 59.7 s — spec-002 §4 not reopened (W4 lesson: repeat in series)).
+- **Effort:** 2026-10-17 15:05 – 2026-10-18 19:50 wall-clock with an overnight pause (about 14 h of
+  working time; the adversarial review rounds of task-040 ran the longest).
+- **Hand-overs to release validation:** close bug-008 … bug-017 (close note committed first, then the
+  approver's `memory approve <bug> --reason`); re-run `npm audit` (W6-3); the approver's registry checklist in
+  `docs/publishing.md` before `release-submit` (RP-46); the first `workflow_dispatch` dry run proves the stage
+  job on Node 22.12.0; W4-16 and the follow-ups above go to the retrospective.
