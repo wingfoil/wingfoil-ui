@@ -150,17 +150,16 @@ Supports WingFoil **0.2.2 to 0.2.x** (contract-tested: 0.2.2), as v0.1. Not publ
   from commits and Memory files (event authors, rejection reasons) are not escaped like them.
 - While the operating system reports no network, the page holds its requests to the console.
 - Between the console's check and the WingFoil process an edit by another program is not caught
-  (WingFoil refuses one that changes the status); a concurrent commit from another console or a
-  terminal makes one of the two fail on git's `index.lock`.
+  (WingFoil's approve and reject refuse one `git status` shows; submit commits it); a concurrent
+  commit from another console or a terminal makes one of the two fail on git's `index.lock`.
 - Two projects of one repository keep their own fetch status: a manual Fetch in one does not move
   the other's *last fetched* time.
-- The refusals of *Add project* show the paths the user typed as typed, without the escaping of
-  git's messages.
 - The refusal of another user's local repository is POSIX only and has residual cases (a parent
   folder another user can write, a linked worktree's `commondir`, `~user` from `/etc/passwd`).
-- Still from v0.1: the two clone-URL edge cases, a killed clone leaving its folder, the role-view
-  refusal, Windows tested only with simulated platforms, no limit on event streams, the history
-  re-read in full after each commit, React Aria's "Dismiss" outside the catalogue.
+- Still from v0.1: the two clone-URL edge cases, a killed clone leaving its folder, the paths typed
+  in *Add project* echoed as typed in its refusals, the role-view refusal, Windows tested only with
+  simulated platforms, no limit on event streams, the history re-read in full after each commit,
+  React Aria's "Dismiss" outside the catalogue.
 
 Details: [user guide — Known limitations](docs/user-guide.md#known-limitations).
 

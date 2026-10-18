@@ -450,8 +450,8 @@ repository changes:
 ## Automatic sync with the remote
 
 While it runs, the console keeps the projects you have opened since it started up to date with
-their remote, by itself. Three settings drive it (spec-006 §2; change
-them in *Configuration › UI settings*, see [UI settings](#ui-settings)):
+their remote, by itself. Three settings drive it (spec-006 §2; change them in *Configuration › UI
+settings*, see [UI settings](#ui-settings)):
 
 | Setting | Default | What the console does |
 |---------|---------|-----------------------|
@@ -693,8 +693,9 @@ Git sync and actions (new in v0.2):
   manual *Fetch* in one moves the other's *ahead* and *behind*, but not its *Fetch failed — last
   fetched at …* line, which changes at that project's own next fetch.
 - **The checks before a governed change have a gap.** An edit made by another program between the
-  console's check and the WingFoil process (milliseconds) is not caught by the console; WingFoil
-  itself refuses one that changes the element's status. Another console or a terminal committing
+  console's check and the WingFoil process (milliseconds) is not caught by the console. WingFoil's
+  approve and reject refuse an element with an uncommitted edit that `git status` shows; submit
+  commits such an edit together with the element. Another console or a terminal committing
   at the same moment makes one of the two fail on git's `index.lock`, with git's message. The
   repository's own commit hooks run inside WingFoil's `git commit`, as for any commit of yours.
 - **The default reason and a mouse click.** Clicking into the untouched *Approved via WingFoil UI*
@@ -706,11 +707,11 @@ Git sync and actions (new in v0.2):
   `<project>` cannot be told from the console's replacement.
 - **Text from the repository is shown as written.** Names and reasons that come from commits and
   Memory files — the author of an event in the bell's *Updates* and in the history, *Rejected by
-  <name>: <reason>* — are not escaped like git's messages: control or
-  direction-changing characters in them are not made visible.
+  <name>: <reason>* — are not escaped like git's messages: control or direction-changing characters
+  in them are not made visible.
 - **Offline system, paused page.** While the operating system reports no network connection, the
-  page holds its requests to the console (which runs on the same machine) until the connection
-  is back: the views do not refresh meanwhile.
+  page holds its requests to the console (which runs on the same machine) until the connection is
+  back: the views do not refresh meanwhile.
 - **Local remotes of another user, residual cases.** The refusal is POSIX only (not on Windows); a
   remote whose parent folder another user can write may change between the check and git's use of
   it; a linked worktree whose `commondir` points into another user's repository is not detected;
