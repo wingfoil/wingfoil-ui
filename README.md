@@ -3,30 +3,36 @@
 Local web UI for [WingFoil](https://github.com/wingfoil/wingfoil)-governed projects, served by a
 local server that drives the `wingfoil` CLI.
 
-> **Status: v0.1 — Read-only console.** Open any WingFoil project and read it safely: its Memory,
-> elements, DNA, directives, team and documentation. v0.1 makes no governed change to a project:
-> its only write is cloning a remote repository into a new folder. Gate decisions, the *Today*
-> view and the other actions arrive from v0.2 (see [What v0.1 does not do](#what-v01-does-not-do)).
+> **Status: v0.2 — Unblock, in release validation** (not tagged yet; the latest release is
+> `v0.1.0`, the read-only console). See on *Today* what requires you, decide gates and submit work
+> through the project's own WingFoil CLI, and keep your copy in sync with its remote (fetch,
+> fast-forward update, push, optionally automatic). No editing, no workflow views and no agents
+> yet (see [What v0.2 does not do](#what-v02-does-not-do)).
 
 ## What it is
 
 `wingfoil-ui` starts a small Node.js server on your machine and opens the console in your browser.
 For each project you add, the server runs **that project's own** `wingfoil` CLI (the one pinned in
-its `node_modules`, else the one on the `PATH`) and reads its git repository; the browser shows
-the result. The console is reachable only from your machine: the server listens on the loopback
-addresses only, and every API request needs the session opened with the token printed at start.
+its `node_modules`, else the one on the `PATH`) and reads its git repository; the browser shows the
+result. Every governed change is a `memory submit`, `approve` or `reject` of that CLI, which makes
+WingFoil's own `wf(…)` commit; the console never edits a project file itself. The console is
+reachable only from your machine: the server listens on the loopback addresses only, and every API
+request needs the session opened with the token printed at start.
 
-What v0.1 shows:
+What v0.2 offers:
 
 | Area | What you get |
 |------|--------------|
 | Projects | add a local folder or clone a remote; switch between projects; remove one from the list (its files are not touched); unavailable projects marked with the reason |
-| Project header | the project's WingFoil version against the supported range, missing capabilities, your identity from `git config user.email`, the role view for members with several roles, read-only notices |
+| Project header | the project's WingFoil version against the supported range, missing capabilities, your identity from `git config user.email`, the role view for members with several roles, read-only notices, *How to join* for a user not in the team, the notification bell (what requires you, the last Memory events) |
+| Today | the project's start page: *Requires you* with one action per item, *Waiting on others* with who must act, *Your roles* for members with several roles |
 | Memory | every element type of `.wingfoil/memory.yaml` with counts, state filters, *local changes* markers, live refresh |
-| Element panel | state machine, rejection banner, summary, references (missing required fields flagged), directives, history with commits |
+| Element panel | state machine, rejection banner, summary, references (missing required fields flagged), directives, history with commits; the **gate footer** (every outcome side by side, a reason required) and **Submit**, blocked with the reason on local changes or a copy behind its remote; a toast with the `wf(…)` commit after each action |
 | DNA · Directives · Team | the project's DNA; directives with their bound roles and rendered body; team members with roles and pending gates, agents that never approve |
 | Documentation | index of the DNA's `paths.docs` (without Memory and plan files), Markdown rendered inside the UI |
-| Everywhere | keyboard access, WCAG 2.1 AA target, light and dark themes following the system, English strings from one catalogue (except React Aria's screen-reader-only "Dismiss") |
+| Git status and sync | in the sidebar: branch, local changes, ahead/behind; *Fetch*, *Update* (fast-forward only) and *Push*; Auto-fetch (on by default), Auto-update and Auto-push (off by default) |
+| UI settings | *Configuration › UI settings*: the sync settings, the theme (*System*, *Light*, *Dark*), the action log size; kept on this computer, never committed |
+| Everywhere | keyboard access, WCAG 2.1 AA target, light and dark themes (following the system unless the theme setting forces one), English strings from one catalogue (except React Aria's screen-reader-only "Dismiss") |
 
 ## Requirements
 
@@ -39,20 +45,20 @@ What v0.1 shows:
   Windows).
 - In each project you open: a **WingFoil CLI** — pinned in the project (`npm install --save-dev
   wingfoil`) or on the `PATH` — inside the supported range below.
-- A current desktop browser: Chrome, Edge, Firefox or Safari. On `main` the end-to-end suite
-  runs on the **Chromium**, **Firefox** and **WebKit** engines; release v0.1.0 was tested on
-  Chromium only.
+- A current desktop browser: Chrome, Edge, Firefox or Safari. From v0.2 the end-to-end suite
+  runs on the **Chromium**, **Firefox** and **WebKit** engines (REQ-INT-08); release v0.1.0 was
+  tested on Chromium only.
 
 ## Install and run
 
-WingFoil UI is not published on npm yet: v0.1 is released as the git tag `v0.1.0`. The npm
-pipeline later releases go through, and the registry setup it needs first, are described in
+WingFoil UI is not published on npm yet: each release is a git tag (`v0.1.0`; v0.2 will be
+`v0.2.0`). The npm pipeline and the registry setup it needs first are described in
 [Publishing to npm](docs/publishing.md). Run it from a checkout:
 
 ```bash
 git clone https://github.com/wingfoil/wingfoil-ui.git
 cd wingfoil-ui
-git checkout v0.1.0
+git checkout v0.2.0           # the release tag (v0.1.0 until v0.2 is tagged)
 npm ci
 npm run build                 # server (tsc) and browser app (vite)
 node bin/wingfoil-ui.cjs      # prints the URL and opens the browser
@@ -80,25 +86,34 @@ the message catalogue; its runtime dependencies are installed from npm. Install 
 `npx wingfoil-ui`: no version of `wingfoil-ui` is on npm yet, and `npx` looks on the registry for
 a command it does not find installed.
 
+### From npm (once published)
+
+Once a version is published on npm — not yet: the approver's registry checklist of
+[Publishing to npm](docs/publishing.md) comes first — `npx wingfoil-ui` will fetch and start it
+without a checkout, and `npm install wingfoil-ui` will install it in a folder. Until then,
+`npm view wingfoil-ui` answers that no such package exists; use one of the two ways above.
+
 ## Documentation
 
 | Document | Content |
 |----------|---------|
-| [User guide](docs/user-guide.md) | launching, projects, every v0.1 view, themes and keyboard, local security, local state, troubleshooting, known limitations |
+| [User guide](docs/user-guide.md) | launching, projects, Today, every view, deciding gates and submitting, git status and sync, UI settings, themes and keyboard, local security, local state, troubleshooting, known limitations |
 | [CLI reference](docs/cli-reference.md) | the `wingfoil-ui` command line: options, environment, output, exit codes |
 | [CHANGELOG](CHANGELOG.md) | what each release adds |
 | [Publishing to npm](docs/publishing.md) | for maintainers: the publish pipeline, the approver's registry checklist, the release runbook, the local staging smoke, the differences from WingFoil's pipeline |
 | [`.wingfoil/README.md`](.wingfoil/README.md) | how this repository is governed with WingFoil (Memory types, workflows, roles, directives) |
 
-## What v0.1 does not do
+## What v0.2 does not do
 
-- No governed write: no submit, approve or reject, no ingestion, no field editing, no fetch, pull
-  or push. The only write is cloning a remote into a new, empty folder.
-- No *Today* view (v0.2): a project opens on its Memory list.
-- No UI settings: the theme follows the system preference; forcing it arrives with the settings
-  (v0.2).
-- No workflow views, timeline, traceability, files or artifacts views, command palette or
-  notifications (later releases, `docs/01_vision/07_sequencer.md`).
+- No editing: no field editing, no editing of the DNA, directives or files, no new Memory element
+  or ingestion. The governed changes are submit, approve and reject.
+- No git beyond fetch, fast-forward update and push: no merge, rebase, stash or forced push, no
+  push to a `pushRemote`.
+- No workflow views, timeline, traceability, git tree, files view, command palette or
+  `.wingfoil/ui.yaml` (v0.3); no agent launch (v0.4, with WingFoil 0.3); no notification outside
+  the console (`docs/01_vision/07_sequencer.md`).
+- Known limitations of v0.2, among them the declared risk of *Auto-update*:
+  [user guide — Known limitations](docs/user-guide.md#known-limitations).
 
 ## Supported WingFoil versions
 

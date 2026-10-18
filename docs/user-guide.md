@@ -1,20 +1,33 @@
-# User guide — WingFoil UI v0.1
+# User guide — WingFoil UI v0.2
 
-**Version:** 0.15 · **Date:** 2026-10-17 (0.1: release v0.1; 0.2: bug-008 known limitation, release submit; 0.3: bug-008 wording; 0.4: bug-008 marked fixed after 0.1.0 — task-026; 0.5: *How to join*, unreleased v0.2 — task-035; 0.6: *Today*, unreleased v0.2 — task-036; 0.7: what runs during a clone, a local repository of another user, unreleased v0.2 — task-033 / bug-010, bug-013; 0.8: a local source git cannot read — task-033 review round 3; 0.9: *Deciding a gate*, unreleased v0.2 — task-037; 0.10: *Automatic sync with the remote*, unreleased v0.2 — task-034 / bug-014, its security reviews; 0.11: the notification bell and *Your roles* on Today, unreleased v0.2 — task-042; 0.12: *Submitting* and *After an action*, unreleased v0.2 — task-038; 0.13: *Git status in the sidebar*, unreleased v0.2 — task-039; 0.14: *UI settings*, unreleased v0.2 — task-041; 0.15: *Update* and *Push* in the sidebar, a URL pasted into an open tab, tool messages shown safely, unreleased v0.2 — task-040 / bug-016, bug-017)
+**Version:** 0.16 · **Date:** 2026-10-18 (0.1: release v0.1; 0.2: bug-008 known limitation, release submit; 0.3: bug-008 wording; 0.4: bug-008 marked fixed after 0.1.0 — task-026; 0.5: *How to join*, unreleased v0.2 — task-035; 0.6: *Today*, unreleased v0.2 — task-036; 0.7: what runs during a clone, a local repository of another user, unreleased v0.2 — task-033 / bug-010, bug-013; 0.8: a local source git cannot read — task-033 review round 3; 0.9: *Deciding a gate*, unreleased v0.2 — task-037; 0.10: *Automatic sync with the remote*, unreleased v0.2 — task-034 / bug-014, its security reviews; 0.11: the notification bell and *Your roles* on Today, unreleased v0.2 — task-042; 0.12: *Submitting* and *After an action*, unreleased v0.2 — task-038; 0.13: *Git status in the sidebar*, unreleased v0.2 — task-039; 0.14: *UI settings*, unreleased v0.2 — task-041; 0.15: *Update* and *Push* in the sidebar, a URL pasted into an open tab, tool messages shown safely, unreleased v0.2 — task-040 / bug-016, bug-017; 0.16: release v0.2 user-docs — the guide describes v0.2 as a whole, known limitations of v0.2)
 
-WingFoil UI v0.1 is a **read-only console** for WingFoil-governed projects: you open a project and
-read its Memory, elements, DNA, directives, team and documentation, kept up to date while you work
-in the repository. It changes nothing in a project; the only write it makes is cloning a remote
-repository into a new folder.
+WingFoil UI v0.2 — **Unblock** — is a local console for WingFoil-governed projects: you open a
+project, see on **Today** what requires you, decide its gates and submit its work, and keep your
+copy in sync with its remote; you also read its Memory, elements, DNA, directives, team and
+documentation, kept up to date while you work in the repository. The console changes a project
+only through:
+
+- the WingFoil CLI of the project — `memory submit`, `memory approve` and `memory reject`, which
+  make WingFoil's own `wf(…)` commit (see [Deciding a gate](#deciding-a-gate) and
+  [Submitting](#submitting));
+- git — *Fetch*, *Update* (fast-forward only) and *Push* from the sidebar, and the automatic sync
+  you turn on in the UI settings ([Git status in the sidebar](#git-status-in-the-sidebar),
+  [Automatic sync](#automatic-sync-with-the-remote));
+- cloning a remote repository into a new folder ([Projects](#projects)).
+
+It never edits a file of a project itself. What changed since v0.1 is listed in the
+[CHANGELOG](../CHANGELOG.md); v0.2 is not tagged yet, so the latest release is still `v0.1.0`
+(read-only).
 
 Contents: [Launching](#launching) · [Session](#the-session-and-the-browser) ·
 [Projects](#projects) · [Project header](#the-project-header) · [Today](#today) · [Memory](#memory) ·
 [Element panel](#the-element-panel) · [DNA](#dna) · [Directives](#directives) · [Team](#team) ·
-[Documentation](#documentation) · [Automatic sync](#automatic-sync-with-the-remote) ·
-[UI settings](#ui-settings) ·
+[Documentation](#documentation) · [Git status](#git-status-in-the-sidebar) ·
+[Automatic sync](#automatic-sync-with-the-remote) · [UI settings](#ui-settings) ·
 [Themes, keyboard, accessibility](#themes-keyboard-and-accessibility) ·
 [Local security](#local-security) · [Local state](#where-the-local-state-lives) ·
-[Troubleshooting](#troubleshooting) · [Not in v0.1](#what-v01-does-not-do) ·
+[Troubleshooting](#troubleshooting) · [Not in v0.2](#what-v02-does-not-do) ·
 [Known limitations](#known-limitations)
 
 ## Launching
@@ -36,9 +49,12 @@ and the console opens in your default browser. If no browser can be opened, it p
 `Open this URL in your browser: <url>` and keeps running: copy the URL into a browser. To choose
 the port or skip the browser, use `--port <n>` and `--no-open`
 ([CLI reference](cli-reference.md)). Stop the console with Ctrl-C in its terminal; it prints
-`WingFoil UI stopped`.
+`WingFoil UI stopped` (an automatic update that is running finishes first; a second Ctrl-C stops at
+once — [Automatic sync](#automatic-sync-with-the-remote)).
 
-Starting reads no project: the URL is printed first, each project is read when you open it.
+Starting reads no project: the URL is printed first, each project is read when you open it. The
+automatic fetch (*Auto-fetch*, on by default) runs one *Fetch interval* after the start and then
+at every interval, for the projects opened since the console started.
 
 ## The session and the browser
 
@@ -48,8 +64,8 @@ Starting reads no project: the URL is printed first, each project is read when y
 - After the console is stopped and started again (or when the page belongs to another console),
   the page shows **This page is no longer recognised by the console**: open the URL the console
   printed in its terminal — in a new tab or pasted into this one (the page then reads the new token
-  without a reload of its own; v0.2, not released yet, bug-016). A page whose session the console
-  still knows ignores a `#token=…` it did not need and keeps its session.
+  without a reload of its own). A page whose session the console still knows ignores a `#token=…`
+  it did not need and keeps its session.
 - The console keeps up to 64 browser sessions; opening one more evicts the oldest, whose page then
   shows the same **This page is no longer recognised by the console**.
 - When the console cannot be reached for 10 s, a banner says so (**Cannot reach the console…**);
@@ -143,7 +159,7 @@ Above each view, the project header strip shows:
 - **The WingFoil version line:** `WingFoil <version>`, plus `(from PATH)` when the project pins no
   CLI, then *Every capability of this release is available* or the capabilities the version lacks
   with the version they need.
-- **Out of the supported range** (v0.1 supports **0.2.2 to 0.2.x**,
+- **Out of the supported range** (v0.2 supports **0.2.2 to 0.2.x**,
   [README](../README.md#supported-wingfoil-versions)): `WingFoil <version> — read-only: supported
   0.2.2 to 0.2.x`. A version that cannot be read shows `(unknown version)`.
 - **Read-only notices**, one per reason: you are not in the team (`<email>` with a *not in team*
@@ -151,11 +167,13 @@ Above each view, the project header strip shows:
   matches several members (give each member an email of their own), or the DNA cannot be read
   (*team unknown*).
 
-In v0.1 every project is read-only anyway: these notices tell you why actions would stay
-unavailable once they exist.
+While a notice or an unsupported version applies, the element panel offers no decision and no
+submit, with the reason; while you are not identified as one member of the team, *Update* and
+*Push* in the sidebar are disabled too (*Fetch* stays available to anyone). Between the role view
+and your name, the **notification bell** counts what requires you ([Today](#today)).
 
-**How to join** (v0.2, not released yet). When you are not in the team, the *not in team* badge
-and the notice's **How to join** button open a panel that names the project's tech leads (the
+**How to join.** When you are not in the team, the *not in team* badge and the notice's **How to
+join** button open the panel *How to join this project*: it names the project's tech leads (the
 members holding the `tech-lead` role, as *Name <email>*) — or says that the project declares no
 tech lead, or no member at all — and gives the exact command a member runs to add you, for your
 git email:
@@ -169,14 +187,14 @@ among the roles the panel lists — WingFoil refuses a role the DNA does not dec
 it. Close or Escape closes the panel.
 
 **Role view.** When you hold several roles, a **Role view** select lists them in DNA order. The
-choice is remembered per project and changes what "mine" means in the Directives view and which
-directives the element panel lists.
+choice is remembered per project and changes what requires you on Today and in the bell, what
+"mine" means in the Directives view and which directives the element panel lists.
 
 ## Today
 
-**v0.2, not released yet.** A project opens on **Today** (`/p/<id>/today`), the first entry of the
-sidebar (in v0.1 it opened on the Memory list). The greeting counts what requires you in your role
-view — *Morgan, 2 things require you* — and names the role view (*Role view: approver*).
+A project opens on **Today** (`/p/<id>/today`), the first entry of the sidebar (in v0.1 it opened
+on the Memory list). The greeting counts what requires you in your role view — *Morgan, 2 things
+require you* — and names the role view (*Role view: approver*).
 
 - **Requires you** lists the elements whose next move needs you or a role of your view: type, title,
   the reason (the state and how long the element has been in it, e.g. *pending for 3 days*; your
@@ -232,7 +250,7 @@ Selecting an element opens its panel on the right (`/p/<id>/e/<element id>`, whi
 open directly from its address). The panel is **non-modal**: the header and the sidebar stay
 usable. **Close** or Escape close it and give the focus back to the row you came from.
 
-The panel shows, read-only:
+The panel shows:
 
 - the type, id and title, and the **state machine** of the type as chips (past, current, future
   states; a state off the sequence is shown too);
@@ -245,12 +263,13 @@ The panel shows, read-only:
 - the **history**: who created, submitted, signed off, rejected or edited the element, the
   transition, the reason, the date and the commit (short hash; the full hash as its tooltip).
 
-An open panel refreshes when the element changes in the repository.
+An open panel refreshes when the element changes in the repository. Its fields cannot be edited;
+at its bottom, a footer offers the decision of a gate or the submit when one applies (below).
 
 ### Deciding a gate
 
-**v0.2, not released yet.** At the bottom of the panel of an element waiting on a gate, a member
-holding the gate's role (`approver` on WingFoil 0.2.2) sees the **gate footer**:
+At the bottom of the panel of an element waiting on a gate, a member holding the gate's role
+(`approver` on WingFoil 0.2.2) sees the **gate footer**:
 
 - a **reason**, recorded in the commit and required for every outcome. For an approval it is
   pre-filled with *Approved via WingFoil UI*, selected so that typing replaces it; moving to a
@@ -277,20 +296,18 @@ Instead of the gate footer the panel says:
 
 ### Submitting
 
-**v0.2, not released yet.** On an element whose state moves on by `memory submit` (a draft, work
-sent back by a reject), every member of the team sees *Submit → <next state>* and *Cancel* at the
-bottom of the panel: one click runs `wingfoil memory submit`. *Submit* is disabled, with the
-reason, when the element has local changes (*Blocked: this element has local changes — commit or
-discard them first*: `memory submit` would commit them), when the WingFoil version is not
-supported or when your copy is behind, diverged or detached. An element waiting on a gate offers no
-*Submit*.
+On an element whose state moves on by `memory submit` (a draft, work sent back by a reject), every
+member of the team sees *Submit → <next state>* and *Cancel* at the bottom of the panel: one click
+runs `wingfoil memory submit`. *Submit* is disabled, with the reason, when the element has local
+changes (*Blocked: this element has local changes — commit or discard them first*: `memory submit`
+would commit them), when the WingFoil version is not supported or when your copy is behind, diverged
+or detached. An element waiting on a gate offers no *Submit*.
 
 ### After an action
 
-**v0.2, not released yet.** Every submit or decision ends with a **toast** at the bottom of the
-window — while the element panel is open, between the sidebar and the panel, or just above the
-panel's buttons when the window is too narrow, so a toast covers neither those buttons nor the
-sidebar:
+Every submit or decision ends with a **toast** at the bottom of the window — while the element panel
+is open, between the sidebar and the panel, or just above the panel's buttons when the window is too
+narrow, so a toast covers neither those buttons nor the sidebar:
 
 - the result (*Approved <id>*, *Submitted <id>*, *Rejected <id>*), the commit line — short hash
   and `wf(…)` subject — and *pushed* when auto-push pushed it. When auto-push is on and the push
@@ -303,13 +320,13 @@ sidebar:
 
 A result toast goes after 8 s, not while the pointer is over it or the focus is inside it; each
 toast has a *Close notification* button, and a new result for the same element replaces its toast.
-At most three toasts that close by themselves are kept: a new toast removes the oldest of them.
-Refusals and failed pushes stay until you close them (or a new result for the same element
-replaces them); when the toasts are taller than the window, the stack scrolls (to a new toast's
-top when one arrives, otherwise where you left it), and Tab reaches every *Close notification*.
-Closing a toast with the keyboard moves the focus to the next toast's *Close notification* (or the
-previous one; back to the page when none is left).
-Screen readers hear results politely and refusals at once.
+At most three toasts are shown: a new toast beyond three removes the oldest toast that closes by
+itself. Refusals and failed pushes never close by themselves and stay until you close them (or a new
+result for the same element replaces them); when the toasts are taller than the window, the stack
+scrolls (to a new toast's top when one arrives, otherwise where you left it), and Tab reaches every
+*Close notification*. Closing a toast with the keyboard moves the focus to the next toast's *Close
+notification* (or the previous one; back to the page when none is left). Screen readers hear results
+politely and refusals at once.
 
 ## DNA
 
@@ -350,26 +367,33 @@ folder, **without** Memory element files and plan files. A Markdown document ope
 
 ## Git status in the sidebar
 
-**v0.2, not released yet.** The bottom of the project sidebar shows where your copy stands, read
-with git each time the repository changes:
+The bottom of the project sidebar shows where your copy stands, read with git each time the
+repository changes:
 
 - **Always:** the branch and its short commit hash (or *Detached HEAD at <hash>* when no branch is
   checked out — governed actions are then blocked with *Blocked: no branch checked out*) and the
   number of files with local changes, when there are any.
-- **When the repository has a remote:** *In sync with git*, or how many commits your copy is
-  *ahead* of and *behind* the last fetched state of its upstream (*No upstream branch on the
-  remote* when the branch tracks none), and **Fetch**. Without a remote none of this is shown —
-  no count, no *Fetch*; it appears by itself once you add one with `git remote add`.
+- **When the repository has a remote:** *In sync with git*, or how many commits your copy is *ahead*
+  of and *behind* the last fetched state of its upstream (*No upstream branch on the remote* when
+  the branch tracks none; *<upstream> is not on the remote yet — Fetch reads it* when the branch
+  tracks a remote branch that the last fetch did not bring), and **Fetch**. Without a remote none of
+  this is shown — no count, no *Fetch*; it appears by itself once you add one with `git remote add`.
 - **Fetch** asks git to fetch the upstream's remote now (the only remote, or `origin`, when the
   branch has no upstream); it never changes your branch or your files. While it runs the button
-  reads *Fetching…* and **Cancel** stops it. Anyone may fetch, also a user not in the team. The
-  fetch runs as described in *Automatic sync with the remote* below: your ssh agent and credential
-  helpers, never a prompt — a missing credential fails with git's own message.
+  reads *Fetching…* and **Cancel** stops it. Anyone may fetch, also a user not in the team. Your
+  ssh agent and credential helpers are used; git never prompts in a terminal, ssh runs in batch
+  mode unless you configured an ssh command of your own, and an askpass program you configured
+  (`GIT_ASKPASS`, `core.askPass`, `SSH_ASKPASS`) may still open its dialog — the automatic fetch
+  and update run none. A missing credential fails with git's own message. A manual fetch, update
+  or push has no time limit (the automatic fetch and auto-push stop after 60 s).
 - **A failed fetch** — offline, refused credentials, a remote that does not answer — shows
-  *Fetch failed — last fetched at <time>* (the last successful fetch since the console started),
-  with git's message behind the ⓘ button: hover or focus it, or press or tap it to open the message — press it again, press outside or use Escape to close it. Nothing else is blocked: every view
-  still reads the project. A fetch refused before git runs (several remotes and no upstream, a
-  remote of another user, a mirror configuration) shows the reason under the button.
+  *Fetch failed — last fetched at <time>* (the last successful fetch since the console started;
+  *last fetched on <date>* when it was on another day, *not fetched since the console started*
+  when there was none), with git's message behind the ⓘ button: hover or focus it, or press or tap
+  it to open the message — press it again, press outside or use Escape to close it. Nothing else is
+  blocked: every view still reads the project. A fetch refused before git runs (several remotes
+  and no upstream, a remote of another user, a mirror configuration) shows the reason under the
+  button.
 - **Update** shows when your copy is *behind* (also when it diverged): it runs `git pull
   --ff-only` with the console's safeguards (never a merge commit, a rebase, a stash or a squash; no
   local tag or branch pruned) and the repository's hooks, as your own `git pull` would. It cannot be
@@ -408,26 +432,26 @@ with git each time the repository changes:
   console knows replaced — the project's (`<project>`), the repository's (`<repository>`), a local
   remote's (`<remote>`) and your home folder (`~`) — and the credentials of a URL removed. Other
   absolute paths that git or a hook prints (a folder outside your home, for example) are shown as
-  printed (and a hook that prints `<project>` itself cannot be told from the console's
-  replacement). Control characters (an escape sequence, a carriage return), invisible format
-  characters (those that reverse the direction of text, zero-width ones) and line separators are
-  shown as visible escapes such as `\x1b` or `\u202e` — the zero-width joiners of some scripts
-  and emoji (U+200C, U+200D) too —, a backslash git printed as `\\`, and the text is shown left to
-  right in the order git printed it: words of a right-to-left script (Hebrew, Arabic) therefore read
-  reversed there. File names and branch names that the git status and its messages quote follow
-  the same rule. A very long message keeps its beginning
-  and its end — where git says why it refused — as whole lines around one line that stands for the
-  rest (`…`, or `… N characters without a line break omitted` when the rest lies inside one line).
-  Credentials written without a scheme (`user:password@host`) are removed only after a space, a
-  quote or an opening bracket; other spellings (after `=` or `,`, for example) may stay. The same holds for the messages
-  of a refused *Add project* or clone, for WingFoil's refusals and for the CLI's warnings (the
-  Memory list's and the Directives' notices).
+  printed (and a hook that prints `<project>` itself cannot be told from the console's replacement).
+  Control characters (an escape sequence, a carriage return), invisible format characters (those
+  that reverse the direction of text, zero-width ones) and line separators are shown as visible
+  escapes such as `\x1b` or `\u202e` — the zero-width joiners of some scripts and emoji (U+200C,
+  U+200D) too; a backslash git printed is shown as `\\`, and the text is shown left to right in the
+  order git printed it: words of a right-to-left script (Hebrew, Arabic) therefore read reversed
+  there. File names and branch names that the git status and its messages quote follow the same
+  rule. A very long message keeps its beginning and its end — where git says why it refused — as
+  whole lines around one line that stands for the rest (`…`, or `… N characters without a line break
+  omitted` when the rest lies inside one line). Credentials written without a scheme
+  (`user:password@host`) are removed only after a space, a quote or an opening bracket; other
+  spellings (after `=` or `,`, for example) may stay. The same holds for the messages of a refused
+  *Add project* or clone, for WingFoil's refusals and for the CLI's warnings (the Memory list's and
+  the Directives' notices).
 
 ## Automatic sync with the remote
 
-**v0.2, not released yet.** While it runs, the console keeps the projects you have opened since
-it started up to date with their remote, by itself. Three settings drive it (spec-006 §2; change
-them in *Configuration › UI settings*, see [UI settings](#ui-settings)):
+While it runs, the console keeps the projects you have opened since it started up to date with
+their remote, by itself. Three settings drive it (spec-006 §2; change them in *Configuration › UI
+settings*, see [UI settings](#ui-settings)):
 
 | Setting | Default | What the console does |
 |---------|---------|-----------------------|
@@ -437,16 +461,16 @@ them in *Configuration › UI settings*, see [UI settings](#ui-settings)):
 
 ### Before you turn Auto-update on
 
-Auto-update makes the console do what `git pull` does, on a timer:
-the commits someone pushes can run commands that **your own** git configuration points at — a
-filter driver (for example git-lfs or a `filter.<x>.clean` script), your `core.sshCommand`, a
-credential helper, an `uploadpack` command or an alias they call — when such a command reads or
-runs a file of the project, and hooks your configuration defines (`hook.<name>.command` in newer
-git). The console runs no hook of the repository, no fsmonitor and no configuration that comes
-with the repository (see also *Hooks come back with your next action* below), but it cannot tell from your configuration whether a command reads
-project files: shell forms such as a `$HOME` path, `$(pwd)/…`, backticks or a script that sources
-another file all hide it. Leave Auto-update off if your configuration runs scripts from your
-projects.
+Auto-update makes the console do what `git pull` does, on a timer: the commits someone pushes can
+run commands that **your own** git configuration points at — a filter driver (for example git-lfs
+or a `filter.<x>.clean` script), your `core.sshCommand`, a credential helper, an `uploadpack`
+command or an alias they call — when such a command reads or runs a file of the project, and hooks
+your configuration defines (`hook.<name>.command` in newer git). The console runs no hook of the
+repository, no fsmonitor and no configuration that comes with the repository (see also *Hooks come
+back with your next action* below), but it cannot tell from your configuration whether a command
+reads project files: shell forms such as a `$HOME` path, `$(pwd)/…`, backticks or a script that
+sources another file all hide it. Leave Auto-update off if your configuration runs scripts from
+your projects. This is a declared risk of v0.2 ([Known limitations](#known-limitations)).
 
 ### How the automatic sync runs
 
@@ -487,10 +511,10 @@ projects.
 
 ## UI settings
 
-**v0.2, not released yet.** *Configuration* at the bottom of a project's sidebar opens
-*Configuration › UI settings*: your own settings for the console, the same under every project.
-They are kept in the local state on this computer (see [Where the local state lives](#where-the-local-state-lives)),
-never in a project and never committed, and they apply at once, without a restart.
+*Configuration* at the bottom of a project's sidebar opens *Configuration › UI settings*: your own
+settings for the console, the same under every project. They are kept in the local state on this
+computer (see [Where the local state lives](#where-the-local-state-lives)), never in a project and
+never committed, and they apply at once, without a restart.
 
 | Setting | Default | What it does |
 |---------|---------|--------------|
@@ -515,17 +539,19 @@ never in a project and never committed, and they apply at once, without a restar
 ## Themes, keyboard and accessibility
 
 - **Themes:** light and dark, following your system preference — the page follows a change without
-  a reload. From v0.2 (not released yet) the *Theme* UI setting forces *Light* or *Dark*
+  a reload, unless the *Theme* UI setting forces *Light* or *Dark*
   ([UI settings](#ui-settings)); until the settings are read, a page opens in the system's theme.
-- **Keyboard:** every v0.1 screen is reachable with the keyboard; the first Tab stop is **Skip to
+- **Keyboard:** every screen is reachable with the keyboard; the first Tab stop is **Skip to
   content**. Focus is always visible. In the project switcher the arrow keys move between projects
   and Tab reaches a project's *Remove* button. Escape closes the element panel and the dialogs; a
   dialog closes with its **Close** button or Escape, not with a click outside it.
 - **Screen readers:** status changes (a project added, the list updated, read-only notices) are
   announced politely; the tab title names the project and the view, or the open element
   (e.g. `kanban · Memory — WingFoil UI`).
-- **Target:** WCAG 2.1 AA; every screen of v0.1 passes an axe scan with no serious or critical
-  violation in both themes (`test/e2e/accessibility.spec.ts`).
+- **Target:** WCAG 2.1 AA; every screen listed in `test/e2e/support/screens.ts` (the v0.1
+  screens, Today, the gate and submit footers, the notification panel, *How to join*, the git
+  status and the UI settings) passes an axe scan with no serious or critical violation in both
+  themes, on Chromium, Firefox and WebKit (`test/e2e/accessibility.spec.ts`).
 - **Language:** English. Every UI string comes from one message catalogue, except one
   screen-reader-only library string (React Aria's "Dismiss"); project data (names, titles, states)
   is shown as written.
@@ -543,13 +569,30 @@ never in a project and never committed, and they apply at once, without a restar
   a path that leaves it is refused (*This path is outside the repository.*).
 - `wingfoil` and `git` run without a shell, with a fixed set of git commands. Nothing of a cloned
   repository runs at clone time.
+- **Governed changes go through WingFoil only.** A decision or a submit runs the project's own
+  `wingfoil memory approve`, `reject` or `submit`, which makes WingFoil's `wf(…)` commit; the
+  console never edits a Memory file itself. One change runs at a time per repository; the console
+  checks that the element is still in the state you saw (*This element changed since you opened
+  it* otherwise) and has no local changes right before it runs WingFoil — see
+  [Known limitations](#known-limitations) for what happens in between.
+- **Git transports** (clone, *Fetch*, *Update*, *Push* and the automatic sync) use only the
+  `https`, `http`, `ssh`, `git` and `file` transports, whatever `GIT_ALLOW_PROTOCOL` says in your
+  environment, and git never prompts in a terminal. For *Fetch*, *Update*, *Push* and the
+  automatic sync, ssh runs in batch mode when you configured no ssh command of your own. A local
+  remote that belongs to another user of the computer is refused.
+  The automatic fetch and update also run no repository hook, no fsmonitor and no askpass program
+  ([Automatic sync](#automatic-sync-with-the-remote)).
+- **Messages of git and WingFoil** are shown with the folders of this computer that the console
+  knows replaced, the credentials of a URL removed and control characters made visible
+  ([Git status in the sidebar](#git-status-in-the-sidebar), last item).
 - The local state holds no token, no credential and no project content; the user info of a remote
   URL is removed before it is stored.
 
 ## Where the local state lives
 
-The project list, the role view of each project and (v0.2) the [UI settings](#ui-settings) are
-kept outside every repository, in `state.json` of the state directory:
+The project list, the role view of each project, the [UI settings](#ui-settings) and the action
+log (the full hash and the time of each commit made by a decision or submit in the console, at most
+*Entries kept* of them) are kept outside every repository, in `state.json` of the state directory:
 
 | Platform | Directory |
 |----------|-----------|
@@ -590,45 +633,116 @@ kept outside every repository, in `state.json` of the state directory:
 | `Git refused the action:` + git's message | read git's message (unreachable remote, refused authentication, not a git repository) |
 | `WingFoil did not answer within 30 seconds` | the project's CLI is slow or stuck; retry |
 | *Something went wrong in the console: see its log in the terminal* | read the log lines on the console's terminal |
+| *A reason is required* (the outcomes disabled) | type the reason of the decision: it is recorded in the commit |
+| *Blocked: this element has local changes — commit or discard them first* | commit or discard the element's uncommitted changes with git |
+| *Blocked: your copy is N commits behind the remote — Update* | press **Update** (in the footer or the sidebar), then decide |
+| *Blocked: your copy has diverged from the remote* / *Cannot fast-forward: your copy and the remote have diverged …* | reconcile in a terminal (`git pull --rebase` or `git merge`); the console never merges or rebases |
+| *Blocked: no branch checked out* | check out a branch with git |
+| *This element changed since you opened it* | someone moved the element meanwhile: the panel shows its new state; decide again if still needed |
+| *WingFoil did not finish the action: check <file> with git before trying again* | WingFoil stopped half-way (e.g. a stale `index.lock` or a failing pre-commit hook): inspect the file and the last commit with git |
+| *Not pushed — the commit stays local* | read git's message in the toast; when the remote moved, **Update**, then **Push** |
+| *Fetch failed — …* in the sidebar | open git's message (ⓘ): offline, refused credentials or an unreachable remote; nothing else is blocked |
+| *Not synced automatically: this repository's git configuration includes another file …* | fetch and update with git in a terminal ([Automatic sync](#automatic-sync-with-the-remote)) |
+| *Read-only: Update and Push need you identified in the team* | set your git `user.email` to the one of your team entry, or join the team (**How to join**) |
 
-## What v0.1 does not do
+## What v0.2 does not do
 
-- **No governed write.** No submit, approve or reject, no ingestion, no editing of elements, DNA
-  or directives, no fetch, pull or push. The only write is cloning a remote into a new folder
-  (plus the console's own local state).
-- **No Today view** — it arrives in v0.2; until then a project opens on its Memory list.
-- **No UI settings** (forcing the theme arrives in v0.2), no `.wingfoil/ui.yaml` configuration,
-  no workflow, timeline, traceability, files or artifacts views, no command palette, no
-  notifications, no "Open on GitHub" link.
-- **Not on npm yet:** run it from a checkout ([README](../README.md#install-and-run)).
+From the release plan (`docs/01_vision/07_sequencer.md`, `docs/01_vision/06_features.md`):
+
+- **No editing.** No field editing (the *Field editing* capability needs a WingFoil verb that is
+  not released), no editing of the DNA, directives, workflows or repository files, no new Memory
+  element and no ingestion (ingestion cards and start: v0.3). The governed changes are submit,
+  approve and reject.
+- **No git beyond fetch, fast-forward and push.** No merge, rebase, stash, squash or forced push,
+  no push to a `pushRemote`, no branch switching or conflict resolution: use git in a terminal.
+- **Not yet on Today:** the progress card and the recent activity (v0.3); the next workflow step
+  (v0.4, with WingFoil 0.3).
+- **No** workflow tree or workflow position, timeline, traceability, git tree, files view or
+  missing-references view, command palette, `.wingfoil/ui.yaml` configuration or presets (v0.3),
+  no agent launch or agent log (v0.4, with WingFoil 0.3; *Confirm agent launch* is stored but has
+  no effect yet), no artifacts view, no "Open on GitHub" link.
+- **Notifications stay inside the console:** the bell, Today and the toasts; no e-mail, chat or
+  system notification.
+- **Not on npm yet:** run it from a checkout or an installed package
+  ([README](../README.md#install-and-run)); the publishing pipeline is ready but no version is on
+  npm.
 
 ## Known limitations
 
-Accepted for v0.1 and recorded in the implementation plan
-(`docs/05_plans/rl-v1/rel-v0.1/dev-loop-rel-v0.1-plan.md`), the task notes and the bug records
-(`docs/04_memory/bugs/`):
+Accepted for v0.2 and recorded in the implementation plans
+(`docs/05_plans/rl-v1/rel-v0.1/dev-loop-rel-v0.1-plan.md`,
+`docs/05_plans/rl-v1/rel-v0.2/dev-loop-rel-v0.2-plan.md`), the task notes and the bug records
+(`docs/04_memory/bugs/`).
 
+Git sync and actions (new in v0.2):
+
+- **Auto-update is a declared risk.** Turned on, it does what `git pull` does on a timer: incoming
+  commits can run commands your own git configuration points at — see
+  [Before you turn Auto-update on](#before-you-turn-auto-update-on). It is off by default. Hooks
+  an automatic update brings through a hooks folder of the project run at your next submit,
+  approve, reject or push, as after your own `git pull`.
+- **Push goes to the upstream only.** *Push* and Auto-push send the branch to its upstream branch
+  on the upstream's remote, never to a `branch.<name>.pushRemote` or `remote.pushDefault`, and
+  never force.
+- **A cancelled Fetch or Push is not recorded.** The sidebar shows no message and *last fetched
+  at* does not move, also when git had finished just before the cancel; the console's log records
+  the run as a `git transport` line with `"ended":"cancelled"`. A push cancelled while a local
+  remote receives it can leave `objects/tmp_objdir-incoming-*` in that remote until `git gc`
+  removes it.
+- **Fetch status per project.** Two projects of one repository keep their own fetch status: a
+  manual *Fetch* in one moves the other's *ahead* and *behind*, but not its *Fetch failed — last
+  fetched at …* line, which changes at that project's own next fetch.
+- **The checks before a governed change have a gap.** An edit made by another program between the
+  console's check and the WingFoil process (milliseconds) is not caught by the console. WingFoil's
+  approve and reject refuse an element with an uncommitted edit that `git status` shows; submit
+  commits such an edit together with the element. Another console or a terminal committing
+  at the same moment makes one of the two fail on git's `index.lock`, with git's message. The
+  repository's own commit hooks run inside WingFoil's `git commit`, as for any commit of yours.
+- **The default reason and a mouse click.** Clicking into the untouched *Approved via WingFoil UI*
+  places the caret instead of selecting the text, so typing adds to it; select it first (Tab and
+  focus from Today select it).
+- **Messages of git and WingFoil, three gaps.** Absolute paths other than the folders the console
+  knows (e.g. a folder outside your home) are shown as printed; credentials written without a
+  scheme are removed only after a space, a quote or an opening bracket; a hook that prints
+  `<project>` cannot be told from the console's replacement.
+- **Text from the repository is shown as written.** Names and reasons that come from commits and
+  Memory files — the author of an event in the bell's *Updates* and in the history, *Rejected by
+  <name>: <reason>* — are not escaped like git's messages: control or direction-changing characters
+  in them are not made visible.
+- **Offline system, paused page.** While the operating system reports no network connection, the
+  page holds its requests to the console (which runs on the same machine) until the connection is
+  back: the views do not refresh meanwhile.
+- **Local remotes of another user, residual cases.** The refusal is POSIX only (not on Windows); a
+  remote whose parent folder another user can write may change between the check and git's use of
+  it; a linked worktree whose `commondir` points into another user's repository is not detected;
+  `~user` paths are resolved from `/etc/passwd` only (other users fail closed). Pushing to a local
+  remote can run that repository's own `git gc --auto`.
+
+From v0.1, still valid:
+
+- **Paths you type are echoed as typed.** The refusals of *Add project* (*Folder not found: <path>*,
+  *The working directory is not empty: <path>*, …) show the path you entered without the escaping
+  of git's messages.
 - **Clone URL check, two edge cases.** An scp-like address with an `@` in its path (after the
   host's `:`) and no `/`, e.g. `git@host:repo@v2.git`, is refused as if it held credentials
   (`git@github.com:repo.git` and `git@host:org/repo@v2.git` are accepted); a URL with an unknown
-  scheme and credentials (`git+https://user:pass@…`) is passed to `git clone`, which refuses the transport — nothing
-  connects, nothing is stored, the URL is not echoed.
+  scheme and credentials (`git+https://user:pass@…`) is passed to `git clone`, which refuses the
+  transport — nothing connects, nothing is stored, the URL is not echoed.
 - **A killed clone leaves its folder.** If the console is killed (not stopped) during a clone, the
   partial folder stays; a retry says *The working directory is not empty*. Delete the folder by
   hand.
 - **Role view refusal.** If a *Role view* change is refused and the following header re-read never
   completes, the refusal is not shown and the select stays disabled; reload the page.
 - **Windows** is tested only through simulated platform behaviour: opening the browser (the
-  `#token` fragment through `rundll32`), finding the CLI, and stopping child processes (a
-  `wingfoil` process may outlive the console briefly) have not been checked on a Windows machine.
-- **Browsers:** the end-to-end suite runs on Chromium only in v0.1; Firefox and WebKit from v0.2.
+  `#token` fragment through `rundll32`), finding the CLI, stopping child processes (a `wingfoil`
+  process may outlive the console briefly) and the git sync have not been checked on a Windows
+  machine.
 - **Event streams:** the console sets no limit on the number of open pages (event streams).
 - **History reading:** after each new commit, the Memory history is re-read by walking the whole
   git log, not incrementally; very long histories make this read slower.
 - **One string outside the catalogue:** a screen-reader-only library string (React Aria's
   "Dismiss", in popovers).
-- **A killed console leaves a temporary folder** (fixed after 0.1.0, see `CHANGELOG.md`,
-  *Unreleased*). In 0.1.0, if the console is killed by a signal it does not handle (e.g. `kill -9`;
-  Ctrl-C, `kill` and closing the terminal clean up) after a clone, an empty folder
-  `wfui-no-hooks-*` stays in the system temporary directory; it holds no data and can be deleted
-  by hand.
+
+Fixed since v0.1.0 (see the [CHANGELOG](../CHANGELOG.md)): the end-to-end suite now runs on
+Chromium, Firefox and WebKit; a console killed after a clone no longer leaves an empty
+`wfui-no-hooks-*` folder in the system temporary directory (bug-008).
