@@ -136,7 +136,7 @@ describe('commit provenance of a UI session (task-043 AC-1)', () => {
       await input(brought, [SUBMIT, REJECT, 'wf(task): approve task-001-login [pending → approved]']),
     );
     expect(problems).toEqual([
-      expect.stringMatching(/touches extra\.txt, docs\/memory\/task\/task-001-login\.md, not only task-001-login\.md$/),
+      expect.stringMatching(/touches docs\/memory\/task\/task-001-login\.md, extra\.txt, not only task-001-login\.md$/),
     ]);
   });
 
