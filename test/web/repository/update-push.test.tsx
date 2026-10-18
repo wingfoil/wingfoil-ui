@@ -570,3 +570,59 @@ describe('review round 2', () => {
     history.replaceState(null, '', '/');
   });
 });
+
+describe('review round 3', () => {
+  it('R3-4 — the toast of another project is a catalogue key (X-09.1)', async () => {
+    history.replaceState(null, '', '/p/p_b/team');
+    stubApi(() => ahead(), [{ status: 422, body: { error: { code: 'git-refused', message: 'fatal: denied' } } }]);
+    show({ ...ahead(), name: 'kanban-a' }, { messages: keyCatalogue(en) });
+    await userEvent.click(
+      within(screen.getByRole('region', { name: 'shell.git.label' })).getByRole('button', { name: 'shell.git.push' }),
+    );
+    await waitFor(() => expect(getToasts()).toHaveLength(1));
+    expect(document.querySelector('.toast')?.textContent).toContain('shell.git.pushFailedIn');
+  });
+
+  it('R3-5 — a refusal answered after the state moved while it waited still shows its alert', async () => {
+    let answer: (r: Response) => void = () => {};
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((_url: string, init?: RequestInit) => {
+        if ((init?.method ?? 'GET') === 'GET')
+          return Promise.resolve(new Response(JSON.stringify(moved()), { status: 200 }));
+        return new Promise<Response>((r) => (answer = r));
+      }),
+    );
+    const moved = () => ({ ...behind(), repository: { ...behind().repository, state: 's2' } });
+    const { queryClient } = show(behind());
+    await userEvent.click(button('Update'));
+    await within(region()).findByRole('button', { name: 'Updating…' });
+    // While the update waits on the repository's lock, another change moves the state.
+    act(() => queryClient.setQueryData(projectHeaderQuery('p_a').queryKey, moved()));
+    act(() =>
+      answer(
+        new Response(JSON.stringify({ error: { code: 'not-in-team', message: 'x' } }), {
+          status: 403,
+          headers: { 'content-type': 'application/json' },
+        }),
+      ),
+    );
+    expect((await within(region()).findByRole('alert')).textContent).toBe(en['error.notInTeam']);
+  });
+
+  it('S3-2 — the files in the way, the upstream and the branch are shown in git-name spans', () => {
+    show(
+      withRepo({
+        copy: 'no-upstream',
+        upstream: 'origin/fe\\u202eat',
+        branch: 'fe\\u202eat',
+        sync: {
+          fetch: { lastSuccessAt: null, lastError: null },
+          update: { lastError: { code: 'local-changes-in-the-way', detail: { files: ['a\\u202eb.md'] }, at: 'x' } },
+        },
+      }),
+    );
+    const names = [...region().querySelectorAll('.git-name')].map((n) => n.textContent);
+    expect(names).toEqual(['fe\\u202eat', 'origin/fe\\u202eat', 'a\\u202eb.md']);
+  });
+});
