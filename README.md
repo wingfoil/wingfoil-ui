@@ -45,8 +45,9 @@ What v0.1 shows:
 
 ## Install and run
 
-WingFoil UI is not published on npm yet (`package.json` is `private`); v0.1 is released as the git
-tag `v0.1.0`. Run it from a checkout:
+WingFoil UI is not published on npm yet: v0.1 is released as the git tag `v0.1.0`. The npm
+pipeline later releases go through, and the registry setup it needs first, are described in
+[Publishing to npm](docs/publishing.md). Run it from a checkout:
 
 ```bash
 git clone https://github.com/wingfoil/wingfoil-ui.git
@@ -76,8 +77,8 @@ npx wingfoil-ui                            # same options as above, e.g. --no-op
 
 The package holds the launcher, the built server and browser application, the JSON contracts and
 the message catalogue; its runtime dependencies are installed from npm. Install it before running
-`npx wingfoil-ui`: this project publishes nothing on npm, and `npx` looks on the registry for a
-command it does not find installed.
+`npx wingfoil-ui`: no version of `wingfoil-ui` is on npm yet, and `npx` looks on the registry for
+a command it does not find installed.
 
 ## Documentation
 
@@ -86,6 +87,7 @@ command it does not find installed.
 | [User guide](docs/user-guide.md) | launching, projects, every v0.1 view, themes and keyboard, local security, local state, troubleshooting, known limitations |
 | [CLI reference](docs/cli-reference.md) | the `wingfoil-ui` command line: options, environment, output, exit codes |
 | [CHANGELOG](CHANGELOG.md) | what each release adds |
+| [Publishing to npm](docs/publishing.md) | for maintainers: the publish pipeline, the approver's registry checklist, the release runbook, the local staging smoke, the differences from WingFoil's pipeline |
 | [`.wingfoil/README.md`](.wingfoil/README.md) | how this repository is governed with WingFoil (Memory types, workflows, roles, directives) |
 
 ## What v0.1 does not do
@@ -140,6 +142,7 @@ npm workspaces: `contracts/`, `server/`, `web/`. After `npm ci`:
 | `npm run test:e2e` | Playwright end-to-end suite on the real launcher, on Chromium, Firefox and WebKit — the gate at the end of every wave and at release validation; `npm run test:e2e -- <spec files>` runs only those specs on the three engines |
 | `npm run test:e2e:chromium` | the same suite on Chromium only — the inner development loop (with the task's own specs on the three engines) |
 | `npm run test:smoke` | the launch smoke: packs the repository, installs the tarball into a temporary folder and starts it with `npx wingfoil-ui` |
+| `npm run test:publish-smoke` | the staging publish smoke: publishes the packed package to a local registry with no uplink, installs it by name and starts it ([Publishing to npm](docs/publishing.md#local-staging-smoke)) |
 | `npm run docs:api` | TypeDoc of `server/` and `contracts/` into `docs-api/` |
 
 Browsers for the end-to-end suite, once per machine:

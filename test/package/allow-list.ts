@@ -176,6 +176,10 @@ export function readManifest(dir = REPO_ROOT): {
   version: string;
   private?: boolean;
   files?: string[];
+  workspaces?: string[];
+  repository?: { type: string; url: string };
+  homepage?: string;
+  bugs?: { url: string };
   scripts?: Record<string, string>;
   dependencies?: Record<string, string>;
 } {

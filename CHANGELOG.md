@@ -57,6 +57,12 @@ All notable changes to WingFoil UI are recorded in this file. The format follows
   entries kept. Settings are kept on this computer for every project, never committed, and apply
   without a restart; other tabs follow.
 
+- **npm publish pipeline** (maintainers; dl-004, RP-54): `.github/workflows/publish.yml` runs for
+  a pushed `vX.Y.Z` tag — the repository gates, a staging smoke on a local registry
+  (`npm run test:publish-smoke`), then `npm stage publish` through an npm trusted publisher after
+  the approver's deployment approval; a version goes live only when the approver approves it on
+  npm with 2FA. The registry-side setup is the approver's checklist in `docs/publishing.md`; until
+  it is done no version of `wingfoil-ui` is on npm.
 - **Update and Push from the sidebar** (US-Y-05…US-Y-08, US-G-12): *Update* while the copy is
   behind (`git pull --ff-only`, never a merge, rebase or stash; refusals name the command to run in
   a terminal), "N commits to push" and *Push* (with *Cancel*) while it is only ahead, whatever
@@ -71,6 +77,11 @@ All notable changes to WingFoil UI are recorded in this file. The format follows
 
 - **Supported browsers verified on three engines** (REQ-INT-08): the end-to-end suite runs on
   Chromium, Firefox and WebKit (Chrome, Edge, Firefox, Safari); v0.1 ran it on Chromium only.
+
+- **The package is publishable** (task-029): the root `package.json` is no longer `private` (the
+  workspaces stay private) and names the repository; a plain `npm publish` from a checkout stops
+  with a pointer to the publish pipeline (`--ignore-scripts` skips that guard: the control is the
+  registry setup in `docs/publishing.md`). The tarball's files are unchanged.
 
 ### Fixed
 

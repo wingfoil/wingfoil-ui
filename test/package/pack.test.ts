@@ -2,7 +2,9 @@
  * Packaging guard (task-025 AC-1, AC-2; bug-007; decisions ES-8…ES-11, ES-16): the file list of
  * `npm pack` is an allow-list, every run-time file is in it, and the installed package resolves
  * every module the built server imports. Runs `npm pack --dry-run --ignore-scripts` (no build):
- * `test/global-setup.ts` has built `server/dist` and `web/dist`.
+ * `test/global-setup.ts` has built `server/dist` and `web/dist`. task-029 (AC-2, D29-9): the root
+ * package is publishable — no `private` (the workspaces keep it) — and names the GitHub repository,
+ * as npm's provenance and trusted publisher require; the file list is unchanged.
  */
 import path from 'node:path';
 import { beforeAll, describe, expect, it } from 'vitest';
@@ -105,11 +107,25 @@ describe('npm pack (bug-007)', () => {
     expect([...imports.keys()].filter((name) => name.startsWith('@wingfoil-ui/'))).toEqual([]);
   });
 
-  it('AC-1 prepack builds and the package stays private', () => {
+  it('AC-1 prepack builds', () => {
     const root = readManifest();
     expect(root.scripts?.prepack).toBe('node scripts/clean-build.mjs && npm run build');
-    expect(root.private).toBe(true);
     expect(report.name).toBe('wingfoil-ui');
     expect(report.version).toBe(root.version);
+  });
+
+  it('task-029 AC-2 the root package is publishable, the workspaces stay private', () => {
+    const root = readManifest();
+    // dl-004 kept `private: true` for v0.1; task-029 drops it from the root only.
+    expect(root).not.toHaveProperty('private');
+    for (const ws of root.workspaces ?? []) expect(readManifest(path.join(REPO_ROOT, ws)).private, ws).toBe(true);
+    expect(root.workspaces).toEqual(['contracts', 'server', 'web']);
+  });
+
+  it('task-029 D29-9 the repository field matches the GitHub repository (npm provenance, trusted publisher)', () => {
+    const root = readManifest();
+    expect(root.repository).toEqual({ type: 'git', url: 'git+https://github.com/wingfoil/wingfoil-ui.git' });
+    expect(root.homepage).toBe('https://github.com/wingfoil/wingfoil-ui#readme');
+    expect(root.bugs).toEqual({ url: 'https://github.com/wingfoil/wingfoil-ui/issues' });
   });
 });
