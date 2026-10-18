@@ -295,7 +295,11 @@ test.describe('US-Y-06 — an update that cannot fast-forward', () => {
           const range = document.createRange();
           range.selectNodeContents(text);
           const rects = range.getClientRects();
-          return [name.getClientRects()[0]!.left, rects[rects.length - 1]!.right, el.getBoundingClientRect().left];
+          return [
+            name.getClientRects()[0]!.left,
+            rects[rects.length - 1]!.right,
+            name.parentElement!.getBoundingClientRect().left,
+          ];
         });
       expect(Math.abs(nameLeft - before) <= 1 || Math.abs(nameLeft - lineLeft) <= 1).toBe(true);
     }
