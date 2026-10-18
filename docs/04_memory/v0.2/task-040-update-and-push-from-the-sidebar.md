@@ -555,3 +555,42 @@ granted at load 12.45); `npm run test:e2e -- update-push submit-footer shell git
 accessibility no-commit add-project` (three engines) **489 passed** (14.6 min; load 7.7);
 `test:timing` **skipped** (load 18.3 after the suites; the round-1 run passed and no timed path
 changed). No console left, no `wfui-*` entry.
+
+### review round 3 (2026-10-18)
+
+Independent review **CHANGES REQUESTED** (R3-1 minor, nits); adversarial security review **CHANGES
+REQUESTED** (minor; push and clone held on three engines). Decided by the approver: every item under
+bug-017 (bug notes extended on main, `8c78b52`); a branded `SafeToolMessage` type is a recorded
+follow-up, not done here. Red tests first: `472b4e0` (server: 8 failures — the bound tests on the
+missing export, the others on behaviour), `8c8aa68` (web: 5 failures; R3-4's key build passed first:
+a characterization). Guard removal (each restored): without the `boundRaw` call the "bounded input
+only" test fails (a 20 MB break-less run reached the output); without the cut's move to a break, that
+test and the "no split token" test fail; the project list's sanitiser (round 2) as before; the wrap
+e2e fails on Chromium with `overflow-wrap` removed from `.verbatim`. The first wrap assertion, in the
+toast, passed without the rule (`.toast .verbatim` already wraps, task-038): the proof is the
+Directives notice's block.
+
+| Id | Change | Test |
+|----|--------|------|
+| S3-3 (regression of round 1) | `boundRaw` in `redact.ts`: before any transform, a text over 2 × 8 192 units keeps its first and last 8 192 code points around a `…` line, each cut moved to a break (line break, quote, control character) so no path or URL is left in two pieces (a run with no break is dropped whole) | `redact.test.ts` › round 3 (20 MB of ESC, astral flood, a break-less 20 MB line, a path at the cut) |
+| S3-1 | CLI `warnings` through the adapter's `redact` (project root `<project>`, escapes); the Directives notice renders each warning as a `pre.verbatim` like the Memory list | `adapter.test.ts` (real CLI, a field with U+202E); `directives.test.tsx`; e2e `update-push.spec.ts` › S3-1, R3-1 (on the page's answer: the fixture's pinned CLI warns about no directive field) |
+| S3-2 | `relativeToProject` (the one builder of `detail.files`, route and sync status) escapes each name; the web shows `{files}`, `{upstream}` and the branch in a `git-name` span (left to right, `bidi-override`); base names split on `/` only, so an escape's backslash is kept | `tool-messages.test.ts`; `error-text.test.tsx`; `update-push.test.tsx` › S3-2; `git-status.test.tsx` rows read the line's text |
+| R3-3 / item 4 | the tripwire also follows `warnings: lines(` and `{ files: `, each producer listed with every sanitising call it needs; its limits written in its header | `tool-messages.test.ts` |
+| S3-4 | scheme-less userinfo after `(`, `[`, `{`, `<`; both rules end only at ASCII white space, `/`, `?`, `#` (task-033's F11 row `[u:tok@host]` updated: now removed) | `redact.test.ts` › round 3 |
+| R3-1 | `.verbatim` `overflow-wrap: anywhere` | `error-text.test.tsx`; e2e S3-1, R3-1 and Y-08.2 (`scrollWidth <= clientWidth`) |
+| R3-2 | user guide and spec-010 §4: right-to-left words read reversed in these messages, U+200C / U+200D show as escapes | — |
+| R3-4 | key build of `shell.git.pushFailedIn` | `update-push.test.tsx` › R3-4 |
+| R3-5 | `onError` updates the operation's reference with the header cached at the error | `update-push.test.tsx` › R3-5 |
+
+Docs: spec-010 §4 text and Process Note, the `redact.ts` table (the bound first), `CHANGELOG.md`
+bug-017 entry (bounded input, CLI warnings, file names), user guide. Versions kept.
+
+Checks after review round 3 (HEAD before this note `665c45a`; every heavy gate through the slot as a
+tracked background command): typecheck, lint, format:check clean; `docs:api` 0 warnings;
+`check_tasks.py v0.2` OK; public-text check passed; `test:coverage` **3152 passed / 1 skipped**
+(statements 96.53 %, branches 91.33 %; load 3.4); `test:e2e:chromium` **308 passed** (10.7 min;
+granted at load 11.9); `npm run test:e2e -- update-push submit-footer shell git-status gate-footer
+accessibility no-commit add-project directives memory-list` (three engines) **564 passed** (18.8 min;
+load 8.9); after the S3-1 e2e was rewritten, `update-push` and `directives` on the three engines
+**69 passed** (load 1.9); `test:timing` **skipped** (load 20.1 after the suites; the round-1 run
+passed and no timed path changed). No console left, no `wfui-*` entry.
