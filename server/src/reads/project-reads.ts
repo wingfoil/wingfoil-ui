@@ -6,6 +6,7 @@
  * element or a directive is looked up by id in the CLI's list, and only its listed path is read.
  * Nothing here writes. Caching and batching are the caller's: `snapshot/snapshot.ts` (task-010).
  */
+import { neutralise } from '../git/redact.js';
 import type { DirectiveEntry, DirectivesList, MemoryMatch, MemoryYaml } from '@wingfoil-ui/contracts';
 import type { CliArgs, CliOutput, WingfoilCli } from '../cli/adapter.js';
 import type { CliCommandOutputs } from '../cli/commands.js';
@@ -131,11 +132,13 @@ export class ProjectReads {
  * last one listed (the custom one, listed after the built-in).
  */
 export function directiveInForce(list: DirectivesList, id: string): DirectiveEntry | undefined {
+  // The warnings are the sanitised text (bug-017: `redactLocalPaths`, a backslash written `\\`): an
+  // entry's path is compared as written there too (review round 4 R4-2).
   const candidates = list.entries.filter((e) => e.frontmatter.id === id);
   const inForce = list.warnings
     .map((w) => /^directive '(.*)' defined in .*; using (\S+)$/.exec(w))
     .find((m) => m?.[1] === id)?.[2];
-  return candidates.find((e) => e.path === inForce) ?? candidates.at(-1);
+  return candidates.find((e) => e.path === inForce || neutralise(e.path) === inForce) ?? candidates.at(-1);
 }
 
 function args(signal: AbortSignal | undefined): CliArgs {

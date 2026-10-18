@@ -74,7 +74,14 @@ function inside(child: string, parent: string): boolean {
 
 /** `text` with the local folders of `roots` replaced, URL userinfo removed, capped (D33-5). */
 export function redactLocalPaths(raw: string, roots: LocalRoots): string {
-  const text = boundRaw(raw);
+  const bounded = boundParts(raw);
+  if (bounded === undefined) return cap(sanitise(raw, roots));
+  // Each side on its own (the cuts are line breaks: no path or URL spans them), one omission line.
+  return joinCapped(sanitise(bounded.head, roots), bounded.marker, sanitise(bounded.tail, roots));
+}
+
+/** `text` with the folders of `roots` and URL userinfo redacted, then neutralised (no cap). */
+function sanitise(text: string, roots: LocalRoots): string {
   const pairs: [string, string][] = [];
   const project = (roots.project ?? []).flatMap(forms);
   for (const p of project) pairs.push([p, '<project>']);
@@ -114,7 +121,7 @@ export function redactLocalPaths(raw: string, roots: LocalRoots): string {
     new RegExp(`(^|[\\s'"([{<]|${UNSAFE.source})[A-Za-z0-9._~%+-]+:[^ \\t\\n\\r\\f\\v/?#]*@(?=[A-Za-z0-9[])`, 'gu'),
     '$1',
   );
-  return cap(neutralise(out));
+  return neutralise(out);
 }
 
 /**
@@ -177,23 +184,37 @@ function cap(text: string): string {
 /** The code points kept at each end of a raw tool message before any transform (S3-3). */
 export const RAW_BOUND = 8_192;
 
-/**
- * A character a cut may land next to: a line break, a quote or a control character — what ends a
- * path or a URL in git's and the CLI's messages (a space does not: paths hold spaces).
- */
-function isBreak(code: number): boolean {
-  return code === 0x0a || code === 0x27 || code === 0x22 || code < 0x20 || (code >= 0x7f && code <= 0x9f);
+/** The bounded text: kept head and tail (whole lines) and the one line standing for the rest. */
+interface Bounded {
+  head: string;
+  marker: string;
+  tail: string;
+}
+
+/** Code points of `text` (a surrogate pair counts once). */
+function codePoints(text: string): number {
+  let n = text.length;
+  for (let i = 0; i < text.length; i++) {
+    const c = text.charCodeAt(i);
+    if (c >= 0xdc00 && c <= 0xdfff && i > 0) {
+      const h = text.charCodeAt(i - 1);
+      if (h >= 0xd800 && h <= 0xdbff) n -= 1;
+    }
+  }
+  return n;
 }
 
 /**
- * `raw`, or its first and last {@link RAW_BOUND} code points around a `…` line (bug-017, review round
- * 3 S3-3): never a split surrogate pair, and each cut moved to a break (a line break, a quote, a
- * control character) — so no path or URL is left cut in two at it, where the redaction would not
- * recognise it; a run with no break is dropped whole.
+ * `raw` bounded (bug-017, review rounds 3–4, coordinator decision): past {@link RAW_BOUND} code
+ * points at either end only whole lines are kept — the head up to the last line break of its window,
+ * the tail from the first line break of its window (paths and URLs never span a line) — and one line
+ * stands for the rest: `…`, or `… <N> characters without a line break omitted` when what is left out
+ * lies inside one line (N in code points), so the message carries information but no fragment.
+ * `undefined` when the text is short enough.
  */
-export function boundRaw(raw: string): string {
+function boundParts(raw: string): Bounded | undefined {
   // Two UTF-16 units per code point at most: shorter texts hold fewer code points than twice the bound.
-  if (raw.length <= 2 * RAW_BOUND) return raw;
+  if (raw.length <= 2 * RAW_BOUND) return undefined;
   let head = 0;
   for (let n = 0; n < RAW_BOUND && head < raw.length; n++) head += raw.codePointAt(head)! > 0xffff ? 2 : 1;
   let tail = raw.length;
@@ -201,8 +222,37 @@ export function boundRaw(raw: string): string {
     const low = raw.charCodeAt(tail - 1);
     tail -= low >= 0xdc00 && low <= 0xdfff && tail >= 2 ? 2 : 1;
   }
-  if (tail <= head) return raw;
-  while (head > 0 && !isBreak(raw.charCodeAt(head - 1))) head -= 1;
-  while (tail < raw.length && !isBreak(raw.charCodeAt(tail))) tail += 1;
-  return `${raw.slice(0, head)}${ELLIPSIS}${raw.slice(tail)}`;
+  if (tail <= head) return undefined;
+  const headBreak = raw.lastIndexOf('\n', head - 1);
+  const keptHead = headBreak < 0 ? '' : raw.slice(0, headBreak);
+  const tailBreak = raw.indexOf('\n', tail);
+  const keptTail = tailBreak < 0 ? '' : raw.slice(tailBreak + 1);
+  const from = headBreak < 0 ? 0 : headBreak + 1;
+  const to = tailBreak < 0 ? raw.length : tailBreak;
+  const omitted = raw.slice(from, Math.max(from, to));
+  const marker = omitted.includes('\n') ? '…' : `… ${codePoints(omitted)} characters without a line break omitted`;
+  return { head: keptHead, marker, tail: keptTail };
+}
+
+/** {@link boundParts} as one text (`raw` itself when short enough). */
+export function boundRaw(raw: string): string {
+  const b = boundParts(raw);
+  return b === undefined ? raw : [b.head, b.marker, b.tail].filter((part, i) => i === 1 || part !== '').join('\n');
+}
+
+/**
+ * `head`, `marker` and `tail` joined by line breaks, at most {@link MAX_MESSAGE} characters: when
+ * longer, the head is cut at its end and the tail at its start — never inside a unit — and the one
+ * marker line stands for all that is left out (review round 4 R4-3).
+ */
+function joinCapped(head: string, marker: string, tail: string): string {
+  const join = (h: string, t: string): string => [h, marker, t].filter((part, i) => i === 1 || part !== '').join('\n');
+  const whole = join(head, tail);
+  if (whole.length <= MAX_MESSAGE) return whole;
+  const room = MAX_MESSAGE - marker.length - 2;
+  const headRoom = Math.min(head.length, Math.max(Math.floor(room / 2), room - tail.length));
+  const tailRoom = Math.max(0, room - headRoom);
+  const h = head.slice(0, safeCut(head, headRoom, true));
+  const t = tail.slice(safeCut(tail, Math.max(0, tail.length - tailRoom), false));
+  return join(h, t);
 }

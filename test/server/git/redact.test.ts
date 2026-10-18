@@ -246,7 +246,7 @@ describe('bug-017 — review round 3', () => {
     // so not one of its letters reaches the output (capping alone would keep about 2 000 of them).
     const out = redactLocalPaths(`first line\n${'q'.repeat(20 * 1024 * 1024)}\nerror: last`, { home: null });
     // Review round 4 (S4-2, R4-3): cut at the line breaks only, one marker line.
-    expect(out).toBe('first line\n…\nerror: last');
+    expect(out).toBe(`first line\n… ${20 * 1024 * 1024} characters without a line break omitted\nerror: last`);
   });
 
   it('a path at a raw cut is never left in two pieces', () => {
@@ -299,6 +299,10 @@ describe('bug-017 — review round 4', () => {
       });
       expect(out).not.toContain('SECRET');
       expect(out).not.toContain('morgan');
+      // What the transforms see: whole lines of the input and the one marker line, nothing cut.
+      const whole = line.slice(0, -1);
+      const lines = boundRaw('y'.repeat(offset) + line.repeat(Math.ceil((RAW_BOUND * 3) / line.length))).split('\n');
+      for (const l of lines.slice(1)) expect([whole, '…', '']).toContain(l);
     }
   });
 
