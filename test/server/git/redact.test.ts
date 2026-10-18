@@ -145,8 +145,9 @@ describe('bug-017 — control characters and the cap', () => {
   it('the cap never splits an escape or a redaction token', () => {
     const project = path.join(root, 'repo', 'proj');
     for (let shift = 0; shift < 12; shift++) {
-      const unit = `\u001b${project}`;
-      const text = 'y'.repeat(shift) + unit.repeat(MAX_MESSAGE); // 13 characters each once redacted
+      // Under the raw bound (review round 4: a longer text is bounded first), over the cap once escaped.
+      const unit = `${'\u001b'.repeat(10)}${project}`;
+      const text = 'y'.repeat(shift) + unit.repeat(90); // 49 characters each once redacted
       const out = redactLocalPaths(text, { project: [project], home: null });
       expect(out.length).toBeLessThanOrEqual(MAX_MESSAGE);
       const [head, tail] = out.split('\n…\n');
@@ -240,11 +241,12 @@ describe('bug-017 — review round 3', () => {
     }
   });
 
-  it('the transform sees the bounded input only: a run with no break at a cut is dropped whole', () => {
+  it('the transform sees the bounded input only: a run between two line breaks is dropped whole', () => {
     // A 20 MB line of one letter between git's lines: bounded first, its cuts move to the line breaks,
     // so not one of its letters reaches the output (capping alone would keep about 2 000 of them).
     const out = redactLocalPaths(`first line\n${'q'.repeat(20 * 1024 * 1024)}\nerror: last`, { home: null });
-    expect(out).toBe('first line\n\n…\n\nerror: last');
+    // Review round 4 (S4-2, R4-3): cut at the line breaks only, one marker line.
+    expect(out).toBe('first line\n…\nerror: last');
   });
 
   it('a path at a raw cut is never left in two pieces', () => {
@@ -268,5 +270,42 @@ describe('bug-017 — review round 3', () => {
   it('a password holding a no-break space or a line separator is still removed whole', () => {
     expect(redactLocalPaths('https://u:p w@git.example.test/x', { home: null })).toBe('https://git.example.test/x');
     expect(redactLocalPaths('https://u:p w@git.example.test/x', { home: null })).toBe('https://git.example.test/x');
+  });
+});
+
+// task-040 review round 4 (bug-017: S4-2, R4-1, R4-3; coordinator decision): the raw bound cuts at
+// line breaks only; omitted text inside one line is not dropped silently but replaced by a fixed
+// line "… <N> characters without a line break omitted"; one omission line whatever cuts follow.
+describe('bug-017 — review round 4', () => {
+  it('a 40 KB line with no line break becomes the marker line, with its length in code points', () => {
+    expect(redactLocalPaths('x'.repeat(40_000), { home: null })).toBe(
+      '… 40000 characters without a line break omitted',
+    );
+    expect(redactLocalPaths('😀'.repeat(20_000), { home: null })).toBe(
+      '… 20000 characters without a line break omitted',
+    );
+  });
+
+  it("git's last lines are kept after a long single line", () => {
+    const out = redactLocalPaths(`${'x'.repeat(40_000)}\nerror: failed to push some refs`, { home: null });
+    expect(out).toBe('… 40000 characters without a line break omitted\nerror: failed to push some refs');
+  });
+
+  it('a URL holding a quote, at every offset of the cut, never leaks its userinfo', () => {
+    const line = `fatal: unable to access 'https://morgan:to"ken-SECRET@git.example.test/x'\n`;
+    for (let offset = 0; offset < line.length; offset++) {
+      const out = redactLocalPaths('y'.repeat(offset) + line.repeat(Math.ceil((RAW_BOUND * 3) / line.length)), {
+        home: null,
+      });
+      expect(out).not.toContain('SECRET');
+      expect(out).not.toContain('morgan');
+    }
+  });
+
+  it('a text bounded and then capped shows one omission line', () => {
+    const line = `remote: ${'\u001b'.repeat(40)}\n`;
+    const out = redactLocalPaths(line.repeat(Math.ceil((RAW_BOUND * 4) / line.length)), { home: null });
+    expect(out.length).toBeLessThanOrEqual(MAX_MESSAGE);
+    expect(out.split('\n').filter((l) => l.startsWith('…'))).toHaveLength(1);
   });
 });

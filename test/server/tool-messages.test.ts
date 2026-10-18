@@ -90,3 +90,19 @@ describe('every producer of a verbatim tool message goes through the sanitiser',
     expect(relativeToProject([`docs/a${RLO}b.md`, 'x.md'], 'docs/')).toEqual(['a\\u202eb.md', '../x.md']);
   });
 });
+
+// Review round 4 (R4-2): the CLI's warning that names the directive in force is sanitised text; a
+// path holding a backslash is written `\\` there, and still finds its entry.
+describe('directiveInForce reads the sanitised warning', () => {
+  it('a shadowed directive whose path holds a backslash', async () => {
+    const { directiveInForce } = await import('../../server/src/reads/project-reads.js');
+    const entry = (p: string) => ({ path: p, frontmatter: { id: 'd' } }) as never;
+    const list = {
+      entries: [entry('directives/built-in/d.md'), entry('directives/custom/a\\b.md'), entry('directives/custom/z.md')],
+      warnings: [
+        "directive 'd' defined in directives/built-in/d.md, directives/custom/a\\\\b.md; using directives/custom/a\\\\b.md",
+      ],
+    };
+    expect(directiveInForce(list as never, 'd')).toMatchObject({ path: 'directives/custom/a\\b.md' });
+  });
+});
