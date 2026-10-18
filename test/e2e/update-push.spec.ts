@@ -640,3 +640,34 @@ test.describe('review round 1', () => {
     }
   });
 });
+
+test.describe('review round 3', () => {
+  test('S3-1, R3-1 — a CLI warning is shown escaped, left to right, and a long token wraps', async ({
+    page,
+    fixtures,
+    consoles,
+  }) => {
+    const long = `f${'x'.repeat(300)}`;
+    const fx = await copy(fixtures, async (f) => {
+      const directive = path.join(f.dir, '.wingfoil', 'directives', 'built-in', 'testing.md');
+      const text = await readFile(directive, 'utf8');
+      await writeFile(
+        directive,
+        text.replace(/^title:/m, `sco${String.fromCharCode(0x202e)}pe: x\n${long}: y\ntitle:`),
+      );
+    });
+    const c = await start(consoles, fx);
+    await openConsole(page, c, { path: `/p/${c.pids[0]}/directives` });
+    const warning = page.locator('.rules-notice pre.verbatim').first();
+    await expect(warning).toBeVisible({ timeout: COLD_READ_MS });
+    await expect(warning).toContainText('sco\\u202epe');
+    await expect(warning).not.toContainText(fx.dir);
+    expect(await warning.textContent()).not.toContain(String.fromCharCode(0x202e));
+    expect(
+      await warning.evaluate((el) => {
+        const s = getComputedStyle(el);
+        return [s.direction, s.unicodeBidi, el.scrollWidth <= el.clientWidth];
+      }),
+    ).toEqual(['ltr', 'bidi-override', true]);
+  });
+});
