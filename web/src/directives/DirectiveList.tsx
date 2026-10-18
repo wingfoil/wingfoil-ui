@@ -119,8 +119,11 @@ export function DirectiveList({ pid, requested, onShowAll, directives, header }:
           )}
           {directives.data.warnings.length > 0 && (
             <ul className="rules-notice">
+              {/* The CLI's own text: a verbatim block, as the Memory list's (task-040 review round 3 S3-1). */}
               {directives.data.warnings.map((w) => (
-                <li key={w}>{w}</li>
+                <li key={w}>
+                  <pre className="verbatim">{w}</pre>
+                </li>
               ))}
             </ul>
           )}

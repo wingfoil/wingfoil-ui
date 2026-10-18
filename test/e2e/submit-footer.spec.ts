@@ -255,6 +255,10 @@ test.describe('US-G-13 — the result and the commit', () => {
     await expect(toast.locator('.toast-pushed')).toHaveCount(0);
     await expect(toast).not.toContainText('pushed');
     expect(await remoteHead(kanban)).toBe(remoteBefore);
+    // The sidebar step (RP-52, task-040): "1 commit to push" with the Push button.
+    const gitStatus = page.getByRole('region', { name: 'Git status' });
+    await expect(gitStatus).toContainText('1 commit to push', { timeout: COLD_READ_MS });
+    await expect(gitStatus.getByRole('button', { name: 'Push', exact: true })).toBeVisible();
   });
 });
 

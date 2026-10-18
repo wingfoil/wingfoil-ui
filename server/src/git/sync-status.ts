@@ -8,6 +8,7 @@
  * until the next successful update or a change of the copy state (spec-010 §5), which sends its
  * own `repo` event (the key moves).
  */
+import { neutralise } from './redact.js';
 import type {
   RepositoryCopy,
   RepositoryStatus,
@@ -122,17 +123,22 @@ export class SyncStatus {
   }
 }
 
-/** `repository` of `GET /api/p/:pid` and of the git routes' 200 (spec-010 §3). */
+/**
+ * `repository` of `GET /api/p/:pid` and of the git routes' 200 (spec-010 §3). The branch and the
+ * upstream names git allows may hold a bidi control: they are sent escaped, like a file name
+ * (`neutralise`, bug-017 review round 4 S4-1); the server's own git work reads the raw names from the
+ * state.
+ */
 export function repositoryStatus(state: RepoState, sync: RepositorySync): RepositoryStatus {
   return {
     state: state.key,
     head: state.head,
     localChanges: state.changed.size,
-    branch: state.branch,
+    branch: state.branch === null ? null : neutralise(state.branch),
     copy: state.copy,
     ahead: state.ahead,
     behind: state.behind,
-    upstream: state.upstream,
+    upstream: state.upstream === null ? null : neutralise(state.upstream),
     sync,
   };
 }

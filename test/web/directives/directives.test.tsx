@@ -237,3 +237,21 @@ it('renders every text from the catalogue (key build)', async () => {
   expect(screen.getByText('directives.filter.all')).toBeTruthy();
   expect(await screen.findByText('directives.global')).toBeTruthy();
 });
+
+// task-040 review round 3 (S3-1): the CLI's warnings are tool text, shown like the Memory list's: a
+// verbatim block (left to right, no bidi reordering), their escapes as the server sent them.
+it('shows the CLI warnings as verbatim blocks', async () => {
+  stubApi(
+    projectApi({
+      [BASE]: { status: 200, body: header(BO, 'r-dev') },
+      [`${BASE}/directives`]: {
+        status: 200,
+        body: { ...DIRECTIVES, warnings: ['<project>/x.md: unknown field(s) ignored: sco\\u202epe'] },
+      },
+    }),
+  );
+  renderApp(`/p/${PID}/directives`);
+  const block = await screen.findByText('<project>/x.md: unknown field(s) ignored: sco\\u202epe');
+  expect(block.tagName).toBe('PRE');
+  expect(block.classList.contains('verbatim')).toBe(true);
+});

@@ -1,8 +1,8 @@
 # Is / Is Not / Does / Does Not — WingFoil UI
 
-**Version:** 0.6
-**Date:** 2026-10-01 (0.2: git sync rule from session 3, Q4; 0.3: local settings — coherence audit;
-0.4: external review — session 7; 0.5: permissions left to WingFoil — specification session 3; 0.6: action log — coherence audit of the specification — session 6)
+**Version:** 0.7
+**Date:** 2026-10-17 (0.2: git sync rule from session 3, Q4; 0.3: local settings — coherence audit;
+0.4: external review — session 7; 0.5: permissions left to WingFoil — specification session 3; 0.6: action log — coherence audit of the specification — session 6; 0.7: *Update* is `git pull --ff-only`, the automatic update a fast-forward `merge --ff-only` of the fetched upstream — dev-loop task-040, D40-8)
 **Status:** Accepted in lean-inception session 1 (2026-10-01)
 **Input:** `01_product-brief.md` §6–8 · `02_product-vision.md` (Key Decisions)
 
@@ -41,8 +41,9 @@ Every item of brief §7 is placed here (marked *brief §7*); the others come fro
   distinct from the protection of the local server itself (X4), which is mandatory.
 - A part of WingFoil core: it requires no WingFoil change to exist, and it does not extend
   WingFoil's schema beyond its own `ui.yaml`.
-- A git client: it fetches, updates **fast-forward only** (`pull --ff-only`) and pushes what WingFoil
-  committed (automatically when the options are on, `05_journeys.md` Journey 8); it does not
+- A git client: it fetches, updates **fast-forward only** (*Update* = `git pull --ff-only`; the automatic
+  update a fast-forward `git merge --ff-only` of the upstream it has just fetched) and pushes what
+  WingFoil committed (automatically when the options are on, `05_journeys.md` Journey 8); it does not
   merge, rebase or resolve conflicts — a diverged copy is updated from the terminal.
 
 ## DOES

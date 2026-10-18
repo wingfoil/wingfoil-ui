@@ -36,7 +36,7 @@ Feature: Push
     Given the UI setting "Auto-push" is on
     And a commit has been pushed to the remote by someone else and not yet fetched
     When I approve "task-001-login-form" from the UI
-    Then a red toast shows "Not pushed" with the rejection printed by git
+    Then a toast shows "Not pushed" in red with the rejection printed by git
     And the approval commit stays in the fixture
     And the sidebar shows "1 ahead"
 

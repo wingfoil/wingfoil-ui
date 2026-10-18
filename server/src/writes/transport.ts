@@ -28,7 +28,7 @@ import { fetchTarget, isMergeRef } from '../git/copy.js';
 import type { ProcessResult } from '../process/runner.js';
 import type { GitReadError } from '../git/git.js';
 import { localPathOf, localRemoteProblem } from '../git/local-remote.js';
-import { redactLocalPaths } from '../git/redact.js';
+import { neutralise, redactLocalPaths } from '../git/redact.js';
 import { repositoryStatus } from '../git/sync-status.js';
 import {
   fetchArgs,
@@ -92,10 +92,15 @@ const notInTeam = (): GitOutcome => ({
   body: { error: { code: 'not-in-team', message: 'Not identified as a member of the team' } },
 });
 
-/** The paths of `files` (relative to the repository's top level) relative to the project (D33-11). */
+/**
+ * The paths of `files` (relative to the repository's top level) relative to the project (D33-11),
+ * each name made safe to show (bug-017, review round 3 S3-2: a file name the remote's commits bring
+ * may hold a bidi control) — the one place `detail.files` of `local-changes-in-the-way` is built, for
+ * the route and for the sync status.
+ */
 export function relativeToProject(files: readonly string[], prefix: string): string[] {
   const base = prefix.replace(/\/$/, '');
-  return files.map((f) => (base === '' ? f : path.posix.relative(base, f)));
+  return files.map((f) => neutralise(base === '' ? f : path.posix.relative(base, f)));
 }
 
 /** The git routes' transport. */

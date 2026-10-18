@@ -6,7 +6,12 @@
  *   first commit), and the number of files with local changes — always shown (spec-010 §7);
  * - the sync part only while `has-remote` holds: the copy line, the last fetch error with the time
  *   of the last success (the only place that time is shown: a successful fetch that moves nothing
- *   sends no `repo`, RP-40, so a permanent time would go stale — D39-9), and the last update error.
+ *   sends no `repo`, RP-40, so a permanent time would go stale — D39-9), and the last update error;
+ * - the actions (task-040, D40-1, D40-3): *Update* while the copy is behind its upstream (behind or
+ *   diverged: the server's refusal of a diverged copy names the terminal commands), *Push* with the
+ *   number of commits to push while the copy is only ahead (whatever `autoPush` says: a failed
+ *   auto-push is retried with it), both read-only for a user who is not one member (RP-14: the
+ *   server refuses them with 403; *Fetch* stays offered).
  */
 import type {
   ProjectCondition,
@@ -40,11 +45,21 @@ export interface FetchErrorView {
   lastSuccessAt: string | null;
 }
 
+/** What the user can start from the git status besides *Fetch* (D40-1, D40-3). */
+export interface SyncActions {
+  update: boolean;
+  /** "N commits to push" with *Push*, or none. */
+  push: { commits: number } | null;
+  /** Update and Push shown but disabled: the user is not one member of the team. */
+  readOnly: boolean;
+}
+
 /** The sync part of the git status. */
 export interface SyncView {
   line: CopyLine;
   fetchError: FetchErrorView | null;
   updateError: UpdateSyncError | null;
+  actions: SyncActions;
 }
 
 /** Everything the git status shows. */
@@ -66,8 +81,18 @@ const LINES: Record<RepositoryCopy, (r: RepositoryStatus) => CopyLine> = {
   'no-remote': () => ({ kind: 'none' }),
 };
 
-/** The git status of `repository` under `conditions`. */
-export function gitStatusView(repository: RepositoryStatus, conditions: readonly ProjectCondition[]): GitStatusView {
+/** The copy states behind their upstream: *Update* (D40-1). */
+const UPDATABLE: ReadonlySet<RepositoryCopy> = new Set<RepositoryCopy>(['behind', 'diverged']);
+
+/** The copy states that are only ahead of their upstream: *Push* (D40-1). */
+const PUSHABLE: ReadonlySet<RepositoryCopy> = new Set<RepositoryCopy>(['ahead']);
+
+/** The git status of `repository` under `conditions`; `member`: the user is one member of the team. */
+export function gitStatusView(
+  repository: RepositoryStatus,
+  conditions: readonly ProjectCondition[],
+  member = true,
+): GitStatusView {
   const head = {
     branch: repository.branch,
     commit: NO_COMMIT.test(repository.head) ? null : repository.head.slice(0, 7),
@@ -84,7 +109,16 @@ export function gitStatusView(repository: RepositoryStatus, conditions: readonly
   return {
     head,
     localChanges: repository.localChanges,
-    sync: { line: LINES[repository.copy](repository), fetchError, updateError: update.lastError },
+    sync: {
+      line: LINES[repository.copy](repository),
+      fetchError,
+      updateError: update.lastError,
+      actions: {
+        update: UPDATABLE.has(repository.copy) && repository.behind > 0,
+        push: PUSHABLE.has(repository.copy) && repository.ahead > 0 ? { commits: repository.ahead } : null,
+        readOnly: !member,
+      },
+    },
   };
 }
 

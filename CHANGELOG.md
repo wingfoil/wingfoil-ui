@@ -63,6 +63,12 @@ All notable changes to WingFoil UI are recorded in this file. The format follows
   the approver's deployment approval; a version goes live only when the approver approves it on
   npm with 2FA. The registry-side setup is the approver's checklist in `docs/publishing.md`; until
   it is done no version of `wingfoil-ui` is on npm.
+- **Update and Push from the sidebar** (US-Y-05…US-Y-08, US-G-12): *Update* while the copy is
+  behind (`git pull --ff-only`, never a merge, rebase or stash; refusals name the command to run in
+  a terminal), "N commits to push" and *Push* (with *Cancel*) while it is only ahead, whatever
+  *Auto-push* says; one transport at a time; a rejected push is a red toast with git's message
+  (local folders and URL credentials redacted); governed actions blocked while behind end with an
+  *Update* link; *Update* and *Push* read-only for a user who is not one member of the team.
 
 ### Changed
 
@@ -79,6 +85,16 @@ All notable changes to WingFoil UI are recorded in this file. The format follows
 
 ### Fixed
 
+- **Tool messages are shown safely** (bug-017): a message of git or WingFoil shown by the console
+  (a refused push, update, fetch, add or clone, a refused action) has its control characters, its
+  invisible format characters (those reversing text direction, zero-width ones) and line separators
+  written as visible escapes (`\x1b`, `\u202e`) and a backslash as `\\`; it is shown left to right
+  in the order it was printed, and a very long one keeps its beginning and its end, where git's
+  own reason is (a hook printing megabytes is bounded before anything else). The CLI's warnings
+  and the file names a refused update quotes follow the same rule.
+- **A console URL pasted into an open tab is read without a reload** (bug-016): the page reads the
+  new `#token=…`, exchanges it and shows the console as a new tab does; a page whose session is
+  still valid ignores a token it did not need.
 - **An update never makes a merge commit, a fetch never deletes a local tag or branch**
   (bug-014, unreleased git routes `POST /api/p/<id>/git/update` and `/git/fetch`): with
   `branch.<b>.mergeOptions = -s ours` or `pull.twohead = ours` the update created a merge commit

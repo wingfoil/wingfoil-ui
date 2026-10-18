@@ -735,6 +735,20 @@ p {
   font-family: var(--font-mono);
   font-size: 12px;
   white-space: pre-wrap;
+  /* A tool's text in logical order, left to right whatever bidi characters it holds, and nothing
+     painted outside the box (a flood of combining marks) — task-040, review round 2 S2-2, S2-6. */
+  direction: ltr;
+  unicode-bidi: bidi-override;
+  overflow: hidden;
+  /* A long token wraps; the clip then only takes a vertical spill (review round 3 R3-1). */
+  overflow-wrap: anywhere;
+}
+
+/* A name git gives (a file in the way, an upstream, a branch) inside a sentence: left to right, no
+   bidi reordering, like the verbatim block (task-040, review round 3 S3-2). */
+.git-name {
+  direction: ltr;
+  unicode-bidi: bidi-override;
 }
 
 @media (max-width: 720px) {

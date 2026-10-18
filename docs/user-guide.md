@@ -1,6 +1,6 @@
 # User guide — WingFoil UI v0.1
 
-**Version:** 0.14 · **Date:** 2026-10-16 (0.1: release v0.1; 0.2: bug-008 known limitation, release submit; 0.3: bug-008 wording; 0.4: bug-008 marked fixed after 0.1.0 — task-026; 0.5: *How to join*, unreleased v0.2 — task-035; 0.6: *Today*, unreleased v0.2 — task-036; 0.7: what runs during a clone, a local repository of another user, unreleased v0.2 — task-033 / bug-010, bug-013; 0.8: a local source git cannot read — task-033 review round 3; 0.9: *Deciding a gate*, unreleased v0.2 — task-037; 0.10: *Automatic sync with the remote*, unreleased v0.2 — task-034 / bug-014, its security reviews; 0.11: the notification bell and *Your roles* on Today, unreleased v0.2 — task-042; 0.12: *Submitting* and *After an action*, unreleased v0.2 — task-038; 0.13: *Git status in the sidebar*, unreleased v0.2 — task-039; 0.14: *UI settings*, unreleased v0.2 — task-041)
+**Version:** 0.15 · **Date:** 2026-10-17 (0.1: release v0.1; 0.2: bug-008 known limitation, release submit; 0.3: bug-008 wording; 0.4: bug-008 marked fixed after 0.1.0 — task-026; 0.5: *How to join*, unreleased v0.2 — task-035; 0.6: *Today*, unreleased v0.2 — task-036; 0.7: what runs during a clone, a local repository of another user, unreleased v0.2 — task-033 / bug-010, bug-013; 0.8: a local source git cannot read — task-033 review round 3; 0.9: *Deciding a gate*, unreleased v0.2 — task-037; 0.10: *Automatic sync with the remote*, unreleased v0.2 — task-034 / bug-014, its security reviews; 0.11: the notification bell and *Your roles* on Today, unreleased v0.2 — task-042; 0.12: *Submitting* and *After an action*, unreleased v0.2 — task-038; 0.13: *Git status in the sidebar*, unreleased v0.2 — task-039; 0.14: *UI settings*, unreleased v0.2 — task-041; 0.15: *Update* and *Push* in the sidebar, a URL pasted into an open tab, tool messages shown safely, unreleased v0.2 — task-040 / bug-016, bug-017)
 
 WingFoil UI v0.1 is a **read-only console** for WingFoil-governed projects: you open a project and
 read its Memory, elements, DNA, directives, team and documentation, kept up to date while you work
@@ -47,7 +47,9 @@ Starting reads no project: the URL is printed first, each project is read when y
   session.
 - After the console is stopped and started again (or when the page belongs to another console),
   the page shows **This page is no longer recognised by the console**: open the URL the console
-  printed in its terminal.
+  printed in its terminal — in a new tab or pasted into this one (the page then reads the new token
+  without a reload of its own; v0.2, not released yet, bug-016). A page whose session the console
+  still knows ignores a `#token=…` it did not need and keeps its session.
 - The console keeps up to 64 browser sessions; opening one more evicts the oldest, whose page then
   shows the same **This page is no longer recognised by the console**.
 - When the console cannot be reached for 10 s, a banner says so (**Cannot reach the console…**);
@@ -368,8 +370,58 @@ with git each time the repository changes:
   with git's message behind the ⓘ button: hover or focus it, or press or tap it to open the message — press it again, press outside or use Escape to close it. Nothing else is blocked: every view
   still reads the project. A fetch refused before git runs (several remotes and no upstream, a
   remote of another user, a mirror configuration) shows the reason under the button.
-- **A failed update** — automatic (*Auto-update*) — shows its reason there too, e.g. *Cannot
-  fast-forward: your copy and the remote have diverged — …*.
+- **Update** shows when your copy is *behind* (also when it diverged): it runs `git pull
+  --ff-only` with the console's safeguards (never a merge commit, a rebase, a stash or a squash; no
+  local tag or branch pruned) and the repository's hooks, as your own `git pull` would. It cannot be
+  cancelled: while it runs the button reads *Updating…*. When git cannot fast-forward, nothing
+  changes and the sidebar says what to run in a terminal — *Cannot fast-forward: your copy and the
+  remote have diverged — run git pull --rebase or git merge in a terminal*, or *Cannot
+  fast-forward: local changes to <files> are in the way — commit or stash them in a terminal*.
+  Local changes to other files stay as they are.
+- **N commits to push** and **Push** show when your copy is only *ahead* — whatever *Auto-push*
+  says, so a push that failed after a submit, approve or reject can be tried again. Push sends
+  your branch (`HEAD`) to its upstream branch on the upstream's remote — never to a
+  `branch.<name>.pushRemote` or `remote.pushDefault` you configured, and never forced — and runs
+  the repository's `pre-push` hook. While it runs the button reads *Pushing…* and **Cancel** stops
+  it: nothing is shown then, and the sidebar shows where your copy stands (also when the push
+  finished just before the cancel). A push goes on when you switch to another project (back on
+  it, the sidebar still reads *Pushing…* with *Cancel*); a fetch is cancelled when you leave its
+  project. A push cancelled while a local remote receives it can leave git's temporary folder
+  `objects/tmp_objdir-incoming-*` in that remote until git's own clean-up (`git gc`) removes it.
+  A rejected push — the remote moved, no permission — is a **red
+  toast** *Not pushed — the commit stays local* with git's message (*Not pushed — <project>: …*
+  when you are on another project by then), and the sidebar still offers *Push*; the toast goes
+  when a new push starts or when no commit is left to push.
+- **One at a time.** While a fetch, an update or a push runs, the other buttons wait; when the
+  button you used goes away with the result (e.g. *Update* once in sync), the focus moves to
+  *Fetch*.
+- **Who may update and push:** only a user identified as one member of the team (a fetch, anyone).
+  Otherwise *Update* and *Push* show, disabled, with *Read-only: Update and Push need you
+  identified in the team*.
+- **A failed update** — from *Update* or automatic (*Auto-update*) — shows its reason there too,
+  until the next update succeeds or the copy moves.
+- **Blocked while behind.** Governed actions are blocked while your copy is behind its remote: the
+  element panel's footer says *Blocked: your copy is 1 commit behind the remote — Update*, and its
+  **Update** runs the same update; once it succeeds the panel's actions are enabled again and the
+  focus moves to the reason (or *Submit*). A copy that is only ahead is not blocked.
+- **Git's messages are shown as git prints them**, with the folders of this computer that the
+  console knows replaced — the project's (`<project>`), the repository's (`<repository>`), a local
+  remote's (`<remote>`) and your home folder (`~`) — and the credentials of a URL removed. Other
+  absolute paths that git or a hook prints (a folder outside your home, for example) are shown as
+  printed (and a hook that prints `<project>` itself cannot be told from the console's
+  replacement). Control characters (an escape sequence, a carriage return), invisible format
+  characters (those that reverse the direction of text, zero-width ones) and line separators are
+  shown as visible escapes such as `\x1b` or `\u202e` — the zero-width joiners of some scripts
+  and emoji (U+200C, U+200D) too —, a backslash git printed as `\\`, and the text is shown left to
+  right in the order git printed it: words of a right-to-left script (Hebrew, Arabic) therefore read
+  reversed there. File names and branch names that the git status and its messages quote follow
+  the same rule. A very long message keeps its beginning
+  and its end — where git says why it refused — as whole lines around one line that stands for the
+  rest (`…`, or `… N characters without a line break omitted` when the rest lies inside one line).
+  Credentials written without a scheme (`user:password@host`) are removed only after a space, a
+  quote or an opening bracket; other spellings (after `=` or `,`, for example) may stay. The same holds for the messages
+  of a refused *Add project* or clone, for WingFoil's refusals and for the CLI's warnings (the
+  Memory list's and the Directives' notices).
 
 ## Automatic sync with the remote
 

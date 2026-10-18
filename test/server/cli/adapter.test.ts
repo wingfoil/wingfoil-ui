@@ -178,6 +178,21 @@ describe('TT-INT-04 — result classification (spec-001 §2)', () => {
     expect(out.warnings[0]).toMatch(/unknown field\(s\) ignored: scope$/);
   });
 
+  // bug-017 (task-040 review round 3, S3-1): a CLI warning goes through the one sanitiser — a field
+  // name with a RIGHT-TO-LEFT OVERRIDE comes out as a visible escape, the project root as <project>.
+  it('exit 0: a warning quoting a field with a bidi control is escaped, the root redacted', async () => {
+    const fx = await freshKanban();
+    const directive = path.join(fx.dir, '.wingfoil', 'directives', 'built-in', 'testing.md');
+    const text = await readFile(directive, 'utf8');
+    await writeFile(directive, text.replace(/^title:/m, `sco\u202epe: whatever\ntitle:`));
+    const { cli } = await adapterFor(fx);
+    const out = await cli.json(['directives', 'list']);
+    expect(out.warnings).toHaveLength(1);
+    expect(out.warnings[0]).toContain('sco\\u202epe');
+    expect(out.warnings[0]).not.toContain('\u202e');
+    expect(out.warnings[0]).not.toContain(fx.dir);
+  });
+
   it('exit 1: a refusal with the CLI message verbatim (real CLI), mapped to 422 cli-refused', async () => {
     const fx = await freshKanban();
     const { cli } = await adapterFor(fx);

@@ -1,7 +1,7 @@
 # Features — WingFoil UI
 
-**Version:** 0.8
-**Date:** 2026-10-06 (0.2: journey coverage completed by the coherence audit; 0.3: external review — session 7; 0.4: S8 row completed — specification session 1; 0.5: permissions left to WingFoil — specification session 3; 0.6: X4 wording — coherence audit of the specification — session 6; 0.7: S3 supported range rule — dev-loop task-006; 0.8: S8 content fingerprint, Key Decisions rows split — audit follow-up of the Wave 2 amendments)
+**Version:** 0.9
+**Date:** 2026-10-17 (0.2: journey coverage completed by the coherence audit; 0.3: external review — session 7; 0.4: S8 row completed — specification session 1; 0.5: permissions left to WingFoil — specification session 3; 0.6: X4 wording — coherence audit of the specification — session 6; 0.7: S3 supported range rule — dev-loop task-006; 0.8: S8 content fingerprint, Key Decisions rows split — audit follow-up of the Wave 2 amendments; 0.9: *Update* is `git pull --ff-only`, the automatic update a fast-forward `merge --ff-only` of the fetched upstream — dev-loop task-040, D40-8)
 **Status:** Accepted in lean-inception session 4 (2026-10-01)
 **Input:** `05_journeys.md` (steps and gaps) · `04_personas.md` · `02_product-vision.md` ·
 `03_is-isnot.md` · **Evidence:** `docs/00_reference/ux-reference.md`, the prototype,
@@ -94,7 +94,7 @@ know how to build it (H/M/L).
 |----|---------|----------|----------|-------------|----|-----|-----|----|------|
 | Y1 | Repository status | J8 | all | Ahead/behind, local changes, branch, in the sidebar (GAP J8) | — | 3 | 1 | 2 | H |
 | Y2 | Fetch | J8 | all | Automatic fetch (C4) and on demand; ahead/behind shown | — | 2 | 1 | 2 | H |
-| Y4 | Update (fast-forward) | J8 | all | *Update* = `git pull --ff-only` (automatic when C4 says so); governed actions blocked while behind; when it cannot fast-forward (diverged, local changes in the way) the UI stays blocked and says what to run in the terminal (GAP J8) | — | 3 | 1 | 2 | H |
+| Y4 | Update (fast-forward) | J8 | all | *Update* = `git pull --ff-only`; automatic when C4 says so, as a fast-forward `git merge --ff-only` of the upstream just fetched; governed actions blocked while behind; when it cannot fast-forward (diverged, local changes in the way) the UI stays blocked and says what to run in the terminal (GAP J8) | — | 3 | 1 | 2 | H |
 | Y3 | Push | J8 | all | Automatic push after a UI action (C4), or *Push* button | — | 3 | 1 | 2 | H |
 
 ## Area X — Cross-cutting qualities

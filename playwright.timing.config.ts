@@ -13,7 +13,8 @@ process.env['WFUI_STRICT_REFRESH'] = '1';
 /**
  * The Playwright part of the timing suite (`npm run test:timing`, W3-47): the live-refresh scenarios
  * (S-25.2, S-26.1, S-26.2, S-27.2, tag `@live-refresh`) on the real bin, each checking that the
- * screen changed within 5 s of the mutation, and the `@perf` tests on the large fixture: TT-PERF-04
+ * screen changed within 5 s of the mutation (Y-02.1 and Y-05.2 — tasks 039, 040 — within 65 s of a
+ * remote commit at the default 60 s interval), and the `@perf` tests on the large fixture: TT-PERF-04
  * (task-021, W5-9) each other view rendered within 1.0 s at p95 over 20 runs with a warm cache,
  * TT-PERF-01 (task-036) Today within 2.0 s, TT-PERF-02 (task-038) a click on an outcome or on
  * Submit to the toast with the commit within 3.0 s. One worker, one test at a time, on a quiet machine only

@@ -15,7 +15,7 @@ import type { RunningConsole } from './console.js';
 import type { Consoles, FixtureBuilds } from './fixtures.js';
 import { actAs } from './identity.js';
 import { installLoadingCheck, type LoadingCheckWindow } from './loading.js';
-import { setRemoteUrl } from './remote.js';
+import { fetchCopy, remoteCommit, setRemoteUrl } from './remote.js';
 
 /** An `origin` nothing listens on: every fetch fails (task-039, the "fetch failed" screen). */
 export const UNREACHABLE_ORIGIN = 'http://127.0.0.1:9/kanban.git';
@@ -29,9 +29,22 @@ export async function offlineCopy(fixtures: FixtureBuilds): Promise<Fixture> {
 }
 
 /**
+ * A kanban copy as Morgan one commit behind its fetched remote (task-040, D40-10; `pids[4]`): the
+ * sidebar offers *Update*, the gate footer's copy-behind reason ends with *Update*. Auto-update is off
+ * by default, so the screens console never moves it.
+ */
+export async function behindCopy(fixtures: FixtureBuilds): Promise<Fixture> {
+  const behind = await fixtures.copy('kanban');
+  await actAs(behind, 'Morgan');
+  await remoteCommit(behind, 'outside.txt', 'pushed by someone else\n');
+  await fetchCopy(behind);
+  return behind;
+}
+
+/**
  * The console of the screens: kanban (`pids[0]`) and custom (`pids[1]`), Morgan in both; a kanban
  * copy where the user is Riley (`pids[2]`, task-035); a kanban copy as Morgan whose remote cannot be
- * reached (`pids[3]`, task-039).
+ * reached (`pids[3]`, task-039); a kanban copy as Morgan one commit behind (`pids[4]`, task-040).
  */
 export async function startScreensConsole(fixtures: FixtureBuilds, consoles: Consoles): Promise<RunningConsole> {
   const kanban = await fixtures.copy('kanban');
@@ -41,7 +54,8 @@ export async function startScreensConsole(fixtures: FixtureBuilds, consoles: Con
   await actAs(custom, 'Morgan');
   await actAs(outsider, 'Riley');
   const offline = await offlineCopy(fixtures);
-  return consoles.start({ projects: [kanban, custom, outsider, offline] });
+  const behind = await behindCopy(fixtures);
+  return consoles.start({ projects: [kanban, custom, outsider, offline, behind] });
 }
 
 /** Wait until no loading status is shown (every first read answered), whatever the build. */
@@ -261,5 +275,15 @@ export const SCREENS: readonly Screen[] = [
     name: 'configuration — UI settings',
     open: (page, c) =>
       project(page, c, `/p/${c.pids[0]}/configuration/ui-settings`, (p) => p.getByRole('switch').first()),
+  },
+  {
+    // task-040 (D40-10): a copy one commit behind — the gate footer's reason with *Update* and the
+    // sidebar's *Update*; opened only (nothing is updated on this shared console).
+    name: 'git status — behind, Update in the sidebar and the footer',
+    open: async (page, c) => {
+      // The reason's paragraph, not its link: the key-rendering build drops rich-text tags (X-09.1).
+      await project(page, c, `/p/${c.pids[4]}/e/task-001-login-form`, (p) => p.locator('.drawer .gate-blocked'));
+      await expect(page.locator('.git-status .git-update')).toBeVisible({ timeout: COLD_READ_MS });
+    },
   },
 ];

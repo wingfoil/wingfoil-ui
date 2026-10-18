@@ -67,6 +67,11 @@ export function dismissToast(id: number): void {
   if (toasts.some((t) => t.id === id)) set(toasts.filter((t) => t.id !== id));
 }
 
+/** Remove the toast shown with `key`, if any (task-040, review round 1 R1). */
+export function dismissToastKey(key: string): void {
+  if (toasts.some((t) => t.key === key)) set(toasts.filter((t) => t.key !== key));
+}
+
 /** The toasts shown, oldest first. */
 export function getToasts(): readonly Toast[] {
   return toasts;

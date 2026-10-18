@@ -307,7 +307,10 @@ it('D37-8 — an outcome disabled by the descriptor shows the reason and describ
   });
   renderApp(`/p/${PID}/e/${EID}`);
   const f = await footer();
-  const text = within(f).getByText('Blocked: your copy is 2 commits behind the remote');
+  // task-040 (G-12.1, D40-2): the reason ends with an Update link.
+  const text = f.querySelector('.gate-blocked')!;
+  expect(text.textContent).toBe('Blocked: your copy is 2 commits behind the remote — Update');
+  expect(within(text as HTMLElement).getByRole('button', { name: 'Update' })).toBeTruthy();
   for (const name of ['Approve → s3', 'Reject → s1']) {
     expect(outcome(f, name).getAttribute('aria-disabled')).toBe('true');
     expect(outcome(f, name).getAttribute('aria-describedby')).toBe(text.id);
@@ -532,4 +535,95 @@ it('D38-10 — the panel shows no result of its own: the refusal is a toast outs
   expect(document.querySelector('.element-footer-alert')).toBeNull();
   expect(within(dialog).getByRole('status').textContent).toBe('');
   expect(document.querySelectorAll('.drawer .element-footer')).toHaveLength(1);
+});
+
+// task-040 — G-12.2 (D40-2): the Update link of the copy-behind reason runs the update of the project
+// (no body); after the new descriptor arrives the focus moves to the gate's next step, the reason.
+it('G-12.2 — the Update link of the reason updates the copy, then the focus goes to the reason field', async () => {
+  const behind = {
+    ...GATE,
+    verbs: GATE.verbs.map((v) => ({ ...v, enabled: false, reason: { code: 'copy-behind', commits: 1 } as const })),
+  };
+  const update = `/api/p/${PID}/git/update`;
+  const fetch = stub(
+    behind,
+    MO,
+    { [update]: { status: 200, body: { repository: header(MO, ROLE).repository } } },
+    GATE,
+  );
+  const { queryClient } = renderApp(`/p/${PID}/e/${EID}`);
+  const f = await footer();
+  const link = within(f.querySelector('.gate-blocked') as HTMLElement).getByRole('button', { name: 'Update' });
+  await userEvent.click(link);
+  await waitFor(() =>
+    expect(fetch.mock.calls.filter((c) => (c[1] as RequestInit | undefined)?.method === 'POST')).toHaveLength(1),
+  );
+  const [url, init] = fetch.mock.calls.find((c) => (c[1] as RequestInit | undefined)?.method === 'POST')! as [
+    string,
+    RequestInit,
+  ];
+  expect(url).toBe(update);
+  expect(init.body).toBeUndefined();
+  // The update moved the copy: the console's `repo` event invalidates the project (events.ts).
+  await act(async () => {
+    await queryClient.invalidateQueries({ queryKey: ['p', PID] });
+  });
+  await waitFor(() => expect(outcome(f, 'Approve → s3').getAttribute('aria-disabled')).toBeNull());
+  await waitFor(() => expect(document.activeElement).toBe(reasonField(f)));
+});
+
+// task-040 review round 1 (R3, D40-2): the focus moves after the link's update only from the footer
+// (or from nowhere), never after a refusal, and to a stable element when no action is enabled.
+const BEHIND = {
+  ...GATE,
+  verbs: GATE.verbs.map((v) => ({ ...v, enabled: false, reason: { code: 'copy-behind', commits: 1 } as const })),
+};
+const UPDATE = `/api/p/${PID}/git/update`;
+const updateLink = (f: HTMLElement) =>
+  within(f.querySelector('.gate-blocked') as HTMLElement).getByRole('button', { name: 'Update' });
+
+it('R3 — after a refusal of the update the focus stays on the link', async () => {
+  stub(BEHIND, MO, {
+    [UPDATE]: {
+      status: 409,
+      body: { error: { code: 'local-changes-in-the-way', message: 'x', detail: { files: ['a.md'] } } },
+    },
+  });
+  renderApp(`/p/${PID}/e/${EID}`);
+  const f = await footer();
+  const link = updateLink(f);
+  link.focus();
+  await userEvent.keyboard('{Enter}');
+  await waitFor(() => expect(link.getAttribute('aria-disabled')).toBeNull());
+  expect(document.activeElement).toBe(link);
+});
+
+it('R3 — a focus the user moved out of the footer meanwhile is left alone', async () => {
+  stub(BEHIND, MO, { [UPDATE]: { status: 200, body: { repository: header(MO, ROLE).repository } } }, GATE);
+  const { queryClient } = renderApp(`/p/${PID}/e/${EID}`);
+  const f = await footer();
+  await userEvent.click(updateLink(f));
+  await waitFor(() => expect(updateLink(f).getAttribute('aria-disabled')).toBeNull());
+  const close = within(screen.getByRole('dialog', { name: 'A gated element' })).getAllByRole('button', {
+    name: /close/i,
+  })[0]!;
+  close.focus();
+  await act(async () => {
+    await queryClient.invalidateQueries({ queryKey: ['p', PID] });
+  });
+  await waitFor(() => expect(outcome(f, 'Approve → s3').getAttribute('aria-disabled')).toBeNull());
+  expect(document.activeElement).toBe(close);
+});
+
+it('R3 — with no action left to take, the focus goes to the panel heading', async () => {
+  const final: ActionDescriptor = { ...GATE, kind: 'last', verbs: [], actor: { kind: 'none' } };
+  stub(BEHIND, MO, { [UPDATE]: { status: 200, body: { repository: header(MO, ROLE).repository } } }, final);
+  const { queryClient } = renderApp(`/p/${PID}/e/${EID}`);
+  const f = await footer();
+  await userEvent.click(updateLink(f));
+  await waitFor(() => expect(updateLink(f).getAttribute('aria-disabled')).toBeNull());
+  await act(async () => {
+    await queryClient.invalidateQueries({ queryKey: ['p', PID] });
+  });
+  await waitFor(() => expect(document.activeElement?.classList.contains('drawer-title')).toBe(true));
 });

@@ -178,7 +178,31 @@ cancelled process group or the server) and `--no-optional-locks`.
 - Failure → **422 `git-refused`**, git's standard error verbatim (spec-004 §5) except for the
   local folders it quotes (the project's → `<project>`, the repository's → `<repository>`, a local
   remote's path wherever it is → `<remote>`, the home folder → `~`), URL userinfo removed (also a
-  `user:password@host` without a scheme), at most 4 000 characters — also in `lastError`. A fetch failure is
+  `user:password@host` without a scheme, also after a control character), then CR LF folded to a
+  newline, a backslash written `\\` and every character of the Unicode categories Cc, Cf, Cs, Zl
+  and Zp other than newline and tab written as a visible escape (`\x1b`, `\u202e`, `\u{e0001}`),
+  then at most 4 000 characters kept as the head and the tail around a `…` line, a cut never
+  splitting an escape, a redaction token or a surrogate pair (bug-017) — also in `lastError`. This
+  one sanitiser (`server/src/git/redact.ts`) makes every verbatim tool message the API sends: the
+  transport, the sync status, the auto-push, the governed writes, the CLI adapter, the project
+  list's add and clone, the CLI's `warnings` (`test/server/tool-messages.test.ts`); the raw text is
+  bounded first — whole lines only, the head up to the last line break within its first 8 192 code
+  points and the tail from the first line break within its last 8 192, and one line for what is left
+  out: `…`, or `… <N> characters without a line break omitted` when that lies inside one line —, so
+  no transform sees a hook's megabytes and no path or URL is cut in two; one omission line whatever
+  the cap cuts after. Git-derived names in a body (`detail.files` of `local-changes-in-the-way`,
+  `repository.branch`, `repository.upstream`) are escaped the same way; the server's own git work
+  reads the raw names. The web shows such text
+  left to right without bidi reordering, wrapped, clipped to its box, and the names a catalogue text
+  quotes (files, upstream, branch) the same way: right-to-left words (Hebrew, Arabic) read reversed
+  there, and the zero-width joiners U+200C / U+200D show as escapes.
+  Declared residual (task-040, D40-9): other absolute paths that git or a hook prints (a folder
+  outside the project, the repository, a local remote and the home folder) are shown as printed —
+  git's text stays verbatim (REQ-INT-06); the console is the user's own, on loopback. A literal
+  `<project>` (or `<remote>`, …) printed by a hook cannot be told from the redaction token. The
+  scheme-less `user:password@host` rule reads its left context (start, white space, a quote, opening
+  punctuation, a control character): spellings after `=`, `,`, `;`, `|`, a tab inside the userinfo,
+  or `?` / `#` inside a password may be kept (the `scheme://` rule is not affected). A fetch failure is
   also kept as `sync.fetch.lastError` (Y-03.1, Y-03.2), an update failure as
   `sync.update.lastError` with `code: "git-refused"` and the `message` — in memory only, never
   logged (the log gets `{pid, op, exitCode}`) nor stored, since git may echo a URL.
@@ -466,3 +490,33 @@ Rows 7–9 do not apply (no element).
 - 2026-10-16 — review round 5 of task-034 (S5-1): §6 "no hook of the repository"; hooks the user's
   own configuration defines (`hook.<name>.command`) counted under the declared residual, with a
   cross-reference to the residual of hooks an automatic merge brought in.
+- 2026-10-17 — amended in dev-loop task-040 (minor-v0.2 Wave 6, plan dev-loop-rel-v0.2-plan,
+  D40-9): §4 declares the residual of the `git-refused` redaction — absolute paths outside the
+  folders it knows are shown as git or a hook printed them; proved end to end on a push declined by
+  a remote's `pre-receive` hook (`test/e2e/update-push.spec.ts` › Y-08.2). The sidebar's *Push* is
+  offered whatever `autoPush` says (D40-1, ux-reference 1.8) and *Push* stays the upstream's remote
+  only (D40-12, §4 explicit refspec); a cancelled push still answers 500 `internal` to the client
+  that left, nothing recorded (D40-11). Decided by the approver.
+- 2026-10-17 — bug-017, absorbed into task-040 (minor-v0.2 Wave 6, review round 1 S3, S4, decided by
+  the approver): §4 a tool message sent by the API (`git-refused`, `cli-refused`, `lastError`; the one
+  redaction point `server/src/git/redact.ts`) carries no control character (except newline and tab)
+  and no bidirectional control — each becomes a visible escape — and a message over 4 000 characters
+  keeps its head and its tail, so git's own concluding lines (`! [rejected]`, `error:`, `fatal:`)
+  survive a long hook output. Proved by `test/server/git/redact.test.ts` and end to end by
+  `test/e2e/update-push.spec.ts` › Y-08.2.
+- 2026-10-18 — bug-017, review round 2 of task-040 (S2-1 … S2-7, R2-5, R2-6, decided by the
+  approver): §4 the sanitiser escapes by Unicode category (Cc, Cf, Cs, Zl, Zp but newline and tab),
+  doubles a backslash first, folds CR LF, removes a scheme-less userinfo after a control character,
+  never splits a surrogate pair at the cap, and is the one producer of every verbatim tool message —
+  the project list's add and clone included; the residual of a literal redaction token stated.
+- 2026-10-18 — bug-017, review round 3 of task-040 (S3-1 … S3-4, R3-1, R3-2, decided by the
+  approver): §4 the raw tool text is bounded before any transform (S3-3, a regression of round 1
+  fixed: a hook's flood no longer blocks the server); the CLI's warnings and the file names of
+  `local-changes-in-the-way` go through the same sanitiser (S3-1, S3-2); the userinfo rules also
+  after opening punctuation and up to ASCII white space only (S3-4); what right-to-left words and
+  zero-width joiners look like stated (R3-2).
+- 2026-10-18 — bug-017, review round 4 of task-040 (S4-1 … S4-3, R4-1, R4-3; coordinator decisions):
+  §4 the raw bound cuts at line breaks only, with one fixed omission line (its count in code points
+  when the omitted text lies inside one line), and one omission line in all; the branch and upstream
+  names of the repository status are escaped; the left-context residual of the scheme-less userinfo
+  rule declared.

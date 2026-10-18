@@ -9,6 +9,7 @@ import { Button, Dialog, DialogTrigger, Popover } from 'react-aria-components';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { AppIntlProvider } from '../../../web/src/i18n/index.js';
 import {
+  dismissToastKey,
   TOAST_DISMISS_MS,
   TOAST_LIMIT,
   dismissToast,
@@ -356,4 +357,16 @@ it('review R4-1 — closed, evicted, replaced or timed out while the focus is el
   act(() => closeOf('refused again').dispatchEvent(new MouseEvent('click', { bubbles: true })));
   expect(getToasts().map((t) => t.title)).toEqual(['t2', 't3']);
   expect(document.activeElement).toBe(elsewhere);
+});
+
+// task-040 (review round 1 R1): a toast leaves by its key — a later push that succeeded removes the
+// "Not pushed" toast of its project; other toasts stay; an unknown key is a no-op.
+it('dismissToastKey removes the toast of that key only', () => {
+  showToast({ key: 'push:p1', tone: 'error', title: 'one' });
+  showToast({ key: 'push:p2', tone: 'error', title: 'two' });
+  showToast({ tone: 'success', title: 'three' });
+  dismissToastKey('push:p1');
+  expect(getToasts().map((t) => t.title)).toEqual(['two', 'three']);
+  dismissToastKey('push:nowhere');
+  expect(getToasts()).toHaveLength(2);
 });

@@ -7,7 +7,7 @@ import { QueryClientProvider } from '@tanstack/react-query';
 import { renderHook, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { afterEach, expect, it, vi } from 'vitest';
-import { CANCELLED, postGitOperation, useGitOperation } from '../../../web/src/api/git.js';
+import { CANCELLED, postGitOperation, useGitOperation, useRunningGitOperation } from '../../../web/src/api/git.js';
 import { createQueryClient, projectHeaderQuery } from '../../../web/src/api/queries.js';
 import { header } from '../project/header-data.js';
 
@@ -81,4 +81,29 @@ it('the page aborting its request is reported as cancelled', async () => {
   controller.abort();
   await waitFor(() => expect(result.current.isError).toBe(true));
   expect(result.current.error?.code).toBe(CANCELLED);
+});
+
+// task-040 (D40-4) — the transport running for a project, seen by every component of the page.
+it('useRunningGitOperation names the operation running for that project, across hooks, until it settles', async () => {
+  let release: (() => void) | undefined;
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(
+      () =>
+        new Promise<Response>((resolve) => {
+          release = () => resolve(new Response(JSON.stringify({ repository: header().repository }), { status: 200 }));
+        }),
+    ),
+  );
+  const { Wrapper } = wrapper();
+  const { result } = renderHook(
+    () => ({ op: useGitOperation(), p1: useRunningGitOperation('p1'), p2: useRunningGitOperation('p2') }),
+    { wrapper: Wrapper },
+  );
+  expect(result.current.p1).toBeUndefined();
+  result.current.op.mutate({ pid: 'p1', op: 'update' });
+  await waitFor(() => expect(result.current.p1).toBe('update'));
+  expect(result.current.p2).toBeUndefined();
+  release?.();
+  await waitFor(() => expect(result.current.p1).toBeUndefined());
 });

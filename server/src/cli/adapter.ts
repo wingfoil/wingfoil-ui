@@ -237,7 +237,8 @@ export class WingfoilCli {
     }
     const problems = outputProblem(name, data);
     if (problems) throw this.outputError(command, problems);
-    return { data: data as T, warnings: lines(result.stderr) };
+    // Each warning through the one sanitiser of tool messages (bug-017, review round 3 S3-1).
+    return { data: data as T, warnings: lines(result.stderr).map((w) => this.redact(w)) };
   }
 
   /** `wingfoil --version`: one line of plain text, even with `--format json` (W-19). Not parsed here. */

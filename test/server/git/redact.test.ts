@@ -2,7 +2,7 @@
 import { mkdir, realpath, symlink } from 'node:fs/promises';
 import path from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { MAX_MESSAGE, redactLocalPaths } from '../../../server/src/git/redact.js';
+import { MAX_MESSAGE, RAW_BOUND, boundRaw, redactLocalPaths } from '../../../server/src/git/redact.js';
 import { TempWorkspace } from '../../harness/temp-workspace.js';
 
 let ws: TempWorkspace;
@@ -42,9 +42,10 @@ describe('redactLocalPaths', () => {
         home: null,
       }),
     ).toBe("fatal: unable to access 'https://git.example.test/x.git/': 403");
+    // bug-017 (task-040): the cap keeps the head and the tail of the text.
     const long = redactLocalPaths('x'.repeat(MAX_MESSAGE + 50), { home: null });
-    expect(long).toHaveLength(MAX_MESSAGE + 1);
-    expect(long.endsWith('…')).toBe(true);
+    expect(long.length).toBeLessThanOrEqual(MAX_MESSAGE);
+    expect(long).toContain('\n…\n');
   });
 
   it('names a CLI from the PATH <wingfoil>, a CLI inside the project as the project', () => {
@@ -85,7 +86,7 @@ describe('redactLocalPaths', () => {
     ).toBe("fatal: '<remote>' does not appear to be a git repository");
   });
 
-  it('F11/S13: a scheme-less user:password@ is removed only after the start, a space or a quote', () => {
+  it('F11/S13: a scheme-less user:password@ is removed only after the start, a space, a quote or opening punctuation', () => {
     const r = (t: string) => redactLocalPaths(t, { home: null });
     // git's own message: stripped.
     expect(r('unable to look up u:tok@git.example.test')).toBe('unable to look up git.example.test');
@@ -93,8 +94,256 @@ describe('redactLocalPaths', () => {
     expect(r('u:tok@git.example.test is down')).toBe('git.example.test is down');
     // After another character: kept as it is.
     expect(r('x,u:tok@host')).toBe('x,u:tok@host');
-    expect(r('[u:tok@host]')).toBe('[u:tok@host]');
+    // task-040 review round 3 (S3-4): after opening punctuation too.
+    expect(r('[u:tok@host]')).toBe('[host]');
     // After a space: read as userinfo and removed (a `name: a:b@c` line loses `a:b@`).
     expect(r('Author: a:b@c.d')).toBe('Author: c.d');
+  });
+});
+
+// bug-017 (task-040, review round 1 S3, S4): what is sent is safe to show — control characters
+// (except newline and tab) and the bidirectional controls become visible escapes; a long text keeps
+// its end, where git's own rejection line is (a hook's output comes first), and the cap never
+// splits an escape or a redaction token.
+describe('bug-017 — control characters and the cap', () => {
+  it.each([
+    ['ESC (ANSI colour)', 'remote: \u001b[31mdenied\u001b[0m', 'remote: \\x1b[31mdenied\\x1b[0m'],
+    ['CR (a line rewritten)', 'ok\rfatal: fake', 'ok\\x0dfatal: fake'],
+    ['BEL, NUL, DEL and a C1 control', 'a\u0007b\u0000c\u007fd\u009be', 'a\\x07b\\x00c\\x7fd\\x9be'],
+    ['RIGHT-TO-LEFT OVERRIDE', 'file \u202etxt.exe', 'file \\u202etxt.exe'],
+    [
+      'the other bidi controls',
+      '\u202a\u202b\u202c\u202d\u2066\u2067\u2068\u2069',
+      '\\u202a\\u202b\\u202c\\u202d\\u2066\\u2067\\u2068\\u2069',
+    ],
+  ])('%s becomes a visible escape', (_name, text, expected) => {
+    expect(redactLocalPaths(text, { home: null })).toBe(expected);
+  });
+
+  it('keeps newlines and tabs, and an ordinary non-ASCII text', () => {
+    expect(redactLocalPaths('a\tb\nc — è ü 中', { home: null })).toBe('a\tb\nc — è ü 中');
+  });
+
+  it('neutralises after the paths are redacted: a path followed by ESC is still redacted', () => {
+    const project = path.join(root, 'repo', 'proj');
+    expect(redactLocalPaths(`${project}\u001b[K`, { project: [project], home: null })).toBe('<project>\\x1b[K');
+  });
+
+  it("a long hook output keeps git's concluding lines", () => {
+    const text = `${'remote: noise\n'.repeat(2000)} ! [remote rejected] HEAD -> main (pre-receive hook declined)\nerror: failed to push some refs to '<remote>'`;
+    const out = redactLocalPaths(text, { home: null });
+    expect(out.length).toBeLessThanOrEqual(MAX_MESSAGE);
+    expect(out.startsWith('remote: noise')).toBe(true);
+    expect(out).toContain('\n…\n');
+    expect(
+      out.endsWith(
+        "! [remote rejected] HEAD -> main (pre-receive hook declined)\nerror: failed to push some refs to '<remote>'",
+      ),
+    ).toBe(true);
+  });
+
+  it('the cap never splits an escape or a redaction token', () => {
+    const project = path.join(root, 'repo', 'proj');
+    for (let shift = 0; shift < 12; shift++) {
+      // Under the raw bound (review round 4: a longer text is bounded first), over the cap once escaped.
+      const unit = `${'\u001b'.repeat(10)}${project}`;
+      const text = 'y'.repeat(shift) + unit.repeat(90); // 49 characters each once redacted
+      const out = redactLocalPaths(text, { project: [project], home: null });
+      expect(out.length).toBeLessThanOrEqual(MAX_MESSAGE);
+      const [head, tail] = out.split('\n…\n');
+      // Every backslash starts a whole escape, every `<` a whole token.
+      for (const part of [head!, tail!]) {
+        expect(part.replace(/\\x1b|<project>/g, '')).toMatch(/^y*$/);
+      }
+    }
+  });
+});
+
+// task-040 review round 2 (bug-017: S2-2, R2-5, R2-6, S2-7): neutralised by Unicode category, a
+// backslash written `\\` first so every escape in the output is one, CRLF folded to a newline, the
+// scheme-less userinfo rule seeing through a control character, a cap that never splits a pair.
+describe('bug-017 — review round 2', () => {
+  const c = (n: number) => String.fromCodePoint(n);
+
+  it.each([
+    [0x200e, '\\u200e'],
+    [0x200f, '\\u200f'],
+    [0x061c, '\\u061c'],
+    [0xfeff, '\\ufeff'],
+    [0x200b, '\\u200b'],
+    [0x200d, '\\u200d'],
+    [0x2028, '\\u2028'],
+    [0x2029, '\\u2029'],
+    [0x00ad, '\\xad'],
+    [0x180e, '\\u180e'],
+    [0xe0001, '\\u{e0001}'],
+  ])('code point %d (Cf, Zl, Zp) becomes a visible escape', (code, escaped) => {
+    expect(redactLocalPaths(`a${c(code)}b`, { home: null })).toBe(`a${escaped}b`);
+  });
+
+  it('a lone surrogate (Cs) becomes a visible escape; a pair (an emoji) and a combining mark stay', () => {
+    expect(redactLocalPaths(`a${String.fromCharCode(0xd800)}b`, { home: null })).toBe('a\\ud800b');
+    expect(redactLocalPaths('ok 😀 a\u034fb', { home: null })).toBe('ok 😀 a\u034fb');
+  });
+
+  it('a literal backslash is written \\\\, so a printed "\\x1b" is told from a real ESC', () => {
+    expect(redactLocalPaths('a\\b and \\x1b', { home: null })).toBe('a\\\\b and \\\\x1b');
+    expect(redactLocalPaths(`${c(0x1b)}`, { home: null })).toBe('\\x1b');
+  });
+
+  it('CRLF becomes a newline, a lone CR stays visible', () => {
+    expect(redactLocalPaths('a\r\nb\rc', { home: null })).toBe('a\nb\\x0dc');
+  });
+
+  it('the scheme-less userinfo rule sees through a control character before it', () => {
+    expect(redactLocalPaths(`${c(0x1b)}u:tok@git.example.test`, { home: null })).toBe('\\x1bgit.example.test');
+    expect(redactLocalPaths(`x${c(0x200e)}u:tok@git.example.test`, { home: null })).toBe('x\\u200egit.example.test');
+  });
+
+  it('the cap never splits a surrogate pair, whatever the offset', () => {
+    const lone = /[\ud800-\udbff](?![\udc00-\udfff])|(?<![\ud800-\udbff])[\udc00-\udfff]/;
+    for (let shift = 0; shift < 4; shift++) {
+      const out = redactLocalPaths('y'.repeat(shift) + '😀'.repeat(MAX_MESSAGE), { home: null });
+      expect(out.length).toBeLessThanOrEqual(MAX_MESSAGE);
+      expect(lone.test(out)).toBe(false);
+    }
+  });
+
+  it('the cap never splits an escaped backslash or a long escape', () => {
+    for (let shift = 0; shift < 12; shift++) {
+      const out = redactLocalPaths('y'.repeat(shift) + `\\${c(0xe0001)}`.repeat(MAX_MESSAGE), { home: null });
+      const [head, tail] = out.split('\n…\n');
+      for (const part of [head!, tail!]) expect(part.replace(/\\\\|\\u\{e0001\}/g, '')).toMatch(/^y*$/);
+    }
+  });
+});
+
+// task-040 review round 3 (bug-017: S3-3, S3-4): the raw input is bounded first — a head and a tail
+// of a bounded number of code points, cut at line breaks where it can — so no transform ever sees a
+// hook's megabytes; the userinfo rules after opening punctuation, and up to ASCII white space only.
+describe('bug-017 — review round 3', () => {
+  it('a 20 MB flood of ESC is bounded before any transform: the output is capped, head and tail kept', () => {
+    const flood = String.fromCharCode(0x1b).repeat(20 * 1024 * 1024);
+    const bounded = boundRaw(`first line\n${flood}\nerror: failed to push some refs`);
+    expect(bounded.length).toBeLessThanOrEqual(2 * RAW_BOUND + 3);
+    const out = redactLocalPaths(`first line\n${flood}\nerror: failed to push some refs`, { home: null });
+    expect(out.length).toBeLessThanOrEqual(MAX_MESSAGE);
+    expect(out.startsWith('first line\n')).toBe(true);
+    expect(out.endsWith('\nerror: failed to push some refs')).toBe(true);
+  });
+
+  it('a flood of astral characters is bounded on code-point boundaries', () => {
+    const lone = /[\ud800-\udbff](?![\udc00-\udfff])|(?<![\ud800-\udbff])[\udc00-\udfff]/;
+    for (let shift = 0; shift < 3; shift++) {
+      const text = 'y'.repeat(shift) + '😀'.repeat(RAW_BOUND * 3);
+      expect(lone.test(boundRaw(text))).toBe(false);
+      expect(lone.test(redactLocalPaths(text, { home: null }))).toBe(false);
+    }
+  });
+
+  it('the transform sees the bounded input only: a run between two line breaks is dropped whole', () => {
+    // A 20 MB line of one letter between git's lines: bounded first, its cuts move to the line breaks,
+    // so not one of its letters reaches the output (capping alone would keep about 2 000 of them).
+    const out = redactLocalPaths(`first line\n${'q'.repeat(20 * 1024 * 1024)}\nerror: last`, { home: null });
+    // Review round 4 (S4-2, R4-3): cut at the line breaks only, one marker line.
+    expect(out).toBe(`first line\n… ${20 * 1024 * 1024} characters without a line break omitted\nerror: last`);
+  });
+
+  it('a path at a raw cut is never left in two pieces', () => {
+    const project = path.join(root, 'repo', 'proj');
+    const text = `'${project}/x' `.repeat(Math.ceil((RAW_BOUND * 3) / (project.length + 5)));
+    const out = redactLocalPaths(text, { project: [project], home: null });
+    expect(out).not.toContain(root);
+  });
+
+  it('a short text is not touched by the bound', () => {
+    expect(boundRaw('a\nb')).toBe('a\nb');
+  });
+
+  it('the scheme-less userinfo after an opening parenthesis or bracket is removed', () => {
+    expect(redactLocalPaths('lookup (u:tok@git.example.test) failed', { home: null })).toBe(
+      'lookup (git.example.test) failed',
+    );
+    expect(redactLocalPaths('{u:tok@git.example.test}', { home: null })).toBe('{git.example.test}');
+  });
+
+  it('a password holding a no-break space or a line separator is still removed whole', () => {
+    expect(redactLocalPaths('https://u:p w@git.example.test/x', { home: null })).toBe('https://git.example.test/x');
+    expect(redactLocalPaths('https://u:p w@git.example.test/x', { home: null })).toBe('https://git.example.test/x');
+  });
+});
+
+// task-040 review round 4 (bug-017: S4-2, R4-1, R4-3; coordinator decision): the raw bound cuts at
+// line breaks only; omitted text inside one line is not dropped silently but replaced by a fixed
+// line "… <N> characters without a line break omitted"; one omission line whatever cuts follow.
+describe('bug-017 — review round 4', () => {
+  it('a 40 KB line with no line break becomes the marker line, with its length in code points', () => {
+    expect(redactLocalPaths('x'.repeat(40_000), { home: null })).toBe(
+      '… 40000 characters without a line break omitted',
+    );
+    expect(redactLocalPaths('😀'.repeat(20_000), { home: null })).toBe(
+      '… 20000 characters without a line break omitted',
+    );
+  });
+
+  it("git's last lines are kept after a long single line", () => {
+    const out = redactLocalPaths(`${'x'.repeat(40_000)}\nerror: failed to push some refs`, { home: null });
+    expect(out).toBe('… 40000 characters without a line break omitted\nerror: failed to push some refs');
+  });
+
+  it('a URL holding a quote, at every offset of the cut, never leaks its userinfo', () => {
+    const line = `fatal: unable to access 'https://morgan:to"ken-SECRET@git.example.test/x'\n`;
+    for (let offset = 0; offset < line.length; offset++) {
+      const out = redactLocalPaths('y'.repeat(offset) + line.repeat(Math.ceil((RAW_BOUND * 3) / line.length)), {
+        home: null,
+      });
+      expect(out).not.toContain('SECRET');
+      expect(out).not.toContain('morgan');
+      // What the transforms see: whole lines of the input and the one marker line, nothing cut.
+      const whole = line.slice(0, -1);
+      const lines = boundRaw('y'.repeat(offset) + line.repeat(Math.ceil((RAW_BOUND * 3) / line.length))).split('\n');
+      for (const l of lines.slice(1)) expect([whole, '…', '']).toContain(l);
+    }
+  });
+
+  it('a text bounded and then capped shows one omission line', () => {
+    const line = `remote: ${'\u001b'.repeat(40)}\n`;
+    const out = redactLocalPaths(line.repeat(Math.ceil((RAW_BOUND * 4) / line.length)), { home: null });
+    expect(out.length).toBeLessThanOrEqual(MAX_MESSAGE);
+    expect(out.split('\n').filter((l) => l.startsWith('…'))).toHaveLength(1);
+  });
+});
+
+// task-040 review round 5 (R5-1 … R5-3): the omission line is exact or bare, a CRLF at a cut leaves
+// no `\x0d`, and no blank line stands next to the omission line.
+describe('bug-017 — review round 5', () => {
+  const lines = (n: number) => Array.from({ length: n }, (_, i) => `${String(i).padStart(3, '0')}${'L'.repeat(97)}`);
+
+  it('R5-1 — when the cap also cuts whole lines, the count form gives way to the bare omission line', () => {
+    const text = [...lines(70), 'Z'.repeat(30_000), ...lines(70), 'END'].join('\n');
+    const out = redactLocalPaths(text, { home: null });
+    expect(out.length).toBeLessThanOrEqual(MAX_MESSAGE);
+    const marks = out.split('\n').filter((l) => l.startsWith('…'));
+    expect(marks).toEqual(['…']);
+    expect(out.endsWith('\nEND')).toBe(true);
+  });
+
+  it('R5-2 — a CRLF at a cut leaves no visible CR and is not counted', () => {
+    expect(redactLocalPaths(`a\r\n${'Z'.repeat(40_000)}\r\nb`, { home: null })).toBe(
+      'a\n… 40000 characters without a line break omitted\nb',
+    );
+  });
+
+  it('R5-3 — no blank line next to the omission line when the cap cuts at a line boundary', () => {
+    // Lines of every length from 60 to 130: for some, the cap's cut lands right after a line break.
+    for (let len = 60; len <= 130; len++) {
+      const own = Array.from({ length: 80 }, (_, i) => `${String(i).padStart(3, '0')}${'L'.repeat(len - 3)}`);
+      const text = [...own, 'Z'.repeat(30_000), ...own, 'END'].join('\n');
+      const out = redactLocalPaths(text, { home: null });
+      const all = out.split('\n');
+      const i = all.findIndex((l) => l.startsWith('…'));
+      expect(all[i - 1]).not.toBe('');
+      expect(all[i + 1]).not.toBe('');
+    }
   });
 });
