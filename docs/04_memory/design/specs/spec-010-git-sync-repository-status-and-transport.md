@@ -185,8 +185,13 @@ cancelled process group or the server) and `--no-optional-locks`.
   splitting an escape, a redaction token or a surrogate pair (bug-017) — also in `lastError`. This
   one sanitiser (`server/src/git/redact.ts`) makes every verbatim tool message the API sends: the
   transport, the sync status, the auto-push, the governed writes, the CLI adapter, the project
-  list's add and clone (`test/server/tool-messages.test.ts`); the web shows such text left to right
-  without bidi reordering, clipped to its box.
+  list's add and clone, the CLI's `warnings` (`test/server/tool-messages.test.ts`); the raw text is
+  bounded first (its first and last 8 192 code points, each cut moved to a line break, a quote or a
+  control character), so no transform sees a hook's megabytes. Git-derived names in a body
+  (`detail.files` of `local-changes-in-the-way`) are escaped the same way. The web shows such text
+  left to right without bidi reordering, wrapped, clipped to its box, and the names a catalogue text
+  quotes (files, upstream, branch) the same way: right-to-left words (Hebrew, Arabic) read reversed
+  there, and the zero-width joiners U+200C / U+200D show as escapes.
   Declared residual (task-040, D40-9): other absolute paths that git or a hook prints (a folder
   outside the project, the repository, a local remote and the home folder) are shown as printed —
   git's text stays verbatim (REQ-INT-06); the console is the user's own, on loopback. A literal
@@ -497,3 +502,9 @@ Rows 7–9 do not apply (no element).
   doubles a backslash first, folds CR LF, removes a scheme-less userinfo after a control character,
   never splits a surrogate pair at the cap, and is the one producer of every verbatim tool message —
   the project list's add and clone included; the residual of a literal redaction token stated.
+- 2026-10-18 — bug-017, review round 3 of task-040 (S3-1 … S3-4, R3-1, R3-2, decided by the
+  approver): §4 the raw tool text is bounded before any transform (S3-3, a regression of round 1
+  fixed: a hook's flood no longer blocks the server); the CLI's warnings and the file names of
+  `local-changes-in-the-way` go through the same sanitiser (S3-1, S3-2); the userinfo rules also
+  after opening punctuation and up to ASCII white space only (S3-4); what right-to-left words and
+  zero-width joiners look like stated (R3-2).

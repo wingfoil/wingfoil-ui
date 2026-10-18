@@ -411,10 +411,14 @@ with git each time the repository changes:
   printed (and a hook that prints `<project>` itself cannot be told from the console's
   replacement). Control characters (an escape sequence, a carriage return), invisible format
   characters (those that reverse the direction of text, zero-width ones) and line separators are
-  shown as visible escapes such as `\x1b` or `\u202e`, a backslash git printed as `\\`, and the
-  text is shown left to right in the order git printed it. A very long message keeps its beginning
+  shown as visible escapes such as `\x1b` or `\u202e` — the zero-width joiners of some scripts
+  and emoji (U+200C, U+200D) too —, a backslash git printed as `\\`, and the text is shown left to
+  right in the order git printed it: words of a right-to-left script (Hebrew, Arabic) therefore read
+  reversed there. File names and branch names that the git status and its messages quote follow
+  the same rule. A very long message keeps its beginning
   and its end — where git says why it refused — around a `…` line. The same holds for the messages
-  of a refused *Add project* or clone and of WingFoil's refusals.
+  of a refused *Add project* or clone, for WingFoil's refusals and for the CLI's warnings (the
+  Memory list's and the Directives' notices).
 
 ## Automatic sync with the remote
 
