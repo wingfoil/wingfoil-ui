@@ -594,3 +594,39 @@ accessibility no-commit add-project directives memory-list` (three engines) **56
 load 8.9); after the S3-1 e2e was rewritten, `update-push` and `directives` on the three engines
 **69 passed** (load 1.9); `test:timing` **skipped** (load 20.1 after the suites; the round-1 run
 passed and no timed path changed). No console left, no `wfui-*` entry.
+
+### review round 4 (2026-10-18)
+
+Independent review **PASS** (R4-1 minor non-blocking, R4-2 / R4-3 nits); adversarial security review
+**CHANGES REQUESTED** (S4-1 minor, S4-2 … S4-4 nits; S3-3 measured at 38 ms / 118 MB for 60 M ESC).
+Coordinator decisions: the raw bound cuts only at line breaks, with a fixed omission line (S4-2,
+R4-1); the scheme-less userinfo rule's left context is a declared residual, no new heuristic (S4-3).
+Red tests first: `8b0e3f9` (server: 5 failures), `906c72d` (web S4-4 and the e2e S4-1). Tests that
+passed first and their guard removal (each restored): the URL-with-a-quote case at every offset —
+with a head cut not moved to a line break, the new property "the transforms see whole lines only"
+fails (the leak test alone passed: the cap removed the cut fragment); "one omission line" — with a
+second `…` line added by the cap, it fails. On the bin: with `repositoryStatus` sending the raw
+branch, S4-1 fails; with the message's wrapper removed, Y-06.2's flow check fails (its first form,
+a top-offset check, passed with the defect and was replaced by the name's position in the flow).
+
+| Id | Change | Test |
+|----|--------|------|
+| S4-1 | `repositoryStatus` (the one builder of the API's `repository`) sends `branch` and `upstream` escaped (`neutralise`); the server's git work (push target, branch config) reads the raw names from the state; no contract change (the schema's `string` holds the escaped text) | `test/server/git/repository-names.test.ts`; e2e `update-push.spec.ts` › S4-1 (a `feat‮gpj.exe` branch shows the escape as text) |
+| S4-2, R4-1 | `boundParts`: whole lines only — the head up to the last line break in its window, the tail from the first line break in its window — and one omission line: `…`, or `… <N> characters without a line break omitted` (N in code points) when what is left out lies inside one line | `redact.test.ts` › round 4 (a 40 KB line → the marker, git's last line kept, the quote URL at every offset leaks nothing and the transforms see whole lines only) |
+| R4-3 | the cap of a bounded text cuts its head and tail around the same omission line (`joinCapped`): one omission line in all | `redact.test.ts` › one omission line |
+| S4-3 | declared residual in spec-010 §4, the `redact.ts` table and the user guide: after `=`, `,`, `;`, `|`, a tab inside the userinfo, or `?`/`#` in a password, a scheme-less userinfo may be kept | — |
+| S4-4 | the git status's refusal line wraps its message in one span: one flex item, the quoted name inline | `update-push.test.tsx` › S4-4; e2e Y-06.2 (at 1280×720 and 400×600 the name starts where the text before it ends, or at a line start) |
+| R4-2 | `directiveInForce`: comment that warnings are the sanitised text; an entry's path also compared as written there (`neutralise`), so a path with a backslash still names its entry | `tool-messages.test.ts` › directiveInForce |
+
+Docs: spec-010 §4 text and Process Note, the `redact.ts` table, user guide; CHANGELOG unchanged (its
+bug-017 entry already covers the bound). Versions kept.
+
+Checks after review round 4 (HEAD before this note `afd05f4`; every heavy gate through the slot as a
+tracked background command): typecheck, lint, format:check clean; `docs:api` 0 warnings (after
+`24be520`); `check_tasks.py v0.2` OK; public-text check passed; `test:coverage` **3160 passed / 1
+skipped** (statements 96.55 %, branches 91.35 %; load 2.6); `test:e2e:chromium` **310 passed** (11.0
+min; granted at load 12.56); `npm run test:e2e -- update-push submit-footer shell git-status
+gate-footer accessibility no-commit add-project directives memory-list` (three engines) **570
+passed** (18.6 min; load 9.0); after the S4-4 e2e check was rewritten, `update-push` on the three
+engines **60 passed** (load 4.4); `test:timing` **skipped** (load 17.9 after the suites; the round-1
+run passed and no timed path changed). No console left, no `wfui-*` entry.
