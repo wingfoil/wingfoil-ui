@@ -340,3 +340,6 @@ of the design branch); the AC-3 Cancel walk is written after that merge, red fir
     'Reject → draft' in 60 presses".
   - AC-4: the Submit footer's `disabled` ignoring `view.enabled` (`ElementFooter.tsx`) → *Submit →
     pending* not `aria-disabled`.
+- **Three engines** — `npx playwright test` of the three files with `--grep` on the four new tests
+  (Chromium, Firefox, WebKit): **12 passed** (1.1 min; load 9.2 at the end). Every run through the
+  machine-free slot; no console left, the tree clean after the fault run.
