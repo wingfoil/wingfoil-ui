@@ -14,6 +14,10 @@
  * | the userinfo of a URL (`https://user:token@host`, up to the last `@` before the host), and a `user:password@` without a scheme (`git://` lookups) | removed |
  *
  * Longest folder first, only as a whole path (`/a/project` never matches inside `/a/project-two`).
+ * First (bug-017, review round 3 S3-3) the raw text is bounded: past {@link RAW_BOUND} code points
+ * at either end only its head and its tail are kept (cut at a line break where one is near), so no
+ * transform below ever sees a hook's megabytes.
+ *
  * Then (bug-017, task-040) what is sent is made safe to show, whatever a hook or a remote printed —
  * this function is the one sanitiser of every verbatim tool message the API sends (`git-refused`,
  * `cli-refused`, the sync status's `lastError`, a write's `push.message`, the project list's refusals;
@@ -69,7 +73,8 @@ function inside(child: string, parent: string): boolean {
 }
 
 /** `text` with the local folders of `roots` replaced, URL userinfo removed, capped (D33-5). */
-export function redactLocalPaths(text: string, roots: LocalRoots): string {
+export function redactLocalPaths(raw: string, roots: LocalRoots): string {
+  const text = boundRaw(raw);
   const pairs: [string, string][] = [];
   const project = (roots.project ?? []).flatMap(forms);
   for (const p of project) pairs.push([p, '<project>']);
@@ -97,12 +102,18 @@ export function redactLocalPaths(text: string, roots: LocalRoots): string {
   }
   // `scheme://userinfo@host` → `scheme://host`: the userinfo runs to the last `@` before the host
   // and may hold quotes (review round 1 S7).
-  out = out.replace(/\b([A-Za-z][A-Za-z0-9+.-]*:\/\/)[^\s/]*@/g, '$1');
+  // It ends only at ASCII white space, `/`, `?` or `#` (review round 3 S3-4: a no-break space or a
+  // line separator inside a password does not end it).
+  out = out.replace(/\b([A-Za-z][A-Za-z0-9+.-]*:\/\/)[^ \t\n\r\f\v/?#]*@/g, '$1');
   // `user:password@host` without a scheme (git's `unable to look up u:tok@host`); a plain e-mail
   // address (no `:`) stays.
   // Only after the start, a space or a quote (review round 2 F11, S13).
   // A control or format character before it counts as a start too (review round 2 R2-6).
-  out = out.replace(new RegExp(`(^|[\\s'"]|${UNSAFE.source})[A-Za-z0-9._~%+-]+:[^\\s/]*@(?=[A-Za-z0-9[])`, 'gu'), '$1');
+  // After opening punctuation too (review round 3 S3-4).
+  out = out.replace(
+    new RegExp(`(^|[\\s'"([{<]|${UNSAFE.source})[A-Za-z0-9._~%+-]+:[^ \\t\\n\\r\\f\\v/?#]*@(?=[A-Za-z0-9[])`, 'gu'),
+    '$1',
+  );
   return cap(neutralise(out));
 }
 
@@ -161,4 +172,37 @@ function cap(text: string): string {
   const head = safeCut(text, Math.floor(room / 2), true);
   const tail = safeCut(text, text.length - (room - head), false);
   return `${text.slice(0, head)}${ELLIPSIS}${text.slice(tail)}`;
+}
+
+/** The code points kept at each end of a raw tool message before any transform (S3-3). */
+export const RAW_BOUND = 8_192;
+
+/**
+ * A character a cut may land next to: a line break, a quote or a control character — what ends a
+ * path or a URL in git's and the CLI's messages (a space does not: paths hold spaces).
+ */
+function isBreak(code: number): boolean {
+  return code === 0x0a || code === 0x27 || code === 0x22 || code < 0x20 || (code >= 0x7f && code <= 0x9f);
+}
+
+/**
+ * `raw`, or its first and last {@link RAW_BOUND} code points around a `…` line (bug-017, review round
+ * 3 S3-3): never a split surrogate pair, and each cut moved to a break (a line break, a quote, a
+ * control character) — so no path or URL is left cut in two at it, where the redaction would not
+ * recognise it; a run with no break is dropped whole.
+ */
+export function boundRaw(raw: string): string {
+  // Two UTF-16 units per code point at most: shorter texts hold fewer code points than twice the bound.
+  if (raw.length <= 2 * RAW_BOUND) return raw;
+  let head = 0;
+  for (let n = 0; n < RAW_BOUND && head < raw.length; n++) head += raw.codePointAt(head)! > 0xffff ? 2 : 1;
+  let tail = raw.length;
+  for (let n = 0; n < RAW_BOUND && tail > head; n++) {
+    const low = raw.charCodeAt(tail - 1);
+    tail -= low >= 0xdc00 && low <= 0xdfff && tail >= 2 ? 2 : 1;
+  }
+  if (tail <= head) return raw;
+  while (head > 0 && !isBreak(raw.charCodeAt(head - 1))) head -= 1;
+  while (tail < raw.length && !isBreak(raw.charCodeAt(tail))) tail += 1;
+  return `${raw.slice(0, head)}${ELLIPSIS}${raw.slice(tail)}`;
 }

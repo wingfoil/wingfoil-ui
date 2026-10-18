@@ -86,7 +86,7 @@ describe('redactLocalPaths', () => {
     ).toBe("fatal: '<remote>' does not appear to be a git repository");
   });
 
-  it('F11/S13: a scheme-less user:password@ is removed only after the start, a space or a quote', () => {
+  it('F11/S13: a scheme-less user:password@ is removed only after the start, a space, a quote or opening punctuation', () => {
     const r = (t: string) => redactLocalPaths(t, { home: null });
     // git's own message: stripped.
     expect(r('unable to look up u:tok@git.example.test')).toBe('unable to look up git.example.test');
@@ -94,7 +94,8 @@ describe('redactLocalPaths', () => {
     expect(r('u:tok@git.example.test is down')).toBe('git.example.test is down');
     // After another character: kept as it is.
     expect(r('x,u:tok@host')).toBe('x,u:tok@host');
-    expect(r('[u:tok@host]')).toBe('[u:tok@host]');
+    // task-040 review round 3 (S3-4): after opening punctuation too.
+    expect(r('[u:tok@host]')).toBe('[host]');
     // After a space: read as userinfo and removed (a `name: a:b@c` line loses `a:b@`).
     expect(r('Author: a:b@c.d')).toBe('Author: c.d');
   });
@@ -237,6 +238,20 @@ describe('bug-017 — review round 3', () => {
       expect(lone.test(boundRaw(text))).toBe(false);
       expect(lone.test(redactLocalPaths(text, { home: null }))).toBe(false);
     }
+  });
+
+  it('the transform sees the bounded input only: a run with no break at a cut is dropped whole', () => {
+    // A 20 MB line of one letter between git's lines: bounded first, its cuts move to the line breaks,
+    // so not one of its letters reaches the output (capping alone would keep about 2 000 of them).
+    const out = redactLocalPaths(`first line\n${'q'.repeat(20 * 1024 * 1024)}\nerror: last`, { home: null });
+    expect(out).toBe('first line\n\n…\n\nerror: last');
+  });
+
+  it('a path at a raw cut is never left in two pieces', () => {
+    const project = path.join(root, 'repo', 'proj');
+    const text = `'${project}/x' `.repeat(Math.ceil((RAW_BOUND * 3) / (project.length + 5)));
+    const out = redactLocalPaths(text, { project: [project], home: null });
+    expect(out).not.toContain(root);
   });
 
   it('a short text is not touched by the bound', () => {
