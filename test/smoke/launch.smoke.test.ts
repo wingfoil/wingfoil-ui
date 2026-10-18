@@ -7,9 +7,9 @@
  * `--prefer-offline`: no network when the cache holds the packages and their metadata.
  * Each phase's duration is printed. task-026 (bug-008, D26-1): the installed console clones a
  * repository with a committed hook — the hooks path of the packed `server/dist` is a regular file,
- * the clone succeeds and runs no hook.
+ * the clone succeeds and runs no hook. task-029 (D29-3): the helpers live in `support.ts`, shared
+ * with the staging publish smoke.
  */
-import { spawn } from 'node:child_process';
 import { appendFile, chmod, lstat, mkdir, mkdtemp, realpath, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -21,15 +21,21 @@ import {
   forbiddenReason,
   isAllowed,
   npm,
-  npmCli,
   parsePackReport,
   readManifest,
   serverModules,
   type PackReport,
 } from '../package/allow-list.js';
-
-const RUNNING = /^WingFoil UI is running at (http:\/\/127\.0\.0\.1:(\d+)\/)#token=([A-Za-z0-9_-]+)$/;
-const START_MS = 30_000;
+import {
+  expectGroupGone,
+  killGroups,
+  npxArgs,
+  serverProcess,
+  start as startIn,
+  timed as timedIn,
+  withoutNpmVars,
+  type Started,
+} from './support.js';
 
 let tmp: string;
 let app: string;
@@ -40,105 +46,8 @@ const timings: Record<string, number> = {};
 /** Process groups started by this file, killed in `afterAll` whatever happened. */
 const groups = new Set<number>();
 
-/** `env` without the variables `npm run` adds (`npm_config_*`, `npm_package_*`, `npm_lifecycle_*`). */
-function withoutNpmVars(env: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
-  // Vitest's `NODE_ENV=test` goes too: `prepack`'s Vite build would make React's development
-  // bundle (review round 1).
-  return Object.fromEntries(Object.entries(env).filter(([key]) => !/^npm_/i.test(key) && key !== 'NODE_ENV'));
-}
-
-async function timed<T>(name: string, work: () => Promise<T>): Promise<T> {
-  const t0 = performance.now();
-  try {
-    return await work();
-  } finally {
-    timings[name] = Math.round(performance.now() - t0);
-    console.log(`launch smoke: ${name} ${timings[name]} ms`);
-  }
-}
-
-/** `npx` of this npm, run with this Node.js (no shell). */
-const NPX = path.join(path.dirname(npmCli()), 'npx-cli.js');
-
-/** `npx --no -- wingfoil-ui …` in the install folder: never a registry fallback. */
-function npxArgs(args: readonly string[]): string[] {
-  return [NPX, '--no', '--', 'wingfoil-ui', ...args];
-}
-
-interface Proc {
-  pid: number;
-  ppid: number;
-  pgid: number;
-  args: string;
-}
-
-async function processes(): Promise<Proc[]> {
-  const { stdout } = await run('ps', ['-e', '-o', 'pid=,ppid=,pgid=,args=']);
-  return stdout
-    .split('\n')
-    .map((line) => /^\s*(\d+)\s+(\d+)\s+(\d+)\s+(.*)$/.exec(line))
-    .filter((m): m is RegExpExecArray => m !== null)
-    .map((m) => ({ pid: Number(m[1]), ppid: Number(m[2]), pgid: Number(m[3]), args: m[4]! }));
-}
-
-/** Processes still alive in the group led by `pgid`. */
-async function group(pgid: number): Promise<Proc[]> {
-  return (await processes()).filter((p) => p.pgid === pgid);
-}
-
-/** The bin's own process: the leaf of the `npx` group (npm → `sh -c` → node). */
-async function serverProcess(pgid: number): Promise<Proc> {
-  const members = await group(pgid);
-  const leaves = members.filter((p) => !members.some((q) => q.ppid === p.pid));
-  expect(leaves, JSON.stringify(members)).toHaveLength(1);
-  return leaves[0]!;
-}
-
-async function expectGroupGone(pgid: number): Promise<void> {
-  await expect.poll(async () => (await group(pgid)).map((p) => p.args), { timeout: 10_000 }).toEqual([]);
-}
-
-interface Started {
-  pgid: number;
-  origin: string;
-  token: string;
-  stdout: () => string;
-  stderr: () => string;
-  exited: Promise<{ code: number | null; signal: NodeJS.Signals | null }>;
-}
-
-/** Start `npx wingfoil-ui --no-open` in its own process group and wait for the running line. */
-function start(): Promise<Started> {
-  const child = spawn(process.execPath, npxArgs(['--no-open']), {
-    cwd: app,
-    env: runEnv,
-    detached: true,
-    stdio: ['ignore', 'pipe', 'pipe'],
-  });
-  const pgid = child.pid!;
-  groups.add(pgid);
-  let out = '';
-  let err = '';
-  child.stderr.on('data', (d: Buffer) => (err += String(d)));
-  const exited = new Promise<{ code: number | null; signal: NodeJS.Signals | null }>((resolve) =>
-    child.once('exit', (code, signal) => resolve({ code, signal })),
-  );
-  return new Promise((resolve, reject) => {
-    const timer = setTimeout(() => reject(new Error(`no running line after ${START_MS} ms: ${out} ${err}`)), START_MS);
-    void exited.then(({ code, signal }) => {
-      clearTimeout(timer);
-      reject(new Error(`npx ended (${String(code ?? signal)}) before the running line: ${out} ${err}`));
-    });
-    child.stdout.on('data', (d: Buffer) => {
-      out += String(d);
-      const first = out.split('\n')[0]!;
-      const m = out.includes('\n') ? RUNNING.exec(first) : null;
-      if (!m) return;
-      clearTimeout(timer);
-      resolve({ pgid, origin: m[1]!.replace(/\/$/, ''), token: m[3]!, stdout: () => out, stderr: () => err, exited });
-    });
-  });
-}
+const timed = <T>(name: string, work: () => Promise<T>): Promise<T> => timedIn(timings, 'launch smoke', name, work);
+const start = (): Promise<Started> => startIn(app, runEnv, groups);
 
 beforeAll(async () => {
   tmp = await realpath(await mkdtemp(path.join(tmpdir(), 'wfui-smoke-')));
@@ -171,13 +80,7 @@ beforeAll(async () => {
 }, 900_000);
 
 afterAll(async () => {
-  for (const pgid of groups) {
-    try {
-      process.kill(-pgid, 'SIGKILL');
-    } catch {
-      // already gone
-    }
-  }
+  killGroups(groups);
   console.log(`launch smoke timings (ms): ${JSON.stringify(timings)}`);
   if (tmp) await rm(tmp, { recursive: true, force: true });
 });

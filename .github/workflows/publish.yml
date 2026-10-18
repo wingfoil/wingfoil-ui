@@ -1,0 +1,147 @@
+# WingFoil UI — npm publish pipeline (task-029; release-planning-rel-v0.2-plan RP-54, RP-46; dl-004 Actions).
+# Modelled on WingFoil's own pipeline (public repository wingfoil/wingfoil, .github/workflows/publish.yml).
+# The full guide — the approver's registry-side checklist, the per-release runbook, the local smoke and
+# the "Differences from WingFoil's pipeline" table — is docs/publishing.md. Keep the two in step.
+#
+#   gate    → on a tag: scripts/check-release-tag.mjs (the tag is annotated, equals v<package.json version>
+#             of the root, of every workspace and of package-lock.json, points at the commit built, and that commit is on
+#             origin/main — release-publishing `tag`); `npm ci`; the repository gates `typecheck`, `lint`,
+#             `format:check`, `test:coverage`, `test:smoke`; then `npm pack` ONCE (its `prepack` builds from a
+#             clean tree) and the tarball is uploaded as the run's artifact.
+#   stage   → `npm run test:publish-smoke` on THAT tarball: a local Verdaccio with no uplink (seeded offline
+#             with the run-time dependency closure of package-lock.json), `npm publish` to it, `npm install
+#             wingfoil-ui@<version>` into an empty folder, `npx wingfoil-ui --version` and a `--no-open`
+#             start, every npm process behind a dead proxy for anything outside the loopback.
+#   promote → only for a tag, in the GitHub environment `npm-publish` (the approver is its required
+#             reviewer; deployments from `v*` tags only): `npm stage publish` of THAT tarball through the npm
+#             trusted publisher of this repository and workflow, limited to staging, over GitHub OIDC, with
+#             provenance. The version is NOT live: it waits in npm's stage queue until the approver runs
+#             `npm stage approve <stage-id>` with 2FA. This workflow never publishes live by itself.
+#
+# Credentials: none. No secret is read, no token variable is set, no npm user config is written, setup-node gets no
+# `registry-url`; promote authenticates as the trusted publisher (`id-token: write`, granted to promote alone).
+# A plain `npm publish` from a checkout stops at the root `prepublishOnly` (scripts/publish-guard.mjs) — a
+# guard against mistakes that `--ignore-scripts` skips; the control is the registry setup (trusted publisher
+# limited to staging, "disallow tokens": docs/publishing.md, approver checklist steps 5 and 6).
+#
+# Triggers: a `vX.Y.Z` tag push runs all three jobs. `workflow_dispatch` (Actions → publish → Run workflow)
+# runs gate and stage only, on ANY ref it is started on — a branch or a tag: a dry run of the gates on a
+# GitHub runner before tagging, and the smoked tarball as an artifact. A dispatch never promotes: promote
+# requires `github.event_name == 'push'` (a manual run on a tag ref has `ref_type == 'tag'` too), and the
+# environment admits `v*` tags only.
+#
+# Node: gate on 22.22.2, the floor of the dev toolchain (jsdom declares ^22.22.2); stage on 22.12.0, the
+# package's `engines.node` floor, so the installed package is started on the oldest Node it claims; promote
+# on 24.21.0, whose npm 11.19.0 has `npm stage` (npm >= 11.15.0, bundled from Node 24.18.0).
+#
+# Every `uses:` names a full commit SHA with its release tag in a comment (the same releases WingFoil's
+# pipeline pins); check one with `git ls-remote https://github.com/actions/checkout refs/tags/v7.0.1`.
+# test/package/publish-workflow.test.ts freezes these invariants.
+
+name: publish
+
+on:
+  push:
+    tags: ['v[0-9]+.[0-9]+.[0-9]+']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: publish-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  GATE_NODE_VERSION: '22.22.2'
+  RUNTIME_NODE_VERSION: '22.12.0'
+  TARBALL_ARTIFACT: wingfoil-ui-tarball
+
+jobs:
+  gate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: ${{ env.GATE_NODE_VERSION }}
+          package-manager-cache: false
+      - name: Tag checks — annotated, v<version> of every package.json, the commit built, on origin/main
+        if: ${{ github.ref_type == 'tag' }}
+        run: node scripts/check-release-tag.mjs "$GITHUB_REF_NAME" "$GITHUB_SHA"
+      - name: Install
+        run: npm ci
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Lint
+        run: npm run lint
+      - name: Format check
+        run: npm run format:check
+      - name: Tests with coverage
+        run: npm run test:coverage
+      - name: Launch smoke (pack, install, npx wingfoil-ui)
+        run: npm run test:smoke
+      - name: Pack the release tarball once
+        run: |
+          mkdir -p dist-pack
+          npm pack --pack-destination dist-pack
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ${{ env.TARBALL_ARTIFACT }}
+          path: dist-pack/*.tgz
+          if-no-files-found: error
+
+  stage:
+    needs: gate
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: ${{ env.RUNTIME_NODE_VERSION }}
+          package-manager-cache: false
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: ${{ env.TARBALL_ARTIFACT }}
+          path: dist-pack
+      - name: Install (Vitest and the pinned Verdaccio; fills the npm cache the registry is seeded from)
+        run: npm ci
+      - name: Staging smoke on a local registry with the gate tarball
+        run: |
+          tarball="$(ls dist-pack/*.tgz)"
+          WFUI_PUBLISH_TARBALL="$PWD/$tarball" npm run test:publish-smoke
+
+  promote:
+    needs: stage
+    if: ${{ github.event_name == 'push' && github.ref_type == 'tag' && startsWith(github.ref, 'refs/tags/v') }}
+    runs-on: ubuntu-24.04
+    environment: npm-publish
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      PROMOTE_NODE_VERSION: '24.21.0'
+    steps:
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: ${{ env.PROMOTE_NODE_VERSION }}
+          package-manager-cache: false
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: ${{ env.TARBALL_ARTIFACT }}
+          path: dist-pack
+      # No --tag: npm applies `latest` and refuses by itself a version lower than the current `latest`
+      # (D29-6). The approver makes the staged version live with `npm stage approve` (2FA).
+      - name: Stage the smoked tarball on npm with provenance, via the OIDC trusted publisher
+        run: |
+          set +x
+          npm --version
+          npm stage publish ./dist-pack/*.tgz --provenance --access public

@@ -2,6 +2,14 @@
   "name": "wingfoil-ui",
   "version": "0.1.0",
   "description": "Local web UI for WingFoil-governed projects",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/wingfoil/wingfoil-ui.git"
+  },
+  "homepage": "https://github.com/wingfoil/wingfoil-ui#readme",
+  "bugs": {
+    "url": "https://github.com/wingfoil/wingfoil-ui/issues"
+  },
   "type": "module",
   "bin": {
     "wingfoil-ui": "bin/wingfoil-ui.cjs"
@@ -29,6 +37,7 @@
     "wingfoil": "wingfoil",
     "build": "tsc -b && npm run -s build -w web",
     "prepack": "node scripts/clean-build.mjs && npm run build",
+    "prepublishOnly": "node scripts/publish-guard.mjs",
     "typecheck": "tsc -b && tsc -p test",
     "lint": "eslint . && node web/scripts/check-catalogue.mjs",
     "format": "prettier --write .",
@@ -38,13 +47,13 @@
     "test:contract": "vitest run test/contracts",
     "test:timing": "vitest run --config vitest.timing.config.ts && playwright test --config playwright.timing.config.ts",
     "test:smoke": "vitest run --config vitest.smoke.config.ts",
+    "test:publish-smoke": "vitest run --config vitest.publish-smoke.config.ts",
     "test:e2e": "playwright test",
     "test:e2e:chromium": "playwright test --project=chromium",
     "docs:api": "typedoc --options typedoc.json"
   },
   "author": "Roberto Pompermaier <robypomper@gmail.com>",
   "license": "MIT",
-  "private": true,
   "engines": {
     "node": ">=22.12.0"
   },
@@ -81,6 +90,7 @@
     "typedoc": "^0.28.20",
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.71.0",
+    "verdaccio": "6.10.5",
     "vite": "^8.3.3",
     "vitest": "^5.0.3",
     "wingfoil": "0.2.2"
