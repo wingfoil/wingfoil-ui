@@ -2,7 +2,7 @@
 import { mkdir, realpath, symlink } from 'node:fs/promises';
 import path from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { MAX_MESSAGE, redactLocalPaths } from '../../../server/src/git/redact.js';
+import { MAX_MESSAGE, RAW_BOUND, boundRaw, redactLocalPaths } from '../../../server/src/git/redact.js';
 import { TempWorkspace } from '../../harness/temp-workspace.js';
 
 let ws: TempWorkspace;
@@ -213,5 +213,45 @@ describe('bug-017 — review round 2', () => {
       const [head, tail] = out.split('\n…\n');
       for (const part of [head!, tail!]) expect(part.replace(/\\\\|\\u\{e0001\}/g, '')).toMatch(/^y*$/);
     }
+  });
+});
+
+// task-040 review round 3 (bug-017: S3-3, S3-4): the raw input is bounded first — a head and a tail
+// of a bounded number of code points, cut at line breaks where it can — so no transform ever sees a
+// hook's megabytes; the userinfo rules after opening punctuation, and up to ASCII white space only.
+describe('bug-017 — review round 3', () => {
+  it('a 20 MB flood of ESC is bounded before any transform: the output is capped, head and tail kept', () => {
+    const flood = String.fromCharCode(0x1b).repeat(20 * 1024 * 1024);
+    const bounded = boundRaw(`first line\n${flood}\nerror: failed to push some refs`);
+    expect(bounded.length).toBeLessThanOrEqual(2 * RAW_BOUND + 3);
+    const out = redactLocalPaths(`first line\n${flood}\nerror: failed to push some refs`, { home: null });
+    expect(out.length).toBeLessThanOrEqual(MAX_MESSAGE);
+    expect(out.startsWith('first line\n')).toBe(true);
+    expect(out.endsWith('\nerror: failed to push some refs')).toBe(true);
+  });
+
+  it('a flood of astral characters is bounded on code-point boundaries', () => {
+    const lone = /[\ud800-\udbff](?![\udc00-\udfff])|(?<![\ud800-\udbff])[\udc00-\udfff]/;
+    for (let shift = 0; shift < 3; shift++) {
+      const text = 'y'.repeat(shift) + '😀'.repeat(RAW_BOUND * 3);
+      expect(lone.test(boundRaw(text))).toBe(false);
+      expect(lone.test(redactLocalPaths(text, { home: null }))).toBe(false);
+    }
+  });
+
+  it('a short text is not touched by the bound', () => {
+    expect(boundRaw('a\nb')).toBe('a\nb');
+  });
+
+  it('the scheme-less userinfo after an opening parenthesis or bracket is removed', () => {
+    expect(redactLocalPaths('lookup (u:tok@git.example.test) failed', { home: null })).toBe(
+      'lookup (git.example.test) failed',
+    );
+    expect(redactLocalPaths('{u:tok@git.example.test}', { home: null })).toBe('{git.example.test}');
+  });
+
+  it('a password holding a no-break space or a line separator is still removed whole', () => {
+    expect(redactLocalPaths('https://u:p w@git.example.test/x', { home: null })).toBe('https://git.example.test/x');
+    expect(redactLocalPaths('https://u:p w@git.example.test/x', { home: null })).toBe('https://git.example.test/x');
   });
 });
