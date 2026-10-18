@@ -642,29 +642,25 @@ test.describe('review round 1', () => {
 });
 
 test.describe('review round 3', () => {
-  test('S3-1, R3-1 — a CLI warning is shown escaped, left to right, and a long token wraps', async ({
+  test('S3-1, R3-1 — a CLI warning is a verbatim block: left to right, a long token wraps', async ({
     page,
     fixtures,
     consoles,
   }) => {
-    const long = `f${'x'.repeat(300)}`;
-    const fx = await copy(fixtures, async (f) => {
-      const directive = path.join(f.dir, '.wingfoil', 'directives', 'built-in', 'testing.md');
-      const text = await readFile(directive, 'utf8');
-      await writeFile(
-        directive,
-        text.replace(/^title:/m, `sco${String.fromCharCode(0x202e)}pe: x\n${long}: y\ntitle:`),
-      );
+    // The warning as the server sends it (escaped, the root redacted — test/server/cli/adapter.test.ts):
+    // the page's answer gets one, since the fixture's pinned CLI warns about no field of a directive.
+    const warning = `<project>/.wingfoil/directives/built-in/testing.md: unknown field(s) ignored: sco\\u202epe, f${'x'.repeat(300)}`;
+    await page.route('**/api/p/*/directives', async (route) => {
+      const response = await route.fetch();
+      const body = (await response.json()) as { warnings: string[] };
+      await route.fulfill({ response, json: { ...body, warnings: [warning] } });
     });
-    const c = await start(consoles, fx);
+    const c = await start(consoles, await copy(fixtures));
     await openConsole(page, c, { path: `/p/${c.pids[0]}/directives` });
-    const warning = page.locator('.rules-notice pre.verbatim').first();
-    await expect(warning).toBeVisible({ timeout: COLD_READ_MS });
-    await expect(warning).toContainText('sco\\u202epe');
-    await expect(warning).not.toContainText(fx.dir);
-    expect(await warning.textContent()).not.toContain(String.fromCharCode(0x202e));
+    const block = page.locator('.rules-notice pre.verbatim').first();
+    await expect(block).toHaveText(warning, { timeout: COLD_READ_MS });
     expect(
-      await warning.evaluate((el) => {
+      await block.evaluate((el) => {
         const s = getComputedStyle(el);
         return [s.direction, s.unicodeBidi, el.scrollWidth <= el.clientWidth];
       }),
