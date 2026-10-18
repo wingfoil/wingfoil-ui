@@ -295,6 +295,7 @@ test.describe('US-Y-06 — an update that cannot fast-forward', () => {
       expect(items).toBe(1);
       expect(Math.abs(nameTop - lineTop)).toBeLessThanOrEqual(30);
     }
+  });
 });
 
 test.describe('US-Y-07 — push with the button or automatically', () => {
