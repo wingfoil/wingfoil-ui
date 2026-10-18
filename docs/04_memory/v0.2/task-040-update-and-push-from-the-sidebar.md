@@ -630,3 +630,22 @@ gate-footer accessibility no-commit add-project directives memory-list` (three e
 passed** (18.6 min; load 9.0); after the S4-4 e2e check was rewritten, `update-push` on the three
 engines **60 passed** (load 4.4); `test:timing` **skipped** (load 17.9 after the suites; the round-1
 run passed and no timed path changed). No console left, no `wfui-*` entry.
+
+### review round 5 (2026-10-18)
+
+Independent review **PASS**, adversarial security review **PASS**; three nits closed in
+`server/src/git/redact.ts`, red tests first (`bad8ad4`: 3 failures; R5-3's first form passed — its
+cuts never landed on a line boundary — and was widened to line lengths 60–130 before the commit),
+fix `e99a836`:
+
+- **R5-1** — when the final cap cuts a bounded text too, the omission line is the bare `…` (the
+  count form would understate the cut). Test: 70 lines, 30 000 `Z`, 70 lines, `END`.
+- **R5-2** — the CR of a CRLF at a cut is neither kept in the head nor counted in the omitted run.
+  Test: `a\r\n` + 40 000 `Z` + `\r\nb` → `a\n… 40000 characters without a line break omitted\nb`.
+- **R5-3** — a cap cut on a line boundary leaves no blank line next to the omission line. Test over
+  line lengths 60–130.
+
+Checks (coordinator's instruction: no heavy gate; the pre-submit gates follow the merge of `main`):
+typecheck, lint, format:check clean; `docs:api` 0 warnings; `check_tasks.py v0.2` OK;
+`npx vitest run test/server/git test/server/tool-messages.test.ts test/server/cli/adapter.test.ts`
+10 files, **264 passed**.
