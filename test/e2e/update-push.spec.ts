@@ -416,6 +416,8 @@ test.describe('US-Y-08 — a rejected push', () => {
         // bug-017: control characters (ESC, CR) and a RIGHT-TO-LEFT OVERRIDE, then 20 KB of output
         // that must not push git's own concluding lines out of the capped message.
         `printf 'colour \\033[31mred\\033[0m and\\rrewritten and \\342\\200\\256txt.exe\\n' >&2`,
+        // Review round 3 (R3-1): a 300-character token, which must wrap in the toast.
+        `printf 'token-%0300d\\n' 0 >&2`,
         `i=0; while [ "$i" -lt 400 ]; do echo "noise noise noise noise noise noise noise noise $i" >&2; i=$((i+1)); done`,
         'exit 1',
       ].join('\n'),
@@ -453,6 +455,7 @@ test.describe('US-Y-08 — a rejected push', () => {
         return [s.direction, s.unicodeBidi, s.overflowX, s.overflowY];
       }),
     ).toEqual(['ltr', 'bidi-override', 'hidden', 'hidden']);
+    expect(await verbatim.evaluate((el) => el.scrollWidth <= el.clientWidth)).toBe(true);
     await expect(gitStatus(page)).toContainText('1 commit to push');
     expect(await scanThemes(page)).toEqual([]);
     // A toast this tall may cover the page (task-038: its Close is what it is for): Close is on top
