@@ -99,7 +99,8 @@ describe('what the sidebar shows', () => {
     [{ localChanges: 1 }, '1 local change'],
   ] as const)('%o shows %s', (over, text) => {
     show(withRepo(over));
-    expect(within(region()).getByText(text)).toBeTruthy();
+    // A line's text (since task-040 review round 3 S3-2 a git name is a span of its own).
+    expect([...region().querySelectorAll('.git-line')].map((l) => l.textContent)).toContain(text);
   });
 
   it('Y-01.3 — a detached HEAD with the short hash, Fetch still offered', () => {
@@ -227,11 +228,9 @@ describe('failure lines (Y-03.1, Y-03.2, D39-4, D39-6, D39-8, D39-9)', () => {
         },
       }),
     );
-    expect(
-      within(region()).getByText(
-        'Cannot fast-forward: local changes to a.md and b.md are in the way — commit or stash them in a terminal',
-      ),
-    ).toBeTruthy();
+    expect([...region().querySelectorAll('.git-line')].map((l) => l.textContent)).toContain(
+      'Cannot fast-forward: local changes to a.md and b.md are in the way — commit or stash them in a terminal',
+    );
   });
 
   it("a git-refused update: 'Update failed' and git's message", () => {

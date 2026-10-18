@@ -39,7 +39,7 @@ import {
   useRunningGitOperation,
 } from '../api/git.js';
 import { projectHeaderQuery } from '../api/queries.js';
-import { ErrorText } from '../shell/ErrorText.js';
+import { ErrorText, withGitNames } from '../shell/ErrorText.js';
 import { InfoSign } from '../shell/icons.js';
 import { gitStatusView, lastFetched, type CopyLine, type FetchErrorView } from './model.js';
 import type { GitOperation, UpdateSyncError } from '@wingfoil-ui/contracts';
@@ -181,7 +181,7 @@ function GitStatusOf({ pid }: { pid: string }): ReactNode {
           />
         ) : (
           <>
-            <code translate="no" className="git-branch">
+            <code translate="no" className="git-branch git-name">
               {view.head.branch}
             </code>
             {view.head.commit !== null && (
@@ -297,7 +297,7 @@ function CopyText({ line }: { line: CopyLine }): ReactNode {
           {line.upstream === null ? (
             <FormattedMessage id="shell.git.noUpstream" />
           ) : (
-            <FormattedMessage id="shell.git.upstreamMissing" values={{ upstream: line.upstream }} />
+            <FormattedMessage id="shell.git.upstreamMissing" values={withGitNames({ upstream: line.upstream })} />
           )}
         </p>
       );
@@ -348,7 +348,7 @@ function UpdateFailure({ error }: { error: UpdateSyncError }): ReactNode {
   const { descriptor, values } = errorMessage({ code: error.code, message: '', detail: error.detail });
   return (
     <p className="git-line git-error">
-      <FormattedMessage {...descriptor} values={values} />
+      <FormattedMessage {...descriptor} values={withGitNames(values)} />
     </p>
   );
 }

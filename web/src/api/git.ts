@@ -128,7 +128,14 @@ export function useGitOperation() {
         old ? { ...old, repository: data.repository } : old,
       );
     },
-    onError: (error, v) => {
+    onError: (error, v, context) => {
+      // The reference of the alert is also the read at the error: a state that moved while the
+      // operation waited on the repository's lock does not hide its refusal (review round 3 R3-5).
+      const header = queryClient.getQueryData<ProjectHeader>(projectHeaderQuery(v.pid).queryKey);
+      if (context && header) {
+        context.state = header.repository.state;
+        context.lastSuccessAt = header.repository.sync.fetch.lastSuccessAt;
+      }
       if (v.op === 'push' && error.code !== CANCELLED) {
         // Named when the user has gone to another project meanwhile (review round 2 R2-4).
         const project = shownProject() === v.pid ? undefined : projectName(queryClient, v.pid);

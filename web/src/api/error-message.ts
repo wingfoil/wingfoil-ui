@@ -102,7 +102,9 @@ export function errorMessage(
     for (const [k, v] of Object.entries(error.detail)) {
       if (typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean') values[k] = String(v);
       else if (Array.isArray(v) && v.every((item) => typeof item === 'string')) {
-        const names = v.map((item) => item.split(/[\\/]/).filter(Boolean).at(-1) ?? item);
+        // POSIX separators only (spec-010 §5): a backslash is part of a name — the server writes one
+        // as `\\` and an escape such as `\u202e` with one (bug-017, task-040 review round 3).
+        const names = v.map((item) => item.split('/').filter(Boolean).at(-1) ?? item);
         values[k] = options.formatList ? options.formatList(names) : EN_LIST.format(names);
       }
     }
