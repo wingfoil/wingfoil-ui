@@ -348,7 +348,10 @@ function UpdateFailure({ error }: { error: UpdateSyncError }): ReactNode {
   const { descriptor, values } = errorMessage({ code: error.code, message: '', detail: error.detail });
   return (
     <p className="git-line git-error">
-      <FormattedMessage {...descriptor} values={withGitNames(values)} />
+      {/* One flex item: the sentence and the names it quotes flow inline (review round 4 S4-4). */}
+      <span>
+        <FormattedMessage {...descriptor} values={withGitNames(values)} />
+      </span>
     </p>
   );
 }
