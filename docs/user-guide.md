@@ -416,7 +416,10 @@ with git each time the repository changes:
   right in the order git printed it: words of a right-to-left script (Hebrew, Arabic) therefore read
   reversed there. File names and branch names that the git status and its messages quote follow
   the same rule. A very long message keeps its beginning
-  and its end — where git says why it refused — around a `…` line. The same holds for the messages
+  and its end — where git says why it refused — as whole lines around one line that stands for the
+  rest (`…`, or `… N characters without a line break omitted` when the rest lies inside one line).
+  Credentials written without a scheme (`user:password@host`) are removed only after a space, a
+  quote or an opening bracket; other spellings (after `=` or `,`, for example) may stay. The same holds for the messages
   of a refused *Add project* or clone, for WingFoil's refusals and for the CLI's warnings (the
   Memory list's and the Directives' notices).
 

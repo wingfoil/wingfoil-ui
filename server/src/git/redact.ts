@@ -14,9 +14,11 @@
  * | the userinfo of a URL (`https://user:token@host`, up to the last `@` before the host), and a `user:password@` without a scheme (`git://` lookups) | removed |
  *
  * Longest folder first, only as a whole path (`/a/project` never matches inside `/a/project-two`).
- * First (bug-017, review round 3 S3-3) the raw text is bounded: past {@link RAW_BOUND} code points
- * at either end only its head and its tail are kept (cut at a line break where one is near), so no
- * transform below ever sees a hook's megabytes.
+ * First (bug-017, review rounds 3–4) the raw text is bounded: past {@link RAW_BOUND} code points at
+ * either end only whole lines of its head and its tail are kept, and one line stands for the rest —
+ * `…`, or `… <N> characters without a line break omitted` when the rest lies inside one line — so no
+ * transform below ever sees a hook's megabytes and no path or URL is cut in two; the final cap then
+ * adds no second omission line.
  *
  * Then (bug-017, task-040) what is sent is made safe to show, whatever a hook or a remote printed —
  * this function is the one sanitiser of every verbatim tool message the API sends (`git-refused`,
@@ -31,9 +33,10 @@
  *
  * Last, the text is capped at {@link MAX_MESSAGE} characters by keeping its head and its tail
  * around a `…` line — git's own concluding lines (`! [rejected]`, `error:`, `fatal:`) come after a
- * hook's output —; a cut never splits an escape, a redaction token or a surrogate pair. A literal
- * `<project>` printed by a hook stays indistinguishable from the redaction token (declared residual,
- * spec-010 §4).
+ * hook's output —; a cut never splits an escape, a redaction token or a surrogate pair. Declared
+ * residuals (spec-010 §4): a literal `<project>` printed by a hook stays indistinguishable from the
+ * redaction token; the scheme-less userinfo rule reads its left context only (after `=`, `,`, `;`,
+ * `|`, with a tab inside it, or `?`/`#` in a password, a userinfo may be kept).
  */
 import { realpathSync } from 'node:fs';
 import { homedir } from 'node:os';
