@@ -2,7 +2,7 @@
 id: bug-017-git-and-cli-messages-shown-in-the-ui-keep-terminal-control-and-bidi-characters-and-the-length-cap-can-drop-git-s-own-rejection-line
 type: bug
 title: "Git and CLI messages shown in the UI keep terminal control and bidi characters and the length cap can drop git's own rejection line"
-status: triaged
+status: planned
 severity: "low"        # REQUIRED — critical | high | medium | low
 release-origin: "v0.2" # optional — release where the bug was FOUND, e.g. "v0.1"
 release: ""            # optional — fix/implementation release, stamped by release-planning/build-backlog
@@ -87,3 +87,4 @@ lines the message ends after 4 000 characters of the hook's output with an ellip
        live on those tasks (docs/04_memory/{release}/{id}.md, `bug: {this id}`, their own
        Execution Notes section) — this section only needs a pointer plus anything that doesn't
        belong on a specific fix task (e.g. why 2 tasks were needed instead of 1). -->
+- fix: **absorbed into task-040-update-and-push-from-the-sidebar** (AC "bug-017", `bug:` list of the task; the approver's choice at task-040's security review round 1, 2026-10-17, triage 2026-10-18); `triaged → planned` set by hand (directive `wingfoil-cli` W-26).

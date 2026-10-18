@@ -8,7 +8,7 @@ module: "web"             # optional — server | web | contracts (dna.yaml modu
 priority: "medium"           # optional — high | medium | low
 tags: ["v0.2"]               # optional — additional labels, e.g. [today, a11y]
 ref: "US-Y-05"                # optional — backlog item ID, e.g. "TASK-001"
-bug: ["bug-016-a-token-pasted-into-a-tab-that-already-shows-the-console-is-not-read-without-a-reload"]                # optional — LIST of bug ids this task closes. Two cases: a fix task derived from a bug
+bug: ["bug-016-a-token-pasted-into-a-tab-that-already-shows-the-console-is-not-read-without-a-reload", "bug-017-git-and-cli-messages-shown-in-the-ui-keep-terminal-control-and-bidi-characters-and-the-length-cap-can-drop-git-s-own-rejection-line"]                # optional — LIST of bug ids this task closes. Two cases: a fix task derived from a bug
                        # by release-planning, and a bug ABSORBED into an existing task's Acceptance Criteria because that
                        # task already owns the ground. `bug.sync_state` iterates this list; a bug with no task naming it
                        # here never advances past `triaged` (only a reject to `closed`).
@@ -49,6 +49,12 @@ actions blocked while the copy is behind, with an *Update* link in the footer's 
   (only the fragment changes, so the browser does not reload) starts the session as a fresh tab
   does: the page reads the new fragment, exchanges it (`POST /api/session`), removes it from the
   address bar and shows the console; a test reproduces the paste in an open tab first.
+- **bug-017 (git and CLI messages keep terminal control and bidi characters; the length cap can drop
+  git's own rejection line)** Every git or CLI text the API sends verbatim (`git-refused`,
+  `cli-refused`, `sync.*.lastError`, the CLI's `warnings`, file names in `detail.files`, branch and
+  upstream names) goes through one sanitiser: control and format characters other than newline and
+  tab are shown as visible escapes, the input is bounded before it is transformed, and a long
+  message keeps git's concluding lines; tests feed each producer a control/bidi marker first.
 
 Also closes the sidebar step of G-13.2 ("1 commit to push", RP-52): the scenario is owned by
 task-038-submit-footer-action-toasts-and-blocked-actions (US-G-13), which proves its toast; this
