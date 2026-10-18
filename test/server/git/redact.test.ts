@@ -313,3 +313,37 @@ describe('bug-017 — review round 4', () => {
     expect(out.split('\n').filter((l) => l.startsWith('…'))).toHaveLength(1);
   });
 });
+
+// task-040 review round 5 (R5-1 … R5-3): the omission line is exact or bare, a CRLF at a cut leaves
+// no `\x0d`, and no blank line stands next to the omission line.
+describe('bug-017 — review round 5', () => {
+  const lines = (n: number) => Array.from({ length: n }, (_, i) => `${String(i).padStart(3, '0')}${'L'.repeat(97)}`);
+
+  it('R5-1 — when the cap also cuts whole lines, the count form gives way to the bare omission line', () => {
+    const text = [...lines(70), 'Z'.repeat(30_000), ...lines(70), 'END'].join('\n');
+    const out = redactLocalPaths(text, { home: null });
+    expect(out.length).toBeLessThanOrEqual(MAX_MESSAGE);
+    const marks = out.split('\n').filter((l) => l.startsWith('…'));
+    expect(marks).toEqual(['…']);
+    expect(out.endsWith('\nEND')).toBe(true);
+  });
+
+  it('R5-2 — a CRLF at a cut leaves no visible CR and is not counted', () => {
+    expect(redactLocalPaths(`a\r\n${'Z'.repeat(40_000)}\r\nb`, { home: null })).toBe(
+      'a\n… 40000 characters without a line break omitted\nb',
+    );
+  });
+
+  it('R5-3 — no blank line next to the omission line when the cap cuts at a line boundary', () => {
+    // Lines of every length from 60 to 130: for some, the cap's cut lands right after a line break.
+    for (let len = 60; len <= 130; len++) {
+      const own = Array.from({ length: 80 }, (_, i) => `${String(i).padStart(3, '0')}${'L'.repeat(len - 3)}`);
+      const text = [...own, 'Z'.repeat(30_000), ...own, 'END'].join('\n');
+      const out = redactLocalPaths(text, { home: null });
+      const all = out.split('\n');
+      const i = all.findIndex((l) => l.startsWith('…'));
+      expect(all[i - 1]).not.toBe('');
+      expect(all[i + 1]).not.toBe('');
+    }
+  });
+});
