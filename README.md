@@ -13,10 +13,11 @@ local server that drives the `wingfoil` CLI.
 
 `wingfoil-ui` starts a small Node.js server on your machine and opens the console in your browser.
 For each project you add, the server runs **that project's own** `wingfoil` CLI (the one pinned in
-its `node_modules`, else the one on the `PATH`) and reads its git repository; the browser shows
-the result. Every governed change is a `memory submit`, `approve` or `reject` of that CLI, which
-makes WingFoil's own `wf(…)` commit; the console never edits a project file itself. The console is reachable only from your machine: the server listens on the loopback
-addresses only, and every API request needs the session opened with the token printed at start.
+its `node_modules`, else the one on the `PATH`) and reads its git repository; the browser shows the
+result. Every governed change is a `memory submit`, `approve` or `reject` of that CLI, which makes
+WingFoil's own `wf(…)` commit; the console never edits a project file itself. The console is
+reachable only from your machine: the server listens on the loopback addresses only, and every API
+request needs the session opened with the token printed at start.
 
 What v0.2 offers:
 

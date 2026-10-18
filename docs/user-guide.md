@@ -64,8 +64,8 @@ at every interval, for the projects opened since the console started.
 - After the console is stopped and started again (or when the page belongs to another console),
   the page shows **This page is no longer recognised by the console**: open the URL the console
   printed in its terminal — in a new tab or pasted into this one (the page then reads the new token
-  without a reload of its own). A page whose session the console
-  still knows ignores a `#token=…` it did not need and keeps its session.
+  without a reload of its own). A page whose session the console still knows ignores a `#token=…`
+  it did not need and keeps its session.
 - The console keeps up to 64 browser sessions; opening one more evicts the oldest, whose page then
   shows the same **This page is no longer recognised by the console**.
 - When the console cannot be reached for 10 s, a banner says so (**Cannot reach the console…**);
@@ -268,8 +268,8 @@ at its bottom, a footer offers the decision of a gate or the submit when one app
 
 ### Deciding a gate
 
-At the bottom of the panel of an element waiting on a gate, a member
-holding the gate's role (`approver` on WingFoil 0.2.2) sees the **gate footer**:
+At the bottom of the panel of an element waiting on a gate, a member holding the gate's role
+(`approver` on WingFoil 0.2.2) sees the **gate footer**:
 
 - a **reason**, recorded in the commit and required for every outcome. For an approval it is
   pre-filled with *Approved via WingFoil UI*, selected so that typing replaces it; moving to a
@@ -296,20 +296,18 @@ Instead of the gate footer the panel says:
 
 ### Submitting
 
-On an element whose state moves on by `memory submit` (a draft, work
-sent back by a reject), every member of the team sees *Submit → <next state>* and *Cancel* at the
-bottom of the panel: one click runs `wingfoil memory submit`. *Submit* is disabled, with the
-reason, when the element has local changes (*Blocked: this element has local changes — commit or
-discard them first*: `memory submit` would commit them), when the WingFoil version is not
-supported or when your copy is behind, diverged or detached. An element waiting on a gate offers no
-*Submit*.
+On an element whose state moves on by `memory submit` (a draft, work sent back by a reject), every
+member of the team sees *Submit → <next state>* and *Cancel* at the bottom of the panel: one click
+runs `wingfoil memory submit`. *Submit* is disabled, with the reason, when the element has local
+changes (*Blocked: this element has local changes — commit or discard them first*: `memory submit`
+would commit them), when the WingFoil version is not supported or when your copy is behind, diverged
+or detached. An element waiting on a gate offers no *Submit*.
 
 ### After an action
 
-Every submit or decision ends with a **toast** at the bottom of the
-window — while the element panel is open, between the sidebar and the panel, or just above the
-panel's buttons when the window is too narrow, so a toast covers neither those buttons nor the
-sidebar:
+Every submit or decision ends with a **toast** at the bottom of the window — while the element panel
+is open, between the sidebar and the panel, or just above the panel's buttons when the window is too
+narrow, so a toast covers neither those buttons nor the sidebar:
 
 - the result (*Approved <id>*, *Submitted <id>*, *Rejected <id>*), the commit line — short hash
   and `wf(…)` subject — and *pushed* when auto-push pushed it. When auto-push is on and the push
@@ -322,13 +320,13 @@ sidebar:
 
 A result toast goes after 8 s, not while the pointer is over it or the focus is inside it; each
 toast has a *Close notification* button, and a new result for the same element replaces its toast.
-At most three toasts that close by themselves are kept: a new toast removes the oldest of them.
-Refusals and failed pushes stay until you close them (or a new result for the same element
-replaces them); when the toasts are taller than the window, the stack scrolls (to a new toast's
-top when one arrives, otherwise where you left it), and Tab reaches every *Close notification*.
-Closing a toast with the keyboard moves the focus to the next toast's *Close notification* (or the
-previous one; back to the page when none is left).
-Screen readers hear results politely and refusals at once.
+At most three toasts are shown: a new toast beyond three removes the oldest toast that closes by
+itself. Refusals and failed pushes never close by themselves and stay until you close them (or a new
+result for the same element replaces them); when the toasts are taller than the window, the stack
+scrolls (to a new toast's top when one arrives, otherwise where you left it), and Tab reaches every
+*Close notification*. Closing a toast with the keyboard moves the focus to the next toast's *Close
+notification* (or the previous one; back to the page when none is left). Screen readers hear results
+politely and refusals at once.
 
 ## DNA
 
@@ -369,28 +367,33 @@ folder, **without** Memory element files and plan files. A Markdown document ope
 
 ## Git status in the sidebar
 
-The bottom of the project sidebar shows where your copy stands, read
-with git each time the repository changes:
+The bottom of the project sidebar shows where your copy stands, read with git each time the
+repository changes:
 
 - **Always:** the branch and its short commit hash (or *Detached HEAD at <hash>* when no branch is
   checked out — governed actions are then blocked with *Blocked: no branch checked out*) and the
   number of files with local changes, when there are any.
-- **When the repository has a remote:** *In sync with git*, or how many commits your copy is
-  *ahead* of and *behind* the last fetched state of its upstream (*No upstream branch on the
-  remote* when the branch tracks none), and **Fetch**. Without a remote none of this is shown —
-  no count, no *Fetch*; it appears by itself once you add one with `git remote add`.
+- **When the repository has a remote:** *In sync with git*, or how many commits your copy is *ahead*
+  of and *behind* the last fetched state of its upstream (*No upstream branch on the remote* when
+  the branch tracks none; *<upstream> is not on the remote yet — Fetch reads it* when the branch
+  tracks a remote branch that the last fetch did not bring), and **Fetch**. Without a remote none of
+  this is shown — no count, no *Fetch*; it appears by itself once you add one with `git remote add`.
 - **Fetch** asks git to fetch the upstream's remote now (the only remote, or `origin`, when the
   branch has no upstream); it never changes your branch or your files. While it runs the button
-  reads *Fetching…* and **Cancel** stops it. Anyone may fetch, also a user not in the team. The
-  fetch runs as described in *Automatic sync with the remote* below: your ssh agent and credential
-  helpers, never a prompt — a missing credential fails with git's own message.
+  reads *Fetching…* and **Cancel** stops it. Anyone may fetch, also a user not in the team. Your
+  ssh agent and credential helpers are used; git never prompts in a terminal, ssh runs in batch
+  mode unless you configured an ssh command of your own, and an askpass program you configured
+  (`GIT_ASKPASS`, `core.askPass`, `SSH_ASKPASS`) may still open its dialog — the automatic fetch
+  and update run none. A missing credential fails with git's own message. A manual fetch, update
+  or push has no time limit (the automatic fetch and auto-push stop after 60 s).
 - **A failed fetch** — offline, refused credentials, a remote that does not answer — shows
   *Fetch failed — last fetched at <time>* (the last successful fetch since the console started;
   *last fetched on <date>* when it was on another day, *not fetched since the console started*
   when there was none), with git's message behind the ⓘ button: hover or focus it, or press or tap
   it to open the message — press it again, press outside or use Escape to close it. Nothing else is
-  blocked: every view still reads the project. A fetch refused before git runs (several remotes and no upstream, a
-  remote of another user, a mirror configuration) shows the reason under the button.
+  blocked: every view still reads the project. A fetch refused before git runs (several remotes
+  and no upstream, a remote of another user, a mirror configuration) shows the reason under the
+  button.
 - **Update** shows when your copy is *behind* (also when it diverged): it runs `git pull
   --ff-only` with the console's safeguards (never a merge commit, a rebase, a stash or a squash; no
   local tag or branch pruned) and the repository's hooks, as your own `git pull` would. It cannot be
@@ -429,25 +432,25 @@ with git each time the repository changes:
   console knows replaced — the project's (`<project>`), the repository's (`<repository>`), a local
   remote's (`<remote>`) and your home folder (`~`) — and the credentials of a URL removed. Other
   absolute paths that git or a hook prints (a folder outside your home, for example) are shown as
-  printed (and a hook that prints `<project>` itself cannot be told from the console's
-  replacement). Control characters (an escape sequence, a carriage return), invisible format
-  characters (those that reverse the direction of text, zero-width ones) and line separators are
-  shown as visible escapes such as `\x1b` or `\u202e` — the zero-width joiners of some scripts
-  and emoji (U+200C, U+200D) too —, a backslash git printed as `\\`, and the text is shown left to
-  right in the order git printed it: words of a right-to-left script (Hebrew, Arabic) therefore read
-  reversed there. File names and branch names that the git status and its messages quote follow
-  the same rule. A very long message keeps its beginning and its end — where git says why it
-  refused — as whole lines around one line that stands for the rest (`…`, or `… N characters
-  without a line break omitted` when the rest lies inside one line). Credentials written without a
-  scheme (`user:password@host`) are removed only after a space, a quote or an opening bracket;
-  other spellings (after `=` or `,`, for example) may stay. The same holds for the messages of a
-  refused *Add project* or clone, for WingFoil's refusals and for the CLI's warnings (the
-  Memory list's and the Directives' notices).
+  printed (and a hook that prints `<project>` itself cannot be told from the console's replacement).
+  Control characters (an escape sequence, a carriage return), invisible format characters (those
+  that reverse the direction of text, zero-width ones) and line separators are shown as visible
+  escapes such as `\x1b` or `\u202e` — the zero-width joiners of some scripts and emoji (U+200C,
+  U+200D) too; a backslash git printed is shown as `\\`, and the text is shown left to right in the
+  order git printed it: words of a right-to-left script (Hebrew, Arabic) therefore read reversed
+  there. File names and branch names that the git status and its messages quote follow the same
+  rule. A very long message keeps its beginning and its end — where git says why it refused — as
+  whole lines around one line that stands for the rest (`…`, or `… N characters without a line break
+  omitted` when the rest lies inside one line). Credentials written without a scheme
+  (`user:password@host`) are removed only after a space, a quote or an opening bracket; other
+  spellings (after `=` or `,`, for example) may stay. The same holds for the messages of a refused
+  *Add project* or clone, for WingFoil's refusals and for the CLI's warnings (the Memory list's and
+  the Directives' notices).
 
 ## Automatic sync with the remote
 
-While it runs, the console keeps the projects you have opened since
-it started up to date with their remote, by itself. Three settings drive it (spec-006 §2; change
+While it runs, the console keeps the projects you have opened since it started up to date with
+their remote, by itself. Three settings drive it (spec-006 §2; change
 them in *Configuration › UI settings*, see [UI settings](#ui-settings)):
 
 | Setting | Default | What the console does |
@@ -508,10 +511,10 @@ your projects. This is a declared risk of v0.2 ([Known limitations](#known-limit
 
 ## UI settings
 
-*Configuration* at the bottom of a project's sidebar opens
-*Configuration › UI settings*: your own settings for the console, the same under every project.
-They are kept in the local state on this computer (see [Where the local state lives](#where-the-local-state-lives)),
-never in a project and never committed, and they apply at once, without a restart.
+*Configuration* at the bottom of a project's sidebar opens *Configuration › UI settings*: your own
+settings for the console, the same under every project. They are kept in the local state on this
+computer (see [Where the local state lives](#where-the-local-state-lives)), never in a project and
+never committed, and they apply at once, without a restart.
 
 | Setting | Default | What it does |
 |---------|---------|--------------|
@@ -568,13 +571,15 @@ never in a project and never committed, and they apply at once, without a restar
   repository runs at clone time.
 - **Governed changes go through WingFoil only.** A decision or a submit runs the project's own
   `wingfoil memory approve`, `reject` or `submit`, which makes WingFoil's `wf(…)` commit; the
-  console never edits a Memory file itself. One change runs at a time per repository; an element
-  is changed only in the state you saw (*This element changed since you opened it* otherwise) and
-  never while it has local changes.
+  console never edits a Memory file itself. One change runs at a time per repository; the console
+  checks that the element is still in the state you saw (*This element changed since you opened
+  it* otherwise) and has no local changes right before it runs WingFoil — see
+  [Known limitations](#known-limitations) for what happens in between.
 - **Git transports** (clone, *Fetch*, *Update*, *Push* and the automatic sync) use only the
   `https`, `http`, `ssh`, `git` and `file` transports, whatever `GIT_ALLOW_PROTOCOL` says in your
-  environment; git never prompts in a terminal, and ssh runs in batch mode when you configured no
-  ssh command of your own. A local remote that belongs to another user of the computer is refused.
+  environment, and git never prompts in a terminal. For *Fetch*, *Update*, *Push* and the
+  automatic sync, ssh runs in batch mode when you configured no ssh command of your own. A local
+  remote that belongs to another user of the computer is refused.
   The automatic fetch and update also run no repository hook, no fsmonitor and no askpass program
   ([Automatic sync](#automatic-sync-with-the-remote)).
 - **Messages of git and WingFoil** are shown with the folders of this computer that the console
@@ -681,8 +686,17 @@ Git sync and actions (new in v0.2):
   never force.
 - **A cancelled Fetch or Push is not recorded.** The sidebar shows no message and *last fetched
   at* does not move, also when git had finished just before the cancel; the console's log records
-  the run as a `git transport` line with `"ended":"cancelled"`. A push cancelled while a local remote receives it can leave
-  `objects/tmp_objdir-incoming-*` in that remote until `git gc` removes it.
+  the run as a `git transport` line with `"ended":"cancelled"`. A push cancelled while a local
+  remote receives it can leave `objects/tmp_objdir-incoming-*` in that remote until `git gc`
+  removes it.
+- **Fetch status per project.** Two projects of one repository keep their own fetch status: a
+  manual *Fetch* in one moves the other's *ahead* and *behind*, but not its *Fetch failed — last
+  fetched at …* line, which changes at that project's own next fetch.
+- **The checks before a governed change have a gap.** An edit made by another program between the
+  console's check and the WingFoil process (milliseconds) is not caught by the console; WingFoil
+  itself refuses one that changes the element's status. Another console or a terminal committing
+  at the same moment makes one of the two fail on git's `index.lock`, with git's message. The
+  repository's own commit hooks run inside WingFoil's `git commit`, as for any commit of yours.
 - **The default reason and a mouse click.** Clicking into the untouched *Approved via WingFoil UI*
   places the caret instead of selecting the text, so typing adds to it; select it first (Tab and
   focus from Today select it).
@@ -705,6 +719,9 @@ Git sync and actions (new in v0.2):
 
 From v0.1, still valid:
 
+- **Paths you type are echoed as typed.** The refusals of *Add project* (*Folder not found: <path>*,
+  *The working directory is not empty: <path>*, …) show the path you entered without the escaping
+  of git's messages.
 - **Clone URL check, two edge cases.** An scp-like address with an `@` in its path (after the
   host's `:`) and no `/`, e.g. `git@host:repo@v2.git`, is refused as if it held credentials
   (`git@github.com:repo.git` and `git@host:org/repo@v2.git` are accepted); a URL with an unknown

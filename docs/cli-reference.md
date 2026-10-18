@@ -139,12 +139,11 @@ the session id reaches the log.
 
 `SIGINT` (Ctrl-C), `SIGTERM` or `SIGHUP` (terminal closed) stop the console: it stops accepting
 connections, starts no further automatic sync and, when an automatic update is running, lets it
-finish first (the log says `stopping: the automatic update finishes first — send the signal again
-to stop at once`), closes the browser event streams, terminates the `wingfoil` and `git` processes it
-started, waits at most 5 s for the open requests, prints `WingFoil UI stopped` and exits 0. A
-second signal during the stop exits at once with status 130, after killing every child process
-still running. The token and every browser session end with the process: a new start draws a new
-token.
+finish first (the log says `stopping: the automatic update finishes first — send the signal again to
+stop at once`), closes the browser event streams, terminates the `wingfoil` and `git` processes it
+started, waits at most 5 s for the open requests, prints `WingFoil UI stopped` and exits 0. A second
+signal during the stop exits at once with status 130, after killing every child process still
+running. The token and every browser session end with the process: a new start draws a new token.
 
 Started with `npx wingfoil-ui`, Ctrl-C signals npm and the console together: the console stops as
 above (exit 0, `WingFoil UI stopped`), but `npx` itself reports the signal, so the shell shows

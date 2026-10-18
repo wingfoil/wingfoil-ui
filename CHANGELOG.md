@@ -60,12 +60,13 @@ Supports WingFoil **0.2.2 to 0.2.x** (contract-tested: 0.2.2), as v0.1. Not publ
   every opened project's remote every 60 s (on by default), can fast-forward a copy that is behind
   right after (*Auto-update*, off by default) and push the branch after each decision made in the
   console (*Auto-push*, off by default; the push is the branch's, the user's own unpushed commits
-  included). Unattended runs start no repository hook, no fsmonitor and no askpass program, and do
-  not run at all when the repository's configuration includes another file; an automatic fetch or
-  an auto-push is stopped after 60 s; stopping the console lets a running automatic update finish.
-  Declared risk: *Auto-update* does on a timer what `git pull` does — incoming commits can run
-  commands your own git configuration points at (filters, `core.sshCommand`, credential helpers,
-  aliases) when they read project files; it is off by default.
+  included). The automatic fetch and update start no repository hook, no fsmonitor and no askpass
+  program, and do not run at all when the repository's configuration includes another file; an
+  automatic fetch or an auto-push is stopped after 60 s; stopping the console lets a running
+  automatic update finish. Declared risk: *Auto-update* does on a timer what `git pull` does —
+  incoming commits can run commands your own git configuration points at (filters,
+  `core.sshCommand`, credential helpers, aliases) when they read project files; it is off by
+  default.
 - **UI settings and the theme setting** (US-C-07, X-08.3): *Configuration › UI settings*, pinned at
   the bottom of the sidebar, shows and changes Auto-fetch and its interval, Auto-update (with its
   declared risk next to it), Auto-push, Theme (*System*, *Light*, *Dark* — overrides the system
@@ -103,15 +104,19 @@ Supports WingFoil **0.2.2 to 0.2.x** (contract-tested: 0.2.2), as v0.1. Not publ
 ### Security
 
 - **Governed changes only through WingFoil** (task-032): submit, approve and reject run the
-  project's own `wingfoil memory submit`, `approve` or `reject`, one at a time per repository; an
-  element is changed only in the state the page showed and never while it has local changes; only
-  the action's own `wf(…)` commit is reported, logged and pushed.
+  project's own `wingfoil memory submit`, `approve` or `reject`, one at a time per repository,
+  after checking that the element is still in the state the page showed and has no local changes
+  (a residual window is listed under Known limitations); only the action's own `wf(…)` commit is
+  reported and logged (a concurrent commit is not); auto-push, when on, pushes the branch (see
+  *Automatic sync* above).
 - **Git transports** (task-033, task-034): fetch, update and push, like a clone (bug-013 below),
-  allow only the `https`, `http`, `ssh`, `git` and `file` transports; they never prompt, run ssh in
-  batch mode unless an ssh command is configured, keep only the absolute `PATH` entries and turn
-  off git's automatic maintenance; a local remote of another user is refused (as a clone source,
-  bug-010 below); git's messages lose the URL credentials and the local folders the console knows
-  (`<project>`, `<repository>`, `<remote>`, `~`). Unattended runs: see *Automatic sync* above.
+  allow only the `https`, `http`, `ssh`, `git` and `file` transports; they never prompt in a
+  terminal (an askpass program the user configured may still open its dialog, except in the
+  automatic fetch and update), run ssh in batch mode unless an ssh command is configured, keep only
+  the absolute `PATH` entries and turn off git's automatic maintenance; a local remote of another
+  user is refused (as a clone source, bug-010 below); git's messages lose the URL credentials and
+  the local folders the console knows (`<project>`, `<repository>`, `<remote>`, `~`). Unattended
+  runs: see *Automatic sync* above.
 - **A clone runs no `ext::` command, whatever the environment** (bug-013): with
   `GIT_ALLOW_PROTOCOL` set in the environment the console was started from, git allowed the
   transports it names (`ext::` runs a command) despite the console's own protocol settings; every
@@ -144,6 +149,13 @@ Supports WingFoil **0.2.2 to 0.2.x** (contract-tested: 0.2.2), as v0.1. Not publ
   credentials not after a space, quote or bracket, are shown as printed; names and reasons read
   from commits and Memory files (event authors, rejection reasons) are not escaped like them.
 - While the operating system reports no network, the page holds its requests to the console.
+- Between the console's check and the WingFoil process an edit by another program is not caught
+  (WingFoil refuses one that changes the status); a concurrent commit from another console or a
+  terminal makes one of the two fail on git's `index.lock`.
+- Two projects of one repository keep their own fetch status: a manual Fetch in one does not move
+  the other's *last fetched* time.
+- The refusals of *Add project* show the paths the user typed as typed, without the escaping of
+  git's messages.
 - The refusal of another user's local repository is POSIX only and has residual cases (a parent
   folder another user can write, a linked worktree's `commondir`, `~user` from `/etc/passwd`).
 - Still from v0.1: the two clone-URL edge cases, a killed clone leaving its folder, the role-view
