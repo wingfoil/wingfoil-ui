@@ -655,3 +655,21 @@ Checks (coordinator's instruction: no heavy gate; the pre-submit gates follow th
 typecheck, lint, format:check clean; `docs:api` 0 warnings; `check_tasks.py v0.2` OK;
 `npx vitest run test/server/git test/server/tool-messages.test.ts test/server/cli/adapter.test.ts`
 10 files, **264 passed**.
+
+### before submit (2026-10-18, coordinator)
+
+- Review: independent 5 rounds (round 4 PASS, round 5 confirmation PASS), adversarial security review 5 rounds
+  (round 5 PASS); decisions of the approver during review: S2 (a push survives leaving the project), bug-017
+  ingested and absorbed (S3/S4, then the clone and add-folder paths, the CLI warnings, file, branch and upstream
+  names), round 3 findings all in this task; coordinator decisions: R2-4 wording (`shell.git.pushFailedIn`, with
+  the plural), S4-2/R4-1 cuts at newlines only with one omission line, S4-3 declared residual.
+- `main` (`d0b56d0`: task-029 merged, bug-017 absorbed into this task) merged into the branch (`c52558f`).
+  Conflicts on append-only lines only: CHANGELOG (task-029's entries, then this task's), `test/README.md` 0.41
+  (task-029's 0.40 kept in the history line). `npm ci` for task-029's `verdaccio` devDependency.
+- Checks after the merge (each heavy gate through the machine-free slot): typecheck, lint, format:check,
+  `docs:api`, `check_tasks.py v0.2` clean; `test:coverage` **3193 passed / 1 skipped** (statements 96.55 %,
+  branches 91.37 %); `test:e2e:chromium` **310 passed** (13.0 min); `npm run test:e2e -- update-push.spec.ts
+  shell.spec.ts submit-footer.spec.ts git-status.spec.ts gate-footer.spec.ts accessibility.spec.ts
+  no-commit.spec.ts add-project.spec.ts directives.spec.ts memory-list.spec.ts` (three engines) **570 passed**
+  (21.6 min). `test:timing` not run here (load 19.7 after the suites): it passed on the branch at review round 1
+  and runs at the wave gate on `main`. No console left, no `wfui-*` entry.
