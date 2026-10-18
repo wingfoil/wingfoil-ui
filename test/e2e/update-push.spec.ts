@@ -541,6 +541,34 @@ test.describe('US-G-12 — governed actions blocked while behind', () => {
     await expect(approve(page)).not.toHaveAttribute('aria-disabled', 'true');
     await expect(gate(page).locator('.gate-blocked')).toHaveCount(0);
   });
+  // task-043 AC-4 (gap G5): Submit is a governed action too — blocked while behind, in the UI.
+  test('G-12.1 — Block a submit while behind (G5)', async ({ page, fixtures, consoles }) => {
+    const fx = await fixtures.copy('kanban');
+    await actAs(fx, 'Jordan');
+    await remoteCommit(fx, 'outside.txt', 'theirs\n');
+    await fetchCopy(fx);
+    const before = await head(fx);
+    const c = await start(consoles, fx);
+    await openConsole(page, c, { path: `/p/${c.pids[0]}/e/task-004-session-timeout` });
+    const submit = drawer(page).getByRole('button', { name: /^Submit → / });
+    await expect(submit).toHaveAccessibleName('Submit → pending', { timeout: COLD_READ_MS });
+    await expect(submit).toHaveAttribute('aria-disabled', 'true', { timeout: COLD_READ_MS });
+    await expect(submit).toHaveAccessibleDescription(BEHIND);
+    const footer = drawer(page).locator('.submit-footer');
+    await expect(footer.getByText(BEHIND, { exact: true })).toBeVisible();
+    await expect(footer.getByRole('button', { name: 'Update', exact: true })).toBeVisible();
+    expect(await scanThemes(page)).toEqual([]);
+    // A press on the disabled button sends nothing (force: Playwright waits for an enabled button).
+    const requests: string[] = [];
+    page.on('request', (r) => {
+      if (r.method() !== 'GET') requests.push(`${r.method()} ${r.url()}`);
+    });
+    await submit.click({ force: true });
+    await submit.press('Enter');
+    await expect(submit).toHaveAttribute('aria-disabled', 'true');
+    expect(requests).toEqual([]);
+    expect(await head(fx)).toBe(before);
+  });
 });
 
 test.describe('review round 1', () => {
