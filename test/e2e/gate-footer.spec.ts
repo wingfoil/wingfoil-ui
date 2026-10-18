@@ -463,8 +463,11 @@ test.describe('US-X-06 — keyboard (TT-PERF-10)', () => {
     await expectLastCommit(kanban, 'wf(task): reject task-001-login-form [pending → draft]');
     const { stdout: body } = await git(kanban.dir, ['log', '-1', '--format=%B'], kanban.env);
     expect(body).toContain(reason);
-    // What the user sees: the rejection banner of the panel, with the reason.
-    await expect(drawer(page).getByText(`Rejected by Morgan: ${reason}`, { exact: true })).toBeVisible({
+    // What the user sees: the rejection banner of the panel, with the reason. The name is the commit's
+    // author, which e2e identities do not set (they set only `user.email`; ES2-3): not asserted.
+    await expect(
+      drawer(page).getByText(new RegExp(`^Rejected by .+: ${reason.replace(/[()]/g, '\\$&')}$`)),
+    ).toBeVisible({
       timeout: COLD_READ_MS,
     });
   });
