@@ -70,6 +70,13 @@ lines the message ends after 4 000 characters of the hook's output with an ellip
   `git-refused` / `cli-refused` message (one sanitiser at one choke point), and neutralises by
   Unicode general category (Cc, Cf, Cs, Zl, Zp; newline and tab kept) rather than a list of ranges
   (U+200E/200F, U+061C, U+FEFF, zero-width characters, U+2028/2029 also passed).
+- Two more surfaces (adversarial review of task-040, round 3): the CLI's `warnings` (stderr lines of
+  the pinned CLI, `server/src/cli/adapter.ts`) reach the Memory and Directives lists with the
+  project's absolute path and characters taken from project files (a U+202E in a `memory.yaml`
+  key); and remote file names in `detail.files` of a `local-changes-in-the-way` refusal (and the
+  copy kept in the sync status) reach the sidebar raw, so a right-to-left override spoofs a file
+  name inside the sentence that asks the user to commit or stash it. Both are covered by the fix,
+  as is the cost of escaping a very large message (the input is bounded before it is transformed).
 - Found during task-040 (Wave 6 of the v0.2 dev-loop); the code is task-033's (v0.2, not released).
 
 ## Triage & Execution Notes
