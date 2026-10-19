@@ -2,7 +2,7 @@
 id: bug-021-commit-provenance-checker-flags-the-origin-head-ref-that-git-2.48-and-later-create-on-fetch
 type: bug
 title: "Commit provenance checker flags the origin HEAD ref that git 2.48 and later create on fetch"
-status: triaged
+status: planned
 severity: "low"           # REQUIRED — critical | high | medium | low
 release-origin: "v0.2"     # optional — release where the bug was FOUND, e.g. "v0.1"
 release: ""            # optional — fix/implementation release, stamped by release-planning/build-backlog
@@ -58,3 +58,5 @@ hidden with `followRemoteHEAD = never` in the harness configuration.
        live on those tasks (docs/04_memory/{release}/{id}.md, `bug: {this id}`, their own
        Execution Notes section) — this section only needs a pointer plus anything that doesn't
        belong on a specific fix task (e.g. why 2 tasks were needed instead of 1). -->
+
+- 2026-10-19 — triage (approver): `low`, test-only; absorbed into task-044 as AC-5 (D44-6 (a)).
