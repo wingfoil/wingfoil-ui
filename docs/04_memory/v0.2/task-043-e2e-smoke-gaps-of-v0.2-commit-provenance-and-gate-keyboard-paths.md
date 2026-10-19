@@ -2,7 +2,7 @@
 id: task-043-e2e-smoke-gaps-of-v0.2-commit-provenance-and-gate-keyboard-paths
 type: task
 title: "E2E smoke gaps of v0.2: commit provenance and gate keyboard paths"
-status: approved
+status: done
 release: "v0.2"
 module: "governance"   # optional — server | web | contracts (dna.yaml modules)
 priority: "high"       # optional — high | medium | low
