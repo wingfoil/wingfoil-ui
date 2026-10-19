@@ -2,7 +2,7 @@
 id: bug-022-project-list-sanitiser-test-depends-on-git-quoting-the-gitdir-path-and-git-2.55-prints-null
 type: bug
 title: "Project list sanitiser test depends on git quoting the gitdir path and git 2.55 prints null"
-status: planned
+status: in-progress
 severity: "low"           # REQUIRED — critical | high | medium | low
 release-origin: "v0.2"     # optional — release where the bug was FOUND, e.g. "v0.1"
 release: ""            # optional — fix/implementation release, stamped by release-planning/build-backlog
