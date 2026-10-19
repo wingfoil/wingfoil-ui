@@ -17,6 +17,7 @@ import { Link } from '@tanstack/react-router';
 import { useId, type ReactNode } from 'react';
 import { Button } from 'react-aria-components';
 import { FormattedMessage, useIntl } from 'react-intl';
+import { rememberOpener } from './TodayView.js';
 
 /** Props of {@link RoleSummary}. */
 export interface RoleSummaryProps {
@@ -69,7 +70,13 @@ export function RoleSummary({ pid, lines, view, onSwitch }: RoleSummaryProps): R
                 <ul className="today-summary-items">
                   {line.items.map(({ element }) => (
                     <li key={element.id} data-eid={element.id}>
-                      <Link className="today-summary-item" to="/p/$pid/e/$eid" params={{ pid, eid: element.id }}>
+                      <Link
+                        className="today-summary-item"
+                        to="/p/$pid/e/$eid"
+                        params={{ pid, eid: element.id }}
+                        // The focus comes back to this item when the panel closes (bug-018, R2-1).
+                        onClick={(event) => rememberOpener(pid, element.id, 'today-summary-item', event)}
+                      >
                         {element.title}
                       </Link>
                     </li>

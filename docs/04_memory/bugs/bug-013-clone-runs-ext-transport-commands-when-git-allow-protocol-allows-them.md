@@ -2,10 +2,10 @@
 id: bug-013-clone-runs-ext-transport-commands-when-git-allow-protocol-allows-them
 type: bug
 title: "Clone runs ext transport commands when GIT_ALLOW_PROTOCOL allows them"
-status: resolved
+status: closed
 severity: "medium"     # REQUIRED — critical | high | medium | low
 release-origin: "v0.1" # optional — release where the bug was FOUND, e.g. "v0.1"
-release: ""            # optional — fix/implementation release, stamped by release-planning/build-backlog
+release: "v0.2"            # optional — fix/implementation release, stamped by release-planning/build-backlog
 feature: ""            # optional — related feature ID from docs/01_vision/06_features.md
 module: "server"       # optional — server | web | contracts
 wingfoil_version: "0.2.2" # optional — `wingfoil --version` of the OBSERVED project (the UI drives its CLI)
@@ -61,3 +61,8 @@ one. The `ext::` helper runs the command.
 ## Triage & Execution Notes
 - fix: **absorbed into task-033-git-copy-state-repository-status-and-transport-routes** (AC "bug-013", `bug:` list of the task; the approver's triage, 2026-10-15); `triaged → planned` set by hand (directive `wingfoil-cli` W-26).
 - 2026-10-15: `planned → in-progress` by hand (W-26), task-033 already in progress.
+
+- 2026-10-19 — close (release validation of minor-v0.2, `e2e-smoke-rel-v0.2-plan` step 4): fixed by
+  task-033 (`done`); its tests are green in the e2e-smoke run on `b286ab9` (`test:coverage` 3213 passed /
+  1 skipped, `test:e2e` 935 passed on Chromium, Firefox and WebKit, `test:smoke` 4/4,
+  `test:publish-smoke` 11/11); `release` stamped `v0.2` (RV2-2). Closed by the approver from the WingFoil UI console (ES2-1).

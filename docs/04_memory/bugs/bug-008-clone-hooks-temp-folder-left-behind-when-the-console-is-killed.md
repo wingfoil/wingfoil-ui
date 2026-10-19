@@ -2,7 +2,7 @@
 id: bug-008-clone-hooks-temp-folder-left-behind-when-the-console-is-killed
 type: bug
 title: "Clone hooks temp folder left behind when the console is killed"
-status: resolved
+status: closed
 severity: "low"           # REQUIRED — critical | high | medium | low
 release-origin: "v0.1"     # optional — release where the bug was FOUND, e.g. "v0.1"
 release: "v0.2"            # optional — fix/implementation release, stamped by release-planning/build-backlog
@@ -62,3 +62,8 @@ most one exists per running console.
   (release-planning v0.2 build-backlog, plan `release-planning-rel-v0.2-plan` RP-42; dl-006
   action 1; `bug:` list of the task). `triaged → planned` set by hand (directive `wingfoil-cli`
   W-26).
+
+- 2026-10-19 — close (release validation of minor-v0.2, `e2e-smoke-rel-v0.2-plan` step 4): fixed by
+  task-026 (`done`); its tests are green in the e2e-smoke run on `b286ab9` (`test:coverage` 3213 passed /
+  1 skipped, `test:e2e` 935 passed on Chromium, Firefox and WebKit, `test:smoke` 4/4,
+  `test:publish-smoke` 11/11). Closed by the approver from the WingFoil UI console (ES2-1).

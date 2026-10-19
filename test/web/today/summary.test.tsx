@@ -254,3 +254,19 @@ it('shows no summary when the server sends none (S-23.3)', async () => {
   await screen.findByRole('heading', { level: 1, name: 'Jordan, nothing requires you' });
   expect(screen.queryByRole('region', { name: 'Your roles' })).toBeNull();
 });
+
+// task-043 review round 2, R2-1 (bug-018): a summary item opens the element panel from Today; its
+// link is the opener that takes the focus back when the panel closes.
+it('returns the focus to the summary item that opened the panel (bug-018, R2-1)', async () => {
+  stubApi(api());
+  const user = userEvent.setup();
+  const { router } = renderApp(`/p/${PID}/today`);
+  const item = (): HTMLElement =>
+    within(lines(screen.getByRole('region', { name: 'Your roles' }))[2]!).getByRole('link');
+  await card();
+  await user.click(item());
+  await screen.findByRole('dialog');
+  await user.click(screen.getByRole('button', { name: 'Close' }));
+  await waitFor(() => expect(router.state.location.pathname).toBe(`/p/${PID}/today`));
+  await waitFor(() => expect(document.activeElement).toBe(item()));
+});

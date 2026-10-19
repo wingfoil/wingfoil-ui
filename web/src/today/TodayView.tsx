@@ -20,7 +20,7 @@
 import { useQueryClient, type UseQueryResult } from '@tanstack/react-query';
 import type { ProjectHeader, Today, TodayActionRow, TodayRow } from '@wingfoil-ui/contracts';
 import { Link, useNavigate } from '@tanstack/react-router';
-import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useId, useRef, useState, type MouseEvent, type ReactNode } from 'react';
 import { Button } from 'react-aria-components';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { ApiError } from '../api/client.js';
@@ -34,13 +34,44 @@ import './today.css';
 
 type Read<T> = Pick<UseQueryResult<T>, 'data' | 'error'>;
 
+/**
+ * The control to focus when Today mounts again — the opener: set when a Requires you action, a
+ * Requires you title link, a Waiting on others link or an item of the all-roles summary (review
+ * round 2, R2-1) opens the element panel, used once by Today of
+ * the same project after the panel is closed — *Cancel*, Escape or its Close (bug-018, task-043 AC-7,
+ * review R1 / D43-10; the Memory list's opener handling, X-06.3, W3-23). `opener` is the class of
+ * the control inside the element's row.
+ */
+let returnOpener: { pid: string; eid: string; opener: string } | undefined;
+
+/** Whether a click on a link is followed in this page (primary button, no modifier key). */
+function navigatesHere(event: MouseEvent<HTMLAnchorElement>): boolean {
+  return (
+    !event.defaultPrevented &&
+    event.button === 0 &&
+    !event.metaKey &&
+    !event.ctrlKey &&
+    !event.shiftKey &&
+    !event.altKey
+  );
+}
+
+/**
+ * Record the control of class `opener` in the row of `eid` as the opener of the element panel
+ * (bug-018). Given the click of a link, only a click followed in this page counts (a modified or
+ * middle click opens the panel elsewhere).
+ */
+export function rememberOpener(pid: string, eid: string, opener: string, event?: MouseEvent<HTMLAnchorElement>): void {
+  if (event === undefined || navigatesHere(event)) returnOpener = { pid, eid, opener };
+}
+
 /** Props of {@link TodayView}. */
 export interface TodayViewProps {
   pid: string;
   /** The project header; `dataUpdatedAt` clears a refused summary switch once read again (R2-1). */
   header: Read<ProjectHeader> & Pick<UseQueryResult<ProjectHeader>, 'dataUpdatedAt'>;
   /** `GET /today` for the header's role view; not started until the header is read. */
-  today: Read<Today>;
+  today: Read<Today> & Pick<UseQueryResult<Today>, 'isFetching'>;
 }
 
 /** A failed read as an API error (a non-API failure renders as `internal`). */
@@ -99,7 +130,14 @@ function RequiresYouRow({ pid, row, now }: { pid: string; row: TodayActionRow; n
     <li className="today-row" data-eid={element.id}>
       <span className="type-tag today-tag">{element.type}</span>
       <span className="today-names">
-        <Link className="today-title" to="/p/$pid/e/$eid" params={{ pid, eid: element.id }}>
+        <Link
+          className="today-title"
+          to="/p/$pid/e/$eid"
+          params={{ pid, eid: element.id }}
+          onClick={(event) => {
+            rememberOpener(pid, element.id, 'today-title', event);
+          }}
+        >
           {element.title}
         </Link>
         <Reason row={row} now={now} />
@@ -108,14 +146,16 @@ function RequiresYouRow({ pid, row, now }: { pid: string; row: TodayActionRow; n
       <Button
         className="button button-primary today-action"
         aria-label={intl.formatMessage({ id: 'today.actionLabel' }, { action, id: element.id })}
-        onPress={() =>
+        onPress={() => {
+          // The focus comes back here when the panel closes (bug-018).
+          rememberOpener(pid, element.id, 'today-action');
           // A gate opens with its reason focused (task-037, G-04.3, D37-1): the second click decides.
           void navigate({
             to: '/p/$pid/e/$eid',
             params: { pid, eid: element.id },
             state: { gateFocus: action === 'approve' || action === 'review' },
-          })
-        }
+          });
+        }}
       >
         <FormattedMessage id="today.action" values={{ action }} />
       </Button>
@@ -161,7 +201,14 @@ function WaitingRow({ pid, row }: { pid: string; row: TodayRow }): ReactNode {
   const { element, descriptor } = row;
   return (
     <li data-eid={element.id}>
-      <Link className="today-waiting-row" to="/p/$pid/e/$eid" params={{ pid, eid: element.id }}>
+      <Link
+        className="today-waiting-row"
+        to="/p/$pid/e/$eid"
+        params={{ pid, eid: element.id }}
+        onClick={(event) => {
+          rememberOpener(pid, element.id, 'today-waiting-row', event);
+        }}
+      >
         <span className="type-tag today-tag">{element.type}</span>
         <span className="today-waiting-title">{element.title}</span>
         <span className={`state-pill tone-${descriptor.tone}`}>{element.status}</span>
@@ -271,9 +318,35 @@ export function TodayView({ pid, header, today }: TodayViewProps): ReactNode {
     }
   }, [data]);
 
+  // Back from the element panel (bug-018): its opener — the action or the link that opened it — is
+  // taken when Today mounts, and focused once Today is read again — not from a cached answer that the
+  // refetch may change (a decided gate leaves Requires you). When the opener is no longer listed, the
+  // main region has the focus. Only while nothing else holds it (the page, or `<main>` after the panel closed): a
+  // focus the user moved meanwhile is kept, and the request dropped (the Memory list's rule).
+  const pageRef = useRef<HTMLDivElement>(null);
+  const pendingOpener = useRef<{ eid: string; opener: string } | undefined>(undefined);
+  useEffect(() => {
+    if (returnOpener?.pid === pid) pendingOpener.current = { eid: returnOpener.eid, opener: returnOpener.opener };
+    returnOpener = undefined;
+  }, [pid]);
+  const settled = (data !== undefined && !today.isFetching) || today.error !== null;
+  useEffect(() => {
+    const pending = pendingOpener.current;
+    if (!settled || pending === undefined) return;
+    pendingOpener.current = undefined;
+    const active = document.activeElement;
+    if (active !== null && active !== document.body && active.id !== 'main') return;
+    const target =
+      [...(pageRef.current?.querySelectorAll<HTMLElement>('li[data-eid]') ?? [])]
+        .filter((li) => li.dataset['eid'] === pending.eid)
+        .map((li) => li.querySelector<HTMLElement>(`.${pending.opener}`))
+        .find((el) => el !== null) ?? document.getElementById('main');
+    target?.focus();
+  }, [settled]);
+
   const error = header.error ?? today.error;
   return (
-    <div className="page today">
+    <div className="page today" ref={pageRef}>
       <div className="today-head">
         <h1 className="page-title">
           {data && rows !== null && name !== undefined ? (
