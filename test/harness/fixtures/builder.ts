@@ -69,7 +69,8 @@ export interface HarnessEnv {
 
 /**
  * Environment for every process of a fixture under `root`: git reads only the repository's own
- * configuration plus `root/.gitconfig` (no user or system settings such as commit signing), no
+ * configuration plus `root/.gitconfig` (no user or system settings such as commit signing; the
+ * author name {@link HARNESS_GIT_NAME}, no email, `user.useConfigOnly`), no
  * inherited `GIT_*` variable (e.g. `GIT_INDEX_FILE` from a hook), and the home and XDG
  * directories point into `root/home` (default clone folder `~/projects`, OS state directory).
  */
@@ -78,7 +79,15 @@ export async function harnessEnv(root: string): Promise<HarnessEnv> {
   const home = path.join(root, 'home');
   await mkdir(home, { recursive: true });
   const gitconfig = path.join(root, '.gitconfig');
-  await writeFile(gitconfig, '[init]\n\tdefaultBranch = main\n[commit]\n\tgpgsign = false\n[tag]\n\tgpgsign = false\n');
+  // The author name comes from here, never from the OS account (bug-020); no email: tests of
+  // unidentified users rely on none being set. `useConfigOnly` turns git's account fallback off
+  // for the name and the email, so a commit without a configured identity fails on every machine,
+  // as on a runner whose account has no full name.
+  await writeFile(
+    gitconfig,
+    '[init]\n\tdefaultBranch = main\n[commit]\n\tgpgsign = false\n[tag]\n\tgpgsign = false\n' +
+      `[user]\n\tname = ${HARNESS_GIT_NAME}\n\tuseConfigOnly = true\n`,
+  );
   const env: NodeJS.ProcessEnv = { ...process.env };
   for (const key of Object.keys(env)) {
     if (key.startsWith('GIT_') || key.startsWith('XDG_')) delete env[key];

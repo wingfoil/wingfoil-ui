@@ -187,3 +187,34 @@ by a governed write, and any CLI verb run in such a clone — the strict run of 
   the scratchpad (a download, approver's OK) and run the strict gates with it too; (c) both.
 - **D44-8 — `CHANGELOG.md`.** ★ (a) none (test-only, nothing a user sees); (b) a line under
   *Unreleased* › Fixed (bug-020).
+
+#### Decisions answered 2026-10-19
+
+Approver: all as recommended — D44-1 (b), D44-2 (a) with the name "Test Harness", D44-3 (a),
+D44-4 (a), D44-5 (a), D44-6 (a), D44-7 (a), D44-8 (a). D44-6 (a): the coordinator ingested
+bug-021 (the commit-provenance checker flags the `refs/remotes/origin/HEAD` that git 2.48 and
+later create on fetch); after triage it is absorbed into this task (bug list, AC-5) and `main` is
+merged into this branch by the coordinator before the AC-5 work starts.
+
+### red / green / refactor (2026-10-19)
+
+- **Red** — `16b998f`: `test/harness/git-identity.test.ts` (three tests: the harness file gives
+  `user.name` = `HARNESS_GIT_NAME`, no `user.email`, `user.useConfigOnly`; a commit in a fresh
+  clone with only `user.email` and `-c user.useConfigOnly=true` succeeds with the harness name; a
+  commit with no email anywhere is refused with "no email was given and auto-detection is
+  disabled"). `HARNESS_GIT_NAME` exported first so the red run fails on behaviour, not on a missing
+  import: 3 failed — "expected undefined to be 'Test Harness'"; the clone commit "fatal: no name was
+  given and auto-detection is disabled" (the runner's failure); the third "unable to auto-detect
+  email address" (this machine's host name has no domain; with one, git would have guessed and
+  committed).
+- **Green**: `harnessEnv` writes `[user] name = Test Harness` and `useConfigOnly = true`; 3 passed.
+  Targeted run under the strict `git` wrapper of D44-4 (scratchpad, `PATH` first; no slot needed for
+  a targeted Vitest run): `vitest run` of the six identity-failing files of the runner plus
+  `commit-provenance`, `element-writes`, `server/identity/`, `snapshot/watcher`, `git/git.test`,
+  `git-identity` → 14 files, 358 tests passed (before the fix the same wrapper failed 6 of 12 in
+  `repository-status` + `launcher/auto-sync`). The full strict gates (D44-5) run after AC-5.
+- **AC-2**: no helper changed (D44-3 (a)); the four `remoteCommit` helpers now take the name from
+  the harness. Sites not identifiable by reading (console clones followed by writes) are checked by
+  the strict `test:coverage` and `test:e2e:chromium` runs.
+- **Docs**: `test/README.md` 0.45 (*Layout* › `test/harness/`, *Fixtures* › *Git identity* with the
+  strict-run recipe).
