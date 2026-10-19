@@ -68,14 +68,20 @@ async function describeCommit(dir: string, env: NodeJS.ProcessEnv, sha: string):
   return { sha, subject, parents: parents.split(' ').filter(Boolean), files };
 }
 
-/** The commits of `<before>..HEAD` that the remote did not bring (`^<remoteBrought>`), oldest first. */
+/** The range of a session: its start, its end (the after-snapshot's HEAD) and what the remote brought. */
+export interface SessionRange {
+  before: string;
+  head: string;
+  remoteBrought: string;
+}
+
+/** The commits of `<before>..<head>` that the remote did not bring (`^<remoteBrought>`), oldest first. */
 export async function sessionCommits(
   dir: string,
   env: NodeJS.ProcessEnv,
-  before: string,
-  remoteBrought: string,
+  { before, head, remoteBrought }: SessionRange,
 ): Promise<SessionCommit[]> {
-  const shas = (await out(dir, env, ['rev-list', '--reverse', 'HEAD', `^${before}`, `^${remoteBrought}`]))
+  const shas = (await out(dir, env, ['rev-list', '--reverse', head, `^${before}`, `^${remoteBrought}`]))
     .split('\n')
     .filter(Boolean);
   return Promise.all(shas.map((sha) => describeCommit(dir, env, sha)));
@@ -129,7 +135,13 @@ export async function provenanceProblems(input: ProvenanceInput): Promise<string
   for (const sha of merges.filter(Boolean)) problems.push(`merge commit: ${short(sha)}`);
 
   // Each commit the UI caused: the CLI's subject form, only its element's file (D43-1).
-  const commits = await sessionCommits(dir, env, before.head, input.remoteBrought);
+  const commits = await sessionCommits(dir, env, {
+    before: before.head,
+    head: after.head,
+    remoteBrought: input.remoteBrought,
+  });
+  // The element's file is its tracked path when the session started (review R3), not a file name.
+  const tracked = (await out(dir, env, ['ls-tree', '-r', '--name-only', before.head])).split('\n').filter(Boolean);
   for (const c of commits) {
     if (c.parents.length > 1) continue; // reported above
     const id = governedId(c.subject);
@@ -137,8 +149,11 @@ export async function provenanceProblems(input: ProvenanceInput): Promise<string
       problems.push(`not a governed subject: ${short(c.sha)} ${c.subject}`);
       continue;
     }
-    if (c.files.length !== 1 || path.posix.basename(c.files[0]!) !== `${id}.md`) {
-      problems.push(`${short(c.sha)} ${c.subject} touches ${c.files.join(', ')}, not only ${id}.md`);
+    const own = tracked.filter((f) => path.posix.basename(f) === `${id}.md`);
+    if (own.length !== 1) {
+      problems.push(`${short(c.sha)} ${c.subject}: ${own.length} tracked files named ${id}.md at the start`);
+    } else if (c.files.length !== 1 || c.files[0] !== own[0]) {
+      problems.push(`${short(c.sha)} ${c.subject} touches ${c.files.join(', ')}, not only ${own[0]}`);
     }
   }
   const subjects = commits.filter((c) => c.parents.length <= 1).map((c) => c.subject);
