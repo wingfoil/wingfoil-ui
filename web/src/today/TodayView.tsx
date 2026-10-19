@@ -34,13 +34,20 @@ import './today.css';
 
 type Read<T> = Pick<UseQueryResult<T>, 'data' | 'error'>;
 
+/**
+ * The action to focus when Today mounts again: set when a Requires you action opens the element
+ * panel, used once by Today of the same project after the panel is closed — *Cancel*, Escape or its
+ * Close (bug-018, task-043 AC-7; the Memory list's opener handling, X-06.3, W3-23).
+ */
+let returnAction: { pid: string; eid: string } | undefined;
+
 /** Props of {@link TodayView}. */
 export interface TodayViewProps {
   pid: string;
   /** The project header; `dataUpdatedAt` clears a refused summary switch once read again (R2-1). */
   header: Read<ProjectHeader> & Pick<UseQueryResult<ProjectHeader>, 'dataUpdatedAt'>;
   /** `GET /today` for the header's role view; not started until the header is read. */
-  today: Read<Today>;
+  today: Read<Today> & Pick<UseQueryResult<Today>, 'isFetching'>;
 }
 
 /** A failed read as an API error (a non-API failure renders as `internal`). */
@@ -108,14 +115,16 @@ function RequiresYouRow({ pid, row, now }: { pid: string; row: TodayActionRow; n
       <Button
         className="button button-primary today-action"
         aria-label={intl.formatMessage({ id: 'today.actionLabel' }, { action, id: element.id })}
-        onPress={() =>
+        onPress={() => {
+          // The focus comes back here when the panel closes (bug-018).
+          returnAction = { pid, eid: element.id };
           // A gate opens with its reason focused (task-037, G-04.3, D37-1): the second click decides.
           void navigate({
             to: '/p/$pid/e/$eid',
             params: { pid, eid: element.id },
             state: { gateFocus: action === 'approve' || action === 'review' },
-          })
-        }
+          });
+        }}
       >
         <FormattedMessage id="today.action" values={{ action }} />
       </Button>
@@ -271,9 +280,34 @@ export function TodayView({ pid, header, today }: TodayViewProps): ReactNode {
     }
   }, [data]);
 
+  // Back from the element panel opened by an action (bug-018): the action is taken when Today
+  // mounts, and focused once Today is read again — not from a cached answer that the refetch may
+  // change (a decided gate leaves Requires you). When the action is no longer listed, the main region
+  // has the focus. Only while nothing else holds it (the page, or `<main>` after the panel closed): a
+  // focus the user moved meanwhile is kept, and the request dropped (the Memory list's rule).
+  const pageRef = useRef<HTMLDivElement>(null);
+  const pendingAction = useRef<string | undefined>(undefined);
+  useEffect(() => {
+    if (returnAction?.pid === pid) pendingAction.current = returnAction.eid;
+    returnAction = undefined;
+  }, [pid]);
+  const settled = (data !== undefined && !today.isFetching) || today.error !== null;
+  useEffect(() => {
+    const eid = pendingAction.current;
+    if (!settled || eid === undefined) return;
+    pendingAction.current = undefined;
+    const active = document.activeElement;
+    if (active !== null && active !== document.body && active.id !== 'main') return;
+    const row = [...(pageRef.current?.querySelectorAll<HTMLElement>('.today-row[data-eid]') ?? [])].find(
+      (li) => li.dataset['eid'] === eid,
+    );
+    const target = row?.querySelector<HTMLElement>('.today-action') ?? document.getElementById('main');
+    target?.focus();
+  }, [settled]);
+
   const error = header.error ?? today.error;
   return (
-    <div className="page today">
+    <div className="page today" ref={pageRef}>
       <div className="today-head">
         <h1 className="page-title">
           {data && rows !== null && name !== undefined ? (
