@@ -65,4 +65,5 @@ The test failed once listing the 0-element type filters (`adr`, `decision-log`, 
 - 2026-10-19 — close (release validation of minor-v0.2, `e2e-smoke-rel-v0.2-plan` step 4): fixed by
   task-042 (`done`); its tests are green in the e2e-smoke run on `b286ab9` (`test:coverage` 3213 passed /
   1 skipped, `test:e2e` 935 passed on Chromium, Firefox and WebKit, `test:smoke` 4/4,
-  `test:publish-smoke` 11/11); `release` stamped `v0.2` (RV2-2). Closed by the approver from the WingFoil UI console (ES2-1).
+  `test:publish-smoke` 11/11); `release` stamped `v0.2` (RV2-2). Closed by the approver with the CLI: its id is longer than 100 characters, so the console cannot
+  open it (bug-019, fixed in v0.3).
