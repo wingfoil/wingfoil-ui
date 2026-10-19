@@ -2,7 +2,7 @@
 id: bug-018-cancel-in-the-gate-footer-opened-from-today-moves-the-focus-to-the-main-region-instead-of-the-today-action-that-opened-the-panel
 type: bug
 title: "Cancel in the gate footer opened from Today moves the focus to the main region instead of the Today action that opened the panel"
-status: planned
+status: in-progress
 severity: "low"           # REQUIRED — critical | high | medium | low
 release-origin: "v0.2"     # optional — release where the bug was FOUND, e.g. "v0.1"
 release: ""            # optional — fix/implementation release, stamped by release-planning/build-backlog

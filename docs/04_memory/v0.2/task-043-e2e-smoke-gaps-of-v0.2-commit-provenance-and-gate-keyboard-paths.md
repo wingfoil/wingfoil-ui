@@ -8,7 +8,7 @@ module: "governance"   # optional — server | web | contracts (dna.yaml modules
 priority: "high"       # optional — high | medium | low
 tags: ["v0.2","governance","e2e-smoke"] # optional — additional labels, e.g. [today, a11y]
 ref: "GOV"             # optional — backlog item ID, e.g. "TASK-001"
-bug: []                # optional — LIST of bug ids this task closes. Two cases: a fix task derived from a bug
+bug: ["bug-018-cancel-in-the-gate-footer-opened-from-today-moves-the-focus-to-the-main-region-instead-of-the-today-action-that-opened-the-panel"]  # optional — LIST of bug ids this task closes. Two cases: a fix task derived from a bug
                        # by release-planning, and a bug ABSORBED into an existing task's Acceptance Criteria because that
                        # task already owns the ground. `bug.sync_state` iterates this list; a bug with no task naming it
                        # here never advances past `triaged` (only a reject to `closed`).
@@ -21,8 +21,8 @@ tmpl_version: 260703   # Orignal template version
 
 Release-validation task of minor-v0.2, phase `e2e-smoke` (plan `e2e-smoke-rel-v0.2-plan`, decisions
 ES2-2 and ES2-4): close the gaps the mapping of `.wingfoil/workflows/custom/e2e-smoke.yaml` onto
-the v0.2 suites found. The task adds tests only; a product defect a new test reveals is reported to
-the coordinator (bug-ingest), not fixed here.
+the v0.2 suites found. The task adds tests; a product defect a new test reveals is reported to the
+coordinator (bug-ingest). One such defect, bug-018 (found at design, D43-5), is absorbed here (AC-7).
 
 - **G2 — drive-browser, commit provenance.** "Every commit the UI causes is a CLI `wf(…)` commit or
   a `chore(ui)` commit touching only `.wingfoil/ui.yaml`" is proved on the server
@@ -69,6 +69,13 @@ dev-loop (worktree, red-first, independent review until PASS, the approver's gat
 - **AC-5** Each new test passes on Chromium, Firefox and WebKit (`npm run test:e2e -- <files>`);
   axe 0 serious/critical where a new screen state is shown, both themes; new tests are written
   red-first where they can fail on current code, otherwise their guard-removal failure is recorded.
+- **AC-7 (bug-018, focus after Cancel)** When the element panel was opened from a Today action and
+  is closed with the gate footer's *Cancel*, with Escape or with the panel's close control, the
+  focus returns to that Today action; to `#main` only when the action no longer exists (e.g. the
+  element left *Requires you*). A failing e2e test is committed before the fix (the AC-3 Cancel
+  walk asserts it); the fix mirrors the Memory list's opener handling (X-06.3); a CHANGELOG
+  *Fixed* line names bug-018; `docs/00_reference/ux-reference.md` §4.2 states the focus target if
+  it does not yet. bug-018 follows this task's state (bug.sync_state).
 - **AC-6** `typecheck`, `lint`, `format:check`, `test:coverage` (≥ 80 %), `test:e2e:chromium`,
   `docs:api` green; `check_tasks.py v0.2` OK; `test/README.md` version line and the e2e closure
   table of this task updated; every heavy gate through the machine-free slot.
@@ -83,7 +90,8 @@ dev-loop (worktree, red-first, independent review until PASS, the approver's gat
   `test/e2e/update-push.spec.ts`; G-13.1 in `test/e2e/submit-footer.spec.ts`.
 - Toasts close after 8 s: assert the toast right after the action, before any server-read wait
   (Wave 5 lesson).
-- No product change is expected; a spec gap or a defect → stop and report with options.
+- No product change is expected except AC-7 (bug-018, `web/src/today/`); any other spec gap or
+  defect → stop and report with options.
 
 ## Execution Notes
 
