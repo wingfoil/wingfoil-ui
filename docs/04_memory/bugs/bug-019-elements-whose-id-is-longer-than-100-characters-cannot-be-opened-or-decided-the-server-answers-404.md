@@ -2,7 +2,7 @@
 id: bug-019-elements-whose-id-is-longer-than-100-characters-cannot-be-opened-or-decided-the-server-answers-404
 type: bug
 title: "Elements whose id is longer than 100 characters cannot be opened or decided: the server answers 404"
-status: open
+status: triaged
 severity: "medium"           # REQUIRED — critical | high | medium | low
 release-origin: "v0.2"     # optional — release where the bug was FOUND, e.g. "v0.1"
 release: ""            # optional — fix/implementation release, stamped by release-planning/build-backlog
