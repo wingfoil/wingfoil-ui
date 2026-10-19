@@ -97,7 +97,7 @@ afterEach(async () => {
 describe('commit provenance of a UI session (task-043 AC-1)', () => {
   it('a clean session: no problem, the governed commits listed without the remote one', async () => {
     const brought = await playSession();
-    const commits = await sessionCommits(dir, env, before.head, brought);
+    const commits = await sessionCommits(dir, env, { before: before.head, head: await head(), remoteBrought: brought });
     expect(commits.map((c) => [c.subject, c.files])).toEqual([
       [SUBMIT, [TASK]],
       [REJECT, [BUG]],
@@ -136,7 +136,29 @@ describe('commit provenance of a UI session (task-043 AC-1)', () => {
       await input(brought, [SUBMIT, REJECT, 'wf(task): approve task-001-login [pending → approved]']),
     );
     expect(problems).toEqual([
-      expect.stringMatching(/touches docs\/memory\/task\/task-001-login\.md, extra\.txt, not only task-001-login\.md$/),
+      expect.stringMatching(
+        /touches docs\/memory\/task\/task-001-login\.md, extra\.txt, not only docs\/memory\/task\/task-001-login\.md$/,
+      ),
+    ]);
+  });
+
+  // Review round 1, R3: the element's file is its tracked path at the session's start, not a name.
+  it('a governed commit that touches a file of the same name in another folder', async () => {
+    const brought = await playSession();
+    await mkdir(path.join(dir, 'docs/other'), { recursive: true });
+    await commit(
+      'docs/other/task-001-login.md',
+      'elsewhere\n',
+      'wf(task): approve task-001-login [pending → approved]',
+    );
+    await git(dir, ['push', '-q', 'origin', 'HEAD:main'], env);
+    const problems = await provenanceProblems(
+      await input(brought, [SUBMIT, REJECT, 'wf(task): approve task-001-login [pending → approved]']),
+    );
+    expect(problems).toEqual([
+      expect.stringMatching(
+        /touches docs\/other\/task-001-login\.md, not only docs\/memory\/task\/task-001-login\.md$/,
+      ),
     ]);
   });
 
