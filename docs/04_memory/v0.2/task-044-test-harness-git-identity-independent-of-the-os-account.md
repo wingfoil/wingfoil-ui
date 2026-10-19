@@ -8,7 +8,7 @@ module: "governance"   # optional — server | web | contracts (dna.yaml modules
 priority: "high"       # optional — high | medium | low
 tags: ["v0.2","governance","ci"] # optional — additional labels, e.g. [today, a11y]
 ref: "GOV"             # optional — backlog item ID, e.g. "TASK-001"
-bug: ["bug-020-test-harness-takes-the-git-author-name-from-the-os-account-and-commits-fail-on-a-runner-without-a-full-name"]  # optional — LIST of bug ids this task closes. Two cases: a fix task derived from a bug
+bug: ["bug-020-test-harness-takes-the-git-author-name-from-the-os-account-and-commits-fail-on-a-runner-without-a-full-name", "bug-021-commit-provenance-checker-flags-the-origin-head-ref-that-git-2.48-and-later-create-on-fetch"]  # optional — LIST of bug ids this task closes. Two cases: a fix task derived from a bug
                        # by release-planning, and a bug ABSORBED into an existing task's Acceptance Criteria because that
                        # task already owns the ground. `bug.sync_state` iterates this list; a bug with no task naming it
                        # here never advances past `triaged` (only a reject to `closed`).
@@ -23,7 +23,8 @@ Release-validation task of minor-v0.2 (pre-step of `release-submit-rel-v0.2-plan
 of this repository — the `workflow_dispatch` dry run of `.github/workflows/publish.yml` on `main`
 `08a84db` (RV2-5) — failed in *Tests with coverage*: 61 tests in 7 files could not commit because the
 test harness's git configuration has no `user.name` and the runner's OS account has no full name
-(bug-020, absorbed here). The suite must not depend on the machine's user account. Test-only
+(bug-020, absorbed here); the same run showed that git ≥ 2.48's `origin/HEAD` ref trips task-043's
+commit-provenance checker (bug-021, absorbed here as AC-5). The suite must not depend on the machine's user account. Test-only
 governance task (`module: governance`, `ref: GOV`); no product change.
 
 **Backlog items:** GOV (governance — bug-020, release-validation dry run of minor-v0.2)
@@ -45,6 +46,12 @@ governance task (`module: governance`, `ref: GOV`); no product change.
   cannot bypass (decided at design: e.g. a wrapper or the `GIT_*`-stripping kept, plus a check), and
   in CI by the next `workflow_dispatch` dry run (run by the coordinator on the approver's OK after
   the merge).
+- **AC-5 (bug-021)** The commit-provenance checker (`test/harness/commit-provenance.ts`, task-043)
+  ignores a remote-tracking `HEAD` symref (`refs/remotes/<remote>/HEAD`) that git creates or
+  updates by itself on fetch (git ≥ 2.48, `remote.<name>.followRemoteHEAD`), and still reports every
+  other added or moved ref; a self-test case reproduces it with git 2.43 (`git remote set-head
+  origin main` in the session copy) and fails before the fix; no `followRemoteHEAD` setting is added
+  to the harness configuration.
 - **AC-4** `typecheck`, `lint`, `format:check`, `test:coverage` (≥ 80 %), `test:e2e:chromium` (the e2e
   support changes), `docs:api` green, every heavy gate through the machine-free slot;
   `check_tasks.py v0.2` OK; `test/README.md` (the harness environment and the identity rule) and its
