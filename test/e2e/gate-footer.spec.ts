@@ -471,4 +471,73 @@ test.describe('US-X-06 — keyboard (TT-PERF-10)', () => {
       timeout: COLD_READ_MS,
     });
   });
+  // task-043 AC-3 (gap G4) and AC-7 (bug-018): Cancel of the gate footer by keyboard only; the focus
+  // returns to the Today action that opened the panel (as the Memory list's row, X-06.3).
+  test('X-06.2 — Cancel the gate footer with the keyboard only (G4)', async ({ page, fixtures, consoles }) => {
+    const kanban = await copyAs(fixtures, 'kanban', 'Morgan');
+    const before = await git(kanban.dir, ['rev-parse', 'HEAD'], kanban.env);
+    const c = await consoles.start({ projects: [kanban], settings: { autoFetch: false } });
+    const writes = recordWrites(page);
+    await openToday(page, c);
+    const action = todayAction(page, 'task-001-login-form');
+    await tabUntil(page, action);
+    await page.keyboard.press('Enter');
+    await expect(reasonField(page)).toBeFocused({ timeout: COLD_READ_MS });
+    const cancel = gate(page).getByRole('button', { name: 'Cancel', exact: true });
+    await tabUntil(page, cancel);
+    await expectFocusVisible(cancel);
+    await page.keyboard.press('Enter');
+    await expect(drawer(page)).toHaveCount(0);
+    await expect(page).toHaveURL(`${c.origin}/p/${c.pids[0]}/today`);
+    await expect(action).toBeFocused({ timeout: COLD_READ_MS });
+    await expectFocusVisible(action);
+    expect(writes).toEqual([]);
+    expect((await git(kanban.dir, ['rev-parse', 'HEAD'], kanban.env)).stdout).toBe(before.stdout);
+  });
+});
+
+test.describe('bug-018 — the focus after the element panel opened from Today (task-043 AC-7)', () => {
+  for (const how of ['Escape', 'Close'] as const) {
+    test(`AC-7 — ${how} returns the focus to the Today action that opened the panel`, async ({
+      page,
+      fixtures,
+      consoles,
+    }) => {
+      const c = await consoles.start({
+        projects: [await copyAs(fixtures, 'kanban', 'Morgan')],
+        settings: { autoFetch: false },
+      });
+      await openToday(page, c);
+      const action = todayAction(page, 'task-001-login-form');
+      await action.click();
+      await expect(reasonField(page)).toBeFocused({ timeout: COLD_READ_MS });
+      if (how === 'Escape') await page.keyboard.press('Escape');
+      else await drawer(page).getByRole('button', { name: 'Close', exact: true }).click();
+      await expect(drawer(page)).toHaveCount(0);
+      await expect(page).toHaveURL(`${c.origin}/p/${c.pids[0]}/today`);
+      await expect(action).toBeFocused({ timeout: COLD_READ_MS });
+    });
+  }
+
+  test('AC-7 — the focus goes to the main region when the Today action is gone', async ({
+    page,
+    fixtures,
+    consoles,
+  }) => {
+    const kanban = await copyAs(fixtures, 'kanban', 'Morgan');
+    const c = await consoles.start({ projects: [kanban], settings: { autoFetch: false } });
+    await openToday(page, c);
+    await todayAction(page, 'task-001-login-form').click();
+    await outcome(page, 'Approve → approved').click({ timeout: COLD_READ_MS });
+    await expect(footer(page)).toHaveText('Final state: no action is possible', { timeout: COLD_READ_MS });
+    await drawer(page).getByRole('button', { name: 'Close', exact: true }).click();
+    await expect(page).toHaveURL(`${c.origin}/p/${c.pids[0]}/today`);
+    // The approved element left Requires you: no action to return to.
+    await expect(
+      page.getByRole('region', { name: 'Requires you' }).locator('li[data-eid="task-001-login-form"]'),
+    ).toHaveCount(0, {
+      timeout: COLD_READ_MS,
+    });
+    await expect(page.locator('#main')).toBeFocused();
+  });
 });

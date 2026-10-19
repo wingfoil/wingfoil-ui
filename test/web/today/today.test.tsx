@@ -7,7 +7,7 @@
 import type { ActionDescriptor, ProjectHeader, Today, TodayActionRow, TodayRow } from '@wingfoil-ui/contracts';
 import { act, cleanup, screen, waitFor, within } from '@testing-library/react';
 import { userEvent } from '@testing-library/user-event';
-import { afterEach, beforeEach, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { stopEventStream } from '../../../web/src/api/events.js';
 import { todayQuery } from '../../../web/src/api/queries.js';
 import { queryKeys } from '../../../web/src/api/query-keys.js';
@@ -425,4 +425,45 @@ it('announces nothing when another project opens on Today (review F1)', async ()
   await act(() => router.navigate({ to: '/p/$pid/today', params: { pid: OTHER } }));
   await screen.findByRole('heading', { level: 1, name: 'Morgan, 1 thing requires you' });
   expect(screen.getByRole('status', { name: 'Today updates' }).textContent).toBe('');
+});
+
+// task-043 AC-7 (bug-018): the panel opened from a Today action gives the focus back to that action
+// when it closes (the Memory list's opener handling, X-06.3, W3-23); `#main` when the action is gone.
+describe('bug-018 — the focus back on the Today action', () => {
+  const ELEMENT = `/api/p/${PID}/elements/task-001-login`;
+  const notFound = { status: 404, body: { error: { code: 'not-found', message: 'x' } } };
+  const panelApi = (over: FakeApi = {}): FakeApi =>
+    api({ [ELEMENT]: notFound, [`${ELEMENT}/history`]: notFound, ...over });
+
+  for (const how of ['Close', 'Escape'] as const) {
+    it(`${how} returns the focus to the action that opened the panel`, async () => {
+      stubApi(panelApi());
+      const user = userEvent.setup();
+      const { router } = renderApp(`/p/${PID}/today`);
+      await user.click(await screen.findByRole('button', { name: 'Approve task-001-login' }));
+      await screen.findByRole('dialog');
+      if (how === 'Close') await user.click(screen.getByRole('button', { name: 'Close' }));
+      else await user.keyboard('{Escape}');
+      await waitFor(() => expect(router.state.location.pathname).toBe(`/p/${PID}/today`));
+      await waitFor(() =>
+        expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Approve task-001-login' })),
+      );
+    });
+  }
+
+  it('gives the focus to the main region when the action is no longer listed', async () => {
+    const fake = panelApi();
+    stubApi(fake);
+    const user = userEvent.setup();
+    const { router, queryClient } = renderApp(`/p/${PID}/today`);
+    await user.click(await screen.findByRole('button', { name: 'Approve task-001-login' }));
+    await screen.findByRole('dialog');
+    const without: Today = { ...MORGAN_TODAY, requiresYou: MORGAN_TODAY.requiresYou!.slice(1) };
+    fake[`${TODAY}?view=approver`] = { status: 200, body: without };
+    await queryClient.invalidateQueries({ queryKey: queryKeys.project(PID) });
+    await user.click(screen.getByRole('button', { name: 'Close' }));
+    await waitFor(() => expect(router.state.location.pathname).toBe(`/p/${PID}/today`));
+    await waitFor(() => expect(screen.queryByRole('button', { name: 'Approve task-001-login' })).toBeNull());
+    await waitFor(() => expect(document.activeElement?.id).toBe('main'));
+  });
 });
