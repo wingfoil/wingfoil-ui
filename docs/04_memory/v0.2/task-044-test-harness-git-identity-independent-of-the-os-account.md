@@ -236,7 +236,9 @@ merged into this branch by the coordinator before the AC-5 work starts.
 - **AC-5 green** — `f2a1812`: `provenanceProblems` ignores `refs/remotes/<remote>/HEAD` only while
   `git symbolic-ref -q` names a ref under `refs/remotes/<remote>/`; its removal, a plain ref of
   that name and other remotes' HEADs are reported; no `followRemoteHEAD` setting anywhere. 14/14.
-  Guard removal: allowing the name unconditionally (and `mirror/HEAD`) fails the third case.
+  Guard removal: allowing the name unconditionally (and `mirror/HEAD`) fails the third case — on
+  git < 2.48 only: review round 1 (R1) showed the case itself did not hold on git ≥ 2.48; fixed
+  and re-proved there.
   `e2e/commit-provenance.spec.ts` expects `[]` and is unchanged: on git ≥ 2.48 the console's own
   fetch creates the symref, now ignored. `test/README.md` (*Layout*, the checker's rules; 0.45 line).
 - **AC-2 result**: the strict runs below found no commit site beyond the design's table — no test
@@ -255,3 +257,35 @@ merged into this branch by the coordinator before the AC-5 work starts.
 | `wfui-*` left in the temporary directory; consoles left (`pgrep -af bin/wingfoil-ui.cjs`) | 0; none |
 | own specs on three engines | none changed (D44-5 (a)) |
 | CI (AC-3, D44-7) | the next `workflow_dispatch` dry run, by the coordinator after the merge |
+
+### review round 1 (2026-10-19)
+
+Independent review: FAIL, one blocker, two nits.
+
+- **R1 (blocker)** — the case *a plain ref of that name, or the HEAD symref of another remote:
+  still reported* held only on git < 2.48: there the setup's `git fetch` already creates
+  `refs/remotes/origin/HEAD` as a symref, `update-ref` without `--no-deref` follows it and moves
+  `origin/main`, the symref stays and is (rightly) ignored. Red: the committed state under the
+  reviewer's git ≥ 2.48 emulation (a `git` wrapper that adds `-c user.useConfigOnly=true` and,
+  after a successful `fetch`/`pull`, runs `git remote set-head <r> -a` for each remote without
+  `<r>/HEAD`; copied to the session scratchpad as `task-044-frh`): `commit-provenance` +
+  `git-identity` 16 passed, 1 failed (that case). Fix: the case runs `git remote set-head origin
+  main` first (the symref exists on every git) and then `git update-ref --no-deref
+  refs/remotes/origin/HEAD HEAD`. Guard removal re-proved under both wrappers: allowing
+  `refs/remotes/origin/HEAD` unconditionally fails the case (1 failed, 13 passed each).
+- **R2** — `RepoState.symrefs` (`<ref> <target>` of every symbolic ref, `for-each-ref
+  %(symref)`) in `test/harness/repo-state.ts`; `provenanceProblems` reads the target from the
+  after-snapshot instead of a live `git symbolic-ref`. Self-test in `repo-state.test.ts`: none at
+  the start, the symref with its target once made, gone once replaced by a plain ref.
+- **R3** — `test/README.md` 0.46: the `commit-provenance.ts` and `repo-state.ts` bullets rewrapped,
+  `symrefs` named, the `followRemoteHEAD` emulation added to the strict-run recipe (*Git
+  identity*).
+
+Checks: `typecheck`, `lint`, `format:check`, `test/docs/public-text.test.ts` green; `vitest run
+test/harness/commit-provenance.test.ts test/harness/git-identity.test.ts
+test/harness/repo-state.test.ts` 25/25 under the `useConfigOnly` wrapper and 25/25 under the
+emulating wrapper; `npm run test:coverage` under the emulating wrapper (slot granted at load
+11.42): 174 files passed, 1 skipped; 3220 tests passed, 1 skipped; statements 96.56 %, branches
+91.4 %, functions 97.3 %, lines 98.35 %; 329.7 s; no "auto-detection is disabled" / "Author
+identity unknown" in the log; 0 `wfui-*` left, no console left. No e2e file changed: no
+Playwright run.
