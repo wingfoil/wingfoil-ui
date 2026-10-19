@@ -100,10 +100,11 @@ Supports WingFoil **0.2.2 to 0.2.x** (contract-tested: 0.2.2), as v0.1. Not publ
   hooks folder `wfui-no-hooks-*` in the system temporary directory; git runs with its hooks path
   on a regular file of the console's own installation, so no hook runs and nothing is left behind
   when the console is killed (`kill -9`).
-- **The focus comes back to the Today action after the element panel closes** (bug-018): a panel
-  opened from a *Requires you* action and closed with the gate footer's *Cancel*, with Escape or
-  with its *Close* gives the focus back to that action, as the Memory list does for its row; to the
-  main region only when the action is no longer listed (e.g. the gate was decided).
+- **The focus comes back to the Today control that opened the element panel** (bug-018): a panel
+  opened from a *Requires you* action or title, or from a *Waiting on others* row, and closed with
+  the gate footer's *Cancel*, with Escape or with its *Close* gives the focus back to that control,
+  as the Memory list does for its row; to the main region only when it is no longer listed (e.g. the
+  gate was decided).
 
 ### Security
 
