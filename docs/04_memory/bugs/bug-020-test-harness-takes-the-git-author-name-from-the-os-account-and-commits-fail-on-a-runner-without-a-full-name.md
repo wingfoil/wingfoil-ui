@@ -2,7 +2,7 @@
 id: bug-020-test-harness-takes-the-git-author-name-from-the-os-account-and-commits-fail-on-a-runner-without-a-full-name
 type: bug
 title: "Test harness takes the git author name from the OS account and commits fail on a runner without a full name"
-status: planned
+status: in-progress
 severity: "low"           # REQUIRED — critical | high | medium | low
 release-origin: "v0.2"     # optional — release where the bug was FOUND, e.g. "v0.1"
 release: ""            # optional — fix/implementation release, stamped by release-planning/build-backlog
