@@ -2,7 +2,7 @@
 id: bug-018-cancel-in-the-gate-footer-opened-from-today-moves-the-focus-to-the-main-region-instead-of-the-today-action-that-opened-the-panel
 type: bug
 title: "Cancel in the gate footer opened from Today moves the focus to the main region instead of the Today action that opened the panel"
-status: triaged
+status: planned
 severity: "low"           # REQUIRED — critical | high | medium | low
 release-origin: "v0.2"     # optional — release where the bug was FOUND, e.g. "v0.1"
 release: ""            # optional — fix/implementation release, stamped by release-planning/build-backlog
@@ -61,3 +61,6 @@ first). Suspected cause: Today opens the panel through navigation without record
        live on those tasks (docs/04_memory/{release}/{id}.md, `bug: {this id}`, their own
        Execution Notes section) — this section only needs a pointer plus anything that doesn't
        belong on a specific fix task (e.g. why 2 tasks were needed instead of 1). -->
+
+- 2026-10-18 — triage (approver): `low`; absorbed into task-043 (decision D43-5 (a) of its design,
+  plan `e2e-smoke-rel-v0.2-plan`) as AC-7. Fix and tests are logged in task-043's Execution Notes.
