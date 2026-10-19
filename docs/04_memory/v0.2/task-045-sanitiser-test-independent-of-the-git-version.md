@@ -90,7 +90,11 @@ command inside a repository, before the command's own code (`check_repository_fo
 the value with `'%s'` — the value is the data, not a variable a refactor of the discovery can lose.
 The check guards git's own repository format and the message is the same family since git 2.x; a
 git that accepted a non-numeric format version would open a repository it cannot interpret. The
-value is written with `git config` (git itself, no hand-made file format). No branch on the git
+value is written with `git config` (git itself, no hand-made file format). Checked against git's
+public source (`master` of github.com/git/git, read 2026-10-20): `setup.c` `check_repo_format`
+still reads the value with `git_config_int`, and `config.c` `die_bad_number` quotes the value in all
+seven branches; the same `setup.c` now reports a bad gitfile as "gitfile does not point to a valid
+repository: %s" — the gitfile wording did change, which is what bug-022 hit. No branch on the git
 version; the no-raw-character assertion is kept as the first assertion; the `‮` assertion
 stays (U+202E is passed on by git's `vreportf`, which writes ESC as `?` — any other control would
 be turned to `?` by git first, so the bidi override is the character that proves the sanitiser).
@@ -126,3 +130,43 @@ sanitiser call of the add route removed: the case must fail on the raw U+202E); 
 plain git and under the strict `useConfigOnly` + `followRemoteHEAD` wrapper; `test:coverage`
 through the slot under that wrapper. No product change, no README change (the test name is not
 cited there), no e2e change.
+
+### red / green / refactor (2026-10-20)
+
+- **Change** — `4f03867`: the bug-017 add case in `test/server/http/projects.test.ts` is now "add:
+  git quoting a config value with control and bidi characters" (D45-1 B): `git init` in a folder
+  with `.wingfoil/`, `git config core.repositoryformatversion 'x<U+202E><ESC>[31m'`, add →
+  `git-refused`; the no-raw-character assertion stays first, then `‮`, then nothing listed.
+  No product change; `test/README.md` unchanged (it does not cite the test).
+- **Red (AC-2)** — the new case passed on its first run (the sanitiser is in place), so its guard
+  was removed: with `project-list.ts`'s add producer changed to pass `error.message` without
+  `redactLocalPaths`, the case fails with "expected [ '‮' ] to deeply equal []" (1 failed, the
+  clone case passed); restored, 2/2 passed. The same 2/2 under the strict wrapper (below).
+- **Git 2.55** cannot be run here; the old case's failure is the runner's (bug-022), the new
+  case's stability rests on D45-2 (git's source, read 2026-10-20).
+- **AC-2** — D45-3: no other assertion in `test/server/http/` or `test/launcher/` depends on a path
+  argument that git computes; nothing else changed.
+
+#### Checks (2026-10-20)
+
+Strict wrapper: a `git` script in the session scratchpad (copy of task-044's reviewer wrapper:
+`-c user.useConfigOnly=true`, and after a successful `fetch`/`pull` `git remote set-head <r> -a`
+for each remote without `<r>/HEAD`), first on the `PATH`.
+
+| check | result |
+|-------|--------|
+| `npm run typecheck`, `npm run lint`, `npm run format:check` | green |
+| `python3 docs/03_backlog/X_tools/check_tasks.py v0.2` | OK |
+| `vitest run test/server/http/projects.test.ts -t bug-017`, plain git and strict wrapper | 2 passed each |
+| `npm run test:coverage` under the strict wrapper, through the slot — run 1 (granted at load 8.23) | 3219 passed, **1 failed**, 1 skipped; 835 s; the failure: `test/server/sync/auto-sync.test.ts` › *RP-36 / D34-5* "Test timed out in 30000ms" (load 22 after the run) |
+| run 2 (granted at load 10.22) | 3217 passed, **3 failed** (timeouts under load: the same RP-36 case, `element-writes.test.ts` › W2-5, `snapshot/watcher.test.ts` › review F3 "Matcher did not succeed in time"); 810 s; load 25.9 (5-min) after the run |
+| run 3 | 3219 passed, **1 failed** (the same RP-36 timeout); 737 s; load 26 (5-min) after the run |
+| the failing files alone, strict wrapper | `auto-sync.test.ts` 40/40 (217 s, load 13); `element-writes` + `watcher` + `auto-sync` 111/111 (282 s, load 14 → 8) |
+| "auto-detection is disabled" / "Author identity unknown" in the three logs | 0 |
+| `wfui-*` left in the temporary directory; consoles left | 0; none |
+
+The coverage gate is **not green** on this machine today: every failure is a timeout in a file
+this task does not touch, under a 1-min load of 20–26 (12 cores, swap full) that rises during the
+run; the files pass alone; Vitest prints no coverage figures for a failed run. The bug-022 case
+passed in all three runs. RP-36 runs four consoles in sequence inside one 30 s test — reported to
+the coordinator as a load-sensitivity candidate (bug-004 class), not fixed here.
