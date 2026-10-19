@@ -2,7 +2,7 @@
 id: bug-016-a-token-pasted-into-a-tab-that-already-shows-the-console-is-not-read-without-a-reload
 type: bug
 title: "A token pasted into a tab that already shows the console is not read without a reload"
-status: resolved
+status: closed
 severity: "low"        # REQUIRED — critical | high | medium | low
 release-origin: "v0.1" # optional — release where the bug was FOUND, e.g. "v0.1"
 release: "v0.2"            # optional — fix/implementation release, stamped by release-planning/build-backlog
