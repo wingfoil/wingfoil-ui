@@ -64,3 +64,8 @@ first). Suspected cause: Today opens the panel through navigation without record
 
 - 2026-10-18 — triage (approver): `low`; absorbed into task-043 (decision D43-5 (a) of its design,
   plan `e2e-smoke-rel-v0.2-plan`) as AC-7. Fix and tests are logged in task-043's Execution Notes.
+
+- 2026-10-19 — close (release validation of minor-v0.2, `e2e-smoke-rel-v0.2-plan` step 4): fixed by
+  task-043 (`done`); its tests are green in the e2e-smoke run on `b286ab9` (`test:coverage` 3213 passed /
+  1 skipped, `test:e2e` 935 passed on Chromium, Firefox and WebKit, `test:smoke` 4/4,
+  `test:publish-smoke` 11/11). Closed by the approver from the WingFoil UI console (ES2-1).

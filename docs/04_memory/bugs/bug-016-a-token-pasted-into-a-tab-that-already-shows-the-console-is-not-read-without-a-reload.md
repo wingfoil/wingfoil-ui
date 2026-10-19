@@ -5,7 +5,7 @@ title: "A token pasted into a tab that already shows the console is not read wit
 status: resolved
 severity: "low"        # REQUIRED — critical | high | medium | low
 release-origin: "v0.1" # optional — release where the bug was FOUND, e.g. "v0.1"
-release: ""            # optional — fix/implementation release, stamped by release-planning/build-backlog
+release: "v0.2"            # optional — fix/implementation release, stamped by release-planning/build-backlog
 feature: ""            # optional — related feature ID from docs/01_vision/06_features.md
 module: "web"          # optional — server | web | contracts
 wingfoil_version: ""   # optional — `wingfoil --version` of the OBSERVED project (the UI drives its CLI)
@@ -72,3 +72,8 @@ Opening the same URL in a new tab, or pressing F5 after pasting it, works.
        Execution Notes section) — this section only needs a pointer plus anything that doesn't
        belong on a specific fix task (e.g. why 2 tasks were needed instead of 1). -->
 - fix: **absorbed into task-040-update-and-push-from-the-sidebar** (AC "bug-016", `bug:` list of the task; the approver's choice at the start of Wave 6, 2026-10-17); `triaged → planned` set by hand (directive `wingfoil-cli` W-26).
+
+- 2026-10-19 — close (release validation of minor-v0.2, `e2e-smoke-rel-v0.2-plan` step 4): fixed by
+  task-040 (`done`); its tests are green in the e2e-smoke run on `b286ab9` (`test:coverage` 3213 passed /
+  1 skipped, `test:e2e` 935 passed on Chromium, Firefox and WebKit, `test:smoke` 4/4,
+  `test:publish-smoke` 11/11); `release` stamped `v0.2` (RV2-2). Closed by the approver from the WingFoil UI console (ES2-1).
