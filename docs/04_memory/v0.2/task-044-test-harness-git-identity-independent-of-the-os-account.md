@@ -225,3 +225,33 @@ merged into this branch by the coordinator before the AC-5 work starts.
   the strict `test:coverage` and `test:e2e:chromium` runs.
 - **Docs**: `test/README.md` 0.45 (*Layout* › `test/harness/`, *Fixtures* › *Git identity* with the
   strict-run recipe).
+- **Merge** — `76ed62a`: the coordinator merged `main` (bug-021 absorbed, AC-5).
+- **AC-5 red** — `51d2954`: three cases in `test/harness/commit-provenance.test.ts`
+  (*the remote-tracking HEAD git maintains itself*): `git remote set-head origin main` after the
+  session (as git ≥ 2.48's fetch does) → no problem; the symref present before the session and moved
+  with `origin/main` → no problem; a plain ref `refs/remotes/origin/HEAD` (`update-ref`) and the
+  HEAD symref of another remote (`mirror`) → still reported. Red run: the first two failed with
+  `ref added or moved: refs/remotes/origin/HEAD <sha>` (the runner's message), the third passed
+  (guard of the rule to come).
+- **AC-5 green** — `f2a1812`: `provenanceProblems` ignores `refs/remotes/<remote>/HEAD` only while
+  `git symbolic-ref -q` names a ref under `refs/remotes/<remote>/`; its removal, a plain ref of
+  that name and other remotes' HEADs are reported; no `followRemoteHEAD` setting anywhere. 14/14.
+  Guard removal: allowing the name unconditionally (and `mirror/HEAD`) fails the third case.
+  `e2e/commit-provenance.spec.ts` expects `[]` and is unchanged: on git ≥ 2.48 the console's own
+  fetch creates the symref, now ignored. `test/README.md` (*Layout*, the checker's rules; 0.45 line).
+- **AC-2 result**: the strict runs below found no commit site beyond the design's table — no test
+  output carries "auto-detection is disabled" or "Author identity unknown" (`grep -c` = 0 on both
+  logs), so the console's clones and writes all take a configured identity.
+
+#### Checks (2026-10-19)
+
+| check | result |
+|-------|--------|
+| `npm run typecheck`, `npm run lint`, `npm run format:check` | green |
+| `npm run docs:api` | green |
+| `python3 docs/03_backlog/X_tools/check_tasks.py v0.2` | OK |
+| `npm run test:coverage` under the strict `git` wrapper (D44-4/D44-5; slot granted at load 6.90) | 174 files passed, 1 skipped; 3219 tests passed, 1 skipped; statements 96.56 %, branches 91.4 %, functions 97.3 %, lines 98.35 %; 347.7 s |
+| `npm run test:e2e:chromium` under the strict `git` wrapper (slot granted at load 11.84) | 319 passed, 16.3 min |
+| `wfui-*` left in the temporary directory; consoles left (`pgrep -af bin/wingfoil-ui.cjs`) | 0; none |
+| own specs on three engines | none changed (D44-5 (a)) |
+| CI (AC-3, D44-7) | the next `workflow_dispatch` dry run, by the coordinator after the merge |
