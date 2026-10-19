@@ -351,3 +351,49 @@ of the design branch); the AC-3 Cancel walk is written after that merge, red fir
 - **Three engines** — `npx playwright test` of the three files with `--grep` on the four new tests
   (Chromium, Firefox, WebKit): **12 passed** (1.1 min; load 9.2 at the end). Every run through the
   machine-free slot; no console left, the tree clean after the fault run.
+
+### red / green / refactor — AC-3 Cancel and AC-7, bug-018 (2026-10-19)
+
+After the coordinator's merge of `design/e2e-smoke_v0.2` (`7962c89`: bug-018 triaged and absorbed,
+the task's `bug:` list and AC-7).
+
+- **Red (`dd46038`)** — e2e `gate-footer.spec.ts`: "X-06.2 — Cancel the gate footer with the
+  keyboard only (G4)" (Today → Enter on the action → Tab to *Cancel* → Enter: the panel gone, URL
+  `/today`, no governed `POST`, HEAD unchanged, the action focused with its ring), and the describe
+  "bug-018 — …" with "AC-7 — Escape returns the focus …", "AC-7 — Close returns the focus …" and
+  "AC-7 — the focus goes to the main region when the Today action is gone" (approve, then Close: the
+  row left Requires you). Chromium: **3 failed** — the focus on `#main`, "inactive" for the action —
+  and the `#main` case **passed** (a characterization of the route's `focusMainWhenLost`). Unit
+  `test/web/today/today.test.tsx` › "bug-018 — the focus back on the Today action": Close and Escape
+  **failed** (`<main id="main">` instead of the button), the "no longer listed" case passed.
+- **Green (`c5397fe`)** — `web/src/today/TodayView.tsx`: a module-level `returnAction {pid, eid}`
+  set by the Requires you action's press, taken when Today of that project mounts, and used once
+  Today is read again (`data` and not `isFetching`: a cached answer would still list a gate just
+  decided) — the action's button focused, or `#main` when it is no longer listed; only while the
+  focus is on the page or `#main` (a focus the user moved is kept) — the Memory list's rule (W3-23,
+  review N2). `TodayViewProps.today` gains `isFetching` (the route passes the whole query). Unit 39/39
+  (`test/web/today`); e2e Cancel and AC-7 on the three engines **12 passed**.
+- **Docs (`aef3520`)** — `CHANGELOG.md` *Unreleased* › *Fixed* (bug-018, appended);
+  `docs/00_reference/ux-reference.md` 1.9 §4.2 (the focus returns to the opener — the Memory list's
+  row or the Today action — also after *Cancel*; the main region only when the opener is no longer
+  listed); `docs/user-guide.md` 0.17 (*The element panel*: it described the focus going back to the
+  row).
+- **Deviation, recorded:** the first three-engine run of the green had 1 failure (Chromium, Escape)
+  in `openConsole`: the console answered `GET /p/<pid>` with the API's not-found JSON — I had run
+  `npx vitest run test/docs` in this worktree meanwhile, whose global setup rebuilds `web/dist`
+  (the hazard of `test/README.md` *Launch smoke*). Not a product or test defect; re-run alone:
+  **12 passed** (1.1 min).
+- **Scope note:** AC-7 names the Today action; a panel opened by a Requires you row's **title link**
+  (or a Waiting on others link) still returns the focus to `#main`, as before.
+
+e2e closure (scenario → spec file › test):
+
+| Gap / scenario | spec file › test |
+|----------------|------------------|
+| G2 (drive-browser, commit provenance) | `test/e2e/commit-provenance.spec.ts` › "drive-browser — every commit of a UI session is the CLI's `wf(…)` commit of its element (G2)" |
+| G3, G-04.1 + success criterion 1 | `test/e2e/gate-footer.spec.ts` › "G-04.1 — Approve a gate in two clicks from Today, with the commit shown and pushed (success criterion 1)" |
+| G4, X-06.2 Reject | `gate-footer.spec.ts` › "X-06.2 — Reject a gate with the keyboard only (G4)" |
+| G4, X-06.2 Cancel (+ AC-7 focus) | `gate-footer.spec.ts` › "X-06.2 — Cancel the gate footer with the keyboard only (G4)" |
+| G5, G-12.1 Submit | `test/e2e/update-push.spec.ts` › "G-12.1 — Block a submit while behind (G5)" |
+| AC-7 (bug-018) Escape, Close | `gate-footer.spec.ts` › "AC-7 — Escape returns the focus to the Today action that opened the panel", "AC-7 — Close returns the focus to the Today action that opened the panel" |
+| AC-7 (bug-018) opener gone | `gate-footer.spec.ts` › "AC-7 — the focus goes to the main region when the Today action is gone" |
