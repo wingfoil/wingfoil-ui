@@ -224,3 +224,35 @@ describe('commit provenance of a UI session (task-043 AC-1)', () => {
     );
   });
 });
+
+// task-044 AC-5 (bug-021): git ≥ 2.48 creates `refs/remotes/<remote>/HEAD` on fetch
+// (`remote.<name>.followRemoteHEAD`, default `create`) and the symref then follows the branch;
+// `git remote set-head` makes the same ref with any git version.
+describe('the remote-tracking HEAD git maintains itself (task-044 AC-5, bug-021)', () => {
+  it('created during the session (as by a fetch of git ≥ 2.48): not a problem', async () => {
+    const brought = await playSession();
+    await git(dir, ['remote', 'set-head', 'origin', 'main'], env);
+    expect(await provenanceProblems(await input(brought))).toEqual([]);
+  });
+
+  it('present before the session and moved with the tracking branch: not a problem', async () => {
+    await git(dir, ['remote', 'set-head', 'origin', 'main'], env);
+    before = await snapshotRepo(dir, env);
+    const brought = await playSession();
+    expect(await provenanceProblems(await input(brought))).toEqual([]);
+  });
+
+  it('a plain ref of that name, or the HEAD symref of another remote: still reported', async () => {
+    const brought = await playSession();
+    // The symref exists on every git version first (git ≥ 2.48 already made it in the setup's
+    // fetch), then `--no-deref` replaces it by a plain ref instead of moving `origin/main`.
+    await git(dir, ['remote', 'set-head', 'origin', 'main'], env);
+    await git(dir, ['update-ref', '--no-deref', 'refs/remotes/origin/HEAD', 'HEAD'], env);
+    await git(dir, ['remote', 'add', 'mirror', remoteDir], env);
+    await git(dir, ['fetch', '-q', 'mirror'], env);
+    await git(dir, ['remote', 'set-head', 'mirror', 'main'], env);
+    const problems = await provenanceProblems(await input(brought));
+    expect(problems).toContainEqual(expect.stringMatching(/^ref added or moved: refs\/remotes\/origin\/HEAD /));
+    expect(problems).toContainEqual(expect.stringMatching(/^ref added or moved: refs\/remotes\/mirror\/HEAD /));
+  });
+});

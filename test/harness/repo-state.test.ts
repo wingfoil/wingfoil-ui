@@ -47,6 +47,15 @@ describe('repository snapshot (AC-5)', () => {
     expect(changes).toContainEqual(expect.stringMatching(/^new commit [0-9a-f]+ Alex: wf\(task\): submit task-001$/));
   });
 
+  it('records the symbolic refs with their target, and plain refs not among them (task-044 R2)', async () => {
+    expect(before.symrefs).toEqual([]);
+    await git(dir, ['update-ref', 'refs/remotes/origin/main', 'HEAD'], env);
+    await git(dir, ['symbolic-ref', 'refs/remotes/origin/HEAD', 'refs/remotes/origin/main'], env);
+    expect((await snapshotRepo(dir, env)).symrefs).toEqual(['refs/remotes/origin/HEAD refs/remotes/origin/main']);
+    await git(dir, ['update-ref', '--no-deref', 'refs/remotes/origin/HEAD', 'HEAD'], env);
+    expect((await snapshotRepo(dir, env)).symrefs).toEqual([]);
+  });
+
   it('AC-5 detects a new ref', async () => {
     await git(dir, ['tag', 'v0'], env);
     expect(await diff()).toEqual([expect.stringMatching(/^ref added or moved: refs\/tags\/v0 /)]);
