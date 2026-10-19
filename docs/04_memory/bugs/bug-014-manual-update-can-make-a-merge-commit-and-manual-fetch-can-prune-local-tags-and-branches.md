@@ -2,7 +2,7 @@
 id: bug-014-manual-update-can-make-a-merge-commit-and-manual-fetch-can-prune-local-tags-and-branches
 type: bug
 title: "Manual update can make a merge commit and manual fetch can prune local tags and branches"
-status: resolved
+status: closed
 severity: "medium"     # REQUIRED — critical | high | medium | low
 release-origin: "v0.2" # optional — release where the bug was FOUND, e.g. "v0.1"
 release: "v0.2"            # optional — fix/implementation release, stamped by release-planning/build-backlog
