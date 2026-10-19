@@ -519,6 +519,29 @@ test.describe('bug-018 — the focus after the element panel opened from Today (
     });
   }
 
+  // Review round 1, R1 (D43-10): the opener may also be the row's title link.
+  test('AC-7 — Close returns the focus to the Requires you title link that opened the panel', async ({
+    page,
+    fixtures,
+    consoles,
+  }) => {
+    const c = await consoles.start({
+      projects: [await copyAs(fixtures, 'kanban', 'Morgan')],
+      settings: { autoFetch: false },
+    });
+    await openToday(page, c);
+    const title = page
+      .getByRole('region', { name: 'Requires you' })
+      .locator('li[data-eid="task-001-login-form"]')
+      .getByRole('link');
+    await title.click();
+    await expect(drawer(page).locator('.type-tag')).toBeVisible({ timeout: COLD_READ_MS });
+    await drawer(page).getByRole('button', { name: 'Close', exact: true }).click();
+    await expect(drawer(page)).toHaveCount(0);
+    await expect(page).toHaveURL(`${c.origin}/p/${c.pids[0]}/today`);
+    await expect(title).toBeFocused({ timeout: COLD_READ_MS });
+  });
+
   test('AC-7 — the focus goes to the main region when the Today action is gone', async ({
     page,
     fixtures,

@@ -466,4 +466,115 @@ describe('bug-018 — the focus back on the Today action', () => {
     await waitFor(() => expect(screen.queryByRole('button', { name: 'Approve task-001-login' })).toBeNull());
     await waitFor(() => expect(document.activeElement?.id).toBe('main'));
   });
+  // Review round 1, R1 (D43-10): the opener is the action or the link that opened the panel.
+  const linkOf = (region: HTMLElement, eid: string): HTMLElement =>
+    within(region.querySelector<HTMLElement>(`li[data-eid="${eid}"]`)!).getByRole('link');
+
+  it('returns the focus to the Requires you title link that opened the panel', async () => {
+    stubApi(panelApi());
+    const user = userEvent.setup();
+    const { router } = renderApp(`/p/${PID}/today`);
+    await screen.findByRole('button', { name: 'Approve task-001-login' });
+    await user.click(linkOf(requiresYou(), 'task-001-login'));
+    await screen.findByRole('dialog');
+    await user.click(screen.getByRole('button', { name: 'Close' }));
+    await waitFor(() => expect(router.state.location.pathname).toBe(`/p/${PID}/today`));
+    await waitFor(() => expect(document.activeElement).toBe(linkOf(requiresYou(), 'task-001-login')));
+  });
+
+  it('returns the focus to the Waiting on others link that opened the panel (Enter)', async () => {
+    stubApi(panelApi());
+    const user = userEvent.setup();
+    const { router } = renderApp(`/p/${PID}/today`);
+    await screen.findByRole('button', { name: 'Approve task-001-login' });
+    linkOf(waitingCard(), 'task-002-reset').focus();
+    await user.keyboard('{Enter}');
+    await screen.findByRole('dialog');
+    await user.keyboard('{Escape}');
+    await waitFor(() => expect(router.state.location.pathname).toBe(`/p/${PID}/today`));
+    await waitFor(() => expect(document.activeElement).toBe(linkOf(waitingCard(), 'task-002-reset')));
+  });
+
+  it('records no opener for a modified click on a link (it opens elsewhere)', async () => {
+    stubApi(panelApi());
+    const user = userEvent.setup();
+    const { router } = renderApp(`/p/${PID}/today`);
+    await screen.findByRole('button', { name: 'Approve task-001-login' });
+    await user.keyboard('{Control>}');
+    await user.click(linkOf(requiresYou(), 'task-001-login'));
+    await user.keyboard('{/Control}');
+    await act(async () => router.navigate({ to: '/p/$pid/e/$eid', params: { pid: PID, eid: 'task-001-login' } }));
+    await screen.findByRole('dialog');
+    await user.click(screen.getByRole('button', { name: 'Close' }));
+    await waitFor(() => expect(router.state.location.pathname).toBe(`/p/${PID}/today`));
+    await screen.findByRole('button', { name: 'Approve task-001-login' });
+    await act(async () => new Promise((r) => requestAnimationFrame(() => r(undefined))));
+    expect(document.activeElement?.id).toBe('main');
+  });
+
+  // Review round 1, R6.
+  it('keeps a focus the user moved before Today was read again, and drops the request', async () => {
+    const inner = stubApi(panelApi());
+    let release: () => void = () => {};
+    let holding = false;
+    const gate = new Promise<void>((r) => (release = r));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: string) => {
+        if (holding && url === `${TODAY}?view=approver`) await gate;
+        return (inner as unknown as (u: string) => Promise<Response>)(url);
+      }),
+    );
+    const user = userEvent.setup();
+    const { router, queryClient } = renderApp(`/p/${PID}/today`);
+    await user.click(await screen.findByRole('button', { name: 'Approve task-001-login' }));
+    await screen.findByRole('dialog');
+    holding = true;
+    // Not awaited: the notification bell reads the same Today, held until the release.
+    void queryClient.invalidateQueries({ queryKey: queryKeys.project(PID, 'today') });
+    await user.click(screen.getByRole('button', { name: 'Close' }));
+    await waitFor(() => expect(router.state.location.pathname).toBe(`/p/${PID}/today`));
+    // Before Today is read again, the user goes to another control.
+    const other = await screen.findByRole('button', { name: 'Approve bug-001-crash' });
+    other.focus();
+    holding = false;
+    release();
+    await waitFor(() => expect(screen.queryByText('Reading Today…')).toBeNull());
+    await act(async () => new Promise((r) => requestAnimationFrame(() => r(undefined))));
+    expect(document.activeElement).toBe(other);
+  });
+
+  it('does not use an opener left by another project', async () => {
+    const PID_B = 'p_b';
+    stubApi(
+      panelApi({
+        '/api/projects': {
+          status: 200,
+          body: {
+            projects: [
+              { id: PID, name: 'demo', path: '/x', remote: null, availability: 'available' },
+              { id: PID_B, name: 'other', path: '/y', remote: null, availability: 'available' },
+            ],
+          },
+        },
+        [`/api/p/${PID_B}`]: { status: 200, body: morgan() },
+        [`/api/p/${PID_B}/today?view=approver`]: { status: 200, body: MORGAN_TODAY },
+      }),
+    );
+    const user = userEvent.setup();
+    const { router } = renderApp(`/p/${PID}/today`);
+    await user.click(await screen.findByRole('button', { name: 'Approve task-001-login' }));
+    await screen.findByRole('dialog');
+    // Another project's Today (the same element id there): its action does not take the focus.
+    await act(async () => router.navigate({ to: '/p/$pid/today', params: { pid: PID_B } }));
+    await waitFor(() => expect(router.state.location.pathname).toBe(`/p/${PID_B}/today`));
+    const there = await screen.findByRole('button', { name: 'Approve task-001-login' });
+    await act(async () => new Promise((r) => requestAnimationFrame(() => r(undefined))));
+    expect(document.activeElement).not.toBe(there);
+    // Nor later, back on the first project.
+    await act(async () => router.navigate({ to: '/p/$pid/today', params: { pid: PID } }));
+    const here = await screen.findByRole('button', { name: 'Approve task-001-login' });
+    await act(async () => new Promise((r) => requestAnimationFrame(() => r(undefined))));
+    expect(document.activeElement).not.toBe(here);
+  });
 });
