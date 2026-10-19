@@ -36,7 +36,8 @@ type Read<T> = Pick<UseQueryResult<T>, 'data' | 'error'>;
 
 /**
  * The control to focus when Today mounts again — the opener: set when a Requires you action, a
- * Requires you title link or a Waiting on others link opens the element panel, used once by Today of
+ * Requires you title link, a Waiting on others link or an item of the all-roles summary (review
+ * round 2, R2-1) opens the element panel, used once by Today of
  * the same project after the panel is closed — *Cancel*, Escape or its Close (bug-018, task-043 AC-7,
  * review R1 / D43-10; the Memory list's opener handling, X-06.3, W3-23). `opener` is the class of
  * the control inside the element's row.
@@ -53,6 +54,15 @@ function navigatesHere(event: MouseEvent<HTMLAnchorElement>): boolean {
     !event.shiftKey &&
     !event.altKey
   );
+}
+
+/**
+ * Record the control of class `opener` in the row of `eid` as the opener of the element panel
+ * (bug-018). Given the click of a link, only a click followed in this page counts (a modified or
+ * middle click opens the panel elsewhere).
+ */
+export function rememberOpener(pid: string, eid: string, opener: string, event?: MouseEvent<HTMLAnchorElement>): void {
+  if (event === undefined || navigatesHere(event)) returnOpener = { pid, eid, opener };
 }
 
 /** Props of {@link TodayView}. */
@@ -125,7 +135,7 @@ function RequiresYouRow({ pid, row, now }: { pid: string; row: TodayActionRow; n
           to="/p/$pid/e/$eid"
           params={{ pid, eid: element.id }}
           onClick={(event) => {
-            if (navigatesHere(event)) returnOpener = { pid, eid: element.id, opener: 'today-title' };
+            rememberOpener(pid, element.id, 'today-title', event);
           }}
         >
           {element.title}
@@ -138,7 +148,7 @@ function RequiresYouRow({ pid, row, now }: { pid: string; row: TodayActionRow; n
         aria-label={intl.formatMessage({ id: 'today.actionLabel' }, { action, id: element.id })}
         onPress={() => {
           // The focus comes back here when the panel closes (bug-018).
-          returnOpener = { pid, eid: element.id, opener: 'today-action' };
+          rememberOpener(pid, element.id, 'today-action');
           // A gate opens with its reason focused (task-037, G-04.3, D37-1): the second click decides.
           void navigate({
             to: '/p/$pid/e/$eid',
@@ -196,7 +206,7 @@ function WaitingRow({ pid, row }: { pid: string; row: TodayRow }): ReactNode {
         to="/p/$pid/e/$eid"
         params={{ pid, eid: element.id }}
         onClick={(event) => {
-          if (navigatesHere(event)) returnOpener = { pid, eid: element.id, opener: 'today-waiting-row' };
+          rememberOpener(pid, element.id, 'today-waiting-row', event);
         }}
       >
         <span className="type-tag today-tag">{element.type}</span>
