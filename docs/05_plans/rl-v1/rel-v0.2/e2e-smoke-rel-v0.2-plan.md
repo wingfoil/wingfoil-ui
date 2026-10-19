@@ -3,7 +3,7 @@ id: e2e-smoke-rel-v0.2-plan
 type: plan
 title: "E2E smoke rel-v0.2"
 status: active
-version: "0.1"         # optional — plan version
+version: "0.2"         # optional — plan version
 workflow: "e2e-smoke"
 phase: "rel-v0.2"
 scope: "rl-v1/rel-v0.2"
@@ -14,7 +14,7 @@ tmpl_version: 260703   # Orignal template version
 
 ## Context
 
-**Version:** 0.1 · **Date:** 2026-10-18 (0.1: plan created, mapping, decisions ES2-1 … ES2-4)
+**Version:** 0.2 · **Date:** 2026-10-19 (0.1: plan created, mapping, decisions ES2-1 … ES2-4; 0.2: Session 1 log — task-043, smoke green, bugs closed, bug-019; inputs for the retrospective)
 **Branch:** `design/e2e-smoke_v0.2` (merged to `main` with `--no-ff` at the end, on the approver's OK)
 **Workflows:** `sw-life-cycle` → `release-line-cycle` (`rl-v1`) phase `delivery` → `release-cycle`
 (`minor-v0.2`, v1.1) phase `e2e-smoke` = `e2e-smoke` (`.wingfoil/workflows/custom/e2e-smoke.yaml`
@@ -113,3 +113,84 @@ Release success criteria (`minor-v0.2.md`):
 ## Session log
 
 <!-- One entry per session: date, decisions taken, deviations from this plan. -->
+
+### Session 1 — 2026-10-18 – 2026-10-19
+
+- Plan created (`70d28dc` add, `6885e32` submit → `active`); mapping read-only on `70d28dc` (93
+  `@v0.2` scenario ids, each in an e2e test title); decisions ES2-1 … ES2-4 at the start.
+- **task-043** (test-only governance task, ES2-2; W-27 placeholders named like elements, see
+  *For the retrospective*): add `a6d8dd7`, submit `e6082ce`, approve → `backlog` `a1ae4ad`,
+  `in-progress` `7de04dd`; worktree `.worktrees/task-043`, developer agent. Design `54ee570`:
+  decisions D43-1 … D43-9 (the approver: "as recommended") — the CLI's two full subject forms,
+  the remote's commits excluded by ancestry, the kanban session order, the sidebar's Fetch, the
+  focus after Cancel returned to the Today opener (D43-5 (a): the current `#main` is a defect →
+  **bug-018**), Jordan on `task-004` for AC-4, a harness checker with a self-test, `.git/index`
+  covered by `git status`, tests next to their sibling scenarios.
+- **bug-018** (the focus after Cancel from Today goes to the main region): add `966b873`, submit
+  `9bf9684`, triaged by the approver `a751253` (low), `planned` `01fdc84` and `in-progress`
+  `e79a6f1` by hand — absorbed into task-043 as AC-7; `design/e2e-smoke_v0.2` merged into the
+  task branch (`7962c89`).
+- task-043 implementation: AC-1 `test/e2e/commit-provenance.spec.ts` with
+  `test/harness/commit-provenance.ts` (11 self-test cases); AC-2 G-04.1 with auto-push; AC-3
+  Reject and Cancel by keyboard; AC-4 Submit blocked while behind; AC-7 red first (`dd46038`),
+  fix `c5397fe`. Independent review: round 1 FAIL (2 minor — only the Today action returned the
+  focus while the docs promised every opener; `test/README.md` incomplete; 4 nits) → D43-10
+  (coordinator: the title link, the *Waiting on others* links and, round 2, the summary items
+  record their opener too); round 2 FAIL (1 minor — the summary items; 1 nit — version bumps);
+  round 3 **PASS** (2 nits: a circular import between `RoleSummary.tsx` and `TodayView.tsx`
+  accepted as a follow-up, a CHANGELOG wrap fixed). Gates of the task: `test:coverage` 3213 passed
+  / 1 skipped, `test:e2e:chromium` 319, own specs on three engines 144–210. Submit `9c64864`
+  (task), `d548298` (bug-018); approver: `8094c91` (task → `approved`), `729a63d` (bug-018 →
+  `resolved`); merged into `design/e2e-smoke_v0.2` `39ac65c`, `done` `b286ab9`; worktree and branch
+  removed. UX reference 1.10 §4.2, user guide 0.18, `test/README.md` 0.44, CHANGELOG *Fixed*.
+- **Step 3 — smoke run on `b286ab9`** (2026-10-19 17:08–18:52, in series, every heavy step through
+  the machine-free slot; logs in the session scratchpad): light checks (`typecheck`, `lint`,
+  `format:check`, `docs:api`, `check_tasks.py v0.2` 18 tasks, `check_releases.py`) ✓ ·
+  local-security (`local-security.test.ts`, `launcher.test.ts`, `guards.test.ts`,
+  `element-writes.test.ts`) **251/251** · contract `test:contract` **263 passed, 1 skipped** ·
+  `test:coverage` **3213 passed, 1 skipped** (statements 96.58 %, branches 91.42 %) · fixture-project
+  + drive-browser + accessibility `test:e2e` **935 passed** (Chromium 319, Firefox 308, WebKit 308;
+  0 flaky; 59.8 min at load 11–19) · launch `test:smoke` **4/4**, `test:publish-smoke` **11/11**. No
+  console, registry or `wfui-*` entry left. After `b286ab9` only documents and Memory files changed.
+- **Step 4 — bugs closed** (ES2-1, RV2-2): close notes and `release: "v0.2"` on bug-009 … bug-017
+  (`2e69b69`). The console (code of `b286ab9`, run from a separate worktree) on this repository:
+  the approver approved bug-008 … bug-014 and bug-016 from the element panel (`54ef033`,
+  `40f68c5`, `ee38579`, `c2484c9`, `94fc101`, `acd7720`, `eae29a3`, `d10465c`). A reject of
+  bug-016 made by mistake (`36917f3`, never pushed) was removed with `git reset --keep` at the
+  approver's explicit request (an exception to the no-rewrite rule). bug-015, bug-017 and bug-018
+  answered *not found*: **bug-019** (an element id longer than 100 characters matches no route —
+  Fastify's default `maxParamLength` — so its panel, history and writes answer 404) ingested
+  (`0916bad`, `c2bd718`), triaged by the approver (`c784652`, medium); fix planned for v0.3
+  (approver), known limitation of v0.2 (user guide 0.19, CHANGELOG, `77d60ba`). bug-015, bug-017,
+  bug-018 closed with the CLI (`0c8dee1`, `b6540cf`, `c89ee99`; close notes `2f9e767`).
+  `node scripts/action-log-ratio.mjs --state <the console's state file> 2e69b69..HEAD`: **8/12
+  (66.7 %)** in the action log; the four others are the CLI approvals forced by bug-019.
+  REQ-SEC-10 (this project's own gates passed from the UI) shown for v0.2; its ≥ 80 % fit criterion
+  is measured at the v0.3 retrospective.
+- **Step 5 — gate:** every step of `e2e-smoke.yaml` green on `b286ab9` (hard-reject gate, ES-7 of
+  v0.1). Approved by the approver (2026-10-19).
+- **Next:** the approver's registry checklist (RV2-4) and the `workflow_dispatch` dry run on `main`
+  (RV2-5, on the approver's OK), then `submit` + `publishing` (RV2-1).
+
+### For the retrospective of `minor-v0.2` (recorded 2026-10-18)
+
+- **Adoption of the WingFoil-Templates base pack** (approver, 2026-10-18): WingFoil v0.3 is expected
+  within a day and the `base` pack right after it. v0.2 is validated and released on the pinned
+  `wingfoil@0.2.2` with `.wingfoil/` unchanged (alignment only between releases, on the pinned
+  release). Proposal for the retrospective: a governance-alignment pre-step before the
+  `release-planning` of v0.3 — advance the pin to WingFoil 0.3 (`advance-pinned-build`, only with the
+  contract tests green on 0.3; the product's `wingfoil_min` may stay 0.2.2 with 0.3 added to the
+  matrix), adopt `base` on `.wingfoil/` with dl-008's tailoring re-applied on top, re-check the
+  directive `wingfoil-cli` against 0.3 (e.g. W-27, fixed after 0.2.2), independent review, the
+  approver's OK. Preconditions: the WingFoil `v0.3.0` tag, a tagged `base` pack, and the pack
+  catalogue's `compat.yaml` listing 0.3 with `pack-install`; if one is missing at v0.3 planning, or
+  0.3 has a blocking defect, the adoption moves to the preparation of v0.4. Accepted risk: first
+  adopter of both, with feedback to WingFoil and to the pack catalogue.
+- **bug-019 found by dogfooding:** the first decisions taken from the console on this repository
+  found a defect no test had seen (fixture ids are short); a fixture element with a long id is a
+  candidate test-data rule.
+- **task-043 follow-up:** move `rememberOpener` and its state to a small `web/src/today/opener.ts`
+  (the circular import accepted at review round 3).
+- **W-27 workaround wording:** the placeholders must be named like elements (`task-<n>-….md`);
+  other file names are not counted (a first `memory add` of task-043 gave `task-018`, reset before
+  any push). The directive's workaround text to be made precise.
