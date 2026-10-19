@@ -54,6 +54,13 @@ export interface Fixture {
   home: string;
 }
 
+/**
+ * Author name of every commit a test makes without its own `user.name` (task-044, bug-020): set in
+ * the harness configuration so that no commit depends on the OS account's full name. No team member
+ * bears it, so a commit without an explicit identity is recognisable in a log.
+ */
+export const HARNESS_GIT_NAME = 'Test Harness';
+
 /** Environment of the processes run under `root`, and its home directory. */
 export interface HarnessEnv {
   env: NodeJS.ProcessEnv;
