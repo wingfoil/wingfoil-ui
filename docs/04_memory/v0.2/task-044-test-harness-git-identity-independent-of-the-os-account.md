@@ -2,7 +2,7 @@
 id: task-044-test-harness-git-identity-independent-of-the-os-account
 type: task
 title: "Test harness git identity independent of the OS account"
-status: approved
+status: done
 release: "v0.2"
 module: "governance"   # optional — server | web | contracts (dna.yaml modules)
 priority: "high"       # optional — high | medium | low
