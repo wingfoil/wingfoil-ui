@@ -413,3 +413,43 @@ Every heavy gate through the machine-free slot, in series; the load at each gran
 | `npm run test:timing` | not run: no timed path changed (Today's open is unchanged until a panel closes) | — |
 
 No console left, no `wfui-*` entry in the system temporary directory.
+
+### review round 1 (2026-10-19)
+
+Independent review: **FAIL** (R1, R2 minor; R3 … R6 nits). Coordinator decisions recorded as
+D43-10:
+
+- **D43-10 (R1, option b)** — the user guide and ux-reference 1.9 §4.2 promised the focus back "to
+  where you opened it from", but only the Requires you **action** recorded the opener; the
+  Requires you **title link** and the **Waiting on others** link still sent it to `#main`. The fix
+  is extended rather than the docs narrowed: both links record the opener on an in-page primary
+  click or Enter (`navigatesHere`, as the Memory list; a modified or middle click opens elsewhere
+  and records nothing), and the opener — the control that opened the panel, found by its row's
+  `data-eid` and its class — takes the focus after the fresh read; `#main` when it is gone.
+
+| Id | Change | Test |
+|----|--------|------|
+| R1 | `TodayView.tsx`: `returnOpener {pid, eid, opener}` (the opener's class: `today-action`, `today-title`, `today-waiting-row`), set by the action's press and by both links' `onClick` through `navigatesHere`; the focus goes to that control in the element's row (`5eaf62b`); docs say "the control that opened it" (ux-reference 1.9 §4.2, user guide 0.17, CHANGELOG *Fixed* — kept at their versions of this task, notes extended, `f27a492`) | red first (`56762b2`): unit "returns the focus to the Requires you title link …", "returns the focus to the Waiting on others link … (Enter)" **failed** (focus on `#main`); e2e "AC-7 — Close returns the focus to the Requires you title link that opened the panel" **failed** on Chromium ("inactive"); green after the fix |
+| R2 | `test/README.md` 0.43: X-06.2 Cancel, both bug-018 describes, R1/R6 tests, the tracked-path rule | — |
+| R3 | `commit-provenance.ts`: the element's file is its tracked path at the session's start (`git ls-tree -r --name-only <before>`, exactly one `<id>.md`), compared in full (`c0c4b9f`) | red first (`a876e42`): "a governed commit that touches a file of the same name in another folder" failed (with the R4 signature) |
+| R4 | `sessionCommits(dir, env, {before, head, remoteBrought})`: the after-snapshot's HEAD, not the live `HEAD` | the self-test calls it with an explicit head |
+| R5 | no change (AC-4's "no request" recorder is the accepted G-11.2 pattern) | — |
+| R6 | — (behaviour already right) | unit "keeps a focus the user moved before Today was read again, and drops the request" (Today's re-read held; another action focused meanwhile) and "does not use an opener left by another project" (the same element id on a second project's Today); both passed first: **guard removal** — without the "nothing else holds the focus" check the first fails, without the pid check the second fails; likewise without `navigatesHere` on the title link "records no opener for a modified click on a link" fails (each restored) |
+
+e2e closure (review round 1 addition):
+
+| Gap / scenario | spec file › test |
+|----------------|------------------|
+| AC-7 (bug-018, D43-10) title link | `test/e2e/gate-footer.spec.ts` › "AC-7 — Close returns the focus to the Requires you title link that opened the panel" |
+
+Checks after review round 1 (HEAD before this note `f27a492`; every heavy gate through the slot, in
+series):
+
+| Gate | Result | Load |
+|------|--------|------|
+| `npm run typecheck`, `npm run lint`, `npm run format:check`, `npm run docs:api` (0 warnings), `check_tasks.py v0.2` | clean / OK | — |
+| `npm run test:coverage` | **3212 passed / 1 skipped**; statements 96.56 %, branches 91.38 %, functions 97.30 %, lines 98.35 % | 2.9 |
+| `npm run test:e2e:chromium` (whole suite) | **319 passed** (11.6 min) | 12.8 |
+| `npm run test:e2e -- gate-footer.spec.ts update-push.spec.ts commit-provenance.spec.ts today.spec.ts` (three engines) | **210 passed** (8.7 min) | 9.0 → 21.5 |
+
+No console left, no `wfui-*` entry in the system temporary directory.
