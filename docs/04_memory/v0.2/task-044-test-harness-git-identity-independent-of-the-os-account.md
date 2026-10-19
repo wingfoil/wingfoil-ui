@@ -289,3 +289,13 @@ emulating wrapper; `npm run test:coverage` under the emulating wrapper (slot gra
 91.4 %, functions 97.3 %, lines 98.35 %; 329.7 s; no "auto-detection is disabled" / "Author
 identity unknown" in the log; 0 `wfui-*` left, no console left. No e2e file changed: no
 Playwright run.
+
+### review (2026-10-19, coordinator)
+
+- Independent fresh-context review: round 1 FAIL — R1 blocker (the AC-5 "still reported" case passed
+  on git 2.43 only: on git ≥ 2.48 the fetch had already made `origin/HEAD` a symref and
+  `update-ref` without `--no-deref` moved `origin/main`; reproduced by the reviewer with a wrapper
+  emulating `followRemoteHEAD`), R2 and R3 nits; fixed in `c3f707c`, `eaa0ce3`. Round 2 **PASS**, no
+  finding; `diffRepo` of the e2e support does not read the new `symrefs`, so no e2e run is needed.
+  Residual CI risk accepted (D44-7): other git 2.55 differences; `test:smoke` and
+  `test:publish-smoke` never run on a runner — the next dry run checks them.
