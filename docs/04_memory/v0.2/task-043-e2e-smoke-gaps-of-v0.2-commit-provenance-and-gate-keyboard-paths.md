@@ -453,3 +453,25 @@ series):
 | `npm run test:e2e -- gate-footer.spec.ts update-push.spec.ts commit-provenance.spec.ts today.spec.ts` (three engines) | **210 passed** (8.7 min) | 9.0 → 21.5 |
 
 No console left, no `wfui-*` entry in the system temporary directory.
+
+### review round 2 (2026-10-19)
+
+Independent review: R1 … R6 verified; new findings, decided by the coordinator:
+
+| Id | Change | Test |
+|----|--------|------|
+| R2-1 (minor) | the all-roles summary's item links (`RoleSummary.tsx`, `today-summary-item`) opened the panel from Today without recording an opener: they now record it through `rememberOpener(pid, eid, opener, event?)`, a small function exported by `TodayView.tsx` (the mutable binding stays private; `navigatesHere` applied to a link's click), also used by the action and the two other links (`f93c802`); `RoleSummary.tsx` imports it from `TodayView.tsx` (an import cycle between the two modules, used only inside event handlers) | red first (`5de889e`): `summary.test.tsx` › "returns the focus to the summary item that opened the panel (bug-018, R2-1)" failed (`<main id="main">`), passes after the fix; `test/web/today` 45/45 |
+| R2-1 docs | ux-reference §4.2: the opener rule names every opener on Today (action, title link, Waiting on others link, summary item) and gives the rest as "otherwise the main region" — an opener no longer listed, the notification bell's items (they open the panel from a popover that closes), the panel's address or another link; the user guide states the same | — |
+| R2-2 (nit) | doc-versioning: ux-reference 1.9 → **1.10**, user guide 0.17 → **0.18** (the edits of `f27a492` and of this round, "task-043 review rounds 1–2"); `test/README.md` **0.44** (the R2-1 test); CHANGELOG *Fixed* names the summary item (`d01ab35`) | — |
+
+Checks after review round 2 (HEAD before this note `d01ab35`; every heavy gate through the slot, in
+series):
+
+| Gate | Result | Load |
+|------|--------|------|
+| `npm run typecheck`, `npm run lint`, `npm run format:check`, `npm run docs:api` (0 warnings), `check_tasks.py v0.2` | clean / OK | — |
+| `npm run test:coverage` | **3213 passed / 1 skipped**; statements 96.56 %, branches 91.40 % | 3.2 |
+| `npm run test:e2e:chromium` (whole suite) | **319 passed** (11.6 min) | 11.2 |
+| `npm run test:e2e -- today.spec.ts gate-footer.spec.ts` (three engines; `update-push`, `commit-provenance` untouched since their green run of round 1) | **144 passed** (6.4 min) | 10.3 → 19.1 |
+
+No console left, no `wfui-*` entry in the system temporary directory.
