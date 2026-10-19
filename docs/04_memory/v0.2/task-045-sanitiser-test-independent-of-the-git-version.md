@@ -62,3 +62,67 @@ independent review), as decided by the approver.
      - design: tech-specs found missing/needing revision (dev-loop/design safety net).
      - red/green/refactor: deviations from the plan above, blockers, scope surprises.
      - review: rejection reasons and what changed on the next pass. -->
+
+### design (2026-10-19)
+
+Read: this task, bug-022, the Execution Notes of task-040 (bug-017, review round 2 S2-1: the add
+and clone producer tests, proved by removing the sanitiser call) and of task-044 (the strict-run
+recipe, the `followRemoteHEAD` emulation); `server/src/projects/project-list.ts` (the add route's
+only git call is `git remote get-url origin` in the folder, `GitReads.origin()`; exit 2 — no
+`origin` — reads as "no remote", any other failure is `git-refused` through `redactLocalPaths`).
+
+**D45-1 — probes of git 2.43 (this machine; the runner has 2.55).** A folder with `.wingfoil/` and
+each candidate, then `git remote get-url origin` in it (`<v>` = `x` U+202E ESC `[31m`):
+
+| Candidate | git 2.43 text | Verdict |
+|-----------|---------------|---------|
+| A — `.git` file `gitdir: <missing path with <v>>` (the test of bug-017) | `fatal: not a git repository: <path>` with U+202E, ESC as `?` | git 2.55 prints `(null)` (bug-022): the path argument of that message comes from the gitfile discovery, whose code changed — rejected |
+| E — `gitdir:` to an existing folder that is not a repository | same message and path | the same message and code path as A — rejected |
+| B — `git init`, then `core.repositoryformatversion = <v>` | `fatal: bad numeric config value 'x‮?[31m' for 'core.repositoryformatversion' in file .git/config: invalid unit` | **chosen** |
+| C — `core.filemode = <v>` | `error: No such remote 'origin'` (exit 2: read as no remote, the add goes on) | no refusal — rejected |
+| D — `core.bare = <v>` | `fatal: bad boolean config value 'x‮?[31m' for 'core.bare'` | works, but which command reads `core.bare` strictly is less central than B |
+
+**D45-2 — why B holds on git 2.55.** The repository-format check runs in the discovery of every
+command inside a repository, before the command's own code (`check_repository_format_gently` →
+`read_repository_format`, `check_repo_format` reads `core.repositoryformatversion` with
+`git_config_int`); a non-numeric value dies in `die_bad_number`, and every variant of that message
+(no file, `in blob`, `in file`, `in standard input`, `in submodule-blob`, `in command line`) formats
+the value with `'%s'` — the value is the data, not a variable a refactor of the discovery can lose.
+The check guards git's own repository format and the message is the same family since git 2.x; a
+git that accepted a non-numeric format version would open a repository it cannot interpret. The
+value is written with `git config` (git itself, no hand-made file format). No branch on the git
+version; the no-raw-character assertion is kept as the first assertion; the `‮` assertion
+stays (U+202E is passed on by git's `vreportf`, which writes ESC as `?` — any other control would
+be turned to `?` by git first, so the bidi override is the character that proves the sanitiser).
+An `expect(await list(w)).toEqual([])` is added (nothing listed). The test is renamed "add: git
+quoting a config value with control and bidi characters". Alternatives not chosen: covering the
+add producer only through the clone route (the clone producer is another call site,
+`project-list.ts` `runClone`; the add site would lose its real-git test); a stubbed runner
+(AC-1 asks for a real git refusal).
+
+**D45-3 — AC-2: assertions on git's wording in `test/server/http/` and `test/launcher/`**
+(`grep -rnE "fatal|not a git repository|does not appear|toContain\('|toMatch\(/"` over both
+folders, then `grep -rn "git-refused\|lastError"` in `test/launcher/` — none there; `grep -rn
+gitdir: test/` for the same construct elsewhere). Every one below passed on git 2.55 in the dry run
+`39328350689` (1 failure in the run: the bug-022 test), and none depends on a path argument that
+git computes:
+
+| Test | Assertion | Verdict |
+|------|-----------|---------|
+| `projects.test.ts` › refuses a folder with .wingfoil/ that is not a git repository | `/not a git repository/` | safe: the no-repository die of discovery ("not a git repository (or any of the parent directories): .git"), a literal `.git`, no computed argument |
+| `projects.test.ts` › S-07.1 unreachable remote | `/git\.invalid/` | safe: the URL the test chose, echoed by the HTTP transport ("unable to access '<url>'") |
+| `projects.test.ts` › S-07.3 refused authentication | `/Authentication failed\|could not read Username/` | safe: two wordings accepted; `Authentication failed for '<url>'` is the credential code's long-stable text |
+| `projects.test.ts` › refuses the ext:: / fd:: transport | `/not allowed/` | safe: `transport '%s' not allowed` (protocol.allow, git ≥ 2.12) |
+| `projects.test.ts` › bug-017 clone: git quoting a URL | `/\\u202e\|%E2%80%AE/i` | safe: the URL the test chose ("repository '<url>' not found"), raw or percent-encoded both accepted |
+| `git-routes.test.ts` › git refuses → 422 git-refused | `toContain('<remote>')` | safe: the remote path is the test's (`'<path>' does not appear to be a git repository`) |
+| `git-routes.test.ts` › D33-2 GIT_ALLOW_PROTOCOL | `/transport 'ext' not allowed/` | safe: as above |
+| `auto-push.test.ts` › Y-08.1 | `/rejected\|fetch first\|non-fast-forward/` | safe: three wordings of the push rejection |
+| `git-routes.test.ts` 525–562, 644; `auto-push.test.ts` 206 | redaction of messages | safe: stubbed runner output, no git text |
+| `test/server/git/local-remote.test.ts` › S3 (`gitdir:`) | code `remote-not-owned` | safe: our own resolution of the `gitdir:` file, no git message |
+| `test/launcher/` | `state.test.ts`, `launcher.test.ts`: the launcher's own stderr | safe: no git text |
+
+Test plan: the renamed case in `projects.test.ts` (bug-017 describe); red by guard removal (the
+sanitiser call of the add route removed: the case must fail on the raw U+202E); green under the
+plain git and under the strict `useConfigOnly` + `followRemoteHEAD` wrapper; `test:coverage`
+through the slot under that wrapper. No product change, no README change (the test name is not
+cited there), no e2e change.
