@@ -244,7 +244,10 @@ describe('the remote-tracking HEAD git maintains itself (task-044 AC-5, bug-021)
 
   it('a plain ref of that name, or the HEAD symref of another remote: still reported', async () => {
     const brought = await playSession();
-    await git(dir, ['update-ref', 'refs/remotes/origin/HEAD', 'HEAD'], env);
+    // The symref exists on every git version first (git ≥ 2.48 already made it in the setup's
+    // fetch), then `--no-deref` replaces it by a plain ref instead of moving `origin/main`.
+    await git(dir, ['remote', 'set-head', 'origin', 'main'], env);
+    await git(dir, ['update-ref', '--no-deref', 'refs/remotes/origin/HEAD', 'HEAD'], env);
     await git(dir, ['remote', 'add', 'mirror', remoteDir], env);
     await git(dir, ['fetch', '-q', 'mirror'], env);
     await git(dir, ['remote', 'set-head', 'mirror', 'main'], env);

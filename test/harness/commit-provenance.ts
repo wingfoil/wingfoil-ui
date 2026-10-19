@@ -171,10 +171,10 @@ export async function provenanceProblems(input: ProvenanceInput): Promise<string
   // git ≥ 2.48 creates `refs/remotes/<remote>/HEAD` on fetch (`remote.<name>.followRemoteHEAD`,
   // bug-021); the symref then follows the branch it names. Ignored only while it is a symbolic ref
   // into the remote's own tracking refs: a plain ref of that name, its removal or another remote's
-  // HEAD are still reported.
+  // HEAD are still reported. Read from the after-snapshot (`RepoState.symrefs`), not live.
   const remoteHeadRef = `refs/remotes/${remote}/HEAD`;
-  const symref = await run('git', ['symbolic-ref', '-q', remoteHeadRef], { cwd: dir, env, allowFailure: true });
-  if (symref.code === 0 && symref.stdout.trim().startsWith(`refs/remotes/${remote}/`)) allowed.add(remoteHeadRef);
+  const target = refMap(after.symrefs).get(remoteHeadRef);
+  if (target?.startsWith(`refs/remotes/${remote}/`)) allowed.add(remoteHeadRef);
   problems.push(...refChanges(before.refs, after.refs, allowed));
   const afterRefs = refMap(after.refs);
   if (afterRefs.get(local) !== after.head) problems.push(`${local} is not HEAD`);

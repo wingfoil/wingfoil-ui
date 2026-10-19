@@ -17,6 +17,8 @@ export interface RepoState {
   headRef: string;
   /** `<ref> <object>` of every ref. */
   refs: string[];
+  /** `<ref> <target>` of every symbolic ref under `refs/` (e.g. `refs/remotes/origin/HEAD`). */
+  symrefs: string[];
   stash: string;
   /** `git status --porcelain`, untracked and ignored files included. */
   status: string;
@@ -48,6 +50,9 @@ export async function snapshotRepo(dir: string, env: NodeJS.ProcessEnv): Promise
     // Exit 1 when HEAD is detached: not an error.
     headRef: (await run('git', ['symbolic-ref', '-q', 'HEAD'], { cwd: dir, env: e, allowFailure: true })).stdout.trim(),
     refs: (await out(['for-each-ref', '--format=%(refname) %(objectname)'])).split('\n').filter(Boolean),
+    symrefs: (await out(['for-each-ref', '--format=%(if)%(symref)%(then)%(refname) %(symref)%(end)']))
+      .split('\n')
+      .filter(Boolean),
     stash: await out(['stash', 'list']),
     status: await out(['status', '--porcelain=v1', '--untracked-files=all', '--ignored']),
     index: await digest(path.join(gitDir, 'index')),
