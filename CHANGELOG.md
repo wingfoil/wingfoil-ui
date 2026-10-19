@@ -145,6 +145,8 @@ Supports WingFoil **0.2.2 to 0.2.x** (contract-tested: 0.2.2), as v0.1. Not publ
 
 ### Known limitations
 
+- An element whose id is longer than 100 characters is listed but cannot be opened or decided
+  from the console (404; bug-019, to be fixed in v0.3).
 - *Auto-update* (off by default) is a declared risk: on a timer it does what `git pull` does, so
   incoming commits can run commands the user's own git configuration points at.
 - *Push* and Auto-push go to the upstream's remote only, never to a `pushRemote`; a cancelled

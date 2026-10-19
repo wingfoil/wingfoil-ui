@@ -1,6 +1,6 @@
 # User guide — WingFoil UI v0.2
 
-**Version:** 0.18 · **Date:** 2026-10-19 (0.1: release v0.1; 0.2: bug-008 known limitation, release submit; 0.3: bug-008 wording; 0.4: bug-008 marked fixed after 0.1.0 — task-026; 0.5: *How to join*, unreleased v0.2 — task-035; 0.6: *Today*, unreleased v0.2 — task-036; 0.7: what runs during a clone, a local repository of another user, unreleased v0.2 — task-033 / bug-010, bug-013; 0.8: a local source git cannot read — task-033 review round 3; 0.9: *Deciding a gate*, unreleased v0.2 — task-037; 0.10: *Automatic sync with the remote*, unreleased v0.2 — task-034 / bug-014, its security reviews; 0.11: the notification bell and *Your roles* on Today, unreleased v0.2 — task-042; 0.12: *Submitting* and *After an action*, unreleased v0.2 — task-038; 0.13: *Git status in the sidebar*, unreleased v0.2 — task-039; 0.14: *UI settings*, unreleased v0.2 — task-041; 0.15: *Update* and *Push* in the sidebar, a URL pasted into an open tab, tool messages shown safely, unreleased v0.2 — task-040 / bug-016, bug-017; 0.16: release v0.2 user-docs — the guide describes v0.2 as a whole, known limitations of v0.2; 0.17: the focus back on the Today action after the element panel closes — bug-018, task-043; 0.18: every opener on Today and the "otherwise" rule — task-043 review rounds 1–2)
+**Version:** 0.19 · **Date:** 2026-10-19 (0.1: release v0.1; 0.2: bug-008 known limitation, release submit; 0.3: bug-008 wording; 0.4: bug-008 marked fixed after 0.1.0 — task-026; 0.5: *How to join*, unreleased v0.2 — task-035; 0.6: *Today*, unreleased v0.2 — task-036; 0.7: what runs during a clone, a local repository of another user, unreleased v0.2 — task-033 / bug-010, bug-013; 0.8: a local source git cannot read — task-033 review round 3; 0.9: *Deciding a gate*, unreleased v0.2 — task-037; 0.10: *Automatic sync with the remote*, unreleased v0.2 — task-034 / bug-014, its security reviews; 0.11: the notification bell and *Your roles* on Today, unreleased v0.2 — task-042; 0.12: *Submitting* and *After an action*, unreleased v0.2 — task-038; 0.13: *Git status in the sidebar*, unreleased v0.2 — task-039; 0.14: *UI settings*, unreleased v0.2 — task-041; 0.15: *Update* and *Push* in the sidebar, a URL pasted into an open tab, tool messages shown safely, unreleased v0.2 — task-040 / bug-016, bug-017; 0.16: release v0.2 user-docs — the guide describes v0.2 as a whole, known limitations of v0.2; 0.17: the focus back on the Today action after the element panel closes — bug-018, task-043; 0.18: every opener on Today and the "otherwise" rule — task-043 review rounds 1–2; 0.19: bug-019 known limitation — e2e-smoke)
 
 WingFoil UI v0.2 — **Unblock** — is a local console for WingFoil-governed projects: you open a
 project, see on **Today** what requires you, decide its gates and submit its work, and keep your
@@ -681,6 +681,11 @@ Accepted for v0.2 and recorded in the implementation plans
 
 Git sync and actions (new in v0.2):
 
+- **An element whose id is longer than 100 characters cannot be opened** (bug-019, to be fixed in
+  v0.3). It is listed in the Memory list and in Today, but its panel shows *not found* and its
+  gate cannot be decided from the console: the server refuses a path parameter over 100
+  characters. WingFoil builds the id from the title; decide such an element with the CLI
+  (`wingfoil memory approve <id> --reason …`) or give it a shorter title before it is created.
 - **Auto-update is a declared risk.** Turned on, it does what `git pull` does on a timer: incoming
   commits can run commands your own git configuration points at — see
   [Before you turn Auto-update on](#before-you-turn-auto-update-on). It is off by default. Hooks
