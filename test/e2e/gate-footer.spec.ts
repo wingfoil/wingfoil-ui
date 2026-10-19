@@ -15,6 +15,7 @@ import { cli, lastCommitSubject } from './support/events.js';
 import { expect, test } from './support/fixtures.js';
 import { actAs } from './support/identity.js';
 import { expectFocusVisible, tabUntil } from './support/keyboard.js';
+import { remoteHead } from './support/remote.js';
 
 test.use({ prebuild: ['kanban', 'custom', 'unknown'] });
 
@@ -109,6 +110,42 @@ test.describe('US-G-04 — two clicks from Today', () => {
     expect(await page.evaluate(() => (window as unknown as { wfuiClicks: number }).wfuiClicks)).toBe(2);
     // The panel shows the new state: approved is the last state of the kanban default (S-24.1's footer).
     await expect(footer(page)).toHaveText('Final state: no action is possible', { timeout: COLD_READ_MS });
+  });
+
+  // task-043 AC-2 (gap G3): success criterion 1 of minor-v0.2 in one test — a member holding
+  // `approver` passes a gate from Today in two clicks, with the `wf(…)` commit shown and pushed.
+  test('G-04.1 — Approve a gate in two clicks from Today, with the commit shown and pushed (success criterion 1)', async ({
+    page,
+    fixtures,
+    consoles,
+  }) => {
+    const kanban = await copyAs(fixtures, 'kanban', 'Morgan');
+    const c = await consoles.start({ projects: [kanban], settings: { autoPush: true, autoFetch: false } });
+    await openToday(page, c);
+    await page.evaluate(() => {
+      const w = window as unknown as { wfuiClicks: number };
+      w.wfuiClicks = 0;
+      document.addEventListener('click', () => (w.wfuiClicks += 1), true);
+    });
+    await todayAction(page, 'task-001-login-form').click();
+    await outcome(page, 'Approve → approved').click({ timeout: COLD_READ_MS });
+    // The toast first, hovered (its 8 s timer paused, D38-2), before any server-read wait (W5 lesson).
+    const toast = page
+      .locator('.toasts [aria-live="polite"] .toast')
+      .filter({ hasText: 'Approved task-001-login-form' });
+    await expect(toast).toBeVisible({ timeout: COLD_READ_MS });
+    await toast.hover();
+    await expect(toast.locator('.toast-pushed')).toHaveText('pushed', { timeout: COLD_READ_MS });
+    const subject = 'wf(task): approve task-001-login-form [pending → approved]';
+    await expectLastCommit(kanban, subject);
+    const sha = (await git(kanban.dir, ['rev-parse', 'HEAD'], kanban.env)).stdout.trim();
+    await expect(toast.locator('.toast-commits li')).toHaveText(
+      `${sha.slice(0, 7)} ${await lastCommitSubject(kanban)}`,
+    );
+    await expect(toast.locator('.toast-commits code')).toHaveText(sha.slice(0, 7));
+    expect(await page.evaluate(() => (window as unknown as { wfuiClicks: number }).wfuiClicks)).toBe(2);
+    expect(await remoteHead(kanban)).toBe(sha);
+    expect(await scanThemes(page)).toEqual([]);
   });
 
   test('G-04.3 — Open the gate footer with the reason focused', async ({ page, fixtures, consoles }) => {
@@ -399,5 +436,131 @@ test.describe('US-X-06 — keyboard (TT-PERF-10)', () => {
     // The focus stays in the panel once the outcome is gone (D37-9).
     await expect(footer(page)).toHaveText('Final state: no action is possible', { timeout: COLD_READ_MS });
     expect(await page.evaluate(() => document.activeElement?.closest('.drawer') !== null)).toBe(true);
+  });
+  // task-043 AC-3 (gap G4): Reject of the gate footer by keyboard only, from Today.
+  test('X-06.2 — Reject a gate with the keyboard only (G4)', async ({ page, fixtures, consoles }) => {
+    const kanban = await copyAs(fixtures, 'kanban', 'Morgan');
+    const c = await consoles.start({ projects: [kanban], settings: { autoFetch: false } });
+    await openToday(page, c);
+    const action = todayAction(page, 'task-001-login-form');
+    await tabUntil(page, action);
+    await expectFocusVisible(action);
+    await page.keyboard.press('Enter');
+    await expect(reasonField(page)).toBeFocused({ timeout: COLD_READ_MS });
+    // The default is selected on focus: typing replaces it (D37-4).
+    const reason = 'Acceptance criteria are not met (task-043)';
+    await page.keyboard.type(reason);
+    await expect(reasonField(page)).toHaveValue(reason);
+    const reject = outcome(page, 'Reject → draft');
+    await tabUntil(page, reject);
+    await expectFocusVisible(reject);
+    // A typed reason is kept when a reject takes the focus (G-06.4).
+    await expect(reasonField(page)).toHaveValue(reason);
+    await page.keyboard.press('Enter');
+    await expect(
+      page.locator('.toasts [aria-live="polite"] .toast-title').filter({ hasText: 'Rejected task-001-login-form' }),
+    ).toHaveCount(1, { timeout: COLD_READ_MS });
+    await expectLastCommit(kanban, 'wf(task): reject task-001-login-form [pending → draft]');
+    const { stdout: body } = await git(kanban.dir, ['log', '-1', '--format=%B'], kanban.env);
+    expect(body).toContain(reason);
+    // What the user sees: the rejection banner of the panel, with the reason. The name is the commit's
+    // author, which e2e identities do not set (they set only `user.email`; ES2-3): not asserted.
+    await expect(
+      drawer(page).getByText(new RegExp(`^Rejected by .+: ${reason.replace(/[()]/g, '\\$&')}$`)),
+    ).toBeVisible({
+      timeout: COLD_READ_MS,
+    });
+  });
+  // task-043 AC-3 (gap G4) and AC-7 (bug-018): Cancel of the gate footer by keyboard only; the focus
+  // returns to the Today action that opened the panel (as the Memory list's row, X-06.3).
+  test('X-06.2 — Cancel the gate footer with the keyboard only (G4)', async ({ page, fixtures, consoles }) => {
+    const kanban = await copyAs(fixtures, 'kanban', 'Morgan');
+    const before = await git(kanban.dir, ['rev-parse', 'HEAD'], kanban.env);
+    const c = await consoles.start({ projects: [kanban], settings: { autoFetch: false } });
+    const writes = recordWrites(page);
+    await openToday(page, c);
+    const action = todayAction(page, 'task-001-login-form');
+    await tabUntil(page, action);
+    await page.keyboard.press('Enter');
+    await expect(reasonField(page)).toBeFocused({ timeout: COLD_READ_MS });
+    const cancel = gate(page).getByRole('button', { name: 'Cancel', exact: true });
+    await tabUntil(page, cancel);
+    await expectFocusVisible(cancel);
+    await page.keyboard.press('Enter');
+    await expect(drawer(page)).toHaveCount(0);
+    await expect(page).toHaveURL(`${c.origin}/p/${c.pids[0]}/today`);
+    await expect(action).toBeFocused({ timeout: COLD_READ_MS });
+    await expectFocusVisible(action);
+    expect(writes).toEqual([]);
+    expect((await git(kanban.dir, ['rev-parse', 'HEAD'], kanban.env)).stdout).toBe(before.stdout);
+  });
+});
+
+test.describe('bug-018 — the focus after the element panel opened from Today (task-043 AC-7)', () => {
+  for (const how of ['Escape', 'Close'] as const) {
+    test(`AC-7 — ${how} returns the focus to the Today action that opened the panel`, async ({
+      page,
+      fixtures,
+      consoles,
+    }) => {
+      const c = await consoles.start({
+        projects: [await copyAs(fixtures, 'kanban', 'Morgan')],
+        settings: { autoFetch: false },
+      });
+      await openToday(page, c);
+      const action = todayAction(page, 'task-001-login-form');
+      await action.click();
+      await expect(reasonField(page)).toBeFocused({ timeout: COLD_READ_MS });
+      if (how === 'Escape') await page.keyboard.press('Escape');
+      else await drawer(page).getByRole('button', { name: 'Close', exact: true }).click();
+      await expect(drawer(page)).toHaveCount(0);
+      await expect(page).toHaveURL(`${c.origin}/p/${c.pids[0]}/today`);
+      await expect(action).toBeFocused({ timeout: COLD_READ_MS });
+    });
+  }
+
+  // Review round 1, R1 (D43-10): the opener may also be the row's title link.
+  test('AC-7 — Close returns the focus to the Requires you title link that opened the panel', async ({
+    page,
+    fixtures,
+    consoles,
+  }) => {
+    const c = await consoles.start({
+      projects: [await copyAs(fixtures, 'kanban', 'Morgan')],
+      settings: { autoFetch: false },
+    });
+    await openToday(page, c);
+    const title = page
+      .getByRole('region', { name: 'Requires you' })
+      .locator('li[data-eid="task-001-login-form"]')
+      .getByRole('link');
+    await title.click();
+    await expect(drawer(page).locator('.type-tag')).toBeVisible({ timeout: COLD_READ_MS });
+    await drawer(page).getByRole('button', { name: 'Close', exact: true }).click();
+    await expect(drawer(page)).toHaveCount(0);
+    await expect(page).toHaveURL(`${c.origin}/p/${c.pids[0]}/today`);
+    await expect(title).toBeFocused({ timeout: COLD_READ_MS });
+  });
+
+  test('AC-7 — the focus goes to the main region when the Today action is gone', async ({
+    page,
+    fixtures,
+    consoles,
+  }) => {
+    const kanban = await copyAs(fixtures, 'kanban', 'Morgan');
+    const c = await consoles.start({ projects: [kanban], settings: { autoFetch: false } });
+    await openToday(page, c);
+    await todayAction(page, 'task-001-login-form').click();
+    await outcome(page, 'Approve → approved').click({ timeout: COLD_READ_MS });
+    await expect(footer(page)).toHaveText('Final state: no action is possible', { timeout: COLD_READ_MS });
+    await drawer(page).getByRole('button', { name: 'Close', exact: true }).click();
+    await expect(page).toHaveURL(`${c.origin}/p/${c.pids[0]}/today`);
+    // The approved element left Requires you: no action to return to.
+    await expect(
+      page.getByRole('region', { name: 'Requires you' }).locator('li[data-eid="task-001-login-form"]'),
+    ).toHaveCount(0, {
+      timeout: COLD_READ_MS,
+    });
+    await expect(page.locator('#main')).toBeFocused();
   });
 });
