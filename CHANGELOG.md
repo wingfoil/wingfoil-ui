@@ -102,10 +102,9 @@ Supports WingFoil **0.2.2 to 0.2.x** (contract-tested: 0.2.2), as v0.1. Not publ
   when the console is killed (`kill -9`).
 - **The focus comes back to the Today control that opened the element panel** (bug-018): a panel
   opened from a *Requires you* action or title, a *Waiting on others* row or an item of the roles
-  summary, and closed with
-  the gate footer's *Cancel*, with Escape or with its *Close* gives the focus back to that control,
-  as the Memory list does for its row; to the main region only when it is no longer listed (e.g. the
-  gate was decided).
+  summary, and closed with the gate footer's *Cancel*, with Escape or with its *Close* gives the
+  focus back to that control, as the Memory list does for its row; to the main region only when it
+  is no longer listed (e.g. the gate was decided).
 
 ### Security
 

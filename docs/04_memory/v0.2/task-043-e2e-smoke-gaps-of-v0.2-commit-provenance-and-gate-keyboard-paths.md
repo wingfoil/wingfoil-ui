@@ -475,3 +475,13 @@ series):
 | `npm run test:e2e -- today.spec.ts gate-footer.spec.ts` (three engines; `update-push`, `commit-provenance` untouched since their green run of round 1) | **144 passed** (6.4 min) | 10.3 → 19.1 |
 
 No console left, no `wfui-*` entry in the system temporary directory.
+
+### review (2026-10-19, coordinator)
+
+- Independent fresh-context review: round 1 FAIL (2 minor — the docs promised a focus return for every
+  Today opener, `test/README.md` incomplete; 4 nits), round 2 FAIL (1 minor — the roles summary's
+  items; 1 nit — version bumps), round 3 **PASS** with two nits: R3-1 (`RoleSummary.tsx` and
+  `TodayView.tsx` import each other; harmless at run time, `rememberOpener` is called only in click
+  handlers) accepted, a small `opener.ts` module is a follow-up for the retrospective; R3-2 (a ragged
+  CHANGELOG wrap) fixed by the coordinator. Decision D43-10 (coordinator, review round 1): the title
+  link, the *Waiting on others* links and (round 2) the summary items record their opener too.
