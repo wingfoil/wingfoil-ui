@@ -167,7 +167,15 @@ export async function provenanceProblems(input: ProvenanceInput): Promise<string
   // `.git/index` is rewritten by every commit — its effect is compared through the status).
   const local = `refs/heads/${branch}`;
   const tracking = `refs/remotes/${remote}/${branch}`;
-  problems.push(...refChanges(before.refs, after.refs, new Set([local, tracking])));
+  const allowed = new Set([local, tracking]);
+  // git ≥ 2.48 creates `refs/remotes/<remote>/HEAD` on fetch (`remote.<name>.followRemoteHEAD`,
+  // bug-021); the symref then follows the branch it names. Ignored only while it is a symbolic ref
+  // into the remote's own tracking refs: a plain ref of that name, its removal or another remote's
+  // HEAD are still reported.
+  const remoteHeadRef = `refs/remotes/${remote}/HEAD`;
+  const symref = await run('git', ['symbolic-ref', '-q', remoteHeadRef], { cwd: dir, env, allowFailure: true });
+  if (symref.code === 0 && symref.stdout.trim().startsWith(`refs/remotes/${remote}/`)) allowed.add(remoteHeadRef);
+  problems.push(...refChanges(before.refs, after.refs, allowed));
   const afterRefs = refMap(after.refs);
   if (afterRefs.get(local) !== after.head) problems.push(`${local} is not HEAD`);
   if (afterRefs.get(tracking) !== after.head)
