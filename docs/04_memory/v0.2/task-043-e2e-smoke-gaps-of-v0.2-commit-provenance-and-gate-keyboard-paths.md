@@ -397,3 +397,19 @@ e2e closure (scenario → spec file › test):
 | G5, G-12.1 Submit | `test/e2e/update-push.spec.ts` › "G-12.1 — Block a submit while behind (G5)" |
 | AC-7 (bug-018) Escape, Close | `gate-footer.spec.ts` › "AC-7 — Escape returns the focus to the Today action that opened the panel", "AC-7 — Close returns the focus to the Today action that opened the panel" |
 | AC-7 (bug-018) opener gone | `gate-footer.spec.ts` › "AC-7 — the focus goes to the main region when the Today action is gone" |
+
+### checks (2026-10-19, HEAD `e144997`)
+
+Every heavy gate through the machine-free slot, in series; the load at each grant.
+
+| Gate | Result | Load |
+|------|--------|------|
+| `npm run typecheck`, `npm run lint`, `npm run format:check` | clean | — |
+| `npm run docs:api` (0 warnings), `check_tasks.py v0.2` | OK | — |
+| `npm run test:coverage` (public-text check included) | 173 files passed, 1 skipped; **3206 passed / 1 skipped**; statements 96.54 %, branches 91.34 %, functions 97.29 %, lines 98.35 % | 9.6 |
+| `npm run test:e2e:chromium` (whole suite) | **318 passed** (11.5 min) | 10.9 |
+| `npm run test:e2e -- gate-footer.spec.ts update-push.spec.ts commit-provenance.spec.ts today.spec.ts` (three engines) | **207 passed** (8.6 min) | 9.7 → 21.9 |
+| `npm run test:smoke` | not run: no packaging, launcher or bin change | — |
+| `npm run test:timing` | not run: no timed path changed (Today's open is unchanged until a panel closes) | — |
+
+No console left, no `wfui-*` entry in the system temporary directory.
