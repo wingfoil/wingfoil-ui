@@ -170,3 +170,19 @@ this task does not touch, under a 1-min load of 20–26 (12 cores, swap full) th
 run; the files pass alone; Vitest prints no coverage figures for a failed run. The bug-022 case
 passed in all three runs. RP-36 runs four consoles in sequence inside one 30 s test — reported to
 the coordinator as a load-sensitivity candidate (bug-004 class), not fixed here.
+
+### review (2026-10-20, coordinator)
+
+- Independent fresh-context review: **PASS** (two nits). The add route's only git call
+  (`remote get-url origin`) dies with exit 128 on the non-numeric `core.repositoryformatversion`, so
+  the case reaches the same `git-refused` producer through `redactLocalPaths`; the reviewer checked
+  git's `master` source (`check_repo_format` → `git_config_int` → `die_bad_number` quoting the value).
+  R1 (nit, recorded here): outside AC-2's two folders, `test/server/projects/clone.test.ts` and
+  `test/server/git/transport-facts.test.ts` (`transport 'ext' not allowed`) passed on git 2.55 in run
+  `39328350689`; `test/e2e/add-project.spec.ts` (`Authentication failed`) and
+  `test/e2e/git-status.spec.ts` (`unable to access`) assert git's wording but do not run in CI —
+  safe for v0.2, a candidate for the same treatment later. R2 (nit): the table is broader than AC-2
+  asks — no change.
+- The coverage timeouts (`auto-sync.test.ts` RP-36, `element-writes.test.ts` W2-5,
+  `snapshot/watcher.test.ts` F3, load 20–26) are unrelated to this diff (reviewer); RP-36's 30 s
+  budget with four consoles is a load-sensitivity candidate for a separate bug.
