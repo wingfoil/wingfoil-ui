@@ -1130,15 +1130,21 @@ describe('bug-017 — git-refused of the project list through the sanitiser', ()
   const RLO = String.fromCharCode(0x202e);
   const raw = (text: string) => [ESC, RLO].filter((c) => text.includes(c));
 
-  it('add: git quoting a gitdir with control and bidi characters', async () => {
+  // bug-022 (task-045): a refusal whose text quotes a value the test chose on every git version —
+  // the repository-format check every command runs dies on a non-numeric
+  // `core.repositoryformatversion` quoting the value ("bad numeric config value '<value>' for …");
+  // git 2.55 no longer quotes a missing `gitdir:` path ("not a git repository: (null)").
+  it('add: git quoting a config value with control and bidi characters', async () => {
     const w = await world();
-    const loose = path.join(w.dir, 'loose-gitdir');
+    const loose = path.join(w.dir, 'bad-format');
     await cp(path.join(w.fx.dir, '.wingfoil'), path.join(loose, '.wingfoil'), { recursive: true });
-    await writeFile(path.join(loose, '.git'), `gitdir: ${path.join(w.dir, `missing${RLO}${ESC}[31m`)}\n`);
+    await git(loose, ['init', '-q'], w.env);
+    await git(loose, ['config', 'core.repositoryformatversion', `x${RLO}${ESC}[31m`], w.env);
     const error = await refusal(await add(w, loose), 'git-refused');
     expect(raw(error.message)).toEqual([]);
     // (git writes the ESC as "?" itself; the RIGHT-TO-LEFT OVERRIDE it passes on.)
     expect(error.message).toContain('\\u202e');
+    expect(await list(w)).toEqual([]);
   });
 
   it('clone: git quoting a URL with control and bidi characters', async () => {
