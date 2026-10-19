@@ -2,7 +2,7 @@
 id: bug-020-test-harness-takes-the-git-author-name-from-the-os-account-and-commits-fail-on-a-runner-without-a-full-name
 type: bug
 title: "Test harness takes the git author name from the OS account and commits fail on a runner without a full name"
-status: triaged
+status: planned
 severity: "low"           # REQUIRED — critical | high | medium | low
 release-origin: "v0.2"     # optional — release where the bug was FOUND, e.g. "v0.1"
 release: ""            # optional — fix/implementation release, stamped by release-planning/build-backlog
@@ -66,3 +66,6 @@ support included). Found by the release-validation dry run, before any tag.
        live on those tasks (docs/04_memory/{release}/{id}.md, `bug: {this id}`, their own
        Execution Notes section) — this section only needs a pointer plus anything that doesn't
        belong on a specific fix task (e.g. why 2 tasks were needed instead of 1). -->
+
+- 2026-10-19 — triage (approver): `low`, test-only; absorbed into task-044 (pre-step of
+  `release-submit-rel-v0.2-plan`).
