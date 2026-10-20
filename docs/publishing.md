@@ -76,8 +76,8 @@ ships as a git tag only and a decision-log records it, as dl-004 did for v0.1 (R
    publishing* for `wingfoil-ui` before a first version, go to step 5. If it does not, the approver
    publishes the **first** version by hand, with 2FA, from the tarball the pipeline built and smoked
    — download the `wingfoil-ui-tarball` artifact of the tag run (or of a dry run on the tagged
-   commit), check its name and version, then `npm publish wingfoil-ui-<version>.tgz --access
-   public`. That one version has no provenance; no token is created at any time. Then do step 5 for
+   commit), check its name and version, then
+   `npm publish wingfoil-ui-<version>.tgz --access public`. That one version has no provenance; no token is created at any time. Then do step 5 for
    every later release. For `wingfoil-ui` (2026-10-19) npmjs.com offered no trusted publishing
    before a first version: `0.2.0` follows this path, with the tag run's `promote` deployment
    rejected.
