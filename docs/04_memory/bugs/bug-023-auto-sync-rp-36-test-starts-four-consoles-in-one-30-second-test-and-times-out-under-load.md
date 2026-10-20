@@ -2,7 +2,7 @@
 id: bug-023-auto-sync-rp-36-test-starts-four-consoles-in-one-30-second-test-and-times-out-under-load
 type: bug
 title: "Auto-sync RP-36 test starts four consoles in one 30 second test and times out under load"
-status: open
+status: triaged
 severity: "low"           # REQUIRED — critical | high | medium | low
 release-origin: "v0.2"     # optional — release where the bug was FOUND, e.g. "v0.1"
 release: ""            # optional — fix/implementation release, stamped by release-planning/build-backlog
