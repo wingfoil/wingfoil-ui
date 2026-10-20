@@ -1,6 +1,6 @@
 # User guide — WingFoil UI v0.2
 
-**Version:** 0.19 · **Date:** 2026-10-19 (0.1: release v0.1; 0.2: bug-008 known limitation, release submit; 0.3: bug-008 wording; 0.4: bug-008 marked fixed after 0.1.0 — task-026; 0.5: *How to join*, unreleased v0.2 — task-035; 0.6: *Today*, unreleased v0.2 — task-036; 0.7: what runs during a clone, a local repository of another user, unreleased v0.2 — task-033 / bug-010, bug-013; 0.8: a local source git cannot read — task-033 review round 3; 0.9: *Deciding a gate*, unreleased v0.2 — task-037; 0.10: *Automatic sync with the remote*, unreleased v0.2 — task-034 / bug-014, its security reviews; 0.11: the notification bell and *Your roles* on Today, unreleased v0.2 — task-042; 0.12: *Submitting* and *After an action*, unreleased v0.2 — task-038; 0.13: *Git status in the sidebar*, unreleased v0.2 — task-039; 0.14: *UI settings*, unreleased v0.2 — task-041; 0.15: *Update* and *Push* in the sidebar, a URL pasted into an open tab, tool messages shown safely, unreleased v0.2 — task-040 / bug-016, bug-017; 0.16: release v0.2 user-docs — the guide describes v0.2 as a whole, known limitations of v0.2; 0.17: the focus back on the Today action after the element panel closes — bug-018, task-043; 0.18: every opener on Today and the "otherwise" rule — task-043 review rounds 1–2; 0.19: bug-019 known limitation — e2e-smoke)
+**Version:** 0.20 · **Date:** 2026-10-20 (0.1: release v0.1; 0.2: bug-008 known limitation, release submit; 0.3: bug-008 wording; 0.4: bug-008 marked fixed after 0.1.0 — task-026; 0.5: *How to join*, unreleased v0.2 — task-035; 0.6: *Today*, unreleased v0.2 — task-036; 0.7: what runs during a clone, a local repository of another user, unreleased v0.2 — task-033 / bug-010, bug-013; 0.8: a local source git cannot read — task-033 review round 3; 0.9: *Deciding a gate*, unreleased v0.2 — task-037; 0.10: *Automatic sync with the remote*, unreleased v0.2 — task-034 / bug-014, its security reviews; 0.11: the notification bell and *Your roles* on Today, unreleased v0.2 — task-042; 0.12: *Submitting* and *After an action*, unreleased v0.2 — task-038; 0.13: *Git status in the sidebar*, unreleased v0.2 — task-039; 0.14: *UI settings*, unreleased v0.2 — task-041; 0.15: *Update* and *Push* in the sidebar, a URL pasted into an open tab, tool messages shown safely, unreleased v0.2 — task-040 / bug-016, bug-017; 0.16: release v0.2 user-docs — the guide describes v0.2 as a whole, known limitations of v0.2; 0.17: the focus back on the Today action after the element panel closes — bug-018, task-043; 0.18: every opener on Today and the "otherwise" rule — task-043 review rounds 1–2; 0.19: bug-019 known limitation — e2e-smoke; 0.20: release v0.2.0 — git tag and npm, release submit)
 
 WingFoil UI v0.2 — **Unblock** — is a local console for WingFoil-governed projects: you open a
 project, see on **Today** what requires you, decide its gates and submit its work, and keep your
@@ -17,8 +17,8 @@ only through:
 - cloning a remote repository into a new folder ([Projects](#projects)).
 
 It never edits a file of a project itself. What changed since v0.1 is listed in the
-[CHANGELOG](../CHANGELOG.md); v0.2 is not tagged yet, so the latest release is still `v0.1.0`
-(read-only).
+[CHANGELOG](../CHANGELOG.md); v0.2 is released as `0.2.0` (git tag `v0.2.0`, npm
+`wingfoil-ui@0.2.0`).
 
 Contents: [Launching](#launching) · [Session](#the-session-and-the-browser) ·
 [Projects](#projects) · [Project header](#the-project-header) · [Today](#today) · [Memory](#memory) ·
@@ -32,8 +32,8 @@ Contents: [Launching](#launching) · [Session](#the-session-and-the-browser) ·
 
 ## Launching
 
-Requirements and installation are in the [README](../README.md#install-and-run). From the
-checkout:
+Requirements and installation are in the [README](../README.md#install-and-run): `npx wingfoil-ui`
+starts the version published on npm; from a checkout:
 
 ```bash
 node bin/wingfoil-ui.cjs
@@ -668,9 +668,6 @@ From the release plan (`docs/01_vision/07_sequencer.md`, `docs/01_vision/06_feat
   no effect yet), no artifacts view, no "Open on GitHub" link.
 - **Notifications stay inside the console:** the bell, Today and the toasts; no e-mail, chat or
   system notification.
-- **Not on npm yet:** run it from a checkout or an installed package
-  ([README](../README.md#install-and-run)); the publishing pipeline is ready but no version is on
-  npm.
 
 ## Known limitations
 

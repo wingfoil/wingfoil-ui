@@ -1,13 +1,13 @@
 # CLI reference — `wingfoil-ui`
 
-**Version:** 0.3 · **Date:** 2026-10-18 (0.1: release v0.1; 0.2: `npx wingfoil-ui` from an installed package, Ctrl-C under `npx` — task-025; 0.3: release v0.2 user-docs — the command line is unchanged; the state directory's new content, the git environment of the transports, the automatic sync at start and at stop)
+**Version:** 0.4 · **Date:** 2026-10-20 (0.1: release v0.1; 0.2: `npx wingfoil-ui` from an installed package, Ctrl-C under `npx` — task-025; 0.3: release v0.2 user-docs — the command line is unchanged; the state directory's new content, the git environment of the transports, the automatic sync at start and at stop; 0.4: release v0.2.0 — `npx wingfoil-ui` from npm)
 
 The `wingfoil-ui` command starts the WingFoil UI console: a local server on the loopback addresses
 and, unless told otherwise, the browser on its URL. It is the package `bin`
 (`bin/wingfoil-ui.cjs`); from a checkout, after `npm ci && npm run build`, run it as
-`node bin/wingfoil-ui.cjs [options]`; from a folder where the package is installed
-([README](../README.md#install-from-a-package)), as `npx wingfoil-ui [options]`
-([README](../README.md#install-and-run)).
+`node bin/wingfoil-ui.cjs [options]`; from npm, or from a folder where the package is installed
+([README](../README.md#from-npm), [README](../README.md#install-from-a-package)), as
+`npx wingfoil-ui [options]`.
 
 Sources: `bin/wingfoil-ui.cjs`, `server/src/main.ts`, `server/src/launcher/` (`options.ts`,
 `start.ts`, `listen.ts`, `opener.ts`), messages in `server/src/i18n/en.json`; specification

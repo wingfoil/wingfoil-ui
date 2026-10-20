@@ -2,12 +2,17 @@
 
 All notable changes to WingFoil UI are recorded in this file. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses
-[Semantic Versioning](https://semver.org/spec/v2.0.0.html); release `v0.1` is the git tag `v0.1.0`.
+[Semantic Versioning](https://semver.org/spec/v2.0.0.html); release `v0.1` is the git tag `v0.1.0`,
+release `v0.2` the git tag `v0.2.0` and the npm version `wingfoil-ui@0.2.0`.
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-10-20
+
 **Unblock.** Decide gates and submit work from *Today*, keep the copy in sync with its remote.
-Supports WingFoil **0.2.2 to 0.2.x** (contract-tested: 0.2.2), as v0.1. Not published on npm.
+Supports WingFoil **0.2.2 to 0.2.x** (contract-tested: 0.2.2), as v0.1. The first version on npm:
+`npx wingfoil-ui` ([README](README.md#from-npm)); published by hand by the approver from the tag
+run's smoked tarball, without a provenance statement (`docs/publishing.md`, checklist step 4).
 
 ### Added
 
@@ -77,8 +82,9 @@ Supports WingFoil **0.2.2 to 0.2.x** (contract-tested: 0.2.2), as v0.1. Not publ
   a pushed `vX.Y.Z` tag — the repository gates, a staging smoke on a local registry
   (`npm run test:publish-smoke`), then `npm stage publish` through an npm trusted publisher after
   the approver's deployment approval; a version goes live only when the approver approves it on
-  npm with 2FA. The registry-side setup is the approver's checklist in `docs/publishing.md`; until
-  it is done no version of `wingfoil-ui` is on npm.
+  npm with 2FA. The registry-side setup is the approver's checklist in `docs/publishing.md`. A
+  name with no version cannot have a trusted publisher yet, so `0.2.0` itself was published by hand
+  (checklist step 4); later versions go through the pipeline.
 
 ### Changed
 
@@ -263,5 +269,6 @@ bin/wingfoil-ui.cjs` ([README](README.md#install-and-run)), or `npm pack` it and
 
 Details: [user guide — Known limitations](docs/user-guide.md#known-limitations).
 
-[Unreleased]: https://github.com/wingfoil/wingfoil-ui/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/wingfoil/wingfoil-ui/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/wingfoil/wingfoil-ui/releases/tag/v0.2.0
 [0.1.0]: https://github.com/wingfoil/wingfoil-ui/releases/tag/v0.1.0

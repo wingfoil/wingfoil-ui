@@ -1,6 +1,6 @@
 # CLAUDE.md — agent entry point
 
-**Version:** 0.6 · **Date:** 2026-10-18 (0.1: release v0.1, `user-docs` `align-agent-docs`; 0.2: v0.1.0 released, release submit; 0.3: `test:smoke` wave gate — task-026; 0.4: e2e on three engines, inner-loop Chromium run — task-027; 0.5: `test:publish-smoke`, the publishing guide — task-029; 0.6: release v0.2 user-docs — v0.2 in release validation)
+**Version:** 0.7 · **Date:** 2026-10-20 (0.1: release v0.1, `user-docs` `align-agent-docs`; 0.2: v0.1.0 released, release submit; 0.3: `test:smoke` wave gate — task-026; 0.4: e2e on three engines, inner-loop Chromium run — task-027; 0.5: `test:publish-smoke`, the publishing guide — task-029; 0.6: release v0.2 user-docs — v0.2 in release validation; 0.7: v0.2.0 released — git tag and npm, the first version by hand)
 
 WingFoil UI: a local web UI for WingFoil-governed projects. A Node.js server (`server/`) drives
 each project's pinned `wingfoil` CLI and reads git; a React app (`web/`) shows the result;
@@ -9,14 +9,15 @@ is itself governed by WingFoil (`.wingfoil/`).
 
 ## Project status
 
-Release **v0.2 — Unblock** (`docs/04_memory/planning/v1/minor-v0.2.md`, `in-development`): the
-implementation is complete (17/17 tasks `done`, `dev-loop-rel-v0.2-plan` `done`) and **release
-validation is under way** — `user-docs`, then `e2e-smoke`, `submit` and `publishing`, one plan per
-phase in `docs/05_plans/rl-v1/rel-v0.2/`. The v0.2 surface is on `main` but **not released**: the
-latest release is **v0.1 — Read-only console**, git tag `v0.1.0` (`package.json` version
-`0.1.0`), not on npm (dl-004). The root `package.json` is no longer `private` and the publish
-pipeline `.github/workflows/publish.yml` exists (task-029), but no version has been published
-([`docs/publishing.md`](docs/publishing.md)). The final status is written at `release-submit`.
+Latest release: **v0.2 — Unblock** (`docs/04_memory/planning/v1/minor-v0.2.md`), git tag `v0.2.0`
+(`package.json` version `0.2.0`) and the first version on npm, `wingfoil-ui@0.2.0`. npmjs.com
+offers no trusted publisher for a name with no version, so the approver published `0.2.0` **by
+hand**, with 2FA, from the tag run's smoked tarball (the run's `promote` rejected): that version has
+no provenance statement. Later versions go through `.github/workflows/publish.yml` — `gate`,
+`stage`, then `promote` to the npm stage queue through the trusted publisher, live after the
+approver's `npm stage approve` ([`docs/publishing.md`](docs/publishing.md)). The GitHub Release of
+`v0.2.0` was made by hand; an automatic one is planned for v0.3. The previous release, **v0.1 —
+Read-only console** (git tag `v0.1.0`), was not published on npm (dl-004).
 
 Released in `v0.1.0`:
 
@@ -28,11 +29,10 @@ Released in `v0.1.0`:
 - cross-cutting: loopback-only server with session token and Host/Origin checks, externalised
   strings, light/dark themes, accessibility.
 
-On `main`, not released (v0.2, `CHANGELOG.md` *[Unreleased]*): *Today*, the notification bell, the
-gate footer (`memory approve` / `reject`) and *Submit* (`memory submit`) with toasts, *How to
-join*, UI settings, the git status with *Fetch*, *Update* (fast-forward only) and *Push*, the
-automatic sync (auto-fetch on, auto-update and auto-push off by default); e2e on Chromium, Firefox
-and WebKit.
+Released in `v0.2.0` (`CHANGELOG.md` *[0.2.0]*): *Today*, the notification bell, the gate footer
+(`memory approve` / `reject`) and *Submit* (`memory submit`) with toasts, *How to join*, UI
+settings, the git status with *Fetch*, *Update* (fast-forward only) and *Push*, the automatic sync
+(auto-fetch on, auto-update and auto-push off by default); e2e on Chromium, Firefox and WebKit.
 
 Not shipped (v0.3 and later): editing (fields, DNA, directives, files), ingestion, workflow views,
 timeline, traceability, files, command palette, `.wingfoil/ui.yaml`, agent launch. The feature

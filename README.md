@@ -3,11 +3,11 @@
 Local web UI for [WingFoil](https://github.com/wingfoil/wingfoil)-governed projects, served by a
 local server that drives the `wingfoil` CLI.
 
-> **Status: v0.2 — Unblock, in release validation** (not tagged yet; the latest release is
-> `v0.1.0`, the read-only console). See on *Today* what requires you, decide gates and submit work
-> through the project's own WingFoil CLI, and keep your copy in sync with its remote (fetch,
-> fast-forward update, push, optionally automatic). No editing, no workflow views and no agents
-> yet (see [What v0.2 does not do](#what-v02-does-not-do)).
+> **Status: v0.2 — Unblock, released as `0.2.0`** (git tag `v0.2.0`, npm `wingfoil-ui@0.2.0`; the
+> previous release `v0.1.0` was the read-only console). See on *Today* what requires you, decide
+> gates and submit work through the project's own WingFoil CLI, and keep your copy in sync with its
+> remote (fetch, fast-forward update, push, optionally automatic). No editing, no workflow views and
+> no agents yet (see [What v0.2 does not do](#what-v02-does-not-do)).
 
 ## What it is
 
@@ -51,14 +51,30 @@ What v0.2 offers:
 
 ## Install and run
 
-WingFoil UI is not published on npm yet: each release is a git tag (`v0.1.0`; v0.2 will be
-`v0.2.0`). The npm pipeline and the registry setup it needs first are described in
-[Publishing to npm](docs/publishing.md). Run it from a checkout:
+Each release is a git tag (`v0.1.0`, `v0.2.0`); from `0.2.0` on, each is also published on npm as
+`wingfoil-ui` ([Publishing to npm](docs/publishing.md)). Three ways to run it:
+
+### From npm
+
+```bash
+npx wingfoil-ui                            # fetches the package and starts it, e.g. --no-open
+```
+
+Or install it in a folder, then start it from there:
+
+```bash
+mkdir ~/wingfoil-ui && cd ~/wingfoil-ui
+npm init -y
+npm install wingfoil-ui
+npx wingfoil-ui
+```
+
+### From a checkout
 
 ```bash
 git clone https://github.com/wingfoil/wingfoil-ui.git
 cd wingfoil-ui
-git checkout v0.2.0           # the release tag (v0.1.0 until v0.2 is tagged)
+git checkout v0.2.0           # the release tag
 npm ci
 npm run build                 # server (tsc) and browser app (vite)
 node bin/wingfoil-ui.cjs      # prints the URL and opens the browser
@@ -83,15 +99,8 @@ npx wingfoil-ui                            # same options as above, e.g. --no-op
 
 The package holds the launcher, the built server and browser application, the JSON contracts and
 the message catalogue; its runtime dependencies are installed from npm. Install it before running
-`npx wingfoil-ui`: no version of `wingfoil-ui` is on npm yet, and `npx` looks on the registry for
-a command it does not find installed.
-
-### From npm (once published)
-
-Once a version is published on npm — not yet: the approver's registry checklist of
-[Publishing to npm](docs/publishing.md) comes first — `npx wingfoil-ui` will fetch and start it
-without a checkout, and `npm install wingfoil-ui` will install it in a folder. Until then,
-`npm view wingfoil-ui` answers that no such package exists; use one of the two ways above.
+`npx wingfoil-ui`: `npx` looks on the registry for a command it does not find installed, and would
+start the published version instead of your tarball.
 
 ## Documentation
 
