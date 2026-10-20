@@ -1,6 +1,6 @@
 # Publishing to npm
 
-**Version:** 0.2 · **Date:** 2026-10-17 (0.1: the publish pipeline, the approver's checklist, the
+**Version:** 0.3 · **Date:** 2026-10-20 (0.1: the publish pipeline, the approver's checklist, the
 local staging smoke, the differences from WingFoil's pipeline — task-029; 0.2: review round 1 — a
 dispatch never promotes, the guard's limit, the dev-only audit findings, what is not verified yet;
 0.3: release v0.2.0 — the first version by hand, `stage` verified on Node 22.12.0, the GitHub
@@ -48,7 +48,7 @@ and the environment admits `v*` tags only. On a branch the tag checks are skippe
 `npm stage publish` and the provenance statement: the local npm (11.6.2 on 2026-10-17) has no
 `stage` command, and none of these exist outside GitHub Actions and npmjs.com.
 
-**Verified on a runner:** `gate` and the `stage` job on Node 22.12.0, by the third
+**Verified on a runner:** `gate` (Node 22.22.2) and `stage` (Node 22.12.0), by the third
 `workflow_dispatch` dry run on `main` (run `39451186680`, 2026-10-20: `test:coverage`, `test:smoke`
 4/4, `test:publish-smoke` 11/11; the first two dry runs found bug-020, bug-021, bug-022). **Not
 verified yet:** the trusted publisher, `npm stage publish`, the `npm-publish` approval of a real
@@ -57,8 +57,8 @@ it is their first run.
 
 ## Approver checklist (registry-side setup, once)
 
-Done by the approver **before `release-submit`** of the first release published to npm. If a step
-is missing then, the release ships as a git tag only and a decision-log records it, as dl-004 did
+Done by the approver **before `release-submit`** of the first release published to npm (steps 5–6
+right after a first version published by hand, step 4). If a step is missing then, the release ships as a git tag only and a decision-log records it, as dl-004 did
 for v0.1 (RP-46).
 
 1. **Package name.** `npm view wingfoil-ui` answers `E404` (the name is free; `curl -s -o /dev/null
@@ -72,7 +72,7 @@ for v0.1 (RP-46).
    unprotected on the first run and `promote` would not wait.
 4. **First publish of a new name (check this first on npmjs.com).** npm's documentation does not
    say whether a trusted publisher can be configured for a name that has no version yet
-   (unverified on 2026-10-17). If npmjs.com offers *Trusted publishing* for `wingfoil-ui` before a
+   (unverified on 2026-10-17; answered on 2026-10-19 — see the end of this step). If npmjs.com offers *Trusted publishing* for `wingfoil-ui` before a
    first version, go to step 5. If it does not, the approver publishes the **first** version by
    hand, with 2FA, from the tarball the pipeline built and smoked — download the
    `wingfoil-ui-tarball` artifact of the tag run (or of a dry run on the tagged commit), check its

@@ -5,9 +5,9 @@
 The `wingfoil-ui` command starts the WingFoil UI console: a local server on the loopback addresses
 and, unless told otherwise, the browser on its URL. It is the package `bin`
 (`bin/wingfoil-ui.cjs`); from a checkout, after `npm ci && npm run build`, run it as
-`node bin/wingfoil-ui.cjs [options]`; from npm, or from a folder where the package is installed
-([README](../README.md#from-npm), [README](../README.md#install-from-a-package)), as
-`npx wingfoil-ui [options]`.
+`node bin/wingfoil-ui.cjs [options]`; from npm, or from a folder where the package is installed,
+as `npx wingfoil-ui [options]` ([README — From npm](../README.md#from-npm),
+[README — Install from a package](../README.md#install-from-a-package)).
 
 Sources: `bin/wingfoil-ui.cjs`, `server/src/main.ts`, `server/src/launcher/` (`options.ts`,
 `start.ts`, `listen.ts`, `opener.ts`), messages in `server/src/i18n/en.json`; specification

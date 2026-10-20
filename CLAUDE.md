@@ -16,8 +16,9 @@ hand**, with 2FA, from the tag run's smoked tarball (the run's `promote` rejecte
 no provenance statement. Later versions go through `.github/workflows/publish.yml` — `gate`,
 `stage`, then `promote` to the npm stage queue through the trusted publisher, live after the
 approver's `npm stage approve` ([`docs/publishing.md`](docs/publishing.md)). The GitHub Release of
-`v0.2.0` was made by hand; an automatic one is planned for v0.3. The previous release, **v0.1 —
-Read-only console** (git tag `v0.1.0`), was not published on npm (dl-004).
+`v0.2.0` is made by hand once the version is live; an automatic one is planned for v0.3. The
+previous release, **v0.1 — Read-only console** (git tag `v0.1.0`), was not published on npm
+(dl-004). Next: the v0.2 retrospective (a new session), then the release-planning of v0.3.
 
 Released in `v0.1.0`:
 

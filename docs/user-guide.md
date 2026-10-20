@@ -33,7 +33,7 @@ Contents: [Launching](#launching) · [Session](#the-session-and-the-browser) ·
 ## Launching
 
 Requirements and installation are in the [README](../README.md#install-and-run): `npx wingfoil-ui`
-starts the version published on npm; from a checkout:
+fetches and starts the version published on npm; from a checkout:
 
 ```bash
 node bin/wingfoil-ui.cjs

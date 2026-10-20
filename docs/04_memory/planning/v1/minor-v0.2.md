@@ -76,8 +76,8 @@ Actual effort per phase (dl-006 action 6; wall-clock of the working sessions, 20
 | implementation — Wave 4 (task-034, task-042) | `dev-loop-rel-v0.2-plan` session 5 | 2026-10-15 17:45 – 2026-10-16 17:15 (pauses, a reboot) | ~11 h working time, 1 active day |
 | implementation — Wave 5 (task-038, task-039, task-041) | `dev-loop-rel-v0.2-plan` session 6 | 2026-10-16 19:25 – 2026-10-17 14:25 (overnight pause) | ~10 h working time, 1 active day |
 | implementation — Wave 6 (task-040, task-029) | `dev-loop-rel-v0.2-plan` session 7 | 2026-10-17 15:05 – 2026-10-18 19:50 (overnight pause) | ~14 h working time, 1 active day |
-| release validation — user-docs, e2e-smoke (task-043) | `user-docs-rel-v0.2-plan`, `e2e-smoke-rel-v0.2-plan` | 2026-10-18 20:10 – 2026-10-19 19:31 (overnight pause) | 1 active day (the 9th) |
-| release validation — submit pre-step (three dry runs, task-044, task-045) | `release-submit-rel-v0.2-plan` session 1 | 2026-10-19 19:35 – 2026-10-20 19:56 (overnight pause; waits for the CI runs and the slot) | 1 active day (the 10th) |
+| release validation — user-docs, e2e-smoke (task-043) | `user-docs-rel-v0.2-plan`, `e2e-smoke-rel-v0.2-plan` | 2026-10-18 20:25 (first commit) – 2026-10-19 19:31 (overnight pause) | 1 active day (the 9th); working time not recorded |
+| release validation — submit pre-step (three dry runs, task-044, task-045) | `release-submit-rel-v0.2-plan` session 1 | 2026-10-19 21:59 (first dry run) – 2026-10-20 19:56 (overnight pause; waits for the CI runs and the slot) | 1 active day (the 10th; RV2-1 deviation: submit and publishing did not fit the 9th, they finish on an 11th); working time not recorded |
 
 - 2026-10-12 — `release-planning-rel-v0.2-plan` sessions 1–2 (branch `design/release-planning_v0.2`).
   `advance-pinned-build` no-op (0.2.2 newest); `minor-v0.2` `draft → planning` (`4c8ead3`);
@@ -150,14 +150,14 @@ Actual effort per phase (dl-006 action 6; wall-clock of the working sessions, 20
   approver).
 - 2026-10-18 — implementation complete: 17/17 tasks `done`; `dev-loop-rel-v0.2-plan` finalized
   (`e692674`); last gate on `main` `33ab602`: `test:e2e` three engines 908 passed, `test:coverage`
-  3193 passed / 1 skipped, `test:smoke` 4/4, `test:publish-smoke` 11/11, `test:timing` repeated alone.
-  Three test-only governance tasks (`module: governance`, `ref: GOV`) followed at release validation:
-  task-043 (e2e-smoke gaps), task-044 (test harness git identity) and task-045 (sanitiser test
-  independent of the git version) — see *E2E smoke* and *Submit & Publishing* below. Recurring
-  blockers across waves: machine load from another project's gates (the machine-free slot from Wave
-  5 on); security review rounds on the server write tasks (3–5 rounds each on task-032, task-033,
-  task-034, task-040) finding new bypasses of git-URL and tool-text handling. No change to Scope or
-  Pillar Focus recorded.
+  3193 passed / 1 skipped, `test:smoke` 4/4, `test:publish-smoke` 11/11, `test:timing` repeated
+  alone. Three test-only governance tasks (`module: governance`, `ref: GOV`) followed at release
+  validation: task-043 (e2e-smoke gaps), task-044 (test harness git identity) and task-045
+  (sanitiser test independent of the git version) — see *E2E smoke* and *Submit & Publishing* below.
+  Recurring blockers across waves: machine load from another project's gates (the machine-free slot
+  from Wave 5 on); security review rounds on the server write tasks (3–5 rounds each on task-032,
+  task-033, task-034, task-040) finding new bypasses of git-URL and tool-text handling. No change to
+  Scope or Pillar Focus recorded.
 
 ### User docs (user-docs)
 
@@ -191,14 +191,14 @@ Actual effort per phase (dl-006 action 6; wall-clock of the working sessions, 20
 - 2026-10-19 — task-043 (design decisions D43-1 … D43-10; commit-provenance e2e check of a UI
   session, G-04.1 with auto-push, Reject and Cancel by keyboard, Submit blocked while behind).
   bug-018 (the focus after Cancel from Today went to the main region) found at its design, absorbed
-  as AC-7 and fixed in `web/src/today/`. Review round 1 FAIL (2 minor), round 2 FAIL (1 minor), round
-  3 PASS. Merged into the phase branch `39ac65c`, done `b286ab9`.
+  as AC-7 and fixed in `web/src/today/`. Review round 1 FAIL (2 minor), round 2 FAIL (1 minor),
+  round 3 PASS. Merged into the phase branch `39ac65c`, done `b286ab9`.
 - 2026-10-19 — smoke run on `b286ab9` (in series through the slot): light checks ✓, local-security
   251/251, `test:contract` 263 passed / 1 skipped, `test:coverage` 3213 passed / 1 skipped (96.58 %
   statements), `test:e2e` 935 passed (Chromium 319, Firefox 308, WebKit 308; 59.8 min at load
   11–19), `test:smoke` 4/4, `test:publish-smoke` 11/11 — gate green (hard-reject).
-- 2026-10-19 — bugs closed: close notes and `release: "v0.2"` on bug-009 … bug-017 (`2e69b69`);
-  from the console the approver closed bug-008 … bug-014 and bug-016 (8 `wf(bug)` commits; a mistaken
+- 2026-10-19 — bugs closed: close notes and `release: "v0.2"` on bug-009 … bug-017 (`2e69b69`); from
+  the console the approver closed bug-008 … bug-014 and bug-016 (8 `wf(bug)` commits; a mistaken
   reject of bug-016, never pushed, removed with `git reset --keep` at the approver's request).
   bug-015, bug-017, bug-018 answered *not found* → bug-019 (an element id over 100 characters
   matches no route: Fastify's default `maxParamLength`), triaged medium, fix in v0.3, a known
@@ -211,19 +211,19 @@ Actual effort per phase (dl-006 action 6; wall-clock of the working sessions, 20
 <!-- pre-release-checks failures and fixes, approve-release rejections, publishing issues. -->
 
 - 2026-10-19 — `release-submit-rel-v0.2-plan` on `main` (RV2-1). Pre-step: the approver's registry
-  checklist (`docs/publishing.md`) steps 1–3 done; step 4 — npmjs.com offers no trusted publisher for
-  a name with no version, so `0.2.0` is published by hand by the approver from the tag run's smoked
-  tarball (no provenance for that version), steps 5–6 after it.
+  checklist (`docs/publishing.md`) steps 1–3 done; step 4 — npmjs.com offers no trusted publisher
+  for a name with no version, so `0.2.0` is published by hand by the approver from the tag run's
+  smoked tarball (no provenance for that version), steps 5–6 after it.
 - 2026-10-19 — first `workflow_dispatch` dry run (run `39315562583` on `08a84db`, the repository's
   first CI run): `gate` failed at *Tests with coverage* — 61 tests, "Author identity unknown" (the
   runner's account has no full name) → bug-020; the design of task-044 found a second cause, git ≥
   2.48 creating `refs/remotes/<remote>/HEAD` on fetch → bug-021. Both absorbed into task-044 (review
   round 1 FAIL, round 2 PASS), merged `891aab5`, done `f73294e`.
 - 2026-10-19 — second dry run (run `39328350689` on `f73294e`): one test relied on git 2.43's
-  quoting of a `gitdir:` path (git 2.55 prints `(null)`) → bug-022, absorbed into task-045 (review
-  PASS), merged `547714f`, done `c22d847`. Local `test:coverage` timed out three times at load 20–26
+  quoting of a `gitdir:` path (git 2.55 prints `(null)`) → bug-022, absorbed into task-045.
+- 2026-10-20 — task-045: review PASS; local `test:coverage` timed out three times at load 20–26
   (`auto-sync.test.ts` RP-36) → bug-023 (test-only, low, fix in v0.3); the approver accepted the
-  third dry run as task-045's AC-3 evidence.
+  third dry run as task-045's AC-3 evidence. Merged `547714f`, done `c22d847`.
 - 2026-10-20 — third dry run (run `39451186680` on `c22d847`) green: `gate` (Node 22.22.2)
   `test:coverage` 3220 passed / 1 skipped, `test:smoke` 4/4, `npm pack` (587 057 bytes); `stage`
   (Node 22.12.0) `test:publish-smoke` 11/11; `promote` skipped (dispatch). bug-020 … bug-022 closed
