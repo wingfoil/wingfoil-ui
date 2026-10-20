@@ -186,3 +186,6 @@ the coordinator as a load-sensitivity candidate (bug-004 class), not fixed here.
 - The coverage timeouts (`auto-sync.test.ts` RP-36, `element-writes.test.ts` W2-5,
   `snapshot/watcher.test.ts` F3, load 20–26) are unrelated to this diff (reviewer); RP-36's 30 s
   budget with four consoles is a load-sensitivity candidate for a separate bug.
+
+- AC-3 gate evidence (approver, 2026-10-20): the third `workflow_dispatch` dry run on `main` after the
+  merge stands for the green `test:coverage` (the local runs were cut by load); recorded there.
