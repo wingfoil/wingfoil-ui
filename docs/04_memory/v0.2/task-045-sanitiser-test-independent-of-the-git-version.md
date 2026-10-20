@@ -2,7 +2,7 @@
 id: task-045-sanitiser-test-independent-of-the-git-version
 type: task
 title: "Sanitiser test independent of the git version"
-status: in-progress
+status: in-review
 release: "v0.2"
 module: "governance"   # optional — server | web | contracts (dna.yaml modules)
 priority: "high"       # optional — high | medium | low
