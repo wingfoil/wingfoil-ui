@@ -5,7 +5,7 @@ title: "Test harness takes the git author name from the OS account and commits f
 status: resolved
 severity: "low"           # REQUIRED — critical | high | medium | low
 release-origin: "v0.2"     # optional — release where the bug was FOUND, e.g. "v0.1"
-release: ""            # optional — fix/implementation release, stamped by release-planning/build-backlog
+release: "v0.2"            # optional — fix/implementation release, stamped by release-planning/build-backlog
 feature: ""            # optional — related feature ID from docs/01_vision/06_features.md
 module: "server"             # optional — server | web | contracts
 wingfoil_version: "0.2.2"   # optional — `wingfoil --version` of the OBSERVED project (the UI drives its CLI)
@@ -69,3 +69,8 @@ support included). Found by the release-validation dry run, before any tag.
 
 - 2026-10-19 — triage (approver): `low`, test-only; absorbed into task-044 (pre-step of
   `release-submit-rel-v0.2-plan`).
+
+- 2026-10-20 — close (pre-step of `release-submit-rel-v0.2-plan`): fixed by task-044 (`done`); proved on the
+  GitHub runner (git 2.55) by the third `workflow_dispatch` dry run, run `39451186680` on `main`
+  `c22d847`: `gate` green (`test:coverage` 3220 passed / 1 skipped, `test:smoke` 4/4), `stage` green
+  (`test:publish-smoke` 11/11 on Node 22.12.0).
