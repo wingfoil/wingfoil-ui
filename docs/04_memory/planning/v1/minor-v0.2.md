@@ -77,7 +77,7 @@ Actual effort per phase (dl-006 action 6; wall-clock of the working sessions, 20
 | implementation — Wave 5 (task-038, task-039, task-041) | `dev-loop-rel-v0.2-plan` session 6 | 2026-10-16 19:25 – 2026-10-17 14:25 (overnight pause) | ~10 h working time, 1 active day |
 | implementation — Wave 6 (task-040, task-029) | `dev-loop-rel-v0.2-plan` session 7 | 2026-10-17 15:05 – 2026-10-18 19:50 (overnight pause) | ~14 h working time, 1 active day |
 | release validation — user-docs, e2e-smoke (task-043) | `user-docs-rel-v0.2-plan`, `e2e-smoke-rel-v0.2-plan` | 2026-10-18 20:25 (first commit) – 2026-10-19 19:31 (overnight pause) | 1 active day (the 9th); working time not recorded |
-| release validation — submit pre-step (three dry runs, task-044, task-045) | `release-submit-rel-v0.2-plan` session 1 | 2026-10-19 21:59 (first dry run) – 2026-10-20 19:56 (overnight pause; waits for the CI runs and the slot) | 1 active day (the 10th; RV2-1 deviation: submit and publishing did not fit the 9th, they finish on an 11th); working time not recorded |
+| release validation — submit pre-step (three dry runs, task-044, task-045) | `release-submit-rel-v0.2-plan` session 1 | 2026-10-19 21:59 (first dry run) – 2026-10-20 19:56 (overnight pause; waits for the CI runs and the slot) | 1 active day (the 10th; RV2-1 deviation: submit and publishing did not fit the 9th, they continue on an 11th); working time not recorded |
 
 - 2026-10-12 — `release-planning-rel-v0.2-plan` sessions 1–2 (branch `design/release-planning_v0.2`).
   `advance-pinned-build` no-op (0.2.2 newest); `minor-v0.2` `draft → planning` (`4c8ead3`);

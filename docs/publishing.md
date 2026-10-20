@@ -57,9 +57,9 @@ it is their first run.
 
 ## Approver checklist (registry-side setup, once)
 
-Done by the approver **before `release-submit`** of the first release published to npm (steps 5–6
-right after a first version published by hand, step 4). If a step is missing then, the release ships as a git tag only and a decision-log records it, as dl-004 did
-for v0.1 (RP-46).
+Done by the approver **before `release-submit`** of the first release published to npm (when step 4
+applies, steps 5–6 come right after that first version). If a step is missing then, the release
+ships as a git tag only and a decision-log records it, as dl-004 did for v0.1 (RP-46).
 
 1. **Package name.** `npm view wingfoil-ui` answers `E404` (the name is free; `curl -s -o /dev/null
    -w '%{http_code}' https://registry.npmjs.org/wingfoil-ui` printed `404` on 2026-10-17). If it
@@ -70,16 +70,17 @@ for v0.1 (RP-46).
    *Required reviewers* = the approver; *Deployment branches and tags* = *Selected branches and
    tags* with one rule, ref type **Tag**, pattern `v*`. Without it GitHub creates the environment
    unprotected on the first run and `promote` would not wait.
-4. **First publish of a new name (check this first on npmjs.com).** npm's documentation does not
-   say whether a trusted publisher can be configured for a name that has no version yet
-   (unverified on 2026-10-17; answered on 2026-10-19 — see the end of this step). If npmjs.com offers *Trusted publishing* for `wingfoil-ui` before a
-   first version, go to step 5. If it does not, the approver publishes the **first** version by
-   hand, with 2FA, from the tarball the pipeline built and smoked — download the
-   `wingfoil-ui-tarball` artifact of the tag run (or of a dry run on the tagged commit), check its
-   name and version, then `npm publish wingfoil-ui-<version>.tgz --access public`. That one version
-   has no provenance; no token is created at any time. Then do step 5 for every later release.
-   For `wingfoil-ui` (2026-10-19) npmjs.com offered no trusted publishing before a first version:
-   `0.2.0` follows this path, with the tag run's `promote` deployment rejected.
+4. **First publish of a new name (check this first on npmjs.com).** npm's documentation does not say
+   whether a trusted publisher can be configured for a name that has no version yet (unverified on
+   2026-10-17; answered on 2026-10-19 — see the end of this step). If npmjs.com offers *Trusted
+   publishing* for `wingfoil-ui` before a first version, go to step 5. If it does not, the approver
+   publishes the **first** version by hand, with 2FA, from the tarball the pipeline built and smoked
+   — download the `wingfoil-ui-tarball` artifact of the tag run (or of a dry run on the tagged
+   commit), check its name and version, then `npm publish wingfoil-ui-<version>.tgz --access
+   public`. That one version has no provenance; no token is created at any time. Then do step 5 for
+   every later release. For `wingfoil-ui` (2026-10-19) npmjs.com offered no trusted publishing
+   before a first version: `0.2.0` follows this path, with the tag run's `promote` deployment
+   rejected.
 5. **Trusted publisher** (npmjs.com → package `wingfoil-ui` → Settings → Trusted publishing →
    GitHub Actions): organization `wingfoil`, repository `wingfoil-ui`, workflow `publish.yml`,
    environment `npm-publish`, permission **limited to staging (stage only)**. It is keyed on the
