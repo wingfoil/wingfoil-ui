@@ -14,7 +14,7 @@ tmpl_version: 260703   # Orignal template version
 
 ## Context
 
-**Version:** 0.2 · **Date:** 2026-10-20 (0.1: plan created; pre-step — registry checklist, the first dry run, task-044; 0.2: Session 1 log — pre-step done, three dry runs, task-044 and task-045, bugs 020–023)
+**Version:** 0.3 · **Date:** 2026-10-20 (0.1: plan created; pre-step — registry checklist, the first dry run, task-044; 0.2: Session 1 log — pre-step done, three dry runs, task-044 and task-045, bugs 020–023; 0.3: Session 2 log — steps 2–8, release approved)
 **Branch:** `main` (RV2-1: `submit` and `publishing` work on `main`, no design branch)
 **Workflows:** `sw-life-cycle` → `release-line-cycle` (`rl-v1`) phase `delivery` → `release-cycle`
 (`minor-v0.2`, v1.1) phase `submit` = `release-submit` (`.wingfoil/workflows/custom/release-submit.yaml`
@@ -131,3 +131,77 @@ one checkout (they rebuild `dist`).
 - **Next:** steps 2–8 in a new session (the approver), then `release-publishing` in the same
   session (RV2-1): tag `v0.2.0`, the tag run, `promote` rejected and the first publish by hand
   (checklist step 4), checklist steps 5–6.
+
+### Session 2 — steps 2–8 (2026-10-20)
+
+- State checked at the start against the previous session's handoff: `main` = `origin/main` =
+  `95f01de`, no worktree, no tag `v0.2.0`; task-026 … task-045 `done`; bugs closed except bug-019
+  and bug-023 (`triaged`); release `in-development`; dry run `39451186680` green on `c22d847`;
+  registry name still `404`, environment `npm-publish` with a required reviewer and the tag rule
+  `v*`; CLI `0.2.2`. Differences found: `web/src/today/` changed after `33ab602` (task-043,
+  bug-018), and Today is timed (TT-PERF-01), so the Wave 6 timing runs no longer cover the release; bug-019
+  and bug-023 had an empty `release` with `release-origin` `v0.2`, so the bug check would count them
+  for this release.
+- **Decisions** (the approver, 2026-10-20: "as recommended", except the GitHub Release):
+  - RS2-1 Steps 2–8 and `release-publishing` in this session (RV2-1): tag `v0.2.0` on `main`, its
+    push on a separate OK; the approver rejects the tag run's `promote` deployment, publishes
+    `0.2.0` by hand from the run's `wingfoil-ui-tarball` artifact (checklist step 4, no provenance),
+    then does checklist steps 5–6; post-check `npm view wingfoil-ui@0.2.0 version`; `releasing →
+    released` by hand.
+  - RS2-2 `test:timing` re-run on the release tree, alone through the slot (RV2-3's Wave 6 evidence
+    does not cover the Today change).
+  - RS2-3 A GitHub Release for `v0.2.0`, as WingFoil makes one (the approver; option A): made by
+    hand once the version is live, on the approver's OK — `gh release create v0.2.0 --verify-tag
+    --title v0.2.0`, the CHANGELOG `[0.2.0]` section as notes, the published tarball and the
+    coverage reports of the release tree's local run as assets. WingFoil's automatic `release` job
+    (after `promote`, the gate's test reports) would be skipped anyway for a rejected `promote`; it
+    becomes a governance task of v0.3 (input of the retrospective).
+  - RS2-4 bug-019 and bug-023 get `release: "v0.3"` (a field, no state change), so the bug check of
+    `release-submit` 1.1 assigns them to the release that fixes them.
+- **Step 2** — Execution Notes of `minor-v0.2` (`448d812`): the Implementation closing bullet,
+  "User docs", "E2E smoke", "Submit & Publishing" so far, two effort rows of release validation
+  (the 10th active day recorded as an RV2-1 deviation); bug-019 and bug-023 `release: "v0.3"`.
+- **Step 3** — release commit `8b217b0` `chore(release): v0.2.0`: `0.2.0` in `package.json`,
+  `contracts/`, `server/`, `web/` and five `package-lock.json` entries (`npm version 0.2.0
+  --no-git-tag-version --workspaces --include-workspace-root`); CHANGELOG `[0.2.0] - 2026-10-20` and
+  its links, the first version on npm published by hand; README (status released, install from npm
+  first); user guide 0.20; CLI reference 0.4; `docs/publishing.md` 0.3 (the first version by hand,
+  `stage` verified on Node 22.12.0, the GitHub Release of `v0.2.0` by hand); `CLAUDE.md` 0.7 (the
+  status as released, RS-5 of v0.1, and how `0.2.0` is published).
+- **Step 4** — independent review (fresh context, read-only, adversarial): round 1 FAIL — 1 major
+  (the `docs/publishing.md` Version line not bumped), 3 minor (a bullet dated 2026-10-19 reported
+  events of 2026-10-20; effort-row start times without a source; the RV2-1 deviation not named), 6
+  nits — fixed `ab34824`; round 2 FAIL — 1 minor (two unwrapped lines left by the round-1 edit), 2
+  nits — fixed `7ab00d7`; round 3 **PASS** (1 nit: a command split across lines, fixed `76570c5`).
+- **Step 5 — pre-release-checks** on `76570c5` (21:44–22:26, in series, every heavy gate through
+  the machine-free slot; `git diff --name-only 8b217b0 76570c5` = `CLAUDE.md`, `minor-v0.2.md`,
+  `docs/cli-reference.md`, `docs/publishing.md`, `docs/user-guide.md` — documents only):
+  - tasks: `check_tasks.py v0.2` OK (20 tasks · 46 backlog items · 46 listed); task-026 … task-045
+    `done`.
+  - bugs of `v0.2` (`release` `v0.2`, or empty with `release-origin` `v0.2`): bug-008 … bug-018,
+    bug-020 … bug-022 — 14, all `closed`; bug-019 and bug-023 `triaged` for v0.3 (RS2-4);
+    `check_releases.py` OK (5 releases · 44/44 MVP features).
+  - `tests.passing`: `typecheck`, `lint`, `format:check`, `docs:api` ✓ · `test:contract` **263
+    passed, 1 skipped** · local-security (`local-security.test.ts`, `launcher.test.ts`,
+    `guards.test.ts`, `element-writes.test.ts`) **251/251** · `test:e2e:chromium` **319 passed**
+    (10.4 min, load up to 12.8) · `test:smoke` **4/4** and `test:publish-smoke` **11/11** (both
+    assert `--version` and `GET /api/server` against the package version `0.2.0`); `node
+    bin/wingfoil-ui.cjs --version` → `0.2.0` · `test:timing` (RS2-2; 21:45–22:08, alone, load
+    2.1–5.6) **6/6 + 23/23**: REQ-PERF-03 20/20 within 5 s (300–552 ms), REQ-PERF-06 10/10 within
+    3 s (284–363 ms), TT-PERF-01 Today p95 134 ms (after one commit p95 734 ms), TT-PERF-02 approve
+    p95 647 ms and submit p95 579 ms, TT-PERF-04 p95 47–117 ms, TT-PERF-07 10/10 within 65 s
+    (59.4–60.0 s).
+  - `tests.coverage(min: 80)`: `test:coverage` **3220 passed, 1 skipped**, statements **96.56 %**,
+    branches 91.4 %.
+  - `npm audit --omit=dev` 0; the full audit 9 (3 critical, 6 high) — `verdaccio`,
+    `@verdaccio/hooks`, `@verdaccio/local-storage-legacy`, `handlebars`, `braces`, `micromatch`,
+    `fast-glob`, `globby`, `compression`: the accepted dev-only list (RV2-7), no new finding.
+  - No console, registry process or `wfui-*` entry left; working tree clean.
+- **Step 6 — enter-releasing:** `116395d` `wf(release): minor-v0.2 [in-development → releasing]`
+  (hand transition, W-25); `check_releases.py` OK. `main` pushed (no Actions run: `publish.yml`
+  triggers on tags and dispatch only).
+- **Step 7 — approve-release:** the approver, in chat on 2026-10-20: "approvo la release v0.2,
+  procedi con il passo 8" — release `minor-v0.2` approved for publishing on `116395d`
+  (pre-release-checks on `76570c5`).
+- **Step 8:** plan finalized (separate commit). Next: `release-publishing-rel-v0.2-plan` in this
+  session (RS2-1).
