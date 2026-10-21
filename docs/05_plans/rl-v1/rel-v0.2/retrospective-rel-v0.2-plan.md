@@ -3,7 +3,7 @@ id: retrospective-rel-v0.2-plan
 type: plan
 title: "Retrospective rel-v0.2"
 status: active
-version: "0.1"         # optional — plan version
+version: "0.2"         # optional — plan version
 workflow: "retrospective"
 phase: "rel-v0.2"
 scope: "rl-v1/rel-v0.2"
@@ -14,7 +14,7 @@ tmpl_version: 260703   # Orignal template version
 
 ## Context
 
-**Version:** 0.1 · **Date:** 2026-10-21 (0.1: plan created)
+**Version:** 0.2 · **Date:** 2026-10-21 (0.1: plan created; 0.2: explore — friction inventory)
 **Branch:** `main` (RT2-1, as RT-1 of v0.1)
 **Workflows:** `sw-life-cycle` → `release-line-cycle` (`rl-v1`) phase `delivery` → `release-cycle`
 (`minor-v0.2`, v1.1) phase `retrospective` = `retrospective`
@@ -94,4 +94,153 @@ State at start (checked 2026-10-21):
 
 Steps:
 
-- Step 1: plan created (`be26dd8` add; submit → `active`).
+- Step 1: plan created (`be26dd8` add, `081a35e` submit → `active`).
+- Step 2 — explore: three read-only miners (RT2-2), synthesis below; claims the miners disagreed
+  on were re-checked against the files (plan versions, `Last sync`, spec-007 Process Notes, UD2-7).
+
+### Friction inventory of `minor-v0.2`
+
+Sources: `task-NNN §…` = `docs/04_memory/v0.2/`; `bug-NNN §…` = `docs/04_memory/bugs/`; plan ids
+and decision ids = `docs/05_plans/rl-v1/rel-v0.2/`; *RN* = `minor-v0.2.md` Execution Notes;
+`F-NNN` = `docs/wingfoil-feedback/`; `W-NN` = directive `wingfoil-cli` *Known behaviours*. v0.1
+themes (`retrospective-rel-v0.1-plan` T1 … T10) are marked recurred, improved or fixed.
+
+**T1 — Independent review is still the main defect filter (positive, with a cost; v0.1 T1
+recurred).**
+- Round 1 was not a PASS in 18 of 20 tasks (exceptions task-042, PASS with minors, and task-045);
+  a major or blocker at round 1 in 10 tasks (028, 029, 032, 033, 036, 037, 038, 040, 041, 044);
+  about 59 independent rounds in all, 5 in task-034 and task-040 (task Execution Notes §review).
+- Reviews and design probes, not tests, found 8 of the 16 bugs (bug-008, 010, 011, 013, 014, 015,
+  017, 018 — each `§Evidence`).
+- Document and plan reviews ran FAIL → FAIL → PASS five times: spec review and backlog audit
+  (`release-planning-rel-v0.2-plan` Sessions 2, 4), governance alignment (FAIL → PASS),
+  user-docs, the release commit (RN *Submit & Publishing*). Several round-2 findings were slips the
+  round-1 fixes introduced: a Version line not bumped, wraps, ids shifted by the renumbering, a
+  stale effort table (`release-submit-rel-v0.2-plan` Session 2; `release-planning-rel-v0.2-plan`
+  Session 4).
+
+**T2 — Machine load and the cost of heavy gates (v0.1 T3 recurred, mitigated).**
+- Load-bound test defects, same class as bug-004: bug-009 (load ~25), bug-011 (27), bug-015
+  (158), bug-023 (20–26, fix in v0.3) (each `§Evidence`).
+- Three-engine `test:e2e` at the seven wave gates took 20–38 min each, 59.8 min at e2e-smoke (935
+  tests, load 11–19); W0-9 restricted it to wave gates for cost (`dev-loop-rel-v0.2-plan`
+  Sessions 1–7; RN *E2E smoke*).
+- `test:timing` skipped on `main` for load at Waves 0, 1, 3; a false regression alarm under another
+  project's build (RP-9, task-042; Wave 6 2 127 ms → 744 ms p95 alone) (`dev-loop-rel-v0.2-plan`
+  Sessions 1, 2, 4, 5, 7).
+- The machine-free slot (approver, Wave 5) checks the load only when it grants; long gates still
+  ran under load (bug-023 §Notes); slot waits are not recorded per gate.
+
+**T3 — Green locally, red on the first CI run (new).**
+- The repository's first CI run was the `workflow_dispatch` dry run at release-submit; three dry
+  runs found bug-020 (no full name on the runner's account), bug-021 (git ≥ 2.48
+  `refs/remotes/<r>/HEAD`) and bug-022 (git 2.55 wording); local git is 2.43, the runner's 2.55
+  (`release-submit-rel-v0.2-plan` Session 1; bug-020 … bug-022 §Evidence).
+- Cost: two test-only tasks (task-044, task-045) and about one active day (RN effort table, the
+  10th); task-044 round 1 had a blocker that held only on git < 2.48 (task-044 §review).
+- The strict-git wrappers now in `test/README.md` *Git identity* reproduce the runner (task-044
+  §design).
+
+**T4 — Security of tool-sourced input: guards that did not converge (v0.1 T1 lesson, recurred).**
+- Adversarial rounds: 17 over five tasks (026, 032, 033, 034, 040); each security task needed 3–5
+  (task Execution Notes §review; RP-47 extended to task-040).
+- W4-16 reversed W4-12 and W4-15: the auto-update value heuristics were removed (shell expansion
+  bypassed them, they blocked common configs) and the risk declared (spec-010, user guide,
+  CHANGELOG); the structural options are left to this retrospective (`dev-loop-rel-v0.2-plan`
+  Session 5 *For the retrospective*; task-034 §For the retrospective).
+- bug-017 grew over four rounds (add, clone, CLI warnings, file names) (task-040 §review); open
+  follow-ups: the typed `SafeToolMessage`, the key-rendering build (UD2-5; task-040).
+- task-029 (publish pipeline permissions) had no adversarial round; its round 1 found that a
+  dispatch on a tag could reach `promote` (task-029 §review).
+
+**T5 — Specs amended while coding, gaps accepted (v0.1 T6 recurred).**
+- Approved specs or the UX reference amended in place in 12 of 20 tasks; most often spec-004
+  §3–§5 and spec-010 (032, 033, 034, 040); UX reference 1.1 → 1.10 (task Execution Notes;
+  RN *Implementation*).
+- dl-006 action 5 was done at release-planning (RP-11, spec-007 *Process Notes*), but new
+  differences of spec-007 §1/§3/§6 are open: UD2-7, "a governance task after v0.2", none planned
+  yet (`user-docs-rel-v0.2-plan`).
+- Accepted gaps: ES2-3 (six, e.g. no route-inventory test, Scrum and `unknown` fixtures with no UI
+  write); task-043's `opener.ts` follow-up (`e2e-smoke-rel-v0.2-plan`; task-043 §review).
+
+**T6 — Hand transitions, field hygiene and the CLI (v0.1 T4 improved).**
+- dl-007 landed: W-25, W-26, F-020 … F-022 (`7af83f1`) and release commits cite W-25. Still every
+  task needs two hand transitions (W-20), bugs two (W-26), the release three (W-25).
+- Bug `release` field: bug-019 and bug-023 would have failed the bug check with an empty field
+  (RS2-4, fixed by hand); bug-018 is `closed` with `release: ""` (not covered by RV2-2's stamp).
+- W-27 cost a full redo of the 17 task ids at planning (RN *Planning*) and recurred at task-043
+  (`task-018`, reset before push); the directive still does not say that placeholders must be
+  named like elements (`e2e-smoke-rel-v0.2-plan` *For the retrospective*; W-27).
+- Feedback inbox: 26 notes, all `open`, *Last sync: none* (GA-5 skipped it); the README context does
+  not mention F-023 … F-026; a note on WingFoil's publish pipeline fits no W-entry, so the inbox test
+  (`test/wingfoil-feedback.test.ts`, first-line rule) refuses it and it stays unfiled.
+
+**T7 — Planning, budget and validation (v0.1 T8 recurred).**
+- 8 active days planned (RP-8, raised from 5), 11 used; release validation took 3 days against 1
+  planned (RV2-1 deviation) (RN effort table).
+- The three validation rows have no working-time figure (RN effort table) — dl-006 action 6 only
+  partly applied.
+- Three test-only governance tasks were added at validation (task-043, 044, 045), as task-022 …
+  025 in v0.1 (RN *Implementation*).
+- RV2-3 planned to reuse the Wave 6 timing evidence; a change to a timed view after it made a re-run
+  necessary (RS2-2).
+
+**T8 — Publishing and release automation (new).**
+- `0.2.0` published by hand, without provenance: no trusted publisher before a first version; the
+  tag run's `promote` was rejected (RV2-4; `release-publishing-rel-v0.2-plan` Session 1).
+- Unproven until v0.3's tag: OIDC trusted publisher, `npm stage publish`, the `npm-publish`
+  approval, provenance (`docs/publishing.md` 0.4).
+- Surprises the checklist did not foresee: E404 on an expired npm session; the `0.0.0-stage`
+  placeholder that stays listed (`docs/publishing.md` 0.4).
+- GitHub Release by hand (RS2-3; W6-1 had planned none); the coverage reports could not be attached
+  (absolute local paths, dl-005) (`release-publishing-rel-v0.2-plan` Session 1).
+- `release-publishing.yaml` 1.2 still says the pipeline "is planned for minor-v0.2" (its header).
+
+**T9 — Dogfooding and test data (new).**
+- Closing bugs from the console found bug-019 at once (ids over 100 characters; fixture ids are
+  short); 8 of 12 decisions went through the action log (66.7 %), the other four were CLI approvals
+  forced by bug-019 (`e2e-smoke-rel-v0.2-plan` ES2-1; bug-019 §Evidence).
+- bug-016 was found by the approver using the console, not by a test (bug-016 §Evidence).
+
+**T10 — Plan and document hygiene (v0.1 T9 partly fixed).**
+- The public-text check (task-028) works: it flagged other tasks' notes and tests at integration
+  (task-028 §integration).
+- Plan frontmatter `version` differs from the Context `Version` in 2 of 7 plans:
+  `release-submit-rel-v0.2-plan` (0.2 vs 0.3), `release-publishing-rel-v0.2-plan` (0.1 vs 0.2) —
+  the rule of dl-006 action 6 is not enforced.
+
+**T11 — Agents and coordination (v0.1 T7 improved).**
+- Three interruptions recorded (2 h, a crash of ~10 min, a reboot), no loss (RN effort table);
+  merge conflicts only on append-only and version lines (RP-43, RP-55; task Execution Notes
+  §merge).
+- The same `ConsoleOptions.settings` helper was written in three parallel tasks (038, 039, 041); a
+  Vitest run rebuilt `web/dist` during an e2e run in a shared worktree (task-043 §deviation).
+
+**T12 — What went well.**
+- 17 planned tasks plus 3 test-only tasks, every gate green on the release tree: `test:coverage`
+  3220 passed (96.56 % statements), e2e 935 on three engines at e2e-smoke, contract 263,
+  local-security 251, smoke 4/4, publish-smoke 11/11, `test:timing` alone (RN *Submit &
+  Publishing*).
+- Design probes found defects before code (bug-013 a v0.1 hole, bug-014, bug-018, W-28) (task-033,
+  task-034, task-043, task-032 §design); guard-removal checks recorded wherever a test passed first
+  (at least 8 tasks).
+- Three CI dry runs before the tag found three defects with no tag and no publish; the tag run's
+  tarball was checked against the tag and the third dry run (`release-publishing-rel-v0.2-plan`).
+- The governance pre-step (~1 h) removed v0.1 T4 and T5 before planning
+  (`governance-alignment-rel-v0.2-plan`).
+- Known limitations and declared residuals written into the user guide and CHANGELOG (UD2-4, UD2-5).
+
+### Actions of the v0.1 records — status
+
+| Action | Status | Source |
+|--------|--------|--------|
+| dl-006 1 — load-independent tests (temp convention + bug-008, fresh reads, `test:smoke` at every wave gate) | done; load-bound defects recurred (T2) | task-026; `dev-loop-rel-v0.2-plan` wave gates W0–W6 |
+| dl-006 2, 3 — dl-007, dl-008 | done | `governance-alignment-rel-v0.2-plan`; `7af83f1`, `48017db` |
+| dl-006 4 — public-text check | done | task-028 |
+| dl-006 5 — spec-007 §1/§3/§6, spec-006 §1 | done at release-planning (RP-11), new differences open (UD2-7) | spec-007 *Process Notes* |
+| dl-006 6 — adversarial reviewer who runs the tool | done (5 tasks); not for task-029 | T4 |
+| dl-006 6 — per-phase actuals | partly: validation rows not recorded | T7 |
+| dl-006 6 — plan `version` = header | not done: 2 of 7 plans drift | T10 |
+| dl-006 6 — governance tasks at release-planning | partly: 026 … 029 planned, 043 … 045 added at validation | T7 |
+| dl-007 — W-25, W-26, F-020 … F-022, `.wingfoil/README.md`, commits citing W-25 | done; no feedback sync yet | T6 |
+| dl-008 — three workflows tailored | done; `release-publishing.yaml` header stale | T8 |
