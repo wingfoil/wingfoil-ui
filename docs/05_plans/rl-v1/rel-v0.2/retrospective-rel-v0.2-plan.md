@@ -3,7 +3,7 @@ id: retrospective-rel-v0.2-plan
 type: plan
 title: "Retrospective rel-v0.2"
 status: active
-version: "0.2"         # optional — plan version
+version: "0.3"         # optional — plan version
 workflow: "retrospective"
 phase: "rel-v0.2"
 scope: "rl-v1/rel-v0.2"
@@ -14,7 +14,8 @@ tmpl_version: 260703   # Orignal template version
 
 ## Context
 
-**Version:** 0.2 · **Date:** 2026-10-21 (0.1: plan created; 0.2: explore — friction inventory)
+**Version:** 0.2 · **Date:** 2026-10-21 (0.1: plan created; 0.2: explore — friction inventory; 0.3:
+additional-points decisions)
 **Branch:** `main` (RT2-1, as RT-1 of v0.1)
 **Workflows:** `sw-life-cycle` → `release-line-cycle` (`rl-v1`) phase `delivery` → `release-cycle`
 (`minor-v0.2`, v1.1) phase `retrospective` = `retrospective`
@@ -244,3 +245,57 @@ recurred).**
 | dl-006 6 — governance tasks at release-planning | partly: 026 … 029 planned, 043 … 045 added at validation | T7 |
 | dl-007 — W-25, W-26, F-020 … F-022, `.wingfoil/README.md`, commits citing W-25 | done; no feedback sync yet | T6 |
 | dl-008 — three workflows tailored | done; `release-publishing.yaml` header stale | T8 |
+
+### Additional points — decisions (the approver: "as recommended", point 1 with a precondition)
+
+- Step 3 — inventory, the status of the v0.1 actions and sixteen improvement points presented
+  with options and one recommendation each; no further points from the approver.
+- **RT2-6** — spin-off DL "governance alignment before v0.3" (T6, T8; points 1, 8, 10): a
+  `governance-alignment` pre-step of `minor-v0.3` before its `release-planning`, as in v0.2. It
+  starts only when WingFoil-Templates has published its `base` pack (the approver's precondition).
+  Contents: the pin advances to WingFoil 0.3 only if the contract tests pass on 0.3; the `base`
+  pack is adopted with dl-008's tailoring re-applied; directive `wingfoil-cli` is re-checked
+  against 0.3, W-27 included (its wording fixed — placeholders named like elements — or the entry
+  limited to 0.2.2 if 0.3 fixes the counter); the first-line rule of
+  `test/wingfoil-feedback.test.ts` is widened to notes that report no CLI behaviour, the
+  publish-pipeline note is filed as the next F-note and the first feedback sync is run; the stale
+  header of `release-publishing.yaml` is corrected.
+- **RT2-7** — spin-off DL "CI and environment checks in the dev loop" (T3, T10; points 3, 12): one
+  `workflow_dispatch` run of `publish.yml` on `main` at every wave gate (`promote` is skipped on a
+  dispatch), under a standing OK of the approver recorded in that DL; the strict-git wrappers of
+  `test/README.md` *Git identity* in the self-check of every task that touches git; a newer local
+  git is left to the approver. A v0.3 task adds a check that a plan's frontmatter `version` equals
+  its Context `Version`.
+- **RT2-8** — W4-16 (T4, point 2): the declared auto-update risk stays in v0.3 (off by default); a
+  time-boxed design spike on a structural guard (fast-forward only when no incoming path is matched
+  by a `.gitattributes` filter, diff or merge driver, or a temporary `info/attributes` override),
+  with an adversarial probe; no new heuristic. If the spike does not converge, the declared risk
+  stays.
+- **RT2-9** — load (T2, point 4): bug-023 is fixed in v0.3; rule: no test starts more than one
+  console in one test body; the slot stays as it is, and every heavy-gate log records the load and
+  the slot wait.
+- **RT2-10** — GitHub Release (T8, point 5): a governance task of v0.3 for the automatic `release`
+  job after `promote`, attaching the coverage totals only.
+- **RT2-11** — `test:timing` (T2, T7, point 6): run alone through the slot at every wave gate and at
+  `pre-release-checks`, with no diff-based rule.
+- **RT2-12** — bug `release` field (T6, point 7): the triage of a bug fixed in a later release sets
+  `release`; absorption into a task stamps it; a v0.3 check flags closed bugs with an empty
+  `release`. bug-018 gets `release: "v0.2"` at step 6 (a field, no state change).
+- **RT2-13** — spec-007 §1/§3/§6 (T5, point 9, UD2-7): amended in `identify-specs` of the
+  `release-planning` of `minor-v0.3`, as RP-11, not by a separate task.
+- **RT2-14** — housekeeping at step 6, each with the approver's OK at that step (point 11): delete
+  the merged `design/release-planning_v0.2`, `design/user-docs_v0.2`, `design/e2e-smoke_v0.2`
+  locally and on `origin`, keep `design/inception_v1`; the npm placeholder `0.0.0-stage` is the
+  approver's call (deprecate or leave); the unfiled feedback draft is removed once filed (RT2-6).
+- **RT2-15** — plan versions (T10, point 12): the frontmatter `version` of
+  `release-submit-rel-v0.2-plan` and `release-publishing-rel-v0.2-plan` aligned to their Context
+  `Version` at step 6.
+- **RT2-16** — process rules in the retrospective DL (T1, T7, T9, points 13, 14, 16): a checklist
+  before every re-review (Version/Date line, wraps, ids and counts); release validation budgeted at
+  2–3 active days, with tasks found at validation an expected category and working time recorded on
+  validation days; a fixture element with a long id within bug-019's fix, and an action-log ratio
+  target of 80 % in v0.3.
+- **RT2-17** — v0.3 release-planning candidates (T4, T5, point 15): the typed `SafeToolMessage`,
+  the key-rendering build, task-043's `opener.ts` follow-up, the ES2-3 gaps.
+- **RT2-18** — records: the retrospective DL "Retrospective v0.2" (RT2-8 … RT2-17, the status of the
+  v0.1 actions) and the two spin-off DLs of RT2-6 and RT2-7.
