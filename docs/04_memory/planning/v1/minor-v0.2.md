@@ -78,6 +78,7 @@ Actual effort per phase (dl-006 action 6; wall-clock of the working sessions, 20
 | implementation — Wave 6 (task-040, task-029) | `dev-loop-rel-v0.2-plan` session 7 | 2026-10-17 15:05 – 2026-10-18 19:50 (overnight pause) | ~14 h working time, 1 active day |
 | release validation — user-docs, e2e-smoke (task-043) | `user-docs-rel-v0.2-plan`, `e2e-smoke-rel-v0.2-plan` | 2026-10-18 20:25 (first commit) – 2026-10-19 19:31 (overnight pause) | 1 active day (the 9th); working time not recorded |
 | release validation — submit pre-step (three dry runs, task-044, task-045) | `release-submit-rel-v0.2-plan` session 1 | 2026-10-19 21:59 (first dry run) – 2026-10-20 19:56 (overnight pause; waits for the CI runs and the slot) | 1 active day (the 10th; RV2-1 deviation: submit and publishing did not fit the 9th, they continue on an 11th); working time not recorded |
+| release validation — submit steps 2–8, publishing | `release-submit-rel-v0.2-plan` session 2, `release-publishing-rel-v0.2-plan` session 1 | 2026-10-20 20:11 (first commit) – 2026-10-21 07:10 (overnight pause; waits for the slot, the tag run and the registry) | 1 active day (the 11th, RV2-1 deviation); working time not recorded |
 
 - 2026-10-12 — `release-planning-rel-v0.2-plan` sessions 1–2 (branch `design/release-planning_v0.2`).
   `advance-pinned-build` no-op (0.2.2 newest); `minor-v0.2` `draft → planning` (`4c8ead3`);
@@ -228,3 +229,26 @@ Actual effort per phase (dl-006 action 6; wall-clock of the working sessions, 20
   `test:coverage` 3220 passed / 1 skipped, `test:smoke` 4/4, `npm pack` (587 057 bytes); `stage`
   (Node 22.12.0) `test:publish-smoke` 11/11; `promote` skipped (dispatch). bug-020 … bug-022 closed
   with the CLI. Open for v0.3: bug-019 and bug-023, `release: "v0.3"`.
+- 2026-10-20 — submit steps 2–8 (`release-submit-rel-v0.2-plan` Session 2): decisions RS2-1 … RS2-4
+  (`test:timing` re-run on the release tree, as `web/src/today/` changed after the Wave 6 runs; a
+  GitHub Release for `v0.2.0` made by hand; bug-019 and bug-023 `release: "v0.3"`). Release commit
+  `8b217b0` (`0.2.0`, CHANGELOG `[0.2.0] - 2026-10-20`, README install from npm, `CLAUDE.md` status
+  as released). Independent review round 1 FAIL (1 major: a Version line not bumped; 3 minor),
+  fixed `ab34824`; round 2 FAIL (1 minor: wraps), fixed `7ab00d7`; round 3 PASS. pre-release-checks
+  on `76570c5` (documents only after `8b217b0`) all green: coverage 3220 passed (96.56 %
+  statements), e2e Chromium 319, contract 263, local-security 251, smoke 4/4 and publish-smoke 11/11
+  (`0.2.0`), `test:timing` alone 6 + 23 (Today p95 134 ms), `npm audit --omit=dev` 0. Release
+  `releasing` (`116395d`); approve-release: the approver's OK in chat; plan finalized `0febbdb`.
+- 2026-10-20 — `release-publishing-rel-v0.2-plan`: annotated tag `v0.2.0` on `main` `64e9420`
+  (only documents and governance after `8b217b0`; `check-release-tag.mjs` passed locally), pushed
+  on the approver's OK. Tag run `39497286374`: `gate` and `stage` green, `promote` rejected by the
+  approver (no trusted publisher before a first version). The run's tarball (145 files, integrity
+  `sha512-DV23…PMw==`) checked against the tag and the third dry run's (same built files). The
+  approver's first `npm publish` failed with `E404` on the PUT (an expired npm session); after
+  `npm login` it answered "being processed": npm first listed a placeholder `0.0.0-stage` as
+  `latest`, then `0.2.0` (21:19:56Z), `latest`. Post-check: `npm view wingfoil-ui@0.2.0 version`
+  → `0.2.0`, the same integrity; an install by name prints `0.2.0`. The approver did checklist
+  steps 5 (trusted publisher, stage only) and 6 (2FA, tokens disallowed). GitHub Release `v0.2.0`
+  by hand on the approver's OK (CHANGELOG section; the tarball, coverage totals and test results
+  attached). `docs/publishing.md` 0.4 records what the first publish showed (`48a2ac7`). Release
+  `released` (`dc4feac`).
