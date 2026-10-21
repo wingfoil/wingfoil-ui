@@ -3,7 +3,7 @@ id: retrospective-rel-v0.2-plan
 type: plan
 title: "Retrospective rel-v0.2"
 status: active
-version: "0.3"         # optional — plan version
+version: "0.4"         # optional — plan version
 workflow: "retrospective"
 phase: "rel-v0.2"
 scope: "rl-v1/rel-v0.2"
@@ -14,8 +14,8 @@ tmpl_version: 260703   # Orignal template version
 
 ## Context
 
-**Version:** 0.2 · **Date:** 2026-10-21 (0.1: plan created; 0.2: explore — friction inventory; 0.3:
-additional-points decisions)
+**Version:** 0.4 · **Date:** 2026-10-21 (0.1: plan created; 0.2: explore — friction inventory; 0.3:
+additional-points decisions, T7 corrected; 0.4: capture)
 **Branch:** `main` (RT2-1, as RT-1 of v0.1)
 **Workflows:** `sw-life-cycle` → `release-line-cycle` (`rl-v1`) phase `delivery` → `release-cycle`
 (`minor-v0.2`, v1.1) phase `retrospective` = `retrospective`
@@ -181,8 +181,8 @@ recurred).**
   planned (RV2-1 deviation) (RN effort table).
 - The three validation rows have no working-time figure (RN effort table) — dl-006 action 6 only
   partly applied.
-- Three test-only governance tasks were added at validation (task-043, 044, 045), as task-022 …
-  025 in v0.1 (RN *Implementation*).
+- Three governance tasks were added at validation (task-043, 044, 045); in v0.1 the
+  governance tasks task-022 … 025 were added late too (RN *Implementation*; dl-006).
 - RV2-3 planned to reuse the Wave 6 timing evidence; a change to a timed view after it made a re-run
   necessary (RS2-2).
 
@@ -299,3 +299,17 @@ recurred).**
   the key-rendering build, task-043's `opener.ts` follow-up, the ES2-3 gaps.
 - **RT2-18** — records: the retrospective DL "Retrospective v0.2" (RT2-8 … RT2-17, the status of the
   v0.1 actions) and the two spin-off DLs of RT2-6 and RT2-7.
+
+### Capture
+
+- Step 4: `memory add` of dl-009 (retrospective, `76ef22b`), dl-010 (governance alignment before
+  v0.3, RT2-6, `f56185f`) and dl-011 (CI runs and environment checks, RT2-7, `c350869`); bodies
+  filled by editing the drafts. Independent read-only review, a fresh reviewer each round: round 1
+  FAIL (3 major — wrong v0.1 validation facts, a wrong cause for the RS2-2 re-run, a rationale
+  confusing `wingfoil_min` with the support matrix; 14 minor — rules and scope the approver had not
+  chosen, unsourced counts, parts of RT2-9/RT2-11/RT2-13 dropped, an incomplete status of the v0.1
+  actions); round 2 FAIL (1 major — a red contract said not to block the `base` pack, not decided;
+  3 minor); round 3 FAIL (1 minor — v0.1's task-022 … task-024 called test-only); round 4 PASS (2
+  nits, fixed). The conflict with the `$comment` of `contracts/matrix.json` (the matrix advances
+  only through `release-planning`) is recorded in dl-010 as a deviation. This plan's header
+  `Version` lagged its frontmatter after `8e448e2` (found by round 1) and is aligned.
