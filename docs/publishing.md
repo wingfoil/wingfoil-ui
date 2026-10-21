@@ -1,10 +1,11 @@
 # Publishing to npm
 
-**Version:** 0.3 · **Date:** 2026-10-20 (0.1: the publish pipeline, the approver's checklist, the
+**Version:** 0.4 · **Date:** 2026-10-21 (0.1: the publish pipeline, the approver's checklist, the
 local staging smoke, the differences from WingFoil's pipeline — task-029; 0.2: review round 1 — a
 dispatch never promotes, the guard's limit, the dev-only audit findings, what is not verified yet;
 0.3: release v0.2.0 — the first version by hand, `stage` verified on Node 22.12.0, the GitHub
-Release of v0.2.0 by hand)
+Release of v0.2.0 by hand; 0.4: what the first publish showed — an expired npm session answers 404,
+the `0.0.0-stage` placeholder, checklist steps 4–6 done, the GitHub Release's assets)
 
 How `wingfoil-ui` reaches the npm registry: the pipeline `.github/workflows/publish.yml`, the
 registry-side setup the **approver** performs once, the steps of every release, and the staging
@@ -12,8 +13,8 @@ smoke that runs the same check locally. Planned by `release-planning-rel-v0.2-pl
 RP-46, RP-54 and `governance-alignment-rel-v0.2-plan` GA-4; v0.1 was released as a git tag only
 (dl-004). Release v0.2 is the first version on npm, `wingfoil-ui@0.2.0`: npmjs.com offers no
 trusted publisher for a name with no version, so the approver published it by hand from the tag
-run's smoked tarball (checklist step 4; no provenance statement for that version). Later versions
-go through the pipeline below.
+run's smoked tarball on 2026-10-20 (checklist step 4; no provenance statement for that version), and
+did checklist steps 5–6 right after. Later versions go through the pipeline below.
 
 Agents never configure the registry, never hold an npm credential and never approve: every step
 marked *approver* is a human act (CLAUDE.md, *Working with the WingFoil CLI*).
@@ -77,10 +78,25 @@ ships as a git tag only and a decision-log records it, as dl-004 did for v0.1 (R
    publishes the **first** version by hand, with 2FA, from the tarball the pipeline built and smoked
    — download the `wingfoil-ui-tarball` artifact of the tag run (or of a dry run on the tagged
    commit), check its name and version, then
-   `npm publish wingfoil-ui-<version>.tgz --access public`. That one version has no provenance; no token is created at any time. Then do step 5 for
-   every later release. For `wingfoil-ui` (2026-10-19) npmjs.com offered no trusted publishing
-   before a first version: `0.2.0` follows this path, with the tag run's `promote` deployment
-   rejected.
+   `npm publish wingfoil-ui-<version>.tgz --access public`.
+   That one version has no provenance; no token is created at any time. Then do step 5 for every
+   later release. For `wingfoil-ui` (2026-10-19) npmjs.com offered no trusted publishing before a
+   first version: `0.2.0` followed this path on 2026-10-20, with the tag run's `promote` deployment
+   rejected. What that publish showed:
+   - **Check the npm session first** (`npm whoami`; `npm login` if it fails — a short-lived session,
+     revoked by `npm logout`, not a token the repository or the workflow ever holds). With an
+     expired session `npm publish` printed the tarball details, then `E404 Not Found - PUT
+     https://registry.npmjs.org/wingfoil-ui`: npm answers an unauthenticated write with 404, not
+     401; nothing was published.
+   - **The first publish of a name is processed for a few minutes.** npm answered
+     `Your package is being processed and may take a few minutes to become available` and
+     `+ wingfoil-ui@0.2.0`; meanwhile the registry listed only a version `0.0.0-stage` ("Temporary
+     package placeholder for staged publishing", 2 files) as `latest`, and `npm view
+     wingfoil-ui@0.2.0` answered `E404`. About three minutes later `0.2.0` was listed and `latest`;
+     the placeholder stays in the version list.
+   - **Post-check:** `npm view wingfoil-ui@<version> dist.integrity` equals the integrity of the
+     artifact's tarball (`npm publish` prints it too), and an install by name in an empty folder
+     runs `npx --no -- wingfoil-ui --version`.
 5. **Trusted publisher** (npmjs.com → package `wingfoil-ui` → Settings → Trusted publishing →
    GitHub Actions): organization `wingfoil`, repository `wingfoil-ui`, workflow `publish.yml`,
    environment `npm-publish`, permission **limited to staging (stage only)**. It is keyed on the
@@ -128,11 +144,15 @@ others may depend on it): the approver runs `npm deprecate wingfoil-ui@X.Y.Z "br
 upgrade to X.Y.Z+1"` and the fix ships as a patch release through the same tag flow.
 
 **GitHub Release.** The pipeline creates none (see the table below). For `v0.2.0` the approver asked
-for one: once `npm view wingfoil-ui@0.2.0 version` answers, it is created by hand on the approver's
-OK — `gh release create v0.2.0 --verify-tag --title v0.2.0`, the CHANGELOG section `[0.2.0]` as its
-notes, the published tarball and the coverage reports of the release commit's local run as assets.
-An automatic `release` job like WingFoil's (after `promote`, once the version is live; the gate's
-test reports as assets) is planned for v0.3.
+for one: once `npm view wingfoil-ui@0.2.0 version` answered, it was created by hand on the
+approver's OK (2026-10-20) — `gh release create v0.2.0 --verify-tag --title v0.2.0 --latest`, notes
+= a short preface (the hand publish, the tag run) and the CHANGELOG section `[0.2.0]` with its
+relative links made absolute to the tag; assets = the published tarball, `coverage-summary.json`
+(the totals of the release tree's local `test:coverage`) and `test-results.md` (the pre-release
+checks). The full local coverage reports (`coverage-final.json`, `clover.xml`) are not attached:
+they hold the machine's absolute paths (dl-005). An automatic `release` job like WingFoil's (after
+`promote`, once the version is live; the gate's test reports, built on the runner, as assets) is
+planned for v0.3.
 
 ## Local staging smoke
 
