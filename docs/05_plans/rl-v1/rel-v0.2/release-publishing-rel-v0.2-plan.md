@@ -87,14 +87,15 @@ tagged again on the fixed commit or a patch follows (`docs/publishing.md`, *Ever
   (`test:publish-smoke`, Node 22.12.0) green; `promote` waited on `npm-publish` and was **rejected**
   by the approver (the run ends `failure`, nothing staged). The agent downloaded the
   `wingfoil-ui-tarball` artifact at the approver's request: `wingfoil-ui-0.2.0.tgz`, 586 837 bytes,
-  integrity `sha512-DV23ATWQGkaFNQZaCoAQAh6VJ1Zm+zFcUU8fNSGWfH/WTwcBaRlzbxPPPvCPEjQJ03gIc8PzK48OVbKpLEhPMw==`;
+  integrity
+  `sha512-DV23ATWQGkaFNQZaCoAQAh6VJ1Zm+zFcUU8fNSGWfH/WTwcBaRlzbxPPPvCPEjQJ03gIc8PzK48OVbKpLEhPMw==`;
   `package.json` `wingfoil-ui` `0.2.0`, not private; 145 files within `files`, no source, test or
   `.wingfoil/` file, the bin mode 755; README, CHANGELOG, LICENSE, the message catalogue, the
-  contracts' `matrix.json` and `capabilities.json` and the bin byte-equal to the tag's; the same file
-  list and built files as the third dry run's tarball (only `package.json`, README, CHANGELOG
+  contracts' `matrix.json` and `capabilities.json` and the bin byte-equal to the tag's; the same
+  file list and built files as the third dry run's tarball (only `package.json`, README, CHANGELOG
   differ). The approver's `npm publish <tarball> --access public`: first `E404` on the PUT (the npm
   session in the user config had expired; nothing published), then, after `npm login`, `+
-  wingfoil-ui@0.2.0` with "Your package is being processed". For about three minutes the registry
+  wingfoil-ui@0.2.0` with "Your package is being processed". For under three minutes the registry
   listed only `0.0.0-stage` ("Temporary package placeholder for staged publishing") as `latest`;
   `0.2.0` was listed at 21:19:56Z and became `latest`. Post-check: `npm view wingfoil-ui@0.2.0
   version` → `0.2.0`, `dist.integrity` = the artifact's, 145 files, no attestation (no provenance,
@@ -102,13 +103,15 @@ tagged again on the fixed commit or a patch follows (`docs/publishing.md`, *Ever
   `registry.npmjs.org` with that integrity and `npx --no -- wingfoil-ui --version` prints `0.2.0`.
   The approver then did checklist steps 5 (trusted publisher `wingfoil/wingfoil-ui`, `publish.yml`,
   `npm-publish`, stage only) and 6 (2FA required, tokens disallowed), reported in chat.
-- **Step 5 — GitHub Release** (RS2-3), on the approver's OK ("procedi con la GitHub Release"):
-  `gh release create v0.2.0 --verify-tag --title v0.2.0 --latest`; notes = a preface (the hand
-  publish, the tag run, the local test results) and the CHANGELOG `[0.2.0]` section with its
-  relative links made absolute to the tag; assets `wingfoil-ui-0.2.0.tgz` (the published tarball),
+- **Step 5 — GitHub Release** (RS2-3), on the approver's OK ("procedi con la GitHub Release"): `gh
+  release create v0.2.0 --verify-tag --title v0.2.0 --latest`; notes = a preface (the hand publish,
+  the tag run, the local test results) and the CHANGELOG `[0.2.0]` section with its relative links
+  made absolute to the tag; assets `wingfoil-ui-0.2.0.tgz` (the published tarball),
   `coverage-summary.json` (the totals of `test:coverage` on `76570c5`) and `test-results.md` (the
   pre-release checks). Not attached: `coverage-final.json`, `clover.xml` — they hold 183 absolute
-  local paths (dl-005). The Release is the repository's latest; it started no Actions run.
+  local paths (dl-005). The Release is the repository's latest; it started no Actions run. Deviation
+  from step 5 as planned: `--latest` added, a preface before the CHANGELOG section, and only the
+  coverage totals instead of the full coverage reports (dl-005).
 - `docs/publishing.md` 0.4 (`48a2ac7`, the approver's request): the npm session check, the
   processing of a first publish and its `0.0.0-stage` placeholder, the post-check, checklist steps
   4–6 done, the GitHub Release's assets.
@@ -156,9 +159,9 @@ Raw material, gathered at the end of `publishing`; the retrospective decides wha
 - **Approver exceptions:** a mistaken reject of bug-016 removed with `git reset --keep` before any
   push (e2e-smoke); AC-3 of task-045 proved by CI instead of a local coverage run (release-submit
   Session 1).
-- **Review effort:** task-040 took 5 independent + 5 adversarial rounds ("enumerate tool-sourced
-  string fields at design", dev-rules Wave 6); the release commit's review took 3 rounds, two of
-  them for wrap and Version-line slips introduced by the fixes themselves.
+- **Review effort:** task-040 took 5 independent + 5 adversarial rounds (its Execution Notes; the
+  security rounds kept finding new tool-sourced string fields); the release commit's review took 3
+  rounds, two of them for wrap and Version-line slips introduced by the fixes themselves.
 - **WingFoil feedback:** the publish-pipeline note drafted outside the repository (it fits no
   `wingfoil-cli` W-entry, so the inbox test refuses it) needs a way to be filed.
 - **Housekeeping left for the retrospective:** merged local `design/*` branches of v0.2

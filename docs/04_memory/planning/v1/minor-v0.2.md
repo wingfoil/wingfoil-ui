@@ -239,16 +239,16 @@ Actual effort per phase (dl-006 action 6; wall-clock of the working sessions, 20
   statements), e2e Chromium 319, contract 263, local-security 251, smoke 4/4 and publish-smoke 11/11
   (`0.2.0`), `test:timing` alone 6 + 23 (Today p95 134 ms), `npm audit --omit=dev` 0. Release
   `releasing` (`116395d`); approve-release: the approver's OK in chat; plan finalized `0febbdb`.
-- 2026-10-20 — `release-publishing-rel-v0.2-plan`: annotated tag `v0.2.0` on `main` `64e9420`
-  (only documents and governance after `8b217b0`; `check-release-tag.mjs` passed locally), pushed
-  on the approver's OK. Tag run `39497286374`: `gate` and `stage` green, `promote` rejected by the
-  approver (no trusted publisher before a first version). The run's tarball (145 files, integrity
-  `sha512-DV23…PMw==`) checked against the tag and the third dry run's (same built files). The
-  approver's first `npm publish` failed with `E404` on the PUT (an expired npm session); after
+- 2026-10-20 – 2026-10-21 — `release-publishing-rel-v0.2-plan`: annotated tag `v0.2.0` on `main`
+  `64e9420` (only documents and governance after `8b217b0`; `check-release-tag.mjs` passed locally),
+  pushed on the approver's OK. Tag run `39497286374`: `gate` and `stage` green, `promote` rejected
+  by the approver (no trusted publisher before a first version). The run's tarball (145 files,
+  integrity `sha512-DV23…PMw==`) checked against the tag and the third dry run's (same built files).
+  The approver's first `npm publish` failed with `E404` on the PUT (an expired npm session); after
   `npm login` it answered "being processed": npm first listed a placeholder `0.0.0-stage` as
-  `latest`, then `0.2.0` (21:19:56Z), `latest`. Post-check: `npm view wingfoil-ui@0.2.0 version`
-  → `0.2.0`, the same integrity; an install by name prints `0.2.0`. The approver did checklist
-  steps 5 (trusted publisher, stage only) and 6 (2FA, tokens disallowed). GitHub Release `v0.2.0`
-  by hand on the approver's OK (CHANGELOG section; the tarball, coverage totals and test results
-  attached). `docs/publishing.md` 0.4 records what the first publish showed (`48a2ac7`). Release
-  `released` (`dc4feac`).
+  `latest`, then `0.2.0` (21:19:56Z), `latest`. Post-check: `npm view wingfoil-ui@0.2.0 version` →
+  `0.2.0`, the same integrity; an install by name prints `0.2.0`. The approver did checklist steps 5
+  (trusted publisher, stage only) and 6 (2FA, tokens disallowed). GitHub Release `v0.2.0` by hand on
+  the approver's OK (CHANGELOG section; the tarball, coverage totals and test results attached).
+  `docs/publishing.md` 0.4 records what the first publish showed (`48a2ac7`). Release `released`
+  (`dc4feac`).

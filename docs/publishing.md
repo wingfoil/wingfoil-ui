@@ -92,7 +92,7 @@ ships as a git tag only and a decision-log records it, as dl-004 did for v0.1 (R
      `Your package is being processed and may take a few minutes to become available` and
      `+ wingfoil-ui@0.2.0`; meanwhile the registry listed only a version `0.0.0-stage` ("Temporary
      package placeholder for staged publishing", 2 files) as `latest`, and `npm view
-     wingfoil-ui@0.2.0` answered `E404`. About three minutes later `0.2.0` was listed and `latest`;
+     wingfoil-ui@0.2.0` answered `E404`. Under three minutes later `0.2.0` was listed and `latest`;
      the placeholder stays in the version list.
    - **Post-check:** `npm view wingfoil-ui@<version> dist.integrity` equals the integrity of the
      artifact's tarball (`npm publish` prints it too), and an install by name in an empty folder
@@ -146,13 +146,13 @@ upgrade to X.Y.Z+1"` and the fix ships as a patch release through the same tag f
 **GitHub Release.** The pipeline creates none (see the table below). For `v0.2.0` the approver asked
 for one: once `npm view wingfoil-ui@0.2.0 version` answered, it was created by hand on the
 approver's OK (2026-10-20) — `gh release create v0.2.0 --verify-tag --title v0.2.0 --latest`, notes
-= a short preface (the hand publish, the tag run) and the CHANGELOG section `[0.2.0]` with its
-relative links made absolute to the tag; assets = the published tarball, `coverage-summary.json`
-(the totals of the release tree's local `test:coverage`) and `test-results.md` (the pre-release
-checks). The full local coverage reports (`coverage-final.json`, `clover.xml`) are not attached:
-they hold the machine's absolute paths (dl-005). An automatic `release` job like WingFoil's (after
-`promote`, once the version is live; the gate's test reports, built on the runner, as assets) is
-planned for v0.3.
+= a short preface (the hand publish, the tag run, the local test results) and the CHANGELOG section
+`[0.2.0]` with its relative links made absolute to the tag; assets = the published tarball,
+`coverage-summary.json` (the totals of the release tree's local `test:coverage`) and
+`test-results.md` (the pre-release checks). The full local coverage reports (`coverage-final.json`,
+`clover.xml`) are not attached: they hold the machine's absolute paths (dl-005). An automatic
+`release` job like WingFoil's (after `promote`, once the version is live; the gate's test reports,
+built on the runner, as assets) is planned for v0.3.
 
 ## Local staging smoke
 

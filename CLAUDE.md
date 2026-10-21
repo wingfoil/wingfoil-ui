@@ -1,6 +1,6 @@
 # CLAUDE.md — agent entry point
 
-**Version:** 0.7 · **Date:** 2026-10-20 (0.1: release v0.1, `user-docs` `align-agent-docs`; 0.2: v0.1.0 released, release submit; 0.3: `test:smoke` wave gate — task-026; 0.4: e2e on three engines, inner-loop Chromium run — task-027; 0.5: `test:publish-smoke`, the publishing guide — task-029; 0.6: release v0.2 user-docs — v0.2 in release validation; 0.7: v0.2.0 released — git tag and npm, the first version by hand)
+**Version:** 0.8 · **Date:** 2026-10-21 (0.1: release v0.1, `user-docs` `align-agent-docs`; 0.2: v0.1.0 released, release submit; 0.3: `test:smoke` wave gate — task-026; 0.4: e2e on three engines, inner-loop Chromium run — task-027; 0.5: `test:publish-smoke`, the publishing guide — task-029; 0.6: release v0.2 user-docs — v0.2 in release validation; 0.7: v0.2.0 released — git tag and npm, the first version by hand; 0.8: the GitHub Release of v0.2.0 made)
 
 WingFoil UI: a local web UI for WingFoil-governed projects. A Node.js server (`server/`) drives
 each project's pinned `wingfoil` CLI and reads git; a React app (`web/`) shows the result;
@@ -10,15 +10,15 @@ is itself governed by WingFoil (`.wingfoil/`).
 ## Project status
 
 Latest release: **v0.2 — Unblock** (`docs/04_memory/planning/v1/minor-v0.2.md`), git tag `v0.2.0`
-(`package.json` version `0.2.0`) and the first version on npm, `wingfoil-ui@0.2.0`. npmjs.com
-offers no trusted publisher for a name with no version, so the approver published `0.2.0` **by
-hand**, with 2FA, from the tag run's smoked tarball (the run's `promote` rejected): that version has
-no provenance statement. Later versions go through `.github/workflows/publish.yml` — `gate`,
-`stage`, then `promote` to the npm stage queue through the trusted publisher, live after the
-approver's `npm stage approve` ([`docs/publishing.md`](docs/publishing.md)). The GitHub Release of
-`v0.2.0` is made by hand once the version is live; an automatic one is planned for v0.3. The
-previous release, **v0.1 — Read-only console** (git tag `v0.1.0`), was not published on npm
-(dl-004). Next: the v0.2 retrospective (a new session), then the release-planning of v0.3.
+(`package.json` version `0.2.0`) and the first version on npm, `wingfoil-ui@0.2.0`. npmjs.com offers
+no trusted publisher for a name with no version, so the approver published `0.2.0` **by hand**, with
+2FA, from the tag run's smoked tarball (the run's `promote` rejected): that version has no
+provenance statement. Later versions go through `.github/workflows/publish.yml` — `gate`, `stage`,
+then `promote` to the npm stage queue through the trusted publisher, live after the approver's `npm
+stage approve` ([`docs/publishing.md`](docs/publishing.md)). The GitHub Release of `v0.2.0` was made
+by hand (2026-10-20); an automatic one is planned for v0.3. The previous release, **v0.1 — Read-only
+console** (git tag `v0.1.0`), was not published on npm (dl-004). Next: the v0.2 retrospective (a new
+session), then the release-planning of v0.3.
 
 Released in `v0.1.0`:
 
