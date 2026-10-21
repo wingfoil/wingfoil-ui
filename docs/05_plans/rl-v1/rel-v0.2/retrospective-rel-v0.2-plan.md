@@ -2,7 +2,7 @@
 id: retrospective-rel-v0.2-plan
 type: plan
 title: "Retrospective rel-v0.2"
-status: active
+status: done
 version: "0.5"         # optional — plan version
 workflow: "retrospective"
 phase: "rel-v0.2"
