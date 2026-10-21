@@ -3,7 +3,7 @@ id: retrospective-rel-v0.2-plan
 type: plan
 title: "Retrospective rel-v0.2"
 status: active
-version: "0.4"         # optional — plan version
+version: "0.5"         # optional — plan version
 workflow: "retrospective"
 phase: "rel-v0.2"
 scope: "rl-v1/rel-v0.2"
@@ -14,8 +14,9 @@ tmpl_version: 260703   # Orignal template version
 
 ## Context
 
-**Version:** 0.4 · **Date:** 2026-10-21 (0.1: plan created; 0.2: explore — friction inventory; 0.3:
-additional-points decisions, T7 corrected; 0.4: capture)
+**Version:** 0.5 · **Date:** 2026-10-21 (0.1: plan created; 0.2: explore — friction inventory; 0.3:
+additional-points decisions, T7 corrected; 0.4: capture; 0.5:
+approve, closing)
 **Branch:** `main` (RT2-1, as RT-1 of v0.1)
 **Workflows:** `sw-life-cycle` → `release-line-cycle` (`rl-v1`) phase `delivery` → `release-cycle`
 (`minor-v0.2`, v1.1) phase `retrospective` = `retrospective`
@@ -313,3 +314,14 @@ recurred).**
   nits, fixed). The conflict with the `$comment` of `contracts/matrix.json` (the matrix advances
   only through `release-planning`) is recorded in dl-010 as a deviation. This plan's header
   `Version` lagged its frontmatter after `8e448e2` (found by round 1) and is aligned.
+- Step 4 (cont.): `memory submit` of the three DLs → `in-discussion` (`7f8cad3`, `e3935b1`,
+  `4c2a60d`); pushed.
+- Step 5 — approve: the approver ran `memory approve` on dl-009, dl-010, dl-011 → `ready`
+  (`a2721ab`, `ebfa69b`, `9bbd302`).
+- Step 6: Execution Notes "Retrospective" of `minor-v0.2` added, with the effort row of this phase.
+  Housekeeping (RT2-12, RT2-14, RT2-15): bug-018 `release: "v0.2"` (a field, no state change);
+  frontmatter `version` of `release-submit-rel-v0.2-plan` 0.2 → 0.3 and of
+  `release-publishing-rel-v0.2-plan` 0.1 → 0.2, equal to their Context `Version`; the branches
+  `design/release-planning_v0.2`, `design/user-docs_v0.2`, `design/e2e-smoke_v0.2` deleted locally
+  and on `origin` after checking that each is merged into `main`; `design/inception_v1` kept; the
+  npm placeholder `0.0.0-stage` left to the approver. Plan finalized (separate commit).

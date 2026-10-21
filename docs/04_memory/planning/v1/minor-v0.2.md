@@ -79,6 +79,7 @@ Actual effort per phase (dl-006 action 6; wall-clock of the working sessions, 20
 | release validation — user-docs, e2e-smoke (task-043) | `user-docs-rel-v0.2-plan`, `e2e-smoke-rel-v0.2-plan` | 2026-10-18 20:25 (first commit) – 2026-10-19 19:31 (overnight pause) | 1 active day (the 9th); working time not recorded |
 | release validation — submit pre-step (three dry runs, task-044, task-045) | `release-submit-rel-v0.2-plan` session 1 | 2026-10-19 21:59 (first dry run) – 2026-10-20 19:56 (overnight pause; waits for the CI runs and the slot) | 1 active day (the 10th; RV2-1 deviation: submit and publishing did not fit the 9th, they continue on an 11th); working time not recorded |
 | release validation — submit steps 2–8, publishing | `release-submit-rel-v0.2-plan` session 2, `release-publishing-rel-v0.2-plan` session 1 | 2026-10-20 20:11 (first commit) – 2026-10-21 07:10 (overnight pause; waits for the slot, the tag run and the registry) | 1 active day (the 11th, RV2-1 deviation); working time not recorded |
+| retrospective | `retrospective-rel-v0.2-plan` session 1 | 2026-10-21 08:59 (first commit) – 11:00 | ~2 h, within the 11th active day |
 
 - 2026-10-12 — `release-planning-rel-v0.2-plan` sessions 1–2 (branch `design/release-planning_v0.2`).
   `advance-pinned-build` no-op (0.2.2 newest); `minor-v0.2` `draft → planning` (`4c8ead3`);
@@ -252,3 +253,21 @@ Actual effort per phase (dl-006 action 6; wall-clock of the working sessions, 20
   the approver's OK (CHANGELOG section; the tarball, coverage totals and test results attached).
   `docs/publishing.md` 0.4 records what the first publish showed (`48a2ac7`). Release `released`
   (`dc4feac`).
+
+### Retrospective
+
+- 2026-10-21 — `retrospective-rel-v0.2-plan` on `main` (RT2-1). explore: three read-only miners
+  over tasks, bugs + DLs + feedback, and this document + plans; friction inventory T1 … T12 and the
+  status of the actions of dl-006, dl-007 and dl-008 in the plan. additional-points: decisions
+  RT2-6 … RT2-18. capture: dl-009 (retrospective), dl-010 (governance alignment before v0.3, waiting
+  for WingFoil-Templates' `base` pack), dl-011 (CI runs and environment checks in the dev loop);
+  independent review round 1 FAIL (3 major), round 2 FAIL (1 major), round 3 FAIL (1 minor), round
+  4 PASS. approve: the three DLs `ready` (`a2721ab`, `ebfa69b`, `9bbd302`).
+- Carried to `minor-v0.3`: the `governance-alignment` pre-step of dl-010 before `release-planning`;
+  at `release-planning`, the tasks and amendments of dl-009 actions 3, 4, 5, 7, 8, 10 and the
+  plan-version check of dl-011; from the first wave, the wave-gate dispatch of dl-011.
+- Housekeeping (dl-009 action 11): bug-018 `release: "v0.2"`; the frontmatter `version` of
+  `release-submit-rel-v0.2-plan` and `release-publishing-rel-v0.2-plan` aligned to their Context
+  `Version`; `design/release-planning_v0.2`, `design/user-docs_v0.2`, `design/e2e-smoke_v0.2`
+  deleted locally and on `origin` (all merged into `main`); `design/inception_v1` kept. The npm
+  placeholder `0.0.0-stage` is left to the approver.

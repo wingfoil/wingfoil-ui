@@ -3,7 +3,7 @@ id: release-publishing-rel-v0.2-plan
 type: plan
 title: "Release publishing rel-v0.2"
 status: done
-version: "0.1"         # optional — plan version
+version: "0.2"         # optional — plan version
 workflow: "release-publishing"
 phase: "rel-v0.2"
 scope: "rl-v1/rel-v0.2"
