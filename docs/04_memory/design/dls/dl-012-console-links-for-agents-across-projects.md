@@ -2,7 +2,7 @@
 id: dl-012-console-links-for-agents-across-projects
 type: decision-log
 title: "Console links for agents across projects"
-status: draft
+status: in-discussion
 context: "ad-hoc"            # optional — short label for the context, e.g. "retrospective", "planning", "ad-hoc"
 release: ""            # optional — implementation release this DL is assigned to (stamped at release-planning/build-backlog), e.g. "v0.1"
 contributor: "WingFoil maintainer (requests R1–R3, 2026-10-26)"        # optional — who originated this contribution, if not the git author; credited for AI-generated work derived from it
