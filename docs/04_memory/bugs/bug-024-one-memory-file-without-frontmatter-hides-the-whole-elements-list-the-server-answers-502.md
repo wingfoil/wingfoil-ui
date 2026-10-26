@@ -3,52 +3,61 @@ id: bug-024-one-memory-file-without-frontmatter-hides-the-whole-elements-list-th
 type: bug
 title: "One Memory file without frontmatter hides the whole elements list: the server answers 502"
 status: draft
-severity: ""           # REQUIRED — critical | high | medium | low
-release-origin: ""     # optional — release where the bug was FOUND, e.g. "v0.1"
+severity: "medium"           # REQUIRED — critical | high | medium | low
+release-origin: "v0.2"     # optional — release where the bug was FOUND, e.g. "v0.1"
 release: ""            # optional — fix/implementation release, stamped by release-planning/build-backlog
 feature: ""            # optional — related feature ID from docs/01_vision/06_features.md
-module: ""             # optional — server | web | contracts
-wingfoil_version: ""   # optional — `wingfoil --version` of the OBSERVED project (the UI drives its CLI)
-browser: ""            # optional — for `web`: browser name + version, e.g. "Firefox 131"
-contributor: ""        # optional — who originated this contribution, if not the git author; credited for AI-generated work derived from it
+module: "server"             # optional — server | web | contracts
+wingfoil_version: "0.2.2"   # optional — `wingfoil --version` of the OBSERVED project (the UI drives its CLI)
+browser: "any (server side)"            # optional — for `web`: browser name + version, e.g. "Firefox 131"
+contributor: "WingFoil maintainer (request R4, 2026-10-26)"        # optional — who originated this contribution, if not the git author; credited for AI-generated work derived from it
 credit: ""             # optional — free-text credit note
 tmpl_version: 260703   # Orignal template version
 ---
 
 ## Summary
 
-<!-- One-sentence description of the defect. -->
+A single Markdown file without frontmatter under a Memory path hides every element of the
+project: `memory search` returns it as a match with no `id`, `title`, `type` or `status`, the
+console refuses the whole output, and the elements list answers 502 `cli-output` ("Unexpected
+output of memory search").
 
 ## Steps to Reproduce
 
-<!-- Start from the observed project's state (WingFoil version, branch, the elements involved),
-     then the numbered steps in the UI or against the server API.
-  1. ...
-  2. ...
-  3. ... -->
+1. A project governed by `wingfoil@0.2.2` with at least one valid element.
+2. Add `docs/04_memory/bugs/notes.md` (any Memory path) with Markdown text and no frontmatter.
+3. Open the console on it and open the Memory list, or call `GET /api/p/<pid>/elements` with a
+   session.
 
 ## Expected Behavior
 
-<!-- What should happen. -->
+The valid elements are listed; the malformed match is left out (or flagged), and a notice names
+its file by its project-relative path, through the sanitiser of tool-sourced text.
 
 ## Actual Behavior
 
-<!-- What actually happens. Include error messages or stack traces if available. -->
+The elements list answers 502 `{"error":{"code":"cli-output"}}` and the project shows no element.
+Other views that read the same CLI output were not checked.
 
 ## Evidence
 
-<!-- Screenshot or recording (web), browser console output, server log lines, the CLI command the
-     server ran and its JSON output. Never paste secrets (directive security-secrets). -->
+- Reproduced on 2026-10-26 in a scratch repository with this repository's `.wingfoil/`, one valid
+  bug and one file without frontmatter: `wingfoil memory search --format json` (0.2.2) answers
+  `{"query":"","matches":[{…the bug…},{"path":"docs/04_memory/bugs/notes.md","tags":[]}]}`.
+- `contracts/cli/memory-search.schema.json` requires `path`, `id`, `title`, `type`, `status` and
+  `tags` on every match; `server/src/cli/adapter.ts` checks the whole output against the schema
+  and throws `CliOutputError` on any problem, which answers 502 `cli-output`.
+- Reported by the WingFoil maintainer through the coordination channel (2026-10-26), observed on
+  WingFoil UI 0.2.0 (`6a5ad5c`).
 
 ## Notes
 
-<!-- Optional: environment details, related ADRs, suspected root cause, or workaround. -->
+- Workaround: move the file out of the Memory path, or give it a frontmatter.
+- Possible fix: check each match of `memory search` on its own, keep the valid ones and report
+  the others as warnings (the channel the CLI's `warnings` already use); other commands stay
+  strict. Check every view that reads the list (Memory list, Today, counters, the bell).
+- WingFoil returning a file that is not an element as a match may be a WingFoil defect: a
+  candidate feedback note for the inbox (`docs/wingfoil-feedback/`).
 
 ## Triage & Execution Notes
 
-<!-- Running log, not the retrospective itself.
-     - triage (bug-ingest): severity call, wontfix/duplicate rationale if rejected to `closed`.
-     - fix: once fix task(s) exist (release-planning/build-backlog), day-to-day execution notes
-       live on those tasks (docs/04_memory/{release}/{id}.md, `bug: {this id}`, their own
-       Execution Notes section) — this section only needs a pointer plus anything that doesn't
-       belong on a specific fix task (e.g. why 2 tasks were needed instead of 1). -->
