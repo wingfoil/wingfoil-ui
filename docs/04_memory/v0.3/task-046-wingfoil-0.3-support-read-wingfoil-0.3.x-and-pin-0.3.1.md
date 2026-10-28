@@ -88,3 +88,154 @@ alignment)
   `baseline` included, if passed on).
 
 ## Execution Notes
+
+### design (2026-10-28)
+
+**Read (dl-015):** this task; `governance-alignment-rel-v0.3-plan` (Session log *Step 2*: a1 … a4,
+r1 … r5; GA3-3 … GA3-6, GA3-9); `dev-loop.yaml`; directive `wingfoil-cli` (W-01 … W-31);
+`test/README.md`; `contracts/matrix.json`, `capabilities.json`, `cli/*.schema.json`; `server/src/cli/`
+(`version.ts`, `capabilities.ts`, `commands.ts`, `adapter.ts`); `test/contracts/*`; spec-001, spec-004
+§3, adr-001 D3/D4; the Execution Notes of task-004, task-005, task-006 and task-012 (v0.1). Taken from
+them: the `--version` text is returned trimmed by the adapter and parsed by `version.ts` (task-006);
+"a shape that changes in a later version gets a versioned variant" (spec-001 §5), deferred by task-005
+and task-006 until a second version entered the matrix — this task is that moment; every exit-0
+`stderr` line goes through `redactLocalPaths` (bug-017) and every tool-sourced string must too
+(dev-loop lessons, Wave 6); `cliBuildFor` installs a non-pinned matrix version into the matrix cache;
+release-planning's matrix-advance recipe (task-005, task-006 hand-overs: re-capture, `test:contract`,
+`capabilities.json` and README in step). `depends_on` is empty.
+
+**Probes (2026-10-28,** `wingfoil@0.3.1` installed in a scratch folder, `wingfoil@0.2.2` the pinned
+devDependency; scratch repositories with `init --template Kanban` and a clone of this branch):
+
+- `--version` (also with `--format json`): 0.2.2 → `0.2.2`; 0.3.1 → `0.3.1
+  (870bd4406f3b9bba5ecde7a5f8198b80c2a98583)`. 0.3.1's `dist/storage/build-stamp.js` builds it as
+  `<package version> (<commit>)` from `dist/build-info.json`, the commit being `unknown` when the
+  record is missing or not a sha (a dev build); the same stamp is the `WingFoil-Version:` trailer
+  0.3.1 adds to every commit it writes.
+- `workflow list --format json`: 0.2.2 → `{manifest{version?, include[]}, workflows[{name, kind,
+  description?, version?, element?, phases[…]}]}`; 0.3.1 → `{baseline{rev: "HEAD", commit},
+  workflows[{name, startable, includable, description (string or null), executableNow}], message?,
+  diagnostics[{code, severity, file, path, message}]}` (`dist/core/workflow-list-show.d.ts`
+  `ListResult`): no `manifest`, `kind` or `phases`; read "as committed at HEAD"; without `--all`
+  only the workflows executable now (the includable subs no open workflow reached are left out).
+  `diagnostics` are configuration messages: on this repository with a1/a2, 115 warnings
+  (`W_WORKFLOW_UNBOUND_TOKEN`, `W_PHASE_PRODUCES_OWNER_IMPLICIT`, `W_PHASE_ACTION_UNTARGETED`),
+  `file` relative to `.wingfoil/`, `message` quoting configuration values.
+- This repository's `.wingfoil/` on 0.3.1: `workflow list` refused (exit 1,
+  `E_PHASE_PRODUCES_NOT_A_PATH … workflows/custom/retrospective.yaml`, the warnings in the refusal's
+  `details`); with a1 + a2 committed: exit 0 on both versions, `stderr` empty; `memory search` 120
+  elements on both versions, each id once (AC-6 precondition).
+- `init --template Kanban`: 0.2.2 → types `adr, bug, decision-log, release, release-line, task,
+  tech-spec`; 0.3.1 → the same plus `plan` (`draft → active → done`); `workflows.yaml` gains
+  `format: 1`; the same five workflow files.
+- `memory add --type task` on both: `status: draft` (the type's first state); the first-state
+  behaviour of a non-`draft` sequence (r3, `story` → `idea` on 0.3.1) is checked by the contract
+  test on the `unknown` fixture. The 0.3.1 commit body ends with `WingFoil-Version: 0.3.1 (…)`.
+
+**AC classification (T1):** AC-1, AC-2 (0.3.x shape and the diagnostics sanitiser), AC-3 and the
+capability rule of AC-5 are **red-first** (the contract test on 0.3.1 and new units fail today);
+AC-4 a1 … a4 are configuration/harness adaptations (characterization: the capture on 0.2.2 already
+passes, the red is the 0.3.1 capture); the pin, the matrix and the docs of AC-5, AC-6 and AC-7 are
+characterization (the gates).
+
+**Decisions per AC:**
+
+- **AC-1 — version text.** `version.ts` gains `versionCore(text)`: the whole text is a semantic
+  version, optionally followed by one space and WingFoil 0.3's build stamp `(<commit>)`, the commit
+  7–64 lowercase hex digits or `unknown`; anything else (another suffix, two stamps, a stamp alone,
+  a non-semantic core) is `unrecognised`. `classifyVersion` classifies the core; `VersionClass.text`
+  stays the trimmed printed text (`GET /api/p/:pid` `wingfoil.text`), `version` the canonical core.
+  The web header keeps rendering `version ?? text` (S-08.1 "WingFoil 0.2.2"; 0.3.1 → "WingFoil
+  0.3.1"); an unrecognised text is still shown as printed. `version.schema.json` keeps "one
+  non-empty line" (the parse is `version.ts`'s, task-005) and its `$comment`/`description` name both
+  forms; samples of both versions. adr-001 D3 "The output must be a semantic version" amended (both
+  forms); spec-001 §3 `--version` row amended.
+- **AC-2 — `workflow list`.** One schema file with the two shapes as `oneOf` branches
+  (`definitions.v0.2`, `definitions.v0.3`), mutually exclusive by their required keys (0.2.x
+  `manifest` + items `kind`, `phases`; 0.3.x `baseline` + `diagnostics` + items `startable`,
+  `includable`, `executableNow`): an output must match exactly one, so neither shape is loosened
+  (an output with both `manifest` and `baseline` fails). Selected by shape, not by the detected
+  version: the adapter validates without the version (a separate, cached process), and a project
+  with an out-of-range or unrecognised version still reads its configuration. The contract test
+  asserts each version's output matches its own branch (0.2.2 → `v0.2`, 0.3.1 → `v0.3`).
+  `WorkflowList` becomes the union `WorkflowList02 | WorkflowList03` with a type guard.
+  `GET /api/p/:pid/config` passes the section on as the CLI answered it (`config.schema.json`
+  already `$ref`s the CLI schema), except that every string of a 0.3.x `diagnostics` entry and its
+  `message` go through the adapter's one sanitiser (`redactLocalPaths`, as the `stderr` warnings):
+  done in the adapter after validation (`commands.ts` `toolText(name, data, redact)`), so no read
+  path can skip it. `baseline` is `{rev, commit}` (`rev` the literal `HEAD`, `commit` 40–64 hex,
+  enforced by the schema) and passes as is. No view reads a workflow field (unchanged).
+  spec-001 §3 (`workflow list` row with the 0.3.x shape), §5 (the variant rule: one schema,
+  versioned `oneOf` branches, exactly one matches) and spec-004 §3 (`/config` row) amended.
+- **AC-3 — 0.3 behaviours in the contract.** A per-version behaviour table in
+  `test/contracts/support.ts` — `behaviours(version)` → `{ addState: 'draft' | 'first-declared',
+  kanbanTypes: string[] }`, listing 0.2.2 and 0.3.1 and **throwing for an unlisted matrix version**
+  (the next matrix advance must state what that version does, rather than inherit a guess).
+  `cli-contract.test.ts`: `memory add` writes `draft` on 0.2.2 (W-21) and the type's first declared
+  state on 0.3.1 (`unknown` `story` → `idea`); `cli.version()` is classified (`classifyVersion(text)
+  .version === version`). `descriptor-contract.test.ts` S-28.1: the `kanban` type list per version
+  (0.3.1 adds `plan`). 0.2.2's expectations are unchanged.
+- **AC-4 — configuration and harness (a1 … a4).**
+  - a1 `.wingfoil/memory.yaml` `release.template.frontmatter.lists: [ features ]`;
+  - a2 `.wingfoil/workflows/custom/retrospective.yaml`: `explore` produces
+    `docs/05_plans/{scope}/{id}.md` (the retrospective plan holds the friction inventory —
+    `retrospective-rel-v0.2-plan`'s T1 … T12), `capture` produces `docs/04_memory/design/dls/{id}.md`;
+    the former texts kept as YAML comments; `version: 1.3` with its history comment;
+  - a3 `archiveOne`: `^status: draft\b.*$` (the 0.3.1 template comment after the state);
+  - a4 the `unknown` fixture: `init`'s five workflow files removed and `workflows.yaml` replaced by
+    one include of `workflows/custom/notes-review.yaml`, a main workflow with one phase and no
+    action (0.2.2 needs one include at least; 0.3.1 refuses `init`'s workflows, which name the types
+    this schema replaces).
+  The `.wingfoil/` diff (a1, a2) goes to the approver before its commit (reported to the
+  coordinator); until then it stays uncommitted in the worktree (the `custom` fixture copies the
+  working tree's `.wingfoil/`).
+- **AC-5 — pin, matrix, capabilities.** Pin `wingfoil@0.3.1` (exact); matrix `min` 0.2.2, `pinned`
+  0.3.1, `versions` [0.2.2, 0.3.1], `$comment` naming the pre-step before `release-planning`
+  (GA3-5); samples of both versions re-captured; README *Supported WingFoil versions* (`0.2.2 to
+  0.3.x`, `0.2.2`, `0.3.1`, the `--version` sentence with the stamp). **Capability rule:** with the
+  range reaching 0.3.x, the four rows `workflow-position`, `workflow-next-step`, `workflow-start`,
+  `agent-launch` (`minVersion` 0.3.0, `via: null`) would turn `enabled` on a 0.3.1 project and enter
+  the version notice of a 0.2.2 project (S-08.1 "Every capability of this release is available"
+  would fail). Rule added to `evaluateCapabilities`: a row with `via: null` (no source in this
+  release) is never `enabled` and never in `missing`; below its `minVersion` it stays read-only
+  `needs-version` (0.2.2 unchanged), at or above it read-only with the new reason
+  `not-in-release`; `minVersion: null` keeps `not-released` first. The table keeps WingFoil's
+  minimum versions (no data falsified). `contracts/api/project.schema.json` and
+  `contracts/src/api.ts` gain the reason; the web renders only `missing` (no catalogue key needed).
+  spec-001 §6 amended (`via: null` = not used by this release; the rule).
+- **AC-6** — run on the worktree with the new pin (`--version`, `workflow list`, `memory search`,
+  each id once), recorded below; every CLI surprise goes to the coordinator, the directive is not
+  edited (plan step 4).
+- **AC-7** — the gates of the dev-loop rules on the new pin, heavy ones through the slot; the
+  strict-identity recipe for the git-touching suites; docs in the same change (`test/README.md`,
+  `CHANGELOG.md` *Unreleased*, `CLAUDE.md` pin lines, README).
+
+**Expected knock-on of the pin (to be confirmed by the gates):** every fixture of the default suite
+and of the e2e suite is built with 0.3.1 — `kanban` gains the `plan` type (e2e `memory-list.spec.ts`
+S-28.1 type list), the range label becomes `0.2.2 to 0.3.x` (unit and e2e tests that read the real
+matrix), commits carry the `WingFoil-Version:` trailer. Each such test changes to what the pinned
+version does; none is loosened.
+
+**File layout:** `server/src/cli/version.ts`, `capabilities.ts`, `commands.ts`, `adapter.ts`;
+`contracts/cli/version.schema.json`, `workflow-list.schema.json`, `contracts/api/project.schema.json`,
+`contracts/src/cli.ts`, `api.ts`, `contracts/matrix.json`; `test/contracts/support.ts`,
+`cli-contract.test.ts`, `descriptor-contract.test.ts`, `schemas.test.ts`, `samples/wingfoil-0.2.2/`,
+`samples/wingfoil-0.3.1/`; `test/harness/fixtures/builder.ts`; `test/server/cli/version.test.ts`,
+`capabilities.test.ts`, `adapter.test.ts` (sanitiser); `.wingfoil/memory.yaml`,
+`.wingfoil/workflows/custom/retrospective.yaml` (approver); `package.json`, `package-lock.json`;
+`README.md`, `test/README.md`, `CHANGELOG.md`, `CLAUDE.md`; spec-001, spec-004, adr-001 (dated
+Process Notes, no Version line).
+
+**Test plan:** red first — `version.test.ts` (both forms, the refused suffixes, `unknown`),
+`capabilities.test.ts` (the `via: null` rule on 0.2.2 and 0.3.1 with the real table; the v0.4
+simulation's rows get a `via`, as v0.4 will), `adapter.test.ts` (a 0.3.x `workflow list` whose
+diagnostic quotes the project root and a control character comes back redacted and neutralised),
+`schemas.test.ts` (each sample matches exactly one branch; an output with both shapes, a 0.3 entry
+without `executableNow`, a `baseline.commit` that is not hex fail; the config section validates
+for both), the contract suites on 0.3.1 (r1 … r4); then the pin and the full gates.
+
+**Points for the coordinator:** (1) the `.wingfoil/` diff of a1/a2 for the approver; (2) the
+reading of AC-1 "the header still shows the text the CLI printed" — the API keeps the printed text,
+the header line shows the canonical version as today (alternative: show the whole stamp);
+(3) the capability rule of AC-5 (`via: null`) and its reason code; (4) the AC-2 variant rule (by
+shape, `oneOf`) against spec-001 §5's "selected by the detected version".
