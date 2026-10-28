@@ -20,7 +20,7 @@
  */
 import { envelope, type ErrorEnvelope } from '../http/app.js';
 import { DEFAULT_TIMEOUT_MS, type ProcessResult, type ProcessRunner } from '../process/runner.js';
-import { commandFor, outputProblem, type CliCommandName, type CliCommandOutputs } from './commands.js';
+import { commandFor, outputProblem, toolText, type CliCommandName, type CliCommandOutputs } from './commands.js';
 import { redactLocalPaths } from '../git/redact.js';
 import { CliNotFoundError, type CliSource, type ResolvedCli } from './discovery.js';
 
@@ -237,8 +237,12 @@ export class WingfoilCli {
     }
     const problems = outputProblem(name, data);
     if (problems) throw this.outputError(command, problems);
-    // Each warning through the one sanitiser of tool messages (bug-017, review round 3 S3-1).
-    return { data: data as T, warnings: lines(result.stderr).map((w) => this.redact(w)) };
+    // Each warning, and the tool text of the output (task-046), through the one sanitiser of tool
+    // messages (bug-017, review round 3 S3-1).
+    return {
+      data: toolText(name, data, (text) => this.redact(text)) as T,
+      warnings: lines(result.stderr).map((w) => this.redact(w)),
+    };
   }
 
   /** `wingfoil --version`: one line of plain text, even with `--format json` (W-19). Not parsed here. */

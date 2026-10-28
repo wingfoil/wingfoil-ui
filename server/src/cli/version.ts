@@ -2,8 +2,9 @@
  * The WingFoil version of a project and the supported range (adr-001 D3, REQ-INT-02).
  *
  * - `wingfoil --version` is run once per CLI resolution ({@link VersionCache}); its text must be a
- *   semantic version (SemVer 2.0, no `v` prefix — WingFoil prints `0.2.2`), anything else is
- *   "unrecognised" and outside the range.
+ *   semantic version (SemVer 2.0, no `v` prefix — WingFoil 0.2.2 prints `0.2.2`), optionally
+ *   followed by WingFoil 0.3's build stamp ` (<commit>)` (`0.3.1 (870bd44…)`, task-046 AC-1);
+ *   anything else is "unrecognised" and outside the range.
  * - The range comes from the support matrix `contracts/matrix.json`: from its declared `min` to
  *   the release line (caret line) of the highest listed version: `^0.2.2` → `0.2.x`, below
  *   `0.3.0`; `^1.0.3` → `1.x`, below `2.0.0` (decided by the user 2026-10-06). A pre-release is
@@ -51,6 +52,21 @@ export function parseSemVer(text: string): SemVer | undefined {
   const prerelease = m[4] ? m[4].split('.').map((id) => (/^\d+$/.test(id) ? Number(id) : id)) : [];
   if (prerelease.some((id) => typeof id === 'number' && !Number.isSafeInteger(id))) return undefined;
   return { major, minor, patch, prerelease, build: m[5] ? m[5].split('.') : [] };
+}
+
+/**
+ * WingFoil 0.3's build stamp after the version (`dist/storage/build-stamp.js`): one space and the
+ * commit of the build in parentheses — 7 to 64 lowercase hexadecimal digits, or `unknown` when the
+ * build has no usable record.
+ */
+const BUILD_STAMP = / \((?:[0-9a-f]{7,64}|unknown)\)$/;
+
+/**
+ * The version part of a `--version` text: the whole text, or the text before WingFoil 0.3's build
+ * stamp ({@link BUILD_STAMP}). Whether it is a semantic version is {@link parseSemVer}'s to say.
+ */
+export function versionCore(text: string): string {
+  return text.replace(BUILD_STAMP, '');
 }
 
 /** The canonical text of `v`. */
@@ -158,9 +174,12 @@ export interface VersionClass {
   inRange: boolean;
 }
 
-/** Classify the `--version` text `text` against `range` (default: this release's). */
+/**
+ * Classify the `--version` text `text` against `range` (default: this release's): its version part
+ * ({@link versionCore}) must be a semantic version; `text` is kept as printed (the header's).
+ */
 export function classifyVersion(text: string | null, range: SupportedRange = RANGE): VersionClass {
-  const parsed = text === null ? undefined : parseSemVer(text);
+  const parsed = text === null ? undefined : parseSemVer(versionCore(text));
   if (!parsed) return { text, version: null, state: 'unrecognised', inRange: false };
   const version = formatSemVer(parsed);
   const state = rangeState(parsed, range);

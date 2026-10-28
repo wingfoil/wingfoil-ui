@@ -112,7 +112,7 @@ export interface WorkflowPhase {
   where?: Record<string, unknown>;
 }
 
-/** One workflow (`workflow list`). */
+/** One workflow (`workflow list`, WingFoil 0.2.x). */
 export interface Workflow {
   name: string;
   /** `main` or `sub`. */
@@ -126,12 +126,49 @@ export interface Workflow {
   phases: WorkflowPhase[];
 }
 
-/** `wingfoil workflow list`. */
-export interface WorkflowList {
+/** `wingfoil workflow list` on WingFoil 0.2.x: the manifest and every workflow with its phases. */
+export interface WorkflowList02 {
   /** `version` is optional in WingFoil 0.2.2. */
   manifest: { version?: number; include: string[] };
   workflows: Workflow[];
 }
+
+/** One entry of `workflow list` on WingFoil 0.3.x. */
+export interface WorkflowEntry03 {
+  name: string;
+  startable: boolean;
+  includable: boolean;
+  /** `null` when the workflow declares none. */
+  description?: string | null;
+  executableNow: boolean;
+}
+
+/** One diagnostic of the configuration (WingFoil 0.3.x), sanitised by the server (task-046). */
+export interface WorkflowDiagnostic {
+  /** `E_*` or `W_*`. */
+  code: string;
+  severity: string;
+  /** The configuration file, relative to `.wingfoil/`. */
+  file: string;
+  /** Where in the file, e.g. `phases[3].include`; `''` for the whole file. */
+  path: string;
+  message: string;
+}
+
+/**
+ * `wingfoil workflow list` on WingFoil 0.3.x: the workflows executable now, as committed at HEAD,
+ * without their phases.
+ */
+export interface WorkflowList03 {
+  baseline: { rev: 'HEAD'; commit: string };
+  workflows: WorkflowEntry03[];
+  /** Only when HEAD holds no workflow manifest (`no workflows defined`). */
+  message?: string;
+  diagnostics: WorkflowDiagnostic[];
+}
+
+/** `wingfoil workflow list`, in the shape of the CLI's version line (spec-001 §3, §5). */
+export type WorkflowList = WorkflowList02 | WorkflowList03;
 
 /** One element of `memory search`. */
 export interface MemoryMatch {

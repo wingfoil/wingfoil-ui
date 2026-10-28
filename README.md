@@ -127,15 +127,18 @@ start the published version instead of your tarball.
 ## Supported WingFoil versions
 
 Each project runs its own pinned `wingfoil` (or, when it pins none, the one on the `PATH`). This
-release supports **0.2.2 to 0.2.x**: from the declared minimum (`min` of `contracts/matrix.json`)
+release supports **0.2.2 to 0.3.x**: from the declared minimum (`min` of `contracts/matrix.json`)
 to the release line of the highest contract-tested version (adr-001 D3); a pre-release only when
 the matrix lists it. A project outside the range, or whose `wingfoil --version` is not a semantic
-version, opens read-only with the range in the reason.
+version (WingFoil 0.3 adds its build, e.g. `0.3.1 (870bd44…)`, which is accepted), opens read-only
+with the range in the reason.
 
-Support matrix (contract-tested versions): `0.2.2`.
+Support matrix (contract-tested versions): `0.2.2`, `0.3.1`.
 
 Capabilities (`contracts/capabilities.json`): a capability is read-only below its minimum version
-and hidden when a project condition it needs does not hold.
+and hidden when a project condition it needs does not hold. A capability this release does not use
+yet is never available, whatever the project's version: the workflow capabilities and the agent
+launch of WingFoil 0.3 come with a later release.
 
 | Capability | Minimum WingFoil | Provided by |
 |------------|------------------|-------------|
@@ -143,10 +146,10 @@ and hidden when a project condition it needs does not hold.
 | Element content | 0.2.2 | direct read of the element file |
 | Directive body | 0.2.2 | direct read of the directive file |
 | Gate decision | 0.2.2 | `memory approve` / `memory reject` |
-| Workflow position | 0.3.0 | `workflow status` (WingFoil 0.3) |
-| Next workflow step | 0.3.0 | `workflow next` (WingFoil 0.3) |
-| Workflow start | 0.3.0 | `workflow start` (WingFoil 0.3) |
-| Agent launch | 0.3.0 | `agent execute` (WingFoil 0.3) |
+| Workflow position | 0.3.0 | not used by this release (later: `workflow status`) |
+| Next workflow step | 0.3.0 | not used by this release (later: `workflow next`) |
+| Workflow start | 0.3.0 | not used by this release (later: `workflow start`) |
+| Agent launch | 0.3.0 | not used by this release (later: `agent execute`) |
 | Field editing | not released | a field-editing verb of a later WingFoil |
 
 ## Development

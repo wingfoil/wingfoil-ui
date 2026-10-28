@@ -7,10 +7,14 @@ import { appendFile, mkdtemp, readFile, realpath, rm, writeFile } from 'node:fs/
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { isWorkflowList02 } from '@wingfoil-ui/contracts';
 import { parseDocument } from 'yaml';
 import { CliRefusedError, WingfoilCli, type CliArgs } from '../../server/src/cli/adapter.js';
-import { CLI_COMMANDS, type CliCommandName, type CliCommandOutputs } from '../../server/src/cli/commands.js';
+import {
+  CLI_COMMANDS,
+  isWorkflowList02,
+  type CliCommandName,
+  type CliCommandOutputs,
+} from '../../server/src/cli/commands.js';
 import { discoverCli } from '../../server/src/cli/discovery.js';
 import { LocalProcessRunner } from '../../server/src/process/runner.js';
 import { resolveStates, transitionTarget } from '../../server/src/reads/memory-yaml.js';
@@ -23,6 +27,7 @@ import {
   type BddFixtureKind,
 } from '../harness/fixtures/index.js';
 import { classifyVersion } from '../../server/src/cli/version.js';
+import { git } from '../harness/run.js';
 import { actAs, archiveOne, behaviours, cliBuildFor, matrixVersions } from './support.js';
 
 const VERSIONS = await matrixVersions();
@@ -217,6 +222,10 @@ describe.each(VERSIONS)('contract — wingfoil %s', (version) => {
     const login = path.join(fx.dir, 'docs/memory/task/task-001-login-form.md');
     await writeFile(login, (await readFile(login, 'utf8')).replace(/\n/g, '\r\n'));
 
+    // WingFoil 0.3 reads the workflows as committed at HEAD (`workflow list`): the edits are committed.
+    await actAs(fx, 'Alex');
+    await git(fx.dir, ['add', '-A'], fx.env);
+    await git(fx.dir, ['commit', '-q', '-m', 'chore: optional fields'], fx.env);
     const { cli, reads } = await adapterFor(fx, ran);
     const dna = (await reads.dna()).data;
     expect(dna.project).toBeUndefined();

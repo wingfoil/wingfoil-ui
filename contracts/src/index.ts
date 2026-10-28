@@ -28,7 +28,11 @@ export type {
   MemorySearch,
   MemoryTransition,
   Workflow,
+  WorkflowDiagnostic,
+  WorkflowEntry03,
   WorkflowList,
+  WorkflowList02,
+  WorkflowList03,
   WorkflowPhase,
 } from './cli.js';
 export type {

@@ -86,7 +86,7 @@ describe('detectVersion on the kanban fixture', () => {
       const result = evaluateCapabilities(detected, supportedRange());
       expect(result.capabilities.filter((c) => c.state === 'enabled')).toHaveLength(0);
       for (const c of result.capabilities) {
-        expect(c.reason).toEqual({ code: 'unsupported-version', range: { min: '0.2.2', max: '0.2.x' } });
+        expect(c.reason).toEqual({ code: 'unsupported-version', range: { min: '0.2.2', max: '0.3.x' } });
       }
     },
     120_000,

@@ -1,123 +1,213 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://wingfoil-ui.local/contracts/cli/workflow-list.schema.json",
-  "$comment": "wingfoil 0.2.2 — captured from `wingfoil --format json workflow list` on the kanban, custom and unknown fixtures.",
+  "$comment": "wingfoil 0.2.2 and 0.3.1 — captured from `wingfoil --format json workflow list` on the kanban, custom and unknown fixtures of each version. One branch per version line (spec-001 §5, task-046 D46-3): an output matches exactly one, selected by its shape.",
   "title": "wingfoil workflow list",
-  "description": "Workflow manifest and every workflow with its phases (spec-001 §3). version is a number (1, 1.1, 1.4) and absent in the Kanban template workflows; fallback may carry set_state. manifest.version and a workflow's description are optional (dist/workflow/schema.js).",
-  "type": "object",
-  "required": ["manifest", "workflows"],
-  "properties": {
-    "manifest": {
+  "description": "The workflows of the project (spec-001 §3), in the shape of the CLI's version line: definitions v0.2 (0.2.x) or v0.3 (0.3.x). The branches exclude each other: v0.2 has no baseline, v0.3 no manifest.",
+  "oneOf": [
+    {
+      "$ref": "#/definitions/v0.2"
+    },
+    {
+      "$ref": "#/definitions/v0.3"
+    }
+  ],
+  "definitions": {
+    "v0.2": {
+      "description": "WingFoil 0.2.x: the workflow manifest and every workflow with its phases. version is a number (1, 1.1, 1.4) and absent in the Kanban template workflows; fallback may carry set_state. manifest.version and a workflow's description are optional (dist/workflow/schema.js).",
       "type": "object",
-      "required": ["include"],
+      "required": ["manifest", "workflows"],
       "properties": {
-        "version": {
-          "type": "number",
-          "exclusiveMinimum": 0
+        "manifest": {
+          "type": "object",
+          "required": ["include"],
+          "properties": {
+            "version": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "include": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
         },
-        "include": {
+        "workflows": {
           "type": "array",
           "items": {
-            "type": "string"
-          }
-        }
-      }
-    },
-    "workflows": {
-      "type": "array",
-      "items": {
-        "type": "object",
-        "required": ["name", "kind", "phases"],
-        "properties": {
-          "name": {
-            "type": "string"
-          },
-          "kind": {
-            "type": "string"
-          },
-          "description": {
-            "type": "string"
-          },
-          "version": {
-            "type": "number"
-          },
-          "element": {
-            "type": "string"
-          },
-          "phases": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "required": ["name", "optional"],
-              "properties": {
-                "name": {
-                  "type": "string"
-                },
-                "description": {
-                  "type": "string"
-                },
-                "role": {
-                  "type": "string"
-                },
-                "optional": {
-                  "type": "boolean"
-                },
-                "actions": {
-                  "type": "array",
-                  "items": {
-                    "type": "string"
-                  }
-                },
-                "produces": {
-                  "type": "array",
-                  "items": {
-                    "type": "string"
-                  }
-                },
-                "checks": {
+            "type": "object",
+            "required": ["name", "kind", "phases"],
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "kind": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              },
+              "version": {
+                "type": "number"
+              },
+              "element": {
+                "type": "string"
+              },
+              "phases": {
+                "type": "array",
+                "items": {
                   "type": "object",
+                  "required": ["name", "optional"],
                   "properties": {
-                    "pre": {
-                      "type": "array"
-                    },
-                    "post": {
-                      "type": "array"
-                    }
-                  }
-                },
-                "approval": {
-                  "type": "object",
-                  "required": ["by_role"],
-                  "properties": {
-                    "by_role": {
-                      "type": "string"
-                    }
-                  }
-                },
-                "fallback": {
-                  "type": "object",
-                  "properties": {
-                    "step": {
+                    "name": {
                       "type": "string"
                     },
-                    "set_state": {
+                    "description": {
                       "type": "string"
+                    },
+                    "role": {
+                      "type": "string"
+                    },
+                    "optional": {
+                      "type": "boolean"
+                    },
+                    "actions": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "produces": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "checks": {
+                      "type": "object",
+                      "properties": {
+                        "pre": {
+                          "type": "array"
+                        },
+                        "post": {
+                          "type": "array"
+                        }
+                      }
+                    },
+                    "approval": {
+                      "type": "object",
+                      "required": ["by_role"],
+                      "properties": {
+                        "by_role": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "fallback": {
+                      "type": "object",
+                      "properties": {
+                        "step": {
+                          "type": "string"
+                        },
+                        "set_state": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "include": {
+                      "type": "string"
+                    },
+                    "iterate_over": {
+                      "type": "string"
+                    },
+                    "where": {
+                      "type": "object"
                     }
                   }
-                },
-                "include": {
-                  "type": "string"
-                },
-                "iterate_over": {
-                  "type": "string"
-                },
-                "where": {
-                  "type": "object"
                 }
               }
             }
           }
         }
+      },
+      "not": {
+        "required": ["baseline"]
+      }
+    },
+    "v0.3": {
+      "description": "WingFoil 0.3.x (dist/core/workflow-list-show.d.ts ListResult): the workflows executable now, as committed at HEAD, without their phases; baseline names the commit read; diagnostics are the configuration's warnings (sanitised by the server before any API body, task-046); message only when HEAD holds no workflow manifest.",
+      "type": "object",
+      "required": ["baseline", "workflows", "diagnostics"],
+      "properties": {
+        "baseline": {
+          "type": "object",
+          "required": ["rev", "commit"],
+          "properties": {
+            "rev": {
+              "const": "HEAD"
+            },
+            "commit": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{40,64}$"
+            }
+          }
+        },
+        "workflows": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["name", "startable", "includable", "executableNow"],
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "startable": {
+                "type": "boolean"
+              },
+              "includable": {
+                "type": "boolean"
+              },
+              "description": {
+                "type": ["string", "null"]
+              },
+              "executableNow": {
+                "type": "boolean"
+              }
+            }
+          }
+        },
+        "message": {
+          "type": "string"
+        },
+        "diagnostics": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["code", "severity", "file", "path", "message"],
+            "properties": {
+              "code": {
+                "type": "string"
+              },
+              "severity": {
+                "type": "string"
+              },
+              "file": {
+                "type": "string"
+              },
+              "path": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      },
+      "not": {
+        "required": ["manifest"]
       }
     }
   }
