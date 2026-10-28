@@ -3,7 +3,7 @@ id: governance-alignment-rel-v0.3-plan
 type: plan
 title: "Governance alignment rel-v0.3"
 status: active
-version: "0.1"         # optional — plan version
+version: "0.2"         # optional — plan version
 workflow: "governance-alignment"
 phase: "rel-v0.3"
 scope: "rl-v1/rel-v0.3"
@@ -14,7 +14,8 @@ tmpl_version: 260703   # Orignal template version
 
 ## Context
 
-**Version:** 0.1 · **Date:** 2026-10-28 (0.1: plan created, checkpoint decisions GA3-1 … GA3-8)
+**Version:** 0.2 · **Date:** 2026-10-28 (0.1: plan created, checkpoint decisions GA3-1 … GA3-8; 0.2:
+step 1 done, step 2 red on WingFoil 0.3.1, GA3-9 — a governance task for WingFoil 0.3 support, step 2b)
 **Branch:** `design/governance-alignment_v0.3`, merged into `main` with `--no-ff` at the close (GA3-1)
 **Workflow:** none — an ad-hoc plan, as `governance-alignment-rel-v0.2-plan` (GA-2);
 `governance-alignment` is the plan's `workflow` token only. Its outcome is an input of the
@@ -67,6 +68,7 @@ Every `.wingfoil/` change is committed before any later CLI verb (directive `win
 |---|------|------|--------|------------|
 | 1 | This plan (`add` + `submit`); the line on the npm placeholder in `minor-v0.2` Execution Notes *Retrospective* | tech-lead | plan `active` | — |
 | 2 | **Contract on WingFoil 0.3.1** (GA3-3) — add 0.3.1 to the matrix in the working tree only, capture its samples, run `test:contract` and `capabilities.test.ts`; also `workflow list` and `memory search` of this repository's current `.wingfoil/` under 0.3.1. Green → pin `wingfoil@0.3.1`, matrix `versions` [0.2.2, 0.3.1], `pinned` 0.3.1, `min` 0.2.2 (GA3-4), README *Supported WingFoil versions*, `$comment` of `matrix.json` (GA3-5); default suite after the pin change. Red → nothing committed but the findings; the pin stays 0.2.2, adoption (step 3) stops, the defect is presented to the approver | tech-lead | contract result; pin commit or findings | every contract test green on 0.3.1, or the defect reported |
+| 2b | **WingFoil 0.3 support** (GA3-9) — one governance task of `minor-v0.3` (`dev-loop`, its own worktree, a developer agent, an independent review until PASS): the server reads WingFoil 0.3.x as it reads 0.2.2 (the `--version` text, the `workflow list` output, the contract expectations of 0.3's behaviours) with the configuration and harness adaptations of step 2; pin `wingfoil@0.3.1` and the matrix of step 2 in the same task; every gate of the dev-loop rules on the new pin (the three e2e engines included). Then step 2 is re-run on the merged result | developer, reviewer (agents); tech-lead | task `done`, merged into this branch | review PASS; `test:contract` green on 0.2.2 and 0.3.1 |
 | 3 | **Packs adoption** (GA3-6) — the 7 steps of each README: compare types, states, workflows, phases; compose with the reference composer at the tags, with this repository's path and id values (no file moves); copy the composed `.wingfoil/`, keep `custom/`, re-add own entries; resolve every same-named file (table: each of `workflows/custom/` and `directives/custom/` → pack's / kept as own with a distinct name / removed), so no `E_WORKFLOW_DUPLICATE_NAME`; re-apply dl-008 (`release-submit`, `release-publishing`, `retrospective`) on the packs' workflows and check dl-007's W-entries; `tech-lead` given to the agent (GA3-7); `sprint` on open tasks and existing releases (`n/a — <reason>`); state migrations by explicit commits; old → new key mapping; adopted versions recorded. One diff for the approver before commit | tech-lead | `.wingfoil/` adopted | approver's OK on the diff; `workflow list` clean; `memory search` lists every element; default suite green |
 | 4 | **Directive `wingfoil-cli`** — every W-entry re-checked against the new pin (rules 5, 9): fixed ones removed or limited to 0.2.2 (W-27 limited if 0.3.1 fixes the counter, else its workaround names placeholders like the type's files, e.g. `task-<n>-placeholder.md`); W-04 and W-20 against the packs' plan and task machines; new behaviours of 0.3.1 and of the packs' adoption as new entries; version and *Checked against* bumped | tech-lead | directive re-checked | each entry reproduced on the new pin or marked |
 | 5 | **Feedback inbox** — widen the first-line rule of `test/wingfoil-feedback.test.ts` to notes that report no CLI behaviour; file F-027 from `.notes/draft-F-027-wingfoil-publish-pipeline.md` rewritten as public text (dl-005), then remove the draft; first sync (rule 7, WingFoil dl-163 R4/R5) from WingFoil's `retro-v0.3.md` *Consumer feedback*; `Last sync:` and the ledger of `docs/wingfoil-feedback/README.md` (F-023 … F-027 cited) | tech-lead | inbox synced | every status and `answered_by` from WingFoil's table, none by judgement |
@@ -111,3 +113,56 @@ Decisions (checkpoint, the approver: "Confermo", 2026-10-28):
   `executes_as` (as today); the approver keeps every approval.
 - **GA3-8** — `sprint` for the elements already present: `n/a — <reason>` on open tasks and existing
   releases; the first Sprint is created at `release-planning` of `minor-v0.3`, not here.
+
+Steps:
+
+- Step 1: plan created (`aa5b7e3` add, `4fbce7f` body and the `minor-v0.2` line on the npm
+  placeholder, `7e808f8` submit → `active`).
+- Step 2 — contract on WingFoil 0.3.1, **red** (2026-10-28; nothing committed). The matrix gained
+  0.3.1 in the working tree only; `cliBuildFor` installed `wingfoil@0.3.1` (`0.3.1 (870bd440…)`)
+  into the matrix cache; samples captured with `WFUI_CAPTURE_SAMPLES=1`, then `npm run test:contract`.
+  - Adaptations of the configuration and the harness, each also valid on 0.2.2 (with them the
+    capture passes on both versions):
+    - a1 — `memory submit` on 0.3.x counts a required field holding a YAML list as missing unless
+      the type lists it in `template.frontmatter.lists` (`missing required field on submit:
+      features`; 0.3.0 alike, 0.2.2 accepts the list); `lists: [ features ]` on `release` fixes it
+      on 0.3.1 and is ignored by 0.2.2. The releases `minor-v0.3`, `minor-v0.4` and `minor-v1.0`
+      (`draft`, `features` a list) could not be submitted on 0.3.x without it;
+    - a2 — `workflow list` on 0.3.1 refuses this repository's `.wingfoil/`:
+      `E_PHASE_PRODUCES_NOT_A_PATH` on two `produces` of `workflows/custom/retrospective.yaml`
+      (text, not a path pattern); besides, warnings `W_WORKFLOW_UNBOUND_TOKEN`,
+      `W_PHASE_PRODUCES_OWNER_IMPLICIT`, `W_PHASE_ACTION_UNTARGETED` on most workflows;
+    - a3 — `memory add` on 0.3.1 keeps the template's comment on the `status:` line
+      (`status: draft          # auto-set by wingfoil`; 0.2.2 wrote `status: draft`): the regex of
+      `archiveOne` (`test/contracts/support.ts`) no longer matched;
+    - a4 — the `unknown` fixture kept the workflows of `init --template Kanban`, which name the
+      types its own `memory.yaml` replaces: 0.3.1 refuses them (`E_WORKFLOW_ELEMENT_TYPE_UNKNOWN`);
+      one workflow with no Memory action replaces them (0.2.2 needs one include at least).
+  - Red after a1 … a4: `test:contract` 10 failed, 284 passed, 1 skipped (295), all on 0.3.1 except
+    the README check:
+    - r1 — `--version` prints `0.3.1 (870bd4406f3b9bba5ecde7a5f8198b80c2a98583)`; the server's
+      `classifyVersion` (`server/src/cli/version.ts`, an anchored semantic-version pattern) answers
+      `unrecognised`, so a project on 0.3.x opens read-only;
+    - r2 — `workflow list --format json` has another shape on 0.3.1 (`baseline`, `workflows` with
+      `name`, `startable`, `includable`, `description`, `executableNow`, `diagnostics`; no
+      `manifest`, `kind` or `phases`): `contracts/cli/workflow-list.schema.json` refuses it, and the
+      project read that uses it (`server/src/http/project-routes.ts`, `view.workflows()`) fails;
+    - r3 — `memory add` writes the type's first declared state (`story` → `idea`; W-21 fixed on
+      0.3.1): the write expectations of the `unknown` fixture differ;
+    - r4 — `init --template Kanban` on 0.3.1 declares a `plan` type: the descriptor contract's
+      expected type list of the `kanban` fixture differs;
+    - r5 — the README check expects the range `0.2.2 to 0.3.x` (the expected update of step 2);
+    - the `REQ-INT-01` count (`directives list` not reached) follows from the earlier failures.
+  - Not a WingFoil defect: each is a behaviour of 0.3.x this repository does not read yet. The pin
+    stays 0.2.2 and step 3 does not start (GA3-6). The probe's diff is kept outside the repository
+    for the task of GA3-9.
+
+Decision (the approver, 2026-10-28, after the step 2 report; options: A — pin and packs after a Wave
+0 task of `release-planning`; B — a governance task in this pre-step; C — everything to
+`release-planning`):
+
+- **GA3-9** — option **B**: this pre-step gains step 2b, one governance task of `minor-v0.3` that
+  makes the server read WingFoil 0.3.x (r1 … r4), carries a1 … a4 and advances the pin and the matrix
+  (r5, GA3-3 … GA3-5); steps 3 … 8 follow it, so `release-planning` of `minor-v0.3` starts on the
+  pinned 0.3.1 with the packs adopted. Further deviation from dl-010 (product code in the pre-step);
+  the task is planned and run by `dev-loop.yaml`, not as a free edit.
