@@ -8,7 +8,7 @@ description: >-
   Close the release loop: EXPLORE the release's Execution Notes for friction, let the approver add
   points, capture what went well / what to improve as Memory, and feed adjustments into the next
   release planning.
-version: 1.2                     # 1.1: WingFoil dl-019 — explore + additional-points; 1.2: dl-008
+version: 1.3                     # 1.1: WingFoil dl-019 — explore + additional-points; 1.2: dl-008; 1.3: WingFoil 0.3 produces as path patterns (task-046)
 element: release
 
 phases:
@@ -22,7 +22,7 @@ phases:
     actions:
       - agent.mine_execution_notes
     produces:
-      - "retrospective friction inventory (source-cited, grouped by theme)"
+      - "docs/05_plans/{scope}/{id}.md"   # the retrospective plan: its friction inventory (source-cited, grouped by theme)
 
   - name: additional-points
     description: >-
@@ -39,7 +39,7 @@ phases:
       - 'memory.add(type: decision-log, title: "Retrospective {release.version}")'
       - memory.submit
     produces:
-      - "docs/04_memory/design/dls/dl-{n}-{slug}.md (title \"Retrospective {release.version}\")"
+      - "docs/04_memory/design/dls/{id}.md"   # the decision-log "Retrospective {release.version}"
     checks:
       post: ["frontmatter.required: [title]"]   # title always set by action above
 
