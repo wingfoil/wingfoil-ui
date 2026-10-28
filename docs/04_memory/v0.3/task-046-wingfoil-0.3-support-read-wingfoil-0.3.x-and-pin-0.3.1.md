@@ -252,3 +252,71 @@ shape, `oneOf`) against spec-001 §5's "selected by the detected version".
   branches); spec-001 §5 amended.
 - **D46-4** — header, option A: the API keeps the printed text (`wingfoil.text`), the header shows
   the canonical version.
+
+### red / green / refactor (2026-10-28 … 2026-10-29)
+
+- **a1/a2** committed on their own after the approver's OK (`d44868a`, D46-1).
+- **Red** (`0be9474`, `e893baf`): `test/server/cli/version.test.ts` (7 stamp forms failed, 14
+  refused forms already unrecognised), `capabilities.test.ts` (the two D46-2 tests failed),
+  `test/server/tool-messages.test.ts` (0.3 diagnostics sanitised; the producer scan),
+  `test/contracts/schemas.test.ts` (9 failed: the 0.3.1 samples, the branch tests, the config
+  section), `cli-contract.test.ts` on 0.3.1 (r1, r2; the REQ-INT-01 count). The behaviours table
+  (`test/contracts/support.ts`) states r3/r4 per version: with it, `memory add` (`unknown` `story` →
+  `idea`) and the `kanban` type list (with `plan`) pass on 0.3.1 without product code — they were
+  red with the 0.2.2 expectations (plan Session log *Step 2*). Before them, a1 … a4 and the matrix
+  [0.2.2, 0.3.1] with both versions' samples (`ace7dfd`; the 0.3.1 `directives-list-shadowed.json`
+  made by hand like 0.2.2's).
+- **Green** (`11c4c35`): `versionCore`/`classifyVersion` (D46-4); `workflow-list.schema.json` with
+  the exclusive branches `v0.2`/`v0.3` (`not` on the other's key; guard removed → "refuses both
+  shapes at once" failed), the `WorkflowList02 | WorkflowList03` union, `isWorkflowList02`,
+  `toolText` in the adapter (guard removed → both sanitiser tests failed) (D46-3); the `via: null`
+  rule and `not-in-release` (D46-2); README section. The optional-fields contract test commits its
+  edits: 0.3.1 reads the workflows at HEAD.
+- **Pin** (`49ec302`): `wingfoil@0.3.1` exact (package.json, lock: wingfoil and its transitive
+  `@modelcontextprotocol/sdk` 1.32 tree); matrix `pinned` 0.3.1 and `$comment` (GA3-5). Samples
+  re-captured on the new pin (0.2.2 from the matrix cache): byte-identical, the two hand-made ones
+  restored.
+- **The suites on the pin** (`34f978f`, `bef3870`, `84936eb`, `bffd97f`) — each change follows what
+  0.3.1 does, none loosened for 0.2.2:
+  - `--version` text: `pinnedVersionText()` (harness) in the adapter, variants, version-detection,
+    snapshot, watcher and project-routes tests; range label `0.2.2 to 0.3.x`;
+  - `plan` in the `kanban`/`scrum` type lists (harness, e2e `memory-list.spec.ts` S-28.1); e2e
+    `project-header.spec.ts` S-08.1/S-08.2 show `WingFoil 0.3.1`; S-27.1: 0.3.1 names `dna.yaml`
+    relative to the project (the root redaction stays proved on the adapter);
+  - 0.3.1 keeps the template comment after `name:` in `dna.yaml` (projects test regex);
+  - **W-30 fixed on 0.3.1:** a failed commit (stale `index.lock`, failing `pre-commit`) is refused
+    with `E_COMMIT_FAILED … nothing was committed, and the working tree and the index are as they
+    were` (exit 1) → 422 `cli-refused`, file unchanged; the `write-incomplete` (500) path stays
+    tested on a 0.2.2 build of the kanban fixture (`cliBuildFor('0.2.2')`), with N1 on both;
+  - W-29's message names `WingFoil-Version:`; a usage error (exit 2) is JSON on 0.3.1, so its
+    logged kind is `usage error`; 0.3.1 knows the directive field `scope` (the test uses another);
+  - **0.3 writes each stderr warning as a JSON line** `{"warning": "…"}`: red test, then
+    `warningText` in the adapter (the text, sanitised; other lines as written); spec-001 §2;
+  - the sanitiser of 0.3's diagnostics resolves the CLI's folder (`node_modules/wingfoil`, never
+    read) — allowed in the TT-ARC-04 spy as a sanitiser root; `toolText` sanitises each distinct
+    text once.
+- **AC-6** (worktree, pin 0.3.1): `npm run -s wingfoil -- --version` → `0.3.1 (870bd44…)`;
+  `workflow list --format json` exit 0, stderr empty, 5 workflows, 115 diagnostics (98
+  `W_WORKFLOW_UNBOUND_TOKEN`, 10 `W_PHASE_PRODUCES_OWNER_IMPLICIT`, 4 `W_PHASE_TOKEN_OUT_OF_SCOPE`, 1
+  each `W_PHASE_ACTION_UNTARGETED`, `W_PHASE_FALLBACK_NOT_REENTRANT`, `W_INSTANCE_WORKFLOW_UNKNOWN`);
+  `memory search` 120 matches, 120 distinct ids (120 Memory files with an `id:`).
+- **Open (reported to the coordinator, waiting):** 0.3.1 `workflow list` rewrites `.git/index`
+  (`git status` with optional locks in `dist/core/workflow-deduction.js`; none of the other reads,
+  nor 0.2.2): e2e `no-commit.spec.ts` AC-5.1 fails on the three engines (`.git/index rewritten`),
+  and TT-PERF-05's "0 processes when reopened unchanged" failed in 2 of 4 full runs (16, 17 against
+  13). `GIT_OPTIONAL_LOCKS=0` in the CLI's environment keeps the index unchanged (probe).
+
+**Gates on the pin (2026-10-28/29, through the slot; load at grant → end):**
+
+| Gate | Result |
+|------|--------|
+| typecheck, lint, format:check | clean |
+| `docs:api` | 0 errors, 0 warnings |
+| `test:contract` (0.2.2, 0.3.1) | 312 passed, 1 skipped (support.test fixed after: 8/8) |
+| `test:coverage` (3.6 → 20.2) | 3297 passed, 1 skipped; 96.58 % statements, 91.43 % branches, 97.31 % functions, 98.36 % lines |
+| `test:smoke` (11.6 → 9.9) | 4/4 |
+| `test:publish-smoke` (5.2 → 4.5) | 11/11 |
+| `test:e2e:chromium`, strict identity (3.9 → 14.2) | 317 passed, 2 failed: AC-5.1 (open point), S-27.1 (fixed, `bffd97f`) |
+| `npm test`, strict identity (10.6 → 23.3) | 3296 passed, 1 failed (TT-PERF-05, open point), 1 skipped |
+| `test:e2e` three engines (11.6 → 18.4) | 931 passed, 4 failed: AC-5.1 × 3 (open point), Firefox M-02.2 (5 s `aria-current` wait under load; `memory-list.spec.ts` alone on Firefox 21/21, load 10.8) |
+| `check_tasks.py v0.3` | the 28 expected "listed by 0 tasks", none naming task-046 |
