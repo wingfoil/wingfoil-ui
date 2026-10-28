@@ -7,6 +7,16 @@ release `v0.2` the git tag `v0.2.0` and the npm version `wingfoil-ui@0.2.0`.
 
 ## [Unreleased]
 
+### Changed
+
+- **WingFoil 0.3 support** (task-046): a project on WingFoil 0.2.2 to 0.3.x is supported
+  (contract-tested: 0.2.2 and 0.3.1); this repository pins `wingfoil@0.3.1`. The `--version` text
+  of WingFoil 0.3, which carries its build (`0.3.1 (870bd44…)`), is read as its version; the
+  configuration read answers the workflows in the shape of the project's WingFoil version, WingFoil
+  0.3's configuration diagnostics sanitised; its warnings, written as JSON lines, are shown as
+  their text. The workflow capabilities and the agent launch of
+  WingFoil 0.3 are not used by this release: never shown as available, nor as missing.
+
 ## [0.2.0] - 2026-10-20
 
 **Unblock.** Decide gates and submit work from *Today*, keep the copy in sync with its remote.

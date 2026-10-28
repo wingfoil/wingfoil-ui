@@ -77,7 +77,9 @@ runs no CLI of the cloned repository (spec-006 §3).
 
 **D3 — Version detection and supported range** (REQ-INT-02, INT-03). The server runs
 `<cli> --version` once per resolution and caches it with the binary path. The output must be a
-semantic version; anything else is treated as outside the range ("unrecognised version"). The
+semantic version, optionally followed by WingFoil 0.3's build stamp ` (<commit>)` (`0.3.1
+(870bd44…)`: the version is the part before it); anything else is treated as outside the range
+("unrecognised version"). The
 supported range of a UI release is **from a declared minimum (`min` in `contracts/matrix.json`,
 0.2.2 today) to the caret line of the highest WingFoil version contract-tested by that release**:
 every version below the next minor for 0.x (`^0.2.2` → below 0.3.0, label `0.2.x`), below the next
@@ -94,8 +96,9 @@ output of the version it records (`wingfoil_version`), plus the capability table
 runs every listed command against a fixture for **each version of the support matrix** (the
 pinned version and every other supported release, installed in a temporary fixture). Output that
 fails its schema is a read error shown as such, never guessed at. The matrix is published in the
-package README; it advances only through `release-planning` (new WingFoil version → contract tests
-re-run, directive `wingfoil-cli` re-checked).
+package README; it advances only through `release-planning`, or the governance-alignment pre-step
+that precedes it (GA3-5) (new WingFoil version → contract tests re-run, directive `wingfoil-cli`
+re-checked).
 
 **D5 — Process model.** Reads are batched: one CLI process per consumed command and repository
 state, shared by every view and page (REQ-PERF-05). Writes are **serialised per project** — one
@@ -241,3 +244,8 @@ PERF-05 · features S1, S3, S8, X4 · scenarios S-08.1, S-08.2, S-09.1, S-09.2, 
   Decided by the approver.
 - 2026-10-15 — task-034 review round 2 (W4-13): D5 such a cut result is marked `drained`, logged
   as `pipes-held` (no output), and the git reads and the CLI adapter refuse it (fail closed).
+- 2026-10-28 — amended in dev-loop task-046 (`governance-alignment-rel-v0.3-plan` step 2b, GA3-9,
+  D46-4): D3 the `--version` text may carry WingFoil 0.3's build stamp after the semantic version;
+  the header keeps the printed text in the API and shows the version. D4 the matrix may also
+  advance in the governance-alignment pre-step before `release-planning` (GA3-5): it advanced to
+  [0.2.2, 0.3.1] (range 0.2.2 to 0.3.x) there. Decided by the approver.

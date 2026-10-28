@@ -23,7 +23,9 @@ JSON Schema per shape and a contract test per supported version (`adr-001` D4, R
 Every shape below was captured on 2026-10-02 from **WingFoil 0.2.2** — this repository and a
 throwaway `wingfoil init --template Kanban` fixture with one member, a task taken through
 add → submit → reject → submit → approve, and a bug added and deprecated. The schemas in
-`contracts/` are written from real outputs of that kind, never from memory.
+`contracts/` are written from real outputs of that kind, never from memory. The WingFoil 0.3.x shapes (the `--version`
+stamp, `workflow list`) were captured on 2026-10-28 from **WingFoil 0.3.1** on the same fixtures
+(task-046).
 
 ## Specification
 
@@ -40,7 +42,7 @@ add → submit → reject → submit → approve, and a bug added and deprecated
 
 | Exit | stdout | stderr | The server reports |
 |------|--------|--------|--------------------|
-| 0 | JSON, validated against the command's schema | free text: warnings (e.g. `unknown field(s) ignored`, W-12) | the data; stderr lines as project **warnings** (diagnostics), never as errors |
+| 0 | JSON, validated against the command's schema | free text: warnings (e.g. `unknown field(s) ignored`, W-12); WingFoil 0.3 writes one JSON line `{"warning": "<text>"}` per warning | the data; stderr lines (the `warning` text of a 0.3 line) as project **warnings** (diagnostics), never as errors |
 | 0 | JSON failing the schema | — | **read error** "unexpected output of `<command>`" — never guessed at |
 | 1 | empty | JSON `{"error": "<message>"}` | **refusal**: the CLI's message verbatim (red toast, REQ-INT-04) |
 | 2 | empty | plain text (`error: unknown option …`) | **internal error**: a defect of the adapter; logged with the command line (token-free) |
@@ -52,11 +54,11 @@ Only these commands are invoked (static list of the CLI adapter). `[]` = optiona
 
 | Command | Used by | Since | Output (exit 0) |
 |---------|---------|-------|-----------------|
-| `--version` | S3, `adr-001` D3 | v0.1 | **plain text** (not JSON, even with `--format json`): one line, a semantic version, e.g. `0.2.2` |
+| `--version` | S3, `adr-001` D3 | v0.1 | **plain text** (not JSON, even with `--format json`): one line, a semantic version, e.g. `0.2.2`; from WingFoil 0.3 followed by the build stamp ` (<commit>)` — 7–64 lowercase hex digits or `unknown` — e.g. `0.3.1 (870bd4406f3b9bba5ecde7a5f8198b80c2a98583)`; any other text is unrecognised |
 | `dna show` | S4, R1, R3, C2, T1 | v0.1 | the whole `dna.yaml`: `version` (positive number), `project {name?, description?, methodology?}?`, `modules[]`, `stacks {technologies[]?, methodologies[]?}`, `team {members[{name, email?, roles[]}], roles[{name, description?}], agents[{name, executes_as[], approval_authority?}]?}`, `paths {<category>: string[]}` |
 | `paths` | R4, R8 | v0.1 | `{<category>: string[]}` — same as `dna.paths` |
 | `directives list` | R2, G1 | v0.1 | `{entries[{path, frontmatter{id, name, type, kind, title, tags[]?, ref[]?}, roles[], global, assignment}], warnings[]}` — `path` is relative to `.wingfoil/`; **no body** |
-| `workflow list` | W1, W2, G5, S9 | v0.1 | `{manifest{version?, include[]}, workflows[{name, kind, description?, version?, element?, phases[{name, description?, role?, optional, actions[]?, produces[]?, checks{pre[]?, post[]?}?, approval{by_role}?, fallback{step}?, include?, iterate_over?, where?}]}]}` |
+| `workflow list` | W1, W2, G5, S9 | v0.1 | 0.2.x: `{manifest{version?, include[]}, workflows[{name, kind, description?, version?, element?, phases[{name, description?, role?, optional, actions[]?, produces[]?, checks{pre[]?, post[]?}?, approval{by_role}?, fallback{step}?, include?, iterate_over?, where?}]}]}`. 0.3.x: `{baseline{rev: "HEAD", commit}, workflows[{name, startable, includable, description (string or null), executableNow}], message?, diagnostics[{code, severity, file, path, message}]}` — the workflows executable now, as committed at HEAD, without phases; `diagnostics` sanitised by the server like the `stderr` warnings |
 | `memory search` | M1, T1, T4, S5, R5 | v0.1 | `{query, matches[{path, id, title, type, status, tags[]}], message?}` — **excludes archived elements** (`deprecated`, `superseded` — WingFoil's archived set) (W-19); `message` present when `matches` is empty |
 | `memory search --status deprecated`, `memory search --status superseded` | M1 (state filter), G1 links | v0.1 | same shape; the only way to list archived elements — called **lazily**, when a view needs archived elements (never for Today) |
 | `memory history <id>` | G1 | v0.1 | `{id, path, entries[{sha, author, timestamp, operation, from, to, approver, reason, subject}]}` — `operation` ∈ `add`, `submit`, `approve`, `reject`, `deprecate`, or `null` for a non-`wf` commit touching the file; `from`/`to` set for every operation (submit included); `author` = `Name <email>`; `approver` = `Name <email> (role)` |
@@ -133,7 +135,11 @@ use, `versions` every WingFoil version the contract tests run against (the highe
 range's caret line).
 
 Each schema records the WingFoil version it was captured from (`$comment: "wingfoil 0.2.2"`); a
-shape that changes in a later version gets a versioned variant, selected by the detected version.
+shape that changes in a later version gets a versioned variant: a branch of the command's schema
+per version line (`definitions` `v0.2`, `v0.3`, … under a top-level `oneOf`), the branches written
+to exclude each other, so that an output matches exactly one — selected by its shape, not by the
+detected version (an out-of-range or unrecognised project still reads its configuration). The
+contract tests check that each matrix version matches its own branch.
 Schemas accept unknown additional properties (a newer CLI may add fields) but require every field
 the UI reads.
 
@@ -162,7 +168,10 @@ split in three; S-08.3 names "Next workflow step" alone) and `agent-launch` (`mi
 `0.3.0`); `field-editing` (`null`). `minVersion` is required on every row: **`null` means the
 capability is in no released WingFoil version** (`field-editing` today); it is always read-only
 or hidden according to its rule, with reason `not-released` (REQ-INT-03: `null` counts as a
-declared minimum).
+declared minimum). **`via: null` means this release has no source for the capability** (it does
+not use it yet): it is never enabled and never listed as missing; below its `minVersion` it is
+read-only `needs-version`, at or above it read-only with the reason `not-in-release` (amendment
+of task-046: the workflow capabilities and the agent launch of WingFoil 0.3.0, used from v0.4).
 
 **Project conditions (v0.2, RP-11).** A condition id names a fact of the project the server
 evaluates per repository state and passes to the capability evaluation; the ids that hold are
@@ -226,3 +235,10 @@ its schema, and run the §4.1 resolution check. A failure blocks the matrix adva
 - 2026-10-12 — amended in `release-planning` v0.2 (plan session 2, RP-10, RP-11): §6 project
   condition ids (`has-remote`, evaluated by spec-010 §7) and their exposure in `GET /api/p/:pid`;
   no capability row changes. Decided by the approver at checkpoint 2.
+- 2026-10-28 — amended in dev-loop task-046 (`governance-alignment-rel-v0.3-plan` step 2b, GA3-9;
+  decisions D46-2, D46-3 by the approver): §3 `--version` with WingFoil 0.3's build stamp and the
+  `workflow list` shape of 0.3.x (captured from `wingfoil@0.3.1`); §5 the versioned variant is a
+  `oneOf` branch of the command's schema, exclusive, selected by shape; §6 `via: null` = not used by
+  this release (never enabled, never missing, reason `not-in-release` from its minimum version);
+  §2 a 0.3 `stderr` warning is the `warning` text of its JSON line. The support matrix is now
+  [0.2.2, 0.3.1], pinned 0.3.1.

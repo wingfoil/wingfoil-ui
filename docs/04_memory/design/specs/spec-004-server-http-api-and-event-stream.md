@@ -74,7 +74,7 @@ JSON; every request and response body has a schema in `contracts/api/`.
 | `DELETE /api/projects/:pid` | remove from the list (no file is touched) → 204, no body | v0.1 |
 | `GET /api/p/:pid` | project header: name, WingFoil version and range state, identity, role views, repository status | v0.1 |
 | `PUT /api/p/:pid/role-view` `{role}` | remember the role view (local state) | v0.1 |
-| `GET /api/p/:pid/config` | DNA, paths, workflows, resolved types (spec-001 §4.1); effective `ui.yaml` with origin of each value since v0.3 (REQ-ARC-07) | v0.1 |
+| `GET /api/p/:pid/config` | DNA, paths, workflows (as the CLI's version line answers `workflow list`, spec-001 §3: the 0.2.x or the 0.3.x shape; every string of a 0.3.x `diagnostics` entry and its `message` sanitised like the CLI warnings — read by no view yet), resolved types (spec-001 §4.1); effective `ui.yaml` with origin of each value since v0.3 (REQ-ARC-07) | v0.1 |
 | `GET /api/p/:pid/elements[?archived=true]` | elements with their descriptor (spec-003) and local-changes marker | v0.1 |
 | `GET /api/p/:pid/elements/:eid` | one element: frontmatter, body, descriptor, references | v0.1 |
 | `GET /api/p/:pid/elements/:eid/history` | `memory history` entries (spec-002 §2) | v0.1 |
@@ -387,3 +387,8 @@ goes away by itself when the stream reconnects. A network failure is not rendere
 - 2026-10-15 — amended in dev-loop task-034 (minor-v0.2 Wave 4, D34-8, bug-014): §5 the 409 code
   `refspec-outside-remotes` of the fetch route (spec-010 §5). Decided by the approver.
 - 2026-10-15 — task-034 security review round 1 (W4-4): §5 `push.code` may be `internal`.
+- 2026-10-28 — amended in dev-loop task-046 (`governance-alignment-rel-v0.3-plan` step 2b, GA3-9):
+  §3 `GET /api/p/:pid/config` passes the `workflows` section in the shape of the project's WingFoil
+  version line (0.2.x or 0.3.x, spec-001 §3, §5), the 0.3.x `diagnostics` and `message` through the
+  sanitiser of tool messages; `GET /api/p/:pid` capability reasons gain `not-in-release` (spec-001
+  §6, D46-2). Decided by the approver.
