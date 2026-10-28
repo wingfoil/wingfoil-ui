@@ -373,7 +373,8 @@ describe('GET /api/projects and POST /api/projects (local folder)', () => {
     const named = path.join(w.dir, 'unnamed-board');
     await rename(w.fx.dir, named);
     const dna = path.join(named, '.wingfoil', 'dna.yaml');
-    await writeFile(dna, (await readFile(dna, 'utf8')).replace(/^(\s+)name:\s*["']?kanban["']?\s*$/m, ''));
+    // WingFoil 0.3's dna.yaml keeps the template's comment after the name (task-046).
+    await writeFile(dna, (await readFile(dna, 'utf8')).replace(/^(\s+)name:\s*["']?kanban["']?\s*(?:#.*)?$/m, ''));
     const res = await add(w, named);
     expect(res.statusCode, res.body).toBe(201);
     expect((res.json() as { name: string }).name).toBe('unnamed-board');

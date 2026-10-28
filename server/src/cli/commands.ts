@@ -83,12 +83,19 @@ export function isWorkflowList02(list: WorkflowList): list is WorkflowList02 {
  * `data` (the validated output of `name`) with every tool-sourced text that is not project content
  * passed through `redact`, the one sanitiser of tool messages (bug-017): WingFoil 0.3's `workflow
  * list` `diagnostics` (configuration messages that quote values and may name files) and its
- * `message` (task-046 AC-2). Every other output is returned as it is.
+ * `message` (task-046 AC-2), each distinct text once. Every other output is returned as it is.
  */
-export function toolText<T>(name: CliCommandName, data: T, redact: (text: string) => string): T {
+export function toolText<T>(name: CliCommandName, data: T, sanitise: (text: string) => string): T {
   if (name !== 'workflow list') return data;
   const list = data as unknown as WorkflowList;
   if (isWorkflowList02(list)) return data;
+  // A configuration repeats its codes, files and messages: each distinct text is sanitised once.
+  const done = new Map<string, string>();
+  const redact = (text: string): string => {
+    let out = done.get(text);
+    if (out === undefined) done.set(text, (out = sanitise(text)));
+    return out;
+  };
   return {
     ...list,
     ...(list.message !== undefined ? { message: redact(list.message) } : {}),

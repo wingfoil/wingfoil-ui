@@ -135,6 +135,28 @@ describe('every producer of a verbatim tool message goes through the sanitiser',
     ]);
   });
 
+  // task-046: WingFoil 0.3 writes each `stderr` warning as one JSON line `{"warning": "…"}` under
+  // `--format json`: the warning is its text, sanitised; any other line stays as written.
+  it('a JSON warning line of WingFoil 0.3 is its text, sanitised; other lines as written', async () => {
+    const root = '/nowhere/project';
+    const stderr = [
+      JSON.stringify({ warning: `${root}/.wingfoil/x.md: ${MARKER}` }),
+      'plain line',
+      JSON.stringify({ warning: 3 }),
+      '{not json',
+    ].join('\n');
+    const cli = new WingfoilCli({
+      cli: { source: 'path', projectRoot: root, file: process.execPath, prefixArgs: ['/x/cli.js'] },
+      runner: new FakeProcessRunner().answer({ stdout: '{}', stderr }),
+    });
+    expect((await cli.json(['paths'])).warnings).toEqual([
+      `<project>/.wingfoil/x.md: ${SAFE}`,
+      'plain line',
+      '{"warning":3}',
+      '{not json',
+    ]);
+  });
+
   it('git-derived file names (detail.files of local-changes-in-the-way) come out escaped', () => {
     expect(relativeToProject([`docs/a${RLO}b.md`, 'x.md'], 'docs/')).toEqual(['a\\u202eb.md', '../x.md']);
   });

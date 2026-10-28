@@ -39,6 +39,7 @@ import {
 import { git, run } from '../../harness/run.js';
 import { pwned, SHELL_PAYLOAD } from '../../harness/security.js';
 import { TempWorkspace } from '../../harness/temp-workspace.js';
+import { cliBuildFor } from '../../contracts/support.js';
 import { auditedSnapshots, processKind, type AuditedRunner } from '../snapshot/support.js';
 
 const security = { authentication: createTokenAuthentication('test-token'), port: () => 80 };
@@ -63,6 +64,8 @@ const ISO_SECONDS = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/;
 
 let ws: TempWorkspace;
 let template: Fixture;
+/** The kanban fixture built with WingFoil 0.2.2 (a matrix version): its failed commits are not atomic (W-30). */
+let template022: Fixture | undefined;
 let n = 0;
 const registries: Snapshots[] = [];
 const apps: FastifyInstance[] = [];
@@ -82,6 +85,8 @@ afterAll(async () => {
 });
 
 interface StartOptions {
+  /** The fixture copied (default: the kanban fixture of the pinned CLI). */
+  template?: Fixture;
   /** The user (`git config user.email`) of the copy. */
   as?: string;
   /** Changes to the copy before the console starts. */
@@ -126,7 +131,7 @@ interface Console {
 
 async function start(options: StartOptions = {}): Promise<Console> {
   n += 1;
-  const fx = await copyFixture(template, path.join(await realpath(ws.dir), `copy-${n}`));
+  const fx = await copyFixture(options.template ?? template, path.join(await realpath(ws.dir), `copy-${n}`));
   await git(fx.dir, ['config', 'user.email', options.as ?? memberByName('Morgan').email], fx.env);
   await options.prepare?.(fx);
   const audited = auditedSnapshots(fx.env);
@@ -502,7 +507,9 @@ describe('the CLI decides: refusals verbatim (REQ-INT-04, D32-5)', () => {
     expect(res.status).toBe(422);
     expect(res.body.error).toEqual({
       code: 'cli-refused',
-      message: 'invalid flag value: --reason must not contain a line starting with "Approver:" or "Reason:"',
+      // WingFoil 0.3.1's wording (0.2.2: `"Approver:" or "Reason:"`, W-29).
+      message:
+        'invalid flag value: --reason must not contain a line starting with "Approver:", "Reason:" or "WingFoil-Version:"',
     });
   });
 
@@ -902,26 +909,64 @@ describe('reviews F4, S3 (part A), S4 — the commit the write made, whatever th
   });
 });
 
-describe('W2-1 (review S3 part B) — the CLI fails leaving the element file changed without a commit', () => {
-  it.each([
-    [
-      'a stale .git/index.lock',
-      async (fx: Fixture) => void (await writeFile(path.join(fx.dir, '.git', 'index.lock'), '')),
-    ],
-    [
-      'a pre-commit hook that fails',
-      async (fx: Fixture) => {
-        const hook = path.join(fx.dir, '.git', 'hooks', 'pre-commit');
-        await mkdir(path.dirname(hook), { recursive: true });
-        await writeFile(hook, '#!/bin/sh\nexit 1\n');
-        await chmod(hook, 0o755);
-      },
-    ],
-  ])(
-    '%s → 500 write-incomplete with detail.file, no CLI message, nothing in the action log, no event',
+/** The kanban fixture of WingFoil 0.2.2, built once (`cliBuildFor` installs it into the matrix cache). */
+async function kanban022(): Promise<Fixture> {
+  template022 ??= await buildFixture('kanban', {
+    root: path.join(await realpath(ws.dir), 'kanban-0.2.2'),
+    cli: await cliBuildFor('0.2.2'),
+    cliVersion: '0.2.2',
+  });
+  return template022;
+}
+
+/** The failed-commit triggers of W2-1. */
+const FAILED_COMMITS: [string, (fx: Fixture) => Promise<void>][] = [
+  ['a stale .git/index.lock', async (fx) => void (await writeFile(path.join(fx.dir, '.git', 'index.lock'), ''))],
+  [
+    'a pre-commit hook that fails',
+    async (fx) => {
+      const hook = path.join(fx.dir, '.git', 'hooks', 'pre-commit');
+      await mkdir(path.dirname(hook), { recursive: true });
+      await writeFile(hook, '#!/bin/sh\nexit 1\n');
+      await chmod(hook, 0o755);
+    },
+  ],
+];
+
+// task-046: WingFoil 0.3.1 makes a failed commit atomic — it restores the element file and the
+// index and refuses (exit 1, `E_COMMIT_FAILED … nothing was committed`), so the server answers the
+// refusal (422) and nothing is left changed. WingFoil 0.2.2 leaves the file changed (W-30): the
+// server's `write-incomplete` (500) is checked on a 0.2.2 build.
+describe('W2-1 on WingFoil 0.3.1 (pinned) — a failed commit is the CLI’s refusal, nothing left changed', () => {
+  it.each(FAILED_COMMITS)(
+    '%s → 422 cli-refused, no root in the body, nothing committed, logged or announced, the file unchanged',
     async (_l, prepare) => {
       const log: string[] = [];
       const c = await start({ as: memberByName('Jordan').email, log });
+      await c.warm();
+      const rel = await c.pathOf(TIMEOUT);
+      const before = await c.head();
+      await prepare(c.fx);
+      const res = await c.post('submit', TIMEOUT, { expectedStatus: 'draft' });
+      expect(res.status, JSON.stringify(res.body)).toBe(422);
+      expect(res.body.error.code).toBe('cli-refused');
+      expect(res.body.error.message).toMatch(/^E_COMMIT_FAILED\b.*nothing was committed/);
+      expect(JSON.stringify(res.body)).not.toContain(c.fx.dir);
+      expect(await c.head()).toBe(before);
+      expect(c.store.snapshot().actionLog).toEqual([]);
+      expect(writes(c)).toEqual([]);
+      expect(log.join('')).not.toContain(c.fx.dir);
+      expect((await git(c.fx.dir, ['status', '--porcelain', '--', rel], c.fx.env)).stdout).toBe('');
+    },
+  );
+});
+
+describe('W2-1 (review S3 part B) — WingFoil 0.2.2: the CLI fails leaving the element file changed without a commit', () => {
+  it.each(FAILED_COMMITS)(
+    '%s → 500 write-incomplete with detail.file, no CLI message, nothing in the action log, no event',
+    async (_l, prepare) => {
+      const log: string[] = [];
+      const c = await start({ template: await kanban022(), as: memberByName('Jordan').email, log });
       await c.warm();
       const rel = await c.pathOf(TIMEOUT);
       const before = await c.head();
@@ -944,9 +989,32 @@ describe('W2-1 (review S3 part B) — the CLI fails leaving the element file cha
 describe('review round 2 N1 — the reason never reaches the server log on a failed write', () => {
   const SECRET = 'secret-reason-text-4711';
 
-  it('reject with a failing pre-commit hook → 500 write-incomplete; the log holds no reason, no root', async () => {
+  it('WingFoil 0.3.1 (pinned): reject with a failing pre-commit hook → 422 cli-refused; the log holds no reason, no root', async () => {
     const log: string[] = [];
     const c = await start({
+      log,
+      prepare: async (fx) => {
+        const hook = path.join(fx.dir, '.git', 'hooks', 'pre-commit');
+        await mkdir(path.dirname(hook), { recursive: true });
+        await writeFile(hook, '#!/bin/sh\nexit 1\n');
+        await chmod(hook, 0o755);
+      },
+    });
+    await c.warm();
+    const before = await c.head();
+    const res = await c.post('reject', LOGIN, { expectedStatus: 'pending', reason: SECRET });
+    expect(res.status, JSON.stringify(res.body)).toBe(422);
+    expect(res.body.error.code).toBe('cli-refused');
+    expect(JSON.stringify(res.body)).not.toContain(c.fx.dir);
+    expect(await c.head()).toBe(before);
+    expect(log.join('')).not.toContain(SECRET);
+    expect(log.join('')).not.toContain(c.fx.dir);
+  });
+
+  it('WingFoil 0.2.2: reject with a failing pre-commit hook → 500 write-incomplete; the log holds no reason, no root', async () => {
+    const log: string[] = [];
+    const c = await start({
+      template: await kanban022(),
       log,
       prepare: async (fx) => {
         const hook = path.join(fx.dir, '.git', 'hooks', 'pre-commit');

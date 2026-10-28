@@ -8,6 +8,7 @@ import path from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { DEGRADED_FALLBACK_MS, type Snapshots } from '../../../server/src/snapshot/snapshots.js';
 import { globalConfigFiles, memoryTrees, type WatchRepository } from '../../../server/src/snapshot/watcher.js';
+import { pinnedVersionText } from '../../harness/cli.js';
 import { buildFixture, copyFixture, installCliStub, type Fixture } from '../../harness/fixtures/index.js';
 import { git } from '../../harness/run.js';
 import { auditedSnapshots } from './support.js';
@@ -90,7 +91,7 @@ describe('file watching', () => {
 
   it('starts a new CLI generation when node_modules/wingfoil changes', async () => {
     const { fx, snapshot } = await fresh({ watch: true, fallbackMs: 0 });
-    expect(await (await snapshot.view()).version()).toBe('0.2.2');
+    expect(await (await snapshot.view()).version()).toMatch(pinnedVersionText());
     await installCliStub(fx, { version: '0.2.3' });
     await expect.poll(async () => (await snapshot.view()).version(), POLL).toBe('0.2.3');
   });

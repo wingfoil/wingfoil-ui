@@ -19,7 +19,7 @@ import {
 } from '../../../server/src/cli/adapter.js';
 import { CliNotFoundError, discoverCli } from '../../../server/src/cli/discovery.js';
 import { LocalProcessRunner, type SpawnRecord } from '../../../server/src/process/runner.js';
-import { binScript, PINNED_PACKAGE_DIR, pinnedVersion } from '../../harness/cli.js';
+import { binScript, PINNED_PACKAGE_DIR, pinnedVersionText } from '../../harness/cli.js';
 import {
   buildFixture,
   cliPackageDir,
@@ -64,7 +64,7 @@ afterAll(async () => {
 });
 
 describe('TT-ARC-02 — process audit', () => {
-  it('with 0.2.2 pinned and wingfoil 0.2.1 first on the PATH, every CLI process runs the pinned binary', async () => {
+  it('with the pinned version and wingfoil 0.2.1 first on the PATH, every CLI process runs the pinned binary', async () => {
     const fx = await freshKanban();
     const marker = path.join(root, `marker-${n}`);
     const pkg = path.join(root, `fake-${n}`, 'pkg');
@@ -72,7 +72,7 @@ describe('TT-ARC-02 — process audit', () => {
     const env = withPathFirst(fx.env, await installGlobally(path.join(root, `fake-${n}`, 'prefix'), pkg));
     const { cli, spawned } = await adapterFor(fx, env);
 
-    expect(await cli.version()).toBe('0.2.2');
+    expect(await cli.version()).toMatch(pinnedVersionText());
     await cli.json(['dna', 'show']);
     await cli.json(['paths']);
     await cli.json(['directives', 'list']);
@@ -131,7 +131,7 @@ describe('S-08 / S-10 — the CLI that runs (adapter side)', () => {
     const fx = await freshKanban();
     const { cli } = await adapterFor(fx);
     expect(cli.source).toBe('project');
-    expect(await cli.version()).toBe(pinnedVersion());
+    expect(await cli.version()).toMatch(pinnedVersionText());
   });
 
   it('S-08.2 — runs the PATH CLI, through its package bin script, when the project pins none', async () => {
@@ -141,7 +141,7 @@ describe('S-08 / S-10 — the CLI that runs (adapter side)', () => {
     const bin = await installGlobally(path.join(root, `global-${n}`), PINNED_PACKAGE_DIR);
     const { cli, spawned } = await adapterFor(fx, withPathFirst(base, bin));
     expect(cli.source).toBe('path');
-    expect(await cli.version()).toBe(pinnedVersion());
+    expect(await cli.version()).toMatch(pinnedVersionText());
     expect(spawned[0]?.file).toBe(process.execPath);
   });
 
@@ -170,12 +170,16 @@ describe('TT-INT-04 — result classification (spec-001 §2)', () => {
     const fx = await freshKanban();
     const directive = path.join(fx.dir, '.wingfoil', 'directives', 'built-in', 'testing.md');
     const text = await readFile(directive, 'utf8');
-    await writeFile(directive, text.replace(/^title:/m, 'scope: whatever\ntitle:'));
+    // A field WingFoil does not know (0.3 knows `scope`, which 0.2.2 reported).
+    await writeFile(directive, text.replace(/^title:/m, 'flavour: whatever\ntitle:'));
     const { cli } = await adapterFor(fx);
     const out = await cli.json(['directives', 'list']);
     expect((out.data as { entries: unknown[] }).entries.length).toBeGreaterThan(0);
     expect(out.warnings).toHaveLength(1);
-    expect(out.warnings[0]).toMatch(/unknown field\(s\) ignored: scope$/);
+    // The warning's text, also from WingFoil 0.3, which writes it as `{"warning": "…"}` (task-046).
+    expect(out.warnings[0]).toMatch(
+      /^\.wingfoil\/directives\/built-in\/testing\.md: unknown field\(s\) ignored: flavour$/,
+    );
   });
 
   // bug-017 (task-040 review round 3, S3-1): a CLI warning goes through the one sanitiser — a field
@@ -236,8 +240,9 @@ describe('TT-INT-04 — result classification (spec-001 §2)', () => {
       words: ['dna', 'show'],
       options: ['--bogus'],
       exitCode: 2,
-      // The kind only (task-032 review I1); the option names are in `options`.
-      stderr: 'error',
+      // The kind only (task-032 review I1); the option names are in `options`. WingFoil 0.3 answers
+      // `{"error":"unknown option '--bogus'"}`: no kind before a colon, so the generic one.
+      stderr: 'usage error',
     });
     expect(cliErrorEnvelope(error as CliInternalError)).toEqual({
       status: 500,

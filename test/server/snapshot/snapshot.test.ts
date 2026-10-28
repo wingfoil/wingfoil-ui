@@ -18,7 +18,7 @@ import {
   removeCli,
   type Fixture,
 } from '../../harness/fixtures/index.js';
-import { PINNED_PACKAGE_DIR } from '../../harness/cli.js';
+import { PINNED_PACKAGE_DIR, pinnedVersionText } from '../../harness/cli.js';
 import { git } from '../../harness/run.js';
 import { auditedSnapshots } from './support.js';
 
@@ -171,8 +171,8 @@ describe('TT-STATE-02 — cache keyed on HEAD, working-tree status and user.emai
   it('runs CLI discovery once per CLI generation; cliChanged() starts a new one', async () => {
     // No `wingfoil` on the PATH: without the project's own CLI there is none.
     const { fx, snapshot, runner, events } = await fresh((f) => envWithoutWingfoil(f.env, path.join(root, `bin-${n}`)));
-    expect(await (await snapshot.view()).version()).toBe('0.2.2');
-    expect(await (await snapshot.view()).version()).toBe('0.2.2');
+    expect(await (await snapshot.view()).version()).toMatch(pinnedVersionText());
+    expect(await (await snapshot.view()).version()).toMatch(pinnedVersionText());
     expect(runner.count('wingfoil')).toBe(1);
     await installCliStub(fx, { version: '0.2.3' });
     snapshot.cliChanged();
@@ -254,7 +254,7 @@ describe('TT-STATE-02 — cache keyed on HEAD, working-tree status and user.emai
     await symlink(PINNED_PACKAGE_DIR, path.join(fx.dir, 'node_modules', 'wingfoil'));
     const before = events.length;
     await snapshot.check();
-    expect(await (await snapshot.view()).version()).toBe('0.2.2');
+    expect(await (await snapshot.view()).version()).toMatch(pinnedVersionText());
     expect(events.length).toBe(before + 1);
   });
 

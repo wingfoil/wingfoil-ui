@@ -27,7 +27,7 @@ import { REPO_STATE_HEADER } from '../../../server/src/snapshot/state.js';
 import type { Snapshots } from '../../../server/src/snapshot/snapshots.js';
 import { createMemoryStateStore } from '../../../server/src/state/memory-store.js';
 import type { StateStore } from '../../../server/src/state/store.js';
-import { pinnedCli, REPO_ROOT } from '../../harness/cli.js';
+import { pinnedCli, pinnedVersion, pinnedVersionText, REPO_ROOT } from '../../harness/cli.js';
 import { buildFixture, copyFixture, installCliStub, type Fixture } from '../../harness/fixtures/index.js';
 import { git, run } from '../../harness/run.js';
 import { auditedSnapshots, type AuditedRunner } from '../snapshot/support.js';
@@ -137,8 +137,8 @@ describe('GET /api/server', () => {
     const res = await c.get('/api/server');
     expect(res.status).toBe(200);
     expectSchema('server.schema.json', res.body);
-    expect(res.body).toMatchObject({ version: '9.9.9-test', range: { min: '0.2.2', max: '0.2.x' }, warnings: [] });
-    expect(res.body.range).toEqual({ min: '0.2.2', max: '0.2.x' });
+    expect(res.body).toMatchObject({ version: '9.9.9-test', range: { min: '0.2.2', max: '0.3.x' }, warnings: [] });
+    expect(res.body.range).toEqual({ min: '0.2.2', max: '0.3.x' });
     expect(res.body.capabilities.map((x: { id: string }) => x.id)).toContain('field-editing');
     expect(c.runner.spawned).toEqual([]);
   });
@@ -154,7 +154,13 @@ describe('GET /api/p/:pid — the project header', () => {
     expect(res.body).toMatchObject({
       id: c.pid,
       name: 'kanban',
-      wingfoil: { text: '0.2.2', version: '0.2.2', state: 'in-range', inRange: true, source: 'project' },
+      wingfoil: {
+        text: expect.stringMatching(pinnedVersionText()),
+        version: pinnedVersion(),
+        state: 'in-range',
+        inRange: true,
+        source: 'project',
+      },
       identity: { kind: 'member', name: 'Alex' },
       readOnly: [],
       repository: { state: res.state, localChanges: 0 },
@@ -220,7 +226,7 @@ describe('GET /api/p/:pid — the project header', () => {
 
 describe('a version outside the range (user decision 2026-10-06, open point 26)', () => {
   it('names the range as "<min> to <max>" in the read-only reason and in every disabled verb', async () => {
-    expect(rangeLabel()).toBe('0.2.2 to 0.2.x');
+    expect(rangeLabel()).toBe('0.2.2 to 0.3.x');
     const c = await start(kanbanTemplate, {
       prepare: async (fx) => void (await installCliStub(fx, { version: '0.4.0' })),
     });
@@ -228,11 +234,11 @@ describe('a version outside the range (user decision 2026-10-06, open point 26)'
     expect(header.status).toBe(200);
     expectSchema('project.schema.json', header.body);
     expect(header.body.wingfoil).toMatchObject({ version: '0.4.0', inRange: false, state: 'above' });
-    expect(header.body.readOnly).toEqual([{ code: 'version-unsupported', range: '0.2.2 to 0.2.x' }]);
+    expect(header.body.readOnly).toEqual([{ code: 'version-unsupported', range: '0.2.2 to 0.3.x' }]);
     const elements = await c.get(`/api/p/${c.pid}/elements`);
     const reasons = elements.body.elements.flatMap((e: any) => e.descriptor.verbs.map((v: any) => v.reason));
     expect(reasons.length).toBeGreaterThan(0);
-    expect(reasons.every((r: any) => r.code === 'version-unsupported' && r.range === '0.2.2 to 0.2.x')).toBe(true);
+    expect(reasons.every((r: any) => r.code === 'version-unsupported' && r.range === '0.2.2 to 0.3.x')).toBe(true);
   });
 });
 
