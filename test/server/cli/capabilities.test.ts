@@ -45,16 +45,58 @@ describe('evaluateCapabilities', () => {
     expect(result.missing).toEqual([]);
   });
 
-  it('S-08.3 shape — 0.2.2 in a 0.2.2–0.3.x range: the 0.3 capabilities are listed as missing', () => {
-    const result = evaluateCapabilities(classifyVersion('0.2.2', v04), v04, { table });
+  it('S-08.3 shape — 0.2.2 in a 0.2.2–0.3.x range: the 0.3 capabilities this release uses are listed as missing', () => {
+    // A release that uses them (v0.4): each has a source (`via`).
+    const used = table.map((c) =>
+      c.id === 'workflow-next-step'
+        ? { ...c, via: 'workflow next' }
+        : c.id === 'agent-launch'
+          ? { ...c, via: 'agent execute' }
+          : c,
+    );
+    const result = evaluateCapabilities(classifyVersion('0.2.2', v04), v04, { table: used });
     expect(result.missing).toEqual([
       { id: 'workflow-next-step', minVersion: '0.3.0' },
       { id: 'agent-launch', minVersion: '0.3.0' },
     ]);
     expect(byId(result.capabilities)['agent-launch']?.state).toBe('read-only');
-    const newer = evaluateCapabilities(classifyVersion('0.3.0', v04), v04, { table });
+    const newer = evaluateCapabilities(classifyVersion('0.3.0', v04), v04, { table: used });
     expect(byId(newer.capabilities)['agent-launch']?.state).toBe('enabled');
     expect(newer.missing).toEqual([]);
+  });
+
+  // task-046 D46-2: a capability with no source in this release (`via: null`) is never enabled and
+  // never in the version notice, whatever the project's version.
+  it('D46-2 — via: null in a 0.2.2–0.3.x range: never enabled, never missing; not-in-release from its minVersion on', () => {
+    const old = evaluateCapabilities(classifyVersion('0.2.2', v04), v04, { table });
+    expect(old.missing).toEqual([]);
+    expect(byId(old.capabilities)['workflow-next-step']).toEqual({
+      id: 'workflow-next-step',
+      state: 'read-only',
+      reason: { code: 'needs-version', minVersion: '0.3.0' },
+    });
+    const newer = evaluateCapabilities(classifyVersion('0.3.0', v04), v04, { table });
+    expect(newer.missing).toEqual([]);
+    const s = byId(newer.capabilities);
+    for (const id of ['workflow-next-step', 'agent-launch']) {
+      expect(s[id]).toEqual({ id, state: 'read-only', reason: { code: 'not-in-release' } });
+    }
+    expect(s['gate-decision']).toEqual({ id: 'gate-decision', state: 'enabled' });
+    expect(s['field-editing']).toEqual({ id: 'field-editing', state: 'read-only', reason: { code: 'not-released' } });
+  });
+
+  it('D46-2 — the table of contracts/capabilities.json: only the four 0.2.2 capabilities are enabled on 0.3.1 and on 0.2.2', () => {
+    const range = rangeFromMatrix({ min: '0.2.2', pinned: '0.3.1', versions: ['0.2.2', '0.3.1'] });
+    for (const text of ['0.2.2', '0.3.1 (870bd4406f3b9bba5ecde7a5f8198b80c2a98583)']) {
+      const result = evaluateCapabilities(classifyVersion(text, range), range);
+      expect(result.capabilities.filter((c) => c.state === 'enabled').map((c) => c.id)).toEqual([
+        'type-definitions',
+        'element-content',
+        'directive-body',
+        'gate-decision',
+      ]);
+      expect(result.missing).toEqual([]);
+    }
   });
 
   it.each(['0.4.0', '0.2.0', 'banana', '0.2.3-rc.1'])(

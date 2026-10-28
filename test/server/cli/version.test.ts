@@ -181,3 +181,42 @@ describe('classifyVersion', () => {
     expect(classifyVersion('0.2.3-rc.2', withRc).state).toBe('pre-release');
   });
 });
+
+// task-046 AC-1 (D46-4): WingFoil 0.3's `--version` is `<semver> (<commit>)`, the build stamp of
+// `dist/build-info.json` (`unknown` when the record is missing or not a sha).
+describe('classifyVersion — the build stamp of WingFoil 0.3', () => {
+  const range = rangeFromMatrix({ min: '0.2.2', pinned: '0.3.1', versions: ['0.2.2', '0.3.1'] });
+  const SHA = '870bd4406f3b9bba5ecde7a5f8198b80c2a98583';
+
+  it.each([
+    [`0.3.1 (${SHA})`, '0.3.1', 'in-range'],
+    ['0.3.1 (870bd44)', '0.3.1', 'in-range'],
+    ['0.3.1 (unknown)', '0.3.1', 'in-range'],
+    [`0.2.2 (${SHA})`, '0.2.2', 'in-range'],
+    [`0.4.0 (${SHA})`, '0.4.0', 'above'],
+    [`0.2.0 (${SHA})`, '0.2.0', 'below'],
+    [`0.3.2-rc.1 (${SHA})`, '0.3.2-rc.1', 'pre-release'],
+  ] as const)('%s → %s, %s; the text stays as printed', (text, version, state) => {
+    const result = classifyVersion(text, range);
+    expect(result).toEqual({ text, version, state, inRange: state === 'in-range' });
+  });
+
+  it.each([
+    [`v0.3.1 (${SHA})`],
+    [`banana (${SHA})`],
+    [`(${SHA})`],
+    [`0.3.1 (${SHA}) (${SHA})`],
+    [`0.3.1  (${SHA})`],
+    [`0.3.1 (${SHA}`],
+    [`0.3.1 ${SHA}`],
+    ['0.3.1 (870bd4)'],
+    [`0.3.1 (${SHA.toUpperCase()})`],
+    ['0.3.1 (dirty)'],
+    ['0.3.1 ()'],
+    [`0.3.1 (${SHA}) extra`],
+    [`0.3.1 (${'a'.repeat(65)})`],
+    ['0.3.1 (unknown)\n'],
+  ])('%j stays unrecognised', (text) => {
+    expect(classifyVersion(text, range)).toEqual({ text, version: null, state: 'unrecognised', inRange: false });
+  });
+});
