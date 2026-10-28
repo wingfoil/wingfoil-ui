@@ -1,0 +1,13 @@
+{
+  "query": "",
+  "matches": [
+    {
+      "path": "docs/04_memory/design/adrs/adr-001-local-server.md",
+      "id": "adr-001-local-server",
+      "title": "Local server",
+      "type": "adr",
+      "status": "superseded",
+      "tags": []
+    }
+  ]
+}

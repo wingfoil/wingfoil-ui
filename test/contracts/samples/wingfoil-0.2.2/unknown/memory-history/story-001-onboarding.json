@@ -3,7 +3,7 @@
   "path": "docs/stories/story-001-onboarding.md",
   "entries": [
     {
-      "sha": "1c667702cab288efd99b6af4ef8d7b69f2de5905",
+      "sha": "8f89d817da8042f9bab918f9a68d07de979eea7a",
       "author": "Jordan <jordan@example.test>",
       "timestamp": "2026-09-29T15:20:00+00:00",
       "operation": "add",
@@ -14,7 +14,7 @@
       "subject": "wf(story): add story-001-onboarding"
     },
     {
-      "sha": "8eb4edca3b30b56b5e5a088b1753a988a34afd11",
+      "sha": "fdc623920597b050c9347a01eba0bf17677bbab2",
       "author": "Jordan <jordan@example.test>",
       "timestamp": "2026-09-29T15:20:02+00:00",
       "operation": "submit",

@@ -3,12 +3,12 @@
  * throwaway git repositories built with a WingFoil CLI build (the pinned one by default), each with
  * a bare remote next to it.
  */
-import { cp, mkdir, writeFile } from 'node:fs/promises';
+import { cp, mkdir, readdir, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { pinnedCli, pinnedVersion, REPO_ROOT, type CliBuild } from '../cli.js';
 import { FixtureProject } from './project.js';
 import { STANDARD_AGENT, STANDARD_TEAM } from './team.js';
-import { UNKNOWN_MEMORY_YAML, UNKNOWN_TEMPLATES } from './unknown-schema.js';
+import { UNKNOWN_MEMORY_YAML, UNKNOWN_TEMPLATES, UNKNOWN_WORKFLOW, UNKNOWN_WORKFLOWS_YAML } from './unknown-schema.js';
 
 /** The three fixtures of the BDD conventions (`@fx-kanban`, `@fx-custom`, `@fx-unknown`). */
 export type BddFixtureKind = 'kanban' | 'custom' | 'unknown';
@@ -136,13 +136,20 @@ async function importGovernance(project: FixtureProject): Promise<void> {
   await project.commitAll('chore(wingfoil): import the WingFoil UI governance (.wingfoil/, docs/01_vision/)', 'setup');
 }
 
-/** Unknown fixture: hand-written `memory.yaml` with the types `story` and `note`. */
+/**
+ * Unknown fixture: hand-written `memory.yaml` with the types `story` and `note`, and one workflow of
+ * its own in place of `init`'s (task-046 a4).
+ */
 async function writeUnknownSchema(project: FixtureProject): Promise<void> {
   await writeFile(path.join(project.dir, '.wingfoil', 'memory.yaml'), UNKNOWN_MEMORY_YAML);
+  const workflows = path.join(project.dir, '.wingfoil', 'workflows', 'custom');
+  for (const name of await readdir(workflows)) await rm(path.join(workflows, name));
+  await writeFile(path.join(workflows, 'notes-review.yaml'), UNKNOWN_WORKFLOW);
+  await writeFile(path.join(project.dir, '.wingfoil', 'workflows.yaml'), UNKNOWN_WORKFLOWS_YAML);
   for (const [name, body] of Object.entries(UNKNOWN_TEMPLATES)) {
     await writeFile(path.join(project.dir, '.wingfoil', 'memory', 'templates', name), body);
   }
-  await project.commitAll('chore(wingfoil): hand-written memory.yaml (story, note)', 'setup');
+  await project.commitAll('chore(wingfoil): hand-written memory.yaml (story, note) and its own workflow', 'setup');
 }
 
 interface DnaTeam {

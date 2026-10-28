@@ -3,7 +3,7 @@
   "path": "docs/04_memory/v0.1/task-002-memory-list.md",
   "entries": [
     {
-      "sha": "293efe8dfcf24da39da4921b932dfccec063b731",
+      "sha": "7acc745f173fe54a6a6aeb4db525873c0fcead0b",
       "author": "Jordan <jordan@example.test>",
       "timestamp": "2026-09-29T15:20:05+00:00",
       "operation": "add",
@@ -14,7 +14,7 @@
       "subject": "wf(task): add task-002-memory-list"
     },
     {
-      "sha": "26a82319e108791a3e9707d1d1e1adc4d3e3c199",
+      "sha": "d70e36ceb1e04ae45b952927f24c2c161ff528f2",
       "author": "Jordan <jordan@example.test>",
       "timestamp": "2026-09-29T15:20:06+00:00",
       "operation": "submit",
@@ -25,7 +25,7 @@
       "subject": "wf(task): submit task-002-memory-list"
     },
     {
-      "sha": "28138b61d12c5db8ae55972ba5d434d9c7ea3285",
+      "sha": "575d7b07722a70440c79047fa7892a8edb164a5f",
       "author": "Morgan <morgan@example.test>",
       "timestamp": "2026-09-29T15:20:07+00:00",
       "operation": "approve",
@@ -36,7 +36,7 @@
       "subject": "wf(task): approve task-002-memory-list [pending → backlog]"
     },
     {
-      "sha": "f749e89f32880ac592aabfff8350b1d7dae3bc43",
+      "sha": "f6f81f4db12360e572e2b18e8ec227420d621a41",
       "author": "Jordan <jordan@example.test>",
       "timestamp": "2026-09-29T15:20:08+00:00",
       "operation": null,
@@ -47,7 +47,7 @@
       "subject": "wf(task): task-002-memory-list [backlog → in-progress]"
     },
     {
-      "sha": "ba9104dbde2936c43eb425995341a8f0a4d7794d",
+      "sha": "f3452b9382d82812701446122155ac6dfc31d080",
       "author": "Jordan <jordan@example.test>",
       "timestamp": "2026-09-29T15:20:09+00:00",
       "operation": "submit",
@@ -58,7 +58,7 @@
       "subject": "wf(task): submit task-002-memory-list"
     },
     {
-      "sha": "1103fca76f43cb4571b03af6a21a7d045c63468a",
+      "sha": "ea8080fa997c0011c303ace0966d9f5e691401cb",
       "author": "Morgan <morgan@example.test>",
       "timestamp": "2026-09-29T15:20:10+00:00",
       "operation": "approve",
@@ -69,7 +69,7 @@
       "subject": "wf(task): approve task-002-memory-list [in-review → approved]"
     },
     {
-      "sha": "f8f641aed7d295b51cc7d694af19b61c4dcc9653",
+      "sha": "0b16054b267d4748b4e0b92b0a98c6252cabc851",
       "author": "Jordan <jordan@example.test>",
       "timestamp": "2026-09-29T15:20:11+00:00",
       "operation": null,

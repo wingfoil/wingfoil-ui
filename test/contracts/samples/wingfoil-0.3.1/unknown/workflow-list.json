@@ -1,0 +1,24 @@
+{
+  "baseline": {
+    "rev": "HEAD",
+    "commit": "ffbcd553dfaa4156ab4afa01280417110a58bda9"
+  },
+  "workflows": [
+    {
+      "name": "notes-review",
+      "startable": true,
+      "includable": false,
+      "description": "Review the notes (the unknown fixture's only workflow).",
+      "executableNow": true
+    }
+  ],
+  "diagnostics": [
+    {
+      "code": "W_MEMORY_INVALID_STATE",
+      "severity": "warning",
+      "file": "docs/notes/note-002-retro.md",
+      "path": "status",
+      "message": "invalid state 'on-hold' for type 'note' in docs/notes/note-002-retro.md"
+    }
+  ]
+}

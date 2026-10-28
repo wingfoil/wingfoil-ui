@@ -181,7 +181,7 @@ export async function archiveOne(fx: Fixture): Promise<'deprecated' | 'supersede
   }
   if (fx.kind === 'custom') {
     const file = path.join(fx.dir, 'docs', '04_memory', 'design', 'adrs', 'adr-001-local-server.md');
-    await writeFile(file, (await readFile(file, 'utf8')).replace(/^status: draft$/m, 'status: superseded'));
+    await writeFile(file, (await readFile(file, 'utf8')).replace(/^status: draft\b.*$/m, 'status: superseded'));
     return 'superseded';
   }
   return undefined;

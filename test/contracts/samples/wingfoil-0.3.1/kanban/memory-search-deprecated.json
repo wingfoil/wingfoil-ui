@@ -1,0 +1,13 @@
+{
+  "query": "",
+  "matches": [
+    {
+      "path": "docs/memory/bug/bug-001-crash-on-save.md",
+      "id": "bug-001-crash-on-save",
+      "title": "Crash on save",
+      "type": "bug",
+      "status": "deprecated",
+      "tags": []
+    }
+  ]
+}
