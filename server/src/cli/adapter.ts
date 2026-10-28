@@ -241,7 +241,7 @@ export class WingfoilCli {
     // messages (bug-017, review round 3 S3-1).
     return {
       data: toolText(name, data, (text) => this.redact(text)) as T,
-      warnings: lines(result.stderr).map((w) => this.redact(w)),
+      warnings: lines(result.stderr).map((w) => this.redact(warningText(w))),
     };
   }
 
@@ -361,6 +361,20 @@ function refusalMessage(stderr: string): string {
     // Not JSON: the text itself.
   }
   return text;
+}
+
+/**
+ * The text of one `stderr` warning line: WingFoil 0.3 writes each as `{"warning": "<text>"}` under
+ * `--format json` (task-046), WingFoil 0.2.2 as the text itself; any other line is kept as written.
+ */
+function warningText(line: string): string {
+  if (!line.startsWith('{')) return line;
+  try {
+    const parsed = JSON.parse(line) as { warning?: unknown };
+    return typeof parsed.warning === 'string' ? parsed.warning : line;
+  } catch {
+    return line;
+  }
 }
 
 function lines(text: string): string[] {
