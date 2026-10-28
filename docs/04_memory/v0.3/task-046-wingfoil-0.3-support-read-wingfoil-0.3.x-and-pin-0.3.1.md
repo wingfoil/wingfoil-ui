@@ -239,3 +239,16 @@ reading of AC-1 "the header still shows the text the CLI printed" — the API ke
 the header line shows the canonical version as today (alternative: show the whole stamp);
 (3) the capability rule of AC-5 (`via: null`) and its reason code; (4) the AC-2 variant rule (by
 shape, `oneOf`) against spec-001 §5's "selected by the detected version".
+
+**Decisions (the approver, in chat, 2026-10-28, through the coordinator):**
+
+- **D46-1** — the `.wingfoil/` diff of a1/a2 as proposed (approver OK 2026-10-28), committed on its
+  own before any change that depends on it (`chore(wingfoil): …`).
+- **D46-2** — capabilities, option A: a row with `via: null` is never `enabled` and never in
+  `missing`; at or above its `minVersion` it is read-only with the reason `not-in-release`; below it
+  `needs-version` as before. spec-001 §6 amended; `contracts/api/project.schema.json`,
+  `contracts/src/api.ts`.
+- **D46-3** — `workflow list` variants, option A: selected by shape (`oneOf`, mutually exclusive
+  branches); spec-001 §5 amended.
+- **D46-4** — header, option A: the API keeps the printed text (`wingfoil.text`), the header shows
+  the canonical version.
