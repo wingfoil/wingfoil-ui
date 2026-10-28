@@ -63,7 +63,7 @@ const BUILD_STAMP = / \((?:[0-9a-f]{7,64}|unknown)\)$/;
 
 /**
  * The version part of a `--version` text: the whole text, or the text before WingFoil 0.3's build
- * stamp ({@link BUILD_STAMP}). Whether it is a semantic version is {@link parseSemVer}'s to say.
+ * stamp (`BUILD_STAMP`). Whether it is a semantic version is {@link parseSemVer}'s to say.
  */
 export function versionCore(text: string): string {
   return text.replace(BUILD_STAMP, '');
