@@ -115,9 +115,12 @@ test.describe('US-S-27 — a failed read confined to its view', () => {
     await expectFirstLoad(alert);
     await expect(alert).toContainText('The DNA could not be read.');
     // The CLI's wording, with the project's folder shown as <project> (bug-012, task-033 D33-5).
+    // WingFoil 0.3.1 names the file relative to the project (0.2.2 quoted the absolute path): the
+    // redaction of a quoted root is checked on the adapter (`test/server/cli/adapter.test.ts`).
     const root = await realpath(kanban.dir);
-    expect(message).toContain(root);
+    expect(message).toMatch(/^E_YAML_PARSE_ERROR \(.*dna\.yaml\): invalid DNA: YAML parse error/);
     await expect(alert.locator('.verbatim')).toHaveText(message.split(root).join('<project>'));
+    await expect(alert).not.toContainText(root);
     await expect(section(page, 'Modules')).toHaveCount(0);
     expect(await scanThemes(page)).toEqual([]);
     // The Memory list opens and lists the fixture's elements.
