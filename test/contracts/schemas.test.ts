@@ -7,11 +7,13 @@ import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { CLI_COMMANDS, cliSchemaFile } from '../../server/src/cli/commands.js';
+import { classifyVersion } from '../../server/src/cli/version.js';
 import { parseDirective } from '../../server/src/reads/directive.js';
 import { parseElement } from '../../server/src/reads/element.js';
 import { parseMemoryYaml } from '../../server/src/reads/memory-yaml.js';
 import { REPO_ROOT } from '../harness/cli.js';
 import { FIXTURE_KINDS } from '../harness/fixtures/index.js';
+import { behaviours } from './support.js';
 
 const matrix = JSON.parse(readFileSync(path.join(REPO_ROOT, 'contracts', 'matrix.json'), 'utf8')) as {
   pinned: string;
@@ -116,7 +118,7 @@ describe.each(matrix.versions)('samples captured from wingfoil %s', (version) =>
     const validate = validator('cli/version.schema.json');
     for (const kind of FIXTURE_KINDS) {
       const text = readFileSync(sampleDir(version, kind, 'version.txt'), 'utf8').trim();
-      expect(text).toBe(version);
+      expect(classifyVersion(text).version).toBe(version);
       expect(validate(text)).toBe(true);
     }
     expect(validate('')).toBe(false);
@@ -178,18 +180,6 @@ describe('negative cases: a field the UI reads is required, its type checked', (
       (d) => delete d.entries[0].frontmatter.id,
     ],
     [
-      'a workflow phase without name',
-      'cli/workflow-list.schema.json',
-      'workflow-list.json',
-      (d) => delete d.workflows[0].phases[0].name,
-    ],
-    [
-      'a workflow list without manifest',
-      'cli/workflow-list.schema.json',
-      'workflow-list.json',
-      (d) => delete d.manifest,
-    ],
-    [
       'a search match without status',
       'cli/memory-search.schema.json',
       'memory-search.json',
@@ -248,18 +238,6 @@ describe('negative cases: a field the UI reads is required, its type checked', (
       (d) => (d.stacks = {}),
     ],
     ['dna show with a version 1.5', 'cli/dna-show.schema.json', 'dna-show.json', (d) => (d.version = 1.5)],
-    [
-      'workflow list without manifest.version',
-      'cli/workflow-list.schema.json',
-      'workflow-list.json',
-      (d) => delete d.manifest.version,
-    ],
-    [
-      'a workflow without description',
-      'cli/workflow-list.schema.json',
-      'workflow-list.json',
-      (d) => delete d.workflows[0].description,
-    ],
   ];
   it.each(optional)('accepts %s', (_label, file, rel, mutate) => {
     const data = clone(pinned('kanban', rel));
@@ -295,4 +273,182 @@ describe('negative cases: a field the UI reads is required, its type checked', (
     expect(empty.message).toBe('no documents matched the query');
     expect(validator('cli/memory-search.schema.json')(empty)).toBe(true);
   });
+});
+
+// task-046 AC-2 (D46-3): `workflow list` has one shape per version line, as `oneOf` branches of one
+// schema that exclude each other; an output matches exactly one, the branch of its version.
+describe('cli/workflow-list.schema.json — the 0.2.x and 0.3.x shapes', () => {
+  const file = 'cli/workflow-list.schema.json';
+  const definitions = (schema(file) as { definitions?: Record<string, object> }).definitions ?? {};
+  const branch = (name: string) => ajv.compile({ definitions, $ref: `#/definitions/${name}` });
+  /* eslint-disable @typescript-eslint/no-explicit-any -- mutations of parsed JSON samples */
+  const v02 = () => clone(sample('0.2.2', 'kanban', 'workflow-list.json')) as any;
+  const v03 = () => clone(sample('0.3.1', 'kanban', 'workflow-list.json')) as any;
+
+  it.each(matrix.versions)('wingfoil %s: every sample matches its own branch only', (version) => {
+    const own = behaviours(version).workflowList;
+    const other = own === 'v0.2' ? 'v0.3' : 'v0.2';
+    for (const kind of FIXTURE_KINDS) {
+      const data = sample(version, kind, 'workflow-list.json');
+      expect(branch(own)(data), `${kind}: ${own}`).toBe(true);
+      expect(branch(other)(data), `${kind}: ${other}`).toBe(false);
+    }
+  });
+
+  const refused: [string, () => unknown][] = [
+    [
+      '0.2: a phase without name',
+      () => {
+        const d = v02();
+        delete d.workflows[0].phases[0].name;
+        return d;
+      },
+    ],
+    [
+      '0.2: no manifest',
+      () => {
+        const d = v02();
+        delete d.manifest;
+        return d;
+      },
+    ],
+    [
+      '0.2: a workflow without phases',
+      () => {
+        const d = v02();
+        delete d.workflows[0].phases;
+        return d;
+      },
+    ],
+    [
+      '0.3: no baseline',
+      () => {
+        const d = v03();
+        delete d.baseline;
+        return d;
+      },
+    ],
+    [
+      '0.3: no diagnostics',
+      () => {
+        const d = v03();
+        delete d.diagnostics;
+        return d;
+      },
+    ],
+    [
+      '0.3: a workflow without executableNow',
+      () => {
+        const d = v03();
+        delete d.workflows[0].executableNow;
+        return d;
+      },
+    ],
+    [
+      '0.3: a workflow without startable',
+      () => {
+        const d = v03();
+        delete d.workflows[0].startable;
+        return d;
+      },
+    ],
+    [
+      '0.3: a baseline commit that is not a sha',
+      () => {
+        const d = v03();
+        d.baseline.commit = 'main';
+        return d;
+      },
+    ],
+    [
+      '0.3: a baseline rev other than HEAD',
+      () => {
+        const d = v03();
+        d.baseline.rev = 'main';
+        return d;
+      },
+    ],
+    [
+      '0.3: a diagnostic without message',
+      () => {
+        const d = v03();
+        d.diagnostics = [{ code: 'W_X', severity: 'warning', file: 'f', path: '' }];
+        return d;
+      },
+    ],
+    [
+      '0.3: a description that is a number',
+      () => {
+        const d = v03();
+        d.workflows[0].description = 1;
+        return d;
+      },
+    ],
+    ['both shapes at once', () => ({ ...v02(), ...v03(), workflows: v02().workflows })],
+    ['0.2 workflows with a 0.3 envelope', () => ({ ...v03(), workflows: v02().workflows })],
+  ];
+  it.each(refused)('refuses %s', (_label, make) => {
+    expect(validator(file)(make())).toBe(false);
+  });
+
+  const accepted: [string, () => unknown][] = [
+    [
+      '0.2: no manifest.version',
+      () => {
+        const d = v02();
+        delete d.manifest.version;
+        return d;
+      },
+    ],
+    [
+      '0.2: a workflow without description',
+      () => {
+        const d = v02();
+        delete d.workflows[0].description;
+        return d;
+      },
+    ],
+    [
+      '0.3: a null description',
+      () => {
+        const d = v03();
+        d.workflows[0].description = null;
+        return d;
+      },
+    ],
+    ['0.3: no workflows, with its message', () => ({ ...v03(), workflows: [], message: 'no workflows defined' })],
+    [
+      '0.3: a diagnostic',
+      () => {
+        const d = v03();
+        d.diagnostics = [{ code: 'W_X', severity: 'warning', file: 'f', path: '', message: 'm' }];
+        return d;
+      },
+    ],
+  ];
+  it.each(accepted)('accepts %s', (_label, make) => {
+    expect(validator(file)(make()), ajv.errorsText(validator(file).errors)).toBe(true);
+  });
+  /* eslint-enable @typescript-eslint/no-explicit-any */
+
+  it.each(matrix.versions)(
+    'wingfoil %s: the samples pass as the workflows section of GET /api/p/:pid/config',
+    (version) => {
+      const api = new Ajv({ allErrors: true });
+      for (const dir of ['api', 'cli', 'files']) {
+        for (const f of readdirSync(path.join(REPO_ROOT, 'contracts', dir))) api.addSchema(schema(path.join(dir, f)));
+      }
+      const validate = api.getSchema('https://wingfoil-ui.local/contracts/api/config.schema.json')!;
+      const error = { code: 'cli-output', message: 'Unexpected output' };
+      for (const kind of FIXTURE_KINDS) {
+        const body = {
+          dna: { error },
+          paths: { error },
+          workflows: { data: sample(version, kind, 'workflow-list.json') },
+          types: { error },
+        };
+        expect(validate(body), `${kind}: ${JSON.stringify(validate.errors)}`).toBe(true);
+      }
+    },
+  );
 });

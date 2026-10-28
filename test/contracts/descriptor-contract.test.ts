@@ -28,7 +28,7 @@ import {
   type BddFixtureKind,
 } from '../harness/fixtures/index.js';
 import { observed, STANDARD } from '../server/descriptor/standard.js';
-import { actAs, cliBuildFor, matrixVersions } from './support.js';
+import { actAs, behaviours, cliBuildFor, matrixVersions } from './support.js';
 
 const VERSIONS = await matrixVersions();
 const OPS = ['submit', 'approve', 'reject'] as const;
@@ -84,7 +84,8 @@ describe.each(VERSIONS)('action descriptor — wingfoil %s', (version) => {
 
   it('S-28.1 — the same build lists each fixture’s own types, every element with its own state', async () => {
     const expected: Record<BddFixtureKind, string[]> = {
-      kanban: ['adr', 'bug', 'decision-log', 'release', 'release-line', 'task', 'tech-spec'],
+      // `init --template Kanban` of the version (0.3.1 adds `plan`, task-046 AC-3).
+      kanban: [...behaviours(version).kanbanTypes],
       custom: ['release-line', 'release', 'task', 'adr', 'decision-log', 'tech-spec', 'bug', 'plan', 'service'],
       unknown: ['story', 'note'],
     };

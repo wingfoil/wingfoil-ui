@@ -45,7 +45,11 @@ const PRODUCERS: Record<string, readonly RegExp[]> = {
   'server/src/sync/auto-sync.ts': [/transport\.message\(/],
   'server/src/writes/auto-push.ts': [/transport\.message\(/],
   'server/src/writes/governed.ts': [/redactLocalPaths\(/],
-  'server/src/cli/adapter.ts': [/redactLocalPaths\(/, /warnings: lines\(result\.stderr\)\.map\(/],
+  'server/src/cli/adapter.ts': [
+    /redactLocalPaths\(/,
+    /warnings: lines\(result\.stderr\)\.map\(/,
+    /toolText\(name, data/,
+  ],
   'server/src/projects/project-list.ts': [/redactLocalPaths\(/],
 };
 
@@ -84,6 +88,51 @@ describe('every producer of a verbatim tool message goes through the sanitiser',
     const error = (await cli.json(['paths']).catch((e: unknown) => e)) as CliRefusedError;
     expect(error).toBeInstanceOf(CliRefusedError);
     expect(error.cliMessage).toBe(SAFE);
+  });
+
+  // task-046 AC-2: WingFoil 0.3's `workflow list` `diagnostics` (configuration messages that quote
+  // values and may name files) reach `GET /api/p/:pid/config`: every string of an entry, and the
+  // list's `message`, through the adapter's sanitiser; the 0.2.x shape and `baseline` are unchanged.
+  it('workflow list on 0.3.x: a marker and the project root in a diagnostic come out escaped and redacted', async () => {
+    const root = '/nowhere/project';
+    const commit = 'a'.repeat(40);
+    const diagnostic = {
+      code: `W_X${RLO}`,
+      severity: 'warning',
+      file: `workflows/custom/${MARKER}.yaml`,
+      path: `phases[0]${ESC}`,
+      message: `cannot read ${root}/.wingfoil/workflows/custom/x.yaml: ${MARKER}`,
+    };
+    const stdout = JSON.stringify({
+      baseline: { rev: 'HEAD', commit },
+      workflows: [{ name: 'w', startable: true, includable: false, description: 'D', executableNow: true }],
+      message: `no workflows defined ${MARKER}`,
+      diagnostics: [diagnostic],
+    });
+    const cli = new WingfoilCli({
+      cli: { source: 'path', projectRoot: root, file: process.execPath, prefixArgs: ['/x/cli.js'] },
+      runner: new FakeProcessRunner().answer({ stdout }),
+    });
+    const out = (await cli.run('workflow list')).data as unknown as {
+      baseline: unknown;
+      workflows: unknown;
+      message?: string;
+      diagnostics: unknown;
+    };
+    expect(out.baseline).toEqual({ rev: 'HEAD', commit });
+    expect(out.workflows).toEqual([
+      { name: 'w', startable: true, includable: false, description: 'D', executableNow: true },
+    ]);
+    expect(out.message).toBe(`no workflows defined ${SAFE}`);
+    expect(out.diagnostics).toEqual([
+      {
+        code: 'W_X\\u202e',
+        severity: 'warning',
+        file: `workflows/custom/${SAFE}.yaml`,
+        path: 'phases[0]\\x1b',
+        message: `cannot read <project>/.wingfoil/workflows/custom/x.yaml: ${SAFE}`,
+      },
+    ]);
   });
 
   it('git-derived file names (detail.files of local-changes-in-the-way) come out escaped', () => {
