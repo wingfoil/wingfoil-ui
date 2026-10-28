@@ -2,7 +2,7 @@
 id: governance-alignment-rel-v0.3-plan
 type: plan
 title: "Governance alignment rel-v0.3"
-status: draft
+status: active
 version: "0.1"         # optional — plan version
 workflow: "governance-alignment"
 phase: "rel-v0.3"
