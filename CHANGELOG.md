@@ -14,8 +14,8 @@ release `v0.2` the git tag `v0.2.0` and the npm version `wingfoil-ui@0.2.0`.
   of WingFoil 0.3, which carries its build (`0.3.1 (870bd44…)`), is read as its version; the
   configuration read answers the workflows in the shape of the project's WingFoil version, WingFoil
   0.3's configuration diagnostics sanitised; its warnings, written as JSON lines, are shown as
-  their text. The workflow capabilities and the agent launch of
-  WingFoil 0.3 are not used by this release: never shown as available, nor as missing.
+  their text. The workflow capabilities and the agent launch of WingFoil 0.3 are not used by this
+  release: never shown as available, nor as missing.
 
 ## [0.2.0] - 2026-10-20
 
