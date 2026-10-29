@@ -267,7 +267,9 @@ export class WingfoilCli {
       args: [...cli.prefixArgs, ...argv],
       cwd: cli.projectRoot,
       timeoutMs: this.timeoutMs,
-      ...(env ? { env } : {}),
+      // No optional git locks (task-046 D46-5): WingFoil 0.3's reads run `git status`, which would
+      // otherwise rewrite a stale `.git/index`; commits take required locks and are unaffected.
+      env: { ...(env ?? process.env), GIT_OPTIONAL_LOCKS: '0' },
       ...(signal ? { signal } : {}),
     });
     if (result.drained) {

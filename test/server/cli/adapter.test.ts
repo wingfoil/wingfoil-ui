@@ -496,7 +496,9 @@ describe('D46-5 — every WingFoil process runs without optional git locks', () 
 
   it('adds GIT_OPTIONAL_LOCKS=0 to the given environment and to the inherited one, for every command', async () => {
     const { FakeProcessRunner } = await import('../process/fake-runner.js');
-    const runner = new FakeProcessRunner().answer({ stdout: '{}' });
+    const runner = new FakeProcessRunner()
+      .answer({ stdout: '{}' })
+      .answer({ stdout: JSON.stringify({ id: 'x', path: 'x.md', from: 'draft', to: 'pending' }) });
     const given = new WingfoilCli({ cli: resolved, runner, env: { PATH: '/bin', GIT_OPTIONAL_LOCKS: '1' } });
     await given.json(['paths']);
     await given.json(['memory', 'submit'], { positionals: ['x'] });
