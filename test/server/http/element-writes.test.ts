@@ -986,6 +986,29 @@ describe('W2-1 (review S3 part B) — WingFoil 0.2.2: the CLI fails leaving the 
   );
 });
 
+// Review round 4 minor-1: a git read that fails on a write route (the copy's state before the
+// write) is the plain 500, logged by kind and exit only — never git's message, which quotes the
+// configuration value.
+describe('review round 4 minor-1 — a failed git read on a write route', () => {
+  it('a bad numeric config value from an included working-tree file: 500 internal, no marker in log or body', async () => {
+    const ESC = String.fromCharCode(0x1b);
+    const MARK = 'EVIL-MARKER-4712';
+    const log: string[] = [];
+    const c = await start({ as: memberByName('Jordan').email, log });
+    await c.warm();
+    await writeFile(path.join(c.fx.dir, 'evil.cfg'), `[core]\n\tbigFileThreshold = "${ESC}[31m${MARK}"\n`);
+    await git(c.fx.dir, ['config', 'include.path', '../evil.cfg'], c.fx.env);
+    const res = await c.post('submit', TIMEOUT, { expectedStatus: 'draft' });
+    expect(res.status, JSON.stringify(res.body)).toBe(500);
+    expect(res.body).toEqual({ error: { code: 'internal', message: 'Internal error' } });
+    const written = log.join('');
+    expect(written).toMatch(/git read failed/);
+    expect(written).not.toContain(MARK);
+    expect(written).not.toContain(ESC);
+    expect(written).not.toContain(c.fx.dir);
+  });
+});
+
 describe('review round 2 N1 — the reason never reaches the server log on a failed write', () => {
   const SECRET = 'secret-reason-text-4711';
 

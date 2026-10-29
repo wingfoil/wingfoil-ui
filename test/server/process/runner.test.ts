@@ -80,6 +80,15 @@ describe('LocalProcessRunner', () => {
     expect(result.stdout).toBe('0');
   });
 
+  // Review round 4 MAJOR-2 (D46-8): every child gets the absolute PATH entries only.
+  it('drops the empty and relative PATH entries of every child', async () => {
+    const result = await runner().run({
+      ...node('process.stdout.write(process.env.PATH ?? "unset")'),
+      env: { ...process.env, PATH: ['', '.', 'bin', '/usr/bin', '', './x', '/bin'].join(path.delimiter) },
+    });
+    expect(result.stdout).toBe(['/usr/bin', '/bin'].join(path.delimiter));
+  });
+
   it('passes the given environment', async () => {
     const result = await runner().run({
       ...node('process.stdout.write(process.env.WFUI_PROBE ?? "unset")'),

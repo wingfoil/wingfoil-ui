@@ -774,3 +774,56 @@ function withoutAllowProtocol(env: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
   }
   return out;
 }
+
+// Review round 4 MAJOR-2 (D46-8): an empty or relative PATH entry would make WingFoil's bare `git`
+// (spawned in the project root) run a program the repository ships. Every child of the runner gets
+// the absolute PATH entries only.
+describe('D46-8 — no relative PATH entry in any child: a git the repository ships never runs', () => {
+  async function shippedGit(fx: Fixture): Promise<string> {
+    const marker = path.join(root, `shipped-git-${n}.log`);
+    const { resolveGit } = await import('../../../server/src/git/git.js');
+    const realGit = await resolveGit(fx.env);
+    await writeFile(path.join(fx.dir, 'git'), `#!/bin/sh\necho ran >> '${marker}'\nexec '${realGit}' "$@"\n`);
+    await chmod(path.join(fx.dir, 'git'), 0o755);
+    await git(fx.dir, ['add', 'git'], fx.env);
+    await git(fx.dir, ['-c', 'user.name=A', 'commit', '-qm', 'ship a git'], fx.env);
+    return marker;
+  }
+
+  const reads = async (cli: WingfoilCli) => {
+    for (const words of [
+      ['dna', 'show'],
+      ['paths'],
+      ['directives', 'list'],
+      ['workflow', 'list'],
+      ['memory', 'search'],
+    ])
+      await cli.json(words).catch(() => undefined);
+    await cli.json(['memory', 'history'], { positionals: ['task-001-login-form'] }).catch(() => undefined);
+  };
+
+  for (const prefix of [':', '.:']) {
+    it(`PATH starting with ${JSON.stringify(prefix)}: the pinned CLI's reads never run it (real CLI)`, async () => {
+      const fx = await freshKanban();
+      const marker = await shippedGit(fx);
+      const env = { ...fx.env, PATH: `${prefix}${fx.env.PATH ?? ''}` };
+      const { cli } = await adapterFor(fx, env);
+      await reads(cli);
+      expect(existsSync(marker), 'the shipped git ran').toBe(false);
+    }, 120_000);
+  }
+
+  it('PATH starting with ":": the 0.2.2 build’s memory history never runs it (real CLI)', async () => {
+    const { cliBuildFor } = await import('../../contracts/support.js');
+    const fx = await buildFixture('kanban', {
+      root: path.join(root, `kanban-0.2.2-path-${n}`),
+      cli: await cliBuildFor('0.2.2'),
+      cliVersion: '0.2.2',
+    });
+    const marker = await shippedGit(fx);
+    const env = { ...fx.env, PATH: `:${fx.env.PATH ?? ''}` };
+    const { cli } = await adapterFor(fx, env);
+    await reads(cli);
+    expect(existsSync(marker), 'the shipped git ran').toBe(false);
+  }, 300_000);
+});

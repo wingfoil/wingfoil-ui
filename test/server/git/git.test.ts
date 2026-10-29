@@ -392,3 +392,59 @@ describe('GitReads — the governed-write reads (task-032)', () => {
     await expect(r.sameEntryEverywhere('e.md')).rejects.toBeInstanceOf(GitReadError);
   });
 });
+
+// Review round 4 MAJOR-1: the transport commands get the server's cleaned environment, not the
+// reads' no-transport variables — a pull or the automatic update's merge on a partial clone needs
+// git's lazy fetch from the promisor remote (D46-7 applies to reads only).
+describe('GitReads.transport on a blobless partial clone (review round 4 MAJOR-1)', () => {
+  async function blobless(name: string): Promise<{ dir: string; r: GitReads; upstream: string }> {
+    const base = path.join(root, name);
+    const bare = path.join(base, 'remote.git');
+    const seed = path.join(base, 'seed');
+    const dir = path.join(base, 'clone');
+    const id = ['-c', 'user.name=A', '-c', 'user.email=a@example.test'];
+    await mkdir(seed, { recursive: true });
+    await git(base, ['init', '-q', '--bare', '--initial-branch=main', bare], env);
+    await git(bare, ['config', 'uploadpack.allowFilter', 'true'], env);
+    await git(seed, ['init', '-q', '--initial-branch=main'], env);
+    await writeFile(path.join(seed, 'a.md'), 'a\n');
+    await git(seed, ['add', 'a.md'], env);
+    await git(seed, [...id, 'commit', '-qm', 'a'], env);
+    await git(seed, ['push', '-q', `file://${bare}`, 'main'], env);
+    await git(base, ['clone', '-q', '--filter=blob:none', `file://${bare}`, dir], env);
+    await git(dir, ['config', 'user.email', 'a@example.test'], env);
+    // A new upstream commit whose blob the clone does not have.
+    await writeFile(path.join(seed, 'b.md'), 'b\n');
+    await git(seed, ['add', 'b.md'], env);
+    await git(seed, [...id, 'commit', '-qm', 'b'], env);
+    await git(seed, ['push', '-q', `file://${bare}`, 'main'], env);
+    const upstream = (await git(seed, ['rev-parse', 'HEAD'], env)).stdout.trim();
+    return { dir, r: new GitReads({ git: gitFile, runner: new LocalProcessRunner(), cwd: dir, env }), upstream };
+  }
+
+  it('pull --ff-only succeeds (the user’s Update)', async () => {
+    const { transportEnv } = await import('../../../server/src/git/transport.js');
+    const { dir, r, upstream } = await blobless('partial-pull');
+    const result = await r.transport(['pull', '--ff-only', '--quiet'], { env: transportEnv(false, env) });
+    expect(result.exitCode, result.stderr).toBe(0);
+    expect((await git(dir, ['rev-parse', 'HEAD'], env)).stdout.trim()).toBe(upstream);
+  });
+
+  it('fetch, then merge --ff-only succeeds (the automatic update)', async () => {
+    const { unattendedEnv } = await import('../../../server/src/git/transport.js');
+    const { dir, r, upstream } = await blobless('partial-merge');
+    const fetched = await r.transport(['fetch', '--quiet', 'origin'], { env: unattendedEnv(false, env) });
+    expect(fetched.exitCode, fetched.stderr).toBe(0);
+    const merged = await r.transport(['merge', '--ff-only', '--quiet', 'origin/main'], {
+      env: unattendedEnv(false, env),
+    });
+    expect(merged.exitCode, merged.stderr).toBe(0);
+    expect((await git(dir, ['rev-parse', 'HEAD'], env)).stdout.trim()).toBe(upstream);
+  });
+
+  it('the reads of the same clone still get no transport', async () => {
+    const runner = new FakeProcessRunner().answer({ stdout: 'a@example.test\n' });
+    await new GitReads({ git: gitFile, runner, cwd: '/p', env }).email();
+    expect(runner.requests[0]!.env).toMatchObject({ GIT_ALLOW_PROTOCOL: 'none', GIT_NO_LAZY_FETCH: '1' });
+  });
+});
