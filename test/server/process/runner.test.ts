@@ -84,9 +84,12 @@ describe('LocalProcessRunner', () => {
   it('drops the empty and relative PATH entries of every child', async () => {
     const result = await runner().run({
       ...node('process.stdout.write(process.env.PATH ?? "unset")'),
-      env: { ...process.env, PATH: ['', '.', 'bin', '/usr/bin', '', './x', '/bin'].join(path.delimiter) },
+      env: {
+        ...process.env,
+        PATH: ['', '.', 'bin', path.join(dir, 'a'), '', './x', path.join(dir, 'b')].join(path.delimiter),
+      },
     });
-    expect(result.stdout).toBe(['/usr/bin', '/bin'].join(path.delimiter));
+    expect(result.stdout).toBe([path.join(dir, 'a'), path.join(dir, 'b')].join(path.delimiter));
   });
 
   it('passes the given environment', async () => {
