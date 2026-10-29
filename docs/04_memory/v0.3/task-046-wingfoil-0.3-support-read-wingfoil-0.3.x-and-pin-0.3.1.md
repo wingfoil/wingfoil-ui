@@ -320,3 +320,69 @@ shape, `oneOf`) against spec-001 §5's "selected by the detected version".
 | `npm test`, strict identity (10.6 → 23.3) | 3296 passed, 1 failed (TT-PERF-05, open point), 1 skipped |
 | `test:e2e` three engines (11.6 → 18.4) | 931 passed, 4 failed: AC-5.1 × 3 (open point), Firefox M-02.2 (5 s `aria-current` wait under load; `memory-list.spec.ts` alone on Firefox 21/21, load 10.8) |
 | `check_tasks.py v0.3` | the 28 expected "listed by 0 tasks", none naming task-046 |
+
+### D46-5 — WingFoil processes without optional git locks (2026-10-29)
+
+- **Decision (the approver, 2026-10-29, option A of the open point above):** the adapter runs every
+  WingFoil process with `GIT_OPTIONAL_LOCKS=0` added to its environment (the given one, or the
+  server's) — `server/src/cli/adapter.ts` `exec`. WingFoil 0.3.1's `workflow list` runs `git status`
+  with optional locks (`dist/core/workflow-deduction.js`), which rewrote a stale `.git/index` during a
+  read; commits take required locks, so writes are unaffected. spec-001 §1 amended (Process Note);
+  adr-001 and spec-004 do not describe the CLI's environment. spec-001's frontmatter (`scope`,
+  `wingfoil_version`) now names 0.2.2 and 0.3.1; `docs/user-guide.md` and `BOOTSTRAP.md` stay as they
+  are (true for the released v0.2, historical).
+- **Red** (`25939b6`), `test/server/cli/adapter.test.ts` *D46-5*: the spawned environment carries
+  `GIT_OPTIONAL_LOCKS=0` (a given environment's `1` replaced, the inherited one extended) for a read,
+  a write and `--version`; and a regression on the real pinned CLI: a tracked file's timestamps moved
+  (`utimes`), then `workflow list` through the adapter, twice — `.git/index` byte-identical. Both
+  failed before the fix (`expected { PATH: '/bin', … } to deeply equal …`; `expected false to be
+  true`); green with `acad38f`, and failing again with the fix removed (checked).
+- **TT-PERF-05** (`test/server/snapshot/process-audit.test.ts`, the file alone, 10 runs in a row
+  through the slot): 10/10 passed, 3/3 tests each, load 1.85–5.45. It also passed in the two full
+  runs after the fix at higher load (`test:coverage`, load 6.8 → 25.6; strict-identity `npm test`,
+  11.6 → 21.3), where it had failed twice before (16 and 17 processes against 13).
+- **AC-5.1** (`test/e2e/no-commit.spec.ts` on the three engines): 3/3 passed (load 4.9 → 10.4), and
+  in the full three-engine run below.
+
+### Decisions beyond the design (for the review)
+
+Each one follows what the pinned 0.3.1 does; none loosens an expectation of 0.2.2.
+
+1. **stderr warnings as JSON lines** — 0.3 writes each warning as `{"warning": "<text>"}` under
+   `--format json`; the adapter passes on its text, sanitised (`warningText`, `84936eb`; red in
+   `bef3870`); any other line as written. spec-001 §2.
+2. **A failed commit is atomic on 0.3.1 → 422** — a stale `index.lock` or a failing `pre-commit`:
+   `E_COMMIT_FAILED … nothing was committed, and the working tree and the index are as they were`
+   (exit 1) → 422 `cli-refused`, file unchanged, nothing logged or announced, no root in the body;
+   W-30's `write-incomplete` (500) path stays tested on a 0.2.2 build of the kanban fixture
+   (`cliBuildFor('0.2.2')`), and N1 (no reason in the log) on both versions.
+3. **TT-ARC-04 spy allowance** — the sanitiser of 0.3's `diagnostics` resolves the CLI's own folder
+   (`node_modules/wingfoil`, `realpath` for the redaction of `<wingfoil>`), never reads it: allowed in
+   `test/server/reads/project-reads.test.ts` as a resolved sanitiser root; the file-read checks are
+   unchanged. `toolText` sanitises each distinct text once (a configuration repeats codes and files).
+4. **D46-5** — `GIT_OPTIONAL_LOCKS=0` (above).
+5. **Other changed expectations:** the `--version` text matched with `pinnedVersionText()` (harness);
+   range label `0.2.2 to 0.3.x`; `plan` in the `kanban`/`scrum` type lists (harness, e2e S-28.1); e2e
+   S-08.1/S-08.2 `WingFoil 0.3.1`; S-27.1: 0.3.1 names `dna.yaml` relative to the project (the root
+   redaction stays proved on the adapter); W-29's wording names `WingFoil-Version:`; an exit-2
+   usage error is JSON, its logged kind `usage error`; 0.3.1 knows the directive field `scope` (the
+   warning test uses `flavour`); `dna.yaml`'s `name:` keeps a comment (projects test regex); the
+   optional-fields contract test commits its edits (0.3.1 reads workflows at HEAD); the install
+   refusal test uses an unpinned version (0.6.1); the capability unit test of a v0.4 table gives its
+   workflow rows a `via`.
+
+### Gates — final (on `b74c49d`, pin 0.3.1, through the slot; load at grant → end)
+
+| Gate | Result |
+|------|--------|
+| typecheck, lint, format:check | clean |
+| `docs:api` | 0 errors, 0 warnings |
+| `test:contract` (0.2.2, 0.3.1) (9.3 → 7.1) | 312 passed, 1 skipped |
+| `test:coverage` (6.8 → 25.6) | 3299 passed, 1 skipped; 96.59 % statements, 91.45 % branches, 97.31 % functions, 98.36 % lines |
+| `npm test`, strict identity (11.6 → 21.3) | 3299 passed, 1 skipped |
+| `test:e2e`, Chromium, Firefox, WebKit (1.8 → 29.6) | 935 passed, 0 failed (Firefox M-02.2 included); an earlier run (granted at 12.5) was cut by an app crash at 441 passed, 0 failed |
+| `test:e2e -- no-commit.spec.ts` (4.9 → 10.4) | 3/3 |
+| process audit ×10 (1.9–5.5) | 10/10 |
+| `test:smoke` (11.6 → 9.9), `test:publish-smoke` (5.2 → 4.5) | 4/4, 11/11 — run on `bffd97f`; D46-5 changes neither packaging, the launcher nor the bin |
+| strict-identity `test:e2e:chromium` (3.9 → 14.2) | run on `bef3870`: 317 passed, 2 failed (AC-5.1 — fixed by D46-5, 3/3 since; S-27.1 — fixed in `bffd97f`) |
+| `check_tasks.py v0.3` | the 28 expected "listed by 0 tasks", none naming task-046 |
