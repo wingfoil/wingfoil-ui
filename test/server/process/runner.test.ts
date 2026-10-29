@@ -99,9 +99,9 @@ describe('LocalProcessRunner', () => {
         ...process.env,
         GIT_CONFIG_COUNT: '2',
         GIT_CONFIG_KEY_0: 'core.fsmonitor',
-        GIT_CONFIG_VALUE_0: '/tmp/evil',
+        GIT_CONFIG_VALUE_0: 'evil-program',
         git_config_key_1: 'core.hooksPath',
-        GIT_CONFIG_PARAMETERS: "'core.fsmonitor'='/tmp/evil'",
+        GIT_CONFIG_PARAMETERS: "'core.fsmonitor'='evil-program'",
       },
       gitConfig: [
         ['core.fsmonitor', 'false'],
