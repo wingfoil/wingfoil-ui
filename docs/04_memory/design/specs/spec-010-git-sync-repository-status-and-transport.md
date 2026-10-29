@@ -289,7 +289,9 @@ so the sidebar shows it (Y-06.1, Y-06.2).
   directories skips too, whether the file exists yet and whether the condition holds now. Includes
   of the user's global configuration to files outside the working tree count as the user's own.
   Unattended runs and the server's own git reads (status, …) also run with
-  `-c core.fsmonitor=false`. Accepted residual (W4-11): a `filter.<x>.clean` that such a
+  `-c core.fsmonitor=false`, and so does every git the WingFoil CLI runs for the server (task-046
+  D46-6: `core.fsmonitor=false` in its environment configuration; WingFoil 0.3's reads run
+  `git status`); the filter residual below applies to those status reads as to the server's. Accepted residual (W4-11): a `filter.<x>.clean` that such a
   configuration names still runs in the server's status reads once the user's own pull or Update
   brought it, as in the user's own `git status`.
 - **Declared residual of the automatic update** (W4-16, decided by the approver): `autoUpdate` is
@@ -520,3 +522,6 @@ Rows 7–9 do not apply (no element).
   when the omitted text lies inside one line), and one omission line in all; the branch and upstream
   names of the repository status are escaped; the left-context residual of the scheme-less userinfo
   rule declared.
+- 2026-10-29 — amended in dev-loop task-046 review round 1 (M1, decided by the approver): §6 no
+  fsmonitor in the git that the WingFoil CLI runs for the server either (D46-6); the accepted filter
+  residual covers its status reads too.

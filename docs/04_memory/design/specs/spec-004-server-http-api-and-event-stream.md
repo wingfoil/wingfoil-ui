@@ -74,7 +74,7 @@ JSON; every request and response body has a schema in `contracts/api/`.
 | `DELETE /api/projects/:pid` | remove from the list (no file is touched) → 204, no body | v0.1 |
 | `GET /api/p/:pid` | project header: name, WingFoil version and range state, identity, role views, repository status | v0.1 |
 | `PUT /api/p/:pid/role-view` `{role}` | remember the role view (local state) | v0.1 |
-| `GET /api/p/:pid/config` | DNA, paths, workflows (as the CLI's version line answers `workflow list`, spec-001 §3: the 0.2.x or the 0.3.x shape; every string of a 0.3.x `diagnostics` entry and its `message` sanitised like the CLI warnings — read by no view yet), resolved types (spec-001 §4.1); effective `ui.yaml` with origin of each value since v0.3 (REQ-ARC-07) | v0.1 |
+| `GET /api/p/:pid/config` | DNA, paths, workflows (as the CLI's version line answers `workflow list`, spec-001 §3: the 0.2.x or the 0.3.x shape; every string of a 0.3.x `diagnostics` entry and its `message` sanitised like the CLI warnings, at most 200 diagnostics with `diagnosticsOmitted` counting the rest — read by no view yet), resolved types (spec-001 §4.1); effective `ui.yaml` with origin of each value since v0.3 (REQ-ARC-07) | v0.1 |
 | `GET /api/p/:pid/elements[?archived=true]` | elements with their descriptor (spec-003) and local-changes marker | v0.1 |
 | `GET /api/p/:pid/elements/:eid` | one element: frontmatter, body, descriptor, references | v0.1 |
 | `GET /api/p/:pid/elements/:eid/history` | `memory history` entries (spec-002 §2) | v0.1 |
@@ -392,3 +392,7 @@ goes away by itself when the stream reconnects. A network failure is not rendere
   version line (0.2.x or 0.3.x, spec-001 §3, §5), the 0.3.x `diagnostics` and `message` through the
   sanitiser of tool messages; `GET /api/p/:pid` capability reasons gain `not-in-release` (spec-001
   §6, D46-2). Decided by the approver.
+- 2026-10-29 — amended in dev-loop task-046 review round 1 (m1, n1; decided by the approver): §3
+  `/config` passes at most 200 workflow diagnostics (`diagnosticsOmitted`) and 200 warnings per
+  section; `GET /api/p/:pid` `wingfoil.text` is the printed `--version` text through the sanitiser of
+  tool messages.

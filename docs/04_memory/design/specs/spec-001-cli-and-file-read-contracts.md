@@ -36,7 +36,12 @@ stamp, `workflow list`) were captured on 2026-10-28 from **WingFoil 0.3.1** on t
   (REQ-INT-04). The global `--format json` is placed before the command.
 - The CLI's environment is the server's with `GIT_OPTIONAL_LOCKS=0` (task-046 D46-5): a read leaves
   `.git/index` as it was — WingFoil 0.3's reads run `git status`, which would rewrite a stale index
-  (task-025 AC-5); commits take required locks and are unaffected.
+  (task-025 AC-5); commits take required locks and are unaffected. Any other spelling of the name is
+  removed first (case-insensitive on Windows).
+- Every git the CLI runs gets `core.fsmonitor=false` (task-046 D46-6, spec-010 §6 W4-5): the runner
+  adds it as `GIT_CONFIG_COUNT`/`GIT_CONFIG_KEY_0`/`GIT_CONFIG_VALUE_0` after dropping the inherited
+  `GIT_CONFIG_*` variables, for reads and writes alike — a repository's fsmonitor program never runs
+  on a console read (WingFoil 0.3's `workflow list` runs `git status` on every `GET /config`).
 - User input (titles, reasons, ids) is always one argument of its own; values never start with
   `-` unless the CLI option expects it (`--reason=<text>` form when the text starts with `-`).
 - Writes are serialised per project (`adr-001` D5).
@@ -45,10 +50,10 @@ stamp, `workflow list`) were captured on 2026-10-28 from **WingFoil 0.3.1** on t
 
 | Exit | stdout | stderr | The server reports |
 |------|--------|--------|--------------------|
-| 0 | JSON, validated against the command's schema | free text: warnings (e.g. `unknown field(s) ignored`, W-12); WingFoil 0.3 writes one JSON line `{"warning": "<text>"}` per warning | the data; stderr lines (the `warning` text of a 0.3 line) as project **warnings** (diagnostics), never as errors |
+| 0 | JSON, validated against the command's schema | free text: warnings (e.g. `unknown field(s) ignored`, W-12); WingFoil 0.3 writes one JSON line `{"warning": "<text>"}` per warning | the data; stderr lines (the `warning` text of a 0.3 line) as project **warnings** (diagnostics), never as errors — at most 200, then one line `<n> more warnings omitted` |
 | 0 | JSON failing the schema | — | **read error** "unexpected output of `<command>`" — never guessed at |
-| 1 | empty | JSON `{"error": "<message>"}` | **refusal**: the CLI's message verbatim (red toast, REQ-INT-04) |
-| 2 | empty | plain text (`error: unknown option …`) | **internal error**: a defect of the adapter; logged with the command line (token-free) |
+| 1 | empty | JSON `{"error": "<message>"}` (on 0.3 possibly after JSON warning lines: the last line with an `error`) | **refusal**: the CLI's message verbatim (red toast, REQ-INT-04) |
+| 2 | empty | 0.2.2: plain text (`error: unknown option …`) or, for a missing argument, JSON (W-22); 0.3.x: JSON `{"error": "unknown option '--bogus'"}` | **internal error**: a defect of the adapter; logged with the command line (token-free) and the message's kind only |
 | other / timeout / killed | — | — | **process error** with the reason (timeout: "WingFoil did not answer within 30 s") |
 
 ### 3. Consumed commands
@@ -61,7 +66,7 @@ Only these commands are invoked (static list of the CLI adapter). `[]` = optiona
 | `dna show` | S4, R1, R3, C2, T1 | v0.1 | the whole `dna.yaml`: `version` (positive number), `project {name?, description?, methodology?}?`, `modules[]`, `stacks {technologies[]?, methodologies[]?}`, `team {members[{name, email?, roles[]}], roles[{name, description?}], agents[{name, executes_as[], approval_authority?}]?}`, `paths {<category>: string[]}` |
 | `paths` | R4, R8 | v0.1 | `{<category>: string[]}` — same as `dna.paths` |
 | `directives list` | R2, G1 | v0.1 | `{entries[{path, frontmatter{id, name, type, kind, title, tags[]?, ref[]?}, roles[], global, assignment}], warnings[]}` — `path` is relative to `.wingfoil/`; **no body** |
-| `workflow list` | W1, W2, G5, S9 | v0.1 | 0.2.x: `{manifest{version?, include[]}, workflows[{name, kind, description?, version?, element?, phases[{name, description?, role?, optional, actions[]?, produces[]?, checks{pre[]?, post[]?}?, approval{by_role}?, fallback{step}?, include?, iterate_over?, where?}]}]}`. 0.3.x: `{baseline{rev: "HEAD", commit}, workflows[{name, startable, includable, description (string or null), executableNow}], message?, diagnostics[{code, severity, file, path, message}]}` — the workflows executable now, as committed at HEAD, without phases; `diagnostics` sanitised by the server like the `stderr` warnings |
+| `workflow list` | W1, W2, G5, S9 | v0.1 | 0.2.x: `{manifest{version?, include[]}, workflows[{name, kind, description?, version?, element?, phases[{name, description?, role?, optional, actions[]?, produces[]?, checks{pre[]?, post[]?}?, approval{by_role}?, fallback{step}?, include?, iterate_over?, where?}]}]}`. 0.3.x: `{baseline{rev: "HEAD", commit}, workflows[{name, startable, includable, description (string or null), executableNow}], message?, diagnostics[{code, severity, file, path, message}]}` — the workflows executable now, as committed at HEAD, without phases; `diagnostics` sanitised by the server like the `stderr` warnings, at most 200 passed on, the rest counted in `diagnosticsOmitted` (added by the server) |
 | `memory search` | M1, T1, T4, S5, R5 | v0.1 | `{query, matches[{path, id, title, type, status, tags[]}], message?}` — **excludes archived elements** (`deprecated`, `superseded` — WingFoil's archived set) (W-19); `message` present when `matches` is empty |
 | `memory search --status deprecated`, `memory search --status superseded` | M1 (state filter), G1 links | v0.1 | same shape; the only way to list archived elements — called **lazily**, when a view needs archived elements (never for Today) |
 | `memory history <id>` | G1 | v0.1 | `{id, path, entries[{sha, author, timestamp, operation, from, to, approver, reason, subject}]}` — `operation` ∈ `add`, `submit`, `approve`, `reject`, `deprecate`, or `null` for a non-`wf` commit touching the file; `from`/`to` set for every operation (submit included); `author` = `Name <email>`; `approver` = `Name <email> (role)` |
@@ -244,6 +249,12 @@ its schema, and run the §4.1 resolution check. A failure blocks the matrix adva
   `oneOf` branch of the command's schema, exclusive, selected by shape; §6 `via: null` = not used by
   this release (never enabled, never missing, reason `not-in-release` from its minimum version);
   §2 a 0.3 `stderr` warning is the `warning` text of its JSON line; §1 every WingFoil process runs
-  with `GIT_OPTIONAL_LOCKS=0` (D46-5, approver 2026-10-29: 0.3.1's `workflow list` rewrote a stale
-  `.git/index`). The support matrix is now [0.2.2, 0.3.1], pinned 0.3.1; `scope` and
-  `wingfoil_version` name both versions.
+  with `GIT_OPTIONAL_LOCKS=0` (D46-5, see the next entry). The support matrix is now [0.2.2, 0.3.1],
+  pinned 0.3.1.
+- 2026-10-29 — amended in dev-loop task-046 (approver, after the step's open point and review round
+  1): §1 every WingFoil process runs with `GIT_OPTIONAL_LOCKS=0` (D46-5: 0.3.1's `workflow list`
+  rewrote a stale `.git/index`) and every git it runs with `core.fsmonitor=false` (D46-6, review M1: a
+  configured fsmonitor ran on a console read); §2 exit 2 is JSON on 0.3.x (review c1), a refusal's
+  `error` is read from the last JSON line that has one, at most 200 warnings; §3 at most 200
+  `workflow list` diagnostics, `diagnosticsOmitted` (review m1); `scope` and `wingfoil_version` name
+  0.2.2 and 0.3.1.
