@@ -523,3 +523,20 @@ every finding here. Red tests in `b7b26c4`; fixes in `e728268`; docs in `4bc3252
 The unit expectations of the CLI's and the reads' environment (`adapter.test.ts`, `git.test.ts`) now
 include `GIT_ALLOW_PROTOCOL: 'none'`, and an inherited `git_allow_protocol` / `Git_Allow_Protocol` is
 shown replaced.
+
+**Gates — final of round 3 (on `be1ded3`, through the slot; load at grant → end; logs
+`task046-r3-light-be1ded3.log`, `task046-g8-*`).** `test:smoke` and `test:publish-smoke` not re-run:
+round 3 changes server modules, tests and docs only, not packaging, the launcher or the bin (last
+logs `task046-gate-smoke`, `task046-gate-publish-smoke`: exit 0, 2026-10-28).
+
+| Gate | Result |
+|------|--------|
+| typecheck, lint, format:check, `docs:api` | exit 0 each |
+| `check_tasks.py v0.3` | 28 failures, all "listed by 0 tasks", none naming task-046 |
+| `test:contract` (0.2.2, 0.3.1) (4.7 → 4.9) | 312 passed, 1 skipped |
+| `test:coverage` (4.6 → 15.3) | 3327 passed, 1 skipped; 96.6 % statements, 91.49 % branches, 97.32 % functions, 98.38 % lines |
+| `npm test`, strict identity (12.0 → 24.9) | 3327 passed, 1 skipped |
+| `test:e2e`, Chromium, Firefox, WebKit (12.5 → 28.1) | 935 passed, 0 failed |
+
+This entry is a docs-only commit after `be1ded3`; on it the light gates, the docs tests and
+`check_tasks.py` were re-run (`task046-r3-light-final.log`).
