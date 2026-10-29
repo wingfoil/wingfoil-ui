@@ -204,6 +204,11 @@
               }
             }
           }
+        },
+        "diagnosticsOmitted": {
+          "description": "Added by the server, never by the CLI (task-046 review round 1 m1): the number of diagnostics beyond the first 200, which are not passed on.",
+          "type": "integer",
+          "minimum": 1
         }
       },
       "not": {

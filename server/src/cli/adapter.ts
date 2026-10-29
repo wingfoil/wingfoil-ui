@@ -20,7 +20,14 @@
  */
 import { envelope, type ErrorEnvelope } from '../http/app.js';
 import { DEFAULT_TIMEOUT_MS, type ProcessResult, type ProcessRunner } from '../process/runner.js';
-import { commandFor, outputProblem, toolText, type CliCommandName, type CliCommandOutputs } from './commands.js';
+import {
+  commandFor,
+  MAX_TOOL_LINES,
+  outputProblem,
+  toolText,
+  type CliCommandName,
+  type CliCommandOutputs,
+} from './commands.js';
 import { redactLocalPaths } from '../git/redact.js';
 import { CliNotFoundError, type CliSource, type ResolvedCli } from './discovery.js';
 
@@ -241,7 +248,7 @@ export class WingfoilCli {
     // messages (bug-017, review round 3 S3-1).
     return {
       data: toolText(name, data, (text) => this.redact(text)) as T,
-      warnings: lines(result.stderr).map((w) => this.redact(warningText(w))),
+      warnings: capped(lines(result.stderr)).map((w) => this.redact(warningText(w))),
     };
   }
 
@@ -269,7 +276,9 @@ export class WingfoilCli {
       timeoutMs: this.timeoutMs,
       // No optional git locks (task-046 D46-5): WingFoil 0.3's reads run `git status`, which would
       // otherwise rewrite a stale `.git/index`; commits take required locks and are unaffected.
-      env: { ...(env ?? process.env), GIT_OPTIONAL_LOCKS: '0' },
+      env: withoutOptionalLocks(env ?? process.env),
+      // No fsmonitor program in any git WingFoil runs (task-046 D46-6, spec-010 W4-5), writes included.
+      gitConfig: CLI_GIT_CONFIG,
       ...(signal ? { signal } : {}),
     });
     if (result.drained) {
@@ -356,13 +365,30 @@ export function usageKind(stderr: string): string {
 function refusalMessage(stderr: string): string {
   const text = stderr.trim();
   if (!text) return 'WingFoil refused (exit status 1) without a message';
-  try {
-    const parsed = JSON.parse(text) as { error?: unknown };
-    if (typeof parsed.error === 'string') return parsed.error;
-  } catch {
-    // Not JSON: the text itself.
+  // The whole text, else its last line with an `error` (JSON warning lines may come first, WingFoil 0.3).
+  for (const candidate of [text, ...lines(text).reverse()]) {
+    try {
+      const parsed = JSON.parse(candidate) as { error?: unknown };
+      if (typeof parsed.error === 'string') return parsed.error;
+    } catch {
+      // Not JSON: the next candidate.
+    }
   }
   return text;
+}
+
+/** The git settings of every WingFoil process (task-046 D46-6): no fsmonitor program. */
+const CLI_GIT_CONFIG: readonly (readonly [string, string])[] = [['core.fsmonitor', 'false']];
+
+/**
+ * `env` with `GIT_OPTIONAL_LOCKS=0` (task-046 D46-5), any other spelling of the name removed first
+ * (names are case-insensitive on Windows, review round 1 n3).
+ */
+function withoutOptionalLocks(env: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
+  const out: NodeJS.ProcessEnv = {};
+  for (const [key, value] of Object.entries(env)) if (key.toUpperCase() !== 'GIT_OPTIONAL_LOCKS') out[key] = value;
+  out.GIT_OPTIONAL_LOCKS = '0';
+  return out;
 }
 
 /**
@@ -377,6 +403,15 @@ function warningText(line: string): string {
   } catch {
     return line;
   }
+}
+
+/**
+ * At most {@link MAX_TOOL_LINES} warnings, then one line counting the others (review round 1 m1):
+ * the cut comes before the sanitiser, so its cost and the body stay bounded.
+ */
+function capped(warnings: string[]): string[] {
+  if (warnings.length <= MAX_TOOL_LINES) return warnings;
+  return [...warnings.slice(0, MAX_TOOL_LINES), `${warnings.length - MAX_TOOL_LINES} more warnings omitted`];
 }
 
 function lines(text: string): string[] {

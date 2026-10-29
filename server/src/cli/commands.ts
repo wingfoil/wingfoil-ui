@@ -74,6 +74,12 @@ export function outputProblem(name: CliCommandName, data: unknown): string[] | u
   return schemaProblems(cliSchemaFile(name), data);
 }
 
+/**
+ * Most tool lines of one CLI output passed on (review round 1 m1): `workflow list` diagnostics and
+ * `stderr` warnings; the others are counted (`diagnosticsOmitted`, a last warning line).
+ */
+export const MAX_TOOL_LINES = 200;
+
 /** `true` when `list` has WingFoil 0.2.x's shape (`manifest`, phases), `false` for 0.3.x's. */
 export function isWorkflowList02(list: WorkflowList): list is WorkflowList02 {
   return 'manifest' in list;
@@ -83,13 +89,17 @@ export function isWorkflowList02(list: WorkflowList): list is WorkflowList02 {
  * `data` (the validated output of `name`) with every tool-sourced text that is not project content
  * passed through `redact`, the one sanitiser of tool messages (bug-017): WingFoil 0.3's `workflow
  * list` `diagnostics` (configuration messages that quote values and may name files) and its
- * `message` (task-046 AC-2), each distinct text once. Every other output is returned as it is.
+ * `message` (task-046 AC-2), each distinct text once; at most {@link MAX_TOOL_LINES} diagnostics,
+ * the others counted in `diagnosticsOmitted`. Every other output is returned as it is.
  */
 export function toolText<T>(name: CliCommandName, data: T, sanitise: (text: string) => string): T {
   if (name !== 'workflow list') return data;
   const list = data as unknown as WorkflowList;
   if (isWorkflowList02(list)) return data;
-  // A configuration repeats its codes, files and messages: each distinct text is sanitised once.
+  // At most MAX_TOOL_LINES diagnostics, cut before the sanitiser (review round 1 m1); then a
+  // configuration repeats its codes, files and messages: each distinct text is sanitised once.
+  const kept = list.diagnostics.slice(0, MAX_TOOL_LINES);
+  const omitted = list.diagnostics.length - kept.length;
   const done = new Map<string, string>();
   const redact = (text: string): string => {
     let out = done.get(text);
@@ -99,7 +109,7 @@ export function toolText<T>(name: CliCommandName, data: T, sanitise: (text: stri
   return {
     ...list,
     ...(list.message !== undefined ? { message: redact(list.message) } : {}),
-    diagnostics: list.diagnostics.map((d) => ({
+    diagnostics: kept.map((d) => ({
       ...d,
       code: redact(d.code),
       severity: redact(d.severity),
@@ -107,5 +117,6 @@ export function toolText<T>(name: CliCommandName, data: T, sanitise: (text: stri
       path: redact(d.path),
       message: redact(d.message),
     })),
+    ...(omitted > 0 ? { diagnosticsOmitted: omitted } : {}),
   } as unknown as T;
 }

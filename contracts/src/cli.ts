@@ -165,6 +165,8 @@ export interface WorkflowList03 {
   /** Only when HEAD holds no workflow manifest (`no workflows defined`). */
   message?: string;
   diagnostics: WorkflowDiagnostic[];
+  /** Added by the server, never by the CLI: diagnostics beyond the first 200, not passed on. */
+  diagnosticsOmitted?: number;
 }
 
 /** `wingfoil workflow list`, in the shape of the CLI's version line (spec-001 §3, §5). */

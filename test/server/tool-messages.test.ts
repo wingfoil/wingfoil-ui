@@ -34,7 +34,7 @@ async function sources(dir: string): Promise<string[]> {
 
 /** A line that places a tool message in an API body or the sync status. */
 const PRODUCER =
-  /'git-refused'|'cli-refused'|\.fetchFailed\(|\.updateFailed\(|status: 'failed', message|warnings: lines\(|\{ files: /;
+  /'git-refused'|'cli-refused'|\.fetchFailed\(|\.updateFailed\(|status: 'failed', message|warnings: (?:capped\()?lines\(|\{ files: |wingfoil: wingfoilOf\(/;
 
 /**
  * The reviewed producers, file → how its message is sanitised (a call on the same file). A line
@@ -47,10 +47,12 @@ const PRODUCERS: Record<string, readonly RegExp[]> = {
   'server/src/writes/governed.ts': [/redactLocalPaths\(/],
   'server/src/cli/adapter.ts': [
     /redactLocalPaths\(/,
-    /warnings: lines\(result\.stderr\)\.map\(/,
+    /warnings: capped\(lines\(result\.stderr\)\)\.map\(/,
     /toolText\(name, data/,
   ],
   'server/src/projects/project-list.ts': [/redactLocalPaths\(/],
+  // Review round 1 n1: the header's `--version` text.
+  'server/src/http/project-routes.ts': [/redactLocalPaths\(text/],
 };
 
 describe('every producer of a verbatim tool message goes through the sanitiser', () => {

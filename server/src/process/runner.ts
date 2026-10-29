@@ -32,6 +32,12 @@ export interface ProcessRequest {
   cwd: string;
   /** Full environment (default: the server's), without the redirecting `GIT_*` variables (`gitEnv`). */
   env?: NodeJS.ProcessEnv;
+  /**
+   * git settings the server adds to the child's configuration, and to that of every git it runs
+   * (task-046 D46-6): rendered as `GIT_CONFIG_COUNT`, `GIT_CONFIG_KEY_<n>`, `GIT_CONFIG_VALUE_<n>`
+   * after `gitEnv` dropped the inherited ones. Absent or empty: none.
+   */
+  gitConfig?: readonly (readonly [key: string, value: string])[];
   /** Kill the process after this many milliseconds; `null` for no timeout (default 30 s). */
   timeoutMs?: number | null;
   /** Cancels the process (git transport, adr-001 D5). */
@@ -152,7 +158,7 @@ export class LocalProcessRunner implements ProcessRunner {
       const group = process.platform !== 'win32';
       const child = spawn(request.file, [...request.args], {
         cwd: request.cwd,
-        env: gitEnv(request.env ?? process.env),
+        env: withGitConfig(gitEnv(request.env ?? process.env), request.gitConfig ?? []),
         stdio: ['ignore', 'pipe', 'pipe'],
         shell: false,
         detached: group,
@@ -287,4 +293,22 @@ export class LocalProcessRunner implements ProcessRunner {
     this.stopping = true;
     for (const entry of this.children) entry.killNow();
   }
+}
+
+/**
+ * `env` (already cleaned by `gitEnv`, so with no `GIT_CONFIG_*` of its own) with `settings` as git's
+ * environment configuration: `GIT_CONFIG_COUNT` and one `GIT_CONFIG_KEY_<n>`/`GIT_CONFIG_VALUE_<n>`
+ * pair per setting (task-046 D46-6).
+ */
+export function withGitConfig(
+  env: NodeJS.ProcessEnv,
+  settings: readonly (readonly [key: string, value: string])[],
+): NodeJS.ProcessEnv {
+  if (settings.length === 0) return env;
+  const out: NodeJS.ProcessEnv = { ...env, GIT_CONFIG_COUNT: String(settings.length) };
+  settings.forEach(([key, value], i) => {
+    out[`GIT_CONFIG_KEY_${i}`] = key;
+    out[`GIT_CONFIG_VALUE_${i}`] = value;
+  });
+  return out;
 }

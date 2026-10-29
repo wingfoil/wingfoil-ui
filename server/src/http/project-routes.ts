@@ -54,6 +54,7 @@ import { CliNotFoundError } from '../cli/discovery.js';
 import { supportedRange, type DetectedVersion } from '../cli/version.js';
 import { describeElement, type CopyState } from '../descriptor/descriptor.js';
 import { today } from '../descriptor/today.js';
+import { redactLocalPaths } from '../git/redact.js';
 import { repositoryStatus, type SyncStatus } from '../git/sync-status.js';
 import { MEMORY_EVENTS_MAX_LIMIT, memoryDirectories, memoryEventsPage } from '../git/memory-log.js';
 import { directivesForRoleView, identityView } from '../identity/identity.js';
@@ -340,7 +341,7 @@ async function header(read: ProjectRead): Promise<ProjectHeader> {
   return {
     id: entry.id,
     name,
-    wingfoil: wingfoilOf(detected),
+    wingfoil: wingfoilOf(detected, read.root),
     capabilities: evaluateCapabilities(detected, range),
     ...ids,
     readOnly,
@@ -351,9 +352,14 @@ async function header(read: ProjectRead): Promise<ProjectHeader> {
   };
 }
 
-function wingfoilOf(detected: DetectedVersion): ProjectHeader['wingfoil'] {
+/**
+ * The header's version: the printed `--version` text through the sanitiser of tool messages (review
+ * round 1 n1: an unrecognised text is shown as printed — bounded, the project folder redacted, control
+ * and bidi characters as visible escapes).
+ */
+function wingfoilOf(detected: DetectedVersion, root: string): ProjectHeader['wingfoil'] {
   const { text, version, state, inRange, source } = detected;
-  return { text, version, state, inRange, source };
+  return { text: text === null ? null : redactLocalPaths(text, { project: [root] }), version, state, inRange, source };
 }
 
 /** One `/config` section. */
