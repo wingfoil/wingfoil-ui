@@ -300,11 +300,20 @@ so the sidebar shows it (Y-06.1, Y-06.2).
   transport commands (`fetch`, `pull`, `push`, `clone`, and the automatic update's `merge
   --ff-only`) start from the server's cleaned environment, not the reads' variables (review round 4
   MAJOR-1: a pull or merge on a partial clone needs git's lazy fetch), and set their own allowed list.
-  Every process the server starts has the absolute `PATH` entries only (D46-8).
-  Accepted residual (W4-11): a filter driver that the configuration names —
-  `filter.<x>.clean` or `filter.<x>.process`, whether it comes from an included file or from the
-  repository's own `.git/config` — still runs in the status reads of the server and of the CLI
-  (WingFoil 0.3's `workflow list`), as in the user's own `git status`.
+  Every process the process runner starts has the absolute `PATH` entries only (D46-8; its residuals:
+  spec-001 §1). Accepted residual (W4-11): a program the configuration names that git runs on the
+  read itself — a filter driver (`filter.<x>.clean`, `filter.<x>.process`), and any key of that kind
+  git has or adds — whether it comes from an included file or from the repository's own
+  `.git/config`, still runs in the reads of the server and of the CLI (WingFoil 0.3's `workflow
+  list` runs `git status`), as in the user's own `git status`; it is declared, not guarded key by key
+  (the keys the server does turn off: `core.fsmonitor`, the transport, `log.showSignature`).
+- **Known limitation — a partial clone** (task-046 review round 5, a consequence of D46-7): a
+  blobless or other partial clone cannot be read in full, since no read fetches a missing object.
+  The Memory events read (`git log -p`) fails on the first object it lacks: `GET /api/p/:pid/today`
+  answers 500 `internal`, the Memory list and the element panel show their events error (from the
+  code, not probed); the console's own fetch and Update do not backfill the history. Remedy: fetch
+  the missing objects once, outside the console, e.g. `git fetch --refetch` with no filter (or work
+  in a full clone).
 - **Declared residual of the automatic update** (W4-16, decided by the approver): `autoUpdate` is
   off by default (spec-006 §2). Turned on, the console does on a timer what `git pull` does: the
   incoming commits can run commands that the user's **own** git configuration points at — a filter
@@ -547,3 +556,6 @@ Rows 7–9 do not apply (no element).
   approver): §6 the transport commands and the automatic merge start from the cleaned server
   environment (a partial clone's pull and merge fetch lazily again); the reads are named `GitReads`;
   every child has the absolute `PATH` entries only (D46-8).
+- 2026-10-29 — amended in dev-loop task-046 review round 5 (s-minor-1, s-minor-2, c-minor-2; decided
+  by the approver): §6 the W4-11 residual covers any program the configuration names that git runs on
+  the read itself; the known limitation of a partial clone and its remedy; "the process runner".

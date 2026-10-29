@@ -38,8 +38,9 @@ stamp, `workflow list`) were captured on 2026-10-28 from **WingFoil 0.3.1** on t
   `.git/index` as it was — WingFoil 0.3's reads run `git status`, which would rewrite a stale index
   (task-025 AC-5); commits take required locks and are unaffected. Any other spelling of the name is
   removed first (case-insensitive on Windows).
-- Every git the CLI runs gets `core.fsmonitor=false` (task-046 D46-6, spec-010 §6 W4-5) and
-  `protocol.allow=never` (D46-7): the runner adds them as `GIT_CONFIG_COUNT`/`GIT_CONFIG_KEY_<n>`/
+- Every git the CLI runs gets `core.fsmonitor=false` (task-046 D46-6, spec-010 §6 W4-5),
+  `protocol.allow=never` (D46-7) and `log.showSignature=false` (review round 5: 0.2.2's `memory
+  history` would run a configured `gpg.program`): the runner adds them as `GIT_CONFIG_COUNT`/`GIT_CONFIG_KEY_<n>`/
   `GIT_CONFIG_VALUE_<n>` after dropping the inherited `GIT_CONFIG_COUNT`, `GIT_CONFIG_KEY_<n>`,
   `GIT_CONFIG_VALUE_<n>` and `GIT_CONFIG_PARAMETERS` (`GIT_CONFIG_GLOBAL` and `GIT_CONFIG_NOSYSTEM`
   are kept: they choose the global configuration), for reads and writes alike. Its environment
@@ -52,14 +53,24 @@ stamp, `workflow list`) were captured on 2026-10-28 from **WingFoil 0.3.1** on t
   does a promisor remote's `uploadpack`, `ext::` command or `core.sshCommand` on a lazy fetch. No
   CLI verb the server runs fetches or pushes (`GIT_TRACE` of every consumed command on 0.2.2 and
   0.3.1: `add`, `commit`, `config`, `diff`, `log`, `maintenance`, `rev-parse`, `show`, and on 0.3.1
-  `cat-file`, `for-each-ref`, `hash-object`, `ls-files`, `ls-tree`, `status`). A consequence: a hook
-  of the user's that a WingFoil write's commit runs (`pre-commit`, `post-commit`, …) inherits the same
-  variables and can use no transport either. On a partial clone a CLI read that needs an object not
-  yet fetched fails instead of fetching it.
-- The environment of every process the server starts — the CLI, git, and what they start — has the
-  absolute `PATH` entries only (task-046 D46-8, applied by the process runner): an empty or relative
-  entry would be resolved in the working directory, the project, where WingFoil runs a bare `git`
-  (0.3.1: every read; 0.2.2: `memory history`), so a program the repository ships would run.
+  `cat-file`, `for-each-ref`, `hash-object`, `ls-files`, `ls-tree`, `status`). What the tests show
+  (`test/server/cli/adapter.test.ts`, *D46-7*): no promisor program runs on the CLI's reads of a
+  partial clone. Expected, not tested: a hook of the user's that a WingFoil write's commit runs
+  inherits the same variables, so its own git transport is refused unless the hook changes them; a
+  CLI read that needs an object a partial clone has not fetched fails instead of fetching it.
+- The environment of every process the process runner starts — the CLI, git, and what they start —
+  has the absolute `PATH` entries only (task-046 D46-8): an empty or relative entry would be resolved
+  in the working directory, the project, where WingFoil runs a bare `git` (0.3.1: every read; 0.2.2:
+  `memory history`), so a program the repository ships would run. The launcher's browser opener
+  (`launcher/opener.ts`) starts outside the runner, with the inherited `PATH` and not in the project.
+  Declared residuals (review round 5): on Windows, Node looks a bare command up in the working
+  directory first whatever `PATH` holds, so the project's own `git.exe` could still run there; a
+  relative path in another variable of the server's environment (`NODE_OPTIONS`, `NODE_PATH`,
+  `XDG_CONFIG_HOME`, `GIT_ASKPASS`, `GIT_PAGER`, `EDITOR`, …) resolves in the project, as it would for
+  git or WingFoil started there from a terminal; started through `npx` or `npm run`, the server's
+  `PATH` begins with absolute `node_modules/.bin` folders (adr-001 trusts `node_modules`); a freshly
+  cloned project runs its committed `node_modules/wingfoil` on its first open (adr-001 D2: the
+  project's own CLI first), never at clone time.
 - User input (titles, reasons, ids) is always one argument of its own; values never start with
   `-` unless the CLI option expects it (`--reason=<text>` form when the text starts with `-`).
 - Writes are serialised per project (`adr-001` D5).
@@ -286,3 +297,8 @@ its schema, and run the §4.1 resolution check. A failure blocks the matrix adva
 - 2026-10-29 — amended in dev-loop task-046 review round 4 (MAJOR-2, n-d; decided by the approver):
   §1 every child of the server gets the absolute `PATH` entries only (D46-8); a user hook a WingFoil
   commit runs can use no transport; a CLI read on a partial clone does not fetch a missing object.
+- 2026-10-29 — amended in dev-loop task-046 review round 5 (decided by the approver): §1
+  `log.showSignature=false` for every WingFoil process (s-minor-1); what the D46-7 tests show and what
+  is expected (c-minor-1); "every process the process runner starts", the opener named (c-minor-2);
+  the residuals of D46-8 — Windows' working-directory lookup, relative paths in other variables,
+  `npx`/`npm run`, a clone's first open (s-nit-1 … 3, c-nit-3).

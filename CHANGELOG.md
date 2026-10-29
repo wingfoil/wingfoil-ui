@@ -21,8 +21,17 @@ release `v0.2` the git tag `v0.2.0` and the npm version `wingfoil-ui@0.2.0`.
   clone's lazy fetch is refused before it starts any program and a read leaves `.git/index` as it was;
   a filter driver the configuration names still runs in status reads, as in the user's own `git
   status` (spec-010 §6). A git read that fails is logged without git's message, on every route.
-  Every process the console starts gets the absolute `PATH` entries only, so a program a repository
-  ships is never found through an empty or relative entry.
+  Every process the console's process runner starts (the CLI, git and what they start) gets the
+  absolute `PATH` entries only, so a program a repository ships is never found through an empty or
+  relative entry.
+
+### Known limitations
+
+- **A partial clone** (blobless or otherwise filtered) cannot be read in full: the console's reads
+  never fetch a missing object, so the Memory events read fails (*Today* answers an internal error,
+  the Memory list and the element panel show their events error), and the console's fetch and
+  Update do not backfill the history. Fetch the missing objects once outside the console (e.g.
+  `git fetch --refetch` without a filter), or use a full clone (spec-010 §6).
 
 ## [0.2.0] - 2026-10-20
 
