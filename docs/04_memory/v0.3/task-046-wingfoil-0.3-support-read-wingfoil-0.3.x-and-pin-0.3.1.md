@@ -403,7 +403,7 @@ Red tests in `892896c` (8 failed: M1 × 3, m1 × 2, n1, n3, the refusal after wa
 | **c1** — spec-001 §2 said exit 2 is plain text | §2 row: 0.2.2 plain text or JSON (W-22), 0.3.x JSON; refusal and warning rows updated | `a3da7c9` | — |
 | **c2** — the optional-fields contract test passed with `bug-ingest` absent | the entry asserted present first | `892896c` | — |
 | **c3** — the gate table named wrong commits; light gates not re-run after D46-5 | earlier table corrected (smoke, publish-smoke and the strict Chromium run were on `567bf4a`); every gate below re-run with its commit | this entry | — |
-| **c4** — no real-CLI proof of the root redaction (0.3.1 messages are relative) | adapter test on the 0.2.2 build (`cliBuildFor('0.2.2')`): an invalid `dna.yaml`, the raw stderr quotes the folder, the refusal shows `<project>` and never the folder | `892896c` | passed first (characterization); with the redaction removed from the refusal path it failed (`expected 'E_YAML_PARSE_ERROR (/tmp/…' to contain '<project>'`) |
+| **c4** — no real-CLI proof of the root redaction (0.3.1 messages are relative) | adapter test on the 0.2.2 build (`cliBuildFor('0.2.2')`): an invalid `dna.yaml`, the raw stderr quotes the folder, the refusal shows `<project>` and never the folder | `892896c` | passed first (characterization); with the redaction removed from the refusal path it failed (the message quoted the fixture folder instead of `<project>`) |
 | nits | separate 2026-10-29 Process Note for D46-5/D46-6 in spec-001; `retrospective.yaml` comments kept as paraphrases | `a3da7c9` | — |
 
 **Gates — final (through the slot; commit, load at grant → end).** `test:smoke` and
@@ -414,7 +414,7 @@ Red tests in `892896c` (8 failed: M1 × 3, m1 × 2, n1, n3, the refusal after wa
 |------|--------|--------|
 | typecheck, lint, format:check, `docs:api` | `a3da7c9` | clean, 0 warnings (`38351f3` changes a test string only: typecheck, lint and format re-checked clean) |
 | `test:contract` (0.2.2, 0.3.1) | `a3da7c9` (2.4 → 3.9) | 312 passed, 1 skipped |
-| `test:coverage` | `a3da7c9` (3.6 → 14.8) | 3307 passed, 1 failed (public-text: `/tmp/evil` in the new runner test → `38351f3`), 1 skipped |
+| `test:coverage` | `a3da7c9` (3.6 → 14.8) | 3307 passed, 1 failed (public-text: a fictitious temporary-folder path in the new runner test → `38351f3`), 1 skipped |
 | `npm test`, strict identity | `a3da7c9` (11.1 → 19.4) | the same one failure |
 | `test:e2e`, Chromium, Firefox, WebKit | `a3da7c9` (11.5 → 27.4) | **935 passed, 0 failed** |
 | `test:coverage` | `38351f3` (13.1 → 24.0) | **3308 passed, 1 skipped**; 96.59 % statements, 91.43 % branches, 97.32 % functions, 98.37 % lines |
