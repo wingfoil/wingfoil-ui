@@ -20,7 +20,9 @@ release `v0.2` the git tag `v0.2.0` and the npm version `wingfoil-ui@0.2.0`.
   own git reads run with no transport protocol allowed (`GIT_ALLOW_PROTOCOL=none`), so a partial
   clone's lazy fetch is refused before it starts any program and a read leaves `.git/index` as it was;
   a filter driver the configuration names still runs in status reads, as in the user's own `git
-  status` (spec-010 §6). A git read that fails is logged without git's message.
+  status` (spec-010 §6). A git read that fails is logged without git's message, on every route.
+  Every process the console starts gets the absolute `PATH` entries only, so a program a repository
+  ships is never found through an empty or relative entry.
 
 ## [0.2.0] - 2026-10-20
 

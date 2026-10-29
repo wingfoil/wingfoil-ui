@@ -241,7 +241,7 @@ most 200, then one line `<n> more warnings omitted` (task-046, review round 2 d1
 | 422 | `cli-refused` | CLI exit 1: `message` = the CLI's message verbatim (REQ-INT-04) except for the local folders it quotes — the project's → `<project>`, the repository's → `<repository>`, the CLI's package folder → `<wingfoil>`, the home folder → `~` — and URL userinfo (bug-012); also the exit 2 of `approve`/`reject` whose message names `--reason` (a reason WingFoil will not record, W-29) |
 | 502 | `cli-output` | exit 0 with output failing its schema (spec-001 §2) |
 | 504 | `cli-timeout` | a `wingfoil` process killed after 30 s (git transport the user started has no fixed timeout; an automatic fetch and an auto-push are killed after 60 s — spec-010 §4, `adr-001` D5) |
-| 500 | `internal` | adapter defect (exit 2) or unexpected error; details only in the log — a failed git read of the repository (e.g. a configuration value git refuses) is logged as `{ kind: 'git-read', ended, exitCode }`, never with git's message (task-046 review round 3 m1) |
+| 500 | `internal` | adapter defect (exit 2) or unexpected error; details only in the log — a failed git read of the repository (e.g. a configuration value git refuses) on any route, read or write, is logged as `{ kind: 'git-read', ended, exitCode }`, never with git's message (task-046 review rounds 3 m1, 4 minor-1: the read routes and the global error handler) |
 | 500 | `write-incomplete` | a governed write that did not finish: its CLI failed leaving the element file changed (modified or staged) without the write's commit, failed after its commit (`detail.commit`: the commit is logged and announced, not pushed), or answered for another path than the one checked (`detail.file` that path, `detail.commit` when its commit is found). `detail.file` relative to the project; a fixed `message`, never the CLI's text (it quotes local absolute paths and the reason), which is not logged either; nothing is restored |
 | 422 | `git-refused` | a git transport command failed: git's message verbatim (REQ-INT-06), local folders and URL userinfo redacted as for `cli-refused` and a local remote's path as `<remote>`, at most 4 000 characters |
 | 409 | `no-remote`, `no-fetch-target`, `detached-head`, `no-upstream`, `diverged`, `local-changes-in-the-way`, `remote-not-owned`, `remote-unreadable`, `refspec-outside-remotes` | refusals of the git routes before any transport process (spec-010 §5); the update and push codes and `push-timeout` also appear as `push.code` of a write |
@@ -405,3 +405,6 @@ goes away by itself when the stream reconnects. A network failure is not rendere
 - 2026-10-29 — amended in dev-loop task-046 review round 3 (m1, n2; decided by the approver): §5 a
   failed git read is the plain 500 `internal`, logged by kind and exit only; the `message` of `memory
   search` (`/elements`) is sanitised like the other tool texts.
+- 2026-10-29 — amended in dev-loop task-046 review round 4 (minor-1; decided by the approver): §5 the
+  logging rule of a failed git read holds on every route (the global error handler), the write
+  routes included.

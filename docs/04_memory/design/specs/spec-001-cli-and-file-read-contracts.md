@@ -49,10 +49,17 @@ stamp, `workflow list`) were captured on 2026-10-28 from **WingFoil 0.3.1** on t
   transport starts, whatever git's version; `protocol.allow=never` and `GIT_NO_LAZY_FETCH=1` (honoured
   from git 2.45.1 and some backports) are extra layers. So a repository's fsmonitor program never runs
   on a console read (WingFoil 0.3's `workflow list` runs `git status` on every `GET /config`), nor
-  does a promisor remote's `uploadpack`, `ext::` command or `core.sshCommand` on a lazy fetch. No CLI verb the server runs fetches or pushes
-  (`GIT_TRACE` of every consumed command on 0.2.2 and 0.3.1: `add`, `commit`, `config`, `diff`, `log`,
-  `maintenance`, `rev-parse`, `show`, and on 0.3.1 `cat-file`, `for-each-ref`, `hash-object`,
-  `ls-files`, `ls-tree`, `status`).
+  does a promisor remote's `uploadpack`, `ext::` command or `core.sshCommand` on a lazy fetch. No
+  CLI verb the server runs fetches or pushes (`GIT_TRACE` of every consumed command on 0.2.2 and
+  0.3.1: `add`, `commit`, `config`, `diff`, `log`, `maintenance`, `rev-parse`, `show`, and on 0.3.1
+  `cat-file`, `for-each-ref`, `hash-object`, `ls-files`, `ls-tree`, `status`). A consequence: a hook
+  of the user's that a WingFoil write's commit runs (`pre-commit`, `post-commit`, …) inherits the same
+  variables and can use no transport either. On a partial clone a CLI read that needs an object not
+  yet fetched fails instead of fetching it.
+- The environment of every process the server starts — the CLI, git, and what they start — has the
+  absolute `PATH` entries only (task-046 D46-8, applied by the process runner): an empty or relative
+  entry would be resolved in the working directory, the project, where WingFoil runs a bare `git`
+  (0.3.1: every read; 0.2.2: `memory history`), so a program the repository ships would run.
 - User input (titles, reasons, ids) is always one argument of its own; values never start with
   `-` unless the CLI option expects it (`--reason=<text>` form when the text starts with `-`).
 - Writes are serialised per project (`adr-001` D5).
@@ -276,3 +283,6 @@ its schema, and run the §4.1 resolution check. A failure blocks the matrix adva
   CLI's environment carries `GIT_ALLOW_PROTOCOL=none`, which also overrides the repository's
   `protocol.<name>.allow` and an inherited allowed list (D46-7 was bypassed by them on a git that
   ignores `GIT_NO_LAZY_FETCH`); §2 the exit-1 row states the last-line rule of round 2.
+- 2026-10-29 — amended in dev-loop task-046 review round 4 (MAJOR-2, n-d; decided by the approver):
+  §1 every child of the server gets the absolute `PATH` entries only (D46-8); a user hook a WingFoil
+  commit runs can use no transport; a CLI read on a partial clone does not fetch a missing object.
