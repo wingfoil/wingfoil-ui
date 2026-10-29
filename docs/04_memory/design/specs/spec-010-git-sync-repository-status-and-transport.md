@@ -292,10 +292,12 @@ so the sidebar shows it (Y-06.1, Y-06.2).
   `-c core.fsmonitor=false`, and so does every git the WingFoil CLI runs for the server (task-046
   D46-6: `core.fsmonitor=false` in its environment configuration; WingFoil 0.3's reads run
   `git status`). The server's reads and every git of the CLI also run with no transport
-  (`protocol.allow=never`, `GIT_NO_LAZY_FETCH=1`; task-046 D46-7): a partial clone's lazy fetch of a
-  missing object, which would run a promisor remote's `uploadpack` or `core.sshCommand`, is refused
-  before any program starts; the transport commands (`fetch`, `pull`, `push`, `clone`) keep their own
-  protocol rules. Accepted residual (W4-11): a filter driver that the configuration names —
+  (task-046 D46-7): `GIT_ALLOW_PROTOCOL=none` in their environment — git applies it before any
+  `protocol.allow` or `protocol.<name>.allow` setting, the repository's own included (review round 3
+  M1) — with `-c protocol.allow=never` and `GIT_NO_LAZY_FETCH=1` (where git honours it) as extra
+  layers: a partial clone's lazy fetch of a missing object, which would run a promisor remote's
+  `uploadpack`, `ext::` command or `core.sshCommand`, is refused before any program starts. The
+  transport commands (`fetch`, `pull`, `push`, `clone`) keep their own allowed list. Accepted residual (W4-11): a filter driver that the configuration names —
   `filter.<x>.clean` or `filter.<x>.process`, whether it comes from an included file or from the
   repository's own `.git/config` — still runs in the status reads of the server and of the CLI
   (WingFoil 0.3's `workflow list`), as in the user's own `git status`.
@@ -534,3 +536,6 @@ Rows 7–9 do not apply (no element).
   transport in the server's reads and the CLI's git (D46-7: a promisor remote's program ran on a
   lazy fetch); the filter residual names `filter.<x>.process` and the local `.git/config` too, and the
   CLI's status reads.
+- 2026-10-29 — amended in dev-loop task-046 review round 3 (M1, decided by the approver): §6 the
+  no-transport rule rests on `GIT_ALLOW_PROTOCOL=none`; `protocol.allow=never` alone yields to the
+  repository's `protocol.<name>.allow`.

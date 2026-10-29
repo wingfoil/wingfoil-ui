@@ -449,7 +449,10 @@ session's scratchpad (`task046-r2-*`, `task046-g7-*`).
     history`, and the server's `memoryLog` and `status`, never run it; a unit on the request's
     `gitConfig` and environment. All five failed before the fix (`task046-r2-red-m2.log`). Guard
     removal (git 2.43): with neither setting the four real-CLI tests fail again; each setting alone
-    keeps them green (`task046-r2-guard-m2.log`, `-m2b.log`, `-m2c.log`) — both are kept.
+    kept them green — but only for these two variants on this git (2.43.0, which honours
+    `GIT_NO_LAZY_FETCH`) (`task046-r2-guard-m2.log`, `-m2b.log`, `-m2c.log`). Corrected in review
+    round 3 (M1): `protocol.allow=never` alone yields to the repository's `protocol.<name>.allow` and
+    to an inherited `GIT_ALLOW_PROTOCOL`, and a git that ignores `GIT_NO_LAZY_FETCH` then fetches.
   - spec-010 §6 (the W4-5 sentence: no transport in the server's reads and the CLI's git), spec-001
     §1, both with a 2026-10-29 Process Note.
 - **n4** — a `diagnosticsOmitted` the CLI sends is dropped before the server's own is set (red →

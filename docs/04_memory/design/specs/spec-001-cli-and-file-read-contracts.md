@@ -42,10 +42,14 @@ stamp, `workflow list`) were captured on 2026-10-28 from **WingFoil 0.3.1** on t
   `protocol.allow=never` (D46-7): the runner adds them as `GIT_CONFIG_COUNT`/`GIT_CONFIG_KEY_<n>`/
   `GIT_CONFIG_VALUE_<n>` after dropping the inherited `GIT_CONFIG_COUNT`, `GIT_CONFIG_KEY_<n>`,
   `GIT_CONFIG_VALUE_<n>` and `GIT_CONFIG_PARAMETERS` (`GIT_CONFIG_GLOBAL` and `GIT_CONFIG_NOSYSTEM`
-  are kept: they choose the global configuration), for reads and writes alike, with
-  `GIT_NO_LAZY_FETCH=1` — a repository's fsmonitor program never runs on a console read (WingFoil 0.3's
-  `workflow list` runs `git status` on every `GET /config`), nor does a promisor remote's
-  `uploadpack` or `core.sshCommand` on a lazy fetch. No CLI verb the server runs fetches or pushes
+  are kept: they choose the global configuration), for reads and writes alike. Its environment
+  also carries `GIT_ALLOW_PROTOCOL=none` (any inherited spelling replaced) and `GIT_NO_LAZY_FETCH=1`:
+  `GIT_ALLOW_PROTOCOL` is what git applies before every `protocol.allow` and `protocol.<name>.allow`
+  setting of any scope — the repository's own `.git/config` included (review round 3 M1) — so no
+  transport starts, whatever git's version; `protocol.allow=never` and `GIT_NO_LAZY_FETCH=1` (honoured
+  from git 2.45.1 and some backports) are extra layers. So a repository's fsmonitor program never runs
+  on a console read (WingFoil 0.3's `workflow list` runs `git status` on every `GET /config`), nor
+  does a promisor remote's `uploadpack`, `ext::` command or `core.sshCommand` on a lazy fetch. No CLI verb the server runs fetches or pushes
   (`GIT_TRACE` of every consumed command on 0.2.2 and 0.3.1: `add`, `commit`, `config`, `diff`, `log`,
   `maintenance`, `rev-parse`, `show`, and on 0.3.1 `cat-file`, `for-each-ref`, `hash-object`,
   `ls-files`, `ls-tree`, `status`).
@@ -59,7 +63,7 @@ stamp, `workflow list`) were captured on 2026-10-28 from **WingFoil 0.3.1** on t
 |------|--------|--------|--------------------|
 | 0 | JSON, validated against the command's schema | free text: warnings (e.g. `unknown field(s) ignored`, W-12); WingFoil 0.3 writes one JSON line `{"warning": "<text>"}` per warning | the data; stderr lines (the `warning` text of a 0.3 line) as project **warnings** (diagnostics), never as errors — at most 200, then one line `<n> more warnings omitted` |
 | 0 | JSON failing the schema | — | **read error** "unexpected output of `<command>`" — never guessed at |
-| 1 | empty | JSON `{"error": "<message>"}` (on 0.3 possibly after JSON warning lines: the last line with an `error`) | **refusal**: the CLI's message verbatim (red toast, REQ-INT-04) |
+| 1 | empty | JSON `{"error": "<message>"}` (on 0.3 possibly after JSON warning lines) | **refusal**: the `error` of the whole text or of its last line only, otherwise the text as written (red toast, REQ-INT-04) |
 | 2 | empty | 0.2.2: plain text (`error: unknown option …`) or, for a missing argument, JSON (W-22); 0.3.x: JSON `{"error": "unknown option '--bogus'"}` | **internal error**: a defect of the adapter; logged with the command line (token-free) and the message's kind only |
 | other / timeout / killed | — | — | **process error** with the reason (timeout: "WingFoil did not answer within 30 s") |
 
@@ -268,3 +272,7 @@ its schema, and run the §4.1 resolution check. A failure blocks the matrix adva
   git the CLI runs (D46-7); the dropped variables named; §2 the CLI's error is its whole text or its
   last line (n5, n6); `diagnosticsOmitted` is never taken from the CLI (n4); §3 the `warnings` of
   `directives list` sanitised and capped like the `stderr` warnings (d1).
+- 2026-10-29 — amended in dev-loop task-046 review round 3 (M1, c7; decided by the approver): §1 the
+  CLI's environment carries `GIT_ALLOW_PROTOCOL=none`, which also overrides the repository's
+  `protocol.<name>.allow` and an inherited allowed list (D46-7 was bypassed by them on a git that
+  ignores `GIT_NO_LAZY_FETCH`); §2 the exit-1 row states the last-line rule of round 2.
