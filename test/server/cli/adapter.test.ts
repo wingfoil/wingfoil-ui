@@ -791,6 +791,8 @@ describe('D46-8 — no relative PATH entry in any child: a git the repository sh
   }
 
   const reads = async (cli: WingfoilCli) => {
+    // Review round 5 c-nit-1: the reads run (one answers), so the absence of the marker means something.
+    expect((await cli.json(['dna', 'show'])).data).toHaveProperty('team');
     for (const words of [
       ['dna', 'show'],
       ['paths'],
@@ -825,5 +827,68 @@ describe('D46-8 — no relative PATH entry in any child: a git the repository sh
     const { cli } = await adapterFor(fx, env);
     await reads(cli);
     expect(existsSync(marker), 'the shipped git ran').toBe(false);
+  }, 300_000);
+});
+
+// Review round 5 s-minor-1: 0.2.2's `memory history` runs `git log --follow`, which would run a
+// configured `gpg.program` on a signed-looking commit when `log.showSignature` is set; every WingFoil
+// process gets `log.showSignature=false`.
+describe('round 5 s-minor-1 — no gpg.program on memory history', () => {
+  async function signedLookingCommit(fx: Fixture): Promise<string> {
+    const marker = path.join(root, `gpg-${n}.log`);
+    const program = path.join(root, `gpg-${n}.sh`);
+    await writeFile(program, `#!/bin/sh\necho ran >> '${marker}'\nexit 1\n`);
+    await chmod(program, 0o755);
+    // A commit touching the element with a fake `gpgsig` header, made the head of the branch.
+    const file = path.join(fx.dir, 'docs', 'memory', 'task', 'task-001-login-form.md');
+    await appendFile(file, '\nSigned-looking change.\n');
+    await git(fx.dir, ['add', file], fx.env);
+    const tree = (await git(fx.dir, ['write-tree'], fx.env)).stdout.trim();
+    const parent = (await git(fx.dir, ['rev-parse', 'HEAD'], fx.env)).stdout.trim();
+    const who = 'A <a@example.test> 1793000000 +0000';
+    const body = [
+      `tree ${tree}`,
+      `parent ${parent}`,
+      `author ${who}`,
+      `committer ${who}`,
+      'gpgsig -----BEGIN PGP SIGNATURE-----',
+      ' ',
+      ' iQEzBAABCAAdFiEEAAAAAAAAAAAAAAAAAAAAAAAAAAA=',
+      ' -----END PGP SIGNATURE-----',
+      '',
+      'a signed-looking commit',
+      '',
+    ].join('\n');
+    const objectFile = path.join(root, `commit-${n}.txt`);
+    await writeFile(objectFile, body);
+    const sha = (await git(fx.dir, ['hash-object', '-t', 'commit', '-w', objectFile], fx.env)).stdout.trim();
+    await git(fx.dir, ['update-ref', 'HEAD', sha], fx.env);
+    await git(fx.dir, ['reset', '-q'], fx.env);
+    await git(fx.dir, ['config', 'log.showSignature', 'true'], fx.env);
+    await git(fx.dir, ['config', 'gpg.program', program], fx.env);
+    return marker;
+  }
+
+  it('the pinned CLI: memory history answers and never runs it (real CLI)', async () => {
+    const fx = await freshKanban();
+    const marker = await signedLookingCommit(fx);
+    const { cli } = await adapterFor(fx);
+    const out = await cli.json(['memory', 'history'], { positionals: ['task-001-login-form'] });
+    expect((out.data as { entries: unknown[] }).entries.length).toBeGreaterThan(0);
+    expect(existsSync(marker), 'gpg.program ran').toBe(false);
+  }, 120_000);
+
+  it('the 0.2.2 build: memory history answers and never runs it (real CLI)', async () => {
+    const { cliBuildFor } = await import('../../contracts/support.js');
+    const fx = await buildFixture('kanban', {
+      root: path.join(root, `kanban-0.2.2-gpg-${n}`),
+      cli: await cliBuildFor('0.2.2'),
+      cliVersion: '0.2.2',
+    });
+    const marker = await signedLookingCommit(fx);
+    const { cli } = await adapterFor(fx);
+    const out = await cli.json(['memory', 'history'], { positionals: ['task-001-login-form'] });
+    expect((out.data as { entries: unknown[] }).entries.length).toBeGreaterThan(0);
+    expect(existsSync(marker), 'gpg.program ran').toBe(false);
   }, 300_000);
 });

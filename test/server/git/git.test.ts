@@ -442,7 +442,7 @@ describe('GitReads.transport on a blobless partial clone (review round 4 MAJOR-1
     expect((await git(dir, ['rev-parse', 'HEAD'], env)).stdout.trim()).toBe(upstream);
   });
 
-  it('the reads of the same clone still get no transport', async () => {
+  it('a GitReads read still gets the no-transport variables (fake runner, the same environment)', async () => {
     const runner = new FakeProcessRunner().answer({ stdout: 'a@example.test\n' });
     await new GitReads({ git: gitFile, runner, cwd: '/p', env }).email();
     expect(runner.requests[0]!.env).toMatchObject({ GIT_ALLOW_PROTOCOL: 'none', GIT_NO_LAZY_FETCH: '1' });
