@@ -285,6 +285,28 @@ describe('every producer of a verbatim tool message goes through the sanitiser',
     expect(detected.text).toBe(`banana <wingfoil>/x <project>/y ${SAFE}`);
   });
 
+  // Review round 2 d1 (found by the developer, pre-existing): the `warnings` field of `directives
+  // list` (`GET /api/p/:pid/directives`) is tool text: sanitised and capped like the stderr warnings.
+  it('directives list: its warnings field sanitised and capped at 200 lines', async () => {
+    const root = '/nowhere/project';
+    const long = `directive 'x' defined in ${'a'.repeat(20_000)}`;
+    const warnings = [
+      `directive 'd' bound to role 'qa' has no directive file ${root}/.wingfoil/d.md ${MARKER}`,
+      long,
+      ...Array.from({ length: 248 }, (_, i) => `w${i}`),
+    ];
+    const cli = new WingfoilCli({
+      cli: { source: 'path', projectRoot: root, file: process.execPath, prefixArgs: ['/x/cli.js'] },
+      runner: new FakeProcessRunner().answer({ stdout: JSON.stringify({ entries: [], warnings }) }),
+    });
+    const out = (await cli.run('directives list')).data.warnings;
+    expect(out).toHaveLength(201);
+    expect(out[0]).toBe(`directive 'd' bound to role 'qa' has no directive file <project>/.wingfoil/d.md ${SAFE}`);
+    expect(out[1]!.length).toBeLessThan(long.length);
+    expect(out[199]).toBe('w197');
+    expect(out[200]).toBe('50 more warnings omitted');
+  });
+
   it('git-derived file names (detail.files of local-changes-in-the-way) come out escaped', () => {
     expect(relativeToProject([`docs/a${RLO}b.md`, 'x.md'], 'docs/')).toEqual(['a\\u202eb.md', '../x.md']);
   });
