@@ -540,3 +540,28 @@ logs `task046-gate-smoke`, `task046-gate-publish-smoke`: exit 0, 2026-10-28).
 
 This entry is a docs-only commit after `be1ded3`; on it the light gates, the docs tests and
 `check_tasks.py` were re-run (`task046-r3-light-final.log`).
+
+### review round 4 (2026-10-29)
+
+Both fresh reviewers: **FAIL**; the round-3 fixes verified holding (transport traps, hostile
+configuration sweep on 0.3.1 and 0.2.2, the read routes, the bounds). The approver confirmed fixing
+every finding here. Red tests in `e738617`; fixes in `0eb6fd8`; docs in `3048412`. Logs:
+`task046-r4-*` (red, green, guard removal: `task046-r4-guards.log`) and `task046-g9-*`.
+
+| Finding | What changed | Commit | Red / guard |
+|---------|--------------|--------|-------------|
+| **MAJOR-1** (regression of D46-7) — `GitReads.transport()` merged the reads' environment, so `pull --ff-only` (the user's Update) and the automatic update's `merge --ff-only` inherited `GIT_NO_LAZY_FETCH=1` and failed on every partial clone | `GitReads` keeps `base` (the server's environment cleaned by `gitEnv`) apart from the reads' `env` (`base` + `READ_GIT_ENV`); `transport()` starts from `base`, then the transport's own variables (`transportEnv` / `unattendedEnv`: the allowed list); spec-010 §6 says so | `e738617`, `0eb6fd8` | a `--filter=blob:none` clone of a `file://` bare remote and a new upstream commit: `pull --ff-only` and `fetch` + `merge --ff-only` exited 128 (`lazy fetching disabled`) before, 0 after, HEAD at the upstream commit; the reads of the same clone keep `GIT_ALLOW_PROTOCOL=none`, `GIT_NO_LAZY_FETCH=1`; with `this.env` put back both fail again |
+| **MAJOR-2** (pre-existing, widened by 0.3.1) — an empty or relative `PATH` entry made WingFoil's bare `git` (spawned with the project root as working directory) run a `git` the repository ships | **D46-8:** the process runner gives every child (the CLI, git, and what they start) the absolute `PATH` entries only (`childEnv`: `gitEnv`, then `absolutePath` — moved from `git/transport.ts` to `git/git.ts`, still exported by `transport.ts` — then `gitConfig`); spec-001 §1, spec-010 §6 | `e738617`, `0eb6fd8` | runner unit (`:.:bin:/usr/bin::./x:/bin` → `/usr/bin:/bin`); a committed executable `git` at the root (logs, then runs the real git) with `PATH` `":"+PATH` and `".:"+PATH`: the pinned CLI's `dna show`, `paths`, `directives list`, `workflow list`, `memory search`, `memory history`, and the 0.2.2 build's same reads, never run it — all 4 failed before and with the filter removed |
+| **minor-1** — the m1 rule (a failed git read never logs git's message) did not hold on the write routes: their `GitReadError` reached the global handler, which logged `{ err }` | the global error handler (`http/app.ts`) logs a `GitReadError` as `{ kind: 'git-read', ended, exitCode }` and answers the plain 500, on every route; spec-004 §5 and the CHANGELOG say "on every route" | `e738617`, `0eb6fd8` | `POST …/submit` with the marker configuration: 500 `internal`, the log without the marker, ESC or the folder — failed before; with both mappings removed the read- and write-route tests fail again |
+| **n-a** | the long lines of spec-001 §1 and spec-010 §6 rewrapped | `3048412` | — |
+| **n-b** | spec-010 §6 names `GitReads` (the identity read uses `gitEnv` only, no transport) | `3048412` | — |
+| **n-c** | the test helper renamed `withoutCliGitVariables` | `0eb6fd8` | — |
+| **n-d** | spec-001 §1: a user hook that a WingFoil write's commit runs inherits the no-transport variables; a CLI read on a partial clone fails rather than fetch a missing object | `3048412` | — |
+| **nit-1** — `boundedLines` sliced every remaining line | the rest is counted by an `indexOf` scan and a character check against the set `trim` removes (checked equal to `trim` over the BMP), no slice; 32 Mi lines: 467 ms (was up to 1.65 s by the reviewer's measure) | `0eb6fd8` | `task046-r4-boundedlines.log`, `task046-r4-blank-set.log` |
+
+Feedback note material (for the coordinator): the earlier Windows suspicion — 0.3.1 spawns a bare
+`git` in the project root — is the same class as MAJOR-2, verified here on Linux through a relative
+`PATH` entry (0.3.1: every read; 0.2.2: `memory history`).
+
+Server, launcher and harness suites after the fixes: 92 files, 1791 tests passed
+(`task046-r4-server-suites.log`).
