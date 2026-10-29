@@ -209,10 +209,10 @@ REQ-SEC-08's fit criterion (SARD `05` v0.6), which excludes fetch and the per-us
 
 ### 5. Responses
 
-The CLI's `stderr` warnings (spec-001 §2) a read answer carries — a `/config` section's
-`warnings`, the `warnings` of `/elements` — are its sanitised lines, at most 200, then one line `<n>
-more warnings omitted` (task-046). The `warnings` of `/directives` are the `directives list` output's
-own field (spec-001 §3), passed on as the CLI answers it.
+The CLI's warnings a read answer carries — its `stderr` lines (spec-001 §2) in a `/config`
+section's `warnings` and in the `warnings` of `/elements`, and the `warnings` field of `directives
+list` (spec-001 §3) in the `warnings` of `/directives` — are sanitised like every tool message, at
+most 200, then one line `<n> more warnings omitted` (task-046, review round 2 d1).
 
 - Success of a write (`write.response.schema.json`): `{ result: <CLI output>, commits: [{ sha,
   subject }], push: { status, code?, message? } }` — `status` is `pushed`, `off` or `failed`
@@ -399,6 +399,6 @@ goes away by itself when the stream reconnects. A network failure is not rendere
   §6, D46-2). Decided by the approver.
 - 2026-10-29 — amended in dev-loop task-046 review rounds 1–2 (m1, n1, c6; decided by the
   approver): §3 `/config` passes at most 200 workflow diagnostics (`diagnosticsOmitted`); the CLI's
-  `stderr` warnings of a read answer (`/config` sections, `/elements`) hold at most 200 lines, then
-  one counting the rest (§5); `GET /api/p/:pid` `wingfoil.text` is the printed
+  warnings of a read answer (`/config` sections, `/elements`, `/directives` — d1) are sanitised and
+  hold at most 200 lines, then one counting the rest (§5); `GET /api/p/:pid` `wingfoil.text` is the printed
   `--version` text through the sanitiser of tool messages (§3 row).
