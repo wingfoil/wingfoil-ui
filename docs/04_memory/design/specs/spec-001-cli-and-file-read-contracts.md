@@ -3,8 +3,8 @@ id: spec-001-cli-and-file-read-contracts
 type: tech-spec
 title: "CLI and file read contracts"
 status: approved
-scope: "CLI JSON contract and direct-read file shapes (WingFoil 0.2.2)"  # REQUIRED — the artefact this spec covers, e.g. "server HTTP API", "CLI JSON contract: memory search", ".wingfoil/ui.yaml"
-wingfoil_version: "0.2.2"   # optional — for a CLI contract: the WingFoil version the shape was captured from
+scope: "CLI JSON contract and direct-read file shapes (WingFoil 0.2.2, 0.3.1)"  # REQUIRED — the artefact this spec covers, e.g. "server HTTP API", "CLI JSON contract: memory search", ".wingfoil/ui.yaml"
+wingfoil_version: "0.2.2, 0.3.1"   # optional — for a CLI contract: the WingFoil version the shape was captured from
 supersedes: ""         # optional — id of the tech-spec this one replaces, e.g. "spec-002"
 release: "v0.1"            # optional — implementation release this spec is assigned to (stamped by release-planning/build-backlog), e.g. "v0.1"
 contributor: ""        # optional — who originated this contribution, if not the git author; credited for AI-generated work derived from it
@@ -34,6 +34,9 @@ stamp, `workflow list`) were captured on 2026-10-28 from **WingFoil 0.3.1** on t
 - `execFile(process.execPath, [<cli bin script>, '--format', 'json', <command…>, <args…>])`, working
   directory = project root, argument array, no shell (`adr-001` D2, REQ-SEC-05), timeout 30 s
   (REQ-INT-04). The global `--format json` is placed before the command.
+- The CLI's environment is the server's with `GIT_OPTIONAL_LOCKS=0` (task-046 D46-5): a read leaves
+  `.git/index` as it was — WingFoil 0.3's reads run `git status`, which would rewrite a stale index
+  (task-025 AC-5); commits take required locks and are unaffected.
 - User input (titles, reasons, ids) is always one argument of its own; values never start with
   `-` unless the CLI option expects it (`--reason=<text>` form when the text starts with `-`).
 - Writes are serialised per project (`adr-001` D5).
@@ -240,5 +243,7 @@ its schema, and run the §4.1 resolution check. A failure blocks the matrix adva
   `workflow list` shape of 0.3.x (captured from `wingfoil@0.3.1`); §5 the versioned variant is a
   `oneOf` branch of the command's schema, exclusive, selected by shape; §6 `via: null` = not used by
   this release (never enabled, never missing, reason `not-in-release` from its minimum version);
-  §2 a 0.3 `stderr` warning is the `warning` text of its JSON line. The support matrix is now
-  [0.2.2, 0.3.1], pinned 0.3.1.
+  §2 a 0.3 `stderr` warning is the `warning` text of its JSON line; §1 every WingFoil process runs
+  with `GIT_OPTIONAL_LOCKS=0` (D46-5, approver 2026-10-29: 0.3.1's `workflow list` rewrote a stale
+  `.git/index`). The support matrix is now [0.2.2, 0.3.1], pinned 0.3.1; `scope` and
+  `wingfoil_version` name both versions.
