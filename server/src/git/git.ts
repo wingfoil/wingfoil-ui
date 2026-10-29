@@ -115,6 +115,13 @@ export const GIT_READ_ARGS = {
 /** No fsmonitor program (task-034 W4-5): prefixed to every read of {@link GitReads}. */
 export const NO_FSMONITOR: readonly string[] = ['-c', 'core.fsmonitor=false'];
 
+/**
+ * No transport in a read (task-046 D46-7): a partial clone's lazy fetch of a missing object would run
+ * a promisor remote's `uploadpack` or `core.sshCommand`. Prefixed to every read of {@link GitReads};
+ * the transport commands (`fetch`, `pull`, `push`, `clone`) keep their own protocol rules.
+ */
+export const NO_TRANSPORT: readonly string[] = ['-c', 'protocol.allow=never'];
+
 /** One setting's scope (`system`, `global`, `local`, `worktree`, `command`) and origin (`file:<path>`, …). */
 export interface ConfigOrigin {
   scope: string;
@@ -393,7 +400,7 @@ export class GitReads {
   private readonly env: NodeJS.ProcessEnv;
 
   constructor(private readonly options: GitReadsOptions) {
-    this.env = gitEnv(options.env ?? process.env);
+    this.env = { ...withoutName(gitEnv(options.env ?? process.env), 'GIT_NO_LAZY_FETCH'), GIT_NO_LAZY_FETCH: '1' };
   }
 
   /** HEAD and the working tree (one process). */
@@ -624,8 +631,8 @@ export class GitReads {
   private run(args: readonly string[]): Promise<ProcessResult> {
     const { git, runner, cwd } = this.options;
     // No fsmonitor program in the server's own reads: the configuration may name one from the
-    // working tree (task-034 W4-5, security review S1).
-    return runner.run({ file: git, args: [...NO_FSMONITOR, ...args], cwd, env: this.env });
+    // working tree (task-034 W4-5, security review S1); no transport, no lazy fetch (task-046 D46-7).
+    return runner.run({ file: git, args: [...NO_FSMONITOR, ...NO_TRANSPORT, ...args], cwd, env: this.env });
   }
 
   private async read(args: readonly string[]): Promise<ProcessResult> {
@@ -672,4 +679,11 @@ async function runnable(file: string, platform: NodeJS.Platform): Promise<boolea
   } catch {
     return false;
   }
+}
+
+/** `env` without any spelling of the variable `name` (case-insensitive on Windows). */
+function withoutName(env: NodeJS.ProcessEnv, name: string): NodeJS.ProcessEnv {
+  const out: NodeJS.ProcessEnv = {};
+  for (const [key, value] of Object.entries(env)) if (key.toUpperCase() !== name) out[key] = value;
+  return out;
 }

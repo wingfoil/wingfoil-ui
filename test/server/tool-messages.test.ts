@@ -52,8 +52,8 @@ const PRODUCERS: Record<string, readonly RegExp[]> = {
     /toolText\(name, data/,
   ],
   'server/src/projects/project-list.ts': [/redactLocalPaths\(/],
-  // Review round 1 n1: the header's `--version` text.
-  'server/src/http/project-routes.ts': [/redactLocalPaths\(text/],
+  // Review rounds 1 n1, 2 n7: the header's `--version` text, sanitised by the adapter in detectVersion.
+  'server/src/http/project-routes.ts': [/wingfoilOf\(detected\)/],
 };
 
 describe('every producer of a verbatim tool message goes through the sanitiser', () => {
@@ -70,6 +70,8 @@ describe('every producer of a verbatim tool message goes through the sanitiser',
       }
     }
     expect([...found].sort()).toEqual(Object.keys(PRODUCERS).sort());
+    // The header's text is sanitised where it is read (review round 2 n7).
+    expect(await readFile(path.join(REPO_ROOT, 'server/src/cli/version.ts'), 'utf8')).toMatch(/cli\.sanitise\(text\)/);
   });
 
   it("the transport's message (routes, sync lastError, auto-push): a marker from git comes out escaped", () => {

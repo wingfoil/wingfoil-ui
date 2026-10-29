@@ -252,6 +252,14 @@ export class WingfoilCli {
     };
   }
 
+  /**
+   * `text` through the adapter's sanitiser of tool messages, with its roots (the project and the CLI's
+   * package folder): for a tool text the caller passes on, e.g. the `--version` text (review round 2 n7).
+   */
+  sanitise(text: string): string {
+    return this.redact(text);
+  }
+
   /** `wingfoil --version`: one line of plain text, even with `--format json` (W-19). Not parsed here. */
   async version(): Promise<string> {
     const command: CliCommand = { words: ['--version'], options: [] };
@@ -276,8 +284,10 @@ export class WingfoilCli {
       timeoutMs: this.timeoutMs,
       // No optional git locks (task-046 D46-5): WingFoil 0.3's reads run `git status`, which would
       // otherwise rewrite a stale `.git/index`; commits take required locks and are unaffected.
-      env: withoutOptionalLocks(env ?? process.env),
-      // No fsmonitor program in any git WingFoil runs (task-046 D46-6, spec-010 W4-5), writes included.
+      // …and no lazy fetch of a missing object (task-046 D46-7).
+      env: withCliGitEnv(env ?? process.env),
+      // No fsmonitor program (D46-6, spec-010 W4-5) and no transport (D46-7: a promisor remote's
+      // program) in any git WingFoil runs, writes included — none of its verbs fetches or pushes.
       gitConfig: CLI_GIT_CONFIG,
       ...(signal ? { signal } : {}),
     });
@@ -351,13 +361,9 @@ function reason(result: ProcessResult): string {
  * `Command failed`.
  */
 export function usageKind(stderr: string): string {
-  let text = stderr.trim();
-  try {
-    const parsed = JSON.parse(text) as { error?: unknown };
-    if (typeof parsed.error === 'string') text = parsed.error;
-  } catch {
-    // Not JSON: the text itself.
-  }
+  const trimmed = stderr.trim();
+  // The CLI's own error (the whole text or its last line), else the text itself (review round 2).
+  const text = cliError(trimmed) ?? trimmed;
   return /^([A-Za-z][A-Za-z ]{0,60}):/.exec(text)?.[1] ?? 'usage error';
 }
 
@@ -365,8 +371,19 @@ export function usageKind(stderr: string): string {
 function refusalMessage(stderr: string): string {
   const text = stderr.trim();
   if (!text) return 'WingFoil refused (exit status 1) without a message';
-  // The whole text, else its last line with an `error` (JSON warning lines may come first, WingFoil 0.3).
-  for (const candidate of [text, ...lines(text).reverse()]) {
+  return cliError(text) ?? text;
+}
+
+/**
+ * The CLI's own error of a `stderr` text: `{"error": "<message>"}` as the whole text, or as its last
+ * line (WingFoil 0.3 may write JSON warning lines first, task-046). The CLI writes its error last, so
+ * no earlier line is read (review round 2 n5, n6: a hook's `{"error"}` before a plain-text end does not
+ * win; one parse per candidate whatever the length).
+ */
+function cliError(text: string): string | undefined {
+  const last = text.slice(text.lastIndexOf('\n') + 1).trim();
+  for (const candidate of last === text ? [text] : [text, last]) {
+    if (!candidate.startsWith('{')) continue;
     try {
       const parsed = JSON.parse(candidate) as { error?: unknown };
       if (typeof parsed.error === 'string') return parsed.error;
@@ -374,21 +391,29 @@ function refusalMessage(stderr: string): string {
       // Not JSON: the next candidate.
     }
   }
-  return text;
+  return undefined;
 }
 
-/** The git settings of every WingFoil process (task-046 D46-6): no fsmonitor program. */
-const CLI_GIT_CONFIG: readonly (readonly [string, string])[] = [['core.fsmonitor', 'false']];
+/**
+ * The git settings of every WingFoil process: no fsmonitor program (task-046 D46-6), no transport
+ * at all (D46-7: a lazy fetch would run a promisor remote's `uploadpack` or `core.sshCommand`).
+ */
+const CLI_GIT_CONFIG: readonly (readonly [string, string])[] = [
+  ['core.fsmonitor', 'false'],
+  ['protocol.allow', 'never'],
+];
+
+/** The git variables of every WingFoil process (task-046 D46-5, D46-7). */
+const CLI_GIT_ENV: Readonly<Record<string, string>> = { GIT_OPTIONAL_LOCKS: '0', GIT_NO_LAZY_FETCH: '1' };
 
 /**
- * `env` with `GIT_OPTIONAL_LOCKS=0` (task-046 D46-5), any other spelling of the name removed first
- * (names are case-insensitive on Windows, review round 1 n3).
+ * `env` with {@link CLI_GIT_ENV}, any other spelling of those names removed first (names are
+ * case-insensitive on Windows, review round 1 n3).
  */
-function withoutOptionalLocks(env: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
+function withCliGitEnv(env: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
   const out: NodeJS.ProcessEnv = {};
-  for (const [key, value] of Object.entries(env)) if (key.toUpperCase() !== 'GIT_OPTIONAL_LOCKS') out[key] = value;
-  out.GIT_OPTIONAL_LOCKS = '0';
-  return out;
+  for (const [key, value] of Object.entries(env)) if (!Object.hasOwn(CLI_GIT_ENV, key.toUpperCase())) out[key] = value;
+  return { ...out, ...CLI_GIT_ENV };
 }
 
 /**

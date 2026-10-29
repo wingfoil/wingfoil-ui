@@ -505,9 +505,10 @@ describe('D46-5 — every WingFoil process runs without optional git locks', () 
     const inherited = new WingfoilCli({ cli: resolved, runner: runner.answer({ stdout: '0.3.1' }) });
     await inherited.version();
     expect(runner.requests).toHaveLength(3);
-    expect(runner.requests[0]!.env).toEqual({ PATH: '/bin', GIT_OPTIONAL_LOCKS: '0' });
-    expect(runner.requests[1]!.env).toEqual({ PATH: '/bin', GIT_OPTIONAL_LOCKS: '0' });
-    expect(runner.requests[2]!.env).toEqual({ ...process.env, GIT_OPTIONAL_LOCKS: '0' });
+    // GIT_NO_LAZY_FETCH: D46-7 (review round 2).
+    expect(runner.requests[0]!.env).toEqual({ PATH: '/bin', GIT_OPTIONAL_LOCKS: '0', GIT_NO_LAZY_FETCH: '1' });
+    expect(runner.requests[1]!.env).toEqual({ PATH: '/bin', GIT_OPTIONAL_LOCKS: '0', GIT_NO_LAZY_FETCH: '1' });
+    expect(runner.requests[2]!.env).toEqual({ ...process.env, GIT_OPTIONAL_LOCKS: '0', GIT_NO_LAZY_FETCH: '1' });
   });
 
   // Review round 1 n3: on Windows the variable names are case-insensitive — no second spelling.
@@ -515,7 +516,7 @@ describe('D46-5 — every WingFoil process runs without optional git locks', () 
     const { FakeProcessRunner } = await import('../process/fake-runner.js');
     const runner = new FakeProcessRunner().answer({ stdout: '{}' });
     await new WingfoilCli({ cli: resolved, runner, env: { PATH: '/bin', git_optional_locks: '1' } }).json(['paths']);
-    expect(runner.requests[0]!.env).toEqual({ PATH: '/bin', GIT_OPTIONAL_LOCKS: '0' });
+    expect(runner.requests[0]!.env).toEqual({ PATH: '/bin', GIT_OPTIONAL_LOCKS: '0', GIT_NO_LAZY_FETCH: '1' });
   });
 
   // Review round 1 M1 (D46-6): no fsmonitor program in any WingFoil process, writes included.
@@ -529,7 +530,12 @@ describe('D46-5 — every WingFoil process runs without optional git locks', () 
     await cli.json(['paths']);
     await cli.json(['memory', 'submit'], { positionals: ['x'] });
     await cli.version();
-    for (const r of runner.requests) expect(r.gitConfig).toEqual([['core.fsmonitor', 'false']]);
+    for (const r of runner.requests) {
+      expect(r.gitConfig).toEqual([
+        ['core.fsmonitor', 'false'],
+        ['protocol.allow', 'never'],
+      ]);
+    }
   });
 
   it('a configured fsmonitor program never runs: the reads and a submit of the pinned CLI (real CLI)', async () => {

@@ -216,7 +216,9 @@ export async function detectVersion(cli: WingfoilCli, range: SupportedRange = RA
     if (!(error instanceof CliOutputError)) throw error;
     text = null;
   }
-  return { ...classifyVersion(text, range), source: cli.source };
+  // Classified as printed; passed on sanitised, with the adapter's roots (task-046 review round 2 n7).
+  const detected = classifyVersion(text, range);
+  return { ...detected, text: text === null ? null : cli.sanitise(text), source: cli.source };
 }
 
 /**

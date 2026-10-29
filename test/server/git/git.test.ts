@@ -88,11 +88,14 @@ describe('GitReads — the commands it runs', () => {
     expect(runner.requests[0]).toMatchObject({
       file: '/usr/bin/git',
       cwd: '/p',
-      env: { HOME: '/h' },
+      env: { HOME: '/h', GIT_NO_LAZY_FETCH: '1' },
       // W4-5 (security review S1): no fsmonitor program in the server's own reads.
       args: [
         '-c',
         'core.fsmonitor=false',
+        // D46-7 (task-046): no transport, no lazy fetch.
+        '-c',
+        'protocol.allow=never',
         '--no-optional-locks',
         'status',
         '--porcelain=v2',
@@ -115,6 +118,9 @@ describe('GitReads — the commands it runs', () => {
     expect(runner.requests[0]!.args).toEqual([
       '-c',
       'core.fsmonitor=false',
+      // D46-7 (task-046): no transport, no lazy fetch.
+      '-c',
+      'protocol.allow=never',
       '--no-optional-locks',
       'config',
       'user.email',
@@ -127,6 +133,9 @@ describe('GitReads — the commands it runs', () => {
     expect(runner.requests[0]!.args).toEqual([
       '-c',
       'core.fsmonitor=false',
+      // D46-7 (task-046): no transport, no lazy fetch.
+      '-c',
+      'protocol.allow=never',
       '--no-optional-locks',
       'rev-parse',
       '--show-prefix',
@@ -267,7 +276,7 @@ describe('gitEnv — inherited GIT_* variables never redirect a read (review F2)
   it('GitReads passes the cleaned environment to the runner', async () => {
     const runner = new FakeProcessRunner().answer({ stdout: 'a@b\n' });
     await new GitReads({ git: '/usr/bin/git', runner, cwd: '/p', env: { HOME: '/h', GIT_DIR: '/x' } }).email();
-    expect(runner.requests[0]!.env).toEqual({ HOME: '/h' });
+    expect(runner.requests[0]!.env).toEqual({ HOME: '/h', GIT_NO_LAZY_FETCH: '1' });
   });
 });
 

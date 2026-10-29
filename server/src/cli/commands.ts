@@ -106,8 +106,10 @@ export function toolText<T>(name: CliCommandName, data: T, sanitise: (text: stri
     if (out === undefined) done.set(text, (out = sanitise(text)));
     return out;
   };
+  // `diagnosticsOmitted` is the server's count, never the CLI's (review round 2 n4).
+  const { diagnosticsOmitted: _cli, ...rest } = list;
   return {
-    ...list,
+    ...rest,
     ...(list.message !== undefined ? { message: redact(list.message) } : {}),
     diagnostics: kept.map((d) => ({
       ...d,
