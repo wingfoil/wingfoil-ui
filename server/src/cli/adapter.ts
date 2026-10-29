@@ -22,8 +22,8 @@ import { envelope, type ErrorEnvelope } from '../http/app.js';
 import { DEFAULT_TIMEOUT_MS, type ProcessResult, type ProcessRunner } from '../process/runner.js';
 import {
   commandFor,
-  MAX_TOOL_LINES,
   outputProblem,
+  toolLines,
   toolText,
   type CliCommandName,
   type CliCommandOutputs,
@@ -248,7 +248,7 @@ export class WingfoilCli {
     // messages (bug-017, review round 3 S3-1).
     return {
       data: toolText(name, data, (text) => this.redact(text)) as T,
-      warnings: capped(lines(result.stderr)).map((w) => this.redact(warningText(w))),
+      warnings: toolLines(lines(result.stderr), (w) => this.redact(warningText(w))),
     };
   }
 
@@ -428,15 +428,6 @@ function warningText(line: string): string {
   } catch {
     return line;
   }
-}
-
-/**
- * At most {@link MAX_TOOL_LINES} warnings, then one line counting the others (review round 1 m1):
- * the cut comes before the sanitiser, so its cost and the body stay bounded.
- */
-function capped(warnings: string[]): string[] {
-  if (warnings.length <= MAX_TOOL_LINES) return warnings;
-  return [...warnings.slice(0, MAX_TOOL_LINES), `${warnings.length - MAX_TOOL_LINES} more warnings omitted`];
 }
 
 function lines(text: string): string[] {

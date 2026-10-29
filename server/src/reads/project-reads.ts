@@ -132,8 +132,10 @@ export class ProjectReads {
  * last one listed (the custom one, listed after the built-in).
  */
 export function directiveInForce(list: DirectivesList, id: string): DirectiveEntry | undefined {
-  // The warnings are the sanitised text (bug-017: `redactLocalPaths`, a backslash written `\\`): an
-  // entry's path is compared as written there too (review round 4 R4-2).
+  // The warnings are the sanitised text — the adapter sends the `warnings` of `directives list`
+  // through `redactLocalPaths` (task-046 review round 2 d1; a backslash written `\\`, bug-017): an
+  // entry's path is compared as written there too (review round 4 R4-2). Past 200 warnings the rest
+  // are cut: a directive whose warning is cut falls back to the last entry listed.
   const candidates = list.entries.filter((e) => e.frontmatter.id === id);
   const inForce = list.warnings
     .map((w) => /^directive '(.*)' defined in .*; using (\S+)$/.exec(w))

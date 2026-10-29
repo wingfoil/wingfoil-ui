@@ -80,6 +80,16 @@ export function outputProblem(name: CliCommandName, data: unknown): string[] | u
  */
 export const MAX_TOOL_LINES = 200;
 
+/**
+ * Tool lines as the API passes them on (the CLI's `stderr` warnings, the `warnings` of `directives
+ * list`): at most {@link MAX_TOOL_LINES}, cut before `sanitise`, then one line counting the others
+ * (review round 1 m1, round 2 d1).
+ */
+export function toolLines(lines: readonly string[], sanitise: (text: string) => string): string[] {
+  const kept = lines.slice(0, MAX_TOOL_LINES).map(sanitise);
+  return lines.length > MAX_TOOL_LINES ? [...kept, `${lines.length - MAX_TOOL_LINES} more warnings omitted`] : kept;
+}
+
 /** `true` when `list` has WingFoil 0.2.x's shape (`manifest`, phases), `false` for 0.3.x's. */
 export function isWorkflowList02(list: WorkflowList): list is WorkflowList02 {
   return 'manifest' in list;
@@ -90,9 +100,15 @@ export function isWorkflowList02(list: WorkflowList): list is WorkflowList02 {
  * passed through `redact`, the one sanitiser of tool messages (bug-017): WingFoil 0.3's `workflow
  * list` `diagnostics` (configuration messages that quote values and may name files) and its
  * `message` (task-046 AC-2), each distinct text once; at most {@link MAX_TOOL_LINES} diagnostics,
- * the others counted in `diagnosticsOmitted`. Every other output is returned as it is.
+ * the others counted in `diagnosticsOmitted`; and the `warnings` of `directives list`
+ * ({@link toolLines}, review round 2 d1). Every other output is returned as it is.
  */
 export function toolText<T>(name: CliCommandName, data: T, sanitise: (text: string) => string): T {
+  if (name === 'directives list') {
+    // Its `warnings` field is the CLI's text (review round 2 d1): as the stderr warnings.
+    const list = data as unknown as DirectivesList;
+    return { ...list, warnings: toolLines(list.warnings, sanitise) } as unknown as T;
+  }
   if (name !== 'workflow list') return data;
   const list = data as unknown as WorkflowList;
   if (isWorkflowList02(list)) return data;
