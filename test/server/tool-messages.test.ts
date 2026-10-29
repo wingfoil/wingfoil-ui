@@ -157,6 +157,55 @@ describe('every producer of a verbatim tool message goes through the sanitiser',
     ]);
   });
 
+  // Review round 1 m1: a bounded body — at most MAX_TOOL_LINES diagnostics and warnings are kept
+  // (before sanitising), the rest counted.
+  it('workflow list on 0.3.x: 20 000 diagnostics → the first 200 kept, the rest counted', async () => {
+    const { MAX_TOOL_LINES } = await import('../../server/src/cli/commands.js');
+    expect(MAX_TOOL_LINES).toBe(200);
+    const diagnostics = Array.from({ length: 20_000 }, (_, i) => ({
+      code: 'W_X',
+      severity: 'warning',
+      file: 'f.yaml',
+      path: '',
+      message: `m${i}`,
+    }));
+    const stdout = JSON.stringify({ baseline: { rev: 'HEAD', commit: 'a'.repeat(40) }, workflows: [], diagnostics });
+    const cli = new WingfoilCli({
+      cli: { source: 'path', projectRoot: '/nowhere', file: process.execPath, prefixArgs: ['/x/cli.js'] },
+      runner: new FakeProcessRunner().answer({ stdout }),
+    });
+    const out = (await cli.run('workflow list')).data as unknown as {
+      diagnostics: { message: string }[];
+      diagnosticsOmitted?: number;
+    };
+    expect(out.diagnostics).toHaveLength(200);
+    expect(out.diagnostics.at(-1)!.message).toBe('m199');
+    expect(out.diagnosticsOmitted).toBe(19_800);
+  });
+
+  it('stderr warnings: the first 200 kept, then one line counting the rest', async () => {
+    const stderr = Array.from({ length: 5_000 }, (_, i) => JSON.stringify({ warning: `w${i}` })).join('\n');
+    const cli = new WingfoilCli({
+      cli: { source: 'path', projectRoot: '/nowhere', file: process.execPath, prefixArgs: ['/x/cli.js'] },
+      runner: new FakeProcessRunner().answer({ stdout: '{}', stderr }),
+    });
+    const { warnings } = await cli.json(['paths']);
+    expect(warnings).toHaveLength(201);
+    expect(warnings[199]).toBe('w199');
+    expect(warnings[200]).toBe('4800 more warnings omitted');
+  });
+
+  // Review round 1 (display): a refusal whose JSON error line follows JSON warning lines.
+  it('a refusal after JSON warning lines: the error of the last line that has one', async () => {
+    const stderr = [JSON.stringify({ warning: 'w' }), JSON.stringify({ error: `refused ${MARKER}` })].join('\n');
+    const cli = new WingfoilCli({
+      cli: { source: 'path', projectRoot: '/nowhere', file: process.execPath, prefixArgs: ['/x/cli.js'] },
+      runner: new FakeProcessRunner().answer({ exitCode: 1, stderr }),
+    });
+    const error = (await cli.json(['paths']).catch((e: unknown) => e)) as CliRefusedError;
+    expect(error.cliMessage).toBe(`refused ${SAFE}`);
+  });
+
   it('git-derived file names (detail.files of local-changes-in-the-way) come out escaped', () => {
     expect(relativeToProject([`docs/a${RLO}b.md`, 'x.md'], 'docs/')).toEqual(['a\\u202eb.md', '../x.md']);
   });

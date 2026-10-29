@@ -224,6 +224,26 @@ describe('GET /api/p/:pid — the project header', () => {
   });
 });
 
+describe('review round 1 n1 — an unrecognised --version text reaches the header sanitised', () => {
+  it('the project folder redacted, a control and a bidi character as visible escapes', async () => {
+    const RLO = String.fromCharCode(0x202e);
+    const ESC = String.fromCharCode(0x1b);
+    let dir = '';
+    const c = await start(kanbanTemplate, {
+      prepare: async (fx) => {
+        dir = fx.dir;
+        await installCliStub(fx, { version: `banana ${fx.dir}/x ${ESC}[31m${RLO}txt` });
+      },
+    });
+    const header = await c.get(`/api/p/${c.pid}`);
+    expect(header.status).toBe(200);
+    expectSchema('project.schema.json', header.body);
+    expect(header.body.wingfoil).toMatchObject({ version: null, state: 'unrecognised', inRange: false });
+    expect(header.body.wingfoil.text).toBe('banana <project>/x \\x1b[31m\\u202etxt');
+    expect(JSON.stringify(header.body)).not.toContain(dir);
+  });
+});
+
 describe('a version outside the range (user decision 2026-10-06, open point 26)', () => {
   it('names the range as "<min> to <max>" in the read-only reason and in every disabled verb', async () => {
     expect(rangeLabel()).toBe('0.2.2 to 0.3.x');

@@ -2,7 +2,7 @@
 // fixtures: the process audit (TT-ARC-02), the result classification and the 30 s timeout
 // (TT-INT-04), S-27.1 on the adapter side.
 import { existsSync } from 'node:fs';
-import { appendFile, mkdtemp, readFile, realpath, rm, utimes, writeFile } from 'node:fs/promises';
+import { appendFile, chmod, mkdtemp, readFile, realpath, rm, utimes, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
@@ -510,6 +510,47 @@ describe('D46-5 — every WingFoil process runs without optional git locks', () 
     expect(runner.requests[2]!.env).toEqual({ ...process.env, GIT_OPTIONAL_LOCKS: '0' });
   });
 
+  // Review round 1 n3: on Windows the variable names are case-insensitive — no second spelling.
+  it('replaces a differently-cased GIT_OPTIONAL_LOCKS instead of adding a second one', async () => {
+    const { FakeProcessRunner } = await import('../process/fake-runner.js');
+    const runner = new FakeProcessRunner().answer({ stdout: '{}' });
+    await new WingfoilCli({ cli: resolved, runner, env: { PATH: '/bin', git_optional_locks: '1' } }).json(['paths']);
+    expect(runner.requests[0]!.env).toEqual({ PATH: '/bin', GIT_OPTIONAL_LOCKS: '0' });
+  });
+
+  // Review round 1 M1 (D46-6): no fsmonitor program in any WingFoil process, writes included.
+  it('asks the runner for core.fsmonitor=false on every command', async () => {
+    const { FakeProcessRunner } = await import('../process/fake-runner.js');
+    const runner = new FakeProcessRunner()
+      .answer({ stdout: '{}' })
+      .answer({ stdout: JSON.stringify({ id: 'x', path: 'x.md', from: 'draft', to: 'pending' }) })
+      .answer({ stdout: '0.3.1' });
+    const cli = new WingfoilCli({ cli: resolved, runner });
+    await cli.json(['paths']);
+    await cli.json(['memory', 'submit'], { positionals: ['x'] });
+    await cli.version();
+    for (const r of runner.requests) expect(r.gitConfig).toEqual([['core.fsmonitor', 'false']]);
+  });
+
+  it('a configured fsmonitor program never runs: the reads and a submit of the pinned CLI (real CLI)', async () => {
+    const fx = await freshKanban();
+    const marker = path.join(root, `fsmonitor-${n}.log`);
+    const program = path.join(root, `fsmonitor-${n}.sh`);
+    await writeFile(program, `#!/bin/sh\necho ran >> '${marker}'\nexit 1\n`);
+    await chmod(program, 0o755);
+    await git(fx.dir, ['config', 'core.fsmonitor', program], fx.env);
+    // Stale index entries, so that a git status would consult the fsmonitor.
+    const later = new Date(Date.now() + 5_000);
+    await utimes(path.join(fx.dir, '.wingfoil', 'dna.yaml'), later, later);
+    const { cli } = await adapterFor(fx);
+    await cli.json(['workflow', 'list']);
+    await cli.json(['dna', 'show']);
+    await cli.json(['memory', 'search']);
+    await cli.json(['directives', 'list']);
+    await cli.json(['memory', 'submit'], { positionals: ['task-004-session-timeout'] });
+    expect(existsSync(marker), 'the fsmonitor program ran').toBe(false);
+  }, 120_000);
+
   it('the pinned workflow list leaves a stale .git/index unchanged (real CLI)', async () => {
     const fx = await freshKanban();
     const { cli } = await adapterFor(fx);
@@ -524,3 +565,35 @@ describe('D46-5 — every WingFoil process runs without optional git locks', () 
     }
   }, 120_000);
 });
+
+// Review round 1 c4: WingFoil 0.3.1 names its files relative to the project, so the redaction of
+// a quoted root is proved on a CLI that quotes it — the 0.2.2 build of the matrix (bug-012, D33-5).
+describe('c4 — the root a real CLI quotes in a refusal is redacted (WingFoil 0.2.2 build)', () => {
+  it('an invalid dna.yaml: the refusal names <project>, never the folder', async () => {
+    const { cliBuildFor } = await import('../../contracts/support.js');
+    const fx = await buildFixture('kanban', {
+      root: path.join(root, 'kanban-0.2.2'),
+      cli: await cliBuildFor('0.2.2'),
+      cliVersion: '0.2.2',
+    });
+    await appendFile(path.join(fx.dir, '.wingfoil', 'dna.yaml'), 'project: [unclosed\n  : :\n');
+    const raw = await rawDnaRefusal(fx);
+    expect(raw).toContain(fx.dir);
+    const { cli } = await adapterFor(fx);
+    const error = (await cli.json(['dna', 'show']).catch((e: unknown) => e)) as CliRefusedError;
+    expect(error).toBeInstanceOf(CliRefusedError);
+    expect(error.cliMessage).toContain('<project>');
+    expect(error.cliMessage).not.toContain(fx.dir);
+  }, 300_000);
+});
+
+/** The raw stderr of `dna show` on `fx` (the CLI's own wording, before the adapter). */
+async function rawDnaRefusal(fx: Fixture): Promise<string> {
+  const { run } = await import('../../harness/run.js');
+  const r = await run(process.execPath, [binScript(cliPackageDir(fx)), '--format', 'json', 'dna', 'show'], {
+    cwd: fx.dir,
+    env: fx.env,
+    allowFailure: true,
+  });
+  return r.stderr;
+}

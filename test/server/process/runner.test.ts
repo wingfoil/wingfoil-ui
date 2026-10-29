@@ -88,6 +88,35 @@ describe('LocalProcessRunner', () => {
     expect(result.stdout).toBe('set');
   });
 
+  // task-046 D46-6: settings the server adds to a child's git configuration, after the inherited
+  // GIT_CONFIG_* variables are dropped (gitEnv): rendered as GIT_CONFIG_COUNT / KEY_n / VALUE_n.
+  it('renders request.gitConfig as GIT_CONFIG_COUNT/KEY/VALUE, replacing any inherited ones', async () => {
+    const result = await runner().run({
+      ...node(
+        'const e = process.env; process.stdout.write(JSON.stringify(Object.keys(e).filter((k) => /^GIT_CONFIG/i.test(k)).sort().map((k) => [k, e[k]])))',
+      ),
+      env: {
+        ...process.env,
+        GIT_CONFIG_COUNT: '2',
+        GIT_CONFIG_KEY_0: 'core.fsmonitor',
+        GIT_CONFIG_VALUE_0: '/tmp/evil',
+        git_config_key_1: 'core.hooksPath',
+        GIT_CONFIG_PARAMETERS: "'core.fsmonitor'='/tmp/evil'",
+      },
+      gitConfig: [
+        ['core.fsmonitor', 'false'],
+        ['core.untrackedCache', 'false'],
+      ],
+    });
+    expect(JSON.parse(result.stdout)).toEqual([
+      ['GIT_CONFIG_COUNT', '2'],
+      ['GIT_CONFIG_KEY_0', 'core.fsmonitor'],
+      ['GIT_CONFIG_KEY_1', 'core.untrackedCache'],
+      ['GIT_CONFIG_VALUE_0', 'false'],
+      ['GIT_CONFIG_VALUE_1', 'false'],
+    ]);
+  });
+
   it('kills a process that outlives its timeout', async () => {
     const started = Date.now();
     const result = await runner().run({ ...node(SLEEP), timeoutMs: 300 });

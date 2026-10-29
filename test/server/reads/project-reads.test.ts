@@ -153,8 +153,27 @@ describe('TT-ARC-04 — file-system spy over every read', () => {
       // Resolved, never read: the CLI's own folder, which the sanitiser of tool messages names to
       // redact it from WingFoil 0.3's `workflow list` diagnostics (task-046, bug-012).
       const resolved = onProject.filter((c) => !isFileRead(c));
-      const sanitiserRoots = new Set([fx.dir, abs('.wingfoil'), abs('node_modules', 'wingfoil')]);
-      expect(resolved.filter((c) => !allowed.has(c.arg) && !sanitiserRoots.has(c.arg))).toEqual([]);
+      // Review round 1 n2: only path resolutions there (realpath, stat), nothing else.
+      const confinement = new Set([fx.dir, abs('.wingfoil')]);
+      const cliFolder = abs('node_modules', 'wingfoil');
+      const RESOLVES = new Set([
+        'realpath',
+        'realpathSync',
+        'realpath.native',
+        'realpathSync.native',
+        'stat',
+        'statSync',
+        'lstat',
+        'lstatSync',
+      ]);
+      expect(
+        resolved.filter(
+          (c) =>
+            !allowed.has(c.arg) &&
+            !confinement.has(c.arg) &&
+            !(c.arg === cliFolder && RESOLVES.has(c.fn.replace(/^(promises|fs)\./, ''))),
+        ),
+      ).toEqual([]);
     },
     300_000,
   );

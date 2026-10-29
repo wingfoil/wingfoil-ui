@@ -232,7 +232,12 @@ describe.each(VERSIONS)('contract — wingfoil %s', (version) => {
     expect(dna.team.members[0]?.email).toBeUndefined();
     const workflows = (await reads.workflows()).data;
     if (isWorkflowList02(workflows)) expect(workflows.manifest.version).toBeUndefined();
-    else expect(workflows.workflows.find((w) => w.name === 'bug-ingest')?.description ?? null).toBeNull();
+    else {
+      // Review round 1 c2: the entry is there, its description gone.
+      const bugIngest = workflows.workflows.find((w) => w.name === 'bug-ingest');
+      expect(bugIngest).toBeDefined();
+      expect(bugIngest!.description ?? null).toBeNull();
+    }
     const types = await reads.memoryTypes();
     expect(types.version).toBe(1.5);
     expect(types.types.adr?.id_pattern).toBeUndefined();
