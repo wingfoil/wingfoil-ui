@@ -73,6 +73,8 @@ const apps: FastifyInstance[] = [];
 beforeAll(async () => {
   ws = await TempWorkspace.create('wfui-task-032-writes-');
   template = await buildFixture('kanban', { root: path.join(await realpath(ws.dir), 'kanban') });
+  // Built here, under the hook's timeout, not inside a 30 s test (round 5: a load-bound timeout).
+  await kanban022();
 }, 600_000);
 
 afterEach(async () => {
@@ -909,7 +911,7 @@ describe('reviews F4, S3 (part A), S4 — the commit the write made, whatever th
   });
 });
 
-/** The kanban fixture of WingFoil 0.2.2, built once (`cliBuildFor` installs it into the matrix cache). */
+/** The kanban fixture of WingFoil 0.2.2, built once in `beforeAll` (`cliBuildFor` installs it into the matrix cache). */
 async function kanban022(): Promise<Fixture> {
   template022 ??= await buildFixture('kanban', {
     root: path.join(await realpath(ws.dir), 'kanban-0.2.2'),
