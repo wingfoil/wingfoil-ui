@@ -506,9 +506,24 @@ describe('D46-5 — every WingFoil process runs without optional git locks', () 
     await inherited.version();
     expect(runner.requests).toHaveLength(3);
     // GIT_NO_LAZY_FETCH: D46-7 (review round 2).
-    expect(runner.requests[0]!.env).toEqual({ PATH: '/bin', GIT_OPTIONAL_LOCKS: '0', GIT_NO_LAZY_FETCH: '1' });
-    expect(runner.requests[1]!.env).toEqual({ PATH: '/bin', GIT_OPTIONAL_LOCKS: '0', GIT_NO_LAZY_FETCH: '1' });
-    expect(runner.requests[2]!.env).toEqual({ ...process.env, GIT_OPTIONAL_LOCKS: '0', GIT_NO_LAZY_FETCH: '1' });
+    expect(runner.requests[0]!.env).toEqual({
+      PATH: '/bin',
+      GIT_OPTIONAL_LOCKS: '0',
+      GIT_NO_LAZY_FETCH: '1',
+      GIT_ALLOW_PROTOCOL: 'none',
+    });
+    expect(runner.requests[1]!.env).toEqual({
+      PATH: '/bin',
+      GIT_OPTIONAL_LOCKS: '0',
+      GIT_NO_LAZY_FETCH: '1',
+      GIT_ALLOW_PROTOCOL: 'none',
+    });
+    expect(runner.requests[2]!.env).toEqual({
+      ...withoutAllowProtocol(process.env),
+      GIT_OPTIONAL_LOCKS: '0',
+      GIT_NO_LAZY_FETCH: '1',
+      GIT_ALLOW_PROTOCOL: 'none',
+    });
   });
 
   // Review round 1 n3: on Windows the variable names are case-insensitive — no second spelling.
@@ -516,7 +531,12 @@ describe('D46-5 — every WingFoil process runs without optional git locks', () 
     const { FakeProcessRunner } = await import('../process/fake-runner.js');
     const runner = new FakeProcessRunner().answer({ stdout: '{}' });
     await new WingfoilCli({ cli: resolved, runner, env: { PATH: '/bin', git_optional_locks: '1' } }).json(['paths']);
-    expect(runner.requests[0]!.env).toEqual({ PATH: '/bin', GIT_OPTIONAL_LOCKS: '0', GIT_NO_LAZY_FETCH: '1' });
+    expect(runner.requests[0]!.env).toEqual({
+      PATH: '/bin',
+      GIT_OPTIONAL_LOCKS: '0',
+      GIT_NO_LAZY_FETCH: '1',
+      GIT_ALLOW_PROTOCOL: 'none',
+    });
   });
 
   // Review round 1 M1 (D46-6): no fsmonitor program in any WingFoil process, writes included.
@@ -610,7 +630,10 @@ async function rawDnaRefusal(fx: Fixture): Promise<string> {
 // `protocol.allow=never` (and `GIT_NO_LAZY_FETCH=1`) refuse it before the program starts.
 describe('D46-7 — no lazy fetch: a promisor remote’s program never runs on a read', () => {
   /** `fx` as a partial clone missing the HEAD blobs of `.wingfoil/*.yaml`, with a marker program. */
-  async function promisorTrap(fx: Fixture, variant: 'uploadpack' | 'ssh'): Promise<string> {
+  async function promisorTrap(
+    fx: Fixture,
+    variant: 'uploadpack' | 'ssh' | 'file-allowed' | 'ext-allowed' | 'env-allowed',
+  ): Promise<string> {
     const marker = path.join(root, `promisor-${variant}-${n}.log`);
     const program = path.join(root, `promisor-${variant}-${n}.sh`);
     await writeFile(program, `#!/bin/sh\necho ran >> '${marker}'\nexit 1\n`);
@@ -627,14 +650,65 @@ describe('D46-7 — no lazy fetch: a promisor remote’s program never runs on a
     await set('core.repositoryformatversion', '1');
     await set('extensions.partialClone', 'evil');
     await set('remote.evil.promisor', 'true');
-    if (variant === 'uploadpack') {
-      await set('remote.evil.url', fx.remoteDir);
-      await set('remote.evil.uploadpack', program);
-    } else {
+    if (variant === 'ssh') {
       await set('remote.evil.url', 'ssh://example.invalid/repo.git');
       await set('core.sshCommand', program);
+    } else if (variant === 'ext-allowed') {
+      // Review round 3 M1: a per-protocol setting of the repository wins over `protocol.allow`.
+      await set('remote.evil.url', `ext::${program} %S`);
+      await set('protocol.ext.allow', 'always');
+    } else {
+      await set('remote.evil.url', fx.remoteDir);
+      await set('remote.evil.uploadpack', program);
+      if (variant === 'file-allowed') await set('protocol.file.allow', 'always');
     }
     return marker;
+  }
+
+  /**
+   * A runner standing for a git that ignores `GIT_NO_LAZY_FETCH` (before 2.45.1; e.g. Apple Git
+   * 2.39.3): it drops the variable from every request (review round 3 M1).
+   */
+  function olderGitRunner(): LocalProcessRunner {
+    const runner = new LocalProcessRunner();
+    runners.push(runner);
+    const run = runner.run.bind(runner);
+    runner.run = (request) => {
+      const env = { ...(request.env ?? process.env) };
+      for (const key of Object.keys(env)) if (key.toUpperCase() === 'GIT_NO_LAZY_FETCH') delete env[key];
+      return run({ ...request, env });
+    };
+    return runner;
+  }
+
+  // Review round 3 M1: the repository's own per-protocol settings and an inherited
+  // GIT_ALLOW_PROTOCOL re-enable a transport `protocol.allow=never` refuses; with a git that ignores
+  // GIT_NO_LAZY_FETCH only GIT_ALLOW_PROTOCOL=none stops the lazy fetch.
+  for (const variant of ['file-allowed', 'ext-allowed', 'env-allowed'] as const) {
+    const inherited = (fx: Fixture): NodeJS.ProcessEnv =>
+      variant === 'env-allowed' ? { ...fx.env, GIT_ALLOW_PROTOCOL: 'file:ext' } : fx.env;
+
+    it(`${variant}, a git without GIT_NO_LAZY_FETCH: the pinned CLI's reads never run the program`, async () => {
+      const fx = await freshKanban();
+      const marker = await promisorTrap(fx, variant);
+      const env = inherited(fx);
+      const cli = new WingfoilCli({ cli: await discoverCli(fx.dir, { env }), runner: olderGitRunner(), env });
+      await cli.json(['workflow', 'list']).catch(() => undefined);
+      await cli.json(['memory', 'history'], { positionals: ['task-001-login-form'] }).catch(() => undefined);
+      expect(existsSync(marker), 'the promisor program ran').toBe(false);
+    }, 120_000);
+
+    it(`${variant}, a git without GIT_NO_LAZY_FETCH: the server's memoryLog and status never run it`, async () => {
+      const fx = await freshKanban();
+      const marker = await promisorTrap(fx, variant);
+      const env = inherited(fx);
+      const { GitReads, resolveGit } = await import('../../../server/src/git/git.js');
+      const reads = new GitReads({ git: await resolveGit(env), runner: olderGitRunner(), cwd: fx.dir, env });
+      const head = (await git(fx.dir, ['rev-parse', 'HEAD'], fx.env)).stdout.trim();
+      await reads.memoryLog(['.wingfoil'], head).catch(() => undefined);
+      await reads.status().catch(() => undefined);
+      expect(existsSync(marker), 'the promisor program ran').toBe(false);
+    }, 120_000);
   }
 
   for (const variant of ['uploadpack', 'ssh'] as const) {
@@ -674,11 +748,29 @@ describe('D46-7 — no lazy fetch: a promisor remote’s program never runs on a
       file: process.execPath,
       prefixArgs: ['/p/cli.js'],
     };
-    await new WingfoilCli({ cli: resolved, runner, env: { PATH: '/bin', git_no_lazy_fetch: '0' } }).json(['paths']);
+    await new WingfoilCli({
+      cli: resolved,
+      runner,
+      env: { PATH: '/bin', git_no_lazy_fetch: '0', git_allow_protocol: 'file' },
+    }).json(['paths']);
     expect(runner.requests[0]!.gitConfig).toEqual([
       ['core.fsmonitor', 'false'],
       ['protocol.allow', 'never'],
     ]);
-    expect(runner.requests[0]!.env).toEqual({ PATH: '/bin', GIT_OPTIONAL_LOCKS: '0', GIT_NO_LAZY_FETCH: '1' });
+    expect(runner.requests[0]!.env).toEqual({
+      PATH: '/bin',
+      GIT_OPTIONAL_LOCKS: '0',
+      GIT_NO_LAZY_FETCH: '1',
+      GIT_ALLOW_PROTOCOL: 'none',
+    });
   });
 });
+
+/** `env` without any spelling of GIT_ALLOW_PROTOCOL, GIT_OPTIONAL_LOCKS or GIT_NO_LAZY_FETCH. */
+function withoutAllowProtocol(env: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
+  const out: NodeJS.ProcessEnv = {};
+  for (const [k, v] of Object.entries(env)) {
+    if (!['GIT_ALLOW_PROTOCOL', 'GIT_OPTIONAL_LOCKS', 'GIT_NO_LAZY_FETCH'].includes(k.toUpperCase())) out[k] = v;
+  }
+  return out;
+}

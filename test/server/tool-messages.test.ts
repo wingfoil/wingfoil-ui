@@ -309,6 +309,34 @@ describe('every producer of a verbatim tool message goes through the sanitiser',
     expect(out[200]).toBe('50 more warnings omitted');
   });
 
+  // Review round 3 n2: the `message` of `memory search` (`/elements`) is tool text too.
+  it('memory search: its message sanitised', async () => {
+    const root = '/nowhere/project';
+    const stdout = JSON.stringify({ query: '', matches: [], message: `no documents in ${root}/docs ${MARKER}` });
+    const cli = new WingfoilCli({
+      cli: { source: 'path', projectRoot: root, file: process.execPath, prefixArgs: ['/x/cli.js'] },
+      runner: new FakeProcessRunner().answer({ stdout }),
+    });
+    expect((await cli.run('memory search')).data.message).toBe(`no documents in <project>/docs ${SAFE}`);
+  });
+
+  // Review round 3 n1: the warnings are taken from the first lines of stderr; the rest is counted,
+  // never split into an array.
+  it('boundedLines: the first non-empty lines, and a count of the others', async () => {
+    const { boundedLines } = await import('../../server/src/cli/commands.js');
+    expect(boundedLines('\n a \n\nb\n  \nc\nd\n\ne\n', 2)).toEqual({ lines: ['a', 'b'], omitted: 3 });
+    expect(boundedLines('a\r\nb', 5)).toEqual({ lines: ['a', 'b'], omitted: 0 });
+    expect(boundedLines('', 5)).toEqual({ lines: [], omitted: 0 });
+    const huge = 'x\n'.repeat(2_000_000);
+    const split = vi.spyOn(String.prototype, 'split');
+    try {
+      expect(boundedLines(huge, 200)).toEqual({ lines: Array(200).fill('x'), omitted: 1_999_800 });
+      expect(split).not.toHaveBeenCalled();
+    } finally {
+      split.mockRestore();
+    }
+  });
+
   it('git-derived file names (detail.files of local-changes-in-the-way) come out escaped', () => {
     expect(relativeToProject([`docs/a${RLO}b.md`, 'x.md'], 'docs/')).toEqual(['a\\u202eb.md', '../x.md']);
   });

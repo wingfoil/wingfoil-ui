@@ -88,7 +88,7 @@ describe('GitReads — the commands it runs', () => {
     expect(runner.requests[0]).toMatchObject({
       file: '/usr/bin/git',
       cwd: '/p',
-      env: { HOME: '/h', GIT_NO_LAZY_FETCH: '1' },
+      env: { HOME: '/h', GIT_NO_LAZY_FETCH: '1', GIT_ALLOW_PROTOCOL: 'none' },
       // W4-5 (security review S1): no fsmonitor program in the server's own reads.
       args: [
         '-c',
@@ -275,8 +275,13 @@ describe('gitEnv — inherited GIT_* variables never redirect a read (review F2)
 
   it('GitReads passes the cleaned environment to the runner', async () => {
     const runner = new FakeProcessRunner().answer({ stdout: 'a@b\n' });
-    await new GitReads({ git: '/usr/bin/git', runner, cwd: '/p', env: { HOME: '/h', GIT_DIR: '/x' } }).email();
-    expect(runner.requests[0]!.env).toEqual({ HOME: '/h', GIT_NO_LAZY_FETCH: '1' });
+    await new GitReads({
+      git: '/usr/bin/git',
+      runner,
+      cwd: '/p',
+      env: { HOME: '/h', GIT_DIR: '/x', Git_Allow_Protocol: 'file' },
+    }).email();
+    expect(runner.requests[0]!.env).toEqual({ HOME: '/h', GIT_NO_LAZY_FETCH: '1', GIT_ALLOW_PROTOCOL: 'none' });
   });
 });
 

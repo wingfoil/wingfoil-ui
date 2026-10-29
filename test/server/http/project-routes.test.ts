@@ -91,6 +91,8 @@ async function start(
     failLog?: boolean;
     name?: string;
     failUpdate?: boolean;
+    /** Where the logger writes (default: nowhere). */
+    log?: string[];
   } = {},
 ): Promise<Console> {
   n += 1;
@@ -111,7 +113,16 @@ async function start(
   // A state that cannot be written (read-only folder, full disk).
   if (options.failUpdate)
     store.update = () => Promise.reject(Object.assign(new Error('EROFS /secret/path'), { name: 'StateWriteError' }));
-  const logger = createLogger(sink);
+  const logger = createLogger(
+    options.log
+      ? new Writable({
+          write: (chunk: Buffer, _e, cb) => {
+            options.log!.push(chunk.toString());
+            cb();
+          },
+        })
+      : sink,
+  );
   app = await buildApp({
     staticDir: '/nonexistent',
     logger,
@@ -221,6 +232,33 @@ describe('GET /api/p/:pid — the project header', () => {
     const elements = await c.get(`/api/p/${c.pid}/elements`);
     expect(elements.status).toBe(200);
     expect(elements.body.elements).toHaveLength(5);
+  });
+});
+
+// Review round 3 m1 (pre-existing): a failed git status read (a bad configuration value) is a 500
+// whose log line names the kind and the exit only, never git's message — it quotes the value.
+describe("review round 3 m1 — a failed git read: git's message in neither the log nor the body", () => {
+  it('a bad numeric config value from an included working-tree file', async () => {
+    const ESC = String.fromCharCode(0x1b);
+    const MARK = 'EVIL-MARKER-4711';
+    const log: string[] = [];
+    let dir = '';
+    const c = await start(kanbanTemplate, {
+      log,
+      prepare: async (fx) => {
+        dir = fx.dir;
+        await writeFile(path.join(fx.dir, 'evil.cfg'), `[core]\n\tbigFileThreshold = "${ESC}[31m${MARK}"\n`);
+        await git(fx.dir, ['config', 'include.path', '../evil.cfg'], fx.env);
+      },
+    });
+    const res = await c.get(`/api/p/${c.pid}`);
+    expect(res.status).toBe(500);
+    expect(res.body).toEqual({ error: { code: 'internal', message: 'Internal error' } });
+    const written = log.join('');
+    expect(written).toMatch(/git read failed/);
+    expect(written).not.toContain(MARK);
+    expect(written).not.toContain(ESC);
+    expect(written).not.toContain(dir);
   });
 });
 
