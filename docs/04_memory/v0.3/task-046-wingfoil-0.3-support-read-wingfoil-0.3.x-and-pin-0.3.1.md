@@ -504,3 +504,22 @@ green on `567bf4a`). The gate runs on `483a2aa` were stopped before their slot (
 
 This entry is a docs-only commit after `db6524f`; on it the light gates, the docs tests and
 `check_tasks.py` were re-run (`task046-r2-light-final.log`).
+
+### review round 3 (2026-10-29)
+
+Both fresh reviewers: **FAIL**; the round-2 fixes verified, the n6 decision (the CLI's error is its
+last line) agreed by the correctness reviewer and confirmed by the approver, who confirmed fixing
+every finding here. Red tests in `b7b26c4`; fixes in `e728268`; docs in `4bc3252`. Logs:
+`task046-r3-*` in the session's scratchpad.
+
+| Finding | What changed | Commit | Red / guard |
+|---------|--------------|--------|-------------|
+| **M1** (major) — D46-7's `protocol.allow=never` was bypassed: git reads `protocol.<name>.allow` (the repository's `.git/config`, which the M2 attacker controls) and an inherited `GIT_ALLOW_PROTOCOL` before the `protocol.allow` default, so on a git that ignores `GIT_NO_LAZY_FETCH` the lazy fetch ran | `READ_GIT_ENV` (`git.ts`): `GIT_ALLOW_PROTOCOL=none` and `GIT_NO_LAZY_FETCH=1`, any inherited spelling removed (case-insensitive), in every `GitReads` read and — through `CLI_GIT_ENV` — every WingFoil process; `protocol.allow=never` and `GIT_NO_LAZY_FETCH=1` kept as extra layers; `git/transport.ts` and `projects/clone.ts` keep setting their own allowed list. D46-7, spec-001 §1, spec-010 §6, CHANGELOG reworded; the round-2 note "each setting alone keeps them green" corrected above | `b7b26c4`, `e728268` | 6 real cases — `protocol.file.allow=always` with a local `uploadpack`, `protocol.ext.allow=always` with `remote.evil.url = ext::<marker> %S`, an inherited `GIT_ALLOW_PROTOCOL=file:ext` — each through the pinned CLI (`workflow list`, `memory history`) and the server's `memoryLog`/`status`, all with a runner that drops `GIT_NO_LAZY_FETCH` (an older git): the marker ran in all 6 before the fix (`task046-r3-red-m1.log`), never after (`task046-r3-green-m1.log`); with `GIT_ALLOW_PROTOCOL` removed from `READ_GIT_ENV` all 6 fail again (`task046-r3-guard-m1.log`). The fetch, pull, push and clone suites, with http, sync, writes, projects and the launcher: 34 files, 982 tests passed (`task046-r3-transport-tests.log`) |
+| **m1** (minor, pre-existing) — a failed `git status` read put git's stderr into the log verbatim (an included working-tree file setting `core.bigFileThreshold` to an ESC-coloured marker: `fatal: bad numeric config value …` logged raw on every `/api/p/:pid*` route) | `refusalOf` maps a `GitReadError` to the plain 500 `internal` and logs `{ kind: 'git-read', ended, exitCode }` only, as the repository check does; no code added; spec-004 §5 `internal` row | `b7b26c4`, `e728268` | project-routes: the body `{ code: 'internal', message: 'Internal error' }`, the log holds `git read failed` and neither the marker, ESC nor the fixture folder — red: the raw `GitReadError` message in the log (`task046-r3-red-other.log`) |
+| **n1** — the whole `stderr` (up to 64 MiB) split into an array before 200 lines were kept | `boundedLines` (`commands.ts`): the first 200 non-empty lines by an `indexOf` scan, the rest counted; `stderrWarnings` in the adapter | `b7b26c4`, `e728268` | 2 000 000 lines: 200 kept, 1 999 800 counted, `String.prototype.split` never called; CR LF, blank and whitespace-only lines — red: no `boundedLines` |
+| **n2** — `memory search`'s `message` reached `/elements` unsanitised | `toolText` sanitises it; the tripwire lists it | `b7b26c4`, `e728268` | the project folder and ESC/RLO in the message → `<project>`, escapes — failed before |
+| **c7** — spec-001 §2's exit-1 row still described the backwards scan | "the `error` of the whole text or of its last line only, otherwise the text as written"; Process Note | `4bc3252` | — |
+
+The unit expectations of the CLI's and the reads' environment (`adapter.test.ts`, `git.test.ts`) now
+include `GIT_ALLOW_PROTOCOL: 'none'`, and an inherited `git_allow_protocol` / `Git_Allow_Protocol` is
+shown replaced.
