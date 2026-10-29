@@ -2,7 +2,7 @@
 // fixtures: the process audit (TT-ARC-02), the result classification and the 30 s timeout
 // (TT-INT-04), S-27.1 on the adapter side.
 import { existsSync } from 'node:fs';
-import { appendFile, mkdtemp, readFile, realpath, rm, writeFile } from 'node:fs/promises';
+import { appendFile, mkdtemp, readFile, realpath, rm, utimes, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
@@ -486,4 +486,39 @@ describe('classification without processes (fake runner)', () => {
     });
     await expect(cli.version()).rejects.toBeInstanceOf(CliOutputError);
   });
+});
+
+// task-046 D46-5: WingFoil 0.3.1's `workflow list` runs `git status` with optional locks, which
+// rewrites a stale `.git/index`; every WingFoil process runs with `GIT_OPTIONAL_LOCKS=0`, so a read
+// leaves the index as it was (task-025 AC-5). Commits take required locks: writes are unaffected.
+describe('D46-5 — every WingFoil process runs without optional git locks', () => {
+  const resolved = { source: 'project' as const, projectRoot: '/p', file: process.execPath, prefixArgs: ['/p/cli.js'] };
+
+  it('adds GIT_OPTIONAL_LOCKS=0 to the given environment and to the inherited one, for every command', async () => {
+    const { FakeProcessRunner } = await import('../process/fake-runner.js');
+    const runner = new FakeProcessRunner().answer({ stdout: '{}' });
+    const given = new WingfoilCli({ cli: resolved, runner, env: { PATH: '/bin', GIT_OPTIONAL_LOCKS: '1' } });
+    await given.json(['paths']);
+    await given.json(['memory', 'submit'], { positionals: ['x'] });
+    const inherited = new WingfoilCli({ cli: resolved, runner: runner.answer({ stdout: '0.3.1' }) });
+    await inherited.version();
+    expect(runner.requests).toHaveLength(3);
+    expect(runner.requests[0]!.env).toEqual({ PATH: '/bin', GIT_OPTIONAL_LOCKS: '0' });
+    expect(runner.requests[1]!.env).toEqual({ PATH: '/bin', GIT_OPTIONAL_LOCKS: '0' });
+    expect(runner.requests[2]!.env).toEqual({ ...process.env, GIT_OPTIONAL_LOCKS: '0' });
+  });
+
+  it('the pinned workflow list leaves a stale .git/index unchanged (real CLI)', async () => {
+    const fx = await freshKanban();
+    const { cli } = await adapterFor(fx);
+    const file = path.join(fx.dir, '.wingfoil', 'dna.yaml');
+    for (let i = 0; i < 2; i += 1) {
+      // A tracked file whose stat no longer matches the index entry: git would refresh the index.
+      const later = new Date(Date.now() + 5_000 * (i + 1));
+      await utimes(file, later, later);
+      const before = await readFile(path.join(fx.dir, '.git', 'index'));
+      await cli.json(['workflow', 'list']);
+      expect((await readFile(path.join(fx.dir, '.git', 'index'))).equals(before)).toBe(true);
+    }
+  }, 120_000);
 });
