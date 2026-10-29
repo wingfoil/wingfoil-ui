@@ -597,3 +597,82 @@ async function rawDnaRefusal(fx: Fixture): Promise<string> {
   });
   return r.stderr;
 }
+
+// Review round 2 M2 (D46-7): a partial clone whose promisor remote names a program — an
+// `uploadpack` for a local remote, a `core.sshCommand` for an ssh one — runs it when a read needs a
+// missing blob (git's lazy fetch). No WingFoil process and no server git read does any transport:
+// `protocol.allow=never` (and `GIT_NO_LAZY_FETCH=1`) refuse it before the program starts.
+describe('D46-7 — no lazy fetch: a promisor remote’s program never runs on a read', () => {
+  /** `fx` as a partial clone missing the HEAD blobs of `.wingfoil/*.yaml`, with a marker program. */
+  async function promisorTrap(fx: Fixture, variant: 'uploadpack' | 'ssh'): Promise<string> {
+    const marker = path.join(root, `promisor-${variant}-${n}.log`);
+    const program = path.join(root, `promisor-${variant}-${n}.sh`);
+    await writeFile(program, `#!/bin/sh\necho ran >> '${marker}'\nexit 1\n`);
+    await chmod(program, 0o755);
+    const tree = (await git(fx.dir, ['ls-tree', 'HEAD', '.wingfoil/'], fx.env)).stdout;
+    const blobs = [...tree.matchAll(/^\d+ blob ([0-9a-f]{40})\t.*\.ya?ml$/gm)].map((m) => m[1]!);
+    expect(blobs.length).toBeGreaterThan(0);
+    for (const sha of blobs) {
+      const loose = path.join(fx.dir, '.git', 'objects', sha.slice(0, 2), sha.slice(2));
+      expect(existsSync(loose), `${sha} is a loose object`).toBe(true);
+      await rm(loose);
+    }
+    const set = (key: string, value: string) => git(fx.dir, ['config', key, value], fx.env);
+    await set('core.repositoryformatversion', '1');
+    await set('extensions.partialClone', 'evil');
+    await set('remote.evil.promisor', 'true');
+    if (variant === 'uploadpack') {
+      await set('remote.evil.url', fx.remoteDir);
+      await set('remote.evil.uploadpack', program);
+    } else {
+      await set('remote.evil.url', 'ssh://example.invalid/repo.git');
+      await set('core.sshCommand', program);
+    }
+    return marker;
+  }
+
+  for (const variant of ['uploadpack', 'ssh'] as const) {
+    it(`${variant}: workflow list and memory history of the pinned CLI never run it (real CLI)`, async () => {
+      const fx = await freshKanban();
+      const marker = await promisorTrap(fx, variant);
+      const { cli } = await adapterFor(fx);
+      // The reads may fail (the blobs are missing): what matters is that nothing was fetched.
+      await cli.json(['workflow', 'list']).catch(() => undefined);
+      await cli.json(['memory', 'history'], { positionals: ['task-001-login-form'] }).catch(() => undefined);
+      expect(existsSync(marker), 'the promisor program ran').toBe(false);
+    }, 120_000);
+
+    it(`${variant}: the server's Memory-events read (git log -p) never runs it`, async () => {
+      const fx = await freshKanban();
+      const marker = await promisorTrap(fx, variant);
+      const { GitReads, resolveGit } = await import('../../../server/src/git/git.js');
+      const reads = new GitReads({
+        git: await resolveGit(fx.env),
+        runner: new LocalProcessRunner(),
+        cwd: fx.dir,
+        env: fx.env,
+      });
+      const head = (await git(fx.dir, ['rev-parse', 'HEAD'], fx.env)).stdout.trim();
+      await reads.memoryLog(['.wingfoil'], head).catch(() => undefined);
+      await reads.status().catch(() => undefined);
+      expect(existsSync(marker), 'the promisor program ran').toBe(false);
+    }, 120_000);
+  }
+
+  it('asks the runner for protocol.allow=never and sets GIT_NO_LAZY_FETCH=1 on every command', async () => {
+    const { FakeProcessRunner } = await import('../process/fake-runner.js');
+    const runner = new FakeProcessRunner().answer({ stdout: '{}' });
+    const resolved = {
+      source: 'project' as const,
+      projectRoot: '/p',
+      file: process.execPath,
+      prefixArgs: ['/p/cli.js'],
+    };
+    await new WingfoilCli({ cli: resolved, runner, env: { PATH: '/bin', git_no_lazy_fetch: '0' } }).json(['paths']);
+    expect(runner.requests[0]!.gitConfig).toEqual([
+      ['core.fsmonitor', 'false'],
+      ['protocol.allow', 'never'],
+    ]);
+    expect(runner.requests[0]!.env).toEqual({ PATH: '/bin', GIT_OPTIONAL_LOCKS: '0', GIT_NO_LAZY_FETCH: '1' });
+  });
+});

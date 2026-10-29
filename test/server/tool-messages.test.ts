@@ -10,8 +10,9 @@
 // below and in the route suites are what prove the sanitised output.
 import { readdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
-import { describe, expect, it } from 'vitest';
-import { CliRefusedError, WingfoilCli } from '../../server/src/cli/adapter.js';
+import { describe, expect, it, vi } from 'vitest';
+import { CliRefusedError, usageKind, WingfoilCli } from '../../server/src/cli/adapter.js';
+import { detectVersion } from '../../server/src/cli/version.js';
 import { GitTransport, relativeToProject } from '../../server/src/writes/transport.js';
 import { REPO_ROOT } from '../harness/cli.js';
 import { FakeProcessRunner } from './process/fake-runner.js';
@@ -206,6 +207,80 @@ describe('every producer of a verbatim tool message goes through the sanitiser',
     });
     const error = (await cli.json(['paths']).catch((e: unknown) => e)) as CliRefusedError;
     expect(error.cliMessage).toBe(`refused ${SAFE}`);
+  });
+
+  // Review round 2 n4: `diagnosticsOmitted` is the server's count, never the CLI's.
+  it('workflow list: a diagnosticsOmitted the CLI sends is dropped', async () => {
+    const stdout = JSON.stringify({
+      baseline: { rev: 'HEAD', commit: 'a'.repeat(40) },
+      workflows: [],
+      diagnostics: [{ code: 'W_X', severity: 'warning', file: 'f', path: '', message: 'm' }],
+      diagnosticsOmitted: 5,
+    });
+    const cli = new WingfoilCli({
+      cli: { source: 'path', projectRoot: '/nowhere', file: process.execPath, prefixArgs: ['/x/cli.js'] },
+      runner: new FakeProcessRunner().answer({ stdout }),
+    });
+    const out = (await cli.run('workflow list')).data as unknown as Record<string, unknown>;
+    expect(out).not.toHaveProperty('diagnosticsOmitted');
+  });
+
+  // Review round 2 n5, n6: the CLI writes its refusal last — the last line when it is the CLI's
+  // `{"error": …}` form, else the text as written; no line before it is parsed.
+  it('a refusal: the error of the last line only, with one parse per candidate', async () => {
+    const many = Array.from({ length: 100_000 }, (_, i) => JSON.stringify({ warning: `w${i}` }));
+    const cli = (stderr: string) =>
+      new WingfoilCli({
+        cli: { source: 'path', projectRoot: '/nowhere', file: process.execPath, prefixArgs: ['/x/cli.js'] },
+        runner: new FakeProcessRunner().answer({ exitCode: 1, stderr }),
+      });
+    const parse = vi.spyOn(JSON, 'parse');
+    try {
+      const error = (await cli([...many, JSON.stringify({ error: 'refused' })].join('\n'))
+        .json(['paths'])
+        .catch((e: unknown) => e)) as CliRefusedError;
+      expect(error.cliMessage).toBe('refused');
+      expect(parse.mock.calls.length).toBeLessThanOrEqual(3);
+    } finally {
+      parse.mockRestore();
+    }
+    // n6: an earlier `{"error"}` (a hook's) does not win over a plain-text end: the text as written.
+    const mixed = (await cli([JSON.stringify({ error: 'from a hook' }), 'TypeError: boom'].join('\n'))
+      .json(['paths'])
+      .catch((e: unknown) => e)) as CliRefusedError;
+    expect(mixed.cliMessage).toBe('{"error":"from a hook"}\nTypeError: boom');
+  });
+
+  // Review round 2 nit: the logged kind of a usage error reads the last line too.
+  it('usageKind: the kind of the last JSON error line, after warning lines', () => {
+    expect(
+      usageKind(
+        [JSON.stringify({ warning: 'w: x' }), JSON.stringify({ error: 'missing required argument: --reason' })].join(
+          '\n',
+        ),
+      ),
+    ).toBe('missing required argument');
+    expect(usageKind("error: unknown option '--bogus'")).toBe('error');
+  });
+
+  // Review round 2 n7: the header's `--version` text is redacted with the adapter's own roots (the
+  // CLI's package folder too), by the adapter.
+  it('detectVersion: the printed text through the adapter sanitiser (project and CLI package folders)', async () => {
+    const cli = new WingfoilCli({
+      cli: {
+        source: 'path',
+        projectRoot: '/nowhere/project',
+        packageDir: '/nowhere/global/wingfoil',
+        file: process.execPath,
+        prefixArgs: ['/x/cli.js'],
+      },
+      runner: new FakeProcessRunner().answer({
+        stdout: `banana /nowhere/global/wingfoil/x /nowhere/project/y ${MARKER}`,
+      }),
+    });
+    const detected = await detectVersion(cli);
+    expect(detected).toMatchObject({ version: null, state: 'unrecognised' });
+    expect(detected.text).toBe(`banana <wingfoil>/x <project>/y ${SAFE}`);
   });
 
   it('git-derived file names (detail.files of local-changes-in-the-way) come out escaped', () => {

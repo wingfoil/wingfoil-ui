@@ -93,7 +93,7 @@ describe('LocalProcessRunner', () => {
   it('renders request.gitConfig as GIT_CONFIG_COUNT/KEY/VALUE, replacing any inherited ones', async () => {
     const result = await runner().run({
       ...node(
-        'const e = process.env; process.stdout.write(JSON.stringify(Object.keys(e).filter((k) => /^GIT_CONFIG/i.test(k)).sort().map((k) => [k, e[k]])))',
+        'const e = process.env; process.stdout.write(JSON.stringify(Object.keys(e).filter((k) => /^GIT_CONFIG_(COUNT|KEY_\\d+|VALUE_\\d+|PARAMETERS)$/i.test(k)).sort().map((k) => [k, e[k]])))',
       ),
       env: {
         ...process.env,
