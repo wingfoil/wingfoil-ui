@@ -16,8 +16,10 @@ release `v0.2` the git tag `v0.2.0` and the npm version `wingfoil-ui@0.2.0`.
   0.3's configuration diagnostics sanitised; its warnings, written as JSON lines, are shown as
   their text. The workflow capabilities and the agent launch of WingFoil 0.3 are not used by this
   release: never shown as available, nor as missing. Every WingFoil process the console runs works
-  without optional git locks and without a repository's fsmonitor program, so a read leaves
-  `.git/index` as it was and runs no program the repository configures.
+  without optional git locks, without a repository's fsmonitor program and without any transport (a
+  partial clone's lazy fetch is refused, as in the console's own git reads), so a read leaves
+  `.git/index` as it was; a filter driver the configuration names still runs in status reads, as in
+  the user's own `git status` (spec-010 §6).
 
 ## [0.2.0] - 2026-10-20
 

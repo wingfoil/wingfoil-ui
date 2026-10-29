@@ -38,10 +38,17 @@ stamp, `workflow list`) were captured on 2026-10-28 from **WingFoil 0.3.1** on t
   `.git/index` as it was — WingFoil 0.3's reads run `git status`, which would rewrite a stale index
   (task-025 AC-5); commits take required locks and are unaffected. Any other spelling of the name is
   removed first (case-insensitive on Windows).
-- Every git the CLI runs gets `core.fsmonitor=false` (task-046 D46-6, spec-010 §6 W4-5): the runner
-  adds it as `GIT_CONFIG_COUNT`/`GIT_CONFIG_KEY_0`/`GIT_CONFIG_VALUE_0` after dropping the inherited
-  `GIT_CONFIG_*` variables, for reads and writes alike — a repository's fsmonitor program never runs
-  on a console read (WingFoil 0.3's `workflow list` runs `git status` on every `GET /config`).
+- Every git the CLI runs gets `core.fsmonitor=false` (task-046 D46-6, spec-010 §6 W4-5) and
+  `protocol.allow=never` (D46-7): the runner adds them as `GIT_CONFIG_COUNT`/`GIT_CONFIG_KEY_<n>`/
+  `GIT_CONFIG_VALUE_<n>` after dropping the inherited `GIT_CONFIG_COUNT`, `GIT_CONFIG_KEY_<n>`,
+  `GIT_CONFIG_VALUE_<n>` and `GIT_CONFIG_PARAMETERS` (`GIT_CONFIG_GLOBAL` and `GIT_CONFIG_NOSYSTEM`
+  are kept: they choose the global configuration), for reads and writes alike, with
+  `GIT_NO_LAZY_FETCH=1` — a repository's fsmonitor program never runs on a console read (WingFoil 0.3's
+  `workflow list` runs `git status` on every `GET /config`), nor does a promisor remote's
+  `uploadpack` or `core.sshCommand` on a lazy fetch. No CLI verb the server runs fetches or pushes
+  (`GIT_TRACE` of every consumed command on 0.2.2 and 0.3.1: `add`, `commit`, `config`, `diff`, `log`,
+  `maintenance`, `rev-parse`, `show`, and on 0.3.1 `cat-file`, `for-each-ref`, `hash-object`,
+  `ls-files`, `ls-tree`, `status`).
 - User input (titles, reasons, ids) is always one argument of its own; values never start with
   `-` unless the CLI option expects it (`--reason=<text>` form when the text starts with `-`).
 - Writes are serialised per project (`adr-001` D5).
@@ -257,4 +264,6 @@ its schema, and run the §4.1 resolution check. A failure blocks the matrix adva
   configured fsmonitor ran on a console read); §2 exit 2 is JSON on 0.3.x (review c1), a refusal's
   `error` is read from the last JSON line that has one, at most 200 warnings; §3 at most 200
   `workflow list` diagnostics, `diagnosticsOmitted` (review m1); `scope` and `wingfoil_version` name
-  0.2.2 and 0.3.1.
+  0.2.2 and 0.3.1. Review round 2 (M2): §1 `protocol.allow=never` and `GIT_NO_LAZY_FETCH=1` for every
+  git the CLI runs (D46-7); the dropped variables named; §2 the CLI's error is its whole text or its
+  last line (n5, n6); `diagnosticsOmitted` is never taken from the CLI (n4).

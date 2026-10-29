@@ -291,9 +291,14 @@ so the sidebar shows it (Y-06.1, Y-06.2).
   Unattended runs and the server's own git reads (status, …) also run with
   `-c core.fsmonitor=false`, and so does every git the WingFoil CLI runs for the server (task-046
   D46-6: `core.fsmonitor=false` in its environment configuration; WingFoil 0.3's reads run
-  `git status`); the filter residual below applies to those status reads as to the server's. Accepted residual (W4-11): a `filter.<x>.clean` that such a
-  configuration names still runs in the server's status reads once the user's own pull or Update
-  brought it, as in the user's own `git status`.
+  `git status`). The server's reads and every git of the CLI also run with no transport
+  (`protocol.allow=never`, `GIT_NO_LAZY_FETCH=1`; task-046 D46-7): a partial clone's lazy fetch of a
+  missing object, which would run a promisor remote's `uploadpack` or `core.sshCommand`, is refused
+  before any program starts; the transport commands (`fetch`, `pull`, `push`, `clone`) keep their own
+  protocol rules. Accepted residual (W4-11): a filter driver that the configuration names —
+  `filter.<x>.clean` or `filter.<x>.process`, whether it comes from an included file or from the
+  repository's own `.git/config` — still runs in the status reads of the server and of the CLI
+  (WingFoil 0.3's `workflow list`), as in the user's own `git status`.
 - **Declared residual of the automatic update** (W4-16, decided by the approver): `autoUpdate` is
   off by default (spec-006 §2). Turned on, the console does on a timer what `git pull` does: the
   incoming commits can run commands that the user's **own** git configuration points at — a filter
@@ -525,3 +530,7 @@ Rows 7–9 do not apply (no element).
 - 2026-10-29 — amended in dev-loop task-046 review round 1 (M1, decided by the approver): §6 no
   fsmonitor in the git that the WingFoil CLI runs for the server either (D46-6); the accepted filter
   residual covers its status reads too.
+- 2026-10-29 — amended in dev-loop task-046 review round 2 (M2, n8; decided by the approver): §6 no
+  transport in the server's reads and the CLI's git (D46-7: a promisor remote's program ran on a
+  lazy fetch); the filter residual names `filter.<x>.process` and the local `.git/config` too, and the
+  CLI's status reads.

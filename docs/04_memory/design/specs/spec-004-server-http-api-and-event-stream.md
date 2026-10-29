@@ -72,7 +72,7 @@ JSON; every request and response body has a schema in `contracts/api/`.
 | `POST /api/projects` `{path}` | add a local folder → 201 with the item | v0.1 |
 | `POST /api/projects/clone` `{url, directory?}` | clone a remote into a new empty folder, then add it (write class c) → 201 with the item | v0.1 |
 | `DELETE /api/projects/:pid` | remove from the list (no file is touched) → 204, no body | v0.1 |
-| `GET /api/p/:pid` | project header: name, WingFoil version and range state, identity, role views, repository status | v0.1 |
+| `GET /api/p/:pid` | project header: name, WingFoil version and range state (`wingfoil.text`: the printed `--version` text through the sanitiser of tool messages, task-046), identity, role views, repository status | v0.1 |
 | `PUT /api/p/:pid/role-view` `{role}` | remember the role view (local state) | v0.1 |
 | `GET /api/p/:pid/config` | DNA, paths, workflows (as the CLI's version line answers `workflow list`, spec-001 §3: the 0.2.x or the 0.3.x shape; every string of a 0.3.x `diagnostics` entry and its `message` sanitised like the CLI warnings, at most 200 diagnostics with `diagnosticsOmitted` counting the rest — read by no view yet), resolved types (spec-001 §4.1); effective `ui.yaml` with origin of each value since v0.3 (REQ-ARC-07) | v0.1 |
 | `GET /api/p/:pid/elements[?archived=true]` | elements with their descriptor (spec-003) and local-changes marker | v0.1 |
@@ -208,6 +208,11 @@ with 0 processes is thus required for governed writes, update and push — the s
 REQ-SEC-08's fit criterion (SARD `05` v0.6), which excludes fetch and the per-user settings.
 
 ### 5. Responses
+
+The CLI's `stderr` warnings (spec-001 §2) a read answer carries — a `/config` section's
+`warnings`, the `warnings` of `/elements` — are its sanitised lines, at most 200, then one line `<n>
+more warnings omitted` (task-046). The `warnings` of `/directives` are the `directives list` output's
+own field (spec-001 §3), passed on as the CLI answers it.
 
 - Success of a write (`write.response.schema.json`): `{ result: <CLI output>, commits: [{ sha,
   subject }], push: { status, code?, message? } }` — `status` is `pushed`, `off` or `failed`
@@ -392,7 +397,8 @@ goes away by itself when the stream reconnects. A network failure is not rendere
   version line (0.2.x or 0.3.x, spec-001 §3, §5), the 0.3.x `diagnostics` and `message` through the
   sanitiser of tool messages; `GET /api/p/:pid` capability reasons gain `not-in-release` (spec-001
   §6, D46-2). Decided by the approver.
-- 2026-10-29 — amended in dev-loop task-046 review round 1 (m1, n1; decided by the approver): §3
-  `/config` passes at most 200 workflow diagnostics (`diagnosticsOmitted`) and 200 warnings per
-  section; `GET /api/p/:pid` `wingfoil.text` is the printed `--version` text through the sanitiser of
-  tool messages.
+- 2026-10-29 — amended in dev-loop task-046 review rounds 1–2 (m1, n1, c6; decided by the
+  approver): §3 `/config` passes at most 200 workflow diagnostics (`diagnosticsOmitted`); the CLI's
+  `stderr` warnings of a read answer (`/config` sections, `/elements`) hold at most 200 lines, then
+  one counting the rest (§5); `GET /api/p/:pid` `wingfoil.text` is the printed
+  `--version` text through the sanitiser of tool messages (§3 row).

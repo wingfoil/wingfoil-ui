@@ -35,7 +35,9 @@ export interface ProcessRequest {
   /**
    * git settings the server adds to the child's configuration, and to that of every git it runs
    * (task-046 D46-6): rendered as `GIT_CONFIG_COUNT`, `GIT_CONFIG_KEY_<n>`, `GIT_CONFIG_VALUE_<n>`
-   * after `gitEnv` dropped the inherited ones. Absent or empty: none.
+   * after `gitEnv` dropped the inherited `GIT_CONFIG_COUNT`, `GIT_CONFIG_KEY_<n>`, `GIT_CONFIG_VALUE_<n>`
+   * and `GIT_CONFIG_PARAMETERS` (`GIT_CONFIG_GLOBAL` and `GIT_CONFIG_NOSYSTEM` are kept). Absent or
+   * empty: none.
    */
   gitConfig?: readonly (readonly [key: string, value: string])[];
   /** Kill the process after this many milliseconds; `null` for no timeout (default 30 s). */
