@@ -554,6 +554,7 @@ describe('D46-5 — every WingFoil process runs without optional git locks', () 
       expect(r.gitConfig).toEqual([
         ['core.fsmonitor', 'false'],
         ['protocol.allow', 'never'],
+        ['log.showSignature', 'false'],
       ]);
     }
   });
@@ -756,6 +757,7 @@ describe('D46-7 — no lazy fetch: a promisor remote’s program never runs on a
     expect(runner.requests[0]!.gitConfig).toEqual([
       ['core.fsmonitor', 'false'],
       ['protocol.allow', 'never'],
+      ['log.showSignature', 'false'],
     ]);
     expect(runner.requests[0]!.env).toEqual({
       PATH: '/bin',

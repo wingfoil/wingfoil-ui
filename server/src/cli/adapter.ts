@@ -404,6 +404,9 @@ function cliError(text: string): string | undefined {
 const CLI_GIT_CONFIG: readonly (readonly [string, string])[] = [
   ['core.fsmonitor', 'false'],
   ['protocol.allow', 'never'],
+  // No signature check in a history read (review round 5 s-minor-1: 0.2.2's `git log --follow`
+  // would run a configured `gpg.program`); the server's own log reads set it too.
+  ['log.showSignature', 'false'],
 ];
 
 /** The git variables of every WingFoil process (task-046 D46-5, D46-7). */

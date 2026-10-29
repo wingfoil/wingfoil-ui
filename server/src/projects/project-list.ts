@@ -273,6 +273,8 @@ export class ProjectList {
         await this.checkWingfoil(root, { source: 'clone' });
         // No CLI of the cloned repository runs at clone time (it is code just downloaded, decided by
         // the user 2026-10-06): the folder name for now, the DNA name refreshed on the first open.
+        // At clone time only: the first open runs the clone's own `node_modules/wingfoil` when it
+        // commits one (adr-001 D2, the project's own CLI first; task-046 review round 5).
         const name = path.basename(root);
         return await this.append({ path: root, name, remote: url });
       } catch (error) {

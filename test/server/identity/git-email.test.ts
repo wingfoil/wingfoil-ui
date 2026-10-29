@@ -116,7 +116,8 @@ describe('readGitEmail — through the runner port', () => {
     expect(runner.requests).toHaveLength(1);
     expect(runner.requests[0]).toMatchObject({
       file: '/usr/bin/git',
-      args: ['config', '--get', 'user.email'],
+      // Review round 5 s-nit-4: the read settings of GitReads first.
+      args: ['-c', 'core.fsmonitor=false', '-c', 'protocol.allow=never', 'config', '--get', 'user.email'],
       cwd: '/p/kanban',
     });
   });

@@ -224,7 +224,7 @@ class HangingRunner implements ProcessRunner {
       durationMs: 0,
       ...partial,
     });
-    if (this.gitFails && request.args[0] === 'config') return Promise.resolve(end({ exitCode: 3 }));
+    if (this.gitFails && request.args.includes('config')) return Promise.resolve(end({ exitCode: 3 }));
     return new Promise((resolve) => {
       const done = (): void => resolve(end({ ended: 'cancelled' }));
       if (request.signal?.aborted) done();
