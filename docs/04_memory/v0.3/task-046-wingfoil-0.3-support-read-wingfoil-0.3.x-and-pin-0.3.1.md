@@ -484,3 +484,20 @@ session's scratchpad (`task046-r2-*`, `task046-g7-*`).
   `spawnSync('git', ['-C', root, …])` with no `cwd`, so the process's — the project root); on
   Windows a `git.exe` in the project root would be found before the `PATH` (`task046-r2-windows-git.log`).
   No code change.
+
+**Gates — final of round 2 (on `db6524f`, through the slot; load at grant → end; logs
+`task046-r2-light-db6524f.log`, `task046-g7-*`).** `test:smoke` and `test:publish-smoke` not re-run:
+round 2 changes server modules, tests and docs only, not packaging, the launcher or the bin (last
+green on `567bf4a`). The gate runs on `483a2aa` were stopped before their slot (superseded by d1).
+
+| Gate | Result |
+|------|--------|
+| typecheck, lint, format:check, `docs:api` | exit 0 each (`docs:api`: html generated, no warning) |
+| `check_tasks.py v0.3` | 28 failures, all "listed by 0 tasks", none naming task-046 |
+| `test:contract` (0.2.2, 0.3.1) (3.3 → 6.7) | 312 passed, 1 skipped |
+| `test:coverage` (6.3 → 24.0) | 3318 passed, 1 skipped; 96.61 % statements, 91.45 % branches, 97.32 % functions, 98.37 % lines |
+| `npm test`, strict identity (11.3 → 24.9) | 3318 passed, 1 skipped |
+| `test:e2e`, Chromium, Firefox, WebKit (3.5 → 25.4) | 935 passed, 0 failed |
+
+This entry is a docs-only commit after `db6524f`; on it the light gates, the docs tests and
+`check_tasks.py` were re-run (`task046-r2-light-final.log`).
