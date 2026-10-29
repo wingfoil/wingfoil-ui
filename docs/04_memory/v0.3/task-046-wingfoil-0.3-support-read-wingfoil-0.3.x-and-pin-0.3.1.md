@@ -371,18 +371,52 @@ Each one follows what the pinned 0.3.1 does; none loosens an expectation of 0.2.
    refusal test uses an unpinned version (0.6.1); the capability unit test of a v0.4 table gives its
    workflow rows a `via`.
 
-### Gates — final (on `b74c49d`, pin 0.3.1, through the slot; load at grant → end)
+### Gates after D46-5 (on `b74c49d`, pin 0.3.1, through the slot; load at grant → end — superseded by review round 1)
 
 | Gate | Result |
 |------|--------|
-| typecheck, lint, format:check | clean |
-| `docs:api` | 0 errors, 0 warnings |
+| typecheck, lint, format:check, `docs:api` | clean — last run on `b74c49d`'s parent `acad38f`, before the spec commit (c3) |
 | `test:contract` (0.2.2, 0.3.1) (9.3 → 7.1) | 312 passed, 1 skipped |
 | `test:coverage` (6.8 → 25.6) | 3299 passed, 1 skipped; 96.59 % statements, 91.45 % branches, 97.31 % functions, 98.36 % lines |
 | `npm test`, strict identity (11.6 → 21.3) | 3299 passed, 1 skipped |
 | `test:e2e`, Chromium, Firefox, WebKit (1.8 → 29.6) | 935 passed, 0 failed (Firefox M-02.2 included); an earlier run (granted at 12.5) was cut by an app crash at 441 passed, 0 failed |
 | `test:e2e -- no-commit.spec.ts` (4.9 → 10.4) | 3/3 |
 | process audit ×10 (1.9–5.5) | 10/10 |
-| `test:smoke` (11.6 → 9.9), `test:publish-smoke` (5.2 → 4.5) | 4/4, 11/11 — run on `bffd97f`; D46-5 changes neither packaging, the launcher nor the bin |
-| strict-identity `test:e2e:chromium` (3.9 → 14.2) | run on `bef3870`: 317 passed, 2 failed (AC-5.1 — fixed by D46-5, 3/3 since; S-27.1 — fixed in `bffd97f`) |
+| `test:smoke` (11.6 → 9.9), `test:publish-smoke` (5.2 → 4.5) | 4/4, 11/11 — run on `567bf4a` (corrected in review round 1, c3); D46-5 changes neither packaging, the launcher nor the bin |
+| strict-identity `test:e2e:chromium` (3.9 → 14.2) | run on `567bf4a` (corrected in review round 1, c3): 317 passed, 2 failed (AC-5.1 — fixed by D46-5, 3/3 since; S-27.1 — fixed in `bffd97f`) |
 | `check_tasks.py v0.3` | the 28 expected "listed by 0 tasks", none naming task-046 |
+
+### review round 1 (2026-10-29)
+
+Both independent reviewers: **FAIL**. The approver confirmed fixing every finding in one round.
+Red tests in `892896c` (8 failed: M1 × 3, m1 × 2, n1, n3, the refusal after warning lines); fixes in
+`36684d4`; docs in `a3da7c9`; the public-text fix of the new runner test in `38351f3`.
+
+| Finding | What changed | Commit | Guard |
+|---------|--------------|--------|-------|
+| **M1** (major, security) — 0.3.1's `workflow list` runs `git status` on every `GET /config`: a configured `core.fsmonitor` ran (4× per read) | **D46-6:** `ProcessRequest.gitConfig`, rendered by the runner as `GIT_CONFIG_COUNT`/`KEY_n`/`VALUE_n` after `gitEnv` dropped the inherited ones (`withGitConfig`); the adapter asks `core.fsmonitor=false` for every WingFoil process, writes included. Probe: a marker fsmonitor ran 4× through 0.3.1 `workflow list` with `GIT_OPTIONAL_LOCKS=0` alone, 0× with the environment setting, 0× on a `memory submit`. spec-001 §1, spec-010 §6 (the W4-5 text holds; the CLI's git now named, the filter residual covers its status reads) | `892896c` red, `36684d4` | runner unit (inherited `GIT_CONFIG_*`, a lower-case key, `GIT_CONFIG_PARAMETERS` dropped, the two settings rendered); adapter unit (`gitConfig` on a read, a write, `--version`); real pinned CLI: marker fsmonitor in `.git/config`, stale index, `workflow list`, `dna show`, `memory search`, `directives list`, `memory submit` → marker never written — all three failed before the fix |
+| **m1** (minor) — no total cap on diagnostics and warnings | `MAX_TOOL_LINES` = 200 (`commands.ts`): the first 200 diagnostics kept before sanitising, `diagnosticsOmitted` (schema v0.3 branch, `WorkflowList03`, spec-001 §3, spec-004 §3); stderr warnings: the first 200, then `<n> more warnings omitted` (`capped`, spec-001 §2) | `36684d4` | 20 000 diagnostics → 200 + 19 800; 5 000 warnings → 200 + 1 line — both failed before |
+| **n1** — an unrecognised `--version` text reached the header unsanitised | `wingfoilOf` sends `wingfoil.text` through `redactLocalPaths` (project root) | `36684d4` | project-routes: a stub printing the folder, ESC and RLO → `banana <project>/x \x1b[31m\u202etxt`, no folder in the body — failed before; the tool-message tripwire lists `project-routes.ts` |
+| **n2** — the TT-ARC-04 allowance exempted any call on `node_modules/wingfoil` | limited to `realpath`/`stat`/`lstat` (sync and promise forms) | `892896c` | a tightening: no other call on that folder happens, so no failing case exists to show |
+| **n3** — a differently-cased `GIT_OPTIONAL_LOCKS` could stay beside ours (Windows) | `withoutOptionalLocks` removes every spelling first; the `GIT_CONFIG_*` of M1 are already dropped case-insensitively by `gitEnv` | `36684d4` | `git_optional_locks: '1'` → only `GIT_OPTIONAL_LOCKS: '0'` — failed before |
+| (display) a refusal with JSON warning lines before `{"error"}` | `refusalMessage` reads the whole text, else the last line with a string `error` | `36684d4` | failed before (the whole stderr shown) |
+| **c1** — spec-001 §2 said exit 2 is plain text | §2 row: 0.2.2 plain text or JSON (W-22), 0.3.x JSON; refusal and warning rows updated | `a3da7c9` | — |
+| **c2** — the optional-fields contract test passed with `bug-ingest` absent | the entry asserted present first | `892896c` | — |
+| **c3** — the gate table named wrong commits; light gates not re-run after D46-5 | earlier table corrected (smoke, publish-smoke and the strict Chromium run were on `567bf4a`); every gate below re-run with its commit | this entry | — |
+| **c4** — no real-CLI proof of the root redaction (0.3.1 messages are relative) | adapter test on the 0.2.2 build (`cliBuildFor('0.2.2')`): an invalid `dna.yaml`, the raw stderr quotes the folder, the refusal shows `<project>` and never the folder | `892896c` | passed first (characterization); with the redaction removed from the refusal path it failed (`expected 'E_YAML_PARSE_ERROR (/tmp/…' to contain '<project>'`) |
+| nits | separate 2026-10-29 Process Note for D46-5/D46-6 in spec-001; `retrospective.yaml` comments kept as paraphrases | `a3da7c9` | — |
+
+**Gates — final (through the slot; commit, load at grant → end).** `test:smoke` and
+`test:publish-smoke` not re-run: round 1 changes neither packaging, the launcher nor the bin
+(server modules only; their last runs, on `567bf4a`, were green).
+
+| Gate | Commit | Result |
+|------|--------|--------|
+| typecheck, lint, format:check, `docs:api` | `a3da7c9` | clean, 0 warnings (`38351f3` changes a test string only: typecheck, lint and format re-checked clean) |
+| `test:contract` (0.2.2, 0.3.1) | `a3da7c9` (2.4 → 3.9) | 312 passed, 1 skipped |
+| `test:coverage` | `a3da7c9` (3.6 → 14.8) | 3307 passed, 1 failed (public-text: `/tmp/evil` in the new runner test → `38351f3`), 1 skipped |
+| `npm test`, strict identity | `a3da7c9` (11.1 → 19.4) | the same one failure |
+| `test:e2e`, Chromium, Firefox, WebKit | `a3da7c9` (11.5 → 27.4) | **935 passed, 0 failed** |
+| `test:coverage` | `38351f3` (13.1 → 24.0) | **3308 passed, 1 skipped**; 96.59 % statements, 91.43 % branches, 97.32 % functions, 98.37 % lines |
+| `npm test`, strict identity | `38351f3` (12.0 → 27.3) | **3308 passed, 1 skipped** |
+| `check_tasks.py v0.3` | `38351f3` | the 28 expected "listed by 0 tasks", none naming task-046 |
