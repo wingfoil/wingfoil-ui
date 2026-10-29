@@ -400,7 +400,9 @@ export class GitReads {
   private readonly env: NodeJS.ProcessEnv;
 
   constructor(private readonly options: GitReadsOptions) {
-    this.env = { ...withoutName(gitEnv(options.env ?? process.env), 'GIT_NO_LAZY_FETCH'), GIT_NO_LAZY_FETCH: '1' };
+    // No transport (D46-7): `GIT_ALLOW_PROTOCOL=none` also overrides the repository's own
+    // `protocol.<name>.allow` (review round 3 M1); `GIT_NO_LAZY_FETCH=1` where git honours it.
+    this.env = { ...withoutNames(gitEnv(options.env ?? process.env), READ_GIT_ENV), ...READ_GIT_ENV };
   }
 
   /** HEAD and the working tree (one process). */
@@ -681,9 +683,17 @@ async function runnable(file: string, platform: NodeJS.Platform): Promise<boolea
   }
 }
 
-/** `env` without any spelling of the variable `name` (case-insensitive on Windows). */
-function withoutName(env: NodeJS.ProcessEnv, name: string): NodeJS.ProcessEnv {
+/** `env` without any spelling of the variables `names` (case-insensitive on Windows). */
+export function withoutNames(env: NodeJS.ProcessEnv, names: Readonly<Record<string, string>>): NodeJS.ProcessEnv {
   const out: NodeJS.ProcessEnv = {};
-  for (const [key, value] of Object.entries(env)) if (key.toUpperCase() !== name) out[key] = value;
+  for (const [key, value] of Object.entries(env)) if (!Object.hasOwn(names, key.toUpperCase())) out[key] = value;
   return out;
 }
+
+/**
+ * The transport variables of every non-transport git process (task-046 D46-7): no protocol at all —
+ * `GIT_ALLOW_PROTOCOL` wins over every `protocol.allow` and `protocol.<name>.allow` setting, whatever
+ * the scope (review round 3 M1) — and no lazy fetch where git honours `GIT_NO_LAZY_FETCH`. The
+ * transport commands (`git/transport.ts`, `projects/clone.ts`) set their own allowed list.
+ */
+export const READ_GIT_ENV: Readonly<Record<string, string>> = { GIT_ALLOW_PROTOCOL: 'none', GIT_NO_LAZY_FETCH: '1' };

@@ -85,9 +85,30 @@ export const MAX_TOOL_LINES = 200;
  * list`): at most {@link MAX_TOOL_LINES}, cut before `sanitise`, then one line counting the others
  * (review round 1 m1, round 2 d1).
  */
-export function toolLines(lines: readonly string[], sanitise: (text: string) => string): string[] {
+export function toolLines(lines: readonly string[], sanitise: (text: string) => string, omitted = 0): string[] {
   const kept = lines.slice(0, MAX_TOOL_LINES).map(sanitise);
-  return lines.length > MAX_TOOL_LINES ? [...kept, `${lines.length - MAX_TOOL_LINES} more warnings omitted`] : kept;
+  const rest = Math.max(0, lines.length - MAX_TOOL_LINES) + omitted;
+  return rest > 0 ? [...kept, `${rest} more warnings omitted`] : kept;
+}
+
+/**
+ * The first `max` non-empty lines of `text` (trimmed; CR LF or LF), and how many non-empty lines
+ * follow them — counted by a scan, never split into an array (review round 3 n1).
+ */
+export function boundedLines(text: string, max: number): { lines: string[]; omitted: number } {
+  const lines: string[] = [];
+  let omitted = 0;
+  let start = 0;
+  while (start <= text.length) {
+    let end = text.indexOf('\n', start);
+    if (end === -1) end = text.length;
+    if (lines.length < max) {
+      const line = text.slice(start, end).trim();
+      if (line) lines.push(line);
+    } else if (/\S/.test(text.slice(start, end))) omitted += 1;
+    start = end + 1;
+  }
+  return { lines, omitted };
 }
 
 /** `true` when `list` has WingFoil 0.2.x's shape (`manifest`, phases), `false` for 0.3.x's. */
@@ -104,6 +125,11 @@ export function isWorkflowList02(list: WorkflowList): list is WorkflowList02 {
  * ({@link toolLines}, review round 2 d1). Every other output is returned as it is.
  */
 export function toolText<T>(name: CliCommandName, data: T, sanitise: (text: string) => string): T {
+  if (name === 'memory search') {
+    // Its `message` is the CLI's text (review round 3 n2).
+    const search = data as unknown as MemorySearch;
+    return (search.message === undefined ? data : { ...search, message: sanitise(search.message) }) as unknown as T;
+  }
   if (name === 'directives list') {
     // Its `warnings` field is the CLI's text (review round 2 d1): as the stderr warnings.
     const list = data as unknown as DirectivesList;

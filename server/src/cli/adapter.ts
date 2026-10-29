@@ -21,7 +21,9 @@
 import { envelope, type ErrorEnvelope } from '../http/app.js';
 import { DEFAULT_TIMEOUT_MS, type ProcessResult, type ProcessRunner } from '../process/runner.js';
 import {
+  boundedLines,
   commandFor,
+  MAX_TOOL_LINES,
   outputProblem,
   toolLines,
   toolText,
@@ -29,6 +31,7 @@ import {
   type CliCommandOutputs,
 } from './commands.js';
 import { redactLocalPaths } from '../git/redact.js';
+import { READ_GIT_ENV, withoutNames } from '../git/git.js';
 import { CliNotFoundError, type CliSource, type ResolvedCli } from './discovery.js';
 
 /** Timeout of every `wingfoil` process (REQ-INT-04). */
@@ -248,7 +251,7 @@ export class WingfoilCli {
     // messages (bug-017, review round 3 S3-1).
     return {
       data: toolText(name, data, (text) => this.redact(text)) as T,
-      warnings: toolLines(lines(result.stderr), (w) => this.redact(warningText(w))),
+      warnings: stderrWarnings(result.stderr, (w) => this.redact(warningText(w))),
     };
   }
 
@@ -404,16 +407,15 @@ const CLI_GIT_CONFIG: readonly (readonly [string, string])[] = [
 ];
 
 /** The git variables of every WingFoil process (task-046 D46-5, D46-7). */
-const CLI_GIT_ENV: Readonly<Record<string, string>> = { GIT_OPTIONAL_LOCKS: '0', GIT_NO_LAZY_FETCH: '1' };
+const CLI_GIT_ENV: Readonly<Record<string, string>> = { GIT_OPTIONAL_LOCKS: '0', ...READ_GIT_ENV };
 
 /**
- * `env` with {@link CLI_GIT_ENV}, any other spelling of those names removed first (names are
- * case-insensitive on Windows, review round 1 n3).
+ * `env` with {@link CLI_GIT_ENV} — `GIT_OPTIONAL_LOCKS=0`, `GIT_ALLOW_PROTOCOL=none` (which also
+ * overrides the repository's `protocol.<name>.allow`, review round 3 M1), `GIT_NO_LAZY_FETCH=1` —, any
+ * other spelling of those names removed first (names are case-insensitive on Windows, round 1 n3).
  */
 function withCliGitEnv(env: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
-  const out: NodeJS.ProcessEnv = {};
-  for (const [key, value] of Object.entries(env)) if (!Object.hasOwn(CLI_GIT_ENV, key.toUpperCase())) out[key] = value;
-  return { ...out, ...CLI_GIT_ENV };
+  return { ...withoutNames(env, CLI_GIT_ENV), ...CLI_GIT_ENV };
 }
 
 /**
@@ -430,11 +432,14 @@ function warningText(line: string): string {
   }
 }
 
-function lines(text: string): string[] {
-  return text
-    .split(/\r?\n/)
-    .map((l) => l.trim())
-    .filter(Boolean);
+/**
+ * The `stderr` warnings as the API passes them on: the first {@link MAX_TOOL_LINES} non-empty lines,
+ * sanitised, then one line counting the others — counted, never split into an array (review round 3
+ * n1: a 64 MiB stderr).
+ */
+function stderrWarnings(stderr: string, sanitise: (text: string) => string): string[] {
+  const { lines: first, omitted } = boundedLines(stderr, MAX_TOOL_LINES);
+  return toolLines(first, sanitise, omitted);
 }
 
 /** HTTP status and envelope of a CLI failure (spec-004 §5, spec-006 §3). */

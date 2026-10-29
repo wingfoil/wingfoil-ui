@@ -35,7 +35,7 @@ async function sources(dir: string): Promise<string[]> {
 
 /** A line that places a tool message in an API body or the sync status. */
 const PRODUCER =
-  /'git-refused'|'cli-refused'|\.fetchFailed\(|\.updateFailed\(|status: 'failed', message|warnings: (?:toolLines\()?lines\(|warnings: toolLines\(|\{ files: |wingfoil: wingfoilOf\(/;
+  /'git-refused'|'cli-refused'|\.fetchFailed\(|\.updateFailed\(|status: 'failed', message|warnings: (?:toolLines\()?lines\(|warnings: toolLines\(|warnings: stderrWarnings\(|\{ files: |wingfoil: wingfoilOf\(/;
 
 /**
  * The reviewed producers, file → how its message is sanitised (a call on the same file). A line
@@ -48,12 +48,16 @@ const PRODUCERS: Record<string, readonly RegExp[]> = {
   'server/src/writes/governed.ts': [/redactLocalPaths\(/],
   'server/src/cli/adapter.ts': [
     /redactLocalPaths\(/,
-    /warnings: toolLines\(lines\(result\.stderr\), \(w\) => this\.redact\(/,
+    /warnings: stderrWarnings\(result\.stderr, \(w\) => this\.redact\(/,
     /toolText\(name, data/,
   ],
   'server/src/projects/project-list.ts': [/redactLocalPaths\(/],
   // Review round 2 d1: the `warnings` field of `directives list`, in the adapter's `toolText`.
-  'server/src/cli/commands.ts': [/warnings: toolLines\(list\.warnings, sanitise\)/],
+  // Review round 3 n2: the `message` of `memory search`, in `toolText` too.
+  'server/src/cli/commands.ts': [
+    /warnings: toolLines\(list\.warnings, sanitise\)/,
+    /message: sanitise\(search\.message\)/,
+  ],
   // Review rounds 1 n1, 2 n7: the header's `--version` text, sanitised by the adapter in detectVersion.
   'server/src/http/project-routes.ts': [/wingfoilOf\(detected\)/],
 };
