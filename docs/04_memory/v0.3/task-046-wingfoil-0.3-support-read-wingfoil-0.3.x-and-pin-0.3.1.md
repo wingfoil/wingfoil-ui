@@ -420,3 +420,67 @@ Red tests in `892896c` (8 failed: M1 × 3, m1 × 2, n1, n3, the refusal after wa
 | `test:coverage` | `38351f3` (13.1 → 24.0) | **3308 passed, 1 skipped**; 96.59 % statements, 91.43 % branches, 97.32 % functions, 98.37 % lines |
 | `npm test`, strict identity | `38351f3` (12.0 → 27.3) | **3308 passed, 1 skipped** |
 | `check_tasks.py v0.3` | `38351f3` | the 28 expected "listed by 0 tasks", none naming task-046 |
+
+### review round 2 (2026-10-29)
+
+Both fresh reviewers: **FAIL**; the round-1 fixes verified holding. The approver chose to fix every
+finding here (M2 option A, the server's own reads included; d1, found by the developer, too). Red
+tests in `7796c9c` (M2 × 5, n4, n5/n6, the `usageKind` nit, n7) and `581a6a2` (d1); fixes in
+`f97fcc4` and `a055dac`; docs in `483a2aa` and `0e663c6`. Each number below has its log in the
+session's scratchpad (`task046-r2-*`, `task046-g7-*`).
+
+- **D46-7 — no transport in a read.** `protocol.allow=never` joins `core.fsmonitor=false` in the
+  git configuration of every WingFoil process (the runner's `gitConfig`), `GIT_NO_LAZY_FETCH=1` its
+  environment (any other spelling removed); every `GitReads` read gets `-c protocol.allow=never`
+  (`NO_TRANSPORT`) and `GIT_NO_LAZY_FETCH=1`. `fetch`, `pull`, `push` and `clone` (`git/transport.ts`)
+  keep their own protocol rules: the git, transport, sync, write and project suites pass (14 files,
+  481 tests, `task046-r2-transport-tests.log`).
+  - **Checked first that no CLI verb the UI runs does transport:** `GIT_TRACE` of every consumed
+    command (`--version`, `dna show`, `paths`, `directives list`, `workflow list`, `memory search`
+    with and without `--status`, `memory history`, `add`, `submit`, `approve`, `reject`) on scratch
+    Kanban repositories with an `origin`: 0.2.2 runs `add`, `commit`, `config`, `diff`, `log`,
+    `maintenance`, `rev-parse`, `show`; 0.3.1 also `cat-file`, `for-each-ref`, `hash-object`,
+    `ls-files`, `ls-tree`, `status` — no `fetch`, `push`, `pull`, `clone` or `ls-remote`
+    (`task046-r2-git-trace.log`; the static search of both builds' `dist/`: `task046-r2-transport-grep.log`).
+  - **Regression tests** (`test/server/cli/adapter.test.ts` *D46-7*): a kanban copy made a partial
+    clone (`core.repositoryformatversion=1`, `extensions.partialClone=evil`, `remote.evil.promisor`),
+    the HEAD blobs of `.wingfoil/*.yaml` removed, a marker program as `remote.evil.uploadpack` (local
+    remote) or `core.sshCommand` (`ssh://` remote): the pinned CLI's `workflow list` and `memory
+    history`, and the server's `memoryLog` and `status`, never run it; a unit on the request's
+    `gitConfig` and environment. All five failed before the fix (`task046-r2-red-m2.log`). Guard
+    removal (git 2.43): with neither setting the four real-CLI tests fail again; each setting alone
+    keeps them green (`task046-r2-guard-m2.log`, `-m2b.log`, `-m2c.log`) — both are kept.
+  - spec-010 §6 (the W4-5 sentence: no transport in the server's reads and the CLI's git), spec-001
+    §1, both with a 2026-10-29 Process Note.
+- **n4** — a `diagnosticsOmitted` the CLI sends is dropped before the server's own is set (red →
+  `f97fcc4`).
+- **n5, n6** — the CLI's error is the whole text or its last line, `{"error": …}` (`cliError`): no
+  line before the last is parsed (a 100 000-line refusal: at most 3 `JSON.parse` calls), and a
+  hook's earlier `{"error"}` before a plain-text end does not win — the text is shown as written
+  (decided here: the CLI writes its own error last). The `usageKind` nit uses the same rule.
+- **n7** — `detectVersion` passes the printed text on through `WingfoilCli.sanitise` (the adapter's
+  own roots: the project and the CLI's package folder → `<wingfoil>`); `project-routes` passes it as
+  it is; the producer list of `redact.ts`' header comment names the warnings, the diagnostics and
+  the `--version` text; the tripwire checks `cli.sanitise(text)` in `version.ts`.
+- **n8** — spec-010 §6 W4-11: the residual names `filter.<x>.process` and the repository's own
+  `.git/config` as well as included files, and the CLI's status reads (no code change).
+- **d1** (developer, pre-existing) — the `warnings` field of `directives list` (`GET
+  /api/p/:pid/directives`) reached the API unsanitised and uncapped, while `directiveInForce`'s
+  comment said it was sanitised. `toolLines` (`commands.ts`) is now the one path of the `stderr`
+  warnings and of that field: sanitised, at most 200 lines, then one counting the rest; the
+  comment says where the sanitised text comes from and that a cut warning falls back to the last
+  entry. Red: 250 warnings with the project folder, ESC/RLO and a 20 000-character line → 250 lines
+  as written; green: 201 lines, `<project>`, escapes, the long line bounded. spec-001 §3, spec-004 §5;
+  the tripwire lists `commands.ts`.
+- **c5** — CHANGELOG: no fsmonitor and no transport in the console's reads; the filter residual
+  stated.
+- **c6** — spec-004 §3: the `GET /api/p/:pid` row names the sanitised `wingfoil.text`; §5 the
+  warnings cap, for `/config`, `/elements` and `/directives`; the Process Note corrected.
+- **nits** — spec-001 §1 and `runner.ts` name the dropped variables (`GIT_CONFIG_GLOBAL`,
+  `GIT_CONFIG_NOSYSTEM` kept); the runner test filters only the rendered names (passes with
+  `GIT_CONFIG_NOSYSTEM=1` exported).
+- **Windows, not verified (candidate WingFoil feedback note for the coordinator):** 0.3.1 spawns a
+  bare `git` (`dist/storage/git-read.js` `spawnGit`, `dist/storage/commit.js` `runGit`:
+  `spawnSync('git', ['-C', root, …])` with no `cwd`, so the process's — the project root); on
+  Windows a `git.exe` in the project root would be found before the `PATH` (`task046-r2-windows-git.log`).
+  No code change.
