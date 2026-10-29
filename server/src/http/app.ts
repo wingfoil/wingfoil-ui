@@ -6,6 +6,7 @@ import fastifyStatic from '@fastify/static';
 import { fastify, type FastifyBaseLogger, type FastifyInstance, type FastifyReply } from 'fastify';
 import { existsSync } from 'node:fs';
 import path from 'node:path';
+import { GitReadError } from '../git/git.js';
 import type { Logger } from 'pino';
 import {
   hasOwnOrigin,
@@ -87,7 +88,11 @@ export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
     if (status === 404) return notFound(reply);
     // A client error keeps its status (400, 413, 415, …); the request is what is wrong.
     if (status >= 400 && status < 500) return reply.code(status).send(envelope('invalid-request', 'Invalid request'));
-    request.log.error({ err: error }, 'request failed');
+    if (error instanceof GitReadError) {
+      // Git's message may quote configuration values and paths (task-046 review rounds 3 m1, 4
+      // minor-1): on any route, the kind and the exit only.
+      request.log.error({ kind: 'git-read', ended: error.ended, exitCode: error.exitCode }, 'git read failed');
+    } else request.log.error({ err: error }, 'request failed');
     return reply.code(500).send(envelope('internal', 'Internal error'));
   });
   app.setNotFoundHandler((request, reply) => {

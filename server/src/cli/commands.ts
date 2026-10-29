@@ -105,10 +105,22 @@ export function boundedLines(text: string, max: number): { lines: string[]; omit
     if (lines.length < max) {
       const line = text.slice(start, end).trim();
       if (line) lines.push(line);
-    } else if (/\S/.test(text.slice(start, end))) omitted += 1;
+    } else if (hasNonBlank(text, start, end)) omitted += 1;
     start = end + 1;
   }
   return { lines, omitted };
+}
+
+/** The characters `String.prototype.trim` removes (white space and line terminators). */
+const BLANK = new Set([
+  0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x20, 0xa0, 0x1680, 0x2000, 0x2001, 0x2002, 0x2003, 0x2004, 0x2005, 0x2006, 0x2007,
+  0x2008, 0x2009, 0x200a, 0x2028, 0x2029, 0x202f, 0x205f, 0x3000, 0xfeff,
+]);
+
+/** Whether `text` holds a character `trim` keeps in `[start, end)` — no slice (review round 4 nit-1). */
+function hasNonBlank(text: string, start: number, end: number): boolean {
+  for (let i = start; i < end; i += 1) if (!BLANK.has(text.charCodeAt(i))) return true;
+  return false;
 }
 
 /** `true` when `list` has WingFoil 0.2.x's shape (`manifest`, phases), `false` for 0.3.x's. */

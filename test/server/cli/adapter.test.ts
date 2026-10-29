@@ -519,7 +519,7 @@ describe('D46-5 — every WingFoil process runs without optional git locks', () 
       GIT_ALLOW_PROTOCOL: 'none',
     });
     expect(runner.requests[2]!.env).toEqual({
-      ...withoutAllowProtocol(process.env),
+      ...withoutCliGitVariables(process.env),
       GIT_OPTIONAL_LOCKS: '0',
       GIT_NO_LAZY_FETCH: '1',
       GIT_ALLOW_PROTOCOL: 'none',
@@ -767,7 +767,7 @@ describe('D46-7 — no lazy fetch: a promisor remote’s program never runs on a
 });
 
 /** `env` without any spelling of GIT_ALLOW_PROTOCOL, GIT_OPTIONAL_LOCKS or GIT_NO_LAZY_FETCH. */
-function withoutAllowProtocol(env: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
+function withoutCliGitVariables(env: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
   const out: NodeJS.ProcessEnv = {};
   for (const [k, v] of Object.entries(env)) {
     if (!['GIT_ALLOW_PROTOCOL', 'GIT_OPTIONAL_LOCKS', 'GIT_NO_LAZY_FETCH'].includes(k.toUpperCase())) out[k] = v;

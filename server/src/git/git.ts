@@ -397,12 +397,16 @@ export interface GitReadsOptions {
 
 /** The git reads of one project. */
 export class GitReads {
+  /** The reads' environment: {@link base} with {@link READ_GIT_ENV} (no transport, D46-7). */
   private readonly env: NodeJS.ProcessEnv;
+  /** The server's environment cleaned by {@link gitEnv}: the base of {@link transport} (round 4 MAJOR-1). */
+  private readonly base: NodeJS.ProcessEnv;
 
   constructor(private readonly options: GitReadsOptions) {
     // No transport (D46-7): `GIT_ALLOW_PROTOCOL=none` also overrides the repository's own
     // `protocol.<name>.allow` (review round 3 M1); `GIT_NO_LAZY_FETCH=1` where git honours it.
-    this.env = { ...withoutNames(gitEnv(options.env ?? process.env), READ_GIT_ENV), ...READ_GIT_ENV };
+    this.base = gitEnv(options.env ?? process.env);
+    this.env = { ...withoutNames(this.base, READ_GIT_ENV), ...READ_GIT_ENV };
   }
 
   /** HEAD and the working tree (one process). */
@@ -512,7 +516,9 @@ export class GitReads {
       file: git,
       args,
       cwd,
-      env: { ...this.env, ...options.env },
+      // The cleaned server environment, never the reads' no-transport variables: a pull or the
+      // automatic update's merge on a partial clone needs git's lazy fetch (review round 4 MAJOR-1).
+      env: { ...this.base, ...options.env },
       timeoutMs: options.timeoutMs ?? null,
       ...(options.signal ? { signal: options.signal } : {}),
     });
@@ -697,3 +703,33 @@ export function withoutNames(env: NodeJS.ProcessEnv, names: Readonly<Record<stri
  * transport commands (`git/transport.ts`, `projects/clone.ts`) set their own allowed list.
  */
 export const READ_GIT_ENV: Readonly<Record<string, string>> = { GIT_ALLOW_PROTOCOL: 'none', GIT_NO_LAZY_FETCH: '1' };
+
+/**
+ * `PATH` of `env` with its absolute entries only (review round 1 R3): a relative entry would be
+ * resolved in the repository, where git and its helpers run (`ssh`, `git-remote-*`, a credential
+ * helper), and run a program the repository ships. The rule of `resolveGit`; since task-046 D46-8
+ * the process runner applies it to every child (WingFoil runs a bare `git` in the project root).
+ */
+export function absolutePath(
+  env: NodeJS.ProcessEnv,
+  platform: NodeJS.Platform = process.platform,
+): {
+  key: string;
+  value: string | undefined;
+} {
+  const key =
+    Object.keys(env).find((k) => (platform === 'win32' ? k.toUpperCase() === 'PATH' : k === 'PATH')) ?? 'PATH';
+  const sep = platform === 'win32' ? ';' : ':';
+  const isAbsolute = platform === 'win32' ? path.win32.isAbsolute : path.posix.isAbsolute;
+  const value = env[key];
+  return {
+    key,
+    value:
+      value === undefined
+        ? undefined
+        : value
+            .split(sep)
+            .filter((e) => e !== '' && isAbsolute(e))
+            .join(sep),
+  };
+}

@@ -14,7 +14,7 @@
  */
 import { spawn, type ChildProcess } from 'node:child_process';
 import path from 'node:path';
-import { gitEnv, gitSubcommand } from '../git/git.js';
+import { absolutePath, gitEnv, gitSubcommand } from '../git/git.js';
 
 /** Timeout of every `wingfoil` process and git read (adr-001 D5, REQ-INT-04). */
 export const DEFAULT_TIMEOUT_MS = 30_000;
@@ -160,7 +160,7 @@ export class LocalProcessRunner implements ProcessRunner {
       const group = process.platform !== 'win32';
       const child = spawn(request.file, [...request.args], {
         cwd: request.cwd,
-        env: withGitConfig(gitEnv(request.env ?? process.env), request.gitConfig ?? []),
+        env: childEnv(request),
         stdio: ['ignore', 'pipe', 'pipe'],
         shell: false,
         detached: group,
@@ -313,4 +313,16 @@ export function withGitConfig(
     out[`GIT_CONFIG_VALUE_${i}`] = value;
   });
   return out;
+}
+
+/**
+ * The environment of a child: `request.env` (default: the server's) cleaned by `gitEnv`, its `PATH`
+ * with the absolute entries only — an empty or relative entry would be resolved in the working
+ * directory, the project, where WingFoil runs a bare `git` (task-046 D46-8) — and `request.gitConfig`.
+ */
+function childEnv(request: ProcessRequest): NodeJS.ProcessEnv {
+  const env = gitEnv(request.env ?? process.env);
+  const { key, value } = absolutePath(env);
+  if (value !== undefined) env[key] = value;
+  return withGitConfig(env, request.gitConfig ?? []);
 }

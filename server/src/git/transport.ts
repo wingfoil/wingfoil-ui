@@ -21,8 +21,10 @@
  * (D34-3) and the {@link UNATTENDED_TIMEOUT_MS} limit of an automatic fetch and an auto-push (RP-20,
  * RP-33); the automatic merge has no limit (D34-7: a killed checkout leaves the tree half updated).
  */
-import path from 'node:path';
-import { ALLOWED_PROTOCOLS, CLONE_SETTINGS, NO_FSMONITOR } from './git.js';
+import { absolutePath, ALLOWED_PROTOCOLS, CLONE_SETTINGS, NO_FSMONITOR } from './git.js';
+
+// Moved to `git.ts` (task-046 D46-8: the runner applies it to every child); kept importable here.
+export { absolutePath } from './git.js';
 
 /**
  * The settings of every transport command: the protocols of {@link CLONE_SETTINGS} (`ext::`, `fd::`
@@ -167,35 +169,6 @@ export function sshInEnvironment(env: NodeJS.ProcessEnv, platform: NodeJS.Platfo
   return Object.entries(env).some(
     ([key, value]) => ['GIT_SSH_COMMAND', 'GIT_SSH'].includes(fold(key)) && value !== undefined && value !== '',
   );
-}
-
-/**
- * `PATH` of `env` with its absolute entries only (review round 1 R3): a relative entry would be
- * resolved in the repository, where git and its helpers run (`ssh`, `git-remote-*`, a credential
- * helper), and run a program the repository ships. The rule of `resolveGit`.
- */
-export function absolutePath(
-  env: NodeJS.ProcessEnv,
-  platform: NodeJS.Platform = process.platform,
-): {
-  key: string;
-  value: string | undefined;
-} {
-  const key =
-    Object.keys(env).find((k) => (platform === 'win32' ? k.toUpperCase() === 'PATH' : k === 'PATH')) ?? 'PATH';
-  const sep = platform === 'win32' ? ';' : ':';
-  const isAbsolute = platform === 'win32' ? path.win32.isAbsolute : path.posix.isAbsolute;
-  const value = env[key];
-  return {
-    key,
-    value:
-      value === undefined
-        ? undefined
-        : value
-            .split(sep)
-            .filter((e) => e !== '' && isAbsolute(e))
-            .join(sep),
-  };
 }
 
 /**
