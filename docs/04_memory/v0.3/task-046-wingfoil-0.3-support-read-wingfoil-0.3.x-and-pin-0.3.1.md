@@ -565,3 +565,22 @@ Feedback note material (for the coordinator): the earlier Windows suspicion — 
 
 Server, launcher and harness suites after the fixes: 92 files, 1791 tests passed
 (`task046-r4-server-suites.log`).
+
+**Gates — final of round 4 (on `eae30f2`, through the slot; load at grant → end; logs
+`task046-r4-light-eae30f2.log`, `task046-g9-*`).** `test:smoke` re-run (D46-8 changes the runner the
+launcher's children use); `test:publish-smoke` not re-run — packaging unchanged (last log
+`task046-gate-publish-smoke`, exit 0, 2026-10-28).
+
+| Gate | Result |
+|------|--------|
+| typecheck, lint, format:check, `docs:api` | exit 0 each |
+| `check_tasks.py v0.3` | 28 failures, all "listed by 0 tasks", none naming task-046 |
+| git, transport, sync, write, project suites (with the partial-clone cases) | 14 files, 484 tests passed |
+| `test:contract` (0.2.2, 0.3.1) (1.8 → 2.1) | 312 passed, 1 skipped |
+| `test:coverage` (2.0 → 15.5) | 3335 passed, 1 skipped; 96.62 % statements, 91.52 % branches, 97.33 % functions, 98.4 % lines |
+| `npm test`, strict identity (11.1 → 16.8) | 3335 passed, 1 skipped |
+| `test:e2e`, Chromium, Firefox, WebKit (12.1 → 17.6) | 935 passed, 0 failed |
+| `test:smoke` (10.4 → 9.3) | 4/4 |
+
+This entry is a docs-only commit after `eae30f2`; on it the light gates, the docs tests and
+`check_tasks.py` were re-run (`task046-r4-light-final.log`).
