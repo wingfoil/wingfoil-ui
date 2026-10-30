@@ -588,8 +588,8 @@ This entry is a docs-only commit after `eae30f2`; on it the light gates, the doc
 ### review round 5 (2026-10-29)
 
 Both fresh reviewers: **FAIL**, minors only; every round-4 fix verified holding. The approver
-confirmed fixing all of them here. Red tests in `4fdc6d4`; fixes in `5f46967`; docs in the next
-commit (`docs(task-046): review round 5 — spec-001 …`). Logs: `task046-r5-*`, `task046-g10-*`; each
+confirmed fixing all of them here. Red tests in `4fdc6d4`; fixes in `5f46967`; docs in `9020aec`;
+the notes in `cd3d11a`; a test fix of the gate run in `47121f2`. Logs: `task046-r5-*`, `task046-g10-*`; each
 gate's `.meta` records the commit it ran on.
 
 | Finding | What changed | Commit | Red / guard |
@@ -606,3 +606,31 @@ gate's `.meta` records the commit it ran on.
 
 Targeted suites after the fixes: 6 files, 141 tests passed (`task046-r5-green.log`). The runner,
 the launcher and the opener are unchanged in this round.
+
+**Gate runs of round 5.** First run on `cd3d11a` (`task046-g10-*`): `test:contract` 312 passed, 1
+skipped (1.3 → 3.9); `test:coverage` 3338 passed, 1 skipped (3.6 → 24.0); the strict `npm test` failed
+one test — the 0.2.2 W2-1 "stale `.git/index.lock`" test timed out at 30 s (12.0 → 25.2): it built the
+0.2.2 kanban fixture inside the test; `47121f2` builds it in the file's `beforeAll` (under the hook's
+timeout), and the file alone then passed 65/65 at load 25.1 (`task046-r5-element-writes.log`). The
+full `test:e2e` on `cd3d11a` (12.4 → 22.0): 932 passed, 3 failed — [chromium] `accessibility.spec.ts`
+X-10.1 and X-10.2 (`openConsole` waits 60 s for the page's banner; it did not show) and [firefox]
+`memory-list.spec.ts` M-02.2 (`aria-current` after a click, the default 5 s). Load-bound, not real:
+round 5 changes no web code and nothing these tests read (`server/src/cli/adapter.ts` one git setting,
+`identity/git-email.ts` the identity read's arguments, a comment); each file alone on its engine
+passed (`accessibility.spec.ts` on Chromium 62/62, 9.0 → 15.2; `memory-list.spec.ts` on Firefox 21/21,
+11.2 → 19.3), and the next full run passed every one of them. As bug-004 asks, reported with the load,
+no load-adaptive branch added.
+
+**Gates — final of round 5 (on `47121f2`, the code of the final HEAD; through the slot; commit and
+load at grant → end in each `.meta`; logs `task046-g11-*`).** `test:smoke` not re-run: the runner,
+the launcher and the opener are unchanged in round 5 (last run on `eae30f2`, 4/4).
+
+| Gate | Result |
+|------|--------|
+| `test:coverage` (11.4 → 19.0) | 3338 passed, 1 skipped; 96.62 % statements, 91.52 % branches, 97.33 % functions, 98.4 % lines |
+| `npm test`, strict identity (11.6 → 21.4) | 3338 passed, 1 skipped |
+| `test:e2e`, Chromium, Firefox, WebKit (12.5 → 15.2) | 935 passed, 0 failed |
+
+On the final HEAD (this docs-only commit after `47121f2`): typecheck, lint, format:check, `docs:api`,
+the docs tests, `check_tasks.py v0.3` (`task046-r5-light-final.log`) and `test:contract`
+(`task046-g12-contract.log`), recorded in the report.
