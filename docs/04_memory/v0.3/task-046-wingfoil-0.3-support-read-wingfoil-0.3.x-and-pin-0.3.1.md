@@ -2,7 +2,7 @@
 id: task-046-wingfoil-0.3-support-read-wingfoil-0.3.x-and-pin-0.3.1
 type: task
 title: "WingFoil 0.3 support: read WingFoil 0.3.x and pin 0.3.1"
-status: approved
+status: done
 release: "v0.3"
 module: "governance"      # optional — server | web | contracts (dna.yaml modules)
 priority: "high"       # optional — high | medium | low
