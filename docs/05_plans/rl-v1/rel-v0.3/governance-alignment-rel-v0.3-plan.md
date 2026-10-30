@@ -3,7 +3,7 @@ id: governance-alignment-rel-v0.3-plan
 type: plan
 title: "Governance alignment rel-v0.3"
 status: active
-version: "0.2"         # optional — plan version
+version: "0.3"         # optional — plan version
 workflow: "governance-alignment"
 phase: "rel-v0.3"
 scope: "rl-v1/rel-v0.3"
@@ -14,8 +14,9 @@ tmpl_version: 260703   # Orignal template version
 
 ## Context
 
-**Version:** 0.2 · **Date:** 2026-10-28 (0.1: plan created, checkpoint decisions GA3-1 … GA3-8; 0.2:
-step 1 done, step 2 red on WingFoil 0.3.1, GA3-9 — a governance task for WingFoil 0.3 support, step 2b)
+**Version:** 0.3 · **Date:** 2026-10-30 (0.1: plan created, checkpoint decisions GA3-1 … GA3-8; 0.2:
+step 1 done, step 2 red on WingFoil 0.3.1, GA3-9 — a governance task for WingFoil 0.3 support, step 2b;
+0.3: step 2b done (task-046), step 2 green on the pinned 0.3.1, GA3-10)
 **Branch:** `design/governance-alignment_v0.3`, merged into `main` with `--no-ff` at the close (GA3-1)
 **Workflow:** none — an ad-hoc plan, as `governance-alignment-rel-v0.2-plan` (GA-2);
 `governance-alignment` is the plan's `workflow` token only. Its outcome is an input of the
@@ -166,3 +167,41 @@ Decision (the approver, 2026-10-28, after the step 2 report; options: A — pin 
   (r5, GA3-3 … GA3-5); steps 3 … 8 follow it, so `release-planning` of `minor-v0.3` starts on the
   pinned 0.3.1 with the packs adopted. Further deviation from dl-010 (product code in the pre-step);
   the task is planned and run by `dev-loop.yaml`, not as a free edit.
+
+### Session 2 — 2026-10-28 … 2026-10-30
+
+- Step 2b — task-046 (`docs/04_memory/v0.3/task-046-wingfoil-0.3-support-read-wingfoil-0.3.x-and-pin-0.3.1.md`):
+  add `df3d2b9`, submit `a0ad9cc`, approved → `backlog` `e7a9c34` (the approver),
+  `in-progress` `b92e114`; its own worktree and branch, a developer agent; design D46-1 … D46-4
+  (the approver: the `.wingfoil/` diff of a1 and a2, `d44868a`; capabilities with no source in this
+  release never available, reason `not-in-release`; the `workflow list` variant chosen by shape;
+  the header shows the clean version), then D46-5 … D46-8 from the gates and the reviews
+  (`GIT_OPTIONAL_LOCKS=0`; `core.fsmonitor=false`; no transport on reads — `GIT_ALLOW_PROTOCOL=none`,
+  `protocol.allow=never`, `GIT_NO_LAZY_FETCH=1`, transport from the cleaned environment; absolute
+  `PATH` entries for every child of the process runner). Independent review, a correctness reviewer
+  and an adversarial reviewer who runs the tools in each round: rounds 1 … 5 FAIL, round 6 (targeted)
+  PASS for security and one text finding, fixed and checked by the coordinator (the partial-clone
+  remedy run by hand on git 2.43). Each round's findings, commits, red tests and guard checks are in
+  the task's Execution Notes, with its *For the retrospective of minor-v0.3* (a pin advance is a
+  security-relevant change of what the console runs on projects). Gates on `47121f2`:
+  `test:coverage` 3338 passed, 1 skipped (96.62 % statements, 91.52 % branches), the strict-identity
+  `npm test` 3338 passed, `test:e2e` 935 passed on Chromium, Firefox and WebKit; `test:contract` 312
+  passed, 1 skipped on `801d524`; `test:smoke` 4/4 on `eae30f2`. Submit `d95443c`, approved
+  `f3224a3` (the approver), merged into this branch `27fb0c4`, `done` `322869e`; worktree and branch
+  removed.
+- Step 2 — re-run on this branch at `322869e` (pin `wingfoil@0.3.1`, matrix [0.2.2, 0.3.1]):
+  typecheck, lint, format:check clean; `test:contract` 312 passed, 1 skipped; `npm test` 3338 passed,
+  1 skipped (heavy runs through the machine-free slot, load 7.2 … 22.2); on this repository
+  `workflow list` exits 0 with 5 workflows and 115 diagnostics, `memory search` lists 120 elements,
+  each once. **Green**: step 3 may start (GA3-6).
+- Not merged into `main` before the pre-step closes (the approver, 2026-10-30): `main` gets
+  WingFoil 0.3 support with the whole pre-step (GA3-1).
+
+Decision (the approver, 2026-10-30):
+
+- **GA3-10** — step 3 starts with an adoption design, before any `.wingfoil/` change: a file-by-file
+  table (from a pack, kept as this repository's own under another name, or removed), the old → new
+  key mapping of workflows and phases, the state migrations, dl-008's tailoring re-applied on the
+  packs' workflows and dl-007's entries checked, the parameters still to choose, and design probes on
+  the pinned CLI (git trace, a `.git` snapshot, the children's environment); the decisions go to the
+  approver, then one `.wingfoil/` diff with its migrations for the approver's OK before commit.
