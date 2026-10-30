@@ -595,7 +595,7 @@ gate's `.meta` records the commit it ran on.
 | Finding | What changed | Commit | Red / guard |
 |---------|--------------|--------|-------------|
 | **s-minor-1** (pre-existing) — 0.2.2's `memory history` (`git log --follow`) ran a configured `gpg.program` on a signed-looking commit with `log.showSignature=true` | `log.showSignature=false` joins the CLI's git settings (`CLI_GIT_CONFIG`); spec-010 §6 W4-11 widened to "a program the configuration names that git runs on the read itself", declared rather than guarded key by key; spec-001 §1 | `4fdc6d4`, `5f46967` | a commit with a fake `gpgsig` header, `log.showSignature=true`, `gpg.program=<marker>`: the pinned 0.3.1 already never ran it; the 0.2.2 build ran it before the fix (`task046-r5-red-gpg.log`), not after, both answering their history; with the setting removed the 0.2.2 test fails again (`task046-r5-guard-gpg.log`) |
-| **s-minor-2** (consequence of D46-7) — a partial clone cannot be read in full | declared: spec-010 §6 *Known limitation — a partial clone* and CHANGELOG *Known limitations*, with the remedy (fetch the missing objects once outside the console, e.g. `git fetch --refetch` without a filter). `GET /today`'s 500 and the events error of the list and the panel: from the code, not probed. `docs/user-guide.md` describes the released v0.2: the limitation goes into it at v0.3 `user-docs` | docs | — |
+| **s-minor-2** (consequence of D46-7) — a partial clone cannot be read in full | declared: spec-010 §6 *Known limitation — a partial clone* and CHANGELOG *Known limitations*, with the remedy — corrected in round 6 (r6-minor-1): `git fetch --refetch --no-filter <remote>`, then `git config --unset remote.<remote>.partialclonefilter` (checked by hand, git 2.43, `task046-r6-remedy.log`). `GET /today`'s 500 and the events error of the list and the panel: from the code, not probed. `docs/user-guide.md` describes the released v0.2: the limitation goes into it at v0.3 `user-docs` | docs | — |
 | **s-nit-1 … 3** | declared as residuals in spec-001 §1: relative paths in other variables of the server's environment resolve in the project; `npx`/`npm run` put absolute `node_modules/.bin` folders first; a clone runs its committed `node_modules/wingfoil` on its first open. The clone comment of `projects/project-list.ts` says its rule holds at clone time only | `5f46967`, docs | — |
 | **s-nit-4** — the identity read ran with `gitEnv` only | `readGitEmail` runs with `NO_FSMONITOR`, `NO_TRANSPORT` and `READ_GIT_ENV`, as `GitReads` | `4fdc6d4`, `5f46967` | the request's arguments and environment — failed before (`task046-r5-red-email.log`) |
 | **c-minor-1** — spec-001 §1 claimed untested outcomes (a hook "can use no transport", a partial-clone read "fails instead of fetching") | reworded: what the D46-7 tests show (no promisor program on the CLI's reads) and what is expected, not tested | docs | — |
@@ -631,6 +631,46 @@ the launcher and the opener are unchanged in round 5 (last run on `eae30f2`, 4/4
 | `npm test`, strict identity (11.6 → 21.4) | 3338 passed, 1 skipped |
 | `test:e2e`, Chromium, Firefox, WebKit (12.5 → 15.2) | 935 passed, 0 failed |
 
-On the final HEAD (this docs-only commit after `47121f2`): typecheck, lint, format:check, `docs:api`,
-the docs tests, `check_tasks.py v0.3` (`task046-r5-light-final.log`) and `test:contract`
-(`task046-g12-contract.log`), recorded in the report.
+On `801d524` (the docs-only commit after `47121f2`): typecheck, lint, format:check, `docs:api` exit 0;
+the docs tests 68/68; `check_tasks.py v0.3`: 28 failures, all "listed by 0 tasks", none naming
+task-046 (log `task046-r5-light-final.log`); `test:contract` 312 passed, 1 skipped (load 1.3 → 2.8,
+`task046-g12-contract.log`).
+
+### review round 6 (2026-10-30, targeted)
+
+Security reviewer: **PASS** — 22 probes: the gpg trap in 12 combinations ran nothing; the identity
+read with `include` and `includeIf` variants; the transport, `PATH` and blobless-pull regressions
+clean. Correctness reviewer: **FAIL** on one text finding; the approver chose a text fix verified by
+the coordinator on the diff (no round 7). All three in this commit:
+
+| Finding | What changed |
+|---------|--------------|
+| **r6-minor-1** — the partial-clone remedy was wrong: a plain `git fetch --refetch` applies `remote.<r>.partialclonefilter` again, and the setting stays, so the next plain fetch filters again | spec-010 §6, CHANGELOG *Known limitations* and the round-5 s-minor-2 row: `git fetch --refetch --no-filter <remote>`, then `git config --unset remote.<remote>.partialclonefilter`; "once" removed. Checked by hand on git 2.43 (`task046-r6-remedy.log`): a blobless clone of a `file://` remote missing 3 objects; 3 after a plain `--refetch`; 0 after `--refetch --no-filter` (the filter still set); after unsetting it and fetching two new upstream commits, 0 |
+| **r6-nit-1** | the round-5 record names the `check_tasks.py` result and its log explicitly |
+| **r6-nit-2** | CHANGELOG *Known limitations*: the Today/events-error behaviour marked "from the code, not probed", as in spec-010 §6 |
+
+### For the retrospective of minor-v0.3
+
+- **What happened.** The task was planned as a compatibility change: read the output shapes of
+  WingFoil 0.3.x. But a pin advance also changes what the CLI does inside a read: 0.3.1's `workflow
+  list` runs `git status` on every `GET /config`, so the CLI's own git entered every read path
+  without the guards the server's own git reads had since v0.2. Six review rounds (rounds 1–6
+  above) found the cases the new version introduced — a configured fsmonitor (D46-6), the lazy fetch
+  of a promisor remote (D46-7), the uncapped diagnostics (round 1 m1) — and two of our own fixes that
+  were incomplete or regressed: D46-7 bypassed through `protocol.<name>.allow` (round 3 M1) and the
+  transport commands inheriting `GIT_NO_LAZY_FETCH` (round 4 MAJOR-1). They also found cases already
+  present in v0.2: the lazy fetch of the server's own `GitReads` (round 2 M2), a relative `PATH`
+  entry (round 4 MAJOR-2, D46-8), `gpg.program` in 0.2.2's `memory history` (round 5), git's raw
+  stderr in the logs (rounds 3 m1, 4 minor-1) and the unsanitised `/directives` warnings (round 2
+  d1).
+- **What made it converge.** The fixes stopped being key-by-key once they became one environment
+  contract for every child of the process runner (`GIT_ALLOW_PROTOCOL=none`, absolute `PATH` entries,
+  `CLI_GIT_CONFIG`), the residuals were declared by category (the W4-11 residual widened in round 5)
+  rather than guarded one by one, and the reviewers had to classify each new case as a structural fix
+  or a declared residual.
+- **Actions proposed.** (a) Plan a pin advance — or any upgrade of a tool the console runs on
+  projects — as a security-relevant task: at `design`, a `GIT_TRACE` of every consumed verb, a
+  snapshot of `.git` before and after, and a dump of the children's environment on the new binary.
+  (b) Keep one environment contract for children, in the runner. (c) From review round 2 on, the
+  adversarial reviewer classifies each new case as (a) a structural fix or (b) a declared residual.
+- **Cost.** About 1.5 active days and six review rounds.

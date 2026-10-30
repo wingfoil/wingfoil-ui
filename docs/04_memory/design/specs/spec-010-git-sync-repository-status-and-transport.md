@@ -311,9 +311,9 @@ so the sidebar shows it (Y-06.1, Y-06.2).
   blobless or other partial clone cannot be read in full, since no read fetches a missing object.
   The Memory events read (`git log -p`) fails on the first object it lacks: `GET /api/p/:pid/today`
   answers 500 `internal`, the Memory list and the element panel show their events error (from the
-  code, not probed); the console's own fetch and Update do not backfill the history. Remedy: fetch
-  the missing objects once, outside the console, e.g. `git fetch --refetch` with no filter (or work
-  in a full clone).
+  code, not probed); the console's own fetch and Update do not backfill the history. Remedy, outside
+  the console: `git fetch --refetch --no-filter <remote>` fetches every missing object (a plain `git fetch --refetch` applies the clone's filter again, and the filter setting stays), then `git config --unset remote.<remote>.partialclonefilter` keeps later fetches — the console's own fetch and automatic fetch included — full (checked by hand, git 2.43: 3 missing objects before, 0 after, and 0 after a
+  later fetch of new commits); or work in a full clone.
 - **Declared residual of the automatic update** (W4-16, decided by the approver): `autoUpdate` is
   off by default (spec-006 §2). Turned on, the console does on a timer what `git pull` does: the
   incoming commits can run commands that the user's **own** git configuration points at — a filter
@@ -559,3 +559,6 @@ Rows 7–9 do not apply (no element).
 - 2026-10-29 — amended in dev-loop task-046 review round 5 (s-minor-1, s-minor-2, c-minor-2; decided
   by the approver): §6 the W4-11 residual covers any program the configuration names that git runs on
   the read itself; the known limitation of a partial clone and its remedy; "the process runner".
+- 2026-10-30 — corrected in dev-loop task-046 review round 6 (r6-minor-1, decided by the approver): §6
+  the remedy of the partial-clone limitation is `git fetch --refetch --no-filter <remote>`, then
+  `git config --unset remote.<remote>.partialclonefilter`.

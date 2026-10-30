@@ -29,9 +29,11 @@ release `v0.2` the git tag `v0.2.0` and the npm version `wingfoil-ui@0.2.0`.
 
 - **A partial clone** (blobless or otherwise filtered) cannot be read in full: the console's reads
   never fetch a missing object, so the Memory events read fails (*Today* answers an internal error,
-  the Memory list and the element panel show their events error), and the console's fetch and
-  Update do not backfill the history. Fetch the missing objects once outside the console (e.g.
-  `git fetch --refetch` without a filter), or use a full clone (spec-010 §6).
+  the Memory list and the element panel show their events error — from the code, not probed), and
+  the console's fetch and Update do not backfill the history. Outside the console, run `git fetch
+  --refetch --no-filter <remote>` (a plain `git fetch --refetch` applies the filter again), then `git
+  config --unset remote.<remote>.partialclonefilter` so that later fetches stay full (checked by
+  hand, git 2.43); or use a full clone (spec-010 §6).
 
 ## [0.2.0] - 2026-10-20
 
