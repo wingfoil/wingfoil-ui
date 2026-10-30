@@ -3,13 +3,17 @@
 # dl-025 (v1.1) — extended to own AGENT-facing docs too, as a sibling phase rather than by widening
 #   align-user-docs: verifying CLAUDE.md against dna.yaml/memory.yaml/workflows.yaml/roles.yaml is
 #   architect work, and "agent docs are stale" and "user docs are stale" have different remediations.
+# Packs adoption (governance-alignment-rel-v0.3-plan step 3, version 1.2): no workflow of this
+# composition includes it; it is a procedure of this repository run by hand inside `release-
+# submit` › `pre-release-checks` (directive `release-conventions`), before the release enters
+# `releasing`.
 name: user-docs
 kind: sub
 description: >-
   Ensure the release's user-facing documentation is written and aligned before the release is
   assembled: README, user guide, CLI reference, working examples, CHANGELOG. Makes documentation a
   hard release blocker (dl-013) instead of an unenforced convention.
-version: 1.1
+version: 1.2
 element: release
 
 phases:

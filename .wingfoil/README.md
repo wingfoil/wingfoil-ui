@@ -1,8 +1,10 @@
 # `.wingfoil/` — WingFoil configuration of WingFoil UI
 
-**Version:** 0.3 · **Date:** 2026-10-12 (0.1: release v0.1, `user-docs` `align-agent-docs`; 0.2:
-W-25, W-26 — dl-007; 0.3: `release-submit`, `release-publishing`, `retrospective` tailored — dl-008) ·
-**Checked against:** `wingfoil@0.2.2` (the devDependency pin)
+**Version:** 0.4 · **Date:** 2026-10-30 (0.1: release v0.1, `user-docs` `align-agent-docs`; 0.2:
+W-25, W-26 — dl-007; 0.3: `release-submit`, `release-publishing`, `retrospective` tailored — dl-008;
+0.4: the packs `base@2.0.1`, `software@1.0.0`, `methodology/scrum@1.0.0` adopted —
+governance-alignment-rel-v0.3-plan step 3) · **Checked against:** `wingfoil@0.3.1` (the devDependency
+pin)
 
 This folder makes the WingFoil UI repository a project **governed by WingFoil**: its DNA, its Memory
 element types and their state machines, its workflows, and the directives bound to each role. It is
@@ -11,15 +13,29 @@ read and changed through the pinned CLI, `npm run -s wingfoil -- <command>` (dir
 the YAML files named in each section — when they disagree, the YAML file is right and this README is
 stale.
 
+## Adopted packs
+
+Composed by hand with the reference composer of `wingfoil/wingfoil-templates` (no WingFoil release
+installs packs yet), with this repository's path and id values, so that no file moved; the
+parameters, the file-by-file outcome and the old → new keys are in
+`docs/wingfoil-adoption/rel-v0.3-packs-adoption-design.md`.
+
+| Pack | Version | What it brings here |
+|------|---------|---------------------|
+| `base` | 2.0.1 | `decision-log`, `task`, `plan`; `decision-log-ingest`, `governance-evolution`, `retrospective`, `retrospective-periodic`; `claim-sources`, `doc-versioning`, `security-secrets`, `traceability` |
+| `software` | 1.0.0 | `adr`, `tech-spec`, `bug`, `release`, `release-line`; `sw-life-cycle` and its slots `inception`, `specification`, `end-of-life`, `release` (`release-submit`, `release-publishing`); `adr-ingest`, `bug-ingest`; `determinism` |
+| `methodology/scrum` | 1.0.0 | `sprint`, `sprint` on `task` and `release`; `delivery`, `sprint`, `backlog-item`; `scrum`, `definition-of-done` (overridden here) |
+
 ## Files
 
 | Path | Content |
 |------|---------|
 | `dna.yaml` | project identity, modules (`server/`, `web/`, `contracts/`), stack, methodologies, team (members, roles, agents), paths |
 | `memory.yaml` | the Memory element types: path, id pattern, template, required fields, state machine |
-| `memory/templates/` | one Markdown template per type (`adr`, `bug`, `decision-log`, `plan`, `release-line`, `release`, `service`, `task`, `tech-spec`) |
+| `memory/templates/` | this repository's templates (`adr`, `bug`, `decision-log`, `plan`, `release-line`, `release`, `service`, `task`, `tech-spec`); `built-in/` the packs' (only `sprint` is in use) |
 | `workflows.yaml` | the main workflow configuration: the `include` list of the workflow files |
-| `workflows/custom/` | the 23 workflow files (`workflows/built-in/` is empty) |
+| `workflows/built-in/` | the 16 workflows of the packs, unchanged |
+| `workflows/custom/` | this repository's 6 workflows: `service-ingest` and 5 procedures |
 | `roles.yaml` | role → directive bindings and the global directives |
 | `directives/built-in/`, `directives/custom/` | the directive files (a custom directive with a built-in's id overrides it) |
 | `README.md` | this file (a file the CLI does not own: ignored by its loaders, directive `wingfoil-cli` W-11) |
@@ -27,38 +43,40 @@ stale.
 ## Memory types (`memory.yaml`)
 
 The Memory lives under `docs/04_memory/` (plans under `docs/05_plans/`). Each type has its own state
-machine: `memory submit` moves an element out of `draft` to the next state of its `sequence`
-(and a task `in-progress → in-review`); `memory approve --reason` moves it from a **gate** state to
-the next state of the sequence;
-`memory reject --reason` moves it from a gate state to the gate's reject target. A **waiting**
-state is left by a workflow phase, not by a verb: with `wingfoil@0.2.2` those transitions are hand
-edits committed as `wf(<type>): <id> [<from> → <to>]` (directive `wingfoil-cli`: W-04 plan, W-20
-task, W-25 release and approve-release, W-26 bug).
+machine: `memory submit` moves an element one step along its `sequence` from a state that is neither
+a gate nor waiting; `memory approve --reason` moves it from a **gate** state to the next state;
+`memory reject --reason` moves it from a gate state to the gate's reject target; `memory park` takes
+a started element back along its `returns` edge. A **waiting** state is left by a workflow, not by a
+verb: `plan` `active → done` is `workflow end` for a run started by `workflow start`, and a
+hand-written `wf(plan): finalize <id> [active → done]` commit for a phase plan (directive
+`wingfoil-cli` W-04); `adr` and `tech-spec` leave theirs through a later element's `supersedes:`.
 
-| Type | Path | `id_pattern` | States (`sequence`) | Gates (reject →) | Waiting |
-|------|------|--------------|---------------------|------------------|---------|
-| `release-line` | `docs/04_memory/planning/{id}.md` | `rl-{version}` | draft → planning → active → done | `planning` (→ `draft`) | `active` |
-| `release` | `docs/04_memory/planning/{release-line}/{id}.md` | `{kind}-{version}` | draft → planning → in-development → releasing → released | — | `planning`, `in-development`, `releasing` |
-| `task` | `docs/04_memory/{release}/{id}.md` | `task-{n}-{slug}` | draft → pending → backlog → in-progress → in-review → approved → done | `pending` (→ `draft`); `in-review` (→ `in-progress`) | `backlog`, `approved` |
-| `adr` | `docs/04_memory/design/adrs/{id}.md` | `adr-{n}-{slug}` | draft → pending → accepted → superseded | `pending` (→ `draft`) | `accepted` |
-| `decision-log` | `docs/04_memory/design/dls/{id}.md` | `dl-{n}-{slug}` | draft → in-discussion → ready | `in-discussion` (→ `draft`) | — |
-| `tech-spec` | `docs/04_memory/design/specs/{id}.md` | `spec-{n}-{slug}` | draft → pending → approved → superseded | `pending` (→ `draft`) | `approved` |
-| `bug` | `docs/04_memory/bugs/{id}.md` | `bug-{n}-{slug}` | draft → open → triaged → planned → in-progress → in-review → resolved → closed | `open` (→ `closed`); `triaged` (→ `closed`); `planned` (→ `closed`); `in-review` (→ `in-progress`); `resolved` (→ `in-progress`) | `triaged`, `planned` |
-| `plan` | `docs/05_plans/{scope}/{id}.md` | `{workflow}-{phase}-plan` | draft → active → done | — | `active` |
-| `service` | `docs/04_memory/services/{id}.md` | `svc-{n}-{slug}` | draft → pending → active | `pending` (→ `draft`) | — |
+| Type | Path | `id_pattern` | States (`sequence`) | Gates (reject →) | Waiting | Returns |
+|------|------|--------------|---------------------|------------------|---------|---------|
+| `decision-log` | `docs/04_memory/design/dls/{id}.md` | `dl-{n}-{slug}` | draft → in-discussion → ready | `in-discussion` (→ `draft`) | — | — |
+| `task` | `docs/04_memory/{release}/{id}.md` | `task-{n}-{slug}` | draft → pending → backlog → in-progress → in-review → approved → done | `pending` (→ `draft`); `in-review` (→ `in-progress`) | — | `in-progress` → `backlog` |
+| `plan` | `docs/05_plans/{scope}/{id}.md` | `{workflow}-{phase}-plan` | draft → active → done | — | `active` | — |
+| `adr` | `docs/04_memory/design/adrs/{id}.md` | `adr-{n}-{slug}` | draft → pending → accepted → superseded | `pending` (→ `draft`) | `accepted` | — |
+| `tech-spec` | `docs/04_memory/design/specs/{id}.md` | `spec-{n}-{slug}` | draft → pending → approved → superseded | `pending` (→ `draft`) | `approved` | — |
+| `bug` | `docs/04_memory/bugs/{id}.md` | `bug-{n}-{slug}` | draft → open → triaged → planned → in-progress → in-review → resolved → closed | `open`, `triaged`, `planned` (→ `closed`); `in-review`, `resolved` (→ `in-progress`) | — | `in-progress` → `planned` |
+| `release-line` | `docs/04_memory/planning/{id}.md` | `rl-{version}` | draft → planning → active → done | `planning` (→ `draft`) | — | — |
+| `release` | `docs/04_memory/planning/{release-line}/{id}.md` | `{kind}-{version}` | draft → planning → in-development → releasing → released | — | — | — |
+| `sprint` | `docs/04_memory/sprints/{id}.md` | `sprint-{n}` | draft → planned → active → done (one `active` at a time) | — | — | — |
+| `service` | `docs/04_memory/services/{id}.md` | `svc-{n}-{slug}` | draft → pending → active | `pending` (→ `draft`) | — | — |
 
 Required frontmatter fields (`template.frontmatter.required`):
 
 | Type | Required fields |
 |------|-----------------|
-| `release-line` | `title`, `version` |
-| `release` | `title`, `kind`, `version`, `pillar`, `features`, `requirements`, `release-line` |
-| `task` | `title`, `release` |
-| `adr` | `title`, `sard_ref` |
 | `decision-log` | `title` |
+| `task` | `title`, `sprint` (or `"n/a — <reason>"`), `release` |
+| `plan` | `title`, `workflow`, `phase` |
+| `adr` | `title`, `sard_ref` |
 | `tech-spec` | `title`, `scope` |
 | `bug` | `title`, `severity` |
-| `plan` | `title`, `workflow`, `phase` |
+| `release-line` | `title`, `version` |
+| `release` | `title`, `version`, `release-line`, `sprint`, `kind`, `pillar`, `features` (a list), `requirements`; `sprint` exempt for `minor-v0.1`, `minor-v0.2` |
+| `sprint` | `title`, `goal` |
 | `service` | `title`, `provider`, `kind`, `owner_role`, `verify` |
 
 `defaults.states` (for a type without its own `states` block — every type above has one):
@@ -66,86 +84,92 @@ Required frontmatter fields (`template.frontmatter.required`):
 
 ## Workflows (`workflows.yaml`)
 
-`wingfoil@0.2.2` has no workflow engine: each phase is run by hand against its `plan` element
-(`docs/05_plans/`). Five workflows are startable (`kind: main`); the others are sub-workflows
-composed by `sw-life-cycle` (`kind: sub`, include-only). Listed in the `include` order of
-`workflows.yaml`; every file is in `workflows/custom/`. Each file except `e2e-smoke.yaml`
-(rewritten for a web dashboard), like `memory.yaml` and `workflows.yaml`, is derived from the
-WingFoil release this project pins, `wingfoil/wingfoil@v0.2.2` (the header line of the file); those
-adapted to this project are named in `workflows.yaml`.
+`wingfoil@0.3.1` starts, follows and ends workflows (`workflow start`, `next`, `status`, `finalize`,
+`adopt`, `end`); it executes no step. Seven workflows are startable (`kind: main`).
 
-| Workflow | Kind | Version | Element | Phases |
-|----------|------|---------|---------|--------|
-| `sw-life-cycle` | main | 1.0 | — | init · inception · specification · seed-first-release-line · release-line-cycle · sunset |
-| `bug-ingest` | main | 1.0 | — | capture · triage |
-| `decision-log-ingest` | main | 1.0 | — | capture · approve |
-| `adr-ingest` | main | 1.0 | — | capture · approve |
-| `service-ingest` | main | 1.0 | — | capture · approve |
-| `wingfoil-init` | sub | 1.0 | — | init-config |
-| `lean-inception` | sub | 1.0 | — | vision · personas · journeys · features · sequencer |
-| `specification-downcast` | sub | 1.0 | — | user-story-mapping · specification-by-examples · volere-requirements · backlog-export |
-| `user-story-mapping` | sub | 1.0 | — | backbone · vertical-explosion · mvp-cut |
-| `specification-by-examples` | sub | 1.0 | — | isolate-mvp · write-scenarios |
-| `volere-requirements` | sub | 1.0 | — | extract-requirements · apply-volere-shell · group-by-macro-area |
-| `backlog-export` | sub | 1.0 | — | generate-records · map-dependencies · validate |
-| `initial-design` | sub | 1.0 | release-line | seed-releases · seed-adrs · seed-dls · seed-specs |
-| `release-line-cycle` | sub | 1.0 | release-line | approve · initial-design · delivery · plan-next-release-line |
-| `release-cycle` | sub | 1.1 | release | planning · implementation · user-docs · e2e-smoke · submit · publishing · retrospective |
-| `release-planning` | sub | 1.4 | release | advance-pinned-build · define-scope · triage-bugs · reconcile-governance · record-adrs · identify-specs · build-backlog · commit-backlog |
-| `dev-loop` | sub | 1.4 | task | start · design · red · green · refactor · review · done |
-| `user-docs` | sub | 1.1 | release | check-implementation-complete · align-user-docs · align-agent-docs |
-| `e2e-smoke` | sub | 1.0 | release | fixture-project · drive-browser · local-security · accessibility · contract · launch · gate |
-| `release-submit` | sub | 1.1 | release | release-commit · pre-release-checks · enter-releasing · approve-release |
-| `release-publishing` | sub | 1.2 | release | tag · publish · mark-released |
-| `retrospective` | sub | 1.2 | release | explore · additional-points · capture · approve |
-| `end-of-life` | sub | 1.0 | — | announce · deprecate · archive |
+| Workflow | Source | Kind | Element | Phases |
+|----------|--------|------|---------|--------|
+| `decision-log-ingest` | base | main | — | capture · approve |
+| `governance-evolution` | base | main | — | assess · propose · approve · apply |
+| `retrospective` | base | sub | — | explore · additional-points · capture · approve |
+| `retrospective-periodic` | base | main | — | retrospective |
+| `sw-life-cycle` | software | main | — | inception · specification · delivery · end-of-life |
+| `inception` | software (slot default) | sub | — | frame · approve |
+| `specification` | software (slot default) | sub | — | specify · approve |
+| `end-of-life` | software (slot default) | sub | — | announce · approve · deprecate · archive |
+| `release` | software (slot default) | sub | release | submit · publishing |
+| `release-submit` | software | sub | release | pre-release-checks · enter-releasing · approve-release |
+| `release-publishing` | software | sub | release | release-commit · staging-rehearsal · tag · publish · mark-released |
+| `adr-ingest` | software | main | — | capture · approve |
+| `bug-ingest` | software | main | — | capture · triage |
+| `delivery` | scrum | sub | — | plan-sprint · sprints |
+| `sprint` | scrum | sub | sprint | sprint-planning · development · plan-release · release · sprint-review · retrospective · close |
+| `backlog-item` | scrum | sub | task | start · build · review · approve · done |
+| `service-ingest` | this repository | main | — | capture · approve |
+| `initial-design` | this repository (procedure) | sub | release-line | seed-releases · seed-adrs · seed-dls · seed-specs |
+| `release-planning` | this repository (procedure) | sub | release | advance-pinned-build · define-scope · triage-bugs · reconcile-governance · record-adrs · identify-specs · build-backlog · commit-backlog |
+| `dev-loop` | this repository (procedure) | sub | task | start · design · red · green · refactor · review · done |
+| `user-docs` | this repository (procedure) | sub | release | check-implementation-complete · align-user-docs · align-agent-docs |
+| `e2e-smoke` | this repository (procedure) | sub | release | fixture-project · drive-browser · local-security · accessibility · contract · launch · gate |
+
+The five **procedures** are included by no workflow: each is run by hand inside the pack phase its
+header names (`initial-design` per release line; `release-planning` inside `sprint` ›
+`sprint-planning` and `plan-release`; `dev-loop` inside `backlog-item`; `user-docs` and `e2e-smoke`
+inside `release-submit` › `pre-release-checks`), and the pack phase owns the element transitions.
 
 ## Roles and directives (`roles.yaml`)
 
-Roles are declared in `dna.yaml` (`team.roles`): developer, reviewer, qa, architect,
-product-owner, tech-lead, approver, facilitator. The DNA's agent executes as developer, reviewer,
-qa and architect and has no approval authority.
+Roles are declared in `dna.yaml` (`team.roles`): approver, facilitator, product-owner, architect,
+developer, reviewer, qa, tech-lead. The DNA's agent executes as facilitator, product-owner,
+developer, reviewer, qa, architect and tech-lead and has no approval authority; the member holds
+every role, `approver` included.
 
-**Global directives** (every role): `doc-versioning`, `documentation`, `security-secrets`,
-`claim-evidence`, `wingfoil-cli`.
+**Global directives** (every role): `doc-versioning`, `security-secrets`, `claim-sources`,
+`documentation`, `claim-evidence`, `wingfoil-cli`.
 
 | Role | Directives bound in `roles.yaml` (besides the global ones) |
 |------|-------------------------------------------------------------|
-| developer | `code-quality`, `testing`, `determinism`, `cli-only-writes`, `accessibility` |
-| reviewer | `code-review`, `traceability`, `cli-only-writes`, `accessibility`, `ux-consistency` |
-| qa | `testing`, `accessibility` |
+| facilitator | `traceability`, `scrum` |
+| developer | `code-quality`, `testing`, `determinism`, `cli-only-writes`, `accessibility`, `scrum`, `definition-of-done` |
+| reviewer | `code-review`, `traceability`, `determinism`, `cli-only-writes`, `accessibility`, `ux-consistency`, `definition-of-done` |
+| qa | `testing`, `accessibility`, `definition-of-done`, `release-conventions` |
 | architect | `architecture`, `determinism`, `traceability`, `cli-only-writes` |
-| product-owner | `traceability`, `ux-consistency` |
-| tech-lead | `architecture`, `code-review` |
+| product-owner | `traceability`, `ux-consistency`, `scrum` |
+| tech-lead | `architecture`, `code-review`, `release-conventions` |
 | approver | — (global ones only) |
-| facilitator | — (global ones only) |
 
 ## Directives
 
-| Id | Kind | Title | Bound to |
-|----|------|-------|----------|
-| `architecture` | built-in | Architecture | architect, tech-lead |
-| `code-quality` | built-in | Code Quality | developer |
-| `code-review` | built-in | Code Review | reviewer, tech-lead |
-| `documentation` | built-in | Documentation | global |
-| `security` | built-in | Security | — (not bound) |
-| `testing` | built-in | Testing | developer, qa |
-| `accessibility` | custom | Accessibility of the web UI | developer, reviewer, qa |
-| `claim-evidence` | custom | A claim names the command that establishes it | global |
-| `cli-only-writes` | custom | Every governed change goes through the WingFoil CLI | developer, reviewer, architect |
-| `determinism` | custom | Determinism | developer, architect |
-| `doc-versioning` | custom | Documentation versioning | global |
-| `security-secrets` | custom | Secret hygiene | global |
-| `traceability` | custom | Traceability | reviewer, architect, product-owner |
-| `ux-consistency` | custom | UX consistency with the reference and the prototype | reviewer, product-owner |
-| `wingfoil-cli` | custom | Using the pinned WingFoil CLI | global |
+| Id | Folder | Source | Title | Bound to |
+|----|--------|--------|-------|----------|
+| `architecture` | built-in | WingFoil `init` | Architecture | architect, tech-lead |
+| `code-quality` | built-in | WingFoil `init` | Code Quality | developer |
+| `code-review` | built-in | WingFoil `init` | Code Review | reviewer, tech-lead |
+| `documentation` | built-in | WingFoil `init` | Documentation | global |
+| `security` | built-in | WingFoil `init` | Security | — (not bound) |
+| `testing` | built-in | WingFoil `init` | Testing | developer, qa |
+| `claim-sources` | built-in | base | Sources of claims | global |
+| `doc-versioning` | built-in | base | Documentation versioning | global |
+| `security-secrets` | built-in | base | Secrets | global |
+| `traceability` | built-in | base | Traceability | facilitator, reviewer, architect, product-owner |
+| `determinism` | built-in | software | Determinism | developer, reviewer, architect |
+| `scrum` | built-in | scrum | Scrum | facilitator, developer, product-owner |
+| `definition-of-done` | built-in | scrum | Definition of Done (overridden by the custom one) | — |
+| `accessibility` | custom | this repository | Accessibility of the web UI | developer, reviewer, qa |
+| `claim-evidence` | custom | this repository | A claim names the command that establishes it | global |
+| `cli-only-writes` | custom | this repository | Every governed change goes through the WingFoil CLI | developer, reviewer, architect |
+| `definition-of-done` | custom | this repository | Definition of Done of WingFoil UI | developer, reviewer, qa |
+| `release-conventions` | custom | this repository | Release conventions of WingFoil UI (dl-008) | qa, tech-lead |
+| `ux-consistency` | custom | this repository | UX consistency with the reference and the prototype | reviewer, product-owner |
+| `wingfoil-cli` | custom | this repository | Using the pinned WingFoil CLI | global |
 
-`wingfoil-cli` lists every known behaviour of the pinned CLI (W-xx entries) and the way to work with
-it; read it before running any verb. WingFoil defects and gaps found here are filed as notes in
-`docs/wingfoil-feedback/`.
+`directives list` warns that `definition-of-done` has two files and uses the custom one (W-23): the
+override is intended (`methodology/scrum` README). `wingfoil-cli` lists every known behaviour of the
+pinned CLI (W-xx entries) and the way to work with it; read it before running any verb. WingFoil
+defects and gaps found here are filed as notes in `docs/wingfoil-feedback/`.
 
 ## Keeping this file aligned
 
 Re-check the tables when `memory.yaml`, `workflows.yaml`, a workflow file, `roles.yaml` or a
 directive changes — at least at every `user-docs` `align-agent-docs` step and at release-line close
-(dl-025 checks).
+(dl-025 checks), and at every pack update (recompose, then compare).

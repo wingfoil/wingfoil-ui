@@ -1,0 +1,24 @@
+format: 1
+# A bug found: captured, opened, and triaged by the approver. Its triaged and planned states move
+# by approve, the approver's (the charter's R-1).
+name: bug-ingest
+kind: main
+description: "Capture a bug and open it, then have it triaged"
+version: 1
+phases:
+  - name: capture
+    description: "Record what fails, how to reproduce it and what is expected as a bug, opened."
+    role: developer
+    actions:
+      - 'memory.add(type: bug)'
+      - memory.submit
+    produces:
+      - { type: bug, path: "docs/04_memory/bugs/{id}.md" }
+  - name: triage
+    description: >-
+      The approver triages the bug: approve moves it to triaged; a reject closes it, as open's
+      gate rules.
+    role: tech-lead
+    actions:
+      - memory.approve
+    approval: { by_role: approver }

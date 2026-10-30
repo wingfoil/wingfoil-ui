@@ -1,6 +1,10 @@
 # WingFoil UI — e2e-smoke (SUB workflow) — rewritten for a web dashboard
 # Black-box release gate before release-submit, replacing WingFoil's CLI smoke (its dl-023).
 # Include-only. Tooling (Playwright, axe-core, packaging command) is confirmed by initial-design.
+# Packs adoption (governance-alignment-rel-v0.3-plan step 3, version 1.1): no workflow of this
+# composition includes it; it is a procedure of this repository run by hand inside `release-
+# submit` › `pre-release-checks` (directive `release-conventions`), before the release enters
+# `releasing`.
 name: e2e-smoke
 kind: sub
 description: >-
@@ -8,7 +12,7 @@ description: >-
   WingFoil UI server on it, drive the screens in scope through a real browser, scan them for
   accessibility, and check that the packaged app launches. STAGED: warn on failure until the gate
   runs green for a release, then flip to hard-reject.
-version: 1.0
+version: 1.1
 element: release
 
 phases:

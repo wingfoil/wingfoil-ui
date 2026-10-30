@@ -4,6 +4,7 @@ type: task
 title: ""              # REQUIRED — e.g. "Today view: pending gates list (REQ-UI-03)"
 status: draft          # auto-set by wingfoil
 release: ""            # REQUIRED — target release version, e.g. "v0.1"
+sprint: ""             # REQUIRED — the Sprint that selects it (sprint-NNN), or "n/a — <reason>" until one does (methodology/scrum)
 module: ""             # optional — server | web | contracts (dna.yaml modules)
 priority: ""           # optional — high | medium | low
 tags: []               # optional — additional labels, e.g. [today, a11y]

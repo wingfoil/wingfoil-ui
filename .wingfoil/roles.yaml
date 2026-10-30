@@ -1,23 +1,36 @@
-# Directive role assignments (P3.2/P3.7) — scaffolded by `wingfoil init`.
-# Binds directives to roles by directive ID, independent of the built-in/custom subfolder holding the file.
+# WingFoil UI — directive role assignments. Binds directives to roles by directive id, independent
+# of the built-in/custom subfolder holding the file.
+# Composed from the wingfoil-templates packs base@2.0.1, software@1.0.0 and methodology/scrum@1.0.0
+# (traceability, scrum, determinism, definition-of-done, claim-sources and the packs' globals), with
+# this repository's own bindings re-added (governance-alignment-rel-v0.3-plan step 3).
+format: 1
 version: 1
 
 assignments:
+  facilitator:
+    - traceability
+    - scrum
   developer:
     - code-quality
     - testing
     - determinism
     - cli-only-writes
     - accessibility
+    - scrum
+    - definition-of-done
   reviewer:
     - code-review
     - traceability
+    - determinism
     - cli-only-writes
     - accessibility
     - ux-consistency
+    - definition-of-done
   qa:
     - testing
     - accessibility
+    - definition-of-done
+    - release-conventions
   architect:
     - architecture
     - determinism
@@ -26,14 +39,17 @@ assignments:
   product-owner:
     - traceability
     - ux-consistency
+    - scrum
   tech-lead:
     - architecture
     - code-review
+    - release-conventions
 
 # Global directives apply to every role.
 global:
   - doc-versioning
-  - documentation
   - security-secrets
+  - claim-sources
+  - documentation
   - claim-evidence
   - wingfoil-cli

@@ -1,0 +1,11 @@
+format: 1
+# What starts a retrospective in a composition without a delivery workflow (spec-001 §9): a main
+# cannot be included, so this thin main includes the sub.
+name: retrospective-periodic
+kind: main
+description: "A retrospective of the work since the previous one"
+version: 1
+phases:
+  - name: retrospective
+    description: "One retrospective over the period since the previous one."
+    include: retrospective

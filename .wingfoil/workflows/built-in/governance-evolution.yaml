@@ -1,0 +1,43 @@
+format: 1
+# A change of the project's own governance (dl-022 S4): its .wingfoil/, AGENTS.md, roles and
+# Memory types. Started for each such change, for example one a retrospective lists; a decision
+# that changes no governance goes to decision-log-ingest.
+name: governance-evolution
+kind: main
+description: "Assess, propose, approve and apply a change of the project's governance"
+version: 2
+phases:
+  - name: assess
+    description: >-
+      Write the assessment into this run's plan: the change asked for and why, from Execution
+      Notes, retrospective points, feedback notes and the approver's requests.
+    role: facilitator
+    actions:
+      - agent.execute
+  - name: propose
+    description: >-
+      A decision-log that says what changes in .wingfoil/, AGENTS.md, the roles and the Memory
+      types, and why; submitted for discussion.
+    role: facilitator
+    actions:
+      - 'memory.add(type: decision-log)'
+      - memory.submit
+    produces:
+      - { type: decision-log, path: "docs/04_memory/design/dls/{id}.md" }
+  - name: approve
+    description: "The approver rules the decision-log; a reject goes back to propose."
+    role: approver
+    actions:
+      - memory.approve
+    approval: { by_role: approver }
+    fallback: { step: propose }
+  - name: apply
+    description: >-
+      Apply the change, CLI verbs first, with version bumps and AGENTS.md updated. A change too
+      large for one session becomes tasks, run through the composition's delivery workflow when
+      it has one, otherwise one at a time under this run's plan.
+    role: facilitator
+    produces:
+      # A directory ends with /: WingFoil reads any other path as a file.
+      - .wingfoil/
+      - AGENTS.md

@@ -1,0 +1,25 @@
+format: 1
+# The specification slot's default: minimal, naming no method (dl-003 D11).
+name: specification
+kind: sub
+description: "Specify the system in a tech-spec, then approve it"
+version: 1
+phases:
+  - name: specify
+    description: "A tech-spec of what is built and how, submitted for approval."
+    role: architect
+    actions:
+      - 'memory.add(type: tech-spec)'
+      - memory.submit
+    produces:
+      - { type: tech-spec, path: "docs/04_memory/design/specs/{id}.md" }
+  - name: approve
+    description: >-
+      The approver rules the tech-spec specify submitted; the step closes once none is pending. A
+      reject goes back to specify.
+    role: approver
+    where: { type: tech-spec, status: [pending] }
+    actions:
+      - memory.approve
+    approval: { by_role: approver }
+    fallback: { step: specify }

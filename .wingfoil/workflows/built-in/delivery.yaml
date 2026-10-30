@@ -1,0 +1,24 @@
+format: 1
+# The methodology's delivery (software's contract, as dl-026 and dl-027 amend it): the Sprints are
+# its one stream; each Sprint includes the release slot and base's retrospective.
+name: delivery
+kind: sub
+description: "The Sprints, one after the other"
+version: 1
+phases:
+  - name: plan-sprint
+    description: >-
+      Add the first Sprint and submit it (draft to planned); its goal is written by editing the
+      draft, which memory add cannot fill. Each later Sprint is added the same way outside the step,
+      and joins the iteration.
+    role: product-owner
+    actions:
+      - 'memory.add(type: sprint)'
+      - memory.submit
+    produces:
+      - { type: sprint, path: "docs/04_memory/sprints/{id}.md" }
+  - name: sprints
+    description: "Each Sprint, one at a time."
+    iterate_over: sprint
+    where: { status: [planned, active, done] }
+    include: sprint

@@ -1,0 +1,33 @@
+format: 1
+# WingFoil's release-publishing, its phase names unchanged (R3). Where to tag and where to publish
+# are the project's.
+name: release-publishing
+kind: sub
+element: release
+description: "Commit, rehearse, tag and publish a release, then mark it released"
+version: 1
+phases:
+  - name: release-commit
+    description: "The release commit: versions and changelog."
+    role: tech-lead
+    actions:
+      - agent.execute
+  - name: staging-rehearsal
+    description: "Rehearse the publication without making it public."
+    role: qa
+    actions:
+      - agent.execute
+  - name: tag
+    description: "Tag the release commit."
+    role: tech-lead
+    actions:
+      - agent.execute
+  - name: publish
+    description: "Publish the release, once the approver approves it."
+    role: tech-lead
+    approval: { by_role: approver }
+  - name: mark-released
+    description: "The release is released."
+    role: tech-lead
+    actions:
+      - element.set_state(released)
