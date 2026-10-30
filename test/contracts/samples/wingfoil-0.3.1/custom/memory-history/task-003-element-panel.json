@@ -1,0 +1,42 @@
+{
+  "id": "task-003-element-panel",
+  "path": "docs/04_memory/v0.1/task-003-element-panel.md",
+  "entries": [
+    {
+      "sha": "1b72873705eb0bef8b8db867033f02c1bf2bcb94",
+      "author": "Jordan <jordan@example.test>",
+      "timestamp": "2026-09-29T15:20:12+00:00",
+      "operation": "add",
+      "from": null,
+      "to": "draft",
+      "approver": null,
+      "reason": null,
+      "subject": "wf(task): add task-003-element-panel",
+      "wingfoil": "0.3.1 (870bd4406f3b9bba5ecde7a5f8198b80c2a98583)"
+    },
+    {
+      "sha": "522515e25d65b102b860d7f67da7d878c5ac9449",
+      "author": "Jordan <jordan@example.test>",
+      "timestamp": "2026-09-29T15:20:13+00:00",
+      "operation": "submit",
+      "from": "draft",
+      "to": "pending",
+      "approver": null,
+      "reason": null,
+      "subject": "wf(task): submit task-003-element-panel",
+      "wingfoil": "0.3.1 (870bd4406f3b9bba5ecde7a5f8198b80c2a98583)"
+    },
+    {
+      "sha": "ea0d5a80657831a8d4985af8b172f438e26e59d5",
+      "author": "Morgan <morgan@example.test>",
+      "timestamp": "2026-09-29T15:20:14+00:00",
+      "operation": "approve",
+      "from": "pending",
+      "to": "backlog",
+      "approver": "Morgan <morgan@example.test> (approver)",
+      "reason": "Approved",
+      "subject": "wf(task): approve task-003-element-panel [pending → backlog]",
+      "wingfoil": "0.3.1 (870bd4406f3b9bba5ecde7a5f8198b80c2a98583)"
+    }
+  ]
+}

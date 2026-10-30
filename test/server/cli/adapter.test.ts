@@ -2,7 +2,7 @@
 // fixtures: the process audit (TT-ARC-02), the result classification and the 30 s timeout
 // (TT-INT-04), S-27.1 on the adapter side.
 import { existsSync } from 'node:fs';
-import { appendFile, mkdtemp, readFile, realpath, rm, writeFile } from 'node:fs/promises';
+import { appendFile, chmod, mkdtemp, readFile, realpath, rm, utimes, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
@@ -19,7 +19,7 @@ import {
 } from '../../../server/src/cli/adapter.js';
 import { CliNotFoundError, discoverCli } from '../../../server/src/cli/discovery.js';
 import { LocalProcessRunner, type SpawnRecord } from '../../../server/src/process/runner.js';
-import { binScript, PINNED_PACKAGE_DIR, pinnedVersion } from '../../harness/cli.js';
+import { binScript, PINNED_PACKAGE_DIR, pinnedVersionText } from '../../harness/cli.js';
 import {
   buildFixture,
   cliPackageDir,
@@ -64,7 +64,7 @@ afterAll(async () => {
 });
 
 describe('TT-ARC-02 — process audit', () => {
-  it('with 0.2.2 pinned and wingfoil 0.2.1 first on the PATH, every CLI process runs the pinned binary', async () => {
+  it('with the pinned version and wingfoil 0.2.1 first on the PATH, every CLI process runs the pinned binary', async () => {
     const fx = await freshKanban();
     const marker = path.join(root, `marker-${n}`);
     const pkg = path.join(root, `fake-${n}`, 'pkg');
@@ -72,7 +72,7 @@ describe('TT-ARC-02 — process audit', () => {
     const env = withPathFirst(fx.env, await installGlobally(path.join(root, `fake-${n}`, 'prefix'), pkg));
     const { cli, spawned } = await adapterFor(fx, env);
 
-    expect(await cli.version()).toBe('0.2.2');
+    expect(await cli.version()).toMatch(pinnedVersionText());
     await cli.json(['dna', 'show']);
     await cli.json(['paths']);
     await cli.json(['directives', 'list']);
@@ -131,7 +131,7 @@ describe('S-08 / S-10 — the CLI that runs (adapter side)', () => {
     const fx = await freshKanban();
     const { cli } = await adapterFor(fx);
     expect(cli.source).toBe('project');
-    expect(await cli.version()).toBe(pinnedVersion());
+    expect(await cli.version()).toMatch(pinnedVersionText());
   });
 
   it('S-08.2 — runs the PATH CLI, through its package bin script, when the project pins none', async () => {
@@ -141,7 +141,7 @@ describe('S-08 / S-10 — the CLI that runs (adapter side)', () => {
     const bin = await installGlobally(path.join(root, `global-${n}`), PINNED_PACKAGE_DIR);
     const { cli, spawned } = await adapterFor(fx, withPathFirst(base, bin));
     expect(cli.source).toBe('path');
-    expect(await cli.version()).toBe(pinnedVersion());
+    expect(await cli.version()).toMatch(pinnedVersionText());
     expect(spawned[0]?.file).toBe(process.execPath);
   });
 
@@ -170,12 +170,16 @@ describe('TT-INT-04 — result classification (spec-001 §2)', () => {
     const fx = await freshKanban();
     const directive = path.join(fx.dir, '.wingfoil', 'directives', 'built-in', 'testing.md');
     const text = await readFile(directive, 'utf8');
-    await writeFile(directive, text.replace(/^title:/m, 'scope: whatever\ntitle:'));
+    // A field WingFoil does not know (0.3 knows `scope`, which 0.2.2 reported).
+    await writeFile(directive, text.replace(/^title:/m, 'flavour: whatever\ntitle:'));
     const { cli } = await adapterFor(fx);
     const out = await cli.json(['directives', 'list']);
     expect((out.data as { entries: unknown[] }).entries.length).toBeGreaterThan(0);
     expect(out.warnings).toHaveLength(1);
-    expect(out.warnings[0]).toMatch(/unknown field\(s\) ignored: scope$/);
+    // The warning's text, also from WingFoil 0.3, which writes it as `{"warning": "…"}` (task-046).
+    expect(out.warnings[0]).toMatch(
+      /^\.wingfoil\/directives\/built-in\/testing\.md: unknown field\(s\) ignored: flavour$/,
+    );
   });
 
   // bug-017 (task-040 review round 3, S3-1): a CLI warning goes through the one sanitiser — a field
@@ -236,8 +240,9 @@ describe('TT-INT-04 — result classification (spec-001 §2)', () => {
       words: ['dna', 'show'],
       options: ['--bogus'],
       exitCode: 2,
-      // The kind only (task-032 review I1); the option names are in `options`.
-      stderr: 'error',
+      // The kind only (task-032 review I1); the option names are in `options`. WingFoil 0.3 answers
+      // `{"error":"unknown option '--bogus'"}`: no kind before a colon, so the generic one.
+      stderr: 'usage error',
     });
     expect(cliErrorEnvelope(error as CliInternalError)).toEqual({
       status: 500,
@@ -481,4 +486,411 @@ describe('classification without processes (fake runner)', () => {
     });
     await expect(cli.version()).rejects.toBeInstanceOf(CliOutputError);
   });
+});
+
+// task-046 D46-5: WingFoil 0.3.1's `workflow list` runs `git status` with optional locks, which
+// rewrites a stale `.git/index`; every WingFoil process runs with `GIT_OPTIONAL_LOCKS=0`, so a read
+// leaves the index as it was (task-025 AC-5). Commits take required locks: writes are unaffected.
+describe('D46-5 — every WingFoil process runs without optional git locks', () => {
+  const resolved = { source: 'project' as const, projectRoot: '/p', file: process.execPath, prefixArgs: ['/p/cli.js'] };
+
+  it('adds GIT_OPTIONAL_LOCKS=0 to the given environment and to the inherited one, for every command', async () => {
+    const { FakeProcessRunner } = await import('../process/fake-runner.js');
+    const runner = new FakeProcessRunner()
+      .answer({ stdout: '{}' })
+      .answer({ stdout: JSON.stringify({ id: 'x', path: 'x.md', from: 'draft', to: 'pending' }) });
+    const given = new WingfoilCli({ cli: resolved, runner, env: { PATH: '/bin', GIT_OPTIONAL_LOCKS: '1' } });
+    await given.json(['paths']);
+    await given.json(['memory', 'submit'], { positionals: ['x'] });
+    const inherited = new WingfoilCli({ cli: resolved, runner: runner.answer({ stdout: '0.3.1' }) });
+    await inherited.version();
+    expect(runner.requests).toHaveLength(3);
+    // GIT_NO_LAZY_FETCH: D46-7 (review round 2).
+    expect(runner.requests[0]!.env).toEqual({
+      PATH: '/bin',
+      GIT_OPTIONAL_LOCKS: '0',
+      GIT_NO_LAZY_FETCH: '1',
+      GIT_ALLOW_PROTOCOL: 'none',
+    });
+    expect(runner.requests[1]!.env).toEqual({
+      PATH: '/bin',
+      GIT_OPTIONAL_LOCKS: '0',
+      GIT_NO_LAZY_FETCH: '1',
+      GIT_ALLOW_PROTOCOL: 'none',
+    });
+    expect(runner.requests[2]!.env).toEqual({
+      ...withoutCliGitVariables(process.env),
+      GIT_OPTIONAL_LOCKS: '0',
+      GIT_NO_LAZY_FETCH: '1',
+      GIT_ALLOW_PROTOCOL: 'none',
+    });
+  });
+
+  // Review round 1 n3: on Windows the variable names are case-insensitive — no second spelling.
+  it('replaces a differently-cased GIT_OPTIONAL_LOCKS instead of adding a second one', async () => {
+    const { FakeProcessRunner } = await import('../process/fake-runner.js');
+    const runner = new FakeProcessRunner().answer({ stdout: '{}' });
+    await new WingfoilCli({ cli: resolved, runner, env: { PATH: '/bin', git_optional_locks: '1' } }).json(['paths']);
+    expect(runner.requests[0]!.env).toEqual({
+      PATH: '/bin',
+      GIT_OPTIONAL_LOCKS: '0',
+      GIT_NO_LAZY_FETCH: '1',
+      GIT_ALLOW_PROTOCOL: 'none',
+    });
+  });
+
+  // Review round 1 M1 (D46-6): no fsmonitor program in any WingFoil process, writes included.
+  it('asks the runner for core.fsmonitor=false on every command', async () => {
+    const { FakeProcessRunner } = await import('../process/fake-runner.js');
+    const runner = new FakeProcessRunner()
+      .answer({ stdout: '{}' })
+      .answer({ stdout: JSON.stringify({ id: 'x', path: 'x.md', from: 'draft', to: 'pending' }) })
+      .answer({ stdout: '0.3.1' });
+    const cli = new WingfoilCli({ cli: resolved, runner });
+    await cli.json(['paths']);
+    await cli.json(['memory', 'submit'], { positionals: ['x'] });
+    await cli.version();
+    for (const r of runner.requests) {
+      expect(r.gitConfig).toEqual([
+        ['core.fsmonitor', 'false'],
+        ['protocol.allow', 'never'],
+        ['log.showSignature', 'false'],
+      ]);
+    }
+  });
+
+  it('a configured fsmonitor program never runs: the reads and a submit of the pinned CLI (real CLI)', async () => {
+    const fx = await freshKanban();
+    const marker = path.join(root, `fsmonitor-${n}.log`);
+    const program = path.join(root, `fsmonitor-${n}.sh`);
+    await writeFile(program, `#!/bin/sh\necho ran >> '${marker}'\nexit 1\n`);
+    await chmod(program, 0o755);
+    await git(fx.dir, ['config', 'core.fsmonitor', program], fx.env);
+    // Stale index entries, so that a git status would consult the fsmonitor.
+    const later = new Date(Date.now() + 5_000);
+    await utimes(path.join(fx.dir, '.wingfoil', 'dna.yaml'), later, later);
+    const { cli } = await adapterFor(fx);
+    await cli.json(['workflow', 'list']);
+    await cli.json(['dna', 'show']);
+    await cli.json(['memory', 'search']);
+    await cli.json(['directives', 'list']);
+    await cli.json(['memory', 'submit'], { positionals: ['task-004-session-timeout'] });
+    expect(existsSync(marker), 'the fsmonitor program ran').toBe(false);
+  }, 120_000);
+
+  it('the pinned workflow list leaves a stale .git/index unchanged (real CLI)', async () => {
+    const fx = await freshKanban();
+    const { cli } = await adapterFor(fx);
+    const file = path.join(fx.dir, '.wingfoil', 'dna.yaml');
+    for (let i = 0; i < 2; i += 1) {
+      // A tracked file whose stat no longer matches the index entry: git would refresh the index.
+      const later = new Date(Date.now() + 5_000 * (i + 1));
+      await utimes(file, later, later);
+      const before = await readFile(path.join(fx.dir, '.git', 'index'));
+      await cli.json(['workflow', 'list']);
+      expect((await readFile(path.join(fx.dir, '.git', 'index'))).equals(before)).toBe(true);
+    }
+  }, 120_000);
+});
+
+// Review round 1 c4: WingFoil 0.3.1 names its files relative to the project, so the redaction of
+// a quoted root is proved on a CLI that quotes it — the 0.2.2 build of the matrix (bug-012, D33-5).
+describe('c4 — the root a real CLI quotes in a refusal is redacted (WingFoil 0.2.2 build)', () => {
+  it('an invalid dna.yaml: the refusal names <project>, never the folder', async () => {
+    const { cliBuildFor } = await import('../../contracts/support.js');
+    const fx = await buildFixture('kanban', {
+      root: path.join(root, 'kanban-0.2.2'),
+      cli: await cliBuildFor('0.2.2'),
+      cliVersion: '0.2.2',
+    });
+    await appendFile(path.join(fx.dir, '.wingfoil', 'dna.yaml'), 'project: [unclosed\n  : :\n');
+    const raw = await rawDnaRefusal(fx);
+    expect(raw).toContain(fx.dir);
+    const { cli } = await adapterFor(fx);
+    const error = (await cli.json(['dna', 'show']).catch((e: unknown) => e)) as CliRefusedError;
+    expect(error).toBeInstanceOf(CliRefusedError);
+    expect(error.cliMessage).toContain('<project>');
+    expect(error.cliMessage).not.toContain(fx.dir);
+  }, 300_000);
+});
+
+/** The raw stderr of `dna show` on `fx` (the CLI's own wording, before the adapter). */
+async function rawDnaRefusal(fx: Fixture): Promise<string> {
+  const { run } = await import('../../harness/run.js');
+  const r = await run(process.execPath, [binScript(cliPackageDir(fx)), '--format', 'json', 'dna', 'show'], {
+    cwd: fx.dir,
+    env: fx.env,
+    allowFailure: true,
+  });
+  return r.stderr;
+}
+
+// Review round 2 M2 (D46-7): a partial clone whose promisor remote names a program — an
+// `uploadpack` for a local remote, a `core.sshCommand` for an ssh one — runs it when a read needs a
+// missing blob (git's lazy fetch). No WingFoil process and no server git read does any transport:
+// `protocol.allow=never` (and `GIT_NO_LAZY_FETCH=1`) refuse it before the program starts.
+describe('D46-7 — no lazy fetch: a promisor remote’s program never runs on a read', () => {
+  /** `fx` as a partial clone missing the HEAD blobs of `.wingfoil/*.yaml`, with a marker program. */
+  async function promisorTrap(
+    fx: Fixture,
+    variant: 'uploadpack' | 'ssh' | 'file-allowed' | 'ext-allowed' | 'env-allowed',
+  ): Promise<string> {
+    const marker = path.join(root, `promisor-${variant}-${n}.log`);
+    const program = path.join(root, `promisor-${variant}-${n}.sh`);
+    await writeFile(program, `#!/bin/sh\necho ran >> '${marker}'\nexit 1\n`);
+    await chmod(program, 0o755);
+    const tree = (await git(fx.dir, ['ls-tree', 'HEAD', '.wingfoil/'], fx.env)).stdout;
+    const blobs = [...tree.matchAll(/^\d+ blob ([0-9a-f]{40})\t.*\.ya?ml$/gm)].map((m) => m[1]!);
+    expect(blobs.length).toBeGreaterThan(0);
+    for (const sha of blobs) {
+      const loose = path.join(fx.dir, '.git', 'objects', sha.slice(0, 2), sha.slice(2));
+      expect(existsSync(loose), `${sha} is a loose object`).toBe(true);
+      await rm(loose);
+    }
+    const set = (key: string, value: string) => git(fx.dir, ['config', key, value], fx.env);
+    await set('core.repositoryformatversion', '1');
+    await set('extensions.partialClone', 'evil');
+    await set('remote.evil.promisor', 'true');
+    if (variant === 'ssh') {
+      await set('remote.evil.url', 'ssh://example.invalid/repo.git');
+      await set('core.sshCommand', program);
+    } else if (variant === 'ext-allowed') {
+      // Review round 3 M1: a per-protocol setting of the repository wins over `protocol.allow`.
+      await set('remote.evil.url', `ext::${program} %S`);
+      await set('protocol.ext.allow', 'always');
+    } else {
+      await set('remote.evil.url', fx.remoteDir);
+      await set('remote.evil.uploadpack', program);
+      if (variant === 'file-allowed') await set('protocol.file.allow', 'always');
+    }
+    return marker;
+  }
+
+  /**
+   * A runner standing for a git that ignores `GIT_NO_LAZY_FETCH` (before 2.45.1; e.g. Apple Git
+   * 2.39.3): it drops the variable from every request (review round 3 M1).
+   */
+  function olderGitRunner(): LocalProcessRunner {
+    const runner = new LocalProcessRunner();
+    runners.push(runner);
+    const run = runner.run.bind(runner);
+    runner.run = (request) => {
+      const env = { ...(request.env ?? process.env) };
+      for (const key of Object.keys(env)) if (key.toUpperCase() === 'GIT_NO_LAZY_FETCH') delete env[key];
+      return run({ ...request, env });
+    };
+    return runner;
+  }
+
+  // Review round 3 M1: the repository's own per-protocol settings and an inherited
+  // GIT_ALLOW_PROTOCOL re-enable a transport `protocol.allow=never` refuses; with a git that ignores
+  // GIT_NO_LAZY_FETCH only GIT_ALLOW_PROTOCOL=none stops the lazy fetch.
+  for (const variant of ['file-allowed', 'ext-allowed', 'env-allowed'] as const) {
+    const inherited = (fx: Fixture): NodeJS.ProcessEnv =>
+      variant === 'env-allowed' ? { ...fx.env, GIT_ALLOW_PROTOCOL: 'file:ext' } : fx.env;
+
+    it(`${variant}, a git without GIT_NO_LAZY_FETCH: the pinned CLI's reads never run the program`, async () => {
+      const fx = await freshKanban();
+      const marker = await promisorTrap(fx, variant);
+      const env = inherited(fx);
+      const cli = new WingfoilCli({ cli: await discoverCli(fx.dir, { env }), runner: olderGitRunner(), env });
+      await cli.json(['workflow', 'list']).catch(() => undefined);
+      await cli.json(['memory', 'history'], { positionals: ['task-001-login-form'] }).catch(() => undefined);
+      expect(existsSync(marker), 'the promisor program ran').toBe(false);
+    }, 120_000);
+
+    it(`${variant}, a git without GIT_NO_LAZY_FETCH: the server's memoryLog and status never run it`, async () => {
+      const fx = await freshKanban();
+      const marker = await promisorTrap(fx, variant);
+      const env = inherited(fx);
+      const { GitReads, resolveGit } = await import('../../../server/src/git/git.js');
+      const reads = new GitReads({ git: await resolveGit(env), runner: olderGitRunner(), cwd: fx.dir, env });
+      const head = (await git(fx.dir, ['rev-parse', 'HEAD'], fx.env)).stdout.trim();
+      await reads.memoryLog(['.wingfoil'], head).catch(() => undefined);
+      await reads.status().catch(() => undefined);
+      expect(existsSync(marker), 'the promisor program ran').toBe(false);
+    }, 120_000);
+  }
+
+  for (const variant of ['uploadpack', 'ssh'] as const) {
+    it(`${variant}: workflow list and memory history of the pinned CLI never run it (real CLI)`, async () => {
+      const fx = await freshKanban();
+      const marker = await promisorTrap(fx, variant);
+      const { cli } = await adapterFor(fx);
+      // The reads may fail (the blobs are missing): what matters is that nothing was fetched.
+      await cli.json(['workflow', 'list']).catch(() => undefined);
+      await cli.json(['memory', 'history'], { positionals: ['task-001-login-form'] }).catch(() => undefined);
+      expect(existsSync(marker), 'the promisor program ran').toBe(false);
+    }, 120_000);
+
+    it(`${variant}: the server's Memory-events read (git log -p) never runs it`, async () => {
+      const fx = await freshKanban();
+      const marker = await promisorTrap(fx, variant);
+      const { GitReads, resolveGit } = await import('../../../server/src/git/git.js');
+      const reads = new GitReads({
+        git: await resolveGit(fx.env),
+        runner: new LocalProcessRunner(),
+        cwd: fx.dir,
+        env: fx.env,
+      });
+      const head = (await git(fx.dir, ['rev-parse', 'HEAD'], fx.env)).stdout.trim();
+      await reads.memoryLog(['.wingfoil'], head).catch(() => undefined);
+      await reads.status().catch(() => undefined);
+      expect(existsSync(marker), 'the promisor program ran').toBe(false);
+    }, 120_000);
+  }
+
+  it('asks the runner for protocol.allow=never and sets GIT_NO_LAZY_FETCH=1 on every command', async () => {
+    const { FakeProcessRunner } = await import('../process/fake-runner.js');
+    const runner = new FakeProcessRunner().answer({ stdout: '{}' });
+    const resolved = {
+      source: 'project' as const,
+      projectRoot: '/p',
+      file: process.execPath,
+      prefixArgs: ['/p/cli.js'],
+    };
+    await new WingfoilCli({
+      cli: resolved,
+      runner,
+      env: { PATH: '/bin', git_no_lazy_fetch: '0', git_allow_protocol: 'file' },
+    }).json(['paths']);
+    expect(runner.requests[0]!.gitConfig).toEqual([
+      ['core.fsmonitor', 'false'],
+      ['protocol.allow', 'never'],
+      ['log.showSignature', 'false'],
+    ]);
+    expect(runner.requests[0]!.env).toEqual({
+      PATH: '/bin',
+      GIT_OPTIONAL_LOCKS: '0',
+      GIT_NO_LAZY_FETCH: '1',
+      GIT_ALLOW_PROTOCOL: 'none',
+    });
+  });
+});
+
+/** `env` without any spelling of GIT_ALLOW_PROTOCOL, GIT_OPTIONAL_LOCKS or GIT_NO_LAZY_FETCH. */
+function withoutCliGitVariables(env: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
+  const out: NodeJS.ProcessEnv = {};
+  for (const [k, v] of Object.entries(env)) {
+    if (!['GIT_ALLOW_PROTOCOL', 'GIT_OPTIONAL_LOCKS', 'GIT_NO_LAZY_FETCH'].includes(k.toUpperCase())) out[k] = v;
+  }
+  return out;
+}
+
+// Review round 4 MAJOR-2 (D46-8): an empty or relative PATH entry would make WingFoil's bare `git`
+// (spawned in the project root) run a program the repository ships. Every child of the runner gets
+// the absolute PATH entries only.
+describe('D46-8 — no relative PATH entry in any child: a git the repository ships never runs', () => {
+  async function shippedGit(fx: Fixture): Promise<string> {
+    const marker = path.join(root, `shipped-git-${n}.log`);
+    const { resolveGit } = await import('../../../server/src/git/git.js');
+    const realGit = await resolveGit(fx.env);
+    await writeFile(path.join(fx.dir, 'git'), `#!/bin/sh\necho ran >> '${marker}'\nexec '${realGit}' "$@"\n`);
+    await chmod(path.join(fx.dir, 'git'), 0o755);
+    await git(fx.dir, ['add', 'git'], fx.env);
+    await git(fx.dir, ['-c', 'user.name=A', 'commit', '-qm', 'ship a git'], fx.env);
+    return marker;
+  }
+
+  const reads = async (cli: WingfoilCli) => {
+    // Review round 5 c-nit-1: the reads run (one answers), so the absence of the marker means something.
+    expect((await cli.json(['dna', 'show'])).data).toHaveProperty('team');
+    for (const words of [
+      ['dna', 'show'],
+      ['paths'],
+      ['directives', 'list'],
+      ['workflow', 'list'],
+      ['memory', 'search'],
+    ])
+      await cli.json(words).catch(() => undefined);
+    await cli.json(['memory', 'history'], { positionals: ['task-001-login-form'] }).catch(() => undefined);
+  };
+
+  for (const prefix of [':', '.:']) {
+    it(`PATH starting with ${JSON.stringify(prefix)}: the pinned CLI's reads never run it (real CLI)`, async () => {
+      const fx = await freshKanban();
+      const marker = await shippedGit(fx);
+      const env = { ...fx.env, PATH: `${prefix}${fx.env.PATH ?? ''}` };
+      const { cli } = await adapterFor(fx, env);
+      await reads(cli);
+      expect(existsSync(marker), 'the shipped git ran').toBe(false);
+    }, 120_000);
+  }
+
+  it('PATH starting with ":": the 0.2.2 build’s memory history never runs it (real CLI)', async () => {
+    const { cliBuildFor } = await import('../../contracts/support.js');
+    const fx = await buildFixture('kanban', {
+      root: path.join(root, `kanban-0.2.2-path-${n}`),
+      cli: await cliBuildFor('0.2.2'),
+      cliVersion: '0.2.2',
+    });
+    const marker = await shippedGit(fx);
+    const env = { ...fx.env, PATH: `:${fx.env.PATH ?? ''}` };
+    const { cli } = await adapterFor(fx, env);
+    await reads(cli);
+    expect(existsSync(marker), 'the shipped git ran').toBe(false);
+  }, 300_000);
+});
+
+// Review round 5 s-minor-1: 0.2.2's `memory history` runs `git log --follow`, which would run a
+// configured `gpg.program` on a signed-looking commit when `log.showSignature` is set; every WingFoil
+// process gets `log.showSignature=false`.
+describe('round 5 s-minor-1 — no gpg.program on memory history', () => {
+  async function signedLookingCommit(fx: Fixture): Promise<string> {
+    const marker = path.join(root, `gpg-${n}.log`);
+    const program = path.join(root, `gpg-${n}.sh`);
+    await writeFile(program, `#!/bin/sh\necho ran >> '${marker}'\nexit 1\n`);
+    await chmod(program, 0o755);
+    // A commit touching the element with a fake `gpgsig` header, made the head of the branch.
+    const file = path.join(fx.dir, 'docs', 'memory', 'task', 'task-001-login-form.md');
+    await appendFile(file, '\nSigned-looking change.\n');
+    await git(fx.dir, ['add', file], fx.env);
+    const tree = (await git(fx.dir, ['write-tree'], fx.env)).stdout.trim();
+    const parent = (await git(fx.dir, ['rev-parse', 'HEAD'], fx.env)).stdout.trim();
+    const who = 'A <a@example.test> 1793000000 +0000';
+    const body = [
+      `tree ${tree}`,
+      `parent ${parent}`,
+      `author ${who}`,
+      `committer ${who}`,
+      'gpgsig -----BEGIN PGP SIGNATURE-----',
+      ' ',
+      ' iQEzBAABCAAdFiEEAAAAAAAAAAAAAAAAAAAAAAAAAAA=',
+      ' -----END PGP SIGNATURE-----',
+      '',
+      'a signed-looking commit',
+      '',
+    ].join('\n');
+    const objectFile = path.join(root, `commit-${n}.txt`);
+    await writeFile(objectFile, body);
+    const sha = (await git(fx.dir, ['hash-object', '-t', 'commit', '-w', objectFile], fx.env)).stdout.trim();
+    await git(fx.dir, ['update-ref', 'HEAD', sha], fx.env);
+    await git(fx.dir, ['reset', '-q'], fx.env);
+    await git(fx.dir, ['config', 'log.showSignature', 'true'], fx.env);
+    await git(fx.dir, ['config', 'gpg.program', program], fx.env);
+    return marker;
+  }
+
+  it('the pinned CLI: memory history answers and never runs it (real CLI)', async () => {
+    const fx = await freshKanban();
+    const marker = await signedLookingCommit(fx);
+    const { cli } = await adapterFor(fx);
+    const out = await cli.json(['memory', 'history'], { positionals: ['task-001-login-form'] });
+    expect((out.data as { entries: unknown[] }).entries.length).toBeGreaterThan(0);
+    expect(existsSync(marker), 'gpg.program ran').toBe(false);
+  }, 120_000);
+
+  it('the 0.2.2 build: memory history answers and never runs it (real CLI)', async () => {
+    const { cliBuildFor } = await import('../../contracts/support.js');
+    const fx = await buildFixture('kanban', {
+      root: path.join(root, `kanban-0.2.2-gpg-${n}`),
+      cli: await cliBuildFor('0.2.2'),
+      cliVersion: '0.2.2',
+    });
+    const marker = await signedLookingCommit(fx);
+    const { cli } = await adapterFor(fx);
+    const out = await cli.json(['memory', 'history'], { positionals: ['task-001-login-form'] });
+    expect((out.data as { entries: unknown[] }).entries.length).toBeGreaterThan(0);
+    expect(existsSync(marker), 'gpg.program ran').toBe(false);
+  }, 300_000);
 });

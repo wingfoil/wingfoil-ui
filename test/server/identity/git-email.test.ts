@@ -116,7 +116,8 @@ describe('readGitEmail — through the runner port', () => {
     expect(runner.requests).toHaveLength(1);
     expect(runner.requests[0]).toMatchObject({
       file: '/usr/bin/git',
-      args: ['config', '--get', 'user.email'],
+      // Review round 5 s-nit-4: the read settings of GitReads first.
+      args: ['-c', 'core.fsmonitor=false', '-c', 'protocol.allow=never', 'config', '--get', 'user.email'],
       cwd: '/p/kanban',
     });
   });
@@ -165,5 +166,24 @@ describe('resolveGit (the shared resolver)', () => {
     await mkdir(bin, { recursive: true });
     await writeFile(path.join(bin, 'git.exe'), '');
     expect(await resolveGit({ Path: bin }, 'win32')).toBe(path.join(bin, 'git.exe'));
+  });
+});
+
+// Review round 5 s-nit-4: the identity read runs as the other server reads do — no fsmonitor, no
+// transport (task-046 D46-6, D46-7).
+describe('readGitEmail — the read settings of GitReads', () => {
+  it('runs with -c core.fsmonitor=false -c protocol.allow=never and the no-transport variables', async () => {
+    const runner = new FakeProcessRunner().answer({ stdout: 'a@example.test\n' });
+    await readGitEmail('/p', { runner, git: '/usr/bin/git', env: { HOME: '/h', git_allow_protocol: 'file' } });
+    expect(runner.requests[0]!.args).toEqual([
+      '-c',
+      'core.fsmonitor=false',
+      '-c',
+      'protocol.allow=never',
+      'config',
+      '--get',
+      'user.email',
+    ]);
+    expect(runner.requests[0]!.env).toEqual({ HOME: '/h', GIT_ALLOW_PROTOCOL: 'none', GIT_NO_LAZY_FETCH: '1' });
   });
 });

@@ -1,0 +1,12 @@
+{
+  "sources": [],
+  "tests": [],
+  "docs": [],
+  "config": [
+    ".wingfoil"
+  ],
+  "governance": [],
+  "runs": [
+    "docs/runs/"
+  ]
+}

@@ -27,7 +27,7 @@ import { REPO_STATE_HEADER } from '../../../server/src/snapshot/state.js';
 import type { Snapshots } from '../../../server/src/snapshot/snapshots.js';
 import { createMemoryStateStore } from '../../../server/src/state/memory-store.js';
 import type { StateStore } from '../../../server/src/state/store.js';
-import { pinnedCli, REPO_ROOT } from '../../harness/cli.js';
+import { pinnedCli, pinnedVersion, pinnedVersionText, REPO_ROOT } from '../../harness/cli.js';
 import { buildFixture, copyFixture, installCliStub, type Fixture } from '../../harness/fixtures/index.js';
 import { git, run } from '../../harness/run.js';
 import { auditedSnapshots, type AuditedRunner } from '../snapshot/support.js';
@@ -91,6 +91,8 @@ async function start(
     failLog?: boolean;
     name?: string;
     failUpdate?: boolean;
+    /** Where the logger writes (default: nowhere). */
+    log?: string[];
   } = {},
 ): Promise<Console> {
   n += 1;
@@ -111,7 +113,16 @@ async function start(
   // A state that cannot be written (read-only folder, full disk).
   if (options.failUpdate)
     store.update = () => Promise.reject(Object.assign(new Error('EROFS /secret/path'), { name: 'StateWriteError' }));
-  const logger = createLogger(sink);
+  const logger = createLogger(
+    options.log
+      ? new Writable({
+          write: (chunk: Buffer, _e, cb) => {
+            options.log!.push(chunk.toString());
+            cb();
+          },
+        })
+      : sink,
+  );
   app = await buildApp({
     staticDir: '/nonexistent',
     logger,
@@ -137,8 +148,8 @@ describe('GET /api/server', () => {
     const res = await c.get('/api/server');
     expect(res.status).toBe(200);
     expectSchema('server.schema.json', res.body);
-    expect(res.body).toMatchObject({ version: '9.9.9-test', range: { min: '0.2.2', max: '0.2.x' }, warnings: [] });
-    expect(res.body.range).toEqual({ min: '0.2.2', max: '0.2.x' });
+    expect(res.body).toMatchObject({ version: '9.9.9-test', range: { min: '0.2.2', max: '0.3.x' }, warnings: [] });
+    expect(res.body.range).toEqual({ min: '0.2.2', max: '0.3.x' });
     expect(res.body.capabilities.map((x: { id: string }) => x.id)).toContain('field-editing');
     expect(c.runner.spawned).toEqual([]);
   });
@@ -154,7 +165,13 @@ describe('GET /api/p/:pid — the project header', () => {
     expect(res.body).toMatchObject({
       id: c.pid,
       name: 'kanban',
-      wingfoil: { text: '0.2.2', version: '0.2.2', state: 'in-range', inRange: true, source: 'project' },
+      wingfoil: {
+        text: expect.stringMatching(pinnedVersionText()),
+        version: pinnedVersion(),
+        state: 'in-range',
+        inRange: true,
+        source: 'project',
+      },
       identity: { kind: 'member', name: 'Alex' },
       readOnly: [],
       repository: { state: res.state, localChanges: 0 },
@@ -218,9 +235,56 @@ describe('GET /api/p/:pid — the project header', () => {
   });
 });
 
+// Review round 3 m1 (pre-existing): a failed git status read (a bad configuration value) is a 500
+// whose log line names the kind and the exit only, never git's message — it quotes the value.
+describe("review round 3 m1 — a failed git read: git's message in neither the log nor the body", () => {
+  it('a bad numeric config value from an included working-tree file', async () => {
+    const ESC = String.fromCharCode(0x1b);
+    const MARK = 'EVIL-MARKER-4711';
+    const log: string[] = [];
+    let dir = '';
+    const c = await start(kanbanTemplate, {
+      log,
+      prepare: async (fx) => {
+        dir = fx.dir;
+        await writeFile(path.join(fx.dir, 'evil.cfg'), `[core]\n\tbigFileThreshold = "${ESC}[31m${MARK}"\n`);
+        await git(fx.dir, ['config', 'include.path', '../evil.cfg'], fx.env);
+      },
+    });
+    const res = await c.get(`/api/p/${c.pid}`);
+    expect(res.status).toBe(500);
+    expect(res.body).toEqual({ error: { code: 'internal', message: 'Internal error' } });
+    const written = log.join('');
+    expect(written).toMatch(/git read failed/);
+    expect(written).not.toContain(MARK);
+    expect(written).not.toContain(ESC);
+    expect(written).not.toContain(dir);
+  });
+});
+
+describe('review round 1 n1 — an unrecognised --version text reaches the header sanitised', () => {
+  it('the project folder redacted, a control and a bidi character as visible escapes', async () => {
+    const RLO = String.fromCharCode(0x202e);
+    const ESC = String.fromCharCode(0x1b);
+    let dir = '';
+    const c = await start(kanbanTemplate, {
+      prepare: async (fx) => {
+        dir = fx.dir;
+        await installCliStub(fx, { version: `banana ${fx.dir}/x ${ESC}[31m${RLO}txt` });
+      },
+    });
+    const header = await c.get(`/api/p/${c.pid}`);
+    expect(header.status).toBe(200);
+    expectSchema('project.schema.json', header.body);
+    expect(header.body.wingfoil).toMatchObject({ version: null, state: 'unrecognised', inRange: false });
+    expect(header.body.wingfoil.text).toBe('banana <project>/x \\x1b[31m\\u202etxt');
+    expect(JSON.stringify(header.body)).not.toContain(dir);
+  });
+});
+
 describe('a version outside the range (user decision 2026-10-06, open point 26)', () => {
   it('names the range as "<min> to <max>" in the read-only reason and in every disabled verb', async () => {
-    expect(rangeLabel()).toBe('0.2.2 to 0.2.x');
+    expect(rangeLabel()).toBe('0.2.2 to 0.3.x');
     const c = await start(kanbanTemplate, {
       prepare: async (fx) => void (await installCliStub(fx, { version: '0.4.0' })),
     });
@@ -228,11 +292,11 @@ describe('a version outside the range (user decision 2026-10-06, open point 26)'
     expect(header.status).toBe(200);
     expectSchema('project.schema.json', header.body);
     expect(header.body.wingfoil).toMatchObject({ version: '0.4.0', inRange: false, state: 'above' });
-    expect(header.body.readOnly).toEqual([{ code: 'version-unsupported', range: '0.2.2 to 0.2.x' }]);
+    expect(header.body.readOnly).toEqual([{ code: 'version-unsupported', range: '0.2.2 to 0.3.x' }]);
     const elements = await c.get(`/api/p/${c.pid}/elements`);
     const reasons = elements.body.elements.flatMap((e: any) => e.descriptor.verbs.map((v: any) => v.reason));
     expect(reasons.length).toBeGreaterThan(0);
-    expect(reasons.every((r: any) => r.code === 'version-unsupported' && r.range === '0.2.2 to 0.2.x')).toBe(true);
+    expect(reasons.every((r: any) => r.code === 'version-unsupported' && r.range === '0.2.2 to 0.3.x')).toBe(true);
   });
 });
 

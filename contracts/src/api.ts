@@ -117,7 +117,9 @@ export interface ApiWingfoilVersion {
 export type ApiCapabilityReason =
   | { code: 'unsupported-version'; range: ApiRange }
   | { code: 'not-released' }
-  | { code: 'needs-version'; minVersion: string };
+  | { code: 'needs-version'; minVersion: string }
+  /** No source in this release (`via: null`), the project's version reaching its minimum (task-046 D46-2). */
+  | { code: 'not-in-release' };
 
 /** The capabilities of a project (task-006 `evaluateCapabilities`). */
 export interface ApiCapabilities {

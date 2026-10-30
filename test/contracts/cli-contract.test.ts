@@ -9,7 +9,12 @@ import path from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { parseDocument } from 'yaml';
 import { CliRefusedError, WingfoilCli, type CliArgs } from '../../server/src/cli/adapter.js';
-import { CLI_COMMANDS, type CliCommandName, type CliCommandOutputs } from '../../server/src/cli/commands.js';
+import {
+  CLI_COMMANDS,
+  isWorkflowList02,
+  type CliCommandName,
+  type CliCommandOutputs,
+} from '../../server/src/cli/commands.js';
 import { discoverCli } from '../../server/src/cli/discovery.js';
 import { LocalProcessRunner } from '../../server/src/process/runner.js';
 import { resolveStates, transitionTarget } from '../../server/src/reads/memory-yaml.js';
@@ -21,7 +26,9 @@ import {
   type Fixture,
   type BddFixtureKind,
 } from '../harness/fixtures/index.js';
-import { actAs, archiveOne, cliBuildFor, matrixVersions } from './support.js';
+import { classifyVersion } from '../../server/src/cli/version.js';
+import { git } from '../harness/run.js';
+import { actAs, archiveOne, behaviours, cliBuildFor, matrixVersions } from './support.js';
 
 const VERSIONS = await matrixVersions();
 
@@ -91,7 +98,8 @@ describe.each(VERSIONS)('contract — wingfoil %s', (version) => {
     async (kind) => {
       const fx = fixtures[kind];
       const { cli, reads } = await adapterFor(fx, ran);
-      expect(await cli.version()).toBe(version);
+      // The printed text classifies as this version (0.3's build stamp included, task-046 AC-1).
+      expect(classifyVersion(await cli.version()).version).toBe(version);
       await reads.dna();
       await reads.paths();
       await reads.workflows();
@@ -144,9 +152,12 @@ describe.each(VERSIONS)('contract — wingfoil %s', (version) => {
       const [type, title] = ADD[kind];
       const added = (await cli.run('memory add', { options: { '--type': type, '--title': title } })).data;
       expect(added.path.endsWith(`${added.id}.md`)).toBe(true);
-      // W-21: memory add writes draft, whatever the type's first state.
+      // W-21 on 0.2.2: memory add writes draft, whatever the type's first state; fixed on 0.3.1.
       const created = (await reads.elements()).data.matches.find((m) => m.id === added.id);
-      expect(created).toMatchObject({ type, status: 'draft', path: added.path });
+      const first = resolveStates(types, type)!.sequence[0];
+      const state = behaviours(version).addState === 'draft' ? 'draft' : first;
+      expect(created).toMatchObject({ type, status: state, path: added.path });
+      if (kind === 'unknown') expect(state).toBe(behaviours(version).addState === 'draft' ? 'draft' : 'idea');
 
       // The archived searches (W-19), with an archived element where the fixture can have one.
       const archived = await archiveOne(fx);
@@ -211,11 +222,22 @@ describe.each(VERSIONS)('contract — wingfoil %s', (version) => {
     const login = path.join(fx.dir, 'docs/memory/task/task-001-login-form.md');
     await writeFile(login, (await readFile(login, 'utf8')).replace(/\n/g, '\r\n'));
 
+    // WingFoil 0.3 reads the workflows as committed at HEAD (`workflow list`): the edits are committed.
+    await actAs(fx, 'Alex');
+    await git(fx.dir, ['add', '-A'], fx.env);
+    await git(fx.dir, ['commit', '-q', '-m', 'chore: optional fields'], fx.env);
     const { cli, reads } = await adapterFor(fx, ran);
     const dna = (await reads.dna()).data;
     expect(dna.project).toBeUndefined();
     expect(dna.team.members[0]?.email).toBeUndefined();
-    expect((await reads.workflows()).data.manifest.version).toBeUndefined();
+    const workflows = (await reads.workflows()).data;
+    if (isWorkflowList02(workflows)) expect(workflows.manifest.version).toBeUndefined();
+    else {
+      // Review round 1 c2: the entry is there, its description gone.
+      const bugIngest = workflows.workflows.find((w) => w.name === 'bug-ingest');
+      expect(bugIngest).toBeDefined();
+      expect(bugIngest!.description ?? null).toBeNull();
+    }
     const types = await reads.memoryTypes();
     expect(types.version).toBe(1.5);
     expect(types.types.adr?.id_pattern).toBeUndefined();
@@ -223,7 +245,7 @@ describe.each(VERSIONS)('contract — wingfoil %s', (version) => {
     const match = (await reads.elements()).data.matches.find((m) => m.id === 'task-001-login-form')!;
     expect(match.status).toBe('pending');
     expect((await reads.elementFromMatch(match)).frontmatter).toMatchObject({ status: 'pending', title: 'Login form' });
-    expect(await cli.version()).toBe(version);
+    expect(classifyVersion(await cli.version()).version).toBe(version);
   }, 120_000);
 
   // Runs last on purpose: it reads the commands the tests above ran (vitest runs a file's tests in

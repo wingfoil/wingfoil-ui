@@ -289,9 +289,34 @@ so the sidebar shows it (Y-06.1, Y-06.2).
   directories skips too, whether the file exists yet and whether the condition holds now. Includes
   of the user's global configuration to files outside the working tree count as the user's own.
   Unattended runs and the server's own git reads (status, …) also run with
-  `-c core.fsmonitor=false`. Accepted residual (W4-11): a `filter.<x>.clean` that such a
-  configuration names still runs in the server's status reads once the user's own pull or Update
-  brought it, as in the user's own `git status`.
+  `-c core.fsmonitor=false`, and so does every git the WingFoil CLI runs for the server (task-046
+  D46-6: `core.fsmonitor=false` in its environment configuration; WingFoil 0.3's reads run
+  `git status`). The server's `GitReads` reads and every git of the CLI also run with no transport
+  (task-046 D46-7): `GIT_ALLOW_PROTOCOL=none` in their environment — git applies it before any
+  `protocol.allow` or `protocol.<name>.allow` setting, the repository's own included (review round 3
+  M1) — with `-c protocol.allow=never` and `GIT_NO_LAZY_FETCH=1` (where git honours it) as extra
+  layers: a partial clone's lazy fetch of a missing object, which would run a promisor remote's
+  `uploadpack`, `ext::` command or `core.sshCommand`, is refused before any program starts. The
+  transport commands (`fetch`, `pull`, `push`, `clone`, and the automatic update's `merge
+  --ff-only`) start from the server's cleaned environment, not the reads' variables (review round 4
+  MAJOR-1: a pull or merge on a partial clone needs git's lazy fetch), and set their own allowed list.
+  Every process the process runner starts has the absolute `PATH` entries only (D46-8; its residuals:
+  spec-001 §1). Accepted residual (W4-11): a program the configuration names that git runs on the
+  read itself — a filter driver (`filter.<x>.clean`, `filter.<x>.process`), and any key of that kind
+  git has or adds — whether it comes from an included file or from the repository's own
+  `.git/config`, still runs in the reads of the server and of the CLI (WingFoil 0.3's `workflow
+  list` runs `git status`), as in the user's own `git status`; it is declared, not guarded key by key
+  (the keys the server does turn off: `core.fsmonitor`, the transport, `log.showSignature`).
+- **Known limitation — a partial clone** (task-046 review round 5, a consequence of D46-7): a
+  blobless or other partial clone cannot be read in full, since no read fetches a missing object.
+  The Memory events read (`git log -p`) fails on the first object it lacks: `GET /api/p/:pid/today`
+  answers 500 `internal`, the Memory list and the element panel show their events error (from the
+  code, not probed); the console's own fetch and Update do not backfill the history. Remedy, outside
+  the console: `git fetch --refetch --no-filter <remote>` fetches every missing object (a plain `git
+  fetch --refetch` applies the clone's filter again, and the filter setting stays), then `git config
+  --unset remote.<remote>.partialclonefilter` keeps later fetches — the console's own fetch and
+  automatic fetch included — full (checked by hand, git 2.43: 3 missing objects before, 0 after, and
+  0 after a later fetch of new commits); or work in a full clone.
 - **Declared residual of the automatic update** (W4-16, decided by the approver): `autoUpdate` is
   off by default (spec-006 §2). Turned on, the console does on a timer what `git pull` does: the
   incoming commits can run commands that the user's **own** git configuration points at — a filter
@@ -520,3 +545,23 @@ Rows 7–9 do not apply (no element).
   when the omitted text lies inside one line), and one omission line in all; the branch and upstream
   names of the repository status are escaped; the left-context residual of the scheme-less userinfo
   rule declared.
+- 2026-10-29 — amended in dev-loop task-046 review round 1 (M1, decided by the approver): §6 no
+  fsmonitor in the git that the WingFoil CLI runs for the server either (D46-6); the accepted filter
+  residual covers its status reads too.
+- 2026-10-29 — amended in dev-loop task-046 review round 2 (M2, n8; decided by the approver): §6 no
+  transport in the server's reads and the CLI's git (D46-7: a promisor remote's program ran on a
+  lazy fetch); the filter residual names `filter.<x>.process` and the local `.git/config` too, and the
+  CLI's status reads.
+- 2026-10-29 — amended in dev-loop task-046 review round 3 (M1, decided by the approver): §6 the
+  no-transport rule rests on `GIT_ALLOW_PROTOCOL=none`; `protocol.allow=never` alone yields to the
+  repository's `protocol.<name>.allow`.
+- 2026-10-29 — amended in dev-loop task-046 review round 4 (MAJOR-1, MAJOR-2, n-b; decided by the
+  approver): §6 the transport commands and the automatic merge start from the cleaned server
+  environment (a partial clone's pull and merge fetch lazily again); the reads are named `GitReads`;
+  every child has the absolute `PATH` entries only (D46-8).
+- 2026-10-29 — amended in dev-loop task-046 review round 5 (s-minor-1, s-minor-2, c-minor-2; decided
+  by the approver): §6 the W4-11 residual covers any program the configuration names that git runs on
+  the read itself; the known limitation of a partial clone and its remedy; "the process runner".
+- 2026-10-30 — corrected in dev-loop task-046 review round 6 (r6-minor-1, decided by the approver): §6
+  the remedy of the partial-clone limitation is `git fetch --refetch --no-filter <remote>`, then
+  `git config --unset remote.<remote>.partialclonefilter`.

@@ -54,6 +54,7 @@ import { CliNotFoundError } from '../cli/discovery.js';
 import { supportedRange, type DetectedVersion } from '../cli/version.js';
 import { describeElement, type CopyState } from '../descriptor/descriptor.js';
 import { today } from '../descriptor/today.js';
+import { GitReadError } from '../git/git.js';
 import { repositoryStatus, type SyncStatus } from '../git/sync-status.js';
 import { MEMORY_EVENTS_MAX_LIMIT, memoryDirectories, memoryEventsPage } from '../git/memory-log.js';
 import { directivesForRoleView, identityView } from '../identity/identity.js';
@@ -115,6 +116,12 @@ function refusalOf(error: unknown, base: ReadBase, log: FastifyBaseLogger): Refu
       status: 502,
       error: { code: 'read-error', message: `Cannot read ${file}: ${reason}`, detail: { file, kind: error.kind } },
     };
+  }
+  if (error instanceof GitReadError) {
+    // Git's message may quote configuration values and paths (review round 3 m1): the kind and the
+    // exit only, as the repository check logs them (snapshots.ts); the body is the plain 500.
+    log.error({ kind: 'git-read', ended: error.ended, exitCode: error.exitCode }, 'git read failed');
+    return { status: 500, error: { code: 'internal', message: 'Internal error' } };
   }
   if (error instanceof WorkingTreeError) {
     if (error.kind === 'outside') log.warn({ kind: error.kind }, 'working-tree path refused');
@@ -351,6 +358,11 @@ async function header(read: ProjectRead): Promise<ProjectHeader> {
   };
 }
 
+/**
+ * The header's version. Its `text` is the printed `--version` text as `detectVersion` passes it on:
+ * through the adapter's sanitiser (review rounds 1 n1, 2 n7 — bounded, the project and CLI folders
+ * redacted, control and bidi characters as visible escapes).
+ */
 function wingfoilOf(detected: DetectedVersion): ProjectHeader['wingfoil'] {
   const { text, version, state, inRange, source } = detected;
   return { text, version, state, inRange, source };

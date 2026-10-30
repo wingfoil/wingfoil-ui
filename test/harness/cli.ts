@@ -27,6 +27,14 @@ export function pinnedVersion(): string {
   return pin;
 }
 
+/**
+ * The `--version` text of the pinned CLI: the version, followed from WingFoil 0.3 by the build
+ * stamp ` (<commit>)` (task-046) — a pattern, so that a test checks the text the CLI prints.
+ */
+export function pinnedVersionText(): RegExp {
+  return new RegExp(`^${pinnedVersion().replace(/\./g, '\\.')}(?: \\([0-9a-f]{7,64}\\))?$`);
+}
+
 /** Directory of the installed pinned `wingfoil` package. */
 export const PINNED_PACKAGE_DIR = path.join(REPO_ROOT, 'node_modules', 'wingfoil');
 

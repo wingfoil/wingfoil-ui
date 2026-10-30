@@ -73,9 +73,10 @@ describe('cliBuildFor', () => {
 
   it('refuses an install that does not give the requested version', async () => {
     await expect(
-      cliBuildFor('0.3.1', { cacheRoot, install: (prefix) => fakeInstall(prefix, '0.3.2') }),
-    ).rejects.toThrow(/0\.3\.1/);
-    expect((await readdir(cacheRoot)).filter((name) => name.startsWith('0.3.1'))).toEqual([]);
+      // A version other than the pinned one (0.3.1 is pinned since task-046).
+      cliBuildFor('0.6.1', { cacheRoot, install: (prefix) => fakeInstall(prefix, '0.6.2') }),
+    ).rejects.toThrow(/0\.6\.1/);
+    expect((await readdir(cacheRoot)).filter((name) => name.startsWith('0.6.1'))).toEqual([]);
   });
 
   it('recovers from a broken prefix (interrupted install): moved aside, removed, replaced', async () => {

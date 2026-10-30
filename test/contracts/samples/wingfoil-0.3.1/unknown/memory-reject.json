@@ -1,0 +1,7 @@
+{
+  "id": "story-001-onboarding",
+  "path": "docs/stories/story-001-onboarding.md",
+  "from": "shaping",
+  "to": "idea",
+  "reason": "Too vague"
+}

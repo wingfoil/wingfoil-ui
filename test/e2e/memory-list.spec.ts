@@ -372,7 +372,8 @@ test.describe('US-S-26 — refresh by itself', () => {
 
 test.describe('US-S-28 — three fixtures, no UI change', () => {
   const TYPES = {
-    kanban: ['adr', 'bug', 'decision-log', 'release', 'release-line', 'task', 'tech-spec'],
+    // `init --template Kanban` of the pinned WingFoil 0.3.1 declares `plan` (task-046).
+    kanban: ['adr', 'bug', 'decision-log', 'plan', 'release', 'release-line', 'task', 'tech-spec'],
     custom: ['release-line', 'release', 'task', 'adr', 'decision-log', 'tech-spec', 'bug', 'plan', 'service'],
     unknown: ['story', 'note'],
   } as const;

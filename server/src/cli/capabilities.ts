@@ -9,10 +9,13 @@
  * | the version is outside the supported range (or unrecognised) | read-only | `unsupported-version` with the range |
  * | no released WingFoil provides it (`minVersion: null`) | read-only | `not-released` |
  * | the version is below `minVersion` | read-only | `needs-version` with `minVersion` |
+ * | this release has no source for it (`via: null`) | read-only | `not-in-release` |
  * | otherwise | enabled | — |
  *
- * The version notice lists the capabilities *of this release* the project lacks: those whose
- * minimum version lies inside the supported range but above the project's ({@link CapabilityReport.missing}).
+ * The version notice lists the capabilities *of this release* the project lacks: those this release
+ * uses (`via` set) whose minimum version lies inside the supported range but above the project's
+ * ({@link CapabilityReport.missing}). A capability with `via: null` is never enabled nor missing
+ * (task-046 D46-2: the workflow capabilities of WingFoil 0.3.0 are not used by this release).
  * The role a capability needs is not evaluated here (spec-003 §6, REQ-SEC-07).
  */
 import type { Capability, CapabilityTable } from '@wingfoil-ui/contracts';
@@ -48,7 +51,8 @@ export type CapabilityState = 'enabled' | 'read-only' | 'hidden';
 export type CapabilityReason =
   | { code: 'unsupported-version'; range: { min: string; max: string } }
   | { code: 'not-released' }
-  | { code: 'needs-version'; minVersion: string };
+  | { code: 'needs-version'; minVersion: string }
+  | { code: 'not-in-release' };
 
 /** A capability evaluated for a project. */
 export interface CapabilityStatus {
@@ -104,7 +108,11 @@ export function evaluateCapabilities(
       capabilities.push({ id: c.id, state: 'read-only', reason: { code: 'not-released' } });
     } else if (compareSemVer(projectVersion, parseSemVer(c.minVersion)!) < 0) {
       capabilities.push({ id: c.id, state: 'read-only', reason: { code: 'needs-version', minVersion: c.minVersion } });
-      if (classifyVersion(c.minVersion, range).inRange) missing.push({ id: c.id, minVersion: c.minVersion });
+      if (c.via !== null && classifyVersion(c.minVersion, range).inRange) {
+        missing.push({ id: c.id, minVersion: c.minVersion });
+      }
+    } else if (c.via === null) {
+      capabilities.push({ id: c.id, state: 'read-only', reason: { code: 'not-in-release' } });
     } else {
       capabilities.push({ id: c.id, state: 'enabled' });
     }

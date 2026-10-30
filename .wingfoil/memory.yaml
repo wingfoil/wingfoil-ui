@@ -64,6 +64,7 @@ types:
     template:
       frontmatter:
         required: [ title, kind, version, pillar, features, requirements, release-line ]
+        lists: [ features ]
       file: "memory/templates/release.md"
     states:
       sequence: [ draft, planning, in-development, releasing, released ]

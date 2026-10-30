@@ -72,9 +72,9 @@ JSON; every request and response body has a schema in `contracts/api/`.
 | `POST /api/projects` `{path}` | add a local folder → 201 with the item | v0.1 |
 | `POST /api/projects/clone` `{url, directory?}` | clone a remote into a new empty folder, then add it (write class c) → 201 with the item | v0.1 |
 | `DELETE /api/projects/:pid` | remove from the list (no file is touched) → 204, no body | v0.1 |
-| `GET /api/p/:pid` | project header: name, WingFoil version and range state, identity, role views, repository status | v0.1 |
+| `GET /api/p/:pid` | project header: name, WingFoil version and range state (`wingfoil.text`: the printed `--version` text through the sanitiser of tool messages, task-046), identity, role views, repository status | v0.1 |
 | `PUT /api/p/:pid/role-view` `{role}` | remember the role view (local state) | v0.1 |
-| `GET /api/p/:pid/config` | DNA, paths, workflows, resolved types (spec-001 §4.1); effective `ui.yaml` with origin of each value since v0.3 (REQ-ARC-07) | v0.1 |
+| `GET /api/p/:pid/config` | DNA, paths, workflows (as the CLI's version line answers `workflow list`, spec-001 §3: the 0.2.x or the 0.3.x shape; every string of a 0.3.x `diagnostics` entry and its `message` sanitised like the CLI warnings, at most 200 diagnostics with `diagnosticsOmitted` counting the rest — read by no view yet), resolved types (spec-001 §4.1); effective `ui.yaml` with origin of each value since v0.3 (REQ-ARC-07) | v0.1 |
 | `GET /api/p/:pid/elements[?archived=true]` | elements with their descriptor (spec-003) and local-changes marker | v0.1 |
 | `GET /api/p/:pid/elements/:eid` | one element: frontmatter, body, descriptor, references | v0.1 |
 | `GET /api/p/:pid/elements/:eid/history` | `memory history` entries (spec-002 §2) | v0.1 |
@@ -209,6 +209,11 @@ REQ-SEC-08's fit criterion (SARD `05` v0.6), which excludes fetch and the per-us
 
 ### 5. Responses
 
+The CLI's warnings a read answer carries — its `stderr` lines (spec-001 §2) in a `/config`
+section's `warnings` and in the `warnings` of `/elements`, and the `warnings` field of `directives
+list` (spec-001 §3) in the `warnings` of `/directives` — are sanitised like every tool message, at
+most 200, then one line `<n> more warnings omitted` (task-046, review round 2 d1).
+
 - Success of a write (`write.response.schema.json`): `{ result: <CLI output>, commits: [{ sha,
   subject }], push: { status, code?, message? } }` — `status` is `pushed`, `off` or `failed`
   (spec-010 §6); on `failed`, `message` is git's verbatim error when git refused the push, and
@@ -236,7 +241,7 @@ REQ-SEC-08's fit criterion (SARD `05` v0.6), which excludes fetch and the per-us
 | 422 | `cli-refused` | CLI exit 1: `message` = the CLI's message verbatim (REQ-INT-04) except for the local folders it quotes — the project's → `<project>`, the repository's → `<repository>`, the CLI's package folder → `<wingfoil>`, the home folder → `~` — and URL userinfo (bug-012); also the exit 2 of `approve`/`reject` whose message names `--reason` (a reason WingFoil will not record, W-29) |
 | 502 | `cli-output` | exit 0 with output failing its schema (spec-001 §2) |
 | 504 | `cli-timeout` | a `wingfoil` process killed after 30 s (git transport the user started has no fixed timeout; an automatic fetch and an auto-push are killed after 60 s — spec-010 §4, `adr-001` D5) |
-| 500 | `internal` | adapter defect (exit 2) or unexpected error; details only in the log |
+| 500 | `internal` | adapter defect (exit 2) or unexpected error; details only in the log — a failed git read of the repository (e.g. a configuration value git refuses) on any route, read or write, is logged as `{ kind: 'git-read', ended, exitCode }`, never with git's message (task-046 review rounds 3 m1, 4 minor-1: the read routes and the global error handler) |
 | 500 | `write-incomplete` | a governed write that did not finish: its CLI failed leaving the element file changed (modified or staged) without the write's commit, failed after its commit (`detail.commit`: the commit is logged and announced, not pushed), or answered for another path than the one checked (`detail.file` that path, `detail.commit` when its commit is found). `detail.file` relative to the project; a fixed `message`, never the CLI's text (it quotes local absolute paths and the reason), which is not logged either; nothing is restored |
 | 422 | `git-refused` | a git transport command failed: git's message verbatim (REQ-INT-06), local folders and URL userinfo redacted as for `cli-refused` and a local remote's path as `<remote>`, at most 4 000 characters |
 | 409 | `no-remote`, `no-fetch-target`, `detached-head`, `no-upstream`, `diverged`, `local-changes-in-the-way`, `remote-not-owned`, `remote-unreadable`, `refspec-outside-remotes` | refusals of the git routes before any transport process (spec-010 §5); the update and push codes and `push-timeout` also appear as `push.code` of a write |
@@ -387,3 +392,19 @@ goes away by itself when the stream reconnects. A network failure is not rendere
 - 2026-10-15 — amended in dev-loop task-034 (minor-v0.2 Wave 4, D34-8, bug-014): §5 the 409 code
   `refspec-outside-remotes` of the fetch route (spec-010 §5). Decided by the approver.
 - 2026-10-15 — task-034 security review round 1 (W4-4): §5 `push.code` may be `internal`.
+- 2026-10-28 — amended in dev-loop task-046 (`governance-alignment-rel-v0.3-plan` step 2b, GA3-9):
+  §3 `GET /api/p/:pid/config` passes the `workflows` section in the shape of the project's WingFoil
+  version line (0.2.x or 0.3.x, spec-001 §3, §5), the 0.3.x `diagnostics` and `message` through the
+  sanitiser of tool messages; `GET /api/p/:pid` capability reasons gain `not-in-release` (spec-001
+  §6, D46-2). Decided by the approver.
+- 2026-10-29 — amended in dev-loop task-046 review rounds 1–2 (m1, n1, c6; decided by the
+  approver): §3 `/config` passes at most 200 workflow diagnostics (`diagnosticsOmitted`); the CLI's
+  warnings of a read answer (`/config` sections, `/elements`, `/directives` — d1) are sanitised and
+  hold at most 200 lines, then one counting the rest (§5); `GET /api/p/:pid` `wingfoil.text` is the printed
+  `--version` text through the sanitiser of tool messages (§3 row).
+- 2026-10-29 — amended in dev-loop task-046 review round 3 (m1, n2; decided by the approver): §5 a
+  failed git read is the plain 500 `internal`, logged by kind and exit only; the `message` of `memory
+  search` (`/elements`) is sanitised like the other tool texts.
+- 2026-10-29 — amended in dev-loop task-046 review round 4 (minor-1; decided by the approver): §5 the
+  logging rule of a failed git read holds on every route (the global error handler), the write
+  routes included.

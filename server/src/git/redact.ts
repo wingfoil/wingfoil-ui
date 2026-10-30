@@ -22,7 +22,9 @@
  *
  * Then (bug-017, task-040) what is sent is made safe to show, whatever a hook or a remote printed —
  * this function is the one sanitiser of every verbatim tool message the API sends (`git-refused`,
- * `cli-refused`, the sync status's `lastError`, a write's `push.message`, the project list's refusals;
+ * `cli-refused`, the sync status's `lastError`, a write's `push.message`, the project list's refusals,
+ * the CLI's `stderr` warnings, WingFoil 0.3's `workflow list` diagnostics and the header's
+ * `--version` text (task-046);
  * `test/server/tool-messages.test.ts` enumerates the producers):
  *
  * | Found | Becomes |

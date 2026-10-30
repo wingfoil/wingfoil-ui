@@ -1,0 +1,30 @@
+{
+  "id": "note-002-retro",
+  "path": "docs/notes/note-002-retro.md",
+  "entries": [
+    {
+      "sha": "1886270a133d61f029cb18b4ee11ea7f0c445743",
+      "author": "Casey <casey@example.test>",
+      "timestamp": "2026-09-29T15:20:09+00:00",
+      "operation": "add",
+      "from": null,
+      "to": "open",
+      "approver": null,
+      "reason": null,
+      "subject": "wf(note): add note-002-retro",
+      "wingfoil": "0.3.1 (870bd4406f3b9bba5ecde7a5f8198b80c2a98583)"
+    },
+    {
+      "sha": "ffbcd553dfaa4156ab4afa01280417110a58bda9",
+      "author": "Casey <casey@example.test>",
+      "timestamp": "2026-09-29T15:20:11+00:00",
+      "operation": null,
+      "from": "open",
+      "to": "on-hold",
+      "approver": null,
+      "reason": null,
+      "subject": "wf(note): note-002-retro [open → on-hold]",
+      "wingfoil": null
+    }
+  ]
+}

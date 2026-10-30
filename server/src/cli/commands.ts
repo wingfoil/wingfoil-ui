@@ -13,6 +13,7 @@ import type {
   MemorySearch,
   MemoryTransition,
   WorkflowList,
+  WorkflowList02,
 } from '@wingfoil-ui/contracts';
 import { schemaProblems, type ContractSchema } from '../contracts.js';
 
@@ -71,4 +72,107 @@ export function commandFor(words: readonly string[]): CliCommandName | undefined
 /** Why the output of `name` does not match its schema, or `undefined` when it does. */
 export function outputProblem(name: CliCommandName, data: unknown): string[] | undefined {
   return schemaProblems(cliSchemaFile(name), data);
+}
+
+/**
+ * Most tool lines of one CLI output passed on (review round 1 m1): `workflow list` diagnostics and
+ * `stderr` warnings; the others are counted (`diagnosticsOmitted`, a last warning line).
+ */
+export const MAX_TOOL_LINES = 200;
+
+/**
+ * Tool lines as the API passes them on (the CLI's `stderr` warnings, the `warnings` of `directives
+ * list`): at most {@link MAX_TOOL_LINES}, cut before `sanitise`, then one line counting the others
+ * (review round 1 m1, round 2 d1).
+ */
+export function toolLines(lines: readonly string[], sanitise: (text: string) => string, omitted = 0): string[] {
+  const kept = lines.slice(0, MAX_TOOL_LINES).map(sanitise);
+  const rest = Math.max(0, lines.length - MAX_TOOL_LINES) + omitted;
+  return rest > 0 ? [...kept, `${rest} more warnings omitted`] : kept;
+}
+
+/**
+ * The first `max` non-empty lines of `text` (trimmed; CR LF or LF), and how many non-empty lines
+ * follow them — counted by a scan, never split into an array (review round 3 n1).
+ */
+export function boundedLines(text: string, max: number): { lines: string[]; omitted: number } {
+  const lines: string[] = [];
+  let omitted = 0;
+  let start = 0;
+  while (start <= text.length) {
+    let end = text.indexOf('\n', start);
+    if (end === -1) end = text.length;
+    if (lines.length < max) {
+      const line = text.slice(start, end).trim();
+      if (line) lines.push(line);
+    } else if (hasNonBlank(text, start, end)) omitted += 1;
+    start = end + 1;
+  }
+  return { lines, omitted };
+}
+
+/** The characters `String.prototype.trim` removes (white space and line terminators). */
+const BLANK = new Set([
+  0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x20, 0xa0, 0x1680, 0x2000, 0x2001, 0x2002, 0x2003, 0x2004, 0x2005, 0x2006, 0x2007,
+  0x2008, 0x2009, 0x200a, 0x2028, 0x2029, 0x202f, 0x205f, 0x3000, 0xfeff,
+]);
+
+/** Whether `text` holds a character `trim` keeps in `[start, end)` — no slice (review round 4 nit-1). */
+function hasNonBlank(text: string, start: number, end: number): boolean {
+  for (let i = start; i < end; i += 1) if (!BLANK.has(text.charCodeAt(i))) return true;
+  return false;
+}
+
+/** `true` when `list` has WingFoil 0.2.x's shape (`manifest`, phases), `false` for 0.3.x's. */
+export function isWorkflowList02(list: WorkflowList): list is WorkflowList02 {
+  return 'manifest' in list;
+}
+
+/**
+ * `data` (the validated output of `name`) with every tool-sourced text that is not project content
+ * passed through `redact`, the one sanitiser of tool messages (bug-017): WingFoil 0.3's `workflow
+ * list` `diagnostics` (configuration messages that quote values and may name files) and its
+ * `message` (task-046 AC-2), each distinct text once; at most {@link MAX_TOOL_LINES} diagnostics,
+ * the others counted in `diagnosticsOmitted`; and the `warnings` of `directives list`
+ * ({@link toolLines}, review round 2 d1). Every other output is returned as it is.
+ */
+export function toolText<T>(name: CliCommandName, data: T, sanitise: (text: string) => string): T {
+  if (name === 'memory search') {
+    // Its `message` is the CLI's text (review round 3 n2).
+    const search = data as unknown as MemorySearch;
+    return (search.message === undefined ? data : { ...search, message: sanitise(search.message) }) as unknown as T;
+  }
+  if (name === 'directives list') {
+    // Its `warnings` field is the CLI's text (review round 2 d1): as the stderr warnings.
+    const list = data as unknown as DirectivesList;
+    return { ...list, warnings: toolLines(list.warnings, sanitise) } as unknown as T;
+  }
+  if (name !== 'workflow list') return data;
+  const list = data as unknown as WorkflowList;
+  if (isWorkflowList02(list)) return data;
+  // At most MAX_TOOL_LINES diagnostics, cut before the sanitiser (review round 1 m1); then a
+  // configuration repeats its codes, files and messages: each distinct text is sanitised once.
+  const kept = list.diagnostics.slice(0, MAX_TOOL_LINES);
+  const omitted = list.diagnostics.length - kept.length;
+  const done = new Map<string, string>();
+  const redact = (text: string): string => {
+    let out = done.get(text);
+    if (out === undefined) done.set(text, (out = sanitise(text)));
+    return out;
+  };
+  // `diagnosticsOmitted` is the server's count, never the CLI's (review round 2 n4).
+  const { diagnosticsOmitted: _cli, ...rest } = list;
+  return {
+    ...rest,
+    ...(list.message !== undefined ? { message: redact(list.message) } : {}),
+    diagnostics: kept.map((d) => ({
+      ...d,
+      code: redact(d.code),
+      severity: redact(d.severity),
+      file: redact(d.file),
+      path: redact(d.path),
+      message: redact(d.message),
+    })),
+    ...(omitted > 0 ? { diagnosticsOmitted: omitted } : {}),
+  } as unknown as T;
 }

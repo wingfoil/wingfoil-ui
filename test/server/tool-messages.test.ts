@@ -10,8 +10,9 @@
 // below and in the route suites are what prove the sanitised output.
 import { readdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
-import { describe, expect, it } from 'vitest';
-import { CliRefusedError, WingfoilCli } from '../../server/src/cli/adapter.js';
+import { describe, expect, it, vi } from 'vitest';
+import { CliRefusedError, usageKind, WingfoilCli } from '../../server/src/cli/adapter.js';
+import { detectVersion } from '../../server/src/cli/version.js';
 import { GitTransport, relativeToProject } from '../../server/src/writes/transport.js';
 import { REPO_ROOT } from '../harness/cli.js';
 import { FakeProcessRunner } from './process/fake-runner.js';
@@ -34,7 +35,7 @@ async function sources(dir: string): Promise<string[]> {
 
 /** A line that places a tool message in an API body or the sync status. */
 const PRODUCER =
-  /'git-refused'|'cli-refused'|\.fetchFailed\(|\.updateFailed\(|status: 'failed', message|warnings: lines\(|\{ files: /;
+  /'git-refused'|'cli-refused'|\.fetchFailed\(|\.updateFailed\(|status: 'failed', message|warnings: (?:toolLines\()?lines\(|warnings: toolLines\(|warnings: stderrWarnings\(|\{ files: |wingfoil: wingfoilOf\(/;
 
 /**
  * The reviewed producers, file → how its message is sanitised (a call on the same file). A line
@@ -45,8 +46,20 @@ const PRODUCERS: Record<string, readonly RegExp[]> = {
   'server/src/sync/auto-sync.ts': [/transport\.message\(/],
   'server/src/writes/auto-push.ts': [/transport\.message\(/],
   'server/src/writes/governed.ts': [/redactLocalPaths\(/],
-  'server/src/cli/adapter.ts': [/redactLocalPaths\(/, /warnings: lines\(result\.stderr\)\.map\(/],
+  'server/src/cli/adapter.ts': [
+    /redactLocalPaths\(/,
+    /warnings: stderrWarnings\(result\.stderr, \(w\) => this\.redact\(/,
+    /toolText\(name, data/,
+  ],
   'server/src/projects/project-list.ts': [/redactLocalPaths\(/],
+  // Review round 2 d1: the `warnings` field of `directives list`, in the adapter's `toolText`.
+  // Review round 3 n2: the `message` of `memory search`, in `toolText` too.
+  'server/src/cli/commands.ts': [
+    /warnings: toolLines\(list\.warnings, sanitise\)/,
+    /message: sanitise\(search\.message\)/,
+  ],
+  // Review rounds 1 n1, 2 n7: the header's `--version` text, sanitised by the adapter in detectVersion.
+  'server/src/http/project-routes.ts': [/wingfoilOf\(detected\)/],
 };
 
 describe('every producer of a verbatim tool message goes through the sanitiser', () => {
@@ -63,6 +76,8 @@ describe('every producer of a verbatim tool message goes through the sanitiser',
       }
     }
     expect([...found].sort()).toEqual(Object.keys(PRODUCERS).sort());
+    // The header's text is sanitised where it is read (review round 2 n7).
+    expect(await readFile(path.join(REPO_ROOT, 'server/src/cli/version.ts'), 'utf8')).toMatch(/cli\.sanitise\(text\)/);
   });
 
   it("the transport's message (routes, sync lastError, auto-push): a marker from git comes out escaped", () => {
@@ -84,6 +99,246 @@ describe('every producer of a verbatim tool message goes through the sanitiser',
     const error = (await cli.json(['paths']).catch((e: unknown) => e)) as CliRefusedError;
     expect(error).toBeInstanceOf(CliRefusedError);
     expect(error.cliMessage).toBe(SAFE);
+  });
+
+  // task-046 AC-2: WingFoil 0.3's `workflow list` `diagnostics` (configuration messages that quote
+  // values and may name files) reach `GET /api/p/:pid/config`: every string of an entry, and the
+  // list's `message`, through the adapter's sanitiser; the 0.2.x shape and `baseline` are unchanged.
+  it('workflow list on 0.3.x: a marker and the project root in a diagnostic come out escaped and redacted', async () => {
+    const root = '/nowhere/project';
+    const commit = 'a'.repeat(40);
+    const diagnostic = {
+      code: `W_X${RLO}`,
+      severity: 'warning',
+      file: `workflows/custom/${MARKER}.yaml`,
+      path: `phases[0]${ESC}`,
+      message: `cannot read ${root}/.wingfoil/workflows/custom/x.yaml: ${MARKER}`,
+    };
+    const stdout = JSON.stringify({
+      baseline: { rev: 'HEAD', commit },
+      workflows: [{ name: 'w', startable: true, includable: false, description: 'D', executableNow: true }],
+      message: `no workflows defined ${MARKER}`,
+      diagnostics: [diagnostic],
+    });
+    const cli = new WingfoilCli({
+      cli: { source: 'path', projectRoot: root, file: process.execPath, prefixArgs: ['/x/cli.js'] },
+      runner: new FakeProcessRunner().answer({ stdout }),
+    });
+    const out = (await cli.run('workflow list')).data as unknown as {
+      baseline: unknown;
+      workflows: unknown;
+      message?: string;
+      diagnostics: unknown;
+    };
+    expect(out.baseline).toEqual({ rev: 'HEAD', commit });
+    expect(out.workflows).toEqual([
+      { name: 'w', startable: true, includable: false, description: 'D', executableNow: true },
+    ]);
+    expect(out.message).toBe(`no workflows defined ${SAFE}`);
+    expect(out.diagnostics).toEqual([
+      {
+        code: 'W_X\\u202e',
+        severity: 'warning',
+        file: `workflows/custom/${SAFE}.yaml`,
+        path: 'phases[0]\\x1b',
+        message: `cannot read <project>/.wingfoil/workflows/custom/x.yaml: ${SAFE}`,
+      },
+    ]);
+  });
+
+  // task-046: WingFoil 0.3 writes each `stderr` warning as one JSON line `{"warning": "…"}` under
+  // `--format json`: the warning is its text, sanitised; any other line stays as written.
+  it('a JSON warning line of WingFoil 0.3 is its text, sanitised; other lines as written', async () => {
+    const root = '/nowhere/project';
+    const stderr = [
+      JSON.stringify({ warning: `${root}/.wingfoil/x.md: ${MARKER}` }),
+      'plain line',
+      JSON.stringify({ warning: 3 }),
+      '{not json',
+    ].join('\n');
+    const cli = new WingfoilCli({
+      cli: { source: 'path', projectRoot: root, file: process.execPath, prefixArgs: ['/x/cli.js'] },
+      runner: new FakeProcessRunner().answer({ stdout: '{}', stderr }),
+    });
+    expect((await cli.json(['paths'])).warnings).toEqual([
+      `<project>/.wingfoil/x.md: ${SAFE}`,
+      'plain line',
+      '{"warning":3}',
+      '{not json',
+    ]);
+  });
+
+  // Review round 1 m1: a bounded body — at most MAX_TOOL_LINES diagnostics and warnings are kept
+  // (before sanitising), the rest counted.
+  it('workflow list on 0.3.x: 20 000 diagnostics → the first 200 kept, the rest counted', async () => {
+    const { MAX_TOOL_LINES } = await import('../../server/src/cli/commands.js');
+    expect(MAX_TOOL_LINES).toBe(200);
+    const diagnostics = Array.from({ length: 20_000 }, (_, i) => ({
+      code: 'W_X',
+      severity: 'warning',
+      file: 'f.yaml',
+      path: '',
+      message: `m${i}`,
+    }));
+    const stdout = JSON.stringify({ baseline: { rev: 'HEAD', commit: 'a'.repeat(40) }, workflows: [], diagnostics });
+    const cli = new WingfoilCli({
+      cli: { source: 'path', projectRoot: '/nowhere', file: process.execPath, prefixArgs: ['/x/cli.js'] },
+      runner: new FakeProcessRunner().answer({ stdout }),
+    });
+    const out = (await cli.run('workflow list')).data as unknown as {
+      diagnostics: { message: string }[];
+      diagnosticsOmitted?: number;
+    };
+    expect(out.diagnostics).toHaveLength(200);
+    expect(out.diagnostics.at(-1)!.message).toBe('m199');
+    expect(out.diagnosticsOmitted).toBe(19_800);
+  });
+
+  it('stderr warnings: the first 200 kept, then one line counting the rest', async () => {
+    const stderr = Array.from({ length: 5_000 }, (_, i) => JSON.stringify({ warning: `w${i}` })).join('\n');
+    const cli = new WingfoilCli({
+      cli: { source: 'path', projectRoot: '/nowhere', file: process.execPath, prefixArgs: ['/x/cli.js'] },
+      runner: new FakeProcessRunner().answer({ stdout: '{}', stderr }),
+    });
+    const { warnings } = await cli.json(['paths']);
+    expect(warnings).toHaveLength(201);
+    expect(warnings[199]).toBe('w199');
+    expect(warnings[200]).toBe('4800 more warnings omitted');
+  });
+
+  // Review round 1 (display): a refusal whose JSON error line follows JSON warning lines.
+  it('a refusal after JSON warning lines: the error of the last line that has one', async () => {
+    const stderr = [JSON.stringify({ warning: 'w' }), JSON.stringify({ error: `refused ${MARKER}` })].join('\n');
+    const cli = new WingfoilCli({
+      cli: { source: 'path', projectRoot: '/nowhere', file: process.execPath, prefixArgs: ['/x/cli.js'] },
+      runner: new FakeProcessRunner().answer({ exitCode: 1, stderr }),
+    });
+    const error = (await cli.json(['paths']).catch((e: unknown) => e)) as CliRefusedError;
+    expect(error.cliMessage).toBe(`refused ${SAFE}`);
+  });
+
+  // Review round 2 n4: `diagnosticsOmitted` is the server's count, never the CLI's.
+  it('workflow list: a diagnosticsOmitted the CLI sends is dropped', async () => {
+    const stdout = JSON.stringify({
+      baseline: { rev: 'HEAD', commit: 'a'.repeat(40) },
+      workflows: [],
+      diagnostics: [{ code: 'W_X', severity: 'warning', file: 'f', path: '', message: 'm' }],
+      diagnosticsOmitted: 5,
+    });
+    const cli = new WingfoilCli({
+      cli: { source: 'path', projectRoot: '/nowhere', file: process.execPath, prefixArgs: ['/x/cli.js'] },
+      runner: new FakeProcessRunner().answer({ stdout }),
+    });
+    const out = (await cli.run('workflow list')).data as unknown as Record<string, unknown>;
+    expect(out).not.toHaveProperty('diagnosticsOmitted');
+  });
+
+  // Review round 2 n5, n6: the CLI writes its refusal last — the last line when it is the CLI's
+  // `{"error": …}` form, else the text as written; no line before it is parsed.
+  it('a refusal: the error of the last line only, with one parse per candidate', async () => {
+    const many = Array.from({ length: 100_000 }, (_, i) => JSON.stringify({ warning: `w${i}` }));
+    const cli = (stderr: string) =>
+      new WingfoilCli({
+        cli: { source: 'path', projectRoot: '/nowhere', file: process.execPath, prefixArgs: ['/x/cli.js'] },
+        runner: new FakeProcessRunner().answer({ exitCode: 1, stderr }),
+      });
+    const parse = vi.spyOn(JSON, 'parse');
+    try {
+      const error = (await cli([...many, JSON.stringify({ error: 'refused' })].join('\n'))
+        .json(['paths'])
+        .catch((e: unknown) => e)) as CliRefusedError;
+      expect(error.cliMessage).toBe('refused');
+      expect(parse.mock.calls.length).toBeLessThanOrEqual(3);
+    } finally {
+      parse.mockRestore();
+    }
+    // n6: an earlier `{"error"}` (a hook's) does not win over a plain-text end: the text as written.
+    const mixed = (await cli([JSON.stringify({ error: 'from a hook' }), 'TypeError: boom'].join('\n'))
+      .json(['paths'])
+      .catch((e: unknown) => e)) as CliRefusedError;
+    expect(mixed.cliMessage).toBe('{"error":"from a hook"}\nTypeError: boom');
+  });
+
+  // Review round 2 nit: the logged kind of a usage error reads the last line too.
+  it('usageKind: the kind of the last JSON error line, after warning lines', () => {
+    expect(
+      usageKind(
+        [JSON.stringify({ warning: 'w: x' }), JSON.stringify({ error: 'missing required argument: --reason' })].join(
+          '\n',
+        ),
+      ),
+    ).toBe('missing required argument');
+    expect(usageKind("error: unknown option '--bogus'")).toBe('error');
+  });
+
+  // Review round 2 n7: the header's `--version` text is redacted with the adapter's own roots (the
+  // CLI's package folder too), by the adapter.
+  it('detectVersion: the printed text through the adapter sanitiser (project and CLI package folders)', async () => {
+    const cli = new WingfoilCli({
+      cli: {
+        source: 'path',
+        projectRoot: '/nowhere/project',
+        packageDir: '/nowhere/global/wingfoil',
+        file: process.execPath,
+        prefixArgs: ['/x/cli.js'],
+      },
+      runner: new FakeProcessRunner().answer({
+        stdout: `banana /nowhere/global/wingfoil/x /nowhere/project/y ${MARKER}`,
+      }),
+    });
+    const detected = await detectVersion(cli);
+    expect(detected).toMatchObject({ version: null, state: 'unrecognised' });
+    expect(detected.text).toBe(`banana <wingfoil>/x <project>/y ${SAFE}`);
+  });
+
+  // Review round 2 d1 (found by the developer, pre-existing): the `warnings` field of `directives
+  // list` (`GET /api/p/:pid/directives`) is tool text: sanitised and capped like the stderr warnings.
+  it('directives list: its warnings field sanitised and capped at 200 lines', async () => {
+    const root = '/nowhere/project';
+    const long = `directive 'x' defined in ${'a'.repeat(20_000)}`;
+    const warnings = [
+      `directive 'd' bound to role 'qa' has no directive file ${root}/.wingfoil/d.md ${MARKER}`,
+      long,
+      ...Array.from({ length: 248 }, (_, i) => `w${i}`),
+    ];
+    const cli = new WingfoilCli({
+      cli: { source: 'path', projectRoot: root, file: process.execPath, prefixArgs: ['/x/cli.js'] },
+      runner: new FakeProcessRunner().answer({ stdout: JSON.stringify({ entries: [], warnings }) }),
+    });
+    const out = (await cli.run('directives list')).data.warnings;
+    expect(out).toHaveLength(201);
+    expect(out[0]).toBe(`directive 'd' bound to role 'qa' has no directive file <project>/.wingfoil/d.md ${SAFE}`);
+    expect(out[1]!.length).toBeLessThan(long.length);
+    expect(out[199]).toBe('w197');
+    expect(out[200]).toBe('50 more warnings omitted');
+  });
+
+  // Review round 3 n2: the `message` of `memory search` (`/elements`) is tool text too.
+  it('memory search: its message sanitised', async () => {
+    const root = '/nowhere/project';
+    const stdout = JSON.stringify({ query: '', matches: [], message: `no documents in ${root}/docs ${MARKER}` });
+    const cli = new WingfoilCli({
+      cli: { source: 'path', projectRoot: root, file: process.execPath, prefixArgs: ['/x/cli.js'] },
+      runner: new FakeProcessRunner().answer({ stdout }),
+    });
+    expect((await cli.run('memory search')).data.message).toBe(`no documents in <project>/docs ${SAFE}`);
+  });
+
+  // Review round 3 n1: the warnings are taken from the first lines of stderr; the rest is counted,
+  // never split into an array.
+  it('boundedLines: the first non-empty lines, and a count of the others', async () => {
+    const { boundedLines } = await import('../../server/src/cli/commands.js');
+    expect(boundedLines('\n a \n\nb\n  \nc\nd\n\ne\n', 2)).toEqual({ lines: ['a', 'b'], omitted: 3 });
+    expect(boundedLines('a\r\nb', 5)).toEqual({ lines: ['a', 'b'], omitted: 0 });
+    expect(boundedLines('', 5)).toEqual({ lines: [], omitted: 0 });
+    const huge = 'x\n'.repeat(2_000_000);
+    const split = vi.spyOn(String.prototype, 'split');
+    try {
+      expect(boundedLines(huge, 200)).toEqual({ lines: Array(200).fill('x'), omitted: 1_999_800 });
+      expect(split).not.toHaveBeenCalled();
+    } finally {
+      split.mockRestore();
+    }
   });
 
   it('git-derived file names (detail.files of local-changes-in-the-way) come out escaped', () => {

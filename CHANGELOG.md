@@ -7,6 +7,34 @@ release `v0.2` the git tag `v0.2.0` and the npm version `wingfoil-ui@0.2.0`.
 
 ## [Unreleased]
 
+### Changed
+
+- **WingFoil 0.3 support** (task-046): a project on WingFoil 0.2.2 to 0.3.x is supported
+  (contract-tested: 0.2.2 and 0.3.1); this repository pins `wingfoil@0.3.1`. The `--version` text
+  of WingFoil 0.3, which carries its build (`0.3.1 (870bd44…)`), is read as its version; the
+  configuration read answers the workflows in the shape of the project's WingFoil version, WingFoil
+  0.3's configuration diagnostics sanitised; its warnings, written as JSON lines, are shown as
+  their text. The workflow capabilities and the agent launch of WingFoil 0.3 are not used by this
+  release: never shown as available, nor as missing. Every WingFoil process the console runs works
+  without optional git locks and without a repository's fsmonitor program, and it and the console's
+  own git reads run with no transport protocol allowed (`GIT_ALLOW_PROTOCOL=none`), so a partial
+  clone's lazy fetch is refused before it starts any program and a read leaves `.git/index` as it was;
+  a filter driver the configuration names still runs in status reads, as in the user's own `git
+  status` (spec-010 §6). A git read that fails is logged without git's message, on every route.
+  Every process the console's process runner starts (the CLI, git and what they start) gets the
+  absolute `PATH` entries only, so a program a repository ships is never found through an empty or
+  relative entry.
+
+### Known limitations
+
+- **A partial clone** (blobless or otherwise filtered) cannot be read in full: the console's reads
+  never fetch a missing object, so the Memory events read fails (*Today* answers an internal error,
+  the Memory list and the element panel show their events error — from the code, not probed), and
+  the console's fetch and Update do not backfill the history. Outside the console, run `git fetch
+  --refetch --no-filter <remote>` (a plain `git fetch --refetch` applies the filter again), then `git
+  config --unset remote.<remote>.partialclonefilter` so that later fetches stay full (checked by
+  hand, git 2.43); or use a full clone (spec-010 §6).
+
 ## [0.2.0] - 2026-10-20
 
 **Unblock.** Decide gates and submit work from *Today*, keep the copy in sync with its remote.

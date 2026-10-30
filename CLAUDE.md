@@ -1,6 +1,6 @@
 # CLAUDE.md — agent entry point
 
-**Version:** 0.8 · **Date:** 2026-10-21 (0.1: release v0.1, `user-docs` `align-agent-docs`; 0.2: v0.1.0 released, release submit; 0.3: `test:smoke` wave gate — task-026; 0.4: e2e on three engines, inner-loop Chromium run — task-027; 0.5: `test:publish-smoke`, the publishing guide — task-029; 0.6: release v0.2 user-docs — v0.2 in release validation; 0.7: v0.2.0 released — git tag and npm, the first version by hand; 0.8: the GitHub Release of v0.2.0 made)
+**Version:** 0.9 · **Date:** 2026-10-28 (0.1: release v0.1, `user-docs` `align-agent-docs`; 0.2: v0.1.0 released, release submit; 0.3: `test:smoke` wave gate — task-026; 0.4: e2e on three engines, inner-loop Chromium run — task-027; 0.5: `test:publish-smoke`, the publishing guide — task-029; 0.6: release v0.2 user-docs — v0.2 in release validation; 0.7: v0.2.0 released — git tag and npm, the first version by hand; 0.8: the GitHub Release of v0.2.0 made; 0.9: the pin on `wingfoil@0.3.1` — task-046)
 
 WingFoil UI: a local web UI for WingFoil-governed projects. A Node.js server (`server/`) drives
 each project's pinned `wingfoil` CLI and reads git; a React app (`web/`) shows the result;
@@ -55,7 +55,8 @@ limitation: [`CHANGELOG.md`](CHANGELOG.md).
 
 ## Working with the WingFoil CLI
 
-- Run only the pinned CLI: `npm run -s wingfoil -- <command>` (`wingfoil@0.2.2`, devDependency).
+- Run only the pinned CLI: `npm run -s wingfoil -- <command>` (`wingfoil@0.3.1`, devDependency, since
+  task-046; the support matrix is 0.2.2 and 0.3.1).
 - Every governance change goes through a CLI verb (`memory add`, `memory submit`, `memory approve`,
   `memory reject`, …; directive `cli-only-writes`); hand edits only where directive
   `wingfoil-cli` says so — e.g. closing a plan by hand (W-04) and the task transitions

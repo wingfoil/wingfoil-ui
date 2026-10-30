@@ -1,0 +1,30 @@
+{
+  "id": "bug-001-toast-overlap",
+  "path": "docs/04_memory/bugs/bug-001-toast-overlap.md",
+  "entries": [
+    {
+      "sha": "022c56d4262d694c4be8e9521084d58f1afcd95e",
+      "author": "Sam <sam@example.test>",
+      "timestamp": "2026-09-29T15:20:23+00:00",
+      "operation": "add",
+      "from": null,
+      "to": "draft",
+      "approver": null,
+      "reason": null,
+      "subject": "wf(bug): add bug-001-toast-overlap",
+      "wingfoil": "0.3.1 (870bd4406f3b9bba5ecde7a5f8198b80c2a98583)"
+    },
+    {
+      "sha": "b2dedc521c6f28132ac1026b50a5c363750505c9",
+      "author": "Sam <sam@example.test>",
+      "timestamp": "2026-09-29T15:20:24+00:00",
+      "operation": "submit",
+      "from": "draft",
+      "to": "open",
+      "approver": null,
+      "reason": null,
+      "subject": "wf(bug): submit bug-001-toast-overlap",
+      "wingfoil": "0.3.1 (870bd4406f3b9bba5ecde7a5f8198b80c2a98583)"
+    }
+  ]
+}
