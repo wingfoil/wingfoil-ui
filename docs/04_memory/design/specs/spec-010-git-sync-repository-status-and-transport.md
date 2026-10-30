@@ -312,8 +312,11 @@ so the sidebar shows it (Y-06.1, Y-06.2).
   The Memory events read (`git log -p`) fails on the first object it lacks: `GET /api/p/:pid/today`
   answers 500 `internal`, the Memory list and the element panel show their events error (from the
   code, not probed); the console's own fetch and Update do not backfill the history. Remedy, outside
-  the console: `git fetch --refetch --no-filter <remote>` fetches every missing object (a plain `git fetch --refetch` applies the clone's filter again, and the filter setting stays), then `git config --unset remote.<remote>.partialclonefilter` keeps later fetches — the console's own fetch and automatic fetch included — full (checked by hand, git 2.43: 3 missing objects before, 0 after, and 0 after a
-  later fetch of new commits); or work in a full clone.
+  the console: `git fetch --refetch --no-filter <remote>` fetches every missing object (a plain `git
+  fetch --refetch` applies the clone's filter again, and the filter setting stays), then `git config
+  --unset remote.<remote>.partialclonefilter` keeps later fetches — the console's own fetch and
+  automatic fetch included — full (checked by hand, git 2.43: 3 missing objects before, 0 after, and
+  0 after a later fetch of new commits); or work in a full clone.
 - **Declared residual of the automatic update** (W4-16, decided by the approver): `autoUpdate` is
   off by default (spec-006 §2). Turned on, the console does on a timer what `git pull` does: the
   incoming commits can run commands that the user's **own** git configuration points at — a filter
