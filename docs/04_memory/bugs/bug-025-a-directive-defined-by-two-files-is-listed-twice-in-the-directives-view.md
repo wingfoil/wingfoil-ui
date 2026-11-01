@@ -58,3 +58,14 @@ Extra, repeated rows in a wrong order: R-06.1 ("Filter the directives bound to m
 
 ## Triage & Execution Notes
 
+- triage (2026-11-01, the approver): medium, release v0.3, fixed before the step-3 merge of
+  `governance-alignment-rel-v0.3-plan`; absorbed into task-047 (`d4a4bfe`).
+- fix: task-047 (`docs/04_memory/v0.3/task-047-directives-view-one-row-per-directive-in-force.md`),
+  merged into `design/governance-alignment_v0.3` (`fb47128`): `GET /api/p/:pid/directives` answers
+  one entry per directive id, the one in force (the file the `using` warning names, else WingFoil's
+  precedence: the smallest path under `directives/custom/`, else the smallest path); review PASS
+  after round 1 and a targeted round 2.
+- close (2026-11-02): resolved by the approver (`333efea`); on the adoption branch, with this
+  repository's own `definition-of-done` override, R-06.1 … R-06.4 and the bug-025 e2e pass on
+  Chromium, Firefox and WebKit (full `test:e2e`, 938 passed, 0 failed, on `ababf9a`).
+
