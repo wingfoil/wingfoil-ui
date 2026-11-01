@@ -19,19 +19,20 @@
 # with 2 fix tasks reaches in-review only once both are in-review, and resolved/closed only once
 # both are done. No separate bug-fix workflow: task and bug share the `in-progress`/`in-review`
 # state names by design.
-# Packs adoption (governance-alignment-rel-v0.3-plan step 3, version 1.5): no workflow of this
+# Packs adoption (governance-alignment-rel-v0.3-plan step 3, 1.5; GA3-11, 1.6): no workflow of this
 # composition includes it; it is a procedure of this repository run by hand inside `backlog-item`
 # (old → new keys: `start` → `start`, `design`/`red`/`green`/`refactor` → `build`, `review` →
 # `review` and `approve`, `done` → `done`); its gates are the `definition-of-done` directive
 # (custom). The task transitions are `backlog-item`'s: `backlog → in-progress` and `approved →
-# done` by `memory submit`, `in-review → approved` by the approver's `memory approve`; the bugs it
-# names move by the approver's `memory approve` (no `bug.sync_state`).
+# done` by `memory submit`, `in-review → approved` by the approver's `memory approve`; a bug it
+# names moves `planned → in-progress` by `memory submit` at `start` (GA3-11 R-3), then along its own
+# machine (no `bug.sync_state`).
 name: dev-loop
 kind: sub
 description: >-
   Test-first development loop for a single task: design -> red -> green -> refactor -> review.
   On review rejection, fall back to `red` and return the task to in-progress.
-version: 1.5                     # 1.5: packs adoption, header only (governance-alignment-rel-v0.3 step 3); 1.4: header comment only: dl-123 gives `triaged`/`planned` a reject to `closed` — no phase or step change (prev 1.3: dl-045 `task.bug` is a LIST, so a bug absorbed into an existing task's ACs is sync-able; 1.2: dl-034 lint.clean gate in `refactor`; 1.1: dl-014 git ergonomics (branch/worktree/merge) + docs-api checks; T1 test-strategy classification)
+version: 1.6                     # 1.6: bug start by submit, header only (GA3-11 R-3); 1.5: packs adoption, header only (governance-alignment-rel-v0.3 step 3); 1.4: header comment only: dl-123 gives `triaged`/`planned` a reject to `closed` — no phase or step change (prev 1.3: dl-045 `task.bug` is a LIST, so a bug absorbed into an existing task's ACs is sync-able; 1.2: dl-034 lint.clean gate in `refactor`; 1.1: dl-014 git ergonomics (branch/worktree/merge) + docs-api checks; T1 test-strategy classification)
 element: task          # the iterated element provided by release-cycle
 
 phases:

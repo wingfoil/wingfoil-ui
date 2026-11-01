@@ -1,9 +1,9 @@
 # `.wingfoil/` — WingFoil configuration of WingFoil UI
 
-**Version:** 0.4 · **Date:** 2026-10-30 (0.1: release v0.1, `user-docs` `align-agent-docs`; 0.2:
+**Version:** 0.5 · **Date:** 2026-11-01 (0.1: release v0.1, `user-docs` `align-agent-docs`; 0.2:
 W-25, W-26 — dl-007; 0.3: `release-submit`, `release-publishing`, `retrospective` tailored — dl-008;
 0.4: the packs `base@2.0.1`, `software@1.0.0`, `methodology/scrum@1.0.0` adopted —
-governance-alignment-rel-v0.3-plan step 3) · **Checked against:** `wingfoil@0.3.1` (the devDependency
+governance-alignment-rel-v0.3-plan step 3; 0.5: the deviations from the packs — GA3-11) · **Checked against:** `wingfoil@0.3.1` (the devDependency
 pin)
 
 This folder makes the WingFoil UI repository a project **governed by WingFoil**: its DNA, its Memory
@@ -25,6 +25,20 @@ parameters, the file-by-file outcome and the old → new keys are in
 | `base` | 2.0.1 | `decision-log`, `task`, `plan`; `decision-log-ingest`, `governance-evolution`, `retrospective`, `retrospective-periodic`; `claim-sources`, `doc-versioning`, `security-secrets`, `traceability` |
 | `software` | 1.0.0 | `adr`, `tech-spec`, `bug`, `release`, `release-line`; `sw-life-cycle` and its slots `inception`, `specification`, `end-of-life`, `release` (`release-submit`, `release-publishing`); `adr-ingest`, `bug-ingest`; `determinism` |
 | `methodology/scrum` | 1.0.0 | `sprint`, `sprint` on `task` and `release`; `delivery`, `sprint`, `backlog-item`; `scrum`, `definition-of-done` (overridden here) |
+
+### Deviations from the packs
+
+Decided by the approver on 2026-11-01 (GA3-11 of `governance-alignment-rel-v0.3-plan`), each in
+`memory.yaml`, and proposed to WingFoil-Templates as feedback:
+
+| # | Type | Pack's machine | Here | Why |
+|---|------|----------------|------|-----|
+| R-1 | `release` | no gate; `releasing → released` by `mark-released` (`element.set_state`) | gate `releasing` (reject → `in-development`): `released` only by the approver's `memory approve`, after the publication | without a gate any member, an agent acting as tech-lead included, can `memory submit` a release to `released` |
+| R-2 | `release-line` | gate `planning` only; `active → done` by `submit` | also gate `active` (reject → `planning`): the approver closes the line | `submit` closed a line with no check on its releases |
+| R-3 | `bug` | gates `open`, `triaged`, `planned`, `in-review`, `resolved` | no gate on `planned`: `memory submit` moves it to `in-progress` when its fix starts | the start of a planned fix is the developer's, as the task's start is; `triaged → planned` stays the approver's |
+
+Also this repository's own, not a pack's change: its templates, the five procedures, the custom
+`definition-of-done` and `release-conventions` directives (below).
 
 ## Files
 
@@ -58,9 +72,9 @@ hand-written `wf(plan): finalize <id> [active → done]` commit for a phase plan
 | `plan` | `docs/05_plans/{scope}/{id}.md` | `{workflow}-{phase}-plan` | draft → active → done | — | `active` | — |
 | `adr` | `docs/04_memory/design/adrs/{id}.md` | `adr-{n}-{slug}` | draft → pending → accepted → superseded | `pending` (→ `draft`) | `accepted` | — |
 | `tech-spec` | `docs/04_memory/design/specs/{id}.md` | `spec-{n}-{slug}` | draft → pending → approved → superseded | `pending` (→ `draft`) | `approved` | — |
-| `bug` | `docs/04_memory/bugs/{id}.md` | `bug-{n}-{slug}` | draft → open → triaged → planned → in-progress → in-review → resolved → closed | `open`, `triaged`, `planned` (→ `closed`); `in-review`, `resolved` (→ `in-progress`) | — | `in-progress` → `planned` |
-| `release-line` | `docs/04_memory/planning/{id}.md` | `rl-{version}` | draft → planning → active → done | `planning` (→ `draft`) | — | — |
-| `release` | `docs/04_memory/planning/{release-line}/{id}.md` | `{kind}-{version}` | draft → planning → in-development → releasing → released | — | — | — |
+| `bug` | `docs/04_memory/bugs/{id}.md` | `bug-{n}-{slug}` | draft → open → triaged → planned → in-progress → in-review → resolved → closed | `open`, `triaged` (→ `closed`); `in-review`, `resolved` (→ `in-progress`) | — | `in-progress` → `planned` |
+| `release-line` | `docs/04_memory/planning/{id}.md` | `rl-{version}` | draft → planning → active → done | `planning` (→ `draft`); `active` (→ `planning`) | — | — |
+| `release` | `docs/04_memory/planning/{release-line}/{id}.md` | `{kind}-{version}` | draft → planning → in-development → releasing → released | `releasing` (→ `in-development`) | — | — |
 | `sprint` | `docs/04_memory/sprints/{id}.md` | `sprint-{n}` | draft → planned → active → done (one `active` at a time) | — | — | — |
 | `service` | `docs/04_memory/services/{id}.md` | `svc-{n}-{slug}` | draft → pending → active | `pending` (→ `draft`) | — | — |
 

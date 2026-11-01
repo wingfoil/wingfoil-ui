@@ -9,9 +9,10 @@ tags: [custom, release, git, npm]
 
 # Directive — Release conventions of WingFoil UI
 
-**Version:** 1.0 · **Date:** 2026-10-30 (1.0: dl-008's tailoring of `release-submit`,
+**Version:** 1.1 · **Date:** 2026-11-01 (1.0: dl-008's tailoring of `release-submit`,
 `release-publishing` and `retrospective`, re-applied on the `software` and `base` packs' workflows
-at their adoption — governance-alignment-rel-v0.3-plan step 3)
+at their adoption — governance-alignment-rel-v0.3-plan step 3; 1.1: `mark-released` is the
+approver's `approve`, the retrospective's inventory in its plan — GA3-11 R-1, R-5)
 
 The packs' release workflows (`release-submit`, `release-publishing`, `.wingfoil/workflows/built-in/`)
 name what each phase does, not how this repository does it. This directive says how; the pipeline
@@ -49,11 +50,24 @@ and the approver's steps are in `docs/publishing.md`.
   approver approves the `promote` deployment and runs `npm stage approve` (`docs/publishing.md`
   *Every release*); then `npm view wingfoil-ui@X.Y.Z version` answers the version. An agent never
   publishes or configures the registry.
-- **`mark-released`** (tech-lead): `memory submit <release>` (`releasing → released`).
+- **`mark-released`** (tech-lead prepares, the approver decides): `releasing` is a gate in this
+  repository (`memory.yaml`, GA3-11 R-1, a deviation from `software`, whose phase moves the release
+  with `element.set_state(released)`): `memory submit` from `releasing` is refused, and the approver
+  runs `memory approve <release> --reason "…"` once `publish`'s post-check answered. The tech-lead
+  hands the approver that exact command, with the `npm view` output.
+
+The CLI authorises `memory approve` by the git identity of the commit (a non-approver email gets
+"user not authorized to approve"); agents commit under the approver's identity in this repository,
+so "an agent never approves" is a process rule here, not a check. A separate git identity for
+agents is a v0.3 task, not part of these conventions.
 
 ## `retrospective`
 
-- **`explore`**: the friction inventory is written in the run's plan under `docs/05_plans/`.
+- **`explore`**: the friction inventory — every point grouped by theme and citing its source
+  (an element's Execution Notes, a plan's Session log, a review round) — is written in the
+  retrospective's own plan under `docs/05_plans/` (`retrospective_path` is `docs/05_plans/`, GA3-11
+  R-5). That directory always holds files, so the step's evidence is always met: the inventory in
+  the plan is what shows the step done; a retrospective with none is not.
 - **`capture`**: a decision-log with the type's `dl-{n}-{slug}` id, added with
   `--tags retrospective` (`retrospective` › `approve` selects it by that tag), titled
   `Retrospective <release or Sprint>`.

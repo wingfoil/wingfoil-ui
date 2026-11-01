@@ -19,8 +19,10 @@
 #   - the `service` type.
 # Removed with the adoption: the `waiting` states of release, task, bug and release-line (the
 # packs keep `waiting` only where WingFoil drives the edge for every project), so those edges move
-# by `memory submit` (release, task, release-line) or by the approver's `memory approve` (bug
-# `triaged → planned`, `planned → in-progress`); directive `wingfoil-cli` is re-checked in step 4.
+# by `memory submit` or `memory approve`; directive `wingfoil-cli` is re-checked in step 4.
+# Deviations from the packs (GA3-11, the approver, 2026-11-01): R-1 a gate on release `releasing`
+# (approve → released, after the publication); R-2 a gate on release-line `active` (approve →
+# done); R-3 no gate on bug `planned` (submit → in-progress when the fix starts).
 #
 # Template ↔ workflow rule: `template.frontmatter.required` lists the fields to fill after
 # `memory add`; `memory add --set` fills only id/path tokens: every other field is filled by
@@ -40,7 +42,7 @@ types:
     path: "docs/04_memory/planning/{id}.md"
     id_pattern: "rl-{version}"                  # e.g. rl-v1
     name: Release Line
-    description: A major version line (v1, v2, ...) grouping the minor releases that deliver it. Managed outside `delivery` — added and submitted by the product-owner, approved by the approver (`planning → active`), its roadmap by the `initial-design` procedure, closed by `memory submit` (`active → done`) once every release under it is `released`.
+    description: A major version line (v1, v2, ...) grouping the minor releases that deliver it. Managed outside `delivery` — added and submitted by the product-owner, approved by the approver (`planning → active`), its roadmap by the `initial-design` procedure, closed by the approver's `memory approve` (`active → done`) once every release under it is `released`.
     tags: [ release-line, roadmap ]
     amendable: false
     template:
@@ -51,6 +53,7 @@ types:
       sequence: [ draft, planning, active, done ]
       gates:
         planning: { reject: draft }   # approve: planning->active
+        active:   { reject: planning }  # approve: active->done, the approver closes the line (GA3-11 R-2, deviation from software)
 
   release:
     path: "docs/04_memory/planning/{release-line}/{id}.md"   # release-line holds the version: planning/v1/
@@ -68,6 +71,8 @@ types:
           sprint: [ minor-v0.1, minor-v0.2 ]   # released before the Sprints (methodology/scrum README step 4)
     states:
       sequence: [ draft, planning, in-development, releasing, released ]
+      gates:
+        releasing: { reject: in-development }   # approve: releasing->released, the approver after the publication (GA3-11 R-1, deviation from software)
 
   task:
     path: "docs/04_memory/{release}/{id}.md"
@@ -143,7 +148,7 @@ types:
     path: "docs/04_memory/bugs/{id}.md"
     id_pattern: "bug-{n}-{slug}"
     name: Bug
-    description: A defect report. Workflow — `bug-ingest` (capture, then the approver's triage); a triaged bug is planned into a release by a fix task (`bug:` of the task); `triaged → planned` and `planned → in-progress` are the approver's `memory approve`.
+    description: A defect report. Workflow — `bug-ingest` (capture, then the approver's triage); a triaged bug is planned into a release by a fix task (`bug:` of the task); `triaged → planned` is the approver's `memory approve`; `planned → in-progress` is `memory submit` when its fix starts.
     tags: [ bug, defect ]
     amendable: true
     template:
@@ -155,7 +160,7 @@ types:
       gates:
         open:      { reject: closed }        # approve: open->triaged · reject: wontfix/duplicate
         triaged:   { reject: closed }        # approve: triaged->planned · reject: wontfix after triage
-        planned:   { reject: closed }        # approve: planned->in-progress · reject: wontfix before the fix starts
+        # no gate on `planned`: the developer starts the fix with `memory submit` (planned->in-progress) at backlog-item `start` (GA3-11 R-3, deviation from software)
         in-review: { reject: in-progress }   # approve: in-review->resolved
         resolved:  { reject: in-progress }   # approve: resolved->closed
       returns:
