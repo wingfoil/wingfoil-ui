@@ -110,7 +110,7 @@ adoption branch's e2e log (read only).
 The cause is on the API (it serves files, not directives); the duplicate key is its consequence in
 the web.
 
-**Decisions (proposed; D47-x once the coordinator agrees).**
+**Decisions — approved 2026-11-01 by the approver (D47-1 … D47-4, spec gap option A).**
 
 - **D47-1 — Layer: the server.** `GET /api/p/:pid/directives` answers one entry per directive id,
   the one in force, by the rule `directiveInForce` already applies (the entry the warning's
@@ -131,7 +131,7 @@ the web.
   not show; it does not open the directive in force (that would show another file's text under the
   link).
 
-**Spec gap (for the coordinator).** `directives.feature` R-06.2: "Then it lists every directive
+**Spec gap — decided 2026-11-01: option A.** `directives.feature` R-06.2: "Then it lists every directive
 file under `.wingfoil/directives/`" contradicts AC-2 when a file is shadowed. Options: (A) amend
 the step to "every directive in force under `.wingfoil/directives/`: one per id, a file shadowed
 by another of the same id is not listed (WingFoil's warning names it)" — recommended, it is AC-2's
