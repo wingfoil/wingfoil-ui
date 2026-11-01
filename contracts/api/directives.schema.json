@@ -2,7 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://wingfoil-ui.local/contracts/api/directives.schema.json",
   "title": "GET /api/p/:pid/directives",
-  "description": "The directive list (directives list), each entry with mine: bound to the current role view or global (S-22.1, R-06.4).",
+  "description": "The directive list (directives list): one entry per directive id, the one in force (the file the CLI's warning names, else — WingFoil's precedence — the smallest path among the files under directives/custom/, else among all; task-047, bug-025), in the CLI's order; each entry with mine: bound to the current role view or global (S-22.1, R-06.4).",
   "type": "object",
   "required": ["entries", "warnings"],
   "properties": {

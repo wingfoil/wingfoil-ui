@@ -602,6 +602,45 @@ describe('GET /api/p/:pid/directives', () => {
   });
 });
 
+describe('GET /api/p/:pid/directives with a custom directive overriding a built-in one (bug-025)', () => {
+  it('lists one entry per directive id, the one in force, and keeps the shadowing warning', async () => {
+    const c = await start(customTemplate, {
+      prepare: async (fx) => {
+        const builtIn = await readFile(path.join(fx.dir, '.wingfoil/directives/built-in/testing.md'), 'utf8');
+        await writeFile(
+          path.join(fx.dir, '.wingfoil/directives/custom/testing.md'),
+          builtIn
+            .replace('kind: built-in', 'kind: custom')
+            .replace('title: "Testing"', 'title: "Testing (project override)"')
+            .replace('# Directive — Testing', '# Directive — Testing, as this project runs it'),
+        );
+        await git(fx.dir, ['add', '-A'], fx.env);
+        await git(fx.dir, ['commit', '-qm', 'chore(wingfoil): override the built-in testing directive'], fx.env);
+        // Jordan, a developer: `testing` is bound to developer and qa.
+        await git(fx.dir, ['config', 'user.email', 'jordan@example.test'], fx.env);
+      },
+    });
+    const list = await c.get(`/api/p/${c.pid}/directives`);
+    expect(list.status).toBe(200);
+    expectSchema('directives.schema.json', list.body);
+    const ids: string[] = list.body.entries.map((e: any) => e.frontmatter.id);
+    expect(ids.length).toBe(new Set(ids).size);
+    const testing = list.body.entries.filter((e: any) => e.frontmatter.id === 'testing');
+    expect(testing.map((e: any) => [e.path, e.frontmatter.title])).toEqual([
+      ['directives/custom/testing.md', 'Testing (project override)'],
+    ]);
+    expect((await c.get(`/api/p/${c.pid}`)).body.roleView).toBe('developer');
+    expect(testing[0].roles).toContain('developer');
+    expect(testing[0].mine).toBe(true);
+    expect(list.body.warnings).toEqual([
+      "directive 'testing' defined in directives/built-in/testing.md, directives/custom/testing.md; using directives/custom/testing.md",
+    ]);
+    const one = await c.get(`/api/p/${c.pid}/directives/testing`);
+    expect(one.body.entry.path).toBe('directives/custom/testing.md');
+    expect(one.body.body).toContain('# Directive — Testing, as this project runs it');
+  });
+});
+
 describe('GET /api/p/:pid/docs and /files (R-08.1, REQ-SEC-06)', () => {
   it('indexes paths.docs without the Memory and plan files', async () => {
     const c = await start(customTemplate);
