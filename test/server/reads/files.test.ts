@@ -397,8 +397,8 @@ describe('directivesInForce — one entry per directive id (bug-025, task-047 D4
     path,
   });
 
-  it("falls back to WingFoil's precedence when the warning is cut: the first custom file listed", () => {
-    // `directives list` lists the files by path; WingFoil's rule (`compareDirectivePrecedence`): a
+  it("falls back to WingFoil's precedence when the warning is cut: the smallest custom path", () => {
+    // WingFoil's rule (`compareDirectivePrecedence`): a
     // `custom/` file first, then the smallest path. Past the cap no warning names the file in force.
     const list = sample('0.3.1');
     const cut = directivesInForce({ ...list, warnings: ['… 1 more warning'] });
@@ -414,7 +414,7 @@ describe('directivesInForce — one entry per directive id (bug-025, task-047 D4
         .filter((e) => e.frontmatter.id === 'testing')
         .map((e) => e.path),
     ).toEqual(['directives/custom/testing.md']);
-    // No custom file: the first listed.
+    // No custom file: the smallest path.
     const builtIns = {
       entries: [testingAt(list, 'directives/built-in/a-testing.md'), testingAt(list, 'directives/built-in/testing.md')],
       warnings: [],

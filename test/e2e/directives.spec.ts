@@ -26,8 +26,8 @@ async function listedByCli(fx: Fixture, role?: string): Promise<{ entries: Direc
 /**
  * The directives in force of `directives list`, in its order (W-23): for an id several files
  * declare, the file the warning names (`… defined in <a>, <b>; using <path>`); without a warning
- * (cut), WingFoil's precedence on its path-sorted list — the first file under `directives/custom/`,
- * else the first listed.
+ * (cut), WingFoil's precedence — the smallest path (code units) among the files under
+ * `directives/custom/`, else among all (not the first listed: the CLI sorts names per folder).
  */
 async function directives(fx: Fixture, role?: string): Promise<DirectiveEntry[]> {
   const { entries, warnings } = await listedByCli(fx, role);
@@ -40,12 +40,9 @@ async function directives(fx: Fixture, role?: string): Promise<DirectiveEntry[]>
   for (const e of entries) {
     const id = e.frontmatter.id;
     const same = entries.filter((d) => d.frontmatter.id === id);
-    winner.set(
-      id,
-      same.find((d) => d.path === using.get(id)) ??
-        same.find((d) => d.path.startsWith('directives/custom/')) ??
-        same[0]!,
-    );
+    const custom = same.filter((d) => d.path.startsWith('directives/custom/'));
+    const smallest = (custom.length > 0 ? custom : same).reduce((a, b) => (b.path < a.path ? b : a));
+    winner.set(id, same.find((d) => d.path === using.get(id)) ?? smallest);
   }
   return entries.filter((e) => winner.get(e.frontmatter.id) === e);
 }
