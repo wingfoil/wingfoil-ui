@@ -155,3 +155,47 @@ dated Process Note; `contracts/api/directives.schema.json` description (→ `doc
 ux-reference §4.6 (the rule; version 1.11); `directives.feature` R-06.2 per the gap's decision;
 `CHANGELOG.md` *Unreleased* *Fixed* (bug-025); `test/README.md` only if a suite is added (none
 planned: tests join existing files). No `wingfoil-cli` entry: W-23 already describes the CLI.
+
+### red / green / refactor (2026-11-01)
+
+- **red** (`5c99ed9`): unit `test/server/reads/files.test.ts` *directivesInForce* (the shadowed
+  samples of 0.2.2 and 0.3.1; a list without duplicates; a warning naming the built-in; a cut
+  warning) — 5 failed, no such function; route `test/server/http/project-routes.test.ts` *GET
+  /directives with a custom directive overriding a built-in one* — failed, 16 entries for 15 ids
+  (log `task047-red-route.log`); e2e `test/e2e/directives.spec.ts` *bug-025 — One row per directive
+  in force* on Chromium — failed in its R-06.1 step: `testing` listed twice under "only mine"
+  (log `task047-red-e2e.log`, commit `5c99ed9`), R-06.1 … R-06.4 passed. The tests were written
+  before the fix and seen failing on the unfixed code: that is their guard-removal check.
+- **green** (`f710112`): `directivesInForce` in `server/src/reads/project-reads.ts` (warnings parsed
+  once, the entry the `using` path names — compared as sanitised — else the last listed, the CLI's
+  order kept); `directiveInForce` returns its entry for the id; `directives()` in
+  `project-routes.ts` projects before computing `mine`. No web change (D47-1): the keys are unique
+  by contract.
+- **refactor**: in `directives.spec.ts` the R-06.1 and R-06.2 checks became `checkOnlyMine` /
+  `checkAll`, run by the scenarios and by the bug-025 test on the override copy; the oracle
+  `directives()` projects the CLI list by the W-23 rule written in the spec (a path a warning lists
+  in `defined in` but does not `use` is dropped), independent of the server code; on a fixture with
+  no override it is the CLI list as before (no expectation loosened).
+- **docs** (`d6a9f64`): spec-004 §3 row and Process Note 2026-11-01; `directives.schema.json`
+  description; `directives.feature` R-06.2 (option A); ux-reference §4.6 (1.11); user guide
+  *Directives* (0.21); `CHANGELOG.md` *Unreleased* *Fixed* (bug-025). `test/README.md` unchanged
+  (no suite added).
+- **R-06.1 / R-06.2 with an override:** the bug-025 test runs both scenarios' assertions on a copy
+  of the `custom` fixture with a committed `directives/custom/testing.md` overriding the built-in
+  `testing` — the case the adoption branch's `definition-of-done` override fails — and passes on
+  Chromium, Firefox and WebKit (gate below). On the adoption branch R-06.x run on its own
+  `.wingfoil/` with the new oracle once this branch is merged there (plan step 3).
+
+**Gates** (all on `d6a9f64`; logs and `.meta` `task047-g-*` in the session scratchpad; heavy gates
+through the machine-free slot; load = 1/5/15-min averages at start → end):
+
+| Gate | Result | Load |
+|------|--------|------|
+| `npm run typecheck` | pass | 8.09 |
+| `npm run lint` | pass | 7.46 |
+| `npm run format:check` | pass | 7.60 |
+| `npm run docs:api` | pass | 7.17 |
+| `check_tasks.py v0.3` | the 28 expected "listed by 0 tasks", no other failure | 8.27 |
+| `npm run test:coverage` | 174 files, 3344 passed, 1 skipped; statements 96.63 %, branches 91.52 %, functions 97.33 %, lines 98.4 % | 5.11 → 10.72 |
+| `npm run test:e2e:chromium` | 320 passed (R-06.1 … R-06.4, bug-025, G-02.1, G-02.2 included) | 10.26 → 17.51 |
+| `npm run test:e2e -- test/e2e/directives.spec.ts` (Chromium, Firefox, WebKit) | 15 passed | 13.27 → 14.36 |
