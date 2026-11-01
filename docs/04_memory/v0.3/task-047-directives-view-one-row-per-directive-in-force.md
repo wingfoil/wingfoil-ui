@@ -220,3 +220,17 @@ Verdict FAIL on one minor and nits; a short fix round confirmed by the approver.
   0.2.2 behaviour of the route and the e2e (this branch runs them on the pin; 0.2.2 is covered by
   the unit test on its captured sample and by the design probe), are verified by the coordinator at
   the merge into `design/ga3-adoption`.
+
+**Gates of review round 1** (all on `bd36c16`, the code of `ff335d2` with the notes; logs and
+`.meta` `task047-r1-*`; heavy gates through the slot; load = 1-min average at start → end):
+
+| Gate | Result | Load |
+|------|--------|------|
+| `npm run typecheck` | pass | 3.23 |
+| `npm run lint` | pass | 3.74 |
+| `npm run format:check` | pass | 4.18 |
+| `npm run docs:api` | pass | 4.98 |
+| `check_tasks.py v0.3` | the 28 expected "listed by 0 tasks", no other failure | 4.98 |
+| `npm run test:coverage` | 174 files, 3348 passed, 1 skipped; statements 96.63 %, branches 91.52 %, functions 97.33 %, lines 98.4 % | 4.53 → 19.52 |
+| `npm run test:e2e:chromium` | 320 passed | 8.35 → 9.54 |
+| `npm run test:e2e -- test/e2e/directives.spec.ts` (Chromium, Firefox, WebKit) | 15 passed | 8.77 → 26.05 |
