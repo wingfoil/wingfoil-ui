@@ -242,3 +242,8 @@ Verdict PASS with one nit, fixed at the approver's request (the coordinator chec
 | Finding | Change | Commit | Test |
 |---------|--------|--------|------|
 | **N1** — `directives list` (0.3.1) is not fully path-sorted: it sorts names per folder while it walks (`custom/team/x.md` before `custom/team.md`), while WingFoil's winner is the smallest full path (`compareDirectivePrecedence`); round 1's "first listed" fallback kept `team/x.md` | Without a warning naming the file in force: the smallest path by a plain code-unit comparison among the entries under `directives/custom/`, else among all (`smallestPath` in `project-reads.ts`); the same rule, written separately, in the e2e oracle; wording "smallest path" in the `directivesInForce` comment, `directives.schema.json`, spec-004 §3 row and its Process Note | `1fd41f9` red (log `task047-r2-red-unit.log`: 1 failed), `7f776f7` | `files.test.ts` *without a warning, keeps the smallest path, not the first listed* (custom and built-in cases) |
+
+**Checks of review round 2** (on `b77ba1e`; logs and `.meta` `task047-r2-*`): typecheck, lint,
+format:check, docs:api pass (load 4.5); `vitest run` of `files.test.ts`, `project-routes.test.ts`,
+`model.test.ts` 92 passed (load 4.47); `directives.spec.ts` on Chromium through the slot 5 passed
+(load 3.51 → 5.65).
