@@ -234,3 +234,11 @@ Verdict FAIL on one minor and nits; a short fix round confirmed by the approver.
 | `npm run test:coverage` | 174 files, 3348 passed, 1 skipped; statements 96.63 %, branches 91.52 %, functions 97.33 %, lines 98.4 % | 4.53 → 19.52 |
 | `npm run test:e2e:chromium` | 320 passed | 8.35 → 9.54 |
 | `npm run test:e2e -- test/e2e/directives.spec.ts` (Chromium, Firefox, WebKit) | 15 passed | 8.77 → 26.05 |
+
+### review round 2 (targeted, 2026-11-01)
+
+Verdict PASS with one nit, fixed at the approver's request (the coordinator checks the diff).
+
+| Finding | Change | Commit | Test |
+|---------|--------|--------|------|
+| **N1** — `directives list` (0.3.1) is not fully path-sorted: it sorts names per folder while it walks (`custom/team/x.md` before `custom/team.md`), while WingFoil's winner is the smallest full path (`compareDirectivePrecedence`); round 1's "first listed" fallback kept `team/x.md` | Without a warning naming the file in force: the smallest path by a plain code-unit comparison among the entries under `directives/custom/`, else among all (`smallestPath` in `project-reads.ts`); the same rule, written separately, in the e2e oracle; wording "smallest path" in the `directivesInForce` comment, `directives.schema.json`, spec-004 §3 row and its Process Note | `1fd41f9` red (log `task047-r2-red-unit.log`: 1 failed), `7f776f7` | `files.test.ts` *without a warning, keeps the smallest path, not the first listed* (custom and built-in cases) |
