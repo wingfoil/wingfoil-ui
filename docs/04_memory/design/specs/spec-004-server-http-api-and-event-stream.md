@@ -78,7 +78,7 @@ JSON; every request and response body has a schema in `contracts/api/`.
 | `GET /api/p/:pid/elements[?archived=true]` | elements with their descriptor (spec-003) and local-changes marker | v0.1 |
 | `GET /api/p/:pid/elements/:eid` | one element: frontmatter, body, descriptor, references | v0.1 |
 | `GET /api/p/:pid/elements/:eid/history` | `memory history` entries (spec-002 §2) | v0.1 |
-| `GET /api/p/:pid/directives`, `/directives/:did` | directive list; one directive with its body | v0.1 |
+| `GET /api/p/:pid/directives`, `/directives/:did` | directive list: one entry per directive id, the one in force — when two files declare an id (a custom directive overriding a built-in one), the file the CLI's warning names (`using <path>`), else the last listed; the other file is not listed, its warning is (task-047, bug-025); the CLI's order otherwise; one directive (the one in force) with its body | v0.1 |
 | `GET /api/p/:pid/docs` | documentation index (R4) | v0.1 |
 | `GET /api/p/:pid/files/tree`, `/files/content?path=` | working tree, confined to the repository (REQ-SEC-06) | v0.1 (docs), v0.3 (Files) |
 | `GET /api/p/:pid/today?view=<role>` | Requires you, Waiting on others, all-roles summary | v0.2 |
@@ -408,3 +408,6 @@ goes away by itself when the stream reconnects. A network failure is not rendere
 - 2026-10-29 — amended in dev-loop task-046 review round 4 (minor-1; decided by the approver): §5 the
   logging rule of a failed git read holds on every route (the global error handler), the write
   routes included.
+- 2026-11-01 — amended in dev-loop task-047 (bug-025; D47-1, D47-2; decided by the approver): §3
+  `/directives` answers one entry per directive id, the one in force (the rule of `/directives/:did`),
+  in the CLI's order; a file shadowed by another of the same id is not listed.

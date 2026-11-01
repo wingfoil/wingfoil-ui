@@ -25,6 +25,14 @@ release `v0.2` the git tag `v0.2.0` and the npm version `wingfoil-ui@0.2.0`.
   absolute `PATH` entries only, so a program a repository ships is never found through an empty or
   relative entry.
 
+### Fixed
+
+- **A directive overriding a built-in one is listed once** (bug-025, task-047): when a project's
+  custom directive has the id of a built-in one, the Directives view and the element panel's
+  *Directives* section listed both files — extra rows, the bound roles repeated, the order wrong
+  after switching "only mine / all". They now list one row per directive, the one WingFoil uses
+  (the custom file), and show WingFoil's warning naming both files.
+
 ### Known limitations
 
 - **A partial clone** (blobless or otherwise filtered) cannot be read in full: the console's reads
