@@ -16,7 +16,8 @@ import {
 import { parseDirective, readDirective } from '../../../server/src/reads/directive.js';
 import { parseElement, readElement } from '../../../server/src/reads/element.js';
 import { readMemoryYaml } from '../../../server/src/reads/memory-yaml.js';
-import { ProjectReads } from '../../../server/src/reads/project-reads.js';
+import { directiveInForce, directivesInForce, ProjectReads } from '../../../server/src/reads/project-reads.js';
+import type { DirectivesList } from '@wingfoil-ui/contracts';
 import { WingfoilCli } from '../../../server/src/cli/adapter.js';
 import { REPO_ROOT } from '../../harness/cli.js';
 import { FakeProcessRunner } from '../process/fake-runner.js';
@@ -346,5 +347,54 @@ describe('ProjectReads lookups by id (fake CLI answers captured from 0.2.2)', ()
     runner.requests.length = 0;
     await reads.element('task-001-login-form').catch(() => undefined);
     expect(runner.requests).toHaveLength(1);
+  });
+});
+
+describe('directivesInForce — one entry per directive id (bug-025, task-047 D47-1, D47-2)', () => {
+  const sample = (version: string): DirectivesList =>
+    JSON.parse(
+      readFileSync(
+        path.join(REPO_ROOT, `test/contracts/samples/wingfoil-${version}/kanban/directives-list-shadowed.json`),
+        'utf8',
+      ),
+    ) as DirectivesList;
+  const ids = (list: DirectivesList) => list.entries.map((e) => `${e.frontmatter.id} ${e.path}`);
+
+  it.each(['0.2.2', '0.3.1'])('keeps the custom file in force and drops the shadowed one (WingFoil %s)', (version) => {
+    const list = sample(version);
+    const shadowed = 'testing directives/built-in/testing.md';
+    expect(ids(list)).toContain(shadowed);
+    const inForce = directivesInForce(list);
+    // The CLI's order, the shadowed entry dropped, nothing moved.
+    expect(ids({ ...list, entries: inForce })).toEqual(ids(list).filter((e) => e !== shadowed));
+    expect(inForce.filter((e) => e.frontmatter.id === 'testing').map((e) => e.path)).toEqual([
+      'directives/custom/testing.md',
+    ]);
+    // The single read agrees with the list for every id.
+    for (const e of inForce) expect(directiveInForce(list, e.frontmatter.id)).toBe(e);
+  });
+
+  it('answers a list without duplicates as it is', () => {
+    const list = sample('0.3.1');
+    const plain = { entries: list.entries.filter((e) => e.path !== 'directives/built-in/testing.md'), warnings: [] };
+    expect(directivesInForce(plain)).toEqual(plain.entries);
+  });
+
+  it('keeps the file the warning names, at its place, even when it is the built-in', () => {
+    const list = sample('0.3.1');
+    const warnings = [
+      "directive 'testing' defined in directives/built-in/testing.md, directives/custom/testing.md; using directives/built-in/testing.md",
+    ];
+    const inForce = directivesInForce({ ...list, warnings });
+    expect(ids({ ...list, entries: inForce })).toEqual(
+      ids(list).filter((e) => e !== 'testing directives/custom/testing.md'),
+    );
+  });
+
+  it('falls back to the last entry listed when no warning names the file in force (a cut warning)', () => {
+    const list = sample('0.3.1');
+    const reversed = { entries: [...list.entries].reverse(), warnings: ['… 1 more warning'] };
+    const testing = directivesInForce(reversed).filter((e) => e.frontmatter.id === 'testing');
+    expect(testing.map((e) => e.path)).toEqual(['directives/built-in/testing.md']);
   });
 });
