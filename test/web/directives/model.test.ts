@@ -1,8 +1,13 @@
 // task-019 — the Directives view's pure helpers (US-R-06, US-G-02; W3-38, W3-42, W3-43): the filter
 // of the URL, "only mine" from the server's `mine` (never recomputed from the roles), the panel's
-// directives, and the classification of a link inside a directive body.
-import type { DirectiveList } from '@wingfoil-ui/contracts';
+// directives, and the classification of a link inside a directive body (a link to a shadowed file:
+// task-047 D47-4).
+import type { DirectiveEntry, DirectiveList, DirectivesList } from '@wingfoil-ui/contracts';
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { directivesInForce } from '../../../server/src/reads/project-reads.js';
+import { REPO_ROOT } from '../../harness/cli.js';
 import {
   classifyDirectiveLink,
   directiveHref,
@@ -102,5 +107,31 @@ describe('directive paths and links', () => {
     expect(classify('../../../docs/x.md')).toEqual({ kind: 'refused', mark: 'hidden' });
     expect(classify('../../../../x')).toEqual({ kind: 'refused', mark: 'outside' });
     expect(classify('mailto:a@b.test')).toEqual({ kind: 'refused', mark: 'unsupported' });
+  });
+});
+
+describe('a link to a shadowed directive file (task-047 D47-4, bug-025)', () => {
+  const shadowed = JSON.parse(
+    readFileSync(
+      path.join(REPO_ROOT, 'test/contracts/samples/wingfoil-0.3.1/kanban/directives-list-shadowed.json'),
+      'utf8',
+    ),
+  ) as DirectivesList;
+  const byPathOf = (entries: readonly DirectiveEntry[]) =>
+    new Map(entries.map((e) => [directiveRepoPath(e), e.frontmatter.id]));
+  const from = '.wingfoil/directives/custom/testing.md';
+
+  it('reads "not shown in the UI" with the list the server answers (the entries in force)', () => {
+    expect(classifyDirectiveLink('../built-in/testing.md', from, byPathOf(directivesInForce(shadowed)))).toEqual({
+      kind: 'refused',
+      mark: 'hidden',
+    });
+  });
+
+  it('would open the directive in force with every file listed (the list before the fix)', () => {
+    expect(classifyDirectiveLink('../built-in/testing.md', from, byPathOf(shadowed.entries))).toMatchObject({
+      kind: 'document',
+      path: '.wingfoil/directives/built-in/testing.md',
+    });
   });
 });

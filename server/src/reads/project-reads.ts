@@ -117,8 +117,8 @@ export class ProjectReads {
   /**
    * The directive `id`, looked up in `directives list`; `undefined` when none has that id. When
    * several files declare the id, the CLI lists them all and its warning names the one in force
-   * (`directive '<id>' defined in <a>, <b>; using <path>`): that entry is read, else the last one
-   * listed (the custom one, listed after the built-in).
+   * (`directive '<id>' defined in <a>, <b>; using <path>`): that entry is read, else the one
+   * WingFoil's precedence selects ({@link directivesInForce}).
    */
   async directive(id: string, signal?: AbortSignal): Promise<DirectiveRead | undefined> {
     const entry = directiveInForce((await this.directives(signal)).data, id);
@@ -126,21 +126,59 @@ export class ProjectReads {
   }
 }
 
+/** The folder of a project's own directives, as `directives list` paths name it. */
+const CUSTOM_DIRECTIVES = 'directives/custom/';
+
 /**
- * The entry of `list` for the directive `id`, or `undefined`. When several files declare the id,
- * the one the CLI's warning names (`directive '<id>' defined in <a>, <b>; using <path>`), else the
- * last one listed (the custom one, listed after the built-in).
+ * The directives in force of `list`, one entry per directive id, in the CLI's order (task-047
+ * D47-1, D47-2; bug-025). When several files declare an id (W-23), the CLI lists them all and its
+ * warning names the one in force (`directive '<id>' defined in <a>, <b>; using <path>`): that entry
+ * is kept; without a warning (cut), WingFoil's own precedence (`compareDirectivePrecedence`): the
+ * smallest path, by a plain code-unit comparison, among the entries under `directives/custom/`,
+ * else among all — not the first listed, since `directives list` sorts names per folder while it
+ * walks (`custom/team/x.md` before `custom/team.md`). The others are dropped and nothing moves
+ * (task-047 review rounds 1 nit-1, 2 N1).
  */
-export function directiveInForce(list: DirectivesList, id: string): DirectiveEntry | undefined {
+export function directivesInForce(list: DirectivesList): DirectiveEntry[] {
   // The warnings are the sanitised text — the adapter sends the `warnings` of `directives list`
   // through `redactLocalPaths` (task-046 review round 2 d1; a backslash written `\\`, bug-017): an
   // entry's path is compared as written there too (review round 4 R4-2). Past 200 warnings the rest
-  // are cut: a directive whose warning is cut falls back to the last entry listed.
-  const candidates = list.entries.filter((e) => e.frontmatter.id === id);
-  const inForce = list.warnings
-    .map((w) => /^directive '(.*)' defined in .*; using (\S+)$/.exec(w))
-    .find((m) => m?.[1] === id)?.[2];
-  return candidates.find((e) => e.path === inForce || neutralise(e.path) === inForce) ?? candidates.at(-1);
+  // are cut: a directive whose warning is cut falls back to WingFoil's precedence. A path may hold
+  // spaces: the `using` path runs to the end of the warning.
+  const using = new Map<string, string>();
+  for (const w of list.warnings) {
+    const m = /^directive '(.*)' defined in .*; using (.+)$/.exec(w);
+    if (m?.[1] !== undefined && m[2] !== undefined && !using.has(m[1])) using.set(m[1], m[2]);
+  }
+  const byId = new Map<string, DirectiveEntry[]>();
+  for (const e of list.entries) {
+    const same = byId.get(e.frontmatter.id);
+    if (same) same.push(e);
+    else byId.set(e.frontmatter.id, [e]);
+  }
+  const kept = new Set<DirectiveEntry>();
+  for (const [id, candidates] of byId) {
+    const inForce = using.get(id);
+    const custom = candidates.filter((e) => e.path.startsWith(CUSTOM_DIRECTIVES));
+    const entry =
+      candidates.find((e) => e.path === inForce || neutralise(e.path) === inForce) ??
+      smallestPath(custom.length > 0 ? custom : candidates);
+    if (entry) kept.add(entry);
+  }
+  return list.entries.filter((e) => kept.has(e));
+}
+
+/** The entry of `entries` with the smallest path, by code units (WingFoil's `a.path < b.path`). */
+function smallestPath(entries: readonly DirectiveEntry[]): DirectiveEntry | undefined {
+  return entries.reduce<DirectiveEntry | undefined>(
+    (min, e) => (min === undefined || e.path < min.path ? e : min),
+    undefined,
+  );
+}
+
+/** The entry of `list` for the directive `id` — its entry in force ({@link directivesInForce}) — or `undefined`. */
+export function directiveInForce(list: DirectivesList, id: string): DirectiveEntry | undefined {
+  return directivesInForce(list).find((e) => e.frontmatter.id === id);
 }
 
 function args(signal: AbortSignal | undefined): CliArgs {

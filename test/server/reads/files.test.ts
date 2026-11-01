@@ -16,7 +16,8 @@ import {
 import { parseDirective, readDirective } from '../../../server/src/reads/directive.js';
 import { parseElement, readElement } from '../../../server/src/reads/element.js';
 import { readMemoryYaml } from '../../../server/src/reads/memory-yaml.js';
-import { ProjectReads } from '../../../server/src/reads/project-reads.js';
+import { directiveInForce, directivesInForce, ProjectReads } from '../../../server/src/reads/project-reads.js';
+import type { DirectivesList } from '@wingfoil-ui/contracts';
 import { WingfoilCli } from '../../../server/src/cli/adapter.js';
 import { REPO_ROOT } from '../../harness/cli.js';
 import { FakeProcessRunner } from '../process/fake-runner.js';
@@ -346,5 +347,133 @@ describe('ProjectReads lookups by id (fake CLI answers captured from 0.2.2)', ()
     runner.requests.length = 0;
     await reads.element('task-001-login-form').catch(() => undefined);
     expect(runner.requests).toHaveLength(1);
+  });
+});
+
+describe('directivesInForce — one entry per directive id (bug-025, task-047 D47-1, D47-2)', () => {
+  const sample = (version: string): DirectivesList =>
+    JSON.parse(
+      readFileSync(
+        path.join(REPO_ROOT, `test/contracts/samples/wingfoil-${version}/kanban/directives-list-shadowed.json`),
+        'utf8',
+      ),
+    ) as DirectivesList;
+  const ids = (list: DirectivesList) => list.entries.map((e) => `${e.frontmatter.id} ${e.path}`);
+
+  it.each(['0.2.2', '0.3.1'])('keeps the custom file in force and drops the shadowed one (WingFoil %s)', (version) => {
+    const list = sample(version);
+    const shadowed = 'testing directives/built-in/testing.md';
+    expect(ids(list)).toContain(shadowed);
+    const inForce = directivesInForce(list);
+    // The CLI's order, the shadowed entry dropped, nothing moved.
+    expect(ids({ ...list, entries: inForce })).toEqual(ids(list).filter((e) => e !== shadowed));
+    expect(inForce.filter((e) => e.frontmatter.id === 'testing').map((e) => e.path)).toEqual([
+      'directives/custom/testing.md',
+    ]);
+    // The single read agrees with the list for every id.
+    for (const e of inForce) expect(directiveInForce(list, e.frontmatter.id)).toBe(e);
+  });
+
+  it('answers a list without duplicates as it is', () => {
+    const list = sample('0.3.1');
+    const plain = { entries: list.entries.filter((e) => e.path !== 'directives/built-in/testing.md'), warnings: [] };
+    expect(directivesInForce(plain)).toEqual(plain.entries);
+  });
+
+  it('keeps the file the warning names, at its place, even when it is the built-in', () => {
+    const list = sample('0.3.1');
+    const warnings = [
+      "directive 'testing' defined in directives/built-in/testing.md, directives/custom/testing.md; using directives/built-in/testing.md",
+    ];
+    const inForce = directivesInForce({ ...list, warnings });
+    expect(ids({ ...list, entries: inForce })).toEqual(
+      ids(list).filter((e) => e !== 'testing directives/custom/testing.md'),
+    );
+  });
+
+  /** A `testing` entry of the 0.3.1 sample at `path`. */
+  const testingAt = (list: DirectivesList, path: string) => ({
+    ...list.entries.find((e) => e.path === 'directives/custom/testing.md')!,
+    path,
+  });
+
+  it("falls back to WingFoil's precedence when the warning is cut: the smallest custom path", () => {
+    // WingFoil's rule (`compareDirectivePrecedence`): a
+    // `custom/` file first, then the smallest path. Past the cap no warning names the file in force.
+    const list = sample('0.3.1');
+    const cut = directivesInForce({ ...list, warnings: ['… 1 more warning'] });
+    expect(cut.filter((e) => e.frontmatter.id === 'testing').map((e) => e.path)).toEqual([
+      'directives/custom/testing.md',
+    ]);
+    const twoCustom = {
+      entries: [...list.entries, testingAt(list, 'directives/custom/zz-testing.md')],
+      warnings: [],
+    };
+    expect(
+      directivesInForce(twoCustom)
+        .filter((e) => e.frontmatter.id === 'testing')
+        .map((e) => e.path),
+    ).toEqual(['directives/custom/testing.md']);
+    // No custom file: the smallest path.
+    const builtIns = {
+      entries: [testingAt(list, 'directives/built-in/a-testing.md'), testingAt(list, 'directives/built-in/testing.md')],
+      warnings: [],
+    };
+    expect(directivesInForce(builtIns).map((e) => e.path)).toEqual(['directives/built-in/a-testing.md']);
+  });
+
+  it('keeps the file the warning names when two custom files declare the id', () => {
+    const list = sample('0.3.1');
+    const entries = [...list.entries, testingAt(list, 'directives/custom/zz-testing.md')];
+    const warnings = [
+      "directive 'testing' defined in directives/built-in/testing.md, directives/custom/testing.md, directives/custom/zz-testing.md; using directives/custom/zz-testing.md",
+    ];
+    expect(
+      directivesInForce({ entries, warnings })
+        .filter((e) => e.frontmatter.id === 'testing')
+        .map((e) => e.path),
+    ).toEqual(['directives/custom/zz-testing.md']);
+  });
+
+  it('without a warning, keeps the smallest path, not the first listed (WingFoil walks folder by folder)', () => {
+    // 0.3.1 lists `custom/team/x.md` before `custom/team.md` (names sorted per folder while walking),
+    // but WingFoil's winner is the smallest full path (`compareDirectivePrecedence`): `team.md`.
+    const list = sample('0.3.1');
+    const entries = [
+      testingAt(list, 'directives/built-in/testing.md'),
+      testingAt(list, 'directives/custom/team/x.md'),
+      testingAt(list, 'directives/custom/team.md'),
+    ];
+    expect(directivesInForce({ entries, warnings: ['… 1 more warning'] }).map((e) => e.path)).toEqual([
+      'directives/custom/team.md',
+    ]);
+    // No custom file: the smallest path among all.
+    const builtIns = [testingAt(list, 'directives/built-in/team/x.md'), testingAt(list, 'directives/built-in/team.md')];
+    expect(directivesInForce({ entries: builtIns, warnings: [] }).map((e) => e.path)).toEqual([
+      'directives/built-in/team.md',
+    ]);
+  });
+
+  it('reads a path with a space in the warning', () => {
+    const list = sample('0.3.1');
+    const entries = [
+      ...list.entries.filter((e) => e.path !== 'directives/custom/testing.md'),
+      testingAt(list, 'directives/custom/my testing.md'),
+      testingAt(list, 'directives/custom/testing.md'),
+    ];
+    const warnings = [
+      "directive 'testing' defined in directives/built-in/testing.md, directives/custom/my testing.md, directives/custom/testing.md; using directives/custom/testing.md",
+    ];
+    expect(
+      directivesInForce({ entries, warnings })
+        .filter((e) => e.frontmatter.id === 'testing')
+        .map((e) => e.path),
+    ).toEqual(['directives/custom/testing.md']);
+    const named = [warnings[0]!.replace(/using .*$/, 'using directives/custom/my testing.md')];
+    expect(
+      directivesInForce({ entries, warnings: named })
+        .filter((e) => e.frontmatter.id === 'testing')
+        .map((e) => e.path),
+    ).toEqual(['directives/custom/my testing.md']);
   });
 });

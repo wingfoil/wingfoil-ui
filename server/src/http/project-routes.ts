@@ -63,6 +63,7 @@ import { ARCHIVED_QUERY } from '../presets/api.js';
 import { ARCHIVED_STATES } from '../presets/wingfoil.js';
 import { DirectReadError } from '../reads/confine.js';
 import { resolveStates } from '../reads/memory-yaml.js';
+import { directivesInForce } from '../reads/project-reads.js';
 import {
   documentationIndex,
   documentationScope,
@@ -446,14 +447,18 @@ async function element(read: ProjectRead, id: string): Promise<ElementDetail> {
   };
 }
 
-/** `GET /api/p/:pid/directives`. */
+/**
+ * `GET /api/p/:pid/directives`: one entry per directive id, the one in force (task-047 D47-1,
+ * bug-025), in the CLI's order; `mine` on those entries.
+ */
 async function directives(read: ProjectRead): Promise<DirectiveList> {
   const { view, entry } = read;
   const [list, dna] = await Promise.all([view.directives(), read.settle(view.dna())]);
   const { roleView } = identityView(identityOf(view, membersOf(dna)), entry.roleView);
-  const mine = new Set(directivesForRoleView(list.data.entries, roleView));
+  const inForce = directivesInForce(list.data);
+  const mine = new Set(directivesForRoleView(inForce, roleView));
   return {
-    entries: list.data.entries.map((e) => ({ ...e, mine: mine.has(e) })),
+    entries: inForce.map((e) => ({ ...e, mine: mine.has(e) })),
     warnings: list.data.warnings,
   };
 }
