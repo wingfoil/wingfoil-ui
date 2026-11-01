@@ -435,6 +435,25 @@ describe('directivesInForce — one entry per directive id (bug-025, task-047 D4
     ).toEqual(['directives/custom/zz-testing.md']);
   });
 
+  it('without a warning, keeps the smallest path, not the first listed (WingFoil walks folder by folder)', () => {
+    // 0.3.1 lists `custom/team/x.md` before `custom/team.md` (names sorted per folder while walking),
+    // but WingFoil's winner is the smallest full path (`compareDirectivePrecedence`): `team.md`.
+    const list = sample('0.3.1');
+    const entries = [
+      testingAt(list, 'directives/built-in/testing.md'),
+      testingAt(list, 'directives/custom/team/x.md'),
+      testingAt(list, 'directives/custom/team.md'),
+    ];
+    expect(directivesInForce({ entries, warnings: ['… 1 more warning'] }).map((e) => e.path)).toEqual([
+      'directives/custom/team.md',
+    ]);
+    // No custom file: the smallest path among all.
+    const builtIns = [testingAt(list, 'directives/built-in/team/x.md'), testingAt(list, 'directives/built-in/team.md')];
+    expect(directivesInForce({ entries: builtIns, warnings: [] }).map((e) => e.path)).toEqual([
+      'directives/built-in/team.md',
+    ]);
+  });
+
   it('reads a path with a space in the warning', () => {
     const list = sample('0.3.1');
     const entries = [
