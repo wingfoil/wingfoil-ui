@@ -39,10 +39,13 @@ const WRITES: Record<BddFixtureKind, [string, 'Jordan' | 'Morgan' | 'Alex', stri
   ],
 };
 
-/** Directive files kept as samples (custom: one with `tags`, one without). */
+/**
+ * Directive files kept as samples (custom: one with `tags`, one without — `determinism` is a custom
+ * file in the pre-packs governance and the `software` pack's built-in one in the live governance).
+ */
 const DIRECTIVES: Record<BddFixtureKind, 'all' | string[]> = {
   kanban: 'all',
-  custom: ['directives/built-in/testing.md', 'directives/custom/determinism.md'],
+  custom: ['directives/built-in/testing.md', 'directives/custom/determinism.md', 'directives/built-in/determinism.md'],
   unknown: [],
 };
 

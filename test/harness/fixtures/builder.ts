@@ -129,9 +129,32 @@ export async function buildFixture(kind: FixtureKind, options: BuildOptions): Pr
   return { kind, name: kind, dir, remoteDir, remoteUrl, now, env, home };
 }
 
-/** Custom fixture: this repository's `.wingfoil/` and `docs/01_vision/`. */
+/**
+ * Which `.wingfoil/` the custom fixture imports for a CLI version: `packs` — this repository's live
+ * one, composed from the wingfoil-templates packs, whose range is `>=0.3.0`; `pre-packs` — the copy
+ * frozen before the adoption (`custom-governance-0.2/`), for an older CLI: WingFoil 0.2.2 refuses
+ * the packs' workflows (governance-alignment-rel-v0.3-plan step 3, decision 16).
+ */
+export function customGovernance(cliVersion: string): 'packs' | 'pre-packs' {
+  const [major = 0, minor = 0] = cliVersion.split('.').map(Number);
+  return major > 0 || minor >= 3 ? 'packs' : 'pre-packs';
+}
+
+/** The frozen pre-adoption `.wingfoil/` of {@link customGovernance}. */
+export const PRE_PACKS_GOVERNANCE = path.join(
+  REPO_ROOT,
+  'test',
+  'harness',
+  'fixtures',
+  'custom-governance-0.2',
+  '.wingfoil',
+);
+
+/** Custom fixture: this repository's `.wingfoil/` ({@link customGovernance}) and `docs/01_vision/`. */
 async function importGovernance(project: FixtureProject): Promise<void> {
-  await cp(path.join(REPO_ROOT, '.wingfoil'), path.join(project.dir, '.wingfoil'), { recursive: true });
+  const source =
+    customGovernance(project.options.cliVersion) === 'packs' ? path.join(REPO_ROOT, '.wingfoil') : PRE_PACKS_GOVERNANCE;
+  await cp(source, path.join(project.dir, '.wingfoil'), { recursive: true });
   await cp(path.join(REPO_ROOT, 'docs', '01_vision'), path.join(project.dir, 'docs', '01_vision'), { recursive: true });
   await project.commitAll('chore(wingfoil): import the WingFoil UI governance (.wingfoil/, docs/01_vision/)', 'setup');
 }
@@ -215,6 +238,7 @@ const BUILDERS: Record<FixtureKind, (project: FixtureProject) => Promise<void>> 
   },
 
   async custom(p) {
+    const packs = customGovernance(p.options.cliVersion) === 'packs';
     // Progress elements: tasks of release v0.1 at different stages.
     const tasks: { title: string; ref: string; to: 'in-review' | 'done' | 'backlog' }[] = [
       { title: 'CLI adapter', ref: 'US-S-01', to: 'in-review' },
@@ -225,6 +249,8 @@ const BUILDERS: Record<FixtureKind, (project: FixtureProject) => Promise<void>> 
     for (const task of tasks) {
       const el = await p.add('Jordan', 'task', task.title, { release: 'v0.1' });
       if (task.ref) await p.editFrontmatter(el.path, { ref: `"${task.ref}"` });
+      // methodology/scrum: a task carries its Sprint, or `n/a — <reason>` until one selects it.
+      if (packs) await p.editFrontmatter(el.path, { sprint: '"n/a — no Sprint in the fixture"' });
       await p.submit('Jordan', el.id);
       await p.approve('Morgan', el.id);
       if (task.to === 'backlog') continue;
@@ -248,6 +274,7 @@ const BUILDERS: Record<FixtureKind, (project: FixtureProject) => Promise<void>> 
     // Required `sard_ref` left empty (`memory add` cannot set it, W-01).
     await p.add('Alex', 'adr', 'Local server');
 
+    // No `sprint` on `minor-v0.1`: the live `memory.yaml` exempts it (released before the Sprints).
     const rel = await p.add('Alex', 'release', 'Minor v0.1', { kind: 'minor', version: 'v0.1', 'release-line': 'v1' });
     await p.editFrontmatter(rel.path, {
       pillar: '"S"',

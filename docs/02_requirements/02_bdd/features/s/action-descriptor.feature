@@ -19,7 +19,7 @@ Feature: Action descriptor and methodology independence
     Examples:
       | fixture | types                                                                                  |
       | kanban  | adr, bug, decision-log, release, release-line, task, tech-spec                         |
-      | custom  | release-line, release, task, adr, decision-log, tech-spec, bug, plan, service          |
+      | custom  | release-line, release, task, adr, decision-log, tech-spec, bug, plan, sprint, service  |
       | unknown | story, note                                                                            |
 
   @US-S-28 @v0.1 @edge @fx-unknown

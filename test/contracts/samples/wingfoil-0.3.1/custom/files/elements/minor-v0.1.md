@@ -11,6 +11,7 @@ features: [S1, M1]
 wingfoil_min: ""       # minimum WingFoil CLI version this release needs, e.g. "0.2.2"
 requirements: "docs/03_backlog/04_backlog/by-release/v0.1.json"
 release-line: "v1"       # REQUIRED — version of the parent release-line, e.g. "v1"; also the path folder for this file
+sprint: ""             # REQUIRED — the Sprint whose `release` phase carries it (sprint-NNN); no n/a form (methodology/scrum)
 tmpl_version: 260929   # Orignal template version
 ---
 

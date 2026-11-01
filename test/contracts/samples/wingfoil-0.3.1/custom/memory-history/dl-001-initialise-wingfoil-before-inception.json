@@ -3,7 +3,7 @@
   "path": "docs/04_memory/design/dls/dl-001-initialise-wingfoil-before-inception.md",
   "entries": [
     {
-      "sha": "73e8d454c4b098b5aa651aa251063da130f304be",
+      "sha": "f996b5cd5c1973c053ae38d36d5686a24cae79f0",
       "author": "Alex <alex@example.test>",
       "timestamp": "2026-09-29T15:20:18+00:00",
       "operation": "add",
@@ -15,7 +15,7 @@
       "wingfoil": "0.3.1 (870bd4406f3b9bba5ecde7a5f8198b80c2a98583)"
     },
     {
-      "sha": "89da044703a73396dbe05e44df0f246a5a429691",
+      "sha": "b88c7da87e15a8df0461bcf8851f3b83f6ba75b0",
       "author": "Alex <alex@example.test>",
       "timestamp": "2026-09-29T15:20:19+00:00",
       "operation": "submit",
@@ -27,7 +27,7 @@
       "wingfoil": "0.3.1 (870bd4406f3b9bba5ecde7a5f8198b80c2a98583)"
     },
     {
-      "sha": "fb3fbcba1d81b0eb463212d6e181600b5f3323ec",
+      "sha": "90b7baf0fd30941056451059653f175d4224c027",
       "author": "Morgan <morgan@example.test>",
       "timestamp": "2026-09-29T15:20:20+00:00",
       "operation": "approve",
