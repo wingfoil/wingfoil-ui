@@ -7,6 +7,7 @@
 // every first read is waited for with `COLD_READ_MS`.
 import type { Locator, Page } from '@playwright/test';
 import type { Fixture, FixtureKind, MemberName } from '../harness/fixtures/index.js';
+import { usePrePacksStates } from '../harness/fixtures/index.js';
 import { git } from '../harness/run.js';
 import { scanThemes } from './support/axe.js';
 import { COLD_READ_MS } from './support/cold-read.js';
@@ -333,7 +334,8 @@ test.describe('US-S-24 — terminal and engine-waiting states', () => {
   });
 
   test('S-24.2 — Show an engine-waiting state as waiting', async ({ page, fixtures, consoles }) => {
-    const c = await consoles.start({ projects: [await copyAs(fixtures, 'custom', 'Alex')] });
+    // The variant with the pre-packs states: the packs keep no engine-waiting `release` state.
+    const c = await consoles.start({ projects: [await copyAs(fixtures, 'custom', 'Alex', usePrePacksStates)] });
     await openPanel(page, c, 'minor-v0.1');
     await expect(footer(page)).toHaveText('Waiting for the workflow engine (state: planning)', {
       timeout: COLD_READ_MS,
@@ -359,9 +361,11 @@ test.describe('US-S-24 — terminal and engine-waiting states', () => {
     fixtures,
     consoles,
   }) => {
-    const custom = await copyAs(fixtures, 'custom', 'Morgan', (fx) =>
-      cli(fx, ['memory', 'approve', 'bug-001-toast-overlap', '--reason', 'Confirmed']),
-    );
+    // The variant with the pre-packs states: `bug` `triaged` is a gate and a waiting state there only.
+    const custom = await copyAs(fixtures, 'custom', 'Morgan', async (fx) => {
+      await usePrePacksStates(fx);
+      await cli(fx, ['memory', 'approve', 'bug-001-toast-overlap', '--reason', 'Confirmed']);
+    });
     const c = await consoles.start({ projects: [custom] });
     await openPanel(page, c, 'bug-001-toast-overlap');
     await expect(gate(page)).toBeVisible({ timeout: COLD_READ_MS });

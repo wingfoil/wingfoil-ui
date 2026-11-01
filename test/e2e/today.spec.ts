@@ -9,7 +9,7 @@
 import type { Locator, Page } from '@playwright/test';
 import type { ProjectHeader, Today } from '@wingfoil-ui/contracts';
 import type { Fixture, FixtureKind, MemberName } from '../harness/fixtures/index.js';
-import { STANDARD_TEAM as MEMBERS } from '../harness/fixtures/index.js';
+import { STANDARD_TEAM as MEMBERS, usePrePacksStates } from '../harness/fixtures/index.js';
 import { scanThemes } from './support/axe.js';
 import { COLD_READ_MS, LIVE_REFRESH_TAG, refreshClock } from './support/cold-read.js';
 import { openConsole, type RunningConsole } from './support/console.js';
@@ -228,12 +228,11 @@ test.describe('US-T-03 — rejected work first', () => {
 
 test.describe('US-T-04 — reviewer queue', () => {
   /** The custom fixture where Sam holds reviewer and approver. */
-  const samApprover = (fixtures: { copy(kind: FixtureKind): Promise<Fixture> }) =>
-    copyAs(fixtures, 'custom', 'Sam', (fx) =>
-      cli(fx, ['dna', 'update', 'team.members', '--value', 'Sam', '--entry-roles', 'reviewer, approver']).then(
-        () => undefined,
-      ),
-    );
+  const samApprover = (fixtures: { copy(kind: FixtureKind): Promise<Fixture> }, prePacks = false) =>
+    copyAs(fixtures, 'custom', 'Sam', async (fx) => {
+      if (prePacks) await usePrePacksStates(fx);
+      await cli(fx, ['dna', 'update', 'team.members', '--value', 'Sam', '--entry-roles', 'reviewer, approver']);
+    });
 
   test('T-04.1 — List the items in a review state for a reviewer holding approver', async ({
     page,
@@ -252,7 +251,9 @@ test.describe('US-T-04 — reviewer queue', () => {
     'T-04.2 — Drop an item that leaves the review state',
     { tag: LIVE_REFRESH_TAG },
     async ({ page, fixtures, consoles }) => {
-      const custom = await samApprover(fixtures);
+      // The variant with the pre-packs states: `approved` is engine-waiting there, a `work` state of
+      // the approver's own submit in the packs (it would stay in Requires you).
+      const custom = await samApprover(fixtures, true);
       const c = await consoles.start({ projects: [custom] });
       await recordServerEvents(page);
       await openToday(page, c);
@@ -331,7 +332,8 @@ test.describe('US-T-11 — Waiting on others', () => {
   });
 
   test('T-11.2 — Name the workflow engine for an engine-waiting state', async ({ page, fixtures, consoles }) => {
-    const c = await consoles.start({ projects: [await copyAs(fixtures, 'custom', 'Morgan')] });
+    // The variant with the pre-packs states: the packs keep no engine-waiting `release` state.
+    const c = await consoles.start({ projects: [await copyAs(fixtures, 'custom', 'Morgan', usePrePacksStates)] });
     await openToday(page, c);
     await expect(rowOf(waiting(page), 'minor-v0.1').locator('.today-who')).toHaveText(
       'Waiting for the workflow engine',

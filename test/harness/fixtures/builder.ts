@@ -6,6 +6,7 @@
 import { cp, mkdir, readdir, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { pinnedCli, pinnedVersion, REPO_ROOT, type CliBuild } from '../cli.js';
+import { git } from '../run.js';
 import { FixtureProject } from './project.js';
 import { STANDARD_AGENT, STANDARD_TEAM } from './team.js';
 import { UNKNOWN_MEMORY_YAML, UNKNOWN_TEMPLATES, UNKNOWN_WORKFLOW, UNKNOWN_WORKFLOWS_YAML } from './unknown-schema.js';
@@ -149,6 +150,23 @@ export const PRE_PACKS_GOVERNANCE = path.join(
   'custom-governance-0.2',
   '.wingfoil',
 );
+
+/**
+ * The variant *the custom fixture with the pre-packs states* (`02_bdd/00_conventions.md`): the
+ * fixture's `memory.yaml` replaced by the frozen pre-adoption one ({@link PRE_PACKS_GOVERNANCE}),
+ * committed (WingFoil reads it at HEAD, W-24) by the fixture's current git identity. Its `release`
+ * `planning` and `task` `backlog`/`approved` are engine-waiting states, `bug` `triaged` a gate and
+ * a waiting state — kinds the packs' machines no longer have, which S-24.2, S-24.4, T-04.2 and
+ * T-11.2 exercise (the packs adoption, decision 1-A of its open items). WingFoil 0.3.1 accepts it;
+ * the elements are unchanged.
+ */
+export async function usePrePacksStates(fixture: Pick<Fixture, 'kind' | 'dir' | 'env'>): Promise<void> {
+  if (fixture.kind !== 'custom')
+    throw new Error(`the pre-packs states are a custom fixture variant, not ${fixture.kind}`);
+  await cp(path.join(PRE_PACKS_GOVERNANCE, 'memory.yaml'), path.join(fixture.dir, '.wingfoil', 'memory.yaml'));
+  await git(fixture.dir, ['add', '.wingfoil/memory.yaml'], fixture.env);
+  await git(fixture.dir, ['commit', '-q', '-m', 'chore(wingfoil): the pre-packs states (test variant)'], fixture.env);
+}
 
 /** Custom fixture: this repository's `.wingfoil/` ({@link customGovernance}) and `docs/01_vision/`. */
 async function importGovernance(project: FixtureProject): Promise<void> {
