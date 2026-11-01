@@ -4,40 +4,66 @@ type: task
 title: "Directives view: one row per directive in force"              # REQUIRED — e.g. "Today view: pending gates list (REQ-UI-03)"
 status: draft          # auto-set by wingfoil
 release: "v0.3"            # REQUIRED — target release version, e.g. "v0.1"
-module: ""             # optional — server | web | contracts (dna.yaml modules)
-priority: ""           # optional — high | medium | low
-tags: []               # optional — additional labels, e.g. [today, a11y]
-ref: ""                # optional — backlog item ID, e.g. "TASK-001"
-bug: []                # optional — LIST of bug ids this task closes. Two cases: a fix task derived from a bug
+module: "governance"   # optional — server | web | contracts (dna.yaml modules)
+priority: "high"   # optional — high | medium | low
+tags: ["v0.3","governance","web"]   # optional — additional labels, e.g. [today, a11y]
+ref: "GOV"   # optional — backlog item ID, e.g. "TASK-001"
+bug: ["bug-025-a-directive-defined-by-two-files-is-listed-twice-in-the-directives-view"]   # optional — LIST of bug ids this task closes. Two cases: a fix task derived from a bug
                        # by release-planning, and a bug ABSORBED into an existing task's Acceptance Criteria because that
                        # task already owns the ground. `bug.sync_state` iterates this list; a bug with no task naming it
                        # here never advances past `triaged` (only a reject to `closed`).
                        # dev-loop keeps the source bug's state in sync with this task via bug.sync_state
-depends_on: []         # optional — ids of tasks whose Execution Notes constrain this one; authored at planning time, may be appended during design
+depends_on: []   # optional — ids of tasks whose Execution Notes constrain this one; authored at planning time, may be appended during design
 tmpl_version: 260703   # Orignal template version
 ---
 
 ## Description
 
-<!-- What needs to be built and why. Reference the user story if applicable:
-     "As <persona>, I want <action> so that <benefit>." -->
+Governance fix task of `minor-v0.3`, raised in step 3 of `governance-alignment-rel-v0.3-plan`
+(the packs adoption, decision 2-A of the approver): a directive id defined both in
+`directives/custom/` and in `directives/built-in/` — the custom file wins in WingFoil — is shown by
+the Directives view as extra, repeated rows in a wrong order (bug-025, absorbed here). The adoption
+exposed it through this repository's own `definition-of-done` override; it is in v0.2.0 as released
+and affects every project that overrides a built-in directive. R-06.1 and R-06.2 fail on the three
+engines on the adoption branch until this task is merged into it.
+
+**Backlog items:** GOV (governance — bug-025, Directives view rows, step 3 of the v0.3 governance
+alignment)
 
 ## Acceptance Criteria
 
-<!-- Reference the Gherkin feature file, or inline the key scenarios.
-     e.g. "See docs/02_requirements/02_bdd/features/today/pending-gates.feature"
-     For `web` tasks also point to the screen in docs/00_reference/ux-reference.md (§4.x) and the
-     prototype, and state the accessibility bar (keyboard path, axe clean). -->
+- **AC-1 — Cause confirmed at design.** The design names the cause with evidence (the
+  `GET /api/p/:pid/directives` body for a project with an override, the web list, React's key
+  handling): duplicate `key={e.frontmatter.id}` in `web/src/directives/DirectiveList.tsx`, and/or
+  the API or the web listing every entry of `directives list` instead of the one in force — and
+  fixes the cause at its layer (server or web), not the symptom only.
+- **AC-2 — One row per directive in force.** With a custom directive overriding a built-in one, the
+  Directives view shows exactly one row for that id, the one in force (the custom file), in the
+  order the view defines (spec / UX reference §4.x of the Directives view), for "only mine" and
+  "all"; its body (R-06.3) is the one in force; the shadowing warning, when WingFoil reports one,
+  is shown as text through the existing warnings path (sanitised and capped, task-046 d1).
+- **AC-3 — Tests.** A failing test first: a unit or component test with an overridden directive
+  (two entries with one id) and a server test if the cause is on the API; then the fix. The e2e
+  R-06.1 and R-06.2 pass on the `custom` fixture of the adoption branch (pinned 0.3.1, with the
+  `definition-of-done` override) and on 0.2.2; a fixture that overrides a built-in directive is
+  added where the e2e suite had none (no expectation loosened).
+- **AC-4 — Docs.** The spec/UX text of the Directives view states the rule (one row per id, the one
+  in force); `CHANGELOG.md` *Unreleased* *Fixed* names bug-025; `test/README.md` if suites change.
+- **AC-5 — Gates.** `typecheck`, `lint`, `format:check`, `test:coverage` (≥ 80 %), `docs:api`, the
+  e2e suite on Chromium, and `directives.spec.ts` (plus any spec the fix touches) on Chromium,
+  Firefox and WebKit — heavy gates through the machine-free slot, commit and load in each log;
+  `check_tasks.py v0.3`.
 
 ## Implementation Notes
 
-<!-- Optional: known constraints, design hints, or links to relevant ADRs. -->
+- The task branch starts from `design/governance-alignment_v0.3` (pre-adoption `.wingfoil/`); it is
+  merged into that branch and from there into the adoption branch `design/ga3-adoption`, where the
+  full `test:e2e` on three engines is re-run.
+- `directiveInForce` (`server/src/reads/project-reads.ts`) already picks the entry in force for a
+  single directive (`GET /api/p/:pid/directives/:did`); the list route
+  (`server/src/http/project-routes.ts`, `directives()`) may need the same rule.
+- Read at design the Execution Notes of the v0.1 task that built the Directives view (task-019)
+  and of task-046 (d1: the `directives list` warnings).
+- Not security-relevant beyond the existing sanitiser path; one independent review.
 
 ## Execution Notes
-
-<!-- Running log of what actually happened while working this task through dev-loop — filled in
-     incrementally per phase, not written after the fact. Raw material for the release's Execution
-     Notes / the retrospective, not the retrospective itself.
-     - design: tech-specs found missing/needing revision (dev-loop/design safety net).
-     - red/green/refactor: deviations from the plan above, blockers, scope surprises.
-     - review: rejection reasons and what changed on the next pass. -->
