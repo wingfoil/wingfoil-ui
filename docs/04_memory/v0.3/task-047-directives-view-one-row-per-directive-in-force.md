@@ -122,7 +122,7 @@ the web.
   stays. The `warnings` are passed on as today (sanitised, capped; task-046 d1).
 - **D47-2 — Order: the CLI's order of the entries in force.** The shadowed entries are dropped and
   nothing moves: the custom file in force keeps its place in the custom group (the probe:
-  `testing` thirteenth of 15). It is what `directives list` lists for the file in force, and it
+  `testing` twelfth of 15). It is what `directives list` lists for the file in force, and it
   needs no rule of the UI's own.
 - **D47-3 — The shadowing warning:** shown as today, the CLI's text in a verbatim block under the
   list (`rules-notice`, task-040 S3-1), sanitised and capped by the server; no new string.
