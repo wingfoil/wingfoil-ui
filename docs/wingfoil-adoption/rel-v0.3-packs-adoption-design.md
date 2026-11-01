@@ -1,8 +1,9 @@
 # Packs adoption — design (governance-alignment-rel-v0.3, step 3)
 
-**Version:** 0.2 · **Date:** 2026-11-01 (0.1: the design of GA3-10, with the proposed `.wingfoil/`
+**Version:** 0.3 · **Date:** 2026-11-01 (0.1: the design of GA3-10, with the proposed `.wingfoil/`
 change on `design/ga3-adoption`; 0.2: the 16 decisions confirmed, the risk mitigations GA3-11, the
-implementation and its gates — §11 … §13)
+implementation and its gates — §11 … §13; 0.3: the open items' decisions 1-A and 2-A, the pre-packs
+variant — §13)
 
 The adoption design that decision GA3-10 of `governance-alignment-rel-v0.3-plan` asks for before any
 `.wingfoil/` change: the composition parameters, the file-by-file outcome, the old → new keys, dl-008
@@ -447,7 +448,27 @@ warning; `dna show` (`methodology: scrum`, the agent's seven roles), `paths` exi
 command; nothing written but the index refresh of R-7 on the clone's first run (none on the
 second).
 
-**Open items** (not done here; each for the approver or a later step):
+**Open items' decisions** (the approver, 2026-11-01): decision 1 → (A), decision 2 → (A), handled by
+the coordinator (a `bug-ingest` and a separate fix task). Decision 1-A is done in `4cad9f1`:
+S-24.2, S-24.4, T-04.2 and T-11.2 run on *the custom fixture with the pre-packs states* — the live
+fixture whose `memory.yaml` is replaced by the frozen pre-adoption one and committed
+(`usePrePacksStates` in `test/harness/fixtures/builder.ts`; the elements are unchanged and WingFoil
+0.3.1 accepts the file). Their assertions are unchanged; only their `Given` lines name the variant.
+`00_conventions.md` 0.11 describes the variant, the `custom` fixture's governance per CLI version and
+`minor-v0.1`'s state kind under each; the frozen copy's README 1.1 names its second use. Red: the
+four failed on the three engines on `7f5a86e` (the full run above); green on `4cad9f1`.
+
+| Gate | Commit | Result |
+|------|--------|--------|
+| `typecheck`, `lint`, `format:check` | `4cad9f1` | exit 0 (5.3, 8.4, 9.5) |
+| `test:contract` | `4cad9f1` | 312 passed, 1 skipped (9.6) |
+| `npm test`, strict identity | `4cad9f1` | 3342 passed, 1 skipped (5.4) |
+| `gate-footer.spec.ts`, `today.spec.ts` on Chromium, Firefox, WebKit | `4cad9f1` | 144 passed, the four scenarios on each engine among them (5.5) |
+
+R-06.1 and R-06.2 stay red until the coordinator's fix of the directive rows is merged here; the full
+`test:e2e` runs again then.
+
+**Open items** (as written before the decisions; 1 and 2 decided above):
 
 - **E2E scenarios on the custom fixture whose premise the packs remove** (blocked, decision
   needed). With decision 16 the pinned CLI builds the `custom` fixture on the live `.wingfoil/`:
