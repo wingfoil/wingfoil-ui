@@ -117,8 +117,8 @@ export class ProjectReads {
   /**
    * The directive `id`, looked up in `directives list`; `undefined` when none has that id. When
    * several files declare the id, the CLI lists them all and its warning names the one in force
-   * (`directive '<id>' defined in <a>, <b>; using <path>`): that entry is read, else the last one
-   * listed (the custom one, listed after the built-in).
+   * (`directive '<id>' defined in <a>, <b>; using <path>`): that entry is read, else the one
+   * WingFoil's precedence selects ({@link directivesInForce}).
    */
   async directive(id: string, signal?: AbortSignal): Promise<DirectiveRead | undefined> {
     const entry = directiveInForce((await this.directives(signal)).data, id);
@@ -126,21 +126,27 @@ export class ProjectReads {
   }
 }
 
+/** The folder of a project's own directives, as `directives list` paths name it. */
+const CUSTOM_DIRECTIVES = 'directives/custom/';
+
 /**
  * The directives in force of `list`, one entry per directive id, in the CLI's order (task-047
  * D47-1, D47-2; bug-025). When several files declare an id (W-23), the CLI lists them all and its
  * warning names the one in force (`directive '<id>' defined in <a>, <b>; using <path>`): that entry
- * is kept, else the last one listed (the custom one, listed after the built-in); the others are
- * dropped and nothing moves.
+ * is kept; without a warning (cut), WingFoil's own precedence on its path-sorted list
+ * (`compareDirectivePrecedence`: a `custom/` file first, then the smallest path) — the first entry
+ * listed under `directives/custom/`, else the first listed. The others are dropped and nothing moves
+ * (task-047 review round 1 nit-1).
  */
 export function directivesInForce(list: DirectivesList): DirectiveEntry[] {
   // The warnings are the sanitised text — the adapter sends the `warnings` of `directives list`
   // through `redactLocalPaths` (task-046 review round 2 d1; a backslash written `\\`, bug-017): an
   // entry's path is compared as written there too (review round 4 R4-2). Past 200 warnings the rest
-  // are cut: a directive whose warning is cut falls back to the last entry listed.
+  // are cut: a directive whose warning is cut falls back to WingFoil's precedence. A path may hold
+  // spaces: the `using` path runs to the end of the warning.
   const using = new Map<string, string>();
   for (const w of list.warnings) {
-    const m = /^directive '(.*)' defined in .*; using (\S+)$/.exec(w);
+    const m = /^directive '(.*)' defined in .*; using (.+)$/.exec(w);
     if (m?.[1] !== undefined && m[2] !== undefined && !using.has(m[1])) using.set(m[1], m[2]);
   }
   const byId = new Map<string, DirectiveEntry[]>();
@@ -152,7 +158,10 @@ export function directivesInForce(list: DirectivesList): DirectiveEntry[] {
   const kept = new Set<DirectiveEntry>();
   for (const [id, candidates] of byId) {
     const inForce = using.get(id);
-    const entry = candidates.find((e) => e.path === inForce || neutralise(e.path) === inForce) ?? candidates.at(-1);
+    const entry =
+      candidates.find((e) => e.path === inForce || neutralise(e.path) === inForce) ??
+      candidates.find((e) => e.path.startsWith(CUSTOM_DIRECTIVES)) ??
+      candidates[0];
     if (entry) kept.add(entry);
   }
   return list.entries.filter((e) => kept.has(e));
