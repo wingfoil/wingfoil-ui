@@ -191,11 +191,32 @@ through the machine-free slot; load = 1/5/15-min averages at start → end):
 
 | Gate | Result | Load |
 |------|--------|------|
-| `npm run typecheck` | pass | 8.09 |
-| `npm run lint` | pass | 7.46 |
-| `npm run format:check` | pass | 7.60 |
-| `npm run docs:api` | pass | 7.17 |
-| `check_tasks.py v0.3` | the 28 expected "listed by 0 tasks", no other failure | 8.27 |
+| `npm run typecheck` | pass | 7.17 |
+| `npm run lint` | pass | 7.60 |
+| `npm run format:check` | pass | 7.46 |
+| `npm run docs:api` | pass | 8.27 |
+| `check_tasks.py v0.3` | the 28 expected "listed by 0 tasks", no other failure | 8.09 |
 | `npm run test:coverage` | 174 files, 3344 passed, 1 skipped; statements 96.63 %, branches 91.52 %, functions 97.33 %, lines 98.4 % | 5.11 → 10.72 |
 | `npm run test:e2e:chromium` | 320 passed (R-06.1 … R-06.4, bug-025, G-02.1, G-02.2 included) | 10.26 → 17.51 |
 | `npm run test:e2e -- test/e2e/directives.spec.ts` (Chromium, Firefox, WebKit) | 15 passed | 13.27 → 14.36 |
+
+### review round 1 (2026-11-01)
+
+Verdict FAIL on one minor and nits; a short fix round confirmed by the approver. Red tests in
+`85a37b3` (log `task047-r1-red-unit.log`: the two fallback cases failed on `f710112`'s code), fix in
+`ff335d2`.
+
+| Finding | Change | Commit | Test |
+|---------|--------|--------|------|
+| **minor-1** — D47-4 untested | The bug-025 e2e override body links `[the built-in testing directive](../built-in/testing.md)`: the page shows the *not shown in the UI* mark and no link. Unit `test/web/directives/model.test.ts`: `classifyDirectiveLink` with `byPath` from `directivesInForce` of the shadowed 0.3.1 sample → `refused`/`hidden`; with `byPath` from every listed file (the list before the fix) → `document` — that second case is the guard-removal check | `85a37b3` | e2e bug-025; model unit |
+| **nit-1** — the fallback was not WingFoil's rule | Without a warning naming the file in force (cut past 200), `directivesInForce` follows WingFoil's precedence (`compareDirectivePrecedence`, `dist/core/context.js`: a `custom/` file first, then the smallest path) on its path-sorted list: the first entry under `directives/custom/`, else the first listed; the `using` path is read to the end of the line (`using (.+)$`, paths with spaces). The same rule, written separately, in the e2e oracle `directives()`. The reversed-list unit test (an order the CLI never produces) replaced by: a cut warning on the sample; two custom files with one id, with and without a warning; no custom file; a path with a space. spec-004 §3 row and Process Note, schema description, `ProjectReads.directive` comment | `85a37b3` red, `ff335d2` | `files.test.ts` *directivesInForce* (2 red before the fix) |
+| **nit-2** — load column | The gate table's loads corrected from the `.meta` files (typecheck 7.17, lint 7.60, format 7.46, docs:api 8.27, check_tasks 8.09) | this commit | — |
+| **nit-3** — `mine` asserted conditionally | The route test sets Jordan's email: `roleView` is `developer`, `testing` bound to it, `mine === true` | `85a37b3` | route test |
+| **nit-4** — open | see below | — | — |
+
+- **W-23** of directive `wingfoil-cli` says "fallback: the last entry"; its text is amended at plan
+  step 4 (the directive's re-check), not here.
+- **Open (nit-4):** R-06.x on the adoption branch's own `definition-of-done` override, and the
+  0.2.2 behaviour of the route and the e2e (this branch runs them on the pin; 0.2.2 is covered by
+  the unit test on its captured sample and by the design probe), are verified by the coordinator at
+  the merge into `design/ga3-adoption`.
