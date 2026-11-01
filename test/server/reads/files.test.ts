@@ -391,10 +391,70 @@ describe('directivesInForce — one entry per directive id (bug-025, task-047 D4
     );
   });
 
-  it('falls back to the last entry listed when no warning names the file in force (a cut warning)', () => {
+  /** A `testing` entry of the 0.3.1 sample at `path`. */
+  const testingAt = (list: DirectivesList, path: string) => ({
+    ...list.entries.find((e) => e.path === 'directives/custom/testing.md')!,
+    path,
+  });
+
+  it("falls back to WingFoil's precedence when the warning is cut: the first custom file listed", () => {
+    // `directives list` lists the files by path; WingFoil's rule (`compareDirectivePrecedence`): a
+    // `custom/` file first, then the smallest path. Past the cap no warning names the file in force.
     const list = sample('0.3.1');
-    const reversed = { entries: [...list.entries].reverse(), warnings: ['… 1 more warning'] };
-    const testing = directivesInForce(reversed).filter((e) => e.frontmatter.id === 'testing');
-    expect(testing.map((e) => e.path)).toEqual(['directives/built-in/testing.md']);
+    const cut = directivesInForce({ ...list, warnings: ['… 1 more warning'] });
+    expect(cut.filter((e) => e.frontmatter.id === 'testing').map((e) => e.path)).toEqual([
+      'directives/custom/testing.md',
+    ]);
+    const twoCustom = {
+      entries: [...list.entries, testingAt(list, 'directives/custom/zz-testing.md')],
+      warnings: [],
+    };
+    expect(
+      directivesInForce(twoCustom)
+        .filter((e) => e.frontmatter.id === 'testing')
+        .map((e) => e.path),
+    ).toEqual(['directives/custom/testing.md']);
+    // No custom file: the first listed.
+    const builtIns = {
+      entries: [testingAt(list, 'directives/built-in/a-testing.md'), testingAt(list, 'directives/built-in/testing.md')],
+      warnings: [],
+    };
+    expect(directivesInForce(builtIns).map((e) => e.path)).toEqual(['directives/built-in/a-testing.md']);
+  });
+
+  it('keeps the file the warning names when two custom files declare the id', () => {
+    const list = sample('0.3.1');
+    const entries = [...list.entries, testingAt(list, 'directives/custom/zz-testing.md')];
+    const warnings = [
+      "directive 'testing' defined in directives/built-in/testing.md, directives/custom/testing.md, directives/custom/zz-testing.md; using directives/custom/zz-testing.md",
+    ];
+    expect(
+      directivesInForce({ entries, warnings })
+        .filter((e) => e.frontmatter.id === 'testing')
+        .map((e) => e.path),
+    ).toEqual(['directives/custom/zz-testing.md']);
+  });
+
+  it('reads a path with a space in the warning', () => {
+    const list = sample('0.3.1');
+    const entries = [
+      ...list.entries.filter((e) => e.path !== 'directives/custom/testing.md'),
+      testingAt(list, 'directives/custom/my testing.md'),
+      testingAt(list, 'directives/custom/testing.md'),
+    ];
+    const warnings = [
+      "directive 'testing' defined in directives/built-in/testing.md, directives/custom/my testing.md, directives/custom/testing.md; using directives/custom/testing.md",
+    ];
+    expect(
+      directivesInForce({ entries, warnings })
+        .filter((e) => e.frontmatter.id === 'testing')
+        .map((e) => e.path),
+    ).toEqual(['directives/custom/testing.md']);
+    const named = [warnings[0]!.replace(/using .*$/, 'using directives/custom/my testing.md')];
+    expect(
+      directivesInForce({ entries, warnings: named })
+        .filter((e) => e.frontmatter.id === 'testing')
+        .map((e) => e.path),
+    ).toEqual(['directives/custom/my testing.md']);
   });
 });

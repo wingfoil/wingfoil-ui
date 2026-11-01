@@ -8,7 +8,7 @@ import type { Page } from '@playwright/test';
 import type { DirectiveEntry } from '@wingfoil-ui/contracts';
 import type { Fixture } from '../harness/fixtures/index.js';
 import { scanThemes } from './support/axe.js';
-import { expectFirstLoad } from './support/cold-read.js';
+import { COLD_READ_MS, expectFirstLoad } from './support/cold-read.js';
 import { openConsole, type RunningConsole } from './support/console.js';
 import { cli, commitFile } from './support/events.js';
 import { expect, test } from './support/fixtures.js';
@@ -24,17 +24,30 @@ async function listedByCli(fx: Fixture, role?: string): Promise<{ entries: Direc
 }
 
 /**
- * The directives in force of `directives list`, in its order (W-23): a file that a warning lists
- * as "defined in" but does not name as "using" is shadowed by another file of the same id.
+ * The directives in force of `directives list`, in its order (W-23): for an id several files
+ * declare, the file the warning names (`… defined in <a>, <b>; using <path>`); without a warning
+ * (cut), WingFoil's precedence on its path-sorted list — the first file under `directives/custom/`,
+ * else the first listed.
  */
 async function directives(fx: Fixture, role?: string): Promise<DirectiveEntry[]> {
   const { entries, warnings } = await listedByCli(fx, role);
-  const shadowed = new Set<string>();
+  const using = new Map<string, string>();
   for (const w of warnings) {
-    const m = /^directive '.*' defined in (.*); using (\S+)$/.exec(w);
-    for (const p of m?.[1]?.split(', ') ?? []) if (p !== m?.[2]) shadowed.add(p);
+    const m = /^directive '(.*)' defined in .*; using (.+)$/.exec(w);
+    if (m?.[1] !== undefined && m[2] !== undefined) using.set(m[1], m[2]);
   }
-  return entries.filter((e) => !shadowed.has(e.path));
+  const winner = new Map<string, DirectiveEntry>();
+  for (const e of entries) {
+    const id = e.frontmatter.id;
+    const same = entries.filter((d) => d.frontmatter.id === id);
+    winner.set(
+      id,
+      same.find((d) => d.path === using.get(id)) ??
+        same.find((d) => d.path.startsWith('directives/custom/')) ??
+        same[0]!,
+    );
+  }
+  return entries.filter((e) => winner.get(e.frontmatter.id) === e);
 }
 
 /** The override of the built-in `testing` directive committed on `fx` (bug-025). */
@@ -47,7 +60,10 @@ async function overrideTesting(fx: Fixture): Promise<void> {
     builtIn
       .replace('kind: built-in', 'kind: custom')
       .replace('title: "Testing"', `title: "${OVERRIDE_TITLE}"`)
-      .replace('# Directive — Testing', '# Directive — Testing, as this project runs it'),
+      .replace(
+        '# Directive — Testing',
+        '# Directive — Testing, as this project runs it\n\nIt replaces [the built-in testing directive](../built-in/testing.md).',
+      ),
     'chore(wingfoil): override the built-in testing directive',
   );
 }
@@ -160,6 +176,10 @@ test.describe('US-R-06 — Directives view', () => {
     const article = page.getByRole('article', { name: OVERRIDE_TITLE });
     await expectFirstLoad(article);
     await expect(article.getByRole('heading', { level: 1 })).toHaveText('Directive — Testing, as this project runs it');
+    // A link to the shadowed built-in file is not shown in the UI (D47-4): no link, the mark.
+    const shadowed = article.locator('p').filter({ hasText: 'the built-in testing directive' });
+    await expect(shadowed.locator('.doc-link-mark')).toHaveText('not shown in the UI', { timeout: COLD_READ_MS });
+    await expect(shadowed.getByRole('link')).toHaveCount(0);
   });
 
   test('R-06.3 — Render a directive body', async ({ page, fixtures, consoles }) => {

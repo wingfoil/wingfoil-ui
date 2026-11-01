@@ -616,6 +616,8 @@ describe('GET /api/p/:pid/directives with a custom directive overriding a built-
         );
         await git(fx.dir, ['add', '-A'], fx.env);
         await git(fx.dir, ['commit', '-qm', 'chore(wingfoil): override the built-in testing directive'], fx.env);
+        // Jordan, a developer: `testing` is bound to developer and qa.
+        await git(fx.dir, ['config', 'user.email', 'jordan@example.test'], fx.env);
       },
     });
     const list = await c.get(`/api/p/${c.pid}/directives`);
@@ -627,8 +629,9 @@ describe('GET /api/p/:pid/directives with a custom directive overriding a built-
     expect(testing.map((e: any) => [e.path, e.frontmatter.title])).toEqual([
       ['directives/custom/testing.md', 'Testing (project override)'],
     ]);
-    const roleView = (await c.get(`/api/p/${c.pid}`)).body.roleView as string | null;
-    expect(testing[0].mine).toBe(roleView !== null && testing[0].roles.includes(roleView));
+    expect((await c.get(`/api/p/${c.pid}`)).body.roleView).toBe('developer');
+    expect(testing[0].roles).toContain('developer');
+    expect(testing[0].mine).toBe(true);
     expect(list.body.warnings).toEqual([
       "directive 'testing' defined in directives/built-in/testing.md, directives/custom/testing.md; using directives/custom/testing.md",
     ]);
