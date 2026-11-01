@@ -5,7 +5,7 @@ title: "A directive defined by two files is listed twice in the Directives view"
 status: open          # auto-set by wingfoil; memory.submit → open
 severity: "medium"           # REQUIRED — critical | high | medium | low
 release-origin: "v0.2"     # optional — release where the bug was FOUND, e.g. "v0.1"
-release: ""            # optional — fix/implementation release, stamped by release-planning/build-backlog
+release: "v0.3"            # optional — fix/implementation release, stamped by release-planning/build-backlog
 feature: ""            # optional — related feature ID from docs/01_vision/06_features.md
 module: "web"             # optional — server | web | contracts
 wingfoil_version: "0.3.1 (also 0.2.2)"   # optional — `wingfoil --version` of the OBSERVED project (the UI drives its CLI)
