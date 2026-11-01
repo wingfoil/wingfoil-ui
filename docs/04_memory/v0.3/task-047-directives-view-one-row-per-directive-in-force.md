@@ -67,3 +67,91 @@ alignment)
 - Not security-relevant beyond the existing sanitiser path; one independent review.
 
 ## Execution Notes
+
+### design (2026-11-01)
+
+Read: task-047, bug-025; task-019 (the Directives view; its e2e closure table: R-06.1 "the rows are
+exactly the global and developer-bound entries of `directives list` in its order"); task-046 d1 (the
+`directives list` `warnings` sanitised and capped through `toolLines`) and its lesson; spec-001 §3
+(`directives list`), §4.3; spec-004 §3, §5; ux-reference §4.6; `directives.feature` (R-06.1 …
+R-06.4); directive `wingfoil-cli` W-23 (two files with one id are both listed, the warning names the
+one in force); `web/src/directives/*`, `web/src/element/Directives.tsx`, `server/src/http/project-routes.ts`
+`directives()`, `server/src/reads/project-reads.ts` `directiveInForce`, `contracts/api/directives.schema.json`,
+`test/e2e/directives.spec.ts`, the fixture builder (`custom` = this repository's `.wingfoil/`); the
+adoption branch's e2e log (read only).
+
+**AC-1 — the cause, with evidence.**
+
+1. *The CLI lists both files.* Probe on a scratch project with this repository's `.wingfoil/` and a
+   `directives/custom/testing.md` overriding the built-in `testing` (title "Testing (project
+   override)"): `wingfoil --format json directives list` on the pinned 0.3.1 and on the 0.2.2 matrix
+   build answers the same 16 entries, `testing` twice — `directives/built-in/testing.md` sixth (the
+   built-in group, by name) and `directives/custom/testing.md` thirteenth (the custom group, by
+   name) — and one warning, `directive 'testing' defined in directives/built-in/testing.md,
+   directives/custom/testing.md; using directives/custom/testing.md`. `--role developer` lists both
+   too. This is W-23, known since v0.1; the captured samples `directives-list-shadowed.json` (0.2.2,
+   0.3.1) have the same shape.
+2. *The API passes every entry on.* `directives()` (`project-routes.ts`) returns
+   `list.data.entries.map((e) => ({ ...e, mine }))`: both `testing` entries reach `GET
+   /api/p/:pid/directives`, each `mine` for a developer. Only the single read (`GET
+   /directives/:did`, `ProjectReads.directive` and the snapshot's) applies `directiveInForce`: R-06.3
+   and the directive page are right, the list is not. The element panel's *Directives* section
+   (`panelDirectives`) and the directive page's `byPath` map read the same list.
+3. *The web keys rows by id.* `DirectiveList.tsx` and `element/Directives.tsx` render
+   `key={e.frontmatter.id}`: two siblings with one key. The adoption run shows both effects:
+   R-06.1 (three engines) finds two `[data-directive="definition-of-done"]` rows, so the chips are
+   `developer, qa, reviewer` twice (`+3`); R-06.2 (Chromium, Firefox) — reached by switching from
+   "only mine" to "all", a re-render — receives a second `definition-of-done` row out of place
+   (between `code-quality` and `code-review`): React reconciles siblings with a duplicate key by
+   key, so the order after the update is not the list's. R-06.4 opens directly on "all" (a first
+   render, no reconciliation) and passes with the same duplicated list, because its oracle is the
+   raw CLI list too.
+
+The cause is on the API (it serves files, not directives); the duplicate key is its consequence in
+the web.
+
+**Decisions (proposed; D47-x once the coordinator agrees).**
+
+- **D47-1 — Layer: the server.** `GET /api/p/:pid/directives` answers one entry per directive id,
+  the one in force, by the rule `directiveInForce` already applies (the entry the warning's
+  `using <path>` names, compared as sanitised; else the last listed). A pure
+  `directivesInForce(list)` next to `directiveInForce` in `project-reads.ts` parses the warnings
+  once, and `directiveInForce(list, id)` is expressed through it, so the list and the single read
+  cannot disagree. `mine` is computed on the projected entries. The web is unchanged: the list, the
+  element panel and the page's `byPath` get unique ids from the contract; `key={frontmatter.id}`
+  stays. The `warnings` are passed on as today (sanitised, capped; task-046 d1).
+- **D47-2 — Order: the CLI's order of the entries in force.** The shadowed entries are dropped and
+  nothing moves: the custom file in force keeps its place in the custom group (the probe:
+  `testing` thirteenth of 15). It is what `directives list` lists for the file in force, and it
+  needs no rule of the UI's own.
+- **D47-3 — The shadowing warning:** shown as today, the CLI's text in a verbatim block under the
+  list (`rules-notice`, task-040 S3-1), sanitised and capped by the server; no new string.
+- **D47-4 — A link to the shadowed file** in a directive body (`directives/built-in/testing.md`) is
+  no longer in `byPath`: it is marked "not shown in the UI", like any repository file the UI does
+  not show; it does not open the directive in force (that would show another file's text under the
+  link).
+
+**Spec gap (for the coordinator).** `directives.feature` R-06.2: "Then it lists every directive
+file under `.wingfoil/directives/`" contradicts AC-2 when a file is shadowed. Options: (A) amend
+the step to "every directive in force under `.wingfoil/directives/`: one per id, a file shadowed
+by another of the same id is not listed (WingFoil's warning names it)" — recommended, it is AC-2's
+rule; (B) list every file and mark the shadowed one (keys by path, a new contract field) —
+contradicts AC-2; (C) leave the feature as written, the rule only in spec-004/ux-reference — the
+scenario then states what the view does not do.
+
+**Test plan (red first).**
+
+| Layer | Test | Red before the fix |
+|-------|------|--------------------|
+| server unit | `test/server/reads/project-reads.test.ts` (or its own file): `directivesInForce` on both `directives-list-shadowed.json` samples (0.2.2, 0.3.1) → one `testing`, the custom path, the CLI order without the built-in entry; a list without duplicates unchanged; the warning cut (no `using`) → the last listed; a warning naming the built-in → the built-in kept at its place; `directiveInForce` agrees with it per id | yes (no function) |
+| server route | `test/server/http/project-routes.test.ts`: a custom copy with a committed `directives/custom/testing.md` override → `GET /directives` one entry per id, `testing` with the custom path and title, `mine` true for the developer view, the sanitised shadowing warning; `GET /directives/testing` the override's body; schema-checked | yes (two `testing`) |
+| e2e | `test/e2e/directives.spec.ts`: new `bug-025 — One row per directive in force` on a custom copy with the same override (committed): "only mine" and "all" list the projected ids in order, the `testing` row once with "Testing (project override)", its chips once, the warning text visible, the row opens the override's page; the R-06.1 and R-06.2 assertions run on that copy — the case the adoption branch fails. R-06.1, R-06.2, R-06.4's oracle becomes the CLI list projected by the W-23 rule written in the spec (independent of the server code: drop every path a warning lists in `defined in` but does not `use`) | yes (the new test, Chromium) |
+
+0.2.2 is covered by the unit test on its captured sample (the e2e and route suites run the pin);
+the probe above shows 0.2.2 answers the same list and warning as 0.3.1.
+
+**Docs (AC-4).** spec-004 §3 (the `/directives` row: one entry per id, the one in force) with a
+dated Process Note; `contracts/api/directives.schema.json` description (→ `docs:api`);
+ux-reference §4.6 (the rule; version 1.11); `directives.feature` R-06.2 per the gap's decision;
+`CHANGELOG.md` *Unreleased* *Fixed* (bug-025); `test/README.md` only if a suite is added (none
+planned: tests join existing files). No `wingfoil-cli` entry: W-23 already describes the CLI.
