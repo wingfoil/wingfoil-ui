@@ -1,7 +1,8 @@
 # Packs adoption — design (governance-alignment-rel-v0.3, step 3)
 
-**Version:** 0.1 · **Date:** 2026-10-30 (0.1: the design of GA3-10, with the proposed `.wingfoil/`
-change on `design/ga3-adoption`)
+**Version:** 0.2 · **Date:** 2026-11-01 (0.1: the design of GA3-10, with the proposed `.wingfoil/`
+change on `design/ga3-adoption`; 0.2: the 16 decisions confirmed, the risk mitigations GA3-11, the
+implementation and its gates — §11 … §13)
 
 The adoption design that decision GA3-10 of `governance-alignment-rel-v0.3-plan` asks for before any
 `.wingfoil/` change: the composition parameters, the file-by-file outcome, the old → new keys, dl-008
@@ -286,6 +287,9 @@ WingFoil CLI*: W-20 no longer a hand transition, the agent's roles, the globals)
 
 ## 9. Decisions for the approver
 
+Confirmed by the approver on 2026-11-01: all sixteen as recommended (chat; recorded in the plan as
+GA3-11 with the mitigations of §11).
+
 1. **Delivery.** (A) scrum's `delivery` → `sprint` → `backlog-item` replaces `release-line-cycle` /
    `release-cycle` (as GA3-2 chose the pack); (B) keep this repository's loop as delivery — not
    possible without dropping scrum's `delivery` (same name). **Recommended: A.**
@@ -354,3 +358,123 @@ WingFoil CLI*: W-20 no longer a hand transition, the agent's roles, the globals)
   `planning` are no longer `waiting` (contract TT-ARC-06).
 - `workflow list` / `workflow status` refresh `.git/index` when run without `GIT_OPTIONAL_LOCKS=0`
   (pre-existing, not of the adoption).
+
+## 11. Risk mitigations (GA3-11)
+
+Decided by the approver on 2026-11-01 on the risks of §10. R-1 … R-3 are deviations from the packs,
+listed in `.wingfoil/README.md` *Deviations from the packs* and proposed to WingFoil-Templates (§12).
+
+| # | Risk (§10) | Mitigation | Evidence |
+|---|------------|------------|----------|
+| R-1 | a release has no gate: anyone can `submit` it to `released` | `release` `states.gates.releasing: { reject: in-development }`; `release-publishing` › `mark-released` becomes the approver's `memory approve` after `publish` (directive `release-conventions` 1.1) | probe on 0.3.1 with the proposed `.wingfoil/`: `submit` `in-development → releasing` passes; `submit` from `releasing` refused ("a `gates` state — its forward edge requires `approve`"); `approve` → `released`; `workflow list` 0 errors |
+| R-2 | `submit` closes a release line with no check | `release-line` `gates.active: { reject: planning }`: the approver closes the line | probe: `submit rl-v1` from `active` refused; `approve` → `done` |
+| R-3 | the approver moves every bug `triaged → planned → in-progress` | keep the gate on `triaged`, remove the gate on `planned`: the developer starts a planned bug with `memory submit` at `backlog-item` › `start` (`dev-loop` procedure header 1.6) | probe: the approver's `approve` `triaged → planned`; `submit` `planned → in-progress` |
+| R-4 | the procedures' 74 warnings hide new ones | `test/governance/workflow-diagnostics.test.ts` (default suite): `workflow list` of the pinned CLI on this repository equals a committed baseline per file, code and severity (`workflow-diagnostics.baseline.json`: 75 warnings in 10 rows, 0 errors); decision 2's fold of the procedures into directives is scheduled at `release-planning` of v0.3 | red first: an empty baseline fails with the 10 rows; a baseline one short (`dev-loop.yaml` `W_WORKFLOW_UNBOUND_TOKEN` 16) fails with `16 → 17`; the true baseline passes; unit cases for a new code, a new file, one more of a known code and one gone |
+| R-5 | `base`'s weak `retrospective` evidence; bug-008 | this repository's practice in `release-conventions` 1.1: the friction inventory, every point citing its source, lives in the retrospective's own plan; bug-008 goes to directive `wingfoil-cli` at step 4 | — |
+| R-6 | the UI shows backlog tasks with a `submit` (*Today* noise) | accepted now; a candidate for `release-planning` of v0.3 | contract TT-ARC-06 (`STANDARD_PACKS`) |
+| R-7 | `workflow list` / `status` rewrite `.git/index` without `GIT_OPTIONAL_LOCKS=0` | handled by task-046 D46-5 in the server; a feedback note at step 5 | §7 probes; repeated in §13 |
+
+Identity: the CLI authorises `memory approve` by the commit's git identity (a non-approver email gets
+"user not authorized to approve", coordinator probe), but agents commit under the approver's identity
+here: "no approval by an agent" is a process rule. A separate git identity for agents is a v0.3
+task, not part of this step (`release-conventions`, `CLAUDE.md`).
+
+## 12. Feedback note for WingFoil-Templates (draft, not filed)
+
+> **Title:** A gate on `release` `releasing` and on `release-line` `active` in `software`
+>
+> **Pack:** `software@1.0.0` (with `base@2.0.1`, `methodology/scrum@1.0.0`), WingFoil 0.3.1.
+>
+> **Observed.** `release` has no gate: with no `waiting` (R-1), every edge is a `memory submit`, so
+> any member — an agent acting as `tech-lead` included — can move a release `releasing → released`
+> with no approval; the approval lives only in the `approve-release` and `publish` phases, which a
+> project not running the engine does not see. `release-line` `active → done` is a `submit` too, with
+> no check that the line's releases are `released`. Reproduced on WingFoil 0.3.1: `memory submit
+> <release>` four times takes a release from `draft` to `released`; `memory submit rl-v1` moves the
+> line to `done`.
+>
+> **Proposal.** Declare `gates: { releasing: { reject: in-development } }` on `release` (the
+> approver's `approve` after the publication; `mark-released` then approves rather than
+> `element.set_state(released)`), and `gates: { active: { reject: planning } }` on `release-line`.
+> Adopted by WingFoil UI as local deviations (its GA3-11 R-1, R-2); on 0.3.1 `workflow list` reports no
+> error with them, `submit` from the gate is refused and `approve` passes. WingFoil UI also drops the
+> gate on `bug` `planned` (R-3: the developer starts a planned fix with `submit`), for the packs'
+> consideration rather than as a proposal.
+
+## 13. Implementation (`design/ga3-adoption`)
+
+Commits after `93d2933`:
+
+| Commit | What |
+|--------|------|
+| `7f90e9d` | `chore(wingfoil)`: the composed `.wingfoil/` with this repository's entries (§2) |
+| `5d146b4` | this document, 0.1 |
+| `9127168` | `chore(wingfoil)`: R-1 … R-3 in `memory.yaml`; `release-conventions` 1.1 (R-1, R-5); README 0.5 (deviations); `dev-loop` header 1.6 |
+| `52b8bb8` | `docs`: `AGENTS.md` (the composer's region, decision 11); `CLAUDE.md` 0.10 |
+| `5b9e108` | `test(harness)`: decision 16 and R-4 — `customGovernance`, the frozen `custom-governance-0.2/`, `STANDARD_PACKS`, S-28.1 with `sprint` (contract, harness, e2e and the scenario's Examples row), the re-captured `custom` samples (0.3.1 changed, 0.2.2 byte-identical), the diagnostics baseline test, `test/README.md` 0.48 |
+| (this commit) | this document, 0.2 |
+
+The `.wingfoil/` change for the approver: `git diff 93d2933..design/ga3-adoption -- .wingfoil`.
+
+**Notes on the harness change.** Nothing loosened: every changed expectation is a consequence of the
+packs' machines, written by hand (`STANDARD_PACKS` from spec-003 §2 … §7); the pre-packs oracle
+`STANDARD` stays and still checks 0.2.2. The `custom` fixture keeps its hand transitions
+(`backlog → in-progress`, `approved → done`) on both versions: the history is the fixture's data;
+on the packs' machine the same moves are also `submit` edges. `minor-v0.1` carries no `sprint`: the
+live `memory.yaml` exempts it, so the fixture exercises `exempt`.
+
+**Gates** (heavy ones through the machine-free slot; the load average at start in brackets).
+`7f5a86e` is the harness commit before its last amendment (`5b9e108` adds the `custom` row of
+`test/harness/fixtures.test.ts`, the only failure of the first `test:coverage` / `npm test`); the
+gates the amendment can change were run again on `78da715`, this document's commit before the
+gate table was added (the same tree outside this file).
+
+| Gate | Commit | Result |
+|------|--------|--------|
+| `typecheck`, `lint`, `format:check` | `78da715` | exit 0 (12.2, 11.6, 15.0) |
+| `docs:api` | `7f5a86e` | exit 0 (8.0) |
+| `check_tasks.py v0.3` | `7f5a86e` | exit 1: 28 items listed by no task, the same on `93d2933` (v0.3 not planned) |
+| `test:contract` | `7f5a86e` | 312 passed, 1 skipped (7.9) |
+| `test:coverage` | `78da715` | 3342 passed, 1 skipped; 96.62 % statements, 91.52 % branches (11.4) |
+| `npm test`, strict identity | `78da715` | 3342 passed, 1 skipped (11.4) |
+| `test:smoke` | `7f5a86e` | 4 passed (12.0) |
+| `test:e2e` (Chromium, Firefox, WebKit) | `7f5a86e` | 917 passed, **18 failed**: R-06.1, R-06.2, S-24.2, S-24.4, T-04.2, T-11.2 on each engine — the open items below (5.8) |
+
+Probes on a clone of `7f5a86e` (`.wingfoil/` as at `78da715`), with `GIT_TRACE` and the `.git`
+snapshot: `workflow list` exit 0, 7 startable, 75 warnings, 0 errors, equal to the baseline;
+`memory search` 120 elements, each once; `directives list` 20 entries, the one intended override
+warning; `dna show` (`methodology: scrum`, the agent's seven roles), `paths` exit 0; no transport
+command; nothing written but the index refresh of R-7 on the clone's first run (none on the
+second).
+
+**Open items** (not done here; each for the approver or a later step):
+
+- **E2E scenarios on the custom fixture whose premise the packs remove** (blocked, decision
+  needed). With decision 16 the pinned CLI builds the `custom` fixture on the live `.wingfoil/`:
+  - S-24.2 and T-11.2 need an engine-waiting element (`minor-v0.1` in `planning` was one; the packs
+    keep `waiting` only on `plan`, `adr` `accepted`, `tech-spec` `approved`);
+  - S-24.4 needs a state both gate and waiting (`bug` `triaged` was one; no composed type has one);
+  - T-04.2 expects an approved task to leave *Requires you*; `approved` is now a `work` state whose
+    `submit` is the approver's (last transition), so the task stays there.
+  Options: (A) run these four on a variant, "the custom fixture with the pre-packs states" (a copy
+  whose `memory.yaml` is the frozen one, which 0.3.1 accepts), amending their `Given` lines and
+  `00_conventions.md`; (B) rewrite them on elements of the live configuration (an `adr` brought to
+  `accepted` for S-24.2/T-11.2; a `gate-waiting` state declared on the copy for S-24.4; T-04.2's
+  expectation to the new machine); (C) the `custom` fixture stays pre-packs for every version (decision
+  16 option B). Recommended: (A) — the scenarios test the UI's handling of `waiting` and
+  `gate-waiting` kinds, which other projects keep; the live configuration is checked by the contract
+  tests and R-4.
+- **A product defect found by R-06.1 / R-06.2**: a directive id defined by two files (the intended
+  `definition-of-done` override, W-23) is rendered as two rows sharing one React `key`
+  (`web/src/directives/DirectiveList.tsx`, `key={e.frontmatter.id}`): the rows repeat and the order
+  breaks. Pre-existing, exposed by the adoption. Options: (A) a `bug-ingest` and a fix task before
+  this branch merges; (B) the custom `definition-of-done` under another id with the pack's
+  unbound (a fourth deviation); (C) accept the red R-06.1/R-06.2 until v0.3. Recommended: (A).
+- `00_conventions.md` (the `custom` fixture's description, `minor-v0.1` "engine-waiting") follows
+  the decision above.
+- Directive `wingfoil-cli` (W-04, W-20, W-25, W-26, W-27, bug-008) — step 4; the R-7 feedback note —
+  step 5; the feedback note of §12 — filing on the approver's OK.
+- `minor-v0.3`'s `sprint`, the engine bootstrap (decision 14), the fold of the procedures (decision 2,
+  R-4) — `release-planning` of v0.3; a separate agent git identity — a v0.3 task.
+- `check_tasks.py v0.3` exits 1 with 28 backlog items listed by no task, identically on `93d2933`:
+  v0.3 is not planned yet.
