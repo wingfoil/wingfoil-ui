@@ -18,7 +18,7 @@ const STATUSES = ['open', 'needs-info', 'captured', 'resolved', 'declined', 'dup
  * reports no CLI behaviour (step 5, dl-010).
  */
 const FIRST_LINE =
-  /^\n(?:Formerly R-\d{2}\.|Formerly W-\d{2} candidate\.|Reports W-\d{2}(?:, W-\d{2})*(?: and W-\d{2})?\.|Not a CLI behaviour: [^.\n]*[^.\s][^.\n]*\.|Formerly an unnamed W-xx candidate\.)\n/;
+  /^\n(?:Formerly R-\d{2}\.|Formerly W-\d{2} candidate\.|Reports W-\d{2}(?:, W-\d{2})*(?: and W-\d{2})?\.|Not a CLI behaviour: \S[^.\n]*\.|Formerly an unnamed W-xx candidate\.)\n/;
 
 interface Note {
   file: string;
@@ -115,6 +115,7 @@ describe('the WingFoil feedback inbox (dl-163)', () => {
       'Reports.',
       'Not a CLI behaviour.',
       'Not a CLI behaviour: .',
+      'Not a CLI behaviour:  publish pipeline.',
       'Not a CLI behaviour: publish pipeline',
       'Found while building the pipeline.',
     ];
