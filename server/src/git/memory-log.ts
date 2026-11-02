@@ -70,7 +70,9 @@ export interface MemoryLog {
  * `WF_SUBJECT_RE`): any blanks after the colon, the verb the whole token after them (`start-fix` is
  * not `start`).
  */
-const WF_SUBJECT = /^wf\((?<type>[^)]*)\):\s*(?<verb>\S+)(?<rest>.*)$/;
+// `[\s\S]*`, not `.*`: a subject may hold CR, U+2028 or U+2029, which `.` does not match
+// (task-048 review round 2, minor-1).
+const WF_SUBJECT = /^wf\((?<type>[^)]*)\):\s*(?<verb>\S+)(?<rest>[\s\S]*)$/;
 /** The arrow between the states of a bracket, with or without blanks around it. */
 const ARROW = /\s*(?:→|->)\s*/;
 /** What separates the ids of a grouped subject (`<id1>, <id2>`), and words after them. */
@@ -89,7 +91,7 @@ interface EventSubject {
   type: string;
   operation: MemoryOperation;
   ids: string[];
-  /** The bracket's states, when it names exactly two: `[from → to]`. */
+  /** The bracket's states, when it names exactly two: `[from → to]` (the fallback of rule 2). */
   transition?: { from: string; to: string };
 }
 
@@ -98,9 +100,14 @@ interface EventSubject {
  * subject whose verb is a Memory operation but `assign` (task-048 D48-2) and whose scope is no
  * configuration scope. The ids are the distinct words before the bracket (or of the whole rest),
  * commas and blanks between them; none → no event. A bracket closed at the end of the subject that
- * names exactly two states gives the transition (blanks trimmed); any other bracket — chained (`a →
- * b → c`, a `sync`), of one state, empty, unclosed, followed by text — leaves it to the patch, as
- * no bracket does and as WingFoil's `memory history` always reads it (task-048 review round 1, m-1).
+ * names exactly two states is kept (blanks trimmed) as the fallback transition of a commit whose
+ * patch changes no `status:` line (spec-002 §3 rule 2); any other bracket — chained (`a → b → c`,
+ * a `sync`), of one state, empty, unclosed, followed by text — is none (task-048 review rounds 1–2).
+ *
+ * Known exceptions to WingFoil's `memory history` (spec-002 §5), by design: a subject naming no id
+ * is no event (WingFoil: an entry of every file the commit touches); a file the commit touches but
+ * the subject does not name has no event from it; a subject naming more than
+ * {@link MAX_SUBJECT_IDS} distinct ids is no event (a parse warning).
  */
 export function eventSubject(subject: string): EventSubject | undefined {
   const head = WF_SUBJECT.exec(subject)?.groups;
@@ -316,50 +323,77 @@ function records(stdout: string, shas: readonly string[]): RawRecord[] {
  * in its patch) or a `wf` record with an unreadable date or author is skipped and listed in
  * `warnings`; the others are read. Throws {@link MemoryLogFormatError} when the output does not
  * match the sha list.
+ *
+ * The transition of an event (rule 2): the patch's `status:` lines of the element's file when it
+ * changes one; else the subject's two-state bracket; else the state is kept — from = to = the
+ * file's status before the commit, the last `status:` change of that file in the log (whatever the
+ * commit's subject), as WingFoil reads the commit's parent (task-048 review round 2, minor-2 and
+ * minor-3); unknown → `null`, the commit listed once in `warnings` (rule 4, nit-1). The records are
+ * read oldest first for that, the events returned newest first, as git prints them.
  */
 export function parseMemoryLog(
   stdout: string,
   shas: readonly string[],
   options: { counters?: ParseCounters } = {},
 ): MemoryLog {
-  const events: MemoryEvent[] = [];
-  const warnings: string[] = [];
-  for (const { sha, damaged, timestamp, author, subject, body, patch: diff } of records(stdout, shas)) {
+  const all = records(stdout, shas);
+  const perRecord: { events: MemoryEvent[]; warning: boolean }[] = all.map(() => ({ events: [], warning: false }));
+  /** The status of each file, by base name, after the records read so far (oldest first). */
+  const statusOf = new Map<string, string>();
+  for (let k = all.length - 1; k >= 0; k -= 1) {
+    const { sha, damaged, timestamp, author, subject, body, patch: diff } = all[k]!;
+    const out = perRecord[k]!;
     const declared = eventSubject(subject);
-    if (damaged && (declared || subject === '')) warnings.push(sha);
-    if (damaged || !declared) continue;
-    if (!ISO_DATE.test(timestamp) || !IDENT.test(author)) {
-      warnings.push(sha);
+    if (damaged) {
+      if (declared || subject === '') out.warning = true;
+      continue;
+    }
+    const changes = fileChanges(diff, options.counters);
+    // `statusOf` holds the status before this commit until its own changes are recorded, last.
+    const record = () => {
+      for (const [name, change] of changes) if (change.to !== undefined) statusOf.set(name, change.to);
+    };
+    if (!declared) {
+      record();
+      continue;
+    }
+    if (!ISO_DATE.test(timestamp) || !IDENT.test(author) || declared.ids.length > MAX_SUBJECT_IDS) {
+      out.warning = true;
+      record();
       continue;
     }
     const { type, operation, ids, transition } = declared;
-    if (ids.length > MAX_SUBJECT_IDS) {
-      warnings.push(sha);
-      continue;
-    }
     const lines = body.replace(/\r\n?/g, '\n').split('\n');
     const approver = approverOf(lines);
     const reason = reasonOf(lines);
-    const changes = fileChanges(diff, options.counters);
     for (const id of ids) {
       // As `memory history`: only a commit that touches the element's own file is its event.
-      const patch = changes.get(`${id}.md`);
+      const file = `${id}.md`;
+      const patch = changes.get(file);
       if (!patch?.touched) continue;
       let from: string | null;
       let to: string | null;
-      if (transition) {
-        ({ from, to } = transition);
-      } else if (patch.to === undefined) {
-        warnings.push(sha);
-        from = null;
-        to = null;
-      } else {
-        from = operation === 'add' ? null : (patch.from ?? null);
+      if (patch.to !== undefined) {
+        from = operation === 'add' ? null : (patch.from ?? statusOf.get(file) ?? null);
         to = patch.to;
+      } else if (transition) {
+        ({ from, to } = transition);
+      } else {
+        const kept = statusOf.get(file);
+        if (kept === undefined) out.warning = true;
+        from = kept ?? null;
+        to = kept ?? null;
       }
-      events.push({ sha, timestamp, author, operation, type, id, from, to, approver, reason });
+      out.events.push({ sha, timestamp, author, operation, type, id, from, to, approver, reason });
     }
+    record();
   }
+  const events: MemoryEvent[] = [];
+  const warnings: string[] = [];
+  all.forEach(({ sha }, k) => {
+    events.push(...perRecord[k]!.events);
+    if (perRecord[k]!.warning) warnings.push(sha);
+  });
   return { events, warnings };
 }
 
