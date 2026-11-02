@@ -2,7 +2,7 @@
 id: F-016
 title: "A roles.yaml binding to a missing directive is only a warning, and only when listing that role"
 kind: gap
-status: captured
+status: resolved
 wingfoil_version: 0.2.2
 answered_by: [bug-411]
 ---

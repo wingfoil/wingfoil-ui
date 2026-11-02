@@ -59,16 +59,25 @@ moved to `wingfoil@0.3.1`; rule 7 of `wingfoil-cli`), run by WingFoil's `COLLABO
   `done` v0.3), F-007 (spec-017, `release: "v0.3"`), F-019 (dl-084, `release: "v0.3"`, its
   task-161 `done` v0.3), F-020 (task-226 `done`, v0.3) and F-025 (bug-217 `closed`, v0.3) at
   `v0.3.0` and `v0.3.1`, and F-010 (bug-400 `closed`, `release: "v0.3.1"`) at `v0.3.1` → `resolved`.
-  Still `captured`: F-001 (spec-005, no release) and F-011, F-015, F-016, F-022, F-024 (elements of
-  v0.4).
+  Still `captured` at `7efff2a0`: F-001 (spec-005, no release) and F-011, F-015, F-016, F-022,
+  F-024 (elements of v0.4; F-016 resolved at the `v0.3.2` re-read below).
 - *Answers:* F-018 (`needs-info`) now holds the reproduction WingFoil's read record lacked (a
   reviewer-only member and a pending element, on 0.3.1); it stays `needs-info`, which WingFoil's
   dl-163 lists at the next retrospective as "`needs-info` notes the consumer has since answered".
 - F-027 … F-035 were written after WingFoil's read and stay `open`. F-035 reports, on 0.3.1, the
   late refusal that leaves its commit — the second failure window of F-025, which bug-217 (about
   `memory add`) does not name; F-025's first window (a failing commit) is atomic on 0.3.1.
-- WingFoil `v0.3.2` is being published (its tag exists on WingFoil's remote, npm `latest` is still
-  `0.3.1`): this sync is read again at the `v0.3.2` tag once that version is published.
+- *Re-read at the `v0.3.2` tag* (2026-11-02, commit `6de2e13c004bbf419acfa7dc4d98d5a7468cd693`,
+  published on npm as `latest`; the tag is on WingFoil's patch line, not on `main`, which is still
+  `7efff2a0`), by the same steps of `COLLABORATION.md`, whose text at the tag is the same blob as at
+  `7efff2a0`. Step 2: `retro-v0.3.md` and its read record are unchanged (the same blobs), and
+  `patch-v0.3.2` (`docs/04_memory/planning/rl-v1/patch-v0.3.2.md`) lists no note of this inbox in
+  its *Scope changes* (`task-331`, `task-332` only). Step 3: the `reported_by:` cites at the tag are
+  the same five, all `@8e448e2a…`; none cites F-027 … F-035. Step 4, for the `captured` notes: F-016
+  → `resolved` — bug-411 is `closed` with `release: "v0.3.2"` at the tag (named in `patch-v0.3.2`; fixed by
+  task-310, `done`, `release: "v0.3.2"`). Unchanged and still `captured`: F-001 (spec-005 `approved`, no release), F-011
+  (dl-200 `in-discussion`, v0.4), F-015 (dl-138 `ready`, v0.4), F-022 (bug-412 `triaged`, v0.4),
+  F-024 (dl-199 `in-discussion`, v0.4). This repository's pin stays `wingfoil@0.3.1`.
 
 The sync due at `release-planning` of `minor-v0.2` was skipped on 2026-10-12, when WingFoil had not
 defined the procedure (`governance-alignment-rel-v0.2-plan` GA-5).
@@ -92,7 +101,7 @@ defined the procedure (`governance-alignment-rel-v0.2-plan` GA-5).
 | [F-013](F-013-plan-scope-token-not-recorded.md) | A plan's scope path token is not recorded in the element, because the plan template has no scope field | defect | open |  |
 | [F-014](F-014-release-folder-disagrees-with-release-line-id.md) | A release's folder is named after the release-line field (v1), not the release-line id (rl-v1) | defect | resolved |  |
 | [F-015](F-015-kanban-template-has-no-facilitator-role.md) | The Kanban template declares no facilitator role, which WingFoil's lean-inception requires | gap | captured | dl-138 |
-| [F-016](F-016-dangling-directive-binding-only-a-role-warning.md) | A roles.yaml binding to a missing directive is only a warning, and only when listing that role | gap | captured | bug-411 |
+| [F-016](F-016-dangling-directive-binding-only-a-role-warning.md) | A roles.yaml binding to a missing directive is only a warning, and only when listing that role | gap | resolved | bug-411 |
 | [F-017](F-017-wingfoil-directives-carry-unknown-scope-field.md) | WingFoil's own directives carry a scope field that 0.2.2 reports as unknown | defect | resolved |  |
 | [F-018](F-018-no-per-gate-role.md) | No per-gate role: approve and reject always need the approver role | request | needs-info |  |
 | [F-019](F-019-search-reads-working-tree-while-writes-gate-on-head.md) | memory search reads the working tree while writes gate on HEAD, and submit commits uncommitted edits | gap | resolved | dl-084 |
