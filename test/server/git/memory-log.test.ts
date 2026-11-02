@@ -12,6 +12,7 @@ import {
   MEMORY_LOG_FORMAT,
   MemoryLogFormatError,
   memoryDirectories,
+  MAX_SUBJECT_IDS,
   memoryEventsPage,
   normalizeReason,
   parseMemoryLog,
@@ -327,6 +328,81 @@ describe('the WingFoil 0.3 operations (task-048)', () => {
       ) +
       record(24, 'wf(dna): add task-001-login-form', '', filePatch(T1, ['-status: done', '+status: draft'])) +
       record(23, 'wf(workflow): create task-001-login-form', '', filePatch(T1, ['-status: draft', '+status: done']));
+    expect(parse(out)).toEqual({ events: [], warnings: [] });
+  });
+});
+
+// task-048 review round 1, M-1: a subject is commit text anyone can write — repeated ids are read
+// once, the patch is scanned once per commit whatever the number of ids, and a subject naming more
+// than MAX_SUBJECT_IDS ids is no event (a warning).
+describe('grouped ids: cost and repetition (task-048 review round 1, M-1)', () => {
+  const taskFile = (n: number) => `docs/memory/task/t-${n}.md`;
+  const move = (n: number) => filePatch(taskFile(n), ['-status: backlog', '+status: in-progress']);
+
+  it('reads a repeated id once, as WingFoil gives the element one history entry', () => {
+    const out = record(30, 'wf(task): start t-1, t-1, t-1 [backlog → in-progress]', '', move(1));
+    expect(parse(out).events.map((e) => e.id)).toEqual(['t-1']);
+  });
+
+  it('scans the patch once for a large group: the lines read do not grow with the ids', () => {
+    const n = MAX_SUBJECT_IDS;
+    const ids = Array.from({ length: n }, (_, i) => `t-${i}`);
+    const patch = ids.map((_, i) => move(i)).join('');
+    const out = record(31, `wf(task): start ${ids.join(', ')} [backlog → in-progress]`, '', patch);
+    const counters = { patchLines: 0 };
+    const log = parseMemoryLog(out, shasOf(out), { counters });
+    expect(log.events).toHaveLength(n);
+    expect(log.warnings).toEqual([]);
+    // One pass over the patch: at most its own line count, never ids × lines.
+    expect(counters.patchLines).toBeLessThanOrEqual(patch.split('\n').length + 1);
+  });
+
+  it(`reads no event, with a warning, from a subject naming more than ${String(MAX_SUBJECT_IDS)} ids`, () => {
+    const ids = Array.from({ length: MAX_SUBJECT_IDS + 1 }, (_, i) => `t-${i}`);
+    const out = record(32, `wf(task): start ${ids.join(', ')} [backlog → in-progress]`, '', move(0) + move(1));
+    expect(parse(out)).toEqual({ events: [], warnings: [SHA(32)] });
+  });
+
+  it('counts distinct ids against the cap: a long repetition of one id is one event', () => {
+    const ids = Array.from({ length: MAX_SUBJECT_IDS * 4 }, () => 't-1');
+    const out = record(33, `wf(task): start ${ids.join(', ')} [backlog → in-progress]`, '', move(1));
+    expect(parse(out).events.map((e) => e.id)).toEqual(['t-1']);
+  });
+});
+
+// task-048 review round 1, m-1: WingFoil 0.3.1's `parseMemoryOperation` reads the verb after
+// `:\s*` and `memory history` takes from/to from the file, so the parse is as tolerant: any blanks
+// after the colon, an arrow with or without blanks; a bracket it cannot read as two states (one
+// state, text after it, unclosed) leaves the transition to the patch, as no bracket does.
+describe('subjects as WingFoil reads them (task-048 review round 1, m-1)', () => {
+  const T1 = 'docs/memory/task/task-001-login-form.md';
+  const moved = filePatch(T1, ['-status: backlog', '+status: in-progress']);
+  const one = (subject: string) =>
+    parse(record(40, subject, '', moved)).events.map((e) => [e.operation, e.id, e.from, e.to]);
+
+  it.each([
+    ['no blank after the colon', 'wf(task):start task-001-login-form [backlog → in-progress]'],
+    ['two blanks after the colon', 'wf(task):  start task-001-login-form [backlog → in-progress]'],
+    ['an arrow without blanks', 'wf(task): start task-001-login-form [backlog->in-progress]'],
+    ['a unicode arrow without blanks', 'wf(task): start task-001-login-form [backlog→in-progress]'],
+    ['text after the bracket', 'wf(task): start task-001-login-form [nothing → read] by hand'],
+    ['a bracket of one state', 'wf(task): start task-001-login-form [in-progress]'],
+    ['an unclosed bracket', 'wf(task): start task-001-login-form [backlog → in-progress'],
+    ['an empty bracket', 'wf(task): start task-001-login-form []'],
+    ['words after the id', 'wf(task): start task-001-login-form by hand'],
+  ])('reads %s', (_label, subject) => {
+    expect(one(subject)).toEqual([['start', 'task-001-login-form', 'backlog', 'in-progress']]);
+  });
+
+  it('takes a readable bracket of two states as written, blanks trimmed', () => {
+    expect(one('wf(task): start task-001-login-form [ pending   ->  approved ]')).toEqual([
+      ['start', 'task-001-login-form', 'pending', 'approved'],
+    ]);
+  });
+
+  it('still reads no event for a verb glued to its bracket or a subject naming no id', () => {
+    const out =
+      record(42, 'wf(task): start[backlog → in-progress]', '', moved) + record(41, 'wf(task): start', '', moved);
     expect(parse(out)).toEqual({ events: [], warnings: [] });
   });
 });

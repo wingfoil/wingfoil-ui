@@ -3,7 +3,7 @@
 // element, the `wf` entries of its `memory history` — same sha, operation, from, to, approver,
 // reason — and the parse is two git processes per HEAD (the patch read and its sha list). Also on the
 // WingFoil 0.3 operations (task-048 D48-2): the entries whose operation is neither `null` nor `assign`.
-import { mkdtemp, realpath, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, readFile, realpath, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -11,6 +11,7 @@ import type { Snapshots } from '../../../server/src/snapshot/snapshots.js';
 import {
   addOperations,
   buildFixture,
+  copyFixture,
   FIXTURE_KINDS,
   type Fixture,
   type BddFixtureKind,
@@ -96,6 +97,32 @@ describe('spec-002 §5 on the WingFoil 0.3 operations (task-048, bug-026)', () =
       expect((events.get(id) ?? []).map(pick), id).toEqual(expected.map(pick));
     }
     expect([...seen]).toEqual(expect.arrayContaining(['start', 'finalize', 'sync', 'amend', 'park', 'assign']));
+  }, 300_000);
+});
+
+// task-048 review round 1 (m-1, M-1): subjects WingFoil 0.3.1 reads with its own tolerance — no or
+// several blanks after the colon, an arrow without blanks, text after the bracket, a bracket of one
+// state, a repeated id — give the events of its history.
+describe('spec-002 §5 on subjects written loosely (task-048 review round 1)', () => {
+  it('gives the element the entries of its memory history, one per commit', async () => {
+    const fx = await copyFixture(operations, path.join(root, 'loose'));
+    const id = operationIds.grouped[0];
+    const file = path.join(fx.dir, 'docs', '04_memory', 'v0.1', `${id}.md`);
+    const commit = async (status: string, subject: string) => {
+      await writeFile(file, (await readFile(file, 'utf8')).replace(/^status:.*$/m, `status: ${status}`));
+      await git(fx.dir, ['commit', '-q', '-am', subject], fx.env);
+    };
+    await commit('backlog', `wf(task):park ${id} [in-progress->backlog]`);
+    await commit('in-progress', `wf(task):  start ${id} [backlog → in-progress] by hand`);
+    await commit('in-review', `wf(task): sync ${id} [in-review]`);
+    await commit('in-progress', `wf(task): start ${id}, ${id} [in-review → in-progress]`);
+    const audited = auditedSnapshots(fx.env);
+    registries.push(audited.snapshots);
+    const view = await (await audited.snapshots.open('p_loose', fx.dir)).view();
+    const entries = (await view.history(id)).data.entries;
+    const expected = entries.filter((e) => e.operation !== null && e.operation !== 'assign');
+    expect(expected.slice(-4).map((e) => e.operation)).toEqual(['park', 'start', 'sync', 'start']);
+    expect(((await view.events()).get(id) ?? []).map(pick)).toEqual(expected.map(pick));
   }, 300_000);
 });
 
