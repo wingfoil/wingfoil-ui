@@ -71,13 +71,15 @@ moved to `wingfoil@0.3.1`; rule 7 of `wingfoil-cli`), run by WingFoil's `COLLABO
   published on npm as `latest`; the tag is on WingFoil's patch line, not on `main`, which is still
   `7efff2a0`), by the same steps of `COLLABORATION.md`, whose text at the tag is the same blob as at
   `7efff2a0`. Step 2: `retro-v0.3.md` and its read record are unchanged (the same blobs), and
-  `patch-v0.3.2` (`docs/04_memory/planning/rl-v1/patch-v0.3.2.md`) lists no note of this inbox in
-  its *Scope changes* (`task-331`, `task-332` only). Step 3: the `reported_by:` cites at the tag are
-  the same five, all `@8e448e2a…`; none cites F-027 … F-035. Step 4, for the `captured` notes: F-016
-  → `resolved` — bug-411 is `closed` with `release: "v0.3.2"` at the tag (named in `patch-v0.3.2`; fixed by
-  task-310, `done`, `release: "v0.3.2"`). Unchanged and still `captured`: F-001 (spec-005 `approved`, no release), F-011
-  (dl-200 `in-discussion`, v0.4), F-015 (dl-138 `ready`, v0.4), F-022 (bug-412 `triaged`, v0.4),
-  F-024 (dl-199 `in-discussion`, v0.4). This repository's pin stays `wingfoil@0.3.1`.
+  `patch-v0.3.2` (`docs/04_memory/planning/rl-v1/patch-v0.3.2.md`, `releasing` at its own tag and
+  absent from `main`; the tag and npm `0.3.2` are the release this repository reads) lists no note
+  of this inbox in its *Scope changes* (`task-331`, `task-332` only). Step 3: the `reported_by:`
+  cites at the tag are the same five, all `@8e448e2a…`; none cites F-027 … F-035. Step 4, for the
+  `captured` notes: F-016 → `resolved` — bug-411 is `closed` with `release: "v0.3.2"` at the tag
+  (named in `patch-v0.3.2`; fixed by task-310, `done`, `release: "v0.3.2"`). Unchanged and still
+  `captured`: F-001 (spec-005 `approved`, no release), F-011 (dl-200 `in-discussion`, v0.4), F-015
+  (dl-138 `ready`, v0.4), F-022 (bug-412 `triaged`, v0.4), F-024 (dl-199 `in-discussion`, v0.4).
+  This repository's pin stays `wingfoil@0.3.1`.
 
 The sync due at `release-planning` of `minor-v0.2` was skipped on 2026-10-12, when WingFoil had not
 defined the procedure (`governance-alignment-rel-v0.2-plan` GA-5).
