@@ -1,11 +1,5 @@
 [
   {
-    "file": "docs/05_plans/rl-v1/rel-v0.3/governance-alignment-rel-v0.3-plan.md",
-    "code": "W_INSTANCE_WORKFLOW_UNKNOWN",
-    "severity": "warning",
-    "count": 1
-  },
-  {
     "file": "workflows/custom/dev-loop.yaml",
     "code": "W_PHASE_PRODUCES_OWNER_IMPLICIT",
     "severity": "warning",
