@@ -1,9 +1,10 @@
 # Packs adoption — design (governance-alignment-rel-v0.3, step 3)
 
-**Version:** 0.3 · **Date:** 2026-11-01 (0.1: the design of GA3-10, with the proposed `.wingfoil/`
+**Version:** 0.4 · **Date:** 2026-11-02 (0.1: the design of GA3-10, with the proposed `.wingfoil/`
 change on `design/ga3-adoption`; 0.2: the 16 decisions confirmed, the risk mitigations GA3-11, the
 implementation and its gates — §11 … §13; 0.3: the open items' decisions 1-A and 2-A, the pre-packs
-variant — §13)
+variant — §13; 0.4: review round 1 — §14, its fixes in §3 … §5, §11 … §13. The plan (step 3, GA3-11)
+cites this document as the detailed source of its decisions)
 
 The adoption design that decision GA3-10 of `governance-alignment-rel-v0.3-plan` asks for before any
 `.wingfoil/` change: the composition parameters, the file-by-file outcome, the old → new keys, dl-008
@@ -135,7 +136,7 @@ name the old workflows; they are all `done` but `governance-alignment-rel-v0.3-p
 | `release-line-cycle.approve` | none — `memory approve rl-vN` (planning → active) |
 | `release-line-cycle.initial-design` | the `initial-design` procedure (keys unchanged), outside `delivery` |
 | `release-line-cycle.delivery` | `delivery.sprints` → `sprint` |
-| `release-line-cycle.plan-next-release-line` | none — `memory submit rl-vN` (active → done), `memory add` of the next line |
+| `release-line-cycle.plan-next-release-line` | none — the approver's `memory approve rl-vN` (active → done; a gate since GA3-11 R-2, only once every release of the line is `released`), `memory add` of the next line |
 | `release-cycle.planning` (`release-planning.*`) | `sprint.sprint-planning` and `sprint.plan-release`, with the `release-planning` procedure inside them |
 | `release-cycle.implementation` (`dev-loop.*`) | `sprint.development` → `backlog-item` |
 | `dev-loop.{start, design, red, green, refactor, review, done}` | `backlog-item.{start, build, review, approve, done}` (`design`, `red`, `green`, `refactor` → `build`; `review` → `review` + `approve`) |
@@ -183,7 +184,7 @@ dl-007's W-entries against the composed machines (probed on 0.3.1, §7):
 | W-04 plan `active → done` by hand | `plan` keeps `waiting: [active]`; `submit` refused ("a `waiting` state") | stays for phase plans; a run started by `workflow start` is closed by `workflow end` |
 | W-20 task `backlog → in-progress`, `approved → done` by hand | no `waiting` on `task` | obsolete: both are `memory submit` (probe) |
 | W-25 release `planning → in-development → releasing → released` by hand; approve-release in chat | no `waiting`, no gate on `release` | obsolete: each is `memory submit` (probe); `approve-release` is the approver's `workflow finalize --step … --reason` when the run is on the engine, else the OK in chat |
-| W-26 bug `triaged → planned`, `planned → in-progress` by hand; close note before `resolved → closed` | `triaged`, `planned` are gates, no `waiting` | both are the **approver's** `memory approve` (probe; `submit` refused); the agent no longer moves a bug at `start`; the close note stays (W-28) |
+| W-26 bug `triaged → planned`, `planned → in-progress` by hand; close note before `resolved → closed` | `triaged`, `planned` are gates, no `waiting` | as composed, both are the **approver's** `memory approve` (probe; `submit` refused); since GA3-11 R-3 `planned` has no gate here, so `planned → in-progress` is `memory submit` (§11); the close note stays (W-28) |
 
 Also: W-27 fixed on 0.3.1 (probe: the first `memory add` of a task in `docs/04_memory/v0.3/`, which
 holds task-046 only, gives `task-047`); W-21 fixed on 0.3.1 (step 2, r3).
@@ -203,7 +204,7 @@ What changes for existing elements (none executed):
 | `minor-v0.3`, `minor-v0.4`, `minor-v1.0` (`draft`) | `sprint` required before their `memory submit` (probe: `missing required field on submit: sprint`); release has no `n/a` form | at `release-planning` of v0.3: `minor-v0.3` gets the first Sprint's id in its draft, carried by its submit (W-01); the other two when their Sprint is planned |
 | open tasks | none open (46 `done`) | none; a `done` task amended later needs `sprint: "n/a — added before the Sprints"` in the same amendment |
 | bug-019, bug-023, bug-024 (`triaged`) | forward edges now the approver's `memory approve` | at `release-planning` of v0.3, by the approver |
-| `rl-v1` (`active`) | `active → done` is now `memory submit` (no `waiting`) | at the line's close |
+| `rl-v1` (`active`) | as composed `active → done` is `memory submit`; since GA3-11 R-2 it is the approver's `memory approve` (§11) | at the line's close, every release of `v1` `released` |
 | `governance-alignment-rel-v0.3-plan` (`active`) | unchanged; on 0.3.1 an open plan is a workflow instance (`W_INSTANCE_WORKFLOW_UNKNOWN`, as before the adoption) | closed by hand (W-04) at step 8 |
 | the 18 `done` plans | no `parent` (base) | none: `done` and never resubmitted |
 
@@ -369,11 +370,25 @@ listed in `.wingfoil/README.md` *Deviations from the packs* and proposed to Wing
 |---|------------|------------|----------|
 | R-1 | a release has no gate: anyone can `submit` it to `released` | `release` `states.gates.releasing: { reject: in-development }`; `release-publishing` › `mark-released` becomes the approver's `memory approve` after `publish` (directive `release-conventions` 1.1) | probe on 0.3.1 with the proposed `.wingfoil/`: `submit` `in-development → releasing` passes; `submit` from `releasing` refused ("a `gates` state — its forward edge requires `approve`"); `approve` → `released`; `workflow list` 0 errors |
 | R-2 | `submit` closes a release line with no check | `release-line` `gates.active: { reject: planning }`: the approver closes the line | probe: `submit rl-v1` from `active` refused; `approve` → `done` |
-| R-3 | the approver moves every bug `triaged → planned → in-progress` | keep the gate on `triaged`, remove the gate on `planned`: the developer starts a planned bug with `memory submit` at `backlog-item` › `start` (`dev-loop` procedure header 1.6) | probe: the approver's `approve` `triaged → planned`; `submit` `planned → in-progress` |
+| R-3 | the approver moves every bug `triaged → planned → in-progress` | keep the gate on `triaged`, remove the gate on `planned`: any team identity can move a planned bug with `memory submit` — by rule the developer, at `backlog-item` › `start` (`dev-loop` procedure header 1.6). Trade-off: `planned` loses the pack's only `planned → closed` (wontfix) exit; a bug that will not be fixed is rejected at `triaged`, and once planned only `memory deprecate` (with the approver's OK) ends it | probe: the approver's `approve` `triaged → planned`; `submit` `planned → in-progress` |
 | R-4 | the procedures' 74 warnings hide new ones | `test/governance/workflow-diagnostics.test.ts` (default suite): `workflow list` of the pinned CLI on this repository equals a committed baseline per file, code and severity (`workflow-diagnostics.baseline.json`: 75 warnings in 10 rows, 0 errors); decision 2's fold of the procedures into directives is scheduled at `release-planning` of v0.3 | red first: an empty baseline fails with the 10 rows; a baseline one short (`dev-loop.yaml` `W_WORKFLOW_UNBOUND_TOKEN` 16) fails with `16 → 17`; the true baseline passes; unit cases for a new code, a new file, one more of a known code and one gone |
 | R-5 | `base`'s weak `retrospective` evidence; bug-008 | this repository's practice in `release-conventions` 1.1: the friction inventory, every point citing its source, lives in the retrospective's own plan; bug-008 goes to directive `wingfoil-cli` at step 4 | — |
 | R-6 | the UI shows backlog tasks with a `submit` (*Today* noise) | accepted now; a candidate for `release-planning` of v0.3 | contract TT-ARC-06 (`STANDARD_PACKS`) |
-| R-7 | `workflow list` / `status` rewrite `.git/index` without `GIT_OPTIONAL_LOCKS=0` | handled by task-046 D46-5 in the server; a feedback note at step 5 | §7 probes; repeated in §13 |
+| R-7 | `workflow list` / `status` (and, per the review, `agent list`, `workflow next`, `workflow show`) rewrite `.git/index` without `GIT_OPTIONAL_LOCKS=0` | handled by task-046 D46-5 in the server; a feedback note at step 5 naming every such command | §7 probes; repeated in §13; review round 1, n1 |
+
+**Residuals and accepted limits** (review round 1, the approver's decisions of 2026-11-02; declared in
+`.wingfoil/README.md`):
+
+| # | What remains | Rule here | Candidate |
+|---|--------------|-----------|-----------|
+| R-1 residual (A-1) | the console and `workflow status` offer the `releasing` gate's Approve as soon as the release enters `releasing`; a `memory approve` at `approve-release` jumped to `released` and the publication steps vanished (probe) | `approve-release` is `workflow finalize --step release-submit.approve-release@… --reason …`, never `memory approve`; the release is approved only at `mark-released`, after `publish`'s post-check (`release-conventions` 1.2) | v0.3 `release-planning`: the console offers no Approve on a `releasing` release before `publish` |
+| R-2 residual (A-2) | `rl-vN` sits in the approver's queue for the whole life of the line | approve the line only at its end, every release `released` (`release-conventions` 1.2) | v0.3: no Approve on an `active` line before its releases are `released` |
+| A-3 | WingFoil 0.3.1 accepts a hand-committed `status:`: its history shows `approver: null` and the engine counts the state | W-20, W-25, W-26 superseded (`wingfoil-cli` 1.13); `AGENTS.md` keeps W-04 as the only hand transition | feedback (§12) |
+| A-4 | `memory deprecate` needs no approval: any identity deprecated an `active` release line, an `accepted` ADR and a `released` release (probe) | only in `end-of-life` › `deprecate` or with the approver's OK in the active plan (`cli-only-writes` 1.7) | feedback (§12) |
+| m4 | the `base` pack's `security-secrets` forbids personal emails in files; `dna.yaml` must hold the approver's | the one exception, declared | feedback (§12) |
+| m5 | a release or task whose `sprint` names no existing Sprint is accepted at `submit` | check the id against `docs/04_memory/sprints/` before submitting | feedback (§12) |
+| m1 | the composer's `AGENTS.md` region hard-codes four agent roles and the pack's `bug` gates | the hand-written *This repository* section overrides both; the region is not edited | feedback (§12) |
+| n2 … n4 | the adversarial review's remaining nits | declared as the review lists them, no change | — |
 
 Identity: the CLI authorises `memory approve` by the commit's git identity (a non-approver email gets
 "user not authorized to approve", coordinator probe), but agents commit under the approver's identity
@@ -399,8 +414,26 @@ task, not part of this step (`release-conventions`, `CLAUDE.md`).
 > `element.set_state(released)`), and `gates: { active: { reject: planning } }` on `release-line`.
 > Adopted by WingFoil UI as local deviations (its GA3-11 R-1, R-2); on 0.3.1 `workflow list` reports no
 > error with them, `submit` from the gate is refused and `approve` passes. WingFoil UI also drops the
-> gate on `bug` `planned` (R-3: the developer starts a planned fix with `submit`), for the packs'
-> consideration rather than as a proposal.
+> gate on `bug` `planned` (R-3: any team identity starts a planned fix with `submit`; the cost is
+> the loss of the `planned → closed` wontfix exit), for the packs' consideration rather than as a
+> proposal.
+>
+> **The gates are offered out of phase.** With the `releasing` gate, the console and `workflow
+> status` list the release's Approve as soon as it is `releasing`, although no open step carries it
+> until `mark-released`: approving at `approve-release` moves it to `released` and the publication
+> steps vanish. "No open workflow carries it" is wrong for such a gate; the same holds for an
+> `active` release line, listed for its whole life. A gate approval bound to the phase that owns it
+> would close both.
+>
+> **Also seen while adopting** (WingFoil 0.3.1 and the packs):
+> - the CLI accepts a hand-edited, committed `status:` with no approver (history `approver: null`),
+>   and the engine counts the state;
+> - `memory deprecate` needs no approval: any team identity deprecates an element in any state;
+> - a `sprint` field naming a Sprint that does not exist is accepted at `submit`;
+> - `base`'s `security-secrets` forbids personal emails in files, while `dna.yaml` must hold the
+>   approver's email for WingFoil to grant approval — the rule could name that exception;
+> - the composer's AGENTS.md region hard-codes the agent's roles (four) and the `bug` gates, so a
+>   project whose DNA or `memory.yaml` differs must correct it outside the region.
 
 ## 13. Implementation (`design/ga3-adoption`)
 
@@ -465,8 +498,13 @@ four failed on the three engines on `7f5a86e` (the full run above); green on `4c
 | `npm test`, strict identity | `4cad9f1` | 3342 passed, 1 skipped (5.4) |
 | `gate-footer.spec.ts`, `today.spec.ts` on Chromium, Firefox, WebKit | `4cad9f1` | 144 passed, the four scenarios on each engine among them (5.5) |
 
-R-06.1 and R-06.2 stay red until the coordinator's fix of the directive rows is merged here; the full
-`test:e2e` runs again then.
+R-06.1 and R-06.2 stayed red until the coordinator's fix of the directive rows (bug-025, task-047)
+was merged here (`ababf9a`, with `694a666`). Then, run by the coordinator:
+
+| Gate | Commit | Result |
+|------|--------|--------|
+| `test:e2e` (Chromium, Firefox, WebKit) | `ababf9a` | 938 passed, 0 failed |
+| `npm test` | `694a666` | 3353 passed |
 
 **Open items** (as written before the decisions; 1 and 2 decided above):
 
@@ -499,3 +537,44 @@ R-06.1 and R-06.2 stay red until the coordinator's fix of the directive rows is 
   R-4) — `release-planning` of v0.3; a separate agent git identity — a v0.3 task.
 - `check_tasks.py v0.3` exits 1 with 28 backlog items listed by no task, identically on `93d2933`:
   v0.3 is not planned yet.
+
+## 14. Review round 1
+
+Two fresh reviewers (adversarial, correctness) on `design/ga3-adoption` at `694a666`: **FAIL**. The
+approver decided every fix on 2026-11-02; the plan records them under step 3, GA3-11.
+
+| Finding | Fix | Commit |
+|---------|-----|--------|
+| A-1 an early `memory approve` of a `releasing` release skips the publication | the gate kept; `approve-release` by `workflow finalize`, the release approved only at `mark-released`; residual in README R-1 and §11; v0.3 candidate; §12 | `4742863`, this commit |
+| A-2 `rl-vN` in the approver's queue for the whole line | the gate kept; approved only at the line's end; residual in README R-2 and §11; v0.3 candidate; §12 | `4742863`, this commit |
+| A-3 W-20, W-25, W-26 tell agents to set states by hand; 0.3.1 accepts it | supersession banner on the three entries (`wingfoil-cli` 1.13, *Checked against* unchanged: step 4); `AGENTS.md` keeps W-04 only; §12 | `4742863`, `9446f6f` |
+| A-4 `memory deprecate` needs no approval | rule in `cli-only-writes` 1.7; README and §11; §12 | `4742863`, this commit |
+| A-m1 / C-m3 the generated `AGENTS.md` region contradicts R-3 and names four agent roles | override lines in its hand-written section; §12 | `9446f6f` |
+| A-m2 stale `bug.sync_state` texts | the task template's `bug:` comment, `release-planning` 1.6 | `4742863` |
+| A-m3 the traceability chain in no role-loaded text | `traceability-chain` (custom, a new id: the pack's `traceability` is kept and asks the project to name its chain), bound with `traceability` to facilitator, reviewer, architect, product-owner | `4742863` |
+| A-m4 `security-secrets` vs the approver's email in `dna.yaml` | declared exception (README, §11, §12) | `4742863`, this commit |
+| A-m5 a dangling `sprint` is accepted | declared (README, §11, §12) | `4742863`, this commit |
+| A-n1 more commands refresh the index | R-7 row and the step-5 note name `agent list`, `workflow next`, `workflow show` | this commit |
+| A-n5 R-3 wording | "any team identity", by rule the developer (`memory.yaml`, README, §11, §12) | `4742863`, this commit |
+| A-n2 … n4 | declared in §11 | this commit |
+| C-M1 `release-conventions` not loaded by the facilitator (retrospective) | bound to facilitator; README tables; `directives list --role facilitator` lists it | `4742863` |
+| C-m1 `initial-design` header and §3, §4, §5 say `memory submit rl-vN` / bugs by the approver | the approver's `memory approve rl-vN` at the line's end (`initial-design` 1.2); §3, §4 (W-26), §5 reconciled with §11 | `4742863`, this commit |
+| C-m2 `definition-of-done` stale after R-3; `docs:api`'s source | reworded (1.1): bugs by their verbs; `docs:api` from the `dev-loop` `refactor` gate | `4742863` |
+| C-m5 R-3 removes the `planned → closed` wontfix exit | the trade-off in README R-3, §11, §12 | `4742863`, this commit |
+| C-m6 §13's gate table | updated (§13) | this commit |
+| C-n2 `BOOTSTRAP.md` | marked historical in `CLAUDE.md` 0.11 | `9446f6f` |
+| C-n3 S-28.1 Examples | a comment: `sprint` from WingFoil 0.3.0 | `9446f6f` |
+| C-n4 `test/README.md` | 0.49 names `usePrePacksStates` | `9446f6f` |
+| C-n5 the adopted versions | recorded in the plan at step 8 (the coordinator) | — |
+
+The workflow files changed by these fixes changed comments and versions only: the diagnostics
+baseline (R-4) is unchanged.
+
+**Gates after the fixes** (on `9446f6f`, the tree of this commit outside this file; no code or test
+code changed, so no heavy gate): `typecheck`, `lint`, `format:check` exit 0 (load 3.2 … 3.5);
+`test/docs`, `test/governance` and `test/wingfoil-feedback.test.ts` 79 passed; `test/contracts` 312
+passed, 1 skipped. Probes on a clone: `workflow list` exit 0, 75 warnings, 0 errors, equal to the
+baseline; `memory search` 122 elements (task-047 and bug-025 added by the merge), each once;
+`directives list` 21 entries, the one intended override warning; `directives list --role <r>` for
+every role: no dangling binding, `release-conventions` and `traceability-chain` listed for the
+facilitator; no transport command; the `.git` snapshot unchanged on the second run.
