@@ -3,13 +3,13 @@ id: bug-027-commit-text-served-by-the-api-is-not-passed-through-the-tool-text-sa
 type: bug
 title: "Commit text served by the API is not passed through the tool-text sanitiser"              # REQUIRED — short description, e.g. "Approve dialog loses the reason on server error"
 status: draft          # auto-set by wingfoil; memory.submit → open
-severity: ""           # REQUIRED — critical | high | medium | low
-release-origin: ""     # optional — release where the bug was FOUND, e.g. "v0.1"
+severity: "medium"           # REQUIRED — critical | high | medium | low
+release-origin: "v0.1"     # optional — release where the bug was FOUND, e.g. "v0.1"
 release: ""            # optional — fix/implementation release, stamped by release-planning/build-backlog
 feature: ""            # optional — related feature ID from docs/01_vision/06_features.md
-module: ""             # optional — server | web | contracts
-wingfoil_version: ""   # optional — `wingfoil --version` of the OBSERVED project (the UI drives its CLI)
-browser: ""            # optional — for `web`: browser name + version, e.g. "Firefox 131"
+module: "server"             # optional — server | web | contracts
+wingfoil_version: "0.2.2 and 0.3.1"   # optional — `wingfoil --version` of the OBSERVED project (the UI drives its CLI)
+browser: "any (server side)"            # optional — for `web`: browser name + version, e.g. "Firefox 131"
 contributor: ""        # optional — who originated this contribution, if not the git author; credited for AI-generated work derived from it
 credit: ""             # optional — free-text credit note
 tmpl_version: 260703   # Orignal template version
@@ -17,38 +17,43 @@ tmpl_version: 260703   # Orignal template version
 
 ## Summary
 
-<!-- One-sentence description of the defect. -->
+The commit text the API returns — the history entries' `subject`, `reason`, `author` and `approver`
+(`GET /api/p/:pid/elements/:eid/history`, `memory history`) and the same fields of the Memory events
+(Today, the bell, the action log) — is passed on as git and the CLI give it, without the tool-text
+sanitiser and caps every other tool-sourced string goes through since task-046.
 
 ## Steps to Reproduce
 
-<!-- Start from the observed project's state (WingFoil version, branch, the elements involved),
-     then the numbered steps in the UI or against the server API.
-  1. ...
-  2. ...
-  3. ... -->
+1. A project with a commit whose subject or `Reason:` line holds a bidi override (U+202E), control
+   characters or a very long line, or an absolute local path.
+2. Open the element panel's history (or `GET /api/p/<pid>/elements/<id>/history`).
 
 ## Expected Behavior
 
-<!-- What should happen. -->
+Every tool- or git-sourced string in an API body goes through the one sanitiser (`redactLocalPaths`:
+bounded, paths redacted, controls and bidi characters escaped), as the dev-loop rules require
+(Wave 6 lesson) and spec-001 §2 states for tool messages.
 
 ## Actual Behavior
 
-<!-- What actually happens. Include error messages or stack traces if available. -->
+The history route returns the CLI's `memory history` fields as they are
+(`server/src/http/project-routes.ts`, the history route returns `read.view.history(...).data`);
+the web renders them as text (React escapes markup), so no markup runs, but bidi and control
+characters and unbounded lines reach the screen, and an absolute path in a commit message is shown.
 
 ## Evidence
 
-<!-- Screenshot or recording (web), browser console output, server log lines, the CLI command the
-     server ran and its JSON output. Never paste secrets (directive security-secrets). -->
+- Found at the design of task-048 (its decision D48-8, 2026-11-02): the history route keeps the
+  contract's fields, and none of them goes through the sanitiser.
+- The commit text is written by whoever commits to the project (or a hook), the same trust level as
+  the other tool output task-046 sanitised.
+- Not probed end to end yet: to be reproduced at the fix task's design.
 
 ## Notes
 
-<!-- Optional: environment details, related ADRs, suspected root cause, or workaround. -->
+- In every released version since v0.1 (the history route of task-012 / task-018).
+- Proposed: release v0.3, planned at `release-planning` of `minor-v0.3`; not a blocker of the
+  governance-alignment pre-step.
 
 ## Triage & Execution Notes
 
-<!-- Running log, not the retrospective itself.
-     - triage (bug-ingest): severity call, wontfix/duplicate rationale if rejected to `closed`.
-     - fix: once fix task(s) exist (release-planning/build-backlog), day-to-day execution notes
-       live on those tasks (docs/04_memory/{release}/{id}.md, `bug: {this id}`, their own
-       Execution Notes section) — this section only needs a pointer plus anything that doesn't
-       belong on a specific fix task (e.g. why 2 tasks were needed instead of 1). -->
