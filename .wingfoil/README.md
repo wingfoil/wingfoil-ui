@@ -1,9 +1,9 @@
 # `.wingfoil/` — WingFoil configuration of WingFoil UI
 
-**Version:** 0.5 · **Date:** 2026-11-01 (0.1: release v0.1, `user-docs` `align-agent-docs`; 0.2:
+**Version:** 0.6 · **Date:** 2026-11-02 (0.1: release v0.1, `user-docs` `align-agent-docs`; 0.2:
 W-25, W-26 — dl-007; 0.3: `release-submit`, `release-publishing`, `retrospective` tailored — dl-008;
 0.4: the packs `base@2.0.1`, `software@1.0.0`, `methodology/scrum@1.0.0` adopted —
-governance-alignment-rel-v0.3-plan step 3; 0.5: the deviations from the packs — GA3-11) · **Checked against:** `wingfoil@0.3.1` (the devDependency
+governance-alignment-rel-v0.3-plan step 3; 0.5: the deviations from the packs — GA3-11; 0.6: their residuals, the accepted limits, `traceability-chain`, `release-conventions` on facilitator — the adoption's review round 1) · **Checked against:** `wingfoil@0.3.1` (the devDependency
 pin)
 
 This folder makes the WingFoil UI repository a project **governed by WingFoil**: its DNA, its Memory
@@ -33,12 +33,26 @@ Decided by the approver on 2026-11-01 (GA3-11 of `governance-alignment-rel-v0.3-
 
 | # | Type | Pack's machine | Here | Why |
 |---|------|----------------|------|-----|
-| R-1 | `release` | no gate; `releasing → released` by `mark-released` (`element.set_state`) | gate `releasing` (reject → `in-development`): `released` only by the approver's `memory approve`, after the publication | without a gate any member, an agent acting as tech-lead included, can `memory submit` a release to `released` |
-| R-2 | `release-line` | gate `planning` only; `active → done` by `submit` | also gate `active` (reject → `planning`): the approver closes the line | `submit` closed a line with no check on its releases |
-| R-3 | `bug` | gates `open`, `triaged`, `planned`, `in-review`, `resolved` | no gate on `planned`: `memory submit` moves it to `in-progress` when its fix starts | the start of a planned fix is the developer's, as the task's start is; `triaged → planned` stays the approver's |
+| R-1 | `release` | no gate; `releasing → released` by `mark-released` (`element.set_state`) | gate `releasing` (reject → `in-development`): `released` only by the approver's `memory approve`, after the publication | without a gate any member, an agent acting as tech-lead included, can `memory submit` a release to `released`. **Residual:** the console and `workflow status` offer the gate's Approve as soon as the release is `releasing`; approved at `approve-release` it jumps to `released` and the publication steps vanish — so `approve-release` is `workflow finalize`, never `memory approve` (directive `release-conventions`) |
+| R-2 | `release-line` | gate `planning` only; `active → done` by `submit` | also gate `active` (reject → `planning`): the approver closes the line | `submit` closed a line with no check on its releases. **Residual:** the line sits in the approver's queue for its whole life; it is approved only at its end, every release `released` (`release-conventions`) |
+| R-3 | `bug` | gates `open`, `triaged`, `planned`, `in-review`, `resolved` | no gate on `planned`: `memory submit` moves it to `in-progress` | the start of a planned fix needs no approval, as the task's start; `triaged → planned` stays the approver's. **Trade-off:** any team identity can make the move (by rule the developer, when the fix starts), and `planned` loses its wontfix exit (reject → `closed`): a bug that will not be fixed is rejected to `closed` at `triaged`, before it is planned; once `planned`, only `memory deprecate` (with the approver's OK, directive `cli-only-writes`) ends it without a fix |
+
+**Accepted limits** (not deviations; the adoption design §11, the review round 1):
+
+- `memory deprecate` needs no approval: any team identity deprecates any element in any state. Here
+  it runs only in `end-of-life` › `deprecate` or with the approver's OK recorded in the active plan
+  (directive `cli-only-writes`).
+- WingFoil 0.3.1 accepts a hand-committed `status:` without the approver: never set a state a verb
+  owns by hand (directive `wingfoil-cli`, W-20, W-25, W-26 superseded).
+- The `base` pack's `security-secrets` forbids personal emails in files; `dna.yaml` holds the
+  approver's email, which WingFoil matches to grant approval — the one exception.
+- A release (or task) whose `sprint` names a Sprint that does not exist is accepted at `submit`:
+  check the id against `docs/04_memory/sprints/` before submitting.
+- The composer's region of `AGENTS.md` names four agent roles and the `bug` gates of the pack; its
+  *This repository* section corrects both (the DNA's seven roles, R-3).
 
 Also this repository's own, not a pack's change: its templates, the five procedures, the custom
-`definition-of-done` and `release-conventions` directives (below).
+`definition-of-done`, `release-conventions` and `traceability-chain` directives (below).
 
 ## Files
 
@@ -143,12 +157,12 @@ every role, `approver` included.
 
 | Role | Directives bound in `roles.yaml` (besides the global ones) |
 |------|-------------------------------------------------------------|
-| facilitator | `traceability`, `scrum` |
+| facilitator | `traceability`, `traceability-chain`, `scrum`, `release-conventions` |
 | developer | `code-quality`, `testing`, `determinism`, `cli-only-writes`, `accessibility`, `scrum`, `definition-of-done` |
-| reviewer | `code-review`, `traceability`, `determinism`, `cli-only-writes`, `accessibility`, `ux-consistency`, `definition-of-done` |
+| reviewer | `code-review`, `traceability`, `traceability-chain`, `determinism`, `cli-only-writes`, `accessibility`, `ux-consistency`, `definition-of-done` |
 | qa | `testing`, `accessibility`, `definition-of-done`, `release-conventions` |
-| architect | `architecture`, `determinism`, `traceability`, `cli-only-writes` |
-| product-owner | `traceability`, `ux-consistency`, `scrum` |
+| architect | `architecture`, `determinism`, `traceability`, `traceability-chain`, `cli-only-writes` |
+| product-owner | `traceability`, `traceability-chain`, `ux-consistency`, `scrum` |
 | tech-lead | `architecture`, `code-review`, `release-conventions` |
 | approver | — (global ones only) |
 
@@ -173,7 +187,8 @@ every role, `approver` included.
 | `claim-evidence` | custom | this repository | A claim names the command that establishes it | global |
 | `cli-only-writes` | custom | this repository | Every governed change goes through the WingFoil CLI | developer, reviewer, architect |
 | `definition-of-done` | custom | this repository | Definition of Done of WingFoil UI | developer, reviewer, qa |
-| `release-conventions` | custom | this repository | Release conventions of WingFoil UI (dl-008) | qa, tech-lead |
+| `release-conventions` | custom | this repository | Release conventions of WingFoil UI (dl-008) | facilitator, qa, tech-lead |
+| `traceability-chain` | custom | this repository | The traceability chain of WingFoil UI (the chain the pack's `traceability` asks the project to name) | facilitator, reviewer, architect, product-owner |
 | `ux-consistency` | custom | this repository | UX consistency with the reference and the prototype | reviewer, product-owner |
 | `wingfoil-cli` | custom | this repository | Using the pinned WingFoil CLI | global |
 

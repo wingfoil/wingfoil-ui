@@ -9,10 +9,12 @@ tags: [custom, release, git, npm]
 
 # Directive — Release conventions of WingFoil UI
 
-**Version:** 1.1 · **Date:** 2026-11-01 (1.0: dl-008's tailoring of `release-submit`,
+**Version:** 1.2 · **Date:** 2026-11-02 (1.0: dl-008's tailoring of `release-submit`,
 `release-publishing` and `retrospective`, re-applied on the `software` and `base` packs' workflows
 at their adoption — governance-alignment-rel-v0.3-plan step 3; 1.1: `mark-released` is the
-approver's `approve`, the retrospective's inventory in its plan — GA3-11 R-1, R-5)
+approver's `approve`, the retrospective's inventory in its plan — GA3-11 R-1, R-5; 1.2: when the
+approver approves a release and a release line, bound to the facilitator too — review round 1 of
+the packs adoption, A-1, A-2, M1)
 
 The packs' release workflows (`release-submit`, `release-publishing`, `.wingfoil/workflows/built-in/`)
 name what each phase does, not how this repository does it. This directive says how; the pipeline
@@ -30,7 +32,13 @@ and the approver's steps are in `docs/publishing.md`.
   - `npm run test:coverage` green (statements at least 80 %), `npm run test:e2e` on Chromium,
     Firefox and WebKit, `npm run test:smoke`; `npm audit --omit=dev` reports 0 vulnerabilities.
 - **`enter-releasing`** (tech-lead): `memory submit <release>` (`in-development → releasing`).
-- **`approve-release`** (approver): the approver's OK, recorded in the run's plan.
+- **`approve-release`** (approver): the approver's OK, recorded in the run's plan and, when the
+  release runs on the workflow engine, by `workflow finalize --step <the step key workflow next
+  prints, e.g. release-submit.approve-release@release:minor-v0.3> --reason "…"`. **Never `memory
+  approve` on the release here:** `releasing` is a gate, and its approve moves the release to
+  `released` at once — the publication steps would be skipped (probe of the packs adoption's review,
+  round 1). The console and `workflow status` offer that Approve as soon as the release is
+  `releasing`; ignore it until `mark-released`.
 
 ## `release-publishing`
 
@@ -53,8 +61,17 @@ and the approver's steps are in `docs/publishing.md`.
 - **`mark-released`** (tech-lead prepares, the approver decides): `releasing` is a gate in this
   repository (`memory.yaml`, GA3-11 R-1, a deviation from `software`, whose phase moves the release
   with `element.set_state(released)`): `memory submit` from `releasing` is refused, and the approver
-  runs `memory approve <release> --reason "…"` once `publish`'s post-check answered. The tech-lead
-  hands the approver that exact command, with the `npm view` output.
+  runs `memory approve <release> --reason "…"` once `publish`'s post-check answered — the only
+  moment a release is approved. The tech-lead hands the approver that exact command, with the `npm
+  view` output.
+
+## The release line
+
+`release-line` `active` is a gate in this repository (GA3-11 R-2): the approver closes a line with
+`memory approve rl-vN --reason "…"` only at the end of the line — when every release of the line is
+`released` and the next line, if any, is planned (the line's closing step, formerly
+`release-line-cycle` › `plan-next-release-line`). The console offers that Approve for the whole life
+of the line; ignore it until then.
 
 The CLI authorises `memory approve` by the git identity of the commit (a non-approver email gets
 "user not authorized to approve"); agents commit under the approver's identity in this repository,

@@ -160,7 +160,7 @@ types:
       gates:
         open:      { reject: closed }        # approve: open->triaged · reject: wontfix/duplicate
         triaged:   { reject: closed }        # approve: triaged->planned · reject: wontfix after triage
-        # no gate on `planned`: the developer starts the fix with `memory submit` (planned->in-progress) at backlog-item `start` (GA3-11 R-3, deviation from software)
+        # no gate on `planned`: any team identity can move it planned->in-progress with `memory submit` — by rule the developer, when the fix starts at backlog-item `start`; no wontfix (reject to closed) from `planned` any more (GA3-11 R-3, deviation from software)
         in-review: { reject: in-progress }   # approve: in-review->resolved
         resolved:  { reject: in-progress }   # approve: resolved->closed
       returns:

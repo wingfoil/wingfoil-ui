@@ -9,7 +9,9 @@ version: 1
 assignments:
   facilitator:
     - traceability
+    - traceability-chain
     - scrum
+    - release-conventions
   developer:
     - code-quality
     - testing
@@ -21,6 +23,7 @@ assignments:
   reviewer:
     - code-review
     - traceability
+    - traceability-chain
     - determinism
     - cli-only-writes
     - accessibility
@@ -35,9 +38,11 @@ assignments:
     - architecture
     - determinism
     - traceability
+    - traceability-chain
     - cli-only-writes
   product-owner:
     - traceability
+    - traceability-chain
     - ux-consistency
     - scrum
   tech-lead:

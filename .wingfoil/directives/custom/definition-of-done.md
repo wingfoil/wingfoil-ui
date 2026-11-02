@@ -9,9 +9,10 @@ tags: [custom, scrum, testing, review]
 
 # Directive — Definition of Done of WingFoil UI
 
-**Version:** 1.0 · **Date:** 2026-10-30 (1.0: replaces `methodology/scrum`'s generic
+**Version:** 1.1 · **Date:** 2026-11-02 (1.0: replaces `methodology/scrum`'s generic
 `definition-of-done` with this repository's, at the packs' adoption —
-governance-alignment-rel-v0.3-plan step 3)
+governance-alignment-rel-v0.3-plan step 3; 1.1: the bugs' moves after GA3-11 R-3, the source of
+`docs:api` — the adoption's review round 1, m2)
 
 A Sprint Backlog item (a task, run through `backlog-item`) is done only when every rule below
 holds; until then it is not part of the Increment. The rules are the gates of this repository's
@@ -25,13 +26,15 @@ holds; until then it is not part of the Increment. The rules are the gates of th
   `approved` tech-spec; the Execution Notes of every `depends_on` task were read first.
 - **Checks green** on the task's branch, as `CLAUDE.md` *Checks before handing work back* lists
   them: `npm run typecheck`, `npm run lint`, `npm run format:check`, `npm test` (or
-  `test:coverage`, statements at least 80 %), `npm run docs:api`; when the UI changes,
+  `test:coverage`, statements at least 80 %); `npm run docs:api` (the `dev-loop` procedure's
+  `refactor` gate, `docs.api.*`); when the UI changes,
   `npm run test:e2e:chromium` and the task's own specs on the three engines; the launch and
   publish smokes when packaging, the launcher, the bin or the publish workflow change.
 - **Reviewed** by an independent reviewer, not the author, until PASS; the approver then approves
   the task (`backlog-item` › `approve`).
 - **Integrated:** merged into its phase branch with `git merge --no-ff`, its worktree and branch
-  removed, the bugs it names in `bug:` moved with it (their transitions are the approver's, directive
-  `wingfoil-cli`).
+  removed, the bugs it names in `bug:` moved with it by their own verbs (`.wingfoil/memory.yaml`):
+  `memory submit` `planned → in-progress` when the task starts (GA3-11 R-3), then `submit` and the
+  approver's `approve` along the bug's machine.
 - **Documented:** the user-facing and agent-facing docs it changes are updated in the same change
   (directive `documentation`); its Execution Notes record the gates' results with their commands.

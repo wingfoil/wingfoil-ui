@@ -17,12 +17,14 @@
 # consistency, no contradiction with the BDD scenarios / Vision Package / write classes, and
 # traceability to REQ-* — run before they are submitted, its findings fixed and re-verified by the
 # same reviewer; the result is logged in the phase's plan (decided in initial-design-rl-v1-plan).
-# Packs adoption (governance-alignment-rel-v0.3-plan step 3, version 1.1): no workflow of this
-# composition includes it; it is a procedure of this repository run by hand per release-line,
-# outside `delivery` (the release line is managed outside it: methodology/scrum charter,
-# Adoption). `release-line-cycle` was removed: the line's approval is `memory approve rl-vN`
-# (planning → active), its close `memory submit rl-vN` (active → done). A release it seeds now
-# also needs `sprint` before its submit (memory.yaml).
+# Packs adoption (governance-alignment-rel-v0.3-plan step 3, version 1.1; 1.2: review round 1): no
+# workflow of this composition includes it; it is a procedure of this repository run by hand per
+# release-line, outside `delivery` (the release line is managed outside it: methodology/scrum
+# charter, Adoption). `release-line-cycle` was removed: the line's approval is `memory approve
+# rl-vN` (planning → active), its close also the approver's `memory approve rl-vN` (active → done,
+# GA3-11 R-2), only once every release of the line is `released` (directive
+# `release-conventions`). A release it seeds now also needs `sprint` before its submit
+# (memory.yaml).
 name: initial-design
 kind: sub
 element: release-line   # the active element provided by release-line-cycle
@@ -30,7 +32,7 @@ description: >-
   Generate this release-line's minor-release roadmap, then record the initial Architectural
   Decision Records, Decision Logs, and Technical Specifications that formalize choices already
   implied by it — before this release-line's delivery begins.
-version: 1.1
+version: 1.2
 
 phases:
   - name: seed-releases
