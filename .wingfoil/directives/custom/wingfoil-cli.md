@@ -9,7 +9,7 @@ tags: [custom, wingfoil, cli, governance]
 
 # Directive — Using the pinned WingFoil CLI
 
-**Version:** 1.13 · **Date:** 2026-11-02 (1.1: W-13; 1.2: W-14…W-20 — initial-design rl-v1; 1.3: W-20 task hand transitions, W-21 — dev-loop task-001; 1.4: W-22 — dev-loop task-004; 1.5: W-09 qualified, W-23 — dev-loop task-005; 1.6: rules 1–7 of WingFoil dl-163, *Note* column, notes in `docs/wingfoil-feedback/`, W-12 corrected, W-24 — task-023; 1.7: W-25, W-26, notes F-020…F-022 for W-25/W-26, W-22, W-23 — dl-007; 1.8: W-22 and W-26 corrected — governance-alignment review; 1.9: W-27 — release-planning v0.2; 1.10: W-28, W-29, notes F-023, F-024 — dev-loop task-032; 1.11: W-30, note F-025 — task-032 review; 1.12: W-31, note F-026 — task-032 review; 1.13: W-20, W-25, W-26 superseded — the packs adoption, its review round 1 (A-3); the full re-check against 0.3.1 is step 4) · **Checked against:** `wingfoil@0.2.2`
+**Version:** 1.14 · **Date:** 2026-11-02 (1.1: W-13; 1.2: W-14…W-20 — initial-design rl-v1; 1.3: W-20 task hand transitions, W-21 — dev-loop task-001; 1.4: W-22 — dev-loop task-004; 1.5: W-09 qualified, W-23 — dev-loop task-005; 1.6: rules 1–7 of WingFoil dl-163, *Note* column, notes in `docs/wingfoil-feedback/`, W-12 corrected, W-24 — task-023; 1.7: W-25, W-26, notes F-020…F-022 for W-25/W-26, W-22, W-23 — dl-007; 1.8: W-22 and W-26 corrected — governance-alignment review; 1.9: W-27 — release-planning v0.2; 1.10: W-28, W-29, notes F-023, F-024 — dev-loop task-032; 1.11: W-30, note F-025 — task-032 review; 1.12: W-31, note F-026 — task-032 review; 1.13: W-20, W-25, W-26 superseded — the packs adoption, its review round 1 (A-3); the full re-check against 0.3.1 is step 4; 1.14: `memory deprecate` rule for every role — review round 2, MA-1) · **Checked against:** `wingfoil@0.2.2`
 
 Global. Applies to every role, human or agent, that changes this project's governance state
 (DNA, Memory, directives, plans) — and to the UI code that drives the CLI for other projects.
@@ -34,6 +34,14 @@ the way to work with each.
    `docs/wingfoil-feedback/README.md`.
 8. Keep `-s` in `npm run -s wingfoil -- <command>`: it keeps `--format json` parseable.
 9. When the pin advances (`release-planning`), also update the entries whose behaviour changed.
+
+## `memory deprecate` (every role)
+
+`memory deprecate` needs no approval on WingFoil 0.3.1: any git identity, team member or not,
+moves any element in any state to `deprecated`. In this repository it runs only in `end-of-life` ›
+`deprecate`, or with the approver's OK recorded in the active plan (who, when, why) before the
+command; an agent never deprecates on its own (the packs adoption's review, A-4; directive
+`cli-only-writes` states the same rule for the UI's own design).
 
 ## Known behaviours (0.2.2)
 
