@@ -4,7 +4,7 @@ type: tech-spec
 title: "Memory events from git"
 status: approved
 scope: "Memory events: parsing wf(…) commits for Timeline, Recent activity and Updates"              # REQUIRED — the artefact this spec covers, e.g. "server HTTP API", "CLI JSON contract: memory search", ".wingfoil/ui.yaml"
-wingfoil_version: "0.2.2"   # optional — for a CLI contract: the WingFoil version the shape was captured from
+wingfoil_version: "0.2.2, 0.3.1"   # optional — for a CLI contract: the WingFoil version the shape was captured from
 supersedes: ""         # optional — id of the tech-spec this one replaces, e.g. "spec-002"
 release: "v0.1"            # optional — implementation release this spec is assigned to (stamped by release-planning/build-backlog), e.g. "v0.1"
 contributor: ""        # optional — who originated this contribution, if not the git author; credited for AI-generated work derived from it
@@ -80,17 +80,21 @@ the others are read; an output that does not match the sha list is refused as a 
 guessed at.
 
 For each record:
-1. **Subject** must be `wf(<type>): <op> <ids>` with an optional ` [<bracket>]`, where `<op>` is the
-   whole token after `: ` and one of the Memory operations of §1 (as WingFoil 0.3.x reads it,
-   `dist/memory/audit.js` `parseMemoryOperation`: `start-fix` is not `start`), `<type>` is not a
-   configuration scope (`dna`, `directive`, `workflow`), `<ids>` is one id or several joined by
-   `, ` (a grouped subject: one event per id, each read as below), and the bracket names two
-   states or more joined by ` → `. Any other commit — `assign`, a verbless `wf(<type>): <id> [a → b]`,
+1. **Subject** must be `wf(<type>):<op> <ids>` with an optional `[<bracket>]`, where `<op>` is the
+   whole token after `:` and any blanks, and one of the Memory operations of §1 (as WingFoil 0.3.x
+   reads it, `dist/memory/audit.js` `parseMemoryOperation`: `start-fix` is not `start`), `<type>`
+   is not a configuration scope (`dna`, `directive`, `workflow`), and `<ids>` are the distinct words
+   before the bracket, commas and blanks between them (a grouped subject: one event per id, each
+   read as below; at most 256 distinct ids — a subject naming more is no event and its commit a
+   parse warning; none: no event). A bracket closed at the end of the subject that names exactly
+   two states joined by `→` or `->` (blanks optional, trimmed) is the subject's transition; any
+   other bracket counts as none (rule 2). Any other commit — `assign`, a verbless `wf(<type>): <id> [a → b]`,
    a configuration commit, a non-`wf` commit — is **not** an event. The same operations are read
    whatever the project's WingFoil version: on 0.2.2, whose `memory history` reads the five verbs
    only, a practised `wf(plan): finalize …` is an event too (task-048 D48-3).
-2. **Transition:** from the subject when its bracket names exactly two states; otherwise (no
-   bracket, or a chained one such as a `sync`'s `[a → b → c]`) from the patch of the element's file
+2. **Transition:** from the subject's transition (rule 1); otherwise (no bracket, a chained one
+   such as a `sync`'s `[a → b → c]`, or one rule 1 does not read) from the patch of the element's
+   file, read once per commit for all its ids
    (the file whose name is `<id>.md`): `-status: <from>` and `+status: <to>` (`add`: `+status:` only).
    Values are taken without quotes and trailing comments. As in `memory history`, a commit is an
    event of `<id>` **only when its patch touches `<id>.md`**.
@@ -172,3 +176,9 @@ For each record:
   grouped ids, configuration scopes excluded), the same operations on every version; rule 2 a
   chained bracket read from the patch; §5 the consistency check excludes `assign`, and runs on the
   0.3 operations too.
+- 2026-11-02 — task-048 review round 1 (M-1, m-1, n-3): §3 rule 1 read with WingFoil 0.3.1's
+  tolerance — any blanks after the colon, the arrow with or without blanks; the ids are the distinct
+  words before the bracket, at most 256 (a subject naming more is no event, its commit a parse
+  warning); a bracket that is not two states closed at the end of the subject (one state, empty,
+  unclosed, text after it) leaves the transition to the patch (rule 2); the patch is read once per
+  commit, whatever the number of ids. `wingfoil_version` names 0.3.1 too.

@@ -497,6 +497,19 @@ describe('cli/memory-history.schema.json — the 0.2.x and 0.3.x entries', () =>
     );
   });
 
+  // task-048 review round 1, n-4: the API's entry is the CLI's v0.3 entry without `wingfoil`.
+  it('the API history entry has the fields of the CLI v0.3 entry but wingfoil, closed', () => {
+    const api = schema('api/history.schema.json') as {
+      properties: { entries: { items: { properties: object; required: string[]; additionalProperties: boolean } } };
+    };
+    const cli = definitions['v0.3'] as { properties: Record<string, unknown>; required: string[] };
+    const { wingfoil: _dropped, ...fields } = cli.properties;
+    const item = api.properties.entries.items;
+    expect(item.properties).toEqual(fields);
+    expect(item.required).toEqual(cli.required.filter((r) => r !== 'wingfoil'));
+    expect(item.additionalProperties).toBe(false);
+  });
+
   const base = (version: string): Entry => clone(entriesOf(version, 'kanban').find((e) => e.operation === 'submit')!);
   const refused: [string, () => Entry][] = [
     ['0.2: an operation 0.2.2 does not record', () => ({ ...base('0.2.2'), operation: 'finalize' })],

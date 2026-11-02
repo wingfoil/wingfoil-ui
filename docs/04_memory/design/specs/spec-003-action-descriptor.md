@@ -4,7 +4,7 @@ type: tech-spec
 title: "Action descriptor"
 status: approved
 scope: "action descriptor: verbs, actor and tone per element"              # REQUIRED — the artefact this spec covers, e.g. "server HTTP API", "CLI JSON contract: memory search", ".wingfoil/ui.yaml"
-wingfoil_version: "0.2.2"   # optional — for a CLI contract: the WingFoil version the shape was captured from
+wingfoil_version: "0.2.2, 0.3.1"   # optional — for a CLI contract: the WingFoil version the shape was captured from
 supersedes: ""         # optional — id of the tech-spec this one replaces, e.g. "spec-002"
 release: "v0.1"            # optional — implementation release this spec is assigned to (stamped by release-planning/build-backlog), e.g. "v0.1"
 contributor: ""        # optional — who originated this contribution, if not the git author; credited for AI-generated work derived from it
@@ -296,3 +296,4 @@ element list; `web/` renders it and never re-derives it.
 - 2026-11-02 — amended in dev-loop task-048 (bug-026, D48-6 approved by the approver): §4 the
   events read are the moves — an `amend` of WingFoil 0.3.x is not one; `start`, `finalize`, `sync`
   and `park` are, like the five verbs.
+- 2026-11-02 — task-048 review round 1 (n-3): `wingfoil_version` names 0.3.1 too.
