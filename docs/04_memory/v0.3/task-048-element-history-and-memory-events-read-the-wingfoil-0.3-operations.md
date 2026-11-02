@@ -4,12 +4,12 @@ type: task
 title: "Element history and Memory events read the WingFoil 0.3 operations"              # REQUIRED — e.g. "Today view: pending gates list (REQ-UI-03)"
 status: draft          # auto-set by wingfoil
 release: "v0.3"            # REQUIRED — target release version, e.g. "v0.1"
-sprint: ""             # REQUIRED — the Sprint that selects it (sprint-NNN), or "n/a — <reason>" until one does (methodology/scrum)
-module: ""             # optional — server | web | contracts (dna.yaml modules)
-priority: ""           # optional — high | medium | low
-tags: []               # optional — additional labels, e.g. [today, a11y]
-ref: ""                # optional — backlog item ID, e.g. "TASK-001"
-bug: []                # optional — LIST of bug ids this task closes. Two cases: a fix task derived from a bug
+sprint: "n/a — governance task of the v0.3 pre-step, before the first Sprint"             # REQUIRED — the Sprint that selects it (sprint-NNN), or "n/a — <reason>" until one does (methodology/scrum)
+module: "governance"             # optional — server | web | contracts (dna.yaml modules)
+priority: "high"           # optional — high | medium | low
+tags: ["v0.3","governance","server"]               # optional — additional labels, e.g. [today, a11y]
+ref: "GOV"                # optional — backlog item ID, e.g. "TASK-001"
+bug: ["bug-026-element-history-fails-on-wingfoil-0.3.x-when-an-element-has-a-finalize-park-or-amend-commit"]                # optional — LIST of bug ids this task closes. Two cases: a fix task derived from a bug
                        # by release-planning, and a bug ABSORBED into an existing task's Acceptance Criteria because that
                        # task already owns the ground. Each bug listed moves with its own verbs (`.wingfoil/memory.yaml`):
                        # the approver's `memory approve` triaged -> planned, `memory submit` planned -> in-progress when
@@ -19,26 +19,35 @@ tmpl_version: 260703   # Orignal template version
 ---
 
 ## Description
+Governance fix task of `minor-v0.3`, raised at step 4 of `governance-alignment-rel-v0.3-plan`
+(the approver's decision 2026-11-02): WingFoil 0.3.x records the operations `start`, `finalize`,
+`sync`, `amend`, `park`, `assign` besides `add`, `submit`, `approve`, `reject`, `deprecate`; the UI's
+history contract and the server's Memory-events parser know only the five, so the element history
+fails (bug-026, absorbed here) and the new verbs' commits are not read as events.
 
-<!-- What needs to be built and why. Reference the user story if applicable:
-     "As <persona>, I want <action> so that <benefit>." -->
+**Backlog items:** GOV (governance — bug-026, the WingFoil 0.3 history operations, step 4 of the v0.3
+governance alignment)
 
 ## Acceptance Criteria
-
-<!-- Reference the Gherkin feature file, or inline the key scenarios.
-     e.g. "See docs/02_requirements/02_bdd/features/today/pending-gates.feature"
-     For `web` tasks also point to the screen in docs/00_reference/ux-reference.md (§4.x) and the
-     prototype, and state the accessibility bar (keyboard path, axe clean). -->
+- AC-1 — Design: the full operation list of 0.3.1 (and 0.2.2's) from the CLI's source and probes;
+  for each operation, how the history (element panel) and the Memory events (Today, bell, action
+  log) show it — decided at design, with the approver for anything user-visible.
+- AC-2 — Contract: `memory-history.schema.json`, `HistoryOperation` and the server's `SUBJECT`
+  accept the 0.3.x operations; 0.2.2's output still validates; a captured 0.3.1 sample with
+  `finalize`, `park` and `amend` commits in the contract suite (red first: the sample fails today).
+- AC-3 — Reads: the element history of a hand-closed plan (W-04) and of an element with
+  `park`/`amend` loads on 0.3.1; the Memory events read classifies the new verbs' commits as
+  decided in AC-1; no tool text reaches an API body unsanitised (task-046's rules).
+- AC-4 — Docs: spec-001 §3 (history), spec-002 (events) and the schema description; directive
+  `wingfoil-cli` W-43 says the defect is fixed; CHANGELOG *Unreleased* *Fixed* (bug-026).
+- AC-5 — Gates: typecheck, lint, format:check, docs:api, check_tasks v0.3, test:contract,
+  test:coverage, `test:e2e:chromium` plus the element-panel and Today specs on three engines;
+  heavy gates through the slot, commit and load in each log.
 
 ## Implementation Notes
-
-<!-- Optional: known constraints, design hints, or links to relevant ADRs. -->
+- Branch from `design/governance-alignment_v0.3` after step 4 is merged into it.
+- Under the adopted packs a task needs `sprint` at submit: this task carries `sprint: "n/a — …"`.
+- Read at design: task-046 (D46-2, the workflow-list variant by shape; the contract samples),
+  task-018 (element panel), the spec-002 events parser.
 
 ## Execution Notes
-
-<!-- Running log of what actually happened while working this task through dev-loop — filled in
-     incrementally per phase, not written after the fact. Raw material for the release's Execution
-     Notes / the retrospective, not the retrospective itself.
-     - design: tech-specs found missing/needing revision (dev-loop/design safety net).
-     - red/green/refactor: deviations from the plan above, blockers, scope surprises.
-     - review: rejection reasons and what changed on the next pass. -->
