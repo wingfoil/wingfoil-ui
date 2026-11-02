@@ -116,12 +116,26 @@ describe('spec-002 §5 on subjects written loosely (task-048 review round 1)', (
     await commit('in-progress', `wf(task):  start ${id} [backlog → in-progress] by hand`);
     await commit('in-review', `wf(task): sync ${id} [in-review]`);
     await commit('in-progress', `wf(task): start ${id}, ${id} [in-review → in-progress]`);
+    // Review round 2: a bracket the file contradicts, a line separator in the subject, an amend
+    // by hand that changes no state (minor-1 … minor-3).
+    await commit('in-review', `wf(task): approve ${id} [in-progress → done]`);
+    await commit('in-progress', `wf(task): sync ${id}\u2028by hand`);
+    await writeFile(file, `${await readFile(file, 'utf8')}\nA note.\n`);
+    await git(fx.dir, ['commit', '-q', '-am', `wf(task): amend ${id}`], fx.env);
     const audited = auditedSnapshots(fx.env);
     registries.push(audited.snapshots);
     const view = await (await audited.snapshots.open('p_loose', fx.dir)).view();
     const entries = (await view.history(id)).data.entries;
     const expected = entries.filter((e) => e.operation !== null && e.operation !== 'assign');
-    expect(expected.slice(-4).map((e) => e.operation)).toEqual(['park', 'start', 'sync', 'start']);
+    expect(expected.slice(-7).map((e) => e.operation)).toEqual([
+      'park',
+      'start',
+      'sync',
+      'start',
+      'approve',
+      'sync',
+      'amend',
+    ]);
     expect(((await view.events()).get(id) ?? []).map(pick)).toEqual(expected.map(pick));
   }, 300_000);
 });

@@ -394,9 +394,34 @@ describe('subjects as WingFoil reads them (task-048 review round 1, m-1)', () =>
     expect(one(subject)).toEqual([['start', 'task-001-login-form', 'backlog', 'in-progress']]);
   });
 
-  it('takes a readable bracket of two states as written, blanks trimmed', () => {
-    expect(one('wf(task): start task-001-login-form [ pending   ->  approved ]')).toEqual([
-      ['start', 'task-001-login-form', 'pending', 'approved'],
+  // task-048 review round 2, minor-2: the patch's `status:` lines win over the bracket (WingFoil
+  // reads the file); a readable bracket is the fallback of a commit that changes no `status:`.
+  it('takes the patch over a bracket that disagrees with it', () => {
+    expect(one('wf(task): start task-001-login-form [pending → approved]')).toEqual([
+      ['start', 'task-001-login-form', 'backlog', 'in-progress'],
+    ]);
+  });
+
+  it('takes a readable bracket of two states, blanks trimmed, when the patch changes no status', () => {
+    const out = record(
+      43,
+      'wf(task): amend task-001-login-form [ backlog   ->  backlog ]',
+      '',
+      filePatch(T1, ['-title: A', '+title: B']),
+    );
+    expect(parse(out).events.map((e) => [e.operation, e.from, e.to])).toEqual([['amend', 'backlog', 'backlog']]);
+    expect(parse(out).warnings).toEqual([]);
+  });
+
+  // task-048 review round 2, minor-1: a subject is one line for git, but `.` stops at CR, U+2028
+  // and U+2029 — WingFoil's verb token does not.
+  it.each([
+    ['a line separator', '\u2028'],
+    ['a paragraph separator', '\u2029'],
+    ['a carriage return', '\r'],
+  ])('reads a subject holding %s after the id', (_label, separator) => {
+    expect(one(`wf(task): start task-001-login-form${separator}note`)).toEqual([
+      ['start', 'task-001-login-form', 'backlog', 'in-progress'],
     ]);
   });
 
@@ -404,6 +429,49 @@ describe('subjects as WingFoil reads them (task-048 review round 1, m-1)', () =>
     const out =
       record(42, 'wf(task): start[backlog → in-progress]', '', moved) + record(41, 'wf(task): start', '', moved);
     expect(parse(out)).toEqual({ events: [], warnings: [] });
+  });
+});
+
+// task-048 review round 2, minor-3 and nit-1: a commit that changes no `status:` line and has no
+// readable bracket keeps the state: from = to = the element's status before it, as WingFoil reads
+// the file in the commit's parent — taken from the last `status:` change of the file in the log,
+// whatever its subject; unknown (no earlier change in the log) → null with one warning per commit.
+describe('a commit that keeps the state (task-048 review round 2)', () => {
+  const T1 = 'docs/memory/task/task-001-login-form.md';
+  const T2 = 'docs/memory/task/task-002-password-reset.md';
+  const title = (file: string) => filePatch(file, ['-title: A', '+title: B']);
+
+  it('gives from = to = the status before the commit, also after a commit outside a verb', () => {
+    const out =
+      record(
+        52,
+        'wf(task): amend task-001-login-form',
+        'Approver: Morgan <morgan@example.test> (approver)\nReason: Typo\n',
+        title(T1),
+      ) +
+      record(
+        51,
+        'wf(task): task-001-login-form [draft → backlog]',
+        '',
+        filePatch(T1, ['-status: draft', '+status: backlog']),
+      ) +
+      record(50, 'wf(task): add task-001-login-form', '', filePatch(T1, ['+status: draft'], '@@ -0,0 +1 @@'));
+    const log = parse(out);
+    expect(log.events.map((e) => [e.operation, e.from, e.to])).toEqual([
+      ['amend', 'backlog', 'backlog'],
+      ['add', null, 'draft'],
+    ]);
+    expect(log.warnings).toEqual([]);
+  });
+
+  it('reports an unknown status once per commit, whatever the number of ids', () => {
+    const out = record(53, 'wf(task): amend task-001-login-form, task-002-password-reset', '', title(T1) + title(T2));
+    const log = parse(out);
+    expect(log.events.map((e) => [e.id, e.from, e.to])).toEqual([
+      ['task-001-login-form', null, null],
+      ['task-002-password-reset', null, null],
+    ]);
+    expect(log.warnings).toEqual([SHA(53)]);
   });
 });
 
