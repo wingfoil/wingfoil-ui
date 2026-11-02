@@ -3,7 +3,7 @@ id: governance-alignment-rel-v0.3-plan
 type: plan
 title: "Governance alignment rel-v0.3"
 status: active
-version: "0.5"         # optional — plan version
+version: "0.6"         # optional — plan version
 workflow: "governance-alignment"
 phase: "rel-v0.3"
 scope: "rl-v1/rel-v0.3"
@@ -14,11 +14,11 @@ tmpl_version: 260703   # Orignal template version
 
 ## Context
 
-**Version:** 0.5 · **Date:** 2026-11-02 (0.1: plan created, checkpoint decisions GA3-1 … GA3-8; 0.2:
+**Version:** 0.6 · **Date:** 2026-11-02 (0.1: plan created, checkpoint decisions GA3-1 … GA3-8; 0.2:
 step 1 done, step 2 red on WingFoil 0.3.1, GA3-9 — a governance task for WingFoil 0.3 support, step 2b;
 0.3: step 2b done (task-046), step 2 green on the pinned 0.3.1, GA3-10; 0.4: step 3 — the packs
 adoption, task-047 / bug-025, GA3-11; 0.5: step 4 — directive `wingfoil-cli` 1.17, bug-026 /
-task-048)
+task-048; 0.6: task-048 done, step 5 — the feedback inbox and its first sync, step 6, bug-027)
 **Branch:** `design/governance-alignment_v0.3`, merged into `main` with `--no-ff` at the close (GA3-1)
 **Workflow:** none — an ad-hoc plan, as `governance-alignment-rel-v0.2-plan` (GA-2);
 `governance-alignment` is the plan's `workflow` token only. Its outcome is an input of the
@@ -308,3 +308,46 @@ Decisions (the approver, 2026-11-01 … 2026-11-02):
   builder's task hand transitions (accepted by 0.3.1, W-34) could move to verbs.
 - Step 8 also updates `test/governance/workflow-diagnostics.baseline.json`: finalizing this ad-hoc
   plan removes its `W_INSTANCE_WORKFLOW_UNKNOWN` row (W-38).
+
+### Session 5 — 2026-11-02
+
+- task-048 (bug-026): `in-progress` `8b4027a`, bug-026 `planned` `195e468` (the approver) and
+  `in-progress` `3673ad1`; its own worktree, a developer agent; design D48-1 … D48-8 (the approver:
+  a per-entry history variant by shape; every operation but `assign` a Memory event; the labels;
+  the bell lists them; an amend is no move; the history route keeps the contract's fields); review
+  round 1 FAIL (a grouped-id subject scanned the patch once per id — 4,000 ids × 4,000 files 12.6 s,
+  repeated ids repeated events; a subject grammar stricter than WingFoil's), targeted round 2 FAIL
+  (minors: line separators in a subject, the bracket over the patch, the known exceptions of
+  spec-002 §5), fixed and checked by the coordinator; the coordinator also fixed R-06.3, broken by
+  step 4's heading "Known behaviours (0.3.1)" (`b008131`). Submit `40e7f9e`, approved `1c52705`,
+  merged `31ceb4d`, `done` `62f632c`; bug-026 `in-review` `ce2b969`. Gates on `14f4aa1`:
+  `test:coverage` 3404 passed, `test:contract` 323 passed, `test:e2e:chromium` 323 passed (on
+  `3a1ea5e`), the task's specs on three engines 114 passed.
+- bug-027 (commit text served by the API is not passed through the tool-text sanitiser; since v0.1;
+  found at task-048's design, D48-8): add `d7b6ed2`, submit `1e6e743`, triaged `c6d1e47` (medium,
+  v0.3) — for `release-planning` of `minor-v0.3`, not a blocker of this pre-step. bug-025 closed
+  `d11918a` (the approver).
+- Step 5 — the feedback inbox, by an agent on `design/ga3-step5`: the first-line rule of
+  `test/wingfoil-feedback.test.ts` admits `Not a CLI behaviour: <area>.` and lists of W-entries
+  (red first); F-027 filed from the unfiled draft (the draft removed); new notes F-028 … F-035, each
+  reproduced with WingFoil 0.3.1 alone (git side effects of reads; workflows of 0.2.2's `init`
+  refused; a hand-committed state and a forged approval in `memory history`; approvals authorised by
+  the author only; an ad-hoc plan becoming the active workflow; a filled required list reported
+  missing; `memory deprecate` with no approval; a refusal after the commit leaving the commit); the
+  first sync (rule 7, WingFoil dl-163 R4/R5, its `COLLABORATION.md` *The sync procedure*) from the
+  *Consumer feedback* table of WingFoil's `retro-v0.3.md` at `7efff2a0`, then re-read at the
+  `v0.3.2` tag (`6de2e13`, published 2026-11-02): 7 notes `resolved` (F-003, F-007, F-010, F-016,
+  F-019, F-020, F-025), the others `captured`, `open` or `needs-info` (F-018, answered with a 0.3.1
+  reproduction) as WingFoil's table and the procedure say. Review round 1 FAIL (the procedure's
+  `captured → resolved` rule applied by judgement; F-018's implicit question; F-034's first line),
+  round 2 FAIL (minors), round 3 PASS; merged `6e41dd9`. The pack-side findings of the adoption
+  were sent to WingFoil-Templates directly (the approver). Directive `wingfoil-cli` 1.19 (`2758c47`,
+  the approver's OK on the diff): W-44 (`memory deprecate`) and the *Note* cells of the new notes.
+- Step 6 — done by the adoption: the custom `release-publishing.yaml` with the stale header was
+  removed at step 3 (GA3-11, decision 8); the packs' built-in `release-publishing.yaml` has no
+  mention of a pipeline planned for `minor-v0.2` (`grep` of `.wingfoil/workflows/`).
+- For `release-planning` of `minor-v0.3`: advance the support matrix and the pin to WingFoil 0.3.2
+  once WingFoil-Templates' packs declare it (their range is `>=0.3.0 <=0.3.1` today); bug-027; a
+  candidate from the approver — the console flags a state set by a commit that is no WingFoil verb
+  and an `approve`/`reject` whose author does not hold the `approver` role (W-34; W-39 stays a
+  declared residual without signed approvals, F-031).
