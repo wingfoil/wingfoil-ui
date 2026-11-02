@@ -256,3 +256,27 @@ through the slot; logs `task048-*` in the session's scratch folder:
 | `npm run test:coverage` | 3381 passed, 2 skipped; statements 96.62 %, branches 91.52 %, functions 97.34 %, lines 98.41 % | 8.20 → 15.56 |
 | `npm run test:e2e:chromium` | 322 passed, **1 failed**: `directives.spec.ts` R-06.3 looks for the heading "Known behaviours (0.2.2)", which the directive has read "Known behaviours (0.3.1)" since `df447df` (step 4, before this branch) — pre-existing, not touched here, reported | 10.82 → 18.88 |
 | `npm run test:e2e --` `history-operations`, `element-panel`, `today`, `notification-bell` (Chromium, Firefox, WebKit) | 114 passed | 13.27 → 23.54 |
+
+### review round 1 (2026-11-02)
+
+Verdict FAIL (1 major, 1 minor, nits); D48-1 … D48-8 verified as implemented. The coordinator added
+`b008131` (R-06.3 reads the *Known behaviours* heading of any checked version; Chromium
+`directives.spec.ts` 5 passed, `task048-r063.log`, load 6.59 → 6.23).
+
+| Finding | Fix | Commits | Red / guard-removal |
+|---|---|---|---|
+| **M-1** (major) — grouped ids not de-duplicated, the patch scanned once per id: 4,000 ids × 4,000 files 12.6 s, `t-1` × 20,000 65 s and 20,000 events, a repeated id two events (WingFoil: one) | `eventSubject` keeps the distinct ids; `fileChanges` reads the patch once per commit into a map by file base name, the ids are looked up there; `MAX_SUBJECT_IDS` = 256 distinct ids — a subject naming more is no event, its sha a parse warning (never read in part); spec-002 §3 rules 1–2 | red `2e0ce4d`, fix `22a2aeb` | red: a repeated id, the large group (the parse's `counters.patchLines`, a load-independent count: one pass = the patch's lines + git's two leading newlines), the cap. Guard removal: the scan per id again → `patchLines` 461,315 instead of 1,795 for 256 ids, failed; no de-duplication → the two repetition tests failed; restored |
+| **m-1** (minor) — the grammar stricter than WingFoil 0.3.1's (`wf(task):start`, `:  start`, `[a->b]`, `[a → b] trailing`, `[a]`) | WingFoil's tolerance: `:\s*`, the arrow `\s*(?:→|->)\s*`, states trimmed; ids = the distinct words before the first `[`; a bracket that is not two states closed at the end of the subject (one state, empty, unclosed, text after it) gives no transition — from/to come from the patch, as without a bracket and as WingFoil's history reads them always; a verb glued to its bracket (`start[…]`, another token for WingFoil too) or a subject naming no id stays no event | red `2e0ce4d`, fix `22a2aeb` | red: 10 units (each form, and a two-state bracket trimmed); the spec-002 §5 check on a copy of the operations fixture with four loose subjects (`park` with `[a->b]`, `:  start … by hand`, `sync […one state]`, a repeated id) against WingFoil 0.3.1's own `memory history`: failed (6 events for 8 entries), passes after. The "glued verb / no id" unit passed before the fix: it guards the cases kept out |
+| n-1 — S-48.3 did not show the park and the finalize the design named | S-48.3 adds a `memory park` and a second phase plan closed by hand after `addOperations`, so the bell's last 10 hold both; it asserts "closed by Alex", "parked by Jordan", "amended by Morgan", the sync and both grouped starts | `1cdb2cb` | — (an e2e of the fix) |
+| n-2 — gate table without `b008131` and the final runs | the table below | — | — |
+| n-3 — spec-002/spec-003 `wingfoil_version` | "0.2.2, 0.3.1", with a Process Note | `1cdb2cb` | — |
+| n-4 — the API history entry against the CLI's | `schemas.test.ts`: `api/history.schema.json`'s entry = the CLI `v0.3` definition without `wingfoil`, closed | `1cdb2cb` | passed on its first run; guard removal: the API `operation` enum narrowed → failed; restored |
+| directive version line without `1.17:` | `315de3d` had put the 1.17 note in the `memory deprecate` heading; moved back into the version line (the heading as before) | `831721b` (`.wingfoil/` alone) | — |
+
+**e2e closure (task-048):**
+
+| Scenario | Spec file › test |
+|---|---|
+| S-48.1 the history of a phase plan closed by hand (W-04) | `test/e2e/history-operations.spec.ts` › "S-48.1 — the history of a phase plan closed by hand" |
+| S-48.2 a parked and an amended element, with their reasons | same spec › "S-48.2 — a parked and an amended element, with their reasons" |
+| S-48.3 the bell lists the 0.3 operations (finalize, park, amend, sync, grouped start) | same spec › "S-48.3 — the bell lists the finalize, the park, the amend, the sync and the grouped start" |
