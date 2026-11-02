@@ -106,7 +106,9 @@ add `assign` and `start` subjects at v0.3's planning.
   the events, so `since` and the `last-transition` actor come from an older event (e.g. a parked task
   shows the approve's time and author), and the bell never lists those moves.
 
-**Decisions — proposed (★ = recommendation; user-visible ones are the approver's):**
+**Decisions — approved 2026-11-02** by the approver (chat, via the coordinator): D48-1 … D48-8 all as recommended (★). The sanitising of the commit-sourced strings (D48-8, last sentence) is a separate bug, filed by the coordinator, not changed here.
+
+**Decisions (★ = recommendation):**
 
 - **D48-1 — history contract (★ A-per-entry variant).** spec-001 §5 asks for a variant by shape: each
   `entries[]` item is `oneOf` two definitions that exclude each other by the `wingfoil` field —
