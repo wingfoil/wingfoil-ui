@@ -1,9 +1,10 @@
 # Packs adoption — design (governance-alignment-rel-v0.3, step 3)
 
-**Version:** 0.4 · **Date:** 2026-11-02 (0.1: the design of GA3-10, with the proposed `.wingfoil/`
+**Version:** 0.5 · **Date:** 2026-11-02 (0.1: the design of GA3-10, with the proposed `.wingfoil/`
 change on `design/ga3-adoption`; 0.2: the 16 decisions confirmed, the risk mitigations GA3-11, the
 implementation and its gates — §11 … §13; 0.3: the open items' decisions 1-A and 2-A, the pre-packs
-variant — §13; 0.4: review round 1 — §14, its fixes in §3 … §5, §11 … §13. The plan (step 3, GA3-11)
+variant — §13; 0.4: review round 1 — §14, its fixes in §3 … §5, §11 … §13; 0.5: review round 2 —
+§15, the nits n2 … n4 listed in §11. The plan (step 3, GA3-11)
 cites this document as the detailed source of its decisions)
 
 The adoption design that decision GA3-10 of `governance-alignment-rel-v0.3-plan` asks for before any
@@ -384,11 +385,13 @@ listed in `.wingfoil/README.md` *Deviations from the packs* and proposed to Wing
 | R-1 residual (A-1) | the console and `workflow status` offer the `releasing` gate's Approve as soon as the release enters `releasing`; a `memory approve` at `approve-release` jumped to `released` and the publication steps vanished (probe) | `approve-release` is `workflow finalize --step release-submit.approve-release@… --reason …`, never `memory approve`; the release is approved only at `mark-released`, after `publish`'s post-check (`release-conventions` 1.2) | v0.3 `release-planning`: the console offers no Approve on a `releasing` release before `publish` |
 | R-2 residual (A-2) | `rl-vN` sits in the approver's queue for the whole life of the line | approve the line only at its end, every release `released` (`release-conventions` 1.2) | v0.3: no Approve on an `active` line before its releases are `released` |
 | A-3 | WingFoil 0.3.1 accepts a hand-committed `status:`: its history shows `approver: null` and the engine counts the state | W-20, W-25, W-26 superseded (`wingfoil-cli` 1.13); `AGENTS.md` keeps W-04 as the only hand transition | feedback (§12) |
-| A-4 | `memory deprecate` needs no approval: any identity deprecated an `active` release line, an `accepted` ADR and a `released` release (probe) | only in `end-of-life` › `deprecate` or with the approver's OK in the active plan (`cli-only-writes` 1.7) | feedback (§12) |
+| A-4 | `memory deprecate` needs no approval: any git identity, team member or not, deprecated an `active` release line, an `accepted` ADR and a `released` release (probe) | only in `end-of-life` › `deprecate` or with the approver's OK in the active plan (directive `wingfoil-cli` 1.14, global, so every role loads it; `cli-only-writes` 1.8; `AGENTS.md`) | feedback (§12) |
 | m4 | the `base` pack's `security-secrets` forbids personal emails in files; `dna.yaml` must hold the approver's | the one exception, declared | feedback (§12) |
 | m5 | a release or task whose `sprint` names no existing Sprint is accepted at `submit` | check the id against `docs/04_memory/sprints/` before submitting | feedback (§12) |
 | m1 | the composer's `AGENTS.md` region hard-codes four agent roles and the pack's `bug` gates | the hand-written *This repository* section overrides both; the region is not edited | feedback (§12) |
-| n2 … n4 | the adversarial review's remaining nits | declared as the review lists them, no change | — |
+| n2 | a non-approver identity can start workflows, finalize non-approval steps and adopt elements; adopting one already-approved spec also closes `specification.approve`, whose `where: status [pending]` finds nothing — authority holds on every approval step | declared; the agent starts, finalizes and adopts only as its plan says | feedback (§12) |
+| n3 | `workflow status` titles the gated elements "ungated elements" | declared | feedback (§12) |
+| n4 | `governance-evolution` › `apply` says "AGENTS.md updated", while `AGENTS.md`'s region says "do not edit by hand: recompose" | declared: `apply` updates the hand-written section, or recomposes for the region | feedback (§12) |
 
 Identity: the CLI authorises `memory approve` by the commit's git identity (a non-approver email gets
 "user not authorized to approve", coordinator probe), but agents commit under the approver's identity
@@ -433,7 +436,13 @@ task, not part of this step (`release-conventions`, `CLAUDE.md`).
 > - `base`'s `security-secrets` forbids personal emails in files, while `dna.yaml` must hold the
 >   approver's email for WingFoil to grant approval — the rule could name that exception;
 > - the composer's AGENTS.md region hard-codes the agent's roles (four) and the `bug` gates, so a
->   project whose DNA or `memory.yaml` differs must correct it outside the region.
+>   project whose DNA or `memory.yaml` differs must correct it outside the region;
+> - a non-approver identity can start workflows, finalize non-approval steps and adopt elements;
+>   adopting one already-approved tech-spec also closes `specification.approve`, whose
+>   `where: { status: [pending] }` then selects nothing;
+> - `workflow status` titles the elements waiting at a gate "ungated";
+> - `governance-evolution` › `apply` asks for "AGENTS.md updated", while the region of AGENTS.md is
+>   generated and not to be edited by hand.
 
 ## 13. Implementation (`design/ga3-adoption`)
 
@@ -548,7 +557,7 @@ approver decided every fix on 2026-11-02; the plan records them under step 3, GA
 | A-1 an early `memory approve` of a `releasing` release skips the publication | the gate kept; `approve-release` by `workflow finalize`, the release approved only at `mark-released`; residual in README R-1 and §11; v0.3 candidate; §12 | `4742863`, this commit |
 | A-2 `rl-vN` in the approver's queue for the whole line | the gate kept; approved only at the line's end; residual in README R-2 and §11; v0.3 candidate; §12 | `4742863`, this commit |
 | A-3 W-20, W-25, W-26 tell agents to set states by hand; 0.3.1 accepts it | supersession banner on the three entries (`wingfoil-cli` 1.13, *Checked against* unchanged: step 4); `AGENTS.md` keeps W-04 only; §12 | `4742863`, `9446f6f` |
-| A-4 `memory deprecate` needs no approval | rule in `cli-only-writes` 1.7; README and §11; §12 | `4742863`, this commit |
+| A-4 `memory deprecate` needs no approval | rule in `cli-only-writes` 1.7; README and §11; §12 — moved for every role in round 2 (MA-1, §15): `wingfoil-cli` 1.14, `AGENTS.md` | `4742863`, `5600c66`, `49b7027`, `2ba6ec0` |
 | A-m1 / C-m3 the generated `AGENTS.md` region contradicts R-3 and names four agent roles | override lines in its hand-written section; §12 | `9446f6f` |
 | A-m2 stale `bug.sync_state` texts | the task template's `bug:` comment, `release-planning` 1.6 | `4742863` |
 | A-m3 the traceability chain in no role-loaded text | `traceability-chain` (custom, a new id: the pack's `traceability` is kept and asks the project to name its chain), bound with `traceability` to facilitator, reviewer, architect, product-owner | `4742863` |
@@ -567,8 +576,8 @@ approver decided every fix on 2026-11-02; the plan records them under step 3, GA
 | C-n4 `test/README.md` | 0.49 names `usePrePacksStates` | `9446f6f` |
 | C-n5 the adopted versions | recorded in the plan at step 8 (the coordinator) | — |
 
-The workflow files changed by these fixes changed comments and versions only: the diagnostics
-baseline (R-4) is unchanged.
+The workflow files changed by these fixes changed comments, versions and, in `release-planning`, the
+`description` of `build-backlog` only: the diagnostics baseline (R-4) is unchanged.
 
 **Gates after the fixes** (on `9446f6f`, the tree of this commit outside this file; no code or test
 code changed, so no heavy gate): `typecheck`, `lint`, `format:check` exit 0 (load 3.2 … 3.5);
@@ -578,3 +587,29 @@ baseline; `memory search` 122 elements (task-047 and bug-025 added by the merge)
 `directives list` 21 entries, the one intended override warning; `directives list --role <r>` for
 every role: no dangling binding, `release-conventions` and `traceability-chain` listed for the
 facilitator; no transport command; the `.git` snapshot unchanged on the second run.
+
+## 15. Review round 2
+
+A targeted re-review at `5600c66`: **FAIL** (one major, minors and nits), all implementations of
+decisions the approver had taken (A-1, A-4, R-3). The plan records GA3-11 (the coordinator, on the
+pre-step branch); this document stays its detailed source.
+
+| Finding | Fix | Commit |
+|---------|-----|--------|
+| MA-1 the A-4 rule lived in `cli-only-writes`, loaded by developer, reviewer and architect only (not by the tech-lead who runs `end-of-life` › `deprecate`) | the rule in the global `wingfoil-cli` 1.14 and in `AGENTS.md`'s *This repository* section; `cli-only-writes` 1.8 consistent and pointing to it; README 0.7; §11 and §14 | `49b7027`, `2ba6ec0`, this commit |
+| mi-1 `dev-loop`'s header still described `bug.sync_state`, `waiting` bug states and a reject from `planned` | marked pre-packs, with what is in force (R-3); 1.7 | `49b7027` |
+| mi-2 GA3-11 not in the committed plan | the coordinator commits it on the pre-step branch; n2 … n4 listed in §11 (and §12) | this commit |
+| mi-3 `docs/publishing.md` stale for the approver | 0.5: `approve-release` by `workflow finalize`, never `memory approve`; the release commit and the rehearsal in `release-publishing`; `mark-released` the approver's `memory approve` after the publication; ignore the earlier Approve | `2ba6ec0` |
+| nit `release-planning` build-backlog "tracks its derived task(s) automatically"; `task.set_state(backlog)` missing from the superseded tokens | both fixed (1.7) | `49b7027` |
+| nit §14's last paragraph | names `release-planning`'s changed `description` | this commit |
+| nit `CLAUDE.md` on W-20, W-25, W-26 | already superseded (banner), re-checked at step 4 (0.12) | `2ba6ec0` |
+| nit README: "any identity, members or not" | README 0.7, `cli-only-writes` 1.8, `wingfoil-cli` 1.14, §11 | `49b7027`, this commit |
+
+**Gates after the fixes** (on `2ba6ec0`, the tree of this commit outside this file; no code or test code
+changed): `typecheck`, `lint`, `format:check` exit 0 (load 1.7 … 2.2); `test/governance`,
+`test/docs` and `test/wingfoil-feedback.test.ts` 79 passed. Probes on a clone: `workflow list` exit 0,
+75 warnings, 0 errors, equal to the baseline; `memory search` 122 elements, each once; `directives
+list --role <r>` for every role lists `wingfoil-cli`, hence the deprecate rule, for the seven agent
+roles and the approver, with no dangling binding (the only warnings: the intended
+`definition-of-done` override, and "no directives assigned to role 'approver'"); no transport
+command; the `.git` snapshot unchanged.
