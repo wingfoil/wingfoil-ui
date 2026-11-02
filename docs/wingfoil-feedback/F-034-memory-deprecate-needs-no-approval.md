@@ -7,7 +7,7 @@ wingfoil_version: 0.3.1
 answered_by: []
 ---
 
-Not a CLI behaviour: the memory deprecate rule of the wingfoil-cli directive.
+Reports W-44.
 
 ## Observed
 
@@ -34,9 +34,9 @@ not be a team member; an approved element and an active plan (an open workflow i
 alike, and `memory search` hides deprecated elements by default. `memory approve` on the same
 repository refuses a member without the `approver` role (`user not authorized to approve type
 'task'`). WingFoil documents deprecate as not an approval gate, with an optional `--reason`
-(spec-008 §2, as dl-027 records), so this is a request, not a defect. This repository works around it with a process
-rule (deprecate only in its `end-of-life` workflow or with the approver's recorded OK), which the
-CLI cannot enforce.
+(spec-008 §2, as dl-027 records), so this is a request, not a defect. This repository works around
+it with a process rule (deprecate only in its `end-of-life` workflow or with the approver's
+recorded OK), which the CLI cannot enforce.
 
 ## Expected
 

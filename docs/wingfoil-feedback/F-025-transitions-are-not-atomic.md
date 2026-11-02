@@ -2,7 +2,7 @@
 id: F-025
 title: "A transition is not atomic: a failed commit leaves the element file rewritten, and a late failure leaves the commit"
 kind: defect
-status: captured
+status: resolved
 wingfoil_version: 0.2.2
 answered_by: [bug-217]
 ---
