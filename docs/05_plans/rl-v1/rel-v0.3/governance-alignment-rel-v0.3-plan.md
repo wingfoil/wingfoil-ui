@@ -3,7 +3,7 @@ id: governance-alignment-rel-v0.3-plan
 type: plan
 title: "Governance alignment rel-v0.3"
 status: active
-version: "0.6"         # optional — plan version
+version: "0.7"         # optional — plan version
 workflow: "governance-alignment"
 phase: "rel-v0.3"
 scope: "rl-v1/rel-v0.3"
@@ -14,11 +14,12 @@ tmpl_version: 260703   # Orignal template version
 
 ## Context
 
-**Version:** 0.6 · **Date:** 2026-11-02 (0.1: plan created, checkpoint decisions GA3-1 … GA3-8; 0.2:
+**Version:** 0.7 · **Date:** 2026-11-02 (0.1: plan created, checkpoint decisions GA3-1 … GA3-8; 0.2:
 step 1 done, step 2 red on WingFoil 0.3.1, GA3-9 — a governance task for WingFoil 0.3 support, step 2b;
 0.3: step 2b done (task-046), step 2 green on the pinned 0.3.1, GA3-10; 0.4: step 3 — the packs
 adoption, task-047 / bug-025, GA3-11; 0.5: step 4 — directive `wingfoil-cli` 1.17, bug-026 /
-task-048; 0.6: task-048 done, step 5 — the feedback inbox and its first sync, step 6, bug-027)
+task-048; 0.6: task-048 done, step 5 — the feedback inbox and its first sync, step 6, bug-027; 0.7: step 7, the Handoff and step 8
+updated)
 **Branch:** `design/governance-alignment_v0.3`, merged into `main` with `--no-ff` at the close (GA3-1)
 **Workflow:** none — an ad-hoc plan, as `governance-alignment-rel-v0.2-plan` (GA-2);
 `governance-alignment` is the plan's `workflow` token only. Its outcome is an input of the
@@ -77,7 +78,7 @@ Every `.wingfoil/` change is committed before any later CLI verb (directive `win
 | 5 | **Feedback inbox** — widen the first-line rule of `test/wingfoil-feedback.test.ts` to notes that report no CLI behaviour; file F-027 from `.notes/draft-F-027-wingfoil-publish-pipeline.md` rewritten as public text (dl-005), then remove the draft; first sync (rule 7, WingFoil dl-163 R4/R5) from WingFoil's `retro-v0.3.md` *Consumer feedback*; `Last sync:` and the ledger of `docs/wingfoil-feedback/README.md` (F-023 … F-027 cited) | tech-lead | inbox synced | every status and `answered_by` from WingFoil's table, none by judgement |
 | 6 | **`release-publishing` header** — the header no longer says the npm pipeline is "planned for minor-v0.2" (on the workflow the adoption leaves in place) | tech-lead | header corrected | — |
 | 7 | Independent fresh-context read-only review of steps 2–6 until PASS (nothing above nit); re-read the whole changed file after every fix; the author checks Version/Date lines, wraps, ids and counts before each re-review (dl-009 action 9) | reviewer (agent) | PASS | review PASS |
-| 8 | Approver's OK on the result; plan finalized (separate commit); merge `--no-ff` into `main`; push | approver, tech-lead | plan `done` | the approver's OK in chat |
+| 8 | The approver's `memory approve` of bug-026 (`in-review → resolved`, then `resolved → closed`, its close note committed); the approver's OK on the result; plan finalized (separate commit, W-04) with `test/governance/workflow-diagnostics.baseline.json` updated in the same commit (its row for this ad-hoc plan goes, W-38); merge `--no-ff` into `main`; push | approver, tech-lead | plan `done` | the approver's OK in chat |
 
 Heavy gates (Playwright, `test:coverage`, `test:smoke`, `test:publish-smoke`, `test:timing`) run
 through the machine-free slot of the dev-loop rules; the contract tests and the default suite run
@@ -88,12 +89,14 @@ of v0.3, not here.
 ## Handoff
 
 - **Approver:** the checkpoint decisions (GA3-1 … GA3-8); the OK on each step's diff before its
-  commit (one commit per step); the OK on the reviewed result (step 8). No `memory approve` is needed
-  unless an adoption step migrates a gated state.
+  commit (one commit per step); the OK on the reviewed result (step 8); the `memory approve` of every
+  gate the pre-step met — task-046, task-047, task-048 and bug-024 … bug-027 (Sessions 2–5), and
+  bug-026's resolve and close before the merge (step 8).
 - **Agent:** reproductions, composition, edits, review coordination, Session log, commits, push.
-- **Completion:** plan `done`, merged into `main`. Next: `release-cycle` phase `release-planning`
-  for `minor-v0.3` (plan `release-planning-rel-v0.3-plan`), whose `reconcile-governance` phase cites
-  this plan.
+- **Completion:** plan `done`, merged into `main`. Next: the release-planning of `minor-v0.3` (plan
+  `release-planning-rel-v0.3-plan`) — after the adoption a procedure run inside `methodology/scrum`'s
+  `sprint` › `sprint-planning` / `plan-release` (`.wingfoil/README.md` *Workflows*; the engine is
+  bootstrapped there, GA3-11 decision 14), whose reconcile step cites this plan.
 
 ## Session log
 

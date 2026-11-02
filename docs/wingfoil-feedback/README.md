@@ -137,8 +137,7 @@ of F-003 (its ingestion use case). The candidates W-01 (covered by R-03, now F-0
 the migration, by dl-007: F-020 reports W-25 and W-26, F-021 W-22 and F-022 W-23. F-027 … F-035
 were added at `governance-alignment-rel-v0.3-plan` step 5 (dl-010): F-027 reports no CLI behaviour
 (WingFoil's publish pipeline), F-028 W-36 and W-37, F-029 W-32, F-030 W-34, F-031 W-39, F-032 W-38,
-F-033 W-33, F-034 W-44 (the `memory deprecate` entry, to be added to `wingfoil-cli` when task-048
-is merged; until then the directive's `memory deprecate` section states it) and F-035 W-30.
+F-033 W-33, F-034 W-44 (the `memory deprecate` entry, `wingfoil-cli` 1.19) and F-035 W-30.
 
 **The former header.** The needs collected here were discovered while designing WingFoil UI and
 belong to **WingFoil**, not to the UI. Each was to be captured in the WingFoil project through its

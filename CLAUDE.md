@@ -1,6 +1,6 @@
 # CLAUDE.md — agent entry point
 
-**Version:** 0.13 · **Date:** 2026-11-02 (0.1: release v0.1, `user-docs` `align-agent-docs`; 0.2: v0.1.0 released, release submit; 0.3: `test:smoke` wave gate — task-026; 0.4: e2e on three engines, inner-loop Chromium run — task-027; 0.5: `test:publish-smoke`, the publishing guide — task-029; 0.6: release v0.2 user-docs — v0.2 in release validation; 0.7: v0.2.0 released — git tag and npm, the first version by hand; 0.8: the GitHub Release of v0.2.0 made; 0.9: the pin on `wingfoil@0.3.1` — task-046; 0.10: the packs `base`, `software`, `methodology/scrum` adopted, `AGENTS.md` — governance-alignment-rel-v0.3-plan step 3; 0.11: BOOTSTRAP.md marked historical — its review round 1; 0.12: W-20, W-25, W-26 already superseded — round 2; 0.13: `wingfoil-cli` re-checked against 0.3.1 — step 4)
+**Version:** 0.14 · **Date:** 2026-11-02 (0.1: release v0.1, `user-docs` `align-agent-docs`; 0.2: v0.1.0 released, release submit; 0.3: `test:smoke` wave gate — task-026; 0.4: e2e on three engines, inner-loop Chromium run — task-027; 0.5: `test:publish-smoke`, the publishing guide — task-029; 0.6: release v0.2 user-docs — v0.2 in release validation; 0.7: v0.2.0 released — git tag and npm, the first version by hand; 0.8: the GitHub Release of v0.2.0 made; 0.9: the pin on `wingfoil@0.3.1` — task-046; 0.10: the packs `base`, `software`, `methodology/scrum` adopted, `AGENTS.md` — governance-alignment-rel-v0.3-plan step 3; 0.11: BOOTSTRAP.md marked historical — its review round 1; 0.12: W-20, W-25, W-26 already superseded — round 2; 0.13: `wingfoil-cli` re-checked against 0.3.1 — step 4; 0.14: the next step and the directive version after the v0.3 pre-step — its step 7 review)
 
 WingFoil UI: a local web UI for WingFoil-governed projects. A Node.js server (`server/`) drives
 each project's pinned `wingfoil` CLI and reads git; a React app (`web/`) shows the result;
@@ -17,8 +17,8 @@ provenance statement. Later versions go through `.github/workflows/publish.yml` 
 then `promote` to the npm stage queue through the trusted publisher, live after the approver's `npm
 stage approve` ([`docs/publishing.md`](docs/publishing.md)). The GitHub Release of `v0.2.0` was made
 by hand (2026-10-20); an automatic one is planned for v0.3. The previous release, **v0.1 — Read-only
-console** (git tag `v0.1.0`), was not published on npm (dl-004). Next: the v0.2 retrospective (a new
-session), then the release-planning of v0.3.
+console** (git tag `v0.1.0`), was not published on npm (dl-004). Next: the release-planning of `minor-v0.3`, after the
+governance-alignment pre-step (`governance-alignment-rel-v0.3-plan`) merges into `main`.
 
 Released in `v0.1.0`:
 
@@ -49,7 +49,7 @@ limitation: [`CHANGELOG.md`](CHANGELOG.md).
 | Memory types with paths, id patterns, states and gates; workflows; role → directive bindings; directive list | [`.wingfoil/README.md`](.wingfoil/README.md) — the tables projected from `memory.yaml`, `workflows.yaml` and `roles.yaml` live there, not here |
 | Directives (loaded per role, `.wingfoil/roles.yaml`) | `.wingfoil/directives/custom/` and `built-in/` — global to every role: `wingfoil-cli`, `claim-evidence`, `claim-sources`, `documentation`, `doc-versioning`, `security-secrets` |
 | The current phase and its decisions | the `active` plan in `docs/05_plans/` (one plan per workflow phase; e.g. `docs/05_plans/rl-v1/rel-v0.2/`) |
-| Tasks, specs, ADRs, decision logs, bugs | `docs/04_memory/` (`v0.1/`, `v0.2/`, `design/specs/`, `design/adrs/`, `design/dls/`, `bugs/`) |
+| Tasks, specs, ADRs, decision logs, bugs | `docs/04_memory/` (`v0.1/`, `v0.2/`, `v0.3/`, `sprints/`, `design/specs/`, `design/adrs/`, `design/dls/`, `bugs/`) |
 | UX reference and prototype | `docs/00_reference/` |
 | Tests and their suites | [`test/README.md`](test/README.md) |
 | npm publishing: pipeline, approver checklist, release runbook (agents never publish or configure the registry) | [`docs/publishing.md`](docs/publishing.md) |
@@ -67,8 +67,8 @@ limitation: [`CHANGELOG.md`](CHANGELOG.md).
   transitions `backlog → in-progress` and `approved → done`, and the release transitions up to
   `releasing`, are `memory submit`; `releasing → released` and a bug's `triaged → planned` are the
   approver's `memory approve` (W-25, W-26). WingFoil 0.3.1 accepts a hand-committed `status:`
-  without the approver (W-34): never set a state a verb owns by hand. The directive is checked
-  against `wingfoil@0.3.1` (version 1.15, `governance-alignment-rel-v0.3-plan` step 4); where an
+  without the approver (W-34): never set a state a verb owns by hand. The directive was re-checked
+  against `wingfoil@0.3.1` at `governance-alignment-rel-v0.3-plan` step 4 (1.15; now 1.19); where an
   entry and `.wingfoil/memory.yaml` disagree, `memory.yaml` is right. Read the directive's *Known
   behaviours* table before running a verb; do not copy it here.
 - The DNA's agent executes as facilitator, product-owner, developer, reviewer, qa, architect and
