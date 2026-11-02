@@ -12,7 +12,6 @@ import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { cli, commitFile } from './support/events.js';
 import { expect, test } from './support/fixtures.js';
-import { actAs } from './support/identity.js';
 import { addOperations, AMEND_REASON, PARK_REASON } from '../harness/fixtures/index.js';
 
 test.use({ prebuild: ['custom'] });
@@ -73,10 +72,9 @@ test.describe('task-048 — WingFoil 0.3 operations in the history and the event
   }) => {
     const fx = await fixtures.copy('custom');
     const ids = await addOperations(fx);
-    // The bell lists the last 10 events: a park and a plan closed by hand (W-04) made last.
-    await actAs(fx, 'Jordan');
+    // The bell lists the last 10 events: a park and a plan closed by hand (W-04) made last, as the
+    // fixture's own identity (Alex).
     await cli(fx, ['--format', 'json', 'memory', 'park', ids.grouped[0], '--reason', 'Waiting for review']);
-    await actAs(fx, 'Alex');
     const added = JSON.parse(
       await cli(fx, [
         '--format',
@@ -117,7 +115,7 @@ test.describe('task-048 — WingFoil 0.3 operations in the history and the event
         .filter({ has: page.locator('.bell-update-id', { hasText: new RegExp(`^${id}$`) }) })
         .filter({ has: page.locator('.bell-update-what', { hasText: what }) });
     await expect(item(added.id, 'closed by Alex')).toHaveCount(1, { timeout: COLD_READ_MS });
-    await expect(item(ids.grouped[0], 'parked by Jordan')).toHaveCount(1);
+    await expect(item(ids.grouped[0], 'parked by Alex')).toHaveCount(1);
     await expect(item(ids.amended, 'amended by Morgan')).toHaveCount(1);
     await expect(item(ids.grouped[1], 'moved with a linked element by Jordan')).toHaveCount(1);
     await expect(item(ids.grouped[0], 'started by Jordan')).toHaveCount(1);
