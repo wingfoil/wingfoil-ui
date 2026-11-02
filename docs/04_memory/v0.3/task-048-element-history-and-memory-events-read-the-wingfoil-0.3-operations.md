@@ -191,3 +191,68 @@ Gates (AC-5) as the task lists them, heavy ones through the slot; on three engin
 note (D48-6); the schemas' `description`/`$comment`; directive `wingfoil-cli` W-43 rewritten as fixed by
 task-048 (1.18); CHANGELOG *Unreleased* › *Fixed* (bug-026); `test/README.md` version line (new spec,
 new samples folder).
+
+### red / green / refactor (2026-11-02)
+
+**Red (failing tests committed before the fix):**
+
+- `59a216c` — `test/harness/fixtures/operations.ts` (`addOperations`: on a copy of the `custom`
+  fixture, CLI ≥ 0.3: a phase plan added, submitted and closed by hand `wf(plan): finalize … [active →
+  done]`; a task started by hand then `memory park`ed; a grouped `start` of two tasks, then a chained
+  `sync` `[in-progress → in-review → approved]`; `memory amend` of `dl-002-use-fastify` by Morgan; a
+  grouped `assign release v0.1` of two bugs; dated after the fixture's commits) and `handCommit` of
+  `project.ts`; `capture-samples.test.ts` captures `wingfoil-0.3.1/custom/memory-history-operations/`
+  (seven elements; `-t 'operations'` re-captures only these, the other samples untouched);
+  `schemas.test.ts` validates them and checks each entry against its version's definition
+  (`behaviours(version).historyEntry`). Red: 4 failed — `data/entries/2/operation must be equal to
+  one of the allowed values` (bug-026's message), and no per-version definitions.
+- `7f8337f` — the `MemoryOperation` contracts type (the eleven) and `HistoryOperation` /
+  `MemoryEventEntry` following it (types only, so the red tests typecheck); `isTransitionOp` for the
+  CLI contract's §4.1 check (the verbs the resolved states decide). `memory-log.test.ts`: 5 failed
+  (start, finalize, sync, park, amend; grouped ids; chained bracket; `start-fix`, verbless,
+  `wf(dna)`, `wf(workflow)` — the last two were read as events before: a defect found on the way);
+  the spec-002 §5 check on the operations fixture failed (`CliOutputError: Unexpected output of
+  memory history`).
+- `fcf38fd` — descriptor (2 failed: an amend after a reject, an amend as the last transition);
+  routes (2 failed: the history of the plan closed by hand → 502; the events lack the operations);
+  web panel labels (6 failed) and bell labels (1 failed); e2e `history-operations.spec.ts` S-48.1 …
+  S-48.3: 3 failed on Chromium (`task048-red-e2e`, commit `fcf38fd`, load 5.94 → 7.51).
+- Passed before the fix, so a guard-removal check was run: the descriptor's "park, sync and finalize
+  are moves" (moves restricted to the five verbs → failed; restored); the `assign` unit passed
+  through the ids grammar alone, so `940ae0f` adds a non-canonical `wf(task): assign <id> [a → b]`
+  case — with the `assign` exclusion removed it fails; restored.
+
+**Green (`1776d16`):** `contracts/cli/memory-history.schema.json` entries `oneOf` the definitions
+`v0.2` (no `wingfoil`, five operations) and `v0.3` (`wingfoil` required, eleven); the API's
+`history.schema.json` becomes its own schema on the contract's fields (`additionalProperties:
+false`) — a `$ref` to the CLI schema would have required `wingfoil` the route now drops;
+`memory-events.schema.json` with ten operations. Server: `MEMORY_OPERATIONS`, `RELEASE_OPERATION`,
+`CORRECTION_OPERATION`, `CONFIGURATION_SCOPES` in `presets/wingfoil.ts`; `eventSubject`
+(`memory-log.ts`) reads the verb as a whole token, the grouped ids, a two-state or chained bracket;
+the descriptor's moves exclude `amend`; `historyBody` in `project-routes.ts`. Web: the six labels in
+`element.history.entry` (one message, history and bell).
+
+**Refactor:** none beyond the comments of `notifications.ts`, `model.ts`, `History.tsx`. One
+correction of a red test itself: the expected order of the events in "reads wf(plan): finalize"
+(records are newest first as written).
+
+**Docs (`dfb88b8`, `3de6bfe`, `2ee437b`, `499d62e`):** spec-001 §3, spec-002 §1–§3, §5, spec-003 §4,
+spec-004 §3, each with a dated Process Note; CHANGELOG *Unreleased* › *Fixed* (bug-026);
+`test/README.md` 0.51; `docs/user-guide.md` 0.22; directive `wingfoil-cli` 1.18 — W-43 fixed (its
+own commit).
+
+**Gates (AC-5)** — commit `499d62e` (the docs-only Execution Notes commit follows), heavy ones
+through the slot; logs `task048-*` in the session's scratch folder:
+
+| Gate | Result | Load (start → end) |
+|---|---|---|
+| `npm run typecheck` | pass | 6.81 → 7.82 |
+| `npm run lint` | pass | 7.82 → 7.92 |
+| `npm run format:check` | pass | 7.92 → 8.28 |
+| `npm run docs:api` | pass | 8.28 → 7.91 |
+| `check_tasks.py v0.3` | the 28 expected "listed by 0 tasks", no other failure | 7.91 |
+| `vitest run test/governance` | 4 passed | 12.49 → 12.33 |
+| `npm run test:contract` | 322 passed, 2 skipped (the capture) | 7.13 → 8.48 |
+| `npm run test:coverage` | 3381 passed, 2 skipped; statements 96.62 %, branches 91.52 %, functions 97.34 %, lines 98.41 % | 8.20 → 15.56 |
+| `npm run test:e2e:chromium` | 322 passed, **1 failed**: `directives.spec.ts` R-06.3 looks for the heading "Known behaviours (0.2.2)", which the directive has read "Known behaviours (0.3.1)" since `df447df` (step 4, before this branch) — pre-existing, not touched here, reported | 10.82 → 18.88 |
+| `npm run test:e2e --` `history-operations`, `element-panel`, `today`, `notification-bell` (Chromium, Firefox, WebKit) | 114 passed | 13.27 → 23.54 |
