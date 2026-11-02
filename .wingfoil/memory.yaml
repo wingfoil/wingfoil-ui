@@ -19,7 +19,7 @@
 #   - the `service` type.
 # Removed with the adoption: the `waiting` states of release, task, bug and release-line (the
 # packs keep `waiting` only where WingFoil drives the edge for every project), so those edges move
-# by `memory submit` or `memory approve`; directive `wingfoil-cli` is re-checked in step 4.
+# by `memory submit` or `memory approve`; directive `wingfoil-cli` is re-checked in 1.15 (step 4).
 # Deviations from the packs (GA3-11, the approver, 2026-11-01): R-1 a gate on release `releasing`
 # (approve → released, after the publication); R-2 a gate on release-line `active` (approve →
 # done); R-3 no gate on bug `planned` (submit → in-progress when the fix starts).
