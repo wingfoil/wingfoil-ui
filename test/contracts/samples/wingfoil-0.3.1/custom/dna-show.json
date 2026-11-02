@@ -1,11 +1,12 @@
 {
   "version": 1.9,
+  "format": 1,
   "project": {
     "name": "custom",
     "description": "Local web UI for WingFoil-governed projects, served by a local server that drives the wingfoil CLI.",
     "license": "MIT",
     "repository": "wingfoil-ui",
-    "methodology": "custom"
+    "methodology": "scrum"
   },
   "modules": [
     {
@@ -42,8 +43,8 @@
       {
         "name": "WingFoil CLI",
         "category": "governance",
-        "version": "0.2.2",
-        "notes": "pinned devDependency; also the CLI contract the UI consumes"
+        "version": "0.3.1",
+        "notes": "pinned devDependency; also the CLI contract the UI consumes (support matrix 0.2.2, 0.3.1)"
       },
       {
         "name": "git",
@@ -118,6 +119,11 @@
         "phase": "specification"
       },
       {
+        "name": "Scrum",
+        "phase": "delivery",
+        "notes": "methodology/scrum@1.0.0 — Sprints of 2 weeks"
+      },
+      {
         "name": "TDD",
         "phase": "delivery"
       }
@@ -179,29 +185,36 @@
     ],
     "roles": [
       {
-        "name": "developer"
-      },
-      {
-        "name": "reviewer"
-      },
-      {
-        "name": "qa"
-      },
-      {
-        "name": "architect"
-      },
-      {
-        "name": "product-owner"
-      },
-      {
-        "name": "tech-lead"
-      },
-      {
-        "name": "approver"
+        "name": "approver",
+        "description": "Rules decisions and approves gates; a person, never an agent."
       },
       {
         "name": "facilitator",
-        "description": "Drives discovery/inception sessions (Lean Inception)."
+        "description": "Runs the workflows: captures, assesses, proposes and applies."
+      },
+      {
+        "name": "product-owner",
+        "description": "Owns what the project captures and decides to do."
+      },
+      {
+        "name": "architect",
+        "description": "Shapes the system: writes the tech-specs and the architecture decisions."
+      },
+      {
+        "name": "developer",
+        "description": "Writes the code and its tests, and captures the bugs found."
+      },
+      {
+        "name": "reviewer",
+        "description": "Reviews the work of others before it is accepted."
+      },
+      {
+        "name": "qa",
+        "description": "Checks a release before it is published and rehearses its publication."
+      },
+      {
+        "name": "tech-lead",
+        "description": "Triages bugs and runs a release: its states, commit, tag and publication."
       }
     ]
   },
@@ -218,7 +231,8 @@
       "docs/"
     ],
     "config": [
-      "package.json"
+      "package.json",
+      ".wingfoil"
     ],
     "governance": [
       ".wingfoil/"

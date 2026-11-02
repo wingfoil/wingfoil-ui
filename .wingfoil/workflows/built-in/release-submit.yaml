@@ -1,0 +1,23 @@
+format: 1
+# WingFoil's release-submit, its phase names unchanged (R3).
+name: release-submit
+kind: sub
+element: release
+description: "Check a release, move it to releasing, and have it approved"
+version: 1
+phases:
+  - name: pre-release-checks
+    description: "Run the checks the project requires before a release: tests, audits, notes."
+    role: qa
+    actions:
+      - agent.execute
+  - name: enter-releasing
+    description: "The release enters releasing."
+    role: tech-lead
+    actions:
+      - element.set_state(releasing)
+  - name: approve-release
+    description: "The approver approves the release; a reject goes back to the checks."
+    role: approver
+    approval: { by_role: approver }
+    fallback: { step: pre-release-checks }

@@ -24,6 +24,20 @@
       "assignment": "architect, tech-lead"
     },
     {
+      "path": "directives/built-in/claim-sources.md",
+      "frontmatter": {
+        "id": "claim-sources",
+        "name": "claim-sources",
+        "type": "directive",
+        "kind": "built-in",
+        "title": "Sources of claims",
+        "format": 1
+      },
+      "roles": [],
+      "global": true,
+      "assignment": "global (all roles)"
+    },
+    {
       "path": "directives/built-in/code-quality.md",
       "frontmatter": {
         "id": "code-quality",
@@ -69,6 +83,56 @@
       "assignment": "reviewer, tech-lead"
     },
     {
+      "path": "directives/built-in/definition-of-done.md",
+      "frontmatter": {
+        "id": "definition-of-done",
+        "name": "definition-of-done",
+        "type": "directive",
+        "kind": "built-in",
+        "title": "Definition of Done",
+        "format": 1
+      },
+      "roles": [
+        "developer",
+        "qa",
+        "reviewer"
+      ],
+      "global": false,
+      "assignment": "developer, qa, reviewer"
+    },
+    {
+      "path": "directives/built-in/determinism.md",
+      "frontmatter": {
+        "id": "determinism",
+        "name": "determinism",
+        "type": "directive",
+        "kind": "built-in",
+        "title": "Determinism",
+        "format": 1
+      },
+      "roles": [
+        "architect",
+        "developer",
+        "reviewer"
+      ],
+      "global": false,
+      "assignment": "architect, developer, reviewer"
+    },
+    {
+      "path": "directives/built-in/doc-versioning.md",
+      "frontmatter": {
+        "id": "doc-versioning",
+        "name": "doc-versioning",
+        "type": "directive",
+        "kind": "built-in",
+        "title": "Documentation versioning",
+        "format": 1
+      },
+      "roles": [],
+      "global": true,
+      "assignment": "global (all roles)"
+    },
+    {
       "path": "directives/built-in/documentation.md",
       "frontmatter": {
         "id": "documentation",
@@ -83,6 +147,38 @@
         "ref": [
           "P3.8"
         ]
+      },
+      "roles": [],
+      "global": true,
+      "assignment": "global (all roles)"
+    },
+    {
+      "path": "directives/built-in/scrum.md",
+      "frontmatter": {
+        "id": "scrum",
+        "name": "scrum",
+        "type": "directive",
+        "kind": "built-in",
+        "title": "Scrum",
+        "format": 1
+      },
+      "roles": [
+        "developer",
+        "facilitator",
+        "product-owner"
+      ],
+      "global": false,
+      "assignment": "developer, facilitator, product-owner"
+    },
+    {
+      "path": "directives/built-in/security-secrets.md",
+      "frontmatter": {
+        "id": "security-secrets",
+        "name": "security-secrets",
+        "type": "directive",
+        "kind": "built-in",
+        "title": "Secrets",
+        "format": 1
       },
       "roles": [],
       "global": true,
@@ -130,6 +226,25 @@
       ],
       "global": false,
       "assignment": "developer, qa"
+    },
+    {
+      "path": "directives/built-in/traceability.md",
+      "frontmatter": {
+        "id": "traceability",
+        "name": "traceability",
+        "type": "directive",
+        "kind": "built-in",
+        "title": "Traceability",
+        "format": 1
+      },
+      "roles": [
+        "architect",
+        "facilitator",
+        "product-owner",
+        "reviewer"
+      ],
+      "global": false,
+      "assignment": "architect, facilitator, product-owner, reviewer"
     },
     {
       "path": "directives/custom/accessibility.md",
@@ -197,63 +312,49 @@
       "assignment": "architect, developer, reviewer"
     },
     {
-      "path": "directives/custom/determinism.md",
+      "path": "directives/custom/definition-of-done.md",
       "frontmatter": {
-        "id": "determinism",
-        "name": "determinism",
+        "id": "definition-of-done",
+        "name": "definition-of-done",
         "type": "directive",
         "kind": "custom",
-        "title": "Determinism"
+        "title": "Definition of Done of WingFoil UI",
+        "tags": [
+          "custom",
+          "scrum",
+          "testing",
+          "review"
+        ]
       },
       "roles": [
-        "architect",
-        "developer"
-      ],
-      "global": false,
-      "assignment": "architect, developer"
-    },
-    {
-      "path": "directives/custom/doc-versioning.md",
-      "frontmatter": {
-        "id": "doc-versioning",
-        "name": "doc-versioning",
-        "type": "directive",
-        "kind": "custom",
-        "title": "Documentation versioning"
-      },
-      "roles": [],
-      "global": true,
-      "assignment": "global (all roles)"
-    },
-    {
-      "path": "directives/custom/security-secrets.md",
-      "frontmatter": {
-        "id": "security-secrets",
-        "name": "security-secrets",
-        "type": "directive",
-        "kind": "custom",
-        "title": "Secret hygiene"
-      },
-      "roles": [],
-      "global": true,
-      "assignment": "global (all roles)"
-    },
-    {
-      "path": "directives/custom/traceability.md",
-      "frontmatter": {
-        "id": "traceability",
-        "name": "traceability",
-        "type": "directive",
-        "kind": "custom",
-        "title": "Traceability"
-      },
-      "roles": [
-        "architect",
-        "product-owner",
+        "developer",
+        "qa",
         "reviewer"
       ],
       "global": false,
-      "assignment": "architect, product-owner, reviewer"
+      "assignment": "developer, qa, reviewer"
+    },
+    {
+      "path": "directives/custom/release-conventions.md",
+      "frontmatter": {
+        "id": "release-conventions",
+        "name": "release-conventions",
+        "type": "directive",
+        "kind": "custom",
+        "title": "Release conventions of WingFoil UI",
+        "tags": [
+          "custom",
+          "release",
+          "git",
+          "npm"
+        ]
+      },
+      "roles": [
+        "qa",
+        "tech-lead"
+      ],
+      "global": false,
+      "assignment": "qa, tech-lead"
     },
     {
       "path": "directives/custom/ux-consistency.md",
@@ -297,5 +398,7 @@
       "assignment": "global (all roles)"
     }
   ],
-  "warnings": []
+  "warnings": [
+    "directive 'definition-of-done' defined in directives/built-in/definition-of-done.md, directives/custom/definition-of-done.md; using directives/custom/definition-of-done.md"
+  ]
 }

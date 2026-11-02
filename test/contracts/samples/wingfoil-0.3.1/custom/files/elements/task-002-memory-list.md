@@ -4,6 +4,7 @@ type: task
 title: "Memory list"              # REQUIRED — e.g. "Today view: pending gates list (REQ-UI-03)"
 status: done
 release: "v0.1"            # REQUIRED — target release version, e.g. "v0.1"
+sprint: "n/a — no Sprint in the fixture"
 module: ""             # optional — server | web | contracts (dna.yaml modules)
 priority: ""           # optional — high | medium | low
 tags: []               # optional — additional labels, e.g. [today, a11y]

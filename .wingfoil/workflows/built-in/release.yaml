@@ -1,0 +1,15 @@
+format: 1
+# The release slot's default (dl-015 C5): thin, bound to one release, as WingFoil 0.3.0 requires
+# of an include from a workflow that iterates over releases.
+name: release
+kind: sub
+element: release
+description: "Submit one release, then publish it"
+version: 1
+phases:
+  - name: submit
+    description: "Submit the release: its checks, releasing, the approval."
+    include: release-submit
+  - name: publishing
+    description: "Publish the release: its commit, rehearsal, tag, publication, released."
+    include: release-publishing

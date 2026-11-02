@@ -23,11 +23,12 @@ import { ProjectReads } from '../../server/src/reads/project-reads.js';
 import {
   buildFixture,
   copyFixture,
+  customGovernance,
   FIXTURE_KINDS,
   type Fixture,
   type BddFixtureKind,
 } from '../harness/fixtures/index.js';
-import { observed, STANDARD } from '../server/descriptor/standard.js';
+import { observed, STANDARD, STANDARD_PACKS } from '../server/descriptor/standard.js';
 import { actAs, behaviours, cliBuildFor, matrixVersions } from './support.js';
 
 const VERSIONS = await matrixVersions();
@@ -79,14 +80,28 @@ describe.each(VERSIONS)('action descriptor — wingfoil %s', (version) => {
 
   it.each(FIXTURE_KINDS)('%s: 100 % of the standard elements match the table (TT-ARC-06)', (kind) => {
     const got = Object.fromEntries(described[kind].descriptors.map((d) => [d.id, observed(d)]));
-    expect(got).toEqual(STANDARD[kind]);
+    // The custom fixture's `.wingfoil/` depends on the version (packs from 0.3.0, decision 16).
+    const oracle = customGovernance(version) === 'packs' ? STANDARD_PACKS : STANDARD;
+    expect(got).toEqual(oracle[kind]);
   });
 
   it('S-28.1 — the same build lists each fixture’s own types, every element with its own state', async () => {
     const expected: Record<BddFixtureKind, string[]> = {
       // `init --template Kanban` of the version (0.3.1 adds `plan`, task-046 AC-3).
       kanban: [...behaviours(version).kanbanTypes],
-      custom: ['release-line', 'release', 'task', 'adr', 'decision-log', 'tech-spec', 'bug', 'plan', 'service'],
+      // This repository's types; the packs' `sprint` (methodology/scrum) from 0.3.0 (decision 16).
+      custom: [
+        'release-line',
+        'release',
+        'task',
+        'adr',
+        'decision-log',
+        'tech-spec',
+        'bug',
+        'plan',
+        ...(customGovernance(version) === 'packs' ? ['sprint'] : []),
+        'service',
+      ],
       unknown: ['story', 'note'],
     };
     for (const kind of FIXTURE_KINDS) {

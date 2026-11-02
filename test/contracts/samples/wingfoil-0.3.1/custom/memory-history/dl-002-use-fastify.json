@@ -3,7 +3,7 @@
   "path": "docs/04_memory/design/dls/dl-002-use-fastify.md",
   "entries": [
     {
-      "sha": "12e08c44701812b3da56ea1adcb5e1396026a52a",
+      "sha": "c64b1806e691f6e6f31866a1b64f748a47c30adb",
       "author": "Casey <casey@example.test>",
       "timestamp": "2026-09-29T15:20:21+00:00",
       "operation": "add",
@@ -15,7 +15,7 @@
       "wingfoil": "0.3.1 (870bd4406f3b9bba5ecde7a5f8198b80c2a98583)"
     },
     {
-      "sha": "86de140debb387443a92f0759259ce03cf6f8b18",
+      "sha": "b55e1b993260b9948a9f04752e9f6de1ef3938e5",
       "author": "Casey <casey@example.test>",
       "timestamp": "2026-09-29T15:20:22+00:00",
       "operation": "submit",

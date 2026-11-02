@@ -11,7 +11,8 @@
     "docs/"
   ],
   "config": [
-    "package.json"
+    "package.json",
+    ".wingfoil"
   ],
   "governance": [
     ".wingfoil/"

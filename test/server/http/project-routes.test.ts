@@ -632,7 +632,12 @@ describe('GET /api/p/:pid/directives with a custom directive overriding a built-
     expect((await c.get(`/api/p/${c.pid}`)).body.roleView).toBe('developer');
     expect(testing[0].roles).toContain('developer');
     expect(testing[0].mine).toBe(true);
+    // This repository's own governance (the packs adoption, GA3-11) also overrides the built-in
+    // `definition-of-done` of methodology/scrum: one entry for it too, and its warning first.
+    const dod = list.body.entries.filter((e: any) => e.frontmatter.id === 'definition-of-done');
+    expect(dod.map((e: any) => e.path)).toEqual(['directives/custom/definition-of-done.md']);
     expect(list.body.warnings).toEqual([
+      "directive 'definition-of-done' defined in directives/built-in/definition-of-done.md, directives/custom/definition-of-done.md; using directives/custom/definition-of-done.md",
       "directive 'testing' defined in directives/built-in/testing.md, directives/custom/testing.md; using directives/custom/testing.md",
     ]);
     const one = await c.get(`/api/p/${c.pid}/directives/testing`);

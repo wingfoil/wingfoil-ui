@@ -6,6 +6,7 @@ status: draft          # auto-set by wingfoil; memory.submit → active
 version: ""            # optional — plan version
 workflow: ""           # REQUIRED — the workflow this plan executes, e.g. "dev-loop"
 phase: ""              # REQUIRED — the phase/scope this plan covers, e.g. "inception", "rel-v0.1"
+parent: ""             # a phase plan: "<workflow>.<phase>" of the run it belongs to; empty for a run started by `workflow start` (base@2.0.1)
 scope: ""             # the docs/05_plans/ folder (path token, give it with --set scope=): "sw-life-cycle", "rl-v1", "rl-v1/rel-v0.1"
 element: ""            # optional — the Memory element this phase iterates (e.g. a release id)
 release: ""            # optional — target release, e.g. "v0.1"

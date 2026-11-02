@@ -18,7 +18,9 @@ import { git, run } from './run.js';
 const TYPES: Record<FixtureKind, string[]> = {
   // `init` of the pinned WingFoil 0.3.1 declares `plan` too (task-046).
   kanban: ['adr', 'bug', 'decision-log', 'plan', 'release', 'release-line', 'task', 'tech-spec'],
-  custom: ['release-line', 'release', 'task', 'adr', 'decision-log', 'tech-spec', 'bug', 'plan', 'service'],
+  // The live `.wingfoil/` on the pinned 0.3.1, with the packs' `sprint` (`customGovernance`, the packs
+  // adoption's decision 16).
+  custom: ['release-line', 'release', 'task', 'adr', 'decision-log', 'tech-spec', 'bug', 'plan', 'sprint', 'service'],
   unknown: ['story', 'note'],
   scrum: ['adr', 'bug', 'decision-log', 'plan', 'release', 'release-line', 'task', 'tech-spec'],
 };

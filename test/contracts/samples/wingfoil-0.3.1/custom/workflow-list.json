@@ -1,28 +1,42 @@
 {
   "baseline": {
     "rev": "HEAD",
-    "commit": "e98e56b3ed4d644cd900df4462e39d4de859f8ed"
+    "commit": "05546611fb65cfe21cb924284fec05b226488f47"
   },
   "workflows": [
     {
       "name": "adr-ingest",
       "startable": true,
       "includable": false,
-      "description": "Capture a single Architectural Decision Record (ADR) into Memory.",
+      "description": "Capture an architecture decision as an adr, and have the approver accept it",
       "executableNow": true
     },
     {
       "name": "bug-ingest",
       "startable": true,
       "includable": false,
-      "description": "Capture a single defect report (bug) into Memory.",
+      "description": "Capture a bug and open it, then have it triaged",
       "executableNow": true
     },
     {
       "name": "decision-log-ingest",
       "startable": true,
       "includable": false,
-      "description": "Capture a single product/process decision (decision-log) into Memory.",
+      "description": "Capture a decision that changes no governance, and have the approver rule it",
+      "executableNow": true
+    },
+    {
+      "name": "governance-evolution",
+      "startable": true,
+      "includable": false,
+      "description": "Assess, propose, approve and apply a change of the project's governance",
+      "executableNow": true
+    },
+    {
+      "name": "retrospective-periodic",
+      "startable": true,
+      "includable": false,
+      "description": "A retrospective of the work since the previous one",
       "executableNow": true
     },
     {
@@ -36,39 +50,11 @@
       "name": "sw-life-cycle",
       "startable": true,
       "includable": false,
-      "description": "Full software life cycle for WingFoil UI: from WingFoil initialisation and product inception, through technical specification downcast, iterative per-release delivery, to end-of-life.",
+      "description": "Inception, specification, delivery and end of life of a software project",
       "executableNow": true
     }
   ],
   "diagnostics": [
-    {
-      "code": "W_WORKFLOW_UNBOUND_TOKEN",
-      "severity": "warning",
-      "file": "workflows/custom/sw-life-cycle.yaml",
-      "path": "phases[3].checks.post[0]",
-      "message": "check token 'frontmatter.required' has no built-in or bindings.yaml binding"
-    },
-    {
-      "code": "W_WORKFLOW_UNBOUND_TOKEN",
-      "severity": "warning",
-      "file": "workflows/custom/bug-ingest.yaml",
-      "path": "phases[0].checks.post[0]",
-      "message": "check token 'frontmatter.required' has no built-in or bindings.yaml binding"
-    },
-    {
-      "code": "W_WORKFLOW_UNBOUND_TOKEN",
-      "severity": "warning",
-      "file": "workflows/custom/decision-log-ingest.yaml",
-      "path": "phases[0].checks.post[0]",
-      "message": "check token 'frontmatter.required' has no built-in or bindings.yaml binding"
-    },
-    {
-      "code": "W_WORKFLOW_UNBOUND_TOKEN",
-      "severity": "warning",
-      "file": "workflows/custom/adr-ingest.yaml",
-      "path": "phases[0].checks.post[0]",
-      "message": "check token 'frontmatter.required' has no built-in or bindings.yaml binding"
-    },
     {
       "code": "W_WORKFLOW_UNBOUND_TOKEN",
       "severity": "warning",
@@ -82,90 +68,6 @@
       "file": "workflows/custom/service-ingest.yaml",
       "path": "phases[0].checks.post[1]",
       "message": "check token 'secret-scan.clean' has no built-in or bindings.yaml binding"
-    },
-    {
-      "code": "W_WORKFLOW_UNBOUND_TOKEN",
-      "severity": "warning",
-      "file": "workflows/custom/specification-downcast.yaml",
-      "path": "phases[0].checks.post[0]",
-      "message": "check token '100% of MVP Canvas features covered; edge-case stories present' has no built-in or bindings.yaml binding"
-    },
-    {
-      "code": "W_WORKFLOW_UNBOUND_TOKEN",
-      "severity": "warning",
-      "file": "workflows/custom/specification-downcast.yaml",
-      "path": "phases[1].checks.post[0]",
-      "message": "check token 'each scenario atomic + testable; zero ambiguous adjectives/adverbs' has no built-in or bindings.yaml binding"
-    },
-    {
-      "code": "W_WORKFLOW_UNBOUND_TOKEN",
-      "severity": "warning",
-      "file": "workflows/custom/specification-downcast.yaml",
-      "path": "phases[2].checks.post[0]",
-      "message": "check token 'every REQ has a numeric/percentage/boolean Fit Criterion' has no built-in or bindings.yaml binding"
-    },
-    {
-      "code": "W_WORKFLOW_UNBOUND_TOKEN",
-      "severity": "warning",
-      "file": "workflows/custom/specification-downcast.yaml",
-      "path": "phases[3].checks.post[0]",
-      "message": "check token 'valid JSON; no duplicate IDs; no circular dependencies' has no built-in or bindings.yaml binding"
-    },
-    {
-      "code": "W_WORKFLOW_UNBOUND_TOKEN",
-      "severity": "warning",
-      "file": "workflows/custom/user-story-mapping.yaml",
-      "path": "phases[2].checks.post[0]",
-      "message": "check token '100% of MVP Canvas features included; edge-case stories generated' has no built-in or bindings.yaml binding"
-    },
-    {
-      "code": "W_WORKFLOW_UNBOUND_TOKEN",
-      "severity": "warning",
-      "file": "workflows/custom/specification-by-examples.yaml",
-      "path": "phases[1].checks.post[0]",
-      "message": "check token 'each story has >=1 happy path and >=1 edge/error path' has no built-in or bindings.yaml binding"
-    },
-    {
-      "code": "W_WORKFLOW_UNBOUND_TOKEN",
-      "severity": "warning",
-      "file": "workflows/custom/specification-by-examples.yaml",
-      "path": "phases[1].checks.post[1]",
-      "message": "check token 'no ambiguous adjectives/adverbs' has no built-in or bindings.yaml binding"
-    },
-    {
-      "code": "W_WORKFLOW_UNBOUND_TOKEN",
-      "severity": "warning",
-      "file": "workflows/custom/specification-by-examples.yaml",
-      "path": "phases[1].checks.post[2]",
-      "message": "check token 'each scenario atomic and testable' has no built-in or bindings.yaml binding"
-    },
-    {
-      "code": "W_WORKFLOW_UNBOUND_TOKEN",
-      "severity": "warning",
-      "file": "workflows/custom/volere-requirements.yaml",
-      "path": "phases[2].checks.post[0]",
-      "message": "check token 'every REQ has a clearly numeric, percentage-based, or boolean Fit Criterion' has no built-in or bindings.yaml binding"
-    },
-    {
-      "code": "W_WORKFLOW_UNBOUND_TOKEN",
-      "severity": "warning",
-      "file": "workflows/custom/backlog-export.yaml",
-      "path": "phases[2].checks.post[0]",
-      "message": "check token 'valid JSON parse' has no built-in or bindings.yaml binding"
-    },
-    {
-      "code": "W_WORKFLOW_UNBOUND_TOKEN",
-      "severity": "warning",
-      "file": "workflows/custom/backlog-export.yaml",
-      "path": "phases[2].checks.post[1]",
-      "message": "check token 'no duplicate IDs' has no built-in or bindings.yaml binding"
-    },
-    {
-      "code": "W_WORKFLOW_UNBOUND_TOKEN",
-      "severity": "warning",
-      "file": "workflows/custom/backlog-export.yaml",
-      "path": "phases[2].checks.post[2]",
-      "message": "check token 'no circular dependencies' has no built-in or bindings.yaml binding"
     },
     {
       "code": "W_WORKFLOW_UNBOUND_TOKEN",
@@ -236,27 +138,6 @@
       "file": "workflows/custom/initial-design.yaml",
       "path": "phases[3].produces[0]",
       "message": "produces 'docs/04_memory/design/specs/{id}.md' in a phase that memory.adds: name its owner as { type, path } (dl-104 D3)"
-    },
-    {
-      "code": "W_WORKFLOW_UNBOUND_TOKEN",
-      "severity": "warning",
-      "file": "workflows/custom/release-line-cycle.yaml",
-      "path": "phases[3].checks.pre[0]",
-      "message": "check token 'all releases where release-line={release-line.version} are status' has no built-in or bindings.yaml binding"
-    },
-    {
-      "code": "W_WORKFLOW_UNBOUND_TOKEN",
-      "severity": "warning",
-      "file": "workflows/custom/release-line-cycle.yaml",
-      "path": "phases[3].checks.post[0]",
-      "message": "check token 'frontmatter.required' has no built-in or bindings.yaml binding"
-    },
-    {
-      "code": "W_PHASE_PRODUCES_OWNER_IMPLICIT",
-      "severity": "warning",
-      "file": "workflows/custom/release-line-cycle.yaml",
-      "path": "phases[3].produces[0]",
-      "message": "produces 'docs/04_memory/planning/{id}.md' in a phase that memory.adds: name its owner as { type, path } (dl-104 D3)"
     },
     {
       "code": "W_WORKFLOW_UNBOUND_TOKEN",
@@ -691,153 +572,6 @@
       "file": "workflows/custom/e2e-smoke.yaml",
       "path": "phases[6].checks.post[0]",
       "message": "check token 'e2e-smoke-passed' has no built-in or bindings.yaml binding"
-    },
-    {
-      "code": "W_WORKFLOW_UNBOUND_TOKEN",
-      "severity": "warning",
-      "file": "workflows/custom/release-submit.yaml",
-      "path": "phases[0].actions[0]",
-      "message": "action token 'git.commit' has no built-in or bindings.yaml binding"
-    },
-    {
-      "code": "W_WORKFLOW_UNBOUND_TOKEN",
-      "severity": "warning",
-      "file": "workflows/custom/release-submit.yaml",
-      "path": "phases[1].checks.pre[0]",
-      "message": "check token 'all tasks where tags=[{release.version}] are status' has no built-in or bindings.yaml binding"
-    },
-    {
-      "code": "W_WORKFLOW_UNBOUND_TOKEN",
-      "severity": "warning",
-      "file": "workflows/custom/release-submit.yaml",
-      "path": "phases[1].checks.pre[1]",
-      "message": "check token 'all bugs where release={release.version}, or release is empty and release-origin={release.version}, are status' has no built-in or bindings.yaml binding"
-    },
-    {
-      "code": "W_WORKFLOW_UNBOUND_TOKEN",
-      "severity": "warning",
-      "file": "workflows/custom/release-submit.yaml",
-      "path": "phases[1].checks.pre[2]",
-      "message": "check token 'tests.passing' has no built-in or bindings.yaml binding"
-    },
-    {
-      "code": "W_WORKFLOW_UNBOUND_TOKEN",
-      "severity": "warning",
-      "file": "workflows/custom/release-submit.yaml",
-      "path": "phases[1].checks.pre[3]",
-      "message": "check token 'tests.coverage' has no built-in or bindings.yaml binding"
-    },
-    {
-      "code": "W_WORKFLOW_UNBOUND_TOKEN",
-      "severity": "warning",
-      "file": "workflows/custom/release-publishing.yaml",
-      "path": "phases[0].actions[0]",
-      "message": "action token 'git.tag' has no built-in or bindings.yaml binding"
-    },
-    {
-      "code": "W_WORKFLOW_UNBOUND_TOKEN",
-      "severity": "warning",
-      "file": "workflows/custom/release-publishing.yaml",
-      "path": "phases[0].checks.pre[0]",
-      "message": "check token 'on-branch-is-main' has no built-in or bindings.yaml binding"
-    },
-    {
-      "code": "W_WORKFLOW_UNBOUND_TOKEN",
-      "severity": "warning",
-      "file": "workflows/custom/release-publishing.yaml",
-      "path": "phases[0].checks.pre[1]",
-      "message": "check token 'release-branch-merged-to-main' has no built-in or bindings.yaml binding"
-    },
-    {
-      "code": "W_WORKFLOW_UNBOUND_TOKEN",
-      "severity": "warning",
-      "file": "workflows/custom/release-publishing.yaml",
-      "path": "phases[1].checks.pre[0]",
-      "message": "check token 'tests.passing' has no built-in or bindings.yaml binding"
-    },
-    {
-      "code": "W_WORKFLOW_UNBOUND_TOKEN",
-      "severity": "warning",
-      "file": "workflows/custom/release-publishing.yaml",
-      "path": "phases[1].checks.post[0]",
-      "message": "check token 'the tagged version is live on the npm registry, or a decision-log records the skipped step' has no built-in or bindings.yaml binding"
-    },
-    {
-      "code": "W_WORKFLOW_UNBOUND_TOKEN",
-      "severity": "warning",
-      "file": "workflows/custom/retrospective.yaml",
-      "path": "phases[2].checks.post[0]",
-      "message": "check token 'frontmatter.required' has no built-in or bindings.yaml binding"
-    },
-    {
-      "code": "W_PHASE_PRODUCES_OWNER_IMPLICIT",
-      "severity": "warning",
-      "file": "workflows/custom/retrospective.yaml",
-      "path": "phases[2].produces[0]",
-      "message": "produces 'docs/04_memory/design/dls/{id}.md' in a phase that memory.adds: name its owner as { type, path } (dl-104 D3)"
-    },
-    {
-      "code": "W_WORKFLOW_UNBOUND_TOKEN",
-      "severity": "warning",
-      "file": "workflows/custom/end-of-life.yaml",
-      "path": "phases[0].checks.post[0]",
-      "message": "check token 'frontmatter.required' has no built-in or bindings.yaml binding"
-    },
-    {
-      "code": "W_WORKFLOW_UNBOUND_TOKEN",
-      "severity": "warning",
-      "file": "workflows/custom/end-of-life.yaml",
-      "path": "phases[1].checks.post[0]",
-      "message": "check token 'deprecated content excluded from agent context and default search' has no built-in or bindings.yaml binding"
-    },
-    {
-      "code": "W_PHASE_ACTION_UNTARGETED",
-      "severity": "warning",
-      "file": "workflows/custom/end-of-life.yaml",
-      "path": "phases[1].actions[0]",
-      "message": "action 'memory.deprecate' has no element to act on (the workflow binds none, no memory.add precedes it, no selection)"
-    },
-    {
-      "code": "W_WORKFLOW_UNBOUND_TOKEN",
-      "severity": "warning",
-      "file": "workflows/custom/end-of-life.yaml",
-      "path": "phases[2].actions[0]",
-      "message": "action token 'git.commit' has no built-in or bindings.yaml binding"
-    },
-    {
-      "code": "W_PHASE_FALLBACK_NOT_REENTRANT",
-      "severity": "warning",
-      "file": "workflows/custom/bug-ingest.yaml",
-      "path": "phases[1].fallback.step",
-      "message": "fallback step 'capture' is an earlier phase, but a reject from bug gate 'open' goes forward to 'closed': the reject completes this phase"
-    },
-    {
-      "code": "W_PHASE_TOKEN_OUT_OF_SCOPE",
-      "severity": "warning",
-      "file": "workflows/custom/release-planning.yaml",
-      "path": "phases[6].actions[2]",
-      "message": "token '{dl.id}' names no enclosing element (in scope: release-line, release)"
-    },
-    {
-      "code": "W_PHASE_TOKEN_OUT_OF_SCOPE",
-      "severity": "warning",
-      "file": "workflows/custom/release-planning.yaml",
-      "path": "phases[6].actions[4]",
-      "message": "token '{bug.id}' names no enclosing element (in scope: release-line, release)"
-    },
-    {
-      "code": "W_PHASE_TOKEN_OUT_OF_SCOPE",
-      "severity": "warning",
-      "file": "workflows/custom/release-submit.yaml",
-      "path": "phases[0].actions[0]",
-      "message": "token '{package.version}' names no enclosing element (in scope: release-line, release)"
-    },
-    {
-      "code": "W_PHASE_TOKEN_OUT_OF_SCOPE",
-      "severity": "warning",
-      "file": "workflows/custom/release-publishing.yaml",
-      "path": "phases[0].actions[0]",
-      "message": "token '{package.version}' names no enclosing element (in scope: release-line, release)"
     }
   ]
 }

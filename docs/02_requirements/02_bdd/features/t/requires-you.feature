@@ -69,7 +69,7 @@ Feature: Requires you
 
   @US-T-04 @v0.2 @edge @fx-custom
   Scenario: T-04.2 — Drop an item that leaves the review state
-    Given the custom fixture is open and Sam, holding reviewer and approver, sees "task-001-cli-adapter" in Requires you
+    Given the custom fixture with the pre-packs states is open and Sam, holding reviewer and approver, sees "task-001-cli-adapter" in Requires you
     When "task-001-cli-adapter" is approved with the CLI in a terminal
     Then within 5 seconds Requires you no longer lists "task-001-cli-adapter"
 

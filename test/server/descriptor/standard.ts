@@ -79,6 +79,34 @@ export const STANDARD: Record<BddFixtureKind, Record<string, Row>> = {
   },
 };
 
+const work = (submitTo: string, member: string): Row => ({
+  kind: 'work',
+  verbs: [['submit', submitTo, null]],
+  actor: { kind: 'member', member, basis: 'last-transition' },
+  tone: 'active',
+  bucket: 'in-progress',
+});
+
+/**
+ * {@link STANDARD} for a `custom` fixture built on the live `.wingfoil/`, composed from the
+ * wingfoil-templates packs (`customGovernance` of the fixture builder, CLI 0.3.0 and later): the
+ * packs keep no `waiting` state on `release` and `task` (base and software charters, R-1), so the
+ * three elements that were `waiting` are of kind `work` (spec-003 §2: an intermediate state that is
+ * neither gate nor waiting), offer `submit` to the next state (§3), name the author of the last
+ * transition into the state (§4), with the tone and bucket of work in progress (§5, §7):
+ * `minor-v0.1` (`planning`, submitted by Alex) and the two tasks in `backlog` (approved by Morgan).
+ * Every other row is unchanged.
+ */
+export const STANDARD_PACKS: Record<BddFixtureKind, Record<string, Row>> = {
+  ...STANDARD,
+  custom: {
+    ...STANDARD.custom,
+    'minor-v0.1': work('in-development', 'Alex'),
+    'task-003-element-panel': work('in-progress', 'Morgan'),
+    'task-004-themes': work('in-progress', 'Morgan'),
+  },
+};
+
 /** The descriptor's answer for one row, in the oracle's terms. */
 export function observed(d: ActionDescriptor): Row {
   const actor =
