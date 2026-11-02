@@ -27,6 +27,13 @@ release `v0.2` the git tag `v0.2.0` and the npm version `wingfoil-ui@0.2.0`.
 
 ### Fixed
 
+- **The element history and the Memory events read WingFoil 0.3's operations** (bug-026,
+  task-048): on a project on WingFoil 0.3.x the element panel's history failed for every element
+  with a `finalize`, `park`, `amend`, `start`, `sync` or `assign` commit — every phase plan closed
+  by hand among them. The history now shows each with a line of its own ("closed by", "parked by",
+  "amended by", "started by", "moved with a linked element by", "assigned to a release by"); the
+  bell's *Updates* list them too, except an `assign`, which changes no state; the time in the
+  current state and who must act follow a park, a start, a sync or a closing, never an amend.
 - **A directive overriding a built-in one is listed once** (bug-025, task-047): when a project's
   custom directive has the id of a built-in one, the Directives view and the element panel's
   *Directives* section listed both files — extra rows, the bound roles repeated, the order wrong

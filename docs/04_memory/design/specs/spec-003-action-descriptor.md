@@ -86,6 +86,10 @@ table; this table does not change.
 | `undeclared` | the role `tech-lead` |
 | `last`, `off-sequence`, `archived` | no one |
 
+The events read here are the moves of the element: every event but an `amend`, which records a
+correction and keeps the state (it changes neither the actor, nor the rejection, nor `since`;
+task-048 D48-6), and a commit outside a verb only when it changed the state.
+
 A member is matched by the email of the event's author against `dna.team.members[].email`. When
 the author is not a member (or the history has no event), the actor falls back to the role
 `tech-lead` with "Author not in the team" (output: `actor.fallback: "author-not-in-team"`).
@@ -289,3 +293,6 @@ element list; `web/` renders it and never re-derives it.
   it (informational footer); a `gate-waiting` state shown to a member without `approver` reads
   "Reserved to approver" without names (its actor is the engine) with "Waiting for the workflow
   engine to advance". Decided by the approver.
+- 2026-11-02 — amended in dev-loop task-048 (bug-026, D48-6 approved by the approver): §4 the
+  events read are the moves — an `amend` of WingFoil 0.3.x is not one; `start`, `finalize`, `sync`
+  and `park` are, like the five verbs.

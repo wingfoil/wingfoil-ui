@@ -112,7 +112,7 @@ v0.1 routes are defined by the schemas in `contracts/api/` (errors: `error.schem
 | `GET /api/p/:pid/config` | `config.schema.json` |
 | `GET /api/p/:pid/elements` | `elements.schema.json` (descriptor: `descriptor.schema.json`) |
 | `GET /api/p/:pid/elements/:eid` | `element.schema.json` |
-| `GET /api/p/:pid/elements/:eid/history` | `history.schema.json` |
+| `GET /api/p/:pid/elements/:eid/history` | `history.schema.json` — the `memory history` entries on their contract fields only (a CLI's added fields, e.g. 0.3.x's `wingfoil`, are not passed on; task-048) |
 | `GET /api/p/:pid/directives`, `/directives/:did` | `directives.schema.json`, `directive.schema.json` |
 | `GET /api/p/:pid/docs` | `docs.schema.json` |
 | `GET /api/p/:pid/files/tree`, `/files/content` | `file-tree.schema.json`, `file-content.schema.json` |
@@ -416,3 +416,6 @@ goes away by itself when the stream reconnects. A network failure is not rendere
   precedence (`compareDirectivePrecedence`: a `custom/` file first, then the smallest path by code
   units), neither the last nor the first file listed — `directives list` sorts names per folder, so
   its order is not the paths' order.
+- 2026-11-02 — amended in dev-loop task-048 (bug-026, D48-8 approved by the approver): §3 the history
+  route passes on the contract's fields of each entry only; the Memory events carry WingFoil 0.3.x's
+  operations but `assign` (spec-002 §1).

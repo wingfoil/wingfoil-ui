@@ -37,13 +37,15 @@ Checked on WingFoil 0.2.2 (2026-10-02, this repository and a Kanban fixture):
 
 `{sha, timestamp, author, operation, type, id, from, to, approver, reason}` — `timestamp` = author
 date (ISO 8601), `author` = `Name <email>`, `operation` ∈ `add`, `submit`, `approve`, `reject`,
-`deprecate`; `from` is `null` for `add`; `approver` and `reason` are `null` when absent.
+`deprecate`, `start`, `finalize`, `sync`, `amend`, `park` — every Memory operation of WingFoil
+0.3.x but `assign`, which changes the `release` field, not the state (task-048); `from` is `null`
+for `add`; `approver` and `reason` are `null` when absent.
 
 ### 2. Sources
 
 | View | Source | Processes |
 |------|--------|-----------|
-| Element panel history (G1) | `memory history <id>` (spec-001 §3) — the CLI's own reconstruction; non-`wf` commits touching the file (`operation: null`) are shown as "edited outside a WingFoil verb" | 1 per opened element and repository state |
+| Element panel history (G1) | `memory history <id>` (spec-001 §3) — the CLI's own reconstruction; non-`wf` commits touching the file (`operation: null`) are shown as "edited outside a WingFoil verb"; each of WingFoil 0.3.x's operations has a line of its own (task-048) | 1 per opened element and repository state |
 | Updates (S7), Recent activity (T5), Timeline (R6); the action descriptor (spec-003: creator, submitter, last reject, `since`) behind Today (v0.2) and every element list | **one `git log -p`** over the Memory directories, parsed as §3, plus its header-only sha list | 2 git processes per HEAD |
 
 Calling `memory history` for every element would cost one process per element (hundreds on the
@@ -78,10 +80,17 @@ the others are read; an output that does not match the sha list is refused as a 
 guessed at.
 
 For each record:
-1. **Subject** must match
-   `^wf\((?<type>[^)]+)\): (?<op>add|submit|approve|reject|deprecate) (?<id>\S+)(?: \[(?<from>[^\]]+) → (?<to>[^\]]+)\])?$`;
-   any other commit (including `wf(plan): finalize …` and non-`wf` commits) is **not** an event.
-2. **Transition:** from the subject when present; otherwise from the patch of the element's file
+1. **Subject** must be `wf(<type>): <op> <ids>` with an optional ` [<bracket>]`, where `<op>` is the
+   whole token after `: ` and one of the Memory operations of §1 (as WingFoil 0.3.x reads it,
+   `dist/memory/audit.js` `parseMemoryOperation`: `start-fix` is not `start`), `<type>` is not a
+   configuration scope (`dna`, `directive`, `workflow`), `<ids>` is one id or several joined by
+   `, ` (a grouped subject: one event per id, each read as below), and the bracket names two
+   states or more joined by ` → `. Any other commit — `assign`, a verbless `wf(<type>): <id> [a → b]`,
+   a configuration commit, a non-`wf` commit — is **not** an event. The same operations are read
+   whatever the project's WingFoil version: on 0.2.2, whose `memory history` reads the five verbs
+   only, a practised `wf(plan): finalize …` is an event too (task-048 D48-3).
+2. **Transition:** from the subject when its bracket names exactly two states; otherwise (no
+   bracket, or a chained one such as a `sync`'s `[a → b → c]`) from the patch of the element's file
    (the file whose name is `<id>.md`): `-status: <from>` and `+status: <to>` (`add`: `+status:` only).
    Values are taken without quotes and trailing comments. As in `memory history`, a commit is an
    event of `<id>` **only when its patch touches `<id>.md`**.
@@ -109,11 +118,13 @@ For each record:
 ### 5. Verification
 
 - **Consistency contract test:** on every fixture and every version of the support matrix, the
-  events of §3 for each element equal the `wf` entries of its `memory history` (same sha,
-  operation, from, to, approver, reason).
+  events of §3 for each element equal the entries of its `memory history` whose operation is
+  neither `null` nor `assign` (same sha, operation, from, to, approver, reason); also on the custom
+  fixture with the WingFoil 0.3 operations (`test/harness/fixtures/operations.ts`, task-048).
 - Unit tests with recorded `git log` outputs: each operation, a subject with and without
-  transition, a multi-line reason, a reason followed by a `Co-Authored-By:` trailer, a non-`wf` commit, `wf(plan): finalize` (ignored), a quoted `status:` value, a
-  rewritten history.
+  transition, a multi-line reason, a reason followed by a `Co-Authored-By:` trailer, a non-`wf` commit, `wf(plan): finalize` (an event since task-048), a quoted `status:` value, a
+  rewritten history; WingFoil 0.3.x's `start`, `sync`, `park`, `amend`, grouped ids, a chained
+  bracket, `assign`, a verb outside the operations, configuration scopes.
 - Unit tests for the framing: a NUL inside a patch (resync on the sha list), a malformed `wf`
   record (skipped with a warning), a sha or date that fails its check, an output that does not
   match the sha list (refused).
@@ -154,3 +165,10 @@ For each record:
   same HEAD, a first open is a full parse; Memory list first open 333–407 ms on the large fixture,
   task-021), with the "after one commit" evidence rule; §5 the incremental check is v0.3. Decided
   by the approver at checkpoint 2.
+- 2026-11-02 — amended in dev-loop task-048 (bug-026, decisions D48-2, D48-3 approved by the
+  approver): WingFoil 0.3.x records `start`, `finalize`, `sync`, `amend`, `park` and `assign` besides
+  the five verbs. §1 the event's operations are every Memory operation but `assign`; §2 the history
+  names each operation; §3 rule 1 the subject grammar of WingFoil (the verb as a whole token,
+  grouped ids, configuration scopes excluded), the same operations on every version; rule 2 a
+  chained bracket read from the patch; §5 the consistency check excludes `assign`, and runs on the
+  0.3 operations too.
