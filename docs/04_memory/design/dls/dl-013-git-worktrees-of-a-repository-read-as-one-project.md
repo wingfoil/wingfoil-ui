@@ -3,29 +3,69 @@ id: dl-013-git-worktrees-of-a-repository-read-as-one-project           # auto-ge
 type: decision-log
 title: "Git worktrees of a repository read as one project"              # REQUIRED — e.g. "Retrospective v0.1" or "Initialise WingFoil before inception"
 status: draft          # auto-set by wingfoil
-context: ""            # optional — short label for the context, e.g. "retrospective", "planning", "ad-hoc"
+context: "ad-hoc"            # optional — short label for the context, e.g. "retrospective", "planning", "ad-hoc"
 release: ""            # optional — implementation release this DL is assigned to (stamped at release-planning/build-backlog), e.g. "v0.1"
-contributor: ""        # optional — who originated this contribution, if not the git author; credited for AI-generated work derived from it
+contributor: "WingFoil maintainer (request of 2026-10-28)"        # optional — who originated this contribution, if not the git author; credited for AI-generated work derived from it
 credit: ""             # optional — free-text credit note
 tmpl_version: 260703   # Orignal template version
 ---
 
 ## Context
 
-<!-- The situation or question that prompted this decision. -->
+The WingFoil maintainer ruled on 2026-10-28 that the console should read a repository's git
+worktrees as part of one project, and sent the request through the coordination channel. WingFoil
+itself develops on several worktrees of one repository (a release line, a phase plan, task
+branches). On WingFoil UI 0.2.0:
+
+- a project is one folder: an element that exists only on another worktree's branch answers *not
+  found* at `/p/<project id>/e/<full id>`, although it is work in flight;
+- adding that worktree as a project of its own is refused: `POST /api/projects` answers 422
+  `already-listed` with `sameRemote` when another listed project has the same remote
+  (`server/src/projects/project-list.ts`, `refuseSameRemote`), so those elements cannot be shown at
+  all.
+
+Requested: (1) a project lists the worktrees of its repository (`git worktree list`) and reads
+Memory from each of them, or from the ones the user picks; (2) an element URL resolves the element
+in any of the project's worktrees, the main checkout first, says which branch holds it and offers
+the other branches when several hold it; (3) the elements list can be filtered by worktree or
+branch and shows the branch of each element that is not on the main checkout.
+
+The request touches the project model (spec-004, spec-006), git reading (spec-010) and the CLI cost
+budget of a cold read (TT-PERF-05: at most six CLI calls on a cold Memory list, one set per
+worktree here), and every worktree path comes from a tool's output.
 
 ## Decision
 
-<!-- What was decided. State it directly, in the present tense.
-     Do NOT mark the body as unratified (no "proposed, not yet ratified" preamble): `status:` already
-     says whether the decision is `in-discussion` or `ready`, and `memory approve` changes only
-     `status`, so a body marker would stay wrong. Where options are still open, present them as
-     options; the approver's choice is recorded in the approve commit's `Reason:`. -->
+**Requests 1 … 3 are accepted as inputs to the `release-planning` of `minor-v0.3`, which decides
+their release (v0.3 or later), their solution and their tasks, within these constraints:**
+
+- a worktree is read only after the same checks as a folder the user adds (ownership, the git
+  configuration and hooks guards of spec-010, the process environment of every child of the
+  process runner — `governance-alignment-rel-v0.3-plan`, task-046), on the path git reports,
+  resolved the way git resolves it; its path reaches an API body only through the sanitiser of
+  tool-sourced text;
+- the main checkout stays the project's default: its reads, its events and the governed writes
+  behave as today; whether an element on another worktree may be submitted or decided from the
+  console is decided at planning (read-only until then);
+- the cold-read budget is measured per worktree read, and a project with many worktrees does not
+  slow the main checkout's views;
+- the element page says which branch holds the element, and with dl-012's short ids and deep links
+  an element URL keeps one form across worktrees.
 
 ## Rationale
 
-<!-- Why this option was chosen over alternatives. Include the key trade-offs considered. -->
+- The work in flight of a project developed on worktrees is invisible today; a second project per
+  worktree is not a way out, since the console refuses a second project with the same remote.
+- Deciding the solution at `release-planning` keeps the scope of v0.3 in one place, next to dl-012
+  (links for agents), whose element URLs this request extends.
+- Reading paths that git reports is security-relevant (the local-path lessons of v0.2 and the git
+  side effects of reads found by task-046): the constraints keep the same guards as the folders the
+  user adds.
+- Trade-off: the requester waits for the `release-planning` of v0.3, which follows the
+  governance-alignment pre-step (dl-010), merged into `main` on 2026-11-02.
 
 ## Actions
 
-<!-- Optional: follow-up actions that result from this decision, with owners and deadlines. -->
+- `release-planning` of `minor-v0.3`: release, solution and tasks for requests 1 … 3, with dl-012
+  (product-owner, tech-lead).
+- Tell the requester the element id and, after `release-planning`, the outcome (tech-lead).
