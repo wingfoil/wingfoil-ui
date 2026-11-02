@@ -280,3 +280,21 @@ Verdict FAIL (1 major, 1 minor, nits); D48-1 … D48-8 verified as implemented. 
 | S-48.1 the history of a phase plan closed by hand (W-04) | `test/e2e/history-operations.spec.ts` › "S-48.1 — the history of a phase plan closed by hand" |
 | S-48.2 a parked and an amended element, with their reasons | same spec › "S-48.2 — a parked and an amended element, with their reasons" |
 | S-48.3 the bell lists the 0.3 operations (finalize, park, amend, sync, grouped start) | same spec › "S-48.3 — the bell lists the finalize, the park, the amend, the sync and the grouped start" |
+
+**Gates after review round 1** (heavy ones through the slot; logs `task048-r1-*`, `task048-r1b-*`
+in the session's scratch folder, commit and load in each `.meta`):
+
+| Gate | Commit | Result | Load (start → end) |
+|---|---|---|---|
+| coordinator's `b008131`: `directives.spec.ts` on Chromium (`task048-r063.log`) | `b008131` | 5 passed | 6.59 → 6.23 |
+| typecheck, lint, format:check, docs:api | `b79b684` | pass (typecheck, lint, format:check again on `3a1ea5e`: pass) | 3.26 → 3.88 |
+| `check_tasks.py v0.3` | `b79b684` | the 28 expected "listed by 0 tasks", no other failure | 3.88 |
+| `npm run test:contract` | `b79b684` | 323 passed, 2 skipped | 3.38 → 5.26 |
+| `npm run test:coverage` | `b79b684` | 3398 passed, 2 skipped; statements 96.63 %, branches 91.54 %, functions 97.34 %, lines 98.41 % | 5.32 → 18.24 |
+| `npm run test:e2e:chromium` | `b79b684` | 322 passed, 1 failed: S-48.3 expected "parked by Jordan" — `actAs` sets the email only and the line names the commit author (`Alex`); the test fixed in `3a1ea5e` | 10.61 → 11.31 |
+| the four specs on three engines | `b79b684` | 111 passed, 3 failed (S-48.3, same cause) | 10.73 → 21.55 |
+| the four specs (`history-operations`, `element-panel`, `today`, `notification-bell`) on Chromium, Firefox, WebKit | `3a1ea5e` | 114 passed | 5.70 → 17.32 |
+| `npm run test:e2e:chromium` | `3a1ea5e` | 323 passed | 9.91 → 11.55 |
+
+`3a1ea5e` changes only `history-operations.spec.ts` and these notes after `b79b684`; the
+contract and coverage runs on `b79b684` stand for it.
