@@ -353,8 +353,8 @@ describe('grouped ids: cost and repetition (task-048 review round 1, M-1)', () =
     const log = parseMemoryLog(out, shasOf(out), { counters });
     expect(log.events).toHaveLength(n);
     expect(log.warnings).toEqual([]);
-    // One pass over the patch: at most its own line count, never ids × lines.
-    expect(counters.patchLines).toBeLessThanOrEqual(patch.split('\n').length + 1);
+    // One pass over the patch: its own lines and git's two leading newlines, never ids × lines.
+    expect(counters.patchLines).toBe(patch.split('\n').length + 2);
   });
 
   it(`reads no event, with a warning, from a subject naming more than ${String(MAX_SUBJECT_IDS)} ids`, () => {
