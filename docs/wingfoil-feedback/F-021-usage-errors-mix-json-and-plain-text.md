@@ -2,7 +2,7 @@
 id: F-021
 title: "With --format json, usage errors (exit 2) are JSON or plain text depending on the error"
 kind: defect
-status: open
+status: resolved
 wingfoil_version: 0.2.2
 answered_by: []
 ---

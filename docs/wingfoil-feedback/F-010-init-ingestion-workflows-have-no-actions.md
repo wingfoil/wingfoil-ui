@@ -2,9 +2,9 @@
 id: F-010
 title: "init templates (Kanban, Scrum) write ingestion workflows with one phase and no actions"
 kind: defect
-status: open
+status: resolved
 wingfoil_version: 0.2.2
-answered_by: []
+answered_by: [bug-400]
 ---
 
 Formerly R-10.
