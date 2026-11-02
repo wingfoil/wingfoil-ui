@@ -3,7 +3,7 @@ id: governance-alignment-rel-v0.3-plan
 type: plan
 title: "Governance alignment rel-v0.3"
 status: active
-version: "0.7"         # optional — plan version
+version: "0.8"         # optional — plan version
 workflow: "governance-alignment"
 phase: "rel-v0.3"
 scope: "rl-v1/rel-v0.3"
@@ -14,12 +14,12 @@ tmpl_version: 260703   # Orignal template version
 
 ## Context
 
-**Version:** 0.7 · **Date:** 2026-11-02 (0.1: plan created, checkpoint decisions GA3-1 … GA3-8; 0.2:
+**Version:** 0.8 · **Date:** 2026-11-02 (0.1: plan created, checkpoint decisions GA3-1 … GA3-8; 0.2:
 step 1 done, step 2 red on WingFoil 0.3.1, GA3-9 — a governance task for WingFoil 0.3 support, step 2b;
 0.3: step 2b done (task-046), step 2 green on the pinned 0.3.1, GA3-10; 0.4: step 3 — the packs
 adoption, task-047 / bug-025, GA3-11; 0.5: step 4 — directive `wingfoil-cli` 1.17, bug-026 /
 task-048; 0.6: task-048 done, step 5 — the feedback inbox and its first sync, step 6, bug-027; 0.7: step 7, the Handoff and step 8
-updated)
+updated; 0.8: step 8, the plan closed)
 **Branch:** `design/governance-alignment_v0.3`, merged into `main` with `--no-ff` at the close (GA3-1)
 **Workflow:** none — an ad-hoc plan, as `governance-alignment-rel-v0.2-plan` (GA-2);
 `governance-alignment` is the plan's `workflow` token only. Its outcome is an input of the
@@ -354,3 +354,20 @@ Decisions (the approver, 2026-11-01 … 2026-11-02):
   candidate from the approver — the console flags a state set by a commit that is no WingFoil verb
   and an `approve`/`reject` whose author does not hold the `approver` role (W-34; W-39 stays a
   declared residual without signed approvals, F-031).
+
+### Session 6 — 2026-11-02
+
+- Full gates on `2758c47` (heavy ones through the machine-free slot, a detached worktree): typecheck,
+  lint, format:check, docs:api clean; `check_tasks.py v0.3` only the 28 backlog items no task lists
+  yet; `test:contract` 323 passed, 2 skipped; `test:coverage` 3405 passed, 2 skipped; `test:e2e` 947
+  passed, 0 failed on Chromium, Firefox and WebKit; `test:smoke` 4/4; `test:publish-smoke` 11/11.
+- Step 7 — independent final review of the whole pre-step (fresh context): FAIL on three minors,
+  stale text only (CLAUDE.md's next step and directive version; the inbox's W-44 line; this plan's
+  Handoff and step 8), fixed in `5c72a15` (CLAUDE.md 0.14, user guide 0.23, this plan 0.7); dl-010's
+  points and Actions, the Memory states, the cross-document consistency, the public text and a clean
+  merge into `main` checked. Left to `release-planning` of `minor-v0.3` (a `.wingfoil/` change): the
+  headers of the procedures `dev-loop` and `initial-design` still name `release-cycle`.
+- bug-026 resolved `da74aea` and closed `3afde47` (the approver), its close notes `29e85e8`.
+- Step 8 — the approver's OK on the result (2026-11-02). The plan closed by hand (W-04), with the
+  diagnostics baseline's row for this plan removed in the same commit (W-38); merged into `main`
+  with `--no-ff`; pushed.
