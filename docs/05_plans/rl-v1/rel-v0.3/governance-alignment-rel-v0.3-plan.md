@@ -3,7 +3,7 @@ id: governance-alignment-rel-v0.3-plan
 type: plan
 title: "Governance alignment rel-v0.3"
 status: active
-version: "0.4"         # optional — plan version
+version: "0.5"         # optional — plan version
 workflow: "governance-alignment"
 phase: "rel-v0.3"
 scope: "rl-v1/rel-v0.3"
@@ -14,10 +14,11 @@ tmpl_version: 260703   # Orignal template version
 
 ## Context
 
-**Version:** 0.4 · **Date:** 2026-11-02 (0.1: plan created, checkpoint decisions GA3-1 … GA3-8; 0.2:
+**Version:** 0.5 · **Date:** 2026-11-02 (0.1: plan created, checkpoint decisions GA3-1 … GA3-8; 0.2:
 step 1 done, step 2 red on WingFoil 0.3.1, GA3-9 — a governance task for WingFoil 0.3 support, step 2b;
 0.3: step 2b done (task-046), step 2 green on the pinned 0.3.1, GA3-10; 0.4: step 3 — the packs
-adoption, task-047 / bug-025, GA3-11)
+adoption, task-047 / bug-025, GA3-11; 0.5: step 4 — directive `wingfoil-cli` 1.17, bug-026 /
+task-048)
 **Branch:** `design/governance-alignment_v0.3`, merged into `main` with `--no-ff` at the close (GA3-1)
 **Workflow:** none — an ad-hoc plan, as `governance-alignment-rel-v0.2-plan` (GA-2);
 `governance-alignment` is the plan's `workflow` token only. Its outcome is an input of the
@@ -274,3 +275,36 @@ Decisions (the approver, 2026-11-01 … 2026-11-02):
     `memory deprecate` only in `end-of-life` › `deprecate` or with the approver's OK in the active
     plan (A-4); the console candidates for v0.3 of A-1 and A-2; the other accepted limits in
     `.wingfoil/README.md`.
+
+### Session 4 — 2026-11-02
+
+- Step 4 — directive `wingfoil-cli` re-checked against `wingfoil@0.3.1` (rules 5 and 9), by an agent
+  on the branch `design/ga3-step4` (from `b547370`), each entry reproduced on throwaway repositories
+  (logs outside the repository): 1.15 (`df447df`, `8de6d41`) — W-02 removed (0.3 has `--dry-run`);
+  W-16, W-21, W-22 (exit-2 form), W-27, W-30 limited to 0.2.2; W-04, W-06, W-12, W-20, W-23, W-24,
+  W-25, W-26, W-31 rewritten (W-20, W-25, W-26 on the packs' verbs and R-1 … R-3, their former texts
+  under *Removed entries*); new W-32 … W-42; *Checked against* `wingfoil@0.3.1`. Independent review
+  round 1 FAIL — one major: 0.3.1's `memory history` records operations the UI's contract does not
+  know (`start`, `finalize`, `sync`, `amend`, `park`, `assign`), so the element history of every
+  plan closed by hand (W-04, read as `finalize`) fails on the pinned version — a product defect
+  introduced by the pin advance (task-046) and not caught by its contract samples; minors: a
+  future-tense comment, the *Checked against* exception, rule 9 against same-number rewrites, the
+  baseline change at the plan's close (W-38). Fixed in `41ac63a`, `c5df5e8`, `e9f1828` (W-43, 1.16;
+  the samples recaptured); targeted round 2 PASS, its nits fixed in `315de3d` (1.17). The approver's
+  OK on the `.wingfoil/` diff (2026-11-02); merged into this branch `f98e1cb`.
+- The defect: bug-026 (element history fails on WingFoil 0.3.x when an element has a finalize, park
+  or amend commit): add `82276ba`, submit `e090595`, triaged by the approver `19dc76e` (high, v0.3);
+  fix task task-048 (element history and Memory events read the WingFoil 0.3 operations): add
+  `2d13dde`, submit `c4c75be`, approved `99524d5` — to be done before this branch merges into `main`.
+- W-39 (2026-11-02, the approver): the CLI authorises an approval by the commit's author only
+  (`GIT_AUTHOR_*`, then `author.*`, then `user.*`), so a separate git identity for agents (GA3-11)
+  prevents approvals made by mistake under the agent's own identity, not a deliberate or injected
+  override; the v0.3 task is re-scoped to attribution and mistake prevention; real enforcement needs
+  e.g. signed approval commits verified in CI — a WingFoil feedback note at step 5. The coordination
+  channel was told the correction.
+- For `release-planning` of `minor-v0.3`: an erratum of spec-003 (§5 hand transitions citing W-04,
+  W-20, W-25, W-26) and of `docs/01_vision/05_journeys.md` ("no `--dry-run`", W-02); a UX candidate:
+  the console shows a 0.3.1 refusal's `error` only, not its `details[].detail`; a note: the fixture
+  builder's task hand transitions (accepted by 0.3.1, W-34) could move to verbs.
+- Step 8 also updates `test/governance/workflow-diagnostics.baseline.json`: finalizing this ad-hoc
+  plan removes its `W_INSTANCE_WORKFLOW_UNKNOWN` row (W-38).
