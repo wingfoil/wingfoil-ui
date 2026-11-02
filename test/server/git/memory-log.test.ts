@@ -1,8 +1,9 @@
 // spec-002 §3 / §5 — the project-wide `git log -p` parse feeding the action descriptor's actor
 // events (task-011 hand-over): unit tests on recorded `git log` outputs — each operation, a subject
 // with and without a transition, a multi-line reason, a reason followed by a `Co-Authored-By:`
-// trailer, a non-`wf` commit, `wf(plan): finalize` (ignored), a quoted `status:` value, a missing
-// `+status:` line (reported, never dropped).
+// trailer, a non-`wf` commit, a quoted `status:` value, a missing `+status:` line (reported, never
+// dropped); the WingFoil 0.3 operations (task-048, bug-026): `start`, `finalize`, `sync`, `amend`,
+// `park` are events, `assign` and the verbs outside the eleven are not; grouped ids, chained brackets.
 import { describe, expect, it } from 'vitest';
 import type { MemoryYaml } from '@wingfoil-ui/contracts';
 import { GIT_READ_ARGS } from '../../../server/src/git/git.js';
@@ -145,7 +146,7 @@ describe('parseMemoryLog', () => {
     });
   });
 
-  it('ignores non-wf commits and wf(plan): finalize', () => {
+  it('ignores non-wf commits; reads wf(plan): finalize (task-048 D48-2)', () => {
     const out =
       record(6, 'edit the title by hand', '', filePatch(TASK, ['-title: A', '+title: B'])) +
       record(
@@ -163,6 +164,7 @@ describe('parseMemoryLog', () => {
     const { events } = parse(out);
     expect(events.map((e) => [e.operation, e.id, e.from, e.to, e.reason])).toEqual([
       ['deprecate', 'task-003-logout', 'draft', 'deprecated', 'obsolete'],
+      ['finalize', 'plan-001', 'open', 'done', null],
     ]);
   });
 
@@ -205,6 +207,119 @@ describe('parseMemoryLog', () => {
       filePatch(TASK, ['-status: pending', '+status: draft']),
     );
     expect(parse(out).events[0]).toMatchObject({ approver: 'M <m@x.test> (approver)', reason: 'a\nb' });
+  });
+});
+
+// task-048 (bug-026, D48-2): WingFoil 0.3.x's operations, as `memory history` reads them
+// (`dist/memory/audit.js` `parseMemoryOperation`), and its practised subjects (`workflow next`'s
+// `renderSubjects`: grouped ids, a chained `sync` bracket, `assign release <v> to <ids>`).
+describe('the WingFoil 0.3 operations (task-048)', () => {
+  const T1 = 'docs/memory/task/task-001-login-form.md';
+  const T2 = 'docs/memory/task/task-002-password-reset.md';
+  const PLAN = 'docs/plans/rl-v1/history-probe-plan.md';
+  const ops = (out: string) => parse(out).events.map((e) => [e.operation, e.id, e.from, e.to, e.approver, e.reason]);
+
+  it('reads start, finalize, sync, park and amend with their transition, approver and reason', () => {
+    const out =
+      record(
+        19,
+        'wf(plan): finalize history-probe-plan [active → done]',
+        '',
+        filePatch(PLAN, ['-status: active', '+status: done']),
+      ) +
+      record(
+        18,
+        'wf(task): amend task-001-login-form [backlog → backlog]',
+        'Approver: Morgan <morgan@example.test> (approver)\nReason: Title names the server\n\nWingFoil-Version: 0.3.1 (870bd44)\n',
+        filePatch(T1, ['-title: A', '+title: B']),
+      ) +
+      record(
+        17,
+        'wf(task): park task-001-login-form [in-progress → backlog]',
+        'Reason: Blocked on the build server\n\nWingFoil-Version: 0.3.1 (870bd44)\n',
+        filePatch(T1, ['-status: in-progress', '+status: backlog']),
+      ) +
+      record(
+        16,
+        'wf(task): sync task-001-login-form [in-review → in-progress]',
+        '',
+        filePatch(T1, ['-status: in-review', '+status: in-progress']),
+      ) +
+      record(
+        15,
+        'wf(task): start task-001-login-form [backlog → in-review]',
+        '',
+        filePatch(T1, ['-status: backlog', '+status: in-review']),
+      );
+    expect(ops(out)).toEqual([
+      ['finalize', 'history-probe-plan', 'active', 'done', null, null],
+      [
+        'amend',
+        'task-001-login-form',
+        'backlog',
+        'backlog',
+        'Morgan <morgan@example.test> (approver)',
+        'Title names the server',
+      ],
+      ['park', 'task-001-login-form', 'in-progress', 'backlog', null, 'Blocked on the build server'],
+      ['sync', 'task-001-login-form', 'in-review', 'in-progress', null, null],
+      ['start', 'task-001-login-form', 'backlog', 'in-review', null, null],
+    ]);
+    expect(parse(out).warnings).toEqual([]);
+  });
+
+  it('gives a grouped subject one event per id whose file the patch touches', () => {
+    const out = record(
+      20,
+      'wf(task): start task-001-login-form, task-002-password-reset, task-009-absent [backlog → in-progress]',
+      '',
+      filePatch(T1, ['-status: backlog', '+status: in-progress']) +
+        filePatch(T2, ['-status: backlog', '+status: in-progress']),
+    );
+    expect(ops(out)).toEqual([
+      ['start', 'task-001-login-form', 'backlog', 'in-progress', null, null],
+      ['start', 'task-002-password-reset', 'backlog', 'in-progress', null, null],
+    ]);
+  });
+
+  it('reads a chained bracket from the patch: the state before and after the commit', () => {
+    const out = record(
+      21,
+      'wf(task): sync task-001-login-form [in-progress → in-review → approved]',
+      '',
+      filePatch(T1, ['-status: in-progress', '+status: approved']),
+    );
+    expect(ops(out)).toEqual([['sync', 'task-001-login-form', 'in-progress', 'approved', null, null]]);
+    expect(parse(out).warnings).toEqual([]);
+  });
+
+  it('reads no event and no warning for assign, which changes the release, not the state', () => {
+    const out = record(
+      22,
+      'wf(task): assign release v0.1 to task-001-login-form, task-002-password-reset',
+      '',
+      filePatch(T1, ['-release: ""', '+release: "v0.1"']) + filePatch(T2, ['-release: ""', '+release: "v0.1"']),
+    );
+    expect(parse(out)).toEqual({ events: [], warnings: [] });
+  });
+
+  it('reads no event for a verb outside the eleven, a verbless subject or a configuration scope', () => {
+    const out =
+      record(
+        26,
+        'wf(task): start-fix task-001-login-form [backlog → in-progress]',
+        '',
+        filePatch(T1, ['-status: backlog', '+status: in-progress']),
+      ) +
+      record(
+        25,
+        'wf(task): task-001-login-form [in-progress → done]',
+        '',
+        filePatch(T1, ['-status: in-progress', '+status: done']),
+      ) +
+      record(24, 'wf(dna): add task-001-login-form', '', filePatch(T1, ['-status: done', '+status: draft'])) +
+      record(23, 'wf(workflow): create task-001-login-form', '', filePatch(T1, ['-status: draft', '+status: done']));
+    expect(parse(out)).toEqual({ events: [], warnings: [] });
   });
 });
 

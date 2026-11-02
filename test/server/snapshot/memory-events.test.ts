@@ -1,13 +1,21 @@
 // spec-002 §5 consistency contract (task-012 AC "Actor events"): on the three fixtures built with the
 // pinned CLI, the events of the project-wide `git log -p` parse (spec-002 §3) equal, for every
 // element, the `wf` entries of its `memory history` — same sha, operation, from, to, approver,
-// reason — and the parse is two git processes per HEAD (the patch read and its sha list).
+// reason — and the parse is two git processes per HEAD (the patch read and its sha list). Also on the
+// WingFoil 0.3 operations (task-048 D48-2): the entries whose operation is neither `null` nor `assign`.
 import { mkdtemp, realpath, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { Snapshots } from '../../../server/src/snapshot/snapshots.js';
-import { buildFixture, FIXTURE_KINDS, type Fixture, type BddFixtureKind } from '../../harness/fixtures/index.js';
+import {
+  addOperations,
+  buildFixture,
+  FIXTURE_KINDS,
+  type Fixture,
+  type BddFixtureKind,
+  type OperationIds,
+} from '../../harness/fixtures/index.js';
 import { GitReadError } from '../../../server/src/git/git.js';
 import { git } from '../../harness/run.js';
 import { auditedSnapshots } from './support.js';
@@ -15,10 +23,14 @@ import { auditedSnapshots } from './support.js';
 let root: string;
 const fixtures = new Map<BddFixtureKind, Fixture>();
 const registries: Snapshots[] = [];
+let operations: Fixture;
+let operationIds: OperationIds;
 
 beforeAll(async () => {
   root = await realpath(await mkdtemp(path.join(tmpdir(), 'wfui-events-')));
   for (const kind of FIXTURE_KINDS) fixtures.set(kind, await buildFixture(kind, { root: path.join(root, kind) }));
+  operations = await buildFixture('custom', { root: path.join(root, 'operations') });
+  operationIds = await addOperations(operations);
 }, 600_000);
 
 afterAll(async () => {
@@ -66,6 +78,24 @@ describe.each(FIXTURE_KINDS)('spec-002 §5 on the %s fixture', (kind) => {
       compared += history.length;
     }
     expect(compared).toBeGreaterThan(0);
+  }, 300_000);
+});
+
+describe('spec-002 §5 on the WingFoil 0.3 operations (task-048, bug-026)', () => {
+  it('gives every element the entries of its memory history that are neither null nor assign', async () => {
+    const audited = auditedSnapshots(operations.env);
+    registries.push(audited.snapshots);
+    const view = await (await audited.snapshots.open('p_operations', operations.dir)).view();
+    const events = await view.events();
+    const ids = operationIds;
+    const seen = new Set<unknown>();
+    for (const id of [ids.plan, ids.parked, ...ids.grouped, ids.amended, ...ids.assigned]) {
+      const entries = (await view.history(id)).data.entries;
+      for (const e of entries) seen.add(e.operation);
+      const expected = entries.filter((e) => e.operation !== null && e.operation !== 'assign');
+      expect((events.get(id) ?? []).map(pick), id).toEqual(expected.map(pick));
+    }
+    expect([...seen]).toEqual(expect.arrayContaining(['start', 'finalize', 'sync', 'amend', 'park', 'assign']));
   }, 300_000);
 });
 
