@@ -3,7 +3,7 @@ id: governance-alignment-rel-v0.3-plan
 type: plan
 title: "Governance alignment rel-v0.3"
 status: active
-version: "0.3"         # optional — plan version
+version: "0.4"         # optional — plan version
 workflow: "governance-alignment"
 phase: "rel-v0.3"
 scope: "rl-v1/rel-v0.3"
@@ -14,9 +14,10 @@ tmpl_version: 260703   # Orignal template version
 
 ## Context
 
-**Version:** 0.3 · **Date:** 2026-10-30 (0.1: plan created, checkpoint decisions GA3-1 … GA3-8; 0.2:
+**Version:** 0.4 · **Date:** 2026-11-02 (0.1: plan created, checkpoint decisions GA3-1 … GA3-8; 0.2:
 step 1 done, step 2 red on WingFoil 0.3.1, GA3-9 — a governance task for WingFoil 0.3 support, step 2b;
-0.3: step 2b done (task-046), step 2 green on the pinned 0.3.1, GA3-10)
+0.3: step 2b done (task-046), step 2 green on the pinned 0.3.1, GA3-10; 0.4: step 3 — the packs
+adoption, task-047 / bug-025, GA3-11)
 **Branch:** `design/governance-alignment_v0.3`, merged into `main` with `--no-ff` at the close (GA3-1)
 **Workflow:** none — an ad-hoc plan, as `governance-alignment-rel-v0.2-plan` (GA-2);
 `governance-alignment` is the plan's `workflow` token only. Its outcome is an input of the
@@ -205,3 +206,71 @@ Decision (the approver, 2026-10-30):
   packs' workflows and dl-007's entries checked, the parameters still to choose, and design probes on
   the pinned CLI (git trace, a `.git` snapshot, the children's environment); the decisions go to the
   approver, then one `.wingfoil/` diff with its migrations for the approver's OK before commit.
+
+### Session 3 — 2026-10-30 … 2026-11-02
+
+- Step 3 — adoption design (GA3-10): a design agent on the branch `design/ga3-adoption` (its own
+  worktree, from `93d2933`) composed `base@2.0.1`, `software@1.0.0` and `methodology/scrum@1.0.0`
+  with the reference composer of `wingfoil/wingfoil-templates`, with this repository's path and id
+  values (no file moves), and wrote the design `docs/wingfoil-adoption/rel-v0.3-packs-adoption-design.md`
+  (§1 … §14: parameters, file-by-file outcome, old → new keys, dl-008 re-applied and dl-007 checked,
+  state migrations — none needed —, roles, design probes, the proposed change, decisions, open risks).
+- Step 3 — a directive defect found by the adoption's e2e run: bug-025 (a directive defined by two
+  files is listed twice in the Directives view; in v0.2.0 as released): add `4717293`, submit
+  `c547a8a`, triaged by the approver `5f98fe6` (medium, v0.3), absorbed into task-047 (`d4a4bfe`);
+  task-047 (Directives view: one row per directive in force) add `7c23459`, submit `94dc86c`,
+  approved `a9601e6`, `in-progress` `61d5538`; its own worktree, a developer agent; design D47-1 …
+  D47-4 (the approver; R-06.2 amended, option A); independent review round 1 FAIL (D47-4 untested;
+  WingFoil's precedence when the warning is cut), targeted round 2 PASS with one nit (N1, the
+  smallest path), fixed and checked by the coordinator; submit `0e2dbb2`, approved `7242a3a`,
+  merged into this branch `fb47128`, `done` `cbca05c`; bug-025 `in-progress` `c3a5c9b` (recorded at
+  the merge), `in-review` `404ba24`, `resolved` `333efea` (the approver), close notes `37f005c`.
+- Step 3 — this branch merged into `design/ga3-adoption` (`ababf9a`); full gates there: `test:e2e`
+  938 passed, 0 failed on Chromium, Firefox and WebKit (`ababf9a`, R-06.1 … R-06.4 and the bug-025
+  test with this repository's own `definition-of-done` override); `test:contract` 312 passed,
+  1 skipped; `npm test` 3353 passed, 1 skipped (`694a666`, the bug-025 route test updated for the
+  two shadowing warnings of the adopted governance).
+- Step 3 — independent review of the adoption: a correctness reviewer and an adversarial reviewer
+  who ran the CLI on throwaway copies; round 1 FAIL (see GA3-11 A-1 … A-4 and the minors, design
+  §14), fixed in `4742863`, `9446f6f`, `5600c66`; targeted round 2 FAIL (MA-1: the deprecate rule
+  not loaded by every role; mi-1 … mi-3, design §15), fixed in `49b7027`, `2ba6ec0`, `3105944`;
+  targeted round 3 PASS, its nits fixed in `1399b29`. The approver's OK on the `.wingfoil/` diff
+  (`93d2933..1399b29`, 72 files) and on this record (2026-11-02); `design/ga3-adoption` merged into
+  this branch.
+
+Decisions (the approver, 2026-11-01 … 2026-11-02):
+
+- **GA3-11** — the packs adoption as designed (design doc 0.4, §9, §11, §14):
+  - the 16 decisions of the design, as recommended: `methodology/scrum`'s `delivery` replaces this
+    repository's delivery loop; the five procedures (`initial-design`, `release-planning`,
+    `dev-loop`, `user-docs`, `e2e-smoke`) stay as included custom workflows, folded into
+    directives later (scheduled at `release-planning` of `minor-v0.3`); the packs' inception and
+    specification with `inception_path: docs/01_vision/00_index.md`; `retrospective_path:
+    docs/05_plans/`; Sprints of 2 weeks at `docs/04_memory/sprints/{id}.md`, ids `sprint-{n}`;
+    GA3-8 amended — a `release` has no `n/a` form: the released `minor-v0.1` and `minor-v0.2` are
+    listed in `exempt.sprint`, the draft releases get their Sprint when it is planned; the packs'
+    `determinism`, `doc-versioning`, `security-secrets`, `traceability` replace this repository's
+    one-line stubs; dl-008's tailoring lives in the custom directive `release-conventions`; the
+    packs' release order (the release commit after the approval, `staging-rehearsal` runs
+    `test:publish-smoke`); `AGENTS.md` with the composer's region, `CLAUDE.md` points to it;
+    `paths.governance` stays `.wingfoil/`; this repository's templates; the workflow engine is
+    bootstrapped at `release-planning` of `minor-v0.3`; future pre-steps run as
+    `governance-evolution`; the 0.2.2 contract fixture imports a frozen copy of `93d2933`'s
+    `.wingfoil/`;
+  - the risk mitigations R-1 … R-7: a gate on `release` `releasing` (R-1) and on `release-line`
+    `active` (R-2); `bug` keeps the gate on `triaged`, not on `planned` (R-3; trade-off: a
+    `planned` bug has no wontfix exit); a default-suite test comparing `workflow list`'s
+    diagnostics with a committed baseline (R-4); the retrospective's inventory in its plan (R-5);
+    the Today noise of `backlog` tasks accepted, a v0.3 candidate (R-6); the index refresh of the
+    CLI's status reads handled by D46-5, a feedback note at step 5 (R-7); a separate git identity
+    for agents, so that the CLI refuses their approvals, planned as a v0.3 task (and sent to the
+    coordination channel as a practice for every WingFoil project);
+  - decisions 1-A (four e2e scenarios run on the `custom` fixture with the pre-packs states) and 2-A
+    (bug-025 fixed by task-047 before the merge);
+  - review round 1: the gates are kept and their residuals declared — at `approve-release` the
+    approver records the OK with `workflow finalize`, a release is approved only at `mark-released`
+    after `publish` (A-1), a release line only at its end with every release `released` (A-2); a
+    supersession banner on W-20, W-25, W-26 of `wingfoil-cli` now, the re-check at step 4 (A-3);
+    `memory deprecate` only in `end-of-life` › `deprecate` or with the approver's OK in the active
+    plan (A-4); the console candidates for v0.3 of A-1 and A-2; the other accepted limits in
+    `.wingfoil/README.md`.
