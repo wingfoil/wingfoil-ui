@@ -49,3 +49,15 @@ output error.
 
 ## Triage & Execution Notes
 
+- triage (2026-11-02, the approver): high, release v0.3, fixed before the pre-step merges into
+  `main`; `planned` `195e468`, absorbed into task-048, `in-progress` `3673ad1`.
+- fix: task-048 (`docs/04_memory/v0.3/task-048-element-history-and-memory-events-read-the-wingfoil-0.3-operations.md`),
+  merged into `design/governance-alignment_v0.3` (`31ceb4d`): the history contract has a WingFoil
+  0.2 and a 0.3 entry variant, told apart by shape; the Memory events read every 0.3 operation but
+  `assign`, as WingFoil's `memory history` reads them (spec-002 §5 and its known exceptions);
+  review PASS after round 1 and a targeted round 2 checked by the coordinator.
+- close (2026-11-02): the full gates on `2758c47` — `test:e2e` 947 passed, 0 failed on Chromium,
+  Firefox and WebKit, `test:coverage` 3405 passed, `test:contract` 323 passed, `test:smoke` 4/4,
+  `test:publish-smoke` 11/11; the history of a phase plan closed by hand (W-04, `finalize`) loads
+  (e2e `history-operations.spec.ts`).
+
