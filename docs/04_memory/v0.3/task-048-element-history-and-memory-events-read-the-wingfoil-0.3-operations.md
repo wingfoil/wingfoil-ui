@@ -298,3 +298,20 @@ in the session's scratch folder, commit and load in each `.meta`):
 
 `3a1ea5e` changes only `history-operations.spec.ts` and these notes after `b79b684`; the
 contract and coverage runs on `b79b684` stand for it.
+
+### review round 2 (2026-11-02)
+
+Targeted re-review: M-1 fixed and measured by the reviewer (4,000 ids → no event and a warning;
+20,000 repetitions → one event, 10.9 ms); 3 minors and 3 nits.
+
+| Finding | Fix | Commits | Red / guard-removal |
+|---|---|---|---|
+| **minor-1** — `(?<rest>.*)$` stops at CR, U+2028, U+2029: `wf(adr): reject adr-006-six<U+2028>note` gave no event, WingFoil records one | `(?<rest>[\s\S]*)` | red `06de7fc`, fix `bf8d1c5` | 3 units (U+2028, U+2029, CR) failed; the §5 check with a U+2028 subject failed |
+| **minor-2** — a readable bracket the patch contradicts won (UI pending → approved, WingFoil pending → draft) | the patch's `status:` lines first, the two-state bracket only when the patch changes no `status:` (a status-less `amend [s → s]` keeps it); spec-002 rule 2 | red `06de7fc`, fix `bf8d1c5`, `5e0b368` | "takes the patch over a bracket that disagrees" failed; the bracket-fallback unit passed before (a guard) — with the fallback disabled it failed; restored |
+| **minor-3** — differences from WingFoil's history not stated (no-id subject; a touched file the subject does not name; a hand `amend` with no status change: WingFoil approved → approved, UI null → null and a warning; > 256 ids) | aligned the state-keeping commit: the records are read oldest first and each file's last `status:` change (any subject) is the status before, so from = to = it, as WingFoil reads the parent; the other three stated as known exceptions in spec-002 §5 and in `eventSubject`'s comment; an element whose status is not in the log still reads `null` (rule 4) | red `06de7fc`, fix `bf8d1c5`, `5e0b368` | "from = to = the status before, also after a commit outside a verb" failed; the §5 check with a hand `amend` failed |
+| nit-1 — one warning per id | one per commit | `bf8d1c5` | "an unknown status once per commit" failed red |
+| nit-2 — conventional commit types | kept from this round on; no history rewritten | — | — |
+| nit-3 — typecheck, lint, format:check on the final HEAD with logs | in the table below | — | — |
+
+The events are still returned newest first as git prints them, and the patch is still read once
+per record (now for every record, so a commit outside a verb also records its `status:` change).
