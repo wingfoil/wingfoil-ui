@@ -1,6 +1,6 @@
 # CLAUDE.md — agent entry point
 
-**Version:** 0.12 · **Date:** 2026-11-02 (0.1: release v0.1, `user-docs` `align-agent-docs`; 0.2: v0.1.0 released, release submit; 0.3: `test:smoke` wave gate — task-026; 0.4: e2e on three engines, inner-loop Chromium run — task-027; 0.5: `test:publish-smoke`, the publishing guide — task-029; 0.6: release v0.2 user-docs — v0.2 in release validation; 0.7: v0.2.0 released — git tag and npm, the first version by hand; 0.8: the GitHub Release of v0.2.0 made; 0.9: the pin on `wingfoil@0.3.1` — task-046; 0.10: the packs `base`, `software`, `methodology/scrum` adopted, `AGENTS.md` — governance-alignment-rel-v0.3-plan step 3; 0.11: BOOTSTRAP.md marked historical — its review round 1; 0.12: W-20, W-25, W-26 already superseded — round 2)
+**Version:** 0.13 · **Date:** 2026-11-02 (0.1: release v0.1, `user-docs` `align-agent-docs`; 0.2: v0.1.0 released, release submit; 0.3: `test:smoke` wave gate — task-026; 0.4: e2e on three engines, inner-loop Chromium run — task-027; 0.5: `test:publish-smoke`, the publishing guide — task-029; 0.6: release v0.2 user-docs — v0.2 in release validation; 0.7: v0.2.0 released — git tag and npm, the first version by hand; 0.8: the GitHub Release of v0.2.0 made; 0.9: the pin on `wingfoil@0.3.1` — task-046; 0.10: the packs `base`, `software`, `methodology/scrum` adopted, `AGENTS.md` — governance-alignment-rel-v0.3-plan step 3; 0.11: BOOTSTRAP.md marked historical — its review round 1; 0.12: W-20, W-25, W-26 already superseded — round 2; 0.13: `wingfoil-cli` re-checked against 0.3.1 — step 4)
 
 WingFoil UI: a local web UI for WingFoil-governed projects. A Node.js server (`server/`) drives
 each project's pinned `wingfoil` CLI and reads git; a React app (`web/`) shows the result;
@@ -63,14 +63,14 @@ limitation: [`CHANGELOG.md`](CHANGELOG.md).
   ([`.wingfoil/README.md`](.wingfoil/README.md)); delivery runs in Sprints of 2 weeks.
 - Every governance change goes through a CLI verb (`memory add`, `memory submit`, `memory approve`,
   `memory reject`, `memory park`, …; directive `cli-only-writes`); hand edits only where directive
-  `wingfoil-cli` says so — e.g. closing a phase plan by hand (W-04). Since the adoption the task
+  `wingfoil-cli` says so — the only one is closing a phase plan by hand (W-04). The task
   transitions `backlog → in-progress` and `approved → done`, and the release transitions up to
   `releasing`, are `memory submit`; `releasing → released` and a bug's `triaged → planned` are the
-  approver's `memory approve`. W-20, W-25 and W-26 already carry a *Superseded* banner (never set a
-  state a verb owns by hand); every entry of the directive is re-checked against WingFoil 0.3.1 and
-  the adopted packs at step 4 of `governance-alignment-rel-v0.3-plan`;
-  until then, where an entry and `.wingfoil/memory.yaml` disagree, `memory.yaml` is right. Read the
-  directive's *Known behaviours* table before running a verb; do not copy it here.
+  approver's `memory approve` (W-25, W-26). WingFoil 0.3.1 accepts a hand-committed `status:`
+  without the approver (W-34): never set a state a verb owns by hand. The directive is checked
+  against `wingfoil@0.3.1` (version 1.15, `governance-alignment-rel-v0.3-plan` step 4); where an
+  entry and `.wingfoil/memory.yaml` disagree, `memory.yaml` is right. Read the directive's *Known
+  behaviours* table before running a verb; do not copy it here.
 - The DNA's agent executes as facilitator, product-owner, developer, reviewer, qa, architect and
   tech-lead with **no approval authority**: `memory approve` / `reject` are run by the human
   approver. Agents commit under the approver's git identity here, so this is a process rule, not a

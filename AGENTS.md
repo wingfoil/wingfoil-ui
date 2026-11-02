@@ -67,8 +67,8 @@ above says otherwise, this section is right:
   approver only at the end of their publication and of the line (directive `release-conventions`).
 - **One exception** to "Memory changes only through the WingFoil CLI": a phase plan is closed by a
   hand-written `wf(plan): finalize <id> [active → done]` commit (directive `wingfoil-cli`, W-04).
-  Every other transition has a verb: the hand transitions of W-20, W-25 and W-26 are superseded —
-  WingFoil 0.3.1 accepts a hand-committed `status:` without the approver, so never write one.
+  Every other transition has a verb (W-25, W-26 for releases and bugs) — WingFoil 0.3.1 accepts
+  a hand-committed `status:` without the approver (W-34), so never write one.
 - **`memory deprecate`** needs no approval in WingFoil 0.3.1 (any git identity, member or not, can
   run it on any element): run it only in `end-of-life` › `deprecate`, or with the approver's OK
   recorded in the active plan — never on your own (directive `wingfoil-cli`).

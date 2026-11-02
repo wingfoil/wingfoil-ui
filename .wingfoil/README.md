@@ -1,10 +1,12 @@
 # `.wingfoil/` — WingFoil configuration of WingFoil UI
 
-**Version:** 0.8 · **Date:** 2026-11-02 (0.1: release v0.1, `user-docs` `align-agent-docs`; 0.2:
+**Version:** 0.9 · **Date:** 2026-11-02 (0.1: release v0.1, `user-docs` `align-agent-docs`; 0.2:
 W-25, W-26 — dl-007; 0.3: `release-submit`, `release-publishing`, `retrospective` tailored — dl-008;
 0.4: the packs `base@2.0.1`, `software@1.0.0`, `methodology/scrum@1.0.0` adopted —
-governance-alignment-rel-v0.3-plan step 3; 0.5: the deviations from the packs — GA3-11; 0.6: their residuals, the accepted limits, `traceability-chain`, `release-conventions` on facilitator — the adoption's review round 1; 0.7: the deprecate rule for every role — round 2) · **Checked against:** `wingfoil@0.3.1` (the devDependency
-pin; 0.8: R-3 cites the `wingfoil-cli` deprecate rule (review round 3 nit))
+governance-alignment-rel-v0.3-plan step 3; 0.5: the deviations from the packs — GA3-11; 0.6: their residuals, the accepted limits, `traceability-chain`, `release-conventions` on facilitator — the adoption's review round 1; 0.7: the deprecate rule for every role — round 2; 0.8: R-3 cites the `wingfoil-cli` deprecate rule
+— review round 3 nit; 0.9: the accepted limits cite `wingfoil-cli` 1.15 (W-34, W-40) —
+governance-alignment-rel-v0.3-plan step 4) · **Checked against:** `wingfoil@0.3.1` (the
+devDependency pin)
 
 This folder makes the WingFoil UI repository a project **governed by WingFoil**: its DNA, its Memory
 element types and their state machines, its workflows, and the directives bound to each role. It is
@@ -42,12 +44,14 @@ Decided by the approver on 2026-11-01 (GA3-11 of `governance-alignment-rel-v0.3-
 - `memory deprecate` needs no approval: any git identity, team member or not, deprecates any element
   in any state. Here it runs only in `end-of-life` › `deprecate` or with the approver's OK recorded
   in the active plan (directive `wingfoil-cli`, global, and `cli-only-writes`; `AGENTS.md`).
-- WingFoil 0.3.1 accepts a hand-committed `status:` without the approver: never set a state a verb
-  owns by hand (directive `wingfoil-cli`, W-20, W-25, W-26 superseded).
+- WingFoil 0.3.1 accepts a hand-committed `status:` without the approver, and `memory history`
+  reads such a commit's text as if a verb had made it: never set a state a verb owns by hand
+  (directive `wingfoil-cli` W-34; W-04, the phase plan's close, is the one exception).
 - The `base` pack's `security-secrets` forbids personal emails in files; `dna.yaml` holds the
   approver's email, which WingFoil matches to grant approval — the one exception.
 - A release (or task) whose `sprint` names a Sprint that does not exist is accepted at `submit`:
-  check the id against `docs/04_memory/sprints/` before submitting.
+  check the id against `docs/04_memory/sprints/` before submitting (directive `wingfoil-cli`
+  W-40).
 - The composer's region of `AGENTS.md` names four agent roles and the `bug` gates of the pack; its
   *This repository* section corrects both (the DNA's seven roles, R-3).
 
