@@ -294,12 +294,20 @@ describe('the WingFoil 0.3 operations (task-048)', () => {
   });
 
   it('reads no event and no warning for assign, which changes the release, not the state', () => {
-    const out = record(
-      22,
-      'wf(task): assign release v0.1 to task-001-login-form, task-002-password-reset',
-      '',
-      filePatch(T1, ['-release: ""', '+release: "v0.1"']) + filePatch(T2, ['-release: ""', '+release: "v0.1"']),
-    );
+    const out =
+      // Not WingFoil's canonical form (it reads `null`), never an event either.
+      record(
+        27,
+        'wf(task): assign task-001-login-form [backlog → in-progress]',
+        '',
+        filePatch(T1, ['-status: backlog', '+status: in-progress']),
+      ) +
+      record(
+        22,
+        'wf(task): assign release v0.1 to task-001-login-form, task-002-password-reset',
+        '',
+        filePatch(T1, ['-release: ""', '+release: "v0.1"']) + filePatch(T2, ['-release: ""', '+release: "v0.1"']),
+      );
     expect(parse(out)).toEqual({ events: [], warnings: [] });
   });
 
