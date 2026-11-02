@@ -4,7 +4,7 @@
  * methodology's: the machine of a type that declares none, the archived set, and the roles the
  * action descriptor names (spec-003; W-13: every gate requires `approver` on 0.2.2).
  */
-import type { StateMachine } from '@wingfoil-ui/contracts';
+import type { MemoryOperation, StateMachine } from '@wingfoil-ui/contracts';
 
 /** WingFoil's built-in machine, for a type with no `states` and no `defaults.states`. */
 export const BUILT_IN_STATES: StateMachine = Object.freeze({
@@ -29,3 +29,40 @@ export const TECH_LEAD_ROLE = 'tech-lead';
 
 /** The role view in which a member holding {@link APPROVER_ROLE} reviews gates (spec-003 §5). */
 export const REVIEWER_ROLE = 'reviewer';
+
+/**
+ * The Memory operations a `wf(<type>): <verb> …` commit records, as WingFoil 0.3.x reads them
+ * (`dist/memory/audit.js` `MEMORY_OPERATIONS`, in its order): the five verbs of 0.2.2, the
+ * practised `start`, `finalize`, `sync`, then `amend`, `park` and `assign` (task-048).
+ */
+export const MEMORY_OPERATIONS: readonly MemoryOperation[] = Object.freeze([
+  'add',
+  'submit',
+  'approve',
+  'reject',
+  'deprecate',
+  'start',
+  'finalize',
+  'sync',
+  'amend',
+  'park',
+  'assign',
+]);
+
+/**
+ * The operation that changes the `release` field, not the state: never a Memory event (spec-002 §3,
+ * task-048 D48-2).
+ */
+export const RELEASE_OPERATION = 'assign' satisfies MemoryOperation;
+
+/**
+ * The operation that records a correction and keeps the state: not a move of the action descriptor
+ * (spec-003 §4, task-048 D48-6).
+ */
+export const CORRECTION_OPERATION = 'amend' satisfies MemoryOperation;
+
+/**
+ * The `wf(<scope>)` scopes of configuration commits (`dna`, `directive`, `workflow`): their verbs are
+ * never Memory operations (WingFoil 0.3.x `CONFIGURATION_SCOPES`).
+ */
+export const CONFIGURATION_SCOPES: readonly string[] = Object.freeze(['dna', 'directive', 'workflow']);

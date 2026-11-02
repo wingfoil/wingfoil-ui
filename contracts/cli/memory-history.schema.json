@@ -1,11 +1,111 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://wingfoil-ui.local/contracts/cli/memory-history.schema.json",
-  "$comment": "wingfoil 0.2.2 — captured from `wingfoil --format json memory history <id>` for every element of the kanban, custom and unknown fixtures.",
+  "$comment": "wingfoil 0.2.2 — captured from `wingfoil --format json memory history <id>` for every element of the kanban, custom and unknown fixtures; the v0.3 entry from wingfoil 0.3.1, also on the custom fixture's 0.3 operations (task-048).",
   "title": "wingfoil memory history <id>",
-  "description": "Audit trail of one element reconstructed from git (spec-001 §3, spec-002 §2). operation is the verb of a `wf(<type>): <verb>` subject, null for any other commit: on WingFoil 0.2.2 one of the five below, a hand transition (W-04) null; on 0.3.x one of eleven (W-43, which this enum does not list yet) — a phase plan closed by hand (W-04) is finalize, a hand commit with a plain subject is null, a forged approve subject is approve (W-34); from is null for add.",
+  "description": "Audit trail of one element reconstructed from git (spec-001 §3, spec-002 §2). Each entry is one of two shapes, told apart by the wingfoil field (spec-001 §5, task-048 D48-1): v0.2 (WingFoil 0.2.2, no wingfoil) — operation one of the five verbs add, submit, approve, reject, deprecate, null for any other commit; v0.3 (WingFoil 0.3.x, wingfoil the commit's WingFoil-Version trailer or null) — operation one of eleven: the five, start, finalize, sync, amend, park, assign (dist/memory/audit.js MEMORY_OPERATIONS), null for a commit whose subject is no wf(<type>): <verb> of them (a verbless hand transition, start-fix, a plain subject). A phase plan closed by hand (W-04) is finalize on 0.3.x; a forged approve subject is approve (W-34); from is null for add.",
   "type": "object",
   "required": ["id", "path", "entries"],
+  "definitions": {
+    "v0.2": {
+      "type": "object",
+      "required": ["sha", "author", "timestamp", "operation", "from", "to", "approver", "reason", "subject"],
+      "not": {
+        "required": ["wingfoil"]
+      },
+      "properties": {
+        "sha": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{7,64}$"
+        },
+        "author": {
+          "type": "string"
+        },
+        "timestamp": {
+          "type": "string"
+        },
+        "from": {
+          "type": ["string", "null"]
+        },
+        "to": {
+          "type": ["string", "null"]
+        },
+        "approver": {
+          "type": ["string", "null"]
+        },
+        "reason": {
+          "type": ["string", "null"]
+        },
+        "subject": {
+          "type": "string"
+        },
+        "operation": {
+          "enum": ["add", "submit", "approve", "reject", "deprecate", null]
+        }
+      }
+    },
+    "v0.3": {
+      "type": "object",
+      "required": [
+        "sha",
+        "author",
+        "timestamp",
+        "operation",
+        "from",
+        "to",
+        "approver",
+        "reason",
+        "subject",
+        "wingfoil"
+      ],
+      "properties": {
+        "sha": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{7,64}$"
+        },
+        "author": {
+          "type": "string"
+        },
+        "timestamp": {
+          "type": "string"
+        },
+        "from": {
+          "type": ["string", "null"]
+        },
+        "to": {
+          "type": ["string", "null"]
+        },
+        "approver": {
+          "type": ["string", "null"]
+        },
+        "reason": {
+          "type": ["string", "null"]
+        },
+        "subject": {
+          "type": "string"
+        },
+        "operation": {
+          "enum": [
+            "add",
+            "submit",
+            "approve",
+            "reject",
+            "deprecate",
+            "start",
+            "finalize",
+            "sync",
+            "amend",
+            "park",
+            "assign",
+            null
+          ]
+        },
+        "wingfoil": {
+          "type": ["string", "null"]
+        }
+      }
+    }
+  },
   "properties": {
     "id": {
       "type": "string"
@@ -16,38 +116,14 @@
     "entries": {
       "type": "array",
       "items": {
-        "type": "object",
-        "required": ["sha", "author", "timestamp", "operation", "from", "to", "approver", "reason", "subject"],
-        "properties": {
-          "sha": {
-            "type": "string",
-            "pattern": "^[0-9a-f]{7,64}$"
+        "oneOf": [
+          {
+            "$ref": "#/definitions/v0.2"
           },
-          "author": {
-            "type": "string"
-          },
-          "timestamp": {
-            "type": "string"
-          },
-          "operation": {
-            "enum": ["add", "submit", "approve", "reject", "deprecate", null]
-          },
-          "from": {
-            "type": ["string", "null"]
-          },
-          "to": {
-            "type": ["string", "null"]
-          },
-          "approver": {
-            "type": ["string", "null"]
-          },
-          "reason": {
-            "type": ["string", "null"]
-          },
-          "subject": {
-            "type": "string"
+          {
+            "$ref": "#/definitions/v0.3"
           }
-        }
+        ]
       }
     }
   }

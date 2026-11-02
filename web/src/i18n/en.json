@@ -71,7 +71,7 @@
   "element.gate.reserved": "Reserved to {role} — {members} can act",
   "element.gate.reservedNoMember": "Reserved to {role}",
   "element.gate.title": "Decision",
-  "element.history.entry": "{operation, select, add {created by {name}} submit {submitted by {name}} approve {signed off by {name}} reject {rejected by {name}} deprecate {marked obsolete by {name}} other {edited outside a WingFoil verb by {name}}}",
+  "element.history.entry": "{operation, select, add {created by {name}} submit {submitted by {name}} approve {signed off by {name}} reject {rejected by {name}} deprecate {marked obsolete by {name}} start {started by {name}} finalize {closed by {name}} sync {moved with a linked element by {name}} amend {amended by {name}} park {parked by {name}} assign {assigned to a release by {name}} other {edited outside a WingFoil verb by {name}}}",
   "element.history.loading": "Loading the history…",
   "element.history.none": "No history yet.",
   "element.history.reason": "“{reason}”",

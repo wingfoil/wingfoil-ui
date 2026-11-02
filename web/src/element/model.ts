@@ -79,7 +79,7 @@ export function fieldEntries(frontmatter: Readonly<Record<string, unknown>>): Fi
     .map(([field, value]) => ({ field, values: valuesOf(value) }));
 }
 
-/** Who made a history entry: the approver of an approve or reject, else the commit author. */
+/** Who made a history entry: the approver of an approve, a reject or an amend, else the commit author. */
 export function actorName(entry: HistoryEntry): string {
   return memberName(entry.approver ?? entry.author);
 }

@@ -2,10 +2,67 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://wingfoil-ui.local/contracts/api/history.schema.json",
   "title": "GET /api/p/:pid/elements/:eid/history",
-  "description": "The memory history output of the element (spec-002 §2).",
-  "allOf": [
-    {
-      "$ref": "../cli/memory-history.schema.json"
+  "description": "The memory history output of the element (spec-002 §2), each entry on the fields of contracts/cli/memory-history.schema.json only: operation is one of the eleven Memory operations of WingFoil 0.3.x or null (WingFoil 0.2.2 reports the first five); the fields a CLI adds beyond them, such as 0.3.x's wingfoil, are not passed on (task-048 D48-8).",
+  "type": "object",
+  "required": ["id", "path", "entries"],
+  "properties": {
+    "id": {
+      "type": "string"
+    },
+    "path": {
+      "type": "string"
+    },
+    "entries": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["sha", "author", "timestamp", "operation", "from", "to", "approver", "reason", "subject"],
+        "properties": {
+          "sha": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{7,64}$"
+          },
+          "author": {
+            "type": "string"
+          },
+          "timestamp": {
+            "type": "string"
+          },
+          "from": {
+            "type": ["string", "null"]
+          },
+          "to": {
+            "type": ["string", "null"]
+          },
+          "approver": {
+            "type": ["string", "null"]
+          },
+          "reason": {
+            "type": ["string", "null"]
+          },
+          "subject": {
+            "type": "string"
+          },
+          "operation": {
+            "enum": [
+              "add",
+              "submit",
+              "approve",
+              "reject",
+              "deprecate",
+              "start",
+              "finalize",
+              "sync",
+              "amend",
+              "park",
+              "assign",
+              null
+            ]
+          }
+        },
+        "additionalProperties": false
+      }
     }
-  ]
+  },
+  "additionalProperties": false
 }

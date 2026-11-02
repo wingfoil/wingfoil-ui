@@ -163,8 +163,8 @@ describe('parseMemoryLog', () => {
       );
     const { events } = parse(out);
     expect(events.map((e) => [e.operation, e.id, e.from, e.to, e.reason])).toEqual([
-      ['deprecate', 'task-003-logout', 'draft', 'deprecated', 'obsolete'],
       ['finalize', 'plan-001', 'open', 'done', null],
+      ['deprecate', 'task-003-logout', 'draft', 'deprecated', 'obsolete'],
     ]);
   });
 

@@ -16,7 +16,8 @@
  * whole ({@link MemoryLogFormatError}), never guessed at (spec-002 §3, as amended 2026-10-06).
  */
 import path from 'node:path';
-import type { MemoryYaml } from '@wingfoil-ui/contracts';
+import type { MemoryOperation as Operation, MemoryYaml } from '@wingfoil-ui/contracts';
+import { CONFIGURATION_SCOPES, MEMORY_OPERATIONS, RELEASE_OPERATION } from '../presets/wingfoil.js';
 
 /** The `--format` of the read: sha, author date, author, subject, body, each followed by a NUL. */
 export const MEMORY_LOG_FORMAT = '%H%x00%aI%x00%an <%ae>%x00%s%x00%b%x00';
@@ -32,8 +33,11 @@ const SHA = /^(?:[0-9a-f]{40}|[0-9a-f]{64})$/;
 const IDENT = /^[^<>\n]* <[^<>\n]*>$/;
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:Z|[+-]\d{2}:\d{2})$/;
 
-/** A WingFoil verb recorded by a `wf(…)` commit. */
-export type MemoryOperation = 'add' | 'submit' | 'approve' | 'reject' | 'deprecate';
+/**
+ * A WingFoil operation that is a Memory event: every Memory operation but `assign`, which changes
+ * the `release` field, not the state (spec-002 §1, task-048 D48-2).
+ */
+export type MemoryOperation = Exclude<Operation, typeof RELEASE_OPERATION>;
 
 /** One event (spec-002 §1). */
 export interface MemoryEvent {
@@ -61,8 +65,43 @@ export interface MemoryLog {
   warnings: string[];
 }
 
-const SUBJECT =
-  /^wf\((?<type>[^)]+)\): (?<op>add|submit|approve|reject|deprecate) (?<id>\S+)(?: \[(?<from>[^\]]+) (?:→|->) (?<to>[^\]]+)\])?$/;
+/** `wf(<type>): <verb> <rest>` — the verb is the whole token, as WingFoil reads it (`start-fix` is not `start`). */
+const WF_SUBJECT = /^wf\((?<type>[^)]+)\): (?<verb>\S+) (?<rest>.+)$/;
+/** The ids of a subject, one or several joined by `, ` (WingFoil's grouped subjects), then an optional bracket. */
+const IDS_AND_BRACKET = /^(?<ids>[^\s,[\]]+(?:, [^\s,[\]]+)*)(?: \[(?<bracket>[^\]]+)\])?$/;
+const ARROW = / (?:→|->) /;
+
+/** A subject that records a Memory event (spec-002 §3 rule 1). */
+interface EventSubject {
+  type: string;
+  operation: MemoryOperation;
+  ids: string[];
+  /** The bracket's states, when it names exactly two: `[from → to]`. */
+  transition?: { from: string; to: string };
+}
+
+/**
+ * The event a commit subject declares, or `undefined`: a `wf(<type>): <verb> <ids> [<bracket>]`
+ * subject whose verb is a Memory operation but `assign` (task-048 D48-2), whose scope is no
+ * configuration scope, and whose bracket, when present, names two states or more. A bracket of
+ * two states gives the transition; a chained one (`a → b → c`, a `sync`) leaves it to the patch.
+ */
+export function eventSubject(subject: string): EventSubject | undefined {
+  const head = WF_SUBJECT.exec(subject)?.groups;
+  if (!head) return undefined;
+  const { type, verb, rest } = head as { type: string; verb: string; rest: string };
+  if (CONFIGURATION_SCOPES.includes(type) || verb === RELEASE_OPERATION) return undefined;
+  if (!(MEMORY_OPERATIONS as readonly string[]).includes(verb)) return undefined;
+  const tail = IDS_AND_BRACKET.exec(rest)?.groups;
+  if (!tail) return undefined;
+  const ids = tail['ids']!.split(', ');
+  const bracket = tail['bracket'];
+  if (bracket === undefined) return { type, operation: verb as MemoryOperation, ids };
+  const states = bracket.split(ARROW);
+  if (states.length < 2) return undefined;
+  const transition = states.length === 2 ? { from: states[0]!, to: states[1]! } : undefined;
+  return { type, operation: verb as MemoryOperation, ids, ...(transition ? { transition } : {}) };
+}
 const HUNK = /^@@ -\d+(?:,(?<old>\d+))? \+\d+(?:,(?<new>\d+))? @@/;
 const STATUS_LINE = /^status:[ \t]*(.*)$/;
 const TRAILER_LINE = /^[A-Za-z][A-Za-z0-9-]*:[ \t]\S/;
@@ -238,45 +277,35 @@ export function parseMemoryLog(stdout: string, shas: readonly string[]): MemoryL
   const events: MemoryEvent[] = [];
   const warnings: string[] = [];
   for (const { sha, damaged, timestamp, author, subject, body, patch: diff } of records(stdout, shas)) {
-    const match = SUBJECT.exec(subject);
-    if (damaged && (match || subject === '')) warnings.push(sha);
-    if (damaged || !match?.groups) continue;
+    const declared = eventSubject(subject);
+    if (damaged && (declared || subject === '')) warnings.push(sha);
+    if (damaged || !declared) continue;
     if (!ISO_DATE.test(timestamp) || !IDENT.test(author)) {
       warnings.push(sha);
       continue;
     }
-    const { type, op, id, from: bracketFrom, to: bracketTo } = match.groups as Record<string, string | undefined>;
-    // As `memory history`: only a commit that touches the element's own file is its event.
-    const patch = transitionInPatch(diff, `${id!}.md`);
-    if (!patch.touched) continue;
+    const { type, operation, ids, transition } = declared;
     const lines = body.replace(/\r\n?/g, '\n').split('\n');
-    let from: string | null;
-    let to: string | null;
-    if (bracketFrom !== undefined && bracketTo !== undefined) {
-      from = bracketFrom;
-      to = bracketTo;
-    } else {
-      if (patch.to === undefined) {
+    const approver = approverOf(lines);
+    const reason = reasonOf(lines);
+    for (const id of ids) {
+      // As `memory history`: only a commit that touches the element's own file is its event.
+      const patch = transitionInPatch(diff, `${id}.md`);
+      if (!patch.touched) continue;
+      let from: string | null;
+      let to: string | null;
+      if (transition) {
+        ({ from, to } = transition);
+      } else if (patch.to === undefined) {
         warnings.push(sha);
         from = null;
         to = null;
       } else {
-        from = op === 'add' ? null : (patch.from ?? null);
+        from = operation === 'add' ? null : (patch.from ?? null);
         to = patch.to;
       }
+      events.push({ sha, timestamp, author, operation, type, id, from, to, approver, reason });
     }
-    events.push({
-      sha,
-      timestamp,
-      author,
-      operation: op as MemoryOperation,
-      type: type!,
-      id: id!,
-      from,
-      to,
-      approver: approverOf(lines),
-      reason: reasonOf(lines),
-    });
   }
   return { events, warnings };
 }

@@ -24,7 +24,7 @@ import type {
   Tone,
 } from '@wingfoil-ui/contracts';
 import { ARCHIVED_KIND, BUCKET_OF_KIND, TONE_OF_KIND } from '../presets/descriptor.js';
-import { APPROVER_ROLE, ARCHIVED_STATES, TECH_LEAD_ROLE } from '../presets/wingfoil.js';
+import { APPROVER_ROLE, ARCHIVED_STATES, CORRECTION_OPERATION, TECH_LEAD_ROLE } from '../presets/wingfoil.js';
 import { resolveStates, transitionTarget } from '../reads/memory-yaml.js';
 
 export type { ActionDescriptor } from '@wingfoil-ui/contracts';
@@ -33,7 +33,7 @@ export type { Bucket } from '@wingfoil-ui/contracts';
 /**
  * One event of an element (spec-002 §1), oldest first. A `memory history` entry and a spec-002
  * project-wide event both fit. `operation: null` is a commit outside a WingFoil verb: it counts
- * only when it changed the state (`from` ≠ `to`).
+ * only when it changed the state (`from` ≠ `to`); an `amend` never counts (task-048 D48-6).
  */
 export interface DescriptorEvent {
   /** ISO 8601. */
@@ -188,9 +188,14 @@ class Team {
   }
 }
 
-/** The events that moved the element: every verb, and commits outside a verb that changed the state. */
+/**
+ * The events that moved the element: every verb but an `amend` (a correction that keeps the state,
+ * task-048 D48-6), and commits outside a verb that changed the state.
+ */
 function transitions(events: readonly DescriptorEvent[]): DescriptorEvent[] {
-  return events.filter((e) => e.operation !== null || (e.to !== null && e.from !== e.to));
+  return events.filter((e) =>
+    e.operation === null ? e.to !== null && e.from !== e.to : e.operation !== CORRECTION_OPERATION,
+  );
 }
 
 function actorOf(kind: StateKind, status: string, moves: readonly DescriptorEvent[], team: Team): DescriptorActor {

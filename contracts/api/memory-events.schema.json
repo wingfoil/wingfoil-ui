@@ -2,7 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://wingfoil-ui.local/contracts/api/memory-events.schema.json",
   "title": "GET /api/p/:pid/events/memory?before=&limit=",
-  "description": "Memory events (spec-002 §1, §3), newest first in git's order: at most limit (1 to 100, default 10) events after the event whose sha is before; more tells whether older events follow (spec-004 §3).",
+  "description": "Memory events (spec-002 §1, §3), newest first in git's order: at most limit (1 to 100, default 10) events after the event whose sha is before; more tells whether older events follow (spec-004 §3). operation is every Memory operation but assign, which changes no state (task-048 D48-2).",
   "type": "object",
   "required": ["events", "more"],
   "properties": {
@@ -24,7 +24,7 @@
             "type": "string"
           },
           "operation": {
-            "enum": ["add", "submit", "approve", "reject", "deprecate"]
+            "enum": ["add", "submit", "approve", "reject", "deprecate", "start", "finalize", "sync", "amend", "park"]
           },
           "type": {
             "type": "string"
