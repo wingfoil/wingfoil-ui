@@ -51,3 +51,141 @@ governance alignment)
   task-018 (element panel), the spec-002 events parser.
 
 ## Execution Notes
+
+### design (2026-11-02)
+
+**Read (dl-015):** this task and bug-026; `AGENTS.md`, `.wingfoil/README.md`; directive
+`wingfoil-cli` (W-04, W-15, W-20 former text, W-34, W-43); spec-001 §3 and §5, spec-002, spec-003
+§4 and §8, spec-004 §3; the Execution Notes of task-046 (D46-3 the `workflow list` variant by shape
+and its branch tests, the samples of both versions, the one sanitiser), task-012 (v0.1, which built
+`server/src/git/memory-log.ts`: `wf(plan): finalize` ignored by design), task-018 (v0.1, the history
+labels), task-031 and task-042 (v0.2, the events route and the bell's *Updates*); WingFoil 0.3.1's
+`dist/memory/audit.js` (`MEMORY_OPERATIONS`, `parseMemoryOperation`), `dist/core/workflow-next.js`
+(`renderSubjects`, `expectedCommit`), `workflow-start-end.js`, `workflow-finalize.js`,
+`memory-supersede.js`. `depends_on` is empty.
+
+**Probes (2026-11-02)** — a scratch repository, `init --template Kanban` on 0.3.1, `task` given
+`returns: { in-progress: backlog }`, one approver; every operation committed, then `memory history`
+of each element on 0.3.1 and 0.2.2, and the server's `parseMemoryLog` on the same `git log`:
+
+| Commit (subject) | Written by | 0.3.1 `operation` | 0.2.2 `operation` | `parseMemoryLog` today |
+|---|---|---|---|---|
+| `wf(task): add/submit <id>`, `approve/reject/deprecate <id> [a → b]` | CLI verbs | the verb | the verb | event |
+| `wf(task): start <id> [backlog → in-progress]` | hand (`set_state`, `workflow next`'s expected subject) | `start` | `null` | **not an event** |
+| `wf(task): park <id> [in-progress → backlog]` + `Reason:` | `memory park` | `park` (approver `null`, reason read) | `null` | **not an event** |
+| `wf(task): amend <id> [backlog → backlog]` + `Approver:`/`Reason:` | `memory amend` | `amend` (approver, reason) | `null` | **not an event** |
+| `wf(task): start <id1>, <id2> [backlog → in-progress]` | hand (grouped ids, `renderSubjects`) | `start` on **both** elements | `null` | not an event |
+| `wf(task): sync <id> [a → b]`, `sync <id> [a → b → c → d]` (chained) | hand (`sync_state`) | `sync`, from/to = parent/commit status (`a`/`d`) | `null` | not an event |
+| `wf(task): assign release v1 to <id1>, <id2>` (no bracket, no `status:` change) | hand (`set_release`) | `assign` on both, from = to = the current status | `null` | not an event |
+| `wf(plan): finalize <id> [active → done]` | hand (W-04); also `workflow end`, and `memory approve` superseding (`[s → superseded]`) | `finalize` | `null` | **not an event** (spec-002 §3 rule 1) |
+| `wf(task): <id> [a → b]` (verbless, former W-20), `wf(task): start-fix <id> …`, `docs: …` | hand | `null` | `null` | not an event |
+| `wf(dna): add …`, `wf(workflow): create …`, `wf(directive): …` | CLI configuration verbs | not in the element's history (configuration scopes, `CONFIGURATION_SCOPES`) | — | not an event (no `<id>.md` touched) |
+
+0.3.1 entries carry one more field, `wingfoil` (the commit's `WingFoil-Version:` trailer, string or
+`null`; commit text, forgeable — W-34); 0.2.2 entries do not. This repository: `memory history
+release-planning-rel-v0.2-plan` has a `finalize` entry (bug-026's reproduction); `git log` here has
+18 `wf(plan): finalize` subjects, and `element.set_release` / `set_state` in `release-planning` will
+add `assign` and `start` subjects at v0.3's planning.
+
+**Where the UI consumes them:**
+
+- **History (element panel):** `memory history` → adapter, validated by
+  `contracts/cli/memory-history.schema.json` (`api/history.schema.json` refers to it) → `GET
+  /api/p/:pid/elements/:eid/history` → `web/src/element/model.ts` `historyLines` (`null` → `edit`) →
+  `History.tsx`, message `element.history.entry` (ICU `select`: five verbs, `other` = "edited outside a
+  WingFoil verb by {name}"). Today the whole read fails (502 `cli-output`) on any of the six.
+- **Memory events (spec-002 §3):** `server/src/git/memory-log.ts` `SUBJECT` → snapshot `events()` /
+  `eventLog()` → (a) the action descriptor (`descriptor.ts`: creator, submitter of the rejected
+  submit, last reject, `last-transition` actor, `since`) behind every element list, the element
+  panel and Today; (b) `GET /api/p/:pid/events/memory` (`contracts/api/memory-events.schema.json`,
+  `MemoryEventEntry` in `contracts/src/today.ts`) → the bell's *Updates* (`web/src/shell/notifications.ts`,
+  `NotificationBell.tsx`, same message `element.history.entry`). Today reads no event directly. The
+  UI's own action log (`server/src/writes/governed.ts`) matches only its own submit/approve/reject
+  commits: untouched.
+- Effect today on 0.3.1 projects besides bug-026: a park, start, sync or finalize is missing from
+  the events, so `since` and the `last-transition` actor come from an older event (e.g. a parked task
+  shows the approve's time and author), and the bell never lists those moves.
+
+**Decisions — proposed (★ = recommendation; user-visible ones are the approver's):**
+
+- **D48-1 — history contract (★ A-per-entry variant).** spec-001 §5 asks for a variant by shape: each
+  `entries[]` item is `oneOf` two definitions that exclude each other by the `wingfoil` field —
+  `v0.2` (no `wingfoil`; `operation` ∈ the five or `null`) and `v0.3` (`wingfoil` required, string or
+  `null`; `operation` ∈ the eleven or `null`). 0.2.2's output stays as strict as today (a 0.2.2 entry
+  saying `finalize` is refused); an empty `entries` validates (a per-entry choice, not a top-level
+  `oneOf` both branches would match). Branch tests as task-046's: every sample entry matches its own
+  version's definition only. *Alternative B:* one widened enum for both versions (simpler, but loosens
+  0.2.2). `HistoryOperation` = the eleven or `null`; a new contracts type `MemoryOperation` (the
+  eleven, the order of WingFoil's `MEMORY_OPERATIONS`), its runtime list in `server/src/presets/wingfoil.ts`
+  (WingFoil's vocabulary, REQ-ARC-05). The schema stays closed: a twelfth verb in a later WingFoil
+  fails the contract tests at the matrix advance, as spec-001's Consequences intend.
+- **D48-2 — which commits are Memory events (approver).** ★ Every Memory operation is an event
+  **except `assign`**: `start`, `finalize`, `sync`, `amend`, `park` join the five. `assign` changes
+  the `release` field, not the state; its subject has no bracket and its patch no `status:` line, and
+  one `set_release` stamps every element of a release at once (it would flood the bell's last 10).
+  *Alternative:* `assign` is an event with `from`/`to` `null` and no warning (shown in the bell as
+  "assigned to a release by …"). The subject grammar follows WingFoil's (`parseMemoryOperation`): the
+  verb is the whole token after `: ` (`start-fix` is not `start`); configuration scopes (`dna`,
+  `directive`, `workflow`) are never events; **grouped ids** `<id1>, <id2>` give one event per id
+  whose `<id>.md` the patch touches (as 0.3.1's history gives the entry to each element); a bracket
+  of exactly two states gives `from`/`to` as today; a **chained** bracket (`a → b → c`, `sync`) takes
+  `from`/`to` from the patch (0.3.1's history: parent and commit status). The spec-002 §5 consistency
+  contract becomes "events = the history entries whose operation is neither `null` nor `assign`".
+- **D48-3 — independent of the project's version (★).** The parse reads the same eleven verbs on a
+  0.2.2 project (the events are git's, not the CLI's): a practised `wf(plan): finalize` on a 0.2.2
+  project is an event in the bell and the descriptor while that CLI's history shows the line as
+  "edited outside a WingFoil verb". *Alternative:* the operation list per detected version (matches
+  each CLI exactly; the events cache, keyed by HEAD, would also depend on the CLI version).
+- **D48-4 — labels (approver).** `element.history.entry` (history and bell share it) gains, ★:
+  `start` "started by {name}", `finalize` "closed by {name}" (covers W-04, `workflow end`, and a
+  superseded element: the transition line shows `→ superseded`), `sync` "moved with a linked element
+  by {name}", `amend` "amended by {name}" (the approver of the `Approver:` line, as approve/reject),
+  `park` "parked by {name}", `assign` "assigned to a release by {name}" (history only, D48-2). Who:
+  `approver ?? author`, unchanged.
+- **D48-5 — the bell's *Updates* (approver).** ★ Every event of D48-2, so `amend` and `park` are
+  listed (both carry a reason; rare). *Alternative:* `amend` left out of *Updates* (still in the
+  history). Today: no change (its rows follow the descriptor; the bell count is Requires you).
+- **D48-6 — the descriptor (★).** `amend` is not a move: it never changes the actor, the rejection
+  banner or `since` (spec-003 §4 "last event is a reject" read over moves; an approver's amend of a
+  rejected element keeps "Jordan (submitter) must act"). `start`, `finalize`, `sync`, `park` are moves
+  like `submit`. spec-003 gets a one-line note.
+- **D48-7 — a transition with `from` = `to` (approver).** ★ Shown as today ("backlog → backlog" on an
+  amend, an assign and every hand edit already). *Alternative:* hide the transition when `from` =
+  `to` on every line (history and bell).
+- **D48-8 — security (AC-3).** No new tool-message field. The history route returns the CLI's JSON
+  as it is today, so 0.3.1's `wingfoil` field (commit text) reaches the body: ★ the route projects
+  each entry on the contract's fields (drops `wingfoil` and any unknown field). The commit-sourced
+  strings already served since v0.1 (`subject`, `reason`, `author`, `approver`) are unchanged by this
+  task — not sanitised as tool messages (a multi-line reason is shown as written); flagged for the
+  approver: a bug-ingest if they should be.
+
+**File layout:** `contracts/cli/memory-history.schema.json` (D48-1), `contracts/api/memory-events.schema.json`
+(enum: the ten of D48-2), `contracts/src/cli.ts` (`MemoryOperation`, `HistoryOperation`),
+`contracts/src/today.ts` (`MemoryEventEntry.operation`); `server/src/presets/wingfoil.ts` (the list),
+`server/src/git/memory-log.ts` (`SUBJECT` → a subject reader: scope, verb token, ids, bracket),
+`server/src/descriptor/descriptor.ts` (D48-6), `server/src/http/project-routes.ts` (D48-8 projection);
+`web/src/i18n/en.json` (D48-4, the one message), `web/src/element/model.ts` (types follow);
+`test/harness/fixtures/operations.ts` (new: the 0.3 operations on a copy of the `custom` fixture,
+pinned CLI ≥ 0.3 — a phase plan added, submitted and closed by W-04; a hand `start` then `memory
+park`; `memory amend` of a decision-log by the approver; a grouped `start`, a chained `sync`, an
+`assign release` of two tasks; the base fixtures stay as they are, so no list or count moves).
+
+**Test plan (red first):**
+
+| Scenario | Test | Red today |
+|---|---|---|
+| a captured 0.3.1 history with `finalize`, `park`, `amend` (+ `start`, `sync`, `assign`) validates; 0.2.2's samples still do; each entry matches only its version's definition; a 0.2.2-shaped entry with `finalize` and a 0.3-shaped `merge` are refused | `test/contracts/capture-samples.test.ts` (captures `wingfoil-0.3.1/custom/memory-history-operations/*.json` from the helper), `test/contracts/schemas.test.ts` | the samples fail `/entries/N/operation` |
+| each new verb, grouped ids, chained bracket, `assign` not an event and no warning, `start-fix`/verbless/`wf(dna)`/`wf(workflow)` not events, existing cases unchanged | `test/server/git/memory-log.test.ts` (recorded logs; the "`wf(plan): finalize` (ignored)" case becomes an event) | yes |
+| spec-002 §5 on the operations copy: events = history entries neither `null` nor `assign` | `test/server/snapshot/memory-events.test.ts` | yes (history refused, then mismatches) |
+| `amend` after a reject keeps the submitter actor and the banner; `amend` does not move `since`; `park`/`finalize` move it | `test/server/descriptor/descriptor.test.ts` | yes |
+| `GET …/history` of the hand-closed plan answers 200 with `finalize`, no `wingfoil` field; events route lists park/finalize | `test/server/http/project-routes.test.ts` | yes (502) |
+| labels of the six; the catalogue check | `test/web/element/*` (model / History), `test/web/i18n` | yes |
+| e2e (pinned CLI, operations copy): S-48.1 the panel of a plan closed by hand shows "closed by {name}" with `active → done`; S-48.2 a parked and an amended element's history lines with their reasons; S-48.3 the bell's *Updates* list the park and the finalize; axe in both themes on the panel | `test/e2e/history-operations.spec.ts` (new) | yes (history alert) |
+
+Gates (AC-5) as the task lists them, heavy ones through the slot; on three engines:
+`element-panel`, `today`, `notification-bell` and the new spec.
+
+**Docs:** spec-001 §3 row + Process Note; spec-002 §1, §2, §3 rule 1, §5 + Process Note; spec-003 §4
+note (D48-6); the schemas' `description`/`$comment`; directive `wingfoil-cli` W-43 rewritten as fixed by
+task-048 (1.18); CHANGELOG *Unreleased* › *Fixed* (bug-026); `test/README.md` version line (new spec,
+new samples folder).
