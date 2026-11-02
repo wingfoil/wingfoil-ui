@@ -1,10 +1,10 @@
 # `.wingfoil/` — WingFoil configuration of WingFoil UI
 
-**Version:** 0.7 · **Date:** 2026-11-02 (0.1: release v0.1, `user-docs` `align-agent-docs`; 0.2:
+**Version:** 0.8 · **Date:** 2026-11-02 (0.1: release v0.1, `user-docs` `align-agent-docs`; 0.2:
 W-25, W-26 — dl-007; 0.3: `release-submit`, `release-publishing`, `retrospective` tailored — dl-008;
 0.4: the packs `base@2.0.1`, `software@1.0.0`, `methodology/scrum@1.0.0` adopted —
 governance-alignment-rel-v0.3-plan step 3; 0.5: the deviations from the packs — GA3-11; 0.6: their residuals, the accepted limits, `traceability-chain`, `release-conventions` on facilitator — the adoption's review round 1; 0.7: the deprecate rule for every role — round 2) · **Checked against:** `wingfoil@0.3.1` (the devDependency
-pin)
+pin; 0.8: R-3 cites the `wingfoil-cli` deprecate rule (review round 3 nit))
 
 This folder makes the WingFoil UI repository a project **governed by WingFoil**: its DNA, its Memory
 element types and their state machines, its workflows, and the directives bound to each role. It is
@@ -35,7 +35,7 @@ Decided by the approver on 2026-11-01 (GA3-11 of `governance-alignment-rel-v0.3-
 |---|------|----------------|------|-----|
 | R-1 | `release` | no gate; `releasing → released` by `mark-released` (`element.set_state`) | gate `releasing` (reject → `in-development`): `released` only by the approver's `memory approve`, after the publication | without a gate any member, an agent acting as tech-lead included, can `memory submit` a release to `released`. **Residual:** the console and `workflow status` offer the gate's Approve as soon as the release is `releasing`; approved at `approve-release` it jumps to `released` and the publication steps vanish — so `approve-release` is `workflow finalize`, never `memory approve` (directive `release-conventions`) |
 | R-2 | `release-line` | gate `planning` only; `active → done` by `submit` | also gate `active` (reject → `planning`): the approver closes the line | `submit` closed a line with no check on its releases. **Residual:** the line sits in the approver's queue for its whole life; it is approved only at its end, every release `released` (`release-conventions`) |
-| R-3 | `bug` | gates `open`, `triaged`, `planned`, `in-review`, `resolved` | no gate on `planned`: `memory submit` moves it to `in-progress` | the start of a planned fix needs no approval, as the task's start; `triaged → planned` stays the approver's. **Trade-off:** any team identity can make the move (by rule the developer, when the fix starts), and `planned` loses its wontfix exit (reject → `closed`): a bug that will not be fixed is rejected to `closed` at `triaged`, before it is planned; once `planned`, only `memory deprecate` (with the approver's OK, directive `cli-only-writes`) ends it without a fix |
+| R-3 | `bug` | gates `open`, `triaged`, `planned`, `in-review`, `resolved` | no gate on `planned`: `memory submit` moves it to `in-progress` | the start of a planned fix needs no approval, as the task's start; `triaged → planned` stays the approver's. **Trade-off:** any team identity can make the move (by rule the developer, when the fix starts), and `planned` loses its wontfix exit (reject → `closed`): a bug that will not be fixed is rejected to `closed` at `triaged`, before it is planned; once `planned`, only `memory deprecate` (with the approver's OK, directives `wingfoil-cli`, `cli-only-writes`) ends it without a fix |
 
 **Accepted limits** (not deviations; the adoption design §11, the review round 1):
 

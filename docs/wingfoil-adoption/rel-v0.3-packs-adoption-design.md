@@ -1,11 +1,11 @@
 # Packs adoption — design (governance-alignment-rel-v0.3, step 3)
 
-**Version:** 0.5 · **Date:** 2026-11-02 (0.1: the design of GA3-10, with the proposed `.wingfoil/`
+**Version:** 0.6 · **Date:** 2026-11-02 (0.1: the design of GA3-10, with the proposed `.wingfoil/`
 change on `design/ga3-adoption`; 0.2: the 16 decisions confirmed, the risk mitigations GA3-11, the
 implementation and its gates — §11 … §13; 0.3: the open items' decisions 1-A and 2-A, the pre-packs
 variant — §13; 0.4: review round 1 — §14, its fixes in §3 … §5, §11 … §13; 0.5: review round 2 —
 §15, the nits n2 … n4 listed in §11. The plan (step 3, GA3-11)
-cites this document as the detailed source of its decisions)
+cites this document as the detailed source of its decisions; 0.6: §12 "any git identity" (review round 3 nit); round 3 PASS)
 
 The adoption design that decision GA3-10 of `governance-alignment-rel-v0.3-plan` asks for before any
 `.wingfoil/` change: the composition parameters, the file-by-file outcome, the old → new keys, dl-008
@@ -431,7 +431,7 @@ task, not part of this step (`release-conventions`, `CLAUDE.md`).
 > **Also seen while adopting** (WingFoil 0.3.1 and the packs):
 > - the CLI accepts a hand-edited, committed `status:` with no approver (history `approver: null`),
 >   and the engine counts the state;
-> - `memory deprecate` needs no approval: any team identity deprecates an element in any state;
+> - `memory deprecate` needs no approval: any git identity, team member or not, deprecates an element in any state;
 > - a `sprint` field naming a Sprint that does not exist is accepted at `submit`;
 > - `base`'s `security-secrets` forbids personal emails in files, while `dna.yaml` must hold the
 >   approver's email for WingFoil to grant approval — the rule could name that exception;
