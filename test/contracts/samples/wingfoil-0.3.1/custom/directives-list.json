@@ -350,11 +350,35 @@
         ]
       },
       "roles": [
+        "facilitator",
         "qa",
         "tech-lead"
       ],
       "global": false,
-      "assignment": "qa, tech-lead"
+      "assignment": "facilitator, qa, tech-lead"
+    },
+    {
+      "path": "directives/custom/traceability-chain.md",
+      "frontmatter": {
+        "id": "traceability-chain",
+        "name": "traceability-chain",
+        "type": "directive",
+        "kind": "custom",
+        "title": "The traceability chain of WingFoil UI",
+        "tags": [
+          "custom",
+          "traceability",
+          "requirements"
+        ]
+      },
+      "roles": [
+        "architect",
+        "facilitator",
+        "product-owner",
+        "reviewer"
+      ],
+      "global": false,
+      "assignment": "architect, facilitator, product-owner, reviewer"
     },
     {
       "path": "directives/custom/ux-consistency.md",
