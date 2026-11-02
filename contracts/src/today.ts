@@ -3,6 +3,7 @@
  * (spec-002 §1, spec-004 §3, `contracts/api/memory-events.schema.json`) — v0.2.
  */
 import type { ActionDescriptor } from './descriptor.js';
+import type { MemoryOperation } from './cli.js';
 
 /**
  * What a Requires you row asks of the user (spec-003 §5); the web catalogue gives its button:
@@ -61,7 +62,8 @@ export interface MemoryEventEntry {
   timestamp: string;
   /** `Name <email>`. */
   author: string;
-  operation: 'add' | 'submit' | 'approve' | 'reject' | 'deprecate';
+  /** Every Memory operation but `assign`, which changes no state (task-048 D48-2). */
+  operation: Exclude<MemoryOperation, 'assign'>;
   type: string;
   id: string;
   /** `null` for `add`, and when the commit shows no transition. */

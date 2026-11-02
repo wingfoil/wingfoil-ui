@@ -28,7 +28,15 @@ import type { Snapshots } from '../../../server/src/snapshot/snapshots.js';
 import { createMemoryStateStore } from '../../../server/src/state/memory-store.js';
 import type { StateStore } from '../../../server/src/state/store.js';
 import { pinnedCli, pinnedVersion, pinnedVersionText, REPO_ROOT } from '../../harness/cli.js';
-import { buildFixture, copyFixture, installCliStub, type Fixture } from '../../harness/fixtures/index.js';
+import {
+  addOperations,
+  AMEND_REASON,
+  buildFixture,
+  copyFixture,
+  installCliStub,
+  PARK_REASON,
+  type Fixture,
+} from '../../harness/fixtures/index.js';
 import { git, run } from '../../harness/run.js';
 import { auditedSnapshots, type AuditedRunner } from '../snapshot/support.js';
 
@@ -474,6 +482,57 @@ describe('GET /api/p/:pid/elements/:eid and /history', () => {
     expect(res.status).toBe(200);
     expectSchema('history.schema.json', res.body);
     expect(res.body.entries.map((e: any) => e.operation)).toEqual(['add', 'submit', 'reject']);
+  });
+
+  // task-048 (bug-026): WingFoil 0.3.x's operations in the history and in the Memory events.
+  it('answers the history of a plan closed by hand and of a parked and an amended element, contract fields only', async () => {
+    const c = await start(customTemplate, { prepare: async (fx) => void (await addOperations(fx)) });
+    const of = async (id: string) => {
+      const res = await c.get(`/api/p/${c.pid}/elements/${id}/history`);
+      expect(res.status, id).toBe(200);
+      expectSchema('history.schema.json', res.body);
+      return res.body.entries as any[];
+    };
+    expect((await of('history-probe-plan')).map((e) => [e.operation, e.from, e.to])).toEqual([
+      ['add', null, 'draft'],
+      ['submit', 'draft', 'active'],
+      ['finalize', 'active', 'done'],
+    ]);
+    const parked = await of('task-005-parked-work');
+    expect(parked.slice(-2).map((e) => [e.operation, e.from, e.to, e.reason])).toEqual([
+      ['start', 'backlog', 'in-progress', null],
+      ['park', 'in-progress', 'backlog', PARK_REASON],
+    ]);
+    const amended = (await of('dl-002-use-fastify')).at(-1);
+    expect([amended.operation, amended.approver, amended.reason]).toEqual([
+      'amend',
+      'Morgan <morgan@example.test> (approver)',
+      AMEND_REASON,
+    ]);
+    // D48-8: the entries carry the contract's fields only (0.3.x's `wingfoil` is commit text).
+    for (const e of parked) {
+      expect(Object.keys(e).sort()).toEqual([
+        'approver',
+        'author',
+        'from',
+        'operation',
+        'reason',
+        'sha',
+        'subject',
+        'timestamp',
+        'to',
+      ]);
+    }
+  });
+
+  it('lists the 0.3 operations but assign in the Memory events', async () => {
+    const c = await start(customTemplate, { prepare: async (fx) => void (await addOperations(fx)) });
+    const res = await c.get(`/api/p/${c.pid}/events/memory?limit=100`);
+    expect(res.status).toBe(200);
+    expectSchema('memory-events.schema.json', res.body);
+    const ops = new Set((res.body.events as any[]).map((e) => e.operation));
+    for (const op of ['start', 'finalize', 'sync', 'amend', 'park']) expect(ops.has(op), op).toBe(true);
+    expect(ops.has('assign')).toBe(false);
   });
 
   it('answers 404 to an unknown element, also on /history, starting no history process', async () => {

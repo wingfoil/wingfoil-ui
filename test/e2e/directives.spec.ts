@@ -189,7 +189,9 @@ test.describe('US-R-06 — Directives view', () => {
     await expect(page).toHaveTitle('custom · wingfoil-cli — WingFoil UI');
     // Rendered as Markdown: headings, and the table of known behaviours as a table.
     await expect(article.getByRole('heading', { level: 1 })).toHaveText('Directive — Using the pinned WingFoil CLI');
-    await expect(article.getByRole('heading', { level: 2, name: 'Known behaviours (0.2.2)' })).toBeVisible();
+    await expect(
+      article.getByRole('heading', { level: 2, name: /^Known behaviours \(\d+\.\d+\.\d+\)$/ }),
+    ).toBeVisible();
     const table = article.getByRole('table');
     await expect(table.getByRole('columnheader', { name: 'Behaviour', exact: true })).toBeVisible();
     await expect(table.getByRole('cell', { name: 'W-01', exact: true })).toBeVisible();

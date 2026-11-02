@@ -191,6 +191,21 @@ export class FixtureProject {
     await this.commitAll(`wf(${type}): ${id} [${from} → ${to}]`, 'elements');
   }
 
+  /**
+   * A commit written by hand (a practised subject, or W-04's `finalize`): set `fields` of the
+   * element file at `relPath`, stage everything and commit it as `member` with `subject`.
+   */
+  async handCommit(
+    member: MemberName,
+    relPath: string,
+    fields: Record<string, string>,
+    subject: string,
+  ): Promise<void> {
+    await this.as(member);
+    await this.editFrontmatter(relPath, fields);
+    await this.commitAll(subject, 'elements');
+  }
+
   /** Stage everything and commit as the current identity. */
   async commitAll(message: string, moment: Moment): Promise<void> {
     await git(this.dir, ['add', '-A'], this.options.env);

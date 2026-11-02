@@ -36,6 +36,7 @@ import type {
   ElementDetail,
   ElementList,
   ListedElement,
+  MemoryHistory,
   MemoryMatch,
   MemoryYaml,
   ProjectConfig,
@@ -550,6 +551,29 @@ async function memoryEventsOf(read: ProjectRead, query: Record<string, unknown>)
   return page;
 }
 
+/**
+ * `GET /api/p/:pid/elements/:eid/history`: `memory history` with each entry on the contract's fields
+ * only — the fields a newer CLI adds (WingFoil 0.3.x's `wingfoil`, commit text, W-34) are not passed
+ * on (task-048 D48-8).
+ */
+function historyBody({ id, path, entries }: MemoryHistory): MemoryHistory {
+  return {
+    id,
+    path,
+    entries: entries.map(({ sha, author, timestamp, operation, from, to, approver, reason, subject }) => ({
+      sha,
+      author,
+      timestamp,
+      operation,
+      from,
+      to,
+      approver,
+      reason,
+      subject,
+    })),
+  };
+}
+
 type Handler<P, Q> = (read: ProjectRead, params: P, query: Q) => Promise<unknown>;
 
 /** Register the routes of this module. */
@@ -599,7 +623,7 @@ export function registerProjectRoutes(app: FastifyInstance, options: ProjectRout
   route<{ eid: string }>(`${PROJECT_PATH}/elements/:eid`, (read, params) => element(read, params.eid));
   route<{ eid: string }>(`${PROJECT_PATH}/elements/:eid/history`, async (read, params) => {
     if (!(await read.findMatch(params.eid))) throw notFound();
-    return (await read.view.history(params.eid)).data;
+    return historyBody((await read.view.history(params.eid)).data);
   });
   route(`${PROJECT_PATH}/directives`, directives);
   route<{ did: string }>(`${PROJECT_PATH}/directives/:did`, (read, params) => directive(read, params.did));

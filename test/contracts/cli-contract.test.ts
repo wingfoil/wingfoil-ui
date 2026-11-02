@@ -17,7 +17,7 @@ import {
 } from '../../server/src/cli/commands.js';
 import { discoverCli } from '../../server/src/cli/discovery.js';
 import { LocalProcessRunner } from '../../server/src/process/runner.js';
-import { resolveStates, transitionTarget } from '../../server/src/reads/memory-yaml.js';
+import { isTransitionOp, resolveStates, transitionTarget } from '../../server/src/reads/memory-yaml.js';
 import { ProjectReads } from '../../server/src/reads/project-reads.js';
 import {
   buildFixture,
@@ -113,7 +113,9 @@ describe.each(VERSIONS)('contract — wingfoil %s', (version) => {
         const states = resolveStates(types, m.type);
         expect(states, `type ${m.type} of ${m.id} is declared`).toBeDefined();
         for (const e of (await reads.history(m.id)).data.entries) {
-          if (e.operation === null || e.operation === 'add') continue;
+          // The verbs the resolved states decide; 0.3's practised `start`/`finalize`/`sync`, `park`
+          // (a `returns` edge), `amend` and `assign` (no move) are not in these fixtures (task-048).
+          if (!isTransitionOp(e.operation)) continue;
           expect(transitionTarget(states!, e.from!, e.operation), `${m.id} ${e.operation} ${e.from} → ${e.to}`).toBe(
             e.to,
           );

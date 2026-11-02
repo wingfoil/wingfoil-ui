@@ -4,7 +4,7 @@ type: tech-spec
 title: "Action descriptor"
 status: approved
 scope: "action descriptor: verbs, actor and tone per element"              # REQUIRED — the artefact this spec covers, e.g. "server HTTP API", "CLI JSON contract: memory search", ".wingfoil/ui.yaml"
-wingfoil_version: "0.2.2"   # optional — for a CLI contract: the WingFoil version the shape was captured from
+wingfoil_version: "0.2.2, 0.3.1"   # optional — for a CLI contract: the WingFoil version the shape was captured from
 supersedes: ""         # optional — id of the tech-spec this one replaces, e.g. "spec-002"
 release: "v0.1"            # optional — implementation release this spec is assigned to (stamped by release-planning/build-backlog), e.g. "v0.1"
 contributor: ""        # optional — who originated this contribution, if not the git author; credited for AI-generated work derived from it
@@ -85,6 +85,10 @@ table; this table does not change.
 | `waiting`, `gate-waiting` | the workflow engine (no member) — "Waiting for the workflow engine"; for `gate-waiting` the `reject` verb stays reserved to `approver` (its `role`, §3), as SARD REQ-ARC-06 |
 | `undeclared` | the role `tech-lead` |
 | `last`, `off-sequence`, `archived` | no one |
+
+The events read here are the moves of the element: every event but an `amend`, which records a
+correction and keeps the state (it changes neither the actor, nor the rejection, nor `since`;
+task-048 D48-6), and a commit outside a verb only when it changed the state.
 
 A member is matched by the email of the event's author against `dna.team.members[].email`. When
 the author is not a member (or the history has no event), the actor falls back to the role
@@ -289,3 +293,7 @@ element list; `web/` renders it and never re-derives it.
   it (informational footer); a `gate-waiting` state shown to a member without `approver` reads
   "Reserved to approver" without names (its actor is the engine) with "Waiting for the workflow
   engine to advance". Decided by the approver.
+- 2026-11-02 — amended in dev-loop task-048 (bug-026, D48-6 approved by the approver): §4 the
+  events read are the moves — an `amend` of WingFoil 0.3.x is not one; `start`, `finalize`, `sync`
+  and `park` are, like the five verbs.
+- 2026-11-02 — task-048 review round 1 (n-3): `wingfoil_version` names 0.3.1 too.

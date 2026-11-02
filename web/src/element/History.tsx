@@ -1,7 +1,8 @@
 /**
  * The element's history (spec-002 §2: `memory history`, the CLI's reconstruction), newest first:
  * what happened and who did it, the transition, the reason, the date and the commit (short hash,
- * full hash as its title). A commit that is not a WingFoil verb is "edited outside a WingFoil verb".
+ * full hash as its title). A commit that is not a WingFoil verb is "edited outside a WingFoil verb";
+ * the operations of WingFoil 0.3.x have lines of their own (task-048).
  */
 import type { HistoryEntry } from '@wingfoil-ui/contracts';
 import type { ReactNode } from 'react';

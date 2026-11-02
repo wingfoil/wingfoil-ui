@@ -1,8 +1,9 @@
 // spec-002 §3 / §5 — the project-wide `git log -p` parse feeding the action descriptor's actor
 // events (task-011 hand-over): unit tests on recorded `git log` outputs — each operation, a subject
 // with and without a transition, a multi-line reason, a reason followed by a `Co-Authored-By:`
-// trailer, a non-`wf` commit, `wf(plan): finalize` (ignored), a quoted `status:` value, a missing
-// `+status:` line (reported, never dropped).
+// trailer, a non-`wf` commit, a quoted `status:` value, a missing `+status:` line (reported, never
+// dropped); the WingFoil 0.3 operations (task-048, bug-026): `start`, `finalize`, `sync`, `amend`,
+// `park` are events, `assign` and the verbs outside the eleven are not; grouped ids, chained brackets.
 import { describe, expect, it } from 'vitest';
 import type { MemoryYaml } from '@wingfoil-ui/contracts';
 import { GIT_READ_ARGS } from '../../../server/src/git/git.js';
@@ -11,6 +12,7 @@ import {
   MEMORY_LOG_FORMAT,
   MemoryLogFormatError,
   memoryDirectories,
+  MAX_SUBJECT_IDS,
   memoryEventsPage,
   normalizeReason,
   parseMemoryLog,
@@ -145,7 +147,7 @@ describe('parseMemoryLog', () => {
     });
   });
 
-  it('ignores non-wf commits and wf(plan): finalize', () => {
+  it('ignores non-wf commits; reads wf(plan): finalize (task-048 D48-2)', () => {
     const out =
       record(6, 'edit the title by hand', '', filePatch(TASK, ['-title: A', '+title: B'])) +
       record(
@@ -162,6 +164,7 @@ describe('parseMemoryLog', () => {
       );
     const { events } = parse(out);
     expect(events.map((e) => [e.operation, e.id, e.from, e.to, e.reason])).toEqual([
+      ['finalize', 'plan-001', 'open', 'done', null],
       ['deprecate', 'task-003-logout', 'draft', 'deprecated', 'obsolete'],
     ]);
   });
@@ -205,6 +208,270 @@ describe('parseMemoryLog', () => {
       filePatch(TASK, ['-status: pending', '+status: draft']),
     );
     expect(parse(out).events[0]).toMatchObject({ approver: 'M <m@x.test> (approver)', reason: 'a\nb' });
+  });
+});
+
+// task-048 (bug-026, D48-2): WingFoil 0.3.x's operations, as `memory history` reads them
+// (`dist/memory/audit.js` `parseMemoryOperation`), and its practised subjects (`workflow next`'s
+// `renderSubjects`: grouped ids, a chained `sync` bracket, `assign release <v> to <ids>`).
+describe('the WingFoil 0.3 operations (task-048)', () => {
+  const T1 = 'docs/memory/task/task-001-login-form.md';
+  const T2 = 'docs/memory/task/task-002-password-reset.md';
+  const PLAN = 'docs/plans/rl-v1/history-probe-plan.md';
+  const ops = (out: string) => parse(out).events.map((e) => [e.operation, e.id, e.from, e.to, e.approver, e.reason]);
+
+  it('reads start, finalize, sync, park and amend with their transition, approver and reason', () => {
+    const out =
+      record(
+        19,
+        'wf(plan): finalize history-probe-plan [active → done]',
+        '',
+        filePatch(PLAN, ['-status: active', '+status: done']),
+      ) +
+      record(
+        18,
+        'wf(task): amend task-001-login-form [backlog → backlog]',
+        'Approver: Morgan <morgan@example.test> (approver)\nReason: Title names the server\n\nWingFoil-Version: 0.3.1 (870bd44)\n',
+        filePatch(T1, ['-title: A', '+title: B']),
+      ) +
+      record(
+        17,
+        'wf(task): park task-001-login-form [in-progress → backlog]',
+        'Reason: Blocked on the build server\n\nWingFoil-Version: 0.3.1 (870bd44)\n',
+        filePatch(T1, ['-status: in-progress', '+status: backlog']),
+      ) +
+      record(
+        16,
+        'wf(task): sync task-001-login-form [in-review → in-progress]',
+        '',
+        filePatch(T1, ['-status: in-review', '+status: in-progress']),
+      ) +
+      record(
+        15,
+        'wf(task): start task-001-login-form [backlog → in-review]',
+        '',
+        filePatch(T1, ['-status: backlog', '+status: in-review']),
+      );
+    expect(ops(out)).toEqual([
+      ['finalize', 'history-probe-plan', 'active', 'done', null, null],
+      [
+        'amend',
+        'task-001-login-form',
+        'backlog',
+        'backlog',
+        'Morgan <morgan@example.test> (approver)',
+        'Title names the server',
+      ],
+      ['park', 'task-001-login-form', 'in-progress', 'backlog', null, 'Blocked on the build server'],
+      ['sync', 'task-001-login-form', 'in-review', 'in-progress', null, null],
+      ['start', 'task-001-login-form', 'backlog', 'in-review', null, null],
+    ]);
+    expect(parse(out).warnings).toEqual([]);
+  });
+
+  it('gives a grouped subject one event per id whose file the patch touches', () => {
+    const out = record(
+      20,
+      'wf(task): start task-001-login-form, task-002-password-reset, task-009-absent [backlog → in-progress]',
+      '',
+      filePatch(T1, ['-status: backlog', '+status: in-progress']) +
+        filePatch(T2, ['-status: backlog', '+status: in-progress']),
+    );
+    expect(ops(out)).toEqual([
+      ['start', 'task-001-login-form', 'backlog', 'in-progress', null, null],
+      ['start', 'task-002-password-reset', 'backlog', 'in-progress', null, null],
+    ]);
+  });
+
+  it('reads a chained bracket from the patch: the state before and after the commit', () => {
+    const out = record(
+      21,
+      'wf(task): sync task-001-login-form [in-progress → in-review → approved]',
+      '',
+      filePatch(T1, ['-status: in-progress', '+status: approved']),
+    );
+    expect(ops(out)).toEqual([['sync', 'task-001-login-form', 'in-progress', 'approved', null, null]]);
+    expect(parse(out).warnings).toEqual([]);
+  });
+
+  it('reads no event and no warning for assign, which changes the release, not the state', () => {
+    const out =
+      // Not WingFoil's canonical form (it reads `null`), never an event either.
+      record(
+        27,
+        'wf(task): assign task-001-login-form [backlog → in-progress]',
+        '',
+        filePatch(T1, ['-status: backlog', '+status: in-progress']),
+      ) +
+      record(
+        22,
+        'wf(task): assign release v0.1 to task-001-login-form, task-002-password-reset',
+        '',
+        filePatch(T1, ['-release: ""', '+release: "v0.1"']) + filePatch(T2, ['-release: ""', '+release: "v0.1"']),
+      );
+    expect(parse(out)).toEqual({ events: [], warnings: [] });
+  });
+
+  it('reads no event for a verb outside the eleven, a verbless subject or a configuration scope', () => {
+    const out =
+      record(
+        26,
+        'wf(task): start-fix task-001-login-form [backlog → in-progress]',
+        '',
+        filePatch(T1, ['-status: backlog', '+status: in-progress']),
+      ) +
+      record(
+        25,
+        'wf(task): task-001-login-form [in-progress → done]',
+        '',
+        filePatch(T1, ['-status: in-progress', '+status: done']),
+      ) +
+      record(24, 'wf(dna): add task-001-login-form', '', filePatch(T1, ['-status: done', '+status: draft'])) +
+      record(23, 'wf(workflow): create task-001-login-form', '', filePatch(T1, ['-status: draft', '+status: done']));
+    expect(parse(out)).toEqual({ events: [], warnings: [] });
+  });
+});
+
+// task-048 review round 1, M-1: a subject is commit text anyone can write — repeated ids are read
+// once, the patch is scanned once per commit whatever the number of ids, and a subject naming more
+// than MAX_SUBJECT_IDS ids is no event (a warning).
+describe('grouped ids: cost and repetition (task-048 review round 1, M-1)', () => {
+  const taskFile = (n: number) => `docs/memory/task/t-${n}.md`;
+  const move = (n: number) => filePatch(taskFile(n), ['-status: backlog', '+status: in-progress']);
+
+  it('reads a repeated id once, as WingFoil gives the element one history entry', () => {
+    const out = record(30, 'wf(task): start t-1, t-1, t-1 [backlog → in-progress]', '', move(1));
+    expect(parse(out).events.map((e) => e.id)).toEqual(['t-1']);
+  });
+
+  it('scans the patch once for a large group: the lines read do not grow with the ids', () => {
+    const n = MAX_SUBJECT_IDS;
+    const ids = Array.from({ length: n }, (_, i) => `t-${i}`);
+    const patch = ids.map((_, i) => move(i)).join('');
+    const out = record(31, `wf(task): start ${ids.join(', ')} [backlog → in-progress]`, '', patch);
+    const counters = { patchLines: 0 };
+    const log = parseMemoryLog(out, shasOf(out), { counters });
+    expect(log.events).toHaveLength(n);
+    expect(log.warnings).toEqual([]);
+    // One pass over the patch: its own lines and git's two leading newlines, never ids × lines.
+    expect(counters.patchLines).toBe(patch.split('\n').length + 2);
+  });
+
+  it(`reads no event, with a warning, from a subject naming more than ${String(MAX_SUBJECT_IDS)} ids`, () => {
+    const ids = Array.from({ length: MAX_SUBJECT_IDS + 1 }, (_, i) => `t-${i}`);
+    const out = record(32, `wf(task): start ${ids.join(', ')} [backlog → in-progress]`, '', move(0) + move(1));
+    expect(parse(out)).toEqual({ events: [], warnings: [SHA(32)] });
+  });
+
+  it('counts distinct ids against the cap: a long repetition of one id is one event', () => {
+    const ids = Array.from({ length: MAX_SUBJECT_IDS * 4 }, () => 't-1');
+    const out = record(33, `wf(task): start ${ids.join(', ')} [backlog → in-progress]`, '', move(1));
+    expect(parse(out).events.map((e) => e.id)).toEqual(['t-1']);
+  });
+});
+
+// task-048 review round 1, m-1: WingFoil 0.3.1's `parseMemoryOperation` reads the verb after
+// `:\s*` and `memory history` takes from/to from the file, so the parse is as tolerant: any blanks
+// after the colon, an arrow with or without blanks; a bracket it cannot read as two states (one
+// state, text after it, unclosed) leaves the transition to the patch, as no bracket does.
+describe('subjects as WingFoil reads them (task-048 review round 1, m-1)', () => {
+  const T1 = 'docs/memory/task/task-001-login-form.md';
+  const moved = filePatch(T1, ['-status: backlog', '+status: in-progress']);
+  const one = (subject: string) =>
+    parse(record(40, subject, '', moved)).events.map((e) => [e.operation, e.id, e.from, e.to]);
+
+  it.each([
+    ['no blank after the colon', 'wf(task):start task-001-login-form [backlog → in-progress]'],
+    ['two blanks after the colon', 'wf(task):  start task-001-login-form [backlog → in-progress]'],
+    ['an arrow without blanks', 'wf(task): start task-001-login-form [backlog->in-progress]'],
+    ['a unicode arrow without blanks', 'wf(task): start task-001-login-form [backlog→in-progress]'],
+    ['text after the bracket', 'wf(task): start task-001-login-form [nothing → read] by hand'],
+    ['a bracket of one state', 'wf(task): start task-001-login-form [in-progress]'],
+    ['an unclosed bracket', 'wf(task): start task-001-login-form [backlog → in-progress'],
+    ['an empty bracket', 'wf(task): start task-001-login-form []'],
+    ['words after the id', 'wf(task): start task-001-login-form by hand'],
+  ])('reads %s', (_label, subject) => {
+    expect(one(subject)).toEqual([['start', 'task-001-login-form', 'backlog', 'in-progress']]);
+  });
+
+  // task-048 review round 2, minor-2: the patch's `status:` lines win over the bracket (WingFoil
+  // reads the file); a readable bracket is the fallback of a commit that changes no `status:`.
+  it('takes the patch over a bracket that disagrees with it', () => {
+    expect(one('wf(task): start task-001-login-form [pending → approved]')).toEqual([
+      ['start', 'task-001-login-form', 'backlog', 'in-progress'],
+    ]);
+  });
+
+  it('takes a readable bracket of two states, blanks trimmed, when the patch changes no status', () => {
+    const out = record(
+      43,
+      'wf(task): amend task-001-login-form [ backlog   ->  backlog ]',
+      '',
+      filePatch(T1, ['-title: A', '+title: B']),
+    );
+    expect(parse(out).events.map((e) => [e.operation, e.from, e.to])).toEqual([['amend', 'backlog', 'backlog']]);
+    expect(parse(out).warnings).toEqual([]);
+  });
+
+  // task-048 review round 2, minor-1: a subject is one line for git, but `.` stops at CR, U+2028
+  // and U+2029 — WingFoil's verb token does not.
+  it.each([
+    ['a line separator', '\u2028'],
+    ['a paragraph separator', '\u2029'],
+    ['a carriage return', '\r'],
+  ])('reads a subject holding %s after the id', (_label, separator) => {
+    expect(one(`wf(task): start task-001-login-form${separator}note`)).toEqual([
+      ['start', 'task-001-login-form', 'backlog', 'in-progress'],
+    ]);
+  });
+
+  it('still reads no event for a verb glued to its bracket or a subject naming no id', () => {
+    const out =
+      record(42, 'wf(task): start[backlog → in-progress]', '', moved) + record(41, 'wf(task): start', '', moved);
+    expect(parse(out)).toEqual({ events: [], warnings: [] });
+  });
+});
+
+// task-048 review round 2, minor-3 and nit-1: a commit that changes no `status:` line and has no
+// readable bracket keeps the state: from = to = the element's status before it, as WingFoil reads
+// the file in the commit's parent — taken from the last `status:` change of the file in the log,
+// whatever its subject; unknown (no earlier change in the log) → null with one warning per commit.
+describe('a commit that keeps the state (task-048 review round 2)', () => {
+  const T1 = 'docs/memory/task/task-001-login-form.md';
+  const T2 = 'docs/memory/task/task-002-password-reset.md';
+  const title = (file: string) => filePatch(file, ['-title: A', '+title: B']);
+
+  it('gives from = to = the status before the commit, also after a commit outside a verb', () => {
+    const out =
+      record(
+        52,
+        'wf(task): amend task-001-login-form',
+        'Approver: Morgan <morgan@example.test> (approver)\nReason: Typo\n',
+        title(T1),
+      ) +
+      record(
+        51,
+        'wf(task): task-001-login-form [draft → backlog]',
+        '',
+        filePatch(T1, ['-status: draft', '+status: backlog']),
+      ) +
+      record(50, 'wf(task): add task-001-login-form', '', filePatch(T1, ['+status: draft'], '@@ -0,0 +1 @@'));
+    const log = parse(out);
+    expect(log.events.map((e) => [e.operation, e.from, e.to])).toEqual([
+      ['amend', 'backlog', 'backlog'],
+      ['add', null, 'draft'],
+    ]);
+    expect(log.warnings).toEqual([]);
+  });
+
+  it('reports an unknown status once per commit, whatever the number of ids', () => {
+    const out = record(53, 'wf(task): amend task-001-login-form, task-002-password-reset', '', title(T1) + title(T2));
+    const log = parse(out);
+    expect(log.events.map((e) => [e.id, e.from, e.to])).toEqual([
+      ['task-001-login-form', null, null],
+      ['task-002-password-reset', null, null],
+    ]);
+    expect(log.warnings).toEqual([SHA(53)]);
   });
 });
 

@@ -2,14 +2,17 @@
 // from the real CLI of each matrix version (raw CLI, as a terminal runs it). Skipped unless
 // `WFUI_CAPTURE_SAMPLES=1`:
 //   WFUI_CAPTURE_SAMPLES=1 npx vitest run test/contracts/capture-samples.test.ts
+// (`-t 'operations'` re-captures only the 0.3 operations of task-048).
 // The schema tests (`schemas.test.ts`) validate every captured sample.
 import { cp, mkdir, mkdtemp, readFile, realpath, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterAll, describe, expect, it } from 'vitest';
 import {
+  addOperations,
   buildFixture,
   copyFixture,
+  customGovernance,
   FIXTURE_KINDS,
   type BddFixtureKind,
   type Fixture,
@@ -118,6 +121,27 @@ describe.runIf(CAPTURE)('capture samples', () => {
         await save('memory-search-superseded.json', await json(fx, ['memory', 'search', '--status', 'superseded']));
         if (archived)
           expect(await readFile(path.join(out, `memory-search-${archived}.json`), 'utf8')).toContain(archived);
+      }
+    }
+  }, 600_000);
+
+  it('captures the history of the 0.3 operations on the custom fixture of every version >= 0.3 (task-048)', async () => {
+    root ??= await realpath(await mkdtemp(path.join(tmpdir(), 'wfui-capture-')));
+    for (const version of await matrixVersions()) {
+      if (customGovernance(version) !== 'packs') continue;
+      const cli = await cliBuildFor(version);
+      const fx = await buildFixture('custom', {
+        root: path.join(root, `${version}-operations`),
+        cli,
+        cliVersion: version,
+        now: NOW,
+      });
+      const ids = await addOperations(fx, { cli, cliVersion: version });
+      const out = path.join(samplesDir(version), 'custom', 'memory-history-operations');
+      await rm(out, { recursive: true, force: true });
+      await mkdir(out, { recursive: true });
+      for (const id of [ids.plan, ids.parked, ...ids.grouped, ids.amended, ...ids.assigned]) {
+        await writeFile(path.join(out, `${id}.json`), await json(fx, ['memory', 'history', id]));
       }
     }
   }, 600_000);

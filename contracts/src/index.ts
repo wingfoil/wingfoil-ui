@@ -21,6 +21,7 @@ export type {
   DnaTechnology,
   HistoryEntry,
   HistoryOperation,
+  MemoryOperation,
   MemoryAdded,
   MemoryHistory,
   MemoryMatch,

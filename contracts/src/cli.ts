@@ -191,8 +191,19 @@ export interface MemorySearch {
   message?: string;
 }
 
-/** Operation of a history entry; `null` for a commit that is not a WingFoil verb. */
-export type HistoryOperation = 'add' | 'submit' | 'approve' | 'reject' | 'deprecate' | null;
+/**
+ * A Memory operation a `wf(<type>): <verb> …` commit records (WingFoil 0.3.x's `MEMORY_OPERATIONS`,
+ * in its order): the five CLI verbs of 0.2.2, then `start`, `finalize`, `sync`, `amend`, `park` and
+ * `assign`, which only 0.3.x reads (task-048, bug-026).
+ */
+export type MemoryOperation =
+  'add' | 'submit' | 'approve' | 'reject' | 'deprecate' | 'start' | 'finalize' | 'sync' | 'amend' | 'park' | 'assign';
+
+/**
+ * Operation of a history entry; `null` for a commit that is not a WingFoil verb. WingFoil 0.2.2
+ * reports the first five only (the other six read `null` there).
+ */
+export type HistoryOperation = MemoryOperation | null;
 
 /** One entry of `memory history`. */
 export interface HistoryEntry {

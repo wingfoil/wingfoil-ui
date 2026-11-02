@@ -225,6 +225,44 @@ it('reads the last 10 Memory events only when the panel opens, newest first as r
   expect(items[0]!.querySelector('time')?.getAttribute('dateTime')).toBe(DAYS_3);
 });
 
+// task-048 D48-4, D48-5: the 0.3 operations in the Updates, the approver of an amend named.
+it('names the WingFoil 0.3 operations in the Updates, an amend by its approver', async () => {
+  const page: MemoryEventsPage = {
+    events: [
+      event({ sha: '9'.repeat(40), operation: 'finalize', id: 'plan-x', from: 'active', to: 'done' }),
+      event({
+        sha: '8'.repeat(40),
+        operation: 'amend',
+        from: 'pending',
+        to: 'pending',
+        approver: 'Morgan <morgan@example.test> (approver)',
+        reason: 'Typo',
+      }),
+      event({ sha: '7'.repeat(40), operation: 'park', from: 'in-progress', to: 'backlog', reason: 'Blocked' }),
+      event({ sha: '6'.repeat(40), operation: 'sync', from: 'in-progress', to: 'in-review' }),
+      event({ sha: '5'.repeat(40), operation: 'start', from: 'backlog', to: 'in-progress' }),
+    ],
+    more: false,
+  };
+  stubApi(api({ [EVENTS]: { status: 200, body: page } }));
+  const user = userEvent.setup();
+  renderApp(`/p/${PID}/today`);
+  await user.click(await bell('Notifications, 2 to unblock'));
+  const updates = section(await panel(), 'Updates');
+  await waitFor(() => expect(within(updates).getAllByRole('listitem')).toHaveLength(5));
+  expect(
+    within(updates)
+      .getAllByRole('listitem')
+      .map((i) => i.querySelector('.bell-update-what')?.textContent),
+  ).toEqual([
+    'closed by Jordan',
+    'amended by Morgan',
+    'parked by Jordan',
+    'moved with a linked element by Jordan',
+    'started by Jordan',
+  ]);
+});
+
 it('says when there is no Memory event yet', async () => {
   stubApi(api({ [EVENTS]: { status: 200, body: { events: [], more: false } } }));
   const user = userEvent.setup();

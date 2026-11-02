@@ -195,16 +195,19 @@ export interface VersionBehaviours {
   kanbanTypes: readonly string[];
   /** The branch of `contracts/cli/workflow-list.schema.json` its `workflow list` matches. */
   workflowList: 'v0.2' | 'v0.3';
+  /** The definition of `contracts/cli/memory-history.schema.json` its history entries match (task-048 D48-1). */
+  historyEntry: 'v0.2' | 'v0.3';
 }
 
 const KANBAN_TYPES_022 = ['adr', 'bug', 'decision-log', 'release', 'release-line', 'task', 'tech-spec'];
 
 const BEHAVIOURS: Readonly<Record<string, VersionBehaviours>> = {
-  '0.2.2': { addState: 'draft', kanbanTypes: KANBAN_TYPES_022, workflowList: 'v0.2' },
+  '0.2.2': { addState: 'draft', kanbanTypes: KANBAN_TYPES_022, workflowList: 'v0.2', historyEntry: 'v0.2' },
   '0.3.1': {
     addState: 'first-declared',
     kanbanTypes: ['adr', 'bug', 'decision-log', 'plan', 'release', 'release-line', 'task', 'tech-spec'],
     workflowList: 'v0.3',
+    historyEntry: 'v0.3',
   },
 };
 

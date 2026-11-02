@@ -253,6 +253,54 @@ describe('spec-003 §9 — the synthetic rows', () => {
     expect(d.since).toBe(T(2));
   });
 
+  // task-048 D48-6: an `amend` records a correction, not a move; the 0.3 verbs that move count.
+  it('an amend after a reject keeps the submitter, the rejection and since', () => {
+    const events = [
+      ev('submit', 'in-progress', 'in-review', 'Jordan', T(1)),
+      ev('reject', 'in-review', 'in-progress', 'Morgan', T(2), { reason: 'Tests missing' }),
+      ev('amend', 'in-progress', 'in-progress', 'Morgan', T(3), {
+        approver: 'Morgan <morgan@example.test> (approver)',
+        reason: 'Typo',
+      }),
+    ];
+    const d = describeElement(el('task', 'in-progress'), events, custom);
+    expect(d.actor).toEqual({
+      kind: 'member',
+      member: { name: 'Jordan', email: 'jordan@example.test' },
+      basis: 'submitter',
+    });
+    expect(d.rejection).toEqual({ by: 'Morgan', reason: 'Tests missing', at: T(2) });
+    expect(d.since).toBe(T(2));
+  });
+
+  it('an amend does not become the last transition into the state', () => {
+    const events = [
+      ev('start', 'backlog', 'in-progress', 'Alex', T(1)),
+      ev('amend', 'in-progress', 'in-progress', 'Morgan', T(2), {
+        approver: 'Morgan <morgan@example.test> (approver)',
+      }),
+    ];
+    const d = describeElement(el('task', 'in-progress'), events, custom);
+    expect(d.actor.member?.name).toBe('Alex');
+    expect(d.actor.basis).toBe('last-transition');
+    expect(d.since).toBe(T(1));
+  });
+
+  it('a park, a sync and a finalize are moves: they date the state and name its last transition', () => {
+    const parked = [
+      ev('start', 'backlog', 'in-progress', 'Alex', T(1)),
+      ev('park', 'in-progress', 'backlog', 'Jordan', T(2), { reason: 'Blocked' }),
+      ev('start', 'backlog', 'in-progress', 'Jordan', T(3)),
+    ];
+    const d = describeElement(el('task', 'in-progress'), parked, custom);
+    expect(d.actor.member?.name).toBe('Jordan');
+    expect(d.since).toBe(T(3));
+    const synced = [ev('sync', 'in-progress', 'in-review', 'Sam', T(4))];
+    expect(describeElement(el('task', 'in-review'), synced, custom).since).toBe(T(4));
+    const closed = [ev('submit', 'draft', 'active', 'Alex', T(1)), ev('finalize', 'active', 'done', 'Alex', T(5))];
+    expect(describeElement(el('plan', 'done'), closed, custom).since).toBe(T(5));
+  });
+
   it('the output carries the bucket of its kind, none when archived (custom adr accepted Done, superseded none)', () => {
     expect(describeElement(el('adr', 'accepted'), [], custom).bucket).toBe('done');
     expect('bucket' in describeElement(el('adr', 'superseded'), [], custom)).toBe(false);
