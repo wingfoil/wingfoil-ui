@@ -3,52 +3,49 @@ id: bug-026-element-history-fails-on-wingfoil-0.3.x-when-an-element-has-a-finali
 type: bug
 title: "Element history fails on WingFoil 0.3.x when an element has a finalize, park or amend commit"              # REQUIRED — short description, e.g. "Approve dialog loses the reason on server error"
 status: draft          # auto-set by wingfoil; memory.submit → open
-severity: ""           # REQUIRED — critical | high | medium | low
-release-origin: ""     # optional — release where the bug was FOUND, e.g. "v0.1"
-release: ""            # optional — fix/implementation release, stamped by release-planning/build-backlog
+severity: "high"           # REQUIRED — critical | high | medium | low
+release-origin: "v0.3"     # optional — release where the bug was FOUND, e.g. "v0.1"
+release: "v0.3"            # optional — fix/implementation release, stamped by release-planning/build-backlog
 feature: ""            # optional — related feature ID from docs/01_vision/06_features.md
-module: ""             # optional — server | web | contracts
-wingfoil_version: ""   # optional — `wingfoil --version` of the OBSERVED project (the UI drives its CLI)
-browser: ""            # optional — for `web`: browser name + version, e.g. "Firefox 131"
+module: "server"             # optional — server | web | contracts
+wingfoil_version: "0.3.1"   # optional — `wingfoil --version` of the OBSERVED project (the UI drives its CLI)
+browser: "any (server side)"            # optional — for `web`: browser name + version, e.g. "Firefox 131"
 contributor: ""        # optional — who originated this contribution, if not the git author; credited for AI-generated work derived from it
 credit: ""             # optional — free-text credit note
 tmpl_version: 260703   # Orignal template version
 ---
 
 ## Summary
-
-<!-- One-sentence description of the defect. -->
+On WingFoil 0.3.x `memory history` reports operations the UI does not know (`start`, `finalize`,
+`sync`, `amend`, `park`, `assign`), so the CLI adapter refuses the whole output and the element
+panel's history fails — for every phase plan closed by hand in this repository (W-04: read as
+`finalize`) and for any element with an `amend`, `park` or `finalize` commit.
 
 ## Steps to Reproduce
-
-<!-- Start from the observed project's state (WingFoil version, branch, the elements involved),
-     then the numbered steps in the UI or against the server API.
-  1. ...
-  2. ...
-  3. ... -->
+1. This repository on `design/governance-alignment_v0.3` (pinned `wingfoil@0.3.1`).
+2. `npm run -s wingfoil -- memory history release-planning-rel-v0.2-plan --format json`: an entry
+   has `"operation": "finalize"`.
+3. Open that plan's element panel in the console (or `GET /api/p/<pid>/elements/<id>/history`).
 
 ## Expected Behavior
-
-<!-- What should happen. -->
+The history of every element the CLI lists is shown, whatever operation each commit records.
 
 ## Actual Behavior
-
-<!-- What actually happens. Include error messages or stack traces if available. -->
+The history read fails: the output does not validate against `contracts/cli/memory-history.schema.json`
+(`/entries/15/operation must be equal to one of the allowed values`), so the adapter answers its
+output error.
 
 ## Evidence
-
-<!-- Screenshot or recording (web), browser console output, server log lines, the CLI command the
-     server ran and its JSON output. Never paste secrets (directive security-secrets). -->
+- 0.3.1's operation list: `node_modules/wingfoil/dist/memory/audit.js:186-198`.
+- The UI's: `contracts/cli/memory-history.schema.json` (`operation.enum`), `contracts/src/cli.ts:195`
+  (`HistoryOperation`), `server/src/git/memory-log.ts:35-36` (`SUBJECT`, the server's own Memory-events
+  read: commits of the new verbs are not recognised as events either).
+- Found by the independent review of step 4 of `governance-alignment-rel-v0.3-plan` (2026-11-02);
+  the contract samples of task-046 had no element with such a commit.
 
 ## Notes
-
-<!-- Optional: environment details, related ADRs, suspected root cause, or workaround. -->
+- Introduced by the pin advance to 0.3.1 (task-046); not in a released version (v0.2.0 runs on 0.2.x).
+- Fix before the pre-step merges into `main`.
 
 ## Triage & Execution Notes
 
-<!-- Running log, not the retrospective itself.
-     - triage (bug-ingest): severity call, wontfix/duplicate rationale if rejected to `closed`.
-     - fix: once fix task(s) exist (release-planning/build-backlog), day-to-day execution notes
-       live on those tasks (docs/04_memory/{release}/{id}.md, `bug: {this id}`, their own
-       Execution Notes section) — this section only needs a pointer plus anything that doesn't
-       belong on a specific fix task (e.g. why 2 tasks were needed instead of 1). -->
