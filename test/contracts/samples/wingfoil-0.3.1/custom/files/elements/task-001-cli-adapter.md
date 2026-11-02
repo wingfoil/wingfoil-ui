@@ -11,9 +11,9 @@ tags: []               # optional — additional labels, e.g. [today, a11y]
 ref: "US-S-01"
 bug: []                # optional — LIST of bug ids this task closes. Two cases: a fix task derived from a bug
                        # by release-planning, and a bug ABSORBED into an existing task's Acceptance Criteria because that
-                       # task already owns the ground. `bug.sync_state` iterates this list; a bug with no task naming it
-                       # here never advances past `triaged` (only a reject to `closed`).
-                       # dev-loop keeps the source bug's state in sync with this task via bug.sync_state
+                       # task already owns the ground. Each bug listed moves with its own verbs (`.wingfoil/memory.yaml`):
+                       # the approver's `memory approve` triaged -> planned, `memory submit` planned -> in-progress when
+                       # this task starts, then submit/approve along its machine; no `bug.sync_state` since the packs adoption
 depends_on: []         # optional — ids of tasks whose Execution Notes constrain this one; authored at planning time, may be appended during design
 tmpl_version: 260703   # Orignal template version
 ---

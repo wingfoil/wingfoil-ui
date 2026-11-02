@@ -3,7 +3,7 @@
   "path": "docs/04_memory/bugs/bug-001-toast-overlap.md",
   "entries": [
     {
-      "sha": "58da15ae72e0efe6f0539cf34f38edc73f580297",
+      "sha": "0064d7374fbb011ac4f4ed52dcd26dd8ec4a25d1",
       "author": "Sam <sam@example.test>",
       "timestamp": "2026-09-29T15:20:23+00:00",
       "operation": "add",
@@ -15,7 +15,7 @@
       "wingfoil": "0.3.1 (870bd4406f3b9bba5ecde7a5f8198b80c2a98583)"
     },
     {
-      "sha": "93985d710195c4138cbf038931ccca311a4ed76f",
+      "sha": "810310ba56e6b535e19e50ba57083ec812952444",
       "author": "Sam <sam@example.test>",
       "timestamp": "2026-09-29T15:20:24+00:00",
       "operation": "submit",

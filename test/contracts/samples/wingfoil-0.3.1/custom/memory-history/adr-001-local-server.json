@@ -3,7 +3,7 @@
   "path": "docs/04_memory/design/adrs/adr-001-local-server.md",
   "entries": [
     {
-      "sha": "d43be20a4d51b666379d73297409e37ef5704192",
+      "sha": "75d3d0be85fa104fcdcbb31c0855e4a4877b39d2",
       "author": "Alex <alex@example.test>",
       "timestamp": "2026-09-29T15:20:25+00:00",
       "operation": "add",

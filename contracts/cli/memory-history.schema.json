@@ -3,7 +3,7 @@
   "$id": "https://wingfoil-ui.local/contracts/cli/memory-history.schema.json",
   "$comment": "wingfoil 0.2.2 — captured from `wingfoil --format json memory history <id>` for every element of the kanban, custom and unknown fixtures.",
   "title": "wingfoil memory history <id>",
-  "description": "Audit trail of one element reconstructed from git (spec-001 §3, spec-002 §2). operation is null for a commit that is not a WingFoil verb (e.g. a hand transition, W-20); from is null for add.",
+  "description": "Audit trail of one element reconstructed from git (spec-001 §3, spec-002 §2). operation is the verb of a `wf(<type>): <verb>` subject, null for any other commit: on WingFoil 0.2.2 one of the five below, a hand transition (W-04) null; on 0.3.x one of eleven (W-43, which this enum does not list yet) — a phase plan closed by hand (W-04) is finalize, a hand commit with a plain subject is null, a forged approve subject is approve (W-34); from is null for add.",
   "type": "object",
   "required": ["id", "path", "entries"],
   "properties": {
