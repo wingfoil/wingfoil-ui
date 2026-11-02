@@ -2,9 +2,9 @@
 id: F-020
 title: "Release and bug waiting states have no verb, and approve-release has no gate"
 kind: gap
-status: open
+status: captured
 wingfoil_version: 0.2.2
-answered_by: []
+answered_by: [task-226]
 ---
 
 Reports W-25 and W-26.

@@ -2,7 +2,7 @@
 id: F-004
 title: "No --dry-run on state verbs to show the checks that would run"
 kind: gap
-status: open
+status: resolved
 wingfoil_version: 0.2.2
 answered_by: []
 ---

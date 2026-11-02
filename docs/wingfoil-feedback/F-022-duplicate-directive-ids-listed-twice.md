@@ -2,9 +2,9 @@
 id: F-022
 title: "directives list returns both files of a duplicated directive id, and only a warning names the one in force"
 kind: gap
-status: open
+status: captured
 wingfoil_version: 0.2.2
-answered_by: []
+answered_by: [bug-412]
 ---
 
 Reports W-23.

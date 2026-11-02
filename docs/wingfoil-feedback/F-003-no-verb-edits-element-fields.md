@@ -2,9 +2,9 @@
 id: F-003
 title: "No verb updates a Memory element's fields, so required fields cannot be set from the CLI"
 kind: gap
-status: open
+status: captured
 wingfoil_version: 0.2.2
-answered_by: []
+answered_by: [dl-108]
 ---
 
 Formerly R-03.

@@ -2,7 +2,7 @@
 id: F-018
 title: "No per-gate role: approve and reject always need the approver role"
 kind: gap
-status: open
+status: needs-info
 wingfoil_version: 0.2.2
 answered_by: []
 ---

@@ -2,7 +2,7 @@
 id: F-014
 title: "A release's folder is named after the release-line field (v1), not the release-line id (rl-v1)"
 kind: defect
-status: open
+status: resolved
 wingfoil_version: 0.2.2
 answered_by: []
 ---

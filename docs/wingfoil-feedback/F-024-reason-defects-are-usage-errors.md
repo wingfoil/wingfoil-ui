@@ -2,9 +2,9 @@
 id: F-024
 title: "A --reason WingFoil will not record is a usage error (exit 2), not a refusal (exit 1)"
 kind: defect
-status: open
+status: captured
 wingfoil_version: 0.2.2
-answered_by: []
+answered_by: [dl-199]
 ---
 
 Reports W-29.

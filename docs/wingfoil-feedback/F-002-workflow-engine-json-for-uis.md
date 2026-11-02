@@ -2,7 +2,7 @@
 id: F-002
 title: "JSON output of the workflow engine (status, next, show) with gates, required role and iterated elements"
 kind: request
-status: open
+status: resolved
 wingfoil_version: 0.2.2
 answered_by: []
 ---

@@ -2,9 +2,9 @@
 id: F-015
 title: "The Kanban template declares no facilitator role, which WingFoil's lean-inception requires"
 kind: gap
-status: open
+status: captured
 wingfoil_version: 0.2.2
-answered_by: []
+answered_by: [dl-138]
 ---
 
 Formerly W-08 candidate.
