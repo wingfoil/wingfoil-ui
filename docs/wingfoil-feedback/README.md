@@ -16,7 +16,8 @@ repository pulls the answer at its own sync.
   - the `wingfoil-cli` entries it reports: `Reports W-28.`, `Reports W-25 and W-26.`,
     `Reports W-36, W-37.` or `Reports W-36, W-37 and W-38.`;
   - for a note that reports no CLI behaviour, its area: `Not a CLI behaviour: <area>.` (e.g.
-    `Not a CLI behaviour: publish pipeline.`; the area starts with a non-blank character);
+    `Not a CLI behaviour: publish pipeline.`; the area starts with a character that is neither
+    blank nor a dot);
   - for the notes migrated by task-023, their former id: `Formerly R-01.`,
     `Formerly W-03 candidate.` or `Formerly an unnamed W-xx candidate.`
 - This repository writes `open`; `answered_by` and every other status are set only by the sync, from
@@ -63,8 +64,9 @@ moved to `wingfoil@0.3.1`; rule 7 of `wingfoil-cli`), run by WingFoil's `COLLABO
 - *Answers:* F-018 (`needs-info`) now holds the reproduction WingFoil's read record lacked (a
   reviewer-only member and a pending element, on 0.3.1); it stays `needs-info`, which WingFoil's
   dl-163 lists at the next retrospective as "`needs-info` notes the consumer has since answered".
-- F-027 … F-035 were written after WingFoil's read and stay `open`; the part of F-025 that bug-217
-  does not name is F-035.
+- F-027 … F-035 were written after WingFoil's read and stay `open`. F-035 reports, on 0.3.1, the
+  late refusal that leaves its commit — the second failure window of F-025, which bug-217 (about
+  `memory add`) does not name; F-025's first window (a failing commit) is atomic on 0.3.1.
 - WingFoil `v0.3.2` is being published (its tag exists on WingFoil's remote, npm `latest` is still
   `0.3.1`): this sync is read again at the `v0.3.2` tag once that version is published.
 
@@ -92,7 +94,7 @@ defined the procedure (`governance-alignment-rel-v0.2-plan` GA-5).
 | [F-015](F-015-kanban-template-has-no-facilitator-role.md) | The Kanban template declares no facilitator role, which WingFoil's lean-inception requires | gap | captured | dl-138 |
 | [F-016](F-016-dangling-directive-binding-only-a-role-warning.md) | A roles.yaml binding to a missing directive is only a warning, and only when listing that role | gap | captured | bug-411 |
 | [F-017](F-017-wingfoil-directives-carry-unknown-scope-field.md) | WingFoil's own directives carry a scope field that 0.2.2 reports as unknown | defect | resolved |  |
-| [F-018](F-018-no-per-gate-role.md) | No per-gate role: approve and reject always need the approver role | gap | needs-info |  |
+| [F-018](F-018-no-per-gate-role.md) | No per-gate role: approve and reject always need the approver role | request | needs-info |  |
 | [F-019](F-019-search-reads-working-tree-while-writes-gate-on-head.md) | memory search reads the working tree while writes gate on HEAD, and submit commits uncommitted edits | gap | resolved | dl-084 |
 | [F-020](F-020-release-and-bug-waiting-states-have-no-verb.md) | Release and bug waiting states have no verb, and approve-release has no gate | gap | resolved | task-226 |
 | [F-021](F-021-usage-errors-mix-json-and-plain-text.md) | With --format json, usage errors (exit 2) are JSON or plain text depending on the error | defect | resolved |  |
