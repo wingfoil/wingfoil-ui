@@ -1,0 +1,54 @@
+{
+  "id": "task-006-grouped-one",
+  "path": "docs/04_memory/v0.1/task-006-grouped-one.md",
+  "entries": [
+    {
+      "sha": "bbab2f03aba72b05d2fe0ceb1e08b1227df8d1ae",
+      "author": "Jordan <jordan@example.test>",
+      "timestamp": "2026-09-29T15:40:08+00:00",
+      "operation": "add",
+      "from": null,
+      "to": "draft",
+      "approver": null,
+      "reason": null,
+      "subject": "wf(task): add task-006-grouped-one",
+      "wingfoil": "0.3.1 (870bd4406f3b9bba5ecde7a5f8198b80c2a98583)"
+    },
+    {
+      "sha": "1a883c462e9cf8f066e73add3df1ac1375cd5c6d",
+      "author": "Jordan <jordan@example.test>",
+      "timestamp": "2026-09-29T15:40:09+00:00",
+      "operation": "submit",
+      "from": "draft",
+      "to": "pending",
+      "approver": null,
+      "reason": null,
+      "subject": "wf(task): submit task-006-grouped-one",
+      "wingfoil": "0.3.1 (870bd4406f3b9bba5ecde7a5f8198b80c2a98583)"
+    },
+    {
+      "sha": "77f02ed50f772f31258e7599b5ed19e7253e4a97",
+      "author": "Morgan <morgan@example.test>",
+      "timestamp": "2026-09-29T15:40:10+00:00",
+      "operation": "approve",
+      "from": "pending",
+      "to": "backlog",
+      "approver": "Morgan <morgan@example.test> (approver)",
+      "reason": "Approved",
+      "subject": "wf(task): approve task-006-grouped-one [pending → backlog]",
+      "wingfoil": "0.3.1 (870bd4406f3b9bba5ecde7a5f8198b80c2a98583)"
+    },
+    {
+      "sha": "b49a5d3cf17f79159bebf0e77f4d402398244863",
+      "author": "Jordan <jordan@example.test>",
+      "timestamp": "2026-09-29T15:40:14+00:00",
+      "operation": "start",
+      "from": "backlog",
+      "to": "in-progress",
+      "approver": null,
+      "reason": null,
+      "subject": "wf(task): start task-006-grouped-one, task-007-grouped-two [backlog → in-progress]",
+      "wingfoil": null
+    }
+  ]
+}

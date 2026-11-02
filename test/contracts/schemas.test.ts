@@ -37,6 +37,18 @@ const sampleDir = (version: string, kind: string, rel = '') =>
   path.join(REPO_ROOT, 'test', 'contracts', 'samples', `wingfoil-${version}`, kind, rel);
 const clone = <T>(v: T): T => structuredClone(v);
 
+/**
+ * The `memory history` samples of a fixture: one per element, plus the 0.3 operations of task-048
+ * (`memory-history-operations/`, captured on the custom fixture of every version >= 0.3).
+ */
+function historySamples(version: string, kind: string): string[] {
+  return ['memory-history', 'memory-history-operations'].flatMap((folder) =>
+    existsSync(sampleDir(version, kind, folder))
+      ? readdirSync(sampleDir(version, kind, folder)).map((f) => `${folder}/${f}`)
+      : [],
+  );
+}
+
 /** Schema file → the samples it covers (relative to a fixture's sample folder). */
 const SAMPLES: Record<string, (kind: string, version: string) => string[]> = {
   'cli/dna-show.schema.json': () => ['dna-show.json'],
@@ -48,8 +60,7 @@ const SAMPLES: Record<string, (kind: string, version: string) => string[]> = {
     'memory-search-deprecated.json',
     'memory-search-superseded.json',
   ],
-  'cli/memory-history.schema.json': (kind, version) =>
-    readdirSync(sampleDir(version, kind, 'memory-history')).map((f) => `memory-history/${f}`),
+  'cli/memory-history.schema.json': (kind, version) => historySamples(version, kind),
   'cli/memory-submit.schema.json': () => ['memory-submit.json'],
   'cli/memory-approve.schema.json': () => ['memory-approve.json'],
   'cli/memory-reject.schema.json': () => ['memory-reject.json'],
@@ -451,4 +462,66 @@ describe('cli/workflow-list.schema.json — the 0.2.x and 0.3.x shapes', () => {
       }
     },
   );
+});
+
+// task-048 D48-1 (bug-026): each `memory history` entry has one shape per version line — 0.2.2's
+// five operations without `wingfoil`, 0.3.x's eleven with it — as two definitions that exclude each
+// other; every captured entry matches its own version's definition only.
+describe('cli/memory-history.schema.json — the 0.2.x and 0.3.x entries', () => {
+  const file = 'cli/memory-history.schema.json';
+  const definitions = (schema(file) as { definitions?: Record<string, object> }).definitions ?? {};
+  const entry = (name: string) => ajv.compile({ definitions, $ref: `#/definitions/${name}` });
+  type Entry = Record<string, unknown>;
+  const entriesOf = (version: string, kind: string): Entry[] =>
+    historySamples(version, kind).flatMap((rel) => (sample(version, kind, rel) as { entries: Entry[] }).entries);
+  const operations = (version: string) =>
+    FIXTURE_KINDS.flatMap((kind) => entriesOf(version, kind)).map((e) => e.operation);
+
+  it.each(matrix.versions)('wingfoil %s: every entry matches its own definition only', (version) => {
+    const own = behaviours(version).historyEntry;
+    const other = own === 'v0.2' ? 'v0.3' : 'v0.2';
+    let count = 0;
+    for (const kind of FIXTURE_KINDS) {
+      for (const e of entriesOf(version, kind)) {
+        count += 1;
+        expect(entry(own)(e), `${kind} ${String(e.sha)}: ${own}`).toBe(true);
+        expect(entry(other)(e), `${kind} ${String(e.sha)}: ${other}`).toBe(false);
+      }
+    }
+    expect(count).toBeGreaterThan(0);
+  });
+
+  it('the 0.3.1 samples hold every operation 0.3 adds (finalize, park, amend, start, sync, assign)', () => {
+    expect([...new Set(operations('0.3.1'))]).toEqual(
+      expect.arrayContaining(['start', 'finalize', 'sync', 'amend', 'park', 'assign']),
+    );
+  });
+
+  const base = (version: string): Entry => clone(entriesOf(version, 'kanban').find((e) => e.operation === 'submit')!);
+  const refused: [string, () => Entry][] = [
+    ['0.2: an operation 0.2.2 does not record', () => ({ ...base('0.2.2'), operation: 'finalize' })],
+    ['0.3: an operation outside the eleven', () => ({ ...base('0.3.1'), operation: 'start-fix' })],
+    ['0.3: a wingfoil that is a number', () => ({ ...base('0.3.1'), wingfoil: 1 })],
+    [
+      '0.3: no wingfoil, with an operation of 0.3',
+      () => {
+        const e: Entry = { ...base('0.3.1'), operation: 'park' };
+        delete e.wingfoil;
+        return e;
+      },
+    ],
+  ];
+  it.each(refused)('refuses %s', (_label, make) => {
+    const out = { id: 'x', path: 'x.md', entries: [make()] };
+    expect(validator(file)(out)).toBe(false);
+  });
+
+  const accepted: [string, () => unknown][] = [
+    ['no entries', () => ({ id: 'x', path: 'x.md', entries: [] })],
+    ['0.3: a null wingfoil', () => ({ id: 'x', path: 'x.md', entries: [{ ...base('0.3.1'), wingfoil: null }] })],
+    ['0.2: a null operation', () => ({ id: 'x', path: 'x.md', entries: [{ ...base('0.2.2'), operation: null }] })],
+  ];
+  it.each(accepted)('accepts %s', (_label, make) => {
+    expect(validator(file)(make())).toBe(true);
+  });
 });

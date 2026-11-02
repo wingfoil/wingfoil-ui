@@ -1,0 +1,66 @@
+{
+  "id": "task-005-parked-work",
+  "path": "docs/04_memory/v0.1/task-005-parked-work.md",
+  "entries": [
+    {
+      "sha": "77210123b82c84dceea0462880dc0c2530615467",
+      "author": "Jordan <jordan@example.test>",
+      "timestamp": "2026-09-29T15:40:03+00:00",
+      "operation": "add",
+      "from": null,
+      "to": "draft",
+      "approver": null,
+      "reason": null,
+      "subject": "wf(task): add task-005-parked-work",
+      "wingfoil": "0.3.1 (870bd4406f3b9bba5ecde7a5f8198b80c2a98583)"
+    },
+    {
+      "sha": "132466454d32cb682f13e4462b1af3ef48ab58bb",
+      "author": "Jordan <jordan@example.test>",
+      "timestamp": "2026-09-29T15:40:04+00:00",
+      "operation": "submit",
+      "from": "draft",
+      "to": "pending",
+      "approver": null,
+      "reason": null,
+      "subject": "wf(task): submit task-005-parked-work",
+      "wingfoil": "0.3.1 (870bd4406f3b9bba5ecde7a5f8198b80c2a98583)"
+    },
+    {
+      "sha": "4758f894390cf8ddef8aaac4d57ad9a3742ba6fc",
+      "author": "Morgan <morgan@example.test>",
+      "timestamp": "2026-09-29T15:40:05+00:00",
+      "operation": "approve",
+      "from": "pending",
+      "to": "backlog",
+      "approver": "Morgan <morgan@example.test> (approver)",
+      "reason": "Approved",
+      "subject": "wf(task): approve task-005-parked-work [pending → backlog]",
+      "wingfoil": "0.3.1 (870bd4406f3b9bba5ecde7a5f8198b80c2a98583)"
+    },
+    {
+      "sha": "05e5bd1bf8802df60fbfbd50986d4e372575b2d3",
+      "author": "Jordan <jordan@example.test>",
+      "timestamp": "2026-09-29T15:40:06+00:00",
+      "operation": "start",
+      "from": "backlog",
+      "to": "in-progress",
+      "approver": null,
+      "reason": null,
+      "subject": "wf(task): start task-005-parked-work [backlog → in-progress]",
+      "wingfoil": null
+    },
+    {
+      "sha": "3bd8e457afd1b2278d36a389cadb0692798fd74a",
+      "author": "Jordan <jordan@example.test>",
+      "timestamp": "2026-09-29T15:40:07+00:00",
+      "operation": "park",
+      "from": "in-progress",
+      "to": "backlog",
+      "approver": null,
+      "reason": "Blocked on the build server",
+      "subject": "wf(task): park task-005-parked-work [in-progress → backlog]",
+      "wingfoil": "0.3.1 (870bd4406f3b9bba5ecde7a5f8198b80c2a98583)"
+    }
+  ]
+}

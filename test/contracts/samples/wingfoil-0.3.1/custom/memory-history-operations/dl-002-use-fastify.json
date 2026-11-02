@@ -1,0 +1,42 @@
+{
+  "id": "dl-002-use-fastify",
+  "path": "docs/04_memory/design/dls/dl-002-use-fastify.md",
+  "entries": [
+    {
+      "sha": "ad6f3e6682e05ded52b8d52dcc16c228ff0872ac",
+      "author": "Casey <casey@example.test>",
+      "timestamp": "2026-09-29T15:20:21+00:00",
+      "operation": "add",
+      "from": null,
+      "to": "draft",
+      "approver": null,
+      "reason": null,
+      "subject": "wf(decision-log): add dl-002-use-fastify",
+      "wingfoil": "0.3.1 (870bd4406f3b9bba5ecde7a5f8198b80c2a98583)"
+    },
+    {
+      "sha": "b587c370f914c53aab58226d61e75bc90cfb96ac",
+      "author": "Casey <casey@example.test>",
+      "timestamp": "2026-09-29T15:20:22+00:00",
+      "operation": "submit",
+      "from": "draft",
+      "to": "in-discussion",
+      "approver": null,
+      "reason": null,
+      "subject": "wf(decision-log): submit dl-002-use-fastify",
+      "wingfoil": "0.3.1 (870bd4406f3b9bba5ecde7a5f8198b80c2a98583)"
+    },
+    {
+      "sha": "738a532675f6b7c02448f1cd7e5f68fc6fa494b1",
+      "author": "Morgan <morgan@example.test>",
+      "timestamp": "2026-09-29T15:40:16+00:00",
+      "operation": "amend",
+      "from": "in-discussion",
+      "to": "in-discussion",
+      "approver": "Morgan <morgan@example.test> (approver)",
+      "reason": "Title names the server",
+      "subject": "wf(decision-log): amend dl-002-use-fastify [in-discussion → in-discussion]",
+      "wingfoil": "0.3.1 (870bd4406f3b9bba5ecde7a5f8198b80c2a98583)"
+    }
+  ]
+}

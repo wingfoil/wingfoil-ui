@@ -1,0 +1,42 @@
+{
+  "id": "history-probe-plan",
+  "path": "docs/05_plans/rl-v1/history-probe-plan.md",
+  "entries": [
+    {
+      "sha": "378633f600e73e681c6f4e07f2690f4f0cefdb4a",
+      "author": "Alex <alex@example.test>",
+      "timestamp": "2026-09-29T15:40:00+00:00",
+      "operation": "add",
+      "from": null,
+      "to": "draft",
+      "approver": null,
+      "reason": null,
+      "subject": "wf(plan): add history-probe-plan",
+      "wingfoil": "0.3.1 (870bd4406f3b9bba5ecde7a5f8198b80c2a98583)"
+    },
+    {
+      "sha": "454cb8de5185409abcd3161d4fcd3fb104ea4c9c",
+      "author": "Alex <alex@example.test>",
+      "timestamp": "2026-09-29T15:40:01+00:00",
+      "operation": "submit",
+      "from": "draft",
+      "to": "active",
+      "approver": null,
+      "reason": null,
+      "subject": "wf(plan): submit history-probe-plan",
+      "wingfoil": "0.3.1 (870bd4406f3b9bba5ecde7a5f8198b80c2a98583)"
+    },
+    {
+      "sha": "0cffb8a9146ec9ffb9412aeb23a5405aa175aa12",
+      "author": "Alex <alex@example.test>",
+      "timestamp": "2026-09-29T15:40:02+00:00",
+      "operation": "finalize",
+      "from": "active",
+      "to": "done",
+      "approver": null,
+      "reason": null,
+      "subject": "wf(plan): finalize history-probe-plan [active → done]",
+      "wingfoil": null
+    }
+  ]
+}
