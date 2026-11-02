@@ -1,11 +1,13 @@
 # Publishing to npm
 
-**Version:** 0.4 · **Date:** 2026-10-21 (0.1: the publish pipeline, the approver's checklist, the
+**Version:** 0.5 · **Date:** 2026-11-02 (0.1: the publish pipeline, the approver's checklist, the
 local staging smoke, the differences from WingFoil's pipeline — task-029; 0.2: review round 1 — a
 dispatch never promotes, the guard's limit, the dev-only audit findings, what is not verified yet;
 0.3: release v0.2.0 — the first version by hand, `stage` verified on Node 22.12.0, the GitHub
 Release of v0.2.0 by hand; 0.4: what the first publish showed — an expired npm session answers 404,
-the `0.0.0-stage` placeholder, checklist steps 4–6 done, the GitHub Release's assets)
+the `0.0.0-stage` placeholder, checklist steps 4–6 done, the GitHub Release's assets; 0.5: the
+release steps after the packs adoption — `release-commit` in `release-publishing`, `released` by the
+approver's `memory approve` after the publication, governance-alignment-rel-v0.3-plan step 3)
 
 How `wingfoil-ui` reaches the npm registry: the pipeline `.github/workflows/publish.yml`, the
 registry-side setup the **approver** performs once, the steps of every release, and the staging
@@ -108,8 +110,15 @@ ships as a git tag only and a decision-log records it, as dl-004 did for v0.1 (R
 
 ## Every release
 
-1. `release-submit` makes the release commit (versions `X.Y.Z` in every `package.json` and the
-   lockfile, CHANGELOG section) on `main`; optionally run the dry run above on it.
+1. `release-submit` checks the release, moves it to `releasing` and ends with the approver's
+   `approve-release`: the OK recorded in the run's plan and, on the workflow engine, `workflow
+   finalize --step <the key workflow next prints> --reason "…"` — **never `memory approve` on the
+   release there**: `releasing` is a gate, its approve moves the release to `released` at once and
+   skips the publication. The console and `workflow status` offer that Approve as soon as the
+   release is `releasing`: ignore it until step 5. Then `release-publishing` `release-commit` makes
+   the release commit (versions `X.Y.Z` in every `package.json` and the lockfile, CHANGELOG section)
+   on `main`, and `staging-rehearsal` runs `npm run test:publish-smoke` on it; optionally run the
+   dry run above on it.
 2. `release-publishing` `tag`: the annotated tag `vX.Y.Z` on `main`; pushing it needs the
    approver's OK. `gate` and `stage` run unattended.
 3. **Approver:** review the `promote` deployment of the run (*Review deployments* → `npm-publish`
@@ -129,7 +138,9 @@ ships as a git tag only and a decision-log records it, as dl-004 did for v0.1 (R
    runbook, v0.2.2). A bad staged version is discarded with `npm stage reject <stage-id>`: it never
    goes live.
 5. `release-publishing` `publish` post-check: `npm view wingfoil-ui@X.Y.Z version` answers the
-   version; then `mark-released`.
+   version; then `mark-released`: **the approver** runs `memory approve <release> --reason "…"`
+   (`releasing → released`) — the only moment the release is approved (directive
+   `release-conventions`).
 
 **At release validation** (before `release-submit`), re-check the dependency audit: `npm audit
 --omit=dev` must report 0 vulnerabilities (what the published package installs), and `npm audit`
