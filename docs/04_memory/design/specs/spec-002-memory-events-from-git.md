@@ -87,25 +87,29 @@ For each record:
    before the bracket, commas and blanks between them (a grouped subject: one event per id, each
    read as below; at most 256 distinct ids — a subject naming more is no event and its commit a
    parse warning; none: no event). A bracket closed at the end of the subject that names exactly
-   two states joined by `→` or `->` (blanks optional, trimmed) is the subject's transition; any
-   other bracket counts as none (rule 2). Any other commit — `assign`, a verbless `wf(<type>): <id> [a → b]`,
+   two states joined by `→` or `->` (blanks optional, trimmed) is the subject's transition, the
+   fallback of rule 2; any other bracket counts as none. The subject is matched to its end
+   whatever it holds (CR, U+2028 and U+2029 included). Any other commit — `assign`, a verbless `wf(<type>): <id> [a → b]`,
    a configuration commit, a non-`wf` commit — is **not** an event. The same operations are read
    whatever the project's WingFoil version: on 0.2.2, whose `memory history` reads the five verbs
    only, a practised `wf(plan): finalize …` is an event too (task-048 D48-3).
-2. **Transition:** from the subject's transition (rule 1); otherwise (no bracket, a chained one
-   such as a `sync`'s `[a → b → c]`, or one rule 1 does not read) from the patch of the element's
-   file, read once per commit for all its ids
-   (the file whose name is `<id>.md`): `-status: <from>` and `+status: <to>` (`add`: `+status:` only).
-   Values are taken without quotes and trailing comments. As in `memory history`, a commit is an
-   event of `<id>` **only when its patch touches `<id>.md`**.
+2. **Transition:** from the patch of the element's file (the file whose name is `<id>.md`), read
+   once per commit for all its ids, when it changes the `status:` line: `-status: <from>` and
+   `+status: <to>` (`add`: `+status:` only) — as WingFoil's history, which reads the file, so a
+   bracket the patch contradicts is not taken; otherwise from the subject's transition (rule 1);
+   otherwise the state is kept: `from` = `to` = the file's status before the commit, its last
+   `status:` change in the log, whatever that commit's subject (the records are read oldest
+   first). Values are taken without quotes and trailing comments. As in `memory history`, a
+   commit is an event of `<id>` **only when its patch touches `<id>.md`**.
 3. **Approver / reason:** as WingFoil 0.2.2 reads them (`memory/commit-message.js`): `Approver:` =
    the first non-empty body line when it starts with `Approver: `; the reason = from the first line
    starting with `Reason:` to the end of the body, or to the start of a trailing trailer paragraph
    (e.g. `Co-Authored-By:`), **multi-line**, normalised as `normalizeReason` does (CRLF → LF,
    trailing blanks removed per line, ≥ 3 newlines → 2, leading/trailing newlines and leading blanks
    removed).
-4. A record matching the subject but with no `+status:` line in its patch is reported as an event
-   with `from`/`to` = `null` and logged as a parse warning (never dropped silently).
+4. A record matching the subject whose transition rule 2 cannot give (no `+status:` line, no
+   readable bracket, no earlier `status:` of the file in the log) is reported as an event with
+   `from`/`to` = `null`, the commit logged once as a parse warning (never dropped silently).
 
 ### 4. Caching and incremental reads
 
@@ -124,7 +128,12 @@ For each record:
 - **Consistency contract test:** on every fixture and every version of the support matrix, the
   events of §3 for each element equal the entries of its `memory history` whose operation is
   neither `null` nor `assign` (same sha, operation, from, to, approver, reason); also on the custom
-  fixture with the WingFoil 0.3 operations (`test/harness/fixtures/operations.ts`, task-048).
+  fixture with the WingFoil 0.3 operations (`test/harness/fixtures/operations.ts`, task-048) and on
+  subjects written loosely. **Known exceptions**, by design (rule 1): a subject naming no id is no
+  event (WingFoil: an entry of each file the commit touches); a file the commit touches but the
+  subject does not name gets no event from it; a subject naming more than 256 distinct ids is no
+  event (a parse warning); an element whose status before a state-keeping commit is not in the
+  log reads `null` (rule 4; WingFoil reads the parent).
 - Unit tests with recorded `git log` outputs: each operation, a subject with and without
   transition, a multi-line reason, a reason followed by a `Co-Authored-By:` trailer, a non-`wf` commit, `wf(plan): finalize` (an event since task-048), a quoted `status:` value, a
   rewritten history; WingFoil 0.3.x's `start`, `sync`, `park`, `amend`, grouped ids, a chained
@@ -182,3 +191,7 @@ For each record:
   warning); a bracket that is not two states closed at the end of the subject (one state, empty,
   unclosed, text after it) leaves the transition to the patch (rule 2); the patch is read once per
   commit, whatever the number of ids. `wingfoil_version` names 0.3.1 too.
+- 2026-11-02 — task-048 review round 2 (minor-1 … minor-3, nit-1): §3 rule 1 the subject matched
+  to its end whatever it holds; rule 2 the patch's `status:` lines before the bracket, and a
+  state-keeping commit's from = to = the file's status before it; rule 4 one warning per commit;
+  §5 the known exceptions to the consistency check.
