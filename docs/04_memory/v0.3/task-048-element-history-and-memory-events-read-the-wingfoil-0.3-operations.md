@@ -315,3 +315,17 @@ Targeted re-review: M-1 fixed and measured by the reviewer (4,000 ids → no eve
 
 The events are still returned newest first as git prints them, and the patch is still read once
 per record (now for every record, so a commit outside a verb also records its `status:` change).
+
+**Gates after review round 2** — commit `14f4aa1` (this table follows, docs only); logs
+`task048-r2-*` in the session's scratch folder, commit and load in each `.meta`; heavy ones through
+the slot:
+
+| Gate | Result | Load (start → end) |
+|---|---|---|
+| `npm run typecheck` | pass | 2.22 → 2.05 |
+| `npm run lint` | pass | 2.05 → 2.20 |
+| `npm run format:check` | pass | 2.20 → 2.34 |
+| `npx vitest run test/server/git test/contracts test/server/descriptor` | 648 passed, 2 skipped | 2.34 → 3.26 |
+| `npm run test:contract` | 323 passed, 2 skipped | 2.77 → 3.68 |
+| `npm run test:coverage` | 3404 passed, 2 skipped; statements 96.64 %, branches 91.53 %, functions 97.35 %, lines 98.42 % | 3.38 → 17.77 |
+| `test:e2e:chromium` — `history-operations`, `notification-bell` | 12 passed | 11.06 → 9.68 |
