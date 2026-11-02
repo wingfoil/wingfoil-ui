@@ -1,0 +1,577 @@
+{
+  "baseline": {
+    "rev": "HEAD",
+    "commit": "159baf801926b13ccfcba6f9b4960ac290890a9a"
+  },
+  "workflows": [
+    {
+      "name": "adr-ingest",
+      "startable": true,
+      "includable": false,
+      "description": "Capture an architecture decision as an adr, and have the approver accept it",
+      "executableNow": true
+    },
+    {
+      "name": "bug-ingest",
+      "startable": true,
+      "includable": false,
+      "description": "Capture a bug and open it, then have it triaged",
+      "executableNow": true
+    },
+    {
+      "name": "decision-log-ingest",
+      "startable": true,
+      "includable": false,
+      "description": "Capture a decision that changes no governance, and have the approver rule it",
+      "executableNow": true
+    },
+    {
+      "name": "governance-evolution",
+      "startable": true,
+      "includable": false,
+      "description": "Assess, propose, approve and apply a change of the project's governance",
+      "executableNow": true
+    },
+    {
+      "name": "retrospective-periodic",
+      "startable": true,
+      "includable": false,
+      "description": "A retrospective of the work since the previous one",
+      "executableNow": true
+    },
+    {
+      "name": "service-ingest",
+      "startable": true,
+      "includable": false,
+      "description": "Record a single external service (account, credential by reference, listing, setting, domain, handle) into Memory.",
+      "executableNow": true
+    },
+    {
+      "name": "sw-life-cycle",
+      "startable": true,
+      "includable": false,
+      "description": "Inception, specification, delivery and end of life of a software project",
+      "executableNow": true
+    }
+  ],
+  "diagnostics": [
+    {
+      "code": "W_WORKFLOW_UNBOUND_TOKEN",
+      "severity": "warning",
+      "file": "workflows/custom/service-ingest.yaml",
+      "path": "phases[0].checks.post[0]",
+      "message": "check token 'frontmatter.required' has no built-in or bindings.yaml binding"
+    },
+    {
+      "code": "W_WORKFLOW_UNBOUND_TOKEN",
+      "severity": "warning",
+      "file": "workflows/custom/service-ingest.yaml",
+      "path": "phases[0].checks.post[1]",
+      "message": "check token 'secret-scan.clean' has no built-in or bindings.yaml binding"
+    },
+    {
+      "code": "W_WORKFLOW_UNBOUND_TOKEN",
+      "severity": "warning",
+      "file": "workflows/custom/initial-design.yaml",
+      "path": "phases[0].checks.post[0]",
+      "message": "check token 'frontmatter.required' has no built-in or bindings.yaml binding"
+    },
+    {
+      "code": "W_PHASE_PRODUCES_OWNER_IMPLICIT",
+      "severity": "warning",
+      "file": "workflows/custom/initial-design.yaml",
+      "path": "phases[0].produces[0]",
+      "message": "produces 'docs/04_memory/planning/{release-line}/{id}.md' in a phase that memory.adds: name its owner as { type, path } (dl-104 D3)"
+    },
+    {
+      "code": "W_WORKFLOW_UNBOUND_TOKEN",
+      "severity": "warning",
+      "file": "workflows/custom/initial-design.yaml",
+      "path": "phases[1].checks.pre[0]",
+      "message": "check token 'spec-review.passed' has no built-in or bindings.yaml binding"
+    },
+    {
+      "code": "W_WORKFLOW_UNBOUND_TOKEN",
+      "severity": "warning",
+      "file": "workflows/custom/initial-design.yaml",
+      "path": "phases[1].checks.post[0]",
+      "message": "check token 'frontmatter.required' has no built-in or bindings.yaml binding"
+    },
+    {
+      "code": "W_PHASE_PRODUCES_OWNER_IMPLICIT",
+      "severity": "warning",
+      "file": "workflows/custom/initial-design.yaml",
+      "path": "phases[1].produces[0]",
+      "message": "produces 'docs/04_memory/design/adrs/{id}.md' in a phase that memory.adds: name its owner as { type, path } (dl-104 D3)"
+    },
+    {
+      "code": "W_WORKFLOW_UNBOUND_TOKEN",
+      "severity": "warning",
+      "file": "workflows/custom/initial-design.yaml",
+      "path": "phases[2].checks.post[0]",
+      "message": "check token 'frontmatter.required' has no built-in or bindings.yaml binding"
+    },
+    {
+      "code": "W_PHASE_PRODUCES_OWNER_IMPLICIT",
+      "severity": "warning",
+      "file": "workflows/custom/initial-design.yaml",
+      "path": "phases[2].produces[0]",
+      "message": "produces 'docs/04_memory/design/dls/{id}.md' in a phase that memory.adds: name its owner as { type, path } (dl-104 D3)"
+    },
+    {
+      "code": "W_WORKFLOW_UNBOUND_TOKEN",
+      "severity": "warning",
+      "file": "workflows/custom/initial-design.yaml",
+      "path": "phases[3].checks.pre[0]",
+      "message": "check token 'spec-review.passed' has no built-in or bindings.yaml binding"
+    },
+    {
+      "code": "W_WORKFLOW_UNBOUND_TOKEN",
+      "severity": "warning",
+      "file": "workflows/custom/initial-design.yaml",
+      "path": "phases[3].checks.post[0]",
+      "message": "check token 'frontmatter.required' has no built-in or bindings.yaml binding"
+    },
+    {
+      "code": "W_PHASE_PRODUCES_OWNER_IMPLICIT",
+      "severity": "warning",
+      "file": "workflows/custom/initial-design.yaml",
+      "path": "phases[3].produces[0]",
+      "message": "produces 'docs/04_memory/design/specs/{id}.md' in a phase that memory.adds: name its owner as { type, path } (dl-104 D3)"
+    },
+    {
+      "code": "W_WORKFLOW_UNBOUND_TOKEN",
+      "severity": "warning",
+      "file": "workflows/custom/release-planning.yaml",
+      "path": "phases[0].actions[0]",
+      "message": "action token 'npm.pin_advance' has no built-in or bindings.yaml binding"
+    },
+    {
+      "code": "W_WORKFLOW_UNBOUND_TOKEN",
+      "severity": "warning",
+      "file": "workflows/custom/release-planning.yaml",
+      "path": "phases[0].checks.pre[0]",
+      "message": "check token '`npm run -s wingfoil -- --version` == the version package.json pins' has no built-in or bindings.yaml binding"
+    },
+    {
+      "code": "W_WORKFLOW_UNBOUND_TOKEN",
+      "severity": "warning",
+      "file": "workflows/custom/release-planning.yaml",
+      "path": "phases[0].checks.post[0]",
+      "message": "check token 'new pin >= old pin, and `npm view wingfoil versions` lists it' has no built-in or bindings.yaml binding"
+    },
+    {
+      "code": "W_WORKFLOW_UNBOUND_TOKEN",
+      "severity": "warning",
+      "file": "workflows/custom/release-planning.yaml",
+      "path": "phases[0].checks.post[1]",
+      "message": "check token 'the switch commit changes only package.json and package-lock.json' has no built-in or bindings.yaml binding"
+    },
+    {
+      "code": "W_WORKFLOW_UNBOUND_TOKEN",
+      "severity": "warning",
+      "file": "workflows/custom/release-planning.yaml",
+      "path": "phases[0].checks.post[2]",
+      "message": "check token '`npm run -s wingfoil -- directives list` reports \"warnings\"' has no built-in or bindings.yaml binding"
+    },
+    {
+      "code": "W_WORKFLOW_UNBOUND_TOKEN",
+      "severity": "warning",
+      "file": "workflows/custom/release-planning.yaml",
+      "path": "phases[1].checks.post[0]",
+      "message": "check token 'frontmatter.required' has no built-in or bindings.yaml binding"
+    },
+    {
+      "code": "W_WORKFLOW_UNBOUND_TOKEN",
+      "severity": "warning",
+      "file": "workflows/custom/release-planning.yaml",
+      "path": "phases[4].checks.pre[0]",
+      "message": "check token 'spec-review.passed' has no built-in or bindings.yaml binding"
+    },
+    {
+      "code": "W_WORKFLOW_UNBOUND_TOKEN",
+      "severity": "warning",
+      "file": "workflows/custom/release-planning.yaml",
+      "path": "phases[4].checks.post[0]",
+      "message": "check token 'frontmatter.required' has no built-in or bindings.yaml binding"
+    },
+    {
+      "code": "W_PHASE_PRODUCES_OWNER_IMPLICIT",
+      "severity": "warning",
+      "file": "workflows/custom/release-planning.yaml",
+      "path": "phases[4].produces[0]",
+      "message": "produces 'docs/04_memory/design/adrs/{id}.md' in a phase that memory.adds: name its owner as { type, path } (dl-104 D3)"
+    },
+    {
+      "code": "W_WORKFLOW_UNBOUND_TOKEN",
+      "severity": "warning",
+      "file": "workflows/custom/release-planning.yaml",
+      "path": "phases[5].checks.pre[0]",
+      "message": "check token 'spec-review.passed' has no built-in or bindings.yaml binding"
+    },
+    {
+      "code": "W_WORKFLOW_UNBOUND_TOKEN",
+      "severity": "warning",
+      "file": "workflows/custom/release-planning.yaml",
+      "path": "phases[5].checks.post[0]",
+      "message": "check token 'frontmatter.required' has no built-in or bindings.yaml binding"
+    },
+    {
+      "code": "W_PHASE_PRODUCES_OWNER_IMPLICIT",
+      "severity": "warning",
+      "file": "workflows/custom/release-planning.yaml",
+      "path": "phases[5].produces[0]",
+      "message": "produces 'docs/04_memory/design/specs/{id}.md' in a phase that memory.adds: name its owner as { type, path } (dl-104 D3)"
+    },
+    {
+      "code": "W_WORKFLOW_UNBOUND_TOKEN",
+      "severity": "warning",
+      "file": "workflows/custom/release-planning.yaml",
+      "path": "phases[6].checks.post[0]",
+      "message": "check token 'frontmatter.required' has no built-in or bindings.yaml binding"
+    },
+    {
+      "code": "W_PHASE_PRODUCES_OWNER_IMPLICIT",
+      "severity": "warning",
+      "file": "workflows/custom/release-planning.yaml",
+      "path": "phases[6].produces[0]",
+      "message": "produces 'docs/04_memory/{release}/{id}.md' in a phase that memory.adds: name its owner as { type, path } (dl-104 D3)"
+    },
+    {
+      "code": "W_WORKFLOW_UNBOUND_TOKEN",
+      "severity": "warning",
+      "file": "workflows/custom/dev-loop.yaml",
+      "path": "phases[0].actions[0]",
+      "message": "action token 'git.create_branch' has no built-in or bindings.yaml binding"
+    },
+    {
+      "code": "W_WORKFLOW_UNBOUND_TOKEN",
+      "severity": "warning",
+      "file": "workflows/custom/dev-loop.yaml",
+      "path": "phases[0].actions[1]",
+      "message": "action token 'git.create_worktree' has no built-in or bindings.yaml binding"
+    },
+    {
+      "code": "W_WORKFLOW_UNBOUND_TOKEN",
+      "severity": "warning",
+      "file": "workflows/custom/dev-loop.yaml",
+      "path": "phases[1].checks.post[0]",
+      "message": "check token 'frontmatter.required' has no built-in or bindings.yaml binding"
+    },
+    {
+      "code": "W_WORKFLOW_UNBOUND_TOKEN",
+      "severity": "warning",
+      "file": "workflows/custom/dev-loop.yaml",
+      "path": "phases[1].checks.post[1]",
+      "message": "check token 'tech-spec.approved' has no built-in or bindings.yaml binding"
+    },
+    {
+      "code": "W_WORKFLOW_UNBOUND_TOKEN",
+      "severity": "warning",
+      "file": "workflows/custom/dev-loop.yaml",
+      "path": "phases[1].checks.post[2]",
+      "message": "check token 'depends_on.acknowledged' has no built-in or bindings.yaml binding"
+    },
+    {
+      "code": "W_PHASE_PRODUCES_OWNER_IMPLICIT",
+      "severity": "warning",
+      "file": "workflows/custom/dev-loop.yaml",
+      "path": "phases[1].produces[0]",
+      "message": "produces 'docs/04_memory/design/specs/{id}.md' in a phase that memory.adds: name its owner as { type, path } (dl-104 D3)"
+    },
+    {
+      "code": "W_WORKFLOW_UNBOUND_TOKEN",
+      "severity": "warning",
+      "file": "workflows/custom/dev-loop.yaml",
+      "path": "phases[2].checks.post[0]",
+      "message": "check token 'tests.exist' has no built-in or bindings.yaml binding"
+    },
+    {
+      "code": "W_WORKFLOW_UNBOUND_TOKEN",
+      "severity": "warning",
+      "file": "workflows/custom/dev-loop.yaml",
+      "path": "phases[2].checks.post[1]",
+      "message": "check token 'tests.failing' has no built-in or bindings.yaml binding"
+    },
+    {
+      "code": "W_WORKFLOW_UNBOUND_TOKEN",
+      "severity": "warning",
+      "file": "workflows/custom/dev-loop.yaml",
+      "path": "phases[3].checks.post[0]",
+      "message": "check token 'tests.passing' has no built-in or bindings.yaml binding"
+    },
+    {
+      "code": "W_WORKFLOW_UNBOUND_TOKEN",
+      "severity": "warning",
+      "file": "workflows/custom/dev-loop.yaml",
+      "path": "phases[4].checks.post[0]",
+      "message": "check token 'tests.passing' has no built-in or bindings.yaml binding"
+    },
+    {
+      "code": "W_WORKFLOW_UNBOUND_TOKEN",
+      "severity": "warning",
+      "file": "workflows/custom/dev-loop.yaml",
+      "path": "phases[4].checks.post[1]",
+      "message": "check token 'tests.coverage' has no built-in or bindings.yaml binding"
+    },
+    {
+      "code": "W_WORKFLOW_UNBOUND_TOKEN",
+      "severity": "warning",
+      "file": "workflows/custom/dev-loop.yaml",
+      "path": "phases[4].checks.post[2]",
+      "message": "check token 'docs.api.public-complete' has no built-in or bindings.yaml binding"
+    },
+    {
+      "code": "W_WORKFLOW_UNBOUND_TOKEN",
+      "severity": "warning",
+      "file": "workflows/custom/dev-loop.yaml",
+      "path": "phases[4].checks.post[3]",
+      "message": "check token 'docs.api.build' has no built-in or bindings.yaml binding"
+    },
+    {
+      "code": "W_WORKFLOW_UNBOUND_TOKEN",
+      "severity": "warning",
+      "file": "workflows/custom/dev-loop.yaml",
+      "path": "phases[4].checks.post[4]",
+      "message": "check token 'lint.clean' has no built-in or bindings.yaml binding"
+    },
+    {
+      "code": "W_WORKFLOW_UNBOUND_TOKEN",
+      "severity": "warning",
+      "file": "workflows/custom/dev-loop.yaml",
+      "path": "phases[5].actions[0]",
+      "message": "action token 'tests.bdd.run' has no built-in or bindings.yaml binding"
+    },
+    {
+      "code": "W_WORKFLOW_UNBOUND_TOKEN",
+      "severity": "warning",
+      "file": "workflows/custom/dev-loop.yaml",
+      "path": "phases[5].checks.pre[0]",
+      "message": "check token 'tests.bdd.passing' has no built-in or bindings.yaml binding"
+    },
+    {
+      "code": "W_WORKFLOW_UNBOUND_TOKEN",
+      "severity": "warning",
+      "file": "workflows/custom/dev-loop.yaml",
+      "path": "phases[6].actions[1]",
+      "message": "action token 'git.merge' has no built-in or bindings.yaml binding"
+    },
+    {
+      "code": "W_WORKFLOW_UNBOUND_TOKEN",
+      "severity": "warning",
+      "file": "workflows/custom/dev-loop.yaml",
+      "path": "phases[6].actions[2]",
+      "message": "action token 'git.remove_worktree' has no built-in or bindings.yaml binding"
+    },
+    {
+      "code": "W_WORKFLOW_UNBOUND_TOKEN",
+      "severity": "warning",
+      "file": "workflows/custom/user-docs.yaml",
+      "path": "phases[0].checks.pre[0]",
+      "message": "check token 'all tasks where tags=[{release.version}] are status' has no built-in or bindings.yaml binding"
+    },
+    {
+      "code": "W_WORKFLOW_UNBOUND_TOKEN",
+      "severity": "warning",
+      "file": "workflows/custom/user-docs.yaml",
+      "path": "phases[1].checks.post[0]",
+      "message": "check token 'user-facing docs aligned with the release's shipped CLI/feature surface' has no built-in or bindings.yaml binding"
+    },
+    {
+      "code": "W_WORKFLOW_UNBOUND_TOKEN",
+      "severity": "warning",
+      "file": "workflows/custom/user-docs.yaml",
+      "path": "phases[2].checks.post[0]",
+      "message": "check token 'CLAUDE.md project status matches the shipped command surface' has no built-in or bindings.yaml binding"
+    },
+    {
+      "code": "W_WORKFLOW_UNBOUND_TOKEN",
+      "severity": "warning",
+      "file": "workflows/custom/user-docs.yaml",
+      "path": "phases[2].checks.post[1]",
+      "message": "check token 'CLAUDE.md element/state tables match memory.yaml' has no built-in or bindings.yaml binding"
+    },
+    {
+      "code": "W_WORKFLOW_UNBOUND_TOKEN",
+      "severity": "warning",
+      "file": "workflows/custom/user-docs.yaml",
+      "path": "phases[2].checks.post[2]",
+      "message": "check token 'CLAUDE.md workflow list matches workflows.yaml' has no built-in or bindings.yaml binding"
+    },
+    {
+      "code": "W_WORKFLOW_UNBOUND_TOKEN",
+      "severity": "warning",
+      "file": "workflows/custom/user-docs.yaml",
+      "path": "phases[2].checks.post[3]",
+      "message": "check token 'CLAUDE.md role-directive bindings match roles.yaml' has no built-in or bindings.yaml binding"
+    },
+    {
+      "code": "W_WORKFLOW_UNBOUND_TOKEN",
+      "severity": "warning",
+      "file": "workflows/custom/e2e-smoke.yaml",
+      "path": "phases[0].actions[0]",
+      "message": "action token 'cli.run' has no built-in or bindings.yaml binding"
+    },
+    {
+      "code": "W_WORKFLOW_UNBOUND_TOKEN",
+      "severity": "warning",
+      "file": "workflows/custom/e2e-smoke.yaml",
+      "path": "phases[0].actions[1]",
+      "message": "action token 'cli.run' has no built-in or bindings.yaml binding"
+    },
+    {
+      "code": "W_WORKFLOW_UNBOUND_TOKEN",
+      "severity": "warning",
+      "file": "workflows/custom/e2e-smoke.yaml",
+      "path": "phases[0].checks.post[0]",
+      "message": "check token 'exit-code-zero' has no built-in or bindings.yaml binding"
+    },
+    {
+      "code": "W_WORKFLOW_UNBOUND_TOKEN",
+      "severity": "warning",
+      "file": "workflows/custom/e2e-smoke.yaml",
+      "path": "phases[0].checks.post[1]",
+      "message": "check token 'fixture covers every element state shown by the screens in scope' has no built-in or bindings.yaml binding"
+    },
+    {
+      "code": "W_WORKFLOW_UNBOUND_TOKEN",
+      "severity": "warning",
+      "file": "workflows/custom/e2e-smoke.yaml",
+      "path": "phases[1].actions[0]",
+      "message": "action token 'cli.run' has no built-in or bindings.yaml binding"
+    },
+    {
+      "code": "W_WORKFLOW_UNBOUND_TOKEN",
+      "severity": "warning",
+      "file": "workflows/custom/e2e-smoke.yaml",
+      "path": "phases[1].actions[1]",
+      "message": "action token 'cli.run' has no built-in or bindings.yaml binding"
+    },
+    {
+      "code": "W_WORKFLOW_UNBOUND_TOKEN",
+      "severity": "warning",
+      "file": "workflows/custom/e2e-smoke.yaml",
+      "path": "phases[1].checks.post[0]",
+      "message": "check token 'e2e suite passing on the supported browsers' has no built-in or bindings.yaml binding"
+    },
+    {
+      "code": "W_WORKFLOW_UNBOUND_TOKEN",
+      "severity": "warning",
+      "file": "workflows/custom/e2e-smoke.yaml",
+      "path": "phases[1].checks.post[1]",
+      "message": "check token 'every commit is a CLI wf' has no built-in or bindings.yaml binding"
+    },
+    {
+      "code": "W_WORKFLOW_UNBOUND_TOKEN",
+      "severity": "warning",
+      "file": "workflows/custom/e2e-smoke.yaml",
+      "path": "phases[1].checks.post[2]",
+      "message": "check token 'actions refused on elements with local changes and while behind' has no built-in or bindings.yaml binding"
+    },
+    {
+      "code": "W_WORKFLOW_UNBOUND_TOKEN",
+      "severity": "warning",
+      "file": "workflows/custom/e2e-smoke.yaml",
+      "path": "phases[1].checks.post[3]",
+      "message": "check token 'fixtures' has no built-in or bindings.yaml binding"
+    },
+    {
+      "code": "W_WORKFLOW_UNBOUND_TOKEN",
+      "severity": "warning",
+      "file": "workflows/custom/e2e-smoke.yaml",
+      "path": "phases[2].actions[0]",
+      "message": "action token 'cli.run' has no built-in or bindings.yaml binding"
+    },
+    {
+      "code": "W_WORKFLOW_UNBOUND_TOKEN",
+      "severity": "warning",
+      "file": "workflows/custom/e2e-smoke.yaml",
+      "path": "phases[2].checks.post[0]",
+      "message": "check token 'non-loopback requests refused' has no built-in or bindings.yaml binding"
+    },
+    {
+      "code": "W_WORKFLOW_UNBOUND_TOKEN",
+      "severity": "warning",
+      "file": "workflows/custom/e2e-smoke.yaml",
+      "path": "phases[2].checks.post[1]",
+      "message": "check token 'requests without the session token refused' has no built-in or bindings.yaml binding"
+    },
+    {
+      "code": "W_WORKFLOW_UNBOUND_TOKEN",
+      "severity": "warning",
+      "file": "workflows/custom/e2e-smoke.yaml",
+      "path": "phases[2].checks.post[2]",
+      "message": "check token 'cross-origin and foreign-Host requests refused' has no built-in or bindings.yaml binding"
+    },
+    {
+      "code": "W_WORKFLOW_UNBOUND_TOKEN",
+      "severity": "warning",
+      "file": "workflows/custom/e2e-smoke.yaml",
+      "path": "phases[2].checks.post[3]",
+      "message": "check token 'Files refuses paths outside the repository' has no built-in or bindings.yaml binding"
+    },
+    {
+      "code": "W_WORKFLOW_UNBOUND_TOKEN",
+      "severity": "warning",
+      "file": "workflows/custom/e2e-smoke.yaml",
+      "path": "phases[3].actions[0]",
+      "message": "action token 'cli.run' has no built-in or bindings.yaml binding"
+    },
+    {
+      "code": "W_WORKFLOW_UNBOUND_TOKEN",
+      "severity": "warning",
+      "file": "workflows/custom/e2e-smoke.yaml",
+      "path": "phases[3].checks.post[0]",
+      "message": "check token 'zero serious/critical axe violations' has no built-in or bindings.yaml binding"
+    },
+    {
+      "code": "W_WORKFLOW_UNBOUND_TOKEN",
+      "severity": "warning",
+      "file": "workflows/custom/e2e-smoke.yaml",
+      "path": "phases[3].checks.post[1]",
+      "message": "check token 'every gate action reachable by keyboard' has no built-in or bindings.yaml binding"
+    },
+    {
+      "code": "W_WORKFLOW_UNBOUND_TOKEN",
+      "severity": "warning",
+      "file": "workflows/custom/e2e-smoke.yaml",
+      "path": "phases[4].actions[0]",
+      "message": "action token 'cli.run' has no built-in or bindings.yaml binding"
+    },
+    {
+      "code": "W_WORKFLOW_UNBOUND_TOKEN",
+      "severity": "warning",
+      "file": "workflows/custom/e2e-smoke.yaml",
+      "path": "phases[4].checks.post[0]",
+      "message": "check token 'contract tests passing for every supported WingFoil version' has no built-in or bindings.yaml binding"
+    },
+    {
+      "code": "W_WORKFLOW_UNBOUND_TOKEN",
+      "severity": "warning",
+      "file": "workflows/custom/e2e-smoke.yaml",
+      "path": "phases[5].actions[0]",
+      "message": "action token 'cli.run' has no built-in or bindings.yaml binding"
+    },
+    {
+      "code": "W_WORKFLOW_UNBOUND_TOKEN",
+      "severity": "warning",
+      "file": "workflows/custom/e2e-smoke.yaml",
+      "path": "phases[5].checks.post[0]",
+      "message": "check token 'exit-code-zero' has no built-in or bindings.yaml binding"
+    },
+    {
+      "code": "W_WORKFLOW_UNBOUND_TOKEN",
+      "severity": "warning",
+      "file": "workflows/custom/e2e-smoke.yaml",
+      "path": "phases[5].checks.post[1]",
+      "message": "check token 'UI reachable on localhost' has no built-in or bindings.yaml binding"
+    },
+    {
+      "code": "W_WORKFLOW_UNBOUND_TOKEN",
+      "severity": "warning",
+      "file": "workflows/custom/e2e-smoke.yaml",
+      "path": "phases[6].checks.post[0]",
+      "message": "check token 'e2e-smoke-passed' has no built-in or bindings.yaml binding"
+    }
+  ]
+}

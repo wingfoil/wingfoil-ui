@@ -1,0 +1,18 @@
+{
+  "id": "adr-001-local-server",
+  "path": "docs/04_memory/design/adrs/adr-001-local-server.md",
+  "entries": [
+    {
+      "sha": "75d3d0be85fa104fcdcbb31c0855e4a4877b39d2",
+      "author": "Alex <alex@example.test>",
+      "timestamp": "2026-09-29T15:20:25+00:00",
+      "operation": "add",
+      "from": null,
+      "to": "draft",
+      "approver": null,
+      "reason": null,
+      "subject": "wf(adr): add adr-001-local-server",
+      "wingfoil": "0.3.1 (870bd4406f3b9bba5ecde7a5f8198b80c2a98583)"
+    }
+  ]
+}

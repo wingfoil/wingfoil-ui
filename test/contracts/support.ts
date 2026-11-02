@@ -181,8 +181,42 @@ export async function archiveOne(fx: Fixture): Promise<'deprecated' | 'supersede
   }
   if (fx.kind === 'custom') {
     const file = path.join(fx.dir, 'docs', '04_memory', 'design', 'adrs', 'adr-001-local-server.md');
-    await writeFile(file, (await readFile(file, 'utf8')).replace(/^status: draft$/m, 'status: superseded'));
+    await writeFile(file, (await readFile(file, 'utf8')).replace(/^status: draft\b.*$/m, 'status: superseded'));
     return 'superseded';
   }
   return undefined;
+}
+
+/** What a matrix version does where the versions differ (task-046 AC-3). */
+export interface VersionBehaviours {
+  /** The state `memory add` writes: always `draft` (W-21, 0.2.2), or the type's first declared state. */
+  addState: 'draft' | 'first-declared';
+  /** The types `init --template Kanban` declares, in `memory.yaml` order (the `kanban` fixture). */
+  kanbanTypes: readonly string[];
+  /** The branch of `contracts/cli/workflow-list.schema.json` its `workflow list` matches. */
+  workflowList: 'v0.2' | 'v0.3';
+  /** The definition of `contracts/cli/memory-history.schema.json` its history entries match (task-048 D48-1). */
+  historyEntry: 'v0.2' | 'v0.3';
+}
+
+const KANBAN_TYPES_022 = ['adr', 'bug', 'decision-log', 'release', 'release-line', 'task', 'tech-spec'];
+
+const BEHAVIOURS: Readonly<Record<string, VersionBehaviours>> = {
+  '0.2.2': { addState: 'draft', kanbanTypes: KANBAN_TYPES_022, workflowList: 'v0.2', historyEntry: 'v0.2' },
+  '0.3.1': {
+    addState: 'first-declared',
+    kanbanTypes: ['adr', 'bug', 'decision-log', 'plan', 'release', 'release-line', 'task', 'tech-spec'],
+    workflowList: 'v0.3',
+    historyEntry: 'v0.3',
+  },
+};
+
+/**
+ * The behaviours of matrix version `version`. Throws for a version not listed here: a matrix
+ * advance states what the new version does instead of inheriting a guess.
+ */
+export function behaviours(version: string): VersionBehaviours {
+  const found = BEHAVIOURS[version];
+  if (!found) throw new Error(`test/contracts/support.ts: no behaviours recorded for wingfoil ${version}`);
+  return found;
 }

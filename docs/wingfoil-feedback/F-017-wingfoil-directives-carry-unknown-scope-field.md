@@ -2,7 +2,7 @@
 id: F-017
 title: "WingFoil's own directives carry a scope field that 0.2.2 reports as unknown"
 kind: defect
-status: open
+status: resolved
 wingfoil_version: 0.2.2
 answered_by: []
 ---

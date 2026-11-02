@@ -22,7 +22,7 @@ import { openSwitcher, rows } from './support/switcher.js';
 
 test.use({ prebuild: ['kanban', 'custom'] });
 
-const RANGE = 'supported 0.2.2 to 0.2.x';
+const RANGE = 'supported 0.2.2 to 0.3.x';
 
 /** The "Project header" strip above the view. */
 const strip = (page: Page): Locator => page.getByRole('main').getByRole('region', { name: 'Project header' });
@@ -164,7 +164,8 @@ test.describe('US-S-08 — version and missing capabilities', () => {
     const c = await consoles.start();
     await addLocalFolder(page, c, kanban.dir);
     // The project opens on its Memory list with the header (its first, cold read).
-    await expect(versionLine(page)).toHaveText('WingFoil 0.2.2', { timeout: COLD_READ_MS });
+    // The pinned WingFoil 0.3.1 prints its build stamp; the header shows the version (task-046 D46-4).
+    await expect(versionLine(page)).toHaveText('WingFoil 0.3.1', { timeout: COLD_READ_MS });
     await expect(strip(page).getByText('Every capability of this release is available', { exact: true })).toBeVisible();
     await expect(notices(page)).toHaveCount(0);
     expect(await scanThemes(page)).toEqual([]);
@@ -179,7 +180,7 @@ test.describe('US-S-08 — version and missing capabilities', () => {
     await removeCli(kanban);
     const c = await consoles.start({ env: { PATH: await pathWithGlobalCli(testInfo, kanban) } });
     await addLocalFolder(page, c, kanban.dir);
-    await expect(versionLine(page)).toHaveText('WingFoil 0.2.2 (from PATH)', { timeout: COLD_READ_MS });
+    await expect(versionLine(page)).toHaveText('WingFoil 0.3.1 (from PATH)', { timeout: COLD_READ_MS });
     await expect(strip(page).getByText('Every capability of this release is available', { exact: true })).toBeVisible();
   });
 });

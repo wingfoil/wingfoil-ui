@@ -16,7 +16,7 @@ Feature: Waiting on others
 
   @US-T-11 @v0.2 @edge @fx-custom
   Scenario: T-11.2 — Name the workflow engine for an engine-waiting state
-    Given the custom fixture is open and I am Morgan
+    Given the custom fixture with the pre-packs states is open and I am Morgan
     When I open Today
     Then Waiting on others lists "minor-v0.1" with "Waiting for the workflow engine"
 

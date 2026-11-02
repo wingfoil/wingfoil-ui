@@ -3,7 +3,7 @@
   "path": "docs/04_memory/design/dls/dl-001-initialise-wingfoil-before-inception.md",
   "entries": [
     {
-      "sha": "ebca7a714f2cf8af8ec1495d4838f446ce4a23ca",
+      "sha": "a857740023772d28209d8e07e049fcb71cfdd6b1",
       "author": "Alex <alex@example.test>",
       "timestamp": "2026-09-29T15:20:18+00:00",
       "operation": "add",
@@ -14,7 +14,7 @@
       "subject": "wf(decision-log): add dl-001-initialise-wingfoil-before-inception"
     },
     {
-      "sha": "0ac2c4b80654d29748dc815445d2bdc05a80c74f",
+      "sha": "6e8558ed24a7385ca5f76a95b8e22906ad8b1255",
       "author": "Alex <alex@example.test>",
       "timestamp": "2026-09-29T15:20:19+00:00",
       "operation": "submit",
@@ -25,7 +25,7 @@
       "subject": "wf(decision-log): submit dl-001-initialise-wingfoil-before-inception"
     },
     {
-      "sha": "341e40c7e7a6a5d94c7bd42af72f98f3021b2a43",
+      "sha": "c1a7765bbdc2e73850bed91860d7e52351c74fca",
       "author": "Morgan <morgan@example.test>",
       "timestamp": "2026-09-29T15:20:20+00:00",
       "operation": "approve",

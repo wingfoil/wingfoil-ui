@@ -109,6 +109,16 @@
                       }
                     },
                     "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "required": ["code"],
+                    "properties": {
+                      "code": {
+                        "const": "not-in-release"
+                      }
+                    },
+                    "additionalProperties": false
                   }
                 ]
               }

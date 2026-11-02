@@ -16,10 +16,13 @@ import { git, run } from './run.js';
 
 /** S-28.1 Examples: the type filters of each fixture, in `memory.yaml` order. */
 const TYPES: Record<FixtureKind, string[]> = {
-  kanban: ['adr', 'bug', 'decision-log', 'release', 'release-line', 'task', 'tech-spec'],
-  custom: ['release-line', 'release', 'task', 'adr', 'decision-log', 'tech-spec', 'bug', 'plan', 'service'],
+  // `init` of the pinned WingFoil 0.3.1 declares `plan` too (task-046).
+  kanban: ['adr', 'bug', 'decision-log', 'plan', 'release', 'release-line', 'task', 'tech-spec'],
+  // The live `.wingfoil/` on the pinned 0.3.1, with the packs' `sprint` (`customGovernance`, the packs
+  // adoption's decision 16).
+  custom: ['release-line', 'release', 'task', 'adr', 'decision-log', 'tech-spec', 'bug', 'plan', 'sprint', 'service'],
   unknown: ['story', 'note'],
-  scrum: ['adr', 'bug', 'decision-log', 'release', 'release-line', 'task', 'tech-spec'],
+  scrum: ['adr', 'bug', 'decision-log', 'plan', 'release', 'release-line', 'task', 'tech-spec'],
 };
 
 /** The fixtures built here: the BDD ones and the Scrum template (task-025 AC-4). */

@@ -1,0 +1,18 @@
+{
+  "id": "task-004-session-timeout",
+  "path": "docs/memory/task/task-004-session-timeout.md",
+  "entries": [
+    {
+      "sha": "d9899e7accca25f51c2ed0e15fb9a4dd5ebe02c7",
+      "author": "Jordan <jordan@example.test>",
+      "timestamp": "2026-09-29T15:20:08+00:00",
+      "operation": "add",
+      "from": null,
+      "to": "draft",
+      "approver": null,
+      "reason": null,
+      "subject": "wf(task): add task-004-session-timeout",
+      "wingfoil": "0.3.1 (870bd4406f3b9bba5ecde7a5f8198b80c2a98583)"
+    }
+  ]
+}

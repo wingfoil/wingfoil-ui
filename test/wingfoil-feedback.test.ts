@@ -12,9 +12,13 @@ const NOTE_FILE = /^F-\d{3}-[a-z0-9-]+\.md$/;
 const FIELDS = ['id', 'title', 'kind', 'status', 'wingfoil_version', 'answered_by'];
 const KINDS = ['defect', 'gap', 'request'];
 const STATUSES = ['open', 'needs-info', 'captured', 'resolved', 'declined', 'duplicate'];
-/** The first body line: the id the note was migrated from (task-023), or the W-entries it reports (dl-007). */
+/**
+ * The first body line: the id the note was migrated from (task-023), the W-entries it reports
+ * (dl-007; a list since governance-alignment-rel-v0.3-plan step 5), or the area of a note that
+ * reports no CLI behaviour (step 5, dl-010).
+ */
 const FIRST_LINE =
-  /^\n(?:Formerly R-\d{2}\.|Formerly W-\d{2} candidate\.|Reports W-\d{2}(?: and W-\d{2})?\.|Formerly an unnamed W-xx candidate\.)\n/;
+  /^\n(?:Formerly R-\d{2}\.|Formerly W-\d{2} candidate\.|Reports W-\d{2}(?:, W-\d{2})*(?: and W-\d{2})?\.|Not a CLI behaviour: [^.\s][^.\n]*\.|Formerly an unnamed W-xx candidate\.)\n/;
 
 interface Note {
   file: string;
@@ -86,8 +90,38 @@ describe('the WingFoil feedback inbox (dl-163)', () => {
     }
   });
 
-  it('opens with the id the note was migrated from', () => {
+  it('opens with a first line the rule admits', () => {
     for (const note of notes) expect(note.body, note.file).toMatch(FIRST_LINE);
+  });
+
+  // governance-alignment-rel-v0.3-plan step 5 (dl-010): a note may report no CLI behaviour, or a
+  // list of W-entries; fixture first lines, so the rule is checked whatever the notes hold.
+  it('admits exactly the first-line forms of the rule', () => {
+    const admitted = [
+      'Formerly R-01.',
+      'Formerly W-03 candidate.',
+      'Formerly an unnamed W-xx candidate.',
+      'Reports W-28.',
+      'Reports W-25 and W-26.',
+      'Reports W-36, W-37.',
+      'Reports W-36, W-37 and W-38.',
+      'Not a CLI behaviour: publish pipeline.',
+    ];
+    const refused = [
+      'Reports W-36,W-37.',
+      'Reports W-36, and W-37.',
+      'Reports W-36 and W-37 and W-38.',
+      'Reports W-36, W-37',
+      'Reports.',
+      'Not a CLI behaviour.',
+      'Not a CLI behaviour: .',
+      'Not a CLI behaviour:  publish pipeline.',
+      'Not a CLI behaviour: ..',
+      'Not a CLI behaviour: publish pipeline',
+      'Found while building the pipeline.',
+    ];
+    for (const line of admitted) expect(`\n${line}\n`, line).toMatch(FIRST_LINE);
+    for (const line of refused) expect(`\n${line}\n`, line).not.toMatch(FIRST_LINE);
   });
 
   it('states what was observed and what was expected, with no other section', () => {

@@ -1,0 +1,23 @@
+format: 1
+# A decision that changes no governance (dl-022 S4): captured as a decision-log and ruled by the
+# approver. A change of the project's own governance goes to governance-evolution.
+name: decision-log-ingest
+kind: main
+description: "Capture a decision that changes no governance, and have the approver rule it"
+version: 1
+phases:
+  - name: capture
+    description: "Record the question, the options and the proposed ruling as a decision-log."
+    role: product-owner
+    actions:
+      - 'memory.add(type: decision-log)'
+      - memory.submit
+    produces:
+      - { type: decision-log, path: "docs/04_memory/design/dls/{id}.md" }
+  - name: approve
+    description: "The approver rules the decision-log; a reject goes back to capture."
+    role: approver
+    actions:
+      - memory.approve
+    approval: { by_role: approver }
+    fallback: { step: capture }

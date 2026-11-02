@@ -2,7 +2,7 @@
 id: F-012
 title: "memory add always writes status: draft instead of the type's first state"
 kind: defect
-status: open
+status: resolved
 wingfoil_version: 0.2.2
 answered_by: []
 ---

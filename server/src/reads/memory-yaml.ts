@@ -19,6 +19,13 @@ export { BUILT_IN_STATES, DEPRECATED } from '../presets/wingfoil.js';
 /** A verb that moves an element. */
 export type TransitionOp = 'submit' | 'approve' | 'reject' | 'deprecate';
 
+const TRANSITION_OPS: readonly string[] = ['submit', 'approve', 'reject', 'deprecate'] satisfies TransitionOp[];
+
+/** Whether `op` is a verb whose target {@link transitionTarget} decides. */
+export function isTransitionOp(op: string | null): op is TransitionOp {
+  return op !== null && TRANSITION_OPS.includes(op);
+}
+
 interface RawStates {
   sequence: string[];
   gates?: Record<string, { reject: string }>;

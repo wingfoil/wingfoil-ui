@@ -14,7 +14,7 @@
  */
 import { spawn, type ChildProcess } from 'node:child_process';
 import path from 'node:path';
-import { gitEnv, gitSubcommand } from '../git/git.js';
+import { absolutePath, gitEnv, gitSubcommand } from '../git/git.js';
 
 /** Timeout of every `wingfoil` process and git read (adr-001 D5, REQ-INT-04). */
 export const DEFAULT_TIMEOUT_MS = 30_000;
@@ -32,6 +32,14 @@ export interface ProcessRequest {
   cwd: string;
   /** Full environment (default: the server's), without the redirecting `GIT_*` variables (`gitEnv`). */
   env?: NodeJS.ProcessEnv;
+  /**
+   * git settings the server adds to the child's configuration, and to that of every git it runs
+   * (task-046 D46-6): rendered as `GIT_CONFIG_COUNT`, `GIT_CONFIG_KEY_<n>`, `GIT_CONFIG_VALUE_<n>`
+   * after `gitEnv` dropped the inherited `GIT_CONFIG_COUNT`, `GIT_CONFIG_KEY_<n>`, `GIT_CONFIG_VALUE_<n>`
+   * and `GIT_CONFIG_PARAMETERS` (`GIT_CONFIG_GLOBAL` and `GIT_CONFIG_NOSYSTEM` are kept). Absent or
+   * empty: none.
+   */
+  gitConfig?: readonly (readonly [key: string, value: string])[];
   /** Kill the process after this many milliseconds; `null` for no timeout (default 30 s). */
   timeoutMs?: number | null;
   /** Cancels the process (git transport, adr-001 D5). */
@@ -152,7 +160,7 @@ export class LocalProcessRunner implements ProcessRunner {
       const group = process.platform !== 'win32';
       const child = spawn(request.file, [...request.args], {
         cwd: request.cwd,
-        env: gitEnv(request.env ?? process.env),
+        env: childEnv(request),
         stdio: ['ignore', 'pipe', 'pipe'],
         shell: false,
         detached: group,
@@ -287,4 +295,34 @@ export class LocalProcessRunner implements ProcessRunner {
     this.stopping = true;
     for (const entry of this.children) entry.killNow();
   }
+}
+
+/**
+ * `env` (already cleaned by `gitEnv`, so with no `GIT_CONFIG_*` of its own) with `settings` as git's
+ * environment configuration: `GIT_CONFIG_COUNT` and one `GIT_CONFIG_KEY_<n>`/`GIT_CONFIG_VALUE_<n>`
+ * pair per setting (task-046 D46-6).
+ */
+export function withGitConfig(
+  env: NodeJS.ProcessEnv,
+  settings: readonly (readonly [key: string, value: string])[],
+): NodeJS.ProcessEnv {
+  if (settings.length === 0) return env;
+  const out: NodeJS.ProcessEnv = { ...env, GIT_CONFIG_COUNT: String(settings.length) };
+  settings.forEach(([key, value], i) => {
+    out[`GIT_CONFIG_KEY_${i}`] = key;
+    out[`GIT_CONFIG_VALUE_${i}`] = value;
+  });
+  return out;
+}
+
+/**
+ * The environment of a child: `request.env` (default: the server's) cleaned by `gitEnv`, its `PATH`
+ * with the absolute entries only — an empty or relative entry would be resolved in the working
+ * directory, the project, where WingFoil runs a bare `git` (task-046 D46-8) — and `request.gitConfig`.
+ */
+function childEnv(request: ProcessRequest): NodeJS.ProcessEnv {
+  const env = gitEnv(request.env ?? process.env);
+  const { key, value } = absolutePath(env);
+  if (value !== undefined) env[key] = value;
+  return withGitConfig(env, request.gitConfig ?? []);
 }

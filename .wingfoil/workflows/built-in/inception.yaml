@@ -1,0 +1,20 @@
+format: 1
+# The inception slot's default: minimal, naming no method (dl-003 D11); a phase pack fills the slot
+# with its own.
+name: inception
+kind: sub
+description: "Frame the project's purpose and scope, then approve it"
+version: 1
+phases:
+  - name: frame
+    description: "Write the project's purpose and scope into the inception document."
+    role: product-owner
+    actions:
+      - agent.execute
+    produces:
+      - "docs/01_vision/00_index.md"
+  - name: approve
+    description: "The approver rules the inception document; a reject goes back to frame."
+    role: approver
+    approval: { by_role: approver }
+    fallback: { step: frame }

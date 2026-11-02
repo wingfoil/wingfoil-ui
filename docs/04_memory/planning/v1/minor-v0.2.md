@@ -271,3 +271,5 @@ Actual effort per phase (dl-006 action 6; wall-clock of the working sessions, 20
   `Version`; `design/release-planning_v0.2`, `design/user-docs_v0.2`, `design/e2e-smoke_v0.2`
   deleted locally and on `origin` (all merged into `main`); `design/inception_v1` kept. The npm
   placeholder `0.0.0-stage` is left to the approver.
+- 2026-10-21, after the retrospective: the approver deleted the npm placeholder `0.0.0-stage`;
+  `npm view wingfoil-ui versions` lists `0.2.0` only (2026-10-28).

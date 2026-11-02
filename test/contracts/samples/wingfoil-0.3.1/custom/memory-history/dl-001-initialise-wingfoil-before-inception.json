@@ -1,0 +1,42 @@
+{
+  "id": "dl-001-initialise-wingfoil-before-inception",
+  "path": "docs/04_memory/design/dls/dl-001-initialise-wingfoil-before-inception.md",
+  "entries": [
+    {
+      "sha": "7cd5e7f73573058487ce202c98e177aa95d414b7",
+      "author": "Alex <alex@example.test>",
+      "timestamp": "2026-09-29T15:20:18+00:00",
+      "operation": "add",
+      "from": null,
+      "to": "draft",
+      "approver": null,
+      "reason": null,
+      "subject": "wf(decision-log): add dl-001-initialise-wingfoil-before-inception",
+      "wingfoil": "0.3.1 (870bd4406f3b9bba5ecde7a5f8198b80c2a98583)"
+    },
+    {
+      "sha": "bc44321a605646c003801e99bf1d0e31d9ff0503",
+      "author": "Alex <alex@example.test>",
+      "timestamp": "2026-09-29T15:20:19+00:00",
+      "operation": "submit",
+      "from": "draft",
+      "to": "in-discussion",
+      "approver": null,
+      "reason": null,
+      "subject": "wf(decision-log): submit dl-001-initialise-wingfoil-before-inception",
+      "wingfoil": "0.3.1 (870bd4406f3b9bba5ecde7a5f8198b80c2a98583)"
+    },
+    {
+      "sha": "7cb89aa2f6aab4fc5146c8c89b7255b511980063",
+      "author": "Morgan <morgan@example.test>",
+      "timestamp": "2026-09-29T15:20:20+00:00",
+      "operation": "approve",
+      "from": "in-discussion",
+      "to": "ready",
+      "approver": "Morgan <morgan@example.test> (approver)",
+      "reason": "Approved",
+      "subject": "wf(decision-log): approve dl-001-initialise-wingfoil-before-inception [in-discussion → ready]",
+      "wingfoil": "0.3.1 (870bd4406f3b9bba5ecde7a5f8198b80c2a98583)"
+    }
+  ]
+}

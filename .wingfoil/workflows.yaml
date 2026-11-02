@@ -1,45 +1,40 @@
-# WingFoil UI — Project Workflow main configuration
-# Derived from the WingFoil repository's workflows.yaml (wingfoil/wingfoil@v0.2.2). This is the
-# MAIN config file: it include()s the custom workflow files. Several `kind: main` workflows are
-# startable (sw-life-cycle + the ingest mains); every non-main is `kind: sub` (include-only).
-# wingfoil@0.2.2 has no workflow engine: phases are run by hand against their `plan` element.
-version: 1.0
+# WingFoil UI — Project Workflow main configuration.
+# Composed from the wingfoil-templates packs base@2.0.1, software@1.0.0 and methodology/scrum@1.0.0
+# (the workflows/built-in/ files, unchanged), with this repository's own workflows re-added
+# (workflows/custom/; governance-alignment-rel-v0.3-plan step 3). A custom workflow never takes the
+# name of a pack's (E_WORKFLOW_DUPLICATE_NAME).
+format: 1
+version: 1
 
 include:
-  # Startable main workflows.
-  - workflows/custom/sw-life-cycle.yaml        # the end-to-end software life cycle
-  - workflows/custom/bug-ingest.yaml           # capture a bug
-  - workflows/custom/decision-log-ingest.yaml  # capture a decision-log
-  - workflows/custom/adr-ingest.yaml           # capture an ADR
-  - workflows/custom/service-ingest.yaml       # capture an external service
+  # --- base@2.0.1 ---
+  - workflows/built-in/decision-log-ingest.yaml
+  - workflows/built-in/governance-evolution.yaml
+  - workflows/built-in/retrospective.yaml
+  - workflows/built-in/retrospective-periodic.yaml
+  # --- software@1.0.0 ---
+  - workflows/built-in/sw-life-cycle.yaml
+  - workflows/built-in/inception.yaml
+  - workflows/built-in/specification.yaml
+  - workflows/built-in/end-of-life.yaml
+  - workflows/built-in/release.yaml
+  - workflows/built-in/release-submit.yaml
+  - workflows/built-in/release-publishing.yaml
+  - workflows/built-in/adr-ingest.yaml
+  - workflows/built-in/bug-ingest.yaml
+  # --- methodology/scrum@1.0.0 ---
+  - workflows/built-in/delivery.yaml
+  - workflows/built-in/sprint.yaml
+  - workflows/built-in/backlog-item.yaml
 
-  # Sub-workflows composed by sw-life-cycle (include-only; never started directly).
-  # --- Init (first: before inception) ---
-  - workflows/custom/wingfoil-init.yaml
-  # --- Inception ---
-  - workflows/custom/lean-inception.yaml
-  # --- Specification downcast ---
-  - workflows/custom/specification-downcast.yaml
-  - workflows/custom/user-story-mapping.yaml
-  - workflows/custom/specification-by-examples.yaml
-  - workflows/custom/volere-requirements.yaml
-  - workflows/custom/backlog-export.yaml
-  # --- Delivery ---
-  # Adapted to this project (beyond the header line, against wingfoil/wingfoil@v0.2.2):
-  # sw-life-cycle, wingfoil-init, initial-design, release-planning (1.4), e2e-smoke (rewritten),
-  # and by dl-008 release-submit (1.1), release-publishing (1.2), retrospective (1.2). The other
-  # files, dev-loop and user-docs included, differ from v0.2.2 only in the header line; user-docs'
-  # `docs/examples/` output does not apply to this project (accepted deviation UD-5 of
-  # user-docs-rel-v0.1-plan).
-  - workflows/custom/initial-design.yaml
-  - workflows/custom/release-line-cycle.yaml
-  - workflows/custom/release-cycle.yaml
-  - workflows/custom/release-planning.yaml
-  - workflows/custom/dev-loop.yaml
-  - workflows/custom/user-docs.yaml
-  - workflows/custom/e2e-smoke.yaml
-  - workflows/custom/release-submit.yaml
-  - workflows/custom/release-publishing.yaml
-  - workflows/custom/retrospective.yaml
-  # --- Sunset ---
-  - workflows/custom/end-of-life.yaml
+  # --- This repository's own ---
+  # Startable main: capture an external service (the `service` type is this repository's own).
+  - workflows/custom/service-ingest.yaml
+  # Procedures no pack workflow includes (methodology/scrum charter, open point 1): each is run by
+  # hand inside the pack phase its header names, against its plan; the pack phase owns the element
+  # transitions.
+  - workflows/custom/initial-design.yaml       # per release-line, outside `delivery`
+  - workflows/custom/release-planning.yaml     # inside `sprint` › `sprint-planning` / `plan-release`
+  - workflows/custom/dev-loop.yaml             # inside `backlog-item` › `start` … `done`
+  - workflows/custom/user-docs.yaml            # inside `release-submit` › `pre-release-checks`
+  - workflows/custom/e2e-smoke.yaml            # inside `release-submit` › `pre-release-checks`

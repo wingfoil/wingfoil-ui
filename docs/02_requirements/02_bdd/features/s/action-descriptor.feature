@@ -16,10 +16,11 @@ Feature: Action descriptor and methodology independence
     Then the type filters are exactly <types>
     And every element of the fixture is listed with its own state name
 
+    # custom: `sprint` from WingFoil 0.3.0, whose custom fixture is built on the packs' `.wingfoil/`.
     Examples:
       | fixture | types                                                                                  |
       | kanban  | adr, bug, decision-log, release, release-line, task, tech-spec                         |
-      | custom  | release-line, release, task, adr, decision-log, tech-spec, bug, plan, service          |
+      | custom  | release-line, release, task, adr, decision-log, tech-spec, bug, plan, sprint, service  |
       | unknown | story, note                                                                            |
 
   @US-S-28 @v0.1 @edge @fx-unknown
@@ -40,7 +41,7 @@ Feature: Action descriptor and methodology independence
 
   @US-S-24 @v0.2 @edge @fx-custom
   Scenario: S-24.2 — Show an engine-waiting state as waiting
-    Given the custom fixture is added and I am Alex
+    Given the custom fixture with the pre-packs states is added and I am Alex
     When I open the element panel of "minor-v0.1"
     Then the panel shows "Waiting for the workflow engine (state: planning)"
     And the panel shows no action button
@@ -53,7 +54,7 @@ Feature: Action descriptor and methodology independence
 
   @US-S-24 @v0.2 @edge @fx-custom
   Scenario: S-24.4 — Offer only the reject of a state that is both a gate and a waiting state
-    Given the custom fixture is added and I am Morgan
+    Given the custom fixture with the pre-packs states is added and I am Morgan
     And "bug-001-toast-overlap" has been approved to the state "triaged"
     When I open the element panel of "bug-001-toast-overlap"
     Then the gate footer shows only "Reject → closed" and "Waiting for the workflow engine to advance"

@@ -2,9 +2,9 @@
 id: F-011
 title: "No read verbs for type definitions, one element's full content and directive bodies"
 kind: gap
-status: open
+status: captured
 wingfoil_version: 0.2.2
-answered_by: []
+answered_by: [dl-200]
 ---
 
 Formerly R-11.

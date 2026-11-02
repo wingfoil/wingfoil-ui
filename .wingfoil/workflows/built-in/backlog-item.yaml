@@ -1,0 +1,35 @@
+format: 1
+# One Sprint Backlog item. Not named dev-loop: a project's own dev-loop keeps its name.
+name: backlog-item
+kind: sub
+element: task
+description: "One Sprint Backlog item, to the Definition of Done"
+version: 1
+phases:
+  - name: start
+    description: "A Developer starts the item (backlog to in-progress)."
+    role: developer
+    actions:
+      - element.set_state(in-progress)
+  - name: build
+    description: "Do the work to the Definition of Done."
+    role: developer
+    actions:
+      - agent.execute
+  - name: review
+    description: "A reviewer checks the work against the Definition of Done (to in-review)."
+    role: reviewer
+    actions:
+      - memory.submit
+  - name: approve
+    description: "The approver approves the item; a reject goes back to build."
+    role: approver
+    actions:
+      - memory.approve
+    approval: { by_role: approver }
+    fallback: { step: build }
+  - name: done
+    description: "The item is done (approved to done)."
+    role: developer
+    actions:
+      - memory.submit

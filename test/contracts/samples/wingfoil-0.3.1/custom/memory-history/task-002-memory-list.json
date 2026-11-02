@@ -1,0 +1,90 @@
+{
+  "id": "task-002-memory-list",
+  "path": "docs/04_memory/v0.1/task-002-memory-list.md",
+  "entries": [
+    {
+      "sha": "ee28c2158addaca5ce730114d72bf1779c6a152c",
+      "author": "Jordan <jordan@example.test>",
+      "timestamp": "2026-09-29T15:20:05+00:00",
+      "operation": "add",
+      "from": null,
+      "to": "draft",
+      "approver": null,
+      "reason": null,
+      "subject": "wf(task): add task-002-memory-list",
+      "wingfoil": "0.3.1 (870bd4406f3b9bba5ecde7a5f8198b80c2a98583)"
+    },
+    {
+      "sha": "45bda4cf30e60ce46073573be6ae71d0518d6feb",
+      "author": "Jordan <jordan@example.test>",
+      "timestamp": "2026-09-29T15:20:06+00:00",
+      "operation": "submit",
+      "from": "draft",
+      "to": "pending",
+      "approver": null,
+      "reason": null,
+      "subject": "wf(task): submit task-002-memory-list",
+      "wingfoil": "0.3.1 (870bd4406f3b9bba5ecde7a5f8198b80c2a98583)"
+    },
+    {
+      "sha": "fcf2a88b1210cea59bebb61dbbd1e3055068c87c",
+      "author": "Morgan <morgan@example.test>",
+      "timestamp": "2026-09-29T15:20:07+00:00",
+      "operation": "approve",
+      "from": "pending",
+      "to": "backlog",
+      "approver": "Morgan <morgan@example.test> (approver)",
+      "reason": "Approved",
+      "subject": "wf(task): approve task-002-memory-list [pending → backlog]",
+      "wingfoil": "0.3.1 (870bd4406f3b9bba5ecde7a5f8198b80c2a98583)"
+    },
+    {
+      "sha": "ebacc71836f148d4c059c8b0d04460194dc1bc10",
+      "author": "Jordan <jordan@example.test>",
+      "timestamp": "2026-09-29T15:20:08+00:00",
+      "operation": null,
+      "from": "backlog",
+      "to": "in-progress",
+      "approver": null,
+      "reason": null,
+      "subject": "wf(task): task-002-memory-list [backlog → in-progress]",
+      "wingfoil": null
+    },
+    {
+      "sha": "0bdfa1158441806f021d1d71c5fa08fbc29b97f1",
+      "author": "Jordan <jordan@example.test>",
+      "timestamp": "2026-09-29T15:20:09+00:00",
+      "operation": "submit",
+      "from": "in-progress",
+      "to": "in-review",
+      "approver": null,
+      "reason": null,
+      "subject": "wf(task): submit task-002-memory-list",
+      "wingfoil": "0.3.1 (870bd4406f3b9bba5ecde7a5f8198b80c2a98583)"
+    },
+    {
+      "sha": "33ed32797cae0843b3665c1c23308f5eff9e76da",
+      "author": "Morgan <morgan@example.test>",
+      "timestamp": "2026-09-29T15:20:10+00:00",
+      "operation": "approve",
+      "from": "in-review",
+      "to": "approved",
+      "approver": "Morgan <morgan@example.test> (approver)",
+      "reason": "Approved",
+      "subject": "wf(task): approve task-002-memory-list [in-review → approved]",
+      "wingfoil": "0.3.1 (870bd4406f3b9bba5ecde7a5f8198b80c2a98583)"
+    },
+    {
+      "sha": "a15493575051e73eaac1a21e3cb6a1f6b179d1c2",
+      "author": "Jordan <jordan@example.test>",
+      "timestamp": "2026-09-29T15:20:11+00:00",
+      "operation": null,
+      "from": "approved",
+      "to": "done",
+      "approver": null,
+      "reason": null,
+      "subject": "wf(task): task-002-memory-list [approved → done]",
+      "wingfoil": null
+    }
+  ]
+}

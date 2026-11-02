@@ -20,8 +20,18 @@
  */
 import { envelope, type ErrorEnvelope } from '../http/app.js';
 import { DEFAULT_TIMEOUT_MS, type ProcessResult, type ProcessRunner } from '../process/runner.js';
-import { commandFor, outputProblem, type CliCommandName, type CliCommandOutputs } from './commands.js';
+import {
+  boundedLines,
+  commandFor,
+  MAX_TOOL_LINES,
+  outputProblem,
+  toolLines,
+  toolText,
+  type CliCommandName,
+  type CliCommandOutputs,
+} from './commands.js';
 import { redactLocalPaths } from '../git/redact.js';
+import { READ_GIT_ENV, withoutNames } from '../git/git.js';
 import { CliNotFoundError, type CliSource, type ResolvedCli } from './discovery.js';
 
 /** Timeout of every `wingfoil` process (REQ-INT-04). */
@@ -237,8 +247,20 @@ export class WingfoilCli {
     }
     const problems = outputProblem(name, data);
     if (problems) throw this.outputError(command, problems);
-    // Each warning through the one sanitiser of tool messages (bug-017, review round 3 S3-1).
-    return { data: data as T, warnings: lines(result.stderr).map((w) => this.redact(w)) };
+    // Each warning, and the tool text of the output (task-046), through the one sanitiser of tool
+    // messages (bug-017, review round 3 S3-1).
+    return {
+      data: toolText(name, data, (text) => this.redact(text)) as T,
+      warnings: stderrWarnings(result.stderr, (w) => this.redact(warningText(w))),
+    };
+  }
+
+  /**
+   * `text` through the adapter's sanitiser of tool messages, with its roots (the project and the CLI's
+   * package folder): for a tool text the caller passes on, e.g. the `--version` text (review round 2 n7).
+   */
+  sanitise(text: string): string {
+    return this.redact(text);
   }
 
   /** `wingfoil --version`: one line of plain text, even with `--format json` (W-19). Not parsed here. */
@@ -263,7 +285,13 @@ export class WingfoilCli {
       args: [...cli.prefixArgs, ...argv],
       cwd: cli.projectRoot,
       timeoutMs: this.timeoutMs,
-      ...(env ? { env } : {}),
+      // No optional git locks (task-046 D46-5): WingFoil 0.3's reads run `git status`, which would
+      // otherwise rewrite a stale `.git/index`; commits take required locks and are unaffected.
+      // …and no lazy fetch of a missing object (task-046 D46-7).
+      env: withCliGitEnv(env ?? process.env),
+      // No fsmonitor program (D46-6, spec-010 W4-5) and no transport (D46-7: a promisor remote's
+      // program) in any git WingFoil runs, writes included — none of its verbs fetches or pushes.
+      gitConfig: CLI_GIT_CONFIG,
       ...(signal ? { signal } : {}),
     });
     if (result.drained) {
@@ -336,13 +364,9 @@ function reason(result: ProcessResult): string {
  * `Command failed`.
  */
 export function usageKind(stderr: string): string {
-  let text = stderr.trim();
-  try {
-    const parsed = JSON.parse(text) as { error?: unknown };
-    if (typeof parsed.error === 'string') text = parsed.error;
-  } catch {
-    // Not JSON: the text itself.
-  }
+  const trimmed = stderr.trim();
+  // The CLI's own error (the whole text or its last line), else the text itself (review round 2).
+  const text = cliError(trimmed) ?? trimmed;
   return /^([A-Za-z][A-Za-z ]{0,60}):/.exec(text)?.[1] ?? 'usage error';
 }
 
@@ -350,20 +374,75 @@ export function usageKind(stderr: string): string {
 function refusalMessage(stderr: string): string {
   const text = stderr.trim();
   if (!text) return 'WingFoil refused (exit status 1) without a message';
-  try {
-    const parsed = JSON.parse(text) as { error?: unknown };
-    if (typeof parsed.error === 'string') return parsed.error;
-  } catch {
-    // Not JSON: the text itself.
-  }
-  return text;
+  return cliError(text) ?? text;
 }
 
-function lines(text: string): string[] {
-  return text
-    .split(/\r?\n/)
-    .map((l) => l.trim())
-    .filter(Boolean);
+/**
+ * The CLI's own error of a `stderr` text: `{"error": "<message>"}` as the whole text, or as its last
+ * line (WingFoil 0.3 may write JSON warning lines first, task-046). The CLI writes its error last, so
+ * no earlier line is read (review round 2 n5, n6: a hook's `{"error"}` before a plain-text end does not
+ * win; one parse per candidate whatever the length).
+ */
+function cliError(text: string): string | undefined {
+  const last = text.slice(text.lastIndexOf('\n') + 1).trim();
+  for (const candidate of last === text ? [text] : [text, last]) {
+    if (!candidate.startsWith('{')) continue;
+    try {
+      const parsed = JSON.parse(candidate) as { error?: unknown };
+      if (typeof parsed.error === 'string') return parsed.error;
+    } catch {
+      // Not JSON: the next candidate.
+    }
+  }
+  return undefined;
+}
+
+/**
+ * The git settings of every WingFoil process: no fsmonitor program (task-046 D46-6), no transport
+ * at all (D46-7: a lazy fetch would run a promisor remote's `uploadpack` or `core.sshCommand`).
+ */
+const CLI_GIT_CONFIG: readonly (readonly [string, string])[] = [
+  ['core.fsmonitor', 'false'],
+  ['protocol.allow', 'never'],
+  // No signature check in a history read (review round 5 s-minor-1: 0.2.2's `git log --follow`
+  // would run a configured `gpg.program`); the server's own log reads set it too.
+  ['log.showSignature', 'false'],
+];
+
+/** The git variables of every WingFoil process (task-046 D46-5, D46-7). */
+const CLI_GIT_ENV: Readonly<Record<string, string>> = { GIT_OPTIONAL_LOCKS: '0', ...READ_GIT_ENV };
+
+/**
+ * `env` with {@link CLI_GIT_ENV} — `GIT_OPTIONAL_LOCKS=0`, `GIT_ALLOW_PROTOCOL=none` (which also
+ * overrides the repository's `protocol.<name>.allow`, review round 3 M1), `GIT_NO_LAZY_FETCH=1` —, any
+ * other spelling of those names removed first (names are case-insensitive on Windows, round 1 n3).
+ */
+function withCliGitEnv(env: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
+  return { ...withoutNames(env, CLI_GIT_ENV), ...CLI_GIT_ENV };
+}
+
+/**
+ * The text of one `stderr` warning line: WingFoil 0.3 writes each as `{"warning": "<text>"}` under
+ * `--format json` (task-046), WingFoil 0.2.2 as the text itself; any other line is kept as written.
+ */
+function warningText(line: string): string {
+  if (!line.startsWith('{')) return line;
+  try {
+    const parsed = JSON.parse(line) as { warning?: unknown };
+    return typeof parsed.warning === 'string' ? parsed.warning : line;
+  } catch {
+    return line;
+  }
+}
+
+/**
+ * The `stderr` warnings as the API passes them on: the first {@link MAX_TOOL_LINES} non-empty lines,
+ * sanitised, then one line counting the others — counted, never split into an array (review round 3
+ * n1: a 64 MiB stderr).
+ */
+function stderrWarnings(stderr: string, sanitise: (text: string) => string): string[] {
+  const { lines: first, omitted } = boundedLines(stderr, MAX_TOOL_LINES);
+  return toolLines(first, sanitise, omitted);
 }
 
 /** HTTP status and envelope of a CLI failure (spec-004 §5, spec-006 §3). */

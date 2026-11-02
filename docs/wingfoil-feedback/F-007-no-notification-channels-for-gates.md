@@ -2,9 +2,9 @@
 id: F-007
 title: "No notification channels for pending gates"
 kind: request
-status: open
+status: resolved
 wingfoil_version: 0.2.2
-answered_by: []
+answered_by: [spec-017]
 ---
 
 Formerly R-07.

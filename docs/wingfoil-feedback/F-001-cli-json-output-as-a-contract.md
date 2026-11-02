@@ -2,9 +2,9 @@
 id: F-001
 title: "Stable, documented JSON output for every command a client calls"
 kind: request
-status: open
+status: captured
 wingfoil_version: 0.2.2
-answered_by: []
+answered_by: [spec-005]
 ---
 
 Formerly R-01.

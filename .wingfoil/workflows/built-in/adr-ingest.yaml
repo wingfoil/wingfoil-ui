@@ -1,0 +1,23 @@
+format: 1
+# An architecture decision: captured as an adr and accepted by the approver. A later adr that
+# replaces it names it in supersedes:.
+name: adr-ingest
+kind: main
+description: "Capture an architecture decision as an adr, and have the approver accept it"
+version: 1
+phases:
+  - name: capture
+    description: "Record the context, the decision and its consequences as an adr, submitted."
+    role: architect
+    actions:
+      - 'memory.add(type: adr)'
+      - memory.submit
+    produces:
+      - { type: adr, path: "docs/04_memory/design/adrs/{id}.md" }
+  - name: approve
+    description: "The approver accepts the adr; a reject goes back to capture."
+    role: approver
+    actions:
+      - memory.approve
+    approval: { by_role: approver }
+    fallback: { step: capture }

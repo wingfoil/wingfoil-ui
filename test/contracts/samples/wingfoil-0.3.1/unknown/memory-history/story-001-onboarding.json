@@ -1,0 +1,30 @@
+{
+  "id": "story-001-onboarding",
+  "path": "docs/stories/story-001-onboarding.md",
+  "entries": [
+    {
+      "sha": "8431789f07a66ef62bd1b6c09b16f04abee168c1",
+      "author": "Jordan <jordan@example.test>",
+      "timestamp": "2026-09-29T15:20:00+00:00",
+      "operation": "add",
+      "from": null,
+      "to": "idea",
+      "approver": null,
+      "reason": null,
+      "subject": "wf(story): add story-001-onboarding",
+      "wingfoil": "0.3.1 (870bd4406f3b9bba5ecde7a5f8198b80c2a98583)"
+    },
+    {
+      "sha": "a0f2ce27129c033ab6d0ea34950c20df808fbf27",
+      "author": "Jordan <jordan@example.test>",
+      "timestamp": "2026-09-29T15:20:02+00:00",
+      "operation": "submit",
+      "from": "idea",
+      "to": "shaping",
+      "approver": null,
+      "reason": null,
+      "subject": "wf(story): submit story-001-onboarding",
+      "wingfoil": "0.3.1 (870bd4406f3b9bba5ecde7a5f8198b80c2a98583)"
+    }
+  ]
+}

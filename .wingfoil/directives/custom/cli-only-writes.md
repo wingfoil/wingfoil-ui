@@ -9,7 +9,7 @@ tags: [custom, architecture, wingfoil, security]
 
 # Directive — Every governed change goes through the WingFoil CLI
 
-**Version:** 1.6 · **Date:** 2026-10-12 (1.1: write classes, snapshot, CLI choice — vision session 7; 1.2: no UI-side permission on `ui.yaml` — specification session 3; 1.3: clone in class (c), check scoped to UI commits — specification session 6; 1.4: read allow-list where the CLI has no read verb — initial-design session 5; 1.5: hash-only reads for the state key — dev-loop task-010; 1.6: the automatic update's local `merge --ff-only` in class (c) — release-planning v0.2, RP-41)
+**Version:** 1.8 · **Date:** 2026-11-02 (1.1: write classes, snapshot, CLI choice — vision session 7; 1.2: no UI-side permission on `ui.yaml` — specification session 3; 1.3: clone in class (c), check scoped to UI commits — specification session 6; 1.4: read allow-list where the CLI has no read verb — initial-design session 5; 1.5: hash-only reads for the state key — dev-loop task-010; 1.6: the automatic update's local `merge --ff-only` in class (c) — release-planning v0.2, RP-41; 1.7: `memory deprecate` in this repository — the packs adoption, its review round 1, A-4; 1.8: "members or not", the rule also in `wingfoil-cli` — round 2)
 
 Applies to whoever designs, writes or reviews the WingFoil UI server and its use of a WingFoil
 project (draft ADR: `docs/00_reference/adr-draft-local-server.md`).
@@ -45,6 +45,15 @@ project (draft ADR: `docs/00_reference/adr-draft-local-server.md`).
    fields, closing a plan, editing workflows), the UI shows it read-only until the pinned WingFoil
    provides one — no workaround that writes files.
 6. **Identity** is the project's git identity, as for the CLI; the UI adds no login.
+
+## In this repository: `memory deprecate`
+
+`memory deprecate` needs no approval in WingFoil 0.3.1: any git identity, team member or not, moves
+any element, in any state, to `deprecated` (an `active` release line, an `accepted` ADR and a `released` release were
+deprecated in a probe of the packs adoption's review, round 1). In this repository it is run only
+in `end-of-life` › `deprecate`, or with the approver's OK recorded in the active plan (who, when,
+why) before the command; an agent never deprecates on its own. The same rule, for every role, is in
+directive `wingfoil-cli` (global).
 
 ## How it is checked
 

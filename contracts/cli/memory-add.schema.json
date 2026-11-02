@@ -3,7 +3,7 @@
   "$id": "https://wingfoil-ui.local/contracts/cli/memory-add.schema.json",
   "$comment": "wingfoil 0.2.2 — captured from `wingfoil --format json memory add --type <type> --title <title>` on the kanban and custom fixtures.",
   "title": "wingfoil memory add --type <type> --title <title>",
-  "description": "A new element, always in draft (W-21) (spec-001 §3).",
+  "description": "A new element, in the type's first declared state on WingFoil 0.3.x, always in draft on 0.2.2 (W-21) (spec-001 §3).",
   "type": "object",
   "required": ["id", "path"],
   "properties": {

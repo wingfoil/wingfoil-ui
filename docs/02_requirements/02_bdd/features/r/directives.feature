@@ -17,7 +17,7 @@ Feature: Directives view
   Scenario: R-06.2 — Show every directive with "all"
     Given I am Jordan
     When I open the Directives view with the filter "all"
-    Then it lists every directive file under `.wingfoil/directives/`
+    Then it lists every directive in force under `.wingfoil/directives/`: one per id; a file shadowed by another of the same id is not listed — WingFoil's warning names it
 
   @US-R-06 @v0.1 @edge @fx-custom
   Scenario: R-06.3 — Render a directive body

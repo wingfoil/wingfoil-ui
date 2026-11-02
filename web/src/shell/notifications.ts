@@ -20,7 +20,7 @@ export interface UpdateLine {
   /** The element's id. */
   id: string;
   operation: MemoryEventEntry['operation'];
-  /** Who did it: the approver of an approve or reject, else the commit author (as the history). */
+  /** Who did it: the approver of an approve, a reject or an amend, else the commit author (as the history). */
   name: string;
   from: string | null;
   to: string | null;

@@ -4,7 +4,7 @@
  * A read of git for what the CLI does not expose (directive `cli-only-writes` rule 2), through the
  * process runner: argument array, no shell, the 30 s timeout.
  */
-import { gitEnv } from '../git/git.js';
+import { gitEnv, NO_FSMONITOR, NO_TRANSPORT, READ_GIT_ENV, withoutNames } from '../git/git.js';
 import type { ProcessRunner } from '../process/runner.js';
 
 /** `git config` failed other than "unset" (a broken configuration, a timeout, a kill). */
@@ -36,9 +36,10 @@ export interface GitEmailOptions {
 export async function readGitEmail(root: string, options: GitEmailOptions): Promise<string | undefined> {
   const result = await options.runner.run({
     file: options.git,
-    args: ['config', '--get', 'user.email'],
+    // As every `GitReads` read (review round 5 s-nit-4): no fsmonitor, no transport.
+    args: [...NO_FSMONITOR, ...NO_TRANSPORT, 'config', '--get', 'user.email'],
     cwd: root,
-    env: gitEnv(options.env ?? process.env),
+    env: { ...withoutNames(gitEnv(options.env ?? process.env), READ_GIT_ENV), ...READ_GIT_ENV },
     ...(options.signal ? { signal: options.signal } : {}),
   });
   // A cut output may be incomplete (task-034 W4-13).

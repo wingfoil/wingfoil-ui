@@ -35,3 +35,24 @@ export const UNKNOWN_TEMPLATES: Readonly<Record<string, string>> = {
   'story.md': '---\nid: ""\ntype: story\ntitle: ""\nstatus: idea\n---\n\n## Story\n',
   'note.md': '---\nid: ""\ntype: note\ntitle: ""\nstatus: open\n---\n\n## Note\n',
 };
+
+/**
+ * The unknown fixture's only workflow (`.wingfoil/workflows/custom/notes-review.yaml`): one phase,
+ * no Memory action. `init`'s workflows name the Kanban types this schema replaces, which WingFoil
+ * 0.3 refuses (`E_WORKFLOW_ELEMENT_TYPE_UNKNOWN`); WingFoil 0.2.2 needs one include at least.
+ */
+export const UNKNOWN_WORKFLOW = `name: notes-review
+kind: main
+description: Review the notes (the unknown fixture's only workflow).
+version: 1
+phases:
+  - name: review
+    description: Read the notes.
+    role: developer
+`;
+
+/** `.wingfoil/workflows.yaml` of the unknown fixture: {@link UNKNOWN_WORKFLOW} only. */
+export const UNKNOWN_WORKFLOWS_YAML = `version: 1
+include:
+  - workflows/custom/notes-review.yaml
+`;

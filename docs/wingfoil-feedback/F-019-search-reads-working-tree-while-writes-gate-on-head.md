@@ -2,9 +2,9 @@
 id: F-019
 title: "memory search reads the working tree while writes gate on HEAD, and submit commits uncommitted edits"
 kind: gap
-status: open
+status: resolved
 wingfoil_version: 0.2.2
-answered_by: []
+answered_by: [dl-084]
 ---
 
 Formerly an unnamed W-xx candidate.

@@ -3,7 +3,7 @@ import { chmod, mkdir, mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/pr
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { binScript, pinnedVersion } from './cli.js';
+import { binScript, pinnedVersionText } from './cli.js';
 import {
   buildFixture,
   cliPackageDir,
@@ -51,7 +51,7 @@ describe('copyFixture', () => {
     expect(fx.env.GIT_CONFIG_GLOBAL).not.toBe(template.env.GIT_CONFIG_GLOBAL);
     expect((await git(fx.dir, ['remote', 'get-url', 'origin'], fx.env)).stdout.trim()).toBe(`file://${fx.remoteDir}`);
     await git(fx.dir, ['fetch', '-q', 'origin'], fx.env);
-    expect((await wingfoil(fx, ['--version'])).stdout.trim()).toBe(pinnedVersion());
+    expect((await wingfoil(fx, ['--version'])).stdout.trim()).toMatch(pinnedVersionText());
   });
 });
 
@@ -99,7 +99,7 @@ describe('CLI stub variant', () => {
     const fx = await freshKanban();
     await installCliStub(fx, { version: '0.1.9' });
     await installCliStub(fx, { failures: [{ command: ['dna'], exitCode: 3, stderr: 'no dna' }] });
-    expect((await wingfoil(fx, ['--version'])).stdout.trim()).toBe(pinnedVersion());
+    expect((await wingfoil(fx, ['--version'])).stdout.trim()).toMatch(pinnedVersionText());
     expect((await wingfoil(fx, ['dna', 'show'])).code).toBe(3);
     expect((await wingfoil(fx, ['memory', 'search', '--format', 'json'])).code).toBe(0);
   });

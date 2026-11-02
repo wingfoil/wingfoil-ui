@@ -93,6 +93,6 @@
     "verdaccio": "6.10.5",
     "vite": "^8.3.3",
     "vitest": "^5.0.3",
-    "wingfoil": "0.2.2"
+    "wingfoil": "0.3.1"
   }
 }

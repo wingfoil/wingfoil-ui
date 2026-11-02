@@ -1,7 +1,7 @@
 # BDD Scenarios — Conventions
 
-**Version:** 0.10
-**Date:** 2026-10-17 (0.2: v0.3–v1.0 conventions — session 3; 0.3: coherence audit fixes — session 6; 0.4: US-X-10 page title — initial-design session 2; 0.5: last *non-archived* state, X-02.2 API request — initial-design session 6; 0.6: CLI stub as the package `bin` script, version-fake and no-CLI variants — release-planning v0.1 session 4 (audit A6); 0.7: `memory-list.feature` bucket header aligned with spec-003 — dev-loop task-011; 0.8: R-08.2 lists asserted on `02_product-vision.md`, the custom fixture's `06_features.md` has none — dev-loop task-020, decided by the user; 0.9: G-14.2 expects the 409 `element-changed` text — release-planning v0.2, RP-12; 0.10: Y-08.1 toast wording, `update.feature` header — dev-loop task-040, D40-6, D40-8)
+**Version:** 0.11
+**Date:** 2026-11-01 (0.2: v0.3–v1.0 conventions — session 3; 0.3: coherence audit fixes — session 6; 0.4: US-X-10 page title — initial-design session 2; 0.5: last *non-archived* state, X-02.2 API request — initial-design session 6; 0.6: CLI stub as the package `bin` script, version-fake and no-CLI variants — release-planning v0.1 session 4 (audit A6); 0.7: `memory-list.feature` bucket header aligned with spec-003 — dev-loop task-011; 0.8: R-08.2 lists asserted on `02_product-vision.md`, the custom fixture's `06_features.md` has none — dev-loop task-020, decided by the user; 0.9: G-14.2 expects the 409 `element-changed` text — release-planning v0.2, RP-12; 0.10: Y-08.1 toast wording, `update.feature` header — dev-loop task-040, D40-6, D40-8; 0.11: the custom fixture on the packs' `.wingfoil/` from WingFoil 0.3.0 and the variant *the custom fixture with the pre-packs states* — governance-alignment-rel-v0.3-plan step 3, the packs adoption)
 **Status:** Draft — specification-downcast sessions 2–3 (`specification-by-examples`)
 **Input:** `../01_user_story_map/02_story-map.md` · `03_mvp-cut.md` · `docs/01_vision/` ·
 directives `wingfoil-cli` (v1.1), `cli-only-writes` (v1.3), `accessibility`
@@ -35,7 +35,11 @@ otherwise. The builder sets `dna.project.name` to the fixture's name (`kanban`, 
 (`task-001-login-form`); the `unknown` fixture's id patterns are `story-{n}-{slug}` and
 `note-{n}-{slug}`.
 
-**Variants:** *the custom fixture with the sw-life-cycle preset* (below); *the kanban fixture's
+**Variants:** *the custom fixture with the sw-life-cycle preset* (below); *the custom fixture with
+the pre-packs states* — its `.wingfoil/memory.yaml` replaced by this repository's as it was before
+the packs adoption (frozen at `93d2933`: `release` `planning` and `task` `backlog`, `approved` are
+`waiting:` states, `bug` `triaged` a gate and a `waiting:` state), committed, the elements unchanged
+(test harness `usePrePacksStates`); *the kanban fixture's
 timeline variant* — after `wingfoil init` and the standard team, the Memory history is only the
 commits listed in `features/r/timeline.feature` (the standard elements are replaced); *the CLI
 stub* — the `bin.wingfoil` script of the project's `node_modules/wingfoil/package.json` (the file
@@ -54,7 +58,7 @@ the default working directory for a cloned remote is `~/projects/<repository nam
 | Tag | Project | Memory schema | `ui.yaml` |
 |-----|---------|---------------|-----------|
 | `@fx-kanban` | `wingfoil init --template Kanban` | every type uses the default states `draft → pending → approved`, gate `pending` (reject → `draft`) | none |
-| `@fx-custom` | this repository's `.wingfoil/` (`memory.yaml`, `workflows.yaml`, directives, `roles.yaml`, DNA with the team replaced by the standard team) and `docs/01_vision/`; Memory elements created by the builder | WingFoil-style types: `task` (`… in-review …`), `bug`, `decision-log` (`draft → in-discussion → ready`), `plan`, … | none (presets arrive in v0.3) |
+| `@fx-custom` | this repository's `.wingfoil/` (`memory.yaml`, `workflows.yaml`, directives, `roles.yaml`, DNA with the team replaced by the standard team) and `docs/01_vision/`; Memory elements created by the builder. From WingFoil 0.3.0 the live `.wingfoil/`, composed from the wingfoil-templates packs (tasks carry `sprint: "n/a — …"`); for an older CLI the copy frozen before the packs adoption (`93d2933`) | WingFoil-style types: `task` (`… in-review …`), `bug`, `decision-log` (`draft → in-discussion → ready`), `plan`, … | none (presets arrive in v0.3) |
 | `@fx-unknown` | hand-written `.wingfoil/memory.yaml` | one type `story`, states `idea → shaping → ready-to-build → shipped`, gate `shaping` (reject → `idea`), `waiting: [ready-to-build]`; one type `note`, states `open → archived`, no gate | none |
 
 **Standard team** (`dna.team.members`, same in every fixture unless a scenario overrides it):
@@ -86,7 +90,7 @@ scenario about a gate states explicitly whether Sam or Casey also holds `approve
 | custom | `dl-002-use-fastify` | `in-discussion` | submitted by Casey |
 | custom | `bug-001-toast-overlap` | `open` | submitted by Sam |
 | custom | `adr-001-local-server` | `draft` | created by Alex, required field `sard_ref` left empty (`memory add` cannot set it, W-01) |
-| custom | `minor-v0.1` (release) | `planning` | submitted by Alex (engine-waiting state) |
+| custom | `minor-v0.1` (release) | `planning` | submitted by Alex (an engine-waiting state with the pre-packs states; a working state, `submit` to `in-development`, with the packs) |
 | unknown | `story-001-onboarding` | `shaping` | submitted by Jordan |
 | unknown | `story-002-billing` | `ready-to-build` | approved by Morgan |
 | unknown | `note-001-kickoff` | `open` | created by Casey |
@@ -128,7 +132,7 @@ completion 25 %, iterated tasks 1/4, open bugs 1, pending gates 3 (`task-001-cli
   engine (no member); the last non-archived state of `sequence` (archived: `deprecated`,
   `superseded`) requires no one; a state not declared for the
   type requires the `tech-lead` role and is shown as **"Action required"**. A state that is both a
-  gate and a `waiting:` state (custom `bug` `triaged`) is advanced by the workflow engine: it is not
+  gate and a `waiting:` state (custom `bug` `triaged` with the pre-packs states) is advanced by the workflow engine: it is not
   a pending gate and is not in *Requires you*, and members holding `approver` see only its reject
   outcome in the gate footer, with "Waiting for the workflow engine to advance". For members holding
   `approver`, *Requires you* lists the gate states in both the `reviewer` and the `approver` role

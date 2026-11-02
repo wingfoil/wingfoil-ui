@@ -341,6 +341,30 @@ it('names a deprecate in the history without a state name (W3-21)', async () => 
   expect(await screen.findByText('marked obsolete by Casey')).toBeTruthy();
 });
 
+// task-048 D48-4: the operations WingFoil 0.3.x records, each with its own line (the approver of
+// an amend, as of an approve or a reject).
+it.each([
+  ['start', 'started by Casey'],
+  ['finalize', 'closed by Casey'],
+  ['sync', 'moved with a linked element by Casey'],
+  ['amend', 'amended by Morgan'],
+  ['park', 'parked by Casey'],
+  ['assign', 'assigned to a release by Casey'],
+] as const)('names a %s in the history', async (operation, text) => {
+  const last = HISTORY.entries[3]!;
+  const approver = operation === 'amend' ? 'Morgan <morgan@example.test> (approver)' : null;
+  stubApi(
+    api({
+      [`${BASE}/history`]: {
+        status: 200,
+        body: { ...HISTORY, entries: [{ ...last, operation, approver, from: 's1', to: 's1' }] },
+      },
+    }),
+  );
+  renderApp(`/p/${PID}/e/${EID}`);
+  expect(await screen.findByText(text)).toBeTruthy();
+});
+
 it('makes the scrollable body a focusable, named region (keyboard scrolling)', async () => {
   stubApi(api());
   renderApp(`/p/${PID}/e/${EID}`);

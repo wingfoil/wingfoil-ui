@@ -36,6 +36,7 @@ import type {
   ElementDetail,
   ElementList,
   ListedElement,
+  MemoryHistory,
   MemoryMatch,
   MemoryYaml,
   ProjectConfig,
@@ -54,6 +55,7 @@ import { CliNotFoundError } from '../cli/discovery.js';
 import { supportedRange, type DetectedVersion } from '../cli/version.js';
 import { describeElement, type CopyState } from '../descriptor/descriptor.js';
 import { today } from '../descriptor/today.js';
+import { GitReadError } from '../git/git.js';
 import { repositoryStatus, type SyncStatus } from '../git/sync-status.js';
 import { MEMORY_EVENTS_MAX_LIMIT, memoryDirectories, memoryEventsPage } from '../git/memory-log.js';
 import { directivesForRoleView, identityView } from '../identity/identity.js';
@@ -62,6 +64,7 @@ import { ARCHIVED_QUERY } from '../presets/api.js';
 import { ARCHIVED_STATES } from '../presets/wingfoil.js';
 import { DirectReadError } from '../reads/confine.js';
 import { resolveStates } from '../reads/memory-yaml.js';
+import { directivesInForce } from '../reads/project-reads.js';
 import {
   documentationIndex,
   documentationScope,
@@ -115,6 +118,12 @@ function refusalOf(error: unknown, base: ReadBase, log: FastifyBaseLogger): Refu
       status: 502,
       error: { code: 'read-error', message: `Cannot read ${file}: ${reason}`, detail: { file, kind: error.kind } },
     };
+  }
+  if (error instanceof GitReadError) {
+    // Git's message may quote configuration values and paths (review round 3 m1): the kind and the
+    // exit only, as the repository check logs them (snapshots.ts); the body is the plain 500.
+    log.error({ kind: 'git-read', ended: error.ended, exitCode: error.exitCode }, 'git read failed');
+    return { status: 500, error: { code: 'internal', message: 'Internal error' } };
   }
   if (error instanceof WorkingTreeError) {
     if (error.kind === 'outside') log.warn({ kind: error.kind }, 'working-tree path refused');
@@ -351,6 +360,11 @@ async function header(read: ProjectRead): Promise<ProjectHeader> {
   };
 }
 
+/**
+ * The header's version. Its `text` is the printed `--version` text as `detectVersion` passes it on:
+ * through the adapter's sanitiser (review rounds 1 n1, 2 n7 — bounded, the project and CLI folders
+ * redacted, control and bidi characters as visible escapes).
+ */
 function wingfoilOf(detected: DetectedVersion): ProjectHeader['wingfoil'] {
   const { text, version, state, inRange, source } = detected;
   return { text, version, state, inRange, source };
@@ -434,14 +448,18 @@ async function element(read: ProjectRead, id: string): Promise<ElementDetail> {
   };
 }
 
-/** `GET /api/p/:pid/directives`. */
+/**
+ * `GET /api/p/:pid/directives`: one entry per directive id, the one in force (task-047 D47-1,
+ * bug-025), in the CLI's order; `mine` on those entries.
+ */
 async function directives(read: ProjectRead): Promise<DirectiveList> {
   const { view, entry } = read;
   const [list, dna] = await Promise.all([view.directives(), read.settle(view.dna())]);
   const { roleView } = identityView(identityOf(view, membersOf(dna)), entry.roleView);
-  const mine = new Set(directivesForRoleView(list.data.entries, roleView));
+  const inForce = directivesInForce(list.data);
+  const mine = new Set(directivesForRoleView(inForce, roleView));
   return {
-    entries: list.data.entries.map((e) => ({ ...e, mine: mine.has(e) })),
+    entries: inForce.map((e) => ({ ...e, mine: mine.has(e) })),
     warnings: list.data.warnings,
   };
 }
@@ -533,6 +551,29 @@ async function memoryEventsOf(read: ProjectRead, query: Record<string, unknown>)
   return page;
 }
 
+/**
+ * `GET /api/p/:pid/elements/:eid/history`: `memory history` with each entry on the contract's fields
+ * only — the fields a newer CLI adds (WingFoil 0.3.x's `wingfoil`, commit text, W-34) are not passed
+ * on (task-048 D48-8).
+ */
+function historyBody({ id, path, entries }: MemoryHistory): MemoryHistory {
+  return {
+    id,
+    path,
+    entries: entries.map(({ sha, author, timestamp, operation, from, to, approver, reason, subject }) => ({
+      sha,
+      author,
+      timestamp,
+      operation,
+      from,
+      to,
+      approver,
+      reason,
+      subject,
+    })),
+  };
+}
+
 type Handler<P, Q> = (read: ProjectRead, params: P, query: Q) => Promise<unknown>;
 
 /** Register the routes of this module. */
@@ -582,7 +623,7 @@ export function registerProjectRoutes(app: FastifyInstance, options: ProjectRout
   route<{ eid: string }>(`${PROJECT_PATH}/elements/:eid`, (read, params) => element(read, params.eid));
   route<{ eid: string }>(`${PROJECT_PATH}/elements/:eid/history`, async (read, params) => {
     if (!(await read.findMatch(params.eid))) throw notFound();
-    return (await read.view.history(params.eid)).data;
+    return historyBody((await read.view.history(params.eid)).data);
   });
   route(`${PROJECT_PATH}/directives`, directives);
   route<{ did: string }>(`${PROJECT_PATH}/directives/:did`, (read, params) => directive(read, params.did));

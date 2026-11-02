@@ -115,6 +115,13 @@ export const GIT_READ_ARGS = {
 /** No fsmonitor program (task-034 W4-5): prefixed to every read of {@link GitReads}. */
 export const NO_FSMONITOR: readonly string[] = ['-c', 'core.fsmonitor=false'];
 
+/**
+ * No transport in a read (task-046 D46-7): a partial clone's lazy fetch of a missing object would run
+ * a promisor remote's `uploadpack` or `core.sshCommand`. Prefixed to every read of {@link GitReads};
+ * the transport commands (`fetch`, `pull`, `push`, `clone`) keep their own protocol rules.
+ */
+export const NO_TRANSPORT: readonly string[] = ['-c', 'protocol.allow=never'];
+
 /** One setting's scope (`system`, `global`, `local`, `worktree`, `command`) and origin (`file:<path>`, …). */
 export interface ConfigOrigin {
   scope: string;
@@ -390,10 +397,16 @@ export interface GitReadsOptions {
 
 /** The git reads of one project. */
 export class GitReads {
+  /** The reads' environment: {@link base} with {@link READ_GIT_ENV} (no transport, D46-7). */
   private readonly env: NodeJS.ProcessEnv;
+  /** The server's environment cleaned by {@link gitEnv}: the base of {@link transport} (round 4 MAJOR-1). */
+  private readonly base: NodeJS.ProcessEnv;
 
   constructor(private readonly options: GitReadsOptions) {
-    this.env = gitEnv(options.env ?? process.env);
+    // No transport (D46-7): `GIT_ALLOW_PROTOCOL=none` also overrides the repository's own
+    // `protocol.<name>.allow` (review round 3 M1); `GIT_NO_LAZY_FETCH=1` where git honours it.
+    this.base = gitEnv(options.env ?? process.env);
+    this.env = { ...withoutNames(this.base, READ_GIT_ENV), ...READ_GIT_ENV };
   }
 
   /** HEAD and the working tree (one process). */
@@ -503,7 +516,9 @@ export class GitReads {
       file: git,
       args,
       cwd,
-      env: { ...this.env, ...options.env },
+      // The cleaned server environment, never the reads' no-transport variables: a pull or the
+      // automatic update's merge on a partial clone needs git's lazy fetch (review round 4 MAJOR-1).
+      env: { ...this.base, ...options.env },
       timeoutMs: options.timeoutMs ?? null,
       ...(options.signal ? { signal: options.signal } : {}),
     });
@@ -624,8 +639,8 @@ export class GitReads {
   private run(args: readonly string[]): Promise<ProcessResult> {
     const { git, runner, cwd } = this.options;
     // No fsmonitor program in the server's own reads: the configuration may name one from the
-    // working tree (task-034 W4-5, security review S1).
-    return runner.run({ file: git, args: [...NO_FSMONITOR, ...args], cwd, env: this.env });
+    // working tree (task-034 W4-5, security review S1); no transport, no lazy fetch (task-046 D46-7).
+    return runner.run({ file: git, args: [...NO_FSMONITOR, ...NO_TRANSPORT, ...args], cwd, env: this.env });
   }
 
   private async read(args: readonly string[]): Promise<ProcessResult> {
@@ -672,4 +687,49 @@ async function runnable(file: string, platform: NodeJS.Platform): Promise<boolea
   } catch {
     return false;
   }
+}
+
+/** `env` without any spelling of the variables `names` (case-insensitive on Windows). */
+export function withoutNames(env: NodeJS.ProcessEnv, names: Readonly<Record<string, string>>): NodeJS.ProcessEnv {
+  const out: NodeJS.ProcessEnv = {};
+  for (const [key, value] of Object.entries(env)) if (!Object.hasOwn(names, key.toUpperCase())) out[key] = value;
+  return out;
+}
+
+/**
+ * The transport variables of every non-transport git process (task-046 D46-7): no protocol at all —
+ * `GIT_ALLOW_PROTOCOL` wins over every `protocol.allow` and `protocol.<name>.allow` setting, whatever
+ * the scope (review round 3 M1) — and no lazy fetch where git honours `GIT_NO_LAZY_FETCH`. The
+ * transport commands (`git/transport.ts`, `projects/clone.ts`) set their own allowed list.
+ */
+export const READ_GIT_ENV: Readonly<Record<string, string>> = { GIT_ALLOW_PROTOCOL: 'none', GIT_NO_LAZY_FETCH: '1' };
+
+/**
+ * `PATH` of `env` with its absolute entries only (review round 1 R3): a relative entry would be
+ * resolved in the repository, where git and its helpers run (`ssh`, `git-remote-*`, a credential
+ * helper), and run a program the repository ships. The rule of `resolveGit`; since task-046 D46-8
+ * the process runner applies it to every child (WingFoil runs a bare `git` in the project root).
+ */
+export function absolutePath(
+  env: NodeJS.ProcessEnv,
+  platform: NodeJS.Platform = process.platform,
+): {
+  key: string;
+  value: string | undefined;
+} {
+  const key =
+    Object.keys(env).find((k) => (platform === 'win32' ? k.toUpperCase() === 'PATH' : k === 'PATH')) ?? 'PATH';
+  const sep = platform === 'win32' ? ';' : ':';
+  const isAbsolute = platform === 'win32' ? path.win32.isAbsolute : path.posix.isAbsolute;
+  const value = env[key];
+  return {
+    key,
+    value:
+      value === undefined
+        ? undefined
+        : value
+            .split(sep)
+            .filter((e) => e !== '' && isAbsolute(e))
+            .join(sep),
+  };
 }

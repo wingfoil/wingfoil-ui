@@ -10,7 +10,7 @@ import { evaluateCapabilities } from '../../../server/src/cli/capabilities.js';
 import { discoverCli } from '../../../server/src/cli/discovery.js';
 import { detectVersion, supportedRange, VersionCache } from '../../../server/src/cli/version.js';
 import { LocalProcessRunner, type SpawnRecord } from '../../../server/src/process/runner.js';
-import { PINNED_PACKAGE_DIR } from '../../harness/cli.js';
+import { PINNED_PACKAGE_DIR, pinnedVersion, pinnedVersionText } from '../../harness/cli.js';
 import {
   buildFixture,
   copyFixture,
@@ -51,23 +51,29 @@ afterAll(async () => {
 const RELEASE_CAPABILITIES = ['type-definitions', 'element-content', 'directive-body', 'gate-decision'];
 
 describe('detectVersion on the kanban fixture', () => {
-  it('S-08.1 — the pinned 0.2.2: in range, from the project, nothing of this release missing', async () => {
+  it('S-08.1 — the pinned version: in range, from the project, nothing of this release missing', async () => {
     const fx = await freshKanban();
     const detected = await detectVersion(await cliOf(fx));
-    expect(detected).toEqual({ text: '0.2.2', version: '0.2.2', state: 'in-range', inRange: true, source: 'project' });
+    expect(detected).toEqual({
+      text: expect.stringMatching(pinnedVersionText()),
+      version: pinnedVersion(),
+      state: 'in-range',
+      inRange: true,
+      source: 'project',
+    });
     const result = evaluateCapabilities(detected, supportedRange());
     expect(result.missing).toEqual([]);
     const enabled = result.capabilities.filter((c) => c.state === 'enabled').map((c) => c.id);
     expect(enabled).toEqual(RELEASE_CAPABILITIES);
   }, 120_000);
 
-  it('S-08.2 — no CLI in node_modules, 0.2.2 on the PATH: in range, source "path"', async () => {
+  it('S-08.2 — no CLI in node_modules, the pinned version on the PATH: in range, source "path"', async () => {
     const fx = await freshKanban();
     await removeCli(fx);
     const bin = await installGlobally(path.join(root, `global-${n}`), PINNED_PACKAGE_DIR);
     const env = withPathFirst(await envWithoutWingfoil(fx.env, path.join(root, `safe-bin-${n}`)), bin);
     expect(await detectVersion(await cliOf(fx, env))).toMatchObject({
-      version: '0.2.2',
+      version: pinnedVersion(),
       state: 'in-range',
       source: 'path',
     });
@@ -86,7 +92,7 @@ describe('detectVersion on the kanban fixture', () => {
       const result = evaluateCapabilities(detected, supportedRange());
       expect(result.capabilities.filter((c) => c.state === 'enabled')).toHaveLength(0);
       for (const c of result.capabilities) {
-        expect(c.reason).toEqual({ code: 'unsupported-version', range: { min: '0.2.2', max: '0.2.x' } });
+        expect(c.reason).toEqual({ code: 'unsupported-version', range: { min: '0.2.2', max: '0.3.x' } });
       }
     },
     120_000,
@@ -106,7 +112,7 @@ describe('detectVersion on the kanban fixture', () => {
     expect((await cache.detect(again)).state).toBe('above');
     expect(spawned.filter((s) => s.args.includes('--version'))).toHaveLength(2);
     // The first resolution keeps its cached answer.
-    expect((await cache.detect(first)).version).toBe('0.2.2');
+    expect((await cache.detect(first)).version).toBe(pinnedVersion());
   }, 120_000);
 });
 

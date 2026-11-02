@@ -3,12 +3,13 @@
  * throwaway git repositories built with a WingFoil CLI build (the pinned one by default), each with
  * a bare remote next to it.
  */
-import { cp, mkdir, writeFile } from 'node:fs/promises';
+import { cp, mkdir, readdir, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { pinnedCli, pinnedVersion, REPO_ROOT, type CliBuild } from '../cli.js';
+import { git } from '../run.js';
 import { FixtureProject } from './project.js';
 import { STANDARD_AGENT, STANDARD_TEAM } from './team.js';
-import { UNKNOWN_MEMORY_YAML, UNKNOWN_TEMPLATES } from './unknown-schema.js';
+import { UNKNOWN_MEMORY_YAML, UNKNOWN_TEMPLATES, UNKNOWN_WORKFLOW, UNKNOWN_WORKFLOWS_YAML } from './unknown-schema.js';
 
 /** The three fixtures of the BDD conventions (`@fx-kanban`, `@fx-custom`, `@fx-unknown`). */
 export type BddFixtureKind = 'kanban' | 'custom' | 'unknown';
@@ -129,20 +130,67 @@ export async function buildFixture(kind: FixtureKind, options: BuildOptions): Pr
   return { kind, name: kind, dir, remoteDir, remoteUrl, now, env, home };
 }
 
-/** Custom fixture: this repository's `.wingfoil/` and `docs/01_vision/`. */
+/**
+ * Which `.wingfoil/` the custom fixture imports for a CLI version: `packs` — this repository's live
+ * one, composed from the wingfoil-templates packs, whose range is `>=0.3.0`; `pre-packs` — the copy
+ * frozen before the adoption (`custom-governance-0.2/`), for an older CLI: WingFoil 0.2.2 refuses
+ * the packs' workflows (governance-alignment-rel-v0.3-plan step 3, decision 16).
+ */
+export function customGovernance(cliVersion: string): 'packs' | 'pre-packs' {
+  const [major = 0, minor = 0] = cliVersion.split('.').map(Number);
+  return major > 0 || minor >= 3 ? 'packs' : 'pre-packs';
+}
+
+/** The frozen pre-adoption `.wingfoil/` of {@link customGovernance}. */
+export const PRE_PACKS_GOVERNANCE = path.join(
+  REPO_ROOT,
+  'test',
+  'harness',
+  'fixtures',
+  'custom-governance-0.2',
+  '.wingfoil',
+);
+
+/**
+ * The variant *the custom fixture with the pre-packs states* (`02_bdd/00_conventions.md`): the
+ * fixture's `memory.yaml` replaced by the frozen pre-adoption one ({@link PRE_PACKS_GOVERNANCE}),
+ * committed (WingFoil reads it at HEAD, W-24) by the fixture's current git identity. Its `release`
+ * `planning` and `task` `backlog`/`approved` are engine-waiting states, `bug` `triaged` a gate and
+ * a waiting state — kinds the packs' machines no longer have, which S-24.2, S-24.4, T-04.2 and
+ * T-11.2 exercise (the packs adoption, decision 1-A of its open items). WingFoil 0.3.1 accepts it;
+ * the elements are unchanged.
+ */
+export async function usePrePacksStates(fixture: Pick<Fixture, 'kind' | 'dir' | 'env'>): Promise<void> {
+  if (fixture.kind !== 'custom')
+    throw new Error(`the pre-packs states are a custom fixture variant, not ${fixture.kind}`);
+  await cp(path.join(PRE_PACKS_GOVERNANCE, 'memory.yaml'), path.join(fixture.dir, '.wingfoil', 'memory.yaml'));
+  await git(fixture.dir, ['add', '.wingfoil/memory.yaml'], fixture.env);
+  await git(fixture.dir, ['commit', '-q', '-m', 'chore(wingfoil): the pre-packs states (test variant)'], fixture.env);
+}
+
+/** Custom fixture: this repository's `.wingfoil/` ({@link customGovernance}) and `docs/01_vision/`. */
 async function importGovernance(project: FixtureProject): Promise<void> {
-  await cp(path.join(REPO_ROOT, '.wingfoil'), path.join(project.dir, '.wingfoil'), { recursive: true });
+  const source =
+    customGovernance(project.options.cliVersion) === 'packs' ? path.join(REPO_ROOT, '.wingfoil') : PRE_PACKS_GOVERNANCE;
+  await cp(source, path.join(project.dir, '.wingfoil'), { recursive: true });
   await cp(path.join(REPO_ROOT, 'docs', '01_vision'), path.join(project.dir, 'docs', '01_vision'), { recursive: true });
   await project.commitAll('chore(wingfoil): import the WingFoil UI governance (.wingfoil/, docs/01_vision/)', 'setup');
 }
 
-/** Unknown fixture: hand-written `memory.yaml` with the types `story` and `note`. */
+/**
+ * Unknown fixture: hand-written `memory.yaml` with the types `story` and `note`, and one workflow of
+ * its own in place of `init`'s (task-046 a4).
+ */
 async function writeUnknownSchema(project: FixtureProject): Promise<void> {
   await writeFile(path.join(project.dir, '.wingfoil', 'memory.yaml'), UNKNOWN_MEMORY_YAML);
+  const workflows = path.join(project.dir, '.wingfoil', 'workflows', 'custom');
+  for (const name of await readdir(workflows)) await rm(path.join(workflows, name));
+  await writeFile(path.join(workflows, 'notes-review.yaml'), UNKNOWN_WORKFLOW);
+  await writeFile(path.join(project.dir, '.wingfoil', 'workflows.yaml'), UNKNOWN_WORKFLOWS_YAML);
   for (const [name, body] of Object.entries(UNKNOWN_TEMPLATES)) {
     await writeFile(path.join(project.dir, '.wingfoil', 'memory', 'templates', name), body);
   }
-  await project.commitAll('chore(wingfoil): hand-written memory.yaml (story, note)', 'setup');
+  await project.commitAll('chore(wingfoil): hand-written memory.yaml (story, note) and its own workflow', 'setup');
 }
 
 interface DnaTeam {
@@ -208,6 +256,7 @@ const BUILDERS: Record<FixtureKind, (project: FixtureProject) => Promise<void>> 
   },
 
   async custom(p) {
+    const packs = customGovernance(p.options.cliVersion) === 'packs';
     // Progress elements: tasks of release v0.1 at different stages.
     const tasks: { title: string; ref: string; to: 'in-review' | 'done' | 'backlog' }[] = [
       { title: 'CLI adapter', ref: 'US-S-01', to: 'in-review' },
@@ -218,6 +267,8 @@ const BUILDERS: Record<FixtureKind, (project: FixtureProject) => Promise<void>> 
     for (const task of tasks) {
       const el = await p.add('Jordan', 'task', task.title, { release: 'v0.1' });
       if (task.ref) await p.editFrontmatter(el.path, { ref: `"${task.ref}"` });
+      // methodology/scrum: a task carries its Sprint, or `n/a — <reason>` until one selects it.
+      if (packs) await p.editFrontmatter(el.path, { sprint: '"n/a — no Sprint in the fixture"' });
       await p.submit('Jordan', el.id);
       await p.approve('Morgan', el.id);
       if (task.to === 'backlog') continue;
@@ -241,6 +292,7 @@ const BUILDERS: Record<FixtureKind, (project: FixtureProject) => Promise<void>> 
     // Required `sard_ref` left empty (`memory add` cannot set it, W-01).
     await p.add('Alex', 'adr', 'Local server');
 
+    // No `sprint` on `minor-v0.1`: the live `memory.yaml` exempts it (released before the Sprints).
     const rel = await p.add('Alex', 'release', 'Minor v0.1', { kind: 'minor', version: 'v0.1', 'release-line': 'v1' });
     await p.editFrontmatter(rel.path, {
       pillar: '"S"',

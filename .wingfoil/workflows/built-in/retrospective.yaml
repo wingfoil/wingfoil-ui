@@ -1,0 +1,43 @@
+format: 1
+# Learn from a period's Execution Notes (dl-006, as dl-022 amends R2). Included by a delivery
+# workflow at its own cadence, and started on its own through retrospective-periodic.
+name: retrospective
+kind: sub
+description: "Learn from the Execution Notes of a period and turn the learnings into decisions"
+version: 1
+phases:
+  - name: explore
+    description: >-
+      Read the Execution Notes of every element closed in the period and the feedback received;
+      build a friction inventory grouped by theme, each point citing its source. Read-only.
+    role: facilitator
+    actions:
+      - agent.execute
+    produces:
+      - "docs/05_plans/"
+  - name: additional-points
+    description: "The approver reviews the inventory and adds the points to analyse: a checkpoint."
+    role: approver
+    approval: { by_role: approver }
+  - name: capture
+    description: >-
+      Record what to keep and what to change as a decision-log tagged retrospective: pass
+      --tags retrospective to memory add, since the approve phase selects the decision-log by
+      that tag. A change of
+      governance is listed as a point, not ruled here: each is ruled by its own governance-evolution
+      plan. A defect of WingFoil itself is a feedback note to WingFoil, not a decision.
+    role: facilitator
+    actions:
+      - 'memory.add(type: decision-log, tags: [retrospective])'
+      - memory.submit
+    produces:
+      - { type: decision-log, path: "docs/04_memory/design/dls/{id}.md" }
+  - name: approve
+    description: >-
+      The approver rules the retrospective's decision-log; a reject goes back to capture.
+    role: approver
+    where: { type: decision-log, status: [in-discussion], tags: [retrospective] }
+    actions:
+      - memory.approve
+    approval: { by_role: approver }
+    fallback: { step: capture }
