@@ -16,6 +16,7 @@ Feature: Action descriptor and methodology independence
     Then the type filters are exactly <types>
     And every element of the fixture is listed with its own state name
 
+    # custom: `sprint` from WingFoil 0.3.0, whose custom fixture is built on the packs' `.wingfoil/`.
     Examples:
       | fixture | types                                                                                  |
       | kanban  | adr, bug, decision-log, release, release-line, task, tech-spec                         |

@@ -55,7 +55,17 @@ This project runs Scrum (the Scrum Guide, November 2020) as the `delivery` of it
 ## This repository
 
 Read [`CLAUDE.md`](CLAUDE.md) next: the project status, the documents to read first, the checks
-before handing work back. The exceptions to "Memory changes only through the WingFoil CLI" (for
-example closing a phase plan by hand) are the entries of directive `wingfoil-cli`
-(`.wingfoil/directives/custom/wingfoil-cli.md`); the deviations of this repository from the packs
-are listed in [`.wingfoil/README.md`](.wingfoil/README.md).
+before handing work back. The deviations of this repository from the packs, and the limits it
+accepts, are listed in [`.wingfoil/README.md`](.wingfoil/README.md). Where the generated region
+above says otherwise, this section is right:
+
+- **The agent's roles** are the seven of `.wingfoil/dna.yaml`: facilitator, product-owner,
+  developer, reviewer, qa, architect and tech-lead — never approver.
+- **A `bug` at `planned`** (including one parked back to `planned`) moves to `in-progress` with
+  `memory submit` when its fix starts (deviation R-3); only `triaged → planned` is the approver's
+  `approve`. A `release` at `releasing` and a `release-line` at `active` are approved by the
+  approver only at the end of their publication and of the line (directive `release-conventions`).
+- **One exception** to "Memory changes only through the WingFoil CLI": a phase plan is closed by a
+  hand-written `wf(plan): finalize <id> [active → done]` commit (directive `wingfoil-cli`, W-04).
+  Every other transition has a verb: the hand transitions of W-20, W-25 and W-26 are superseded —
+  WingFoil 0.3.1 accepts a hand-committed `status:` without the approver, so never write one.

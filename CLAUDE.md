@@ -1,6 +1,6 @@
 # CLAUDE.md — agent entry point
 
-**Version:** 0.10 · **Date:** 2026-11-01 (0.1: release v0.1, `user-docs` `align-agent-docs`; 0.2: v0.1.0 released, release submit; 0.3: `test:smoke` wave gate — task-026; 0.4: e2e on three engines, inner-loop Chromium run — task-027; 0.5: `test:publish-smoke`, the publishing guide — task-029; 0.6: release v0.2 user-docs — v0.2 in release validation; 0.7: v0.2.0 released — git tag and npm, the first version by hand; 0.8: the GitHub Release of v0.2.0 made; 0.9: the pin on `wingfoil@0.3.1` — task-046; 0.10: the packs `base`, `software`, `methodology/scrum` adopted, `AGENTS.md` — governance-alignment-rel-v0.3-plan step 3)
+**Version:** 0.11 · **Date:** 2026-11-02 (0.1: release v0.1, `user-docs` `align-agent-docs`; 0.2: v0.1.0 released, release submit; 0.3: `test:smoke` wave gate — task-026; 0.4: e2e on three engines, inner-loop Chromium run — task-027; 0.5: `test:publish-smoke`, the publishing guide — task-029; 0.6: release v0.2 user-docs — v0.2 in release validation; 0.7: v0.2.0 released — git tag and npm, the first version by hand; 0.8: the GitHub Release of v0.2.0 made; 0.9: the pin on `wingfoil@0.3.1` — task-046; 0.10: the packs `base`, `software`, `methodology/scrum` adopted, `AGENTS.md` — governance-alignment-rel-v0.3-plan step 3; 0.11: BOOTSTRAP.md marked historical — its review round 1)
 
 WingFoil UI: a local web UI for WingFoil-governed projects. A Node.js server (`server/`) drives
 each project's pinned `wingfoil` CLI and reads git; a React app (`web/`) shows the result;
@@ -45,7 +45,7 @@ limitation: [`CHANGELOG.md`](CHANGELOG.md).
 | What | Where |
 |------|-------|
 | The governance every agent shares: approvals, the CLI, the life cycle, Scrum (generated from the packs) | [`AGENTS.md`](AGENTS.md) |
-| How this repository was bootstrapped, and the CLI facts that shape every step | [`BOOTSTRAP.md`](BOOTSTRAP.md) |
+| How this repository was bootstrapped (historical: the `wingfoil@0.2.2` era, before the packs adoption — its CLI facts are superseded by directive `wingfoil-cli` and `.wingfoil/README.md`) | [`BOOTSTRAP.md`](BOOTSTRAP.md) |
 | Memory types with paths, id patterns, states and gates; workflows; role → directive bindings; directive list | [`.wingfoil/README.md`](.wingfoil/README.md) — the tables projected from `memory.yaml`, `workflows.yaml` and `roles.yaml` live there, not here |
 | Directives (loaded per role, `.wingfoil/roles.yaml`) | `.wingfoil/directives/custom/` and `built-in/` — global to every role: `wingfoil-cli`, `claim-evidence`, `claim-sources`, `documentation`, `doc-versioning`, `security-secrets` |
 | The current phase and its decisions | the `active` plan in `docs/05_plans/` (one plan per workflow phase; e.g. `docs/05_plans/rl-v1/rel-v0.2/`) |
