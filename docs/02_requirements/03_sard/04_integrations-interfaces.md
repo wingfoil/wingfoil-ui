@@ -1,6 +1,6 @@
 # SARD — 4. Integrations & Interfaces
 
-**Version:** 0.10 · **Date:** 2026-10-12 (0.2: coherence audit fixes — session 6; 0.3: REQ-INT-06 Memory-event source fixed by spec-002 — initial-design session 5; 0.4: REQ-INT-08 staged, Chromium in v0.1 — release-planning v0.1 session 2; 0.5: REQ-INT-03 v0.1 scope — release-planning v0.1 session 4 (audit A4); 0.6: REQ-INT-02 range bounds, REQ-INT-03 `null` minimum — dev-loop task-006; 0.7: REQ-INT-01, REQ-INT-07 rationales cite the feedback notes F-001, F-002 — dev-loop task-023; 0.8: G-14.2 dropped from REQ-INT-04's traceability — release-planning v0.2 session 2; 0.9: REQ-INT-06 lists the `config` reads of git transport — release-planning v0.2 session 2; 0.10: REQ-INT-06 allows `merge --ff-only` for the automatic update — release-planning v0.2 session 2, RP-41) · **Status:** Draft — specification-downcast session 4
+**Version:** 0.11 · **Date:** 2026-11-03 (0.2: coherence audit fixes — session 6; 0.3: REQ-INT-06 Memory-event source fixed by spec-002 — initial-design session 5; 0.4: REQ-INT-08 staged, Chromium in v0.1 — release-planning v0.1 session 2; 0.5: REQ-INT-03 v0.1 scope — release-planning v0.1 session 4 (audit A4); 0.6: REQ-INT-02 range bounds, REQ-INT-03 `null` minimum — dev-loop task-006; 0.7: REQ-INT-01, REQ-INT-07 rationales cite the feedback notes F-001, F-002 — dev-loop task-023; 0.8: G-14.2 dropped from REQ-INT-04's traceability — release-planning v0.2 session 2; 0.9: REQ-INT-06 lists the `config` reads of git transport — release-planning v0.2 session 2; 0.10: REQ-INT-06 allows `merge --ff-only` for the automatic update — release-planning v0.2 session 2, RP-41; 0.11: REQ-INT-05 moved to v0.4 with G5 — release-planning v0.3, RP3-7) · **Status:** Draft — specification-downcast session 4
 
 Shell and conventions: `00_sard.md`.
 
@@ -54,7 +54,7 @@ Shell and conventions: `00_sard.md`.
 
 | Field | |
 |-------|--|
-| Release | v0.3 (0.2.2) · v0.4 (WingFoil 0.3 or a field setter) |
+| Release | v0.4 (0.2.2: the decision-log ingestion, moved from v0.3 with G5 and W2 by RP3-7; WingFoil 0.3 or a field setter) |
 | Description | An ingestion is offered only when every required field of its type can be set by the CLI version in use (0.2.2: `title` and id/path tokens through `memory add --set`); its steps run as the workflow's own verbs. Otherwise it is read-only with the missing field named. |
 | Rationale | The UI never edits a draft file (`cli-only-writes`; external review R1). |
 | Traceability | US-G-15, US-G-16, US-G-18, US-M-07 · G-15.1, G-15.3, G-16.1, G-16.2, G-18.1, G-18.2, M-07.1, M-07.2 · G5, W2 |
@@ -127,3 +127,5 @@ Shell and conventions: `00_sard.md`.
   `merge --ff-only` for the automatic update (a local fast-forward to the upstream the scheduler
   just fetched, spec-010 §4, §6); "never merges" reads "never creates a merge commit"; the fit
   criterion checks that every `merge` carries `--ff-only`; decided by the approver.
+- 2026-11-03 — amended in `release-planning` v0.3 (step 5, review round 1 F2; RP3-7, decided by the
+  approver): REQ-INT-05 moves to v0.4 with G5 and W2; no part of it stays in v0.3.

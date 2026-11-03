@@ -2,7 +2,7 @@
   "version": 1,
   "release": "v0.1",
   "generated_from": {
-    "story_map": "docs/02_requirements/01_user_story_map/02_story-map.md v0.6",
+    "story_map": "docs/02_requirements/01_user_story_map/02_story-map.md v0.7",
     "bdd": "docs/02_requirements/02_bdd/00_conventions.md v0.12",
     "sard": "docs/02_requirements/03_sard/00_sard.md v0.11"
   },
@@ -2670,7 +2670,7 @@
           "id": "G-15.1",
           "title": "Capture a decision-log from Memory",
           "file": "docs/02_requirements/02_bdd/features/g/ingestion.feature",
-          "release": "v0.3",
+          "release": "v0.4",
           "kind": "nominal",
           "fixture": "custom",
           "steps": [
@@ -4152,7 +4152,7 @@
           "id": "R-10.2",
           "title": "Mark a file that differs from HEAD",
           "file": "docs/02_requirements/02_bdd/features/r/files.feature",
-          "release": "v0.3",
+          "release": "v0.4",
           "kind": "edge",
           "fixture": "custom",
           "steps": [
@@ -5015,7 +5015,7 @@
           "id": "G-16.1",
           "title": "Show the bug ingestion read-only on WingFoil 0.2.2",
           "file": "docs/02_requirements/02_bdd/features/g/ingestion.feature",
-          "release": "v0.3",
+          "release": "v0.4",
           "kind": "nominal",
           "fixture": "custom",
           "steps": [
@@ -5131,7 +5131,7 @@
           "id": "G-17.1",
           "title": "Report a refused add with nothing created",
           "file": "docs/02_requirements/02_bdd/features/g/ingestion.feature",
-          "release": "v0.3",
+          "release": "v0.4",
           "kind": "nominal",
           "fixture": "custom",
           "steps": [
@@ -5148,7 +5148,7 @@
           "id": "G-17.2",
           "title": "Name the draft left by a refused submit",
           "file": "docs/02_requirements/02_bdd/features/g/ingestion.feature",
-          "release": "v0.3",
+          "release": "v0.4",
           "kind": "edge",
           "fixture": "custom",
           "steps": [
@@ -5854,7 +5854,7 @@
           "id": "G-15.1",
           "title": "Capture a decision-log from Memory",
           "file": "docs/02_requirements/02_bdd/features/g/ingestion.feature",
-          "release": "v0.3",
+          "release": "v0.4",
           "kind": "nominal",
           "fixture": "custom",
           "steps": [
@@ -5922,7 +5922,7 @@
           "id": "R-11.1",
           "title": "Refuse a path that climbs out of the repository",
           "file": "docs/02_requirements/02_bdd/features/r/files.feature",
-          "release": "v0.3",
+          "release": "v0.4",
           "kind": "nominal",
           "fixture": "custom",
           "steps": [
@@ -5937,7 +5937,7 @@
           "id": "R-11.2",
           "title": "Refuse a symlink that escapes the repository",
           "file": "docs/02_requirements/02_bdd/features/r/files.feature",
-          "release": "v0.3",
+          "release": "v0.4",
           "kind": "edge",
           "fixture": "custom",
           "steps": [

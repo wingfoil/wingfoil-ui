@@ -2,7 +2,7 @@
   "version": 1,
   "release": "v0.2",
   "generated_from": {
-    "story_map": "docs/02_requirements/01_user_story_map/02_story-map.md v0.6",
+    "story_map": "docs/02_requirements/01_user_story_map/02_story-map.md v0.7",
     "bdd": "docs/02_requirements/02_bdd/00_conventions.md v0.12",
     "sard": "docs/02_requirements/03_sard/00_sard.md v0.11"
   },
@@ -2729,7 +2729,7 @@
           "id": "G-15.4",
           "title": "Block the ingestion while the copy is behind",
           "file": "docs/02_requirements/02_bdd/features/g/ingestion.feature",
-          "release": "v0.3",
+          "release": "v0.4",
           "kind": "edge",
           "fixture": "custom",
           "steps": [

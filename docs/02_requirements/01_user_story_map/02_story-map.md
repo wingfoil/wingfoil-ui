@@ -1,7 +1,7 @@
 # User Story Map — Stories
 
-**Version:** 0.6
-**Date:** 2026-10-17 (0.2: US-S-11, US-X-07 moved to v0.2 — session 2; 0.3: US-C-05, US-C-06 dropped with C3 — session 3; 0.4: input versions — session 6; 0.5: US-X-10 page title — initial-design session 2; 0.6: *Update* is `git pull --ff-only`, the automatic update a fast-forward `merge --ff-only` of the fetched upstream — dev-loop task-040, D40-8)
+**Version:** 0.7
+**Date:** 2026-11-03 (0.2: US-S-11, US-X-07 moved to v0.2 — session 2; 0.3: US-C-05, US-C-06 dropped with C3 — session 3; 0.4: input versions — session 6; 0.5: US-X-10 page title — initial-design session 2; 0.6: *Update* is `git pull --ff-only`, the automatic update a fast-forward `merge --ff-only` of the fetched upstream — dev-loop task-040, D40-8; 0.7: US-S-20, US-R-02, US-R-03, US-R-04, US-R-10, US-R-11, US-M-05, US-M-07, US-G-15, US-G-16, US-G-17 moved to v0.4 with S6, R6, R7, R8, W1, W2, G5 — release-planning v0.3, RP3-7)
 **Status:** Draft — specification-downcast session 1 (`user-story-mapping`, phases
 `vertical-explosion` and `mvp-cut`)
 **Input:** `01_backbone.md` · `docs/01_vision/05_journeys.md` (v0.3) · `06_features.md` (v0.6) ·
@@ -86,7 +86,7 @@ means any of them.
 | US-S-17 | As Alex, I want my project list kept across restarts of the console, so that I add each project once | S2 | — | [MVP · v0.1] | N |
 | US-S-18 | As Alex, I want to remove a project from the list without touching its files, so that I keep the list tidy | S2 | — | [MVP · v0.1] | N |
 | US-S-19 | As Alex, I want a project whose folder was moved or deleted shown as unavailable, with the option to remove it, so that one missing folder does not break the console | S2 | — | [MVP · v0.1] | E |
-| US-S-20 | As Alex, I want to switch project, open any element and navigate from the command palette (⌘K), so that everything is one shortcut away | S6 | J5.3 | [MVP · v0.3] | N |
+| US-S-20 | As Alex, I want to switch project, open any element and navigate from the command palette (⌘K), so that everything is one shortcut away | S6 | J5.3 | [MVP · v0.4] | N |
 
 ## 3. See what requires me
 
@@ -191,9 +191,9 @@ means any of them.
 
 | ID | Story | Features | Journey | Release | Kind |
 |----|-------|----------|---------|---------|------|
-| US-R-02 | As Casey, I want a time axis of Memory creations and state changes per day, parsed from `wf(…)` commits, so that I see the project's pace | R6 | J2.2 | [MVP · v0.3] | N |
-| US-R-03 | As Casey, I want commits that are not `wf(…)` commits left out of the time axis (and kept in the git tree), so that the axis shows governed events only | R6 | — | [MVP · v0.3] | E |
-| US-R-04 | As Morgan, I want a git tree with lanes and filters, Memory commits marked, each commit opening its files and element, so that I relate history to governed state | R7 | J8 | [MVP · v0.3] | N |
+| US-R-02 | As Casey, I want a time axis of Memory creations and state changes per day, parsed from `wf(…)` commits, so that I see the project's pace | R6 | J2.2 | [MVP · v0.4] | N |
+| US-R-03 | As Casey, I want commits that are not `wf(…)` commits left out of the time axis (and kept in the git tree), so that the axis shows governed events only | R6 | — | [MVP · v0.4] | E |
+| US-R-04 | As Morgan, I want a git tree with lanes and filters, Memory commits marked, each commit opening its files and element, so that I relate history to governed state | R7 | J8 | [MVP · v0.4] | N |
 
 ### 5.5 Read rules and team
 
@@ -209,14 +209,14 @@ means any of them.
 |----|-------|----------|---------|---------|------|
 | US-R-08 | As Riley, I want an index of the documents under `paths.docs`, without the Memory and plan files, rendered as Markdown with links that stay in the UI, so that I read the project's documentation in one place | R4 | J2.3, J6.2 | [MVP · v0.1] | N |
 | US-R-09 | As Riley, I want a document link to a Memory file to open its element panel, and a link that leaves the repository or points nowhere marked as such, so that every link is safe to follow | R4, G1 | — | [MVP · v0.1] | E |
-| US-R-10 | As a member, I want a read-only file tree and viewer of the working tree, files differing from HEAD marked, with highlighting and Markdown preview, so that I read any file without leaving the UI | R8 | J6.2 | [MVP · v0.3] | N |
-| US-R-11 | As a member, I want any path outside the repository (`..`, a symlink that escapes it) refused by the file browser, so that the UI never reads beyond the project | R8, X4 | — | [MVP · v0.3] | E |
+| US-R-10 | As a member, I want a read-only file tree and viewer of the working tree, files differing from HEAD marked, with highlighting and Markdown preview, so that I read any file without leaving the UI | R8 | J6.2 | [MVP · v0.4] | N |
+| US-R-11 | As a member, I want any path outside the repository (`..`, a symlink that escapes it) refused by the file browser, so that the UI never reads beyond the project | R8, X4 | — | [MVP · v0.4] | E |
 
 ### 5.7 See the workflows
 
 | ID | Story | Features | Journey | Release | Kind |
 |----|-------|----------|---------|---------|------|
-| US-M-05 | As a member, I want the main workflow tree drawn from the project's definitions, with the elements each phase iterates, so that I understand the process the project follows | W1 | J6.2 | [MVP · v0.3] | N |
+| US-M-05 | As a member, I want the main workflow tree drawn from the project's definitions, with the elements each phase iterates, so that I understand the process the project follows | W1 | J6.2 | [MVP · v0.4] | N |
 | US-M-06 | As Jordan, I want the workflow tree to show the current position and who must act, so that I see where the process stands | W1 | J3.2 | [MVP · v0.4] | N |
 
 ## 6. Capture new elements
@@ -225,15 +225,15 @@ means any of them.
 
 | ID | Story | Features | Journey | Release | Kind |
 |----|-------|----------|---------|---------|------|
-| US-M-07 | As a member, I want one card per ingestion workflow with its steps, open runs and a *Start* button, so that I see how each kind of element enters the project | W2 | J7.1 | [MVP · v0.3] | N |
+| US-M-07 | As a member, I want one card per ingestion workflow with its steps, open runs and a *Start* button, so that I see how each kind of element enters the project | W2 | J7.1 | [MVP · v0.4] | N |
 
 ### 6.2 Run the ingestion
 
 | ID | Story | Features | Journey | Release | Kind |
 |----|-------|----------|---------|---------|------|
-| US-G-15 | As Jordan, I want to start a decision-log ingestion from Memory, Workflow or ⌘K, give its title and submit it, so that a decision enters the project through its workflow | G5, S6 | J7.1–3 | [MVP · v0.3] | N |
-| US-G-16 | As Jordan, I want the ingestion of a type whose required fields the CLI cannot set (bug, adr, tech-spec, service on WingFoil 0.2.2) shown read-only with the reason, so that the UI never edits a draft file | G5, S3 | J7 rule | [MVP · v0.3] | E |
-| US-G-17 | As Jordan, I want an ingestion step the CLI refuses reported as a red toast with the CLI's reason, nothing created or a created draft named, so that I know the project's state after the failure | G5, G4 | — | [MVP · v0.3] | E |
+| US-G-15 | As Jordan, I want to start a decision-log ingestion from Memory, Workflow or ⌘K, give its title and submit it, so that a decision enters the project through its workflow | G5, S6 | J7.1–3 | [MVP · v0.4] | N |
+| US-G-16 | As Jordan, I want the ingestion of a type whose required fields the CLI cannot set (bug, adr, tech-spec, service on WingFoil 0.2.2) shown read-only with the reason, so that the UI never edits a draft file | G5, S3 | J7 rule | [MVP · v0.4] | E |
+| US-G-17 | As Jordan, I want an ingestion step the CLI refuses reported as a red toast with the CLI's reason, nothing created or a created draft named, so that I know the project's state after the failure | G5, G4 | — | [MVP · v0.4] | E |
 | US-G-18 | As Jordan, I want to report a bug through its ingestion with its required fields set by the CLI, when the project's WingFoil sets them (field setter or `workflow start`), so that defects are captured in the UI too | G5 | J7.1–2 | [MVP · v0.4] | N |
 
 ## 7. Work with agents

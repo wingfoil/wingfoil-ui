@@ -9,27 +9,27 @@ Feature: Ingestion start
 
   # --- US-G-15 — decision-log ingestion ---
 
-  @US-G-15 @v0.3 @nominal @fx-custom
+  @US-G-15 @v0.4 @nominal @fx-custom
   Scenario: G-15.1 — Capture a decision-log from Memory
     Given the custom fixture is open on the Memory list
     When I click "+ Ingestion", choose "decision-log-ingest", type the title "Adopt Playwright" and click "Submit"
     Then the fixture's last 2 commits are "wf(decision-log): add dl-003-adopt-playwright" and "wf(decision-log): submit dl-003-adopt-playwright"
     And the element panel of "dl-003-adopt-playwright" opens in the state "in-discussion"
 
-  @US-G-15 @v0.3 @edge @fx-custom
+  @US-G-15 @v0.4 @edge @fx-custom
   Scenario: G-15.2 — Start the same ingestion from the command palette
     Given the custom fixture is open
     When I press Ctrl+K, type "decision" and press Enter on "Start decision-log-ingest"
     Then the ingestion modal opens on "decision-log-ingest" with the title field focused
 
-  @US-G-15 @v0.3 @edge @fx-custom
+  @US-G-15 @v0.4 @edge @fx-custom
   Scenario: G-15.3 — Refuse an empty title before running the CLI
     Given the ingestion modal of "decision-log-ingest" is open
     When I click "Submit" with an empty title
     Then the modal shows "A title is required"
     And the server has run no `wingfoil memory add` process
 
-  @US-G-15 @v0.3 @edge @fx-custom
+  @US-G-15 @v0.4 @edge @fx-custom
   Scenario: G-15.4 — Block the ingestion while the copy is behind
     Given the custom fixture is 1 commit behind its fetched remote
     When I open the ingestion modal of "decision-log-ingest"
@@ -37,7 +37,7 @@ Feature: Ingestion start
 
   # --- US-G-16 — types the CLI cannot fill ---
 
-  @US-G-16 @v0.3 @nominal @fx-custom
+  @US-G-16 @v0.4 @nominal @fx-custom
   Scenario: G-16.1 — Show the bug ingestion read-only on WingFoil 0.2.2
     Given the custom fixture is open on WingFoil 0.2.2
     When I click "+ Ingestion" on the Memory list
@@ -45,7 +45,7 @@ Feature: Ingestion start
     And "adr-ingest" is shown disabled with "Needs a WingFoil that sets the required field sard_ref"
     And "decision-log-ingest" is enabled
 
-  @US-G-16 @v0.3 @edge @fx-kanban
+  @US-G-16 @v0.4 @edge @fx-kanban
   Scenario: G-16.2 — Hide ingestion when the project's ingest workflows declare no step
     Given the kanban fixture is open on WingFoil 0.2.2, whose `bug-ingest`, `decision-log-ingest` and `adr-ingest` have one phase with no action
     When I open the Memory list
@@ -53,7 +53,7 @@ Feature: Ingestion start
 
   # --- US-G-17 — a refused step ---
 
-  @US-G-17 @v0.3 @nominal @fx-custom
+  @US-G-17 @v0.4 @nominal @fx-custom
   Scenario: G-17.1 — Report a refused add with nothing created
     Given the ingestion modal of "decision-log-ingest" is open
     And the CLI stub makes `wingfoil memory add` exit with an error
@@ -61,7 +61,7 @@ Feature: Ingestion start
     Then a red toast shows the error message printed by `wingfoil memory add`
     And the fixture's last commit is unchanged
 
-  @US-G-17 @v0.3 @edge @fx-custom
+  @US-G-17 @v0.4 @edge @fx-custom
   Scenario: G-17.2 — Name the draft left by a refused submit
     Given the ingestion modal of "decision-log-ingest" is open
     And the CLI stub lets `wingfoil memory add` run and makes `wingfoil memory submit` exit with an error
