@@ -1,6 +1,6 @@
 # SARD — 2. Performance & Latency
 
-**Version:** 0.4 · **Date:** 2026-11-03 (0.2: coherence audit fixes — session 6; 0.3: REQ-PERF-05 v0.1 scope — release-planning v0.1 session 4 (audit A4); 0.4: REQ-PERF-11 the summary as counts, Today's 10 rows — release-planning v0.3, RP3-7 N1–N3, decided by the approver; T-02.6 traced — its review round 1, F5) · **Status:** Draft — specification-downcast session 4
+**Version:** 0.5 · **Date:** 2026-11-03 (0.2: coherence audit fixes — session 6; 0.3: REQ-PERF-05 v0.1 scope — release-planning v0.1 session 4 (audit A4); 0.4: REQ-PERF-11 the summary as counts, Today's 10 rows — release-planning v0.3, RP3-7 N1–N3, decided by the approver; T-02.6 traced — its review round 1, F5; 0.5: REQ-PERF-04 covers Traceability — release-planning v0.3 step 5c, TQ-6, decided by the approver) · **Status:** Draft — specification-downcast session 4
 
 Shell and conventions: `00_sard.md`. All timings are measured in the **reference environment**
 (`00_sard.md`) on the **large fixture** unless a requirement says otherwise; p95 is over 20 runs.
@@ -44,10 +44,10 @@ Shell and conventions: `00_sard.md`. All timings are measured in the **reference
 
 | Field | |
 |-------|--|
-| Release | v0.1 |
-| Description | The Memory list, an element panel and the Directives, DNA, Team and Documentation views render after navigation. |
+| Release | v0.1 · v0.3 (Traceability) |
+| Description | The Memory list, an element panel and the Directives, DNA, Team and Documentation views render after navigation; from v0.3 the Traceability view too, and the Memory list with `taxonomy.requires` set (spec-012 §11). |
 | Rationale | Read views are the bulk of the use for Casey and Riley. |
-| Traceability | US-M-01, US-G-01, US-R-05, US-R-06, US-R-07, US-R-08 · M-01.1, G-01.1, R-05.1, R-06.1, R-07.1, R-08.1 · M1, G1, R1–R4 |
+| Traceability | US-M-01, US-G-01, US-R-05, US-R-06, US-R-07, US-R-08, US-R-01 · M-01.1, G-01.1, R-05.1, R-06.1, R-07.1, R-08.1, R-01.1 · M1, G1, R1–R4, R5 |
 | Fit criterion | [numeric] p95 ≤ 1.0 s with a warm cache. |
 | Verified by | e2e performance run |
 

@@ -18,9 +18,9 @@ Feature: Traceability
 
   @US-R-01 @v0.3 @edge @fx-custom
   Scenario: R-01.2 — Show who must act on a reference's open elements
-    Given the custom fixture with the sw-life-cycle preset is open on Traceability
+    Given the custom fixture with the pre-packs states and the sw-life-cycle preset is open on Traceability
     When I select the row "US-M-01"
-    Then the detail lists "task-002-memory-list · done" and "task-003-element-panel · backlog · waiting for the workflow engine"
+    Then the detail lists "task-002 · Memory list · done" and "task-003 · Element panel · backlog · Waiting for the workflow engine"
 
   @US-R-01 @v0.3 @edge @fx-custom
   Scenario: R-01.3 — Filter references by status

@@ -607,9 +607,9 @@
           "steps": [
             "Given the console is running",
             "And I am Casey",
-            "Given the custom fixture with the sw-life-cycle preset is open on Traceability",
+            "Given the custom fixture with the pre-packs states and the sw-life-cycle preset is open on Traceability",
             "When I select the row \"US-M-01\"",
-            "Then the detail lists \"task-002-memory-list · done\" and \"task-003-element-panel · backlog · waiting for the workflow engine\""
+            "Then the detail lists \"task-002 · Memory list · done\" and \"task-003 · Element panel · backlog · Waiting for the workflow engine\""
           ]
         },
         {
@@ -644,6 +644,7 @@
         }
       ],
       "dependencies": [
+        "TT-PERF-04",
         "TT-STATE-08"
       ]
     },
