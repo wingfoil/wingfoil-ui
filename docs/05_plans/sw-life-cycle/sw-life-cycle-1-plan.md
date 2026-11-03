@@ -15,7 +15,7 @@ tmpl_version: 260703   # Orignal template version
 
 ## Context
 
-**Version:** 0.1 · **Date:** 2026-11-02 (0.1: the run started — the engine bootstrap of decision 14
+**Version:** 0.2 · **Date:** 2026-11-03 (0.1: the run started — the engine bootstrap of decision 14
 of the packs adoption, `release-planning-rel-v0.3-plan` RP3-2; 0.2: inception and specification recorded)
 
 The run of `sw-life-cycle` (`software@1.0.0`, `.wingfoil/workflows/built-in/`) that records this

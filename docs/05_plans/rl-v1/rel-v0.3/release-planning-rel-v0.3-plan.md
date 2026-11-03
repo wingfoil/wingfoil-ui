@@ -15,7 +15,7 @@ tmpl_version: 260703   # Orignal template version
 
 ## Context
 
-**Version:** 0.1 · **Date:** 2026-11-02 (0.1: plan created; Session 1 — the state at start, the
+**Version:** 0.7 · **Date:** 2026-11-03 (0.1: plan created; Session 1 — the state at start, the
 engine bootstrap probe, decisions RP3-1 … RP3-6, the approver's new inputs for `define-scope`; 0.2:
 step 1 — the pin stays 0.3.1, the second feedback sync; 0.3: step 2 — the scope, RP3-7 …
 RP3-12, `sprint-001`; 0.4: steps 3 and 4, RP3-13 — the way of working on the engine; 0.5: step 5's survey, RP3-14; 0.6: step 5a, RP3-15, RP3-16; 0.7: steps 5b and 5c, RP3-17, RP3-18)
