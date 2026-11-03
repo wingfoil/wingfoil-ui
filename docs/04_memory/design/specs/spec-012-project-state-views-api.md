@@ -109,7 +109,8 @@ changed since the last index (§8, reuse). It is needed by `/progress` and `/tra
 when the effective `holds` has a `when-references-done` entry (spec-005 §4a) — so with the
 sw-life-cycle preset (its `release-line` hold, spec-005 §5) it is built for Today and `/elements`
 on every state. A request that needs no value (e.g. `/elements` with no `requires` and no such
-hold) does not build it. No CLI process is started per element (REQ-PERF-05, its technical task TT-PERF-05): the processes stay those of
+hold) does not build it. No CLI process is started per element (REQ-PERF-05, its technical task
+TT-PERF-05): the processes stay those of
 `memory search`, `dna show` and the version check, and the Memory events are one `git log`
 (spec-002 §3), all already cached per state.
 
@@ -334,7 +335,9 @@ every object `additionalProperties: false`, as the other API schemas.
   working-tree status and its blob at the new HEAD is the same — one `git ls-tree -r HEAD` over
   the Memory directories per new HEAD (a git read, no CLI process). A file that is changed or
   untracked is read again on every state (the hash-only reads of spec-001 §4.4 serve the state key
-  only and are not reused here). So a commit touching one element re-reads one file, and the
+  only and are not reused here). An entry is stored under a blob id only when its file was clean
+  (not in the working-tree status) at read time; the values read from a modified file serve that
+  state only, so a reverted edit never brings back the edited values. So a commit touching one element re-reads one file, and the
   index stays within REQ-PERF-03 on the `large` fixture (§11). Entries of paths `memory search`
   no longer lists are dropped.
 - **Invalidation.** No new event: any change of the state emits `repo {pid, state}` (spec-004
@@ -400,7 +403,8 @@ every object `additionalProperties: false`, as the other API schemas.
   non-strings, own id, archived id, a short id, first pattern wins, a 257-character value, a
   value with a line break, a duplicate value, an uncategorised type, an unreadable file, an
   element with 201 values → `capped`); the reuse across states (a commit touching one element
-  re-reads one file; a changed working-tree file is re-read); the in-scope rule by id and by
+  re-reads one file; a changed working-tree file is re-read; an edit read, then reverted, gives
+  the committed values again); the in-scope rule by id and by
   `version`; each
   figure and each `Unavailable`/`ReadOnly` reason; `percent` rounding (half up); the natural
   order; the 10-entry cap of `completion.references`; the sanitising of a reference value holding
@@ -485,3 +489,5 @@ every object `additionalProperties: false`, as the other API schemas.
   same step — spec-001 §4.2, spec-003 §3/§8, spec-004 §3/§5, spec-005 §2/§4, SARD REQ-PERF-04,
   `ux-reference.md` §4.1/§4.4/§4.8 (1.14), the R-01.2 erratum (pinned to the pre-packs variant,
   the detail as §4.8).
+- 2026-11-03 — the independent check, round 2: a value set is stored under a blob id only when
+  its file was clean at read time (§8, §11); a rewrap of §1 *Cost*.
