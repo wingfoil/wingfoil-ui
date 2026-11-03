@@ -4,12 +4,12 @@ type: task
 title: "Element addressing with short ids and long ids"              # REQUIRED — e.g. "Today view: pending gates list (REQ-UI-03)"
 status: draft          # auto-set by wingfoil
 release: "v0.3"            # REQUIRED — target release version, e.g. "v0.1"
-sprint: ""             # REQUIRED — the Sprint that selects it (sprint-NNN), or "n/a — <reason>" until one does (methodology/scrum)
-module: ""             # optional — server | web | contracts (dna.yaml modules)
-priority: ""           # optional — high | medium | low
-tags: []               # optional — additional labels, e.g. [today, a11y]
-ref: ""                # optional — backlog item ID, e.g. "TASK-001"
-bug: []                # optional — LIST of bug ids this task closes. Two cases: a fix task derived from a bug
+sprint: "sprint-001"             # REQUIRED — the Sprint that selects it (sprint-NNN), or "n/a — <reason>" until one does (methodology/scrum)
+module: "governance"             # optional — server | web | contracts (dna.yaml modules)
+priority: "high"           # optional — high | medium | low
+tags: ["v0.3","governance","server","contracts"]               # optional — additional labels, e.g. [today, a11y]
+ref: "GOV"                # optional — backlog item ID, e.g. "TASK-001"
+bug: ["bug-019-elements-whose-id-is-longer-than-100-characters-cannot-be-opened-or-decided-the-server-answers-404"]                # optional — LIST of bug ids this task closes. Two cases: a fix task derived from a bug
                        # by release-planning, and a bug ABSORBED into an existing task's Acceptance Criteria because that
                        # task already owns the ground. Each bug listed moves with its own verbs (`.wingfoil/memory.yaml`):
                        # the approver's `memory approve` triaged -> planned, `memory submit` planned -> in-progress when
@@ -20,19 +20,81 @@ tmpl_version: 260703   # Orignal template version
 
 ## Description
 
-<!-- What needs to be built and why. Reference the user story if applicable:
-     "As <persona>, I want <action> so that <benefit>." -->
+Governance task of `minor-v0.3`: the server side of spec-011 (element addressing) — short ids, the
+resolution of an element read, and the parameter length of bug-019 (absorbed). It carries dl-012
+R2 (RP3-10; RP3-14 D3; RP3-17 E2–E4, C1):
+
+- **short ids** (spec-011 §1): derived by the server from an element's full id and its type's
+  `id_pattern` (a literal prefix before `{n}` plus the digits), served as `shortId` in the element
+  read, the `/elements` rows and the Today rows; the web never derives them (REQ-ARC-05);
+- **resolution** (spec-011 §3): `GET /api/p/:pid/elements/:eid` accepts a full id or a short id —
+  full ids first, live before archived (E3), an exact match only (E2); several matches answer 409
+  `ambiguous-id` with at most 20 candidates and `more` (E4); history and the writes take the full
+  id only;
+- **bug-019** (spec-011 §4): `maxParamLength` 255, and a longer parameter answers 404 `not-found`
+  on every method after the Host/Origin, `Sec-Fetch-Site` and session checks (C1).
+
+The page, the side panel's `?panel=`, the candidates list and the e2e scenarios of US-G-01 are
+task-062-element-page-side-panel-address-and-rendered-document's, which depends on this task.
+
+**Backlog items:** GOV (governance — the server side of spec-011: dl-012 R2 and bug-019)
 
 ## Acceptance Criteria
 
-<!-- Reference the Gherkin feature file, or inline the key scenarios.
-     e.g. "See docs/02_requirements/02_bdd/features/today/pending-gates.feature"
-     For `web` tasks also point to the screen in docs/00_reference/ux-reference.md (§4.x) and the
-     prototype, and state the accessibility bar (keyboard path, axe clean). -->
+- **AC-1** — Short ids (spec-011 §1, §8), unit tests on every `id_pattern` of
+  `.wingfoil/memory.yaml` and of the three fixtures: a pattern with `{n}` after a literal prefix
+  (`task-046`, `dl-002`), `{n}` first (none), no `{n}` (`minor-v0.1`, a plan: none), another token
+  before `{n}` (none), an id that does not follow its pattern (none), `sprint-001` equal to its
+  full id; no regular expression built from a pattern or an id; an unreadable `memory.yaml` gives
+  no short id; `shortId` absent when there is none.
+- **AC-2** — Resolution (spec-011 §3), API tests: a short id → 200 with `element.id` the full id; a
+  full id wins over an equal short id; an ambiguous short id → 409 `ambiguous-id`, the body valid
+  against `contracts/api/element.refusal.schema.json`, candidates ordered by full id, at most 20
+  plus `more`, each `title` through `neutralise` (RP3-18 K1); an unknown id → 404; `task-46` for
+  `task-046` → 404 (E2); an archived element reached by its short id only when no live element
+  matches, and no archived search started when one does (counted processes, E3); history,
+  `submit`, `approve` and `reject` with a short id → 404 `not-found` with no `wingfoil` process.
+- **AC-3** — bug-019 (spec-011 §4, C1): red first — the read of an element whose id is longer than
+  100 characters answers 404 today; after the fix the read, the history and each write of an
+  element whose id is 252 characters long succeed; a 256-character parameter answers 404
+  `not-found` on `GET …/elements/:eid`, on `GET …/history` with and without a web build, and on
+  each `POST …/submit`, `/approve`, `/reject`, with no `wingfoil` process, and still 403/401 first
+  when the origin or the session fails; every other framework error stays 400 `invalid-request`.
+- **AC-4** — Contracts (spec-011 §5): `shortId` in `contracts/api/element.schema.json`,
+  `elements.schema.json` and `today.schema.json` (`Row.element`); the new
+  `element.refusal.schema.json` for the element read's 404 and 409; contract tests; spec-004 §3–§5
+  carry the rows of spec-011 §5 (amended in place with a dated Process Note where they do not yet).
+- **AC-5** — The long-id fixture (dl-009 action 9): a fixture-builder helper that adds and submits
+  an element whose title gives an id of more than 100 characters, scenario-local on the kanban
+  fixture so the T-12 figures stay as they are (spec-011 §8); used here and by G-01.7 in task-062.
+- **AC-6** — Docs and gates: `CHANGELOG.md` *Unreleased* *Fixed* (bug-019) and *Added* (short ids
+  in the API); the checks of `CLAUDE.md`, `npm run docs:api`, `npm run test:contract`,
+  `check_tasks.py v0.3`, `test:e2e:chromium` (the routes change under every view); results with
+  commands in the Execution Notes.
 
 ## Implementation Notes
 
-<!-- Optional: known constraints, design hints, or links to relevant ADRs. -->
+- Wave 1 (release-planning v0.3 step 6, B1); task-062 reads this task's Execution Notes: record the
+  `shortId` and refusal shapes and the long-id helper there.
+- Read at design: spec-011 whole and its Process Notes; spec-004 §2–§5; spec-001 §3 (the lazy
+  archived searches) and §4.1 (id rendering); adr-003 D4 (agents cite `/p/<pid>/e/<id>`); dl-012;
+  bug-019; `server/src/http/app.ts` (`frameworkErrors`); `find-my-way` 9.9.0 measures a parameter
+  after decoding it (spec-011 §4).
+- If task-056-tool-and-repository-text-in-api-answers-and-per-match-memory-search merges first,
+  the candidate titles use its serialiser helper; otherwise this task applies `neutralise` itself.
+- The bug moves with its own verbs: the approver's `memory approve` (`triaged → planned`) before
+  the task starts, then `memory submit` (`planned → in-progress`) when it starts, by the
+  coordinator.
+- **Security probes at design** (the writes of a 252-character id): `GIT_TRACE=1` of `memory
+  submit` and `memory approve` on such an id (the file name, the commit subject); a snapshot of
+  `.git` before and after; a dump of the children's environment; the CLI always gets the full id.
+- Git-touching (writes in the API tests): the affected suites also run under the strict-identity
+  recipe of `test/README.md` *Git identity* (dl-011).
+- An adversarial reviewer who runs the tools (curl): percent-encoded and non-ASCII ids at the
+  255/256 boundary (characters, not bytes: a file name is limited in bytes), `..` and `/` encoded,
+  an id naming another project's element, the 409 body's size.
+- Heavy gates through the machine-free slot of the dev-loop rules, in the task's worktree; e2e: the
+  full suite on Chromium (no own e2e spec: the UI scenarios are task-062's).
 
 ## Execution Notes
 

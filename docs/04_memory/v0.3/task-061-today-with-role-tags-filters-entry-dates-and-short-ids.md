@@ -4,35 +4,108 @@ type: task
 title: "Today with role tags, filters, entry dates and short ids"              # REQUIRED — e.g. "Today view: pending gates list (REQ-UI-03)"
 status: draft          # auto-set by wingfoil
 release: "v0.3"            # REQUIRED — target release version, e.g. "v0.1"
-sprint: ""             # REQUIRED — the Sprint that selects it (sprint-NNN), or "n/a — <reason>" until one does (methodology/scrum)
-module: ""             # optional — server | web | contracts (dna.yaml modules)
-priority: ""           # optional — high | medium | low
-tags: []               # optional — additional labels, e.g. [today, a11y]
-ref: ""                # optional — backlog item ID, e.g. "TASK-001"
+sprint: "sprint-001"             # REQUIRED — the Sprint that selects it (sprint-NNN), or "n/a — <reason>" until one does (methodology/scrum)
+module: "web"             # optional — server | web | contracts (dna.yaml modules)
+priority: "high"           # optional — high | medium | low
+tags: ["v0.3","web","today"]               # optional — additional labels, e.g. [today, a11y]
+ref: "US-T-02"                # optional — backlog item ID, e.g. "TASK-001"
 bug: []                # optional — LIST of bug ids this task closes. Two cases: a fix task derived from a bug
                        # by release-planning, and a bug ABSORBED into an existing task's Acceptance Criteria because that
                        # task already owns the ground. Each bug listed moves with its own verbs (`.wingfoil/memory.yaml`):
                        # the approver's `memory approve` triaged -> planned, `memory submit` planned -> in-progress when
                        # this task starts, then submit/approve along its machine; no `bug.sync_state` since the packs adoption
-depends_on: []         # optional — ids of tasks whose Execution Notes constrain this one; authored at planning time, may be appended during design
+depends_on: ["task-055-shared-reference-index-held-gates-and-descriptor-rules", "task-057-element-addressing-with-short-ids-and-long-ids"]         # optional — ids of tasks whose Execution Notes constrain this one; authored at planning time, may be appended during design
 tmpl_version: 260703   # Orignal template version
 ---
 
 ## Description
 
-<!-- What needs to be built and why. Reference the user story if applicable:
-     "As <persona>, I want <action> so that <benefit>." -->
+Today, clearer (release-planning v0.3, RP3-7 N1–N4; RP3-14 D1; RP3-15 F1, F5, F9, S4; RP3-16 P1):
+
+- **N1 — *Your roles* as one line**: one tag per role in DNA order, "approver · 2" — the role and
+  its count of *Requires you* — a click switches the role view; the current view's tag is marked
+  and is not a switch; no items and no "N more" (the v0.2 summary's ≤ 3 items per role go).
+- **N2, N3 — filters, entry dates, 10 rows**: *Requires you* and *Waiting on others* each get a
+  **type** and a **state** filter over that card's rows, with their counts (*All* by default, a
+  filter applies to its own card only); each row shows when its element entered its current state
+  (the descriptor's `since`, the full time as accessible description); each card shows 10 rows,
+  then "Show all (<n>)" / "Show fewer"; filters apply before the limit; the greeting and the bell
+  keep counting every row, unfiltered.
+- **Held gates** (F1, from task-055-shared-reference-index-held-gates-and-descriptor-rules): their
+  *Waiting on others* rows, with the hold's reason, take part in the filters and the limit.
+- **N4 — short ids**: each row names its element by the `shortId` the API serves
+  (task-057-element-addressing-with-short-ids-and-long-ids), else its full id; the web derives
+  none.
+- N3's option A is already the rule (D1, spec-003 §2 kind `last`); the engine's own step text is
+  v0.4.
+
+**Backlog items:** US-T-02, US-S-23
+
+- US-T-02 (a v0.2 story whose `@v0.3` scenarios extend it, release-planning v0.3 B2 (c)) — As
+  Morgan, I want Requires you to list the items whose next move needs a role of my view — type,
+  title, reason, age, one primary action each — so that I prioritise without navigating
+- US-S-23 (a v0.2 story whose `@v0.3` scenarios extend it) — As Alex, I want an all-roles summary
+  on Today — for each role I hold, the count and top items requiring it — so that I know which hat
+  to put on first; in v0.3 the summary is one line of role tags with their counts
 
 ## Acceptance Criteria
 
-<!-- Reference the Gherkin feature file, or inline the key scenarios.
-     e.g. "See docs/02_requirements/02_bdd/features/today/pending-gates.feature"
-     For `web` tasks also point to the screen in docs/00_reference/ux-reference.md (§4.x) and the
-     prototype, and state the accessibility bar (keyboard path, axe clean). -->
+- **US-T-02** (AC-1) — every `@v0.3` scenario passes
+  (`docs/02_requirements/02_bdd/features/t/requires-you.feature`): T-02.4 Filter a card by type and
+  by state; T-02.5 Show when each element entered its current state; T-02.6 Show the first 10 rows,
+  then all of them on request (its fixture Given accepted at RP3-16 P4); T-02.7 Name each row's
+  element by its short id. The `@v0.2` scenarios T-02.1 … T-02.3 still pass.
+- **US-S-23** (AC-2) — every `@v0.3` scenario passes
+  (`docs/02_requirements/02_bdd/features/s/shell.feature`): S-23.4 Show the count of a role, not its
+  items; S-23.5 Switch the role view from the line of role tags. The `@v0.2` scenarios S-23.1
+  (reworded at RP3-16 P1), S-23.2 and S-23.3 still pass.
+- **AC-3** — *Waiting on others* (`ux-reference.md` §4.1 v0.3): the same two filters, the same
+  10-row limit and "Show all (<n>)" / "Show fewer"; a held gate's row shows its reason (S-24.5,
+  S-24.6 stay green); a filter's options list only the types and states of its card's rows, with
+  counts; changing one card's filter leaves the other card unfiltered (T-02.4); a row without
+  `since` shows no date.
+- **AC-4** — REQ-PERF-11's fit criterion (v0.3): the summary is one tag per role with its count and
+  no item; each card lists the first 10 rows of its filtered list, then "Show all (<n>)" — checked
+  in the e2e of AC-1 and AC-2.
+- **AC-5** — F9 (RP3-15): the tests citing S-23.1 and S-23.4 are updated to the reworded and the
+  re-tagged scenarios — `test/web/today/summary.test.tsx`, `test/server/descriptor/today.test.ts`
+  (its "at most 3 items per role, and N more" case becomes the count without items) and
+  `test/e2e/notification-bell.spec.ts`; the server's Today summary drops the items and "N more",
+  with `contracts/api/today.schema.json` and its contract test changed accordingly; the
+  TT-PERF-09 and TT-PERF-11 scenario citations of those tests stay consistent.
+- **AC-6** — `shortId` is read from the API (spec-011 §1 *Display*); the REQ-ARC-05 lint stays
+  green (no type, state or pattern literal in `web/`); no per-element fetch is added (TT-PERF-05
+  process audits green).
+- **AC-7** — Screen and accessibility: `docs/00_reference/ux-reference.md` §4.1 v0.3 and the
+  prototype (`docs/00_reference/prototype/`), deviations only as recorded (directive
+  `ux-consistency`); every control operable from the keyboard with visible focus (the filters, the
+  tags, "Show all" / "Show fewer"; after a tag switch the focus moves to the *Requires you* heading,
+  as in v0.2); axe-core 0 serious/critical in both themes; every string from the catalogue
+  (X-09.1); `SCREENS` (`test/e2e/support/screens.ts`) covers the changed cards; the task's e2e
+  specs pass on Chromium, Firefox and WebKit.
+- **AC-8** — Docs and gates: `CHANGELOG.md` *Unreleased* *Changed*/*Added*; the checks of
+  `CLAUDE.md`, `npm run docs:api`, `check_tasks.py v0.3`, `test:e2e:chromium`; results with
+  commands in the Execution Notes.
 
 ## Implementation Notes
 
-<!-- Optional: known constraints, design hints, or links to relevant ADRs. -->
+- Wave 2 (release-planning v0.3 step 6, B1). Read first the Execution Notes of
+  task-055-shared-reference-index-held-gates-and-descriptor-rules (the `approveHeld` output, the
+  reason codes and their catalogue keys) and of
+  task-057-element-addressing-with-short-ids-and-long-ids (`shortId` in `today.schema.json`); then
+  task-036-today-requires-you-and-waiting-on-others and
+  task-042-notification-bell-all-roles-summary-and-empty-today (v0.2 Today and the summary, the
+  focus rules D42-5 … D42-7).
+- Read at design: spec-003 §5, §8 (`since`); spec-004 §3 (`today?view=`); spec-008;
+  `ux-reference.md` §4.1; SARD REQ-PERF-09 and REQ-PERF-11; the plan's RP3-7 N1–N4, RP3-14 D1,
+  RP3-15 F1, F5, F9, S4, RP3-16 P1, P4.
+- Filters and limits are the web's, over the Today answer (no new query); the filter controls use
+  the React Aria components of `adr-002`; shared files stay append-only (catalogue, `SCREENS`,
+  `test/README.md` version line).
+- The fixture Given of T-02.6 (11 more `pending` tasks) goes through the fixture builder; the
+  affected suites run under the harness git identity (`test/README.md` *Git identity*).
+- Heavy gates through the machine-free slot of the dev-loop rules, in the task's worktree; e2e: the
+  full suite on Chromium plus the task's own specs (Today, notification bell) on the three engines.
 
 ## Execution Notes
 
