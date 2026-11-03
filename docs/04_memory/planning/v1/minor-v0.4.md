@@ -7,7 +7,7 @@ kind: "minor"
 patch-of: ""           # optional — when kind is "patch": id of the released minor it patches, e.g. "minor-v0.2"
 version: "v0.4"
 pillar: "A"             # REQUIRED — primary feature area of docs/01_vision/06_features.md this wave centers on
-features: [T3, A1, A2]           # REQUIRED — feature IDs covered by this release (from 06_features.md)
+features: [T3, A1, A2, W1, W2, G5, R6, R7, R8, S6]           # REQUIRED — feature IDs covered by this release (from 06_features.md)
 wingfoil_min: "0.3"       # minimum WingFoil CLI version this release needs, e.g. "0.2.2"
 requirements: "docs/03_backlog/04_backlog/by-release/v0.4.json"       # REQUIRED — path to per-release backlog JSON, e.g. "docs/03_backlog/04_backlog/by-release/v0.1.json"
 release-line: "v1"
@@ -18,7 +18,9 @@ tmpl_version: 260929   # Orignal template version
 
 What the WingFoil 0.3 workflow engine and agent execution make possible: next workflow step, agent launch and agent log view, plus three capability upgrades of earlier features on 0.3 — T2 phases, W1 current position, G5 via `workflow start` (every ingestion type whose required fields the engine or a field setter sets).
 
-- Features (3 features, `07_sequencer.md` v0.6): T3, A1, A2.
+- Features (10 features, `07_sequencer.md` v0.8): T3, A1, A2; W1, W2, G5, R6, R7, R8, S6 moved from
+  v0.3 by its release-planning (`release-planning-rel-v0.3-plan`, RP3-7), with the git worktrees of
+  dl-013 (RP3-9). Backlog moved at v0.3 `build-backlog`.
 - Journeys served: J3 (complete), J4 step 3, J2 step 1 (phases), J7 (if WingFoil 0.3 sets the required fields; otherwise with the first WingFoil that does).
 - Backlog: `docs/03_backlog/04_backlog/by-release/v0.4.json` — 11 user stories,
   2 technical tasks; the Memory `task` elements are created from it by

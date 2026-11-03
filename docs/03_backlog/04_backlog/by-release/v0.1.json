@@ -2,8 +2,8 @@
   "version": 1,
   "release": "v0.1",
   "generated_from": {
-    "story_map": "docs/02_requirements/01_user_story_map/02_story-map.md v0.5",
-    "bdd": "docs/02_requirements/02_bdd/00_conventions.md v0.9",
+    "story_map": "docs/02_requirements/01_user_story_map/02_story-map.md v0.6",
+    "bdd": "docs/02_requirements/02_bdd/00_conventions.md v0.11",
     "sard": "docs/02_requirements/03_sard/00_sard.md v0.11"
   },
   "items": [
@@ -1658,7 +1658,7 @@
             "Given the console is running with the custom fixture open",
             "Given I am Jordan",
             "When I open the Directives view with the filter \"all\"",
-            "Then it lists every directive file under `.wingfoil/directives/`"
+            "Then it lists every directive in force under `.wingfoil/directives/`: one per id; a file shadowed by another of the same id is not listed — WingFoil's warning names it"
           ]
         },
         {
@@ -2125,7 +2125,7 @@
             "And every element of the fixture is listed with its own state name",
             "| fixture | types",
             "| kanban  | adr, bug, decision-log, release, release-line, task, tech-spec",
-            "| custom  | release-line, release, task, adr, decision-log, tech-spec, bug, plan, service",
+            "| custom  | release-line, release, task, adr, decision-log, tech-spec, bug, plan, sprint, service",
             "| unknown | story, note"
           ]
         },
@@ -2871,7 +2871,7 @@
             "And every element of the fixture is listed with its own state name",
             "| fixture | types",
             "| kanban  | adr, bug, decision-log, release, release-line, task, tech-spec",
-            "| custom  | release-line, release, task, adr, decision-log, tech-spec, bug, plan, service",
+            "| custom  | release-line, release, task, adr, decision-log, tech-spec, bug, plan, sprint, service",
             "| unknown | story, note"
           ]
         },
@@ -3110,7 +3110,7 @@
           "fixture": "custom",
           "steps": [
             "Given the console is running",
-            "Given the custom fixture is open and I am Morgan",
+            "Given the custom fixture with the pre-packs states is open and I am Morgan",
             "When I open Today",
             "Then Waiting on others lists \"minor-v0.1\" with \"Waiting for the workflow engine\""
           ]
@@ -3139,7 +3139,7 @@
           "fixture": "custom",
           "steps": [
             "Given the console is running",
-            "Given the custom fixture is added and I am Alex",
+            "Given the custom fixture with the pre-packs states is added and I am Alex",
             "When I open the element panel of \"minor-v0.1\"",
             "Then the panel shows \"Waiting for the workflow engine (state: planning)\"",
             "And the panel shows no action button"
@@ -3168,7 +3168,7 @@
           "fixture": "custom",
           "steps": [
             "Given the console is running",
-            "Given the custom fixture is added and I am Morgan",
+            "Given the custom fixture with the pre-packs states is added and I am Morgan",
             "And \"bug-001-toast-overlap\" has been approved to the state \"triaged\"",
             "When I open the element panel of \"bug-001-toast-overlap\"",
             "Then the gate footer shows only \"Reject → closed\" and \"Waiting for the workflow engine to advance\"",
@@ -3816,7 +3816,7 @@
           "fixture": "custom",
           "steps": [
             "Given the console is running",
-            "Given the custom fixture is open and Sam, holding reviewer and approver, sees \"task-001-cli-adapter\" in Requires you",
+            "Given the custom fixture with the pre-packs states is open and Sam, holding reviewer and approver, sees \"task-001-cli-adapter\" in Requires you",
             "When \"task-001-cli-adapter\" is approved with the CLI in a terminal",
             "Then within 5 seconds Requires you no longer lists \"task-001-cli-adapter\""
           ]
@@ -5350,7 +5350,7 @@
             "Given the UI setting \"Auto-push\" is on",
             "And a commit has been pushed to the remote by someone else and not yet fetched",
             "When I approve \"task-001-login-form\" from the UI",
-            "Then a red toast shows \"Not pushed\" with the rejection printed by git",
+            "Then a toast shows \"Not pushed\" in red with the rejection printed by git",
             "And the approval commit stays in the fixture",
             "And the sidebar shows \"1 ahead\""
           ]
@@ -5474,7 +5474,7 @@
             "And every element of the fixture is listed with its own state name",
             "| fixture | types",
             "| kanban  | adr, bug, decision-log, release, release-line, task, tech-spec",
-            "| custom  | release-line, release, task, adr, decision-log, tech-spec, bug, plan, service",
+            "| custom  | release-line, release, task, adr, decision-log, tech-spec, bug, plan, sprint, service",
             "| unknown | story, note"
           ]
         },

@@ -1,8 +1,11 @@
 # Sequencer — WingFoil UI v1 (v0.1 → v1.0)
 
-**Version:** 0.7
+**Version:** 0.8
 **Date:** 2026-10-12 (0.2: J0 completion and v0.1 landing screen — coherence audit; 0.3: external
-review — session 7; 0.4: permissions left to WingFoil — specification session 3; 0.5: input count, v0.1 exit (clone) — coherence audit of the specification — session 6; 0.6: v0.1 budget 6 → 9 active days — release-planning v0.1 session 2; 0.7: v0.2 budget 5 → 8 active days — release-planning v0.2 session 2)
+review — session 7; 0.4: permissions left to WingFoil — specification session 3; 0.5: input count, v0.1 exit (clone) — coherence audit of the specification — session 6; 0.6: v0.1 budget 6 → 9 active days — release-planning v0.1 session 2; 0.7: v0.2 budget 5 → 8 active days — release-planning v0.2 session 2; 0.8: v0.3 narrowed to
+the project-state chain (T2, T5, M2, R5, C1) plus the console usability, links and governance inputs;
+R6, R7, R8, W1, W2, G5, S6 to v0.4; v0.3 budget 7 → 13 active days — release-planning v0.3, RP3-7 …
+RP3-9)
 **Status:** Accepted in lean-inception session 5 (2026-10-01)
 **Input:** `06_features.md` (44 MVP features, areas, WingFoil versions, scores) · `05_journeys.md` ·
 `02_product-vision.md` (Q2: WingFoil floor) · starting hypothesis in `BOOTSTRAP.md` §7
@@ -62,15 +65,21 @@ behind; the WingFoil UI project's own gates are passed from the UI.
 
 ### v0.3 — Project state · area **R** · WingFoil ≥ 0.2.2
 
-Everything Casey needs, plus governed creation through ingestion where WingFoil 0.2.2 allows it.
+Everything Casey needs to follow a project's state — progress, traceability, the configuration
+behind them — and a clearer console for every role.
 
 | Features | Journeys served |
 |----------|-----------------|
-| T2 progress card (Memory figures) · T5 recent activity · M2 missing references · R5 traceability · R6 timeline axis · R7 git tree · R8 files · W1 workflow tree (definitions) · W2 ingestion cards · G5 ingestion start · S6 command palette · C1 `ui.yaml` and presets | J2 (complete for a product owner holding `approver`; informational otherwise), decision-log ingestion |
+| T2 progress card (Memory figures) · T5 recent activity · M2 missing references · R5 traceability · C1 `ui.yaml` and presets | J2 (complete for a product owner holding `approver`; informational otherwise) |
 
-12 features. **Exit:** Casey follows a project without a developer, and — holding `approver` —
-decides a product item; a decision-log is captured through its ingestion workflow from the UI;
-`ui.yaml` is written only as a schema-valid `chore(ui)` commit.
+5 features, plus backlog items that are not new features (release-planning v0.3, RP3-7): Today's
+role selector, filters, entry dates and short ids; the element page (opened by URL or from Memory)
+with its Markdown summary and full document; the Memory state filter; short element ids and a
+discoverable console address for links (dl-012 R1, R2); the fixes of four bugs; governance checks
+and tasks of dl-009, dl-011 and the v0.3 governance alignment. **Exit:** Casey follows a project
+without a developer, and — holding `approver` — decides a product item; `ui.yaml` is written only
+as a schema-valid `chore(ui)` commit. The decision-log ingestion moves to v0.4, on `workflow
+start`.
 
 ### v0.4 — Workflow and agents · area **A** · WingFoil ≥ 0.3
 
@@ -78,10 +87,13 @@ What the WingFoil workflow engine and agent execution make possible.
 
 | Features | Journeys served |
 |----------|-----------------|
-| T3 next workflow step · A1 launch agent · A2 agent log view · upgrades on 0.3: T2 phases, W1 current position, G5 via `workflow start` (all ingestion types, when the engine or a field setter sets their required fields) | J3 (complete), J4 step 3, J2 step 1 (phases), J7 (if WingFoil 0.3 sets the required fields; otherwise with the first WingFoil that does) |
+| T3 next workflow step · A1 launch agent · A2 agent log view · W1 workflow tree · W2 ingestion cards · G5 ingestion start · R6 timeline axis · R7 git tree · R8 files · S6 command palette · upgrades on 0.3: T2 phases, W1 current position, G5 via `workflow start` (all ingestion types, when the engine or a field setter sets their required fields) | J3 (complete), J4 step 3, J2 step 1 (phases), J7 (if WingFoil 0.3 sets the required fields; otherwise with the first WingFoil that does) |
 
-3 features + 3 capability upgrades. **Exit:** Jordan starts the day from Today and runs the agent
-on the next step with its logs in the UI.
+10 features + 3 capability upgrades (W1, W2, G5, R6, R7, R8, S6 moved from v0.3 by its
+release-planning, RP3-7; with the git worktrees of dl-013, RP3-9). **Exit:** Jordan starts the day
+from Today and runs the agent on the next step with its logs in the UI; a decision-log is captured
+through its ingestion workflow from the UI. Its scope and budget are re-planned at its own
+release-planning.
 
 ### v1.0 — MVP complete · area **X** · WingFoil 1.0
 
@@ -106,11 +118,11 @@ the first candidate that needs nothing from WingFoil.
 |---------|-----------------|----------------|----------|------------------|--------------------|
 | v0.1 | S | 0.2.2 | 16 | Riley, Alex | — (J0 steps 1–3) |
 | v0.2 | G | 0.2.2 | 13 | Morgan, Alex | J0, J1, J5, J8 |
-| v0.3 | R | 0.2.2 | 12 | Casey | J2 (with `approver`), J6 |
-| v0.4 | A | 0.3 | 3 (+3 upgrades) | Jordan, Sam | J3, J4, J7 (conditional) |
+| v0.3 | R | 0.2.2 | 5 | Casey | J2 (with `approver`) |
+| v0.4 | A | 0.3 | 10 (+3 upgrades) | Jordan, Sam, Casey | J3, J4, J6, J7 (conditional) |
 | v1.0 | X | 1.0 | — | all | all (on WingFoil 1.0) |
 
-Total: 44 features (16 + 13 + 12 + 3).
+Total: 44 features (16 + 13 + 5 + 10).
 
 ---
 
@@ -125,8 +137,8 @@ Reference: WingFoil spent 9 active days on inception + specification and 5 on it
 | Specification + initial design | 5 | after this inception |
 | v0.1 | 9 | after initial design |
 | v0.2 | 8 | after v0.1 |
-| v0.3 | 7 | after v0.2 |
-| v0.4 | 4 | after v0.3 **and** a WingFoil 0.3 release |
+| v0.3 | 13 (10 + 3 of release validation, dl-009 action 9) | after v0.2 |
+| v0.4 | 4 — to re-estimate at its release-planning (7 features added) | after v0.3 **and** a WingFoil 0.3 release |
 | v1.0 | 3 | after v0.4 **and** WingFoil 1.0 |
 
 **Dependency risk:** v0.4 and v1.0 wait on WingFoil releases. If WingFoil 0.3 is late, v0.4 waits;
