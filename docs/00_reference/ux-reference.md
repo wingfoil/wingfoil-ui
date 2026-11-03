@@ -1,6 +1,6 @@
 # UX reference — WingFoil UI
 
-**Version:** 1.12 · **Date:** 2026-11-03 (0.2: §9 colours aligned with spec-009 — release-planning v0.1 session 2; 0.3: §3 start page with no project open, §5 modal dismissal — dev-loop task-013, decided by the user; 0.4: §4.2 v0.1 read-only panel — dev-loop task-018, decided by the user; 0.5: §4.4 and §4.9 in v0.1 — dev-loop tasks 017 and 020, decided by the user; 0.6: §4.2 panel directives, §4.5, §4.6, §4.10 in v0.1 — dev-loop task-019, decided by the user; 0.7: §3 project switcher in v0.1 (grid rows, removal confirmation, unavailable entries, trigger text) — dev-loop task-015, Wave 4, decided by the user; 0.8: §4.2 non-modal drawer — dev-loop task-015, W4-8, decided by the user; §3 keyboard wording and §4.2 v0.1 bullet aligned after review; 0.9: §3 add-project modal in v0.1 — dev-loop task-014, Wave 4, decided by the user; 1.0: §3 current user, role view and project header strip in v0.1 — dev-loop task-016, Wave 4, decided by the user; 1.1: §3 *How to join* panel — dev-loop task-035, D35-1…D35-9, decided by the approver; identity changes while open — review round 1; 1.2: §4.1 *Today* in v0.2 — dev-loop task-036, D36-1…D36-11, decided by the approver; 1.3: §4.2 *Gate footer* in v0.2 — dev-loop task-037, D37-1…D37-12, decided by the approver; 1.4: §3 *Notifications* and §4.1 all-roles summary in v0.2 — dev-loop task-042, D42-1…D42-8, decided by the approver; 1.5: §4.2 *Single-action footer* and §5 *Feedback* in v0.2 — dev-loop task-038, D38-1…D38-13, decided by the approver; 1.6: §2, §3 *Git status* and *Sidebar* in v0.2 — dev-loop task-039, D39-1…D39-13, decided by the approver; 1.7: §3 sidebar *Configuration* and §4.11 *UI settings* in v0.2 — dev-loop task-041, D41-1…D41-13, decided by the approver; 1.8: §3 *Git status* *Update*/*Push* in v0.2, *Push* whatever auto-push says (a deviation) — dev-loop task-040, D40-1…D40-12, decided by the approver; 1.9: §4.2 the focus after the panel closes — bug-018, task-043 AC-7, decided by the approver; 1.10: §4.2 every opener on Today, the "otherwise" rule, the notification bell — task-043 review rounds 1–2, D43-10; 1.11: §4.6 one row per directive in force — task-047, bug-025, decided by the approver; 1.12: §4.1 Today in v0.3 (roles on one line, filters, entry date, 10 rows, short ids), §4.2 the element page and the rendered summary and document, §4.4 the states of a bucket — release-planning v0.3, RP3-7 N1–N7, RP3-14 D1–D3, D7, D8, decided by the approver) · **Status:** Reference for `lean-inception` and `specification-downcast`
+**Version:** 1.12 · **Date:** 2026-11-03 (0.2: §9 colours aligned with spec-009 — release-planning v0.1 session 2; 0.3: §3 start page with no project open, §5 modal dismissal — dev-loop task-013, decided by the user; 0.4: §4.2 v0.1 read-only panel — dev-loop task-018, decided by the user; 0.5: §4.4 and §4.9 in v0.1 — dev-loop tasks 017 and 020, decided by the user; 0.6: §4.2 panel directives, §4.5, §4.6, §4.10 in v0.1 — dev-loop task-019, decided by the user; 0.7: §3 project switcher in v0.1 (grid rows, removal confirmation, unavailable entries, trigger text) — dev-loop task-015, Wave 4, decided by the user; 0.8: §4.2 non-modal drawer — dev-loop task-015, W4-8, decided by the user; §3 keyboard wording and §4.2 v0.1 bullet aligned after review; 0.9: §3 add-project modal in v0.1 — dev-loop task-014, Wave 4, decided by the user; 1.0: §3 current user, role view and project header strip in v0.1 — dev-loop task-016, Wave 4, decided by the user; 1.1: §3 *How to join* panel — dev-loop task-035, D35-1…D35-9, decided by the approver; identity changes while open — review round 1; 1.2: §4.1 *Today* in v0.2 — dev-loop task-036, D36-1…D36-11, decided by the approver; 1.3: §4.2 *Gate footer* in v0.2 — dev-loop task-037, D37-1…D37-12, decided by the approver; 1.4: §3 *Notifications* and §4.1 all-roles summary in v0.2 — dev-loop task-042, D42-1…D42-8, decided by the approver; 1.5: §4.2 *Single-action footer* and §5 *Feedback* in v0.2 — dev-loop task-038, D38-1…D38-13, decided by the approver; 1.6: §2, §3 *Git status* and *Sidebar* in v0.2 — dev-loop task-039, D39-1…D39-13, decided by the approver; 1.7: §3 sidebar *Configuration* and §4.11 *UI settings* in v0.2 — dev-loop task-041, D41-1…D41-13, decided by the approver; 1.8: §3 *Git status* *Update*/*Push* in v0.2, *Push* whatever auto-push says (a deviation) — dev-loop task-040, D40-1…D40-12, decided by the approver; 1.9: §4.2 the focus after the panel closes — bug-018, task-043 AC-7, decided by the approver; 1.10: §4.2 every opener on Today, the "otherwise" rule, the notification bell — task-043 review rounds 1–2, D43-10; 1.11: §4.6 one row per directive in force — task-047, bug-025, decided by the approver; 1.12: §4.1 Today in v0.3 (roles on one line, filters, entry date, 10 rows, short ids), §4.2 the element page and the rendered summary and document, §4.4 the states of a bucket — release-planning v0.3, RP3-7 N1–N7, RP3-14 D1–D3, D7, D8, decided by the approver; its review round 1, decided by the approver: §4.1, §4.2 the held gates (F1), §4.2 the bell opens the side panel (S5), §6 `holds` and the packs' phases (F6)) · **Status:** Reference for `lean-inception` and `specification-downcast`
 **Prototype:** `docs/00_reference/prototype/` (interactive HTML; sample data from the WingFoil
 repository and from a fictional Kanban project `acme-checkout`)
 
@@ -110,6 +110,11 @@ member and for a user not identified.
   id pattern has no number) — the rule is the element-addressing spec's (RP3-14, step 5b).
 - *Waiting on others* keeps the v0.2 texts; "Waiting for the workflow engine" on a settled decision
   does not occur (spec-003 §2 kind `last`), and the engine's own step text is v0.4 (D1).
+- A **held gate** (`ui.yaml` `holds`, spec-005 §4a; RP3-14 D5) is never in *Requires you* and is
+  not a pending gate: it is in *Waiting on others* for **every** member, approvers included, with
+  the hold's reason in place of "Reserved to approver — …": "Approved outside the console
+  (ui.yaml)" (`held-by-config`) or "Waits for <n> referencing element(s) to be done"
+  (`held-until-references-done`) (S-24.5, S-24.6).
 - The progress card shows its phase figures read-only until v0.4 (spec-005 §4, D2); *Recent
   activity* lists the last 5 Memory events (REQ-PERF-11) with no link while the Timeline is v0.4
   (D8).
@@ -138,6 +143,10 @@ member and for a user not identified.
   footer is a line instead: "Reserved to <role> — <members> can act" (role not held), "Read-only:
   <email> is not in the team — How to join" or "Read-only: see the notice above the view" (not
   identified), "Waiting for the workflow engine (state: <s>)", "Final state: no action is possible";
+- **v0.3 held gate (RP3-14 D5, spec-005 §4a, spec-003 §3):** the footer shows the hold's reason as an
+  informational line ("Approved outside the console (ui.yaml)", "Waits for <n> referencing
+  element(s) to be done") and no *Approve*; a member holding `approver` keeps the reason field, each
+  **Reject → <state>** and *Cancel*; any other member sees the reason line only (S-24.5, S-24.6);
   a gate that is also a waiting state offers only its reject, with "Waiting for the workflow engine
   to advance". After a decision the panel stays open on the new state (the toast is task-038's).
 - **Single-action footer** otherwise (Submit for review, Launch agent, Start review).
@@ -161,9 +170,10 @@ member and for a user not identified.
   hold no role in this project".
 - **v0.3 (release-planning v0.3, RP3-7 N5, N6, dl-012 R2, bug-019; RP3-14 D3):**
   - **Where it opens (N5).** Opened from Today — *Requires you*, *Waiting on others*, *Recent
-    activity* — the element stays in the **side panel** above (non-modal, its focus rules). Opened
+    activity* — or from an item of the notification bell, the element stays in the **side panel**
+    above (non-modal, its focus rules; the bell, review round 1 S5, decided by the approver). Opened
     any other way — its address, the Memory list, a link in a document, a directive or another
-    element, an item of the notification bell — it is shown in the page's **main region**, with
+    element — it is shown in the page's **main region**, with
     the sidebar, as a page of its own; *Close* and Escape go back in history, or to the Memory list
     when it was opened from its address. Same content and footers in both places.
   - **Its address.** `/p/<id>/e/<element id>` as before; a short id resolves to its element and the
@@ -386,14 +396,20 @@ taxonomy:
 progress:
   mode: sequence         # sequence | flow
   scope: { type: release }   # type only (specification session 3): the current release is derived
-  phases: [release-planning, dev-loop, user-docs, e2e-smoke, release-submit, release-publishing, retrospective]
+  phases: [sprint-planning, development, plan-release, release, sprint-review, retrospective, close]
   iterates: task
   defects: bug
+holds:                   # gates whose Approve the console does not offer (spec-005 §4a)
+  release: { releasing: { approve: never } }
+  release-line: { active: { approve: when-references-done } }
 artifacts:               # until WingFoil supports a paths.artifacts DNA category
-  - { path: 'dist/wingfoil-{version}.tgz', phase: release-publishing }
-  - { path: 'https://www.npmjs.com/package/wingfoil/v/{version}', phase: release-publishing }
-  - { path: 'reports/{release}/e2e-smoke.md', phase: e2e-smoke }
+  - { path: 'dist/wingfoil-{version}.tgz', phase: release }
+  - { path: 'https://www.npmjs.com/package/wingfoil/v/{version}', phase: release }
+  - { path: 'reports/{release}/e2e-smoke.md', phase: release }
 ```
+
+The WingFoil `sw-life-cycle` preset's exact content is spec-005 §5, which is authoritative where
+this example differs (the phases of the packs' `sprint` workflow, every artifact at `release`).
 
 UI categories: `work`, `defect`, `decision`, `spec`, `requirement`, `feature`, `release`,
 `external`.
