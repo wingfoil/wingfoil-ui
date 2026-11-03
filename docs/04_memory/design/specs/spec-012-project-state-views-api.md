@@ -52,7 +52,7 @@ the descriptor (spec-005 §4a, spec-003 §3).
 | Input | Source |
 |-------|--------|
 | the non-archived elements (`id`, `type`, `title`, `status`, `path`) | the cached `memory search` (spec-001 §3) |
-| each element's frontmatter | the direct read of spec-001 §4.2, at the `path` `memory search` returned, consistency-checked (`id`, `type`, `status`) — the read the element page already makes, memoised per path and state |
+| each element's frontmatter | the direct read of spec-001 §4.2, at the `path` `memory search` returned, consistency-checked (`id`, `type`, `status`); the index keeps the frontmatter **values** of §1 only — never the body, which only the element read keeps (spec-001 §4.2, the bulk consumer) |
 | the types' states | `.wingfoil/memory.yaml` (spec-001 §4.1) |
 | categories, patterns, `requires`, `progress`, `holds` | the effective `ui.yaml` (spec-005 §2–§3) |
 | kinds, tones, actors, holds | the descriptor (spec-003 §8), computed with the same index |
@@ -63,19 +63,28 @@ string, and every string item of a field whose value is a list. Nested maps and 
 nested lists are not read; numbers, booleans, dates and `null` are not values (YAML `release: 0.3`
 is a number). A value is taken **as written** — no trimming, no case folding, no prefix grouping.
 One element carrying a value twice (two fields, or a list repeating it) is linked once.
+**At most 200 values per element** are kept, in field order then list order; an element with more
+is indexed on its first 200 and named in the route's `capped` list, as `unreadable` names an
+unreadable file (§3–§5): a figure or a flag that involves it may be incomplete, and the page says
+so.
 
 **References** (spec-005 §4, in this order, the first that applies):
 
 1. the value equals the id of **another non-archived** element (not the element's own id) →
    an *element reference*, category = the category of that element's type (spec-005 §2–§3); a
    type with no category gives no category;
-2. the value is at most 256 characters long and matches a `taxonomy.patterns[].match` (the first
-   entry that matches, in file order) → a *pattern reference*, category = that entry's;
+2. the value is at most 256 characters long (measured as written, before the escape of §9),
+   holds no line break (LF or CR) and matches a `taxonomy.patterns[].match` (the first entry that
+   matches, in file order) → a *pattern reference*, category = that entry's;
 3. otherwise the value is not a reference.
+
+Rule 1 compares **full** ids only: a value holding a short id (`task-046`, spec-011 §1) equals no
+full id and is not an element reference (rule 2 may still apply); WingFoil 0.3.2 accepts short
+references in its Memory verbs (spec-011 §1), a neighbour a later release may follow.
 
 A value equal to the id of an **archived** element is not an element reference in v0.3: the
 archived elements are not listed by `memory search` and are read only lazily (spec-001 §3) —
-rule 2 may still apply (open question TQ-3, recommendation (a); `ux-reference.md` §4.8). A
+rule 2 may still apply (TQ-3 (a), decided by the approver 2026-11-03; `ux-reference.md` §4.8). A
 reference **with no category** links its element but enters no figure, no traceability row and no
 `requires` check ("No category — not counted in progress figures", spec-005 §2).
 
@@ -93,11 +102,14 @@ is left out of coverage and of the missing-reference flag, and is named in the r
 kinds are needed (iterated when no scope applies, open defects, pending gates). A list never fails
 for one file (spec-004 §5).
 
-**Cost.** The index reads each non-archived element file once per state, with bounded
-concurrency (at most 16 reads at a time), on the first request of that state that needs it (a
-request that needs no value — e.g. `/elements` with an empty `requires` — does not build it). No
-CLI process is
-started per element (REQ-PERF-05, its technical task TT-PERF-05): the processes stay those of
+**Cost.** The index reads each non-archived element file with bounded concurrency (at most 16
+reads at a time), on the first request of a state that needs it, and only the files whose content
+changed since the last index (§8, reuse). It is needed by `/progress` and `/traceability`, by
+`/elements` when `taxonomy.requires` names a type (§5), and by **every descriptor computation**
+when the effective `holds` has a `when-references-done` entry (spec-005 §4a) — so with the
+sw-life-cycle preset (its `release-line` hold, spec-005 §5) it is built for Today and `/elements`
+on every state. A request that needs no value (e.g. `/elements` with no `requires` and no such
+hold) does not build it. No CLI process is started per element (REQ-PERF-05, its technical task TT-PERF-05): the processes stay those of
 `memory search`, `dna show` and the version check, and the Memory events are one `git log`
 (spec-002 §3), all already cached per state.
 
@@ -153,7 +165,8 @@ origin = "declared" | "inferred" | "derived"
     phaseCompletion: ReadOnly,
     iterated:        Shown<{ type, done, total, ids, doneIds }> | Unavailable<"no-iterates-type">,
     openDefects:     Shown<{ type, count, ids }> | Unavailable<"no-defects-type">,
-    pendingGates:    Shown<{ count, ids }> } }
+    pendingGates:    Shown<{ count, ids }> },
+  unreadable: [id], capped: [id] }                      # §1: files not read / indexed on 200 values
 Shown<T> = { state: "shown" } & T
 Unavailable<C> = { state: "unavailable", reason: { code: C } }
 ReadOnly = { state: "read-only", reason: <the reason of capability workflow-position> }
@@ -194,9 +207,10 @@ ReadOnly = { state: "read-only", reason: <the reason of capability workflow-posi
   the current `/progress` answer (the query Today shares), its other filters cleared, the active
   filter named by the figure's label ("Pending gates", T-13.1) with a control that clears it; an
   unknown `code`, or a figure not `shown`, shows the list unfiltered with no active filter. The
-  ids are never placed in the address (open question TQ-4, recommendation (a)).
+  ids are never placed in the address (TQ-4 (a), decided by the approver 2026-11-03).
 - No input of this route is the DNA or the Memory events: a failed `dna show` or events read
   does not fail it (the descriptor's kinds and holds do not need them, spec-003 §2, §3).
+- `ElementRef.title` and every pattern reference id are escaped (§9).
 
 ### 4. `GET /api/p/:pid/traceability?scope=` (R5)
 
@@ -217,17 +231,19 @@ schema; an unknown `:pid` → 404 first).
                  status: "completed" | "in-progress" | "not-started" | "no-elements" }],
   missing: [{ id, categories: [category] }],
   elements: [Row & { done: boolean, inScope: boolean }],
-  unreadable: [id],
-  eventsError?, dnaError? }
+  unreadable: [id], capped: [id],
+  eventsError? }
 Row = the item of elements.schema.json (`/elements`: id, shortId, title, type, status, tags,
       path, localChanges, descriptor) — one entry per element named anywhere in the answer
 ```
 
 - **scope** — `applied` is `current` when `scope=current` and a current element exists, else
-  `project` (the page hides its scope control then, `ux-reference.md` §4.8, TQ-2). With
+  `project` (the page hides its scope control then, `ux-reference.md` §4.8; TQ-2 (c), decided by
+  the approver 2026-11-03). With
   `current`, `linked` holds the in-scope linked elements only and a reference with none is
   omitted; with `project`, every non-archived linked element.
-- **references** — every reference with a category (TQ-1, recommendation (b)), the element
+- **references** — every reference with a category (TQ-1 (b), decided by the approver
+  2026-11-03; the completion figures stay on `requirement` and `feature`), the element
   references and the pattern references alike; with `project`, also each non-archived element
   whose type's category is `requirement` or `feature` that no element references (`linked: []`,
   `status: "no-elements"`, `element: true`). A **pattern reference carries its id only** (RP3-14
@@ -248,8 +264,12 @@ Row = the item of elements.schema.json (`/elements`: id, shortId, title, type, s
   once, in the `/elements` row shape, so the web reuses its rows: `descriptor` gives the tone of
   a chip and the "who must act" of the detail (spec-003 §4, §5 texts; R-01.2), `done` the
   descriptor kind `last` (so the web does not re-derive it), `inScope` the rule of §1.
-  `descriptor` is absent and `eventsError` set as on `/elements` when the events cannot be read;
-  `dnaError` when `dna show` failed (actors fall back as spec-003 §4).
+  As on `/elements` (`server/src/http/project-routes.ts` `elements`): when the Memory events
+  cannot be read the descriptors are computed without them (actors, `rejection` and `since`
+  degrade, spec-003 §4) and `eventsError` says why; a failed `dna show` adds no field — the
+  descriptors see no member, so member actors fall back to `tech-lead` with
+  `author-not-in-team` (spec-003 §4), and the project header's `dnaError` (`GET /api/p/:pid`)
+  reports the failure.
 - **No `ui.yaml`** (`ui.status.source` `none` or `ignored`): the inferred values (spec-005 §3) have
   no pattern and no `requires`, so `references` holds element references only (`patterns:
   false`), `coverage` is `no-requires`, and `completion` is `no-reference-categories` (no
@@ -264,10 +284,11 @@ Row = the item of elements.schema.json (`/elements`: id, shortId, title, type, s
   archived, its file was read, its type has `taxonomy.requires`, and it carries no reference of
   one or more of those categories (§1), in the order `requires` declares them; the Memory list's
   badge "missing refs" (M-03.1) and the filter "Missing required references";
-- top level, `missingReferences?: { shown: boolean, unreadable: [id] }` — `shown` is true when the
-  effective `taxonomy.requires` names at least one type: the filter is then offered, with its
-  count even when 0 (US-M-04: hidden when nothing is required, M-04.1, M-04.2; open question
-  TQ-5 below); `unreadable` lists the elements whose file could not be read (no flag computed).
+- top level, `missingReferences?: { shown: boolean, unreadable: [id], capped: [id] }` — `shown`
+  is true when the effective `taxonomy.requires` names at least one type: the filter is then
+  offered, with its count even when 0 (US-M-04: hidden when nothing is required, M-04.1, M-04.2;
+  TQ-5 (a), decided by the approver 2026-11-03); `unreadable` lists the elements whose file
+  could not be read (no flag computed), `capped` those indexed on their first 200 values (§1).
   Absent when `memory.yaml` cannot be read (`typesError`, the filter hidden).
 
 On the custom fixture with the sw-life-cycle preset the flag is set on exactly
@@ -291,8 +312,9 @@ event; showing its short id needs the elements list (spec-011 §1), which Today 
 |------|--------|-------------|
 | `ui-config.schema.json` | new | `definitions.status` (`source`, `warning {code, failure}`), `definitions.elementRef`, `definitions.origin`; the `ui` section of `/config` (§2) |
 | `progress.schema.json` | new | `ui`, `mode`, `scope {type, current, basis}`, `figures` (§3), each figure a `oneOf` on `state`; `ReadOnly.reason` `$ref` the capability reason of `project.schema.json` (factored into a definition there) |
-| `traceability.schema.json` | new | `ui`, `patterns`, `scope {applied}`, `figures`, `references[]`, `missing[]`, `elements[]` (`$ref` the item of `elements.schema.json`, factored into a definition, plus `done`, `inScope`), `unreadable`, `eventsError`, `dnaError` (`error.schema.json`) |
-| `elements.schema.json` | amended | `missingCategories` per element, `missingReferences {shown, unreadable}`; the item moved to `definitions.row` |
+| `progress.schema.json` (cont.) | new | `unreadable`, `capped` (§1) |
+| `traceability.schema.json` | new | `ui`, `patterns`, `scope {applied}`, `figures`, `references[]`, `missing[]`, `elements[]` (`$ref` the item of `elements.schema.json`, factored into a definition, plus `done`, `inScope`), `unreadable`, `capped`, `eventsError` (`error.schema.json`) |
+| `elements.schema.json` | amended | `missingCategories` per element, `missingReferences {shown, unreadable, capped}`; the item moved to `definitions.row` |
 | `config.schema.json` | amended | `ui` (`$ref` `ui-config.schema.json`) |
 | `project.schema.json` | amended | the capability `reason` moved to `definitions.capabilityReason` (shape unchanged) |
 
@@ -306,9 +328,15 @@ every object `additionalProperties: false`, as the other API schemas.
   (`server/src/snapshot/snapshot.ts`): memoised per content key (`<CLI generation>:<HEAD>.<working-
   tree hash>:<user.email>`), shared by every caller, computed once — like the descriptors
   (spec-003 §8, `adr-001` D6). `ui.yaml` is a working-tree file, so its edits change the key
-  (spec-004 §5 `X-Repo-State`, the content fingerprint of REQ-STATE-02). An element file read may
-  be reused across states when its path, HEAD blob and working-tree fingerprint are unchanged —
-  an optimisation, not a contract.
+  (spec-004 §5 `X-Repo-State`, the content fingerprint of REQ-STATE-02).
+- **Reuse across states (a contract).** The values of an element file are kept per
+  `(path, blob id)` and reused by the next state's index when the file is **not** in that state's
+  working-tree status and its blob at the new HEAD is the same — one `git ls-tree -r HEAD` over
+  the Memory directories per new HEAD (a git read, no CLI process). A file that is changed or
+  untracked is read again on every state (the hash-only reads of spec-001 §4.4 serve the state key
+  only and are not reused here). So a commit touching one element re-reads one file, and the
+  index stays within REQ-PERF-03 on the `large` fixture (§11). Entries of paths `memory search`
+  no longer lists are dropped.
 - **Invalidation.** No new event: any change of the state emits `repo {pid, state}` (spec-004
   §6), on which the page refetches every query of that project — `/progress`, `/traceability`,
   `/elements` (TanStack Query invalidation, `adr-002`). That meets T-12.3, M-03.2 and T-08.2
@@ -317,20 +345,31 @@ every object `additionalProperties: false`, as the other API schemas.
   the ≤ 6 of REQ-PERF-05 (`memory search` and `dna show` are Today's already); reopening any
   view with no change starts 0. Traceability on a cold cache: the same commands, each at most
   once per state. No archived list is read for these routes (TQ-3).
-- **Time.** The routes answer within Today's and the other views' budgets (REQ-PERF-01 p95 ≤ 2.0 s
-  warm for Today; REQ-PERF-04 p95 ≤ 1.0 s warm, which does not yet list Traceability — open
-  question TQ-6 below); one index costs one file read per element and one pass over their values.
+- **Index on every state with a `when-references-done` hold.** With such a hold in the
+  effective `holds` (the sw-life-cycle preset's `release-line`, spec-005 §5) the descriptor needs
+  the index, so Today and `/elements` build it on every state, not only the project-state views
+  (§1 Cost); the reuse above keeps that to the changed files.
+- **Time.** The routes answer within Today's and the other views' budgets: REQ-PERF-01 p95 ≤ 2.0 s
+  warm for Today; REQ-PERF-04 p95 ≤ 1.0 s warm for the Memory list and, since TQ-6 (a) (decided by
+  the approver 2026-11-03), for Traceability (US-R-01); REQ-PERF-03 5 s from a change to the
+  updated figures. One index costs one file read per changed element and one pass over the kept
+  values (at most 200 per element).
 
 ### 9. Sanitising and security
 
-- **Repository text in the answers.** Element ids, types, titles and states come from `memory
-  search` and are served as `/elements` serves them (spec-004 §3; rendered as text, never as
-  HTML); an element reference's `id` is such an id. **Pattern reference values** are frontmatter
-  text anyone with push access writes: the `id` of a pattern reference, in `references[]` and in
-  `completion.references[]`, passes through the character escape of the tool-message sanitiser
-  (`neutralise`: CR LF folded, a backslash doubled, Cc/Cf/Cs/Zl/Zp but newline and tab escaped —
-  no bidi control or invisible character reaches the page) and is at most 256 characters (§1
-  rule 2); two values equal after the escape are one reference. The `ui.yaml`
+- **Repository text in the answers (K1).** Every display string a body takes from the
+  repository passes through the character escape of the tool-message sanitiser (`neutralise`,
+  `server/src/git/redact.ts`: CR LF folded, a backslash doubled, Cc/Cf/Cs/Zl/Zp but newline and
+  tab escaped — no bidi control or invisible character reaches the page): element **titles**
+  (the `/elements` rows here and everywhere, `ElementRef.title`, `scope.current`, the candidate
+  titles of spec-011 §3), every **pattern reference** id (in `references[]` and
+  `completion.references[]`; at most 256 characters as written, §1 rule 2; two values equal after
+  the escape are one reference) and the **`ui.yaml` strings echoed** by `/config` `ui`
+  (`patterns[].match`, type names, `phases`, `holds` types and states, `artifacts` paths). The
+  rule is spec-004 §5's (amended with this spec); it lands with bug-027's task (the same class:
+  repository text that reached the page unescaped). Element ids, types and states of `memory
+  search` stay as returned: they are the keys the web sends back to the API (an element
+  reference's `id` is such an id); the web renders them as text, never as HTML. The `ui.yaml`
   `failure` passes through the whole sanitiser (§2). Descriptor texts follow spec-004 §5 (D13).
 - **No path, regex or command from input.** The only request input is `:pid` (an opaque id,
   REQ-SEC-04) and `scope` (an enum); filters and search are the web's, over the answer, by
@@ -352,14 +391,17 @@ every object `additionalProperties: false`, as the other API schemas.
 | `memory search` fails | the CLI envelope of spec-004 §5 (no partial figures) | as today |
 | `memory.yaml` unreadable | 502 `read-error` (every figure is type-dependent) | `typesError`, no `missingReferences` |
 | `ui.yaml` missing or ignored | 200 with `ui.status` and the inferred values | flag from the inferred values (none) |
-| an element file unreadable | 200, `unreadable` lists it (§1) | `missingReferences.unreadable` |
-| events or `dna show` fail | `/progress` unaffected; `/traceability` `eventsError` / `dnaError` | as today |
+| an element file unreadable; more than 200 values | 200, `unreadable` / `capped` lists it (§1) | `missingReferences.unreadable` / `.capped` |
+| events or `dna show` fail | `/progress` unaffected; `/traceability` `eventsError`, or member actors falling back (no field; the header's `dnaError`) | as today |
 
 ### 11. Verification
 
 - **Unit (server):** the index on each rule of §1 (excluded fields, top-level only, list items,
-  non-strings, own id, archived id, first pattern wins, a 257-character value, a duplicate value,
-  an uncategorised type, an unreadable file); the in-scope rule by id and by `version`; each
+  non-strings, own id, archived id, a short id, first pattern wins, a 257-character value, a
+  value with a line break, a duplicate value, an uncategorised type, an unreadable file, an
+  element with 201 values → `capped`); the reuse across states (a commit touching one element
+  re-reads one file; a changed working-tree file is re-read); the in-scope rule by id and by
+  `version`; each
   figure and each `Unavailable`/`ReadOnly` reason; `percent` rounding (half up); the natural
   order; the 10-entry cap of `completion.references`; the sanitising of a reference value holding
   a bidi control.
@@ -371,7 +413,14 @@ every object `additionalProperties: false`, as the other API schemas.
   pending gate (spec-005 §6).
 - **API:** each route's body against its schema on the three fixtures; `scope=current` and
   `project`; 400 on a bad `scope`; 502 on an unreadable `memory.yaml`; 0 CLI processes for a
-  repeated request on the same state and none per element (process audit, REQ-PERF-05).
+  repeated request on the same state and none per element (process audit, REQ-PERF-05); every
+  title, pattern reference and echoed `ui.yaml` string holding a bidi control or a C1 control
+  comes back escaped (K1).
+- **Timing** (the performance run, `test/e2e/performance.spec.ts`, on the `large` fixture —
+  500 generated elements, `test/harness/fixtures/large.ts` — with the sw-life-cycle preset
+  applied): a commit made outside the UI is reflected in the progress card and the Memory list's
+  `missing refs` badges within 5 s (REQ-PERF-03); the Memory list with `requires` set and
+  Traceability render with p95 ≤ 1.0 s warm (REQ-PERF-04).
 - **Scenarios mapped:** T-12.1, T-12.2, T-12.3, T-12.4, T-12.5 (§3 scope and figures); T-13.1,
   T-13.2 (§3 figure filters); T-14.1, T-14.2 (§3 `completion.references`); T-15.1, T-15.2 (§3
   `ReadOnly`); T-08.1, T-08.2, T-08.3 (§6); M-03.1, M-03.2, M-04.1, M-04.2 (§5); R-01.1, R-01.2,
@@ -382,7 +431,7 @@ every object `additionalProperties: false`, as the other API schemas.
   without `ui.yaml`, with the "No ui.yaml" note; (4) "No references linked in <scope>"
   (`no-linked-elements`); (5) the traceability section "Elements missing required references" and
   its *Show in Memory* link; (6) the M2 filter shown with count 0 when `requires` is declared and
-  nothing is missing (TQ-5); (7) a figure filter cleared, and an unknown `figure` code; (8) the
+  nothing is missing (TQ-5 (a)); (7) a figure filter cleared, and an unknown `figure` code; (8) the
   `ui.yaml` warning on the Traceability page; (9) the category filter of R5.
 
 ## Consequences
@@ -390,8 +439,9 @@ every object `additionalProperties: false`, as the other API schemas.
 - The T2, M2 and R5 tasks share one server module (the index and the derived bodies) and the C1a
   task's `ui.yaml` loading; the descriptor's `when-references-done` hold (spec-005 §4a) reads the
   same index, so C1a or the first of these tasks builds it.
-- spec-004 §3 gains the traceability row and the bodies of `/progress` and `/traceability`;
-  `/elements` and `/config` gain fields (§5, §2); no event is added.
+- spec-004 §3 carries the traceability row and the bodies of `/progress` and `/traceability`,
+  `/elements` and `/config` their new fields (§5, §2), §5 the escaping of K1; spec-001 §4.2,
+  spec-003 §3/§8 and spec-005 §2/§4 point here (aligned the same day); no event is added.
 - The web never computes a figure, a reference or a done state; it filters and sorts nothing the
   server did not order, except the traceability filters over the answer.
 - When v0.4 consumes `workflow status`, `scope.basis` gains `workflow-status` and the `phase`
@@ -418,3 +468,20 @@ every object `additionalProperties: false`, as the other API schemas.
   Clarifications of spec-005 §4 made here, not changes: top-level values only, non-strings
   ignored, the element's own id and archived ids excluded, an uncategorised reference counted
   nowhere, unreadable files left out of scope and coverage.
+- 2026-11-03 — decided by the approver ("TQ-1…TQ-6, X1 e K1–K3 come consigliato"): TQ-1 (b) every
+  category a row, the completion figures on `requirement` and `feature`; TQ-2 (c) the scope
+  control, current by default; TQ-3 (a) archived ids not recognised in v0.3; TQ-4 (a)
+  `?figure=<code>` with the ids of `/progress`; TQ-5 (a) the M2 filter whenever `requires` names a
+  type, with 0; TQ-6 (a) US-R-01 in REQ-PERF-04 (SARD `02` amended now). With them, from the
+  review: K1 §9 every repository display string escaped (titles, pattern references, the echoed
+  `ui.yaml` strings), with bug-027's task, and spec-004 §5 amended; K2 §1 the index keeps values
+  only (no body), at most 200 per element (`capped`, reported like `unreadable`), §8 the reuse
+  across states by `(path, blob id)` as a contract, §11 a timing check on the `large` fixture
+  (REQ-PERF-03, REQ-PERF-04); K3 §1 Cost and §8 the index on every state when a
+  `when-references-done` hold is in force (m3), §1 a value with a line break is no reference
+  (m6), the 256-character bound taken before the escape, a short-id value is no element reference
+  (WingFoil 0.3.2's short references noted), §4 and §10 the DNA failure described as the code has
+  it (no `dnaError` on these routes; the header's). X1: the cross-document changes made in the
+  same step — spec-001 §4.2, spec-003 §3/§8, spec-004 §3/§5, spec-005 §2/§4, SARD REQ-PERF-04,
+  `ux-reference.md` §4.1/§4.4/§4.8 (1.14), the R-01.2 erratum (pinned to the pre-packs variant,
+  the detail as §4.8).
