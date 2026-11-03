@@ -1,6 +1,6 @@
 # UX reference — WingFoil UI
 
-**Version:** 1.11 · **Date:** 2026-11-01 (0.2: §9 colours aligned with spec-009 — release-planning v0.1 session 2; 0.3: §3 start page with no project open, §5 modal dismissal — dev-loop task-013, decided by the user; 0.4: §4.2 v0.1 read-only panel — dev-loop task-018, decided by the user; 0.5: §4.4 and §4.9 in v0.1 — dev-loop tasks 017 and 020, decided by the user; 0.6: §4.2 panel directives, §4.5, §4.6, §4.10 in v0.1 — dev-loop task-019, decided by the user; 0.7: §3 project switcher in v0.1 (grid rows, removal confirmation, unavailable entries, trigger text) — dev-loop task-015, Wave 4, decided by the user; 0.8: §4.2 non-modal drawer — dev-loop task-015, W4-8, decided by the user; §3 keyboard wording and §4.2 v0.1 bullet aligned after review; 0.9: §3 add-project modal in v0.1 — dev-loop task-014, Wave 4, decided by the user; 1.0: §3 current user, role view and project header strip in v0.1 — dev-loop task-016, Wave 4, decided by the user; 1.1: §3 *How to join* panel — dev-loop task-035, D35-1…D35-9, decided by the approver; identity changes while open — review round 1; 1.2: §4.1 *Today* in v0.2 — dev-loop task-036, D36-1…D36-11, decided by the approver; 1.3: §4.2 *Gate footer* in v0.2 — dev-loop task-037, D37-1…D37-12, decided by the approver; 1.4: §3 *Notifications* and §4.1 all-roles summary in v0.2 — dev-loop task-042, D42-1…D42-8, decided by the approver; 1.5: §4.2 *Single-action footer* and §5 *Feedback* in v0.2 — dev-loop task-038, D38-1…D38-13, decided by the approver; 1.6: §2, §3 *Git status* and *Sidebar* in v0.2 — dev-loop task-039, D39-1…D39-13, decided by the approver; 1.7: §3 sidebar *Configuration* and §4.11 *UI settings* in v0.2 — dev-loop task-041, D41-1…D41-13, decided by the approver; 1.8: §3 *Git status* *Update*/*Push* in v0.2, *Push* whatever auto-push says (a deviation) — dev-loop task-040, D40-1…D40-12, decided by the approver; 1.9: §4.2 the focus after the panel closes — bug-018, task-043 AC-7, decided by the approver; 1.10: §4.2 every opener on Today, the "otherwise" rule, the notification bell — task-043 review rounds 1–2, D43-10; 1.11: §4.6 one row per directive in force — task-047, bug-025, decided by the approver) · **Status:** Reference for `lean-inception` and `specification-downcast`
+**Version:** 1.12 · **Date:** 2026-11-03 (0.2: §9 colours aligned with spec-009 — release-planning v0.1 session 2; 0.3: §3 start page with no project open, §5 modal dismissal — dev-loop task-013, decided by the user; 0.4: §4.2 v0.1 read-only panel — dev-loop task-018, decided by the user; 0.5: §4.4 and §4.9 in v0.1 — dev-loop tasks 017 and 020, decided by the user; 0.6: §4.2 panel directives, §4.5, §4.6, §4.10 in v0.1 — dev-loop task-019, decided by the user; 0.7: §3 project switcher in v0.1 (grid rows, removal confirmation, unavailable entries, trigger text) — dev-loop task-015, Wave 4, decided by the user; 0.8: §4.2 non-modal drawer — dev-loop task-015, W4-8, decided by the user; §3 keyboard wording and §4.2 v0.1 bullet aligned after review; 0.9: §3 add-project modal in v0.1 — dev-loop task-014, Wave 4, decided by the user; 1.0: §3 current user, role view and project header strip in v0.1 — dev-loop task-016, Wave 4, decided by the user; 1.1: §3 *How to join* panel — dev-loop task-035, D35-1…D35-9, decided by the approver; identity changes while open — review round 1; 1.2: §4.1 *Today* in v0.2 — dev-loop task-036, D36-1…D36-11, decided by the approver; 1.3: §4.2 *Gate footer* in v0.2 — dev-loop task-037, D37-1…D37-12, decided by the approver; 1.4: §3 *Notifications* and §4.1 all-roles summary in v0.2 — dev-loop task-042, D42-1…D42-8, decided by the approver; 1.5: §4.2 *Single-action footer* and §5 *Feedback* in v0.2 — dev-loop task-038, D38-1…D38-13, decided by the approver; 1.6: §2, §3 *Git status* and *Sidebar* in v0.2 — dev-loop task-039, D39-1…D39-13, decided by the approver; 1.7: §3 sidebar *Configuration* and §4.11 *UI settings* in v0.2 — dev-loop task-041, D41-1…D41-13, decided by the approver; 1.8: §3 *Git status* *Update*/*Push* in v0.2, *Push* whatever auto-push says (a deviation) — dev-loop task-040, D40-1…D40-12, decided by the approver; 1.9: §4.2 the focus after the panel closes — bug-018, task-043 AC-7, decided by the approver; 1.10: §4.2 every opener on Today, the "otherwise" rule, the notification bell — task-043 review rounds 1–2, D43-10; 1.11: §4.6 one row per directive in force — task-047, bug-025, decided by the approver; 1.12: §4.1 Today in v0.3 (roles on one line, filters, entry date, 10 rows, short ids), §4.2 the element page and the rendered summary and document, §4.4 the states of a bucket — release-planning v0.3, RP3-7 N1–N7, RP3-14 D1–D3, D7, D8, decided by the approver) · **Status:** Reference for `lean-inception` and `specification-downcast`
 **Prototype:** `docs/00_reference/prototype/` (interactive HTML; sample data from the WingFoil
 repository and from a fictional Kanban project `acme-checkout`)
 
@@ -94,6 +94,26 @@ that view too); the current view's line is marked *current view* and is not a sw
 the focus moves to the *Requires you* heading once the new view is read. Absent for a single-role
 member and for a user not identified.
 
+**v0.3 (release-planning v0.3, RP3-7 N1–N4, RP3-14 D1, D2, D8; the tasks of `minor-v0.3`):**
+- *Your roles* (N1) is **one line**: one tag per role in DNA order, "approver · 2" — the role and
+  the count of *Requires you* in that role view; a click switches the role view (focus as in v0.2);
+  the current view's tag is marked *current view* (pressed) and is not a switch. No items and no
+  "N more" (S-23.1, S-23.4). Absent as in v0.2.
+- *Requires you* and *Waiting on others* (N2, N3) each have two filters, **type** and **state**,
+  listing the types and the states of that card's rows with their counts (*All* by default; a
+  filter applies to its own card only). Each row shows when its element **entered its current
+  state** — the descriptor's `since` (spec-003 §8) as a date, the full time as its accessible
+  description; nothing when `since` is absent. Each card shows **10 rows** at first, then "Show all
+  (<n>)" expands it and "Show fewer" collapses it back; filters apply before the limit; the
+  greeting and the bell keep counting every row of *Requires you*, unfiltered.
+- Each row names its element by its **short id** (N4, e.g. `task-046`; the full id when the type's
+  id pattern has no number) — the rule is the element-addressing spec's (RP3-14, step 5b).
+- *Waiting on others* keeps the v0.2 texts; "Waiting for the workflow engine" on a settled decision
+  does not occur (spec-003 §2 kind `last`), and the engine's own step text is v0.4 (D1).
+- The progress card shows its phase figures read-only until v0.4 (spec-005 §4, D2); *Recent
+  activity* lists the last 5 Memory events (REQ-PERF-11) with no link while the Timeline is v0.4
+  (D8).
+
 ### 4.2 Element panel (right drawer)
 - **v0.1 (dev-loop task-015, decided by the user, W4-8):** the drawer is **non-modal** — no backdrop over the header and sidebar and no focus trap, so the shell (project switcher included) stays operable while it is open; focus moves into the panel on open, *Close* and Escape close it and return focus. **v0.2 (bug-018, task-043 AC-7, decided by the approver):** the focus returns to the opener — the control that opened the panel — when it is one of: the Memory list's row (X-06.3), or on Today a *Requires you* action, a *Requires you* title link, a *Waiting on others* link or an item of the all-roles summary (review rounds 1–2, D43-10) — also after the gate footer's *Cancel*, and while that control is still listed. Otherwise the focus goes to the main region: when the opener is no longer listed (e.g. a decided gate left *Requires you*), and when the panel was opened another way — an item of the notification bell (it opens the panel from a popover that closes), its address, or another link.
 - Type tag, id, **Edit**, close.
@@ -139,6 +159,30 @@ member and for a user not identified.
   *Directives* (dev-loop task-019): the directives of the current role view plus the global ones,
   each linking to its directive page; a user who holds no role sees the global ones with "You
   hold no role in this project".
+- **v0.3 (release-planning v0.3, RP3-7 N5, N6, dl-012 R2, bug-019; RP3-14 D3):**
+  - **Where it opens (N5).** Opened from Today — *Requires you*, *Waiting on others*, *Recent
+    activity* — the element stays in the **side panel** above (non-modal, its focus rules). Opened
+    any other way — its address, the Memory list, a link in a document, a directive or another
+    element, an item of the notification bell — it is shown in the page's **main region**, with
+    the sidebar, as a page of its own; *Close* and Escape go back in history, or to the Memory list
+    when it was opened from its address. Same content and footers in both places.
+  - **Its address.** `/p/<id>/e/<element id>` as before; a short id resolves to its element and the
+    address is rewritten to the full id; a short id that matches several elements shows the
+    candidates, each a link, instead of *not found* (dl-012 R2, D3); an id longer than 100
+    characters opens and is decided like any other (bug-019). The URL forms and the resolution
+    are the element-addressing spec's (RP3-14, step 5b).
+  - **Summary (N6).** The body's first paragraph **rendered as Markdown** (emphasis, code, links),
+    no longer as plain text; "No summary in the document." otherwise. A button *Open document*
+    opens a **modal dialog** with the whole body, **rendered** by default, with a *Rendered /
+    Source* switch (source: the Markdown as written, in a monospace block); an empty body reads
+    "No content yet" (G-03.3). The dialog closes with *Close* or Escape (§5 *Modal dismissal*) and
+    gives the focus back to the button.
+  - **Rendering.** The documentation view's renderer (§4.9; `adr-002`: markdown-it with raw HTML
+    shown as text, DOMPurify): relative links resolve against the **element file's folder** and are
+    classified as the documentation view's links — a link to another element's file opens that
+    element (G-03.2); images are **never loaded** (their alternative text is shown, marked). The
+    body comes with the element's read (`GET /api/p/<id>/elements/<element id>`, its `body`,
+    spec-001 §4.2): no other read.
 
 ### 4.3 Workflow
 - **Main workflow tree** with status dots (done / current / todo) and notes; the iterated
@@ -168,6 +212,12 @@ member and for a user not identified.
   of the feature header. Not in v0.1: "+ Ingestion" (v0.2), the producer note, the "Missing
   required references" filter and badge (the panel flags missing fields); the age comes from the
   descriptor's `since`.
+- **v0.3 state filter (release-planning v0.3, RP3-7 N7, RP3-14 D7):** with *All types* the four
+  buckets stay as **groups**; each group also offers its **states** — the states of the elements
+  in that bucket, by name — as sub-options. Selecting a bucket lists all its elements, as in v0.1
+  (M-01.2, M-02.2); selecting one of its states narrows the list to that bucket's elements in that
+  state (M-02.4). The URL keeps the bucket and the state. With a type selected the state filters
+  are unchanged (the type's real states).
 
 ### 4.5 DNA
 Modules, stack + methodologies, team and roles, paths. **Edit mode**: modules (name,
