@@ -316,9 +316,10 @@ remaining non-methodology hit needs a justified inline disable.
   WingFoil version in v0.3, `workflow status` from v0.4, the phase figures read-only
   (`needs-version` below 0.3.0, `not-in-release` from it) — D2; §1 and §4a the `holds` key (per
   type and gate state, `approve: never | when-references-done`; *Approve* not offered, an
-  informational line with the reason, *Reject* kept; a held gate is not a pending gate) — D5; §4
+  informational line with the reason) — D5; §4
   pattern references shown by id only in v0.3 — D9. With them, to make C1 complete for
-  implementation (step 5 survey; the approver's OK on the step's draft): §1 the schema file named
+  implementation (step 5 survey; for the approver's OK on the step's draft): §4a *Reject* kept on
+  a held gate and a held gate not a pending gate (this step's reading of D5); §1 the schema file named
   and what it holds, the semantic checks ordered, the safe subset of `taxonomy.patterns` against
   slow patterns; §2 the read source (working tree), "exists" defined, non-regular, oversized and
   aliased files ignored with a warning, where the warning travels; §3 `holds` empty when inferred;
