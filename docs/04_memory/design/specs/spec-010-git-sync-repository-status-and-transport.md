@@ -352,8 +352,8 @@ so the sidebar shows it (Y-06.1, Y-06.2).
   in sync; otherwise the server logs `merge-not-fast-forward` at error level and records it as
   `sync.update.lastError` with that code (W4-9). `autoFetch` off → the scheduler starts 0 `git fetch` processes (Y-02.3); manual
   *Fetch* still works.
-- **Auto-push:** after each successful governed write from the UI, with `autoPush` on and
-  `has-remote` holding, a push (§4) runs under the same write lock, killed after 60 s. The `push`
+- **Auto-push:** after each successful governed write from the UI (from v0.3 also a preset write,
+  spec-005 §5), with `autoPush` on and `has-remote` holding, a push (§4) runs under the same write lock, killed after 60 s. The `push`
   field of the write response (spec-004 §5, `write.response.schema.json`) is
   `{ status, code?, message? }`: `off` when no push was attempted; `pushed` on success; `failed`
   with git's `message` when git refuses (Y-08.1: the commit stays, the copy is `ahead`); `failed`
@@ -565,3 +565,6 @@ Rows 7–9 do not apply (no element).
 - 2026-10-30 — corrected in dev-loop task-046 review round 6 (r6-minor-1, decided by the approver): §6
   the remedy of the partial-clone limitation is `git fetch --refetch --no-filter <remote>`, then
   `git config --unset remote.<remote>.partialclonefilter`.
+- 2026-11-03 — amended in `release-planning` v0.3 (step 5, RP3-14; C1, aligned with spec-005 §5):
+  §6 the auto-push also follows a preset write, as after a governed write. Decided by the approver
+  with the C1 scope (RP3-7).
