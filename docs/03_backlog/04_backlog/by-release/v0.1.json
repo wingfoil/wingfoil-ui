@@ -3,7 +3,7 @@
   "release": "v0.1",
   "generated_from": {
     "story_map": "docs/02_requirements/01_user_story_map/02_story-map.md v0.6",
-    "bdd": "docs/02_requirements/02_bdd/00_conventions.md v0.11",
+    "bdd": "docs/02_requirements/02_bdd/00_conventions.md v0.12",
     "sard": "docs/02_requirements/03_sard/00_sard.md v0.11"
   },
   "items": [
@@ -1559,6 +1559,21 @@
             "| In progress           | \"note-002-retro\"",
             "| Waiting/drafts/closed | \"story-002-billing\", \"note-001-kickoff\"",
             "| Done                  | no element"
+          ]
+        },
+        {
+          "id": "M-02.4",
+          "title": "Narrow a bucket to one of its states",
+          "file": "docs/02_requirements/02_bdd/features/m/memory-list.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "unknown",
+          "steps": [
+            "Given the console is running",
+            "Given the unknown fixture is open",
+            "When I select the type filter \"All types\", the bucket \"Waiting/drafts/closed\" and its state \"open\"",
+            "Then the list shows exactly \"note-001-kickoff\"",
+            "And the active filter reads \"Waiting/drafts/closed · open\""
           ]
         }
       ],
