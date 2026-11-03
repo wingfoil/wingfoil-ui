@@ -29,6 +29,13 @@ Feature: Notifications and all-roles summary
     When I approve "task-001-login-form" from Today
     Then the bell shows the count 1
 
+  @US-S-21 @v0.3 @edge @fx-kanban
+  Scenario: S-21.4 — Open an item of the bell in the side panel of the current view
+    Given I am Morgan with the role view "approver" and the Memory list is open
+    When I select "task-001-login-form" in the bell panel's "To unblock"
+    Then the Memory list stays shown with the side panel of "task-001-login-form"
+    And the address is the Memory list's with "?panel=task-001-login-form"
+
   # --- US-S-23 — all-roles summary ---
 
   @US-S-23 @v0.2 @nominal @fx-kanban

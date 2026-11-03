@@ -64,12 +64,55 @@
             "Then the command prints the URL to open",
             "And the server keeps running"
           ]
+        },
+        {
+          "id": "S-01.4",
+          "title": "Write the console's address file for agents",
+          "file": "docs/02_requirements/02_bdd/features/s/launch.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "any",
+          "steps": [
+            "Given the state directory has no file under \"consoles/\"",
+            "When I run \"npx wingfoil-ui --no-open --port 4870\"",
+            "Then when the URL line is printed the file \"consoles/4870.json\" of the state directory exists with mode 0600, in a folder \"consoles/\" with mode 0700",
+            "And it holds the URL \"http://127.0.0.1:4870/\", \"portFixed\": true and the console's process id",
+            "And it holds no part of the session token printed in the URL line"
+          ]
+        },
+        {
+          "id": "S-01.5",
+          "title": "Remove the address file on stop",
+          "file": "docs/02_requirements/02_bdd/features/s/launch.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "any",
+          "steps": [
+            "Given the console was started with \"npx wingfoil-ui --no-open --port 4870\" and wrote \"consoles/4870.json\"",
+            "When I press Ctrl-C in its terminal",
+            "Then when \"WingFoil UI stopped\" is printed the file \"consoles/4870.json\" no longer exists"
+          ]
+        },
+        {
+          "id": "S-01.6",
+          "title": "Remove a stale address file at start",
+          "file": "docs/02_requirements/02_bdd/features/s/launch.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "any",
+          "steps": [
+            "Given the state directory holds \"consoles/4871.json\" naming this machine and a process id that is not running",
+            "When I run \"npx wingfoil-ui --no-open --port 4870\"",
+            "Then when the URL line is printed \"consoles/4871.json\" no longer exists and \"consoles/4870.json\" does"
+          ]
         }
       ],
       "dependencies": [
         "TT-ARC-01",
+        "TT-ARC-08",
         "TT-INT-08",
-        "TT-PERF-06"
+        "TT-PERF-06",
+        "TT-SEC-09"
       ]
     },
     {
@@ -246,6 +289,23 @@
             "Given the token printed at the previous start",
             "When I stop the console, start it again and send an API request with the previous token",
             "Then the response status is 401"
+          ]
+        },
+        {
+          "id": "X-02.3",
+          "title": "Recover a page the console no longer recognises, in place",
+          "file": "docs/02_requirements/02_bdd/features/x/local-security.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console has been started with \"npx wingfoil-ui\" and printed its URL with the session token",
+            "And the kanban fixture is added",
+            "Given the console was started with \"--port 4870\" and a browser tab shows the element page of \"task-001-login-form\"",
+            "And the console was stopped and started again with \"--port 4870\", and that tab shows \"This page is no longer recognised by the console\"",
+            "When I open the newly printed URL in another tab of the same browser and return to the first tab",
+            "Then the first tab shows the element page of \"task-001-login-form\" again, at the same address",
+            "And no address of either tab holds the token after the page has loaded"
           ]
         }
       ],
@@ -1599,9 +1659,25 @@
             "When I approve \"task-001-login-form\" from Today",
             "Then the bell shows the count 1"
           ]
+        },
+        {
+          "id": "S-21.4",
+          "title": "Open an item of the bell in the side panel of the current view",
+          "file": "docs/02_requirements/02_bdd/features/s/shell.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running with the kanban fixture open",
+            "Given I am Morgan with the role view \"approver\" and the Memory list is open",
+            "When I select \"task-001-login-form\" in the bell panel's \"To unblock\"",
+            "Then the Memory list stays shown with the side panel of \"task-001-login-form\"",
+            "And the address is the Memory list's with \"?panel=task-001-login-form\""
+          ]
         }
       ],
       "dependencies": [
+        "TT-PERF-09",
         "TT-PERF-11"
       ]
     },
@@ -1725,6 +1801,21 @@
             "When I open Today",
             "Then the row of \"dl-002-use-fastify\" names it \"dl-002\"",
             "And the Waiting on others row of \"minor-v0.1\", whose id pattern has no number, names it \"minor-v0.1\""
+          ]
+        },
+        {
+          "id": "T-02.8",
+          "title": "Open an element of Requires you in the side panel and keep it on reload",
+          "file": "docs/02_requirements/02_bdd/features/t/requires-you.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running",
+            "Given the kanban fixture is open and I am Morgan with the role view \"approver\"",
+            "When I select the title of \"task-001-login-form\" in Requires you and reload the page",
+            "Then Today is shown with the side panel of \"task-001-login-form\"",
+            "And the address is Today's with \"?panel=task-001-login-form\""
           ]
         }
       ],
@@ -2466,7 +2557,7 @@
         },
         {
           "id": "G-01.4",
-          "title": "Open an element panel from its URL",
+          "title": "Open an element page from its URL",
           "file": "docs/02_requirements/02_bdd/features/g/element-panel.feature",
           "release": "v0.1",
           "kind": "edge",
@@ -2474,12 +2565,59 @@
           "steps": [
             "Given the console is running",
             "Given the kanban fixture is open",
-            "When I copy the URL of the element panel of \"task-001-login-form\" and open it in a new tab",
-            "Then the new tab shows the element panel of \"task-001-login-form\""
+            "When I copy the URL of the element page of \"task-001-login-form\" and open it in a new tab",
+            "Then the new tab shows the element page of \"task-001-login-form\""
+          ]
+        },
+        {
+          "id": "G-01.5",
+          "title": "Open an element by its short id and show its full id",
+          "file": "docs/02_requirements/02_bdd/features/g/element-panel.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running",
+            "Given the kanban fixture is open",
+            "When I open the address \"/p/<project id>/e/task-003\" of the kanban fixture",
+            "Then the element page of \"task-003-logout\" opens in the main region",
+            "And the address bar shows \"/p/<project id>/e/task-003-logout\""
+          ]
+        },
+        {
+          "id": "G-01.6",
+          "title": "List the candidates of an ambiguous short id",
+          "file": "docs/02_requirements/02_bdd/features/g/element-panel.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running",
+            "Given the kanban fixture is open",
+            "And an element of type \"task\" with the id \"task-001-login-form-copy\" is committed by hand next to \"task-001-login-form\"",
+            "When I open the address \"/p/<project id>/e/task-001\" of the kanban fixture",
+            "Then the page lists the candidates \"task-001-login-form\" and \"task-001-login-form-copy\", each a link to its element page",
+            "And it does not show \"Not found\""
+          ]
+        },
+        {
+          "id": "G-01.7",
+          "title": "Open and decide an element whose id is longer than 100 characters",
+          "file": "docs/02_requirements/02_bdd/features/g/element-panel.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running",
+            "Given the kanban fixture is open and I am Morgan",
+            "And a task whose title gives an id of 140 characters is added and submitted with the CLI, so that it is `pending`",
+            "When I open its element page from the Memory list and approve it with the reason \"Long ids work\"",
+            "Then the fixture's last commit is \"wf(task): approve <that id> [pending → approved]\""
           ]
         }
       ],
       "dependencies": [
+        "TT-ARC-04",
         "TT-PERF-04"
       ]
     },
@@ -2593,9 +2731,27 @@
             "When I open the element panel of \"dl-003-empty\" and select \"Open document\"",
             "Then the dialog reads \"No content yet\""
           ]
+        },
+        {
+          "id": "G-03.4",
+          "title": "Open a linked element from a summary in the main region",
+          "file": "docs/02_requirements/02_bdd/features/g/decision-log.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running with the custom fixture open",
+            "Given I am Casey",
+            "And the summary of \"dl-002-use-fastify\" links to the file of \"dl-001-initialise-wingfoil-before-inception\"",
+            "And the side panel of \"dl-002-use-fastify\" is open on Today",
+            "When I select that link",
+            "Then the element page of \"dl-001-initialise-wingfoil-before-inception\" opens in the main region"
+          ]
         }
       ],
-      "dependencies": []
+      "dependencies": [
+        "TT-SEC-06"
+      ]
     },
     {
       "id": "US-G-04",
@@ -3510,6 +3666,22 @@
           ]
         },
         {
+          "id": "T-12.6",
+          "title": "Say that no reference is linked in the current release",
+          "file": "docs/02_requirements/02_bdd/features/t/progress-card.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running",
+            "And I am Casey",
+            "Given the custom fixture with the sw-life-cycle preset is open",
+            "And \"minor-v0.1\" is `released` and \"minor-v0.2\" is `in-development`",
+            "When I open Today",
+            "Then the progress card shows \"No references linked in minor-v0.2\" in place of the completion figure"
+          ]
+        },
+        {
           "id": "T-12.2",
           "title": "Show whole-project figures without ui.yaml",
           "file": "docs/02_requirements/02_bdd/features/t/progress-card.feature",
@@ -3593,6 +3765,39 @@
             "Given the custom fixture with the sw-life-cycle preset is open",
             "When I select \"Tasks 1/4\" on the progress card",
             "Then the Memory list shows the 4 tasks of release \"v0.1\", \"task-002-memory-list\" marked done"
+          ]
+        },
+        {
+          "id": "T-13.3",
+          "title": "Clear a figure filter",
+          "file": "docs/02_requirements/02_bdd/features/t/progress-card.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running",
+            "And I am Casey",
+            "Given the custom fixture with the sw-life-cycle preset is open",
+            "And the Memory list was opened from \"Pending gates 3\" on the progress card",
+            "When I clear the active filter \"Pending gates\"",
+            "Then the Memory list shows every non-archived element of the fixture",
+            "And no active filter is shown"
+          ]
+        },
+        {
+          "id": "T-13.4",
+          "title": "Ignore an unknown figure code",
+          "file": "docs/02_requirements/02_bdd/features/t/progress-card.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running",
+            "And I am Casey",
+            "Given the custom fixture with the sw-life-cycle preset is open",
+            "When I open the address \"/p/<project id>/memory?figure=bogus\" of the custom fixture",
+            "Then the Memory list shows every non-archived element of the fixture",
+            "And no active filter is shown"
           ]
         }
       ],
@@ -3817,7 +4022,7 @@
         },
         {
           "id": "M-01.3",
-          "title": "Open the element panel from the list",
+          "title": "Open the element page from the list",
           "file": "docs/02_requirements/02_bdd/features/m/memory-list.feature",
           "release": "v0.1",
           "kind": "edge",
@@ -3826,7 +4031,7 @@
             "Given the console is running",
             "Given the kanban fixture is open on the Memory list",
             "When I select the row of \"task-003-logout\"",
-            "Then the element panel of \"task-003-logout\" opens"
+            "Then the element page of \"task-003-logout\" opens"
           ]
         },
         {
@@ -4030,10 +4235,27 @@
             "When I look at the state filters",
             "Then no filter \"Missing required references\" is shown"
           ]
+        },
+        {
+          "id": "M-04.3",
+          "title": "Show the filter with 0 when every required reference is present",
+          "file": "docs/02_requirements/02_bdd/features/m/missing-references.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running",
+            "And I am Morgan",
+            "Given the custom fixture with the sw-life-cycle preset is open on the Memory list",
+            "And `ref: US-X-08` is added to \"task-004-themes\" and `sard_ref: REQ-ARC-01` to \"adr-001-local-server\", committed outside the UI",
+            "When I look at the state filters",
+            "Then the filter \"Missing required references\" is shown with the count 0"
+          ]
         }
       ],
       "dependencies": [
-        "TT-INT-03"
+        "TT-INT-03",
+        "TT-STATE-08"
       ]
     },
     {
@@ -4111,6 +4333,86 @@
             "Given the unknown fixture is open",
             "When I open Traceability",
             "Then the page shows \"No references found — declare taxonomy patterns in ui.yaml\""
+          ]
+        },
+        {
+          "id": "R-01.5",
+          "title": "Show the rows outside the current release under the whole project",
+          "file": "docs/02_requirements/02_bdd/features/r/traceability.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running",
+            "And I am Casey",
+            "Given `ref: US-S-09` is added to \"dl-001-initialise-wingfoil-before-inception\" and committed outside the UI",
+            "And the custom fixture with the sw-life-cycle preset is open on Traceability, its scope \"minor-v0.1 (current release)\"",
+            "When I select the scope \"Whole project\"",
+            "Then the row \"US-S-09\" lists the linked element \"dl-001\"",
+            "And before the selection the table had no row \"US-S-09\""
+          ]
+        },
+        {
+          "id": "R-01.6",
+          "title": "Show a pattern reference by its id only",
+          "file": "docs/02_requirements/02_bdd/features/r/traceability.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running",
+            "And I am Casey",
+            "Given the custom fixture with the sw-life-cycle preset is open",
+            "When I open Traceability",
+            "Then the reference cell of the row \"US-M-01\" shows the category \"requirement\" and the id \"US-M-01\" only, with no title and no hover card"
+          ]
+        },
+        {
+          "id": "R-01.7",
+          "title": "List references between Memory elements without ui.yaml",
+          "file": "docs/02_requirements/02_bdd/features/r/traceability.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running",
+            "And I am Casey",
+            "Given `related: dl-001-initialise-wingfoil-before-inception` is added to \"task-001-cli-adapter\" and committed outside the UI",
+            "And the custom fixture without `ui.yaml` is open",
+            "When I open Traceability",
+            "Then a note reads \"No ui.yaml — only references to other Memory elements are recognised\"",
+            "And the row of \"dl-001-initialise-wingfoil-before-inception\" shows the category \"decision\" and the linked element \"task-001\""
+          ]
+        },
+        {
+          "id": "R-01.8",
+          "title": "Open the elements missing required references in Memory",
+          "file": "docs/02_requirements/02_bdd/features/r/traceability.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running",
+            "And I am Casey",
+            "Given the custom fixture with the sw-life-cycle preset is open on Traceability",
+            "When I select \"Show in Memory\" in the section \"Elements missing required references (2)\"",
+            "Then the Memory list shows exactly \"task-004-themes\" and \"adr-001-local-server\"",
+            "And the active filter reads \"Missing required references\""
+          ]
+        },
+        {
+          "id": "R-01.9",
+          "title": "Filter references by category",
+          "file": "docs/02_requirements/02_bdd/features/r/traceability.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running",
+            "And I am Casey",
+            "Given the custom fixture with the sw-life-cycle preset is open on Traceability",
+            "When I select the category filter \"requirement\"",
+            "Then the table shows exactly the rows \"US-M-01\" and \"US-S-01\""
           ]
         }
       ],
@@ -6258,6 +6560,22 @@
             "Then a warning names the YAML error and its line",
             "And every value is marked \"inferred\""
           ]
+        },
+        {
+          "id": "C-04.3",
+          "title": "Show the ui.yaml warning on Traceability",
+          "file": "docs/02_requirements/02_bdd/features/c/ui-yaml.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running",
+            "Given the kanban fixture has a committed \".wingfoil/ui.yaml\" whose `progress.mode` is \"spiral\"",
+            "And I am Alex",
+            "When I open Traceability",
+            "Then a warning reads \"ui.yaml ignored: progress.mode must be sequence or flow (found spiral)\"",
+            "And a note reads \"No ui.yaml — only references to other Memory elements are recognised\""
+          ]
         }
       ],
       "dependencies": [
@@ -7364,6 +7682,7 @@
       "fit_criterion": "[boolean] A unit test with a file-system spy over every read endpoint records — excluding the hash-only reads of changed and untracked entries for the state key (REQ-STATE-02, spec-001 §4.4) — 0 direct reads of `.wingfoil/*.yaml` other than `ui.yaml` and `memory.yaml`, 0 reads of Memory or directive files at a path not returned by the CLI, and 0 writes to any of them; every allow-listed shape has a schema and a passing contract test per supported version; a fixture whose element file `status` differs from `memory search` shows a read error for that element.",
       "verified_by": "unit (fs spy)",
       "stories": [
+        "US-G-01",
         "US-M-01",
         "US-R-05",
         "US-S-25",
@@ -7429,6 +7748,52 @@
             "When I open the DNA view",
             "Then the DNA view shows the error message printed by the CLI",
             "And the Memory list opens and lists the fixture's elements"
+          ]
+        },
+        {
+          "id": "G-01.5",
+          "title": "Open an element by its short id and show its full id",
+          "file": "docs/02_requirements/02_bdd/features/g/element-panel.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running",
+            "Given the kanban fixture is open",
+            "When I open the address \"/p/<project id>/e/task-003\" of the kanban fixture",
+            "Then the element page of \"task-003-logout\" opens in the main region",
+            "And the address bar shows \"/p/<project id>/e/task-003-logout\""
+          ]
+        },
+        {
+          "id": "G-01.6",
+          "title": "List the candidates of an ambiguous short id",
+          "file": "docs/02_requirements/02_bdd/features/g/element-panel.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running",
+            "Given the kanban fixture is open",
+            "And an element of type \"task\" with the id \"task-001-login-form-copy\" is committed by hand next to \"task-001-login-form\"",
+            "When I open the address \"/p/<project id>/e/task-001\" of the kanban fixture",
+            "Then the page lists the candidates \"task-001-login-form\" and \"task-001-login-form-copy\", each a link to its element page",
+            "And it does not show \"Not found\""
+          ]
+        },
+        {
+          "id": "G-01.7",
+          "title": "Open and decide an element whose id is longer than 100 characters",
+          "file": "docs/02_requirements/02_bdd/features/g/element-panel.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running",
+            "Given the kanban fixture is open and I am Morgan",
+            "And a task whose title gives an id of 140 characters is added and submitted with the CLI, so that it is `pending`",
+            "When I open its element page from the Memory list and approve it with the reason \"Long ids work\"",
+            "Then the fixture's last commit is \"wf(task): approve <that id> [pending → approved]\""
           ]
         }
       ],
@@ -8174,6 +8539,22 @@
             "Then Waiting on others lists \"rl-v1\" with \"Waits for 1 referencing element to be done\"",
             "And the gate footer of \"rl-v1\" shows \"Waits for 1 referencing element to be done\" and no outcome button"
           ]
+        },
+        {
+          "id": "C-04.3",
+          "title": "Show the ui.yaml warning on Traceability",
+          "file": "docs/02_requirements/02_bdd/features/c/ui-yaml.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running",
+            "Given the kanban fixture has a committed \".wingfoil/ui.yaml\" whose `progress.mode` is \"spiral\"",
+            "And I am Alex",
+            "When I open Traceability",
+            "Then a warning reads \"ui.yaml ignored: progress.mode must be sequence or flow (found spiral)\"",
+            "And a note reads \"No ui.yaml — only references to other Memory elements are recognised\""
+          ]
         }
       ],
       "dependencies": [
@@ -8193,6 +8574,7 @@
       "verified_by": "e2e",
       "stories": [
         "US-C-07",
+        "US-S-01",
         "US-S-17",
         "US-S-22"
       ],
@@ -8271,6 +8653,47 @@
             "When I stop the console and run \"npx wingfoil-ui\" again",
             "Then \"Auto-push\" is on",
             "And `git status --porcelain` of the kanban fixture prints nothing"
+          ]
+        },
+        {
+          "id": "S-01.4",
+          "title": "Write the console's address file for agents",
+          "file": "docs/02_requirements/02_bdd/features/s/launch.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "any",
+          "steps": [
+            "Given the state directory has no file under \"consoles/\"",
+            "When I run \"npx wingfoil-ui --no-open --port 4870\"",
+            "Then when the URL line is printed the file \"consoles/4870.json\" of the state directory exists with mode 0600, in a folder \"consoles/\" with mode 0700",
+            "And it holds the URL \"http://127.0.0.1:4870/\", \"portFixed\": true and the console's process id",
+            "And it holds no part of the session token printed in the URL line"
+          ]
+        },
+        {
+          "id": "S-01.5",
+          "title": "Remove the address file on stop",
+          "file": "docs/02_requirements/02_bdd/features/s/launch.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "any",
+          "steps": [
+            "Given the console was started with \"npx wingfoil-ui --no-open --port 4870\" and wrote \"consoles/4870.json\"",
+            "When I press Ctrl-C in its terminal",
+            "Then when \"WingFoil UI stopped\" is printed the file \"consoles/4870.json\" no longer exists"
+          ]
+        },
+        {
+          "id": "S-01.6",
+          "title": "Remove a stale address file at start",
+          "file": "docs/02_requirements/02_bdd/features/s/launch.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "any",
+          "steps": [
+            "Given the state directory holds \"consoles/4871.json\" naming this machine and a process id that is not running",
+            "When I run \"npx wingfoil-ui --no-open --port 4870\"",
+            "Then when the URL line is printed \"consoles/4871.json\" no longer exists and \"consoles/4870.json\" does"
           ]
         }
       ],
@@ -9282,6 +9705,7 @@
       "fit_criterion": "[percentage] On each fixture and role view, 100 % of the items the action descriptor assigns to the view's roles are listed on Today, reached with 0 navigation steps after opening the project.",
       "verified_by": "e2e",
       "stories": [
+        "US-S-21",
         "US-S-23",
         "US-T-01",
         "US-T-02"
@@ -9330,6 +9754,36 @@
             "When I open Today",
             "Then the all-roles summary shows one entry for each of the 7 roles Alex holds, each with its count",
             "And it shows \"approver · 2\" and \"developer · 0\""
+          ]
+        },
+        {
+          "id": "T-02.8",
+          "title": "Open an element of Requires you in the side panel and keep it on reload",
+          "file": "docs/02_requirements/02_bdd/features/t/requires-you.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running",
+            "Given the kanban fixture is open and I am Morgan with the role view \"approver\"",
+            "When I select the title of \"task-001-login-form\" in Requires you and reload the page",
+            "Then Today is shown with the side panel of \"task-001-login-form\"",
+            "And the address is Today's with \"?panel=task-001-login-form\""
+          ]
+        },
+        {
+          "id": "S-21.4",
+          "title": "Open an item of the bell in the side panel of the current view",
+          "file": "docs/02_requirements/02_bdd/features/s/shell.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running with the kanban fixture open",
+            "Given I am Morgan with the role view \"approver\" and the Memory list is open",
+            "When I select \"task-001-login-form\" in the bell panel's \"To unblock\"",
+            "Then the Memory list stays shown with the side panel of \"task-001-login-form\"",
+            "And the address is the Memory list's with \"?panel=task-001-login-form\""
           ]
         }
       ],
@@ -10392,6 +10846,7 @@
       "verified_by": "unit · e2e",
       "stories": [
         "US-M-03",
+        "US-M-04",
         "US-R-01",
         "US-T-12",
         "US-T-13",
@@ -10540,6 +10995,151 @@
             "When I select the filter \"Missing required references\"",
             "Then the list shows exactly \"task-004-themes\" and \"adr-001-local-server\"",
             "And each row carries the badge \"missing refs\""
+          ]
+        },
+        {
+          "id": "T-12.6",
+          "title": "Say that no reference is linked in the current release",
+          "file": "docs/02_requirements/02_bdd/features/t/progress-card.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running",
+            "And I am Casey",
+            "Given the custom fixture with the sw-life-cycle preset is open",
+            "And \"minor-v0.1\" is `released` and \"minor-v0.2\" is `in-development`",
+            "When I open Today",
+            "Then the progress card shows \"No references linked in minor-v0.2\" in place of the completion figure"
+          ]
+        },
+        {
+          "id": "T-13.3",
+          "title": "Clear a figure filter",
+          "file": "docs/02_requirements/02_bdd/features/t/progress-card.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running",
+            "And I am Casey",
+            "Given the custom fixture with the sw-life-cycle preset is open",
+            "And the Memory list was opened from \"Pending gates 3\" on the progress card",
+            "When I clear the active filter \"Pending gates\"",
+            "Then the Memory list shows every non-archived element of the fixture",
+            "And no active filter is shown"
+          ]
+        },
+        {
+          "id": "T-13.4",
+          "title": "Ignore an unknown figure code",
+          "file": "docs/02_requirements/02_bdd/features/t/progress-card.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running",
+            "And I am Casey",
+            "Given the custom fixture with the sw-life-cycle preset is open",
+            "When I open the address \"/p/<project id>/memory?figure=bogus\" of the custom fixture",
+            "Then the Memory list shows every non-archived element of the fixture",
+            "And no active filter is shown"
+          ]
+        },
+        {
+          "id": "R-01.5",
+          "title": "Show the rows outside the current release under the whole project",
+          "file": "docs/02_requirements/02_bdd/features/r/traceability.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running",
+            "And I am Casey",
+            "Given `ref: US-S-09` is added to \"dl-001-initialise-wingfoil-before-inception\" and committed outside the UI",
+            "And the custom fixture with the sw-life-cycle preset is open on Traceability, its scope \"minor-v0.1 (current release)\"",
+            "When I select the scope \"Whole project\"",
+            "Then the row \"US-S-09\" lists the linked element \"dl-001\"",
+            "And before the selection the table had no row \"US-S-09\""
+          ]
+        },
+        {
+          "id": "R-01.6",
+          "title": "Show a pattern reference by its id only",
+          "file": "docs/02_requirements/02_bdd/features/r/traceability.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running",
+            "And I am Casey",
+            "Given the custom fixture with the sw-life-cycle preset is open",
+            "When I open Traceability",
+            "Then the reference cell of the row \"US-M-01\" shows the category \"requirement\" and the id \"US-M-01\" only, with no title and no hover card"
+          ]
+        },
+        {
+          "id": "R-01.7",
+          "title": "List references between Memory elements without ui.yaml",
+          "file": "docs/02_requirements/02_bdd/features/r/traceability.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running",
+            "And I am Casey",
+            "Given `related: dl-001-initialise-wingfoil-before-inception` is added to \"task-001-cli-adapter\" and committed outside the UI",
+            "And the custom fixture without `ui.yaml` is open",
+            "When I open Traceability",
+            "Then a note reads \"No ui.yaml — only references to other Memory elements are recognised\"",
+            "And the row of \"dl-001-initialise-wingfoil-before-inception\" shows the category \"decision\" and the linked element \"task-001\""
+          ]
+        },
+        {
+          "id": "R-01.8",
+          "title": "Open the elements missing required references in Memory",
+          "file": "docs/02_requirements/02_bdd/features/r/traceability.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running",
+            "And I am Casey",
+            "Given the custom fixture with the sw-life-cycle preset is open on Traceability",
+            "When I select \"Show in Memory\" in the section \"Elements missing required references (2)\"",
+            "Then the Memory list shows exactly \"task-004-themes\" and \"adr-001-local-server\"",
+            "And the active filter reads \"Missing required references\""
+          ]
+        },
+        {
+          "id": "R-01.9",
+          "title": "Filter references by category",
+          "file": "docs/02_requirements/02_bdd/features/r/traceability.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running",
+            "And I am Casey",
+            "Given the custom fixture with the sw-life-cycle preset is open on Traceability",
+            "When I select the category filter \"requirement\"",
+            "Then the table shows exactly the rows \"US-M-01\" and \"US-S-01\""
+          ]
+        },
+        {
+          "id": "M-04.3",
+          "title": "Show the filter with 0 when every required reference is present",
+          "file": "docs/02_requirements/02_bdd/features/m/missing-references.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running",
+            "And I am Morgan",
+            "Given the custom fixture with the sw-life-cycle preset is open on the Memory list",
+            "And `ref: US-X-08` is added to \"task-004-themes\" and `sard_ref: REQ-ARC-01` to \"adr-001-local-server\", committed outside the UI",
+            "When I look at the state filters",
+            "Then the filter \"Missing required references\" is shown with the count 0"
           ]
         }
       ],
@@ -11959,6 +12559,23 @@
             "| GET    | with the token and the Origin \"https://evil.test\" | 403",
             "| POST   | with the token and the Origin \"https://evil.test\" | 403"
           ]
+        },
+        {
+          "id": "X-02.3",
+          "title": "Recover a page the console no longer recognises, in place",
+          "file": "docs/02_requirements/02_bdd/features/x/local-security.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console has been started with \"npx wingfoil-ui\" and printed its URL with the session token",
+            "And the kanban fixture is added",
+            "Given the console was started with \"--port 4870\" and a browser tab shows the element page of \"task-001-login-form\"",
+            "And the console was stopped and started again with \"--port 4870\", and that tab shows \"This page is no longer recognised by the console\"",
+            "When I open the newly printed URL in another tab of the same browser and return to the first tab",
+            "Then the first tab shows the element page of \"task-001-login-form\" again, at the same address",
+            "And no address of either tab holds the token after the page has loaded"
+          ]
         }
       ],
       "dependencies": [
@@ -12163,6 +12780,7 @@
       "fit_criterion": "[percentage] 100 % of the path-traversal cases of the security suite (`..`, encoded `..`, absolute paths, escaping symlinks) return 404 or the \"outside the repository\" marker with 0 bytes of the target.",
       "verified_by": "e2e-smoke `local-security`",
       "stories": [
+        "US-G-03",
         "US-R-09",
         "US-R-11"
       ],
@@ -12210,6 +12828,22 @@
             "Given a document links to \"../../../etc/hosts\"",
             "When I open that document",
             "Then the link is marked \"outside the repository\" and selecting it opens nothing"
+          ]
+        },
+        {
+          "id": "G-03.4",
+          "title": "Open a linked element from a summary in the main region",
+          "file": "docs/02_requirements/02_bdd/features/g/decision-log.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running with the custom fixture open",
+            "Given I am Casey",
+            "And the summary of \"dl-002-use-fastify\" links to the file of \"dl-001-initialise-wingfoil-before-inception\"",
+            "And the side panel of \"dl-002-use-fastify\" is open on Today",
+            "When I select that link",
+            "Then the element page of \"dl-001-initialise-wingfoil-before-inception\" opens in the main region"
           ]
         }
       ],
@@ -12528,6 +13162,7 @@
       "stories": [
         "US-C-02",
         "US-C-07",
+        "US-S-01",
         "US-X-02"
       ],
       "acceptance_criteria": [
@@ -12576,6 +13211,21 @@
             "When I open the printed URL in the browser",
             "Then the project switcher lists the kanban fixture",
             "And the address bar no longer shows the token"
+          ]
+        },
+        {
+          "id": "S-01.4",
+          "title": "Write the console's address file for agents",
+          "file": "docs/02_requirements/02_bdd/features/s/launch.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "any",
+          "steps": [
+            "Given the state directory has no file under \"consoles/\"",
+            "When I run \"npx wingfoil-ui --no-open --port 4870\"",
+            "Then when the URL line is printed the file \"consoles/4870.json\" of the state directory exists with mode 0600, in a folder \"consoles/\" with mode 0700",
+            "And it holds the URL \"http://127.0.0.1:4870/\", \"portFixed\": true and the console's process id",
+            "And it holds no part of the session token printed in the URL line"
           ]
         }
       ],

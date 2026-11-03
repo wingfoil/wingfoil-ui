@@ -73,6 +73,13 @@ Feature: Requires you
     Then the row of "dl-002-use-fastify" names it "dl-002"
     And the Waiting on others row of "minor-v0.1", whose id pattern has no number, names it "minor-v0.1"
 
+  @US-T-02 @v0.3 @edge @fx-kanban
+  Scenario: T-02.8 — Open an element of Requires you in the side panel and keep it on reload
+    Given the kanban fixture is open and I am Morgan with the role view "approver"
+    When I select the title of "task-001-login-form" in Requires you and reload the page
+    Then Today is shown with the side panel of "task-001-login-form"
+    And the address is Today's with "?panel=task-001-login-form"
+
   # --- US-T-03 — rejected work first ---
 
   @US-T-03 @v0.2 @nominal @fx-kanban

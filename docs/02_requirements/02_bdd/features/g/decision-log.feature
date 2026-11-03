@@ -29,6 +29,14 @@ Feature: Read and decide a decision-log
     When I open the element panel of "dl-003-empty" and select "Open document"
     Then the dialog reads "No content yet"
 
+  @US-G-03 @v0.3 @edge @fx-custom
+  Scenario: G-03.4 — Open a linked element from a summary in the main region
+    Given I am Casey
+    And the summary of "dl-002-use-fastify" links to the file of "dl-001-initialise-wingfoil-before-inception"
+    And the side panel of "dl-002-use-fastify" is open on Today
+    When I select that link
+    Then the element page of "dl-001-initialise-wingfoil-before-inception" opens in the main region
+
   # --- US-G-08 — decide it holding approver ---
 
   @US-G-08 @v0.3 @nominal @fx-custom

@@ -35,10 +35,10 @@ Feature: Memory list
     Then the list shows exactly "task-001-login-form" and "bug-001-crash-on-save"
 
   @US-M-01 @v0.1 @edge @fx-kanban
-  Scenario: M-01.3 — Open the element panel from the list
+  Scenario: M-01.3 — Open the element page from the list
     Given the kanban fixture is open on the Memory list
     When I select the row of "task-003-logout"
-    Then the element panel of "task-003-logout" opens
+    Then the element page of "task-003-logout" opens
 
   @US-M-01 @v0.1 @edge @fx-kanban
   Scenario: M-01.4 — Show a type with no element
