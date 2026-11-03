@@ -412,3 +412,28 @@ the Documentation view still "opens the element panel", ux-reference §4.9 and R
 fixed by the coordinator. Checks on the branch: `check_bdd.py`, `check_sard.py`, `check_usm.py`
 (v0.1 … v0.4) and `check_backlog.py` pass with no warning; `npx vitest run test/docs` 68 passed.
 `design/rp3-5a-specs` (with `design/rp3-5a-docs`) merged into this branch.
+
+Step 5b (2026-11-03): `memory add` of spec-011 (`1362657`) and adr-003 (`6010d91`); an architect
+subagent wrote each on a branch of its own (`design/rp3-5b-spec011` `a4c9c30`,
+`design/rp3-5b-adr003` `1bc73e1`, with the R3 spike: probes on test consoles in a worktree — today
+no session survives a restart, the session cookie's name carries the port, the requested path
+survives the token exchange with no redirect, a deep link needs a fixed `--port`). Independent
+check (security-adversarial): FAIL — one major in spec-011 (a parameter over `maxParamLength`
+answers 400 `invalid-request` to a POST, not 404: `frameworkErrors`), minors in adr-003 (no
+heartbeat in the stale rule, the temporary file name, two meanings of one question id, the threat
+table), nits.
+
+Decision (the approver, 2026-11-03: "E1–E4, A1–A6 e C1–C4 come consigliato"):
+
+- **RP3-17** — spec-011: E1 the side panel in the URL as `?panel=<full id>` on the current view; E2
+  a short id matches exactly, else 404; E3 live elements first, archived only when no live one
+  matches; E4 at most 20 candidates plus `more`, the missing scenarios written at build-backlog.
+  adr-003: A1 R3 by option A (recover in place: the lost page reloads its own address once the
+  browser holds a session again — no token in a file, a link or a log, no redirect), implemented
+  in v0.3; A2 a stable address only with `--port` in v0.3; A3 an agent reads `state.json`
+  read-only for the project id; A4 R1 amends REQ-ARC-08 and REQ-SEC-09; A5 cookie hardening for
+  loopback in v0.4, the liveness check in R1's task; A6 Windows by the ACL of `%APPDATA%`. The
+  check's findings: C1 `FST_ERR_MAX_PARAM_LENGTH` answers 404 `not-found` after the guards, the
+  writes tested explicitly; C2 the address file's heartbeat (mtime every 10 s, stale when the pid
+  is dead or the mtime older than 30 s); C3 the minors and nits fixed; C4 two v0.4 hardening items
+  (the token in the opener's arguments, the cookies sent to every local port).
