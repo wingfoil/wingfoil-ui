@@ -317,3 +317,4 @@ a project (REQ-SEC-09). The secret scan of REQ-SEC-09 runs over the state direct
 - 2026-11-03 — amended in `release-planning` v0.3 (step 5, RP3-14; C1, aligned with spec-005 §5):
   §2 `actionLog` also records the commit of a preset write (REQ-SEC-10: every commit the UI
   causes). Decided by the approver with the C1 scope (RP3-7).
+  R1's address file (RP3-14 D4): adr-003, step 5b — not amended here (review round 1 F3).
