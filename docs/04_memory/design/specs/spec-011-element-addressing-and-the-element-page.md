@@ -3,10 +3,10 @@ id: spec-011-element-addressing-and-the-element-page           # auto-generated 
 type: tech-spec
 title: "Element addressing and the element page"              # REQUIRED — e.g. "Server HTTP API"
 status: draft          # auto-set by wingfoil
-scope: ""              # REQUIRED — the artefact this spec covers, e.g. "server HTTP API", "CLI JSON contract: memory search", ".wingfoil/ui.yaml"
-wingfoil_version: ""   # optional — for a CLI contract: the WingFoil version the shape was captured from
+scope: "element addresses: URL forms, short ids, id resolution and the element page vs the side panel"              # REQUIRED — the artefact this spec covers, e.g. "server HTTP API", "CLI JSON contract: memory search", ".wingfoil/ui.yaml"
+wingfoil_version: "0.2.2, 0.3.1"   # optional — for a CLI contract: the WingFoil version the shape was captured from
 supersedes: ""         # optional — id of the tech-spec this one replaces, e.g. "spec-002"
-release: ""            # optional — implementation release this spec is assigned to (stamped by release-planning/build-backlog), e.g. "v0.1"
+release: "v0.3"            # optional — implementation release this spec is assigned to (stamped by release-planning/build-backlog), e.g. "v0.1"
 contributor: ""        # optional — who originated this contribution, if not the git author; credited for AI-generated work derived from it
 credit: ""             # optional — free-text credit note
 tmpl_version: 260703   # Orignal template version
@@ -14,21 +14,196 @@ tmpl_version: 260703   # Orignal template version
 
 ## Context
 
-<!-- Why this artefact needs a spec: what produces/consumes it, what breaks without a single
-     shared definition (e.g. divergent regex constants, re-implemented parsing per task). -->
+An element of a project has one address in the console, `/p/<project id>/e/<element id>`
+(`ux-reference.md` §4.2, v0.1). Since v0.1 that address is also what other tools hand out: agents
+cite Memory elements as links to a running console (dl-012). Four needs of `minor-v0.3` meet on it
+(`release-planning-rel-v0.3-plan`, RP3-7, RP3-14 D3, RP3-15 S5, RP3-16 P2):
+
+- **N4** — Today names each element by its **short id** (`task-046`), the full id when it has no
+  number; **dl-012 R2** — people and agents cite the short id, and `/e/task-243` answers *not
+  found* today, because the server matches the full id only (`server/src/http/project-routes.ts`,
+  `findMatch`).
+- **bug-019** — an id longer than 100 characters matches no route: Fastify's default
+  `maxParamLength` is 100 and `server/src/http/app.ts` does not set it; the detail, the history and
+  the writes all answer 404.
+- **N5** — an element opened by its address or from the Memory list is shown in the page's main
+  region; from Today and the notification bell it stays in the side panel. Today every opener
+  navigates to the one route `/p/$pid/e/$eid` (`web/src/routes/element.tsx`), drawn as a drawer
+  over the project layout.
+- **dl-012 R3** — a link given out before a restart should still reach its element; adr-003
+  decides how, and needs the address to be stable.
+
+Without one definition, the Today rows (N4), the server's lookup (R2), the route parameter limit
+(bug-019) and the page's two presentations (N5) would each fix the id rules on their own. The
+screens themselves are `ux-reference.md` §4.1 and §4.2 (v0.3); this spec fixes the addresses, the
+short-id rule, the resolution and the API they imply.
 
 ## Specification
 
-<!-- The artefact definition itself: schema, file format, constant values, or module API surface. -->
+### 1. Ids and short ids
+
+The **full id** of an element is the `id` `memory search` returns for it (spec-001 §3); it is the
+canonical id everywhere — in the API, in the cache keys, in every write.
+
+The **short id** is derived from the full id and the `id_pattern` of its type (`memory.yaml`
+`types.<type>.id_pattern`, spec-001 §4.1 "id rendering"):
+
+1. the type has an `id_pattern` that contains the token `{n}`, and the part of the pattern
+   **before** `{n}` is literal text `L` (no other `{…}` token) — otherwise the element has **no
+   short id**;
+2. the full id starts with `L` followed by one or more ASCII digits `D` (the longest such run) —
+   otherwise no short id;
+3. the short id is `L` + `D`.
+
+Examples (this repository's and the fixtures' patterns): `task-{n}-{slug}` → `task-046` for
+`task-046-wingfoil-0.3-support-read-wingfoil-0.3.x-and-pin-0.3.1`; `dl-{n}-{slug}` → `dl-002` (T-02.7); `sprint-{n}` → `sprint-001`,
+equal to the full id; `{kind}-{version}` (`release`) and `{workflow}-{phase}-plan` (`plan`) have
+no `{n}` → no short id, the element is named by its full id (`minor-v0.1`, T-02.7).
+
+- The rule is computed by the server from the `memory.yaml` it reads, with the type's
+  resolution of spec-001 §4.1; `web/` receives short ids, it never derives them (REQ-ARC-05: no
+  type or pattern is known to the web).
+- Neither the pattern nor any input is compiled into a regular expression: the rule is a literal
+  prefix comparison and a digit scan.
+- An unreadable `memory.yaml` gives no short id to any element (only full ids address them).
+- **Display (N4).** A view that names an element shows its short id when it has one, else its
+  full id (`ux-reference.md` §4.1). The element read and the list rows carry it as `shortId`
+  (§5).
+- **Neighbour, not a dependency.** WingFoil 0.3.2 accepts short element references in its Memory
+  verbs (its task-332, noted at step 1 of the plan); the pin stays 0.3.1 (RP3-7), and the console
+  never passes a short id to the CLI: every verb gets the full id (§3).
+
+### 2. Addresses (URL forms)
+
+| Form | Shows | Opened from |
+|------|-------|-------------|
+| `/p/<pid>/e/<eid>` | the **element page**, in the main region, with the sidebar | its address (typed, pasted, a link from outside the console), the Memory list, a link inside a document, a directive or another element (RP3-16 P2) |
+| the current view's address plus the **side panel** of `<eid>` | the view (Today, or the view the bell was used on) with the element in the **side panel** | Today — *Requires you*, *Waiting on others*, *Recent activity* — and an item of the notification bell (RP3-15 S5) |
+
+- `<pid>` is the opaque project id (REQ-SEC-04, spec-006 §2); `<eid>` is a full id, or a short id
+  that §3 resolves. Every id is placed in a path with `encodeURIComponent` (as
+  `web/src/docs/render.ts` and the routes do today).
+- The page and the panel show the same content and footers (`ux-reference.md` §4.2 v0.3); the
+  panel keeps its non-modal focus rules (§4.2 v0.1 W4-8, v0.2 bug-018). How the side panel is
+  carried in the URL is open question 1.
+- **Close and Escape.** On the element page: back in history when the page was reached inside the
+  console, else to the project's Memory list (`ux-reference.md` §4.2 v0.3; today the fallback is
+  `/p/<pid>`, `web/src/routes/element.tsx`). On the side panel: the panel closes, the view stays,
+  the focus returns to the opener (§4.2 v0.2).
+- **Canonical address.** When the address names a short id that resolves (§3), the page replaces
+  the history entry with the full id's address (`history.replace`: Back does not return to the
+  short form) and seeds the full id's query with the answer it has (no second read).
+- A document link to an element's file is classified by path (`web/src/docs/links.ts`) and
+  always yields a full id.
+
+### 3. Resolution (RP3-14 D3)
+
+`GET /api/p/:pid/elements/:eid` resolves `:eid` against the elements of the current repository
+state's `memory search` answers — never against a path built from it (spec-004 §4) — in this
+order; the first step that matches decides:
+
+1. `:eid` equals the full id of a non-archived element → that element (as today);
+2. `:eid` equals the full id of an archived element (the lazy `--status deprecated` /
+   `superseded` searches, spec-001 §3) → that element (as today);
+3. `:eid` equals the short id (§1) of non-archived elements whose short id differs from their full
+   id → one: **200** with that element (its `element.id` is the full id); several: **409
+   `ambiguous-id`** (below);
+4. the same over archived elements;
+5. otherwise **404 `not-found`**.
+
+A full id always wins over a short id (step 1–2 before 3–4), so an element whose full id is
+`sprint-001` is never shadowed.
+
+**409 `ambiguous-id`** — `{ error: { code: "ambiguous-id", message, detail: { candidates: [{ id,
+shortId, title, type, status }], more } } }`: the candidates ordered by full id, at most **20**,
+`more` counting the rest; `title` passed through the sanitiser of tool messages, as every text the
+CLI produced (spec-004 §5). The page shows the candidates, each a link to its full id's address,
+instead of *not found* (`ux-reference.md` §4.2 v0.3, dl-012 R2).
+
+**Every other route with `:eid` takes the full id only** — `GET …/elements/:eid/history` and the
+writes `POST …/submit`, `/approve`, `/reject` (D3): a short id is an unknown id there (404
+`not-found`, spec-004 §4 order unchanged). The page calls them with the full id it got from the
+element read.
+
+### 4. Parameter length (bug-019)
+
+The server sets the router's `maxParamLength` (Fastify 5 `routerOptions.maxParamLength`) to
+**255**: an id is a file name (`<id>.md`), at most 255 bytes on the common file systems, so 252
+characters at most. `find-my-way` 9.9.0 measures a parameter after percent-decoding it
+(`node_modules/find-my-way/index.js`, the parametric node: `safeDecodeURIComponent` before the
+length check), so the limit applies to the decoded id whatever its encoding in the address. It
+covers every route parameter (`:eid`, `:did`, `:pid`). A longer parameter answers **404
+`not-found`** in the envelope of spec-004 §5, as an unknown id. Reads, history and writes of an
+element whose id is longer than 100 characters behave as for any other id.
+
+### 5. API changes (to spec-004 and `contracts/api/`)
+
+| Where | Change |
+|-------|--------|
+| spec-004 §3, `GET /api/p/:pid/elements/:eid` | "a full id, or a short id resolved as spec-011 §3" |
+| spec-004 §3, `…/history`, `…/submit`, `…/approve`, `…/reject` | "the full id only (spec-011 §3)" |
+| spec-004 §5 | new row: 409 `ambiguous-id`, `detail: { candidates, more }` (spec-011 §3) |
+| `contracts/api/element.schema.json` | `element.shortId`: string, absent when the element has none |
+| `contracts/api/elements.schema.json`, `today.schema.json` (`Row.element`) | `shortId` as above, so lists name elements without a second derivation (N4) |
+| `contracts/api/element.refusal.schema.json` (new) | the 404 `not-found` and 409 `ambiguous-id` bodies of the element read |
+| server | `routerOptions.maxParamLength: 255` (§4) |
+
+No route is added; `X-Repo-State` and the event stream are unchanged.
+
+### 6. Security
+
+- An id from an address is compared, as a string, with ids `memory search` returned; it never
+  enters a path, a command line or a regular expression (spec-004 §4, REQ-SEC-05, REQ-SEC-06).
+- Short ids are computed from the CLI's ids and the project's `id_pattern` by literal comparison
+  (§1): a hostile pattern or id cannot make the server backtrack.
+- The candidates are the project's own elements, behind the session (spec-004 §2), capped and
+  sanitised (§3).
+- The address rewrite (§2) stays inside `/p/<pid>/e/`: it is no redirect to a caller's value.
+
+### 7. Deep links across restarts (dl-012 R3) — the hook
+
+adr-003 decides whether and how a link survives a console restart. This spec gives it a stable
+target: an element's address is a function of the project id (stable across restarts, stored in
+`state.json`, spec-006 §2) and the element id (full, or short as §1), carries no token and no
+session data, and resolves through §3 on any console that lists the project. What the page must
+remember across the session exchange, and where, is adr-003's.
+
+### 8. Verification
+
+- **Unit (server):** the short-id rule on every `id_pattern` of `.wingfoil/memory.yaml` and of the
+  three fixtures (with `{n}`, without, `{n}` last, another token before `{n}`, an id that does not
+  follow its pattern); the resolution order of §3 (full over short, non-archived over archived,
+  one / several / none, the cap of 20 with `more`, sanitised titles); an unreadable `memory.yaml`.
+- **API:** `GET /elements/:eid` with a short id (200, `element.id` full), an ambiguous one (409
+  body against `element.refusal.schema.json`), an unknown one (404); history and the three writes
+  with a short id (404, no `wingfoil` process); reads, history and a write of an element whose id
+  is 252 characters long, and 404 for a 256-character parameter (bug-019).
+- **Contract:** `element.schema.json`, `elements.schema.json`, `today.schema.json` with
+  `shortId`; the new refusal schema.
+- **e2e:** T-02.7 (short ids on Today); G-01.4 (the address opens the element, now in the main
+  region); M-01.3 (the Memory list opens the main region); R-09.1 and G-03.2 (a document link
+  opens the main region); X-06.3 (Escape on the side panel returns the focus to its opener).
+  Missing scenarios — open point 5.
 
 ## Consequences
 
-<!-- What follows from this spec: which tasks/workflow steps depend on it being stable, and what
-     changes (in code or in this document) if it is later revised. -->
+- The tasks of the element page (N5, N6), Today (N4), dl-012 R2 and bug-019 depend on §1–§5; the
+  Today task reads `shortId` from the API instead of deriving it.
+- spec-004 §3 and §5 and the three API schemas change as §5 lists; the web route of
+  `web/src/routes/element.tsx` splits into the page and the panel.
+- A later WingFoil version that changes `id_pattern` tokens, or a project that renumbers, changes
+  short ids but never full ids: links built on full ids keep working, short links may become
+  ambiguous and then show their candidates.
+- When the pin reaches a WingFoil with short references (0.3.2), the console still sends full ids
+  to the CLI; this spec changes only if WingFoil's rule and §1 diverge visibly to a user.
 
 ## Process Notes
 
-<!-- Optional running log, not the spec itself. Was this discovered proactively by
-     release-planning/identify-specs or reactively by dev-loop/design (and if reactive, why did
-     identify-specs miss it — worth feeding back into planning)? Revisions requested during
-     approval; tasks that later hit a gap in it (candidate for a future spec that supersedes it). -->
+- 2026-11-03 — drafted at `release-planning` v0.3 step 5b (plan `release-planning-rel-v0.3-plan`,
+  RP3-14 D3, RP3-15 S5, RP3-16 P2; identified by the step 5 survey: N4, N5, dl-012 R2 and bug-019
+  meet on the same routes). Open for the approver: (1) how the side panel is carried in the URL;
+  (2) a short id with other zero-padding (`task-46` for `task-046`); (3) live elements before
+  archived ones for a short id; (4) the cap of 20 candidates; (5) the scenarios still missing
+  (a short-id address rewritten, the candidates of an ambiguous one, a long id opened and decided,
+  Today and the bell opening the side panel, a link inside an element body opening the main
+  region).
