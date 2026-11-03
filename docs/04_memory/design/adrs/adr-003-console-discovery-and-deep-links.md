@@ -92,7 +92,7 @@ modification time every 10 s (a heartbeat, as `state.json.lock`'s holder does). 
 finds the file gone, or holding another `pid` or `started` (removed or replaced by another console
 after a suspend or a stall), it rewrites the file in full, atomically as above, so discovery is
 never lost silently. A failed write is a warning in the log, never a failed start: discovery is a
-convenience, the console works without it. On stop the file is removed as the first stop step,
+convenience, the console works without it. On stop the heartbeat stops, then the file is removed as the first stop step,
 right after the console stops accepting connections (spec-007 §6), so no agent hands out a link to
 a console that is going away; it is removed again, synchronously and best-effort, by the handler
 that runs at any process exit (forced stop, exit 70). A console removes the file only while it
@@ -109,8 +109,8 @@ removes the files of **this** host whose `pid` is dead, the other hosts' files o
 the temporary files of dead processes (start housekeeping, as for `state.json`) — never a file of
 this host by its age, since a suspended or stalled console is still alive (and its heartbeat would
 restore it anyway, D2) — and replaces any file already named after its own port: on this host the
-port is now its own, whatever the file says (a crash, a reused pid). Two consoles on one state directory listen on two ports, so they
-write two files and never contend for one; `consoles/` is not under `state.json.lock`, since each
+port is now its own, whatever the file says (a crash, a reused pid). Two consoles on one state directory listen
+on two ports, so they write two files and never contend for one; `consoles/` is not under `state.json.lock`, since each
 file has a single writer. Both serve the same project list (spec-006 §4), so a link built on
 either opens the same element. A state directory shared by two machines (a network home) is not
 supported for discovery: their files may name the same port, and the last writer wins.
@@ -166,8 +166,7 @@ documents it. A default fixed port is reconsidered at v0.4 (A2).
   `<port>.json` `0600`, created and removed by consoles only; §4: `consoles/` is outside
   `state.json.lock` (one writer per file) and its housekeeping at start; §5: the address file holds
   nothing of D5, the secret scan covers it; §6: unit tests of write, heartbeat (it restores a
-  removed or replaced file), replace, remove,
-  stale detection (pid and age) and modes.
+  removed or replaced file), replace, remove, stale detection (pid and age) and modes.
 - spec-007 §3: a step between 4 and 5 (housekeeping, write the address file, a failed write is a
   warning); §6: the removal as the first stop step and in the exit handler; §7: the launch smoke
   checks the file after the URL line (mode `0600`, `consoles/` `0700`, no token) and its absence
