@@ -1,7 +1,7 @@
 # User Journeys — WingFoil UI
 
 **Version:** 0.5
-**Date:** 2026-11-03 (0.2: J4 obstacle, J0 landing in v0.1 — coherence audit; 0.3: external review — session 7; 0.4: *Update* is `git pull --ff-only`, the automatic update a fast-forward `merge --ff-only` of the fetched upstream — dev-loop task-040, D40-8; 0.5: errata for WingFoil 0.3.1 — `--dry-run`, the roles, the field setter, the 0.3.x reasons — release-planning v0.3, RP3-14 D12)
+**Date:** 2026-11-03 (0.2: J4 obstacle, J0 landing in v0.1 — coherence audit; 0.3: external review — session 7; 0.4: *Update* is `git pull --ff-only`, the automatic update a fast-forward `merge --ff-only` of the fetched upstream — dev-loop task-040, D40-8; 0.5: errata for WingFoil 0.3.1 — `--dry-run`, the roles, the field setter, the 0.3.x reasons — release-planning v0.3, RP3-14 D12; J2 phase figures read-only on 0.3.x until v0.4, D2 — its review round 1, F7)
 **Status:** Accepted in lean-inception session 3 (2026-10-01)
 **Input:** `04_personas.md` · `02_product-vision.md` · `03_is-isnot.md`
 **Evidence:** `docs/00_reference/ux-reference.md` (screen references below as §n) and the prototype
@@ -76,7 +76,7 @@ v0.4 candidate (RP3-14 D12).
 
 | # | Action | Screen | WF | Outcome |
 |---|--------|--------|----|---------|
-| 1 | Read the progress card: scope, phase X of Y, completion, open bugs, pending gates | Today · progress card (§4.1) | 0.2.2 (phases: 0.3) | Understands progress in plain words |
+| 1 | Read the progress card: scope, phase X of Y, completion, open bugs, pending gates | Today · progress card (§4.1) | 0.2.2 (phases: 0.3, shown from the UI's v0.4) | Understands progress in plain words |
 | 2 | Click a figure (e.g. pending gates, open bugs) | Memory filtered (§4.4) | 0.2.2 | Sees the items behind the number |
 | 3 | Open a decision-log `in-discussion` and read it as a document | Element panel (§4.2) · Documentation (§4.9) | 0.2.2 | Reads context, options, history |
 | 4 | Decide it (approve, or reject with reason) | Element panel · gate footer (§4.2) | 0.2.2 | Decision recorded as a `wf(…)` commit |
@@ -84,7 +84,9 @@ v0.4 candidate (RP3-14 D12).
 
 **Obstacles:** in WingFoil 0.2.2 and 0.3.x a gate is passed by the `approver` role, not by a per-gate role —
 Casey needs `approver` in the DNA to decide; otherwise the item shows "reserved to approver".
-Phase progress needs the workflow engine (0.3); before it, the card shows Memory figures only.
+Phase progress needs the workflow engine (0.3) and a UI that reads it (v0.4, RP3-14 D2): until
+then — on 0.2.2, and on 0.3.x with the v0.3 console — the phase figures are shown read-only with
+the reason and the card shows Memory figures only (spec-005 §4).
 
 **Success:** Casey follows the project and decides product items without a developer.
 
