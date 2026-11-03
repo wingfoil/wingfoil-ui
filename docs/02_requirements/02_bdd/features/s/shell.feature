@@ -1,6 +1,7 @@
 Feature: Notifications and all-roles summary
   The bell counts what requires the user (S7); members with several roles see, for each role,
-  what requires it (S5).
+  how many items require it, on one line, and switch to that role view from it (S5; from v0.3 the
+  line holds no items — release-planning v0.3, RP3-7 N1).
 
   Background:
     Given the console is running with the kanban fixture open
@@ -30,13 +31,13 @@ Feature: Notifications and all-roles summary
 
   # --- US-S-23 — all-roles summary ---
 
-  @US-S-23 @v0.2 @nominal @fx-kanban
+  @US-S-23 @v0.3 @nominal @fx-kanban
   Scenario: S-23.1 — Summarise what requires each of my roles
     Given I am Alex
     When I open Today
-    Then the all-roles summary shows "approver · 2" with "task-001-login-form" and "bug-001-crash-on-save"
-    And the all-roles summary shows "developer · 0"
-    And it shows one line for each of the 7 roles Alex holds
+    Then the all-roles summary shows, on one line, one tag for each of the 7 roles Alex holds
+    And it shows the tags "approver · 2" and "developer · 0"
+    And it lists no element
 
   @US-S-23 @v0.2 @edge @fx-kanban
   Scenario: S-23.2 — Switch role view from the summary
@@ -51,9 +52,10 @@ Feature: Notifications and all-roles summary
     When I open Today
     Then no all-roles summary is shown
 
-  @US-S-23 @v0.2 @edge @fx-kanban
-  Scenario: S-23.4 — Show at most 3 items per role
+  @US-S-23 @v0.3 @edge @fx-kanban
+  Scenario: S-23.4 — Show the count of a role, not its items
     Given 5 elements of the kanban fixture are in the state "pending"
     And I am Alex
     When I open Today
-    Then the line "approver · 5" lists 3 items and the link "2 more"
+    Then the all-roles summary shows the tag "approver · 5"
+    And it lists no element and no link "more"

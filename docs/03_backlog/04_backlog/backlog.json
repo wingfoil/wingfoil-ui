@@ -2,7 +2,7 @@
   "version": 1,
   "generated_from": {
     "story_map": "docs/02_requirements/01_user_story_map/02_story-map.md v0.6",
-    "bdd": "docs/02_requirements/02_bdd/00_conventions.md v0.11",
+    "bdd": "docs/02_requirements/02_bdd/00_conventions.md v0.12",
     "sard": "docs/02_requirements/03_sard/00_sard.md v0.11"
   },
   "items": [
@@ -1956,7 +1956,7 @@
             "When I open Today",
             "Then the \"Recent activity\" card lists 5 events, newest first",
             "And each state-change event shows the time, the element, the transition \"from → to\" and the author, and each creation event shows \"created\" instead of a transition",
-            "And the card ends with the link \"Open the Timeline\""
+            "And the card shows no link \"Open the Timeline\""
           ]
         },
         {
@@ -2262,16 +2262,16 @@
           "id": "S-23.1",
           "title": "Summarise what requires each of my roles",
           "file": "docs/02_requirements/02_bdd/features/s/shell.feature",
-          "release": "v0.2",
+          "release": "v0.3",
           "kind": "nominal",
           "fixture": "kanban",
           "steps": [
             "Given the console is running with the kanban fixture open",
             "Given I am Alex",
             "When I open Today",
-            "Then the all-roles summary shows \"approver · 2\" with \"task-001-login-form\" and \"bug-001-crash-on-save\"",
-            "And the all-roles summary shows \"developer · 0\"",
-            "And it shows one line for each of the 7 roles Alex holds"
+            "Then the all-roles summary shows, on one line, one tag for each of the 7 roles Alex holds",
+            "And it shows the tags \"approver · 2\" and \"developer · 0\"",
+            "And it lists no element"
           ]
         },
         {
@@ -2305,9 +2305,9 @@
         },
         {
           "id": "S-23.4",
-          "title": "Show at most 3 items per role",
+          "title": "Show the count of a role, not its items",
           "file": "docs/02_requirements/02_bdd/features/s/shell.feature",
-          "release": "v0.2",
+          "release": "v0.3",
           "kind": "edge",
           "fixture": "kanban",
           "steps": [
@@ -2315,7 +2315,8 @@
             "Given 5 elements of the kanban fixture are in the state \"pending\"",
             "And I am Alex",
             "When I open Today",
-            "Then the line \"approver · 5\" lists 3 items and the link \"2 more\""
+            "Then the all-roles summary shows the tag \"approver · 5\"",
+            "And it lists no element and no link \"more\""
           ]
         }
       ],
@@ -2480,9 +2481,9 @@
             "Given the console is running with the custom fixture open",
             "Given I am Casey",
             "And the body of \"dl-002-use-fastify\" has the sections \"Context\", \"Options\" and \"Decision\"",
-            "When I open the element panel of \"dl-002-use-fastify\"",
-            "Then the panel renders the body as Markdown with the headings \"Context\", \"Options\" and \"Decision\"",
-            "And the history lists \"submitted by Casey\" with its commit"
+            "When I open the element panel of \"dl-002-use-fastify\" and select \"Open document\"",
+            "Then a dialog renders the body as Markdown with the headings \"Context\", \"Options\" and \"Decision\"",
+            "And the panel's history lists \"submitted by Casey\" with its commit"
           ]
         },
         {
@@ -2497,7 +2498,7 @@
             "Given I am Casey",
             "And \"docs/01_vision/00_index.md\" links to the file of \"dl-002-use-fastify\"",
             "When I select that link",
-            "Then the element panel of \"dl-002-use-fastify\" opens with its rendered body"
+            "Then the element page of \"dl-002-use-fastify\" opens in the main region with its summary rendered as Markdown"
           ]
         },
         {
@@ -2511,8 +2512,8 @@
             "Given the console is running with the custom fixture open",
             "Given I am Casey",
             "And \"dl-003-empty\" is a `draft` decision-log whose body is empty",
-            "When I open the element panel of \"dl-003-empty\"",
-            "Then the body area reads \"No content yet\""
+            "When I open the element panel of \"dl-003-empty\" and select \"Open document\"",
+            "Then the dialog reads \"No content yet\""
           ]
         }
       ],
@@ -3783,6 +3784,21 @@
             "| In progress           | \"note-002-retro\"",
             "| Waiting/drafts/closed | \"story-002-billing\", \"note-001-kickoff\"",
             "| Done                  | no element"
+          ]
+        },
+        {
+          "id": "M-02.4",
+          "title": "Narrow a bucket to one of its states",
+          "file": "docs/02_requirements/02_bdd/features/m/memory-list.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "unknown",
+          "steps": [
+            "Given the console is running",
+            "Given the unknown fixture is open",
+            "When I select the type filter \"All types\", the bucket \"Waiting/drafts/closed\" and its state \"open\"",
+            "Then the list shows exactly \"note-001-kickoff\"",
+            "And the active filter reads \"Waiting/drafts/closed · open\""
           ]
         }
       ],
@@ -9028,16 +9044,16 @@
           "id": "S-23.1",
           "title": "Summarise what requires each of my roles",
           "file": "docs/02_requirements/02_bdd/features/s/shell.feature",
-          "release": "v0.2",
+          "release": "v0.3",
           "kind": "nominal",
           "fixture": "kanban",
           "steps": [
             "Given the console is running with the kanban fixture open",
             "Given I am Alex",
             "When I open Today",
-            "Then the all-roles summary shows \"approver · 2\" with \"task-001-login-form\" and \"bug-001-crash-on-save\"",
-            "And the all-roles summary shows \"developer · 0\"",
-            "And it shows one line for each of the 7 roles Alex holds"
+            "Then the all-roles summary shows, on one line, one tag for each of the 7 roles Alex holds",
+            "And it shows the tags \"approver · 2\" and \"developer · 0\"",
+            "And it lists no element"
           ]
         }
       ],
@@ -9120,8 +9136,8 @@
       "area": "PERF",
       "wingfoil_min": "0.2.2",
       "requirement": "REQ-PERF-11",
-      "description": "Lists that summarise show a fixed number of items, newest or most urgent first, with a link to the rest.",
-      "fit_criterion": "[numeric] Bell *Updates*: last 10 Memory events; all-roles summary: ≤ 3 items per role plus \"N more\"; Recent activity: last 5 Memory events.",
+      "description": "Lists that summarise show a fixed number of items, newest or most urgent first, with a link to the rest or a control that shows them.",
+      "fit_criterion": "[numeric] Bell *Updates*: last 10 Memory events; all-roles summary: one tag per role with its count and no item (v0.3; v0.2: ≤ 3 items per role plus \"N more\"); Today's *Requires you* and *Waiting on others*: the first 10 rows of the filtered list, then \"Show all (<n>)\" (v0.3); Recent activity: last 5 Memory events.",
       "verified_by": "e2e",
       "stories": [
         "US-S-21",
@@ -9147,9 +9163,9 @@
         },
         {
           "id": "S-23.4",
-          "title": "Show at most 3 items per role",
+          "title": "Show the count of a role, not its items",
           "file": "docs/02_requirements/02_bdd/features/s/shell.feature",
-          "release": "v0.2",
+          "release": "v0.3",
           "kind": "edge",
           "fixture": "kanban",
           "steps": [
@@ -9157,7 +9173,8 @@
             "Given 5 elements of the kanban fixture are in the state \"pending\"",
             "And I am Alex",
             "When I open Today",
-            "Then the line \"approver · 5\" lists 3 items and the link \"2 more\""
+            "Then the all-roles summary shows the tag \"approver · 5\"",
+            "And it lists no element and no link \"more\""
           ]
         },
         {
@@ -9173,7 +9190,7 @@
             "When I open Today",
             "Then the \"Recent activity\" card lists 5 events, newest first",
             "And each state-change event shows the time, the element, the transition \"from → to\" and the author, and each creation event shows \"created\" instead of a transition",
-            "And the card ends with the link \"Open the Timeline\""
+            "And the card shows no link \"Open the Timeline\""
           ]
         }
       ],
@@ -10062,7 +10079,7 @@
       "area": "STATE",
       "wingfoil_min": "0.2.2",
       "requirement": "REQ-STATE-08",
-      "description": "Completion and iterated figures cover the current element of the `progress.scope` type: with WingFoil 0.3 the one `workflow status` reports; before it, the most advanced element not in its first or last non-archived state (ties: lowest version); none → whole project. Reference completion = done linked elements / linked elements; project completion = unweighted mean over references with ≥ 1 linked element (Q8); coverage = elements carrying all `requires` categories / elements whose type has `requires`, project-wide. Open bugs and pending gates are project-wide; a state both gate and `waiting:` is not a pending gate.",
+      "description": "Completion and iterated figures cover the current element of the `progress.scope` type: in v0.3, on every WingFoil version, the most advanced element not in its first or last non-archived state (ties: lowest version); none → whole project; from v0.4, on WingFoil 0.3 or later, the one `workflow status` reports. The phase figures are read-only until v0.4 (spec-005 §4). Reference completion = done linked elements / linked elements; project completion = unweighted mean over references with ≥ 1 linked element (Q8); coverage = elements carrying all `requires` categories / elements whose type has `requires`, project-wide. Open bugs and pending gates are project-wide; a state both gate and `waiting:` is not a pending gate, nor a gate whose *Approve* `ui.yaml` holds (spec-005 §4a).",
       "fit_criterion": "[boolean] On the custom fixture with the `sw-life-cycle` preset the UI shows exactly: scope `minor-v0.1`, project completion 25 %, tasks 1/4, open bugs 1, pending gates 3, coverage 3/5 — and pending gates 2 after `bug-001-toast-overlap` is approved to `triaged`.",
       "verified_by": "unit · e2e",
       "stories": [
