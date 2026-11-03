@@ -1,6 +1,6 @@
 # SARD — 3. State & Context
 
-**Version:** 0.8 · **Date:** 2026-11-03 (0.2: coherence audit fixes — session 6; 0.3: REQ-STATE-08 last non-archived state — initial-design session 6; 0.4: REQ-STATE-06 v0.1 scope — release-planning v0.1 session 4 (audit A4); 0.5: REQ-STATE-02 content fingerprint in the state key — dev-loop task-010; 0.6: REQ-STATE-09 fetch interval and action-log cap as settings — release-planning v0.2 session 2, RP-19/RP-26; 0.7: REQ-STATE-04 rationale worded for the automatic `merge --ff-only` — RP-41; 0.8: REQ-STATE-08 the 0.2.2 derivation on every version in v0.3, held gates — release-planning v0.3, RP3-14 D2, D5) · **Status:** Draft — specification-downcast session 4
+**Version:** 0.8 · **Date:** 2026-11-03 (0.2: coherence audit fixes — session 6; 0.3: REQ-STATE-08 last non-archived state — initial-design session 6; 0.4: REQ-STATE-06 v0.1 scope — release-planning v0.1 session 4 (audit A4); 0.5: REQ-STATE-02 content fingerprint in the state key — dev-loop task-010; 0.6: REQ-STATE-09 fetch interval and action-log cap as settings — release-planning v0.2 session 2, RP-19/RP-26; 0.7: REQ-STATE-04 rationale worded for the automatic `merge --ff-only` — RP-41; 0.8: REQ-STATE-08 the 0.2.2 derivation on every version in v0.3, held gates — release-planning v0.3, RP3-14 D2, D5; its review rounds 1–2, F8, m2) · **Status:** Draft — specification-downcast session 4
 
 Shell and conventions: `00_sard.md`.
 
@@ -68,7 +68,7 @@ Shell and conventions: `00_sard.md`.
 | Release | v0.1 (selector, directives filter) · v0.2 (Today) |
 | Description | A member with several roles switches role view among the roles they hold; the default is their first role in the DNA; the choice is kept per project. Role views filter content only — capabilities follow all the member's roles as WingFoil evaluates them. |
 | Rationale | Same screens, content per role (`ux-reference.md` §5). |
-| Traceability | US-S-22, US-S-23, US-T-02 · S-22.1, S-22.2, S-22.3, S-23.2, T-02.3 · S4, S5 |
+| Traceability | US-S-22, US-S-23, US-T-02 · S-22.1, S-22.2, S-22.3, S-23.2, S-23.5, T-02.3 · S4, S5 |
 | Fit criterion | [boolean] The role view selector lists exactly the member's roles; switching changes Today's list as the action descriptor computes it for that role. v0.1 (no Today): switching changes the Directives view filtered on "only mine" (S-22.1) and is kept per project (S-22.3). |
 | Verified by | e2e |
 
@@ -122,4 +122,5 @@ Shell and conventions: `00_sard.md`.
   gate (this step's reading of D5, for the approver's OK on the step's draft). Review round 1 (F8,
   decided by the approver): the fit criterion's "pending gates 2" is pinned to the custom fixture
   with the pre-packs states — with the packs `bug` `triaged` is a gate, so approving
-  `bug-001-toast-overlap` to it leaves 3 pending gates; the other figures are unchanged.
+  `bug-001-toast-overlap` to it leaves 3 pending gates; the other figures are unchanged. Round 2
+  (m2): REQ-STATE-06 traces S-23.5 (the role view switched from the line of role tags, N1).

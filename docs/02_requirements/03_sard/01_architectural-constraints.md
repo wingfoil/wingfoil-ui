@@ -1,6 +1,6 @@
 # SARD — 1. Architectural Constraints
 
-**Version:** 1.0 · **Date:** 2026-11-03 (0.2: coherence audit fixes — session 6; 0.3: page title, REQ-ARC-10 — initial-design session 2; 0.4: REQ-ARC-04 allow-list of direct reads — initial-design session 5; 0.5: REQ-ARC-06 last non-archived state — initial-design session 6; 0.6: REQ-ARC-07 moved to v0.3 — release-planning v0.1 session 2; 0.7: REQ-ARC-05, REQ-ARC-10 v0.1 scope — release-planning v0.1 session 4 (audit A4); 0.8: REQ-ARC-05 lint scope — dev-loop task-011; REQ-ARC-04 hash-only reads for the state key — dev-loop task-010; 0.9: REQ-ARC-03 write class (c) includes the automatic update's local `merge --ff-only` — release-planning v0.2 session 2, RP-41; 1.0: REQ-ARC-07 key `holds` — release-planning v0.3, RP3-14 D5) · **Status:** Draft — specification-downcast session 4
+**Version:** 1.0 · **Date:** 2026-11-03 (0.2: coherence audit fixes — session 6; 0.3: page title, REQ-ARC-10 — initial-design session 2; 0.4: REQ-ARC-04 allow-list of direct reads — initial-design session 5; 0.5: REQ-ARC-06 last non-archived state — initial-design session 6; 0.6: REQ-ARC-07 moved to v0.3 — release-planning v0.1 session 2; 0.7: REQ-ARC-05, REQ-ARC-10 v0.1 scope — release-planning v0.1 session 4 (audit A4); 0.8: REQ-ARC-05 lint scope — dev-loop task-011; REQ-ARC-04 hash-only reads for the state key — dev-loop task-010; 0.9: REQ-ARC-03 write class (c) includes the automatic update's local `merge --ff-only` — release-planning v0.2 session 2, RP-41; 1.0: REQ-ARC-07 key `holds` — release-planning v0.3, RP3-14 D5; REQ-ARC-06, REQ-ARC-07 trace the v0.3 scenarios — its review round 2, m2) · **Status:** Draft — specification-downcast session 4
 
 Shell and conventions: `00_sard.md`.
 
@@ -68,7 +68,7 @@ Shell and conventions: `00_sard.md`.
 | Release | v0.1 (read) · v0.2 (actions) |
 | Description | For each element the server derives, from `memory.yaml` (`sequence`, `gates`, `waiting`), the workflows and the CLI version: the verbs available, the reject targets, the role required (0.2.2: `approver` for every gate), who must act (first state → creator; after a reject → submitter, listed first; `waiting:` → workflow engine; last non-archived state → no one (archived: `deprecated`, `superseded`; spec-003); undeclared state → `tech-lead`, "Action required"; a state both gate and `waiting:` → workflow engine, reject only; gate states listed in *Requires you* of the reviewer and approver views only for members holding `approver`, in *Waiting on others* for the others). The UI shows only what the descriptor allows. |
 | Rationale | Basis of Today, gate footers and Memory buckets on any methodology (S9; `02_bdd/00_conventions.md`). Specified as a tech-spec in `initial-design`. |
-| Traceability | US-T-02, US-T-03, US-T-04, US-T-05, US-T-06, US-T-11, US-S-24, US-G-05, US-G-09 · T-02.1, T-03.1, T-04.1, T-05.1, T-05.2, T-06.1, T-11.1, T-11.2, S-24.1, S-24.2, S-24.3, S-24.4, G-05.1, G-05.3, G-09.1 · S9 |
+| Traceability | US-T-02, US-T-03, US-T-04, US-T-05, US-T-06, US-T-11, US-S-24, US-G-05, US-G-09 · T-02.1, T-02.4, T-02.5, T-02.7, T-03.1, T-04.1, T-05.1, T-05.2, T-06.1, T-11.1, T-11.2, S-24.1, S-24.2, S-24.3, S-24.4, S-24.5, S-24.6, S-24.7, G-05.1, G-05.3, G-09.1 · S9 |
 | Fit criterion | [percentage] A table-driven unit test over the elements of the three fixtures yields the expected verbs, reject targets, required role and actor for 100 % of the rows. |
 | Verified by | unit (table-driven) · e2e |
 
@@ -79,7 +79,7 @@ Shell and conventions: `00_sard.md`.
 | Release | v0.3 (read, inferred defaults, presets) — no `@v0.1` scenario reads `ui.yaml`; v0.1 opens a project whatever its `ui.yaml` (release-planning v0.1) |
 | Description | `.wingfoil/ui.yaml` holds the UI's conventions (`version`, `taxonomy`, `progress`, `holds`, `artifacts`) and nothing else — no permissions (they are WingFoil's, L6), no secrets. It has a JSON schema in `contracts/`. Without it, or when it fails the schema, the UI uses inferred defaults and warns. A preset (Kanban, Scrum, `sw-life-cycle`) is offered only when the file does not exist, refused when it maps a type the project does not declare, and validated before writing. `progress.scope` declares a type only; the current element is derived. |
 | Rationale | One versioned home for the UI's conventions, invisible to WingFoil's loaders (W-11); decisions of sessions 3 (permissions, scope). |
-| Traceability | US-C-01, US-C-02, US-C-03, US-C-04, US-T-12 · C-01.1, C-01.2, C-01.3, C-02.1, C-02.3, C-02.5, C-03.1, C-03.2, C-04.1, C-04.2, T-12.1, T-12.4, T-12.5 · C1, T2 |
+| Traceability | US-C-01, US-C-02, US-C-03, US-C-04, US-T-12, US-S-24 · C-01.1, C-01.2, C-01.3, C-02.1, C-02.3, C-02.5, C-03.1, C-03.2, C-04.1, C-04.2, T-12.1, T-12.4, T-12.5, S-24.5, S-24.6 · C1, T2 |
 | Fit criterion | [boolean] Each shipped preset validates against the schema and matches its fixture; the schema rejects a `permissions` key; every scenario listed passes. |
 | Verified by | unit (schema) · e2e |
 
@@ -146,4 +146,5 @@ Shell and conventions: `00_sard.md`.
   other write class changes; decided by the approver.
 - 2026-11-03 — amended in `release-planning` v0.3 (step 5, RP3-14 D5, decided by the approver):
   REQ-ARC-07 lists the key `holds` (the gates whose *Approve* the console does not offer,
-  spec-005 §1, §4a).
+  spec-005 §1, §4a). Review round 2 (m2, decided by the approver): REQ-ARC-06 traces T-02.4,
+  T-02.5, T-02.7, S-24.5 … S-24.7; REQ-ARC-07 traces S-24.5, S-24.6.

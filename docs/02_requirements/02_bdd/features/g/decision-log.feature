@@ -20,7 +20,7 @@ Feature: Read and decide a decision-log
     Given I am Casey
     And "docs/01_vision/00_index.md" links to the file of "dl-002-use-fastify"
     When I select that link
-    Then the element page of "dl-002-use-fastify" opens in the main region with its summary rendered as Markdown
+    Then the element page of "dl-002-use-fastify" opens in the main region, not in the side panel, with its summary rendered as Markdown
 
   @US-G-03 @v0.3 @edge @fx-custom
   Scenario: G-03.3 — Read a decision-log with an empty body

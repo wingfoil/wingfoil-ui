@@ -31,13 +31,19 @@ Feature: Notifications and all-roles summary
 
   # --- US-S-23 — all-roles summary ---
 
-  @US-S-23 @v0.3 @nominal @fx-kanban
+  @US-S-23 @v0.2 @nominal @fx-kanban
   Scenario: S-23.1 — Summarise what requires each of my roles
     Given I am Alex
     When I open Today
-    Then the all-roles summary shows, on one line, one tag for each of the 7 roles Alex holds
-    And it shows the tags "approver · 2" and "developer · 0"
-    And it lists no element
+    Then the all-roles summary shows one entry for each of the 7 roles Alex holds, each with its count
+    And it shows "approver · 2" and "developer · 0"
+
+  @US-S-23 @v0.3 @nominal @fx-kanban
+  Scenario: S-23.5 — Switch the role view from the line of role tags
+    Given I am Alex with the role view "developer"
+    When I select the tag "approver · 2" on the Your roles line
+    Then the shell shows the role view "approver"
+    And the Your roles line shows the 7 tags on one line, "approver · 2" marked as the current view
 
   @US-S-23 @v0.2 @edge @fx-kanban
   Scenario: S-23.2 — Switch role view from the summary

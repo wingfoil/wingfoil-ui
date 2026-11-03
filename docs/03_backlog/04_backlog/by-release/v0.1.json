@@ -3025,6 +3025,53 @@
           ]
         },
         {
+          "id": "T-02.4",
+          "title": "Filter a card by type and by state",
+          "file": "docs/02_requirements/02_bdd/features/t/requires-you.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running",
+            "Given the kanban fixture is open and I am Morgan with the role view \"approver\"",
+            "When I choose the type \"bug\" in the type filter of the Requires you card",
+            "Then Requires you lists exactly 1 row: \"bug-001-crash-on-save\"",
+            "And the type filter of the Requires you card offers \"All (2)\", \"task (1)\" and \"bug (1)\"",
+            "And the state filter of the Requires you card offers \"All (2)\" and \"pending (2)\"",
+            "And the Waiting on others card is not filtered"
+          ]
+        },
+        {
+          "id": "T-02.5",
+          "title": "Show when each element entered its current state",
+          "file": "docs/02_requirements/02_bdd/features/t/requires-you.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running",
+            "Given the kanban fixture is open and I am Morgan with the role view \"approver\"",
+            "When I open Today",
+            "Then the row of \"task-001-login-form\" shows the date of its submit as the date it entered \"pending\"",
+            "And that date's accessible description is the full time of the submit"
+          ]
+        },
+        {
+          "id": "T-02.7",
+          "title": "Name each row's element by its short id",
+          "file": "docs/02_requirements/02_bdd/features/t/requires-you.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running",
+            "Given the custom fixture is open and I am Morgan with the role view \"approver\"",
+            "When I open Today",
+            "Then the row of \"dl-002-use-fastify\" names it \"dl-002\"",
+            "And the Waiting on others row of \"minor-v0.1\", whose id pattern has no number, names it \"minor-v0.1\""
+          ]
+        },
+        {
           "id": "T-03.1",
           "title": "List my rejected work first, with the reason",
           "file": "docs/02_requirements/02_bdd/features/t/requires-you.feature",
@@ -3188,6 +3235,55 @@
             "When I open the element panel of \"bug-001-toast-overlap\"",
             "Then the gate footer shows only \"Reject → closed\" and \"Waiting for the workflow engine to advance\"",
             "And Requires you does not list \"bug-001-toast-overlap\""
+          ]
+        },
+        {
+          "id": "S-24.5",
+          "title": "Hold a gate whose approval is made outside the console",
+          "file": "docs/02_requirements/02_bdd/features/s/action-descriptor.feature",
+          "release": "v0.3",
+          "kind": "nominal",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running",
+            "Given the custom fixture with the sw-life-cycle preset is open on WingFoil 0.3 and I am Morgan with the role view \"approver\"",
+            "And \"minor-v0.1\" has been submitted to the state \"releasing\"",
+            "When I open Today",
+            "Then Requires you does not list \"minor-v0.1\"",
+            "And Waiting on others lists \"minor-v0.1\" with \"Approved outside the console (ui.yaml)\"",
+            "And the gate footer of \"minor-v0.1\" shows \"Approved outside the console (ui.yaml)\" and \"Reject → in-development\", with no \"Approve\""
+          ]
+        },
+        {
+          "id": "S-24.6",
+          "title": "Hold a gate until the elements that reference it are done",
+          "file": "docs/02_requirements/02_bdd/features/s/action-descriptor.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running",
+            "Given the custom fixture with the sw-life-cycle preset is open on WingFoil 0.3 and I am Casey",
+            "And the release line \"rl-v1\" with version \"v1\" is in the state \"active\"",
+            "And \"minor-v0.1\", with release-line \"v1\", is in the state \"planning\"",
+            "When I open Today",
+            "Then Waiting on others lists \"rl-v1\" with \"Waits for 1 referencing element to be done\"",
+            "And the gate footer of \"rl-v1\" shows \"Waits for 1 referencing element to be done\" and no outcome button"
+          ]
+        },
+        {
+          "id": "S-24.7",
+          "title": "Disable a move into a state at its limit",
+          "file": "docs/02_requirements/02_bdd/features/s/action-descriptor.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running",
+            "Given the custom fixture is open on WingFoil 0.3 and I am Morgan",
+            "And the Sprint \"sprint-001\" is in the state \"active\" and the Sprint \"sprint-002\" in the state \"planned\"",
+            "When I open the element panel of \"sprint-002\"",
+            "Then the action \"Submit\" is disabled with the reason \"Blocked: only 1 active at a time\""
           ]
         },
         {
@@ -4448,6 +4544,21 @@
             "When I select \"approver · 2\" in the all-roles summary",
             "Then the shell shows the role view \"approver\"",
             "And Requires you lists \"task-001-login-form\" and \"bug-001-crash-on-save\""
+          ]
+        },
+        {
+          "id": "S-23.5",
+          "title": "Switch the role view from the line of role tags",
+          "file": "docs/02_requirements/02_bdd/features/s/shell.feature",
+          "release": "v0.3",
+          "kind": "nominal",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running with the kanban fixture open",
+            "Given I am Alex with the role view \"developer\"",
+            "When I select the tag \"approver · 2\" on the Your roles line",
+            "Then the shell shows the role view \"approver\"",
+            "And the Your roles line shows the 7 tags on one line, \"approver · 2\" marked as the current view"
           ]
         },
         {

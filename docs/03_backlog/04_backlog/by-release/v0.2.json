@@ -646,16 +646,30 @@
           "id": "S-23.1",
           "title": "Summarise what requires each of my roles",
           "file": "docs/02_requirements/02_bdd/features/s/shell.feature",
-          "release": "v0.3",
+          "release": "v0.2",
           "kind": "nominal",
           "fixture": "kanban",
           "steps": [
             "Given the console is running with the kanban fixture open",
             "Given I am Alex",
             "When I open Today",
-            "Then the all-roles summary shows, on one line, one tag for each of the 7 roles Alex holds",
-            "And it shows the tags \"approver · 2\" and \"developer · 0\"",
-            "And it lists no element"
+            "Then the all-roles summary shows one entry for each of the 7 roles Alex holds, each with its count",
+            "And it shows \"approver · 2\" and \"developer · 0\""
+          ]
+        },
+        {
+          "id": "S-23.5",
+          "title": "Switch the role view from the line of role tags",
+          "file": "docs/02_requirements/02_bdd/features/s/shell.feature",
+          "release": "v0.3",
+          "kind": "nominal",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running with the kanban fixture open",
+            "Given I am Alex with the role view \"developer\"",
+            "When I select the tag \"approver · 2\" on the Your roles line",
+            "Then the shell shows the role view \"approver\"",
+            "And the Your roles line shows the 7 tags on one line, \"approver · 2\" marked as the current view"
           ]
         },
         {
@@ -2467,16 +2481,15 @@
           "id": "S-23.1",
           "title": "Summarise what requires each of my roles",
           "file": "docs/02_requirements/02_bdd/features/s/shell.feature",
-          "release": "v0.3",
+          "release": "v0.2",
           "kind": "nominal",
           "fixture": "kanban",
           "steps": [
             "Given the console is running with the kanban fixture open",
             "Given I am Alex",
             "When I open Today",
-            "Then the all-roles summary shows, on one line, one tag for each of the 7 roles Alex holds",
-            "And it shows the tags \"approver · 2\" and \"developer · 0\"",
-            "And it lists no element"
+            "Then the all-roles summary shows one entry for each of the 7 roles Alex holds, each with its count",
+            "And it shows \"approver · 2\" and \"developer · 0\""
           ]
         }
       ],

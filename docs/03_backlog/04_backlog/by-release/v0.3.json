@@ -117,7 +117,7 @@
             "Given I am Casey",
             "And \"docs/01_vision/00_index.md\" links to the file of \"dl-002-use-fastify\"",
             "When I select that link",
-            "Then the element page of \"dl-002-use-fastify\" opens in the main region with its summary rendered as Markdown"
+            "Then the element page of \"dl-002-use-fastify\" opens in the main region, not in the side panel, with its summary rendered as Markdown"
           ]
         },
         {
@@ -931,6 +931,7 @@
         "US-C-02",
         "US-C-03",
         "US-C-04",
+        "US-S-24",
         "US-T-12"
       ],
       "acceptance_criteria": [
@@ -1132,6 +1133,40 @@
             "And its only release \"minor-v0.1\" is `draft`",
             "When I open Today",
             "Then the progress card shows \"No current release\" and the figures of the whole project"
+          ]
+        },
+        {
+          "id": "S-24.5",
+          "title": "Hold a gate whose approval is made outside the console",
+          "file": "docs/02_requirements/02_bdd/features/s/action-descriptor.feature",
+          "release": "v0.3",
+          "kind": "nominal",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running",
+            "Given the custom fixture with the sw-life-cycle preset is open on WingFoil 0.3 and I am Morgan with the role view \"approver\"",
+            "And \"minor-v0.1\" has been submitted to the state \"releasing\"",
+            "When I open Today",
+            "Then Requires you does not list \"minor-v0.1\"",
+            "And Waiting on others lists \"minor-v0.1\" with \"Approved outside the console (ui.yaml)\"",
+            "And the gate footer of \"minor-v0.1\" shows \"Approved outside the console (ui.yaml)\" and \"Reject → in-development\", with no \"Approve\""
+          ]
+        },
+        {
+          "id": "S-24.6",
+          "title": "Hold a gate until the elements that reference it are done",
+          "file": "docs/02_requirements/02_bdd/features/s/action-descriptor.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running",
+            "Given the custom fixture with the sw-life-cycle preset is open on WingFoil 0.3 and I am Casey",
+            "And the release line \"rl-v1\" with version \"v1\" is in the state \"active\"",
+            "And \"minor-v0.1\", with release-line \"v1\", is in the state \"planning\"",
+            "When I open Today",
+            "Then Waiting on others lists \"rl-v1\" with \"Waits for 1 referencing element to be done\"",
+            "And the gate footer of \"rl-v1\" shows \"Waits for 1 referencing element to be done\" and no outcome button"
           ]
         }
       ],
