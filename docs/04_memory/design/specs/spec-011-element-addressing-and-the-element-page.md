@@ -92,16 +92,20 @@ id (`minor-v0.1`, T-02.7).
 - **The side panel in the URL (E1).** A search parameter `panel=<full id>` on the current view's
   address, valid on every view of `/p/<pid>/…` (the bell works on every view): opening the panel
   pushes a history entry, a reload keeps the panel over the same view, and closing it removes the
-  parameter. Its value is resolved as `:eid` is (§3) — a short id there is rewritten to the full
-  id the same way; an unknown or ambiguous value shows the view with the panel's *not found* or
-  candidates. Any other search parameter of the view is kept.
+  parameter. Its value is resolved as `:eid` is (§3); an unknown value shows the view with the
+  panel's *not found*, an ambiguous one the panel's candidates, each a `?panel=<full id>` link on
+  the same view (not a link to the element page). Any other search parameter of the view is kept.
+  On the element page `/p/<pid>/e/…` the parameter is ignored: the page already shows an
+  element.
 - **Close and Escape.** On the element page: back in history when the page was reached inside the
   console, else to the project's Memory list (`ux-reference.md` §4.2 v0.3; today the fallback is
   `/p/<pid>`, `web/src/routes/element.tsx`). On the side panel: the panel closes, the view stays,
   the focus returns to the opener (§4.2 v0.2).
-- **Canonical address.** When the address (or `panel=`) names a short id that resolves (§3), the
-  page replaces the history entry with the full id's address (`history.replace`: Back does not
-  return to the short form) and seeds the full id's query with the answer it has (no second read).
+- **Canonical address.** When the address names a short id that resolves (§3), the page replaces
+  the history entry with the full id's address (`history.replace`: Back does not return to the
+  short form) and seeds the full id's query with the answer it has (no second read). For
+  `panel=`, only the parameter's **value** is replaced by the answer's `element.id`, the same way;
+  the view's path is unchanged (no move to `/e/`).
 - A document link to an element's file is classified by path (`web/src/docs/links.ts`) and
   always yields a full id.
 
@@ -179,6 +183,10 @@ No route is added; `X-Repo-State` and the event stream are unchanged.
 - The candidates are the project's own elements, behind the session (spec-004 §2), capped and
   sanitised (§3).
 - The address rewrite (§2) stays inside `/p/<pid>/e/`: it is no redirect to a caller's value.
+- The `panel=` value is only ever looked up as an element id of the current `<pid>`: placed with
+  `encodeURIComponent` into the API path `/api/p/<pid>/elements/<value>` and resolved by §3. It is
+  never used as a link or a navigation target; the only rewrite replaces it with the server's
+  `element.id`. A value naming another project's element answers *not found*.
 
 ### 7. Deep links across restarts (dl-012 R3) — the hook
 
@@ -202,6 +210,10 @@ remember across the session exchange, and where, is adr-003's.
   a 256-character parameter → 404 `not-found` on `GET …/elements/:eid`, on `GET …/history` — with
   and without a web build — and on each write (`POST …/submit`, `/approve`, `/reject`), with no
   `wingfoil` process, and still 403/401 first when the origin or the session fails (C1).
+- **Web (unit):** a hostile `panel=` value — `../x`, `https://example.test/x`, another project's
+  element id — shows the panel's *not found* and navigates nowhere (the path and the other
+  parameters unchanged); a short `panel=` value is replaced by the full id with the path
+  unchanged; `panel=` on `/p/<pid>/e/…` is ignored.
 - **Contract:** `element.schema.json`, `elements.schema.json`, `today.schema.json` with
   `shortId`; the new refusal schema.
 - **e2e:** T-02.7 (short ids on Today); G-01.4 (the address opens the element, now in the main
@@ -248,4 +260,8 @@ remember across the session exchange, and where, is adr-003's.
   `not-found` on every method — `frameworkErrors` maps `FST_ERR_MAX_PARAM_LENGTH`, after the
   guards (§4, §5, §8; the Context corrected: today a `GET` answers 404 through the static fallback
   or 400 without a web build, a `POST` 400). Also from the check: §1 the literal prefix before
-  `{n}` must be non-empty (m4); §3 the sanitiser's scope as spec-004 §5 states it.
+  `{n}` must be non-empty (m4); §3 the sanitiser's scope as spec-004 §5 states it. Re-check round
+  2 (wording): §2 only the `panel=` value is rewritten, the view's path stays; the candidates of an
+  ambiguous `panel=` are `?panel=` links on the view; `panel=` ignored on the element page; §6 the
+  `panel=` value is only an id of the current project, never a link or a target; §8 a test of
+  hostile values.
