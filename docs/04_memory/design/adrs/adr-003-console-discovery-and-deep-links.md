@@ -88,7 +88,10 @@ steps 4 and 5 of spec-007 §3 — so a script that sees the URL line finds the f
 atomically, as `state.json` is (a temporary `consoles/<port>.json.tmp-<pid>-<n>`, unique to the
 writer, created exclusively with mode `0600`, `fsync`, `rename`; temporary files of dead processes
 are removed at the start housekeeping of D3). While the console runs it refreshes the file's
-modification time every 10 s (a heartbeat, as `state.json.lock`'s holder does). A failed write is a warning in the log, never a failed start: discovery is a
+modification time every 10 s (a heartbeat, as `state.json.lock`'s holder does). When the heartbeat
+finds the file gone, or holding another `pid` or `started` (removed or replaced by another console
+after a suspend or a stall), it rewrites the file in full, atomically as above, so discovery is
+never lost silently. A failed write is a warning in the log, never a failed start: discovery is a
 convenience, the console works without it. On stop the file is removed as the first stop step,
 right after the console stops accepting connections (spec-007 §6), so no agent hands out a link to
 a console that is going away; it is removed again, synchronously and best-effort, by the handler
@@ -99,12 +102,14 @@ still holds its own `pid` and `started`.
 modification time is older than 30 s (three missed heartbeats), or when its `host` is this
 machine's and its `pid` is not a running process (`kill(pid, 0)` fails with `ESRCH`; `EPERM` counts
 as running) — as `state.json.lock` judges its holder; a file whose `host` is another machine's is
-judged by its age only. The heartbeat also covers a reused pid: the file of a crashed console goes
+judged by its age only. The age rule is applied by readers, and by a starting console to other
+hosts' files only; it also covers a reused pid: for a reader, the file of a crashed console goes
 stale within 30 s, whatever process now holds its pid. Before writing its own file a console
-removes the stale files and the temporary files of dead processes (start housekeeping, as for
-`state.json`) and replaces any
-file already named after its own port — on this host the port is now its own, whatever the file
-says (a crash, a reused pid). Two consoles on one state directory listen on two ports, so they
+removes the files of **this** host whose `pid` is dead, the other hosts' files older than 30 s and
+the temporary files of dead processes (start housekeeping, as for `state.json`) — never a file of
+this host by its age, since a suspended or stalled console is still alive (and its heartbeat would
+restore it anyway, D2) — and replaces any file already named after its own port: on this host the
+port is now its own, whatever the file says (a crash, a reused pid). Two consoles on one state directory listen on two ports, so they
 write two files and never contend for one; `consoles/` is not under `state.json.lock`, since each
 file has a single writer. Both serve the same project list (spec-006 §4), so a link built on
 either opens the same element. A state directory shared by two machines (a network home) is not
@@ -160,7 +165,8 @@ documents it. A default fixed port is reconsidered at v0.4 (A2).
 - spec-006 §1: the state directory holds `state.json` and the folder `consoles/` (`0700`), each
   `<port>.json` `0600`, created and removed by consoles only; §4: `consoles/` is outside
   `state.json.lock` (one writer per file) and its housekeeping at start; §5: the address file holds
-  nothing of D5, the secret scan covers it; §6: unit tests of write, heartbeat, replace, remove,
+  nothing of D5, the secret scan covers it; §6: unit tests of write, heartbeat (it restores a
+  removed or replaced file), replace, remove,
   stale detection (pid and age) and modes.
 - spec-007 §3: a step between 4 and 5 (housekeeping, write the address file, a failed write is a
   warning); §6: the removal as the first stop step and in the exit handler; §7: the launch smoke
@@ -297,9 +303,9 @@ text, a same-origin `BroadcastChannel`; spec-004 §2, the UX reference, X-02.2 a
 scenario; an e2e restart on the three engines), two or three review rounds with the adversarial
 reviewer; no server change. B — **M–L**, two tasks, four to six rounds, and a change of REQ-SEC-02.
 C — **L**, two or three tasks, six rounds or more. Against task-046's six rounds, only A is small.
-**Recommendation: A** (decided, A1), in v0.3 next to R1, deep links promised with `--port`; B and C are not
-needed for dl-012's need once A and R1 are in, and stay out unless a later request asks for links
-with no action and no fixed port. **R3 is small enough for v0.3 (RP3-10) in form A only.**
+**Recommendation: A** (decided, A1), in v0.3 next to R1, deep links promised with `--port`; B and
+C are not needed for dl-012's need once A and R1 are in, and stay out unless a later request asks
+for links with no action and no fixed port. **R3 is small enough for v0.3 (RP3-10) in form A only.**
 
 **Probes** (`$SCRATCH` is a throw-away folder; the token and the cookies stay in shell variables,
 never printed):
@@ -360,4 +366,7 @@ directory after the start), so D1 creates it.
   `state.json`; the two uses of "Q5" separated (the residual window of D3; the cookie item, A5);
   today's cookie exposure added to the threat table; `release: "v0.3"`; probe P6 waits for the
   stop and keeps the new pid; **C4** the *Later (v0.4)* list in *Consequences*. D6 and D7 are no
-  longer "proposed".
+  longer "proposed". Re-check round 2 (one minor): a console's start housekeeping removes a file of
+  this host only when its pid is dead (the age rule is for readers and other hosts' files), and
+  the heartbeat rewrites its file in full when it finds it gone or not its own (D2, D3; spec-006
+  §6's test list), so a suspend or a stall over 30 s no longer loses discovery silently.
