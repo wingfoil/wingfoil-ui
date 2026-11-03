@@ -91,7 +91,7 @@ JSON; every request and response body has a schema in `contracts/api/`.
 | `GET /api/p/:pid/events/memory?before=&limit=` | Memory events (spec-002 §3) | v0.2 (Updates), v0.4 (Timeline, R6 — moved from v0.3, RP3-7) |
 | `GET /api/p/:pid/git/log?branch=&author=&q=&before=` | git tree (R7) | v0.4 (moved from v0.3, RP3-7) |
 | `POST /api/p/:pid/ingestions/:workflow` `{title, fields}` | ingestion start: `memory add` + `memory submit` (G5) | v0.4 (moved from v0.3, RP3-7) |
-| `POST /api/p/:pid/ui-config/preset` `{preset}` | apply a UI preset (write class b, spec-005) | v0.3 |
+| `POST /api/p/:pid/ui-config/preset` `{preset}` | apply a UI preset (write class b): `preset` ∈ `kanban`, `scrum`, `sw-life-cycle` (any other value fails the body schema, 400 `invalid-request`); 200 `write.response.schema.json` (§5) with `result` `{ file: ".wingfoil/ui.yaml", preset }`; preconditions, writing and failures as spec-005 §5 | v0.3 |
 | `GET /api/p/:pid/workflow/status`, `/workflow/next`; `POST /api/p/:pid/workflow/start`; `POST /api/p/:pid/agents` | WingFoil 0.3 verbs; shapes fixed by v0.4 `release-planning` | v0.4 |
 
 Write routes run through the repository's write lock (its git common directory, `adr-001` D5). `expectedStatus` is the
@@ -199,6 +199,10 @@ particular row 6 (`unsupported-version`) does not, so a role view can be chosen 
 project. "Not identified" in row 5 covers the identity kinds `not-in-team`, `no-identity` and
 `ambiguous`; nothing is stored on a refusal.
 
+The preset write (`POST /api/p/:pid/ui-config/preset`, v0.3) runs rows 1–6 and 8; row 7 is
+replaced by "`.wingfoil/ui.yaml` exists nowhere" (409 `ui-config-exists`) and row 9 does not apply
+(no element) — spec-005 §5, which also fixes its order under the write lock.
+
 **v0.2 (RP-11, RP-14).** The git routes run rows 1–4 (fetch) or 1–5 (update, push), never 6–9,
 then the refusals of spec-010 §5 (spec-010 §8): fetch is allowed to an unidentified user. Their
 body is none or `{}` (row 4: anything else → 400); row 5 reads the snapshot view, as for the
@@ -255,6 +259,8 @@ the authors' emails against the team (spec-002 §1), which reads them as committ
 | 500 | `write-incomplete` | a governed write that did not finish: its CLI failed leaving the element file changed (modified or staged) without the write's commit, failed after its commit (`detail.commit`: the commit is logged and announced, not pushed), or answered for another path than the one checked (`detail.file` that path, `detail.commit` when its commit is found). `detail.file` relative to the project; a fixed `message`, never the CLI's text (it quotes local absolute paths and the reason), which is not logged either; nothing is restored |
 | 422 | `git-refused` | a git transport command failed: git's message verbatim (REQ-INT-06), local folders and URL userinfo redacted as for `cli-refused` and a local remote's path as `<remote>`, at most 4 000 characters |
 | 409 | `no-remote`, `no-fetch-target`, `detached-head`, `no-upstream`, `diverged`, `local-changes-in-the-way`, `remote-not-owned`, `remote-unreadable`, `refspec-outside-remotes` | refusals of the git routes before any transport process (spec-010 §5); the update and push codes and `push-timeout` also appear as `push.code` of a write |
+| 409 | `ui-config-exists` | the preset write (v0.3): `.wingfoil/ui.yaml` exists in the working tree, the index or at HEAD, or appeared before the exclusive create (spec-005 §5) |
+| 422 | `ui-config-invalid` | the preset write (v0.3): the rendered preset fails the `ui.yaml` schema or a semantic check against the project; `detail.failure` = the first failure (spec-005 §1, §5); nothing written |
 | 502 | `read-error` | a direct read of spec-001 §4 failed: `message` "Cannot read `<file>`" and the reason, `detail: { file, kind }` with `kind` one of `outside`, `missing`, `shape`, `mismatch` and `file` relative to the project (never absolute). Scoped to the element or directive read: a list never fails as a whole; an unreadable `memory.yaml` degrades only the type-dependent features. Logged as `{ kind, file }` only (`outside` at warn level) |
 | 422 | project-list codes | refusals of `POST /api/projects` and `/projects/clone`: spec-006 §3 (`folder-not-found`, `not-wingfoil`, `already-listed`, `directory-not-empty`, `cli-not-found`, `state-dir-inside-project`, `directory-inside-project`, `inside-state-dir`, `git-refused` — also for a folder with `.wingfoil/` that is not a git repository —, `remote-not-owned`, `remote-unreadable`) |
 | 404 | `not-found` | also a refused working-tree path of `/files/tree` and `/files/content` (REQ-SEC-06): `detail.kind` one of `outside` (the "outside the repository" marker), `missing`, `not-allowed`, `too-large`; 0 bytes of the target |
@@ -276,7 +282,7 @@ the authors' emails against the team (spec-002 §1), which reads them as committ
 | `repo` | `{pid, state}` | HEAD, working-tree status, branch, upstream, ahead/behind, the remote list or effective `user.email` of a project changed (REQ-STATE-02, spec-010 §2); also, with the same `state`, only when `sync.fetch.lastError` or `sync.update.lastError` is set, changed or cleared (spec-010 §2–§3) — never for a new `lastSuccessAt` alone |
 | `projects` | `{}` | the project list or a project's availability changed |
 | `settings` | `{}` | UI settings changed (another tab) |
-| `write` | `{pid, eid?, commit}` | a write finished (other tabs show the result) |
+| `write` | `{pid, eid?, commit}` | a write finished (other tabs show the result); without `eid` for the preset write (v0.3, spec-005 §5) |
 | `agent` | `{pid, run, line}` | agent output (v0.4, REQ-PERF-08) |
 
 On `repo`, pages refetch the queries of that project (TanStack Query invalidation, `adr-002`); a
@@ -435,3 +441,6 @@ goes away by itself when the stream reconnects. A network failure is not rendere
   the commit texts of the history, the Memory events and the descriptor's `rejection` sanitised
   where the routes serialise them, after the email matching (D13, bug-027); `cli-refused` carries
   the 0.3.x refusal's `details[].detail` in `detail.reasons[]` (the RP3-7 scope item).
+  Aligned the same day with spec-005 §5 (C1): §3 the preset route's `preset` values and response;
+  §4 the rows the preset write runs; §5 the codes `ui-config-exists` (409) and `ui-config-invalid`
+  (422, `detail.failure`); §6 the `write` event without `eid` for the preset write.
