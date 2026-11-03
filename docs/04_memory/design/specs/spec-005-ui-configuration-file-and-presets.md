@@ -80,8 +80,7 @@ allowed", "at most 2 quantifiers", "a quantifier on a group is not allowed", "{n
 
 The file is read from the **working tree** at `.wingfoil/ui.yaml`, as every view shows the working
 tree (`adr-001` D6), on each repository state, by a direct read: REQ-ARC-04's fit criterion already
-names `ui.yaml` among the files that may be read, and spec-001 §4 gets the entry with the
-amendment that lists it (open point of RP3-14). **The file exists** when the working tree holds any
+names `ui.yaml` among the files that may be read, and spec-001 §4.5 lists it. **The file exists** when the working tree holds any
 entry at that path — a regular file, a symbolic link or a directory, tracked or not.
 
 - An entry that is not a regular file (a symbolic link, never followed, or a directory), or a file
@@ -168,10 +167,13 @@ The UI stays methodology-independent: the rule names no type or state; the proje
 - The hold withdraws *Approve* only: the gate's *Reject* stays as spec-003 offers it, and the
   CLI is untouched (a `memory approve` from a terminal still works — the hold is the console's,
   not WingFoil's).
-- Where *Approve* is withdrawn the console shows an informational line with the reason instead
-  of the outcome (gate footer, Today). The descriptor's mechanism — how a hold enters the verbs,
-  the actor and the placement, and the catalogue texts of the two codes — is spec-003's (RP3-14
-  D5, amended separately); this section fixes the key, its values and when a hold applies.
+- Where *Approve* is withdrawn the gate footer shows an informational line with the reason (a
+  member holding `approver` keeps each *Reject*); on Today the element is never in *Requires you*
+  and is in *Waiting on others* for every member, approvers included, with the reason in place of
+  "Reserved to approver — …" (spec-003 §5; review round 1 F1, decided by the approver). The
+  descriptor's mechanism — how a hold enters the verbs, the actor and the placement, the
+  `approveHeld` output — is spec-003's (§3, §5, §8); this section fixes the key, its values and
+  when a hold applies.
 - Evaluated by the server on each repository state with the descriptor (spec-003 §8), from the
   effective `ui.yaml` (an ignored file holds nothing).
 - A held gate is not a *pending gate* (§4): the console offers no decision on it.
@@ -191,7 +193,7 @@ under `server/src/` because the server compiles only `server/src`):
 |--------|----------|---------|
 | Kanban | `wingfoil init --template Kanban` | categories of the 7 categorised template types (§3 names; the `plan` type of the 0.3.1 template has none, §2); `patterns: []`, `requires: {}`, `holds: {}`, `artifacts: []` (written explicitly, so every value shows "declared", C-02.1); `progress: {mode: flow, phases: [plan, build, review, deliver], iterates: task, defects: bug}` |
 | Scrum | `wingfoil init --template Scrum` | as Kanban (empty lists and maps written explicitly), with `progress: {mode: sequence, scope: {type: release}, phases: [plan, build, review, deliver], iterates: task, defects: bug}` |
-| WingFoil `sw-life-cycle` | the WingFoil repository and projects copying its configuration (the packs `base`, `software`, `methodology/scrum`) | `ux-reference.md` §6 with `scope: {type: release}`, patterns `^(REQ\|US)-` → requirement, `^(P\d\|Journey)` → feature, `^(minor\|patch)-v\|^rl-` → release, `requires` for `task`, `adr`, `tech-spec` → requirement, categories including `service`; `phases: [sprint-planning, development, plan-release, release, sprint-review, retrospective, close]` (the phases of the packs' `sprint` workflow, which carries a release from its planning to its publication) in place of §6's procedure names; `artifacts` as §6 with every `phase: release`; `holds: {release: {releasing: {approve: never}}, release-line: {active: {approve: when-references-done}}}` (§4a) |
+| WingFoil `sw-life-cycle` | the WingFoil repository and projects copying its configuration (the packs `base`, `software`, `methodology/scrum`) | `ux-reference.md` §6 with `scope: {type: release}`, patterns `^(REQ\|US)-` → requirement, `^(P\d\|Journey)` → feature, `^(minor\|patch)-v\|^rl-` → release, `requires` for `task`, `adr`, `tech-spec` → requirement, categories including `service`; `phases: [sprint-planning, development, plan-release, release, sprint-review, retrospective, close]` (the phases of the packs' `sprint` workflow, which carries a release from its planning to its publication) as §6's example since `ux-reference.md` 1.12 (review round 1 F6), no removed procedure; `artifacts` as §6, every `phase: release`; `holds: {release: {releasing: {approve: never}}, release-line: {active: {approve: when-references-done}}}` (§4a) |
 
 **Re-checked on WingFoil 0.3.1 (RP3-14).** `init --template Kanban` declares 8 types — `adr`,
 `bug`, `decision-log`, `plan`, `release`, `release-line`, `task`, `tech-spec` — with the default
@@ -327,7 +329,10 @@ remaining non-methodology hit needs a justified inline disable.
   sw-life-cycle preset's `phases` (the packs' `sprint` phases, no removed procedure), `artifacts`
   phases and `holds`; the preset write against the rows of spec-004 §4, the codes
   `ui-config-exists` and `ui-config-invalid`, the success body, action log, auto-push and `write`
-  event, the git failures; §6 their verification. To align in the specs that own them: spec-001 §4
+  event, the git failures; §6 their verification. Aligned the same day in the specs that own them: spec-001 §4
   (the `ui.yaml` read), spec-003 (the hold in the descriptor and its two reason codes), spec-004
   §3–§6 (the route's request schema, the two codes, the `write` event without `eid`), spec-006 §2
   (the action log), spec-010 §6 (auto-push after this write), REQ-ARC-07 (the `holds` key).
+  Review round 1 (decided by the approver): §2 cites spec-001 §4.5; §4a a held gate is in
+  *Waiting on others* for every member with the reason, never in *Requires you*, its footer keeping
+  *Reject* for `approver` holders (F1); §5 the sw-life-cycle row matches `ux-reference.md` §6 (F6).

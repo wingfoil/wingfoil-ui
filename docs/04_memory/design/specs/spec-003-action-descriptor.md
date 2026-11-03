@@ -89,8 +89,9 @@ key of `.wingfoil/ui.yaml` or its preset; spec-005 §4a fixes the values and whe
 `never` (always held, reason `held-by-config`) and `when-references-done` (held while a
 non-archived element referencing it is not done, reason `held-until-references-done {count}`).
 While the gate is held, `approve` is not offered: the gate footer shows an informational line with
-the reason (`approveHeld`, §8); the gate's `reject` stays offered as above; the element is not
-placed in Requires you as *Approve* and is not a pending gate (§5). The descriptor names no type or
+the reason (`approveHeld`, §8); the gate's `reject` stays offered as above (to `approver` holders);
+the element is never in Requires you, is in Waiting on others for every member — approvers
+included — with the reason, and is not a pending gate (§5). The descriptor names no type or
 state (REQ-ARC-05): the hold comes from the configuration.
 
 ### 4. Actor — who must act
@@ -128,7 +129,9 @@ For the current user `U` with role view `R`:
     `R = tech-lead` — otherwise such an element would be in no list of a tech-lead.
 - **Waiting on others** of `U` lists an element whose actor is another member or a role `U` does
   not hold, with who can act ("Reserved to approver — Morgan, Alex"); `waiting` and
-  `gate-waiting` elements show "Waiting for the workflow engine". A `waiting` state that is the
+  `gate-waiting` elements show "Waiting for the workflow engine". A held `gate` (§3) is listed for
+  **every** member, `approver` holders included, with the hold's reason (`approveHeld.reason`) in
+  place of "Reserved to approver — …" (review round 1 F1, decided by the approver). A `waiting` state that is the
   type's `end` is kind `last` (§2) and is in neither list: shown as in force, e.g. `adr` `accepted`
   and `tech-spec` `approved`, left only through a later element's `supersedes:` (RP3-14 D1, N3
   option A).
@@ -144,7 +147,7 @@ For the current user `U` with role view `R`:
   `active → done` (W-04), declared `waiting`: the UI shows "Waiting for the workflow engine" there
   and never makes that commit (REQ-ARC-03). On any project, a state its configuration declares
   `waiting` is shown the same way (a configuration of the v0.2 era, before the packs, declared
-  the four states above `waiting` — RP-13); WingFoil 0.3.1 accepts a hand-committed `status:`
+  `plan` `active`, `task` `backlog`, `release` `planning` and `bug` `triaged` `waiting` — RP-13); WingFoil 0.3.1 accepts a hand-committed `status:`
   without the approver (W-34), which the UI never makes either.
 
 **Today output (v0.2, `GET /api/p/:pid/today?view=<role>`, `contracts/api/today.schema.json`).**
@@ -207,10 +210,14 @@ failing reason (also its accessible description, REQ-ARC-10):
 3. the element file has no local changes — "Blocked: this element has local changes — commit or
    discard them first" (REQ-STATE-03);
 4. the copy is not behind, diverged or on a detached HEAD (REQ-STATE-04);
-5. (v0.3, RP3-14 D11) the verb's target state is not at its limit: when the type declares
-   `limits: {<to>: N}` and N elements of the type are already in `<to>` (the not-archived
-   elements of `memory search`), the move is refused by WingFoil 0.3.x (Context) — "Blocked:
-   only N `<to>` at a time".
+5. (v0.3, RP3-14 D11) for `submit` and `approve` only (WingFoil checks no limit on a `reject`
+   or a `park`), the verb's target state is not at its limit: when the type declares
+   `limits: {<to>: N}` and N elements of the type are already in `<to>`, the move is refused by
+   WingFoil 0.3.x (Context) — "Blocked: only N `<to>` at a time". The UI counts the not-archived
+   elements of `memory search` (the working tree); this approximates WingFoil's count, which reads
+   HEAD and every local and remote-tracking branch that changed an element since its merge-base
+   (0.3.1 `dist/core/memory-transition.js` `requireWipSlot`): the two may differ, and the CLI's
+   refusal (422 `cli-refused`) stays the authority.
 
 The reason is a **code with parameters**, not a text — `not-in-team`, `version-unsupported
 {range}`, `local-changes`, `copy-behind {commits}`, `copy-diverged`, `copy-detached`,
@@ -361,4 +368,8 @@ element list; `web/` renders it and never re-derives it.
   qualified for the packs. Aligned the same day with spec-005 §1 and §4a: the held gates come
   from `ui.yaml`'s `holds` per type and gate state, `approveHeld` is `{condition: never |
   when-references-done, reason: held-by-config | held-until-references-done {count}}`; §5 the
-  summary's `items` and `more` kept but unused in v0.3 (N1, S-23.1, S-23.4).
+  summary's `items` and `more` kept but unused in v0.3 (N1, S-23.1, S-23.4). Review round 1
+  (decided by the approver): §3, §5 a held gate is in Waiting on others for every member,
+  approvers included, with its reason (F1; S-24.5, S-24.6); §6 rule 5 for `submit` and `approve`
+  only, the UI's count an approximation of `requireWipSlot` (F4; S-24.7); §5 the four pre-packs
+  `waiting` states named.

@@ -44,9 +44,10 @@ date (ISO 8601), `author` = `Name <email>`, `operation` ∈ `add`, `submit`, `ap
 for `add`; `approver` and `reason` are `null` when absent.
 
 `author`, `approver` and `reason` are commit text, written by whoever commits to the project: the
-server matches `author` against the team's emails as read (spec-003 §4), then passes the three through the sanitiser of tool messages where the API serialises an event or a text taken
-from one (`/events/memory` behind Updates, the descriptor's `rejection` in Today and the element
-lists; v0.3, RP3-14 D13, bug-027; spec-004 §5).
+server matches `author` against the team's emails as read (spec-003 §4), then passes the three
+through the sanitiser of tool messages where the API serialises an event or a text taken from one
+(`/events/memory` behind Updates, the descriptor's `rejection` in Today and the element lists;
+v0.3, RP3-14 D13, bug-027; spec-004 §5).
 
 ### 2. Sources
 
@@ -121,8 +122,9 @@ For each record:
 ### 4. Caching and incremental reads
 
 - Cache key: HEAD only (events are commits; the working tree is irrelevant).
-- **Incremental reads — not implemented; moved to v0.3 (RP-9).** Until then every new HEAD is a
-  full parse (§3). The v0.3 design: after a fast-forward from a cached HEAD `old`, only
+- **Incremental reads — not implemented; moved to v0.3 (RP-9), then to v0.4 with the Timeline
+  (R6; release-planning v0.3, review round 1, the approver's OK).** Until then every new HEAD is a
+  full parse (§3). The design: after a fast-forward from a cached HEAD `old`, only
   `old..<HEAD sha>` is parsed (both reads) and prepended; when `old` is not an ancestor of HEAD —
   `git rev-list --count HEAD..old` is not 0 (an allowed read, REQ-INT-06) — the whole log is
   re-parsed. Evidence rule: the v0.2 Today task measures Today on the large fixture also *after
@@ -150,7 +152,7 @@ For each record:
   match the sha list (refused).
 - Performance: on the large fixture (500 elements, 2 000 commits) the first parse runs in two git
   processes (the patch read and the sha list); an incremental parse after one commit reads one
-  commit (v0.3, §4).
+  commit (v0.4, §4).
 
 ## Consequences
 
@@ -205,4 +207,5 @@ For each record:
 - 2026-11-03 — amended in `release-planning` v0.3 (step 5, RP3-14), decided by the approver:
   Context — the Timeline (R6) moved to v0.4 (RP3-7), 0.3.x's `park` and `amend` subjects carry the
   transition (W-15); §1 an event's `author`, `approver` and `reason` sanitised where the API
-  serialises them, after the email matching (D13, bug-027).
+  serialises them, after the email matching (D13, bug-027). Review round 1 (the approver's OK):
+  §4 the incremental reads move to v0.4 with R6; §1 rewrapped.
