@@ -98,7 +98,9 @@ entry at that path — a regular file, a symbolic link or a directory, tracked o
   not counted in progress figures").
 - The warning, when there is one, travels with the effective configuration (`GET
   /api/p/:pid/config`, spec-004 §3) and with the progress figures, where Today shows it (C-04.1);
-  their shapes are the project-state views spec's (RP3-14, step 5c).
+  their shapes are spec-012 §2: the `ui` section of `/config` (each value with its origin
+  `declared`, `inferred` or `derived`) and `status { source, warning? { code:
+  "ui-config-ignored", failure } }`, also carried by `/progress` and `/traceability`.
 
 ### 3. Inferred values (no or ignored file)
 
@@ -122,7 +124,12 @@ names may appear in code (REQ-ARC-05).
   entry's category). An element is **linked** to each of its references. A reference that matches
   a pattern and is no element's id is shown **by its id only** in v0.3 — no title, description or
   source document (RP3-14 D9; WingFoil names a project's chain in prose only, so a source needs a
-  machine-readable chain first, a WingFoil feedback note).
+  machine-readable chain first, a WingFoil feedback note). spec-012 §1 applies this rule without
+  changing it: top-level fields only (a string or a list's string items; nested maps and
+  non-strings are no values), the element's own id excluded, a value equal to an **archived**
+  element's id or holding a short id is no element reference, a pattern is tested only on a value
+  of at most 256 characters with no line break, a reference whose category is none counts nowhere,
+  at most 200 values per element, and an unreadable element file is out of scope and coverage.
 - **Done:** an element of spec-003 kind `last` (the last non-archived state of its `sequence`);
   archived elements are excluded from every figure.
 - **Current element** of `progress.scope` (mode `sequence`), on **every** WingFoil version in v0.3
@@ -338,3 +345,6 @@ remaining non-methodology hit needs a justified inline disable.
   *Reject* for `approver` holders (F1); §5 the sw-life-cycle row matches `ux-reference.md` §6 (F6).
   Round 2 (P3): the English texts of the two reasons in §4a (the implementing task may refine the
   wording in the catalogue, spec-008).
+- 2026-11-03 — aligned with spec-012 (release-planning v0.3 step 5c, decided by the approver,
+  "TQ-1…TQ-6, X1 e K1–K3 come consigliato"): §2 the warning and the `/config` shapes are
+  spec-012 §2's; §4 cites spec-012 §1's clarifications of the reference rule. No rule changes.
