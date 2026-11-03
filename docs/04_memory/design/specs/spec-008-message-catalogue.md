@@ -88,8 +88,11 @@ same keys. Catalogues are JSON, one flat object, UTF-8, sorted by key (checked).
   (`{range: {min, max}}`, spec-001 §6) and the API error code `unsupported-version` (spec-004 §4)
   are distinct keys of different areas, by design.
 - **v0.3 codes** (RP3-14), keyed by the rules above, no new rule: the descriptor's disabled reason
-  `state-limit {state, limit}` (spec-003 §6) and the hold reasons `held-by-config` and
-  `held-until-references-done {count}` (`approveHeld.reason`, spec-003 §8, spec-005 §4a); the API
+  `state-limit {state, limit}` (spec-003 §6) — "Blocked: only {limit} {state} at a time" — and
+  the hold reasons `held-by-config` — "Approved outside the console (ui.yaml)" — and
+  `held-until-references-done {count}` — "Waits for {count} referencing element(s) to be done"
+  (`approveHeld.reason`, spec-003 §8, spec-005 §4a; accepted by the approver, review round 2 P3;
+  the implementing task may refine the wording in the catalogue); the API
   error codes `ui-config-exists` and `ui-config-invalid` (`detail.failure`, the failure's text
   shown as written, spec-004 §5, spec-005 §5).
 
@@ -187,4 +190,4 @@ catalogue and its arguments (`warnings: [{ key, args }]` of `GET /api/server`, s
   value the page read" (the check rebuilds the command for each one), not "an email".
 - 2026-11-03 — amended in `release-planning` v0.3 (step 5, RP3-14 D5, D11; C1): §4 lists the v0.3
   reason and error codes, keyed by the existing rules. Decided by the approver with the decisions
-  named.
+  named. Review round 2 (P3): their English texts.

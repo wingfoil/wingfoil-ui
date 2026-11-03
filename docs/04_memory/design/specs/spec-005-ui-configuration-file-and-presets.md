@@ -161,8 +161,8 @@ The UI stays methodology-independent: the rule names no type or state; the proje
 
 | `approve` | *Approve* not offered | Reason (code, parameters) |
 |-----------|-----------------------|---------------------------|
-| `never` | ever, in that state | `held-by-config` — the approval is made outside the console |
-| `when-references-done` | while at least one non-archived element **references** the element and is not done — a frontmatter value of it equals the element's id or its `version` field (the in-scope rule of §4), done = spec-003 kind `last` | `held-until-references-done {count}` — the number of such elements |
+| `never` | ever, in that state | `held-by-config` — the approval is made outside the console; "Approved outside the console (ui.yaml)" |
+| `when-references-done` | while at least one non-archived element **references** the element and is not done — a frontmatter value of it equals the element's id or its `version` field (the in-scope rule of §4), done = spec-003 kind `last` | `held-until-references-done {count}` — the number of such elements; "Waits for {count} referencing element(s) to be done" |
 
 - The hold withdraws *Approve* only: the gate's *Reject* stays as spec-003 offers it, and the
   CLI is untouched (a `memory approve` from a terminal still works — the hold is the console's,
@@ -336,3 +336,5 @@ remaining non-methodology hit needs a justified inline disable.
   Review round 1 (decided by the approver): §2 cites spec-001 §4.5; §4a a held gate is in
   *Waiting on others* for every member with the reason, never in *Requires you*, its footer keeping
   *Reject* for `approver` holders (F1); §5 the sw-life-cycle row matches `ux-reference.md` §6 (F6).
+  Round 2 (P3): the English texts of the two reasons in §4a (the implementing task may refine the
+  wording in the catalogue, spec-008).

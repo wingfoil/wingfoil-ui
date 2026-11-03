@@ -184,7 +184,7 @@ Row = { element: { id, type, title, status, localChanges }, descriptor }   # des
   `dna.team.members[].roles`; `count` = the length of Requires you of that role view, `items` its
   first ≤ 3 rows, `more` = `count − 3` when positive, else 0 (REQ-PERF-11, S-23.4). **Absent**
   for a member holding one role (S-23.3). In v0.3 *Your roles* is one line of counts (N1;
-  `ux-reference.md` §4.1 v0.3, S-23.1, S-23.4): `items` and `more` are no longer shown and are kept
+  `ux-reference.md` §4.1 v0.3, S-23.4, S-23.5): `items` and `more` are no longer shown and are kept
   in the output, unused (no decision to drop them).
 - The bell's *Updates* are not part of this output: `GET /api/p/:pid/events/memory?limit=10`
   (spec-004 §3, spec-002).
@@ -213,7 +213,7 @@ failing reason (also its accessible description, REQ-ARC-10):
 5. (v0.3, RP3-14 D11) for `submit` and `approve` only (WingFoil checks no limit on a `reject`
    or a `park`), the verb's target state is not at its limit: when the type declares
    `limits: {<to>: N}` and N elements of the type are already in `<to>`, the move is refused by
-   WingFoil 0.3.x (Context) — "Blocked: only N `<to>` at a time". The UI counts the not-archived
+   WingFoil 0.3.x (Context) — "Blocked: only {limit} {state} at a time". The UI counts the not-archived
    elements of `memory search` (the working tree); this approximates WingFoil's count, which reads
    HEAD and every local and remote-tracking branch that changed an element since its merge-base
    (0.3.1 `dist/core/memory-transition.js` `requireWipSlot`): the two may differ, and the CLI's
@@ -255,7 +255,9 @@ the role and the limit are left to the CLI, which is the authority (REQ-SEC-07; 
 - `approveHeld` (v0.3, RP3-14 D5) — set on a held `gate` (§3): `condition` the `holds` value,
   `never` or `when-references-done`; `reason` its code with parameters, `{ code: "held-by-config" }`
   or `{ code: "held-until-references-done", count }` (spec-005 §4a), rendered by the web catalogue
-  (spec-008); `verbs` then holds no `approve`.
+  (spec-008) — in English "Approved outside the console (ui.yaml)" and "Waits for {count}
+  referencing element(s) to be done" (the implementing task may refine the wording in the
+  catalogue); `verbs` then holds no `approve`.
 - `actor.basis` (v0.2) — for a member actor, which rule of §4 named them: `submitter` (the
   submit that was rejected, or — v0.3, D6 — the submit that reached the gate an `approve` left),
   `creator` (the `add` event) or `last-transition`; rendered as
@@ -368,8 +370,9 @@ element list; `web/` renders it and never re-derives it.
   qualified for the packs. Aligned the same day with spec-005 §1 and §4a: the held gates come
   from `ui.yaml`'s `holds` per type and gate state, `approveHeld` is `{condition: never |
   when-references-done, reason: held-by-config | held-until-references-done {count}}`; §5 the
-  summary's `items` and `more` kept but unused in v0.3 (N1, S-23.1, S-23.4). Review round 1
+  summary's `items` and `more` kept but unused in v0.3 (N1, S-23.4, S-23.5). Review round 1
   (decided by the approver): §3, §5 a held gate is in Waiting on others for every member,
   approvers included, with its reason (F1; S-24.5, S-24.6); §6 rule 5 for `submit` and `approve`
   only, the UI's count an approximation of `requireWipSlot` (F4; S-24.7); §5 the four pre-packs
-  `waiting` states named.
+  `waiting` states named. Round 2 (P3, decided by the approver): the catalogue's English of
+  `state-limit` and of the two hold reasons; S-23.5 cited for N1.
