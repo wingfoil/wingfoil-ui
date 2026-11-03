@@ -24,8 +24,10 @@ cite Memory elements as links to a running console (dl-012). Four needs of `mino
   found* today, because the server matches the full id only (`server/src/http/project-routes.ts`,
   `findMatch`).
 - **bug-019** — an id longer than 100 characters matches no route: Fastify's default
-  `maxParamLength` is 100 and `server/src/http/app.ts` does not set it; the detail, the history and
-  the writes all answer 404.
+  `maxParamLength` is 100 and `server/src/http/app.ts` does not set it. A `GET` of the detail or
+  the history falls back to the static `/*` route and answers 404 (400 without a web build); a
+  write (`POST`) reaches `frameworkErrors` with `FST_ERR_MAX_PARAM_LENGTH` and answers 400
+  `invalid-request` (`server/src/http/app.ts`, the `frameworkErrors` handler).
 - **N5** — an element opened by its address or from the Memory list is shown in the page's main
   region; from Today and the notification bell it stays in the side panel. Today every opener
   navigates to the one route `/p/$pid/e/$eid` (`web/src/routes/element.tsx`), drawn as a drawer
@@ -49,16 +51,18 @@ The **short id** is derived from the full id and the `id_pattern` of its type (`
 `types.<type>.id_pattern`, spec-001 §4.1 "id rendering"):
 
 1. the type has an `id_pattern` that contains the token `{n}`, and the part of the pattern
-   **before** `{n}` is literal text `L` (no other `{…}` token) — otherwise the element has **no
-   short id**;
+   **before** `{n}` is **non-empty** literal text `L` (no other `{…}` token) — otherwise the
+   element has **no short id** (a pattern starting with `{n}` gives none: a bare number is no
+   address);
 2. the full id starts with `L` followed by one or more ASCII digits `D` (the longest such run) —
    otherwise no short id;
 3. the short id is `L` + `D`.
 
 Examples (this repository's and the fixtures' patterns): `task-{n}-{slug}` → `task-046` for
-`task-046-wingfoil-0.3-support-read-wingfoil-0.3.x-and-pin-0.3.1`; `dl-{n}-{slug}` → `dl-002` (T-02.7); `sprint-{n}` → `sprint-001`,
-equal to the full id; `{kind}-{version}` (`release`) and `{workflow}-{phase}-plan` (`plan`) have
-no `{n}` → no short id, the element is named by its full id (`minor-v0.1`, T-02.7).
+`task-046-wingfoil-0.3-support-read-wingfoil-0.3.x-and-pin-0.3.1`; `dl-{n}-{slug}` → `dl-002`
+(T-02.7); `sprint-{n}` → `sprint-001`, equal to the full id; `{kind}-{version}` (`release`) and
+`{workflow}-{phase}-plan` (`plan`) have no `{n}` → no short id, the element is named by its full
+id (`minor-v0.1`, T-02.7).
 
 - The rule is computed by the server from the `memory.yaml` it reads, with the type's
   resolution of spec-001 §4.1; `web/` receives short ids, it never derives them (REQ-ARC-05: no
@@ -78,21 +82,26 @@ no `{n}` → no short id, the element is named by its full id (`minor-v0.1`, T-0
 | Form | Shows | Opened from |
 |------|-------|-------------|
 | `/p/<pid>/e/<eid>` | the **element page**, in the main region, with the sidebar | its address (typed, pasted, a link from outside the console), the Memory list, a link inside a document, a directive or another element (RP3-16 P2) |
-| the current view's address plus the **side panel** of `<eid>` | the view (Today, or the view the bell was used on) with the element in the **side panel** | Today — *Requires you*, *Waiting on others*, *Recent activity* — and an item of the notification bell (RP3-15 S5) |
+| the current view's address plus `?panel=<full id>` | the view (Today, or the view the bell was used on) with the element in the **side panel** | Today — *Requires you*, *Waiting on others*, *Recent activity* — and an item of the notification bell (RP3-15 S5) |
 
 - `<pid>` is the opaque project id (REQ-SEC-04, spec-006 §2); `<eid>` is a full id, or a short id
   that §3 resolves. Every id is placed in a path with `encodeURIComponent` (as
   `web/src/docs/render.ts` and the routes do today).
 - The page and the panel show the same content and footers (`ux-reference.md` §4.2 v0.3); the
-  panel keeps its non-modal focus rules (§4.2 v0.1 W4-8, v0.2 bug-018). How the side panel is
-  carried in the URL is open question 1.
+  panel keeps its non-modal focus rules (§4.2 v0.1 W4-8, v0.2 bug-018).
+- **The side panel in the URL (E1).** A search parameter `panel=<full id>` on the current view's
+  address, valid on every view of `/p/<pid>/…` (the bell works on every view): opening the panel
+  pushes a history entry, a reload keeps the panel over the same view, and closing it removes the
+  parameter. Its value is resolved as `:eid` is (§3) — a short id there is rewritten to the full
+  id the same way; an unknown or ambiguous value shows the view with the panel's *not found* or
+  candidates. Any other search parameter of the view is kept.
 - **Close and Escape.** On the element page: back in history when the page was reached inside the
   console, else to the project's Memory list (`ux-reference.md` §4.2 v0.3; today the fallback is
   `/p/<pid>`, `web/src/routes/element.tsx`). On the side panel: the panel closes, the view stays,
   the focus returns to the opener (§4.2 v0.2).
-- **Canonical address.** When the address names a short id that resolves (§3), the page replaces
-  the history entry with the full id's address (`history.replace`: Back does not return to the
-  short form) and seeds the full id's query with the answer it has (no second read).
+- **Canonical address.** When the address (or `panel=`) names a short id that resolves (§3), the
+  page replaces the history entry with the full id's address (`history.replace`: Back does not
+  return to the short form) and seeds the full id's query with the answer it has (no second read).
 - A document link to an element's file is classified by path (`web/src/docs/links.ts`) and
   always yields a full id.
 
@@ -108,16 +117,19 @@ order; the first step that matches decides:
 3. `:eid` equals the short id (§1) of non-archived elements whose short id differs from their full
    id → one: **200** with that element (its `element.id` is the full id); several: **409
    `ambiguous-id`** (below);
-4. the same over archived elements;
+4. only when no non-archived element matched in step 3: the same over archived elements (E3 —
+   the two lazy archived searches run only then);
 5. otherwise **404 `not-found`**.
 
 A full id always wins over a short id (step 1–2 before 3–4), so an element whose full id is
-`sprint-001` is never shadowed.
+`sprint-001` is never shadowed. The comparison is exact (E2): no zero-padding or case is guessed
+— `task-46` does not resolve to `task-046` and answers 404.
 
 **409 `ambiguous-id`** — `{ error: { code: "ambiguous-id", message, detail: { candidates: [{ id,
 shortId, title, type, status }], more } } }`: the candidates ordered by full id, at most **20**,
-`more` counting the rest; `title` passed through the sanitiser of tool messages, as every text the
-CLI produced (spec-004 §5). The page shows the candidates, each a link to its full id's address,
+`more` counting the rest (E4); `title` passed through the sanitiser of tool messages that spec-004
+§5 applies to the CLI's warnings and messages and to the commit texts — a title is CLI output of
+the same kind. The page shows the candidates, each a link to its full id's address,
 instead of *not found* (`ux-reference.md` §4.2 v0.3, dl-012 R2).
 
 **Every other route with `:eid` takes the full id only** — `GET …/elements/:eid/history` and the
@@ -132,9 +144,15 @@ The server sets the router's `maxParamLength` (Fastify 5 `routerOptions.maxParam
 characters at most. `find-my-way` 9.9.0 measures a parameter after percent-decoding it
 (`node_modules/find-my-way/index.js`, the parametric node: `safeDecodeURIComponent` before the
 length check), so the limit applies to the decoded id whatever its encoding in the address. It
-covers every route parameter (`:eid`, `:did`, `:pid`). A longer parameter answers **404
-`not-found`** in the envelope of spec-004 §5, as an unknown id. Reads, history and writes of an
-element whose id is longer than 100 characters behave as for any other id.
+covers every route parameter (`:eid`, `:did`, `:pid`). Reads, history and writes of an element
+whose id is longer than 100 characters behave as for any other id.
+
+**A longer parameter answers 404 `not-found`** in the envelope of spec-004 §5, as an unknown id,
+whatever the method (C1): the `frameworkErrors` handler of `server/src/http/app.ts` maps Fastify's
+`FST_ERR_MAX_PARAM_LENGTH` to 404 `not-found`, after its Host/Origin, `Sec-Fetch-Site` and
+session checks (spec-004 §4 rows 1–2 keep their order); every other framework error stays 400
+`invalid-request`. So a `GET` no longer depends on the static `/*` fallback (absent without a web
+build), and a `POST` no longer answers 400.
 
 ### 5. API changes (to spec-004 and `contracts/api/`)
 
@@ -146,7 +164,9 @@ element whose id is longer than 100 characters behave as for any other id.
 | `contracts/api/element.schema.json` | `element.shortId`: string, absent when the element has none |
 | `contracts/api/elements.schema.json`, `today.schema.json` (`Row.element`) | `shortId` as above, so lists name elements without a second derivation (N4) |
 | `contracts/api/element.refusal.schema.json` (new) | the 404 `not-found` and 409 `ambiguous-id` bodies of the element read |
-| server | `routerOptions.maxParamLength: 255` (§4) |
+| server | `routerOptions.maxParamLength: 255`; `frameworkErrors`: `FST_ERR_MAX_PARAM_LENGTH` → 404 `not-found`, after the guards (§4) |
+| spec-004 §4 / §5 | a route parameter longer than 255 characters → 404 `not-found` on every method, after rows 1–2 (C1) |
+| web | the shell-level search parameter `panel` on every project view (§2, E1) |
 
 No route is added; `X-Repo-State` and the event stream are unchanged.
 
@@ -176,14 +196,27 @@ remember across the session exchange, and where, is adr-003's.
   one / several / none, the cap of 20 with `more`, sanitised titles); an unreadable `memory.yaml`.
 - **API:** `GET /elements/:eid` with a short id (200, `element.id` full), an ambiguous one (409
   body against `element.refusal.schema.json`), an unknown one (404); history and the three writes
-  with a short id (404, no `wingfoil` process); reads, history and a write of an element whose id
-  is 252 characters long, and 404 for a 256-character parameter (bug-019).
+  with a short id (404, no `wingfoil` process); `task-46` for `task-046` (404, E2); an archived
+  element reached by its short id only when no live one matches, and no archived search when one
+  does (E3); reads, history and a write of an element whose id is 252 characters long (bug-019);
+  a 256-character parameter → 404 `not-found` on `GET …/elements/:eid`, on `GET …/history` — with
+  and without a web build — and on each write (`POST …/submit`, `/approve`, `/reject`), with no
+  `wingfoil` process, and still 403/401 first when the origin or the session fails (C1).
 - **Contract:** `element.schema.json`, `elements.schema.json`, `today.schema.json` with
   `shortId`; the new refusal schema.
 - **e2e:** T-02.7 (short ids on Today); G-01.4 (the address opens the element, now in the main
   region); M-01.3 (the Memory list opens the main region); R-09.1 and G-03.2 (a document link
   opens the main region); X-06.3 (Escape on the side panel returns the focus to its opener).
-  Missing scenarios — open point 5.
+- **Scenarios to write at build-backlog (E4)**, with the task that implements this spec:
+  1. an address with a short id opens the element and is rewritten to the full id;
+  2. an ambiguous short id shows its candidates, each a link;
+  3. an element whose id is longer than 100 characters is opened and decided (a scenario-local
+     Given on the kanban fixture, so the T-12 figures stay as they are; dl-009 action 9);
+  4. Today and the bell open the side panel (`?panel=`, kept on reload), the Memory list and an
+     address the element page;
+  5. a link inside an element's body opens the element page in the main region.
+
+  Also at build-backlog: G-01.4 and M-01.3 reworded from "element panel" to "element page".
 
 ## Consequences
 
@@ -207,3 +240,12 @@ remember across the session exchange, and where, is adr-003's.
   (a short-id address rewritten, the candidates of an ambiguous one, a long id opened and decided,
   Today and the bell opening the side panel, a link inside an element body opening the main
   region).
+- 2026-11-03 — decided by the approver ("E1–E4, A1–A6 e C1–C4 come consigliato"): E1 the side
+  panel is the search parameter `panel=<full id>` on the current view's address (§2); E2 a short
+  id matches exactly, no zero-padding guess (§3); E3 live elements first, archived only when no
+  live one matches (§3); E4 at most 20 candidates plus `more`, and the missing scenarios written at
+  build-backlog (§8); C1 (independent check, major) a parameter over `maxParamLength` answers 404
+  `not-found` on every method — `frameworkErrors` maps `FST_ERR_MAX_PARAM_LENGTH`, after the
+  guards (§4, §5, §8; the Context corrected: today a `GET` answers 404 through the static fallback
+  or 400 without a web build, a `POST` 400). Also from the check: §1 the literal prefix before
+  `{n}` must be non-empty (m4); §3 the sanitiser's scope as spec-004 §5 states it.
