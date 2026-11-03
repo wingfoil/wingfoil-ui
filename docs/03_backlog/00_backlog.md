@@ -74,8 +74,8 @@ the partition into Memory tasks:
 - a scenario tagged `@vX.Y` on a story of an **earlier** release (the story whose behaviour it
   extends) is not in the partition of vX.Y, which holds the stories *of* vX.Y: a task of vX.Y lists
   that earlier story in its `**Backlog items:**` (and may take it as `ref`), cites every one of its
-  `@vX.Y` scenarios in its Acceptance Criteria, and each such story is listed by at most one task of
-  vX.Y — `check_tasks.py vX.Y` checks it, reading the scenarios from the `.feature` files
+  `@vX.Y` scenarios in its Acceptance Criteria, and each such story is listed by exactly one task of
+  vX.Y (from v0.3; at most one before) — `check_tasks.py vX.Y` checks it, reading the scenarios from the `.feature` files
   (release-planning v0.3, B2 (c)).
 
 ## Stop-check

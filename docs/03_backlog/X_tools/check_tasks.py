@@ -12,7 +12,8 @@ A task may also list (in `**Backlog items:**`, and as its `ref`) a user story of
 release that has scenarios tagged `@<release>` in docs/02_requirements/02_bdd/features/ (the
 story whose behaviour those scenarios extend, release-planning v0.3, B2 (c)): its Acceptance
 Criteria block for that story must cite every one of those `@<release>` scenarios, and each such
-story is listed by at most one task of the release.
+story is listed by exactly one task of the release (from v0.3, where the rule starts; at most
+one for earlier releases, planned before it).
 A governance task of the release (`module: governance` together with `ref: GOV`, line
 `**Backlog items:** GOV …`) has no backlog item and is exempt from the module and backlog checks;
 `governance` without `GOV`, or `GOV` with another module, is an error.
@@ -144,9 +145,10 @@ for t in deps:
 for x in sorted(backlog):
     if seen[x] != 1:
         errors.append(f"{x}: listed by {seen[x]} tasks (expected 1)")
-for x in sorted(seen_earlier):
-    if seen_earlier[x] > 1:
-        errors.append(f"{x} ({STORY_RELEASE[x]}): earlier story listed by {seen_earlier[x]} tasks (at most 1)")
+for x in sorted(EARLIER if RANK[REL] >= RANK["v0.3"] else seen_earlier):
+    if seen_earlier[x] != 1 and (RANK[REL] >= RANK["v0.3"] or seen_earlier[x] > 1):
+        errors.append(f"{x} ({STORY_RELEASE[x]}): earlier story with @{REL} scenarios listed by "
+                      f"{seen_earlier[x]} tasks (expected 1)")
 
 print(f"{len(tasks)} tasks · {len(backlog)} backlog items · {sum(seen.values())} listed")
 for e in errors:
