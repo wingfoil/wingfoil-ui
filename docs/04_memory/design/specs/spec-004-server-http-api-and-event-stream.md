@@ -77,10 +77,10 @@ JSON; every request and response body has a schema in `contracts/api/`.
 | `GET /api/p/:pid/config` | DNA, paths, workflows (as the CLI's version line answers `workflow list`, spec-001 §3: the 0.2.x or the 0.3.x shape; every string of a 0.3.x `diagnostics` entry and its `message` sanitised like the CLI warnings, at most 200 diagnostics with `diagnosticsOmitted` counting the rest — read by no view yet), resolved types (spec-001 §4.1); effective `ui.yaml` with origin of each value since v0.3 (REQ-ARC-07) | v0.1 |
 | `GET /api/p/:pid/elements[?archived=true]` | elements with their descriptor (spec-003) and local-changes marker | v0.1 |
 | `GET /api/p/:pid/elements/:eid` | one element: frontmatter, body, descriptor, references | v0.1 |
-| `GET /api/p/:pid/elements/:eid/history` | `memory history` entries (spec-002 §2) | v0.1 |
+| `GET /api/p/:pid/elements/:eid/history` | `memory history` entries (spec-002 §2); their texts sanitised from v0.3 (§5) | v0.1 |
 | `GET /api/p/:pid/directives`, `/directives/:did` | directive list: one entry per directive id, the one in force — when two files declare an id (a custom directive overriding a built-in one), the file the CLI's warning names (`using <path>`, to the end of the line), else — the warning cut — WingFoil's precedence (`compareDirectivePrecedence`): the smallest path (code units) among the files under `directives/custom/`, else among all, not the first listed (the CLI sorts names per folder); the other file is not listed, its warning is (task-047, bug-025); the CLI's order otherwise; one directive (the one in force) with its body | v0.1 |
 | `GET /api/p/:pid/docs` | documentation index (R4) | v0.1 |
-| `GET /api/p/:pid/files/tree`, `/files/content?path=` | working tree, confined to the repository (REQ-SEC-06) | v0.1 (docs), v0.3 (Files) |
+| `GET /api/p/:pid/files/tree`, `/files/content?path=` | working tree, confined to the repository (REQ-SEC-06) | v0.1 (docs), v0.4 (Files, R8 — moved from v0.3, RP3-7) |
 | `GET /api/p/:pid/today?view=<role>` | Requires you, Waiting on others, all-roles summary | v0.2 |
 | `POST /api/p/:pid/elements/:eid/submit` `{expectedStatus}` | `memory submit` | v0.2 |
 | `POST /api/p/:pid/elements/:eid/approve` `{expectedStatus, reason}` | `memory approve --reason` | v0.2 |
@@ -88,9 +88,9 @@ JSON; every request and response body has a schema in `contracts/api/`.
 | `POST /api/p/:pid/git/fetch`, `/git/update`, `/git/push` | write class c (Y2–Y4) | v0.2 |
 | `GET /api/settings`, `PUT /api/settings` | UI settings (C4, local state) | v0.2 |
 | `GET /api/p/:pid/progress` | progress card figures (spec-005 §4) | v0.3 |
-| `GET /api/p/:pid/events/memory?before=&limit=` | Memory events (spec-002 §3) | v0.2 (Updates), v0.3 (Timeline) |
-| `GET /api/p/:pid/git/log?branch=&author=&q=&before=` | git tree (R7) | v0.3 |
-| `POST /api/p/:pid/ingestions/:workflow` `{title, fields}` | ingestion start: `memory add` + `memory submit` (G5) | v0.3 |
+| `GET /api/p/:pid/events/memory?before=&limit=` | Memory events (spec-002 §3) | v0.2 (Updates), v0.4 (Timeline, R6 — moved from v0.3, RP3-7) |
+| `GET /api/p/:pid/git/log?branch=&author=&q=&before=` | git tree (R7) | v0.4 (moved from v0.3, RP3-7) |
+| `POST /api/p/:pid/ingestions/:workflow` `{title, fields}` | ingestion start: `memory add` + `memory submit` (G5) | v0.4 (moved from v0.3, RP3-7) |
 | `POST /api/p/:pid/ui-config/preset` `{preset}` | apply a UI preset (write class b, spec-005) | v0.3 |
 | `GET /api/p/:pid/workflow/status`, `/workflow/next`; `POST /api/p/:pid/workflow/start`; `POST /api/p/:pid/agents` | WingFoil 0.3 verbs; shapes fixed by v0.4 `release-planning` | v0.4 |
 
@@ -212,7 +212,17 @@ REQ-SEC-08's fit criterion (SARD `05` v0.6), which excludes fetch and the per-us
 The CLI's warnings a read answer carries — its `stderr` lines (spec-001 §2) in a `/config`
 section's `warnings` and in the `warnings` of `/elements`, and the `warnings` field of `directives
 list` (spec-001 §3) in the `warnings` of `/directives` — are sanitised like every tool message, at
-most 200, then one line `<n> more warnings omitted` (task-046, review round 2 d1).
+most 200, then one line `<n> more warnings omitted` (task-046, review round 2 d1). From v0.3 the
+`warnings` of `/elements` also name each `memory search` match dropped by the per-match validation,
+by its project-relative path (spec-001 §2, RP3-14 D10, bug-024): the list is served with the valid
+matches, never as 502 `cli-output` for a bad match; Today and the other reads of the same output use
+the valid matches.
+
+Commit texts (v0.3, RP3-14 D13, bug-027): the `subject`, `reason`, `author` and `approver` of the
+history entries (`/elements/:eid/history`), the `author`, `approver` and `reason` of the Memory events
+(`/events/memory`) and the descriptor's `rejection` (`by`, `reason`; spec-003 §8) are passed through
+the sanitiser of tool messages where the route serialises them — after the descriptor has matched
+the authors' emails against the team (spec-002 §1), which reads them as committed.
 
 - Success of a write (`write.response.schema.json`): `{ result: <CLI output>, commits: [{ sha,
   subject }], push: { status, code?, message? } }` — `status` is `pushed`, `off` or `failed`
@@ -238,7 +248,7 @@ most 200, then one line `<n> more warnings omitted` (task-046, review round 2 d1
 
 | Status | `code` | When |
 |--------|--------|------|
-| 422 | `cli-refused` | CLI exit 1: `message` = the CLI's message verbatim (REQ-INT-04) except for the local folders it quotes — the project's → `<project>`, the repository's → `<repository>`, the CLI's package folder → `<wingfoil>`, the home folder → `~` — and URL userinfo (bug-012); also the exit 2 of `approve`/`reject` whose message names `--reason` (a reason WingFoil will not record, W-29) |
+| 422 | `cli-refused` | CLI exit 1: `message` = the CLI's message verbatim (REQ-INT-04) except for the local folders it quotes — the project's → `<project>`, the repository's → `<repository>`, the CLI's package folder → `<wingfoil>`, the home folder → `~` — and URL userinfo (bug-012); from v0.3, the `detail` texts of a WingFoil 0.3.x refusal's `details` (spec-001 §2) in `detail.reasons[]`, redacted and sanitised the same way; also the exit 2 of `approve`/`reject` whose message names `--reason` (a reason WingFoil will not record, W-29) |
 | 502 | `cli-output` | exit 0 with output failing its schema (spec-001 §2) |
 | 504 | `cli-timeout` | a `wingfoil` process killed after 30 s (git transport the user started has no fixed timeout; an automatic fetch and an auto-push are killed after 60 s — spec-010 §4, `adr-001` D5) |
 | 500 | `internal` | adapter defect (exit 2) or unexpected error; details only in the log — a failed git read of the repository (e.g. a configuration value git refuses) on any route, read or write, is logged as `{ kind: 'git-read', ended, exitCode }`, never with git's message (task-046 review rounds 3 m1, 4 minor-1: the read routes and the global error handler) |
@@ -419,3 +429,9 @@ goes away by itself when the stream reconnects. A network failure is not rendere
 - 2026-11-02 — amended in dev-loop task-048 (bug-026, D48-8 approved by the approver): §3 the history
   route passes on the contract's fields of each entry only; the Memory events carry WingFoil 0.3.x's
   operations but `assign` (spec-002 §1).
+- 2026-11-03 — amended in `release-planning` v0.3 (step 5, RP3-14), decided by the approver: §3
+  the rows of Files (R8), the Timeline (R6), the git tree (R7) and the ingestion (G5) moved to v0.4
+  (RP3-7); §5 the dropped `memory search` matches in the `warnings` of `/elements` (D10, bug-024);
+  the commit texts of the history, the Memory events and the descriptor's `rejection` sanitised
+  where the routes serialise them, after the email matching (D13, bug-027); `cli-refused` carries
+  the 0.3.x refusal's `details[].detail` in `detail.reasons[]` (the RP3-7 scope item).
