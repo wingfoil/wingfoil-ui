@@ -163,6 +163,13 @@ server reads each changed and untracked entry listed by `git status --porcelain`
 neither kept nor exposed; only the combined hash enters the state key. No other use of these
 reads is allowed.
 
+**4.5 `.wingfoil/ui.yaml`** (v0.3, C1) — the UI's own file, not WingFoil's (W-11), read from the
+**working tree** on each repository state, read-only, only at that path; REQ-ARC-04's fit criterion
+already allows it besides `memory.yaml`. What counts as present, the limits (a regular file of at
+most 64 KiB, no symbolic link followed), the parsing and the validation are spec-005 §1–§2; its
+schema is `contracts/files/ui-yaml.schema.json`, the UI's shape, not a WingFoil capture (§5). The
+only write to it is the preset's, spec-005 §5.
+
 ### 5. `contracts/` layout
 
 ```
@@ -171,6 +178,7 @@ contracts/
   files/memory-yaml.schema.json      # §4.1 subset
   files/element.schema.json          # §4.2 frontmatter
   files/directive.schema.json        # §4.3 frontmatter
+  files/ui-yaml.schema.json          # §4.5, the UI's own shape (spec-005 §1; v0.3)
   capabilities.json                  # capability → minimum WingFoil version, conditions (REQ-INT-03)
   capabilities.schema.json           # shape of capabilities.json (§6)
   matrix.json                        # supported WingFoil versions and range minimum (adr-001 D3/D4)
@@ -322,4 +330,6 @@ its schema, and run the §4.1 resolution check. A failure blocks the matrix adva
   `details[{file, detail}]`, passed on with the refusal (the RP3-7 scope item); §3 the `memory
   history` texts sanitised where the API serialises them (D13, bug-027), the `memory add` row moved
   to v0.4 with G5 (RP3-7); §4.1 `limits` and `returns` of WingFoil 0.3.x in the shape (`limits`
-  read for spec-003 §6, `returns` not used: `park` is not offered).
+  read for spec-003 §6, `returns` not used: `park` is not offered). Aligned the same day with
+  spec-005 §2: §4.5 the allow-list entry for `.wingfoil/ui.yaml` (working tree, REQ-ARC-04's fit
+  criterion), §5 its schema file.
