@@ -131,9 +131,8 @@ A full id always wins over a short id (step 1–2 before 3–4), so an element w
 
 **409 `ambiguous-id`** — `{ error: { code: "ambiguous-id", message, detail: { candidates: [{ id,
 shortId, title, type, status }], more } } }`: the candidates ordered by full id, at most **20**,
-`more` counting the rest (E4); `title` passed through the sanitiser of tool messages that spec-004
-§5 applies to the CLI's warnings and messages and to the commit texts — a title is CLI output of
-the same kind. The page shows the candidates, each a link to its full id's address,
+`more` counting the rest (E4); `title` passed through the character escape that spec-004 §5 applies
+to repository texts (RP3-18 K1). The page shows the candidates, each a link to its full id's address,
 instead of *not found* (`ux-reference.md` §4.2 v0.3, dl-012 R2).
 
 **Every other route with `:eid` takes the full id only** — `GET …/elements/:eid/history` and the
@@ -265,3 +264,5 @@ remember across the session exchange, and where, is adr-003's.
   ambiguous `panel=` are `?panel=` links on the view; `panel=` ignored on the element page; §6 the
   `panel=` value is only an id of the current project, never a link or a target; §8 a test of
   hostile values.
+- 2026-11-03 — aligned with spec-004 §5 as amended by step 5c (RP3-18 K1): the candidates' titles
+  get the character escape of repository texts.
