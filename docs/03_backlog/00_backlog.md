@@ -1,7 +1,7 @@
 # Backlog — WingFoil UI
 
-**Version:** 0.4
-**Date:** 2026-10-03 (0.2: rebuilt after the coherence audit — session 6; 0.3: US-X-10 page title — initial-design session 2; 0.4: TT-ARC-07 v0.1 → v0.3 (SARD v0.6), Input versions refreshed — release-planning v0.1 session 2)
+**Version:** 0.5
+**Date:** 2026-11-03 (0.2: rebuilt after the coherence audit — session 6; 0.3: US-X-10 page title — initial-design session 2; 0.4: TT-ARC-07 v0.1 → v0.3 (SARD v0.6), Input versions refreshed — release-planning v0.1 session 2; 0.5: `check_tasks.py` and the earlier-release stories a task may list — release-planning v0.3 build-backlog, B2 (c), decided by the approver)
 **Status:** Draft — specification-downcast session 5 (`backlog-export`)
 **Input:** `docs/02_requirements/01_user_story_map/02_story-map.md` (v0.5) ·
 `docs/02_requirements/02_bdd/` (v0.5) · `docs/02_requirements/03_sard/` (v0.6)
@@ -16,6 +16,7 @@ backlog, ready to be turned into Memory `task` elements release by release.
 | `04_backlog/by-release/v0.1.json` … `v1.0.json` | The same records partitioned by release — the file a release's `requirements:` field points to |
 | [`X_tools/build_backlog.py`](X_tools/build_backlog.py) | Generator (deterministic) |
 | [`X_tools/check_backlog.py`](X_tools/check_backlog.py) | Stop-check |
+| [`X_tools/check_tasks.py`](X_tools/check_tasks.py) | Stop-check of a release's Memory tasks against its partition (`check_tasks.py vX.Y`) |
 
 **The JSON files are generated — never edit them by hand.** Change the story map, a `.feature` file
 or the SARD, then run:
@@ -69,7 +70,13 @@ the partition into Memory tasks:
   `memory submit`, directive `wingfoil-cli` W-01);
 - a technical task can be merged into the user-story task that first needs it, or kept as its own
   task; its fit criterion becomes a check of the task's review;
-- the release element's `requirements:` field points to `docs/03_backlog/04_backlog/by-release/vX.Y.json`.
+- the release element's `requirements:` field points to `docs/03_backlog/04_backlog/by-release/vX.Y.json`;
+- a scenario tagged `@vX.Y` on a story of an **earlier** release (the story whose behaviour it
+  extends) is not in the partition of vX.Y, which holds the stories *of* vX.Y: a task of vX.Y lists
+  that earlier story in its `**Backlog items:**` (and may take it as `ref`), cites every one of its
+  `@vX.Y` scenarios in its Acceptance Criteria, and each such story is listed by at most one task of
+  vX.Y — `check_tasks.py vX.Y` checks it, reading the scenarios from the `.feature` files
+  (release-planning v0.3, B2 (c)).
 
 ## Stop-check
 

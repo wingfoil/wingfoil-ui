@@ -8,6 +8,11 @@ Checks, for every docs/04_memory/<release>/task-*.md:
 - every `<release>` acceptance criterion of an item is cited in that item's Acceptance Criteria block;
 - every `depends_on` id is a task of the same release, and `depends_on` has no cycle;
 and that every item of by-release/<release>.json is listed by exactly one task.
+A task may also list (in `**Backlog items:**`, and as its `ref`) a user story of an EARLIER
+release that has scenarios tagged `@<release>` in docs/02_requirements/02_bdd/features/ (the
+story whose behaviour those scenarios extend, release-planning v0.3, B2 (c)): its Acceptance
+Criteria block for that story must cite every one of those `@<release>` scenarios, and each such
+story is listed by at most one task of the release.
 A governance task of the release (`module: governance` together with `ref: GOV`, line
 `**Backlog items:** GOV …`) has no backlog item and is exempt from the module and backlog checks;
 `governance` without `GOV`, or `GOV` with another module, is an error.
@@ -25,6 +30,32 @@ MODULES = set(re.findall(r"^\s*- name: (\S+)",
 ITEMS = {i["id"]: i for i in json.loads(
     (ROOT / "docs/03_backlog/04_backlog/by-release" / f"{REL}.json").read_text())["items"]}
 backlog = set(ITEMS)
+RANK = {r: i for i, r in enumerate(["v0.1", "v0.2", "v0.3", "v0.4", "v1.0"])}
+STORY_RELEASE = {i["id"]: i["release"] for i in json.loads(
+    (ROOT / "docs/03_backlog/04_backlog/backlog.json").read_text())["items"] if i["kind"] == "user-story"}
+
+
+def release_scenarios():
+    """Story id -> the ids of its scenarios tagged @<REL>, read from the .feature files."""
+    out = collections.defaultdict(list)
+    for f in sorted((ROOT / "docs/02_requirements/02_bdd/features").rglob("*.feature")):
+        tags = []
+        for line in f.read_text().splitlines():
+            ln = line.strip()
+            if ln.startswith("@"):
+                tags += ln.split()
+            elif ln.startswith(("Scenario:", "Scenario Outline:")):
+                m = re.match(r"Scenario(?: Outline)?: ([A-Z]-\d\d\.\d+) — ", ln)
+                story = next((t[1:] for t in tags if t.startswith("@US-")), None)
+                if m and story and f"@{REL}" in tags:
+                    out[story].append(m.group(1))
+                tags = []
+    return out
+
+
+# earlier-release stories carrying @<REL> scenarios (B2 (c))
+EARLIER = {sid: scs for sid, scs in release_scenarios().items()
+           if sid in STORY_RELEASE and RANK[STORY_RELEASE[sid]] < RANK[REL]}
 
 
 def fm(text):
@@ -41,7 +72,7 @@ def lst(v):
     return re.findall(r'"([^"]+)"', v or "")
 
 
-errors, seen, deps = [], collections.Counter(), {}
+errors, seen, seen_earlier, deps = [], collections.Counter(), collections.Counter(), {}
 tasks = sorted((ROOT / "docs/04_memory" / REL).glob("task-*.md"))
 ids = {p.stem for p in tasks}
 for p in tasks:
@@ -73,11 +104,17 @@ for p in tasks:
     if not items:
         errors.append(f"{name}: no **Backlog items:** line")
     for x in items:
-        if x not in backlog:
-            errors.append(f"{name}: {x} not in by-release/{REL}.json")
-        seen[x] += 1
         # the item's own block of Acceptance Criteria: from "- **<id>**" to the next "- **" bullet
         blk = re.search(rf"^- \*\*{re.escape(x)}\*\*.*?(?=^- \*\*|^\S|\Z)", s, re.M | re.S)
+        if x not in backlog and x in EARLIER:
+            seen_earlier[x] += 1
+            for sc in EARLIER[x]:
+                if not (blk and re.search(rf"\b{re.escape(sc)}\b", blk.group(0))):
+                    errors.append(f"{name}: {x} ({STORY_RELEASE[x]}) scenario {sc} (@{REL}) not cited in its acceptance block")
+            continue
+        if x not in backlog:
+            errors.append(f"{name}: {x} not in by-release/{REL}.json, nor an earlier story with @{REL} scenarios")
+        seen[x] += 1
         for ac in ITEMS.get(x, {}).get("acceptance_criteria", []):
             if ac.get("release") == REL and not (blk and re.search(rf"\b{re.escape(ac['id'])}\b", blk.group(0))):
                 errors.append(f"{name}: {x} scenario {ac['id']} not cited in its acceptance block")
@@ -107,6 +144,9 @@ for t in deps:
 for x in sorted(backlog):
     if seen[x] != 1:
         errors.append(f"{x}: listed by {seen[x]} tasks (expected 1)")
+for x in sorted(seen_earlier):
+    if seen_earlier[x] > 1:
+        errors.append(f"{x} ({STORY_RELEASE[x]}): earlier story listed by {seen_earlier[x]} tasks (at most 1)")
 
 print(f"{len(tasks)} tasks · {len(backlog)} backlog items · {sum(seen.values())} listed")
 for e in errors:

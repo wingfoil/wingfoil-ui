@@ -102,7 +102,7 @@ Shell and conventions: `00_sard.md`. All timings are measured in the **reference
 | Release | v0.2 |
 | Description | Every item whose next move needs one of the role view's roles is listed on Today, which is the landing screen of a project. |
 | Rationale | MVP canvas metric *Time to see what requires me*. |
-| Traceability | US-T-01, US-T-02, US-S-23, US-S-21 · T-01.1, T-02.1, S-23.1, T-02.8, S-21.4 · T1, S5 |
+| Traceability | US-T-01, US-T-02, US-S-23, US-S-21, US-G-01 · T-01.1, T-02.1, S-23.1, S-21.4, G-01.8 · T1, S5 |
 | Fit criterion | [percentage] On each fixture and role view, 100 % of the items the action descriptor assigns to the view's roles are listed on Today, reached with 0 navigation steps after opening the project. |
 | Verified by | e2e |
 

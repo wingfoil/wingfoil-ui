@@ -1802,21 +1802,6 @@
             "Then the row of \"dl-002-use-fastify\" names it \"dl-002\"",
             "And the Waiting on others row of \"minor-v0.1\", whose id pattern has no number, names it \"minor-v0.1\""
           ]
-        },
-        {
-          "id": "T-02.8",
-          "title": "Open an element of Requires you in the side panel and keep it on reload",
-          "file": "docs/02_requirements/02_bdd/features/t/requires-you.feature",
-          "release": "v0.3",
-          "kind": "edge",
-          "fixture": "kanban",
-          "steps": [
-            "Given the console is running",
-            "Given the kanban fixture is open and I am Morgan with the role view \"approver\"",
-            "When I select the title of \"task-001-login-form\" in Requires you and reload the page",
-            "Then Today is shown with the side panel of \"task-001-login-form\"",
-            "And the address is Today's with \"?panel=task-001-login-form\""
-          ]
         }
       ],
       "dependencies": [
@@ -2613,6 +2598,21 @@
             "And a task whose title gives an id of 140 characters is added and submitted with the CLI, so that it is `pending`",
             "When I open its element page from the Memory list and approve it with the reason \"Long ids work\"",
             "Then the fixture's last commit is \"wf(task): approve <that id> [pending → approved]\""
+          ]
+        },
+        {
+          "id": "G-01.8",
+          "title": "Open an element from Requires you in the side panel and keep it on reload",
+          "file": "docs/02_requirements/02_bdd/features/g/element-panel.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running",
+            "Given the kanban fixture is open and I am Morgan with the role view \"approver\"",
+            "When I select the title of \"task-001-login-form\" in Requires you and reload the page",
+            "Then Today is shown with the side panel of \"task-001-login-form\"",
+            "And the address is Today's with \"?panel=task-001-login-form\""
           ]
         }
       ],
@@ -9705,6 +9705,7 @@
       "fit_criterion": "[percentage] On each fixture and role view, 100 % of the items the action descriptor assigns to the view's roles are listed on Today, reached with 0 navigation steps after opening the project.",
       "verified_by": "e2e",
       "stories": [
+        "US-G-01",
         "US-S-21",
         "US-S-23",
         "US-T-01",
@@ -9757,21 +9758,6 @@
           ]
         },
         {
-          "id": "T-02.8",
-          "title": "Open an element of Requires you in the side panel and keep it on reload",
-          "file": "docs/02_requirements/02_bdd/features/t/requires-you.feature",
-          "release": "v0.3",
-          "kind": "edge",
-          "fixture": "kanban",
-          "steps": [
-            "Given the console is running",
-            "Given the kanban fixture is open and I am Morgan with the role view \"approver\"",
-            "When I select the title of \"task-001-login-form\" in Requires you and reload the page",
-            "Then Today is shown with the side panel of \"task-001-login-form\"",
-            "And the address is Today's with \"?panel=task-001-login-form\""
-          ]
-        },
-        {
           "id": "S-21.4",
           "title": "Open an item of the bell in the side panel of the current view",
           "file": "docs/02_requirements/02_bdd/features/s/shell.feature",
@@ -9784,6 +9770,21 @@
             "When I select \"task-001-login-form\" in the bell panel's \"To unblock\"",
             "Then the Memory list stays shown with the side panel of \"task-001-login-form\"",
             "And the address is the Memory list's with \"?panel=task-001-login-form\""
+          ]
+        },
+        {
+          "id": "G-01.8",
+          "title": "Open an element from Requires you in the side panel and keep it on reload",
+          "file": "docs/02_requirements/02_bdd/features/g/element-panel.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running",
+            "Given the kanban fixture is open and I am Morgan with the role view \"approver\"",
+            "When I select the title of \"task-001-login-form\" in Requires you and reload the page",
+            "Then Today is shown with the side panel of \"task-001-login-form\"",
+            "And the address is Today's with \"?panel=task-001-login-form\""
           ]
         }
       ],

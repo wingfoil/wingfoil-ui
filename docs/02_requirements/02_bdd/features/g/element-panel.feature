@@ -56,6 +56,13 @@ Feature: Element panel
     When I open its element page from the Memory list and approve it with the reason "Long ids work"
     Then the fixture's last commit is "wf(task): approve <that id> [pending → approved]"
 
+  @US-G-01 @v0.3 @edge @fx-kanban
+  Scenario: G-01.8 — Open an element from Requires you in the side panel and keep it on reload
+    Given the kanban fixture is open and I am Morgan with the role view "approver"
+    When I select the title of "task-001-login-form" in Requires you and reload the page
+    Then Today is shown with the side panel of "task-001-login-form"
+    And the address is Today's with "?panel=task-001-login-form"
+
   # --- US-G-02 ---
 
   @US-G-02 @v0.1 @nominal @fx-custom

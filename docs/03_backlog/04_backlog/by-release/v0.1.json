@@ -1456,6 +1456,21 @@
             "When I open its element page from the Memory list and approve it with the reason \"Long ids work\"",
             "Then the fixture's last commit is \"wf(task): approve <that id> [pending → approved]\""
           ]
+        },
+        {
+          "id": "G-01.8",
+          "title": "Open an element from Requires you in the side panel and keep it on reload",
+          "file": "docs/02_requirements/02_bdd/features/g/element-panel.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running",
+            "Given the kanban fixture is open and I am Morgan with the role view \"approver\"",
+            "When I select the title of \"task-001-login-form\" in Requires you and reload the page",
+            "Then Today is shown with the side panel of \"task-001-login-form\"",
+            "And the address is Today's with \"?panel=task-001-login-form\""
+          ]
         }
       ],
       "dependencies": [
