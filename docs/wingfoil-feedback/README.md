@@ -35,7 +35,7 @@ read (WingFoil `COLLABORATION.md` `## Credit`), e.g.
 `svc-019-github-repository-wingfoil-ui-a-private-consumer-project-and-its-feedback-inbox/F-001@<full sha>`;
 `svc-019` is the short key.
 
-**Last sync:** 2026-11-02, the first (`governance-alignment-rel-v0.3-plan` step 5, after the pin
+**Last sync:** 2026-11-02 (the second, at `release-planning` of `minor-v0.3`, below); the first (`governance-alignment-rel-v0.3-plan` step 5, after the pin
 moved to `wingfoil@0.3.1`; rule 7 of `wingfoil-cli`), run by WingFoil's `COLLABORATION.md`
 *The sync procedure* (read at WingFoil `origin/main` `7efff2a02886454cecb2da839f3777535a2c9e49`):
 
@@ -80,6 +80,15 @@ moved to `wingfoil@0.3.1`; rule 7 of `wingfoil-cli`), run by WingFoil's `COLLABO
   `captured`: F-001 (spec-005 `approved`, no release), F-011 (dl-200 `in-discussion`, v0.4), F-015
   (dl-138 `ready`, v0.4), F-022 (bug-412 `triaged`, v0.4), F-024 (dl-199 `in-discussion`, v0.4).
   This repository's pin stays `wingfoil@0.3.1`.
+- *Second sync* (2026-11-02, `release-planning-rel-v0.3-plan` step 1, `advance-pinned-build`; rule
+  7), by the same steps, at WingFoil `origin/main` `60fc3eeaff366335d48f6d4d6539ee7f6baec5cd` (the
+  merge forward of `patch-v0.3.2`, now `released` on `main`). Step 2: `COLLABORATION.md`,
+  `retro-v0.3.md` and its read record unchanged since `7efff2a0`; `patch-v0.3.2`'s *Scope changes*
+  still lists no note of this inbox. Step 3: the same five `reported_by:` cites, none of F-027 …
+  F-035. Step 4: the `captured` notes' elements unchanged — F-001 (spec-005 `approved`, no release),
+  F-011 (dl-200 `in-discussion`, v0.4), F-015 (dl-138 `ready`, v0.4), F-022 (bug-412 `triaged`,
+  v0.4), F-024 (dl-199 `in-discussion`, v0.4). **No status changes.** The pin stays
+  `wingfoil@0.3.1`: the packs' range is `>=0.3.0 <=0.3.1`.
 
 The sync due at `release-planning` of `minor-v0.2` was skipped on 2026-10-12, when WingFoil had not
 defined the procedure (`governance-alignment-rel-v0.2-plan` GA-5).
