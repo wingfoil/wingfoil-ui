@@ -4,35 +4,99 @@ type: task
 title: "Memory list state filter and missing-reference badge"              # REQUIRED — e.g. "Today view: pending gates list (REQ-UI-03)"
 status: draft          # auto-set by wingfoil
 release: "v0.3"            # REQUIRED — target release version, e.g. "v0.1"
-sprint: ""             # REQUIRED — the Sprint that selects it (sprint-NNN), or "n/a — <reason>" until one does (methodology/scrum)
-module: ""             # optional — server | web | contracts (dna.yaml modules)
-priority: ""           # optional — high | medium | low
-tags: []               # optional — additional labels, e.g. [today, a11y]
-ref: ""                # optional — backlog item ID, e.g. "TASK-001"
+sprint: "sprint-001"             # REQUIRED — the Sprint that selects it (sprint-NNN), or "n/a — <reason>" until one does (methodology/scrum)
+module: "web"             # optional — server | web | contracts (dna.yaml modules)
+priority: "medium"           # optional — high | medium | low
+tags: ["v0.3", "m2", "memory-list"]               # optional — additional labels, e.g. [today, a11y]
+ref: "US-M-03"                # optional — backlog item ID, e.g. "TASK-001"
 bug: []                # optional — LIST of bug ids this task closes. Two cases: a fix task derived from a bug
                        # by release-planning, and a bug ABSORBED into an existing task's Acceptance Criteria because that
                        # task already owns the ground. Each bug listed moves with its own verbs (`.wingfoil/memory.yaml`):
                        # the approver's `memory approve` triaged -> planned, `memory submit` planned -> in-progress when
                        # this task starts, then submit/approve along its machine; no `bug.sync_state` since the packs adoption
-depends_on: []         # optional — ids of tasks whose Execution Notes constrain this one; authored at planning time, may be appended during design
+depends_on: ["task-059-progress-traceability-and-missing-reference-api"]         # optional — ids of tasks whose Execution Notes constrain this one; authored at planning time, may be appended during design
 tmpl_version: 260703   # Orignal template version
 ---
 
 ## Description
 
-<!-- What needs to be built and why. Reference the user story if applicable:
-     "As <persona>, I want <action> so that <benefit>." -->
+M2, N7 and the figure filters on the Memory list, Wave 3 (RP3-7; `ux-reference.md` §4.4 v0.3
+blocks): the state filter's buckets keep their groups and offer their states as sub-options (N7,
+RP3-14 D7: the `@v0.1` scenarios M-01.2 and M-02.2 hold, M-02.4 is new); the filter **"Missing
+required references"** with its count and the badge **"missing refs"** on each row the server flags
+(`missingCategories`, `missingReferences.shown`, task-059, spec-012 §5), shown whenever the effective
+`taxonomy.requires` names a type, with 0 when nothing is missing (TQ-5 (a)); and the route
+`/p/<id>/memory?figure=<code>` that lists the ids of one progress-card figure from the `/progress`
+answer Today shares (TQ-4 (a), spec-012 §3 *Figure filters*). The web filters over the server's
+answers and derives no reference or done state.
+
+The figure filter's e2e from the progress card (T-13.1 … T-13.4, US-T-13) is closed by task-065,
+which depends on this task; the traceability page's *Show in Memory* link (R-01.8) by task-067.
+
+**Backlog items:** US-M-03, US-M-04, US-M-02
 
 ## Acceptance Criteria
 
-<!-- Reference the Gherkin feature file, or inline the key scenarios.
-     e.g. "See docs/02_requirements/02_bdd/features/today/pending-gates.feature"
-     For `web` tasks also point to the screen in docs/00_reference/ux-reference.md (§4.x) and the
-     prototype, and state the accessibility bar (keyboard path, axe clean). -->
+- **US-M-03** — every `@v0.3` scenario (`m/missing-references.feature`) passes in the task's e2e
+  spec:
+  - M-03.1 Filter the elements missing a required reference — exactly `task-004-themes` and
+    `adr-001-local-server`, each with the badge "missing refs" (its accessible description naming
+    the missing categories);
+  - M-03.2 Drop the badge when the reference is added — within 5 s of a commit outside the UI
+    (`@live-refresh`; the strict 5 s in `test:timing`).
+- **US-M-04** — every `@v0.3` scenario passes in the task's e2e spec:
+  - M-04.1 Hide the filter when no type requires references — unknown fixture;
+  - M-04.2 Hide the filter on the custom fixture without ui.yaml;
+  - M-04.3 Show the filter with 0 when every required reference is present — "Missing required
+    references" shown with the count 0.
+- **US-M-02** (v0.1 story; its `@v0.3` scenario, B2 (c)) — passes in the task's e2e spec:
+  - M-02.4 Narrow a bucket to one of its states — unknown fixture, *All types*, bucket
+    "Waiting/drafts/closed" and its state "open": exactly `note-001-kickoff`, the active filter
+    "Waiting/drafts/closed · open"; M-01.2 and M-02.2 (`@v0.1`) still pass unchanged.
+- **AC-1 — State sub-options (N7, D7).** With *All types*, each bucket group lists the states of the
+  elements in that bucket, by name, with counts; selecting a bucket lists all its elements, one of
+  its states narrows to that state; the URL keeps the bucket and the state (and a reload restores
+  them); with a type selected the state filters are unchanged (its real states).
+- **AC-2 — Missing-references filter.** Placed with the state filters (`ux-reference.md` §4.4), its
+  count from the server; its URL parameter named at design and used by task-067's *Show in Memory*
+  link (R-01.8); `missingReferences.unreadable` / `capped` named in a note when not empty; absent
+  with `typesError`.
+- **AC-3 — Figure filter (TQ-4).** `?figure=<code>` with `code` ∈ `completion`, `iterated`,
+  `open-defects`, `pending-gates`: the list shows the elements whose full id is in that figure's
+  `ids`, the other filters cleared, the active filter named by the figure's label with a control
+  that clears it (focus then on the list heading); an unknown code or a figure not `shown` gives the
+  unfiltered list with no active filter; the ids never enter the address. A component test per case
+  here; the e2e from Today in task-065.
+- **AC-4 — Performance.** TT-PERF-04 (REQ-PERF-04, the Memory list p95 ≤ 1.0 s warm) holds with
+  `requires` set on the `large` fixture with the preset (`performance.spec.ts`, `test:timing`).
+- **AC-5 — Docs.** `docs/user-guide.md` (the Memory list's filters, the badge), `CHANGELOG.md`
+  *Unreleased*; Version/Date bumped.
+
+Screen: `docs/00_reference/ux-reference.md` §4.4 (with its v0.3 blocks) and the prototype
+(`docs/00_reference/prototype/`, its Memory view and "missing refs" badge), deviations only as
+recorded (directive `ux-consistency`).
+Accessibility bar: every screen and action of the task operable from the keyboard with visible
+focus; axe-core 0 serious/critical violations in both themes; every string from the message
+catalogue (`web/src/i18n/en.json`, spec-008; X-09.1). Cross-cutting: one e2e spec for the task,
+one test (or `describe`) per scenario titled with the scenario id, assertions on what the user
+sees (CLI counts stay in the server process audits); the task's screens added to `SCREENS`
+(`test/e2e/support/screens.ts`) so the X-06.4 axe scan and the X-09.1 key-build check cover them;
+catalogue, `SCREENS` and route registration changes append-only (RP-43); the Execution Notes
+carry an `e2e closure` table, scenario → spec file : test, for every scenario this task closes.
+Gates: `typecheck`, `lint`, `format:check`, `test:coverage` (≥ 80 %), `npm run test:e2e:chromium`
+and the task's own specs on Chromium, Firefox and WebKit (`npm run test:e2e -- <spec files>`), heavy
+gates through the machine-free slot with the load and the slot wait in each log (dl-009 action 4);
+`check_tasks.py v0.3`.
 
 ## Implementation Notes
 
-<!-- Optional: known constraints, design hints, or links to relevant ADRs. -->
+- Read at design: `ux-reference.md` §4.4; spec-012 §3 (*Figure filters*), §5; spec-003 (buckets,
+  kinds), spec-008; the Execution Notes of task-059 (the `/elements` fields, the fixture variants
+  of M-03.2 and M-04.3) and task-017 (the v0.1 Memory list, its URL filters and focus rules).
+- The list shares the `/progress` query with Today (TanStack Query key), so a figure filter follows
+  the next repository state without new ids in the address.
+- Element rows link to the element page as the element-page task of this release decides
+  (task-062, spec-011 §2); keep the row markup shared with the traceability detail if it fits.
 
 ## Execution Notes
 

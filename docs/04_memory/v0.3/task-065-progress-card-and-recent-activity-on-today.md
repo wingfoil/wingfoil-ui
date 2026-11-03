@@ -4,35 +4,121 @@ type: task
 title: "Progress card and recent activity on Today"              # REQUIRED — e.g. "Today view: pending gates list (REQ-UI-03)"
 status: draft          # auto-set by wingfoil
 release: "v0.3"            # REQUIRED — target release version, e.g. "v0.1"
-sprint: ""             # REQUIRED — the Sprint that selects it (sprint-NNN), or "n/a — <reason>" until one does (methodology/scrum)
-module: ""             # optional — server | web | contracts (dna.yaml modules)
-priority: ""           # optional — high | medium | low
-tags: []               # optional — additional labels, e.g. [today, a11y]
-ref: ""                # optional — backlog item ID, e.g. "TASK-001"
+sprint: "sprint-001"             # REQUIRED — the Sprint that selects it (sprint-NNN), or "n/a — <reason>" until one does (methodology/scrum)
+module: "web"             # optional — server | web | contracts (dna.yaml modules)
+priority: "high"           # optional — high | medium | low
+tags: ["v0.3", "t2", "t5", "today"]               # optional — additional labels, e.g. [today, a11y]
+ref: "US-T-12"                # optional — backlog item ID, e.g. "TASK-001"
 bug: []                # optional — LIST of bug ids this task closes. Two cases: a fix task derived from a bug
                        # by release-planning, and a bug ABSORBED into an existing task's Acceptance Criteria because that
                        # task already owns the ground. Each bug listed moves with its own verbs (`.wingfoil/memory.yaml`):
                        # the approver's `memory approve` triaged -> planned, `memory submit` planned -> in-progress when
                        # this task starts, then submit/approve along its machine; no `bug.sync_state` since the packs adoption
-depends_on: []         # optional — ids of tasks whose Execution Notes constrain this one; authored at planning time, may be appended during design
+depends_on: ["task-059-progress-traceability-and-missing-reference-api", "task-066-memory-list-state-filter-and-missing-reference-badge"]         # optional — ids of tasks whose Execution Notes constrain this one; authored at planning time, may be appended during design
 tmpl_version: 260703   # Orignal template version
 ---
 
 ## Description
 
-<!-- What needs to be built and why. Reference the user story if applicable:
-     "As <persona>, I want <action> so that <benefit>." -->
+T2 and T5 on Today, Wave 3 (RP3-7; `ux-reference.md` §4.1 item 2 and 6 and its v0.3 block): the
+**progress card** — the current scope with its state pill, then one row of selectable figures:
+project completion, phase completion, iterated x/y, open bugs, pending gates — and the **Recent
+activity** card with the last 5 Memory events, both from the server (`GET /api/p/:pid/progress`,
+task-059, spec-012 §3; `GET /api/p/:pid/events/memory?limit=5`, spec-012 §6); the project
+completion also enters the browser tab title (X-10.4, US-X-10). The web renders figures, never
+computes one (spec-003 §8).
+
+Decisions it carries: RP3-14 D2 — the phase figures read-only with their reason until v0.4, no
+phase strip and no `flow` columns; D8 — no "Open the Timeline" link while R6 is in v0.4 (T-08.1
+amended); RP3-18 TQ-4 — each shown figure opens `/p/<id>/memory?figure=<code>`, the list filtering on
+the ids of the same `/progress` answer (the Memory list side is task-066's); REQ-PERF-11 — Recent
+activity lists 5 events; the `ui.yaml` warning of C-04.1 shown on Today (US-C-04, listed by task-054).
+
+**Backlog items:** US-T-12, US-T-13, US-T-14, US-T-15, US-T-08, US-X-10
 
 ## Acceptance Criteria
 
-<!-- Reference the Gherkin feature file, or inline the key scenarios.
-     e.g. "See docs/02_requirements/02_bdd/features/today/pending-gates.feature"
-     For `web` tasks also point to the screen in docs/00_reference/ux-reference.md (§4.x) and the
-     prototype, and state the accessibility bar (keyboard path, axe clean). -->
+- **US-T-12** — every `@v0.3` scenario (`t/progress-card.feature`) passes in the task's e2e spec:
+  - T-12.1 Show the figures of the current scope — "minor-v0.1" "planning"; "Project completion
+    25 %", "Tasks 1/4", "Open bugs 1", "Pending gates 3";
+  - T-12.4 Move the scope to the most advanced release — "minor-v0.2" "in-development";
+  - T-12.5 Say that no release is under way — "No current release" and the whole project's figures;
+  - T-12.6 Say that no reference is linked in the current release — "No references linked in
+    minor-v0.2" in place of the completion figure;
+  - T-12.2 Show whole-project figures without ui.yaml — "Whole project", "Pending gates 1",
+    "Completion needs references — see Configuration › Taxonomy" (a link);
+  - T-12.3 Update the figures after a decision — on the pre-packs variant, a CLI approve outside the
+    UI gives "Pending gates 2" within 5 s (`@live-refresh`; the strict 5 s in `test:timing`).
+- **US-T-13** — every `@v0.3` scenario passes in the task's e2e spec (the Memory list's `?figure=`
+  handling is task-066's):
+  - T-13.1 Open the items behind "Pending gates" — exactly `task-001-cli-adapter`,
+    `dl-002-use-fastify`, `bug-001-toast-overlap`, active filter "Pending gates";
+  - T-13.2 Open the items behind "Tasks 1/4" — the 4 tasks of `v0.1`, `task-002-memory-list` done;
+  - T-13.3 Clear a figure filter — every non-archived element, no active filter;
+  - T-13.4 Ignore an unknown figure code — `?figure=bogus`: every non-archived element, no active
+    filter.
+- **US-T-14** — every `@v0.3` scenario passes in the task's e2e spec:
+  - T-14.1 Explain the completion figure on hover — the tooltip "Mean of reference completion over
+    2 references with at least 1 linked element: US-M-01 50 %, US-S-01 0 %" ("and <n> more" past 10);
+  - T-14.2 Reach the explanation with the keyboard — the same text on focus, as the figure's
+    accessible description; Escape closes it.
+- **US-T-15** — every `@v0.3` scenario passes in the task's e2e spec (custom fixture on 0.2.2):
+  - T-15.1 Show the phase figure read-only on WingFoil 0.2.2 — "Phase — needs WingFoil 0.3 (this
+    project: 0.2.2)" with "Project completion 25 %";
+  - T-15.2 Show phase completion read-only too — "Phase completion — needs WingFoil 0.3"; on 0.3.1
+    the `not-in-release` reason's text (a test of its own).
+- **US-T-08** — every `@v0.3` scenario (`t/recent-activity.feature`) passes in the task's e2e spec:
+  - T-08.1 Show the last 5 Memory events — newest first; time, element, "from → to" and author, or
+    "created"; no link "Open the Timeline";
+  - T-08.2 Add an event made outside the UI — "task-001-login-form pending → approved · Morgan" first
+    within 5 s;
+  - T-08.3 Leave out commits that are not Memory events — "docs: fix a typo in README" not listed.
+- **US-X-10** (v0.1 story; its `@v0.3` scenario, B2 (c)) — passes in the task's e2e spec:
+  - X-10.4 Show the project completion in the tab title — "kanban · 40 % · Today — WingFoil UI"
+    when the card shows 40 %; no percentage when completion is not shown (a test of its own).
+- **AC-1 — The card.** In the order of `ux-reference.md` §4.1 (greeting, progress card, *Requires
+  you*, *Waiting on others*, *Recent activity* last), the place of the v0.2 *Your roles* line next to
+  the card recorded at design with the approver (§4.1 places both after the greeting); each shown figure a link to `?figure=<code>`
+  (`completion`, `iterated`, `open-defects`, `pending-gates`); a figure `unavailable` or `read-only`
+  shows its reason's text and is not a link; `unreadable` / `capped` named in a note ("some elements
+  could not be read"); a failed read is an error, never an empty card; a refresh on `repo` re-reads
+  and is not announced unless the figures change (then politely, as Today's count).
+- **AC-2 — The ui.yaml warning.** C-04.1 Fall back to inferred values when ui.yaml is invalid (US-C-04,
+  task-054's item) passes in this task's spec: "ui.yaml ignored: progress.mode must be sequence or
+  flow (found spiral)" on Today and the scope "Whole project".
+- **AC-3 — Performance.** TT-PERF-01 (REQ-PERF-01, Today p95 ≤ 2.0 s warm, ≤ 5.0 s first open) holds
+  with both cards in `test/e2e/performance.spec.ts` and in `test:timing` (Chromium, run alone).
+- **AC-4 — Docs.** `docs/user-guide.md` (Today's progress card and Recent activity), `CHANGELOG.md`
+  *Unreleased*, `test/README.md` for new suites; Version/Date bumped.
+
+Screen: `docs/00_reference/ux-reference.md` §4.1 (items 2 and 6, the v0.3 block), §7 (computations)
+and the prototype (`docs/00_reference/prototype/`, Today's progress card), deviations only as
+recorded (directive `ux-consistency`): no phase strip, no `flow` columns, no Timeline link (D2, D8).
+Accessibility bar: every screen and action of the task operable from the keyboard with visible
+focus; axe-core 0 serious/critical violations in both themes; every string from the message
+catalogue (`web/src/i18n/en.json`, spec-008; X-09.1). Cross-cutting: one e2e spec for the task,
+one test (or `describe`) per scenario titled with the scenario id, assertions on what the user
+sees (CLI counts stay in the server process audits); the task's screens added to `SCREENS`
+(`test/e2e/support/screens.ts`) so the X-06.4 axe scan and the X-09.1 key-build check cover them;
+catalogue, `SCREENS` and route registration changes append-only (RP-43); the Execution Notes
+carry an `e2e closure` table, scenario → spec file : test, for every scenario this task closes.
+Gates: `typecheck`, `lint`, `format:check`, `test:coverage` (≥ 80 %), `npm run test:e2e:chromium`
+and the task's own specs on Chromium, Firefox and WebKit (`npm run test:e2e -- <spec files>`), heavy
+gates through the machine-free slot with the load and the slot wait in each log (dl-009 action 4);
+`check_tasks.py v0.3`.
 
 ## Implementation Notes
 
-<!-- Optional: known constraints, design hints, or links to relevant ADRs. -->
+- Read at design: `ux-reference.md` §4.1, §4.4 v0.3 (figure filters), §7; spec-012 §3, §6, §8;
+  spec-005 §4; spec-002 §1, §3 (the events); spec-004 §3, §6; spec-008; REQ-PERF-01, REQ-PERF-03,
+  REQ-PERF-11; the Execution Notes of task-059 (bodies, fixture variants), task-066 (the `?figure=`
+  route and its active-filter control), task-036 (Today's layout and refresh), task-042 (the
+  bell's events, the page title code `web/src/shell/page-title.ts`) and of the Today task of this
+  release (task-061: role tags, filters, short ids) if merged by then — Today's files are shared.
+- Recent activity reads the existing events route; the row names the element by the short id when
+  the elements list Today reads has it (spec-012 §6, spec-011 §1).
+- Today's layout changes touch the v0.2 Today specs (`today.spec.ts`, `notification-bell.spec.ts`)
+  and `SCREENS`; no expectation of an earlier scenario is loosened.
 
 ## Execution Notes
 

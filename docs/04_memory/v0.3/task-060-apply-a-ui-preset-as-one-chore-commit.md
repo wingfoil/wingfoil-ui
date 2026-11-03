@@ -4,35 +4,113 @@ type: task
 title: "Apply a UI preset as one chore commit"              # REQUIRED — e.g. "Today view: pending gates list (REQ-UI-03)"
 status: draft          # auto-set by wingfoil
 release: "v0.3"            # REQUIRED — target release version, e.g. "v0.1"
-sprint: ""             # REQUIRED — the Sprint that selects it (sprint-NNN), or "n/a — <reason>" until one does (methodology/scrum)
-module: ""             # optional — server | web | contracts (dna.yaml modules)
-priority: ""           # optional — high | medium | low
-tags: []               # optional — additional labels, e.g. [today, a11y]
-ref: ""                # optional — backlog item ID, e.g. "TASK-001"
+sprint: "sprint-001"             # REQUIRED — the Sprint that selects it (sprint-NNN), or "n/a — <reason>" until one does (methodology/scrum)
+module: "server"             # optional — server | web | contracts (dna.yaml modules)
+priority: "high"           # optional — high | medium | low
+tags: ["v0.3", "c1", "preset", "governed-write"]               # optional — additional labels, e.g. [today, a11y]
+ref: "US-C-02"                # optional — backlog item ID, e.g. "TASK-001"
 bug: []                # optional — LIST of bug ids this task closes. Two cases: a fix task derived from a bug
                        # by release-planning, and a bug ABSORBED into an existing task's Acceptance Criteria because that
                        # task already owns the ground. Each bug listed moves with its own verbs (`.wingfoil/memory.yaml`):
                        # the approver's `memory approve` triaged -> planned, `memory submit` planned -> in-progress when
                        # this task starts, then submit/approve along its machine; no `bug.sync_state` since the packs adoption
-depends_on: []         # optional — ids of tasks whose Execution Notes constrain this one; authored at planning time, may be appended during design
+depends_on: ["task-054-ui-configuration-file-read-with-its-schema-and-the-config-section"]         # optional — ids of tasks whose Execution Notes constrain this one; authored at planning time, may be appended during design
 tmpl_version: 260703   # Orignal template version
 ---
 
 ## Description
 
-<!-- What needs to be built and why. Reference the user story if applicable:
-     "As <persona>, I want <action> so that <benefit>." -->
+C1b, Wave 2 (RP3-7 "C1b preset write as a `chore(ui)` commit"; dl-003; RP3-15 S3): the server
+route `POST /api/p/:pid/ui-config/preset` `{preset}` that writes one of the shipped presets
+(task-054) as `.wingfoil/ui.yaml` and commits it as **one** `chore(ui): apply the <Preset> preset`
+commit touching only that file (REQ-ARC-03 class b, REQ-INT-06), with spec-005 §5's preconditions,
+schema and semantic validation before anything is written, exclusive create, `git commit --only`,
+the action log, auto-push and the `write` event. It is the console's first commit that is not a
+CLI `wf(…)` commit: a governed write, reviewed by an adversarial reviewer who runs the tools.
+
+**Web part:** none here. The *Use preset* control (the dialog, its hidden and disabled states, the
+toasts) lives on Configuration › Taxonomy, which task-064 builds in Wave 3; task-064 depends on this
+task and closes the e2e of the US-C-02 and US-C-03 scenarios. This task closes them at the API
+level, each with a test titled by the scenario id.
+
+**Backlog items:** US-C-02, US-C-03
 
 ## Acceptance Criteria
 
-<!-- Reference the Gherkin feature file, or inline the key scenarios.
-     e.g. "See docs/02_requirements/02_bdd/features/today/pending-gates.feature"
-     For `web` tasks also point to the screen in docs/00_reference/ux-reference.md (§4.x) and the
-     prototype, and state the accessibility bar (keyboard path, axe clean). -->
+- **AC-1 — Preconditions in order.** An API test per row of spec-005 §5's table (status and `code`,
+  nothing written, no git process before the checks pass): rows 1–4 as spec-004 §4 (an unknown
+  `preset` → 400 `invalid-request`), 403 `not-in-team`, 409 `unsupported-version`, 409
+  `ui-config-exists` when an entry exists at `.wingfoil/ui.yaml` in the working tree (any entry
+  type), in the index or at HEAD — checked fresh under the write lock —, 409 `stale-copy` when the
+  copy is behind, diverged or detached (fresh under the write lock).
+- **AC-2 — Validate, then write exclusively.** Under the same lock: the preset rendered (no user
+  text), `memory.yaml` read (unreadable → 502 `read-error`), the schema and the semantic checks of
+  task-054 run — a failure → 422 `ui-config-invalid` with `detail.failure` the first failure, no
+  file and no commit; then the file created exclusively (an entry that appeared meanwhile → 409
+  `ui-config-exists`, never overwritten), never through a symbolic link at `.wingfoil/` or at the
+  file.
+- **AC-3 — One commit, only that file.** `git add -- .wingfoil/ui.yaml` and `git commit --only -m
+  "chore(ui): apply the <Preset> preset" -- .wingfoil/ui.yaml` with the git environment of the
+  CLI's writes (spec-001 §1: no transport can start); the repository's hooks run, as a CLI write's
+  do. Success → 200 `write.response.schema.json` with `result {file, preset}`, `commits` the single
+  first-parent commit since the fresh HEAD whose subject is the preset's and which changes only the
+  file, `push` as after a governed write; the commit appended to the action log (spec-006 §2,
+  REQ-SEC-10), auto-pushed when *Auto-push* is on (spec-010 §6), announced by `write {pid, commit}`
+  without `eid` (spec-004 §6).
+- **AC-4 — Failures.** `git add` fails → 422 `git-refused` (git's message redacted, spec-004 §5) and
+  the created file removed; `git commit` fails or no single commit is found → 500
+  `write-incomplete` with `detail.file` (and `detail.commit` when found), the file left staged,
+  nothing restored, logged, pushed or announced — each with an API test (a failing hook, a hook that
+  makes a second commit).
+- **AC-5 — Provenance.** `test/harness/commit-provenance.ts` (and `no-commit.spec.ts`) accept
+  exactly this commit shape — the subject of one of the three presets, one file
+  `.wingfoil/ui.yaml` — and still refuse any other non-`wf(…)` commit of the console.
+- **US-C-02** — every `@v0.3` scenario (`c/ui-yaml.feature`) passes at the API level here; the e2e
+  through *Use preset* in task-064:
+  - C-02.1 Apply the Kanban preset as one chore(ui) commit — on the kanban fixture as Morgan: 200,
+    the last commit `chore(ui): apply the Kanban preset` changing exactly `.wingfoil/ui.yaml`, and
+    `/config` `ui` then `source: file`, every value `declared`;
+  - C-02.2 Leave other staged changes out of the commit — `README.md` staged before the write is
+    still staged and uncommitted after it;
+  - C-02.3 Offer no preset when ui.yaml exists — 409 `ui-config-exists` on the custom fixture with
+    the sw-life-cycle preset (the control is hidden in task-064);
+  - C-02.5 Offer no preset to a user who is not in the team — 403 `not-in-team` as Riley;
+  - C-02.4 Block the preset while the copy is behind — 409 `stale-copy` one commit behind the
+    fetched remote (the disabled reason in task-064).
+- **US-C-03** — every `@v0.3` scenario passes at the API level here; the toast in task-064:
+  - C-03.1 Refuse a preset that fails the schema — a test build whose Kanban preset lacks `version`:
+    422 `ui-config-invalid`, `detail.failure` "missing required key version", no file, HEAD
+    unchanged;
+  - C-03.2 Refuse a preset that maps a type the project does not declare — the sw-life-cycle preset
+    on the kanban fixture: 422 with "type service is not declared in memory.yaml", no file.
+- **AC-6 — Docs.** spec-004 and spec-005 already define the route (a Process Note with the
+  approver's OK only if the design changes it); `npm run docs:api`; `docs/user-guide.md` gets the
+  preset's effect when task-064 adds the control (not here); `test/README.md` for new suites.
+- **AC-7 — Gates.** `typecheck`, `lint`, `format:check`, `test:coverage` (≥ 80 %), `docs:api`,
+  `test:contract`, `test:e2e:chromium` (`no-commit.spec.ts`, `commit-provenance.spec.ts`), heavy
+  gates through the machine-free slot with load and slot wait in each log; the strict-identity run
+  of `test/README.md` *Fixtures* › *Git identity* for every suite this task touches (dl-011).
 
 ## Implementation Notes
 
-<!-- Optional: known constraints, design hints, or links to relevant ADRs. -->
+- Read at design: spec-005 §5, §6, spec-004 §3, §4, §5, §6, spec-001 §1 (the writes' git
+  environment), spec-006 §2 (action log), spec-010 §4, §6 (transport, auto-push), spec-003 §6 rule 2
+  (the version range reason); dl-002, dl-003; REQ-ARC-03, REQ-INT-06, REQ-SEC-08, REQ-SEC-10; the
+  Execution Notes of task-054 (presets, validation API) and of the v0.2 governed-write tasks
+  (task-032 writes, task-033 git routes, task-034 auto-push, task-043 commit provenance).
+- **Security probes at design** (the console runs new git commands that write to a project):
+  `GIT_TRACE=1` of `git add` and `git commit --only`, with the repository's hooks, showing every
+  process started; a `.git` snapshot before and after (only the index, the branch ref, the new
+  objects and the reflog change; no config, no other ref); the children's environment (`gitEnv`: no
+  inherited `GIT_*`, no askpass, no transport); adversarial cases — `.wingfoil` a symbolic link
+  outside the project, a file appearing between the check and the create, a staged deletion of
+  `.wingfoil/ui.yaml`, a pre-commit hook that stages another file, a commit template or
+  `commit.gpgSign` in the repository config.
+- **C-03.1's test build:** the seam that swaps a preset is a test-only injection (e.g. the route
+  factory's preset table in the API test, or a test console the harness starts with it); no flag,
+  environment variable or file of the shipped bin can change a preset's content. The design records
+  the seam with the reviewer.
+- Review: an independent adversarial reviewer who runs the probes and the tools, until PASS.
 
 ## Execution Notes
 

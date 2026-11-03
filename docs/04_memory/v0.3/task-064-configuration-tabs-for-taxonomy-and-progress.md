@@ -4,35 +4,103 @@ type: task
 title: "Configuration tabs for taxonomy and progress"              # REQUIRED — e.g. "Today view: pending gates list (REQ-UI-03)"
 status: draft          # auto-set by wingfoil
 release: "v0.3"            # REQUIRED — target release version, e.g. "v0.1"
-sprint: ""             # REQUIRED — the Sprint that selects it (sprint-NNN), or "n/a — <reason>" until one does (methodology/scrum)
-module: ""             # optional — server | web | contracts (dna.yaml modules)
-priority: ""           # optional — high | medium | low
-tags: []               # optional — additional labels, e.g. [today, a11y]
-ref: ""                # optional — backlog item ID, e.g. "TASK-001"
+sprint: "sprint-001"             # REQUIRED — the Sprint that selects it (sprint-NNN), or "n/a — <reason>" until one does (methodology/scrum)
+module: "web"             # optional — server | web | contracts (dna.yaml modules)
+priority: "medium"           # optional — high | medium | low
+tags: ["v0.3", "c1", "configuration"]               # optional — additional labels, e.g. [today, a11y]
+ref: "US-C-01"                # optional — backlog item ID, e.g. "TASK-001"
 bug: []                # optional — LIST of bug ids this task closes. Two cases: a fix task derived from a bug
                        # by release-planning, and a bug ABSORBED into an existing task's Acceptance Criteria because that
                        # task already owns the ground. Each bug listed moves with its own verbs (`.wingfoil/memory.yaml`):
                        # the approver's `memory approve` triaged -> planned, `memory submit` planned -> in-progress when
                        # this task starts, then submit/approve along its machine; no `bug.sync_state` since the packs adoption
-depends_on: []         # optional — ids of tasks whose Execution Notes constrain this one; authored at planning time, may be appended during design
+depends_on: ["task-054-ui-configuration-file-read-with-its-schema-and-the-config-section", "task-060-apply-a-ui-preset-as-one-chore-commit"]         # optional — ids of tasks whose Execution Notes constrain this one; authored at planning time, may be appended during design
 tmpl_version: 260703   # Orignal template version
 ---
 
 ## Description
 
-<!-- What needs to be built and why. Reference the user story if applicable:
-     "As <persona>, I want <action> so that <benefit>." -->
+C1, Wave 3 (RP3-7 "C1a read and tabs, C1b preset write"; `ux-reference.md` §4.11): two new
+Configuration sub-tabs, **Taxonomy** and **Progress**, that explain each `ui.yaml` key and show its
+current value with its origin — *declared*, *inferred* or *derived* — from the `ui` section of
+`GET /api/p/:pid/config` (task-054, spec-012 §2), and the **Use preset** control on Taxonomy that
+applies a shipped preset through `POST /api/p/:pid/ui-config/preset` (task-060, spec-005 §5). The
+sub-tabs are links with one URL each, as *UI settings* (task-041): `/p/<id>/configuration/taxonomy`
+and `/p/<id>/configuration/progress`. The web renders the server's values and never infers one.
+
+This task hosts the web part of C1b (task-060 is server-only), so it closes the e2e of US-C-02 and
+US-C-03 as well as US-C-01, and of C-04.2 (US-C-04, listed by task-054).
+
+**Backlog items:** US-C-01
 
 ## Acceptance Criteria
 
-<!-- Reference the Gherkin feature file, or inline the key scenarios.
-     e.g. "See docs/02_requirements/02_bdd/features/today/pending-gates.feature"
-     For `web` tasks also point to the screen in docs/00_reference/ux-reference.md (§4.x) and the
-     prototype, and state the accessibility bar (keyboard path, axe clean). -->
+- **US-C-01** — every `@v0.3` scenario (`c/ui-yaml.feature`) passes in the task's e2e spec:
+  - C-01.1 Show inferred values on a project without ui.yaml — kanban: `task` "work" and `bug`
+    "defect" marked *inferred*, the 8 categories explained;
+  - C-01.2 Show declared values from ui.yaml — custom with the sw-life-cycle preset, Progress:
+    `scope` "release" *declared* with the current element "minor-v0.1" *derived*, `mode` "sequence"
+    with its allowed values "sequence | flow";
+  - C-01.3 Mark a type with no inferable category — unknown: `story` "No category — not counted in
+    progress figures".
+- **AC-1 — Taxonomy tab.** One row per declared type with its category and origin; `patterns` (each
+  `match` shown as text, never interpreted) and `requires` with their origin; the explanation of the
+  8 categories and of `categories`, `patterns` (regular expressions, first match wins, the safe
+  subset of spec-005 §1) and `requires`, with examples (`ux-reference.md` §4.11).
+- **AC-2 — Progress tab.** `mode`, `scope` (the type, and the current element as a link to its
+  element page with its state, *derived*), `phases` (with "matched to the workflow from v0.4",
+  RP3-14 D2), `iterates`, `defects`, each with its value, origin, meaning and allowed values; `holds`
+  listed with the reason texts of spec-005 §4a.
+- **AC-3 — The ui.yaml warning.** When `ui.status.source` is `ignored` both tabs show "ui.yaml
+  ignored: {failure}" at the top and mark every value *inferred*; C-04.2 (US-C-04, task-054's item)
+  Treat unparsable ui.yaml the same way passes in this task's spec (a warning naming the YAML error
+  and its line on Taxonomy, every value *inferred*).
+- **AC-4 — Use preset.** On Taxonomy: hidden when `.wingfoil/ui.yaml` exists or the user is not
+  identified in the team; disabled with the reason when the copy is behind, diverged or detached or
+  the version is out of range (spec-005 §5, the reasons of spec-003 §6); otherwise a dialog to choose
+  *Kanban*, *Scrum* or *WingFoil sw-life-cycle*, naming the file and the commit it will make, with
+  Confirm and Cancel (modal dismissal as `ux-reference.md` §5; focus returned to the control). On
+  success a toast names the commit and the tabs re-read (`write` and `repo` events); a refusal shows
+  the red toast "ui.yaml not written: {failure}" or the code's text (spec-004 §5 codes
+  `ui-config-invalid`, `ui-config-exists`, `stale-copy`, `not-in-team`, `git-refused`,
+  `write-incomplete`). The e2e spec closes, with tests titled by their ids, task-060's scenarios:
+  C-02.1 (the Kanban preset as one `chore(ui)` commit, then every value *declared*), C-02.2 (a
+  staged `README.md` left out), C-02.3 (no *Use preset* with `ui.yaml`), C-02.5 (none for Riley),
+  C-02.4 ("Blocked: your copy is 1 commit behind the remote — Update"), C-03.1 (the test build whose
+  Kanban preset lacks `version`: the toast, no file, HEAD unchanged) and C-03.2 (the sw-life-cycle
+  preset on kanban: "type service is not declared in memory.yaml").
+- **AC-5 — Docs.** `docs/user-guide.md` (Configuration › Taxonomy and Progress, *Use preset* and the
+  commit it makes), `ux-reference.md` §4.11 a v0.3 block for any decision taken at design (with the
+  approver), `CHANGELOG.md` *Unreleased*; Version/Date bumped.
+
+Screen: `docs/00_reference/ux-reference.md` §4.11 (*Taxonomy*, *Progress*), §6 (the file) and the
+prototype (`docs/00_reference/prototype/`, its Configuration view and the *Tassonomia* tab),
+deviations only as recorded (directive `ux-consistency`).
+Accessibility bar: every screen and action of the task operable from the keyboard with visible
+focus; axe-core 0 serious/critical violations in both themes; every string from the message
+catalogue (`web/src/i18n/en.json`, spec-008; X-09.1). Cross-cutting: one e2e spec for the task,
+one test (or `describe`) per scenario titled with the scenario id, assertions on what the user
+sees (CLI counts stay in the server process audits); the task's screens added to `SCREENS`
+(`test/e2e/support/screens.ts`) so the X-06.4 axe scan and the X-09.1 key-build check cover them;
+catalogue, `SCREENS` and route registration changes append-only (RP-43); the Execution Notes
+carry an `e2e closure` table, scenario → spec file : test, for every scenario this task closes.
+Gates: `typecheck`, `lint`, `format:check`, `test:coverage` (≥ 80 %), `npm run test:e2e:chromium`
+and the task's own specs on Chromium, Firefox and WebKit (`npm run test:e2e -- <spec files>`), heavy
+gates through the machine-free slot with the load and the slot wait in each log (dl-009 action 4);
+`check_tasks.py v0.3`.
+The e2e of C-02.x and C-03.x commit to fixtures: also the strict-identity run of `test/README.md`
+*Fixtures* › *Git identity* for that spec (dl-011).
 
 ## Implementation Notes
 
-<!-- Optional: known constraints, design hints, or links to relevant ADRs. -->
+- Read at design: `ux-reference.md` §4.11, §5, §6; spec-005 §1–§3, §5; spec-012 §2; spec-004 §3–§6;
+  spec-008; the Execution Notes of task-054 (the `ui` section, the preset fixture variant), task-060
+  (the route, its codes, the C-03.1 test seam), task-041 (the Configuration sub-tab links and the
+  settings cards), task-038 (toasts, blocked actions) and task-039/040 (the copy state and its
+  *Update* link).
+- The *Use preset* control is the console's first write that is not a Memory verb: the design
+  checks with the reviewer that every refusal the server can answer has its text, and that the
+  control is never offered where the server would refuse for a reason the page already knows.
 
 ## Execution Notes
 

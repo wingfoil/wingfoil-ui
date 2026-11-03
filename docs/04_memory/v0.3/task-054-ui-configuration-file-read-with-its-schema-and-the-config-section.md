@@ -4,11 +4,11 @@ type: task
 title: "UI configuration file read with its schema and the config section"              # REQUIRED — e.g. "Today view: pending gates list (REQ-UI-03)"
 status: draft          # auto-set by wingfoil
 release: "v0.3"            # REQUIRED — target release version, e.g. "v0.1"
-sprint: ""             # REQUIRED — the Sprint that selects it (sprint-NNN), or "n/a — <reason>" until one does (methodology/scrum)
-module: ""             # optional — server | web | contracts (dna.yaml modules)
-priority: ""           # optional — high | medium | low
-tags: []               # optional — additional labels, e.g. [today, a11y]
-ref: ""                # optional — backlog item ID, e.g. "TASK-001"
+sprint: "sprint-001"             # REQUIRED — the Sprint that selects it (sprint-NNN), or "n/a — <reason>" until one does (methodology/scrum)
+module: "server"             # optional — server | web | contracts (dna.yaml modules)
+priority: "high"           # optional — high | medium | low
+tags: ["v0.3", "c1", "ui-yaml"]               # optional — additional labels, e.g. [today, a11y]
+ref: "TT-ARC-07"                # optional — backlog item ID, e.g. "TASK-001"
 bug: []                # optional — LIST of bug ids this task closes. Two cases: a fix task derived from a bug
                        # by release-planning, and a bug ABSORBED into an existing task's Acceptance Criteria because that
                        # task already owns the ground. Each bug listed moves with its own verbs (`.wingfoil/memory.yaml`):
@@ -20,19 +20,117 @@ tmpl_version: 260703   # Orignal template version
 
 ## Description
 
-<!-- What needs to be built and why. Reference the user story if applicable:
-     "As <persona>, I want <action> so that <benefit>." -->
+C1a, Wave 1 (`release-planning-rel-v0.3-plan` RP3-7, RP3-8 `features: [T2, T5, M2, R5, C1]`):
+the server reads `.wingfoil/ui.yaml`, the only file the UI owns (REQ-ARC-07, REQ-ARC-03 class b),
+validates it against its schema and the semantic checks, falls back to inferred values when it is
+missing or invalid, and serves the effective configuration — each value with its origin — in the
+`ui` section of `GET /api/p/:pid/config`, with the `ui.yaml` warning every project-state view
+shows. Every v0.3 view of a project's state (task-055's reference index and held gates, task-059's
+API, task-060's preset write, the web tasks 064 … 067) builds on this read.
+
+It carries: spec-005 §1–§3 (schema version 1 with `holds`, RP3-14 D5; the safe subset of
+`taxonomy.patterns` and the reading limits, RP3-15 S1), §5 (the three presets' contents, as data:
+their write is task-060's), the inference table; spec-001 §4.5 (the direct read allowed by
+REQ-ARC-04); spec-012 §2 (the `ui` section, `status` and its warning `ui-config-ignored`), §9 (the
+echoed `ui.yaml` strings escaped, K1 of RP3-18); spec-004 §3, §5. It also adds the fixture variant
+"the custom fixture with the sw-life-cycle preset" (`02_bdd/00_conventions.md` *Preset variant*)
+that the T2, M2, R5 and C1 scenarios open.
+
+**Backlog items:** TT-ARC-07, US-C-04
 
 ## Acceptance Criteria
 
-<!-- Reference the Gherkin feature file, or inline the key scenarios.
-     e.g. "See docs/02_requirements/02_bdd/features/today/pending-gates.feature"
-     For `web` tasks also point to the screen in docs/00_reference/ux-reference.md (§4.x) and the
-     prototype, and state the accessibility bar (keyboard path, axe clean). -->
+- **AC-1 — Schema file.** `contracts/files/ui-yaml.schema.json` (draft-07, `$comment` `ui.yaml
+  version 1`) holds the keys and closed values of spec-005 §1, unknown keys an error at every level:
+  it rejects `permissions`, an unknown category, an unknown `holds.<t>.<s>.approve` value and
+  `progress.scope.id` (spec-005 §6), and accepts the three shipped presets.
+- **AC-2 — Semantic checks.** In spec-005 §1's order, the first failure reported as written: an
+  undeclared type in `categories`, `requires`, `scope`, `iterates`, `defects` or `holds`; an
+  undeclared state under `holds.<t>`; a `taxonomy.patterns[<i>].match` that does not compile with
+  the `u` flag or leaves the safe subset — one unit case per reason ("must start with ^",
+  "backreferences are not allowed", "lookaround is not allowed", "at most 2 quantifiers", "a
+  quantifier on a group is not allowed", "{n,m} above 100", "does not compile: …"); a pattern of
+  the subset at its bounds tested on a 256-character value built to backtrack answers within 10 ms
+  (unit).
+- **AC-3 — Loading.** Read from the working tree at `.wingfoil/ui.yaml` only, on each repository
+  state (spec-005 §2, spec-001 §4.5): a symbolic link (never followed), a directory, a file above
+  64 KiB, a YAML alias, a custom tag, a duplicate key, non-YAML content and a schema or semantic
+  failure each give the inferred values and the warning "ui.yaml ignored: <failure>"; no entry gives
+  the inferred values and no warning; a valid file's values are `declared`, omitted keys `inferred`,
+  the current element of `scope` `derived` (its derivation is task-059's — this task carries the
+  `scope` type). An edit of the file, tracked or untracked, changes the repository-state key and
+  emits `repo` (spec-012 §8, REQ-PERF-03).
+- **AC-4 — Inferred values.** The table of spec-005 §3 lives in `server/src/presets/` (the only place
+  where type names may appear in code, REQ-ARC-05; lint rule `wfui/no-methodology-literal`); on the
+  kanban, scrum, custom and unknown fixtures the effective values equal §3's (e.g. `task` → work,
+  `bug` → defect; a type with no category "No category — not counted in progress figures").
+- **AC-5 — `ui` section of `/config`.** `contracts/api/ui-config.schema.json` (new: `status`,
+  `elementRef`, `origin`) and `config.schema.json`'s `ui` property (absent when `memory.yaml` cannot
+  be read) as spec-012 §2 and §7; `status.source` `file` / `none` / `ignored`, `warning {code:
+  "ui-config-ignored", failure}`, `failure` through `redactLocalPaths`; every echoed `ui.yaml`
+  string (`patterns[].match`, type names, `phases`, `holds` types and states, `artifacts` paths)
+  escaped (spec-012 §9, K1): an API test with a bidi control and a C1 control in each gets them
+  escaped. The body validates on the three fixtures; `npm run docs:api` regenerated.
+- **AC-6 — Presets as data.** The Kanban, Scrum and WingFoil `sw-life-cycle` presets of spec-005 §5
+  are rendered from `server/src/presets/` (no user text enters them); each validates and passes the
+  semantic checks on its own template's fixture on 0.2.2 and 0.3.1, and the sw-life-cycle preset is
+  refused on the kanban fixture with "type service is not declared in memory.yaml" (spec-005 §6).
+  The write route is task-060's.
+- **AC-7 — Preset fixture variant.** The harness builds "the custom fixture with the sw-life-cycle
+  preset" — the custom fixture plus the commit `chore(ui): apply the WingFoil sw-life-cycle preset`
+  writing the rendered preset — on both CLI versions and with the pre-packs states
+  (`usePrePacksStates`); on it `/config` `ui` reports `source: file`, `scope: {type: release}` and
+  the categories, patterns and `requires` of §5; the commit-provenance checker
+  (`test/harness/commit-provenance.ts`) accepts this commit (task-060 accepts the console's own).
+  `test/README.md` *Fixtures* documents the variant.
+- **TT-ARC-07** (REQ-ARC-07 — `ui.yaml`: the UI's only file) — this task is the read; each
+  `@v0.3` scenario passes here at the API level (the effective values, origins and warnings the
+  scenario needs, an API test titled with its id) and closes in the e2e of the task named:
+  - C-01.1, C-01.2, C-01.3 (`c/ui-yaml.feature`: inferred, declared, no category) — `/config` `ui`
+    origins and categories here; the Configuration tabs e2e in task-064;
+  - C-02.1, C-02.3, C-02.5 (the preset applied, not offered when `ui.yaml` exists, not offered to a
+    user outside the team) — the preset contents (AC-6) here; the write in task-060, the control and
+    e2e in task-064;
+  - C-03.1, C-03.2 (a preset failing the schema, a preset mapping an undeclared type) — the schema
+    and the semantic checks here (AC-1, AC-2); the 422 in task-060, the toast in task-064;
+  - C-04.1, C-04.2, C-04.3 — as US-C-04 below;
+  - T-12.1, T-12.4, T-12.5 (`t/progress-card.feature`: the current scope, the most advanced release,
+    no release under way) — `progress.scope` declared as a type only here; the derivation and
+    figures in task-059, the card in task-065;
+  - S-24.5, S-24.6 (`s/action-descriptor.feature`: held gates) — the `holds` key and its checks
+    here; the descriptor's holds in task-055.
+- **US-C-04** — every `@v0.3` scenario (`c/ui-yaml.feature`) passes at the API level here:
+  - C-04.1 Fall back to inferred values when ui.yaml is invalid — `progress.mode: spiral` gives
+    `source: ignored`, the failure "progress.mode must be sequence or flow (found spiral)" and
+    inferred values (`mode: flow`, no scope); Today's warning and "Whole project" in task-065;
+  - C-04.2 Treat unparsable ui.yaml the same way — invalid YAML gives `ignored` with the YAML
+    engine's message and its line, every value `inferred`; the Taxonomy tab e2e in task-064;
+  - C-04.3 Show the ui.yaml warning on Traceability — the same `status` carried by `/traceability`
+    (task-059); the page's warning and note in the e2e of task-067.
+- **AC-8 — Gates.** `typecheck`, `lint`, `format:check`, `test:coverage` (≥ 80 %), `docs:api`,
+  `test:contract`, `npm run test:e2e:chromium` (the fixture variant must not change any existing
+  spec), each heavy gate through the machine-free slot with load and slot wait in its log;
+  `check_tasks.py v0.3`.
 
 ## Implementation Notes
 
-<!-- Optional: known constraints, design hints, or links to relevant ADRs. -->
+- Read at design: spec-005 (all, its Process Notes), spec-001 §4.5 and §5, spec-012 §2, §7–§10,
+  spec-004 §3, §5, spec-003 §8 (how the descriptor will read `holds`, for task-055); REQ-ARC-04,
+  REQ-ARC-05, REQ-ARC-07 (SARD `01_architectural-constraints.md` 1.0+); `ux-reference.md` §6 (the
+  example file) and §4.11; adr-001 D1a, D6; adr-002 (the YAML library and its options). Execution
+  Notes of task-046 (the 0.3.1 contract and `memory.yaml` reads) and task-047.
+- **Security probes at design** (a new direct read of a repository file anyone with push access
+  writes): an `lstat`-based check with no symbolic link followed at any step, including a
+  `.wingfoil` directory that is itself a link and a link swapped in between the check and the read;
+  the size bound applied before the whole file is read; the YAML parser with aliases, custom tags
+  and duplicate keys refused; the path fixed (no input names it); `GIT_TRACE=1` of a cold `/config`
+  showing that the read adds no git or CLI process (REQ-PERF-05); a `.git` snapshot before and after
+  (nothing written); the patterns' cost bound (AC-2). The reviewer is security-adversarial.
+- The reference index, the descriptor's holds and the figures are not this task's: task-055 and
+  task-059 read the effective configuration this task exposes; keep its module API small and
+  documented for them (one function per state returning the effective values and `status`).
+- Fixture variants with `Given … is added … and committed outside the UI` steps (T-12.4, R-01.5,
+  M-04.3) are built by their own tasks on top of AC-7's variant.
 
 ## Execution Notes
 
