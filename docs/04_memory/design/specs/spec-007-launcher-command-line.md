@@ -33,12 +33,15 @@ wingfoil-ui [--port <n>] [--no-open] [--version] [--help]
 |--------|---------|
 | `--port <n>`, `--port=<n>` | listen on port `n` (1024–65535); default: a free port chosen by the OS; when repeated, the last one counts |
 | `--no-open` | do not open a browser; print the URL only |
-| `--version` | print the package version (e.g. `0.1.0`) on stdout and exit 0 |
+| `--version` | print the package version (the `version` of the root `package.json`, e.g. `0.2.0`) on stdout and exit 0 |
 | `--help` | print the synopsis on stdout and exit 0 |
 
-Unknown options, a malformed or missing `--port` value, or a value given to `--no-open`,
-`--version` or `--help` (`--help=x`) → usage error: on stderr the reason line (e.g. `Unknown
-option: --bogus`) followed by the usage line, exit 2. `--help` and `--version` win over the other
+Unknown options, a malformed, missing or empty `--port` value (`--port=`), or a value given to
+`--no-open`, `--version` or `--help` (`--help=x`) → usage error: on stderr the reason line
+followed by the usage line, exit 2. The reason is one of `Unknown option: <option>`, `Missing
+value for <option>`, `<option> takes no value`, `Invalid port: <value> (expected an integer from
+1024 to 65535)` (catalogue keys `launcher.usage.*`, `server/src/launcher/options.ts`). There are no
+positional arguments and no short options. `--help` and `--version` win over the other
 options only when the whole line parses (`--help --bogus` → exit 2; `--help` before `--version`
 when both are given). Environment: the only
 variable specific to WingFoil UI is `WINGFOIL_UI_STATE_DIR` (spec-006 §1); standard platform
@@ -60,14 +63,21 @@ FormatJS is loaded before the check.
 2. Resolve the state directory and read `state.json` (spec-006) — no project is read, no CLI is
    started before listening (REQ-PERF-06: URL printed ≤ 3.0 s). A listed project whose working
    tree contains the state directory (spec-006 §1) → stderr message naming both paths, exit 4.
+   The local state's warnings are logged. The session token (spec-004 §2) is drawn now, before
+   the application is built: its session guards need it, and they refuse every request until the
+   port is known (`server/src/launcher/start.ts`).
 3. Listen on `127.0.0.1:<port>`, then on `[::1]:<port>` with the same port; if IPv6 is not
    available the server continues on IPv4 only (REQ-SEC-01). Without `--port`, when `::1` refuses
    the port chosen for `127.0.0.1`, both listeners are closed and a new free port is tried (at
    most 5 tries, then exit 3). A given `--port` already in use on either address → stderr
    `Port <n> is already in use`, exit 3.
-4. Draw the session token (spec-004 §2) and print on stdout one line:
+4. Once listening: the project list starts watching the listed projects' availability (file
+   reads only), the automatic-sync scheduler starts — its first round one *Fetch interval* later
+   (spec-010 §6) — and the stop signals (§6) are handled, so a stop sent right after the URL line
+   is never lost.
+5. Print on stdout one line:
    `WingFoil UI is running at http://127.0.0.1:<port>/#token=<token>` (S-01.1).
-5. Unless `--no-open`, open the browser (§4).
+6. Unless `--no-open`, open the browser (§4).
 
 ### 4. Opening the browser
 
@@ -80,15 +90,28 @@ stdout and keeps running (S-01.3). The server never waits for the browser.
 ### 5. Output and logs
 
 - stdout: only the lines of §3, §4 and §6 and the answers to `--version`/`--help`.
-- stderr: refusals of §1–§3 and the server log (pino, level `info`; `--port` and start time at
-  start), with `authorization` and `cookie` redacted (spec-004 §2). The token appears in no log
+- stderr: refusals of §1–§3 and the server log (pino JSON lines, level `info`; at start the port,
+  the bound addresses and the start duration `startMs`; one `git transport` line per fetch, update
+  or push, spec-010), with `authorization` and `cookie` redacted (spec-004 §2). The token appears in no log
   line; the stdout line of §3 is the only place it is printed.
 - Every launcher message comes from the server message catalogue (spec-008 §5).
 
 ### 6. Stop
 
-`SIGINT` (Ctrl-C), `SIGTERM` or `SIGHUP` (terminal closed): stop accepting connections, close event streams, terminate the
-CLI and git child processes the server started, print `WingFoil UI stopped` on stdout, exit 0.
+`SIGINT` (Ctrl-C), `SIGTERM` or `SIGHUP` (terminal closed) start the stop sequence
+(`server/src/launcher/start.ts` `onStop`, `runLauncher`), in this order:
+
+1. stop accepting connections;
+2. run the stop steps, in registration order, each even when an earlier one failed: the
+   automatic-sync scheduler starts no further round, and an automatic update (merge) already
+   running finishes first — the log says `stopping: the automatic update finishes first — send the
+   signal again to stop at once` (`server/src/sync/auto-sync.ts`, W4-10 b); the project-list
+   watchers, the event streams and the project snapshots are closed; the CLI and git child
+   processes the server started are terminated;
+3. wait for the open requests at most 5 s, then destroy the remaining connections;
+4. print `WingFoil UI stopped` on stdout, exit 0 — or, when a stop step failed, the
+   `launcher.unexpected` message on stderr and exit 70.
+
 A second signal exits at once with status 130, after a synchronous `SIGKILL` to every child
 process group still running; the same kill runs at any process exit, so no child outlives the
 server. Every token and session dies with the process
@@ -101,8 +124,12 @@ server. Every token and session dies with the process
 | 2 | usage error |
 | 3 | `--port` in use, or no free port after 5 tries |
 | 4 | the state directory lies inside a listed project (spec-006 §1) |
+| 70 | unexpected failure (`launcher.unexpected` on stderr): e.g. an unreadable `state.json`, a missing `server/dist` build (`bin/wingfoil-ui.cjs`), a failed stop step |
 | 130 | forced stop (second signal) |
-| 70 | unexpected failure (`launcher.unexpected` on stderr) |
+
+Started through `npx wingfoil-ui`, Ctrl-C signals npm and the console together: the console stops
+as above (exit 0), but `npx` reports the signal, so the shell shows 130
+(`test/smoke/launch.smoke.test.ts`, `docs/cli-reference.md` *Stopping*).
 
 ### 7. Verification
 
@@ -142,3 +169,13 @@ server. Every token and session dies with the process
   keeps the last, `--help`/`--version` win only when the whole line parses, usage error = reason
   line + usage line; §3 Node.js checked before parsing; §6 the unexpected-failure status is 70.
   Decided by the approver at checkpoint 2.
+- 2026-11-03 — amended in `release-planning` v0.3 (step 5, dl-009 action 8, RT2-13; the
+  differences UD2-7 of `user-docs-rel-v0.2-plan`): the spec follows the v0.2 code
+  (`bin/wingfoil-ui.cjs`, `server/src/launcher/options.ts`, `start.ts`, `server/src/sync/`) and
+  `docs/cli-reference.md` 0.4 — §1 the `--version` example is the root `package.json` version, the
+  four usage reasons, an empty `--port=`, no positional or short options; §3 the token is drawn
+  before the application is built, the project-list watchers, the sync scheduler and the signal
+  handling start after listening and before the URL line; §5 the start log fields; §6 the stop
+  sequence (a running automatic update finishes first, every stop step runs, the 5 s drain, a
+  failed step exits 70), the examples of exit 70, the `npx` Ctrl-C status. Decided by the approver
+  (RT2-13; RP3-14 survey).

@@ -1,7 +1,7 @@
 # BDD Scenarios — Conventions
 
-**Version:** 0.11
-**Date:** 2026-11-01 (0.2: v0.3–v1.0 conventions — session 3; 0.3: coherence audit fixes — session 6; 0.4: US-X-10 page title — initial-design session 2; 0.5: last *non-archived* state, X-02.2 API request — initial-design session 6; 0.6: CLI stub as the package `bin` script, version-fake and no-CLI variants — release-planning v0.1 session 4 (audit A6); 0.7: `memory-list.feature` bucket header aligned with spec-003 — dev-loop task-011; 0.8: R-08.2 lists asserted on `02_product-vision.md`, the custom fixture's `06_features.md` has none — dev-loop task-020, decided by the user; 0.9: G-14.2 expects the 409 `element-changed` text — release-planning v0.2, RP-12; 0.10: Y-08.1 toast wording, `update.feature` header — dev-loop task-040, D40-6, D40-8; 0.11: the custom fixture on the packs' `.wingfoil/` from WingFoil 0.3.0 and the variant *the custom fixture with the pre-packs states* — governance-alignment-rel-v0.3-plan step 3, the packs adoption)
+**Version:** 0.12
+**Date:** 2026-11-03 (0.2: v0.3–v1.0 conventions — session 3; 0.3: coherence audit fixes — session 6; 0.4: US-X-10 page title — initial-design session 2; 0.5: last *non-archived* state, X-02.2 API request — initial-design session 6; 0.6: CLI stub as the package `bin` script, version-fake and no-CLI variants — release-planning v0.1 session 4 (audit A6); 0.7: `memory-list.feature` bucket header aligned with spec-003 — dev-loop task-011; 0.8: R-08.2 lists asserted on `02_product-vision.md`, the custom fixture's `06_features.md` has none — dev-loop task-020, decided by the user; 0.9: G-14.2 expects the 409 `element-changed` text — release-planning v0.2, RP-12; 0.10: Y-08.1 toast wording, `update.feature` header — dev-loop task-040, D40-6, D40-8; 0.11: the custom fixture on the packs' `.wingfoil/` from WingFoil 0.3.0 and the variant *the custom fixture with the pre-packs states* — governance-alignment-rel-v0.3-plan step 3, the packs adoption; 0.12: the current element by the 0.2.2 derivation on every version in v0.3 — release-planning v0.3, RP3-14 D2)
 **Status:** Draft — specification-downcast sessions 2–3 (`specification-by-examples`)
 **Input:** `../01_user_story_map/02_story-map.md` · `03_mvp-cut.md` · `docs/01_vision/` ·
 directives `wingfoil-cli` (v1.1), `cli-only-writes` (v1.3), `accessibility`
@@ -111,8 +111,8 @@ for the transition (states after a `waiting:` state):
 **Preset variant** — *"the custom fixture with the sw-life-cycle preset"* is the custom fixture
 after the commit `chore(ui): apply the WingFoil sw-life-cycle preset`, which writes
 `.wingfoil/ui.yaml` as in `ux-reference.md` §6 but with `progress.scope: { type: release }` (the
-type only, no id — session 3) and `taxonomy.patterns` matching `^(REQ|US)-` as `requirement`. The **current** element of the scope type is derived:
-with WingFoil 0.3, the one `workflow status` reports; before it, among the elements of that type
+type only, no id — session 3) and `taxonomy.patterns` matching `^(REQ|US)-` as `requirement`. The **current** element of the scope type is derived,
+on every WingFoil version in v0.3 (spec-005 §4; `workflow status` from v0.4): among the elements of that type
 not in the first or last non-archived state of their `sequence`, the one in the most advanced state (ties: the
 lowest version) — on the custom fixture `minor-v0.1`; none → "No current release" and
 whole-project figures. With it, the custom fixture's figures are: reference `US-M-01` 1/2 done (50 %), `US-S-01` 0/1 (0 %), project
@@ -217,3 +217,13 @@ nominal and ≥ 1 edge scenario per story of the releases in scope).
   succeeded); a failed *Push* from the sidebar (Y-08.2) is a red toast. The `y/update.feature`
   header says that the automatic update is a fast-forward `git merge --ff-only` of the fetched
   upstream, *Update* `git pull --ff-only`. Decided by the approver.
+- 2026-11-03 — amended in release-planning v0.3 (plan release-planning-rel-v0.3-plan step 5,
+  RP3-14 D2): the current element of the preset variant is the 0.2.2 derivation on every WingFoil
+  version in v0.3, `workflow status` from v0.4 (spec-005 §4). Same step, in the features: S-23.1
+  and S-23.4 (`@v0.3`, the roles on one line, RP3-7 N1), M-02.4 (a bucket's state, D7), T-08.1 (no
+  Timeline link, D8), G-03.1 … G-03.3 (the summary and the document dialog, the element page from
+  a document link, RP3-7 N5, N6). Decided by the approver. Review round 1 (decided by the approver): new
+  T-02.4 … T-02.7 (the filters by type and state, the entry date, 10 rows then "Show all (n)", short
+  ids; RP3-7 N2, N4) and S-24.5 … S-24.7 (the held gates of `holds`, D5; a move at its `limits`,
+  D11); T-12.3 on the pre-packs states (F8); the scenarios of US-S-20, US-R-02 … US-R-04, US-R-10,
+  US-R-11, US-M-05, US-M-07, US-G-15 … US-G-17 tagged `@v0.4` with their stories (RP3-7, F2).

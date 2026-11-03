@@ -1,6 +1,6 @@
 # SARD — 5. Security, Roles & Governance
 
-**Version:** 0.6 · **Date:** 2026-10-12 (0.2: coherence audit fixes — session 6; 0.3: REQ-SEC-02 session derived from the token, static files exempt — initial-design session 6; 0.4: REQ-SEC-05 v0.1 scope — release-planning v0.1 session 4 (audit A4); 0.5: REQ-SEC-07 cites the feedback note F-009 — dev-loop task-023; 0.6: REQ-SEC-08 fit criterion scoped to governed writes, update and push — release-planning v0.2 session 2) · **Status:** Draft — specification-downcast session 4
+**Version:** 0.7 · **Date:** 2026-11-03 (0.2: coherence audit fixes — session 6; 0.3: REQ-SEC-02 session derived from the token, static files exempt — initial-design session 6; 0.4: REQ-SEC-05 v0.1 scope — release-planning v0.1 session 4 (audit A4); 0.5: REQ-SEC-07 cites the feedback note F-009 — dev-loop task-023; 0.6: REQ-SEC-08 fit criterion scoped to governed writes, update and push — release-planning v0.2 session 2; 0.7: REQ-SEC-05, REQ-SEC-06 v0.3 parts moved to v0.4 with G5, R8 — release-planning v0.3, RP3-7) · **Status:** Draft — specification-downcast session 4
 
 Shell and conventions: `00_sard.md`. The protection of the local server (X4) is mandatory and
 distinct from permissions between team members, which belong to WingFoil (L6).
@@ -55,7 +55,7 @@ distinct from permissions between team members, which belong to WingFoil (L6).
 
 | Field | |
 |-------|--|
-| Release | v0.1 (lint, clone arguments) · v0.3 (decision-log title) |
+| Release | v0.1 (lint, clone arguments) · v0.4 (decision-log title — the ingestion G5 moved from v0.3 by RP3-7) |
 | Description | CLI and git processes are started with `execFile` and argument arrays; user input (titles, reasons, paths, URLs) is passed as arguments, never interpolated into a command line. |
 | Rationale | No command injection (X4). |
 | Traceability | US-G-15, US-G-06, US-S-04 · G-15.1, G-06.2, S-04.3 · X4, S1 |
@@ -66,7 +66,7 @@ distinct from permissions between team members, which belong to WingFoil (L6).
 
 | Field | |
 |-------|--|
-| Release | v0.1 (documents) · v0.3 (Files) |
+| Release | v0.1 (documents) · v0.4 (Files — R8 moved from v0.3 by RP3-7) |
 | Description | Files, documents and links resolve paths with `realpath` and serve only paths inside the project repository; `..` and symlinks that escape it are refused or marked. |
 | Rationale | The UI never reads beyond the project (X4, R8). |
 | Traceability | US-R-11, US-R-09 · R-11.1, R-11.2, R-09.3 · R8, R4, X4 |
@@ -126,3 +126,6 @@ distinct from permissions between team members, which belong to WingFoil (L6).
   criterion counts governed writes, update and push; a fetch (remote-tracking refs only, RP-14)
   and the per-user local settings are excluded (spec-010 §8, spec-004 §4); decided by the
   approver.
+- 2026-11-03 — amended in `release-planning` v0.3 (step 5, review round 1 F2; RP3-7, decided by the
+  approver): the v0.3 parts of REQ-SEC-05 (the decision-log title, G5) and REQ-SEC-06 (Files, R8)
+  move to v0.4; their v0.1 parts are unchanged and nothing of them stays in v0.3.

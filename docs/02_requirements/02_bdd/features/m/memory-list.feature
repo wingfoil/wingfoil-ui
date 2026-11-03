@@ -6,7 +6,9 @@ Feature: Memory list
   other than the last non-archived one — including those that are also gates, e.g. custom `bug`
   `triaged` — reject targets with no way out) · **Done** (last non-archived state of `sequence`,
   e.g. custom `adr` `accepted`; archived elements — `deprecated`, `superseded` — are in no bucket).
-  The bucket comes with each element's action descriptor (spec-003 §8).
+  The bucket comes with each element's action descriptor (spec-003 §8). From v0.3 each bucket also
+  offers the states of its elements as sub-options, which narrow it to one state (release-planning
+  v0.3, RP3-14 D7).
 
   Background:
     Given the console is running
@@ -71,3 +73,10 @@ Feature: Memory list
       | In progress           | "note-002-retro"                            |
       | Waiting/drafts/closed | "story-002-billing", "note-001-kickoff"       |
       | Done                  | no element                                |
+
+  @US-M-02 @v0.3 @edge @fx-unknown
+  Scenario: M-02.4 — Narrow a bucket to one of its states
+    Given the unknown fixture is open
+    When I select the type filter "All types", the bucket "Waiting/drafts/closed" and its state "open"
+    Then the list shows exactly "note-001-kickoff"
+    And the active filter reads "Waiting/drafts/closed · open"

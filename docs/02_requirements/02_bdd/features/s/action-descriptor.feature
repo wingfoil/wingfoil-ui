@@ -59,3 +59,28 @@ Feature: Action descriptor and methodology independence
     When I open the element panel of "bug-001-toast-overlap"
     Then the gate footer shows only "Reject → closed" and "Waiting for the workflow engine to advance"
     And Requires you does not list "bug-001-toast-overlap"
+
+  @US-S-24 @v0.3 @nominal @fx-custom
+  Scenario: S-24.5 — Hold a gate whose approval is made outside the console
+    Given the custom fixture with the sw-life-cycle preset is open on WingFoil 0.3 and I am Morgan with the role view "approver"
+    And "minor-v0.1" has been submitted to the state "releasing"
+    When I open Today
+    Then Requires you does not list "minor-v0.1"
+    And Waiting on others lists "minor-v0.1" with "Approved outside the console (ui.yaml)"
+    And the gate footer of "minor-v0.1" shows "Approved outside the console (ui.yaml)" and "Reject → in-development", with no "Approve"
+
+  @US-S-24 @v0.3 @edge @fx-custom
+  Scenario: S-24.6 — Hold a gate until the elements that reference it are done
+    Given the custom fixture with the sw-life-cycle preset is open on WingFoil 0.3 and I am Casey
+    And the release line "rl-v1" with version "v1" is in the state "active"
+    And "minor-v0.1", with release-line "v1", is in the state "planning"
+    When I open Today
+    Then Waiting on others lists "rl-v1" with "Waits for 1 referencing element to be done"
+    And the gate footer of "rl-v1" shows "Waits for 1 referencing element to be done" and no outcome button
+
+  @US-S-24 @v0.3 @edge @fx-custom
+  Scenario: S-24.7 — Disable a move into a state at its limit
+    Given the custom fixture is open on WingFoil 0.3 and I am Morgan
+    And the Sprint "sprint-001" is in the state "active" and the Sprint "sprint-002" in the state "planned"
+    When I open the element panel of "sprint-002"
+    Then the action "Submit" is disabled with the reason "Blocked: only 1 active at a time"

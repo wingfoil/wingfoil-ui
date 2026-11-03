@@ -16,11 +16,13 @@ tmpl_version: 260703   # Orignal template version
 
 Several views show what happened to Memory elements: the element panel's history (G1, v0.1), the
 bell's *Updates* (S7, v0.2, last 10 events), Recent activity (T5, v0.3, last 5 events) and the
-Timeline time axis (R6, v0.3, events per day) — REQ-INT-06, REQ-PERF-11.
+Timeline time axis (R6, v0.4 — moved from v0.3 by RP3-7; events per day) — REQ-INT-06,
+REQ-PERF-11.
 
 WingFoil records every governed change as one `wf(<type>): <operation> <id>` commit. Only
-`approve`, `reject` and `deprecate` subjects carry the transition `[from → to]`; `add` and `submit`
-subjects do not (W-15). The SARD left the source of a submit's transition open: `git log -p` on the
+`approve`, `reject` and `deprecate` subjects carry the transition `[from → to]` — on 0.3.x also
+`park` and `amend` (`amend` `[draft → draft]`); `add` and `submit` subjects do not (directive
+`wingfoil-cli` W-15). The SARD left the source of a submit's transition open: `git log -p` on the
 element file, or `memory history <id>` (REQ-INT-06).
 
 Checked on WingFoil 0.2.2 (2026-10-02, this repository and a Kanban fixture):
@@ -40,6 +42,12 @@ date (ISO 8601), `author` = `Name <email>`, `operation` ∈ `add`, `submit`, `ap
 `deprecate`, `start`, `finalize`, `sync`, `amend`, `park` — every Memory operation of WingFoil
 0.3.x but `assign`, which changes the `release` field, not the state (task-048); `from` is `null`
 for `add`; `approver` and `reason` are `null` when absent.
+
+`author`, `approver` and `reason` are commit text, written by whoever commits to the project: the
+server matches `author` against the team's emails as read (spec-003 §4), then passes the three
+through the sanitiser of tool messages where the API serialises an event or a text taken from one
+(`/events/memory` behind Updates, the descriptor's `rejection` in Today and the element lists;
+v0.3, RP3-14 D13, bug-027; spec-004 §5).
 
 ### 2. Sources
 
@@ -114,8 +122,9 @@ For each record:
 ### 4. Caching and incremental reads
 
 - Cache key: HEAD only (events are commits; the working tree is irrelevant).
-- **Incremental reads — not implemented; moved to v0.3 (RP-9).** Until then every new HEAD is a
-  full parse (§3). The v0.3 design: after a fast-forward from a cached HEAD `old`, only
+- **Incremental reads — not implemented; moved to v0.3 (RP-9), then to v0.4 with the Timeline
+  (R6; release-planning v0.3, review round 1, the approver's OK).** Until then every new HEAD is a
+  full parse (§3). The design: after a fast-forward from a cached HEAD `old`, only
   `old..<HEAD sha>` is parsed (both reads) and prepended; when `old` is not an ancestor of HEAD —
   `git rev-list --count HEAD..old` is not 0 (an allowed read, REQ-INT-06) — the whole log is
   re-parsed. Evidence rule: the v0.2 Today task measures Today on the large fixture also *after
@@ -143,7 +152,7 @@ For each record:
   match the sha list (refused).
 - Performance: on the large fixture (500 elements, 2 000 commits) the first parse runs in two git
   processes (the patch read and the sha list); an incremental parse after one commit reads one
-  commit (v0.3, §4).
+  commit (v0.4, §4).
 
 ## Consequences
 
@@ -195,3 +204,8 @@ For each record:
   to its end whatever it holds; rule 2 the patch's `status:` lines before the bracket, and a
   state-keeping commit's from = to = the file's status before it; rule 4 one warning per commit;
   §5 the known exceptions to the consistency check.
+- 2026-11-03 — amended in `release-planning` v0.3 (step 5, RP3-14), decided by the approver:
+  Context — the Timeline (R6) moved to v0.4 (RP3-7), 0.3.x's `park` and `amend` subjects carry the
+  transition (W-15); §1 an event's `author`, `approver` and `reason` sanitised where the API
+  serialises them, after the email matching (D13, bug-027). Review round 1 (the approver's OK):
+  §4 the incremental reads move to v0.4 with R6; §1 rewrapped.

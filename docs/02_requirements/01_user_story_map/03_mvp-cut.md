@@ -1,7 +1,7 @@
 # User Story Map — MVP Cut
 
-**Version:** 0.5
-**Date:** 2026-10-01 (0.2: US-S-11, US-X-07 moved to v0.2 — session 2; 0.3: C3 and US-C-05, US-C-06 dropped — session 3; 0.4: input versions — session 6; 0.5: US-X-10 page title — initial-design session 2)
+**Version:** 0.6
+**Date:** 2026-11-03 (0.2: US-S-11, US-X-07 moved to v0.2 — session 2; 0.3: C3 and US-C-05, US-C-06 dropped — session 3; 0.4: input versions — session 6; 0.5: US-X-10 page title — initial-design session 2; 0.6: S6, R6, R7, R8, W1, W2, G5 and their 11 stories moved to v0.4 — release-planning v0.3, RP3-7, its step 5 review round 1, F2)
 **Status:** Draft — specification-downcast session 1 (`user-story-mapping`, phase `mvp-cut`)
 **Input:** `02_story-map.md` · `docs/01_vision/07_sequencer.md` (v0.5) · `08_mvp-canvas.md` (v0.3)
 
@@ -21,8 +21,8 @@ Casey's journey in v0.3).
 |---------|------|----------|---------|---------|------|
 | v0.1 — Read-only console | S | ≥ 0.2.2 | 39 | 24 | 15 |
 | v0.2 — Unblock | G | ≥ 0.2.2 | 34 | 18 | 16 |
-| v0.3 — Project state | R | ≥ 0.2.2 | 25 | 17 | 8 |
-| v0.4 — Workflow and agents | A | ≥ 0.3 | 11 | 8 | 3 |
+| v0.3 — Project state | R | ≥ 0.2.2 | 14 | 10 | 4 |
+| v0.4 — Workflow and agents | A | ≥ 0.3 | 22 | 15 | 7 |
 | v1.0 — MVP complete | X | 1.0 | 2 | 2 | 0 |
 
 ### v0.1 — Read-only console
@@ -50,18 +50,19 @@ Casey's journey in v0.3).
 
 ### v0.3 — Project state
 
-- **Nominal:** US-S-20 · US-T-08 · US-T-12 · US-T-13 · US-T-14 · US-G-03 · US-G-08 · US-G-15 ·
-  US-M-03 · US-M-05 · US-M-07 · US-R-01 · US-R-02 · US-R-04 · US-R-10 · US-C-01 · US-C-02
-- **Edge:** US-T-15 · US-G-16 · US-G-17 · US-M-04 · US-R-03 · US-R-11 · US-C-03 · US-C-04
+- **Nominal:** US-T-08 · US-T-12 · US-T-13 · US-T-14 · US-G-03 · US-G-08 · US-M-03 · US-R-01 ·
+  US-C-01 · US-C-02
+- **Edge:** US-T-15 · US-M-04 · US-C-03 · US-C-04
 - **Exit criteria → stories:** Casey follows the project without a developer → US-T-12–US-T-14,
-  US-R-01, US-R-02; holding `approver`, decides a product item → US-G-03, US-G-08; a decision-log
-  captured through its ingestion → US-G-15; `ui.yaml` written only as a schema-valid `chore(ui)`
-  commit → US-C-02, US-C-03.
+  US-R-01; holding `approver`, decides a product item → US-G-03, US-G-08; `ui.yaml` written only as
+  a schema-valid `chore(ui)` commit → US-C-02, US-C-03. (The timeline and the decision-log
+  ingestion moved to v0.4 with R6 and G5, RP3-7.)
 
 ### v0.4 — Workflow and agents
 
-- **Nominal:** US-T-09 · US-T-16 · US-T-17 · US-G-18 · US-M-06 · US-A-01 · US-A-02 · US-A-04
-- **Edge:** US-T-10 · US-A-03 · US-A-05
+- **Nominal:** US-S-20 · US-T-09 · US-T-16 · US-T-17 · US-G-15 · US-G-18 · US-M-05 · US-M-06 ·
+  US-M-07 · US-R-02 · US-R-04 · US-R-10 · US-A-01 · US-A-02 · US-A-04
+- **Edge:** US-T-10 · US-G-16 · US-G-17 · US-R-03 · US-R-11 · US-A-03 · US-A-05
 - **Exit criteria → stories:** Jordan starts the day from Today and runs the agent on the next
   step with its logs in the UI → US-T-09, US-T-17, US-A-01, US-A-04. US-G-18 (bug ingestion) is
   **conditional**: it lands with the first WingFoil that sets a bug's required fields
@@ -89,7 +90,7 @@ over `06_features.md` and `02_story-map.md`).
 | S3 WingFoil version and capabilities | v0.1 | US-S-02, US-S-05, US-S-08, US-S-09, US-S-10, US-S-11, US-T-10, US-T-15, US-G-16, US-M-04, US-A-03, US-Y-04 |
 | S4 Identity and role views | v0.1 | US-S-12, US-S-13, US-S-14, US-S-15, US-S-22, US-T-01 |
 | S5 All-roles summary | v0.2 | US-S-23 |
-| S6 Command palette | v0.3 | US-S-20, US-G-15 |
+| S6 Command palette | v0.4 | US-S-20, US-G-15 |
 | S7 In-app notifications | v0.2 | US-S-21 |
 | S8 Live refresh and snapshot | v0.1 | US-S-25, US-S-26, US-G-11 |
 | S9 Action descriptor | v0.1 | US-S-24, US-S-28, US-T-02, US-T-05, US-T-06, US-G-05, US-G-09, US-M-02 |
@@ -102,19 +103,19 @@ over `06_features.md` and `02_story-map.md`).
 | G2 Gate footer | v0.2 | US-G-04, US-G-05, US-G-06, US-G-07, US-G-08, US-G-09, US-G-11, US-G-12 |
 | G3 Single-action footer | v0.2 | US-G-10, US-G-11, US-G-12 |
 | G4 Action feedback | v0.2 | US-G-13, US-G-14, US-G-17, US-Y-08 |
-| G5 Ingestion start | v0.3 | US-G-15, US-G-16, US-G-17, US-G-18 |
+| G5 Ingestion start | v0.4 | US-G-15, US-G-16, US-G-17, US-G-18 |
 | M1 Memory list | v0.1 | US-S-28, US-T-04, US-T-13, US-M-01, US-M-02 |
 | M2 Missing references | v0.3 | US-M-03, US-M-04 |
-| W1 Workflow tree | v0.3 | US-M-05, US-M-06 |
-| W2 Ingestion cards | v0.3 | US-M-07 |
+| W1 Workflow tree | v0.4 | US-M-05, US-M-06 |
+| W2 Ingestion cards | v0.4 | US-M-07 |
 | R1 DNA view | v0.1 | US-R-05 |
 | R2 Directives view | v0.1 | US-G-02, US-R-06 |
 | R3 Team view | v0.1 | US-T-11, US-R-07 |
 | R4 Documentation | v0.1 | US-G-03, US-R-08, US-R-09 |
 | R5 Traceability | v0.3 | US-T-14, US-R-01 |
-| R6 Timeline — time axis | v0.3 | US-R-02, US-R-03 |
-| R7 Timeline — git tree | v0.3 | US-R-04 |
-| R8 Files (read-only) | v0.3 | US-R-10, US-R-11 |
+| R6 Timeline — time axis | v0.4 | US-R-02, US-R-03 |
+| R7 Timeline — git tree | v0.4 | US-R-04 |
+| R8 Files (read-only) | v0.4 | US-R-10, US-R-11 |
 | A1 Launch agent | v0.4 | US-A-01, US-A-02, US-A-03 |
 | A2 Agent log view | v0.4 | US-A-04, US-A-05 |
 | C1 `ui.yaml` and presets | v0.3 | US-C-01, US-C-02, US-C-03, US-C-04 |

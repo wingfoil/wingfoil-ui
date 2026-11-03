@@ -2,8 +2,8 @@
   "version": 1,
   "release": "v0.2",
   "generated_from": {
-    "story_map": "docs/02_requirements/01_user_story_map/02_story-map.md v0.6",
-    "bdd": "docs/02_requirements/02_bdd/00_conventions.md v0.11",
+    "story_map": "docs/02_requirements/01_user_story_map/02_story-map.md v0.7",
+    "bdd": "docs/02_requirements/02_bdd/00_conventions.md v0.12",
     "sard": "docs/02_requirements/03_sard/00_sard.md v0.11"
   },
   "items": [
@@ -234,12 +234,76 @@
             "When I select the role view \"product-owner\"",
             "Then Requires you lists no row"
           ]
+        },
+        {
+          "id": "T-02.4",
+          "title": "Filter a card by type and by state",
+          "file": "docs/02_requirements/02_bdd/features/t/requires-you.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running",
+            "Given the kanban fixture is open and I am Morgan with the role view \"approver\"",
+            "When I choose the type \"bug\" in the type filter of the Requires you card",
+            "Then Requires you lists exactly 1 row: \"bug-001-crash-on-save\"",
+            "And the type filter of the Requires you card offers \"All (2)\", \"task (1)\" and \"bug (1)\"",
+            "And the state filter of the Requires you card offers \"All (2)\" and \"pending (2)\"",
+            "And the Waiting on others card is not filtered"
+          ]
+        },
+        {
+          "id": "T-02.5",
+          "title": "Show when each element entered its current state",
+          "file": "docs/02_requirements/02_bdd/features/t/requires-you.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running",
+            "Given the kanban fixture is open and I am Morgan with the role view \"approver\"",
+            "When I open Today",
+            "Then the row of \"task-001-login-form\" shows the date of its submit as the date it entered \"pending\"",
+            "And that date's accessible description is the full time of the submit"
+          ]
+        },
+        {
+          "id": "T-02.6",
+          "title": "Show the first 10 rows, then all of them on request",
+          "file": "docs/02_requirements/02_bdd/features/t/requires-you.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running",
+            "Given the kanban fixture is open with 11 more tasks in the state \"pending\" and I am Morgan with the role view \"approver\"",
+            "When I select \"Show all (13)\" on the Requires you card",
+            "Then Requires you lists 13 rows and shows \"Show fewer\"",
+            "And before the selection it listed 10 rows",
+            "And the greeting reads \"Morgan, 13 things require you\""
+          ]
+        },
+        {
+          "id": "T-02.7",
+          "title": "Name each row's element by its short id",
+          "file": "docs/02_requirements/02_bdd/features/t/requires-you.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running",
+            "Given the custom fixture is open and I am Morgan with the role view \"approver\"",
+            "When I open Today",
+            "Then the row of \"dl-002-use-fastify\" names it \"dl-002\"",
+            "And the Waiting on others row of \"minor-v0.1\", whose id pattern has no number, names it \"minor-v0.1\""
+          ]
         }
       ],
       "dependencies": [
         "TT-ARC-06",
         "TT-PERF-01",
         "TT-PERF-09",
+        "TT-PERF-11",
         "TT-STATE-06"
       ]
     },
@@ -589,9 +653,23 @@
             "Given the console is running with the kanban fixture open",
             "Given I am Alex",
             "When I open Today",
-            "Then the all-roles summary shows \"approver · 2\" with \"task-001-login-form\" and \"bug-001-crash-on-save\"",
-            "And the all-roles summary shows \"developer · 0\"",
-            "And it shows one line for each of the 7 roles Alex holds"
+            "Then the all-roles summary shows one entry for each of the 7 roles Alex holds, each with its count",
+            "And it shows \"approver · 2\" and \"developer · 0\""
+          ]
+        },
+        {
+          "id": "S-23.5",
+          "title": "Switch the role view from the line of role tags",
+          "file": "docs/02_requirements/02_bdd/features/s/shell.feature",
+          "release": "v0.3",
+          "kind": "nominal",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running with the kanban fixture open",
+            "Given I am Alex with the role view \"developer\"",
+            "When I select the tag \"approver · 2\" on the Your roles line",
+            "Then the shell shows the role view \"approver\"",
+            "And the Your roles line shows the 7 tags on one line, \"approver · 2\" marked as the current view"
           ]
         },
         {
@@ -625,9 +703,9 @@
         },
         {
           "id": "S-23.4",
-          "title": "Show at most 3 items per role",
+          "title": "Show the count of a role, not its items",
           "file": "docs/02_requirements/02_bdd/features/s/shell.feature",
-          "release": "v0.2",
+          "release": "v0.3",
           "kind": "edge",
           "fixture": "kanban",
           "steps": [
@@ -635,7 +713,8 @@
             "Given 5 elements of the kanban fixture are in the state \"pending\"",
             "And I am Alex",
             "When I open Today",
-            "Then the line \"approver · 5\" lists 3 items and the link \"2 more\""
+            "Then the all-roles summary shows the tag \"approver · 5\"",
+            "And it lists no element and no link \"more\""
           ]
         }
       ],
@@ -1265,6 +1344,55 @@
             "When I open the element panel of \"bug-001-toast-overlap\"",
             "Then the gate footer shows only \"Reject → closed\" and \"Waiting for the workflow engine to advance\"",
             "And Requires you does not list \"bug-001-toast-overlap\""
+          ]
+        },
+        {
+          "id": "S-24.5",
+          "title": "Hold a gate whose approval is made outside the console",
+          "file": "docs/02_requirements/02_bdd/features/s/action-descriptor.feature",
+          "release": "v0.3",
+          "kind": "nominal",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running",
+            "Given the custom fixture with the sw-life-cycle preset is open on WingFoil 0.3 and I am Morgan with the role view \"approver\"",
+            "And \"minor-v0.1\" has been submitted to the state \"releasing\"",
+            "When I open Today",
+            "Then Requires you does not list \"minor-v0.1\"",
+            "And Waiting on others lists \"minor-v0.1\" with \"Approved outside the console (ui.yaml)\"",
+            "And the gate footer of \"minor-v0.1\" shows \"Approved outside the console (ui.yaml)\" and \"Reject → in-development\", with no \"Approve\""
+          ]
+        },
+        {
+          "id": "S-24.6",
+          "title": "Hold a gate until the elements that reference it are done",
+          "file": "docs/02_requirements/02_bdd/features/s/action-descriptor.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running",
+            "Given the custom fixture with the sw-life-cycle preset is open on WingFoil 0.3 and I am Casey",
+            "And the release line \"rl-v1\" with version \"v1\" is in the state \"active\"",
+            "And \"minor-v0.1\", with release-line \"v1\", is in the state \"planning\"",
+            "When I open Today",
+            "Then Waiting on others lists \"rl-v1\" with \"Waits for 1 referencing element to be done\"",
+            "And the gate footer of \"rl-v1\" shows \"Waits for 1 referencing element to be done\" and no outcome button"
+          ]
+        },
+        {
+          "id": "S-24.7",
+          "title": "Disable a move into a state at its limit",
+          "file": "docs/02_requirements/02_bdd/features/s/action-descriptor.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running",
+            "Given the custom fixture is open on WingFoil 0.3 and I am Morgan",
+            "And the Sprint \"sprint-001\" is in the state \"active\" and the Sprint \"sprint-002\" in the state \"planned\"",
+            "When I open the element panel of \"sprint-002\"",
+            "Then the action \"Submit\" is disabled with the reason \"Blocked: only 1 active at a time\""
           ]
         }
       ],
@@ -2360,9 +2488,8 @@
             "Given the console is running with the kanban fixture open",
             "Given I am Alex",
             "When I open Today",
-            "Then the all-roles summary shows \"approver · 2\" with \"task-001-login-form\" and \"bug-001-crash-on-save\"",
-            "And the all-roles summary shows \"developer · 0\"",
-            "And it shows one line for each of the 7 roles Alex holds"
+            "Then the all-roles summary shows one entry for each of the 7 roles Alex holds, each with its count",
+            "And it shows \"approver · 2\" and \"developer · 0\""
           ]
         }
       ],
@@ -2445,12 +2572,13 @@
       "area": "PERF",
       "wingfoil_min": "0.2.2",
       "requirement": "REQ-PERF-11",
-      "description": "Lists that summarise show a fixed number of items, newest or most urgent first, with a link to the rest.",
-      "fit_criterion": "[numeric] Bell *Updates*: last 10 Memory events; all-roles summary: ≤ 3 items per role plus \"N more\"; Recent activity: last 5 Memory events.",
+      "description": "Lists that summarise show a fixed number of items, newest or most urgent first, with a link to the rest or a control that shows them.",
+      "fit_criterion": "[numeric] Bell *Updates*: last 10 Memory events; all-roles summary: one tag per role with its count and no item (v0.3; v0.2: ≤ 3 items per role plus \"N more\"); Today's *Requires you* and *Waiting on others*: the first 10 rows of the filtered list, then \"Show all (<n>)\" (v0.3); Recent activity: last 5 Memory events.",
       "verified_by": "e2e",
       "stories": [
         "US-S-21",
         "US-S-23",
+        "US-T-02",
         "US-T-08"
       ],
       "acceptance_criteria": [
@@ -2472,9 +2600,9 @@
         },
         {
           "id": "S-23.4",
-          "title": "Show at most 3 items per role",
+          "title": "Show the count of a role, not its items",
           "file": "docs/02_requirements/02_bdd/features/s/shell.feature",
-          "release": "v0.2",
+          "release": "v0.3",
           "kind": "edge",
           "fixture": "kanban",
           "steps": [
@@ -2482,7 +2610,8 @@
             "Given 5 elements of the kanban fixture are in the state \"pending\"",
             "And I am Alex",
             "When I open Today",
-            "Then the line \"approver · 5\" lists 3 items and the link \"2 more\""
+            "Then the all-roles summary shows the tag \"approver · 5\"",
+            "And it lists no element and no link \"more\""
           ]
         },
         {
@@ -2498,7 +2627,23 @@
             "When I open Today",
             "Then the \"Recent activity\" card lists 5 events, newest first",
             "And each state-change event shows the time, the element, the transition \"from → to\" and the author, and each creation event shows \"created\" instead of a transition",
-            "And the card ends with the link \"Open the Timeline\""
+            "And the card shows no link \"Open the Timeline\""
+          ]
+        },
+        {
+          "id": "T-02.6",
+          "title": "Show the first 10 rows, then all of them on request",
+          "file": "docs/02_requirements/02_bdd/features/t/requires-you.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running",
+            "Given the kanban fixture is open with 11 more tasks in the state \"pending\" and I am Morgan with the role view \"approver\"",
+            "When I select \"Show all (13)\" on the Requires you card",
+            "Then Requires you lists 13 rows and shows \"Show fewer\"",
+            "And before the selection it listed 10 rows",
+            "And the greeting reads \"Morgan, 13 things require you\""
           ]
         }
       ],
@@ -2727,7 +2872,7 @@
           "id": "G-15.4",
           "title": "Block the ingestion while the copy is behind",
           "file": "docs/02_requirements/02_bdd/features/g/ingestion.feature",
-          "release": "v0.3",
+          "release": "v0.4",
           "kind": "edge",
           "fixture": "custom",
           "steps": [

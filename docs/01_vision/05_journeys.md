@@ -1,7 +1,7 @@
 # User Journeys — WingFoil UI
 
-**Version:** 0.4
-**Date:** 2026-10-17 (0.2: J4 obstacle, J0 landing in v0.1 — coherence audit; 0.3: external review — session 7; 0.4: *Update* is `git pull --ff-only`, the automatic update a fast-forward `merge --ff-only` of the fetched upstream — dev-loop task-040, D40-8)
+**Version:** 0.5
+**Date:** 2026-11-03 (0.2: J4 obstacle, J0 landing in v0.1 — coherence audit; 0.3: external review — session 7; 0.4: *Update* is `git pull --ff-only`, the automatic update a fast-forward `merge --ff-only` of the fetched upstream — dev-loop task-040, D40-8; 0.5: errata for WingFoil 0.3.1 — `--dry-run`, the roles, the field setter, the 0.3.x reasons — release-planning v0.3, RP3-14 D12; J2 phase figures read-only on 0.3.x until v0.4, D2 — its review round 1, F7)
 **Status:** Accepted in lean-inception session 3 (2026-10-01)
 **Input:** `04_personas.md` · `02_product-vision.md` · `03_is-isnot.md`
 **Evidence:** `docs/00_reference/ux-reference.md` (screen references below as §n) and the prototype
@@ -17,7 +17,7 @@ version the step needs (`02_product-vision.md`, Q2); `—` means no WingFoil cal
   would commit those edits with the action).
 - **Behind the remote.** While the copy is behind, governed actions are blocked until it is
   updated (Journey 8).
-- **Roles on WingFoil 0.2.2.** Every `approve`/`reject` needs the `approver` role; for members
+- **Roles on WingFoil 0.2.2 and 0.3.x** (directive `wingfoil-cli` W-13). Every `approve`/`reject` needs the `approver` role; for members
   without it a gate is **informational** ("reserved to approver", with who can act).
 - **Unavailable capabilities.** Read-only with the reason when the capability applies to the
   project but the WingFoil version or the role lacks it; hidden when it does not apply.
@@ -61,7 +61,9 @@ reason.
 | 5 | Check who is still blocked and by whom | Today · waiting on others (§4.1) · Team (§4.10) | 0.2.2 | Follows up with the right person |
 
 **Obstacles:** a gate the CLI refuses (missing required field, wrong role) — shown as a red toast
-with the CLI's reason. No `--dry-run` before WingFoil provides it (`wingfoil-cli` W-02).
+with the CLI's reason. WingFoil 0.3 checks a write without making it (`--dry-run` on every write
+verb; `wingfoil-cli` *Removed entries*, W-02); the UI does not use it yet — a gate pre-check is a
+v0.4 candidate (RP3-14 D12).
 
 **Success:** each gate passed or rejected in ≤ 2 clicks from Today, reason recorded.
 
@@ -74,15 +76,17 @@ with the CLI's reason. No `--dry-run` before WingFoil provides it (`wingfoil-cli
 
 | # | Action | Screen | WF | Outcome |
 |---|--------|--------|----|---------|
-| 1 | Read the progress card: scope, phase X of Y, completion, open bugs, pending gates | Today · progress card (§4.1) | 0.2.2 (phases: 0.3) | Understands progress in plain words |
+| 1 | Read the progress card: scope, phase X of Y, completion, open bugs, pending gates | Today · progress card (§4.1) | 0.2.2 (phases: 0.3, shown from the UI's v0.4) | Understands progress in plain words |
 | 2 | Click a figure (e.g. pending gates, open bugs) | Memory filtered (§4.4) | 0.2.2 | Sees the items behind the number |
 | 3 | Open a decision-log `in-discussion` and read it as a document | Element panel (§4.2) · Documentation (§4.9) | 0.2.2 | Reads context, options, history |
 | 4 | Decide it (approve, or reject with reason) | Element panel · gate footer (§4.2) | 0.2.2 | Decision recorded as a `wf(…)` commit |
 | 5 | Follow a feature down to the work delivering it | Traceability (§4.8) | 0.2.2 | Sees what is done, open and missing |
 
-**Obstacles:** in WingFoil 0.2.2 a gate is passed by the `approver` role, not by a per-gate role —
+**Obstacles:** in WingFoil 0.2.2 and 0.3.x a gate is passed by the `approver` role, not by a per-gate role —
 Casey needs `approver` in the DNA to decide; otherwise the item shows "reserved to approver".
-Phase progress needs the workflow engine (0.3); before it, the card shows Memory figures only.
+Phase progress needs the workflow engine (0.3) and a UI that reads it (v0.4, RP3-14 D2): until
+then — on 0.2.2, and on 0.3.x with the v0.3 console — the phase figures are shown read-only with
+the reason and the card shows Memory figures only (spec-005 §4).
 
 **Success:** Casey follows the project and decides product items without a developer.
 
@@ -102,7 +106,8 @@ Phase progress needs the workflow engine (0.3); before it, the card shows Memory
 | 5 | Submit the element when the work is done | Element panel · single-action footer (§4.2) | 0.2.2 | Element moves to the next state; commit shown |
 
 **Obstacles:** agent execution and the next step need WingFoil 0.3+; on 0.2.2 steps 2–4 are shown
-disabled with the reason, and Jordan runs the agent outside the UI.
+disabled with the reason, on 0.3.x too until the UI uses them (v0.4; reason `not-in-release`,
+spec-001 §6), and Jordan runs the agent outside the UI.
 
 **Success:** the day starts from Today, not from the terminal history.
 
@@ -120,7 +125,7 @@ disabled with the reason, and Jordan runs the agent outside the UI.
 | 3 | Optionally launch an assisted review; follow it via *View agent's logs* | Element panel (§4.2) · **GAP** agent log view | 0.3+ | Review support from an agent |
 | 4 | Approve, or reject back with the reason | Element panel · gate footer (§4.2) | 0.2.2 | Decision recorded; author sees the reason in their Today |
 
-**Obstacles:** in WingFoil 0.2.2 both `memory approve` and `memory reject` need the `approver`
+**Obstacles:** in WingFoil 0.2.2 and 0.3.x both `memory approve` and `memory reject` need the `approver`
 role (their CLI help): a reviewer without it cannot pass or send back an item from the UI — the
 gate shows "reserved to approver", as for Casey (J2).
 
@@ -171,11 +176,12 @@ gate shows "reserved to approver", as for Casey (J2).
 | 4 | The approver triages it (Journey 1) | Element panel · gate footer (§4.2) | 0.2.2 | `open → triaged` or closed with reason |
 
 **Rule (session 7):** an ingestion is offered only when **every required field of the type can be
-set by the CLI** — on 0.2.2 `memory add --set` fills only `title` and id/path tokens, and the UI
-never edits the draft file (`cli-only-writes`). On 0.2.2 this holds for **decision-log** only
-(required: `title`), whose ingestion the UI runs as `memory add` + `submit`. A bug needs
-`severity`: its ingestion waits for a WingFoil that sets fields (`memory amend` / a field setter)
-or whose workflow engine captures them (`workflow start`, 0.3) — until then it is shown
+set by the CLI** — on 0.2.2 and 0.3.1 `memory add --set` fills only `title` and id/path tokens
+(`wingfoil-cli` W-01), and the UI never edits the draft file (`cli-only-writes`). On both this
+holds for **decision-log** only (required: `title`), whose ingestion the UI runs as `memory add` +
+`submit`. A bug needs `severity`: its ingestion waits for a WingFoil that sets fields (a field
+setter; 0.3's `memory amend` is the approver's commit of a hand edit, W-01, which the UI does not
+make) — 0.3.1's `workflow start` executes no step and sets no field (W-06); until then it is shown
 read-only with the reason.
 
 **Success:** a bug reported in under a minute, through the same workflow the CLI would use.
