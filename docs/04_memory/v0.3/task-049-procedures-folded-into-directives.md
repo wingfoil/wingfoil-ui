@@ -4,11 +4,11 @@ type: task
 title: "Procedures folded into directives"              # REQUIRED — e.g. "Today view: pending gates list (REQ-UI-03)"
 status: draft          # auto-set by wingfoil
 release: "v0.3"            # REQUIRED — target release version, e.g. "v0.1"
-sprint: ""             # REQUIRED — the Sprint that selects it (sprint-NNN), or "n/a — <reason>" until one does (methodology/scrum)
-module: ""             # optional — server | web | contracts (dna.yaml modules)
-priority: ""           # optional — high | medium | low
-tags: []               # optional — additional labels, e.g. [today, a11y]
-ref: ""                # optional — backlog item ID, e.g. "TASK-001"
+sprint: "sprint-001"             # REQUIRED — the Sprint that selects it (sprint-NNN), or "n/a — <reason>" until one does (methodology/scrum)
+module: "governance"             # optional — server | web | contracts (dna.yaml modules)
+priority: "high"           # optional — high | medium | low
+tags: ["v0.3", "governance", "directives"]               # optional — additional labels, e.g. [today, a11y]
+ref: "GOV"                # optional — backlog item ID, e.g. "TASK-001"
 bug: []                # optional — LIST of bug ids this task closes. Two cases: a fix task derived from a bug
                        # by release-planning, and a bug ABSORBED into an existing task's Acceptance Criteria because that
                        # task already owns the ground. Each bug listed moves with its own verbs (`.wingfoil/memory.yaml`):
@@ -20,19 +20,110 @@ tmpl_version: 260703   # Orignal template version
 
 ## Description
 
-<!-- What needs to be built and why. Reference the user story if applicable:
-     "As <persona>, I want <action> so that <benefit>." -->
+Governance task of `minor-v0.3`, at the head of Wave 0 with task-050 (`release-planning-rel-v0.3-plan`
+RP3-13, *v0.3 tasks*; adoption design `docs/wingfoil-adoption/rel-v0.3-packs-adoption-design.md`
+§9 decision 2, option (B) scheduled for v0.3 once a Sprint had run the procedures). This repository's
+five procedures — `initial-design`, `release-planning`, `dev-loop`, `user-docs`, `e2e-smoke`
+(`.wingfoil/workflows/custom/`) — are included by no pack workflow and run by hand inside the pack
+phase their header names (`.wingfoil/README.md` *Workflows*). They carry 72 of the 74 warnings of
+`workflow list` (`test/governance/workflow-diagnostics.baseline.json`: every row but
+`service-ingest.yaml`'s 2), and their phases duplicate what the packs' workflows now own, so an
+agent cannot follow `workflow next` alone. RP3-13 decided that Sprint 1's development runs on
+`workflow next`; this task moves the procedures' *how* into directives, which the engine's steps
+load per role, and removes the five files:
+
+- `release-planning` → a new custom directive `release-planning` (the how of its phases inside
+  `sprint` › `sprint-planning` and `plan-release`), bound to product-owner, tech-lead and architect;
+- `dev-loop` → its gates (design → red → green → refactor → review → done, with the security probes
+  at design) into the custom `definition-of-done`, which `backlog-item` already loads;
+- `user-docs` and `e2e-smoke` → `release-conventions` › `release-submit` › `pre-release-checks`,
+  together with `test:timing` run alone through the machine-free slot (dl-009 action 6, mapped to
+  this task by step 4 of the plan);
+- `initial-design` → `release-conventions` › *The release line* (seeding the next line);
+- the stale `release-cycle` mentions in live governance and tools (RP3-7: "with the stale
+  `release-cycle` headers") updated in the same change.
+
+**Backlog items:** GOV (governance — RP3-13, adoption decision 2: the five procedures folded into
+directives, dl-009 action 6)
 
 ## Acceptance Criteria
 
-<!-- Reference the Gherkin feature file, or inline the key scenarios.
-     e.g. "See docs/02_requirements/02_bdd/features/today/pending-gates.feature"
-     For `web` tasks also point to the screen in docs/00_reference/ux-reference.md (§4.x) and the
-     prototype, and state the accessibility bar (keyboard path, axe clean). -->
+- **AC-1 — Nothing dropped silently.** At design, every phase, gate, check and rule of the five
+  YAML files is mapped to its destination (directive and section) in a table in the Execution
+  Notes; a rule left out because a pack's workflow or verb now owns it is named with that owner
+  (e.g. `task.set_state(backlog)` → the approver's `memory approve`, the procedures' own headers);
+  the reviewer checks the table against the files at the base commit.
+- **AC-2 — Directive `release-planning`.** `.wingfoil/directives/custom/release-planning.md`
+  (Version 1.0, the format of the other custom directives) says how each phase is done here:
+  advance-pinned-build (the pin moves forward only, to a build the packs' catalog declares —
+  step 1 of `release-planning-rel-v0.3-plan`), define-scope (budget with release validation, dl-009
+  action 9), triage-bugs (the selection filter on `release`), reconcile-governance,
+  record-adrs / identify-specs, build-backlog (task ids, `sprint`, `check_tasks.py`, the security
+  probes at design for a task that changes what the console runs on projects or its git reads and
+  writes, the `release` stamping of bugs and decision-logs with the W-01 workaround) and
+  commit-backlog (the order of RP3-4); `.wingfoil/roles.yaml` binds it to `product-owner`,
+  `tech-lead` and `architect`; `directives list` of the pinned CLI lists it for those roles.
+- **AC-3 — `definition-of-done` holds the dev-loop gates.** The custom `definition-of-done` (1.2)
+  states the gates of `dev-loop` per phase — design (approved specs, the `depends_on` tasks'
+  Execution Notes read, the security probes: `GIT_TRACE` of every verb, a `.git` snapshot before and
+  after, the children's environment — task-046; the strict-identity run of `test/README.md`
+  *Fixtures* › *Git identity* for a git-touching task, dl-011), red, green, refactor (`docs:api`,
+  coverage ≥ 80 %), review (independent, until PASS), done — and no longer points to
+  `dev-loop.yaml`.
+- **AC-4 — `release-conventions` holds the release checks and the line's seeding.**
+  `release-conventions` (1.3) › `pre-release-checks` states the `user-docs` steps
+  (check-implementation-complete, align-user-docs, align-agent-docs) and the `e2e-smoke` steps
+  (fixture-project, drive-browser, local-security, accessibility, contract, launch, gate) in place of
+  "the `user-docs` and `e2e-smoke` procedures passed", plus `npm run test:timing` run alone through
+  the machine-free slot whatever the diff since the last run (dl-009 action 6); *The release line*
+  states `initial-design`'s seeding (seed-releases, seed-adrs, seed-dls, seed-specs) for the next
+  line. The paragraph on a separate agent git identity is task-050's.
+- **AC-5 — Files and includes removed.** The five YAML files are deleted and their `include`
+  entries and comments removed from `.wingfoil/workflows.yaml`; `service-ingest` stays. The texts
+  that name them are updated in the same change: `.wingfoil/README.md` (the workflow table, the
+  `workflows/custom/` row, the "five procedures" paragraph), the type descriptions of
+  `.wingfoil/memory.yaml` that name a procedure (descriptions only), `AGENTS.md` *This repository*
+  (never the generated region), `CLAUDE.md`, `test/README.md` (the gates named after procedure
+  steps), `docs/03_backlog/X_tools/check_tasks.py` and `check_releases.py` docstrings
+  (`release-cycle`); done plans, decision-logs and the frozen 0.2 fixture governance
+  (`test/harness/fixtures/custom-governance-0.2/`) are history and stay unchanged.
+- **AC-6 — Diagnostics.** `npm run -s wingfoil -- workflow list` reports 0 errors and exactly the
+  2 `W_WORKFLOW_UNBOUND_TOKEN` warnings of `service-ingest.yaml`;
+  `test/governance/workflow-diagnostics.baseline.json` holds that one row and
+  `test/governance/workflow-diagnostics.test.ts` passes. An active phase plan whose `workflow:`
+  names a removed procedure gives `W_INSTANCE_WORKFLOW_UNKNOWN` (W-38): the design lists the active
+  plans at the time and records how each is handled (none left, or the field naming the pack
+  workflow that carries it), with the approver's OK.
+- **AC-7 — Fixtures and samples.** The `custom` fixture imports this repository's live
+  `.wingfoil/` (`test/harness/fixtures/builder.ts` `customGovernance`): the samples of
+  `test/contracts/samples/wingfoil-0.3.1/custom/` that hold the procedures (`workflow-list.json`,
+  `files/memory.yaml`) are recaptured with the pinned CLI, and every suite reading the custom
+  fixture's workflows or directives passes (`test:contract`, the default suite, the e2e specs that
+  read `/config` or Directives on that fixture).
+- **AC-8 — Approver's OK on `.wingfoil/`.** Every `.wingfoil/` diff (files removed, the new
+  directive, the amended directives, `roles.yaml`, `workflows.yaml`, `memory.yaml`, `README.md`) is
+  shown to the approver and committed only after the OK (RP3-13; `release-planning-rel-v0.3-plan`
+  *Phases / Steps*); the OK is quoted in the Execution Notes.
+- **AC-9 — Gates.** `typecheck`, `lint`, `format:check`, `test:coverage` (≥ 80 %), `test:contract`,
+  `npx vitest run test/docs test/governance`, `check_tasks.py v0.3`; the full e2e on Chromium if a
+  spec's fixture changed — heavy gates through the machine-free slot, load and slot wait in each log
+  (dl-009 action 4).
 
 ## Implementation Notes
 
-<!-- Optional: known constraints, design hints, or links to relevant ADRs. -->
+- Read at design: the five YAML files at the base commit; the custom `definition-of-done` 1.1 and
+  `release-conventions` 1.2; `.wingfoil/README.md` *Workflows* and *Deviations*; the adoption design
+  §9 decision 2 and its R-4 row; directive `wingfoil-cli` W-04, W-38, W-43; RP3-13 of
+  `release-planning-rel-v0.3-plan`.
+- The dev rules every agent session reads (`.notes/dev-rules.md`) are git-ignored session notes,
+  not repository content: their *Dev-loop phases* section names `dev-loop.yaml`. The task lists the
+  changes they need in its Execution Notes for the coordinator, who updates them outside the
+  repository; nothing under `.notes/` is committed.
+- The directives keep the facts the procedures held; where a procedure and `.wingfoil/memory.yaml`
+  disagree, `memory.yaml` is right (`CLAUDE.md`). The packs' phases own the transitions; the
+  directives say how, never which verb moves a state the packs move otherwise.
+- Not security-relevant (no code path of the console changes); one independent review, with the
+  AC-1 table as its input.
 
 ## Execution Notes
 

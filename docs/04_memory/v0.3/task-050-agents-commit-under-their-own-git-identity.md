@@ -4,11 +4,11 @@ type: task
 title: "Agents commit under their own git identity"              # REQUIRED — e.g. "Today view: pending gates list (REQ-UI-03)"
 status: draft          # auto-set by wingfoil
 release: "v0.3"            # REQUIRED — target release version, e.g. "v0.1"
-sprint: ""             # REQUIRED — the Sprint that selects it (sprint-NNN), or "n/a — <reason>" until one does (methodology/scrum)
-module: ""             # optional — server | web | contracts (dna.yaml modules)
-priority: ""           # optional — high | medium | low
-tags: []               # optional — additional labels, e.g. [today, a11y]
-ref: ""                # optional — backlog item ID, e.g. "TASK-001"
+sprint: "sprint-001"             # REQUIRED — the Sprint that selects it (sprint-NNN), or "n/a — <reason>" until one does (methodology/scrum)
+module: "governance"             # optional — server | web | contracts (dna.yaml modules)
+priority: "high"           # optional — high | medium | low
+tags: ["v0.3", "governance", "git-identity"]               # optional — additional labels, e.g. [today, a11y]
+ref: "GOV"                # optional — backlog item ID, e.g. "TASK-001"
 bug: []                # optional — LIST of bug ids this task closes. Two cases: a fix task derived from a bug
                        # by release-planning, and a bug ABSORBED into an existing task's Acceptance Criteria because that
                        # task already owns the ground. Each bug listed moves with its own verbs (`.wingfoil/memory.yaml`):
@@ -20,19 +20,73 @@ tmpl_version: 260703   # Orignal template version
 
 ## Description
 
-<!-- What needs to be built and why. Reference the user story if applicable:
-     "As <persona>, I want <action> so that <benefit>." -->
+Governance task of `minor-v0.3`, at the head of Wave 0 with task-049 (`release-planning-rel-v0.3-plan`
+RP3-7, RP3-13 *v0.3 tasks*). Agents commit here under the approver's git identity (`CLAUDE.md`
+*Working with the WingFoil CLI*), so the CLI would accept a `memory approve` run by an agent:
+"an agent never approves" is a process rule only. WingFoil authorises and records git's **author**
+identity, resolved as `git commit` does — `GIT_AUTHOR_*` in the environment, then `author.*`, then
+`user.*` (directive `wingfoil-cli` W-39). This task gives the agent sessions an identity of their
+own, so that an agent's commits are attributed to the agent and an approval run by mistake under
+the agent's own identity is refused by the CLI.
+
+Scope, as W-39 re-scoped it: **attribution and mistake prevention, not enforcement** — a process
+that sets `GIT_AUTHOR_*` deliberately (or a prompt injection that does) still approves as any
+member; real enforcement would need e.g. signed approval commits verified in CI, out of v0.3. The
+identity is set in the **agent sessions' environment**, never in the repository's git
+configuration, which the approver's own commands in this checkout share.
+
+**Backlog items:** GOV (governance — W-39 re-scoped: a separate git identity for agent sessions,
+RP3-13)
 
 ## Acceptance Criteria
 
-<!-- Reference the Gherkin feature file, or inline the key scenarios.
-     e.g. "See docs/02_requirements/02_bdd/features/today/pending-gates.feature"
-     For `web` tasks also point to the screen in docs/00_reference/ux-reference.md (§4.x) and the
-     prototype, and state the accessibility bar (keyboard path, axe clean). -->
+- **AC-1 — Design choice recorded.** The design names the mechanism that sets the identity for
+  every agent session of this repository (coordinator, subagents, sessions opened from the short
+  prompt of RP3-13) and only for them — e.g. the session tool's environment settings — with the
+  variables (`GIT_AUTHOR_NAME`, `GIT_AUTHOR_EMAIL`, `GIT_COMMITTER_NAME`, `GIT_COMMITTER_EMAIL`), the
+  name and address chosen (a public, non-personal address: dl-005), and why the approver's terminal
+  and console are untouched. A change to a tool's persistent configuration is made by the approver
+  or with the approver's OK, never by an agent on its own.
+- **AC-2 — Refused at `memory approve`.** A probe on a throwaway copy of this repository, with the
+  pinned CLI: a commit made under the agent identity is attributed to it (`git log --format='%an
+  %ae'`), and `memory approve` and `memory reject` run under it are refused — the exit status and the
+  message (`user not authorized to approve …`, W-13) recorded in the Execution Notes; the same
+  verbs under the approver's identity succeed.
+- **AC-3 — The agents' own verbs still work.** The same probe runs every verb agents run here
+  (`memory add`, `memory submit`, `memory park`, `workflow start`, `workflow adopt`, `workflow next`,
+  `workflow status`) under the agent identity; any verb that needs a team member or a role is named,
+  and the fix (e.g. a DNA team entry for the agent without `approver`, a `.wingfoil/` change) is
+  proposed to the approver, not applied without the OK.
+- **AC-4 — Tests and CI unaffected.** With the agent variables set in the environment, the default
+  suite, `test:contract` and the e2e on Chromium give the same results as without them: the
+  harness gives every fixture commit its own identity (`test/README.md` *Fixtures* › *Git identity*,
+  task-044) and the console's children inherit no `GIT_*` variable (`gitEnv`, W-39). If a harness
+  path lets an inherited `GIT_AUTHOR_*` or `GIT_COMMITTER_*` win over the fixture identity, it is
+  fixed with a test (red first: a fixture commit under the variables carries the fixture's author).
+  The runner's environment (`.github/workflows/publish.yml`) is unchanged.
+- **AC-5 — Docs.** `CLAUDE.md` (the identity rule replacing "agents commit under the approver's
+  git identity"), directive `release-conventions` *The release line* (its paragraph on a separate
+  identity), directive `wingfoil-cli` W-39 (*Workaround* and *Note*), `AGENTS.md` *This repository*;
+  the dev rules the sessions read (`.notes/dev-rules.md`, git-ignored) get their text from the
+  coordinator — the task lists it in its Execution Notes. Every `.wingfoil/` diff with the
+  approver's OK before commit; each document's Version/Date bumped (`doc-versioning`).
+- **AC-6 — Gates.** `typecheck`, `lint`, `format:check`, `test:coverage` (≥ 80 %), `test:contract`
+  and `test:e2e:chromium` with the agent variables set, through the machine-free slot (load and slot
+  wait in each log); the strict-identity run of `test/README.md` for the suites that touch git
+  (dl-011); `npx vitest run test/docs`.
 
 ## Implementation Notes
 
-<!-- Optional: known constraints, design hints, or links to relevant ADRs. -->
+- Read at design: directive `wingfoil-cli` W-13, W-34, W-39 and its WingFoil feedback note F-031;
+  `test/README.md` *Fixtures* › *Git identity* (task-044, bug-020) and the strict-identity recipe;
+  the `gitEnv` of the console's children (`server/src/git/`); task-044's Execution Notes.
+- Security probes at design (the task changes the identity of every commit agents make): the
+  children's environment of the console and of the harness with the agent variables set (`env`
+  dump of a spawned git, `GIT_TRACE=1` of one `memory submit` and one `memory approve` under the
+  agent identity), and a `.git` snapshot before and after the probe to show the probe wrote nothing
+  but its commits.
+- Co-author trailers stay as the session's attribution rules say; the commit author is the agent
+  identity, the approver's commands keep the approver's.
 
 ## Execution Notes
 

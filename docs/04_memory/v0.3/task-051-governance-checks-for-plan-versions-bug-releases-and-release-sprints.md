@@ -4,11 +4,11 @@ type: task
 title: "Governance checks for plan versions, bug releases and release sprints"              # REQUIRED — e.g. "Today view: pending gates list (REQ-UI-03)"
 status: draft          # auto-set by wingfoil
 release: "v0.3"            # REQUIRED — target release version, e.g. "v0.1"
-sprint: ""             # REQUIRED — the Sprint that selects it (sprint-NNN), or "n/a — <reason>" until one does (methodology/scrum)
-module: ""             # optional — server | web | contracts (dna.yaml modules)
-priority: ""           # optional — high | medium | low
-tags: []               # optional — additional labels, e.g. [today, a11y]
-ref: ""                # optional — backlog item ID, e.g. "TASK-001"
+sprint: "sprint-001"             # REQUIRED — the Sprint that selects it (sprint-NNN), or "n/a — <reason>" until one does (methodology/scrum)
+module: "governance"             # optional — server | web | contracts (dna.yaml modules)
+priority: "medium"           # optional — high | medium | low
+tags: ["v0.3", "governance", "checks"]               # optional — additional labels, e.g. [today, a11y]
+ref: "GOV"                # optional — backlog item ID, e.g. "TASK-001"
 bug: []                # optional — LIST of bug ids this task closes. Two cases: a fix task derived from a bug
                        # by release-planning, and a bug ABSORBED into an existing task's Acceptance Criteria because that
                        # task already owns the ground. Each bug listed moves with its own verbs (`.wingfoil/memory.yaml`):
@@ -20,19 +20,59 @@ tmpl_version: 260703   # Orignal template version
 
 ## Description
 
-<!-- What needs to be built and why. Reference the user story if applicable:
-     "As <persona>, I want <action> so that <benefit>." -->
+Governance task of `minor-v0.3`, Wave 0: three governance checks enforced by a test instead of by
+hand.
+
+- **Plan version** (dl-011, *Decision*; dl-009 action 11): a plan's frontmatter `version` equals
+  its Context `**Version:**` line. The rule of dl-006 action 6 broke in two of seven plans of v0.2
+  with no check; today the active `release-planning-rel-v0.3-plan` has frontmatter `version: "0.7"`
+  and a Context line `**Version:** 0.1` (read 2026-11-03).
+- **Bug release** (dl-009 action 7): a `closed` bug with an empty `release` fails — the triage of
+  a bug fixed in a later release sets `release`, and the absorption into a task stamps it.
+- **Release sprints** (found at step 2 of `release-planning-rel-v0.3-plan`):
+  `docs/03_backlog/X_tools/check_releases.py` fails on every release for the required `sprint`
+  because it does not read the `exempt.sprint` list of `.wingfoil/memory.yaml` (`minor-v0.1`,
+  `minor-v0.2`) and has no rule for drafts that no Sprint selects yet.
+
+**Backlog items:** GOV (governance — dl-011 plan-version check, dl-009 action 7 bug-release check,
+the `check_releases.py` sprint rule)
 
 ## Acceptance Criteria
 
-<!-- Reference the Gherkin feature file, or inline the key scenarios.
-     e.g. "See docs/02_requirements/02_bdd/features/today/pending-gates.feature"
-     For `web` tasks also point to the screen in docs/00_reference/ux-reference.md (§4.x) and the
-     prototype, and state the accessibility bar (keyboard path, axe clean). -->
+- **AC-1 — Plan-version check.** A test of the default suite (`test/governance/` or `test/docs/`)
+  reads every plan under `docs/05_plans/` and fails, naming the file and both values, when the
+  frontmatter `version` differs from the version of the Context `**Version:**` line, or when one of
+  them is missing. Red first: it fails on the tree at the base commit with the mismatches it finds.
+  The design lists them (on 2026-11-03: `release-planning-rel-v0.3-plan` 0.7/0.1,
+  `sw-life-cycle-1-plan` 0.2/0.1, and v0.1 plans with no Context line or other values) and the
+  approver chooses, per plan, an alignment commit (as dl-009 action 11 did) or an entry of an
+  explicit, commented exemption list in the test for closed history; no silent skip.
+- **AC-2 — Bug-release check.** A test of the default suite fails, naming the bug, when a bug of
+  `docs/04_memory/bugs/` is `closed` with an empty `release`. The design records the bugs that fail
+  at the base commit (bug-001 … bug-007, closed in v0.1 before the rule) and the approver's choice:
+  stamp `release` (a commit of that field by hand, as the `release` of dl-009 … dl-013 at step 6 —
+  `memory amend` refuses `release`, W-01), or an explicit exemption list; and whether a bug closed by
+  a `reject` (not fixed) is in the rule.
+- **AC-3 — `check_releases.py` sprint rule.** The script reads `exempt.sprint` from
+  `.wingfoil/memory.yaml` (no copy of the list in the script) and accepts a release in `draft`
+  with no `sprint`; a release past `draft` with no `sprint` and not exempt still fails. On the
+  tree at the end of the task it exits 0; its docstring describes the rule. A unit test drives the
+  script on a temporary tree (an exempt release, a draft, a `planning` release without `sprint`).
+- **AC-4 — Docs.** The rule of each check is written where agents read it (directive
+  `doc-versioning` or `release-conventions` for the plan version; the `bug` type's guidance in
+  `.wingfoil/README.md` for the release field; `test/README.md` for the new tests), with the
+  approver's OK on any `.wingfoil/` diff; Version/Date bumped.
+- **AC-5 — Gates.** `typecheck`, `lint`, `format:check`, `npx vitest run test/docs test/governance`,
+  `test:coverage` (≥ 80 %) through the machine-free slot; `check_releases.py`, `check_tasks.py v0.3`.
 
 ## Implementation Notes
 
-<!-- Optional: known constraints, design hints, or links to relevant ADRs. -->
+- Read at design: dl-006 action 6, dl-009 actions 7 and 11, dl-011; `.wingfoil/memory.yaml` (the
+  `release`, `bug` and `plan` types, `exempt`); directive `wingfoil-cli` W-01; the existing
+  governance test `test/governance/workflow-diagnostics.test.ts` for the suite's conventions.
+- The checks read files only (no CLI, no git): no security probe; one independent review.
+- A plan's Context line has the form `**Version:** <n> · **Date:** …`; compare the first version
+  token, not the change history in parentheses.
 
 ## Execution Notes
 
