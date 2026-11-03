@@ -5,7 +5,7 @@ title: "Console discovery and deep links"              # REQUIRED — e.g. "Loca
 status: draft          # auto-set by wingfoil
 sard_ref: "REQ-ARC-08" # REQUIRED — REQ-* code (docs/02_requirements/03_sard/) or feature ID
 supersedes: ""         # optional — id of the ADR this one replaces, e.g. "adr-002"
-release: ""            # optional — implementation release this ADR is assigned to (stamped by release-planning/build-backlog), e.g. "v0.1"
+release: "v0.3"        # optional — implementation release this ADR is assigned to (stamped by release-planning/build-backlog), e.g. "v0.1"
 contributor: "WingFoil maintainer (requests R1 and R3 of dl-012, 2026-10-26)"        # optional — who originated this contribution, if not the git author; credited for AI-generated work derived from it
 credit: ""             # optional — free-text credit note
 tmpl_version: 260703   # Orignal template version
@@ -50,9 +50,9 @@ fragment is the token — and every restart would keep breaking the links alread
 
 ## Decision
 
-D1–D5 decide R1. D6 and D7 are the R3 option the spike recommends: **proposed — for the
-approver**; the spike's findings are in *Appendix A*, the other options in *Alternatives
-considered*.
+D1–D5 decide R1. D6 and D7 decide R3 — option A of the spike, chosen by the approver (A1, A2);
+R3 is implemented in v0.3 by one task with the adversarial reviewer (dl-006). The spike's findings
+are in *Appendix A*, the other options in *Alternatives considered*.
 
 **D1 — One address file per console.** A console writes `consoles/<port>.json` in its state
 directory (spec-006 §1, the same resolution, `WINGFOIL_UI_STATE_DIR` included). The folder
@@ -80,23 +80,29 @@ access list of the state directory under `%APPDATA%`, as `state.json` does. The 
 `http://127.0.0.1:<port>/` — the host of the printed URL, so the browser sends the cookie it set
 there; `portFixed` says the port came from `--port` (D7); `pid` and `host` (`os.hostname()`) are
 those of the console's process, as in `state.json.lock`; `started` is the UTC time the console
-started listening; `version` the package version (`--version`).
+started listening; `version` the package version (`--version`). The file holds no project path or
+id (A3).
 
 **D2 — Life cycle.** The file is written **after listening and before the URL line** — between
 steps 4 and 5 of spec-007 §3 — so a script that sees the URL line finds the file. It is written
-atomically (a temporary `consoles/<port>.json.tmp-<pid>` created exclusively with mode `0600`,
-`fsync`, `rename`). A failed write is a warning in the log, never a failed start: discovery is a
+atomically, as `state.json` is (a temporary `consoles/<port>.json.tmp-<pid>-<n>`, unique to the
+writer, created exclusively with mode `0600`, `fsync`, `rename`; temporary files of dead processes
+are removed at the start housekeeping of D3). While the console runs it refreshes the file's
+modification time every 10 s (a heartbeat, as `state.json.lock`'s holder does). A failed write is a warning in the log, never a failed start: discovery is a
 convenience, the console works without it. On stop the file is removed as the first stop step,
 right after the console stops accepting connections (spec-007 §6), so no agent hands out a link to
 a console that is going away; it is removed again, synchronously and best-effort, by the handler
 that runs at any process exit (forced stop, exit 70). A console removes the file only while it
 still holds its own `pid` and `started`.
 
-**D3 — Stale files and two consoles on one state directory.** A file is **stale** when its `host`
-is this machine's and its `pid` is not a running process (`kill(pid, 0)` fails with `ESRCH`;
-`EPERM` counts as running), as `state.json.lock` judges its holder; a file whose `host` is another
-machine's is never judged by its pid. Before writing its own file a console removes the stale
-files of its host (start housekeeping, as the temporary files of `state.json`) and replaces any
+**D3 — Stale files and two consoles on one state directory.** A file is **stale** when its
+modification time is older than 30 s (three missed heartbeats), or when its `host` is this
+machine's and its `pid` is not a running process (`kill(pid, 0)` fails with `ESRCH`; `EPERM` counts
+as running) — as `state.json.lock` judges its holder; a file whose `host` is another machine's is
+judged by its age only. The heartbeat also covers a reused pid: the file of a crashed console goes
+stale within 30 s, whatever process now holds its pid. Before writing its own file a console
+removes the stale files and the temporary files of dead processes (start housekeeping, as for
+`state.json`) and replaces any
 file already named after its own port — on this host the port is now its own, whatever the file
 says (a crash, a reused pid). Two consoles on one state directory listen on two ports, so they
 write two files and never contend for one; `consoles/` is not under `state.json.lock`, since each
@@ -107,10 +113,13 @@ supported for discovery: their files may name the same port, and the last writer
 **D4 — What an agent does with it.** An agent of a project that cites an element:
 1. resolves the state directory as spec-006 §1 does and lists `consoles/*.json`;
 2. keeps the files that pass the schema, whose `host` is its own machine's and that are not stale
-   (D3); prefers a console with `portFixed: true` (its links survive a restart, D7), then the most
+   (D3: its `pid` running and its modification time within 30 s) — the liveness check, which is
+   also v0.3's only measure against links that reach another program on a reused port (A5);
+   prefers a console with `portFixed: true` (its links survive a restart, D7), then the most
    recent `started`;
 3. finds its project's id in the project list of `state.json` (schema
-   `contracts/state/state.schema.json`), by its repository root, read-only — the open question Q3;
+   `contracts/state/state.schema.json`), by its repository root, read-only, against that schema
+   (A3);
 4. cites `<url>p/<project id>/e/<element id>`, the URL forms of spec-011; with no live console, it
    cites the id without a link.
 The agent never calls the API (it has no token and must not ask for one), never writes in the
@@ -123,7 +132,7 @@ nothing a request needs to authenticate. Its content is what `ss -ltnp` already 
 about their own processes (a port and a pid) plus the package version. The secret scan of
 REQ-SEC-09 covers `consoles/`.
 
-**D6 — R3, recover in place (proposed — for the approver).** The lost-session page stops being
+**D6 — R3, recover in place (A1).** The lost-session page stops being
 final for a console that is running again on the **same origin**. A page that got a 401 (spec-004
 §2) shows the lost-session notice, keeps its own address (path and query — the requested element),
 and recovers when the browser holds a valid session again:
@@ -141,18 +150,18 @@ after the start work directly (the browser holds the new cookie), links opened b
 when it opens. The rule "a failed exchange is final" of bug-016 (W3-7, S2-8) is kept for the token
 path: recovery is a probe with the cookie, never a retried exchange.
 
-**D7 — R3 needs a stable port (proposed — for the approver).** The origin of a link includes its
+**D7 — R3 needs a stable port (A2).** The origin of a link includes its
 port, and the cookie's name carries it (`wfui_session_<port>`); a console restarted on another port
 is another origin, where no link given out before can work. In v0.3 deep links across restarts are
 promised **with `--port`** only; the address file says so (`portFixed`) and `docs/cli-reference.md`
-documents it. A remembered or default port is the open question Q2.
+documents it. A default fixed port is reconsidered at v0.4 (A2).
 
 **Spec and contract amendments implied** (each made by the task that implements it, not here):
 - spec-006 §1: the state directory holds `state.json` and the folder `consoles/` (`0700`), each
   `<port>.json` `0600`, created and removed by consoles only; §4: `consoles/` is outside
   `state.json.lock` (one writer per file) and its housekeeping at start; §5: the address file holds
-  nothing of D5, the secret scan covers it; §6: unit tests of write, replace, remove, stale
-  detection and modes.
+  nothing of D5, the secret scan covers it; §6: unit tests of write, heartbeat, replace, remove,
+  stale detection (pid and age) and modes.
 - spec-007 §3: a step between 4 and 5 (housekeeping, write the address file, a failed write is a
   warning); §6: the removal as the first stop step and in the exit handler; §7: the launch smoke
   checks the file after the URL line (mode `0600`, `consoles/` `0700`, no token) and its absence
@@ -163,8 +172,8 @@ documents it. A remembered or default port is the open question Q2.
   (D7).
 - With D6: spec-004 §2 ("the page does not retry" becomes the recovery of D6), the lost-session
   page in the UX reference, the scenarios of X-02.2 and a new one for the recovery.
-- SARD: REQ-ARC-08 lists the console address files among the local state, and REQ-SEC-09's fit
-  criterion names `consoles/` (or a new requirement — Q4).
+- SARD (A4, no new requirement): REQ-ARC-08 lists the console address files among the local state,
+  and REQ-SEC-09's fit criterion names `consoles/`.
 
 ## Consequences
 
@@ -178,16 +187,22 @@ documents it. A remembered or default port is the open question Q2.
   - No new endpoint, no persisted session, no change to the token exchange.
 - **Negative**
   - The state directory gains a second kind of file, written outside `state.json`'s lock and
-    removed at stop: a crash leaves a stale file until the next start of a console of that host
-    (readers judge it by pid; a reused pid is not detected — Q5).
+    removed at stop: a crash leaves a file behind until the next start's housekeeping; readers
+    judge it stale by pid or, within 30 s, by its heartbeat (a reused pid included), and the
+    heartbeat is one `utimes` every 10 s per console.
   - D6 reverses W3-7's "lost for good" for the cookie path: the recovery probe must never retry
     an exchange, and the lost page must not keep any state of the dead session.
   - Deep links across restarts need `--port`; without it they still break on restart (D7).
-  - Agents read `state.json` to find a project id (Q3): its schema becomes something third parties
+  - Agents read `state.json` to find a project id (A3): its schema becomes something third parties
     rely on.
 - **Neutral**
   - The address file follows `state.json.lock`'s stale rule, so the two files age the same way.
-  - Windows relies on the access list of `%APPDATA%`, as `state.json` does.
+  - Windows relies on the access list of `%APPDATA%`, as `state.json` does (A6).
+- **Later (v0.4)** — two hardening items found by the spike, outside R1 and R3 (C4):
+  - the token in the opener's arguments, readable by other local users through
+    `/proc/<pid>/cmdline` on a Linux without `hidepid` while the opener runs (Appendix A, P10);
+  - the session cookies sent to every `127.0.0.1` port the browser visits (RFC 6265 §8.5):
+    `Secure` / `__Host-` cookies on loopback, after a browser probe (A5).
 
 ### Alternatives considered
 
@@ -269,20 +284,20 @@ The token was read from the URL line into a shell variable and never printed.
 
 | Threat | Today | R1 (D1–D5) | D6 + D7 (option A) | Option B | Option C |
 |--------|-------|-----------|-------------------|----------|----------|
-| Another local user | token in the opener's arguments while it runs (`/proc/<pid>/cmdline`, P10); loopback ports visible to all | cannot read `consoles/` (`0700`); learns nothing a port list does not show | unchanged | can receive a long-lived cookie by serving a page on any `127.0.0.1` port the browser visits | ticket in the opener's arguments (P10), one-time and short |
+| Another local user | token in the opener's arguments while it runs (`/proc/<pid>/cmdline`, P10); loopback ports visible to all; the session cookie is sent to any `127.0.0.1` port the browser visits, where another user's process can receive it and replay it with a forged `Host` header (row *Port reuse after a stop*) | cannot read `consoles/` (`0700`); learns nothing a port list does not show | unchanged | can receive a long-lived cookie by serving a page on any `127.0.0.1` port the browser visits | ticket in the opener's arguments (P10), one-time and short |
 | A process of the same user | can read the terminal and the browser profile: out of scope | can read or forge the file: a forged address sends the agent's links elsewhere — out of scope, as today | unchanged | can read the session hashes (not usable) and the cookie jar (usable for days) | can ask for tickets: as able as the user |
 | Browser history | the start URL, its fragment removed after load (`history.replaceState`) | links without a token | unchanged; no new URL | unchanged | the ticket URL, until exchanged |
 | Referrer | the fragment is never sent | none | none | none | none |
 | Logs | `authorization` and `cookie` redacted; P7: no token in the log or the state directory | the file names no secret; the log line of a failed write names no path content | the probe is an ordinary API call | session ids would need the same redaction | ticket in the opener's line on failure (`Open this URL…`) |
 | Open redirect | none (P9) | none | none: no redirect parameter | none | the ticket's path must be validated as a console path |
-| Port reuse after a stop | cookies of every console are sent to any `127.0.0.1` port (RFC 6265 §8.5) | a stale file with a reused pid sends links to another program (Q5) | unchanged | the exposure lasts days | the ticket is bound to the console that issued it |
+| Port reuse after a stop | cookies of every console are sent to any `127.0.0.1` port (RFC 6265 §8.5) | within 30 s of a crash, before the heartbeat makes the file stale, a link can reach another program on the reused port (the residual window of D3) | unchanged | the exposure lasts days | the ticket is bound to the console that issued it |
 
 **Options and size.** A — D6 + D7: **S**, one task (web session state, the lost page and its
 text, a same-origin `BroadcastChannel`; spec-004 §2, the UX reference, X-02.2 and a recovery
 scenario; an e2e restart on the three engines), two or three review rounds with the adversarial
 reviewer; no server change. B — **M–L**, two tasks, four to six rounds, and a change of REQ-SEC-02.
 C — **L**, two or three tasks, six rounds or more. Against task-046's six rounds, only A is small.
-**Recommendation: A**, in v0.3 next to R1, deep links promised with `--port`; B and C are not
+**Recommendation: A** (decided, A1), in v0.3 next to R1, deep links promised with `--port`; B and C are not
 needed for dl-012's need once A and R1 are in, and stay out unless a later request asks for links
 with no action and no fixed port. **R3 is small enough for v0.3 (RP3-10) in form A only.**
 
@@ -303,7 +318,8 @@ node bin/wingfoil-ui.cjs --port 4912 --no-open > "$SCRATCH/b.out" & PID_B=$!   #
 curl -s -o /dev/null -w '%{http_code}\n' -b "$COOKIE" http://127.0.0.1:4912/api/server       # P5b: 401
 curl -s -o /dev/null -w '%{http_code}\n' -b "wfui_session_4912=${COOKIE#*=}" \
   http://127.0.0.1:4912/api/server                                                           # P5c: 401
-kill -TERM "$PID_A"; node bin/wingfoil-ui.cjs --port 4911 --no-open > "$SCRATCH/a2.out" &     # P6: restart, same port
+kill -TERM "$PID_A"; wait "$PID_A"                                  # P6: the stop line printed, exit 0
+node bin/wingfoil-ui.cjs --port 4911 --no-open > "$SCRATCH/a2.out" & PID_A2=$!   # P6: restart, same port
 curl -s -w ' %{http_code}\n' -b "$COOKIE" http://127.0.0.1:4911/api/server                   # P6b: 401
 curl -s -w ' %{http_code}\n' -X POST -H "Authorization: Bearer $TOKEN" \
   http://127.0.0.1:4911/api/session                                                          # P6c: 401
@@ -330,3 +346,18 @@ directory after the start), so D1 creates it.
   sent to every local port (a hardening item for v0.4 recommended), Q6 Windows modes (the access
   list of `%APPDATA%` recommended). `sard_ref` = REQ-ARC-08 (R1, the decided part); the full list
   under *Traceability*.
+- 2026-11-03 — the approver decided ("E1–E4, A1–A6 e C1–C4 come consigliato"): **A1** R3 option A
+  (D6 + D7) is the decision, implemented in v0.3 by one task with the adversarial reviewer; **A2**
+  a stable address only with `--port` in v0.3, documented, a default fixed port reconsidered at
+  v0.4; **A3** an agent reads `state.json` read-only against its schema for the project id, the
+  address file holds no project path or id; **A4** R1 amends REQ-ARC-08 and REQ-SEC-09's fit
+  criterion, no new requirement; **A5** cookies sent to every local port: in v0.3 only the liveness
+  check of R1's task, cookie hardening (`Secure` / `__Host-` on loopback, after a browser probe) a
+  v0.4 item; **A6** Windows: the access list of `%APPDATA%`, as `state.json`. Independent review
+  (FAIL on minors): **C2** the address file gets a heartbeat as `state.json.lock` — mtime refreshed
+  every 10 s, stale when the pid is dead or the mtime is older than 30 s (D2, D3, D4); the
+  temporary file named `tmp-<pid>-<n>` with the dead processes' leftovers removed at start, as
+  `state.json`; the two uses of "Q5" separated (the residual window of D3; the cookie item, A5);
+  today's cookie exposure added to the threat table; `release: "v0.3"`; probe P6 waits for the
+  stop and keeps the new pid; **C4** the *Later (v0.4)* list in *Consequences*. D6 and D7 are no
+  longer "proposed".
