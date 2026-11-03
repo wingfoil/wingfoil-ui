@@ -41,6 +41,7 @@ derivation exact.
 |-------|--------|
 | Resolved states per type (`sequence`, `gates{state: {reject}}`, `waiting[]`, `limits{state: N}`) | `memory.yaml`, spec-001 §4.1 |
 | Held gates per type and gate state (v0.3) | `holds` of the effective `ui.yaml` or its preset, spec-005 §1, §4a |
+| The elements referencing an element (v0.3, for `when-references-done`) | the reference index of spec-012 §1 (frontmatter values of every non-archived element), shared with the project-state views |
 | Elements (`id`, `type`, `status`) | `memory search`, spec-001 §3 (archived elements, fetched lazily, are final) |
 | Events per element (creator, last transition, last reject, submitters) | spec-002 §3 (project-wide parse) |
 | Team (`members[{name, email, roles}]`, `agents`) | `dna show` |
@@ -92,7 +93,10 @@ While the gate is held, `approve` is not offered: the gate footer shows an infor
 the reason (`approveHeld`, §8); the gate's `reject` stays offered as above (to `approver` holders);
 the element is never in Requires you, is in Waiting on others for every member — approvers
 included — with the reason, and is not a pending gate (§5). The descriptor names no type or
-state (REQ-ARC-05): the hold comes from the configuration.
+state (REQ-ARC-05): the hold comes from the configuration. The count of
+`held-until-references-done` is read from the reference index of spec-012 §1 (the elements one of
+whose values equals the gate element's id or `version`), so with a `when-references-done` hold in
+force every descriptor computation builds that index (spec-012 §1 *Cost*, §8).
 
 ### 4. Actor — who must act
 
@@ -272,6 +276,13 @@ the tables holding them (kind → tone, kind → bucket, the `archived` kind) li
 `server/src/presets/` (the rule's only exemption, spec-005 §5); `web/` uses them as data (e.g.
 `tone-${tone}`), never as literals.
 
+Inputs that cannot be read (as `server/src/http/project-routes.ts` does): an unreadable
+`memory.yaml` → no descriptor (`typesError`); failed Memory events → descriptors computed without
+events (actors, `rejection` and `since` degrade) and `eventsError`; a failed `dna show` → no
+member is known, so member actors fall back to `tech-lead` with `author-not-in-team` (§4) — the
+element lists carry no error field for it, the project header's `dnaError` (spec-004 §3) does
+(v0.3, spec-012 §4, §10).
+
 Computed by `server/` once per repository state (cache, `adr-001` D6) and served with the
 element list; `web/` renders it and never re-derives it.
 
@@ -376,3 +387,7 @@ element list; `web/` renders it and never re-derives it.
   only, the UI's count an approximation of `requireWipSlot` (F4; S-24.7); §5 the four pre-packs
   `waiting` states named. Round 2 (P3, decided by the approver): the catalogue's English of
   `state-limit` and of the two hold reasons; S-23.5 cited for N1.
+- 2026-11-03 — aligned with spec-012 (release-planning v0.3 step 5c, decided by the approver,
+  "TQ-1…TQ-6, X1 e K1–K3 come consigliato"): §1 and §3 the `when-references-done` hold reads
+  spec-012 §1's shared reference index; §8 what a failed input does to the descriptor, `dnaError`
+  as the code has it (on the project header only). No rule changes.

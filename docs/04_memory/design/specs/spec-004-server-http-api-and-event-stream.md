@@ -74,8 +74,8 @@ JSON; every request and response body has a schema in `contracts/api/`.
 | `DELETE /api/projects/:pid` | remove from the list (no file is touched) → 204, no body | v0.1 |
 | `GET /api/p/:pid` | project header: name, WingFoil version and range state (`wingfoil.text`: the printed `--version` text through the sanitiser of tool messages, task-046), identity, role views, repository status | v0.1 |
 | `PUT /api/p/:pid/role-view` `{role}` | remember the role view (local state) | v0.1 |
-| `GET /api/p/:pid/config` | DNA, paths, workflows (as the CLI's version line answers `workflow list`, spec-001 §3: the 0.2.x or the 0.3.x shape; every string of a 0.3.x `diagnostics` entry and its `message` sanitised like the CLI warnings, at most 200 diagnostics with `diagnosticsOmitted` counting the rest — read by no view yet), resolved types (spec-001 §4.1); effective `ui.yaml` with origin of each value since v0.3 (REQ-ARC-07) | v0.1 |
-| `GET /api/p/:pid/elements[?archived=true]` | elements with their descriptor (spec-003) and local-changes marker | v0.1 |
+| `GET /api/p/:pid/config` | DNA, paths, workflows (as the CLI's version line answers `workflow list`, spec-001 §3: the 0.2.x or the 0.3.x shape; every string of a 0.3.x `diagnostics` entry and its `message` sanitised like the CLI warnings, at most 200 diagnostics with `diagnosticsOmitted` counting the rest — read by no view yet), resolved types (spec-001 §4.1); effective `ui.yaml` with origin of each value since v0.3 (REQ-ARC-07; the `ui` section of spec-012 §2) | v0.1 |
+| `GET /api/p/:pid/elements[?archived=true]` | elements with their descriptor (spec-003) and local-changes marker; from v0.3 each element's `missingCategories` and the list's `missingReferences` (M2, spec-012 §5) | v0.1 |
 | `GET /api/p/:pid/elements/:eid` | one element: frontmatter, body, descriptor, references | v0.1 |
 | `GET /api/p/:pid/elements/:eid/history` | `memory history` entries (spec-002 §2); their texts sanitised from v0.3 (§5) | v0.1 |
 | `GET /api/p/:pid/directives`, `/directives/:did` | directive list: one entry per directive id, the one in force — when two files declare an id (a custom directive overriding a built-in one), the file the CLI's warning names (`using <path>`, to the end of the line), else — the warning cut — WingFoil's precedence (`compareDirectivePrecedence`): the smallest path (code units) among the files under `directives/custom/`, else among all, not the first listed (the CLI sorts names per folder); the other file is not listed, its warning is (task-047, bug-025); the CLI's order otherwise; one directive (the one in force) with its body | v0.1 |
@@ -87,8 +87,9 @@ JSON; every request and response body has a schema in `contracts/api/`.
 | `POST /api/p/:pid/elements/:eid/reject` `{expectedStatus, reason}` | `memory reject --reason` | v0.2 |
 | `POST /api/p/:pid/git/fetch`, `/git/update`, `/git/push` | write class c (Y2–Y4) | v0.2 |
 | `GET /api/settings`, `PUT /api/settings` | UI settings (C4, local state) | v0.2 |
-| `GET /api/p/:pid/progress` | progress card figures (spec-005 §4) | v0.3 |
-| `GET /api/p/:pid/events/memory?before=&limit=` | Memory events (spec-002 §3) | v0.2 (Updates), v0.4 (Timeline, R6 — moved from v0.3, RP3-7) |
+| `GET /api/p/:pid/progress` | progress card figures (spec-005 §4): body spec-012 §3 | v0.3 |
+| `GET /api/p/:pid/traceability?scope=` | traceability (R5): `scope` ∈ `current` (default), `project`; body spec-012 §4 | v0.3 |
+| `GET /api/p/:pid/events/memory?before=&limit=` | Memory events (spec-002 §3) | v0.2 (Updates), v0.3 (Recent activity, `limit=5`, spec-012 §6), v0.4 (Timeline, R6 — moved from v0.3, RP3-7) |
 | `GET /api/p/:pid/git/log?branch=&author=&q=&before=` | git tree (R7) | v0.4 (moved from v0.3, RP3-7) |
 | `POST /api/p/:pid/ingestions/:workflow` `{title, fields}` | ingestion start: `memory add` + `memory submit` (G5) | v0.4 (moved from v0.3, RP3-7) |
 | `POST /api/p/:pid/ui-config/preset` `{preset}` | apply a UI preset (write class b): `preset` ∈ `kanban`, `scrum`, `sw-life-cycle` (any other value fails the body schema, 400 `invalid-request`); 200 `write.response.schema.json` (§5) with `result` `{ file: ".wingfoil/ui.yaml", preset }`; preconditions, writing and failures as spec-005 §5 | v0.3 |
@@ -156,6 +157,17 @@ that is not the sha of an event of the current log (e.g. history rewritten), →
 `invalid-request` (the client starts again from the top). An unknown `:pid` answers 404 before
 any 400. A `memory.yaml` that cannot be read → 502 `read-error`; a failed or refused Memory event
 read → 500 `internal` (details in the log only).
+
+**v0.3 bodies (addendum, release-planning v0.3 step 5c, spec-012).** In `contracts/api/`:
+
+| Route | Schema |
+|-------|--------|
+| `GET /api/p/:pid/progress` | `progress.schema.json` (spec-012 §3); no query parameter (any → 400 `invalid-request`) |
+| `GET /api/p/:pid/traceability?scope=` | `traceability.schema.json` (spec-012 §4); another `scope` value or parameter → 400 `invalid-request`, after the 404 of an unknown `:pid` |
+| `GET /api/p/:pid/elements` | `elements.schema.json` gains `missingCategories` per element and `missingReferences {shown, unreadable, capped}` (spec-012 §5) |
+| `GET /api/p/:pid/config` | `config.schema.json` gains `ui` (`ui-config.schema.json`, spec-012 §2: the effective values with their origin and the `ui.yaml` status and warning) |
+
+Their errors are spec-012 §10's; `X-Repo-State` and the event stream are unchanged (spec-012 §8).
 
 ### 4. Write preconditions and refusals
 
@@ -227,6 +239,15 @@ history entries (`/elements/:eid/history`), the `author`, `approver` and `reason
 (`/events/memory`) and the descriptor's `rejection` (`by`, `reason`; spec-003 §8) are passed through
 the sanitiser of tool messages where the route serialises them — after the descriptor has matched
 the authors' emails against the team (spec-002 §1), which reads them as committed.
+
+Repository texts (v0.3, release-planning v0.3 step 5c K1, spec-012 §9; implemented with bug-027's
+task, the same class): every display string a read body takes from the repository passes through
+the sanitiser's character escape (`neutralise`, without the folder redaction) where the route
+serialises it — element **titles** (`/elements`, `/elements/:eid`, the Today rows, the candidates
+of spec-011 §3, spec-012's `ElementRef` and rows), the **pattern reference** values of
+`/progress` and `/traceability`, and the **`ui.yaml` strings** `/config` echoes in `ui`
+(`patterns[].match`, type names, `phases`, `holds` types and states, `artifacts` paths). Element
+ids, types and states stay as `memory search` returns them: they are the keys a page sends back.
 
 - Success of a write (`write.response.schema.json`): `{ result: <CLI output>, commits: [{ sha,
   subject }], push: { status, code?, message? } }` — `status` is `pushed`, `off` or `failed`
@@ -444,3 +465,8 @@ goes away by itself when the stream reconnects. A network failure is not rendere
   Aligned the same day with spec-005 §5 (C1): §3 the preset route's `preset` values and response;
   §4 the rows the preset write runs; §5 the codes `ui-config-exists` (409) and `ui-config-invalid`
   (422, `detail.failure`); §6 the `write` event without `eid` for the preset write.
+- 2026-11-03 — amended in `release-planning` v0.3 (step 5c, spec-012; decided by the approver,
+  "TQ-1…TQ-6, X1 e K1–K3 come consigliato"): §3 the route `GET /api/p/:pid/traceability?scope=`
+  (v0.3), the bodies of `/progress` and `/traceability`, the M2 fields of `/elements` and the `ui`
+  section of `/config` (v0.3 bodies addendum); §5 repository texts escaped (K1, with bug-027's
+  task).

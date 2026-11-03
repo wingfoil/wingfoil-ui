@@ -152,6 +152,13 @@ a YAML frontmatter between the first two `---` lines (delimiters as WingFoil's `
 as read. Trailing `# …` comments in the frontmatter are ignored. Consistency: the file's `id`,
 `type` and `status` must equal the `memory search` match; otherwise the element shows a read
 error (REQ-ARC-04).
+**Bulk reader (v0.3, spec-012 §1).** Besides the element read (one file, frontmatter and body),
+the reference index reads **every** non-archived element file at the paths of the cached
+`memory search`, with bounded concurrency (at most 16 reads at a time), the same checks, keeping
+only frontmatter values (no body; at most 200 values per element), and reuses a file's values
+across states by `(path, blob id)` when the file is unchanged (spec-012 §8). No CLI process is
+started per element; a file that fails is named in the answer's `unreadable`, never failing the
+list (spec-004 §5).
 
 **4.3 Directive files** — only at `.wingfoil/<path>` for a `path` returned by `directives list`:
 frontmatter (as in `directives list`) and a Markdown body, rendered in R2.
@@ -333,3 +340,6 @@ its schema, and run the §4.1 resolution check. A failure blocks the matrix adva
   read for spec-003 §6, `returns` not used: `park` is not offered). Aligned the same day with
   spec-005 §2: §4.5 the allow-list entry for `.wingfoil/ui.yaml` (working tree, REQ-ARC-04's fit
   criterion), §5 its schema file.
+- 2026-11-03 — aligned with spec-012 (release-planning v0.3 step 5c, decided by the approver,
+  "TQ-1…TQ-6, X1 e K1–K3 come consigliato"): §4.2 the bulk reader of the reference index (bounded
+  concurrency, values only, the reuse by `(path, blob id)`). No read is added to the allow-list.

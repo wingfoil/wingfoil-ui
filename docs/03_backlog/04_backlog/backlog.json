@@ -4078,9 +4078,9 @@
           "steps": [
             "Given the console is running",
             "And I am Casey",
-            "Given the custom fixture with the sw-life-cycle preset is open on Traceability",
+            "Given the custom fixture with the pre-packs states and the sw-life-cycle preset is open on Traceability",
             "When I select the row \"US-M-01\"",
-            "Then the detail lists \"task-002-memory-list · done\" and \"task-003-element-panel · backlog · waiting for the workflow engine\""
+            "Then the detail lists \"task-002 · Memory list · done\" and \"task-003 · Element panel · backlog · Waiting for the workflow engine\""
           ]
         },
         {
@@ -4115,6 +4115,7 @@
         }
       ],
       "dependencies": [
+        "TT-PERF-04",
         "TT-STATE-08"
       ]
     },
@@ -8968,12 +8969,13 @@
       "area": "PERF",
       "wingfoil_min": "0.2.2",
       "requirement": "REQ-PERF-04",
-      "description": "The Memory list, an element panel and the Directives, DNA, Team and Documentation views render after navigation.",
+      "description": "The Memory list, an element panel and the Directives, DNA, Team and Documentation views render after navigation; from v0.3 the Traceability view too, and the Memory list with `taxonomy.requires` set (spec-012 §11).",
       "fit_criterion": "[numeric] p95 ≤ 1.0 s with a warm cache.",
       "verified_by": "e2e performance run",
       "stories": [
         "US-G-01",
         "US-M-01",
+        "US-R-01",
         "US-R-05",
         "US-R-06",
         "US-R-07",
@@ -9069,6 +9071,23 @@
             "When I open Documentation",
             "Then the index lists \"docs/01_vision/02_product-vision.md\"",
             "And the index lists no file under \"docs/04_memory/\" or \"docs/05_plans/\""
+          ]
+        },
+        {
+          "id": "R-01.1",
+          "title": "List references with their completion",
+          "file": "docs/02_requirements/02_bdd/features/r/traceability.feature",
+          "release": "v0.3",
+          "kind": "nominal",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running",
+            "And I am Casey",
+            "Given the custom fixture with the sw-life-cycle preset is open",
+            "When I open Traceability",
+            "Then it shows \"Project completion 25 %\" and \"Reference coverage 3/5\"",
+            "And the row \"US-M-01\" shows 2 linked elements and \"50 % · 1/2\"",
+            "And the row \"US-S-01\" shows 1 linked element and \"0 % · 0/1\""
           ]
         }
       ],
