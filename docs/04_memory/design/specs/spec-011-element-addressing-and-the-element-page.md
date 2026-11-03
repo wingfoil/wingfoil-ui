@@ -182,7 +182,7 @@ No route is added; `X-Repo-State` and the event stream are unchanged.
   (§1): a hostile pattern or id cannot make the server backtrack.
 - The candidates are the project's own elements, behind the session (spec-004 §2), capped and
   sanitised (§3).
-- The address rewrite (§2) stays inside `/p/<pid>/e/`: it is no redirect to a caller's value.
+- The page's address rewrite (§2) stays inside `/p/<pid>/e/`: it is no redirect to a caller's value.
 - The `panel=` value is only ever looked up as an element id of the current `<pid>`: placed with
   `encodeURIComponent` into the API path `/api/p/<pid>/elements/<value>` and resolved by §3. It is
   never used as a link or a navigation target; the only rewrite replaces it with the server's
