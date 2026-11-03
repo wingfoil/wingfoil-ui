@@ -1626,7 +1626,7 @@
       "area": "ARC",
       "wingfoil_min": "0.2.2",
       "requirement": "REQ-ARC-07",
-      "description": "`.wingfoil/ui.yaml` holds the UI's conventions (`version`, `taxonomy`, `progress`, `artifacts`) and nothing else — no permissions (they are WingFoil's, L6), no secrets. It has a JSON schema in `contracts/`. Without it, or when it fails the schema, the UI uses inferred defaults and warns. A preset (Kanban, Scrum, `sw-life-cycle`) is offered only when the file does not exist, refused when it maps a type the project does not declare, and validated before writing. `progress.scope` declares a type only; the current element is derived.",
+      "description": "`.wingfoil/ui.yaml` holds the UI's conventions (`version`, `taxonomy`, `progress`, `holds`, `artifacts`) and nothing else — no permissions (they are WingFoil's, L6), no secrets. It has a JSON schema in `contracts/`. Without it, or when it fails the schema, the UI uses inferred defaults and warns. A preset (Kanban, Scrum, `sw-life-cycle`) is offered only when the file does not exist, refused when it maps a type the project does not declare, and validated before writing. `progress.scope` declares a type only; the current element is derived.",
       "fit_criterion": "[boolean] Each shipped preset validates against the schema and matches its fixture; the schema rejects a `permissions` key; every scenario listed passes.",
       "verified_by": "unit (schema) · e2e",
       "stories": [
