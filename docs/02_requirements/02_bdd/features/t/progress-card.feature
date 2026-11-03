@@ -41,7 +41,7 @@ Feature: Progress card
 
   @US-T-12 @v0.3 @edge @fx-custom
   Scenario: T-12.3 — Update the figures after a decision
-    Given the custom fixture with the sw-life-cycle preset is open and Today shows "Pending gates 3"
+    Given the custom fixture with the pre-packs states and the sw-life-cycle preset is open and Today shows "Pending gates 3"
     When Morgan approves "bug-001-toast-overlap" with the CLI in a terminal
     Then within 5 seconds the progress card shows "Pending gates 2"
 

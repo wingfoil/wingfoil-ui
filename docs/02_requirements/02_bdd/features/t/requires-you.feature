@@ -42,6 +42,37 @@ Feature: Requires you
     When I select the role view "product-owner"
     Then Requires you lists no row
 
+  @US-T-02 @v0.3 @edge @fx-kanban
+  Scenario: T-02.4 — Filter a card by type and by state
+    Given the kanban fixture is open and I am Morgan with the role view "approver"
+    When I choose the type "bug" in the type filter of the Requires you card
+    Then Requires you lists exactly 1 row: "bug-001-crash-on-save"
+    And the type filter of the Requires you card offers "All (2)", "task (1)" and "bug (1)"
+    And the state filter of the Requires you card offers "All (2)" and "pending (2)"
+    And the Waiting on others card is not filtered
+
+  @US-T-02 @v0.3 @edge @fx-kanban
+  Scenario: T-02.5 — Show when each element entered its current state
+    Given the kanban fixture is open and I am Morgan with the role view "approver"
+    When I open Today
+    Then the row of "task-001-login-form" shows the date of its submit as the date it entered "pending"
+    And that date's accessible description is the full time of the submit
+
+  @US-T-02 @v0.3 @edge @fx-kanban
+  Scenario: T-02.6 — Show the first 10 rows, then all of them on request
+    Given the kanban fixture is open with 11 more tasks in the state "pending" and I am Morgan with the role view "approver"
+    When I select "Show all (13)" on the Requires you card
+    Then Requires you lists 13 rows and shows "Show fewer"
+    And before the selection it listed 10 rows
+    And the greeting reads "Morgan, 13 things require you"
+
+  @US-T-02 @v0.3 @edge @fx-custom
+  Scenario: T-02.7 — Name each row's element by its short id
+    Given the custom fixture is open and I am Morgan with the role view "approver"
+    When I open Today
+    Then the row of "dl-002-use-fastify" names it "dl-002"
+    And the Waiting on others row of "minor-v0.1", whose id pattern has no number, names it "minor-v0.1"
+
   # --- US-T-03 — rejected work first ---
 
   @US-T-03 @v0.2 @nominal @fx-kanban

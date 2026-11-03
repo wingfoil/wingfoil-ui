@@ -294,7 +294,7 @@
           "steps": [
             "Given the console is running",
             "And I am Casey",
-            "Given the custom fixture with the sw-life-cycle preset is open and Today shows \"Pending gates 3\"",
+            "Given the custom fixture with the pre-packs states and the sw-life-cycle preset is open and Today shows \"Pending gates 3\"",
             "When Morgan approves \"bug-001-toast-overlap\" with the CLI in a terminal",
             "Then within 5 seconds the progress card shows \"Pending gates 2\""
           ]
@@ -1148,7 +1148,7 @@
       "wingfoil_min": "0.2.2",
       "requirement": "REQ-STATE-08",
       "description": "Completion and iterated figures cover the current element of the `progress.scope` type: in v0.3, on every WingFoil version, the most advanced element not in its first or last non-archived state (ties: lowest version); none → whole project; from v0.4, on WingFoil 0.3 or later, the one `workflow status` reports. The phase figures are read-only until v0.4 (spec-005 §4). Reference completion = done linked elements / linked elements; project completion = unweighted mean over references with ≥ 1 linked element (Q8); coverage = elements carrying all `requires` categories / elements whose type has `requires`, project-wide. Open bugs and pending gates are project-wide; a state both gate and `waiting:` is not a pending gate, nor a gate whose *Approve* `ui.yaml` holds (spec-005 §4a).",
-      "fit_criterion": "[boolean] On the custom fixture with the `sw-life-cycle` preset the UI shows exactly: scope `minor-v0.1`, project completion 25 %, tasks 1/4, open bugs 1, pending gates 3, coverage 3/5 — and pending gates 2 after `bug-001-toast-overlap` is approved to `triaged`.",
+      "fit_criterion": "[boolean] On the custom fixture with the `sw-life-cycle` preset the UI shows exactly: scope `minor-v0.1`, project completion 25 %, tasks 1/4, open bugs 1, pending gates 3, coverage 3/5 — and, on the custom fixture with the pre-packs states and the preset (where `triaged` is both a gate and `waiting:`), pending gates 2 after `bug-001-toast-overlap` is approved to `triaged`.",
       "verified_by": "unit · e2e",
       "stories": [
         "US-M-03",

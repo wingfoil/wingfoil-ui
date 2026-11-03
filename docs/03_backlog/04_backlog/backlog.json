@@ -1663,12 +1663,76 @@
             "When I select the role view \"product-owner\"",
             "Then Requires you lists no row"
           ]
+        },
+        {
+          "id": "T-02.4",
+          "title": "Filter a card by type and by state",
+          "file": "docs/02_requirements/02_bdd/features/t/requires-you.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running",
+            "Given the kanban fixture is open and I am Morgan with the role view \"approver\"",
+            "When I choose the type \"bug\" in the type filter of the Requires you card",
+            "Then Requires you lists exactly 1 row: \"bug-001-crash-on-save\"",
+            "And the type filter of the Requires you card offers \"All (2)\", \"task (1)\" and \"bug (1)\"",
+            "And the state filter of the Requires you card offers \"All (2)\" and \"pending (2)\"",
+            "And the Waiting on others card is not filtered"
+          ]
+        },
+        {
+          "id": "T-02.5",
+          "title": "Show when each element entered its current state",
+          "file": "docs/02_requirements/02_bdd/features/t/requires-you.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running",
+            "Given the kanban fixture is open and I am Morgan with the role view \"approver\"",
+            "When I open Today",
+            "Then the row of \"task-001-login-form\" shows the date of its submit as the date it entered \"pending\"",
+            "And that date's accessible description is the full time of the submit"
+          ]
+        },
+        {
+          "id": "T-02.6",
+          "title": "Show the first 10 rows, then all of them on request",
+          "file": "docs/02_requirements/02_bdd/features/t/requires-you.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running",
+            "Given the kanban fixture is open with 11 more tasks in the state \"pending\" and I am Morgan with the role view \"approver\"",
+            "When I select \"Show all (13)\" on the Requires you card",
+            "Then Requires you lists 13 rows and shows \"Show fewer\"",
+            "And before the selection it listed 10 rows",
+            "And the greeting reads \"Morgan, 13 things require you\""
+          ]
+        },
+        {
+          "id": "T-02.7",
+          "title": "Name each row's element by its short id",
+          "file": "docs/02_requirements/02_bdd/features/t/requires-you.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running",
+            "Given the custom fixture is open and I am Morgan with the role view \"approver\"",
+            "When I open Today",
+            "Then the row of \"dl-002-use-fastify\" names it \"dl-002\"",
+            "And the Waiting on others row of \"minor-v0.1\", whose id pattern has no number, names it \"minor-v0.1\""
+          ]
         }
       ],
       "dependencies": [
         "TT-ARC-06",
         "TT-PERF-01",
         "TT-PERF-09",
+        "TT-PERF-11",
         "TT-STATE-06"
       ]
     },
@@ -3206,6 +3270,55 @@
             "Then the gate footer shows only \"Reject → closed\" and \"Waiting for the workflow engine to advance\"",
             "And Requires you does not list \"bug-001-toast-overlap\""
           ]
+        },
+        {
+          "id": "S-24.5",
+          "title": "Hold a gate whose approval is made outside the console",
+          "file": "docs/02_requirements/02_bdd/features/s/action-descriptor.feature",
+          "release": "v0.3",
+          "kind": "nominal",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running",
+            "Given the custom fixture with the sw-life-cycle preset is open on WingFoil 0.3 and I am Morgan with the role view \"approver\"",
+            "And \"minor-v0.1\" has been submitted to the state \"releasing\"",
+            "When I open Today",
+            "Then Requires you does not list \"minor-v0.1\"",
+            "And Waiting on others lists \"minor-v0.1\" with \"Approved outside the console (ui.yaml)\"",
+            "And the gate footer of \"minor-v0.1\" shows \"Approved outside the console (ui.yaml)\" and \"Reject → in-development\", with no \"Approve\""
+          ]
+        },
+        {
+          "id": "S-24.6",
+          "title": "Hold a gate until the elements that reference it are done",
+          "file": "docs/02_requirements/02_bdd/features/s/action-descriptor.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running",
+            "Given the custom fixture with the sw-life-cycle preset is open on WingFoil 0.3 and I am Casey",
+            "And the release line \"rl-v1\" with version \"v1\" is in the state \"active\"",
+            "And \"minor-v0.1\", with release-line \"v1\", is in the state \"planning\"",
+            "When I open Today",
+            "Then Waiting on others lists \"rl-v1\" with \"Waits for 1 referencing element to be done\"",
+            "And the gate footer of \"rl-v1\" shows \"Waits for 1 referencing element to be done\" and no outcome button"
+          ]
+        },
+        {
+          "id": "S-24.7",
+          "title": "Disable a move into a state at its limit",
+          "file": "docs/02_requirements/02_bdd/features/s/action-descriptor.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running",
+            "Given the custom fixture is open on WingFoil 0.3 and I am Morgan",
+            "And the Sprint \"sprint-001\" is in the state \"active\" and the Sprint \"sprint-002\" in the state \"planned\"",
+            "When I open the element panel of \"sprint-002\"",
+            "Then the action \"Submit\" is disabled with the reason \"Blocked: only 1 active at a time\""
+          ]
         }
       ],
       "dependencies": [
@@ -3409,7 +3522,7 @@
           "steps": [
             "Given the console is running",
             "And I am Casey",
-            "Given the custom fixture with the sw-life-cycle preset is open and Today shows \"Pending gates 3\"",
+            "Given the custom fixture with the pre-packs states and the sw-life-cycle preset is open and Today shows \"Pending gates 3\"",
             "When Morgan approves \"bug-001-toast-overlap\" with the CLI in a terminal",
             "Then within 5 seconds the progress card shows \"Pending gates 2\""
           ]
@@ -8648,7 +8761,7 @@
           "steps": [
             "Given the console is running",
             "And I am Casey",
-            "Given the custom fixture with the sw-life-cycle preset is open and Today shows \"Pending gates 3\"",
+            "Given the custom fixture with the pre-packs states and the sw-life-cycle preset is open and Today shows \"Pending gates 3\"",
             "When Morgan approves \"bug-001-toast-overlap\" with the CLI in a terminal",
             "Then within 5 seconds the progress card shows \"Pending gates 2\""
           ]
@@ -9142,6 +9255,7 @@
       "stories": [
         "US-S-21",
         "US-S-23",
+        "US-T-02",
         "US-T-08"
       ],
       "acceptance_criteria": [
@@ -9191,6 +9305,22 @@
             "Then the \"Recent activity\" card lists 5 events, newest first",
             "And each state-change event shows the time, the element, the transition \"from → to\" and the author, and each creation event shows \"created\" instead of a transition",
             "And the card shows no link \"Open the Timeline\""
+          ]
+        },
+        {
+          "id": "T-02.6",
+          "title": "Show the first 10 rows, then all of them on request",
+          "file": "docs/02_requirements/02_bdd/features/t/requires-you.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running",
+            "Given the kanban fixture is open with 11 more tasks in the state \"pending\" and I am Morgan with the role view \"approver\"",
+            "When I select \"Show all (13)\" on the Requires you card",
+            "Then Requires you lists 13 rows and shows \"Show fewer\"",
+            "And before the selection it listed 10 rows",
+            "And the greeting reads \"Morgan, 13 things require you\""
           ]
         }
       ],
@@ -10080,7 +10210,7 @@
       "wingfoil_min": "0.2.2",
       "requirement": "REQ-STATE-08",
       "description": "Completion and iterated figures cover the current element of the `progress.scope` type: in v0.3, on every WingFoil version, the most advanced element not in its first or last non-archived state (ties: lowest version); none → whole project; from v0.4, on WingFoil 0.3 or later, the one `workflow status` reports. The phase figures are read-only until v0.4 (spec-005 §4). Reference completion = done linked elements / linked elements; project completion = unweighted mean over references with ≥ 1 linked element (Q8); coverage = elements carrying all `requires` categories / elements whose type has `requires`, project-wide. Open bugs and pending gates are project-wide; a state both gate and `waiting:` is not a pending gate, nor a gate whose *Approve* `ui.yaml` holds (spec-005 §4a).",
-      "fit_criterion": "[boolean] On the custom fixture with the `sw-life-cycle` preset the UI shows exactly: scope `minor-v0.1`, project completion 25 %, tasks 1/4, open bugs 1, pending gates 3, coverage 3/5 — and pending gates 2 after `bug-001-toast-overlap` is approved to `triaged`.",
+      "fit_criterion": "[boolean] On the custom fixture with the `sw-life-cycle` preset the UI shows exactly: scope `minor-v0.1`, project completion 25 %, tasks 1/4, open bugs 1, pending gates 3, coverage 3/5 — and, on the custom fixture with the pre-packs states and the preset (where `triaged` is both a gate and `waiting:`), pending gates 2 after `bug-001-toast-overlap` is approved to `triaged`.",
       "verified_by": "unit · e2e",
       "stories": [
         "US-M-03",

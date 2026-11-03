@@ -91,7 +91,7 @@ Shell and conventions: `00_sard.md`.
 | Description | Completion and iterated figures cover the current element of the `progress.scope` type: in v0.3, on every WingFoil version, the most advanced element not in its first or last non-archived state (ties: lowest version); none → whole project; from v0.4, on WingFoil 0.3 or later, the one `workflow status` reports. The phase figures are read-only until v0.4 (spec-005 §4). Reference completion = done linked elements / linked elements; project completion = unweighted mean over references with ≥ 1 linked element (Q8); coverage = elements carrying all `requires` categories / elements whose type has `requires`, project-wide. Open bugs and pending gates are project-wide; a state both gate and `waiting:` is not a pending gate, nor a gate whose *Approve* `ui.yaml` holds (spec-005 §4a). |
 | Rationale | `ux-reference.md` §7; session 3 decision (scope type only). |
 | Traceability | US-T-12, US-T-13, US-T-14, US-R-01, US-M-03 · T-12.1, T-12.2, T-12.4, T-12.5, T-13.1, T-13.2, T-14.1, R-01.1, M-03.1 · T2, R5, M2 |
-| Fit criterion | [boolean] On the custom fixture with the `sw-life-cycle` preset the UI shows exactly: scope `minor-v0.1`, project completion 25 %, tasks 1/4, open bugs 1, pending gates 3, coverage 3/5 — and pending gates 2 after `bug-001-toast-overlap` is approved to `triaged`. |
+| Fit criterion | [boolean] On the custom fixture with the `sw-life-cycle` preset the UI shows exactly: scope `minor-v0.1`, project completion 25 %, tasks 1/4, open bugs 1, pending gates 3, coverage 3/5 — and, on the custom fixture with the pre-packs states and the preset (where `triaged` is both a gate and `waiting:`), pending gates 2 after `bug-001-toast-overlap` is approved to `triaged`. |
 | Verified by | unit · e2e |
 
 ### REQ-STATE-09 — UI settings defaults
@@ -119,5 +119,7 @@ Shell and conventions: `00_sard.md`.
   RP3-14 D2, D5): REQ-STATE-08 derives the current element the 0.2.2 way on every WingFoil version
   in v0.3 (`workflow status` from v0.4, not consumed in v0.3), the phase figures read-only until
   then (D2, decided by the approver), and a gate whose *Approve* `ui.yaml` holds is not a pending
-  gate (this step's reading of D5, for the approver's OK on the step's draft); the fit criterion is
-  unchanged.
+  gate (this step's reading of D5, for the approver's OK on the step's draft). Review round 1 (F8,
+  decided by the approver): the fit criterion's "pending gates 2" is pinned to the custom fixture
+  with the pre-packs states — with the packs `bug` `triaged` is a gate, so approving
+  `bug-001-toast-overlap` to it leaves 3 pending gates; the other figures are unchanged.

@@ -1,6 +1,6 @@
 # SARD — 2. Performance & Latency
 
-**Version:** 0.4 · **Date:** 2026-11-03 (0.2: coherence audit fixes — session 6; 0.3: REQ-PERF-05 v0.1 scope — release-planning v0.1 session 4 (audit A4); 0.4: REQ-PERF-11 the summary as counts, Today's 10 rows — release-planning v0.3, RP3-7 N1–N3, decided by the approver) · **Status:** Draft — specification-downcast session 4
+**Version:** 0.4 · **Date:** 2026-11-03 (0.2: coherence audit fixes — session 6; 0.3: REQ-PERF-05 v0.1 scope — release-planning v0.1 session 4 (audit A4); 0.4: REQ-PERF-11 the summary as counts, Today's 10 rows — release-planning v0.3, RP3-7 N1–N3, decided by the approver; T-02.6 traced — its review round 1, F5) · **Status:** Draft — specification-downcast session 4
 
 Shell and conventions: `00_sard.md`. All timings are measured in the **reference environment**
 (`00_sard.md`) on the **large fixture** unless a requirement says otherwise; p95 is over 20 runs.
@@ -124,6 +124,6 @@ Shell and conventions: `00_sard.md`. All timings are measured in the **reference
 | Release | v0.2 (bell, summary) · v0.3 (Recent activity, *Requires you* and *Waiting on others*, the summary as counts) |
 | Description | Lists that summarise show a fixed number of items, newest or most urgent first, with a link to the rest or a control that shows them. |
 | Rationale | Values proposed in sessions 2–3; keeps Today scannable. |
-| Traceability | US-S-21, US-S-23, US-T-08 · S-21.1, S-23.4, T-08.1 · S5, S7, T5 |
+| Traceability | US-S-21, US-S-23, US-T-08, US-T-02 · S-21.1, S-23.4, T-08.1, T-02.6 · S5, S7, T5, T1 |
 | Fit criterion | [numeric] Bell *Updates*: last 10 Memory events; all-roles summary: one tag per role with its count and no item (v0.3; v0.2: ≤ 3 items per role plus "N more"); Today's *Requires you* and *Waiting on others*: the first 10 rows of the filtered list, then "Show all (<n>)" (v0.3); Recent activity: last 5 Memory events. |
 | Verified by | e2e |

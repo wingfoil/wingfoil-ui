@@ -222,4 +222,8 @@ nominal and ≥ 1 edge scenario per story of the releases in scope).
   version in v0.3, `workflow status` from v0.4 (spec-005 §4). Same step, in the features: S-23.1
   and S-23.4 (`@v0.3`, the roles on one line, RP3-7 N1), M-02.4 (a bucket's state, D7), T-08.1 (no
   Timeline link, D8), G-03.1 … G-03.3 (the summary and the document dialog, the element page from
-  a document link, RP3-7 N5, N6). Decided by the approver.
+  a document link, RP3-7 N5, N6). Decided by the approver. Review round 1 (decided by the approver): new
+  T-02.4 … T-02.7 (the filters by type and state, the entry date, 10 rows then "Show all (n)", short
+  ids; RP3-7 N2, N4) and S-24.5 … S-24.7 (the held gates of `holds`, D5; a move at its `limits`,
+  D11); T-12.3 on the pre-packs states (F8); the scenarios of US-S-20, US-R-02 … US-R-04, US-R-10,
+  US-R-11, US-M-05, US-M-07, US-G-15 … US-G-17 tagged `@v0.4` with their stories (RP3-7, F2).
