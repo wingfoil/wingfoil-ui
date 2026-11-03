@@ -30,10 +30,10 @@ Feature: Documentation
   # --- US-R-09 ---
 
   @US-R-09 @v0.1 @nominal @fx-custom
-  Scenario: R-09.1 — Open a linked Memory file in the element panel
+  Scenario: R-09.1 — Open a linked Memory file as its element
     Given a document links to "../04_memory/design/dls/dl-001-initialise-wingfoil-before-inception.md"
     When I select that link
-    Then the element panel of "dl-001-initialise-wingfoil-before-inception" opens
+    Then the element "dl-001-initialise-wingfoil-before-inception" opens
 
   @US-R-09 @v0.1 @edge @fx-custom
   Scenario: R-09.2 — Mark a link that points nowhere

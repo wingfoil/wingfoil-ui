@@ -4551,7 +4551,7 @@
       "acceptance_criteria": [
         {
           "id": "R-09.1",
-          "title": "Open a linked Memory file in the element panel",
+          "title": "Open a linked Memory file as its element",
           "file": "docs/02_requirements/02_bdd/features/r/documentation.feature",
           "release": "v0.1",
           "kind": "nominal",
@@ -4561,7 +4561,7 @@
             "And I am Riley",
             "Given a document links to \"../04_memory/design/dls/dl-001-initialise-wingfoil-before-inception.md\"",
             "When I select that link",
-            "Then the element panel of \"dl-001-initialise-wingfoil-before-inception\" opens"
+            "Then the element \"dl-001-initialise-wingfoil-before-inception\" opens"
           ]
         },
         {
