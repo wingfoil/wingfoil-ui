@@ -1,6 +1,6 @@
 # SARD — 5. Security, Roles & Governance
 
-**Version:** 0.7 · **Date:** 2026-11-03 (0.2: coherence audit fixes — session 6; 0.3: REQ-SEC-02 session derived from the token, static files exempt — initial-design session 6; 0.4: REQ-SEC-05 v0.1 scope — release-planning v0.1 session 4 (audit A4); 0.5: REQ-SEC-07 cites the feedback note F-009 — dev-loop task-023; 0.6: REQ-SEC-08 fit criterion scoped to governed writes, update and push — release-planning v0.2 session 2; 0.7: REQ-SEC-05, REQ-SEC-06 v0.3 parts moved to v0.4 with G5, R8 — release-planning v0.3, RP3-7) · **Status:** Draft — specification-downcast session 4
+**Version:** 0.8 · **Date:** 2026-11-03 (0.2: coherence audit fixes — session 6; 0.3: REQ-SEC-02 session derived from the token, static files exempt — initial-design session 6; 0.4: REQ-SEC-05 v0.1 scope — release-planning v0.1 session 4 (audit A4); 0.5: REQ-SEC-07 cites the feedback note F-009 — dev-loop task-023; 0.6: REQ-SEC-08 fit criterion scoped to governed writes, update and push — release-planning v0.2 session 2; 0.7: REQ-SEC-05, REQ-SEC-06 v0.3 parts moved to v0.4 with G5, R8 — release-planning v0.3, RP3-7; 0.8: REQ-SEC-02, REQ-SEC-06, REQ-SEC-09 the scenarios of spec-011 §8, spec-012 §11 and adr-003 traced — release-planning v0.3 build-backlog (B3), decided by the approver) · **Status:** Draft — specification-downcast session 4
 
 Shell and conventions: `00_sard.md`. The protection of the local server (X4) is mandatory and
 distinct from permissions between team members, which belong to WingFoil (L6).
@@ -25,7 +25,7 @@ distinct from permissions between team members, which belong to WingFoil (L6).
 | Release | v0.1 |
 | Description | Each start issues a new random session token (≥ 128 bits), given in the printed URL's fragment, removed from the address bar after the first load and exchanged for a browser session; the token or that session is required on every API request and on the event stream — the static application files, which hold no project data, are exempt. Neither is ever written to logs or disk. |
 | Rationale | Only the user's browser session drives the projects (X4). |
-| Traceability | US-X-02, US-X-04 · X-02.1, X-02.2, X-04.1 · X4 |
+| Traceability | US-X-02, US-X-04 · X-02.1, X-02.2, X-04.1, X-02.3 · X4 |
 | Fit criterion | [percentage] 100 % of API and event-stream requests without the current token or a session derived from it (or with a previous start's) get HTTP 401 and start 0 processes; the token and the session id appear in 0 log lines. |
 | Verified by | e2e-smoke `local-security` |
 
@@ -69,7 +69,7 @@ distinct from permissions between team members, which belong to WingFoil (L6).
 | Release | v0.1 (documents) · v0.4 (Files — R8 moved from v0.3 by RP3-7) |
 | Description | Files, documents and links resolve paths with `realpath` and serve only paths inside the project repository; `..` and symlinks that escape it are refused or marked. |
 | Rationale | The UI never reads beyond the project (X4, R8). |
-| Traceability | US-R-11, US-R-09 · R-11.1, R-11.2, R-09.3 · R8, R4, X4 |
+| Traceability | US-R-11, US-R-09, US-G-03 · R-11.1, R-11.2, R-09.3, G-03.4 · R8, R4, X4 |
 | Fit criterion | [percentage] 100 % of the path-traversal cases of the security suite (`..`, encoded `..`, absolute paths, escaping symlinks) return 404 or the "outside the repository" marker with 0 bytes of the target. |
 | Verified by | e2e-smoke `local-security` |
 
@@ -102,7 +102,7 @@ distinct from permissions between team members, which belong to WingFoil (L6).
 | Release | v0.1 |
 | Description | `ui.yaml`, the local UI state and the server logs contain no secret: no session token, no git credential, no environment variable value. Git authentication is left to the user's git configuration. |
 | Rationale | Directive `security-secrets`; W-11 (the secret scan would include `ui.yaml`). |
-| Traceability | US-C-02, US-C-07, US-X-02 · C-02.1, C-07.2, X-02.1 · C1, C4, X4 |
+| Traceability | US-C-02, US-C-07, US-X-02, US-S-01 · C-02.1, C-07.2, X-02.1, S-01.4 · C1, C4, X4 |
 | Fit criterion | [boolean] A secret scan over `ui.yaml`, the local state directory and the logs after the e2e suite reports 0 findings. |
 | Verified by | e2e (secret scan) |
 

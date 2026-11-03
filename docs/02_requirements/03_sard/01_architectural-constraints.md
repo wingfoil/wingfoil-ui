@@ -1,6 +1,6 @@
 # SARD — 1. Architectural Constraints
 
-**Version:** 1.0 · **Date:** 2026-11-03 (0.2: coherence audit fixes — session 6; 0.3: page title, REQ-ARC-10 — initial-design session 2; 0.4: REQ-ARC-04 allow-list of direct reads — initial-design session 5; 0.5: REQ-ARC-06 last non-archived state — initial-design session 6; 0.6: REQ-ARC-07 moved to v0.3 — release-planning v0.1 session 2; 0.7: REQ-ARC-05, REQ-ARC-10 v0.1 scope — release-planning v0.1 session 4 (audit A4); 0.8: REQ-ARC-05 lint scope — dev-loop task-011; REQ-ARC-04 hash-only reads for the state key — dev-loop task-010; 0.9: REQ-ARC-03 write class (c) includes the automatic update's local `merge --ff-only` — release-planning v0.2 session 2, RP-41; 1.0: REQ-ARC-07 key `holds` — release-planning v0.3, RP3-14 D5; REQ-ARC-06, REQ-ARC-07 trace the v0.3 scenarios — its review round 2, m2) · **Status:** Draft — specification-downcast session 4
+**Version:** 1.1 · **Date:** 2026-11-03 (0.2: coherence audit fixes — session 6; 0.3: page title, REQ-ARC-10 — initial-design session 2; 0.4: REQ-ARC-04 allow-list of direct reads — initial-design session 5; 0.5: REQ-ARC-06 last non-archived state — initial-design session 6; 0.6: REQ-ARC-07 moved to v0.3 — release-planning v0.1 session 2; 0.7: REQ-ARC-05, REQ-ARC-10 v0.1 scope — release-planning v0.1 session 4 (audit A4); 0.8: REQ-ARC-05 lint scope — dev-loop task-011; REQ-ARC-04 hash-only reads for the state key — dev-loop task-010; 0.9: REQ-ARC-03 write class (c) includes the automatic update's local `merge --ff-only` — release-planning v0.2 session 2, RP-41; 1.0: REQ-ARC-07 key `holds` — release-planning v0.3, RP3-14 D5; REQ-ARC-06, REQ-ARC-07 trace the v0.3 scenarios — its review round 2, m2; 1.1: REQ-ARC-04, REQ-ARC-07, REQ-ARC-08 the scenarios of spec-011 §8, spec-012 §11 and adr-003 traced — release-planning v0.3 build-backlog (B3), decided by the approver) · **Status:** Draft — specification-downcast session 4
 
 Shell and conventions: `00_sard.md`.
 
@@ -46,7 +46,7 @@ Shell and conventions: `00_sard.md`.
 | Release | v0.1 |
 | Description | Governed state is read through CLI JSON output wherever the CLI exposes it (DNA, paths, workflows, Memory list and history, directive list). What the pinned CLI does not expose is read **directly, read-only, from a closed allow-list**, until WingFoil provides a read verb: `.wingfoil/memory.yaml` (type definitions: `id_pattern`, `path`, required fields, `states`), the Memory element files at the `path` given by `memory search`, and the directive files at the `path` given by `directives list`. Each directly read shape has a JSON schema in `contracts/` per supported WingFoil version, and an element's `status` read from its file must equal the one `memory search` returns (otherwise: read error). When the CLI of the project provides the read verb (capability detection), the direct read is not used. Git is read directly only for HEAD, branches, ahead/behind, working-tree status, `git log` and the working-tree files shown in Files. The server writes none of these files. **Exception:** hash-only reads of the changed and untracked entries listed by `git status --porcelain`, for the repository state key (REQ-STATE-02); their content is neither kept nor exposed. |
 | Rationale | One interpretation of the schema: WingFoil's, wherever the CLI exposes it. WingFoil 0.2.2 has no verb for type definitions, element content or directive bodies (checked 2026-10-02, initial-design session 5), yet the action descriptor, the element panel and the Directives view need them; a closed, schema-checked, read-only list keeps the drift visible and temporary. |
-| Traceability | US-S-25, US-M-01, US-R-05, US-S-27 · S-25.1, M-01.1, R-05.1, S-27.1 · S1, S8 |
+| Traceability | US-S-25, US-M-01, US-R-05, US-S-27, US-G-01 · S-25.1, M-01.1, R-05.1, S-27.1, G-01.5, G-01.6, G-01.7 · S1, S8 |
 | Fit criterion | [boolean] A unit test with a file-system spy over every read endpoint records — excluding the hash-only reads of changed and untracked entries for the state key (REQ-STATE-02, spec-001 §4.4) — 0 direct reads of `.wingfoil/*.yaml` other than `ui.yaml` and `memory.yaml`, 0 reads of Memory or directive files at a path not returned by the CLI, and 0 writes to any of them; every allow-listed shape has a schema and a passing contract test per supported version; a fixture whose element file `status` differs from `memory search` shows a read error for that element. |
 | Verified by | unit (fs spy) |
 
@@ -79,7 +79,7 @@ Shell and conventions: `00_sard.md`.
 | Release | v0.3 (read, inferred defaults, presets) — no `@v0.1` scenario reads `ui.yaml`; v0.1 opens a project whatever its `ui.yaml` (release-planning v0.1) |
 | Description | `.wingfoil/ui.yaml` holds the UI's conventions (`version`, `taxonomy`, `progress`, `holds`, `artifacts`) and nothing else — no permissions (they are WingFoil's, L6), no secrets. It has a JSON schema in `contracts/`. Without it, or when it fails the schema, the UI uses inferred defaults and warns. A preset (Kanban, Scrum, `sw-life-cycle`) is offered only when the file does not exist, refused when it maps a type the project does not declare, and validated before writing. `progress.scope` declares a type only; the current element is derived. |
 | Rationale | One versioned home for the UI's conventions, invisible to WingFoil's loaders (W-11); decisions of sessions 3 (permissions, scope). |
-| Traceability | US-C-01, US-C-02, US-C-03, US-C-04, US-T-12, US-S-24 · C-01.1, C-01.2, C-01.3, C-02.1, C-02.3, C-02.5, C-03.1, C-03.2, C-04.1, C-04.2, T-12.1, T-12.4, T-12.5, S-24.5, S-24.6 · C1, T2 |
+| Traceability | US-C-01, US-C-02, US-C-03, US-C-04, US-T-12, US-S-24 · C-01.1, C-01.2, C-01.3, C-02.1, C-02.3, C-02.5, C-03.1, C-03.2, C-04.1, C-04.2, T-12.1, T-12.4, T-12.5, S-24.5, S-24.6, C-04.3 · C1, T2 |
 | Fit criterion | [boolean] Each shipped preset validates against the schema and matches its fixture; the schema rejects a `permissions` key; every scenario listed passes. |
 | Verified by | unit (schema) · e2e |
 
@@ -90,7 +90,7 @@ Shell and conventions: `00_sard.md`.
 | Release | v0.1 (project list) · v0.2 (UI settings) |
 | Description | The project list, the role view per project, the UI settings and the action log (hash and time of each commit the UI caused, REQ-SEC-10) are stored per user in the operating system's user configuration directory, never in a project repository and never committed. |
 | Rationale | Personal preferences must not change the project (C4; `03_is-isnot.md`). |
-| Traceability | US-S-17, US-S-22, US-C-07 · S-17.1, S-17.2, S-22.3, C-07.1, C-07.2 · S2, S4, C4 |
+| Traceability | US-S-17, US-S-22, US-C-07, US-S-01 · S-17.1, S-17.2, S-22.3, C-07.1, C-07.2, S-01.4, S-01.5, S-01.6 · S2, S4, C4 |
 | Fit criterion | [boolean] After the full e2e suite, `git status --porcelain` of every fixture prints only the changes the scenarios made on purpose, and the state survives a server restart. |
 | Verified by | e2e |
 

@@ -21,6 +21,14 @@ Feature: Local server security
     When I stop the console, start it again and send an API request with the previous token
     Then the response status is 401
 
+  @US-X-02 @v0.3 @edge @fx-kanban
+  Scenario: X-02.3 — Recover a page the console no longer recognises, in place
+    Given the console was started with "--port 4870" and a browser tab shows the element page of "task-001-login-form"
+    And the console was stopped and started again with "--port 4870", and that tab shows "This page is no longer recognised by the console"
+    When I open the newly printed URL in another tab of the same browser and return to the first tab
+    Then the first tab shows the element page of "task-001-login-form" again, at the same address
+    And no address of either tab holds the token after the page has loaded
+
   # --- US-X-03 — loopback only ---
 
   @US-X-03 @v0.1 @nominal @fx-kanban

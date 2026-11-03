@@ -134,9 +134,27 @@
             "When I open the element panel of \"dl-003-empty\" and select \"Open document\"",
             "Then the dialog reads \"No content yet\""
           ]
+        },
+        {
+          "id": "G-03.4",
+          "title": "Open a linked element from a summary in the main region",
+          "file": "docs/02_requirements/02_bdd/features/g/decision-log.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running with the custom fixture open",
+            "Given I am Casey",
+            "And the summary of \"dl-002-use-fastify\" links to the file of \"dl-001-initialise-wingfoil-before-inception\"",
+            "And the side panel of \"dl-002-use-fastify\" is open on Today",
+            "When I select that link",
+            "Then the element page of \"dl-001-initialise-wingfoil-before-inception\" opens in the main region"
+          ]
         }
       ],
-      "dependencies": []
+      "dependencies": [
+        "TT-SEC-06"
+      ]
     },
     {
       "id": "US-G-08",
@@ -268,6 +286,22 @@
           ]
         },
         {
+          "id": "T-12.6",
+          "title": "Say that no reference is linked in the current release",
+          "file": "docs/02_requirements/02_bdd/features/t/progress-card.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running",
+            "And I am Casey",
+            "Given the custom fixture with the sw-life-cycle preset is open",
+            "And \"minor-v0.1\" is `released` and \"minor-v0.2\" is `in-development`",
+            "When I open Today",
+            "Then the progress card shows \"No references linked in minor-v0.2\" in place of the completion figure"
+          ]
+        },
+        {
           "id": "T-12.2",
           "title": "Show whole-project figures without ui.yaml",
           "file": "docs/02_requirements/02_bdd/features/t/progress-card.feature",
@@ -351,6 +385,39 @@
             "Given the custom fixture with the sw-life-cycle preset is open",
             "When I select \"Tasks 1/4\" on the progress card",
             "Then the Memory list shows the 4 tasks of release \"v0.1\", \"task-002-memory-list\" marked done"
+          ]
+        },
+        {
+          "id": "T-13.3",
+          "title": "Clear a figure filter",
+          "file": "docs/02_requirements/02_bdd/features/t/progress-card.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running",
+            "And I am Casey",
+            "Given the custom fixture with the sw-life-cycle preset is open",
+            "And the Memory list was opened from \"Pending gates 3\" on the progress card",
+            "When I clear the active filter \"Pending gates\"",
+            "Then the Memory list shows every non-archived element of the fixture",
+            "And no active filter is shown"
+          ]
+        },
+        {
+          "id": "T-13.4",
+          "title": "Ignore an unknown figure code",
+          "file": "docs/02_requirements/02_bdd/features/t/progress-card.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running",
+            "And I am Casey",
+            "Given the custom fixture with the sw-life-cycle preset is open",
+            "When I open the address \"/p/<project id>/memory?figure=bogus\" of the custom fixture",
+            "Then the Memory list shows every non-archived element of the fixture",
+            "And no active filter is shown"
           ]
         }
       ],
@@ -559,10 +626,27 @@
             "When I look at the state filters",
             "Then no filter \"Missing required references\" is shown"
           ]
+        },
+        {
+          "id": "M-04.3",
+          "title": "Show the filter with 0 when every required reference is present",
+          "file": "docs/02_requirements/02_bdd/features/m/missing-references.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running",
+            "And I am Morgan",
+            "Given the custom fixture with the sw-life-cycle preset is open on the Memory list",
+            "And `ref: US-X-08` is added to \"task-004-themes\" and `sard_ref: REQ-ARC-01` to \"adr-001-local-server\", committed outside the UI",
+            "When I look at the state filters",
+            "Then the filter \"Missing required references\" is shown with the count 0"
+          ]
         }
       ],
       "dependencies": [
-        "TT-INT-03"
+        "TT-INT-03",
+        "TT-STATE-08"
       ]
     },
     {
@@ -640,6 +724,86 @@
             "Given the unknown fixture is open",
             "When I open Traceability",
             "Then the page shows \"No references found — declare taxonomy patterns in ui.yaml\""
+          ]
+        },
+        {
+          "id": "R-01.5",
+          "title": "Show the rows outside the current release under the whole project",
+          "file": "docs/02_requirements/02_bdd/features/r/traceability.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running",
+            "And I am Casey",
+            "Given `ref: US-S-09` is added to \"dl-001-initialise-wingfoil-before-inception\" and committed outside the UI",
+            "And the custom fixture with the sw-life-cycle preset is open on Traceability, its scope \"minor-v0.1 (current release)\"",
+            "When I select the scope \"Whole project\"",
+            "Then the row \"US-S-09\" lists the linked element \"dl-001\"",
+            "And before the selection the table had no row \"US-S-09\""
+          ]
+        },
+        {
+          "id": "R-01.6",
+          "title": "Show a pattern reference by its id only",
+          "file": "docs/02_requirements/02_bdd/features/r/traceability.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running",
+            "And I am Casey",
+            "Given the custom fixture with the sw-life-cycle preset is open",
+            "When I open Traceability",
+            "Then the reference cell of the row \"US-M-01\" shows the category \"requirement\" and the id \"US-M-01\" only, with no title and no hover card"
+          ]
+        },
+        {
+          "id": "R-01.7",
+          "title": "List references between Memory elements without ui.yaml",
+          "file": "docs/02_requirements/02_bdd/features/r/traceability.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running",
+            "And I am Casey",
+            "Given `related: dl-001-initialise-wingfoil-before-inception` is added to \"task-001-cli-adapter\" and committed outside the UI",
+            "And the custom fixture without `ui.yaml` is open",
+            "When I open Traceability",
+            "Then a note reads \"No ui.yaml — only references to other Memory elements are recognised\"",
+            "And the row of \"dl-001-initialise-wingfoil-before-inception\" shows the category \"decision\" and the linked element \"task-001\""
+          ]
+        },
+        {
+          "id": "R-01.8",
+          "title": "Open the elements missing required references in Memory",
+          "file": "docs/02_requirements/02_bdd/features/r/traceability.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running",
+            "And I am Casey",
+            "Given the custom fixture with the sw-life-cycle preset is open on Traceability",
+            "When I select \"Show in Memory\" in the section \"Elements missing required references (2)\"",
+            "Then the Memory list shows exactly \"task-004-themes\" and \"adr-001-local-server\"",
+            "And the active filter reads \"Missing required references\""
+          ]
+        },
+        {
+          "id": "R-01.9",
+          "title": "Filter references by category",
+          "file": "docs/02_requirements/02_bdd/features/r/traceability.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running",
+            "And I am Casey",
+            "Given the custom fixture with the sw-life-cycle preset is open on Traceability",
+            "When I select the category filter \"requirement\"",
+            "Then the table shows exactly the rows \"US-M-01\" and \"US-S-01\""
           ]
         }
       ],
@@ -910,6 +1074,22 @@
             "Then a warning names the YAML error and its line",
             "And every value is marked \"inferred\""
           ]
+        },
+        {
+          "id": "C-04.3",
+          "title": "Show the ui.yaml warning on Traceability",
+          "file": "docs/02_requirements/02_bdd/features/c/ui-yaml.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running",
+            "Given the kanban fixture has a committed \".wingfoil/ui.yaml\" whose `progress.mode` is \"spiral\"",
+            "And I am Alex",
+            "When I open Traceability",
+            "Then a warning reads \"ui.yaml ignored: progress.mode must be sequence or flow (found spiral)\"",
+            "And a note reads \"No ui.yaml — only references to other Memory elements are recognised\""
+          ]
         }
       ],
       "dependencies": [
@@ -1169,6 +1349,22 @@
             "Then Waiting on others lists \"rl-v1\" with \"Waits for 1 referencing element to be done\"",
             "And the gate footer of \"rl-v1\" shows \"Waits for 1 referencing element to be done\" and no outcome button"
           ]
+        },
+        {
+          "id": "C-04.3",
+          "title": "Show the ui.yaml warning on Traceability",
+          "file": "docs/02_requirements/02_bdd/features/c/ui-yaml.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running",
+            "Given the kanban fixture has a committed \".wingfoil/ui.yaml\" whose `progress.mode` is \"spiral\"",
+            "And I am Alex",
+            "When I open Traceability",
+            "Then a warning reads \"ui.yaml ignored: progress.mode must be sequence or flow (found spiral)\"",
+            "And a note reads \"No ui.yaml — only references to other Memory elements are recognised\""
+          ]
         }
       ],
       "dependencies": [
@@ -1188,6 +1384,7 @@
       "verified_by": "unit · e2e",
       "stories": [
         "US-M-03",
+        "US-M-04",
         "US-R-01",
         "US-T-12",
         "US-T-13",
@@ -1336,6 +1533,151 @@
             "When I select the filter \"Missing required references\"",
             "Then the list shows exactly \"task-004-themes\" and \"adr-001-local-server\"",
             "And each row carries the badge \"missing refs\""
+          ]
+        },
+        {
+          "id": "T-12.6",
+          "title": "Say that no reference is linked in the current release",
+          "file": "docs/02_requirements/02_bdd/features/t/progress-card.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running",
+            "And I am Casey",
+            "Given the custom fixture with the sw-life-cycle preset is open",
+            "And \"minor-v0.1\" is `released` and \"minor-v0.2\" is `in-development`",
+            "When I open Today",
+            "Then the progress card shows \"No references linked in minor-v0.2\" in place of the completion figure"
+          ]
+        },
+        {
+          "id": "T-13.3",
+          "title": "Clear a figure filter",
+          "file": "docs/02_requirements/02_bdd/features/t/progress-card.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running",
+            "And I am Casey",
+            "Given the custom fixture with the sw-life-cycle preset is open",
+            "And the Memory list was opened from \"Pending gates 3\" on the progress card",
+            "When I clear the active filter \"Pending gates\"",
+            "Then the Memory list shows every non-archived element of the fixture",
+            "And no active filter is shown"
+          ]
+        },
+        {
+          "id": "T-13.4",
+          "title": "Ignore an unknown figure code",
+          "file": "docs/02_requirements/02_bdd/features/t/progress-card.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running",
+            "And I am Casey",
+            "Given the custom fixture with the sw-life-cycle preset is open",
+            "When I open the address \"/p/<project id>/memory?figure=bogus\" of the custom fixture",
+            "Then the Memory list shows every non-archived element of the fixture",
+            "And no active filter is shown"
+          ]
+        },
+        {
+          "id": "R-01.5",
+          "title": "Show the rows outside the current release under the whole project",
+          "file": "docs/02_requirements/02_bdd/features/r/traceability.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running",
+            "And I am Casey",
+            "Given `ref: US-S-09` is added to \"dl-001-initialise-wingfoil-before-inception\" and committed outside the UI",
+            "And the custom fixture with the sw-life-cycle preset is open on Traceability, its scope \"minor-v0.1 (current release)\"",
+            "When I select the scope \"Whole project\"",
+            "Then the row \"US-S-09\" lists the linked element \"dl-001\"",
+            "And before the selection the table had no row \"US-S-09\""
+          ]
+        },
+        {
+          "id": "R-01.6",
+          "title": "Show a pattern reference by its id only",
+          "file": "docs/02_requirements/02_bdd/features/r/traceability.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running",
+            "And I am Casey",
+            "Given the custom fixture with the sw-life-cycle preset is open",
+            "When I open Traceability",
+            "Then the reference cell of the row \"US-M-01\" shows the category \"requirement\" and the id \"US-M-01\" only, with no title and no hover card"
+          ]
+        },
+        {
+          "id": "R-01.7",
+          "title": "List references between Memory elements without ui.yaml",
+          "file": "docs/02_requirements/02_bdd/features/r/traceability.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running",
+            "And I am Casey",
+            "Given `related: dl-001-initialise-wingfoil-before-inception` is added to \"task-001-cli-adapter\" and committed outside the UI",
+            "And the custom fixture without `ui.yaml` is open",
+            "When I open Traceability",
+            "Then a note reads \"No ui.yaml — only references to other Memory elements are recognised\"",
+            "And the row of \"dl-001-initialise-wingfoil-before-inception\" shows the category \"decision\" and the linked element \"task-001\""
+          ]
+        },
+        {
+          "id": "R-01.8",
+          "title": "Open the elements missing required references in Memory",
+          "file": "docs/02_requirements/02_bdd/features/r/traceability.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running",
+            "And I am Casey",
+            "Given the custom fixture with the sw-life-cycle preset is open on Traceability",
+            "When I select \"Show in Memory\" in the section \"Elements missing required references (2)\"",
+            "Then the Memory list shows exactly \"task-004-themes\" and \"adr-001-local-server\"",
+            "And the active filter reads \"Missing required references\""
+          ]
+        },
+        {
+          "id": "R-01.9",
+          "title": "Filter references by category",
+          "file": "docs/02_requirements/02_bdd/features/r/traceability.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running",
+            "And I am Casey",
+            "Given the custom fixture with the sw-life-cycle preset is open on Traceability",
+            "When I select the category filter \"requirement\"",
+            "Then the table shows exactly the rows \"US-M-01\" and \"US-S-01\""
+          ]
+        },
+        {
+          "id": "M-04.3",
+          "title": "Show the filter with 0 when every required reference is present",
+          "file": "docs/02_requirements/02_bdd/features/m/missing-references.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running",
+            "And I am Morgan",
+            "Given the custom fixture with the sw-life-cycle preset is open on the Memory list",
+            "And `ref: US-X-08` is added to \"task-004-themes\" and `sard_ref: REQ-ARC-01` to \"adr-001-local-server\", committed outside the UI",
+            "When I look at the state filters",
+            "Then the filter \"Missing required references\" is shown with the count 0"
           ]
         }
       ],
