@@ -9136,8 +9136,8 @@
       "area": "PERF",
       "wingfoil_min": "0.2.2",
       "requirement": "REQ-PERF-11",
-      "description": "Lists that summarise show a fixed number of items, newest or most urgent first, with a link to the rest.",
-      "fit_criterion": "[numeric] Bell *Updates*: last 10 Memory events; all-roles summary: ≤ 3 items per role plus \"N more\"; Recent activity: last 5 Memory events.",
+      "description": "Lists that summarise show a fixed number of items, newest or most urgent first, with a link to the rest or a control that shows them.",
+      "fit_criterion": "[numeric] Bell *Updates*: last 10 Memory events; all-roles summary: one tag per role with its count and no item (v0.3; v0.2: ≤ 3 items per role plus \"N more\"); Today's *Requires you* and *Waiting on others*: the first 10 rows of the filtered list, then \"Show all (<n>)\" (v0.3); Recent activity: last 5 Memory events.",
       "verified_by": "e2e",
       "stories": [
         "US-S-21",
@@ -10079,7 +10079,7 @@
       "area": "STATE",
       "wingfoil_min": "0.2.2",
       "requirement": "REQ-STATE-08",
-      "description": "Completion and iterated figures cover the current element of the `progress.scope` type: with WingFoil 0.3 the one `workflow status` reports; before it, the most advanced element not in its first or last non-archived state (ties: lowest version); none → whole project. Reference completion = done linked elements / linked elements; project completion = unweighted mean over references with ≥ 1 linked element (Q8); coverage = elements carrying all `requires` categories / elements whose type has `requires`, project-wide. Open bugs and pending gates are project-wide; a state both gate and `waiting:` is not a pending gate.",
+      "description": "Completion and iterated figures cover the current element of the `progress.scope` type: in v0.3, on every WingFoil version, the most advanced element not in its first or last non-archived state (ties: lowest version); none → whole project; from v0.4, on WingFoil 0.3 or later, the one `workflow status` reports. The phase figures are read-only until v0.4 (spec-005 §4). Reference completion = done linked elements / linked elements; project completion = unweighted mean over references with ≥ 1 linked element (Q8); coverage = elements carrying all `requires` categories / elements whose type has `requires`, project-wide. Open bugs and pending gates are project-wide; a state both gate and `waiting:` is not a pending gate, nor a gate whose *Approve* `ui.yaml` holds (spec-005 §4a).",
       "fit_criterion": "[boolean] On the custom fixture with the `sw-life-cycle` preset the UI shows exactly: scope `minor-v0.1`, project completion 25 %, tasks 1/4, open bugs 1, pending gates 3, coverage 3/5 — and pending gates 2 after `bug-001-toast-overlap` is approved to `triaged`.",
       "verified_by": "unit · e2e",
       "stories": [
