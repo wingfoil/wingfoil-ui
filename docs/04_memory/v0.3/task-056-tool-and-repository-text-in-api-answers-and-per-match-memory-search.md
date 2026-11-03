@@ -4,35 +4,114 @@ type: task
 title: "Tool and repository text in API answers and per-match memory search"              # REQUIRED — e.g. "Today view: pending gates list (REQ-UI-03)"
 status: draft          # auto-set by wingfoil
 release: "v0.3"            # REQUIRED — target release version, e.g. "v0.1"
-sprint: ""             # REQUIRED — the Sprint that selects it (sprint-NNN), or "n/a — <reason>" until one does (methodology/scrum)
-module: ""             # optional — server | web | contracts (dna.yaml modules)
-priority: ""           # optional — high | medium | low
-tags: []               # optional — additional labels, e.g. [today, a11y]
-ref: ""                # optional — backlog item ID, e.g. "TASK-001"
-bug: []                # optional — LIST of bug ids this task closes. Two cases: a fix task derived from a bug
+sprint: "sprint-001"             # REQUIRED — the Sprint that selects it (sprint-NNN), or "n/a — <reason>" until one does (methodology/scrum)
+module: "governance"             # optional — server | web | contracts (dna.yaml modules)
+priority: "high"           # optional — high | medium | low
+tags: ["v0.3","governance","server","security"]               # optional — additional labels, e.g. [today, a11y]
+ref: "GOV"                # optional — backlog item ID, e.g. "TASK-001"
+bug: ["bug-024-one-memory-file-without-frontmatter-hides-the-whole-elements-list-the-server-answers-502", "bug-027-commit-text-served-by-the-api-is-not-passed-through-the-tool-text-sanitiser"]                # optional — LIST of bug ids this task closes. Two cases: a fix task derived from a bug
                        # by release-planning, and a bug ABSORBED into an existing task's Acceptance Criteria because that
                        # task already owns the ground. Each bug listed moves with its own verbs (`.wingfoil/memory.yaml`):
                        # the approver's `memory approve` triaged -> planned, `memory submit` planned -> in-progress when
                        # this task starts, then submit/approve along its machine; no `bug.sync_state` since the packs adoption
-depends_on: []         # optional — ids of tasks whose Execution Notes constrain this one; authored at planning time, may be appended during design
+depends_on: ["task-054-ui-configuration-file-read-with-its-schema-and-the-config-section"]         # optional — ids of tasks whose Execution Notes constrain this one; authored at planning time, may be appended during design
 tmpl_version: 260703   # Orignal template version
 ---
 
 ## Description
 
-<!-- What needs to be built and why. Reference the user story if applicable:
-     "As <persona>, I want <action> so that <benefit>." -->
+Governance task of `minor-v0.3` (a security class): every string a read body takes from a tool or
+from the repository reaches the page through one sanitising rule, and one bad `memory search`
+match no longer hides a project. It absorbs:
+
+- **bug-024** (RP3-14 D10): `memory search` is validated per match on every version (spec-001 §2):
+  the envelope as a whole, then each match on its own; a failing match is dropped and becomes one
+  project warning naming its project-relative path, sanitised and counted with the CLI's warnings
+  (spec-004 §5). WingFoil 0.2.2 returns a file without frontmatter as a match (502 `cli-output`
+  today); 0.3.1 leaves it out (step 5 probe).
+- **bug-027** (RP3-14 D13): the commit texts of the history entries (`subject`, `reason`,
+  `author`, `approver`), of the Memory events (`author`, `approver`, `reason`) and of the
+  descriptor's `rejection` (`by`, `reason`) pass through the tool-message sanitiser where the API
+  serialises them, after the members' emails are matched (spec-001 §3, spec-002 §1, spec-004 §5).
+- **K1** (RP3-18): every repository display string of a read body passes through the character
+  escape `neutralise` (`server/src/git/redact.ts`) — element titles in `/elements`,
+  `/elements/:eid` and the Today rows, the `ui.yaml` strings `/config` echoes in `ui`; ids, types
+  and states stay raw (spec-004 §5, spec-012 §9).
+- **The refusals' `details[].detail`** (the RP3-7 scope item; the pre-step's Sessions 4–6): a
+  WingFoil 0.3.x refusal's `details` texts reach the 422 `cli-refused` body as `detail.reasons[]`,
+  redacted and sanitised like the message (spec-001 §2, spec-004 §5, RP3-15).
+
+**Backlog items:** GOV (governance — bug-024, bug-027, RP3-14 D10 and D13, RP3-18 K1, the refusals'
+`details[].detail` of the RP3-7 scope)
 
 ## Acceptance Criteria
 
-<!-- Reference the Gherkin feature file, or inline the key scenarios.
-     e.g. "See docs/02_requirements/02_bdd/features/today/pending-gates.feature"
-     For `web` tasks also point to the screen in docs/00_reference/ux-reference.md (§4.x) and the
-     prototype, and state the accessibility bar (keyboard path, axe clean). -->
+- **AC-1** — Design enumeration (the Wave 6 lesson of v0.2): every tool- and repository-sourced
+  string field of every API body, route by route against `contracts/api/`, classified as (a) tool
+  message → the whole sanitiser `redactLocalPaths`, (b) repository display text → `neutralise`,
+  (c) key (element id, type, state) → as returned; the table in the Execution Notes, reviewed by
+  the adversarial reviewer before the code.
+- **AC-2** — bug-024 (D10): red first — on WingFoil 0.2.2, a Markdown file without frontmatter
+  under a Memory path makes `GET /api/p/:pid/elements` answer 502 today; after the fix 200 with the
+  valid elements and a warning naming `docs/04_memory/…/<file>.md` (project-relative, sanitised,
+  within the cap of 200); Today, the bell's counts and the project header read the valid matches;
+  on 0.3.1 an unparsable frontmatter's `W_MEMORY_UNREADABLE` stays a warning; a failing envelope
+  stays a read error and every other command stays strict (a schema failure of `dna show` is still
+  a read error). The adapter's per-match check tested on both versions of the support matrix.
+- **AC-3** — bug-027 (D13): red first — a fixture commit whose subject and `Reason:` line hold
+  U+202E, other Cc/Cf characters, a 10 000-character line and an absolute local path: the history
+  route, `/events/memory` and the Today rows return them escaped, redacted and capped; a member
+  whose committed name holds a bidi character is still matched by email (the actor and the
+  rejection's member unchanged); the element panel's history and Today show the escapes as text
+  (component test).
+- **AC-4** — K1: an element whose title holds U+202E and a zero-width character is escaped in
+  `/elements`, `/elements/:eid` and the Today rows, and the echoed `ui.yaml` strings of `/config`
+  are escaped; ids, types and states are byte-for-byte those of `memory search`. One API test
+  sweeps every route of the AC-1 table on one hostile fixture: no body holds a Cc, Cf, Cs, Zl or Zp
+  character other than newline and tab. The serialiser helper is named in the Execution Notes for
+  the routes that land later (the candidates of
+  task-057-element-addressing-with-short-ids-and-long-ids if it merges after this task; the
+  `ElementRef`, `scope.current` and pattern references of
+  task-059-progress-traceability-and-missing-reference-api).
+- **AC-5** — `detail.reasons[]`: a captured WingFoil 0.3.1 refusal with `details` (a submit with an
+  empty required field, W-01) in the contract samples; the 422 `cli-refused` body carries each
+  `detail` redacted (project, repository, package and home folders, URL userinfo) and sanitised
+  (contract test of the error envelope in `contracts/api/`); a 0.2.2 refusal, which has no
+  `details`, is unchanged; how the refusal toast shows the reasons is decided at design (catalogue
+  strings, X-09.1).
+- **AC-6** — Docs: spec-001 §2/§3, spec-002 §1 and spec-004 §5 hold as written or are amended with
+  a dated Process Note; `CHANGELOG.md` *Unreleased* *Fixed* (bug-024, bug-027) and *Security*
+  where the format has it; whether bug-024 (0.2.2 returning a non-element as a match) needs a note
+  in `docs/wingfoil-feedback/` is decided at design (0.3.1 fixed it; rule 7 of directive
+  `wingfoil-cli`).
+- **AC-7** — Gates: the checks of `CLAUDE.md`, `npm run docs:api`, `npm run test:contract`,
+  `check_tasks.py v0.3`; `test:e2e:chromium` plus the element-panel, Today and notification-bell
+  specs on the three engines; results with commands in the Execution Notes.
 
 ## Implementation Notes
 
-<!-- Optional: known constraints, design hints, or links to relevant ADRs. -->
+- Wave 1 (release-planning v0.3 step 6, B1). It depends on
+  task-054-ui-configuration-file-read-with-its-schema-and-the-config-section for the `/config`
+  `ui` strings it escapes: read its Execution Notes first.
+- Read at design: spec-001 §2, §3 and its Process Notes; spec-002 §1; spec-004 §5; spec-012 §9;
+  spec-011 §3; task-046's Execution Notes (the sanitiser's rules, its review rounds and the lesson
+  *For the retrospective of minor-v0.3*); task-048 D48-8 (where bug-027 was found); the code of
+  `server/src/git/redact.ts`, `server/src/cli/adapter.ts` (`CliOutputError`) and the history route
+  of `server/src/http/project-routes.ts`.
+- The bugs move with their own verbs: the approver's `memory approve` (`triaged → planned`) before
+  the task starts, then `memory submit` (`planned → in-progress`) when it starts, by the
+  coordinator (directive `definition-of-done` *Integrated*).
+- **Security probes at design**: `GIT_TRACE=1` of the `memory history` and the `git log` reads the
+  task serialises, and of `memory search` on both versions; a snapshot of `.git` before and after;
+  a dump of the children's environment (no change expected: the task changes what the server
+  accepts and serialises, not what it runs).
+- Git-touching (fixture commits with hostile messages): the affected suites also run under the
+  strict-identity recipe of `test/README.md` *Git identity* (dl-011).
+- An adversarial reviewer who runs the tools (git with hostile commit messages, hooks writing
+  hostile text, curl on every route) and checks the AC-1 enumeration against the schemas, not
+  against the diff.
+- Heavy gates through the machine-free slot of the dev-loop rules, in the task's worktree; e2e: the
+  full suite on Chromium plus the task's own specs on the three engines.
 
 ## Execution Notes
 
