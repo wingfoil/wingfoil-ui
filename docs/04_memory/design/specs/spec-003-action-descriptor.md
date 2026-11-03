@@ -40,7 +40,7 @@ derivation exact.
 | Input | Source |
 |-------|--------|
 | Resolved states per type (`sequence`, `gates{state: {reject}}`, `waiting[]`, `limits{state: N}`) | `memory.yaml`, spec-001 §4.1 |
-| Approve conditions per type (v0.3) | the effective `ui.yaml` and its presets, spec-005 |
+| Held gates per type and gate state (v0.3) | `holds` of the effective `ui.yaml` or its preset, spec-005 §1, §4a |
 | Elements (`id`, `type`, `status`) | `memory search`, spec-001 §3 (archived elements, fetched lazily, are final) |
 | Events per element (creator, last transition, last reject, submitters) | spec-002 §3 (project-wide parse) |
 | Team (`members[{name, email, roles}]`, `agents`) | `dna show` |
@@ -71,7 +71,7 @@ for custom `adr`, whose `seq` ends with `superseded`):
 | Kind | Verbs offered | Role required (0.2.2, 0.3.x) |
 |------|---------------|-----------------------|
 | `first`, `work` | `submit` → next state of `seq` | none (any identified team member) |
-| `gate` | `approve` → next state of `seq` (not offered while an approve condition of the type does not hold, below); `reject` → `gates[s].reject` | `approver` for both (W-13) |
+| `gate` | `approve` → next state of `seq` (not offered while the gate is held, below); `reject` → `gates[s].reject` | `approver` for both (W-13) |
 | `gate-waiting` | `reject` → `gates[s].reject` only; the advance is the workflow engine's (a configuration that declares a gate `waiting`, e.g. the pre-packs `custom` fixture on 0.2.2) | `approver` |
 | `waiting` | none — "Waiting for the workflow engine (state: `s`)" | — |
 | `last`, `off-sequence`, `archived` | none — final (WingFoil allows no verb but `deprecate` from them); exception: a `last` state that is also a gate offers its `reject` (WingFoil accepts it) | `approver` for that `reject` |
@@ -80,16 +80,18 @@ for custom `adr`, whose `seq` ends with `superseded`):
 With WingFoil 0.3 (v0.4) the engine verbs (`workflow start/next`) are added from the capability
 table; this table does not change.
 
-**Approve conditions (v0.3, RP3-14 D5).** A gate that the CLI lets the approver pass at once may be
-meant for a later moment of the project's process — in this repository a `release` `releasing` is
-approved only after its publication and a `release-line` `active` only when all its releases are
-`released` (`.wingfoil/README.md` *Deviations from the packs* R-1, R-2 residuals; directive
-`release-conventions`). The project states such a moment as a per-type approve condition in
-`.wingfoil/ui.yaml` or its preset (spec-005, which defines the key and the conditions). While the
-condition of the element's type does not hold, `approve` is not offered: the gate footer shows an
-informational line with the condition's reason (`approveHeld`, §8), and the element is not placed
-in Requires you as *Approve* and not counted in *Pending gates* (§5). The descriptor names no type
-or state (REQ-ARC-05): the condition and its reason come from the configuration.
+**Held gates (v0.3, RP3-14 D5; spec-005 §4a).** A gate that the CLI lets the approver pass at once
+may be meant for a later moment of the project's process — in this repository a `release`
+`releasing` is approved only after its publication and a `release-line` `active` only when all its
+releases are `released` (`.wingfoil/README.md` *Deviations from the packs* R-1, R-2 residuals;
+directive `release-conventions`). The project declares it per type and gate state in the `holds`
+key of `.wingfoil/ui.yaml` or its preset; spec-005 §4a fixes the values and when a hold applies:
+`never` (always held, reason `held-by-config`) and `when-references-done` (held while a
+non-archived element referencing it is not done, reason `held-until-references-done {count}`).
+While the gate is held, `approve` is not offered: the gate footer shows an informational line with
+the reason (`approveHeld`, §8); the gate's `reject` stays offered as above; the element is not
+placed in Requires you as *Approve* and is not a pending gate (§5). The descriptor names no type or
+state (REQ-ARC-05): the hold comes from the configuration.
 
 ### 4. Actor — who must act
 
@@ -118,7 +120,7 @@ For the current user `U` with role view `R`:
 
 - **Requires you** of view `R` lists an element when:
   - the actor is `U` (member actor) — in **every** role view of `U`; or
-  - the kind is `gate`, no approve condition of the type is unmet (§3, `approveHeld` absent), `U`
+  - the kind is `gate`, the gate is not held (§3, `approveHeld` absent), `U`
     holds `approver` and `R ∈ {reviewer, approver}` — action *Review* in the `reviewer` view,
     *Approve* in the `approver` view; or
   - the kind is `undeclared` and `R = tech-lead`; or
@@ -132,8 +134,7 @@ For the current user `U` with role view `R`:
   option A).
 - `gate-waiting` elements are **not** pending gates: not in Requires you, not counted in *Pending
   gates*; members holding `approver` see their reject outcome in the gate footer (the `reject` is
-  offered to `approver` holders only). Nor is a `gate` element whose approve condition does not
-  hold (§3).
+  offered to `approver` holders only). Nor is a held `gate` element (§3, spec-005 §4a).
 - Order in Requires you: rejected work first, then by time in the current state, oldest first.
 - **Hand transitions (erratum, 2026-11-03).** Since the packs adoption on WingFoil 0.3.1 every
   transition of this repository has a verb (`.wingfoil/memory.yaml`; directive `wingfoil-cli`
@@ -179,7 +180,9 @@ Row = { element: { id, type, title, status, localChanges }, descriptor }   # des
 - `summary` — the all-roles summary (S5): one line per role the member holds, in the order of
   `dna.team.members[].roles`; `count` = the length of Requires you of that role view, `items` its
   first ≤ 3 rows, `more` = `count − 3` when positive, else 0 (REQ-PERF-11, S-23.4). **Absent**
-  for a member holding one role (S-23.3).
+  for a member holding one role (S-23.3). In v0.3 *Your roles* is one line of counts (N1;
+  `ux-reference.md` §4.1 v0.3, S-23.1, S-23.4): `items` and `more` are no longer shown and are kept
+  in the output, unused (no decision to drop them).
 - The bell's *Updates* are not part of this output: `GET /api/p/:pid/events/memory?limit=10`
   (spec-004 §3, spec-002).
 
@@ -228,7 +231,7 @@ the role and the limit are left to the CLI, which is the authority (REQ-SEC-07; 
 ```
 { id, type, status, kind, tone, bucket?,
   verbs: [{ verb, to, role, enabled, reason? }],
-  approveHeld?: { condition, reason },      # v0.3: the approve condition (§3) that does not hold
+  approveHeld?: { condition, reason },      # v0.3: the hold of a held gate (§3, spec-005 §4a)
   actor: { kind: "member" | "role" | "engine" | "none", member?, role?, members?, fallback?,
            basis? },
   rejection?: { by, reason, at },
@@ -242,9 +245,10 @@ the role and the limit are left to the CLI, which is the authority (REQ-SEC-07; 
 - `verbs[].role` is `null` for `submit` (no role required); `reason` is the code of §6.
 - `actor.member` is `{ name, email }`; `actor.members` lists names; `actor.fallback` is
   `"author-not-in-team"` on the `tech-lead` fallback of §4.
-- `approveHeld` (v0.3, RP3-14 D5) — set on a `gate` whose type's approve condition (§3, spec-005)
-  does not hold: `condition` its id, `reason` its reason as the configuration states it; `verbs`
-  then holds no `approve`.
+- `approveHeld` (v0.3, RP3-14 D5) — set on a held `gate` (§3): `condition` the `holds` value,
+  `never` or `when-references-done`; `reason` its code with parameters, `{ code: "held-by-config" }`
+  or `{ code: "held-until-references-done", count }` (spec-005 §4a), rendered by the web catalogue
+  (spec-008); `verbs` then holds no `approve`.
 - `actor.basis` (v0.2) — for a member actor, which rule of §4 named them: `submitter` (the
   submit that was rejected, or — v0.3, D6 — the submit that reached the gate an `approve` left),
   `creator` (the `add` event) or `last-transition`; rendered as
@@ -267,8 +271,8 @@ element list; `web/` renders it and never re-derives it.
 - Unit tests per kind and actor rule on the three fixtures' definitions (kanban defaults, custom
   `task`/`bug`/`release`/`adr`, unknown `story`/`note`), including `gate-waiting` (custom `bug`
   `triaged` of the pre-packs governance, `test/harness/fixtures/custom-governance-0.2/`; on the
-  packs it is a `gate`), the `work` actor after an `approve` (D6), an approve condition that does
-  not hold (D5), a target at its `limits` (D11), an undeclared state (`note` `on-hold`), a waiting
+  packs it is a `gate`), the `work` actor after an `approve` (D6), a held gate of each `holds`
+  value (D5), a target at its `limits` (D11), an undeclared state (`note` `on-hold`), a waiting
   state followed only by an archived one (custom `adr` `accepted` → `last`) and a gate on the last
   state (`reject` offered).
 - Contract check: for every verb the descriptor enables on a fixture, the CLI accepts it, unless it
@@ -276,7 +280,7 @@ element list; `web/` renders it and never re-derives it.
   `adr-001-local-server` with an empty `sard_ref`, W-01); for every
   `submit`/`approve`/`reject` the CLI accepts, the descriptor offered it — except transitions into
   the archived set (`superseded`), which the UI does not offer in the MVP, like `deprecate`, and an
-  `approve` held by an approve condition (§3). WingFoil 0.3.x's `park` and `amend` are accepted and
+  `approve` of a held gate (§3). WingFoil 0.3.x's `park` and `amend` are accepted and
   never offered.
 - The scenarios cited by REQ-ARC-06 pass.
 
@@ -354,4 +358,7 @@ element list; `web/` renders it and never re-derives it.
   the hand-transition erratum (W-04 only; W-20, W-25, W-26 superseded by the packs, W-34); §6 rule
   5 `state-limit` (D11) and the range example on the matrix [0.2.2, 0.3.1]; §9 W-02 removed from
   the citations, the fixtures' pre-packs scope, `park`/`amend` never offered; Consequences
-  qualified for the packs.
+  qualified for the packs. Aligned the same day with spec-005 §1 and §4a: the held gates come
+  from `ui.yaml`'s `holds` per type and gate state, `approveHeld` is `{condition: never |
+  when-references-done, reason: held-by-config | held-until-references-done {count}}`; §5 the
+  summary's `items` and `more` kept but unused in v0.3 (N1, S-23.1, S-23.4).
