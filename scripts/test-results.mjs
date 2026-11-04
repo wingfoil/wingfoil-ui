@@ -68,6 +68,7 @@ function summarise(results, commit, runUrl) {
   if (typeof results !== 'object' || results === null || !Array.isArray(results.testResults)) {
     throw new Refused('the results have no testResults list');
   }
+  if (results.testResults.length === 0) throw new Refused('the results list no test file');
   const suites = new Map();
   for (const [i, file] of results.testResults.entries()) {
     if (typeof file?.name !== 'string') throw new Refused(`testResults[${i}] has no file name`);
