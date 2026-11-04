@@ -69,6 +69,11 @@ above says otherwise, this section is right:
   hand-written `wf(plan): finalize <id> [active → done]` commit (directive `wingfoil-cli`, W-04).
   Every other transition has a verb (W-25, W-26 for releases and bugs) — WingFoil 0.3.1 accepts
   a hand-committed `status:` without the approver (W-34), so never write one.
+- **How each step is done here:** the packs' workflows say what a step does; the directives
+  `release-planning` (planning a release), `definition-of-done` (building a task) and
+  `release-conventions` (the release checks, publishing, seeding a release line) say how —
+  `workflow next` prints the directives of the step's role. This repository has no procedure files
+  of its own any more (task-049).
 - **`memory deprecate`** needs no approval in WingFoil 0.3.1 (any git identity, member or not, can
   run it on any element): run it only in `end-of-life` › `deprecate`, or with the approver's OK
   recorded in the active plan — never on your own (directive `wingfoil-cli`).

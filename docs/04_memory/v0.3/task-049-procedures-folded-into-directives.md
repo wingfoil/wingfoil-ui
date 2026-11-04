@@ -478,3 +478,22 @@ waits not counted); one review round 1–1.5 h — about one active day, at the 
 - **Q6 — a guard test for AC-5.** (A) the `git grep` of (e) recorded in these notes; the diagnostics
   test already fails if a procedure file is included again; (B) a new `test/governance/` test
   failing on any live mention of a removed file. **Recommended: A.**
+
+Decision (the approver, 2026-11-04: "q1-q6 come raccomandi"): Q1–Q6 as recommended, no split —
+the task stays whole (recorded in `backlog-item-rel-v0.3-plan` as W0-5 … W0-7).
+
+### red / green / refactor
+
+- **Red (AC-6):** `fa801ea` commits the one-row baseline (`service-ingest.yaml`
+  `W_WORKFLOW_UNBOUND_TOKEN` 2) with `.wingfoil/` unchanged; `npx vitest run
+  test/governance/workflow-diagnostics.test.ts` (load 3.77) fails: 1 failed, 3 passed, `added` the
+  8 procedure rows (`dev-loop.yaml` 1 + 17, `e2e-smoke.yaml` 24, `initial-design.yaml` 4 + 6,
+  `release-planning.yaml` 3 + 11, `user-docs.yaml` 6), `gone` none.
+- **The `.wingfoil/` change** is prepared in the worktree, not committed, waiting for the
+  approver's OK (AC-8). Checked before the OK: `npm run -s wingfoil -- directives list --format
+  json` lists `directives/custom/release-planning.md` for architect, product-owner, tech-lead, and
+  one warning, the `definition-of-done` override (W-23) (AC-2); the same diff applied and committed
+  on a throwaway clone gives `workflow list` exactly the two `service-ingest.yaml` warnings.
+- Outside `.wingfoil/`: `AGENTS.md` *This repository*, `CLAUDE.md` 0.16, `test/README.md` 0.52,
+  the docstrings of `check_tasks.py` and `check_releases.py`, the header and the synthetic file
+  name of `workflow-diagnostics.test.ts` (Q1-A: the code comments naming a step stay).

@@ -1,6 +1,6 @@
 # CLAUDE.md — agent entry point
 
-**Version:** 0.15 · **Date:** 2026-11-04 (0.1: release v0.1, `user-docs` `align-agent-docs`; 0.2: v0.1.0 released, release submit; 0.3: `test:smoke` wave gate — task-026; 0.4: e2e on three engines, inner-loop Chromium run — task-027; 0.5: `test:publish-smoke`, the publishing guide — task-029; 0.6: release v0.2 user-docs — v0.2 in release validation; 0.7: v0.2.0 released — git tag and npm, the first version by hand; 0.8: the GitHub Release of v0.2.0 made; 0.9: the pin on `wingfoil@0.3.1` — task-046; 0.10: the packs `base`, `software`, `methodology/scrum` adopted, `AGENTS.md` — governance-alignment-rel-v0.3-plan step 3; 0.11: BOOTSTRAP.md marked historical — its review round 1; 0.12: W-20, W-25, W-26 already superseded — round 2; 0.13: `wingfoil-cli` re-checked against 0.3.1 — step 4; 0.14: the next step and the directive version after the v0.3 pre-step — its step 7 review; 0.15: v0.3 in development in Sprint 1, directive 1.20 — release-planning-rel-v0.3-plan step 9)
+**Version:** 0.16 · **Date:** 2026-11-04 (0.1: release v0.1, `user-docs` `align-agent-docs`; 0.2: v0.1.0 released, release submit; 0.3: `test:smoke` wave gate — task-026; 0.4: e2e on three engines, inner-loop Chromium run — task-027; 0.5: `test:publish-smoke`, the publishing guide — task-029; 0.6: release v0.2 user-docs — v0.2 in release validation; 0.7: v0.2.0 released — git tag and npm, the first version by hand; 0.8: the GitHub Release of v0.2.0 made; 0.9: the pin on `wingfoil@0.3.1` — task-046; 0.10: the packs `base`, `software`, `methodology/scrum` adopted, `AGENTS.md` — governance-alignment-rel-v0.3-plan step 3; 0.11: BOOTSTRAP.md marked historical — its review round 1; 0.12: W-20, W-25, W-26 already superseded — round 2; 0.13: `wingfoil-cli` re-checked against 0.3.1 — step 4; 0.14: the next step and the directive version after the v0.3 pre-step — its step 7 review; 0.15: v0.3 in development in Sprint 1, directive 1.20 — release-planning-rel-v0.3-plan step 9; 0.16: the procedures folded into directives, `test:timing` at the wave gate and before a release — task-049)
 
 WingFoil UI: a local web UI for WingFoil-governed projects. A Node.js server (`server/`) drives
 each project's pinned `wingfoil` CLI and reads git; a React app (`web/`) shows the result;
@@ -50,6 +50,7 @@ limitation: [`CHANGELOG.md`](CHANGELOG.md).
 | How this repository was bootstrapped (historical: the `wingfoil@0.2.2` era, before the packs adoption — its CLI facts are superseded by directive `wingfoil-cli` and `.wingfoil/README.md`) | [`BOOTSTRAP.md`](BOOTSTRAP.md) |
 | Memory types with paths, id patterns, states and gates; workflows; role → directive bindings; directive list | [`.wingfoil/README.md`](.wingfoil/README.md) — the tables projected from `memory.yaml`, `workflows.yaml` and `roles.yaml` live there, not here |
 | Directives (loaded per role, `.wingfoil/roles.yaml`) | `.wingfoil/directives/custom/` and `built-in/` — global to every role: `wingfoil-cli`, `claim-evidence`, `claim-sources`, `documentation`, `doc-versioning`, `security-secrets` |
+| How each stage is done here (the packs' workflows say what, `workflow next` prints the directives of each step's role) | directives `release-planning` (planning a release), `definition-of-done` (building a task: design → red → green → refactor, review, done), `release-conventions` (the release checks, publishing, seeding a release line) |
 | The current phase and its decisions | the `active` plan in `docs/05_plans/` (one plan per workflow phase; e.g. `docs/05_plans/rl-v1/rel-v0.2/`) |
 | Tasks, specs, ADRs, decision logs, bugs | `docs/04_memory/` (`v0.1/`, `v0.2/`, `v0.3/`, `sprints/`, `design/specs/`, `design/adrs/`, `design/dls/`, `bugs/`) |
 | UX reference and prototype | `docs/00_reference/` |
@@ -91,8 +92,9 @@ limitation: [`CHANGELOG.md`](CHANGELOG.md).
 - **Checks before handing work back:** `npm run typecheck`, `npm run lint`, `npm run format:check`,
   `npm test` (or `test:coverage`); when the UI changes `npm run test:e2e:chromium` plus the task's
   own specs on the three engines (`npm run test:e2e -- <spec files>`); `npm run test:e2e` (Chromium,
-  Firefox, WebKit) at the end of every wave and at release validation; `test:timing` only on a
-  quiet machine; `npm run test:smoke` at the end of every wave and when packaging, the launcher or
+  Firefox, WebKit) at the end of every wave and at release validation; `test:timing` alone
+  through the machine-free slot at the end of every wave and at `pre-release-checks` (dl-009
+  action 6); `npm run test:smoke` at the end of every wave and when packaging, the launcher or
   the bin changes ([`test/README.md`](test/README.md) *Launch smoke*, *Temporary folders*);
   `npm run test:publish-smoke` when packaging or `.github/workflows/publish.yml` changes
   ([`docs/publishing.md`](docs/publishing.md) *Local staging smoke*).

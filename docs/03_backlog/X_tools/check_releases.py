@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""Stop-check of initial-design/seed-releases: the release elements of rl-v1 against the sequencer.
+"""Stop-check of seeding a line (`release-conventions` › seed-releases): the release elements of
+rl-v1 against the sequencer.
 
 Checks, for every docs/04_memory/planning/v1/minor-*.md:
 - every required field of `release` in .wingfoil/memory.yaml is set (`kind` included);
@@ -8,14 +9,15 @@ Checks, for every docs/04_memory/planning/v1/minor-*.md:
   06_features.md is in exactly one release;
 - `requirements` points to the existing by-release partition of the same version;
 - `release-line` = v1, status one of the `release` states of memory.yaml (`draft` at seeding; it
-  advances through release-cycle — release-planning-rel-v0.1-plan, session 1).
+  advances through the packs' verbs — `sprint` › `plan-release`, `release-submit`,
+  `release-publishing`).
 
 Usage: python3 docs/03_backlog/X_tools/check_releases.py
 Exit status 0 when every check passes.
 """
 import pathlib, re, sys, collections
 
-# release states of .wingfoil/memory.yaml (draft at seeding; advanced by release-cycle)
+# release states of .wingfoil/memory.yaml (draft at seeding; advanced by the packs' verbs)
 RELEASE_STATES = ("draft", "planning", "in-development", "releasing", "released")
 
 ROOT = pathlib.Path(__file__).resolve().parents[3]
