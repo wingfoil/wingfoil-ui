@@ -71,3 +71,129 @@ behaviour of the console changes.
      - design: tech-specs found missing/needing revision (dev-loop/design safety net).
      - red/green/refactor: deviations from the plan above, blockers, scope surprises.
      - review: rejection reasons and what changed on the next pass. -->
+
+### design (2026-11-04)
+
+Read: bug-023; task-034's Execution Notes (the automatic sync of a group, D34-5 (b), W4-7, the
+W4-3/W4-7 commit row); task-026 and bug-004 (`test/harness/load.ts`: `BIN_START_MS` 60 s,
+`BIN_TEST_MS` 120 s; the default gates load-independent); dl-009 action 4; `test/README.md`
+*Temporary folders*, *Fixtures* › *Git identity*; `test/server/sync/auto-sync.test.ts`,
+`test/server/http/git-console.ts`; `server/src/sync/auto-sync.ts` (`project()`).
+
+**What "a console start" is.** A call, inside one `it(…)` / `it.each(…)(…)` / `test(…)` body, of
+one of the three console starters of the default suite — `startGitConsole`
+(`test/server/http/git-console.ts`: a fixture copy, the project, write and git routes),
+`startReadConsole` (`test/server/http/read-console.ts`: the read routes on a loopback listener),
+`startLauncher` (`test/launcher/launcher.ts`: the real bin) — or of a function of the same file
+that calls one of them, directly or through another such function, or that both copies a fixture
+(`copyFixture`) and builds an app (`buildApp`) (`element-writes.test.ts` `start`). A start inside a
+loop (`for`, `for … of`, `while`, a `map`/`forEach`/`Promise.all` callback) counts as more than
+one. Starts in `beforeAll`/`beforeEach` are not in a test body (they have the 180 s hook budget).
+A snapshot opened on a fixture copy without an app (`snapshot/watcher.test.ts` `fresh`) is not a
+console.
+
+**D53-1 — RP-36 / D34-5 split (AC-1).** The case table moves to the `describe` scope with a
+column of its own for the case name (two cases share the code `refspec-outside-remotes`), and
+`it.each` makes one test per row, titled `RP-36 / D34-5: <case> → skipped, no transport, nothing
+recorded, logged by code`; each row starts one console (`start({}, { prepare })`) and runs one
+tick, with today's 30 s budget per test instead of one budget for four consoles. The `expect`
+message labels stay (they name the code in a failure).
+
+| Case (test title) | Preparation (unchanged) | Assertions (each one of today's loop) |
+|---|---|---|
+| `no-remote` | `git remote remove origin` | `p.transport` = 0; `header().sync.fetch` equals `{ lastSuccessAt: null, lastError: null }`; no log assertion — as today: `auto-sync.ts` `project()` returns on `remotes.length === 0` before the plan, so nothing is logged for it |
+| `no-fetch-target` | `branch --unset-upstream`; `origin` renamed `one`; remote `two` added | `p.transport` = 0; `sync.fetch` equals both null; the log lines contain `no-fetch-target` |
+| `refspec-outside-remotes` | `remote.origin.fetch` += `+refs/heads/*:refs/heads/*` | `p.transport` = 0; `sync.fetch` equals both null; the log lines contain `refspec-outside-remotes` |
+| `refspec-outside-remotes (W4-7: no URL in the configuration, a legacy remotes/<r> file)` | `remote.origin.url` unset; `.git/remotes/origin` with `URL:` and `Pull: +refs/heads/*:refs/heads/*` | `p.transport` = 0; `sync.fetch` equals both null; the log lines contain `refspec-outside-remotes` |
+
+Nothing dropped or loosened: the same three `expect` calls, the same matchers (`toBe(0)`,
+`toEqual`, `toContain`), the same exclusion of `no-remote` from the log check; the W4-7 comment
+moves with its row.
+
+**D53-2 — the other multi-console tests (AC-2).** Found by a TypeScript-AST scan of the 176
+default-suite files (`test/**/*.test.{ts,tsx}` without `e2e/`, `timing/`, `smoke/`) with the
+definition above; 13 test bodies:
+
+| File:line — test | Starts | Decision |
+|---|---|---|
+| `server/sync/auto-sync.test.ts:133` — RP-36 / D34-5 | 4 (loop) | split, D53-1 |
+| `server/sync/auto-sync.test.ts:125` — RP-18: never opened, or no longer listed | 2 | split: `RP-18: a listed project whose snapshot was never opened is not fetched` (`open: false`, `git` = 0) and `RP-18: a project no longer listed is not fetched` (`store.remove`, `git` = 0) |
+| `server/http/git-routes.test.ts:911` — no configured fetch refspec → 409; a negative refspec → 200 | 2 | split in two tests, one per refspec configuration, same assertions (`error.code` `refspec-outside-remotes`; status 200) |
+| `server/http/element-writes.test.ts:360` — an element file %s after the last observed state → 409 local-changes | 3 per row (loop over submit, approve, reject), 4 rows | split: `it.each` over the 12 (variant × verb) pairs, title with the variant and the verb; the body of one iteration unchanged (the flag-then-edit order of the hidden variants kept) |
+| `server/http/element-writes.test.ts:794` — W2-4: an absolute or escaping path from the CLI | 2 (loop) | split: `it.each` over the two paths |
+| `server/http/element-writes.test.ts:1060` — killed after the commit and the CLI answering another path | 2 (loop) | split: `it.each` over the two (verb, answer) rows |
+| `launcher/state.test.ts:44` — S-17.1, S-17.2: the list survives two restarts | 2 (loop) | kept: the restarts on one state directory are the behaviour |
+| `launcher/local-security.test.ts:142` — X-02.2: 401 to the previous start's token and session | 2 | kept: the second start of the bin is the behaviour |
+| `launcher/local-security.test.ts:344` — the event stream refuses the previous start's token and session | 2 | kept: same |
+| `launcher/role-view.test.ts:93` — S-22.3 across a restart | 2 | kept: same |
+| `launcher/settings.test.ts:119` — C-07.2: kept across a restart | 2 | kept: same |
+| `launcher/settings.test.ts:139` — D30-3: a second console on the same state directory | 2 | kept: two consoles running at once are the behaviour |
+| `launcher/clone-hooks.test.ts:82` — no hooks folder after SIGKILL and the next start (bug-008) | 2 | kept: the start after a SIGKILL is the behaviour |
+
+A kept test gets the reason as a marker comment in its body (D53-3) and its budget sized for its
+starts under load (D53-4, open question Q1).
+
+**D53-3 — a static check (AC-2: feasible, cheap).** `test/lint/one-console-per-test.test.ts`
+(default suite) runs the scan above with the TypeScript compiler API (`typescript` is a
+devDependency; the scan of the 176 files takes about 2 s): it fails with the list `file:line
+title (n starts)` of every test body with more than one console start that has no marker comment
+`// one-console-per-test: kept — <reason>` (a non-empty reason) in its body. The marker puts the
+reason next to the code (AC-2's comment) and leaves no separate allow-list to go stale. Its own
+cases on inline sources: two direct starts, a start in a `for … of` and in a `map` callback, a
+file-local wrapper and a wrapper of a wrapper, `copyFixture` + `buildApp`, an `it.each` row with
+one start (passes), a marker with an empty reason (fails), a start in `beforeAll` (not counted).
+Red first: committed before any split, it fails on the current tree listing the 13 bodies above
+(the output recorded in *red*). Limits, written in the test's header: lexical — a starter
+imported from another support file is counted only if it is one of the three named starters (a new
+shared starter is added to the list in the same change); a start through a dynamic call or a
+callback passed elsewhere is not seen. The rule also gets a short paragraph in `test/README.md`
+(next to the `test/harness/load.ts` entry) and the check its line under `test/lint/`.
+
+**D53-4 — tests kept with two starts.** `load.ts` sizes `BIN_TEST_MS` for "a test that starts the
+bin itself" (one start ≤ `BIN_START_MS`). Of the kept tests, `launcher/state.test.ts` S-17 runs two
+starts with `startLauncher`'s default 10 s limit inside the default 30 s test budget — the bug-023
+class on the bin; `local-security` (two starts, `BIN_TEST_MS`), `settings` C-07.2 (two starts and
+an event wait of `BIN_START_MS` each, in `BIN_TEST_MS`), D30-3 and `clone-hooks` (two starts and a
+clone in `BIN_TEST_MS`) can exceed their budget only when both starts take near their limit. See
+Q1.
+
+**Test plan.**
+
+- Red first: D53-3's check (fails on the current tree with the 13 bodies; then green after the
+  splits and markers).
+- Characterization (test-only change, behaviour unchanged): each split test passes on the
+  unchanged server code; the guard-removal proof for the RP-36 rows, uncommitted and recorded: (a)
+  `auto-sync.ts` `project()` without the `remotes.length === 0` return → `no-remote` fails; (b)
+  without the `plan.refusal` return → the three refusal rows fail (or show why one cannot — e.g.
+  the transport refuses before a process starts — and record it). The split RP-18,
+  `git-routes` and `element-writes` tests: same assertions, the per-row count of tests checked in
+  the run's output (e.g. 12 rows for the element-file variants).
+- Gates (AC-3, AC-5): `typecheck`, `lint`, `format:check`; `npx vitest run
+  test/server/sync/auto-sync.test.ts` alone; `test:coverage` (≥ 80 %) through the machine-free slot,
+  the 1-minute load and the slot wait in the log; the strict-identity run of *Fixtures* › *Git
+  identity* (a `git` wrapper outside the repository first on the `PATH`, `-c
+  user.useConfigOnly=true`, `remote set-head -a` after fetch/pull) for `test/server/sync/`, and for
+  the two other changed files that run git (`server/http/git-routes.test.ts`,
+  `server/http/element-writes.test.ts`); `check_tasks.py v0.3`. A run under load is recorded if one
+  happens; no budget is raised to make a test pass (the Q1 sizing is by the `load.ts` rule, not by a
+  failing run).
+- Docs (AC-4): `test/README.md` (the auto-sync line: one console per RP-36 case; the one-console
+  rule and the check; Version/Date bumped). `CHANGELOG.md`: no entry — *Unreleased* and *[0.2.0]*
+  list no test-only fix (no bug-004, bug-009, bug-011, bug-020, bug-021 line).
+
+**Size.** About 6 active hours: D53-1 and RP-18 0.5 h; `git-routes` and `element-writes` splits
+1 h; the static check with its cases 2 h; markers and the D53-4 budgets 0.5 h; docs 0.5 h; gates
+and the strict run 1.5 h (slot waits not counted). Under one active day.
+
+**Open questions.**
+
+- **Q1 — budgets of the kept tests.** Options: (a) size each kept test's budget for its own
+  starts by the `load.ts` rule — `state.test.ts` S-17 starts with `BIN_START_MS` and a test budget
+  of 2 × `BIN_TEST_MS`, the other kept tests 2 × `BIN_TEST_MS` (a constant of `load.ts`, e.g.
+  `binTestMs(starts)`); (b) only `state.test.ts` S-17, the one sized below the rule; (c) none —
+  report it as a new bug. Recommended: (a) — the same rule as bug-023's expected behaviour ("each
+  test's budget covers its own work under load"), a few lines, no failing run behind it.
+- **Q2 — dl-009 action 4 wording** ("no test starts more than one console in one test body"):
+  the seven kept tests test a restart or two consoles at once, which cannot be split. Recommended:
+  keep them with the marker (AC-2's "kept with the reason") and say so in the retrospective
+  input; no change to dl-009.
