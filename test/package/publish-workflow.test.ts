@@ -293,4 +293,43 @@ describe('publish.yml (task-029, AC-1)', () => {
     }
     expect(text).not.toMatch(/github\.event\.|\binputs\.|head_ref|pull_request|workflow_run/);
   });
+  it('hands the gate artifacts over unchanged: only gate uploads, nothing overwrites, downloads name only the artifact and folder (review M1)', () => {
+    for (const [name, job] of Object.entries(jobs)) {
+      for (const s of job.steps) {
+        if (s.uses?.startsWith('actions/upload-artifact@')) {
+          expect(name).toBe('gate');
+          expect(s.with ?? {}, name).not.toHaveProperty('overwrite');
+        }
+        // No `run-id`, `repository`, `github-token`, `pattern`: the same run's artifact, by its name.
+        if (s.uses?.startsWith('actions/download-artifact@'))
+          expect(Object.keys(s.with ?? {}).sort(), name).toEqual(['name', 'path']);
+      }
+    }
+  });
+
+  it('release: the create step is exactly name, env and run, with the exact gh command line; nothing continues on error (review M2, N2)', () => {
+    const release = jobs.release!;
+    expect(release).not.toHaveProperty('continue-on-error');
+    for (const s of release.steps) expect(s).not.toHaveProperty('continue-on-error');
+    const create = release.steps.find((s) => s.run?.includes('gh release create'))!;
+    expect(Object.keys(create).sort()).toEqual(['env', 'name', 'run']);
+    const [first, ...rest] = create.run!.trim().split('\n');
+    expect(first).toBe('set +x');
+    const tokens = rest.join(' ').replace(/\\/g, ' ').trim().split(/\s+/);
+    expect(tokens).toEqual([
+      'gh',
+      'release',
+      'create',
+      '"$GITHUB_REF_NAME"',
+      'dist-pack/*.tgz',
+      'test-reports/coverage-totals.json',
+      'test-reports/test-results.md',
+      '--draft',
+      '--verify-tag',
+      '--title',
+      '"$GITHUB_REF_NAME"',
+      '--notes-file',
+      'release-notes/release-notes.md',
+    ]);
+  });
 });

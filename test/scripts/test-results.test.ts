@@ -108,6 +108,7 @@ describe('test-results.mjs (task-052, D52-7)', () => {
 
   it.each([
     ['no testResults', {}],
+    ['no test file (review N4)', { testResults: [] }],
     ['a name that is not a string', { testResults: [{ name: 3, status: 'passed', assertionResults: [] }] }],
     [
       'an unknown status',

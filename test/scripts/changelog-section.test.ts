@@ -123,6 +123,32 @@ describe('changelog-section.mjs (task-052, D52-2)', () => {
     expect(result.stderr).toMatch(/^refused: [^\n]+\n$/);
   });
 
+  it.each([
+    ['another scheme', '[x](javascript:alert(1))'],
+    ['plain http', '[x](http://example.com/a)'],
+    ['a protocol-relative target', '[x](//example.com/a)'],
+    ['a root-relative target', '[x](/etc/passwd)'],
+    ['a parent segment', '[x](../outside.md)'],
+    ['a parent segment inside the path', '[x](docs/../../outside.md)'],
+    ['a reference definition with another scheme', '[x]: file:///etc/passwd'],
+    ['a reference definition with a parent segment', '[x]: ../outside.md'],
+  ])('refuses a link target with %s (review N1)', async (_, line) => {
+    const result = await notes(
+      `## [1.2.3] - 2026-11-20\n\n- ${line.startsWith('[x]:') ? 'a' : line}\n${line.startsWith('[x]:') ? `\n${line}\n` : ''}`,
+      'v1.2.3',
+    );
+    expect(result.code).toBe(1);
+    expect(result.stdout).toBe('');
+    expect(result.stderr).toMatch(/^refused: [^\n]+\n$/);
+  });
+
+  it('leaves links inside inline code spans as they are (review N1)', async () => {
+    const out = (
+      await notes('## [1.2.3] - 2026-11-20\n\n- write `[a](b.md)` or ``[c](../d.md)``, see [e](e.md)\n', 'v1.2.3')
+    ).stdout;
+    expect(out).toContain('- write `[a](b.md)` or ``[c](../d.md)``, see [e](' + BLOB + '/v1.2.3/e.md)');
+  });
+
   it('refuses a run URL that is not a run of a GitHub repository; a usage error exits 2', async () => {
     const bad = await notes(CHANGELOG, 'v1.2.3', ['--run-url', 'https://example.com/x']);
     expect(bad.code).toBe(1);
