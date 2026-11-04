@@ -3,7 +3,7 @@
 // Vitest's JSON results with fixed fields only — counts per suite (the first folder under `test/`),
 // the commit, the run URL. Vitest's results name every file by its absolute path and carry test
 // titles and failure messages; none of them may reach the asset (dl-005).
-import { writeFile } from 'node:fs/promises';
+import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { REPO_ROOT } from '../harness/cli.js';
@@ -13,10 +13,14 @@ const SCRIPT = path.join(REPO_ROOT, 'scripts', 'test-results.mjs');
 const SHA = '0123456789abcdef0123456789abcdef01234567';
 const RUN_URL = 'https://github.com/wingfoil/wingfoil-ui/actions/runs/39497286374';
 let ws: TempWorkspace;
+/** The working directory of the script: a folder of the workspace, so a file can lie beside it. */
+let repo: string;
 
 beforeAll(async () => {
   ws = await TempWorkspace.create('wfui-task-052-results-');
-  await writeFile(path.join(ws.dir, 'package.json'), JSON.stringify({ name: 'wingfoil-ui', version: '0.3.0' }));
+  repo = path.join(ws.dir, 'repo');
+  await mkdir(repo);
+  await writeFile(path.join(repo, 'package.json'), JSON.stringify({ name: 'wingfoil-ui', version: '0.3.0' }));
 });
 
 afterAll(async () => {
@@ -41,7 +45,7 @@ function file(name: string, statuses: Status[], status = statuses.includes('fail
 
 /** Results as Vitest's JSON reporter writes them (absolute file names, titles, messages, coverage). */
 function results(): Record<string, unknown> {
-  const at = (...parts: string[]) => path.join(ws.dir, ...parts);
+  const at = (...parts: string[]) => path.join(repo, ...parts);
   return {
     numTotalTests: 9,
     success: false,
@@ -53,6 +57,8 @@ function results(): Record<string, unknown> {
       file(at('test', 'top.test.ts'), ['passed']),
       file(at('test', 'Odd Folder', 'x.test.ts'), ['passed']),
       file('/tmp/x/test/server/elsewhere.test.ts', ['passed']),
+      // Outside the working directory, in a `test/server` folder of its own.
+      file(path.join(ws.dir, 'test', 'server', 'outside.test.ts'), ['passed']),
     ],
     coverageMap: { [at('server', 'src', 'app.ts')]: { path: at('server', 'src', 'app.ts') } },
   };
@@ -61,7 +67,7 @@ function results(): Record<string, unknown> {
 async function summarise(input: unknown, args: string[] = ['--commit', SHA, '--run-url', RUN_URL]) {
   const name = path.join(ws.dir, `results-${Math.random().toString(36).slice(2)}.json`);
   await writeFile(name, typeof input === 'string' ? input : JSON.stringify(input));
-  return ws.run(process.execPath, [SCRIPT, name, ...args], { cwd: ws.dir, allowFailure: true });
+  return ws.run(process.execPath, [SCRIPT, name, ...args], { cwd: repo, allowFailure: true });
 }
 
 describe('test-results.mjs (task-052, D52-7)', () => {
@@ -74,11 +80,11 @@ describe('test-results.mjs (task-052, D52-7)', () => {
     expect(md).toContain(`Commit \`${SHA}\``);
     expect(md).toContain(`[run 39497286374](${RUN_URL})`);
     expect(md).toContain('| Suite | Files | Files failed | Tests passed | Tests failed | Tests skipped |');
-    // other = directly in test/, an odd folder name, a file outside the working directory.
-    expect(md).toContain('| other | 3 | 0 | 3 | 0 | 0 |');
+    // other = directly in test/, an odd folder name, two files outside the working directory.
+    expect(md).toContain('| other | 4 | 0 | 4 | 0 | 0 |');
     expect(md).toContain('| server | 2 | 1 | 3 | 1 | 1 |');
     expect(md).toContain('| web | 2 | 1 | 1 | 0 | 2 |');
-    expect(md).toContain('| **total** | **7** | **2** | **7** | **1** | **3** |');
+    expect(md).toContain('| **total** | **8** | **2** | **8** | **1** | **3** |');
     expect(md).toContain('Result: **failed**');
     const rows = md.split('\n').filter((line) => line.startsWith('| ') && !line.startsWith('| Suite'));
     expect(rows.map((r) => r.split(' | ')[0])).toEqual(['| other', '| server', '| web', '| **total**']);
@@ -94,7 +100,7 @@ describe('test-results.mjs (task-052, D52-7)', () => {
   });
 
   it('a run with no failure says passed', async () => {
-    const md = (await summarise({ testResults: [file(path.join(ws.dir, 'test', 'docs', 'a.test.ts'), ['passed'])] }))
+    const md = (await summarise({ testResults: [file(path.join(repo, 'test', 'docs', 'a.test.ts'), ['passed'])] }))
       .stdout;
     expect(md).toContain('| docs | 1 | 0 | 1 | 0 | 0 |');
     expect(md).toContain('Result: **passed**');
