@@ -29,10 +29,39 @@ Feature: Element panel
     Then the panel shows "sard_ref — required field, missing" next to the summary
 
   @US-G-01 @v0.1 @edge @fx-kanban
-  Scenario: G-01.4 — Open an element panel from its URL
+  Scenario: G-01.4 — Open an element page from its URL
     Given the kanban fixture is open
-    When I copy the URL of the element panel of "task-001-login-form" and open it in a new tab
-    Then the new tab shows the element panel of "task-001-login-form"
+    When I copy the URL of the element page of "task-001-login-form" and open it in a new tab
+    Then the new tab shows the element page of "task-001-login-form"
+
+  @US-G-01 @v0.3 @edge @fx-kanban
+  Scenario: G-01.5 — Open an element by its short id and show its full id
+    Given the kanban fixture is open
+    When I open the address "/p/<project id>/e/task-003" of the kanban fixture
+    Then the element page of "task-003-logout" opens in the main region
+    And the address bar shows "/p/<project id>/e/task-003-logout"
+
+  @US-G-01 @v0.3 @edge @fx-kanban
+  Scenario: G-01.6 — List the candidates of an ambiguous short id
+    Given the kanban fixture is open
+    And an element of type "task" with the id "task-001-login-form-copy" is committed by hand next to "task-001-login-form"
+    When I open the address "/p/<project id>/e/task-001" of the kanban fixture
+    Then the page lists the candidates "task-001-login-form" and "task-001-login-form-copy", each a link to its element page
+    And it does not show "Not found"
+
+  @US-G-01 @v0.3 @edge @fx-kanban
+  Scenario: G-01.7 — Open and decide an element whose id is longer than 100 characters
+    Given the kanban fixture is open and I am Morgan
+    And a task whose title gives an id of 140 characters is added and submitted with the CLI, so that it is `pending`
+    When I open its element page from the Memory list and approve it with the reason "Long ids work"
+    Then the fixture's last commit is "wf(task): approve <that id> [pending → approved]"
+
+  @US-G-01 @v0.3 @edge @fx-kanban
+  Scenario: G-01.8 — Open an element from Requires you in the side panel and keep it on reload
+    Given the kanban fixture is open and I am Morgan with the role view "approver"
+    When I select the title of "task-001-login-form" in Requires you and reload the page
+    Then Today is shown with the side panel of "task-001-login-form"
+    And the address is Today's with "?panel=task-001-login-form"
 
   # --- US-G-02 ---
 

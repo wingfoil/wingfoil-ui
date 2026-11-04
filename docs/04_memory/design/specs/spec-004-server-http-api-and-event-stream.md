@@ -74,24 +74,25 @@ JSON; every request and response body has a schema in `contracts/api/`.
 | `DELETE /api/projects/:pid` | remove from the list (no file is touched) → 204, no body | v0.1 |
 | `GET /api/p/:pid` | project header: name, WingFoil version and range state (`wingfoil.text`: the printed `--version` text through the sanitiser of tool messages, task-046), identity, role views, repository status | v0.1 |
 | `PUT /api/p/:pid/role-view` `{role}` | remember the role view (local state) | v0.1 |
-| `GET /api/p/:pid/config` | DNA, paths, workflows (as the CLI's version line answers `workflow list`, spec-001 §3: the 0.2.x or the 0.3.x shape; every string of a 0.3.x `diagnostics` entry and its `message` sanitised like the CLI warnings, at most 200 diagnostics with `diagnosticsOmitted` counting the rest — read by no view yet), resolved types (spec-001 §4.1); effective `ui.yaml` with origin of each value since v0.3 (REQ-ARC-07) | v0.1 |
-| `GET /api/p/:pid/elements[?archived=true]` | elements with their descriptor (spec-003) and local-changes marker | v0.1 |
+| `GET /api/p/:pid/config` | DNA, paths, workflows (as the CLI's version line answers `workflow list`, spec-001 §3: the 0.2.x or the 0.3.x shape; every string of a 0.3.x `diagnostics` entry and its `message` sanitised like the CLI warnings, at most 200 diagnostics with `diagnosticsOmitted` counting the rest — read by no view yet), resolved types (spec-001 §4.1); effective `ui.yaml` with origin of each value since v0.3 (REQ-ARC-07; the `ui` section of spec-012 §2) | v0.1 |
+| `GET /api/p/:pid/elements[?archived=true]` | elements with their descriptor (spec-003) and local-changes marker; from v0.3 each element's `missingCategories` and the list's `missingReferences` (M2, spec-012 §5) | v0.1 |
 | `GET /api/p/:pid/elements/:eid` | one element: frontmatter, body, descriptor, references | v0.1 |
-| `GET /api/p/:pid/elements/:eid/history` | `memory history` entries (spec-002 §2) | v0.1 |
+| `GET /api/p/:pid/elements/:eid/history` | `memory history` entries (spec-002 §2); their texts sanitised from v0.3 (§5) | v0.1 |
 | `GET /api/p/:pid/directives`, `/directives/:did` | directive list: one entry per directive id, the one in force — when two files declare an id (a custom directive overriding a built-in one), the file the CLI's warning names (`using <path>`, to the end of the line), else — the warning cut — WingFoil's precedence (`compareDirectivePrecedence`): the smallest path (code units) among the files under `directives/custom/`, else among all, not the first listed (the CLI sorts names per folder); the other file is not listed, its warning is (task-047, bug-025); the CLI's order otherwise; one directive (the one in force) with its body | v0.1 |
 | `GET /api/p/:pid/docs` | documentation index (R4) | v0.1 |
-| `GET /api/p/:pid/files/tree`, `/files/content?path=` | working tree, confined to the repository (REQ-SEC-06) | v0.1 (docs), v0.3 (Files) |
+| `GET /api/p/:pid/files/tree`, `/files/content?path=` | working tree, confined to the repository (REQ-SEC-06) | v0.1 (docs), v0.4 (Files, R8 — moved from v0.3, RP3-7) |
 | `GET /api/p/:pid/today?view=<role>` | Requires you, Waiting on others, all-roles summary | v0.2 |
 | `POST /api/p/:pid/elements/:eid/submit` `{expectedStatus}` | `memory submit` | v0.2 |
 | `POST /api/p/:pid/elements/:eid/approve` `{expectedStatus, reason}` | `memory approve --reason` | v0.2 |
 | `POST /api/p/:pid/elements/:eid/reject` `{expectedStatus, reason}` | `memory reject --reason` | v0.2 |
 | `POST /api/p/:pid/git/fetch`, `/git/update`, `/git/push` | write class c (Y2–Y4) | v0.2 |
 | `GET /api/settings`, `PUT /api/settings` | UI settings (C4, local state) | v0.2 |
-| `GET /api/p/:pid/progress` | progress card figures (spec-005 §4) | v0.3 |
-| `GET /api/p/:pid/events/memory?before=&limit=` | Memory events (spec-002 §3) | v0.2 (Updates), v0.3 (Timeline) |
-| `GET /api/p/:pid/git/log?branch=&author=&q=&before=` | git tree (R7) | v0.3 |
-| `POST /api/p/:pid/ingestions/:workflow` `{title, fields}` | ingestion start: `memory add` + `memory submit` (G5) | v0.3 |
-| `POST /api/p/:pid/ui-config/preset` `{preset}` | apply a UI preset (write class b, spec-005) | v0.3 |
+| `GET /api/p/:pid/progress` | progress card figures (spec-005 §4): body spec-012 §3 | v0.3 |
+| `GET /api/p/:pid/traceability?scope=` | traceability (R5): `scope` ∈ `current` (default), `project`; body spec-012 §4 | v0.3 |
+| `GET /api/p/:pid/events/memory?before=&limit=` | Memory events (spec-002 §3) | v0.2 (Updates), v0.3 (Recent activity, `limit=5`, spec-012 §6), v0.4 (Timeline, R6 — moved from v0.3, RP3-7) |
+| `GET /api/p/:pid/git/log?branch=&author=&q=&before=` | git tree (R7) | v0.4 (moved from v0.3, RP3-7) |
+| `POST /api/p/:pid/ingestions/:workflow` `{title, fields}` | ingestion start: `memory add` + `memory submit` (G5) | v0.4 (moved from v0.3, RP3-7) |
+| `POST /api/p/:pid/ui-config/preset` `{preset}` | apply a UI preset (write class b): `preset` ∈ `kanban`, `scrum`, `sw-life-cycle` (any other value fails the body schema, 400 `invalid-request`); 200 `write.response.schema.json` (§5) with `result` `{ file: ".wingfoil/ui.yaml", preset }`; preconditions, writing and failures as spec-005 §5 | v0.3 |
 | `GET /api/p/:pid/workflow/status`, `/workflow/next`; `POST /api/p/:pid/workflow/start`; `POST /api/p/:pid/agents` | WingFoil 0.3 verbs; shapes fixed by v0.4 `release-planning` | v0.4 |
 
 Write routes run through the repository's write lock (its git common directory, `adr-001` D5). `expectedStatus` is the
@@ -157,6 +158,17 @@ that is not the sha of an event of the current log (e.g. history rewritten), →
 any 400. A `memory.yaml` that cannot be read → 502 `read-error`; a failed or refused Memory event
 read → 500 `internal` (details in the log only).
 
+**v0.3 bodies (addendum, release-planning v0.3 step 5c, spec-012).** In `contracts/api/`:
+
+| Route | Schema |
+|-------|--------|
+| `GET /api/p/:pid/progress` | `progress.schema.json` (spec-012 §3); no query parameter (any → 400 `invalid-request`) |
+| `GET /api/p/:pid/traceability?scope=` | `traceability.schema.json` (spec-012 §4); another `scope` value or parameter → 400 `invalid-request`, after the 404 of an unknown `:pid` |
+| `GET /api/p/:pid/elements` | `elements.schema.json` gains `missingCategories` per element and `missingReferences {shown, unreadable, capped}` (spec-012 §5) |
+| `GET /api/p/:pid/config` | `config.schema.json` gains `ui` (`ui-config.schema.json`, spec-012 §2: the effective values with their origin and the `ui.yaml` status and warning) |
+
+Their errors are spec-012 §10's; `X-Repo-State` and the event stream are unchanged (spec-012 §8).
+
 ### 4. Write preconditions and refusals
 
 Checked by the server in this order (Fastify validates the body before the handler):
@@ -199,6 +211,10 @@ particular row 6 (`unsupported-version`) does not, so a role view can be chosen 
 project. "Not identified" in row 5 covers the identity kinds `not-in-team`, `no-identity` and
 `ambiguous`; nothing is stored on a refusal.
 
+The preset write (`POST /api/p/:pid/ui-config/preset`, v0.3) runs rows 1–6 and 8; row 7 is
+replaced by "`.wingfoil/ui.yaml` exists nowhere" (409 `ui-config-exists`) and row 9 does not apply
+(no element) — spec-005 §5, which also fixes its order under the write lock.
+
 **v0.2 (RP-11, RP-14).** The git routes run rows 1–4 (fetch) or 1–5 (update, push), never 6–9,
 then the refusals of spec-010 §5 (spec-010 §8): fetch is allowed to an unidentified user. Their
 body is none or `{}` (row 4: anything else → 400); row 5 reads the snapshot view, as for the
@@ -212,7 +228,26 @@ REQ-SEC-08's fit criterion (SARD `05` v0.6), which excludes fetch and the per-us
 The CLI's warnings a read answer carries — its `stderr` lines (spec-001 §2) in a `/config`
 section's `warnings` and in the `warnings` of `/elements`, and the `warnings` field of `directives
 list` (spec-001 §3) in the `warnings` of `/directives` — are sanitised like every tool message, at
-most 200, then one line `<n> more warnings omitted` (task-046, review round 2 d1).
+most 200, then one line `<n> more warnings omitted` (task-046, review round 2 d1). From v0.3 the
+`warnings` of `/elements` also name each `memory search` match dropped by the per-match validation,
+by its project-relative path (spec-001 §2, RP3-14 D10, bug-024): the list is served with the valid
+matches, never as 502 `cli-output` for a bad match; Today and the other reads of the same output use
+the valid matches.
+
+Commit texts (v0.3, RP3-14 D13, bug-027): the `subject`, `reason`, `author` and `approver` of the
+history entries (`/elements/:eid/history`), the `author`, `approver` and `reason` of the Memory events
+(`/events/memory`) and the descriptor's `rejection` (`by`, `reason`; spec-003 §8) are passed through
+the sanitiser of tool messages where the route serialises them — after the descriptor has matched
+the authors' emails against the team (spec-002 §1), which reads them as committed.
+
+Repository texts (v0.3, release-planning v0.3 step 5c K1, spec-012 §9; implemented with bug-027's
+task, the same class): every display string a read body takes from the repository passes through
+the sanitiser's character escape (`neutralise`, without the folder redaction) where the route
+serialises it — element **titles** (`/elements`, `/elements/:eid`, the Today rows, the candidates
+of spec-011 §3, spec-012's `ElementRef` and rows), the **pattern reference** values of
+`/progress` and `/traceability`, and the **`ui.yaml` strings** `/config` echoes in `ui`
+(`patterns[].match`, type names, `phases`, `holds` types and states, `artifacts` paths). Element
+ids, types and states stay as `memory search` returns them: they are the keys a page sends back.
 
 - Success of a write (`write.response.schema.json`): `{ result: <CLI output>, commits: [{ sha,
   subject }], push: { status, code?, message? } }` — `status` is `pushed`, `off` or `failed`
@@ -238,13 +273,15 @@ most 200, then one line `<n> more warnings omitted` (task-046, review round 2 d1
 
 | Status | `code` | When |
 |--------|--------|------|
-| 422 | `cli-refused` | CLI exit 1: `message` = the CLI's message verbatim (REQ-INT-04) except for the local folders it quotes — the project's → `<project>`, the repository's → `<repository>`, the CLI's package folder → `<wingfoil>`, the home folder → `~` — and URL userinfo (bug-012); also the exit 2 of `approve`/`reject` whose message names `--reason` (a reason WingFoil will not record, W-29) |
+| 422 | `cli-refused` | CLI exit 1: `message` = the CLI's message verbatim (REQ-INT-04) except for the local folders it quotes — the project's → `<project>`, the repository's → `<repository>`, the CLI's package folder → `<wingfoil>`, the home folder → `~` — and URL userinfo (bug-012); from v0.3, the `detail` texts of a WingFoil 0.3.x refusal's `details` (spec-001 §2) in `detail.reasons[]`, redacted and sanitised the same way; also the exit 2 of `approve`/`reject` whose message names `--reason` (a reason WingFoil will not record, W-29) |
 | 502 | `cli-output` | exit 0 with output failing its schema (spec-001 §2) |
 | 504 | `cli-timeout` | a `wingfoil` process killed after 30 s (git transport the user started has no fixed timeout; an automatic fetch and an auto-push are killed after 60 s — spec-010 §4, `adr-001` D5) |
 | 500 | `internal` | adapter defect (exit 2) or unexpected error; details only in the log — a failed git read of the repository (e.g. a configuration value git refuses) on any route, read or write, is logged as `{ kind: 'git-read', ended, exitCode }`, never with git's message (task-046 review rounds 3 m1, 4 minor-1: the read routes and the global error handler) |
 | 500 | `write-incomplete` | a governed write that did not finish: its CLI failed leaving the element file changed (modified or staged) without the write's commit, failed after its commit (`detail.commit`: the commit is logged and announced, not pushed), or answered for another path than the one checked (`detail.file` that path, `detail.commit` when its commit is found). `detail.file` relative to the project; a fixed `message`, never the CLI's text (it quotes local absolute paths and the reason), which is not logged either; nothing is restored |
 | 422 | `git-refused` | a git transport command failed: git's message verbatim (REQ-INT-06), local folders and URL userinfo redacted as for `cli-refused` and a local remote's path as `<remote>`, at most 4 000 characters |
 | 409 | `no-remote`, `no-fetch-target`, `detached-head`, `no-upstream`, `diverged`, `local-changes-in-the-way`, `remote-not-owned`, `remote-unreadable`, `refspec-outside-remotes` | refusals of the git routes before any transport process (spec-010 §5); the update and push codes and `push-timeout` also appear as `push.code` of a write |
+| 409 | `ui-config-exists` | the preset write (v0.3): `.wingfoil/ui.yaml` exists in the working tree, the index or at HEAD, or appeared before the exclusive create (spec-005 §5) |
+| 422 | `ui-config-invalid` | the preset write (v0.3): the rendered preset fails the `ui.yaml` schema or a semantic check against the project; `detail.failure` = the first failure (spec-005 §1, §5); nothing written |
 | 502 | `read-error` | a direct read of spec-001 §4 failed: `message` "Cannot read `<file>`" and the reason, `detail: { file, kind }` with `kind` one of `outside`, `missing`, `shape`, `mismatch` and `file` relative to the project (never absolute). Scoped to the element or directive read: a list never fails as a whole; an unreadable `memory.yaml` degrades only the type-dependent features. Logged as `{ kind, file }` only (`outside` at warn level) |
 | 422 | project-list codes | refusals of `POST /api/projects` and `/projects/clone`: spec-006 §3 (`folder-not-found`, `not-wingfoil`, `already-listed`, `directory-not-empty`, `cli-not-found`, `state-dir-inside-project`, `directory-inside-project`, `inside-state-dir`, `git-refused` — also for a folder with `.wingfoil/` that is not a git repository —, `remote-not-owned`, `remote-unreadable`) |
 | 404 | `not-found` | also a refused working-tree path of `/files/tree` and `/files/content` (REQ-SEC-06): `detail.kind` one of `outside` (the "outside the repository" marker), `missing`, `not-allowed`, `too-large`; 0 bytes of the target |
@@ -266,7 +303,7 @@ most 200, then one line `<n> more warnings omitted` (task-046, review round 2 d1
 | `repo` | `{pid, state}` | HEAD, working-tree status, branch, upstream, ahead/behind, the remote list or effective `user.email` of a project changed (REQ-STATE-02, spec-010 §2); also, with the same `state`, only when `sync.fetch.lastError` or `sync.update.lastError` is set, changed or cleared (spec-010 §2–§3) — never for a new `lastSuccessAt` alone |
 | `projects` | `{}` | the project list or a project's availability changed |
 | `settings` | `{}` | UI settings changed (another tab) |
-| `write` | `{pid, eid?, commit}` | a write finished (other tabs show the result) |
+| `write` | `{pid, eid?, commit}` | a write finished (other tabs show the result); without `eid` for the preset write (v0.3, spec-005 §5) |
 | `agent` | `{pid, run, line}` | agent output (v0.4, REQ-PERF-08) |
 
 On `repo`, pages refetch the queries of that project (TanStack Query invalidation, `adr-002`); a
@@ -419,3 +456,17 @@ goes away by itself when the stream reconnects. A network failure is not rendere
 - 2026-11-02 — amended in dev-loop task-048 (bug-026, D48-8 approved by the approver): §3 the history
   route passes on the contract's fields of each entry only; the Memory events carry WingFoil 0.3.x's
   operations but `assign` (spec-002 §1).
+- 2026-11-03 — amended in `release-planning` v0.3 (step 5, RP3-14), decided by the approver: §3
+  the rows of Files (R8), the Timeline (R6), the git tree (R7) and the ingestion (G5) moved to v0.4
+  (RP3-7); §5 the dropped `memory search` matches in the `warnings` of `/elements` (D10, bug-024);
+  the commit texts of the history, the Memory events and the descriptor's `rejection` sanitised
+  where the routes serialise them, after the email matching (D13, bug-027); `cli-refused` carries
+  the 0.3.x refusal's `details[].detail` in `detail.reasons[]` (the RP3-7 scope item).
+  Aligned the same day with spec-005 §5 (C1): §3 the preset route's `preset` values and response;
+  §4 the rows the preset write runs; §5 the codes `ui-config-exists` (409) and `ui-config-invalid`
+  (422, `detail.failure`); §6 the `write` event without `eid` for the preset write.
+- 2026-11-03 — amended in `release-planning` v0.3 (step 5c, spec-012; decided by the approver,
+  "TQ-1…TQ-6, X1 e K1–K3 come consigliato"): §3 the route `GET /api/p/:pid/traceability?scope=`
+  (v0.3), the bodies of `/progress` and `/traceability`, the M2 fields of `/elements` and the `ui`
+  section of `/config` (v0.3 bodies addendum); §5 repository texts escaped (K1, with bug-027's
+  task).

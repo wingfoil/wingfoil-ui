@@ -1,6 +1,6 @@
 # User guide — WingFoil UI v0.2
 
-**Version:** 0.23 · **Date:** 2026-11-02 (0.1: release v0.1; 0.2: bug-008 known limitation, release submit; 0.3: bug-008 wording; 0.4: bug-008 marked fixed after 0.1.0 — task-026; 0.5: *How to join*, unreleased v0.2 — task-035; 0.6: *Today*, unreleased v0.2 — task-036; 0.7: what runs during a clone, a local repository of another user, unreleased v0.2 — task-033 / bug-010, bug-013; 0.8: a local source git cannot read — task-033 review round 3; 0.9: *Deciding a gate*, unreleased v0.2 — task-037; 0.10: *Automatic sync with the remote*, unreleased v0.2 — task-034 / bug-014, its security reviews; 0.11: the notification bell and *Your roles* on Today, unreleased v0.2 — task-042; 0.12: *Submitting* and *After an action*, unreleased v0.2 — task-038; 0.13: *Git status in the sidebar*, unreleased v0.2 — task-039; 0.14: *UI settings*, unreleased v0.2 — task-041; 0.15: *Update* and *Push* in the sidebar, a URL pasted into an open tab, tool messages shown safely, unreleased v0.2 — task-040 / bug-016, bug-017; 0.16: release v0.2 user-docs — the guide describes v0.2 as a whole, known limitations of v0.2; 0.17: the focus back on the Today action after the element panel closes — bug-018, task-043; 0.18: every opener on Today and the "otherwise" rule — task-043 review rounds 1–2; 0.19: bug-019 known limitation — e2e-smoke; 0.20: release v0.2.0 — git tag and npm, release submit; 0.21: one row per directive in force, unreleased v0.3 — task-047 / bug-025; 0.22: the WingFoil 0.3 operations in the history, unreleased v0.3 — task-048 / bug-026; 0.23: the WingFoil 0.3 history labels marked unreleased — the v0.3 pre-step review)
+**Version:** 0.24 · **Date:** 2026-11-03 (0.1: release v0.1; 0.2: bug-008 known limitation, release submit; 0.3: bug-008 wording; 0.4: bug-008 marked fixed after 0.1.0 — task-026; 0.5: *How to join*, unreleased v0.2 — task-035; 0.6: *Today*, unreleased v0.2 — task-036; 0.7: what runs during a clone, a local repository of another user, unreleased v0.2 — task-033 / bug-010, bug-013; 0.8: a local source git cannot read — task-033 review round 3; 0.9: *Deciding a gate*, unreleased v0.2 — task-037; 0.10: *Automatic sync with the remote*, unreleased v0.2 — task-034 / bug-014, its security reviews; 0.11: the notification bell and *Your roles* on Today, unreleased v0.2 — task-042; 0.12: *Submitting* and *After an action*, unreleased v0.2 — task-038; 0.13: *Git status in the sidebar*, unreleased v0.2 — task-039; 0.14: *UI settings*, unreleased v0.2 — task-041; 0.15: *Update* and *Push* in the sidebar, a URL pasted into an open tab, tool messages shown safely, unreleased v0.2 — task-040 / bug-016, bug-017; 0.16: release v0.2 user-docs — the guide describes v0.2 as a whole, known limitations of v0.2; 0.17: the focus back on the Today action after the element panel closes — bug-018, task-043; 0.18: every opener on Today and the "otherwise" rule — task-043 review rounds 1–2; 0.19: bug-019 known limitation — e2e-smoke; 0.20: release v0.2.0 — git tag and npm, release submit; 0.21: one row per directive in force, unreleased v0.3 — task-047 / bug-025; 0.22: the WingFoil 0.3 operations in the history, unreleased v0.3 — task-048 / bug-026; 0.23: the WingFoil 0.3 history labels marked unreleased — the v0.3 pre-step review; 0.24: the workflow tree, timeline, git tree, files, command palette and ingestion planned for v0.4 — release-planning v0.3, RP3-7)
 
 WingFoil UI v0.2 — **Unblock** — is a local console for WingFoil-governed projects: you open a
 project, see on **Today** what requires you, decide its gates and submit its work, and keep your
@@ -661,16 +661,17 @@ From the release plan (`docs/01_vision/07_sequencer.md`, `docs/01_vision/06_feat
 
 - **No editing.** No field editing (the *Field editing* capability needs a WingFoil verb that is
   not released), no editing of the DNA, directives, workflows or repository files, no new Memory
-  element and no ingestion (ingestion cards and start: v0.3). The governed changes are submit,
+  element and no ingestion (ingestion cards and start: v0.4). The governed changes are submit,
   approve and reject.
 - **No git beyond fetch, fast-forward and push.** No merge, rebase, stash, squash or forced push,
   no push to a `pushRemote`, no branch switching or conflict resolution: use git in a terminal.
 - **Not yet on Today:** the progress card and the recent activity (v0.3); the next workflow step
   (v0.4, with WingFoil 0.3).
-- **No** workflow tree or workflow position, timeline, traceability, git tree, files view or
-  missing-references view, command palette, `.wingfoil/ui.yaml` configuration or presets (v0.3),
-  no agent launch or agent log (v0.4, with WingFoil 0.3; *Confirm agent launch* is stored but has
-  no effect yet), no artifacts view, no "Open on GitHub" link.
+- **No** traceability, missing-references view, `.wingfoil/ui.yaml` configuration or presets
+  (v0.3); no workflow tree or workflow position, timeline, git tree, files view or command palette
+  (v0.4, moved from v0.3 by the v0.3 release planning); no agent launch or agent log (v0.4, with
+  WingFoil 0.3; *Confirm agent launch* is stored but has no effect yet), no artifacts view, no
+  "Open on GitHub" link.
 - **Notifications stay inside the console:** the bell, Today and the toasts; no e-mail, chat or
   system notification.
 

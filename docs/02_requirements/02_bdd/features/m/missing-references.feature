@@ -34,3 +34,10 @@ Feature: Missing references
     Given the custom fixture without `ui.yaml` is open on the Memory list
     When I look at the state filters
     Then no filter "Missing required references" is shown
+
+  @US-M-04 @v0.3 @edge @fx-custom
+  Scenario: M-04.3 — Show the filter with 0 when every required reference is present
+    Given the custom fixture with the sw-life-cycle preset is open on the Memory list
+    And `ref: US-X-08` is added to "task-004-themes" and `sard_ref: REQ-ARC-01` to "adr-001-local-server", committed outside the UI
+    When I look at the state filters
+    Then the filter "Missing required references" is shown with the count 0

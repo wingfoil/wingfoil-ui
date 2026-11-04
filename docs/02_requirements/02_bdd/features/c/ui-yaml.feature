@@ -100,3 +100,11 @@ Feature: ui.yaml and presets
     When I open Configuration › Taxonomy
     Then a warning names the YAML error and its line
     And every value is marked "inferred"
+
+  @US-C-04 @v0.3 @edge @fx-kanban
+  Scenario: C-04.3 — Show the ui.yaml warning on Traceability
+    Given the kanban fixture has a committed ".wingfoil/ui.yaml" whose `progress.mode` is "spiral"
+    And I am Alex
+    When I open Traceability
+    Then a warning reads "ui.yaml ignored: progress.mode must be sequence or flow (found spiral)"
+    And a note reads "No ui.yaml — only references to other Memory elements are recognised"

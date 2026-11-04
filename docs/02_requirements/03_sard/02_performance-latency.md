@@ -1,6 +1,6 @@
 # SARD — 2. Performance & Latency
 
-**Version:** 0.3 · **Date:** 2026-10-04 (0.2: coherence audit fixes — session 6; 0.3: REQ-PERF-05 v0.1 scope — release-planning v0.1 session 4 (audit A4)) · **Status:** Draft — specification-downcast session 4
+**Version:** 0.6 · **Date:** 2026-11-03 (0.2: coherence audit fixes — session 6; 0.3: REQ-PERF-05 v0.1 scope — release-planning v0.1 session 4 (audit A4); 0.4: REQ-PERF-11 the summary as counts, Today's 10 rows — release-planning v0.3, RP3-7 N1–N3, decided by the approver; T-02.6 traced — its review round 1, F5; 0.5: REQ-PERF-04 covers Traceability — release-planning v0.3 step 5c, TQ-6, decided by the approver; 0.6: REQ-PERF-09 the scenarios of spec-011 §8, spec-012 §11 and adr-003 traced — release-planning v0.3 build-backlog (B3), decided by the approver) · **Status:** Draft — specification-downcast session 4
 
 Shell and conventions: `00_sard.md`. All timings are measured in the **reference environment**
 (`00_sard.md`) on the **large fixture** unless a requirement says otherwise; p95 is over 20 runs.
@@ -44,10 +44,10 @@ Shell and conventions: `00_sard.md`. All timings are measured in the **reference
 
 | Field | |
 |-------|--|
-| Release | v0.1 |
-| Description | The Memory list, an element panel and the Directives, DNA, Team and Documentation views render after navigation. |
+| Release | v0.1 · v0.3 (Traceability) |
+| Description | The Memory list, an element panel and the Directives, DNA, Team and Documentation views render after navigation; from v0.3 the Traceability view too, and the Memory list with `taxonomy.requires` set (spec-012 §11). |
 | Rationale | Read views are the bulk of the use for Casey and Riley. |
-| Traceability | US-M-01, US-G-01, US-R-05, US-R-06, US-R-07, US-R-08 · M-01.1, G-01.1, R-05.1, R-06.1, R-07.1, R-08.1 · M1, G1, R1–R4 |
+| Traceability | US-M-01, US-G-01, US-R-05, US-R-06, US-R-07, US-R-08, US-R-01 · M-01.1, G-01.1, R-05.1, R-06.1, R-07.1, R-08.1, R-01.1 · M1, G1, R1–R4, R5 |
 | Fit criterion | [numeric] p95 ≤ 1.0 s with a warm cache. |
 | Verified by | e2e performance run |
 
@@ -102,7 +102,7 @@ Shell and conventions: `00_sard.md`. All timings are measured in the **reference
 | Release | v0.2 |
 | Description | Every item whose next move needs one of the role view's roles is listed on Today, which is the landing screen of a project. |
 | Rationale | MVP canvas metric *Time to see what requires me*. |
-| Traceability | US-T-01, US-T-02, US-S-23 · T-01.1, T-02.1, S-23.1 · T1, S5 |
+| Traceability | US-T-01, US-T-02, US-S-23, US-S-21, US-G-01 · T-01.1, T-02.1, S-23.1, S-21.4, G-01.8 · T1, S5 |
 | Fit criterion | [percentage] On each fixture and role view, 100 % of the items the action descriptor assigns to the view's roles are listed on Today, reached with 0 navigation steps after opening the project. |
 | Verified by | e2e |
 
@@ -121,9 +121,9 @@ Shell and conventions: `00_sard.md`. All timings are measured in the **reference
 
 | Field | |
 |-------|--|
-| Release | v0.2 (bell, summary) · v0.3 (Recent activity) |
-| Description | Lists that summarise show a fixed number of items, newest or most urgent first, with a link to the rest. |
+| Release | v0.2 (bell, summary) · v0.3 (Recent activity, *Requires you* and *Waiting on others*, the summary as counts) |
+| Description | Lists that summarise show a fixed number of items, newest or most urgent first, with a link to the rest or a control that shows them. |
 | Rationale | Values proposed in sessions 2–3; keeps Today scannable. |
-| Traceability | US-S-21, US-S-23, US-T-08 · S-21.1, S-23.4, T-08.1 · S5, S7, T5 |
-| Fit criterion | [numeric] Bell *Updates*: last 10 Memory events; all-roles summary: ≤ 3 items per role plus "N more"; Recent activity: last 5 Memory events. |
+| Traceability | US-S-21, US-S-23, US-T-08, US-T-02 · S-21.1, S-23.4, T-08.1, T-02.6 · S5, S7, T5, T1 |
+| Fit criterion | [numeric] Bell *Updates*: last 10 Memory events; all-roles summary: one tag per role with its count and no item (v0.3; v0.2: ≤ 3 items per role plus "N more"); Today's *Requires you* and *Waiting on others*: the first 10 rows of the filtered list, then "Show all (<n>)" (v0.3); Recent activity: last 5 Memory events. |
 | Verified by | e2e |

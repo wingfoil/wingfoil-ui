@@ -1,7 +1,7 @@
 # MVP Canvas — WingFoil UI v1.0
 
-**Version:** 0.5
-**Date:** 2026-10-12 (0.2: external review — session 7; 0.3: permissions left to WingFoil — specification session 3; 0.4: budget ≈ 33 active days (v0.1 6 → 9) — release-planning v0.1 session 2; 0.5: budget ≈ 36 active days (v0.2 5 → 8) — release-planning v0.2 session 2)
+**Version:** 0.6
+**Date:** 2026-11-03 (0.2: external review — session 7; 0.3: permissions left to WingFoil — specification session 3; 0.4: budget ≈ 33 active days (v0.1 6 → 9) — release-planning v0.1 session 2; 0.5: budget ≈ 36 active days (v0.2 5 → 8) — release-planning v0.2 session 2; 0.6: R6, R7, R8, W1, W2, G5, S6 moved from v0.3 to v0.4 — release-planning v0.3, RP3-7, its step 5 review round 2, m3)
 **Status:** Accepted in lean-inception session 5 (2026-10-01)
 **Input:** `02_product-vision.md` · `04_personas.md` · `05_journeys.md` · `06_features.md` ·
 `07_sequencer.md`
@@ -53,8 +53,8 @@ governed operations into one or two clicks — with WingFoil as the only writer.
 |---------|------|----------|----------|
 | v0.1 | S — Read-only console | 0.2.2 | open and read any WingFoil project |
 | v0.2 | G — Unblock | 0.2.2 | Today, gates in 2 clicks, sync — **first usable** |
-| v0.3 | R — Project state | 0.2.2 | progress, traceability, timeline, files, decision-log ingestion, `ui.yaml` |
-| v0.4 | A — Workflow and agents | 0.3 | next step, agent launch and logs, all ingestions (when WingFoil sets their fields) |
+| v0.3 | R — Project state | 0.2.2 | progress, traceability, missing references, `ui.yaml` and presets |
+| v0.4 | A — Workflow and agents | 0.3 | next step, agent launch and logs, workflow tree and ingestion cards, ingestion start (decision-log; the others when WingFoil sets their fields), timeline, git tree, files, command palette (R6, R7, R8, W1, W2, G5, S6 moved from v0.3, RP3-7) |
 | v1.0 | X — MVP complete | 1.0 | `npx wingfoil-ui` stable, support matrix, polish |
 
 **Out of the MVP:** L1–L10 (editing content, DNA, directives, workflows and files; artifacts; external

@@ -31,6 +31,13 @@ Feature: Progress card
     When I open Today
     Then the progress card shows "No current release" and the figures of the whole project
 
+  @US-T-12 @v0.3 @edge @fx-custom
+  Scenario: T-12.6 — Say that no reference is linked in the current release
+    Given the custom fixture with the sw-life-cycle preset is open
+    And "minor-v0.1" is `released` and "minor-v0.2" is `in-development`
+    When I open Today
+    Then the progress card shows "No references linked in minor-v0.2" in place of the completion figure
+
   @US-T-12 @v0.3 @edge @fx-unknown
   Scenario: T-12.2 — Show whole-project figures without ui.yaml
     Given the unknown fixture is open
@@ -41,7 +48,7 @@ Feature: Progress card
 
   @US-T-12 @v0.3 @edge @fx-custom
   Scenario: T-12.3 — Update the figures after a decision
-    Given the custom fixture with the sw-life-cycle preset is open and Today shows "Pending gates 3"
+    Given the custom fixture with the pre-packs states and the sw-life-cycle preset is open and Today shows "Pending gates 3"
     When Morgan approves "bug-001-toast-overlap" with the CLI in a terminal
     Then within 5 seconds the progress card shows "Pending gates 2"
 
@@ -59,6 +66,21 @@ Feature: Progress card
     Given the custom fixture with the sw-life-cycle preset is open
     When I select "Tasks 1/4" on the progress card
     Then the Memory list shows the 4 tasks of release "v0.1", "task-002-memory-list" marked done
+
+  @US-T-13 @v0.3 @edge @fx-custom
+  Scenario: T-13.3 — Clear a figure filter
+    Given the custom fixture with the sw-life-cycle preset is open
+    And the Memory list was opened from "Pending gates 3" on the progress card
+    When I clear the active filter "Pending gates"
+    Then the Memory list shows every non-archived element of the fixture
+    And no active filter is shown
+
+  @US-T-13 @v0.3 @edge @fx-custom
+  Scenario: T-13.4 — Ignore an unknown figure code
+    Given the custom fixture with the sw-life-cycle preset is open
+    When I open the address "/p/<project id>/memory?figure=bogus" of the custom fixture
+    Then the Memory list shows every non-archived element of the fixture
+    And no active filter is shown
 
   # --- US-T-14 — completion definition ---
 

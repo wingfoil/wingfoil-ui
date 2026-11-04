@@ -2,8 +2,8 @@
   "version": 1,
   "release": "v0.1",
   "generated_from": {
-    "story_map": "docs/02_requirements/01_user_story_map/02_story-map.md v0.5",
-    "bdd": "docs/02_requirements/02_bdd/00_conventions.md v0.9",
+    "story_map": "docs/02_requirements/01_user_story_map/02_story-map.md v0.7",
+    "bdd": "docs/02_requirements/02_bdd/00_conventions.md v0.12",
     "sard": "docs/02_requirements/03_sard/00_sard.md v0.11"
   },
   "items": [
@@ -65,12 +65,55 @@
             "Then the command prints the URL to open",
             "And the server keeps running"
           ]
+        },
+        {
+          "id": "S-01.4",
+          "title": "Write the console's address file for agents",
+          "file": "docs/02_requirements/02_bdd/features/s/launch.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "any",
+          "steps": [
+            "Given the state directory has no file under \"consoles/\"",
+            "When I run \"npx wingfoil-ui --no-open --port 4870\"",
+            "Then when the URL line is printed the file \"consoles/4870.json\" of the state directory exists with mode 0600, in a folder \"consoles/\" with mode 0700",
+            "And it holds the URL \"http://127.0.0.1:4870/\", \"portFixed\": true and the console's process id",
+            "And it holds no part of the session token printed in the URL line"
+          ]
+        },
+        {
+          "id": "S-01.5",
+          "title": "Remove the address file on stop",
+          "file": "docs/02_requirements/02_bdd/features/s/launch.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "any",
+          "steps": [
+            "Given the console was started with \"npx wingfoil-ui --no-open --port 4870\" and wrote \"consoles/4870.json\"",
+            "When I press Ctrl-C in its terminal",
+            "Then when \"WingFoil UI stopped\" is printed the file \"consoles/4870.json\" no longer exists"
+          ]
+        },
+        {
+          "id": "S-01.6",
+          "title": "Remove a stale address file at start",
+          "file": "docs/02_requirements/02_bdd/features/s/launch.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "any",
+          "steps": [
+            "Given the state directory holds \"consoles/4871.json\" naming this machine and a process id that is not running",
+            "When I run \"npx wingfoil-ui --no-open --port 4870\"",
+            "Then when the URL line is printed \"consoles/4871.json\" no longer exists and \"consoles/4870.json\" does"
+          ]
         }
       ],
       "dependencies": [
         "TT-ARC-01",
+        "TT-ARC-08",
         "TT-INT-08",
-        "TT-PERF-06"
+        "TT-PERF-06",
+        "TT-SEC-09"
       ]
     },
     {
@@ -116,6 +159,23 @@
             "Given the token printed at the previous start",
             "When I stop the console, start it again and send an API request with the previous token",
             "Then the response status is 401"
+          ]
+        },
+        {
+          "id": "X-02.3",
+          "title": "Recover a page the console no longer recognises, in place",
+          "file": "docs/02_requirements/02_bdd/features/x/local-security.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console has been started with \"npx wingfoil-ui\" and printed its URL with the session token",
+            "And the kanban fixture is added",
+            "Given the console was started with \"--port 4870\" and a browser tab shows the element page of \"task-001-login-form\"",
+            "And the console was stopped and started again with \"--port 4870\", and that tab shows \"This page is no longer recognised by the console\"",
+            "When I open the newly printed URL in another tab of the same browser and return to the first tab",
+            "Then the first tab shows the element page of \"task-001-login-form\" again, at the same address",
+            "And no address of either tab holds the token after the page has loaded"
           ]
         }
       ],
@@ -1339,7 +1399,7 @@
         },
         {
           "id": "G-01.4",
-          "title": "Open an element panel from its URL",
+          "title": "Open an element page from its URL",
           "file": "docs/02_requirements/02_bdd/features/g/element-panel.feature",
           "release": "v0.1",
           "kind": "edge",
@@ -1347,12 +1407,74 @@
           "steps": [
             "Given the console is running",
             "Given the kanban fixture is open",
-            "When I copy the URL of the element panel of \"task-001-login-form\" and open it in a new tab",
-            "Then the new tab shows the element panel of \"task-001-login-form\""
+            "When I copy the URL of the element page of \"task-001-login-form\" and open it in a new tab",
+            "Then the new tab shows the element page of \"task-001-login-form\""
+          ]
+        },
+        {
+          "id": "G-01.5",
+          "title": "Open an element by its short id and show its full id",
+          "file": "docs/02_requirements/02_bdd/features/g/element-panel.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running",
+            "Given the kanban fixture is open",
+            "When I open the address \"/p/<project id>/e/task-003\" of the kanban fixture",
+            "Then the element page of \"task-003-logout\" opens in the main region",
+            "And the address bar shows \"/p/<project id>/e/task-003-logout\""
+          ]
+        },
+        {
+          "id": "G-01.6",
+          "title": "List the candidates of an ambiguous short id",
+          "file": "docs/02_requirements/02_bdd/features/g/element-panel.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running",
+            "Given the kanban fixture is open",
+            "And an element of type \"task\" with the id \"task-001-login-form-copy\" is committed by hand next to \"task-001-login-form\"",
+            "When I open the address \"/p/<project id>/e/task-001\" of the kanban fixture",
+            "Then the page lists the candidates \"task-001-login-form\" and \"task-001-login-form-copy\", each a link to its element page",
+            "And it does not show \"Not found\""
+          ]
+        },
+        {
+          "id": "G-01.7",
+          "title": "Open and decide an element whose id is longer than 100 characters",
+          "file": "docs/02_requirements/02_bdd/features/g/element-panel.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running",
+            "Given the kanban fixture is open and I am Morgan",
+            "And a task whose title gives an id of 140 characters is added and submitted with the CLI, so that it is `pending`",
+            "When I open its element page from the Memory list and approve it with the reason \"Long ids work\"",
+            "Then the fixture's last commit is \"wf(task): approve <that id> [pending → approved]\""
+          ]
+        },
+        {
+          "id": "G-01.8",
+          "title": "Open an element from Requires you in the side panel and keep it on reload",
+          "file": "docs/02_requirements/02_bdd/features/g/element-panel.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running",
+            "Given the kanban fixture is open and I am Morgan with the role view \"approver\"",
+            "When I select the title of \"task-001-login-form\" in Requires you and reload the page",
+            "Then Today is shown with the side panel of \"task-001-login-form\"",
+            "And the address is Today's with \"?panel=task-001-login-form\""
           ]
         }
       ],
       "dependencies": [
+        "TT-ARC-04",
         "TT-PERF-04"
       ]
     },
@@ -1465,7 +1587,7 @@
         },
         {
           "id": "M-01.3",
-          "title": "Open the element panel from the list",
+          "title": "Open the element page from the list",
           "file": "docs/02_requirements/02_bdd/features/m/memory-list.feature",
           "release": "v0.1",
           "kind": "edge",
@@ -1474,7 +1596,7 @@
             "Given the console is running",
             "Given the kanban fixture is open on the Memory list",
             "When I select the row of \"task-003-logout\"",
-            "Then the element panel of \"task-003-logout\" opens"
+            "Then the element page of \"task-003-logout\" opens"
           ]
         },
         {
@@ -1559,6 +1681,21 @@
             "| In progress           | \"note-002-retro\"",
             "| Waiting/drafts/closed | \"story-002-billing\", \"note-001-kickoff\"",
             "| Done                  | no element"
+          ]
+        },
+        {
+          "id": "M-02.4",
+          "title": "Narrow a bucket to one of its states",
+          "file": "docs/02_requirements/02_bdd/features/m/memory-list.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "unknown",
+          "steps": [
+            "Given the console is running",
+            "Given the unknown fixture is open",
+            "When I select the type filter \"All types\", the bucket \"Waiting/drafts/closed\" and its state \"open\"",
+            "Then the list shows exactly \"note-001-kickoff\"",
+            "And the active filter reads \"Waiting/drafts/closed · open\""
           ]
         }
       ],
@@ -1658,7 +1795,7 @@
             "Given the console is running with the custom fixture open",
             "Given I am Jordan",
             "When I open the Directives view with the filter \"all\"",
-            "Then it lists every directive file under `.wingfoil/directives/`"
+            "Then it lists every directive in force under `.wingfoil/directives/`: one per id; a file shadowed by another of the same id is not listed — WingFoil's warning names it"
           ]
         },
         {
@@ -1840,7 +1977,7 @@
       "acceptance_criteria": [
         {
           "id": "R-09.1",
-          "title": "Open a linked Memory file in the element panel",
+          "title": "Open a linked Memory file as its element",
           "file": "docs/02_requirements/02_bdd/features/r/documentation.feature",
           "release": "v0.1",
           "kind": "nominal",
@@ -1850,7 +1987,7 @@
             "And I am Riley",
             "Given a document links to \"../04_memory/design/dls/dl-001-initialise-wingfoil-before-inception.md\"",
             "When I select that link",
-            "Then the element panel of \"dl-001-initialise-wingfoil-before-inception\" opens"
+            "Then the element \"dl-001-initialise-wingfoil-before-inception\" opens"
           ]
         },
         {
@@ -2125,7 +2262,7 @@
             "And every element of the fixture is listed with its own state name",
             "| fixture | types",
             "| kanban  | adr, bug, decision-log, release, release-line, task, tech-spec",
-            "| custom  | release-line, release, task, adr, decision-log, tech-spec, bug, plan, service",
+            "| custom  | release-line, release, task, adr, decision-log, tech-spec, bug, plan, sprint, service",
             "| unknown | story, note"
           ]
         },
@@ -2655,7 +2792,7 @@
           "id": "G-15.1",
           "title": "Capture a decision-log from Memory",
           "file": "docs/02_requirements/02_bdd/features/g/ingestion.feature",
-          "release": "v0.3",
+          "release": "v0.4",
           "kind": "nominal",
           "fixture": "custom",
           "steps": [
@@ -2765,6 +2902,7 @@
       "fit_criterion": "[boolean] A unit test with a file-system spy over every read endpoint records — excluding the hash-only reads of changed and untracked entries for the state key (REQ-STATE-02, spec-001 §4.4) — 0 direct reads of `.wingfoil/*.yaml` other than `ui.yaml` and `memory.yaml`, 0 reads of Memory or directive files at a path not returned by the CLI, and 0 writes to any of them; every allow-listed shape has a schema and a passing contract test per supported version; a fixture whose element file `status` differs from `memory search` shows a read error for that element.",
       "verified_by": "unit (fs spy)",
       "stories": [
+        "US-G-01",
         "US-M-01",
         "US-R-05",
         "US-S-25",
@@ -2831,6 +2969,52 @@
             "Then the DNA view shows the error message printed by the CLI",
             "And the Memory list opens and lists the fixture's elements"
           ]
+        },
+        {
+          "id": "G-01.5",
+          "title": "Open an element by its short id and show its full id",
+          "file": "docs/02_requirements/02_bdd/features/g/element-panel.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running",
+            "Given the kanban fixture is open",
+            "When I open the address \"/p/<project id>/e/task-003\" of the kanban fixture",
+            "Then the element page of \"task-003-logout\" opens in the main region",
+            "And the address bar shows \"/p/<project id>/e/task-003-logout\""
+          ]
+        },
+        {
+          "id": "G-01.6",
+          "title": "List the candidates of an ambiguous short id",
+          "file": "docs/02_requirements/02_bdd/features/g/element-panel.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running",
+            "Given the kanban fixture is open",
+            "And an element of type \"task\" with the id \"task-001-login-form-copy\" is committed by hand next to \"task-001-login-form\"",
+            "When I open the address \"/p/<project id>/e/task-001\" of the kanban fixture",
+            "Then the page lists the candidates \"task-001-login-form\" and \"task-001-login-form-copy\", each a link to its element page",
+            "And it does not show \"Not found\""
+          ]
+        },
+        {
+          "id": "G-01.7",
+          "title": "Open and decide an element whose id is longer than 100 characters",
+          "file": "docs/02_requirements/02_bdd/features/g/element-panel.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running",
+            "Given the kanban fixture is open and I am Morgan",
+            "And a task whose title gives an id of 140 characters is added and submitted with the CLI, so that it is `pending`",
+            "When I open its element page from the Memory list and approve it with the reason \"Long ids work\"",
+            "Then the fixture's last commit is \"wf(task): approve <that id> [pending → approved]\""
+          ]
         }
       ],
       "dependencies": [
@@ -2871,7 +3055,7 @@
             "And every element of the fixture is listed with its own state name",
             "| fixture | types",
             "| kanban  | adr, bug, decision-log, release, release-line, task, tech-spec",
-            "| custom  | release-line, release, task, adr, decision-log, tech-spec, bug, plan, service",
+            "| custom  | release-line, release, task, adr, decision-log, tech-spec, bug, plan, sprint, service",
             "| unknown | story, note"
           ]
         },
@@ -3010,6 +3194,53 @@
           ]
         },
         {
+          "id": "T-02.4",
+          "title": "Filter a card by type and by state",
+          "file": "docs/02_requirements/02_bdd/features/t/requires-you.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running",
+            "Given the kanban fixture is open and I am Morgan with the role view \"approver\"",
+            "When I choose the type \"bug\" in the type filter of the Requires you card",
+            "Then Requires you lists exactly 1 row: \"bug-001-crash-on-save\"",
+            "And the type filter of the Requires you card offers \"All (2)\", \"task (1)\" and \"bug (1)\"",
+            "And the state filter of the Requires you card offers \"All (2)\" and \"pending (2)\"",
+            "And the Waiting on others card is not filtered"
+          ]
+        },
+        {
+          "id": "T-02.5",
+          "title": "Show when each element entered its current state",
+          "file": "docs/02_requirements/02_bdd/features/t/requires-you.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running",
+            "Given the kanban fixture is open and I am Morgan with the role view \"approver\"",
+            "When I open Today",
+            "Then the row of \"task-001-login-form\" shows the date of its submit as the date it entered \"pending\"",
+            "And that date's accessible description is the full time of the submit"
+          ]
+        },
+        {
+          "id": "T-02.7",
+          "title": "Name each row's element by its short id",
+          "file": "docs/02_requirements/02_bdd/features/t/requires-you.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running",
+            "Given the custom fixture is open and I am Morgan with the role view \"approver\"",
+            "When I open Today",
+            "Then the row of \"dl-002-use-fastify\" names it \"dl-002\"",
+            "And the Waiting on others row of \"minor-v0.1\", whose id pattern has no number, names it \"minor-v0.1\""
+          ]
+        },
+        {
           "id": "T-03.1",
           "title": "List my rejected work first, with the reason",
           "file": "docs/02_requirements/02_bdd/features/t/requires-you.feature",
@@ -3110,7 +3341,7 @@
           "fixture": "custom",
           "steps": [
             "Given the console is running",
-            "Given the custom fixture is open and I am Morgan",
+            "Given the custom fixture with the pre-packs states is open and I am Morgan",
             "When I open Today",
             "Then Waiting on others lists \"minor-v0.1\" with \"Waiting for the workflow engine\""
           ]
@@ -3139,7 +3370,7 @@
           "fixture": "custom",
           "steps": [
             "Given the console is running",
-            "Given the custom fixture is added and I am Alex",
+            "Given the custom fixture with the pre-packs states is added and I am Alex",
             "When I open the element panel of \"minor-v0.1\"",
             "Then the panel shows \"Waiting for the workflow engine (state: planning)\"",
             "And the panel shows no action button"
@@ -3168,11 +3399,60 @@
           "fixture": "custom",
           "steps": [
             "Given the console is running",
-            "Given the custom fixture is added and I am Morgan",
+            "Given the custom fixture with the pre-packs states is added and I am Morgan",
             "And \"bug-001-toast-overlap\" has been approved to the state \"triaged\"",
             "When I open the element panel of \"bug-001-toast-overlap\"",
             "Then the gate footer shows only \"Reject → closed\" and \"Waiting for the workflow engine to advance\"",
             "And Requires you does not list \"bug-001-toast-overlap\""
+          ]
+        },
+        {
+          "id": "S-24.5",
+          "title": "Hold a gate whose approval is made outside the console",
+          "file": "docs/02_requirements/02_bdd/features/s/action-descriptor.feature",
+          "release": "v0.3",
+          "kind": "nominal",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running",
+            "Given the custom fixture with the sw-life-cycle preset is open on WingFoil 0.3 and I am Morgan with the role view \"approver\"",
+            "And \"minor-v0.1\" has been submitted to the state \"releasing\"",
+            "When I open Today",
+            "Then Requires you does not list \"minor-v0.1\"",
+            "And Waiting on others lists \"minor-v0.1\" with \"Approved outside the console (ui.yaml)\"",
+            "And the gate footer of \"minor-v0.1\" shows \"Approved outside the console (ui.yaml)\" and \"Reject → in-development\", with no \"Approve\""
+          ]
+        },
+        {
+          "id": "S-24.6",
+          "title": "Hold a gate until the elements that reference it are done",
+          "file": "docs/02_requirements/02_bdd/features/s/action-descriptor.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running",
+            "Given the custom fixture with the sw-life-cycle preset is open on WingFoil 0.3 and I am Casey",
+            "And the release line \"rl-v1\" with version \"v1\" is in the state \"active\"",
+            "And \"minor-v0.1\", with release-line \"v1\", is in the state \"planning\"",
+            "When I open Today",
+            "Then Waiting on others lists \"rl-v1\" with \"Waits for 1 referencing element to be done\"",
+            "And the gate footer of \"rl-v1\" shows \"Waits for 1 referencing element to be done\" and no outcome button"
+          ]
+        },
+        {
+          "id": "S-24.7",
+          "title": "Disable a move into a state at its limit",
+          "file": "docs/02_requirements/02_bdd/features/s/action-descriptor.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running",
+            "Given the custom fixture is open on WingFoil 0.3 and I am Morgan",
+            "And the Sprint \"sprint-001\" is in the state \"active\" and the Sprint \"sprint-002\" in the state \"planned\"",
+            "When I open the element panel of \"sprint-002\"",
+            "Then the action \"Submit\" is disabled with the reason \"Blocked: only 1 active at a time\""
           ]
         },
         {
@@ -3239,6 +3519,7 @@
       "verified_by": "e2e",
       "stories": [
         "US-C-07",
+        "US-S-01",
         "US-S-17",
         "US-S-22"
       ],
@@ -3317,6 +3598,47 @@
             "When I stop the console and run \"npx wingfoil-ui\" again",
             "Then \"Auto-push\" is on",
             "And `git status --porcelain` of the kanban fixture prints nothing"
+          ]
+        },
+        {
+          "id": "S-01.4",
+          "title": "Write the console's address file for agents",
+          "file": "docs/02_requirements/02_bdd/features/s/launch.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "any",
+          "steps": [
+            "Given the state directory has no file under \"consoles/\"",
+            "When I run \"npx wingfoil-ui --no-open --port 4870\"",
+            "Then when the URL line is printed the file \"consoles/4870.json\" of the state directory exists with mode 0600, in a folder \"consoles/\" with mode 0700",
+            "And it holds the URL \"http://127.0.0.1:4870/\", \"portFixed\": true and the console's process id",
+            "And it holds no part of the session token printed in the URL line"
+          ]
+        },
+        {
+          "id": "S-01.5",
+          "title": "Remove the address file on stop",
+          "file": "docs/02_requirements/02_bdd/features/s/launch.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "any",
+          "steps": [
+            "Given the console was started with \"npx wingfoil-ui --no-open --port 4870\" and wrote \"consoles/4870.json\"",
+            "When I press Ctrl-C in its terminal",
+            "Then when \"WingFoil UI stopped\" is printed the file \"consoles/4870.json\" no longer exists"
+          ]
+        },
+        {
+          "id": "S-01.6",
+          "title": "Remove a stale address file at start",
+          "file": "docs/02_requirements/02_bdd/features/s/launch.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "any",
+          "steps": [
+            "Given the state directory holds \"consoles/4871.json\" naming this machine and a process id that is not running",
+            "When I run \"npx wingfoil-ui --no-open --port 4870\"",
+            "Then when the URL line is printed \"consoles/4871.json\" no longer exists and \"consoles/4870.json\" does"
           ]
         }
       ],
@@ -3816,7 +4138,7 @@
           "fixture": "custom",
           "steps": [
             "Given the console is running",
-            "Given the custom fixture is open and Sam, holding reviewer and approver, sees \"task-001-cli-adapter\" in Requires you",
+            "Given the custom fixture with the pre-packs states is open and Sam, holding reviewer and approver, sees \"task-001-cli-adapter\" in Requires you",
             "When \"task-001-cli-adapter\" is approved with the CLI in a terminal",
             "Then within 5 seconds Requires you no longer lists \"task-001-cli-adapter\""
           ]
@@ -3831,7 +4153,7 @@
           "steps": [
             "Given the console is running",
             "And I am Casey",
-            "Given the custom fixture with the sw-life-cycle preset is open and Today shows \"Pending gates 3\"",
+            "Given the custom fixture with the pre-packs states and the sw-life-cycle preset is open and Today shows \"Pending gates 3\"",
             "When Morgan approves \"bug-001-toast-overlap\" with the CLI in a terminal",
             "Then within 5 seconds the progress card shows \"Pending gates 2\""
           ]
@@ -3893,12 +4215,13 @@
       "area": "PERF",
       "wingfoil_min": "0.2.2",
       "requirement": "REQ-PERF-04",
-      "description": "The Memory list, an element panel and the Directives, DNA, Team and Documentation views render after navigation.",
+      "description": "The Memory list, an element panel and the Directives, DNA, Team and Documentation views render after navigation; from v0.3 the Traceability view too, and the Memory list with `taxonomy.requires` set (spec-012 §11).",
       "fit_criterion": "[numeric] p95 ≤ 1.0 s with a warm cache.",
       "verified_by": "e2e performance run",
       "stories": [
         "US-G-01",
         "US-M-01",
+        "US-R-01",
         "US-R-05",
         "US-R-06",
         "US-R-07",
@@ -3994,6 +4317,23 @@
             "When I open Documentation",
             "Then the index lists \"docs/01_vision/02_product-vision.md\"",
             "And the index lists no file under \"docs/04_memory/\" or \"docs/05_plans/\""
+          ]
+        },
+        {
+          "id": "R-01.1",
+          "title": "List references with their completion",
+          "file": "docs/02_requirements/02_bdd/features/r/traceability.feature",
+          "release": "v0.3",
+          "kind": "nominal",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running",
+            "And I am Casey",
+            "Given the custom fixture with the sw-life-cycle preset is open",
+            "When I open Traceability",
+            "Then it shows \"Project completion 25 %\" and \"Reference coverage 3/5\"",
+            "And the row \"US-M-01\" shows 2 linked elements and \"50 % · 1/2\"",
+            "And the row \"US-S-01\" shows 1 linked element and \"0 % · 0/1\""
           ]
         }
       ],
@@ -4137,7 +4477,7 @@
           "id": "R-10.2",
           "title": "Mark a file that differs from HEAD",
           "file": "docs/02_requirements/02_bdd/features/r/files.feature",
-          "release": "v0.3",
+          "release": "v0.4",
           "kind": "edge",
           "fixture": "custom",
           "steps": [
@@ -4433,6 +4773,21 @@
             "When I select \"approver · 2\" in the all-roles summary",
             "Then the shell shows the role view \"approver\"",
             "And Requires you lists \"task-001-login-form\" and \"bug-001-crash-on-save\""
+          ]
+        },
+        {
+          "id": "S-23.5",
+          "title": "Switch the role view from the line of role tags",
+          "file": "docs/02_requirements/02_bdd/features/s/shell.feature",
+          "release": "v0.3",
+          "kind": "nominal",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console is running with the kanban fixture open",
+            "Given I am Alex with the role view \"developer\"",
+            "When I select the tag \"approver · 2\" on the Your roles line",
+            "Then the shell shows the role view \"approver\"",
+            "And the Your roles line shows the 7 tags on one line, \"approver · 2\" marked as the current view"
           ]
         },
         {
@@ -5000,7 +5355,7 @@
           "id": "G-16.1",
           "title": "Show the bug ingestion read-only on WingFoil 0.2.2",
           "file": "docs/02_requirements/02_bdd/features/g/ingestion.feature",
-          "release": "v0.3",
+          "release": "v0.4",
           "kind": "nominal",
           "fixture": "custom",
           "steps": [
@@ -5116,7 +5471,7 @@
           "id": "G-17.1",
           "title": "Report a refused add with nothing created",
           "file": "docs/02_requirements/02_bdd/features/g/ingestion.feature",
-          "release": "v0.3",
+          "release": "v0.4",
           "kind": "nominal",
           "fixture": "custom",
           "steps": [
@@ -5133,7 +5488,7 @@
           "id": "G-17.2",
           "title": "Name the draft left by a refused submit",
           "file": "docs/02_requirements/02_bdd/features/g/ingestion.feature",
-          "release": "v0.3",
+          "release": "v0.4",
           "kind": "edge",
           "fixture": "custom",
           "steps": [
@@ -5350,7 +5705,7 @@
             "Given the UI setting \"Auto-push\" is on",
             "And a commit has been pushed to the remote by someone else and not yet fetched",
             "When I approve \"task-001-login-form\" from the UI",
-            "Then a red toast shows \"Not pushed\" with the rejection printed by git",
+            "Then a toast shows \"Not pushed\" in red with the rejection printed by git",
             "And the approval commit stays in the fixture",
             "And the sidebar shows \"1 ahead\""
           ]
@@ -5474,7 +5829,7 @@
             "And every element of the fixture is listed with its own state name",
             "| fixture | types",
             "| kanban  | adr, bug, decision-log, release, release-line, task, tech-spec",
-            "| custom  | release-line, release, task, adr, decision-log, tech-spec, bug, plan, service",
+            "| custom  | release-line, release, task, adr, decision-log, tech-spec, bug, plan, sprint, service",
             "| unknown | story, note"
           ]
         },
@@ -5695,6 +6050,23 @@
             "| GET    | with the token and the Origin \"https://evil.test\" | 403",
             "| POST   | with the token and the Origin \"https://evil.test\" | 403"
           ]
+        },
+        {
+          "id": "X-02.3",
+          "title": "Recover a page the console no longer recognises, in place",
+          "file": "docs/02_requirements/02_bdd/features/x/local-security.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "kanban",
+          "steps": [
+            "Given the console has been started with \"npx wingfoil-ui\" and printed its URL with the session token",
+            "And the kanban fixture is added",
+            "Given the console was started with \"--port 4870\" and a browser tab shows the element page of \"task-001-login-form\"",
+            "And the console was stopped and started again with \"--port 4870\", and that tab shows \"This page is no longer recognised by the console\"",
+            "When I open the newly printed URL in another tab of the same browser and return to the first tab",
+            "Then the first tab shows the element page of \"task-001-login-form\" again, at the same address",
+            "And no address of either tab holds the token after the page has loaded"
+          ]
         }
       ],
       "dependencies": [
@@ -5839,7 +6211,7 @@
           "id": "G-15.1",
           "title": "Capture a decision-log from Memory",
           "file": "docs/02_requirements/02_bdd/features/g/ingestion.feature",
-          "release": "v0.3",
+          "release": "v0.4",
           "kind": "nominal",
           "fixture": "custom",
           "steps": [
@@ -5899,6 +6271,7 @@
       "fit_criterion": "[percentage] 100 % of the path-traversal cases of the security suite (`..`, encoded `..`, absolute paths, escaping symlinks) return 404 or the \"outside the repository\" marker with 0 bytes of the target.",
       "verified_by": "e2e-smoke `local-security`",
       "stories": [
+        "US-G-03",
         "US-R-09",
         "US-R-11"
       ],
@@ -5907,7 +6280,7 @@
           "id": "R-11.1",
           "title": "Refuse a path that climbs out of the repository",
           "file": "docs/02_requirements/02_bdd/features/r/files.feature",
-          "release": "v0.3",
+          "release": "v0.4",
           "kind": "nominal",
           "fixture": "custom",
           "steps": [
@@ -5922,7 +6295,7 @@
           "id": "R-11.2",
           "title": "Refuse a symlink that escapes the repository",
           "file": "docs/02_requirements/02_bdd/features/r/files.feature",
-          "release": "v0.3",
+          "release": "v0.4",
           "kind": "edge",
           "fixture": "custom",
           "steps": [
@@ -5947,6 +6320,22 @@
             "When I open that document",
             "Then the link is marked \"outside the repository\" and selecting it opens nothing"
           ]
+        },
+        {
+          "id": "G-03.4",
+          "title": "Open a linked element from a summary in the main region",
+          "file": "docs/02_requirements/02_bdd/features/g/decision-log.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "custom",
+          "steps": [
+            "Given the console is running with the custom fixture open",
+            "Given I am Casey",
+            "And the summary of \"dl-002-use-fastify\" links to the file of \"dl-001-initialise-wingfoil-before-inception\"",
+            "And the side panel of \"dl-002-use-fastify\" is open on Today",
+            "When I select that link",
+            "Then the element page of \"dl-001-initialise-wingfoil-before-inception\" opens in the main region"
+          ]
         }
       ],
       "dependencies": [
@@ -5967,6 +6356,7 @@
       "stories": [
         "US-C-02",
         "US-C-07",
+        "US-S-01",
         "US-X-02"
       ],
       "acceptance_criteria": [
@@ -6015,6 +6405,21 @@
             "When I open the printed URL in the browser",
             "Then the project switcher lists the kanban fixture",
             "And the address bar no longer shows the token"
+          ]
+        },
+        {
+          "id": "S-01.4",
+          "title": "Write the console's address file for agents",
+          "file": "docs/02_requirements/02_bdd/features/s/launch.feature",
+          "release": "v0.3",
+          "kind": "edge",
+          "fixture": "any",
+          "steps": [
+            "Given the state directory has no file under \"consoles/\"",
+            "When I run \"npx wingfoil-ui --no-open --port 4870\"",
+            "Then when the URL line is printed the file \"consoles/4870.json\" of the state directory exists with mode 0600, in a folder \"consoles/\" with mode 0700",
+            "And it holds the URL \"http://127.0.0.1:4870/\", \"portFixed\": true and the console's process id",
+            "And it holds no part of the session token printed in the URL line"
           ]
         }
       ],

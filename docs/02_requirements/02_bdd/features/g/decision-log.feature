@@ -11,23 +11,31 @@ Feature: Read and decide a decision-log
   Scenario: G-03.1 — Read a decision-log as a rendered document
     Given I am Casey
     And the body of "dl-002-use-fastify" has the sections "Context", "Options" and "Decision"
-    When I open the element panel of "dl-002-use-fastify"
-    Then the panel renders the body as Markdown with the headings "Context", "Options" and "Decision"
-    And the history lists "submitted by Casey" with its commit
+    When I open the element panel of "dl-002-use-fastify" and select "Open document"
+    Then a dialog renders the body as Markdown with the headings "Context", "Options" and "Decision"
+    And the panel's history lists "submitted by Casey" with its commit
 
   @US-G-03 @v0.3 @edge @fx-custom
   Scenario: G-03.2 — Open the decision-log from Documentation links
     Given I am Casey
     And "docs/01_vision/00_index.md" links to the file of "dl-002-use-fastify"
     When I select that link
-    Then the element panel of "dl-002-use-fastify" opens with its rendered body
+    Then the element page of "dl-002-use-fastify" opens in the main region, not in the side panel, with its summary rendered as Markdown
 
   @US-G-03 @v0.3 @edge @fx-custom
   Scenario: G-03.3 — Read a decision-log with an empty body
     Given I am Casey
     And "dl-003-empty" is a `draft` decision-log whose body is empty
-    When I open the element panel of "dl-003-empty"
-    Then the body area reads "No content yet"
+    When I open the element panel of "dl-003-empty" and select "Open document"
+    Then the dialog reads "No content yet"
+
+  @US-G-03 @v0.3 @edge @fx-custom
+  Scenario: G-03.4 — Open a linked element from a summary in the main region
+    Given I am Casey
+    And the summary of "dl-002-use-fastify" links to the file of "dl-001-initialise-wingfoil-before-inception"
+    And the side panel of "dl-002-use-fastify" is open on Today
+    When I select that link
+    Then the element page of "dl-001-initialise-wingfoil-before-inception" opens in the main region
 
   # --- US-G-08 — decide it holding approver ---
 

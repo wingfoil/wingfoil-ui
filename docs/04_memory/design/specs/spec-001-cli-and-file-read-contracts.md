@@ -80,10 +80,20 @@ stamp, `workflow list`) were captured on 2026-10-28 from **WingFoil 0.3.1** on t
 | Exit | stdout | stderr | The server reports |
 |------|--------|--------|--------------------|
 | 0 | JSON, validated against the command's schema | free text: warnings (e.g. `unknown field(s) ignored`, W-12); WingFoil 0.3 writes one JSON line `{"warning": "<text>"}` per warning | the data; stderr lines (the `warning` text of a 0.3 line) as project **warnings** (diagnostics), never as errors — at most 200, then one line `<n> more warnings omitted` |
-| 0 | JSON failing the schema | — | **read error** "unexpected output of `<command>`" — never guessed at |
-| 1 | empty | JSON `{"error": "<message>"}` (on 0.3 possibly after JSON warning lines) | **refusal**: the `error` of the whole text or of its last line only, otherwise the text as written (red toast, REQ-INT-04) |
+| 0 | JSON failing the schema | — | **read error** "unexpected output of `<command>`" — never guessed at; except a `memory search` whose envelope passes and some matches fail: per-match validation (below) |
+| 1 | empty | JSON `{"error": "<message>"}` (on 0.3 possibly after JSON warning lines); a refused transition on 0.3.x also carries `details[{file, detail}]`, whose `detail` says why (directive `wingfoil-cli` W-20) | **refusal**: the `error` of the whole text or of its last line only, otherwise the text as written (red toast, REQ-INT-04); on 0.3.x with the `detail` texts of `details` (v0.3, spec-004 §5) |
 | 2 | empty | 0.2.2: plain text (`error: unknown option …`) or, for a missing argument, JSON (W-22); 0.3.x: JSON `{"error": "unknown option '--bogus'"}` | **internal error**: a defect of the adapter; logged with the command line (token-free) and the message's kind only |
 | other / timeout / killed | — | — | **process error** with the reason (timeout: "WingFoil did not answer within 30 s") |
+
+**Per-match validation of `memory search` (v0.3, RP3-14 D10, bug-024).** On every version, the
+envelope `{query, matches[], message?}` is checked as a whole (a failure is the read error above),
+then each match on its own against the match schema: a match that fails it is dropped and becomes
+one project **warning** naming its `path` relative to the project (the CLI's own text, so sanitised
+and counted with the `stderr` warnings, at most 200). WingFoil 0.2.2 returns a Markdown file without
+frontmatter under a Memory path as a match `{path, tags}` with no `id`, `title`, `type` or `status`
+(bug-024), which hid every element (502 `cli-output`); WingFoil 0.3.1 leaves such a file out, and
+one whose frontmatter does not parse with a `W_MEMORY_UNREADABLE` warning (probe of 2026-11-03,
+`release-planning-rel-v0.3-plan` step 5). Every other command stays strict.
 
 ### 3. Consumed commands
 
@@ -96,13 +106,13 @@ Only these commands are invoked (static list of the CLI adapter). `[]` = optiona
 | `paths` | R4, R8 | v0.1 | `{<category>: string[]}` — same as `dna.paths` |
 | `directives list` | R2, G1 | v0.1 | `{entries[{path, frontmatter{id, name, type, kind, title, tags[]?, ref[]?}, roles[], global, assignment}], warnings[]}` — `path` is relative to `.wingfoil/`; **no body**; `warnings` is tool text: the server passes on at most 200, sanitised like the `stderr` warnings, then one line counting the rest (task-046) |
 | `workflow list` | W1, W2, G5, S9 | v0.1 | 0.2.x: `{manifest{version?, include[]}, workflows[{name, kind, description?, version?, element?, phases[{name, description?, role?, optional, actions[]?, produces[]?, checks{pre[]?, post[]?}?, approval{by_role}?, fallback{step}?, include?, iterate_over?, where?}]}]}`. 0.3.x: `{baseline{rev: "HEAD", commit}, workflows[{name, startable, includable, description (string or null), executableNow}], message?, diagnostics[{code, severity, file, path, message}]}` — the workflows executable now, as committed at HEAD, without phases; `diagnostics` sanitised by the server like the `stderr` warnings, at most 200 passed on, the rest counted in `diagnosticsOmitted` (added by the server) |
-| `memory search` | M1, T1, T4, S5, R5 | v0.1 | `{query, matches[{path, id, title, type, status, tags[]}], message?}` — **excludes archived elements** (`deprecated`, `superseded` — WingFoil's archived set) (W-19); `message` present when `matches` is empty |
+| `memory search` | M1, T1, T4, S5, R5 | v0.1 | `{query, matches[{path, id, title, type, status, tags[]}], message?}` — **excludes archived elements** (`deprecated`, `superseded` — WingFoil's archived set) (W-19); `message` present when `matches` is empty; each match validated on its own (§2, v0.3) |
 | `memory search --status deprecated`, `memory search --status superseded` | M1 (state filter), G1 links | v0.1 | same shape; the only way to list archived elements — called **lazily**, when a view needs archived elements (never for Today) |
-| `memory history <id>` | G1 | v0.1 | `{id, path, entries[{sha, author, timestamp, operation, from, to, approver, reason, subject}]}` — 0.2.x: `operation` ∈ `add`, `submit`, `approve`, `reject`, `deprecate`, or `null` for any other commit touching the file. 0.3.x: each entry also carries `wingfoil` (the commit's `WingFoil-Version:` trailer, or `null`), and `operation` ∈ those five, `start`, `finalize`, `sync`, `amend`, `park`, `assign`, or `null` for a subject outside them (a verbless hand transition, `start-fix`, a plain subject); a phase plan closed by hand (W-04) is `finalize`. The schema has one entry definition per version line, told apart by `wingfoil`; the server passes on the entry's fields above only (task-048). `from`/`to` set for every operation (submit included); `author` = `Name <email>`; `approver` = `Name <email> (role)` |
+| `memory history <id>` | G1 | v0.1 | `{id, path, entries[{sha, author, timestamp, operation, from, to, approver, reason, subject}]}` — 0.2.x: `operation` ∈ `add`, `submit`, `approve`, `reject`, `deprecate`, or `null` for any other commit touching the file. 0.3.x: each entry also carries `wingfoil` (the commit's `WingFoil-Version:` trailer, or `null`), and `operation` ∈ those five, `start`, `finalize`, `sync`, `amend`, `park`, `assign`, or `null` for a subject outside them (a verbless hand transition, `start-fix`, a plain subject); a phase plan closed by hand (W-04) is `finalize`. The schema has one entry definition per version line, told apart by `wingfoil`; the server passes on the entry's fields above only (task-048), and their texts — `subject`, `reason`, `author`, `approver` — through the sanitiser of tool messages where the API serialises them, after the members' emails are matched (v0.3, RP3-14 D13, bug-027; spec-004 §5). `from`/`to` set for every operation (submit included); `author` = `Name <email>`; `approver` = `Name <email> (role)` |
 | `memory submit <id>` | G3 | v0.2 | `{id, path, from, to}` |
 | `memory approve <id> --reason <text>` | G2 | v0.2 | `{id, path, from, to}` |
 | `memory reject <id> --reason <text>` | G2 | v0.2 | `{id, path, from, to, reason}` — the target is the gate's single `reject:` state; the reason is also written to the element as `rejection_reason` |
-| `memory add --type <type> --title <title> [--set <k>=<v>…]` | G5 (decision-log ingestion) | v0.3 | `{id, path}` |
+| `memory add --type <type> --title <title> [--set <k>=<v>…]` | G5 (decision-log ingestion) | v0.4 (G5 moved from v0.3, RP3-7) | `{id, path}` |
 
 `memory search` is called **without filters** (plus, lazily, the two archived calls): views filter the
 result, so one process per repository state serves them all (REQ-PERF-05). WingFoil 0.3 verbs
@@ -121,14 +131,14 @@ Read-only; any other WingFoil file is out of bounds (REQ-ARC-04 fit criterion).
 | Key | Shape | Used for |
 |-----|-------|----------|
 | `version` | positive number | contract selection |
-| `defaults.states` | `{sequence[], gates{<state>: {reject: <state>}}, waiting[]?}` | types without `states` |
+| `defaults.states` | `{sequence[], gates{<state>: {reject: <state>}}, waiting[]?, limits{<state>: N}?, returns{<state>: <state>}?}` — `limits` and `returns` from WingFoil 0.3.x | types without `states` |
 | `types.<type>.path` | string with `{id}` and path tokens | Memory directories (`spec-002`), element type of a path |
 | `types.<type>.id_pattern` | string with `{n}`, `{slug}` and other tokens (optional) | id rendering, ingestion form |
 | `types.<type>.name`, `.description`, `.tags` | strings / string[] (optional) | labels |
 | `types.<type>.template.frontmatter.required` | string[] | M2, G5 (REQ-INT-05) |
 | `types.<type>.states` | as `defaults.states` (optional) | action descriptor (S9) |
 
-Resolution rule (as WingFoil 0.2.2's `resolveStateMachine`): a type's states are
+Resolution rule (as WingFoil 0.2.2's `resolveStateMachine`, the same in 0.3.1, `dist/memory/state-machine.js`): a type's states are
 `types.<type>.states` when present, otherwise `defaults.states`, otherwise WingFoil's built-in
 machine `{sequence: [draft, pending, approved], gates: {pending: {reject: draft}}}` — each taken as
 a whole (no key-by-key merge). A type's **declared states** are its `sequence`, every
@@ -142,6 +152,13 @@ a YAML frontmatter between the first two `---` lines (delimiters as WingFoil's `
 as read. Trailing `# …` comments in the frontmatter are ignored. Consistency: the file's `id`,
 `type` and `status` must equal the `memory search` match; otherwise the element shows a read
 error (REQ-ARC-04).
+**Bulk reader (v0.3, spec-012 §1).** Besides the element read (one file, frontmatter and body),
+the reference index reads **every** non-archived element file at the paths of the cached
+`memory search`, with bounded concurrency (at most 16 reads at a time), the same checks, keeping
+only frontmatter values (no body; at most 200 values per element), and reuses a file's values
+across states by `(path, blob id)` when the file is unchanged (spec-012 §8). No CLI process is
+started per element; a file that fails is named in the answer's `unreadable`, never failing the
+list (spec-004 §5).
 
 **4.3 Directive files** — only at `.wingfoil/<path>` for a `path` returned by `directives list`:
 frontmatter (as in `directives list`) and a Markdown body, rendered in R2.
@@ -153,6 +170,13 @@ server reads each changed and untracked entry listed by `git status --porcelain`
 neither kept nor exposed; only the combined hash enters the state key. No other use of these
 reads is allowed.
 
+**4.5 `.wingfoil/ui.yaml`** (v0.3, C1) — the UI's own file, not WingFoil's (W-11), read from the
+**working tree** on each repository state, read-only, only at that path; REQ-ARC-04's fit criterion
+already allows it besides `memory.yaml`. What counts as present, the limits (a regular file of at
+most 64 KiB, no symbolic link followed), the parsing and the validation are spec-005 §1–§2; its
+schema is `contracts/files/ui-yaml.schema.json`, the UI's shape, not a WingFoil capture (§5). The
+only write to it is the preset's, spec-005 §5.
+
 ### 5. `contracts/` layout
 
 ```
@@ -161,6 +185,7 @@ contracts/
   files/memory-yaml.schema.json      # §4.1 subset
   files/element.schema.json          # §4.2 frontmatter
   files/directive.schema.json        # §4.3 frontmatter
+  files/ui-yaml.schema.json          # §4.5, the UI's own shape (spec-005 §1; v0.3)
   capabilities.json                  # capability → minimum WingFoil version, conditions (REQ-INT-03)
   capabilities.schema.json           # shape of capabilities.json (§6)
   matrix.json                        # supported WingFoil versions and range minimum (adr-001 D3/D4)
@@ -306,3 +331,15 @@ its schema, and run the §4.1 resolution check. A failure blocks the matrix adva
   the `memory history` row gives 0.3.x's eleven operations and its `wingfoil` field; the schema's
   entry has one definition per version line (§5's variant by shape, per entry, so that an empty
   history validates); the API passes on the contract's fields only.
+- 2026-11-03 — amended in `release-planning` v0.3 (step 5, RP3-14), decided by the approver: §2
+  per-match validation of `memory search` on every version, a dropped match a warning naming its
+  project-relative path (D10, bug-024; reproduced on 0.2.2 only); the exit-1 row names 0.3.x's
+  `details[{file, detail}]`, passed on with the refusal (the RP3-7 scope item); §3 the `memory
+  history` texts sanitised where the API serialises them (D13, bug-027), the `memory add` row moved
+  to v0.4 with G5 (RP3-7); §4.1 `limits` and `returns` of WingFoil 0.3.x in the shape (`limits`
+  read for spec-003 §6, `returns` not used: `park` is not offered). Aligned the same day with
+  spec-005 §2: §4.5 the allow-list entry for `.wingfoil/ui.yaml` (working tree, REQ-ARC-04's fit
+  criterion), §5 its schema file.
+- 2026-11-03 — aligned with spec-012 (release-planning v0.3 step 5c, decided by the approver,
+  "TQ-1…TQ-6, X1 e K1–K3 come consigliato"): §4.2 the bulk reader of the reference index (bounded
+  concurrency, values only, the reuse by `(path, blob id)`). No read is added to the allow-list.

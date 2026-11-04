@@ -82,7 +82,7 @@ since) stops the start with a message naming both paths (spec-007 §6, exit 4).
 | `addedAt` | ISO 8601 UTC |
 | `roleView` | last role view chosen for this project (S-22.3); `""` = the shell's default (the member's first role) |
 | `settings` | the UI settings (v0.2, C4, REQ-STATE-09), global to every project; written as `{}` in v0.1. A missing key, or a stored value of the wrong type or out of range, reads as its default (below) — the file is not treated as corrupt — so a v0.1 file needs no migration; an unknown key (e.g. a newer build's) is ignored on read; unknown and invalid keys are dropped at the next write that changes the state (any mutation, not only a settings `PUT`) — the written object holds, in the order of `settings.schema.json`, each known key whose value the mutation changed and each one already stored with a valid value — a missing unchanged key stays missing (read as its default) —, and a mutation that changes no effective value (compared key by key, whatever the order of a `PUT` body) still writes nothing (§4) |
-| `actionLog` | the action log (REQ-SEC-10, v0.2): `{ sha, at }` — the full commit hash and its ISO 8601 UTC time — appended for every commit in `commits[]` of a successful governed write from the UI (spec-004 §5), no other data; holds at most `settings.actionLogCap` entries: an append drops the oldest beyond the cap, and a `PUT /api/settings` that lowers the cap trims the oldest entries in the same write; written as `[]` in v0.1. Each entry has exactly `sha` (40 or 64 lower-case hexadecimal characters: SHA-1 or SHA-256 object format) and `at` (ISO 8601 UTC, as `addedAt`); an entry of any other shape makes a file of this version schema-invalid (§4, as an invalid project entry; a newer build's file: §4) |
+| `actionLog` | the action log (REQ-SEC-10, v0.2): `{ sha, at }` — the full commit hash and its ISO 8601 UTC time — appended for every commit in `commits[]` of a successful governed write from the UI (spec-004 §5) — from v0.3 also the `chore(ui)` commit of a preset write (spec-005 §5) —, no other data; holds at most `settings.actionLogCap` entries: an append drops the oldest beyond the cap, and a `PUT /api/settings` that lowers the cap trims the oldest entries in the same write; written as `[]` in v0.1. Each entry has exactly `sha` (40 or 64 lower-case hexadecimal characters: SHA-1 or SHA-256 object format) and `at` (ISO 8601 UTC, as `addedAt`); an entry of any other shape makes a file of this version schema-invalid (§4, as an invalid project entry; a newer build's file: §4) |
 
 **Settings (v0.2, `contracts/api/settings.schema.json`; REQ-STATE-09, C-07.1):**
 
@@ -314,3 +314,7 @@ a project (REQ-SEC-09). The secret scan of REQ-SEC-09 runs over the state direct
 - 2026-10-15 — review round 2 of task-033 (decided by the approver): §3 `remote-unreadable` for a
   local source git cannot read (F9); no `~` expansion on a clone (F10); the clone's `PATH` keeps
   its absolute entries only (S12).
+- 2026-11-03 — amended in `release-planning` v0.3 (step 5, RP3-14; C1, aligned with spec-005 §5):
+  §2 `actionLog` also records the commit of a preset write (REQ-SEC-10: every commit the UI
+  causes). Decided by the approver with the C1 scope (RP3-7).
+  R1's address file (RP3-14 D4): adr-003, step 5b — not amended here (review round 1 F3).

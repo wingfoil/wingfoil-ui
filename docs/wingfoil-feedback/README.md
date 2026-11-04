@@ -35,7 +35,7 @@ read (WingFoil `COLLABORATION.md` `## Credit`), e.g.
 `svc-019-github-repository-wingfoil-ui-a-private-consumer-project-and-its-feedback-inbox/F-001@<full sha>`;
 `svc-019` is the short key.
 
-**Last sync:** 2026-11-02, the first (`governance-alignment-rel-v0.3-plan` step 5, after the pin
+**Last sync:** 2026-11-02 (the second, at `release-planning` of `minor-v0.3`, below); the first (`governance-alignment-rel-v0.3-plan` step 5, after the pin
 moved to `wingfoil@0.3.1`; rule 7 of `wingfoil-cli`), run by WingFoil's `COLLABORATION.md`
 *The sync procedure* (read at WingFoil `origin/main` `7efff2a02886454cecb2da839f3777535a2c9e49`):
 
@@ -80,6 +80,15 @@ moved to `wingfoil@0.3.1`; rule 7 of `wingfoil-cli`), run by WingFoil's `COLLABO
   `captured`: F-001 (spec-005 `approved`, no release), F-011 (dl-200 `in-discussion`, v0.4), F-015
   (dl-138 `ready`, v0.4), F-022 (bug-412 `triaged`, v0.4), F-024 (dl-199 `in-discussion`, v0.4).
   This repository's pin stays `wingfoil@0.3.1`.
+- *Second sync* (2026-11-02, `release-planning-rel-v0.3-plan` step 1, `advance-pinned-build`; rule
+  7), by the same steps, at WingFoil `origin/main` `60fc3eeaff366335d48f6d4d6539ee7f6baec5cd` (the
+  merge forward of `patch-v0.3.2`, now `released` on `main`). Step 2: `COLLABORATION.md`,
+  `retro-v0.3.md` and its read record unchanged since `7efff2a0`; `patch-v0.3.2`'s *Scope changes*
+  still lists no note of this inbox. Step 3: the same five `reported_by:` cites, none of F-027 …
+  F-035. Step 4: the `captured` notes' elements unchanged — F-001 (spec-005 `approved`, no release),
+  F-011 (dl-200 `in-discussion`, v0.4), F-015 (dl-138 `ready`, v0.4), F-022 (bug-412 `triaged`,
+  v0.4), F-024 (dl-199 `in-discussion`, v0.4). **No status changes.** The pin stays
+  `wingfoil@0.3.1`: the packs' range is `>=0.3.0 <=0.3.1`.
 
 The sync due at `release-planning` of `minor-v0.2` was skipped on 2026-10-12, when WingFoil had not
 defined the procedure (`governance-alignment-rel-v0.2-plan` GA-5).
@@ -123,6 +132,7 @@ defined the procedure (`governance-alignment-rel-v0.2-plan` GA-5).
 | [F-033](F-033-a-filled-required-list-is-reported-missing.md) | A filled required list field is refused as "missing" at submit unless the type declares it in lists | defect | open |  |
 | [F-034](F-034-memory-deprecate-needs-no-approval.md) | memory deprecate needs no approval: any git identity retires any element in any state | request | open |  |
 | [F-035](F-035-a-transition-refused-after-its-commit-leaves-the-commit.md) | A transition refused by its post-commit scope check still leaves its commit on the branch | defect | open |  |
+| [F-036](F-036-a-project-s-traceability-chain-is-prose-only.md) | A project's traceability chain is prose only: no client can read which references a type requires | request | open |  |
 
 ## Context
 
@@ -137,7 +147,8 @@ of F-003 (its ingestion use case). The candidates W-01 (covered by R-03, now F-0
 the migration, by dl-007: F-020 reports W-25 and W-26, F-021 W-22 and F-022 W-23. F-027 … F-035
 were added at `governance-alignment-rel-v0.3-plan` step 5 (dl-010): F-027 reports no CLI behaviour
 (WingFoil's publish pipeline), F-028 W-36 and W-37, F-029 W-32, F-030 W-34, F-031 W-39, F-032 W-38,
-F-033 W-33, F-034 W-44 (the `memory deprecate` entry, `wingfoil-cli` 1.19) and F-035 W-30.
+F-033 W-33, F-034 W-44 (the `memory deprecate` entry, `wingfoil-cli` 1.19) and F-035 W-30. F-036 (no CLI behaviour: the traceability chain) was added at the `release-planning` of
+`minor-v0.3` (its decision D9).
 
 **The former header.** The needs collected here were discovered while designing WingFoil UI and
 belong to **WingFoil**, not to the UI. Each was to be captured in the WingFoil project through its
