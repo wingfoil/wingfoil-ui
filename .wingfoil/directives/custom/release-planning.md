@@ -21,20 +21,23 @@ includes.
 
 ## Where it runs
 
-- **`delivery` › `plan-sprint`** (product-owner): the Sprint the release belongs to — `memory add
-  sprint`, its `goal` written by editing the draft, `memory submit` (`draft → planned`), when no
-  Sprint is `planned`.
+- **The Sprint** the release belongs to: the first Sprint of the delivery is `delivery` ›
+  `plan-sprint` (product-owner); every later one is added outside a step, the same way, and joins
+  the iteration (`delivery.yaml`; `memory.yaml` `sprint`) — `memory add --type sprint`, its `goal`
+  written by editing the draft, `memory submit` (`draft → planned`), when no Sprint is `planned`.
 - **`sprint` › `sprint-planning`** (product-owner): the steps below, from *advance-pinned-build* to
   *commit-backlog*; the tasks get the Sprint's id in `sprint`. It closes with `memory submit
   <sprint>` (`planned → active`), after the *Review*.
-- **`sprint` › `plan-release`**: the release's two `memory submit` (`draft → planning →
-  in-development`, run at *commit-backlog*), recorded by a `workflow adopt` of the release at the
-  end of `development` (RP3-4).
-- **The plan of the stage** is a phase plan whose `workflow:` names a **loaded** workflow, e.g.
-  `sprint-planning-rel-v0.4-plan` (`workflow: sprint`, `phase: planning-rel-v0.4`): a plan naming a
-  workflow that is not loaded is an open instance and adds `W_INSTANCE_WORKFLOW_UNKNOWN` (directive
-  `wingfoil-cli` W-38). The release's later stages use `release-submit-…` and
-  `release-publishing-…` plans. One commit per step, after the approver's OK on its draft.
+- **`sprint` › `plan-release`** (product-owner): the release's two `memory submit` (`draft →
+  planning → in-development`, run at *commit-backlog*), recorded by a `workflow adopt` of the
+  release at the end of `development` (RP3-4).
+- **The plan of the stage** is a phase plan whose `workflow:` names a loaded **sub** workflow,
+  e.g. `sprint-planning-rel-v0.4-plan` (`workflow: sprint`, `phase: planning-rel-v0.4`): a plan
+  naming a workflow that is not loaded is an open instance and adds `W_INSTANCE_WORKFLOW_UNKNOWN`
+  (directive `wingfoil-cli` W-38), and one naming the main `sw-life-cycle` — even in `draft` —
+  opens a second run that `workflow next` answers first (probe of task-049, W0-6). The release's
+  later stages use `release-submit-…` and `release-publishing-…` plans. One commit per step, after
+  the approver's OK on its draft.
 
 ## Selection filter
 
@@ -47,7 +50,7 @@ assigned only in *build-backlog*.
 
 | Step | Move | Verb | Who |
 |------|------|------|-----|
-| `plan-sprint` | sprint `draft → planned` | `memory submit` | product-owner |
+| `plan-sprint` (the first Sprint; a later one outside a step) | sprint `draft → planned` | `memory submit` | product-owner |
 | triage-bugs | bug `open → triaged` / `→ closed` | `memory approve` / `memory reject` | the approver |
 | reconcile-governance | decision-log `in-discussion → ready`, ADR `pending → accepted` / `→ draft` | `memory approve` / `memory reject` | the approver |
 | record-adrs, identify-specs | ADR, tech-spec `draft → pending` | `memory submit` | architect |
@@ -55,7 +58,7 @@ assigned only in *build-backlog*.
 | build-backlog | task `draft → pending` | `memory submit` | product-owner |
 | build-backlog | bug `triaged → planned` | `memory approve` | the approver (W-26) |
 | commit-backlog | task `pending → backlog` | `memory approve` | the approver |
-| commit-backlog | release `draft → planning → in-development` | `memory submit` ×2 | tech-lead |
+| commit-backlog (`plan-release`'s moves) | release `draft → planning → in-development` | `memory submit` ×2 | product-owner |
 | `sprint-planning` | sprint `planned → active` | `memory submit` | product-owner |
 
 An agent never approves or rejects: it hands the approver the exact command (`AGENTS.md`).
@@ -110,22 +113,23 @@ plan, to a task or a rule.
 
 ## record-adrs / identify-specs (architect)
 
-- **record-adrs** (optional): `memory add adr`, the draft filled, the *Spec review*, `memory
+- **record-adrs** (optional): `memory add --type adr`, the draft filled, the *Spec review*, `memory
   submit`, the approver's approve. A task never cites an ADR that is not `accepted` (dl-016).
 - **identify-specs:** survey the release's scope for the file formats, schemas, constant sets and
   module APIs its tasks will implement; for each one not yet covered by an approved spec, `memory
-  add tech-spec`, the draft filled, the *Spec review*, `memory submit`. The approver approves a spec
-  before a task citing it reaches `backlog`; a rejected spec is reworked and reviewed again.
+  add --type tech-spec`, the draft filled, the *Spec review*, `memory submit`. The approver
+  approves a spec before a task citing it reaches `backlog`; a rejected spec is reworked and
+  reviewed again.
 - An erratum of an approved spec is a dated *Process Note* in the spec (approved specs carry no
   Version line).
 
 ## build-backlog (product-owner)
 
-- **Tasks:** `memory add task --set release=vX.Y` for each deliverable; the other fields by editing
-  the draft (`wingfoil-cli` W-01): `title`, `tags: ["vX.Y", …]`, `sprint` (the Sprint's id, or `"n/a
-  — <reason>"`), `module`, `priority`, `ref`, the `**Backlog items:**` line, the Acceptance Criteria
-  citing the scenarios; ids continue the numbering of the type. Then `memory submit` (`draft →
-  pending`). Stop-check: `python3 docs/03_backlog/X_tools/check_tasks.py vX.Y`.
+- **Tasks:** `memory add --type task --title "…" --set release=vX.Y` for each deliverable; the other
+  fields by editing the draft (`wingfoil-cli` W-01): `tags: ["vX.Y", …]`, `sprint` (the Sprint's id,
+  or `"n/a — <reason>"`), `module`, `priority`, `ref`, the `**Backlog items:**` line, the Acceptance
+  Criteria citing the scenarios; ids continue the numbering of the type. Then `memory submit`
+  (`draft → pending`). Stop-check: `python3 docs/03_backlog/X_tools/check_tasks.py vX.Y`.
 - **From decision-logs:** the task(s) each in-scope `ready` decision-log implies; the decision-log
   stays `ready` (dl-017).
 - **From bugs:** one or more fix tasks for each selected `triaged` bug (`bug:` is a list, dl-045),
@@ -141,8 +145,9 @@ plan, to a task or a rule.
 ## commit-backlog (tech-lead)
 
 In this order (RP3-4): the approver approves the tasks to `backlog`; the release gets its `sprint`
-and two `memory submit` (`draft → planning → in-development`); the waves and the order of the tasks
-are written in the plan (RP3-19); the Sprint's `planned → active` comes last, after the *Review*.
+and two `memory submit` (`draft → planning → in-development`), run by the product-owner as `sprint`
+› `plan-release`'s moves; the waves and the order of the tasks are written in the plan (RP3-19); the
+Sprint's `planned → active` comes last, after the *Review*.
 
 ## Review
 

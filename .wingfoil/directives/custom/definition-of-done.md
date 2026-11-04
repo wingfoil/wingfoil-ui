@@ -37,9 +37,9 @@ No code before this phase is closed; the developer works as architect here:
   directives of the step (`workflow next` prints them).
 - **Specs before code:** an `approved` tech-spec for every file format, schema, constant set and
   module API the task implements. A missing one is a safety net for what `release-planning` ›
-  *identify-specs* missed: `memory add tech-spec`, its draft, `memory submit`, and the approver's
-  approve before red (a rejected spec is revised and verified again). An architectural decision
-  found here goes through `adr-ingest`.
+  *identify-specs* missed: `memory add --type tech-spec`, its draft, `memory submit`, and the
+  approver's approve before red (a rejected spec is revised and verified again). An architectural
+  decision found here goes through `adr-ingest`.
 - **Classify each acceptance criterion** red-first (new behaviour) or characterization (the
   behaviour exists) in the Execution Notes, with the test plan (scenario → spec file).
 - **Security probes** for a task that changes what the console runs on projects, or its git reads

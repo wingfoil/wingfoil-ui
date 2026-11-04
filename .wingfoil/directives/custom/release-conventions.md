@@ -25,7 +25,8 @@ and the approver's steps are in `docs/publishing.md`.
 ## `release-submit`
 
 - **`pre-release-checks`** (qa), on `main` once the release's tasks are merged:
-  - every task of the release is `done`;
+  - every task of the release is `done` (`python3 docs/03_backlog/X_tools/check_tasks.py vX.Y`
+    passes on them);
   - every bug of the release is `resolved` or `closed` — a bug belongs to the release when its
     `release` is the release's version, or when its `release` is empty and its `release-origin` is
     that version (this repository's bugs carry those fields, no release tag);
@@ -102,16 +103,25 @@ and the approver's steps are in `docs/publishing.md`.
 were checked again against the line's last configuration (dl-025). The console offers that Approve
 for the whole life of the line; ignore it until then.
 
+The CLI authorises `memory approve` by the git identity of the commit (a non-approver email gets
+"user not authorized to approve"); agents commit under the approver's identity in this repository,
+so "an agent never approves" is a process rule here, not a check. A separate git identity for
+agents is a v0.3 task, not part of these conventions.
+
 ### Seeding a line
 
 Once a line is approved (`memory approve rl-vN`, `planning → active`) and before its first
-`sprint-planning`, the line is seeded, once per line, in the line's phase plan (its `workflow:` a
-loaded workflow, `release-planning` › *Where it runs*). Each action is a `memory add`, the draft
-filled by hand, then the verbs (`wingfoil-cli` W-01):
+`sprint-planning`, the line is seeded, once per line, in the line's phase plan
+`delivery-seed-rl-vN-plan` (`workflow: delivery`, `phase: seed-rl-vN`, `scope: rl-vN`): a sub
+workflow, so the plan opens no run and `workflow next` keeps answering the current one; a plan
+naming the main `sw-life-cycle` would open a second run, even in `draft` (probe of task-049,
+W0-6; `release-planning` › *Where it runs*). Each action is a `memory add`, the draft filled by
+hand, then the verbs (`wingfoil-cli` W-01):
 
-- **seed-releases** (product-owner): one `release` per planned minor — `memory add release --set
-  kind=minor --set version=vX.Y --set release-line=vN` — with the fields `memory.yaml` requires
-  (`sprint` before its submit); the releases stay `draft` until their planning (`release-planning`).
+- **seed-releases** (product-owner): one `release` per planned minor — `memory add --type release
+  --title "…" --set kind=minor --set version=vX.Y --set release-line=vN` — with the fields
+  `memory.yaml` requires (`sprint` before its submit); the releases stay `draft` until their
+  planning (`release-planning`).
   Stop-check: `python3 docs/03_backlog/X_tools/check_releases.py`.
 - **seed-adrs** (architect, optional): the ADRs the roadmap implies — the *Spec review* of
   `release-planning`, `memory submit`, the approver's approve.
@@ -121,11 +131,6 @@ filled by hand, then the verbs (`wingfoil-cli` W-01):
   APIs the whole line implies (the roadmap and the configuration), each one not yet covered by an
   approved spec — the *Spec review*, `memory submit`, the approver's approve. A release's
   `identify-specs` then covers only what is left.
-
-The CLI authorises `memory approve` by the git identity of the commit (a non-approver email gets
-"user not authorized to approve"); agents commit under the approver's identity in this repository,
-so "an agent never approves" is a process rule here, not a check. A separate git identity for
-agents is a v0.3 task, not part of these conventions.
 
 ## `retrospective`
 
