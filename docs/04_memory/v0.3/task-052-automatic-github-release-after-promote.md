@@ -361,3 +361,39 @@ with fixed fields like the totals reducer, with no local or absolute path and no
   folder name with a space or upper case) with titles and failure messages carrying paths → the
   output holds no path, no title, no message: with the run-URL line removed it contains no `/`.
 - **Size (amends D52-6):** about 7 active hours; still under one active day, no split.
+
+### red / green / refactor (2026-11-04)
+
+- **Red** — `959eb02`: `publish-workflow.test.ts` gains the release job's invariants (5 failing on
+  the current workflow: permissions, chain and `if`, credentials, the release steps, the gate's
+  reports and uploads; 9 passing — the `${{`-in-`run` test already held);
+  `test/scripts/coverage-totals.test.ts`, `test-results.test.ts`, `changelog-section.test.ts`
+  (22 failing: no scripts). The public-text check passes on the new fixtures (paths of the forms
+  its allow-list accepts, or built from the test's own temporary folder).
+- **Green** — `55370ea`: `scripts/coverage-totals.mjs`, `scripts/test-results.mjs`,
+  `scripts/changelog-section.mjs`; `publish.yml`: the coverage step's runner-only reporters, the
+  test-reports step, the notes step (tag only), two uploads, the `release` job. Vitest's JSON file
+  statuses read in the installed reporter (`StatusMap`: `passed`/`failed` per file;
+  `passed`, `failed`, `skipped`, `pending`, `todo` per test). One test strengthened during green:
+  the outside-the-working-directory case of `test-results.test.ts` now has a file under a
+  `test/server` folder beside the working directory (a mutant dropping the `..` check survived the
+  first version, whose temporary root made the outside file's folder fail the suite pattern anyway).
+- **Mutants** (applied in place, restored, file compared with its copy afterwards) — each failed the
+  workflow test (1 or 2 of 14): `contents: write` on `gate`; `permissions: write-all` on
+  `release`; `release.if … || true`; a checkout in `release`; `GH_TOKEN` at job level;
+  `${{ github.ref_name }}` in the create line; `coverage/coverage-summary.json` added to the
+  upload; `--draft` removed; `--latest` added; the notes step without its tag-only `if`;
+  `--coverage.reporter=json-summary` removed. Scripts: the totals copying `summary.total` and the
+  input → 2 failed of 8; the suite name not checked → 2 of 12; the outside check removed → 1 of
+  12; links not rewritten → 2 of 9.
+- **Probe on this machine's reports** (one-file Vitest run with the gate's reporters, outputs in
+  the session scratchpad): the inputs held the machine's absolute paths (183 in
+  `coverage-summary.json`, the results' file name), the two generated files none (`grep -c`: 0).
+  `changelog-section.mjs v0.2.0` on the real `CHANGELOG.md` gives the README link of the hand-made
+  `v0.2.0` Release byte for byte.
+- **Docs** — `7ea4491`: `docs/publishing.md` 0.7 (*The pipeline* row and *Test reports*, *Dry run*,
+  *Not verified yet*, *Every release* step 5 — the approver's publish command, the delete after a
+  rejected stage, re-runs — and the old step 5 now 6, *GitHub Release* quoting the decisions, the
+  differences rows *Gate content* and *After the stage*); the `publish.yml` header; `CLAUDE.md`
+  0.16; `CHANGELOG.md` *Unreleased* › *Added*; `test/README.md` 0.53 (the version assigned by the
+  coordinator after task-049's 0.52).
