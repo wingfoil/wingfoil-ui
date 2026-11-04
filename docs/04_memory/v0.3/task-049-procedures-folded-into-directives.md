@@ -115,10 +115,9 @@ directives, dl-009 action 6)
   `release-conventions` 1.2; `.wingfoil/README.md` *Workflows* and *Deviations*; the adoption design
   §9 decision 2 and its R-4 row; directive `wingfoil-cli` W-04, W-38, W-43; RP3-13 of
   `release-planning-rel-v0.3-plan`.
-- The dev rules every agent session reads (`.notes/dev-rules.md`) are git-ignored session notes,
-  not repository content: their *Dev-loop phases* section names `dev-loop.yaml`. The task lists the
-  changes they need in its Execution Notes for the coordinator, who updates them outside the
-  repository; nothing under `.notes/` is committed.
+- The coordinator's dev-loop rules, outside the repository, name `dev-loop.yaml` for the phases:
+  the task lists the changes they need in its Execution Notes for the coordinator, who updates
+  them; no session notes are committed.
 - The directives keep the facts the procedures held; where a procedure and `.wingfoil/memory.yaml`
   disagree, `memory.yaml` is right (`CLAUDE.md`). The packs' phases own the transitions; the
   directives say how, never which verb moves a state the packs move otherwise.

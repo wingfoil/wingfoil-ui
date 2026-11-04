@@ -95,6 +95,7 @@ holds a session again, instead of staying lost for good.
   state directory searched for it.
 - Not git-touching: the strict-identity recipe is not required.
 - Heavy gates through the machine-free slot of the dev-loop rules, in the task's worktree.
+- Shared files stay append-only: the catalogue `web/src/i18n/en.json`, `SCREENS`, route registration (RP-43).
 
 ## Execution Notes
 

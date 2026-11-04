@@ -122,9 +122,8 @@ R-2; A-1, A-2), Today lists a task approved into `backlog` as the approver's (R-
 - Wave 1 (release-planning v0.3 step 6, B1), after
   task-054-ui-configuration-file-read-with-its-schema-and-the-config-section: read its Execution
   Notes first — the effective configuration, the `holds` key's parsing, the inferred values and
-  the custom fixture variant with the sw-life-cycle preset (if the preset file itself lands with
-  task-060-apply-a-ui-preset-as-one-chore-commit, the fixture carries spec-005 §5's `holds`
-  directly; decided at design).
+  the custom fixture variant with the sw-life-cycle preset, which task-054 renders and builds
+  (its AC-6, AC-7) with spec-005 §5's `holds`.
 - Read at design: spec-012 §1, §8, §9, §11 and its Process Notes; spec-005 §2–§5; spec-003 §2–§9
   and its Process Notes; spec-008 (reason codes); spec-001 §4.2 (the direct read, the bulk
   consumer); `adr-001` D6 (per-state cache); `ux-reference.md` §4.1 v0.3 and §4.2 v0.3; the plan's
@@ -146,6 +145,8 @@ R-2; A-1, A-2), Today lists a task approved into `backlog` as the approver's (R-
 - Heavy gates (`test:coverage`, every Playwright run, `test:timing`, `test:smoke`) through the
   machine-free slot of the dev-loop rules, in the task's worktree; e2e: the full suite on Chromium
   plus the task's own specs on the three engines (`test/README.md`).
+- Shared Wave-1 files: task-056 also changes the Today rows and the descriptor tests; coordinate with it and merge in task-number order.
+- Every server task regenerates the `npm run docs:api` output; after a merge the output is regenerated, never merged by hand.
 
 ## Execution Notes
 

@@ -131,14 +131,16 @@ check on the `large` fixture.
   §3, §5, §6, spec-011 §1 (`shortId` of `ElementRef` and the rows), spec-001 §3, §4.2, §6;
   REQ-STATE-08, REQ-PERF-03, REQ-PERF-04, REQ-PERF-05; `02_bdd/00_conventions.md` *Preset variant*;
   the Execution Notes of task-054 (the effective configuration's API, the preset fixture variant)
-  and task-055 (the index, its reuse by `(path, blob id)`, the descriptor's holds), and of the task
-  that lands K1's escape with bug-027 (task-056) and the short ids (task-057) if merged by then.
+  and task-055 (the index, its reuse by `(path, blob id)`, the descriptor's holds), and of task-056
+  (K1's escape, with bug-027) and task-057 (the short ids), both dependencies.
 - Security probes at design (the routes add reads of every element file through task-055's index):
   `GIT_TRACE=1` and the process audit of a cold Today, a cold Traceability and a repeated request,
   listing every git and CLI process; a `.git` snapshot before and after (nothing written); confirm
   that no request input reaches a path, a regular expression or a command (spec-012 §9).
 - Fixture variants built with `Given … committed outside the UI` steps (T-12.4, T-12.6, R-01.5,
   R-01.7, M-04.3) live in the harness so that the web tasks reuse them.
+- Review: an independent reviewer, until PASS, plus a performance check of AC-7's figures (REQ-PERF-03, REQ-PERF-04) on the `large` fixture.
+- Every server task regenerates the `npm run docs:api` output; after a merge the output is regenerated, never merged by hand.
 
 ## Execution Notes
 

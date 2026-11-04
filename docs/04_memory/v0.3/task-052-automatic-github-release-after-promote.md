@@ -80,7 +80,7 @@ version that is not live; how it waits for that is a design choice for the appro
   reporter must not change the local `test:coverage` output agents read, nor write a report holding
   paths into anything uploaded.
 - Security: the job is the workflow's only write to the repository (a Release and its assets);
-  review it as a security change (permissions, pinned actions, the token's scope, no
+  a security-adversarial reviewer who runs the tools reviews it (permissions, pinned actions, the token's scope, no
   `pull_request_target`, no input from the event body in a `run:` line).
 
 ## Execution Notes

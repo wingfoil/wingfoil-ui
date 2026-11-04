@@ -111,6 +111,7 @@ level, each with a test titled by the scenario id.
   environment variable or file of the shipped bin can change a preset's content. The design records
   the seam with the reviewer.
 - Review: an independent adversarial reviewer who runs the probes and the tools, until PASS.
+- Every server task regenerates the `npm run docs:api` output; after a merge the output is regenerated, never merged by hand.
 
 ## Execution Notes
 

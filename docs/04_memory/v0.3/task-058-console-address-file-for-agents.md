@@ -106,6 +106,7 @@ token and without asking the user.
 - Heavy gates (`test:coverage`, `test:smoke`) through the machine-free slot of the dev-loop rules,
   in the task's worktree; no UI change, so no own e2e spec (`test:e2e:chromium` only if the design
   changes the web).
+- Every server task regenerates the `npm run docs:api` output; after a merge the output is regenerated, never merged by hand.
 
 ## Execution Notes
 

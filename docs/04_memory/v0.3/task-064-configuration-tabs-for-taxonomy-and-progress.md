@@ -72,6 +72,11 @@ US-C-03 as well as US-C-01, and of C-04.2 (US-C-04, listed by task-054).
 - **AC-5 — Docs.** `docs/user-guide.md` (Configuration › Taxonomy and Progress, *Use preset* and the
   commit it makes), `ux-reference.md` §4.11 a v0.3 block for any decision taken at design (with the
   approver), `CHANGELOG.md` *Unreleased*; Version/Date bumped.
+- **AC-6 — Dogfooding (G4).** After task-060 and this task are merged, the approver applies the
+  WingFoil sw-life-cycle preset to this repository from the console (one `chore(ui)` commit in the
+  action log, REQ-SEC-10), so that the A-1/A-2 holds (`release` `releasing`, `release-line`
+  `active`) take effect here; the agent hands the approver the step and records the commit in the
+  Execution Notes, it never applies the preset itself.
 
 Screen: `docs/00_reference/ux-reference.md` §4.11 (*Taxonomy*, *Progress*), §6 (the file) and the
 prototype (`docs/00_reference/prototype/`, its Configuration view and the *Tassonomia* tab),

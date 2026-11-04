@@ -121,8 +121,8 @@ spec-011 §2, §6, §8):
   (catalogue, `SCREENS`, route registration, `test/README.md` version line).
 - G-01.7 and G-08.x commit through the console: the affected suites also run under the
   strict-identity recipe of `test/README.md` *Git identity* (dl-011).
-- Security review (the renderer reaches a new surface, and `panel=` is an address input): an
-  independent reviewer checks that no raw HTML, script URL or image load passes, and that a
+- Security review (the renderer reaches a new surface, and `panel=` is an address input): a
+  security-adversarial reviewer who runs the tools checks that no raw HTML, script URL or image load passes, and that a
   `panel=` value is only ever looked up as an element id of the current project (spec-011 §6).
 - Heavy gates through the machine-free slot of the dev-loop rules, in the task's worktree; e2e: the
   full suite on Chromium plus the task's own specs on the three engines.

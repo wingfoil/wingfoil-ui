@@ -131,6 +131,8 @@ that the T2, M2, R5 and C1 scenarios open.
   documented for them (one function per state returning the effective values and `status`).
 - Fixture variants with `Given … is added … and committed outside the UI` steps (T-12.4, R-01.5,
   M-04.3) are built by their own tasks on top of AC-7's variant.
+- The variant's `chore(ui)` commit and the suites that build it run under the strict-identity recipe of `test/README.md` *Fixtures* › *Git identity* in the self-check (dl-011).
+- Every server task regenerates the `npm run docs:api` output; after a merge the output is regenerated, never merged by hand.
 
 ## Execution Notes
 
