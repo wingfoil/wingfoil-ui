@@ -10,7 +10,11 @@
 //
 // Limits: the check is lexical. A starter imported from another support file is seen only when
 // it is one of `STARTERS` (a new shared starter joins the list in the same change); a start
-// through a dynamic call or a callback handed elsewhere is not seen.
+// through a dynamic call or a callback handed elsewhere is not seen. Local helpers are resolved by
+// name per file: two helpers of the same name in different `describe` scopes count as one (the
+// last declaration wins); helpers that are object-literal properties or class methods are not
+// resolved; `copyFixture` + `buildApp` written inline in a test body, without a wrapper, is not
+// counted as a start.
 import { readdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import ts from 'typescript';

@@ -172,8 +172,9 @@ describe('the automatic fetch (spec-010 §6; Y-02.1, Y-02.3 API side)', () => {
       const p = await s.tick();
       expect(p.transport, code).toBe(0);
       expect((await header(s.c)).sync.fetch, code).toEqual({ lastSuccessAt: null, lastError: null });
-      // `no-remote` is not logged: the sync returns before the plan (`auto-sync.ts` `project()`).
-      if (code !== 'no-remote') expect(JSON.stringify(s.log.lines), code).toContain(code);
+      // `no-remote` logs nothing: the sync returns before the plan (`auto-sync.ts` `project()`).
+      if (code === 'no-remote') expect(s.log.lines, code).toEqual([]);
+      else expect(JSON.stringify(s.log.lines), code).toContain(code);
     },
   );
 

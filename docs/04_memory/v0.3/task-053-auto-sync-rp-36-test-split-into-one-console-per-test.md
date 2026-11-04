@@ -248,8 +248,43 @@ cannot meet it).
 | `npm run typecheck`, `npm run lint`, `npm run format:check` | pass |
 | `npx vitest run test/server/sync/auto-sync.test.ts` alone | 44/44, 91.6 s (1-minute load 7.0 → 9.4) |
 | `python3 docs/03_backlog/X_tools/check_tasks.py v0.3` | OK |
+| `npm run docs:api` (review round 1, F2) | pass (`html generated at ./docs-api`) |
 | `npm run test:coverage` through the machine-free slot | queued at load 28.2, slot wait 246 s, granted at load 7.1; 176 files passed, 1 skipped; 3427 tests passed, 2 skipped; statements 96.64 %, branches 91.53 %, functions 97.35 %, lines 98.42 %; 533.0 s; load at the end 8.7 (5-minute 18.4) |
 | strict-identity run (*Fixtures* › *Git identity*: a `git` wrapper outside the repository first on the `PATH`, `-c user.useConfigOnly=true`, `remote set-head <r> -a` after a successful fetch or pull) of `test/server/sync/`, `test/server/http/git-routes.test.ts`, `test/server/http/element-writes.test.ts`, through the slot | slot wait 1087 s, granted at load 8.9; 4 files, 196/196 passed, 310.9 s; load at the end 25.8 (a run under load, AC-3: no timeout) |
 
 No budget was raised to make a test pass; the `binTestMs` budgets of the kept tests follow the
 approver's Q1 (a), not a failing run.
+
+### review round 1 (2026-11-04)
+
+Independent review: PASS with findings, fixed here.
+
+- **F1 — the single-console timeouts of bug-023.** `element-writes.test.ts` W2-5 (lines 845, 867)
+  and `snapshot/watcher.test.ts` review F3 (lines 65, 81) start one console or none, so they are
+  outside the one-console rule. They passed in this task's `test:coverage` run (log: `Test Files
+  176 passed | 1 skipped (177)`, `Tests 3427 passed | 2 skipped (3429)`; none of the four is
+  skipped on Linux). `element-writes.test.ts` also passed in the strict-identity run (`Tests 196
+  passed (196)`), which ended at a 1-minute load of 25.8; `watcher.test.ts` was not in that run. A
+  recurrence becomes a new bug. bug-023's *Triage & Execution Notes* carry the same pointer (body
+  only, its status untouched).
+- **F2 — `npm run docs:api`** (definition-of-done *Checks green*): passes (row added to *gates*).
+- **F3 — the check's blind spots** written in its header: same-named local helpers in different
+  `describe` scopes (the last declaration wins), object-literal and class-method helpers not
+  resolved, an inline `copyFixture` + `buildApp` without a wrapper not counted.
+- **F4 — `no-remote` logs nothing.** Its row now asserts `s.log.lines` equals `[]` (the other rows
+  keep `toContain(code)`). Red by removal, uncommitted and reverted: without the
+  `remotes.length === 0` return of `auto-sync.ts` `project()` the `no-remote` row fails
+  (`expected [ { level: 'info', …(4) } ] to deeply equal []`; the plan's refusal is logged) and the
+  other three pass; with the return, 4/4 pass.
+- **F5** — the `test/README.md` 0.54 entry stays; 0.52/0.53 are reconciled at merge.
+- **F6 — test-first per AC:**
+  - AC-1 (the RP-36 split): characterization — the split tests pass on unchanged server code;
+    guarded by the removal proofs of *red / green / refactor* and F4.
+  - AC-2 (the other multi-console tests): red-first — the check (`53aa131`) failed on the 13
+    bodies before the splits and markers (`b82b1ee`); the splits themselves are characterization.
+  - AC-3 (load-independent): characterization — the runs alone, in `test:coverage` and under load
+    (*gates*).
+  - AC-4 (docs) and AC-5 (gates): no tests of their own; evidence in *gates*.
+- **Round-1 checks:** `typecheck`, `lint`, `format:check`, `check_tasks.py v0.3` pass; `npx vitest
+  run test/lint/one-console-per-test.test.ts test/server/sync/auto-sync.test.ts` 2 files, 51/51,
+  48.7 s (1-minute load 7.1 → 6.8). No code beyond these tests changed: no new `test:coverage` run.
