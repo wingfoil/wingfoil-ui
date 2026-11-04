@@ -132,3 +132,349 @@ directives, dl-009 action 6)
      - design: tech-specs found missing/needing revision (dev-loop/design safety net).
      - red/green/refactor: deviations from the plan above, blockers, scope surprises.
      - review: rejection reasons and what changed on the next pass. -->
+
+### design (2026-11-04)
+
+Read: this task (no `depends_on`); the five procedure files at the base commit `72f1500`
+(`initial-design` 1.3, `release-planning` 1.7, `dev-loop` 1.8, `user-docs` 1.2, `e2e-smoke` 1.1);
+the custom directives `definition-of-done` 1.1, `release-conventions` 1.2, `cli-only-writes` 1.8,
+`wingfoil-cli` 1.20 (W-01, W-04, W-24, W-38, W-43, rules 5, 7, 9), `accessibility` 1.0;
+`.wingfoil/README.md` 0.9, `workflows.yaml`, `roles.yaml`, `memory.yaml`, the pack workflows
+`sprint`, `delivery`, `backlog-item`, `release-submit`; `AGENTS.md`, `CLAUDE.md` 0.15,
+`test/README.md` 0.51; the adoption design §9 decision 2, §10, §11 R-4; `release-planning-rel-v0.3-plan`
+steps 0–9, RP3-4, RP3-7, RP3-13, RP3-19, RP3-20; `backlog-item-rel-v0.3-plan` W0-1 … W0-4; dl-009
+actions 4, 6, 7, 9; the v0.2 plans of `e2e-smoke` and `user-docs` (their step → command tables).
+
+Design probe (a throwaway clone of `72f1500` in a temporary folder, the five files removed and
+their `include` lines deleted, committed there under a throwaway identity, the pinned CLI
+`0.3.1 (870bd44…)`): `workflow list --format json` before: 74 diagnostics in 9 rows, equal to
+the baseline; after: exit 0, 0 errors, exactly 2 `W_WORKFLOW_UNBOUND_TOKEN` of
+`workflows/custom/service-ingest.yaml` (`phases[0].checks.post[0]` `frontmatter.required`, `[1]`
+`secret-scan.clean`), no `W_INSTANCE_WORKFLOW_UNKNOWN`; `workflow status`: one open run,
+`sw-life-cycle-1-plan`, frontier `backlog-item.build@task:task-049-…`; `directives list`: the one
+warning of the `definition-of-done` override (W-23). The done plans whose `workflow:` names a
+removed procedure (10: `initial-design-rl-v1-plan`, the `release-planning` plans of v0.1, v0.2,
+v0.3, the `dev-loop`, `e2e-smoke`, `user-docs` plans of v0.1 and v0.2) give no diagnostic.
+
+#### (a) AC-1 — where every phase, gate, check and rule goes
+
+Destinations: **RPL** = the new directive `release-planning` 1.0 (outline in (b)); **DoD** =
+`definition-of-done` 1.2; **RC** = `release-conventions` 1.3; **owner** = a pack workflow, verb or
+`.wingfoil/memory.yaml`, named, when it already holds the rule (nothing to write). Sections in
+*italics* are the outline's headings in (b).
+
+*`initial-design.yaml` (1.3, element `release-line`)*
+
+| # | Source | Rule | Destination |
+|---|--------|------|-------------|
+| I-1 | header | runs once per release line, after the line is approved, before its delivery | RC *The release line* › *Seeding a line*: after `memory approve rl-vN` (`planning → active`), before the line's first `sprint-planning` |
+| I-2 | header | `seed-releases` is line-scoped (moved from `wingfoil-init`), re-run for each line | RC *Seeding a line* (one seeding per line) |
+| I-3 | header | `seed-specs` is the line-wide sibling of `identify-specs`; identify-specs dedupes against approved specs | RC *Seeding a line* (seed-specs); RPL *record-adrs / identify-specs* ("not yet covered by an approved spec") |
+| I-4 | header | each action is `memory add` + hand-filled fields + `memory submit` / `approve` | owner: `wingfoil-cli` W-01 (cited by RC) |
+| I-5 | header | `spec-review.passed` (dl-022): an independent, read-only review of the ADR and spec drafts — internal and cross-spec consistency, no contradiction with the BDD scenarios, the Vision Package, the write classes, traceability to REQ-*; findings fixed and re-verified by the same reviewer; result logged in the phase's plan | RPL *Spec review* (the one statement; RC cites it) |
+| I-6 | header | `release-line-cycle` removed; the line approved by `memory approve rl-vN`, closed by the approver's `memory approve rl-vN` once every release is `released` | owner: `memory.yaml` `release-line` (R-2); RC *The release line* 1.2, unchanged |
+| I-7 | header | a release it seeds needs `sprint` before its submit | owner: `memory.yaml` `release` required `sprint` (exempt `minor-v0.1`, `minor-v0.2`); named in RC *Seeding a line* |
+| I-8 | `element: release-line` | the seeding acts on the active line | RC *Seeding a line* |
+| I-9 | seed-releases | product-owner; one `release` per planned minor, `memory add` with the line | RC *Seeding a line* (`--set kind= --set version= --set release-line=`, W-01) |
+| I-10 | seed-releases | no submit: releases stay `draft`; the release's planning moves `draft → planning` | RC *Seeding a line*; owner: `memory submit` at `sprint` › `plan-release` (RPL *commit-backlog*) |
+| I-11 | seed-releases `produces`, `post` | path `docs/04_memory/planning/{release-line}/{id}.md`; required `title, kind, version, pillar, features, requirements, release-line` | owner: `memory.yaml` `release` path and `required` (checked at submit; also `sprint`); stop-check `check_releases.py` named in RC |
+| I-12 | seed-adrs | optional, architect; `memory add adr`, `submit` (`draft → pending`), the approver's `approve` (`→ accepted`) | RC *Seeding a line*; owner: the verbs (`memory.yaml` `adr`) |
+| I-13 | seed-adrs `pre` | `spec-review.passed` before submit | RPL *Spec review* |
+| I-14 | seed-adrs `post`, `produces` | required `title, sard_ref`; path `design/adrs/{id}.md` | owner: `memory.yaml` `adr` |
+| I-15 | seed-dls | optional, architect; `memory add decision-log`, `submit` (`→ in-discussion`), the approver's `approve` (`→ ready`) | RC *Seeding a line*; owner: the verbs |
+| I-16 | seed-dls `post`, `produces` | required `title`; path `design/dls/{id}.md` | owner: `memory.yaml` `decision-log` |
+| I-17 | seed-specs | optional, architect; survey the whole line for shared formats, schemas, constant sets, module APIs implied by the roadmap and the config (`agent.survey_specs`); a spec for each not covered | RC *Seeding a line* |
+| I-18 | seed-specs actions | `memory add tech-spec`, `submit`, the approver's `approve` | owner: the verbs (`memory.yaml` `tech-spec`) |
+| I-19 | seed-specs `pre`, `post`, `produces` | `spec-review.passed`; required `title, scope`; path `design/specs/{id}.md` | RPL *Spec review*; owner: `memory.yaml` `tech-spec` |
+
+*`release-planning.yaml` (1.7, element `release`)*
+
+| # | Source | Rule | Destination |
+|---|--------|------|-------------|
+| P-1 | header | run inside `sprint` › `sprint-planning` (scope, bugs, governance, ADRs, specs, backlog; the tasks get the Sprint's id in `sprint`) and `plan-release` | RPL *Where it runs* (also `delivery` › `plan-sprint` for a new Sprint) |
+| P-2 | header | `release.set_state(in-development)` is `memory submit`; `bug.set_state(planned)`, `task.set_state(backlog)` are the approver's `memory approve` | owner: those verbs (`memory.yaml`; W-25, W-26); RPL *The verbs* table |
+| P-3 | description | confirm pillar and scope, triage bugs, reconcile governance, specs up front, pull tasks, stamp `release` | RPL intro |
+| P-4 | description | the release `planning`, then `in-development` | owner: `memory submit` ×2 at `sprint` › `plan-release`; RPL *commit-backlog* (RP3-4 order) |
+| P-5 | selection filter (dl-016 §1) | elements with `release` empty or equal to the release in planning; re-offers unassigned ones, never re-pulls assigned ones; assignment only in build-backlog | RPL *Selection filter* |
+| P-6 | advance-pinned-build | tech-lead; the pin (`wingfoil` devDependency, exact) moves forward only, only to a published build — and only to one the packs' catalog declares (`release-planning-rel-v0.3-plan` step 1) | RPL *advance-pinned-build* |
+| P-7 | advance-pinned-build | `npm install --save-dev --save-exact wingfoil@X.Y.Z`, its own commit changing only `package.json` and `package-lock.json`, noted in the active plan; `npm.pin_advance` is a no-op when the pin is the newest | RPL *advance-pinned-build* |
+| P-8 | advance-pinned-build | after a switch: the CLI contract tests, the samples and the matrix as task-046 did, the `wingfoil-cli` re-check | RPL *advance-pinned-build*; owner of the re-check: `wingfoil-cli` rules 5, 9 |
+| P-9 | advance-pinned-build | a blocking defect: move to a published fix, else work by hand, recorded in the plan and in `wingfoil-cli` | RPL *advance-pinned-build*; owner: `wingfoil-cli` rules 3, 4 |
+| P-10 | advance-pinned-build | the pin is the governance CLI only; the supported versions are the contract matrix (adr-001 D3/D4), advanced separately | RPL *advance-pinned-build* |
+| P-11 | `pre` | `npm run -s wingfoil -- --version` equals the pin | RPL *advance-pinned-build* |
+| P-12 | `post` | new pin ≥ old, listed by `npm view wingfoil versions`; the switch commit changes only the two files | RPL *advance-pinned-build* |
+| P-13 | `post` | `directives list` reports `"warnings": []`; contract tests pass | RPL *advance-pinned-build*, **corrected**: the one expected warning is the `definition-of-done` override (W-23; probe above) — `[]` is stale since the packs adoption |
+| P-14 | (v0.3 step 1, RP3-6) | the WingFoil feedback sync at this step | owner: `wingfoil-cli` rule 7 (rewritten to name the directive); cited by RPL |
+| P-15 | define-scope | product-owner; pillar and feature scope from the release element | RPL *define-scope*, with the budget including release validation (2–3 active days, dl-009 action 9), the approver's OK on the scope, a Sprint with its goal by `delivery` › `plan-sprint` when none is `planned` |
+| P-16 | define-scope action | `memory submit` (`draft → planning`) | owner: `sprint` › `plan-release` `memory submit`, run at commit-backlog (RP3-4) |
+| P-17 | define-scope `produces`, `post` | the release file; required `title, kind, version, pillar, features, requirements, release-line` (dl-092 `kind`) | owner: `memory.yaml` `release` (also `sprint`) |
+| P-18 | triage-bugs | tech-lead; `open` bugs in the selection filter; the others untouched | RPL *triage-bugs*, with dl-009 action 7 (a bug fixed in a later release gets that `release` at triage) |
+| P-19 | triage-bugs action, approval, fallback | `open → triaged` by approve; reject `→ closed` (incomplete, wontfix, duplicate) | owner: the approver's `memory approve` / `memory reject` (`memory.yaml` `bug` gate `open`); the agent hands the command (RPL) |
+| P-20 | reconcile-governance | product-owner; decision-logs `in-discussion`, ADRs `pending`, in the filter; idempotent, pre-gate only; the others untouched | RPL *reconcile-governance*, with "each action of a ready decision-log mapped to a task or a rule" (v0.3 step 4) |
+| P-21 | reconcile-governance action, approval, fallback | decision-log `→ ready`, ADR `→ accepted`; reject `→ draft` | owner: the approver's verbs (`memory.yaml` gates) |
+| P-22 | record-adrs | optional, architect; add, submit, the approver's approve; tasks never cite an unaccepted ADR (dl-016) | RPL *record-adrs / identify-specs* |
+| P-23 | record-adrs `pre`, `post`, `produces`, approval | `spec-review.passed`; required `title, sard_ref`; the approver | RPL *Spec review*; owner: `memory.yaml` `adr`, the approver's `memory approve` |
+| P-24 | identify-specs | architect; survey the release's scope for formats, schemas, constant sets, module APIs its tasks implement; a spec for each one not covered, before the tasks, so they cite approved (or pending) specs | RPL *record-adrs / identify-specs*, with: an approved spec's erratum is a dated Process Note (Lessons of Waves 0–1; v0.3 step 5) |
+| P-25 | identify-specs actions, `pre`, `post`, approval, fallback | add, submit; `spec-review.passed`; required `title, scope`; the approver approves before a task citing it reaches `backlog`; reject → rework the spec | RPL; owner: `memory.yaml` `tech-spec`, the approver's verbs |
+| P-26 | build-backlog | product-owner; the release's tasks with `tags: [vX.Y]` | RPL *build-backlog*: `memory add task --set release=vX.Y`, `tags`, `sprint` (the Sprint or `n/a — <reason>`), `ref`, `module` by editing the draft (W-01); ids continue the numbering; `**Backlog items:**` line |
+| P-27 | build-backlog | each task `draft → pending` | owner: `memory submit` (`memory.yaml` `task`) |
+| P-28 | build-backlog | task(s) derived from each in-scope `ready` decision-log; the decision-log stays `ready` (dl-017) | RPL *build-backlog* |
+| P-29 | build-backlog | one or more fix tasks per selected `triaged` bug (`bug:` is a list, dl-045); a bug may be absorbed into a task's ACs | RPL *build-backlog* |
+| P-30 | build-backlog | `bug.set_state(planned)` | owner: the approver's `memory approve` `triaged → planned` (W-26) |
+| P-31 | build-backlog | `element.set_release`: `release` on every included decision-log, bug, spec, ADR, task (dl-016 §4) | RPL *build-backlog*: the task at `add`; the others by the hand commit of the field alone (owner: `wingfoil-cli` W-01, `docs(memory): <id> release <version>`) — never `status:` (W-34) |
+| P-32 | build-backlog `produces`, `post` | `docs/04_memory/{release}/{id}.md`; required `title, release` | owner: `memory.yaml` `task` (also `sprint`) |
+| P-33 | (v0.3 step 6) | stop-check `check_tasks.py vX.Y`; the security probes at design for a task that changes what the console runs on projects or its git reads and writes | RPL *build-backlog* (named in the task); DoD *design* (run) |
+| P-34 | commit-backlog | tech-lead; the tasks `pending → backlog` | owner: the approver's `memory approve` |
+| P-35 | commit-backlog | the release `planning → in-development` | owner: `memory submit` ×2 (`sprint` › `plan-release`); RPL *commit-backlog*: order RP3-4 (tasks `backlog`, the release with `sprint`, the Sprint `active` last), waves and order in the plan (RP3-19) |
+| P-36 | commit-backlog approval | the approver | RPL *commit-backlog* and *Review*: an independent fresh-context review until PASS, then the approver's OK, then `memory submit <sprint>` (`planned → active`, owner `sprint` › `sprint-planning`; v0.3 steps 8–9) |
+
+*`dev-loop.yaml` (1.8, element `task`)*
+
+| # | Source | Rule | Destination |
+|---|--------|------|-------------|
+| D-1 | header | runs once per backlog task | owner: `sprint` › `development` (`iterate_over: task`) → `backlog-item` |
+| D-2 | header | test-first cycle, review gate with fallback on rejection (P4.15) | DoD *build*, *review*, *approve* |
+| D-3 | header | atomic actions (P4.10, REQ-INT-06), atomic step execution (REQ-STATE-04) | dropped, owner named: WingFoil's engine (`workflow next` / `finalize`: one step closed by one verb); no rule of this repository |
+| D-4 | header | an ADR found during the loop goes through `adr-ingest` | DoD *design* |
+| D-5 | header | pre-packs `bug.sync_state` (history, not in force) | owner: each bug's own verbs (`memory.yaml` `bug`, R-3); DoD *start*, *done* |
+| D-6 | header | old → new keys: `start` → `start`; `design`/`red`/`green`/`refactor` → `build`; `review` → `review` and `approve`; `done` → `done` | DoD structure (one section per `backlog-item` phase; `build` holds design → red → green → refactor) |
+| D-7 | header | the task's transitions are `backlog-item`'s verbs | owner: `backlog-item` (`memory submit` at start, review, done; the approver's `memory approve` at approve); DoD names them |
+| D-8 | `start` | branch `task/{task.id}` (dl-014 G1) and its worktree (G2) | DoD *start*: from the phase branch the stage plan names, worktree `.worktrees/<task-id>` |
+| D-9 | `start` | `backlog → in-progress` | owner: `backlog-item` › `start`, `memory submit` |
+| D-10 | `start` | `bug.sync_state` `planned → in-progress` | owner: `memory submit <bug>` (R-3); DoD *start* |
+| D-11 | `design` description | safety net for specs `identify-specs` missed: an approved spec for every file format, schema, constant set and module API the task implements; no code until then; a missing one `memory add` + `submit` | DoD *design* |
+| D-12 | `design` role | architect | DoD *design* (the developer works as architect inside `build`; owner of the step's role: `backlog-item` › `build`, developer) |
+| D-13 | `agent.classify_acs` (T1) | each AC red-first or characterization, recorded in the Execution Notes | DoD *design* |
+| D-14 | `agent.read_related` (dl-015) | HARD gate: every `depends_on` task's Execution Notes read before red | DoD *design* |
+| D-15 | `agent.verify_specs`, `post` `tech-spec.approved` | the scope checked against the specs; every relevant spec `approved` | DoD *design* |
+| D-16 | `design` `post`, `produces` | `depends_on.acknowledged`; a new spec's required `title, scope`, path | DoD *design*; owner: `memory.yaml` `tech-spec` |
+| D-17 | `design` approval, fallback | the approver approves a newly scaffolded spec before red; reject → revise, re-verify | owner: the approver's `memory approve` / `memory reject` (`tech-spec` gate `pending`); DoD *design* |
+| D-18 | `red` | a failing test that captures the ACs | DoD *red* |
+| D-19 | `red` `post` | `tests.exist`; `tests.failing` for red-first ACs; characterization ACs exempt — no fabricated red, no dead code to force one | DoD *red* (with: a test written after the code shows its guard-removal failure — Lessons of Waves 3, 5) |
+| D-20 | `green` | the minimum code; `tests.passing` | DoD *green* |
+| D-21 | `refactor` | tests green; `tests.coverage(min: 80)` | DoD *refactor* (`npm run test:coverage`) |
+| D-22 | `refactor` | `docs.api.public-complete`, `docs.api.build` (dl-014 G5, dl-013): TypeDoc `notDocumented` + `treatWarningsAsErrors`, `npm run docs:api`, `test/docs/api-docs.test.ts` | DoD *refactor* |
+| D-23 | `refactor` | `lint.clean` (dl-034): `npm run lint`, `test/lint/lint-clean.test.ts`; in `refactor`, not `review`, so the author clears it before a reviewer is engaged | DoD *refactor* |
+| D-24 | `review` | `tests.bdd.run`, `pre` `tests.bdd.passing` | DoD *review*: the task's scenario specs pass (its e2e closure table) before the submit |
+| D-25 | `review` | `in-progress → in-review` | owner: `backlog-item` › `review`, `memory submit` |
+| D-26 | `review` | `bug.sync_state` | owner: the bug's verbs; DoD *done* |
+| D-27 | `review` approval | the approver | owner: `backlog-item` › `approve`, the approver's `memory approve` |
+| D-28 | `review` fallback | reject → back to `red`, task `in-progress` | owner: `backlog-item` › `approve` `fallback: build` (`memory reject` `in-review → in-progress`); DoD *approve*: the rework starts with a failing test (Lessons of Wave 3) |
+| D-29 | `done` | `in-review → approved` | owner: `backlog-item` › `approve` |
+| D-30 | `done` | merge with `--no-ff` (dl-014 G3) | DoD *done*: into the phase branch (W0-1); `main` only at the wave gate |
+| D-31 | `done` | the worktree removed after the merge, before the branch (dl-014 G2) | DoD *done* |
+| D-32 | `done` | `approved → done` | owner: `backlog-item` › `done`, `memory submit` |
+| D-33 | `done` | `bug.sync_state` to `resolved`, `closed` | owner: the bug's `memory submit` and the approver's `memory approve` (`memory.yaml` `bug`); DoD *done* |
+| D-34 | `done` fallback | a conflicted or failed merge aborts clean and goes back to red (dl-014 G4, REQ-INT-06) | DoD *done* — see open question Q5 (no verb takes `approved` back) |
+
+*`user-docs.yaml` (1.2, element `release`)*
+
+| # | Source | Rule | Destination |
+|---|--------|------|-------------|
+| U-1 | header (dl-013) | the user-facing docs are a hard release blocker, between implementation and the submit | RC *pre-release-checks* |
+| U-2 | header (dl-025) | the agent-facing docs a separate check (architect's work, another remediation) | RC *pre-release-checks* (its own bullet, architect) |
+| U-3 | header | run inside `release-submit` › `pre-release-checks`, before `releasing` | RC *pre-release-checks*; owner of the move: `enter-releasing`, `memory submit` |
+| U-4 | check-implementation-complete | tech-lead; every task of the release `done` | RC *pre-release-checks* (already: "every task of the release is `done`"; by its `release`, `check_tasks.py vX.Y`) |
+| U-5 | align-user-docs | developer; `README.md`, `docs/user-guide.md`, `docs/cli-reference.md`, `docs/examples/`, `CHANGELOG.md` aligned with the shipped surface | RC *pre-release-checks* (with `docs/publishing.md` checked, as v0.2 did); `docs/examples/` dropped, named: the folder does not exist — the user guide holds the examples |
+| U-6 | align-user-docs approval | the approver | owner: `release-submit` › `approve-release` (the approver's OK, `workflow finalize`); RC: the alignment is evidence of the checks |
+| U-7 | align-agent-docs | architect; `CLAUDE.md`, `.wingfoil/README.md` | RC *pre-release-checks* |
+| U-8 | align-agent-docs `post` | the status matches the shipped surface (`CORE_MODULES`, WingFoil's term); the element/state tables match `memory.yaml`; the workflow list `workflows.yaml`; the role bindings `roles.yaml` | RC *pre-release-checks*: the four checks, on `.wingfoil/README.md` (the tables live there now; `CLAUDE.md` points to them) and the `CLAUDE.md` status against `CHANGELOG.md` |
+| U-9 | align-agent-docs description | reused at the line's close (dl-025) | RC *The release line* (before the approver closes a line); `.wingfoil/README.md` *Keeping this file aligned* |
+| U-10 | align-agent-docs approval | the approver | owner: `approve-release` (as U-6) |
+
+*`e2e-smoke.yaml` (1.1, element `release`)*
+
+| # | Source | Rule | Destination |
+|---|--------|------|-------------|
+| E-1 | header | black-box release gate before the submit, in place of WingFoil's CLI smoke (its dl-023) | RC *pre-release-checks* › *e2e smoke* |
+| E-2 | header | the tooling (Playwright, axe-core, packaging) confirmed by initial-design | dropped, named: done in v0.1 (`test/README.md` documents it); no rule left |
+| E-3 | header | run inside `pre-release-checks`, before `releasing` | RC *pre-release-checks* |
+| E-4 | description, `gate` `post` | STAGED: warn until green for a release, then hard-reject | RC: **hard-reject** — green since v0.1 (ES-7; `e2e-smoke-rel-v0.2-plan`) |
+| E-5 | fixture-project | qa; a throwaway repository with the pinned `init` of each supported template and elements in several states; exit 0; covers every state the screens in scope show | RC *e2e smoke*: the fixture builder `test/harness/fixtures/` (`kanban`, `custom`, `unknown`, `scrum`, `large`), checked by `test/harness/fixtures.test.ts` |
+| E-6 | drive-browser | the server on the fixture, the screens in a real browser; read views render the state; each gate action makes the CLI's `wf(…)` commit; e2e green on the supported browsers | RC *e2e smoke*: `npm run test:e2e` (Chromium, Firefox, WebKit) |
+| E-7 | drive-browser `post` | every commit a CLI `wf(…)` one or a `chore(ui)` touching only `.wingfoil/ui.yaml` | RC *e2e smoke* (`no-commit.spec.ts`, `commit-provenance.spec.ts`); `cli-only-writes` *How it is checked* re-pointed to RC |
+| E-8 | drive-browser `post` | actions refused on elements with local changes and while behind | RC *e2e smoke* (G-11.x, G-12.x) |
+| E-9 | drive-browser `post` | fixtures Kanban, custom, unknown types/states without `ui.yaml`; reviewer and product-owner with and without approver | RC *e2e smoke* |
+| E-10 | local-security (X4) | loopback only, session token, Origin/Host checks, Files refuses paths outside the repository | RC *e2e smoke* (`test/launcher/local-security.test.ts` and the guard suites, default suite) |
+| E-11 | accessibility | axe-core zero serious/critical on every screen in scope; the keyboard path of each gate action | RC *e2e smoke* (`test/e2e/accessibility.spec.ts`); directive `accessibility` *How it is checked* re-pointed (DoD and RC) |
+| E-12 | contract | the CLI JSON contract tests for every supported version (`wingfoil_min` … pinned) | RC *e2e smoke* (`npm run test:contract`, `contracts/matrix.json`) |
+| E-13 | launch | the packaged app installed as a user would, started, serving the UI | RC *e2e smoke* (`npm run test:smoke`; `test:publish-smoke` stays at `release-publishing` › `staging-rehearsal`) |
+| E-14 | gate | the results reported; the approver | RC *e2e smoke*: the results in the `release-submit` plan; owner of the decision: `approve-release` |
+
+Added by this task (no procedure held them): `npm run test:timing` alone through the machine-free
+slot at `pre-release-checks`, whatever the diff since its last run (dl-009 action 6) → RC; the
+same at every wave gate → DoD *done* (the wave gate's line). Totals: 19 + 36 + 34 + 10 + 14 = **113
+rows**; dropped with an owner named: D-3, E-2, the `docs/examples/` part of U-5; corrected: P-13.
+
+#### (b) Outlines
+
+**`release-planning` 1.0** (`.wingfoil/directives/custom/release-planning.md`, frontmatter as the
+other custom directives: `id`, `name`, `type: directive`, `kind: custom`, `title: "Release
+planning of WingFoil UI"`, `tags: [custom, release, planning, scrum]`; bound to product-owner,
+tech-lead, architect):
+
+1. Intro — the how of planning a release here; the packs' phases own the transitions, this
+   directive never names a verb that moves a state otherwise (P-2, P-3).
+2. *Where it runs* — `delivery` › `plan-sprint` (a Sprint), `sprint` › `sprint-planning` (steps
+   1–7), `sprint` › `plan-release` (the release's two `submit`, recorded by `workflow adopt` at the
+   end of `development`, RP3-4); one phase plan for the stage, its `workflow:` a loaded workflow
+   (Q3); one commit per step after the approver's OK on its draft (P-1).
+3. *Selection filter* (P-5). 4. *The verbs* — a table: phase → verb → who (P-2, P-16, P-19, P-21,
+   P-27, P-30, P-34, P-35). 5. *Spec review* (I-5, the dl-022 text).
+6. *advance-pinned-build* (P-6 … P-14). 7. *define-scope* (P-15 … P-17). 8. *triage-bugs*
+   (P-18, P-19). 9. *reconcile-governance* (P-20, P-21). 10. *record-adrs / identify-specs* (P-22 …
+   P-25). 11. *build-backlog* (P-26 … P-33). 12. *commit-backlog* (P-34 … P-36). 13. *Review* —
+   independent fresh-context review until PASS before the Sprint starts (P-36).
+14. *A new release line* — one line: the seeding is `release-conventions` › *The release line*
+   (Q4).
+
+**`definition-of-done` 1.2** — intro rewritten (no `dev-loop.yaml`): an item is done when every
+rule of its `backlog-item` phase holds; one section per phase:
+
+- *start* (D-8 … D-10); *build* › *design* (D-11 … D-17, D-4, D-13; the security probes —
+  `GIT_TRACE` of every verb, a `.git` snapshot before and after, the children's environment —
+  for a task that changes what the console runs on projects or its git reads and writes,
+  task-046; the strict-identity run of `test/README.md` *Fixtures* › *Git identity* for a
+  git-touching task, dl-011; a task larger than about one active day: a split proposed to the
+  approver, RP3-20 G2; `### design (date)` written and committed); *red* (D-18, D-19); *green*
+  (D-20); *refactor* (D-21 … D-23, with the checks of today's *Checks green* bullet:
+  typecheck, lint, format, e2e when the UI changes, the smokes); *review* (D-24, D-25, an
+  independent reviewer until PASS, adversarial for a security task); *approve* (D-27, D-28);
+  *done* (D-29 … D-34; the bugs; the wave gate: `test:e2e` three engines, `test:smoke`,
+  `test:timing` alone through the slot, dl-009 action 6); *Documented* (kept from 1.1).
+
+**`release-conventions` 1.3** — *pre-release-checks* keeps its bullets and replaces "the
+`user-docs` and `e2e-smoke` procedures passed" with: *Implementation complete* (U-4), *User docs*
+(U-5, U-6), *Agent docs* (U-7, U-8), *e2e smoke* — the steps fixture-project, drive-browser,
+local-security, accessibility, contract, launch, gate, each with its command (E-1 … E-14) — and
+*`test:timing`* alone through the machine-free slot (dl-009 action 6). *The release line* gains
+*Seeding a line* (I-1 … I-19: seed-releases, seed-adrs, seed-dls, seed-specs, `check_releases.py`,
+the spec review of `release-planning`) and the agent-docs check before the line's close (U-9). The
+identity paragraph stays as it is (task-050's).
+
+#### (c) Files to change
+
+AC-5 — `.wingfoil/` (one diff for the approver's OK, AC-8):
+
+- removed: `workflows/custom/initial-design.yaml`, `release-planning.yaml`, `dev-loop.yaml`,
+  `user-docs.yaml`, `e2e-smoke.yaml`;
+- `workflows.yaml` — the five `include` lines and their comment block; `service-ingest` stays;
+- `roles.yaml` — `release-planning` under product-owner, tech-lead, architect;
+- `directives/custom/release-planning.md` (new); `definition-of-done.md` 1.2;
+  `release-conventions.md` 1.3;
+- `directives/custom/wingfoil-cli.md` 1.21 — rule 7 ("the procedure run inside" → the directive
+  `release-planning`), rule 9, W-04 ("or a procedure's" → "or a stage's"), W-38's last sentence;
+  *Removed entries* (quoted history) unchanged;
+- `directives/custom/cli-only-writes.md` 1.9 — *How it is checked* "e2e-smoke:" → RC
+  *pre-release-checks*; `accessibility.md` 1.1 — "(dev-loop and e2e-smoke)" → DoD and RC;
+- `memory.yaml` — the `description` of `release-line`, `release`, `task`, `adr`, `tech-spec`
+  (descriptions only) and the `plan` `id_pattern` comment's example;
+- `README.md` 0.10 — *Files* (`workflows/custom/`: 1 workflow), the workflow table (five rows
+  out), the two "five procedures" paragraphs, the directives and roles tables (`release-planning`),
+  *Keeping this file aligned* (RC);
+- `memory/templates/` — the `dev-loop` mentions of `task.md`, `tech-spec.md`, `release.md`,
+  `plan.md` (Q2); the "release-planning/build-backlog" ones stay (still a directive section).
+
+AC-5 — outside `.wingfoil/`: `AGENTS.md` *This repository* (one bullet: the how of each step is in
+the directives `release-planning`, `definition-of-done`, `release-conventions`, which `workflow
+next` loads per role); `CLAUDE.md` 0.16 (*Read first*: those directives; *Checks*: `test:timing`
+at the wave gate and `pre-release-checks`, dl-009 action 6); `test/README.md` 0.52 (the rows of
+`test:coverage`, `test:contract`, `test:smoke`, the local-security, lint/docs, *Launch smoke*
+lines naming procedure steps → DoD / RC; the task-025, task-043 history lines stay);
+`docs/03_backlog/X_tools/check_tasks.py`, `check_releases.py` docstrings (`release-cycle`,
+`initial-design/seed-releases`, `release-planning/build-backlog` → the directives' sections);
+`test/governance/workflow-diagnostics.baseline.json` (one row) and
+`workflow-diagnostics.test.ts` (its header comment; the unit cases' synthetic file name →
+`service-ingest.yaml`).
+
+Kept, with the reason: done plans, decision-logs, the adoption design, `docs/wingfoil-feedback/`,
+`CHANGELOG.md`, `BOOTSTRAP.md` (history); `test/harness/fixtures/custom-governance-0.2/` and the
+0.2.2 samples (frozen); every `Version`/`Date` line; the pack file `backlog-item.yaml`; `dna.yaml`
+module descriptions ("placeholder until initial-design": they describe the past, and a change
+would re-capture `dna-show.json`); the vision, requirements, BDD and backlog documents (they use
+the procedure names as examples of a project's workflows in the UI); `contracts/*.json`
+`$comment` ("release-planning" stays the stage's and the directive's name); the code comments of
+`test/` and the configs naming a step (Q1).
+
+AC-7 — samples re-captured with the pinned CLI (`WFUI_CAPTURE_SAMPLES=1 npx vitest run
+test/contracts/capture-samples.test.ts`), expected diff only in
+`test/contracts/samples/wingfoil-0.3.1/custom/`: `workflow-list.json` (the procedures' 72 warnings
+out; its `workflows` entries should not change — on this repository the probe lists the same 10
+before and after), `files/memory.yaml`, `directives-list.json` (the new directive and its roles), and
+under Q2 the template-made `files/elements/*`; any other diff (0.2.2, `kanban`, `scrum`,
+`unknown`) is a finding. Suites: `npm run test:contract` (`schemas.test.ts`, `cli-contract.test.ts`,
+`descriptor-contract.test.ts`), the default suite (`test/governance/`,
+`test/server/http/project-routes.test.ts` directives, `test/lint/` methodology literals — the types
+and states do not change), and, since the `custom` fixture changes, `npm run test:e2e:chromium`
+(`directives.spec.ts` R-06.x and every spec on `custom`).
+
+#### (d) AC-6 — active plans
+
+At `72f1500` (`grep -l '^status: *active' docs/05_plans -r`): `sw-life-cycle-1-plan` (`workflow:
+sw-life-cycle`) and `backlog-item-rel-v0.3-plan` (`workflow: backlog-item`, W0-2) — none names a
+removed procedure; the probe confirms no `W_INSTANCE_WORKFLOW_UNKNOWN` after the removal. To be
+re-checked on the commit that removes the files, and confirmed by the approver with the OK of AC-8.
+
+#### (e) Test plan
+
+| AC | Class | Evidence |
+|----|-------|----------|
+| AC-6 | red-first | commit the one-row baseline first (test only, no `.wingfoil/` change): `workflow-diagnostics.test.ts` fails with 8 `added` rows (`workflow list` reads the committed `.wingfoil/`, W-24) — recorded; then, after the approver's OK, the `.wingfoil/` commit turns it green; `workflow list` output recorded |
+| AC-2 | characterization | `npm run -s wingfoil -- directives list --format json`: `release-planning` with roles product-owner, tech-lead, architect; the warnings unchanged (W-23) |
+| AC-7 | characterization | the re-capture's diff limited to the files in (c); `test:contract`, the default suite, `test:e2e:chromium` green |
+| AC-1, AC-3, AC-4 | review | the table above checked by the reviewer against the five files at `72f1500`; each row's destination found in the new texts |
+| AC-5 | characterization | `git grep -nE 'workflows/custom/(initial-design|release-planning|dev-loop|user-docs|e2e-smoke)|release-cycle'` on the live files of (c) returns nothing (Q6) |
+| AC-8, AC-9 | process, gates | the OK quoted; typecheck, lint, format:check, `test:coverage`, `test:contract`, `npx vitest run test/docs test/governance`, `check_tasks.py v0.3`, `test:e2e:chromium` — heavy ones through the slot, load and wait in each log |
+
+#### (f) Size
+
+About 7–8 active hours: the three directives 3.5 h; the other `.wingfoil/` texts, the templates
+and the docs 1.5 h; baseline, samples and the red/green 0.5 h; the gates about 1 h active (slot
+waits not counted); one review round 1–1.5 h — about one active day, at the limit of RP3-20 G2.
+
+- **Option 1 — no split** (recommended): AC-5 asks for the removal and its texts in the same
+  change; one `.wingfoil/` diff, one OK, one re-capture, one review on the AC-1 table.
+- **Option 2 — split**: 049a writes the three directives and the bindings with the procedures
+  still in place; 049b removes the files and updates the texts, the baseline and the samples. Two
+  OKs, two re-captures (`directives-list.json`, then the rest), and between them two sources of the
+  same rules.
+
+#### (g) Changes for the coordinator's dev-loop rules (outside the repository)
+
+- the overrides' *Phases* line and the heading *Dev-loop phases* → the phases of the custom
+  `definition-of-done` 1.2 (`backlog-item` › `build`: design → red → green → refactor), without
+  the procedure file;
+- *design*: the v0.3 task folder, the security probes and the strict-identity run (DoD *design*);
+- self-check gates: `check_tasks.py v0.3`; the stale "Chromium until task-027" line; `test:timing`
+  at the wave gate alone through the slot whatever the load rule says (dl-009 action 6);
+- a line: `workflow next` prints the directives of each step's role; the how of planning,
+  building and releasing is in `release-planning`, `definition-of-done`, `release-conventions`.
+
+#### Open questions (options, one recommendation each)
+
+- **Q1 — code comments naming a procedure step** (`playwright.config.ts`, `vitest.smoke.config.ts`,
+  about twelve `test/` headers, e.g. "e2e-smoke `launch`", "dev-loop `refactor` gate"). (A) leave
+  them: RC and DoD keep the step names as labels (*e2e smoke* › `launch`, *refactor* ›
+  `lint.clean`), so each comment still names a live section; (B) rewrite them all (one of them is
+  the append-only `test/launcher/local-security.test.ts`). **Recommended: A.**
+- **Q2 — templates.** (A) rewrite the `dev-loop` mentions of `task.md`, `tech-spec.md`,
+  `release.md`, `plan.md` (every new task copies "through dev-loop"); the element samples are
+  re-captured anyway; (B) leave the templates (not in AC-5's list). **Recommended: A.**
+- **Q3 — the `workflow:` of a future planning plan.** A `release-planning-rel-vX.Y-plan` would name
+  no loaded workflow (an open instance, W-38, and a baseline change). (A) RPL says: the stage's plan
+  names a loaded workflow, e.g. `sprint-planning-rel-v0.4-plan` (`workflow: sprint`, phase
+  `planning-rel-v0.4`), as W0-2 did for development, and the release stage's plans are
+  `release-submit-…` / `release-publishing-…`; (B) keep the name and accept the open instance.
+  **Recommended: A.**
+- **Q4 — who reads the seeding.** RC is bound to facilitator, qa, tech-lead; seeding is
+  product-owner's and architect's work. (A) the pointer of RPL *A new release line* (RPL is bound to
+  both); (B) also bind RC to product-owner and architect. **Recommended: A.**
+- **Q5 — a failed merge after `approve`.** No verb takes `approved` back. (A) DoD: the phase branch
+  is merged into the task branch before `review` (as today), so the merge after `approve` is clean;
+  if it still fails: `git merge --abort`, the conflict resolved on the task branch, the gates
+  re-run, the reviewer re-checks, the approver is told before the merge; the task stays `approved`;
+  (B) `memory park` is not available from `approved` either — no other option without a verb.
+  **Recommended: A.**
+- **Q6 — a guard test for AC-5.** (A) the `git grep` of (e) recorded in these notes; the diagnostics
+  test already fails if a procedure file is included again; (B) a new `test/governance/` test
+  failing on any live mention of a removed file. **Recommended: A.**
