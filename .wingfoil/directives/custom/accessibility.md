@@ -9,7 +9,8 @@ tags: [custom, web, accessibility, quality]
 
 # Directive — Accessibility of the web UI
 
-**Version:** 1.0 · **Date:** 2026-10-01
+**Version:** 1.1 · **Date:** 2026-11-04 (1.1: where the scan is checked, after the procedures were
+folded into directives — task-049)
 
 Applies to whoever builds, reviews or tests a screen of the `web` module.
 
@@ -27,5 +28,7 @@ Applies to whoever builds, reviews or tests a screen of the `web` module.
 
 ## How it is checked
 
-- An axe-core scan per screen with zero serious/critical violations (dev-loop and e2e-smoke).
+- An axe-core scan per screen with zero serious/critical violations (`definition-of-done` ›
+  *refactor*, when the UI changes, and the e2e smoke of `release-conventions` ›
+  `pre-release-checks`).
 - The keyboard path of each gate action walked once per release (manual or Playwright).

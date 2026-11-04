@@ -2,7 +2,8 @@
 # of the built-in/custom subfolder holding the file.
 # Composed from the wingfoil-templates packs base@2.0.1, software@1.0.0 and methodology/scrum@1.0.0
 # (traceability, scrum, determinism, definition-of-done, claim-sources and the packs' globals), with
-# this repository's own bindings re-added (governance-alignment-rel-v0.3-plan step 3).
+# this repository's own bindings re-added (governance-alignment-rel-v0.3-plan step 3);
+# `release-planning` bound to architect, product-owner and tech-lead by task-049.
 format: 1
 version: 1
 
@@ -40,15 +41,18 @@ assignments:
     - traceability
     - traceability-chain
     - cli-only-writes
+    - release-planning
   product-owner:
     - traceability
     - traceability-chain
     - ux-consistency
     - scrum
+    - release-planning
   tech-lead:
     - architecture
     - code-review
     - release-conventions
+    - release-planning
 
 # Global directives apply to every role.
 global:
