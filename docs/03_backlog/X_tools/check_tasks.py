@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Stop-check of release-planning/build-backlog: the Memory tasks of a release against its backlog.
+"""Stop-check of directive `release-planning` › build-backlog: the Memory tasks of a release against its backlog.
 
 Checks, for every docs/04_memory/<release>/task-*.md:
-- `release` = <release> and `tags` contains it (release-cycle selects tasks by tag);
+- `release` = <release> and `tags` contains it (the release's tag, as `release-planning` › build-backlog writes it);
 - `title`, `module` (a module of .wingfoil/dna.yaml), `priority` and `ref` are set;
 - the line `**Backlog items:** …` lists backlog ids of by-release/<release>.json, `ref` is one of them;
 - every `<release>` acceptance criterion of an item is cited in that item's Acceptance Criteria block;

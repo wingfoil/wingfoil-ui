@@ -2,7 +2,9 @@
 # Composed from the wingfoil-templates packs base@2.0.1, software@1.0.0 and methodology/scrum@1.0.0
 # (the workflows/built-in/ files, unchanged), with this repository's own workflows re-added
 # (workflows/custom/; governance-alignment-rel-v0.3-plan step 3). A custom workflow never takes the
-# name of a pack's (E_WORKFLOW_DUPLICATE_NAME).
+# name of a pack's (E_WORKFLOW_DUPLICATE_NAME). The five procedures this repository ran by hand
+# (initial-design, release-planning, dev-loop, user-docs, e2e-smoke) were folded into directives
+# by task-049: `release-planning`, `definition-of-done`, `release-conventions`.
 format: 1
 version: 1
 
@@ -30,11 +32,3 @@ include:
   # --- This repository's own ---
   # Startable main: capture an external service (the `service` type is this repository's own).
   - workflows/custom/service-ingest.yaml
-  # Procedures no pack workflow includes (methodology/scrum charter, open point 1): each is run by
-  # hand inside the pack phase its header names, against its plan; the pack phase owns the element
-  # transitions.
-  - workflows/custom/initial-design.yaml       # per release-line, outside `delivery`
-  - workflows/custom/release-planning.yaml     # inside `sprint` › `sprint-planning` / `plan-release`
-  - workflows/custom/dev-loop.yaml             # inside `backlog-item` › `start` … `done`
-  - workflows/custom/user-docs.yaml            # inside `release-submit` › `pre-release-checks`
-  - workflows/custom/e2e-smoke.yaml            # inside `release-submit` › `pre-release-checks`

@@ -9,7 +9,7 @@ tags: [custom, architecture, wingfoil, security]
 
 # Directive — Every governed change goes through the WingFoil CLI
 
-**Version:** 1.8 · **Date:** 2026-11-02 (1.1: write classes, snapshot, CLI choice — vision session 7; 1.2: no UI-side permission on `ui.yaml` — specification session 3; 1.3: clone in class (c), check scoped to UI commits — specification session 6; 1.4: read allow-list where the CLI has no read verb — initial-design session 5; 1.5: hash-only reads for the state key — dev-loop task-010; 1.6: the automatic update's local `merge --ff-only` in class (c) — release-planning v0.2, RP-41; 1.7: `memory deprecate` in this repository — the packs adoption, its review round 1, A-4; 1.8: "members or not", the rule also in `wingfoil-cli` — round 2)
+**Version:** 1.9 · **Date:** 2026-11-04 (1.1: write classes, snapshot, CLI choice — vision session 7; 1.2: no UI-side permission on `ui.yaml` — specification session 3; 1.3: clone in class (c), check scoped to UI commits — specification session 6; 1.4: read allow-list where the CLI has no read verb — initial-design session 5; 1.5: hash-only reads for the state key — dev-loop task-010; 1.6: the automatic update's local `merge --ff-only` in class (c) — release-planning v0.2, RP-41; 1.7: `memory deprecate` in this repository — the packs adoption, its review round 1, A-4; 1.8: "members or not", the rule also in `wingfoil-cli` — round 2; 1.9: the e2e smoke in `release-conventions` — task-049)
 
 Applies to whoever designs, writes or reviews the WingFoil UI server and its use of a WingFoil
 project (draft ADR: `docs/00_reference/adr-draft-local-server.md`).
@@ -61,6 +61,7 @@ directive `wingfoil-cli` (global).
 - Unit (fs spy, REQ-ARC-04): direct reads of WingFoil files only from the allow-list — except the
   hash-only reads of changed and untracked entries for the state key (REQ-STATE-02, spec-001
   §4.4), whose content is neither kept nor exposed — 0 writes.
-- e2e-smoke: every commit **created while driving the UI** (the fixture's set-up commits excluded) is
-  a `wf(…)` commit made by the CLI or a `chore(ui)` commit whose only file is `.wingfoil/ui.yaml`; actions on an element
-  with local changes, and while behind, are refused.
+- The e2e smoke (`release-conventions` › `pre-release-checks`, `drive-browser`): every commit
+  **created while driving the UI** (the fixture's set-up commits excluded) is a `wf(…)` commit
+  made by the CLI or a `chore(ui)` commit whose only file is `.wingfoil/ui.yaml`; actions on an
+  element with local changes, and while behind, are refused.

@@ -42,7 +42,7 @@ tmpl_version: 260929   # Orignal template version
 <!-- identify-specs: artefacts discovered late or missed; build-backlog: scope/estimation
      surprises, bugs selected for this release and their derived fix tasks. -->
 
-### Implementation (dev-loop, per task)
+### Implementation (`backlog-item`, per task)
 
 <!-- Recurring blockers across tasks, tech-specs revised mid-release, review rejections and why,
      anything that deviated from the plan in Scope/Pillar Focus above. -->

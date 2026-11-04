@@ -358,6 +358,29 @@
       "assignment": "facilitator, qa, tech-lead"
     },
     {
+      "path": "directives/custom/release-planning.md",
+      "frontmatter": {
+        "id": "release-planning",
+        "name": "release-planning",
+        "type": "directive",
+        "kind": "custom",
+        "title": "Release planning of WingFoil UI",
+        "tags": [
+          "custom",
+          "release",
+          "planning",
+          "scrum"
+        ]
+      },
+      "roles": [
+        "architect",
+        "product-owner",
+        "tech-lead"
+      ],
+      "global": false,
+      "assignment": "architect, product-owner, tech-lead"
+    },
+    {
       "path": "directives/custom/traceability-chain.md",
       "frontmatter": {
         "id": "traceability-chain",
