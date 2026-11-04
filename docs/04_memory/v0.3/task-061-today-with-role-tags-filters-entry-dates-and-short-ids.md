@@ -103,7 +103,7 @@ Today, clearer (release-planning v0.3, RP3-7 N1–N4; RP3-14 D1; RP3-15 F1, F5, 
   the React Aria components of `adr-002`; shared files stay append-only (catalogue, `SCREENS`,
   `test/README.md` version line).
 - The fixture Given of T-02.6 (11 more `pending` tasks) goes through the fixture builder; the
-  affected suites run under the harness git identity (`test/README.md` *Git identity*).
+  affected suites run under the strict-identity recipe of `test/README.md` *Git identity* in the self-check (dl-011).
 - Heavy gates through the machine-free slot of the dev-loop rules, in the task's worktree; e2e: the
   full suite on Chromium plus the task's own specs (Today, notification bell) on the three engines.
 

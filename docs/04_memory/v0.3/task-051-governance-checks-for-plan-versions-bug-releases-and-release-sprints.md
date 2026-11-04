@@ -14,7 +14,7 @@ bug: []                # optional — LIST of bug ids this task closes. Two case
                        # task already owns the ground. Each bug listed moves with its own verbs (`.wingfoil/memory.yaml`):
                        # the approver's `memory approve` triaged -> planned, `memory submit` planned -> in-progress when
                        # this task starts, then submit/approve along its machine; no `bug.sync_state` since the packs adoption
-depends_on: []         # optional — ids of tasks whose Execution Notes constrain this one; authored at planning time, may be appended during design
+depends_on: ["task-049-procedures-folded-into-directives"]         # optional — ids of tasks whose Execution Notes constrain this one; authored at planning time, may be appended during design
 tmpl_version: 260703   # Orignal template version
 ---
 
@@ -25,8 +25,10 @@ hand.
 
 - **Plan version** (dl-011, *Decision*; dl-009 action 11): a plan's frontmatter `version` equals
   its Context `**Version:**` line. The rule of dl-006 action 6 broke in two of seven plans of v0.2
-  with no check; today the active `release-planning-rel-v0.3-plan` has frontmatter `version: "0.7"`
-  and a Context line `**Version:** 0.1` (read 2026-11-03).
+  with no check; today (read 2026-11-04 under `docs/05_plans/`) five closed v0.1 plans differ —
+  `dev-loop-rel-v0.1-plan` 0.7/0.8, `release-publishing-rel-v0.1-plan` and
+  `release-submit-rel-v0.1-plan` 0.1/0.5, `e2e-smoke-rel-v0.1-plan` and `user-docs-rel-v0.1-plan`
+  0.2/0.3 — and four have no Context `**Version:**` line.
 - **Bug release** (dl-009 action 7): a `closed` bug with an empty `release` fails — the triage of
   a bug fixed in a later release sets `release`, and the absorption into a task stamps it.
 - **Release sprints** (found at step 2 of `release-planning-rel-v0.3-plan`):
@@ -43,8 +45,11 @@ the `check_releases.py` sprint rule)
   reads every plan under `docs/05_plans/` and fails, naming the file and both values, when the
   frontmatter `version` differs from the version of the Context `**Version:**` line, or when one of
   them is missing. Red first: it fails on the tree at the base commit with the mismatches it finds.
-  The design lists them (on 2026-11-03: `release-planning-rel-v0.3-plan` 0.7/0.1,
-  `sw-life-cycle-1-plan` 0.2/0.1, and v0.1 plans with no Context line or other values) and the
+  The design lists them (on 2026-11-04, frontmatter/Context: `dev-loop-rel-v0.1-plan` 0.7/0.8,
+  `release-publishing-rel-v0.1-plan` 0.1/0.5, `release-submit-rel-v0.1-plan` 0.1/0.5,
+  `e2e-smoke-rel-v0.1-plan` 0.2/0.3, `user-docs-rel-v0.1-plan` 0.2/0.3; no Context `**Version:**`
+  line: `initial-design-rl-v1-plan`, `release-planning-rel-v0.1-plan`,
+  `lean-inception-inception-plan`, `specification-downcast-specification-plan`) and the
   approver chooses, per plan, an alignment commit (as dl-009 action 11 did) or an entry of an
   explicit, commented exemption list in the test for closed history; no silent skip.
 - **AC-2 — Bug-release check.** A test of the default suite fails, naming the bug, when a bug of
@@ -73,6 +78,9 @@ the `check_releases.py` sprint rule)
 - The checks read files only (no CLI, no git): no security probe; one independent review.
 - A plan's Context line has the form `**Version:** <n> · **Date:** …`; compare the first version
   token, not the change history in parentheses.
+- Shared Wave-0 files: `CLAUDE.md`, `AGENTS.md`, directive `release-conventions`,
+  `.wingfoil/README.md` and directive `wingfoil-cli` are also changed by task-049; this task
+  depends on it and starts from its merge (merge in task-number order).
 
 ## Execution Notes
 

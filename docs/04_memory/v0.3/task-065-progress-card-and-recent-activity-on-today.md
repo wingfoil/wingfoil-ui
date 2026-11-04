@@ -14,7 +14,7 @@ bug: []                # optional — LIST of bug ids this task closes. Two case
                        # task already owns the ground. Each bug listed moves with its own verbs (`.wingfoil/memory.yaml`):
                        # the approver's `memory approve` triaged -> planned, `memory submit` planned -> in-progress when
                        # this task starts, then submit/approve along its machine; no `bug.sync_state` since the packs adoption
-depends_on: ["task-059-progress-traceability-and-missing-reference-api", "task-066-memory-list-state-filter-and-missing-reference-badge"]         # optional — ids of tasks whose Execution Notes constrain this one; authored at planning time, may be appended during design
+depends_on: ["task-059-progress-traceability-and-missing-reference-api", "task-066-memory-list-state-filter-and-missing-reference-badge", "task-061-today-with-role-tags-filters-entry-dates-and-short-ids"]         # optional — ids of tasks whose Execution Notes constrain this one; authored at planning time, may be appended during design
 tmpl_version: 260703   # Orignal template version
 ---
 
@@ -113,12 +113,13 @@ gates through the machine-free slot with the load and the slot wait in each log 
   spec-005 §4; spec-002 §1, §3 (the events); spec-004 §3, §6; spec-008; REQ-PERF-01, REQ-PERF-03,
   REQ-PERF-11; the Execution Notes of task-059 (bodies, fixture variants), task-066 (the `?figure=`
   route and its active-filter control), task-036 (Today's layout and refresh), task-042 (the
-  bell's events, the page title code `web/src/shell/page-title.ts`) and of the Today task of this
-  release (task-061: role tags, filters, short ids) if merged by then — Today's files are shared.
+  bell's events, the page title code `web/src/shell/page-title.ts`) and of task-061 (role tags,
+  filters, short ids; a dependency) — Today's files are shared, so this task builds on its merge.
 - Recent activity reads the existing events route; the row names the element by the short id when
   the elements list Today reads has it (spec-012 §6, spec-011 §1).
 - Today's layout changes touch the v0.2 Today specs (`today.spec.ts`, `notification-bell.spec.ts`)
   and `SCREENS`; no expectation of an earlier scenario is loosened.
+- T-08.2 and T-12.3 commit through a CLI approve outside the UI: their spec runs under the strict-identity recipe of `test/README.md` *Fixtures* › *Git identity* in the self-check (dl-011).
 
 ## Execution Notes
 

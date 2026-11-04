@@ -34,6 +34,9 @@ R2 (RP3-10; RP3-14 D3; RP3-17 E2–E4, C1):
 - **bug-019** (spec-011 §4): `maxParamLength` 255, and a longer parameter answers 404 `not-found`
   on every method after the Host/Origin, `Sec-Fetch-Site` and session checks (C1).
 
+It is product server code planned as a governance task because US-G-01 is owned by task-062 under
+the one-task-per-earlier-story rule, as task-047 and task-048 were (release-planning v0.3, G3).
+
 The page, the side panel's `?panel=`, the candidates list and the e2e scenarios of US-G-01 are
 task-062-element-page-side-panel-address-and-rendered-document's, which depends on this task.
 
@@ -95,6 +98,8 @@ task-062-element-page-side-panel-address-and-rendered-document's, which depends 
   an id naming another project's element, the 409 body's size.
 - Heavy gates through the machine-free slot of the dev-loop rules, in the task's worktree; e2e: the
   full suite on Chromium (no own e2e spec: the UI scenarios are task-062's).
+- Shared Wave-1 files: task-056 also changes `server/src/http/project-routes.ts`, `app.ts` and the element read; coordinate with it and merge in task-number order.
+- Every server task regenerates the `npm run docs:api` output; after a merge the output is regenerated, never merged by hand.
 
 ## Execution Notes
 

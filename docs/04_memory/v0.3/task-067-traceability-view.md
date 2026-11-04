@@ -14,7 +14,7 @@ bug: []                # optional — LIST of bug ids this task closes. Two case
                        # task already owns the ground. Each bug listed moves with its own verbs (`.wingfoil/memory.yaml`):
                        # the approver's `memory approve` triaged -> planned, `memory submit` planned -> in-progress when
                        # this task starts, then submit/approve along its machine; no `bug.sync_state` since the packs adoption
-depends_on: ["task-059-progress-traceability-and-missing-reference-api", "task-066-memory-list-state-filter-and-missing-reference-badge"]         # optional — ids of tasks whose Execution Notes constrain this one; authored at planning time, may be appended during design
+depends_on: ["task-059-progress-traceability-and-missing-reference-api", "task-066-memory-list-state-filter-and-missing-reference-badge", "task-062-element-page-side-panel-address-and-rendered-document"]         # optional — ids of tasks whose Execution Notes constrain this one; authored at planning time, may be appended during design
 tmpl_version: 260703   # Orignal template version
 ---
 
@@ -105,7 +105,8 @@ gates through the machine-free slot with the load and the slot wait in each log 
   reuses), §7; spec-012 §4, §8, §9; spec-011 §1, §2 (short ids, element addresses with
   `encodeURIComponent`); spec-003 §4, §5, §7; spec-008; the Execution Notes of task-059 (the body,
   the fixture variants of R-01.5 and R-01.7), task-066 (the missing-references filter's URL), and of
-  the element-page and short-id tasks of this release (task-062, task-057) if merged by then.
+  task-062 (the element page in the main region, a dependency) and task-057 (short ids, through
+  task-059).
 - A pattern reference is never a link and never rendered as HTML; every repository string is text
   (spec-012 §9).
 

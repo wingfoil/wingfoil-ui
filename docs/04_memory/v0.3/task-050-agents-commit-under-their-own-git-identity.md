@@ -14,7 +14,7 @@ bug: []                # optional — LIST of bug ids this task closes. Two case
                        # task already owns the ground. Each bug listed moves with its own verbs (`.wingfoil/memory.yaml`):
                        # the approver's `memory approve` triaged -> planned, `memory submit` planned -> in-progress when
                        # this task starts, then submit/approve along its machine; no `bug.sync_state` since the packs adoption
-depends_on: []         # optional — ids of tasks whose Execution Notes constrain this one; authored at planning time, may be appended during design
+depends_on: ["task-049-procedures-folded-into-directives"]         # optional — ids of tasks whose Execution Notes constrain this one; authored at planning time, may be appended during design
 tmpl_version: 260703   # Orignal template version
 ---
 
@@ -67,8 +67,8 @@ RP3-13)
 - **AC-5 — Docs.** `CLAUDE.md` (the identity rule replacing "agents commit under the approver's
   git identity"), directive `release-conventions` *The release line* (its paragraph on a separate
   identity), directive `wingfoil-cli` W-39 (*Workaround* and *Note*), `AGENTS.md` *This repository*;
-  the dev rules the sessions read (`.notes/dev-rules.md`, git-ignored) get their text from the
-  coordinator — the task lists it in its Execution Notes. Every `.wingfoil/` diff with the
+  the coordinator's dev-loop rules, outside the repository, get their text from the coordinator —
+  the task lists it in its Execution Notes. Every `.wingfoil/` diff with the
   approver's OK before commit; each document's Version/Date bumped (`doc-versioning`).
 - **AC-6 — Gates.** `typecheck`, `lint`, `format:check`, `test:coverage` (≥ 80 %), `test:contract`
   and `test:e2e:chromium` with the agent variables set, through the machine-free slot (load and slot
@@ -87,6 +87,10 @@ RP3-13)
   but its commits.
 - Co-author trailers stay as the session's attribution rules say; the commit author is the agent
   identity, the approver's commands keep the approver's.
+- Shared Wave-0 files: `CLAUDE.md`, `AGENTS.md`, directive `release-conventions`,
+  `.wingfoil/README.md` and directive `wingfoil-cli` are also changed by task-049; this task
+  depends on it and starts from its merge (merge in task-number order).
+- Review: a security-adversarial reviewer who runs the tools (the probes of AC-2 … AC-4), until PASS.
 
 ## Execution Notes
 

@@ -22,7 +22,9 @@ tmpl_version: 260703   # Orignal template version
 
 Governance task of `minor-v0.3` (a security class): every string a read body takes from a tool or
 from the repository reaches the page through one sanitising rule, and one bad `memory search`
-match no longer hides a project. It absorbs:
+match no longer hides a project. It is product server code planned as a governance task because no
+story with `@v0.3` scenarios fits it, as task-047 and task-048 were (release-planning v0.3, G3). It
+absorbs:
 
 - **bug-024** (RP3-14 D10): `memory search` is validated per match on every version (spec-001 §2):
   the envelope as a whole, then each match on its own; a failing match is dropped and becomes one
@@ -112,6 +114,10 @@ match no longer hides a project. It absorbs:
   against the diff.
 - Heavy gates through the machine-free slot of the dev-loop rules, in the task's worktree; e2e: the
   full suite on Chromium plus the task's own specs on the three engines.
+- Shared Wave-1 files: task-055 also changes the Today rows and the descriptor tests; task-057 also
+  changes `server/src/http/project-routes.ts`, `app.ts` and the element read — coordinate, merge in
+  task-number order.
+- Every server task regenerates the `npm run docs:api` output; after a merge the output is regenerated, never merged by hand.
 
 ## Execution Notes
 

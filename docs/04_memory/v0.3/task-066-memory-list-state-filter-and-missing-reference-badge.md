@@ -97,6 +97,7 @@ gates through the machine-free slot with the load and the slot wait in each log 
   the next repository state without new ids in the address.
 - Element rows link to the element page as the element-page task of this release decides
   (task-062, spec-011 §2); keep the row markup shared with the traceability detail if it fits.
+- M-03.2 commits outside the UI: its spec runs under the strict-identity recipe of `test/README.md` *Fixtures* › *Git identity* in the self-check (dl-011).
 
 ## Execution Notes
 
