@@ -7,6 +7,14 @@ release `v0.2` the git tag `v0.2.0` and the npm version `wingfoil-ui@0.2.0`.
 
 ## [Unreleased]
 
+### Added
+
+- **A draft GitHub Release for every tagged version** (task-052): the publish workflow's `release`
+  job creates it after `promote`, with the version's CHANGELOG section as notes and, as assets, the
+  tarball staged on npm, the coverage totals (`coverage-totals.json`) and the test counts per suite
+  (`test-results.md`) of the tag's run — no file holding a path. The approver makes it public once
+  the version is live on npm (`docs/publishing.md`, *Every release*).
+
 ### Changed
 
 - **WingFoil 0.3 support** (task-046): a project on WingFoil 0.2.2 to 0.3.x is supported

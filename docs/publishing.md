@@ -1,13 +1,13 @@
 # Publishing to npm
 
-**Version:** 0.6 · **Date:** 2026-11-02 (0.1: the publish pipeline, the approver's checklist, the
+**Version:** 0.7 · **Date:** 2026-11-04 (0.1: the publish pipeline, the approver's checklist, the
 local staging smoke, the differences from WingFoil's pipeline — task-029; 0.2: review round 1 — a
 dispatch never promotes, the guard's limit, the dev-only audit findings, what is not verified yet;
 0.3: release v0.2.0 — the first version by hand, `stage` verified on Node 22.12.0, the GitHub
 Release of v0.2.0 by hand; 0.4: what the first publish showed — an expired npm session answers 404,
 the `0.0.0-stage` placeholder, checklist steps 4–6 done, the GitHub Release's assets; 0.5: the
 release steps after the packs adoption — `release-commit` in `release-publishing`, `released` by the
-approver's `memory approve` after the publication, governance-alignment-rel-v0.3-plan step 3; 0.6: the WingFoil comparison names `release-publishing` › `release-commit` (review round 3 nit))
+approver's `memory approve` after the publication, governance-alignment-rel-v0.3-plan step 3; 0.6: the WingFoil comparison names `release-publishing` › `release-commit` (review round 3 nit); 0.7: the `release` job — a draft GitHub Release after `promote`, made public by the approver; the path-free test reports — task-052, review round 1: the tarball's integrity check before the publish)
 
 How `wingfoil-ui` reaches the npm registry: the pipeline `.github/workflows/publish.yml`, the
 registry-side setup the **approver** performs once, the steps of every release, and the staging
@@ -30,21 +30,39 @@ marked *approver* is a human act (CLAUDE.md, *Working with the WingFoil CLI*).
 | `gate` | `scripts/check-release-tag.mjs <tag> <sha>`: the tag is annotated, equals `v` + the version of the root and of every workspace `package.json` and of `package-lock.json` (its `version`, `packages[""]` and each workspace entry), points at the commit built (`<sha>` peeled to its commit), and that commit is on `origin/main`. Then `npm ci`, `typecheck`, `lint`, `format:check`, `test:coverage`, `test:smoke`, and `npm pack` **once** (its `prepack` builds from a clean tree); the tarball is the run's artifact. | the repository gates |
 | `stage` | `npm run test:publish-smoke` on **that** tarball, on Node 22.12.0 (the `engines` floor): see [Local staging smoke](#local-staging-smoke). | the package installs from a registry and starts |
 | `promote` | Only for a tag, in the GitHub environment `npm-publish`: waits until the approver approves the deployment, then `npm stage publish ./dist-pack/*.tgz --provenance --access public` through the npm trusted publisher (GitHub OIDC, `id-token: write`, permission limited to staging). | (1) the `npm-publish` approval; (2) the npm stage queue |
+| `release` | Only for a tag, after `promote`: a **draft** GitHub Release of the tag (`gh release create "$GITHUB_REF_NAME" … --draft --verify-tag`), with the gate's notes and, as assets, the tarball `promote` staged, `coverage-totals.json` and `test-results.md`. No checkout, no install: three artifact downloads and `gh`, with the job's own token (`contents: write`, this job alone) on the create step only. | the approver makes the draft public after `npm stage approve` ([Every release](#every-release), step 5) |
 
 The staged version is **not live**: it goes live only when the approver runs `npm stage approve`
-with 2FA. The workflow holds no credential — no secret, no token variable, no npm user config, no
-`registry-url`. A plain `npm publish` from a checkout stops at the root `prepublishOnly`
+with 2FA. The workflow holds no npm credential — no secret, no token variable, no npm user config,
+no `registry-url`; the one token is the `release` job's own, for `gh`. A plain `npm publish` from a checkout stops at the root `prepublishOnly`
 (`scripts/publish-guard.mjs`): a guard against mistakes, which `npm publish --ignore-scripts`
 skips — the control is on the registry: the trusted publisher limited to staging and "disallow
 tokens" (checklist steps 5 and 6). `test/package/publish-workflow.test.ts` (default suite) freezes these
 invariants: triggers, permissions, the job chain and environment, the gates in order, the staging
 smoke on the gate tarball, `npm stage publish` with `set +x` first, no live publish, no
-credential, every action pinned to a commit SHA.
+credential, every action pinned to a commit SHA, no expression in a `run:` line; for `release`
+(task-052): the same condition as `promote`, `contents: write` there alone, its steps exactly the
+three downloads and the draft create, the three assets, and that no coverage report is uploaded.
+
+**Test reports.** The gate's one suite run chooses its reporters on the command line of the
+runner (`--coverage.reporter=text --coverage.reporter=json-summary --reporter=default
+--reporter=json --outputFile.json=coverage/vitest-results.json`), so a local `npm run
+test:coverage` keeps Vitest's defaults. Both files it writes hold absolute paths (per-file
+coverage entries; file names, test titles, failure messages) and are never uploaded:
+`scripts/coverage-totals.mjs` keeps the four `total` figures and the commit, and
+`scripts/test-results.mjs` writes the counts per suite (the first folder under `test/`; files,
+files failed, tests passed, failed, skipped), the version, the commit and the run URL — both from
+fixed fields only, checked by `test/scripts/coverage-totals.test.ts` and
+`test/scripts/test-results.test.ts` on inputs that carry paths. On a tag,
+`scripts/changelog-section.mjs` writes the notes: a preface (install line, run) and the
+version's `CHANGELOG.md` section with its relative links absolute to the tag; a tag with no
+section fails the gate, before anything is staged.
 
 **Dry run before tagging.** *Actions → publish → Run workflow* (`workflow_dispatch`) runs `gate`
 and `stage` only, on whatever ref it is started on — `main`, another branch or a tag: the gates on
-a GitHub runner and the smoked tarball as an artifact. A dispatch **never promotes**: `promote`
-requires `github.event_name == 'push'` (a manual run on a tag ref has `ref_type == 'tag'` too),
+a GitHub runner, the smoked tarball and the test reports as artifacts. A dispatch **never
+promotes** and never makes a Release: `promote` and `release` require
+`github.event_name == 'push'` (a manual run on a tag ref has `ref_type == 'tag'` too),
 and the environment admits `v*` tags only. On a branch the tag checks are skipped.
 
 **Only a real tag push proves** the OIDC trusted publisher, the `npm-publish` approval,
@@ -56,7 +74,9 @@ and the environment admits `v*` tags only. On a branch the tag checks are skippe
 4/4, `test:publish-smoke` 11/11; the first two dry runs found bug-020, bug-021, bug-022). **Not
 verified yet:** the trusted publisher, `npm stage publish`, the `npm-publish` approval of a real
 promote and the provenance statement — `0.2.0` was published by hand, so the first release after
-it is their first run.
+it is their first run — and the `release` job (task-052), whose first run is the `v0.3.0` tag run;
+the test reports and the command-line reporters of `gate` are first seen on a runner by the next
+dry run.
 
 ## Approver checklist (registry-side setup, once)
 
@@ -115,7 +135,7 @@ ships as a git tag only and a decision-log records it, as dl-004 did for v0.1 (R
    finalize --step <the key workflow next prints> --reason "…"` — **never `memory approve` on the
    release there**: `releasing` is a gate, its approve moves the release to `released` at once and
    skips the publication. The console and `workflow status` offer that Approve as soon as the
-   release is `releasing`: ignore it until step 5. Then `release-publishing` `release-commit` makes
+   release is `releasing`: ignore it until step 6. Then `release-publishing` `release-commit` makes
    the release commit (versions `X.Y.Z` in every `package.json` and the lockfile, CHANGELOG section)
    on `main`, and `staging-rehearsal` runs `npm run test:publish-smoke` on it; optionally run the
    dry run above on it.
@@ -137,7 +157,29 @@ ships as a git tag only and a decision-log records it, as dl-004 did for v0.1 (R
    version may first show an automated review, during which *Approve* is not available (WingFoil's
    runbook, v0.2.2). A bad staged version is discarded with `npm stage reject <stage-id>`: it never
    goes live.
-5. `release-publishing` `publish` post-check: `npm view wingfoil-ui@X.Y.Z version` answers the
+5. **Approver: make the draft GitHub Release public** once the version is live. The run's
+   `release` job created it right after `promote` (a draft is visible to repository writers only):
+
+   First check the draft on GitHub (notes, the three assets: `wingfoil-ui-X.Y.Z.tgz`,
+   `coverage-totals.json`, `test-results.md`) and that its tarball is the version npm serves —
+   the two lines must be equal:
+
+   ```bash
+   npm view wingfoil-ui@X.Y.Z dist.integrity
+   echo "sha512-$(gh release download vX.Y.Z -p 'wingfoil-ui-X.Y.Z.tgz' -O - | openssl dgst -sha512 -binary | openssl base64 -A)"
+   ```
+
+   Then publish it:
+
+   ```bash
+   npm view wingfoil-ui@X.Y.Z version && gh release edit vX.Y.Z --draft=false --latest
+   ```
+
+   The `&&` publishes only when npm answers the version.
+   After a **rejected** stage, delete the draft: `gh release delete vX.Y.Z --yes` (the tag stays).
+   If the `release` job failed (nothing created), *Re-run failed jobs* re-runs it alone; if it
+   failed after creating the draft, delete the draft first.
+6. `release-publishing` `publish` post-check: `npm view wingfoil-ui@X.Y.Z version` answers the
    version; then `mark-released`: **the approver** runs `memory approve <release> --reason "…"`
    (`releasing → released`) — the only moment the release is approved (directive
    `release-conventions`).
@@ -154,16 +196,20 @@ patch version follows. **A bad version that went live** is never unpublished (np
 others may depend on it): the approver runs `npm deprecate wingfoil-ui@X.Y.Z "broken: <reason> —
 upgrade to X.Y.Z+1"` and the fix ships as a patch release through the same tag flow.
 
-**GitHub Release.** The pipeline creates none (see the table below). For `v0.2.0` the approver asked
-for one: once `npm view wingfoil-ui@0.2.0 version` answered, it was created by hand on the
+**GitHub Release.** From v0.3 the `release` job creates it as a **draft** after `promote`, and the
+approver makes it public after `npm stage approve` (step 5). Decided by the approver on
+2026-11-04 (task-052 D52-1, "q1-a"): of a draft made public by the approver, an approver-gated
+environment with a bounded wait on npm, and WingFoil's unattended 330-minute poll, the draft keeps
+the only write token alive for minutes and announces nothing before the approver's act; assets
+`coverage-totals.json` ("q2") and a generated `test-results.md` ("q3"); no `.wingfoil/` change
+("q4"). For `v0.2.0` the approver asked for one by hand: once `npm view wingfoil-ui@0.2.0 version` answered, it was created by hand on the
 approver's OK (2026-10-20) — `gh release create v0.2.0 --verify-tag --title v0.2.0 --latest`, notes
 = a short preface (the hand publish, the tag run, the local test results) and the CHANGELOG section
 `[0.2.0]` with its relative links made absolute to the tag; assets = the published tarball,
 `coverage-summary.json` (the totals of the release tree's local `test:coverage`) and
 `test-results.md` (the pre-release checks). The full local coverage reports (`coverage-final.json`,
-`clover.xml`) are not attached: they hold the machine's absolute paths (dl-005). An automatic
-`release` job like WingFoil's (after `promote`, once the version is live; the gate's test reports,
-built on the runner, as assets) is planned for v0.3.
+`clover.xml`) are not attached: they hold the machine's absolute paths (dl-005); the automatic
+assets are rebuilt with fixed fields for the same reason ([Test reports](#the-pipeline)).
 
 ## Local staging smoke
 
@@ -219,14 +265,14 @@ publisher, made live by the approver's `npm stage approve` with 2FA — are the 
 | Triggers | `vX.Y.Z` tag push only; local runs with `act` (`if: !env.ACT` guards) | tag push, plus `workflow_dispatch` running `gate` and `stage` only, on any ref (promote needs a `push` event); no `act` guards | this repository has no other CI: without a manual run the tag would be the suite's first run on a GitHub runner (D29-4); `promote` needs a tag, so a local `act` run cannot stage either |
 | Release line | the tag's commit on `main` or on `release/X.Y` of its own X.Y | on `origin/main` only | release-publishing tags on `main`; no maintenance branches yet |
 | Tag checks | `check-release-tag.cjs` in three steps, also `server.json` versions | `check-release-tag.mjs`, one step: annotated, `v` + root, workspace and lockfile versions (a glob workspace entry is refused), the commit built (peeled), on `origin/main` | no `server.json`; the workspaces carry the version (release-publishing `release-commit`) (D29-13) |
-| Gate content | `build`, `test:report` (Jest with coverage and JSON), `lint`, a test-results summary, `npm publish --dry-run`, `npm pack --ignore-scripts`; test reports uploaded | `typecheck`, `lint`, `format:check`, `test:coverage`, `test:smoke`, `npm pack` with `prepack` (clean build); no test reports | the gates named by task-029 AC-1; the reports exist in WingFoil to be attached to a GitHub Release, which this pipeline does not create yet |
+| Gate content | `build`, `test:report` (Jest with coverage and JSON), `lint`, a test-results summary, `npm publish --dry-run`, `npm pack --ignore-scripts`; test reports uploaded (the full `coverage-summary.json`, `lcov.info`, `jest-results.json`) | `typecheck`, `lint`, `format:check`, `test:coverage` (its reporters chosen on the runner), `test:smoke`, `npm pack` with `prepack` (clean build); uploaded: `coverage-totals.json` and `test-results.md` rebuilt with fixed fields, and on a tag the Release notes | the gates named by task-029 AC-1; no report holding a path is uploaded (dl-005, task-052); the notes are made in `gate` so a missing CHANGELOG section fails before the stage |
 | Stage job install | no `npm ci`: the staging script installs Verdaccio itself into its work folder | a full `npm ci` (dev dependencies included) before the smoke | the smoke is a Vitest file, the pinned Verdaccio comes from the lockfile, and the npm cache it fills is what the registry is seeded from offline |
 | Staging registry | `verdaccio@6` installed at run time into the work folder, fixed port 4873, an uplink to npmjs for the dependencies (none for the package under test) | `verdaccio@6.10.5` as an exact-pinned devDependency, a free loopback port, **no uplink**: seeded offline with the lockfile's run-time closure; npm behind a dead proxy | AC-3: the smoke never contacts the public registry; the lockfile pins Verdaccio and its dependencies by integrity; worktrees run concurrently (D29-1, D29-2) |
 | Staging install and check | `npm install -g`, then `wingfoil --version` must be `<version> (<commit>)` — `--expect-commit "$GITHUB_SHA"` ties the installed tarball to the tagged commit — plus an init smoke | `npm install wingfoil-ui@<version>` into an empty folder, `npx wingfoil-ui --version` = the version, a `--no-open` start with an authenticated API read, SIGINT stop; the published tarball's integrity equals the gate's | the README's install path is a local install and `npx`; the launcher prints no commit, so nothing ties the tarball to `$GITHUB_SHA` beyond the gate's tag checks and the artifact hand-over |
 | Staging implementation | a standalone script (`npm run publish:staging`) with its own signal handling and teardown | a Vitest file reusing the launch smoke's helpers (`test/smoke/support.ts`), teardown in `afterAll`, folders under the run's temporary root | task-029 Implementation Notes: reuse `test/smoke/`; the temp-folder convention of task-026 (D29-3) |
 | Node versions | `gate` and `stage` 22.12.0, `promote` 24.21.0 | `gate` 22.22.2, `stage` 22.12.0, `promote` 24.21.0 | the dev toolchain declares more than the runtime floor (`jsdom` `^22.22.2`); the installed package still starts on the `engines` floor in `stage` (D29-5) |
 | dist-tag | explicit `--tag`: `latest`, or `latest-X.Y` for a patch of an older line (`npm-dist-tag.cjs`) | no `--tag`: npm applies `latest` and refuses a version lower than the current `latest` | one release line; WingFoil's header notes that an explicit tag switches npm's guard off (D29-6) |
-| After the stage | `release` job (GitHub Release with the CHANGELOG section and the test reports, once the version is live) and `mcp-registry` job | none; the GitHub Release of `v0.2.0` made by hand ([Every release](#every-release)) | dl-004: no GitHub Release unless the approver asks — the approver asked for v0.2.0, the job is planned for v0.3; WingFoil UI is not an MCP server (D29-7) |
+| After the stage | `release` job: checkout, setup-node, notes, then an unattended bounded poll (`wait-npm-version.cjs`, 330 min inside `timeout-minutes: 345`) and a **public** Release once the version is live; `mcp-registry` job | `release` job: a **draft** Release right after `promote` (`timeout-minutes: 10`, no checkout or install, three artifact downloads and `gh`); the approver makes it public after `npm stage approve` with `npm view … && gh release edit … --draft=false --latest` | the approver's choice (task-052 D52-1 (a)): the write token lives minutes, not hours, and no environment or poll code is added; WingFoil UI is not an MCP server (D29-7) |
 | `prepublishOnly` | build, test with coverage, lint (the gate of a publish from a checkout) | stops a plain `npm publish` from a checkout (`scripts/publish-guard.mjs`; `--ignore-scripts` skips it) | the pipeline is the only way to publish, enforced on the registry (checklist steps 5, 6); the staged tarball runs no lifecycle script (D29-8) |
 | `publishConfig` | `registry`, `access: public`, `provenance: true` in `package.json` | none: `--provenance --access public` on the `npm stage publish` line | keeps the local registry's publish free of provenance without an override flag in `package.json` |
 | First publish | the runbook records a stage-only token, revoked once the trusted publisher existed | no token at any time: if npm requires an existing package for a trusted publisher, the approver publishes the first version by hand from the pipeline's smoked tarball | task-029 AC-1: no token in the repository or the workflow (D29-10) |
