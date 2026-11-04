@@ -397,3 +397,21 @@ with fixed fields like the totals reducer, with no local or absolute path and no
   differences rows *Gate content* and *After the stage*); the `publish.yml` header; `CLAUDE.md`
   0.16; `CHANGELOG.md` *Unreleased* › *Added*; `test/README.md` 0.53 (the version assigned by the
   coordinator after task-049's 0.52).
+
+### checks (2026-11-04, code at `7ea4491`)
+
+| Gate | Result | Slot wait · load (start → end) |
+|------|--------|--------------------------------|
+| `npm run typecheck`, `npm run lint`, `npm run format:check` | clean | — |
+| `npx vitest run test/docs test/package` (plus `test/scripts`) | 92 passed (4 files); with `test/scripts` 147 passed (10 files) | — |
+| `npm run test:coverage`, first run | **2 failed** / 3435 passed: `workflow-diagnostics.test.ts` (`W_UNCOMMITTED_INPUTS` on this task file — the notes above were not committed yet; passes once committed) and `project-routes.test.ts` › the task-048 history test (30 s timeout under load; it also timed out alone at load 28.15, outside the slot) | 5 s · 13.36 → 8.43 (1-min; 5-min 17.96 → 19.46) |
+| `project-routes.test.ts` alone, in the slot | 42/42 passed | 1302 s · 12.57 → 9.07 |
+| `npm run test:coverage`, second run | **3437 passed / 2 skipped** (178 files, 1 skipped); statements 96.64 %, branches 91.53 %, functions 97.35 %, lines 98.42 % | same slot · → 20.71 |
+| `npm run test:publish-smoke` | **11/11** (2 files), 35 s | 412 s · 11.76 → 8.69 |
+| `check_tasks.py v0.3` | OK | — |
+
+Not run: Playwright suites (no file the e2e suite runs changed), `test:smoke` (no packaging,
+launcher or bin change; the tarball's content is unchanged — the new scripts are not in `files`).
+No Verdaccio process left and no `wfui-task-052-*` entry in the temporary directory after the runs.
+The timeout of the task-048 history test under load is outside this task (no server file changed):
+reported to the coordinator, not fixed here.
