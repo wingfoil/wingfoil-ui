@@ -126,10 +126,10 @@ directives, dl-009 action 6)
 
 ## Execution Notes
 
-<!-- Running log of what actually happened while working this task through dev-loop — filled in
+<!-- Running log of what actually happened while working this task (`backlog-item`) — filled in
      incrementally per phase, not written after the fact. Raw material for the release's Execution
      Notes / the retrospective, not the retrospective itself.
-     - design: tech-specs found missing/needing revision (dev-loop/design safety net).
+     - design: tech-specs found missing/needing revision (`definition-of-done` › design).
      - red/green/refactor: deviations from the plan above, blockers, scope surprises.
      - review: rejection reasons and what changed on the next pass. -->
 
@@ -274,7 +274,7 @@ Destinations: **RPL** = the new directive `release-planning` 1.0 (outline in (b)
 | U-1 | header (dl-013) | the user-facing docs are a hard release blocker, between implementation and the submit | RC *pre-release-checks* |
 | U-2 | header (dl-025) | the agent-facing docs a separate check (architect's work, another remediation) | RC *pre-release-checks* (its own bullet, architect) |
 | U-3 | header | run inside `release-submit` › `pre-release-checks`, before `releasing` | RC *pre-release-checks*; owner of the move: `enter-releasing`, `memory submit` |
-| U-4 | check-implementation-complete | tech-lead; every task of the release `done` | RC *pre-release-checks* (already: "every task of the release is `done`"; by its `release`, `check_tasks.py vX.Y`) |
+| U-4 | check-implementation-complete | tech-lead; every task of the release `done` | RC *pre-release-checks*: "every task of the release is `done`" (by its `release`), with `check_tasks.py vX.Y` added there in review round 1 |
 | U-5 | align-user-docs | developer; `README.md`, `docs/user-guide.md`, `docs/cli-reference.md`, `docs/examples/`, `CHANGELOG.md` aligned with the shipped surface | RC *pre-release-checks* (with `docs/publishing.md` checked, as v0.2 did); `docs/examples/` dropped, named: the folder does not exist — the user guide holds the examples |
 | U-6 | align-user-docs approval | the approver | owner: `release-submit` › `approve-release` (the approver's OK, `workflow finalize`); RC: the alignment is evidence of the checks |
 | U-7 | align-agent-docs | architect; `CLAUDE.md`, `.wingfoil/README.md` | RC *pre-release-checks* |
@@ -543,3 +543,40 @@ the task stays whole (recorded in `backlog-item-rel-v0.3-plan` as W0-5 … W0-7)
 - **AC-7:** `ac418a9`; `test:contract`, the default suite (coverage run 2), `test:e2e:chromium` green.
 - **AC-8:** the OK quoted above.
 - **AC-9:** the gates table.
+
+### review round 1 (2026-11-04)
+
+Independent review: PASS with findings. The phase branch merged into this branch first (`83d796b`,
+plan and Memory commits only). Fixes:
+
+- **M1** — the release's two `memory submit` belong to `sprint` › `plan-release`, role
+  product-owner (`.wingfoil/workflows/built-in/sprint.yaml`); no pack text gives them to the
+  tech-lead: *Where it runs*, *The verbs* and *commit-backlog* of `release-planning` say so.
+- **M2** — `delivery` › `plan-sprint` adds only the first Sprint; a later one is `memory add --type
+  sprint` + `memory submit` outside a step (`delivery.yaml`, `memory.yaml` `sprint`).
+- **M3** — the identity paragraph of `release-conventions` (task-050's) moved back above *Seeding a
+  line*, its text unchanged.
+- **M4** — probe (two throwaway clones of `83d796b`, the pinned CLI 0.3.1, a throwaway identity):
+  a plan `delivery-seed-rl-v2-plan` (`workflow: delivery`, `scope: rl-v2`) added and submitted to
+  `active`: `workflow status` still one open run, `sw-life-cycle-1-plan`; `workflow next` still
+  `backlog-item.build@task:task-049-…`; `workflow list` still the 2 `service-ingest.yaml` warnings.
+  A plan `sw-life-cycle-seed-rl-v2-plan` (`workflow: sw-life-cycle`) is an open instance **already
+  in `draft`**: `workflow status` lists two open runs, the new one `active`, and `workflow next`
+  answers it (`inception.approve`) — no diagnostic. So the line's plan is
+  `delivery-seed-rl-vN-plan` (W0-6: a sub workflow, as `backlog-item` for development), written in
+  `release-conventions` › *Seeding a line*; `release-planning` › *Where it runs* now asks for a
+  loaded **sub** workflow and names the `sw-life-cycle` case.
+- **Found while probing:** `memory add` takes `--type`, not a positional (`wingfoil memory add takes
+  no positional (got 1 positional)`): the forms `memory add release|task|adr|tech-spec|sprint` of
+  the new texts are now `memory add --type <type>` (`release-planning`, `release-conventions`,
+  `definition-of-done`).
+- **N1** — `plan.md` title example "Development — rel-v0.3". **N2** — the `tech-spec` description
+  cites `release-conventions` › *The release line* › *Seeding a line*.
+- **N3** — `test/README.md` *Captured samples*: sha-only re-capture diffs of `memory-history*/` are
+  reverted as noise. **N4** — `test/README.md` row `test:timing` and *Timing suite*: alone through
+  the slot at every wave gate and at `pre-release-checks` (dl-009 action 6).
+- **N5** — this file's template comment; row U-4: `release-conventions` › *pre-release-checks* now
+  names `check_tasks.py vX.Y` (in the `.wingfoil/` diff).
+
+The `.wingfoil/` fixes (M1–M4, N1, N2, U-4, the `--type` forms) wait for the approver's OK,
+uncommitted.
