@@ -56,3 +56,10 @@ v0.2 retrospective, together with the machine-free slot checking the load only a
        live on those tasks (docs/04_memory/{release}/{id}.md, `bug: {this id}`, their own
        Execution Notes section) — this section only needs a pointer plus anything that doesn't
        belong on a specific fix task (e.g. why 2 tasks were needed instead of 1). -->
+
+- fix (2026-11-04): task-053-auto-sync-rp-36-test-split-into-one-console-per-test — RP-36 / D34-5
+  one test per case, the one-console rule and its check `test/lint/one-console-per-test.test.ts`
+  (its Execution Notes). The single-console timeouts of *Actual Behavior* (`element-writes.test.ts`
+  W2-5, `snapshot/watcher.test.ts` review F3) are outside the one-console rule: each test starts one
+  console or none; they passed in task-053's `test:coverage` run and `element-writes.test.ts` also in
+  its strict-identity run, which ended at a 1-minute load of 25.8. A recurrence becomes a new bug.

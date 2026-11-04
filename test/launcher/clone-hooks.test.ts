@@ -10,7 +10,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { resolveGit } from '../../server/src/git/git.js';
 import { REPO_ROOT } from '../harness/cli.js';
 import { harnessEnv } from '../harness/fixtures/index.js';
-import { BIN_START_MS, BIN_TEST_MS } from '../harness/load.js';
+import { BIN_START_MS, BIN_TEST_MS, binTestMs } from '../harness/load.js';
 import { git } from '../harness/run.js';
 import { TempWorkspace } from '../harness/temp-workspace.js';
 import { startLauncher, type Launcher } from './launcher.js';
@@ -82,6 +82,7 @@ describe.skipIf(process.platform === 'win32')('the hooks path of a clone on the 
   it(
     'clones with core.hooksPath on a regular file of server/dist, runs no hook, and leaves no hooks folder after SIGKILL',
     async () => {
+      // one-console-per-test: kept — the start after a SIGKILL is the behaviour (bug-008).
       const first = await start();
       const res = await fetch(`http://127.0.0.1:${first.port}/api/projects/clone`, {
         method: 'POST',
@@ -110,6 +111,6 @@ describe.skipIf(process.platform === 'win32')('the hooks path of a clone on the 
       await second.stop();
       expect(await hookFolders()).toEqual([]);
     },
-    BIN_TEST_MS,
+    binTestMs(2),
   );
 });

@@ -8,6 +8,7 @@ import { mkdir, mkdtemp, readFile, realpath, rm, writeFile } from 'node:fs/promi
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { binTestMs } from '../harness/load.js';
 import { WingfoilCli } from '../../server/src/cli/adapter.js';
 import { discoverCli } from '../../server/src/cli/discovery.js';
 import { directivesForRoleView } from '../../server/src/identity/identity.js';
@@ -90,30 +91,35 @@ function put(l: Launcher, pid: string, body: unknown, auth = true): Promise<{ st
 }
 
 describe('REQ-STATE-06 — role views through the console', () => {
-  it('S-22.3 keeps developer on kanban and approver on custom, across a restart', async () => {
-    const first = await launch();
-    // Alex is the fixtures' identity (all seven roles).
-    expect((await put(first, KANBAN, { role: 'approver' })).status).toBe(204);
-    expect((await put(first, KANBAN, { role: 'developer' })).status).toBe(204);
-    expect((await put(first, CUSTOM, { role: 'approver' })).status).toBe(204);
-    let state = await readState();
-    expect(state.projects.map((p) => [p.id, p.roleView])).toEqual([
-      [KANBAN, 'developer'],
-      [CUSTOM, 'approver'],
-    ]);
-    expect(await first.stop()).toBe(0);
+  it(
+    'S-22.3 keeps developer on kanban and approver on custom, across a restart',
+    async () => {
+      // one-console-per-test: kept — the restart is the behaviour (S-22.3).
+      const first = await launch();
+      // Alex is the fixtures' identity (all seven roles).
+      expect((await put(first, KANBAN, { role: 'approver' })).status).toBe(204);
+      expect((await put(first, KANBAN, { role: 'developer' })).status).toBe(204);
+      expect((await put(first, CUSTOM, { role: 'approver' })).status).toBe(204);
+      let state = await readState();
+      expect(state.projects.map((p) => [p.id, p.roleView])).toEqual([
+        [KANBAN, 'developer'],
+        [CUSTOM, 'approver'],
+      ]);
+      expect(await first.stop()).toBe(0);
 
-    const second = await launch();
-    state = await readState();
-    const runner = new LocalProcessRunner();
-    const identities = createLocalIdentitySource({ runner, env });
-    expect((await projectIdentityView(identities, state.projects[0]!)).roleView).toBe('developer');
-    expect((await projectIdentityView(identities, state.projects[1]!)).roleView).toBe('approver');
-    // A refused PUT leaves the stored view unchanged.
-    expect((await put(second, KANBAN, { role: 'ghost-role' })).status).toBe(400);
-    expect((await readState()).projects[0]!.roleView).toBe('developer');
-    expect(await second.stop()).toBe(0);
-  }, 180_000);
+      const second = await launch();
+      state = await readState();
+      const runner = new LocalProcessRunner();
+      const identities = createLocalIdentitySource({ runner, env });
+      expect((await projectIdentityView(identities, state.projects[0]!)).roleView).toBe('developer');
+      expect((await projectIdentityView(identities, state.projects[1]!)).roleView).toBe('approver');
+      // A refused PUT leaves the stored view unchanged.
+      expect((await put(second, KANBAN, { role: 'ghost-role' })).status).toBe(400);
+      expect((await readState()).projects[0]!.roleView).toBe('developer');
+      expect(await second.stop()).toBe(0);
+    },
+    binTestMs(2),
+  );
 
   it('S-22.1 switching approver → developer changes "only mine" to the directives bound to developer', async () => {
     const l = await launch();

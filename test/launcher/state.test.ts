@@ -6,6 +6,7 @@ import { mkdtemp, readFile, realpath, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { BIN_START_MS, binTestMs } from '../harness/load.js';
 import { buildFixture, copyFixture, type Fixture } from '../harness/fixtures/index.js';
 import { git } from '../harness/run.js';
 import { scanForSecrets, scanText } from '../harness/secret-scan.js';
@@ -41,32 +42,37 @@ function runBin(
 }
 
 describe('TT-ARC-08 — local state outside the repositories', () => {
-  it('S-17.1, S-17.2 — the list survives two restarts unchanged and the fixture stays clean', async () => {
-    const fx = await copyFixture(kanban, path.join(root, 'restart'));
-    const stateDir = path.join(fx.home, '.config', 'wingfoil-ui');
-    const store = await openFileStateStore({ dir: stateDir });
-    const entry = await store.add({ path: await realpath(fx.dir), name: 'kanban', remote: fx.remoteUrl });
-    await store.update(entry.id, { roleView: 'developer' });
-    const before = await readFile(path.join(stateDir, 'state.json'), 'utf8');
+  it(
+    'S-17.1, S-17.2 — the list survives two restarts unchanged and the fixture stays clean',
+    async () => {
+      // one-console-per-test: kept — the restarts on one state directory are the behaviour (S-17.2).
+      const fx = await copyFixture(kanban, path.join(root, 'restart'));
+      const stateDir = path.join(fx.home, '.config', 'wingfoil-ui');
+      const store = await openFileStateStore({ dir: stateDir });
+      const entry = await store.add({ path: await realpath(fx.dir), name: 'kanban', remote: fx.remoteUrl });
+      await store.update(entry.id, { roleView: 'developer' });
+      const before = await readFile(path.join(stateDir, 'state.json'), 'utf8');
 
-    // The OS location of spec-006 §1 (XDG under the isolated home): no WINGFOIL_UI_STATE_DIR.
-    const env = { ...fx.env, WINGFOIL_UI_STATE_DIR: '', WFUI_TEST_SECRET: PLANTED };
-    const logs: string[] = [];
-    for (let i = 0; i < 2; i++) {
-      const l = await startLauncher(['--no-open'], env);
-      expect(await l.stop()).toBe(0);
-      logs.push(l.stderr(), l.stdoutLines().join('\n'));
-      const tokenFree = await scanForSecrets([stateDir], [l.token, PLANTED]);
-      expect(tokenFree).toEqual([]);
-      // The server log (stderr) holds neither the token nor a credential nor the planted value.
-      expect(scanText('logs', l.stderr(), [l.token, PLANTED])).toEqual([]);
-    }
-    expect(await readFile(path.join(stateDir, 'state.json'), 'utf8')).toBe(before);
-    expect((await openFileStateStore({ dir: stateDir })).get(entry.id)?.roleView).toBe('developer');
-    expect((await git(fx.dir, ['status', '--porcelain'], fx.env)).stdout).toBe('');
-    // REQ-SEC-09: no planted environment value and no credential in the logs either.
-    expect(logs.join('\n')).not.toContain(PLANTED);
-  });
+      // The OS location of spec-006 §1 (XDG under the isolated home): no WINGFOIL_UI_STATE_DIR.
+      const env = { ...fx.env, WINGFOIL_UI_STATE_DIR: '', WFUI_TEST_SECRET: PLANTED };
+      const logs: string[] = [];
+      for (let i = 0; i < 2; i++) {
+        const l = await startLauncher(['--no-open'], env, BIN_START_MS);
+        expect(await l.stop()).toBe(0);
+        logs.push(l.stderr(), l.stdoutLines().join('\n'));
+        const tokenFree = await scanForSecrets([stateDir], [l.token, PLANTED]);
+        expect(tokenFree).toEqual([]);
+        // The server log (stderr) holds neither the token nor a credential nor the planted value.
+        expect(scanText('logs', l.stderr(), [l.token, PLANTED])).toEqual([]);
+      }
+      expect(await readFile(path.join(stateDir, 'state.json'), 'utf8')).toBe(before);
+      expect((await openFileStateStore({ dir: stateDir })).get(entry.id)?.roleView).toBe('developer');
+      expect((await git(fx.dir, ['status', '--porcelain'], fx.env)).stdout).toBe('');
+      // REQ-SEC-09: no planted environment value and no credential in the logs either.
+      expect(logs.join('\n')).not.toContain(PLANTED);
+    },
+    binTestMs(2),
+  );
 });
 
 describe('spec-007 §3.2 — state directory inside a listed project', () => {
