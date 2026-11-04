@@ -497,3 +497,49 @@ the task stays whole (recorded in `backlog-item-rel-v0.3-plan` as W0-5 … W0-7)
 - Outside `.wingfoil/`: `AGENTS.md` *This repository*, `CLAUDE.md` 0.16, `test/README.md` 0.52,
   the docstrings of `check_tasks.py` and `check_releases.py`, the header and the synthetic file
   name of `workflow-diagnostics.test.ts` (Q1-A: the code comments naming a step stay).
+- **Approver's OK on the `.wingfoil/` diff** (2026-11-04, "task 49 ok"; `backlog-item-rel-v0.3-plan`
+  W0-10): committed exactly as shown, plus the new `release-planning.md`, as `36a4796` (AC-8).
+- **Green (AC-6):** `npx vitest run test/governance/workflow-diagnostics.test.ts` (load 4.65): 4
+  passed.
+- **Samples (AC-7):** `WFUI_CAPTURE_SAMPLES=1 npx vitest run test/contracts/capture-samples.test.ts`
+  (load 5.51), kept in `ac418a9`: `wingfoil-0.3.1/custom/workflow-list.json` (74 → 2 diagnostics,
+  `workflows` equal, the fixture's `baseline.commit`), `directives-list.json` (the
+  `release-planning` entry), `files/memory.yaml`, `files/elements/minor-v0.1.md` and
+  `task-001` … `task-004` (the templates, Q2-A). Not kept, as `test/README.md` says or as noise:
+  the capture deleted the hand-made `kanban/directives-list-shadowed.json` of both versions
+  (restored), and changed only the `sha` values of the `memory-history` and
+  `memory-history-operations` samples of `custom` on 0.2.2 and 0.3.1 (25 files, no other line;
+  reverted).
+
+### Gates (2026-11-04)
+
+| Gate | Command | Load at start / end | Slot wait | Result |
+|------|---------|---------------------|-----------|--------|
+| typecheck, lint, format | `npm run typecheck`, `npm run lint`, `npm run format:check` | — | — | 0, 0, 0 |
+| docs and governance | `npx vitest run test/docs test/governance` | 9.44 | — | 3 files, 72 tests passed |
+| tasks | `python3 docs/03_backlog/X_tools/check_tasks.py v0.3` | — | — | OK (22 tasks, 16 items) |
+| coverage, run 1 | `npm run test:coverage` | 9.71 / 16.37 (5-min 20.79) | 5 s | 2 failed (30 s timeouts of `project-routes.test.ts` history tests), 3403 passed |
+| the failed file alone | `npx vitest run test/server/http/project-routes.test.ts` | 11.09 / 15.26 | — | 42 passed — load, not this change (bug-004 rule: re-run, not "fixed") |
+| contract | `npm run test:contract` | 13.74 / 25.94 | 66 s | 12 files, 323 passed, 2 skipped |
+| e2e on Chromium | `npm run test:e2e:chromium` (the `custom` fixture changed) | 6.81 / 14.30 | 760 s | 323 passed (16.9 min) |
+| coverage, run 2 | `npm run test:coverage` | 12.31 / 19.99 | 399 s | 3405 passed, 2 skipped; statements 96.64 % |
+
+### Closure
+
+- **AC-1:** the table of *design* (113 rows), for the reviewer against the five files at `72f1500`.
+- **AC-2:** `release-planning.md` 1.0; `roles.yaml`; `directives list` (above).
+- **AC-3:** `definition-of-done` 1.2, one section per `backlog-item` phase, no `dev-loop.yaml`.
+- **AC-4:** `release-conventions` 1.3 › `pre-release-checks` (user docs, agent docs, the e2e smoke's
+  seven steps, `test:timing`) and *The release line* › *Seeding a line*.
+- **AC-5:** the five files and their includes removed (`36a4796`); the texts in `36a4796` and
+  `e5a259d`. `git grep -nE 'workflows/custom/(initial-design|release-planning|dev-loop|user-docs|e2e-smoke)|release-cycle'
+  -- .wingfoil AGENTS.md CLAUDE.md test/README.md docs/03_backlog/X_tools test/governance`
+  returns nothing; the remaining bare names in those files are the kept ones of *design* (c) —
+  version lines, the quoted *Removed entries* of `wingfoil-cli`, `dna.yaml`, the pack's
+  `backlog-item.yaml`, the task-025 and task-043 history lines of `test/README.md`, and the notes
+  naming the former procedures.
+- **AC-6:** red `fa801ea`, green after `36a4796`; active plans `sw-life-cycle-1-plan`,
+  `backlog-item-rel-v0.3-plan`, no `W_INSTANCE_WORKFLOW_UNKNOWN`.
+- **AC-7:** `ac418a9`; `test:contract`, the default suite (coverage run 2), `test:e2e:chromium` green.
+- **AC-8:** the OK quoted above.
+- **AC-9:** the gates table.
