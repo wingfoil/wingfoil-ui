@@ -15,7 +15,7 @@ tmpl_version: 260703   # Orignal template version
 
 ## Context
 
-**Version:** 0.2 · **Date:** 2026-11-04 (0.1: plan created; Wave 0 scope, decisions W0-1 … W0-4; 0.2: task-049 design, W0-5 … W0-7; 0.3: task-052 and task-053 designs, the `.wingfoil/` OK of task-049, W0-8 … W0-10)
+**Version:** 0.3 · **Date:** 2026-11-04 (0.1: plan created; Wave 0 scope, decisions W0-1 … W0-4; 0.2: task-049 design, W0-5 … W0-7; 0.3: task-052 and task-053 designs, the `.wingfoil/` OK of task-049, W0-8 … W0-10)
 **Branch:** `design/dev-loop_v0.3`, merged into `main` with `--no-ff` at every wave gate (W0-1)
 **Workflows:** the run `sw-life-cycle-1-plan` (`sw-life-cycle` › `delivery` › `sprint`
 `sprint-001` › `development`), which runs `backlog-item` (start · build · review · approve · done)
