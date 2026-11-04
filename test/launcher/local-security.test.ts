@@ -14,7 +14,7 @@ import path from 'node:path';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import type { StateFile } from '@wingfoil-ui/contracts';
 import { buildFixture, harnessEnv, type Fixture } from '../harness/fixtures/index.js';
-import { BIN_START_MS, BIN_TEST_MS } from '../harness/load.js';
+import { BIN_START_MS, BIN_TEST_MS, binTestMs } from '../harness/load.js';
 import { startLauncher, type Launcher } from './launcher.js';
 
 let root: string;
@@ -139,18 +139,23 @@ describe('X-02.1 (API side) — the session opened with the token', () => {
 });
 
 describe('X-02.2 — a new token at every start', () => {
-  it("answers 401 to the previous start's token and session", async () => {
-    const first = await launch();
-    const session = await request(first, 'POST', '/api/session', { authorization: `Bearer ${first.token}` });
-    const cookie = String(session.headers['set-cookie']).split(';')[0]!;
-    await first.stop();
-    const second = await launch();
-    expect(second.token).not.toBe(first.token);
-    const sameName = cookie.replace(`wfui_session_${first.port}`, `wfui_session_${second.port}`);
-    expect((await request(second, 'GET', PROJECT_API, { authorization: `Bearer ${first.token}` })).status).toBe(401);
-    expect((await request(second, 'GET', PROJECT_API, { cookie: sameName })).status).toBe(401);
-    expect((await request(second, 'GET', PROJECT_API, { authorization: `Bearer ${second.token}` })).status).toBe(404);
-  });
+  it(
+    "answers 401 to the previous start's token and session",
+    async () => {
+      // one-console-per-test: kept — a second start of the bin is the behaviour (X-02.2).
+      const first = await launch();
+      const session = await request(first, 'POST', '/api/session', { authorization: `Bearer ${first.token}` });
+      const cookie = String(session.headers['set-cookie']).split(';')[0]!;
+      await first.stop();
+      const second = await launch();
+      expect(second.token).not.toBe(first.token);
+      const sameName = cookie.replace(`wfui_session_${first.port}`, `wfui_session_${second.port}`);
+      expect((await request(second, 'GET', PROJECT_API, { authorization: `Bearer ${first.token}` })).status).toBe(401);
+      expect((await request(second, 'GET', PROJECT_API, { cookie: sameName })).status).toBe(401);
+      expect((await request(second, 'GET', PROJECT_API, { authorization: `Bearer ${second.token}` })).status).toBe(404);
+    },
+    binTestMs(2),
+  );
 });
 
 describe('X-04.1 — refuse requests without a valid session', () => {
@@ -341,16 +346,21 @@ describe('GET /api/events — the event stream on the bin (spec-004 §1–2, §6
     expect(wrong.status).toBe(401);
   });
 
-  it("refuses the previous start's token and session (401)", async () => {
-    const first = await launch();
-    const session = await request(first, 'POST', '/api/session', { authorization: `Bearer ${first.token}` });
-    const cookie = String(session.headers['set-cookie']).split(';')[0]!;
-    await first.stop();
-    const second = await launch();
-    expect((await openStream(second, { authorization: `Bearer ${first.token}` })).status).toBe(401);
-    const sameName = cookie.replace(`wfui_session_${first.port}`, `wfui_session_${second.port}`);
-    expect((await openStream(second, { cookie: sameName })).status).toBe(401);
-  });
+  it(
+    "refuses the previous start's token and session (401)",
+    async () => {
+      // one-console-per-test: kept — a second start of the bin is the behaviour (X-02.2 on the event stream).
+      const first = await launch();
+      const session = await request(first, 'POST', '/api/session', { authorization: `Bearer ${first.token}` });
+      const cookie = String(session.headers['set-cookie']).split(';')[0]!;
+      await first.stop();
+      const second = await launch();
+      expect((await openStream(second, { authorization: `Bearer ${first.token}` })).status).toBe(401);
+      const sameName = cookie.replace(`wfui_session_${first.port}`, `wfui_session_${second.port}`);
+      expect((await openStream(second, { cookie: sameName })).status).toBe(401);
+    },
+    binTestMs(2),
+  );
 
   it('opens it with the token, and ends it in the stop sequence (exit 0)', async () => {
     const l = await launch();

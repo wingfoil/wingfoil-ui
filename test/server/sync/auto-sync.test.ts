@@ -122,50 +122,60 @@ describe('the automatic fetch (spec-010 §6; Y-02.1, Y-02.3 API side)', () => {
     expect((await header(s.c)).copy).toBe('in-sync');
   });
 
-  it('RP-18: a listed project whose snapshot was never opened, or a project no longer listed, is not fetched', async () => {
+  it('RP-18: a listed project whose snapshot was never opened is not fetched', async () => {
     const s = await start({}, { open: false });
     expect((await s.tick()).git).toBe(0);
+  });
+
+  it('RP-18: a project no longer listed is not fetched', async () => {
     const t = await start();
     await t.c.store.remove(t.c.pid);
     expect((await t.tick()).git).toBe(0);
   });
 
-  it('RP-36 / D34-5: no remote, no fetch target, or a refspec outside refs/remotes/ → skipped, no transport, nothing recorded, logged by code', async () => {
-    const cases: [string, (fx: Fixture) => Promise<unknown>][] = [
-      ['no-remote', (fx) => git(fx.dir, ['remote', 'remove', 'origin'], fx.env)],
-      [
-        'no-fetch-target',
-        async (fx) => {
-          await git(fx.dir, ['branch', '--unset-upstream'], fx.env);
-          await git(fx.dir, ['remote', 'rename', 'origin', 'one'], fx.env);
-          await git(fx.dir, ['remote', 'add', 'two', fx.remoteDir], fx.env);
-        },
-      ],
-      [
-        'refspec-outside-remotes',
-        (fx) => git(fx.dir, ['config', '--add', 'remote.origin.fetch', '+refs/heads/*:refs/heads/*'], fx.env),
-      ],
-      [
-        // W4-7 (security review S3): no URL in the configuration, a legacy `remotes/<r>` file.
-        'refspec-outside-remotes',
-        async (fx) => {
-          await git(fx.dir, ['config', '--unset', 'remote.origin.url'], fx.env);
-          await mkdir(path.join(fx.dir, '.git', 'remotes'), { recursive: true });
-          await writeFile(
-            path.join(fx.dir, '.git', 'remotes', 'origin'),
-            `URL: ${fx.remoteDir}\nPull: +refs/heads/*:refs/heads/*\n`,
-          );
-        },
-      ],
-    ];
-    for (const [code, prepare] of cases) {
+  // One console per case (bug-023): each case has its own test and budget.
+  const skips: [string, string, (fx: Fixture) => Promise<unknown>][] = [
+    ['no-remote', 'no-remote', (fx) => git(fx.dir, ['remote', 'remove', 'origin'], fx.env)],
+    [
+      'no-fetch-target',
+      'no-fetch-target',
+      async (fx) => {
+        await git(fx.dir, ['branch', '--unset-upstream'], fx.env);
+        await git(fx.dir, ['remote', 'rename', 'origin', 'one'], fx.env);
+        await git(fx.dir, ['remote', 'add', 'two', fx.remoteDir], fx.env);
+      },
+    ],
+    [
+      'refspec-outside-remotes',
+      'refspec-outside-remotes',
+      (fx) => git(fx.dir, ['config', '--add', 'remote.origin.fetch', '+refs/heads/*:refs/heads/*'], fx.env),
+    ],
+    [
+      // W4-7 (security review S3): no URL in the configuration, a legacy `remotes/<r>` file.
+      'refspec-outside-remotes (W4-7: no URL in the configuration, a legacy remotes/<r> file)',
+      'refspec-outside-remotes',
+      async (fx) => {
+        await git(fx.dir, ['config', '--unset', 'remote.origin.url'], fx.env);
+        await mkdir(path.join(fx.dir, '.git', 'remotes'), { recursive: true });
+        await writeFile(
+          path.join(fx.dir, '.git', 'remotes', 'origin'),
+          `URL: ${fx.remoteDir}\nPull: +refs/heads/*:refs/heads/*\n`,
+        );
+      },
+    ],
+  ];
+
+  it.each(skips)(
+    'RP-36 / D34-5: %s → skipped, no transport, nothing recorded, logged by code',
+    async (_case, code, prepare) => {
       const s = await start({}, { prepare: (fx) => prepare(fx).then(() => undefined) });
       const p = await s.tick();
       expect(p.transport, code).toBe(0);
       expect((await header(s.c)).sync.fetch, code).toEqual({ lastSuccessAt: null, lastError: null });
+      // `no-remote` is not logged: the sync returns before the plan (`auto-sync.ts` `project()`).
       if (code !== 'no-remote') expect(JSON.stringify(s.log.lines), code).toContain(code);
-    }
-  });
+    },
+  );
 
   it('D34-3: no askpass program runs; git’s message is kept as lastError, never logged', async () => {
     const server: Server = createServer((_req, res) => {
