@@ -510,3 +510,14 @@ Decision (the approver, 2026-11-04: "G1–G7 come consigliato"):
   task-049, else v0.4; G6 the subagents' added dependencies and placements accepted, the choices
   left to a task's design taken there with the approver (e.g. task-052's release trigger); G7
   `wingfoil-cli` 1.20 (W-01) committed.
+
+Step 6 closed (2026-11-04): the review fixes merged (`6eb993d`); the 19 tasks submitted → `pending`.
+
+Step 7 — `commit-backlog` (2026-11-04): the approver approved bug-019, bug-023, bug-024 and bug-027
+`triaged → planned` and the 19 tasks `pending → backlog` (HEAD `6f8d019`); `minor-v0.3` got
+`sprint: "sprint-001"` and its *Planning* Execution Notes, then `memory submit` twice (`draft →
+planning → in-development`). `workflow status`: the frontier is
+`sprint.sprint-planning@sprint:sprint-001` (state missing), which `memory submit sprint-001`
+(`planned → active`) closes — the last move of this phase, after the review of step 8 (RP3-4).
+Waves and order: RP3-19. The first wave of the dev-loop runs dl-011's wave dispatch of
+`publish.yml` at its gate.
