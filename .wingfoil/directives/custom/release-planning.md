@@ -9,8 +9,10 @@ tags: [custom, release, planning, scrum]
 
 # Directive — Release planning of WingFoil UI
 
-**Version:** 1.0 · **Date:** 2026-11-04 (1.0: this repository's `release-planning` procedure
-folded into a directive, its file removed — task-049, adoption decision 2, RP3-13)
+**Version:** 1.1 · **Date:** 2026-11-04 (1.0: this repository's `release-planning` procedure folded
+into a directive, its file removed — task-049, adoption decision 2, RP3-13; 1.1: review round 1 of
+task-049: the release's submits are `plan-release`'s (product-owner), `plan-sprint` adds only the
+first Sprint, the stage plan names a sub workflow, the `memory add --type … --title` forms)
 
 Applies to the product-owner, the tech-lead and the architect when a release is planned. It says
 how each step is done in this repository; the packs' phases and the verbs own every transition
@@ -23,8 +25,9 @@ includes.
 
 - **The Sprint** the release belongs to: the first Sprint of the delivery is `delivery` ›
   `plan-sprint` (product-owner); every later one is added outside a step, the same way, and joins
-  the iteration (`delivery.yaml`; `memory.yaml` `sprint`) — `memory add --type sprint`, its `goal`
-  written by editing the draft, `memory submit` (`draft → planned`), when no Sprint is `planned`.
+  the iteration (`delivery.yaml`; `memory.yaml` `sprint`) — `memory add --type sprint --title "…"`,
+  its `goal` written by editing the draft, `memory submit` (`draft → planned`), when no Sprint is
+  `planned`.
 - **`sprint` › `sprint-planning`** (product-owner): the steps below, from *advance-pinned-build* to
   *commit-backlog*; the tasks get the Sprint's id in `sprint`. It closes with `memory submit
   <sprint>` (`planned → active`), after the *Review*.
@@ -113,13 +116,14 @@ plan, to a task or a rule.
 
 ## record-adrs / identify-specs (architect)
 
-- **record-adrs** (optional): `memory add --type adr`, the draft filled, the *Spec review*, `memory
-  submit`, the approver's approve. A task never cites an ADR that is not `accepted` (dl-016).
+- **record-adrs** (optional): `memory add --type adr --title "…"`, the draft filled, the
+  *Spec review*, `memory submit`, the approver's approve. A task never cites an ADR that is not
+  `accepted` (dl-016).
 - **identify-specs:** survey the release's scope for the file formats, schemas, constant sets and
   module APIs its tasks will implement; for each one not yet covered by an approved spec, `memory
-  add --type tech-spec`, the draft filled, the *Spec review*, `memory submit`. The approver
-  approves a spec before a task citing it reaches `backlog`; a rejected spec is reworked and
-  reviewed again.
+  add --type tech-spec --title "…"`, the draft filled, the *Spec review*, `memory submit`. The
+  approver approves a spec before a task citing it reaches `backlog`; a rejected spec is reworked
+  and reviewed again.
 - An erratum of an approved spec is a dated *Process Note* in the spec (approved specs carry no
   Version line).
 

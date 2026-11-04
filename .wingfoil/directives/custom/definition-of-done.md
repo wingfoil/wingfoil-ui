@@ -9,11 +9,12 @@ tags: [custom, scrum, testing, review]
 
 # Directive — Definition of Done of WingFoil UI
 
-**Version:** 1.2 · **Date:** 2026-11-04 (1.0: replaces `methodology/scrum`'s generic
+**Version:** 1.3 · **Date:** 2026-11-04 (1.0: replaces `methodology/scrum`'s generic
 `definition-of-done` with this repository's, at the packs' adoption —
 governance-alignment-rel-v0.3-plan step 3; 1.1: the bugs' moves after GA3-11 R-3, the source of
 `docs:api` — the adoption's review round 1, m2; 1.2: the gates of the former `dev-loop` procedure,
-one section per `backlog-item` phase, its file removed — task-049)
+one section per `backlog-item` phase, its file removed — task-049; 1.3: review round 1 of task-049:
+the `memory add --type tech-spec --title` form)
 
 A Sprint Backlog item (a task, run through `backlog-item`: start · build · review · approve · done)
 is done only when every rule below holds; until then it is not part of the Increment. The phases'
@@ -37,9 +38,9 @@ No code before this phase is closed; the developer works as architect here:
   directives of the step (`workflow next` prints them).
 - **Specs before code:** an `approved` tech-spec for every file format, schema, constant set and
   module API the task implements. A missing one is a safety net for what `release-planning` ›
-  *identify-specs* missed: `memory add --type tech-spec`, its draft, `memory submit`, and the
-  approver's approve before red (a rejected spec is revised and verified again). An architectural
-  decision found here goes through `adr-ingest`.
+  *identify-specs* missed: `memory add --type tech-spec --title "…"`, its draft, `memory submit`,
+  and the approver's approve before red (a rejected spec is revised and verified again). An
+  architectural decision found here goes through `adr-ingest`.
 - **Classify each acceptance criterion** red-first (new behaviour) or characterization (the
   behaviour exists) in the Execution Notes, with the test plan (scenario → spec file).
 - **Security probes** for a task that changes what the console runs on projects, or its git reads

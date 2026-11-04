@@ -9,14 +9,16 @@ tags: [custom, release, git, npm]
 
 # Directive — Release conventions of WingFoil UI
 
-**Version:** 1.3 · **Date:** 2026-11-04 (1.0: dl-008's tailoring of `release-submit`,
+**Version:** 1.4 · **Date:** 2026-11-04 (1.0: dl-008's tailoring of `release-submit`,
 `release-publishing` and `retrospective`, re-applied on the `software` and `base` packs' workflows
 at their adoption — governance-alignment-rel-v0.3-plan step 3; 1.1: `mark-released` is the
 approver's `approve`, the retrospective's inventory in its plan — GA3-11 R-1, R-5; 1.2: when the
-approver approves a release and a release line, bound to the facilitator too — review round 1 of
-the packs adoption, A-1, A-2, M1; 1.3: the steps of the former `user-docs` and `e2e-smoke`
-procedures in `pre-release-checks`, `test:timing`, the seeding of a line from the former
-`initial-design` — task-049)
+approver approves a release and a release line, bound to the facilitator too — review round 1 of the
+packs adoption, A-1, A-2, M1; 1.3: the steps of the former `user-docs` and `e2e-smoke` procedures in
+`pre-release-checks`, `test:timing`, the seeding of a line from the former `initial-design` —
+task-049; 1.4: review round 1 of task-049: the identity paragraph back above *Seeding a line*, the
+line's plan `delivery-seed-rl-vN-plan`, `check_tasks.py` in `pre-release-checks`, the
+`memory add --type … --title` form)
 
 The packs' release workflows (`release-submit`, `release-publishing`, `.wingfoil/workflows/built-in/`)
 name what each phase does, not how this repository does it. This directive says how; the pipeline
