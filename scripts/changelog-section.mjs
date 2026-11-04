@@ -21,8 +21,12 @@ const REPOSITORY = /^(?:git\+)?(https:\/\/github\.com\/[\w.-]+\/[\w.-]+?)(?:\.gi
 /** A target that stays as it is: an `https:` or `mailto:` URL, an anchor. */
 const KEEP = /^(?:https:|mailto:|#)/i;
 const SCHEME = /^[a-z][a-z0-9+.-]*:/i;
-/** Left as they are: a fenced block, an inline code span (backtick runs of equal length). */
-const CODE = /^```[\s\S]*?^```|(`+)[\s\S]*?[^`]\1(?!`)/m;
+/**
+ * Left as they are: a fenced block, an inline code span (backtick runs of equal length). A span
+ * never crosses a blank line, as in Markdown: two stray backticks in different paragraphs hide no
+ * link between them from the rules above (review round 2, R2-1).
+ */
+const CODE = /^```[\s\S]*?^```|(`+)(?:(?!\n[ \t]*\n)[\s\S])*?[^`\n]\1(?!`)/m;
 /** The end of a version's section: the next heading of its level, or the version link definitions. */
 const END = /^(?:## |\[(?:Unreleased|\d+\.\d+\.\d+)\]:)/;
 

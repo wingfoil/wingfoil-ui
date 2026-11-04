@@ -455,3 +455,19 @@ commit after it.
 Checks: `typecheck`, `lint`, `format:check` clean; `npx vitest run test/docs test/package
 test/scripts` — 159 passed (10 files). No heavy gate re-run: only the workflow tests, the scripts, their tests and docs
 changed (no code the default suite or the smokes run beyond the scripts' own tests).
+
+### review round 2 (2026-11-04)
+
+Re-check: **PASS** (N5 confirmed: `gh` finds a draft Release by its tag). Two nits, red first
+`db27888`:
+
+- **R2-1** — the code-span pattern of `changelog-section.mjs` crossed blank lines: a stray backtick
+  in one paragraph and another in a later one hid the links between them from the N1 rules. A span
+  now stops at a blank line. Red: the new test (stray backticks around
+  `[x](javascript:alert(1))` and `[y](../../../evil)`) exited 0 — 1 of 19 failed; green after the
+  fix. `[0.1.0]` and `[0.2.0]` of the real `CHANGELOG.md` still pass.
+- **R2-2** — `publish-workflow.test.ts`: no job and no step of the whole workflow has
+  `continue-on-error`. Red by mutant: `continue-on-error: true` on `promote` → 1 of 17 failed.
+
+Checks: `typecheck`, `lint`, `format:check` clean; `npx vitest run test/package test/scripts
+test/docs` — 161 passed (10 files). No heavy gate: only a script, tests and docs changed.
