@@ -90,3 +90,173 @@ the `check_releases.py` sprint rule)
      - design: tech-specs found missing/needing revision (dev-loop/design safety net).
      - red/green/refactor: deviations from the plan above, blockers, scope surprises.
      - review: rejection reasons and what changed on the next pass. -->
+
+### design (2026-11-04)
+
+Read: this task; `depends_on` task-049 (its Execution Notes: design, the directives it wrote);
+`.wingfoil/memory.yaml` (the `release`, `bug`, `plan` types, `template.frontmatter.exempt`),
+`.wingfoil/README.md` 0.10, the plan and bug templates; directives `definition-of-done` 1.3,
+`doc-versioning`, `release-conventions` 1.4, `wingfoil-cli` 1.21 (W-01, W-04, W-34); dl-006
+action 6, dl-009 actions 7 and 11, dl-011; `docs/03_backlog/X_tools/check_releases.py`;
+`test/governance/workflow-diagnostics.test.ts`; `test/README.md` 0.55 (*Temporary folders*);
+`backlog-item-rel-v0.3-plan` 0.3; `release-planning-rel-v0.3-plan` (step 2 finding, RP3-19, RP3-20).
+Base commit of the lists below: `b7356ff`.
+
+Design probe (a throwaway clone of `b7356ff` in a temporary folder, the pinned CLI `0.3.1
+(870bd44…)`, every command `--dry-run`, nothing committed): `memory amend dev-loop-rel-v0.1-plan
+--dry-run` with the frontmatter `version` edited answers exit 0, subject `wf(plan): amend
+dev-loop-rel-v0.1-plan [done → done]` — a `done` plan is amendable (`plan` is `amendable: true`,
+`version` is not a reserved field); the same with a Context line added to
+`initial-design-rl-v1-plan` (a body edit) answers exit 0 too; `memory amend bug-001-… --dry-run`
+with `release` edited is refused (`… changes frontmatter field 'release', which an amendment does
+not own …`), as W-01 says. `memory reject` writes `rejection_reason` and `memory submit` clears it
+(the pinned CLI's `dist/core/index.js` comments of the two verbs): a `closed` bug with a non-empty
+`rejection_reason` was closed by a reject.
+
+#### (a) AC-1 — plan versions on the tree
+
+Rule of the check, per `.md` file under `docs/05_plans/` (every one must be a `type: plan`; any
+other file fails, no silent skip): the frontmatter `version` (empty string = missing) and the
+first token of the first `**Version:**` line of the `## Context` section (up to the first space
+or `·`). Both present → equal; exactly one present → fail; **neither present → pass**: the plan
+carries no version and is versioned by git alone (directive `doc-versioning`, last rule). This is
+how a plan created by `workflow start` and left as the template made it is treated: today only
+`bug-ingest-1-plan` (`version: ""`, no Context text); `sw-life-cycle-1-plan` was given both
+(0.3/0.3) and passes. A failure names the file and both values.
+
+On `b7356ff`, 24 plans; 15 pass (both equal, or `bug-ingest-1-plan` with neither); 9 fail, all
+`done` and all closed before dl-006 action 6 applied (from `minor-v0.2` on):
+
+| Plan | Frontmatter / Context | Note |
+|------|-----------------------|------|
+| `rl-v1/rel-v0.1/dev-loop-rel-v0.1-plan` | 0.7 / 0.8 | Context's change history ends at 0.8 |
+| `rl-v1/rel-v0.1/release-publishing-rel-v0.1-plan` | 0.1 / 0.5 | idem 0.5 |
+| `rl-v1/rel-v0.1/release-submit-rel-v0.1-plan` | 0.1 / 0.5 | idem 0.5 |
+| `rl-v1/rel-v0.1/e2e-smoke-rel-v0.1-plan` | 0.2 / 0.3 | idem 0.3 |
+| `rl-v1/rel-v0.1/user-docs-rel-v0.1-plan` | 0.2 / 0.3 | idem 0.3 |
+| `rl-v1/initial-design-rl-v1-plan` | 1.0 / — | no Context `**Version:**` line |
+| `rl-v1/rel-v0.1/release-planning-rel-v0.1-plan` | 1.0 / — | idem |
+| `sw-life-cycle/lean-inception-inception-plan` | 1.0 / — | idem |
+| `sw-life-cycle/specification-downcast-specification-plan` | 1.0 / — | idem |
+
+The new plans since planning (`backlog-item-rel-v0.3-plan` 0.3/0.3, `bug-ingest-1-plan`
+neither) pass; so do every v0.2 and v0.3 plan.
+
+Options per plan, for the approver:
+
+- **(A) align** — the 5 with a Context line: the frontmatter `version` set to the Context's
+  (the Context change history is the true one), one approver's `memory amend <plan> --reason "…"`
+  per plan (5 commits `wf(plan): amend <id> [done → done]`, probe above). The 4 without one
+  would need an invented `**Version:** 1.0 · **Date:** …` line in closed history.
+- **(B) exempt** — an entry of a commented exemption list in the test (`file`, both values, the
+  reason: closed before dl-006 action 6), checked to still differ (an entry that no longer fails,
+  or names a missing file, fails too, so the list cannot rot).
+
+**Recommendation — the rule "a done plan with a Context line → align; a done plan without one →
+exempt":** (A) for the 5 mismatches (a true correction through a verb, as dl-009 action 11 did by
+hand for v0.2; the plan's view in the console stops showing a stale version), (B) for the 4 with
+no Context line (adding one would write history that never existed). Every `active` plan and
+every plan from `minor-v0.2` on is enforced with no exemption.
+
+#### (b) AC-2 — bug releases on the tree
+
+Rule: a bug of `docs/04_memory/bugs/` with `status: closed`, an empty `release` and an empty
+`rejection_reason` fails, naming the bug (and its `release-origin`). Not `closed` → not in the
+rule (bug-028 is `triaged` with an empty `release`: the triage of a later-release fix stamps it,
+dl-009 action 7, `release-conventions` › `pre-release-checks` keeps its empty-`release` fallback
+for bugs not yet closed).
+
+On `b7356ff`, 28 bugs; 21 `closed`; 7 fail: **bug-001 … bug-007**, each `release: ""`,
+`release-origin: "v0.1"`, each fixed by v0.1 tasks (bug-001 task-010, bug-002 task-009/010,
+bug-003 task-005/012, bug-004 task-013/017/018, bug-005 task-010/015, bug-006 task-014, bug-007
+task-025 — the tasks their bodies cite, all in `docs/04_memory/v0.1/`). bug-008 … bug-018,
+bug-020 … bug-022, bug-025, bug-026 carry `release`. **No bug was closed by a reject**: no
+`wf(bug): reject` commit in `git log --all`, and no bug carries `rejection_reason`.
+
+Options: **(A) stamp** `release: "v0.1"` on the 7 — a hand commit of that field alone,
+`docs(bugs): bug-001 … bug-007 release v0.1 (dl-009 action 7)` (`memory amend` refuses `release`,
+probe above; precedent `2e69b69` RV2-2), with the approver's OK; **(B) exempt** them in a
+commented list in the test. **Recommendation: (A)** — the value is a fact (found and fixed in
+v0.1), it is one commit of one field, and afterwards every closed bug answers "fixed in" from its
+own frontmatter.
+
+Bugs closed by a reject (wontfix, duplicate; `open`/`triaged` → `closed`): **recommendation —
+outside the rule**, recognised by a non-empty `rejection_reason` (nothing was fixed, so there is no
+fix release to stamp; stamping one would misstate it). A unit case on a synthetic bug covers it
+(none exists in the tree).
+
+#### (c) AC-3 — `check_releases.py`
+
+On `b7356ff` it exits 1 with 4 failures: `required field sprint empty` on `minor-v0.1`,
+`minor-v0.2` (exempt in `memory.yaml`), `minor-v0.4`, `minor-v1.0` (`draft`, no `sprint` line).
+`minor-v0.3` (`in-development`, `sprint-001`) passes.
+
+Change (stdlib only, as today):
+
+- read `template.frontmatter.exempt` of the `release` block of `.wingfoil/memory.yaml` — every
+  `<field>: [ ids ]` list under it, no copy of a list in the script — and skip a required field
+  for a release whose id (the file name) the field's list names;
+- accept a missing `sprint` on a release in `draft` (a draft no Sprint selects yet: WingFoil itself
+  checks the required fields at `memory submit`, and `release-conventions` › *Seeding a line* says
+  "`sprint` before its submit"); every other required field stays required in `draft`; past
+  `draft` with no `sprint` and not exempt → fail;
+- `--root <dir>` (default the repository) so a test can drive it on a temporary tree;
+- the docstring states both rules and the option.
+
+On the tree after the change it exits 0 (v0.1, v0.2 exempt; v0.4, v1.0 drafts).
+
+Unit test `test/governance/check-releases.test.ts`: a minimal tree in a folder of `os.tmpdir()`
+(the run's temporary root, `test/README.md` *Temporary folders*): `memory.yaml` with the `release`
+block and an `exempt.sprint` list, `07_sequencer.md`, `06_features.md`, the by-release
+partitions, and releases; cases: an exempt `released` release with no `sprint` → 0; a `draft` with
+no `sprint` → 0; a `planning` release with no `sprint` → 1, naming it; a `draft` missing another
+required field (`pillar`) → 1; the repository itself → 0. It runs `python3` through
+`test/harness/run.ts` (no shell); `python3` is on this machine and on the CI runner.
+
+#### (d) AC-4 — where each rule is written
+
+Outside `.wingfoil/` (this task, no OK needed beyond the review):
+
+- `test/README.md` 0.56: the three new suites in the list next to `workflow-diagnostics`;
+- `check_releases.py` docstring (above).
+
+**Proposals of `.wingfoil/` changes (committed only after the approver's OK on the diff):**
+
+1. `.wingfoil/directives/custom/release-conventions.md` 1.4 → 1.5: a short section *Governance
+   checks* — the plan-version rule (with the neither-present case and the exemption list's
+   place), the closed-bug `release` rule (rejects outside it), and the `check_releases.py` rule
+   (exempt list from `memory.yaml`, drafts without `sprint`), each naming its test; the
+   *Seeding a line* stop-check line unchanged. Not `doc-versioning`: it is the `base` pack's
+   built-in file, and a local edit there is lost or conflicts at the next pack update.
+2. `.wingfoil/README.md` 0.10 → 0.11: one paragraph under the required-fields table — a `closed`
+   bug carries `release` unless closed by a reject (dl-009 action 7, the test).
+3. Template comments (optional, one line each, the scaffold of new elements only):
+   `.wingfoil/memory/templates/plan.md` `version:` — "equal to the Context `**Version:**`, or both
+   empty"; `.wingfoil/memory/templates/bug.md` `release:` — "set at triage or absorption; required
+   once `closed`, unless closed by a reject".
+
+No change to `memory.yaml`, the workflows or `roles.yaml`. The approver-side writes are separate
+from the diff: the 5 `memory amend` runs (AC-1 (A), the approver's identity, on the task branch)
+and the OK on the bug stamp commit (AC-2 (A)).
+
+#### (e) Test plan, gates, size
+
+Classification: AC-1, AC-2, AC-3 red-first (no check exists; each fails on the base tree);
+AC-4 docs; AC-5 gates.
+
+| Criterion | Test file | Red on `b7356ff` |
+|-----------|-----------|------------------|
+| AC-1 | `test/governance/plan-versions.test.ts` — pure parser cases (both equal, differ, one missing, neither, a Version line outside Context ignored, a non-plan file) + the tree, with an empty exemption list | the 9 plans above |
+| AC-2 | `test/governance/bug-releases.test.ts` — parser cases (closed/empty, closed/set, closed by reject, not closed) + the tree | bug-001 … bug-007 |
+| AC-3 | `test/governance/check-releases.test.ts` — the temporary tree cases + the repository | `--root` ignored, the 4 failures |
+
+Order: red commit (tests, empty exemption list) → green: the script change; the approver's 5
+amends and the OK'd bug stamp; the exemption list's 4 entries → docs (AC-4, `.wingfoil/` after the
+OK) → gates. Gates (AC-5): `npm run typecheck`, `npm run lint`, `npm run format:check`,
+`npx vitest run test/docs test/governance`, `npm run test:coverage` through the machine-free slot
+(load and wait in the log), `python3 docs/03_backlog/X_tools/check_releases.py`,
+`python3 docs/03_backlog/X_tools/check_tasks.py v0.3`. No UI, packaging or git change: no e2e, no
+smoke, no strict-identity run (the checks read files only), no security probe.
+
+Size: three small test files, about 30 lines of script, four short doc edits — about half an
+active day plus the approver's turn for the amends, the stamp and the `.wingfoil/` diff. No split.
