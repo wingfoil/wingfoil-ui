@@ -131,7 +131,7 @@ types:
     path: "docs/04_memory/design/specs/{id}.md"
     id_pattern: "spec-{n}-{slug}"
     name: Technical Specification
-    description: A definition of a shared format, schema, contract or module API implemented by one or more tasks — e.g. the server HTTP API, a consumed CLI JSON contract, the `.wingfoil/ui.yaml` schema. Workflow — the `specification` slot (`specify`), the seeding of a line and the release's planning (directives `release-conventions` › *seed-specs*, `release-planning` › *identify-specs*); a task's design (`definition-of-done` › *design*) is a reactive fallback.
+    description: A definition of a shared format, schema, contract or module API implemented by one or more tasks — e.g. the server HTTP API, a consumed CLI JSON contract, the `.wingfoil/ui.yaml` schema. Workflow — the `specification` slot (`specify`), the seeding of a line and the release's planning (directives `release-conventions` › *The release line* › *Seeding a line*, `release-planning` › *identify-specs*); a task's design (`definition-of-done` › *design*) is a reactive fallback.
     tags: [ tech-spec, design, architecture ]
     amendable: true
     template:

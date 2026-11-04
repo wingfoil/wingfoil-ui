@@ -580,3 +580,37 @@ plan and Memory commits only). Fixes:
 
 The `.wingfoil/` fixes (M1–M4, N1, N2, U-4, the `--type` forms) wait for the approver's OK,
 uncommitted.
+- **Approver's OK on the round-1 `.wingfoil/` diff** (2026-11-04, "task 49 ok per il diff"):
+  committed exactly as saved (`cmp` identical) as `fa9d002`. `npx vitest run
+  test/governance/workflow-diagnostics.test.ts` (load 3.15): 4 passed.
+- **Samples:** `WFUI_CAPTURE_SAMPLES=1 npx vitest run test/contracts/capture-samples.test.ts`
+  (load 2.81): kept `wingfoil-0.3.1/custom/files/memory.yaml` (the N2 description). Reverted as
+  noise (`test/README.md` *Captured samples*): the `sha`-only `memory-history*/` changes of
+  `custom` on both versions, the fixture's `baseline.commit` alone in `workflow-list.json`;
+  restored: the hand-made `kanban/directives-list-shadowed.json` of both versions.
+
+#### For the coordinator: a CLI behaviour found by the M4 probe (not part of this task's diff)
+
+To become a `wingfoil-cli` entry and a feedback note in a later change. On a throwaway clone of
+`83d796b` (pinned `wingfoil@0.3.1 (870bd44…)`, a throwaway git identity), `$CLI` the pinned
+`dist/cli.js`:
+
+```
+$CLI memory add --type plan --title "Seeding rl-v2 (sw-life-cycle)" --set workflow=sw-life-cycle --set phase=seed-rl-v2 --set scope=rl-v2 --format json
+{"id":"sw-life-cycle-seed-rl-v2-plan","path":"docs/05_plans/rl-v2/sw-life-cycle-seed-rl-v2-plan.md"}
+$CLI workflow status --format json     # plan still in draft
+active: sw-life-cycle-seed-rl-v2-plan   open: ['sw-life-cycle-seed-rl-v2-plan', 'sw-life-cycle-1-plan']
+$CLI workflow next --format json
+{"instance": {"id": "sw-life-cycle-seed-rl-v2-plan", "workflow": "sw-life-cycle", "planStatus": "draft", "active": true, …}, "complete": false, "next": {"key": "inception.approve…", …}}
+$CLI workflow list --format json       # diagnostics other than service-ingest's two
+[]
+```
+
+The same after `memory submit sw-life-cycle-seed-rl-v2-plan` (`draft → active`): two open runs,
+the new one `active`, no diagnostic. Before the plan, `workflow next` answered
+`sw-life-cycle-1-plan` › `backlog-item.build@task:task-049-…`. So a plan whose `workflow` names a
+loaded **main** workflow is an open instance already in `draft`, becomes the `active` run (the
+newest, as W-38 says of ad-hoc plans) and takes over `workflow next` without a ref, with no
+diagnostic in `workflow list`. Control on a fresh clone: `memory add --type plan … --set
+workflow=delivery …` and `memory submit` (`→ active`) leave `workflow status` with one open run,
+`workflow next` unchanged and the 2 `service-ingest.yaml` warnings.
