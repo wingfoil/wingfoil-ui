@@ -197,3 +197,46 @@ and the strict run 1.5 h (slot waits not counted). Under one active day.
   the seven kept tests test a restart or two consoles at once, which cannot be split. Recommended:
   keep them with the marker (AC-2's "kept with the reason") and say so in the retrospective
   input; no change to dl-009.
+
+**Decisions (approver, 2026-11-04, relayed by the coordinator; stage plan W0-9):** "53: q1-a, q2-ok
+come suggerisci" ("as you suggest"). Q1 (a): every kept multi-console test is sized by the
+`load.ts` rule, starts × `BIN_TEST_MS` (`binTestMs(starts)`), S-17's starts with `BIN_START_MS`.
+Q2: the seven kept tests carry the marker comment; dl-009 unchanged; noted as retrospective input
+(dl-009 action 4 reads "no test starts more than one console in one test body", and a restart test
+cannot meet it).
+
+### red / green / refactor (2026-11-04)
+
+- **red** (`53aa131`): `test/lint/one-console-per-test.test.ts` — its 6 inline cases pass, the
+  scan of the default suite fails with the 13 bodies of D53-2 (`npx vitest run
+  test/lint/one-console-per-test.test.ts`: 1 failed, 6 passed), e.g. `test/server/sync/auto-sync.test.ts:133
+  RP-36 / D34-5: … (1, in a loop)`, `test/server/sync/auto-sync.test.ts:125 RP-18: … (2)`,
+  `test/server/http/element-writes.test.ts:360 an element file %s … (1, in a loop)`,
+  `test/launcher/state.test.ts:44 S-17.1, S-17.2 … (1, in a loop)`.
+- **green** (`b82b1ee`): the six splits of D53-2 (`auto-sync.test.ts` 40 → 44 tests; the
+  element-file variants 4 → 12 tests, one per variant and verb; W2-4 and the killed/other-path
+  pair one test per row; the refspec pair of `git-routes.test.ts` two tests); the seven kept tests
+  with `// one-console-per-test: kept — <reason>` and `binTestMs(2)` (`test/harness/load.ts`),
+  S-17's `startLauncher` with `BIN_START_MS` (it had the 10 s default in a 30 s test). The check
+  passes (7/7). Deviation from D53-3: none. The role-view `launch` keeps its own 30 s start limit
+  (single-start tests share it; only the test budget is in this task's rule).
+- **Guard removal, RP-36 rows** (uncommitted edits of `server/src/sync/auto-sync.ts`, each
+  reverted; `npx vitest run test/server/sync/auto-sync.test.ts -t RP-36`):
+
+  | Mutant | Result |
+  |---|---|
+  | the refusal not logged | `no-fetch-target`, both `refspec-outside-remotes` rows fail on the log (`expected '[]' to contain …`); `no-remote` passes (not logged, as designed) |
+  | a `fetch --all` transport process before the refusal's return | the three refusal rows fail on `p.transport` (`expected 1 to be +0`) |
+  | the refusal recorded as a fetch error | the three refusal rows fail on `sync.fetch` (`toEqual` both null) |
+  | the `remotes.length === 0` return removed | all 4 pass: `transport.plan` refuses `no-remote` too (defence in depth; the test asserts no log absence, as today) |
+  | that return removed and the refusal recorded | all 4 fail on `sync.fetch`, `no-remote` included |
+
+  Deleting the `return` itself is not a usable mutant: the global setup's `tsc -b server` refuses
+  it (the plan has no `args` there).
+- **Targeted runs:** `auto-sync.test.ts` alone 44/44 (91.6 s; 1-minute load 7.0 → 9.4); the other
+  changed files with the check (`git-routes`, `element-writes`, the five launcher files): 268/268
+  in 255.6 s at a 1-minute load of 21.4 → 21.1 (another worktree's `test:coverage` running — a run
+  under load, AC-3; no timeout).
+- **Docs:** `test/README.md` 0.54 (the one-console rule with the `load.ts` entry, the
+  `test/lint/` line, the auto-sync line). `CHANGELOG.md` unchanged (D53 test plan: no test-only
+  fixes listed).
