@@ -14,8 +14,8 @@ Not a CLI behaviour: traceability configuration.
 The `base` pack's `traceability` directive (`base@2.0.1`, `.wingfoil/directives/built-in/traceability.md`
 in a project that adopts it) asks that "the project, or a pack it adopts, names its own chain (for
 example decision → plan → task)", and leaves the links to the project. A project names it in prose:
-this repository's custom directive `traceability-chain` writes "feature → user story → acceptance
-scenario → requirement → task → test" as text. Nothing in `.wingfoil/` (`memory.yaml`, `dna.yaml`,
+this repository's custom directive `traceability-chain` names, in prose, the chain from feature
+through user story, acceptance scenario and requirement to task and test. Nothing in `.wingfoil/` (`memory.yaml`, `dna.yaml`,
 the directives' frontmatter) declares which reference categories an element type requires, nor which
 values are references: WingFoil 0.3.1's `memory search --format json` returns `path`, `id`, `title`,
 `type`, `status`, `tags` only (W-18), and no command reports a chain.
