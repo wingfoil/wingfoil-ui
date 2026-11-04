@@ -614,3 +614,6 @@ newest, as W-38 says of ad-hoc plans) and takes over `workflow next` without a r
 diagnostic in `workflow list`. Control on a fresh clone: `memory add --type plan … --set
 workflow=delivery …` and `memory submit` (`→ active`) leave `workflow status` with one open run,
 `workflow next` unchanged and the 2 `service-ingest.yaml` warnings.
+- **Round-1 gates:** `npx vitest run test/docs test/governance` (load 4.19): 72 passed;
+  `npm run format:check`: 0; `npm run test:contract` through the slot (wait 6 s, load 3.51 at
+  grant, 4.21 at end): 11 files, 323 passed, 2 skipped.
