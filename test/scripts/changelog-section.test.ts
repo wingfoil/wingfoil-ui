@@ -142,6 +142,15 @@ describe('changelog-section.mjs (task-052, D52-2)', () => {
     expect(result.stderr).toMatch(/^refused: [^\n]+\n$/);
   });
 
+  it('a code span stops at a blank line: stray backticks in two paragraphs hide no link (review round 2, R2-1)', async () => {
+    const changelog =
+      '## [1.2.3] - 2026-11-20\n\n- a stray ` backtick\n\n- [x](javascript:alert(1)) and [y](../../../evil)\n\n- another ` stray\n';
+    const result = await notes(changelog, 'v1.2.3');
+    expect(result.code).toBe(1);
+    expect(result.stdout).toBe('');
+    expect(result.stderr).toMatch(/^refused: [^\n]+\n$/);
+  });
+
   it('leaves links inside inline code spans as they are (review N1)', async () => {
     const out = (
       await notes('## [1.2.3] - 2026-11-20\n\n- write `[a](b.md)` or ``[c](../d.md)``, see [e](e.md)\n', 'v1.2.3')

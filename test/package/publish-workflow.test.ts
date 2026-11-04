@@ -332,4 +332,10 @@ describe('publish.yml (task-029, AC-1)', () => {
       'release-notes/release-notes.md',
     ]);
   });
+  it('lets no job and no step continue on error (review round 2, R2-2)', () => {
+    for (const [name, job] of Object.entries(jobs)) {
+      expect(job, name).not.toHaveProperty('continue-on-error');
+      for (const s of job.steps) expect(s, `${name} ${s.name ?? s.uses ?? ''}`).not.toHaveProperty('continue-on-error');
+    }
+  });
 });
