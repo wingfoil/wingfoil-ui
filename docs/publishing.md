@@ -7,7 +7,7 @@ dispatch never promotes, the guard's limit, the dev-only audit findings, what is
 Release of v0.2.0 by hand; 0.4: what the first publish showed — an expired npm session answers 404,
 the `0.0.0-stage` placeholder, checklist steps 4–6 done, the GitHub Release's assets; 0.5: the
 release steps after the packs adoption — `release-commit` in `release-publishing`, `released` by the
-approver's `memory approve` after the publication, governance-alignment-rel-v0.3-plan step 3; 0.6: the WingFoil comparison names `release-publishing` › `release-commit` (review round 3 nit); 0.7: the `release` job — a draft GitHub Release after `promote`, made public by the approver; the path-free test reports — task-052)
+approver's `memory approve` after the publication, governance-alignment-rel-v0.3-plan step 3; 0.6: the WingFoil comparison names `release-publishing` › `release-commit` (review round 3 nit); 0.7: the `release` job — a draft GitHub Release after `promote`, made public by the approver; the path-free test reports — task-052, review round 1: the tarball's integrity check before the publish)
 
 How `wingfoil-ui` reaches the npm registry: the pipeline `.github/workflows/publish.yml`, the
 registry-side setup the **approver** performs once, the steps of every release, and the staging
@@ -30,7 +30,7 @@ marked *approver* is a human act (CLAUDE.md, *Working with the WingFoil CLI*).
 | `gate` | `scripts/check-release-tag.mjs <tag> <sha>`: the tag is annotated, equals `v` + the version of the root and of every workspace `package.json` and of `package-lock.json` (its `version`, `packages[""]` and each workspace entry), points at the commit built (`<sha>` peeled to its commit), and that commit is on `origin/main`. Then `npm ci`, `typecheck`, `lint`, `format:check`, `test:coverage`, `test:smoke`, and `npm pack` **once** (its `prepack` builds from a clean tree); the tarball is the run's artifact. | the repository gates |
 | `stage` | `npm run test:publish-smoke` on **that** tarball, on Node 22.12.0 (the `engines` floor): see [Local staging smoke](#local-staging-smoke). | the package installs from a registry and starts |
 | `promote` | Only for a tag, in the GitHub environment `npm-publish`: waits until the approver approves the deployment, then `npm stage publish ./dist-pack/*.tgz --provenance --access public` through the npm trusted publisher (GitHub OIDC, `id-token: write`, permission limited to staging). | (1) the `npm-publish` approval; (2) the npm stage queue |
-| `release` | Only for a tag, after `promote`: a **draft** GitHub Release of the tag (`gh release create "$GITHUB_REF_NAME" … --draft --verify-tag`), with the gate's notes and, as assets, the tarball `promote` staged, `coverage-totals.json` and `test-results.md`. No checkout, no install: three artifact downloads and `gh`, with the job's own token (`contents: write`, this job alone) on the create step only. | the approver makes the draft public after `npm stage approve` ([GitHub Release](#every-release)) |
+| `release` | Only for a tag, after `promote`: a **draft** GitHub Release of the tag (`gh release create "$GITHUB_REF_NAME" … --draft --verify-tag`), with the gate's notes and, as assets, the tarball `promote` staged, `coverage-totals.json` and `test-results.md`. No checkout, no install: three artifact downloads and `gh`, with the job's own token (`contents: write`, this job alone) on the create step only. | the approver makes the draft public after `npm stage approve` ([Every release](#every-release), step 5) |
 
 The staged version is **not live**: it goes live only when the approver runs `npm stage approve`
 with 2FA. The workflow holds no npm credential — no secret, no token variable, no npm user config,
@@ -160,12 +160,22 @@ ships as a git tag only and a decision-log records it, as dl-004 did for v0.1 (R
 5. **Approver: make the draft GitHub Release public** once the version is live. The run's
    `release` job created it right after `promote` (a draft is visible to repository writers only):
 
+   First check the draft on GitHub (notes, the three assets: `wingfoil-ui-X.Y.Z.tgz`,
+   `coverage-totals.json`, `test-results.md`) and that its tarball is the version npm serves —
+   the two lines must be equal:
+
+   ```bash
+   npm view wingfoil-ui@X.Y.Z dist.integrity
+   echo "sha512-$(gh release download vX.Y.Z -p 'wingfoil-ui-X.Y.Z.tgz' -O - | openssl dgst -sha512 -binary | openssl base64 -A)"
+   ```
+
+   Then publish it:
+
    ```bash
    npm view wingfoil-ui@X.Y.Z version && gh release edit vX.Y.Z --draft=false --latest
    ```
 
-   The `&&` publishes only when npm answers the version. Before that, check the draft on GitHub
-   (notes, the three assets: `wingfoil-ui-X.Y.Z.tgz`, `coverage-totals.json`, `test-results.md`).
+   The `&&` publishes only when npm answers the version.
    After a **rejected** stage, delete the draft: `gh release delete vX.Y.Z --yes` (the tag stays).
    If the `release` job failed (nothing created), *Re-run failed jobs* re-runs it alone; if it
    failed after creating the draft, delete the draft first.

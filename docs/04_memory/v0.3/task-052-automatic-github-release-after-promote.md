@@ -415,3 +415,43 @@ launcher or bin change; the tarball's content is unchanged — the new scripts a
 No Verdaccio process left and no `wfui-task-052-*` entry in the temporary directory after the runs.
 The timeout of the task-048 history test under load is outside this task (no server file changed):
 reported to the coordinator, not fixed here.
+
+### review round 1 (2026-11-04)
+
+Security-adversarial review: **PASS with findings to fix**. The phase branch merged first
+(`85a0fda`, plan commits only). Red first `abf09a6`, fixes `83990b5` (scripts) and the docs
+commit after it.
+
+- **M1 (minor)** — "the same bytes" was not frozen. New test: only `gate` has
+  `actions/upload-artifact` steps, none sets `overwrite`, and every `actions/download-artifact`
+  has exactly the `with` keys `name`, `path` (no `run-id`, `repository`, `github-token`,
+  `pattern`). The workflow already held it; mutants failing the new test (1 of 16 each): an
+  upload of the tarball name with `overwrite: true` in `stage`; `overwrite: true` on the gate's
+  upload; `run-id: 1` on `release`'s tarball download.
+- **M2 (minor)** — `continue-on-error` survived. New test: `release` and its steps have no
+  `continue-on-error`; the create step's keys are exactly `name`, `env`, `run`. Mutants failing it:
+  `continue-on-error: true` on the create step, on the job; `if: always()` on the create step.
+- **N2** — the create command line is asserted token by token (`gh release create
+  "$GITHUB_REF_NAME"`, the three assets, `--draft --verify-tag --title "$GITHUB_REF_NAME"
+  --notes-file release-notes/release-notes.md`); mutant `--target main` fails it.
+- **N1** — `changelog-section.mjs` refuses a link target with a scheme other than `https:` /
+  `mailto:`, a target starting with `/` (protocol-relative `//` and root-relative alike — a
+  root-relative target would point at `github.com/…`, never into the tree) and a `..` segment, in
+  inline links and reference definitions; inline code spans and fenced blocks are left as they
+  are. Red: 9 failing (8 refusals, the code span). Guard removal: the scheme check → 3 of 18
+  failed, the `/` check → 2, the `..` check → 3, the code-span skip → 1. The real `CHANGELOG.md`
+  sections `[0.1.0]` and `[0.2.0]` still pass.
+- **N4** — `test-results.mjs` refuses a results list with no test file. Red: 1 failing; guard
+  removal → 1 of 13 failed.
+- **N3** — `docs/publishing.md` *The pipeline* row of `release`: the link text names its anchor
+  (*Every release*, step 5).
+- **N5** — *Every release* step 5: before the publish command, the approver compares
+  `npm view wingfoil-ui@X.Y.Z dist.integrity` with
+  `sha512-` + the base64 SHA-512 of the draft's tarball
+  (`gh release download vX.Y.Z -p 'wingfoil-ui-X.Y.Z.tgz' -O - | openssl dgst -sha512 -binary |
+  openssl base64 -A`; `openssl base64 -A` so the 88 characters are not wrapped).
+- `docs/publishing.md` stays 0.7 (this task's version, not merged yet), its note extended.
+
+Checks: `typecheck`, `lint`, `format:check` clean; `npx vitest run test/docs test/package
+test/scripts` — 159 passed (10 files). No heavy gate re-run: only the workflow tests, the scripts, their tests and docs
+changed (no code the default suite or the smokes run beyond the scripts' own tests).
