@@ -91,3 +91,230 @@ version that is not live; how it waits for that is a design choice for the appro
      - design: tech-specs found missing/needing revision (dev-loop/design safety net).
      - red/green/refactor: deviations from the plan above, blockers, scope surprises.
      - review: rejection reasons and what changed on the next pass. -->
+
+### design (2026-11-04)
+
+Read: this task (AC-1 … AC-6); `docs/publishing.md` 0.6 (all); `.github/workflows/publish.yml`;
+`test/package/publish-workflow.test.ts`; task-029's Execution Notes (design, D29-1 … D29-14,
+reviews R1–R9, R2-1–R2-3); dl-004 (*Decision*: "No GitHub Release is created unless the approver
+asks for one explicitly"), dl-005, dl-011 (the wave dispatch); `vitest.config.ts` (no `reporter`
+set: Vitest 5.0.3's defaults `text`, `html`, `clover`, `json` — `coverage/` of a local run holds
+`coverage-final.json`, `clover.xml` and the HTML tree); `CHANGELOG.md` (`## [0.2.0]`: two
+relative links, `README.md#from-npm` and `docs/user-guide.md#known-limitations`); the hand-made
+Release `v0.2.0` (`gh release view v0.2.0`: notes = a preface and the section without its
+heading, the README link as `https://github.com/wingfoil/wingfoil-ui/blob/v0.2.0/README.md#from-npm`;
+assets `wingfoil-ui-0.2.0.tgz`, `coverage-summary.json` — `total` only, four metrics with
+`covered`, `total`, `pct` — and `test-results.md`). WingFoil's pipeline, read with `gh api`
+(read-only) from the public repository `wingfoil/wingfoil`, `main` at `16c28e9` (2026-11-03;
+`.github/workflows/publish.yml` last changed in `16bcf65`, 2026-10-28): its `release` job
+`needs: promote`, `timeout-minutes: 345`, `permissions: contents: write`, checkout + setup-node,
+the notes from `scripts/changelog-section.cjs`, the gate's four test reports downloaded, then
+`scripts/wait-npm-version.cjs --timeout-minutes 330 --interval-seconds 60` (exactly that version
+and its tarball answering HTTP 200 — npm lists a version minutes before it serves the tarball),
+then `gh release create … --verify-tag --notes-file …` with `GH_TOKEN: ${{ github.token }}` on
+that step only; a late approval is recovered by *Re-run failed jobs* (up to 30 days). It attaches
+the full `coverage-summary.json` (per-file entries keyed by the runner's paths) and `lcov.info`.
+
+**No `depends_on`** (the frontmatter is empty); task-029 is read as the pipeline's author.
+
+#### D52-1 (AC-1) — how the Release relates to the live version
+
+The version goes live only at the approver's `npm stage approve` (2FA), at a time no job knows.
+
+| Option | How | Pros | Cons | Security |
+|--------|-----|------|------|----------|
+| **(a) Draft after promote** | `release` runs right after `promote` and creates a **draft** Release (`gh release create … --draft --verify-tag`); after `npm stage approve` the approver publishes it with one chained command, `npm view wingfoil-ui@X.Y.Z version && gh release edit vX.Y.Z --draft=false --latest` (the `&&` makes the npm check the condition of the publish); a rejected stage → `gh release delete vX.Y.Z --yes` (the draft only; the tag stays) | a job of minutes; no poll script; no second environment; nothing public before the approver's act; the approver is already at the terminal for `npm stage approve` and the post-check | one more human command per release (the approver can forget it: the Release stays a draft, visible to repository writers only); "live" is checked by the approver's command, not by the workflow | `contents: write` lives only for the minutes of the job; a draft is not public (no announcement of a staged version) |
+| (b) Approver-gated environment + bounded wait | `release` in a new environment (e.g. `github-release`, the approver its required reviewer, `v*` tags); the approver approves that deployment after `npm stage approve`; the job then polls `npm view wingfoil-ui@X.Y.Z version` and the tarball URL, bounded (e.g. 15 min, every 30 s), and creates a **public** Release | the workflow itself checks that the version is live; the wait for the deployment approval uses no runner (WingFoil's header: the `npm-publish` wait happens before the job starts); the token exists only after the approval | a second environment for the approver to configure (a checklist step) and a second click per release; an approval given before `npm stage approve` makes the poll time out (re-run); a poll script with its tests; a deployment approval expires after 30 days | the environment is a second human gate on the only `contents: write`; the poll reads the public registry only |
+| (c) WingFoil's — unattended bounded poll | no environment; `release` polls npm for up to 330 min inside `timeout-minutes: 345`; a late approval → *Re-run failed jobs* | no extra human act when the approval comes within 5.5 h; the same shape as the reference pipeline | a runner held for up to 5.5 h; the job's `contents: write` token alive the whole time; a late approval or a rejected stage leaves a failed job; the poll script and its tests | the longest-lived write token of the three; no human gate on the write beyond `npm-publish` |
+| (d) A separate workflow by hand | the approver dispatches a `release.yml` after the approval, naming the version | the Release is made exactly when wanted | a `workflow_dispatch` input reaches the job (event-body input), the gate's artifacts must be fetched from another run (`actions: read`, a run id), the job could run on any ref | the most attack surface; not recommended |
+
+**Recommendation: (a), the draft.** It meets "the job must not announce a version that is not
+live" structurally (a draft is not public), keeps the only write token short-lived, adds no
+environment and no poll code, and the approver's one extra command carries its own liveness check
+(`npm view … && gh release edit …`). (b) is the fallback if the approver wants the workflow, not a
+command, to check liveness. dl-004's "no GitHub Release unless the approver asks" holds: the
+approver asked (dl-009 action 5), and under (a) every Release is still made public by the
+approver.
+
+#### D52-2 (AC-2) — the job's shape (for (a); (b) differs in the lines marked)
+
+```yaml
+  release:
+    needs: promote
+    if: ${{ github.event_name == 'push' && github.ref_type == 'tag' && startsWith(github.ref, 'refs/tags/v') }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10          # (b): environment: github-release, 25 with the poll step
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: ${{ env.TARBALL_ARTIFACT }}
+          path: dist-pack
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: ${{ env.COVERAGE_TOTALS_ARTIFACT }}
+          path: coverage-totals
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: ${{ env.RELEASE_NOTES_ARTIFACT }}
+          path: release-notes
+      - name: Create the draft GitHub Release of the tag
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          set +x
+          gh release create "$GITHUB_REF_NAME" dist-pack/*.tgz coverage-totals/coverage-totals.json \
+            --draft --verify-tag --title "$GITHUB_REF_NAME" --notes-file release-notes/release-notes.md
+```
+
+- **`if:`** the same string as `promote`'s (AC-2 "never on `workflow_dispatch`"): `needs: promote`
+  already skips it when `promote` is skipped; the repeated condition holds if a later edit loosens
+  either job.
+- **No checkout, no setup-node, no install** next to the write token (the rule task-029 R3 set for
+  `promote`): everything the job needs is made by `gate` and passed as artifacts of the same run.
+  `gh` is the runner image's (as in WingFoil's job); `GH_REPO` lets it work without a clone;
+  `--verify-tag` refuses to create a tag; the token reaches `gh` on the create step only (step
+  `env`, not job `env`); no `--latest` on a draft (set at publish: one release line).
+- **Gate additions** (the only place repository code runs):
+  - `npm run test:coverage -- --coverage.reporter=text --coverage.reporter=json-summary` — the
+    reporters chosen **on the command line of the runner only**: `vitest.config.ts` is unchanged, so
+    a local `npm run test:coverage` prints and writes exactly what it does today; on the runner the
+    log keeps the `text` table and `coverage/coverage-summary.json` appears (the HTML, clover and
+    JSON reports are not needed there). To be probed at red: Vitest 5.0.3 replaces the default list
+    with the command-line list, and the thresholds still apply.
+  - `node scripts/coverage-totals.mjs coverage/coverage-summary.json --commit "$GITHUB_SHA" >
+    coverage-totals/coverage-totals.json` — an **allow-list** reducer, not a filter: it writes a new
+    object with `source` (a fixed text, the commit validated as 40 hex), `total` with exactly
+    `lines`, `statements`, `functions`, `branches`, each with the numbers `covered`, `total`,
+    `skipped`, `pct` (each checked to be a finite number), and `threshold: 80`; nothing is copied
+    by key iteration, so no per-file entry and no path can pass. Missing or malformed input → one
+    `refused:` line, exit 1, no stack (the `check-release-tag.mjs` pattern). Uploaded as
+    `wingfoil-ui-coverage-totals` (`if-no-files-found: error`) on every run, dispatch included (no
+    path in it).
+  - On a tag only (`if: github.ref_type == 'tag'`), before `npm pack`: `node
+    scripts/changelog-section.mjs "$GITHUB_REF_NAME" --run-url
+    "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" >
+    release-notes/release-notes.md`, uploaded as `wingfoil-ui-release-notes`. Extracting in `gate`
+    (not in `release` as WingFoil does) fails a tag with no CHANGELOG section **before** anything is
+    staged, and keeps repository code out of the write job. The script: the tag must be
+    `vX.Y.Z`; the section from `## [X.Y.Z]` to the next `## [`, heading dropped, empty → refused;
+    inline links `](target)` and reference definitions `[x]: target` whose target is relative
+    (no scheme, not `#…`, not `/…`) become
+    `https://github.com/wingfoil/wingfoil-ui/blob/vX.Y.Z/<target>` (the base from `package.json`
+    `repository.url`, normalised; exactly the form of the hand-made `v0.2.0` Release); a short
+    generated preface (install line `npx wingfoil-ui@X.Y.Z` with the npm page link, the run URL)
+    then `---`, as `v0.2.0` had.
+- **Assets:** the tarball `stage` smoked (the gate's artifact: the same bytes, no rebuild) and
+  `coverage-totals.json`. Never `coverage-final.json`, `clover.xml`, the istanbul
+  `coverage-summary.json` or `lcov.info` (they hold the runner's paths, and locally the machine's —
+  dl-005). `test-results.md` (the `v0.2.0` asset) is not in AC-2: not produced (open question Q3).
+- **Workflow `env`** gains `COVERAGE_TOTALS_ARTIFACT` and `RELEASE_NOTES_ARTIFACT`; the header
+  comment gains the `release` line and the approver's publish command.
+- **(b) only:** `environment: github-release` and a step `node scripts/wait-npm-version.mjs
+  "$GITHUB_REF_NAME" --timeout-minutes 15` before the create step — then the job needs a checkout
+  and setup-node (repository code next to the token after a human gate), and the create step drops
+  `--draft` and adds `--latest`.
+
+#### D52-3 (AC-3) — test plan, red first
+
+`test/package/publish-workflow.test.ts`, written before the workflow change (each fails on the
+current file):
+
+1. chain: `Object.keys(jobs)` = `gate, stage, promote, release`; `release.needs` = `promote`;
+   `release.if` equals `promote.if` (whole string) and `promote.if` keeps its exact text.
+2. permissions: `release` exactly `{ contents: 'write' }`; no other job has any `write`
+   (`id-token: write` still `promote`'s alone; `contents: write` `release`'s alone); top level
+   `contents: read`; every `permissions:` a map.
+3. `release` steps exactly three `actions/download-artifact` and the create step (no checkout, no
+   setup-node, no `npm`); each download's `name` resolves to an artifact `gate` uploads; the create
+   line has `gh release create "$GITHUB_REF_NAME"`, `--draft`, `--verify-tag`, `--notes-file`, the
+   tarball glob and `coverage-totals/coverage-totals.json`, and no `--latest`; `set +x` first.
+4. credentials: `secrets` still banned in any form; `github.token` appears exactly once, as
+   `GH_TOKEN` in the `env` of `release`'s create step; `GITHUB_TOKEN` nowhere; no `env:` of a job
+   or of the workflow names a token.
+5. no `${{` inside any `run:` (every value reaches the shell as an environment variable), no
+   `github.event.`, `inputs.` or `head_ref` anywhere; triggers unchanged (no `pull_request*`,
+   `workflow_run`, `release`).
+6. gate: the coverage step passes `--coverage.reporter=json-summary`, the totals step comes after
+   it and before the upload; the notes step runs on a tag only, before `npm pack`; no upload path
+   names `coverage-final.json`, `clover.xml`, `coverage-summary.json`, `lcov` or the `coverage/`
+   folder — the coverage upload is exactly `coverage-totals/coverage-totals.json`.
+7. every pin rule and `timeout-minutes` rule keeps covering the new job (existing loops).
+
+New unit tests (default suite):
+
+- `test/scripts/coverage-totals.test.ts`: a summary fixture with `total` and per-file entries keyed
+  by absolute paths of a form the public-text allow-list already accepts (no run-time path
+  building, Wave 3 lesson) → the output's keys are exactly the allow-listed ones, its text holds
+  none of the fixture's keys and no `/` outside the fixed `source` text; extra fields inside
+  `total` metrics dropped; a missing `total`, a missing metric, a non-number, a bad commit →
+  `refused:` and exit 1, no stack trace.
+- `test/scripts/changelog-section.test.ts`: section of a version from a fixture CHANGELOG (heading
+  dropped, stops at the next `## [`, the last section to the reference definitions); relative inline
+  and reference links → absolute to the tag; absolute URLs, `#anchors`, `mailto:` unchanged; the
+  real `CHANGELOG.md` `[0.2.0]` section gives the README link of the hand-made Release byte for
+  byte; a missing or empty section and a tag not `vX.Y.Z` → refused.
+
+Negative checks (recorded at red/green): mutants on a copy of the workflow — `contents: write` on
+`gate`, `permissions: write-all` on `release`, `release.if` with `|| true`, a checkout in
+`release`, `GH_TOKEN` at job level, a `${{ github.ref_name }}` in a `run:`, `coverage/` as an
+upload path, `--draft` removed — each fails one test. Guard removal in the totals script (copy
+every key) fails its test.
+
+#### D52-4 (AC-5) — docs
+
+- `docs/publishing.md` 0.7: *The pipeline* (a `release` row; the two gate additions; the
+  "freezes these invariants" list); *Verified on a runner / Not verified yet* (the `release` job:
+  first run at the `v0.3.0` tag); *Every release* (after step 4: the approver's publish command,
+  the delete of the draft after a rejected stage, the re-run when the job failed); *GitHub Release*
+  rewritten, quoting the approver's D52-1 decision; *Differences from WingFoil's pipeline* rows
+  *After the stage* (draft vs unattended poll; no MCP job) and *Gate content* (no test reports →
+  coverage totals and notes made in `gate`).
+- `publish.yml` header: the `release` line, triggers paragraph ("all four jobs").
+- `CLAUDE.md` 0.16 *Project status*: "an automatic one is planned for v0.3" → the job and the
+  approver's publish step.
+- `CHANGELOG.md` *Unreleased* › *Added*: the automatic draft Release (append-only).
+- `test/README.md`: the two new script test files in *Layout* (version line assigned by the
+  coordinator).
+- `.wingfoil/workflows/` `release-publishing` (pack-provided) names no GitHub Release: no
+  `.wingfoil/` edit proposed (open question Q4).
+
+#### D52-5 — threats and probes for the adversarial reviewer
+
+- **The token's scope:** `contents: write` lets the job token push commits and tags and edit any
+  Release, not only create one. Hence: no repository code, no install, no checkout in `release`;
+  the token only in the create step's environment; `--verify-tag` (no tag creation). Probe: read
+  the job's effective permissions in the run log's *GITHUB_TOKEN Permissions* section at the
+  `v0.3.0` run; statically, the test of D52-3 (2).
+- **Artifact poisoning:** downloads without `run-id` take the same run's artifacts, made by `gate`;
+  no `pull_request*` / `workflow_run` trigger can feed a run. The notes file is passed by
+  `--notes-file` (never through the shell); asset names come from `npm pack` and the fixed totals
+  name.
+- **Event-body input:** none reaches a `run:` — `$GITHUB_REF_NAME` on a tag push is constrained by
+  the trigger pattern and read as a quoted variable; `${{ }}` is banned in `run:` lines (D52-3 (5)).
+- **Path leakage:** the totals are rebuilt by an allow-list (D52-2); probe: run the reducer on a
+  real local `coverage-summary.json` (paths of this machine) and grep the output.
+- **Draft visibility:** a draft is visible to repository writers only; probe at `v0.3.0` with an
+  unauthenticated `curl` of the releases API (no draft listed) — the approver's act, not an agent's.
+- **Runner `gh`:** not pinned (the runner image's), the same trust as the runner itself; the
+  alternative (`curl` to the REST API) is more code for no gain.
+
+#### D52-6 — size
+
+About 5–6 active hours: two small scripts with their tests (~2 h), the workflow and its test
+(~1.5 h), the docs (~1 h), gates through the slot (`test:coverage`, `test:publish-smoke`) and the
+mutants (~1 h). Under one active day: **no split**. Option (b) adds a poll script, its tests and a
+checklist step (~2 h more), still under a day.
+
+#### Open questions (for the approver, with the D52-1 decision)
+
+- **Q1** D52-1: (a) recommended; (b) or (c) instead?
+- **Q2** the asset name `coverage-totals.json` (recommended: distinct from istanbul's file, which
+  holds paths) or `coverage-summary.json` as on `v0.2.0`?
+- **Q3** `test-results.md` (a `v0.2.0` asset) is not in AC-2: leave it out (recommended; the
+  notes' run link points to the gate's log) or add a generated summary?
+- **Q4** no `.wingfoil/` change: `release-publishing` `publish` keeps its text; the approver's
+  publish command lives in `docs/publishing.md` *Every release* (recommended), or a wording for the
+  next alignment?
