@@ -4,7 +4,7 @@ format: 1
 id: sprint-001
 title: "Sprint 1 — v0.3 Project state"
 goal: "Casey follows a project's state from the console — progress, traceability, a clearer Today — and agents link its elements reliably"
-status: planned
+status: active
 ---
 
 ## Sprint Goal
