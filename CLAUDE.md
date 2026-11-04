@@ -1,6 +1,6 @@
 # CLAUDE.md — agent entry point
 
-**Version:** 0.15 · **Date:** 2026-11-04 (0.1: release v0.1, `user-docs` `align-agent-docs`; 0.2: v0.1.0 released, release submit; 0.3: `test:smoke` wave gate — task-026; 0.4: e2e on three engines, inner-loop Chromium run — task-027; 0.5: `test:publish-smoke`, the publishing guide — task-029; 0.6: release v0.2 user-docs — v0.2 in release validation; 0.7: v0.2.0 released — git tag and npm, the first version by hand; 0.8: the GitHub Release of v0.2.0 made; 0.9: the pin on `wingfoil@0.3.1` — task-046; 0.10: the packs `base`, `software`, `methodology/scrum` adopted, `AGENTS.md` — governance-alignment-rel-v0.3-plan step 3; 0.11: BOOTSTRAP.md marked historical — its review round 1; 0.12: W-20, W-25, W-26 already superseded — round 2; 0.13: `wingfoil-cli` re-checked against 0.3.1 — step 4; 0.14: the next step and the directive version after the v0.3 pre-step — its step 7 review; 0.15: v0.3 in development in Sprint 1, directive 1.20 — release-planning-rel-v0.3-plan step 9)
+**Version:** 0.16 · **Date:** 2026-11-04 (0.1: release v0.1, `user-docs` `align-agent-docs`; 0.2: v0.1.0 released, release submit; 0.3: `test:smoke` wave gate — task-026; 0.4: e2e on three engines, inner-loop Chromium run — task-027; 0.5: `test:publish-smoke`, the publishing guide — task-029; 0.6: release v0.2 user-docs — v0.2 in release validation; 0.7: v0.2.0 released — git tag and npm, the first version by hand; 0.8: the GitHub Release of v0.2.0 made; 0.9: the pin on `wingfoil@0.3.1` — task-046; 0.10: the packs `base`, `software`, `methodology/scrum` adopted, `AGENTS.md` — governance-alignment-rel-v0.3-plan step 3; 0.11: BOOTSTRAP.md marked historical — its review round 1; 0.12: W-20, W-25, W-26 already superseded — round 2; 0.13: `wingfoil-cli` re-checked against 0.3.1 — step 4; 0.14: the next step and the directive version after the v0.3 pre-step — its step 7 review; 0.15: v0.3 in development in Sprint 1, directive 1.20 — release-planning-rel-v0.3-plan step 9; 0.16: the draft GitHub Release job — task-052)
 
 WingFoil UI: a local web UI for WingFoil-governed projects. A Node.js server (`server/`) drives
 each project's pinned `wingfoil` CLI and reads git; a React app (`web/`) shows the result;
@@ -16,7 +16,8 @@ no trusted publisher for a name with no version, so the approver published `0.2.
 provenance statement. Later versions go through `.github/workflows/publish.yml` — `gate`, `stage`,
 then `promote` to the npm stage queue through the trusted publisher, live after the approver's `npm
 stage approve` ([`docs/publishing.md`](docs/publishing.md)). The GitHub Release of `v0.2.0` was made
-by hand (2026-10-20); an automatic one is planned for v0.3. The previous release, **v0.1 — Read-only
+by hand (2026-10-20); from v0.3 the workflow's `release` job creates a draft after `promote`, made
+public by the approver after `npm stage approve` (task-052). The previous release, **v0.1 — Read-only
 console** (git tag `v0.1.0`), was not published on npm (dl-004). Next: `minor-v0.3` is in development in
 Sprint 1 (`sprint-001`, run `sw-life-cycle-1-plan` on WingFoil's workflow engine): 19 tasks in four
 waves, from the governance wave (`release-planning-rel-v0.3-plan`, RP3-19; one session per Sprint
