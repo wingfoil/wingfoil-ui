@@ -318,3 +318,46 @@ checklist step (~2 h more), still under a day.
 - **Q4** no `.wingfoil/` change: `release-publishing` `publish` keeps its text; the approver's
   publish command lives in `docs/publishing.md` *Every release* (recommended), or a wording for the
   next alignment?
+
+#### Decisions (approver, 2026-11-04)
+
+Quoted: "52: q1-a, q2-coverage-totals.json, q3-si, q4-nessuna modifica a .wingfoil" — Q1 **(a)**,
+the draft Release after `promote`, made public by the approver's command of D52-1; Q2 the asset
+name **`coverage-totals.json`**; Q3 **yes**: a generated `test-results.md` is attached too — the
+gate's test summary (counts per suite, the commit, the run URL), built on the runner by a script
+with fixed fields like the totals reducer, with no local or absolute path and no test titles
+(D52-7); Q4 **no `.wingfoil/` change**: the approver's publish command lives in
+`docs/publishing.md` *Every release*.
+
+#### D52-7 — `test-results.md` (Q3), and the amendments to D52-2 / D52-3 / D52-6
+
+- **Input:** the gate's one suite run also writes Vitest's JSON results on the runner:
+  `npm run test:coverage -- --coverage.reporter=text --coverage.reporter=json-summary
+  --reporter=default --reporter=json --outputFile.json=coverage/vitest-results.json`. Probed on one
+  file at design (Vitest 5.0.3): with the command-line reporters `coverage/` holds only
+  `coverage-summary.json` (no HTML, clover or JSON report), the `text` table is still printed, the
+  thresholds still apply, and the JSON results carry `testResults[].name` as the **absolute** file
+  path, test titles, failure messages and the whole `coverageMap` — none of it is copied.
+- **`scripts/test-results.mjs <results.json> --commit <sha> --run-url <url>`**: a Markdown summary
+  built only from fixed text, numbers, the commit (40 hex), the run URL (checked against
+  `https://github.com/<owner>/<repo>/actions/runs/<id>`), the package version (`X.Y.Z` from the
+  root `package.json`) and **suite names**: the first folder under `test/` of each file, taken from
+  the file's path relative to the working directory and kept only when it matches
+  `^[a-z][a-z0-9-]{0,39}$`; a file outside the folder, directly in `test/`, or with any other
+  folder name counts under `other`. Per suite: files, files failed (a file that fails to load has
+  no test), tests passed, failed, skipped (Vitest's `skipped`, `pending`, `todo`); a total row; no
+  test title, no message, no duration. An unknown status or a malformed input → `refused:`,
+  exit 1, no stack.
+- **Artifacts (amends D52-2):** the totals and the summary travel together as
+  `wingfoil-ui-test-reports` (`test-reports/coverage-totals.json`, `test-reports/test-results.md`,
+  every run, dispatch included: neither holds a path); the notes as `wingfoil-ui-release-notes` (tag
+  runs only). `release` downloads three artifacts (tarball, test reports, notes); the create line
+  attaches `dist-pack/*.tgz`, `test-reports/coverage-totals.json`, `test-reports/test-results.md`.
+  The totals file: `source` (fixed text), `commit`, `total` (four metrics × `covered`, `total`,
+  `skipped`, `pct`); no `threshold` field (it would duplicate `vitest.config.ts`).
+- **Tests (amends D52-3):** `publish-workflow.test.ts` also asserts the summary step and that
+  `release` attaches exactly the three assets; `test/scripts/test-results.test.ts` feeds results
+  whose file names are absolute paths (the test's own temporary folder, a folder outside it, a
+  folder name with a space or upper case) with titles and failure messages carrying paths → the
+  output holds no path, no title, no message: with the run-URL line removed it contains no `/`.
+- **Size (amends D52-6):** about 7 active hours; still under one active day, no split.
