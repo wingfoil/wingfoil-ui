@@ -240,3 +240,16 @@ cannot meet it).
 - **Docs:** `test/README.md` 0.54 (the one-console rule with the `load.ts` entry, the
   `test/lint/` line, the auto-sync line). `CHANGELOG.md` unchanged (D53 test plan: no test-only
   fixes listed).
+
+### gates (2026-11-04)
+
+| Gate | Result |
+|---|---|
+| `npm run typecheck`, `npm run lint`, `npm run format:check` | pass |
+| `npx vitest run test/server/sync/auto-sync.test.ts` alone | 44/44, 91.6 s (1-minute load 7.0 → 9.4) |
+| `python3 docs/03_backlog/X_tools/check_tasks.py v0.3` | OK |
+| `npm run test:coverage` through the machine-free slot | queued at load 28.2, slot wait 246 s, granted at load 7.1; 176 files passed, 1 skipped; 3427 tests passed, 2 skipped; statements 96.64 %, branches 91.53 %, functions 97.35 %, lines 98.42 %; 533.0 s; load at the end 8.7 (5-minute 18.4) |
+| strict-identity run (*Fixtures* › *Git identity*: a `git` wrapper outside the repository first on the `PATH`, `-c user.useConfigOnly=true`, `remote set-head <r> -a` after a successful fetch or pull) of `test/server/sync/`, `test/server/http/git-routes.test.ts`, `test/server/http/element-writes.test.ts`, through the slot | slot wait 1087 s, granted at load 8.9; 4 files, 196/196 passed, 310.9 s; load at the end 25.8 (a run under load, AC-3: no timeout) |
+
+No budget was raised to make a test pass; the `binTestMs` budgets of the kept tests follow the
+approver's Q1 (a), not a failing run.
