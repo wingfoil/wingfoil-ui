@@ -2,7 +2,7 @@
 id: minor-v0.3
 type: release
 title: "WingFoil UI v0.3 — Project state"
-status: draft
+status: planning
 kind: "minor"
 patch-of: ""           # optional — when kind is "patch": id of the released minor it patches, e.g. "minor-v0.2"
 version: "v0.3"
@@ -11,6 +11,7 @@ features: [T2, T5, M2, R5, C1]           # REQUIRED — feature IDs covered by t
 wingfoil_min: "0.2.2"       # minimum WingFoil CLI version this release needs, e.g. "0.2.2"
 requirements: "docs/03_backlog/04_backlog/by-release/v0.3.json"       # REQUIRED — path to per-release backlog JSON, e.g. "docs/03_backlog/04_backlog/by-release/v0.1.json"
 release-line: "v1"
+sprint: "sprint-001"       # REQUIRED — the Sprint whose `release` phase carries it (methodology/scrum)
 tmpl_version: 260929   # Orignal template version
 ---
 
@@ -71,6 +72,19 @@ Bars common to every release (`08_mvp-canvas.md`, SARD v0.3):
 
 <!-- identify-specs: artefacts discovered late or missed; build-backlog: scope/estimation
      surprises, bugs selected for this release and their derived fix tasks. -->
+
+- Plan `release-planning-rel-v0.3-plan` (decisions RP3-1 … RP3-20), the first release planned on
+  WingFoil's workflow engine (run `sw-life-cycle-1-plan`, Sprint `sprint-001`).
+- Scope narrowed from the sequencer's 12 features to 5 (T2, T5, M2, R5, C1) plus the approver's
+  console requests (Today, the element page, the Memory filter), dl-012 R1–R3 and governance tasks;
+  R6, R7, R8, W1, W2, G5, S6 and dl-013 moved to v0.4 (RP3-7, RP3-9). Budget 13 active days (10 + 3
+  of validation).
+- identify-specs: errata and amendments of spec-001 … spec-008 and spec-010; new spec-011, spec-012
+  and adr-003 (approved / accepted); found late: N3's option A was already the shipped rule (the
+  rows the approver saw were the WingFoil project's); bug-024 reproduces on 0.2.2 only.
+- build-backlog: 19 tasks (task-049 … task-067) in four waves; bugs bug-019, bug-023, bug-024,
+  bug-027 absorbed into tasks 057, 053, 056; 25 missing scenarios written; `check_tasks.py` extended
+  to earlier-release stories carrying `@v0.3` scenarios.
 
 ### Implementation (dev-loop, per task)
 
