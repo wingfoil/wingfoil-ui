@@ -617,3 +617,11 @@ workflow=delivery …` and `memory submit` (`→ active`) leave `workflow status
 - **Round-1 gates:** `npx vitest run test/docs test/governance` (load 4.19): 72 passed;
   `npm run format:check`: 0; `npm run test:contract` through the slot (wait 6 s, load 3.51 at
   grant, 4.21 at end): 11 files, 323 passed, 2 skipped.
+
+### review round 2 (2026-11-04)
+
+Re-check: PASS with R2-1 (the three directives bumped on their first edit after a commit:
+`release-planning` 1.1, `release-conventions` 1.4, `definition-of-done` 1.3, each history naming
+review round 1) and R2-2 (`--title "…"` on the `sprint`, `adr` and `tech-spec` forms). Approver's
+OK on the diff (2026-11-04, "ok"): committed exactly as saved (`cmp` identical) as `b481ef5`.
+`npx vitest run test/docs test/governance` (load 5.70): 72 passed; `npm run format:check`: 0.
