@@ -1,7 +1,7 @@
 # Sequencer — WingFoil UI v1 (v0.1 → v1.0)
 
 **Version:** 0.8
-**Date:** 2026-10-12 (0.2: J0 completion and v0.1 landing screen — coherence audit; 0.3: external
+**Date:** 2026-11-03 (0.2: J0 completion and v0.1 landing screen — coherence audit; 0.3: external
 review — session 7; 0.4: permissions left to WingFoil — specification session 3; 0.5: input count, v0.1 exit (clone) — coherence audit of the specification — session 6; 0.6: v0.1 budget 6 → 9 active days — release-planning v0.1 session 2; 0.7: v0.2 budget 5 → 8 active days — release-planning v0.2 session 2; 0.8: v0.3 narrowed to
 the project-state chain (T2, T5, M2, R5, C1) plus the console usability, links and governance inputs;
 R6, R7, R8, W1, W2, G5, S6 to v0.4; v0.3 budget 7 → 13 active days — release-planning v0.3, RP3-7 …

@@ -132,6 +132,7 @@ defined the procedure (`governance-alignment-rel-v0.2-plan` GA-5).
 | [F-033](F-033-a-filled-required-list-is-reported-missing.md) | A filled required list field is refused as "missing" at submit unless the type declares it in lists | defect | open |  |
 | [F-034](F-034-memory-deprecate-needs-no-approval.md) | memory deprecate needs no approval: any git identity retires any element in any state | request | open |  |
 | [F-035](F-035-a-transition-refused-after-its-commit-leaves-the-commit.md) | A transition refused by its post-commit scope check still leaves its commit on the branch | defect | open |  |
+| [F-036](F-036-a-project-s-traceability-chain-is-prose-only.md) | A project's traceability chain is prose only: no client can read which references a type requires | request | open |  |
 
 ## Context
 
@@ -146,7 +147,8 @@ of F-003 (its ingestion use case). The candidates W-01 (covered by R-03, now F-0
 the migration, by dl-007: F-020 reports W-25 and W-26, F-021 W-22 and F-022 W-23. F-027 … F-035
 were added at `governance-alignment-rel-v0.3-plan` step 5 (dl-010): F-027 reports no CLI behaviour
 (WingFoil's publish pipeline), F-028 W-36 and W-37, F-029 W-32, F-030 W-34, F-031 W-39, F-032 W-38,
-F-033 W-33, F-034 W-44 (the `memory deprecate` entry, `wingfoil-cli` 1.19) and F-035 W-30.
+F-033 W-33, F-034 W-44 (the `memory deprecate` entry, `wingfoil-cli` 1.19) and F-035 W-30. F-036 (no CLI behaviour: the traceability chain) was added at the `release-planning` of
+`minor-v0.3` (its decision D9).
 
 **The former header.** The needs collected here were discovered while designing WingFoil UI and
 belong to **WingFoil**, not to the UI. Each was to be captured in the WingFoil project through its

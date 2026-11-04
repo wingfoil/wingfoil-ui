@@ -24,17 +24,16 @@ console for every role (`release-planning-rel-v0.3-plan`, RP3-7 … RP3-10):
 - Features (5 features, `07_sequencer.md` v0.8): T2, T5, M2, R5, C1. R6, R7, R8, W1, W2, G5, S6
   moved to v0.4 (RP3-7).
 - Backlog items that are not new features: Today — the role selector on one line, filters by type
-  and state, the date each element entered its state, 10 rows then expand, short ids, settled
-  decisions no longer "waiting for the workflow engine"; the element page in the main region when
+  and state, the date each element entered its state, 10 rows then expand, short ids; the element page in the main region when
   opened by URL or from Memory, its summary rendered as Markdown and the whole document in a dialog
   (rendered or source); the Memory state filter by state; dl-012 R1 (console address file) and R2
-  (short element ids), R3 as a design spike; bug-019, bug-023, bug-024, bug-027; the plan-version
+  (short element ids), R3 (pages recover in place after a restart, adr-003, RP3-17 A1); bug-019, bug-023, bug-024, bug-027; the plan-version
   and bug-release checks (dl-011, dl-009 action 7), the automatic GitHub Release (dl-009 action 5),
   no Approve offered out of phase (release, release line), Today's backlog noise, the refusal
   details, the procedures folded into directives, a separate agent git identity.
 - Journeys served: J2 (complete for a product owner holding `approver`; informational otherwise).
-- Backlog: `docs/03_backlog/04_backlog/by-release/v0.3.json` — 25 user stories,
-  3 technical tasks (TT-ARC-07 moved from v0.1 by release-planning v0.1); the Memory `task` elements are created from it by
+- Backlog: `docs/03_backlog/04_backlog/by-release/v0.3.json` — 14 user stories,
+  2 technical tasks (TT-ARC-07 moved from v0.1 by release-planning v0.1; 11 stories moved to v0.4 by release-planning v0.3, RP3-7), plus earlier stories carrying `@v0.3` scenarios (RP3-19, B2); the Memory `task` elements are created from it by
   this release's `release-planning` (`ref:` = backlog id).
 
 ## Pillar Focus
