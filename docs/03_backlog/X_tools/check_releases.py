@@ -14,8 +14,10 @@ Checks, for every docs/04_memory/planning/v1/minor-*.md:
 
 Required fields and their exemptions (task-051):
 - a field listed under `template.frontmatter.exempt` of the `release` type in memory.yaml
-  (`exempt: { <field>: [ <release id>, … ] }`) is not required of the releases it names — the list
-  is read from memory.yaml, never copied here (today `sprint` for minor-v0.1 and minor-v0.2,
+  is not required of the releases it names, in memory.yaml's BLOCK form — `exempt:` on its own
+  line, then one `<field>: [ <release id>, … ]` line per field, indented under it; a flow map
+  (`exempt: { … }`) is not read, so its fields stay required (fails closed) — the list is read from
+  memory.yaml, never copied here (today `sprint` for minor-v0.1 and minor-v0.2,
   released before the Sprints);
 - a release in `draft` may have no `sprint`: no Sprint selects it yet, and WingFoil checks the
   required fields at `memory submit` (`release-conventions` › Seeding a line: "`sprint` before its

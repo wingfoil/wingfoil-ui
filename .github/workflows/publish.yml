@@ -6,7 +6,8 @@
 #
 #   gate    → on a tag: scripts/check-release-tag.mjs (the tag is annotated, equals v<package.json version>
 #             of the root, of every workspace and of package-lock.json, points at the commit built, and that commit is on
-#             origin/main — release-publishing `tag`); `npm ci`; the repository gates `typecheck`, `lint`,
+#             origin/main — release-publishing `tag`); Python 3.12 (actions/setup-python, for the default
+#             suite's check_releases.py test, task-051); `npm ci`; the repository gates `typecheck`, `lint`,
 #             `format:check`, `test:coverage`, `test:smoke`; then `npm pack` ONCE (its `prepack` builds from a
 #             clean tree) and the tarball is uploaded as the run's artifact. The coverage run also writes, on
 #             the runner only, Vitest's coverage summary and JSON results (both hold absolute paths, never

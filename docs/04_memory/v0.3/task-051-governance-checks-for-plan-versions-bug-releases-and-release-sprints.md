@@ -319,7 +319,7 @@ active day plus the approver's turn for the amends, the stamp and the `.wingfoil
   the 5 plans and 7 bugs pass, and `workflow-diagnostics` is back on its baseline once the files
   are committed.
 
-#### Gates (2026-11-05, on `e86856a`)
+#### Gates (2026-11-05, on `e86856a`; coverage run 1 on the tree before it, `6359acd` with the notes uncommitted)
 
 | Gate | Result |
 |------|--------|
@@ -333,3 +333,14 @@ active day plus the approver's turn for the amends, the stamp and the `.wingfoil
 No e2e, `test:smoke` or strict-identity run: no UI, packaging, launcher or git change (design (e)).
 Lesson: do not edit a governed file in the worktree while a gate that runs `workflow-diagnostics`
 is running.
+
+### review
+
+- **Round 1** (independent reviewer, 2026-11-05): PASS, on the branch with the phase branch merged
+  (`afa0186`). Fixed: (1, minor) a bug file whose frontmatter does not parse (no `---` block, CRLF)
+  read `status` `''` and passed — it now fails when `id` or `status` is empty, red first
+  (`ec7a09d`: 1 failed, 6 passed); (2, nit) the `publish.yml` header names Python 3.12 in the gate
+  summary; (3, nit) the `check_releases.py` docstring says the `exempt` list is read in the block
+  form only, a flow map failing closed; (6, nit) the *Gates* heading says which tree coverage run 1
+  ran on. Not done, as the coordinator decided: 4 (the W-01 wording, a `.wingfoil/` diff) and 5
+  (cosmetic). The `publish.yml` change is a comment only: no `test:publish-smoke` re-run.

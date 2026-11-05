@@ -35,8 +35,13 @@ export function readBugFields(text: string): BugFields {
   };
 }
 
-/** What is wrong with a bug's `release`, or `undefined` when the rule holds. */
-export function bugReleaseFinding(b: BugFields): string | undefined {
+/**
+ * What is wrong with a bug's `release`, or `undefined` when the rule holds. A bug whose frontmatter
+ * gives no `id` or no `status` (no `---` block, CRLF line ends) fails, named by `file`: it must not
+ * pass as "not closed".
+ */
+export function bugReleaseFinding(b: BugFields, file = b.id): string | undefined {
+  if (b.id === '' || b.status === '') return `${file}: no id or status read from its frontmatter`;
   if (b.status !== 'closed' || b.release !== '' || b.rejectionReason !== '') return undefined;
   return `${b.id}: closed with an empty release (release-origin ${b.releaseOrigin || '(none)'})`;
 }
