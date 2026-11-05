@@ -455,3 +455,44 @@ double swap of `.wingfoil` by a local process inside the read's window (D54-2).
   `neutralise` on every echoed string. The internal types live in `server/src/ui-config/types.ts`
   (not in `contracts/`): the new task adds the API shapes to `contracts/`. `UI_YAML` and the
   read's mark are exported from `server/src/reads/ui-yaml.ts` for its fingerprint change.
+
+### red / green / refactor (2026-11-05)
+
+Scope after the split (Q5 (b)): AC-1, AC-2, AC-3's loading and origins, AC-4, AC-6, AC-7, the
+module API of D54-1.
+
+- **spec-005 amended before red** (`4d598ab6`, `74441259`): the Process Note of 2026-11-05 (Q1 (a),
+  Q2 (a), Q3 (a), the YAML texts, the residuals); writing the schema showed that a relative path
+  must also refuse an empty segment (`http://x` would pass as the folder `http:`) — added to §1 in
+  the second commit.
+- **Red** (`da4edc06`): `test/server/ui-config/{patterns,parse,check,effective}.test.ts`,
+  `samples.ts`; `test/server/presets/ui-config.test.ts`; `test/server/reads/ui-yaml.test.ts`;
+  `test/server/snapshot/ui-config.test.ts`; `test/contracts/{ui-yaml-schema,ui-config-fixtures}.test.ts`;
+  the `ui.yaml` read under the REQ-ARC-04 fs spy (`test/server/reads/project-reads.test.ts`); the
+  variant in `test/harness/commit-provenance.test.ts`. Every new file failed on its missing module
+  (`npx vitest run …`: 7 files failed, no test ran). Because a module-not-found red proves little,
+  each key guard was removed after green and its test seen failing (below).
+- **Green** (`8ef44226`): `contracts/files/ui-yaml.schema.json`; `server/src/reads/ui-yaml.ts`;
+  `server/src/ui-config/{types,parse,check,patterns,effective}.ts`; `server/src/presets/ui-config.ts`;
+  `ProjectReads.uiYaml()`, `SnapshotView.uiConfig()` (with the snapshot's `UiYamlCache` and its
+  `localRoots`); `usePresetUiConfig` in `test/harness/fixtures/builder.ts`; `test/README.md` 0.58.
+- **Guard removal** (each edit reverted after its run, `npx vitest run <file>`): without the
+  descriptor's (dev, ino) check → the "replaced by another file" and the ABA swap tests fail; without
+  the `.wingfoil` directory check → the linked and the file `.wingfoil` tests fail; without the
+  second `lstat` of `.wingfoil` → "replaced by another directory after the open" fails; without the
+  alternatives bound → its 3 cases fail; with the library's `uniqueKeys: true` → the duplicate-key
+  and the structural cost tests fail (5.4 s parse).
+- **Characterization:** the two variant tests of `commit-provenance.test.ts` pass on the checker
+  unchanged (task-060 widens it); the second shows the rule that a session's own `chore(ui)` commit
+  is still reported.
+- **Deviations.** (1) The design's wall-clock test of the duplicate-key cost (< 1 s) failed at
+  1.27 s in `test:coverage` at load 14 (bug-004 class): replaced by a structural test — the
+  library's `uniqueKeys` off, the reader's check on (`69d29f1b`); the 10 ms pattern bound of
+  spec-005 §6 takes the fastest of 20 runs. (2) `usePrePacksStates` cannot follow or precede the
+  preset variant on WingFoil 0.2.2 (its custom fixture already has the pre-packs states, so the
+  commit would be empty): the composed cases run on CLI ≥ 0.3 only (`customGovernance`), the variant
+  alone on both versions. (3) Not in this task after the split: the `/config` section, the API
+  schemas and types, the escape, the state-key mark, the `/config` process audit and scenario tests,
+  and the CHANGELOG entry (nothing user-visible lands here; the split task adds it with `/config`).
+  (4) The internal types are in `server/src/ui-config/types.ts`; `UiCategory` is in
+  `server/src/presets/ui-config.ts` (the category `release` is a type name, REQ-ARC-05).
