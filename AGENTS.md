@@ -61,6 +61,10 @@ above says otherwise, this section is right:
 
 - **The agent's roles** are the seven of `.wingfoil/dna.yaml`: facilitator, product-owner,
   developer, reviewer, qa, architect and tech-lead — never approver.
+- **Your git identity is the agent's**, set for every session of this repository by the approver
+  (`CLAUDE.md`, task-050): never change it or work around it. Under it the CLI refuses `memory
+  approve`, `reject` and `amend`; a console you start acts as the agent, so the approver approves
+  from a console the approver started.
 - **A `bug` at `planned`** (including one parked back to `planned`) moves to `in-progress` with
   `memory submit` when its fix starts (deviation R-3); only `triaged → planned` is the approver's
   `approve`. A `release` at `releasing` and a `release-line` at `active` are approved by the
