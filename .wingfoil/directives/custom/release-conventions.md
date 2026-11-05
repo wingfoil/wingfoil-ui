@@ -9,7 +9,7 @@ tags: [custom, release, git, npm]
 
 # Directive — Release conventions of WingFoil UI
 
-**Version:** 1.5 · **Date:** 2026-11-05 (1.0: dl-008's tailoring of `release-submit`,
+**Version:** 1.7 · **Date:** 2026-11-05 (1.0: dl-008's tailoring of `release-submit`,
 `release-publishing` and `retrospective`, re-applied on the `software` and `base` packs' workflows
 at their adoption — governance-alignment-rel-v0.3-plan step 3; 1.1: `mark-released` is the
 approver's `approve`, the retrospective's inventory in its plan — GA3-11 R-1, R-5; 1.2: when the
@@ -19,7 +19,9 @@ packs adoption, A-1, A-2, M1; 1.3: the steps of the former `user-docs` and `e2e-
 task-049; 1.4: review round 1 of task-049: the identity paragraph back above *Seeding a line*, the
 line's plan `delivery-seed-rl-vN-plan`, `check_tasks.py` in `pre-release-checks`, the
 `memory add --type … --title` form; 1.5: *Governance checks* — the plan version, the closed bug's
-`release`, the release `sprint` rule of `check_releases.py`, task-051)
+`release`, the release `sprint` rule of `check_releases.py`, task-051; 1.6: the agents' own git identity in the identity paragraph —
+task-050; 1.7: that identity's reach, the paths that still act as the approver — its review
+round 1)
 
 The packs' release workflows (`release-submit`, `release-publishing`, `.wingfoil/workflows/built-in/`)
 name what each phase does, not how this repository does it. This directive says how; the pipeline
@@ -106,10 +108,17 @@ and the approver's steps are in `docs/publishing.md`.
 were checked again against the line's last configuration (dl-025). The console offers that Approve
 for the whole life of the line; ignore it until then.
 
-The CLI authorises `memory approve` by the git identity of the commit (a non-approver email gets
-"user not authorized to approve"); agents commit under the approver's identity in this repository,
-so "an agent never approves" is a process rule here, not a check. A separate git identity for
-agents is a v0.3 task, not part of these conventions.
+The CLI authorises `memory approve` by git's author identity (`wingfoil-cli` W-39). Claude Code
+sessions whose working directory is in this repository, on the approver's machine, commit under an
+identity of their own once the approver has written it (the Claude Code `env` of the main
+checkout's git-ignored `.claude/settings.local.json`; task-050), so an approval of a release or a
+line run by mistake in such a session is refused (`user not authorized to approve type '…'`).
+Another agent tool, a cloud session, another machine or a missing file gets no agent identity, and
+the desktop app's terminal panel and a browser on the approver's console act as the approver:
+there only the process rule holds. The release's and the line's approvals are the approver's
+commands, run from the approver's terminal or from a console the approver started. A process that
+sets the identity variables deliberately still approves as any member: "an agent never approves"
+stays a process rule.
 
 ### Seeding a line
 

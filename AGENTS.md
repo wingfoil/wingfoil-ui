@@ -61,6 +61,21 @@ above says otherwise, this section is right:
 
 - **The agent's roles** are the seven of `.wingfoil/dna.yaml`: facilitator, product-owner,
   developer, reviewer, qa, architect and tech-lead — never approver.
+- **Your git identity.** The approver gives agent sessions an identity of their own (task-050):
+  the Claude Code `env` of the main checkout's git-ignored `.claude/settings.local.json`, on the
+  approver's machine. It reaches only Claude Code sessions whose working directory is in this
+  repository, once that file exists; another tool (Cursor, Codex, …), a cloud session, another
+  machine, a session started in another repository, or a missing or broken file gives you none,
+  and the process rule alone applies. At the start of every session run `git var
+  GIT_AUTHOR_IDENT`: if it does not show the agent's address
+  (`352896614+wingfoil-dev@users.noreply.github.com`) — a team member's, another address, or a
+  failure — stop and tell the approver before any commit. Never change the identity or work
+  around it.
+- **Whatever your identity, you never approve:** never run `memory approve`, `reject` or `amend`,
+  and never click Approve or Reject — not in a console, not through the desktop app's terminal
+  panel (its shells are not the session's children: they act as the approver), not in a browser
+  driven on the approver's console. A console acts as whoever started it; the approver approves
+  from a console the approver started.
 - **A `bug` at `planned`** (including one parked back to `planned`) moves to `in-progress` with
   `memory submit` when its fix starts (deviation R-3); only `triaged → planned` is the approver's
   `approve`. A `release` at `releasing` and a `release-line` at `active` are approved by the

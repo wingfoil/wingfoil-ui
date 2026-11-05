@@ -100,3 +100,432 @@ RP3-13)
      - design: tech-specs found missing/needing revision (dev-loop/design safety net).
      - red/green/refactor: deviations from the plan above, blockers, scope surprises.
      - review: rejection reasons and what changed on the next pass. -->
+
+### design (2026-11-04)
+
+Read: this task and its `depends_on` task-049 (merged; its design and review notes); `CLAUDE.md`
+0.17, `AGENTS.md`, `.wingfoil/README.md` 0.10, `dna.yaml`, `roles.yaml`, `memory.yaml` (`task`
+machine); the directives `definition-of-done` 1.3 (*build › design*), `release-conventions` 1.4
+(*The release line*), `cli-only-writes`, `wingfoil-cli` 1.21 (W-13, W-24, W-34, W-39); note F-031;
+`test/README.md` 0.55 *Fixtures* › *Git identity* and the strict-identity recipe; task-044's
+Execution Notes; `server/src/git/git.ts` (`gitEnv`), `server/src/process/runner.ts`,
+`server/src/identity/git-email.ts`; `test/harness/fixtures/builder.ts` (`harnessEnv`),
+`test/harness/run.ts`, `test/e2e/support/console.ts`; `backlog-item-rel-v0.3-plan`; the pinned
+CLI's `dist/core/approval-authority.js`, `workflow-finalize.js`, `workflow-adopt.js`,
+`dna/schema.js` (`AgentEntry`) and `validation/identity.js`.
+
+#### Findings that change the task's premises
+
+- **F1 — the console's children do inherit the identity variables.** `gitEnv` drops only the
+  variables that redirect git (`GIT_DIR`, `GIT_WORK_TREE`, `GIT_INDEX_FILE`, `GIT_CONFIG*`, …);
+  probe on the built server (`gitEnv` of an environment holding the four identity variables,
+  `GIT_DIR` and `GIT_EDITOR`): the result keeps `GIT_AUTHOR_NAME`, `GIT_AUTHOR_EMAIL`,
+  `GIT_COMMITTER_NAME`, `GIT_COMMITTER_EMAIL`, `GIT_EDITOR` and drops `GIT_DIR`. So W-39's *Note*
+  ("the UI's children inherit no `GIT_*` variable") and AC-4's sentence on `gitEnv` are wrong: a
+  console started from an agent session runs the CLI and git as the agent (its Submit is the
+  agent's, its Approve is refused by the CLI); a console the approver starts from a terminal is the
+  approver's. The test consoles are not affected: `harnessEnv` deletes every inherited `GIT_*` and
+  the e2e console starts from it (`support/console.ts`).
+- **F2 — the console's identity read disagrees with the CLI's under the variables.** The project
+  header and role view read `git config --get user.email` (`identity/git-email.ts`,
+  REQ-STATE-05); the CLI authorises `GIT_AUTHOR_EMAIL` first (W-39). A console started from an
+  agent session would show the approver's role view and Approve, and the CLI would refuse it (422
+  `cli-refused`, `user not authorized to approve type '…'`). `git var GIT_AUTHOR_IDENT` resolves the
+  identity as `git commit` does. Not in this task's ACs.
+- **F3 — WingFoil refuses a reserved-domain agent address.** `team.agents[].email` on `.invalid`,
+  `.test`, `.example` or `.localhost` is an `E_VALIDATION` of `dna.yaml` ("an agent email may not
+  be on a reserved top-level domain … the attribution audit rejects it, bug-261"; probe below), and
+  WingFoil's attribution audit (`memory/audit.js` `isValidAttribution`, REQ-SEC-02, not exposed by
+  a verb in 0.3.1) counts such an author as an unknown author. The address must be a real mailbox
+  domain.
+
+#### (a) AC-1 — the mechanism
+
+What must hold: the four variables in the environment of every Claude Code session of this
+repository — the coordinator session, its subagents (they run in the session's process and their
+Bash calls are its children), a session opened from the short prompt of RP3-13 — and of nothing
+the approver runs: not the approver's shell, not a console the approver starts, not the
+repository's git configuration (shared with the approver's commands in this checkout).
+
+| # | Mechanism | Reaches | Approver's terminal and console | Committed | Verdict |
+|---|-----------|---------|-------------------------------|-----------|---------|
+| M1 | `env` in the project's `.claude/settings.local.json` (main checkout) | every session started with the main checkout as its project, its subagents and Bash calls (the session's process environment); a session opened in a `.worktrees/` folder only if Claude Code reads the main checkout's local settings there — to verify | untouched (separate processes, not children of the session) | no: ignored by the approver's global git excludes only (`**/.claude/settings.local.json`), not by the repository's `.gitignore` | works for this machine; invisible in review, lost on a new clone or machine |
+| M2 | `env` in a committed `.claude/settings.json` | the same, and every worktree (the file is tracked, so each `.worktrees/` checkout has it) and every clone; reviewable as a diff | untouched; a `!` shell command typed inside a Claude Code prompt runs in the session and is the agent's | yes | **recommended** |
+| M3 | `env` in the user-level Claude Code settings (the home folder's `.claude/settings.json`) | every Claude Code session of every project on the machine | untouched | no | too broad (other projects' sessions) |
+| M4 | a launcher wrapper (`claude` started by a script that exports the variables), or `direnv` | wrapper: only sessions started through it — not the desktop app's; `direnv`: every shell in the folder | `direnv` changes the approver's shell too | wrapper outside the repo | does not cover the short-prompt sessions, or breaks the approver's terminal |
+| M5 | a `SessionStart` hook writing the variables to `CLAUDE_ENV_FILE` | Bash calls of the session only | untouched | either | same scope as M1/M2 with a script to maintain |
+| M6 | repository git configuration (`user.*`, `author.*`, `includeIf`) | every git process in the checkout | **changes the approver's commits** | — | excluded by the task |
+
+**Recommendation: M2.** A committed `.claude/settings.json` holding only
+
+```json
+{
+  "env": {
+    "GIT_AUTHOR_NAME": "WingFoil UI Agent",
+    "GIT_AUTHOR_EMAIL": "noreply@anthropic.com",
+    "GIT_COMMITTER_NAME": "WingFoil UI Agent",
+    "GIT_COMMITTER_EMAIL": "noreply@anthropic.com"
+  }
+}
+```
+
+written and committed by the approver (or by the agent after the approver's OK on this exact
+diff; AC-1), in its own commit on the phase branch, so that worktrees created from it carry it.
+It takes effect at the next session start (a running session keeps its environment). Cursor or
+other agent tools are not covered; their sessions keep the process rule only (stated in the
+docs). Acceptance check after it is applied, recorded in the Execution Notes: `env | grep -E
+'^GIT_(AUTHOR|COMMITTER)_'` from a Bash call of a new coordinator session, of one of its
+subagents, of a session opened from the short prompt and of a session opened in a `.worktrees/`
+folder (four variables each), and from the approver's terminal and the desktop app's terminal
+panel (none); one empty commit on a throwaway clone, `git log -1 --format='%an <%ae> / %cn <%ce>'`.
+
+**Name and address.** `WingFoil UI Agent <noreply@anthropic.com>`: public and non-personal
+(dl-005); the address Anthropic publishes for co-authorship, already in every agent commit's
+`Co-Authored-By:` trailer, and the default WingFoil's `AgentEntry` names for an agent ("the address
+the agent's vendor publishes for co-authorship"); accepted by `dna.yaml` and by the attribution
+audit (probe below). Rejected: an `.invalid`/`.test` address (F3); a GitHub noreply address of
+the approver (personal, and GitHub would credit the approver); an address on a domain the project
+owns (it owns none). Alternative: an id-qualified noreply address
+(`<id>+<login>@users.noreply.github.com`) of a machine account the approver creates for the
+project — vendor-neutral, needs that account.
+
+#### (b) AC-2, AC-3 — probe (run at design)
+
+Setup: a throwaway clone of the phase branch at `69697f8` in a scratch folder, a branch of its
+own, the pinned CLI `0.3.1 (870bd44…)` linked from the worktree's `node_modules`; git isolated
+from the machine (`GIT_CONFIG_GLOBAL` = a probe file holding the approver's `user.name`/`user.email`
+as the DNA member has them, `GIT_CONFIG_NOSYSTEM=1`). "agent" = the four variables set to the
+agent identity (run with `WingFoil UI Agent <agent@wingfoil-ui.invalid>`, then repeated with
+`noreply@anthropic.com`: same outcomes); "approver" = no variable set. Every command with
+`--format json`.
+
+| Under | Command | Exit | Output / commit |
+|-------|---------|------|-----------------|
+| agent | `git commit --allow-empty -m 'probe: agent commit'` | 0 | `%an <%ae>` and `%cn <%ce>` = the agent |
+| agent | `memory add --type task --title "Probe agent task" --set release=v0.3` | 0 | `task-068-probe-agent-task`, commit by the agent |
+| agent | `memory submit task-068-…` (`GIT_TRACE` to a file) | 0 | `draft → pending`, commit by the agent |
+| agent | `memory approve task-068-… --reason probe` (`GIT_TRACE` to a file) | 1 | `{"error":"user not authorized to approve type 'task'"}`, no commit |
+| agent | `memory reject task-069-… --reason probe` | 1 | `{"error":"user not authorized to approve type 'task'"}`, no commit |
+| agent | `memory amend task-069-… --reason probe` | 1 | the same message |
+| approver | `memory reject task-068-… --reason …` / `memory approve … --reason …` | 0 / 0 | `pending → draft` / `pending → backlog`, author and committer the approver, `Approver:` line the approver's |
+| agent | `memory submit` from `backlog`, from `in-progress`, from `approved` | 0 | `→ in-progress`, `→ in-review`, `→ done` (the approver's approve `in-review → approved` between) |
+| agent | `memory park task-069-… --reason "probe park"` | 0 | `in-progress → backlog` (without `--reason`: exit 2, `missing required argument: --reason`) |
+| agent | `memory deprecate task-068-… --reason …` | 0 | `done → deprecated` (any identity, as `.wingfoil/README.md` states) |
+| agent | `workflow status`, `workflow next` | 0 | read; the frontier step `backlog-item.build@task:task-050-…`, `role: developer`, `agentRole: true` |
+| agent | `workflow start governance-evolution` | 0 | plan `governance-evolution-1-plan` added and submitted, commits by the agent |
+| agent | `workflow finalize governance-evolution-1-plan --step governance-evolution.assess` (and `.propose`) | 0 | `workflow: finalize …` empty commit by the agent |
+| agent | `workflow finalize … --step governance-evolution.approve --reason probe` | 1 | `phase 'governance-evolution.approve' completes from its evidence: state` (the approver gets the same) |
+| agent | `workflow adopt sw-life-cycle-1-plan --plan` | 0 | read, nothing written |
+| agent | `workflow adopt sw-life-cycle-1-plan --plan --apply --reason probe` | 1 | `{"error":"user not authorized to apply adoptions in bulk"}` |
+| — | `memory history task-068-…` | 0 | each entry's `author` is the commit's author: the agent for add/submit/deprecate, the approver for reject/approve (`approver: "<name> <<email>> (approver)"`) |
+
+`GIT_TRACE` (to a file — the CLI does not pass its children's stderr through): the agent's
+`submit` runs `git config -z --get-regexp '^(author|committer|user)\.(name|email)$'`, reads at
+HEAD (`rev-parse`, `show …:.wingfoil/memory.yaml`, `ls-tree`, `cat-file --batch`), `hash-object`,
+`status --porcelain`, `ls-files -s`, `add -- <element>`, `commit --only --quiet --cleanup=whitespace
+-m 'wf(task): submit …'`, `maintenance run --auto --quiet`, then its post-checks (`rev-parse`,
+`diff --name-only`, `show`). The agent's `approve` runs the same identity read and HEAD reads, then
+`show <HEAD>:.wingfoil/dna.yaml`, and stops: no `add`, no `commit`. `.git` snapshot (refs, config
+hash, hooks, every file outside `objects/` and `logs/`) before and after the whole probe: the only
+differences are the probe branch's ref (and its reflog), `.git/index` and `COMMIT_EDITMSG`; config,
+hooks and every other file unchanged.
+
+Membership: **no verb the agents run needs a team member or a role.** Only the approver-gated
+operations read the identity against `dna.yaml` (`requireApproverAuthority`: approve, reject,
+amend, `adopt --plan --apply`, `rekey`, and `finalize` on a phase that declares `approval:` —
+`workflow-finalize.js`, not reproduced: the one approval phase reachable here completes from its
+evidence). The DNA's agent entry is not consulted for authorisation (`approval_authority: false` is
+informational). DNA: an `email: noreply@anthropic.com` on the agent entry validates (`dna show`
+exit 0 on the clone) and changes no outcome (the agent's approve still refused);
+`email: agent@wingfoil-ui.invalid` is refused (F3). **Proposal: no `.wingfoil/` change**; the
+agent entry's `email` is optional and only names the agent's commit identity for readers.
+
+#### (c) AC-4 — harness paths
+
+Static review of every test process that inherits `process.env` instead of `harnessEnv`:
+
+- the fixture builder, every fixture and copy, the e2e console (`support/console.ts`), the launch
+  and publish smoke (`runEnv` from `harnessEnv`), `test/scripts/*` and `test/server/git/*` commits:
+  `harnessEnv` deletes every `GIT_*` — the fixture identity wins;
+- `test/server/projects/clone.test.ts` S12 and F5: `{ ...process.env, … }`; S12's seed commit uses
+  `-c user.email=… -c user.name=…`, which `GIT_AUTHOR_*`/`GIT_COMMITTER_*` override — no assertion
+  reads that commit's identity (the test checks that a filter does not run), so the result is the
+  same; to be made explicit (`harnessEnv`-style deletion of the four variables) in green;
+- `test/e2e/add-project.spec.ts` uses `process.env` for the console's `PATH` only;
+  `test/governance/workflow-diagnostics.test.ts` and `test/package/pack.test.ts` only read;
+  `test/docs/public-text.ts` filters `GIT_*` out;
+- the console's own children (`gitEnv`): F1 — they inherit the variables, but no test console is
+  started from an environment holding them.
+
+Characterization run at design (no slot: targeted Vitest): `test/harness/git-identity.test.ts`,
+`commit-provenance.test.ts`, `repo-state.test.ts` with the four variables exported: 3 files, 25
+tests passed.
+
+Tests (both characterization: the guard exists):
+
+- `test/harness/git-identity.test.ts` — "a fixture commit under inherited `GIT_AUTHOR_*` and
+  `GIT_COMMITTER_*` carries the fixture member's author and committer": the four variables set in
+  `process.env` (restored after), a fixture copy, a commit with `fixture.env`, `%an <%ae>` and
+  `%cn <%ce>` = the member. Guard removal recorded: `harnessEnv` keeping the four variables makes
+  it fail.
+- `test/server/projects/clone.test.ts` S12 — the seed commit's environment without the four
+  variables (no behaviour change; no new test).
+- For F1, depending on the decision on Q1: a `test/server/process/git-env.test.ts` case pinning
+  the chosen behaviour of `gitEnv` for the four variables.
+
+#### (d) AC-5 — docs and proposed text
+
+- `CLAUDE.md` *Working with the WingFoil CLI*, replacing "Agents commit under the approver's git
+  identity here, so this is a process rule, not a check of the CLI.": "Agent sessions commit as
+  `WingFoil UI Agent <noreply@anthropic.com>`: the four `GIT_AUTHOR_*`/`GIT_COMMITTER_*` variables
+  are set by `.claude/settings.json` for every Claude Code session of this repository and its
+  subagents (task-050); never unset or override them, and never set an identity in the
+  repository's git configuration. The CLI then refuses an agent's `memory approve`, `reject` and
+  `amend` (`user not authorized to approve type '…'`). This prevents approvals by mistake, not a
+  deliberate override (`wingfoil-cli` W-39); the approver runs approvals from a terminal, or from a
+  console the approver started." Version/Date bumped.
+- `release-conventions` *The release line*, its identity paragraph: "The CLI authorises `memory
+  approve` by git's author identity (W-39). Agent sessions here commit as `WingFoil UI Agent
+  <noreply@anthropic.com>` (`.claude/settings.json`, task-050), so an approval run by mistake in an
+  agent session is refused; the release's and the line's approvals are the approver's commands,
+  from the approver's terminal. A process that sets the variables deliberately still approves as
+  any member: "an agent never approves" remains a process rule." Version 1.5.
+- `wingfoil-cli` W-39 *Workaround*: "Agent sessions here set `GIT_AUTHOR_*`/`GIT_COMMITTER_*` to
+  `WingFoil UI Agent <noreply@anthropic.com>` (`.claude/settings.json`, task-050): their commits
+  are attributed to the agent and their `approve`/`reject`/`amend` are refused (probe of
+  task-050). It prevents approvals by mistake under the agent's identity, not a deliberate or
+  injected override; real enforcement needs e.g. signed approval commits verified in CI (F-031).
+  The UI's children keep these four variables (`gitEnv` drops only the redirecting ones): a
+  console started from an agent session acts as the agent." Plus a *Known behaviours* sentence that
+  `team.agents[].email` on a reserved domain is refused (F3). Version 1.22.
+- `AGENTS.md` *This repository*, a bullet: "**Your git identity** is the agent's (`WingFoil UI
+  Agent`, set by `.claude/settings.json`): never change it, and never run `memory approve`,
+  `reject` or `amend` — the CLI refuses them under it." (`AGENTS.md` has no Version line.)
+- `.wingfoil/README.md`: none (no DNA change); `test/README.md` *Git identity*: one sentence that
+  agent sessions export the four variables and the harness deletes them (version bump).
+- The coordinator's dev-loop rules (outside the repository), text to add to the overrides:
+  "Agent sessions commit as `WingFoil UI Agent <noreply@anthropic.com>` (`.claude/settings.json`);
+  check `git log -1 --format='%an <%ae>'` after your first commit; never unset, override or
+  `-c user.*` around it; merges and hand commits by the coordinator carry it too; the approver's
+  console is started by the approver, never by an agent session."
+
+Every `.wingfoil/` diff (the two directives) goes to the approver before its commit.
+
+#### (e) Test plan, gates, size
+
+- Classification: AC-1 design + the approver's application and its acceptance check; AC-2, AC-3
+  characterization (probe above, repeated by the reviewer); AC-4 characterization (the two items
+  of (c)); AC-5 docs; AC-6 gates.
+- Gates, each with the four variables exported in the gate command, through the slot: `typecheck`,
+  `lint`, `format:check`, `test:coverage` (≥ 80 %), `test:contract`, `test:e2e:chromium`, and the
+  strict-identity run (the `git` wrapper first on the `PATH`) of the suites that touch git
+  (`test/harness`, `test/server/git`, `test/server/writes`, `test/launcher`); `npx vitest run
+  test/docs`; `python3 docs/03_backlog/X_tools/check_tasks.py v0.3`. Results compared with the
+  same suites without the variables (pass/fail totals equal).
+- Size: about half an active day (the probes are done; two tests, five documents, the gates). No
+  split.
+
+#### Open questions
+
+- **Q1 — F1 (`gitEnv` keeps the identity variables).** Options: (A) keep it and document it
+  (the console a session starts acts as the agent; its approvals are refused); (B) `gitEnv` drops
+  the four variables, so every console acts as the configured `user.*` — a console an agent
+  starts would then approve as the approver; (C) as A, plus F2's fix in the console.
+  **Recommendation: A** in this task (W-39's text corrected, AC-4's sentence read as "test
+  consoles inherit none"), the approver starting the console used for approvals.
+- **Q2 — F2 (role view vs. the CLI under the variables).** **Recommendation:** a bug captured by
+  the coordinator (`bug-ingest`, the console's identity read by `git var GIT_AUTHOR_IDENT`),
+  planned by triage, not absorbed here.
+- **Q3 — who starts the console used for approvals now.** If an agent session starts it after M2,
+  its Approve is refused. **Recommendation:** the approver starts it from a terminal; written in
+  `CLAUDE.md` (above).
+- **Q4 — the address.** **Recommendation:** `noreply@anthropic.com`; the alternative is a machine
+  account's id-qualified GitHub noreply address (approver's setup).
+
+#### Approver's decisions (2026-11-05, `backlog-item-rel-v0.3-plan` W0-12, W0-14)
+
+Quoted: "q-mec, q1, q2, q3, w-45 ok in questo task; q4 proviamo ad usare l'account macchina su
+github". As relayed by the coordinator:
+
+- **Mechanism: M1**, not the recommended M2 — the Claude Code `env` of a git-ignored
+  `.claude/settings.local.json` in the main checkout, written by the approver (a committed
+  `.claude/settings.json` would act on every clone of the public repository; M2 only if M1 does not
+  reach the subagents). The agent never writes it; the task prepares its content and the
+  acceptance check.
+- **Q1 → A:** `gitEnv` unchanged and documented (a console's children carry the identity of
+  whoever started it); W-39 corrected; AC-4 read as "test consoles inherit none", pinned by
+  `git-env.test.ts`.
+- **Q2:** F2 becomes a bug, captured by the coordinator through `bug-ingest`.
+- **Q3:** `CLAUDE.md` states that approvals are made from a console the approver started.
+- **Q4:** the address is the id-qualified GitHub noreply address of a project machine account the
+  approver creates; until it exists the drafts carry a placeholder and stay uncommitted.
+- **W-45** (W0-12) enters this task: `wingfoil-cli` 1.22 with W-39 corrected, a new W-45 and the
+  feedback note F-037.
+
+M1's reach: Claude Code's documentation says that the `env` of a settings file is written into
+the Claude Code process environment (so every Bash call has it), that project settings are read at
+the repository root, and that a worktree session started from the desktop app reads project
+configuration from the main checkout's root. It says nothing on subagents; they run in the
+session's process, and the acceptance check verifies them. Nothing found shows M1 failing to
+reach subagents or worktree sessions.
+
+### red / green / refactor (2026-11-05)
+
+- **Probe Q4** (the throwaway clone of design, the pinned CLI, the agent variables set to
+  `WingFoil-UI-Agent <12345678+wingfoil-ui-agent@users.noreply.github.com>`, a made-up id of the
+  same form): `team.agents[0].email` set to that address — `dna show` exit 0; a `memory add` and a
+  `submit` by the agent (exit 0, author and committer the agent); `memory approve` and `reject` by
+  the agent exit 1 `user not authorized to approve type 'task'`; the approver's `approve` exit 0.
+  The same with `dna.yaml` as on the phase branch (no agent email): the agent's `approve` exit 1.
+  A bare-login `wingfoil-ui-agent@users.noreply.github.com` is refused (`E_VALIDATION … a GitHub
+  noreply agent email must be id-qualified`). So `users.noreply.github.com` is a domain WingFoil
+  accepts (F3), and no `dna.yaml` change is needed for it.
+- **AC-4 tests** (`4dd3b454`), characterization, each shown failing with its guard removed and
+  passing restored:
+  - `test/harness/git-identity.test.ts` *an agent session's identity variables never reach a
+    fixture commit* — with `harnessEnv` keeping `GIT_AUTHOR_*`/`GIT_COMMITTER_*`: this test and the
+    two task-044 tests fail (author `Agent Stand-in <agent-stand-in@example.test>`, the
+    no-email commit accepted);
+  - `test/server/process/git-env.test.ts` *task-050 — children keep the identity of whoever
+    started the server* (two tests: the four variables reach a child, `git var GIT_AUTHOR_IDENT`
+    resolves to them) — with `GIT_AUTHOR_NAME` added to `gitEnv`'s dropped set: both fail;
+  - `test/server/projects/clone.test.ts` S12 drops the four variables from its seed commit's
+    environment (no behaviour change).
+  - Run with the stand-in identity exported (load 4.24): 3 files, 21 passed.
+- **W-45 probe** (`init --template Scrum` scratch project, the pinned CLI; recipe in W-45, note
+  F-037): `workflow start sw-life-cycle` → `sw-life-cycle-1-plan`; `memory add --type plan --title
+  "Second life cycle" --set workflow=sw-life-cycle --set phase=second --set scope=second` →
+  `active: sw-life-cycle-second-plan` (`planStatus: draft`), `workflow next` →
+  `sw-life-cycle-second-plan` › `sw-life-cycle.inception`, `workflow list` 0 diagnostics; after
+  `submit`, the same with two `active` plans. Control (fresh project, `--set workflow=scrum-delivery`,
+  added and submitted): one open run, `workflow next` on `sw-life-cycle-1-plan`, 0 diagnostics.
+- **Docs:** `AGENTS.md` *This repository*, `test/README.md` 0.57 *Git identity*, F-037 and its
+  ledger row (`43e43063`). Uncommitted until the approver's OK and the address: `wingfoil-cli`
+  1.22 (W-39, W-45), `release-conventions` 1.5 (the identity paragraph) and `CLAUDE.md` 0.18 (it
+  names the address, a placeholder for now).
+- The coordinator's dev-loop rules, text to add: "Agent sessions commit as `WingFoil UI Agent`
+  with the machine account's noreply address (the approver's `.claude/settings.local.json` in the
+  main checkout); check `git log -1 --format='%an <%ae>'` after your first commit; never unset,
+  override or `-c user.*` around it; the console used for approvals is started by the approver,
+  never by an agent session."
+- **Approver's OK** (2026-11-05, quoted: "task 50: ok per il diff, sì alla riga in .gitignore"):
+  the `.wingfoil/` diff committed as saved (`cmp` identical) as `13d117e5` (`wingfoil-cli` 1.22,
+  `release-conventions` 1.5); `.claude/settings.local.json` added to `.gitignore` as `cb316d77`.
+  `CLAUDE.md` 0.18 stays uncommitted until the machine account's address exists.
+- **Gates** (2026-11-05), all with a **stand-in** identity exported for the four variables
+  (`WingFoil UI Agent <00000000+wingfoil-ui-agent@users.noreply.github.com>`, not the machine
+  account's address), heavy ones one at a time through the slot:
+  - `typecheck`, `lint`, `format:check`: 0 (load 7.57); `npx vitest run test/docs`: 68 passed;
+    `check_tasks.py v0.3`: OK;
+  - `test:coverage`: slot wait 307 s, load 7.39 at grant, 9.26 at end — 179 files passed, 1
+    skipped; 3476 tests passed, 2 skipped; all files 96.67 % statements, 91.55 % branches,
+    97.35 % functions, 98.43 % lines;
+  - `test:contract`: wait 367 s, load 13.11 / 5.71 — 11 files passed, 1 skipped; 323 passed, 2
+    skipped;
+  - `test:e2e:chromium`: wait 20 s, load 4.23 / 11.61 — 323 passed (13.6 min), no retry;
+  - strict-identity run (the `git` wrapper of `test/README.md` *Git identity* first on the `PATH`,
+    `user.useConfigOnly=true` and the `followRemoteHEAD` emulation) of `test/harness`,
+    `test/server/git`, `test/server/writes`, `test/launcher`: wait 5 s, load 10.68 / 6.98 — 29
+    files, 520 passed;
+  - comparison without the four variables (`env -u …`) of the AC-4 files `git-identity`,
+    `git-env`, `clone`: 3 files, 21 passed — the same as with them.
+  - No console left (`pgrep -af bin/wingfoil-ui.cjs`), no `wfui-*` in the temporary folder.
+
+### review round 1 (2026-11-05) — security-adversarial: FAIL (1 major, 2 minor, 3 nits)
+
+The phase branch was merged into this branch first (`208e48c9`).
+
+- **MAJOR 1 — the identity's reach was overstated.** Every sentence is rescoped. The agent
+  identity reaches only Claude Code sessions whose working directory is in this repository, on the
+  approver's machine, once the approver's `.claude/settings.local.json` exists. Another tool
+  (Cursor, Codex: they read `AGENTS.md`), a cloud session, another machine, a session started in
+  another repository, or a missing or broken file gets none, and the process rule alone applies.
+  A self-check is added: run `git var GIT_AUTHOR_IDENT` at session start, and if it shows a team
+  member's address, stop and tell the approver. The committed `AGENTS.md` bullet is true today:
+  "until `CLAUDE.md` says the identity is in place, assume it is not" (`d24e8d4b`). The same text
+  is in the `CLAUDE.md` 0.18 draft (uncommitted, address pending), in `release-conventions` 1.6
+  and in W-39 (`wingfoil-cli` 1.23); both directives are uncommitted, waiting for the approver's
+  OK on `task-050-wingfoil-r1.diff`.
+- **MINOR 2 — paths that still act as the approver** are named: the desktop app's terminal panel
+  (its shells are not the session's children and get no `env`), and a browser driven on the
+  approver's console. The rule in `AGENTS.md` and the `CLAUDE.md` draft: an agent never runs
+  `approve`, `reject` or `amend`, and never clicks Approve or Reject, through either. For the
+  coordinator's dev-loop rules, add: "never (re)start the links console from an agent session".
+- **MINOR 3 — AC-4 on the whole suites.** Each heavy gate ran twice through the slot on the same
+  tree (HEAD `d24e8d4b`, `CLAUDE.md` the only uncommitted file; the two directives were set aside
+  during the runs and re-applied identical, `cmp`), first without the four variables (none set),
+  then with the stand-in identity:
+
+  | Gate | Without the variables | With the stand-in identity |
+  |------|-----------------------|----------------------------|
+  | `test:coverage` | wait 5 s, load 1.24 / 16.29; 179 files passed, 1 skipped; 3476 passed, 2 skipped; 96.64 / 91.53 / 97.35 / 98.42 % | wait 20 s, load 12.24 / 20.27; 179 files passed, 1 skipped; 3476 passed, 2 skipped; 96.64 / 91.51 / 97.35 / 98.42 % |
+  | `test:contract` | wait 35 s, load 11.90 / 5.69; 11 files passed, 1 skipped; 323 passed, 2 skipped | wait 5 s, load 5.39 / 3.24; the same |
+  | `test:e2e:chromium` | wait 5 s, load 3.06 / 10.27; 323 passed (13.9 min) | wait 5 s, load 9.53 / 9.59; 323 passed (13.3 min) |
+
+  The results are the same. The branch coverage differs by 0.02 points (91.53 vs 91.51) under
+  different loads; the test totals are equal.
+- **NIT 4.** The light-gates log of the first gate run (typecheck, lint, format, `test/docs`,
+  `check_tasks.py`) has no load line and no stand-in label: the stand-in header was printed to
+  the terminal, not into the log. The log is left as it is; the values above (load 7.57) come
+  from that terminal output. The acceptance check reads `env`; Claude Code reloads settings that
+  change during a session, so the check does not assume a restart.
+- **NIT 5.** W-39 now names the detection query for a careless bypass, where only `GIT_AUTHOR_*`
+  is overridden: `git log --format='%an / %cn: %s' --grep='^Approver:'`. Such a commit shows the
+  approver as author and the agent as committer. In the reviewer's probe it shows on the two
+  bypass approvals, while the approver's own approvals show the approver twice.
+- **NIT 6.** The reviewer reproduced `workflow finalize` of an `approval:` phase on a throwaway
+  clone, with a custom workflow whose gate phase declares `approval:`. The agent gets exit 1,
+  `user not authorized to approve type 'plan'`, and the approver gets exit 0 (the finalize commit
+  carries the `Approver:` line). W-39 now cites it.
+- Checks after the fixes: `npx vitest run test/docs test/wingfoil-feedback.test.ts
+  test/governance` passed, except the diagnostics baseline, which reports the uncommitted
+  directives (`W_UNCOMMITTED_INPUTS`). It passes with them set aside (4 passed). A first draft of
+  W-39 had a `|` in the query, which split the table cell (`wingfoil-feedback.test.ts`); the
+  query now uses `/`. `format:check` is clean.
+
+### the machine account's address (2026-11-05)
+
+- **Approver's OK on the round-1 `.wingfoil/` diff** (quoted: "3 ok diff"): committed as saved
+  (`cmp` identical) as `592b7148` (`wingfoil-cli` 1.23, `release-conventions` 1.6).
+- **The address.** The approver created the project's machine account `wingfoil-dev` on GitHub.
+  Its id-qualified noreply address is `352896614+wingfoil-dev@users.noreply.github.com`, so the
+  agent identity is `WingFoil UI Agent <352896614+wingfoil-dev@users.noreply.github.com>`. Only
+  the noreply address appears in text. `CLAUDE.md` 0.18 carries it, and no placeholder is left in
+  the repository.
+- **Q4 probe again, with this address** (a throwaway clone of `592b7148`, the pinned CLI, the
+  approver's identity isolated in a probe git configuration):
+  - with the address set as `team.agents[0].email` in the clone only: `dna show` exits 0. The
+    field stays optional, and this repository's `dna.yaml` is unchanged;
+  - with `dna.yaml` as committed: the agent's `memory add` and `submit` exit 0, and the commit's
+    author and committer are `WingFoil UI Agent <352896614+wingfoil-dev@users.noreply.github.com>`;
+  - the agent's `memory approve` and `reject` exit 1 with `user not authorized to approve type
+    'task'`, and nothing is committed;
+  - the approver's `memory approve` exits 0 (`pending → backlog`), authored by the approver.
+- **What the approver writes** in the main checkout's `.claude/settings.local.json`: an `env`
+  block with `GIT_AUTHOR_NAME` and `GIT_COMMITTER_NAME` set to `WingFoil UI Agent`, and
+  `GIT_AUTHOR_EMAIL` and `GIT_COMMITTER_EMAIL` set to the address above. Then the acceptance check
+  of *design* › (a), with `env` (no restart assumed).
+
+### review round 2 (2026-11-05) — PASS with 1 minor, 2 nits (no `.wingfoil/` change)
+
+- **MINOR 1 / NIT 3.** `AGENTS.md` no longer has the trigger "until `CLAUDE.md` says the identity
+  is in place". It relies on the self-check, which is reworded in `AGENTS.md` and `CLAUDE.md`
+  (0.19): at session start run `git var GIT_AUTHOR_IDENT`, and if it does not show the agent's
+  address (`352896614+wingfoil-dev@users.noreply.github.com`), stop and tell the approver. That
+  covers a team member's address, another address, and a failure. The order is decided: the
+  approver writes the main checkout's `.claude/settings.local.json`, and the acceptance check of
+  *design* › (a) passes, **before** task-050 is merged into the phase branch.
+- **NIT 2 (merge notes).** The merge `101b830c` renumbered the approver-OK'd
+  `release-conventions` texts of this task from 1.5 and 1.6 to 1.6 and 1.7, because task-051 took
+  1.5. The text is unchanged.
+
+### acceptance check (2026-11-05)
+
+The approver wrote the main checkout's `.claude/settings.local.json` (git-ignored: `git check-ignore
+-v` matches the approver's global excludes on the phase branch, and `.gitignore` from this task).
+`env` reached the running coordinator session without a restart: `env | grep -E
+'^GIT_(AUTHOR|COMMITTER)_'` lists the four variables and `git var GIT_AUTHOR_IDENT` answers `WingFoil
+UI Agent <352896614+wingfoil-dev@users.noreply.github.com>`; the same in a subagent and in this
+task's worktree (`git var GIT_AUTHOR_IDENT` and `GIT_COMMITTER_IDENT`). The approver's own terminal
+is checked by the approver. From this check on, the coordinator's and the subagents' commits carry
+the agent identity.
