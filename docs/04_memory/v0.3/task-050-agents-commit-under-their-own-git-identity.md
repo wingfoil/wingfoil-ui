@@ -518,3 +518,14 @@ The phase branch was merged into this branch first (`208e48c9`).
 - **NIT 2 (merge notes).** The merge `101b830c` renumbered the approver-OK'd
   `release-conventions` texts of this task from 1.5 and 1.6 to 1.6 and 1.7, because task-051 took
   1.5. The text is unchanged.
+
+### acceptance check (2026-11-05)
+
+The approver wrote the main checkout's `.claude/settings.local.json` (git-ignored: `git check-ignore
+-v` matches the approver's global excludes on the phase branch, and `.gitignore` from this task).
+`env` reached the running coordinator session without a restart: `env | grep -E
+'^GIT_(AUTHOR|COMMITTER)_'` lists the four variables and `git var GIT_AUTHOR_IDENT` answers `WingFoil
+UI Agent <352896614+wingfoil-dev@users.noreply.github.com>`; the same in a subagent and in this
+task's worktree (`git var GIT_AUTHOR_IDENT` and `GIT_COMMITTER_IDENT`). The approver's own terminal
+is checked by the approver. From this check on, the coordinator's and the subagents' commits carry
+the agent identity.
