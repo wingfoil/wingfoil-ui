@@ -37,6 +37,8 @@ export type {
   WorkflowPhase,
 } from './cli.js';
 export type {
+  AmbiguousCandidate,
+  AmbiguousIdDetail,
   ApiCapabilities,
   ApiCapability,
   ApiCapabilityReason,
@@ -49,6 +51,7 @@ export type {
   DocumentationIndex,
   ElementDetail,
   ElementList,
+  ElementRefusalBody,
   FileContent,
   FileTree,
   Identity,

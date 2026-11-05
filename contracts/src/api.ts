@@ -164,6 +164,11 @@ export interface ProjectConfig {
 export interface ListedElement extends MemoryMatch {
   /** The element file has uncommitted changes (REQ-STATE-01). */
   localChanges: boolean;
+  /**
+   * The short id (spec-011 §1): its type's `id_pattern` prefix before `{n}` plus the id's digits;
+   * absent when the element has none. Derived by the server only (REQ-ARC-05).
+   */
+  shortId?: string;
   /** Absent when `memory.yaml` cannot be read (`typesError`). */
   descriptor?: ActionDescriptor;
 }
@@ -190,7 +195,8 @@ export interface RequiredField {
 
 /** `GET /api/p/:pid/elements/:eid` (`contracts/api/element.schema.json`). */
 export interface ElementDetail {
-  element: MemoryMatch & { localChanges: boolean };
+  /** The match, its marker and its short id (`shortId` as {@link ListedElement.shortId}). */
+  element: MemoryMatch & { localChanges: boolean; shortId?: string };
   frontmatter: ElementFrontmatter;
   /** Markdown body. */
   body: string;
@@ -206,6 +212,30 @@ export interface ElementDetail {
   /** Why the descriptor was computed without events (a failed `git log`). */
   eventsError?: ApiError;
 }
+
+/** One element an ambiguous short id names (spec-011 §3). */
+export interface AmbiguousCandidate {
+  /** The full id: the address the page links to. */
+  id: string;
+  shortId: string;
+  /** Through the character escape of repository texts (spec-004 §5). */
+  title: string;
+  type: string;
+  status: string;
+}
+
+/** `detail` of the 409 `ambiguous-id` of the element read (spec-011 §3, RP3-17 E4). */
+export interface AmbiguousIdDetail {
+  /** At most 20, ordered by full id. */
+  candidates: AmbiguousCandidate[];
+  /** How many matching elements `candidates` leaves out. */
+  more: number;
+}
+
+/** The 404 and 409 bodies of `GET /api/p/:pid/elements/:eid` (`contracts/api/element.refusal.schema.json`). */
+export type ElementRefusalBody =
+  | { error: { code: 'not-found'; message: string } }
+  | { error: { code: 'ambiguous-id'; message: string; detail: AmbiguousIdDetail } };
 
 /** `GET /api/p/:pid/directives` (`contracts/api/directives.schema.json`). */
 export interface DirectiveList {

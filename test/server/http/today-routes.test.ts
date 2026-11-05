@@ -166,6 +166,8 @@ describe('GET /api/p/:pid/today — every member and role view (spec-003 §5)', 
             expect(row.descriptor).toEqual(listed.descriptor);
             expect(row.element).toEqual({
               id: listed.id,
+              // The same short id as the list's (spec-011 §1, task-057).
+              ...('shortId' in listed ? { shortId: listed.shortId } : {}),
               type: listed.type,
               title: listed.title,
               status: listed.status,
@@ -204,6 +206,20 @@ describe('GET /api/p/:pid/today — the scenarios', () => {
     ]);
     // S-21.1: the bell's count is the length of Requires you.
     expect(res.body.requiresYou).toHaveLength(2);
+  });
+
+  it('T-02.7 (server side, task-057): every row names its short id (spec-011 §1)', async () => {
+    const c = await start('kanban');
+    await c.become(memberByName('Morgan').email);
+    const res = await c.get(`/api/p/${c.pid}/today`);
+    expectSchema('today.schema.json', res.body);
+    const rows = [...res.body.requiresYou, ...res.body.waitingOnOthers] as any[];
+    expect(rows.map((r) => [r.element.id, r.element.shortId]).sort()).toEqual([
+      ['bug-001-crash-on-save', 'bug-001'],
+      ['task-001-login-form', 'task-001'],
+      ['task-002-password-reset', 'task-002'],
+      ['task-004-session-timeout', 'task-004'],
+    ]);
   });
 
   it('S-23.1: Alex — one summary line per role, approver · 2, developer · 0', async () => {
