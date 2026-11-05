@@ -515,8 +515,7 @@ describe('GET /api/p/:pid/elements/:eid and /history', () => {
 
   // task-048 (bug-026): WingFoil 0.3.x's operations in the history and in the Memory events. The
   // operations are committed once in the file's hook (bug-028): each body reads one history.
-  const historyOf = async (id: string) => {
-    const c = await start(operationsTemplate);
+  const historyOf = async (c: Console, id: string) => {
     const res = await c.get(`/api/p/${c.pid}/elements/${id}/history`);
     expect(res.status, id).toBe(200);
     expectSchema('history.schema.json', res.body);
@@ -524,7 +523,8 @@ describe('GET /api/p/:pid/elements/:eid and /history', () => {
   };
 
   it('answers the history of a plan closed by hand', async () => {
-    expect((await historyOf('history-probe-plan')).map((e) => [e.operation, e.from, e.to])).toEqual([
+    const entries = await historyOf(await start(operationsTemplate), 'history-probe-plan');
+    expect(entries.map((e) => [e.operation, e.from, e.to])).toEqual([
       ['add', null, 'draft'],
       ['submit', 'draft', 'active'],
       ['finalize', 'active', 'done'],
@@ -532,7 +532,7 @@ describe('GET /api/p/:pid/elements/:eid and /history', () => {
   });
 
   it('answers the history of a parked element, contract fields only', async () => {
-    const parked = await historyOf('task-005-parked-work');
+    const parked = await historyOf(await start(operationsTemplate), 'task-005-parked-work');
     expect(parked.slice(-2).map((e) => [e.operation, e.from, e.to, e.reason])).toEqual([
       ['start', 'backlog', 'in-progress', null],
       ['park', 'in-progress', 'backlog', PARK_REASON],
@@ -554,7 +554,7 @@ describe('GET /api/p/:pid/elements/:eid and /history', () => {
   });
 
   it('answers the history of an amended element', async () => {
-    const amended = (await historyOf('dl-002-use-fastify')).at(-1);
+    const amended = (await historyOf(await start(operationsTemplate), 'dl-002-use-fastify')).at(-1);
     expect([amended.operation, amended.approver, amended.reason]).toEqual([
       'amend',
       'Morgan <morgan@example.test> (approver)',
@@ -820,7 +820,7 @@ describe('unknown project ids', () => {
 describe('element addressing — short ids and long ids (spec-011, task-057)', () => {
   const ARCHIVED_SEARCH = /^memory search --status /;
 
-  it('serves shortId on the list rows and the element read, absent for ids without one (AC-1)', async () => {
+  it('serves shortId on the list rows and the element read (AC-1)', async () => {
     const c = await start(kanbanTemplate);
     const list = await c.get(`/api/p/${c.pid}/elements`);
     expectSchema('elements.schema.json', list.body);
@@ -828,7 +828,9 @@ describe('element addressing — short ids and long ids (spec-011, task-057)', (
     const one = await c.get(`/api/p/${c.pid}/elements/task-002-password-reset`);
     expectSchema('element.schema.json', one.body);
     expect(one.body.element.shortId).toBe('task-002');
+  });
 
+  it('serves no shortId for ids without a number: a release and the plans (AC-1)', async () => {
     const custom = await start(customTemplate);
     const rows = (await custom.get(`/api/p/${custom.pid}/elements`)).body.elements as any[];
     const release = rows.find((e) => e.id === 'minor-v0.1');
