@@ -8,6 +8,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { EXIT, onStop, runLauncher, type LauncherIo } from '../../../server/src/launcher/start.js';
+import { LocalProcessRunner } from '../../../server/src/process/runner.js';
 
 let root: string;
 let n = 0;
@@ -75,7 +76,7 @@ function testIo(stateDir: string, file: () => string | undefined): TestIo {
 }
 
 /** Start on a free port; resolves with the io and the address file's path. */
-async function start(): Promise<{ io: TestIo; file: string; port: number }> {
+async function start(processes?: LocalProcessRunner): Promise<{ io: TestIo; file: string; port: number }> {
   const stateDir = path.join(root, `state-${n++}`);
   const probe = net.createServer();
   await new Promise<void>((r) => probe.listen({ host: '127.0.0.1', port: 0 }, r));
@@ -83,6 +84,7 @@ async function start(): Promise<{ io: TestIo; file: string; port: number }> {
   await new Promise((r) => probe.close(r));
   const file = path.join(stateDir, 'consoles', `${port}.json`);
   const io = testIo(stateDir, () => file);
+  if (processes) io.processes = processes;
   expect(await runLauncher(['--no-open', '--port', String(port)], io)).toBeUndefined();
   return { io, file, port };
 }
@@ -141,6 +143,22 @@ describe('the address file in the start and stop sequences', () => {
     expect(existsSync(file)).toBe(true);
     for (const h of io.exitHandlers) h();
     expect(existsSync(file)).toBe(false);
+  });
+
+  // Review round 1 F4: the removal runs first and on its own, so a failing kill cannot skip it.
+  it('is removed by the exit handler even when killing the children throws', async () => {
+    const processes = new LocalProcessRunner();
+    const kill = vi.spyOn(processes, 'killAllNow').mockImplementation(() => {
+      throw new Error('kill failed');
+    });
+    const { io, file } = await start(processes);
+    expect(existsSync(file)).toBe(true);
+    expect(() => {
+      for (const h of io.exitHandlers) h();
+    }).not.toThrow();
+    expect(existsSync(file)).toBe(false);
+    expect(kill).toHaveBeenCalledTimes(1);
+    kill.mockRestore();
   });
 
   it('is left when another console holds it, and the stop still exits 0', async () => {

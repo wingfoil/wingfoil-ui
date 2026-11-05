@@ -390,24 +390,41 @@ describe('stale rule and start housekeeping (AC-4, adr-003 D3)', () => {
 
   it.each([
     ['this host, a dead pid', { host: HOST, pid: DEAD_PID }, 0, true],
-    ['this host, a running pid (a reused pid), an hour old', { host: HOST, pid: process.pid }, 3_600_000, false],
+    // Another running process (the test runner's parent) stands for a pid reused by another program.
+    ['this host, a running pid (a reused pid), an hour old', { host: HOST, pid: process.ppid }, 3_600_000, false],
     ['this host, pid 1 (EPERM: running)', { host: HOST, pid: 1 }, 3_600_000, false],
+    // Review round 1 F5: the starting console's own pid with another start time — a dead console
+    // whose pid this process now holds (pid reuse, e.g. in a container) — is dead.
+    [
+      'this host, its own pid with another start time (pid reuse)',
+      { host: HOST, pid: process.pid, started: '2026-11-05T09:00:00.000Z' },
+      0,
+      true,
+    ],
+    [
+      'this host, its own pid and its own start time',
+      { host: HOST, pid: process.pid, started: STARTED.toISOString() },
+      0,
+      false,
+    ],
     ['another host, 31 s old', { host: 'elsewhere', pid: process.pid }, ADDRESS_STALE_MS + 1_000, true],
     ['another host, 5 s old', { host: 'elsewhere', pid: DEAD_PID }, 5_000, false],
     ['unreadable, 31 s old', undefined, 31_000, true],
     ['unreadable, 5 s old', undefined, 5_000, false],
   ])('the start removes %s → %s', (_label, info, age, expected) => {
-    expect(removableAtStart(info, age, HOST)).toBe(expected);
+    expect(removableAtStart(info, age, HOST, { pid: process.pid, started: STARTED.toISOString() })).toBe(expected);
   });
 
   it('removes and keeps the files of consoles/ by the rule, before writing its own', async () => {
     const dir = stateDir();
     const dead = await entry(dir, { host: HOST, pid: DEAD_PID }, 4801);
-    const reused = await entry(dir, { host: HOST, pid: process.pid }, 4802, 3_600_000);
+    const reused = await entry(dir, { host: HOST, pid: process.ppid }, 4802, 3_600_000);
+    // Review round 1 F5: its own pid, another start time (`entry` writes STARTED; it starts at 12:00).
+    const ownPidReused = await entry(dir, { host: HOST, pid: process.pid }, 4813);
     const eperm = await entry(dir, { host: HOST, pid: 1 }, 4803, 3_600_000);
     const otherOld = await entry(dir, { host: 'elsewhere', pid: process.pid }, 4804, 31_000);
     const otherFresh = await entry(dir, { host: 'elsewhere', pid: DEAD_PID }, 4805, 5_000);
-    const newer = await entry(dir, { format: 2, host: HOST, pid: process.pid, extra: true }, 4806);
+    const newer = await entry(dir, { format: 2, host: HOST, pid: process.ppid, extra: true }, 4806);
     const garbledOld = path.join(dir, CONSOLES_DIR, '4807.json');
     await writeFile(garbledOld, 'not json');
     const t = new Date(Date.now() - 31_000);
@@ -426,7 +443,8 @@ describe('stale rule and start housekeeping (AC-4, adr-003 D3)', () => {
 
     const a = publish(dir, { started: new Date('2026-11-05T12:00:00.000Z') });
     expect(await a.written).toBe(true);
-    for (const gone of [dead, otherOld, garbledOld, deadTmp]) expect(await exists(gone), gone).toBe(false);
+    for (const gone of [dead, otherOld, garbledOld, deadTmp, ownPidReused])
+      expect(await exists(gone), gone).toBe(false);
     for (const kept of [reused, eperm, otherFresh, newer, garbledFresh, liveTmp, aDirectory, other])
       expect(await exists(kept), kept).toBe(true);
     // Its own port's file is replaced, whatever it held.
