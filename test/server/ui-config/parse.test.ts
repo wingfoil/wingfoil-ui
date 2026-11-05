@@ -2,7 +2,20 @@
 // every explicit tag, non-plain keys and duplicate keys refused, the engine's first error with its
 // line (C-04.2), and the cost of a large map bounded (the library's own duplicate check is
 // quadratic, design probe P2c).
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+
+/** The options of every `parseDocument` call. */
+const yamlCalls = vi.hoisted(() => [] as unknown[]);
+vi.mock('yaml', async (importOriginal) => {
+  const real = await importOriginal<typeof import('yaml')>();
+  return {
+    ...real,
+    parseDocument: (...args: Parameters<typeof real.parseDocument>) => {
+      yamlCalls.push(args[1]);
+      return real.parseDocument(...args);
+    },
+  };
+});
 import { parseUiYaml } from '../../../server/src/ui-config/parse.js';
 
 const failure = (text: string): string => {
@@ -69,19 +82,21 @@ describe('parseUiYaml', () => {
     expect(failure('progress:\n\tmode: flow\n')).toBe('Tabs are not allowed as indentation at line 2, column 1');
   });
 
-  it('a 64 KiB map of 7 000 keys parses in well under a second (no quadratic duplicate check)', () => {
+  it('a 64 KiB map of 7 000 keys: duplicate keys found by the reader, not by the quadratic library check', () => {
+    // The library's `uniqueKeys` costs 1.7 s on this input (design probe P2c): it must stay off, the
+    // reader's one-set-per-map check on (a structural test: wall-clock bounds depend on the load, bug-004).
     const lines: string[] = [];
     for (let i = 0, len = 0; len < 64 * 1024 - 20; i++) {
       const line = `k${i}: 1`;
       lines.push(line);
       len += line.length + 1;
     }
-    const start = performance.now();
-    const parsed = parseUiYaml(`${lines.join('\n')}\n`);
-    const elapsed = performance.now() - start;
-    expect(parsed.ok).toBe(true);
-    // 1.7 s with the library's check on the design machine; 127 ms without.
-    expect(elapsed).toBeLessThan(1_000);
+    yamlCalls.length = 0;
+    expect(parseUiYaml(`${lines.join('\n')}\n`).ok).toBe(true);
+    expect(yamlCalls).toEqual([expect.objectContaining({ uniqueKeys: false, merge: false, schema: 'core' })]);
+    expect(failure(`${lines.join('\n')}\n${lines[3]!}\n`)).toBe(
+      `duplicate key k3 (line ${lines.length + 1}, column 1)`,
+    );
   });
 
   it('deep flow nesting is a failure, not a crash', () => {
