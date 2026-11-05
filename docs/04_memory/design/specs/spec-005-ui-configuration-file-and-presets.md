@@ -44,7 +44,7 @@ semantic checks that follow.
 | `progress.iterates` | type | the type counted as iterated work ("tasks 1/4") |
 | `progress.defects` | type | the type counted as open defects |
 | `holds` | map type → map state → `{approve}` | `approve`: `never` \| `when-references-done` — the gate's *Approve* is not offered by the console (§4a, RP3-14 D5) |
-| `artifacts` | list of `{path, phase}` | `path`: 1 to 500 characters, an `https://` URL (no whitespace or control character) or a relative repository path (no leading slash, no backslash, no empty or `..` segment, no control character), `{version}`/`{release}` placeholders kept as text; `phase`: a string of 1 to 100 characters |
+| `artifacts` | list of `{path, phase}` | `path`: 1 to 500 characters, an `https://` URL (no whitespace or control character) or a relative repository path (no leading slash, no backslash, no `..` segment, no `:` in the first segment, no control character), `{version}`/`{release}` placeholders kept as text; `phase`: a string of 1 to 100 characters |
 
 Semantic checks, against the project (after the schema), in this order; the first failure is the
 one reported (§2, §5):
@@ -390,3 +390,7 @@ remaining non-methodology hit needs a justified inline disable.
   SHA-256), and a local process swapping `.wingfoil` twice
   inside the read's window (Node has no `openat`; the read compares the descriptor's device and
   inode with the path's) — both need write access to the repository or the working tree.
+  Decided by the approver the same day (task-054 review round 1, F2, "artifacts: a"), replacing the
+  empty-segment rule first written here: in the relative-path form of `artifacts[].path` the first
+  segment holds no `:` (so `javascript:…`, `data:…`, `mailto:…`, `http:x`, `C:/x` are refused),
+  and empty segments are allowed (`dist/`, `a//b`).
