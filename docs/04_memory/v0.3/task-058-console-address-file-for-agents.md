@@ -452,3 +452,39 @@ Notes for the adversarial reviewer:
   the warning `state-dir-unsafe` in the log.
 - On Windows nothing of this was run (no mode, no owner check, `O_NOFOLLOW`/`O_NONBLOCK` are 0;
   the link check by `lstat`).
+
+### review round 1 (2026-11-05)
+
+Independent, security-adversarial review: PASS, with eight findings fixed before submit (the
+coordinator merged the phase branch first, `d9c23e76`, W0-7). Red `2e823e06` (`npx vitest run
+test/server/state/console-address-heartbeat.test.ts test/server/state/console-address.test.ts
+test/server/launcher/start-address.test.ts`, load 19.74: 5 failed, 60 passed), fix `59ed8646`
+(the same files with `test/server/state/` and `test/server/main.test.ts`, load 18.14: 11
+files, 222 tests passed).
+
+| Finding | Fix | Test |
+|---------|-----|------|
+| F1 major — the heartbeat set the time through a handle opened `O_RDONLY`; on Windows libuv opens it without `FILE_WRITE_ATTRIBUTES`, so a live console would look stale after 30 s | `withEntry` takes the access mode; the heartbeat opens `O_RDWR` on `win32`, POSIX unchanged (`O_RDONLY \| O_NOFOLLOW \| O_NONBLOCK`); spec-006 §1 and `docs/cli-reference.md` 0.6 say Windows is unit-tested only (the CI runners are `ubuntu-24.04`) | new `test/server/state/console-address-heartbeat.test.ts` (`open` of `node:fs/promises` observed): "opens the file read-write on Windows…" red, then green; the POSIX flags test. `fs.constants` has no `O_ACCMODE`: the test masks with 3 |
+| F2 minor — ticks chained on a promise piled up behind a hung beat; no test of the overlap or of the warn-once | a `beating` flag: a tick that comes while one runs is skipped | "skips a tick while the previous one still runs" (a beat hung on a deferred, four intervals, one `open` after the release; red: four); "logs a failing heartbeat once" — characterization, its guard (`warned.add`) removed → fails (recorded) |
+| F3 minor — Q1 (b) judges the state directory, not its parents | none (no code): spec-006 §1 *Residuals* and these notes — a parent writable by another user without the sticky bit lets that user swap the whole state directory after the check | — |
+| F4 nit — the exit handler killed the children before the removal; a throw skipped it | `removeSync()` first, each step in its own `try` | `start-address` "is removed by the exit handler even when killing the children throws" red, then green |
+| F5 nit — a file of this host with the starting console's own pid and another `started` (pid reuse, e.g. a container) was kept | `removableAtStart(info, age, host, self)`: its own pid → removed unless `started` is its own; spec-006 §4 | a new row of the housekeeping table and one file of the fs test red, then green; the rows that stood for "another running process" use `process.ppid` instead of the test's own pid. A pid ≥ 2^31 in a file is left as is, as the review asks (noted, not changed) |
+| F6 nit — a stop signal during the address write | none: spec-006 §1 *Residuals* — the file is removed once the write is over (`stop()` awaits `written`) or by the exit handler | — |
+| F7 nit — `expect(b.port).not.toBe(a.port)` could flake | the second console's port is drawn while the first holds its own and passed with `--port` | no red possible (a flake); `test/launcher/console-address.test.ts` passes |
+| F8 nit — spec-006 `scope` | `scope` names the console address files (v0.3), covered by the dated Process Note | — |
+
+Guard-removal checks of the fixes: the `win32` read-write mode → F1's test fails; `if (beating …)`
+→ the skip test fails; `warned.add('heartbeat-failed')` → the warn-once test fails.
+
+Gates after the fix (this worktree, `59ed8646`; heavy gates through the slot):
+
+| Gate | Slot wait · load (grant → end) | Result |
+|------|-------------------------------|--------|
+| `npm run typecheck`, `npm run lint`, `npm run format:check`, `npm run docs:api`, `check_tasks.py v0.3` | — (load 20.90) | clean; OK |
+| `npx vitest run test/launcher/console-address.test.ts test/launcher/launcher.test.ts` | — (load 13.80) | 2 files, 22 tests passed |
+| `npm run test:coverage` (first run) | 550 s · 11.71 → 29.06 | 1 failed: `project-routes.test.ts` "answers the history of a plan closed by hand…" timed out at 30 s (the history route's budget, bug-028, task-057's ground, as in the green round); the file alone passed at load 8.25 (42 tests) |
+| `npm run test:coverage` (re-run) | 5 s · 5.11 → 20.25 | 187 files passed, 1 skipped; 3598 tests passed, 2 skipped; statements 96.58 %, branches 91.28 % (`console-address.ts` 94.06 % / 82.91 %) |
+| `npm run test:smoke` | 65 s · 12.27 → 11.07 | 4 passed (start 587 ms) |
+
+After the runs: no console of this worktree left, no `wfui-*` entry of this worktree's runs in the
+temporary directory, the user's state directory holds `state.json` only.
