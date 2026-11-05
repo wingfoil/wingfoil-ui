@@ -14,6 +14,13 @@ release `v0.2` the git tag `v0.2.0` and the npm version `wingfoil-ui@0.2.0`.
   tarball staged on npm, the coverage totals (`coverage-totals.json`) and the test counts per suite
   (`test-results.md`) of the tag's run — no file holding a path. The approver makes it public once
   the version is live on npm (`docs/publishing.md`, *Every release*).
+- **A console address file for scripts and agents** (task-058): each running console keeps
+  `consoles/<port>.json` in the state directory (folder `0700`, file `0600`) with its URL, port,
+  whether the port came from `--port`, process id, host, start time and version — never the
+  token, a session or a project path — written before the URL line, refreshed every 10 s and
+  removed at stop; a file left by a killed console is removed at the next start. An agent can
+  build a link to an element from it and from `state.json` (`docs/cli-reference.md`, *Address
+  file for scripts and agents*).
 
 ### Changed
 

@@ -118,7 +118,7 @@ describe('write (AC-2, adr-003 D1, D2)', () => {
   it('creates the state directory and consoles/ with 0700 and the file with 0600, holding the eight fields', async () => {
     const dir = stateDir();
     const a = publish(dir);
-    expect(await a.ready).toBe(true);
+    expect(await a.written).toBe(true);
     const parsed = JSON.parse(await readFile(addressFile(dir), 'utf8')) as Record<string, unknown>;
     expect(parsed).toEqual({
       format: 1,
@@ -145,7 +145,7 @@ describe('write (AC-2, adr-003 D1, D2)', () => {
   it('writes portFixed false for a console started without --port', async () => {
     const dir = stateDir();
     const a = publish(dir, { port: 41993, portFixed: false });
-    expect(await a.ready).toBe(true);
+    expect(await a.written).toBe(true);
     const parsed = JSON.parse(await readFile(addressFile(dir, 41993), 'utf8')) as Record<string, unknown>;
     expect(parsed['portFixed']).toBe(false);
     expect(parsed['url']).toBe('http://127.0.0.1:41993/');
@@ -160,7 +160,7 @@ describe('write (AC-2, adr-003 D1, D2)', () => {
       `const { publishConsoleAddress } = await import(${JSON.stringify(module)});`,
       'const logger = { info() {}, warn(f) { console.error(JSON.stringify(f)); } };',
       `const a = publishConsoleAddress({ stateDir: ${JSON.stringify(path.join(dir, 'a', 'b'))}, port: 4931, portFixed: true, version: '1', started: new Date(), logger });`,
-      'process.exit((await a.ready) ? 0 : 1);',
+      'process.exit((await a.written) ? 0 : 1);',
     ].join('\n');
     execFileSync(process.execPath, ['--input-type=module', '-e', script], { stdio: 'pipe' });
     for (const d of [dir, path.join(dir, 'a'), path.join(dir, 'a', 'b'), path.join(dir, 'a', 'b', CONSOLES_DIR)])
@@ -173,7 +173,7 @@ describe('write (AC-2, adr-003 D1, D2)', () => {
     await mkdir(path.join(dir, CONSOLES_DIR), { recursive: true, mode: 0o700 });
     await chmod(path.join(dir, CONSOLES_DIR), 0o777);
     const a = publish(dir);
-    expect(await a.ready).toBe(true);
+    expect(await a.written).toBe(true);
     expect(await mode(path.join(dir, CONSOLES_DIR))).toBe(0o700);
   });
 
@@ -184,7 +184,7 @@ describe('write (AC-2, adr-003 D1, D2)', () => {
     await mkdir(dir, { recursive: true, mode: 0o700 });
     await symlink(elsewhere, path.join(dir, CONSOLES_DIR));
     const a = publish(dir);
-    expect(await a.ready).toBe(false);
+    expect(await a.written).toBe(false);
     expect(await readdir(elsewhere)).toEqual([]);
     expect(a.log.warnings()).toEqual(['consoles-link']);
     expect(a.log.lines[0]?.fields).toEqual({ reason: 'consoles-link' });
@@ -198,7 +198,7 @@ describe('write (AC-2, adr-003 D1, D2)', () => {
     await mkdir(dir, { recursive: true, mode: 0o700 });
     await writeFile(path.join(dir, CONSOLES_DIR), 'x');
     const a = publish(dir);
-    expect(await a.ready).toBe(false);
+    expect(await a.written).toBe(false);
     expect(await readFile(path.join(dir, CONSOLES_DIR), 'utf8')).toBe('x');
     expect(a.log.warnings()).toEqual(['consoles-not-directory']);
   });
@@ -213,7 +213,7 @@ describe('write (AC-2, adr-003 D1, D2)', () => {
       await mkdir(path.join(dir, CONSOLES_DIR), { recursive: true, mode: 0o700 });
       await symlink(victim, addressFile(dir));
       const a = publish(dir);
-      expect(await a.ready).toBe(true);
+      expect(await a.written).toBe(true);
       expect((await lstat(addressFile(dir))).isFile()).toBe(true);
       expect(await readFile(victim, 'utf8')).toBe('victim\n');
       expect((await stat(victim)).mtimeMs).toBe(before);
@@ -227,7 +227,7 @@ describe('write (AC-2, adr-003 D1, D2)', () => {
     await symlink(target, path.join(dir, CONSOLES_DIR, `4931.json.tmp-${process.pid}-0`));
     await symlink(target, path.join(dir, CONSOLES_DIR, `4931.json.tmp-${process.pid}-1`));
     const a = publish(dir);
-    await a.ready;
+    await a.written;
     expect(await exists(target)).toBe(false);
   });
 
@@ -238,7 +238,7 @@ describe('write (AC-2, adr-003 D1, D2)', () => {
       await mkdir(path.join(dir, CONSOLES_DIR), { recursive: true, mode: 0o700 });
       execFileSync('mkfifo', [path.join(dir, CONSOLES_DIR, '4999.json')]);
       const a = publish(dir);
-      expect(await a.ready).toBe(true);
+      expect(await a.written).toBe(true);
       // Not a regular file: never read, never removed.
       expect((await lstat(path.join(dir, CONSOLES_DIR, '4999.json'))).isFIFO()).toBe(true);
     },
@@ -246,14 +246,14 @@ describe('write (AC-2, adr-003 D1, D2)', () => {
   );
 
   it.skipIf(!POSIX || process.getuid?.() === 0)(
-    'a failed write is a warning with a code and no path; ready resolves false',
+    'a failed write is a warning with a code and no path; written resolves false',
     async () => {
       const dir = stateDir();
       await mkdir(path.join(dir, CONSOLES_DIR), { recursive: true, mode: 0o700 });
       await chmod(path.join(dir, CONSOLES_DIR), 0o500);
       try {
         const a = publish(dir);
-        expect(await a.ready).toBe(false);
+        expect(await a.written).toBe(false);
         expect(a.log.lines).toEqual([
           { level: 'warn', fields: { reason: 'write-failed', code: 'EACCES' }, msg: 'console address file' },
         ]);
@@ -271,7 +271,7 @@ describe('write (AC-2, adr-003 D1, D2)', () => {
       await mkdir(dir, { recursive: true });
       await chmod(dir, 0o770);
       const a = publish(dir);
-      expect(await a.ready).toBe(false);
+      expect(await a.written).toBe(false);
       expect(await exists(path.join(dir, CONSOLES_DIR))).toBe(false);
       expect(await mode(dir)).toBe(0o770);
       expect(a.log.warnings()).toEqual(['state-dir-unsafe']);
@@ -309,7 +309,7 @@ describe('heartbeat (AC-3, adr-003 D2, C2)', () => {
     vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] });
     const dir = stateDir();
     const a = publish(dir);
-    expect(await a.ready).toBe(true);
+    expect(await a.written).toBe(true);
     const file = addressFile(dir);
     return { dir, a, file, bytes: await readFile(file, 'utf8') };
   }
@@ -354,8 +354,10 @@ describe('heartbeat (AC-3, adr-003 D2, C2)', () => {
 
   it.skipIf(!POSIX)("replaces a link put in the file's place, the link's target untouched (probe F2)", async () => {
     const { a, file, bytes } = await started();
+    // The target holds the console's own bytes: a heartbeat that followed the link would only
+    // refresh the target's time and leave the link in place.
     const victim = path.join(ws.dir, `victim-${n++}.txt`);
-    await writeFile(victim, 'victim\n');
+    await writeFile(victim, bytes);
     const old = new Date(Date.now() - 3_600_000);
     await utimes(victim, old, old);
     await rm(file);
@@ -363,7 +365,7 @@ describe('heartbeat (AC-3, adr-003 D2, C2)', () => {
     await tick(a);
     expect((await lstat(file)).isFile()).toBe(true);
     expect(await readFile(file, 'utf8')).toBe(bytes);
-    expect((await stat(victim)).mtimeMs).toBe(old.getTime());
+    expect(Math.abs((await stat(victim)).mtimeMs - old.getTime())).toBeLessThan(1);
   });
 
   it('stops beating once stopped', async () => {
@@ -423,7 +425,7 @@ describe('stale rule and start housekeeping (AC-4, adr-003 D3)', () => {
     await writeFile(other, 'x');
 
     const a = publish(dir, { started: new Date('2026-11-05T12:00:00.000Z') });
-    expect(await a.ready).toBe(true);
+    expect(await a.written).toBe(true);
     for (const gone of [dead, otherOld, garbledOld, deadTmp]) expect(await exists(gone), gone).toBe(false);
     for (const kept of [reused, eperm, otherFresh, newer, garbledFresh, liveTmp, aDirectory, other])
       expect(await exists(kept), kept).toBe(true);
@@ -438,7 +440,7 @@ describe('stale rule and start housekeeping (AC-4, adr-003 D3)', () => {
     await mkdir(path.join(dir, CONSOLES_DIR), { recursive: true, mode: 0o700 });
     await symlink(victim, path.join(dir, CONSOLES_DIR, '4812.json'));
     const a = publish(dir);
-    expect(await a.ready).toBe(true);
+    expect(await a.written).toBe(true);
     expect((await lstat(path.join(dir, CONSOLES_DIR, '4812.json'))).isSymbolicLink()).toBe(true);
     expect(await exists(victim)).toBe(true);
   });
@@ -447,8 +449,8 @@ describe('stale rule and start housekeeping (AC-4, adr-003 D3)', () => {
     const dir = stateDir();
     const a = publish(dir, { port: 4931 });
     const b = publish(dir, { port: 4932, portFixed: false });
-    expect(await a.ready).toBe(true);
-    expect(await b.ready).toBe(true);
+    expect(await a.written).toBe(true);
+    expect(await b.written).toBe(true);
     expect((await readdir(path.join(dir, CONSOLES_DIR))).sort()).toEqual(['4931.json', '4932.json']);
     await a.stop();
     expect(await readdir(path.join(dir, CONSOLES_DIR))).toEqual(['4932.json']);
@@ -459,7 +461,7 @@ describe('removal (AC-5, adr-003 D2)', () => {
   it('stop() removes its own file', async () => {
     const dir = stateDir();
     const a = publish(dir);
-    await a.ready;
+    await a.written;
     await a.stop();
     expect(await exists(addressFile(dir))).toBe(false);
   });
@@ -474,7 +476,7 @@ describe('removal (AC-5, adr-003 D2)', () => {
   it('removeSync() removes its own file (the exit handler)', async () => {
     const dir = stateDir();
     const a = publish(dir);
-    await a.ready;
+    await a.written;
     a.removeSync();
     expect(await exists(addressFile(dir))).toBe(false);
   });
@@ -484,7 +486,7 @@ describe('removal (AC-5, adr-003 D2)', () => {
     async (how) => {
       const dir = stateDir();
       const a = publish(dir);
-      await a.ready;
+      await a.written;
       const theirs = `${JSON.stringify({ ...JSON.parse(await readFile(addressFile(dir), 'utf8')), pid: 1 })}\n`;
       await writeFile(addressFile(dir), theirs);
       if (how === 'stop') await a.stop();
@@ -496,7 +498,7 @@ describe('removal (AC-5, adr-003 D2)', () => {
   it.skipIf(!POSIX)('a link in its place is removed as a link only, never followed', async () => {
     const dir = stateDir();
     const a = publish(dir);
-    await a.ready;
+    await a.written;
     const victim = path.join(ws.dir, `victim-${n++}.json`);
     await writeFile(victim, await readFile(addressFile(dir), 'utf8'));
     await rm(addressFile(dir));
@@ -508,7 +510,7 @@ describe('removal (AC-5, adr-003 D2)', () => {
   it.skipIf(!POSIX || process.getuid?.() === 0)('a failed removal is a warning, stop() still resolves', async () => {
     const dir = stateDir();
     const a = publish(dir);
-    await a.ready;
+    await a.written;
     await chmod(path.join(dir, CONSOLES_DIR), 0o500);
     try {
       await a.stop();
@@ -528,7 +530,7 @@ describe('what the file never holds (AC-6, adr-003 D5)', () => {
     const dir = stateDir();
     const options = { token: 'TOKEN-MARKER', sessionId: 'SESSION-MARKER', projects: ['p_7kq2m9x4r1tz'] };
     const a = publish(dir, options as unknown as Partial<ConsoleAddressOptions>);
-    await a.ready;
+    await a.written;
     const text = await readFile(addressFile(dir), 'utf8');
     for (const marker of ['TOKEN-MARKER', 'SESSION-MARKER', 'p_7kq2m9x4r1tz', ws.dir])
       expect(text).not.toContain(marker);
