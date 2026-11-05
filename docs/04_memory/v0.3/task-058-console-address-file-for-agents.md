@@ -348,3 +348,9 @@ proposed**.
   (`definition-of-done` › design), so the red tests and the reviewer read the amended text.
 
 No blocker: the design waits for the coordinator's answer on Q1 and Q2 before red.
+
+**Decisions of the approver (2026-11-05, relayed by the coordinator):** Q1 (b) — a state directory
+owned by another user, or writable by group or others, means no address file and one
+`state-dir-unsafe` warning; its mode is left untouched; recorded in the spec-006 amendment. Q2 (a)
+— spec-006 and spec-007 amended with dated Process Notes in a `docs(task-058)` commit before the
+red tests; the SARD, `docs/cli-reference.md` and `CHANGELOG.md` at green.
