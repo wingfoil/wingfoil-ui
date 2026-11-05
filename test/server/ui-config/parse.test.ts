@@ -99,6 +99,26 @@ describe('parseUiYaml', () => {
     );
   });
 
+  it.each([
+    ['repeated tags', `x: ${'!a '.repeat(21_800)}x\n`],
+    ['repeated anchors', `x: ${'&a '.repeat(21_800)}x\n`],
+  ])('64 KiB of %s: one failure, its text built for the first error only (review round 1 F1)', (_label, text) => {
+    // The library's prettyErrors builds an excerpt for every error: quadratic, 1.3–4.3 s on these
+    // inputs. Structural check (the option off), plus a generous bound on the fastest of 3 runs.
+    expect(text.length).toBeLessThanOrEqual(64 * 1024);
+    yamlCalls.length = 0;
+    let fastest = Infinity;
+    let result = '';
+    for (let i = 0; i < 3; i++) {
+      const start = performance.now();
+      result = failure(text);
+      fastest = Math.min(fastest, performance.now() - start);
+    }
+    expect(yamlCalls.every((o) => (o as { prettyErrors?: boolean }).prettyErrors === false)).toBe(true);
+    expect(result).toMatch(/ at line 1, column \d+$/);
+    expect(fastest).toBeLessThan(1_000);
+  });
+
   it('deep flow nesting is a failure, not a crash', () => {
     expect(failure(`${'['.repeat(2000)}${']'.repeat(2000)}`)).toMatch(/^Maximum call stack size exceeded at line 1/);
   });

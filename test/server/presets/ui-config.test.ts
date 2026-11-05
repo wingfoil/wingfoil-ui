@@ -63,7 +63,7 @@ describe('the presets (spec-005 §5)', () => {
     expect(presetCommitSubject('sw-life-cycle')).toBe('chore(ui): apply the WingFoil sw-life-cycle preset');
   });
 
-  it('Kanban: the 7 categorised template types, empty lists and maps written out, flow', () => {
+  it('C-02.1 (module level) — Kanban: the 7 categorised template types, empty lists and maps written out (every value declared), flow', () => {
     expect(UI_PRESETS.kanban.content).toEqual({
       version: 1,
       taxonomy: { categories: KANBAN_CATEGORIES, patterns: [], requires: {} },
@@ -130,11 +130,14 @@ describe('the presets (spec-005 §5)', () => {
     });
   });
 
-  it.each(UI_PRESET_NAMES)('%s renders to YAML the reader accepts, equal to its content (no alias, no tag)', (name) => {
-    const text = renderPreset(name);
-    expect(text).not.toMatch(/[&*!][a-z0-9]/);
-    expect(parseUiYaml(text)).toEqual({ ok: true, data: UI_PRESETS[name].content });
-  });
+  it.each(UI_PRESET_NAMES)(
+    'C-02.1, C-02.3, C-02.5 (module level) — %s renders to YAML the reader accepts, equal to its content (no alias, no tag)',
+    (name) => {
+      const text = renderPreset(name);
+      expect(text).not.toMatch(/[&*!][a-z0-9]/);
+      expect(parseUiYaml(text)).toEqual({ ok: true, data: UI_PRESETS[name].content });
+    },
+  );
 
   it('the presets are not shared objects: a change to one rendering leaves the others', () => {
     const a = UI_PRESETS.kanban.content.progress!.phases;

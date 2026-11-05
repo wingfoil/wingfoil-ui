@@ -103,7 +103,7 @@ describe.each(MATRIX)('inferred values on WingFoil %s (AC-4)', (version) => {
 describe('a file that is used', () => {
   const custom = sampleMemoryYaml(MATRIX[MATRIX.length - 1]!, 'custom');
 
-  it('the sw-life-cycle preset on custom: every key declared; a type the map leaves out is null, declared', () => {
+  it('C-01.2, T-12.1, T-12.4, T-12.5 (module level) — the sw-life-cycle preset on custom: every key declared (scope a type only), a type the map leaves out null, declared', () => {
     const e = effectiveUiConfig(text(renderPreset('sw-life-cycle')), custom, ROOTS);
     expect(e.status).toEqual({ source: 'file' });
     expect(origins(e).every((o) => o === 'declared')).toBe(true);
