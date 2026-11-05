@@ -307,3 +307,14 @@ active day plus the approver's turn for the amends, the stamp and the `.wingfoil
   `wf(plan): amend <id> [done → done]`, one path each). With them in the working tree the
   governance, docs and publish-workflow suites pass except `workflow-diagnostics`, which reports
   only `W_UNCOMMITTED_INPUTS` for the 16 uncommitted files (W-24) — gone once they are committed.
+- **The approver's OK** (2026-11-05): "task 51: ok per il diff, ok al campo release ed i 5 amend
+  fatti" (OK on the diff, OK on the release field, the 5 amends done). The approver's amends, one
+  plan each: `9348a91` dev-loop-rel-v0.1-plan, `69079e9` release-publishing-rel-v0.1-plan,
+  `8293161` release-submit-rel-v0.1-plan, `9f1fea3` e2e-smoke-rel-v0.1-plan, `4f836b3`
+  user-docs-rel-v0.1-plan (`wf(plan): amend <id> [done → done]`). Then, each diff compared
+  byte for byte (`cmp`) with the one the approver saw: `64ef755` the `.wingfoil/` changes
+  (`release-conventions` 1.5, `.wingfoil/README.md` 0.11, the two template comments); `6359acd`
+  `release: "v0.1"` on bug-001 … bug-007, that field alone (W-01).
+- **Green**: `npx vitest run test/docs test/governance test/package`: 8 files, 120 tests passed —
+  the 5 plans and 7 bugs pass, and `workflow-diagnostics` is back on its baseline once the files
+  are committed.
