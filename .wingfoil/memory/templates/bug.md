@@ -5,7 +5,7 @@ title: ""              # REQUIRED — short description, e.g. "Approve dialog lo
 status: draft          # auto-set by wingfoil; memory.submit → open
 severity: ""           # REQUIRED — critical | high | medium | low
 release-origin: ""     # optional — release where the bug was FOUND, e.g. "v0.1"
-release: ""            # optional — fix/implementation release, stamped by release-planning/build-backlog
+release: ""            # optional — fix/implementation release, stamped by release-planning/build-backlog; required once closed, unless closed by a reject
 feature: ""            # optional — related feature ID from docs/01_vision/06_features.md
 module: ""             # optional — server | web | contracts
 wingfoil_version: ""   # optional — `wingfoil --version` of the OBSERVED project (the UI drives its CLI)

@@ -3,7 +3,7 @@ id: dev-loop-rel-v0.1-plan
 type: plan
 title: "Implementation rel-v0.1"
 status: done
-version: "0.7"         # optional — plan version
+version: "0.8"         # optional — plan version
 workflow: "dev-loop"
 phase: "rel-v0.1"
 scope: "rl-v1/rel-v0.1"

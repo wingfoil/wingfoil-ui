@@ -124,6 +124,20 @@ describe('publish.yml (task-029, AC-1)', () => {
     expect(gate.steps.some((s) => s.uses?.startsWith('actions/upload-artifact@'))).toBe(true);
   });
 
+  it('gate: sets up Python before test:coverage, for the governance checks that run python3 (task-051 Q5)', () => {
+    const gate = jobs.gate!;
+    const python = gate.steps.findIndex((s) => s.uses?.startsWith('actions/setup-python@'));
+    const coverage = gate.steps.findIndex((s) => s.run?.includes('npm run test:coverage'));
+    expect(python).toBeGreaterThanOrEqual(0);
+    expect(python).toBeLessThan(coverage);
+    expect(resolve(gate, gate.steps[python]!.with?.['python-version'])).toMatch(/^3\.\d+$/);
+    for (const name of ['stage', 'promote', 'release'])
+      expect(
+        jobs[name]!.steps.some((s) => s.uses?.startsWith('actions/setup-python@')),
+        name,
+      ).toBe(false);
+  });
+
   it('stage: the staging smoke on a local registry with the gate tarball', () => {
     const stage = jobs.stage!;
     expect(stage.steps.some((s) => s.uses?.startsWith('actions/download-artifact@'))).toBe(true);

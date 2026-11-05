@@ -1,13 +1,13 @@
 # `.wingfoil/` — WingFoil configuration of WingFoil UI
 
-**Version:** 0.10 · **Date:** 2026-11-04 (0.1: release v0.1, `user-docs` `align-agent-docs`; 0.2:
+**Version:** 0.11 · **Date:** 2026-11-05 (0.1: release v0.1, `user-docs` `align-agent-docs`; 0.2:
 W-25, W-26 — dl-007; 0.3: `release-submit`, `release-publishing`, `retrospective` tailored — dl-008;
 0.4: the packs `base@2.0.1`, `software@1.0.0`, `methodology/scrum@1.0.0` adopted —
 governance-alignment-rel-v0.3-plan step 3; 0.5: the deviations from the packs — GA3-11; 0.6: their residuals, the accepted limits, `traceability-chain`, `release-conventions` on facilitator — the adoption's review round 1; 0.7: the deprecate rule for every role — round 2; 0.8: R-3 cites the `wingfoil-cli` deprecate rule
 — review round 3 nit; 0.9: the accepted limits cite `wingfoil-cli` 1.15 (W-34, W-40) —
 governance-alignment-rel-v0.3-plan step 4; 0.10: the five procedures folded into directives, the
-directive `release-planning` — task-049) · **Checked against:** `wingfoil@0.3.1` (the
-devDependency pin)
+directive `release-planning` — task-049; 0.11: a closed bug's `release` — task-051) ·
+**Checked against:** `wingfoil@0.3.1` (the devDependency pin)
 
 This folder makes the WingFoil UI repository a project **governed by WingFoil**: its DNA, its Memory
 element types and their state machines, its workflows, and the directives bound to each role. It is
@@ -111,6 +111,13 @@ Required frontmatter fields (`template.frontmatter.required`):
 | `release` | `title`, `version`, `release-line`, `sprint`, `kind`, `pillar`, `features` (a list), `requirements`; `sprint` exempt for `minor-v0.1`, `minor-v0.2` |
 | `sprint` | `title`, `goal` |
 | `service` | `title`, `provider`, `kind`, `owner_role`, `verify` |
+
+A `closed` bug carries in `release` the release that fixed it (dl-009 action 7): set at triage for
+a fix in a later release, stamped at the absorption into a task by a hand commit of that field
+alone (`memory amend` refuses `release`, directive `wingfoil-cli` W-01); a bug closed by a reject
+(a non-empty `rejection_reason`) is outside the rule. `test/governance/bug-releases.test.ts` checks
+it; the plan-version and release-`sprint` checks are in directive `release-conventions` ›
+*Governance checks*.
 
 `defaults.states` (for a type without its own `states` block — every type above has one):
 `draft → pending → approved`, gate `pending` (→ `draft`).
