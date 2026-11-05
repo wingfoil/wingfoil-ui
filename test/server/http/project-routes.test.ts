@@ -29,6 +29,7 @@ import { createMemoryStateStore } from '../../../server/src/state/memory-store.j
 import type { StateStore } from '../../../server/src/state/store.js';
 import { pinnedCli, pinnedVersion, pinnedVersionText, REPO_ROOT } from '../../harness/cli.js';
 import {
+  addLongIdElement,
   addOperations,
   AMEND_REASON,
   buildFixture,
@@ -37,6 +38,7 @@ import {
   PARK_REASON,
   type Fixture,
 } from '../../harness/fixtures/index.js';
+import { HEAVY_MS } from '../../harness/load.js';
 import { git, run } from '../../harness/run.js';
 import { auditedSnapshots, type AuditedRunner } from '../snapshot/support.js';
 
@@ -63,6 +65,16 @@ function expectSchema(file: string, body: unknown): void {
 let root: string;
 let kanbanTemplate: Fixture;
 let customTemplate: Fixture;
+/** The custom fixture with the WingFoil 0.3 operations (`addOperations`), built once (bug-028). */
+let operationsTemplate: Fixture;
+/**
+ * The kanban fixture for element addressing (task-057): `task-003-logout` deprecated, a hand-made
+ * `task-001-duplicate-number` (the short id `task-001` ambiguous), a hand-made archived
+ * `task-002-old-reset` (the short id `task-002` live and archived), and a task with a 252-character
+ * id ({@link longId}), submitted.
+ */
+let addressingTemplate: Fixture;
+let longId: string;
 let n = 0;
 const registries: Snapshots[] = [];
 let app: FastifyInstance | undefined;
@@ -71,7 +83,34 @@ beforeAll(async () => {
   root = await realpath(await mkdtemp(path.join(tmpdir(), 'wfui-routes-')));
   kanbanTemplate = await buildFixture('kanban', { root: path.join(root, 'kanban') });
   customTemplate = await buildFixture('custom', { root: path.join(root, 'custom') });
-}, 600_000);
+  // bug-028: the fixture content the CLI makes is built here, once, not in a test body.
+  operationsTemplate = await copyFixture(customTemplate, path.join(root, 'operations'));
+  await addOperations(operationsTemplate);
+  addressingTemplate = await copyFixture(kanbanTemplate, path.join(root, 'addressing'));
+  await addressingContent(addressingTemplate);
+}, HEAVY_MS);
+
+/** A hand-made element file next to `task-004-session-timeout` (P4 of task-057's design). */
+async function handMade(fx: Fixture, id: string, title: string, status: string): Promise<void> {
+  const dir = path.join(fx.dir, 'docs/memory/task');
+  const text = (await readFile(path.join(dir, 'task-004-session-timeout.md'), 'utf8'))
+    .replace(/^id: .*$/m, `id: ${id}`)
+    .replace(/^title: .*$/m, `title: "${title}"`)
+    .replace(/^status: .*$/m, `status: ${status}`);
+  await writeFile(path.join(dir, `${id}.md`), text);
+}
+
+async function addressingContent(fx: Fixture): Promise<void> {
+  await run(process.execPath, [pinnedCli().script, 'memory', 'deprecate', 'task-003-logout', '--reason', 'Obsolete'], {
+    cwd: fx.dir,
+    env: fx.env,
+  });
+  await handMade(fx, 'task-001-duplicate-number', 'Duplicate \u202enumber', 'draft');
+  await handMade(fx, 'task-002-old-reset', 'Old reset', 'deprecated');
+  await git(fx.dir, ['add', '-A'], fx.env);
+  await git(fx.dir, ['commit', '-qm', 'docs: hand-made elements for the short ids'], fx.env);
+  longId = (await addLongIdElement(fx)).id;
+}
 
 afterEach(async () => {
   await app?.close();
@@ -453,18 +492,8 @@ describe('GET /api/p/:pid/elements/:eid and /history', () => {
   });
 
   it('answers the type states of an archived element (task-018)', async () => {
-    const c = await start(kanbanTemplate, {
-      prepare: async (fx) => {
-        await run(
-          process.execPath,
-          [pinnedCli().script, 'memory', 'deprecate', 'task-003-logout', '--reason', 'Obsolete'],
-          {
-            cwd: fx.dir,
-            env: fx.env,
-          },
-        );
-      },
-    });
+    // `task-003-logout` is deprecated in the addressing fixture (built once, bug-028).
+    const c = await start(addressingTemplate);
     const res = await c.get(`/api/p/${c.pid}/elements/task-003-logout`);
     expect(res.status).toBe(200);
     expectSchema('element.schema.json', res.body);
@@ -484,30 +513,29 @@ describe('GET /api/p/:pid/elements/:eid and /history', () => {
     expect(res.body.entries.map((e: any) => e.operation)).toEqual(['add', 'submit', 'reject']);
   });
 
-  // task-048 (bug-026): WingFoil 0.3.x's operations in the history and in the Memory events.
-  it('answers the history of a plan closed by hand and of a parked and an amended element, contract fields only', async () => {
-    const c = await start(customTemplate, { prepare: async (fx) => void (await addOperations(fx)) });
-    const of = async (id: string) => {
-      const res = await c.get(`/api/p/${c.pid}/elements/${id}/history`);
-      expect(res.status, id).toBe(200);
-      expectSchema('history.schema.json', res.body);
-      return res.body.entries as any[];
-    };
-    expect((await of('history-probe-plan')).map((e) => [e.operation, e.from, e.to])).toEqual([
+  // task-048 (bug-026): WingFoil 0.3.x's operations in the history and in the Memory events. The
+  // operations are committed once in the file's hook (bug-028): each body reads one history.
+  const historyOf = async (id: string) => {
+    const c = await start(operationsTemplate);
+    const res = await c.get(`/api/p/${c.pid}/elements/${id}/history`);
+    expect(res.status, id).toBe(200);
+    expectSchema('history.schema.json', res.body);
+    return res.body.entries as any[];
+  };
+
+  it('answers the history of a plan closed by hand', async () => {
+    expect((await historyOf('history-probe-plan')).map((e) => [e.operation, e.from, e.to])).toEqual([
       ['add', null, 'draft'],
       ['submit', 'draft', 'active'],
       ['finalize', 'active', 'done'],
     ]);
-    const parked = await of('task-005-parked-work');
+  });
+
+  it('answers the history of a parked element, contract fields only', async () => {
+    const parked = await historyOf('task-005-parked-work');
     expect(parked.slice(-2).map((e) => [e.operation, e.from, e.to, e.reason])).toEqual([
       ['start', 'backlog', 'in-progress', null],
       ['park', 'in-progress', 'backlog', PARK_REASON],
-    ]);
-    const amended = (await of('dl-002-use-fastify')).at(-1);
-    expect([amended.operation, amended.approver, amended.reason]).toEqual([
-      'amend',
-      'Morgan <morgan@example.test> (approver)',
-      AMEND_REASON,
     ]);
     // D48-8: the entries carry the contract's fields only (0.3.x's `wingfoil` is commit text).
     for (const e of parked) {
@@ -525,8 +553,17 @@ describe('GET /api/p/:pid/elements/:eid and /history', () => {
     }
   });
 
+  it('answers the history of an amended element', async () => {
+    const amended = (await historyOf('dl-002-use-fastify')).at(-1);
+    expect([amended.operation, amended.approver, amended.reason]).toEqual([
+      'amend',
+      'Morgan <morgan@example.test> (approver)',
+      AMEND_REASON,
+    ]);
+  });
+
   it('lists the 0.3 operations but assign in the Memory events', async () => {
-    const c = await start(customTemplate, { prepare: async (fx) => void (await addOperations(fx)) });
+    const c = await start(operationsTemplate);
     const res = await c.get(`/api/p/${c.pid}/events/memory?limit=100`);
     expect(res.status).toBe(200);
     expectSchema('memory-events.schema.json', res.body);
@@ -577,6 +614,8 @@ describe('an unreadable memory.yaml degrades the type-dependent features only (s
     expectSchema('elements.schema.json', list.body);
     expect(list.body.elements).toHaveLength(5);
     expect(list.body.elements.every((e: any) => e.descriptor === undefined)).toBe(true);
+    // spec-011 §1: without memory.yaml no element has a short id (task-057 AC-1).
+    expect(list.body.elements.filter((e: any) => 'shortId' in e)).toEqual([]);
     expect(list.body.typesError).toEqual({
       code: 'read-error',
       message: expect.any(String),
@@ -585,6 +624,7 @@ describe('an unreadable memory.yaml degrades the type-dependent features only (s
     const one = await c.get(`/api/p/${c.pid}/elements/task-001-login-form`);
     expect(one.status).toBe(200);
     expect(one.body).not.toHaveProperty('descriptor');
+    expect(one.body.element).not.toHaveProperty('shortId');
     expect(one.body).not.toHaveProperty('required');
     expect(one.body).not.toHaveProperty('states');
     expect((await c.get(`/api/p/${c.pid}/config`)).body.types.error.detail.kind).toBe('missing');
@@ -771,5 +811,116 @@ describe('unknown project ids', () => {
       expect(res.body).toEqual({ error: { code: 'not-found', message: expect.any(String) } });
     }
     expect(c.runner.spawned).toEqual([]);
+  });
+});
+
+// spec-011 §1–§4 (task-057): short ids in the read bodies, the resolution of the element read
+// (Q1-a: a full id first, live before archived), the 409 of an ambiguous short id, the full id only
+// on the history, and the read and history of an element whose id is 252 characters long (bug-019).
+describe('element addressing — short ids and long ids (spec-011, task-057)', () => {
+  const ARCHIVED_SEARCH = /^memory search --status /;
+
+  it('serves shortId on the list rows and the element read, absent for ids without one (AC-1)', async () => {
+    const c = await start(kanbanTemplate);
+    const list = await c.get(`/api/p/${c.pid}/elements`);
+    expectSchema('elements.schema.json', list.body);
+    for (const e of list.body.elements as any[]) expect(e.shortId, e.id).toBe(/^[a-z]+-\d+/.exec(e.id)![0]);
+    const one = await c.get(`/api/p/${c.pid}/elements/task-002-password-reset`);
+    expectSchema('element.schema.json', one.body);
+    expect(one.body.element.shortId).toBe('task-002');
+
+    const custom = await start(customTemplate);
+    const rows = (await custom.get(`/api/p/${custom.pid}/elements`)).body.elements as any[];
+    const release = rows.find((e) => e.id === 'minor-v0.1');
+    expect(release).toBeDefined();
+    expect(release).not.toHaveProperty('shortId');
+    expect(rows.filter((e) => e.type === 'plan' && 'shortId' in e)).toEqual([]);
+    expect(rows.find((e) => e.id.startsWith('task-'))?.shortId).toMatch(/^task-\d+$/);
+  });
+
+  it('a short id → 200 with the full id; a live element is chosen over an archived one (AC-2)', async () => {
+    const c = await start(addressingTemplate);
+    const res = await c.get(`/api/p/${c.pid}/elements/task-002`);
+    expect(res.status).toBe(200);
+    expectSchema('element.schema.json', res.body);
+    expect(res.state).toMatch(STATE);
+    expect(res.body.element).toMatchObject({ id: 'task-002-password-reset', shortId: 'task-002' });
+  });
+
+  it('a live full id starts no archived search (E3)', async () => {
+    const c = await start(addressingTemplate);
+    expect((await c.get(`/api/p/${c.pid}/elements/task-002-password-reset`)).status).toBe(200);
+    expect(c.runner.wingfoilCommands().filter((x) => ARCHIVED_SEARCH.test(x))).toEqual([]);
+  });
+
+  it('an archived element is reached by its short id when no live element has it (E3)', async () => {
+    const c = await start(addressingTemplate);
+    const res = await c.get(`/api/p/${c.pid}/elements/task-003`);
+    expect(res.status).toBe(200);
+    expectSchema('element.schema.json', res.body);
+    expect(res.body.element).toMatchObject({ id: 'task-003-logout', status: 'deprecated', shortId: 'task-003' });
+  });
+
+  it('an ambiguous short id → 409 ambiguous-id with the candidates, titles escaped (AC-2)', async () => {
+    const c = await start(addressingTemplate);
+    const res = await c.get(`/api/p/${c.pid}/elements/task-001`);
+    expect(res.status).toBe(409);
+    expectSchema('element.refusal.schema.json', res.body);
+    expect(res.state).toMatch(STATE);
+    expect(res.body).toEqual({
+      error: {
+        code: 'ambiguous-id',
+        message: expect.any(String),
+        detail: {
+          candidates: [
+            {
+              id: 'task-001-duplicate-number',
+              shortId: 'task-001',
+              title: 'Duplicate \\u202enumber',
+              type: 'task',
+              status: 'draft',
+            },
+            { id: 'task-001-login-form', shortId: 'task-001', title: 'Login form', type: 'task', status: 'pending' },
+          ],
+          more: 0,
+        },
+      },
+    });
+  });
+
+  it.each(['task-999', 'task-3', 'task-0003', 'TASK-003', 'task-003-', 'task-003-logou'])(
+    'an unknown id %s → 404 not-found (E2)',
+    async (eid) => {
+      const c = await start(addressingTemplate);
+      const res = await c.get(`/api/p/${c.pid}/elements/${eid}`);
+      expect(res.status).toBe(404);
+      expectSchema('element.refusal.schema.json', res.body);
+      expect(res.body).toEqual({ error: { code: 'not-found', message: expect.any(String) } });
+    },
+  );
+
+  it('the history takes the full id only: a short id → 404, no wingfoil process on a read state (AC-2)', async () => {
+    const c = await start(addressingTemplate);
+    expect((await c.get(`/api/p/${c.pid}/elements?archived=true`)).status).toBe(200);
+    const before = c.runner.wingfoilCommands().length;
+    for (const eid of ['task-002', 'task-003']) {
+      const res = await c.get(`/api/p/${c.pid}/elements/${eid}/history`);
+      expect(res.status, eid).toBe(404);
+      expect(res.body.error.code).toBe('not-found');
+    }
+    expect(c.runner.wingfoilCommands().slice(before)).toEqual([]);
+  });
+
+  it('reads an element whose id is 252 characters long and its history (bug-019, AC-3)', async () => {
+    expect(longId).toHaveLength(252);
+    const c = await start(addressingTemplate);
+    const one = await c.get(`/api/p/${c.pid}/elements/${longId}`);
+    expect(one.status, JSON.stringify(one.body)).toBe(200);
+    expectSchema('element.schema.json', one.body);
+    expect(one.body.element).toMatchObject({ id: longId, status: 'pending', shortId: longId.slice(0, 8) });
+    const history = await c.get(`/api/p/${c.pid}/elements/${encodeURIComponent(longId)}/history`);
+    expect(history.status).toBe(200);
+    expectSchema('history.schema.json', history.body);
+    expect(history.body.entries.map((e: any) => e.operation)).toEqual(['add', 'submit']);
   });
 });
