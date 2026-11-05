@@ -68,7 +68,10 @@ describe('shortIdOf — the rule (spec-011 §1)', () => {
     ['a pattern without {n}', 'minor-v0.1', '{kind}-{version}'],
     ['{n} first: a bare number is no address', '046-x', '{n}-{slug}'],
     ['another token before {n}', 'x1-046', '{scope}-{n}'],
+    // The id holds the token's text itself, so only the `{` check refuses it (review round 1, m2).
+    ['another token before {n}, the id spelling it', '{scope}-046', '{scope}-{n}'],
     ['a token inside the prefix', 'ab-046', 'a{x}b-{n}'],
+    ['a token inside the prefix, the id spelling it', 'a{x}b-046', 'a{x}b-{n}'],
     ['an id with another prefix', 'tasks-046-x', 'task-{n}-{slug}'],
     ['no digit after the prefix', 'task-abc', 'task-{n}-{slug}'],
     ['the prefix alone', 'task-', 'task-{n}-{slug}'],

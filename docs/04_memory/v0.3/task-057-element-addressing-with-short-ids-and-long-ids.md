@@ -407,3 +407,26 @@ another worktree's running suite).
 none); the 409 body and the 404 as D57-4 (`ElementRefusalBody`, `AmbiguousIdDetail` in
 `@wingfoil-ui/contracts`); the helper `addLongIdElement(fixture, { length?, submit? })` from
 `test/harness/fixtures/index.ts` (`LONG_ID_MAX` = 252), on a kanban copy.
+
+### review round 1 (2026-11-05)
+
+Independent, adversarial: PASS, with two minors and two nits, fixed on the merged head `2ee25dd3`
+(the phase branch merged by the coordinator, W0-7).
+
+| Finding | Fix | Test |
+|---------|-----|------|
+| m1 — AC-2 "a full id wins over an equal short id" had no API-level test | `addressingContent` adds a hand-made live `task-004` (beside `task-004-session-timeout`) and an archived `task-005` (beside the live long-id `task-005-…`) | `project-routes.test.ts`: `task-004` → 200 the element `task-004`; `task-005` → 200 the archived `task-005` (Q1-a). Guard removal (a scratch edit of `element-address.ts` checking short ids before full ids, restored with a file copy): `npx vitest run test/server/http/project-routes.test.ts test/server/http/element-address.test.ts -t 'full id'` → 5 failed (the two new tests, the two unit tests of steps 1–2, the E3 test), 4 passed |
+| m2 — the `{` guard of `shortIdOf` was untested (the cases failed `startsWith` first) | two cases whose id spells the token: `{scope}-046` with `{scope}-{n}`, `a{x}b-046` with `a{x}b-{n}` → none | `short-id.test.ts`: 37 passed; with the guard line removed (a scratch edit, restored with a file copy) the two new cases fail, 35 pass |
+| n3 — CHANGELOG said "Ids up to 255 characters" | "a path parameter of up to 255 UTF-16 code units … every id WingFoil writes, at most 252 characters" (Q2-a) | — |
+| n4 — the user guide's bug-019 entry wrapped at 115 characters | rewrapped at 100 (0.26) | — |
+
+Also noted by the coordinator: the one `git stash` of the red phase (deviation 3 above) left no
+trace; file copies only since.
+
+Checks: `npx vitest run test/server/http/project-routes.test.ts test/server/http/element-address.test.ts`
+71 passed (load 24.93 → 17.77) before the doc fixes; the final run is below.
+Final, after all fixes: `npm run typecheck`, `npm run lint`, `npm run format:check` clean;
+`check_tasks.py v0.3` OK; `npx vitest run test/server/reads/short-id.test.ts
+test/server/http/element-address.test.ts test/server/http/project-routes.test.ts
+test/lint/one-console-per-test.test.ts` 115 passed (load 6.34 → 5.48). No heavy gate: no
+non-test source changed.

@@ -110,6 +110,12 @@ async function addressingContent(fx: Fixture): Promise<void> {
   await git(fx.dir, ['add', '-A'], fx.env);
   await git(fx.dir, ['commit', '-qm', 'docs: hand-made elements for the short ids'], fx.env);
   longId = (await addLongIdElement(fx)).id;
+  // A full id equal to another element's short id (review round 1, m1): a live `task-004` beside
+  // `task-004-session-timeout`, an archived `task-005` beside the live long-id `task-005-…`.
+  await handMade(fx, 'task-004', 'Full id like a short id', 'draft');
+  await handMade(fx, 'task-005', 'Archived full id like a short id', 'deprecated');
+  await git(fx.dir, ['add', '-A'], fx.env);
+  await git(fx.dir, ['commit', '-qm', 'docs: hand-made elements whose full id is a short id'], fx.env);
 }
 
 afterEach(async () => {
@@ -847,6 +853,23 @@ describe('element addressing — short ids and long ids (spec-011, task-057)', (
     expectSchema('element.schema.json', res.body);
     expect(res.state).toMatch(STATE);
     expect(res.body.element).toMatchObject({ id: 'task-002-password-reset', shortId: 'task-002' });
+  });
+
+  it('a full id wins over an equal short id: live task-004 beside task-004-session-timeout (AC-2)', async () => {
+    const c = await start(addressingTemplate);
+    const res = await c.get(`/api/p/${c.pid}/elements/task-004`);
+    expect(res.status, JSON.stringify(res.body)).toBe(200);
+    expectSchema('element.schema.json', res.body);
+    expect(res.body.element).toMatchObject({ id: 'task-004', title: 'Full id like a short id', status: 'draft' });
+  });
+
+  it('an archived full id wins over a live short id: archived task-005 beside task-005-… (Q1-a)', async () => {
+    expect(longId.startsWith('task-005-')).toBe(true);
+    const c = await start(addressingTemplate);
+    const res = await c.get(`/api/p/${c.pid}/elements/task-005`);
+    expect(res.status, JSON.stringify(res.body)).toBe(200);
+    expectSchema('element.schema.json', res.body);
+    expect(res.body.element).toMatchObject({ id: 'task-005', status: 'deprecated' });
   });
 
   it('a live full id starts no archived search (E3)', async () => {

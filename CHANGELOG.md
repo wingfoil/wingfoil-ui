@@ -44,9 +44,9 @@ release `v0.2` the git tag `v0.2.0` and the npm version `wingfoil-ui@0.2.0`.
 
 - **An element whose id is longer than 100 characters can be opened and decided** (bug-019,
   task-057): the server refused a path parameter over 100 characters, so such an element was
-  listed but its panel showed *not found* and its gate could not be decided. Ids up to 255
-  characters now work on every route — WingFoil writes ids of at most 252 — and a longer
-  parameter answers *not found* on every route.
+  listed but its panel showed *not found* and its gate could not be decided. A path parameter of
+  up to 255 UTF-16 code units now works on every route — every id WingFoil writes, at most 252
+  characters — and a longer one answers *not found* on every route.
 - **The element history and the Memory events read WingFoil 0.3's operations** (bug-026,
   task-048): on a project on WingFoil 0.3.x the element panel's history failed for every element
   with a `finalize`, `park`, `amend`, `start`, `sync` or `assign` commit — every phase plan closed
