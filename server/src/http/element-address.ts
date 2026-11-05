@@ -34,6 +34,7 @@ export interface ResolutionSource {
 /** The element `:eid` names (its full id), the detail of an ambiguous short id, or `undefined`. */
 export type Resolution = { id: string } | { ambiguous: AmbiguousIdDetail } | undefined;
 
+/** The matches whose short id is `eid` and differs from their full id (`sprint-001` is found by steps 1–2). */
 function byShortId(matches: readonly MemoryMatch[], eid: string, shortIds: ShortIds): MemoryMatch[] {
   return matches.filter((m) => m.id !== eid && shortIds(m) === eid);
 }
