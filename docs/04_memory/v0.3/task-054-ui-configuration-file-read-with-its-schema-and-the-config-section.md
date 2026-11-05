@@ -545,3 +545,15 @@ module API of D54-1.
 | F3 (minor) — C-01.2, T-12.1, T-12.4, T-12.5, C-02.1, C-02.3, C-02.5 only in file headers | the ids in the titles of the tests that cover them (`effective.test.ts` the sw-life-cycle declared values; `presets/ui-config.test.ts` the Kanban contents and the rendering of each preset) | titles |
 | F4 (nit) — the residual's window runs from the **first** `lstat(.wingfoil)` to its re-check (the reviewer swapped `.wingfoil` for a link right after it and back after the open, and read an outside file) | the comment of `server/src/reads/ui-yaml.ts` and D54-2 corrected; spec-005's "inside the read's window" kept | — (declared residual) |
 | F5 (nit) — `{n}`/`{n,}` unbounded as spec-005 writes it, measured harmless | none | — |
+
+Gates of round 1 (the wave-wide rule W1-13 checked before each slot request: no other worktree's
+heavy gate running): `typecheck`, `lint`, `format:check` clean; the touched files (`npx vitest run
+test/server/ui-config test/server/presets test/server/reads/ui-yaml.test.ts
+test/contracts/ui-yaml-schema.test.ts`) 196 passed; `test/docs` 68 passed. `test:coverage`, each
+through the slot: run 1 (slot wait 6 s, load 9.35 → 34.96) failed only on the first version of the
+F1 cost test's time bound (1.17 s, dropped); run 2 (5 s, 7.55 → 35.27) failed only on the
+public-text check (`C:/x`, allow-listed); run 3 (50 s, 12.87 → 25.60): 3 707 passed, 1 failed —
+`test/server/http/project-routes.test.ts` › "answers the history of a plan closed by hand …"
+timed out at 30 s under load (bug-028's class, absorbed by task-057, not yet merged here); that
+file alone (load 22.27 → 7.93): 42 passed. No coverage report is written by a failing run; the
+last full report is the one of the gates above (96.61 % statements).
