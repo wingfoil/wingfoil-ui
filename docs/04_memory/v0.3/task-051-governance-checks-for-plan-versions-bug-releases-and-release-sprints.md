@@ -285,3 +285,25 @@ active day plus the approver's turn for the amends, the stamp and the `.wingfoil
 - **Q6** — the rules in `release-conventions` › *Governance checks* (1.5), the `.wingfoil/README.md`
   0.11 paragraph, the template comments optional; every `.wingfoil/` change committed only after
   the approver's OK on its diff.
+
+### red / green / refactor
+
+- **red** (`f12bd1f`): `test/governance/plan-versions.test.ts`, `bug-releases.test.ts`,
+  `check-releases.test.ts` and the `gate` Python invariant of `test/package/publish-workflow.test.ts`;
+  `npx vitest run` of the four files: 6 failed, 32 passed — the 9 plans of the design, bug-001 …
+  bug-007, `check_releases.py`'s 4 `sprint` failures (on the temporary tree too: `--root` ignored)
+  and the repository, no `actions/setup-python` in `gate`.
+- **green, first part** (`9c34d7f`): `check_releases.py` (`--root`, the `exempt` lists of the
+  `release` type read from `memory.yaml`, a `draft` with no `sprint`; on the repository `OK`, exit
+  0); `actions/setup-python` `v7.1.0` pinned to `6d4fd22b20465ccc0f7354476588e8df7c9ca0e0`
+  (`gh api repos/actions/setup-python/git/ref/tags/v7.1.0`, a commit object), `python-version:
+  '3.12'` (this machine: Python 3.12.3), before `test:coverage`; `docs/publishing.md` 0.8; the 4
+  exemptions; `test/README.md` 0.56. `npx vitest run test/governance test/package/publish-workflow.test.ts`:
+  2 failed (the 5 plans, the 7 bugs, waiting for the approver), 40 passed.
+- **Prepared, not committed** (the approver's OK first): the `.wingfoil/` diff (`release-conventions`
+  1.5 *Governance checks*, `.wingfoil/README.md` 0.11, the `plan` and `bug` template comments); the
+  stamp `release: "v0.1"` on bug-001 … bug-007 (that field only); the 5 plans' frontmatter
+  `version` edits for the approver's `memory amend`, each checked with `--dry-run` (exit 0,
+  `wf(plan): amend <id> [done → done]`, one path each). With them in the working tree the
+  governance, docs and publish-workflow suites pass except `workflow-diagnostics`, which reports
+  only `W_UNCOMMITTED_INPUTS` for the 16 uncommitted files (W-24) — gone once they are committed.
