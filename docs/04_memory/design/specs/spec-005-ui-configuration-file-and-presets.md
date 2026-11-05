@@ -44,7 +44,7 @@ semantic checks that follow.
 | `progress.iterates` | type | the type counted as iterated work ("tasks 1/4") |
 | `progress.defects` | type | the type counted as open defects |
 | `holds` | map type → map state → `{approve}` | `approve`: `never` \| `when-references-done` — the gate's *Approve* is not offered by the console (§4a, RP3-14 D5) |
-| `artifacts` | list of `{path, phase}` | `path`: 1 to 500 characters, an `https://` URL (no whitespace or control character) or a relative repository path (no leading slash, no backslash, no `..` segment, no control character), `{version}`/`{release}` placeholders kept as text; `phase`: a string of 1 to 100 characters |
+| `artifacts` | list of `{path, phase}` | `path`: 1 to 500 characters, an `https://` URL (no whitespace or control character) or a relative repository path (no leading slash, no backslash, no empty or `..` segment, no control character), `{version}`/`{release}` placeholders kept as text; `phase`: a string of 1 to 100 characters |
 
 Semantic checks, against the project (after the schema), in this order; the first failure is the
 one reported (§2, §5):
