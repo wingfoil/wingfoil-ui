@@ -3,7 +3,7 @@ id: e2e-smoke-rel-v0.1-plan
 type: plan
 title: "E2E smoke rel-v0.1"
 status: done
-version: "0.2"         # optional — plan version
+version: "0.3"         # optional — plan version
 workflow: "e2e-smoke"
 phase: "rel-v0.1"
 scope: "rl-v1/rel-v0.1"

@@ -1,13 +1,13 @@
 # Publishing to npm
 
-**Version:** 0.7 · **Date:** 2026-11-04 (0.1: the publish pipeline, the approver's checklist, the
+**Version:** 0.8 · **Date:** 2026-11-05 (0.1: the publish pipeline, the approver's checklist, the
 local staging smoke, the differences from WingFoil's pipeline — task-029; 0.2: review round 1 — a
 dispatch never promotes, the guard's limit, the dev-only audit findings, what is not verified yet;
 0.3: release v0.2.0 — the first version by hand, `stage` verified on Node 22.12.0, the GitHub
 Release of v0.2.0 by hand; 0.4: what the first publish showed — an expired npm session answers 404,
 the `0.0.0-stage` placeholder, checklist steps 4–6 done, the GitHub Release's assets; 0.5: the
 release steps after the packs adoption — `release-commit` in `release-publishing`, `released` by the
-approver's `memory approve` after the publication, governance-alignment-rel-v0.3-plan step 3; 0.6: the WingFoil comparison names `release-publishing` › `release-commit` (review round 3 nit); 0.7: the `release` job — a draft GitHub Release after `promote`, made public by the approver; the path-free test reports — task-052, review round 1: the tarball's integrity check before the publish)
+approver's `memory approve` after the publication, governance-alignment-rel-v0.3-plan step 3; 0.6: the WingFoil comparison names `release-publishing` › `release-commit` (review round 3 nit); 0.7: the `release` job — a draft GitHub Release after `promote`, made public by the approver; the path-free test reports — task-052, review round 1: the tarball's integrity check before the publish; 0.8: Python set up in `gate` for the default suite's `check_releases.py` test — task-051)
 
 How `wingfoil-ui` reaches the npm registry: the pipeline `.github/workflows/publish.yml`, the
 registry-side setup the **approver** performs once, the steps of every release, and the staging
@@ -27,7 +27,7 @@ marked *approver* is a human act (CLAUDE.md, *Working with the WingFoil CLI*).
 
 | Job | What it does | Gate it adds |
 |-----|--------------|--------------|
-| `gate` | `scripts/check-release-tag.mjs <tag> <sha>`: the tag is annotated, equals `v` + the version of the root and of every workspace `package.json` and of `package-lock.json` (its `version`, `packages[""]` and each workspace entry), points at the commit built (`<sha>` peeled to its commit), and that commit is on `origin/main`. Then `npm ci`, `typecheck`, `lint`, `format:check`, `test:coverage`, `test:smoke`, and `npm pack` **once** (its `prepack` builds from a clean tree); the tarball is the run's artifact. | the repository gates |
+| `gate` | `scripts/check-release-tag.mjs <tag> <sha>`: the tag is annotated, equals `v` + the version of the root and of every workspace `package.json` and of `package-lock.json` (its `version`, `packages[""]` and each workspace entry), points at the commit built (`<sha>` peeled to its commit), and that commit is on `origin/main`. Python 3.12 is set up (`actions/setup-python`) for the default suite, which runs `python3 docs/03_backlog/X_tools/check_releases.py` (task-051). Then `npm ci`, `typecheck`, `lint`, `format:check`, `test:coverage`, `test:smoke`, and `npm pack` **once** (its `prepack` builds from a clean tree); the tarball is the run's artifact. | the repository gates |
 | `stage` | `npm run test:publish-smoke` on **that** tarball, on Node 22.12.0 (the `engines` floor): see [Local staging smoke](#local-staging-smoke). | the package installs from a registry and starts |
 | `promote` | Only for a tag, in the GitHub environment `npm-publish`: waits until the approver approves the deployment, then `npm stage publish ./dist-pack/*.tgz --provenance --access public` through the npm trusted publisher (GitHub OIDC, `id-token: write`, permission limited to staging). | (1) the `npm-publish` approval; (2) the npm stage queue |
 | `release` | Only for a tag, after `promote`: a **draft** GitHub Release of the tag (`gh release create "$GITHUB_REF_NAME" … --draft --verify-tag`), with the gate's notes and, as assets, the tarball `promote` staged, `coverage-totals.json` and `test-results.md`. No checkout, no install: three artifact downloads and `gh`, with the job's own token (`contents: write`, this job alone) on the create step only. | the approver makes the draft public after `npm stage approve` ([Every release](#every-release), step 5) |
@@ -40,7 +40,7 @@ skips — the control is on the registry: the trusted publisher limited to stagi
 tokens" (checklist steps 5 and 6). `test/package/publish-workflow.test.ts` (default suite) freezes these
 invariants: triggers, permissions, the job chain and environment, the gates in order, the staging
 smoke on the gate tarball, `npm stage publish` with `set +x` first, no live publish, no
-credential, every action pinned to a commit SHA, no expression in a `run:` line; for `release`
+credential, Python set up before `test:coverage`, every action pinned to a commit SHA, no expression in a `run:` line; for `release`
 (task-052): the same condition as `promote`, `contents: write` there alone, its steps exactly the
 three downloads and the draft create, the three assets, and that no coverage report is uploaded.
 

@@ -9,7 +9,7 @@ tags: [custom, release, git, npm]
 
 # Directive — Release conventions of WingFoil UI
 
-**Version:** 1.6 · **Date:** 2026-11-05 (1.0: dl-008's tailoring of `release-submit`,
+**Version:** 1.7 · **Date:** 2026-11-05 (1.0: dl-008's tailoring of `release-submit`,
 `release-publishing` and `retrospective`, re-applied on the `software` and `base` packs' workflows
 at their adoption — governance-alignment-rel-v0.3-plan step 3; 1.1: `mark-released` is the
 approver's `approve`, the retrospective's inventory in its plan — GA3-11 R-1, R-5; 1.2: when the
@@ -18,8 +18,9 @@ packs adoption, A-1, A-2, M1; 1.3: the steps of the former `user-docs` and `e2e-
 `pre-release-checks`, `test:timing`, the seeding of a line from the former `initial-design` —
 task-049; 1.4: review round 1 of task-049: the identity paragraph back above *Seeding a line*, the
 line's plan `delivery-seed-rl-vN-plan`, `check_tasks.py` in `pre-release-checks`, the
-`memory add --type … --title` form; 1.5: the agents' own git identity in the identity paragraph —
-task-050; 1.6: that identity's reach, the paths that still act as the approver — its review
+`memory add --type … --title` form; 1.5: *Governance checks* — the plan version, the closed bug's
+`release`, the release `sprint` rule of `check_releases.py`, task-051; 1.6: the agents' own git identity in the identity paragraph —
+task-050; 1.7: that identity's reach, the paths that still act as the approver — its review
 round 1)
 
 The packs' release workflows (`release-submit`, `release-publishing`, `.wingfoil/workflows/built-in/`)
@@ -153,3 +154,27 @@ hand, then the verbs (`wingfoil-cli` W-01):
 - **`capture`**: a decision-log with the type's `dl-{n}-{slug}` id, added with
   `--tags retrospective` (`retrospective` › `approve` selects it by that tag), titled
   `Retrospective <release or Sprint>`.
+
+## Governance checks
+
+Three rules of the governance files are checked by tests of the default suite (task-051), so a
+break fails `npm test` instead of waiting for a review. Each is written for a project on the
+current WingFoil from its start; what failed only because of this repository's history was fixed
+on its elements, not by loosening the rule (the approver, task-051 Q1).
+
+- **Plan version** (dl-011, dl-006 action 6; `test/governance/plan-versions.test.ts`): every file
+  under `docs/05_plans/` is a plan whose frontmatter `version` equals the first token of the
+  Context `**Version:**` line — bump both together. A plan with neither (a plan made by
+  `workflow start` left as its template made it) is versioned by git alone and passes; one without
+  the other fails. The test's commented `EXEMPT` list holds the four closed plans of v0.1 with no
+  Context version line; nothing is added to it for a new plan.
+- **Closed bug's `release`** (dl-009 action 7; `test/governance/bug-releases.test.ts`): a `closed`
+  bug carries the release that fixed it — set at triage for a fix in a later release, stamped at
+  the absorption into a task, by a hand commit of that field alone (`memory amend` refuses
+  `release`, `wingfoil-cli` W-01). A bug closed by a reject (a non-empty `rejection_reason`) was not
+  fixed and is outside the rule.
+- **Release `sprint`** (`docs/03_backlog/X_tools/check_releases.py`, the stop-check of *Seeding a
+  line*; `test/governance/check-releases.test.ts`): every required field of the `release` type is
+  set, except where the type's `template.frontmatter.exempt` in `.wingfoil/memory.yaml` names the
+  release (read from there, never copied), and a `draft` may have no `sprint` (no Sprint selects
+  it yet; WingFoil checks it at `memory submit`).
