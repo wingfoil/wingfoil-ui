@@ -21,7 +21,7 @@ import { LocalProcessRunner } from '../process/runner.js';
 import { InProcessWriteLock } from '../process/write-lock.js';
 import { ProjectList } from '../projects/project-list.js';
 import { Snapshots } from '../snapshot/snapshots.js';
-import { publishConsoleAddress } from '../state/console-address.js';
+import { publishConsoleAddress, type ConsoleAddress } from '../state/console-address.js';
 import { openFileStateStore } from '../state/file-store.js';
 import { AutoSync } from '../sync/auto-sync.js';
 import { SyncScheduler } from '../sync/scheduler.js';
@@ -131,8 +131,13 @@ export async function runLauncher(argv: readonly string[], io: LauncherIo): Prom
   const token = drawToken();
   const processes = io.processes ?? new LocalProcessRunner({ logger });
   // Children lead their own process group (no terminal signal reaches them): whatever ends the
-  // process, the ones still running are killed with it (spec-007 §6).
-  io.onExit?.(() => processes.killAllNow());
+  // process, the ones still running are killed with it (spec-007 §6). task-058: the same one exit
+  // handler removes the console address file, once it is published (adr-003 D2).
+  const atExit: { address?: ConsoleAddress } = {};
+  io.onExit?.(() => {
+    processes.killAllNow();
+    atExit.address?.removeSync();
+  });
   // The port is known once listening; until then the guards refuse every request.
   const listening: { port?: number } = {};
   // Change notifications (adr-002 event bus) and the project snapshots (task-010): the read routes
@@ -226,7 +231,7 @@ export async function runLauncher(argv: readonly string[], io: LauncherIo): Prom
   scheduler.start();
   // task-058 (adr-003 D1–D3, spec-007 §3): the address file for scripts and agents, published in
   // the same tick as the signal handling (no signal is seen in between) and awaited before the URL
-  // line; the exit handler, registered before any write, removes it at any exit.
+  // line; the exit handler (registered at the start, above) removes it at any exit.
   const address = publishConsoleAddress({
     stateDir: io.stateDir,
     port: listeners.port,
@@ -236,7 +241,7 @@ export async function runLauncher(argv: readonly string[], io: LauncherIo): Prom
     logger,
     platform: io.platform,
   });
-  io.onExit?.(() => address.removeSync());
+  atExit.address = address;
   // Signals are handled before the URL is printed: a stop sent right after it is never lost.
   let stopping = false;
   io.onSignal(() => {
