@@ -5,7 +5,7 @@
 import { writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { HARNESS_GIT_NAME, harnessEnv } from './fixtures/index.js';
+import { buildFixture, HARNESS_GIT_NAME, harnessEnv } from './fixtures/index.js';
 import { git } from './run.js';
 import { TempWorkspace } from './temp-workspace.js';
 
@@ -58,4 +58,41 @@ describe('git identity of the test harness (task-044 AC-1, bug-020)', () => {
     expect(result).toBeInstanceOf(Error);
     expect(String(result)).toMatch(/no email was given and auto-detection is disabled/);
   });
+});
+
+/**
+ * The identity agent sessions of this repository export (task-050): a stand-in of the same shape,
+ * the four variables git reads before any configuration.
+ */
+const AGENT_IDENTITY = {
+  GIT_AUTHOR_NAME: 'Agent Stand-in',
+  GIT_AUTHOR_EMAIL: 'agent-stand-in@example.test',
+  GIT_COMMITTER_NAME: 'Agent Stand-in',
+  GIT_COMMITTER_EMAIL: 'agent-stand-in@example.test',
+} as const;
+
+describe("an agent session's identity variables never reach a fixture commit (task-050 AC-4)", () => {
+  it('a fixture built under inherited GIT_AUTHOR_* and GIT_COMMITTER_* carries its members as author and committer', async () => {
+    const saved = Object.fromEntries(Object.keys(AGENT_IDENTITY).map((key) => [key, process.env[key]]));
+    Object.assign(process.env, AGENT_IDENTITY);
+    try {
+      const fx = await buildFixture('kanban', { root: path.join(ws.dir, 'agent-session') });
+      const log = await git(fx.dir, ['log', '--all', '--format=%an <%ae>|%cn <%ce>'], fx.env);
+      const identities = new Set(log.stdout.trim().split('\n'));
+      expect(identities.size).toBeGreaterThan(0);
+      for (const line of identities) {
+        expect(line).not.toContain(AGENT_IDENTITY.GIT_AUTHOR_EMAIL);
+        expect(line).not.toContain(AGENT_IDENTITY.GIT_AUTHOR_NAME);
+      }
+      // The current identity of the built fixture is its member's (Alex), not the session's.
+      await git(fx.dir, ['commit', '-q', '--allow-empty', '-m', 'as the fixture'], fx.env);
+      const last = await git(fx.dir, ['log', '-1', '--format=%an <%ae>|%cn <%ce>'], fx.env);
+      expect(last.stdout.trim()).toMatch(/^[^|]*<alex@example\.test>\|[^|]*<alex@example\.test>$/);
+    } finally {
+      for (const [key, value] of Object.entries(saved)) {
+        if (value === undefined) delete process.env[key];
+        else process.env[key] = value;
+      }
+    }
+  }, 120_000);
 });

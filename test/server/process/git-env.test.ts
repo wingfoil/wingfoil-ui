@@ -120,3 +120,39 @@ describe('bug-002 — children never inherit a redirecting GIT_* variable', () =
     expect(search.data.matches.map((m) => m.id)).toContain('task-001-login-form');
   });
 });
+
+// task-050 F1 (approver's decision Q1-A, W-39): `gitEnv` drops only the variables that redirect
+// git; the identity variables are kept, so a console's children — the CLI and git — act as whoever
+// started the console (an agent session's identity is refused at `memory approve`). Test consoles
+// inherit none: `harnessEnv` deletes every `GIT_*` (`test/harness/git-identity.test.ts`).
+describe('task-050 — children keep the identity of whoever started the server', () => {
+  const identity = {
+    GIT_AUTHOR_NAME: 'Agent Stand-in',
+    GIT_AUTHOR_EMAIL: 'agent-stand-in@example.test',
+    GIT_COMMITTER_NAME: 'Agent Stand-in',
+    GIT_COMMITTER_EMAIL: 'agent-stand-in@example.test',
+  };
+
+  it('the four GIT_AUTHOR_*/GIT_COMMITTER_* variables reach a child unchanged, a redirecting one does not', async () => {
+    const result = await runner().run({
+      file: process.execPath,
+      args: [
+        '-e',
+        'process.stdout.write(JSON.stringify(Object.fromEntries(Object.entries(process.env).filter(([k]) => /^GIT_(AUTHOR|COMMITTER)_|^GIT_DIR$/.test(k)))))',
+      ],
+      cwd: fx.dir,
+      env: { ...hostileEnv(), ...identity },
+    });
+    expect(JSON.parse(result.stdout)).toEqual(identity);
+  });
+
+  it("git run by the runner resolves the author as the variables say, over the project's user.*", async () => {
+    const result = await runner().run({
+      file: await resolveGit(fx.env),
+      args: ['var', 'GIT_AUTHOR_IDENT'],
+      cwd: fx.dir,
+      env: { ...fx.env, ...identity },
+    });
+    expect(result.stdout).toMatch(/^Agent Stand-in <agent-stand-in@example\.test> \d+ [+-]\d{4}\n$/);
+  });
+});
