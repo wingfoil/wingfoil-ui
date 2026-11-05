@@ -354,3 +354,101 @@ owned by another user, or writable by group or others, means no address file and
 `state-dir-unsafe` warning; its mode is left untouched; recorded in the spec-006 amendment. Q2 (a)
 — spec-006 and spec-007 amended with dated Process Notes in a `docs(task-058)` commit before the
 red tests; the SARD, `docs/cli-reference.md` and `CHANGELOG.md` at green.
+
+### red / green / refactor (2026-11-05)
+
+- **Specs first** (Q2 (a)): `6ebe2383` — spec-006 §1, §4, §5, §6 and spec-007 §3, §5, §6, §7
+  amended in place with dated Process Notes; Q1 (b) recorded in spec-006 §1.
+- **Red** `cc8a9fae`: `test/contracts/console-address-schema.test.ts`,
+  `test/server/state/console-address.test.ts`, `test/server/launcher/start-address.test.ts`,
+  `test/launcher/console-address.test.ts`, the launch-smoke checks. `npx vitest run` of the four
+  files (load 6.31): 4 files failed — three on the missing module or schema, `start-address` with
+  4 of 6 tests failing; its two removal tests ("is gone when the first stop step runs", "is
+  removed on an exit 70") passed only because no file existed yet: their guard-removal failure
+  is recorded below.
+- **Green** `511ab7e4`: `server/src/state/console-address.ts` (D58-1 … D58-9),
+  `server/src/state/fs-atomic.ts`, the wiring in `server/src/launcher/start.ts`, the schema
+  `contracts/state/console-address.schema.json`, `ConsoleAddressFile` in `contracts/src/state.ts`
+  and its export; the SARD (`01_architectural-constraints.md` 1.2, `05_security-roles-governance.md`
+  0.9), `docs/cli-reference.md` 0.5 (*Address file for scripts and agents*), `CHANGELOG.md`
+  *Unreleased* › *Added*, `test/README.md` 0.58. `npx vitest run test/contracts/ test/server/state/
+  test/server/launcher/ test/launcher/ test/lint/one-console-per-test.test.ts` (load 14.07): 40
+  files passed, 1 skipped; 772 tests passed, 2 skipped (296 s).
+- **Refactor** `11873d2f`: the rename retry of `file-store.ts` through `fs-atomic.ts` (D58-10);
+  `test/server/state/` 204 passed.
+- **Fix** `321ab4bb`, found by the first `test:coverage` (4 failures): `test/server/main.test.ts`
+  "kills the remaining CLI and git children synchronously when the process exits" counts **one**
+  `exit` listener, and the wiring had added a second — the address file now shares the one exit
+  handler (`atExit.address`). The same file's starts ran `main()`, which resolves the state
+  directory from the environment, on the **user's own state directory**: before this task a start
+  only read it; with the address file that run wrote `consoles/<port>.json` there (a dead pid,
+  `version` 0.2.0, created by the coverage run of this worktree). The file and the empty
+  `consoles/` it created were removed by hand at once (`state.json` untouched: its modification
+  time 2026-11-03), and `main.test.ts`'s starts now get a temporary `WINGFOIL_UI_STATE_DIR`
+  (`vi.stubEnv`). A grep of every console start of the suites (`startLauncher`, the bin spawns,
+  `runLauncher`, `main(`) found no other start without its own state directory. The other three
+  failures were `project-routes.test.ts` history tests timing out at 30 s at load ~15 (the
+  history route's budgets, bug-028, task-057's ground): the file passed alone at load 20
+  (`npx vitest run test/server/main.test.ts test/server/launcher/
+  test/server/http/project-routes.test.ts`: 11 files, 104 tests passed).
+
+Deviations from the design:
+
+- The handle's promise is `written`, not `ready` (D58-1): `ready` is a fixture state name, refused
+  by the REQ-ARC-05 lint (`wfui/no-methodology-literal`).
+- The address file is published in the same tick as the signal handler's registration, just
+  before it (D58-2 said after): no signal can be handled in between, and `address` is then a
+  `const` the handler uses directly. The URL line still waits for `written`.
+- One more warning reason, `housekeeping-failed` (logged once per start), for an unexpected error
+  while judging another file (D58-9's list had none for housekeeping).
+- D58-11 also needed `test/server/main.test.ts` (above).
+- `alive()` stays in `file-store.ts` (D58-10 moved it): the address file's rule is `ESRCH` only
+  (adr-003 D3), the lock's treats any error but `EPERM` as dead; sharing one would change one of
+  them. Only the rename retry and the Windows busy test moved.
+- D58-11: `state-start.test.ts` also had to create its state directory `0700`: with this machine's
+  umask `0002` a `mkdir` gives `0775`, a group-writable directory, which Q1 (b) now refuses — so a
+  state directory the user made by hand with such a umask gets no address file (the console's own
+  directories are always `0700`). A note for the reviewer and the docs (`cli-reference`).
+- The heartbeat test with a link now points the link at a file holding the console's own bytes, so
+  a heartbeat that followed the link would pass the content check and only re-time the target.
+
+Guard-removal checks (each guard removed, the named tests run, the guard restored):
+
+| Guard removed | Failing tests |
+|---------------|---------------|
+| `await address.stop()` in the stop sequence | `start-address` "is gone when the first stop step runs…", "is removed on an exit 70" |
+| `O_NOFOLLOW` (`noFollow: 0`) | `console-address` "writes nothing through consoles/ when it is a symbolic link", "replaces a link put in the file's place…", "leaves a link named like an address file…" |
+| the own-`pid`/`started` check before removal | `console-address` "stop() leaves a file holding another console", `start-address` "is left when another console holds it…" |
+| the pid rule (stale and housekeeping) | `console-address` "readers judge this host, a dead pid", "the start removes this host, a dead pid", "removes and keeps the files of consoles/ by the rule…" |
+
+Gates (2026-11-05, this worktree at `321ab4bb`; heavy gates through the machine-free slot):
+
+| Gate | Slot wait · load (grant → end) | Result |
+|------|-------------------------------|--------|
+| `npm run typecheck`, `npm run lint`, `npm run format:check` | — (load 7.33) | clean |
+| `npm run docs:api` | — | clean |
+| `python3 docs/03_backlog/X_tools/check_tasks.py v0.3` | — | OK |
+| `npm run test:coverage` (first run, `11873d2f`) | 6 s · 7.65 → 15.83 | 4 failed (above), 3587 passed |
+| `npm run test:coverage` (`321ab4bb`) | 81 s · 12.93 → 27.46 | 186 files passed, 1 skipped; 3591 tests passed, 2 skipped; statements 96.46 %, branches 91.07 % (`console-address.ts` 90.14 % / 75.16 %) |
+| `npm run test:smoke` | 412 s · 11.55 → 9.66 | 4 passed (start 481 ms) |
+
+No UI change: no e2e spec, no `test:e2e:chromium`. After the runs: no console of this worktree
+left (`pgrep -af bin/wingfoil-ui.cjs`), no `wfui-*` entry in the temporary directory, the user's
+state directory holds `state.json` only.
+
+Notes for the adversarial reviewer:
+
+- Probe with the tools against the built bin (`npm run -s build`) and a scratch
+  `WINGFOIL_UI_STATE_DIR` — never the user's own: `stat`/`ls -l` of `consoles/` during a start,
+  `kill -9` then a new start, a hand-made stale file (dead pid, another host, an old mtime), a link
+  or a FIFO in `consoles/`, `consoles/` a link, a group-writable state directory, two consoles,
+  `umask 000`.
+- Residual races, as `state.json.lock`'s: housekeeping and removal read a file then `unlink` it by
+  path (a replacement in between, by a process of the same user, is not seen); the `consoles/`
+  checks are done through a directory handle, but the writes then go by path (Node.js has no
+  `openat`): a swap of `consoles/` after the check needs write access to the state directory,
+  which Q1 (b) gives only to the user.
+- A hand-made state directory with a `0002` umask (group-writable) gets no address file (Q1 (b)),
+  the warning `state-dir-unsafe` in the log.
+- On Windows nothing of this was run (no mode, no owner check, `O_NOFOLLOW`/`O_NONBLOCK` are 0;
+  the link check by `lstat`).
