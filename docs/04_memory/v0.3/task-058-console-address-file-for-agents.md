@@ -116,3 +116,235 @@ token and without asking the user.
      - design: tech-specs found missing/needing revision (dev-loop/design safety net).
      - red/green/refactor: deviations from the plan above, blockers, scope surprises.
      - review: rejection reasons and what changed on the next pass. -->
+
+### design (2026-11-05)
+
+Read: adr-003 whole (D1–D7, *Alternatives considered*, Appendix A, the two Process Notes); spec-006
+(§1 location and modes, §4 `state.json.lock`: `<hostname> <pid> <nonce>`, heartbeat every 10 s,
+stale at 10 s or a dead pid of this host, `state.json.tmp-<pid>-<n>` and the sweep of dead
+writers' files); spec-007 §3, §5, §6, §7; adr-001 D8, D10; dl-012 R1; release-planning v0.3 RP3-14
+D4, RP3-15 F3, RP3-17 A3–A6 and C2, RP3-20 G2; this stage's plan W0-1 … W0-16, W1-1 … W1-5;
+`definition-of-done` 1.3 (build › design), `wingfoil-cli`, `cli-only-writes` (the address file is
+local state, outside the four write classes: no governed write, no `.wingfoil/` change);
+`launch.feature` S-01.1 … S-01.6; the code: `bin/wingfoil-ui.cjs`, `server/src/main.ts`,
+`server/src/launcher/start.ts`, `listen.ts`, `server/src/state/file-store.ts`, `location.ts`,
+`store.ts` (`pristine()`); the tests `test/launcher/launcher.ts`, `launcher.test.ts`,
+`state.test.ts`, `test/server/launcher/state-start.test.ts`, `test/smoke/launch.smoke.test.ts`,
+`support.ts`, `test/harness/secret-scan.ts`, `test/lint/one-console-per-test.test.ts`,
+`test/harness/load.ts`, `test/contracts/state-schema.test.ts`. No `depends_on`.
+
+**Spec coverage.** The file format, its constants (10 s, 30 s, the names) and its life cycle are
+decided by adr-003 D1–D5 (`accepted`); the task carries them into spec-006 and spec-007 (AC-7), so
+no new tech-spec is needed. The module API is internal to the server (as `file-store.ts`'s is: no
+spec defines it) and is fixed below (D58-1). Gaps found (decided below or asked in Q1): the state
+directory's own safety (Q1); what housekeeping does with a file it cannot parse or of another
+`format` (D58-7); non-regular entries in `consoles/` (D58-5, F3); the scenarios' port 4870 (D58-12).
+
+#### Decisions
+
+- **D58-1 — One module, `server/src/state/console-address.ts`**, next to `file-store.ts` (the state
+  directory's files live in `state/`), wired by `launcher/start.ts`. Exports: the constants
+  `CONSOLES_DIR` (`consoles`), `ADDRESS_HEARTBEAT_MS` (10 000), `ADDRESS_STALE_MS` (30 000);
+  `addressFileStale(entry, mtimeMs, nowMs, host, { byAge })` (the D3 rule, used by housekeeping and
+  by the tests as the readers' rule); `publishConsoleAddress(options): ConsoleAddress`, which
+  returns at once a handle whose `ready` promise ends after housekeeping and the first write, and
+  whose `stop()` (async: awaits `ready`, stops the heartbeat, removes the file) and `removeSync()`
+  (the exit handler) never throw. Options: `stateDir`, `port`, `portFixed`, `version`, `started`,
+  `logger`, `platform`, and for tests `pid`, `host`, `uid`, `now`, `heartbeatMs`. Nothing else in
+  `start.ts` changes shape; `LauncherIo` is unchanged.
+- **D58-2 — Where it runs (spec-007 §3, D2).** After `listenLoopback` and step 4 (watchers,
+  scheduler, signal handler), before the URL line: `started` is the time `listenLoopback`
+  resolved; `portFixed` = `command.port !== undefined`; `url` = `http://127.0.0.1:<port>/`;
+  `version` = `io.version`. `io.onExit(() => address.removeSync())` is registered **before** the
+  write starts, and the URL line is printed only after `await address.ready`, so "the URL line
+  printed ⇒ the file exists" holds (S-01.4) and a crash during the write is still cleaned up.
+  A start that ends before listening (exit 2, 3, 4, 70 at start) writes nothing.
+- **D58-3 — Stop (spec-007 §6, D2).** In the signal handler: `listeners.stopAccepting()`, then
+  `await address.stop()`, then the stop hooks as today — called directly, not through `onStop`
+  (the hooks run in registration order and the address is published after the others are
+  registered). A failed removal is a log warning, never a failed stop step (no exit 70 from it).
+  The second signal (exit 130), an exit 70 and any `process.exit` run `removeSync()` through the
+  `exit` handler (F5). `SIGKILL`, or a signal Node.js does not handle (e.g. `SIGQUIT`), leaves the
+  file: the next start's housekeeping removes it by its dead pid, readers drop it within 30 s.
+- **D58-4 — Directory checks (D1; A6 Windows).** `mkdir(stateDir, { recursive, mode: 0o700 })`
+  (creates the state directory at start: the first start now leaves `<state dir>/consoles/`, which
+  is what D1 asks; spec-006 §4's "a mutation that changes nothing creates no directory or file"
+  still holds — the directory exists from the start), then `mkdir(consoles, 0o700)` tolerating
+  `EEXIST`, then `open(consoles, O_RDONLY | O_DIRECTORY | O_NOFOLLOW)` and `fstat` on that handle:
+  a symbolic link (`ENOTDIR`/`ELOOP`, F1), not a directory, or `uid` other than
+  `process.getuid()` → no address file, no housekeeping, one warning, the start goes on; group or
+  other bits → `fchmod(0o700)` **through the same handle** (F4: `mkdir` leaves an existing mode as
+  it is). On `win32` no mode and no owner check (the ACL of `%APPDATA%`, A6), and `O_NOFOLLOW` /
+  `O_DIRECTORY` are `0` (absent there); the symbolic-link check falls back to `lstat`. The state
+  directory itself: Q1.
+- **D58-5 — Nothing written or read through a link (the probes F1–F3).** The temporary file
+  `consoles/<port>.json.tmp-<pid>-<n>` is `rm`'d then created with `open(…, 'wx', 0o600)`
+  (`O_CREAT|O_EXCL` never follows a link, a dangling one included: F2 `EEXIST`), written, `fsync`,
+  closed, then `rename`d over `<port>.json` (a link there is replaced, not followed: F2), then the
+  directory `fsync` (POSIX), as `file-store.ts`. Every read of a file in `consoles/` (housekeeping,
+  heartbeat, removal) opens it `O_RDONLY | O_NOFOLLOW | O_NONBLOCK`, checks `fstat().isFile()` and a
+  size ≤ 4 KiB, and reads through the handle — a link (`ELOOP`), a FIFO (a plain `readFile` blocks
+  the start for good, F3), a device or a directory is never read and never removed by
+  housekeeping. The heartbeat refreshes the time with `handle.utimes` on that handle (a path
+  `utimes` follows a link: F2), and removal `unlink`s only after reading its own `pid` and
+  `started` through such a handle (`unlink` of a link removes the link only: F2).
+- **D58-6 — Heartbeat (D2, C2).** A `setInterval` of 10 s, `unref`'d, never overlapping (a tick
+  skipped while the previous one runs). Each tick: open as in D58-5; when the file is missing, not
+  a regular file, or its bytes differ from the bytes this console wrote — a superset of D2's
+  "another `pid` or `started`", which also restores a truncated or edited file — rewrite it in full
+  atomically (D58-5); else `utimes(now)` on the handle. A failed tick is a warning logged once per
+  kind of failure (no log line every 10 s). On a network home shared by two machines whose
+  consoles use one port, the two heartbeats rewrite each other's file: unsupported (D3), noted in
+  the docs.
+- **D58-7 — Start housekeeping (D3).** Before the first write, over `readdir(consoles)`:
+  `<n>.json` regular files are read leniently for `host` (string) and `pid` (positive integer),
+  whatever their `format` (a newer build's live file keeps its pid); this host's file is removed
+  only when `kill(pid, 0)` throws `ESRCH` (`EPERM` = running, F6), never by age; another host's
+  file, or one whose `host`/`pid` cannot be read (unparsable, truncated), is removed only when its
+  modification time is older than 30 s (a live writer of any format refreshes it). The file named
+  after its own port is not judged: the rename replaces it. `<n>.json.tmp-<pid>-<k>` files are
+  removed when their pid is dead (`ESRCH`), as `state.json`'s. Anything else in `consoles/` is left
+  alone. Each removal re-reads the file through D58-5 and removes it only if its bytes are still
+  the ones judged (the narrow race of `state.json.lock` stays, noted). No lock: one writer per file
+  (D3).
+- **D58-8 — Schema and type (AC-2).** `contracts/state/console-address.schema.json` (draft-07, as
+  `state.schema.json`): an object, `additionalProperties: false`, the eight properties required —
+  `format` `const: 1`; `url` pattern `^http://127\.0\.0\.1:[0-9]{1,5}/$`; `port` integer 1–65535 (an
+  OS-chosen port is outside `--port`'s 1024 floor on a system configured so); `portFixed` boolean;
+  `pid` integer ≥ 1; `host` string 1–255; `started` string, ISO 8601 UTC with milliseconds
+  (`toISOString()`); `version` string 1–64. Type `ConsoleAddressFile` in `contracts/src/state.ts`,
+  one export line appended to `contracts/src/index.ts`. The writer builds the object from these
+  eight fields only (D5: there is no field a token, a session, a path or an environment value
+  could enter by), serialised as `JSON.stringify(entry, null, 2) + '\n'`.
+- **D58-9 — Logging (spec-007 §5; Appendix A *Logs*).** One `warn` line per failure, with only
+  `{ reason, code }` — `reason` one of `state-dir-unsafe` (Q1), `consoles-link`,
+  `consoles-not-directory`, `consoles-not-owned`, `write-failed`, `heartbeat-failed`,
+  `remove-failed`; `code` the errno code — and the message `console address file`: no path, no
+  file content, no error message text (an `EACCES` message carries the absolute path). An info
+  line `console address file written` with `{ port }` only. Nothing reaches stdout or `GET
+  /api/server`'s warnings (D2: a log warning).
+- **D58-10 — Shared helpers, no behaviour change.** `alive(pid)` and the Windows rename retry of
+  `file-store.ts` move to `server/src/state/fs-atomic.ts`, imported by both modules (refactor
+  phase; the file-store suites stay green unchanged).
+- **D58-11 — Ordering of the in-process and bin tests.** The address file appears in every state
+  directory a console starts on: `test/server/launcher/state-start.test.ts` "starts with an empty
+  state when state.json is corrupt" (`readdir(stateDir)` of length 1) changes to filter `consoles`
+  and asserts it separately — the only existing assertion the probes and a `grep` of
+  `readdir(…state…)` over `test/` found affected (the `file-store` suites build no console). The
+  e2e secret scan already walks the whole state directory (`scanForSecrets` recurses), so
+  `consoles/` is covered with no change (AC-6).
+- **D58-12 — Ports in tests.** The scenarios' `--port 4870` is the port the approver's own console
+  uses on this machine; the tests use a port found free by the harness (the existing
+  `launcher.test.ts` way), the scenario titles keep their text.
+
+#### Probes (2026-11-05, the console built in this worktree, `npm run -s build`)
+
+Run with `WINGFOIL_UI_STATE_DIR` on a throw-away folder `$SCRATCH/state-a`, ports 4931–4933, the
+token and the session id kept in shell variables, never printed; every console started was
+stopped (`pgrep -af bin/wingfoil-ui.cjs` after: none of this worktree), the folders removed.
+
+```sh
+node bin/wingfoil-ui.cjs --port 4931 --no-open > "$SCRATCH/p1.out" 2> "$SCRATCH/p1.err" & PID=$!
+find "$WINGFOIL_UI_STATE_DIR" -printf '%M %u %p\n'                        # P1 before / during / after
+curl -X PUT -H "Authorization: Bearer $TOKEN" … /api/settings              # P1 a write: 200
+kill -INT $PID; kill -TERM …; kill -KILL …                                 # P2
+mkdir -p "$SCRATCH/state-70/state.json"; node bin/wingfoil-ui.cjs …        # P3 exit 70
+(umask 000; node bin/wingfoil-ui.cjs --port 4931 --no-open …)              # P4, state dir 3 levels deep
+node bin/wingfoil-ui.cjs --port 4931 … & node bin/wingfoil-ui.cjs --no-open … &   # P5 two consoles
+node -e 'process.kill(1, 0) / process.kill(process.pid, 0) / process.kill(4194304, 0)'  # P6
+# P7: hand-made consoles/4932.json (this host, pid 4194304) and 4933.json (pid 1, mtime −1 h), then a start
+COOKIE=$(curl -s -D - -o /dev/null -X POST -H "Authorization: Bearer $TOKEN" … /api/session | …)
+grep -rl -- "$TOKEN" / "${COOKIE#*=}" "$SCRATCH"/p7.err "$SCRATCH"/p7.out "$WINGFOIL_UI_STATE_DIR"
+node probe-fs.mjs "$SCRATCH"                                               # F1–F5, Node.js 22.21 on Linux
+```
+
+| Probe | Result today (no address file yet) | For the design |
+|-------|------------------------------------|----------------|
+| P1 listing | before: no state directory; during a start: **still none** (a start writes nothing, as Appendix A P1); after the first write `drwx------` dir, `-rw-------` `state.json`, owner the user; after SIGINT (exit 0, stop line) the same | D58-4 creates the directory at start |
+| P2 SIGTERM, SIGKILL | SIGTERM exit 0, the stop line; SIGKILL 137, nothing cleaned (nothing to clean today) | D58-3: SIGKILL leaves the file, housekeeping (D58-7) and the 30 s age rule take it |
+| P3 exit 70 | an unreadable `state.json` (a directory): exit 70 before listening, nothing written; the message names the file's path on stderr (spec-007 §6, unchanged) | no file before listening (D58-2) |
+| P4 `umask 000` | the state directory three levels deep created by the first write: every level `drwx------`, `state.json` `-rw-------` (Node.js `mkdir` applies the mode to each level it creates; umask only removes bits) | the same calls for `consoles/` and the file hold under `umask 000` (F4) |
+| P5 two consoles | one on 4931, one on an OS port: both start, both stop with exit 0; the state directory holds `state.json` only | two files, no contention (D3) |
+| P6 `kill(pid, 0)` | pid 1 → `EPERM` (running, another user's), self → running, 4194304 → `ESRCH` | D58-7's rule; a reused pid (pid 1 standing for one) keeps a file of this host |
+| P7 token and session id | a hand-made `4932.json` (dead pid) and `4933.json` (pid 1, an hour old) stay untouched — no housekeeping today; with a session exchanged (`wfui_session_4931`, 200 with the cookie) the token is only in stdout's URL line, the session id in no file of the state directory, stdout or the log (5 log lines: `listening`, two request pairs) | after green: the same search must also cover `consoles/` (S-01.4, AC-6) |
+| F1 `consoles/` a link to another folder | `mkdir -p` over it succeeds (follows); `open('consoles/x.tmp', 'wx')` writes **into the other folder**; `lstat` says link; `open(consoles, O_DIRECTORY|O_NOFOLLOW)` → `ENOTDIR` | D58-4: the check by the handle, never a write through a linked folder |
+| F2 `consoles/<port>.json` pre-created as a link | `open(tmp, 'wx')` on a dangling link → `EEXIST` (never created through it); `rename(tmp, <port>.json)` replaces the link, the target untouched; a path `utimes` **follows** the link (the target's mtime changed); `open(…, O_NOFOLLOW)` → `ELOOP`; `unlink` removes the link only | D58-5, D58-6: rename and handle-only reads and times |
+| F3 a FIFO named `4999.json` | `readFile` **blocks** (still blocked after 1.5 s; it also kept the probe process alive until killed); `open(O_NONBLOCK|O_NOFOLLOW)` returns at once, `fstat().isFile()` false | D58-5: a start never hangs on a planted entry |
+| F4 modes | an existing `consoles/` `0777`: `mkdir(…, 0o700)` leaves `777`; `fchmod(0o700)` on an `O_DIRECTORY|O_NOFOLLOW` handle sets `700`; under `umask 000` `mkdir -p 0700` → `700 700`, `open(…, 0o600)` → `600` | D58-4 |
+| F5 exit handler | a child with an `exit` handler that `unlinkSync`s a file and `process.exit(70)`: status 70, the file removed | D58-3 |
+
+The task runs no new process on a project, so the `GIT_TRACE` and children's-environment probes of
+task-046 are not due (Implementation Notes).
+
+#### Acceptance criteria: classification and test plan
+
+| AC | Kind | Tests (file › test) |
+|----|------|---------------------|
+| AC-1 S-01.4 | red-first | `test/launcher/console-address.test.ts` › `S-01.4 — Write the console's address file for agents` (the bin with `--port <free>`: on the URL line the file exists, `0600`, `consoles/` `0700`, the schema passes, `url`, `portFixed: true`, `pid` = the child's, no part of the token: the whole token and every 8-character slice of it); a second test without `--port` → `portFixed: false`, the port of the URL line; smoke (below) |
+| AC-1 S-01.5 | red-first | same file › `S-01.5 — Remove the address file on stop` (SIGINT: gone when the stop line is printed); `SIGTERM` and `SIGHUP` rows (`it.each`, one console per row) |
+| AC-1 S-01.6 | red-first | same file › `S-01.6 — Remove a stale address file at start` (a hand-made `<p+1>.json` of this host with a dead pid: gone at the URL line, own file there) |
+| AC-1 S-01.1 … S-01.3 | characterization | `test/launcher/launcher.test.ts`, unchanged, still green |
+| AC-2 write | red-first | `test/contracts/console-address-schema.test.ts` (the D1 example typed `ConsoleAddressFile`; each property missing, an extra property, `format` 2, a `url` with a token fragment, a non-loopback `url` → invalid); `test/server/state/console-address.test.ts` › the written bytes are the eight fields; the temporary file `wx` `0600`, `fsync`, rename (a crash between — the temporary left — is swept by the next start); a missing state directory created `0700` and `consoles/` `0700`; an existing `consoles/` `0777` set to `0700`; `consoles/` a link (F1) or a regular file → no file, no write in the link's target, one warning, the start goes on; `consoles/` owned by another user (the `uid` option, since a test cannot chown) → the same; `<port>.json` pre-created as a link → replaced, its target untouched (F2); a FIFO in `consoles/` → housekeeping returns (F3, bounded by the test's timeout); `umask 000` (`process.umask` in a child) → `0700`/`0600`; a failed write (`consoles/` read-only) → `write-failed` warning, `ready` resolves; `win32` platform → no `chmod`, no owner check |
+| AC-3 heartbeat | red-first | `test/server/state/console-address.test.ts` with fake timers (`vi.useFakeTimers` + the `heartbeatMs` option): the mtime refreshed each tick; the file removed → rewritten in full; replaced by another `pid` or `started` → rewritten; truncated → rewritten; replaced by a link → the link replaced, its target's mtime unchanged (F2); a tick never overlaps the previous one; `stop()` clears the interval |
+| AC-4 stale | red-first | same file, a table: this host + `ESRCH` → removed; this host + running pid (the test's own, standing for a reused pid) + mtime −1 h → kept; this host + `EPERM` (pid 1) → kept; other host + mtime −31 s → removed; other host + mtime −5 s → kept; unparsable + −31 s → removed, + −5 s → kept; `format` 2 of this host, live pid → kept; a file named after its own port, live pid → replaced; `.tmp-<dead>-0` → removed, `.tmp-<self>-0` → kept; a directory or a link named `<n>.json` → left alone. `addressFileStale` table (the readers' rule, D4: pid dead, or age > 30 s, or another host by age only). Two consoles: `test/launcher/console-address.test.ts` › `two consoles on one state directory write two files` (marker `// one-console-per-test: kept — two consoles on one state directory, AC-4`; budget `binTestMs(2)`, W0-9) and `a SIGKILLed console's file is removed by the next start` (marker, the same budget) |
+| AC-5 stop | red-first | `test/server/launcher/start-address.test.ts` (in-process `runLauncher`, real files): the stop sequence observed through a stop hook — the file is gone when the first hook runs and the listeners no longer accept; a failing hook (exit 70) → the file removed; the second signal (exit 130) → `removeSync` through `onExit`; a file replaced by another console (another `pid`/`started`) → `stop()` and `removeSync()` leave it; a failed removal → warning, exit 0 |
+| AC-6 never holds | red-first for the S-01.4 assertion; characterization for the scan | S-01.4 (token and its slices, the session id after an exchange) and the D58-8 field test; `scanForSecrets` walks `consoles/` already (`test/launcher/state.test.ts` TT-SEC-09, e2e) — a guard-removal check at green: the token written into the file makes S-01.4 and TT-SEC-09 fail (recorded) |
+| AC-7 docs | — | the public-text check (`test/docs/public-text.test.ts`) in the default suite |
+| AC-8 gates | — | `typecheck`, `lint`, `format:check`, `test:coverage`, `docs:api`, `check_tasks.py v0.3`, `test:smoke` through the slot; no UI change, so no e2e spec and no `test:e2e:chromium` |
+
+**Smoke** (`test/smoke/launch.smoke.test.ts`, spec-007 §7, no extra start): in the existing
+`AC-3 … SIGINT to the server` test, right after the running line `consoles/<port>.json` exists
+(`0600`, `consoles/` `0700`, no token, `portFixed: false`); after `WingFoil UI stopped` it is gone;
+in the Ctrl-C (process group) test, gone once the group is.
+
+#### Shared and documentation files (append-only where shared, RP-43/RP-55)
+
+- `contracts/src/index.ts` — one export line appended; `contracts/src/state.ts` — the new type
+  appended.
+- `CHANGELOG.md` *Unreleased* › *Added* — one entry (the address file for agents and scripts).
+- `test/README.md` — the version line (0.58) and one row/paragraph each in the suites table,
+  *Launch smoke* and *Temporary folders* (the address files live in the test's state directory).
+- `docs/cli-reference.md` 0.5 — *Environment* (what the state directory now holds), a new section
+  *Address file for scripts and agents* (the shape, `portFixed` and deep links across restarts with
+  `--port` only, D7; the D4 steps; stale rules; a network home unsupported), *Stopping* (removed
+  first; left by a forced kill until the next start).
+- The SARD (A4): `01_architectural-constraints.md` 1.2 — REQ-ARC-08's description lists the
+  console address files among the local state; `05_security-roles-governance.md` 0.9 — REQ-SEC-09's
+  fit criterion names `consoles/`.
+- spec-006, amended in place with a dated Process Note: §1 the state directory holds `state.json`
+  and `consoles/` (`0700`), each `<port>.json` `0600`, created and removed by consoles only, the
+  directory created at start, the D1 checks; §4 `consoles/` outside `state.json.lock`, its
+  housekeeping at start (D58-7), atomic writes as `state.json`'s; §5 the address file holds nothing
+  of D5, the secret scan covers it; §6 the unit tests of write, heartbeat (restores a removed or
+  replaced file), replace, remove, stale detection (pid and age) and modes.
+- spec-007, amended in place with a dated Process Note: §3 a step between 4 and 5 (housekeeping,
+  write, a failed write is a warning; the URL line after the write); §5 the log lines of D58-9;
+  §6 the removal as the first stop step and in the exit handler, a failed removal never exit 70;
+  §7 the launch smoke checks the file after the URL line and its absence after the stop line.
+- `test/server/launcher/state-start.test.ts` — the one assertion of D58-11.
+- `npm run docs:api` output regenerated.
+
+#### Size
+
+About one active day: the module (~250 lines) and its wiring, the schema and type, ~35 unit
+cases, ~7 bin tests and the smoke checks, six documents amended — at the edge of RP3-20 G2's day,
+plus the adversarial review rounds. A split (the schema and docs apart from the code) would leave
+each half unable to pass its own acceptance criteria (S-01.4 needs both), so **no split is
+proposed**.
+
+#### Open questions
+
+- **Q1 — The state directory's own safety.** D1 checks `consoles/`; an existing state directory
+  owned by another user, or writable by group or others (e.g. a `WINGFOIL_UI_STATE_DIR` under a
+  shared folder), lets another user swap `consoles/` between the check and the rename. Options:
+  (a) as D1 is written, `consoles/` only; (b) no address file, one `state-dir-unsafe` warning,
+  when the state directory is not the user's or has the group or other write bit — its mode
+  untouched, `state.json` unchanged; (c) also `chmod` the state directory to `0700`.
+  **Recommendation: (b)** — it closes the swap at no cost for the default location (created
+  `0700`), and changing the mode of a folder the user chose (c) is beyond this task.
+- **Q2 — When the spec amendments are committed.** Options: (a) a `docs(task-058): spec-006,
+  spec-007 amendments` commit before the red tests, the SARD, `cli-reference` and CHANGELOG with
+  green; (b) all documents with green. **Recommendation: (a)** — specs before code
+  (`definition-of-done` › design), so the red tests and the reviewer read the amended text.
+
+No blocker: the design waits for the coordinator's answer on Q1 and Q2 before red.
