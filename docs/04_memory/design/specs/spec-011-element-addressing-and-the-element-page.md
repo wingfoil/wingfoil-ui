@@ -266,3 +266,13 @@ remember across the session exchange, and where, is adr-003's.
   hostile values.
 - 2026-11-03 — aligned with spec-004 §5 as amended by step 5c (RP3-18 K1): the candidates' titles
   get the character escape of repository texts.
+- 2026-11-05 — two points settled at task-057's design (decided by the approver, "Q1-a, Q2-a"):
+  (Q1-a) §3's order stays steps 1 → 2 → 3 → 4, so a full id always wins and every listed element
+  is reachable by its full id: the two archived searches run (at most once per repository state)
+  on any read whose `:eid` is no live full id, a short id included. Step 4's "the two lazy
+  archived searches run only then" reads "an archived element is chosen by its short id only
+  then": no archived match is chosen when a live one matches (E3), and no archived search runs when
+  `:eid` is a live full id. (Q2-a) §4's 255 counts **UTF-16 code units** of the percent-decoded
+  parameter (`find-my-way` compares the string's length): a character outside the Basic
+  Multilingual Plane counts 2. Ids WingFoil 0.3.1 writes are ASCII (its slug drops other letters)
+  and at most 252 characters (`<id>.md` is a 255-byte file name), so every id it lists fits.

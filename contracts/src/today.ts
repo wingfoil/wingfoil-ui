@@ -14,6 +14,8 @@ export type TodayAction = 'submit' | 'rework' | 'review' | 'approve' | 'resolve'
 /** The element of a Today row. */
 export interface TodayElement {
   id: string;
+  /** The short id (spec-011 §1); absent when the element has none. */
+  shortId?: string;
   type: string;
   title: string;
   status: string;

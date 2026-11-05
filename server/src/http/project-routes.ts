@@ -8,7 +8,7 @@
  * | `GET /api/p/:pid` | `project.schema.json` — header: name, version and range state, capabilities, identity, role views, read-only reasons, repository status and conditions (v0.2, task-033: spec-010 §3, §7) |
  * | `GET /api/p/:pid/config` | `config.schema.json` — DNA, paths, workflows, resolved types; each section its read or its error |
  * | `GET /api/p/:pid/elements[?archived=true]` | `elements.schema.json` — elements with marker and descriptor |
- * | `GET /api/p/:pid/elements/:eid` | `element.schema.json` — frontmatter, body, descriptor, required fields, type states |
+ * | `GET /api/p/:pid/elements/:eid` | `element.schema.json` — frontmatter, body, descriptor, required fields, type states; `:eid` a full or a short id (spec-011 §3: 404 and 409 `element.refusal.schema.json`) |
  * | `GET /api/p/:pid/elements/:eid/history` | `history.schema.json` — `memory history` |
  * | `GET /api/p/:pid/directives`, `/directives/:did` | `directives.schema.json`, `directive.schema.json` |
  * | `GET /api/p/:pid/docs` | `docs.schema.json` — the documentation index |
@@ -19,6 +19,8 @@
  * Every read goes through the project's snapshot view — one CLI process per command and repository
  * state (REQ-PERF-05) — and answers `X-Repo-State`. An unknown `:pid` is 404 before anything is
  * read; an unknown `:eid`/`:did` is 404 (looked up in the CLI's lists, never a path built from it).
+ * The element read resolves a short id too (spec-011 §3, task-057); history takes the full id only.
+ * Element bodies and rows carry `shortId` (spec-011 §1), derived from `memory.yaml` here.
  * A failed direct read is a 502 `read-error` of that element or directive only; an unreadable
  * `memory.yaml` degrades the type-dependent parts only; a failed `dna show` stays in the DNA
  * (S-27.1). A refused working-tree path is a 404 `not-found` with `detail.kind` (`outside`: the
@@ -63,6 +65,7 @@ import { identityOf } from '../identity/snapshot-identity.js';
 import { ARCHIVED_QUERY } from '../presets/api.js';
 import { ARCHIVED_STATES } from '../presets/wingfoil.js';
 import { DirectReadError } from '../reads/confine.js';
+import { shortIdsOf, type ShortIds } from '../reads/short-id.js';
 import { resolveStates } from '../reads/memory-yaml.js';
 import { directivesInForce } from '../reads/project-reads.js';
 import {
@@ -78,6 +81,7 @@ import { REPO_STATE_HEADER, repoStateHeader, type RepoState } from '../snapshot/
 import type { Snapshots } from '../snapshot/snapshots.js';
 import { stripUserinfo, type StateStore } from '../state/store.js';
 import { envelope } from './app.js';
+import { resolveElementId } from './element-address.js';
 
 /** Prefix of every route of this module. */
 export const PROJECT_PATH = '/api/p/:pid';
@@ -294,6 +298,41 @@ class ProjectRead {
     }
   }
 
+  /** The short ids of this state's elements (spec-011 §1): none when `memory.yaml` is unreadable. */
+  shortIds(): Promise<ShortIds> {
+    // The direct read only (no CLI process), once per state: the resolution needs no descriptor.
+    return this.view.derived('short ids', async () => {
+      const types = await this.settle(this.view.memoryTypes(), '.wingfoil/');
+      return shortIdsOf(types.ok ? types.value : undefined);
+    });
+  }
+
+  /**
+   * The element read's `:eid` resolved (spec-011 §3): its full id, or a 409 `ambiguous-id` or 404
+   * `not-found` thrown. The archived lists are read only when no live element has `eid` as full id.
+   */
+  async resolve(eid: string): Promise<string> {
+    const { view } = this;
+    const resolution = await resolveElementId(eid, {
+      live: async () => (await view.elements()).matches.map((m) => m.match),
+      retired: async () => {
+        const matches: MemoryMatch[] = [];
+        for (const status of ARCHIVED_STATES)
+          matches.push(...(await view.archivedElements(status)).matches.map((m) => m.match));
+        return matches;
+      },
+      shortIds: await this.shortIds(),
+    });
+    if (resolution === undefined) throw notFound();
+    if ('ambiguous' in resolution) {
+      throw new Refused({
+        status: 409,
+        error: { code: 'ambiguous-id', message: 'Ambiguous id', detail: resolution.ambiguous },
+      });
+    }
+    return resolution.id;
+  }
+
   /** The `memory search` match of `id`, then the archived ones; `undefined` when none. */
   async findMatch(id: string): Promise<{ match: MemoryMatch; localChanges: boolean } | undefined> {
     const found = (await this.view.elements()).matches.find((m) => m.match.id === id);
@@ -318,6 +357,12 @@ class ProjectRead {
       });
     });
   }
+}
+
+/** `{ shortId }` of an element that has one, else nothing (the field is absent, spec-011 §5). */
+function shortIdField(shortIds: ShortIds, element: { id: string; type: string }): { shortId?: string } {
+  const shortId = shortIds(element);
+  return shortId === undefined ? {} : { shortId };
 }
 
 /** The descriptor input of rule 4 (spec-003 §6) from a state's copy (spec-010 §1). */
@@ -412,8 +457,10 @@ async function elements(read: ProjectRead, archived: boolean): Promise<ElementLi
   }
   const inputs = await read.descriptorInputs();
   const events = inputs.ok ? await read.events() : undefined;
+  const shortIds = await read.shortIds();
   const listed: ListedElement[] = matches.map(({ match, localChanges }) => ({
     ...match,
+    ...shortIdField(shortIds, match),
     localChanges,
     ...(inputs.ok && events ? { descriptor: inputs.describe(match, localChanges, events.events) } : {}),
   }));
@@ -426,15 +473,16 @@ async function elements(read: ProjectRead, archived: boolean): Promise<ElementLi
   };
 }
 
-/** `GET /api/p/:pid/elements/:eid`. */
-async function element(read: ProjectRead, id: string): Promise<ElementDetail> {
+/** `GET /api/p/:pid/elements/:eid`: `:eid` a full id or a short id (spec-011 §3). */
+async function element(read: ProjectRead, eid: string): Promise<ElementDetail> {
+  const id = await read.resolve(eid);
   const found = valueOf(await read.settle(read.view.element(id)));
   if (!found) throw notFound();
   const inputs = await read.descriptorInputs();
   const events = inputs.ok ? await read.events() : undefined;
   const { match, content, localChanges } = found;
   return {
-    element: { ...match, localChanges },
+    element: { ...match, ...shortIdField(await read.shortIds(), match), localChanges },
     frontmatter: content.frontmatter,
     body: content.body,
     ...(inputs.ok && events
@@ -514,9 +562,17 @@ async function todayOf(read: ProjectRead, query: Record<string, unknown>): Promi
   if (!inputs.ok) throw new Refused(inputs.refusal);
   const events = await eventsOrRefuse(view.events(), read.log);
   // Once per state: every role view and the summary place the same rows.
+  const shortIds = shortIdsOf(inputs.memoryYaml);
   const rows = await view.derived('today rows', async () =>
     (await view.elements()).matches.map(({ match, localChanges }): TodayRow => ({
-      element: { id: match.id, type: match.type, title: match.title, status: match.status, localChanges },
+      element: {
+        id: match.id,
+        ...shortIdField(shortIds, match),
+        type: match.type,
+        title: match.title,
+        status: match.status,
+        localChanges,
+      },
       descriptor: inputs.describe(match, localChanges, events),
     })),
   );
