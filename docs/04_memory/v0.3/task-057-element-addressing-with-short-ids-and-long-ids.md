@@ -340,3 +340,10 @@ contracts and the specs' notes, the `app.ts` change with its tests, the route an
 three templates, the bug-028 restructuring, the docs; plus the slot waits of `test:coverage` and
 `test:e2e:chromium`. No split proposed; were one needed, AC-7 (bug-028) is the separable part,
 but it shares the templates of D57-10 with AC-2 and AC-3.
+
+**Decisions of the approver** (2026-11-05, relayed by the coordinator): Q1-a — spec-011 §3's
+order is kept (steps 1 → 2 → 3 → 4), AC-2's process clause and step 4's parenthesis read "no
+archived match is chosen when a live one matches", recorded in a dated spec-011 Process Note;
+Q2-a — the UTF-16 unit stated in a spec-011 Process Note, boundary tests with ASCII, `é` and an
+astral character; Q3-a — W-46 and F-038 recorded by the coordinator through a separate
+`governance-evolution` run, outside this task's diff (P1 above is the evidence).
