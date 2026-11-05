@@ -11,6 +11,7 @@ import { access, mkdir, open, readdir, readFile, rename, rm, stat, utimes } from
 import { hostname } from 'node:os';
 import path from 'node:path';
 import type { StateFile } from '@wingfoil-ui/contracts';
+import { renameRetrying, windowsBusy } from './fs-atomic.js';
 import { asRecord, knownFields, newerVersion, stateProblem } from './schema.js';
 import {
   emptyState,
@@ -43,10 +44,6 @@ export const LOCK_FILE = `${STATE_FILE}.lock`;
  * a holder on another host). Its holder refreshes it every quarter of this age (heartbeat).
  */
 export const LOCK_STALE_MS = 10_000;
-/** Transient errors Windows raises while another process holds or scans a file. */
-const WIN32_BUSY = new Set(['EPERM', 'EACCES', 'EBUSY']);
-/** Tries of a rename that Windows refuses for a moment. */
-const RENAME_TRIES = 5;
 /** Longest wait for the lock before a mutation fails. */
 const LOCK_TIMEOUT_MS = 15_000;
 const TMP_PATTERN = /^state\.json\.tmp-(\d+)(?:-\d+)?$/;
@@ -172,7 +169,7 @@ class FileBackend implements StateBackend {
       } finally {
         await handle.close();
       }
-      await this.#rename(tmp, this.#file);
+      await renameRetrying(tmp, this.#file, this.#platform);
     } catch (error) {
       await rm(tmp, { force: true });
       throw error;
@@ -180,22 +177,9 @@ class FileBackend implements StateBackend {
     if (POSIX) await this.#syncDirectory();
   }
 
-  /** `rename`, retried a few times when Windows refuses it for a moment (antivirus, indexer). */
-  async #rename(from: string, to: string): Promise<void> {
-    for (let attempt = 1; ; attempt++) {
-      try {
-        await rename(from, to);
-        return;
-      } catch (error) {
-        if (!this.#busy(error) || attempt >= RENAME_TRIES) throw error;
-        await delay(20 * attempt);
-      }
-    }
-  }
-
   /** A transient refusal on Windows (another process holds or scans the file). */
   #busy(error: unknown): boolean {
-    return this.#platform === 'win32' && WIN32_BUSY.has(code(error) ?? '');
+    return windowsBusy(error, this.#platform);
   }
 
   async lock<T>(fn: () => Promise<T>): Promise<T> {
