@@ -260,3 +260,28 @@ smoke, no strict-identity run (the checks read files only), no security probe.
 
 Size: three small test files, about 30 lines of script, four short doc edits — about half an
 active day plus the approver's turn for the amends, the stamp and the `.wingfoil/` diff. No split.
+
+#### Approver's decisions (2026-11-05, `backlog-item-rel-v0.3-plan` W0-13)
+
+- **Q1** — the approver: "se il problema si presenta per questo repo, ignoriamolo o abbassiamo di
+  gravità … se un progetto che utilizza wingfoil (last version) fin dall'inizio non ha questo
+  problema, allora correggiamo solo gli elementi memory del progetto corrente" (if the problem
+  shows only for this repository, ignore it or lower its severity; if a project on the latest
+  WingFoil from its start does not have it, fix only this project's Memory elements). Every check
+  is designed for a project on the current WingFoil from its start: a plan made by `workflow
+  start` with no version passes; what fails only because of this repository's history is fixed on
+  its elements, not by loosening the rule.
+- **Q2** — the 5 mismatching plans aligned by the approver's `memory amend` (the commands prepared
+  by the developer, checked with `--dry-run`); the 4 plans with no Context line as commented,
+  self-checking exemptions.
+- **Q3** — `release: "v0.1"` stamped on bug-001 … bug-007 by one hand commit of that field only
+  (W-01), after the approver's OK on the prepared diff.
+- **Q4** — a bug closed by a reject is outside the rule.
+- **Q5** — `check_releases.py` also runs on the repository in the default suite, and the CI
+  runner gets Python explicitly: an `actions/setup-python` step pinned by full SHA in the `gate`
+  job of `.github/workflows/publish.yml`, before `test:coverage`, with its invariant in
+  `test/package/publish-workflow.test.ts` (red first) and a line in `docs/publishing.md` *The
+  pipeline*; `npm run test:publish-smoke` joins the gates.
+- **Q6** — the rules in `release-conventions` › *Governance checks* (1.5), the `.wingfoil/README.md`
+  0.11 paragraph, the template comments optional; every `.wingfoil/` change committed only after
+  the approver's OK on its diff.
