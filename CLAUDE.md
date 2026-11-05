@@ -1,6 +1,6 @@
 # CLAUDE.md — agent entry point
 
-**Version:** 0.17 · **Date:** 2026-11-04 (0.1: release v0.1, `user-docs` `align-agent-docs`; 0.2: v0.1.0 released, release submit; 0.3: `test:smoke` wave gate — task-026; 0.4: e2e on three engines, inner-loop Chromium run — task-027; 0.5: `test:publish-smoke`, the publishing guide — task-029; 0.6: release v0.2 user-docs — v0.2 in release validation; 0.7: v0.2.0 released — git tag and npm, the first version by hand; 0.8: the GitHub Release of v0.2.0 made; 0.9: the pin on `wingfoil@0.3.1` — task-046; 0.10: the packs `base`, `software`, `methodology/scrum` adopted, `AGENTS.md` — governance-alignment-rel-v0.3-plan step 3; 0.11: BOOTSTRAP.md marked historical — its review round 1; 0.12: W-20, W-25, W-26 already superseded — round 2; 0.13: `wingfoil-cli` re-checked against 0.3.1 — step 4; 0.14: the next step and the directive version after the v0.3 pre-step — its step 7 review; 0.15: v0.3 in development in Sprint 1, directive 1.20 — release-planning-rel-v0.3-plan step 9; 0.16: the procedures folded into directives, `test:timing` at the wave gate and before a release — task-049; 0.17: the draft GitHub Release job — task-052)
+**Version:** 0.18 · **Date:** 2026-11-05 (0.1: release v0.1, `user-docs` `align-agent-docs`; 0.2: v0.1.0 released, release submit; 0.3: `test:smoke` wave gate — task-026; 0.4: e2e on three engines, inner-loop Chromium run — task-027; 0.5: `test:publish-smoke`, the publishing guide — task-029; 0.6: release v0.2 user-docs — v0.2 in release validation; 0.7: v0.2.0 released — git tag and npm, the first version by hand; 0.8: the GitHub Release of v0.2.0 made; 0.9: the pin on `wingfoil@0.3.1` — task-046; 0.10: the packs `base`, `software`, `methodology/scrum` adopted, `AGENTS.md` — governance-alignment-rel-v0.3-plan step 3; 0.11: BOOTSTRAP.md marked historical — its review round 1; 0.12: W-20, W-25, W-26 already superseded — round 2; 0.13: `wingfoil-cli` re-checked against 0.3.1 — step 4; 0.14: the next step and the directive version after the v0.3 pre-step — its step 7 review; 0.15: v0.3 in development in Sprint 1, directive 1.20 — release-planning-rel-v0.3-plan step 9; 0.16: the procedures folded into directives, `test:timing` at the wave gate and before a release — task-049; 0.17: the draft GitHub Release job — task-052; 0.18: the agents' own git identity (`WingFoil UI Agent <352896614+wingfoil-dev@users.noreply.github.com>`, the machine account `wingfoil-dev`), its reach and self-check, approvals from the approver's console — task-050)
 
 WingFoil UI: a local web UI for WingFoil-governed projects. A Node.js server (`server/`) drives
 each project's pinned `wingfoil` CLI and reads git; a React app (`web/`) shows the result;
@@ -72,13 +72,30 @@ limitation: [`CHANGELOG.md`](CHANGELOG.md).
   `releasing`, are `memory submit`; `releasing → released` and a bug's `triaged → planned` are the
   approver's `memory approve` (W-25, W-26). WingFoil 0.3.1 accepts a hand-committed `status:`
   without the approver (W-34): never set a state a verb owns by hand. The directive was re-checked
-  against `wingfoil@0.3.1` at `governance-alignment-rel-v0.3-plan` step 4 (1.15; now 1.20); where an
+  against `wingfoil@0.3.1` at `governance-alignment-rel-v0.3-plan` step 4 (1.15; now 1.22); where an
   entry and `.wingfoil/memory.yaml` disagree, `memory.yaml` is right. Read the directive's *Known
   behaviours* table before running a verb; do not copy it here.
 - The DNA's agent executes as facilitator, product-owner, developer, reviewer, qa, architect and
   tech-lead with **no approval authority**: `memory approve` / `reject` are run by the human
-  approver. Agents commit under the approver's git identity here, so this is a process rule, not a
-  check of the CLI.
+  approver. Agent sessions commit as
+  `WingFoil UI Agent <352896614+wingfoil-dev@users.noreply.github.com>` (the project's machine
+  account `wingfoil-dev`), set by the approver as the four `GIT_AUTHOR_*`/`GIT_COMMITTER_*`
+  variables in the Claude Code `env` of the main checkout's git-ignored
+  `.claude/settings.local.json` (task-050). It reaches Claude Code
+  sessions whose working directory is in this repository, on the approver's machine, and their
+  subagents; another tool (Cursor, Codex), a cloud session, another machine, a session started in
+  another repository, or a missing or broken file gets no agent identity — there the process rule
+  alone applies. At the start of every session run `git var GIT_AUTHOR_IDENT`: if it shows a team
+  member's address (the approver's) instead of the agent's, stop and tell the approver before any
+  commit. Never unset or override the variables, and never set an identity in the repository's git
+  configuration. Under the agent identity the CLI refuses `memory approve`, `reject` and `amend`
+  (`user not authorized to approve type '…'`): this prevents approvals by mistake, not a deliberate
+  override (`wingfoil-cli` W-39), so "an agent never approves" stays a process rule. Paths that
+  still act as the approver: the desktop app's terminal panel (its shells are not the session's
+  children) and a browser driven on the approver's console. An agent never runs `approve`,
+  `reject` or `amend`, nor clicks Approve or Reject, through either. A console acts as whoever
+  started it (its children keep the identity variables): approvals are made from a console the
+  approver started, never from one an agent session started.
 - A wrong or surprising CLI behaviour becomes a `wingfoil-cli` entry and, when it is a WingFoil
   defect or gap, a note in `docs/wingfoil-feedback/`.
 
