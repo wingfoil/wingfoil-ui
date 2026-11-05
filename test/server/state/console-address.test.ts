@@ -473,6 +473,17 @@ describe('stale rule and start housekeeping (AC-4, adr-003 D3)', () => {
     await a.stop();
     expect(await readdir(path.join(dir, CONSOLES_DIR))).toEqual(['4932.json']);
   });
+
+  // Review round 2: two publishers in one process share the pid; the second one's start must not
+  // take the first one's live file for a dead earlier holder of the pid (F5's rule).
+  it('two publishers in one process with different start times keep both files', async () => {
+    const dir = stateDir();
+    const a = publish(dir, { port: 5101, started: new Date('2026-11-05T10:00:01.000Z') });
+    expect(await a.written).toBe(true);
+    const b = publish(dir, { port: 5102, started: new Date('2026-11-05T10:00:02.000Z') });
+    expect(await b.written).toBe(true);
+    expect((await readdir(path.join(dir, CONSOLES_DIR))).sort()).toEqual(['5101.json', '5102.json']);
+  });
 });
 
 describe('removal (AC-5, adr-003 D2)', () => {
