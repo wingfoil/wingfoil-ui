@@ -14,7 +14,7 @@ bug: ["bug-024-one-memory-file-without-frontmatter-hides-the-whole-elements-list
                        # task already owns the ground. Each bug listed moves with its own verbs (`.wingfoil/memory.yaml`):
                        # the approver's `memory approve` triaged -> planned, `memory submit` planned -> in-progress when
                        # this task starts, then submit/approve along its machine; no `bug.sync_state` since the packs adoption
-depends_on: ["task-054-ui-configuration-file-read-with-its-schema-and-the-config-section"]         # optional — ids of tasks whose Execution Notes constrain this one; authored at planning time, may be appended during design
+depends_on: ["task-054-ui-configuration-file-read-with-its-schema-and-the-config-section", "task-068-ui-configuration-section-of-the-config-api"]         # optional — ids of tasks whose Execution Notes constrain this one; authored at planning time, may be appended during design
 tmpl_version: 260703   # Orignal template version
 ---
 
@@ -93,8 +93,9 @@ absorbs:
 ## Implementation Notes
 
 - Wave 1 (release-planning v0.3 step 6, B1). It depends on
-  task-054-ui-configuration-file-read-with-its-schema-and-the-config-section for the `/config`
-  `ui` strings it escapes: read its Execution Notes first.
+  task-054-ui-configuration-file-read-with-its-schema-and-the-config-section and, since the split
+  (W1-6), task-068-ui-configuration-section-of-the-config-api, which serves the `/config` `ui`
+  strings it escapes: read both tasks' Execution Notes first.
 - Read at design: spec-001 §2, §3 and its Process Notes; spec-002 §1; spec-004 §5; spec-012 §9;
   spec-011 §3; task-046's Execution Notes (the sanitiser's rules, its review rounds and the lesson
   *For the retrospective of minor-v0.3*); task-048 D48-8 (where bug-027 was found); the code of
