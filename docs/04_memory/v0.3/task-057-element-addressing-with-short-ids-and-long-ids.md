@@ -349,3 +349,61 @@ archived match is chosen when a live one matches", recorded in a dated spec-011 
 Q2-a — the UTF-16 unit stated in a spec-011 Process Note, boundary tests with ASCII, `é` and an
 astral character; Q3-a — W-46 and F-038 recorded by the coordinator through a separate
 `governance-evolution` run, outside this task's diff (P1 above is the evidence).
+
+### red / green / refactor (2026-11-05)
+
+Commits on `task/task-057-element-addressing-with-short-ids-and-long-ids`: `c835b60a` contracts
+first (`shortId` in the three schemas, `element.refusal.schema.json`, the types, the contract test
+`api-element-schema`); `5ccbeefd` red; `98131340` green (server); `eb401e3e` docs (spec-004 and
+spec-011 Process Notes, AC-2 reworded, CHANGELOG, user guide 0.25); `fa65ace9` the short-id
+step's filter named; `c00439d0` the one-console rule.
+
+- **Red** (`npx vitest run` of the eight suites, in this worktree, load 6.57 → 16.71): 290 passed,
+  22 failed — every failure on new behaviour: `short-id` and `element-address` (no module), the
+  parameter-length tests of `app.test.ts` (12: 101 characters answered 404 with a web build and 400
+  without one, a 256-character `POST` 400), the bin row of `local-security` (`POST` 400), the three
+  long-id writes and the long-id read (400 `invalid-request`: these suites run without a web
+  build), `shortId` on the rows, the read and Today (absent), a short id, an archived short id and an
+  ambiguous one (404). Characterization tests passed at once: history and the three writes with a
+  short id (404, no process), the unknown ids (E2), a live full id with no archived search, the
+  contract test (red only against the unchanged schemas: one failure, checked before the commit), and
+  the restructured bug-028 tests.
+- **Green** (same suites, load 8.17 → 10.42): 355 passed, 3 failed — the Today oracle of
+  `today-routes.test.ts` compared the row's element field by field; the row now carries `shortId` by
+  design, so the oracle takes the list's `shortId` too. Re-run with the snapshot process audits
+  (`test/server/snapshot`): 251 passed (load 25.94 → 21.16).
+- **Refactor:** `ProjectRead.shortIds()` reads `memory.yaml` alone, once per state (`derived`),
+  instead of through the descriptor inputs, so the resolution of an unknown id starts no `dna show`.
+- **Deviations:** (1) the source's archived list is named `retired()`: a key `archived` fails the
+  REQ-ARC-05 lint (`wfui/no-methodology-literal`); (2) `test/lint/one-console-per-test.test.ts`
+  flagged the AC-1 test (two consoles: split in two) and the history helper (a start inside a
+  `.map(...)` expression: hoisted); (3) the red check of the contract test was done with `git
+  stash` on the three schema files, popped at once — `git stash` is outside the dev-loop rules; no
+  later check used it; (4) the red test `short-id.test.ts` got a type-only fix (an omitted
+  `id_pattern` under `exactOptionalPropertyTypes`) after red.
+- **bug-028 (AC-7):** at design the two history tests took 17.0 s and 14.1 s at load 9–14 (P5); after
+  D57-10 the `addOperations` work runs once in the file's hook (`HEAVY_MS`) and the bodies only read.
+- **Strict identity** (dl-011; `test/README.md` *Git identity*: a `git` first on the `PATH`, outside
+  the repository, running `git -c user.useConfigOnly=true` and `remote set-head -a` after a fetch or
+  pull): `project-routes`, `element-writes`, `today-routes` and `local-security` — 272 passed (load
+  23.51 → 13.39).
+
+#### Gates (on `c00439d0`, this worktree)
+
+| Gate | Slot wait · 1-min load | Result |
+|------|------------------------|--------|
+| `npm run typecheck`, `npm run lint`, `npm run format:check` | — | clean |
+| `npm run docs:api` | — | generated (not tracked) |
+| `npm run test:contract`, `npx vitest run test/docs test/governance test/lint test/harness/fixtures.test.ts` | — · 26.73 → 14.36 | 338 passed, 2 skipped; the docs/governance/lint run passed after the one-console fix (7/7 re-run) |
+| `python3 docs/03_backlog/X_tools/check_tasks.py v0.3` | — | OK |
+| `npm run test:coverage` (AC-7: `project-routes.test.ts` in it) | 6 min 50 s · granted 9.01 → end 13.69 | 185 files passed, 1 skipped; 3 601 tests passed, 2 skipped; statements 96.67 %, branches 91.57 %, functions 97.44 %, lines 98.43 % |
+| `npm run test:e2e:chromium` | 6 min 05 s · granted 12.13 → end 12.54 | 323 passed (14.4 min); no console left |
+
+No own e2e spec (the UI scenarios are task-062's); `test:smoke` not run: no packaging, launcher or
+bin change. No `wfui-*` folder of this worktree's runs left (the one present at the end belonged to
+another worktree's running suite).
+
+**For task-062:** `shortId` on `element`, the `/elements` rows and `TodayRow.element` (absent when
+none); the 409 body and the 404 as D57-4 (`ElementRefusalBody`, `AmbiguousIdDetail` in
+`@wingfoil-ui/contracts`); the helper `addLongIdElement(fixture, { length?, submit? })` from
+`test/harness/fixtures/index.ts` (`LONG_ID_MAX` = 252), on a kanban copy.
