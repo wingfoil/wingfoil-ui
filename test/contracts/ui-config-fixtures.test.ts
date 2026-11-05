@@ -17,6 +17,7 @@ import { parseUiYaml } from '../../server/src/ui-config/parse.js';
 import {
   buildFixture,
   copyFixture,
+  customGovernance,
   usePrePacksStates,
   usePresetUiConfig,
   type Fixture,
@@ -72,7 +73,9 @@ describe.each(versions)('WingFoil %s', (version) => {
     ['alone', [usePresetUiConfig]],
     ['after the pre-packs states', [usePrePacksStates, usePresetUiConfig]],
     ['before the pre-packs states', [usePresetUiConfig, usePrePacksStates]],
-  ] as const)('AC-7 — the custom fixture with the sw-life-cycle preset, %s', async (_label, steps) => {
+  ] as const)('AC-7 — the custom fixture with the sw-life-cycle preset, %s', async (label, steps) => {
+    // Below WingFoil 0.3 the custom fixture already has the pre-packs states (customGovernance).
+    if (label !== 'alone' && customGovernance(version) === 'pre-packs') return;
     const fx = await copy(built[version]!.custom);
     const head = (await git(fx.dir, ['rev-parse', 'HEAD'], fx.env)).stdout.trim();
     for (const step of steps) await step(fx);

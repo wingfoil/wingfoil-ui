@@ -1,0 +1,128 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://wingfoil-ui.local/contracts/files/ui-yaml.schema.json",
+  "$comment": "ui.yaml version 1",
+  "title": ".wingfoil/ui.yaml",
+  "description": "The UI's own file (spec-005 §1, REQ-ARC-07): the keys and closed values of version 1; unknown keys are errors at every level. The semantic checks (declared types and states, the safe subset of taxonomy.patterns) are the server's (server/src/ui-config/check.ts).",
+  "type": "object",
+  "required": ["version"],
+  "additionalProperties": false,
+  "properties": {
+    "version": {
+      "const": 1
+    },
+    "taxonomy": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "categories": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/category"
+          }
+        },
+        "patterns": {
+          "type": "array",
+          "maxItems": 32,
+          "items": {
+            "type": "object",
+            "required": ["match", "category"],
+            "additionalProperties": false,
+            "properties": {
+              "match": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200
+              },
+              "category": {
+                "$ref": "#/definitions/category"
+              }
+            }
+          }
+        },
+        "requires": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "array",
+            "items": {
+              "$ref": "#/definitions/category"
+            }
+          }
+        }
+      }
+    },
+    "progress": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "mode": {
+          "enum": ["sequence", "flow"]
+        },
+        "scope": {
+          "type": "object",
+          "required": ["type"],
+          "additionalProperties": false,
+          "properties": {
+            "type": {
+              "type": "string"
+            }
+          }
+        },
+        "phases": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "iterates": {
+          "type": "string"
+        },
+        "defects": {
+          "type": "string"
+        }
+      }
+    },
+    "holds": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": {
+          "type": "object",
+          "required": ["approve"],
+          "additionalProperties": false,
+          "properties": {
+            "approve": {
+              "enum": ["never", "when-references-done"]
+            }
+          }
+        }
+      }
+    },
+    "artifacts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["path", "phase"],
+        "additionalProperties": false,
+        "properties": {
+          "path": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500,
+            "pattern": "^(?:https://[^\\s\\u0000-\\u001f\\u007f-\\u009f]+|(?![/\\\\])(?!.*\\\\)(?!.*//)(?!.*/$)(?!(?:.*/)?\\.\\.(?:/|$))[^\\u0000-\\u001f\\u007f-\\u009f]+)$"
+          },
+          "phase": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "category": {
+      "enum": ["work", "defect", "decision", "spec", "requirement", "feature", "release", "external"]
+    }
+  }
+}
