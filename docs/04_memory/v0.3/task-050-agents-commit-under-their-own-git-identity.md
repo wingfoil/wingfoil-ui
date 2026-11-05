@@ -430,3 +430,55 @@ reach subagents or worktree sessions.
   - comparison without the four variables (`env -u …`) of the AC-4 files `git-identity`,
     `git-env`, `clone`: 3 files, 21 passed — the same as with them.
   - No console left (`pgrep -af bin/wingfoil-ui.cjs`), no `wfui-*` in the temporary folder.
+
+### review round 1 (2026-11-05) — security-adversarial: FAIL (1 major, 2 minor, 3 nits)
+
+The phase branch was merged into this branch first (`208e48c9`).
+
+- **MAJOR 1 — the identity's reach was overstated.** Every sentence is rescoped. The agent
+  identity reaches only Claude Code sessions whose working directory is in this repository, on the
+  approver's machine, once the approver's `.claude/settings.local.json` exists. Another tool
+  (Cursor, Codex: they read `AGENTS.md`), a cloud session, another machine, a session started in
+  another repository, or a missing or broken file gets none, and the process rule alone applies.
+  A self-check is added: run `git var GIT_AUTHOR_IDENT` at session start, and if it shows a team
+  member's address, stop and tell the approver. The committed `AGENTS.md` bullet is true today:
+  "until `CLAUDE.md` says the identity is in place, assume it is not" (`d24e8d4b`). The same text
+  is in the `CLAUDE.md` 0.18 draft (uncommitted, address pending), in `release-conventions` 1.6
+  and in W-39 (`wingfoil-cli` 1.23); both directives are uncommitted, waiting for the approver's
+  OK on `task-050-wingfoil-r1.diff`.
+- **MINOR 2 — paths that still act as the approver** are named: the desktop app's terminal panel
+  (its shells are not the session's children and get no `env`), and a browser driven on the
+  approver's console. The rule in `AGENTS.md` and the `CLAUDE.md` draft: an agent never runs
+  `approve`, `reject` or `amend`, and never clicks Approve or Reject, through either. For the
+  coordinator's dev-loop rules, add: "never (re)start the links console from an agent session".
+- **MINOR 3 — AC-4 on the whole suites.** Each heavy gate ran twice through the slot on the same
+  tree (HEAD `d24e8d4b`, `CLAUDE.md` the only uncommitted file; the two directives were set aside
+  during the runs and re-applied identical, `cmp`), first without the four variables (none set),
+  then with the stand-in identity:
+
+  | Gate | Without the variables | With the stand-in identity |
+  |------|-----------------------|----------------------------|
+  | `test:coverage` | wait 5 s, load 1.24 / 16.29; 179 files passed, 1 skipped; 3476 passed, 2 skipped; 96.64 / 91.53 / 97.35 / 98.42 % | wait 20 s, load 12.24 / 20.27; 179 files passed, 1 skipped; 3476 passed, 2 skipped; 96.64 / 91.51 / 97.35 / 98.42 % |
+  | `test:contract` | wait 35 s, load 11.90 / 5.69; 11 files passed, 1 skipped; 323 passed, 2 skipped | wait 5 s, load 5.39 / 3.24; the same |
+  | `test:e2e:chromium` | wait 5 s, load 3.06 / 10.27; 323 passed (13.9 min) | wait 5 s, load 9.53 / 9.59; 323 passed (13.3 min) |
+
+  The results are the same. The branch coverage differs by 0.02 points (91.53 vs 91.51) under
+  different loads; the test totals are equal.
+- **NIT 4.** The light-gates log of the first gate run (typecheck, lint, format, `test/docs`,
+  `check_tasks.py`) has no load line and no stand-in label: the stand-in header was printed to
+  the terminal, not into the log. The log is left as it is; the values above (load 7.57) come
+  from that terminal output. The acceptance check reads `env`; Claude Code reloads settings that
+  change during a session, so the check does not assume a restart.
+- **NIT 5.** W-39 now names the detection query for a careless bypass, where only `GIT_AUTHOR_*`
+  is overridden: `git log --format='%an / %cn: %s' --grep='^Approver:'`. Such a commit shows the
+  approver as author and the agent as committer. In the reviewer's probe it shows on the two
+  bypass approvals, while the approver's own approvals show the approver twice.
+- **NIT 6.** The reviewer reproduced `workflow finalize` of an `approval:` phase on a throwaway
+  clone, with a custom workflow whose gate phase declares `approval:`. The agent gets exit 1,
+  `user not authorized to approve type 'plan'`, and the approver gets exit 0 (the finalize commit
+  carries the `Approver:` line). W-39 now cites it.
+- Checks after the fixes: `npx vitest run test/docs test/wingfoil-feedback.test.ts
+  test/governance` passed, except the diagnostics baseline, which reports the uncommitted
+  directives (`W_UNCOMMITTED_INPUTS`). It passes with them set aside (4 passed). A first draft of
+  W-39 had a `|` in the query, which split the table cell (`wingfoil-feedback.test.ts`); the
+  query now uses `/`. `format:check` is clean.
