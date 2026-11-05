@@ -482,3 +482,26 @@ The phase branch was merged into this branch first (`208e48c9`).
   directives (`W_UNCOMMITTED_INPUTS`). It passes with them set aside (4 passed). A first draft of
   W-39 had a `|` in the query, which split the table cell (`wingfoil-feedback.test.ts`); the
   query now uses `/`. `format:check` is clean.
+
+### the machine account's address (2026-11-05)
+
+- **Approver's OK on the round-1 `.wingfoil/` diff** (quoted: "3 ok diff"): committed as saved
+  (`cmp` identical) as `592b7148` (`wingfoil-cli` 1.23, `release-conventions` 1.6).
+- **The address.** The approver created the project's machine account `wingfoil-dev` on GitHub.
+  Its id-qualified noreply address is `352896614+wingfoil-dev@users.noreply.github.com`, so the
+  agent identity is `WingFoil UI Agent <352896614+wingfoil-dev@users.noreply.github.com>`. Only
+  the noreply address appears in text. `CLAUDE.md` 0.18 carries it, and no placeholder is left in
+  the repository.
+- **Q4 probe again, with this address** (a throwaway clone of `592b7148`, the pinned CLI, the
+  approver's identity isolated in a probe git configuration):
+  - with the address set as `team.agents[0].email` in the clone only: `dna show` exits 0. The
+    field stays optional, and this repository's `dna.yaml` is unchanged;
+  - with `dna.yaml` as committed: the agent's `memory add` and `submit` exit 0, and the commit's
+    author and committer are `WingFoil UI Agent <352896614+wingfoil-dev@users.noreply.github.com>`;
+  - the agent's `memory approve` and `reject` exit 1 with `user not authorized to approve type
+    'task'`, and nothing is committed;
+  - the approver's `memory approve` exits 0 (`pending → backlog`), authored by the approver.
+- **What the approver writes** in the main checkout's `.claude/settings.local.json`: an `env`
+  block with `GIT_AUTHOR_NAME` and `GIT_COMMITTER_NAME` set to `WingFoil UI Agent`, and
+  `GIT_AUTHOR_EMAIL` and `GIT_COMMITTER_EMAIL` set to the address above. Then the acceptance check
+  of *design* › (a), with `env` (no restart assumed).
