@@ -10,9 +10,15 @@ import { isAlias, isMap, isNode, isScalar, LineCounter, parseDocument, visit, ty
 /** The parsed data, or the first failure as spec-005 §2 renders it. */
 export type UiYamlParse = { ok: true; data: unknown } | { ok: false; failure: string };
 
-/** The first line of a YAML engine message, without the colon that introduces its excerpt. */
-function engineMessage(message: string): string {
-  return (message.split('\n')[0] ?? '').replace(/:\s*$/, '');
+/**
+ * The first line of a YAML engine message with its position, as the library's `prettyErrors` would
+ * write it ("… at line L, column C"). Built here for the first error only: `prettyErrors` builds an
+ * excerpt for every error, quadratic on a file of many errors (64 KiB of repeated tags or anchors:
+ * 1.3–4.3 s, review round 1 F1).
+ */
+function engineMessage(message: string, offset: number, lineCounter: LineCounter): string {
+  const pos = lineCounter.linePos(offset);
+  return `${(message.split('\n')[0] ?? '').replace(/:\s*$/, '')} at line ${pos.line}, column ${pos.col}`;
 }
 
 /** Parse `text` as `ui.yaml` (D54-3). */
@@ -22,11 +28,11 @@ export function parseUiYaml(text: string): UiYamlParse {
     schema: 'core',
     merge: false,
     uniqueKeys: false,
-    prettyErrors: true,
+    prettyErrors: false,
     lineCounter,
   });
   const first = doc.errors[0];
-  if (first) return { ok: false, failure: engineMessage(first.message) };
+  if (first) return { ok: false, failure: engineMessage(first.message, first.pos[0], lineCounter) };
 
   let failure: string | undefined;
   const at = (node: { range?: [number, number, number] | null } | null | undefined, what: string): void => {

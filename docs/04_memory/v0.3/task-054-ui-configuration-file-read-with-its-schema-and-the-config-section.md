@@ -239,8 +239,10 @@ console (its own port and state directory; the links console was not touched) we
   valid UTF-8"; a BOM is dropped). Another error (`EACCES`, `EIO`) → "cannot be read". The SHA-256
   of the bytes travels with the text (D54-7). The root is the project's realpath (spec-004 §3), so
   only `.wingfoil` and `ui.yaml` can be links. **Declared residual:** Node has no `openat`, so a
-  local process that swaps `.wingfoil` twice between the second `lstat` of `.wingfoil` and the
-  `fstat` comparison is not caught; that needs write access to the working tree (it could edit
+  local process that swaps `.wingfoil` for a link after its first `lstat` and back before its
+  re-check is not caught (corrected in review round 1, F4: the `lstat` of `ui.yaml` and the open
+  both pass through the link, so the window runs from the first `lstat` of `.wingfoil` to its
+  re-check); that needs write access to the working tree (it could edit
   `ui.yaml` itself), not push access — the threat model of this read (repository content) is
   covered. A hard link is the entry's own content. (The Linux-only form of `openat` through the
   process's open descriptors of `.wingfoil` is not used: not portable.)
@@ -533,3 +535,13 @@ module API of D54-1.
 - The failure text quotes the file: it passes `redactLocalPaths` with the project's local roots
   (`SnapshotView.uiConfig`).
 - Not here (split): the `/config` echo and its escape, the state key of an ignored `ui.yaml`.
+
+### review round 1 (2026-11-05, security-adversarial: FAIL, one major)
+
+| Finding | Fix | Test |
+|---------|-----|------|
+| **F1 (major)** — `parse.ts` `prettyErrors: true`: the engine builds an excerpt for every error, quadratic; 64 KiB of repeated tags (`x: !a !a … x`) or anchors cost 1.3–4.3 s | `prettyErrors: false`; only the first error is rendered, "… at line L, column C" from the `LineCounter` and `error.pos[0]` (the C-04.2 texts unchanged) | red first (`0050ad86`): `test/server/ui-config/parse.test.ts` › "64 KiB of repeated tags / anchors" — structural (every `parseDocument` call with `prettyErrors: false`) and the fastest of 3 runs under 1 s; it failed at 10.6 s and 8.0 s under the old option, passes after. Residual re-measured (fastest of 3, load 5.71, a scratch script on `server/dist`): 64 KiB of unclosed flow collections 390 ms, repeated anchors 267 ms, repeated tags 246 ms, 32 768 nested flows 147 ms (952 ms before), 7 400 keys 97 ms — spec-005's Process Note corrected from "about 1 s" to "about 0.4 s" (the approver's acceptance and the design's "about 1 s" above are kept as they were written) |
+| F2 (minor) — the `artifacts` path rule and `74441259` (empty segment) | none yet: with the approver, relayed by the coordinator | — |
+| F3 (minor) — C-01.2, T-12.1, T-12.4, T-12.5, C-02.1, C-02.3, C-02.5 only in file headers | the ids in the titles of the tests that cover them (`effective.test.ts` the sw-life-cycle declared values; `presets/ui-config.test.ts` the Kanban contents and the rendering of each preset) | titles |
+| F4 (nit) — the residual's window runs from the **first** `lstat(.wingfoil)` to its re-check (the reviewer swapped `.wingfoil` for a link right after it and back after the open, and read an outside file) | the comment of `server/src/reads/ui-yaml.ts` and D54-2 corrected; spec-005's "inside the read's window" kept | — (declared residual) |
+| F5 (nit) — `{n}`/`{n,}` unbounded as spec-005 writes it, measured harmless | none | — |

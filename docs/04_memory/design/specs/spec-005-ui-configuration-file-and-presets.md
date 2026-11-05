@@ -384,7 +384,9 @@ remaining non-methodology hit needs a justified inline disable.
   with the compile first; §1 the failure texts of the schema; §1 the rules of `artifacts[].path` and
   `phase`; §2 the YAML texts, the unreadable entry and a linked `.wingfoil` (task-054 D54-2, D54-3,
   clarifications: no valid file changes meaning). Declared residuals, accepted by the approver: a
-  YAML parse of up to about 1 s once per distinct hostile content (deep flow nesting at 64 KiB;
-  the parse is cached by the content's SHA-256), and a local process swapping `.wingfoil` twice
+  YAML parse of up to about 0.4 s once per distinct hostile content (64 KiB of unclosed flow
+  collections, deep nesting, repeated tags or anchors — re-measured in task-054 review round 1,
+  after the engine's per-error excerpts were turned off; the parse is cached by the content's
+  SHA-256), and a local process swapping `.wingfoil` twice
   inside the read's window (Node has no `openat`; the read compares the descriptor's device and
   inode with the path's) — both need write access to the repository or the working tree.

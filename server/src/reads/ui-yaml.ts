@@ -14,8 +14,9 @@
  * 4. at most 64 KiB + 1 bytes read from the descriptor, decoded as strict UTF-8 (a BOM dropped).
  *
  * Declared residual (spec-005 Process Note 2026-11-05): Node has no `openat`, so a local process
- * swapping `.wingfoil` twice inside the window of step 3 is not caught; it needs write access to the
- * working tree. Nothing here writes.
+ * that swaps `.wingfoil` for a link after the first `lstat` of step 1 and puts it back before its
+ * re-check in step 3 is not caught (the `lstat` of step 2 and the open both pass through the link;
+ * review round 1 F4); it needs write access to the working tree. Nothing here writes.
  */
 import { createHash } from 'node:crypto';
 import { constants } from 'node:fs';
