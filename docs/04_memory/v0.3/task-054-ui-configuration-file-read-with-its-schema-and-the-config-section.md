@@ -36,6 +36,13 @@ echoed `ui.yaml` strings escaped, K1 of RP3-18); spec-004 §3, §5. It also adds
 "the custom fixture with the sw-life-cycle preset" (`02_bdd/00_conventions.md` *Preset variant*)
 that the T2, M2, R5 and C1 scenarios open.
 
+**Split (2026-11-05, the approver, `backlog-item-rel-v0.3-plan` W1-6, RP3-20 G2):** the design found
+the task larger than about one active day. This task keeps the read, the checks, the inferred
+values, the presets as data, the fixture variant and the module API (D54-1);
+task-068-ui-configuration-section-of-the-config-api takes the `ui` section of `GET
+/api/p/:pid/config` (former AC-5), the repository-state key of `ui.yaml` (the last sentence of
+former AC-3, with the ignored-file mark of Q4) and the scenarios' API-level tests.
+
 **Backlog items:** TT-ARC-07, US-C-04
 
 ## Acceptance Criteria
@@ -58,19 +65,14 @@ that the T2, M2, R5 and C1 scenarios open.
   failure each give the inferred values and the warning "ui.yaml ignored: <failure>"; no entry gives
   the inferred values and no warning; a valid file's values are `declared`, omitted keys `inferred`,
   the current element of `scope` `derived` (its derivation is task-059's — this task carries the
-  `scope` type). An edit of the file, tracked or untracked, changes the repository-state key and
-  emits `repo` (spec-012 §8, REQ-PERF-03).
+  `scope` type). The repository-state key of the file (spec-012 §8, REQ-PERF-03) is
+  task-068-ui-configuration-section-of-the-config-api's.
 - **AC-4 — Inferred values.** The table of spec-005 §3 lives in `server/src/presets/` (the only place
   where type names may appear in code, REQ-ARC-05; lint rule `wfui/no-methodology-literal`); on the
   kanban, scrum, custom and unknown fixtures the effective values equal §3's (e.g. `task` → work,
   `bug` → defect; a type with no category "No category — not counted in progress figures").
-- **AC-5 — `ui` section of `/config`.** `contracts/api/ui-config.schema.json` (new: `status`,
-  `elementRef`, `origin`) and `config.schema.json`'s `ui` property (absent when `memory.yaml` cannot
-  be read) as spec-012 §2 and §7; `status.source` `file` / `none` / `ignored`, `warning {code:
-  "ui-config-ignored", failure}`, `failure` through `redactLocalPaths`; every echoed `ui.yaml`
-  string (`patterns[].match`, type names, `phases`, `holds` types and states, `artifacts` paths)
-  escaped (spec-012 §9, K1): an API test with a bidi control and a C1 control in each gets them
-  escaped. The body validates on the three fixtures; `npm run docs:api` regenerated.
+- **AC-5 — moved** to task-068-ui-configuration-section-of-the-config-api (the split, W1-6): the
+  `ui` section of `/config`, its API schemas and the escaping of the echoed strings.
 - **AC-6 — Presets as data.** The Kanban, Scrum and WingFoil `sw-life-cycle` presets of spec-005 §5
   are rendered from `server/src/presets/` (no user text enters them); each validates and passes the
   semantic checks on its own template's fixture on 0.2.2 and 0.3.1, and the sw-life-cycle preset is
@@ -79,14 +81,15 @@ that the T2, M2, R5 and C1 scenarios open.
 - **AC-7 — Preset fixture variant.** The harness builds "the custom fixture with the sw-life-cycle
   preset" — the custom fixture plus the commit `chore(ui): apply the WingFoil sw-life-cycle preset`
   writing the rendered preset — on both CLI versions and with the pre-packs states
-  (`usePrePacksStates`); on it `/config` `ui` reports `source: file`, `scope: {type: release}` and
+  (`usePrePacksStates`); on it the effective configuration (D54-1) reports `source: file`, `scope: {type: release}` and
   the categories, patterns and `requires` of §5; the commit-provenance checker
   (`test/harness/commit-provenance.ts`) accepts this commit (task-060 accepts the console's own).
   `test/README.md` *Fixtures* documents the variant.
 - **TT-ARC-07** (REQ-ARC-07 — `ui.yaml`: the UI's only file) — this task is the read; each
-  `@v0.3` scenario passes here at the API level (the effective values, origins and warnings the
-  scenario needs, an API test titled with its id) and closes in the e2e of the task named:
-  - C-01.1, C-01.2, C-01.3 (`c/ui-yaml.feature`: inferred, declared, no category) — `/config` `ui`
+  `@v0.3` scenario passes here at the module level (the effective values, origins and warnings the
+  scenario needs, a unit test titled with its id), at the API level in
+  task-068-ui-configuration-section-of-the-config-api, and closes in the e2e of the task named:
+  - C-01.1, C-01.2, C-01.3 (`c/ui-yaml.feature`: inferred, declared, no category) — the effective
     origins and categories here; the Configuration tabs e2e in task-064;
   - C-02.1, C-02.3, C-02.5 (the preset applied, not offered when `ui.yaml` exists, not offered to a
     user outside the team) — the preset contents (AC-6) here; the write in task-060, the control and
@@ -99,7 +102,8 @@ that the T2, M2, R5 and C1 scenarios open.
     figures in task-059, the card in task-065;
   - S-24.5, S-24.6 (`s/action-descriptor.feature`: held gates) — the `holds` key and its checks
     here; the descriptor's holds in task-055.
-- **US-C-04** — every `@v0.3` scenario (`c/ui-yaml.feature`) passes at the API level here:
+- **US-C-04** — every `@v0.3` scenario (`c/ui-yaml.feature`) passes at the module level here, and
+  at the API level (`/config` `ui`) in task-068:
   - C-04.1 Fall back to inferred values when ui.yaml is invalid — `progress.mode: spiral` gives
     `source: ignored`, the failure "progress.mode must be sequence or flow (found spiral)" and
     inferred values (`mode: flow`, no scope); Today's warning and "Whole project" in task-065;
