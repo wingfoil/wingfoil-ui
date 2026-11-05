@@ -77,6 +77,14 @@ describe('checkUiYaml — the schema (first failure)', () => {
       'artifacts[0].path must be a repository path or an https:// URL',
     ],
     [
+      { version: 1, artifacts: [{ path: 'javascript:alert(1)', phase: 'release' }] },
+      'artifacts[0].path must be a repository path or an https:// URL',
+    ],
+    [
+      { version: 1, artifacts: [{ path: 'C:/x', phase: 'release' }] },
+      'artifacts[0].path must be a repository path or an https:// URL',
+    ],
+    [
       { version: 1, artifacts: [{ path: 'https://a b', phase: 'release' }] },
       'artifacts[0].path must be a repository path or an https:// URL',
     ],
@@ -96,6 +104,9 @@ describe('checkUiYaml — the schema (first failure)', () => {
 
   it('accepts the admitted artifact paths', () => {
     for (const path of [
+      'dist/',
+      'a//b',
+      'a/b:c',
       'dist/wingfoil-{version}.tgz',
       'https://www.npmjs.com/package/wingfoil/v/{version}',
       'a..b/c',

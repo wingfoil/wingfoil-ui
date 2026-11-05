@@ -30,6 +30,13 @@ describe('contracts/files/ui-yaml.schema.json', () => {
     expect(valid({ version: 1 })).toBe(true);
   });
 
+  it.each(['dist/', 'a//b', 'a/b:c', 'reports/{release}/e2e.md', 'https://example.test/x'])(
+    'accepts the artifact path %s (the approver, 2026-11-05: no colon in the first segment, empty segments allowed)',
+    (path) => {
+      expect(valid({ version: 1, artifacts: [{ path, phase: 'release' }] })).toBe(true);
+    },
+  );
+
   it.each<[string, unknown]>([
     ['permissions (REQ-ARC-07)', { version: 1, permissions: { approve: ['approver'] } }],
     ['an unknown category', { version: 1, taxonomy: { categories: { task: 'chore' } } }],
@@ -59,7 +66,30 @@ describe('contracts/files/ui-yaml.schema.json', () => {
     ],
     ['an absolute artifact path', { version: 1, artifacts: [{ path: '/x', phase: 'release' }] }],
     ['an artifact path with ..', { version: 1, artifacts: [{ path: 'a/../b', phase: 'release' }] }],
-    ['an artifact path with an empty segment', { version: 1, artifacts: [{ path: 'a//b', phase: 'release' }] }],
+    [
+      'an artifact path whose first segment holds a colon: javascript:alert(1)',
+      { version: 1, artifacts: [{ path: 'javascript:alert(1)', phase: 'release' }] },
+    ],
+    [
+      'an artifact path whose first segment holds a colon: data:text/html,x',
+      { version: 1, artifacts: [{ path: 'data:text/html,x', phase: 'release' }] },
+    ],
+    [
+      'an artifact path whose first segment holds a colon: mailto:x@example.test',
+      { version: 1, artifacts: [{ path: 'mailto:x@example.test', phase: 'release' }] },
+    ],
+    [
+      'an artifact path whose first segment holds a colon: http:x',
+      { version: 1, artifacts: [{ path: 'http:x', phase: 'release' }] },
+    ],
+    [
+      'an artifact path whose first segment holds a colon: C:/x',
+      { version: 1, artifacts: [{ path: 'C:/x', phase: 'release' }] },
+    ],
+    [
+      'an artifact path whose first segment holds a colon: http://x',
+      { version: 1, artifacts: [{ path: 'http://x', phase: 'release' }] },
+    ],
     ['an artifact phase of 101 characters', { version: 1, artifacts: [{ path: 'a', phase: 'p'.repeat(101) }] }],
   ])('rejects %s', (_label, data) => {
     expect(valid(data)).toBe(false);
