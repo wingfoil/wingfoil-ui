@@ -10,7 +10,7 @@
  * the clone succeeds and runs no hook. task-029 (D29-3): the helpers live in `support.ts`, shared
  * with the staging publish smoke.
  */
-import { appendFile, chmod, lstat, mkdir, mkdtemp, realpath, rm, stat, writeFile } from 'node:fs/promises';
+import { appendFile, chmod, lstat, mkdir, mkdtemp, readFile, realpath, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -118,6 +118,15 @@ describe('launch smoke: the packed package installs and starts (bug-007)', () =>
 
   it('AC-3 npx wingfoil-ui --no-open serves the UI and the API with the token, clones with no hook (bug-008); SIGINT to the server: exit 0, no process left', async () => {
     const c = await timed('start (spawn → running line)', () => start());
+    // S-01.4 (task-058, spec-007 §7): the address file is there on the URL line, 0600 in a 0700
+    // folder, without the token; portFixed false (no --port).
+    const port = Number(new URL(c.origin).port);
+    const address = path.join(runEnv['WINGFOIL_UI_STATE_DIR']!, 'consoles', `${port}.json`);
+    const addressText = await readFile(address, 'utf8');
+    expect((await stat(address)).mode & 0o777).toBe(0o600);
+    expect((await stat(path.dirname(address))).mode & 0o777).toBe(0o700);
+    expect(addressText).not.toContain(c.token);
+    expect(JSON.parse(addressText)).toMatchObject({ url: `${c.origin}/`, port, portFixed: false, version });
     // The UI: the page and the application script it loads.
     const page = await fetch(`${c.origin}/`);
     expect(page.status).toBe(200);
@@ -164,14 +173,20 @@ describe('launch smoke: the packed package installs and starts (bug-007)', () =>
     process.kill(server.pid, 'SIGINT');
     expect(await c.exited, c.stderr()).toEqual({ code: 0, signal: null });
     expect(c.stdout()).toMatch(/\nWingFoil UI stopped\n/);
+    // S-01.5: gone once the stop line is printed.
+    await expect(lstat(address)).rejects.toThrow();
     await expectGroupGone(c.pgid);
   });
 
   it('AC-3 Ctrl-C (SIGINT to the process group) stops the console, npx reports the signal, no process left', async () => {
     const c = await start();
+    const address = path.join(runEnv['WINGFOIL_UI_STATE_DIR']!, 'consoles', `${new URL(c.origin).port}.json`);
+    expect((await lstat(address)).isFile()).toBe(true);
     process.kill(-c.pgid, 'SIGINT');
     // npm re-raises the signal its child got (ES-13): status 130 in a shell.
     expect(await c.exited).toEqual({ code: null, signal: 'SIGINT' });
     await expectGroupGone(c.pgid);
+    // The console's own stop removed its address file (task-058).
+    await expect(lstat(address)).rejects.toThrow();
   });
 });
