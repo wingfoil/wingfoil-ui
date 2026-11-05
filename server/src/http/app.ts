@@ -44,6 +44,12 @@ export function envelope(code: string, message: string): ErrorEnvelope {
   return { error: { code, message } };
 }
 
+/**
+ * The longest route parameter, in UTF-16 code units of its percent-decoded value (spec-011 §4,
+ * bug-019): an id is a file name (`<id>.md`, 255 bytes), so 252 characters at most.
+ */
+export const MAX_PARAM_LENGTH = 255;
+
 function notFound(reply: FastifyReply): FastifyReply {
   return reply.code(404).send(envelope('not-found', 'Not found'));
 }
@@ -53,11 +59,13 @@ export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
   const loggerInstance: FastifyBaseLogger = options.logger;
   const app = fastify({
     loggerInstance,
+    routerOptions: { maxParamLength: MAX_PARAM_LENGTH },
     // Errors Fastify raises before routing (e.g. a malformed URL) get the envelope too.
-    frameworkErrors: (_error, request, reply) => {
+    frameworkErrors: (error, request, reply) => {
       const fastifyReply = reply as unknown as FastifyReply;
       // The spec-004 §4 order holds here too: Host/Origin and, on /api, Sec-Fetch-Site (403), session
-      // (401), then the 400.
+      // (401), then the 404 of a too-long parameter (spec-011 §4, C1: an unknown id on every method)
+      // or the 400.
       if (!hasOwnOrigin(request.headers, request.raw.rawHeaders, options.security.port())) {
         return void refuseOrigin(fastifyReply);
       }
@@ -65,6 +73,7 @@ export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
         if (!isAllowedFetchSite(request.raw.rawHeaders)) return void refuseOrigin(fastifyReply);
         if (!isAuthenticated(request.headers, options.security)) return void refuseUnauthenticated(fastifyReply);
       }
+      if (error.code === 'FST_ERR_MAX_PARAM_LENGTH') return void notFound(fastifyReply);
       void fastifyReply.code(400).send(envelope('invalid-request', 'Invalid request'));
     },
   });

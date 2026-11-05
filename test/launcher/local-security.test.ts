@@ -618,3 +618,25 @@ describe('the git routes on the bin (spec-004 §1–4, spec-010 §8; task-033)',
     expect(JSON.parse(res.body)).toEqual({ error: { code: 'not-found', message: expect.any(String) } });
   });
 });
+
+describe('a route parameter over 255 code units on the bin (spec-011 §4, bug-019, task-057)', () => {
+  let l: Launcher;
+  beforeAll(async () => {
+    l = await launch();
+  });
+
+  const eid = `task-001-${'x'.repeat(247)}`; // 256 characters
+  it.each([
+    ['GET', `${PROJECT_API}/elements/${eid}`],
+    ['GET', `${PROJECT_API}/elements/${eid}/history`],
+    ['POST', `${PROJECT_API}/elements/${eid}/approve`],
+  ] as const)('%s %s → 401 without a session, 403 from another origin, else 404 not-found', async (method, urlPath) => {
+    expect((await request(l, method, urlPath)).status).toBe(401);
+    const auth = { authorization: `Bearer ${l.token}` };
+    const foreign = await request(l, method, urlPath, { ...auth, origin: 'https://evil.test' });
+    expect(foreign.status).toBe(403);
+    const res = await request(l, method, urlPath, auth);
+    expect(res.status).toBe(404);
+    expect(JSON.parse(res.body)).toEqual({ error: { code: 'not-found', message: expect.any(String) } });
+  });
+});

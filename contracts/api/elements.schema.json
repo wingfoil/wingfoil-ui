@@ -18,6 +18,11 @@
           "id": {
             "type": "string"
           },
+          "shortId": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The element's short id (spec-011 §1): the literal prefix of its type's id_pattern before {n} plus the digits of the full id; absent when the element has none."
+          },
           "title": {
             "type": "string"
           },

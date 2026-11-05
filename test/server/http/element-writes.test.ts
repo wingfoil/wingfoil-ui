@@ -29,6 +29,7 @@ import { createMemoryStateStore } from '../../../server/src/state/memory-store.j
 import type { StateStore } from '../../../server/src/state/store.js';
 import { pinnedCli, REPO_ROOT } from '../../harness/cli.js';
 import {
+  addLongIdElement,
   buildFixture,
   copyFixture,
   installCliStub,
@@ -37,6 +38,7 @@ import {
   type Fixture,
 } from '../../harness/fixtures/index.js';
 import { git, run } from '../../harness/run.js';
+import { HEAVY_MS } from '../../harness/load.js';
 import { pwned, SHELL_PAYLOAD } from '../../harness/security.js';
 import { TempWorkspace } from '../../harness/temp-workspace.js';
 import { cliBuildFor } from '../../contracts/support.js';
@@ -1086,5 +1088,58 @@ describe('review round 2 N1 — the reason never reaches the server log on a fai
     expect(res.body.error.code).toBe('write-incomplete');
     expect(log.join('')).toMatch(/governed write/);
     expect(log.join('')).not.toContain(SECRET);
+  });
+});
+
+// spec-011 §3–§4 (task-057 AC-2, AC-3, bug-019): the writes take the full id only — a short id is an
+// unknown id (404, 0 processes on a read state, nothing written) — and the writes of an element whose
+// id is 252 characters long (the longest WingFoil writes) succeed like any other. The long-id
+// elements are added with the CLI once, in the hook (bug-028's rule, D57-10): each body copies.
+describe('spec-011 — short ids and long ids on the writes (task-057)', () => {
+  let longTemplate: Fixture;
+  let pending: string;
+  let draft: string;
+
+  beforeAll(async () => {
+    longTemplate = await copyFixture(template, path.join(await realpath(ws.dir), 'long-id'));
+    pending = (await addLongIdElement(longTemplate)).id;
+    draft = (await addLongIdElement(longTemplate, { submit: false })).id;
+    expect([pending.length, draft.length]).toEqual([252, 252]);
+  }, HEAVY_MS);
+
+  it.each([
+    ['submit', 'task-004', { expectedStatus: 'draft' }],
+    ['approve', 'task-001', { expectedStatus: 'pending', reason: 'ok' }],
+    ['reject', 'task-001', { expectedStatus: 'pending', reason: 'no' }],
+  ] as const)('%s with the short id %s → 404 not-found, 0 processes, nothing written', async (verb, eid, body) => {
+    const c = await start();
+    await c.warm();
+    const before = await c.head();
+    const p = await c.processes(async () => {
+      const res = await c.post(verb, eid, body);
+      expect(res.status).toBe(404);
+      expect(res.body).toEqual({ error: { code: 'not-found', message: expect.any(String) } });
+    });
+    expect(p.wingfoil + p.git).toBe(0);
+    expect(await c.head()).toBe(before);
+    expect(writes(c)).toEqual([]);
+  });
+
+  it.each([
+    ['submit', 'draft', { expectedStatus: 'draft' }, 'wf(task): submit '],
+    ['approve', 'pending', { expectedStatus: 'pending', reason: 'Long id approved' }, 'wf(task): approve '],
+    ['reject', 'pending', { expectedStatus: 'pending', reason: 'Long id rejected' }, 'wf(task): reject '],
+  ] as const)('%s of a 252-character id → 200 with its commit (bug-019)', async (verb, which, body, subject) => {
+    const eid = which === 'draft' ? draft : pending;
+    const c = await start({ template: longTemplate });
+    await c.warm();
+    const res = await c.post(verb, eid, body);
+    expect(res.status, JSON.stringify(res.body)).toBe(200);
+    expectSchema('write.response.schema.json', res.body);
+    expect(res.body.result.id).toBe(eid);
+    expect(res.body.commits).toHaveLength(1);
+    expect(res.body.commits[0].subject.startsWith(`${subject}${eid}`)).toBe(true);
+    expect(res.body.commits[0].sha).toBe(await c.head());
+    expect(writes(c)).toEqual([{ event: 'write', data: { pid: c.pid, eid, commit: await c.head() } }]);
   });
 });
