@@ -9,7 +9,7 @@ module: "server"             # optional — server | web | contracts (dna.yaml m
 priority: "high"           # optional — high | medium | low
 tags: ["v0.3","server","launcher","security"]               # optional — additional labels, e.g. [today, a11y]
 ref: "US-S-01"                # optional — backlog item ID, e.g. "TASK-001"
-bug: []                # optional — LIST of bug ids this task closes. Two cases: a fix task derived from a bug
+bug: ["bug-030-tests-can-reach-the-real-state-directory-of-the-user"]                # optional — LIST of bug ids this task closes. Two cases: a fix task derived from a bug
                        # by release-planning, and a bug ABSORBED into an existing task's Acceptance Criteria because that
                        # task already owns the ground. Each bug listed moves with its own verbs (`.wingfoil/memory.yaml`):
                        # the approver's `memory approve` triaged -> planned, `memory submit` planned -> in-progress when
@@ -82,6 +82,12 @@ token and without asking the user.
   `CHANGELOG.md` *Unreleased* *Added*.
 - **AC-8** — Gates: the checks of `CLAUDE.md`, `npm run docs:api`, `check_tasks.py v0.3`, `npm run
   test:smoke` (the launcher changes); results with commands in the Execution Notes.
+- **AC-9** — bug-030 (absorbed 2026-11-05, the approver: "vitest: a"): red first — a guard test
+  fails when the state directory a default-suite test resolves (`resolveStateDir` with the test
+  process's environment) lies outside the run's temporary root; then Vitest's setup sets
+  `WINGFOIL_UI_STATE_DIR` inside the run's temporary root for every test (and the variables the
+  resolution reads), a test that needs the resolution without it unsets it explicitly; the
+  default suite passes; `test/README.md` *Temporary folders* documents it.
 
 ## Implementation Notes
 
