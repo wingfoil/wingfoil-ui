@@ -93,6 +93,9 @@ export async function harnessEnv(root: string): Promise<HarnessEnv> {
   for (const key of Object.keys(env)) {
     if (key.startsWith('GIT_') || key.startsWith('XDG_')) delete env[key];
   }
+  // bug-030: the run-wide state directory of the temporary root is not inherited: a console started
+  // with this environment resolves its own, under this home (spec-006 §1), as before.
+  delete env['WINGFOIL_UI_STATE_DIR'];
   Object.assign(env, {
     GIT_CONFIG_GLOBAL: gitconfig,
     GIT_CONFIG_NOSYSTEM: '1',
