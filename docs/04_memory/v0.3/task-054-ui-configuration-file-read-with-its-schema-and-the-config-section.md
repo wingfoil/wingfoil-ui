@@ -496,3 +496,36 @@ module API of D54-1.
   and the CHANGELOG entry (nothing user-visible lands here; the split task adds it with `/config`).
   (4) The internal types are in `server/src/ui-config/types.ts`; `UiCategory` is in
   `server/src/presets/ui-config.ts` (the category `release` is a type name, REQ-ARC-05).
+- **Gates** (on `69d29f1b` plus the notes; each heavy gate through the machine-free slot, its log
+  in the session's scratch folder): `npm run typecheck`, `npm run lint`, `npm run format:check`
+  clean; `npm run docs:api` clean; `npm run test:coverage` — slot wait 6 min 45 s, load 11.25 at
+  grant → 18.22 at the end: 191 files passed, 3 694 tests passed (2 skipped), statements 96.61 %,
+  branches 91.46 % (`server/src/ui-config/` 95.93 %, `reads/ui-yaml.ts` 95.38 %); `npm run
+  test:contract` under the strict-identity recipe (a `git` wrapper first on the `PATH` with
+  `-c user.useConfigOnly=true` and the `followRemoteHEAD` emulation, `test/README.md` *Git identity*)
+  — load 12.31 → 19.64: 13 files, 357 passed (2 skipped); the variant's other suites
+  (`commit-provenance`, `snapshot/ui-config`, `reads/project-reads`) under the same recipe: 26
+  passed; `npm run test:e2e:chromium` — slot wait 9 min, load 5.67 at grant → 15.49: 323 passed
+  (17.4 min), no spec changed by the variant (no spec uses it yet); `check_tasks.py v0.3` OK. Two
+  earlier coverage runs failed on what is recorded above (the wall-clock test; then
+  `W_UNCOMMITTED_INPUTS` of the governance baseline, from these notes left uncommitted during the
+  run — a run artefact, not a defect). No console of this task left; no `wfui-*` entry of its runs.
+
+#### For the security-adversarial reviewer
+
+- The read (`server/src/reads/ui-yaml.ts`): every step is an `lstat` or a read-only open; try
+  links at `.wingfoil` and at `ui.yaml`, a FIFO, a device, swaps at each `await` (the `UiYamlFs`
+  port of the tests hooks `open`), a file growing after the checks, a hard link (read as the entry's
+  content, by design), a `.wingfoil` on another device. The declared residual is a double swap of
+  `.wingfoil` by a local process inside the window.
+- The YAML rules (`server/src/ui-config/parse.ts`): aliases, tags (also on keys and inside flow
+  collections), complex keys, duplicate keys spelled differently (`1`/`"1"`, `true`/`"true"`,
+  `null`/`~`), anchors, multiple documents, nesting; the cost of a 64 KiB file (the parse is cached
+  by content in `UiYamlCache`).
+- The safe subset (`server/src/ui-config/patterns.ts`): the scanner runs on sources that compiled
+  with `u`; look for a spelling that hides a quantifier, a group or a `|` from it (escapes, classes,
+  `\u{…}`, `\p{…}`, named groups), and for a shape inside the bounds that costs more than 10 ms on
+  256 characters. The aggregate cost over the reference index (values × patterns) is task-055's.
+- The failure text quotes the file: it passes `redactLocalPaths` with the project's local roots
+  (`SnapshotView.uiConfig`).
+- Not here (split): the `/config` echo and its escape, the state key of an ignored `ui.yaml`.
