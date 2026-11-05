@@ -318,3 +318,18 @@ active day plus the approver's turn for the amends, the stamp and the `.wingfoil
 - **Green**: `npx vitest run test/docs test/governance test/package`: 8 files, 120 tests passed —
   the 5 plans and 7 bugs pass, and `workflow-diagnostics` is back on its baseline once the files
   are committed.
+
+#### Gates (2026-11-05, on `e86856a`)
+
+| Gate | Result |
+|------|--------|
+| `npm run typecheck`, `npm run lint`, `npm run format:check` | exit 0 |
+| `npx vitest run test/docs test/governance test/package` | 8 files, 120 tests passed |
+| `python3 docs/03_backlog/X_tools/check_releases.py` | `releases: 5 · features: 44 / 44 MVP`, `OK`, exit 0 |
+| `python3 docs/03_backlog/X_tools/check_tasks.py v0.3` | `22 tasks · 16 backlog items · 16 listed`, `OK` |
+| `npm run test:coverage` (slot) | run 1 (slot at once, load 11.91): 1 failed — `workflow-diagnostics` saw this task file uncommitted (`W_UNCOMMITTED_INPUTS`, W-24), edited by the author while the gate ran; notes committed, run 2 (slot after 322 s behind another worktree's coverage, load 7.27 at the grant, 21.87 at the end): 182 files passed, 1 skipped; 3494 tests passed, 2 skipped; statements 96.66 %, branches 91.55 %, functions 97.35 %, lines 98.42 % |
+| `npm run test:publish-smoke` (slot) | slot after 65 s (load 7.42): 2 files, 11 tests passed |
+
+No e2e, `test:smoke` or strict-identity run: no UI, packaging, launcher or git change (design (e)).
+Lesson: do not edit a governed file in the worktree while a gate that runs `workflow-diagnostics`
+is running.
