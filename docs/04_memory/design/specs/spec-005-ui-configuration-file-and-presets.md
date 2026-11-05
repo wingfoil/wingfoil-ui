@@ -36,7 +36,7 @@ semantic checks that follow.
 |-----|------|------|
 | `version` | integer | required, `1` |
 | `taxonomy.categories` | map type → category | category ∈ `work`, `defect`, `decision`, `spec`, `requirement`, `feature`, `release`, `external` |
-| `taxonomy.patterns` | list of `{match, category}` | `match`: a string of 1 to 200 characters, a regular expression of the safe subset below; `category` as above |
+| `taxonomy.patterns` | list of `{match, category}`, at most 32 entries | `match`: a string of 1 to 200 characters, a regular expression of the safe subset below; `category` as above |
 | `taxonomy.requires` | map type → list of categories | categories as above |
 | `progress.mode` | `sequence` \| `flow` | `sequence`: progress follows the current element of `scope`; `flow`: no current element, figures are project-wide |
 | `progress.scope` | `{type}` | a type only — never an id |
@@ -44,7 +44,7 @@ semantic checks that follow.
 | `progress.iterates` | type | the type counted as iterated work ("tasks 1/4") |
 | `progress.defects` | type | the type counted as open defects |
 | `holds` | map type → map state → `{approve}` | `approve`: `never` \| `when-references-done` — the gate's *Approve* is not offered by the console (§4a, RP3-14 D5) |
-| `artifacts` | list of `{path, phase}` | `path`: repository path or `https://` URL with `{version}`/`{release}` placeholders |
+| `artifacts` | list of `{path, phase}` | `path`: 1 to 500 characters, an `https://` URL (no whitespace or control character) or a relative repository path (no leading slash, no backslash, no `..` segment, no control character), `{version}`/`{release}` placeholders kept as text; `phase`: a string of 1 to 100 characters |
 
 Semantic checks, against the project (after the schema), in this order; the first failure is the
 one reported (§2, §5):
@@ -67,14 +67,37 @@ backtracking). A pattern is accepted only when:
 - it holds no backreference (`\1`, `\k<name>`) and no lookahead or lookbehind;
 - it holds at most 2 quantifiers (`?`, `*`, `+`, `{n}`, `{n,}`, `{n,m}`), each applied to a single
   atom — a character, an escape, a character class or `.` — never to a group, and `{n,m}` has
-  `m ≤ 100`.
+  `m ≤ 100`;
+- the alternatives of its groups multiply to at most 16: the product, over every group holding
+  `|`, of its number of alternatives (top-level alternatives are not counted: each is one anchored
+  attempt).
 
 A value longer than 256 characters is never tested against a pattern (it is not a reference
 unless it equals an element id, §4). With these bounds one test costs at most a number of steps
-quadratic in the value's length. The shipped presets' patterns hold no quantifier (§5). Reasons,
-rendered as written: "must start with ^", "backreferences are not allowed", "lookaround is not
-allowed", "at most 2 quantifiers", "a quantifier on a group is not allowed", "{n,m} above 100",
-"does not compile: <engine message>".
+quadratic in the value's length, times at most 16 (alternation without a quantifier is
+exponential in the number of groups holding `|`: 24 groups `(?:a|a)` take about 1.2 s on a
+256-character value — task-054 design, P3b). The shipped presets' patterns hold no quantifier and
+one group of 2 alternatives (§5). A pattern is first compiled (`u` flag), then checked against the
+subset in this order; reasons, rendered as written: "does not compile: <engine message>", "must
+start with ^", "backreferences are not allowed", "lookaround is not allowed", "at most 2
+quantifiers", "a quantifier on a group is not allowed", "{n,m} above 100", "at most 16 alternatives
+combined".
+
+**Failure texts of the schema** (the first schema error, its path written `a.b[0].c`; `<v>` is a
+string as written, a number as written, or "a list", "a mapping", "true", "false", "nothing"):
+
+| Error | Text |
+|-------|------|
+| the file is not a mapping (empty, a scalar, a list) | "ui.yaml must be a mapping" |
+| a required key is missing | "missing required key <path.key>" (e.g. "missing required key version") |
+| a key the schema does not know | "unknown key <path.key>" (e.g. "unknown key permissions") |
+| a value outside a closed set of two | "<path> must be <a> or <b> (found <v>)" (e.g. "progress.mode must be sequence or flow (found spiral)") |
+| a value outside a closed set of more | "<path> must be one of <a>, <b>, … (found <v>)" |
+| `version` other than 1 | "version must be 1 (found <v>)" |
+| a value of the wrong type | "<path> must be a string" / "an integer" / "a list" / "a mapping" "(found <v>)" |
+| a string of the wrong length | "<path> must be <min> to <max> characters" |
+| a list too long | "<path> must have at most <n> entries" |
+| an `artifacts[].path` outside its rule | "<path> must be a repository path or an https:// URL" |
 
 ### 2. Loading
 
@@ -89,6 +112,12 @@ entry at that path — a regular file, a symbolic link or a directory, tracked o
 - The YAML is parsed with aliases and custom tags refused (an alias is a parse failure: no
   expansion of a small file into a large tree) and duplicate keys refused.
 - No file → **inferred** values (§3); every value is shown "inferred".
+- The YAML texts (task-054 D54-3): the YAML engine's first error, its first line without the
+  trailing colon (it names the line and column); "aliases are not allowed", "tags are not allowed"
+  (every explicit tag, the core ones included: some resolve silently), "keys must be plain
+  strings", "duplicate key <k>", each followed by "(line L, column C)"; "not valid UTF-8"; an entry
+  that cannot be read (permissions) → "cannot be read". A `.wingfoil` that is a symbolic link or no
+  directory → "not a regular file" (the read never passes through a link).
 - A file that is not YAML, fails the schema or a semantic check → it is **ignored as a whole**,
   inferred values are used, and a warning names the first failure
   ("ui.yaml ignored: progress.mode must be sequence or flow (found spiral)", C-04.1/C-04.2).
@@ -348,3 +377,14 @@ remaining non-methodology hit needs a justified inline disable.
 - 2026-11-03 — aligned with spec-012 (release-planning v0.3 step 5c, decided by the approver,
   "TQ-1…TQ-6, X1 e K1–K3 come consigliato"): §2 the warning and the `/config` shapes are
   spec-012 §2's; §4 cites spec-012 §1's clarifications of the reference rule. No rule changes.
+- 2026-11-05 — amended in development (task-054 design, plan backlog-item-rel-v0.3-plan; decided by
+  the approver, Q1 (a), Q2 (a), Q3 (a)): §1 the safe subset was exponential through alternation
+  without a quantifier (P3b) — the alternatives of the groups multiply to at most 16 (new reason
+  "at most 16 alternatives combined"), `taxonomy.patterns` at most 32 entries, the reasons' order
+  with the compile first; §1 the failure texts of the schema; §1 the rules of `artifacts[].path` and
+  `phase`; §2 the YAML texts, the unreadable entry and a linked `.wingfoil` (task-054 D54-2, D54-3,
+  clarifications: no valid file changes meaning). Declared residuals, accepted by the approver: a
+  YAML parse of up to about 1 s once per distinct hostile content (deep flow nesting at 64 KiB;
+  the parse is cached by the content's SHA-256), and a local process swapping `.wingfoil` twice
+  inside the read's window (Node has no `openat`; the read compares the descriptor's device and
+  inode with the path's) — both need write access to the repository or the working tree.

@@ -425,3 +425,33 @@ For the coordinator (not this task's to decide): the aggregate cost of pattern t
 reference index (SG-2, values × patterns on crafted element values) is task-055's design input; the
 `ui.yaml` YAML-cost residual after D54-3/D54-7 is one parse of up to about 1 s per distinct hostile
 content (32 768 nested flow collections, P2c), proposed as declared.
+
+#### Decisions of the approver (2026-11-05)
+
+Relayed by the coordinator: Q1 (a) — the alternatives of all groups multiply to at most 16, at most
+32 patterns; Q2 (a) — the message table in spec-005 §1, in the same Process Note as Q1; Q3 (a) —
+`artifacts[].path` `https://` or a relative path with no leading slash, no backslash, no `..`
+segment, at most 500 characters, `phase` 1–100 characters; Q4 (a) — the file's own `lstat`/SHA-256
+mark in the state hash on every check, no process; Q5 (b) — the split below; Q6 (a) — the module
+API in these notes and in TypeDoc, no tech-spec. Declared residuals (in spec-005's Process Note): a
+YAML parse of about 1 s once per distinct hostile content (P2c, after D54-3/D54-7), and the
+double swap of `.wingfoil` by a local process inside the read's window (D54-2).
+
+#### Split (Q5 (b))
+
+- **Stays in task-054:** AC-1, AC-2, AC-3's loading and origins (D54-2, D54-3, D54-6, the parse
+  cache of D54-7), AC-4, AC-6, AC-7, and the module API of D54-1 (`readUiYaml`, `parseUiYaml`,
+  `checkUiYaml`, `patternProblem`, `effectiveUiConfig`, `SnapshotView.uiConfig()`, the presets
+  module), with the scenario tests at the module level (C-02.x preset contents, C-03.1/C-03.2,
+  S-24.5/S-24.6 holds parsed and checked, the variant's effective values).
+- **Moves to the new task (created by the coordinator):** AC-5 (`contracts/api/ui-config.schema.json`,
+  `config.schema.json`'s `ui`, `contracts/src/ui-config.ts`'s API types, the `/config` `ui`
+  serialiser with the K1 escape, `docs:api`), AC-3's state-key part with Q4 (a) (the mark in the
+  combined hash, the `repo` event on an edit of a tracked, untracked or ignored file, the process
+  audit of a cold `/config`), and the `/config`-level scenario API tests (C-01.x, C-04.x, T-12.x).
+- **Hand-over:** the new task builds the section from `view.uiConfig()` — rejected when
+  `memory.yaml` cannot be read, then no `ui` — and serialises `EffectiveUiConfig` (raw values,
+  `Valued<T>` origins, `status` already redacted, `scope.current` `null` until task-059) with
+  `neutralise` on every echoed string. The internal types live in `server/src/ui-config/types.ts`
+  (not in `contracts/`): the new task adds the API shapes to `contracts/`. `UI_YAML` and the
+  read's mark are exported from `server/src/reads/ui-yaml.ts` for its fingerprint change.
