@@ -505,3 +505,16 @@ The phase branch was merged into this branch first (`208e48c9`).
   block with `GIT_AUTHOR_NAME` and `GIT_COMMITTER_NAME` set to `WingFoil UI Agent`, and
   `GIT_AUTHOR_EMAIL` and `GIT_COMMITTER_EMAIL` set to the address above. Then the acceptance check
   of *design* › (a), with `env` (no restart assumed).
+
+### review round 2 (2026-11-05) — PASS with 1 minor, 2 nits (no `.wingfoil/` change)
+
+- **MINOR 1 / NIT 3.** `AGENTS.md` no longer has the trigger "until `CLAUDE.md` says the identity
+  is in place". It relies on the self-check, which is reworded in `AGENTS.md` and `CLAUDE.md`
+  (0.19): at session start run `git var GIT_AUTHOR_IDENT`, and if it does not show the agent's
+  address (`352896614+wingfoil-dev@users.noreply.github.com`), stop and tell the approver. That
+  covers a team member's address, another address, and a failure. The order is decided: the
+  approver writes the main checkout's `.claude/settings.local.json`, and the acceptance check of
+  *design* › (a) passes, **before** task-050 is merged into the phase branch.
+- **NIT 2 (merge notes).** The merge `101b830c` renumbered the approver-OK'd
+  `release-conventions` texts of this task from 1.5 and 1.6 to 1.6 and 1.7, because task-051 took
+  1.5. The text is unchanged.

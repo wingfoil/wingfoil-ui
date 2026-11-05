@@ -66,10 +66,11 @@ above says otherwise, this section is right:
   approver's machine. It reaches only Claude Code sessions whose working directory is in this
   repository, once that file exists; another tool (Cursor, Codex, …), a cloud session, another
   machine, a session started in another repository, or a missing or broken file gives you none,
-  and the process rule alone applies. Until `CLAUDE.md` says the identity is in place, assume it is
-  not. Once it is: run `git var GIT_AUTHOR_IDENT` at the start of every session, and if it shows a
-  team member's address (`.wingfoil/dna.yaml`) instead of the agent's, stop and tell the approver
-  before any commit; never change the identity or work around it.
+  and the process rule alone applies. At the start of every session run `git var
+  GIT_AUTHOR_IDENT`: if it does not show the agent's address
+  (`352896614+wingfoil-dev@users.noreply.github.com`) — a team member's, another address, or a
+  failure — stop and tell the approver before any commit. Never change the identity or work
+  around it.
 - **Whatever your identity, you never approve:** never run `memory approve`, `reject` or `amend`,
   and never click Approve or Reject — not in a console, not through the desktop app's terminal
   panel (its shells are not the session's children: they act as the approver), not in a browser
