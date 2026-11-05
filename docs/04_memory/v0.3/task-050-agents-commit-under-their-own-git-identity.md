@@ -341,3 +341,70 @@ Every `.wingfoil/` diff (the two directives) goes to the approver before its com
   `CLAUDE.md` (above).
 - **Q4 — the address.** **Recommendation:** `noreply@anthropic.com`; the alternative is a machine
   account's id-qualified GitHub noreply address (approver's setup).
+
+#### Approver's decisions (2026-11-05, `backlog-item-rel-v0.3-plan` W0-12, W0-14)
+
+Quoted: "q-mec, q1, q2, q3, w-45 ok in questo task; q4 proviamo ad usare l'account macchina su
+github". As relayed by the coordinator:
+
+- **Mechanism: M1**, not the recommended M2 — the Claude Code `env` of a git-ignored
+  `.claude/settings.local.json` in the main checkout, written by the approver (a committed
+  `.claude/settings.json` would act on every clone of the public repository; M2 only if M1 does not
+  reach the subagents). The agent never writes it; the task prepares its content and the
+  acceptance check.
+- **Q1 → A:** `gitEnv` unchanged and documented (a console's children carry the identity of
+  whoever started it); W-39 corrected; AC-4 read as "test consoles inherit none", pinned by
+  `git-env.test.ts`.
+- **Q2:** F2 becomes a bug, captured by the coordinator through `bug-ingest`.
+- **Q3:** `CLAUDE.md` states that approvals are made from a console the approver started.
+- **Q4:** the address is the id-qualified GitHub noreply address of a project machine account the
+  approver creates; until it exists the drafts carry a placeholder and stay uncommitted.
+- **W-45** (W0-12) enters this task: `wingfoil-cli` 1.22 with W-39 corrected, a new W-45 and the
+  feedback note F-037.
+
+M1's reach: Claude Code's documentation says that the `env` of a settings file is written into
+the Claude Code process environment (so every Bash call has it), that project settings are read at
+the repository root, and that a worktree session started from the desktop app reads project
+configuration from the main checkout's root. It says nothing on subagents; they run in the
+session's process, and the acceptance check verifies them. Nothing found shows M1 failing to
+reach subagents or worktree sessions.
+
+### red / green / refactor (2026-11-05)
+
+- **Probe Q4** (the throwaway clone of design, the pinned CLI, the agent variables set to
+  `WingFoil-UI-Agent <12345678+wingfoil-ui-agent@users.noreply.github.com>`, a made-up id of the
+  same form): `team.agents[0].email` set to that address — `dna show` exit 0; a `memory add` and a
+  `submit` by the agent (exit 0, author and committer the agent); `memory approve` and `reject` by
+  the agent exit 1 `user not authorized to approve type 'task'`; the approver's `approve` exit 0.
+  The same with `dna.yaml` as on the phase branch (no agent email): the agent's `approve` exit 1.
+  A bare-login `wingfoil-ui-agent@users.noreply.github.com` is refused (`E_VALIDATION … a GitHub
+  noreply agent email must be id-qualified`). So `users.noreply.github.com` is a domain WingFoil
+  accepts (F3), and no `dna.yaml` change is needed for it.
+- **AC-4 tests** (`4dd3b454`), characterization, each shown failing with its guard removed and
+  passing restored:
+  - `test/harness/git-identity.test.ts` *an agent session's identity variables never reach a
+    fixture commit* — with `harnessEnv` keeping `GIT_AUTHOR_*`/`GIT_COMMITTER_*`: this test and the
+    two task-044 tests fail (author `Agent Stand-in <agent-stand-in@example.test>`, the
+    no-email commit accepted);
+  - `test/server/process/git-env.test.ts` *task-050 — children keep the identity of whoever
+    started the server* (two tests: the four variables reach a child, `git var GIT_AUTHOR_IDENT`
+    resolves to them) — with `GIT_AUTHOR_NAME` added to `gitEnv`'s dropped set: both fail;
+  - `test/server/projects/clone.test.ts` S12 drops the four variables from its seed commit's
+    environment (no behaviour change).
+  - Run with the stand-in identity exported (load 4.24): 3 files, 21 passed.
+- **W-45 probe** (`init --template Scrum` scratch project, the pinned CLI; recipe in W-45, note
+  F-037): `workflow start sw-life-cycle` → `sw-life-cycle-1-plan`; `memory add --type plan --title
+  "Second life cycle" --set workflow=sw-life-cycle --set phase=second --set scope=second` →
+  `active: sw-life-cycle-second-plan` (`planStatus: draft`), `workflow next` →
+  `sw-life-cycle-second-plan` › `sw-life-cycle.inception`, `workflow list` 0 diagnostics; after
+  `submit`, the same with two `active` plans. Control (fresh project, `--set workflow=scrum-delivery`,
+  added and submitted): one open run, `workflow next` on `sw-life-cycle-1-plan`, 0 diagnostics.
+- **Docs:** `AGENTS.md` *This repository*, `test/README.md` 0.57 *Git identity*, F-037 and its
+  ledger row (`43e43063`). Uncommitted until the approver's OK and the address: `wingfoil-cli`
+  1.22 (W-39, W-45), `release-conventions` 1.5 (the identity paragraph) and `CLAUDE.md` 0.18 (it
+  names the address, a placeholder for now).
+- The coordinator's dev-loop rules, text to add: "Agent sessions commit as `WingFoil UI Agent`
+  with the machine account's noreply address (the approver's `.claude/settings.local.json` in the
+  main checkout); check `git log -1 --format='%an <%ae>'` after your first commit; never unset,
+  override or `-c user.*` around it; the console used for approvals is started by the approver,
+  never by an agent session."
