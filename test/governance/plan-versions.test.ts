@@ -59,7 +59,16 @@ export function planVersionFinding(file: string, v: PlanVersions): string | unde
  * records the values the file must still have; the plans whose Context line exists were aligned by
  * the approver's `memory amend` instead.
  */
-export const EXEMPT: readonly PlanExemption[] = [];
+export const EXEMPT: readonly PlanExemption[] = [
+  // The rl-v1 initial design (v0.1 era, `done`): frontmatter 1.0, no Context version line.
+  { file: 'rl-v1/initial-design-rl-v1-plan.md', frontmatter: '1.0', context: undefined },
+  // The release planning of v0.1 (`done`): frontmatter 1.0, no Context version line.
+  { file: 'rl-v1/rel-v0.1/release-planning-rel-v0.1-plan.md', frontmatter: '1.0', context: undefined },
+  // The lean inception, before the first release line (`done`): frontmatter 1.0, no Context version line.
+  { file: 'sw-life-cycle/lean-inception-inception-plan.md', frontmatter: '1.0', context: undefined },
+  // The specification downcast, before the first release line (`done`): frontmatter 1.0, no Context version line.
+  { file: 'sw-life-cycle/specification-downcast-specification-plan.md', frontmatter: '1.0', context: undefined },
+];
 
 /** Every `.md` file under `dir`, relative to it, sorted. */
 function markdownFiles(dir: string, prefix = ''): string[] {
