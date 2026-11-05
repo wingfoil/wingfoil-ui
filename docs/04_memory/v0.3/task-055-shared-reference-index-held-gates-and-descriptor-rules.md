@@ -9,7 +9,7 @@ module: "server"             # optional — server | web | contracts (dna.yaml m
 priority: "high"           # optional — high | medium | low
 tags: ["v0.3","server","descriptor","web"]               # optional — additional labels, e.g. [today, a11y]
 ref: "US-S-24"                # optional — backlog item ID, e.g. "TASK-001"
-bug: []                # optional — LIST of bug ids this task closes. Two cases: a fix task derived from a bug
+bug: ["bug-029-role-view-reads-user.email-while-the-cli-authorises-the-git-author-identity"]                # optional — LIST of bug ids this task closes. Two cases: a fix task derived from a bug
                        # by release-planning, and a bug ABSORBED into an existing task's Acceptance Criteria because that
                        # task already owns the ground. Each bug listed moves with its own verbs (`.wingfoil/memory.yaml`):
                        # the approver's `memory approve` triaged -> planned, `memory submit` planned -> in-progress when
@@ -116,6 +116,15 @@ R-2; A-1, A-2), Today lists a task approved into `backlog` as the approver's (R-
   `CHANGELOG.md` *Unreleased* *Added*; the checks of `CLAUDE.md` *Checks before handing work back*,
   `npm run docs:api` and `check_tasks.py v0.3`, with their commands and results in the Execution
   Notes.
+- **AC-9** — bug-029 (absorbed at Wave 1's start, `backlog-item-rel-v0.3-plan` W1-2): red first —
+  a console started with `GIT_AUTHOR_NAME`/`GIT_AUTHOR_EMAIL` of a non-member while `user.email`
+  names an approver member shows no *Approve* or *Reject*, and the project header names the
+  identity the CLI authorises; the identity is read as `git commit` resolves the author
+  (`GIT_AUTHOR_*`, then `author.*`, then `user.*`; `wingfoil-cli` W-39), e.g. `git var
+  GIT_AUTHOR_IDENT`, keeping the console's read-only git rules (`GIT_OPTIONAL_LOCKS=0`,
+  `core.fsmonitor=false`, no transport); the design's `GIT_TRACE` of the new read and the
+  strict-identity run of `test/README.md` *Git identity* cover it; spec-001 (the identity read)
+  amended with a dated Process Note where it names `user.email`.
 
 ## Implementation Notes
 

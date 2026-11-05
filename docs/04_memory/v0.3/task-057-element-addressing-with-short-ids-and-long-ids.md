@@ -9,7 +9,7 @@ module: "governance"             # optional — server | web | contracts (dna.ya
 priority: "high"           # optional — high | medium | low
 tags: ["v0.3","governance","server","contracts"]               # optional — additional labels, e.g. [today, a11y]
 ref: "GOV"                # optional — backlog item ID, e.g. "TASK-001"
-bug: ["bug-019-elements-whose-id-is-longer-than-100-characters-cannot-be-opened-or-decided-the-server-answers-404"]                # optional — LIST of bug ids this task closes. Two cases: a fix task derived from a bug
+bug: ["bug-019-elements-whose-id-is-longer-than-100-characters-cannot-be-opened-or-decided-the-server-answers-404", "bug-028-history-route-tests-time-out-at-30-seconds-under-load"]                # optional — LIST of bug ids this task closes. Two cases: a fix task derived from a bug
                        # by release-planning, and a bug ABSORBED into an existing task's Acceptance Criteria because that
                        # task already owns the ground. Each bug listed moves with its own verbs (`.wingfoil/memory.yaml`):
                        # the approver's `memory approve` triaged -> planned, `memory submit` planned -> in-progress when
@@ -74,6 +74,14 @@ task-062-element-page-side-panel-address-and-rendered-document's, which depends 
   in the API); the checks of `CLAUDE.md`, `npm run docs:api`, `npm run test:contract`,
   `check_tasks.py v0.3`, `test:e2e:chromium` (the routes change under every view); results with
   commands in the Execution Notes.
+- **AC-7** — bug-028 (absorbed at Wave 1's start, `backlog-item-rel-v0.3-plan` W1-1): the history
+  tests of `test/server/http/project-routes.test.ts` ("answers the history of a plan closed by hand
+  and of a parked and an amended element, contract fields only"; "lists the 0.3 operations but
+  assign in the Memory events") and any other test of that file that builds fixtures and runs
+  several CLI reads in one body get a budget sized for their own work by the `test/harness/load.ts`
+  rule, or are split so that each body fits the default budget; no load-adaptive branch (bug-004);
+  the file passes under `npm run test:coverage` through the machine-free slot, the load of the run
+  in the Execution Notes.
 
 ## Implementation Notes
 
