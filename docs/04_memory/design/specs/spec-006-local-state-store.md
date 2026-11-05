@@ -241,7 +241,8 @@ list is notified by the `projects` event (spec-004 §6).
   running (`kill(pid, 0)` fails with `ESRCH`; `EPERM` counts as running). **Start housekeeping**,
   before the console writes its own file: this host's files are removed only when their `pid` is
   dead (never by age) — or, when it holds the starting console's own `pid`, when its `started` is
-  not the console's (pid reuse) —, other hosts' files — and files whose `host` or `pid` cannot be read — only
+  no live console's of that process (pid reuse) —, other hosts' files — and files whose `host` or
+  `pid` cannot be read — only
   when older than 30 s, temporary files only when their writer's pid is dead; the file named after
   the console's own port is replaced; anything else in `consoles/` is left alone. Two consoles on
   one state directory write two files. A state directory shared by two machines is not supported
@@ -387,3 +388,5 @@ authenticate (adr-003 D5). The secret scan of REQ-SEC-09 runs over the state dir
   of the state directory writable by others, a signal during the write, a reused pid); §4 a file
   of this host holding the starting console's own pid with another `started` is a dead console's
   (pid reuse) and is removed at start; a heartbeat tick is skipped while the previous one runs.
+  Same day, review round 2: a file with the starting console's own `pid` is removed only when its
+  `started` is no live console's of that process (two consoles in one process share a pid).

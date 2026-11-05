@@ -488,3 +488,16 @@ Gates after the fix (this worktree, `59ed8646`; heavy gates through the slot):
 
 After the runs: no console of this worktree left, no `wfui-*` entry of this worktree's runs in the
 temporary directory, the user's state directory holds `state.json` only.
+
+### review round 2 (2026-11-05)
+
+Independent review round 2: PASS, one new minor from the F5 fix.
+
+| Finding | Fix | Test |
+|---------|-----|------|
+| R2-1 minor — `removableAtStart`'s own-pid branch took any file with this process's pid and another `started` for a dead earlier holder; two publishers in one process (the module allows them) share the pid, so the second one's start removed the first one's **live** file (the reviewer's script on `server/dist`: 5101 then 5102 → only `5102.json` left) | a module-level count of the live publishers' `started` (`livePublishers`, added when a publisher is created, released once at `stop()` or `removeSync()`): an own-pid file is a dead earlier holder only when its `started` is no live publisher's. Chosen over a cut-off at the process's start time (`Date.now() - process.uptime() * 1000` with a tolerance): the set is exact in process, needs no clock or tolerance, and a clock step cannot make a live file look dead. spec-006 §4 and its Process Note updated | `test/server/state/console-address.test.ts` "two publishers in one process with different start times keep both files" red (`2bf66ace`, load 6.21: 1 failed, 54 passed), then green; the pid-reuse row (a `started` no live publisher holds → removed) still passes, its `self` now `{ pid, live }` |
+
+Checks (this worktree, after the fix): `npx vitest run test/server/state/console-address.test.ts
+test/server/state/console-address-heartbeat.test.ts test/server/launcher/start-address.test.ts`
+(load 5.61): 3 files, 66 tests passed; typecheck, lint, format:check clean and
+`check_tasks.py v0.3` OK (load 6.07). Only `console-address.ts` changed among the non-test sources: no heavy gate re-run.

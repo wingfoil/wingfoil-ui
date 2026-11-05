@@ -96,6 +96,25 @@ const WARNING = 'console address file';
 /** Temporary files of this process: two publishers in one process never share one. */
 let tmpCounter = 0;
 
+/**
+ * The `started` of the live publishers of this process, counted (two may share one): a file with
+ * this process's pid and one of them is a live file of this process, never a dead earlier holder
+ * of the pid (review round 2). Known exactly in process, with no clock or tolerance involved.
+ */
+const livePublishers = new Map<string, number>();
+
+function holdStarted(started: string): () => void {
+  livePublishers.set(started, (livePublishers.get(started) ?? 0) + 1);
+  let released = false;
+  return () => {
+    if (released) return;
+    released = true;
+    const left = (livePublishers.get(started) ?? 1) - 1;
+    if (left > 0) livePublishers.set(started, left);
+    else livePublishers.delete(started);
+  };
+}
+
 function code(error: unknown): string | undefined {
   return (error as NodeJS.ErrnoException | undefined)?.code;
 }
@@ -135,13 +154,13 @@ export function removableAtStart(
   info: (AddressInfo & { started?: unknown }) | undefined,
   ageMs: number,
   host: string,
-  self?: { pid: number; started: string },
+  self?: { pid: number; live: Pick<ReadonlySet<string>, 'has'> },
 ): boolean {
   const w = writer(info);
   if (w && w.host === host) {
-    // Its own pid with another start time: a dead console whose pid this process now holds (pid
-    // reuse, e.g. in a container) — review round 1 F5.
-    if (self && w.pid === self.pid) return info?.started !== self.started;
+    // Its own pid with a start time no live publisher of this process holds: a dead console whose
+    // pid this process now holds (pid reuse, e.g. in a container) — review rounds 1 (F5) and 2.
+    if (self && w.pid === self.pid) return typeof info?.started !== 'string' || !self.live.has(info.started);
     return !running(w.pid);
   }
   return ageMs > ADDRESS_STALE_MS;
@@ -244,6 +263,7 @@ export function publishConsoleAddress(options: ConsoleAddressOptions): ConsoleAd
   const dir = path.join(options.stateDir, CONSOLES_DIR);
   const file = path.join(dir, `${options.port}.json`);
   const entry = addressEntry(options);
+  const release = holdStarted(entry.started);
   const content = `${JSON.stringify(entry, null, 2)}\n`;
   const warned = new Set<AddressWarning>();
   let timer: NodeJS.Timeout | undefined;
@@ -312,7 +332,13 @@ export function publishConsoleAddress(options: ConsoleAddressOptions): ConsoleAd
         if (address) {
           if (Number(address[1]) === options.port) continue; // replaced by the rename
           await withEntry(target, async (_handle, found) => {
-            if (!removableAtStart(parse(found.text), Date.now() - found.mtimeMs, host, entry)) return;
+            if (
+              !removableAtStart(parse(found.text), Date.now() - found.mtimeMs, host, {
+                pid: entry.pid,
+                live: livePublishers,
+              })
+            )
+              return;
             // Removed only if it is still the file judged (the narrow race of state.json.lock).
             const again = await withEntry(
               target,
@@ -429,6 +455,7 @@ export function publishConsoleAddress(options: ConsoleAddressOptions): ConsoleAd
     },
     stop: async () => {
       stopped = true;
+      release();
       if (timer) clearInterval(timer);
       const done = await written;
       await tick;
@@ -442,6 +469,7 @@ export function publishConsoleAddress(options: ConsoleAddressOptions): ConsoleAd
     },
     removeSync: () => {
       stopped = true;
+      release();
       if (timer) clearInterval(timer);
       try {
         const fd = openSync(file, constants.O_RDONLY | POSIX_FLAGS.noFollow | POSIX_FLAGS.nonBlock);

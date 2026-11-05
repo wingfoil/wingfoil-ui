@@ -412,7 +412,9 @@ describe('stale rule and start housekeeping (AC-4, adr-003 D3)', () => {
     ['unreadable, 31 s old', undefined, 31_000, true],
     ['unreadable, 5 s old', undefined, 5_000, false],
   ])('the start removes %s → %s', (_label, info, age, expected) => {
-    expect(removableAtStart(info, age, HOST, { pid: process.pid, started: STARTED.toISOString() })).toBe(expected);
+    expect(removableAtStart(info, age, HOST, { pid: process.pid, live: new Set([STARTED.toISOString()]) })).toBe(
+      expected,
+    );
   });
 
   it('removes and keeps the files of consoles/ by the rule, before writing its own', async () => {
