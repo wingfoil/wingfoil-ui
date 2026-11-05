@@ -1,10 +1,15 @@
 // task-026 (D26-2, AC-1): one temporary root per run. Inside a run every `os.tmpdir()` — this
 // file's and a child process's — lies under the run's root; the teardown removes only the root
 // its process owns; the start sweep removes only roots whose owner process is gone.
-import { existsSync, mkdirSync, statSync, utimesSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+// bug-030 (task-058 AC-9): the state directory every test resolves lies under the run's root too.
+import { existsSync, mkdirSync, realpathSync, statSync, utimesSync, writeFileSync } from 'node:fs';
+import { homedir, tmpdir } from 'node:os';
 import path from 'node:path';
+import { pathToFileURL } from 'node:url';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { resolveStateDir } from '../../server/src/state/location.js';
+import { REPO_ROOT } from './cli.js';
+import { harnessEnv } from './fixtures/index.js';
 import { run } from './run.js';
 import {
   createTempRoot,
@@ -16,6 +21,7 @@ import {
   TEMP_ROOT_GRACE_MS,
   TEMP_ROOT_PREFIX,
   TEMP_ROOT_STAGING_PREFIX,
+  TEMP_STATE_DIR_ENV,
   tempDirOf,
   tempRootOwner,
   useTempRoot,
@@ -63,6 +69,34 @@ describe('the run of this file', () => {
     // A child process inherits it.
     const child = await run(process.execPath, ['-e', "process.stdout.write(require('node:os').tmpdir())"]);
     expect(child.stdout).toBe(tempDirOf(root!));
+  });
+
+  /** Whether `dir` lies under the run's root (both real paths, the root existing). */
+  function underRoot(dir: string): boolean {
+    const root = realpathSync(process.env[TEMP_ROOT_ENV]!);
+    const resolved = path.resolve(dir);
+    return resolved.startsWith(root + path.sep) || resolved.startsWith(process.env[TEMP_ROOT_ENV]! + path.sep);
+  }
+
+  // bug-030: no test can reach the state directory of the user who runs the suite.
+  it('resolves the state directory under the run root (bug-030), in this process and in a child', async () => {
+    const own = resolveStateDir({ env: process.env, platform: process.platform, homedir: homedir() });
+    expect(underRoot(own), own).toBe(true);
+    // A child process inherits it: the console's own resolution (the built module), from its environment.
+    const module = pathToFileURL(path.join(REPO_ROOT, 'server/dist/state/location.js')).href;
+    const child = await run(process.execPath, [
+      '--input-type=module',
+      '-e',
+      `const { resolveStateDir } = await import(${JSON.stringify(module)}); const { homedir } = await import('node:os'); process.stdout.write(resolveStateDir({ env: process.env, platform: process.platform, homedir: homedir() }));`,
+    ]);
+    expect(underRoot(child.stdout), child.stdout).toBe(true);
+  });
+
+  it("leaves the bin tests' harness environment its own state directory, under its own home (bug-030)", async () => {
+    const { env, home } = await harnessEnv(path.join(base, `harness-${n++}`));
+    expect(env[TEMP_STATE_DIR_ENV]).toBeUndefined();
+    const resolved = resolveStateDir({ env, platform: process.platform, homedir: home });
+    expect(resolved.startsWith(home + path.sep)).toBe(true);
   });
 });
 
@@ -137,6 +171,8 @@ describe('useTempRoot', () => {
       TMP: tempDirOf(root),
       TEMP: tempDirOf(root),
       [TEMP_ROOT_ENV]: root,
+      // bug-030: the console's state directory, inside the root.
+      [TEMP_STATE_DIR_ENV]: path.join(root, 'state'),
       OTHER: 'x',
     });
     restore();
