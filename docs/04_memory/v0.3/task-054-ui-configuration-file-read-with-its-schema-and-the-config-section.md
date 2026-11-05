@@ -557,3 +557,8 @@ public-text check (`C:/x`, allow-listed); run 3 (50 s, 12.87 → 25.60): 3 707 p
 timed out at 30 s under load (bug-028's class, absorbed by task-057, not yet merged here); that
 file alone (load 22.27 → 7.93): 42 passed. No coverage report is written by a failing run; the
 last full report is the one of the gates above (96.61 % statements).
+Run 4, after the coordinator's merge of the phase branch (`c3bd79f9`, task-057 with bug-028's
+fix): no other heavy gate running, slot wait 5 s, load 3.87 at grant → 20.88 at the end — 194
+files, 3 815 tests passed (2 skipped), statements 96.65 %, branches 91.49 %, functions 97.46 %,
+lines 98.44 %; the history test passed. `npm run test:contract` (its inputs changed with the merge),
+load 20.88 → 7.16: 14 files, 382 passed (2 skipped).
