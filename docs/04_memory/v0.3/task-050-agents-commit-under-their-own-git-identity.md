@@ -408,3 +408,25 @@ reach subagents or worktree sessions.
   main checkout); check `git log -1 --format='%an <%ae>'` after your first commit; never unset,
   override or `-c user.*` around it; the console used for approvals is started by the approver,
   never by an agent session."
+- **Approver's OK** (2026-11-05, quoted: "task 50: ok per il diff, sì alla riga in .gitignore"):
+  the `.wingfoil/` diff committed as saved (`cmp` identical) as `13d117e5` (`wingfoil-cli` 1.22,
+  `release-conventions` 1.5); `.claude/settings.local.json` added to `.gitignore` as `cb316d77`.
+  `CLAUDE.md` 0.18 stays uncommitted until the machine account's address exists.
+- **Gates** (2026-11-05), all with a **stand-in** identity exported for the four variables
+  (`WingFoil UI Agent <00000000+wingfoil-ui-agent@users.noreply.github.com>`, not the machine
+  account's address), heavy ones one at a time through the slot:
+  - `typecheck`, `lint`, `format:check`: 0 (load 7.57); `npx vitest run test/docs`: 68 passed;
+    `check_tasks.py v0.3`: OK;
+  - `test:coverage`: slot wait 307 s, load 7.39 at grant, 9.26 at end — 179 files passed, 1
+    skipped; 3476 tests passed, 2 skipped; all files 96.67 % statements, 91.55 % branches,
+    97.35 % functions, 98.43 % lines;
+  - `test:contract`: wait 367 s, load 13.11 / 5.71 — 11 files passed, 1 skipped; 323 passed, 2
+    skipped;
+  - `test:e2e:chromium`: wait 20 s, load 4.23 / 11.61 — 323 passed (13.6 min), no retry;
+  - strict-identity run (the `git` wrapper of `test/README.md` *Git identity* first on the `PATH`,
+    `user.useConfigOnly=true` and the `followRemoteHEAD` emulation) of `test/harness`,
+    `test/server/git`, `test/server/writes`, `test/launcher`: wait 5 s, load 10.68 / 6.98 — 29
+    files, 520 passed;
+  - comparison without the four variables (`env -u …`) of the AC-4 files `git-identity`,
+    `git-env`, `clone`: 3 files, 21 passed — the same as with them.
+  - No console left (`pgrep -af bin/wingfoil-ui.cjs`), no `wfui-*` in the temporary folder.
