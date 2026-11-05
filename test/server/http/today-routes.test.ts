@@ -166,6 +166,8 @@ describe('GET /api/p/:pid/today — every member and role view (spec-003 §5)', 
             expect(row.descriptor).toEqual(listed.descriptor);
             expect(row.element).toEqual({
               id: listed.id,
+              // The same short id as the list's (spec-011 §1, task-057).
+              ...('shortId' in listed ? { shortId: listed.shortId } : {}),
               type: listed.type,
               title: listed.title,
               status: listed.status,

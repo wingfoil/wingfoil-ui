@@ -22,7 +22,7 @@ function lists(live: MemoryMatch[], archived: MemoryMatch[] = []) {
     calls,
     source: {
       live: async () => live,
-      archived: async () => {
+      retired: async () => {
         calls.archived += 1;
         return archived;
       },

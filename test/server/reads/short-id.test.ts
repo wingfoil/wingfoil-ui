@@ -100,10 +100,8 @@ describe('shortIdsOf — the type of each match', () => {
   });
 
   it('gives none for a type memory.yaml does not declare, or without a pattern', () => {
-    const of = shortIdsOf({
-      ...yaml,
-      types: { ...yaml.types, task: { ...yaml.types['task']!, id_pattern: undefined } },
-    });
+    const { id_pattern: _pattern, ...task } = yaml.types['task']!;
+    const of = shortIdsOf({ ...yaml, types: { ...yaml.types, task } });
     expect(of({ id: 'task-046-x', type: 'task' })).toBeUndefined();
     expect(of({ id: 'task-046-x', type: 'nothing' })).toBeUndefined();
     expect(of({ id: 'task-046-x', type: '__proto__' })).toBeUndefined();
