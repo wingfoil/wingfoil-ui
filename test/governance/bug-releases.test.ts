@@ -62,6 +62,16 @@ describe('readBugFields and bugReleaseFinding', () => {
     expect(bugReleaseFinding(b)).toBeUndefined();
   });
 
+  it('fails a bug whose frontmatter does not parse (no id or status read)', () => {
+    expect(bugReleaseFinding(readBugFields('id: bug-009-x\r\nstatus: closed\r\n'), 'bug-009-x.md')).toBe(
+      'bug-009-x.md: no id or status read from its frontmatter',
+    );
+    const crlf = bug({ id: 'bug-010-y', status: 'closed', release: '' }).replace(/\n/g, '\r\n');
+    expect(bugReleaseFinding(readBugFields(crlf), 'bug-010-y.md')).toBe(
+      'bug-010-y.md: no id or status read from its frontmatter',
+    );
+  });
+
   it('leaves out a bug that is not closed', () => {
     expect(bugReleaseFinding(readBugFields(bug({ id: 'b', status: 'triaged', release: '' })))).toBeUndefined();
   });
@@ -78,7 +88,7 @@ describe('the bugs of docs/04_memory/bugs/', () => {
 
   it('every closed bug carries its release, unless a reject closed it', () => {
     const findings = files
-      .map((f) => bugReleaseFinding(readBugFields(readFileSync(path.join(BUGS, f), 'utf8'))))
+      .map((f) => bugReleaseFinding(readBugFields(readFileSync(path.join(BUGS, f), 'utf8')), f))
       .filter((x): x is string => x !== undefined);
     expect(findings).toEqual([]);
   });
