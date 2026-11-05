@@ -14,6 +14,13 @@ release `v0.2` the git tag `v0.2.0` and the npm version `wingfoil-ui@0.2.0`.
   tarball staged on npm, the coverage totals (`coverage-totals.json`) and the test counts per suite
   (`test-results.md`) of the tag's run — no file holding a path. The approver makes it public once
   the version is live on npm (`docs/publishing.md`, *Every release*).
+- **Short ids in the API** (task-057, spec-011): the element read, the Memory list rows and the
+  Today rows carry each element's short id (`task-046` for `task-046-wingfoil-0.3-support`,
+  derived from its type's `id_pattern`; none for an id without a number), and the element read
+  accepts a short id as well as the full id — an address such as `/p/<project>/e/task-046` can
+  now reach its element once the page uses it (task-062). A short id that names several elements
+  answers their list (409 `ambiguous-id`, at most 20) instead of *not found*. History and the
+  actions still take the full id.
 
 ### Changed
 
@@ -35,6 +42,11 @@ release `v0.2` the git tag `v0.2.0` and the npm version `wingfoil-ui@0.2.0`.
 
 ### Fixed
 
+- **An element whose id is longer than 100 characters can be opened and decided** (bug-019,
+  task-057): the server refused a path parameter over 100 characters, so such an element was
+  listed but its panel showed *not found* and its gate could not be decided. Ids up to 255
+  characters now work on every route — WingFoil writes ids of at most 252 — and a longer
+  parameter answers *not found* on every route.
 - **The element history and the Memory events read WingFoil 0.3's operations** (bug-026,
   task-048): on a project on WingFoil 0.3.x the element panel's history failed for every element
   with a `finalize`, `park`, `amend`, `start`, `sync` or `assign` commit — every phase plan closed

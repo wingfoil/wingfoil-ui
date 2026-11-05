@@ -55,7 +55,9 @@ task-062-element-page-side-panel-address-and-rendered-document's, which depends 
   against `contracts/api/element.refusal.schema.json`, candidates ordered by full id, at most 20
   plus `more`, each `title` through `neutralise` (RP3-18 K1); an unknown id → 404; `task-46` for
   `task-046` → 404 (E2); an archived element reached by its short id only when no live element
-  matches, and no archived search started when one does (counted processes, E3); history,
+  matches, and no archived match chosen when one does — no archived search started when `:eid` is
+  a live full id (counted processes, E3; reworded with the approver's Q1-a, spec-011 Process Note
+  2026-11-05); history,
   `submit`, `approve` and `reject` with a short id → 404 `not-found` with no `wingfoil` process.
 - **AC-3** — bug-019 (spec-011 §4, C1): red first — the read of an element whose id is longer than
   100 characters answers 404 today; after the fix the read, the history and each write of an
