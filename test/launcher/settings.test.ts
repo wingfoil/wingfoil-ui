@@ -9,7 +9,7 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { harnessEnv } from '../harness/fixtures/index.js';
-import { BIN_START_MS, BIN_TEST_MS } from '../harness/load.js';
+import { BIN_START_MS, BIN_TEST_MS, binTestMs } from '../harness/load.js';
 import { TempWorkspace } from '../harness/temp-workspace.js';
 import { openSse } from '../server/http/sse-client.js';
 import { startLauncher, type Launcher } from './launcher.js';
@@ -116,33 +116,43 @@ describe('UI settings on the bin', () => {
     expect((await readState(dir)).settings).toEqual({ autoPush: true, theme: 'dark' });
   });
 
-  it('C-07.2 — a PUT is announced on the event stream and kept across a restart', async () => {
-    const dir = await stateDir();
-    const first = await launch(dir);
-    const stream = await openSse(first.port, '/api/events', { authorization: `Bearer ${first.token}` });
-    try {
-      expect(stream.status).toBe(200);
-      const next = { ...DEFAULTS, autoFetch: false, fetchIntervalSeconds: 15 };
-      expect((await call(first, 'PUT', next)).status).toBe(200);
-      await vi.waitFor(() => expect(stream.events()).toEqual([{ event: 'settings', data: {} }]), {
-        timeout: BIN_START_MS,
-      });
-      expect(await call(first, 'PUT', { ...next, fetchIntervalSeconds: 14 })).toMatchObject({ status: 400 });
-      await first.stop();
-      const second = await launch(dir);
-      expect((await call(second, 'GET')).json).toEqual(next);
-    } finally {
-      stream.close();
-    }
-  });
+  it(
+    'C-07.2 — a PUT is announced on the event stream and kept across a restart',
+    async () => {
+      // one-console-per-test: kept — the restart is the behaviour (C-07.2).
+      const dir = await stateDir();
+      const first = await launch(dir);
+      const stream = await openSse(first.port, '/api/events', { authorization: `Bearer ${first.token}` });
+      try {
+        expect(stream.status).toBe(200);
+        const next = { ...DEFAULTS, autoFetch: false, fetchIntervalSeconds: 15 };
+        expect((await call(first, 'PUT', next)).status).toBe(200);
+        await vi.waitFor(() => expect(stream.events()).toEqual([{ event: 'settings', data: {} }]), {
+          timeout: BIN_START_MS,
+        });
+        expect(await call(first, 'PUT', { ...next, fetchIntervalSeconds: 14 })).toMatchObject({ status: 400 });
+        await first.stop();
+        const second = await launch(dir);
+        expect((await call(second, 'GET')).json).toEqual(next);
+      } finally {
+        stream.close();
+      }
+    },
+    binTestMs(2),
+  );
 
-  it('D30-3 — a second console on the same state directory reads the change at its next GET', async () => {
-    const dir = await stateDir();
-    const a = await launch(dir);
-    const b = await launch(dir);
-    expect((await call(b, 'GET')).json).toEqual(DEFAULTS);
-    const next = { ...DEFAULTS, theme: 'light' };
-    expect((await call(a, 'PUT', next)).status).toBe(200);
-    expect((await call(b, 'GET')).json).toEqual(next);
-  });
+  it(
+    'D30-3 — a second console on the same state directory reads the change at its next GET',
+    async () => {
+      // one-console-per-test: kept — two consoles running at once are the behaviour (D30-3).
+      const dir = await stateDir();
+      const a = await launch(dir);
+      const b = await launch(dir);
+      expect((await call(b, 'GET')).json).toEqual(DEFAULTS);
+      const next = { ...DEFAULTS, theme: 'light' };
+      expect((await call(a, 'PUT', next)).status).toBe(200);
+      expect((await call(b, 'GET')).json).toEqual(next);
+    },
+    binTestMs(2),
+  );
 });

@@ -357,32 +357,34 @@ describe('spec-004 §4 row 7 — local changes, fresh under the lock (TT-STATE-0
     ],
   ];
 
-  it.each(variants)(
-    'an element file %s after the last observed state → 409 local-changes, 0 wingfoil processes',
-    async (_label, mark) => {
-      for (const [verb, eid, body, as] of [
-        ['submit', TIMEOUT, { expectedStatus: 'draft' }, 'Jordan'],
-        ['approve', LOGIN, { expectedStatus: 'pending', reason: 'ok' }, 'Morgan'],
-        ['reject', LOGIN, { expectedStatus: 'pending', reason: 'no' }, 'Morgan'],
-      ] as const) {
-        const c = await start({ as: memberByName(as).email });
-        await c.warm();
-        const rel = await c.pathOf(eid);
-        const before = await c.head();
-        // The order matters for the hidden variants: the flag first, then the edit git no longer sees.
-        if (_label.startsWith('hidden')) await mark(c, rel);
-        await appendTo(c, eid, '\nedited outside the console\n');
-        if (!_label.startsWith('hidden')) await mark(c, rel);
-        const p = await c.processes(async () => {
-          const res = await c.post(verb, eid, body);
-          expect(res.status, JSON.stringify(res.body)).toBe(409);
-          expect(res.body.error.code).toBe('local-changes');
-        });
-        expect(p.wingfoil).toBe(0);
-        expect(p.git).toBeGreaterThan(0);
-        expect(await c.head()).toBe(before);
-        expect(writes(c)).toEqual([]);
-      }
+  const verbs = [
+    ['submit', TIMEOUT, { expectedStatus: 'draft' }, 'Jordan'],
+    ['approve', LOGIN, { expectedStatus: 'pending', reason: 'ok' }, 'Morgan'],
+    ['reject', LOGIN, { expectedStatus: 'pending', reason: 'no' }, 'Morgan'],
+  ] as const;
+  // One console per test (bug-023): one test per variant and verb.
+  const pairs = variants.flatMap(([label, mark]) => verbs.map((v) => [label, v[0], mark, v] as const));
+
+  it.each(pairs)(
+    'an element file %s after the last observed state, %s → 409 local-changes, 0 wingfoil processes',
+    async (_label, _verb, mark, [verb, eid, body, as]) => {
+      const c = await start({ as: memberByName(as).email });
+      await c.warm();
+      const rel = await c.pathOf(eid);
+      const before = await c.head();
+      // The order matters for the hidden variants: the flag first, then the edit git no longer sees.
+      if (_label.startsWith('hidden')) await mark(c, rel);
+      await appendTo(c, eid, '\nedited outside the console\n');
+      if (!_label.startsWith('hidden')) await mark(c, rel);
+      const p = await c.processes(async () => {
+        const res = await c.post(verb, eid, body);
+        expect(res.status, JSON.stringify(res.body)).toBe(409);
+        expect(res.body.error.code).toBe('local-changes');
+      });
+      expect(p.wingfoil).toBe(0);
+      expect(p.git).toBeGreaterThan(0);
+      expect(await c.head()).toBe(before);
+      expect(writes(c)).toEqual([]);
     },
   );
 
@@ -791,8 +793,9 @@ describe('review S1 — the element as the fresh state lists it', () => {
     });
   });
 
-  it('W2-4: an absolute or escaping path from the CLI is never sent back', async () => {
-    for (const other of [path.join('/', 'tmp', 'x.md'), '../outside.md']) {
+  it.each([path.join('/', 'tmp', 'x.md'), '../outside.md'])(
+    'W2-4: an absolute or escaping path from the CLI (%s) is never sent back',
+    async (other) => {
       const c = await start({
         intercept: async (request, real) => {
           if (!request.args.includes('approve')) return undefined;
@@ -805,8 +808,8 @@ describe('review S1 — the element as the fresh state lists it', () => {
       expect(res.status).toBe(500);
       // The checked path instead, with the commit the CLI made there.
       expect(res.body.error.detail).toEqual({ file: await c.pathOf(LOGIN), commit: await c.head() });
-    }
-  });
+    },
+  );
 });
 
 describe('review S2 — the whole entry of the element file', () => {
@@ -1057,28 +1060,31 @@ describe('review round 2 N1 — the reason never reaches the server log on a fai
     expect(log.join('')).not.toContain(c.fx.dir);
   });
 
-  it('killed after the commit and the CLI answering another path (500): no reason in the log', async () => {
-    for (const [verb, answer] of [
-      ['reject', (r: ProcessResult): ProcessResult => ({ ...r, ended: 'timeout', exitCode: null, signal: 'SIGKILL' })],
-      [
-        'approve',
-        (r: ProcessResult): ProcessResult => ({
-          ...r,
-          stdout: JSON.stringify({ ...(JSON.parse(r.stdout) as object), path: 'docs/elsewhere.md' }),
-        }),
-      ],
-    ] as const) {
-      const log: string[] = [];
-      const c = await start({
-        log,
-        intercept: async (request, real) => (request.args.includes(verb) ? answer(await real(request)) : undefined),
-      });
-      await c.warm();
-      const res = await c.post(verb, LOGIN, { expectedStatus: 'pending', reason: SECRET });
-      expect(res.status).toBe(500);
-      expect(res.body.error.code).toBe('write-incomplete');
-      expect(log.join('')).toMatch(/governed write/);
-      expect(log.join('')).not.toContain(SECRET);
-    }
+  it.each([
+    [
+      'killed after the commit',
+      'reject',
+      (r: ProcessResult): ProcessResult => ({ ...r, ended: 'timeout', exitCode: null, signal: 'SIGKILL' }),
+    ],
+    [
+      'the CLI answering another path',
+      'approve',
+      (r: ProcessResult): ProcessResult => ({
+        ...r,
+        stdout: JSON.stringify({ ...(JSON.parse(r.stdout) as object), path: 'docs/elsewhere.md' }),
+      }),
+    ],
+  ] as const)('%s (%s, 500): no reason in the log', async (_case, verb, answer) => {
+    const log: string[] = [];
+    const c = await start({
+      log,
+      intercept: async (request, real) => (request.args.includes(verb) ? answer(await real(request)) : undefined),
+    });
+    await c.warm();
+    const res = await c.post(verb, LOGIN, { expectedStatus: 'pending', reason: SECRET });
+    expect(res.status).toBe(500);
+    expect(res.body.error.code).toBe('write-incomplete');
+    expect(log.join('')).toMatch(/governed write/);
+    expect(log.join('')).not.toContain(SECRET);
   });
 });

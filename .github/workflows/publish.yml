@@ -1,13 +1,20 @@
-# WingFoil UI — npm publish pipeline (task-029; release-planning-rel-v0.2-plan RP-54, RP-46; dl-004 Actions).
+# WingFoil UI — npm publish pipeline (task-029; release-planning-rel-v0.2-plan RP-54, RP-46; dl-004 Actions;
+# the draft GitHub Release job: task-052, dl-009 action 5).
 # Modelled on WingFoil's own pipeline (public repository wingfoil/wingfoil, .github/workflows/publish.yml).
 # The full guide — the approver's registry-side checklist, the per-release runbook, the local smoke and
 # the "Differences from WingFoil's pipeline" table — is docs/publishing.md. Keep the two in step.
 #
 #   gate    → on a tag: scripts/check-release-tag.mjs (the tag is annotated, equals v<package.json version>
 #             of the root, of every workspace and of package-lock.json, points at the commit built, and that commit is on
-#             origin/main — release-publishing `tag`); `npm ci`; the repository gates `typecheck`, `lint`,
+#             origin/main — release-publishing `tag`); Python 3.12 (actions/setup-python, for the default
+#             suite's check_releases.py test, task-051); `npm ci`; the repository gates `typecheck`, `lint`,
 #             `format:check`, `test:coverage`, `test:smoke`; then `npm pack` ONCE (its `prepack` builds from a
-#             clean tree) and the tarball is uploaded as the run's artifact.
+#             clean tree) and the tarball is uploaded as the run's artifact. The coverage run also writes, on
+#             the runner only, Vitest's coverage summary and JSON results (both hold absolute paths, never
+#             uploaded); `scripts/coverage-totals.mjs` and `scripts/test-results.mjs` rebuild from them, with
+#             fixed fields only, `coverage-totals.json` and `test-results.md` (artifact `wingfoil-ui-test-reports`);
+#             on a tag `scripts/changelog-section.mjs` writes the Release notes — the version's CHANGELOG.md
+#             section, links absolute to the tag — so a tag with no section fails before anything is staged.
 #   stage   → `npm run test:publish-smoke` on THAT tarball: a local Verdaccio with no uplink (seeded offline
 #             with the run-time dependency closure of package-lock.json), `npm publish` to it, `npm install
 #             wingfoil-ui@<version>` into an empty folder, `npx wingfoil-ui --version` and a `--no-open`
@@ -17,18 +24,26 @@
 #             trusted publisher of this repository and workflow, limited to staging, over GitHub OIDC, with
 #             provenance. The version is NOT live: it waits in npm's stage queue until the approver runs
 #             `npm stage approve <stage-id>` with 2FA. This workflow never publishes live by itself.
+#   release → only for a tag, after promote: a DRAFT GitHub Release of the tag (`gh release create --draft
+#             --verify-tag`) with the notes and, as assets, the tarball promote staged and the two test reports.
+#             A draft is not public, so nothing announces a version that is not live (D52-1 (a), the approver,
+#             2026-11-04): after `npm stage approve` the approver publishes it with
+#               npm view wingfoil-ui@X.Y.Z version && gh release edit vX.Y.Z --draft=false --latest
+#             and deletes it (`gh release delete vX.Y.Z --yes`; the tag stays) after a rejected stage. The only
+#             `contents: write` of the workflow: no checkout, no install, the job token on the create step alone.
 #
-# Credentials: none. No secret is read, no token variable is set, no npm user config is written, setup-node gets no
-# `registry-url`; promote authenticates as the trusted publisher (`id-token: write`, granted to promote alone).
+# Credentials: none for npm. No secret is read, no npm user config is written, setup-node gets no `registry-url`;
+# promote authenticates as the trusted publisher (`id-token: write`, granted to promote alone). The one token is
+# the job's own, given to `gh` as `GH_TOKEN` on release's create step (`contents: write`, release alone).
 # A plain `npm publish` from a checkout stops at the root `prepublishOnly` (scripts/publish-guard.mjs) — a
 # guard against mistakes that `--ignore-scripts` skips; the control is the registry setup (trusted publisher
 # limited to staging, "disallow tokens": docs/publishing.md, approver checklist steps 5 and 6).
 #
-# Triggers: a `vX.Y.Z` tag push runs all three jobs. `workflow_dispatch` (Actions → publish → Run workflow)
+# Triggers: a `vX.Y.Z` tag push runs all four jobs. `workflow_dispatch` (Actions → publish → Run workflow)
 # runs gate and stage only, on ANY ref it is started on — a branch or a tag: a dry run of the gates on a
-# GitHub runner before tagging, and the smoked tarball as an artifact. A dispatch never promotes: promote
-# requires `github.event_name == 'push'` (a manual run on a tag ref has `ref_type == 'tag'` too), and the
-# environment admits `v*` tags only.
+# GitHub runner before tagging, and the smoked tarball and the test reports as artifacts. A dispatch never
+# promotes and never makes a Release: promote and release require `github.event_name == 'push'` (a manual run
+# on a tag ref has `ref_type == 'tag'` too), and the environment admits `v*` tags only.
 #
 # Node: gate on 22.22.2, the floor of the dev toolchain (jsdom declares ^22.22.2); stage on 22.12.0, the
 # package's `engines.node` floor, so the installed package is started on the oldest Node it claims; promote
@@ -56,6 +71,8 @@ env:
   GATE_NODE_VERSION: '22.22.2'
   RUNTIME_NODE_VERSION: '22.12.0'
   TARBALL_ARTIFACT: wingfoil-ui-tarball
+  TEST_REPORTS_ARTIFACT: wingfoil-ui-test-reports
+  RELEASE_NOTES_ARTIFACT: wingfoil-ui-release-notes
 
 jobs:
   gate:
@@ -70,6 +87,11 @@ jobs:
         with:
           node-version: ${{ env.GATE_NODE_VERSION }}
           package-manager-cache: false
+      # The default suite runs `python3` (the governance check of `check_releases.py`, task-051):
+      # installed here explicitly rather than relying on the runner image's own Python.
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.12'
       - name: Tag checks — annotated, v<version> of every package.json, the commit built, on origin/main
         if: ${{ github.ref_type == 'tag' }}
         run: node scripts/check-release-tag.mjs "$GITHUB_REF_NAME" "$GITHUB_SHA"
@@ -81,10 +103,24 @@ jobs:
         run: npm run lint
       - name: Format check
         run: npm run format:check
-      - name: Tests with coverage
-        run: npm run test:coverage
+      # The reporters are chosen here, on the runner only: a local `npm run test:coverage` keeps Vitest's
+      # defaults. The summaries hold absolute paths and are never uploaded: the next step rebuilds them.
+      - name: Tests with coverage (text table, coverage summary and Vitest's JSON results on the runner)
+        run: >-
+          npm run test:coverage -- --coverage.reporter=text --coverage.reporter=json-summary
+          --reporter=default --reporter=json --outputFile.json=coverage/vitest-results.json
+      - name: Test reports for the GitHub Release — the coverage totals and the counts per suite, no path
+        run: |
+          mkdir -p test-reports
+          node scripts/coverage-totals.mjs coverage/coverage-summary.json --commit "$GITHUB_SHA" > test-reports/coverage-totals.json
+          node scripts/test-results.mjs coverage/vitest-results.json --commit "$GITHUB_SHA" --run-url "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" > test-reports/test-results.md
       - name: Launch smoke (pack, install, npx wingfoil-ui)
         run: npm run test:smoke
+      - name: Release notes — the tag's CHANGELOG.md section, its links absolute to the tag
+        if: ${{ github.ref_type == 'tag' }}
+        run: |
+          mkdir -p release-notes
+          node scripts/changelog-section.mjs "$GITHUB_REF_NAME" --run-url "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" > release-notes/release-notes.md
       - name: Pack the release tarball once
         run: |
           mkdir -p dist-pack
@@ -93,6 +129,19 @@ jobs:
         with:
           name: ${{ env.TARBALL_ARTIFACT }}
           path: dist-pack/*.tgz
+          if-no-files-found: error
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ${{ env.TEST_REPORTS_ARTIFACT }}
+          path: |
+            test-reports/coverage-totals.json
+            test-reports/test-results.md
+          if-no-files-found: error
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: ${{ github.ref_type == 'tag' }}
+        with:
+          name: ${{ env.RELEASE_NOTES_ARTIFACT }}
+          path: release-notes/release-notes.md
           if-no-files-found: error
 
   stage:
@@ -145,3 +194,37 @@ jobs:
           set +x
           npm --version
           npm stage publish ./dist-pack/*.tgz --provenance --access public
+
+  # task-052 (D52-1 (a), the approver, 2026-11-04): a DRAFT Release of the tag, right after promote staged the
+  # version. A draft is not public: the approver makes it public after `npm stage approve` with
+  #   npm view wingfoil-ui@X.Y.Z version && gh release edit vX.Y.Z --draft=false --latest
+  # The workflow's only `contents: write`: no checkout, no install, no repository code next to the token —
+  # only the gate's artifacts of this run and `gh` (the runner's), the token on the create step alone.
+  release:
+    needs: promote
+    if: ${{ github.event_name == 'push' && github.ref_type == 'tag' && startsWith(github.ref, 'refs/tags/v') }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: ${{ env.TARBALL_ARTIFACT }}
+          path: dist-pack
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: ${{ env.TEST_REPORTS_ARTIFACT }}
+          path: test-reports
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: ${{ env.RELEASE_NOTES_ARTIFACT }}
+          path: release-notes
+      - name: Create the draft GitHub Release of the tag with the staged tarball and the test reports
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          set +x
+          gh release create "$GITHUB_REF_NAME" dist-pack/*.tgz test-reports/coverage-totals.json test-reports/test-results.md \
+            --draft --verify-tag --title "$GITHUB_REF_NAME" --notes-file release-notes/release-notes.md

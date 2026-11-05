@@ -1,12 +1,13 @@
 # `.wingfoil/` — WingFoil configuration of WingFoil UI
 
-**Version:** 0.9 · **Date:** 2026-11-02 (0.1: release v0.1, `user-docs` `align-agent-docs`; 0.2:
+**Version:** 0.11 · **Date:** 2026-11-05 (0.1: release v0.1, `user-docs` `align-agent-docs`; 0.2:
 W-25, W-26 — dl-007; 0.3: `release-submit`, `release-publishing`, `retrospective` tailored — dl-008;
 0.4: the packs `base@2.0.1`, `software@1.0.0`, `methodology/scrum@1.0.0` adopted —
 governance-alignment-rel-v0.3-plan step 3; 0.5: the deviations from the packs — GA3-11; 0.6: their residuals, the accepted limits, `traceability-chain`, `release-conventions` on facilitator — the adoption's review round 1; 0.7: the deprecate rule for every role — round 2; 0.8: R-3 cites the `wingfoil-cli` deprecate rule
 — review round 3 nit; 0.9: the accepted limits cite `wingfoil-cli` 1.15 (W-34, W-40) —
-governance-alignment-rel-v0.3-plan step 4) · **Checked against:** `wingfoil@0.3.1` (the
-devDependency pin)
+governance-alignment-rel-v0.3-plan step 4; 0.10: the five procedures folded into directives, the
+directive `release-planning` — task-049; 0.11: a closed bug's `release` — task-051) ·
+**Checked against:** `wingfoil@0.3.1` (the devDependency pin)
 
 This folder makes the WingFoil UI repository a project **governed by WingFoil**: its DNA, its Memory
 element types and their state machines, its workflows, and the directives bound to each role. It is
@@ -55,8 +56,8 @@ Decided by the approver on 2026-11-01 (GA3-11 of `governance-alignment-rel-v0.3-
 - The composer's region of `AGENTS.md` names four agent roles and the `bug` gates of the pack; its
   *This repository* section corrects both (the DNA's seven roles, R-3).
 
-Also this repository's own, not a pack's change: its templates, the five procedures, the custom
-`definition-of-done`, `release-conventions` and `traceability-chain` directives (below).
+Also this repository's own, not a pack's change: its templates, the custom `definition-of-done`,
+`release-conventions`, `release-planning` and `traceability-chain` directives (below).
 
 ## Files
 
@@ -67,7 +68,7 @@ Also this repository's own, not a pack's change: its templates, the five procedu
 | `memory/templates/` | this repository's templates (`adr`, `bug`, `decision-log`, `plan`, `release-line`, `release`, `service`, `task`, `tech-spec`); `built-in/` the packs' (only `sprint` is in use) |
 | `workflows.yaml` | the main workflow configuration: the `include` list of the workflow files |
 | `workflows/built-in/` | the 16 workflows of the packs, unchanged |
-| `workflows/custom/` | this repository's 6 workflows: `service-ingest` and 5 procedures |
+| `workflows/custom/` | this repository's one workflow, `service-ingest` |
 | `roles.yaml` | role → directive bindings and the global directives |
 | `directives/built-in/`, `directives/custom/` | the directive files (a custom directive with a built-in's id overrides it) |
 | `README.md` | this file (a file the CLI does not own: ignored by its loaders, directive `wingfoil-cli` W-11) |
@@ -111,6 +112,13 @@ Required frontmatter fields (`template.frontmatter.required`):
 | `sprint` | `title`, `goal` |
 | `service` | `title`, `provider`, `kind`, `owner_role`, `verify` |
 
+A `closed` bug carries in `release` the release that fixed it (dl-009 action 7): set at triage for
+a fix in a later release, stamped at the absorption into a task by a hand commit of that field
+alone (`memory amend` refuses `release`, directive `wingfoil-cli` W-01); a bug closed by a reject
+(a non-empty `rejection_reason`) is outside the rule. `test/governance/bug-releases.test.ts` checks
+it; the plan-version and release-`sprint` checks are in directive `release-conventions` ›
+*Governance checks*.
+
 `defaults.states` (for a type without its own `states` block — every type above has one):
 `draft → pending → approved`, gate `pending` (→ `draft`).
 
@@ -138,16 +146,16 @@ Required frontmatter fields (`template.frontmatter.required`):
 | `sprint` | scrum | sub | sprint | sprint-planning · development · plan-release · release · sprint-review · retrospective · close |
 | `backlog-item` | scrum | sub | task | start · build · review · approve · done |
 | `service-ingest` | this repository | main | — | capture · approve |
-| `initial-design` | this repository (procedure) | sub | release-line | seed-releases · seed-adrs · seed-dls · seed-specs |
-| `release-planning` | this repository (procedure) | sub | release | advance-pinned-build · define-scope · triage-bugs · reconcile-governance · record-adrs · identify-specs · build-backlog · commit-backlog |
-| `dev-loop` | this repository (procedure) | sub | task | start · design · red · green · refactor · review · done |
-| `user-docs` | this repository (procedure) | sub | release | check-implementation-complete · align-user-docs · align-agent-docs |
-| `e2e-smoke` | this repository (procedure) | sub | release | fixture-project · drive-browser · local-security · accessibility · contract · launch · gate |
 
-The five **procedures** are included by no workflow: each is run by hand inside the pack phase its
-header names (`initial-design` per release line; `release-planning` inside `sprint` ›
-`sprint-planning` and `plan-release`; `dev-loop` inside `backlog-item`; `user-docs` and `e2e-smoke`
-inside `release-submit` › `pre-release-checks`), and the pack phase owns the element transitions.
+This repository's former procedures (`initial-design`, `release-planning`, `dev-loop`, `user-docs`,
+`e2e-smoke`, run by hand inside the packs' phases) were folded into directives and their files
+removed (task-049, the adoption design §9 decision 2): how a release is planned inside `sprint` ›
+`sprint-planning` and `plan-release` is directive `release-planning`; how a task is built inside
+`backlog-item` (design → red → green → refactor, review, done) is the custom `definition-of-done`;
+the release checks of `release-submit` › `pre-release-checks` (user docs, agent docs, the e2e smoke,
+`test:timing`) and the seeding of a release line are `release-conventions`. `workflow next` prints
+the directives of each step's role, so the packs' workflows and these directives are the whole way
+of working.
 
 ## Roles and directives (`roles.yaml`)
 
@@ -165,9 +173,9 @@ every role, `approver` included.
 | developer | `code-quality`, `testing`, `determinism`, `cli-only-writes`, `accessibility`, `scrum`, `definition-of-done` |
 | reviewer | `code-review`, `traceability`, `traceability-chain`, `determinism`, `cli-only-writes`, `accessibility`, `ux-consistency`, `definition-of-done` |
 | qa | `testing`, `accessibility`, `definition-of-done`, `release-conventions` |
-| architect | `architecture`, `determinism`, `traceability`, `traceability-chain`, `cli-only-writes` |
-| product-owner | `traceability`, `traceability-chain`, `ux-consistency`, `scrum` |
-| tech-lead | `architecture`, `code-review`, `release-conventions` |
+| architect | `architecture`, `determinism`, `traceability`, `traceability-chain`, `cli-only-writes`, `release-planning` |
+| product-owner | `traceability`, `traceability-chain`, `ux-consistency`, `scrum`, `release-planning` |
+| tech-lead | `architecture`, `code-review`, `release-conventions`, `release-planning` |
 | approver | — (global ones only) |
 
 ## Directives
@@ -192,6 +200,7 @@ every role, `approver` included.
 | `cli-only-writes` | custom | this repository | Every governed change goes through the WingFoil CLI | developer, reviewer, architect |
 | `definition-of-done` | custom | this repository | Definition of Done of WingFoil UI | developer, reviewer, qa |
 | `release-conventions` | custom | this repository | Release conventions of WingFoil UI (dl-008) | facilitator, qa, tech-lead |
+| `release-planning` | custom | this repository | Release planning of WingFoil UI | architect, product-owner, tech-lead |
 | `traceability-chain` | custom | this repository | The traceability chain of WingFoil UI (the chain the pack's `traceability` asks the project to name) | facilitator, reviewer, architect, product-owner |
 | `ux-consistency` | custom | this repository | UX consistency with the reference and the prototype | reviewer, product-owner |
 | `wingfoil-cli` | custom | this repository | Using the pinned WingFoil CLI | global |
@@ -204,5 +213,5 @@ defects and gaps found here are filed as notes in `docs/wingfoil-feedback/`.
 ## Keeping this file aligned
 
 Re-check the tables when `memory.yaml`, `workflows.yaml`, a workflow file, `roles.yaml` or a
-directive changes — at least at every `user-docs` `align-agent-docs` step and at release-line close
-(dl-025 checks), and at every pack update (recompose, then compare).
+directive changes — at least at every `release-conventions` › `pre-release-checks` (the agent docs)
+and at release-line close (dl-025 checks), and at every pack update (recompose, then compare).

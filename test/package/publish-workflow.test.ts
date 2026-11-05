@@ -6,6 +6,9 @@
  * smoke before any registry is touched, `npm stage publish` (never a live publish), no secret,
  * token or `.npmrc`, and every action pinned to a commit. The OIDC trusted publisher, the
  * environment approval and the stage itself can only run on a real tag push (`docs/publishing.md`).
+ * task-052 (AC-2, AC-3; D52-1 … D52-7) adds the `release` job: a DRAFT GitHub Release of the tag
+ * after `promote`, the workflow's only `contents: write`, running no repository code, attaching the
+ * gate's tarball and the path-free test reports the gate built.
  */
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
@@ -61,7 +64,7 @@ describe('publish.yml (task-029, AC-1)', () => {
     expect(wf.on.push).toEqual({ tags: ['v[0-9]+.[0-9]+.[0-9]+'] });
   });
 
-  it('grants contents: read by default and id-token: write to the promote job alone', () => {
+  it('grants contents: read by default, id-token: write to promote alone, contents: write to release alone', () => {
     expect(wf.permissions).toEqual({ contents: 'read' });
     // A string (`write-all`, `read-all`) is not a map: every `permissions:` must be one (review R3).
     const isMap = (value: unknown): boolean => typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -69,17 +72,23 @@ describe('publish.yml (task-029, AC-1)', () => {
     for (const [name, job] of Object.entries(jobs)) {
       if ('permissions' in job) expect(isMap(job.permissions), name).toBe(true);
     }
+    expect(jobs.release?.permissions).toEqual({ contents: 'write' });
+    const writes: Record<string, string> = { promote: 'id-token', release: 'contents' };
     for (const [name, job] of Object.entries(jobs)) {
       if (name === 'promote') expect(job.permissions).toEqual({ contents: 'read', 'id-token': 'write' });
       else expect(job.permissions ?? {}, name).not.toHaveProperty('id-token');
       for (const [scope, level] of Object.entries(job.permissions ?? {})) {
-        if (!(name === 'promote' && scope === 'id-token')) expect(level, `${name} ${scope}`).not.toBe('write');
+        if (writes[name] !== scope) expect(level, `${name} ${scope}`).not.toBe('write');
       }
     }
   });
 
-  it('chains gate → stage → promote; promote runs for a tag only, in the npm-publish environment', () => {
-    expect(Object.keys(jobs)).toEqual(['gate', 'stage', 'promote']);
+  it('chains gate → stage → promote → release; promote and release run for a tag push only, promote in npm-publish', () => {
+    expect(Object.keys(jobs)).toEqual(['gate', 'stage', 'promote', 'release']);
+    expect(jobs.release?.needs).toBe('promote');
+    // The same condition as promote's, whole string: a dispatch never makes a Release (AC-2).
+    expect(jobs.release?.if).toBe(jobs.promote!.if);
+    expect(jobs.release?.environment).toBeUndefined();
     expect(jobs.stage!.needs).toBe('gate');
     expect(jobs.promote!.needs).toBe('stage');
     expect(jobs.promote!.environment).toBe('npm-publish');
@@ -113,6 +122,20 @@ describe('publish.yml (task-029, AC-1)', () => {
     expect([...at].sort((a, b) => a - b)).toEqual(at);
     expect(runs(gate).filter((r) => r.includes('npm pack'))).toHaveLength(1);
     expect(gate.steps.some((s) => s.uses?.startsWith('actions/upload-artifact@'))).toBe(true);
+  });
+
+  it('gate: sets up Python before test:coverage, for the governance checks that run python3 (task-051 Q5)', () => {
+    const gate = jobs.gate!;
+    const python = gate.steps.findIndex((s) => s.uses?.startsWith('actions/setup-python@'));
+    const coverage = gate.steps.findIndex((s) => s.run?.includes('npm run test:coverage'));
+    expect(python).toBeGreaterThanOrEqual(0);
+    expect(python).toBeLessThan(coverage);
+    expect(resolve(gate, gate.steps[python]!.with?.['python-version'])).toMatch(/^3\.\d+$/);
+    for (const name of ['stage', 'promote', 'release'])
+      expect(
+        jobs[name]!.steps.some((s) => s.uses?.startsWith('actions/setup-python@')),
+        name,
+      ).toBe(false);
   });
 
   it('stage: the staging smoke on a local registry with the gate tarball', () => {
@@ -151,7 +174,13 @@ describe('publish.yml (task-029, AC-1)', () => {
   it('holds no credential: no secret, no token variable, no .npmrc, no registry-url', () => {
     // `secrets` in any form (`secrets.X`, `secrets['X']`, `toJSON(secrets)`), the job token (review R3).
     expect(text).not.toMatch(/\bsecrets\b/);
-    expect(text).not.toMatch(/github\.token|GITHUB_TOKEN/);
+    // The job token exists once: GH_TOKEN of release's create step (task-052 AC-2).
+    expect(text.match(/github\.token/g)).toHaveLength(1);
+    expect(text).not.toMatch(/GITHUB_TOKEN/);
+    const create = jobs.release?.steps.find((s) => s.run?.includes('gh release create'));
+    expect(create?.env?.['GH_TOKEN']).toBe('${{ github.token }}');
+    expect(wf.env ?? {}).not.toHaveProperty('GH_TOKEN');
+    for (const job of Object.values(jobs)) expect(JSON.stringify(job.env ?? {})).not.toMatch(/token/i);
     expect(text).not.toMatch(/NPM_TOKEN|NODE_AUTH_TOKEN|_authToken|\.npmrc/);
     for (const job of Object.values(jobs)) {
       for (const s of job.steps) expect(s.with ?? {}).not.toHaveProperty('registry-url');
@@ -186,5 +215,141 @@ describe('publish.yml (task-029, AC-1)', () => {
     const header = text.split('\n').filter((line) => line.startsWith('#'));
     expect(header.join('\n')).toContain('docs/publishing.md');
     expect(header.join('\n')).toContain("Differences from WingFoil's pipeline");
+  });
+  it('release: no repository code next to the write token — three downloads of the gate artifacts, then a draft Release', () => {
+    const release = jobs.release!;
+    expect(release['timeout-minutes']).toBeLessThanOrEqual(15);
+    expect(
+      release.steps.map((s) => s.uses?.split('@')[0] ?? (s.run?.includes('gh release create') ? 'create' : s.run)),
+    ).toEqual(['actions/download-artifact', 'actions/download-artifact', 'actions/download-artifact', 'create']);
+    const uploads = jobs
+      .gate!.steps.filter((s) => s.uses?.startsWith('actions/upload-artifact@'))
+      .map((s) => resolve(jobs.gate!, s.with?.['name']));
+    const downloads = release.steps
+      .filter((s) => s.uses?.startsWith('actions/download-artifact@'))
+      .map((s) => resolve(release, s.with?.['name']));
+    for (const name of downloads) {
+      expect(name).not.toBe('');
+      expect(uploads).toContain(name);
+    }
+    expect(new Set(downloads).size).toBe(3);
+    const create = release.steps.find((s) => s.run?.includes('gh release create'))!;
+    expect(create.shell).toBeUndefined();
+    expect(create.run!.trim().split('\n')[0]).toBe('set +x');
+    const line = create.run!.replace(/\\\n\s*/g, ' ');
+    expect(line).toMatch(
+      /gh release create "\$GITHUB_REF_NAME" dist-pack\/\*\.tgz test-reports\/coverage-totals\.json test-reports\/test-results\.md /,
+    );
+    for (const flag of [
+      '--draft',
+      '--verify-tag',
+      '--title "$GITHUB_REF_NAME"',
+      '--notes-file release-notes/release-notes.md',
+    ])
+      expect(line).toContain(flag);
+    // A draft is made public by the approver (D52-1): no `--latest`, no edit or publish here.
+    expect(line).not.toMatch(/--latest|--draft=false|--prerelease/);
+    expect(Object.values(jobs).flatMap(runs).join('\n')).not.toMatch(/gh release (?:edit|delete|upload)/);
+    expect(create.env).toEqual({ GH_TOKEN: '${{ github.token }}', GH_REPO: '${{ github.repository }}' });
+  });
+
+  it('gate: the coverage run writes the summaries on the runner only; totals, test results and notes are path-free files', () => {
+    const gate = jobs.gate!;
+    const coverage = runs(gate).find((r) => r.includes('npm run test:coverage'))!;
+    for (const flag of [
+      '--coverage.reporter=text',
+      '--coverage.reporter=json-summary',
+      '--reporter=default',
+      '--reporter=json',
+      '--outputFile.json=coverage/vitest-results.json',
+    ])
+      expect(coverage).toContain(flag);
+    const order = [
+      'npm run test:coverage',
+      'scripts/coverage-totals.mjs coverage/coverage-summary.json --commit "$GITHUB_SHA"',
+      'scripts/test-results.mjs coverage/vitest-results.json --commit "$GITHUB_SHA" --run-url',
+      'npm run test:smoke',
+      'scripts/changelog-section.mjs "$GITHUB_REF_NAME" --run-url',
+      'npm pack',
+    ];
+    const at = order.map((cmd) => runs(gate).findIndex((r) => r.includes(cmd)));
+    expect(
+      at.every((i) => i >= 0),
+      JSON.stringify(at),
+    ).toBe(true);
+    expect([...at].sort((a, b) => a - b)).toEqual(at);
+    const notes = gate.steps.find((s) => s.run?.includes('scripts/changelog-section.mjs'))!;
+    expect(notes.if).toBe("${{ github.ref_type == 'tag' }}");
+    // What the gate uploads: the tarball, the two test reports, the notes — never a coverage report.
+    const paths = gate.steps
+      .filter((s) => s.uses?.startsWith('actions/upload-artifact@'))
+      .map((s) =>
+        String(s.with?.['path'])
+          .trim()
+          .split('\n')
+          .map((p) => p.trim()),
+      );
+    expect(paths).toEqual([
+      ['dist-pack/*.tgz'],
+      ['test-reports/coverage-totals.json', 'test-reports/test-results.md'],
+      ['release-notes/release-notes.md'],
+    ]);
+    expect(JSON.stringify(paths)).not.toMatch(/coverage\/|coverage-final|clover|coverage-summary|lcov|vitest-results/);
+    const notesUpload = gate.steps.find(
+      (s) => s.uses?.startsWith('actions/upload-artifact@') && String(s.with?.['path']).includes('release-notes'),
+    )!;
+    expect(notesUpload.if).toBe("${{ github.ref_type == 'tag' }}");
+  });
+
+  it('passes no expression and no event input to a shell: every value reaches run lines as an environment variable', () => {
+    for (const [name, job] of Object.entries(jobs)) {
+      for (const r of runs(job)) expect(r, name).not.toContain('${{');
+    }
+    expect(text).not.toMatch(/github\.event\.|\binputs\.|head_ref|pull_request|workflow_run/);
+  });
+  it('hands the gate artifacts over unchanged: only gate uploads, nothing overwrites, downloads name only the artifact and folder (review M1)', () => {
+    for (const [name, job] of Object.entries(jobs)) {
+      for (const s of job.steps) {
+        if (s.uses?.startsWith('actions/upload-artifact@')) {
+          expect(name).toBe('gate');
+          expect(s.with ?? {}, name).not.toHaveProperty('overwrite');
+        }
+        // No `run-id`, `repository`, `github-token`, `pattern`: the same run's artifact, by its name.
+        if (s.uses?.startsWith('actions/download-artifact@'))
+          expect(Object.keys(s.with ?? {}).sort(), name).toEqual(['name', 'path']);
+      }
+    }
+  });
+
+  it('release: the create step is exactly name, env and run, with the exact gh command line; nothing continues on error (review M2, N2)', () => {
+    const release = jobs.release!;
+    expect(release).not.toHaveProperty('continue-on-error');
+    for (const s of release.steps) expect(s).not.toHaveProperty('continue-on-error');
+    const create = release.steps.find((s) => s.run?.includes('gh release create'))!;
+    expect(Object.keys(create).sort()).toEqual(['env', 'name', 'run']);
+    const [first, ...rest] = create.run!.trim().split('\n');
+    expect(first).toBe('set +x');
+    const tokens = rest.join(' ').replace(/\\/g, ' ').trim().split(/\s+/);
+    expect(tokens).toEqual([
+      'gh',
+      'release',
+      'create',
+      '"$GITHUB_REF_NAME"',
+      'dist-pack/*.tgz',
+      'test-reports/coverage-totals.json',
+      'test-reports/test-results.md',
+      '--draft',
+      '--verify-tag',
+      '--title',
+      '"$GITHUB_REF_NAME"',
+      '--notes-file',
+      'release-notes/release-notes.md',
+    ]);
+  });
+  it('lets no job and no step continue on error (review round 2, R2-2)', () => {
+    for (const [name, job] of Object.entries(jobs)) {
+      expect(job, name).not.toHaveProperty('continue-on-error');
+      for (const s of job.steps) expect(s, `${name} ${s.name ?? s.uses ?? ''}`).not.toHaveProperty('continue-on-error');
+    }
   });
 });

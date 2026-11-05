@@ -122,7 +122,10 @@ describe('the hooks path of a clone (bug-008)', () => {
       const gitconfig = path.join(base, 'gitconfig');
       // The user's own filter, as git-lfs installs it.
       await writeFile(gitconfig, '[filter "lfs"]\n\tsmudge = git-lfs smudge -- %f\n\trequired = false\n');
-      const env = { ...process.env, GIT_CONFIG_GLOBAL: gitconfig, GIT_CONFIG_NOSYSTEM: '1' };
+      // An agent session's identity variables would override the seed commit's `-c user.*` (task-050).
+      const env: NodeJS.ProcessEnv = { ...process.env, GIT_CONFIG_GLOBAL: gitconfig, GIT_CONFIG_NOSYSTEM: '1' };
+      for (const key of ['GIT_AUTHOR_NAME', 'GIT_AUTHOR_EMAIL', 'GIT_COMMITTER_NAME', 'GIT_COMMITTER_EMAIL'])
+        delete env[key];
       const g = (args: string[], cwd = src) => run('git', args, { cwd, env });
       await g(['init', '-q', '-b', 'main']);
       await writeFile(path.join(src, '.gitattributes'), '*.txt filter=lfs\n');

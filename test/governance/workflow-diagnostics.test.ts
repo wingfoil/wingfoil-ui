@@ -1,8 +1,9 @@
 // GA3-11 R-4 (governance-alignment-rel-v0.3-plan step 3): `workflow list` of the pinned CLI on this
 // repository's own `.wingfoil/` (as committed at HEAD) reports exactly the diagnostics of a committed
 // baseline, counted per file and code. A new diagnostic — or one more of a code already there —
-// fails, so that warnings of this repository's procedures cannot hide a new one; a diagnostic that
-// went away fails too, until the baseline says so in the same change.
+// fails, so that known warnings cannot hide a new one; a diagnostic that went away fails too, until
+// the baseline says so in the same change. Since task-049 (the procedures folded into directives)
+// the baseline is the two warnings of `service-ingest.yaml`.
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
@@ -63,7 +64,7 @@ const row = (file: string, code: string, count: number, severity = 'warning'): D
 });
 
 describe('compareWithBaseline', () => {
-  const baseline = [row('workflows/custom/dev-loop.yaml', 'W_WORKFLOW_UNBOUND_TOKEN', 2)];
+  const baseline = [row('workflows/custom/service-ingest.yaml', 'W_WORKFLOW_UNBOUND_TOKEN', 2)];
 
   it('accepts the baseline itself', () => {
     expect(compareWithBaseline(baseline, baseline)).toEqual({ added: [], gone: [] });
@@ -71,25 +72,25 @@ describe('compareWithBaseline', () => {
 
   it('reports a diagnostic of a new code, of a new file, and one more of a known code', () => {
     const actual = countDiagnostics([
-      { file: 'workflows/custom/dev-loop.yaml', code: 'W_WORKFLOW_UNBOUND_TOKEN', severity: 'warning' },
-      { file: 'workflows/custom/dev-loop.yaml', code: 'W_WORKFLOW_UNBOUND_TOKEN', severity: 'warning' },
-      { file: 'workflows/custom/dev-loop.yaml', code: 'W_WORKFLOW_UNBOUND_TOKEN', severity: 'warning' },
-      { file: 'workflows/custom/dev-loop.yaml', code: 'W_PHASE_ACTION_UNTARGETED', severity: 'warning' },
+      { file: 'workflows/custom/service-ingest.yaml', code: 'W_WORKFLOW_UNBOUND_TOKEN', severity: 'warning' },
+      { file: 'workflows/custom/service-ingest.yaml', code: 'W_WORKFLOW_UNBOUND_TOKEN', severity: 'warning' },
+      { file: 'workflows/custom/service-ingest.yaml', code: 'W_WORKFLOW_UNBOUND_TOKEN', severity: 'warning' },
+      { file: 'workflows/custom/service-ingest.yaml', code: 'W_PHASE_ACTION_UNTARGETED', severity: 'warning' },
       { file: 'workflows/built-in/sprint.yaml', code: 'E_WORKFLOW_DUPLICATE_NAME', severity: 'error' },
     ]);
     expect(compareWithBaseline(actual, baseline).added).toEqual([
       'workflows/built-in/sprint.yaml E_WORKFLOW_DUPLICATE_NAME (error): 0 → 1',
-      'workflows/custom/dev-loop.yaml W_PHASE_ACTION_UNTARGETED (warning): 0 → 1',
-      'workflows/custom/dev-loop.yaml W_WORKFLOW_UNBOUND_TOKEN (warning): 2 → 3',
+      'workflows/custom/service-ingest.yaml W_PHASE_ACTION_UNTARGETED (warning): 0 → 1',
+      'workflows/custom/service-ingest.yaml W_WORKFLOW_UNBOUND_TOKEN (warning): 2 → 3',
     ]);
   });
 
   it('reports a diagnostic that went away', () => {
     expect(
-      compareWithBaseline([row('workflows/custom/dev-loop.yaml', 'W_WORKFLOW_UNBOUND_TOKEN', 1)], baseline),
+      compareWithBaseline([row('workflows/custom/service-ingest.yaml', 'W_WORKFLOW_UNBOUND_TOKEN', 1)], baseline),
     ).toEqual({
       added: [],
-      gone: ['workflows/custom/dev-loop.yaml W_WORKFLOW_UNBOUND_TOKEN (warning): 2 → 1'],
+      gone: ['workflows/custom/service-ingest.yaml W_WORKFLOW_UNBOUND_TOKEN (warning): 2 → 1'],
     });
   });
 });

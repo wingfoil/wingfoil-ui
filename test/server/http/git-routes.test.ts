@@ -908,11 +908,14 @@ describe('bug-014 (task-034 D34-8) — the manual update never makes a merge com
     },
   );
 
-  it('no configured fetch refspec (fail closed) → 409 refspec-outside-remotes; a negative refspec beside the tracking one → 200', async () => {
+  it('no configured fetch refspec (fail closed) → 409 refspec-outside-remotes', async () => {
     const none = await start({
       prepare: (fx) => git(fx.dir, ['config', '--unset-all', 'remote.origin.fetch'], fx.env).then(() => undefined),
     });
     expect((await none.op('fetch')).body.error.code).toBe('refspec-outside-remotes');
+  });
+
+  it('a negative refspec beside the tracking one → 200', async () => {
     const negative = await start({
       prepare: (fx) =>
         git(fx.dir, ['config', '--add', 'remote.origin.fetch', '^refs/heads/tmp/*'], fx.env).then(() => undefined),

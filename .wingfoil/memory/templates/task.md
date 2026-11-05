@@ -36,9 +36,9 @@ tmpl_version: 260703   # Orignal template version
 
 ## Execution Notes
 
-<!-- Running log of what actually happened while working this task through dev-loop — filled in
+<!-- Running log of what actually happened while working this task (`backlog-item`) — filled in
      incrementally per phase, not written after the fact. Raw material for the release's Execution
      Notes / the retrospective, not the retrospective itself.
-     - design: tech-specs found missing/needing revision (dev-loop/design safety net).
+     - design: tech-specs found missing/needing revision (`definition-of-done` › design).
      - red/green/refactor: deviations from the plan above, blockers, scope surprises.
      - review: rejection reasons and what changed on the next pass. -->

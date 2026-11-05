@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""Stop-check of initial-design/seed-releases: the release elements of rl-v1 against the sequencer.
+"""Stop-check of seeding a line (`release-conventions` › seed-releases): the release elements of
+rl-v1 against the sequencer.
 
 Checks, for every docs/04_memory/planning/v1/minor-*.md:
 - every required field of `release` in .wingfoil/memory.yaml is set (`kind` included);
@@ -8,25 +9,49 @@ Checks, for every docs/04_memory/planning/v1/minor-*.md:
   06_features.md is in exactly one release;
 - `requirements` points to the existing by-release partition of the same version;
 - `release-line` = v1, status one of the `release` states of memory.yaml (`draft` at seeding; it
-  advances through release-cycle — release-planning-rel-v0.1-plan, session 1).
+  advances through the packs' verbs — `sprint` › `plan-release`, `release-submit`,
+  `release-publishing`).
 
-Usage: python3 docs/03_backlog/X_tools/check_releases.py
-Exit status 0 when every check passes.
+Required fields and their exemptions (task-051):
+- a field listed under `template.frontmatter.exempt` of the `release` type in memory.yaml
+  is not required of the releases it names, in memory.yaml's BLOCK form — `exempt:` on its own
+  line, then one `<field>: [ <release id>, … ]` line per field, indented under it; a flow map
+  (`exempt: { … }`) is not read, so its fields stay required (fails closed) — the list is read from
+  memory.yaml, never copied here (today `sprint` for minor-v0.1 and minor-v0.2,
+  released before the Sprints);
+- a release in `draft` may have no `sprint`: no Sprint selects it yet, and WingFoil checks the
+  required fields at `memory submit` (`release-conventions` › Seeding a line: "`sprint` before its
+  submit"); every other required field is required of a draft too, and a release past `draft` with
+  no `sprint` and not exempt fails.
+
+Usage: python3 docs/03_backlog/X_tools/check_releases.py [--root <repository folder>]
+`--root` (default: the repository holding this script) runs the checks on another tree (the test
+`test/governance/check-releases.test.ts`). Exit status 0 when every check passes.
 """
-import pathlib, re, sys, collections
+import argparse, pathlib, re, sys, collections
 
-# release states of .wingfoil/memory.yaml (draft at seeding; advanced by release-cycle)
+# release states of .wingfoil/memory.yaml (draft at seeding; advanced by the packs' verbs)
 RELEASE_STATES = ("draft", "planning", "in-development", "releasing", "released")
 
-ROOT = pathlib.Path(__file__).resolve().parents[3]
+parser = argparse.ArgumentParser(description="Check the release elements of rl-v1 against the sequencer.")
+parser.add_argument("--root", type=pathlib.Path, default=pathlib.Path(__file__).resolve().parents[3],
+                    help="the repository folder (default: the one holding this script)")
+ROOT = parser.parse_args().root.resolve()
 VISION = ROOT / "docs" / "01_vision"
 seq = (VISION / "07_sequencer.md").read_text()
 ft = (VISION / "06_features.md").read_text()
 schema = (ROOT / ".wingfoil" / "memory.yaml").read_text()
 errors = []
 
-required = re.search(r"^  release:\n.*?required: \[([^\]]*)\]", schema, re.S | re.M).group(1)
+# the `release` type's block: from `  release:` to the next type (two-space indent) or the end
+release_type = re.search(r"^  release:\n(.*?)(?=^  [\w-]+:[ \t]*\n|\Z)", schema, re.S | re.M).group(1)
+required = re.search(r"required: \[([^\]]*)\]", release_type).group(1)
 required = [x.strip() for x in required.split(",")]
+# exempt: { <field>: [ <release id>, … ] } — the lines indented under `exempt:`
+exempt = {}
+block = re.search(r"^([ \t]+)exempt:[ \t]*\n((?:\1[ \t]+.*\n?)*)", release_type, re.M)
+for field, ids in re.findall(r"^[ \t]+([\w-]+):[ \t]*\[([^\]]*)\]", block.group(2) if block else "", re.M):
+    exempt[field] = {x.strip() for x in ids.split(",") if x.strip()}
 mvp = re.findall(r"^\| ([A-Z]\d+) \|", ft.split("## Later")[0], re.M)
 
 expected = {}
@@ -54,6 +79,10 @@ for p in files:
     for k in required:
         if k == "features":
             continue  # an empty list is legitimate for v1.0 (no new features)
+        if p.stem in exempt.get(k, ()):
+            continue  # exempt in memory.yaml
+        if k == "sprint" and f.get("status") == "draft":
+            continue  # a draft no Sprint selects yet
         if not f.get(k):
             errors.append(f"{p.name}: required field {k} empty")
     if v not in expected:

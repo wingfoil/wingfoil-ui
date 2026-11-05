@@ -2,7 +2,7 @@
 id: bug-023-auto-sync-rp-36-test-starts-four-consoles-in-one-30-second-test-and-times-out-under-load
 type: bug
 title: "Auto-sync RP-36 test starts four consoles in one 30 second test and times out under load"
-status: planned
+status: resolved
 severity: "low"           # REQUIRED — critical | high | medium | low
 release-origin: "v0.2"     # optional — release where the bug was FOUND, e.g. "v0.1"
 release: "v0.3"            # optional — fix/implementation release, stamped by release-planning/build-backlog
@@ -56,3 +56,15 @@ v0.2 retrospective, together with the machine-free slot checking the load only a
        live on those tasks (docs/04_memory/{release}/{id}.md, `bug: {this id}`, their own
        Execution Notes section) — this section only needs a pointer plus anything that doesn't
        belong on a specific fix task (e.g. why 2 tasks were needed instead of 1). -->
+
+- fix (2026-11-04): task-053-auto-sync-rp-36-test-split-into-one-console-per-test — RP-36 / D34-5
+  one test per case, the one-console rule and its check `test/lint/one-console-per-test.test.ts`
+  (its Execution Notes). The single-console timeouts of *Actual Behavior* (`element-writes.test.ts`
+  W2-5, `snapshot/watcher.test.ts` review F3) are outside the one-console rule: each test starts one
+  console or none; they passed in task-053's `test:coverage` run and `element-writes.test.ts` also in
+  its strict-identity run, which ended at a 1-minute load of 25.8. A recurrence becomes a new bug.
+- close note (2026-11-05): fixed by task-053 (`done`), merged into the phase branch in `0e1b76a9`;
+  resolved by the approver (`2256f2bd`). The later full `test:coverage` runs on branches holding the
+  fix passed with no RP-36 failure (task-051: 3494 passed; task-050: 3476 passed, with and without
+  the agent identity variables). The history-route timeouts seen in the same Wave 0 runs are another
+  test (bug-028), not a recurrence. It closes with Wave 0's merge into `main`.

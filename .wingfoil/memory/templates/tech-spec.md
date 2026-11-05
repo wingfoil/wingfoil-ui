@@ -29,6 +29,7 @@ tmpl_version: 260703   # Orignal template version
 ## Process Notes
 
 <!-- Optional running log, not the spec itself. Was this discovered proactively by
-     release-planning/identify-specs or reactively by dev-loop/design (and if reactive, why did
-     identify-specs miss it — worth feeding back into planning)? Revisions requested during
-     approval; tasks that later hit a gap in it (candidate for a future spec that supersedes it). -->
+     release-planning/identify-specs or reactively at a task's design (`definition-of-done`; if
+     reactive, why did identify-specs miss it — worth feeding back into planning)? Revisions
+     requested during approval; tasks that later hit a gap in it (candidate for a future spec that
+     supersedes it). -->

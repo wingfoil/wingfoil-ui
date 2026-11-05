@@ -11,5 +11,13 @@ export const BIN_START_MS = 60_000;
 /** A test that starts the bin itself (start, requests, stop). */
 export const BIN_TEST_MS = 120_000;
 
+/**
+ * A test that starts the bin `starts` times — a restart, or two consoles at once, kept with the
+ * `one-console-per-test` marker (task-053, bug-023): each start gets the budget of a test of its own.
+ */
+export function binTestMs(starts: number): number {
+  return starts * BIN_TEST_MS;
+}
+
 /** Building the fixtures with the real CLI and git, or linting the whole repository (34 s at load 30). */
 export const HEAVY_MS = 600_000;

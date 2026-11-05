@@ -3,7 +3,7 @@ id: user-docs-rel-v0.1-plan
 type: plan
 title: "User docs rel-v0.1"
 status: done
-version: "0.2"         # optional — plan version
+version: "0.3"         # optional — plan version
 workflow: "user-docs"
 phase: "rel-v0.1"
 scope: "rl-v1/rel-v0.1"

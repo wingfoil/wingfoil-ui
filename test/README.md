@@ -1,6 +1,6 @@
 # Tests
 
-**Version:** 0.51 · **Date:** 2026-11-02 (0.1: workspace tooling and e2e harness — task-001; 0.2: `test/launcher/`, `test/server/` — task-002; 0.3: `test/contracts/`, local state isolation, secret scan — task-007; 0.4: `local-security` suite — task-003; 0.5: process runner fake, hand-made CLI packages, stub after global options — task-004; 0.6: CLI contract tests, captured samples, `test:contract` — task-005; 0.7: action descriptor tests, REQ-ARC-05 lint rule — task-011; 0.8: matrix builds of `cliBuildFor`, capability table and README checks — task-006; 0.9: identity tests, bin with a seeded state — task-009; 0.10: timing suite `test:timing`, `TempWorkspace`, snapshot audits and stand-ins — task-010 / bug-001; 0.11: project-list route tests, a dumb-HTTP git remote — task-008; 0.12: read routes, the read console replacing the stand-ins, spec-002 §3 event parse, confinement — task-012; 0.13: `test/web/` component tests, the shared e2e support of Wave 3, the shell e2e — task-013; 0.14: `test/web/element/` and the element panel e2e `element-panel.spec.ts` — task-018; 0.15: `test/web/docs/` and the documentation e2e `documentation.spec.ts` — task-020; 0.16: `test/web/memory/` and the Memory list e2e `memory-list.spec.ts` — task-017; 0.17: `test/web/dna/`, `directives/`, `team/`, the e2e `dna`, `directives`, `team` specs and G-02 in `element-panel.spec.ts`; load-independent waits, prebuilt fixtures and the console reaper of the e2e support, `test/harness/load.ts` — task-019 / bug-004; 0.18: the Playwright part of `test:timing` (strict live refresh) — task-019, W3-47; 0.19: `wingfoil-feedback.test.ts`, the WingFoil feedback inbox and the `wingfoil-cli` *Note* column — task-023; 0.20: the project switcher e2e `projects.spec.ts`, `stateDir` of the e2e console, `test/web/shell/project-switcher`, `switch-target`, `test/web/api/projects` — task-015; 0.21: the Add project e2e `add-project.spec.ts`, `support/switcher.ts`, `support/git-http.ts`, `test/web/shell/add-project`, `add-project-fields`, `working-directory` — task-014; 0.22: the project header e2e `project-header.spec.ts`, `test/web/project/`, `test/web/api/role-view` — task-016; 0.23: the e2e-smoke `accessibility` spec `accessibility.spec.ts`, `performance.spec.ts` (`@perf`, TT-PERF-04) and the large fixture `test/harness/fixtures/large.ts`, `support/screens.ts`, `strings.ts`, `perf.ts`, `focusRing`/`tabUntil`, `test/web/shell/page-title` — task-021; 0.24: the packaging guard `test/package/`, the launch smoke `test/smoke/` and `test:smoke`, the `scrum` fixture and `scrum.spec.ts`, `test/harness/repo-state.ts` and `no-commit.spec.ts`; the Vitest global setup builds `web/dist` too — task-025 / bug-007; 0.25: *Temporary folders* (the run's temporary root `harness/temp-root.ts`, the clone hooks path, `launcher/clone-hooks.test.ts`), fresh-read preconditions, `test:smoke` as a wave gate — task-026 / bug-008; 0.26: the public-text check `test/docs/public-text.test.ts` — task-028; 0.27: the e2e suite on Chromium, Firefox and WebKit, `test:e2e:chromium`, *Browsers*, `support/clipboard.ts` — task-027 / bug-009; 0.28: the UI settings tests `server/state/settings`, `server/http/settings` (with its process audit), `launcher/settings`, `contracts/api-settings-schema` — task-030; 0.29: `test/server/http/today-routes.test.ts`, `test/server/descriptor/today.test.ts`, the Today process audit — task-031; 0.30: the How to join e2e `how-to-join.spec.ts`, a third `SCREENS` project (Riley), the X-09.1 rule for a CLI command shown as data, `test/web/project/join`, `how-to-join` — task-035; 0.31: the governed-write suites, `test/server/writes/`, `test/scripts/` — task-032; 0.32: the Today e2e `today.spec.ts` (with TT-PERF-09), TT-PERF-01 in `performance.spec.ts`, two `SCREENS` entries, `test/web/today/`; X-06.4 and X-09.1 one test per screen — task-036 / bug-011; 0.33: the git-route suites `server/http/git-routes`, `repository-status` and their console `git-console.ts`, `server/git/` copy, transport, redaction and local-remote tests, the transport characterization, `launcher/git-routes` — task-033 / bug-010, bug-012, bug-013; 0.34: the gate footer e2e `gate-footer.spec.ts`, `lastCommitSubject` in `support/events.ts`, three `SCREENS` entries, the X-09.1 rule for the References field names (D37-13), `test/web/element/footer`, `gate-footer`, `test/web/api/writes` — task-037; 0.35: the auto-sync suites `server/sync/` (scheduler, automatic fetch and update), `server/http/auto-push`, `launcher/auto-sync`, TT-PERF-07 in `timing/auto-sync.timing.test.ts`, the bug-014 and D34 characterization rows, `autoPush` of `git-console.ts`, the runner's drain after exit (`server/process/runner.test.ts`) — task-034 / bug-014; 0.36: the notification bell e2e `notification-bell.spec.ts` (S-21.x, S-23.x, T-07.x), the *notification panel* `SCREENS` entry, `test/web/shell/notification-bell`, `notifications`, `test/web/today/summary`; the X-09.1 recorder of bug-015 — task-042; 0.37: `submit-footer.spec.ts`, the toasts unit suites, `ConsoleOptions.settings`, `support/remote.ts`, TT-PERF-02 in the perf run — task-038; 0.38: the git status e2e `git-status.spec.ts` (Y-01.x … Y-04.x, S-11.x, Cancel; Y-02.1 and Y-04.2 `@live-refresh`), `settings` of the e2e console, `support/remote.ts` `remoteCommit`/`setRemoteUrl`, a fourth `SCREENS` project and the *git status — fetch failed* entry, the X-09.1 time-only rendering, `test/web/repository/`, `test/web/api/git` — task-039; 0.39: the UI settings e2e `ui-settings.spec.ts` (C-07.1 … C-07.3, X-08.3), `ConsoleOptions.settings`, the *configuration — UI settings* `SCREENS` entry, C-07.3 in `timing/ui-settings.timing.test.ts`, `test/web/settings/`, `test/web/api/settings` — task-041; 0.40: *Publish smoke* (`test:publish-smoke`, `smoke/staging.publish.test.ts`, `smoke/registry.ts`, `smoke/registry-cleanup.ts`), `smoke/support.ts`, the publish-workflow invariants `package/publish-workflow.test.ts`, `scripts/check-release-tag`, `scripts/publish-guard`, the root package no longer private — task-029, review round 1; 0.41: the Update and Push e2e `update-push.spec.ts` (Y-05.x … Y-08.x, G-12.x, Push's Cancel; Y-05.2 `@live-refresh`), G-13.2's sidebar step, bug-016 in `shell.spec.ts`, `support/remote.ts` `fetchCopy`/`remoteHook`, a fifth `SCREENS` project and its entry, `test/web/repository/update-push`, `session` `watchFragmentToken` — task-040 / bug-016; 0.42: the commit-provenance e2e `commit-provenance.spec.ts` and its checker `harness/commit-provenance.ts`, G-04.1 with auto-push, X-06.2 Reject by keyboard, G-12.1 Submit while behind — task-043; 0.43: X-06.2 Cancel by keyboard, the bug-018 tests of `gate-footer.spec.ts` and `test/web/today/today.test.tsx`, the tracked-path rule of `harness/commit-provenance.ts` — task-043 AC-7, review round 1; 0.44: the summary item as the opener in `test/web/today/summary.test.tsx` — task-043 review round 2; 0.45: the harness git identity (`HARNESS_GIT_NAME`, `user.useConfigOnly`), `harness/git-identity.test.ts`, the strict-identity run, the remote-tracking `HEAD` rule of `harness/commit-provenance.ts` — task-044 / bug-020, bug-021; 0.46: `RepoState.symrefs`, the `followRemoteHEAD` emulation in the strict-run recipe — task-044 review round 1; 0.47: the matrix [0.2.2, 0.3.1] on the pin 0.3.1, the per-version `behaviours` of `contracts/support.ts`, the `workflow list` branches of `schemas.test.ts`, the `unknown` fixture's own workflow — task-046; 0.48: the `custom` fixture's governance per version (`customGovernance`, the frozen `harness/fixtures/custom-governance-0.2/`), `STANDARD_PACKS`, `test/governance/workflow-diagnostics.test.ts` and its baseline — governance-alignment-rel-v0.3-plan step 3, GA3-11 R-4; 0.49: the variant `usePrePacksStates` — the adoption's decision 1-A and review round 1; 0.50: the 0.2.2 quirks cite `wingfoil-cli` 1.15 — governance-alignment-rel-v0.3-plan step 4; 0.51: the WingFoil 0.3 operations `addOperations` (`harness/fixtures/operations.ts`), the samples `custom/memory-history-operations/`, the `memory history` entry definitions of `schemas.test.ts`, the e2e `history-operations.spec.ts` — task-048 / bug-026)
+**Version:** 0.57 · **Date:** 2026-11-05 (0.1: workspace tooling and e2e harness — task-001; 0.2: `test/launcher/`, `test/server/` — task-002; 0.3: `test/contracts/`, local state isolation, secret scan — task-007; 0.4: `local-security` suite — task-003; 0.5: process runner fake, hand-made CLI packages, stub after global options — task-004; 0.6: CLI contract tests, captured samples, `test:contract` — task-005; 0.7: action descriptor tests, REQ-ARC-05 lint rule — task-011; 0.8: matrix builds of `cliBuildFor`, capability table and README checks — task-006; 0.9: identity tests, bin with a seeded state — task-009; 0.10: timing suite `test:timing`, `TempWorkspace`, snapshot audits and stand-ins — task-010 / bug-001; 0.11: project-list route tests, a dumb-HTTP git remote — task-008; 0.12: read routes, the read console replacing the stand-ins, spec-002 §3 event parse, confinement — task-012; 0.13: `test/web/` component tests, the shared e2e support of Wave 3, the shell e2e — task-013; 0.14: `test/web/element/` and the element panel e2e `element-panel.spec.ts` — task-018; 0.15: `test/web/docs/` and the documentation e2e `documentation.spec.ts` — task-020; 0.16: `test/web/memory/` and the Memory list e2e `memory-list.spec.ts` — task-017; 0.17: `test/web/dna/`, `directives/`, `team/`, the e2e `dna`, `directives`, `team` specs and G-02 in `element-panel.spec.ts`; load-independent waits, prebuilt fixtures and the console reaper of the e2e support, `test/harness/load.ts` — task-019 / bug-004; 0.18: the Playwright part of `test:timing` (strict live refresh) — task-019, W3-47; 0.19: `wingfoil-feedback.test.ts`, the WingFoil feedback inbox and the `wingfoil-cli` *Note* column — task-023; 0.20: the project switcher e2e `projects.spec.ts`, `stateDir` of the e2e console, `test/web/shell/project-switcher`, `switch-target`, `test/web/api/projects` — task-015; 0.21: the Add project e2e `add-project.spec.ts`, `support/switcher.ts`, `support/git-http.ts`, `test/web/shell/add-project`, `add-project-fields`, `working-directory` — task-014; 0.22: the project header e2e `project-header.spec.ts`, `test/web/project/`, `test/web/api/role-view` — task-016; 0.23: the e2e-smoke `accessibility` spec `accessibility.spec.ts`, `performance.spec.ts` (`@perf`, TT-PERF-04) and the large fixture `test/harness/fixtures/large.ts`, `support/screens.ts`, `strings.ts`, `perf.ts`, `focusRing`/`tabUntil`, `test/web/shell/page-title` — task-021; 0.24: the packaging guard `test/package/`, the launch smoke `test/smoke/` and `test:smoke`, the `scrum` fixture and `scrum.spec.ts`, `test/harness/repo-state.ts` and `no-commit.spec.ts`; the Vitest global setup builds `web/dist` too — task-025 / bug-007; 0.25: *Temporary folders* (the run's temporary root `harness/temp-root.ts`, the clone hooks path, `launcher/clone-hooks.test.ts`), fresh-read preconditions, `test:smoke` as a wave gate — task-026 / bug-008; 0.26: the public-text check `test/docs/public-text.test.ts` — task-028; 0.27: the e2e suite on Chromium, Firefox and WebKit, `test:e2e:chromium`, *Browsers*, `support/clipboard.ts` — task-027 / bug-009; 0.28: the UI settings tests `server/state/settings`, `server/http/settings` (with its process audit), `launcher/settings`, `contracts/api-settings-schema` — task-030; 0.29: `test/server/http/today-routes.test.ts`, `test/server/descriptor/today.test.ts`, the Today process audit — task-031; 0.30: the How to join e2e `how-to-join.spec.ts`, a third `SCREENS` project (Riley), the X-09.1 rule for a CLI command shown as data, `test/web/project/join`, `how-to-join` — task-035; 0.31: the governed-write suites, `test/server/writes/`, `test/scripts/` — task-032; 0.32: the Today e2e `today.spec.ts` (with TT-PERF-09), TT-PERF-01 in `performance.spec.ts`, two `SCREENS` entries, `test/web/today/`; X-06.4 and X-09.1 one test per screen — task-036 / bug-011; 0.33: the git-route suites `server/http/git-routes`, `repository-status` and their console `git-console.ts`, `server/git/` copy, transport, redaction and local-remote tests, the transport characterization, `launcher/git-routes` — task-033 / bug-010, bug-012, bug-013; 0.34: the gate footer e2e `gate-footer.spec.ts`, `lastCommitSubject` in `support/events.ts`, three `SCREENS` entries, the X-09.1 rule for the References field names (D37-13), `test/web/element/footer`, `gate-footer`, `test/web/api/writes` — task-037; 0.35: the auto-sync suites `server/sync/` (scheduler, automatic fetch and update), `server/http/auto-push`, `launcher/auto-sync`, TT-PERF-07 in `timing/auto-sync.timing.test.ts`, the bug-014 and D34 characterization rows, `autoPush` of `git-console.ts`, the runner's drain after exit (`server/process/runner.test.ts`) — task-034 / bug-014; 0.36: the notification bell e2e `notification-bell.spec.ts` (S-21.x, S-23.x, T-07.x), the *notification panel* `SCREENS` entry, `test/web/shell/notification-bell`, `notifications`, `test/web/today/summary`; the X-09.1 recorder of bug-015 — task-042; 0.37: `submit-footer.spec.ts`, the toasts unit suites, `ConsoleOptions.settings`, `support/remote.ts`, TT-PERF-02 in the perf run — task-038; 0.38: the git status e2e `git-status.spec.ts` (Y-01.x … Y-04.x, S-11.x, Cancel; Y-02.1 and Y-04.2 `@live-refresh`), `settings` of the e2e console, `support/remote.ts` `remoteCommit`/`setRemoteUrl`, a fourth `SCREENS` project and the *git status — fetch failed* entry, the X-09.1 time-only rendering, `test/web/repository/`, `test/web/api/git` — task-039; 0.39: the UI settings e2e `ui-settings.spec.ts` (C-07.1 … C-07.3, X-08.3), `ConsoleOptions.settings`, the *configuration — UI settings* `SCREENS` entry, C-07.3 in `timing/ui-settings.timing.test.ts`, `test/web/settings/`, `test/web/api/settings` — task-041; 0.40: *Publish smoke* (`test:publish-smoke`, `smoke/staging.publish.test.ts`, `smoke/registry.ts`, `smoke/registry-cleanup.ts`), `smoke/support.ts`, the publish-workflow invariants `package/publish-workflow.test.ts`, `scripts/check-release-tag`, `scripts/publish-guard`, the root package no longer private — task-029, review round 1; 0.41: the Update and Push e2e `update-push.spec.ts` (Y-05.x … Y-08.x, G-12.x, Push's Cancel; Y-05.2 `@live-refresh`), G-13.2's sidebar step, bug-016 in `shell.spec.ts`, `support/remote.ts` `fetchCopy`/`remoteHook`, a fifth `SCREENS` project and its entry, `test/web/repository/update-push`, `session` `watchFragmentToken` — task-040 / bug-016; 0.42: the commit-provenance e2e `commit-provenance.spec.ts` and its checker `harness/commit-provenance.ts`, G-04.1 with auto-push, X-06.2 Reject by keyboard, G-12.1 Submit while behind — task-043; 0.43: X-06.2 Cancel by keyboard, the bug-018 tests of `gate-footer.spec.ts` and `test/web/today/today.test.tsx`, the tracked-path rule of `harness/commit-provenance.ts` — task-043 AC-7, review round 1; 0.44: the summary item as the opener in `test/web/today/summary.test.tsx` — task-043 review round 2; 0.45: the harness git identity (`HARNESS_GIT_NAME`, `user.useConfigOnly`), `harness/git-identity.test.ts`, the strict-identity run, the remote-tracking `HEAD` rule of `harness/commit-provenance.ts` — task-044 / bug-020, bug-021; 0.46: `RepoState.symrefs`, the `followRemoteHEAD` emulation in the strict-run recipe — task-044 review round 1; 0.47: the matrix [0.2.2, 0.3.1] on the pin 0.3.1, the per-version `behaviours` of `contracts/support.ts`, the `workflow list` branches of `schemas.test.ts`, the `unknown` fixture's own workflow — task-046; 0.48: the `custom` fixture's governance per version (`customGovernance`, the frozen `harness/fixtures/custom-governance-0.2/`), `STANDARD_PACKS`, `test/governance/workflow-diagnostics.test.ts` and its baseline — governance-alignment-rel-v0.3-plan step 3, GA3-11 R-4; 0.49: the variant `usePrePacksStates` — the adoption's decision 1-A and review round 1; 0.50: the 0.2.2 quirks cite `wingfoil-cli` 1.15 — governance-alignment-rel-v0.3-plan step 4; 0.51: the WingFoil 0.3 operations `addOperations` (`harness/fixtures/operations.ts`), the samples `custom/memory-history-operations/`, the `memory history` entry definitions of `schemas.test.ts`, the e2e `history-operations.spec.ts` — task-048 / bug-026; 0.52: the gates named after the directives `definition-of-done` and `release-conventions`, the procedures folded into them, the diagnostics baseline of one row — task-049; 0.53: the sha-only re-capture rule, `test:timing` at the wave gate and before a release — its review round 1; 0.54: `scripts/coverage-totals`, `test-results`, `changelog-section` and the `release` job's invariants in `package/publish-workflow.test.ts` — task-052; 0.55: one console per test, `lint/one-console-per-test.test.ts`, `binTestMs` — task-053 / bug-023; 0.56: the governance checks `plan-versions`, `bug-releases`, `check-releases` — task-051; 0.57: the agent sessions' identity variables in *Git identity*, the `gitEnv` identity pin of `server/process/git-env.test.ts` — task-050)
 
 Every test lives under `test/` (DNA `paths.tests`); sources stay in `server/src`, `web/src`,
 `contracts/src`.
@@ -8,12 +8,12 @@ Every test lives under `test/` (DNA `paths.tests`); sources stay in `server/src`
 | Command | What it runs |
 |---------|--------------|
 | `npm test` | Vitest: every `test/**/*.test.ts` (unit, contract, harness, gates) except the timing suite |
-| `npm run test:coverage` | the same with v8 coverage of `server/`, `contracts/`, `web/` (threshold 80 %, dev-loop `refactor`) |
-| `npm run test:contract` | the contract tests of `test/contracts/` (e2e-smoke `contract`, spec-001 §7) |
-| `npm run test:timing` | the timing suite: `test/timing/**/*.timing.test.ts`, one file at a time, each measurement printed with the load average — on a quiet machine only (see *Timing suite*) |
+| `npm run test:coverage` | the same with v8 coverage of `server/`, `contracts/`, `web/` (threshold 80 %, `definition-of-done` › refactor) |
+| `npm run test:contract` | the contract tests of `test/contracts/` (the e2e smoke's `contract`, `release-conventions` › `pre-release-checks`; spec-001 §7) |
+| `npm run test:timing` | the timing suite: `test/timing/**/*.timing.test.ts`, one file at a time, each measurement printed with the load average — run alone through the machine-free slot at every wave gate and at `pre-release-checks` (dl-009 action 6; see *Timing suite*) |
 | `npm run test:e2e` | Playwright: `test/e2e/**/*.spec.ts` on the three projects `chromium`, `firefox`, `webkit` (REQ-INT-08; `@perf` on Chromium only) — the gate at the end of every wave and at release validation; `npm run test:e2e -- <spec files>` runs only those files on the three engines (see *Browsers*) |
 | `npm run test:e2e:chromium` | the same suite on the `chromium` project only — the inner development loop; `-- <spec files>` narrows it too |
-| `npm run test:smoke` | the launch smoke (e2e-smoke `launch`): `test/smoke/**/*.smoke.test.ts` — packs the repository (`prepack` builds), installs the tarball into a temporary folder and runs `npx wingfoil-ui` there (see *Launch smoke*) |
+| `npm run test:smoke` | the launch smoke (the e2e smoke's `launch`, `release-conventions` › `pre-release-checks`): `test/smoke/**/*.smoke.test.ts` — packs the repository (`prepack` builds), installs the tarball into a temporary folder and runs `npx wingfoil-ui` there (see *Launch smoke*) |
 | `npm run test:publish-smoke` | the staging publish smoke (task-029, the publish pipeline's `stage` job): `test/smoke/**/*.publish.test.ts` — publishes the packed package to a local registry with no uplink, installs it by name and runs `npx wingfoil-ui` (see *Publish smoke*) |
 | `npm run lint` · `npm run format:check` · `npm run typecheck` · `npm run docs:api` | ESLint (with the REQ-SEC-05 no-shell rule on `server/`), Prettier, `tsc`, TypeDoc of `server/` and `contracts/` |
 
@@ -192,12 +192,33 @@ Every test lives under `test/` (DNA `paths.tests`); sources stay in `server/src`
   of `workflow-diagnostics.baseline.json`, counted per file, code and severity; a new one, or one
   that went away, fails until the baseline changes in the same commit. It reads `.wingfoil/` as
   committed at HEAD: commit a `.wingfoil/` change before running it (W-24).
+- `test/governance/plan-versions.test.ts` (task-051, dl-011) — every `.md` file under
+  `docs/05_plans/` is a plan whose frontmatter `version` equals the first token of its Context
+  `**Version:**` line; a plan with neither is versioned by git alone and passes (a `workflow
+  start` plan as its template leaves it); the commented `EXEMPT` list (closed plans of this
+  repository's history) must still match its files.
+- `test/governance/bug-releases.test.ts` (task-051, dl-009 action 7) — a `closed` bug of
+  `docs/04_memory/bugs/` carries `release`, unless a reject closed it (a non-empty
+  `rejection_reason`).
+- `test/governance/check-releases.test.ts` (task-051) — `docs/03_backlog/X_tools/check_releases.py`
+  on temporary trees (`--root`: the `exempt` lists read from `memory.yaml`, a `draft` with no
+  `sprint`) and on the repository; it runs `python3` (set up in the CI `gate`,
+  `docs/publishing.md`).
 - `test/harness/load.ts` — the timeouts of the process-spawning and whole-repository tests, sized
-  for the worst measured external load (bug-004).
+  for the worst measured external load (bug-004); `binTestMs(starts)` for a test that starts the
+  bin more than once (task-053).
+  **One console per test** (task-053, bug-023, dl-009 action 4): a test body of the default suite
+  starts at most one console (`startGitConsole`, `startReadConsole`, `startLauncher`, or a
+  function of the same file that calls one, or copies a fixture and builds an app), so each
+  console has the budget of its own test under load: a loop over cases becomes `it.each`. A test
+  whose second console is the behaviour (a restart, two consoles at once) keeps it with the comment
+  `// one-console-per-test: kept — <reason>` in its body and a budget of `binTestMs(starts)`.
+  `test/lint/one-console-per-test.test.ts` enforces it (a lexical scan with the TypeScript
+  compiler API; its limits are in its header).
   `test/lint/catalogue-placeholders.test.ts` covers the spec-008 placeholder rule.
 - `test/launcher/` — the `wingfoil-ui` bin driven as a child process (`launcher.ts`:
   `startLauncher(args, env)` waits for the running line and returns port, token and stop helpers;
-  later e2e suites start the console with it). `local-security.test.ts` is the e2e-smoke
+  later e2e suites start the console with it). `local-security.test.ts` is the e2e smoke's
   `local-security` suite (REQ-SEC-02/03): raw `http` requests, since `fetch` cannot set `Host`
   or `Origin`; every new `/api/` route adds its rows there. Every `/api/` request needs
   `Authorization: Bearer <token>` (or the `wfui_session_<port>` cookie from `POST /api/session`).
@@ -243,7 +264,10 @@ Every test lives under `test/` (DNA `paths.tests`); sources stay in `server/src`
   `custom/memory-history-operations/<id>.json` — `-t 'operations'` re-captures only those —, `version.txt`) and the
   allow-listed files as found (`files/`), captured with
   `WFUI_CAPTURE_SAMPLES=1 npx vitest run test/contracts/capture-samples.test.ts` (skipped
-  otherwise; Prettier leaves `samples/` as captured). A matrix advance re-captures them;
+  otherwise; Prettier leaves `samples/` as captured). The fixtures' commit ids are not stable from
+  one capture to the next, and the samples are checked for their shape, not their ids: a
+  re-capture whose only change to a `memory-history/` or `memory-history-operations/` file is
+  `sha` values is reverted as noise (task-049). A matrix advance re-captures them;
   `cliBuildFor` installs a matrix version other than the pinned one once (`npm install` from the
   registry) into `node_modules/.cache/wingfoil-ui-matrix/<version>` and reuses it.
   The matrix is 0.2.2 and 0.3.1, pinned 0.3.1 (task-046): 0.2.2 is the cached build. What the
@@ -260,10 +284,10 @@ Every test lives under `test/` (DNA `paths.tests`); sources stay in `server/src`
   every `submit`/`approve`/`reject` of every element, run on a copy, is accepted exactly when the
   descriptor offers it. Its oracle, shared with `test/server/descriptor/`, is
   `test/server/descriptor/standard.ts` (hand-written from the BDD conventions).
-- `test/lint/`, `test/docs/` — the dev-loop gates `lint.clean`, `docs.api.*`, and the lint rules'
+- `test/lint/`, `test/docs/` — the `definition-of-done` › refactor gates `lint.clean`, `docs.api.*`, and the lint rules'
   own tests (REQ-SEC-05 `no-shell`, REQ-ARC-05 `methodology-literals`: the rule of
   `lint/methodology-literals.js` reads the fixtures' type and state names from the captured samples,
-  so a re-capture updates it).
+  so a re-capture updates it); `lint/one-console-per-test.test.ts` the one-console rule (task-053).
 - `test/docs/public-text.test.ts` (task-028, dl-006 action 4, dl-005) — the public-text check:
   every tracked text file (`git ls-files`; untracked files are never read, a file with a NUL byte
   in its first 8 000 bytes is binary and skipped) is scanned by `public-text.ts` for absolute
@@ -310,7 +334,7 @@ engine alone, before task-027's own specs: Chromium 8.2 min, Firefox 14.0 min, W
 
 ## Launch smoke
 
-`npm run test:smoke` (`vitest.smoke.config.ts`, task-025 AC-3, e2e-smoke `launch`) — excluded
+`npm run test:smoke` (`vitest.smoke.config.ts`, task-025 AC-3, the e2e smoke's `launch`) — excluded
 from `npm test` and `test:coverage`, because its `npm pack` runs `prepack`
 (`scripts/clean-build.mjs`, which removes `server/dist`, `contracts/dist`, `web/dist` and their
 `tsbuildinfo`, then `npm run build`), which rewrites the builds under the bin tests. The smoke
@@ -328,7 +352,7 @@ phase's duration is printed; measured on 2026-10-11 at load 5.1: pack (clean bui
 514 kB packed, 1.38 MB unpacked.
 
 `npm run test:smoke` is a **gate of every wave** (task-026, AC-3; bug-007 was found only at
-release validation): run it at the end of each dev-loop wave, after the wave's tasks are
+release validation): run it at the end of each development wave, after the wave's tasks are
 integrated, besides release validation and any task that touches packaging, the launcher or the
 bin. The smoke also clones a repository with a committed hook through the installed console
 (bug-008): the hooks path of the packed `server/dist` is a regular file and no hook runs.
@@ -357,19 +381,22 @@ npm cache (what `npm ci` leaves). The helpers it shares with the launch smoke (`
 the process-group checks) live in `test/smoke/support.ts`. Run it when packaging or the publish
 workflow changes; the publishing guide is [`docs/publishing.md`](../docs/publishing.md).
 `test/package/publish-workflow.test.ts` (default suite) freezes the workflow's invariants (triggers,
-permissions, job chain, gates, no credential, SHA-pinned actions).
+permissions, job chain, gates, no credential, SHA-pinned actions; the draft `release` job and the
+path-free test reports, task-052).
 
 ## Timing suite
 
-A test whose verdict depends on elapsed time — a performance budget (REQ-PERF-03, REQ-PERF-06) or
-a heavy build racing the test timeout (the TypeDoc build) — fails on a loaded machine although the
-code meets its budget (bug-001). Such tests are named `*.timing.test.ts`, live in `test/timing/`
-and run only with `npm run test:timing` (`vitest.timing.config.ts`): files sequentially, the load
+A test whose verdict depends on elapsed time — a performance budget (REQ-PERF-03, REQ-PERF-06) or a
+heavy build racing the test timeout (the TypeDoc build) — fails on a loaded machine although the
+code meets its budget (bug-001). Such tests are named `*.timing.test.ts`, live in `test/timing/` and
+run only with `npm run test:timing` (`vitest.timing.config.ts`): files sequentially, the load
 average printed at the start and with every measurement (`report(label, value)` of
 `test/timing/load.ts`, `/proc/loadavg` on Linux). `npm test` and `npm run test:coverage` exclude
-them. Run the timing suite on a quiet machine (load average well below the core count) and record
-the printed load with the result; a failure under load is re-run, not "fixed". Counting tests
-(processes, events) are not timing tests and stay in the default suite.
+them. Run the timing suite alone, through the machine-free slot, at every wave gate and at
+`release-conventions` › `pre-release-checks` whatever the diff since its last run (dl-009 action 6),
+on a quiet machine (load average well below the core count), and record the printed load with the
+result; a failure under load is re-run, not "fixed". Counting tests (processes, events) are not
+timing tests and stay in the default suite.
 
 `npm run test:timing` also runs a Playwright part (`playwright.timing.config.ts`, W3-47; Chromium
 only, task-027): the live-refresh scenarios S-25.2, S-26.1, S-26.2 and S-27.2 (tag `@live-refresh`)
@@ -497,7 +524,12 @@ machine. A fixture repository carries its member's `user.name`/`user.email` (`as
 commits as a member in another clone sets `user.email` there (the name comes from the harness);
 a repository built outside a fixture gives its identity explicitly (`-c user.name=… -c
 user.email=…`, repository config, or `GIT_AUTHOR_*`/`GIT_COMMITTER_*`). `harness/git-identity.test.ts`
-checks the harness configuration. To show that a whole run holds on such a machine, put first on
+checks the harness configuration. Agent sessions of this repository export `GIT_AUTHOR_*` and
+`GIT_COMMITTER_*` (task-050): `harnessEnv` deletes them with every other `GIT_*`, so a fixture
+commit carries its member under them too (`git-identity.test.ts`); a test that builds an
+environment from `process.env` deletes the four itself when it commits (`projects/clone.test.ts`
+S12). The console's own children keep them (`gitEnv`, `server/process/git-env.test.ts`), and no
+test console starts from an environment holding them. To show that a whole run holds on such a machine, put first on
 the `PATH` a folder (outside the repository) with a `git` script that runs
 `exec <the real git> -c user.useConfigOnly=true "$@"`: the server resolves `git` on the `PATH` and
 `harnessEnv` keeps it, so every git process of the run (tests, console, WingFoil CLI) refuses to
@@ -550,7 +582,9 @@ D32-3) and changes the copy afterwards for the fresh row-7 and row-9 checks.
 `server/cli/governed-verbs.test.ts` characterises the pinned CLI's verbs (W-24, W-28, W-29);
 `launcher/element-writes.test.ts` makes one write through the bin. `test/scripts/` tests the
 repository's scripts (`action-log-ratio.mjs`, TT-SEC-10; `check-release-tag.mjs` and
-`publish-guard.mjs`, task-029).
+`publish-guard.mjs`, task-029; `coverage-totals.mjs`, `test-results.mjs` and
+`changelog-section.mjs`, the GitHub Release's assets and notes, each fed inputs that carry paths —
+task-052).
 
 Git sync (task-033): `server/http/git-routes.test.ts` and `repository-status.test.ts` start a
 console with `server/http/git-console.ts` on a kanban copy (`copyFixture` gives each copy its own
@@ -565,7 +599,8 @@ defaults, then held by the arguments used).
 
 Auto-sync (task-034): `server/sync/scheduler.test.ts` drives the timer with fake timers over a
 recording work port; `server/sync/auto-sync.test.ts` runs ticks (`SyncScheduler.tick()`) on
-`git-console.ts` copies with the settings put in the memory store; `server/http/auto-push.test.ts`
+`git-console.ts` copies with the settings put in the memory store, one console per test (RP-36 /
+D34-5 one test per skip case, task-053); `server/http/auto-push.test.ts`
 starts the console with `autoPush` (an optional lower time limit for the held-remote cases).
 `launcher/auto-sync.test.ts` runs the bin with `fetchIntervalSeconds` = 15 seeded in its state
 (RP-53): the console's real bin also fetches by itself every 60 s by default, which a test that
