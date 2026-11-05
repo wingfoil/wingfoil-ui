@@ -142,3 +142,286 @@ that the T2, M2, R5 and C1 scenarios open.
      - design: tech-specs found missing/needing revision (dev-loop/design safety net).
      - red/green/refactor: deviations from the plan above, blockers, scope surprises.
      - review: rejection reasons and what changed on the next pass. -->
+
+### design (2026-11-05)
+
+Read (dl-015): this task; spec-005 (all, with its Process Notes), spec-001 §4 (§4.1–§4.5) and §5,
+spec-012 §1, §2, §7–§10, spec-004 §3 and §5, spec-003 §3 and §8; REQ-ARC-04, REQ-ARC-05, REQ-ARC-07
+(SARD `01_architectural-constraints.md`); `ux-reference.md` §4.11 and §6; `02_bdd/00_conventions.md`
+*Preset variant* and `features/c/ui-yaml.feature`; adr-001 D1a, D6, D7; adr-002 (`yaml` to parse
+and write `ui.yaml`, Ajv); the Execution Notes of task-046 (the environment contract of the
+children, *For the retrospective*) and task-047 (D47-1, D47-2); the dependants' notes that consume
+this task (task-055, task-056, task-059, task-060, task-064). The code it builds on:
+`server/src/reads/confine.ts`, `frontmatter.ts`, `memory-yaml.ts`, `project-reads.ts`,
+`server/src/snapshot/snapshot.ts`, `fingerprint.ts`, `watcher.ts`, `server/src/http/project-routes.ts`
+(`config`), `server/src/git/redact.ts` (`neutralise`, `redactLocalPaths`), `server/src/contracts.ts`,
+`test/harness/fixtures/builder.ts` (`usePrePacksStates`), `test/harness/commit-provenance.ts`,
+`test/server/reads/project-reads.test.ts` (the REQ-ARC-04 fs spy).
+
+#### Probes (scratch copies only; Node 22.21, `yaml` 2.9.1, the pinned `wingfoil@0.3.1`, git 2.43)
+
+Scratch scripts outside the repository (not committed), one per probe; each result below is what the
+script printed.
+
+| # | What | Result |
+|---|------|--------|
+| P1 | `fs.promises.open(p, O_RDONLY\|O_NOFOLLOW\|O_NONBLOCK)` and `lstat` on the entry kinds of AC-3 | `ui.yaml` a symlink: `lstat` says link, `open` fails `ELOOP`. **`.wingfoil` a symlink to an outside folder: `open('.wingfoil/ui.yaml', O_NOFOLLOW)` succeeds and reads the outside file** — `O_NOFOLLOW` guards the last component only. A directory and a FIFO open without blocking, `fstat` says not a file. A regular file swapped for a link after the `lstat`: `ELOOP`. **ABA swap** (`.wingfoil` renamed, replaced by a link to an outside folder for the `open`, then put back): the `lstat` of `.wingfoil` before and after shows the same directory (same dev/ino), yet the descriptor reads `# OUTSIDE`; only the descriptor's `fstat` (dev, ino) differs from the `lstat` of the path (545817 ≠ 545834). A 64 KiB + 1 file: `fstat` size 65 537, refused before any read. |
+| P2 | `YAML.parseDocument(text, {schema: 'core', merge: false, uniqueKeys: true, prettyErrors: true, maxAliasCount: 0})` on hostile inputs | An alias (`b: *x`) and a "billion laughs" parse without error; `toJS` throws "Alias resolution is disabled" — a visitor counting `Alias` nodes names them first. A custom tag (`!foo`, `!!python/object:…`) is only a **warning** (`TAG_RESOLVE_FAILED`) with the value kept as a string; **`!!binary` and `!!set` resolve silently** (a Buffer, an empty map) in the core schema; `!!str`/`!!int` resolve too. Duplicate keys (also nested) → error `DUPLICATE_KEY` "Map keys must be unique at line 2, column 1:". Invalid YAML → its message with "at line L, column C:" (C-04.2's line). Two documents → `MULTIPLE_DOCS`. Empty file → `null`; a scalar → a string; `version: 0x1` and `1.0` → `1`; a BOM is accepted; `<<` with `merge: false` is a plain key. |
+| P2b/c | Cost of a 64 KiB file | **`uniqueKeys: true` is quadratic**: 7 403 keys in one map parse in **1 705 ms** (127 ms with `uniqueKeys: false`); a flow map of 7 400 keys 671 ms. Flow nesting: depth 500 6 ms; depth ≥ 1 000 fails "Maximum call stack size exceeded" (caught by the library, an error not a crash); 32 768 levels cost **952 ms** before failing. 8 000 pattern-like list items: 338 ms. A 64 KiB string: 17 ms. |
+| P3 | `RegExp(src, 'u').test(v)`, `v` 256 characters, inside spec-005 §1's subset | `^.*.*X` 0.17 ms; `^[a-z]*[a-z]*!` 0.05 ms; `^.{0,100}.{0,100}X` 0.04 ms; `^\p{L}*\p{L}*1` 0.07 ms — far inside the 10 ms bound. Outside the subset, for contrast: `^(a+)+X` on 28 characters 22 s, `^(?:a\|a)*X` 32 s, `(a*)*X` 24 s. |
+| P3b | **Alternation without any quantifier** (inside the subset as written: anchored, 0 quantifiers, ≤ 200 characters) | `^(?:a\|a)`×k`X` on 256 `a`: k = 16 → 3 ms, 20 → 45 ms, 22 → 448 ms, **24 → 1 177 ms** (170 characters); 28 groups fit in 198 characters (≈ 20 s per test, extrapolated ×2 per group). **spec-005 §1's claim "at most quadratic" does not hold: the safe subset is exponential in the number of groups holding `\|`** — see SG-1, Q1. |
+| P3c | Bound "the alternatives of the groups multiply to at most 16" with the 2 quantifiers | worst measured 3.43 ms (`^(?:a\|…×16).*.*X`), 2.62 ms (two groups of 4), 1.34 ms (four of 2); a single group of 64 alternatives 10.24 ms (over the bound). |
+| P3d/e | V8's linear engine (`--enable-experimental-regexp-engine`, flag `l`) | Linear for the P3b pattern (0.17 ms) but **refuses every pattern with the `u` flag** ("Cannot be executed in linear time"), which spec-005 §1 requires; and it is an experimental V8 flag — not usable (Q1 option c). |
+| P4 | `strace -f -e execve` of the console (this worktree's build, `tsc -b`) with `GIT_TRACE` to a file, on a scratch `wingfoil init --template Kanban` project: add it, then a cold and a warm `GET /config` | Cold `/config`: **23 processes** — the state check's 3 gits (`status --porcelain=v2 …`, `config user.email`, `remote`), the 3 CLI processes (`dna show`, `paths`, `workflow list`) and the 17 gits WingFoil 0.3.1's `workflow list` runs (`rev-parse`, `cat-file --batch` ×3, `show` ×2, `ls-tree` ×9, `status --porcelain=v1` ×2); warm `/config`: **0**. This is the baseline the AC-3/REQ-PERF-05 audit keeps: the `ui.yaml` read adds no process (it is a file read). |
+| P4b | `.git` snapshot (SHA-256 of every file, plus name, type, size, mtime of every entry) before and after P4 | identical — a cold and a warm `/config` write nothing. |
+| P5 | `git status --porcelain=v2 -z --untracked-files=all` (the state check's) on the entry kinds | untracked `ui.yaml` → `? .wingfoil/ui.yaml`; tracked and modified → `1 .M …`; **ignored** (`.gitignore`, and so also `.git/info/exclude` or a global `core.excludesFile`) → **not listed: an edit leaves the state key unchanged** (SG-6, Q4); `.wingfoil` replaced by a symlink → every tracked file under it `.D`. |
+| P6 | `YAML.stringify` of a preset whose lists are shared constants | emits `&a1`/`*a1` — the reader of D54-3 would refuse the console's own preset; with `aliasDuplicateObjects: false` no alias. |
+
+No `wfui-*` entry was left in the temporary directory; the scratch repositories and the scratch
+console (its own port and state directory; the links console was not touched) were removed.
+
+#### Decisions (D54-n)
+
+- **D54-1 — Modules and the API that task-055, task-056, task-059 and task-060 consume.** One
+  function per repository state returning the effective values and `status`:
+  - `server/src/reads/ui-yaml.ts` — `UI_YAML = '.wingfoil/ui.yaml'`, `MAX_UI_YAML_BYTES = 65_536`;
+    `readUiYaml(root: string, fs?: UiYamlFs): Promise<UiYamlEntry>` with `UiYamlEntry =
+    { kind: 'absent' } | { kind: 'refused'; failure: string } | { kind: 'text'; text: string; sha256:
+    string }` (D54-2); also exposed as `ProjectReads.uiYaml()` so the REQ-ARC-04 fs spy covers it.
+  - `server/src/ui-config/parse.ts` — `parseUiYaml(text: string): { ok: true; data: unknown } |
+    { ok: false; failure: string }` (D54-3).
+  - `server/src/ui-config/check.ts` — `checkUiYaml(data: unknown, memoryYaml: MemoryYaml):
+    { ok: true; value: UiYaml } | { ok: false; failure: string }`: the schema, then the semantic
+    checks, the first failure as written (D54-4, D54-5). task-060 calls it on a rendered preset
+    (422 `ui-config-invalid` `detail.failure`).
+  - `server/src/ui-config/patterns.ts` — `patternProblem(source: string): string | undefined` (the
+    reason of D54-5, or none) and `MAX_PATTERN_VALUE = 256` (spec-012 §1 rule 2, for task-055).
+  - `server/src/ui-config/effective.ts` — `effectiveUiConfig(entry: UiYamlEntry, memoryYaml:
+    MemoryYaml, roots: LocalRoots): EffectiveUiConfig` (pure), and `uiConfigBody(effective,
+    current: ElementRef | null): UiConfig` (the `/config` `ui` section, D54-9). `EffectiveUiConfig`
+    (raw values, never escaped — the internal truth the index and the descriptor use):
+    ```
+    status: UiConfigStatus                       // API-ready: failure already through redactLocalPaths
+    categories: Valued<ReadonlyMap<type, UiCategory | null>>   // every declared type, memory.yaml order
+    patterns:   Valued<readonly { match: string; category: UiCategory; regex: RegExp }[]>  // file order, compiled with 'u'
+    requires:   Valued<ReadonlyMap<type, readonly UiCategory[]>>
+    progress: { mode: Valued<'sequence' | 'flow'>; scope: Valued<{ type: string } | null>;
+                phases: Valued<readonly string[]>; iterates: Valued<string | null>; defects: Valued<string | null> }
+    holds:      Valued<ReadonlyMap<type, ReadonlyMap<state, 'never' | 'when-references-done'>>>  // as written; a non-gate state has no effect (task-055 applies it to gates only)
+    artifacts:  Valued<readonly { path: string; phase: string }[]>
+    Valued<T> = { value: T; origin: 'declared' | 'inferred' }   // 'derived' is only scope.current's
+    ```
+  - `SnapshotView.uiConfig(): Promise<EffectiveUiConfig>` — memoised per content key like the other
+    reads; rejects exactly as `memoryTypes()` does when `memory.yaml` cannot be read (then `/config`
+    has no `ui`, spec-012 §2). Never starts a process.
+  - `server/src/presets/ui-config.ts` (the only place with type names and the category words,
+    REQ-ARC-05): `UI_CATEGORIES`, `INFERRED_CATEGORIES` (spec-005 §3), `UI_PRESETS` (`kanban`,
+    `scrum`, `sw-life-cycle` → `{ label, content }`, labels "Kanban", "Scrum", "WingFoil
+    sw-life-cycle"), `renderPreset(name): string` (`yaml.stringify` with `aliasDuplicateObjects:
+    false`, P6) and `presetCommitSubject(name)` → `chore(ui): apply the <label> preset` (the
+    variant's commit, AC-7, and task-060's).
+  The folder `server/src/ui-config/` is new (D54-12 keeps it free of type names). The API is
+  recorded here and in TypeDoc (`docs:api`); no tech-spec of its own (Q6).
+- **D54-2 — The read (AC-3, spec-005 §2, spec-001 §4.5).** Fixed path, no input names it. Steps:
+  `lstat(<root>/.wingfoil)` — missing → `absent`; not a directory (a symlink included) → `refused`
+  "not a regular file" (a symlinked `.wingfoil` reads outside the project, P1; task-060 refuses to
+  write through it too); `lstat(.wingfoil/ui.yaml)` — `ENOENT` → `absent`; not a regular file →
+  "not a regular file"; size > 64 KiB → "larger than 64 KiB"; then `open(O_RDONLY | O_NOFOLLOW |
+  O_NONBLOCK)` (`ELOOP` → "not a regular file"), `fstat` of the descriptor: a regular file, size
+  ≤ 64 KiB, **(dev, ino) equal to the `lstat` before**, and a second `lstat` of `.wingfoil` equal
+  (dev, ino) to the first and still a directory — otherwise "not a regular file" (the ABA swap of
+  P1 is caught by the (dev, ino) comparison); then at most 64 KiB + 1 bytes are read from the
+  descriptor (a file that grew → "larger than 64 KiB"), decoded with a fatal UTF-8 decoder ("not
+  valid UTF-8"; a BOM is dropped). Another error (`EACCES`, `EIO`) → "cannot be read". The SHA-256
+  of the bytes travels with the text (D54-7). The root is the project's realpath (spec-004 §3), so
+  only `.wingfoil` and `ui.yaml` can be links. **Declared residual:** Node has no `openat`, so a
+  local process that swaps `.wingfoil` twice between the second `lstat` of `.wingfoil` and the
+  `fstat` comparison is not caught; that needs write access to the working tree (it could edit
+  `ui.yaml` itself), not push access — the threat model of this read (repository content) is
+  covered. A hard link is the entry's own content. (The Linux-only form of `openat` through the
+  process's open descriptors of `.wingfoil` is not used: not portable.)
+- **D54-3 — YAML rules (AC-3).** `parseDocument(text, { schema: 'core', merge: false, uniqueKeys:
+  false, prettyErrors: true, maxAliasCount: 0, keepSourceTokens: false })`; then, in document order,
+  the first of: the library's first error → its first line without the trailing colon ("Map keys
+  must be unique at line 2, column 1" style, C-04.2); an `Alias` node → "aliases are not allowed
+  (line L, column C)"; **any explicit tag** — the core ones included, since `!!binary` and `!!set`
+  resolve silently (P2) — → "tags are not allowed (line L, column C)"; a map key that is not a
+  plain scalar → "keys must be plain strings (line L, column C)"; a duplicate key, found with one
+  `Set` per map (linear, P2c: `uniqueKeys: true` costs 1.7 s on 64 KiB) → "duplicate key <k> (line
+  L, column C)". Anchors without an alias have no effect and are accepted; `<<` is a plain key the
+  schema refuses ("unknown key <<"). Lines and columns from a `LineCounter`.
+- **D54-4 — The schema file (AC-1).** `contracts/files/ui-yaml.schema.json`, draft-07,
+  `$comment: "ui.yaml version 1"`, `additionalProperties: false` on every object (the root,
+  `taxonomy`, `progress`, `scope`, each pattern, each `holds.<t>.<s>`, each artifact); `version`
+  `{ type: integer, const: 1 }`; categories an `enum` of the 8 (the schema is outside the lint);
+  `holds.<t>.<s>.approve` `enum [never, when-references-done]`; `match` 1–200 characters; the
+  amendments of Q1 (`patterns` `maxItems`) and Q3 (`artifacts[].path`). It is validated by its own
+  Ajv instance with `allErrors: false` (the first error is the failure; the shared instance of
+  `server/src/contracts.ts` collects all), and the first Ajv error is rendered by the message table
+  of Q2 into spec-005's style ("missing required key version", "progress.mode must be sequence or
+  flow (found spiral)", "unknown key permissions", "taxonomy.patterns[0].match must be 1 to 200
+  characters", …), with the instance path written `a.b[0].c`. A root that is not a mapping (an
+  empty file, a scalar) → "ui.yaml must be a mapping". The schema is not a CLI capture: the
+  contract tests' "`$comment` wingfoil 0.2.2" rule does not apply to it (its own test, AC-1).
+- **D54-5 — Semantic checks and the pattern subset (AC-2).** After the schema, in spec-005 §1's
+  order, keys in the order `categories`, `requires`, `scope`, `iterates`, `defects`, `holds`, each
+  map in file order: (1) "type <t> is not declared in memory.yaml"; (2) "state <s> is not declared
+  for <t>" against `declaredStates(resolveStates(…))` (spec-001 §4.1); (3) each `match`: first
+  `new RegExp(match, 'u')` → "does not compile: <engine message>" (a pattern that does not compile
+  has no structure to check), then the subset over the source in the listed order — "must start
+  with ^" (every top-level alternative, an empty one included), "backreferences are not allowed"
+  (`\1`–`\9`, `\k<…>`), "lookaround is not allowed" (`(?=`, `(?!`, `(?<=`, `(?<!`), "at most 2
+  quantifiers" (`?`, `*`, `+`, `{n}`, `{n,}`, `{n,m}`, lazy forms counted once), "a quantifier on a
+  group is not allowed", "{n,m} above 100", and Q1's new reason. One scanner: escapes consumed whole
+  (`\u{…}`, `\p{…}`, `\P{…}`, `\x..`, `\c.`), character classes skipped to their unescaped `]`,
+  `(?:`/`(?<name>` are groups, the depth tracked for top-level `|`. Failures read
+  "taxonomy.patterns[<i>].match: <reason>". The 10 ms unit bound uses the slowest admitted shapes of
+  P3/P3c on 256-character values.
+- **D54-6 — Effective values and origins (AC-3, AC-4).** No file or `refused`/invalid → every value
+  `inferred` (spec-005 §3; `status.source` `none` or `ignored`); a valid file → each key it writes
+  `declared`, each key it omits `inferred`; a declared `categories` map leaves the other declared
+  types at `null`, `declared` (§2). Inferred `iterates`/`defects` come from the **effective**
+  categories (declared or inferred): the type whose category is `work`/`defect` when exactly one
+  has it. `scope.current` is `null` here — its derivation and `ElementRef` are task-059's (AC-3);
+  the `origin` of `scope` is the key's. The `failure` passes `boundRaw` then `redactLocalPaths`
+  with the snapshot's `localRoots` when the effective value is built, so `status` is shared as is
+  by `/progress` and `/traceability` (task-059).
+- **D54-7 — Caching and the state key (AC-3, REQ-PERF-03/05).** `uiConfig()` is a memoised read
+  of the view (content key). The YAML parse and the schema check (the expensive part, P2c) are kept
+  in a one-entry cache of the `ProjectSnapshot` keyed by the bytes' SHA-256, so a hostile file costs
+  its parse once per content, not once per state; the semantic checks (cheap) run per state. An
+  edit of a tracked or untracked `ui.yaml` already moves the state key (status entry and content
+  fingerprint, P5): characterization. An ignored `ui.yaml` does not (P5) — Q4.
+- **D54-8 — Presets as data (AC-6).** Contents exactly as spec-005 §5: Kanban and Scrum with the 7
+  categorised types of the template (§3 names), `patterns: []`, `requires: {}`, `holds: {}`,
+  `artifacts: []` written out, `phases: [plan, build, review, deliver]`, `iterates: task`,
+  `defects: bug`; Scrum adds `mode: sequence`, `scope: {type: release}`; sw-life-cycle =
+  `ux-reference.md` §6 (its 7 categories, `service` included, `release-line` and `plan` without),
+  the three patterns, `requires` for `task`, `adr`, `tech-spec`, the packs' `sprint` phases, the
+  three artifacts at `phase: release`, the two holds. Each rendered text passes `parseUiYaml` and
+  `checkUiYaml` on its template's `memory.yaml` (kanban and custom samples of 0.2.2 and 0.3.1; the
+  Scrum template initialised with each matrix CLI in a temporary folder); sw-life-cycle on kanban →
+  "type service is not declared in memory.yaml".
+- **D54-9 — The API (AC-5).** `contracts/api/ui-config.schema.json` (new) with `definitions`
+  `status`, `elementRef` (`{ id, shortId?, title, type, status, tone }`, `shortId` optional until
+  task-057's form lands), `origin`, `category`; the `ui` object of spec-012 §2, every object
+  `additionalProperties: false`; `config.schema.json` gains the optional `ui` (`$ref`). Types in a
+  new `contracts/src/ui-config.ts` (`UiConfig`, `UiConfigStatus`, `UiOrigin`, `UiCategory`,
+  `ElementRef`, `UiYaml`) exported from `contracts/src/index.ts`; `ProjectConfig.ui?`. The
+  serialiser escapes with `neutralise` every echoed `ui.yaml` string (`patterns[].match`, the type
+  names, `phases`, `holds` types and states, `artifacts` paths and phases); `failure` already went
+  through `redactLocalPaths` (D54-6).
+- **D54-10 — The fixture variant (AC-7).** `usePresetUiConfig(fixture, 'sw-life-cycle')` in
+  `test/harness/fixtures/builder.ts` (next to `usePrePacksStates`, on a copy, composable with it in
+  either order): writes `renderPreset('sw-life-cycle')` to `.wingfoil/ui.yaml` and commits it with
+  `presetCommitSubject` — `chore(ui): apply the WingFoil sw-life-cycle preset` — under the fixture's
+  current identity. The checker `commit-provenance.ts` is not widened (task-060 adds the console's
+  own `chore(ui)`): its test shows a session started on the variant (the commit before the
+  session's start) reports no problem. `test/README.md` *Fixtures* documents it; no existing spec
+  uses it, so none changes.
+- **D54-11 — K1 with task-056.** This task escapes the `ui` strings it adds (AC-5, with its API
+  test); task-056's enumeration and sweep (its AC-1, AC-4) include `/config` `ui` and find them
+  done. No other route changes here.
+- **D54-12 — REQ-ARC-05.** `server/src/ui-config/` and the route hold no type, state or
+  category-that-is-a-type literal (`release`): they come from `server/src/presets/ui-config.ts` or
+  from the data. The words `sequence`, `flow`, `never`, `when-references-done` are no fixture
+  names.
+
+#### Specs and gaps (definition-of-done › *Specs before code*)
+
+| Artefact | Spec | State |
+|----------|------|-------|
+| `ui.yaml` shape, loading, inferred values, presets | spec-005 §1–§3, §5 (approved) | covered except SG-1 … SG-4 |
+| `/config` `ui`, `status`, `elementRef`, the escape | spec-012 §2, §7, §9; spec-004 §3, §5 (approved) | covered |
+| The direct read | spec-001 §4.5 (approved) | covered; D54-2 reads a symlinked `.wingfoil` as "not a regular file" (§2's "any entry at that path" read against P1) |
+| The module API of D54-1 | — | none; internal (Q6) |
+
+- **SG-1 (blocking AC-2) — the safe subset is exponential.** P3b: 24 groups `(?:a|a)` with no
+  quantifier, 170 characters, take 1.2 s per test on a 256-character value; 28 fit the 200-character
+  limit. spec-005 §1 needs an amendment approved before red (Q1).
+- **SG-2 — no bound on the number of patterns.** A 64 KiB file holds about 2 000 patterns; every
+  reference value is tested against them in turn (spec-012 §1 rule 2). Proposed with Q1: `patterns`
+  at most 32. The aggregate cost of the index (values × patterns, crafted element values) is
+  spec-012 §1/§8 and task-055's: noted for its design, not decided here.
+- **SG-3 — the failure texts of schema errors** beyond spec-005's two examples (Q2).
+- **SG-4 — `artifacts[].path`/`phase`**: spec-005 §1 says "repository path or `https://` URL" but
+  no rule the schema can hold (Q3).
+
+#### Classification and test plan
+
+| AC / scenario | Kind | Test (file › test) |
+|---------------|------|--------------------|
+| AC-1 | red-first | `test/contracts/ui-yaml-schema.test.ts` (new): rejects `permissions` (root and nested), an unknown category, an unknown `approve`, `scope.id`, an unknown key at each level; accepts the three rendered presets |
+| AC-2 | red-first | `test/server/ui-config/patterns.test.ts` (new): one case per reason (7 + Q1's), the admitted edge shapes (`\u{…}`, `\p{…}`, classes holding `\|`, `(`, `{`), the 10 ms bound on 256 characters; `test/server/ui-config/check.test.ts` (new): each semantic failure in order, the first one reported |
+| AC-3 loading | red-first | `test/server/reads/ui-yaml.test.ts` (new): symlink, `.wingfoil` symlink, directory, FIFO, > 64 KiB (no read past the bound: a read port spy), swap after the `lstat` and the ABA swap (a port hook between the steps), non-UTF-8, `EACCES`; `test/server/ui-config/parse.test.ts` (new): alias, every tag kind, duplicate key (top and nested), non-plain key, invalid YAML with its line, two documents, a 7 400-key map under 300 ms |
+| AC-3 origins, state key | red-first (origins); characterization (state key of a tracked/untracked edit, P5 — its guard-removal recorded at green) | `test/server/ui-config/effective.test.ts` (new); `test/server/snapshot/snapshot.test.ts` (an edit of `ui.yaml` → new key, `repo` emitted; Q4's ignored case red-first if (a)) |
+| AC-3 no process, nothing written | characterization (P4: the read is a file read) | `test/server/snapshot/process-audit.test.ts`: a cold `/config` with a `ui.yaml` starts the same processes as without; `.git` unchanged; `test/server/reads/project-reads.test.ts` (REQ-ARC-04 spy): `ui.yaml` read only at its path, 0 writes |
+| AC-4 | red-first | `test/server/ui-config/effective.test.ts`: kanban, scrum, custom, unknown `memory.yaml` (samples of both versions) → §3's values, `plan`/`sprint`/`story` with no category |
+| AC-5 | red-first | `test/server/http/project-routes.test.ts` › `/config` `ui` on the three fixtures (body against `config.schema.json`), absent with an unreadable `memory.yaml`, K1 (a bidi and a C1 control in `match`, a type name, `phases`, `holds`, `artifacts` → escaped), `failure` redacted; `test/contracts/` schema test of `ui-config.schema.json`; `npm run docs:api` |
+| AC-6 | red-first | `test/server/presets/ui-config.test.ts` (new): contents, render has no alias/tag, each passes on its template on 0.2.2 and 0.3.1 (Scrum through a temporary `init`), sw-life-cycle refused on kanban |
+| AC-7 | red-first | `test/harness/variants.test.ts`: the variant on both CLI versions and with `usePrePacksStates`; `/config` `ui` `source: file`, `scope {type: release}`, §5's categories, patterns, `requires` (`project-routes.test.ts`); `test/harness/commit-provenance.test.ts`: a session on the variant is clean |
+| C-01.1, C-01.2, C-01.3; C-02.1, C-02.3, C-02.5; C-03.1, C-03.2; C-04.1, C-04.2, C-04.3; T-12.1, T-12.4, T-12.5; S-24.5, S-24.6 | API level here (the closing e2e is the named task's) | one test titled with each id: the `/config` scenarios in `project-routes.test.ts`; C-02.x on the preset contents and the `exists` entry kind (`presets/ui-config.test.ts`, `reads/ui-yaml.test.ts`); C-03.1 a Kanban preset without `version` → "missing required key version", C-03.2 → "type service is not declared in memory.yaml" (`check.test.ts`); C-04.3 the `status` object `/traceability` will carry (`effective.test.ts`); T-12.x the declared or inferred `scope` type; S-24.5/S-24.6 `holds` parsed and checked on the variant |
+| AC-8 | gates | the checks of `CLAUDE.md`, `test:contract`, `test:e2e:chromium` through the slot, `check_tasks.py v0.3`; the strict-identity recipe for the variant's commit (dl-011) |
+
+#### Shared files (append-only where shared)
+
+`contracts/src/index.ts` (exports), `contracts/src/api.ts` (`ProjectConfig.ui?`),
+`contracts/api/config.schema.json` (`ui`), `server/src/http/project-routes.ts` (`config` only),
+`server/src/snapshot/snapshot.ts` (`uiConfig`, the parse cache), `server/src/reads/project-reads.ts`
+(`uiYaml`), `server/src/snapshot/fingerprint.ts` (only with Q4 (a)), `test/README.md` (version line
+0.58, *Fixtures*), `CHANGELOG.md` *Unreleased* (Added), `test/server/http/project-routes.test.ts`,
+`test/server/snapshot/process-audit.test.ts`, `test/server/reads/project-reads.test.ts`, the
+`docs:api` output (regenerated, never merged by hand). Not touched: `web/src/i18n/en.json` (no UI
+string: the failure texts are server data the web renders in its own sentence, tasks 064/065),
+`server/src/http/app.ts`. spec-005 is amended with a dated Process Note only after the approver's
+answer to Q1–Q3.
+
+#### Questions (one recommendation each)
+
+- **Q1 (blocks AC-2's red) — close SG-1/SG-2 in spec-005 §1.** (a) Add to the subset: "the
+  alternatives of the groups multiply to at most 16" (reason "at most 16 alternatives combined",
+  checked after "a quantifier on a group is not allowed"; top-level alternatives stay free, each
+  anchored) and `taxonomy.patterns` at most 32 entries (schema `maxItems`); the shipped patterns
+  (2 × 1 group of 2) pass; P3c: ≤ 3.5 ms per test. (b) No `|` inside a group at all: the presets'
+  patterns become `^REQ-|^US-`, `^P\d|^Journey`, and `ux-reference.md` §6 and the BDD conventions
+  change with them. (c) V8's linear engine: refuses the `u` flag (P3e) and is experimental. (d) Each
+  test in a worker with a timeout: a new process model for one key. **Recommended (a).**
+- **Q2 — the failure texts of schema errors (SG-3).** (a) Amend spec-005 §1 (with Q1, one Process
+  Note) with the table: `required` "missing required key <path.key>", `additionalProperties`
+  "unknown key <path.key>", `enum` "<path> must be <a> or <b> (found <v>)" / "must be one of
+  <a>, <b>, … (found <v>)", `const` "version must be 1 (found <v>)", `type` "<path> must be a
+  string | an integer | a list | a mapping (found …)", length "<path> must be 1 to 200
+  characters", `maxItems` "<path> must have at most 32 entries", `pattern` (Q3) "<path> must be a
+  repository path or an https:// URL"; `<v>` a string as written, other values named ("a list", "a
+  mapping", "nothing", the number). (b) Keep the table in these notes only. **Recommended (a)**:
+  task-060's and task-064's toasts and the C-03 scenarios show these texts.
+- **Q3 — `artifacts[].path` and `phase` (SG-4; not consumed in v0.3).** (a) `path` 1–500
+  characters, either `https://` followed by no whitespace or control character, or a relative POSIX
+  path (no leading slash, no backslash, no `..` segment, no control character); `{version}`/`{release}`
+  kept as text; `phase` a string of 1–100 characters. (b) Any non-empty string, the rule left to the
+  release that shows artifacts (v0.4). **Recommended (a)**: a later reader then never meets an
+  absolute or escaping path in a file already accepted as valid.
+- **Q4 — an ignored `ui.yaml` (`.gitignore`, `info/exclude`, a global excludes file) moves no state
+  key (P5).** (a) The state check adds the entry's own mark (the fingerprint's `lstat`/SHA-256 rule,
+  `.wingfoil` included) to the combined hash whatever the status says — a read of the allow-listed
+  file, no process; the header format unchanged. (b) A declared residual: such an edit shows at the
+  next change of the state. **Recommended (a)**: AC-3 asks for every edit, and the descriptor's
+  holds (task-055) would otherwise stay stale.
+- **Q5 — size and a split (RP3-20 G2).** The task is about 2 active days: the read and its guards,
+  the YAML rules, the schema and its messages, the subset scanner, the inferred table, three
+  presets, the effective configuration, the API schema and serialiser, the fixture variant, and the
+  scenario tests. (a) Keep it whole. (b) Split: **task-054** keeps AC-1, AC-2, AC-3's loading and
+  origins, AC-4, AC-6, AC-7 and the module API of D54-1 (what task-055 needs: the holds, the variant
+  — task-055 can start once it merges); a **new task** takes AC-5 (`ui-config.schema.json`,
+  `config.schema.json`, the `/config` section and its escape, `docs:api`), the state-key part of
+  AC-3 (Q4) and the scenario API tests of `/config` (C-01.x, C-04.x); task-056 then depends on the
+  new task. **Recommended (b)**: each half is about one day, and task-055 starts a day earlier.
+- **Q6 — a tech-spec for the module API of D54-1.** (a) None: the observable behaviour is spec-005
+  and spec-012; the internal API lives in these notes and in TypeDoc, as task-055's and task-059's
+  Implementation Notes expect ("read its Execution Notes first"). (b) A paragraph in spec-012 §2.
+  **Recommended (a).**
+
+For the coordinator (not this task's to decide): the aggregate cost of pattern tests in the
+reference index (SG-2, values × patterns on crafted element values) is task-055's design input; the
+`ui.yaml` YAML-cost residual after D54-3/D54-7 is one parse of up to about 1 s per distinct hostile
+content (32 768 nested flow collections, P2c), proposed as declared.
