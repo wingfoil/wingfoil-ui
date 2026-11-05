@@ -134,9 +134,18 @@ export async function runLauncher(argv: readonly string[], io: LauncherIo): Prom
   // process, the ones still running are killed with it (spec-007 §6). task-058: the same one exit
   // handler removes the console address file, once it is published (adr-003 D2).
   const atExit: { address?: ConsoleAddress } = {};
+  // The removal runs first and each step on its own: a failing kill never skips it (review round 1 F4).
   io.onExit?.(() => {
-    processes.killAllNow();
-    atExit.address?.removeSync();
+    try {
+      atExit.address?.removeSync();
+    } catch {
+      // removeSync never throws; kept apart so that the kill below always runs.
+    }
+    try {
+      processes.killAllNow();
+    } catch {
+      // Best-effort at exit: nothing else can be done for a child that cannot be killed.
+    }
   });
   // The port is known once listening; until then the guards refuse every request.
   const listening: { port?: number } = {};

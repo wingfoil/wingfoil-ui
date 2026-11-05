@@ -1,6 +1,6 @@
 # CLI reference — `wingfoil-ui`
 
-**Version:** 0.5 · **Date:** 2026-11-05 (0.1: release v0.1; 0.2: `npx wingfoil-ui` from an installed package, Ctrl-C under `npx` — task-025; 0.3: release v0.2 user-docs — the command line is unchanged; the state directory's new content, the git environment of the transports, the automatic sync at start and at stop; 0.4: release v0.2.0 — `npx wingfoil-ui` from npm; 0.5: the console address file for scripts and agents — task-058)
+**Version:** 0.6 · **Date:** 2026-11-05 (0.1: release v0.1; 0.2: `npx wingfoil-ui` from an installed package, Ctrl-C under `npx` — task-025; 0.3: release v0.2 user-docs — the command line is unchanged; the state directory's new content, the git environment of the transports, the automatic sync at start and at stop; 0.4: release v0.2.0 — `npx wingfoil-ui` from npm; 0.5: the console address file for scripts and agents — task-058; 0.6: Windows covered by unit tests only — its review round 1)
 
 The `wingfoil-ui` command starts the WingFoil UI console: a local server on the loopback addresses
 and, unless told otherwise, the browser on its URL. It is the package `bin`
@@ -131,7 +131,8 @@ user (adr-003). The folder has mode `0700` and the file `0600` (on Windows, the 
 - Two consoles on one state directory write two files. A state directory shared by two machines
   is not supported for discovery. A state directory owned by another user or writable by group or
   others, or a `consoles/` that is a symbolic link or another user's, gets no address file (a
-  warning in the log); the console works without it.
+  warning in the log); the console works without it. On Windows the address file's behaviour is
+  covered by unit tests only: no Windows machine runs the test suites.
 
 **How an agent cites an element as a link:**
 

@@ -186,10 +186,12 @@ describe('US-S-01 @v0.3 — the console address file', () => {
       // one-console-per-test: kept — a forced kill followed by a new start, AC-4
       const stateDir = newStateDir();
       const a = await launch(stateDir, ['--no-open']);
+      // The second console's port is drawn while the first one holds its own, so the two differ
+      // (review round 1 F7: an OS-chosen port could be the dead console's again).
+      const second = await freePort();
       await a.kill();
       expect(await exists(addressOf(stateDir, a.port))).toBe(true);
-      const b = await launch(stateDir, ['--no-open']);
-      expect(b.port).not.toBe(a.port);
+      const b = await launch(stateDir, ['--no-open', '--port', String(second)]);
       expect(await exists(addressOf(stateDir, a.port))).toBe(false);
       expect(await exists(addressOf(stateDir, b.port))).toBe(true);
       expect(await b.stop()).toBe(0);

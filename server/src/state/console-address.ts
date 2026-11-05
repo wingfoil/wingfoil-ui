@@ -131,9 +131,19 @@ export function isStaleAddress(info: AddressInfo | undefined, ageMs: number, hos
  * dead — never by age, a suspended console is alive —; another host's file, or one whose writer
  * cannot be read, only when older than 30 s.
  */
-export function removableAtStart(info: AddressInfo | undefined, ageMs: number, host: string): boolean {
+export function removableAtStart(
+  info: (AddressInfo & { started?: unknown }) | undefined,
+  ageMs: number,
+  host: string,
+  self?: { pid: number; started: string },
+): boolean {
   const w = writer(info);
-  if (w && w.host === host) return !running(w.pid);
+  if (w && w.host === host) {
+    // Its own pid with another start time: a dead console whose pid this process now holds (pid
+    // reuse, e.g. in a container) — review round 1 F5.
+    if (self && w.pid === self.pid) return info?.started !== self.started;
+    return !running(w.pid);
+  }
   return ageMs > ADDRESS_STALE_MS;
 }
 
@@ -173,10 +183,11 @@ interface Entry {
 async function withEntry<T>(
   file: string,
   fn: (handle: FileHandle, entry: Entry) => Promise<T>,
+  access: number = constants.O_RDONLY,
 ): Promise<T | undefined> {
   let handle: FileHandle;
   try {
-    handle = await open(file, constants.O_RDONLY | POSIX_FLAGS.noFollow | POSIX_FLAGS.nonBlock);
+    handle = await open(file, access | POSIX_FLAGS.noFollow | POSIX_FLAGS.nonBlock);
   } catch (error) {
     if (['ENOENT', 'ELOOP', 'EISDIR', 'ENXIO', 'ENOTDIR'].includes(code(error) ?? '')) return undefined;
     throw error;
@@ -237,6 +248,7 @@ export function publishConsoleAddress(options: ConsoleAddressOptions): ConsoleAd
   const warned = new Set<AddressWarning>();
   let timer: NodeJS.Timeout | undefined;
   let tick: Promise<void> = Promise.resolve();
+  let beating = false;
   let stopped = false;
 
   const warn = (reason: AddressWarning, error?: unknown): void => {
@@ -300,7 +312,7 @@ export function publishConsoleAddress(options: ConsoleAddressOptions): ConsoleAd
         if (address) {
           if (Number(address[1]) === options.port) continue; // replaced by the rename
           await withEntry(target, async (_handle, found) => {
-            if (!removableAtStart(parse(found.text), Date.now() - found.mtimeMs, host)) return;
+            if (!removableAtStart(parse(found.text), Date.now() - found.mtimeMs, host, entry)) return;
             // Removed only if it is still the file judged (the narrow race of state.json.lock).
             const again = await withEntry(
               target,
@@ -353,15 +365,23 @@ export function publishConsoleAddress(options: ConsoleAddressOptions): ConsoleAd
     }
   };
 
-  /** One heartbeat: refresh the time of its own file, or rewrite a missing or foreign one. */
+  /**
+   * One heartbeat: refresh the time of its own file, or rewrite a missing or foreign one. On
+   * Windows the handle is opened read-write: libuv opens a read-only one without
+   * `FILE_WRITE_ATTRIBUTES`, and setting the time through it would fail (review round 1 F1).
+   */
   const beat = async (): Promise<void> => {
     try {
-      const fresh = await withEntry(file, async (handle, found) => {
-        if (found.text !== content) return false;
-        const now = new Date();
-        await handle.utimes(now, now);
-        return true;
-      });
+      const fresh = await withEntry(
+        file,
+        async (handle, found) => {
+          if (found.text !== content) return false;
+          const now = new Date();
+          await handle.utimes(now, now);
+          return true;
+        },
+        posix ? constants.O_RDONLY : constants.O_RDWR,
+      );
       if (!fresh && !stopped) await write();
     } catch (error) {
       if (!warned.has('heartbeat-failed')) warn('heartbeat-failed', error);
@@ -382,8 +402,13 @@ export function publishConsoleAddress(options: ConsoleAddressOptions): ConsoleAd
     options.logger.info({ port: options.port }, 'console address file written');
     if (!stopped) {
       timer = setInterval(() => {
-        // A tick never overlaps the previous one.
-        tick = tick.then(() => (stopped ? undefined : beat()));
+        // A tick never overlaps the previous one: while one runs, the next ones are skipped, not
+        // queued (review round 1 F2).
+        if (beating || stopped) return;
+        beating = true;
+        tick = beat().finally(() => {
+          beating = false;
+        });
       }, options.heartbeatMs ?? ADDRESS_HEARTBEAT_MS);
       timer.unref();
     }

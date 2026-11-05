@@ -3,7 +3,7 @@ id: spec-006-local-state-store
 type: tech-spec
 title: "Local state store"
 status: approved
-scope: "local state file: project list, role view per project (v0.1); UI settings, action log (v0.2)"              # REQUIRED — the artefact this spec covers, e.g. "server HTTP API", "CLI JSON contract: memory search", ".wingfoil/ui.yaml"
+scope: "local state file: project list, role view per project (v0.1); UI settings, action log (v0.2); console address files (v0.3)"              # REQUIRED — the artefact this spec covers, e.g. "server HTTP API", "CLI JSON contract: memory search", ".wingfoil/ui.yaml"
 wingfoil_version: ""   # optional — for a CLI contract: the WingFoil version the shape was captured from
 supersedes: ""         # optional — id of the tech-spec this one replaces, e.g. "spec-002"
 release: "v0.1"            # optional — implementation release this spec is assigned to (stamped by release-planning/build-backlog), e.g. "v0.1"
@@ -60,7 +60,17 @@ link:
 
 On Windows no mode and no owner is checked: the files inherit the access list of the state
 directory under `%APPDATA%`, as `state.json` does. A failed check or write is a log warning
-(`{ reason, code }`, no path), never a failed start. The state directory must never lie inside a project's
+(`{ reason, code }`, no path), never a failed start. On Windows the heartbeat refreshes the time
+through a read-write handle (a read-only one cannot set it); the Windows paths are covered by unit
+tests with the platform mocked only — no Windows runner runs the suites.
+
+Residuals (task-058 review round 1): the checks judge the state directory itself, not its
+parents — a parent writable by another user without the sticky bit lets that user swap the whole
+state directory after the check; a stop signal while the address file is being written removes
+the file only once the write is over (or at exit); a reader's liveness check by `pid` cannot tell
+a reused pid from the console (the 30 s age rule bounds it).
+
+The state directory must never lie inside a project's
 working tree (REQ-ARC-08): adding a project whose working tree contains it is refused
 (`state-dir-inside-project`, §3); a list that already has such an entry (e.g. the variable changed
 since) stops the start with a message naming both paths (spec-007 §6, exit 4).
@@ -223,13 +233,15 @@ list is notified by the `projects` event (spec-004 §6).
   writer, its console. Written atomically as `state.json` is (`consoles/<port>.json.tmp-<pid>-<n>`,
   created exclusively with mode `0600`, `fsync`, `rename`); after listening and before the URL line
   (spec-007 §3). A **heartbeat** every 10 s refreshes the file's modification time, and rewrites it
-  in full, atomically, when it is gone or its content is not the one this console wrote. Removed
+  in full, atomically, when it is gone or its content is not the one this console wrote; a tick
+  is skipped while the previous one still runs. Removed
   as the first stop step and again, synchronously and best-effort, at any process exit; a console
   removes it only while it still holds its own `pid` and `started`. A file is **stale** when its
   modification time is older than 30 s, or when its `host` is this machine's and its `pid` is not
   running (`kill(pid, 0)` fails with `ESRCH`; `EPERM` counts as running). **Start housekeeping**,
   before the console writes its own file: this host's files are removed only when their `pid` is
-  dead (never by age), other hosts' files — and files whose `host` or `pid` cannot be read — only
+  dead (never by age) — or, when it holds the starting console's own `pid`, when its `started` is
+  not the console's (pid reuse) —, other hosts' files — and files whose `host` or `pid` cannot be read — only
   when older than 30 s, temporary files only when their writer's pid is dead; the file named after
   the console's own port is replaced; anything else in `consoles/` is left alone. Two consoles on
   one state directory write two files. A state directory shared by two machines is not supported
@@ -370,3 +382,8 @@ authenticate (adr-003 D5). The secret scan of REQ-SEC-09 runs over the state dir
   files outside `state.json.lock`, atomic writes, heartbeat, removal, stale rule and start
   housekeeping; §5 what the address file never holds, the secret scan over `consoles/`; §6 its
   tests. Decided by the approver (Q1 (b), Q2 (a)).
+  Same day, independent review round 1 of task-058: `scope` names the console address files; §1
+  the Windows heartbeat handle and that Windows is unit-tested only, and the residuals (a parent
+  of the state directory writable by others, a signal during the write, a reused pid); §4 a file
+  of this host holding the starting console's own pid with another `started` is a dead console's
+  (pid reuse) and is removed at start; a heartbeat tick is skipped while the previous one runs.

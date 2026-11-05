@@ -30,6 +30,9 @@ const { ADDRESS_HEARTBEAT_MS, CONSOLES_DIR, publishConsoleAddress } =
   await import('../../../server/src/state/console-address.js');
 type ConsoleAddress = ReturnType<typeof publishConsoleAddress>;
 
+/** The access-mode bits of the open flags (POSIX `O_ACCMODE`; `fs.constants` does not export it). */
+const ACCMODE = 3;
+
 let ws: TempWorkspace;
 let n = 0;
 const open: ConsoleAddress[] = [];
@@ -89,7 +92,7 @@ describe('heartbeat handle (F1)', () => {
     await a.settled();
     const flags = beats(file);
     expect(flags).toHaveLength(1);
-    expect(Number(flags[0]) & constants.O_ACCMODE).toBe(constants.O_RDWR);
+    expect(Number(flags[0]) & ACCMODE).toBe(constants.O_RDWR);
   });
 
   it.skipIf(process.platform === 'win32')('keeps a read-only, no-follow, non-blocking handle on POSIX', async () => {
@@ -97,7 +100,7 @@ describe('heartbeat handle (F1)', () => {
     vi.advanceTimersByTime(ADDRESS_HEARTBEAT_MS);
     await a.settled();
     const flags = Number(beats(file)[0]);
-    expect(flags & constants.O_ACCMODE).toBe(constants.O_RDONLY);
+    expect(flags & ACCMODE).toBe(constants.O_RDONLY);
     expect(flags & constants.O_NOFOLLOW).toBe(constants.O_NOFOLLOW);
     expect(flags & constants.O_NONBLOCK).toBe(constants.O_NONBLOCK);
   });
