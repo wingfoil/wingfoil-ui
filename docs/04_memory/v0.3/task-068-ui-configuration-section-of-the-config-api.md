@@ -92,3 +92,217 @@ AC-5, the state key of its former AC-3, the API level of TT-ARC-07 and US-C-04)
      - design: tech-specs found missing/needing revision (`definition-of-done` › design).
      - red/green/refactor: deviations from the plan above, blockers, scope surprises.
      - review: rejection reasons and what changed on the next pass. -->
+
+### design (2026-11-06)
+
+Read (definition-of-done › build › design): this task; task-054's Execution Notes in full (D54-1 …
+D54-12, P1 … P6, the approver's decisions, the split and its hand-over, review rounds 1–2);
+spec-012 §2, §7–§11 and its Process Notes; spec-004 §3, §5 and its Process Notes; spec-005 (all,
+with the Process Note of 2026-11-05); spec-001 §4.4, §4.5; SARD REQ-STATE-02
+(`03_sard/03_state-context.md`); `features/c/ui-yaml.feature` (C-01.x, C-04.x) and
+`features/t/progress-card.feature` (T-12.x); the stage plan's W1-3, W1-4, W1-6, W1-13. The code:
+`server/src/git/redact.ts` (`neutralise`, `redactLocalPaths`, `MAX_MESSAGE`),
+`server/src/snapshot/state.ts`, `fingerprint.ts`, `snapshot.ts` (`runCheck`, `uiConfig`),
+`watcher.ts` (`.wingfoil/` watched recursively), `server/src/reads/ui-yaml.ts`,
+`server/src/ui-config/{types,effective}.ts`, `server/src/http/project-routes.ts` (`config`,
+`settle`), `contracts/api/config.schema.json`, `contracts/src/{api,index}.ts`; the tests
+`test/server/snapshot/{process-audit,ui-config,fingerprint}.test.ts`,
+`test/server/reads/project-reads.test.ts` (the REQ-ARC-04 spy), `test/contracts/schemas.test.ts`.
+
+#### Probes (scratch copies in the session's scratch folder; Node 22.21, git 2.43, this worktree's `tsc -b` build)
+
+A scratch project made with the pinned CLI's `wingfoil init --template Kanban`; the console of
+this worktree (`bin/wingfoil-ui.cjs`, its own port and state directory; the links console not
+touched) reads it with the WingFoil 0.2.2 found on the `PATH` (the scratch project has no
+`node_modules`). Scripts outside the repository, not committed; each result is what they printed.
+
+| # | What | Result |
+|---|------|--------|
+| P1 | P5 of task-054 replayed at the API: `X-Repo-State` of `GET /config` after each step — create `ui.yaml`, edit it, edit it again (1.5 s after each, the watcher's check) | **untracked** (`? .wingfoil/ui.yaml`): the key moves at the creation and at both edits. **Ignored** (`.gitignore` committed, `! .wingfoil/ui.yaml` with `--ignored`): the key stays `cfaae9a….987a3c005123996b` through the creation and both edits — the red baseline of AC-2. The watcher does run a check for the ignored file (`.wingfoil/` is watched recursively): only the hash misses it. |
+| P2 | `strace -f -e trace=execve` and `GIT_TRACE` of the console: add the project, then a cold and a warm `GET /config` (an ignored `ui.yaml` present) | add: `git remote get-url origin`, `dna show`; **cold `/config`: 7 processes** — 4 git (`rev-parse --show-prefix`, `status --porcelain=v2`, `config user.email`, `remote`) and 3 CLI (`dna show`, `paths`, `workflow list`); **warm: 0**. The baseline the `/config` audit keeps once `ui` and the mark are in (the mark is file reads only, P4). |
+| P2b | `.git` snapshot (name, type, size, mtime of every entry; SHA-256 of every file) before and after P2 | identical |
+| P3 | A prototype of the mark (the read's no-follow steps of `readUiYaml`, hashing the bytes instead of decoding them) on the entry kinds | absent → `absent`; a regular file → `sha:…`, a new value at each edit, also for bytes that are not UTF-8; **65 537 and 70 000 bytes → `large:<dev:ino:size:mtimeNs>`, never opened** (moves with the size or mtime); **a FIFO → `other:<stat>`, never opened, 1.4 ms** (no block); a directory → `other:<stat>`; **`ui.yaml` a link: its target edited → the same mark** (`link:<stat>`, no target read); **`.wingfoil` a link to an outside folder: the outside `ui.yaml` edited → the same mark** (`wingfoil-link:<stat>`); a file replaced by `rename` between the `lstat` and the open → `swapped:<stat of the descriptor>`, the next check `sha:` of the new content. |
+| P4 | `strace -f -e trace=execve,openat,newfstatat,statx,readlink` of P3 | `execve`: only `node` and the probe's own `mkfifo`; the prototype opens only `.wingfoil/ui.yaml`, always `O_RDONLY\|O_NONBLOCK\|O_NOFOLLOW`, 5 times (the 5 regular-file cases) — never the FIFO, the large files, the link or a path through the linked `.wingfoil`. |
+| P5 | The existing `Fingerprinter` on the entries git lists when `.wingfoil` is replaced by a link (task-054 P5: every tracked file under it `.D`): `.wingfoil/memory.yaml`, `.wingfoil/ui.yaml`, `.wingfoil` | **it reads 2 files outside the project** — `lstat` and `readFile` follow the intermediate link (`O_NOFOLLOW`-free `openat` of `.wingfoil/memory.yaml` and `.wingfoil/ui.yaml` in the P4 trace) — and an edit of the outside `memory.yaml` moves the fingerprint. The content is only hashed, never kept or exposed, but spec-001 §4.4 says "never followed" and AC-2 needs a linked `.wingfoil` to mark no target, also for a tracked `ui.yaml` (Q3). Reaching it needs a local change of the working tree: git never checks out a path beyond a link. |
+| P6 | Cost: `readUiYaml` (all its guarded steps and the SHA-256) of a 64 KiB file | best of 200: 0.183 ms (load 6) — no cache is needed for one read per check |
+
+Load at the probes 10.1 → 6.1; no heavy gate ran (W1-13). Cleaned up: the scratch repositories,
+state directories and console (none left, `pgrep -af wingfoil-ui.cjs` shows only the links
+console); no `wfui-*` entry.
+
+#### Decisions (D68-n)
+
+- **D68-1 — API types and files (AC-1).** `contracts/api/ui-config.schema.json` (new, draft-07,
+  `$id` `…/contracts/api/ui-config.schema.json`): the root is the `ui` object; `definitions`
+  `status`, `elementRef`, `origin`, `category`. `config.schema.json` gains the optional property
+  `ui` (`$ref` `ui-config.schema.json`), `required` unchanged. `contracts/src/ui-config.ts` (new):
+  `UiConfig`, `UiConfigStatus`, `UiOrigin`, `UiCategory`, `UiValued<T>`, `ElementRef`;
+  `ProjectConfig.ui?: UiConfig` in `contracts/src/api.ts`; one export block appended to
+  `contracts/src/index.ts`. `server/src/ui-config/types.ts`'s `UiConfigStatus` becomes the contracts
+  type (one source; task-054's shape is the same). The internal `EffectiveUiConfig` stays in the
+  server (task-054 hand-over).
+- **D68-2 — The schema as spec-012 §2 writes it.** Every object `additionalProperties: false`, every
+  key required except `warning` and `elementRef.shortId`. `status`: `source` enum `file`, `none`,
+  `ignored`; `warning` `{ code: const "ui-config-ignored", failure: string 1 … 4 000 }`
+  (`MAX_MESSAGE` of `redact.ts`), required when `source` is `ignored` and absent otherwise
+  (`if`/`then`/`else`). `taxonomy.categories`: items `{ type, category: category | null, origin }`
+  in `memory.yaml`'s order; `patterns` `{ value: [{ match, category }], origin }`; `requires`
+  `{ value: [{ type, categories: category[] }], origin }`; `progress.mode` `{ value: enum sequence |
+  flow, origin }`, `scope` `{ value: { type } | null, origin, current: elementRef | null }`, `phases`
+  `{ value: string[], origin }`, `iterates` and `defects` `{ value: string | null, origin }`; `holds`
+  `{ value: [{ type, state, approve: enum never | when-references-done }], origin }`; `artifacts`
+  `{ value: [{ path, phase }], origin }`. `category` the enum of the 8 (spec-012 §7); `origin` enum
+  `declared`, `inferred`, `derived` (Q2); `elementRef` `{ id, shortId?, title, type, status, tone }`,
+  `tone` `$ref` `descriptor.schema.json#/properties/tone`. No string bound beyond the ones the file's
+  schema already has (the body echoes a file of at most 64 KiB).
+- **D68-3 — The serialiser (AC-1, K1) — the helper task-056 sweeps.**
+  `server/src/ui-config/body.ts` (new): `uiConfigBody(effective: EffectiveUiConfig, current:
+  ElementRef | null = null): UiConfig` — the only place the `/config` `ui` strings are written. One
+  module-private `echo = neutralise` is applied to exactly these fields (exported as
+  `ECHOED_UI_FIELDS`, the list task-056's enumeration test reads): `taxonomy.categories[].type`,
+  `taxonomy.patterns.value[].match`, `taxonomy.requires.value[].type`, `progress.scope.value.type`,
+  `progress.phases.value[]`, `progress.iterates.value`, `progress.defects.value`,
+  `holds.value[].type`, `holds.value[].state`, `artifacts.value[].path`, `artifacts.value[].phase`
+  (spec-004 §5 names the paths; a phase is repository text too, K1's "every display string").
+  Not escaped: the enum values (`category`, `mode`, `approve`, `origin`, `source`, `code`) and
+  `status.warning.failure`, which `effectiveUiConfig` already passed through `redactLocalPaths` —
+  escaping it again would double each backslash. `current` is passed as given (task-059 builds it
+  with its title escaped); this task always passes `null` (T-12.x, C-01.2's "derived" element is
+  task-059's). Inferred type names come from `memory.yaml` and are escaped by the same rule.
+- **D68-4 — The route (AC-1).** `config()` in `project-routes.ts` adds `read.settle(view.uiConfig(),
+  '.wingfoil/')` to its `Promise.all` and writes `ui: uiConfigBody(…)` only when it settled ok; a
+  refusal adds nothing (the `types` section already carries the error, spec-012 §2) and is not
+  logged beyond what `settle` logs for `memory.yaml` today (kind and file only). `uiConfig()` shares
+  the snapshot's memoised `memory.yaml` read, so `ui` is present exactly when `types` is data; no
+  CLI process is added (the read is the memoised file read of task-054). The route's table comment
+  and `config.schema.json`'s description are updated.
+- **D68-5 — The mark (AC-2; task-054 Q4 (a)).** `uiYamlMark(root: string, fs: UiYamlFs =
+  nodeUiYamlFs): Promise<string>` in `server/src/reads/ui-yaml.ts`, built on the **same guarded
+  steps** as `readUiYaml`: steps 1–3 and the bounded read move into one module-private function
+  that both use (`readUiYaml` then decodes, the mark hashes), so the no-follow rules are one code
+  path, not a copy; `readUiYaml`'s behaviour and its tests stay unchanged. Marks: `absent`;
+  `error:<errno code>`; `.wingfoil` not a directory → `wingfoil:<link|other>:<stat>`; `ui.yaml` a
+  link, not a regular file (FIFO, directory, device) or above 64 KiB → `link:`, `other:`,
+  `large:<stat>` **without opening it** (P3, P4); a regular file → `sha:<SHA-256 of its bytes>`
+  (valid UTF-8 or not); a swap seen by the descriptor checks → `swapped:<stat>`, no retry (the next
+  check marks the new content, P3). `<stat>` = `dev:ino:size:mtimeNs` from `lstat` (or `fstat`),
+  never a target. No cache: at most 64 KiB read per check, 0.18 ms (P6). Exported for the snapshot;
+  `UI_YAML` stays the only path.
+- **D68-6 — The mark in the state key (AC-2).** `runCheck` takes the mark concurrently with the
+  fingerprint, on every check and whatever git's status says of the file (a tracked or untracked
+  file is then counted twice: harmless); `combinedHash(statusHash, fingerprint, uiMark)` gains the
+  third part. Both `key` and `contentKey` move, so the `uiConfig()` memo reads the new file and the
+  `repo` event is emitted by the existing `onChange` path; the `X-Repo-State` format is unchanged.
+  No watcher change: `.wingfoil/` is already watched recursively and P1 shows the check runs for an
+  ignored edit. Every project's key changes once with the upgrade (a new hash input), as when the
+  fingerprint was added.
+- **D68-7 — Mark and read are separate reads.** The state check marks the file; the `/config` read
+  reads it later, once per state (memo). An edit between the two is seen by the next check (the
+  watcher's event, else the 10 s periodic check) — the model of `memory.yaml` and the element
+  files. The read's content is not kept from the check: spec-001 §4.4 keeps hash-only reads
+  "neither kept nor exposed".
+- **D68-8 — No target through a link (AC-2).** A symbolic-link `ui.yaml` or `.wingfoil` marks the
+  link's own `lstat`, never its target (P3, P4) — an edit of the target leaves the key alone, and
+  the read refuses it anyway ("not a regular file", D54-2). The existing fingerprint reads through a
+  linked `.wingfoil` (P5): Q3.
+- **D68-9 — Type names escaped in `ui`, raw in `types`.** As spec-012 §9 and spec-004 §5 write it:
+  `types` keeps `memory.yaml`'s names (keys the page sends back), `ui` echoes them escaped. A name
+  holding a control then differs between the two sections: the Configuration tabs (task-064) render
+  `ui` on its own and never join it with `types` by name — noted for task-064 and task-056.
+- **D68-10 — Tests in files of their own.** The `/config` `ui` scenarios go to a new
+  `test/server/http/ui-config-route.test.ts`, not `project-routes.test.ts`, which task-055 and
+  task-056 also change (W1-4 hot spot); the shared files get only appended cases.
+- **D68-11 — REQ-ARC-05.** `body.ts` and the route hold no type, state or category literal: the
+  names come from the data; the enum values of D68-2 are no fixture names (as D54-12).
+- **D68-12 — Docs.** `CHANGELOG.md` *Unreleased* › *Added* (this task makes the `ui.yaml` read of
+  task-054 visible through the API):
+  > **The project's `ui.yaml` configuration in the API** (task-054, task-068; spec-005, spec-012
+  > §2): `GET /api/p/:pid/config` carries a `ui` section with the effective configuration of
+  > `.wingfoil/ui.yaml` — categories, reference patterns and required references, the progress
+  > settings, held gates and artifacts, each value marked `declared` or `inferred` — and, when the
+  > file is not used, the reason (`ui.yaml ignored: progress.mode must be sequence or flow (found
+  > spiral)`); without a file, the values inferred from the project's types. Every text echoed from
+  > the file comes back with control and bidi characters escaped. An edit of `ui.yaml`, tracked,
+  > untracked or ignored by git, refreshes open pages. No screen shows it yet: the Configuration
+  > tabs are task-064's.
+  `test/README.md` version line for the new suites; `npm run docs:api` regenerated; no
+  `web/src/i18n/en.json` change (no UI string); spec amendments per Q1.
+
+#### Specs and gaps
+
+| Artefact | Spec | State |
+|----------|------|-------|
+| `ui-config.schema.json`, `config.schema.json`'s `ui` | spec-012 §2, §7 (approved) | covered; the origin `derived` has no field to carry it (SG-2, Q2) |
+| The K1 escape of the echoed strings | spec-012 §9, spec-004 §5 (approved) | covered; `artifacts[].phase` escaped too (D68-3) |
+| The `ui.yaml` mark in the state key | task-054 Q4 (a) (the approver); spec-012 §8 ("its edits change the key") | **SG-1**: spec-001 §4.4 allows hash-only reads only of the entries `git status` lists ("No other use of these reads is allowed"), spec-004 §5 and REQ-STATE-02 define the status hash as status + fingerprint of changed and untracked entries — none names the mark (Q1) |
+| The fingerprint through a linked folder | spec-001 §4.4 ("never followed") | **SG-3**: the code follows an intermediate link (P5, Q3) |
+
+#### Classification and test plan
+
+| AC / scenario | Kind | Test (file › test) |
+|---------------|------|--------------------|
+| AC-1 schema | red-first | `test/contracts/ui-config-api-schema.test.ts` (new): accepts `uiConfigBody` of the three sources and of the sw-life-cycle preset; rejects an unknown key at each level, a `warning` with `source: file`, an `ignored` without `warning`, an unknown category, origin or `approve`; `config.schema.json` with and without `ui` |
+| AC-1 serialiser, K1 | red-first | `test/server/ui-config/body.test.ts` (new): the mapping of each key and origin; per field of `ECHOED_UI_FIELDS` a value holding U+202E (bidi) and U+0085 (C1) comes back as `‮` and `\x85`, a backslash doubled; `failure` passed unchanged (no double escape); enums unchanged |
+| AC-1 route | red-first | `test/server/http/ui-config-route.test.ts` (new): the body against `config.schema.json` on the kanban, scrum and custom fixtures (and unknown); no `ui` with an unreadable `memory.yaml` (`types` an error); K1 through the route — a fixture copy whose `memory.yaml` declares a type and a gate state holding U+202E and U+0085 and whose `ui.yaml` echoes them in `categories`, `requires`, `scope`, `iterates`, `holds`, plus `match` (both controls) and `phases`, `artifacts` (U+202E: the file schema refuses C1 in a path — that refusal checked too); `failure` with the project folder redacted (`<project>`) |
+| AC-2 ignored edit | **red-first** (P1) | `test/server/snapshot/ui-config.test.ts`: with `.gitignore`, then with `.git/info/exclude`: create, edit, edit again → a new key each time, `repo` emitted, `uiConfig()` the new values |
+| AC-2 tracked, untracked edit | characterization (P1, task-054 P5) | the same file: each edit → a new key; guard removal at green (the mark taken out → the ignored cases fail, these stay green through the fingerprint) |
+| AC-2 the mark's kinds | red-first | `test/server/reads/ui-yaml.test.ts`: `uiYamlMark` on absent, regular, edited, non-UTF-8, 64 KiB + 1 (the port's `open` never called), FIFO and directory (never opened), a linked `ui.yaml` and a linked `.wingfoil` (target edited → same mark), a swap through the port hook → `swapped:`, then the next mark; `readUiYaml`'s tests unchanged after the refactor |
+| AC-2 no target, REQ-ARC-04 | red-first | `test/server/reads/project-reads.test.ts` (the fs spy): the mark touches only `.wingfoil` and `.wingfoil/ui.yaml`, by `lstat` and a read-only `O_NOFOLLOW` open, 0 writes, nothing under a linked `.wingfoil`; `test/server/snapshot/fingerprint.test.ts` with Q3 (a): an entry under a linked folder is not read |
+| AC-2 no process, nothing written | characterization (P2, P2b) | `test/server/snapshot/process-audit.test.ts` (appended): a cold `/config` with an ignored `ui.yaml` starts the same processes as without one (P2: the state check's git, `dna show`, `paths`, `workflow list` once each, plus the git WingFoil 0.3.1's `workflow list` runs itself, task-054 P4), a warm one 0, a check after an ignored edit 0 CLI and only the check's own git; `.git` unchanged; the Memory list audit (8 git, ≤ 6 CLI) unchanged |
+| C-01.1 | red-first | `ui-config-route.test.ts` › "C-01.1 …" (kanban, no file): `source: none`; `task` `work`, `bug` `defect`, each `inferred`; the 8 categories are the schema's enum |
+| C-01.2 | red-first | › "C-01.2 …" (custom + sw-life-cycle variant): `source: file`; `scope {value: {type: release}, origin: declared, current: null}`; `mode {value: sequence, origin: declared}` |
+| C-01.3 | red-first | › "C-01.3 …" (unknown): `story` `category: null`, `inferred` |
+| C-04.1 | red-first | › "C-04.1 …" (kanban, committed `progress.mode: spiral`): `source: ignored`, `failure` "progress.mode must be sequence or flow (found spiral)", every value `inferred` |
+| C-04.2 | red-first | › "C-04.2 …" (kanban, committed invalid YAML): `ignored`, the engine's message with "at line L, column C", every value `inferred` |
+| T-12.1, T-12.4, T-12.5 | red-first (API level: the declared scope type) | › "T-12.1 …", "T-12.4 …" (minor-v0.1 `released`, minor-v0.2 `in-development`), "T-12.5 …" (minor-v0.1 `draft`): `scope.value {type: release}`, `declared`, `current: null` (task-059 derives it) |
+| sw-life-cycle on custom (task-054 AC-7) | red-first | › "the sw-life-cycle variant": `source: file`, the categories, patterns and `requires` of spec-005 §5, its two holds (`release` `releasing`, `release-line` `active`) |
+| AC-4 | gates | the checks of `CLAUDE.md`, `docs:api`, `test:contract`, `test:e2e:chromium` (through the slot, W1-13), `check_tasks.py v0.3`; the affected suites (`snapshot/ui-config`, `process-audit`, `ui-config-route`, `fingerprint`) also under the strict-identity recipe (dl-011) |
+
+C-04.3 (the same `status` on `/traceability`) is task-059's; the e2e closure of the C and T
+scenarios is task-064's and task-065's (no e2e spec here: no UI changes).
+
+#### Shared files (append-only where shared)
+
+`server/src/http/project-routes.ts` (`config` and its table comment only — task-055, task-056 also
+change the file), `contracts/src/index.ts` (one appended export block — task-055 too),
+`contracts/src/api.ts` (`ProjectConfig.ui?`), `contracts/api/config.schema.json` (`ui`),
+`server/src/snapshot/snapshot.ts` (`runCheck` only), `server/src/snapshot/fingerprint.ts`
+(`combinedHash`; Q3), `server/src/reads/ui-yaml.ts` (the shared steps, `uiYamlMark`),
+`server/src/ui-config/types.ts` (`UiConfigStatus`), `test/server/snapshot/process-audit.test.ts`,
+`test/server/reads/project-reads.test.ts`, `test/server/snapshot/{ui-config,fingerprint}.test.ts`,
+`test/README.md` (version line), `CHANGELOG.md` *Unreleased* › *Added*, the `docs:api` output
+(regenerated after a merge, never merged by hand). For task-056: `uiConfigBody` and
+`ECHOED_UI_FIELDS` in `server/src/ui-config/body.ts` are where the `/config` `ui` strings are
+escaped — its sweep finds them done and lists them.
+
+#### Questions (one recommendation each)
+
+- **Q1 — SG-1: name the mark in the specs that define the state key.** (a) Amend before red, as the
+  wording of the approver's Q4 (a) of task-054: spec-001 §4.4 (the hash-only reads cover
+  `.wingfoil/ui.yaml` whatever its status, through §4.5's no-follow steps, at most 64 KiB read, a
+  link or a larger file marked by its `lstat`) and spec-004 §5 (the status hash also combines that
+  mark), each with a dated Process Note; REQ-STATE-02 the same sentence (SARD
+  `03_state-context.md` 0.10). (b) No amendment: the decision stays in task-054's notes. **Recommended
+  (a)**: spec-001 §4.4 today forbids any other hash-only read, and the reviewer checks the code
+  against it.
+- **Q2 — SG-2: the origin `derived`.** spec-012 §2 puts `derived` in `origin` but writes `scope` as
+  `{ value, origin, current: ElementRef | null }` with "origin of current: derived" as a comment —
+  no field carries it. (a) As written: no field; `current` is derived by definition, the `origin`
+  definition keeps the three values for task-059's bodies; a clarifying sentence in spec-012's
+  Process Note with Q1's. (b) `current: { value: ElementRef | null, origin: "derived" }`: a
+  shape change task-059 and task-064 must follow. **Recommended (a)**: no shape change, the page
+  renders "derived" for `current` from the catalogue.
+- **Q3 — SG-3: the fingerprint reads through a linked folder (P5).** (a) Fix it here in
+  `fingerprint.ts`: an entry with a directory component inside the repository that is not a real
+  directory (each ancestor `lstat`ed once per check, cached for the check) is marked `via-link:<the
+  ancestor>` without any read; red first; the coordinator ingests a low bug that this task absorbs
+  (its `bug:` list). (b) Only for entries under `.wingfoil/`. (c) A bug for a later task, the tracked
+  `ui.yaml` under a linked `.wingfoil` a declared residual until then. **Recommended (a)**: it is the
+  state-key code this task changes, AC-2 asks that a linked `.wingfoil` marks no target, and the
+  fix is small (about 0.2 day); (b) leaves the same read for every other folder.
+
+#### Size
+
+About one active day with Q3 (a): the API schema and types and the serialiser (0.3), the mark and
+its state-key change (0.3, Q3 included), the scenario and audit tests (0.2), docs and gates (0.2).
+No split proposed.
