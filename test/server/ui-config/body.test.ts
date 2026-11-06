@@ -15,7 +15,7 @@ const ROOTS = { project: ['/nowhere/project'], home: null };
 const text = (t: string) => ({ kind: 'text' as const, text: t, sha256: t.length.toString(16) });
 
 /** A value holding a bidi control (U+202E), a C1 control (U+0085) and a backslash. */
-const hostile = (name: string) => `${name}‮\u0085\\`;
+const hostile = (name: string) => `${name}\u202e\u0085\\`;
 /** {@link hostile} as the escape writes it. */
 const escaped = (name: string) => `${name}\\u202e\\x85\\\\`;
 
@@ -66,10 +66,11 @@ describe('uiConfigBody — the /config ui section', () => {
     expect(body.taxonomy.categories.every((c) => c.origin === 'declared')).toBe(true);
     expect(body.progress.scope).toEqual({ value: { type: 'release' }, origin: 'declared', current: null });
     expect(body.progress.mode).toEqual({ value: 'sequence', origin: 'declared' });
-    // spec-012 §9 as written: the character escape doubles a backslash (`^(P\\d|Journey)`).
+    // Q4-b (the approver, 2026-11-06): a pattern comes back as written, its backslashes untouched.
     expect(body.taxonomy.patterns.value).toEqual(
-      effective.patterns.value.map(({ match, category }) => ({ match: neutralise(match), category })),
+      effective.patterns.value.map(({ match, category }) => ({ match, category })),
     );
+    expect(body.taxonomy.patterns.value.map((p) => p.match)).toContain('^(P\\d|Journey)');
     expect(body.holds).toEqual({
       value: [
         { type: 'release', state: 'releasing', approve: 'never' },
@@ -92,7 +93,10 @@ describe('uiConfigBody — the /config ui section', () => {
     const body = uiConfigBody(hostileConfig());
     const t = escaped('t');
     expect(body.taxonomy.categories).toEqual([{ type: t, category: 'work', origin: 'declared' }]);
-    expect(body.taxonomy.patterns.value).toEqual([{ match: escaped('^m'), category: 'requirement' }]);
+    // Q4-b: in a pattern the controls are escaped and the backslash is kept as written (a visible
+    // `\u202e` is the same regular expression as the raw character); every other field doubles it.
+    expect(body.taxonomy.patterns.value).toEqual([{ match: '^m\\u202e\\x85\\', category: 'requirement' }]);
+    expect(body.taxonomy.patterns.value[0]!.match).not.toBe(neutralise(hostile('^m')));
     expect(body.taxonomy.requires.value).toEqual([{ type: t, categories: ['requirement'] }]);
     expect(body.progress.scope.value).toEqual({ type: t });
     expect(body.progress.phases.value).toEqual([escaped('ph')]);
@@ -102,7 +106,7 @@ describe('uiConfigBody — the /config ui section', () => {
     expect(body.holds.value).toEqual([{ type: t, state: escaped('s'), approve: 'never' }]);
     expect(body.artifacts.value).toEqual([{ path: escaped('p'), phase: escaped('ph') }]);
     // Nothing of the raw controls is left anywhere in the body.
-    expect(JSON.stringify(body)).not.toMatch(/[‮\u0085]/u);
+    expect(JSON.stringify(body)).not.toMatch(/[\u202e\u0085]/u);
   });
 
   it('ECHOED_UI_FIELDS lists every escaped field (the list task-056 sweeps)', () => {

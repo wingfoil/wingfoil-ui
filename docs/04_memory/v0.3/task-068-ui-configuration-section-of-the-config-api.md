@@ -249,7 +249,7 @@ console); no `wfui-*` entry.
 | AC / scenario | Kind | Test (file › test) |
 |---------------|------|--------------------|
 | AC-1 schema | red-first | `test/contracts/ui-config-api-schema.test.ts` (new): accepts `uiConfigBody` of the three sources and of the sw-life-cycle preset; rejects an unknown key at each level, a `warning` with `source: file`, an `ignored` without `warning`, an unknown category, origin or `approve`; `config.schema.json` with and without `ui` |
-| AC-1 serialiser, K1 | red-first | `test/server/ui-config/body.test.ts` (new): the mapping of each key and origin; per field of `ECHOED_UI_FIELDS` a value holding U+202E (bidi) and U+0085 (C1) comes back as `‮` and `\x85`, a backslash doubled; `failure` passed unchanged (no double escape); enums unchanged |
+| AC-1 serialiser, K1 | red-first | `test/server/ui-config/body.test.ts` (new): the mapping of each key and origin; per field of `ECHOED_UI_FIELDS` a value holding U+202E (bidi) and U+0085 (C1) comes back as `\u202e` and `\x85`, a backslash doubled; `failure` passed unchanged (no double escape); enums unchanged |
 | AC-1 route | red-first | `test/server/http/ui-config-route.test.ts` (new): the body against `config.schema.json` on the kanban, scrum and custom fixtures (and unknown); no `ui` with an unreadable `memory.yaml` (`types` an error); K1 through the route — a fixture copy whose `memory.yaml` declares a type and a gate state holding U+202E and U+0085 and whose `ui.yaml` echoes them in `categories`, `requires`, `scope`, `iterates`, `holds`, plus `match` (both controls) and `phases`, `artifacts` (U+202E: the file schema refuses C1 in a path — that refusal checked too); `failure` with the project folder redacted (`<project>`) |
 | AC-2 ignored edit | **red-first** (P1) | `test/server/snapshot/ui-config.test.ts`: with `.gitignore`, then with `.git/info/exclude`: create, edit, edit again → a new key each time, `repo` emitted, `uiConfig()` the new values |
 | AC-2 tracked, untracked edit | characterization (P1, task-054 P5) | the same file: each edit → a new key; guard removal at green (the mark taken out → the ignored cases fail, these stay green through the fingerprint) |
@@ -367,7 +367,7 @@ hash combines its own mark"); **Q3 (a)** — the fingerprint fixed here, red fir
   with no change (`b2571ca8`). (3) **Q4, found at green, sent to the coordinator:** `neutralise`
   doubles a backslash, so the sw-life-cycle pattern `^(P\d|Journey)` is echoed `^(P\\d|Journey)`;
   options (a) the spec as written, (b) for `patterns[].match` only an escape that leaves the
-  backslash (a visible `‮` is the same regex as the raw character), (c) (b) for every `ui`
+  backslash (a visible `\u202e` is the same regex as the raw character), (c) (b) for every `ui`
   string; recommended (b). Built as (a), the spec as written, until the answer
   (`ui-config/body.test.ts` pins it). (4) T-12.4 sets only `minor-v0.1` `released` by hand on the
   copy (the custom fixture has no second release): at the API level the scope type does not depend

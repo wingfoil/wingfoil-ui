@@ -22,16 +22,17 @@ import { nodeReadFs, type ReadFs } from '../../../server/src/reads/confine.js';
 import { REPO_STATE_HEADER } from '../../../server/src/snapshot/state.js';
 import type { Snapshots } from '../../../server/src/snapshot/snapshots.js';
 import { createMemoryStateStore } from '../../../server/src/state/memory-store.js';
-import { REPO_ROOT } from '../../harness/cli.js';
+import { pinnedCli, REPO_ROOT } from '../../harness/cli.js';
 import {
   buildFixture,
   copyFixture,
+  memberByName,
   usePresetUiConfig,
   type Fixture,
   type FixtureKind,
 } from '../../harness/fixtures/index.js';
 import { HEAVY_MS } from '../../harness/load.js';
-import { git } from '../../harness/run.js';
+import { git, run } from '../../harness/run.js';
 import { auditedSnapshots } from '../snapshot/support.js';
 
 const security = { authentication: createTokenAuthentication('test-token'), port: () => 80 };
@@ -120,18 +121,30 @@ function origins(ui: any): string[] {
   ];
 }
 
-/** Set the `status:` of the element file whose id is `id` (a fixture's Given, committed by hand). */
-async function setStatus(fx: Fixture, id: string, status: string): Promise<void> {
+/** `wingfoil memory <verb> <id> [...more]` with the pinned CLI on `fx`, as the member `email`. */
+async function verb(fx: Fixture, email: string, args: string[]): Promise<void> {
+  await git(fx.dir, ['config', 'user.email', email], fx.env);
+  await run(process.execPath, [pinnedCli().script, 'memory', ...args], { cwd: fx.dir, env: fx.env });
+}
+
+/**
+ * T-12.5's Given — the only release `draft` — on a temporary copy only: the custom fixture builds
+ * `minor-v0.1` and submits it (`draft → planning`), and no verb of its release machine leads back to
+ * `draft` (the one gate, `releasing`, rejects to `in-development`; `memory.yaml` of the packs), so
+ * the `status:` is set by hand and committed on the copy (the scope type this test asserts does not
+ * read it; the derived scope is task-059's).
+ */
+async function releaseBackToDraft(fx: Fixture): Promise<void> {
   const files = (await git(fx.dir, ['ls-files', '*.md'], fx.env)).stdout.split('\n').filter(Boolean);
   for (const f of files) {
     const file = path.join(fx.dir, f);
     const text = await readFile(file, 'utf8');
-    if (!new RegExp(`^id: ${id}\\b`, 'm').test(text)) continue;
-    await writeFile(file, text.replace(/^status: .*$/m, `status: ${status}`));
-    await git(fx.dir, ['commit', '-qam', `test: ${id} ${status}`], fx.env);
+    if (!/^id: minor-v0\.1(?:\s|$)/m.test(text)) continue;
+    await writeFile(file, text.replace(/^status: .*$/m, 'status: draft'));
+    await git(fx.dir, ['commit', '-qam', 'test: minor-v0.1 draft (temporary copy)'], fx.env);
     return;
   }
-  throw new Error(`no element ${id}`);
+  throw new Error('no element minor-v0.1');
 }
 
 describe('GET /api/p/:pid/config — the ui section', () => {
@@ -167,12 +180,12 @@ describe('GET /api/p/:pid/config — the ui section', () => {
   });
 
   it('K1: each echoed string with a bidi and a C1 control comes back escaped', async () => {
-    const T = 't‮\u0085x';
-    const S = 's‮\u0085x';
+    const T = 't\u202e\u0085x';
+    const S = 's\u202e\u0085x';
     // JSON is YAML; the controls written as YAML double-quoted escapes.
     const yamlOf = (data: unknown) =>
       JSON.stringify(data, null, 1)
-        .replace(/‮/g, '\\u202e')
+        .replace(/\u202e/g, '\\u202e')
         .replace(/\u0085/g, '\\x85');
     const c = await start(templates.kanban, {
       prepare: async (fx) => {
@@ -189,12 +202,12 @@ describe('GET /api/p/:pid/config — the ui section', () => {
             version: 1,
             taxonomy: {
               categories: { [T]: 'work' },
-              patterns: [{ match: '^m‮\u0085', category: 'requirement' }],
+              patterns: [{ match: '^m\u202e\u0085\\d', category: 'requirement' }],
               requires: { [T]: ['requirement'] },
             },
-            progress: { mode: 'sequence', scope: { type: T }, phases: ['ph‮\u0085'], iterates: T, defects: T },
+            progress: { mode: 'sequence', scope: { type: T }, phases: ['ph\u202e\u0085'], iterates: T, defects: T },
             holds: { [T]: { [S]: { approve: 'never' } } },
-            artifacts: [{ path: 'p‮', phase: 'ph‮\u0085' }],
+            artifacts: [{ path: 'p\u202e', phase: 'ph\u202e\u0085' }],
           }),
         );
       },
@@ -207,7 +220,8 @@ describe('GET /api/p/:pid/config — the ui section', () => {
       category: 'work',
       origin: 'declared',
     });
-    expect(ui.taxonomy.patterns.value).toEqual([{ match: '^m\\u202e\\x85', category: 'requirement' }]);
+    // Q4-b: the pattern's own backslash (`\\d`) is not doubled.
+    expect(ui.taxonomy.patterns.value).toEqual([{ match: '^m\\u202e\\x85\\d', category: 'requirement' }]);
     expect(ui.taxonomy.requires.value).toEqual([{ type: t, categories: ['requirement'] }]);
     expect(ui.progress.scope).toEqual({ value: { type: t }, origin: 'declared', current: null });
     expect(ui.progress.phases.value).toEqual(['ph\\u202e\\x85']);
@@ -215,7 +229,7 @@ describe('GET /api/p/:pid/config — the ui section', () => {
     expect(ui.holds.value).toEqual([{ type: t, state: 's\\u202e\\x85x', approve: 'never' }]);
     // A C1 control is refused in an artifact path by the file's schema; a bidi control is escaped.
     expect(ui.artifacts.value).toEqual([{ path: 'p\\u202e', phase: 'ph\\u202e\\x85' }]);
-    expect(JSON.stringify(ui)).not.toMatch(/[‮\u0085]/u);
+    expect(JSON.stringify(ui)).not.toMatch(/[\u202e\u0085]/u);
   });
 
   it('a C1 control in an artifact path makes the file ignored (its schema)', async () => {
@@ -317,10 +331,19 @@ describe('the C and T scenarios at the API level', () => {
   });
 
   it('T-12.4 — Move the scope to the most advanced release', async () => {
-    expect(await scopeOf((fx) => setStatus(fx, 'minor-v0.1', 'released'))).toEqual(declaredScope);
+    // minor-v0.1 through its verbs: planning → in-development → releasing (submit, its developer),
+    // releasing → released (approve, the approver).
+    const released = async (fx: Fixture) => {
+      await verb(fx, memberByName('Alex').email, ['submit', 'minor-v0.1']);
+      await verb(fx, memberByName('Alex').email, ['submit', 'minor-v0.1']);
+      await verb(fx, memberByName('Morgan').email, ['approve', 'minor-v0.1', '--reason', 'Published']);
+      const file = (await git(fx.dir, ['grep', '-lE', '^id: minor-v0\\.1( |$)'], fx.env)).stdout.trim();
+      expect(await readFile(path.join(fx.dir, file), 'utf8')).toMatch(/^status: released(?:\s|$)/m);
+    };
+    expect(await scopeOf(released)).toEqual(declaredScope);
   });
 
   it('T-12.5 — Say that no release is under way', async () => {
-    expect(await scopeOf((fx) => setStatus(fx, 'minor-v0.1', 'draft'))).toEqual(declaredScope);
+    expect(await scopeOf(releaseBackToDraft)).toEqual(declaredScope);
   });
 });
