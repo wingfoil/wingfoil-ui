@@ -6,7 +6,8 @@
 // - REQ-INT-09 (TT-INT-09, S-26.1 API side): one page open and no change for 60 s → 0 CLI
 //   processes; after a change the page gets `repo` on its open stream and reads the new data.
 // Counts, not timings: these stay in the default suite (bug-001). The screens close in task-017.
-import { mkdtemp, readFile, realpath, rm, writeFile } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
+import { mkdtemp, readdir, readFile, realpath, rm, lstat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -169,4 +170,66 @@ describe('Today and the Memory events (task-031)', () => {
     expect(after.state).toBe(next.key);
     expect(runner.spawned.filter((r) => r.args.includes('log')).length).toBe(logs + 2);
   });
+});
+
+/** Every entry of `dir` (name, type, size, mtime) and the SHA-256 of every file: `.git` unchanged. */
+async function treeDigest(dir: string): Promise<string> {
+  const hash = createHash('sha256');
+  for (const name of (await readdir(dir, { recursive: true })).sort()) {
+    const file = path.join(dir, name);
+    const info = await lstat(file);
+    hash.update(`${name}\0${info.isDirectory() ? 'd' : 'f'}\0${info.size}\0${info.mtimeMs}\0`);
+    if (info.isFile()) hash.update(await readFile(file));
+  }
+  return hash.digest('hex');
+}
+
+// task-068 AC-2 (D68-4, D68-6; design probes P2, P4): the `/config` `ui` section is the memoised
+// file read of task-054 and the state key's `ui.yaml` mark is file reads only — no process added.
+describe('task-068 — the /config ui section and the ui.yaml mark start no process', () => {
+  it('a cold /config with an ignored ui.yaml starts what one without starts; warm 0; an ignored edit: the check only', async () => {
+    const cold = async (withUiYaml: boolean) => {
+      const f = await fresh(3_600_000);
+      if (withUiYaml) {
+        await writeFile(path.join(f.fx.dir, '.gitignore'), '.wingfoil/ui.yaml\n');
+        await git(f.fx.dir, ['add', '.gitignore'], f.fx.env);
+        await git(f.fx.dir, ['commit', '-qm', 'ignore ui.yaml'], f.fx.env);
+        await writeFile(path.join(f.fx.dir, '.wingfoil', 'ui.yaml'), 'version: 1\nprogress: { mode: sequence }\n');
+      }
+      const gitDir = await treeDigest(path.join(f.fx.dir, '.git'));
+      f.runner.spawned.length = 0;
+      const res = await f.standIn.get(`/api/p/${f.pid}/config`);
+      expect(res.status).toBe(200);
+      const processes = { cli: f.runner.wingfoilCommands().sort(), git: f.runner.count('git') };
+      return { ...f, res, processes, gitDir };
+    };
+    const without = await cold(false);
+    const withFile = await cold(true);
+    console.info(
+      `task-068 cold /config: ${withFile.processes.cli.length} CLI (${withFile.processes.cli.join(', ')}), ${withFile.processes.git} git`,
+    );
+    expect(withFile.processes).toEqual(without.processes);
+    expect((withFile.res.body as { ui: { status: unknown } }).ui.status).toEqual({ source: 'file' });
+
+    const { pid, standIn, runner, snapshots, fx } = withFile;
+    const before = runner.spawned.length;
+    await standIn.get(`/api/p/${pid}/config`);
+    expect(runner.spawned.length).toBe(before);
+    expect(await treeDigest(path.join(fx.dir, '.git'))).toBe(withFile.gitDir);
+
+    // A check with no change, then one after an edit of the ignored file: the same git, no CLI.
+    const snapshot = await snapshots.open(pid, fx.dir);
+    let mark = runner.spawned.length;
+    const same = await snapshot.check();
+    const checkProcesses = runner.spawned.slice(mark);
+    expect(same.key).toBe(withFile.res.state);
+    await writeFile(path.join(fx.dir, '.wingfoil', 'ui.yaml'), 'version: 1\nprogress: { mode: flow }\n');
+    mark = runner.spawned.length;
+    const next = await snapshot.check();
+    expect(next.key).not.toBe(same.key);
+    expect(runner.spawned.slice(mark).map((r) => r.args.join(' '))).toEqual(
+      checkProcesses.map((r) => r.args.join(' ')),
+    );
+    expect(checkProcesses.every((r) => processKind(r) === 'git')).toBe(true);
+  }, 180_000);
 });

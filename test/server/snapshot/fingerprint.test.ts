@@ -167,3 +167,68 @@ describe('contentFingerprint', () => {
     expect(combinedHash('0123456789abcdef', 'a')).not.toBe(combinedHash('0123456789abcdef', 'b'));
   });
 });
+
+// bug-033 (task-068 AC-5, the approver's Q3-a; spec-001 §4.4 "never followed"): a folder of the
+// project replaced by a symbolic link — git then lists the tracked files under it as deleted — is
+// never passed through: each such entry is marked by that ancestor, without any read behind it,
+// and every ancestor is `lstat`ed at most once per check.
+describe('bug-033 — no read through a linked folder of the project', () => {
+  /** A repository folder whose `.wingfoil` is a link to a folder outside it, holding `memory.yaml`. */
+  async function linkedWingfoil(name: string) {
+    const top = path.join(dir, `${name}-top`);
+    const out = path.join(dir, `${name}-outside`);
+    await mkdir(top, { recursive: true });
+    await mkdir(out, { recursive: true });
+    await writeFile(path.join(out, 'memory.yaml'), 'version: 1\n');
+    await writeFile(path.join(out, 'ui.yaml'), 'version: 1\n');
+    await symlink(out, path.join(top, '.wingfoil'));
+    const entries = [
+      { code: '.D', path: '.wingfoil/memory.yaml' },
+      { code: '.D', path: '.wingfoil/ui.yaml' },
+      entry('.wingfoil'),
+    ];
+    return { top, out, entries };
+  }
+
+  it('an edit behind a linked .wingfoil does not move the fingerprint, and nothing behind it is read', async () => {
+    const { top, out, entries } = await linkedWingfoil('b033-a');
+    const f = new Fingerprinter(top, '', LATER);
+    const before = await f.fingerprint(entries);
+    expect(f.lastReads).toBe(0);
+    const outsideMark = await mark(path.join(out, 'memory.yaml'));
+    await writeFile(path.join(out, 'memory.yaml'), 'version: 1\n# edited outside the project\n');
+    await expectMark(path.join(out, 'memory.yaml'), outsideMark, 'changed');
+    // A fresh fingerprinter too: no cached mark hides a read.
+    expect(await f.fingerprint(entries)).toBe(before);
+    expect(f.lastReads).toBe(0);
+    expect(await new Fingerprinter(top, '', LATER).fingerprint(entries)).toBe(before);
+  });
+
+  it('a nested folder replaced by a link marks the entries under it by that ancestor, each ancestor lstat-ed once', async () => {
+    const top = path.join(dir, 'b033-b-top');
+    const out = path.join(dir, 'b033-b-outside');
+    await mkdir(path.join(top, 'docs'), { recursive: true });
+    await mkdir(path.join(out, 'task'), { recursive: true });
+    await writeFile(path.join(out, 'task', 'a.md'), 'A');
+    await writeFile(path.join(out, 'task', 'b.md'), 'B');
+    await symlink(out, path.join(top, 'docs', 'memory'));
+    await writeFile(path.join(top, 'docs', 'real.md'), 'R');
+    const entries = [
+      { code: '.D', path: 'docs/memory/task/a.md' },
+      { code: '.D', path: 'docs/memory/task/b.md' },
+      entry('docs/real.md'),
+    ];
+    const f = new Fingerprinter(top, '', LATER);
+    const before = await f.fingerprint(entries);
+    // Only docs/real.md is read; the ancestors docs and docs/memory once each (docs/memory/task never).
+    expect(f.lastReads).toBe(1);
+    expect(f.lastAncestorChecks).toBe(2);
+    await writeFile(path.join(out, 'task', 'a.md'), 'A edited');
+    expect(await f.fingerprint(entries)).toBe(before);
+    // The link itself replaced by a real folder: the entries are seen again (no stale ancestor mark).
+    await rm(path.join(top, 'docs', 'memory'));
+    await mkdir(path.join(top, 'docs', 'memory', 'task'), { recursive: true });
+    await writeFile(path.join(top, 'docs', 'memory', 'task', 'a.md'), 'A');
+    expect(await f.fingerprint(entries)).not.toBe(before);
+  });
+});
