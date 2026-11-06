@@ -22,17 +22,16 @@ import { nodeReadFs, type ReadFs } from '../../../server/src/reads/confine.js';
 import { REPO_STATE_HEADER } from '../../../server/src/snapshot/state.js';
 import type { Snapshots } from '../../../server/src/snapshot/snapshots.js';
 import { createMemoryStateStore } from '../../../server/src/state/memory-store.js';
-import { pinnedCli, REPO_ROOT } from '../../harness/cli.js';
+import { REPO_ROOT } from '../../harness/cli.js';
 import {
   buildFixture,
   copyFixture,
-  memberByName,
   usePresetUiConfig,
   type Fixture,
   type FixtureKind,
 } from '../../harness/fixtures/index.js';
 import { HEAVY_MS } from '../../harness/load.js';
-import { git, run } from '../../harness/run.js';
+import { git } from '../../harness/run.js';
 import { auditedSnapshots } from '../snapshot/support.js';
 
 const security = { authentication: createTokenAuthentication('test-token'), port: () => 80 };
@@ -119,32 +118,6 @@ function origins(ui: any): string[] {
     ui.holds.origin,
     ui.artifacts.origin,
   ];
-}
-
-/** `wingfoil memory <verb> <id> [...more]` with the pinned CLI on `fx`, as the member `email`. */
-async function verb(fx: Fixture, email: string, args: string[]): Promise<void> {
-  await git(fx.dir, ['config', 'user.email', email], fx.env);
-  await run(process.execPath, [pinnedCli().script, 'memory', ...args], { cwd: fx.dir, env: fx.env });
-}
-
-/**
- * T-12.5's Given — the only release `draft` — on a temporary copy only: the custom fixture builds
- * `minor-v0.1` and submits it (`draft → planning`), and no verb of its release machine leads back to
- * `draft` (the one gate, `releasing`, rejects to `in-development`; `memory.yaml` of the packs), so
- * the `status:` is set by hand and committed on the copy (the scope type this test asserts does not
- * read it; the derived scope is task-059's).
- */
-async function releaseBackToDraft(fx: Fixture): Promise<void> {
-  const files = (await git(fx.dir, ['ls-files', '*.md'], fx.env)).stdout.split('\n').filter(Boolean);
-  for (const f of files) {
-    const file = path.join(fx.dir, f);
-    const text = await readFile(file, 'utf8');
-    if (!/^id: minor-v0\.1(?:\s|$)/m.test(text)) continue;
-    await writeFile(file, text.replace(/^status: .*$/m, 'status: draft'));
-    await git(fx.dir, ['commit', '-qam', 'test: minor-v0.1 draft (temporary copy)'], fx.env);
-    return;
-  }
-  throw new Error('no element minor-v0.1');
 }
 
 describe('GET /api/p/:pid/config — the ui section', () => {
@@ -320,30 +293,22 @@ describe('the C and T scenarios at the API level', () => {
     ]);
   });
 
-  // The progress card's scope (T-12.x) at the API level: the declared scope type; the current
-  // element (minor-v0.1, minor-v0.2, none) is derived by task-059 — `null` here.
-  const scopeOf = async (prepare?: (fx: Fixture) => Promise<void>) =>
-    (await (await start(templates['sw-life-cycle'], prepare ? { prepare } : {})).config()).ui.progress.scope;
+  // The progress card's scope (T-12.x) at the API level: the scope type the sw-life-cycle preset
+  // declares, whatever state its releases are in. The current element of each scenario (minor-v0.1,
+  // minor-v0.2, none) is derived by task-059, which builds those Givens; `/config` sends `null`
+  // until then, so this task sets up no release state.
   const declaredScope = { value: { type: 'release' }, origin: 'declared', current: null };
+  const scope = async () => (await (await start(templates['sw-life-cycle'])).config()).ui.progress.scope;
 
   it('T-12.1 — Show the figures of the current scope', async () => {
-    expect(await scopeOf()).toEqual(declaredScope);
+    expect(await scope()).toEqual(declaredScope);
   });
 
   it('T-12.4 — Move the scope to the most advanced release', async () => {
-    // minor-v0.1 through its verbs: planning → in-development → releasing (submit, its developer),
-    // releasing → released (approve, the approver).
-    const released = async (fx: Fixture) => {
-      await verb(fx, memberByName('Alex').email, ['submit', 'minor-v0.1']);
-      await verb(fx, memberByName('Alex').email, ['submit', 'minor-v0.1']);
-      await verb(fx, memberByName('Morgan').email, ['approve', 'minor-v0.1', '--reason', 'Published']);
-      const file = (await git(fx.dir, ['grep', '-lE', '^id: minor-v0\\.1( |$)'], fx.env)).stdout.trim();
-      expect(await readFile(path.join(fx.dir, file), 'utf8')).toMatch(/^status: released(?:\s|$)/m);
-    };
-    expect(await scopeOf(released)).toEqual(declaredScope);
+    expect(await scope()).toEqual(declaredScope);
   });
 
   it('T-12.5 — Say that no release is under way', async () => {
-    expect(await scopeOf(releaseBackToDraft)).toEqual(declaredScope);
+    expect(await scope()).toEqual(declaredScope);
   });
 });

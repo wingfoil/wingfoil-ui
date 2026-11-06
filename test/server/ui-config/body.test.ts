@@ -3,12 +3,15 @@
 // in `memory.yaml`'s order, and every string echoed from `ui.yaml` (or `memory.yaml`'s type names)
 // through the character escape of repository texts; the enum values and the already-redacted
 // `failure` passed unchanged.
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { neutralise } from '../../../server/src/git/redact.js';
 import { ECHOED_UI_FIELDS, uiConfigBody } from '../../../server/src/ui-config/body.js';
 import { renderPreset } from '../../../server/src/presets/ui-config.js';
 import { effectiveUiConfig } from '../../../server/src/ui-config/effective.js';
 import type { EffectiveUiConfig, UiCategory } from '../../../server/src/ui-config/types.js';
+import { REPO_ROOT } from '../../harness/cli.js';
 import { customPacks, kanban } from './samples.js';
 
 const ROOTS = { project: ['/nowhere/project'], home: null };
@@ -109,22 +112,34 @@ describe('uiConfigBody — the /config ui section', () => {
     expect(JSON.stringify(body)).not.toMatch(/[\u202e\u0085]/u);
   });
 
-  it('ECHOED_UI_FIELDS lists every escaped field (the list task-056 sweeps)', () => {
-    expect([...ECHOED_UI_FIELDS].sort()).toEqual(
-      [
-        'artifacts.value[].path',
-        'artifacts.value[].phase',
-        'holds.value[].state',
-        'holds.value[].type',
-        'progress.defects.value',
-        'progress.iterates.value',
-        'progress.phases.value[]',
-        'progress.scope.value.type',
-        'taxonomy.categories[].type',
-        'taxonomy.patterns.value[].match',
-        'taxonomy.requires.value[].type',
-      ].sort(),
-    );
+  it('ECHOED_UI_FIELDS are exactly the free strings of contracts/api/ui-config.schema.json (the list task-056 sweeps)', () => {
+    // Every string the section's schema allows that is no enum or const, by path; `status` (its
+    // `failure` passes redactLocalPaths in the effective configuration) and `scope.current` (an
+    // element reference, task-059's) are escaped elsewhere.
+    type Node = {
+      $ref?: string;
+      type?: string | string[];
+      properties?: Record<string, Node>;
+      items?: Node;
+      oneOf?: Node[];
+    };
+    const schema = JSON.parse(
+      readFileSync(path.join(REPO_ROOT, 'contracts', 'api', 'ui-config.schema.json'), 'utf8'),
+    ) as Node & { definitions: Record<string, Node> };
+    const SKIP = new Set(['status', 'progress.scope.current']);
+    const found = new Set<string>();
+    const walk = (node: Node, at: string): void => {
+      if (SKIP.has(at)) return;
+      if (node.$ref) return walk(schema.definitions[node.$ref.replace('#/definitions/', '')]!, at);
+      for (const branch of node.oneOf ?? []) walk(branch, at);
+      const types = [node.type ?? []].flat();
+      if (types.includes('string')) found.add(at);
+      if (node.items) walk(node.items, `${at}[]`);
+      for (const [key, child] of Object.entries(node.properties ?? {})) walk(child, at ? `${at}.${key}` : key);
+    };
+    walk(schema, '');
+    expect(found.size).toBeGreaterThan(0);
+    expect([...ECHOED_UI_FIELDS].sort()).toEqual([...found].sort());
   });
 
   it('the current element of scope is passed as given (task-059 builds it)', () => {
