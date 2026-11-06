@@ -252,7 +252,8 @@ the sanitiser's character escape (`neutralise`, without the folder redaction) wh
 serialises it — element **titles** (`/elements`, `/elements/:eid`, the Today rows, the candidates
 of spec-011 §3, spec-012's `ElementRef` and rows), the **pattern reference** values of
 `/progress` and `/traceability`, and the **`ui.yaml` strings** `/config` echoes in `ui`
-(`patterns[].match`, type names, `phases`, `holds` types and states, `artifacts` paths). Element
+(`patterns[].match` — a regular-expression source, its backslashes kept as written —, type
+names, `phases`, `holds` types and states, `artifacts` paths). Element
 ids, types and states stay as `memory search` returns them: they are the keys a page sends back.
 
 - Success of a write (`write.response.schema.json`): `{ result: <CLI output>, commits: [{ sha,
@@ -486,3 +487,6 @@ goes away by itself when the stream reconnects. A network failure is not rendere
 - 2026-11-06 — amended in development (task-068 design, plan backlog-item-rel-v0.3-plan; decided by
   the approver, Q1 (a)): §5 the status hash of `X-Repo-State` also combines the mark of
   `.wingfoil/ui.yaml` whatever its git status (spec-001 §4.4); header format unchanged.
+- 2026-11-06 — amended in development (task-068 green, plan backlog-item-rel-v0.3-plan; decided by
+  the approver, Q4 (b)): §5 a `ui.yaml` pattern echoed by `/config` keeps its backslashes, its
+  unsafe characters escaped as the other repository texts (spec-012 §9).

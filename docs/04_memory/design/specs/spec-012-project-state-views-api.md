@@ -368,7 +368,9 @@ every object `additionalProperties: false`, as the other API schemas.
   titles of spec-011 §3), every **pattern reference** id (in `references[]` and
   `completion.references[]`; at most 256 characters as written, §1 rule 2; two values equal after
   the escape are one reference) and the **`ui.yaml` strings echoed** by `/config` `ui`
-  (`patterns[].match`, type names, `phases`, `holds` types and states, `artifacts` paths). The
+  (`patterns[].match`, type names, `phases`, `holds` types and states, `artifacts` paths) — a
+  `match`, a regular-expression source, with its backslashes kept as written (the unsafe characters
+  escaped the same way: a visible `\u202e` is the same expression as the raw character). The
   rule is spec-004 §5's (amended with this spec); it lands with bug-027's task (the same class:
   repository text that reached the page unescaped). Element ids, types and states of `memory
   search` stay as returned: they are the keys the web sends back to the API (an element
@@ -496,3 +498,7 @@ every object `additionalProperties: false`, as the other API schemas.
   definition, the page shows it "derived"; the `origin` definition keeps the three values. §8 an
   edit of `.wingfoil/ui.yaml` changes the key also when git ignores the file: the state hash
   combines its own mark (spec-001 §4.4, spec-004 §5). No shape changes.
+- 2026-11-06 — amended in development (task-068 green, plan backlog-item-rel-v0.3-plan; decided
+  by the approver, Q4 (b)): §9 a `patterns[].match` echoed by `/config` `ui` keeps its backslashes
+  (the character escape doubles them elsewhere): the shipped `^(P\d|Journey)` reads as written;
+  its unsafe characters are escaped as before.

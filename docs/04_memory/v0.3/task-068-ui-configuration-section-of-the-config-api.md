@@ -327,6 +327,12 @@ hash combines its own mark"); **Q3 (a)** — the fingerprint fixed here, red fir
 (ingested by the coordinator, low, absorbed as AC-5, `backlog-item-rel-v0.3-plan` W1-17); spec-001
 §4.4 holds as written ("never followed").
 
+Later the same day, at green (relayed by the coordinator, "068: q4-b"): **Q4 (b)** — a
+`patterns[].match` echoed by `/config` keeps its backslashes, its unsafe characters escaped as
+the other strings; every other echoed `ui` string keeps `neutralise`. spec-012 §9 and spec-004 §5
+amended in place with dated Process Notes (the approved specs carry no `Version`/`Date` line:
+their Process Notes are their versioning).
+
 ### red / green / refactor (2026-11-06)
 
 - **Merge and specs before red.** The phase branch merged in (`d29a7722`, bug-033 as AC-5, W1-17);
@@ -368,11 +374,9 @@ hash combines its own mark"); **Q3 (a)** — the fingerprint fixed here, red fir
   doubles a backslash, so the sw-life-cycle pattern `^(P\d|Journey)` is echoed `^(P\\d|Journey)`;
   options (a) the spec as written, (b) for `patterns[].match` only an escape that leaves the
   backslash (a visible `\u202e` is the same regex as the raw character), (c) (b) for every `ui`
-  string; recommended (b). Built as (a), the spec as written, until the answer
-  (`ui-config/body.test.ts` pins it). (4) T-12.4 sets only `minor-v0.1` `released` by hand on the
-  copy (the custom fixture has no second release): at the API level the scope type does not depend
-  on it; the scenario's figures are task-059's. (5) Refactor: none beyond the shared `inspect` of
-  green.
+  string; recommended (b). Built as (a) until the answer, then (b) below. (4) T-12.4 and T-12.5
+  first set `minor-v0.1`'s `status:` by hand; replaced below. (5) Refactor: none beyond the shared
+  `inspect` of green.
 - **Gates** (on `b2571ca8`; W1-13 checked before each slot request with `pgrep -af 'vitest run
   --coverage|playwright|test:smoke'`: none running; logs in the session's scratch folder):
   `npm run typecheck`, `npm run lint`, `npm run format:check` clean; `npm run docs:api` clean;
@@ -388,3 +392,34 @@ hash combines its own mark"); **Q3 (a)** — the fingerprint fixed here, red fir
   load 17.42 → 12.77: 51 passed. `npm run test:e2e:chromium` through the slot — wait 6 s, load 6.37
   at grant → 17.84: 323 passed (19.3 min); no web code changed, so no spec of this task on the three
   engines. No console of this task left; no `wfui-*` entry.
+
+### Q4 (b) and the review's two points (2026-11-06)
+
+- **Red** (`c55ab703`): `test/server/ui-config/body.test.ts` — the sw-life-cycle patterns come back
+  as written (`^(P\d|Journey)` among them) and a pattern holding U+202E, U+0085 and a backslash
+  comes back `^m\u202e\x85\` (controls escaped, the backslash kept), unlike `neutralise`; the
+  other fields still double. `test/server/http/ui-config-route.test.ts` › K1 — the pattern
+  `^m<U+202E><U+0085>\d` comes back `^m\u202e\x85\d`. Both failed on the doubled backslash
+  (`expected '^m\u202e\x85\\d' to deeply equal '^m\u202e\x85\d'`). The bidi characters of
+  this task's test sources are now written as `\u202e` escapes, not raw.
+- **Green** (`<this commit>`): `neutraliseKeepingBackslashes` in `server/src/git/redact.ts` — the
+  same escape of the unsafe characters (one shared `visibleEscape`, `neutralise` unchanged), no
+  backslash rule; `uiConfigBody` uses it for `patterns[].match` only; its own unit test in
+  `test/server/git/redact.test.ts`. spec-012 §9 and spec-004 §5 amended with dated Process Notes.
+- **Point 1 — T-12.4 and T-12.5's Givens.** T-12.4 now moves `minor-v0.1` with the CLI's verbs on
+  the copy, as its members: `memory submit` twice as Alex (`planning → in-development →
+  releasing`), `memory approve --reason Published` as Morgan, the approver (`releasing →
+  released`), and asserts the file reads `released`. T-12.5's `draft` is reached by no verb: the
+  fixture builder adds `minor-v0.1` and submits it (`draft → planning`), and the release machine
+  of `.wingfoil/memory.yaml` (`sequence: [draft, planning, in-development, releasing, released]`,
+  one gate `releasing` rejecting to `in-development`) has no way back to `draft`; a second,
+  only-added release would leave `minor-v0.1` under way. So `releaseBackToDraft` sets that one
+  `status:` by hand and commits it **on the test's temporary copy only** (the fixture template and
+  the repository are untouched); the test asserts the declared scope type, which reads no element
+  status — the derived scope of T-12.5 is task-059's, whose design takes the Given from there.
+- **Point 2 — `0badc00f` and spec-001 §4.4.** That Process Note is Q1 (a)'s, not bug-033's: it
+  adds the `ui.yaml` mark to the hash-only reads (a read of the file already on the allow-list,
+  §4.5, through §4.5's no-follow steps). It does not touch "the target of a symbolic link (never
+  followed)", the rule bug-033's fix enforces: §4.4 promised that rule already, and the fix makes
+  the fingerprint keep it also for a link among an entry's folders — so §4.4 holds as written for
+  AC-5, and no behaviour §4.4 promised changes.
