@@ -1,5 +1,7 @@
 // The process entry point: package version, refusals as exit status.
 import { readFileSync } from 'node:fs';
+import { mkdtemp, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { REPO_ROOT } from '../harness/cli.js';
@@ -51,6 +53,19 @@ it('registers no exit listener and no runner for --version', async () => {
 describe('a start', () => {
   let out: string[];
   let exits: number[];
+  let stateDir: string;
+
+  // task-058: a start writes its address file in the state directory — never the user's own
+  // (`main` resolves it from the environment, spec-006 §1).
+  beforeEach(async () => {
+    stateDir = await mkdtemp(path.join(tmpdir(), 'wfui-main-state-'));
+    vi.stubEnv('WINGFOIL_UI_STATE_DIR', stateDir);
+  });
+
+  afterEach(async () => {
+    vi.unstubAllEnvs();
+    await rm(stateDir, { recursive: true, force: true });
+  });
 
   beforeEach(() => {
     out = [];

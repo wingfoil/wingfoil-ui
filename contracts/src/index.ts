@@ -129,3 +129,4 @@ export type {
   SyncError,
   UpdateSyncError,
 } from './git.js';
+export type { ConsoleAddressFile } from './state.js';

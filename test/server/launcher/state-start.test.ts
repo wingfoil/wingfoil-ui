@@ -58,14 +58,17 @@ it('exits 4, naming both paths, when the state directory lies inside a listed pr
 
 it('starts with an empty state when state.json is corrupt, keeping the file aside', async () => {
   const stateDir = path.join(root, 'corrupt');
-  await mkdir(stateDir, { recursive: true });
+  // 0700, as the console creates it: a group-writable state directory gets no address file (task-058 Q1 b).
+  await mkdir(stateDir, { recursive: true, mode: 0o700 });
   await writeFile(path.join(stateDir, 'state.json'), 'not json');
   const launcher = io(stateDir);
   expect(await runLauncher(['--no-open'], launcher)).toBeUndefined();
   expect(launcher.out[0]).toMatch(/^WingFoil UI is running at /);
-  const files = await readdir(stateDir);
+  // task-058 (D58-11): the console's address file lives in `consoles/` next to the kept file.
+  const files = (await readdir(stateDir)).filter((f) => f !== 'consoles');
   expect(files).toHaveLength(1);
   expect(files[0]).toMatch(/^state\.json\.corrupt-\d{8}T\d{6}Z$/);
+  expect(await readdir(path.join(stateDir, 'consoles'))).toHaveLength(1);
 });
 
 it('fails (exit 70 in main) with a message naming a state.json it cannot read', async () => {
