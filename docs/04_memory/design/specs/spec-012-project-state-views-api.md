@@ -491,3 +491,8 @@ every object `additionalProperties: false`, as the other API schemas.
   the detail as §4.8).
 - 2026-11-03 — the independent check, round 2: a value set is stored under a blob id only when
   its file was clean at read time (§8, §11); a rewrap of §1 *Cost*.
+- 2026-11-06 — clarified in development (task-068 design, plan backlog-item-rel-v0.3-plan; decided
+  by the approver, Q1 (a), Q2 (a)): §2 `scope.current` carries no `origin` field — it is derived by
+  definition, the page shows it "derived"; the `origin` definition keeps the three values. §8 an
+  edit of `.wingfoil/ui.yaml` changes the key also when git ignores the file: the state hash
+  combines its own mark (spec-001 §4.4, spec-004 §5). No shape changes.

@@ -313,3 +313,16 @@ escaped — its sweep finds them done and lists them.
 About one active day with Q3 (a): the API schema and types and the serialiser (0.3), the mark and
 its state-key change (0.3, Q3 included), the scenario and audit tests (0.2), docs and gates (0.2).
 No split proposed.
+
+#### Decisions of the approver (2026-11-06)
+
+Relayed by the coordinator ("068: q1-a, q2-a, q3-a"): **Q1 (a)** — spec-001 §4.4 and spec-004 §5
+amended in place with dated Process Notes, REQ-STATE-02 the same sentence (SARD
+`03_state-context.md` 0.10), before red; **Q2 (a)** — the shape as written, `scope.current` with no
+`origin` field, the `origin` definition keeping the three values; spec-012's Process Note of
+2026-11-06 records it with Q1's sentence ("§2 `scope.current` carries no `origin` field — it is
+derived by definition, the page shows it "derived"; the `origin` definition keeps the three
+values. §8 an edit of `.wingfoil/ui.yaml` changes the key also when git ignores the file: the state
+hash combines its own mark"); **Q3 (a)** — the fingerprint fixed here, red first: bug-033
+(ingested by the coordinator, low, absorbed as AC-5, `backlog-item-rel-v0.3-plan` W1-17); spec-001
+§4.4 holds as written ("never followed").
