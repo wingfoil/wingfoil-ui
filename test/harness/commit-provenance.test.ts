@@ -256,3 +256,31 @@ describe('the remote-tracking HEAD git maintains itself (task-044 AC-5, bug-021)
     expect(problems).toContainEqual(expect.stringMatching(/^ref added or moved: refs\/remotes\/mirror\/HEAD /));
   });
 });
+
+describe('the preset fixture variant (task-054 AC-7, D54-10)', () => {
+  const PRESET = 'chore(ui): apply the WingFoil sw-life-cycle preset';
+  const UI = '.wingfoil/ui.yaml';
+
+  it('its chore(ui) commit, made before the session starts, is outside the session: clean', async () => {
+    await mkdir(path.join(dir, '.wingfoil'), { recursive: true });
+    await commit(UI, 'version: 1\n', PRESET);
+    await git(dir, ['push', '-q', 'origin', 'HEAD:main'], env);
+    await git(dir, ['fetch', '-q', 'origin'], env);
+    before = await snapshotRepo(dir, env);
+    remoteBefore = await remoteRefs(remoteDir, env);
+    const brought = await playSession();
+    expect(await provenanceProblems(await input(brought))).toEqual([]);
+  });
+
+  it('the same commit made during the session is still reported (the console’s own is task-060’s)', async () => {
+    const brought = await playSession();
+    await mkdir(path.join(dir, '.wingfoil'), { recursive: true });
+    await commit(UI, 'version: 1\n', PRESET);
+    await git(dir, ['push', '-q', 'origin', 'HEAD:main'], env);
+    expect(await provenanceProblems(await input(brought))).toContainEqual(
+      expect.stringMatching(
+        /^not a governed subject: [0-9a-f]{7} chore\(ui\): apply the WingFoil sw-life-cycle preset$/,
+      ),
+    );
+  });
+});

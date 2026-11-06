@@ -58,7 +58,11 @@ export const ALLOWED: readonly AllowEntry[] = [
 
   // Fictitious remotes and project folders of the remote, clone and state tests.
   entry(String.raw`/srv/(?:…|remotes|git|x\.git|x|a|a:b@c:x|a:b@c|user@host)`, 'fictitious remotes of the BDD scenarios and the remote tests'),
-  entry(String.raw`[A-Z]:[\\/](?:remotes|work|state|A)`, 'fictitious Windows remotes and folders of the remote and state tests', 'i'),
+  entry(
+    String.raw`[A-Z]:[\\/](?:remotes|work|state|A|x)`,
+    'fictitious Windows remotes and folders of the remote and state tests; C:/x, the drive-letter artifact path ui.yaml refuses (task-054, the approver\u2019s F2 decision)',
+    'i',
+  ),
 
   // Named fictitious temporary folders, and the test suites' own `wfui-` prefix; any other
   // temporary path (a session's scratch folder, for instance) is reported.

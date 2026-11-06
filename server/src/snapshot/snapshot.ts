@@ -48,6 +48,9 @@ import {
   type DirectiveRead,
   type ElementRead,
 } from '../reads/project-reads.js';
+import type { LocalRoots } from '../git/redact.js';
+import { effectiveUiConfig, UiYamlCache } from '../ui-config/effective.js';
+import type { EffectiveUiConfig } from '../ui-config/types.js';
 import { combinedHash, Fingerprinter } from './fingerprint.js';
 import { repoState, sameState, type RepoState } from './state.js';
 
@@ -158,6 +161,8 @@ export class ProjectSnapshot {
   private derivedMemo: { key: string; values: Map<string, Promise<unknown>> } | undefined;
 
   private readonly fingerprints: Fingerprinter;
+  /** The last `ui.yaml` content's parse and schema check (task-054 D54-7). */
+  private readonly uiYaml = new UiYamlCache();
   private readonly versions: VersionCache;
   private events: { key: string; value: Promise<MemoryEvents> } | undefined;
   private originCache: { key: string; value: Promise<string> } | undefined;
@@ -331,6 +336,8 @@ export class ProjectSnapshot {
       events: (dirs) => this.memoryEvents(state.head, dirs),
       origin: () => this.origin(state.key),
       versions: this.versions,
+      uiYaml: this.uiYaml,
+      roots: this.localRoots,
     });
   }
 
@@ -455,6 +462,10 @@ interface ViewSources {
   events(dirs: readonly string[]): Promise<MemoryEvents>;
   origin(): Promise<string>;
   versions: VersionCache;
+  /** The parse cache of `ui.yaml`. */
+  uiYaml: UiYamlCache;
+  /** The folders a `ui.yaml` failure may quote. */
+  roots: LocalRoots;
 }
 
 /**
@@ -559,6 +570,19 @@ export class SnapshotView {
   /** The type definitions (`.wingfoil/memory.yaml`, direct read). */
   memoryTypes(): Promise<MemoryYaml> {
     return this.memo('memory.yaml', ({ reads }) => reads.memoryTypes());
+  }
+
+  /**
+   * The effective `.wingfoil/ui.yaml` of this state (spec-005 §2–§3, task-054 D54-1): the working
+   * tree's file when it is used, the inferred values otherwise, each with its origin; read once per
+   * state, no process. Rejects as {@link memoryTypes} does when `memory.yaml` cannot be read (the
+   * semantic checks and the inferred values need it).
+   */
+  uiConfig(): Promise<EffectiveUiConfig> {
+    return this.memo('ui.yaml', async ({ reads }) => {
+      const [entry, types] = await Promise.all([reads.uiYaml(), this.memoryTypes()]);
+      return effectiveUiConfig(entry, types, this.sources.roots, this.sources.uiYaml);
+    });
   }
 
   /**

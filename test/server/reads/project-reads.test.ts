@@ -103,6 +103,8 @@ describe('TT-ARC-04 — file-system spy over every read', () => {
       await reads.paths();
       await reads.workflows();
       const types = await reads.memoryTypes();
+      // task-054: the UI's own file, at its fixed path (absent on the fixtures: resolved only).
+      expect(await reads.uiYaml()).toEqual({ kind: 'absent' });
       const elements = (await reads.elements()).data.matches;
       const archived = [
         ...(await reads.archivedElements('deprecated')).data.matches,
@@ -154,7 +156,7 @@ describe('TT-ARC-04 — file-system spy over every read', () => {
       // redact it from WingFoil 0.3's `workflow list` diagnostics (task-046, bug-012).
       const resolved = onProject.filter((c) => !isFileRead(c));
       // Review round 1 n2: only path resolutions there (realpath, stat), nothing else.
-      const confinement = new Set([fx.dir, abs('.wingfoil')]);
+      const confinement = new Set([fx.dir, abs('.wingfoil'), abs('.wingfoil', 'ui.yaml')]);
       const cliFolder = abs('node_modules', 'wingfoil');
       const RESOLVES = new Set([
         'realpath',
@@ -177,6 +179,25 @@ describe('TT-ARC-04 — file-system spy over every read', () => {
     },
     300_000,
   );
+});
+
+describe('TT-ARC-04 — the ui.yaml read (task-054 AC-3)', () => {
+  it('a project with a ui.yaml: read only at .wingfoil/ui.yaml, by lstat and a read-only open, nothing written', async () => {
+    n += 1;
+    const fx = await copyFixture(kanban, path.join(root, `copy-${n}`));
+    const file = path.join(fx.dir, '.wingfoil', 'ui.yaml');
+    await writeFile(file, 'version: 1\n');
+    const reads = await readsFor(fx);
+    spy.calls.length = 0;
+    spy.on = true;
+    const read = await reads.uiYaml();
+    spy.on = false;
+    expect(read).toMatchObject({ kind: 'text', text: 'version: 1\n' });
+    const onProject = spy.calls.filter((c) => c.arg === fx.dir || c.arg.startsWith(fx.dir + path.sep));
+    expect(onProject.filter((c) => !READ_ONLY.has(c.fn.replace(/^(promises|fs)\./, '')) && !isFileRead(c))).toEqual([]);
+    expect(onProject.filter(isFileRead).map((c) => c.arg)).toEqual([file]);
+    expect(new Set(onProject.map((c) => c.arg))).toEqual(new Set([path.join(fx.dir, '.wingfoil'), file]));
+  }, 120_000);
 });
 
 describe('the status cross-check (REQ-ARC-04)', () => {
