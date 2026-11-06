@@ -128,3 +128,295 @@ absorbs:
      - design: tech-specs found missing/needing revision (dev-loop/design safety net).
      - red/green/refactor: deviations from the plan above, blockers, scope surprises.
      - review: rejection reasons and what changed on the next pass. -->
+
+### design (2026-11-06)
+
+Read (definition-of-done › build › design): this task, bug-024, bug-027; the Execution Notes of
+task-068 (D68-1 … D68-12, Q4-b) and of task-057 (the candidates' titles already pass `neutralise`,
+`server/src/http/element-address.ts`); spec-001 §2, §3 and its Process Notes; spec-002 §1–§3;
+spec-004 §5 and its Process Notes; spec-012 §9; spec-011 §3; directive `wingfoil-cli` (W-19, W-20,
+W-22, W-24, W-34 and rules 1–9). The code: `server/src/git/redact.ts`, `server/src/cli/adapter.ts`,
+`server/src/cli/commands.ts` (`toolText`, `toolLines`), `server/src/http/project-routes.ts`,
+`server/src/http/element-address.ts`, `server/src/ui-config/body.ts`, `server/src/descriptor/descriptor.ts`
+(`rejectionOf`, the email match), `server/src/git/memory-log.ts` (`memoryEventsPage`),
+`server/src/writes/governed.ts`, `server/src/snapshot/snapshot.ts` (`localRoots`); the web's
+`shell/ErrorText.tsx`, `api/error-message.ts`, `element/model.ts`; the schemas of `contracts/api/`
+and `contracts/cli/memory-search.schema.json`; `test/server/tool-messages.test.ts`.
+
+#### Probes (scratch projects in the session's scratch folder; Node 22.21, git 2.43, this worktree's `tsc -b` build)
+
+Two scratch projects made with `init --template Kanban`, one per version of the support matrix: the
+pinned 0.3.1 (`node_modules/wingfoil`) and 0.2.2 (the cached matrix build of
+`node_modules/.cache/wingfoil-ui-matrix/0.2.2`). Each holds one valid bug, a non-element file, a
+partial frontmatter, a frontmatter with a list title and a numeric id, a frontmatter that does not
+parse, and an element `bug-010-x` whose title holds U+202E and U+200B. Two hostile commits touch
+`bug-010-x.md`: a plain-subject one (`edit <U+202E>evil<U+200B> subject <ESC>[31m at <scratch
+root>/docs/x.md`, author name `Mallory <U+202E>yrollaM`) and a `wf(bug): reject bug-010-x [pending → draft]`
+one; both bodies hold `Approver: Eve <U+202E> <eve@example.com> (approver)` and a `Reason:` with
+U+202E, a 10 000-character line, the home folder and the project root, BEL and U+2028. The scratch
+commits' author name was set on that one command (scratch only; never in this repository). The
+console of this worktree (`bin/wingfoil-ui.cjs`, its own port and state directory, started without
+the agent identity variables; the links console not touched) under `strace -f -v -e trace=execve`
+and `GIT_TRACE=<file>`, read with `curl` and a session. Scripts outside the repository, not
+committed; each result is what they printed.
+
+| # | What | Result |
+|---|------|--------|
+| P1 | bug-024 at the API, 0.2.2 (the broken-YAML file moved out first, P3) | `GET /elements`, `/elements?archived=true`, `/elements/bug-010-x`, `/elements/bug-010-x/history` and `/today` all answer **502 `cli-output`** — every read behind `view.elements()`; `/config`, `/events/memory`, `/directives`, `/docs` 200 |
+| P2 | `memory search` of the files, both versions (CLI direct) | 0.2.2 returns `{path, tags}` for `notes.md`, `{path, id, title, tags}` for the partial file, `{path, type, status, tags}` for `id: 5`, `title: [a, b]` (non-string values dropped): **three failing matches**. 0.3.1 leaves all three out **without any warning**; the unparsable frontmatter gives `{"warning":"W_MEMORY_UNREADABLE (docs/memory/bug/broken.md): unreadable frontmatter in …"}` on stderr, exit 0 |
+| P3 | 0.2.2 on the unparsable frontmatter | **exit 2**, `{"error":"missed comma between flow collection entries (2:1)\n\n 1 \| id: [unclosed …"}` — the adapter's "defect of the adapter" row: every read behind `memory search` would answer **500 `internal`** (not reproduced at the API: the file was moved out for P1). Out of scope as written (Q4) |
+| P4 | bug-027 at the API, 0.3.1 | raw U+202E, U+200B, ESC, BEL, U+2028, the 10 160-character reason and the absolute scratch root in: `history.entries[].subject`, `author`, `approver`, `reason`; `events/memory` `.events[].approver`, `reason`; `descriptor.rejection.by` (`Eve <U+202E>`) and `rejection.reason` in `/elements`, `/elements/:eid`, `/today`. Titles raw in `elements[].title`, `element.title`, `frontmatter.title`, `today.*[].element.title` (K1) |
+| P5 | The 0.3.1 refusal with `details` (AC-5's sample) | **a submit with an empty required field has no `details`**: `{"error":"missing required field on submit: title"}` on 0.3.1 and 0.2.2 alike. A submit from a gate state has: `{"error":"illegal transition pending -> (none) for type 'bug'","details":[{"file":"docs/memory/bug/bug-001-probe-bug.md","detail":"illegal \`submit\` from \"pending\": a \`gates\` state — its forward edge requires \`approve\`, not \`submit\`"}]}` (W-20); 0.2.2: the `error` only (Q5) |
+| P6 | `GIT_TRACE` of the console (0.3.1: add, every GET of the AC-1 table, one refused write) | git only, no transport (`fetch`, `ls-remote`, `upload-pack`, `remote-*`: none): the server's `rev-parse`, `status --porcelain=v2`, `config user.email`, `remote`, `remote get-url origin`, `show <sha>:.wingfoil/…`, `ls-tree`, `cat-file --batch`, the two spec-002 §3 `git log` reads; WingFoil 0.3.1's `memory history` runs `git log --no-show-signature --follow` ×3 (`--format=%H…%b`, `--name-status`, `--diff-filter=C`). 0.2.2 (CLI direct, the adapter's variables): `memory search` runs **no git** on either version; `memory history` runs `git log --follow` ×3 and `git show <sha>:<file>` per entry (`log.showSignature=false` comes from the adapter's `GIT_CONFIG_*`) |
+| P7 | `.git` snapshot (name, type, size, mtime of every entry; SHA-256 of every file) before and after P6 and the direct runs, both projects | identical |
+| P8 | The children's environment (`strace -v` of every `execve`) | WingFoil and the git it runs: `GIT_OPTIONAL_LOCKS=0`, `GIT_ALLOW_PROTOCOL=none`, `GIT_NO_LAZY_FETCH=1`, `GIT_CONFIG_COUNT=3` (`core.fsmonitor=false`, `protocol.allow=never`, `log.showSignature=false`); the server's own git `GIT_ALLOW_PROTOCOL`, `GIT_NO_LAZY_FETCH`; absolute `PATH` entries only — task-046's environment, unchanged. As expected: the task changes what the server accepts and serialises, not what it runs |
+
+Load at the probes 7.0 → 3.8; no heavy gate ran. Cleaned up: both consoles stopped (`pgrep -af
+wingfoil-ui.cjs` shows only the links console), no `/tmp/wfui-*`; the scratch projects stay in the
+session's scratch folder until the task ends.
+
+#### AC-1 — the enumeration (route by route, every string field of `contracts/api/`)
+
+Classes: **(a)** tool message → `redactLocalPaths` with the project's roots (D56-3); **(b)**
+repository display text → `neutralise`; **(c)** key (id, type, state, role, path the page sends
+back) → as returned; **(d)** document content (a file's body or frontmatter values, rendered as a
+document) → as written (D56-2); **(e)** server-made or validated (fixed messages, enum values, ISO
+dates, shas by pattern, numbers, the caller's own input) → as made; **(r)** repository display
+text outside K1's named fields → as returned today, the residual of Q2. *Now* is what the server
+does before this task; **bold** rows change here. Strings produced from `memory search` keep their
+class whatever version answered.
+
+| Route (schema) | Field | Source | Class | Now |
+|----------------|-------|--------|-------|-----|
+| `GET /api/p/:pid` (`project`) | `name` | DNA `project.name` or the stored name | (r) | raw |
+| | `wingfoil.text` | `--version` | (a) | sanitised (task-046) |
+| | `wingfoil.version`, `capabilities.*`, `readOnly[].range` | parsed version, `capabilities.json` | (e) | — |
+| | `identity.email`, `identity.name`, `identity.members[]` | git `user.email`, DNA member | (r) | raw |
+| | `identity.roles[]`, `roleViews[]`, `roleView` | DNA roles | (c) | raw |
+| | `repository.state`, `head` | git, by pattern | (e) | — |
+| | `repository.branch`, `upstream` | git ref names | (b) | `neutralise` (bug-017 S4-1) |
+| | `repository.sync.*.lastError.message` | git transport | (a) | sanitised |
+| | `repository.sync.update.lastError.detail.files[]` | git | (b) | `neutralise` |
+| | `dnaError.message` | CLI refusal / output error | (a)/(e) | sanitised / fixed |
+| `GET /config` (`config`) | `dna.data.*` (project, modules, stacks, team names, emails, descriptions, agents) | `dna show` | (r); `team.roles[].name`, `members[].roles[]`, `executes_as[]` (c) | raw |
+| | `paths.data.<key>[]`, `dna.data.paths` | `paths` | (c) | raw |
+| | `workflows.data` 0.2.x names, kinds, descriptions, phase texts, `manifest.include[]` | `workflow list` | (r); `name`, `kind`, `role`, `element` (c) | raw |
+| | `workflows.data` 0.3.x `message`, `diagnostics[].*` | `workflow list` | (a) | sanitised (task-046) |
+| | `workflows.data.workflows[].name`, `description` (0.3.x) | `workflow list` | (c), (r) | raw |
+| | `*.warnings[]` | CLI stderr | (a) | sanitised, capped 200 |
+| | `*.error.message` | CLI / direct read | (a)/(e) | sanitised / fixed |
+| | `types.data.types.<key>.path`, `states.*`, `gates.<key>.reject`, `waiting[]` | `memory.yaml` | (c) | raw |
+| | `ui.*` (`ECHOED_UI_FIELDS`) | `ui.yaml`, `memory.yaml` names | (b) — `patterns[].match` keeping backslashes | escaped (task-068; not re-escaped here, D56-9) |
+| | `ui.status.warning.failure` | `ui.yaml` check | (a) | sanitised (task-068) |
+| | `ui.progress.scope.current.*` | task-059 | `title` (b), the rest (c) | `null` until task-059 |
+| `GET /elements` (`elements`) | `elements[].id`, `shortId`, `type`, `status`, `path`, `tags[]` | `memory search`, `memory.yaml` | (c) | raw |
+| | **`elements[].title`** | `memory search` | **(b)** | raw (P4) |
+| | `elements[].descriptor.id`, `type`, `status`, `verbs[].to`, `verbs[].role`, `actor.role` | `memory search`, `memory.yaml`, roles | (c) | raw |
+| | `elements[].descriptor.verbs[].reason.range` | server | (e) | — |
+| | `elements[].descriptor.actor.member.name`, `.email`, `actor.members[]` | DNA (matched by email) | (r) | raw |
+| | **`elements[].descriptor.rejection.by`, `.reason`** | commit text (spec-003 §8) | **(a)** | raw (P4) |
+| | `elements[].descriptor.rejection.at`, `since` | `%aI` | (e) | — |
+| | **`warnings[]`** | CLI stderr **and the dropped matches** (AC-2) | (a) | sanitised, capped 200; **dropped matches added** |
+| | `message` | `memory search` | (a) | sanitised (task-046 n2) |
+| | `typesError.message`, `eventsError.message` | direct read / server | (e) | fixed |
+| `GET /elements/:eid` (`element`) | `element.*` | as `/elements` | as `/elements` (**`element.title` (b)**) | raw |
+| | `frontmatter.*`, `body` | the element file | (d) | raw |
+| | `descriptor.*` | as `/elements` | as `/elements` (**`rejection.*` (a)**) | raw |
+| | `required[].field`, `states.*` | `memory.yaml` | (c) | raw |
+| | 409 `ambiguous-id` `detail.candidates[].title` | `memory search` | (b) | `neutralise` (task-057) |
+| | 409 candidates' `id`, `shortId`, `type`, `status` | `memory search` | (c) | raw |
+| `GET /elements/:eid/history` (`history`) | `id`, `path`, `entries[].from`, `to` | `memory history` | (c) | raw |
+| | `entries[].sha`, `timestamp`, `operation` | `memory history` (`%H`, `%aI`, enum) | (e) | — |
+| | **`entries[].subject`, `reason`, `author`, `approver`** | commit text via `memory history` | **(a)** | raw (P4) |
+| `GET /directives` (`directives`) | `entries[].path`, `frontmatter.id`, `type`, `kind`, `roles[]`, `assignment`, `tags[]`, `ref[]` | `directives list` | (c) | raw |
+| | `entries[].frontmatter.name`, `title` | `directives list` | (r) | raw |
+| | `warnings[]` | `directives list` | (a) | sanitised (task-046 d1) |
+| `GET /directives/:did` (`directive`) | `entry.*` | as `/directives` | as `/directives` | raw |
+| | `frontmatter.*`, `body` | the directive file | (d) | raw |
+| `GET /docs` (`docs`) | `roots[]`, `documents[].path` | `paths`, the working tree | (c) | raw |
+| `GET /files/tree` (`file-tree`) | `path`, `entries[].path` | working tree | (c) | raw |
+| | `entries[].name` | working tree | (r) | raw |
+| `GET /files/content` (`file-content`) | `path` | query | (c) | raw |
+| | `content` | the file | (d) | raw |
+| `GET /today` (`today`) | `view`, `summary[].role` | roles | (c) | raw |
+| | `*.element.id`, `shortId`, `type`, `status` | `memory search` | (c) | raw |
+| | **`*.element.title`** | `memory search` | **(b)** | raw (P4) |
+| | `*.descriptor.*` | as `/elements` | as `/elements` (**`rejection.*` (a)**) | raw |
+| `GET /events/memory` (`memory-events`) | `events[].sha`, `timestamp`, `operation` | `git log`, validated (spec-002 §3) | (e) | — |
+| | `events[].type`, `id`, `from`, `to` | commit subject and patch | (c) — keys whatever their source (D56-8) | raw |
+| | **`events[].author`, `approver`, `reason`** | commit text | **(a)** | raw (P4) |
+| Error envelope, every route (`error`) | `code` | server | (e) | — |
+| | `message` of `cli-refused`, `git-refused` | CLI / git | (a) | sanitised |
+| | **`detail.reasons[]` of `cli-refused`** | 0.3.x `details[].detail` | **(a)** (AC-5) | not passed on |
+| | `message` of every other code, `detail.file`, `detail.kind`, `detail.command` | server, project-relative path | (e)/(c) | — |
+| `POST …/submit`, `/approve`, `/reject` (`write.response`) | `result.id`, `path`, `from`, `to` | CLI answer | (c) | raw |
+| | `result.reason` | the request's own reason, echoed | (e) | raw |
+| | `commits[].sha`, `commits[].subject` | git, checked equal to the CLI's subject for the write (spec-004 §5) | (e) | — |
+| | `push.message` | git | (a) | sanitised |
+| `GET /api/projects`, `POST /api/projects`, `/projects/clone` | `name` | DNA name, stored | (r) | raw |
+| | `path`, `command` | the user's own folder, the server | (e) | — |
+| | `remote` | `origin` without userinfo | (r) | `stripUserinfo` |
+| | refusal `message`, `detail.*` | git / CLI / server | (a)/(e) | sanitised (task-046) |
+| `GET /api/server`, `/api/settings`, the event stream | every field | server, the user's settings, keys | (e)/(c) | — |
+
+The helper for the routes that land later (AC-4): `server/src/http/serialise.ts` (D56-1) —
+`repositoryText` for task-059's `ElementRef.title`, `scope.current.title` and the pattern
+references; task-057's candidates already use `neutralise` and are re-pointed to it.
+
+#### Decisions (D56-n)
+
+- **D56-1 — One serialiser module.** `server/src/http/serialise.ts` (new) holds the API's text
+  rules: `repositoryText(text)` (= `neutralise`, class (b)); `commitText(text, roots)` (=
+  `redactLocalPaths`, class (a)); `listedElement`, `todayElement`, `descriptorBody(descriptor,
+  roots)`, `historyBody(history, roots)` (moved from `project-routes.ts`) and `memoryEventsBody(page,
+  roots)`. The routes call them where they build the body; nothing earlier changes (the snapshot,
+  the caches and `describeElement` keep the raw texts). `element-address.ts`'s `candidate` calls
+  `repositoryText`. `test/server/tool-messages.test.ts`'s producer scan learns the new producers.
+- **D56-2 — Document content is class (d).** A frontmatter value, an element or directive body and
+  a working-tree file are documents the web renders (Markdown, the fields list, the file viewer):
+  `neutralise` would double every backslash of a Markdown escape and change what the file says.
+  They stay as written; `frontmatter.title` too (the panel's heading is `element.title`). Declared
+  as a residual of the sweep (D56-10) and in spec-004 §5 (amendment).
+- **D56-3 — The roots of a commit text.** `snapshot.localRoots` (project and repository) plus the
+  CLI's package folder and the home directory — the roots of the transport messages minus the
+  remote: `redactLocalPaths` bounds, redacts, neutralises and caps at 4 000 characters.
+- **D56-4 — After the email match.** `describeElement` keeps matching the raw `author` and
+  `approver` against the team's emails (spec-002 §1); `descriptorBody` then sanitises
+  `rejection.by` and `rejection.reason` only — the actor is DNA data (r) and unchanged. The Today
+  rows are built once per state (`view.derived('today rows')`): the sanitised rows are memoised with
+  them, so each text is sanitised once per state, not per role view.
+- **D56-5 — Per-match `memory search` (AC-2).** `contracts/cli/memory-search.schema.json` moves its
+  match to `definitions.match` (`items` a `$ref`, the shape unchanged). In the adapter, when the
+  whole output fails, `memory search` alone is re-checked: the envelope with unconstrained items (a
+  failure is still the 502 `cli-output`), then each match against `#/definitions/match`. A failing
+  match is dropped and becomes one warning — `memory search left out <path>: not a Memory element
+  (<field>, … missing or not text)`, the field names from the schema problems, never a value; `<no
+  path>` when the match has no string `path` — through the adapter's sanitiser. Warnings are one
+  list: the stderr lines first, then the dropped matches, one cap of 200 and one count line
+  (`toolLines`). Every other command stays strict (a `dna show` schema failure is still a read
+  error). The archived searches (`--status`) are the same command and get the same rule.
+- **D56-6 — Every reader uses the valid matches.** `/elements`, `/elements/:eid`, history's
+  `findMatch`, Today (and the bell, which reads `/today`) and the writes' `listed` all read
+  `view.elements()`: one fix point. The project header reads no match (no change). `/elements?archived=true`
+  also carries the archived searches' warnings, de-duplicated (today it carries the live search's
+  only, so a dropped archived match would vanish silently).
+- **D56-7 — Refusal reasons (AC-5).** `cliError` reads `details` from the same JSON text as `error`
+  (whole text or last line); `CliRefusedError` gains `reasons: readonly string[]` — each string
+  `detail`, through the adapter's sanitiser, at most 200, then `<n> more reasons omitted` —; any
+  other shape of `details` is ignored. `cliErrorEnvelope` answers `detail: { reasons }` only when
+  there is one, so a 0.2.2 refusal (no `details`) is unchanged byte for byte. The governed writes
+  use `cliErrorEnvelope`: their 422 carries it too. `details[].file` is not passed on (spec-004 §5
+  names the `detail` texts only). Schema: `contracts/api/cli.refusal.schema.json` (new, as
+  `git.refusal`): `error { code: const cli-refused, message ≤ 4 000, detail? { reasons: string[] ≤
+  201 items, each ≤ 4 000 } }` with `additionalProperties: false`; the partial ingestion detail
+  (`created`, `commits`) is v0.4's (G5 moved, RP3-7) and is not in it. The sample: P5's gate-state
+  submit captured by `capture-samples.test.ts` on the kanban fixture (`memory-submit-refused.json`,
+  stderr; Q5).
+- **D56-8 — Event keys stay raw.** An event's `type` and `id` come from the commit subject and
+  `from`/`to` from the patch: they are keys the page compares with `memory search` ids and builds
+  links from (`encodeURIComponent`, spec-011 §2), so class (c) whatever their source — the rule of
+  spec-012 §9 for keys. Declared in the sweep's allow-list.
+- **D56-9 — `/config` `ui` untouched.** `uiConfigBody` already escapes `ECHOED_UI_FIELDS`
+  (`patterns[].match` keeping its backslashes, Q4-b); the sweep reads that list and checks the
+  section, never re-escapes it (a double escape would turn `‮` into `\\u202e`).
+- **D56-10 — The sweep is the executable AC-1 table (AC-4).** `test/server/http/text-sweep.test.ts`
+  (new) lists every string leaf of every `contracts/api/` response schema (walked like the probe's
+  script, `$ref` and `oneOf` followed) with its class; a leaf with no class fails, so a field added
+  later must be classified. On one hostile fixture (titles, commit subject, body, author and
+  approver, a `ui.yaml`, a non-element file under a Memory path, frontmatter and body text, a
+  hostile file name) it calls every GET route of the table and asserts that no (a)/(b) field holds
+  a Cc, Cf, Cs, Zl or Zp character other than newline and tab, that no (a) field is over 4 000
+  characters or holds the fixture's root or the home folder, and that each (c) field equals the
+  `memory search` value byte for byte. (d) and (r) fields are listed and not asserted (Q2).
+- **D56-11 — Fixtures.** `test/harness/fixtures/hostile.ts` (new): `addHostileTitle`,
+  `addHostileCommit` (a fixture member commits with a bidi character in its committed `user.name`,
+  its email the member's — `-c user.name=…` on that commit, as *Git identity* allows), and
+  `addNonElementFile` (a Markdown file without frontmatter under a Memory path, committed — a file,
+  not a state, so no W-34 concern). The `reject` is made by the fixture builder's verb
+  (`memory reject` as the fixture's approver), never a hand-set `status:`; the subject-only commit is
+  a plain edit commit.
+- **D56-12 — Tests in files of their own** (W1-4 hot spots: task-055 changes the Today rows and the
+  descriptor tests): `test/server/cli/memory-search-matches.test.ts`,
+  `test/server/cli/refusal-reasons.test.ts`, `test/server/http/commit-text.test.ts`,
+  `test/server/http/text-sweep.test.ts`, `test/contracts/api-cli-refusal-schema.test.ts`,
+  `test/web/element/history-text.test.tsx`, `test/web/today/title-text.test.tsx`; the shared files
+  get appended cases only.
+- **D56-13 — Docs.** spec-001 §2 (the warning's wording, the archived searches), spec-004 §5 (the
+  class table in short: (d) content and keys of any source raw, the `cli-refused` reasons' cap and
+  schema, the serialiser), spec-002 §1 and spec-012 §9 hold as written; amended in place with a dated
+  Process Note after the approver's answers. `CHANGELOG.md` *Unreleased* › *Fixed* (bug-024,
+  bug-027) and *Security* (the format has the section: `CHANGELOG.md` *[0.2.0]*); `test/README.md`
+  version line; `npm run docs:api` regenerated; `web/src/i18n/en.json` per Q3.
+
+#### Test plan (red-first or characterization, scenario → file)
+
+| AC | Scenario | Kind | File |
+|----|----------|------|------|
+| AC-1 | every string leaf of `contracts/api/` classified | characterization of the table (written with it) | `test/server/http/text-sweep.test.ts` |
+| AC-2 | 0.2.2: a non-element file → `/elements` 200, the valid elements, one warning naming `docs/…/notes.md` | **red** (502 today, P1) | `test/server/http/project-routes.test.ts` (appended) on the real 0.2.2 build |
+| AC-2 | the same for `/today`, `/elements/:eid`, history | **red** | same |
+| AC-2 | the adapter per match on both versions; 201 dropped matches → 200 warnings and a count line; a path with a control character escaped | **red** | `test/server/cli/memory-search-matches.test.ts` (fake CLI + both real builds) |
+| AC-2 | 0.3.1 `W_MEMORY_UNREADABLE` stays a warning; a failing envelope is 502; `dna show` strict | characterization | same |
+| AC-3 | history, `/events/memory`, Today and `/elements` rejection texts escaped, redacted, capped | **red** (P4) | `test/server/http/commit-text.test.ts` |
+| AC-3 | a member with a bidi committed name matched by email (actor and `rejection.by`'s member) | characterization (holds today; guard-removal shown) | same |
+| AC-3 | the panel's history and Today render `‮` as text | characterization (React renders text) | `test/web/element/history-text.test.tsx`, `test/web/today/title-text.test.tsx` |
+| AC-4 | titles escaped in `/elements`, `/elements/:eid`, Today; ids, types, states byte-equal | **red** | `test/server/http/text-sweep.test.ts` |
+| AC-4 | `/config` `ui` strings escaped (task-068) | characterization | same |
+| AC-4 | the sweep over every GET route | **red** (titles and commit texts today) | same |
+| AC-5 | the 0.3.1 refusal's `reasons` redacted and sanitised; 0.2.2 unchanged | **red** | `test/server/cli/refusal-reasons.test.ts`, `test/contracts/api-cli-refusal-schema.test.ts` (sample) |
+| AC-5 | the toast shows the reasons (Q3) | **red** | `test/web/element/` toast suite (appended) |
+
+The git-touching suites (`commit-text`, `text-sweep`, the appended route cases) also run under the
+strict-identity recipe of `test/README.md` *Git identity*. e2e: no new spec; `test:e2e:chromium`
+plus `element-panel`, `today`, `notification-bell` on the three engines (AC-7).
+
+#### Size
+
+About **3 active days**: AC-1 0.25 (the table is above), AC-2 0.5 (schema split, adapter, both
+versions), AC-3 0.5 (serialiser, three routes, the hostile fixture, strict identity), AC-4 0.5
+(titles, the schema-walking sweep), AC-5 0.5 (adapter, envelope, schema, sample capture, toast),
+AC-6 0.25, AC-7 0.5 (coverage, Chromium suite, three specs × three engines through the slot). Over
+the one-day rule: Q1.
+
+#### Questions
+
+- **Q1 — Split (RP3-20 G2).** (a) Two tasks: task-056 keeps AC-1, AC-3, AC-4 (bug-027 and K1: one
+  serialiser, one sweep, ~1.75 d — not usefully split further, the sweep covers both) and a new
+  task takes AC-2 and AC-5 (bug-024 and the refusal reasons: both in the adapter's reading of the
+  CLI output, `adapter.ts`/`commands.ts`, ~1.25 d, with bug-024 moved to its `bug:`); (b) three
+  tasks (bug-024; bug-027 + K1; the reasons); (c) no split, ~3 d. **Recommended (a)**: two
+  coherent seams (what the adapter accepts; what the routes serialise), each reviewable on its
+  own, and the new task can run in parallel.
+- **Q2 — K1's reach.** spec-004 §5 says "every display string a read body takes from the
+  repository" and names titles, pattern references and the `ui.yaml` strings; the table finds more
+  repository display text, classed (r): the DNA texts (project name in the header and the project
+  list, member names and emails in `identity` and the descriptor's actor, `/config` `dna`), the
+  directives' `name`/`title`, the 0.2.x workflow texts and 0.3.x `description`, the file tree's
+  `name`, the project list's `remote`. (a) This task escapes the named fields only and the (r) rows
+  become one new bug through the approver, the sweep listing them until it flips them; (b) escape
+  the (r) rows here too (+~0.5 d; the stored project name and the `/config` sections are CLI
+  output sections the web also reads as data); (c) as (a) without a bug, the residual declared in
+  spec-004 §5. **Recommended (a)**. Either way (d) content stays as written (D56-2).
+- **Q3 — How the refusal toast shows `detail.reasons[]` (AC-5, X-09.1).** (a) In the toast's
+  verbatim block, after the CLI's message, one line per reason — no new catalogue string (tool text
+  is data, the X-09.1 rule); (b) a catalogue line "Why: {reasons}" with the reasons joined by the
+  locale's list format; (c) API only this release, no UI change. **Recommended (a)**: the reason is
+  the CLI's own wording, shown like its message; no translation of tool text.
+- **Q4 — 0.2.2's exit 2 on an unparsable Memory frontmatter (P3).** One such file makes 0.2.2's
+  `memory search` exit 2: every read behind it would answer 500 `internal` — bug-024's class (one
+  file hides the project) by another path, not in AC-2. (a) A new bug through the approver (the
+  fix needs telling that usage error from a real one: text-matching a YAML error); (b) fold it into
+  bug-024's fix here; (c) declare it a 0.2.2 limitation (0.3.1, the pin, warns instead).
+  **Recommended (a)**, with (c) as its likely outcome.
+- **Q5 — AC-5's sample.** AC-5 names "a submit with an empty required field (W-01)", which carries
+  no `details` on 0.3.1 (P5); a submit from a gate state does (W-20). **Recommended:** capture the
+  gate-state submit (`illegal transition pending -> (none)`) and read AC-5 as "a refused
+  transition"; the console never offers that submit (spec-003), so the sample is reached by a stale
+  page or a write the descriptor did not offer.
+- **Q6 — The feedback note (AC-6).** 0.2.2 returning a non-element as a match is fixed in 0.3.1,
+  but 0.3.1 leaves a Memory file without `type` or `status` (or with a non-text `id`) out **without
+  any warning** (P2), unlike the unparsable frontmatter's `W_MEMORY_UNREADABLE`. (a) A
+  `wingfoil-cli` entry for the silent drop and a feedback note `docs/wingfoil-feedback/F-031-…`
+  (rule 3 of the directive; the task cites rule 7, which is `wingfoil-sync`); (b) the entry only;
+  (c) nothing (0.3.1 fixed what bug-024 saw). **Recommended (a)**: a governed file that vanishes
+  from every list without a word is a gap worth WingFoil's maintainer's view.
