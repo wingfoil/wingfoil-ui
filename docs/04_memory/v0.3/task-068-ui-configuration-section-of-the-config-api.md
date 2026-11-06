@@ -9,7 +9,7 @@ module: "governance"             # optional — server | web | contracts (dna.ya
 priority: "high"           # optional — high | medium | low
 tags: ["v0.3", "governance", "server", "c1", "ui-yaml"]               # optional — additional labels, e.g. [today, a11y]
 ref: "GOV"                # optional — backlog item ID, e.g. "TASK-001"
-bug: []                # optional — LIST of bug ids this task closes. Two cases: a fix task derived from a bug
+bug: ["bug-033-the-state-fingerprint-reads-files-through-a-linked-folder-of-the-project"]                # optional — LIST of bug ids this task closes. Two cases: a fix task derived from a bug
                        # by release-planning, and a bug ABSORBED into an existing task's Acceptance Criteria because that
                        # task already owns the ground. Each bug listed moves with its own verbs (`.wingfoil/memory.yaml`):
                        # the approver's `memory approve` triaged -> planned, `memory submit` planned -> in-progress when
@@ -64,6 +64,13 @@ AC-5, the state key of its former AC-3, the API level of TT-ARC-07 and US-C-04)
   back*, `npm run docs:api`, `npm run test:contract`, `npm run test:e2e:chromium`,
   `check_tasks.py v0.3`, each heavy gate through the machine-free slot with load and slot wait in
   its log; results with commands in the Execution Notes.
+- **AC-5 — bug-033** (absorbed at design, the approver's Q3-a, 2026-11-06;
+  `backlog-item-rel-v0.3-plan` W1-17): red first — with `.wingfoil` replaced by a link to a folder
+  outside the project, an edit of a file behind the link does not move the state key and no file
+  behind the link is read; an entry whose path has an ancestor inside the repository that is not a
+  real directory is marked by that ancestor without any read (`server/src/snapshot/fingerprint.ts`,
+  each ancestor `lstat`ed at most once per check); spec-001 §4.4 holds as written ("never
+  followed").
 
 ## Implementation Notes
 

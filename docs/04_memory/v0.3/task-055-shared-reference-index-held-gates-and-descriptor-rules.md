@@ -5,11 +5,11 @@ title: "Shared reference index, held gates and descriptor rules"              # 
 status: in-progress          # auto-set by wingfoil
 release: "v0.3"            # REQUIRED — target release version, e.g. "v0.1"
 sprint: "sprint-001"             # REQUIRED — the Sprint that selects it (sprint-NNN), or "n/a — <reason>" until one does (methodology/scrum)
-module: "server"             # optional — server | web | contracts (dna.yaml modules)
+module: "governance"             # optional — server | web | contracts (dna.yaml modules)
 priority: "high"           # optional — high | medium | low
-tags: ["v0.3","server","descriptor","web"]               # optional — additional labels, e.g. [today, a11y]
-ref: "US-S-24"                # optional — backlog item ID, e.g. "TASK-001"
-bug: ["bug-029-role-view-reads-user.email-while-the-cli-authorises-the-git-author-identity"]                # optional — LIST of bug ids this task closes. Two cases: a fix task derived from a bug
+tags: ["v0.3","governance","server","references"]               # optional — additional labels, e.g. [today, a11y]
+ref: "GOV"                # optional — backlog item ID, e.g. "TASK-001"
+bug: ["bug-029-role-view-reads-user.email-while-the-cli-authorises-the-git-author-identity", "bug-032-a-large-element-frontmatter-blocks-the-server-for-minutes-while-it-is-parsed"]                # optional — LIST of bug ids this task closes. Two cases: a fix task derived from a bug
                        # by release-planning, and a bug ABSORBED into an existing task's Acceptance Criteria because that
                        # task already owns the ground. Each bug listed moves with its own verbs (`.wingfoil/memory.yaml`):
                        # the approver's `memory approve` triaged -> planned, `memory submit` planned -> in-progress when
@@ -20,58 +20,39 @@ tmpl_version: 260703   # Orignal template version
 
 ## Description
 
-The server foundation that the project-state views and Today's held gates of `minor-v0.3` share
-(release-planning v0.3, RP3-7: C1, T2, R5, M2, A-1/A-2, R-6, the 0.3.x `limits`):
+The server foundation that the project-state views of `minor-v0.3` share (release-planning v0.3,
+RP3-7: C1, T2, R5, M2, the 0.3.x `limits`): **the reference index** (spec-012 §1, §8) — one per
+repository state, shared by every consumer: the progress figures, the traceability route and the
+missing-reference flag (their routes are task-059-progress-traceability-and-missing-reference-api's)
+and the `when-references-done` hold of
+task-069-held-gates-actor-after-an-approve-and-state-limit-in-the-descriptor. It keeps the
+frontmatter **values** only, never a body, at most 200 per element, and reuses an element's values
+across states by `(path, blob id)` only for files that were clean when read (RP3-18 K2; step 5c
+review round 2). With it: bug-029 (the identity the console reads) and bug-032 (the cost of a large
+frontmatter, which the index would hit on every state).
 
-- **The reference index** (spec-012 §1, §8) — one per repository state, shared by every consumer:
-  the progress figures, the traceability route and the missing-reference flag (their routes are
-  task-059-progress-traceability-and-missing-reference-api's) and the `when-references-done` hold
-  below. It keeps the frontmatter **values** only, never a body, at most 200 per element (the rest
-  named in a `capped` list), and reuses an element's values across states by `(path, blob id)`
-  only for files that were clean when read (RP3-18 K2; step 5c review round 2).
-- **Held gates** (spec-005 §4a, spec-003 §3, §5, §8; RP3-14 D5, RP3-15 F1, S2): the effective
-  `ui.yaml` `holds` (read by task-054-ui-configuration-file-read-with-its-schema-and-the-config-section)
-  withdraws a gate's *Approve* — `never` (`held-by-config`) or `when-references-done`
-  (`held-until-references-done {count}`, counted from the index). *Reject* stays offered; the
-  element is never in *Requires you*, is in *Waiting on others* for every member, approvers
-  included, with the reason in place of "Reserved to approver — …", and is not a pending gate.
-- **The actor after an approve** (spec-003 §4, RP3-14 D6, R-6): the actor of a `work` state
-  entered by an `approve` is the author of the submit that reached the gate (a task approved into
-  `backlog` is its submitter's, not the approver's).
-- **`state-limit`** (spec-003 §6 rule 5, RP3-14 D11, RP3-15 F4): a `submit` or `approve` whose
-  target state is at the type's `limits` is disabled with `state-limit {state, limit}` — an
-  approximation of WingFoil's count; the CLI's refusal stays the authority.
-- **The catalogue texts** of the three reasons (spec-008, the texts of RP3-16 P3) and their
-  rendering where the scenarios show them: the *Waiting on others* row, the gate footer's
-  informational line and a disabled action's reason.
+**Split at design** (the approver, 2026-11-06, Q1-b; `backlog-item-rel-v0.3-plan` W1-17): the held
+gates, the actor after an approve, `state-limit`, the catalogue texts, the screens and US-S-24's
+`@v0.3` scenarios (the former AC-1 and AC-4 … AC-7) moved to
+task-069-held-gates-actor-after-an-approve-and-state-limit-in-the-descriptor, at the head of Wave
+2. This task is planned as a governance task because US-S-24 stays listed by task-069, under the
+one-task-per-item rule (release-planning v0.3, G3, as task-056, task-057 and task-068).
 
-Why: in this repository the console offers *Approve* on a `release` in `releasing` and a
-`release-line` in `active` out of phase (`.wingfoil/README.md` *Deviations from the packs*, R-1,
-R-2; A-1, A-2), Today lists a task approved into `backlog` as the approver's (R-6), and WingFoil
-0.3.x refuses a move into a full state with no earlier hint.
-
-**Backlog items:** US-S-24
-
-- US-S-24 (a v0.2 story whose `@v0.3` scenarios extend it, release-planning v0.3 B2 (c)) — As a
-  member, I want no action footer on an element in a terminal state, and a "waiting for the
-  workflow engine" note on one in an engine-waiting state, so that I am never offered an
-  impossible move; in v0.3 also a gate held by the project's configuration and a move into a
-  state at its limit
+**Backlog items:** GOV (governance — the reference index split from US-S-24 for task-069 and
+task-059, bug-029, bug-032)
 
 ## Acceptance Criteria
 
-- **US-S-24** (AC-1) — every `@v0.3` scenario passes
-  (`docs/02_requirements/02_bdd/features/s/action-descriptor.feature`): S-24.5 Hold a gate whose
-  approval is made outside the console; S-24.6 Hold a gate until the elements that reference it
-  are done; S-24.7 Disable a move into a state at its limit. e2e on the custom fixture on WingFoil
-  0.3 (S-24.5, S-24.6 with the sw-life-cycle preset's `holds`, spec-005 §5; the fixture Given steps
-  accepted at RP3-16 P4), asserting what the user sees: the *Waiting on others* text, the footer's
-  line, the absent *Approve*, the disabled *Submit* with its reason as accessible description. The
-  `@v0.2` scenarios S-24.1 … S-24.4 still pass.
+AC-1 and AC-4 … AC-7 moved to task-069 at the split (Q1-b, 2026-11-06); the other numbers are kept,
+since the design notes cite them.
+
 - **AC-2** — Reference index (spec-012 §1), unit tests: the values (top-level strings and the
   string items of a top-level list; not nested maps or lists, numbers, booleans, dates, `null`;
   not `id`, `type`, `title`, `status`, `tags`, `rejection_reason`; as written; a value twice linked
-  once); the cap of 200 in field then list order, with the element in `capped`; the reference
+  once); the cap of 200 in field then list order, with the element in `capped`; the pattern tests of one
+  build within a time budget of 500 ms, run in slices of about 20 ms and their results kept across
+  states, an element whose values were not all tested named in `capped`, which means "indexed
+  incompletely" (Q2-a; spec-012 §1 amended with a dated Process Note); the reference
   rules in order — rule 1 on full ids of another non-archived element only (a short id is no
   element reference; an archived id is none, TQ-3), rule 2 on values of at most 256 characters
   with no LF or CR, the first matching `taxonomy.patterns` entry; a reference with no category
@@ -86,32 +67,10 @@ R-2; A-1, A-2), Today lists a task approved into `backlog` as the approver's (R-
   committed values, not the edited ones; entries of paths `memory search` no longer lists are
   dropped; a commit touching one element re-reads one file (counted in the test). 0 CLI processes
   added: the process audits of `test/server/snapshot/process-audit.test.ts` (TT-PERF-05) stay
-  green. The timing check on the `large` fixture of spec-012 §11 (REQ-PERF-03) runs in
-  `test:timing`.
-- **AC-4** — Held gates (spec-005 §4a, spec-003 §3, §5, §8): for each `holds` value, `approve` not
-  offered and `reject` offered to `approver` holders; the output `approveHeld` with `{ code:
-  "held-by-config" }` or `{ code: "held-until-references-done", count }` in
-  `contracts/api/descriptor.schema.json` (contract test); never in *Requires you*, in *Waiting on
-  others* for every member with the reason, not counted as a pending gate (bell, greeting); the
-  count from the index (done = kind `last`), 0 → not held; an ignored `ui.yaml` holds nothing;
-  the descriptor names no type or state (the REQ-ARC-05 lint stays green); spec-003 §9's contract
-  check excepts the `approve` of a held gate.
-- **AC-5** — Actor after an approve (spec-003 §4, D6): unit tests — a `work` state whose last move
-  in is an `approve` names the author of the last `submit` before it; the other `work` rows and
-  `amend` events (task-048 D48-6) unchanged; a Today test where a task approved into `backlog` is
-  in its submitter's *Requires you* and not in the approver's.
-- **AC-6** — `state-limit` (spec-003 §6 rule 5, D11, F4): for `submit` and `approve` only — a
-  `reject` (or `park`) into a full state stays enabled; counted over the non-archived elements of
-  `memory search`; the reason `state-limit {state, limit}` in the descriptor schema; a refusal of
-  the CLI where the approximation differs still answers 422 `cli-refused` with its toast.
-- **AC-7** — Catalogue and screens: keys for `held-by-config`, `held-until-references-done {count}`
-  (plural) and `state-limit {state, limit}` with the texts of spec-008 (P3; a refined text recorded
-  in spec-008 with a dated Process Note); every string from the catalogue (X-09.1). The gate footer
-  of a held gate as `docs/00_reference/ux-reference.md` §4.2 *v0.3 held gate*: an `approver`
-  holder keeps the reason field, each *Reject → <state>* and *Cancel*; any other member sees the
-  line only. Keyboard path and axe-core 0 serious/critical in both themes on the changed footer
-  and row; the e2e spec on Chromium, Firefox and WebKit.
-- **AC-8** — Docs and gates: spec-003, spec-005 and spec-012 hold as written, or are amended in
+  green. The timing check on the `large` fixture of spec-012 §11 (REQ-PERF-03) is
+  task-059's AC-7, which measures the same path with the same preset (Q5-b); this task keeps the
+  counts at the unit level.
+- **AC-8** — Docs and gates: spec-012, spec-001 and spec-004 hold as written, or are amended in
   place with a dated Process Note where the design deviates (after the coordinator's OK);
   `CHANGELOG.md` *Unreleased* *Added*; the checks of `CLAUDE.md` *Checks before handing work back*,
   `npm run docs:api` and `check_tasks.py v0.3`, with their commands and results in the Execution
@@ -123,8 +82,17 @@ R-2; A-1, A-2), Today lists a task approved into `backlog` as the approver's (R-
   (`GIT_AUTHOR_*`, then `author.*`, then `user.*`; `wingfoil-cli` W-39), e.g. `git var
   GIT_AUTHOR_IDENT`, keeping the console's read-only git rules (`GIT_OPTIONAL_LOCKS=0`,
   `core.fsmonitor=false`, no transport); the design's `GIT_TRACE` of the new read and the
-  strict-identity run of `test/README.md` *Git identity* cover it; spec-001 (the identity read)
-  amended with a dated Process Note where it names `user.email`.
+  strict-identity run of `test/README.md` *Git identity* cover it. The read is the CLI's own
+  (Q4-a): `GIT_AUTHOR_EMAIL` from the environment, else `author.email`, else `user.email`, through
+  one `git config -z --get-regexp '^(author|user)\.email$'` — not `git var`, which differs from
+  the CLI with `EMAIL` alone set and with no identity (git guesses one). The SARD's REQ-STATE-05,
+  REQ-STATE-02 and REQ-INT-06 and spec-004 §6 amended with a dated Process Note where they name
+  `user.email` (spec-001 does not describe the identity read).
+- **AC-10** — bug-032 (absorbed at design, Q3-a, 2026-11-06; W1-17): red first — the shared
+  frontmatter parse (`server/src/reads/frontmatter.ts`) is linear in the size of the frontmatter:
+  `uniqueKeys` off with a linear duplicate-key check, a duplicate key still refused with its line
+  (as task-054's D54-3), a structural test of it; the frontmatter the index reads bounded at
+  64 KiB (above: `shape` in `unreadable`).
 
 ## Implementation Notes
 
@@ -137,8 +105,9 @@ R-2; A-1, A-2), Today lists a task approved into `backlog` as the approver's (R-
   and its Process Notes; spec-008 (reason codes); spec-001 §4.2 (the direct read, the bulk
   consumer); `adr-001` D6 (per-state cache); `ux-reference.md` §4.1 v0.3 and §4.2 v0.3; the plan's
   RP3-14 D5, D6, D11, RP3-15 F1, F4, S2, RP3-16 P3, P4, RP3-18 K2.
-- The index's interface for task-059 (progress, traceability, missing references) is decided at
-  design and recorded in the Execution Notes, which task-059 reads.
+- The index's interface for task-059 (progress, traceability, missing references) and for
+  task-069 (the `when-references-done` count) is decided at design and recorded in the Execution
+  Notes, which both read.
 - S-24.7 uses the `limits` the packs give the Sprint type on the custom fixture on 0.3; fixture
   elements are moved by the fixture builder's verbs, never by a hand-set `status:` (W-34).
 - **Security probes at design** (the task adds a git read and reads every element file of a
@@ -154,7 +123,6 @@ R-2; A-1, A-2), Today lists a task approved into `backlog` as the approver's (R-
 - Heavy gates (`test:coverage`, every Playwright run, `test:timing`, `test:smoke`) through the
   machine-free slot of the dev-loop rules, in the task's worktree; e2e: the full suite on Chromium
   plus the task's own specs on the three engines (`test/README.md`).
-- Shared Wave-1 files: task-056 also changes the Today rows and the descriptor tests; coordinate with it and merge in task-number order.
 - Every server task regenerates the `npm run docs:api` output; after a merge the output is regenerated, never merged by hand.
 
 ## Execution Notes
