@@ -141,14 +141,28 @@ const UNSAFE = /(?![\n\t])[\p{Cc}\p{Cf}\p{Cs}\p{Zl}\p{Zp}]/u;
  * Cs, Zl, Zp but newline and tab) written as a visible escape (`\x1b`, `\u202e`, `\u{e0001}`).
  */
 export function neutralise(text: string): string {
-  return text.replace(/\r\n/g, '\n').replace(new RegExp(`\\\\|${UNSAFE.source}`, 'gu'), (ch) => {
-    if (ch === '\\') return '\\\\';
-    const code = ch.codePointAt(0)!;
-    const hex = code.toString(16);
-    if (code <= 0xff) return `\\x${hex.padStart(2, '0')}`;
-    if (code <= 0xffff) return `\\u${hex.padStart(4, '0')}`;
-    return `\\u{${hex}}`;
-  });
+  return text
+    .replace(/\r\n/g, '\n')
+    .replace(new RegExp(`\\\\|${UNSAFE.source}`, 'gu'), (ch) => (ch === '\\' ? '\\\\' : visibleEscape(ch)));
+}
+
+/** The visible escape of one unsafe character: `\x1b`, `\u202e`, `\u{e0001}`. */
+function visibleEscape(ch: string): string {
+  const code = ch.codePointAt(0)!;
+  const hex = code.toString(16);
+  if (code <= 0xff) return `\\x${hex.padStart(2, '0')}`;
+  if (code <= 0xffff) return `\\u${hex.padStart(4, '0')}`;
+  return `\\u{${hex}}`;
+}
+
+/**
+ * `text` with CR LF folded to a newline and every unsafe character written as a visible escape, as
+ * {@link neutralise}, but a backslash left as written (task-068 Q4-b, spec-012 §9 amended
+ * 2026-11-06): for a `ui.yaml` pattern, a regular-expression source, where `\u202e` and the raw
+ * character are the same expression and a doubled backslash would change what the user reads.
+ */
+export function neutraliseKeepingBackslashes(text: string): string {
+  return text.replace(/\r\n/g, '\n').replace(new RegExp(UNSAFE.source, 'gu'), visibleEscape);
 }
 
 /** The line that stands for the part a capped text leaves out. */

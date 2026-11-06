@@ -1,0 +1,331 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://wingfoil-ui.local/contracts/api/ui-config.schema.json",
+  "title": "The ui section of GET /api/p/:pid/config",
+  "description": "The effective .wingfoil/ui.yaml of a repository state, each value with its origin, and the file's status with its warning (spec-012 §2, spec-005 §2–§3). Every string echoed from the file and every type name arrives with control and bidi characters escaped (spec-012 §9).",
+  "type": "object",
+  "required": ["status", "taxonomy", "progress", "holds", "artifacts"],
+  "additionalProperties": false,
+  "properties": {
+    "status": {
+      "$ref": "#/definitions/status"
+    },
+    "taxonomy": {
+      "type": "object",
+      "required": ["categories", "patterns", "requires"],
+      "additionalProperties": false,
+      "properties": {
+        "categories": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["type", "category", "origin"],
+            "additionalProperties": false,
+            "properties": {
+              "type": {
+                "type": "string"
+              },
+              "category": {
+                "oneOf": [
+                  {
+                    "$ref": "#/definitions/category"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "origin": {
+                "$ref": "#/definitions/origin"
+              }
+            }
+          }
+        },
+        "patterns": {
+          "type": "object",
+          "required": ["value", "origin"],
+          "additionalProperties": false,
+          "properties": {
+            "value": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["match", "category"],
+                "additionalProperties": false,
+                "properties": {
+                  "match": {
+                    "type": "string"
+                  },
+                  "category": {
+                    "$ref": "#/definitions/category"
+                  }
+                }
+              }
+            },
+            "origin": {
+              "$ref": "#/definitions/origin"
+            }
+          }
+        },
+        "requires": {
+          "type": "object",
+          "required": ["value", "origin"],
+          "additionalProperties": false,
+          "properties": {
+            "value": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["type", "categories"],
+                "additionalProperties": false,
+                "properties": {
+                  "type": {
+                    "type": "string"
+                  },
+                  "categories": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/definitions/category"
+                    }
+                  }
+                }
+              }
+            },
+            "origin": {
+              "$ref": "#/definitions/origin"
+            }
+          }
+        }
+      }
+    },
+    "progress": {
+      "type": "object",
+      "required": ["mode", "scope", "phases", "iterates", "defects"],
+      "additionalProperties": false,
+      "properties": {
+        "mode": {
+          "type": "object",
+          "required": ["value", "origin"],
+          "additionalProperties": false,
+          "properties": {
+            "value": {
+              "enum": ["sequence", "flow"]
+            },
+            "origin": {
+              "$ref": "#/definitions/origin"
+            }
+          }
+        },
+        "scope": {
+          "type": "object",
+          "required": ["value", "origin", "current"],
+          "additionalProperties": false,
+          "properties": {
+            "value": {
+              "oneOf": [
+                {
+                  "type": "object",
+                  "required": ["type"],
+                  "additionalProperties": false,
+                  "properties": {
+                    "type": {
+                      "type": "string"
+                    }
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "origin": {
+              "$ref": "#/definitions/origin"
+            },
+            "current": {
+              "description": "The current element of the scope, derived (spec-005 §4, task-059); null until it is derived.",
+              "oneOf": [
+                {
+                  "$ref": "#/definitions/elementRef"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          }
+        },
+        "phases": {
+          "type": "object",
+          "required": ["value", "origin"],
+          "additionalProperties": false,
+          "properties": {
+            "value": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "origin": {
+              "$ref": "#/definitions/origin"
+            }
+          }
+        },
+        "iterates": {
+          "type": "object",
+          "required": ["value", "origin"],
+          "additionalProperties": false,
+          "properties": {
+            "value": {
+              "type": ["string", "null"]
+            },
+            "origin": {
+              "$ref": "#/definitions/origin"
+            }
+          }
+        },
+        "defects": {
+          "type": "object",
+          "required": ["value", "origin"],
+          "additionalProperties": false,
+          "properties": {
+            "value": {
+              "type": ["string", "null"]
+            },
+            "origin": {
+              "$ref": "#/definitions/origin"
+            }
+          }
+        }
+      }
+    },
+    "holds": {
+      "type": "object",
+      "required": ["value", "origin"],
+      "additionalProperties": false,
+      "properties": {
+        "value": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["type", "state", "approve"],
+            "additionalProperties": false,
+            "properties": {
+              "type": {
+                "type": "string"
+              },
+              "state": {
+                "type": "string"
+              },
+              "approve": {
+                "enum": ["never", "when-references-done"]
+              }
+            }
+          }
+        },
+        "origin": {
+          "$ref": "#/definitions/origin"
+        }
+      }
+    },
+    "artifacts": {
+      "type": "object",
+      "required": ["value", "origin"],
+      "additionalProperties": false,
+      "properties": {
+        "value": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["path", "phase"],
+            "additionalProperties": false,
+            "properties": {
+              "path": {
+                "type": "string"
+              },
+              "phase": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "origin": {
+          "$ref": "#/definitions/origin"
+        }
+      }
+    }
+  },
+  "definitions": {
+    "status": {
+      "description": "The file's status: file a valid file, none no entry, ignored an entry that is not used — then with the warning naming its first failure (local folders redacted, controls escaped).",
+      "oneOf": [
+        {
+          "type": "object",
+          "required": ["source"],
+          "additionalProperties": false,
+          "properties": {
+            "source": {
+              "enum": ["file", "none"]
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["source", "warning"],
+          "additionalProperties": false,
+          "properties": {
+            "source": {
+              "const": "ignored"
+            },
+            "warning": {
+              "type": "object",
+              "required": ["code", "failure"],
+              "additionalProperties": false,
+              "properties": {
+                "code": {
+                  "const": "ui-config-ignored"
+                },
+                "failure": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 4000
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "elementRef": {
+      "type": "object",
+      "required": ["id", "title", "type", "status", "tone"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "shortId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "title": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "tone": {
+          "$ref": "descriptor.schema.json#/properties/tone"
+        }
+      }
+    },
+    "origin": {
+      "enum": ["declared", "inferred", "derived"]
+    },
+    "category": {
+      "enum": ["work", "defect", "decision", "spec", "requirement", "feature", "release", "external"]
+    }
+  }
+}

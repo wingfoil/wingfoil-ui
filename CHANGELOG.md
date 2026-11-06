@@ -28,6 +28,15 @@ release `v0.2` the git tag `v0.2.0` and the npm version `wingfoil-ui@0.2.0`.
   removed at stop; a file left by a killed console is removed at the next start. An agent can
   build a link to an element from it and from `state.json` (`docs/cli-reference.md`, *Address
   file for scripts and agents*).
+- **The project's `ui.yaml` configuration in the API** (task-054, task-068; spec-005, spec-012
+  §2): `GET /api/p/:pid/config` carries a `ui` section with the effective configuration of
+  `.wingfoil/ui.yaml` — categories, reference patterns and required references, the progress
+  settings, held gates and artifacts, each value marked `declared` or `inferred` — and, when the
+  file is not used, its first failure as `failure` (`progress.mode must be sequence or flow
+  (found spiral)`); without a file, the values inferred from the project's types. Every text echoed from
+  the file comes back with control and bidi characters escaped. An edit of `ui.yaml`, tracked,
+  untracked or ignored by git, refreshes open pages. No screen shows it yet: the Configuration
+  tabs are task-064's.
 
 ### Changed
 
@@ -66,6 +75,11 @@ release `v0.2` the git tag `v0.2.0` and the npm version `wingfoil-ui@0.2.0`.
   *Directives* section listed both files — extra rows, the bound roles repeated, the order wrong
   after switching "only mine / all". They now list one row per directive, the one WingFoil uses
   (the custom file), and show WingFoil's warning naming both files.
+- **A project folder replaced by a symbolic link is no longer read through** (bug-033, task-068):
+  when a folder of a project — `.wingfoil` or a Memory folder — was replaced by a link to a folder
+  elsewhere, the check of the repository state hashed the files behind the link, so an edit
+  outside the project could refresh open pages. Such a folder is now marked by itself, and no
+  file behind it is read. The defect shipped in v0.2.0 (it dates from v0.1.0).
 
 ### Known limitations
 
