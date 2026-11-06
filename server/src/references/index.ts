@@ -51,8 +51,8 @@ export interface IndexedElement {
   path: string;
   /** The state kind (spec-003 §2). */
   kind: StateKind;
-  /** Kind `last` (spec-005 §4 *Done*). */
-  done: boolean;
+  /** Done: kind `last` (spec-005 §4 *Done*; `done` is a fixture state name, REQ-ARC-05). */
+  finished: boolean;
   /** Why the file could not be read; then no values, no version, no references. */
   unreadable?: DirectReadErrorKind;
   values: readonly string[];

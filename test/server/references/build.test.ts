@@ -117,7 +117,7 @@ describe('buildReferenceIndex — the rules (spec-012 §1)', () => {
   it('kind and done from the type states (done = kind last); elements in memory search order', async () => {
     const matches = [match('task-002-b', 'task', 'approved'), match('task-001-a', 'task', 'pending')];
     const index = await build(matches, tableSource({}));
-    expect(index.elements.map((e) => [e.id, e.kind, e.done])).toEqual([
+    expect(index.elements.map((e) => [e.id, e.kind, e.finished])).toEqual([
       ['task-002-b', 'last', true],
       ['task-001-a', 'gate', false],
     ]);

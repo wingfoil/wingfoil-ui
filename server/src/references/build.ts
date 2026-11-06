@@ -149,7 +149,7 @@ export async function buildReferenceIndex(options: BuildOptions): Promise<Refere
       status: match.status,
       path: match.path,
       kind,
-      done: kind === 'last',
+      finished: kind === 'last',
     };
     if (!read.ok) return { ...base, unreadable: read.kind, values: [], references: [], capped: false };
     const references: Reference[] = [];
@@ -205,7 +205,7 @@ function indexOf(elements: readonly IndexedElement[]): ReferenceIndex {
     referencingNotDone(id) {
       const c = byId.get(id);
       if (!c) return 0;
-      return inScope(c).filter((e) => !e.done).length;
+      return inScope(c).filter((e) => !e.finished).length;
     },
   };
 }

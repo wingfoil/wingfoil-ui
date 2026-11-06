@@ -494,7 +494,7 @@ export type Reference =
 
 export interface IndexedElement {
   id: string; type: string; status: string; path: string;  // as `memory search` lists it
-  kind: StateKind; done: boolean;                           // spec-003 §2; done = kind 'last'
+  kind: StateKind; finished: boolean;                       // spec-003 §2: done = kind 'last' (`done` is a fixture state, REQ-ARC-05)
   unreadable?: DirectReadErrorKind;                         // set → values [], no version, no references
   values: readonly string[];                                // raw, distinct, field then list order, ≤ 200
   version?: string;                                         // top-level string `version` (in-scope rule)
