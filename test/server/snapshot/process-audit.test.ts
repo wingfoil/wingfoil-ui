@@ -188,41 +188,36 @@ async function treeDigest(dir: string): Promise<string> {
 // file read of task-054 and the state key's `ui.yaml` mark is file reads only — no process added.
 describe('task-068 — the /config ui section and the ui.yaml mark start no process', () => {
   it('a cold /config with an ignored ui.yaml starts what one without starts; warm 0; an ignored edit: the check only', async () => {
-    const cold = async (withUiYaml: boolean) => {
-      const f = await fresh(3_600_000);
-      if (withUiYaml) {
-        await writeFile(path.join(f.fx.dir, '.gitignore'), '.wingfoil/ui.yaml\n');
-        await git(f.fx.dir, ['add', '.gitignore'], f.fx.env);
-        await git(f.fx.dir, ['commit', '-qm', 'ignore ui.yaml'], f.fx.env);
-        await writeFile(path.join(f.fx.dir, '.wingfoil', 'ui.yaml'), 'version: 1\nprogress: { mode: sequence }\n');
-      }
-      const gitDir = await treeDigest(path.join(f.fx.dir, '.git'));
-      f.runner.spawned.length = 0;
-      const res = await f.standIn.get(`/api/p/${f.pid}/config`);
-      expect(res.status).toBe(200);
-      const processes = { cli: f.runner.wingfoilCommands().sort(), git: f.runner.count('git') };
-      return { ...f, res, processes, gitDir };
-    };
-    const without = await cold(false);
-    const withFile = await cold(true);
-    console.info(
-      `task-068 cold /config: ${withFile.processes.cli.length} CLI (${withFile.processes.cli.join(', ')}), ${withFile.processes.git} git`,
-    );
-    expect(withFile.processes).toEqual(without.processes);
-    expect((withFile.res.body as { ui: { status: unknown } }).ui.status).toEqual({ source: 'file' });
+    const { fx, pid, standIn, runner, snapshots } = await fresh(3_600_000);
+    await writeFile(path.join(fx.dir, '.gitignore'), '.wingfoil/ui.yaml\n');
+    await git(fx.dir, ['add', '.gitignore'], fx.env);
+    await git(fx.dir, ['commit', '-qm', 'ignore ui.yaml'], fx.env);
+    await writeFile(path.join(fx.dir, '.wingfoil', 'ui.yaml'), 'version: 1\nprogress: { mode: sequence }\n');
+    const gitDir = await treeDigest(path.join(fx.dir, '.git'));
+    runner.spawned.length = 0;
+    const cold = await standIn.get(`/api/p/${pid}/config`);
+    expect(cold.status).toBe(200);
+    expect((cold.body as { ui: { status: unknown } }).ui.status).toEqual({ source: 'file' });
+    const gits = runner.spawned.filter((r) => processKind(r) === 'git').map((r) => gitSubcommand(r.args));
+    console.info(`task-068 cold /config: ${runner.wingfoilCommands().join(', ')}; git ${gits.join(', ')}`);
+    // What a cold /config starts without a ui.yaml (design probe P2): the three CLI reads of its
+    // sections and the git of the project's open and its first state (as the Memory list audit
+    // above) — the ui section and the mark add none.
+    expect(runner.wingfoilCommands().sort()).toEqual(['dna show', 'paths', 'workflow list']);
+    // rev-parse (open); status, config user.email, remote, config branch.main.remote (the first state).
+    expect(gits.sort()).toEqual(['config', 'config', 'remote', 'rev-parse', 'status']);
 
-    const { pid, standIn, runner, snapshots, fx } = withFile;
     const before = runner.spawned.length;
     await standIn.get(`/api/p/${pid}/config`);
     expect(runner.spawned.length).toBe(before);
-    expect(await treeDigest(path.join(fx.dir, '.git'))).toBe(withFile.gitDir);
+    expect(await treeDigest(path.join(fx.dir, '.git'))).toBe(gitDir);
 
     // A check with no change, then one after an edit of the ignored file: the same git, no CLI.
     const snapshot = await snapshots.open(pid, fx.dir);
     let mark = runner.spawned.length;
     const same = await snapshot.check();
     const checkProcesses = runner.spawned.slice(mark);
-    expect(same.key).toBe(withFile.res.state);
+    expect(same.key).toBe(cold.state);
     await writeFile(path.join(fx.dir, '.wingfoil', 'ui.yaml'), 'version: 1\nprogress: { mode: flow }\n');
     mark = runner.spawned.length;
     const next = await snapshot.check();
