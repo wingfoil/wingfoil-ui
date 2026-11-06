@@ -457,3 +457,65 @@ active days**, above RP3-20 G2's one day (Q1).
 
 Blockers: none outside these questions; red waits for the coordinator's answers (Q1 … Q5) and,
 for Q2 … Q4, the approver's OK on the spec amendments before the tests that encode them.
+
+#### Decisions of the approver (2026-11-06)
+
+Relayed by the coordinator ("055: q1-b (new task at the head of W2), q2-a, q3-a, q4-a, q5-b";
+`backlog-item-rel-v0.3-plan` W1-17):
+
+- **Q1 (b)** — split. This task keeps the reference index (AC-2, AC-3), bug-029 (AC-9), the gates
+  (AC-8) and bug-032 (new AC-10, from P4b); it is a governance task (`GOV`). The held gates, the
+  actor after an approve, `state-limit`, the catalogue texts, the screens and S-24.5 … S-24.7 (the
+  former AC-1, AC-4 … AC-7) moved to
+  task-069-held-gates-actor-after-an-approve-and-state-limit-in-the-descriptor (Wave 2 head).
+  **D55-10 … D55-14** (and the matching rows of the test plan above) are inputs to task-069's
+  design, not work of this task; D55-9's "built only when needed" holds here as: nothing calls
+  `referenceIndex()` yet but its tests (task-069 wires the hold, task-059 the routes).
+- **Q2 (a)** — the pattern budget of D55-7; spec-012 §1 amended (`18dc4a81`), `capped` = "indexed
+  incompletely".
+- **Q3 (a)** — bug-032 absorbed (AC-10): the shared frontmatter parse made linear with its own
+  duplicate-key check, the index's frontmatter bounded at 64 KiB; spec-001 §4.2 amended
+  (`1c7bba61`).
+- **Q4 (a)** — the identity read of D55-15; SARD REQ-STATE-02, REQ-STATE-05 (0.10), REQ-INT-06
+  (0.12) and spec-004 §6 amended (`18dc4a81`).
+- **Q5 (b)** — the timing check on the `large` fixture is task-059's AC-7.
+
+**The index's interface (D55-8), as task-059 and task-069 read it** — `server/src/references/`:
+
+```ts
+export const MAX_VALUES = 200;          // distinct values kept per element (spec-012 §1)
+export const INDEX_READS = 16;          // element files read at a time
+export const PATTERN_BUDGET_MS = 500;   // pattern-test time per build (Q2-a)
+export const MAX_INDEX_FRONTMATTER = 65_536;  // bytes of frontmatter the index reads (Q3-a)
+
+export type Reference =
+  | { value: string; kind: 'element'; id: string; category: UiCategory | null }  // rule 1
+  | { value: string; kind: 'pattern'; category: UiCategory };                    // rule 2
+
+export interface IndexedElement {
+  id: string; type: string; status: string; path: string;  // as `memory search` lists it
+  kind: StateKind; done: boolean;                           // spec-003 §2; done = kind 'last'
+  unreadable?: DirectReadErrorKind;                         // set → values [], no version, no references
+  values: readonly string[];                                // raw, distinct, field then list order, ≤ 200
+  version?: string;                                         // top-level string `version` (in-scope rule)
+  references: readonly Reference[];                         // values order; raw (never escaped here)
+  capped: boolean;                                          // > 200 values, or values left untested
+}
+
+export interface ReferenceIndex {
+  readonly elements: readonly IndexedElement[];             // `memory search` order
+  get(id: string): IndexedElement | undefined;
+  readonly unreadable: readonly string[];                   // ids, list order
+  readonly capped: readonly string[];                       // ids, list order
+  carrying(value: string): readonly IndexedElement[];       // readable elements holding `value`
+  inScope(c: IndexedElement): readonly IndexedElement[];    // carrying(c.id) ∪ carrying(c.version), c excluded
+  referencingNotDone(id: string): number;                   // spec-005 §4a count; by id only if unreadable
+}
+
+// SnapshotView (server/src/snapshot/snapshot.ts)
+referenceIndex(): Promise<ReferenceIndex>;  // once per content key; rejects as elements() / uiConfig()
+```
+
+Figures, natural id order, `ElementRef`, the current element, escaping (spec-012 §9) and the
+route bodies are task-059's; the hold (when `holds` has `when-references-done`, only then build the
+index) is task-069's.
