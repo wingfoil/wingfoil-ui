@@ -14,7 +14,7 @@ bug: []                # optional — LIST of bug ids this task closes. Two case
                        # task already owns the ground. Each bug listed moves with its own verbs (`.wingfoil/memory.yaml`):
                        # the approver's `memory approve` triaged -> planned, `memory submit` planned -> in-progress when
                        # this task starts, then submit/approve along its machine; no `bug.sync_state` since the packs adoption
-depends_on: ["task-054-ui-configuration-file-read-with-its-schema-and-the-config-section", "task-055-shared-reference-index-held-gates-and-descriptor-rules", "task-056-tool-and-repository-text-in-api-answers-and-per-match-memory-search", "task-057-element-addressing-with-short-ids-and-long-ids"]         # optional — ids of tasks whose Execution Notes constrain this one; authored at planning time, may be appended during design
+depends_on: ["task-054-ui-configuration-file-read-with-its-schema-and-the-config-section", "task-055-shared-reference-index-held-gates-and-descriptor-rules", "task-056-tool-and-repository-text-in-api-answers-and-per-match-memory-search", "task-057-element-addressing-with-short-ids-and-long-ids", "task-069-held-gates-actor-after-an-approve-and-state-limit-in-the-descriptor"]         # optional — ids of tasks whose Execution Notes constrain this one; authored at planning time, may be appended during design
 tmpl_version: 260703   # Orignal template version
 ---
 
