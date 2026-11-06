@@ -1,6 +1,7 @@
 // REQ-STATE-05 — the effective `git config user.email` of a project (repository, else global),
 // read through the process runner; `git` found on the PATH (the shared `resolveGit` and the
 // shared environment cleaner `gitEnv` of server/src/git/git.ts, bug-002).
+import { execFileSync } from 'node:child_process';
 import { chmod, mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -8,6 +9,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { GitNotFoundError, gitEnv, resolveGit } from '../../../server/src/git/git.js';
 import { GitConfigError, readGitEmail } from '../../../server/src/identity/git-email.js';
 import { LocalProcessRunner } from '../../../server/src/process/runner.js';
+import { REPO_ROOT } from '../../harness/cli.js';
 import { harnessEnv } from '../../harness/fixtures/index.js';
 import { git } from '../../harness/run.js';
 import { FakeProcessRunner } from '../process/fake-runner.js';
@@ -186,4 +188,55 @@ describe('readGitEmail — the read settings of GitReads', () => {
     ]);
     expect(runner.requests[0]!.env).toEqual({ HOME: '/h', GIT_ALLOW_PROTOCOL: 'none', GIT_NO_LAZY_FETCH: '1' });
   });
+});
+
+// bug-029 (SARD REQ-STATE-05, amended 2026-11-06, Q4-a): the identity is the author the WingFoil
+// CLI authorises — `GIT_AUTHOR_EMAIL`, then `author.email`, then `user.email` — never `EMAIL` nor
+// git's hostname guess. Each case is checked against the pinned CLI's own resolver
+// (`dist/core/git-identity.js` `readGitIdentity`), run with the same environment.
+describe('readGitEmail — the author the CLI authorises (bug-029)', () => {
+  const runner = new LocalProcessRunner();
+  const resolver = path.join(REPO_ROOT, 'node_modules', 'wingfoil', 'dist', 'core', 'git-identity.js');
+  const cliEmail = (extra: NodeJS.ProcessEnv): string =>
+    (
+      JSON.parse(
+        execFileSync(
+          process.execPath,
+          [
+            '-e',
+            `process.stdout.write(JSON.stringify(require(${JSON.stringify(resolver)}).readGitIdentity(${JSON.stringify(repo)})))`,
+          ],
+          {
+            env: { ...env, ...extra },
+          },
+        ).toString(),
+      ) as { email: string }
+    ).email;
+  const cases: [string, NodeJS.ProcessEnv, { user?: string; author?: string }][] = [
+    ['only user.email', {}, { user: 'dev@example.test' }],
+    [
+      'GIT_AUTHOR_EMAIL over user.email',
+      { GIT_AUTHOR_NAME: 'Agent', GIT_AUTHOR_EMAIL: 'agent@example.test' },
+      { user: 'dev@example.test' },
+    ],
+    ['author.email over user.email', {}, { user: 'dev@example.test', author: 'approver@example.test' }],
+    ['a blank GIT_AUTHOR_EMAIL is no email', { GIT_AUTHOR_EMAIL: '' }, { user: 'dev@example.test' }],
+    ['GIT_AUTHOR_EMAIL trimmed', { GIT_AUTHOR_EMAIL: ' agent@example.test ' }, {}],
+    ['EMAIL alone is not followed', { EMAIL: 'fromenv@example.test' }, {}],
+    ['nothing configured', {}, {}],
+  ];
+  for (const [title, extra, config] of cases) {
+    it(title, async () => {
+      if (config.user) await git(repo, ['config', 'user.email', config.user], env);
+      if (config.author) await git(repo, ['config', 'author.email', config.author], env);
+      try {
+        const expected = cliEmail(extra);
+        const got = await readGitEmail(repo, { runner, git: gitFile, env: { ...env, ...extra } });
+        expect(got ?? '').toBe(expected);
+      } finally {
+        await git(repo, ['config', '--unset-all', 'user.email'], env).catch(() => undefined);
+        await git(repo, ['config', '--unset-all', 'author.email'], env).catch(() => undefined);
+      }
+    });
+  }
 });
