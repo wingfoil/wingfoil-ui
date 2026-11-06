@@ -17,7 +17,7 @@ export interface FrontmatterFile<T> {
 /**
  * The parse options of every frontmatter and of `memory.yaml` (bug-032): YAML 1.2 core schema,
  * merge keys (`<<`) resolved as WingFoil's js-yaml does, and the library's own duplicate-key check
- * off — it is quadratic (1 MiB of keys took about 99 s, task-055 P4b); {@link duplicateKey} does it
+ * off — it is quadratic (1 MiB of keys took about 99 s, task-055 P4b); the reader's own check does it
  * in one pass. The alias limit (resource exhaustion) stays at the library's default.
  */
 export const FRONTMATTER_PARSE_OPTIONS = Object.freeze({
