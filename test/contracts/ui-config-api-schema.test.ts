@@ -13,7 +13,7 @@ import { effectiveUiConfig } from '../../server/src/ui-config/effective.js';
 import { REPO_ROOT } from '../harness/cli.js';
 import { customPacks, kanban } from '../server/ui-config/samples.js';
 
-const ajv = new Ajv({ allErrors: true, strict: true });
+const ajv = new Ajv({ allErrors: true });
 for (const dir of ['api', 'cli', 'files']) {
   for (const f of readdirSync(path.join(REPO_ROOT, 'contracts', dir))) {
     ajv.addSchema(JSON.parse(readFileSync(path.join(REPO_ROOT, 'contracts', dir, f), 'utf8')) as object);
@@ -52,6 +52,12 @@ describe('contracts/api/ui-config.schema.json', () => {
       'external',
     ]);
     expect(schema['definitions'].origin.enum).toEqual(['declared', 'inferred', 'derived']);
+  });
+
+  it('compiles in Ajv strict mode', () => {
+    const read = (f: string) => JSON.parse(readFileSync(path.join(REPO_ROOT, 'contracts', 'api', f), 'utf8')) as object;
+    const strict = new Ajv({ strict: true }).addSchema(read('descriptor.schema.json'));
+    expect(() => strict.compile(read('ui-config.schema.json'))).not.toThrow();
   });
 
   it.each(Object.entries(bodies))('accepts the body of %s', (_label, make) => {

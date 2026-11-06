@@ -4,6 +4,7 @@
 // through the character escape of repository texts; the enum values and the already-redacted
 // `failure` passed unchanged.
 import { describe, expect, it } from 'vitest';
+import { neutralise } from '../../../server/src/git/redact.js';
 import { ECHOED_UI_FIELDS, uiConfigBody } from '../../../server/src/ui-config/body.js';
 import { renderPreset } from '../../../server/src/presets/ui-config.js';
 import { effectiveUiConfig } from '../../../server/src/ui-config/effective.js';
@@ -65,8 +66,9 @@ describe('uiConfigBody — the /config ui section', () => {
     expect(body.taxonomy.categories.every((c) => c.origin === 'declared')).toBe(true);
     expect(body.progress.scope).toEqual({ value: { type: 'release' }, origin: 'declared', current: null });
     expect(body.progress.mode).toEqual({ value: 'sequence', origin: 'declared' });
+    // spec-012 §9 as written: the character escape doubles a backslash (`^(P\\d|Journey)`).
     expect(body.taxonomy.patterns.value).toEqual(
-      effective.patterns.value.map(({ match, category }) => ({ match, category })),
+      effective.patterns.value.map(({ match, category }) => ({ match: neutralise(match), category })),
     );
     expect(body.holds).toEqual({
       value: [

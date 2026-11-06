@@ -6,7 +6,7 @@
  * | Route | Body (`contracts/api/`) |
  * |-------|-------------------------|
  * | `GET /api/p/:pid` | `project.schema.json` — header: name, version and range state, capabilities, identity, role views, read-only reasons, repository status and conditions (v0.2, task-033: spec-010 §3, §7) |
- * | `GET /api/p/:pid/config` | `config.schema.json` — DNA, paths, workflows, resolved types; each section its read or its error |
+ * | `GET /api/p/:pid/config` | `config.schema.json` — DNA, paths, workflows, resolved types, each section its read or its error; the effective `ui.yaml` (`ui`, v0.3, task-068: `ui-config.schema.json`, its echoed strings escaped), absent when `memory.yaml` cannot be read |
  * | `GET /api/p/:pid/elements[?archived=true]` | `elements.schema.json` — elements with marker and descriptor |
  * | `GET /api/p/:pid/elements/:eid` | `element.schema.json` — frontmatter, body, descriptor, required fields, type states; `:eid` a full or a short id (spec-011 §3: 404 and 409 `element.refusal.schema.json`) |
  * | `GET /api/p/:pid/elements/:eid/history` | `history.schema.json` — `memory history` |
@@ -82,6 +82,7 @@ import type { Snapshots } from '../snapshot/snapshots.js';
 import { stripUserinfo, type StateStore } from '../state/store.js';
 import { envelope } from './app.js';
 import { resolveElementId } from './element-address.js';
+import { uiConfigBody } from '../ui-config/body.js';
 
 /** Prefix of every route of this module. */
 export const PROJECT_PATH = '/api/p/:pid';
@@ -427,11 +428,14 @@ function section<T>(
 /** `GET /api/p/:pid/config`. */
 async function config(read: ProjectRead): Promise<ProjectConfig> {
   const { view } = read;
-  const [dna, paths, workflows, types] = await Promise.all([
+  const [dna, paths, workflows, types, ui] = await Promise.all([
     read.settle(view.dna()),
     read.settle(view.paths()),
     read.settle(view.workflows()),
     read.settle(view.memoryTypes(), '.wingfoil/'),
+    // The effective ui.yaml (spec-012 §2, task-068): it needs memory.yaml, so it settles as the
+    // types do; a refusal adds no section (the types carry the error).
+    read.settle(view.uiConfig(), '.wingfoil/'),
   ]);
   const resolved = (yaml: MemoryYaml): MemoryYaml => ({
     ...yaml,
@@ -444,6 +448,7 @@ async function config(read: ProjectRead): Promise<ProjectConfig> {
     paths: section(paths),
     workflows: section(workflows),
     types: types.ok ? { data: resolved(types.value) } : { error: types.refusal.error },
+    ...(ui.ok ? { ui: uiConfigBody(ui.value) } : {}),
   };
 }
 

@@ -5,6 +5,7 @@
  * `/config` section (the split task of task-054), the progress and traceability routes (task-059)
  * and the preset write (task-060); the API shapes live in `contracts/`.
  */
+import type { UiConfigStatus } from '@wingfoil-ui/contracts';
 import type { UiCategory } from '../presets/ui-config.js';
 
 export type { UiCategory } from '../presets/ui-config.js';
@@ -43,13 +44,10 @@ export interface UiYaml {
 /**
  * Where the effective `ui.yaml` comes from (spec-012 §2 `status`): `file` a valid file, `none` no
  * entry at `.wingfoil/ui.yaml`, `ignored` an entry that is not used — with the warning, whose
- * `failure` has already passed the sanitiser of tool messages (`redactLocalPaths`).
+ * `failure` has already passed the sanitiser of tool messages (`redactLocalPaths`). The API type,
+ * shared as is by `/config`, `/progress` and `/traceability` (task-068).
  */
-export interface UiConfigStatus {
-  source: 'file' | 'none' | 'ignored';
-  warning?: { code: 'ui-config-ignored'; failure: string };
-}
-
+export type { UiConfigStatus } from '@wingfoil-ui/contracts';
 /** A value and its origin: written in a valid file, or inferred (spec-005 §2). */
 export interface Valued<T> {
   value: T;

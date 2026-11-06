@@ -2,7 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://wingfoil-ui.local/contracts/api/config.schema.json",
   "title": "GET /api/p/:pid/config",
-  "description": "DNA, paths, workflows and the types of memory.yaml with their resolved states (spec-004 §3, spec-001 §4.1); each section is the read or its error, so that a failure stays in its view (S-27.1). ui.yaml from v0.3.",
+  "description": "DNA, paths, workflows and the types of memory.yaml with their resolved states (spec-004 §3, spec-001 §4.1); each section is the read or its error, so that a failure stays in its view (S-27.1). the effective ui.yaml from v0.3 (ui, spec-012 §2), absent when memory.yaml cannot be read.",
   "type": "object",
   "required": ["dna", "paths", "workflows", "types"],
   "properties": {
@@ -177,6 +177,9 @@
           "additionalProperties": false
         }
       ]
+    },
+    "ui": {
+      "$ref": "ui-config.schema.json"
     }
   },
   "additionalProperties": false

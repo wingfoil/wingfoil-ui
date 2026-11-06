@@ -130,3 +130,4 @@ export type {
   UpdateSyncError,
 } from './git.js';
 export type { ConsoleAddressFile } from './state.js';
+export type { ElementRef, UiCategory, UiConfig, UiConfigStatus, UiOrigin, UiValued } from './ui-config.js';

@@ -28,6 +28,15 @@ release `v0.2` the git tag `v0.2.0` and the npm version `wingfoil-ui@0.2.0`.
   removed at stop; a file left by a killed console is removed at the next start. An agent can
   build a link to an element from it and from `state.json` (`docs/cli-reference.md`, *Address
   file for scripts and agents*).
+- **The project's `ui.yaml` configuration in the API** (task-054, task-068; spec-005, spec-012
+  §2): `GET /api/p/:pid/config` carries a `ui` section with the effective configuration of
+  `.wingfoil/ui.yaml` — categories, reference patterns and required references, the progress
+  settings, held gates and artifacts, each value marked `declared` or `inferred` — and, when the
+  file is not used, the reason (`ui.yaml ignored: progress.mode must be sequence or flow (found
+  spiral)`); without a file, the values inferred from the project's types. Every text echoed from
+  the file comes back with control and bidi characters escaped. An edit of `ui.yaml`, tracked,
+  untracked or ignored by git, refreshes open pages. No screen shows it yet: the Configuration
+  tabs are task-064's.
 
 ### Changed
 
