@@ -507,3 +507,47 @@ Checks (this worktree, after the fix): `npx vitest run test/server/state/console
 test/server/state/console-address-heartbeat.test.ts test/server/launcher/start-address.test.ts`
 (load 5.61): 3 files, 66 tests passed; typecheck, lint, format:check clean and
 `check_tasks.py v0.3` OK (load 6.07). Only `console-address.ts` changed among the non-test sources: no heavy gate re-run.
+
+### bug-030 (AC-9) (2026-11-05 … 2026-11-06)
+
+Absorbed on the approver's decision (`6a796066`; the phase branch merged into this one by the
+coordinator, `0045895b`).
+
+- **Where:** in `useTempRoot` (`test/harness/temp-root.ts`), which the global setup of every
+  runner calls in the **main process** — Vitest's `test/global-setup.ts` (`npm test`,
+  `test:coverage`, `test:timing` through its wrapper), `test/smoke/global-setup.ts`, Playwright's
+  `test/e2e/support/global-setup.ts`. Chosen over a `setupFiles` entry (per worker) because the
+  workers, and every process a test starts, inherit the main process's environment exactly as
+  they inherit `TMPDIR` today: one place, set before any worker exists, for every runner, with
+  the same restore on teardown; a `setupFiles` entry would cover the default suite's workers only
+  and have to find the root again.
+- **What:** `WINGFOIL_UI_STATE_DIR` = `<root>/state/` (`TEMP_STATE_DIR_ENV`). It wins over
+  `XDG_CONFIG_HOME`, `HOME` and `APPDATA` in `resolveStateDir` (spec-006 §1), so those are left as
+  they are: git and npm read them, and the tests that need a fake home get one from
+  `harnessEnv`. `harnessEnv` (`test/harness/fixtures/builder.ts`) removes the variable from its
+  copy of the environment, so the bin tests keep resolving their state directory under their own
+  home (or set their own) — unchanged; the location tests pass their own environment objects; the
+  e2e and smoke consoles set their own. `test/README.md` 0.60 *Temporary folders*. Test-only: no
+  CHANGELOG entry.
+- **Red** `2093da42` (`npx vitest run test/harness/temp-root.test.ts`, load 11.05): 2 of 8 failed —
+  "resolves the state directory under the run root (bug-030), in this process and in a child"
+  (it resolved the user's own directory: only resolved, nothing read or written) and the
+  `useTempRoot` variables test. The harness test ("leaves the bin tests' harness environment its
+  own state directory") passed before the change (nothing to inherit yet); its guard (`delete
+  env['WINGFOIL_UI_STATE_DIR']`) removed after green → it fails (recorded).
+- **Green** `bcc19b70`: `npx vitest run test/harness/temp-root.test.ts
+  test/server/state/location.test.ts test/server/main.test.ts test/launcher/state.test.ts` (load
+  9.22): 4 files, 27 tests passed. typecheck, lint, format:check, docs:api clean,
+  `check_tasks.py v0.3` OK (load 7.54).
+
+Gates (W1-13: no other worktree's heavy gate running before each slot, checked by a `pgrep`
+loop; the first waiter was killed by me — it matched its own command line, before taking any slot
+ticket — and re-run from a script file):
+
+| Gate | Slot wait · load (grant → end) | Result |
+|------|-------------------------------|--------|
+| `npm run test:coverage` | 5 s · 1.20 → 17.24 | 190 files passed, 1 skipped; 3708 tests passed, 2 skipped; statements 96.61 %, branches 91.3 % |
+| `npm run test:smoke` | 20 s · 12.76 → 11.48 | 4 passed (start 461 ms) |
+
+After the runs the user's state directory holds `state.json` only (listed after each gate), no
+console of this worktree is left.
