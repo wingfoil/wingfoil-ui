@@ -402,7 +402,7 @@ their Process Notes are their versioning).
   `^m<U+202E><U+0085>\d` comes back `^m\u202e\x85\d`. Both failed on the doubled backslash
   (`expected '^m\u202e\x85\\d' to deeply equal '^m\u202e\x85\d'`). The bidi characters of
   this task's test sources are now written as `\u202e` escapes, not raw.
-- **Green** (`<this commit>`): `neutraliseKeepingBackslashes` in `server/src/git/redact.ts` — the
+- **Green** (`6b5c7cc0`): `neutraliseKeepingBackslashes` in `server/src/git/redact.ts` — the
   same escape of the unsafe characters (one shared `visibleEscape`, `neutralise` unchanged), no
   backslash rule; `uiConfigBody` uses it for `patterns[].match` only; its own unit test in
   `test/server/git/redact.test.ts`. spec-012 §9 and spec-004 §5 amended with dated Process Notes.
@@ -423,3 +423,10 @@ their Process Notes are their versioning).
   followed)", the rule bug-033's fix enforces: §4.4 promised that rule already, and the fix makes
   the fingerprint keep it also for a link among an entry's folders — so §4.4 holds as written for
   AC-5, and no behaviour §4.4 promised changes.
+- **Gates** (on `6b5c7cc0`; W1-13 checked before the slot request: none running): `npm run
+  typecheck`, `npm run lint`, `npm run format:check`, `npm run docs:api` clean; `check_tasks.py v0.3`
+  OK; the public-text check 67 passed. `test/contracts`, `server/http/ui-config-route`,
+  `server/ui-config/`, `server/git/redact` under the strict-identity recipe, load 4.01 → 7.01: 24
+  files, 635 passed (2 skipped). `npm run test:coverage` through the slot — wait 5 s, load 6.28 at
+  grant → 22.10 at the end: 203 files, 3 984 passed (2 skipped); statements 96.59 %, branches
+  91.27 %, functions 97.42 %, lines 98.40 %. No web code changed: no e2e re-run.
