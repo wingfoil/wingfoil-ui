@@ -14,6 +14,11 @@ import { harnessEnv } from '../../harness/fixtures/index.js';
 import { git } from '../../harness/run.js';
 import { FakeProcessRunner } from '../process/fake-runner.js';
 
+/** The test process's environment without author variables (an agent session sets them, task-050). */
+const NO_AUTHOR: NodeJS.ProcessEnv = Object.fromEntries(
+  Object.entries(process.env).filter(([k]) => !/^GIT_(AUTHOR|COMMITTER)_/i.test(k)),
+);
+
 let root: string;
 let env: NodeJS.ProcessEnv;
 let repo: string;
@@ -94,17 +99,21 @@ describe('gitEnv (shared with the snapshot and the runner, bug-002)', () => {
   });
 
   it('W4-13: an answer whose pipes were cut (drained) is refused, not read', async () => {
-    const runner = new FakeProcessRunner().answer({ stdout: 'a@b\n', drained: true });
-    await expect(readGitEmail('/p', { runner, git: '/g' })).rejects.toThrow();
+    const runner = new FakeProcessRunner().answer({ stdout: 'user.email\na@b\0', drained: true });
+    await expect(readGitEmail('/p', { runner, git: '/g', env: NO_AUTHOR })).rejects.toThrow();
   });
 
   it("is applied to the server's own environment by default", async () => {
-    const runner = new FakeProcessRunner().answer({ stdout: 'a@b\n' });
+    const runner = new FakeProcessRunner().answer({ stdout: 'user.email\na@b\0' });
+    // The session running the tests may carry author variables (an agent's, task-050): not here.
+    const saved = process.env.GIT_AUTHOR_EMAIL;
+    delete process.env.GIT_AUTHOR_EMAIL;
     process.env.GIT_DIR = '/elsewhere/.git';
     try {
-      await readGitEmail('/p', { runner, git: '/g' });
+      expect(await readGitEmail('/p', { runner, git: '/g' })).toBe('a@b');
     } finally {
       delete process.env.GIT_DIR;
+      if (saved !== undefined) process.env.GIT_AUTHOR_EMAIL = saved;
     }
     expect(runner.requests[0]!.env).toBeDefined();
     expect(runner.requests[0]!.env!.GIT_DIR).toBeUndefined();
@@ -112,34 +121,50 @@ describe('gitEnv (shared with the snapshot and the runner, bug-002)', () => {
 });
 
 describe('readGitEmail — through the runner port', () => {
-  it('runs `git config --get user.email` in the project folder, without a shell', async () => {
-    const runner = new FakeProcessRunner().answer({ stdout: 'alex@example.test\n' });
-    expect(await readGitEmail('/p/kanban', { runner, git: '/usr/bin/git' })).toBe('alex@example.test');
+  it('runs `git config -z --get-regexp` of the author email in the project folder, without a shell (bug-029)', async () => {
+    const runner = new FakeProcessRunner().answer({ stdout: 'user.email\nalex@example.test\0' });
+    expect(await readGitEmail('/p/kanban', { runner, git: '/usr/bin/git', env: NO_AUTHOR })).toBe('alex@example.test');
     expect(runner.requests).toHaveLength(1);
     expect(runner.requests[0]).toMatchObject({
       file: '/usr/bin/git',
       // Review round 5 s-nit-4: the read settings of GitReads first.
-      args: ['-c', 'core.fsmonitor=false', '-c', 'protocol.allow=never', 'config', '--get', 'user.email'],
+      args: [
+        '-c',
+        'core.fsmonitor=false',
+        '-c',
+        'protocol.allow=never',
+        '--no-optional-locks',
+        'config',
+        '-z',
+        '--get-regexp',
+        '^(author|user)\\.email$',
+      ],
       cwd: '/p/kanban',
     });
   });
 
   it('treats exit 1 (unset) and a blank value as no email', async () => {
     expect(
-      await readGitEmail('/p', { runner: new FakeProcessRunner().answer({ exitCode: 1 }), git: '/g' }),
+      await readGitEmail('/p', { runner: new FakeProcessRunner().answer({ exitCode: 1 }), git: '/g', env: NO_AUTHOR }),
     ).toBeUndefined();
     expect(
-      await readGitEmail('/p', { runner: new FakeProcessRunner().answer({ stdout: '  \n' }), git: '/g' }),
+      await readGitEmail('/p', {
+        runner: new FakeProcessRunner().answer({ stdout: 'user.email\n  \0' }),
+        git: '/g',
+        env: NO_AUTHOR,
+      }),
     ).toBeUndefined();
   });
 
   it('fails on any other end (bad configuration, timeout), without the stderr text', async () => {
     const bad = new FakeProcessRunner().answer({ exitCode: 3, stderr: 'fatal: bad config line 1 secret' });
-    const error = await readGitEmail('/p', { runner: bad, git: '/g' }).catch((e: unknown) => e);
+    const error = await readGitEmail('/p', { runner: bad, git: '/g', env: NO_AUTHOR }).catch((e: unknown) => e);
     expect(error).toBeInstanceOf(GitConfigError);
     expect((error as Error).message).not.toContain('secret');
     const timeout = new FakeProcessRunner().answer({ ended: 'timeout', exitCode: null, signal: 'SIGKILL' });
-    await expect(readGitEmail('/p', { runner: timeout, git: '/g' })).rejects.toBeInstanceOf(GitConfigError);
+    await expect(readGitEmail('/p', { runner: timeout, git: '/g', env: NO_AUTHOR })).rejects.toBeInstanceOf(
+      GitConfigError,
+    );
   });
 });
 
@@ -182,9 +207,11 @@ describe('readGitEmail — the read settings of GitReads', () => {
       'core.fsmonitor=false',
       '-c',
       'protocol.allow=never',
+      '--no-optional-locks',
       'config',
-      '--get',
-      'user.email',
+      '-z',
+      '--get-regexp',
+      '^(author|user)\\.email$',
     ]);
     expect(runner.requests[0]!.env).toEqual({ HOME: '/h', GIT_ALLOW_PROTOCOL: 'none', GIT_NO_LAZY_FETCH: '1' });
   });

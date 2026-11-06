@@ -1,6 +1,6 @@
 /**
  * The repository state of a project (adr-001 D6, REQ-STATE-01/02): HEAD, the hash of the
- * working-tree status, the effective `user.email`, the paths with local changes and, from v0.2,
+ * working-tree status, the effective author email (bug-029), the paths with local changes and, from v0.2,
  * the copy against its remote (spec-010 §1). Its `key` (`<HEAD sha>.<status hash>`) is the
  * `X-Repo-State` header of the read responses and the `state` of the `repo` event (spec-004 §5–6);
  * the status hash covers the copy's inputs too — branch, upstream, ahead/behind, the remote list and
@@ -22,7 +22,10 @@ export interface RepoState extends Copy {
   statusHash: string;
   /** `<head>.<statusHash>`. */
   key: string;
-  /** Effective `git config user.email` (repository, else global), or `undefined`. */
+  /**
+   * The author email the CLI authorises (bug-029, REQ-STATE-05): `GIT_AUTHOR_EMAIL`, else
+   * `author.email`, else `user.email` (repository, else global), or `undefined`.
+   */
   email: string | undefined;
   /**
    * Paths, relative to the project root, of every entry of the status — modified, staged,

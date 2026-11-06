@@ -7,7 +7,8 @@
  * | Read | Command |
  * |------|---------|
  * | HEAD and the working tree, in one process | `git status --porcelain=v2 --branch -z --untracked-files=all` |
- * | the effective identity (repository, else global configuration) | `git config user.email` |
+ * | the effective identity: the author the CLI authorises (`GIT_AUTHOR_EMAIL` of the environment, else `author.email`, else `user.email`; bug-029, SARD REQ-STATE-05) | `git config -z --get-regexp ^(author\|user)\.email$` (none when the variable is set) |
+ * | the blobs of the Memory files at HEAD, once per new HEAD (the reference index's reuse, spec-012 §8) | `git ls-tree -r -z HEAD -- <Memory directories>` |
  * | the layout, once per project | `git rev-parse --show-prefix --absolute-git-dir --git-common-dir` |
  * | the URL of `origin`, when a project is added (duplicate check) and on every open (spec-006 §2, once per state) | `git remote get-url origin` |
  * | the Memory events, once per HEAD (spec-002 §3), with their sha order (`log --format=%H%x00`) | `git log --no-color --no-renames --no-ext-diff --no-textconv --unified=0 -p --format=… <HEAD> -- <Memory directories>` |
@@ -36,7 +37,8 @@ export const UNBORN_HEAD = '0'.repeat(40);
 /** The arguments of each read: the closed list this module runs. */
 export const GIT_READ_ARGS = {
   status: ['--no-optional-locks', 'status', '--porcelain=v2', '--branch', '-z', '--untracked-files=all'],
-  email: ['--no-optional-locks', 'config', 'user.email'],
+  // bug-029: the author's email as WingFoil resolves it (`author.email`, then `user.email`).
+  email: ['--no-optional-locks', 'config', '-z', '--get-regexp', '^(author|user)\\.email$'],
   layout: ['--no-optional-locks', 'rev-parse', '--show-prefix', '--absolute-git-dir', '--git-common-dir'],
   origin: ['--no-optional-locks', 'remote', 'get-url', 'origin'],
   // task-033 (spec-010 §1, §4, §5).
@@ -414,13 +416,33 @@ export class GitReads {
     return parseStatus((await this.read(GIT_READ_ARGS.status)).stdout);
   }
 
-  /** The effective `user.email`, or `undefined` when none is set. */
+  /**
+   * The email of the author the WingFoil CLI authorises (bug-029, SARD REQ-STATE-05; `wingfoil-cli`
+   * W-39): `GIT_AUTHOR_EMAIL` of the environment when set (no process), else `author.email`, else
+   * `user.email`; `undefined` when none (or blank).
+   */
   async email(): Promise<string | undefined> {
+    const fromEnv = authorEmailVariable(this.base);
+    if (fromEnv !== undefined) return fromEnv.trim() || undefined;
     const result = await this.run(GIT_READ_ARGS.email);
-    // `git config <key>` exits 1 when the key is not set.
+    // `git config --get-regexp` exits 1 when no key matches.
     if (result.ended === 'exit' && result.exitCode === 1) return undefined;
-    const email = this.check(result).stdout.trim();
-    return email === '' ? undefined : email;
+    return authorEmailOfConfig(this.check(result).stdout);
+  }
+
+  /**
+   * The regular files at the commit `head` under `dirs` (Memory directories relative to the project):
+   * path relative to the project root → blob id (one `git ls-tree -r`; no directory → no process).
+   */
+  async treeBlobs(dirs: readonly string[], head: string): Promise<Map<string, string>> {
+    const blobs = new Map<string, string>();
+    if (dirs.length === 0) return blobs;
+    const out = (await this.read([...GIT_READ_ARGS.lsTree, '-r', commitArg(head), '--', ...dirs])).stdout;
+    for (const record of splitNul(out)) {
+      const entry = /^(?:100644|100755) blob ([0-9a-f]+)\t(.*)$/s.exec(record);
+      if (entry) blobs.set(entry[2]!, entry[1]!);
+    }
+    return blobs;
   }
 
   /**
@@ -732,4 +754,28 @@ export function absolutePath(
             .filter((e) => e !== '' && isAbsolute(e))
             .join(sep),
   };
+}
+
+/** `GIT_AUTHOR_EMAIL` of `env` (any letter case on Windows), or `undefined` when it is not set. */
+export function authorEmailVariable(
+  env: NodeJS.ProcessEnv,
+  platform: NodeJS.Platform = process.platform,
+): string | undefined {
+  if (platform !== 'win32') return env['GIT_AUTHOR_EMAIL'];
+  const key = Object.keys(env).find((k) => k.toUpperCase() === 'GIT_AUTHOR_EMAIL');
+  return key === undefined ? undefined : env[key];
+}
+
+/**
+ * The author email of a `git config -z --get-regexp '^(author|user)\.email$'` output (`key\nvalue\0`
+ * per setting, lowest scope first): the last `author.email`, else the last `user.email`, each
+ * trimmed, a blank one falling through — WingFoil's `resolveField` (`dist/core/git-identity.js`).
+ */
+export function authorEmailOfConfig(stdout: string): string | undefined {
+  const values = new Map<string, string>();
+  for (const record of stdout.split(String.fromCharCode(0))) {
+    const newline = record.indexOf('\n');
+    if (newline >= 0) values.set(record.slice(0, newline), record.slice(newline + 1).trim());
+  }
+  return values.get('author.email') || values.get('user.email') || undefined;
 }

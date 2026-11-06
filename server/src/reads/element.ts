@@ -23,6 +23,22 @@ export function parseElement(text: string, file: string): Omit<ElementContent, '
   return parseFrontmatterFile<ElementFrontmatter>(text, file, 'files/element.schema.json');
 }
 
+/** A {@link DirectReadError} `mismatch` when the file's `id`, `type` or `status` differ from `match`. */
+export function checkMatch(
+  frontmatter: Pick<ElementFrontmatter, 'id' | 'type' | 'status'>,
+  match: Pick<MemoryMatch, 'path' | 'id' | 'type' | 'status'>,
+): void {
+  for (const field of ['id', 'type', 'status'] as const) {
+    if (frontmatter[field] !== match[field]) {
+      throw new DirectReadError(
+        'mismatch',
+        match.path,
+        `${match.path}: ${field} "${frontmatter[field]}" differs from memory search ("${match[field]}")`,
+      );
+    }
+  }
+}
+
 /** Read the element of `match`, a match of `memory search` on the project at `root`. */
 export async function readElement(
   root: string,
@@ -30,14 +46,6 @@ export async function readElement(
   fs: ReadFs = nodeReadFs,
 ): Promise<ElementContent> {
   const parsed = parseElement(await readConfined(root, root, match.path, fs), match.path);
-  for (const field of ['id', 'type', 'status'] as const) {
-    if (parsed.frontmatter[field] !== match[field]) {
-      throw new DirectReadError(
-        'mismatch',
-        match.path,
-        `${match.path}: ${field} "${parsed.frontmatter[field]}" differs from memory search ("${match[field]}")`,
-      );
-    }
-  }
+  checkMatch(parsed.frontmatter, match);
   return { path: match.path, ...parsed };
 }

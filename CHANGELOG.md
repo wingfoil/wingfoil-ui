@@ -28,6 +28,14 @@ release `v0.2` the git tag `v0.2.0` and the npm version `wingfoil-ui@0.2.0`.
   removed at stop; a file left by a killed console is removed at the next start. An agent can
   build a link to an element from it and from `state.json` (`docs/cli-reference.md`, *Address
   file for scripts and agents*).
+- **The reference index** (task-055, spec-012 §1, §8): the server's one index of every element's
+  frontmatter values and the references they make — another element's full id, or a value matching
+  a `taxonomy.patterns` entry of `.wingfoil/ui.yaml` — shared by the progress, traceability and
+  held-gate features of later tasks. It keeps values only (at most 200 per element), reads at most
+  16 element files at a time, reuses a file's values on the next repository state when the file
+  is unchanged at HEAD (one `git ls-tree` per commit, no WingFoil process), and spends at most
+  500 ms per state testing patterns, so a costly `ui.yaml` cannot stall the console; an element it
+  could not read or index fully is named, never failing the whole. Nothing shows it yet.
 
 ### Changed
 
@@ -49,6 +57,14 @@ release `v0.2` the git tag `v0.2.0` and the npm version `wingfoil-ui@0.2.0`.
 
 ### Fixed
 
+- **The identity is the author WingFoil authorises** (bug-029): the console reads who you are as
+  the WingFoil CLI does — `GIT_AUTHOR_EMAIL` of its environment, else `author.email`, else
+  `user.email` — so a console started with another author identity no longer offers *Approve* or
+  *Reject* that the CLI then refuses; the header names that identity.
+- **A large frontmatter no longer blocks the console** (bug-032): an element whose frontmatter
+  holds many keys is parsed in time linear in its size (1 MiB of keys took about 99 s, now about
+  2 s), a duplicate key still refused with its line; the reference index refuses a frontmatter
+  above 64 KiB as unreadable.
 - **An element whose id is longer than 100 characters can be opened and decided** (bug-019,
   task-057): the server refused a path parameter over 100 characters, so such an element was
   listed but its panel showed *not found* and its gate could not be decided. A path parameter of
