@@ -370,7 +370,9 @@ every object `additionalProperties: false`, as the other API schemas.
   the escape are one reference) and the **`ui.yaml` strings echoed** by `/config` `ui`
   (`patterns[].match`, type names, `phases`, `holds` types and states, `artifacts` paths) — a
   `match`, a regular-expression source, with its backslashes kept as written (the unsafe characters
-  escaped the same way: a visible `\u202e` is the same expression as the raw character). The
+  escaped the same way: a visible `\u202e` is the same expression as the raw character); a
+  consumer matching a `ui` type or state name against `/config` `types`, which keeps them raw,
+  compares it with the escaped name. The
   rule is spec-004 §5's (amended with this spec); it lands with bug-027's task (the same class:
   repository text that reached the page unescaped). Element ids, types and states of `memory
   search` stay as returned: they are the keys the web sends back to the API (an element
@@ -502,3 +504,7 @@ every object `additionalProperties: false`, as the other API schemas.
   by the approver, Q4 (b)): §9 a `patterns[].match` echoed by `/config` `ui` keeps its backslashes
   (the character escape doubles them elsewhere): the shipped `^(P\d|Journey)` reads as written;
   its unsafe characters are escaped as before.
+  The same day (task-068 review round 1): the type and state names `ui` echoes are escaped while
+  `/config` `types` returns them raw (`a\b` reads `a\\b` in `ui`), so a consumer matching a `ui`
+  type or state name against `types` compares it with the escaped key (`neutralise` of the
+  `types` name).
