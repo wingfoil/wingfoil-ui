@@ -326,3 +326,65 @@ values. §8 an edit of `.wingfoil/ui.yaml` changes the key also when git ignores
 hash combines its own mark"); **Q3 (a)** — the fingerprint fixed here, red first: bug-033
 (ingested by the coordinator, low, absorbed as AC-5, `backlog-item-rel-v0.3-plan` W1-17); spec-001
 §4.4 holds as written ("never followed").
+
+### red / green / refactor (2026-11-06)
+
+- **Merge and specs before red.** The phase branch merged in (`d29a7722`, bug-033 as AC-5, W1-17);
+  the specs of Q1 (a) and Q2 (a) amended (`0badc00f`): spec-001 §4.4 and spec-004 §5 with dated
+  Process Notes, REQ-STATE-02 (SARD `03_state-context.md` 0.10), spec-012's Process Note.
+- **Red** (`bfbada41`), each new or changed file run on its own (`npx vitest run <files>`):
+  `test/server/reads/ui-yaml-mark.test.ts` (new) 7 failed on the missing `uiYamlMark`;
+  `test/server/snapshot/fingerprint.test.ts` › bug-033 2 failed on the assertions (`expected 2 to
+  be +0` files read through the linked `.wingfoil`; `expected 3 to be 1`); `test/server/snapshot/
+  ui-config.test.ts` › the two ignored cases failed on the assertion (the key unchanged after the
+  creation: design probe P1), the untracked and tracked cases passed (characterization);
+  `test/server/reads/project-reads.test.ts` › the mark's spy 2 failed; `test/server/ui-config/
+  body.test.ts` and `test/contracts/ui-config-api-schema.test.ts` failed on their missing module;
+  `test/server/http/ui-config-route.test.ts` 17 of 18 failed on the missing `ui` (the one passing:
+  no `ui` with an unreadable `memory.yaml`, which holds before); the `/config` audit of
+  `test/server/snapshot/process-audit.test.ts` failed on the missing `ui`.
+- **Green** (`ef931bad`): `contracts/api/ui-config.schema.json`, `config.schema.json`'s `ui`,
+  `contracts/src/ui-config.ts` and its export; `server/src/ui-config/body.ts` (`uiConfigBody`,
+  `ECHOED_UI_FIELDS`); the route (`read.settle(view.uiConfig())`, `ui` only when it settles);
+  `server/src/reads/ui-yaml.ts` — the guarded steps moved into one `inspect` used by `readUiYaml`
+  (unchanged behaviour: its 30 tests pass untouched) and by the new `uiYamlMark`; `runCheck`
+  combines the mark (`combinedHash`'s third part); `server/src/snapshot/fingerprint.ts` — each
+  entry's folders `lstat`ed once per check, an entry under one that is not a real directory marked
+  `via:<folder>:<stat>` with no read (bug-033); `CHANGELOG.md` *Added* (D68-12), `test/README.md`
+  0.62. `npm run docs:api` clean.
+- **Guard removal** (each edit reverted after its run): the mark taken out of `combinedHash` →
+  the two ignored cases of `snapshot/ui-config.test.ts` fail, the tracked and untracked ones stay
+  green through the fingerprint (their characterization); `echo` made the identity in `body.ts` →
+  the K1 test and the sw-life-cycle mapping of `ui-config/body.test.ts` fail.
+- **Deviations.** (1) The design's status `if`/`then`/`else` fails Ajv's strict mode
+  (`strictRequired`): written as a `oneOf` of `{source: file | none}` and `{source: ignored,
+  warning}`, and a test compiles the schema in strict mode. (2) The first `/config` process audit
+  started two consoles in one test body and failed `test/lint/one-console-per-test.test.ts`
+  (bug-023's rule) in the first coverage run: rewritten on one console, asserting the cold
+  `/config` processes by name — `dna show`, `paths`, `workflow list` and the git of the open and
+  the first state (`rev-parse`, `status`, `config` ×2, `remote`), as without a `ui.yaml` — plus a
+  warm read 0, `.git` unchanged, and a check after an ignored edit starting the same git as a check
+  with no change (`b2571ca8`). (3) **Q4, found at green, sent to the coordinator:** `neutralise`
+  doubles a backslash, so the sw-life-cycle pattern `^(P\d|Journey)` is echoed `^(P\\d|Journey)`;
+  options (a) the spec as written, (b) for `patterns[].match` only an escape that leaves the
+  backslash (a visible `‮` is the same regex as the raw character), (c) (b) for every `ui`
+  string; recommended (b). Built as (a), the spec as written, until the answer
+  (`ui-config/body.test.ts` pins it). (4) T-12.4 sets only `minor-v0.1` `released` by hand on the
+  copy (the custom fixture has no second release): at the API level the scope type does not depend
+  on it; the scenario's figures are task-059's. (5) Refactor: none beyond the shared `inspect` of
+  green.
+- **Gates** (on `b2571ca8`; W1-13 checked before each slot request with `pgrep -af 'vitest run
+  --coverage|playwright|test:smoke'`: none running; logs in the session's scratch folder):
+  `npm run typecheck`, `npm run lint`, `npm run format:check` clean; `npm run docs:api` clean;
+  `check_tasks.py v0.3` OK. `npm run test:coverage` through the slot — wait 5 s, load 5.68 at grant
+  → 14.47 at the end: 203 files, 3 983 passed (2 skipped); statements 96.61 %, branches 91.28 %,
+  functions 97.42 %, lines 98.40 % (`reads/ui-yaml.ts` 96.25 %, `snapshot/fingerprint.ts` 97.22 %).
+  An earlier run on `ef931bad` (wait 5 s, load 10.57 → 9.71) failed only on the one-console rule,
+  fixed by `b2571ca8`. `npm run test:contract` under the strict-identity recipe (a `git` wrapper
+  first on the `PATH` with `-c user.useConfigOnly=true` and the `followRemoteHEAD` emulation,
+  `test/README.md` *Git identity*), load 14.01 → 7.18: 16 files, 434 passed (2 skipped); the
+  git-touching suites of this task (`snapshot/ui-config`, `http/ui-config-route`,
+  `snapshot/fingerprint`, `reads/project-reads`, `reads/ui-yaml-mark`) under the same recipe,
+  load 17.42 → 12.77: 51 passed. `npm run test:e2e:chromium` through the slot — wait 6 s, load 6.37
+  at grant → 17.84: 323 passed (19.3 min); no web code changed, so no spec of this task on the three
+  engines. No console of this task left; no `wfui-*` entry.
