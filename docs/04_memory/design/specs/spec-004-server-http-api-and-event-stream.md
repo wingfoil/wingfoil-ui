@@ -307,7 +307,7 @@ ids, types and states stay as `memory search` returns them: they are the keys a 
 
 | `event` | `data` | When |
 |---------|--------|------|
-| `repo` | `{pid, state}` | HEAD, working-tree status, branch, upstream, ahead/behind, the remote list or effective `user.email` of a project changed (REQ-STATE-02, spec-010 §2); also, with the same `state`, only when `sync.fetch.lastError` or `sync.update.lastError` is set, changed or cleared (spec-010 §2–§3) — never for a new `lastSuccessAt` alone |
+| `repo` | `{pid, state}` | HEAD, working-tree status, branch, upstream, ahead/behind, the remote list or the effective author email of a project changed (REQ-STATE-02, REQ-STATE-05: `GIT_AUTHOR_EMAIL`, else `author.email`, else `user.email`; spec-010 §2); also, with the same `state`, only when `sync.fetch.lastError` or `sync.update.lastError` is set, changed or cleared (spec-010 §2–§3) — never for a new `lastSuccessAt` alone |
 | `projects` | `{}` | the project list or a project's availability changed |
 | `settings` | `{}` | UI settings changed (another tab) |
 | `write` | `{pid, eid?, commit}` | a write finished (other tabs show the result); without `eid` for the preset write (v0.3, spec-005 §5) |
@@ -482,3 +482,6 @@ goes away by itself when the stream reconnects. A network failure is not rendere
   full id only, `element.shortId` and the refusal schema `element.refusal.schema.json`; §4 a route
   parameter over 255 UTF-16 code units of its decoded value → 404 `not-found` on every method,
   after rows 1–2 (bug-019, C1); §5 the 409 `ambiguous-id` row.
+- 2026-11-06 — amended in task-055 (bug-029; design Q4-a, decided by the approver): §6 the `repo`
+  row names the effective author email the identity is read from (`GIT_AUTHOR_EMAIL`, else
+  `author.email`, else `user.email`, SARD REQ-STATE-05), in place of `user.email` alone.

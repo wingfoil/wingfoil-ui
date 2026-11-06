@@ -1,6 +1,6 @@
 # SARD — 3. State & Context
 
-**Version:** 0.9 · **Date:** 2026-11-03 (0.2: coherence audit fixes — session 6; 0.3: REQ-STATE-08 last non-archived state — initial-design session 6; 0.4: REQ-STATE-06 v0.1 scope — release-planning v0.1 session 4 (audit A4); 0.5: REQ-STATE-02 content fingerprint in the state key — dev-loop task-010; 0.6: REQ-STATE-09 fetch interval and action-log cap as settings — release-planning v0.2 session 2, RP-19/RP-26; 0.7: REQ-STATE-04 rationale worded for the automatic `merge --ff-only` — RP-41; 0.8: REQ-STATE-08 the 0.2.2 derivation on every version in v0.3, held gates — release-planning v0.3, RP3-14 D2, D5; its review rounds 1–2, F8, m2; 0.9: REQ-STATE-08 the scenarios of spec-011 §8, spec-012 §11 and adr-003 traced — release-planning v0.3 build-backlog (B3), decided by the approver) · **Status:** Draft — specification-downcast session 4
+**Version:** 0.10 · **Date:** 2026-11-06 (0.2: coherence audit fixes — session 6; 0.3: REQ-STATE-08 last non-archived state — initial-design session 6; 0.4: REQ-STATE-06 v0.1 scope — release-planning v0.1 session 4 (audit A4); 0.5: REQ-STATE-02 content fingerprint in the state key — dev-loop task-010; 0.6: REQ-STATE-09 fetch interval and action-log cap as settings — release-planning v0.2 session 2, RP-19/RP-26; 0.7: REQ-STATE-04 rationale worded for the automatic `merge --ff-only` — RP-41; 0.8: REQ-STATE-08 the 0.2.2 derivation on every version in v0.3, held gates — release-planning v0.3, RP3-14 D2, D5; its review rounds 1–2, F8, m2; 0.9: REQ-STATE-08 the scenarios of spec-011 §8, spec-012 §11 and adr-003 traced — release-planning v0.3 build-backlog (B3), decided by the approver; 0.10: REQ-STATE-02, REQ-STATE-05 the identity read as the CLI resolves the author — task-055, bug-029, Q4-a) · **Status:** Draft — specification-downcast session 4
 
 Shell and conventions: `00_sard.md`.
 
@@ -22,10 +22,10 @@ Shell and conventions: `00_sard.md`.
 | Field | |
 |-------|--|
 | Release | v0.1 |
-| Description | Cached CLI and git reads are keyed on the commit of HEAD **and** a hash of `git status --porcelain` combined with a fingerprint of the working-tree content of each changed and untracked entry (computed by the server, no extra git command); a change of either invalidates them, so a second edit of a file that is already modified changes the state too. The effective `user.email` (repository and global git configuration) is watched too and re-evaluates the identity. Changes are detected by file watching, with a periodic check as a fallback. |
+| Description | Cached CLI and git reads are keyed on the commit of HEAD **and** a hash of `git status --porcelain` combined with a fingerprint of the working-tree content of each changed and untracked entry (computed by the server, no extra git command); a change of either invalidates them, so a second edit of a file that is already modified changes the state too. The effective author email (REQ-STATE-05: `GIT_AUTHOR_EMAIL`, else `author.email`, else `user.email` of the repository and global git configuration) is watched too and re-evaluates the identity. Changes are detected by file watching, with a periodic check as a fallback. |
 | Rationale | Correct with uncommitted edits, cheap otherwise (ADR draft). |
 | Traceability | US-S-26 · S-26.1, S-26.3 · S8 |
-| Fit criterion | [boolean] A unit test shows a cache miss after a commit and after a working-tree edit, including a second edit of an already-modified file, a cache hit when neither changed, and a new identity after a change of `user.email`. |
+| Fit criterion | [boolean] A unit test shows a cache miss after a commit and after a working-tree edit, including a second edit of an already-modified file, a cache hit when neither changed, and a new identity after a change of `user.email` or `author.email`. |
 | Verified by | unit |
 
 ### REQ-STATE-03 — Governed actions refused on local changes
@@ -55,10 +55,10 @@ Shell and conventions: `00_sard.md`.
 | Field | |
 |-------|--|
 | Release | v0.1 |
-| Description | The user is the effective `git config user.email` of the project (repository, else global), matched case-insensitively to `dna.team.members[].email`. Not in the team, no email, or an email matching several members → read-only, with the reason. Re-evaluated on change of the git configuration or the DNA. |
+| Description | The user is the effective author email of the project, resolved as the WingFoil CLI resolves the author it authorises (`git commit`'s order, `wingfoil-cli` W-39): `GIT_AUTHOR_EMAIL` of the console's environment when set (trimmed; blank means no email), else `author.email`, else `user.email` (repository, else global configuration) — never the `EMAIL` variable nor git's hostname guess; matched case-insensitively to `dna.team.members[].email`. Not in the team, no email, or an email matching several members → read-only, with the reason. Re-evaluated on change of the git configuration or the DNA. |
 | Rationale | No accounts; same identity as the CLI (ADR draft, S4). |
 | Traceability | US-S-12, US-S-13, US-S-14, US-S-15 · S-12.1, S-12.2, S-12.3, S-13.1, S-13.3, S-14.1, S-14.2, S-15.1, S-15.3 · S4 |
-| Fit criterion | [boolean] Every listed scenario passes; the identity shown always equals the member whose email matches `git config user.email` of the fixture. |
+| Fit criterion | [boolean] Every listed scenario passes; the identity shown always equals the member whose email matches the fixture's author email as above (`git config user.email` when no `GIT_AUTHOR_EMAIL` or `author.email` is set). |
 | Verified by | unit · e2e |
 
 ### REQ-STATE-06 — Role views
@@ -124,3 +124,8 @@ Shell and conventions: `00_sard.md`.
   with the pre-packs states — with the packs `bug` `triaged` is a gate, so approving
   `bug-001-toast-overlap` to it leaves 3 pending gates; the other figures are unchanged. Round 2
   (m2): REQ-STATE-06 traces S-23.5 (the role view switched from the line of role tags, N1).
+- 2026-11-06 — amended in task-055 (bug-029; design Q4-a, decided by the approver): REQ-STATE-05
+  reads the identity as the CLI resolves the author it authorises — `GIT_AUTHOR_EMAIL`, then
+  `author.email`, then `user.email` (one `git config -z --get-regexp '^(author|user)\.email$'`),
+  not `git var GIT_AUTHOR_IDENT`, which follows `EMAIL` and git's hostname guess where the CLI does
+  not; REQ-STATE-02 watches that email (an `author.email` change re-evaluates the identity).

@@ -66,7 +66,8 @@ One element carrying a value twice (two fields, or a list repeating it) is linke
 **At most 200 values per element** are kept, in field order then list order; an element with more
 is indexed on its first 200 and named in the route's `capped` list, as `unreadable` names an
 unreadable file (§3–§5): a figure or a flag that involves it may be incomplete, and the page says
-so.
+so. `capped` means **indexed incompletely**: more than 200 values, or values not yet tested
+against the patterns within the budget below (rule 2).
 
 **References** (spec-005 §4, in this order, the first that applies):
 
@@ -77,6 +78,16 @@ so.
    holds no line break (LF or CR) and matches a `taxonomy.patterns[].match` (the first entry that
    matches, in file order) → a *pattern reference*, category = that entry's;
 3. otherwise the value is not a reference.
+
+**Pattern budget** (rule 2's cost; `taxonomy.patterns` is repository content, and the safe subset
+of spec-005 §1 bounds one test, not the index — task-055's design, P5: 32 patterns of the subset
+cost up to about 124 ms per 256-character value). The result of rule 2 is kept per distinct value
+for one effective pattern list (its entries' `match` and `category`, in order), across states, so
+a new state tests only values not tested before. One index build spends at most **500 ms** of
+measured pattern-test time, in slices of about 20 ms with the event loop served between slices;
+a value still untested when the budget is spent is no pattern reference in that state and its
+element is named in `capped`; the next build goes on from the kept results. A project whose
+patterns cost what the presets' do never reaches the budget (P6: 6 000 tests for 500 elements).
 
 Rule 1 compares **full** ids only: a value holding a short id (`task-046`, spec-011 §1) equals no
 full id and is not an element reference (rule 2 may still apply); WingFoil 0.3.2 accepts short
@@ -491,3 +502,14 @@ every object `additionalProperties: false`, as the other API schemas.
   the detail as §4.8).
 - 2026-11-03 — the independent check, round 2: a value set is stored under a blob id only when
   its file was clean at read time (§8, §11); a rewrap of §1 *Cost*.
+- 2026-11-06 — amended in task-055 (design Q2-a, decided by the approver): §1 the pattern budget —
+  rule 2's results kept per distinct value and pattern list across states, at most 500 ms of
+  pattern-test time per index build in slices of about 20 ms, an untested value no pattern
+  reference in that state — and `capped` read as "indexed incompletely" (more than 200 values, or
+  values not yet tested). Clarifications, no rule change: the YAML 1.2 core schema of spec-001 §4.2
+  has no timestamp type, so an unquoted date is a string value (§1 "dates" names a type the parse
+  never yields); the 200 values are distinct values; a value's 256 characters are code points.
+  Declared residual of §8's reuse: a file stored as committed whose later edit `git status` hides
+  (`assume-unchanged`, `skip-worktree`) is read as the committed values until its blob changes — the
+  state key misses that edit too; a value set is stored only when the bytes read hash to the blob at
+  HEAD (task-055 D55-6).
