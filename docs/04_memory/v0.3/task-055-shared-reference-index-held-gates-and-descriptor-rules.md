@@ -165,3 +165,327 @@ R-2; A-1, A-2), Today lists a task approved into `backlog` as the approver's (R-
      - design: tech-specs found missing/needing revision (dev-loop/design safety net).
      - red/green/refactor: deviations from the plan above, blockers, scope surprises.
      - review: rejection reasons and what changed on the next pass. -->
+
+### design (2026-11-06)
+
+Read (dl-015): this task and bug-029; spec-012 (all, with its Process Notes), spec-005 §1–§6 and
+its Process Notes, spec-003 §1–§9 and its Process Notes, spec-001 §1 and §4, spec-008 §4, spec-004
+§5–§6 (rows of `repo`); adr-001 D1a, D6; `ux-reference.md` §4.1 and §4.2 (v0.3 held gate);
+`02_bdd/00_conventions.md` *Preset variant* and *Identity and roles in steps*;
+`features/s/action-descriptor.feature` (S-24.1 … S-24.7) and `features/s/identity.feature`;
+SARD REQ-STATE-02, REQ-STATE-05, REQ-INT-06; release-planning v0.3 RP3-14 D5, D6, D11, RP3-15 F1,
+F4, S2, RP3-16 P3, P4, RP3-18 K2; the stage plan W0-x, W1-1 … W1-16; directives
+`definition-of-done` 1.3, `wingfoil-cli` 1.24 (W-13, W-34, W-39), `cli-only-writes` 1.9; the
+Execution Notes of task-054 (D54-1 … D54-12, the review rounds and the reviewer's figure for the
+aggregate pattern cost), task-057 (short ids) and task-050 (F2, the identity variables). The code it
+builds on: `server/src/descriptor/{descriptor,placement,today}.ts`,
+`server/src/http/project-routes.ts` (`descriptorInputs`, `elements`, `element`, `todayOf`),
+`server/src/snapshot/{snapshot,state}.ts`, `server/src/git/git.ts` (`GitReads`, `GIT_READ_ARGS`,
+`gitEnv`, `READ_GIT_ENV`), `server/src/identity/*`, `server/src/reads/{confine,frontmatter,element,
+memory-yaml}.ts`, `server/src/ui-config/{effective,patterns,types}.ts`,
+`contracts/files/memory-yaml.schema.json`, `contracts/src/{descriptor,files}.ts`,
+`web/src/element/{footer.ts,ElementFooter.tsx}`, `web/src/today/TodayView.tsx`,
+`web/src/team/model.ts`, the WingFoil 0.3.1 sources `dist/core/git-identity.js` and
+`dist/core/memory-transition.js` (`requireWipSlot`).
+
+#### Probes (scratch repositories in the session's scratch folder; git 2.43, Node 22.21, this worktree's `tsc -b` build, the pinned `wingfoil@0.3.1`; load 7–9)
+
+| # | What | Result |
+|---|------|--------|
+| P1 | The identity as read today (`git config user.email`), `git var GIT_AUTHOR_IDENT` and WingFoil's own `readGitIdentity` (`dist/core/git-identity.js`), in a clean environment (`env -i`, `HOME` and `GIT_CONFIG_NOSYSTEM=1`), every git with `--no-optional-locks -c core.fsmonitor=false -c protocol.allow=never` | A only `user.*`: all three `dev@`. **B `GIT_AUTHOR_*` in the environment: `config user.email` still `dev@`; `git var` and the CLI `agent@`** (bug-029 reproduced). C `author.email` in the configuration: `config` `dev@`; `git var` and CLI `approver@`. D `GIT_AUTHOR_EMAIL` set blank: `git var` `<>`, CLI `""`. **G nothing configured, `EMAIL` in the environment: `git var` `fromenv@`, the CLI `""`** (it does not follow `EMAIL` nor git's hostname guess, by design: its comment cites REQ-SEC-01). F nothing at all: `git var` exits 128 "Author identity unknown … unable to auto-detect email address (got '<user>@<host>.(none)')" — on a host with a domain git would guess an address the CLI never accepts. H `GIT_AUTHOR_EMAIL` with surrounding spaces: CLI trims. So `git var` is not "as the CLI authorises" (cases F, G) |
+| P1b | `GIT_TRACE=1 GIT_TRACE_SETUP=1` of `git var GIT_AUTHOR_IDENT` and of `git config -z --get-regexp '^(author\|user)\.email$'` with the read rules (`GIT_ALLOW_PROTOCOL=none`, `GIT_NO_LAZY_FETCH=1`, `--no-optional-locks`, `core.fsmonitor=false`, `protocol.allow=never`) | One built-in each, no child process; `--get-regexp` prints `key\nvalue\0` per setting, lowest scope first (`user.email` then `author.email` in one repository configuration), exit 1 when nothing matches. `.git` snapshot (SHA-256 of every file, name, type, size, mtime of every entry) on a dirty working tree before and after three runs of each: identical |
+| P2 | `git ls-tree -r -z HEAD -- <Memory directories>` with `--literal-pathspecs`, run in a project that is a sub-folder of its repository, `GIT_TRACE=1` | One built-in. Paths are relative to the working directory (the project root), as `memory search` gives them; a directory named `we ird[*]` matched literally; a symbolic link listed with mode `120000`; a file with spaces and `é` intact with `-z`. 500 element files: 5 ms |
+| P2b | The same in a partial clone (`--filter=tree:0`, trees missing) under the read rules | Exit 128 "lazy fetching disabled … could not fetch <oid> from promisor remote"; no transport; `.git` unchanged — the read fails closed |
+| P3 | The children's environment: a `git` wrapper first on the `PATH` dumping its environment, driven through `LocalProcessRunner` and `GitReads` (this build) with `GIT_DIR`, `GIT_CONFIG_COUNT/KEY_0/VALUE_0` (a `user.email` injection), `GIT_ALLOW_PROTOCOL=file`, a relative `PATH` entry and the four `GIT_AUTHOR_*`/`GIT_COMMITTER_*` variables in the server's environment | `GIT_DIR` and the `GIT_CONFIG_*` injection dropped, the relative `PATH` entry dropped, `GIT_ALLOW_PROTOCOL=none` and `GIT_NO_LAZY_FETCH=1` forced; the four identity variables kept (task-050 Q1-A) — and `email()` answered `undefined` while the CLI child would authorise `agent@` (bug-029). The new reads (`ls-tree -r`, the identity read) go through the same `GitReads.run`, so they get this contract unchanged |
+| P4 | The direct read of an element (`readElement` of this build) on a symlinked file inside the project, a symlink to a file outside, a symlinked folder leading outside, `docs/../../outside/o.md`, `../outside/o.md`, an absolute path | Inside link: read (realpath inside, the descriptor opened on the target); the other five: `outside`, nothing read. The bound is `MAX_DIRECT_READ_BYTES` (5 MiB) |
+| P4b | **Parse cost of a large frontmatter** (`parseElement`, i.e. `yaml` `parse` with `merge: true` and the library's default `uniqueKeys: true`) | `k<n>: v<n>` keys: **64 KiB 634 ms, 256 KiB 7.1 s, 1 MiB 98.9 s** (quadratic; 5 MiB extrapolates to about 40 min of a blocked event loop — the probe was stopped after 3.5 min); with `uniqueKeys: false` the same texts parse in 167 ms, 435 ms, 885 ms. A 5 MiB list of items: 4.2 s; a 5 MiB string: 834 ms; a 5 MiB body: 13 ms. **This is an existing defect of the v0.1 element read** (`server/src/reads/frontmatter.ts`; one element file pushed by anyone with push access stalls the console when its panel opens), and the bulk reader would hit it on every state of every project that has such a file — SG-2, Q3 |
+| P4c | Frontmatter sizes in this repository (`git ls-files 'docs/04_memory/**/*.md'`, 136 files) | Largest 2 007 bytes |
+| P5 | Hostile `taxonomy.patterns` inside the safe subset (`patternProblem` of this build: admitted), each tested on 256 × `a` | Hand-made: `^(?:a\|a)(?:a\|a)(?:a\|a)(?:a\|a).*.*X` 1.9 ms, `^(?:a\|…×16).*.*X` 2.3 ms. Fuzzed (4 000 admitted shapes of up to 4 groups whose alternatives multiply to ≤ 16, plus 2 quantified atoms): worst single test 53.6 ms (`^(?:a\|aa)(?:aa\|a\|aaa\|aaaa)(?:a\|aa).+\w{0,100}X`, first run); **the 32 worst on one value: 124 ms; 200 distinct 256-character values × those 32 patterns: 18.0 s** — the order of task-054's reviewer's figure (up to about 176 ms per value). 500 elements × 200 distinct values would cost about 3.4 hours: the safe subset bounds one test, not the index — SG-1, Q2 |
+| P6 | A cold index of 500 synthetic elements (2 KiB body, 6 values each) with the three sw-life-cycle patterns: `readElement` with 16 reads at a time, values, the two rules | 416, 267, 241 ms (three runs), 6 000 pattern tests — inside REQ-PERF-03's 5 s and far below the budget of Q2 (a); with the reuse of D55-6 a commit touching one element re-reads one file |
+| P7 | A revert after an edit: `git status --porcelain=v2 -z` (the state check's) after a same-size edit made in the same second as the commit (racy), then after the revert; then edits under `assume-unchanged` and `skip-worktree` | Racy edit: listed `.M`. After the revert: not listed, the blob at HEAD unchanged — the reuse of D55-6 serves the committed values, never the edited ones (the edited values were never stored). **`assume-unchanged` and `skip-worktree` hide an edit from the status** (and from the state key, as everywhere in the console): D55-6 stores values under a blob only when the bytes read hash to that blob, so such an edit is never stored as committed; reading a hidden edit as unchanged is the declared residual of D55-6 |
+
+No `wfui-*` entry was created; the scratch repositories and scripts were removed after the probes;
+no console was started (port 4870 and the user's state directory untouched).
+
+#### Decisions (D55-n)
+
+- **D55-1 — Size and split.** The task is about 2.5–3 active days (estimate below); Q1 proposes a
+  split. The decisions below cover the whole scope; Q1 says which half each goes to.
+- **D55-2 — The module.** A new folder `server/src/references/` (no type, state or category word,
+  REQ-ARC-05): `values.ts` (the values of one frontmatter, D55-3), `build.ts` (the pure index
+  builder over its inputs, D55-4, D55-7), `cache.ts` (the cross-state store and the pattern memo,
+  D55-6, D55-7), `index.ts` (the types of D55-8). The excluded field names (`id`, `type`, `title`,
+  `status`, `tags`, `rejection_reason`) and the `version` field name are WingFoil's vocabulary in
+  `server/src/presets/wingfoil.ts` (`NON_REFERENCE_FIELDS`, `VERSION_FIELD`).
+- **D55-3 — Values (spec-012 §1, AC-2).** For each top-level field not in `NON_REFERENCE_FIELDS`,
+  in the file's field order: a string value, or each string item of a list value, in list order;
+  nested maps, items of nested lists, numbers, booleans and `null` are skipped. Values are kept as
+  written and **distinct** (the first occurrence wins, so "a value twice is linked once"); the cap
+  of 200 applies to distinct values; an element with more is `capped`. Besides the values, the
+  top-level `version` field when it is a string (the in-scope rule), kept even when it falls past
+  the cap. Clarification (no rule change, for spec-012's Process Note, AC-8): the frontmatter is
+  parsed with the YAML 1.2 core schema (spec-001 §4.2), which has no timestamp type — an unquoted
+  `2026-11-05` is a string value; spec-012's "dates are not values" names a type the parse never
+  yields.
+- **D55-4 — References (spec-012 §1, AC-2).** Per distinct value, in order: rule 1 — the value is
+  the **full** id of another element of the cached `memory search` (non-archived; the element's own
+  id excluded; a short id is no element reference, an archived id is none — TQ-3) → `{ kind:
+  'element', id, category }`, the category the effective `taxonomy.categories` gives that
+  element's type (`null` when none: it links, it enters no figure); rule 2 — the value has at most
+  `MAX_PATTERN_VALUE` (256) characters counted as code points before any escape, no LF and no CR,
+  and the first `taxonomy.patterns` entry in file order matches (`EffectiveUiConfig.patterns`, the
+  `RegExp` task-054 compiled) → `{ kind: 'pattern', category }`; otherwise none. Done = descriptor
+  kind `last` (`stateKind` of `resolveStates(memoryYaml, type)`), computed per element in the
+  index so task-059 and the hold read one answer.
+- **D55-5 — The bulk read (spec-001 §4.2, AC-2).** Each `memory search` match's file through
+  `readConfined` (confined, regular file only, bounded) and the frontmatter parse of Q3, with the
+  `id`/`type`/`status` consistency check of `readElement`; at most 16 reads in flight
+  (`INDEX_READS = 16`, a small pool, no library). A failure is a `DirectReadError`: the element is
+  `unreadable` with its kind (`outside`, `missing`, `shape`, `mismatch`), has no values, links
+  nothing, is in no scope; any other error is mapped to `missing` (the list never fails for one
+  file). The body is dropped right after the split; the element read's own per-path memo
+  (`SnapshotView.element`) is not shared (it keeps the body).
+- **D55-6 — Reuse across states (spec-012 §8, AC-3; K2).** `ProjectSnapshot` keeps a
+  `ReferenceValueCache` (`Map<path, { blob, values, version, capped }>`) that outlives views, like
+  task-054's `UiYamlCache`. Per **new HEAD**, one `git ls-tree -r -z HEAD -- <memoryDirectories>`
+  (`GIT_READ_ARGS.lsTree` plus `-r`: `--literal-pathspecs`, the directories after `--`, read in the
+  project root so its paths are `memory search`'s — P2), memoised per HEAD; nothing for an unborn
+  HEAD. A match's values are **reused** when its path is not in the state's working-tree status
+  (`state.changed`) and its blob at HEAD equals the cached `blob`; otherwise the file is read. A
+  read's values are **stored** under the HEAD blob only when the path is not in `state.changed`
+  **and** the git blob id the server computes from the bytes it read (`blob <length>\0<bytes>`,
+  SHA-1, or SHA-256 when HEAD's oid has 64 digits; no process) equals the HEAD blob — so a value set
+  read from a modified, racy, `assume-unchanged`, `skip-worktree`, filtered or CRLF-converted file
+  serves its own state only, and a reverted edit gives the committed values back (P7). Entries of
+  paths the current `memory search` does not list are dropped at each build. `ls-tree` failing
+  (a partial clone's missing tree, P2b; a timeout; an overflow) → no reuse and no store for that
+  state, logged by kind only; the index is still built by reading every file. Declared residual
+  (for spec-012's Process Note): an edit hidden from `git status` by `assume-unchanged` or
+  `skip-worktree` after its file was stored is read as the committed values until the blob changes
+  — the console's state key misses that edit already. 0 CLI processes added (REQ-PERF-05); one git
+  process per new HEAD, only when a consumer needs the index.
+- **D55-7 — Cost bound of the pattern tests (SG-1; spec-012 §1, §8; recommended Q2 (a)).** Pattern
+  results are memoised per distinct value (`Map<value, pattern index | none>`) for one effective
+  pattern list (keyed by the sources and categories in order), across states, so a commit
+  re-tests only new values. A build spends at most `PATTERN_BUDGET_MS = 500` ms of measured
+  pattern-test time (`performance.now()` around the tests): values still untested when it is spent
+  get no pattern reference **for this state**, and their elements join `capped` ("indexed
+  incompletely"; the next build carries on from the memo). The tests run in slices of about 20 ms
+  with a yield to the event loop between slices (`setImmediate`), so one build never blocks the
+  server for longer than one slice plus one test (P5: ≤ about 55 ms). P6's real-world index (6 000
+  tests) is far below the budget; the budget's clock is injectable for the tests.
+- **D55-8 — The index's interface (for task-059, recorded here and in TypeDoc).**
+  ```ts
+  // server/src/references/index.ts
+  export const MAX_VALUES = 200;            // spec-012 §1
+  export const INDEX_READS = 16;            // spec-001 §4.2 bulk reader
+  export const PATTERN_BUDGET_MS = 500;     // D55-7 (Q2)
+  export type Reference =
+    | { value: string; kind: 'element'; id: string; category: UiCategory | null }
+    | { value: string; kind: 'pattern'; category: UiCategory };
+  export interface IndexedElement {
+    id: string; type: string; status: string; path: string;   // as memory search lists it
+    kind: StateKind; done: boolean;                            // spec-003 §2; done = kind 'last'
+    unreadable?: DirectReadErrorKind;                          // set → values [] and no version
+    values: readonly string[];                                 // D55-3: as written, distinct, ≤ 200
+    version?: string;                                          // the top-level string `version`
+    references: readonly Reference[];                          // D55-4, in values order
+    capped: boolean;                                           // > 200 values, or D55-7 untested
+  }
+  export interface ReferenceIndex {
+    readonly elements: readonly IndexedElement[];              // memory search order
+    get(id: string): IndexedElement | undefined;
+    readonly unreadable: readonly string[];                    // ids, memory search order
+    readonly capped: readonly string[];                        // ids, memory search order
+    /** Readable elements one of whose values equals `value` (inverted index, list order). */
+    carrying(value: string): readonly IndexedElement[];
+    /** spec-012 §1 in-scope rule: carrying(c.id) ∪ carrying(c.version), `c` excluded. */
+    inScope(c: IndexedElement): readonly IndexedElement[];
+    /** spec-005 §4a: inScope(get(id)) not done (by id only when the element is unreadable). */
+    referencingNotDone(id: string): number;
+  }
+  // SnapshotView
+  referenceIndex(): Promise<ReferenceIndex>  // memoised per content key; rejects as elements()
+                                             // (memory search) and uiConfig() (memory.yaml) do
+  ```
+  The figures, natural id order, `ElementRef`, the scope's current element, the escape of
+  pattern ids (§9) and the route bodies stay task-059's; `references[].value` is raw (never
+  escaped here, like `EffectiveUiConfig`). A request that needs no value builds nothing: only
+  `descriptorInputs()` with a `when-references-done` hold in force (D55-10) and task-059's routes
+  call `referenceIndex()`.
+- **D55-9 — `/elements` and the other callers.** No `requires` consumer lands here (the flag is
+  task-059's): in this task the index is built only through D55-10's hold. A test spies the reads:
+  `/elements`, `/today` and `/elements/:eid` on a project with no such hold read no element file
+  but the one opened.
+- **D55-10 — Held gates (spec-005 §4a, spec-003 §3, §5, §8; AC-4).** `DescriptorProject` gains
+  `holds` (the effective `holds.value`, an ignored or absent `ui.yaml` → empty) and
+  `referencingNotDone(id)`; `describeElement` stays pure. For kind `gate` only (a hold on another
+  kind has no effect, spec-005 §1 check 2): `never` → `approveHeld { condition: 'never', reason: {
+  code: 'held-by-config' } }`; `when-references-done` → `count = referencingNotDone(id)`, held
+  (`{ code: 'held-until-references-done', count }`) when `count > 0`, not held at 0; a held gate's
+  `verbs` hold no `approve`, its `reject` unchanged, its actor still the role `approver` (the reject
+  stays reserved). `placement` checks `approveHeld` first: *Waiting on others* for every user —
+  identified or not, approvers included — and never *Requires you*; so the greeting and the bell
+  (the length of `requiresYou`, spec-003 §5) exclude it with no other change. The route builds the
+  index only when `holds` has a `when-references-done` entry (`descriptorInputs`, awaited before
+  the descriptors; the `derived` memo keeps it once per state). The Team view's per-member pending
+  gates (task-019 W3-39, `web/src/team/model.ts`) skip a descriptor with `approveHeld` (spec-005
+  §4a: not a pending gate).
+- **D55-11 — The actor after an approve (spec-003 §4, D6; AC-5).** Kind `work` whose last move into
+  the state is an `approve`: the member who authored the last `submit` before that approve,
+  `basis: 'submitter'`; with no such submit (a rewritten history), the `last-transition` rule as
+  today (the approve's author). Kind `first`, the other `work` rows and the `amend` rule (D48-6)
+  unchanged.
+- **D55-12 — `state-limit` (spec-003 §6 rule 5, D11, F4; AC-6).** `limits` is read from
+  `memory.yaml` (`contracts/files/memory-yaml.schema.json`: `limits` an object of integers ≥ 1;
+  `StateMachine.limits?`; `pickStates`) — spec-001 §4.1 already lists it; the code does not read it
+  yet. The descriptor counts the `memory search` elements per type and state (non-archived, the
+  working tree); a `submit` or `approve` whose `to` has `limits[to] = N` with `N` already there is
+  disabled with `{ code: 'state-limit', state: to, limit: N }`, after rules 1–4 (the first failing
+  reason wins); `reject` is never limited (`park` is never offered). Applied when the project's
+  detected WingFoil version is ≥ 0.3.0 (0.2.2 has no `limits`; spec-003 §6 names 0.3.x). The server
+  adds no write check: a CLI refusal where the count differs stays 422 `cli-refused` with its toast
+  (characterization: `test/server/http/element-writes.test.ts`).
+- **D55-13 — Contracts.** `contracts/api/descriptor.schema.json`: `approveHeld` (`condition` enum
+  `never`, `when-references-done`; `reason` `oneOf` the two codes, `count` an integer ≥ 1) and the
+  `state-limit` reason (`state`, `limit` ≥ 1); `contracts/src/descriptor.ts` the same types. Contract
+  check of spec-003 §9 (`test/contracts/descriptor-contract.test.ts`): a held gate's `approve` the
+  CLI accepts is excepted. `today.schema.json` and `elements.schema.json` reference the descriptor
+  and change through it only.
+- **D55-14 — Web and catalogue (spec-008 §4, P3; AC-7).** `footerView` gains `{ kind: 'held';
+  reason; outcomes }`: the reason line always; for a member holding `approver`, the reason field —
+  empty, required, without the approval default "Approved via WingFoil UI" (no approve to restore it
+  for) — each *Reject → <state>* and *Cancel*; for any other member the line only. A user not
+  identified keeps the read-only line (identity first, D37-5). Today's *Waiting on others* row of a
+  held gate shows the reason in place of "Reserved to approver — …". Keys (sorted, append-only):
+  `element.reason.heldByConfig` "Approved outside the console (ui.yaml)",
+  `element.reason.heldUntilReferencesDone` "Waits for {count, plural, one {# referencing element}
+  other {# referencing elements}} to be done", `element.reason.stateLimit` "Blocked: only {limit}
+  {state} at a time" — the two hold keys rendered by the footer and by Today (one text per code).
+  REQ-ARC-05: the web sees codes and parameters only.
+- **D55-15 — The identity read (bug-029, AC-9; recommended Q4 (a)).** As WingFoil resolves the
+  author (`dist/core/git-identity.js`, `wingfoil-cli` W-39): `GIT_AUTHOR_EMAIL` from the server's
+  environment (the one `GitReads` hands its children, P3) when it is set — trimmed, a blank value
+  means no identity, never a fall-through —; otherwise the last `author.email`, else the last
+  `user.email`, of one `git config -z --get-regexp '^(author|user)\.email$'` (P1b; exit 1 = none).
+  It replaces `GIT_READ_ARGS.email` in the state check (one process, as today), in
+  `readGitEmail` (`identity/git-email.ts`, renamed `readAuthorEmail`) and in `RepoState.email` (the
+  state key and the `repo` event follow it: an `author.email` edit is a configuration change the
+  watcher already sees). `EMAIL` and git's hostname guess are not followed (P1 F, G), so S-12.x's
+  "no email" notice keeps its meaning; the How to join text is unchanged. No new git subcommand
+  (`config` is on REQ-INT-06's list; `git var` is not).
+- **D55-16 — Security.** No request input reaches the new reads: the `ls-tree` arguments are fixed,
+  the directories come from `memory.yaml` after `--` with literal pathspecs; values are compared as
+  strings, never become a path, a pattern or a command; the only regular expressions are
+  `ui.yaml`'s, inside the subset and D55-7's budget; files are read only at `memory search`'s paths
+  through `readConfined` (P4). Logs carry kinds and codes only (never a path, a value or git's
+  text). Every git child runs through `GitReads.run` (P3: the runner's environment contract,
+  `--no-optional-locks`, no fsmonitor, no transport); `.git` unchanged (P1b, P2b).
+
+#### Specs and gaps (definition-of-done › *Specs before code*)
+
+| Artefact | Spec | State |
+|----------|------|-------|
+| The index, its reuse and cost | spec-012 §1, §8 (approved) | covered except SG-1, SG-2; D55-3's date clarification and D55-6's residual go in its Process Note (AC-8) |
+| The bulk reader | spec-001 §4.2 (approved) | covered except SG-2 |
+| Holds, D6 actor, `state-limit`, `approveHeld` | spec-003 §3–§8, spec-005 §4a (approved) | covered; D55-12's version rule is spec-003 §6's "0.3.x" made explicit |
+| `limits` in `memory.yaml` | spec-001 §4.1 (approved) | covered (the code lags) |
+| Catalogue texts | spec-008 §4 (approved) | covered |
+| The identity read | SARD REQ-STATE-05 ("the effective `git config user.email`"), REQ-STATE-02, REQ-INT-06 (`config — user.email`), spec-004 §6 (`repo` row) | **SG-3**: AC-9 asks spec-001 to be amended, but spec-001 says nothing of the identity; the read is specified in the SARD and spec-004 (Q4) |
+| The index's module API (D55-8) | — | internal, as task-054 Q6 (a): these notes and TypeDoc |
+
+- **SG-1 (Q2) — the safe subset bounds one test, not the index** (P5: 124 ms per value with 32
+  hostile patterns, about 3.4 hours for 500 × 200 distinct values).
+- **SG-2 (Q3) — a large frontmatter stalls the parse** (P4b: 1 MiB of keys 99 s; an existing
+  defect of the v0.1 element read, multiplied by the bulk reader).
+- **SG-3 (Q4) — where the identity read is specified.**
+
+#### Classification and test plan
+
+| AC / scenario | Kind | Test (file › test) |
+|---------------|------|--------------------|
+| AC-1 S-24.5, S-24.6, S-24.7 | red-first | `test/e2e/held-gates.spec.ts` (new; Chromium, Firefox, WebKit): the custom fixture with the sw-life-cycle preset on WingFoil 0.3 (`usePresetUiConfig`), Given steps by the builder's verbs (W-34: no hand-set `status:`) — `minor-v0.1` submitted to `releasing` (S-24.5, Morgan, view `approver`); a `release-line` `rl-v1` with `version: v1` added and moved to `active`, `minor-v0.1` in `planning` (S-24.6, Casey); `sprint-001` `active` and `sprint-002` `planned` (S-24.7, Morgan) — asserting the *Waiting on others* text, the footer's line, no *Approve*, the disabled *Submit* with its reason as accessible description; keyboard path and `scanThemes` on the changed footer and row |
+| AC-1 S-24.1 … S-24.4 | characterization | `test/e2e/gate-footer.spec.ts` unchanged, re-run |
+| AC-2 values, rules, cap, unreadable, scope | red-first | `test/server/references/values.test.ts`, `build.test.ts` (new): each case of spec-012 §11's index list (excluded fields, top level only, list items, non-strings, own id, archived id, short id, first pattern wins, 257 code points, LF, CR, duplicate value, uncategorised type, each unreadable kind, 201 values → `capped`, `version` past the cap), in-scope by id and by `version`, `referencingNotDone` |
+| AC-2 at most 16 reads; built only when needed | red-first | `build.test.ts` (a read port counting reads in flight: max 16); `test/server/http/project-routes.test.ts` (D55-9 spy: no element file read without a `when-references-done` hold) |
+| AC-3 reuse, revert, drop, one re-read per commit | red-first (the revert first, as the AC asks) | `test/server/snapshot/reference-index.test.ts` (new): edit → read → revert → read gives the committed values; a commit touching one element re-reads one file (read counter); an unlisted path dropped; a racy same-second edit; `assume-unchanged` (not stored, D55-6); `ls-tree` failing (partial clone) → no reuse, still built; SHA-256 repository blob ids |
+| AC-3 0 CLI processes | characterization (the index starts no CLI process by construction; guard removal recorded at green) | `test/server/snapshot/process-audit.test.ts`: Today and `/elements` on the preset variant, cold and warm — CLI processes unchanged, one `ls-tree` per new HEAD, 0 on a warm cache |
+| AC-3 timing on `large` | see Q5 | Q5 (b): `test/e2e/performance.spec.ts` in task-059 AC-7 |
+| D55-7 budget | red-first | `build.test.ts`: an injected clock — values past the budget untested, their elements `capped`, the next build continues from the memo; a yield between slices (a timer queued during a build fires before it ends) |
+| SG-2 parse (Q3) | red-first | `test/server/reads/frontmatter.test.ts` (new): the structural test of D54-3's kind (`uniqueKeys` off, the linear duplicate check on, a duplicate still refused with its line); the bulk bound (a frontmatter above 64 KiB → `shape` for the index) |
+| AC-4 holds | red-first | `test/server/descriptor/descriptor.test.ts` (each value, count 0 → not held, a hold on a non-gate state no effect, ignored `ui.yaml` holds nothing), `placement.test.ts` (Waiting on others for an approver, a non-approver and an unidentified user; never Requires you), `today.test.ts` (greeting count), `test/contracts/api-descriptor-schema.test.ts` (new: `approveHeld` and `state-limit` against `descriptor.schema.json`) and `descriptor-contract.test.ts` (the except of §9), `test/lint/` REQ-ARC-05 green; `test/web/team/model.test.ts` |
+| AC-5 actor | red-first | `descriptor.test.ts` (approve into `work` → submitter; no submit → last transition; amend rows unchanged), `today.test.ts` (a task approved into `backlog` is in its submitter's *Requires you*, not the approver's) |
+| AC-6 limit | red-first | `descriptor.test.ts` (submit and approve into a full state disabled, reject enabled, 0.2.2 not applied), `test/server/reads/memory-yaml.test.ts` and `test/contracts/` (`limits` read from the 0.3.1 custom sample); 422 `cli-refused`: characterization in `element-writes.test.ts` |
+| AC-7 catalogue, footer, row | red-first | `test/web/element/footer.test.ts` (the `held` view), `test/web/element/gate-footer.test.tsx`, `test/web/today/today.test.tsx` (the row's reason), the catalogue checks of `test/web/i18n/`; e2e as AC-1 |
+| AC-9 bug-029 | red-first | `test/server/identity/git-email.test.ts` and `test/server/snapshot/state.test.ts`: P1's cases A–H against WingFoil's own `readGitIdentity` (the two must agree); `test/e2e/held-gates.spec.ts` › "bug-029 — …": a console started (`ConsoleOptions.env`) with `GIT_AUTHOR_NAME`/`GIT_AUTHOR_EMAIL` of a non-member while `user.email` names Morgan shows no *Approve* or *Reject* and the header names that address; the suites under the strict-identity recipe of `test/README.md` *Git identity* (dl-011) |
+| AC-8 | gates | `CLAUDE.md` checks, `npm run docs:api`, `check_tasks.py v0.3`, heavy gates through the slot one at a time (W1-13) |
+
+#### Shared files (append-only where shared)
+
+`server/src/http/project-routes.ts` (`descriptorInputs` only; task-056 and task-068 change it too),
+`server/src/descriptor/{descriptor,placement,today}.ts` and their tests (task-056 changes the Today
+rows and the descriptor tests: merge task-055 first, W1-4), `contracts/src/index.ts` (exports),
+`contracts/src/descriptor.ts`, `contracts/api/descriptor.schema.json`, `contracts/files/memory-yaml.schema.json`,
+`contracts/src/files.ts`, `server/src/snapshot/{snapshot,state}.ts`, `server/src/git/git.ts`
+(`GIT_READ_ARGS`), `server/src/reads/frontmatter.ts` (Q3), `server/src/presets/wingfoil.ts`,
+`web/src/i18n/en.json` (three keys, sorted in place), `web/src/element/{footer.ts,ElementFooter.tsx}`,
+`web/src/today/TodayView.tsx`, `web/src/team/model.ts`, `test/e2e/support/screens.ts` (if a
+`SCREENS` entry is added for the held footer), `test/README.md` (version line), `CHANGELOG.md`
+*Unreleased* *Added*/*Fixed*, the `docs:api` output (regenerated, never merged by hand). Specs
+amended in place with dated Process Notes after the approver's answers: spec-012 (§1, §8), spec-001
+§4.2 (Q3), SARD REQ-STATE-02/05 and REQ-INT-06 and spec-004 §6 (Q4).
+
+#### Size
+
+The reference index with its reuse, budget and tests about 1 day; the frontmatter parse fix (Q3)
+0.25; bug-029 0.3; the descriptor rules (holds, D6, the limit, contracts) 0.5; the web footer,
+Today row, Team count, catalogue and the three-engine e2e 0.75; specs and gates 0.25 — **about 3
+active days**, above RP3-20 G2's one day (Q1).
+
+#### Questions (one recommendation each)
+
+- **Q1 — split (RP3-20 G2).** (a) Keep it whole (about 3 days). (b) Two tasks: **task-055 keeps**
+  the reference index and its interface (AC-2, AC-3, D55-2 … D55-9, Q2, Q3) and bug-029 (AC-9,
+  D55-15) — both server-side, git-touching, one adversarial reviewer for the git and file reads,
+  about 1.5 days; **a new task** takes the descriptor rules and their screens (AC-1, AC-4 … AC-7,
+  D55-10 … D55-14), about 1.25 days, `depends_on` task-055 (the hold's count); task-059 then also
+  depends on the new task (its `pendingGates` excludes `approveHeld`), as task-061 does. (c) Three
+  tasks: the index, the descriptor rules with screens, and bug-029 alone (about 0.3 day, could start
+  at once). **Recommended (b)**: two halves of about one day each, task-059's input (the index)
+  merges first, and bug-029 stays with the git reads it changes.
+- **Q2 — the cost bound of the index's pattern tests (SG-1).** (a) D55-7: a memo per distinct value
+  and pattern list across states, at most 500 ms of pattern-test time per build in slices of about
+  20 ms that yield, values left untested named through `capped` (spec-012 §1 amended: `capped` =
+  "indexed incompletely: more than 200 values, or values not yet tested against the patterns");
+  non-deterministic only on a hostile configuration. (b) A deterministic cap on the number of
+  distinct values tested per build — does not bound the time (P5: 124 ms per value). (c) A tighter
+  subset (e.g. alternatives ≤ 4, at most 8 patterns) — still minutes at 100 000 values. (d) The
+  tests in a worker thread with a timeout — a new process model (task-054 Q1 (d)). **Recommended
+  (a).**
+- **Q3 — the frontmatter parse cost (SG-2; an existing defect of the element read).** (a) Fix the
+  shared parse in `server/src/reads/frontmatter.ts` as task-054 D54-3 did for `ui.yaml`:
+  `uniqueKeys: false` with a linear duplicate-key check (the duplicate still refused with its line),
+  and bound the bulk reader's frontmatter at 64 KiB (beyond → `shape` for the index; P4c: 2 KiB is
+  this repository's largest); the element read gets the parse fix, not the bound; the coordinator
+  opens a bug for the element read's defect and it is absorbed here (as W1-1, W1-2). (b) The bulk
+  reader alone gets its own parse and bound; the element read's defect becomes a separate bug.
+  (c) A declared residual. **Recommended (a)**: one parser, and the console stops stalling on
+  the panel of a hostile file too.
+- **Q4 — the identity read (bug-029, SG-3).** (a) D55-15: `GIT_AUTHOR_EMAIL` from the environment,
+  then `author.email`, then `user.email` from one `git config --get-regexp` — the CLI's own
+  resolution (P1: agrees in the eight cases), no new subcommand; amend SARD REQ-STATE-05 (and the
+  wording of REQ-STATE-02 and REQ-INT-06) and spec-004 §6's `repo` row with dated Process Notes, in
+  place of AC-9's "spec-001" (which has no identity text). (b) `git var GIT_AUTHOR_IDENT`, as AC-9's
+  example: follows `EMAIL` and git's hostname guess, which the CLI refuses (P1 F, G — an identity
+  the console would show and the CLI would not authorise), fails with exit 128 when nothing is set,
+  and needs `var` on REQ-INT-06's list. **Recommended (a).**
+- **Q5 — AC-3's timing check on the `large` fixture.** (a) Here: a REQ-PERF-03 measurement in
+  `test/e2e/performance.spec.ts` of the Memory list's descriptors with the preset's
+  `when-references-done` hold (the index built on every state). (b) In task-059 AC-7, which already
+  measures a commit reaching `/progress` and the `/elements` flags within 5 s on the same fixture
+  with the same preset (its `/elements` builds the index for the hold too); here the unit counts of
+  AC-3 (one re-read per commit) and P6's cold build as evidence. **Recommended (b)**: one owner of
+  the `large` timing run, no duplicate measurement in `test:timing`.
+
+Blockers: none outside these questions; red waits for the coordinator's answers (Q1 … Q5) and,
+for Q2 … Q4, the approver's OK on the spec amendments before the tests that encode them.
