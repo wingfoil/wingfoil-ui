@@ -104,11 +104,17 @@ const RULES: readonly Rule[] = [
   { pattern: /^elements \.(?:warnings\[\]|message)$/, cls: 'a' },
   { pattern: /^(?:elements|element) \.(?:typesError|eventsError)\.code$/, cls: 'e' },
   { pattern: /^(?:elements|element) \.(?:typesError|eventsError)\.message$/, cls: 'a' },
+  {
+    pattern: /^element \.frontmatter\.rejection_reason$/,
+    cls: 'a',
+    note: 'written by `memory reject` from its reason: commit text, the one frontmatter field outside (d) (review round 1)',
+  },
   { pattern: /^element \.(?:frontmatter\..+|body)$/, cls: 'd' },
   { pattern: /^element \.(?:required\[\]\.field|states\..+)$/, cls: 'c' },
   { pattern: /^today \.(?:view|summary\[\]\.role)$/, cls: 'c' },
   // History and the Memory events.
-  { pattern: /^history \.(?:id|path|entries\[\]\.(?:from|to))$/, cls: 'c' },
+  { pattern: /^history \.entries\[\]\.(?:from|to)$/, cls: 'r', note: BUG_035 },
+  { pattern: /^history \.(?:id|path)$/, cls: 'c' },
   { pattern: /^history \.entries\[\]\.(?:sha|timestamp)$/, cls: 'e' },
   { pattern: /^history \.entries\[\]\.(?:subject|reason|author|approver)$/, cls: 'a', note: 'commit text (bug-027)' },
   { pattern: /^memory-events \.events\[\]\.(?:sha|timestamp)$/, cls: 'e' },
@@ -121,10 +127,11 @@ const RULES: readonly Rule[] = [
       /^directives? \.(?:entries\[\]|entry)\.(?:path|frontmatter\.(?:id|type|kind|tags\[\]|ref\[\])|roles\[\]|assignment)$/,
     cls: 'c',
   },
+  { pattern: /^directive \.frontmatter\.(?:name|title)$/, cls: 'r', note: BUG_035 },
   { pattern: /^directive \.(?:frontmatter\..+|body)$/, cls: 'd' },
   { pattern: /^directives \.warnings\[\]$/, cls: 'a' },
   // Documentation and files.
-  { pattern: /^docs \.(?:roots\[\]|documents\[\]\.path)$/, cls: 'c' },
+  { pattern: /^docs \.(?:roots\[\]|documents\[\]\.path)$/, cls: 'r', note: BUG_035 },
   { pattern: /^file-tree \.(?:path|entries\[\]\.path)$/, cls: 'c' },
   { pattern: /^file-tree \.entries\[\]\.name$/, cls: 'r', note: BUG_035 },
   { pattern: /^file-content \.path$/, cls: 'c' },
@@ -432,7 +439,7 @@ describe('the sweep of AC-4 (one hostile fixture, every GET route of the project
     // The hostile texts did reach (a) and (b) fields: the sweep is not vacuous.
     expect(checked).toBeGreaterThan(50);
     // The known gap of bug-035, listed: the hostile document's name in the file tree reaches it.
-    expect([...gap]).toContain('file-tree .entries[].name');
+    expect([...gap]).toEqual(expect.arrayContaining(['file-tree .entries[].name', 'docs .documents[].path']));
     for (const key of gap) expect(classOf(key)!.note).toBe(BUG_035);
   });
 
@@ -464,6 +471,16 @@ describe('the sweep of AC-4 (one hostile fixture, every GET route of the project
       expect(m, r.element.id).toBeDefined();
       expect([r.element.type, r.element.status]).toEqual([m.type, m.status]);
     }
+  });
+
+  it('the frontmatter rejection_reason, written by memory reject, is commit text (class a)', async () => {
+    const detail = await get(`/elements/${hostile.id}`);
+    const reason = detail.frontmatter.rejection_reason as string;
+    expect(typeof reason).toBe('string');
+    expect(UNSAFE.test(reason)).toBe(false);
+    expect(reason.length).toBeLessThanOrEqual(MAX_MESSAGE);
+    expect(reason.includes(fx.dir) || reason.includes(homedir())).toBe(false);
+    expect(reason).toBe(detail.descriptor.rejection.reason);
   });
 
   it('the document content stays as written (class d): the body keeps its U+202E', async () => {
