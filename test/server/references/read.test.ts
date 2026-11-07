@@ -40,6 +40,12 @@ beforeAll(async () => {
   };
   await writeFile(path.join(root, 'm', 'big.md'), `${head}${'x: "'}${'a'.repeat(MAX_INDEX_FRONTMATTER)}"\n---\n`);
   await writeFile(path.join(root, 'm', 'keys.md'), `${head}${keys(MAX_INDEX_FRONTMATTER - head.length - 200)}---\n`);
+  // Review round 1 F1: three spellings where the bound and the parse once disagreed on the
+  // delimiters, each with more than 64 KiB of keys before the close the parse uses.
+  const over = keys(MAX_INDEX_FRONTMATTER + 4096);
+  await writeFile(path.join(root, 'm', 'nbsp-close.md'), `${head}${over}---\u00a0\nbody\n`);
+  await writeFile(path.join(root, 'm', 'ls-close.md'), `${head}a: x\u2028---\n${over}---\nbody\n`);
+  await writeFile(path.join(root, 'm', 'space-open.md'), `--- \n${head.slice(4)}${over}---\nbody\n`);
   await writeFile(path.join(root, 'm', 'bigbody.md'), `${head}---\n${'b'.repeat(1024 * 1024)}\n`);
   return () => rm(base, { recursive: true, force: true });
 });
@@ -65,6 +71,10 @@ describe('readIndexEntry', () => {
     expect(MAX_INDEX_FRONTMATTER).toBe(65_536);
     await expect(readIndexEntry(root, match('m/big.md'))).rejects.toMatchObject({ kind: 'shape' });
     await expect(readIndexEntry(root, match('m/bigbody.md'))).resolves.toMatchObject({ values: { values: [] } });
+    // F1: the bound measures exactly the text the parse reads, whatever the delimiter spelling.
+    for (const file of ['nbsp-close.md', 'ls-close.md', 'space-open.md']) {
+      await expect(readIndexEntry(root, match(`m/${file}`)), file).rejects.toMatchObject({ kind: 'shape' });
+    }
     // Just under the bound: thousands of keys, parsed.
     const r = await readIndexEntry(root, match('m/keys.md'));
     expect(r.values.values.length).toBe(200);

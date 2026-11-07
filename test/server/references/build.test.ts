@@ -251,6 +251,48 @@ describe('buildReferenceIndex — the pattern budget (spec-012 §1, Q2-a)', () =
     expect(tests).toBe(2);
   });
 
+  it('review round 1 F2: serves the event loop between the patterns of one value, not only between values', async () => {
+    const matches = [match('task-001-a', 'task', 'draft')];
+    const many = Array.from({ length: 10 }, (_, i) => pattern(`^Z${i}`, 'requirement'));
+    let pauses = 0;
+    // 10 ms per clock read, no pattern matches: 10 tests on one value, a slice spent every test or two.
+    const index = await build(matches, tableSource({ 'task-001-a': { values: ['US-1'] } }), {
+      patterns: many,
+      clock: ticking(10),
+      pause: () => {
+        pauses += 1;
+        return Promise.resolve();
+      },
+    });
+    expect(pauses).toBeGreaterThanOrEqual(4);
+    expect(index.capped).toEqual([]);
+  });
+
+  it('review round 1 F2: a budget spent inside one value leaves that value untested (capped), not half-tested', async () => {
+    const matches = [match('task-001-a', 'task', 'draft')];
+    const many = Array.from({ length: 10 }, (_, i) => pattern(`^Z${i}`, 'requirement'));
+    const memo = new PatternMemo();
+    // 100 ms per test: the budget is spent after 5 of the 10 patterns.
+    const index = await build(matches, tableSource({ 'task-001-a': { values: ['Z9-x'] } }), {
+      patterns: many,
+      memo,
+      clock: ticking(100),
+      pause: () => Promise.resolve(),
+    });
+    expect(index.capped).toEqual(['task-001-a']);
+    expect(memo.for(many).has('Z9-x')).toBe(false);
+  });
+
+  it('review round 1 F3: the kept results are pruned to the values of the current build', async () => {
+    const memo = new PatternMemo();
+    const list = [pattern('^US-', 'requirement')];
+    const matches = [match('task-001-a', 'task', 'draft')];
+    await build(matches, tableSource({ 'task-001-a': { values: ['US-1', 'US-2', 'US-3'] } }), { memo, patterns: list });
+    expect(memo.for(list).size).toBe(3);
+    await build(matches, tableSource({ 'task-001-a': { values: ['US-3', 'US-4'] } }), { memo, patterns: list });
+    expect([...memo.for(list).keys()].sort()).toEqual(['US-3', 'US-4']);
+  });
+
   it('serves the event loop between slices of about 20 ms', async () => {
     const matches = Array.from({ length: 30 }, (_, i) =>
       match(`task-0${String(i).padStart(2, '0')}-x`, 'task', 'draft'),
