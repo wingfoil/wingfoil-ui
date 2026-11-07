@@ -545,3 +545,10 @@ branches 91.28 %, functions 97.39 %, lines 98.39 %. `npm run test:e2e -- test/e2
 | n6 test, nit 4 | A fault-injection test of the Today memo; a per-line tightening of the `tool-messages.test.ts` producer patterns | Left as they are, by the coordinator's decision (nit 4 recorded as optional, not done). |
 
 Also in this round: two raw U+202E characters in the design section (D56-9 and the AC-3 row of the test plan, written by a shell here-document that turned the escapes into the character) are written as the escape `\u202e` again, and so is a raw U+2028 in `serialise.test.ts`.
+
+Gates of round 2 (on `6e274c7a`): `npm run typecheck`, `npm run lint`, `npm run format:check`,
+`npm run docs:api` clean; `check_tasks.py v0.3` OK. Under the strict-identity recipe: `serialise`,
+`commit-text`, `text-sweep`, `project-routes`, `tool-messages`, `harness/git-identity` — 6 files, 96
+passed (load 5.32). `npm run test:coverage` through the slot (waited 3 min 36 s, granted at load
+3.27 → 20.08): 208 files passed (1 skipped), 4 001 passed (2 skipped); statements 96.61 %, branches
+91.30 %, functions 97.39 %, lines 98.39 %. No web change, no e2e.
