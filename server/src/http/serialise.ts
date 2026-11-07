@@ -99,15 +99,26 @@ export function memoryEventBody<T extends Pick<MemoryEventEntry, 'author' | 'app
   };
 }
 
+/** `value` with every string leaf through `sanitise`, its shape kept (an object's keys stay keys). */
+function sanitiseLeaves(value: unknown, sanitise: TextSanitiser): unknown {
+  if (typeof value === 'string') return sanitise(value);
+  if (Array.isArray(value)) return value.map((v) => sanitiseLeaves(v, sanitise));
+  if (value !== null && typeof value === 'object') {
+    return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, sanitiseLeaves(v, sanitise)]));
+  }
+  return value;
+}
+
 /**
- * An element's frontmatter as written (class (d)), but for the one free-text field a WingFoil verb
- * writes: `rejection_reason`, set by `memory reject` from its `--reason` (spec-001 §3) — commit
- * text, class (a), like the descriptor's `rejection.reason` (review round 1). The other verbs write
- * `status` (a key) and, through their arguments, keys and versions (`release`, `supersedes`, the id
- * pattern's tokens).
+ * An element's frontmatter as written (class (d)), but for the one free-text field a WingFoil
+ * transition verb writes: `rejection_reason`, set by `memory reject` from its `--reason` (spec-001
+ * §3) — commit text, class (a), like the descriptor's `rejection.reason` (review round 1), as a
+ * whole: a value committed by hand as a list or an object has every string leaf sanitised, its shape
+ * and its keys kept (review round 2). The other verbs write `status` (a key) and, through their
+ * arguments, keys and versions (`release`, `supersedes`, the id pattern's tokens).
  */
 export function frontmatterBody<T extends object>(frontmatter: T, sanitise: TextSanitiser): T {
+  if (!Object.hasOwn(frontmatter, REJECTION_REASON_FIELD)) return frontmatter;
   const reason = (frontmatter as Record<string, unknown>)[REJECTION_REASON_FIELD];
-  if (typeof reason !== 'string') return frontmatter;
-  return { ...frontmatter, [REJECTION_REASON_FIELD]: sanitise(reason) };
+  return { ...frontmatter, [REJECTION_REASON_FIELD]: sanitiseLeaves(reason, sanitise) };
 }
