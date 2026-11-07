@@ -632,3 +632,22 @@ the machine-free slot (W1-13 checked first: no other heavy gate; slot wait 21 mi
 at grant → 24.44 at the end): 214 files passed (1 skipped), 4 051 tests passed (2 skipped);
 statements 96.59 %, branches 91.29 %, functions 97.26 %, lines 98.38 %; `server/src/references`
 98.84 % statements, 100 % lines.
+
+### review round 2 (2026-11-07, security-adversarial: PASS for F1, F2's pattern loop, F3 and the stderr claim; two new findings)
+
+| Finding | Fix | Test |
+|---------|-----|------|
+| **N1 (minor)** — only the pattern loop was sliced: the walk over the values before it (rule 1, `testable` twice per value, up to 257 code points each), the elements' pass, the prune and the inverted index after it were not — on 500 elements × 200 values (about 51 KB of frontmatter each, under the bound) the reviewer measured 742–813 ms before the loop and 734–744 ms after the last pause, and about 1.15 s for a second build with one trivial pattern | one slice clock for the whole build: the walks before and after the tests look at the clock every 16 values (`STEP_VALUES`) and serve the loop once a slice is spent; the inverted index is built in slices too; `testable` has a fast path (at most 256 UTF-16 units → testable, above 512 → not; code points counted only in between) and is computed once per distinct value | red first (`a7cf5600`): `build.test.ts` › "the passes before and after the pattern tests serve the event loop too" (no pattern, 2 000 values, an injected clock: at least 10 pauses) |
+| **N2 (nit)** — concurrent builds sharing one `PatternMemo` pruned each other's results (re-tests or a spurious `capped`) | `PatternMemo.begin()` gives each build a generation; only the newest prunes; each build reads its own results (kept ones and those it tested), so a newer build's prune never makes an older build's values untested | red first (`a7cf5600`): `build.test.ts` › "a build whose results a newer build pruned keeps its own; only the newest build prunes" |
+
+Measured after the fix (this build, a scratch script, the reviewer's workload: 500 elements × 200
+distinct values of 248 characters, a 1 ms interval as lag monitor, two runs, load 4–9): with 32
+hostile patterns of the subset, builds of 673–863 ms (the 500 ms budget spent; all 500 elements
+`capped`, the next builds go on from the kept results), longest event-loop gap 21–26 ms; with one
+trivial pattern (`^US-`), first builds 239–464 ms and second builds (every test answered by the
+memo) 208–359 ms, longest gap 20–26 ms. **Corrections:** round 1's "longest gap 25–32 ms" and
+"build stops at about 506 ms" held for its 50-element workload and the pattern loop only; for the
+whole build the bound is one slice plus one test, about 26 ms measured, and a build costs the
+budget plus the sliced walks (up to about 0.9 s on this workload). spec-012 §1 and its Process Note
+of 2026-11-07 (round 2), and the CHANGELOG entry, now say this.
+

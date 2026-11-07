@@ -85,8 +85,9 @@ cost up to about 124 ms per 256-character value). The result of rule 2 is kept p
 for one effective pattern list (its entries' `match` and `category`, in order), across states, so
 a new state tests only values not tested before; the kept results hold the current state's values only. One index build spends at most **500 ms** of
 measured pattern-test time, in slices of about 20 ms with the event loop served between slices
-(a slice ends between two pattern tests, also between the patterns of one value, so the loop is
-blocked at most one slice plus one test);
+(a slice ends between two pattern tests, also between the patterns of one value, and the walks
+over the values before and after the tests are sliced on the same clock, so the whole build blocks
+the loop at most one slice plus one test);
 a value still untested — or whose tests the budget cut — when it is spent is no pattern reference in that state and its
 element is named in `capped`; the next build goes on from the kept results. A project whose
 patterns cost what the presets' do never reaches the budget (P6: 6 000 tests for 500 elements).
@@ -538,3 +539,11 @@ every object `additionalProperties: false`, as the other API schemas.
   the change 25–32 ms with 32 hostile patterns of the subset), a value whose tests the budget cuts
   stays untested, and the kept results are pruned to the current state's values. No other rule
   changes.
+- 2026-11-07 — amended in task-055 review round 2 (N1, N2): §1 the whole index build is sliced, not
+  only the pattern tests — the walks over the values before and after them (up to 100 000 values
+  on 500 elements) serve the event loop on the same slice clock; measured on 500 elements × 200
+  values of 248 characters: longest event-loop gap 20–26 ms, with 32 hostile patterns (build about
+  0.7–0.9 s, the 500 ms budget spent) and with one trivial pattern (build 0.2–0.5 s). Round 1's
+  "25–32 ms" was measured on 50 elements, before the walks were sliced. The kept results are
+  pruned only by the newest build; each build reads its own results, so a newer state's build never
+  makes an older one's values untested.

@@ -37,6 +37,7 @@ const NO_MATCH = -1;
 export class PatternMemo {
   private key: string | undefined;
   private results = new Map<string, number>();
+  private generation = 0;
 
   /** The results for `patterns`; a different list starts afresh. */
   for(patterns: readonly UiPattern[]): Map<string, number> {
@@ -46,6 +47,17 @@ export class PatternMemo {
       this.results = new Map();
     }
     return this.results;
+  }
+
+  /** A build starts: its generation, the newest (review round 2 N2). */
+  begin(): number {
+    this.generation += 1;
+    return this.generation;
+  }
+
+  /** Whether `generation` is the newest build's: only that build prunes the results. */
+  newest(generation: number): boolean {
+    return generation === this.generation;
   }
 }
 
@@ -68,13 +80,22 @@ export interface BuildOptions {
   sliceMs?: number;
 }
 
-/** Whether rule 2 may test `value`: at most 256 code points, no line break. */
+/**
+ * Whether rule 2 may test `value`: at most 256 code points, no line break. A value of at most 256
+ * UTF-16 units has at most 256 code points; one above 512 units has more than 256 (a code point is
+ * at most 2 units); only the values between are counted (review round 2 N1).
+ */
 function testable(value: string): boolean {
   if (value.includes('\n') || value.includes('\r')) return false;
+  if (value.length <= MAX_PATTERN_VALUE) return true;
+  if (value.length > 2 * MAX_PATTERN_VALUE) return false;
   let points = 0;
   for (const _ of value) if (++points > MAX_PATTERN_VALUE) return false;
   return true;
 }
+
+/** Values walked between two looks at the clock in the passes around the pattern tests. */
+const STEP_VALUES = 16;
 
 /** `items` mapped by `work` with at most `limit` running at a time, in order. */
 async function pooled<T, R>(items: readonly T[], limit: number, work: (item: T) => Promise<R>): Promise<R[]> {
@@ -109,29 +130,52 @@ export async function buildReferenceIndex(options: BuildOptions): Promise<Refere
     }
   });
 
-  const byId = new Map(matches.map((m) => [m.id, m]));
-  // Rule 2 over the distinct values rule 1 leaves, within the budget (Q2-a).
-  const results = options.memo.for(patterns);
-  const pending: string[] = [];
-  const queued = new Set<string>();
-  const current = new Set<string>();
-  reads.forEach((read, i) => {
-    if (!read.ok) return;
-    const own = matches[i]!.id;
-    for (const value of read.file.values) {
-      if ((byId.has(value) && value !== own) || !testable(value)) continue;
-      current.add(value);
-      if (results.has(value) || queued.has(value)) continue;
-      queued.add(value);
-      pending.push(value);
+  // One slice clock for the whole build (review round 2 N1): every pass serves the event loop once
+  // a slice is spent — the walks before and after the pattern tests every STEP_VALUES values, the
+  // pattern tests after each test (review round 1 F2).
+  let sliceStart = clock();
+  let walked = 0;
+  const yieldIfSpent = async (now: number): Promise<void> => {
+    if (now - sliceStart >= slice) {
+      await pause();
+      sliceStart = clock();
     }
-  });
+  };
+  const step = async (): Promise<void> => {
+    walked += 1;
+    if (walked % STEP_VALUES === 0) await yieldIfSpent(clock());
+  };
+
+  const byId = new Map(matches.map((m) => [m.id, m]));
+  const generation = options.memo.begin();
+  const results = options.memo.for(patterns);
+  // This build's own results, read by its pass after the tests: a newer build of another state may
+  // prune the shared ones meanwhile (review round 2 N2).
+  const own = new Map<string, number>();
+  const testables = new Map<string, boolean>();
+  const isTestable = (value: string): boolean => {
+    let t = testables.get(value);
+    if (t === undefined) testables.set(value, (t = testable(value)));
+    return t;
+  };
+  const pending: string[] = [];
+  const current = new Set<string>();
+  for (let i = 0; i < reads.length; i += 1) {
+    const read = reads[i]!;
+    if (!read.ok) continue;
+    const self = matches[i]!.id;
+    for (const value of read.file.values) {
+      await step();
+      if ((byId.has(value) && value !== self) || current.has(value) || !isTestable(value)) continue;
+      current.add(value);
+      const kept = results.get(value);
+      if (kept !== undefined) own.set(value, kept);
+      else pending.push(value);
+    }
+  }
   if (patterns.length > 0) {
-    // The clock is read around every pattern test and the event loop served once a slice is spent,
-    // also between the patterns of one value (review round 1 F2): the loop is never blocked longer
-    // than one slice plus one test. A value whose tests the budget cuts stays untested.
+    // A value whose tests the budget cuts stays untested (review round 1 F2).
     let spent = 0;
-    let sliceStart = clock();
     values: for (const value of pending) {
       let found = NO_MATCH;
       for (let j = 0; j < patterns.length; j += 1) {
@@ -140,22 +184,27 @@ export async function buildReferenceIndex(options: BuildOptions): Promise<Refere
         const hit = patterns[j]!.regex.test(value);
         const end = clock();
         spent += end - start;
-        if (end - sliceStart >= slice) {
-          await pause();
-          sliceStart = clock();
-        }
+        await yieldIfSpent(end);
         if (hit) {
           found = j;
           break;
         }
       }
       results.set(value, found);
+      own.set(value, found);
     }
   }
-  // The kept results hold the values of this build only (review round 1 F3).
-  for (const value of results.keys()) if (!current.has(value)) results.delete(value);
+  // The kept results hold the values of the newest build only (review round 1 F3, round 2 N2).
+  if (options.memo.newest(generation)) {
+    for (const value of results.keys()) {
+      await step();
+      if (!current.has(value)) results.delete(value);
+    }
+  }
 
-  const elements = matches.map((match, i): IndexedElement => {
+  const elements: IndexedElement[] = [];
+  for (let i = 0; i < matches.length; i += 1) {
+    const match = matches[i]!;
     const read = reads[i]!;
     const kind = stateKind(resolveStates(memoryYaml, match.type), match.status);
     const base = {
@@ -166,39 +215,44 @@ export async function buildReferenceIndex(options: BuildOptions): Promise<Refere
       kind,
       finished: kind === 'last',
     };
-    if (!read.ok) return { ...base, unreadable: read.kind, values: [], references: [], capped: false };
+    if (!read.ok) {
+      elements.push({ ...base, unreadable: read.kind, values: [], references: [], capped: false });
+      continue;
+    }
     const references: Reference[] = [];
     let untested = false;
     for (const value of read.file.values) {
+      await step();
       const target = value !== match.id ? byId.get(value) : undefined;
       if (target) {
         references.push({ value, kind: 'element', id: target.id, category: categories.get(target.type) ?? null });
         continue;
       }
-      if (patterns.length === 0 || !testable(value)) continue;
-      const found = results.get(value);
+      if (patterns.length === 0 || !isTestable(value)) continue;
+      const found = own.get(value);
       if (found === undefined) untested = true;
       else if (found !== NO_MATCH) references.push({ value, kind: 'pattern', category: patterns[found]!.category });
     }
-    return {
+    elements.push({
       ...base,
       values: read.file.values,
       ...(read.file.version !== undefined ? { version: read.file.version } : {}),
       references,
       capped: read.file.capped || untested,
-    };
-  });
-  return indexOf(elements);
+    });
+  }
+  return indexOf(elements, step);
 }
 
-/** The queries of {@link ReferenceIndex} over `elements`. */
-function indexOf(elements: readonly IndexedElement[]): ReferenceIndex {
+/** The queries of {@link ReferenceIndex} over `elements`; the inverted index walked in slices (`step`). */
+async function indexOf(elements: readonly IndexedElement[], step: () => Promise<void>): Promise<ReferenceIndex> {
   const byId = new Map(elements.map((e) => [e.id, e]));
   const order = new Map(elements.map((e, i) => [e.id, i]));
   const carriers = new Map<string, IndexedElement[]>();
   for (const e of elements) {
     if (e.unreadable) continue;
     for (const value of e.values) {
+      await step();
       const list = carriers.get(value);
       if (list) list.push(e);
       else carriers.set(value, [e]);
