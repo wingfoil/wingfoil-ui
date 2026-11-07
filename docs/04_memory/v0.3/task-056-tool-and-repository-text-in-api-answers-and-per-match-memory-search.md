@@ -312,7 +312,7 @@ references; task-057's candidates already use `neutralise` and are re-pointed to
   spec-012 §9 for keys. Declared in the sweep's allow-list.
 - **D56-9 — `/config` `ui` untouched.** `uiConfigBody` already escapes `ECHOED_UI_FIELDS`
   (`patterns[].match` keeping its backslashes, Q4-b); the sweep reads that list and checks the
-  section, never re-escapes it (a double escape would turn `‮` into `\\u202e`).
+  section, never re-escapes it (a double escape would turn `\u202e` into `\\u202e`).
 - **D56-10 — The sweep is the executable AC-1 table (AC-4).** `test/server/http/text-sweep.test.ts`
   (new) lists every string leaf of every `contracts/api/` response schema (walked like the probe's
   script, `$ref` and `oneOf` followed) with its class; a leaf with no class fails, so a field added
@@ -353,7 +353,7 @@ references; task-057's candidates already use `neutralise` and are re-pointed to
 | AC-2 | 0.3.1 `W_MEMORY_UNREADABLE` stays a warning; a failing envelope is 502; `dna show` strict | characterization | same |
 | AC-3 | history, `/events/memory`, Today and `/elements` rejection texts escaped, redacted, capped | **red** (P4) | `test/server/http/commit-text.test.ts` |
 | AC-3 | a member with a bidi committed name matched by email (actor and `rejection.by`'s member) | characterization (holds today; guard-removal shown) | same |
-| AC-3 | the panel's history and Today render `‮` as text | characterization (React renders text) | `test/web/element/history-text.test.tsx`, `test/web/today/title-text.test.tsx` |
+| AC-3 | the panel's history and Today render `\u202e` as text | characterization (React renders text) | `test/web/element/history-text.test.tsx`, `test/web/today/title-text.test.tsx` |
 | AC-4 | titles escaped in `/elements`, `/elements/:eid`, Today; ids, types, states byte-equal | **red** | `test/server/http/text-sweep.test.ts` |
 | AC-4 | `/config` `ui` strings escaped (task-068) | characterization | same |
 | AC-4 | the sweep over every GET route | **red** (titles and commit texts today) | same |
@@ -535,3 +535,13 @@ branches 91.28 %, functions 97.39 %, lines 98.39 %. `npm run test:e2e -- test/e2
 (Chromium, Firefox, WebKit; waited 13 min 7 s behind another run, granted at load 3.62 → 19.55):
 21 passed (2.2 min). No web code changed, so no full Chromium run. No console left, no
 `/tmp/wfui-*`.
+
+### review round 2 (2026-11-07) — PASS, one minor and nits
+
+| # | Finding | What changed |
+|---|---------|--------------|
+| 1 (minor) | `frontmatterBody` returned `rejection_reason` unchanged when it was not a string: a hand-committed list or object (`["a \u202e\x1b[31m <project dir>/x", {k: "\nv"}]`) was served raw and the panel's References list renders its items | The field is class (a) as a whole: every string leaf of its value through the sanitiser, its shape kept, the keys of a nested object kept as keys. Red `test/server/http/serialise.test.ts` (the list/object case failed; the string and absent cases passed); green `ece7b7b9`. |
+| 2 (nit) | `frontmatterBody`'s JSDoc wording | "the one free-text field a WingFoil transition verb writes", as `presets/wingfoil.ts` says. |
+| n6 test, nit 4 | A fault-injection test of the Today memo; a per-line tightening of the `tool-messages.test.ts` producer patterns | Left as they are, by the coordinator's decision (nit 4 recorded as optional, not done). |
+
+Also in this round: two raw U+202E characters in the design section (D56-9 and the AC-3 row of the test plan, written by a shell here-document that turned the escapes into the character) are written as the escape `\u202e` again, and so is a raw U+2028 in `serialise.test.ts`.

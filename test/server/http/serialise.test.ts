@@ -17,7 +17,7 @@ describe('frontmatterBody', () => {
   });
 
   it('a list or object rejection_reason has every string leaf sanitised, its shape and keys kept', () => {
-    const value = [`a ${RLO}${ESC}[31m ${ROOT}/x`, { [`k${RLO}`]: '\nv ', n: 1, nested: [`${ESC}`] }, null, true];
+    const value = [`a ${RLO}${ESC}[31m ${ROOT}/x`, { [`k${RLO}`]: '\nv\u2028', n: 1, nested: [`${ESC}`] }, null, true];
     const out = frontmatterBody({ id: 'x', rejection_reason: value }, sanitise);
     expect(out.rejection_reason).toEqual([
       'a \\u202e\\x1b[31m <project>/x',
