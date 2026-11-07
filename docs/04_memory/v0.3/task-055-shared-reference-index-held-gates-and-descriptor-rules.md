@@ -624,3 +624,11 @@ Checked out of scope (recorded, not changed here):
   (`readGitEmail`) raises `GitConfigError`, whose message holds only how the process ended, and is
   not used by the console (`launcher/start.ts` uses the snapshot source). Not reachable: nothing to
   report.
+
+Gates of round 1 (on `02eae44f`): `npm run typecheck`, `npm run lint`, `npm run format:check`, `npm
+run docs:api` clean; `check_tasks.py v0.3` OK; the strict-identity recipe on the git-touching
+suites (as above): 37 files, 639 tests passed (load 5.34 → 9.48); `npm run test:coverage` through
+the machine-free slot (W1-13 checked first: no other heavy gate; slot wait 21 min 28 s, load 3.19
+at grant → 24.44 at the end): 214 files passed (1 skipped), 4 051 tests passed (2 skipped);
+statements 96.59 %, branches 91.29 %, functions 97.26 %, lines 98.38 %; `server/src/references`
+98.84 % statements, 100 % lines.
