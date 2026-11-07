@@ -98,6 +98,10 @@ The e2e of C-02.x and C-03.x commit to fixtures: also the strict-identity run of
 
 ## Implementation Notes
 
+- The `/config` `ui` strings are escaped (task-068, spec-012 §9): type and state names with
+  `neutralise`, so a name holding a backslash or a control reads `a\\b` in `ui` and `a\b` in
+  `types`; match a `ui` name against `types` by comparing with the escaped key. `patterns[].match`
+  keeps its backslashes (the approver's Q4-b, 2026-11-06): show it as served.
 - Read at design: `ux-reference.md` §4.11, §5, §6; spec-005 §1–§3, §5; spec-012 §2; spec-004 §3–§6;
   spec-008; the Execution Notes of task-054 (the `ui` section, the preset fixture variant), task-060
   (the route, its codes, the C-03.1 test seam), task-041 (the Configuration sub-tab links and the
