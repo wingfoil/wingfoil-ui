@@ -13,6 +13,7 @@ import path from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
 import { CliRefusedError, usageKind, WingfoilCli } from '../../server/src/cli/adapter.js';
 import { detectVersion } from '../../server/src/cli/version.js';
+import { historyBody, toolTextSanitiser } from '../../server/src/http/serialise.js';
 import { GitTransport, relativeToProject } from '../../server/src/writes/transport.js';
 import { REPO_ROOT } from '../harness/cli.js';
 import { FakeProcessRunner } from './process/fake-runner.js';
@@ -35,7 +36,7 @@ async function sources(dir: string): Promise<string[]> {
 
 /** A line that places a tool message in an API body or the sync status. */
 const PRODUCER =
-  /'git-refused'|'cli-refused'|\.fetchFailed\(|\.updateFailed\(|status: 'failed', message|warnings: (?:toolLines\()?lines\(|warnings: toolLines\(|warnings: stderrWarnings\(|\{ files: |wingfoil: wingfoilOf\(/;
+  /'git-refused'|'cli-refused'|\.fetchFailed\(|\.updateFailed\(|status: 'failed', message|warnings: (?:toolLines\()?lines\(|warnings: toolLines\(|warnings: stderrWarnings\(|\{ files: |wingfoil: wingfoilOf\(|historyBody\(|descriptorBody\(|memoryEventBody\(/;
 
 /**
  * The reviewed producers, file → how its message is sanitised (a call on the same file). A line
@@ -59,7 +60,16 @@ const PRODUCERS: Record<string, readonly RegExp[]> = {
     /message: sanitise\(search\.message\)/,
   ],
   // Review rounds 1 n1, 2 n7: the header's `--version` text, sanitised by the adapter in detectVersion.
-  'server/src/http/project-routes.ts': [/wingfoilOf\(detected\)/],
+  // task-056 (bug-027): the commit texts — history, Memory events, the descriptor's `rejection` —
+  // written by `serialise.ts` with the project's sanitiser (`read.toolText()`).
+  'server/src/http/project-routes.ts': [
+    /wingfoilOf\(detected\)/,
+    /historyBody\(\(await read\.view\.history\(params\.eid\)\)\.data, await read\.toolText\(\)\)/,
+    /descriptorBody\(inputs\.describe\(match, localChanges, events(?:\.events)?\), sanitise\)/,
+    /memoryEventBody\(e, sanitise\)/,
+    /const sanitise = await read\.toolText\(\)/,
+  ],
+  'server/src/http/serialise.ts': [/redactLocalPaths\(text, roots\)/],
 };
 
 describe('every producer of a verbatim tool message goes through the sanitiser', () => {
@@ -99,6 +109,35 @@ describe('every producer of a verbatim tool message goes through the sanitiser',
     const error = (await cli.json(['paths']).catch((e: unknown) => e)) as CliRefusedError;
     expect(error).toBeInstanceOf(CliRefusedError);
     expect(error.cliMessage).toBe(SAFE);
+  });
+
+  it('commit texts (task-056, bug-027): a marker and the project root in a history entry come out escaped and redacted', () => {
+    const sanitise = toolTextSanitiser({ project: ['/nowhere/project'], home: null });
+    const body = historyBody(
+      {
+        id: 'x',
+        path: 'x.md',
+        entries: [
+          {
+            sha: 'a'.repeat(40),
+            author: `A${RLO} <a@example.test>`,
+            timestamp: '2026-01-01T00:00:00Z',
+            operation: null,
+            from: null,
+            to: null,
+            approver: null,
+            reason: `${MARKER} /nowhere/project/x`,
+            subject: MARKER,
+          },
+        ],
+      },
+      sanitise,
+    );
+    expect(body.entries[0]).toMatchObject({
+      author: 'A\\u202e <a@example.test>',
+      reason: `${SAFE} <project>/x`,
+      subject: SAFE,
+    });
   });
 
   // task-046 AC-2: WingFoil 0.3's `workflow list` `diagnostics` (configuration messages that quote
