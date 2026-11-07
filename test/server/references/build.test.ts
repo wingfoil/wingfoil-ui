@@ -293,6 +293,62 @@ describe('buildReferenceIndex — the pattern budget (spec-012 §1, Q2-a)', () =
     expect([...memo.for(list).keys()].sort()).toEqual(['US-3', 'US-4']);
   });
 
+  it('review round 2 N1: the passes before and after the pattern tests serve the event loop too', async () => {
+    // No pattern at all: no pattern test runs, yet 2 000 values are walked before and after.
+    const matches = Array.from({ length: 20 }, (_, i) =>
+      match(`task-0${String(i).padStart(2, '0')}-x`, 'task', 'draft'),
+    );
+    const table = Object.fromEntries(
+      matches.map((m, i) => [m.id, { values: Array.from({ length: 100 }, (_, k) => `v-${i}-${k}`) }]),
+    );
+    const phases: string[] = [];
+    let phase = 'pre';
+    const source = tableSource(table);
+    const index = await build(matches, source, {
+      patterns: [],
+      clock: ticking(1),
+      sliceMs: 20,
+      pause: () => {
+        phases.push(phase);
+        return Promise.resolve();
+      },
+    });
+    phase = 'done';
+    expect(index.elements).toHaveLength(20);
+    // At least one pause per 20 clock reads over the walk of 2 000 values (before) and the
+    // elements and the inverted index (after): far more than one.
+    expect(phases.length).toBeGreaterThanOrEqual(10);
+  });
+
+  it('review round 2 N2: a build whose results a newer build pruned keeps its own; only the newest build prunes', async () => {
+    const memo = new PatternMemo();
+    const list = [pattern('^US-', 'requirement')];
+    const one = [match('task-001-a', 'task', 'draft')];
+    let release: () => void = () => undefined;
+    const held = new Promise<void>((r) => (release = r));
+    let paused = false;
+    // Build A pauses at its first slice and resumes only after build B (a newer state) is done.
+    const a = build(one, tableSource({ 'task-001-a': { values: ['US-1'] } }), {
+      memo,
+      patterns: list,
+      clock: ticking(1),
+      sliceMs: 0,
+      pause: () => {
+        if (paused) return Promise.resolve();
+        paused = true;
+        return held;
+      },
+    });
+    const b = await build(one, tableSource({ 'task-001-a': { values: ['US-2'] } }), { memo, patterns: list });
+    expect(b.get('task-001-a')!.references).toEqual([{ value: 'US-2', kind: 'pattern', category: 'requirement' }]);
+    release();
+    const done = await a;
+    expect(done.capped).toEqual([]);
+    expect(done.get('task-001-a')!.references).toEqual([{ value: 'US-1', kind: 'pattern', category: 'requirement' }]);
+    // The older build did not prune the newer one's results.
+    expect(memo.for(list).has('US-2')).toBe(true);
+  });
+
   it('serves the event loop between slices of about 20 ms', async () => {
     const matches = Array.from({ length: 30 }, (_, i) =>
       match(`task-0${String(i).padStart(2, '0')}-x`, 'task', 'draft'),
