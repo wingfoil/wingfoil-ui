@@ -36,7 +36,7 @@ async function sources(dir: string): Promise<string[]> {
 
 /** A line that places a tool message in an API body or the sync status. */
 const PRODUCER =
-  /'git-refused'|'cli-refused'|\.fetchFailed\(|\.updateFailed\(|status: 'failed', message|warnings: (?:toolLines\()?lines\(|warnings: toolLines\(|warnings: stderrWarnings\(|\{ files: |wingfoil: wingfoilOf\(|historyBody\(|descriptorBody\(|memoryEventBody\(/;
+  /'git-refused'|'cli-refused'|\.fetchFailed\(|\.updateFailed\(|status: 'failed', message|warnings: (?:toolLines\()?lines\(|warnings: toolLines\(|warnings: stderrWarnings\(|\{ files: |wingfoil: wingfoilOf\(|historyBody\(|descriptorBody\(|memoryEventBody\(|frontmatterBody\(/;
 
 /**
  * The reviewed producers, file → how its message is sanitised (a call on the same file). A line
@@ -67,6 +67,8 @@ const PRODUCERS: Record<string, readonly RegExp[]> = {
     /historyBody\(\(await read\.view\.history\(params\.eid\)\)\.data, await read\.toolText\(\)\)/,
     /descriptorBody\(inputs\.describe\(match, localChanges, events(?:\.events)?\), sanitise\)/,
     /memoryEventBody\(e, sanitise\)/,
+    // Review round 1: the frontmatter's `rejection_reason`, written by `memory reject`.
+    /frontmatterBody\(content\.frontmatter, sanitise\)/,
     /const sanitise = await read\.toolText\(\)/,
   ],
   'server/src/http/serialise.ts': [/redactLocalPaths\(text, roots\)/],

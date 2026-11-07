@@ -88,6 +88,7 @@ import { resolveElementId } from './element-address.js';
 import { uiConfigBody } from '../ui-config/body.js';
 import {
   descriptorBody,
+  frontmatterBody,
   historyBody,
   matchBody,
   memoryEventBody,
@@ -525,8 +526,9 @@ async function element(read: ProjectRead, eid: string): Promise<ElementDetail> {
   const sanitise = await read.toolText();
   return {
     element: { ...matchBody(match), ...shortIdField(await read.shortIds(), match), localChanges },
-    // Document content (class (d), spec-004 §5): as written.
-    frontmatter: content.frontmatter,
+    // Document content (class (d), spec-004 §5): as written — but the reject's reason WingFoil
+    // writes into it, which is commit text (class (a), review round 1).
+    frontmatter: frontmatterBody(content.frontmatter, sanitise),
     body: content.body,
     ...(inputs.ok && events
       ? {
@@ -604,23 +606,29 @@ async function todayOf(read: ProjectRead, query: Record<string, unknown>): Promi
   const inputs = await read.descriptorInputs();
   if (!inputs.ok) throw new Refused(inputs.refusal);
   const events = await eventsOrRefuse(view.events(), read.log);
-  // Once per state: every role view and the summary place the same rows.
+  // Once per state: every role view and the summary place the same rows, described on the texts as
+  // read (the email match, D56-4).
   const shortIds = shortIdsOf(inputs.memoryYaml);
-  const sanitise = await read.toolText();
-  // The rows' texts written once per state, after the descriptor matched the emails (D56-4).
-  const rows = await view.derived('today rows', async () =>
+  const described = await view.derived('today rows', async () =>
     (await view.elements()).matches.map(({ match, localChanges }): TodayRow => ({
       element: {
         id: match.id,
         ...shortIdField(shortIds, match),
         type: match.type,
-        title: repositoryText(match.title),
+        title: match.title,
         status: match.status,
         localChanges,
       },
-      descriptor: descriptorBody(inputs.describe(match, localChanges, events), sanitise),
+      descriptor: inputs.describe(match, localChanges, events),
     })),
   );
+  // The texts written per request, with this request's roots (review round 1: a memo built while the
+  // CLI did not resolve would keep roots without its folder until the state changes).
+  const sanitise = await read.toolText();
+  const rows = described.map(({ element, descriptor }) => ({
+    element: { ...element, title: repositoryText(element.title) },
+    descriptor: descriptorBody(descriptor, sanitise),
+  }));
   return today(rows, ids.identity, requested ?? ids.roleView);
 }
 
