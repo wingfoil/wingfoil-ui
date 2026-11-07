@@ -61,3 +61,4 @@ marked by that ancestor, without any read.
        live on those tasks (docs/04_memory/{release}/{id}.md, `bug: {this id}`, their own
        Execution Notes section) — this section only needs a pointer plus anything that doesn't
        belong on a specific fix task (e.g. why 2 tasks were needed instead of 1). -->
+- close note (2026-11-07): fixed by task-068 (`done` `5498dfac`), merged into the phase branch in `37f364f1`; resolved by the approver (`bb1fdba0`). The per-state read not tied to the bytes the state check saw is another defect (bug-034). It closes with Wave 1's merge into `main`.

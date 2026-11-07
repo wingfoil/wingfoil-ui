@@ -63,3 +63,4 @@ frontmatter the index reads.
        live on those tasks (docs/04_memory/{release}/{id}.md, `bug: {this id}`, their own
        Execution Notes section) — this section only needs a pointer plus anything that doesn't
        belong on a specific fix task (e.g. why 2 tasks were needed instead of 1). -->
+- close note (2026-11-07): fixed by task-055 (`done` `c5a86aa1`), merged into the phase branch in `314d2484`; resolved by the approver (`5b053e57`). The frontmatter parse is linear (5 MiB of keys in about 9 s, about 40 min before) and the reference index reads at most 64 KiB of frontmatter, measured on exactly the text it parses. It closes with Wave 1's merge into `main`.

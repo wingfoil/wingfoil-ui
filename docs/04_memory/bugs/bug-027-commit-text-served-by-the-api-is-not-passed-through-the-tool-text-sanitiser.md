@@ -57,3 +57,4 @@ characters and unbounded lines reach the screen, and an absolute path in a commi
 
 ## Triage & Execution Notes
 
+- close note (2026-11-07): fixed by task-056 (`done` `b213fe5a`), merged into the phase branch in `79fa666b`; resolved by the approver (`7d5b0a6b`). Commit text, titles, the descriptor's rejection and `frontmatter.rejection_reason` pass through the rules of `server/src/http/serialise.ts` (spec-004 §5); the repository text outside the named fields is bug-035. It closes with Wave 1's merge into `main`.

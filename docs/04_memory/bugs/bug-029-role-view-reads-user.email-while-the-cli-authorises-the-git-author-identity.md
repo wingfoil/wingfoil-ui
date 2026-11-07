@@ -63,3 +63,4 @@ keeping the read-only rules of the console's git reads (no fsmonitor, no transpo
        live on those tasks (docs/04_memory/{release}/{id}.md, `bug: {this id}`, their own
        Execution Notes section) — this section only needs a pointer plus anything that doesn't
        belong on a specific fix task (e.g. why 2 tasks were needed instead of 1). -->
+- close note (2026-11-07): fixed by task-055 (`done` `c5a86aa1`), merged into the phase branch in `314d2484`; resolved by the approver (`ba21c270`). The identity read follows the CLI (`GIT_AUTHOR_EMAIL`, else `author.email`, else `user.email`), matched against the pinned CLI's `readGitIdentity` at review. It closes with Wave 1's merge into `main`.

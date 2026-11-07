@@ -67,3 +67,4 @@ test resolves lies outside the temporary root.
        live on those tasks (docs/04_memory/{release}/{id}.md, `bug: {this id}`, their own
        Execution Notes section) — this section only needs a pointer plus anything that doesn't
        belong on a specific fix task (e.g. why 2 tasks were needed instead of 1). -->
+- close note (2026-11-07): fixed by task-058 (`done` `26e69f1f`), merged into the phase branch in `8c8d54bd`; resolved by the approver (`1ac716e3`). It closes with Wave 1's merge into `main`.
