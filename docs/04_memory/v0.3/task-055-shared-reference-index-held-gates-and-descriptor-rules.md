@@ -519,3 +519,58 @@ referenceIndex(): Promise<ReferenceIndex>;  // once per content key; rejects as 
 Figures, natural id order, `ElementRef`, the current element, escaping (spec-012 §9) and the
 route bodies are task-059's; the hold (when `holds` has `when-references-done`, only then build the
 index) is task-069's.
+
+### red / green / refactor (2026-11-06)
+
+Scope after the split (Q1-b): AC-2, AC-3, AC-8, AC-9, AC-10 — no descriptor, web or e2e change.
+
+- **Merge first** (W0-7 style): `bfcc11df`, the phase branch at `f942682f` (the split, W1-17).
+- **Specs amended before red**: `18dc4a81` — spec-012 §1 the pattern budget and `capped` =
+  "indexed incompletely" (Q2-a), the clarifications (dates are strings, distinct values, code
+  points) and D55-6's declared residual; SARD `03_state-context.md` 0.10 (REQ-STATE-02,
+  REQ-STATE-05) and `04_integrations-interfaces.md` 0.12 (REQ-INT-06), spec-004 §6's `repo` row
+  (Q4-a). `1c7bba61` — spec-001 §4.2 the linear duplicate-key check and the index's 64 KiB
+  frontmatter bound (Q3-a, bug-032). `d7d19d1b` — the approver's decisions and the index interface
+  above.
+- **Red** (`147ef952`): `test/server/references/{values,build,cache,read}.test.ts` (new),
+  `test/server/snapshot/reference-index.test.ts` (new), `test/server/reads/frontmatter.test.ts`
+  (new), the author-identity cases of `test/server/identity/git-email.test.ts` (each against the
+  pinned CLI's own `readGitIdentity`), the bug-029 describe of
+  `test/server/identity/project-identity.test.ts`, the `email` cases of
+  `test/server/git/git.test.ts`. `npx vitest run` of these files: the four `references` files and
+  the snapshot file failed on their missing module/method, 13 tests failed on behaviour — the
+  identity read (`GIT_AUTHOR_EMAIL` and `author.email` ignored; the agent's own identity was the
+  author while `user.email` was read), the parse options (`FRONTMATTER_PARSE_OPTIONS` absent, the
+  library's duplicate message) and AC-3's revert. Characterization: the cases "EMAIL alone is not
+  followed" and "nothing configured" passed on the old read (it never followed them).
+- **Green** (`bd86b549`): `server/src/references/{index,values,build,cache,read}.ts` (D55-2 …
+  D55-8; `NON_REFERENCE_FIELDS`, `VERSION_FIELD` in `server/src/presets/wingfoil.ts`);
+  `SnapshotView.referenceIndex()` with the snapshot's `ReferenceValueCache`, `PatternMemo` and one
+  `GitReads.treeBlobs` (`git ls-tree -r -z HEAD -- <Memory directories>`) per HEAD;
+  `GitReads.email()` and `readGitEmail` as D55-15 (`authorEmailVariable`,
+  `authorEmailOfConfig` in `server/src/git/git.ts`; `GIT_READ_ARGS.email` is now the one
+  `--get-regexp`); `server/src/reads/frontmatter.ts` `FRONTMATTER_PARSE_OPTIONS` (`uniqueKeys:
+  false`) and the one-pass duplicate check (merge keys exempt, keys compared as the library
+  compares them); `checkMatch` factored out of `readElement` for the index's read. `test/README.md`
+  0.62, `CHANGELOG.md` *Unreleased* (*Added* the index, *Fixed* bug-029 and bug-032). The old
+  fake-runner tests of `git-email.test.ts` were updated in the same commit: they ran with the test
+  process's environment, which in an agent session carries `GIT_AUTHOR_EMAIL` (task-050) — they now
+  pass an environment without the author variables (`NO_AUTHOR`), and the "default environment"
+  test removes it for its run; their arguments and answers follow the new read.
+- **Guard removal** (each edit undone after its run, `npx vitest run <file>`): storing without the
+  blob hash check → the `assume-unchanged` test of `cache.test.ts` fails; reusing without the status
+  check → AC-3's revert fails in `cache.test.ts` and `reference-index.test.ts`; no budget → the
+  budget test fails; no 64 KiB bound → AC-10's read test fails; no own duplicate check → the
+  duplicate-key test fails.
+- **Refactor**: `21e97240` — the index's `done` flag is `finished` (REQ-ARC-05: `done` is a fixture
+  state name; the interface above is updated); `126f4c9f` — a TypeDoc link to a private symbol
+  removed (`docs:api`).
+- **Measured after green** (this build, load 10, a scratch script): `parseYaml` of 64 KiB of keys
+  391 ms, 1 MiB 2.1 s, 5 MiB 9.2 s (98.9 s and about 40 min before) — linear.
+- **Deviations.** (1) `readGitEmail` keeps its name (D55-15 said `readAuthorEmail`): fewer changed
+  call sites, its comment says what it reads. (2) No route calls `referenceIndex()` yet (task-059,
+  task-069 wire it): AC-2's "built only for a consumer that needs it" holds by construction here —
+  `/elements`, `/today` and the element read start no `ls-tree` and read no extra file (the process
+  audits below are unchanged). (3) SARD REQ-INT-06's read list does not name `ls-tree`,
+  `ls-files`, `hash-object` or `diff-tree` (in the code's allow-list since task-032): a gap older
+  than this task, reported to the coordinator, not changed here.
