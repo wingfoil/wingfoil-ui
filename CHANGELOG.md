@@ -80,6 +80,29 @@ release `v0.2` the git tag `v0.2.0` and the npm version `wingfoil-ui@0.2.0`.
   elsewhere, the check of the repository state hashed the files behind the link, so an edit
   outside the project could refresh open pages. Such a folder is now marked by itself, and no
   file behind it is read. The defect shipped in v0.2.0 (it dates from v0.1.0).
+- **Commit texts are shown as safe text** (bug-027, task-056): the element panel's history (each
+  entry's subject, reason, author and approver), the bell's *Updates* and the rejection shown in
+  Today, the Memory list and the element panel passed a commit's text on as written, so a bidi
+  override, a control character, a very long line or an absolute local folder in a commit message
+  reached the screen — and so did the reject's reason among the element panel's fields. They now
+  go through the same rule as every other tool message: control,
+  bidi and invisible characters shown as visible escapes (`\u202e`), the project's, the
+  repository's, the WingFoil package's and the home folders shown as `<project>`, `<repository>`,
+  `<wingfoil>` and `~`, at most 4 000 characters. Who must act is still found by the author's
+  email. The defect shipped in v0.1.0 and v0.2.0.
+
+### Security
+
+- **Repository text escaped in the API** (task-056, RP3-18 K1; spec-004 §5): an element's title in
+  the Memory list, the element panel and Today comes back with control, bidi and invisible
+  characters as visible escapes, as the `ui.yaml` strings of the configuration do (task-068), so a
+  title cannot reorder or hide what the page shows; a backslash in a title is shown doubled
+  (`Fix \\n handling`), so that every escape on the page is one the console wrote. Ids, types and
+  states stay as WingFoil returns them (they are what a page sends back), and a document — an
+  element's or a directive's body and fields (but the reject's reason, a commit text), a file — is
+  shown as written. The other names the repository supplies (the DNA's names and descriptions, the
+  directives' titles, the workflow texts, file names and paths of the documentation, the states
+  named in an element's history, the project's name) are not escaped yet (bug-035).
 
 ### Known limitations
 

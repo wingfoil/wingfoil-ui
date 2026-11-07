@@ -66,3 +66,10 @@ export const CORRECTION_OPERATION = 'amend' satisfies MemoryOperation;
  * never Memory operations (WingFoil 0.3.x `CONFIGURATION_SCOPES`).
  */
 export const CONFIGURATION_SCOPES: readonly string[] = Object.freeze(['dna', 'directive', 'workflow']);
+
+/**
+ * The frontmatter field `memory reject` writes from its reason (and `memory submit` removes): the one
+ * field a WingFoil transition verb writes besides `status` (spec-001 §3; WingFoil's
+ * `REJECTION_REASON_FIELD`).
+ */
+export const REJECTION_REASON_FIELD = 'rejection_reason';

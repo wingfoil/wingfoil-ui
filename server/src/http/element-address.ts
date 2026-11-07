@@ -16,7 +16,7 @@
  * writes take the full id only: they do not resolve.
  */
 import type { AmbiguousCandidate, AmbiguousIdDetail, MemoryMatch } from '@wingfoil-ui/contracts';
-import { neutralise } from '../git/redact.js';
+import { repositoryText } from './serialise.js';
 import type { ShortIds } from '../reads/short-id.js';
 
 /** The most candidates a 409 `ambiguous-id` lists (RP3-17 E4). */
@@ -41,7 +41,7 @@ function byShortId(matches: readonly MemoryMatch[], eid: string, shortIds: Short
 
 function candidate(match: MemoryMatch, shortId: string): AmbiguousCandidate {
   const { id, title, type, status } = match;
-  return { id, shortId, title: neutralise(title), type, status };
+  return { id, shortId, title: repositoryText(title), type, status };
 }
 
 /** The 409's detail for the matches of one step (two or more). */

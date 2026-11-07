@@ -20,7 +20,11 @@
  * state (REQ-PERF-05) — and answers `X-Repo-State`. An unknown `:pid` is 404 before anything is
  * read; an unknown `:eid`/`:did` is 404 (looked up in the CLI's lists, never a path built from it).
  * The element read resolves a short id too (spec-011 §3, task-057); history takes the full id only.
- * Element bodies and rows carry `shortId` (spec-011 §1), derived from `memory.yaml` here.
+ * Element bodies and rows carry `shortId` (spec-011 §1), derived from `memory.yaml` here. Every text
+ * a body takes from a tool or the repository is written by the rules of `serialise.ts` (spec-004 §5,
+ * task-056): titles escaped, commit texts — history, Memory events, the descriptor's `rejection` —
+ * through the sanitiser of tool messages after the descriptor matched the emails, keys and document
+ * content as read.
  * A failed direct read is a 502 `read-error` of that element or directive only; an unreadable
  * `memory.yaml` degrades the type-dependent parts only; a failed `dna show` stays in the DNA
  * (S-27.1). A refused working-tree path is a 404 `not-found` with `detail.kind` (`outside`: the
@@ -38,7 +42,6 @@ import type {
   ElementDetail,
   ElementList,
   ListedElement,
-  MemoryHistory,
   MemoryMatch,
   MemoryYaml,
   ProjectConfig,
@@ -76,13 +79,23 @@ import {
   WorkingTreeError,
   type DocumentationScope,
 } from '../reads/working-tree.js';
-import type { ElementEvents, SnapshotView } from '../snapshot/snapshot.js';
+import type { ElementEvents, ProjectSnapshot, SnapshotView } from '../snapshot/snapshot.js';
 import { REPO_STATE_HEADER, repoStateHeader, type RepoState } from '../snapshot/state.js';
 import type { Snapshots } from '../snapshot/snapshots.js';
 import { stripUserinfo, type StateStore } from '../state/store.js';
 import { envelope } from './app.js';
 import { resolveElementId } from './element-address.js';
 import { uiConfigBody } from '../ui-config/body.js';
+import {
+  descriptorBody,
+  frontmatterBody,
+  historyBody,
+  matchBody,
+  memoryEventBody,
+  repositoryText,
+  toolTextSanitiser,
+  type TextSanitiser,
+} from './serialise.js';
 
 /** Prefix of every route of this module. */
 export const PROJECT_PATH = '/api/p/:pid';
@@ -226,7 +239,23 @@ class ProjectRead {
     private readonly store: StateStore,
     /** The sync status (spec-010 §3, task-033). */
     readonly sync: SyncStatus,
+    private readonly snapshot: ProjectSnapshot,
   ) {}
+
+  /**
+   * The rule of tool messages and commit texts for this project (class (a), `serialise.ts`): the
+   * CLI adapter's sanitiser — the project's and the repository's folders, the CLI's package folder,
+   * the home directory —, or the same without the CLI's folder when no CLI resolves. Once per request.
+   */
+  toolText(): Promise<TextSanitiser> {
+    this.sanitiser ??= this.snapshot.cli().then(
+      (cli) => toolTextSanitiser({ ...this.snapshot.localRoots, ...wingfoilRoot(cli.resolved.packageDir) }),
+      () => toolTextSanitiser(this.snapshot.localRoots),
+    );
+    return this.sanitiser;
+  }
+
+  private sanitiser: Promise<TextSanitiser> | undefined;
 
   settle<T>(read: Promise<T>, base: ReadBase = ''): ReturnType<typeof settle<T>> {
     return settle(read, base, this.log);
@@ -360,6 +389,11 @@ class ProjectRead {
   }
 }
 
+/** The CLI's package folder as a root of `redactLocalPaths`, when it has one. */
+function wingfoilRoot(packageDir: string | undefined): { wingfoil?: string[] } {
+  return packageDir === undefined ? {} : { wingfoil: [packageDir] };
+}
+
 /** `{ shortId }` of an element that has one, else nothing (the field is absent, spec-011 §5). */
 function shortIdField(shortIds: ShortIds, element: { id: string; type: string }): { shortId?: string } {
   const shortId = shortIds(element);
@@ -463,11 +497,14 @@ async function elements(read: ProjectRead, archived: boolean): Promise<ElementLi
   const inputs = await read.descriptorInputs();
   const events = inputs.ok ? await read.events() : undefined;
   const shortIds = await read.shortIds();
+  const sanitise = await read.toolText();
   const listed: ListedElement[] = matches.map(({ match, localChanges }) => ({
-    ...match,
+    ...matchBody(match),
     ...shortIdField(shortIds, match),
     localChanges,
-    ...(inputs.ok && events ? { descriptor: inputs.describe(match, localChanges, events.events) } : {}),
+    ...(inputs.ok && events
+      ? { descriptor: descriptorBody(inputs.describe(match, localChanges, events.events), sanitise) }
+      : {}),
   }));
   return {
     elements: listed,
@@ -486,13 +523,16 @@ async function element(read: ProjectRead, eid: string): Promise<ElementDetail> {
   const inputs = await read.descriptorInputs();
   const events = inputs.ok ? await read.events() : undefined;
   const { match, content, localChanges } = found;
+  const sanitise = await read.toolText();
   return {
-    element: { ...match, ...shortIdField(await read.shortIds(), match), localChanges },
-    frontmatter: content.frontmatter,
+    element: { ...matchBody(match), ...shortIdField(await read.shortIds(), match), localChanges },
+    // Document content (class (d), spec-004 §5): as written — but the reject's reason WingFoil
+    // writes into it, which is commit text (class (a), review round 1).
+    frontmatter: frontmatterBody(content.frontmatter, sanitise),
     body: content.body,
     ...(inputs.ok && events
       ? {
-          descriptor: inputs.describe(match, localChanges, events.events),
+          descriptor: descriptorBody(inputs.describe(match, localChanges, events.events), sanitise),
           required: requiredFields(inputs.memoryYaml, match.type, content.frontmatter),
           ...statesOf(inputs.memoryYaml, match.type),
           ...(events.error ? { eventsError: events.error } : {}),
@@ -566,9 +606,10 @@ async function todayOf(read: ProjectRead, query: Record<string, unknown>): Promi
   const inputs = await read.descriptorInputs();
   if (!inputs.ok) throw new Refused(inputs.refusal);
   const events = await eventsOrRefuse(view.events(), read.log);
-  // Once per state: every role view and the summary place the same rows.
+  // Once per state: every role view and the summary place the same rows, described on the texts as
+  // read (the email match, D56-4).
   const shortIds = shortIdsOf(inputs.memoryYaml);
-  const rows = await view.derived('today rows', async () =>
+  const described = await view.derived('today rows', async () =>
     (await view.elements()).matches.map(({ match, localChanges }): TodayRow => ({
       element: {
         id: match.id,
@@ -581,6 +622,13 @@ async function todayOf(read: ProjectRead, query: Record<string, unknown>): Promi
       descriptor: inputs.describe(match, localChanges, events),
     })),
   );
+  // The texts written per request, with this request's roots (review round 1: a memo built while the
+  // CLI did not resolve would keep roots without its folder until the state changes).
+  const sanitise = await read.toolText();
+  const rows = described.map(({ element, descriptor }) => ({
+    element: { ...element, title: repositoryText(element.title) },
+    descriptor: descriptorBody(descriptor, sanitise),
+  }));
   return today(rows, ids.identity, requested ?? ids.roleView);
 }
 
@@ -609,30 +657,8 @@ async function memoryEventsOf(read: ProjectRead, query: Record<string, unknown>)
     ...(limit !== undefined ? { limit: Number(limit) } : {}),
   });
   if (!page) throw invalidRequest();
-  return page;
-}
-
-/**
- * `GET /api/p/:pid/elements/:eid/history`: `memory history` with each entry on the contract's fields
- * only — the fields a newer CLI adds (WingFoil 0.3.x's `wingfoil`, commit text, W-34) are not passed
- * on (task-048 D48-8).
- */
-function historyBody({ id, path, entries }: MemoryHistory): MemoryHistory {
-  return {
-    id,
-    path,
-    entries: entries.map(({ sha, author, timestamp, operation, from, to, approver, reason, subject }) => ({
-      sha,
-      author,
-      timestamp,
-      operation,
-      from,
-      to,
-      approver,
-      reason,
-      subject,
-    })),
-  };
+  const sanitise = await read.toolText();
+  return { ...page, events: page.events.map((e) => memoryEventBody(e, sanitise)) };
 }
 
 type Handler<P, Q> = (read: ProjectRead, params: P, query: Q) => Promise<unknown>;
@@ -656,7 +682,7 @@ export function registerProjectRoutes(app: FastifyInstance, options: ProjectRout
           const snapshot = await snapshots.open(entry.id, entry.path);
           const view = await snapshot.view();
           reply.header(REPO_STATE_HEADER, repoStateHeader(view.state));
-          const read = new ProjectRead(entry, snapshot.root, view, request.log, store, snapshots.sync);
+          const read = new ProjectRead(entry, snapshot.root, view, request.log, store, snapshots.sync, snapshot);
           const body = await handler(read, params, request.query as Q);
           return reply.send(body);
         } catch (error) {
@@ -684,7 +710,8 @@ export function registerProjectRoutes(app: FastifyInstance, options: ProjectRout
   route<{ eid: string }>(`${PROJECT_PATH}/elements/:eid`, (read, params) => element(read, params.eid));
   route<{ eid: string }>(`${PROJECT_PATH}/elements/:eid/history`, async (read, params) => {
     if (!(await read.findMatch(params.eid))) throw notFound();
-    return historyBody((await read.view.history(params.eid)).data);
+    // Commit texts (class (a), bug-027); the contract's fields only (task-048 D48-8).
+    return historyBody((await read.view.history(params.eid)).data, await read.toolText());
   });
   route(`${PROJECT_PATH}/directives`, directives);
   route<{ did: string }>(`${PROJECT_PATH}/directives/:did`, (read, params) => directive(read, params.did));

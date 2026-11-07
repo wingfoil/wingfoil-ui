@@ -255,6 +255,17 @@ of spec-011 §3, spec-012's `ElementRef` and rows), the **pattern reference** va
 (`patterns[].match` — a regular-expression source, its backslashes kept as written —, type
 names, `phases`, `holds` types and states, `artifacts` paths). Element
 ids, types and states stay as `memory search` returns them: they are the keys a page sends back.
+So does every other key whatever its source — an event's `type`, `id`, `from` and `to`, read from
+the commit subject and patch (spec-002 §3), the roles, the paths a page sends back. Document
+content — a frontmatter value, an element or directive body, a working-tree file — is served as
+written: the page renders it as a document, and the escape would change it (a doubled backslash in
+Markdown); the one frontmatter field outside it is `rejection_reason`, which `memory reject` writes
+from its reason (spec-001 §3): commit text, sanitised as the descriptor's `rejection.reason`. The rules live in one module, `server/src/http/serialise.ts` (task-056): `repositoryText`
+(the escape) and the commit-text sanitiser, used by every route that serialises such a field. The
+repository display text outside the fields named here (the DNA's names and descriptions, the
+directives' names and titles — the directive page's heading included —, the workflow texts, a file
+tree's names, the documentation index's paths, the states of a history entry, the project list's
+name and `remote`) is not escaped yet: bug-035.
 
 - Success of a write (`write.response.schema.json`): `{ result: <CLI output>, commits: [{ sha,
   subject }], push: { status, code?, message? } }` — `status` is `pushed`, `off` or `failed`
@@ -490,3 +501,11 @@ goes away by itself when the stream reconnects. A network failure is not rendere
 - 2026-11-06 — amended in development (task-068 green, plan backlog-item-rel-v0.3-plan; decided by
   the approver, Q4 (b)): §5 a `ui.yaml` pattern echoed by `/config` keeps its backslashes, its
   unsafe characters escaped as the other repository texts (spec-012 §9).
+- 2026-11-07 — amended in development (task-056 design, plan backlog-item-rel-v0.3-plan; decided by
+  the approver, Q1-a, Q2-a): §5 *Repository texts* — keys stay raw whatever their source (an
+  event's `type`, `id`, `from`, `to`), document content is served as written but the frontmatter's
+  `rejection_reason` (commit text, review round 1), the rules' module `server/src/http/serialise.ts`,
+  the display text outside the named fields left to bug-035 (with the documentation paths, the
+  history's states and the directive page's heading, review round 1). The
+  per-match `memory search` and the refusals' `detail.reasons[]` of this section are built by
+  task-070 (the split).
