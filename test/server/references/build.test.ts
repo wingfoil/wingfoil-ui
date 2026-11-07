@@ -5,7 +5,7 @@
 import type { MemoryMatch } from '@wingfoil-ui/contracts';
 import { describe, expect, it } from 'vitest';
 import { DirectReadError } from '../../../server/src/reads/confine.js';
-import { buildReferenceIndex, PatternMemo, type ValueSource } from '../../../server/src/references/build.js';
+import { buildReferenceIndex, PatternMemo, testable, type ValueSource } from '../../../server/src/references/build.js';
 import { INDEX_READS, PATTERN_BUDGET_MS, type FileValues } from '../../../server/src/references/index.js';
 import type { UiCategory, UiPattern } from '../../../server/src/ui-config/types.js';
 import { kanban } from '../ui-config/samples.js';
@@ -347,6 +347,60 @@ describe('buildReferenceIndex — the pattern budget (spec-012 §1, Q2-a)', () =
     expect(done.get('task-001-a')!.references).toEqual([{ value: 'US-1', kind: 'pattern', category: 'requirement' }]);
     // The older build did not prune the newer one's results.
     expect(memo.for(list).has('US-2')).toBe(true);
+  });
+
+  it('review round 3: each build reads its own results — a newer build pruning them after they were tested leaves no gap', async () => {
+    const memo = new PatternMemo();
+    const list = [pattern('^US-', 'requirement')];
+    const shared = memo.for(list);
+    const aValues = Array.from({ length: 32 }, (_, i) => `US-${i}`);
+    const one = [match('task-001-a', 'task', 'draft')];
+    let release: () => void = () => undefined;
+    const held = new Promise<void>((r) => (release = r));
+    let holding = false;
+    let onHold: () => void = () => undefined;
+    const aHolds = new Promise<void>((r) => (onHold = r));
+    // Build A holds at its first pause after every one of its values is in the shared results (its
+    // pass after the tests), while build B, a newer state's, prunes them all.
+    const a = build(one, tableSource({ 'task-001-a': { values: aValues } }), {
+      memo,
+      patterns: list,
+      clock: ticking(1),
+      sliceMs: 0,
+      pause: () => {
+        if (holding || !aValues.every((v) => shared.has(v))) return Promise.resolve();
+        holding = true;
+        onHold();
+        return held;
+      },
+    });
+    await aHolds;
+    await build(one, tableSource({ 'task-001-a': { values: ['US-B'] } }), { memo, patterns: list });
+    expect(aValues.some((v) => shared.has(v))).toBe(false);
+    release();
+    const done = await a;
+    expect(done.capped).toEqual([]);
+    expect(done.get('task-001-a')!.references.map((r) => r.value)).toEqual(aValues);
+  });
+
+  it('review round 3: testable — at most 256 code points, no line break; its fast path and boundaries', () => {
+    const astral = '😀'; // one code point, two UTF-16 units
+    const cases: [string, string, boolean][] = [
+      ['ASCII 256', 'a'.repeat(256), true],
+      ['ASCII 257', 'a'.repeat(257), false],
+      ['128 astral (256 units)', astral.repeat(128), true],
+      ['256 astral (512 units)', astral.repeat(256), true],
+      ['257 astral (514 units)', astral.repeat(257), false],
+      ['200 astral + 56 ASCII (256 code points)', astral.repeat(200) + 'a'.repeat(56), true],
+      ['200 astral + 57 ASCII (257 code points)', astral.repeat(200) + 'a'.repeat(57), false],
+      ['255 astral + aa (257 code points, 512 units)', astral.repeat(255) + 'aa', false],
+      ['300 lone surrogates', '\ud83d'.repeat(300), false],
+      ['513 ASCII units', 'a'.repeat(513), false],
+      ['a line feed', 'US-1\nx', false],
+      ['a carriage return', 'US-1\rx', false],
+      ['empty', '', true],
+    ];
+    for (const [name, value, expected] of cases) expect(testable(value), name).toBe(expected);
   });
 
   it('serves the event loop between slices of about 20 ms', async () => {

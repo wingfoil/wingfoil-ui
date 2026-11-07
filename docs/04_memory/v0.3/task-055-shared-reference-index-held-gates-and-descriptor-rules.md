@@ -658,3 +658,12 @@ suites: 37 files, 641 tests passed (load 5.92 → 9.63); `npm run test:coverage`
 machine-free slot (W1-13 checked first; slot wait 2 min 5 s, load 4.87 at grant → 21.88 at the
 end): 214 files passed (1 skipped), 4 053 tests passed (2 skipped); statements 96.58 %, branches
 91.27 %, functions 97.26 %, lines 98.39 %; `server/src/references` 98.55 % statements, 100 % lines.
+
+### review round 3 (2026-11-07: PASS — N1 and N2 verified; three nits)
+
+| Nit | Change | Test / evidence |
+|-----|--------|-----------------|
+| 1 — the first build in a process showed a 58–69 ms gap: the time before `sliceStart` (the read pool, `byId`, a cold JIT) was off the clock | `sliceStart` is now taken before the element reads, so the whole build is on the clock; the claim needs no "on a warm server" | measured (this build, a scratch script, the round-2 workload of 500 elements × 200 values, the first build of a fresh process, three runs each, load 4.6): 32 hostile patterns 744–799 ms, longest gap 23–24 ms; one trivial pattern 347–389 ms, longest gap 22–25 ms. spec-012's Process Note (round 3) records it; the CHANGELOG's "about 26 ms" holds as written |
+| 2 — the mutant "read the shared `results` instead of `own`" survived | none in the code | `build.test.ts` › "each build reads its own results — a newer build pruning them after they were tested leaves no gap": A holds at its first pause after its 32 values are in the shared results, B (a newer state's) prunes them all, A finishes with no `capped` and all 32 references. With the mutant applied the test fails (run once, then undone) |
+| 3 — `testable`'s fast path and boundaries unpinned | `testable` exported (from `build.ts`) for the test | `build.test.ts` › "testable — at most 256 code points…": ASCII 256 yes / 257 no; 128 astral (256 units) yes; 256 astral (512 units) yes; 257 astral no; 200 astral + 56 ASCII yes, + 57 no; 255 astral + `aa` (257 code points, 512 units) no; 300 lone surrogates no; 513 ASCII units no; LF, CR no; empty yes. The "remove the fast path" mutant still passes: it is an equivalent mutant (the fast path decides only values whose answer counting gives too, and the count stops at 257 code points either way), so the test pins the boundaries |
+

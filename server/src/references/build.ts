@@ -85,7 +85,7 @@ export interface BuildOptions {
  * UTF-16 units has at most 256 code points; one above 512 units has more than 256 (a code point is
  * at most 2 units); only the values between are counted (review round 2 N1).
  */
-function testable(value: string): boolean {
+export function testable(value: string): boolean {
   if (value.includes('\n') || value.includes('\r')) return false;
   if (value.length <= MAX_PATTERN_VALUE) return true;
   if (value.length > 2 * MAX_PATTERN_VALUE) return false;
@@ -121,6 +121,7 @@ export async function buildReferenceIndex(options: BuildOptions): Promise<Refere
   const budget = options.budgetMs ?? PATTERN_BUDGET_MS;
   const slice = options.sliceMs ?? PATTERN_SLICE_MS;
 
+  let sliceStart = clock();
   const reads = await pooled(matches, INDEX_READS, async (match): Promise<Read> => {
     try {
       return { ok: true, file: await source.values(match) };
@@ -130,10 +131,9 @@ export async function buildReferenceIndex(options: BuildOptions): Promise<Refere
     }
   });
 
-  // One slice clock for the whole build (review round 2 N1): every pass serves the event loop once
-  // a slice is spent — the walks before and after the pattern tests every STEP_VALUES values, the
-  // pattern tests after each test (review round 1 F2).
-  let sliceStart = clock();
+  // One slice clock for the whole build (review round 2 N1), started before the reads (round 3):
+  // every pass serves the event loop once a slice is spent — the walks before and after the pattern
+  // tests every STEP_VALUES values, the pattern tests after each test (review round 1 F2).
   let walked = 0;
   const yieldIfSpent = async (now: number): Promise<void> => {
     if (now - sliceStart >= slice) {

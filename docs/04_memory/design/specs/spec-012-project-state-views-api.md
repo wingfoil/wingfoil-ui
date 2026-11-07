@@ -547,3 +547,6 @@ every object `additionalProperties: false`, as the other API schemas.
   "25–32 ms" was measured on 50 elements, before the walks were sliced. The kept results are
   pruned only by the newest build; each build reads its own results, so a newer state's build never
   makes an older one's values untested.
+- 2026-11-07 — task-055 review round 3 (nit 1): the slice clock starts before the element reads,
+  so the first build of a process keeps the same bound (measured in fresh processes on the round-2
+  workload: longest event-loop gap 22–25 ms). No rule changes.
