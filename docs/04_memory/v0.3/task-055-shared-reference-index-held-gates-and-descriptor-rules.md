@@ -651,3 +651,10 @@ whole build the bound is one slice plus one test, about 26 ms measured, and a bu
 budget plus the sliced walks (up to about 0.9 s on this workload). spec-012 §1 and its Process Note
 of 2026-11-07 (round 2), and the CHANGELOG entry, now say this.
 
+
+Gates of round 2 (on `3188bc53`): `npm run typecheck`, `npm run lint`, `npm run format:check`, `npm
+run docs:api` clean; `check_tasks.py v0.3` OK; the strict-identity recipe on the git-touching
+suites: 37 files, 641 tests passed (load 5.92 → 9.63); `npm run test:coverage` through the
+machine-free slot (W1-13 checked first; slot wait 2 min 5 s, load 4.87 at grant → 21.88 at the
+end): 214 files passed (1 skipped), 4 053 tests passed (2 skipped); statements 96.58 %, branches
+91.27 %, functions 97.26 %, lines 98.39 %; `server/src/references` 98.55 % statements, 100 % lines.
