@@ -482,3 +482,27 @@ say the commit texts pass the sanitiser where the API serialises them, after the
   *Security* (K1, bug-035 named); `test/README.md` 0.63 (the variant, the suites);
   `docs/user-guide.md` 0.27 (*Commit texts and element titles are shown safely too*, unreleased
   v0.3); `npm run docs:api` regenerated (git-ignored output, clean).
+
+### gates (2026-11-07, AC-7)
+
+On `ac7279b3` (the code as of `ee473d57`; later commits are docs only). Heavy gates one at a time
+through `/home/robypomper/Workspaces/.wfui-kit/waitslot.sh`; logs in the session's scratch folder.
+
+- `npm run typecheck`, `npm run lint`, `npm run format:check`: clean. `npm run docs:api`: clean
+  (exit 0). `python3 docs/03_backlog/X_tools/check_tasks.py v0.3`: OK (25 tasks).
+- `npm run test:coverage`: the first run (granted after 5 s, load 3.96) failed only
+  `test/governance/workflow-diagnostics.test.ts` on `W_UNCOMMITTED_INPUTS` of this task's file —
+  the Execution Notes not yet committed; committed, that suite passes alone. The second run
+  (granted after 5 s, load 7.31 → 25.22 at the end): 207 files passed (1 skipped), 3 997 tests
+  passed (2 skipped); statements 96.59 %, branches 91.26 %, functions 97.39 %, lines 98.39 %.
+- `npm run test:contract` (load 17.01): 16 files, 434 passed (2 skipped).
+- Strict identity (`test/README.md` *Git identity*: a `git` wrapper first on the `PATH` with
+  `-c user.useConfigOnly=true` and the `followRemoteHEAD` emulation): `commit-text`,
+  `text-sweep`, `today-routes`, `tool-messages`, `harness/git-identity` — 5 files, 48 passed.
+- `npm run test:e2e:chromium`: waited 25 min 33 s for the slot (holders: another project's
+  `tsc -p tsconfig.build.json`), granted at load 5.03 → 17.49: 323 passed (16.3 min).
+- `npm run test:e2e -- test/e2e/element-panel.spec.ts test/e2e/today.spec.ts
+  test/e2e/notification-bell.spec.ts` (Chromium, Firefox, WebKit): waited 8 min 52 s (holder:
+  task-055's coverage run), granted at load 3.88 → 23.98: 105 passed (6.8 min).
+- Clean-up: no console of this task left (`pgrep -af wingfoil-ui.cjs`), no `/tmp/wfui-*`; the
+  design's scratch projects removed.
