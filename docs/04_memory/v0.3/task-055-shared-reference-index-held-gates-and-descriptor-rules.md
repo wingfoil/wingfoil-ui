@@ -667,3 +667,11 @@ end): 214 files passed (1 skipped), 4 053 tests passed (2 skipped); statements 9
 | 2 — the mutant "read the shared `results` instead of `own`" survived | none in the code | `build.test.ts` › "each build reads its own results — a newer build pruning them after they were tested leaves no gap": A holds at its first pause after its 32 values are in the shared results, B (a newer state's) prunes them all, A finishes with no `capped` and all 32 references. With the mutant applied the test fails (run once, then undone) |
 | 3 — `testable`'s fast path and boundaries unpinned | `testable` exported (from `build.ts`) for the test | `build.test.ts` › "testable — at most 256 code points…": ASCII 256 yes / 257 no; 128 astral (256 units) yes; 256 astral (512 units) yes; 257 astral no; 200 astral + 56 ASCII yes, + 57 no; 255 astral + `aa` (257 code points, 512 units) no; 300 lone surrogates no; 513 ASCII units no; LF, CR no; empty yes. The "remove the fast path" mutant still passes: it is an equivalent mutant (the fast path decides only values whose answer counting gives too, and the count stops at 257 code points either way), so the test pins the boundaries |
 
+
+Gates of round 3 (on `8008a0cb`; source changed — `server/src/references/build.ts` — so coverage
+ran): `npm run typecheck`, `npm run lint`, `npm run format:check`, `npm run docs:api` clean;
+`check_tasks.py v0.3` OK; the strict-identity recipe on the git-touching suites: 37 files, 643
+tests passed (load 5.12 → 7.63); `npm run test:coverage` through the machine-free slot (W1-13
+checked first; slot wait 5 s, load 6.33 at grant → 30.02 at the end): 214 files passed (1
+skipped), 4 055 tests passed (2 skipped); statements 96.62 %, branches 91.30 %, functions 97.26 %,
+lines 98.39 %; `server/src/references` 99.03 % statements, 100 % lines.
