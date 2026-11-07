@@ -437,3 +437,48 @@ the one-day rule: Q1.
   here).
 
 Size after the split: about 1.75 active days.
+
+### red / green / refactor (2026-11-07)
+
+After the approver's answers: `git merge --no-ff design/dev-loop_v0.3` (the split, W1-19:
+`d12a6200`); the decisions above and spec-004 §5 amended in place with a dated Process Note
+(`c54698f5`). spec-001 §3 (the `memory history` row) and spec-002 §1 hold as written: they already
+say the commit texts pass the sanitiser where the API serialises them, after the email match.
+
+- **Red** (`d0bfab48`): the hostile-text variant `addHostileText` (`test/harness/fixtures/hostile.ts`,
+  D56-11); `test/server/http/commit-text.test.ts` (AC-3: history, `/events/memory`, the rejection in
+  `/elements`, `/elements/:eid` and Today escaped, redacted, capped; the actor still Jordan by email)
+  — 3 failed; `test/server/http/text-sweep.test.ts` (AC-1, AC-4: every string leaf of the 27
+  response schemas of `contracts/api/` classified — 6 classes, the (r) rows naming bug-035; the
+  sweep over 13 GET routes; titles escaped; keys byte for byte those of `memory search`; document
+  content as written; `ui` escaped once) — the sweep and the title test failed on exactly the
+  fields P4 found (39 problems: titles, `rejection.*`, history and event texts), the other five
+  passed (characterization). `test/web/element/history-text.test.tsx` and
+  `test/web/today/title-text.test.tsx` (AC-3's component tests) pass: characterization — React
+  renders text; guard removal: the panel test fed a raw U+202E in the title fails (`raw(...)`
+  true), restored.
+- **Surprise at red:** WingFoil 0.3.1 refuses a `--reason` holding ESC, BEL or U+2028 (exit 2,
+  `invalid flag value: --reason must not contain a control character other than tab or newline
+  (found U+001B)`; U+202E and U+200B pass). The reject's reason of the fixture therefore holds
+  U+202E, U+200B, the long line and the folders; ESC, BEL and U+2028 reach the API through the plain
+  edit commit's subject and `Reason:` line (a hand commit or a hook can write them). A candidate
+  `wingfoil-cli` entry for the coordinator (the refusal is a 0.3.1 behaviour; it does not protect a
+  commit written by hand).
+- **Green** (`ee473d57`): `server/src/http/serialise.ts` (D56-1) — `repositoryText` (class (b),
+  `neutralise`), `toolTextSanitiser(roots)` (class (a), `redactLocalPaths`, each distinct text once
+  per request), `matchBody`, `descriptorBody`, `historyBody` (moved from `project-routes.ts`),
+  `memoryEventBody`; its header holds the class table. `project-routes.ts`: `ProjectRead.toolText()`
+  — the roots of the CLI adapter's own sanitiser (`snapshot.localRoots` and the CLI's package
+  folder; the project's and repository's folders only when no CLI resolves); `/elements`,
+  `/elements/:eid`, the Today rows (memoised per state with their sanitised texts, D56-4),
+  history and `/events/memory` write through it; the descriptor is described on the raw texts
+  first. `element-address.ts`'s candidates call `repositoryText`. `test/server/tool-messages.test.ts`
+  lists the new producers (`project-routes.ts`'s `historyBody`, `descriptorBody`,
+  `memoryEventBody` calls; `serialise.ts`'s `redactLocalPaths`) and a marker test of
+  `historyBody`. The serialiser is the one task-070 reuses (its dropped-match warnings and
+  `reasons[]` are class (a), through the adapter's sanitiser; no second rule).
+- **Refactor:** none beyond green's (the old `historyBody` removed from the routes).
+- **Docs** (`da9e152e`, and the user guide): `CHANGELOG.md` *Unreleased* › *Fixed* (bug-027) and
+  *Security* (K1, bug-035 named); `test/README.md` 0.63 (the variant, the suites);
+  `docs/user-guide.md` 0.27 (*Commit texts and element titles are shown safely too*, unreleased
+  v0.3); `npm run docs:api` regenerated (git-ignored output, clean).
