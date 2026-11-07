@@ -594,3 +594,33 @@ Scope after the split (Q1-b): AC-2, AC-3, AC-8, AC-9, AC-10 — no descriptor, w
   lines. The process audits (`test/server/snapshot/process-audit.test.ts`, TT-PERF-05) passed
   unchanged: no CLI process added. No Playwright run: no web or e2e change (scope after Q1-b);
   no packaging change, so no smoke. No console was started; no `wfui-*` entry left by these runs.
+
+### review round 1 (2026-11-07, security-adversarial: FAIL, one major)
+
+Relayed by the coordinator; the branch at `0d2b7c9b` (the phase branch with the build finalize
+`30f92448`).
+
+| Finding | Fix | Test |
+|---------|-----|------|
+| **F1 (major)** — the 64 KiB bound measured another text than the parse: `frontmatterBytes()` found the close with `^---[ \t]*\r?$` (m flag), the parse with `split(/\r?\n/)` and `trimEnd() === '---'`; a close line `---` + NBSP, a line holding U+2028 then `---`, and an opening `--- ` let 3 MiB of keys through (about 2 s of blocked loop each) | the index's own delimiter search removed: `parseFrontmatterFile` takes `{ maxBytes }` and checks `Buffer.byteLength` of exactly `lines.slice(1, close)`, the text it parses, before `parseYaml`; `parseElement` passes it through; `readIndexEntry` calls it with `MAX_INDEX_FRONTMATTER`. One delimiter rule, the parse's | red first (`8303b25c`): `test/server/references/read.test.ts` › AC-10 — the three files (`nbsp-close`, `ls-close`, `space-open`, each with 68 KiB of keys before the parse's close) are `shape` |
+| **F2 (minor)** — a slice was per value, not per test: up to 32 tests ran on one value with no clock check (115 ms of blocked loop measured against the "about 20 ms … ≤ about 55 ms" of D55-7) | the clock is read around each pattern test and the loop served once a slice is spent, also between the patterns of one value; a value whose tests the budget cuts stays untested (not stored, its element `capped`). spec-012 §1 says so (its Process Note of 2026-11-07), and the CHANGELOG entry names the slices. D55-7's "≤ about 55 ms" was wrong for the code reviewed; measured after the fix (this build, a scratch script, 50 elements × 4 values of 248 characters, 32 hostile patterns of the subset, a 1 ms interval as lag monitor, load 4.7): longest loop gap 28, 25, 32 ms in three runs; the budget stops the build at about 506 ms, 45–48 of the 50 elements `capped` | red first (`8303b25c`): `build.test.ts` › "serves the event loop between the patterns of one value" (a fake clock: at least 4 pauses inside one value of 10 tests) and "a budget spent inside one value leaves that value untested" |
+| F3 (nit) — `PatternMemo` was never pruned | the kept results are pruned, at each build, to the values of that build | red first: `build.test.ts` › "the kept results are pruned to the values of the current build" |
+| F4 (nit) — the `skip-worktree` residual of D55-6 | none: accepted as documented | — |
+
+Checked out of scope (recorded, not changed here):
+
+- Duplicate keys the server accepts and js-yaml refuses (`1:` and `"1":`, `true:` and `"true":`,
+  alias keys, repeated complex keys): the reader compares parsed scalar values as the YAML library
+  did before this task; the CLI refuses those files itself. Unchanged by the task.
+- A broken git configuration: the server's read raises (`GitReadError`, `GitConfigError`) where
+  WingFoil's `readGitIdentity` treats it as no identity (its exit 128 branch). Older than this task.
+- Whether git's stderr in the `GitReadError` of `GitReads.email()` (via `check()`, e.g. "fatal: bad
+  config line 6 in file .git/config") reaches a response or a log: the read runs in the state
+  check (`ProjectSnapshot.runCheck`). Every catcher logs the kind and exit only and answers the
+  plain 500 `internal`: the repository check (`snapshots.ts`), `settle`'s mapping in
+  `http/project-routes.ts`, the app's error handler (`http/app.ts`, which also covers the role-view
+  route's rethrow), the transport (`writes/transport.ts`), auto-sync (`sync/auto-sync.ts`) and the
+  governed write's after-check (`writes/governed.ts`). The local identity source
+  (`readGitEmail`) raises `GitConfigError`, whose message holds only how the process ended, and is
+  not used by the console (`launcher/start.ts` uses the snapshot source). Not reachable: nothing to
+  report.

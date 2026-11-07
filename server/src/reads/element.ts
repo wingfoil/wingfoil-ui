@@ -7,7 +7,7 @@
  */
 import type { ElementFrontmatter, MemoryMatch } from '@wingfoil-ui/contracts';
 import { DirectReadError, nodeReadFs, readConfined, type ReadFs } from './confine.js';
-import { parseFrontmatterFile } from './frontmatter.js';
+import { parseFrontmatterFile, type FrontmatterOptions } from './frontmatter.js';
 
 /** An element as its file holds it. */
 export interface ElementContent {
@@ -19,8 +19,12 @@ export interface ElementContent {
 }
 
 /** Parse the text of an element file (`file` names it in errors). */
-export function parseElement(text: string, file: string): Omit<ElementContent, 'path'> {
-  return parseFrontmatterFile<ElementFrontmatter>(text, file, 'files/element.schema.json');
+export function parseElement(
+  text: string,
+  file: string,
+  options: FrontmatterOptions = {},
+): Omit<ElementContent, 'path'> {
+  return parseFrontmatterFile<ElementFrontmatter>(text, file, 'files/element.schema.json', options);
 }
 
 /** A {@link DirectReadError} `mismatch` when the file's `id`, `type` or `status` differ from `match`. */

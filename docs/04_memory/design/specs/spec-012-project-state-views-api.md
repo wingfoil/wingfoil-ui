@@ -83,9 +83,11 @@ against the patterns within the budget below (rule 2).
 of spec-005 §1 bounds one test, not the index — task-055's design, P5: 32 patterns of the subset
 cost up to about 124 ms per 256-character value). The result of rule 2 is kept per distinct value
 for one effective pattern list (its entries' `match` and `category`, in order), across states, so
-a new state tests only values not tested before. One index build spends at most **500 ms** of
-measured pattern-test time, in slices of about 20 ms with the event loop served between slices;
-a value still untested when the budget is spent is no pattern reference in that state and its
+a new state tests only values not tested before; the kept results hold the current state's values only. One index build spends at most **500 ms** of
+measured pattern-test time, in slices of about 20 ms with the event loop served between slices
+(a slice ends between two pattern tests, also between the patterns of one value, so the loop is
+blocked at most one slice plus one test);
+a value still untested — or whose tests the budget cut — when it is spent is no pattern reference in that state and its
 element is named in `capped`; the next build goes on from the kept results. A project whose
 patterns cost what the presets' do never reaches the budget (P6: 6 000 tests for 500 elements).
 
@@ -530,3 +532,9 @@ every object `additionalProperties: false`, as the other API schemas.
   (`assume-unchanged`, `skip-worktree`) is read as the committed values until its blob changes — the
   state key misses that edit too; a value set is stored only when the bytes read hash to the blob at
   HEAD (task-055 D55-6).
+- 2026-11-07 — amended in task-055 review round 1 (F2, F3, the coordinator's relay of the
+  security-adversarial review): §1 the pattern budget's slices end between two pattern tests, also
+  inside one value (a value was a slice of up to 32 tests: 115 ms of blocked loop measured; after
+  the change 25–32 ms with 32 hostile patterns of the subset), a value whose tests the budget cuts
+  stays untested, and the kept results are pruned to the current state's values. No other rule
+  changes.

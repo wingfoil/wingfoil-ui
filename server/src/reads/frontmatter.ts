@@ -77,16 +77,35 @@ export function checkShape(schemaFile: ContractSchema, data: unknown, file: stri
   if (problems) throw new DirectReadError('shape', file, `${file}: unexpected content (${problems.join('; ')})`);
 }
 
+/** Options of {@link parseFrontmatterFile}. */
+export interface FrontmatterOptions {
+  /**
+   * The largest frontmatter, in UTF-8 bytes of exactly the text that would be parsed, accepted; a
+   * larger one is a `shape` error, never parsed (the reference index's bound, bug-032).
+   */
+  maxBytes?: number;
+}
+
 /**
  * Split `text` into its frontmatter, validated against `contracts/<schemaFile>`, and its body; a
  * file without a closed frontmatter is a `shape` error. Lines end with LF or CRLF (WingFoil's
- * delimiter is `^---\r?\n…\r?\n---`); the body is returned with LF line ends.
+ * delimiter is `^---\r?\n…\r?\n---`); the body is returned with LF line ends. The delimiters are
+ * found once, here, and `maxBytes` is checked on the text the parse reads (review round 1 F1).
  */
-export function parseFrontmatterFile<T>(text: string, file: string, schemaFile: ContractSchema): FrontmatterFile<T> {
+export function parseFrontmatterFile<T>(
+  text: string,
+  file: string,
+  schemaFile: ContractSchema,
+  options: FrontmatterOptions = {},
+): FrontmatterFile<T> {
   const lines = text.split(/\r?\n/);
   const close = lines[0]?.trimEnd() === '---' ? lines.findIndex((l, i) => i > 0 && l.trimEnd() === '---') : -1;
   if (close === -1) throw new DirectReadError('shape', file, `${file}: no frontmatter`);
-  const frontmatter = parseYaml(lines.slice(1, close).join('\n'), file);
+  const source = lines.slice(1, close).join('\n');
+  if (options.maxBytes !== undefined && Buffer.byteLength(source) > options.maxBytes) {
+    throw new DirectReadError('shape', file, `${file}: frontmatter too large (over ${options.maxBytes} bytes)`);
+  }
+  const frontmatter = parseYaml(source, file);
   checkShape(schemaFile, frontmatter, file);
   return { frontmatter: frontmatter as T, body: lines.slice(close + 1).join('\n') };
 }

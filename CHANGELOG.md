@@ -43,7 +43,8 @@ release `v0.2` the git tag `v0.2.0` and the npm version `wingfoil-ui@0.2.0`.
   held-gate features of later tasks. It keeps values only (at most 200 per element), reads at most
   16 element files at a time, reuses a file's values on the next repository state when the file
   is unchanged at HEAD (one `git ls-tree` per commit, no WingFoil process), and spends at most
-  500 ms per state testing patterns, so a costly `ui.yaml` cannot stall the console; an element it
+  500 ms per state testing patterns, in slices of about 20 ms between which it answers other
+  requests, so a costly `ui.yaml` cannot stall the console; an element it
   could not read or index fully is named, never failing the whole. Nothing shows it yet.
 
 ### Changed

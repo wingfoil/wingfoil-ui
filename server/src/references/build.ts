@@ -114,31 +114,46 @@ export async function buildReferenceIndex(options: BuildOptions): Promise<Refere
   const results = options.memo.for(patterns);
   const pending: string[] = [];
   const queued = new Set<string>();
+  const current = new Set<string>();
   reads.forEach((read, i) => {
     if (!read.ok) return;
     const own = matches[i]!.id;
     for (const value of read.file.values) {
-      if ((byId.has(value) && value !== own) || results.has(value) || queued.has(value) || !testable(value)) continue;
+      if ((byId.has(value) && value !== own) || !testable(value)) continue;
+      current.add(value);
+      if (results.has(value) || queued.has(value)) continue;
       queued.add(value);
       pending.push(value);
     }
   });
   if (patterns.length > 0) {
+    // The clock is read around every pattern test and the event loop served once a slice is spent,
+    // also between the patterns of one value (review round 1 F2): the loop is never blocked longer
+    // than one slice plus one test. A value whose tests the budget cuts stays untested.
     let spent = 0;
     let sliceStart = clock();
-    for (const value of pending) {
-      if (spent >= budget) break;
-      const start = clock();
-      const found = patterns.findIndex((p) => p.regex.test(value));
-      const end = clock();
-      spent += end - start;
-      results.set(value, found);
-      if (end - sliceStart >= slice) {
-        await pause();
-        sliceStart = clock();
+    values: for (const value of pending) {
+      let found = NO_MATCH;
+      for (let j = 0; j < patterns.length; j += 1) {
+        if (spent >= budget) break values;
+        const start = clock();
+        const hit = patterns[j]!.regex.test(value);
+        const end = clock();
+        spent += end - start;
+        if (end - sliceStart >= slice) {
+          await pause();
+          sliceStart = clock();
+        }
+        if (hit) {
+          found = j;
+          break;
+        }
       }
+      results.set(value, found);
     }
   }
+  // The kept results hold the values of this build only (review round 1 F3).
+  for (const value of results.keys()) if (!current.has(value)) results.delete(value);
 
   const elements = matches.map((match, i): IndexedElement => {
     const read = reads[i]!;
