@@ -408,6 +408,32 @@ the one-day rule: Q1.
   but 0.3.1 leaves a Memory file without `type` or `status` (or with a non-text `id`) out **without
   any warning** (P2), unlike the unparsable frontmatter's `W_MEMORY_UNREADABLE`. (a) A
   `wingfoil-cli` entry for the silent drop and a feedback note `docs/wingfoil-feedback/F-031-…`
-  (rule 3 of the directive; the task cites rule 7, which is `wingfoil-sync`); (b) the entry only;
+  (rule 3 of the directive); (b) the entry only;
   (c) nothing (0.3.1 fixed what bug-024 saw). **Recommended (a)**: a governed file that vanishes
   from every list without a word is a gap worth WingFoil's maintainer's view.
+
+#### The approver's decisions (2026-11-06, relayed by the coordinator)
+
+"056: q1-a (new task at the head of W2), q2-a, q3-a, q4-a, q5-a, q6-a":
+
+- **Q1-a** — split. AC-2 (bug-024, the per-match `memory search`) and AC-5 (the refusals'
+  `detail.reasons[]`) moved to task-070-per-match-memory-search-and-refusal-reasons-in-the-cli-adapter
+  (Wave 2, head); bug-024 left this task's `bug:` list. This task keeps AC-1, AC-3, AC-4, AC-6 and
+  AC-7. Of the decisions above, D56-5, D56-6 and D56-7 and the AC-2/AC-5 rows of the test plan are
+  task-070's input, not built here. The serialiser module of D56-1 (`server/src/http/serialise.ts`)
+  is the one task-070 reuses: the dropped match's warning text is a tool line through the
+  adapter's sanitiser (`toolLines`), and the `reasons[]` of the refusal envelope are tool messages
+  like the message; the module states which rule each class of text gets, so task-070 adds no
+  second rule.
+- **Q2-a** — the (r) rows are bug-035-repository-text-outside-the-named-display-fields-reaches-the-page-unescaped
+  (open): the sweep lists them as a known gap naming bug-035, so that fixing the bug flips them to
+  asserted.
+- **Q3-a**, **Q5-a** — recorded in task-070 (the reasons one line each in the toast's verbatim
+  block; the gate-state submit as the captured sample).
+- **Q4-a** — bug-036-the-older-supported-wingfoil-exits-2-on-a-broken-memory-frontmatter (open),
+  not this task's.
+- **Q6-a** — the `wingfoil-cli` entry and the feedback note F-039 are the coordinator's, through a
+  `governance-evolution` run outside this diff (no `.wingfoil/` or `docs/wingfoil-feedback/` change
+  here).
+
+Size after the split: about 1.75 active days.
