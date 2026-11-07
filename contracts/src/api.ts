@@ -6,6 +6,7 @@ import type { DirectiveEntry, DirectiveFrontmatter, DnaPaths, DnaShow, MemoryMat
 import type { ActionDescriptor } from './descriptor.js';
 import type { ElementFrontmatter, MemoryYaml, StateMachine } from './files.js';
 import type { ProjectCondition, RepositoryStatus } from './git.js';
+import type { UiConfig } from './ui-config.js';
 
 /**
  * Who the user is in a project (REQ-STATE-05): the effective `git config user.email` matched,
@@ -158,6 +159,8 @@ export interface ProjectConfig {
   workflows: ConfigSection<WorkflowList>;
   /** `memory.yaml` with every type's `states` resolved (spec-001 §4.1). */
   types: ConfigSection<MemoryYaml>;
+  /** The effective `ui.yaml` (spec-012 §2, v0.3); absent when `memory.yaml` cannot be read. */
+  ui?: UiConfig;
 }
 
 /** One element of the list: its `memory search` match, marker and descriptor. */

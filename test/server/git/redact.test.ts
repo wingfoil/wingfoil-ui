@@ -2,7 +2,14 @@
 import { mkdir, realpath, symlink } from 'node:fs/promises';
 import path from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { MAX_MESSAGE, RAW_BOUND, boundRaw, redactLocalPaths } from '../../../server/src/git/redact.js';
+import {
+  MAX_MESSAGE,
+  RAW_BOUND,
+  boundRaw,
+  neutralise,
+  neutraliseKeepingBackslashes,
+  redactLocalPaths,
+} from '../../../server/src/git/redact.js';
 import { TempWorkspace } from '../../harness/temp-workspace.js';
 
 let ws: TempWorkspace;
@@ -345,5 +352,16 @@ describe('bug-017 — review round 5', () => {
       expect(all[i - 1]).not.toBe('');
       expect(all[i + 1]).not.toBe('');
     }
+  });
+});
+
+// task-068 Q4-b (spec-012 §9, spec-004 §5 amended 2026-11-06): a `ui.yaml` pattern keeps its
+// backslashes; every unsafe character is escaped as `neutralise` does.
+describe('neutraliseKeepingBackslashes', () => {
+  it('escapes what neutralise escapes and leaves a backslash as written', () => {
+    const text = '^(P\\d|J)\u202e\u0085\u200b\u{e0001}\x1b\r\n\t\\u202e';
+    expect(neutraliseKeepingBackslashes(text)).toBe('^(P\\d|J)\\u202e\\x85\\u200b\\u{e0001}\\x1b\n\t\\u202e');
+    expect(neutralise(text)).toBe('^(P\\\\d|J)\\u202e\\x85\\u200b\\u{e0001}\\x1b\n\t\\\\u202e');
+    expect(neutraliseKeepingBackslashes('^(P\\d|Journey)')).toBe('^(P\\d|Journey)');
   });
 });

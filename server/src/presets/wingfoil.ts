@@ -68,6 +68,13 @@ export const CORRECTION_OPERATION = 'amend' satisfies MemoryOperation;
 export const CONFIGURATION_SCOPES: readonly string[] = Object.freeze(['dna', 'directive', 'workflow']);
 
 /**
+ * The frontmatter field `memory reject` writes from its reason (and `memory submit` removes): the one
+ * field a WingFoil transition verb writes besides `status` (spec-001 §3; WingFoil's
+ * `REJECTION_REASON_FIELD`).
+ */
+export const REJECTION_REASON_FIELD = 'rejection_reason';
+
+/**
  * The frontmatter fields that are never reference values (spec-005 §4, spec-012 §1): WingFoil's own
  * fields of every element.
  */
@@ -77,7 +84,7 @@ export const NON_REFERENCE_FIELDS: ReadonlySet<string> = new Set([
   'title',
   'status',
   'tags',
-  'rejection_reason',
+  REJECTION_REASON_FIELD,
 ]);
 
 /** The field whose string value puts elements in an element's scope (spec-005 §4, spec-012 §1). */

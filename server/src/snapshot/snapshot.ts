@@ -61,6 +61,7 @@ import { readIndexEntry } from '../references/read.js';
 import { effectiveUiConfig, UiYamlCache } from '../ui-config/effective.js';
 import type { EffectiveUiConfig } from '../ui-config/types.js';
 import { combinedHash, Fingerprinter } from './fingerprint.js';
+import { uiYamlMark } from '../reads/ui-yaml.js';
 import { repoState, sameState, type RepoState } from './state.js';
 
 /** git's markers of an operation in progress, in the worktree's git directory (task-034 D34-3). */
@@ -437,11 +438,21 @@ export class ProjectSnapshot {
           : undefined;
       // The content of the listed files too: a second edit of a modified or untracked file leaves
       // the porcelain status unchanged (review F1).
-      const fingerprint = await this.fingerprints.fingerprint(status.entries);
-      const next = repoState({ ...status, hash: combinedHash(status.hash, fingerprint) }, email, this.options.prefix, {
-        remotes,
-        ...(branchRemote !== undefined ? { branchRemote } : {}),
-      });
+      // And the mark of ui.yaml whatever git says of it: an ignored file is in no status entry
+      // (task-068 AC-2, spec-001 §4.4). File reads only, no process.
+      const [fingerprint, uiMark] = await Promise.all([
+        this.fingerprints.fingerprint(status.entries),
+        uiYamlMark(this.root),
+      ]);
+      const next = repoState(
+        { ...status, hash: combinedHash(status.hash, fingerprint, uiMark) },
+        email,
+        this.options.prefix,
+        {
+          remotes,
+          ...(branchRemote !== undefined ? { branchRemote } : {}),
+        },
+      );
       const previous = this.last;
       this.last = next;
       const cliFound = await this.cliFoundAgain();

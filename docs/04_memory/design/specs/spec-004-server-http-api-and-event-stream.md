@@ -252,8 +252,20 @@ the sanitiser's character escape (`neutralise`, without the folder redaction) wh
 serialises it — element **titles** (`/elements`, `/elements/:eid`, the Today rows, the candidates
 of spec-011 §3, spec-012's `ElementRef` and rows), the **pattern reference** values of
 `/progress` and `/traceability`, and the **`ui.yaml` strings** `/config` echoes in `ui`
-(`patterns[].match`, type names, `phases`, `holds` types and states, `artifacts` paths). Element
+(`patterns[].match` — a regular-expression source, its backslashes kept as written —, type
+names, `phases`, `holds` types and states, `artifacts` paths). Element
 ids, types and states stay as `memory search` returns them: they are the keys a page sends back.
+So does every other key whatever its source — an event's `type`, `id`, `from` and `to`, read from
+the commit subject and patch (spec-002 §3), the roles, the paths a page sends back. Document
+content — a frontmatter value, an element or directive body, a working-tree file — is served as
+written: the page renders it as a document, and the escape would change it (a doubled backslash in
+Markdown); the one frontmatter field outside it is `rejection_reason`, which `memory reject` writes
+from its reason (spec-001 §3): commit text, sanitised as the descriptor's `rejection.reason`. The rules live in one module, `server/src/http/serialise.ts` (task-056): `repositoryText`
+(the escape) and the commit-text sanitiser, used by every route that serialises such a field. The
+repository display text outside the fields named here (the DNA's names and descriptions, the
+directives' names and titles — the directive page's heading included —, the workflow texts, a file
+tree's names, the documentation index's paths, the states of a history entry, the project list's
+name and `remote`) is not escaped yet: bug-035.
 
 - Success of a write (`write.response.schema.json`): `{ result: <CLI output>, commits: [{ sha,
   subject }], push: { status, code?, message? } }` — `status` is `pushed`, `off` or `failed`
@@ -297,8 +309,9 @@ ids, types and states stay as `memory search` returns them: they are the keys a 
   event stream to know whether its data is current. The status hash is the hash of
   `git status --porcelain` combined with a fingerprint of the working-tree content of each
   changed and untracked entry, computed by the server without an extra git command
-  (REQ-STATE-02), so a second edit of an already-modified file changes the state; the header
-  format is unchanged.
+  (REQ-STATE-02), so a second edit of an already-modified file changes the state; from v0.3 it
+  also combines the mark of `.wingfoil/ui.yaml` whatever its git status (spec-001 §4.4), so an
+  edit of an ignored `ui.yaml` changes the state too; the header format is unchanged.
 
 ### 6. Event stream (REQ-INT-09)
 
@@ -482,6 +495,20 @@ goes away by itself when the stream reconnects. A network failure is not rendere
   full id only, `element.shortId` and the refusal schema `element.refusal.schema.json`; §4 a route
   parameter over 255 UTF-16 code units of its decoded value → 404 `not-found` on every method,
   after rows 1–2 (bug-019, C1); §5 the 409 `ambiguous-id` row.
+- 2026-11-06 — amended in development (task-068 design, plan backlog-item-rel-v0.3-plan; decided by
+  the approver, Q1 (a)): §5 the status hash of `X-Repo-State` also combines the mark of
+  `.wingfoil/ui.yaml` whatever its git status (spec-001 §4.4); header format unchanged.
+- 2026-11-06 — amended in development (task-068 green, plan backlog-item-rel-v0.3-plan; decided by
+  the approver, Q4 (b)): §5 a `ui.yaml` pattern echoed by `/config` keeps its backslashes, its
+  unsafe characters escaped as the other repository texts (spec-012 §9).
+- 2026-11-07 — amended in development (task-056 design, plan backlog-item-rel-v0.3-plan; decided by
+  the approver, Q1-a, Q2-a): §5 *Repository texts* — keys stay raw whatever their source (an
+  event's `type`, `id`, `from`, `to`), document content is served as written but the frontmatter's
+  `rejection_reason` (commit text, review round 1), the rules' module `server/src/http/serialise.ts`,
+  the display text outside the named fields left to bug-035 (with the documentation paths, the
+  history's states and the directive page's heading, review round 1). The
+  per-match `memory search` and the refusals' `detail.reasons[]` of this section are built by
+  task-070 (the split).
 - 2026-11-06 — amended in task-055 (bug-029; design Q4-a, decided by the approver): §6 the `repo`
   row names the effective author email the identity is read from (`GIT_AUTHOR_EMAIL`, else
   `author.email`, else `user.email`, SARD REQ-STATE-05), in place of `user.email` alone.

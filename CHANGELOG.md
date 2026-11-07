@@ -28,6 +28,15 @@ release `v0.2` the git tag `v0.2.0` and the npm version `wingfoil-ui@0.2.0`.
   removed at stop; a file left by a killed console is removed at the next start. An agent can
   build a link to an element from it and from `state.json` (`docs/cli-reference.md`, *Address
   file for scripts and agents*).
+- **The project's `ui.yaml` configuration in the API** (task-054, task-068; spec-005, spec-012
+  §2): `GET /api/p/:pid/config` carries a `ui` section with the effective configuration of
+  `.wingfoil/ui.yaml` — categories, reference patterns and required references, the progress
+  settings, held gates and artifacts, each value marked `declared` or `inferred` — and, when the
+  file is not used, its first failure as `failure` (`progress.mode must be sequence or flow
+  (found spiral)`); without a file, the values inferred from the project's types. Every text echoed from
+  the file comes back with control and bidi characters escaped. An edit of `ui.yaml`, tracked,
+  untracked or ignored by git, refreshes open pages. No screen shows it yet: the Configuration
+  tabs are task-064's.
 - **The reference index** (task-055, spec-012 §1, §8): the server's one index of every element's
   frontmatter values and the references they make — another element's full id, or a value matching
   a `taxonomy.patterns` entry of `.wingfoil/ui.yaml` — shared by the progress, traceability and
@@ -82,6 +91,34 @@ release `v0.2` the git tag `v0.2.0` and the npm version `wingfoil-ui@0.2.0`.
   *Directives* section listed both files — extra rows, the bound roles repeated, the order wrong
   after switching "only mine / all". They now list one row per directive, the one WingFoil uses
   (the custom file), and show WingFoil's warning naming both files.
+- **A project folder replaced by a symbolic link is no longer read through** (bug-033, task-068):
+  when a folder of a project — `.wingfoil` or a Memory folder — was replaced by a link to a folder
+  elsewhere, the check of the repository state hashed the files behind the link, so an edit
+  outside the project could refresh open pages. Such a folder is now marked by itself, and no
+  file behind it is read. The defect shipped in v0.2.0 (it dates from v0.1.0).
+- **Commit texts are shown as safe text** (bug-027, task-056): the element panel's history (each
+  entry's subject, reason, author and approver), the bell's *Updates* and the rejection shown in
+  Today, the Memory list and the element panel passed a commit's text on as written, so a bidi
+  override, a control character, a very long line or an absolute local folder in a commit message
+  reached the screen — and so did the reject's reason among the element panel's fields. They now
+  go through the same rule as every other tool message: control,
+  bidi and invisible characters shown as visible escapes (`\u202e`), the project's, the
+  repository's, the WingFoil package's and the home folders shown as `<project>`, `<repository>`,
+  `<wingfoil>` and `~`, at most 4 000 characters. Who must act is still found by the author's
+  email. The defect shipped in v0.1.0 and v0.2.0.
+
+### Security
+
+- **Repository text escaped in the API** (task-056, RP3-18 K1; spec-004 §5): an element's title in
+  the Memory list, the element panel and Today comes back with control, bidi and invisible
+  characters as visible escapes, as the `ui.yaml` strings of the configuration do (task-068), so a
+  title cannot reorder or hide what the page shows; a backslash in a title is shown doubled
+  (`Fix \\n handling`), so that every escape on the page is one the console wrote. Ids, types and
+  states stay as WingFoil returns them (they are what a page sends back), and a document — an
+  element's or a directive's body and fields (but the reject's reason, a commit text), a file — is
+  shown as written. The other names the repository supplies (the DNA's names and descriptions, the
+  directives' titles, the workflow texts, file names and paths of the documentation, the states
+  named in an element's history, the project's name) are not escaped yet (bug-035).
 
 ### Known limitations
 
