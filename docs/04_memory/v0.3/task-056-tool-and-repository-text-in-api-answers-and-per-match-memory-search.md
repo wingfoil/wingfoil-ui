@@ -524,3 +524,14 @@ On the build finalized at `2e504d0a` (the phase branch merged, head `2befb0e6`).
 | n6 | The Today rows were memoised per state with the first request's sanitiser: after a failed `cli()` they kept roots without `<wingfoil>` until the state changed | Fixed (`a50758cf`): the memo holds the rows described on the raw texts; each request writes the title and the rejection with its own sanitiser (each distinct text once per request). No failing test was possible without injecting a `cli()` fault; the Today, commit-text and sweep suites cover the output. D56-4's "once per state" becomes "described once per state, written per request". |
 
 Found while fixing (not a review finding): the gates section above named the slot script by its absolute path, which the public-text check (`test/docs/public-text.test.ts`) refuses — the gate notes were committed after the first round of gates, so no gate had seen it; it now names `waitslot.sh` alone.
+
+Gates of round 1 (on `2a1e6ad9`; heavy gates one at a time through the machine-free slot):
+`npm run typecheck`, `npm run lint`, `npm run format:check`, `npm run docs:api` clean;
+`check_tasks.py v0.3` OK. Under the strict-identity recipe: `commit-text`, `text-sweep`,
+`today-routes`, `project-routes`, `tool-messages`, `harness/git-identity`, `test/web/element`,
+`test/web/today` — 17 files, 253 passed (load 4.50). `npm run test:coverage` (granted after 5 s,
+load 2.73 → 15.72): 207 files passed (1 skipped), 3 998 passed (2 skipped); statements 96.61 %,
+branches 91.28 %, functions 97.39 %, lines 98.39 %. `npm run test:e2e -- test/e2e/element-panel.spec.ts`
+(Chromium, Firefox, WebKit; waited 13 min 7 s behind another run, granted at load 3.62 → 19.55):
+21 passed (2.2 min). No web code changed, so no full Chromium run. No console left, no
+`/tmp/wfui-*`.
