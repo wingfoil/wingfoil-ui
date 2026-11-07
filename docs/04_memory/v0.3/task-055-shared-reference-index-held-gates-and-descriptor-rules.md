@@ -574,3 +574,23 @@ Scope after the split (Q1-b): AC-2, AC-3, AC-8, AC-9, AC-10 — no descriptor, w
   audits below are unchanged). (3) SARD REQ-INT-06's read list does not name `ls-tree`,
   `ls-files`, `hash-object` or `diff-tree` (in the code's allow-list since task-032): a gap older
   than this task, reported to the coordinator, not changed here.
+- **Merge before the gates** (the coordinator's correction, 2026-11-07): `7f388e30`, the phase
+  branch at `b213fe5a` (task-056). Conflicts were append-only and kept both sides: `CHANGELOG.md`
+  *Unreleased*, SARD `03_state-context.md` (task-068's 0.10 kept, this task's entry 0.11 and the
+  REQ-STATE-02 text applied to task-068's version of the line), `test/README.md` (0.62 task-068,
+  0.63 task-056, this task's 0.64), the Process Notes of spec-001, spec-004, spec-012, and
+  `server/src/presets/wingfoil.ts` (`NON_REFERENCE_FIELDS` uses task-056's
+  `REJECTION_REASON_FIELD`). `docs:api` was regenerated, not merged.
+- **Gates on `7f388e30`** (load 3.4 at the start): `npm run typecheck`, `npm run lint`, `npm run
+  format:check`, `npm run docs:api` clean; `python3 docs/03_backlog/X_tools/check_tasks.py v0.3`
+  OK (25 tasks). Strict-identity recipe (`test/README.md` *Git identity*: a `git` wrapper first on
+  the `PATH` running `-c user.useConfigOnly=true` and the `followRemoteHEAD` emulation), `npx
+  vitest run test/server/references test/server/reads test/server/snapshot test/server/identity
+  test/server/git test/server/process test/harness/git-identity.test.ts`: 37 files, 636 tests
+  passed (load 2.87 → 5.34). `npm run test:coverage` through the machine-free slot (W1-13 checked
+  first: no other heavy gate running; slot granted after 5 s, load 4.12 at grant → 13.27 at the
+  end): 214 files passed (1 skipped), 4 048 tests passed (2 skipped); statements 96.57 %, branches
+  91.25 %, functions 97.26 %, lines 98.38 %; `server/src/references` 98.21 % statements, 100 %
+  lines. The process audits (`test/server/snapshot/process-audit.test.ts`, TT-PERF-05) passed
+  unchanged: no CLI process added. No Playwright run: no web or e2e change (scope after Q1-b);
+  no packaging change, so no smoke. No console was started; no `wfui-*` entry left by these runs.
