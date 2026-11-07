@@ -12,8 +12,9 @@
  * | (d) document content | a frontmatter value, an element or directive body, a working-tree file | as written: the page renders it as a document — but `rejection_reason`, which `memory reject` writes from its reason: class (a) ({@link frontmatterBody}) |
  *
  * The repository display text outside the fields (b) names — the DNA's names and descriptions, the
- * directives' names and titles, the workflow texts, a file tree's names, the project list's name and
- * `remote` — is not escaped yet (bug-035). The CLI adapter's own tool texts (its `stderr` warnings,
+ * directives' names and titles, the workflow texts, a file tree's names, the documentation index's
+ * paths, a history entry's states, the project list's name and `remote` — is not escaped yet
+ * (bug-035). The CLI adapter's own tool texts (its `stderr` warnings,
  * the `memory search` message, a refusal's message and reasons) are class (a) through the same
  * sanitiser, applied by the adapter (`toolLines`, `WingfoilCli.sanitise`); `test/server/http/text-sweep.test.ts`
  * holds the whole enumeration.

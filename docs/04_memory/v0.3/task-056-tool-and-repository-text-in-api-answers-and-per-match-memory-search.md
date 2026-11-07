@@ -209,22 +209,25 @@ class whatever version answered.
 | | `elements[].descriptor.rejection.at`, `since` | `%aI` | (e) | — |
 | | **`warnings[]`** | CLI stderr **and the dropped matches** (AC-2) | (a) | sanitised, capped 200; **dropped matches added** |
 | | `message` | `memory search` | (a) | sanitised (task-046 n2) |
-| | `typesError.message`, `eventsError.message` | direct read / server | (e) | fixed |
+| | `typesError.message`, `eventsError.message` | direct read / server | (a) — a fixed text or a sanitised one (review round 1, N5) | fixed |
 | `GET /elements/:eid` (`element`) | `element.*` | as `/elements` | as `/elements` (**`element.title` (b)**) | raw |
 | | `frontmatter.*`, `body` | the element file | (d) | raw |
+| | **`frontmatter.rejection_reason`** | written by `memory reject` from its reason | **(a)** — commit text (review round 1, M1) | raw |
 | | `descriptor.*` | as `/elements` | as `/elements` (**`rejection.*` (a)**) | raw |
 | | `required[].field`, `states.*` | `memory.yaml` | (c) | raw |
 | | 409 `ambiguous-id` `detail.candidates[].title` | `memory search` | (b) | `neutralise` (task-057) |
 | | 409 candidates' `id`, `shortId`, `type`, `status` | `memory search` | (c) | raw |
-| `GET /elements/:eid/history` (`history`) | `id`, `path`, `entries[].from`, `to` | `memory history` | (c) | raw |
+| `GET /elements/:eid/history` (`history`) | `id`, `path` | `memory history` | (c) | raw |
+| | `entries[].from`, `to` | `memory history` (the file's `status:`) | (r) — shown by the panel (review round 1, m2) | raw |
 | | `entries[].sha`, `timestamp`, `operation` | `memory history` (`%H`, `%aI`, enum) | (e) | — |
 | | **`entries[].subject`, `reason`, `author`, `approver`** | commit text via `memory history` | **(a)** | raw (P4) |
 | `GET /directives` (`directives`) | `entries[].path`, `frontmatter.id`, `type`, `kind`, `roles[]`, `assignment`, `tags[]`, `ref[]` | `directives list` | (c) | raw |
 | | `entries[].frontmatter.name`, `title` | `directives list` | (r) | raw |
 | | `warnings[]` | `directives list` | (a) | sanitised (task-046 d1) |
 | `GET /directives/:did` (`directive`) | `entry.*` | as `/directives` | as `/directives` | raw |
-| | `frontmatter.*`, `body` | the directive file | (d) | raw |
-| `GET /docs` (`docs`) | `roots[]`, `documents[].path` | `paths`, the working tree | (c) | raw |
+| | `frontmatter.name`, `title` | the directive file | (r) — the page's heading (review round 1, m3) | raw |
+| | the other `frontmatter.*`, `body` | the directive file | (d) | raw |
+| `GET /docs` (`docs`) | `roots[]`, `documents[].path` | `paths`, the working tree | (r) — shown by the documentation index (review round 1, m2) | raw |
 | `GET /files/tree` (`file-tree`) | `path`, `entries[].path` | working tree | (c) | raw |
 | | `entries[].name` | working tree | (r) | raw |
 | `GET /files/content` (`file-content`) | `path` | query | (c) | raw |
@@ -486,7 +489,7 @@ say the commit texts pass the sanitiser where the API serialises them, after the
 ### gates (2026-11-07, AC-7)
 
 On `ac7279b3` (the code as of `ee473d57`; later commits are docs only). Heavy gates one at a time
-through `/home/robypomper/Workspaces/.wfui-kit/waitslot.sh`; logs in the session's scratch folder.
+through the machine-free slot (`waitslot.sh`, outside the repository); logs in the session's scratch folder.
 
 - `npm run typecheck`, `npm run lint`, `npm run format:check`: clean. `npm run docs:api`: clean
   (exit 0). `python3 docs/03_backlog/X_tools/check_tasks.py v0.3`: OK (25 tasks).
@@ -506,3 +509,18 @@ through `/home/robypomper/Workspaces/.wfui-kit/waitslot.sh`; logs in the session
   task-055's coverage run), granted at load 3.88 → 23.98: 105 passed (6.8 min).
 - Clean-up: no console of this task left (`pgrep -af wingfoil-ui.cjs`), no `/tmp/wfui-*`; the
   design's scratch projects removed.
+
+### review round 1 (2026-11-07) — FAIL: 1 major, 3 minor, 2 nit
+
+On the build finalized at `2e504d0a` (the phase branch merged, head `2befb0e6`).
+
+| # | Finding | What changed |
+|---|---------|--------------|
+| M1 | `GET /elements/:eid` served `frontmatter.rejection_reason` raw (class (d)), the panel's fields list renders it: the reject's reason raw next to the sanitised banner (task-005 of the hostile fixture: U+202E, U+200B, 10 194 characters, the home and project folders) | The coordinator's decision: commit text, class (a). Red `ca0e3435` (the sweep's rule and a dedicated test, 2 failed: 3 problems); green `a50758cf`: `frontmatterBody` in `serialise.ts` sanitises it with the request's sanitiser (`REJECTION_REASON_FIELD` in `presets/wingfoil.ts`); `tool-messages.test.ts` lists the producer. **Other WingFoil-written fields checked** (spec-001 §3's verb table and the pinned CLI's `dist/memory/{reject,submit,add}.js`, `dist/core/memory-amend.js`): the transition verbs write `status` only, but `memory reject` also writes `rejection_reason` (WingFoil calls it "the one exception to 'status only'") and `memory submit` removes it; `memory add` writes `id`, `type`, `title`, `status` and the id pattern's tokens from its arguments (`--title` is the author's own text, served escaped as `element.title`; the frontmatter copy stays (d)); `assign` writes `release` and `supersedes` is an id — keys, not free text. So `rejection_reason` is the only one. spec-004 §5 and its Process Note of 2026-11-07 name it. |
+| m2 | `docs .roots[]`, `.documents[].path` and `history .entries[].from`, `.to` classed (c) but displayed (the documentation index; the history's transition); the fixture's `notes \u202etxt.md` reached `/docs` raw, not reported | Reclassed (r), bug-035, in the sweep and in the table above; the sweep now expects `docs .documents[].path` in the listed gap. No code change. |
+| m3 | The directive detail's `frontmatter.name`, `title` classed (d) but are the page's heading | Reclassed (r), bug-035 (sweep, table). |
+| m4 | `repositoryText` doubles a backslash: a title `Fix \n handling` shows `Fix \\n handling` | One sentence in the CHANGELOG *Security* entry and in the user guide (0.28: edited after its 0.27 commit, `doc-versioning`). |
+| n5 | The table classed `typesError.message`, `eventsError.message` (e), the sweep (a) | The table says (a). |
+| n6 | The Today rows were memoised per state with the first request's sanitiser: after a failed `cli()` they kept roots without `<wingfoil>` until the state changed | Fixed (`a50758cf`): the memo holds the rows described on the raw texts; each request writes the title and the rejection with its own sanitiser (each distinct text once per request). No failing test was possible without injecting a `cli()` fault; the Today, commit-text and sweep suites cover the output. D56-4's "once per state" becomes "described once per state, written per request". |
+
+Found while fixing (not a review finding): the gates section above named the slot script by its absolute path, which the public-text check (`test/docs/public-text.test.ts`) refuses — the gate notes were committed after the first round of gates, so no gate had seen it; it now names `waitslot.sh` alone.
