@@ -1,6 +1,7 @@
 /**
  * Identity and role views (REQ-STATE-05, REQ-STATE-06): pure rules, no process and no file. The
- * user is the effective `git config user.email` matched case-insensitively against
+ * user is the effective author email (`GIT_AUTHOR_EMAIL`, else `author.email`, else `user.email`;
+ * bug-029) matched case-insensitively against
  * `dna.team.members[].email` (directive `cli-only-writes` rule 6: the project's git identity, no
  * login); role views are the member's roles, the remembered one applied only while it is held
  * (spec-006 §3: the fallback is applied on read, never stored).

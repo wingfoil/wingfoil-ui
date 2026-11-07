@@ -7,7 +7,7 @@
  */
 import type { ElementFrontmatter, MemoryMatch } from '@wingfoil-ui/contracts';
 import { DirectReadError, nodeReadFs, readConfined, type ReadFs } from './confine.js';
-import { parseFrontmatterFile } from './frontmatter.js';
+import { parseFrontmatterFile, type FrontmatterOptions } from './frontmatter.js';
 
 /** An element as its file holds it. */
 export interface ElementContent {
@@ -19,8 +19,28 @@ export interface ElementContent {
 }
 
 /** Parse the text of an element file (`file` names it in errors). */
-export function parseElement(text: string, file: string): Omit<ElementContent, 'path'> {
-  return parseFrontmatterFile<ElementFrontmatter>(text, file, 'files/element.schema.json');
+export function parseElement(
+  text: string,
+  file: string,
+  options: FrontmatterOptions = {},
+): Omit<ElementContent, 'path'> {
+  return parseFrontmatterFile<ElementFrontmatter>(text, file, 'files/element.schema.json', options);
+}
+
+/** A {@link DirectReadError} `mismatch` when the file's `id`, `type` or `status` differ from `match`. */
+export function checkMatch(
+  frontmatter: Pick<ElementFrontmatter, 'id' | 'type' | 'status'>,
+  match: Pick<MemoryMatch, 'path' | 'id' | 'type' | 'status'>,
+): void {
+  for (const field of ['id', 'type', 'status'] as const) {
+    if (frontmatter[field] !== match[field]) {
+      throw new DirectReadError(
+        'mismatch',
+        match.path,
+        `${match.path}: ${field} "${frontmatter[field]}" differs from memory search ("${match[field]}")`,
+      );
+    }
+  }
 }
 
 /** Read the element of `match`, a match of `memory search` on the project at `root`. */
@@ -30,14 +50,6 @@ export async function readElement(
   fs: ReadFs = nodeReadFs,
 ): Promise<ElementContent> {
   const parsed = parseElement(await readConfined(root, root, match.path, fs), match.path);
-  for (const field of ['id', 'type', 'status'] as const) {
-    if (parsed.frontmatter[field] !== match[field]) {
-      throw new DirectReadError(
-        'mismatch',
-        match.path,
-        `${match.path}: ${field} "${parsed.frontmatter[field]}" differs from memory search ("${match[field]}")`,
-      );
-    }
-  }
+  checkMatch(parsed.frontmatter, match);
   return { path: match.path, ...parsed };
 }

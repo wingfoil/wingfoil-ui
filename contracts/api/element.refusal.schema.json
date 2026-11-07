@@ -1,0 +1,65 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://wingfoil-ui.local/contracts/api/element.refusal.schema.json",
+  "title": "404 and 409 refusals of GET /api/p/:pid/elements/:eid",
+  "description": "The error envelope of spec-004 §5 for the element read's resolution (spec-011 §3): not-found — no element has :eid as its full id or its short id (no detail); ambiguous-id — :eid is the short id of several elements of one step (live, or archived when no live one matches): at most 20 candidates ordered by full id, more counting the rest (RP3-17 E4), each title through the character escape of repository texts (spec-004 §5, RP3-18 K1).",
+  "type": "object",
+  "required": ["error"],
+  "additionalProperties": false,
+  "properties": {
+    "error": {
+      "type": "object",
+      "required": ["code", "message"],
+      "additionalProperties": false,
+      "properties": {
+        "code": { "type": "string" },
+        "message": { "type": "string" },
+        "detail": { "type": "object" }
+      },
+      "oneOf": [
+        {
+          "properties": { "code": { "const": "not-found" } },
+          "not": { "required": ["detail"] }
+        },
+        {
+          "properties": {
+            "code": { "const": "ambiguous-id" },
+            "detail": {
+              "type": "object",
+              "required": ["candidates", "more"],
+              "additionalProperties": false,
+              "properties": {
+                "candidates": {
+                  "type": "array",
+                  "minItems": 2,
+                  "maxItems": 20,
+                  "items": { "$ref": "#/definitions/candidate" }
+                },
+                "more": {
+                  "description": "The number of matching elements left out of candidates.",
+                  "type": "integer",
+                  "minimum": 0
+                }
+              }
+            }
+          },
+          "required": ["detail"]
+        }
+      ]
+    }
+  },
+  "definitions": {
+    "candidate": {
+      "type": "object",
+      "required": ["id", "shortId", "title", "type", "status"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "description": "The full id: the address a candidate links to.", "type": "string" },
+        "shortId": { "type": "string", "minLength": 1 },
+        "title": { "type": "string" },
+        "type": { "type": "string" },
+        "status": { "type": "string" }
+      }
+    }
+  }
+}

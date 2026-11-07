@@ -2,7 +2,7 @@
  * Every read of one project (REQ-ARC-04, adr-001 D1/D1a): through the CLI wherever it exposes the
  * data, and directly, read-only, from the closed allow-list for what WingFoil 0.2.2 does not —
  * `.wingfoil/memory.yaml`, the element files at the paths `memory search` returns, the directive
- * files at the paths `directives list` returns. No path is ever built from a caller's value: an
+ * files at the paths `directives list` returns — and the UI's own `.wingfoil/ui.yaml` (spec-001 §4.5). No path is ever built from a caller's value: an
  * element or a directive is looked up by id in the CLI's list, and only its listed path is read.
  * Nothing here writes. Caching and batching are the caller's: `snapshot/snapshot.ts` (task-010).
  */
@@ -15,6 +15,7 @@ import { nodeReadFs, type ReadFs } from './confine.js';
 import { readDirective, type DirectiveContent } from './directive.js';
 import { readElement, type ElementContent } from './element.js';
 import { readMemoryYaml } from './memory-yaml.js';
+import { readUiYaml, type UiYamlEntry } from './ui-yaml.js';
 
 // WingFoil's archived set lives in `presets/` (REQ-ARC-05).
 export type { ArchivedStatus } from '../presets/wingfoil.js';
@@ -90,6 +91,11 @@ export class ProjectReads {
   /** The type definitions: the direct read of `.wingfoil/memory.yaml` (spec-001 §4.1). */
   memoryTypes(): Promise<MemoryYaml> {
     return readMemoryYaml(this.options.root, this.fs);
+  }
+
+  /** The UI's own file, `.wingfoil/ui.yaml`, from the working tree (spec-001 §4.5, task-054). */
+  uiYaml(): Promise<UiYamlEntry> {
+    return readUiYaml(this.options.root);
   }
 
   /** The file of a `memory search` match, cross-checked with it (spec-001 §4.2). */

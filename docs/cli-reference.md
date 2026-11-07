@@ -1,6 +1,6 @@
 # CLI reference — `wingfoil-ui`
 
-**Version:** 0.4 · **Date:** 2026-10-20 (0.1: release v0.1; 0.2: `npx wingfoil-ui` from an installed package, Ctrl-C under `npx` — task-025; 0.3: release v0.2 user-docs — the command line is unchanged; the state directory's new content, the git environment of the transports, the automatic sync at start and at stop; 0.4: release v0.2.0 — `npx wingfoil-ui` from npm)
+**Version:** 0.6 · **Date:** 2026-11-05 (0.1: release v0.1; 0.2: `npx wingfoil-ui` from an installed package, Ctrl-C under `npx` — task-025; 0.3: release v0.2 user-docs — the command line is unchanged; the state directory's new content, the git environment of the transports, the automatic sync at start and at stop; 0.4: release v0.2.0 — `npx wingfoil-ui` from npm; 0.5: the console address file for scripts and agents — task-058; 0.6: Windows covered by unit tests only — its review round 1)
 
 The `wingfoil-ui` command starts the WingFoil UI console: a local server on the loopback addresses
 and, unless told otherwise, the browser on its URL. It is the package `bin`
@@ -60,7 +60,7 @@ Usage: wingfoil-ui [--port <n>] [--no-open] [--version] [--help]
 
 | Variable | Effect |
 |----------|--------|
-| `WINGFOIL_UI_STATE_DIR` | the local state directory (project list, role views, UI settings, action log). A relative value is resolved against the current directory. It must lie outside every listed project (exit 4 otherwise) |
+| `WINGFOIL_UI_STATE_DIR` | the local state directory (project list, role views, UI settings, action log, and the address file of each running console — [below](#address-file-for-scripts-and-agents)). A relative value is resolved against the current directory. It must lie outside every listed project (exit 4 otherwise) |
 | `XDG_CONFIG_HOME` | Linux and other Unix except macOS, when `WINGFOIL_UI_STATE_DIR` is not set: state in `$XDG_CONFIG_HOME/wingfoil-ui` (an absolute value only), else `~/.config/wingfoil-ui` |
 | `APPDATA` | Windows, when `WINGFOIL_UI_STATE_DIR` is not set: state in `%APPDATA%\wingfoil-ui` (else `<home>\AppData\Roaming\wingfoil-ui`) |
 | `HOME` | the home directory (default state location; `~` in the paths you type in the UI; macOS state in `~/Library/Application Support/wingfoil-ui`) |
@@ -92,11 +92,61 @@ the absolute entries of `PATH` only. A fetch, an update and a push run ssh as
    for `127.0.0.1`, both are closed and another free port is tried, at most 5 times (exit 3 after
    that). A `--port` in use on either address → exit 3.
 5. A new session token (32 random bytes, base64url) is drawn for each start; once the server
-   listens, the URL with the token is printed on stdout.
+   listens, the console writes its [address file](#address-file-for-scripts-and-agents), then the
+   URL with the token is printed on stdout.
 6. Unless `--no-open`, the browser is opened on the URL (below).
 7. The automatic sync starts: when *Auto-fetch* is on (the default), its first round runs one
    *Fetch interval* (60 s by default) after the start, for the projects opened since then
    ([user guide](user-guide.md#automatic-sync-with-the-remote)).
+
+## Address file for scripts and agents
+
+Each running console keeps a file `consoles/<port>.json` in the state directory (see
+*Environment*), so that a script or an agent finds it without the token and without asking the
+user (adr-003). The folder has mode `0700` and the file `0600` (on Windows, the access list of
+`%APPDATA%`); the shape is `contracts/state/console-address.schema.json`:
+
+```json
+{
+  "format": 1,
+  "url": "http://127.0.0.1:4870/",
+  "port": 4870,
+  "portFixed": true,
+  "pid": 41237,
+  "host": "<os hostname>",
+  "started": "2026-11-03T09:12:44.512Z",
+  "version": "0.3.0"
+}
+```
+
+- `portFixed` is `true` when the console was started with `--port`: links built on it keep the
+  same address after a restart on the same port (adr-003 D7). Without `--port` the operating
+  system picks a new port at every start, and links given out before a restart point to nothing.
+- The file never holds the token, a session, a project path or id, an environment value or a
+  credential.
+- It is written before the URL line (a script that sees the line finds the file), its
+  modification time is refreshed every 10 s while the console runs, and it is removed when the
+  console stops. A console killed without a chance to clean up (`kill -9`) leaves it: the next
+  start on the same state directory removes it.
+- Two consoles on one state directory write two files. A state directory shared by two machines
+  is not supported for discovery. A state directory owned by another user or writable by group or
+  others, or a `consoles/` that is a symbolic link or another user's, gets no address file (a
+  warning in the log); the console works without it. On Windows the address file's behaviour is
+  covered by unit tests only: no Windows machine runs the test suites.
+
+**How an agent cites an element as a link:**
+
+1. List `consoles/*.json` in the state directory (resolved as under *Environment*).
+2. Keep the files that pass the schema, whose `host` is this machine's, whose `pid` is a running
+   process and whose modification time is less than 30 s old (older means the console stopped
+   refreshing it); prefer `portFixed: true`, then the most recent `started`.
+3. Find the project's id in `state.json` of the same directory
+   (`contracts/state/state.schema.json`), by its repository root — read-only.
+4. Cite `<url>p/<project id>/e/<element id>`; with no live console, cite the id without a link.
+
+An agent never writes in the state directory, never calls the API (it has no token and must not
+ask for one) and does not treat the file as proof that the page opens: the browser's own session
+decides that.
 
 ## Opening the browser
 
@@ -143,7 +193,8 @@ finish first (the log says `stopping: the automatic update finishes first — se
 stop at once`), closes the browser event streams, terminates the `wingfoil` and `git` processes it
 started, waits at most 5 s for the open requests, prints `WingFoil UI stopped` and exits 0. A second
 signal during the stop exits at once with status 130, after killing every child process still
-running. The token and every browser session end with the process: a new start draws a new token.
+running. The address file is removed first, right after the console stops accepting connections,
+and again at any exit (a forced stop, exit 70). The token and every browser session end with the process: a new start draws a new token.
 
 Started with `npx wingfoil-ui`, Ctrl-C signals npm and the console together: the console stops as
 above (exit 0, `WingFoil UI stopped`), but `npx` itself reports the signal, so the shell shows

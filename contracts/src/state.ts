@@ -76,3 +76,28 @@ export interface StateWarning {
   /** Arguments of the message. */
   args: Record<string, string>;
 }
+
+/**
+ * A console address file `consoles/<port>.json` in the state directory (adr-003 D1, spec-006 §1),
+ * matching `contracts/state/console-address.schema.json` (checked by
+ * `test/contracts/console-address-schema.test.ts`). It never holds a token, a session, a project
+ * path or id (adr-003 D5).
+ */
+export interface ConsoleAddressFile {
+  /** The file's own version, `1`. */
+  format: 1;
+  /** `http://127.0.0.1:<port>/`. */
+  url: string;
+  /** The port the console listens on. */
+  port: number;
+  /** Whether the port came from `--port` (links survive a restart on it, adr-003 D7). */
+  portFixed: boolean;
+  /** The console's process id. */
+  pid: number;
+  /** `os.hostname()` of the console's machine. */
+  host: string;
+  /** ISO 8601 UTC time the console started listening. */
+  started: string;
+  /** The package version. */
+  version: string;
+}

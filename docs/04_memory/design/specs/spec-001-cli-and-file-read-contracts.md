@@ -147,7 +147,7 @@ against the CLI: on each fixture, every `memory submit` / `approve` / `reject` t
 by the CLI must be one the resolved states allow.
 
 **4.2 Memory element files** — only at a `path` returned by `memory search`:
-a YAML frontmatter between the first two `---` lines (delimiters as WingFoil's `^---\r?\n…\r?\n---`: CRLF files are read as LF), then a Markdown body. YAML merge keys (`<<`) are resolved, as WingFoil's parser does.
+a YAML frontmatter between the first two `---` lines (delimiters as WingFoil's `^---\r?\n…\r?\n---`: CRLF files are read as LF), then a Markdown body. YAML merge keys (`<<`) are resolved, as WingFoil's parser does. Duplicate keys are refused (a `shape` error naming the key and its line), checked in time linear in the frontmatter's size (bug-032).
 `id`, `type`, `title`, `status` are always present; every other field is type-specific and shown
 as read. Trailing `# …` comments in the frontmatter are ignored. Consistency: the file's `id`,
 `type` and `status` must equal the `memory search` match; otherwise the element shows a read
@@ -155,7 +155,9 @@ error (REQ-ARC-04).
 **Bulk reader (v0.3, spec-012 §1).** Besides the element read (one file, frontmatter and body),
 the reference index reads **every** non-archived element file at the paths of the cached
 `memory search`, with bounded concurrency (at most 16 reads at a time), the same checks, keeping
-only frontmatter values (no body; at most 200 values per element), and reuses a file's values
+only frontmatter values (no body; at most 200 values per element; a frontmatter — the text between
+the two `---` lines — above 64 KiB is a `shape` error of that file for the index, the element read
+keeping the 5 MiB file bound), and reuses a file's values
 across states by `(path, blob id)` when the file is unchanged (spec-012 §8). No CLI process is
 started per element; a file that fails is named in the answer's `unreadable`, never failing the
 list (spec-004 §5).
@@ -166,7 +168,10 @@ frontmatter (as in `directives list`) and a Markdown body, rendered in R2.
 **4.4 Exception — hash-only reads for the repository state key** (REQ-STATE-02, spec-004 §5): the
 server reads each changed and untracked entry listed by `git status --porcelain` only to hash it
 — SHA-256 of the content up to 1 MiB, size and modification time beyond that (or beyond the first
-1 000 entries), the target of a symbolic link (never followed), or "missing". The content is
+1 000 entries), the target of a symbolic link (never followed), or "missing". From v0.3 it also marks
+`.wingfoil/ui.yaml` (§4.5) on every check, whatever its git status (tracked, untracked or ignored):
+through the no-follow steps of §4.5's read, the SHA-256 of its bytes (at most 64 KiB), or the
+`lstat` of a link, of an entry that is not a regular file or of a larger file (never opened). The content is
 neither kept nor exposed; only the combined hash enters the state key. No other use of these
 reads is allowed.
 
@@ -343,3 +348,11 @@ its schema, and run the §4.1 resolution check. A failure blocks the matrix adva
 - 2026-11-03 — aligned with spec-012 (release-planning v0.3 step 5c, decided by the approver,
   "TQ-1…TQ-6, X1 e K1–K3 come consigliato"): §4.2 the bulk reader of the reference index (bounded
   concurrency, values only, the reuse by `(path, blob id)`). No read is added to the allow-list.
+- 2026-11-06 — amended in development (task-068 design, plan backlog-item-rel-v0.3-plan; decided by
+  the approver, Q1 (a), carrying task-054's Q4 (a)): §4.4 the hash-only reads also mark
+  `.wingfoil/ui.yaml` on every check, whatever its git status, through §4.5's no-follow steps — so
+  an edit of an ignored `ui.yaml` changes the state key. No read is added to the allow-list.
+- 2026-11-06 — amended in task-055 (bug-032; design Q3-a, decided by the approver): §4.2 a
+  duplicate key is refused by a check linear in the frontmatter's size (the YAML library's own
+  check is quadratic: 1 MiB of keys took about 99 s), and the bulk reader of the reference index
+  refuses a frontmatter above 64 KiB as `shape` (this repository's largest is about 2 KiB).

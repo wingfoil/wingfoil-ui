@@ -2,7 +2,7 @@
 id: bug-019-elements-whose-id-is-longer-than-100-characters-cannot-be-opened-or-decided-the-server-answers-404
 type: bug
 title: "Elements whose id is longer than 100 characters cannot be opened or decided: the server answers 404"
-status: planned
+status: resolved
 severity: "medium"           # REQUIRED — critical | high | medium | low
 release-origin: "v0.2"     # optional — release where the bug was FOUND, e.g. "v0.1"
 release: "v0.3"            # optional — fix/implementation release, stamped by release-planning/build-backlog
@@ -66,3 +66,4 @@ the history and the writes. Ids of 100 characters or fewer work (bug-014, 96; bu
        live on those tasks (docs/04_memory/{release}/{id}.md, `bug: {this id}`, their own
        Execution Notes section) — this section only needs a pointer plus anything that doesn't
        belong on a specific fix task (e.g. why 2 tasks were needed instead of 1). -->
+- close note (2026-11-07): fixed by task-057 (`done` `fc7d5c29`), merged into the phase branch in `9ef6f3ce`; resolved by the approver (`15f8ec51`). The later full `test:coverage` runs on branches holding the fix passed (task-055's checker: 4055 passed). It closes with Wave 1's merge into `main`.

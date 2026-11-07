@@ -149,3 +149,99 @@ describe('buildApp', () => {
     expect(log).not.toContain('SECRET');
   });
 });
+
+// spec-011 §4 (task-057 AC-3, bug-019, C1): the router takes route parameters up to 255 UTF-16 code
+// units of the decoded value (Q2-a); a longer one answers 404 `not-found` on every method, with and
+// without a web build, after the Host/Origin and session checks. Routes of the five `:eid` shapes.
+describe('the route parameter length (spec-011 §4)', () => {
+  const ROUTES = [
+    ['GET', '/api/p/p_x/elements/:eid'],
+    ['GET', '/api/p/p_x/elements/:eid/history'],
+    ['POST', '/api/p/p_x/elements/:eid/submit'],
+    ['POST', '/api/p/p_x/elements/:eid/approve'],
+    ['POST', '/api/p/p_x/elements/:eid/reject'],
+  ] as const;
+  const register = (app: import('fastify').FastifyInstance) => {
+    for (const [method, url] of ROUTES) {
+      app.route({
+        method,
+        url,
+        handler: async (request) => ({ eid: (request.params as { eid: string }).eid }),
+      });
+    }
+  };
+  const id = (length: number) => `task-001-${'x'.repeat(length - 9)}`;
+  const BUILDS = [
+    ['with a web build', () => staticDir],
+    ['without a web build', () => path.join(staticDir, 'missing')],
+  ] as const;
+
+  describe.each(BUILDS)('%s', (_name, dir) => {
+    it.each(ROUTES)('%s %s: 255 code units reach the route, 256 answer 404 not-found', async (method, url) => {
+      const app = await buildApp({ staticDir: dir(), logger: createLogger(sink), security, register });
+      const call = (eid: string) =>
+        app.inject({
+          method,
+          url: url.replace(':eid', eid),
+          headers: AUTH,
+          ...(method === 'POST' ? { payload: {} } : {}),
+        });
+      for (const length of [101, 252, 255]) {
+        const ok = await call(id(length));
+        expect(ok.statusCode, `${length}`).toBe(200);
+        expect(ok.json()).toEqual({ eid: id(length) });
+      }
+      const long = await call(id(256));
+      expect(long.statusCode).toBe(404);
+      expect(long.json()).toEqual({ error: { code: 'not-found', message: expect.any(String) } });
+      await app.close();
+    });
+
+    it('measures the decoded value in UTF-16 code units: ASCII, é and an astral character', async () => {
+      const app = await buildApp({ staticDir: dir(), logger: createLogger(sink), security, register });
+      const get = (raw: string) => app.inject({ method: 'GET', url: `/api/p/p_x/elements/${raw}`, headers: AUTH });
+      const cases: [string, string, number][] = [
+        ['255 ASCII, each percent-encoded', '%78'.repeat(255), 200],
+        ['256 ASCII, each percent-encoded', '%78'.repeat(256), 404],
+        ['255 é (1 530 bytes in the URL)', encodeURIComponent('é'.repeat(255)), 200],
+        ['256 é', encodeURIComponent('é'.repeat(256)), 404],
+        ['127 astral characters and one ASCII (255 units)', encodeURIComponent(`${'😀'.repeat(127)}x`), 200],
+        ['128 astral characters (256 units)', encodeURIComponent('😀'.repeat(128)), 404],
+      ];
+      for (const [name, raw, status] of cases) expect((await get(raw)).statusCode, name).toBe(status);
+      await app.close();
+    });
+
+    it('still refuses a foreign origin (403) and a missing session (401) first, on GET and POST', async () => {
+      const app = await buildApp({ staticDir: dir(), logger: createLogger(sink), security, register });
+      for (const [method, url] of [ROUTES[0], ROUTES[3]]) {
+        const target = url.replace(':eid', id(256));
+        const payload = method === 'POST' ? { payload: {} } : {};
+        const noSession = await app.inject({ method, url: target, ...payload });
+        expect(noSession.statusCode, `${method} no session`).toBe(401);
+        expect(noSession.json().error.code).toBe('unauthenticated');
+        const foreign = await app.inject({
+          method,
+          url: target,
+          headers: { ...AUTH, origin: 'http://evil.test' },
+          ...payload,
+        });
+        expect(foreign.statusCode, `${method} origin`).toBe(403);
+        expect(foreign.json().error.code).toBe('forbidden-origin');
+        const host = await app.inject({ method, url: target, headers: { ...AUTH, host: 'evil.test' }, ...payload });
+        expect(host.statusCode, `${method} host`).toBe(403);
+      }
+      await app.close();
+    });
+
+    it('keeps every other framework error a 400 invalid-request', async () => {
+      const app = await buildApp({ staticDir: dir(), logger: createLogger(sink), security, register });
+      for (const url of ['/api/%', `/api/p/p_x/elements/%zz${'x'.repeat(300)}`]) {
+        const res = await app.inject({ method: 'GET', url, headers: AUTH });
+        expect(res.statusCode, url.slice(0, 30)).toBe(400);
+        expect(res.json()).toEqual({ error: { code: 'invalid-request', message: expect.any(String) } });
+      }
+      await app.close();
+    });
+  });
+});

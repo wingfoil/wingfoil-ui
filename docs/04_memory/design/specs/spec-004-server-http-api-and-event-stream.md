@@ -76,15 +76,15 @@ JSON; every request and response body has a schema in `contracts/api/`.
 | `PUT /api/p/:pid/role-view` `{role}` | remember the role view (local state) | v0.1 |
 | `GET /api/p/:pid/config` | DNA, paths, workflows (as the CLI's version line answers `workflow list`, spec-001 §3: the 0.2.x or the 0.3.x shape; every string of a 0.3.x `diagnostics` entry and its `message` sanitised like the CLI warnings, at most 200 diagnostics with `diagnosticsOmitted` counting the rest — read by no view yet), resolved types (spec-001 §4.1); effective `ui.yaml` with origin of each value since v0.3 (REQ-ARC-07; the `ui` section of spec-012 §2) | v0.1 |
 | `GET /api/p/:pid/elements[?archived=true]` | elements with their descriptor (spec-003) and local-changes marker; from v0.3 each element's `missingCategories` and the list's `missingReferences` (M2, spec-012 §5) | v0.1 |
-| `GET /api/p/:pid/elements/:eid` | one element: frontmatter, body, descriptor, references | v0.1 |
-| `GET /api/p/:pid/elements/:eid/history` | `memory history` entries (spec-002 §2); their texts sanitised from v0.3 (§5) | v0.1 |
+| `GET /api/p/:pid/elements/:eid` | one element: frontmatter, body, descriptor, references; `:eid` a full id, or a short id resolved as spec-011 §3 (v0.3) | v0.1 |
+| `GET /api/p/:pid/elements/:eid/history` | `memory history` entries (spec-002 §2); their texts sanitised from v0.3 (§5); `:eid` the full id only (spec-011 §3) | v0.1 |
 | `GET /api/p/:pid/directives`, `/directives/:did` | directive list: one entry per directive id, the one in force — when two files declare an id (a custom directive overriding a built-in one), the file the CLI's warning names (`using <path>`, to the end of the line), else — the warning cut — WingFoil's precedence (`compareDirectivePrecedence`): the smallest path (code units) among the files under `directives/custom/`, else among all, not the first listed (the CLI sorts names per folder); the other file is not listed, its warning is (task-047, bug-025); the CLI's order otherwise; one directive (the one in force) with its body | v0.1 |
 | `GET /api/p/:pid/docs` | documentation index (R4) | v0.1 |
 | `GET /api/p/:pid/files/tree`, `/files/content?path=` | working tree, confined to the repository (REQ-SEC-06) | v0.1 (docs), v0.4 (Files, R8 — moved from v0.3, RP3-7) |
 | `GET /api/p/:pid/today?view=<role>` | Requires you, Waiting on others, all-roles summary | v0.2 |
-| `POST /api/p/:pid/elements/:eid/submit` `{expectedStatus}` | `memory submit` | v0.2 |
-| `POST /api/p/:pid/elements/:eid/approve` `{expectedStatus, reason}` | `memory approve --reason` | v0.2 |
-| `POST /api/p/:pid/elements/:eid/reject` `{expectedStatus, reason}` | `memory reject --reason` | v0.2 |
+| `POST /api/p/:pid/elements/:eid/submit` `{expectedStatus}` | `memory submit`; `:eid` the full id only (spec-011 §3) | v0.2 |
+| `POST /api/p/:pid/elements/:eid/approve` `{expectedStatus, reason}` | `memory approve --reason`; `:eid` the full id only (spec-011 §3) | v0.2 |
+| `POST /api/p/:pid/elements/:eid/reject` `{expectedStatus, reason}` | `memory reject --reason`; `:eid` the full id only (spec-011 §3) | v0.2 |
 | `POST /api/p/:pid/git/fetch`, `/git/update`, `/git/push` | write class c (Y2–Y4) | v0.2 |
 | `GET /api/settings`, `PUT /api/settings` | UI settings (C4, local state) | v0.2 |
 | `GET /api/p/:pid/progress` | progress card figures (spec-005 §4): body spec-012 §3 | v0.3 |
@@ -112,7 +112,7 @@ v0.1 routes are defined by the schemas in `contracts/api/` (errors: `error.schem
 | `PUT /api/p/:pid/role-view` | request `role-view.request.schema.json`; 204 |
 | `GET /api/p/:pid/config` | `config.schema.json` |
 | `GET /api/p/:pid/elements` | `elements.schema.json` (descriptor: `descriptor.schema.json`) |
-| `GET /api/p/:pid/elements/:eid` | `element.schema.json` |
+| `GET /api/p/:pid/elements/:eid` | `element.schema.json`, with `element.shortId` (spec-011 §1, v0.3); 404 `not-found` and 409 `ambiguous-id` `element.refusal.schema.json` (spec-011 §3) |
 | `GET /api/p/:pid/elements/:eid/history` | `history.schema.json` — the `memory history` entries on their contract fields only (a CLI's added fields, e.g. 0.3.x's `wingfoil`, are not passed on; task-048) |
 | `GET /api/p/:pid/directives`, `/directives/:did` | `directives.schema.json`, `directive.schema.json` |
 | `GET /api/p/:pid/docs` | `docs.schema.json` |
@@ -204,6 +204,12 @@ starts before row 9 passes (a state that moved since the lookup is read again fi
 
 The role required by a gate is **not** checked by the server: the CLI refuses it (REQ-SEC-07).
 
+**Route parameters (v0.3, spec-011 §4, bug-019).** Every route parameter (`:pid`, `:eid`, `:did`)
+takes up to 255 UTF-16 code units of its percent-decoded value (the router's `maxParamLength`). A
+longer one answers 404 `not-found` on every method, after rows 1–2 (Host/Origin, `Sec-Fetch-Site`
+and session keep their order) and before any other row: no process starts. Every other error the
+framework raises before routing stays 400 `invalid-request`.
+
 Which rows apply to which writes: the governed writes on an element (`submit`, `approve`,
 `reject`) run rows 1–9 as listed; row 5a applies to the role-view `PUT` only. The role-view
 `PUT` is a **local-state write** (spec-006): rows 1–5 and 5a apply, rows 6–9 do **not** — in
@@ -246,8 +252,20 @@ the sanitiser's character escape (`neutralise`, without the folder redaction) wh
 serialises it — element **titles** (`/elements`, `/elements/:eid`, the Today rows, the candidates
 of spec-011 §3, spec-012's `ElementRef` and rows), the **pattern reference** values of
 `/progress` and `/traceability`, and the **`ui.yaml` strings** `/config` echoes in `ui`
-(`patterns[].match`, type names, `phases`, `holds` types and states, `artifacts` paths). Element
+(`patterns[].match` — a regular-expression source, its backslashes kept as written —, type
+names, `phases`, `holds` types and states, `artifacts` paths). Element
 ids, types and states stay as `memory search` returns them: they are the keys a page sends back.
+So does every other key whatever its source — an event's `type`, `id`, `from` and `to`, read from
+the commit subject and patch (spec-002 §3), the roles, the paths a page sends back. Document
+content — a frontmatter value, an element or directive body, a working-tree file — is served as
+written: the page renders it as a document, and the escape would change it (a doubled backslash in
+Markdown); the one frontmatter field outside it is `rejection_reason`, which `memory reject` writes
+from its reason (spec-001 §3): commit text, sanitised as the descriptor's `rejection.reason`. The rules live in one module, `server/src/http/serialise.ts` (task-056): `repositoryText`
+(the escape) and the commit-text sanitiser, used by every route that serialises such a field. The
+repository display text outside the fields named here (the DNA's names and descriptions, the
+directives' names and titles — the directive page's heading included —, the workflow texts, a file
+tree's names, the documentation index's paths, the states of a history entry, the project list's
+name and `remote`) is not escaped yet: bug-035.
 
 - Success of a write (`write.response.schema.json`): `{ result: <CLI output>, commits: [{ sha,
   subject }], push: { status, code?, message? } }` — `status` is `pushed`, `off` or `failed`
@@ -280,6 +298,7 @@ ids, types and states stay as `memory search` returns them: they are the keys a 
 | 500 | `write-incomplete` | a governed write that did not finish: its CLI failed leaving the element file changed (modified or staged) without the write's commit, failed after its commit (`detail.commit`: the commit is logged and announced, not pushed), or answered for another path than the one checked (`detail.file` that path, `detail.commit` when its commit is found). `detail.file` relative to the project; a fixed `message`, never the CLI's text (it quotes local absolute paths and the reason), which is not logged either; nothing is restored |
 | 422 | `git-refused` | a git transport command failed: git's message verbatim (REQ-INT-06), local folders and URL userinfo redacted as for `cli-refused` and a local remote's path as `<remote>`, at most 4 000 characters |
 | 409 | `no-remote`, `no-fetch-target`, `detached-head`, `no-upstream`, `diverged`, `local-changes-in-the-way`, `remote-not-owned`, `remote-unreadable`, `refspec-outside-remotes` | refusals of the git routes before any transport process (spec-010 §5); the update and push codes and `push-timeout` also appear as `push.code` of a write |
+| 409 | `ambiguous-id` | the element read (v0.3, spec-011 §3): `:eid` is the short id of several elements of one step — `detail: { candidates: [{ id, shortId, title, type, status }], more }`, at most 20 candidates ordered by full id, `more` counting the rest, titles escaped as repository texts (*Repository texts* above) |
 | 409 | `ui-config-exists` | the preset write (v0.3): `.wingfoil/ui.yaml` exists in the working tree, the index or at HEAD, or appeared before the exclusive create (spec-005 §5) |
 | 422 | `ui-config-invalid` | the preset write (v0.3): the rendered preset fails the `ui.yaml` schema or a semantic check against the project; `detail.failure` = the first failure (spec-005 §1, §5); nothing written |
 | 502 | `read-error` | a direct read of spec-001 §4 failed: `message` "Cannot read `<file>`" and the reason, `detail: { file, kind }` with `kind` one of `outside`, `missing`, `shape`, `mismatch` and `file` relative to the project (never absolute). Scoped to the element or directive read: a list never fails as a whole; an unreadable `memory.yaml` degrades only the type-dependent features. Logged as `{ kind, file }` only (`outside` at warn level) |
@@ -290,8 +309,9 @@ ids, types and states stay as `memory search` returns them: they are the keys a 
   event stream to know whether its data is current. The status hash is the hash of
   `git status --porcelain` combined with a fingerprint of the working-tree content of each
   changed and untracked entry, computed by the server without an extra git command
-  (REQ-STATE-02), so a second edit of an already-modified file changes the state; the header
-  format is unchanged.
+  (REQ-STATE-02), so a second edit of an already-modified file changes the state; from v0.3 it
+  also combines the mark of `.wingfoil/ui.yaml` whatever its git status (spec-001 §4.4), so an
+  edit of an ignored `ui.yaml` changes the state too; the header format is unchanged.
 
 ### 6. Event stream (REQ-INT-09)
 
@@ -300,7 +320,7 @@ ids, types and states stay as `memory search` returns them: they are the keys a 
 
 | `event` | `data` | When |
 |---------|--------|------|
-| `repo` | `{pid, state}` | HEAD, working-tree status, branch, upstream, ahead/behind, the remote list or effective `user.email` of a project changed (REQ-STATE-02, spec-010 §2); also, with the same `state`, only when `sync.fetch.lastError` or `sync.update.lastError` is set, changed or cleared (spec-010 §2–§3) — never for a new `lastSuccessAt` alone |
+| `repo` | `{pid, state}` | HEAD, working-tree status, branch, upstream, ahead/behind, the remote list or the effective author email of a project changed (REQ-STATE-02, REQ-STATE-05: `GIT_AUTHOR_EMAIL`, else `author.email`, else `user.email`; spec-010 §2); also, with the same `state`, only when `sync.fetch.lastError` or `sync.update.lastError` is set, changed or cleared (spec-010 §2–§3) — never for a new `lastSuccessAt` alone |
 | `projects` | `{}` | the project list or a project's availability changed |
 | `settings` | `{}` | UI settings changed (another tab) |
 | `write` | `{pid, eid?, commit}` | a write finished (other tabs show the result); without `eid` for the preset write (v0.3, spec-005 §5) |
@@ -470,3 +490,25 @@ goes away by itself when the stream reconnects. A network failure is not rendere
   (v0.3), the bodies of `/progress` and `/traceability`, the M2 fields of `/elements` and the `ui`
   section of `/config` (v0.3 bodies addendum); §5 repository texts escaped (K1, with bug-027's
   task).
+- 2026-11-05 — amended in place with task-057 (spec-011 §5's rows; the approver's Q1-a, Q2-a):
+  §3 the element read takes a full id or a short id (spec-011 §3), history and the three writes the
+  full id only, `element.shortId` and the refusal schema `element.refusal.schema.json`; §4 a route
+  parameter over 255 UTF-16 code units of its decoded value → 404 `not-found` on every method,
+  after rows 1–2 (bug-019, C1); §5 the 409 `ambiguous-id` row.
+- 2026-11-06 — amended in development (task-068 design, plan backlog-item-rel-v0.3-plan; decided by
+  the approver, Q1 (a)): §5 the status hash of `X-Repo-State` also combines the mark of
+  `.wingfoil/ui.yaml` whatever its git status (spec-001 §4.4); header format unchanged.
+- 2026-11-06 — amended in development (task-068 green, plan backlog-item-rel-v0.3-plan; decided by
+  the approver, Q4 (b)): §5 a `ui.yaml` pattern echoed by `/config` keeps its backslashes, its
+  unsafe characters escaped as the other repository texts (spec-012 §9).
+- 2026-11-07 — amended in development (task-056 design, plan backlog-item-rel-v0.3-plan; decided by
+  the approver, Q1-a, Q2-a): §5 *Repository texts* — keys stay raw whatever their source (an
+  event's `type`, `id`, `from`, `to`), document content is served as written but the frontmatter's
+  `rejection_reason` (commit text, review round 1), the rules' module `server/src/http/serialise.ts`,
+  the display text outside the named fields left to bug-035 (with the documentation paths, the
+  history's states and the directive page's heading, review round 1). The
+  per-match `memory search` and the refusals' `detail.reasons[]` of this section are built by
+  task-070 (the split).
+- 2026-11-06 — amended in task-055 (bug-029; design Q4-a, decided by the approver): §6 the `repo`
+  row names the effective author email the identity is read from (`GIT_AUTHOR_EMAIL`, else
+  `author.email`, else `user.email`, SARD REQ-STATE-05), in place of `user.email` alone.

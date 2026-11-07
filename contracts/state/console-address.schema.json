@@ -1,0 +1,52 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://wingfoil-ui.local/contracts/state/console-address.schema.json",
+  "title": "WingFoil UI console address file (consoles/<port>.json)",
+  "description": "The address file a running console keeps in the state directory (adr-003 D1, spec-006 §1), format 1, so that scripts and agents find it. Never holds a session token or session id, nor any part or hash of either, a project path, id or list, an environment value, a git identity or a credential (adr-003 D5).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["format", "url", "port", "portFixed", "pid", "host", "started", "version"],
+  "properties": {
+    "format": {
+      "description": "The file's own version; a change of meaning bumps it.",
+      "const": 1
+    },
+    "url": {
+      "description": "The console's origin: always http://127.0.0.1:<port>/, the host of the printed URL (no token, no path).",
+      "type": "string",
+      "pattern": "^http://127\\.0\\.0\\.1:[0-9]{1,5}/$"
+    },
+    "port": {
+      "description": "The port the console listens on.",
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 65535
+    },
+    "portFixed": {
+      "description": "Whether the port came from --port: links built on it survive a restart on the same port (adr-003 D7).",
+      "type": "boolean"
+    },
+    "pid": {
+      "description": "The console's process id (judged on this host only, as state.json.lock).",
+      "type": "integer",
+      "minimum": 1
+    },
+    "host": {
+      "description": "os.hostname() of the console's machine.",
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 255
+    },
+    "started": {
+      "description": "When the console started listening, ISO 8601 UTC.",
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,3})?Z$"
+    },
+    "version": {
+      "description": "The package version (wingfoil-ui --version).",
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64
+    }
+  }
+}

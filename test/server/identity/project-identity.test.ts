@@ -14,6 +14,8 @@ import {
   projectIdentityView,
 } from '../../../server/src/identity/project-identity.js';
 import { GitConfigError } from '../../../server/src/identity/git-email.js';
+import { createSnapshotIdentitySource } from '../../../server/src/identity/snapshot-identity.js';
+import { auditedSnapshots } from '../snapshot/support.js';
 import {
   LocalProcessRunner,
   type ProcessRequest,
@@ -21,6 +23,7 @@ import {
   type ProcessRunner,
 } from '../../../server/src/process/runner.js';
 import { pinnedCli } from '../../harness/cli.js';
+import { memberByName, OUTSIDER } from '../../harness/fixtures/team.js';
 import {
   buildFixture,
   copyFixture,
@@ -263,5 +266,47 @@ describe('cancellation', () => {
     await expect(identities.identify(entry)).rejects.toBeInstanceOf(GitNotFoundError);
     env.PATH = fx.env.PATH ?? '';
     expect(await identities.identify(entry)).toMatchObject({ kind: 'member', name: 'Alex' });
+  }, 120_000);
+});
+
+// bug-029, task-055 AC-9 (SARD REQ-STATE-05 amended 2026-11-06, Q4-a; wingfoil-cli W-39): a console
+// started with the author variables of a non-member, while `user.email` names an approver, is not
+// that approver — the header names the identity the CLI authorises, so no Approve or Reject is
+// offered (the footer and Today follow `identity`, task-037).
+describe('bug-029 — the identity is the author the CLI authorises', () => {
+  const agent = {
+    GIT_AUTHOR_NAME: OUTSIDER.name,
+    GIT_AUTHOR_EMAIL: OUTSIDER.email,
+    GIT_COMMITTER_NAME: OUTSIDER.name,
+    GIT_COMMITTER_EMAIL: OUTSIDER.email,
+  };
+
+  it('the local source: GIT_AUTHOR_EMAIL of a non-member wins over an approver user.email', async () => {
+    const { fx, entry } = await fresh();
+    await git(fx.dir, ['config', 'user.email', memberByName('Morgan').email], fx.env);
+    const view = await projectIdentityView(createLocalIdentitySource({ runner, env: { ...fx.env, ...agent } }), entry);
+    expect(view.identity).toEqual({ kind: 'not-in-team', email: OUTSIDER.email });
+    expect(view.roleViews).toEqual([]);
+  }, 120_000);
+
+  it('the snapshot source (the console): the same, and author.email over user.email', async () => {
+    const { fx, entry } = await fresh();
+    await git(fx.dir, ['config', 'user.email', memberByName('Morgan').email], fx.env);
+    const withAgent = auditedSnapshots({ ...fx.env, ...agent });
+    try {
+      expect((await createSnapshotIdentitySource(withAgent.snapshots).identify(entry)).kind).toBe('not-in-team');
+    } finally {
+      await withAgent.snapshots.closeAll();
+    }
+    await git(fx.dir, ['config', 'author.email', memberByName('Jordan').email], fx.env);
+    const plain = auditedSnapshots(fx.env);
+    try {
+      expect(await createSnapshotIdentitySource(plain.snapshots).identify(entry)).toMatchObject({
+        kind: 'member',
+        name: 'Jordan',
+      });
+    } finally {
+      await plain.snapshots.closeAll();
+    }
   }, 120_000);
 });

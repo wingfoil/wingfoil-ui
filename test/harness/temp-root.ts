@@ -29,6 +29,15 @@ export const TEMP_ROOT_ENV = 'WFUI_TEMP_ROOT';
 /** An owner-less root younger than this is left alone (it may be one being made). */
 export const TEMP_ROOT_GRACE_MS = 60_000;
 
+/**
+ * The console's state directory variable (spec-006 §1), pointed inside the run's root so that no
+ * test — in a worker or in a process it starts — reaches the state directory of the user who runs
+ * the suite (bug-030). It wins over `XDG_CONFIG_HOME`, `HOME` and `APPDATA` in the resolution, so
+ * those are left as they are (git and npm read them); a test that exercises the resolution
+ * without it unsets it on purpose (the harness environment does, with its own home).
+ */
+export const TEMP_STATE_DIR_ENV = 'WINGFOIL_UI_STATE_DIR';
+
 /** The variables that name the temporary directory on Linux, macOS and Windows. */
 export const TEMP_DIR_VARS = ['TMPDIR', 'TMP', 'TEMP'] as const;
 
@@ -86,12 +95,15 @@ export function tempDirOf(root: string): string {
 
 /**
  * Point the temporary directory of this process (and of every process it starts afterwards) at
- * `root`'s `tmp/`. Returns a function restoring the previous values.
+ * `root`'s `tmp/`, and the console's state directory at `root`'s `state/` (bug-030). Returns a
+ * function restoring the previous values.
  */
 export function useTempRoot(root: string, env: NodeJS.ProcessEnv = process.env): () => void {
-  const saved = Object.fromEntries([...TEMP_DIR_VARS, TEMP_ROOT_ENV].map((k) => [k, env[k]]));
+  const saved = Object.fromEntries([...TEMP_DIR_VARS, TEMP_ROOT_ENV, TEMP_STATE_DIR_ENV].map((k) => [k, env[k]]));
   for (const key of TEMP_DIR_VARS) env[key] = tempDirOf(root);
   env[TEMP_ROOT_ENV] = root;
+  // bug-030: the console's state directory, inside the root (created by the first console that writes).
+  env[TEMP_STATE_DIR_ENV] = path.join(root, 'state');
   return () => {
     for (const [key, value] of Object.entries(saved)) {
       if (value === undefined) delete env[key];

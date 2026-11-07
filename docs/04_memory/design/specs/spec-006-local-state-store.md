@@ -3,7 +3,7 @@ id: spec-006-local-state-store
 type: tech-spec
 title: "Local state store"
 status: approved
-scope: "local state file: project list, role view per project (v0.1); UI settings, action log (v0.2)"              # REQUIRED — the artefact this spec covers, e.g. "server HTTP API", "CLI JSON contract: memory search", ".wingfoil/ui.yaml"
+scope: "local state file: project list, role view per project (v0.1); UI settings, action log (v0.2); console address files (v0.3)"              # REQUIRED — the artefact this spec covers, e.g. "server HTTP API", "CLI JSON contract: memory search", ".wingfoil/ui.yaml"
 wingfoil_version: ""   # optional — for a CLI contract: the WingFoil version the shape was captured from
 supersedes: ""         # optional — id of the tech-spec this one replaces, e.g. "spec-002"
 release: "v0.1"            # optional — implementation release this spec is assigned to (stamped by release-planning/build-backlog), e.g. "v0.1"
@@ -37,8 +37,40 @@ The state directory is, in this order:
 4. Windows: `%APPDATA%\wingfoil-ui`, or `<home>\AppData\Roaming\wingfoil-ui` when `APPDATA` is
    not set.
 
-The directory is created on first write with mode `0700` (POSIX). It holds `state.json` (mode
-`0600`) and nothing the user must edit. The state directory must never lie inside a project's
+The directory is created on first write with mode `0700` (POSIX), and by every console start
+for its address file (below). It holds `state.json` (mode `0600`), the folder `consoles/` (mode
+`0700`) and nothing the user must edit.
+
+**Console address files** (adr-003 D1–D5, from v0.3): each running console keeps one file
+`consoles/<port>.json` (mode `0600`, schema `contracts/state/console-address.schema.json`: `format`
+`1`, `url` `http://127.0.0.1:<port>/`, `port`, `portFixed` — the port came from `--port` —, `pid`,
+`host` — `os.hostname()` —, `started` — ISO 8601 UTC, when it started listening —, `version`; no
+other property), created and removed by consoles only, so that scripts and agents find a running
+console (`docs/cli-reference.md`). At start a console creates the state directory (`0700`) and
+`consoles/` (`0700`) when missing, then checks them, never writing or reading through a symbolic
+link:
+
+- the state directory owned by another user, or writable by group or others → no address file, the
+  warning `state-dir-unsafe` in the log, its mode left untouched (approver, task-058 Q1);
+- `consoles/` a symbolic link, not a directory, or owned by another user → no address file, a
+  warning in the log; owned by the user with group or other bits → set back to `0700`;
+- every file of `consoles/` is opened without following a link and without blocking, and read only
+  when it is a regular file of at most 4 KiB; the console's own file is replaced by a `rename`
+  (a link in its place is replaced, never followed).
+
+On Windows no mode and no owner is checked: the files inherit the access list of the state
+directory under `%APPDATA%`, as `state.json` does. A failed check or write is a log warning
+(`{ reason, code }`, no path), never a failed start. On Windows the heartbeat refreshes the time
+through a read-write handle (a read-only one cannot set it); the Windows paths are covered by unit
+tests with the platform mocked only — no Windows runner runs the suites.
+
+Residuals (task-058 review round 1): the checks judge the state directory itself, not its
+parents — a parent writable by another user without the sticky bit lets that user swap the whole
+state directory after the check; a stop signal while the address file is being written removes
+the file only once the write is over (or at exit); a reader's liveness check by `pid` cannot tell
+a reused pid from the console (the 30 s age rule bounds it).
+
+The state directory must never lie inside a project's
 working tree (REQ-ARC-08): adding a project whose working tree contains it is refused
 (`state-dir-inside-project`, §3); a list that already has such an entry (e.g. the variable changed
 since) stops the start with a message naming both paths (spec-007 §6, exit 4).
@@ -197,6 +229,24 @@ list is notified by the `projects` event (spec-004 §6).
   `state.json`; temporary files of dead processes are removed on open. Mutations inside one
   server are serialised by an in-process lock. A mutation that changes nothing creates no
   directory or file.
+- **Console address files** (adr-003 D2, D3) are outside `state.json.lock`: each file has one
+  writer, its console. Written atomically as `state.json` is (`consoles/<port>.json.tmp-<pid>-<n>`,
+  created exclusively with mode `0600`, `fsync`, `rename`); after listening and before the URL line
+  (spec-007 §3). A **heartbeat** every 10 s refreshes the file's modification time, and rewrites it
+  in full, atomically, when it is gone or its content is not the one this console wrote; a tick
+  is skipped while the previous one still runs. Removed
+  as the first stop step and again, synchronously and best-effort, at any process exit; a console
+  removes it only while it still holds its own `pid` and `started`. A file is **stale** when its
+  modification time is older than 30 s, or when its `host` is this machine's and its `pid` is not
+  running (`kill(pid, 0)` fails with `ESRCH`; `EPERM` counts as running). **Start housekeeping**,
+  before the console writes its own file: this host's files are removed only when their `pid` is
+  dead (never by age) — or, when it holds the starting console's own `pid`, when its `started` is
+  no live console's of that process (pid reuse) —, other hosts' files — and files whose `host` or
+  `pid` cannot be read — only
+  when older than 30 s, temporary files only when their writer's pid is dead; the file named after
+  the console's own port is replaced; anything else in `consoles/` is left alone. Two consoles on
+  one state directory write two files. A state directory shared by two machines is not supported
+  for discovery (the last writer wins).
 - Warnings for the shell are returned by `GET /api/server` (spec-004 §3) in
   `warnings: [{ key, args }]` (keys of the web catalogue, spec-008 §5).
 - **Missing file** → empty state (first start, S-01.1).
@@ -214,7 +264,10 @@ list is notified by the `projects` event (spec-004 §6).
 ### 5. What the file never holds
 
 No session token or session id, no git credential, no environment variable value, no content of
-a project (REQ-SEC-09). The secret scan of REQ-SEC-09 runs over the state directory.
+a project (REQ-SEC-09). A console address file holds, in addition, no part or hash of a token or
+session id, no project path, id or list, no git identity: nothing a request needs to
+authenticate (adr-003 D5). The secret scan of REQ-SEC-09 runs over the state directory,
+`consoles/` included.
 
 ### 6. Verification
 
@@ -222,7 +275,11 @@ a project (REQ-SEC-09). The secret scan of REQ-SEC-09 runs over the state direct
   id format and uniqueness; userinfo stripping; duplicate detection table (same path, symlinked
   path, same remote with/without `.git`, different case of host, scp-like `git@host:o/r.git` vs
   `https://host/o/r`, a known remote refused before any clone starts); corrupt file kept and replaced;
-  newer version read-only; atomic write (no partial file after a killed write).
+  newer version read-only; atomic write (no partial file after a killed write). Console address
+  files (adr-003): write (modes `0700`/`0600`, under `umask 000` too), heartbeat (it restores a
+  removed or replaced file), replace, remove, stale detection (pid and age), housekeeping, the
+  checks of §1 (a symbolic link, another owner, an unsafe state directory, a FIFO); the launcher
+  tests of S-01.4 … S-01.6 and the launch smoke (spec-007 §7).
 - e2e: S-03…S-07, S-16…S-19, S-22.3, X-05.1/X-05.2; REQ-ARC-08 fit criterion (`git status
   --porcelain` clean, state survives a restart); REQ-SEC-09 secret scan.
 
@@ -318,3 +375,18 @@ a project (REQ-SEC-09). The secret scan of REQ-SEC-09 runs over the state direct
   §2 `actionLog` also records the commit of a preset write (REQ-SEC-10: every commit the UI
   causes). Decided by the approver with the C1 scope (RP3-7).
   R1's address file (RP3-14 D4): adr-003, step 5b — not amended here (review round 1 F3).
+- 2026-11-05 — amended in task-058 (Sprint 1 Wave 1, design D58-4 … D58-7; adr-003 D1–D5): §1 the
+  state directory created at start and its `consoles/` folder with the console address files,
+  their checks (no symbolic link followed, another owner refused, group and other bits of
+  `consoles/` removed) and an unsafe state directory — another owner, or group/other-writable —
+  meaning no address file and the `state-dir-unsafe` warning, its mode untouched (Q1 (b)); §4 the
+  files outside `state.json.lock`, atomic writes, heartbeat, removal, stale rule and start
+  housekeeping; §5 what the address file never holds, the secret scan over `consoles/`; §6 its
+  tests. Decided by the approver (Q1 (b), Q2 (a)).
+  Same day, independent review round 1 of task-058: `scope` names the console address files; §1
+  the Windows heartbeat handle and that Windows is unit-tested only, and the residuals (a parent
+  of the state directory writable by others, a signal during the write, a reused pid); §4 a file
+  of this host holding the starting console's own pid with another `started` is a dead console's
+  (pid reuse) and is removed at start; a heartbeat tick is skipped while the previous one runs.
+  Same day, review round 2: a file with the starting console's own `pid` is removed only when its
+  `started` is no live console's of that process (two consoles in one process share a pid).

@@ -106,12 +106,17 @@ describe('GitReads — the commands it runs', () => {
     });
   });
 
-  it('email: the effective user.email, undefined when unset (exit 1) or empty', async () => {
+  it('email (bug-029, SARD REQ-STATE-05): author.email, else user.email, of one --get-regexp; undefined when unset (exit 1) or blank', async () => {
     const runner = new FakeProcessRunner()
-      .answer({ stdout: 'alex@example.test\n' })
+      .answer({ stdout: 'user.email\nalex@example.test\0' })
+      .answer({ stdout: 'user.email\nalex@example.test\0author.email\nmorgan@example.test\0' })
+      // The last value of a key wins (lowest scope first); a blank author.email falls through.
+      .answer({ stdout: 'author.email\nsam@example.test\0user.email\nalex@example.test\0author.email\n \0' })
       .answer({ exitCode: 1 })
-      .answer({ stdout: '\n' });
+      .answer({ stdout: 'user.email\n  \0' });
     const r = reads(runner);
+    expect(await r.email()).toBe('alex@example.test');
+    expect(await r.email()).toBe('morgan@example.test');
     expect(await r.email()).toBe('alex@example.test');
     expect(await r.email()).toBeUndefined();
     expect(await r.email()).toBeUndefined();
@@ -123,8 +128,19 @@ describe('GitReads — the commands it runs', () => {
       'protocol.allow=never',
       '--no-optional-locks',
       'config',
-      'user.email',
+      '-z',
+      '--get-regexp',
+      '^(author|user)\\.email$',
     ]);
+  });
+
+  it('email (bug-029): GIT_AUTHOR_EMAIL of the environment wins, trimmed, a blank one is no email; no process', async () => {
+    const runner = new FakeProcessRunner();
+    const withEnv = (value: string) =>
+      new GitReads({ git: '/usr/bin/git', runner, cwd: '/p', env: { HOME: '/h', GIT_AUTHOR_EMAIL: value } });
+    expect(await withEnv(' agent@example.test ').email()).toBe('agent@example.test');
+    expect(await withEnv('').email()).toBeUndefined();
+    expect(runner.requests).toHaveLength(0);
   });
 
   it('layout: prefix, git dir and common dir in one rev-parse, resolved against the project', async () => {

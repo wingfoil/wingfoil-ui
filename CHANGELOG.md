@@ -14,6 +14,39 @@ release `v0.2` the git tag `v0.2.0` and the npm version `wingfoil-ui@0.2.0`.
   tarball staged on npm, the coverage totals (`coverage-totals.json`) and the test counts per suite
   (`test-results.md`) of the tag's run — no file holding a path. The approver makes it public once
   the version is live on npm (`docs/publishing.md`, *Every release*).
+- **Short ids in the API** (task-057, spec-011): the element read, the Memory list rows and the
+  Today rows carry each element's short id (`task-046` for `task-046-wingfoil-0.3-support`,
+  derived from its type's `id_pattern`; none for an id without a number), and the element read
+  accepts a short id as well as the full id — an address such as `/p/<project>/e/task-046` can
+  now reach its element once the page uses it (task-062). A short id that names several elements
+  answers their list (409 `ambiguous-id`, at most 20) instead of *not found*. History and the
+  actions still take the full id.
+- **A console address file for scripts and agents** (task-058): each running console keeps
+  `consoles/<port>.json` in the state directory (folder `0700`, file `0600`) with its URL, port,
+  whether the port came from `--port`, process id, host, start time and version — never the
+  token, a session or a project path — written before the URL line, refreshed every 10 s and
+  removed at stop; a file left by a killed console is removed at the next start. An agent can
+  build a link to an element from it and from `state.json` (`docs/cli-reference.md`, *Address
+  file for scripts and agents*).
+- **The project's `ui.yaml` configuration in the API** (task-054, task-068; spec-005, spec-012
+  §2): `GET /api/p/:pid/config` carries a `ui` section with the effective configuration of
+  `.wingfoil/ui.yaml` — categories, reference patterns and required references, the progress
+  settings, held gates and artifacts, each value marked `declared` or `inferred` — and, when the
+  file is not used, its first failure as `failure` (`progress.mode must be sequence or flow
+  (found spiral)`); without a file, the values inferred from the project's types. Every text echoed from
+  the file comes back with control and bidi characters escaped. An edit of `ui.yaml`, tracked,
+  untracked or ignored by git, refreshes open pages. No screen shows it yet: the Configuration
+  tabs are task-064's.
+- **The reference index** (task-055, spec-012 §1, §8): the server's one index of every element's
+  frontmatter values and the references they make — another element's full id, or a value matching
+  a `taxonomy.patterns` entry of `.wingfoil/ui.yaml` — shared by the progress, traceability and
+  held-gate features of later tasks. It keeps values only (at most 200 per element), reads at most
+  16 element files at a time, reuses a file's values on the next repository state when the file
+  is unchanged at HEAD (one `git ls-tree` per commit, no WingFoil process), spends at most 500 ms
+  per state testing patterns, and works in slices of about 20 ms between which the console answers
+  other requests (measured: never more than about 26 ms without an answer, on 500 elements of 200
+  values with costly patterns); an element it
+  could not read or index fully is named, never failing the whole. Nothing shows it yet.
 
 ### Changed
 
@@ -35,6 +68,19 @@ release `v0.2` the git tag `v0.2.0` and the npm version `wingfoil-ui@0.2.0`.
 
 ### Fixed
 
+- **The identity is the author WingFoil authorises** (bug-029): the console reads who you are as
+  the WingFoil CLI does — `GIT_AUTHOR_EMAIL` of its environment, else `author.email`, else
+  `user.email` — so a console started with another author identity no longer offers *Approve* or
+  *Reject* that the CLI then refuses; the header names that identity.
+- **A large frontmatter no longer blocks the console** (bug-032): an element whose frontmatter
+  holds many keys is parsed in time linear in its size (1 MiB of keys took about 99 s, now about
+  2 s), a duplicate key still refused with its line; the reference index refuses a frontmatter
+  above 64 KiB as unreadable.
+- **An element whose id is longer than 100 characters can be opened and decided** (bug-019,
+  task-057): the server refused a path parameter over 100 characters, so such an element was
+  listed but its panel showed *not found* and its gate could not be decided. A path parameter of
+  up to 255 UTF-16 code units now works on every route — every id WingFoil writes, at most 252
+  characters — and a longer one answers *not found* on every route.
 - **The element history and the Memory events read WingFoil 0.3's operations** (bug-026,
   task-048): on a project on WingFoil 0.3.x the element panel's history failed for every element
   with a `finalize`, `park`, `amend`, `start`, `sync` or `assign` commit — every phase plan closed
@@ -47,6 +93,34 @@ release `v0.2` the git tag `v0.2.0` and the npm version `wingfoil-ui@0.2.0`.
   *Directives* section listed both files — extra rows, the bound roles repeated, the order wrong
   after switching "only mine / all". They now list one row per directive, the one WingFoil uses
   (the custom file), and show WingFoil's warning naming both files.
+- **A project folder replaced by a symbolic link is no longer read through** (bug-033, task-068):
+  when a folder of a project — `.wingfoil` or a Memory folder — was replaced by a link to a folder
+  elsewhere, the check of the repository state hashed the files behind the link, so an edit
+  outside the project could refresh open pages. Such a folder is now marked by itself, and no
+  file behind it is read. The defect shipped in v0.2.0 (it dates from v0.1.0).
+- **Commit texts are shown as safe text** (bug-027, task-056): the element panel's history (each
+  entry's subject, reason, author and approver), the bell's *Updates* and the rejection shown in
+  Today, the Memory list and the element panel passed a commit's text on as written, so a bidi
+  override, a control character, a very long line or an absolute local folder in a commit message
+  reached the screen — and so did the reject's reason among the element panel's fields. They now
+  go through the same rule as every other tool message: control,
+  bidi and invisible characters shown as visible escapes (`\u202e`), the project's, the
+  repository's, the WingFoil package's and the home folders shown as `<project>`, `<repository>`,
+  `<wingfoil>` and `~`, at most 4 000 characters. Who must act is still found by the author's
+  email. The defect shipped in v0.1.0 and v0.2.0.
+
+### Security
+
+- **Repository text escaped in the API** (task-056, RP3-18 K1; spec-004 §5): an element's title in
+  the Memory list, the element panel and Today comes back with control, bidi and invisible
+  characters as visible escapes, as the `ui.yaml` strings of the configuration do (task-068), so a
+  title cannot reorder or hide what the page shows; a backslash in a title is shown doubled
+  (`Fix \\n handling`), so that every escape on the page is one the console wrote. Ids, types and
+  states stay as WingFoil returns them (they are what a page sends back), and a document — an
+  element's or a directive's body and fields (but the reject's reason, a commit text), a file — is
+  shown as written. The other names the repository supplies (the DNA's names and descriptions, the
+  directives' titles, the workflow texts, file names and paths of the documentation, the states
+  named in an element's history, the project's name) are not escaped yet (bug-035).
 
 ### Known limitations
 

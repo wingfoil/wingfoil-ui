@@ -75,6 +75,12 @@ FormatJS is loaded before the check.
    reads only), the automatic-sync scheduler starts — its first round one *Fetch interval* later
    (spec-010 §6) — and the stop signals (§6) are handled, so a stop sent right after the URL line
    is never lost.
+   Then the console address file (spec-006 §1, §4; adr-003 D1–D3): the state directory and
+   `consoles/` are created and checked, the start housekeeping removes stale files, then
+   `consoles/<port>.json` is written atomically (`portFixed` true when `--port` was given) and its
+   heartbeat starts; the handler that removes it at any process exit is registered before the
+   write. The URL line waits for the write, so a script that sees the line finds the file. A
+   failed check or write is a log warning, never a failed start.
 5. Print on stdout one line:
    `WingFoil UI is running at http://127.0.0.1:<port>/#token=<token>` (S-01.1).
 6. Unless `--no-open`, open the browser (§4).
@@ -92,7 +98,8 @@ stdout and keeps running (S-01.3). The server never waits for the browser.
 - stdout: only the lines of §3, §4 and §6 and the answers to `--version`/`--help`.
 - stderr: refusals of §1–§3 and the server log (pino JSON lines, level `info`; at start the port,
   the bound addresses and the start duration `startMs`; one `git transport` line per fetch, update
-  or push, spec-010), with `authorization` and `cookie` redacted (spec-004 §2). The token appears in no log
+  or push, spec-010; `console address file` lines with only a `reason` and an error `code` — no
+  path, no file content), with `authorization` and `cookie` redacted (spec-004 §2). The token appears in no log
   line; the stdout line of §3 is the only place it is printed.
 - Every launcher message comes from the server message catalogue (spec-008 §5).
 
@@ -101,7 +108,9 @@ stdout and keeps running (S-01.3). The server never waits for the browser.
 `SIGINT` (Ctrl-C), `SIGTERM` or `SIGHUP` (terminal closed) start the stop sequence
 (`server/src/launcher/start.ts` `onStop`, `runLauncher`), in this order:
 
-1. stop accepting connections;
+1. stop accepting connections, then stop the address file's heartbeat and remove the file
+   (spec-006 §4: only while it still holds this console's `pid` and `started`; a failed removal is
+   a log warning, never a failed stop step);
 2. run the stop steps, in registration order, each even when an earlier one failed: the
    automatic-sync scheduler starts no further round, and an automatic update (merge) already
    running finishes first — the log says `stopping: the automatic update finishes first — send the
@@ -114,7 +123,9 @@ stdout and keeps running (S-01.3). The server never waits for the browser.
 
 A second signal exits at once with status 130, after a synchronous `SIGKILL` to every child
 process group still running; the same kill runs at any process exit, so no child outlives the
-server. Every token and session dies with the process
+server; it also removes the address file, synchronously and best-effort (a forced stop, an exit
+70). A `SIGKILL` leaves the file: the next start's housekeeping removes it (its pid is dead), and
+readers judge it stale within 30 s. Every token and session dies with the process
 (X-02.2).
 
 | Exit status | Meaning |
@@ -133,10 +144,13 @@ as above (exit 0), but `npx` reports the signal, so the shell shows 130
 
 ### 7. Verification
 
-- e2e-smoke `launch`: S-01.1…S-01.3; REQ-PERF-06 (≤ 3.0 s, 10 of 10 runs); REQ-ARC-01 on Node.js
+- e2e-smoke `launch`: S-01.1…S-01.3; the address file after the URL line (mode `0600`,
+  `consoles/` `0700`, no token) and its absence after the stop line (S-01.4, S-01.5); REQ-PERF-06 (≤ 3.0 s, 10 of 10 runs); REQ-ARC-01 on Node.js
   20.x (exit 1, no port).
 - Unit: option parsing table (exit 2 cases); opener command per platform, `shell: false`,
-  fallback on spawn error; stop sequence leaves no child process.
+  fallback on spawn error; stop sequence leaves no child process; the launcher tests of
+  S-01.4…S-01.6 (`test/launcher/`): the file on the URL line, gone on the stop line, a stale file
+  removed at start, two consoles on one state directory.
 - Manual check on Windows before the first release: the opened address keeps its `#token=…`
   fragment through `rundll32 url.dll,FileProtocolHandler`; if not, the opener becomes
   `explorer.exe <url>` (argument array, no shell; the URL is never placed inside an interpreted
@@ -179,3 +193,9 @@ as above (exit 0), but `npx` reports the signal, so the shell shows 130
   sequence (a running automatic update finishes first, every stop step runs, the 5 s drain, a
   failed step exits 70), the examples of exit 70, the `npx` Ctrl-C status. Decided by the approver
   (RT2-13; RP3-14 survey).
+- 2026-11-05 — amended in task-058 (Sprint 1 Wave 1, design D58-2, D58-3, D58-9; adr-003 D1–D3):
+  §3 step 4 ends with the console address file, between the signal handling and the URL line, the
+  URL line after the write, a failed write a warning; §5 its log lines carry no path; §6 the file
+  removed right after the console stops accepting connections and by the exit handler, a failed
+  removal never exit 70, a `SIGKILL` leaves it to the next start; §7 the launcher tests and the
+  launch smoke check it. Decided by the approver (task-058 Q2 (a)).

@@ -7,6 +7,7 @@ import { cp, mkdir, readdir, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { pinnedCli, pinnedVersion, REPO_ROOT, type CliBuild } from '../cli.js';
 import { git } from '../run.js';
+import { presetCommitSubject, renderPreset, type UiPresetName } from '../../../server/src/presets/ui-config.js';
 import { FixtureProject } from './project.js';
 import { STANDARD_AGENT, STANDARD_TEAM } from './team.js';
 import { UNKNOWN_MEMORY_YAML, UNKNOWN_TEMPLATES, UNKNOWN_WORKFLOW, UNKNOWN_WORKFLOWS_YAML } from './unknown-schema.js';
@@ -93,6 +94,9 @@ export async function harnessEnv(root: string): Promise<HarnessEnv> {
   for (const key of Object.keys(env)) {
     if (key.startsWith('GIT_') || key.startsWith('XDG_')) delete env[key];
   }
+  // bug-030: the run-wide state directory of the temporary root is not inherited: a console started
+  // with this environment resolves its own, under this home (spec-006 §1), as before.
+  delete env['WINGFOIL_UI_STATE_DIR'];
   Object.assign(env, {
     GIT_CONFIG_GLOBAL: gitconfig,
     GIT_CONFIG_NOSYSTEM: '1',
@@ -166,6 +170,25 @@ export async function usePrePacksStates(fixture: Pick<Fixture, 'kind' | 'dir' | 
   await cp(path.join(PRE_PACKS_GOVERNANCE, 'memory.yaml'), path.join(fixture.dir, '.wingfoil', 'memory.yaml'));
   await git(fixture.dir, ['add', '.wingfoil/memory.yaml'], fixture.env);
   await git(fixture.dir, ['commit', '-q', '-m', 'chore(wingfoil): the pre-packs states (test variant)'], fixture.env);
+}
+
+/**
+ * The variant *the custom fixture with the sw-life-cycle preset* (`02_bdd/00_conventions.md`
+ * *Preset variant*; task-054 AC-7, D54-10): the shipped preset rendered by the server
+ * (`server/src/presets/ui-config.ts`) written to `.wingfoil/ui.yaml` and committed alone as
+ * `chore(ui): apply the <label> preset` by the fixture's current git identity — the commit the
+ * console's preset write makes (task-060). Composable with {@link usePrePacksStates} in either
+ * order; the custom fixture only for the default `sw-life-cycle` (other presets on their template).
+ */
+export async function usePresetUiConfig(
+  fixture: Pick<Fixture, 'kind' | 'dir' | 'env'>,
+  preset: UiPresetName = 'sw-life-cycle',
+): Promise<void> {
+  if (preset === 'sw-life-cycle' && fixture.kind !== 'custom')
+    throw new Error(`the sw-life-cycle preset is a custom fixture variant, not ${fixture.kind}`);
+  await writeFile(path.join(fixture.dir, '.wingfoil', 'ui.yaml'), renderPreset(preset));
+  await git(fixture.dir, ['add', '--', '.wingfoil/ui.yaml'], fixture.env);
+  await git(fixture.dir, ['commit', '-q', '-m', presetCommitSubject(preset), '--', '.wingfoil/ui.yaml'], fixture.env);
 }
 
 /** Custom fixture: this repository's `.wingfoil/` ({@link customGovernance}) and `docs/01_vision/`. */

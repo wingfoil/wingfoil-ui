@@ -3,7 +3,7 @@
 // the CLI returns, 0 writes; an element whose file `status` differs from `memory search` is a read
 // error. API/unit side of S-25.1, M-01.1, R-05.1 (screens: task-017, task-019).
 import { constants } from 'node:fs';
-import { mkdtemp, readFile, realpath, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, realpath, rename, rm, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
@@ -12,6 +12,7 @@ import { discoverCli } from '../../../server/src/cli/discovery.js';
 import { LocalProcessRunner } from '../../../server/src/process/runner.js';
 import { DirectReadError } from '../../../server/src/reads/confine.js';
 import { ProjectReads } from '../../../server/src/reads/project-reads.js';
+import { uiYamlMark } from '../../../server/src/reads/ui-yaml.js';
 import { buildFixture, copyFixture, type Fixture } from '../../harness/fixtures/index.js';
 
 /** File-system calls recorded while `on`: function name and first argument. */
@@ -103,6 +104,8 @@ describe('TT-ARC-04 — file-system spy over every read', () => {
       await reads.paths();
       await reads.workflows();
       const types = await reads.memoryTypes();
+      // task-054: the UI's own file, at its fixed path (absent on the fixtures: resolved only).
+      expect(await reads.uiYaml()).toEqual({ kind: 'absent' });
       const elements = (await reads.elements()).data.matches;
       const archived = [
         ...(await reads.archivedElements('deprecated')).data.matches,
@@ -154,7 +157,7 @@ describe('TT-ARC-04 — file-system spy over every read', () => {
       // redact it from WingFoil 0.3's `workflow list` diagnostics (task-046, bug-012).
       const resolved = onProject.filter((c) => !isFileRead(c));
       // Review round 1 n2: only path resolutions there (realpath, stat), nothing else.
-      const confinement = new Set([fx.dir, abs('.wingfoil')]);
+      const confinement = new Set([fx.dir, abs('.wingfoil'), abs('.wingfoil', 'ui.yaml')]);
       const cliFolder = abs('node_modules', 'wingfoil');
       const RESOLVES = new Set([
         'realpath',
@@ -177,6 +180,63 @@ describe('TT-ARC-04 — file-system spy over every read', () => {
     },
     300_000,
   );
+});
+
+describe('TT-ARC-04 — the ui.yaml read (task-054 AC-3)', () => {
+  it('a project with a ui.yaml: read only at .wingfoil/ui.yaml, by lstat and a read-only open, nothing written', async () => {
+    n += 1;
+    const fx = await copyFixture(kanban, path.join(root, `copy-${n}`));
+    const file = path.join(fx.dir, '.wingfoil', 'ui.yaml');
+    await writeFile(file, 'version: 1\n');
+    const reads = await readsFor(fx);
+    spy.calls.length = 0;
+    spy.on = true;
+    const read = await reads.uiYaml();
+    spy.on = false;
+    expect(read).toMatchObject({ kind: 'text', text: 'version: 1\n' });
+    const onProject = spy.calls.filter((c) => c.arg === fx.dir || c.arg.startsWith(fx.dir + path.sep));
+    expect(onProject.filter((c) => !READ_ONLY.has(c.fn.replace(/^(promises|fs)\./, '')) && !isFileRead(c))).toEqual([]);
+    expect(onProject.filter(isFileRead).map((c) => c.arg)).toEqual([file]);
+    expect(new Set(onProject.map((c) => c.arg))).toEqual(new Set([path.join(fx.dir, '.wingfoil'), file]));
+  }, 120_000);
+});
+
+describe('TT-ARC-04 — the ui.yaml mark of the state key (task-068 AC-2, spec-001 §4.4)', () => {
+  it('marks only at .wingfoil and .wingfoil/ui.yaml, by lstat and a read-only open, nothing written', async () => {
+    n += 1;
+    const fx = await copyFixture(kanban, path.join(root, `copy-${n}`));
+    const file = path.join(fx.dir, '.wingfoil', 'ui.yaml');
+    await writeFile(file, 'version: 1\n');
+    spy.calls.length = 0;
+    spy.on = true;
+    const mark = await uiYamlMark(fx.dir);
+    spy.on = false;
+    expect(mark).toMatch(/^sha:/);
+    const onProject = spy.calls.filter((c) => c.arg === fx.dir || c.arg.startsWith(fx.dir + path.sep));
+    expect(onProject.filter((c) => !READ_ONLY.has(c.fn.replace(/^(promises|fs)\./, '')) && !isFileRead(c))).toEqual([]);
+    expect(onProject.filter(isFileRead).map((c) => c.arg)).toEqual([file]);
+    expect(new Set(onProject.map((c) => c.arg))).toEqual(new Set([path.join(fx.dir, '.wingfoil'), file]));
+  }, 120_000);
+
+  it('a .wingfoil linked to an outside folder: nothing behind the link is touched', async () => {
+    n += 1;
+    const fx = await copyFixture(kanban, path.join(root, `copy-${n}`));
+    const outside = path.join(root, `outside-${n}`);
+    await mkdir(outside);
+    await rename(path.join(fx.dir, '.wingfoil'), path.join(outside, 'wf'));
+    await writeFile(path.join(outside, 'wf', 'ui.yaml'), 'version: 1\n');
+    await symlink(path.join(outside, 'wf'), path.join(fx.dir, '.wingfoil'));
+    spy.calls.length = 0;
+    spy.on = true;
+    const mark = await uiYamlMark(fx.dir);
+    spy.on = false;
+    expect(mark).toMatch(/^wingfoil:/);
+    expect(spy.calls.map((c) => c.arg).filter((a) => a.startsWith(path.join(fx.dir, '.wingfoil') + path.sep))).toEqual(
+      [],
+    );
+    expect(spy.calls.filter(isFileRead)).toEqual([]);
+    expect(spy.calls.filter((c) => c.arg.startsWith(outside))).toEqual([]);
+  }, 120_000);
 });
 
 describe('the status cross-check (REQ-ARC-04)', () => {
