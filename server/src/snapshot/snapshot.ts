@@ -2,14 +2,15 @@
  * The snapshot of one project (adr-001 D6, REQ-STATE-01/02, REQ-PERF-05): the last observed
  * repository state and the reads cached for it.
  *
- * - **State.** {@link ProjectSnapshot.check} reads git (3–4 processes: status, `user.email`,
+ * - **State.** {@link ProjectSnapshot.check} reads git (3–4 processes: status, the author email
+ *   (bug-029: none when `GIT_AUTHOR_EMAIL` is set),
  *   `git remote`, and `branch.<b>.remote` when an upstream is printed — spec-010 §1, task-033 D33-7);
  *   concurrent checks are coalesced (one running, at most one queued). A read request never
  *   checks: it uses the last state, moved only by the repository watcher and the periodic check
  *   (`snapshots.ts`) — so reopening a view with no change starts no process (S-26.3). Writes
  *   (spec-004 §4 rows 7–9) must not trust it: they read git fresh, under the write lock.
  * - **Cache.** A {@link SnapshotView} is bound to one state; its reads are memoised per
- *   `<CLI generation>:<HEAD>.<working-tree hash>:<user.email>` (the state's `contentKey`: a fetch
+ *   `<CLI generation>:<HEAD>.<working-tree hash>:<author email>` (the state's `contentKey`: a fetch
  *   that moves only a tracking ref re-runs no CLI read, task-033 D33-6), its derived values (the
  *   descriptors, which hold the copy) per full state key, and shared by every caller of that key:
  *   one CLI process per command and state. CLI refusals, unreadable output and direct-read errors
@@ -20,6 +21,10 @@
  *   (REQ-STATE-01).
  * - **Events.** The project-wide Memory events (spec-002 §3, one `git log -p`) are cached per HEAD
  *   and set of Memory directories (spec-002 §4: the working tree does not change them).
+ * - **References.** The reference index (spec-012 §1, task-055) is a read of the view; the values
+ *   of each element file are kept across states by `(path, blob id)` (spec-012 §8) in the
+ *   snapshot's {@link ReferenceValueCache}, the Memory files' blobs read once per HEAD (one `git
+ *   ls-tree -r`), the pattern results in its {@link PatternMemo}.
  * - **Version.** The detected CLI version comes from the registry's {@link VersionCache}: one
  *   `--version` per CLI resolution (adr-001 D3).
  */
@@ -49,6 +54,10 @@ import {
   type ElementRead,
 } from '../reads/project-reads.js';
 import type { LocalRoots } from '../git/redact.js';
+import { buildReferenceIndex, PatternMemo } from '../references/build.js';
+import { ReferenceValueCache } from '../references/cache.js';
+import type { ReferenceIndex } from '../references/index.js';
+import { readIndexEntry } from '../references/read.js';
 import { effectiveUiConfig, UiYamlCache } from '../ui-config/effective.js';
 import type { EffectiveUiConfig } from '../ui-config/types.js';
 import { combinedHash, Fingerprinter } from './fingerprint.js';
@@ -166,6 +175,12 @@ export class ProjectSnapshot {
   private readonly uiYaml = new UiYamlCache();
   private readonly versions: VersionCache;
   private events: { key: string; value: Promise<MemoryEvents> } | undefined;
+  /** The element values kept across states (spec-012 §8). */
+  private readonly referenceValues = new ReferenceValueCache();
+  /** The pattern results kept across states (spec-012 §1, Q2-a). */
+  private readonly patternMemo = new PatternMemo();
+  /** The Memory files' blobs of one HEAD (`undefined`: not readable for it). */
+  private blobs: { key: string; value: Promise<ReadonlyMap<string, string> | undefined> } | undefined;
   private originCache: { key: string; value: Promise<string> } | undefined;
 
   constructor(private readonly options: ProjectSnapshotOptions) {
@@ -339,7 +354,36 @@ export class ProjectSnapshot {
       versions: this.versions,
       uiYaml: this.uiYaml,
       roots: this.localRoots,
+      references: {
+        cache: this.referenceValues,
+        memo: this.patternMemo,
+        blobs: (dirs) => this.headBlobs(state.head, dirs),
+        root: this.options.root,
+        ...(this.options.fs ? { fs: this.options.fs } : {}),
+      },
     });
+  }
+
+  /**
+   * The blobs of the Memory files at `head` (one `git ls-tree -r` per HEAD and set of directories);
+   * `undefined` for an unborn HEAD or when the read fails (a partial clone's missing tree, a
+   * timeout): then nothing is reused or stored for that state (spec-012 §8). Logged by kind only.
+   */
+  private headBlobs(head: string, dirs: readonly string[]): Promise<ReadonlyMap<string, string> | undefined> {
+    const key = `${head}\0${dirs.join('\0')}`;
+    if (this.blobs?.key === key) return this.blobs.value;
+    const value =
+      head === UNBORN_HEAD
+        ? Promise.resolve(undefined)
+        : this.options.git.treeBlobs(dirs, head).catch((error: unknown) => {
+            this.options.logger?.warn(
+              { pid: this.pid, kind: (error as Error).name },
+              'memory blobs unreadable: no reuse',
+            );
+            return undefined;
+          });
+    this.blobs = { key, value };
+    return value;
   }
 
   /**
@@ -477,6 +521,14 @@ interface ViewSources {
   uiYaml: UiYamlCache;
   /** The folders a `ui.yaml` failure may quote. */
   roots: LocalRoots;
+  /** What the reference index keeps across states and reads. */
+  references: {
+    cache: ReferenceValueCache;
+    memo: PatternMemo;
+    blobs(dirs: readonly string[]): Promise<ReadonlyMap<string, string> | undefined>;
+    root: string;
+    fs?: ReadFs;
+  };
 }
 
 /**
@@ -593,6 +645,35 @@ export class SnapshotView {
     return this.memo('ui.yaml', async ({ reads }) => {
       const [entry, types] = await Promise.all([reads.uiYaml(), this.memoryTypes()]);
       return effectiveUiConfig(entry, types, this.sources.roots, this.sources.uiYaml);
+    });
+  }
+
+  /**
+   * The reference index of this state (spec-012 §1, §8; task-055 D55-8), built once per state from
+   * the cached `memory search`, `memory.yaml` and the effective `ui.yaml`: every listed element file
+   * read (at most 16 at a time) unless its values are reused by `(path, blob id)`; no CLI process
+   * beyond those reads. Rejects as {@link elements} and {@link uiConfig} do; never for one file.
+   */
+  referenceIndex(): Promise<ReferenceIndex> {
+    return this.memo('reference index', async () => {
+      const [list, memoryYaml, ui] = await Promise.all([this.search(), this.memoryTypes(), this.uiConfig()]);
+      const { cache, memo, blobs, root, fs } = this.sources.references;
+      const matches = list.data.matches;
+      cache.prune(new Set(matches.map((m) => m.path)));
+      const source = cache.source({
+        blobs: await blobs(memoryDirectories(memoryYaml)),
+        changed: this.state.changed,
+        format: this.state.head.length === 64 ? 'sha256' : 'sha1',
+        read: (match) => readIndexEntry(root, match, fs),
+      });
+      return buildReferenceIndex({
+        matches,
+        memoryYaml,
+        categories: ui.categories.value,
+        patterns: ui.patterns.value,
+        source,
+        memo,
+      });
     });
   }
 

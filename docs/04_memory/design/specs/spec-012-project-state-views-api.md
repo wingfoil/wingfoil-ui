@@ -66,7 +66,8 @@ One element carrying a value twice (two fields, or a list repeating it) is linke
 **At most 200 values per element** are kept, in field order then list order; an element with more
 is indexed on its first 200 and named in the route's `capped` list, as `unreadable` names an
 unreadable file (§3–§5): a figure or a flag that involves it may be incomplete, and the page says
-so.
+so. `capped` means **indexed incompletely**: more than 200 values, or values not yet tested
+against the patterns within the budget below (rule 2).
 
 **References** (spec-005 §4, in this order, the first that applies):
 
@@ -77,6 +78,19 @@ so.
    holds no line break (LF or CR) and matches a `taxonomy.patterns[].match` (the first entry that
    matches, in file order) → a *pattern reference*, category = that entry's;
 3. otherwise the value is not a reference.
+
+**Pattern budget** (rule 2's cost; `taxonomy.patterns` is repository content, and the safe subset
+of spec-005 §1 bounds one test, not the index — task-055's design, P5: 32 patterns of the subset
+cost up to about 124 ms per 256-character value). The result of rule 2 is kept per distinct value
+for one effective pattern list (its entries' `match` and `category`, in order), across states, so
+a new state tests only values not tested before; the kept results hold the current state's values only. One index build spends at most **500 ms** of
+measured pattern-test time, in slices of about 20 ms with the event loop served between slices
+(a slice ends between two pattern tests, also between the patterns of one value, and the walks
+over the values before and after the tests are sliced on the same clock, so the whole build blocks
+the loop at most one slice plus one test);
+a value still untested — or whose tests the budget cut — when it is spent is no pattern reference in that state and its
+element is named in `capped`; the next build goes on from the kept results. A project whose
+patterns cost what the presets' do never reaches the budget (P6: 6 000 tests for 500 elements).
 
 Rule 1 compares **full** ids only: a value holding a short id (`task-046`, spec-011 §1) equals no
 full id and is not an element reference (rule 2 may still apply); WingFoil 0.3.2 accepts short
@@ -508,3 +522,31 @@ every object `additionalProperties: false`, as the other API schemas.
   `/config` `types` returns them raw (`a\b` reads `a\\b` in `ui`), so a consumer matching a `ui`
   type or state name against `types` compares it with the escaped key (`neutralise` of the
   `types` name).
+- 2026-11-06 — amended in task-055 (design Q2-a, decided by the approver): §1 the pattern budget —
+  rule 2's results kept per distinct value and pattern list across states, at most 500 ms of
+  pattern-test time per index build in slices of about 20 ms, an untested value no pattern
+  reference in that state — and `capped` read as "indexed incompletely" (more than 200 values, or
+  values not yet tested). Clarifications, no rule change: the YAML 1.2 core schema of spec-001 §4.2
+  has no timestamp type, so an unquoted date is a string value (§1 "dates" names a type the parse
+  never yields); the 200 values are distinct values; a value's 256 characters are code points.
+  Declared residual of §8's reuse: a file stored as committed whose later edit `git status` hides
+  (`assume-unchanged`, `skip-worktree`) is read as the committed values until its blob changes — the
+  state key misses that edit too; a value set is stored only when the bytes read hash to the blob at
+  HEAD (task-055 D55-6).
+- 2026-11-07 — amended in task-055 review round 1 (F2, F3, the coordinator's relay of the
+  security-adversarial review): §1 the pattern budget's slices end between two pattern tests, also
+  inside one value (a value was a slice of up to 32 tests: 115 ms of blocked loop measured; after
+  the change 25–32 ms with 32 hostile patterns of the subset), a value whose tests the budget cuts
+  stays untested, and the kept results are pruned to the current state's values. No other rule
+  changes.
+- 2026-11-07 — amended in task-055 review round 2 (N1, N2): §1 the whole index build is sliced, not
+  only the pattern tests — the walks over the values before and after them (up to 100 000 values
+  on 500 elements) serve the event loop on the same slice clock; measured on 500 elements × 200
+  values of 248 characters: longest event-loop gap 20–26 ms, with 32 hostile patterns (build about
+  0.7–0.9 s, the 500 ms budget spent) and with one trivial pattern (build 0.2–0.5 s). Round 1's
+  "25–32 ms" was measured on 50 elements, before the walks were sliced. The kept results are
+  pruned only by the newest build; each build reads its own results, so a newer state's build never
+  makes an older one's values untested.
+- 2026-11-07 — task-055 review round 3 (nit 1): the slice clock starts before the element reads,
+  so the first build of a process keeps the same bound (measured in fresh processes on the round-2
+  workload: longest event-loop gap 22–25 ms). No rule changes.
