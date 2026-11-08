@@ -4,11 +4,11 @@ type: task
 title: "Heavy gates workflow on GitHub Actions"              # REQUIRED — e.g. "Today view: pending gates list (REQ-UI-03)"
 status: draft          # auto-set by wingfoil
 release: "v0.3"            # REQUIRED — target release version, e.g. "v0.1"
-sprint: ""             # REQUIRED — the Sprint that selects it (sprint-NNN), or "n/a — <reason>" until one does (methodology/scrum)
-module: ""             # optional — server | web | contracts (dna.yaml modules)
-priority: ""           # optional — high | medium | low
-tags: []               # optional — additional labels, e.g. [today, a11y]
-ref: ""                # optional — backlog item ID, e.g. "TASK-001"
+sprint: "sprint-001"             # REQUIRED — the Sprint that selects it (sprint-NNN), or "n/a — <reason>" until one does (methodology/scrum)
+module: "governance"             # optional — server | web | contracts (dna.yaml modules)
+priority: "high"           # optional — high | medium | low
+tags: ["v0.3", "governance", "ci", "testing"]               # optional — additional labels, e.g. [today, a11y]
+ref: "GOV"                # optional — backlog item ID, e.g. "TASK-001"
 bug: []                # optional — LIST of bug ids this task closes. Two cases: a fix task derived from a bug
                        # by release-planning, and a bug ABSORBED into an existing task's Acceptance Criteria because that
                        # task already owns the ground. Each bug listed moves with its own verbs (`.wingfoil/memory.yaml`):
@@ -20,25 +20,70 @@ tmpl_version: 260703   # Orignal template version
 
 ## Description
 
-<!-- What needs to be built and why. Reference the user story if applicable:
-     "As <persona>, I want <action> so that <benefit>." -->
+Governance task of `minor-v0.3`, at the head of Wave 2 (dl-016, `backlog-item-rel-v0.3-plan`
+W1-10 … W1-12). In Wave 1 the wave's parallel heavy gates overloaded the local machine; dl-016
+moves them to a new workflow `.github/workflows/gates.yml`, run on GitHub-hosted runners for every
+push of a `task/*` or `design/*` branch. Directive `definition-of-done` 1.4 already says where the
+gates run "where `gates.yml` exists on the branch"; this task writes that workflow, its invariant
+test and its documentation. From its merge into `design/dev-loop_v0.3`, the standing push OK of
+W1-11 applies (dl-016 item 5).
 
 ## Acceptance Criteria
 
-<!-- Reference the Gherkin feature file, or inline the key scenarios.
-     e.g. "See docs/02_requirements/02_bdd/features/today/pending-gates.feature"
-     For `web` tasks also point to the screen in docs/00_reference/ux-reference.md (§4.x) and the
-     prototype, and state the accessibility bar (keyboard path, axe clean). -->
+- **AC-1 — Triggers and runs.** `gates.yml` runs on `push` to `task/**` and `design/**` and on
+  `workflow_dispatch` (inputs: `scope` `task` | `wave`, default `task`; `specs`, a space-separated
+  list of e2e spec files, default empty); never on `main`, a tag, `pull_request` or
+  `pull_request_target`. `concurrency` groups by ref with `cancel-in-progress: true`. Every job has
+  a `timeout-minutes`.
+- **AC-2 — The `task` scope.** Jobs: `typecheck`, `lint`, `format:check` (cheap, fail fast);
+  `test:coverage` (statements ≥ 80 %, with the coverage totals as an artifact); `test:contract`;
+  `test:e2e:chromium`; the task's own e2e specs on Firefox and WebKit — the `specs` input when
+  given, else the spec files under `test/e2e/` the branch changes against its merge-base with
+  `design/dev-loop_v0.3` (none: the job passes with a line that says so); `test:smoke`;
+  `test:publish-smoke`.
+- **AC-3 — The `wave` scope.** The `task` scope's jobs plus the three-engine `test:e2e` as one job
+  per engine (Chromium, Firefox, WebKit), sharded when one engine's run would exceed its
+  `timeout-minutes`; the per-engine reports merged into one artifact or kept one per engine.
+- **AC-4 — Artifacts.** The Playwright HTML report (on failure at least) and the coverage totals
+  (`json-summary` only, as `publish.yml`'s gate); no `coverage-final.json`, `clover.xml` or per-file
+  coverage entry; the artifacts checked to hold no local path (the runner's own paths are not
+  this machine's).
+- **AC-5 — Security.** `permissions: contents: read` at the top and no job widening it; no secret
+  beyond the default `GITHUB_TOKEN`; every `uses:` pinned by full commit SHA with its tag in a
+  comment (the releases `publish.yml` already pins where the action is the same); no value from the
+  event body (branch names, commit messages, the inputs) interpolated into a `run:` line — passed
+  through `env:` and quoted. The runner's conditions as `publish.yml`'s gate (Node, Python for the
+  governance checks, git identity for the harness, `npx playwright install --with-deps` for the
+  engines a job runs).
+- **AC-6 — Invariants frozen.** A test like `test/package/publish-workflow.test.ts` (new file or
+  section) asserts AC-1, AC-4 and AC-5 on the workflow file: triggers, concurrency, permissions, the
+  SHA pins, no event value in `run:`; red first on an empty or deliberately wrong workflow.
+- **AC-7 — Docs.** `test/README.md` gains *CI gates*: the workflow, its scopes and jobs, how a run
+  starts, how agents follow it (`gh run watch`, `gh run view --log-failed`, `gh run download`), what
+  stays local (dl-016 item 2), the wave gate on the phase branch's tip (dl-016 item 4); the table of
+  commands at its head and `CLAUDE.md` *Checks before handing work back* name `gates.yml`;
+  Version/Date bumped (`doc-versioning`).
+- **AC-8 — Gates of this task.** Local, before the first push: `typecheck`, `lint`, `format:check`,
+  `npx vitest run test/package test/docs`, `test:coverage` through the machine-free slot (the
+  workflow does not exist yet on the phase branch). The first push of `task/task-071-…` with the
+  approver's OK (W1-11 does not apply yet); the run it starts green in the `task` scope, and one
+  `workflow_dispatch` in the `wave` scope on the task branch green, both run ids in the Execution
+  Notes.
 
 ## Implementation Notes
 
-<!-- Optional: known constraints, design hints, or links to relevant ADRs. -->
+- Read at design: dl-016, dl-011, `definition-of-done` 1.4 *build › refactor* and *done*,
+  `.github/workflows/publish.yml` (its gate job, header comment, SHA pins), `test/package/
+  publish-workflow.test.ts`, `test/README.md` *Browsers*, *Launch smoke*, *Publish smoke*,
+  *Fixtures* › *Git identity* (the strict-identity recipe), task-027's notes (three engines),
+  task-029's (the pipeline), task-052's (the coverage totals).
+- `test:publish-smoke` and `test:smoke` already run on the runner in `publish.yml`: reuse their
+  setup rather than inventing a second one.
+- Security: a security-adversarial reviewer reviews the workflow (permissions, pins, triggers, event
+  values in `run:` lines), running the AC-6 test and, when available, `actionlint`.
+- The agent pushes only this task's branch, with the approver's OK, and starts only the dispatches
+  of AC-8.
 
 ## Execution Notes
 
-<!-- Running log of what actually happened while working this task (`backlog-item`) — filled in
-     incrementally per phase, not written after the fact. Raw material for the release's Execution
-     Notes / the retrospective, not the retrospective itself.
-     - design: tech-specs found missing/needing revision (`definition-of-done` › design).
-     - red/green/refactor: deviations from the plan above, blockers, scope surprises.
-     - review: rejection reasons and what changed on the next pass. -->
+<!-- Running log per phase: design, red / green / refactor, review. -->
