@@ -263,6 +263,38 @@ describe('gates.yml — the rules (task-071, AC-1, AC-4, AC-5, AC-6)', () => {
       '      - name: Typecheck\n        continue-on-error: true\n',
       'continue-on-error checks',
     ],
+    // Review round 1 (F1 … F3): expressions outside `run:`, the bracket form, a whole context, a
+    // flow-style step.
+    [
+      'an expression in a working directory',
+      '      - name: Typecheck\n',
+      '      - name: Typecheck\n        working-directory: ${{ github.ref_name }}\n',
+      'expression in a shell field',
+    ],
+    [
+      'an expression in a shell',
+      '      - name: Typecheck\n',
+      '      - name: Typecheck\n        shell: bash -c "${{ github.ref_name }}" {0}\n',
+      'expression in a shell field',
+    ],
+    [
+      'an input by brackets outside env',
+      'fetch-depth: 0',
+      "fetch-depth: ${{ inputs['specs'] }}",
+      'input outside env or a job condition',
+    ],
+    [
+      'a whole context in env',
+      "NODE_VERSION: '22.22.2'",
+      "NODE_VERSION: '22.22.2'\n  CTX: ${{ toJSON(github) }}",
+      'expression not allowed',
+    ],
+    [
+      'a flow-style step with a tag pin',
+      '      - name: Typecheck\n',
+      "      - { uses: actions/setup-python@v5, with: { python-version: '3.12' } }\n      - name: Typecheck\n",
+      'unpinned',
+    ],
   ];
   it.each(mutations)('catches %s', (_, from, to, rule) => {
     expect(text, `the mutation's anchor ${JSON.stringify(from)}`).toContain(from);
