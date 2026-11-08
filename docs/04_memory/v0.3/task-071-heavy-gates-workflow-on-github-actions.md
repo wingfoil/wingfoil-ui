@@ -89,3 +89,244 @@ W1-11 applies (dl-016 item 5).
 ## Execution Notes
 
 <!-- Running log per phase: design, red / green / refactor, review. -->
+
+### design (2026-11-08)
+
+Read: dl-016, dl-011, `definition-of-done` 1.4 (*build*, *Where the gates run*, *done* › the wave
+gate), `CLAUDE.md`, `AGENTS.md`, `.github/workflows/publish.yml` (header, `gate` and `stage`, the
+pins), `test/package/publish-workflow.test.ts`, `scripts/coverage-totals.mjs`, `test/README.md`
+(*Browsers*, *Launch smoke*, *Publish smoke*, *Fixtures* › *Git identity*, *Temporary folders*),
+`playwright.config.ts`, `vitest.config.ts`, the `package.json` scripts, the Execution Notes of
+task-027, task-029 and task-052, the Wave 0 and Wave 1 gate tables of `backlog-item-rel-v0.3-plan`,
+and the job durations of the last `publish.yml` dispatch (run `42458285744`: `gate` 9.9 min —
+install, typecheck, lint, format:check, `test:coverage`, `test:smoke`, pack —, `stage` 1.5 min).
+
+Facts that shape the design:
+
+- No e2e suite has ever run on a GitHub runner: `publish.yml` has no Playwright job. The first run
+  of this workflow is also the suite's first run on a runner (git 2.5x, 4 vCPU, a fresh account;
+  fonts and WebKit libraries from `playwright install --with-deps`).
+- `playwright.config.ts` uses the `github` reporter when `CI` is set (GitHub sets it): no HTML
+  report is written unless the command line adds one. Default workers are half the logical CPUs:
+  2 on a standard runner (4 vCPU, 16 GB), 6 on the development machine.
+- `vitest.config.ts` enforces the 80 % thresholds on lines, functions, branches and statements:
+  a run below fails by itself.
+- The harness gives every git process its own identity rule (`harnessEnv`, `user.useConfigOnly`);
+  `publish.yml`'s gate sets no git identity and its default suite is green on the runner.
+- `python3` is needed by `test/governance/check-releases.test.ts` only (default suite).
+- `*.yml` is in `.prettierignore`: `format:check` does not cover the workflow; the invariant test
+  is its check.
+- The repository is small (pack 6.8 MiB, 2 459 commits): a full-history checkout is cheap.
+
+#### Workflow shape (proposed; the D71-n decisions below choose the open points)
+
+```
+on: push (branches task/**, design/**) · workflow_dispatch (scope: choice task|wave, default task;
+    specs: string, default '')
+permissions: contents: read            concurrency: gates-${{ github.ref }}, cancel-in-progress: true
+env: NODE_VERSION 22.22.2 · PHASE_BRANCH design/dev-loop_v0.3
+
+checks          ubuntu-24.04, 15 min: the ref guard (task/* or design/* only), npm ci,
+                typecheck, lint, format:check
+coverage        needs checks, 30 min: setup-python 3.12, npm ci, test:coverage with the runner-only
+                reporters of publish.yml (text, json-summary), scripts/coverage-totals.mjs →
+                coverage-totals.json, uploaded (the only coverage file uploaded)
+contract        needs checks, 15 min: npm ci, test:contract
+e2e-chromium    needs checks, scope task, matrix shard 1/2, 2/2, 45 min: npm ci,
+                npx playwright install --with-deps chromium, npm run test:e2e:chromium --
+                --reporter=github,html --shard=<n>; HTML report uploaded on failure
+own-specs       needs checks, scope task, matrix engine firefox, webkit, 45 min: fetch-depth 0,
+                npm ci, the spec list (the specs input, else the changed spec files against the
+                merge-base with origin/<PHASE_BRANCH>); none → one line "no own e2e spec: nothing to
+                run on <engine>" and success; else npx playwright install --with-deps <engine>,
+                npm run test:e2e -- --project=<engine> --reporter=github,html <files>
+smoke           needs checks, 20 min: npm ci, test:smoke
+publish-smoke   needs checks, 20 min: npm ci, test:publish-smoke (packs itself, prepack builds)
+e2e-wave        needs checks, scope wave, matrix engine × shard (3 × 2), 45 min, fail-fast: false:
+                npx playwright install --with-deps <engine>, npm run test:e2e -- --project=<engine>
+                --reporter=github,html --shard=<n>; HTML report uploaded on failure
+```
+
+Common to every job: `runs-on: ubuntu-24.04`; `actions/checkout` with `persist-credentials: false`
+(full history where a job needs it, D71-5); `actions/setup-node` with `package-manager-cache:
+false`; `npm ci`; no cache action (D71-8); no `continue-on-error`; `strategy.fail-fast: false` on
+the matrices so every engine and shard reports. `PLAYWRIGHT_HTML_OUTPUT_DIR` and
+`PLAYWRIGHT_HTML_OPEN=never` set in the step's `env`. Artifact names are unique per job
+(`playwright-report-<engine>-<shard>`, `coverage-totals`), `retention-days` set (D71-11).
+
+**No event value in a `run:` line.** No `${{ … }}` inside any `run:`; the dispatch inputs
+(`inputs.specs`), the matrix values and the ref reach a step only as `env:` values
+(`SPECS: ${{ inputs.specs }}`, `SHARD: ${{ matrix.shard }}`, the runner's own `GITHUB_REF`,
+`GITHUB_SHA`), always expanded double-quoted (`"$SHARD"`); `inputs.scope` is read only in job
+`if:` conditions; `github.event.*`, `github.head_ref` and commit messages are never read. The spec
+list is never word-split by the shell from raw text: each token of `SPECS`, and each path git
+prints (`git diff -z`, read NUL-separated), must match `^test/e2e/[A-Za-z0-9_./-]+\.spec\.ts$`,
+hold no `..` segment and name an existing file, else the job fails with the offending token
+escaped; the accepted list goes to Playwright as a bash array after the options. The selection
+lives in a small Node script with unit tests (D71-6).
+
+**The merge-base.** `git merge-base "origin/$PHASE_BRANCH" HEAD`, then
+`git diff -z --name-only --diff-filter=d <base> HEAD -- 'test/e2e/**/*.spec.ts'` (renames give the
+new path; deleted specs are left out; `test/e2e/harness/*.spec.ts` included). On the phase branch
+itself the base is HEAD and the list is empty — expected, its wave scope runs everything. A missing
+`origin/$PHASE_BRANCH` fails the job with a line naming the branch (D71-7).
+
+**Wave scope duration (estimate for the sharding, D71-3).** The last local wave gate: 947 tests on
+three engines in 49.7 min (6 workers, load 7 → 25; ≈ 320 Chromium, ≈ 313 each Firefox and WebKit,
+the `@perf` tests Chromium only). task-027's per-engine sums of test durations at load ~20 give
+about 9.5 s (Chromium), 11.8 s (Firefox) and 9.0 s (WebKit) per test. On a runner with 2 workers
+and no external load: Chromium ≈ 25–30 min, Firefox ≈ 30–35 min, WebKit ≈ 25 min unsharded, plus
+about 4 min of setup (npm ci, browser and system packages, the global setup's build). Two shards
+per engine bring each job to ≈ 15–20 min, under a 45-minute limit with a 2× margin. The first runs
+of AC-8 measure the real figures; the shard count and the limits are adjusted in this task and
+the measurements written in *CI gates*.
+
+#### Acceptance criteria: classification and test plan
+
+| AC | Class | Test |
+|----|-------|------|
+| AC-1 | red-first | `test/package/gates-workflow.test.ts` (D71-9): `on` has exactly `push` (branches `task/**`, `design/**`, no `tags`, no `branches-ignore`/`paths`) and `workflow_dispatch` with the two inputs (`scope` a choice `task`/`wave`, default `task`; `specs` a string, default `''`); no `pull_request`, `pull_request_target`, `workflow_run`, `schedule`; `concurrency` `gates-${{ github.ref }}` with `cancel-in-progress: true`; every job a `timeout-minutes` > 0 and ≤ 60; the ref guard is the first step of `checks` and every other job `needs: checks`. |
+| AC-2 | red-first | same file: the job set of the `task` scope and each job's command (`npm run typecheck`, `lint`, `format:check`, `test:coverage` with the runner-only reporters, `test:contract`, `test:e2e:chromium` with `--shard`, `test:e2e -- --project=<engine>` for `firefox` and `webkit`, `test:smoke`, `test:publish-smoke`); `npx playwright install --with-deps <engine>` before each Playwright command, for the engine(s) that job runs only; setup-python before `test:coverage` and in no other job. `test/scripts/e2e-own-specs.test.ts`: the selection script (input list wins; changed specs against the merge-base on a scratch repository with the harness identity; renamed, deleted, non-spec and `support/` files; zero → the "nothing to run" line and exit 0; every refused token — `..`, absolute, `;`, `$(…)`, spaces, newlines, a missing file — exit 1 with the token escaped). The real behaviour on a runner is proved by AC-8's run. |
+| AC-3 | red-first | same workflow test: `e2e-wave` runs only when `inputs.scope == 'wave'`, its matrix covers `chromium`, `firefox`, `webkit` × the shards with `fail-fast: false`; the `task`-only jobs carry the opposite condition (D71-2); the common jobs have no scope condition. |
+| AC-4 | red-first | same workflow test: the only `upload-artifact` paths are `coverage-totals.json` and the Playwright report folders; no path naming `coverage/`, `coverage-final`, `clover`, `coverage-summary`, `lcov`, `vitest-results`, `test-results/`; the report uploads carry the condition of D71-10. The download check (no path of this machine in the artifacts) is done by hand at AC-8 on both runs (`gh run download`, `grep` for the home-folder prefix and the repository's local folder name), recorded with the run ids. |
+| AC-5 | red-first | same workflow test: top `permissions` exactly `{contents: read}`, no job `permissions` key; no `secrets`, `github.token`, `GITHUB_TOKEN` in the file; every `uses:` line `owner/repo@<40 hex> # vX.Y.Z` and each action the same SHA as `publish.yml` pins for it; `persist-credentials: false`, `package-manager-cache: false`, no `registry-url`; no `${{` in any `run:`; `inputs.` only in `env:` values and job `if:`; no `github.event.`, `head_ref`; no `continue-on-error`. |
+| AC-6 | red-first | the test file itself: committed first with `gates.yml` absent (fails reading it), then against a deliberately wrong skeleton committed on the branch (a `pull_request` trigger, a tag-pinned action, `permissions: write-all`, `${{ inputs.specs }}` in a `run:`, a job without a limit, a `coverage/` upload) — the failures recorded — then the real workflow (D71-9 on the negative samples). |
+| AC-7 | characterization (docs) | `npx vitest run test/docs` (public-text check and the doc checks) on the edited `test/README.md` and `CLAUDE.md`; Version/Date bumped. |
+| AC-8 | characterization (evidence) | local gates of the AC, then the push run (`task` scope) and one dispatch in the `wave` scope on the task branch, both green, run ids, commits and per-job durations in these notes. |
+
+#### Decisions (one recommendation each, ★)
+
+- **D71-1 — Job split and limits.** (a) ★ as in the shape above: one `checks` job (typecheck,
+  lint, format:check — one `npm ci`), the heavy jobs `needs: checks` (fail fast: a type error
+  stops the run in ~3 min), each heavy gate its own job, limits checks 15 · coverage 30 · contract
+  15 · smoke 20 · publish-smoke 20 · every Playwright job 45; (b) three separate cheap jobs, the
+  heavy ones in parallel with them (no `needs`): ~3 min less latency, no fail-fast; (c) one job
+  per scope running everything in series (as `publish.yml`'s gate): fewer installs, wall time the
+  sum (~60+ min).
+- **D71-2 — The `wave` scope's composition.** (a) ★ `e2e-wave` (three engines) replaces
+  `e2e-chromium` and `own-specs`, which it contains: the common jobs (checks, coverage, contract,
+  both smokes) plus the engine × shard matrix; (b) literally "the task scope's jobs plus": the
+  Chromium suite and the own specs run twice in a wave run (~+30 runner-min, same verdict). See
+  gap G2.
+- **D71-3 — Sharding.** (a) ★ two shards per full-suite Playwright job — `e2e-chromium` in the
+  `task` scope (the critical path of every push) and each engine of `e2e-wave` (6 jobs) —, the
+  count adjusted from AC-8's measured durations; (b) no sharding, one job per engine with a 60-min
+  limit (Firefox's estimate ≈ 35 min: little margin, the slowest push gate); (c) three shards for
+  Firefox only. Workers stay Playwright's default (2 on the runner; bug-004: no load-dependent
+  setting) — raising them to 4 is an option measured later, not taken now.
+- **D71-4 — typecheck, lint, format:check in `gates.yml`.** (a) ★ yes, as AC-2 says (the cheap
+  `checks` job of D71-1), and they stay local before every push too (dl-016 item 2): the run
+  proves them on the pushed commit; (b) leave them out, local only (dl-016 item 1 does not list
+  them). `docs:api` stays local only (dl-016 item 2; not in AC-2).
+- **D71-5 — Checkout depth and the merge-base.** (a) ★ `fetch-depth: 0` in `own-specs` (all
+  branches and history, 6.8 MiB) and in `coverage` (as `publish.yml`'s gate: the governance suites
+  read the repository's history), the default depth 1 elsewhere; (b) depth 1 everywhere and, in
+  `own-specs`, `git fetch --no-tags origin "$PHASE_BRANCH"` then `--deepen` until a merge-base
+  exists (fragile on long branches); (c) `fetch-depth: 0` in every job (simple, slower by seconds).
+- **D71-6 — Where the spec selection lives.** (a) ★ `scripts/e2e-own-specs.mjs` (Node, no
+  dependency: the input or the merge-base diff, the validation, NUL-safe; prints the accepted list,
+  one per line, or the "nothing to run" line) with `test/scripts/e2e-own-specs.test.ts`; the step
+  reads its output with `mapfile`; (b) inline bash in the step (untested except by the runs).
+- **D71-7 — No `origin/<PHASE_BRANCH>`, and changed support files.** (a) ★ a missing phase
+  branch fails `own-specs` with a line naming it (a gate that cannot compute its set does not pass);
+  changes under `test/e2e/support/` or to `playwright.config.ts` print a notice line naming them
+  ("covered by the wave scope") and select no spec by themselves; (b) a missing branch or a changed
+  support file selects every spec on Firefox and WebKit (≈ 60 runner-min more, sharding needed).
+- **D71-8 — Caching.** (a) ★ none: no `actions/cache` (browsers, npm), `package-manager-cache:
+  false` as `publish.yml` (one more pinned action and a cache shared across branches is a
+  poisoning surface; the saving is ~1–2 min per job); (b) cache the Playwright browser folder keyed on
+  the Playwright version (system packages are still installed by `--with-deps`).
+- **D71-9 — The invariant test's place.** (a) ★ a new file `test/package/gates-workflow.test.ts`
+  (the two workflows have different invariants — `publish-workflow.test.ts` forbids `inputs.`
+  outright, `gates.yml` needs it in `env:`), the checks written as small functions with a few inline
+  negative samples so that no assertion can pass vacuously; (b) a `describe` in
+  `publish-workflow.test.ts`; (c) a new file without the negative samples (red recorded once).
+- **D71-10 — Playwright report upload.** (a) ★ `if: failure()` — traces exist only for failed
+  tests (`retain-on-failure`); a green run's evidence is its result; (b) `if: ${{ !cancelled() }}`
+  (always, ~a few MB per job, 6–8 per run).
+- **D71-11 — Retention and report form.** (a) ★ `retention-days: 14` on every upload, one HTML
+  report per Playwright job (per engine and shard) — no merge job; (b) a `blob` reporter per shard
+  and a merge job producing one report per run (one more job, `download-artifact` with `pattern`);
+  (c) the repository default (90 days).
+- **D71-12 — SHA pins.** (a) ★ `publish.yml`'s pins: `actions/checkout` v7.0.1
+  (`3d3c42e5…`), `actions/setup-node` v7.0.0 (`82076278…`), `actions/setup-python` v7.1.0
+  (`6d4fd22b…`), `actions/upload-artifact` v7.0.1 (`043fb46d…`), and the test checks they stay
+  equal to `publish.yml`'s; no other action; (b) newer releases (a second set of pins to keep).
+- **D71-13 — Node per job.** (a) ★ `22.22.2` (the dev toolchain floor, `publish.yml`'s gate) in
+  every job, `test:publish-smoke` included (it packs on the runner; the engines-floor run of the
+  installed package stays `publish.yml`'s `stage`, dispatched at every wave gate, dl-011); (b)
+  `22.12.0` for `publish-smoke`, as `stage` (the build under it is not proven on the engines floor).
+- **D71-14 — Dispatch on another ref.** (a) ★ the first step of `checks` fails unless `GITHUB_REF`
+  is `refs/heads/task/*` or `refs/heads/design/*` (a dispatch can name any branch or tag; AC-1
+  "never on `main`, a tag"), every job depending on `checks`; (b) the same condition as an `if:` on
+  every job (a run on `main` would show as skipped, not failed).
+- **D71-15 — The phase branch name.** (a) ★ a workflow `env` `PHASE_BRANCH: design/dev-loop_v0.3`,
+  changed when the next phase branch is created (named in *CI gates* and in the task's notes for
+  release-planning of the next release); (b) a dispatch input `base` with that default (a push run
+  still needs the constant); (c) the newest `design/dev-loop_*` branch found at run time.
+- **D71-16 — `coverage-totals.mjs`'s `source` text** ("… in the gate job of the publish
+  workflow"). (a) ★ a fixed `--source publish|gates` option choosing one of two fixed texts
+  (default `publish`, so `publish.yml` and the Release asset stay unchanged), red test first in
+  `test/scripts/coverage-totals.test.ts`; (b) one neutral text for both ("… on a GitHub Actions
+  runner"), changing the Release asset's wording; (c) reuse as is (the gates artifact says
+  "publish workflow").
+- **D71-17 — CHANGELOG.** (a) ★ no entry: the workflow is development tooling, not part of the
+  package or the console (the publish pipeline's entry was for maintainers of releases); (b) one
+  *Unreleased* › *Changed* line for contributors.
+
+#### Size
+
+About one active day for the workflow, the invariant test, the selection script and the docs
+(≈ 200 lines of YAML, ≈ 300 of tests, ≈ 80 of script, ≈ 60 of docs). The unbounded part is AC-8:
+the e2e suite has never run on a runner, so its first runs may show runner-only failures (fonts and
+axe contrast, WebKit libraries, timing with 2 workers, git 2.5x wording) in specs this task does
+not own.
+
+- (a) One task; every runner-only failure fixed here (size unknown; touches other tasks' specs).
+- (b) ★ One task, with an early probe: once the workflow's tests are green, the first push (with
+  the approver's OK) measures the runner; workflow defects (setup, limits, shards) are fixed here;
+  a test defect that fails only on the runner goes through `bug-ingest` and the approver chooses
+  between fixing it in this task (AC-8 as written) and a follow-up task, with AC-8 amended to "the
+  runs complete; every failure is a workflow defect fixed here or an ingested bug".
+- (c) Split now: task-071 = workflow + invariants + docs (AC-1 … AC-7, AC-8's `task`-scope run);
+  a second task = the `wave`-scope dispatch green on the runner and its fixes.
+
+#### Files expected
+
+- `.github/workflows/gates.yml` (new)
+- `test/package/gates-workflow.test.ts` (new, D71-9)
+- `scripts/e2e-own-specs.mjs`, `test/scripts/e2e-own-specs.test.ts` (new, D71-6)
+- `scripts/coverage-totals.mjs`, `test/scripts/coverage-totals.test.ts` (D71-16 (a))
+- `test/README.md` (*CI gates*, the table of commands, *Browsers* and *Publish smoke* cross-links,
+  Version/Date), `CLAUDE.md` (*Checks before handing work back*, Version/Date)
+- this task file (Execution Notes)
+
+#### Gaps and contradictions (not resolved here)
+
+- **G1 — AC-5 "git identity for the harness" "as `publish.yml`'s gate".** That gate sets no git
+  identity: the harness supplies its own (`harnessEnv`, `user.useConfigOnly`) and the default suite
+  is green on the runner without one. Proposed reading: no identity step in `gates.yml` either
+  (setting one would hide the class dl-011 wants caught). To confirm.
+- **G2 — AC-3 "the task scope's jobs plus the three-engine `test:e2e`"** runs the Chromium suite
+  and the own specs twice in a wave run; D71-2 (a) replaces them. To confirm.
+- **G3 — AC-3 "the per-engine reports merged into one artifact or kept one per engine"**: with
+  shards, one report per job is one per engine *and shard* (D71-11 (a)); one per engine needs the
+  merge job of (b).
+- **G4 — AC-4 "the artifacts checked to hold no local path"** does not say by whom or when; the HTML
+  report holds the runner's absolute paths (stack traces, file locations) — the same kind of path
+  dl-016 gives as the reason to upload `json-summary` only. Proposed: runner paths accepted in the
+  report (AC-4's parenthesis), the coverage rule unchanged, the check by hand on AC-8's downloads.
+- **G5 — AC-1 "never on `main`, a tag"** cannot be enforced by the trigger for a dispatch (any ref
+  can be chosen); D71-14 adds a guard. dl-016 item 3 states it as a rule for agents only.
+- **G6 — AC-8's size**: the first e2e runs on a runner (see *Size*).
+- **G7 — The phase branch name is release-specific** (`design/dev-loop_v0.3` in AC-2 and dl-016):
+  the workflow needs a change at every release (D71-15); no directive says who makes it.
+- **G8 — AC-1's concurrency "by ref"**: a push of the phase branch during its `wave` dispatch
+  cancels the wave run (and the reverse). Proposed: keep the group by ref as written and say in
+  *CI gates* that the phase branch is not pushed while its wave run is in progress; the alternative
+  is a group by ref and scope.
+- **G9 — Own specs and support changes**: a task that changes only `test/e2e/support/` or
+  `playwright.config.ts` runs no spec on Firefox and WebKit before the wave gate (D71-7).
+- Not contradictions, noted: dl-016 item 1 lists no typecheck/lint/format job while AC-2 does
+  (D71-4); `definition-of-done` 1.4 *refactor* asks for the smokes only when packaging changes,
+  while `gates.yml` runs them on every push (more than required, as dl-016 lists them).
