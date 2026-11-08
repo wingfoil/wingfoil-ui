@@ -382,3 +382,39 @@ Local gates (AC-8, before the first push):
 
 No `wfui-*` entry left in the temporary directory. `actionlint` is not installed on this machine:
 not run.
+
+### AC-8 — the runs on GitHub Actions (2026-11-08)
+
+The coordinator pushed the branch with the approver's OK, after dl-017 (`governance-evolution-4-plan`,
+`wingfoil-cli` 1.27, `3728cfa7`) emptied the Note cells of W-48 … W-50 and the phase branch was
+merged in (`33ac2124`).
+
+**Run `42514947278`** (push, `task` scope, commit `33ac2124`): **success**, 15.4 min wall.
+
+| Job | Result | Duration | What it ran |
+|-----|--------|----------|-------------|
+| `checks` | success | 1.4 min | typecheck, lint, format:check |
+| `coverage` | success | 14.0 min | 4118 passed, 2 skipped; statements 96.61 %, branches 91.3 %, functions 97.26 %, lines 98.39 % |
+| `contract` | success | 2.7 min | 434 passed, 2 skipped |
+| `e2e-chromium (1)` · `(2)` | success | 8.0 · 12.1 min | 162 · 161 passed (6.7 · 10.6 min of tests) |
+| `own-specs (firefox)` · `(webkit)` | success | 1.0 · 1.0 min | "no own e2e spec: nothing to run on <engine>" (task-071 changes no spec) |
+| `smoke` | success | 1.1 min | 4 passed |
+| `publish-smoke` | success | 1.1 min | 11 passed |
+| `e2e-wave` | skipped | — | `task` scope |
+
+**Run `42516344841`** (`workflow_dispatch`, `scope=wave`, commit `33ac2124`, started after the first
+run ended): **success**, 14.7 min wall. `checks` 1.1 min; `coverage` 13.6 min (4118 passed);
+`contract` 2.8 min (434 passed); `smoke` 1.1 min; `publish-smoke` 1.5 min; `e2e-wave`: Chromium
+7.5 · 11.7 min (162 · 161 passed), Firefox 7.1 · 13.0 min (156 · 156), WebKit 9.2 · 12.3 min
+(156 · 156) — 947 tests, every one passed, the same count as the local wave gate (49.7 min);
+`e2e-chromium` and `own-specs` skipped (W2-2).
+
+**No runner-only failure** in either run: the e2e suite's first runs on a runner were green on the
+three engines. **Shards and limits (D71-3):** kept as designed — the slowest Playwright job took
+13.0 min of its 45; shard 2 is ~1.6× shard 1 on every engine (Playwright splits by test count);
+the measurements are in `test/README.md` *CI gates* (0.66).
+
+**Artifacts (AC-4, G4):** both runs uploaded only `coverage-totals` (no Playwright job failed, so
+no report). Downloaded with `gh run download` into a temporary folder outside the repository:
+`coverage-totals.json` holds the four totals, the commit and the `gates` source text, and no `/`
+at all; a search of both downloads for this machine's home and workspace folders found nothing.
