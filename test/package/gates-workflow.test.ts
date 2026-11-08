@@ -71,6 +71,18 @@ function strings(node: unknown, at = ''): [string, string][] {
   return [];
 }
 
+/** The only expressions `gates.yml` may contain (review F2: an allow-list, not a deny-list). */
+const EXPRESSIONS = new Set([
+  'github.ref',
+  'env.NODE_VERSION',
+  "inputs.scope != 'wave'",
+  "inputs.scope == 'wave'",
+  'inputs.specs',
+  'matrix.shard',
+  'matrix.engine',
+  'failure()',
+]);
+
 const UPLOAD_PATHS = new Set(['coverage-totals/coverage-totals.json', 'playwright-report/']);
 
 /** The AC-1, AC-4 and AC-5 rules: one line per breach, none for a sound workflow. */
@@ -115,7 +127,21 @@ function problems(text: string): string[] {
   for (const [name, job] of Object.entries(jobs)) if ('permissions' in job) out.push(`job permissions ${name}`);
   if (/\bsecrets\b|github\.token|GITHUB_TOKEN|github\.event\b|head_ref|pull_request|workflow_run/.test(text))
     out.push('event or credential reference');
-  for (const line of text.split('\n').filter((l) => /^\s*-?\s*uses:/.test(l))) {
+  // The pins on the parsed values (any YAML style, review F3), the release tag on the lines.
+  let parsedUses = 0;
+  for (const [name, job] of Object.entries(jobs)) {
+    if ('uses' in job) out.push(`unpinned reusable workflow ${name}`);
+    for (const s of stepsOf(job)) {
+      if (s.uses === undefined) continue;
+      parsedUses += 1;
+      const m = /^([\w.-]+\/[\w.-]+)@([0-9a-f]{40})$/.exec(String(s.uses));
+      if (!m) out.push(`unpinned ${String(s.uses)}`);
+      else if (PUBLISH_PINS.get(m[1]!)?.split(' ')[0] !== m[2]) out.push(`pin differs from publish.yml ${m[1]!}`);
+    }
+  }
+  const useLines = text.split('\n').filter((l) => /^\s*-?\s*uses:/.test(l));
+  if (useLines.length !== parsedUses) out.push('unpinned: a uses outside a plain `uses:` line');
+  for (const line of useLines) {
     const m = /uses: ([\w.-]+\/[\w.-]+)@([0-9a-f]{40}) # (v\d+\.\d+\.\d+)$/.exec(line);
     if (!m) out.push(`unpinned ${line.trim()}`);
     else if (PUBLISH_PINS.get(m[1]!) !== `${m[2]!} # ${m[3]!}`) out.push(`pin differs from publish.yml ${m[1]!}`);
@@ -137,12 +163,20 @@ function problems(text: string): string[] {
     }
   }
 
-  // AC-5 — no expression in a shell line; the inputs only in env values and job conditions.
+  // AC-5 — no expression in a shell line, a shell or a working directory; the inputs (dot or
+  // bracket form) only in env values and job conditions (review F1).
   for (const [at, value] of strings(wf)) {
     if (/\.run$/.test(at) && value.includes('${{')) out.push(`expression in run ${at}`);
-    if (/\binputs\./.test(value) && !/\.env\.[^.]+$/.test(at) && !/^jobs\.[^.]+\.if$/.test(at))
+    if (/\.(?:shell|working-directory)$/.test(at) && value.includes('${{'))
+      out.push(`expression in a shell field ${at}`);
+    if (/\binputs\s*[.[]/.test(value) && !/\.env\.[^.]+$/.test(at) && !/^jobs\.[^.]+\.if$/.test(at))
       out.push(`input outside env or a job condition ${at}`);
   }
+  // AC-5 — every expression is one of the few the workflow needs: no whole context
+  // (`toJSON(github)` holds the job token), no function but `failure()` (review F2).
+  const expressions = [...text.matchAll(/\$\{\{([^}]*)\}\}/g)].map((m) => m[1]!.trim());
+  if (expressions.length !== (text.match(/\$\{\{/g) ?? []).length) out.push('expression not allowed: unclosed');
+  for (const e of expressions) if (!EXPRESSIONS.has(e)) out.push(`expression not allowed ${e}`);
 
   // AC-4 — uploads.
   for (const [name, job] of Object.entries(jobs)) {
