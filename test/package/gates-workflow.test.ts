@@ -323,6 +323,13 @@ describe('gates.yml — the rules (task-071, AC-1, AC-4, AC-5, AC-6)', () => {
       "NODE_VERSION: '22.22.2'\n  CTX: ${{ toJSON(github) }}",
       'expression not allowed',
     ],
+    // Review round 2 (R2-F1): a double-quoted escape hides an expression from the raw text.
+    [
+      'an escaped whole context in env',
+      "NODE_VERSION: '22.22.2'",
+      'NODE_VERSION: \'22.22.2\'\n  CTX: "\\x24{{ toJSON(\\x67ithub) }}"',
+      'expression not allowed',
+    ],
     [
       'a flow-style step with a tag pin',
       '      - name: Typecheck\n',
