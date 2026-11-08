@@ -344,3 +344,41 @@ in the HTML report accepted, checked by hand on AC-8's downloads; G7 left to the
 run; G8 and G9 documented in `test/README.md` *CI gates*. Size, option (b) (W2-3): once the
 workflow's tests are green and AC-8's local gates pass, the first push with the approver's OK; a
 workflow defect is fixed here, a test that fails only on the runner goes through `bug-ingest`.
+
+### red / green / refactor (2026-11-08)
+
+The phase branch merged in first (`d65b539d`, with `63531d02`); AC-3 and AC-5 amended and the
+approval recorded (`d75ceca2`).
+
+- **Red 1** (`d1dc17c8`): `test/package/gates-workflow.test.ts` fails reading the absent workflow;
+  `test/scripts/e2e-own-specs.test.ts` fails on the absent script (22 tests); the `--source` test of
+  `test/scripts/coverage-totals.test.ts` fails (no such option).
+- **Red 2, AC-6** (`dbac2b01`): a deliberately wrong `gates.yml` skeleton (a pull request trigger,
+  `permissions: write-all`, two tag pins, persisted credentials, `${{ inputs.specs }}` in a `run:`,
+  a job with no limit, the `coverage/` folder uploaded). `problems()` reports 16 breaches on it
+  (triggers, push filter, inputs, scope and specs inputs, concurrency, the limit, permissions, the
+  event reference, both pins, credentials, the expression and the input in `run:`, the upload path,
+  the retention); 35 tests failed, 5 passed.
+- **Green** (`f3c82074`): `.github/workflows/gates.yml` (the shape of the design, D71-1 … D71-17),
+  `scripts/e2e-own-specs.mjs`, `scripts/coverage-totals.mjs --source publish|gates`.
+  `gates-workflow.test.ts` 36 passed (the rules on the real file, 25 mutations each caught, the
+  empty workflow, the jobs of AC-2 and AC-3), `publish-workflow.test.ts` unchanged and green,
+  `e2e-own-specs.test.ts` 22 passed, `coverage-totals.test.ts` 9 passed.
+- **Docs, AC-7** (`e6ffc6e0`): `test/README.md` 0.65 — *CI gates* (the workflow, scopes and jobs, how
+  a run starts, how to follow it, the own specs and the support-only residual — G9 —, artifacts,
+  what stays local, the wave gate, a push of the phase branch cancelling its wave run — G8), the
+  row in the table of commands, the cross-link in *Browsers*; `CLAUDE.md` 0.20 *Checks before
+  handing work back*.
+
+Local gates (AC-8, before the first push):
+
+| Gate | Result |
+|------|--------|
+| `npm run typecheck`, `npm run lint`, `npm run format:check`, `npm run docs:api` | clean |
+| `npx vitest run test/package test/docs test/scripts test/harness/playwright-config.test.ts` | 13 files, 230 passed |
+| the git-touching suites (`test/scripts/e2e-own-specs`, `coverage-totals`, `test/package/gates-workflow`) under the strict-identity recipe (`git -c user.useConfigOnly=true` first on the `PATH`) | 71 passed |
+| `npm run test:coverage` through the machine-free slot (granted 16:38:31 at load 4.54, end 16:49:03 at load 11.93; the wait was behind another project's gate) | **1 failed**, 4117 passed, 2 skipped — `test/wingfoil-feedback.test.ts` › *links the known behaviours of wingfoil-cli only to existing notes*: the W-48 row of directive `wingfoil-cli` 1.26 has `—` in its Note column (the phase branch's dl-016 apply, `e4b9f33c`), read as a note id. Outside this task (`.wingfoil/`, W0-15); the file fails alone too. Reported to the coordinator. |
+| `python3 docs/03_backlog/X_tools/check_tasks.py v0.3` | OK |
+
+No `wfui-*` entry left in the temporary directory. `actionlint` is not installed on this machine:
+not run.
