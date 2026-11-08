@@ -3,12 +3,12 @@ id: bug-037-the-server-reads-frontmatter-keys-that-the-cli-counts-as-duplicates 
 type: bug
 title: "The server reads frontmatter keys that the CLI counts as duplicates"              # REQUIRED — short description, e.g. "Approve dialog loses the reason on server error"
 status: draft          # auto-set by wingfoil; memory.submit → open
-severity: ""           # REQUIRED — critical | high | medium | low
-release-origin: ""     # optional — release where the bug was FOUND, e.g. "v0.1"
+severity: "low"           # REQUIRED — critical | high | medium | low
+release-origin: "v0.3"     # optional — release where the bug was FOUND, e.g. "v0.1"
 release: ""            # optional — fix/implementation release, stamped by release-planning/build-backlog; required once closed, unless closed by a reject
 feature: ""            # optional — related feature ID from docs/01_vision/06_features.md
-module: ""             # optional — server | web | contracts
-wingfoil_version: ""   # optional — `wingfoil --version` of the OBSERVED project (the UI drives its CLI)
+module: "server"             # optional — server | web | contracts
+wingfoil_version: "0.3.1"   # optional — `wingfoil --version` of the OBSERVED project (the UI drives its CLI)
 browser: ""            # optional — for `web`: browser name + version, e.g. "Firefox 131"
 contributor: ""        # optional — who originated this contribution, if not the git author; credited for AI-generated work derived from it
 credit: ""             # optional — free-text credit note
@@ -17,38 +17,41 @@ tmpl_version: 260703   # Orignal template version
 
 ## Summary
 
-<!-- One-sentence description of the defect. -->
+The server's duplicate-key check of a Memory frontmatter compares parsed key values, so keys that
+are equal as text but not as values (`1:` and `"1":`, `true:` and `"true":`) pass; the pinned CLI
+(js-yaml) counts them as duplicates and leaves the file out. The server thus reads as an element a
+file that every CLI verb and list ignores (directive `wingfoil-cli` W-49).
 
 ## Steps to Reproduce
 
-<!-- Start from the observed project's state (WingFoil version, branch, the elements involved),
-     then the numbered steps in the UI or against the server API.
-  1. ...
-  2. ...
-  3. ... -->
+1. In a project the console shows, add to a Memory file's frontmatter the two lines `1: one` and
+   `"1": two`, and commit.
+2. `npm run -s wingfoil -- memory search <id> --format json`: exit 0, the file is not among the
+   matches, stderr `{"warning":"W_MEMORY_UNREADABLE (<path>): unreadable frontmatter in <path>:
+   duplicated mapping key (4:1)"}`.
+3. Read the same file through the server's frontmatter parse (`server/src/reads/frontmatter.ts`).
 
 ## Expected Behavior
 
-<!-- What should happen. -->
+The server refuses the frontmatter as a duplicate key, as the CLI does, so the console and the CLI
+agree on which files are elements.
 
 ## Actual Behavior
 
-<!-- What actually happens. Include error messages or stack traces if available. -->
+`server/src/reads/frontmatter.ts` `duplicateKey` keeps a `Set` of `key.value`; `yaml`'s
+`parseDocument` (core schema) gives `1` (number) and `"1"` (string), `true` (boolean) and `"true"`
+(string), so the `Set` sees two keys and the parse succeeds.
 
 ## Evidence
 
-<!-- Screenshot or recording (web), browser console output, server log lines, the CLI command the
-     server ran and its JSON output. Never paste secrets (directive security-secrets). -->
+`governance-evolution-3-plan` *Assessment* C3 (2026-11-08): step 2 run on a throwaway clone with the
+pinned CLI `wingfoil@0.3.1`; the server side shown by `parseDocument("1: one\n\"1\": two\ntrue: a\n\"true\": b\n", {schema: "core", uniqueKeys: false})` → keys `[number 1, string "1", boolean true, string "true"]`, no error.
+First noted in task-055's review (its Execution Notes, *Checked out of scope*), with alias keys and
+repeated complex keys.
 
 ## Notes
 
-<!-- Optional: environment details, related ADRs, suspected root cause, or workaround. -->
-
-## Triage & Execution Notes
-
-<!-- Running log, not the retrospective itself.
-     - triage (bug-ingest): severity call, wontfix/duplicate rationale if rejected to `closed`.
-     - fix: once fix task(s) exist (release-planning/build-backlog), day-to-day execution notes
-       live on those tasks (docs/04_memory/{release}/{id}.md, `bug: {this id}`, their own
-       Execution Notes section) — this section only needs a pointer plus anything that doesn't
-       belong on a specific fix task (e.g. why 2 tasks were needed instead of 1). -->
+Low: it needs a hand-written frontmatter with such keys; no verb writes one. Fix direction: compare
+keys as js-yaml does (the key's source text or its string form, alias and complex keys refused);
+the `ui.yaml` parser (`server/src/ui-config/parse.ts`) already refuses non-plain keys. Its task is
+chosen at Wave 2's start with bug-031, bug-034 … bug-036.
