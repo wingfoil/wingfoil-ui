@@ -434,8 +434,8 @@ rules (45 passed):
 - **F3** — the pins checked on the parsed `uses` values of every step (any YAML style; a job-level
   `uses` refused), the count of `uses:` lines equal to the parsed count, the release tag still read
   on the lines.
-- **F5** — the shard ratio in *CI gates* and above: about 1.3–1.9× (README 0.66 not yet pushed: no
-  new version).
+- **F5** — the shard ratio in *CI gates* and above: about 1.3–1.9×. (Corrected in round 2,
+  R2-F4: README 0.66 was already on the remote with `7c6c6d40`, so this edit is 0.67, set in round 2.)
 - F4 (own-specs with a non-empty list on a runner) waits for the approver's dispatch:
   `test/e2e/shell.spec.ts` exists (12 tests). F6 left to the next governance run (the coordinator).
 
@@ -450,7 +450,22 @@ Runs after round 1 (the fixes pushed, `33ac2124..a7f9459a`):
   `own e2e specs (from the specs input): 1`; the jobs ran `playwright test --project=firefox`
   (and `--project=webkit`) `--reporter=github,html test/e2e/shell.spec.ts` — **Firefox 12 passed**
   (31.6 s, job 1.8 min), **WebKit 12 passed** (35.4 s, job 2.1 min). The other jobs: `checks` 1.7 min,
-  `coverage` 11.0, `e2e-chromium` 7.2 · 11.8, `contract` 2.7, `smoke` 1.3, `publish-smoke` 1.4 — all
+  `coverage` 10.9, `e2e-chromium` 7.2 · 11.8, `contract` 2.7, `smoke` 1.3, `publish-smoke` 1.4 — all
   success.
 - Artifacts of both runs: `coverage-totals` only (no failed Playwright job), downloaded outside the
   repository; no `/` in either `coverage-totals.json`.
+
+### review round 2 (2026-11-08)
+
+The security-adversarial review on `ecaa4907`: **PASS** with 1 minor finding and 3 nits.
+
+- **R2-F1** — red `e5d5a59c` (an env entry `CTX: "\x24{{ toJSON(\x67ithub) }}"`, which parses to
+  a whole-context expression, passed both text checks: 1 failed, 45 passed); then the credential
+  check and the expression allow-list also read every parsed key and value (46 passed).
+- **R2-F2** — accepted, not fixed: an allowed expression in a job field no rule covers (e.g.
+  `container: ${{ github.ref }}`) passes; the allow-list keeps it to the eight expressions, and the
+  pusher already controls the code the run executes.
+- **R2-F3** — comments in the test: the text-based allow-list also counts `${{` in YAML comments,
+  and an anchored or aliased step fails the `uses` count; both deliberate, on the safe side.
+- **R2-F4** — `test/README.md` 0.67 for round 1's edit (0.66 was already pushed), the round 1 note
+  corrected; the coverage time of run `42519989567` corrected to 10.9 min.
