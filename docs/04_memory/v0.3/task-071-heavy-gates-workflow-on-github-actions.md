@@ -28,6 +28,8 @@ gates run "where `gates.yml` exists on the branch"; this task writes that workfl
 test and its documentation. From its merge into `design/dev-loop_v0.3`, the standing push OK of
 W1-11 applies (dl-016 item 5).
 
+**Backlog items:** GOV (governance — dl-016: the heavy gates on GitHub Actions)
+
 ## Acceptance Criteria
 
 - **AC-1 — Triggers and runs.** `gates.yml` runs on `push` to `task/**` and `design/**` and on
