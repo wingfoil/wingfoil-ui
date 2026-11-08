@@ -361,7 +361,7 @@ approval recorded (`d75ceca2`).
   the retention); 35 tests failed, 5 passed.
 - **Green** (`f3c82074`): `.github/workflows/gates.yml` (the shape of the design, D71-1 … D71-17),
   `scripts/e2e-own-specs.mjs`, `scripts/coverage-totals.mjs --source publish|gates`.
-  `gates-workflow.test.ts` 36 passed (the rules on the real file, 25 mutations each caught, the
+  `gates-workflow.test.ts` 40 passed (the rules on the real file, 25 mutations each caught, the
   empty workflow, the jobs of AC-2 and AC-3), `publish-workflow.test.ts` unchanged and green,
   `e2e-own-specs.test.ts` 22 passed, `coverage-totals.test.ts` 9 passed.
 - **Docs, AC-7** (`e6ffc6e0`): `test/README.md` 0.65 — *CI gates* (the workflow, scopes and jobs, how
@@ -435,7 +435,8 @@ rules (45 passed):
   `uses` refused), the count of `uses:` lines equal to the parsed count, the release tag still read
   on the lines.
 - **F5** — the shard ratio in *CI gates* and above: about 1.3–1.9×. (Corrected in round 2,
-  R2-F4: README 0.66 was already on the remote with `7c6c6d40`, so this edit is 0.67, set in round 2.)
+  R2-F4 and the checker: README 0.66 was committed in `7c6c6d40`, so this later edit is 0.67, set
+  in round 2; `7c6c6d40` reached the remote with this edit, in one push.)
 - F4 (own-specs with a non-empty list on a runner) waits for the approver's dispatch:
   `test/e2e/shell.spec.ts` exists (12 tests). F6 left to the next governance run (the coordinator).
 
@@ -467,5 +468,20 @@ The security-adversarial review on `ecaa4907`: **PASS** with 1 minor finding and
   pusher already controls the code the run executes.
 - **R2-F3** — comments in the test: the text-based allow-list also counts `${{` in YAML comments,
   and an anchored or aliased step fails the `uses` count; both deliberate, on the safe side.
-- **R2-F4** — `test/README.md` 0.67 for round 1's edit (0.66 was already pushed), the round 1 note
+- **R2-F4** — `test/README.md` 0.67 for round 1's edit (0.66 was already committed), the round 1 note
   corrected; the coverage time of run `42519989567` corrected to 10.9 min.
+
+Runs after round 2 (the fixes pushed, `ecaa4907..e5398781`):
+
+- **Run `42521256457`** (push of `ecaa4907`, task scope): **success**, 12.5 min wall.
+- **Run `42522553850`** (push of `e5398781`, task scope, the branch tip before this note):
+  **success**, 13.2 min wall; every job success, `own-specs` with no spec of its own, `e2e-wave`
+  skipped. `git diff 33ac2124 e5398781 -- .github/workflows/gates.yml scripts/` is empty, so the
+  wave run `42516344841` still covers the workflow.
+
+### checker (2026-11-08)
+
+**READY** on `e5398781`: AC-1 … AC-8, the red and green commits re-run in a detached worktree, the
+six run ids, the local checks (17 files, 264 tests), doc versions and the frontmatter. Its notes
+D1 (green had 40 tests, not 36), D2 (the reason for README 0.67), D4 (the runs after round 2)
+corrected in this commit; D3 (one long line in round 1's notes) left as it is, cosmetic.
