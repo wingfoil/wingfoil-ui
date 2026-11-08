@@ -1,0 +1,22 @@
+# Deliberately wrong skeleton (task-071 AC-6 red): a pull request trigger, write-all, a tag pin,
+# an input in a run line, a job without a limit, the coverage folder uploaded.
+name: gates
+on:
+  pull_request:
+  push:
+    branches: ['task/**']
+  workflow_dispatch:
+    inputs:
+      specs:
+        type: string
+permissions: write-all
+jobs:
+  checks:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - run: npm ci && npm run typecheck && echo ${{ inputs.specs }}
+      - uses: actions/upload-artifact@v7
+        with:
+          name: coverage
+          path: coverage/
