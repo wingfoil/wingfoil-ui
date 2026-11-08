@@ -43,9 +43,12 @@ W1-11 applies (dl-016 item 5).
   given, else the spec files under `test/e2e/` the branch changes against its merge-base with
   `design/dev-loop_v0.3` (none: the job passes with a line that says so); `test:smoke`;
   `test:publish-smoke`.
-- **AC-3 — The `wave` scope.** The `task` scope's jobs plus the three-engine `test:e2e` as one job
-  per engine (Chromium, Firefox, WebKit), sharded when one engine's run would exceed its
-  `timeout-minutes`; the per-engine reports merged into one artifact or kept one per engine.
+- **AC-3 — The `wave` scope.** The `task` scope's jobs, with its Playwright jobs
+  (`test:e2e:chromium`, the own specs) replaced by the three-engine `test:e2e` as one job per
+  engine (Chromium, Firefox, WebKit), sharded when one engine's run would exceed its
+  `timeout-minutes`; one Playwright report per job (engine × shard), no merge job. (amended
+  2026-11-08, W2-2: the wave jobs replace the task scope's Playwright jobs instead of running in
+  addition to them — G2, D71-2; one report per job — G3, D71-11.)
 - **AC-4 — Artifacts.** The Playwright HTML report (on failure at least) and the coverage totals
   (`json-summary` only, as `publish.yml`'s gate); no `coverage-final.json`, `clover.xml` or per-file
   coverage entry; the artifacts checked to hold no local path (the runner's own paths are not
@@ -55,8 +58,9 @@ W1-11 applies (dl-016 item 5).
   comment (the releases `publish.yml` already pins where the action is the same); no value from the
   event body (branch names, commit messages, the inputs) interpolated into a `run:` line — passed
   through `env:` and quoted. The runner's conditions as `publish.yml`'s gate (Node, Python for the
-  governance checks, git identity for the harness, `npx playwright install --with-deps` for the
-  engines a job runs).
+  governance checks, `npx playwright install --with-deps` for the engines a job runs); no git
+  identity step — the harness supplies its own (`harnessEnv`, `user.useConfigOnly`), as on
+  `publish.yml`'s gate. (amended 2026-11-08, W2-2: the harness git identity step removed — G1.)
 - **AC-6 — Invariants frozen.** A test like `test/package/publish-workflow.test.ts` (new file or
   section) asserts AC-1, AC-4 and AC-5 on the workflow file: triggers, concurrency, permissions, the
   SHA pins, no event value in `run:`; red first on an empty or deliberately wrong workflow.
@@ -330,3 +334,13 @@ not own.
 - Not contradictions, noted: dl-016 item 1 lists no typecheck/lint/format job while AC-2 does
   (D71-4); `definition-of-done` 1.4 *refactor* asks for the smokes only when packaging changes,
   while `gates.yml` runs them on every push (more than required, as dl-016 lists them).
+
+### design approved (2026-11-08)
+
+The approver accepted the design as recommended (`backlog-item-rel-v0.3-plan` W2-2, W2-3):
+D71-1 … D71-17 as ★; G1 no harness identity step and G2 the `wave` scope replacing the `task`
+scope's Playwright jobs (AC-3 and AC-5 amended above); G3 one report per job; G4 the runner's paths
+in the HTML report accepted, checked by hand on AC-8's downloads; G7 left to the next governance
+run; G8 and G9 documented in `test/README.md` *CI gates*. Size, option (b) (W2-3): once the
+workflow's tests are green and AC-8's local gates pass, the first push with the approver's OK; a
+workflow defect is fixed here, a test that fails only on the runner goes through `bug-ingest`.
