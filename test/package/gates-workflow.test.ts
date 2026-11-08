@@ -83,6 +83,14 @@ const EXPRESSIONS = new Set([
   'failure()',
 ]);
 
+/** Every key and every string value of `node`, at any depth. */
+function keysAndValues(node: unknown): string[] {
+  if (typeof node === 'string') return [node];
+  if (Array.isArray(node)) return node.flatMap(keysAndValues);
+  if (isMap(node)) return Object.entries(node).flatMap(([k, v]) => [k, ...keysAndValues(v)]);
+  return [];
+}
+
 const UPLOAD_PATHS = new Set(['coverage-totals/coverage-totals.json', 'playwright-report/']);
 
 /** The AC-1, AC-4 and AC-5 rules: one line per breach, none for a sound workflow. */
@@ -125,7 +133,14 @@ function problems(text: string): string[] {
   // AC-5 — permissions, credentials, pins.
   if (JSON.stringify(wf.permissions) !== JSON.stringify({ contents: 'read' })) out.push('permissions');
   for (const [name, job] of Object.entries(jobs)) if ('permissions' in job) out.push(`job permissions ${name}`);
-  if (/\bsecrets\b|github\.token|GITHUB_TOKEN|github\.event\b|head_ref|pull_request|workflow_run/.test(text))
+  // On the raw text and on every parsed key and value: a double-quoted escape (`\x24{{`, `\x67ithub`)
+  // is visible only once parsed (review R2-F1).
+  const sources = [text, ...keysAndValues(wf)];
+  if (
+    sources.some((s) =>
+      /\bsecrets\b|github\.token|GITHUB_TOKEN|github\.event\b|head_ref|pull_request|workflow_run/.test(s),
+    )
+  )
     out.push('event or credential reference');
   // The pins on the parsed values (any YAML style, review F3), the release tag on the lines.
   let parsedUses = 0;
@@ -139,6 +154,8 @@ function problems(text: string): string[] {
       else if (PUBLISH_PINS.get(m[1]!)?.split(' ')[0] !== m[2]) out.push(`pin differs from publish.yml ${m[1]!}`);
     }
   }
+  // An anchored or aliased step parses to more `uses` values than there are `uses:` lines, so it fails
+  // this count: deliberate, on the safe side (review R2-F3).
   const useLines = text.split('\n').filter((l) => /^\s*-?\s*uses:/.test(l));
   if (useLines.length !== parsedUses) out.push('unpinned: a uses outside a plain `uses:` line');
   for (const line of useLines) {
@@ -174,9 +191,14 @@ function problems(text: string): string[] {
   }
   // AC-5 — every expression is one of the few the workflow needs: no whole context
   // (`toJSON(github)` holds the job token), no function but `failure()` (review F2).
-  const expressions = [...text.matchAll(/\$\{\{([^}]*)\}\}/g)].map((m) => m[1]!.trim());
-  if (expressions.length !== (text.match(/\$\{\{/g) ?? []).length) out.push('expression not allowed: unclosed');
-  for (const e of expressions) if (!EXPRESSIONS.has(e)) out.push(`expression not allowed ${e}`);
+  // Read on the raw text and on every parsed key and value (review R2-F1). The raw text also counts a
+  // `${{` written in a YAML comment, and the parsed values count a step an anchor repeats: both only
+  // add findings, never hide one — deliberate, on the safe side (review R2-F3).
+  for (const source of sources) {
+    const expressions = [...source.matchAll(/\$\{\{([^}]*)\}\}/g)].map((m) => m[1]!.trim());
+    if (expressions.length !== (source.match(/\$\{\{/g) ?? []).length) out.push('expression not allowed: unclosed');
+    for (const e of expressions) if (!EXPRESSIONS.has(e)) out.push(`expression not allowed ${e}`);
+  }
 
   // AC-4 — uploads.
   for (const [name, job] of Object.entries(jobs)) {
