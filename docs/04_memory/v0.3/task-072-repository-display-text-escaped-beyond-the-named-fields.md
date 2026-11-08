@@ -4,41 +4,63 @@ type: task
 title: "Repository display text escaped beyond the named fields"              # REQUIRED — e.g. "Today view: pending gates list (REQ-UI-03)"
 status: draft          # auto-set by wingfoil
 release: "v0.3"            # REQUIRED — target release version, e.g. "v0.1"
-sprint: ""             # REQUIRED — the Sprint that selects it (sprint-NNN), or "n/a — <reason>" until one does (methodology/scrum)
-module: ""             # optional — server | web | contracts (dna.yaml modules)
-priority: ""           # optional — high | medium | low
-tags: []               # optional — additional labels, e.g. [today, a11y]
-ref: ""                # optional — backlog item ID, e.g. "TASK-001"
-bug: []                # optional — LIST of bug ids this task closes. Two cases: a fix task derived from a bug
+sprint: "sprint-001"             # REQUIRED — the Sprint that selects it (sprint-NNN), or "n/a — <reason>" until one does (methodology/scrum)
+module: "governance"             # optional — server | web | contracts (dna.yaml modules)
+priority: "low"           # optional — high | medium | low
+tags: ["v0.3", "governance", "security"]               # optional — additional labels, e.g. [today, a11y]
+ref: "GOV"                # optional — backlog item ID, e.g. "TASK-001"
+bug: ["bug-035-repository-text-outside-the-named-display-fields-reaches-the-page-unescaped"]                # optional — LIST of bug ids this task closes. Two cases: a fix task derived from a bug
                        # by release-planning, and a bug ABSORBED into an existing task's Acceptance Criteria because that
                        # task already owns the ground. Each bug listed moves with its own verbs (`.wingfoil/memory.yaml`):
                        # the approver's `memory approve` triaged -> planned, `memory submit` planned -> in-progress when
                        # this task starts, then submit/approve along its machine; no `bug.sync_state` since the packs adoption
-depends_on: []         # optional — ids of tasks whose Execution Notes constrain this one; authored at planning time, may be appended during design
+depends_on: ["task-070-per-match-memory-search-and-refusal-reasons-in-the-cli-adapter"]         # optional — ids of tasks whose Execution Notes constrain this one; authored at planning time, may be appended during design
 tmpl_version: 260703   # Orignal template version
 ---
 
 ## Description
 
-<!-- What needs to be built and why. Reference the user story if applicable:
-     "As <persona>, I want <action> so that <benefit>." -->
+Fix task of `minor-v0.3`, Wave 2, for bug-035 (chosen at Wave 2's start, the approver, 2026-11-08:
+"tutto come consigliato"). task-056 (K1, bug-027) escapes with `neutralise`
+(`server/src/git/redact.ts`) the display fields spec-004 §5 names; bug-035 lists the repository
+display text the API still serves raw: the DNA texts (the project name in the header and the
+project list, member names and emails in `identity` and in the descriptor's actor, `/config`
+`dna`), the directives' `name` and `title`, the 0.2.x workflow texts and the 0.3.x workflow
+`description`, the file tree's `name`, the project list's `remote`, the documentation pages'
+paths, the history's `from` and `to`, and the directive page's heading. React renders them as text,
+so the risk is a misleading display (bidi reordering, control characters), not script execution.
+It runs after task-070, which changes the same adapter and its warnings.
+
+**Backlog items:** GOV (governance — bug-035, the rest of task-056's AC-1 enumeration)
 
 ## Acceptance Criteria
 
-<!-- Reference the Gherkin feature file, or inline the key scenarios.
-     e.g. "See docs/02_requirements/02_bdd/features/today/pending-gates.feature"
-     For `web` tasks also point to the screen in docs/00_reference/ux-reference.md (§4.x) and the
-     prototype, and state the accessibility bar (keyboard path, axe clean). -->
+- **AC-1** — Enumeration: the design lists every read body field that carries repository text for
+  display, starting from task-056's AC-1 enumeration and bug-035's list, each marked display text
+  (escaped) or key (ids, types, states, paths used as addresses: raw); spec-004 §5 amended with a
+  dated Process Note to name the class, not a list that goes stale.
+- **AC-2** — Escape: red first — for each display field of AC-1, a test on the hostile-text variant
+  (`addHostileText`, `test/harness/fixtures/hostile.ts`, extended where a field is missing) asserts
+  that U+202E and a C0 control character come back as their visible escapes; then the fields pass
+  through `neutralise` where the body is built; keys stay raw.
+- **AC-3** — Sweep: task-056's sweep test (`server/http/text-sweep`) no longer lists bug-035's
+  fields as known exceptions; a new display field that skips `neutralise` fails it.
+- **AC-4** — Screens: the web shows the escaped text unchanged (no double escape), checked on
+  the screens that show a field of AC-1 (the project header and list, identity, the directives
+  list and page, the documentation tree, the history, the file tree).
+- **AC-5** — Docs: spec-004 §5, `CHANGELOG.md` *Fixed* (bug-035), `test/README.md` for new suites,
+  Version/Date bumped.
+- **AC-6** — Gates: the checks of `CLAUDE.md` as directive `definition-of-done` 1.4 runs them
+  (dl-016), `npm run docs:api`, `check_tasks.py v0.3`; a security-adversarial reviewer who runs the
+  tools (hostile repositories, the API bodies, the screens).
 
 ## Implementation Notes
 
-<!-- Optional: known constraints, design hints, or links to relevant ADRs. -->
+- Read at design: bug-035, task-056's Execution Notes (the AC-1 enumeration, K1, the sweep),
+  task-070's (the adapter after its merge), spec-004 §5, `server/src/git/redact.ts`.
+- An address (a documentation path used in a link, an element id) must stay usable: escape the
+  text shown, not the value a link resolves.
 
 ## Execution Notes
 
-<!-- Running log of what actually happened while working this task (`backlog-item`) — filled in
-     incrementally per phase, not written after the fact. Raw material for the release's Execution
-     Notes / the retrospective, not the retrospective itself.
-     - design: tech-specs found missing/needing revision (`definition-of-done` › design).
-     - red/green/refactor: deviations from the plan above, blockers, scope surprises.
-     - review: rejection reasons and what changed on the next pass. -->
+<!-- Running log per phase: design, red / green / refactor, review. -->
