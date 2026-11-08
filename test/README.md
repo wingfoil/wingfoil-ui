@@ -434,8 +434,9 @@ workers on the runner's 4 vCPU): the `task` scope (run `42514947278`) **15.5 min
 `contract` 2.7, `smoke` 1.1, `publish-smoke` 1.1, `own-specs` 1.0 min each with no spec; the `wave`
 scope (run `42516344841`) **14.8 min** wall — `coverage` 13.6 min and the six `e2e-wave` jobs 7.1 to
 13.0 min (Chromium 162 + 161, Firefox 156 + 156, WebKit 156 + 156 tests: the 947 of the local wave
-gate, which took 49.7 min on this machine). Shard 2 runs ~1.6× longer than shard 1 on every engine;
-the slowest job stays under a third of its 45-minute limit, so the two shards are kept (D71-3).
+gate, which took 49.7 min on this machine). Shard 2 runs about 1.3–1.9× longer than shard 1
+(Chromium 1.56×, Firefox 1.82×, WebKit 1.34× in the wave run); the slowest job stays under a third
+of its 45-minute limit, so the two shards are kept (D71-3).
 
 **The own specs.** `scripts/e2e-own-specs.mjs` (`test/scripts/e2e-own-specs.test.ts`) picks them: the
 `specs` input when given, else the spec files under `test/e2e/` the branch adds, changes or renames

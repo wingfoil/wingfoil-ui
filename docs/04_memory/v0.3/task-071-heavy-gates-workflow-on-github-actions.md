@@ -411,10 +411,30 @@ run ended): **success**, 14.8 min wall. `checks` 1.1 min; `coverage` 13.6 min (4
 
 **No runner-only failure** in either run: the e2e suite's first runs on a runner were green on the
 three engines. **Shards and limits (D71-3):** kept as designed — the slowest Playwright job took
-13.0 min of its 45; shard 2 is ~1.6× shard 1 on every engine (Playwright splits by test count);
+13.0 min of its 45; shard 2 is about 1.3–1.9× shard 1 (Chromium 1.56×, Firefox 1.82×, WebKit 1.34×; Playwright
+splits by test count);
 the measurements are in `test/README.md` *CI gates* (0.66).
 
 **Artifacts (AC-4, G4):** both runs uploaded only `coverage-totals` (no Playwright job failed, so
 no report). Downloaded with `gh run download` into a temporary folder outside the repository:
 `coverage-totals.json` holds the four totals, the commit and the `gates` source text, and no `/`
 at all; a search of both downloads for this machine's home and workspace folders found nothing.
+
+### review round 1 (2026-11-08)
+
+The security-adversarial review: **PASS** with 3 minor findings in the invariant test and 1 nit.
+Fixed test first: red `4087d4f4` (five mutations the rules missed — 5 failed, 40 passed), then the
+rules (45 passed):
+
+- **F1** — `${{` refused in a step's `shell` and `working-directory` (and `defaults.run.shell`), and
+  the inputs matched in the bracket form (`inputs['specs']`) as well as the dot form.
+- **F2** — every `${{ … }}` of the file must be one of an allow-list of eight expressions
+  (`github.ref`, `env.NODE_VERSION`, the two scope conditions, `inputs.specs`, `matrix.shard`,
+  `matrix.engine`, `failure()`): `toJSON(github)` and any other whole context or function fail.
+- **F3** — the pins checked on the parsed `uses` values of every step (any YAML style; a job-level
+  `uses` refused), the count of `uses:` lines equal to the parsed count, the release tag still read
+  on the lines.
+- **F5** — the shard ratio in *CI gates* and above: about 1.3–1.9× (README 0.66 not yet pushed: no
+  new version).
+- F4 (own-specs with a non-empty list on a runner) waits for the approver's dispatch:
+  `test/e2e/shell.spec.ts` exists (12 tests). F6 left to the next governance run (the coordinator).
