@@ -438,3 +438,19 @@ rules (45 passed):
   new version).
 - F4 (own-specs with a non-empty list on a runner) waits for the approver's dispatch:
   `test/e2e/shell.spec.ts` exists (12 tests). F6 left to the next governance run (the coordinator).
+
+Runs after round 1 (the fixes pushed, `33ac2124..a7f9459a`):
+
+- **Run `42518545032`** (push, `task` scope, commit `a7f9459a`): **success**, 15.3 min wall —
+  `checks` 1.4 min, `coverage` 13.8, `e2e-chromium` 7.8 · 9.6, `contract` 2.2, `smoke` 1.4,
+  `publish-smoke` 1.7, `own-specs` 0.6 · 1.0 min (no spec of its own).
+- **Run `42519989567`** (`workflow_dispatch`, `scope=task`, `specs=test/e2e/shell.spec.ts`, commit
+  `a7f9459a`, the approver's OK for F4; started after the push run ended): **success**, 13.7 min
+  wall. The `own-specs` branch with a non-empty list, first time on a runner: the script printed
+  `own e2e specs (from the specs input): 1`; the jobs ran `playwright test --project=firefox`
+  (and `--project=webkit`) `--reporter=github,html test/e2e/shell.spec.ts` — **Firefox 12 passed**
+  (31.6 s, job 1.8 min), **WebKit 12 passed** (35.4 s, job 2.1 min). The other jobs: `checks` 1.7 min,
+  `coverage` 11.0, `e2e-chromium` 7.2 · 11.8, `contract` 2.7, `smoke` 1.3, `publish-smoke` 1.4 — all
+  success.
+- Artifacts of both runs: `coverage-totals` only (no failed Playwright job), downloaded outside the
+  repository; no `/` in either `coverage-totals.json`.
