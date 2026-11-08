@@ -17,7 +17,8 @@ The `governance-evolution` run `governance-evolution-4-plan` (its *Assessment*).
 W-50 of directive `wingfoil-cli` 1.26, where an entry with no feedback note leaves the cell empty
 (W-40 … W-42). `test/wingfoil-feedback.test.ts` reads every non-empty *Note* cell as a note id and
 fails ("links the known behaviours of wingfoil-cli only to existing notes"), so task-071's
-`test:coverage` has 1 failure and `gates.yml`'s `coverage` job would fail on its first run.
+`test:coverage` has 1 failure, and `gates.yml`'s `coverage` job, which runs the same
+`npm run test:coverage`, would meet it on its first run.
 
 ## Decision
 
@@ -33,7 +34,7 @@ fails ("links the known behaviours of wingfoil-cli only to existing notes"), so 
 ## Rationale
 
 - An empty cell is the directive's convention for "no note" (W-40 … W-42) and what the test reads;
-  dl-016 item 8 already decided that W-48 … W-50 have no feedback note.
+  dl-016 item 8 decided no feedback note for W-48 and named none for W-49 and W-50.
 - Changing the test to accept `—` would add a second spelling of "no note" for one defect.
 
 ## Actions
