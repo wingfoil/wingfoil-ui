@@ -40,7 +40,8 @@ These fields are returned as the CLI or git gives them (task-056's enumeration, 
 texts (the project name in the header and the project list, member names and emails in `identity`
 and in the descriptor's actor, `/config` `dna`), the directives' `name` and `title`, the 0.2.x
 workflow texts and the 0.3.x workflow `description`, the file tree's `name`, the project list's
-`remote`.
+`remote`. task-056's review added (2026-11-07): the documentation pages' paths, the history's
+`from` and `to`, and the directive page's heading.
 
 ## Evidence
 

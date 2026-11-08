@@ -9,7 +9,7 @@ module: "governance"             # optional — server | web | contracts (dna.ya
 priority: "high"           # optional — high | medium | low
 tags: ["v0.3","governance","server","cli"]               # optional — additional labels, e.g. [today, a11y]
 ref: "GOV"                # optional — backlog item ID, e.g. "TASK-001"
-bug: ["bug-024-one-memory-file-without-frontmatter-hides-the-whole-elements-list-the-server-answers-502"]                # optional — LIST of bug ids this task closes. Two cases: a fix task derived from a bug
+bug: ["bug-024-one-memory-file-without-frontmatter-hides-the-whole-elements-list-the-server-answers-502", "bug-036-the-older-supported-wingfoil-exits-2-on-a-broken-memory-frontmatter"]                # optional — LIST of bug ids this task closes. Two cases: a fix task derived from a bug
                        # by release-planning, and a bug ABSORBED into an existing task's Acceptance Criteria because that
                        # task already owns the ground. Each bug listed moves with its own verbs (`.wingfoil/memory.yaml`):
                        # the approver's `memory approve` triaged -> planned, `memory submit` planned -> in-progress when
@@ -66,6 +66,11 @@ approver's Q3 and Q5 answers; AC-3 and AC-4 are new.
   run docs:api`, `npm run test:contract`, `check_tasks.py v0.3`; `test:e2e:chromium` plus the
   specs that show the refusal toast on the three engines; results with commands in the Execution
   Notes.
+- **AC-5** — bug-036 (absorbed 2026-11-08, the approver: "tutto come consigliato"): red first — on WingFoil 0.2.2, a Memory file whose frontmatter
+  is not valid YAML makes `memory search` exit 2; the reads behind it answer the other elements
+  with one project warning naming the file (sanitised, as bug-024's), not a 500. If the design shows
+  that 0.2.2's exit 2 leaves no element list to serve, the approver decides a declared limitation
+  instead (`CHANGELOG.md` *Known limitations*, the user guide), quoted in the Execution Notes.
 
 ## Implementation Notes
 

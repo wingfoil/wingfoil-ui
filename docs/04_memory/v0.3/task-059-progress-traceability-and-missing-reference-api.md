@@ -9,7 +9,7 @@ module: "server"             # optional — server | web | contracts (dna.yaml m
 priority: "high"           # optional — high | medium | low
 tags: ["v0.3", "t2", "r5", "m2", "progress", "traceability"]               # optional — additional labels, e.g. [today, a11y]
 ref: "TT-STATE-08"                # optional — backlog item ID, e.g. "TASK-001"
-bug: []                # optional — LIST of bug ids this task closes. Two cases: a fix task derived from a bug
+bug: ["bug-034-a-file-edited-and-reverted-between-two-state-checks-keeps-serving-the-edited-content", "bug-037-the-server-reads-frontmatter-keys-that-the-cli-counts-as-duplicates"]                # optional — LIST of bug ids this task closes. Two cases: a fix task derived from a bug
                        # by release-planning, and a bug ABSORBED into an existing task's Acceptance Criteria because that
                        # task already owns the ground. Each bug listed moves with its own verbs (`.wingfoil/memory.yaml`):
                        # the approver's `memory approve` triaged -> planned, `memory submit` planned -> in-progress when
@@ -124,6 +124,15 @@ check on the `large` fixture.
   `test:contract`, `test:e2e:chromium` and `performance.spec.ts`, `test:timing` alone — heavy gates
   through the machine-free slot, load and slot wait in each log; the strict-identity run of
   `test/README.md` *Fixtures* › *Git identity* for the suites that commit to fixtures (dl-011).
+- **AC-10 — bug-034** (absorbed 2026-11-08, the approver: "tutto come consigliato"): red first — a test edits a Memory file, reads it under the
+  state key, reverts it before the next state check, and asserts that the next read serves the
+  reverted content; then every per-state read of `ProjectSnapshot` is tied to the bytes the state
+  check saw (built from them, or its hash checked against the check's mark before it is kept);
+  spec-012 §1 or spec-004 amended with a dated Process Note if the cache contract changes.
+- **AC-11 — bug-037** (absorbed 2026-11-08, the approver: "tutto come consigliato"): red first — a frontmatter with `1:` and `"1":`, with `true:` and
+  `"true":`, with an alias key and with a repeated complex key is refused by
+  `server/src/reads/frontmatter.ts` as a duplicate key with its line, as the pinned CLI leaves it
+  out (`wingfoil-cli` W-49); the linear duplicate check of bug-032 kept (its structural test).
 
 ## Implementation Notes
 

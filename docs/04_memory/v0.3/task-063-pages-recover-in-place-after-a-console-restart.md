@@ -9,7 +9,7 @@ module: "web"             # optional — server | web | contracts (dna.yaml modu
 priority: "medium"           # optional — high | medium | low
 tags: ["v0.3","web","session","security"]               # optional — additional labels, e.g. [today, a11y]
 ref: "US-X-02"                # optional — backlog item ID, e.g. "TASK-001"
-bug: []                # optional — LIST of bug ids this task closes. Two cases: a fix task derived from a bug
+bug: ["bug-031-assets-path-too-long-answers-403-with-code-invalid-request"]                # optional — LIST of bug ids this task closes. Two cases: a fix task derived from a bug
                        # by release-planning, and a bug ABSORBED into an existing task's Acceptance Criteria because that
                        # task already owns the ground. Each bug listed moves with its own verbs (`.wingfoil/memory.yaml`):
                        # the approver's `memory approve` triaged -> planned, `memory submit` planned -> in-progress when
@@ -75,6 +75,10 @@ holds a session again, instead of staying lost for good.
 - **AC-6** — Gates: the checks of `CLAUDE.md`, `npm run docs:api`, `check_tasks.py v0.3`,
   `test:e2e:chromium` plus the task's own specs on the three engines; results with commands in the
   Execution Notes.
+- **AC-7** — bug-031 (absorbed 2026-11-08, the approver: "tutto come consigliato"): red first — `GET /assets/<a name longer than the file
+  system allows>` answers 404 `not-found`, as every other missing asset does; the error handler of
+  `server/src/http/app.ts` maps a 4xx it does not name to a body code that matches its status (no
+  `invalid-request` for a 403 or a 404).
 
 ## Implementation Notes
 
