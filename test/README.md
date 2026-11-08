@@ -429,10 +429,10 @@ then, in parallel:
 | `e2e-wave` | `wave` | `npm run test:e2e` per engine and shard (3 × 2 jobs) — replaces `e2e-chromium` and `own-specs`, which it contains | 45 min |
 
 Run time, measured on 2026-11-08 at commit `33ac2124` (task-071 AC-8; Playwright's default 2
-workers on the runner's 4 vCPU): the `task` scope (run `42514947278`) **15.4 min** wall — `checks`
+workers on the runner's 4 vCPU): the `task` scope (run `42514947278`) **15.5 min** wall — `checks`
 1.4 min, then `coverage` 14.0 min (4118 tests), `e2e-chromium` 8.0 and 12.1 min (162 and 161 tests),
 `contract` 2.7, `smoke` 1.1, `publish-smoke` 1.1, `own-specs` 1.0 min each with no spec; the `wave`
-scope (run `42516344841`) **14.7 min** wall — `coverage` 13.6 min and the six `e2e-wave` jobs 7.2 to
+scope (run `42516344841`) **14.8 min** wall — `coverage` 13.6 min and the six `e2e-wave` jobs 7.1 to
 13.0 min (Chromium 162 + 161, Firefox 156 + 156, WebKit 156 + 156 tests: the 947 of the local wave
 gate, which took 49.7 min on this machine). Shard 2 runs ~1.6× longer than shard 1 on every engine;
 the slowest job stays under a third of its 45-minute limit, so the two shards are kept (D71-3).
