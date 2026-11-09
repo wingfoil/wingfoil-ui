@@ -192,6 +192,14 @@ function safeCut(text: string, at: number, back: boolean): number {
 }
 
 /** `text`, or its head and tail around {@link ELLIPSIS}, at most {@link MAX_MESSAGE} characters. */
+/**
+ * `text` at most {@link MAX_MESSAGE} characters, its middle cut with an ellipsis — the sanitiser's
+ * own cap, for a text an escape made longer after it (task-070 review round 2 R2-F2).
+ */
+export function capMessage(text: string): string {
+  return cap(text);
+}
+
 function cap(text: string): string {
   if (text.length <= MAX_MESSAGE) return text;
   const room = MAX_MESSAGE - ELLIPSIS.length;

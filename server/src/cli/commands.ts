@@ -139,26 +139,39 @@ export function toolLines(lines: readonly string[], sanitise: (text: string) => 
   return rest > 0 ? [...kept, `${rest} more warnings omitted`] : kept;
 }
 
-/** The count line {@link toolLines} appends: `<n> more warnings omitted`. */
-const COUNT_LINE = /^(\d+) more warnings omitted$/;
+/**
+ * The warnings of one CLI output in their parts, sanitised (task-070 review round 2 R2-F1): its
+ * `stderr` lines as {@link toolLines} keeps them and how many it left out, and every line the adapter
+ * adds — one per dropped `memory search` match, each text once, none left out.
+ */
+export interface WarningParts {
+  /** The first {@link MAX_TOOL_LINES} non-empty `stderr` lines. */
+  stderr: string[];
+  /** How many non-empty `stderr` lines follow them. */
+  stderrOmitted: number;
+  /** One line per dropped match, all of them. */
+  dropped: string[];
+}
 
 /**
- * Several lists of tool lines, each already passed through {@link toolLines}, as one list under the
- * same rule (task-070 review round 1 F2, F4; spec-004 §5): each text once, in order, at most
- * {@link MAX_TOOL_LINES}, then **one** count line summing what each list counted and what this cut
- * leaves out. A list's count line is its last line when the list is over the cap — the only place
- * {@link toolLines} writes one —, so a CLI warning that reads like one is kept as a warning.
+ * The warnings of one or more outputs of a command as the API passes them on (spec-004 §5; task-070
+ * review rounds 1 F2, F4 and 2 R2-F1): each text once, in order — the `stderr` lines first, then the
+ * dropped matches —, at most {@link MAX_TOOL_LINES}, then **one** count line. The outputs of
+ * `memory search` and its archived searches come from one scan of the Memory folders, so their
+ * `stderr` repeats the same lines: what their `stderr` left out is counted once, the most any of
+ * them left out, never their sum; the dropped matches are all known and counted exactly.
  */
-export function mergeToolLines(lists: readonly (readonly string[])[]): string[] {
-  const seen = new Set<string>();
-  let counted = 0;
-  for (const list of lists) {
-    const count = list.length > MAX_TOOL_LINES ? COUNT_LINE.exec(list[list.length - 1] ?? '') : null;
-    if (count) counted += Number(count[1]);
-    for (const line of count ? list.slice(0, -1) : list) seen.add(line);
+export function mergeToolLines(parts: readonly WarningParts[]): string[] {
+  const stderr = new Set<string>();
+  const dropped = new Set<string>();
+  let stderrOmitted = 0;
+  for (const part of parts) {
+    for (const line of part.stderr) stderr.add(line);
+    stderrOmitted = Math.max(stderrOmitted, part.stderrOmitted);
   }
+  for (const part of parts) for (const line of part.dropped) if (!stderr.has(line)) dropped.add(line);
   // The texts are sanitised already: the identity, never a second sanitiser.
-  return toolLines([...seen], (text) => text, counted);
+  return toolLines([...stderr, ...dropped], (text) => text, stderrOmitted);
 }
 
 /**

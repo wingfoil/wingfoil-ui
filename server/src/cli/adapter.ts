@@ -24,13 +24,15 @@ import {
   boundedLines,
   commandFor,
   MAX_TOOL_LINES,
+  mergeToolLines,
   outputProblem,
   searchMatches,
   toolText,
   type CliCommandName,
   type CliCommandOutputs,
+  type WarningParts,
 } from './commands.js';
-import { redactLocalPaths } from '../git/redact.js';
+import { capMessage, redactLocalPaths } from '../git/redact.js';
 import { READ_GIT_ENV, withoutNames } from '../git/git.js';
 import { CliNotFoundError, type CliSource, type ResolvedCli } from './discovery.js';
 
@@ -46,6 +48,11 @@ export interface CliOutput<T = unknown> {
   data: T;
   /** stderr lines (e.g. `unknown field(s) ignored`, W-12): project warnings, never errors. */
   warnings: string[];
+  /**
+   * The same warnings in their parts, for a caller that merges several outputs of one command
+   * ({@link mergeToolLines}: `/elements?archived=true`, task-070 review round 2 R2-F1).
+   */
+  warningParts: WarningParts;
 }
 
 /** Where the adapter logs its own defects (pino's `Logger` fits). */
@@ -261,9 +268,11 @@ export class WingfoilCli {
     if (perMatch) data = perMatch.data;
     // Each warning, and the tool text of the output (task-046), through the one sanitiser of tool
     // messages (bug-017, review round 3 S3-1); the dropped matches after the stderr lines, one cap.
+    const parts = stderrWarnings(result.stderr, (w) => this.redact(warningText(w)), perMatch?.dropped);
     return {
       data: toolText(name, data, (text) => this.redact(text)) as T,
-      warnings: stderrWarnings(result.stderr, (w) => this.redact(warningText(w)), perMatch?.dropped),
+      warnings: mergeToolLines([parts]),
+      warningParts: parts,
     };
   }
 
@@ -474,23 +483,26 @@ function warningText(line: string): string {
 }
 
 /**
- * The `stderr` warnings as the API passes them on: the first {@link MAX_TOOL_LINES} non-empty lines,
- * sanitised, then one line counting the others — counted, never split into an array (review round 3
- * n1: a 64 MiB stderr).
+ * The warnings of an output in their parts ({@link WarningParts}): the first {@link MAX_TOOL_LINES}
+ * non-empty `stderr` lines, sanitised, and how many follow — counted, never split into an array
+ * (review round 3 n1 of task-046: a 64 MiB stderr) —, then the adapter's own lines (task-070: the
+ * dropped matches), each text once. Each of those is one line on the page: a newline, carriage
+ * return or tab its path holds is written as a visible escape after the sanitiser (review round 1
+ * F1) — after it, so that the escape keeps one backslash, like the sanitiser's own, and a literal
+ * backslash stays doubled —, and the line is capped again (round 2 R2-F2: an escape is longer).
  */
-function stderrWarnings(stderr: string, sanitise: (text: string) => string, more: readonly string[] = []): string[] {
+function stderrWarnings(
+  stderr: string,
+  sanitise: (text: string) => string,
+  more: readonly string[] = [],
+): WarningParts {
   const { lines: first, omitted } = boundedLines(stderr, MAX_TOOL_LINES);
-  // The adapter's own lines (task-070: the dropped matches) follow the stderr lines, under the same cap
-  // and count line; past the cap they are counted, never sanitised.
-  // Each of those lines is one line on the page: a newline, carriage return or tab its path holds is
-  // written as a visible escape after the sanitiser (review round 1 F1) — after it, so that the escape
-  // keeps one backslash, like the sanitiser's own, and a literal backslash stays doubled.
-  const lines = [
-    ...first.map(sanitise),
-    ...more.slice(0, MAX_TOOL_LINES - first.length).map((l) => oneLine(sanitise(l))),
-  ];
-  const rest = omitted + first.length + more.length - lines.length;
-  return rest > 0 ? [...lines, `${rest} more warnings omitted`] : lines;
+  return {
+    stderr: first.map(sanitise),
+    stderrOmitted: omitted,
+    // The cap's own omission mark is set off by newlines: spaces here, the same length.
+    dropped: [...new Set(more)].map((l) => capMessage(oneLine(sanitise(l))).replace(/\n/g, ' ')),
+  };
 }
 
 /** `text` on one line: newline, carriage return and tab as `\x0a`, `\x0d`, `\x09` (review round 1 F1). */
