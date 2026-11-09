@@ -100,3 +100,223 @@ approver's Q3 and Q5 answers; AC-3 and AC-4 are new.
      - design: tech-specs found missing/needing revision (`definition-of-done` › design).
      - red/green/refactor: deviations from the plan above, blockers, scope surprises.
      - review: rejection reasons and what changed on the next pass. -->
+
+### design (2026-11-09)
+
+Read (definition-of-done 1.4 › build › design): this task, bug-024, bug-036; task-056's Execution
+Notes (its design: probes P1 … P8, the AC-1 enumeration, D56-5 … D56-7 and the AC-2/AC-5 rows of
+its test plan, the approver's Q1-a … Q6-a; its green: `server/src/http/serialise.ts`); spec-001 §2,
+§3 and its Process Notes; spec-004 §5 and its Process Notes (2026-11-07: the per-match search and
+`detail.reasons[]` are this task's); directive `wingfoil-cli` 1.27 (W-19, W-20, W-24, W-36, W-37,
+W-47, W-49); `contracts/matrix.json` (0.2.2 and 0.3.1); the plan's W1-19, W2-1 … W2-4. The code,
+re-checked against the merged tree at `e434a23f`: `server/src/cli/adapter.ts` (`json`, `exec`,
+`cliError`, `refusalMessage`, `stderrWarnings`, `cliErrorEnvelope`), `server/src/cli/commands.ts`
+(`outputProblem`, `toolLines`, `boundedLines`, `toolText`), `server/src/contracts.ts`,
+`server/src/snapshot/snapshot.ts` (`search`, `archived`, `mark`), `server/src/http/project-routes.ts`
+(`elements`, the Today rows, `resolve`), `server/src/writes/governed.ts` (`write`, `listed`),
+`server/src/http/serialise.ts`; `contracts/cli/memory-search.schema.json`, `contracts/api/error.schema.json`,
+`write.refusal.schema.json`, `element.refusal.schema.json`; the web's `api/error-message.ts`,
+`shell/ErrorText.tsx`, `element/write-toast.tsx`; `test/server/cli/commands.test.ts`,
+`test/contracts/capture-samples.test.ts`, `test/contracts/schemas.test.ts`.
+
+#### Probes (2026-11-09; scratch projects in the session's scratch folder, `init --template Kanban`)
+
+One project per version: the pinned 0.3.1 (this worktree's `node_modules/wingfoil`) and 0.2.2 (the
+cached matrix build of the main checkout, run read-only, as a binary). Each holds one valid bug
+(`memory add --type bug --title "Probe bug"`).
+
+| # | What | Result |
+|---|------|--------|
+| Q-1 | bug-024 re-checked, CLI direct (`memory search --format json`, a Markdown file without frontmatter `docs/memory/bug/notes.md`) | 0.2.2: exit 0, `matches` holds `{"path":"docs/memory/bug/notes.md","tags":[]}` after the bug; 0.3.1: exit 0, the bug only, stderr empty (W-47) — as task-056 P2 |
+| Q-2 | The archived searches on 0.2.2 (a file with `id`, `title`, `status: deprecated`, no `type`) | `memory search --status deprecated` returns it as a match without `type`: the archived searches fail per match too (D70-3) |
+| Q-3 | bug-036, CLI direct (`docs/memory/bug/broken.md` with `id: [unclosed`) | 0.2.2: **exit 2, stdout empty**, stderr `{"error":"missed comma between flow collection entries (2:1)\n\n 1 \| id: [unclosed\n 2 \| type: bug\n-----^"}` — the error **names no file**; `--status deprecated` exits 2 the same way. 0.3.1: exit 0, the bug listed, `{"warning":"W_MEMORY_UNREADABLE (docs/memory/bug/broken.md): unreadable frontmatter in docs/memory/bug/broken.md: missed comma between flow collection entries (2:1)"}` |
+| Q-4 | The 0.3.1 refusal with `details` (`memory submit` of the bug, then again from `pending`) | 0.3.1: exit 1, `{"error":"illegal transition pending -> (none) for type 'bug'","details":[{"file":"docs/memory/bug/bug-001-probe-bug.md","detail":"illegal \`submit\` from \"pending\": a \`gates\` state — its forward edge requires \`approve\`, not \`submit\`"}]}`; 0.2.2: exit 1, the `error` only — as task-056 P5 |
+| Q-5 | Security: `GIT_TRACE=<file>` of `memory search` and `memory search --status deprecated`, both versions, with the broken file present | **no git process** on either version (trace empty) — as task-056 P6 |
+| Q-6 | Security: `.git` snapshot (every file's SHA-256; every entry's name, type, size, mtime) before and after Q-5 | identical on both versions |
+| Q-7 | Security: the children's environment | not re-run: the task changes how the adapter **reads** an output it already gets, not what it runs or with which environment; task-056 P8 (`strace -v`, 2026-11-06) is the evidence, and `test/server/cli/adapter.test.ts` *D46-5* … *D46-8* guard it |
+
+No console was started; no heavy gate ran.
+
+#### Approach
+
+**AC-1 — per-match `memory search` (bug-024; spec-001 §2, spec-004 §5).** Only when the whole output
+of `memory search` fails its schema (no cost on the valid path), `WingfoilCli.json` re-checks it in
+two steps: the envelope (`matches` an array and the rest of the object valid — checked as the same
+schema with `matches: []`, so no second schema), whose failure stays the 502 `cli-output`; then each
+match against `#/definitions/match`. A failing match is dropped and becomes one warning; the valid
+matches are returned in their order. Every caller of `memory search` reads through the adapter
+(`project-reads.ts` `elements`, `archivedElements`, `element`), so the Memory list, the element
+read, history's lookup, Today (and the bell, which reads `/today`), the writes' `listed` and the
+reference index all get the valid matches from one fix point (D56-6). The project header reads no
+match (`GET /api/p/:pid` runs `--version`, `dna show` and git only). Every other command stays
+strict.
+
+**AC-2 — `detail.reasons[]` (spec-001 §2 exit-1 row, spec-004 §5).** On exit 1 the adapter reads
+`details` from the same JSON text as `error` (whole stderr or its last line, `cliError`'s rule);
+`CliRefusedError` gains `reasons`; `cliErrorEnvelope` adds `detail: { reasons }` only when there is
+one, so a 0.2.2 refusal is unchanged byte for byte. The governed writes, the role-view route and the
+project routes all map through `cliErrorEnvelope`: each 422 `cli-refused` carries them. The web's
+`errorMessage` appends the reasons to the verbatim block, one line each (Q3-a): every screen that
+renders an error through `ErrorText` (the write toast first) shows them; no catalogue string.
+
+**AC-5 — bug-036.** Q-3 shows that 0.2.2's exit 2 leaves **no element list to serve**: stdout is
+empty and the error names no file, so the console cannot answer the other elements nor name the
+file. The AC's own exit applies: a declared limitation, decided by the approver (D70-9).
+
+#### Decisions (D70-n), one recommendation each
+
+- **D70-1 — The match schema becomes a definition.** `contracts/cli/memory-search.schema.json`:
+  `matches.items` becomes `{ "$ref": "#/definitions/match" }`, the match's shape unchanged (the
+  samples and the 0.2.2/0.3.1 contract tests keep passing). `server/src/contracts.ts` gains
+  `fragmentProblems(file, pointer, data)` (Ajv's `getSchema('<$id>#/definitions/match')`, compiled
+  once at load like the others). The TypeScript `MemoryMatch` type (`contracts/src/cli.ts`, hand
+  written) is unchanged.
+- **D70-2 — Where the check lives.** `commands.ts` gains `searchMatches(data): { matches, dropped }
+  | undefined` (`undefined` when the envelope fails), next to `outputProblem`; `adapter.ts`'s `json`
+  calls it only for `memory search` and only when `outputProblem` fails. Nothing is logged for a
+  dropped match (the warning is in the body; a log line would repeat a project-relative path the
+  page already shows); a failing envelope is logged as today.
+- **D70-3 — The warning's text and its channel.** `memory search left out <path>: not a Memory
+  element (<field>, … missing or not text)` — `<path>` the match's `path` as the CLI returned it
+  (project-relative), `<no path>` when it is not a string, the field names read from Ajv's problems
+  (`missingProperty`, the instance path's last segment), never a value. One list per output: the
+  stderr lines first, then the dropped matches, **one** cap of 200 and one count line (`toolLines`
+  over both, the stderr's own `omitted` carried), every line through the adapter's sanitiser (class
+  (a), `serialise.ts`'s table; no second rule). The archived searches are the same command and get
+  the same rule (Q-2).
+- **D70-4 — `/elements?archived=true` carries the archived searches' warnings too**, after the live
+  one's, de-duplicated by text (today it carries the live search's only, so a dropped archived match
+  would vanish without a word; 0.2.2 and 0.3.1 repeat their stderr warnings on each search). The
+  plain `/elements` reads no archived search (REQ-PERF-05, TT-PERF-05's six calls unchanged).
+- **D70-5 — `reasons` in the adapter.** `CliRefusedError.reasons: readonly string[]` (default
+  `[]`): each item of `details` that is an object with a string `detail`, in order, through the
+  adapter's sanitiser (`this.redact`: the project, repository, package and home folders, URL
+  userinfo, the character escape, 4 000 characters each); at most 200, then one
+  `<n> more reasons omitted`. Any other shape of `details` (absent, not an array, items without a
+  string `detail`) gives no reason and never fails the refusal. `details[].file` is not passed on
+  (spec-004 §5 names the `detail` texts only).
+- **D70-6 — The contract of the envelope.** A new `contracts/api/cli.refusal.schema.json` (as
+  `git.refusal`): `error { code: const "cli-refused", message ≤ 4 000, detail? { reasons:
+  string[] (1 … 201 items, each ≤ 4 000) } }`, `additionalProperties: false`; v0.4's ingestion
+  detail (`created`, `commits`, spec-004 §5) is not in it (G5 moved, RP3-7). `write.refusal.schema.json`:
+  `cli-refused` leaves the no-detail branch for a branch whose `detail` is optional and refers to
+  the new schema's `reasons` definition. `error.schema.json` (the embedded `dnaError`, `typesError`,
+  … — `detail: {}`) is unchanged. Contract test: `test/contracts/api-cli-refusal-schema.test.ts`
+  (the captured 0.3.1 sample mapped through `cliErrorEnvelope` passes; a 0.2.2 one has no `detail`;
+  `file`, an empty `reasons`, a 202nd item, a non-string reason are refused).
+- **D70-7 — The captured sample (Q5-a).** A new, separately runnable capture in
+  `capture-samples.test.ts` (`-t 'refusals'`, as task-048's `-t 'operations'`): on a copy of the
+  kanban fixture of every matrix version, Jordan's `memory submit task-001-login-form` (a `pending`
+  gate state) — stderr saved raw as `kanban/memory-submit-refused.stderr.txt` (the exit code
+  asserted 1), so the whole-sample recapture is not needed and no other sample changes.
+  `schemas.test.ts` checks that the 0.3.1 sample holds `details[].detail` and the 0.2.2 one none.
+- **D70-8 — The web.** `api/error-message.ts`: for `cli-refused`, `verbatim` = the message, then each
+  string of `detail.reasons` on its own line; `reasons` is left out of the catalogue `values` (the
+  generic array rule would turn it into base names). `ErrorText` is unchanged (`<pre
+  class="verbatim">` keeps the lines). A reason holding a newline is shown as written (the sanitiser
+  keeps newline and tab): accepted, one reason may span two lines. Component test
+  `test/web/shell/refusal-reasons.test.tsx` (the write toast with a 422 carrying two reasons: the
+  CLI's message then one line per reason, in the verbatim block, after the catalogue line; a 0.2.2
+  body without `detail` unchanged; a non-array `reasons` ignored). **No new e2e spec**: the
+  console never offers a submit from a gate state (spec-003), and the UI path is covered by the
+  component test plus the existing refusal toasts of `submit-footer.spec.ts` and `gate-footer.spec.ts`
+  on the three engines (AC-4). Option: one mocked case appended to `submit-footer.spec.ts` (its
+  line-348 pattern), +0.1 d — not recommended.
+- **D70-9 — bug-036 becomes a declared 0.2.2 limitation (AC-5's exit), for the approver.** Options:
+  **(a)** the limitation only: `CHANGELOG.md` *Unreleased* › *Known limitations* and the user guide
+  (*one Memory file whose frontmatter is not valid YAML makes every list of a project on WingFoil
+  0.2.2 answer an internal error; WingFoil 0.3.1 names the file and the console lists the others;
+  find it with `wingfoil memory search` or upgrade*), no code; the exit 2 stays 500 `internal` with
+  its log line; **(b)** as (a) plus a mitigation: on `memory search` alone, an exit 2 whose JSON
+  `error` is not one of the known usage forms becomes a read error 502 with the YAML message
+  sanitised, so the page shows the parser's text (+0.25 d; it text-matches the CLI's usage errors,
+  which the bug's own notes call fragile, and still names no file); **(c)** a server-side scan of
+  the Memory folders to find the file (against adr-001 D1/D1a: the CLI is the source of the list,
+  and the direct reads are a closed allow-list). **Recommended (a)**: there is nothing to serve, the
+  pin (0.3.1) already does the right thing, and the console's answer for the older version should
+  not depend on a parser's wording. bug-036 then closes with this task as `release: v0.3`, its fix
+  being the declared limitation, quoted in these notes.
+- **D70-10 — An existing test changes.** `test/server/cli/commands.test.ts` *JSON failing the schema
+  is an output error* uses `memory search` with two bad matches: after AC-1 that output is served.
+  The case moves to `dna show` (still strict), and its `memory search` twin goes to the new suite
+  as the per-match case — declared here, not a weakened test.
+- **D70-11 — The sweep and the producer scan learn the new texts.** `test/server/http/text-sweep.test.ts`
+  classifies `cli.refusal`'s `error.detail.reasons[]` as (a) (it walks every response schema of
+  `contracts/api/`, so the new schema must be classified or the sweep fails); `test/server/tool-messages.test.ts`
+  lists the new producers (the reasons and the dropped-match lines through `this.redact`).
+- **D70-12 — Docs.** spec-001 §2 holds as written (the per-match paragraph and the exit-1 row are
+  already there); spec-004 §5 gets a dated Process Note for what it does not say: the reasons' cap
+  (200 + a count line) and schema, the archived warnings of `?archived=true` (D70-4); both specs
+  amended in place only after the coordinator's OK. `CHANGELOG.md` *Unreleased*: *Fixed* (bug-024),
+  *Added* (the refusal reasons), *Known limitations* (bug-036, D70-9 (a)); `docs/user-guide.md`
+  (the reasons in the refusal toast; the limitation); `test/README.md` version line and suites;
+  `npm run docs:api` regenerated (git-ignored output).
+- **D70-13 — Tests in files of their own** (W1-4 hot spots): `test/server/cli/memory-search-matches.test.ts`,
+  `test/server/http/dropped-matches.test.ts`, `test/server/cli/refusal-reasons.test.ts`,
+  `test/contracts/api-cli-refusal-schema.test.ts`, `test/web/shell/refusal-reasons.test.tsx`; the
+  shared files get appended cases only (D70-10, D70-11, `capture-samples`, `schemas`).
+
+#### Test plan (red-first or characterization, scenario → file)
+
+| AC | Scenario | Kind | File |
+|----|----------|------|------|
+| AC-1 | fake CLI: one valid and two failing matches → the valid one, two warnings naming the paths and the fields; `<no path>`; a path with U+202E and ESC escaped; 201 dropped + 3 stderr lines → 200 lines and one count line | **red** (`CliOutputError` today) | `test/server/cli/memory-search-matches.test.ts` |
+| AC-1 | fake CLI: `matches` not an array, `query` missing → 502 `cli-output`, logged; `dna show` with a bad field → 502 (strict) | characterization (guard removal: the per-match path applied to every command fails it) | same |
+| AC-1 | real 0.2.2: a committed `notes.md` without frontmatter → `/elements` 200, the valid elements, one warning naming `docs/…/notes.md`; `/elements/:eid`, `/elements/:eid/history`, `/today` 200 | **red** (502, task-056 P1) | `test/server/http/dropped-matches.test.ts` |
+| AC-1 | real 0.2.2: a deprecated file without `type` → `/elements?archived=true` 200 with its warning (D70-4) | **red** | same |
+| AC-1 | real 0.2.2: `GET /api/p/:pid` (header) 200 | characterization (it reads no match) | same |
+| AC-1 | real 0.3.1: the same files → 200, `notes.md` absent without warning (W-47); a broken frontmatter → its `W_MEMORY_UNREADABLE` warning | characterization | same |
+| AC-2 | fake CLI: `details` with two `detail`s → `reasons` redacted (project, repository, package, home folders, URL userinfo), escaped (U+202E, ESC), capped at 4 000 each and 200 + a count line; a malformed `details` ignored; warning lines before the error line | **red** | `test/server/cli/refusal-reasons.test.ts` |
+| AC-2 | real 0.3.1 kanban fixture: `POST …/task-001-login-form/submit` (`pending`) → 422 `cli-refused` with `detail.reasons` = the gate sentence; real 0.2.2 → 422 without `detail`, body unchanged | **red** (0.3.1) / characterization (0.2.2) | same |
+| AC-2 | the envelope schema; the sample mapped through `cliErrorEnvelope` | **red** (the schema does not exist) | `test/contracts/api-cli-refusal-schema.test.ts`; sample checks appended to `schemas.test.ts` |
+| AC-2 | the toast shows the reasons, one line each, after the message; a 0.2.2 body unchanged | **red** | `test/web/shell/refusal-reasons.test.tsx` |
+| AC-3 | docs | — | review |
+| AC-4 | gates | — | below |
+| AC-5 | real 0.2.2: a broken frontmatter → `memory search` exit 2 → `/elements` 500 `internal`, logged as a usage error (the declared limitation pinned, so a WingFoil or adapter change shows) | characterization of the limitation (if D70-9 (a)); **red** if (b) | `test/server/http/dropped-matches.test.ts` |
+
+Strict identity: the real-CLI suites (`dropped-matches`, `refusal-reasons`) commit on fixtures, so
+they also run under the recipe of `test/README.md` *Git identity* (dl-011) before each push.
+
+#### Risks
+
+- **Coverage of the 0.2.2 route tests on the runner**: `cliBuildFor('0.2.2')` installs the build into
+  the matrix cache (network); `element-writes.test.ts` already does it on `gates.yml`, so no new
+  dependency.
+- **The sweep** (D70-11) fails until the new schema is classified: written in the same red commit.
+- **Merge hot spots**: task-069's file names neither the adapter nor `commands.ts` (`grep -c` 0);
+  `en.json` is not touched; `CHANGELOG.md`,
+  `test/README.md` version line and the user guide are.
+- **0.3.1's silent drop (W-47)** stays: the console warns only for what the CLI returns or reports;
+  the feedback note F-039 is the coordinator's (task-056 Q6-a).
+
+#### Gates and where (AC-4; dev rules Wave 2, W1-10, W2-4)
+
+- Local: `npm run typecheck`, `npm run lint`, `npm run format:check`, `npm run docs:api`,
+  `python3 docs/03_backlog/X_tools/check_tasks.py v0.3`, targeted `npx vitest run <files>`; the
+  git-touching suites under the strict-identity recipe; `npx vitest run test/docs/public-text.test.ts`
+  before each push.
+- On `gates.yml` (the push of `task/task-070-…`, own-spec dispatch with `-f specs=test/e2e/submit-footer.spec.ts
+  test/e2e/gate-footer.spec.ts`): `test:coverage`, `test:contract`, `test:e2e:chromium`, the two
+  specs on Firefox and WebKit. No smoke (no packaging, launcher or bin change). Evidence: run id,
+  commit, result.
+
+#### Size
+
+About **1.1 active days**: AC-1 0.4 (schema split, adapter, two suites on both versions), AC-2 0.4
+(adapter, envelope, two schemas, sample capture, web, component test), AC-3 0.1, AC-4 0.15 (runs on
+GitHub), AC-5 0.05 with D70-9 (a) (+0.25 with (b)). Slightly over the one-day line; **no split
+recommended** (Q-A).
+
+#### Questions
+
+- **Q-A — Size (RP3-20 G2).** (a) No split: both halves live in `adapter.ts`/`commands.ts` and are
+  already the product of task-056's split; (b) split the refusal reasons into another task.
+  **Recommended (a).**
+- **Q-B — bug-036 (AC-5).** D70-9: **recommended (a)**, the declared limitation, for the approver's
+  decision, quoted here once given.
+- **Q-C — The archived warnings (D70-4).** (a) `?archived=true` carries them, de-duplicated; (b) leave
+  `?archived=true` as today (live warnings only). **Recommended (a)**: otherwise a dropped archived
+  match vanishes silently, the gap bug-024 is about.
+- **Q-D — An e2e case for the reasons (D70-8).** (a) Component test only, the existing refusal
+  specs re-run on three engines; (b) also one mocked case in `submit-footer.spec.ts`.
+  **Recommended (a)**, as AC-2 asks.
