@@ -67,6 +67,14 @@ describe('pendingGates', () => {
     expect(pendingGates('Cy', ELEMENTS)).toBe(0);
     expect(pendingGates('Nobody', [])).toBe(0);
   });
+
+  it('task-069 — a held gate is not a pending gate (spec-005 §4a)', () => {
+    const held = el('e7', {
+      ...GATE,
+      approveHeld: { condition: 'never', reason: { code: 'held-by-config' } },
+    });
+    expect(pendingGates('Ann', [...ELEMENTS, held])).toBe(2);
+  });
 });
 
 describe('memberCards', () => {

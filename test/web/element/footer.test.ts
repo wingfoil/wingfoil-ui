@@ -148,3 +148,32 @@ it('isFinal: no verb and no actor', () => {
   expect(isFinal(GATE)).toBe(false);
   expect(isFinal(undefined)).toBe(false);
 });
+
+describe('footerView — a held gate (task-069; spec-003 §3, ux-reference §4.2 v0.3)', () => {
+  const held = { condition: 'never', reason: { code: 'held-by-config' } } as const;
+  const HELD = descriptor({ ...GATE, verbs: [reject], approveHeld: held });
+
+  it('an approver holder: the gate view with the hold line, each reject, no approve', () => {
+    expect(footerView(HELD, header(MEMBER))).toEqual({
+      kind: 'gate',
+      outcomes: [{ verb: 'reject', to: 's1', enabled: true }],
+      approve: false,
+      engineAdvance: false,
+      held: held.reason,
+    });
+  });
+
+  it('any other member: the hold line only, not "Reserved to"', () => {
+    const counted = { code: 'held-until-references-done', count: 2 } as const;
+    expect(
+      footerView(
+        descriptor({ ...HELD, approveHeld: { condition: 'when-references-done', reason: counted } }),
+        header(OTHER),
+      ),
+    ).toEqual({ kind: 'held', reason: counted });
+  });
+
+  it('a user not identified keeps the read-only line (identity first, D37-5)', () => {
+    expect(footerView(HELD, header({ kind: 'no-identity' })).kind).toBe('readOnly');
+  });
+});

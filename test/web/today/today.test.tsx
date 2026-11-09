@@ -73,6 +73,24 @@ const MORGAN_TODAY: Today = {
     waiting('rel-001-minor', 'planning', { kind: 'engine' }),
     waiting('adr-001-gate', 'proposed', { kind: 'role', role: 'architect', members: ['Alex', 'Casey'] }),
     waiting('adr-002-nobody', 'proposed', { kind: 'role', role: 'qa', members: [] }),
+    {
+      ...waiting('rel-002-held', 'releasing', { kind: 'role', role: 'approver', members: ['Morgan'] }),
+      descriptor: descriptor('rel-002-held', {
+        status: 'releasing',
+        tone: 'human',
+        actor: { kind: 'role', role: 'approver', members: ['Morgan'] },
+        approveHeld: { condition: 'never', reason: { code: 'held-by-config' } },
+      }),
+    },
+    {
+      ...waiting('rl-001-held', 'active', { kind: 'role', role: 'approver', members: ['Morgan'] }),
+      descriptor: descriptor('rl-001-held', {
+        status: 'active',
+        tone: 'human',
+        actor: { kind: 'role', role: 'approver', members: ['Morgan'] },
+        approveHeld: { condition: 'when-references-done', reason: { code: 'held-until-references-done', count: 2 } },
+      }),
+    },
   ],
 };
 
@@ -235,6 +253,9 @@ it('lists Waiting on others with who must act (T-11.1, T-11.2, T-06.1, D36-6)', 
     'Waiting for the workflow engine',
     'Reserved to architect — Alex, Casey',
     'Reserved to qa',
+    // task-069 (S-24.5, S-24.6): a held gate shows its hold in place of "Reserved to approver".
+    'Approved outside the console (ui.yaml)',
+    'Waits for 2 referencing elements to be done',
   ]);
   // The members are their own text (data for the catalogue check).
   expect(rows[4]!.querySelector('.today-members')?.textContent).toBe('Alex, Casey');

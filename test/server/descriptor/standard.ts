@@ -79,10 +79,10 @@ export const STANDARD: Record<BddFixtureKind, Record<string, Row>> = {
   },
 };
 
-const work = (submitTo: string, member: string): Row => ({
+const work = (submitTo: string, member: string, basis = 'last-transition'): Row => ({
   kind: 'work',
   verbs: [['submit', submitTo, null]],
-  actor: { kind: 'member', member, basis: 'last-transition' },
+  actor: { kind: 'member', member, basis },
   tone: 'active',
   bucket: 'in-progress',
 });
@@ -92,9 +92,11 @@ const work = (submitTo: string, member: string): Row => ({
  * wingfoil-templates packs (`customGovernance` of the fixture builder, CLI 0.3.0 and later): the
  * packs keep no `waiting` state on `release` and `task` (base and software charters, R-1), so the
  * three elements that were `waiting` are of kind `work` (spec-003 §2: an intermediate state that is
- * neither gate nor waiting), offer `submit` to the next state (§3), name the author of the last
- * transition into the state (§4), with the tone and bucket of work in progress (§5, §7):
- * `minor-v0.1` (`planning`, submitted by Alex) and the two tasks in `backlog` (approved by Morgan).
+ * neither gate nor waiting), offer `submit` to the next state (§3), with the tone and bucket of work
+ * in progress (§5, §7), and name (§4) the author of the last transition into the state —
+ * `minor-v0.1` (`planning`, submitted by Alex) — or, for a state an `approve` entered, the author of
+ * the submit that reached the gate (RP3-14 D6, task-069): the two tasks in `backlog`, submitted by
+ * Jordan and approved by Morgan.
  * Every other row is unchanged.
  */
 export const STANDARD_PACKS: Record<BddFixtureKind, Record<string, Row>> = {
@@ -102,8 +104,8 @@ export const STANDARD_PACKS: Record<BddFixtureKind, Record<string, Row>> = {
   custom: {
     ...STANDARD.custom,
     'minor-v0.1': work('in-development', 'Alex'),
-    'task-003-element-panel': work('in-progress', 'Morgan'),
-    'task-004-themes': work('in-progress', 'Morgan'),
+    'task-003-element-panel': work('in-progress', 'Jordan', 'submitter'),
+    'task-004-themes': work('in-progress', 'Jordan', 'submitter'),
   },
 };
 
