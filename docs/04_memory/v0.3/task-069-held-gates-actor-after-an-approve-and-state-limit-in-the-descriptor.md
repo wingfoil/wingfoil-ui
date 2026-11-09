@@ -445,3 +445,7 @@ Gates of round 1 (on `9e908c6a`): `npm run typecheck`, `npm run lint`, `npm run 
 test/web/i18n test/server/descriptor test/contracts/api-descriptor-schema.test.ts`: 276 tests
 passed; the strict-identity recipe on `test/server/http/held-gates-routes.test.ts`: 4 passed (load
 8.45).
+`gates.yml` run `42592969032` on `f37779c0` (`task` scope): **success** — `checks`, `contract`,
+`coverage` (statements 96.65 %, branches 91.42 %, functions 97.37 %, lines 98.4 %),
+`e2e-chromium` (2 shards), `own-specs` on Firefox and WebKit, `smoke`, `publish-smoke`;
+`e2e-wave` skipped.
