@@ -6,7 +6,7 @@
 // the read error, and every other command stays strict. The real CLIs: `test/server/http/dropped-matches.test.ts`.
 import { describe, expect, it, vi } from 'vitest';
 import { CliOutputError, cliErrorEnvelope, WingfoilCli } from '../../../server/src/cli/adapter.js';
-import { MAX_TOOL_LINES } from '../../../server/src/cli/commands.js';
+import { MAX_TOOL_LINES, mergeToolLines } from '../../../server/src/cli/commands.js';
 import { FakeProcessRunner } from '../process/fake-runner.js';
 
 const CLI = { source: 'project' as const, projectRoot: '/p', file: process.execPath, prefixArgs: ['/x/cli.js'] };
@@ -105,6 +105,54 @@ describe('per-match validation of memory search (bug-024)', () => {
     expect(out.warnings).toEqual([
       'memory search left out docs/memory/bug/partial.md: not a Memory element (type missing or not text)',
     ]);
+  });
+});
+
+describe('review round 1 (F1, F5, F2)', () => {
+  it('F1: a newline, a carriage return or a tab in a file name cannot forge a line of the warning', async () => {
+    const forged = { path: 'docs/memory/bug/a\nWARNING forged line\r\tx.md', tags: [] };
+    // A literal backslash stays distinguishable from an escape: the sanitiser doubles it.
+    const literal = { path: 'docs/memory/bug/b\\x0a.md', tags: [] };
+    const { cli } = cliAnswering(search([forged, literal, VALID]));
+    const out = await cli.run('memory search');
+    expect(out.warnings).toEqual([
+      'memory search left out docs/memory/bug/a\\x0aWARNING forged line\\x0d\\x09x.md: not a Memory element (id, title, type, status missing or not text)',
+      'memory search left out docs/memory/bug/b\\\\x0a.md: not a Memory element (id, title, type, status missing or not text)',
+    ]);
+    for (const w of out.warnings) expect(w).not.toMatch(/[\n\r\t]/);
+  });
+
+  it('F5: tags is named as a list', async () => {
+    const badTags = { ...VALID, path: 'docs/memory/bug/t.md', tags: 'x' };
+    const noTags = { path: 'docs/memory/bug/u.md', id: 'u', title: 'U', type: 'bug', status: 'draft' };
+    const both = { path: 'docs/memory/bug/v.md', id: 5, tags: [1] };
+    const { cli } = cliAnswering(search([badTags, noTags, both]));
+    expect((await cli.run('memory search')).warnings).toEqual([
+      'memory search left out docs/memory/bug/t.md: not a Memory element (tags missing or not a list of text)',
+      'memory search left out docs/memory/bug/u.md: not a Memory element (tags missing or not a list of text)',
+      'memory search left out docs/memory/bug/v.md: not a Memory element (id, title, type, status missing or not text; tags missing or not a list of text)',
+    ]);
+  });
+
+  it('F2: lists merged once more under one cap and one count line, each text once', () => {
+    const capped = (prefix: string, n: number) => [
+      ...Array.from({ length: MAX_TOOL_LINES }, (_, i) => `${prefix} ${i}`),
+      `${n} more warnings omitted`,
+    ];
+    const merged = mergeToolLines([capped('live', 1), capped('deprecated', 1), ['shared', 'shared']]);
+    expect(merged).toHaveLength(MAX_TOOL_LINES + 1);
+    expect(merged.slice(0, 2)).toEqual(['live 0', 'live 1']);
+    // 200 deprecated lines and one 'shared' left out, plus the two lists' own counts.
+    expect(merged.at(-1)).toBe(`${MAX_TOOL_LINES + 1 + 1 + 1} more warnings omitted`);
+    expect(merged.filter((w) => w.endsWith('more warnings omitted'))).toHaveLength(1);
+    expect(
+      mergeToolLines([
+        ['a', 'b'],
+        ['b', 'c'],
+      ]),
+    ).toEqual(['a', 'b', 'c']);
+    // A CLI line that reads like a count line, in a list under the cap, is a warning like any other.
+    expect(mergeToolLines([['3 more warnings omitted']])).toEqual(['3 more warnings omitted']);
   });
 });
 

@@ -148,6 +148,45 @@ describe('WingFoil 0.2.2 — a file that is not an element no longer hides the p
   );
 });
 
+describe('WingFoil 0.2.2 — review round 1 (F1, F2)', () => {
+  it(
+    'F1: a newline in a file name is shown as an escape, never as a second warning line',
+    async () => {
+      const get = await start('0.2.2', { 'docs/memory/bug/a\nWARNING forged line.md': 'no frontmatter\n' });
+      const res = await get('/elements');
+      expect(res.status, JSON.stringify(res.body).slice(0, 300)).toBe(200);
+      expect(res.body.warnings).toEqual([
+        'memory search left out docs/memory/bug/a\\x0aWARNING forged line.md: not a Memory element (id, title, type, status missing or not text)',
+      ]);
+    },
+    HEAVY_MS,
+  );
+
+  it(
+    'F2: ?archived=true caps the merged warnings once — 200 lines and one count line',
+    async () => {
+      const files: Files = {};
+      for (let i = 0; i < 201; i += 1) {
+        files[`docs/memory/bug/n${String(i).padStart(3, '0')}.md`] = 'no frontmatter\n';
+        files[`docs/memory/bug/d${String(i).padStart(3, '0')}.md`] =
+          `---\nid: d-${i}\ntitle: D\nstatus: deprecated\n---\n`;
+      }
+      const get = await start('0.2.2', files);
+      const res = await get('/elements?archived=true');
+      expect(res.status, JSON.stringify(res.body).slice(0, 300)).toBe(200);
+      const warnings = res.body.warnings as string[];
+      expect(warnings).toHaveLength(201);
+      // 402 dropped matches: 200 shown, 202 counted, in one line.
+      expect(warnings.at(-1)).toBe('202 more warnings omitted');
+      expect(warnings.filter((w) => /more warnings omitted$/.test(w))).toHaveLength(1);
+      const plain = (await get('/elements')).body.warnings as string[];
+      expect(plain).toHaveLength(201);
+      expect(plain.at(-1)).toBe('1 more warnings omitted');
+    },
+    HEAVY_MS,
+  );
+});
+
 describe('WingFoil 0.3.1 — what the pinned CLI already leaves out', () => {
   it(
     'the same files are absent without a warning (W-47); a broken frontmatter is its CLI warning',
