@@ -363,3 +363,60 @@ consigliato" with one change):
   spec-001 §4.1) is task-073's, so only spec-008's (the ICU plural, G2) is this task's.
 - D69-1 … D69-13 accepted, minus their `state-limit` parts. The merge of the phase branch before
   this amendment: `5368b72c` (the phase branch at `7079c4b8`).
+
+### red / green / refactor (2026-11-09)
+
+Scope after W2-5: AC-1 (S-24.5, S-24.6), AC-2, AC-3, AC-5, AC-6 — no `state-limit`, no `limits`
+read (task-073).
+
+- **Merge first**: `5368b72c` (the phase branch at `7079c4b8`); the amendment `eb51f22f`.
+- **Red** (`699f3f26`): `test/server/descriptor/held-gates.test.ts` (new: the holds on the 0.3.1
+  custom sample, placement, Today counts, the D6 actor), `test/contracts/api-descriptor-schema.test.ts`
+  (new), `test/server/http/held-gates-routes.test.ts` (new), `test/contracts/held-gates-contract.test.ts`
+  (new, D69-9's held part), `test/e2e/held-gates.spec.ts` (new), the harness module
+  `test/harness/fixtures/held-gates.ts` (D69-12: `submitToReleasing`, `addReleaseLine`,
+  `releaseHeldRelease`), the `STANDARD_PACKS` oracle (`task-003`, `task-004` → Jordan,
+  `submitter`), and held cases in `test/web/element/{footer.test.ts,gate-footer.test.tsx}`,
+  `test/web/today/{model.test.ts,today.test.tsx}`, `test/web/team/model.test.ts`. `npx vitest run`
+  of the unit files: 33 tests failed on behaviour (no `approveHeld`, the approve's author as actor,
+  no `held` view or row text, the schema refusing `approveHeld`); the route file: 2 of 4 failed
+  (no `approveHeld`) — the two passing ones ("all references done", "an ignored `ui.yaml`") are
+  characterization: the old code holds nothing anywhere.
+- **Green** (`fe6105a5`): `contracts/src/descriptor.ts` (`ApproveHeld`, `HoldCondition`,
+  `HoldReason`; `ActionDescriptor.approveHeld?`), `contracts/api/descriptor.schema.json`
+  (`approveHeld`), `contracts/src/index.ts` (one export line added); `server/src/ui-config/types.ts`
+  (its `HoldCondition` is the contract's); `server/src/descriptor/descriptor.ts`
+  (`DescriptorHolds`, `DescriptorProject.holds?`, `heldOf` — kind `gate` only —, the approve
+  dropped, the D6 actor), `placement.ts` (`approveHeld` first → *Waiting on others*);
+  `server/src/http/project-routes.ts` (`ProjectRead.holds()`: the effective `holds`, the index only
+  for a `when-references-done` hold, Q4 (a)); `web/src/element/{footer.ts,ElementFooter.tsx,
+  HoldText.tsx}` (new `held` view, the gate view's `held` line), `web/src/today/{model.ts,
+  TodayView.tsx}` (`waitingWho` `held`), `web/src/team/model.ts` (`pendingGates` skips a held
+  gate), `web/src/i18n/en.json` (two keys in place); spec-008 Process Note (G2, Q5);
+  `CHANGELOG.md` *Unreleased* *Added*; `docs/user-guide.md` 0.29; `test/README.md` 0.68. Two test
+  changes in the same commit: the held rows of `today.test.tsx` moved to a test of their own (added
+  to the shared `MORGAN_TODAY` they changed the row counts of two v0.2 tests), and the route file's
+  Given steps moved into a `beforeAll` (the bug-028 rule of `test/README.md`: content made with the
+  CLI is built once, each test copies it).
+- **Deviations.** (1) `HoldText` is a module of its own (`web/src/element/HoldText.tsx`), shared by
+  the footer and Today, instead of a private helper of `ElementFooter.tsx`. (2) The process audit
+  of the test plan is an assertion of the route file (a cold `/elements` with the preset: at most 6
+  CLI processes, one `git ls-tree`), not a new case of `process-audit.test.ts`. (3) D69-9's
+  variant is its own file, `test/contracts/held-gates-contract.test.ts`, on the pinned CLI only.
+- **Local checks** (on `fe6105a5`): `npm run typecheck`, `npm run lint`, `npm run format:check`,
+  `npm run docs:api` clean; `check_tasks.py v0.3` OK (28 tasks); `npx vitest run test/docs
+  test/lint test/web test/governance` and the schema files: 75 files, 1 351 tests passed (the one
+  failure before the commit was `workflow-diagnostics`' `W_UNCOMMITTED_INPUTS` on the edited
+  spec-008, gone once committed: 4 passed); the strict-identity recipe (a `git` wrapper first on
+  the `PATH` with `-c user.useConfigOnly=true` and the `followRemoteHEAD` emulation, outside the
+  repository) on `test/server/http/held-gates-routes.test.ts test/server/descriptor`: 5 files, 90
+  tests passed (load 8.99); `npx vitest run test/docs/public-text.test.ts` before the push: 67
+  passed.
+- **Heavy gates on `gates.yml`** — run `42586890285` on `fe6105a5` (the push of the task branch,
+  `task` scope): **success** — `checks`, `contract` (with `held-gates-contract` and the
+  `STANDARD_PACKS` oracle of D6), `coverage` (220 files passed, 1 skipped; statements 96.62 %,
+  branches 91.39 %, functions 97.27 %, lines 98.4 %), `e2e-chromium` (2 shards), `own-specs
+  (firefox)` and `own-specs (webkit)` (`test/e2e/held-gates.spec.ts`: 2 passed each), `smoke`,
+  `publish-smoke`; `e2e-wave` skipped (task scope). No Playwright or coverage run locally.
+- **Refactor**: no code change after green — the review of the diff found nothing to simplify
+  beyond the two test moves already in `fe6105a5`; this note is the only commit after it.
