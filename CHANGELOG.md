@@ -64,8 +64,8 @@ release `v0.2` the git tag `v0.2.0` and the npm version `wingfoil-ui@0.2.0`.
 - **Why WingFoil refused, in the refusal toast** (task-070; spec-004 §5): when WingFoil 0.3.x
   refuses an action with its reasons — a submit from a state that waits for an approval, for
   example — the refusal toast shows them under WingFoil's message, one line each, as WingFoil
-  wrote them (the local folders shown as `<project>`, `<wingfoil>`, `~`, control and bidi
-  characters as visible escapes); the API's `cli-refused` answer carries them as
+  wrote them (the local folders shown as `<project>`, `<repository>`, `<wingfoil>`, `~`, the
+  credentials of a URL removed, control and bidi characters as visible escapes); the API's `cli-refused` answer carries them as
   `detail.reasons`. A refusal of WingFoil 0.2.2, which gives no reasons, is shown as before.
 
 ### Changed
@@ -166,8 +166,9 @@ release `v0.2` the git tag `v0.2.0` and the npm version `wingfoil-ui@0.2.0`.
   `memory search` fail with no list and without naming the file, so the Memory list, the element
   panel, Today and the notification bell answer an internal error. The console has no list to
   show. Find the file by running `wingfoil memory search` in the project (WingFoil prints the YAML
-  error and the lines around it), fix its frontmatter, or move the project to WingFoil 0.3.1, which lists the other
-  elements and names the file (`W_MEMORY_UNREADABLE`), shown in the Memory list's notice.
+  error and the lines around it), fix its frontmatter, or move the project to WingFoil 0.3.1,
+  which lists the other elements and names the file (`W_MEMORY_UNREADABLE`), shown in the Memory
+  list's notice.
 
 ## [0.2.0] - 2026-10-20
 

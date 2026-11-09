@@ -276,7 +276,7 @@ file. The AC's own exit applies: a declared limitation, decided by the approver 
 | AC-2 | the toast shows the reasons, one line each, after the message; a 0.2.2 body unchanged | **red** | `test/web/shell/refusal-reasons.test.tsx` |
 | AC-3 | docs | — | review |
 | AC-4 | gates | — | below |
-| AC-5 | real 0.2.2: a broken frontmatter → `memory search` exit 2 → `/elements` 500 `internal`, logged as a usage error (the declared limitation pinned, so a WingFoil or adapter change shows) | characterization of the limitation (if D70-9 (a)); **red** if (b) | `test/server/http/dropped-matches.test.ts` |
+| AC-5 | real 0.2.2: a broken frontmatter → `memory search` exit 2 → `/elements` 500 `internal` (the declared limitation pinned, so a WingFoil or adapter change shows) | characterization of the limitation (if D70-9 (a)); **red** if (b) | `test/server/http/dropped-matches.test.ts` |
 
 Strict identity: the real-CLI suites (`dropped-matches`, `refusal-reasons`) commit on fixtures, so
 they also run under the recipe of `test/README.md` *Git identity* (dl-011) before each push.
@@ -493,3 +493,23 @@ Run `42605688273` on `7e50206c` (round 3's nits) — **success**, every job, `e2
 two version lines reconciled — `docs/user-guide.md` 0.29 (task-069) then **0.30** (this task's
 entry), `test/README.md` 0.68 (task-069) then **0.69** (this task's entry). `npm run typecheck`,
 `npm run lint`, `npx prettier --check` on the merged files and `npm run docs:api` clean.
+
+Tip run `42619591745` on `40fe4685` (this merge and its notes) — **success**, every job,
+`e2e-wave` skipped. W0-7's re-run after the merge, by the independent checker in its own detached
+worktree at `40fe4685` under the strict-identity recipe: `npm run typecheck`, `npm run lint`,
+`npm run format:check`, `npm run docs:api` exit 0; `check_tasks.py v0.3` OK; `npx vitest run`
+on `test/docs`, `test/governance`, `test/wingfoil-feedback.test.ts`, the five new suites,
+`test/server/cli/`, `tool-messages`, `text-sweep`, `api-writes-schema`, `schemas`, `redact`,
+`project-routes`, `harness/git-identity`, `web/api/error-message` — 27 files, 682 passed.
+
+### checker (2026-11-09)
+
+On `40fe4685`: **READY**. Every AC's evidence holds; the red commits `b6ca4b8a` (35 failed, 13
+passed), `9088daf3` (3 + 2 failed) and `4037dc94` (2 + 1 failed) re-run, failing on behaviour;
+rounds 1–3 PASS; the ten run ids on their commits (`42587575794` cancelled as noted, the others
+success); the reconcile with task-069 and no conflict marker; frontmatter, versions, public text.
+G-1 (this run and the re-run above not recorded) fixed here. N-2 the CHANGELOG entry names
+`<repository>` and the URL credentials; N-3 the bug-036 entry rewrapped; N-4 the AC-5 row of the
+test plan no longer claims a log assertion — all fixed in this commit. N-1 (the bugs' notes) comes
+with their close notes at done; N-5 the identity note of the design is already recorded (W2-5);
+N-6 the phase branch's later status commits merged next.
