@@ -420,3 +420,28 @@ read (task-073).
   `publish-smoke`; `e2e-wave` skipped (task scope). No Playwright or coverage run locally.
 - **Refactor**: no code change after green — the review of the diff found nothing to simplify
   beyond the two test moves already in `fe6105a5`; this note is the only commit after it.
+
+### review round 1 (2026-11-09, security-adversarial: PASS; two minor findings, four nits)
+
+Relayed by the coordinator; the branch at `58780894` (the phase branch merged after `de434555`).
+
+| Finding | Fix | Test |
+|---------|-----|------|
+| **F1 (minor)** — a held gate whose only reject leads into the archived set (not offered, spec-003 §9) had no verb left: `footerView` answered `none`, so no footer at all (the reviewer's probe: an `adr` with `gates: {proposed: {reject: deprecated}}`, `holds` `never`, an approver) | `footerView` answers the `held` line view when `approveHeld` is set and no gate verb is left (`web/src/element/footer.ts`) | red first (`f94bce79`): `test/web/element/footer.test.ts` › "review F1 — a held gate with no gate verb left …" |
+| **F2 (minor)** — `POST …/approve` on a held gate still runs `memory approve` | none: decision **D69-14** below | — |
+| F3 (nit) — the D6 comment said "the submit that reached the gate" | the comment says the last submit before that approve (AC-3's wording) | — (comment only) |
+| F4 (nit) — the schema accepted `condition: never` with a `held-until-references-done` reason | `approveHeld` is a `oneOf` of the two pairs (condition with its reason code) in `descriptor.schema.json`; `ApproveHeld` in `contracts/src/descriptor.ts` is the same union | red first (`f94bce79`): `test/contracts/api-descriptor-schema.test.ts` › "refuses never with a counted reason", "refuses when-references-done with held-by-config" |
+| F5 (nit, a11y) — the hold line was not in the rejects' accessible description | the line has an id and leads each reject's `aria-describedby`, before the blank-reason hint or the blocked reason | red first (`f94bce79`): `test/web/element/gate-footer.test.tsx` › "review F5 — the hold line describes each reject …" |
+| F6 (nit) — the catalogue text refines spec-008 §4 | none: accepted as is, the spec-008 Process Note of 2026-11-09 records the refinement | — |
+
+- **D69-14 — no server-side hold on the write routes (F2).** A hold withdraws the console's
+  *offer* of *Approve* only; the CLI is untouched and stays the authority (spec-005 §4a: "the hold
+  is the console's, not WingFoil's"). `POST /api/p/:pid/elements/:eid/approve` therefore adds no
+  guard: a stale page or a direct API call can still approve a held gate, exactly as `memory
+  approve` from a terminal would (design probe P4).
+
+Gates of round 1 (on `9e908c6a`): `npm run typecheck`, `npm run lint`, `npm run format:check`,
+`npm run docs:api` clean; `npx vitest run test/web/element test/web/today test/web/team
+test/web/i18n test/server/descriptor test/contracts/api-descriptor-schema.test.ts`: 276 tests
+passed; the strict-identity recipe on `test/server/http/held-gates-routes.test.ts`: 4 passed (load
+8.45).
