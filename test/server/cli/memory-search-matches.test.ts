@@ -7,6 +7,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { CliOutputError, cliErrorEnvelope, WingfoilCli } from '../../../server/src/cli/adapter.js';
 import { MAX_TOOL_LINES, mergeToolLines } from '../../../server/src/cli/commands.js';
+import { MAX_MESSAGE } from '../../../server/src/git/redact.js';
 import { FakeProcessRunner } from '../process/fake-runner.js';
 
 const CLI = { source: 'project' as const, projectRoot: '/p', file: process.execPath, prefixArgs: ['/x/cli.js'] };
@@ -134,25 +135,40 @@ describe('review round 1 (F1, F5, F2)', () => {
     ]);
   });
 
-  it('F2: lists merged once more under one cap and one count line, each text once', () => {
-    const capped = (prefix: string, n: number) => [
-      ...Array.from({ length: MAX_TOOL_LINES }, (_, i) => `${prefix} ${i}`),
-      `${n} more warnings omitted`,
-    ];
-    const merged = mergeToolLines([capped('live', 1), capped('deprecated', 1), ['shared', 'shared']]);
-    expect(merged).toHaveLength(MAX_TOOL_LINES + 1);
-    expect(merged.slice(0, 2)).toEqual(['live 0', 'live 1']);
-    // 200 deprecated lines and one 'shared' left out, plus the two lists' own counts.
-    expect(merged.at(-1)).toBe(`${MAX_TOOL_LINES + 1 + 1 + 1} more warnings omitted`);
-    expect(merged.filter((w) => w.endsWith('more warnings omitted'))).toHaveLength(1);
+  it('F2, R2-F1: the searches merged under one cap and one count line, each text once, counted once', () => {
+    const lines = (prefix: string, n: number) => Array.from({ length: n }, (_, i) => `${prefix} ${i}`);
+    // Each search's dropped matches are all known: counted exactly, each text once.
+    const dropped = mergeToolLines([
+      { stderr: [], stderrOmitted: 0, dropped: lines('live', 201) },
+      { stderr: [], stderrOmitted: 0, dropped: [...lines('deprecated', 201), 'live 0'] },
+    ]);
+    expect(dropped).toHaveLength(MAX_TOOL_LINES + 1);
+    expect(dropped.slice(0, 2)).toEqual(['live 0', 'live 1']);
+    expect(dropped.at(-1)).toBe('202 more warnings omitted');
+    // The searches repeat one scan's stderr (R2-F1): its cut is counted once, not once per search.
+    const scan = { stderr: lines('W_MEMORY_UNREADABLE', MAX_TOOL_LINES), stderrOmitted: 50, dropped: [] };
+    expect(mergeToolLines([scan]).at(-1)).toBe('50 more warnings omitted');
+    const archived = mergeToolLines([scan, scan, scan]);
+    expect(archived).toHaveLength(MAX_TOOL_LINES + 1);
+    expect(archived.at(-1)).toBe('50 more warnings omitted');
+    expect(archived.filter((w) => w.endsWith('more warnings omitted'))).toHaveLength(1);
+    // Stderr first, then the dropped matches; a CLI line that reads like a count line is a warning.
     expect(
       mergeToolLines([
-        ['a', 'b'],
-        ['b', 'c'],
+        { stderr: ['a', '3 more warnings omitted'], stderrOmitted: 0, dropped: ['x'] },
+        { stderr: ['a', 'b'], stderrOmitted: 0, dropped: ['x', 'y'] },
       ]),
-    ).toEqual(['a', 'b', 'c']);
-    // A CLI line that reads like a count line, in a list under the cap, is a warning like any other.
-    expect(mergeToolLines([['3 more warnings omitted']])).toEqual(['3 more warnings omitted']);
+    ).toEqual(['a', '3 more warnings omitted', 'b', 'x', 'y']);
+  });
+
+  it('R2-F2: a dropped-match line stays within 4 000 characters after its escapes', async () => {
+    const long = { path: `docs/memory/bug/${'\n'.repeat(3_000)}.md`, tags: [] };
+    const { cli } = cliAnswering(search([long, VALID]));
+    const out = await cli.run('memory search');
+    expect(out.warnings).toHaveLength(1);
+    expect(out.warnings[0]!.length).toBeLessThanOrEqual(MAX_MESSAGE);
+    expect(out.warnings[0]).not.toMatch(/\n/);
+    expect(out.warnings[0]).toMatch(/^memory search left out docs\/memory\/bug\/\\x0a/);
   });
 });
 

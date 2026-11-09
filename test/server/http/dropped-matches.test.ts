@@ -187,6 +187,27 @@ describe('WingFoil 0.2.2 — review round 1 (F1, F2)', () => {
   );
 });
 
+describe('WingFoil 0.3.1 — review round 2 (R2-F1)', () => {
+  it(
+    '250 frontmatters that do not parse: 200 warnings and "50 more warnings omitted" on both routes',
+    async () => {
+      const files: Files = {};
+      for (let i = 0; i < 250; i += 1)
+        files[`docs/memory/bug/broken-${String(i).padStart(3, '0')}.md`] = '---\nid: [unclosed\ntype: bug\n---\n';
+      const get = await start('0.3.1', files);
+      for (const url of ['/elements', '/elements?archived=true']) {
+        const res = await get(url);
+        expect(res.status, url).toBe(200);
+        const warnings = res.body.warnings as string[];
+        expect(warnings, url).toHaveLength(201);
+        expect(warnings.at(-1), url).toBe('50 more warnings omitted');
+        expect(new Set(warnings).size, url).toBe(201);
+      }
+    },
+    HEAVY_MS,
+  );
+});
+
 describe('WingFoil 0.3.1 — what the pinned CLI already leaves out', () => {
   it(
     'the same files are absent without a warning (W-47); a broken frontmatter is its CLI warning',
