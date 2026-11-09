@@ -379,7 +379,8 @@ read (task-073).
   `submitter`), and held cases in `test/web/element/{footer.test.ts,gate-footer.test.tsx}`,
   `test/web/today/{model.test.ts,today.test.tsx}`, `test/web/team/model.test.ts`. `npx vitest run`
   of the unit files: 33 tests failed on behaviour (no `approveHeld`, the approve's author as actor,
-  no `held` view or row text, the schema refusing `approveHeld`); the route file: 2 of 4 failed
+  no `held` view or row text, the schema refusing `approveHeld` — only its two accept cases fail on the schema, the other nine
+  in the test's mutator, since no `approveHeld` is built yet: the checker's N1); the route file: 2 of 4 failed
   (no `approveHeld`) — the two passing ones ("all references done", "an ignored `ui.yaml`") are
   characterization: the old code holds nothing anywhere.
 - **Green** (`fe6105a5`): `contracts/src/descriptor.ts` (`ApproveHeld`, `HoldCondition`,
@@ -449,3 +450,30 @@ passed; the strict-identity recipe on `test/server/http/held-gates-routes.test.t
 `coverage` (statements 96.65 %, branches 91.42 %, functions 97.37 %, lines 98.4 %),
 `e2e-chromium` (2 shards), `own-specs` on Firefox and WebKit, `smoke`, `publish-smoke`;
 `e2e-wave` skipped.
+
+### review round 2 (2026-11-09)
+
+The same adversarial reviewer on `4f63ec10`: **PASS**, no finding. F1 re-probed at HEAD (the held
+line for an approver and a non-approver, under `never` and `when-references-done`); F3, F4, F5
+closed; red `f94bce79` 4 failed on behaviour; no regression (`test/web/element`, `test/web/today`,
+`test/web/team`, `test/server/descriptor`, the contract schema tests: 18 files, 271 passed; three
+more schema files 146 passed; typecheck and lint clean).
+
+Runs on the branch not recorded above, all `gates.yml` `push`, task scope, every job success and
+`e2e-wave` skipped (recorded by the coordinator, from `gh run view`):
+
+- `42588547117` on `cc52df72` (the Execution Notes after green);
+- `42590153711` on `58780894` (the coordinator's merge of the phase branch, reviewed in round 1);
+- `42595075745` on `4f63ec10` (the tip with code; `held-gates.spec.ts` 2 passed on Firefox and on
+  WebKit).
+
+### checker (2026-11-09)
+
+On `4f63ec10`: every AC, the red commits `699f3f26` (35 failed, 176 passed) and `f94bce79` (4
+failed) re-run in a detached worktree, the five run ids, the local checks (95 files, 1775 tests
+passed), `check_tasks.py v0.3` OK, the frontmatter. NOT READY only on the notes: round 2 and the
+runs above missing (G1, G2), and the empty phase commit `565a8a39` not merged (G3) — all fixed by
+the coordinator in this commit and the merge before it. Nits: N1 corrected above; N2 the
+CHANGELOG wording aligned with AC-3 ("the last submit before that approve"), the test title in
+`test/server/descriptor/held-gates.test.ts` left with the older phrase (same behaviour); N3 the
+approver's words quoted in Italian, as other task files do.

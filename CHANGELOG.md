@@ -21,7 +21,7 @@ release `v0.2` the git tag `v0.2.0` and the npm version `wingfoil-ui@0.2.0`.
   is still accepted by the CLI.
 - **The actor after an approve** (task-069, spec-003 §4, RP3-14 D6): an element in a working state
   that an `approve` entered — a task approved into `backlog` — is the work of the member who made
-  the submit that reached the gate, no longer of the approver ("Jordan (submitter) must act"); a
+  the last submit before that approve, no longer of the approver ("Jordan (submitter) must act"); a
   submitter who is not in the team gives the tech-lead fallback, as every other rule does.
 - **A draft GitHub Release for every tagged version** (task-052): the publish workflow's `release`
   job creates it after `promote`, with the version's CHANGELOG section as notes and, as assets, the
