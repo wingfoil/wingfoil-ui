@@ -185,7 +185,9 @@ file. The AC's own exit applies: a declared limitation, decided by the approver 
   (a), `serialise.ts`'s table; no second rule). The archived searches are the same command and get
   the same rule (Q-2). *Review round 1 F1, F5:* a newline, carriage return or tab of the path is
   written as `\x0a`, `\x0d`, `\x09` after the sanitiser, so one dropped match is one line; `tags`
-  is named as a list (`tags missing or not a list of text`).
+  is named as a list (`tags missing or not a list of text`). *Review round 3 R3-n1:* every list of
+  tool messages the adapter passes on — the warnings of any command, the `/config` sections' too —
+  shows each text once (`mergeToolLines`).
 - **D70-4 — `/elements?archived=true` carries the archived searches' warnings too**, after the live
   one's, de-duplicated by text (today it carries the live search's only, so a dropped archived match
   would vanish without a word; 0.2.2 and 0.3.1 repeat their stderr warnings on each search). The
@@ -467,3 +469,18 @@ On `gates.yml`: run `42600944684` (the push of `e3128d36`, round 2's code and do
 97.28 %, lines 98.4 %), `contract` (17 files passed, 1 skipped), `e2e-chromium` (162 and 161
 passed), `own-specs (firefox)` and `own-specs (webkit)`, `smoke`, `publish-smoke`; `e2e-wave`
 skipped (task scope).
+
+### review round 3 (2026-11-09) — PASS, three nits
+
+Review on `405531d3`. Runs: `42600944684` (`e3128d36`, round 2's code and docs) and `42603087138`
+(`405531d3`, the tip before this round) — both **success**, every job, `e2e-wave` skipped.
+
+| # | Nit | What was done |
+|---|-----|---------------|
+| R3-n1 | The adapter sends every command's `stderr` warnings through `mergeToolLines`, so each text once now holds for every command (the `/config` sections too), not only `/elements` | Kept; stated generally in D70-3 and the spec-004 §5 Process Note |
+| R3-n2 | `cap`'s JSDoc sat above `capMessage` in `server/src/git/redact.ts` | Moved back to `cap`; `capMessage` has a one-line doc of its own |
+| R3-n3 | On a path over 4 000 characters, the sanitiser's own cut marker shows as a literal `\x0a…\x0a` | Accepted: the line stays one line and capped; noted here only |
+
+Checks of round 3 (local): `npm run typecheck`, `npm run lint`, `npm run format:check`, `npm run
+docs:api` clean; `check_tasks.py v0.3` OK; `npx vitest run test/server/git/redact.test.ts
+test/server/cli/ test/docs/public-text.test.ts` — 11 files, 313 passed.

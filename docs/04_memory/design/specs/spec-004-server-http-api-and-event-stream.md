@@ -515,7 +515,9 @@ goes away by itself when the stream reconnects. A network failure is not rendere
   `author.email`, else `user.email`, SARD REQ-STATE-05), in place of `user.email` alone.
 - 2026-11-09 — amended in development (task-070 design D70-4, D70-5, D70-6, D70-12, plan
   backlog-item-rel-v0.3-plan W2-5; decided by the approver, "tutto come consigliato"): §5 the
-  `warnings` of `/elements?archived=true` carry the archived searches' warnings too; the `warnings`
+  `warnings` of `/elements?archived=true` carry the archived searches' warnings too; every list of
+  tool messages a body carries (a CLI output's `warnings`, the `/config` sections' included) shows
+  each text once (review round 3 R3-n1); the `warnings`
   of `/elements`, with or without `?archived=true`, hold each text once, at most 200 and one count
   line (review round 1 F2, F4) — the archived searches repeat the live search's `stderr` (one scan of
   the Memory folders), so what their `stderr` left out is counted once, the most any of them left
