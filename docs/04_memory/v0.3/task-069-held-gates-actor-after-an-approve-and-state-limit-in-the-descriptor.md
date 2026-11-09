@@ -64,11 +64,12 @@ renumbered; AC-6 is new.
 - **US-S-24** (AC-1; task-055's former AC-1) — every `@v0.3` scenario passes
   (`docs/02_requirements/02_bdd/features/s/action-descriptor.feature`): S-24.5 Hold a gate whose
   approval is made outside the console; S-24.6 Hold a gate until the elements that reference it
-  are done; S-24.7 Disable a move into a state at its limit. e2e on the custom fixture on WingFoil
-  0.3 (S-24.5, S-24.6 with the sw-life-cycle preset's `holds`, spec-005 §5; the fixture Given steps
-  accepted at RP3-16 P4), asserting what the user sees: the *Waiting on others* text, the footer's
-  line, the absent *Approve*, the disabled *Submit* with its reason as accessible description. The
-  `@v0.2` scenarios S-24.1 … S-24.4 still pass.
+  are done; S-24.7 Disable a move into a state at its limit — delivered by
+  task-073-state-limit-in-the-descriptor (W2-5). e2e on the custom fixture on WingFoil 0.3 (S-24.5,
+  S-24.6 with the sw-life-cycle preset's `holds`, spec-005 §5; the fixture Given steps accepted at
+  RP3-16 P4), asserting what the user sees: the *Waiting on others* text, the footer's line, the
+  absent *Approve*. The `@v0.2` scenarios S-24.1 … S-24.4 still pass. (amended 2026-11-09, W2-5:
+  S-24.7 and its disabled *Submit* moved to task-073.)
 - **AC-2** (former AC-4) — Held gates (spec-005 §4a, spec-003 §3, §5, §8): for each `holds` value,
   `approve` not offered and `reject` offered to `approver` holders; the output `approveHeld` with
   `{ code: "held-by-config" }` or `{ code: "held-until-references-done", count }` in
@@ -82,23 +83,22 @@ renumbered; AC-6 is new.
   whose last move in is an `approve` names the author of the last `submit` before it; the other
   `work` rows and `amend` events (task-048 D48-6) unchanged; a Today test where a task approved
   into `backlog` is in its submitter's *Requires you* and not in the approver's.
-- **AC-4** (former AC-6) — `state-limit` (spec-003 §6 rule 5, D11, F4): for `submit` and `approve`
-  only — a `reject` (or `park`) into a full state stays enabled; counted over the non-archived
-  elements of `memory search`; the reason `state-limit {state, limit}` in the descriptor schema; a
-  refusal of the CLI where the approximation differs still answers 422 `cli-refused` with its
-  toast.
-- **AC-5** (former AC-7) — Catalogue and screens: keys for `held-by-config`,
-  `held-until-references-done {count}` (plural) and `state-limit {state, limit}` with the texts of
-  spec-008 (P3; a refined text recorded in spec-008 with a dated Process Note); every string from
+- **AC-4** — moved to task-073-state-limit-in-the-descriptor (W2-5). (amended 2026-11-09, W2-5:
+  `state-limit` split from this task.)
+- **AC-5** (former AC-7) — Catalogue and screens: keys for `held-by-config` and
+  `held-until-references-done {count}` (plural) with the texts of spec-008 (P3; a refined text recorded in spec-008 with a dated Process Note); every string from
   the catalogue (X-09.1). The gate footer of a held gate as `docs/00_reference/ux-reference.md`
   §4.2 *v0.3 held gate*: an `approver` holder keeps the reason field, each *Reject → <state>* and
   *Cancel*; any other member sees the line only. Keyboard path and axe-core 0 serious/critical in
   both themes on the changed footer and row; the e2e spec on Chromium, Firefox and WebKit.
+  (amended 2026-11-09, W2-5: the `state-limit` key and text moved to task-073.)
 - **AC-6** — Docs and gates: spec-003, spec-005 and spec-008 hold as written, or are amended in
   place with a dated Process Note where the design deviates (after the coordinator's OK);
   `CHANGELOG.md` *Unreleased* *Added*; the checks of `CLAUDE.md` *Checks before handing work back*
   (as the dev rules of Wave 2 run them, W1-10), `npm run docs:api` and `check_tasks.py v0.3`, with
-  their commands and results in the Execution Notes.
+  their commands and results in the Execution Notes. (amended 2026-11-09, W2-5: the `state-limit`
+  docs — spec-003 §6 rule 5, the `limits` read of spec-001 §4.1 and the `state-limit` catalogue
+  text — are task-073's.)
 
 ## Implementation Notes
 
@@ -341,3 +341,25 @@ days**, above RP3-20 G2's one day (Q1).
   this design.
 
 Blockers: none outside these questions; red waits for the coordinator.
+
+### design approved (2026-11-09, W2-5)
+
+Relayed by the coordinator (`backlog-item-rel-v0.3-plan` W2-5, the approver "tutto come
+consigliato" with one change):
+
+- **Q1 (b)** — split: `state-limit` moved to task-073-state-limit-in-the-descriptor (`5f3d1924`,
+  `pending`, after this task) — this task's AC-4 and the S-24.7 parts of AC-1, AC-5 and AC-6, D69-6,
+  D69-7, the `state-limit` parts of D69-8 and D69-9, probe P3 as its starting point. This task keeps
+  the held gates, the actor after an approve and their screens. The ACs above are amended with
+  dated notes. The title still says "and state limit": the id cannot change, so the title is left
+  as it is.
+- **Q2 (a)** — a submitter who is not a member gets spec-003 §4's tech-lead fallback; G3 (agents
+  submit as non-members, so a task approved into `backlog` shows the fallback) is a known effect,
+  recorded in W2-5.
+- **Q3 (a)** — a held gate stays in the *To approve* bucket.
+- **Q4 (a)** — the index is built whenever the effective `holds` has a `when-references-done`
+  entry.
+- **Q5** — the Process Notes are written in the green commit; the lenient `limits` read (D69-6,
+  spec-001 §4.1) is task-073's, so only spec-008's (the ICU plural, G2) is this task's.
+- D69-1 … D69-13 accepted, minus their `state-limit` parts. The merge of the phase branch before
+  this amendment: `5368b72c` (the phase branch at `7079c4b8`).
