@@ -461,3 +461,9 @@ and `test/wingfoil-feedback.test.ts` passed. Under the strict-identity recipe: `
 `test/server/http/`, `tool-messages`, `test/server/snapshot`, `test/server/writes`,
 `harness/git-identity`, `api-cli-refusal-schema`, `api-writes-schema`, `test/web/memory`,
 `test/web/shell` — 55 files, 1 121 passed.
+
+On `gates.yml`: run `42600944684` (the push of `e3128d36`, round 2's code and docs) — **success**:
+`checks`, `coverage` (221 files passed, 1 skipped; statements 96.64 %, branches 91.37 %, functions
+97.28 %, lines 98.4 %), `contract` (17 files passed, 1 skipped), `e2e-chromium` (162 and 161
+passed), `own-specs (firefox)` and `own-specs (webkit)`, `smoke`, `publish-smoke`; `e2e-wave`
+skipped (task scope).
