@@ -247,8 +247,8 @@ function actorOf(kind: StateKind, status: string, moves: readonly DescriptorEven
       }
       const into = moves.findLastIndex((e) => e.to === status);
       if (moves[into]?.operation === 'approve') {
-        // RP3-14 D6: the submit that reached the gate the approve left (a task approved into
-        // `backlog` is its submitter's); with no such submit, the approve's author.
+        // RP3-14 D6 (AC-3): the author of the last submit before that approve (a task approved
+        // into `backlog` is its submitter's); with no submit before it, the approve's author.
         const submit = moves.slice(0, into).findLast((e) => e.operation === 'submit');
         if (submit) return team.memberOrFallback(submit.author, 'submitter');
       }

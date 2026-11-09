@@ -41,12 +41,13 @@ export type HoldCondition = 'never' | 'when-references-done';
  */
 export type HoldReason = { code: 'held-by-config' } | { code: 'held-until-references-done'; count: number };
 
-/** The hold of a held gate (spec-003 §3, §8; v0.3, RP3-14 D5). */
-export interface ApproveHeld {
-  /** The `holds` value in force for the element's type and state. */
-  condition: HoldCondition;
-  reason: HoldReason;
-}
+/**
+ * The hold of a held gate (spec-003 §3, §8; v0.3, RP3-14 D5): the `holds` value in force for the
+ * element's type and state, and its reason — the code follows the condition.
+ */
+export type ApproveHeld =
+  | { condition: 'never'; reason: { code: 'held-by-config' } }
+  | { condition: 'when-references-done'; reason: { code: 'held-until-references-done'; count: number } };
 
 /** One verb of spec-003 §3. */
 export interface DescriptorVerb {

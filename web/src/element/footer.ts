@@ -73,6 +73,9 @@ export function footerView(descriptor: ActionDescriptor, header: ProjectHeader):
   }
   const gate = descriptor.verbs.filter(isGateVerb);
   const engine = descriptor.actor.kind === 'engine';
+  const held = descriptor.approveHeld?.reason;
+  // A held gate whose only reject leads into the archived set (not offered) keeps its line (review F1).
+  if (held && gate.length === 0) return { kind: 'held', reason: held };
   if (gate.length === 0) {
     const submit = descriptor.verbs.find((v) => v.verb === 'submit');
     if (submit) {
@@ -89,7 +92,6 @@ export function footerView(descriptor: ActionDescriptor, header: ProjectHeader):
     return { kind: 'none' };
   }
   const missing = gate.find((v) => v.role !== null && !identity.roles.includes(v.role));
-  const held = descriptor.approveHeld?.reason;
   if (held && missing) return { kind: 'held', reason: held };
   if (missing?.role) {
     const members = descriptor.actor.kind === 'role' ? descriptor.actor.members : undefined;

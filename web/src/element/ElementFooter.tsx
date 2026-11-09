@@ -374,6 +374,7 @@ function GateFooter({
   const titleId = useId();
   const hintId = useId();
   const blockedId = useId();
+  const heldId = useId();
   const blank = isBlank(reason);
 
   useEffect(() => {
@@ -410,7 +411,7 @@ function GateFooter({
         <FormattedMessage id="element.gate.title" />
       </h3>
       {view.held && (
-        <p className="gate-hint gate-held">
+        <p id={heldId} className="gate-hint gate-held">
           <HoldText reason={view.held} />
         </p>
       )}
@@ -453,7 +454,9 @@ function GateFooter({
       <div className="gate-actions">
         {view.outcomes.map((o) => {
           const disabled = !o.enabled || blank || busy || decided;
-          const describedBy = !o.enabled && blockedText ? blockedId : blank ? hintId : undefined;
+          const reasonId = !o.enabled && blockedText ? blockedId : blank ? hintId : undefined;
+          // A held gate's line describes each reject too (review F5).
+          const describedBy = [view.held ? heldId : undefined, reasonId].filter(Boolean).join(' ') || undefined;
           return (
             // A native button: React Aria's Button drops the focus when disabled (D37-3).
             <button

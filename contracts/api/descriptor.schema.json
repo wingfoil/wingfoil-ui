@@ -50,16 +50,16 @@
       }
     },
     "approveHeld": {
-      "description": "Set on a held gate (v0.3, spec-003 §3, §8; spec-005 §4a): verbs then holds no approve.",
-      "type": "object",
-      "required": ["condition", "reason"],
-      "properties": {
-        "condition": {
-          "enum": ["never", "when-references-done"]
-        },
-        "reason": {
-          "oneOf": [
-            {
+      "description": "Set on a held gate (v0.3, spec-003 §3, §8; spec-005 §4a): verbs then holds no approve. The reason code follows the condition.",
+      "oneOf": [
+        {
+          "type": "object",
+          "required": ["condition", "reason"],
+          "properties": {
+            "condition": {
+              "const": "never"
+            },
+            "reason": {
               "type": "object",
               "required": ["code"],
               "properties": {
@@ -68,8 +68,18 @@
                 }
               },
               "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["condition", "reason"],
+          "properties": {
+            "condition": {
+              "const": "when-references-done"
             },
-            {
+            "reason": {
               "type": "object",
               "required": ["code", "count"],
               "properties": {
@@ -83,10 +93,10 @@
               },
               "additionalProperties": false
             }
-          ]
+          },
+          "additionalProperties": false
         }
-      },
-      "additionalProperties": false
+      ]
     },
     "actor": {
       "type": "object",
