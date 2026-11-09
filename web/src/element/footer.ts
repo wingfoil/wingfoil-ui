@@ -13,8 +13,18 @@
  * 3. a gate verb whose role the member does not hold → informational (G-09.x, REQ-SEC-07, D37-6);
  * 4. otherwise the gate footer: every outcome, approve first (D37-2), each with the descriptor's
  *    enablement, and the engine note of a state that is both a gate and a waiting state (S-24.4).
+ *
+ * A held gate (`approveHeld`, v0.3; spec-003 §3, ux-reference §4.2 v0.3 held gate) has no approve:
+ * after rule 1, a member holding the reject's role gets the gate footer with the hold's line; any
+ * other member gets the line only (S-24.5, S-24.6).
  */
-import type { ActionDescriptor, DescriptorVerb, DisabledReason, ProjectHeader } from '@wingfoil-ui/contracts';
+import type {
+  ActionDescriptor,
+  DescriptorVerb,
+  DisabledReason,
+  HoldReason,
+  ProjectHeader,
+} from '@wingfoil-ui/contracts';
 import { joinEmail } from '../project/join.js';
 
 /** A verb of the gate footer. */
@@ -45,8 +55,10 @@ export type FooterView =
   | { kind: 'submit'; to: string; enabled: boolean; reason?: DisabledReason }
   /** The gate's role is not the member's: who can act. `members` is absent when unknown. */
   | { kind: 'reserved'; role: string; members?: string[]; engineAdvance: boolean }
-  /** Every outcome, approve first. */
-  | { kind: 'gate'; outcomes: GateOutcome[]; approve: boolean; engineAdvance: boolean };
+  /** A held gate for a member who cannot reject it: the hold's line only. */
+  | { kind: 'held'; reason: HoldReason }
+  /** Every outcome, approve first; `held` the hold's line of a held gate (no approve then). */
+  | { kind: 'gate'; outcomes: GateOutcome[]; approve: boolean; engineAdvance: boolean; held?: HoldReason };
 
 function isGateVerb(v: DescriptorVerb): v is DescriptorVerb & { verb: GateVerb } {
   return v.verb === 'approve' || v.verb === 'reject';
@@ -77,6 +89,8 @@ export function footerView(descriptor: ActionDescriptor, header: ProjectHeader):
     return { kind: 'none' };
   }
   const missing = gate.find((v) => v.role !== null && !identity.roles.includes(v.role));
+  const held = descriptor.approveHeld?.reason;
+  if (held && missing) return { kind: 'held', reason: held };
   if (missing?.role) {
     const members = descriptor.actor.kind === 'role' ? descriptor.actor.members : undefined;
     return {
@@ -94,7 +108,13 @@ export function footerView(descriptor: ActionDescriptor, header: ProjectHeader):
       ...(v.reason ? { reason: v.reason } : {}),
     }),
   );
-  return { kind: 'gate', outcomes, approve: outcomes.some((o) => o.verb === 'approve'), engineAdvance: engine };
+  return {
+    kind: 'gate',
+    outcomes,
+    approve: outcomes.some((o) => o.verb === 'approve'),
+    engineAdvance: engine,
+    ...(held ? { held } : {}),
+  };
 }
 
 /** Whether `reason` is empty for the CLI: nothing but whitespace (G-07.2). */

@@ -4,7 +4,7 @@
  * Everything is read from `GET /api/p/:pid/today` and the project header as data — placement, order,
  * actor, tone and action come from the server and are never re-derived here (spec-003 §8).
  */
-import type { ProjectHeader, TodayActionRow, TodayRow } from '@wingfoil-ui/contracts';
+import type { HoldReason, ProjectHeader, TodayActionRow, TodayRow } from '@wingfoil-ui/contracts';
 import { ageOf, type Age } from '../memory/model.js';
 
 /** An age in its largest whole unit, as a positive count (the reason's "for 3 days", D36-7). */
@@ -25,6 +25,8 @@ export type WaitingWho =
   | { kind: 'member'; name: string; basis?: string }
   | { kind: 'role'; role: string; members: string[] }
   | { kind: 'engine' }
+  /** A held gate (v0.3, spec-003 §5): its hold's reason in place of "Reserved to approver". */
+  | { kind: 'held'; reason: HoldReason }
   | { kind: 'none' };
 
 /** What the identity sentence of an unidentified user says (D36-8); `undefined` for a member. */
@@ -53,7 +55,8 @@ export function rowReason(row: TodayActionRow, now: number): RowReason {
 
 /** Who must act on a Waiting on others row, from the descriptor's actor (spec-003 §4, §8). */
 export function waitingWho(row: TodayRow): WaitingWho {
-  const { actor } = row.descriptor;
+  const { actor, approveHeld } = row.descriptor;
+  if (approveHeld) return { kind: 'held', reason: approveHeld.reason };
   switch (actor.kind) {
     case 'member':
       return actor.member === undefined

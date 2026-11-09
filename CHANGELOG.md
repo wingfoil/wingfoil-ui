@@ -9,6 +9,20 @@ release `v0.2` the git tag `v0.2.0` and the npm version `wingfoil-ui@0.2.0`.
 
 ### Added
 
+- **Held gates** (task-069, US-S-24 S-24.5, S-24.6; spec-003 §3, §5, §8; spec-005 §4a): a gate the
+  project's `.wingfoil/ui.yaml` (or its preset) holds in `holds` offers no *Approve* — `never`
+  ("Approved outside the console (ui.yaml)") or `when-references-done` while elements referencing
+  it are not done ("Waits for N referencing elements to be done", counted from the reference
+  index). Its *Reject* stays offered to `approver` holders, with the hold's line in the gate footer;
+  any other member sees the line only. A held gate is in nobody's *Requires you* (nor in the
+  greeting's or the bell's count, nor in the Team view's pending gates) and is in *Waiting on
+  others* for everyone, approvers included, with the hold in place of "Reserved to approver". The
+  descriptor carries it as `approveHeld`; an ignored `ui.yaml` holds nothing; the `approve` itself
+  is still accepted by the CLI.
+- **The actor after an approve** (task-069, spec-003 §4, RP3-14 D6): an element in a working state
+  that an `approve` entered — a task approved into `backlog` — is the work of the member who made
+  the submit that reached the gate, no longer of the approver ("Jordan (submitter) must act"); a
+  submitter who is not in the team gives the tech-lead fallback, as every other rule does.
 - **A draft GitHub Release for every tagged version** (task-052): the publish workflow's `release`
   job creates it after `promote`, with the version's CHANGELOG section as notes and, as assets, the
   tarball staged on npm, the coverage totals (`coverage-totals.json`) and the test counts per suite

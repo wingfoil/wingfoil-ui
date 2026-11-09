@@ -49,6 +49,45 @@
         "additionalProperties": false
       }
     },
+    "approveHeld": {
+      "description": "Set on a held gate (v0.3, spec-003 §3, §8; spec-005 §4a): verbs then holds no approve.",
+      "type": "object",
+      "required": ["condition", "reason"],
+      "properties": {
+        "condition": {
+          "enum": ["never", "when-references-done"]
+        },
+        "reason": {
+          "oneOf": [
+            {
+              "type": "object",
+              "required": ["code"],
+              "properties": {
+                "code": {
+                  "const": "held-by-config"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "required": ["code", "count"],
+              "properties": {
+                "code": {
+                  "const": "held-until-references-done"
+                },
+                "count": {
+                  "type": "integer",
+                  "minimum": 1
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
     "actor": {
       "type": "object",
       "required": ["kind"],

@@ -54,15 +54,55 @@ function expectSchema(file: string, body: unknown): void {
   expect(validate!(body), `${file}: ${JSON.stringify(validate!.errors)}`).toBe(true);
 }
 
+/** A `ui.yaml` written and committed as is. */
+async function commitUiYaml(fx: Fixture, text: string): Promise<void> {
+  await writeFile(path.join(fx.dir, '.wingfoil/ui.yaml'), text);
+  await git(fx.dir, ['add', '.wingfoil/ui.yaml'], fx.env);
+  await git(fx.dir, ['commit', '-q', '-m', 'chore(ui): a ui.yaml of the test'], fx.env);
+}
+
+/** The fixture variants, built once with the CLI in `beforeAll` (bug-028); each test copies one. */
+const VARIANTS = {
+  // S-24.5 and S-24.6: the preset, `minor-v0.1` in `releasing`, `rl-v1` in `active`.
+  held: async (fx: Fixture) => {
+    await usePresetUiConfig(fx);
+    await submitToReleasing(fx);
+    await addReleaseLine(fx);
+  },
+  // `minor-v0.1`, the only element referencing `v1`, released (kind `last`: done).
+  released: async (fx: Fixture) => {
+    await usePresetUiConfig(fx);
+    await submitToReleasing(fx);
+    await addReleaseLine(fx);
+    await releaseHeldRelease(fx);
+  },
+  // A `holds` value outside the schema: the file is ignored (spec-005 §2).
+  ignored: async (fx: Fixture) => {
+    await submitToReleasing(fx);
+    await commitUiYaml(fx, 'version: 1\nholds: { release: { releasing: { approve: sometimes } } }\n');
+  },
+  // A `never` hold only: no reference index is needed.
+  never: async (fx: Fixture) => {
+    await submitToReleasing(fx);
+    await commitUiYaml(fx, 'version: 1\nholds: { release: { releasing: { approve: never } } }\n');
+  },
+} satisfies Record<string, (fx: Fixture) => Promise<void>>;
+type Variant = keyof typeof VARIANTS;
+
 let ws: TempWorkspace;
-let template: Fixture;
+const variants = {} as Record<Variant, Fixture>;
 let n = 0;
 const registries: Snapshots[] = [];
 const apps: FastifyInstance[] = [];
 
 beforeAll(async () => {
   ws = await TempWorkspace.create('wfui-held-');
-  template = await buildFixture('custom', { root: path.join(await realpath(ws.dir), 'custom') });
+  const root = await realpath(ws.dir);
+  const template = await buildFixture('custom', { root: path.join(root, 'custom') });
+  for (const [name, prepare] of Object.entries(VARIANTS) as [Variant, (fx: Fixture) => Promise<void>][]) {
+    variants[name] = await copyFixture(template, path.join(root, `variant-${name}`));
+    await prepare(variants[name]);
+  }
 }, 600_000);
 
 afterEach(async () => {
@@ -89,10 +129,9 @@ function readSpy(root: string): { fs: ReadFs; elementReads: () => string[] } {
   };
 }
 
-async function start(prepare: (fx: Fixture) => Promise<void>, member = 'Morgan' as const) {
+async function start(variant: Variant, member = 'Morgan' as const) {
   n += 1;
-  const fx = await copyFixture(template, path.join(await realpath(ws.dir), `copy-${n}`));
-  await prepare(fx);
+  const fx = await copyFixture(variants[variant], path.join(await realpath(ws.dir), `copy-${n}`));
   await git(fx.dir, ['config', 'user.email', memberByName(member).email], fx.env);
   const spy = readSpy(fx.dir);
   const audited = auditedSnapshots(fx.env, { fs: spy.fs });
@@ -118,14 +157,14 @@ const descriptorOf = (list: any, id: string) => list.elements.find((e: any) => e
 
 describe('held gates through the routes (spec-003 §3, §5, §8; spec-005 §4a)', () => {
   it('S-24.5, S-24.6 — /elements, /elements/:eid and /today serve the holds with their count', async () => {
-    const c = await start(async (fx) => {
-      await usePresetUiConfig(fx);
-      await submitToReleasing(fx);
-      await addReleaseLine(fx);
-    });
+    const c = await start('held');
     const list = await c.get(`/api/p/${c.pid}/elements`);
     expect(list.status, JSON.stringify(list.body)).toBe(200);
     expectSchema('elements.schema.json', list.body);
+    // TT-PERF-05: the index adds no CLI process to a cold Memory list (at most 6), and one
+    // `git ls-tree` for the state.
+    expect(c.runner.count('wingfoil')).toBeLessThanOrEqual(6);
+    expect(lsTrees(c.runner)).toBe(1);
     const release = descriptorOf(list.body, HELD_RELEASE);
     expect(release.approveHeld).toEqual({ condition: 'never', reason: { code: 'held-by-config' } });
     expect(release.verbs.map((v: any) => [v.verb, v.to])).toEqual([['reject', 'in-development']]);
@@ -154,13 +193,7 @@ describe('held gates through the routes (spec-003 §3, §5, §8; spec-005 §4a)'
   }, 300_000);
 
   it('a line whose referencing releases are all done is not held: the approve is offered', async () => {
-    const c = await start(async (fx) => {
-      await usePresetUiConfig(fx);
-      // `minor-v0.1`, the only element referencing `v1`, released (kind `last`: done).
-      await submitToReleasing(fx);
-      await addReleaseLine(fx);
-      await releaseHeldRelease(fx);
-    });
+    const c = await start('released');
     const list = await c.get(`/api/p/${c.pid}/elements`);
     const line = descriptorOf(list.body, RELEASE_LINE);
     expect(line).not.toHaveProperty('approveHeld');
@@ -168,15 +201,7 @@ describe('held gates through the routes (spec-003 §3, §5, §8; spec-005 §4a)'
   }, 300_000);
 
   it('an ignored ui.yaml holds nothing', async () => {
-    const c = await start(async (fx) => {
-      await submitToReleasing(fx);
-      await writeFile(
-        path.join(fx.dir, '.wingfoil/ui.yaml'),
-        'version: 1\nholds: { release: { releasing: { approve: sometimes } } }\n',
-      );
-      await git(fx.dir, ['add', '.wingfoil/ui.yaml'], fx.env);
-      await git(fx.dir, ['commit', '-q', '-m', 'chore(ui): an invalid file'], fx.env);
-    });
+    const c = await start('ignored');
     const list = await c.get(`/api/p/${c.pid}/elements`);
     const release = descriptorOf(list.body, HELD_RELEASE);
     expect(release).not.toHaveProperty('approveHeld');
@@ -184,15 +209,7 @@ describe('held gates through the routes (spec-003 §3, §5, §8; spec-005 §4a)'
   }, 300_000);
 
   it('D55-9 — a ui.yaml with no when-references-done hold builds no index', async () => {
-    const c = await start(async (fx) => {
-      await submitToReleasing(fx);
-      await writeFile(
-        path.join(fx.dir, '.wingfoil/ui.yaml'),
-        'version: 1\nholds: { release: { releasing: { approve: never } } }\n',
-      );
-      await git(fx.dir, ['add', '.wingfoil/ui.yaml'], fx.env);
-      await git(fx.dir, ['commit', '-q', '-m', 'chore(ui): hold the release'], fx.env);
-    });
+    const c = await start('never');
     const list = await c.get(`/api/p/${c.pid}/elements`);
     expect(descriptorOf(list.body, HELD_RELEASE).approveHeld?.condition).toBe('never');
     expect((await c.get(`/api/p/${c.pid}/today?view=approver`)).status).toBe(200);

@@ -73,24 +73,6 @@ const MORGAN_TODAY: Today = {
     waiting('rel-001-minor', 'planning', { kind: 'engine' }),
     waiting('adr-001-gate', 'proposed', { kind: 'role', role: 'architect', members: ['Alex', 'Casey'] }),
     waiting('adr-002-nobody', 'proposed', { kind: 'role', role: 'qa', members: [] }),
-    {
-      ...waiting('rel-002-held', 'releasing', { kind: 'role', role: 'approver', members: ['Morgan'] }),
-      descriptor: descriptor('rel-002-held', {
-        status: 'releasing',
-        tone: 'human',
-        actor: { kind: 'role', role: 'approver', members: ['Morgan'] },
-        approveHeld: { condition: 'never', reason: { code: 'held-by-config' } },
-      }),
-    },
-    {
-      ...waiting('rl-001-held', 'active', { kind: 'role', role: 'approver', members: ['Morgan'] }),
-      descriptor: descriptor('rl-001-held', {
-        status: 'active',
-        tone: 'human',
-        actor: { kind: 'role', role: 'approver', members: ['Morgan'] },
-        approveHeld: { condition: 'when-references-done', reason: { code: 'held-until-references-done', count: 2 } },
-      }),
-    },
   ],
 };
 
@@ -253,14 +235,43 @@ it('lists Waiting on others with who must act (T-11.1, T-11.2, T-06.1, D36-6)', 
     'Waiting for the workflow engine',
     'Reserved to architect — Alex, Casey',
     'Reserved to qa',
-    // task-069 (S-24.5, S-24.6): a held gate shows its hold in place of "Reserved to approver".
-    'Approved outside the console (ui.yaml)',
-    'Waits for 2 referencing elements to be done',
   ]);
   // The members are their own text (data for the catalogue check).
   expect(rows[4]!.querySelector('.today-members')?.textContent).toBe('Alex, Casey');
   expect(within(rows[0]!).getByRole('link').getAttribute('href')).toBe(`/p/${PID}/e/task-002-reset`);
   expect(within(waitingCard()).queryAllByRole('button')).toEqual([]);
+});
+
+it('task-069 — a held gate shows its hold in place of "Reserved to approver" (S-24.5, S-24.6)', async () => {
+  const held: TodayRow[] = [
+    {
+      ...waiting('rel-002-held', 'releasing', { kind: 'role', role: 'approver', members: ['Morgan'] }),
+      descriptor: descriptor('rel-002-held', {
+        status: 'releasing',
+        tone: 'human',
+        actor: { kind: 'role', role: 'approver', members: ['Morgan'] },
+        approveHeld: { condition: 'never', reason: { code: 'held-by-config' } },
+      }),
+    },
+    {
+      ...waiting('rl-001-held', 'active', { kind: 'role', role: 'approver', members: ['Morgan'] }),
+      descriptor: descriptor('rl-001-held', {
+        status: 'active',
+        tone: 'human',
+        actor: { kind: 'role', role: 'approver', members: ['Morgan'] },
+        approveHeld: { condition: 'when-references-done', reason: { code: 'held-until-references-done', count: 2 } },
+      }),
+    },
+  ];
+  stubApi(api({ [`${TODAY}?view=approver`]: { status: 200, body: { ...MORGAN_TODAY, waitingOnOthers: held } } }));
+  renderApp(`/p/${PID}/today`);
+  await screen.findByRole('heading', { level: 1, name: 'Morgan, 2 things require you' });
+  const rows = rowsOf(waitingCard());
+  expect(rows.map((r) => r.querySelector('.today-who')?.textContent)).toEqual([
+    'Approved outside the console (ui.yaml)',
+    'Waits for 2 referencing elements to be done',
+  ]);
+  expect(within(waitingCard()).queryByText(/Reserved to/)).toBeNull();
 });
 
 it('says that nothing requires the user, and hides an empty Waiting on others (D36-4)', async () => {

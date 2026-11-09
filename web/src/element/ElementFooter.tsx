@@ -15,6 +15,8 @@
  * - **Read-only line** for a user not identified as one member (S-13.2, S-15.2), with *How to join*
  *   when it applies; **reserved line** for a member without the gate's role (G-09.x); the engine
  *   notes (S-24.2 … S-24.4, RP-13); the final note (S-24.1).
+ * - **Held gate** (v0.3, task-069; S-24.5, S-24.6): the hold's line — in the gate footer, with no
+ *   approve and an empty reason, for a member holding the reject's role; alone for any other member.
  *
  * The write's result is a toast of the shell, raised by `useElementWrite` (task-038, D38-10,
  * D38-11); the footer's polite status region only says that the write is running. The reason is
@@ -30,6 +32,7 @@ import { useElementWrite, type ElementWriteVerb } from '../api/writes.js';
 import { useHowToJoin } from '../project/HowToJoin.js';
 import { UpdateLink } from '../repository/UpdateLink.js';
 import { footerView, isBlank, type FooterView, type GateOutcome } from './footer.js';
+import { HoldText } from './HoldText.js';
 
 /** The catalogue texts of the disabled reasons (spec-003 §6, spec-008 §4 `<area>.reason.<code>`). */
 const REASONS = defineMessages({
@@ -237,6 +240,12 @@ function FooterContent({
           )}
         </div>
       );
+    case 'held':
+      return (
+        <p className="element-footer element-footer-note">
+          <HoldText reason={view.reason} />
+        </p>
+      );
     case 'submit':
       return (
         <SubmitFooter
@@ -400,6 +409,11 @@ function GateFooter({
       <h3 id={titleId} className="section-title">
         <FormattedMessage id="element.gate.title" />
       </h3>
+      {view.held && (
+        <p className="gate-hint gate-held">
+          <HoldText reason={view.held} />
+        </p>
+      )}
       <label className="gate-reason">
         <span className="gate-reason-label">
           <FormattedMessage id="element.gate.reason.label" />

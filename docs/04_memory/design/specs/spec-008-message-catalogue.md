@@ -191,3 +191,9 @@ catalogue and its arguments (`warnings: [{ key, args }]` of `GET /api/server`, s
 - 2026-11-03 — amended in `release-planning` v0.3 (step 5, RP3-14 D5, D11; C1): §4 lists the v0.3
   reason and error codes, keyed by the existing rules. Decided by the approver with the decisions
   named. Review round 2 (P3): their English texts.
+- 2026-11-09 — refined in task-069 (minor-v0.3, Wave 2; its D69-11, W2-5): §4's
+  `held-until-references-done {count}` text "Waits for {count} referencing element(s) to be done"
+  is the ICU plural `element.reason.heldUntilReferencesDone` — "Waits for 1 referencing element to
+  be done", "Waits for 2 referencing elements to be done" (S-24.6); `held-by-config` is
+  `element.reason.heldByConfig`, its text unchanged; both keys are shared by the gate footer and
+  Today's *Waiting on others* row. Recorded by the coordinator's OK on the design (W2-5).

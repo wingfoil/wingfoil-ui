@@ -58,7 +58,7 @@ import { CliError, cliErrorEnvelope, type CliOutput } from '../cli/adapter.js';
 import { evaluateCapabilities } from '../cli/capabilities.js';
 import { CliNotFoundError } from '../cli/discovery.js';
 import { supportedRange, type DetectedVersion } from '../cli/version.js';
-import { describeElement, type CopyState } from '../descriptor/descriptor.js';
+import { describeElement, type CopyState, type DescriptorHolds } from '../descriptor/descriptor.js';
 import { today } from '../descriptor/today.js';
 import { GitReadError } from '../git/git.js';
 import { repositoryStatus, type SyncStatus } from '../git/sync-status.js';
@@ -276,6 +276,7 @@ class ProjectRead {
         copy: descriptorCopy(this.view.state),
       };
       const none: ReadonlySet<string> = new Set();
+      const holds = await this.holds();
       return {
         ok: true,
         memoryYaml,
@@ -285,9 +286,27 @@ class ProjectRead {
             memoryYaml,
             members,
             enablement: { ...enablement, localChanges: localChanges ? new Set([match.id]) : none },
+            ...(holds ? { holds } : {}),
           }),
       };
     });
+  }
+
+  /**
+   * The held gates of this state (spec-005 §4a, spec-003 §3; task-069 D69-4): the `holds` of the
+   * effective `ui.yaml` (an ignored or absent file holds nothing → `undefined`), and the reference
+   * index (spec-012 §1) built only when one of them is `when-references-done`. Called once per state
+   * from {@link descriptorInputs}, after `memory.yaml` was read.
+   */
+  private async holds(): Promise<DescriptorHolds | undefined> {
+    const table = (await this.view.uiConfig()).holds.value;
+    if (table.size === 0) return undefined;
+    const counted = [...table.values()].some((states) => [...states.values()].includes('when-references-done'));
+    const index = counted ? await this.view.referenceIndex() : undefined;
+    return {
+      condition: (type, state) => table.get(type)?.get(state),
+      referencingNotDone: (id) => index?.referencingNotDone(id) ?? 0,
+    };
   }
 
   /**
