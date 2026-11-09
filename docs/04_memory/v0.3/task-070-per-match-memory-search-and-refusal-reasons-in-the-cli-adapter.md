@@ -320,3 +320,20 @@ recommended** (Q-A).
 - **Q-D — An e2e case for the reasons (D70-8).** (a) Component test only, the existing refusal
   specs re-run on three engines; (b) also one mocked case in `submit-footer.spec.ts`.
   **Recommended (a)**, as AC-2 asks.
+
+#### The approver's decisions (2026-11-09, relayed by the coordinator; plan W2-5)
+
+"tutto come consigliato", 2026-11-09:
+
+- **Q-A (a)** — no split.
+- **Q-B** — D70-9 (a): bug-036 becomes a declared WingFoil 0.2.2 limitation (`CHANGELOG.md`
+  *Known limitations* and the user guide; no code).
+- **Q-C (a)** — `?archived=true` carries the archived searches' warnings.
+- **Q-D (a)** — component test only.
+- D70-1 … D70-13 accepted; the dated Process Note of spec-004 §5 (D70-12) OK'd.
+
+**Identity note (design probes).** One probe command of the design exported throwaway
+`GIT_AUTHOR_*`/`GIT_COMMITTER_*` values in its own shell to make commits in the two scratch projects
+(Q-1 … Q-4). It touched only those scratch projects, outside the repository, and lasted that one
+command; no commit of this repository carries it. It will not recur: scratch and fixture commits use
+the fixture builder or the strict-identity recipe of `test/README.md` *Fixtures* › *Git identity*.

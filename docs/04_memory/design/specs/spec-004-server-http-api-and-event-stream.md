@@ -238,7 +238,8 @@ most 200, then one line `<n> more warnings omitted` (task-046, review round 2 d1
 `warnings` of `/elements` also name each `memory search` match dropped by the per-match validation,
 by its project-relative path (spec-001 §2, RP3-14 D10, bug-024): the list is served with the valid
 matches, never as 502 `cli-output` for a bad match; Today and the other reads of the same output use
-the valid matches.
+the valid matches. With `?archived=true` the `warnings` also carry those of the archived searches
+(a dropped archived match among them), each text once.
 
 Commit texts (v0.3, RP3-14 D13, bug-027): the `subject`, `reason`, `author` and `approver` of the
 history entries (`/elements/:eid/history`), the `author`, `approver` and `reason` of the Memory events
@@ -291,7 +292,7 @@ name and `remote`) is not escaped yet: bug-035.
 
 | Status | `code` | When |
 |--------|--------|------|
-| 422 | `cli-refused` | CLI exit 1: `message` = the CLI's message verbatim (REQ-INT-04) except for the local folders it quotes — the project's → `<project>`, the repository's → `<repository>`, the CLI's package folder → `<wingfoil>`, the home folder → `~` — and URL userinfo (bug-012); from v0.3, the `detail` texts of a WingFoil 0.3.x refusal's `details` (spec-001 §2) in `detail.reasons[]`, redacted and sanitised the same way; also the exit 2 of `approve`/`reject` whose message names `--reason` (a reason WingFoil will not record, W-29) |
+| 422 | `cli-refused` | CLI exit 1: `message` = the CLI's message verbatim (REQ-INT-04) except for the local folders it quotes — the project's → `<project>`, the repository's → `<repository>`, the CLI's package folder → `<wingfoil>`, the home folder → `~` — and URL userinfo (bug-012); from v0.3, the `detail` texts of a WingFoil 0.3.x refusal's `details` (spec-001 §2) in `detail.reasons[]`, redacted and sanitised the same way, at most 200 then one line `<n> more reasons omitted`, the details' `file` not passed on, `detail` present only when there is a reason (`cli.refusal.schema.json`); also the exit 2 of `approve`/`reject` whose message names `--reason` (a reason WingFoil will not record, W-29) |
 | 502 | `cli-output` | exit 0 with output failing its schema (spec-001 §2) |
 | 504 | `cli-timeout` | a `wingfoil` process killed after 30 s (git transport the user started has no fixed timeout; an automatic fetch and an auto-push are killed after 60 s — spec-010 §4, `adr-001` D5) |
 | 500 | `internal` | adapter defect (exit 2) or unexpected error; details only in the log — a failed git read of the repository (e.g. a configuration value git refuses) on any route, read or write, is logged as `{ kind: 'git-read', ended, exitCode }`, never with git's message (task-046 review rounds 3 m1, 4 minor-1: the read routes and the global error handler) |
@@ -512,3 +513,9 @@ goes away by itself when the stream reconnects. A network failure is not rendere
 - 2026-11-06 — amended in task-055 (bug-029; design Q4-a, decided by the approver): §6 the `repo`
   row names the effective author email the identity is read from (`GIT_AUTHOR_EMAIL`, else
   `author.email`, else `user.email`, SARD REQ-STATE-05), in place of `user.email` alone.
+- 2026-11-09 — amended in development (task-070 design D70-4, D70-5, D70-6, D70-12, plan
+  backlog-item-rel-v0.3-plan W2-5; decided by the approver, "tutto come consigliato"): §5 the
+  `warnings` of `/elements?archived=true` carry the archived searches' warnings too, each text once;
+  the `cli-refused` reasons' cap (200 and a count line), the details' `file` left out, `detail`
+  only with a reason, and the envelope's schema `contracts/api/cli.refusal.schema.json` (the
+  `cli-refused` branch of `write.refusal.schema.json` refers to it).
