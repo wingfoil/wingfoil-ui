@@ -1,0 +1,285 @@
+# WingFoil UI — the heavy gates of a task and of a wave on GitHub-hosted runners (task-071; dl-016,
+# backlog-item-rel-v0.3-plan W2-2, W2-3). The guide — scopes, jobs, how a run starts and how to follow
+# it, what stays local — is test/README.md, section "CI gates". Keep the two in step.
+# test/package/gates-workflow.test.ts freezes these invariants.
+#
+# Runs on every push of a task/** or design/** branch (the `task` scope), and by hand on such a branch
+# (Actions → gates → Run workflow, or `gh workflow run gates.yml --ref <branch> -f scope=wave`). Never on
+# main, a tag or pull requests: the push filter, and the ref guard that is the first step of `checks`
+# (a manual run can name any ref). One run per ref: a new push cancels the run in progress on that ref.
+#
+#   checks         typecheck, lint, format:check — every other job needs it (fail fast)
+#   coverage       test:coverage (thresholds of vitest.config.ts), Python for the governance suites;
+#                  uploads only coverage-totals.json, rebuilt by scripts/coverage-totals.mjs from the
+#                  json-summary written on the runner (the summary holds absolute paths: never uploaded)
+#   contract       test:contract
+#   smoke          test:smoke
+#   publish-smoke  test:publish-smoke (packs on the runner; the engines-floor run stays publish.yml's stage)
+#   e2e-chromium   task scope: the whole e2e suite on Chromium, in E2E_SHARDS shards
+#   own-specs      task scope: the task's own specs on Firefox and WebKit — the `specs` input, else the
+#                  spec files the branch changes against its merge-base with PHASE_BRANCH, chosen by
+#                  scripts/e2e-own-specs.mjs; none → one line that says so and success
+#   e2e-wave       wave scope: the whole suite on Chromium, Firefox and WebKit, engine × shard jobs;
+#                  it replaces e2e-chromium and own-specs, which it contains (W2-2)
+#
+# A Playwright job uploads its HTML report on failure only, one per job (engine × shard), 14 days.
+# Security: contents: read for every job, no credential of any kind; checkout without persisted
+# credentials; no cache action and no npm cache. No expression in a `run:` line: the inputs, matrix
+# values and the ref reach a step only as `env:` values, expanded double-quoted; `inputs.scope` is
+# read only in job conditions. Every `uses:` names the full commit SHA publish.yml pins, with its tag.
+# PHASE_BRANCH is the current release's phase branch: changed when the next one is created.
+
+name: gates
+
+on:
+  push:
+    branches: ['task/**', 'design/**']
+  workflow_dispatch:
+    inputs:
+      scope:
+        description: 'task (the task gates) or wave (the common gates and the whole e2e suite on three engines)'
+        type: choice
+        options: [task, wave]
+        default: task
+      specs:
+        description: 'Space-separated e2e spec files for own-specs (empty: the spec files the branch changes)'
+        type: string
+        default: ''
+
+permissions:
+  contents: read
+
+concurrency:
+  group: gates-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: '22.22.2'
+  PHASE_BRANCH: design/dev-loop_v0.3
+  E2E_SHARDS: '2'
+
+jobs:
+  checks:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Ref guard — task/* and design/* branches only
+        run: |
+          case "$GITHUB_REF" in
+            refs/heads/task/* | refs/heads/design/*) echo "ref accepted: a task or design branch" ;;
+            *) echo "refused: gates.yml runs on task/* and design/* branches only"; exit 1 ;;
+          esac
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          package-manager-cache: false
+      - name: Install
+        run: npm ci
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Lint
+        run: npm run lint
+      - name: Format check
+        run: npm run format:check
+
+  coverage:
+    needs: checks
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          package-manager-cache: false
+      # The default suite runs `python3` (check_releases.py, task-051), as in publish.yml's gate.
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.12'
+      - name: Install
+        run: npm ci
+      - name: Tests with coverage (text table and coverage summary on the runner only)
+        run: npm run test:coverage -- --coverage.reporter=text --coverage.reporter=json-summary
+      - name: Coverage totals — fixed fields only, no path
+        run: |
+          mkdir -p coverage-totals
+          node scripts/coverage-totals.mjs coverage/coverage-summary.json --commit "$GITHUB_SHA" --source gates > coverage-totals/coverage-totals.json
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: coverage-totals
+          path: coverage-totals/coverage-totals.json
+          if-no-files-found: error
+          retention-days: 14
+
+  contract:
+    needs: checks
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          package-manager-cache: false
+      - name: Install
+        run: npm ci
+      - name: Contract tests
+        run: npm run test:contract
+
+  e2e-chromium:
+    needs: checks
+    if: ${{ inputs.scope != 'wave' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          package-manager-cache: false
+      - name: Install
+        run: npm ci
+      - name: Chromium and its system packages
+        run: npx playwright install --with-deps chromium
+      - name: The e2e suite on Chromium, one shard
+        env:
+          SHARD: ${{ matrix.shard }}
+          PLAYWRIGHT_HTML_OUTPUT_DIR: playwright-report
+          PLAYWRIGHT_HTML_OPEN: never
+        run: npm run test:e2e:chromium -- --reporter=github,html --shard="$SHARD/$E2E_SHARDS"
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: ${{ failure() }}
+        with:
+          name: playwright-report-chromium-${{ matrix.shard }}
+          path: playwright-report/
+          retention-days: 14
+
+  own-specs:
+    needs: checks
+    if: ${{ inputs.scope != 'wave' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        engine: [firefox, webkit]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          package-manager-cache: false
+      - name: Install
+        run: npm ci
+      - name: The task's own specs — the specs input, else the spec files changed since the merge-base
+        env:
+          SPECS: ${{ inputs.specs }}
+        run: node scripts/e2e-own-specs.mjs --base "origin/$PHASE_BRANCH" > own-specs.txt
+      - name: The own specs on the engine
+        env:
+          ENGINE: ${{ matrix.engine }}
+          PLAYWRIGHT_HTML_OUTPUT_DIR: playwright-report
+          PLAYWRIGHT_HTML_OPEN: never
+        run: |
+          mapfile -t specs < own-specs.txt
+          if [ "${#specs[@]}" -eq 0 ]; then
+            echo "no own e2e spec: nothing to run on $ENGINE"
+            exit 0
+          fi
+          npx playwright install --with-deps "$ENGINE"
+          npm run test:e2e -- --project="$ENGINE" --reporter=github,html "${specs[@]}"
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: ${{ failure() }}
+        with:
+          name: playwright-report-own-${{ matrix.engine }}
+          path: playwright-report/
+          retention-days: 14
+
+  smoke:
+    needs: checks
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          package-manager-cache: false
+      - name: Install
+        run: npm ci
+      - name: Launch smoke (pack, install, npx wingfoil-ui)
+        run: npm run test:smoke
+
+  publish-smoke:
+    needs: checks
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          package-manager-cache: false
+      - name: Install (fills the npm cache the local registry is seeded from)
+        run: npm ci
+      - name: Staging smoke on a local registry
+        run: npm run test:publish-smoke
+
+  e2e-wave:
+    needs: checks
+    if: ${{ inputs.scope == 'wave' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        engine: [chromium, firefox, webkit]
+        shard: [1, 2]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          package-manager-cache: false
+      - name: Install
+        run: npm ci
+      - name: The engine and its system packages
+        env:
+          ENGINE: ${{ matrix.engine }}
+        run: npx playwright install --with-deps "$ENGINE"
+      - name: The e2e suite on the engine, one shard
+        env:
+          ENGINE: ${{ matrix.engine }}
+          SHARD: ${{ matrix.shard }}
+          PLAYWRIGHT_HTML_OUTPUT_DIR: playwright-report
+          PLAYWRIGHT_HTML_OPEN: never
+        run: npm run test:e2e -- --project="$ENGINE" --reporter=github,html --shard="$SHARD/$E2E_SHARDS"
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: ${{ failure() }}
+        with:
+          name: playwright-report-${{ matrix.engine }}-${{ matrix.shard }}
+          path: playwright-report/
+          retention-days: 14

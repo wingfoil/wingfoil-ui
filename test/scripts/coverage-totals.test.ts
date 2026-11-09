@@ -103,6 +103,23 @@ describe('coverage-totals.mjs (task-052, D52-2)', () => {
     expect(result.stderr).not.toContain(ws.dir);
   });
 
+  it('names the workflow it ran in by a fixed --source choice, the publish workflow by default (task-071 D71-16)', async () => {
+    const publish = 'npm run test:coverage (Vitest, v8 provider) in the gate job of the publish workflow';
+    const gates = 'npm run test:coverage (Vitest, v8 provider) in the coverage job of the gates workflow';
+    const source = async (args: string[]) =>
+      (JSON.parse((await reduce(summary(), ['--commit', SHA, ...args])).stdout) as { source: string }).source;
+    expect(await source([])).toBe(publish);
+    expect(await source(['--source', 'publish'])).toBe(publish);
+    expect(await source(['--source', 'gates'])).toBe(gates);
+    // Any other value is a usage error: the text is never taken from the command line.
+    for (const args of [['--source', 'other'], ['--source'], ['--source', 'gates', 'extra']]) {
+      const r = await reduce(summary(), ['--commit', SHA, ...args]);
+      expect(r.code, JSON.stringify(args)).toBe(2);
+      expect(r.stdout).toBe('');
+      expect(r.stderr).toMatch(/^usage: /);
+    }
+  });
+
   it('refuses a commit that is not 40 hex digits, and a usage error exits 2', async () => {
     const bad = await reduce(summary(), ['--commit', 'main']);
     expect(bad.code).toBe(1);
