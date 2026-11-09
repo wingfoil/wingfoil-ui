@@ -398,3 +398,14 @@ outside the repository, with `-c user.useConfigOnly=true` and the `followRemoteH
 `dropped-matches`, `refusal-reasons`, `project-routes`, `text-sweep`, `tool-messages`,
 `harness/git-identity`, `test/docs`, `test/governance`, `wingfoil-feedback` — all passed but the
 public-text finding above, fixed, then `public-text` and `refusal-reasons` 78 passed.
+
+On `gates.yml` (commit `37458a2a`, the code and docs above):
+
+- Run `42587575794` (the push): **cancelled**, all jobs — the dispatch below, on the same ref,
+  replaced it (the workflow's concurrency group); no job had a result.
+- Run `42587613225` (`gh workflow run gates.yml --ref task/task-070-… -f specs="test/e2e/submit-footer.spec.ts
+  test/e2e/gate-footer.spec.ts"`, no e2e spec changed on the branch): **success** — `checks`,
+  `coverage` (221 files passed, 1 skipped; statements 96.62 %, branches 91.33 %, functions
+  97.27 %, lines 98.4 %), `contract` (17 files passed, 1 skipped), `e2e-chromium` (two shards, 162
+  and 161 passed), `own-specs (firefox)` and `own-specs (webkit)` (44 passed each), `smoke`,
+  `publish-smoke`; `e2e-wave` skipped (task scope).
