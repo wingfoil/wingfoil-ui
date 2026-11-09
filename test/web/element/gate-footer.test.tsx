@@ -343,6 +343,70 @@ it('S-24.4 — a gate that is also a waiting state: only the reject, empty reaso
   expect(within(f).getByText('Waiting for the workflow engine to advance')).toBeTruthy();
 });
 
+const HELD: ActionDescriptor = {
+  ...GATE,
+  verbs: [GATE.verbs[1]!],
+  approveHeld: { condition: 'never', reason: { code: 'held-by-config' } },
+};
+
+it('S-24.5 — a held gate for an approver: the hold line, an empty required reason, each reject and Cancel, no Approve', async () => {
+  stub(HELD);
+  renderApp(`/p/${PID}/e/${EID}`);
+  const f = await footer();
+  expect(within(f).getByText('Approved outside the console (ui.yaml)')).toBeTruthy();
+  expect(
+    within(f)
+      .getAllByRole('button')
+      .map((b) => b.textContent),
+  ).toEqual(['Reject → s1', 'Cancel']);
+  expect((reasonField(f) as HTMLTextAreaElement).value).toBe('');
+  expect(outcome(f, 'Reject → s1').getAttribute('aria-disabled')).toBe('true');
+  expect(within(f).queryByRole('button', { name: /Approve/ })).toBeNull();
+});
+
+it('task-069 review F5 — the hold line describes each reject, with the blank-reason hint, then alone', async () => {
+  stub(HELD);
+  renderApp(`/p/${PID}/e/${EID}`);
+  const f = await footer();
+  const line = within(f).getByText('Approved outside the console (ui.yaml)');
+  const reject = outcome(f, 'Reject → s1');
+  expect(reject.getAttribute('aria-describedby')?.split(' ')).toEqual([
+    line.id,
+    within(f).getByText('A reason is required').id,
+  ]);
+  fireEvent.change(reasonField(f), { target: { value: 'Not yet' } });
+  expect(reject.getAttribute('aria-describedby')).toBe(line.id);
+});
+
+it('S-24.6 — a held gate for a member without the role: the hold line only, no outcome, no "Reserved to"', async () => {
+  stub(
+    {
+      ...HELD,
+      approveHeld: { condition: 'when-references-done', reason: { code: 'held-until-references-done', count: 1 } },
+    },
+    { kind: 'member', email: 'sa@x.test', name: 'Sa', roles: ['r-review'] },
+  );
+  renderApp(`/p/${PID}/e/${EID}`);
+  const dialog = await screen.findByRole('dialog', { name: 'A gated element' });
+  expect(await within(dialog).findByText('Waits for 1 referencing element to be done')).toBeTruthy();
+  expect(within(dialog).queryByText(/Reserved to/)).toBeNull();
+  expect(within(dialog).queryByRole('button', { name: /→/ })).toBeNull();
+  expect(within(dialog).queryByRole('textbox')).toBeNull();
+});
+
+it('task-069 — the plural of the referencing elements', async () => {
+  stub(
+    {
+      ...HELD,
+      approveHeld: { condition: 'when-references-done', reason: { code: 'held-until-references-done', count: 3 } },
+    },
+    { kind: 'member', email: 'sa@x.test', name: 'Sa', roles: ['r-review'] },
+  );
+  renderApp(`/p/${PID}/e/${EID}`);
+  const dialog = await screen.findByRole('dialog', { name: 'A gated element' });
+  expect(await within(dialog).findByText('Waits for 3 referencing elements to be done')).toBeTruthy();
+});
+
 it('G-09.1 — a member without the gate role sees who can act and no outcome', async () => {
   stub(GATE, { kind: 'member', email: 'sa@x.test', name: 'Sa', roles: ['r-review'] });
   renderApp(`/p/${PID}/e/${EID}`);

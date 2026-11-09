@@ -32,6 +32,23 @@ export type DisabledReason =
   | { code: 'copy-diverged' }
   | { code: 'copy-detached' };
 
+/** `holds.<type>.<state>.approve` of `.wingfoil/ui.yaml` (spec-005 §4a). */
+export type HoldCondition = 'never' | 'when-references-done';
+
+/**
+ * Why a gate's *Approve* is withheld (spec-005 §4a), rendered by the web: the approval is made
+ * outside the console, or `count` non-archived elements that reference the element are not done.
+ */
+export type HoldReason = { code: 'held-by-config' } | { code: 'held-until-references-done'; count: number };
+
+/**
+ * The hold of a held gate (spec-003 §3, §8; v0.3, RP3-14 D5): the `holds` value in force for the
+ * element's type and state, and its reason — the code follows the condition.
+ */
+export type ApproveHeld =
+  | { condition: 'never'; reason: { code: 'held-by-config' } }
+  | { condition: 'when-references-done'; reason: { code: 'held-until-references-done'; count: number } };
+
 /** One verb of spec-003 §3. */
 export interface DescriptorVerb {
   verb: DescriptorVerbName;
@@ -88,6 +105,11 @@ export interface ActionDescriptor {
   bucket?: Bucket;
   /** The verbs WingFoil accepts from this state, in the order submit, approve, reject. */
   verbs: DescriptorVerb[];
+  /**
+   * Set on a held gate (v0.3, spec-003 §3): `verbs` then holds no `approve`, the element is in
+   * nobody's *Requires you* and is not a pending gate.
+   */
+  approveHeld?: ApproveHeld;
   actor: DescriptorActor;
   rejection?: DescriptorRejection;
   /** ISO 8601 time of the last event into the current state; absent when none is known. */

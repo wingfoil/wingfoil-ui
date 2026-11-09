@@ -30,10 +30,13 @@ export type Placement =
  * fallback actor — in the `tech-lead` view; *Waiting on others* when the actor is another member,
  * a role the user does not hold, or the workflow engine (also a gate-waiting element, whose actor
  * is the engine: "Waiting for the workflow engine"); otherwise neither. A gate-waiting element is
- * never in *Requires you*; its reject stays reserved to `approver` (the verb's role).
+ * never in *Requires you*; its reject stays reserved to `approver` (the verb's role). A held gate
+ * (`approveHeld`, v0.3) is in *Waiting on others* for every user and never in *Requires you*.
  */
 export function placement(d: ActionDescriptor, user: PlacementUser | undefined, roleView: string): Placement {
   const actor = d.actor;
+  // A held gate (spec-003 §3, §5): Waiting on others for everyone, approvers included.
+  if (d.approveHeld) return { list: 'waiting-on-others', who: actor };
   const holds = (role: string | undefined) => role !== undefined && (user?.roles.includes(role) ?? false);
   if (actor.kind === 'member' && user && actor.member?.email.toLowerCase() === user.email.toLowerCase()) {
     return { list: 'requires-you', action: d.rejection ? 'rework' : 'submit' };

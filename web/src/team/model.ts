@@ -2,7 +2,8 @@
  * The Team view's pure helpers (US-R-07; ux-reference §4.10; W3-39, W3-44). A member's pending
  * gates are read from the action descriptors of `GET /elements` (spec-003 §4–§5): an element whose
  * descriptor `kind` is `gate` and whose actor lists the member — the descriptor is data, nothing is
- * derived from the states here, and a `gate-waiting` element is not a pending gate.
+ * derived from the states here, and neither a `gate-waiting` element nor a held gate (`approveHeld`)
+ * is a pending gate.
  */
 import type { DnaMember, DnaRole, ListedElement } from '@wingfoil-ui/contracts';
 
@@ -31,8 +32,11 @@ export interface TeamFilters {
 
 /** The gate elements whose actor lists `member` (by name, as the descriptor names them). */
 export function pendingGates(member: string, elements: readonly ListedElement[]): number {
-  return elements.filter((e) => e.descriptor?.kind === GATE_KIND && e.descriptor.actor.members?.includes(member))
-    .length;
+  // A held gate offers no decision: it is not a pending gate (spec-005 §4a, task-069).
+  return elements.filter(
+    (e) =>
+      e.descriptor?.kind === GATE_KIND && !e.descriptor.approveHeld && e.descriptor.actor.members?.includes(member),
+  ).length;
 }
 
 /** Up to two initials of `name`. */

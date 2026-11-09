@@ -64,11 +64,12 @@ renumbered; AC-6 is new.
 - **US-S-24** (AC-1; task-055's former AC-1) — every `@v0.3` scenario passes
   (`docs/02_requirements/02_bdd/features/s/action-descriptor.feature`): S-24.5 Hold a gate whose
   approval is made outside the console; S-24.6 Hold a gate until the elements that reference it
-  are done; S-24.7 Disable a move into a state at its limit. e2e on the custom fixture on WingFoil
-  0.3 (S-24.5, S-24.6 with the sw-life-cycle preset's `holds`, spec-005 §5; the fixture Given steps
-  accepted at RP3-16 P4), asserting what the user sees: the *Waiting on others* text, the footer's
-  line, the absent *Approve*, the disabled *Submit* with its reason as accessible description. The
-  `@v0.2` scenarios S-24.1 … S-24.4 still pass.
+  are done; S-24.7 Disable a move into a state at its limit — delivered by
+  task-073-state-limit-in-the-descriptor (W2-5). e2e on the custom fixture on WingFoil 0.3 (S-24.5,
+  S-24.6 with the sw-life-cycle preset's `holds`, spec-005 §5; the fixture Given steps accepted at
+  RP3-16 P4), asserting what the user sees: the *Waiting on others* text, the footer's line, the
+  absent *Approve*. The `@v0.2` scenarios S-24.1 … S-24.4 still pass. (amended 2026-11-09, W2-5:
+  S-24.7 and its disabled *Submit* moved to task-073.)
 - **AC-2** (former AC-4) — Held gates (spec-005 §4a, spec-003 §3, §5, §8): for each `holds` value,
   `approve` not offered and `reject` offered to `approver` holders; the output `approveHeld` with
   `{ code: "held-by-config" }` or `{ code: "held-until-references-done", count }` in
@@ -82,23 +83,22 @@ renumbered; AC-6 is new.
   whose last move in is an `approve` names the author of the last `submit` before it; the other
   `work` rows and `amend` events (task-048 D48-6) unchanged; a Today test where a task approved
   into `backlog` is in its submitter's *Requires you* and not in the approver's.
-- **AC-4** (former AC-6) — `state-limit` (spec-003 §6 rule 5, D11, F4): for `submit` and `approve`
-  only — a `reject` (or `park`) into a full state stays enabled; counted over the non-archived
-  elements of `memory search`; the reason `state-limit {state, limit}` in the descriptor schema; a
-  refusal of the CLI where the approximation differs still answers 422 `cli-refused` with its
-  toast.
-- **AC-5** (former AC-7) — Catalogue and screens: keys for `held-by-config`,
-  `held-until-references-done {count}` (plural) and `state-limit {state, limit}` with the texts of
-  spec-008 (P3; a refined text recorded in spec-008 with a dated Process Note); every string from
+- **AC-4** — moved to task-073-state-limit-in-the-descriptor (W2-5). (amended 2026-11-09, W2-5:
+  `state-limit` split from this task.)
+- **AC-5** (former AC-7) — Catalogue and screens: keys for `held-by-config` and
+  `held-until-references-done {count}` (plural) with the texts of spec-008 (P3; a refined text recorded in spec-008 with a dated Process Note); every string from
   the catalogue (X-09.1). The gate footer of a held gate as `docs/00_reference/ux-reference.md`
   §4.2 *v0.3 held gate*: an `approver` holder keeps the reason field, each *Reject → <state>* and
   *Cancel*; any other member sees the line only. Keyboard path and axe-core 0 serious/critical in
   both themes on the changed footer and row; the e2e spec on Chromium, Firefox and WebKit.
+  (amended 2026-11-09, W2-5: the `state-limit` key and text moved to task-073.)
 - **AC-6** — Docs and gates: spec-003, spec-005 and spec-008 hold as written, or are amended in
   place with a dated Process Note where the design deviates (after the coordinator's OK);
   `CHANGELOG.md` *Unreleased* *Added*; the checks of `CLAUDE.md` *Checks before handing work back*
   (as the dev rules of Wave 2 run them, W1-10), `npm run docs:api` and `check_tasks.py v0.3`, with
-  their commands and results in the Execution Notes.
+  their commands and results in the Execution Notes. (amended 2026-11-09, W2-5: the `state-limit`
+  docs — spec-003 §6 rule 5, the `limits` read of spec-001 §4.1 and the `state-limit` catalogue
+  text — are task-073's.)
 
 ## Implementation Notes
 
@@ -130,3 +130,350 @@ renumbered; AC-6 is new.
      - design: tech-specs found missing/needing revision (`definition-of-done` › design).
      - red/green/refactor: deviations from the plan above, blockers, scope surprises.
      - review: rejection reasons and what changed on the next pass. -->
+
+### design (2026-11-09)
+
+Read (dl-015): this task; task-055's Execution Notes (D55-8 the index interface, D55-10 … D55-14
+the decisions this task inherits, Q1-b, the review rounds), task-054's (D54-1 the effective
+`ui.yaml`, an ignored file holds nothing) and task-056's (the Today rows and descriptor bodies
+through `descriptorBody`/`repositoryText`); spec-003 §1–§9; spec-005 §1, §4, §4a, §5; spec-008 §4
+(lines 91–93); spec-012 §1; `ux-reference.md` §4.1 v0.3 (held gate bullet) and §4.2 v0.3 held
+gate; `features/s/action-descriptor.feature` S-24.1 … S-24.7; the plan's W1-17, W2-1 … W2-4;
+directives `definition-of-done` 1.4 and `wingfoil-cli` 1.27 (W-13, W-34, W-39, W-47). The code it
+builds on: `server/src/descriptor/{descriptor,placement,today}.ts`,
+`server/src/http/project-routes.ts` (`descriptorInputs`, `elements`, `element`, `todayOf`),
+`server/src/snapshot/snapshot.ts` (`uiConfig()`, `referenceIndex()`, `elements()`),
+`server/src/references/index.ts`, `server/src/ui-config/types.ts` (`EffectiveUiConfig.holds`),
+`server/src/presets/ui-config.ts` (the sw-life-cycle `holds`), `server/src/reads/memory-yaml.ts`
+(`pickStates`, `resolveStates`), `contracts/{src/descriptor.ts,api/descriptor.schema.json,
+files/memory-yaml.schema.json,src/files.ts}`, `web/src/element/{footer.ts,ElementFooter.tsx}`,
+`web/src/today/{model.ts,TodayView.tsx}`, `web/src/team/model.ts`, `web/src/i18n/en.json`,
+`test/server/descriptor/standard.ts`, `test/contracts/descriptor-contract.test.ts`,
+`test/server/http/today-routes.test.ts` (its `prepare` harness), `test/harness/fixtures/
+{builder,project,operations}.ts`; WingFoil 0.3.1 `dist/core/memory-transition.js`
+(`requireWipSlot`), `dist/memory/schema.js` (`limits`), `dist/memory/state-machine.js`
+(`resolveStateMachine`); WingFoil 0.2.2 `dist/memory/schema.js` (the matrix cache).
+
+#### Probes (a temporary vitest file in this worktree, removed after; the pinned `wingfoil@0.3.1`, the harness's own fixture builder and environment; load about 9)
+
+| # | What | Result |
+|---|------|--------|
+| P1 | S-24.5's Given on a fresh custom fixture: `memory submit minor-v0.1` twice (Alex) | `planning → in-development → releasing`, both accepted (`minor-v0.1` exempt from `sprint`) |
+| P2 | S-24.6's Given: `memory add --type release-line --title "Line v1" --set version=v1` (Casey), `submit`, `approve` (Morgan) | id `rl-v1` at `docs/04_memory/planning/rl-v1.md`, `draft → planning → active`, all accepted |
+| P3 | S-24.7's Given: `memory add --type sprint` twice, `goal` written into the file before the first `submit` (`--set goal=` is refused: "--set goal: memory type 'sprint' has no token {goal} in its id_pattern or path"), `sprint-001` submitted to `active`, `sprint-002` to `planned` | all accepted; then on a copy `memory submit sprint-002` → exit 1, "WIP limit reached for 'active' on type 'sprint' (limit 1): held by sprint-001. …" (D11 confirmed on the live `memory.yaml`, `sprint.states.limits.active: 1`) |
+| P4 | On that copy: `memory approve minor-v0.1` (`releasing → released`) and `memory approve rl-v1` (`active → done`, with `minor-v0.1` not done) | both **accepted**: the CLI knows no hold (spec-005 §4a: the hold is the console's) — the contract check must except them (AC-2) |
+| P5 | WingFoil's machine resolution and the `limits` key: 0.3.1 `resolveStateMachine` = `types.<t>.states ?? defaults.states ?? built-in` (the console's `resolveStates` is the same); 0.3.1 schema `limits: record(string, int().positive())`; 0.2.2 schema `.passthrough()` on every node | 0.2.2 accepts a `limits` key and ignores it; 0.3.1 refuses a non-positive or non-integer limit itself |
+
+No console was started, no `wfui-*` entry was left (`ls /tmp | grep wfui-probe069`: none).
+
+#### Decisions (D69-n)
+
+- **D69-1 — Starting point.** task-055's D55-10 … D55-14 are taken as written, re-checked against
+  the merged code; the deltas are D69-4, D69-6, D69-8 and D69-9.
+- **D69-2 — Descriptor inputs (spec-003 §1).** `DescriptorProject` gains three optional fields so
+  existing callers (the contract test, unit tests) keep compiling: `holds` (type → state →
+  `HoldCondition`, the effective `ui.yaml`'s `holds.value`; absent or an ignored file → empty),
+  `referencingNotDone(id): number` (the index's, D55-8) and `occupancy(type, state): number`
+  (non-archived `memory search` elements per type and state). `describeElement` stays pure.
+- **D69-3 — Held gates (spec-003 §3, §5, §8; spec-005 §4a; AC-2).** For kind `gate` only: `never`
+  → `approveHeld: { condition: 'never', reason: { code: 'held-by-config' } }`;
+  `when-references-done` → `count = referencingNotDone(id)`, held with `{ code:
+  'held-until-references-done', count }` when `count > 0`, not held at 0. A held gate's `verbs`
+  drop `approve`, keep `reject` (role `approver`); its actor stays the role `approver`. A hold on
+  any other kind (`gate-waiting`, `work`, …) has no effect. `placement()` checks `approveHeld`
+  first: *Waiting on others* for every user (identified or not, approvers included), never
+  *Requires you* — so the greeting, the bell and the summary counts (all the length of
+  `requiresYou`) exclude it with no other change.
+- **D69-4 — When the index is built.** `descriptorInputs()` (memoised per state by `derived`)
+  reads `view.uiConfig()` (a file read, no process) on every state and awaits
+  `view.referenceIndex()` only when the effective `holds` has a `when-references-done` entry —
+  spec-003 §3's rule as written. A finer rule (only when a listed element sits in such a gate
+  state) would save reads in some states but needs a spec-003 Process Note; not taken (Q4).
+  Failure modes add none: `referenceIndex()` rejects only where `memory search` or `memory.yaml`
+  already fail the route.
+- **D69-5 — The actor after an approve (spec-003 §4, D6; AC-3).** Kind `work`, last move into the
+  state an `approve` → the author of the last `submit` before that approve, `basis: 'submitter'`;
+  no such submit → the approve's author (`last-transition`, as today). The reject rule keeps its
+  precedence; kind `first`, the other `work` rows and `amend` (D48-6) unchanged. A submitter who is
+  not a member gets the tech-lead fallback, as every member rule does (Q2).
+- **D69-6 — `limits` read leniently (spec-001 §4.1).** `StateMachine.limits?:
+  Record<string, number>` in `contracts/src/files.ts`; `pickStates` keeps only entries whose value
+  is a positive integer; `memory-yaml.schema.json` gets `limits: { type: object }` with no stricter
+  rule. Reason (P5): 0.2.2 ignores the key, so a strict schema would make a 0.2.2 project's
+  `memory.yaml` unreadable (`typesError`) for a key its CLI never reads; 0.3.1 refuses a bad value
+  itself. Recorded in spec-001 §4.1 with a dated Process Note (AC-6, after the coordinator's OK).
+- **D69-7 — `state-limit` (spec-003 §6 rule 5, D11, F4; AC-4).** For `submit` and `approve` only,
+  after rules 1–4 (the first failing reason wins): `limits[to] = N` and `occupancy(type, to) ≥ N` →
+  `{ enabled: false, reason: { code: 'state-limit', state: to, limit: N } }`. `reject` never
+  limited; `park` never offered. Applied only when the detected WingFoil version is ≥ 0.3.0
+  (`DetectedVersion.version`, semver compare; spec-003 §6's "0.3.x" made explicit, P5). The count
+  is computed in `descriptorInputs` from the cached `memory search` (no process added) and only
+  when some resolved machine declares `limits`. No server write check: a CLI refusal where the
+  approximation differs stays 422 `cli-refused` with its toast (characterization).
+- **D69-8 — Contracts (AC-2, AC-4).** `descriptor.schema.json`: `approveHeld` (`condition` enum
+  `never` | `when-references-done`; `reason` `oneOf` `held-by-config` and
+  `held-until-references-done` with `count` integer ≥ 1) and a seventh `reason` branch
+  `state-limit` (`state` string, `limit` integer ≥ 1); `contracts/src/descriptor.ts` the same
+  (`ApproveHeld`, `HoldReason`, `DisabledReason` widened). `today.schema.json` and
+  `elements.schema.json` change through the `$ref` only.
+- **D69-9 — The contract check (spec-003 §9; AC-2).** Today's check never meets a held gate or a
+  full state (the standard custom fixture has neither). Added: one custom-fixture variant on the
+  pinned CLI with the sw-life-cycle preset, P1 … P3's states, and the descriptors read **as the
+  server serves them** (`GET /elements` through the `today-routes.test.ts` app harness, so holds,
+  index and occupancy are the route's own): the held gates' `approve` the CLI accepts (P4) listed
+  as the declared exception, as `contentRefusals` are; `sprint-002`'s `submit` offered disabled
+  with `state-limit` and refused by the CLI (P3). Plus the oracle update of D69-5:
+  `STANDARD_PACKS` `task-003-element-panel` and `task-004-themes` → `work('in-progress', 'Jordan')`
+  with basis `submitter` (they were Morgan, the approve's author).
+- **D69-10 — Web (AC-5; ux §4.1, §4.2 v0.3).** `footerView`: after the identity rule, a descriptor
+  with `approveHeld` → for a member holding the reject's role, the existing `gate` view with a new
+  `held: HoldReason` field (the line rendered where `engineAdvance` is; `approve: false`, so the
+  reason field starts empty and required — no "Approved via WingFoil UI" default, the code already
+  does this for `approve: false`); for any other member a new `{ kind: 'held'; reason }` view, the
+  line only (no "Reserved to approver"). Today: `waitingWho` gains `{ kind: 'held'; reason }`
+  checked before the actor, rendered with the same keys as the footer. Team: `pendingGates` skips a
+  descriptor with `approveHeld` (spec-005 §4a). `reasonMessage` gains `state-limit`. REQ-ARC-05:
+  codes and parameters only.
+- **D69-11 — Catalogue (spec-008 §4, P3; AC-5).** Sorted, append-only: `element.reason.heldByConfig`
+  "Approved outside the console (ui.yaml)", `element.reason.heldUntilReferencesDone` "Waits for
+  {count, plural, one {# referencing element} other {# referencing elements}} to be done",
+  `element.reason.stateLimit` "Blocked: only {limit} {state} at a time" — the scenario texts
+  exactly (S-24.5 … S-24.7). spec-008's "referencing element(s)" refined to the ICU plural: a dated
+  Process Note in spec-008 (AC-5 allows it).
+- **D69-12 — Fixture Given steps (RP3-16 P4; W-34).** A new harness module
+  `test/harness/fixtures/held-gates.ts` (the `operations.ts` pattern, a `FixtureProject` on a copy,
+  builder verbs only, no hand-set `status:`): `heldRelease(fx)` (P1), `releaseLine(fx)` (P2, with
+  `minor-v0.1` left in `planning`), `fullSprint(fx)` (P3); `usePresetUiConfig` for the preset. Used
+  by the route tests, the contract variant and the e2e spec.
+- **D69-13 — Security.** No new input reaches a read: the index is task-055's (its probes and three
+  review rounds), `holds` comes from the effective `ui.yaml` (ignored file → nothing), the counts
+  from the cached `memory search`. No new git or CLI command, no new log field. The adversarial
+  probes the task names (a held gate approved from the CLI anyway — P4; an ignored `ui.yaml`'s
+  holds; a full state with archived elements; a non-approver on a held gate) are each a test below.
+
+#### Specs and gaps
+
+| Artefact | Spec | State |
+|----------|------|-------|
+| Holds, `approveHeld`, placement | spec-003 §3, §5, §8; spec-005 §4a (approved) | covered |
+| Actor after an approve | spec-003 §4 (approved) | covered |
+| `state-limit` | spec-003 §6 rule 5 (approved) | covered; D69-7's version rule is "0.3.x" made explicit (no amendment) |
+| `limits` read | spec-001 §4.1 (approved) | **G1**: lenient read (D69-6) — Process Note |
+| Catalogue texts | spec-008 §4 (approved) | **G2**: the ICU plural (D69-11) — Process Note |
+| Contract exception | spec-003 §9 (approved) | covered (D69-9 exercises it) |
+| `DescriptorProject` fields | internal | these notes and TypeDoc |
+
+- **G3 (no code gap, a behaviour change to note)** — in this repository agents submit under their
+  own identity (task-050), which is not a DNA member: a task approved into `backlog` after an
+  agent's submit names the tech-lead fallback "Author not in the team" (spec-003 §4), no longer the
+  approver (Q2).
+- **G4** — the Memory list keeps a held gate in the *To approve* bucket (spec-003 §8: bucket by
+  kind); no spec asks otherwise (Q3).
+
+#### Classification and test plan
+
+| AC / scenario | Kind | Test (file › test) |
+|---------------|------|--------------------|
+| AC-1 S-24.5, S-24.6, S-24.7 | red-first | `test/e2e/held-gates.spec.ts` (new; `prebuild: ['custom']`, `fixtures.copy`, D69-12 helpers): S-24.5 Morgan in the `approver` view — Today *Requires you* without `minor-v0.1`, *Waiting on others* row with the text, the panel's footer line, *Reject → in-development*, no *Approve*; S-24.6 Casey — the row and the footer line, no outcome button; S-24.7 Morgan — `sprint-002`'s *Submit* disabled (`aria-disabled`) with the reason as accessible description; keyboard path and `scanThemes` (0 serious/critical, both themes) on the changed footer and row. Chromium, Firefox, WebKit |
+| AC-1 S-24.1 … S-24.4 | characterization | `test/e2e/gate-footer.spec.ts`, unchanged, in the Chromium suite |
+| AC-2 descriptor | red-first | `test/server/descriptor/descriptor.test.ts`: each `holds` value; count 0 → not held; a hold on a `gate-waiting` and on a `work` state → no effect; `reject` kept; actor unchanged |
+| AC-2 placement and counts | red-first | `placement.test.ts` (held → *Waiting on others* for an approver in the `approver` and `reviewer` views, a non-approver, an unidentified user; never *Requires you*); `today.test.ts` (greeting/summary counts exclude it); `test/web/team/model.test.ts` (`pendingGates` skips it) |
+| AC-2 route, index, ignored file | red-first | `test/server/http/held-gates-routes.test.ts` (new, the `today-routes` harness): `/elements`, `/elements/:eid`, `/today` on the preset variant with D69-12's states (`approveHeld` with the right count, schema-valid); an ignored `ui.yaml` (a schema error) holds nothing; a `never`-only `ui.yaml` builds no index (read spy: no element file read but the one opened, D55-9) |
+| AC-2 schema | red-first | `test/contracts/schemas.test.ts` (or a new `api-descriptor-schema.test.ts`): `approveHeld` and `state-limit` samples valid, malformed ones refused |
+| AC-2 contract check | red-first | `test/contracts/descriptor-contract.test.ts` › the D69-9 variant (pinned CLI only) |
+| AC-2 REQ-ARC-05 | characterization | `test/lint/` green on the changed files |
+| AC-3 actor | red-first | `descriptor.test.ts` (approve into `work` → submitter; no submit before → approve's author; a non-member submitter → fallback; amend rows unchanged); `today.test.ts` (a task approved into `backlog` in its submitter's *Requires you*, not the approver's); `standard.ts` oracle (D69-9) |
+| AC-4 limit | red-first | `descriptor.test.ts` (submit and approve into a full state disabled with `{state, limit}`; below the limit enabled; `reject` into a full state enabled; rules 1–4 win; version 0.2.2 → not applied); `test/server/reads/memory-yaml.test.ts` (`limits` kept, a 0 / a string / a float dropped, the `defaults` machine); `held-gates-routes.test.ts` (`sprint-002`; an archived element in the state not counted) |
+| AC-4 CLI refusal | characterization | `test/server/http/element-writes.test.ts`: a `submit` the descriptor enables but the CLI refuses on its limit (a holder only on another branch) → 422 `cli-refused`; guard removal recorded |
+| AC-5 web | red-first | `test/web/element/footer.test.ts` (`held` view, `gate` + `held`), `test/web/element/gate-footer.test.tsx` (line, empty required reason, rejects, *Cancel*), `test/web/today/today.test.tsx` (the row's reason), `test/web/i18n/` catalogue checks |
+| Process audits | characterization | `test/server/snapshot/process-audit.test.ts`: Today and `/elements` on the preset variant — CLI processes unchanged (TT-PERF-05), one `ls-tree` per new HEAD, none warm |
+| AC-6 | gates | below |
+
+#### Shared files (append-only where shared)
+
+`server/src/descriptor/{descriptor,placement}.ts`, `server/src/http/project-routes.ts`
+(`descriptorInputs` only), `server/src/reads/memory-yaml.ts`, `contracts/src/{descriptor,files}.ts`,
+`contracts/api/descriptor.schema.json`, `contracts/files/memory-yaml.schema.json`,
+`web/src/element/{footer.ts,ElementFooter.tsx}`, `web/src/today/{model.ts,TodayView.tsx}` (task-061
+changes Today in parallel: merge hot spot), `web/src/team/model.ts`, `web/src/i18n/en.json` (three
+keys in place), `test/server/descriptor/standard.ts`, `test/README.md` (version line),
+`CHANGELOG.md` *Unreleased* *Added*, `docs/user-guide.md` (Today and the gate footer: the held line,
+the limit reason — `documentation`), spec-001 and spec-008 Process Notes (G1, G2, after the
+coordinator's OK), the `docs:api` output (regenerated).
+
+#### Gates and where they run
+
+Local, always: `npm run typecheck`, `npm run lint`, `npm run format:check`, `npm run docs:api`,
+`python3 docs/03_backlog/X_tools/check_tasks.py v0.3`, targeted `npx vitest run <files>`; the
+git-touching suites (the route tests, the process audits) under the strict-identity recipe of
+`test/README.md` (dl-011); `npx vitest run test/docs/public-text.test.ts` before each push. On
+`gates.yml` (a push of `task/task-069-…`, W1-11): `test:coverage`, `test:contract`,
+`test:e2e:chromium`, and the own spec `test/e2e/held-gates.spec.ts` on Firefox and WebKit; evidence
+as run id, commit, result. No smoke: no packaging, launcher or bin change.
+
+#### Size
+
+Descriptor rules, `limits` read and contracts 0.4; route wiring and route tests 0.25; web footer,
+Today row, Team count, catalogue 0.3; harness helpers and the three-engine e2e 0.35; contract
+variant, oracle and process audit 0.15; docs, Process Notes, CI runs 0.15 — **about 1.6 active
+days**, above RP3-20 G2's one day (Q1).
+
+#### Questions (one recommendation each)
+
+- **Q1 — size (RP3-20 G2).** (a) Keep it whole (about 1.6 days). (b) Split `state-limit` (D69-6,
+  D69-7, S-24.7, AC-4; about 0.5 day) into a new task; this task keeps holds and the actor (about
+  1.1 days) and stays task-059's dependency. **Recommended (a)**: the three rules share every file
+  (descriptor, contracts, footer, catalogue, one e2e spec, one harness module), so a split doubles
+  the merge hot spots for little gain, and task-059 waits only on the hold either way.
+- **Q2 — the actor when the submitter is not a member (G3).** (a) As spec-003 §4: the tech-lead
+  fallback "Author not in the team". (b) Fall back to the approve's author (`last-transition`) when
+  the submitter is not a member — a spec-003 amendment. **Recommended (a)**: the spec's one
+  fallback rule; an agent's submit is the case the fallback exists for.
+- **Q3 — the Memory list bucket of a held gate (G4).** (a) Unchanged (*To approve*, by kind). (b) A
+  bucket of its own or *Waiting*. **Recommended (a)**: no spec or scenario asks for it; a change
+  belongs to a later story.
+- **Q4 — when the index is built (D69-4).** (a) Whenever the effective `holds` has a
+  `when-references-done` entry (spec-003 §3 as written). (b) Only when a listed element sits in
+  such a gate state (a spec-003 Process Note). **Recommended (a)**: in this repository `rl-v1` is
+  always `active`, so (b) saves nothing here; task-059's routes build the index anyway.
+- **Q5 — the spec Process Notes (AC-6).** G1 (spec-001 §4.1, lenient `limits`) and G2 (spec-008,
+  the ICU plural): **recommended** to write both in the green commit, after the coordinator's OK on
+  this design.
+
+Blockers: none outside these questions; red waits for the coordinator.
+
+### design approved (2026-11-09, W2-5)
+
+Relayed by the coordinator (`backlog-item-rel-v0.3-plan` W2-5, the approver "tutto come
+consigliato" with one change):
+
+- **Q1 (b)** — split: `state-limit` moved to task-073-state-limit-in-the-descriptor (`5f3d1924`,
+  `pending`, after this task) — this task's AC-4 and the S-24.7 parts of AC-1, AC-5 and AC-6, D69-6,
+  D69-7, the `state-limit` parts of D69-8 and D69-9, probe P3 as its starting point. This task keeps
+  the held gates, the actor after an approve and their screens. The ACs above are amended with
+  dated notes. The title still says "and state limit": the id cannot change, so the title is left
+  as it is.
+- **Q2 (a)** — a submitter who is not a member gets spec-003 §4's tech-lead fallback; G3 (agents
+  submit as non-members, so a task approved into `backlog` shows the fallback) is a known effect,
+  recorded in W2-5.
+- **Q3 (a)** — a held gate stays in the *To approve* bucket.
+- **Q4 (a)** — the index is built whenever the effective `holds` has a `when-references-done`
+  entry.
+- **Q5** — the Process Notes are written in the green commit; the lenient `limits` read (D69-6,
+  spec-001 §4.1) is task-073's, so only spec-008's (the ICU plural, G2) is this task's.
+- D69-1 … D69-13 accepted, minus their `state-limit` parts. The merge of the phase branch before
+  this amendment: `5368b72c` (the phase branch at `7079c4b8`).
+
+### red / green / refactor (2026-11-09)
+
+Scope after W2-5: AC-1 (S-24.5, S-24.6), AC-2, AC-3, AC-5, AC-6 — no `state-limit`, no `limits`
+read (task-073).
+
+- **Merge first**: `5368b72c` (the phase branch at `7079c4b8`); the amendment `eb51f22f`.
+- **Red** (`699f3f26`): `test/server/descriptor/held-gates.test.ts` (new: the holds on the 0.3.1
+  custom sample, placement, Today counts, the D6 actor), `test/contracts/api-descriptor-schema.test.ts`
+  (new), `test/server/http/held-gates-routes.test.ts` (new), `test/contracts/held-gates-contract.test.ts`
+  (new, D69-9's held part), `test/e2e/held-gates.spec.ts` (new), the harness module
+  `test/harness/fixtures/held-gates.ts` (D69-12: `submitToReleasing`, `addReleaseLine`,
+  `releaseHeldRelease`), the `STANDARD_PACKS` oracle (`task-003`, `task-004` → Jordan,
+  `submitter`), and held cases in `test/web/element/{footer.test.ts,gate-footer.test.tsx}`,
+  `test/web/today/{model.test.ts,today.test.tsx}`, `test/web/team/model.test.ts`. `npx vitest run`
+  of the unit files: 33 tests failed on behaviour (no `approveHeld`, the approve's author as actor,
+  no `held` view or row text, the schema refusing `approveHeld` — only its two accept cases fail on the schema, the other nine
+  in the test's mutator, since no `approveHeld` is built yet: the checker's N1); the route file: 2 of 4 failed
+  (no `approveHeld`) — the two passing ones ("all references done", "an ignored `ui.yaml`") are
+  characterization: the old code holds nothing anywhere.
+- **Green** (`fe6105a5`): `contracts/src/descriptor.ts` (`ApproveHeld`, `HoldCondition`,
+  `HoldReason`; `ActionDescriptor.approveHeld?`), `contracts/api/descriptor.schema.json`
+  (`approveHeld`), `contracts/src/index.ts` (one export line added); `server/src/ui-config/types.ts`
+  (its `HoldCondition` is the contract's); `server/src/descriptor/descriptor.ts`
+  (`DescriptorHolds`, `DescriptorProject.holds?`, `heldOf` — kind `gate` only —, the approve
+  dropped, the D6 actor), `placement.ts` (`approveHeld` first → *Waiting on others*);
+  `server/src/http/project-routes.ts` (`ProjectRead.holds()`: the effective `holds`, the index only
+  for a `when-references-done` hold, Q4 (a)); `web/src/element/{footer.ts,ElementFooter.tsx,
+  HoldText.tsx}` (new `held` view, the gate view's `held` line), `web/src/today/{model.ts,
+  TodayView.tsx}` (`waitingWho` `held`), `web/src/team/model.ts` (`pendingGates` skips a held
+  gate), `web/src/i18n/en.json` (two keys in place); spec-008 Process Note (G2, Q5);
+  `CHANGELOG.md` *Unreleased* *Added*; `docs/user-guide.md` 0.29; `test/README.md` 0.68. Two test
+  changes in the same commit: the held rows of `today.test.tsx` moved to a test of their own (added
+  to the shared `MORGAN_TODAY` they changed the row counts of two v0.2 tests), and the route file's
+  Given steps moved into a `beforeAll` (the bug-028 rule of `test/README.md`: content made with the
+  CLI is built once, each test copies it).
+- **Deviations.** (1) `HoldText` is a module of its own (`web/src/element/HoldText.tsx`), shared by
+  the footer and Today, instead of a private helper of `ElementFooter.tsx`. (2) The process audit
+  of the test plan is an assertion of the route file (a cold `/elements` with the preset: at most 6
+  CLI processes, one `git ls-tree`), not a new case of `process-audit.test.ts`. (3) D69-9's
+  variant is its own file, `test/contracts/held-gates-contract.test.ts`, on the pinned CLI only.
+- **Local checks** (on `fe6105a5`): `npm run typecheck`, `npm run lint`, `npm run format:check`,
+  `npm run docs:api` clean; `check_tasks.py v0.3` OK (28 tasks); `npx vitest run test/docs
+  test/lint test/web test/governance` and the schema files: 75 files, 1 351 tests passed (the one
+  failure before the commit was `workflow-diagnostics`' `W_UNCOMMITTED_INPUTS` on the edited
+  spec-008, gone once committed: 4 passed); the strict-identity recipe (a `git` wrapper first on
+  the `PATH` with `-c user.useConfigOnly=true` and the `followRemoteHEAD` emulation, outside the
+  repository) on `test/server/http/held-gates-routes.test.ts test/server/descriptor`: 5 files, 90
+  tests passed (load 8.99); `npx vitest run test/docs/public-text.test.ts` before the push: 67
+  passed.
+- **Heavy gates on `gates.yml`** — run `42586890285` on `fe6105a5` (the push of the task branch,
+  `task` scope): **success** — `checks`, `contract` (with `held-gates-contract` and the
+  `STANDARD_PACKS` oracle of D6), `coverage` (220 files passed, 1 skipped; statements 96.62 %,
+  branches 91.39 %, functions 97.27 %, lines 98.4 %), `e2e-chromium` (2 shards), `own-specs
+  (firefox)` and `own-specs (webkit)` (`test/e2e/held-gates.spec.ts`: 2 passed each), `smoke`,
+  `publish-smoke`; `e2e-wave` skipped (task scope). No Playwright or coverage run locally.
+- **Refactor**: no code change after green — the review of the diff found nothing to simplify
+  beyond the two test moves already in `fe6105a5`; this note is the only commit after it.
+
+### review round 1 (2026-11-09, security-adversarial: PASS; two minor findings, four nits)
+
+Relayed by the coordinator; the branch at `58780894` (the phase branch merged after `de434555`).
+
+| Finding | Fix | Test |
+|---------|-----|------|
+| **F1 (minor)** — a held gate whose only reject leads into the archived set (not offered, spec-003 §9) had no verb left: `footerView` answered `none`, so no footer at all (the reviewer's probe: an `adr` with `gates: {proposed: {reject: deprecated}}`, `holds` `never`, an approver) | `footerView` answers the `held` line view when `approveHeld` is set and no gate verb is left (`web/src/element/footer.ts`) | red first (`f94bce79`): `test/web/element/footer.test.ts` › "review F1 — a held gate with no gate verb left …" |
+| **F2 (minor)** — `POST …/approve` on a held gate still runs `memory approve` | none: decision **D69-14** below | — |
+| F3 (nit) — the D6 comment said "the submit that reached the gate" | the comment says the last submit before that approve (AC-3's wording) | — (comment only) |
+| F4 (nit) — the schema accepted `condition: never` with a `held-until-references-done` reason | `approveHeld` is a `oneOf` of the two pairs (condition with its reason code) in `descriptor.schema.json`; `ApproveHeld` in `contracts/src/descriptor.ts` is the same union | red first (`f94bce79`): `test/contracts/api-descriptor-schema.test.ts` › "refuses never with a counted reason", "refuses when-references-done with held-by-config" |
+| F5 (nit, a11y) — the hold line was not in the rejects' accessible description | the line has an id and leads each reject's `aria-describedby`, before the blank-reason hint or the blocked reason | red first (`f94bce79`): `test/web/element/gate-footer.test.tsx` › "review F5 — the hold line describes each reject …" |
+| F6 (nit) — the catalogue text refines spec-008 §4 | none: accepted as is, the spec-008 Process Note of 2026-11-09 records the refinement | — |
+
+- **D69-14 — no server-side hold on the write routes (F2).** A hold withdraws the console's
+  *offer* of *Approve* only; the CLI is untouched and stays the authority (spec-005 §4a: "the hold
+  is the console's, not WingFoil's"). `POST /api/p/:pid/elements/:eid/approve` therefore adds no
+  guard: a stale page or a direct API call can still approve a held gate, exactly as `memory
+  approve` from a terminal would (design probe P4).
+
+Gates of round 1 (on `9e908c6a`): `npm run typecheck`, `npm run lint`, `npm run format:check`,
+`npm run docs:api` clean; `npx vitest run test/web/element test/web/today test/web/team
+test/web/i18n test/server/descriptor test/contracts/api-descriptor-schema.test.ts`: 276 tests
+passed; the strict-identity recipe on `test/server/http/held-gates-routes.test.ts`: 4 passed (load
+8.45).
+`gates.yml` run `42592969032` on `f37779c0` (`task` scope): **success** — `checks`, `contract`,
+`coverage` (statements 96.65 %, branches 91.42 %, functions 97.37 %, lines 98.4 %),
+`e2e-chromium` (2 shards), `own-specs` on Firefox and WebKit, `smoke`, `publish-smoke`;
+`e2e-wave` skipped.
+
+### review round 2 (2026-11-09)
+
+The same adversarial reviewer on `4f63ec10`: **PASS**, no finding. F1 re-probed at HEAD (the held
+line for an approver and a non-approver, under `never` and `when-references-done`); F3, F4, F5
+closed; red `f94bce79` 4 failed on behaviour; no regression (`test/web/element`, `test/web/today`,
+`test/web/team`, `test/server/descriptor`, the contract schema tests: 18 files, 271 passed; three
+more schema files 146 passed; typecheck and lint clean).
+
+Runs on the branch not recorded above, all `gates.yml` `push`, task scope, every job success and
+`e2e-wave` skipped (recorded by the coordinator, from `gh run view`):
+
+- `42588547117` on `cc52df72` (the Execution Notes after green);
+- `42590153711` on `58780894` (the coordinator's merge of the phase branch, reviewed in round 1);
+- `42595075745` on `4f63ec10` (the tip with code; `held-gates.spec.ts` 2 passed on Firefox and on
+  WebKit).
+
+### checker (2026-11-09)
+
+On `4f63ec10`: every AC, the red commits `699f3f26` (35 failed, 176 passed) and `f94bce79` (4
+failed) re-run in a detached worktree, the five run ids, the local checks (95 files, 1775 tests
+passed), `check_tasks.py v0.3` OK, the frontmatter. NOT READY only on the notes: round 2 and the
+runs above missing (G1, G2), and the empty phase commit `565a8a39` not merged (G3) — all fixed by
+the coordinator in this commit and the merge before it. Nits: N1 corrected above; N2 the
+CHANGELOG wording aligned with AC-3 ("the last submit before that approve"), the test title in
+`test/server/descriptor/held-gates.test.ts` left with the older phrase (same behaviour); N3 the
+approver's words quoted in Italian, as other task files do.
