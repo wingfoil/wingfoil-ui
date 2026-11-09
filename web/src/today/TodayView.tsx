@@ -24,6 +24,7 @@ import { useEffect, useId, useRef, useState, type MouseEvent, type ReactNode } f
 import { Button } from 'react-aria-components';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { ApiError } from '../api/client.js';
+import { HoldText } from '../element/HoldText.js';
 import { useSetRoleView } from '../api/projects.js';
 import { projectHeaderQuery } from '../api/queries.js';
 import { useHowToJoin } from '../project/HowToJoin.js';
@@ -191,6 +192,8 @@ function Who({ row }: { row: TodayRow }): ReactNode {
       );
     case 'engine':
       return <FormattedMessage id="today.waiting.engine" />;
+    case 'held':
+      return <HoldText reason={who.reason} />;
     case 'none':
       return null;
   }

@@ -98,6 +98,7 @@ export type { ElementFrontmatter, MemoryTypeDef, MemoryYaml, StateMachine } from
 export type { ProjectEntry, StateFile, StateWarning } from './state.js';
 export type { ActionLogEntry, UiSettings, UiTheme } from './state.js';
 export type { ActorBasis } from './descriptor.js';
+export type { ApproveHeld, HoldCondition, HoldReason } from './descriptor.js';
 export type {
   MemoryEventEntry,
   MemoryEventsPage,

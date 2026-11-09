@@ -96,6 +96,19 @@ it('names who must act from the actor', () => {
   expect(waitingWho(waiting({ kind: 'none' }))).toEqual({ kind: 'none' });
 });
 
+it('task-069 — a held gate names its hold, in place of the role (spec-003 §5)', () => {
+  const reason = { code: 'held-until-references-done', count: 1 } as const;
+  const row: TodayRow = {
+    element: { id: 'x-001', type: 'kind-a', title: 'X', status: 's1', localChanges: false },
+    descriptor: descriptor({
+      kind: 'gate',
+      actor: { kind: 'role', role: 'approver', members: ['Morgan'] },
+      approveHeld: { condition: 'when-references-done', reason },
+    }),
+  };
+  expect(waitingWho(row)).toEqual({ kind: 'held', reason });
+});
+
 it('greets a member by name and has no name for anyone else', () => {
   expect(greetingName(morgan())).toBe('Morgan Reyes');
   expect(greetingName(riley())).toBeUndefined();

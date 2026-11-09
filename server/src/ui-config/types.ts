@@ -5,7 +5,7 @@
  * `/config` section (the split task of task-054), the progress and traceability routes (task-059)
  * and the preset write (task-060); the API shapes live in `contracts/`.
  */
-import type { UiConfigStatus } from '@wingfoil-ui/contracts';
+import type { HoldCondition as ContractHoldCondition, UiConfigStatus } from '@wingfoil-ui/contracts';
 import type { UiCategory } from '../presets/ui-config.js';
 
 export type { UiCategory } from '../presets/ui-config.js';
@@ -13,8 +13,8 @@ export type { UiCategory } from '../presets/ui-config.js';
 /** `progress.mode`. */
 export type ProgressMode = 'sequence' | 'flow';
 
-/** `holds.<type>.<state>.approve` (spec-005 §4a). */
-export type HoldCondition = 'never' | 'when-references-done';
+/** `holds.<type>.<state>.approve` (spec-005 §4a): the descriptor's `approveHeld.condition`. */
+export type HoldCondition = ContractHoldCondition;
 
 /** A `taxonomy.patterns` entry. */
 export interface UiPatternEntry {
