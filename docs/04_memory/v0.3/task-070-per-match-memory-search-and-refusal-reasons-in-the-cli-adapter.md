@@ -337,3 +337,64 @@ recommended** (Q-A).
 (Q-1 … Q-4). It touched only those scratch projects, outside the repository, and lasted that one
 command; no commit of this repository carries it. It will not recur: scratch and fixture commits use
 the fixture builder or the strict-identity recipe of `test/README.md` *Fixtures* › *Git identity*.
+
+### red / green / refactor (2026-11-09)
+
+- **Red** (`b6ca4b8a`): the five suites of D70-13, the refused-submit samples captured with
+  `WFUI_CAPTURE_SAMPLES=1 npx vitest run test/contracts/capture-samples.test.ts -t 'refusals'`
+  (`kanban/memory-submit-refused.stderr.txt` of 0.2.2 and 0.3.1: the `error` only, and the `error`
+  with one `details` item, as Q-4 showed; the full capture writes them too, so a full re-capture
+  keeps them), and D70-10's move of the strict case to `dna show`. `npx vitest run` of the five
+  suites: **35 failed, 13 passed** of 48 — the routes on 0.2.2 answered 502 `cli-output` (bug-024),
+  the adapter threw `CliOutputError` on a failing match, no `reasons`, no `cli.refusal` schema, no
+  reason in the toast. The 13 passing are the characterization rows: the strict envelope and `dna
+  show` cases, 0.3.1's own drop and warning, the 0.2.2 limitation of bug-036 (500 `internal`), the
+  refusals without `details`, the toast without reasons. The `dna show` case holds whatever the
+  name check says: the per-match path needs a `matches` array, so the envelope check is the guard
+  that keeps every other command strict. Deviation from D70-7: the samples' checks live in
+  `test/contracts/api-cli-refusal-schema.test.ts` (*the captured samples*), not in `schemas.test.ts`,
+  which reads JSON samples only.
+- **Green** (`bb0ea538`):
+  - `contracts/cli/memory-search.schema.json`: the match in `definitions.match` (D70-1);
+    `server/src/contracts.ts` `definitionProblems` (each schema's `$id` kept at load, Ajv's
+    compiled fragment).
+  - `server/src/cli/commands.ts` `searchMatches` (D70-2, D70-3: the envelope checked as the same
+    schema with no match, the fields in the schema's order, `<no path>`, `not an object`);
+    `adapter.ts` `json` reads `memory search` per match only when its whole output fails;
+    `stderrWarnings` takes the dropped lines after the stderr lines under one cap and count line.
+  - `adapter.ts`: `CliRefusedError.reasons`, `MAX_REASONS` (200), `refusalOf` — the message and
+    the reasons from **one** parse of the stderr text (`test/server/tool-messages.test.ts`'s *one
+    parse per candidate* failed with a second parse at the first green run, 4 > 3); 
+    `cliErrorEnvelope` adds `detail.reasons` only when there is one (D70-5).
+  - `contracts/api/cli.refusal.schema.json` (new) and `write.refusal.schema.json`'s `cli-refused`
+    branch referring to its `detail` (D70-6); `test/contracts/api-writes-schema.test.ts` compiles
+    `write.refusal` with it and its `cli-refused` cases moved to their own test.
+  - `server/src/http/project-routes.ts`: `?archived=true` carries the archived searches' warnings,
+    each text once (D70-4).
+  - `web/src/api/error-message.ts`: `verbatim` is the message then each reason on its own line;
+    `reasons` left out of the catalogue values (D70-8).
+  - `test/server/http/text-sweep.test.ts` classifies `cli.refusal`'s and `write.refusal`'s
+    `error.detail.reasons[]` as (a) and `cli.refusal`'s code and message with the other envelopes
+    (D70-11); `tool-messages.test.ts`'s producer scan passes unchanged (the reasons go through
+    `this.redact`, on the line its pattern already lists).
+- **Refactor:** none beyond green's; the public-text check (`test/docs/public-text.test.ts`) refused
+  two fictitious folders and `~/notes` in `refusal-reasons.test.ts`, written as `/p`, `/x/wingfoil`
+  and `~/x` (the allowed forms).
+- **Docs** (`e14765b4` and this section): `CHANGELOG.md` *Unreleased* › *Added* (the reasons),
+  *Fixed* (bug-024), *Known limitations* (bug-036, D70-9 (a), the approver's choice quoted above);
+  `docs/user-guide.md` 0.29 (*Files that are not elements*, the reasons in *After an action*, the
+  limitation); spec-004 §5 and its Process Note of 2026-11-09; spec-001 §2 holds as written;
+  `test/README.md` 0.68; `npm run docs:api` regenerated (git-ignored output, exit 0).
+
+### gates (2026-11-09, AC-4)
+
+Local, on the tip before the push: `npm run typecheck`, `npm run lint`, `npm run format:check`,
+`npm run docs:api` clean; `python3 docs/03_backlog/X_tools/check_tasks.py v0.3` OK. Targeted
+`npx vitest run`: the five new suites with `tool-messages`, `text-sweep`, `project-routes`,
+`element-writes`, `today-routes`, `api-writes-schema`, `schemas` and `test/server/cli/` — 17 files,
+443 passed; `test/web/shell/`, `test/web/api/error-message` — 13 files, 288 passed. Under the
+strict-identity recipe (`test/README.md` *Git identity*: a `git` wrapper first on the `PATH`,
+outside the repository, with `-c user.useConfigOnly=true` and the `followRemoteHEAD` emulation):
+`dropped-matches`, `refusal-reasons`, `project-routes`, `text-sweep`, `tool-messages`,
+`harness/git-identity`, `test/docs`, `test/governance`, `wingfoil-feedback` — all passed but the
+public-text finding above, fixed, then `public-text` and `refusal-reasons` 78 passed.

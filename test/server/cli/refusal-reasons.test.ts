@@ -32,8 +32,8 @@ import { cliBuildFor } from '../../contracts/support.js';
 import { FakeProcessRunner } from '../process/fake-runner.js';
 import { auditedSnapshots } from '../snapshot/support.js';
 
-const ROOT = '/srv/project';
-const PACKAGE = '/opt/tools/wingfoil';
+const ROOT = '/p';
+const PACKAGE = '/x/wingfoil';
 const CLI = {
   source: 'path' as const,
   projectRoot: ROOT,
@@ -57,7 +57,7 @@ const refused = (details: unknown, error = "illegal transition pending -> (none)
 
 describe('the reasons of a refusal (fake runner)', () => {
   it('each string detail, in order, sanitised like the message; the files are not passed on', async () => {
-    const hostile = `see ${ROOT}/docs/x.md, ${PACKAGE}/dist/cli.js, ${homedir()}/notes and https://user:secret@example.com/r ${RLO}txt${ESC}[31m`;
+    const hostile = `see ${ROOT}/docs/x.md, ${PACKAGE}/dist/cli.js, ${homedir()}/x and https://user:secret@example.com/r ${RLO}txt${ESC}[31m`;
     const error = await refusal(
       refused([
         { file: 'docs/memory/bug/bug-001.md', detail: GATE },
@@ -66,7 +66,7 @@ describe('the reasons of a refusal (fake runner)', () => {
     );
     expect(error.reasons).toEqual([
       GATE,
-      'see <project>/docs/x.md, <wingfoil>/dist/cli.js, ~/notes and https://example.com/r \\u202etxt\\x1b[31m',
+      'see <project>/docs/x.md, <wingfoil>/dist/cli.js, ~/x and https://example.com/r \\u202etxt\\x1b[31m',
     ]);
     const { status, body } = cliErrorEnvelope(error);
     expect(status).toBe(422);
