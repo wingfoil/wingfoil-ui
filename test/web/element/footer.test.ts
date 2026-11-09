@@ -173,6 +173,13 @@ describe('footerView — a held gate (task-069; spec-003 §3, ux-reference §4.2
     ).toEqual({ kind: 'held', reason: counted });
   });
 
+  it('task-069 review F1 — a held gate with no gate verb left (its reject leads to an archived state): the line', () => {
+    expect(footerView(descriptor({ ...HELD, verbs: [] }), header(MEMBER))).toEqual({
+      kind: 'held',
+      reason: held.reason,
+    });
+  });
+
   it('a user not identified keeps the read-only line (identity first, D37-5)', () => {
     expect(footerView(HELD, header({ kind: 'no-identity' })).kind).toBe('readOnly');
   });

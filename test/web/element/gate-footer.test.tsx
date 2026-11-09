@@ -364,6 +364,20 @@ it('S-24.5 — a held gate for an approver: the hold line, an empty required rea
   expect(within(f).queryByRole('button', { name: /Approve/ })).toBeNull();
 });
 
+it('task-069 review F5 — the hold line describes each reject, with the blank-reason hint, then alone', async () => {
+  stub(HELD);
+  renderApp(`/p/${PID}/e/${EID}`);
+  const f = await footer();
+  const line = within(f).getByText('Approved outside the console (ui.yaml)');
+  const reject = outcome(f, 'Reject → s1');
+  expect(reject.getAttribute('aria-describedby')?.split(' ')).toEqual([
+    line.id,
+    within(f).getByText('A reason is required').id,
+  ]);
+  fireEvent.change(reasonField(f), { target: { value: 'Not yet' } });
+  expect(reject.getAttribute('aria-describedby')).toBe(line.id);
+});
+
 it('S-24.6 — a held gate for a member without the role: the hold line only, no outcome, no "Reserved to"', async () => {
   stub(
     {

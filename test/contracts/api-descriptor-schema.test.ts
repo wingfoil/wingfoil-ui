@@ -51,6 +51,9 @@ describe('contracts/api/descriptor.schema.json — approveHeld', () => {
     ['no reason', (b) => delete b.approveHeld.reason],
     ['no condition', (b) => delete b.approveHeld.condition],
     ['an extra key', (b) => (b.approveHeld.since = 'now')],
+    // Review F4: the condition and the reason code go together (spec-005 §4a).
+    ['never with a counted reason', (b) => (b.approveHeld.condition = 'never')],
+    ['when-references-done with held-by-config', (b) => (b.approveHeld.reason = { code: 'held-by-config' })],
   ])('refuses %s', (_label, mutate) => {
     const body = clone(held('when-references-done', 2));
     mutate(body);
