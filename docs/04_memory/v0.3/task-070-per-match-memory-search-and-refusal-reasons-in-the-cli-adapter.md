@@ -364,7 +364,7 @@ the fixture builder or the strict-identity recipe of `test/README.md` *Fixtures*
     `stderrWarnings` takes the dropped lines after the stderr lines under one cap and count line.
   - `adapter.ts`: `CliRefusedError.reasons`, `MAX_REASONS` (200), `refusalOf` — the message and
     the reasons from **one** parse of the stderr text (`test/server/tool-messages.test.ts`'s *one
-    parse per candidate* failed with a second parse at the first green run, 4 > 3); 
+    parse per candidate* failed with a second parse at the first green run, 4 > 3);
     `cliErrorEnvelope` adds `detail.reasons` only when there is one (D70-5).
   - `contracts/api/cli.refusal.schema.json` (new) and `write.refusal.schema.json`'s `cli-refused`
     branch referring to its `detail` (D70-6); `test/contracts/api-writes-schema.test.ts` compiles
@@ -378,7 +378,7 @@ the fixture builder or the strict-identity recipe of `test/README.md` *Fixtures*
     (D70-11); `tool-messages.test.ts`'s producer scan passes unchanged (the reasons go through
     `this.redact`, on the line its pattern already lists).
 - **Refactor:** none beyond green's; the public-text check (`test/docs/public-text.test.ts`) refused
-  two fictitious folders and `~/notes` in `refusal-reasons.test.ts`, written as `/p`, `/x/wingfoil`
+  two fictitious folders and a home subfolder in `refusal-reasons.test.ts`, written as `/p`, `/x/wingfoil`
   and `~/x` (the allowed forms).
 - **Docs** (`e14765b4` and this section): `CHANGELOG.md` *Unreleased* › *Added* (the reasons),
   *Fixed* (bug-024), *Known limitations* (bug-036, D70-9 (a), the approver's choice quoted above);
