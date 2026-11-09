@@ -409,3 +409,5 @@ On `gates.yml` (commit `37458a2a`, the code and docs above):
   97.27 %, lines 98.4 %), `contract` (17 files passed, 1 skipped), `e2e-chromium` (two shards, 162
   and 161 passed), `own-specs (firefox)` and `own-specs (webkit)` (44 passed each), `smoke`,
   `publish-smoke`; `e2e-wave` skipped (task scope).
+- Run `42589745891` (the push of `1e39669f`, the gate evidence above; recorded by the
+  coordinator): **success**, every job; `e2e-wave` skipped (task scope).
