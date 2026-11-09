@@ -159,3 +159,265 @@ check on the `large` fixture.
      - design: tech-specs found missing/needing revision (dev-loop/design safety net).
      - red/green/refactor: deviations from the plan above, blockers, scope surprises.
      - review: rejection reasons and what changed on the next pass. -->
+
+### design (2026-11-09)
+
+Read (dl-015): this task, bug-034, bug-037; spec-012 (all, its Process Notes), spec-005 §4, §4a,
+§5, spec-003 §2, §7, §8, spec-004 §3, §5, spec-011 §1; the Execution Notes of task-054 (D54-1 the
+effective configuration's API, D54-6 `scope.current` left to this task, D54-10 the preset variant),
+task-055 (D55-6 the reuse, D55-8 the index interface, Q2-a the pattern budget, Q5-b the `large`
+timing here), task-056 (K1's `repositoryText`, the field table naming `ui.progress.scope.current`
+for this task), task-057 (the short ids) and task-069 (D69-4 `holds()` and the index built only
+with a `when-references-done` hold; `approveHeld`, Q3-a, Q4-a); the stage plan W2-1 … W2-5; the
+scenarios of `t/progress-card.feature`, `r/traceability.feature`, `m/missing-references.feature`
+and `02_bdd/00_conventions.md` *Preset variant*. The code it builds on: `server/src/references/`
+(the index), `server/src/snapshot/snapshot.ts` (the memo, `runCheck`), `server/src/snapshot/
+fingerprint.ts`, `server/src/snapshot/snapshots.ts` (the watcher's debounced check),
+`server/src/http/project-routes.ts` (`elements`, `config`, `ProjectRead.holds`),
+`server/src/descriptor/descriptor.ts` (`stateKind`, the private `heldOf`), `server/src/ui-config/
+body.ts` (`uiConfigBody(effective, current)`), `server/src/reads/frontmatter.ts`.
+
+#### Probes (a temporary vitest file in this worktree, removed after; the pinned `wingfoil@0.3.1`, the harness's fixture builder and environment; load about 12)
+
+| # | What | Result |
+|---|------|--------|
+| P1 | The index of the custom fixture with the sw-life-cycle preset (`usePresetUiConfig`), `SnapshotView.referenceIndex()`, each element's kind, values and references | `minor-v0.1` `planning` (kind `work`, `version: v0.1`), the 4 tasks carry `v0.1`; references: task-001 `US-S-01`, task-002 (`done`, `last`) and task-003 `US-M-01`, all `requirement` by the pattern; task-004 and `adr-001-local-server` none. By spec-012 §1/§3: scope `minor-v0.1`, completion (0/1 + 1/2) / 2 = 25 %, tasks 1/4, open bugs 1 (`bug-001-toast-overlap` `open`), pending gates 3 (task-001 `in-review`, `dl-002-use-fastify` `in-discussion`, bug-001 `open`; no hold applies), coverage 3/5, missing task-004 and adr-001 — **the conventions' figures, with no change to the index**. Every element also carries the empty string `""` as a value (empty template fields): no element id, no pattern starts with it, so no reference. |
+| P2 | The unknown and kanban fixtures, no `ui.yaml` | `source: none`, mode `flow` inferred, no scope; unknown: pending gates 1 (`story-001-onboarding` `shaping`), no category `requirement`/`feature` (→ `no-reference-categories`), `requires` empty (→ `shown: false`); kanban: `iterates: task`, `defects: bug` inferred. |
+| P3 | T-12.4's Given by verbs: `memory add --type release --title Second --set kind=minor --set version=v0.2 --set release-line=v1` (Casey), the other required fields by `editFrontmatter`, two `memory submit` | `minor-v0.2` at `docs/04_memory/planning/v1/minor-v0.2.md`, `in-development` (draft → planning → in-development). `--set pillar=…` is refused ("no token {pillar} in its id_pattern or path", W-01). T-12.5's `draft` has no verb from `planning` (the release's only gate is `releasing`). |
+| P4 | Processes of a cold view on the preset variant (the audited runner of `test/server/snapshot/support.ts`): `elements()`, `memoryTypes()`, `uiConfig()`, `detected()`, then `referenceIndex()`, then all again on a new view of the same state; a `.git` snapshot (path, size, mtime, content of every file) before and after | cold: `git rev-parse`, `status`, `config`, `remote`, `config`, `wingfoil memory search`, `wingfoil --version`; the index adds one `git ls-tree` (no CLI process, no process per element); the repeated reads start **0** processes; `.git` unchanged. No request input reaches a path, a regular expression or a command (the only inputs of the new routes are `:pid` and `scope`, an enum). |
+| P5 | bug-034 reproduced: a fresh snapshot, a view at key K1; `task-004-themes`'s `title` and `ui.yaml`'s `mode` edited, read through the view (`elements()`, `uiConfig()`, `referenceIndex()`), both files reverted, `check()`, a new view | the edited title and `mode: flow` are served under K1; after the revert the check gives **K1 again** and the view still serves `EDITED` and `flow` — both a CLI read (`memory search`) and a direct read (`ui.yaml`) are affected; the index's per-state memo too. |
+| P6 | bug-037: frontmatter keys added to a kanban task, `memory search <id>` (pinned CLI), the server's `parseYaml`, and `js-yaml` 4.3.2's `load` (the CLI's own, `node_modules/wingfoil/dist/validation/yaml.js`: `load(text)`, default schema) | CLI leaves the file out (`W_MEMORY_UNREADABLE … duplicated mapping key`) and the server reads it: `1:`/`"1":`, `true:`/`"true":`, `~:`/`"null":`, `.inf:`/`"Infinity":`, `2026-01-01:`/`2026-01-01T00:00:00Z:`, an alias key repeating a key (`x0: &k x1`, `x1: a`, `*k : b`), a repeated complex key (`? [a, b]` twice), a sequence key against its text (`? [a, b]` / `"a,b":`), a map key against `"[object Object]":`. Both refuse `1.0:`/`1:` and `0x1:`/`1:` (the `yaml` core schema resolves them to the same number). **The reverse also exists**: `2026-01-01:` and `"2026-01-01":` — js-yaml makes the first a `Date` (its `String` differs), the CLI lists the file, the server refuses it as a duplicate. A single alias key, a single complex key and an anchored key are accepted by both. `js-yaml` resolves every key to `String(value)` (a map `[object Object]`, a sequence its items joined with `,`). WingFoil 0.2.2 declares `js-yaml ^4.3.0` (`npm view wingfoil@0.2.2 dependencies`; not run). |
+
+No `wfui-*` entry was left in the temporary directory; the scratch fixtures were removed with
+their workspace.
+
+#### Decisions (D59-n)
+
+- **D59-1 — One module for the project-state views, `server/src/project-state/`** (pure functions
+  over the index, the effective configuration and `memory.yaml`; no I/O): `current.ts` (D59-2),
+  `figures.ts` (completion, iterated, open defects, pending gates, coverage — D59-3 … D59-6),
+  `missing.ts` (§5's flag, D59-7), `traceability.ts` (§4's rows, D59-8), `order.ts` (the natural id
+  order: digit runs compared as numbers, ties by code units), `percent.ts` (D59-4), `bodies.ts`
+  (the API bodies with the escape of §9, D59-10). The routes in `project-routes.ts` only gather
+  the reads and call it.
+- **D59-2 — The current element (spec-005 §4, RP3-14 D2).** In `sequence` mode with
+  `progress.scope` a type: among that type's non-archived elements whose kind is not `first`,
+  `last` or `archived` — the element read from the index's `kind` (the CLI's `status`, so an
+  unreadable file still competes) — the one whose `status` has the highest index in the type's
+  `sequence`; an off-sequence or undeclared state ranks below every sequence state; ties by the
+  **lowest `version`** in natural order (Q5), an element with no string `version` after those with
+  one, then by id in natural order. No candidate → `current: null`, figures project-wide. `flow`
+  mode or no scope → `type: null`, `current: null`. The same function fills
+  `/config` `ui.progress.scope.current` (task-054 D54-6, task-056's field table; Q6), so the two
+  answers never differ. `ElementRef` = `{ id, shortId?, title (escaped), type, status, tone }`, the
+  tone `toneOf(kind)` (spec-003 §7) — no DNA or events needed.
+- **D59-3 — Scope and done.** In scope = `index.inScope(current)` (task-055, values equal to its
+  id or `version`), or every listed element with no current element; unreadable files are in no
+  scope but count where only the list and kinds are needed (§1). Done = the index's `finished`
+  (kind `last`). Every `ids`/`doneIds`/`linked` list is in natural id order (D59-1), full ids.
+- **D59-4 — `percent` exact, half up.** A reference's `percent` = `⌊(200·done + total) /
+  (2·total)⌋` in integers; `completion.value` is the float mean (0 … 1) for display, and its
+  `percent` is computed from the exact rational mean (BigInt numerator over the totals' least
+  common multiple), so 12.5 % never rounds to 12 by a float error.
+- **D59-5 — `completion`.** The categories counted are `requirement` and `feature`
+  (`COMPLETION_CATEGORIES`, a new constant of `server/src/presets/ui-config.ts`, REQ-ARC-05).
+  `no-reference-categories` when no effective type category and no effective pattern entry is one
+  of them; `no-linked-elements` when some is but no such reference has a linked element in scope.
+  A reference = an element reference (keyed by its target id) or a pattern reference (keyed by its
+  **escaped** value, §9: two values equal after the escape are one); `references` the first 10 in
+  natural order, `referencesCount` all, `ids` the union of their in-scope linked elements.
+- **D59-6 — `iterated`, `openDefects`, `pendingGates`, phases.** `iterated`: the
+  `progress.iterates` type's elements in scope (all of them with no current element), `doneIds`
+  the finished ones; `openDefects`: the `progress.defects` type's elements not finished,
+  project-wide; each `Unavailable` (`no-iterates-type`, `no-defects-type`) when the value is
+  `null`. `pendingGates`: project-wide, kind `gate` and no hold — the descriptor's own rule,
+  `heldOf` exported from `descriptor.ts` and fed by the holds of `ProjectRead.holds()` (task-069
+  D69-4), so no DNA and no events enter `/progress` (§3: their failure does not fail it); with a
+  `when-references-done` hold the index is built anyway. `phase`/`phaseCompletion`: `read-only`
+  with the `workflow-position` reason of `evaluateCapabilities(view.detected(), range)` (the
+  header's; `needs-version {minVersion}` below 0.3.0, `not-in-release` from it, `unsupported-
+  version` outside the range — the reason is always present in v0.3, `via: null`). The reason's
+  schema moves to `project.schema.json` `definitions.capabilityReason` (shape unchanged).
+- **D59-7 — The missing-reference flag (§5).** For each listed, readable element whose type has
+  `requires`: the required categories it carries no reference of (element or pattern references
+  with that category; an uncategorised reference counts nowhere), in `requires` order →
+  `missingCategories` when non-empty. `/elements` adds `missingReferences {shown, unreadable,
+  capped}` whenever `memory.yaml` is readable (`shown` = `requires` names a type), and builds the
+  index **only** when `requires` is non-empty or a `when-references-done` hold is in force (D55-9
+  kept: `/elements` without both reads no element file). Absent with `typesError`; with
+  `?archived=true` the archived rows carry no flag (not indexed, TQ-3). The element read carries
+  none (§5).
+- **D59-8 — `/traceability` (§4).** `scope` ∈ `current` (default) | `project` through a Fastify
+  query schema (`additionalProperties: false`), after the `:pid` lookup (404 first). `applied` =
+  `current` only when asked and a current element exists. Rows: every categorised reference (D59-5's
+  keys), `element: true` for element references; with `project` also each listed element whose
+  type's category is `requirement` or `feature` that no element references (`linked: []`,
+  `no-elements`); with `current` a reference with no in-scope linked element is omitted. A row is
+  keyed by `(element, id)`, so a pattern value equal to an element's id (its own id, excluded from
+  rule 1) stays a separate pattern row. `status` codes and the `done` key come from
+  `server/src/presets/api.ts` (`in-progress` and `done` are fixture state names, REQ-ARC-05).
+  `elements[]`: every element `linked`, `missing` or an element reference's `id` names, once, in
+  natural order, as the `/elements` row (moved to `elements.schema.json` `definitions.row`; the
+  same builder as `/elements`, descriptors with `eventsError` degradation) plus `done` and
+  `inScope`. `figures.coverage` project-wide in both scopes, `referencesWithoutElements` the
+  `no-elements` rows. `patterns` = the effective pattern list is non-empty.
+- **D59-9 — Caching (AC-5, §8).** `/progress`'s body and the flag set are memoised per **content
+  key** (a new `SnapshotView.contentDerived(name, compute)`: same memo as the reads, so a fetch that
+  moves only a tracking ref recomputes nothing); `/traceability`'s body per full key through
+  `derived` (its rows carry descriptors, whose rule 4 reads the copy — as `/elements`). The index
+  stays the content-key read of task-055. Invalidation is the `repo` event: no new event. Every
+  answer carries `X-Repo-State`.
+- **D59-10 — K1 (AC-6, §9).** `bodies.ts` is the one place these bodies are written: every
+  `ElementRef.title` and row title through `repositoryText` (`matchBody`), every pattern reference
+  id through `repositoryText` (D59-5 keys on the escaped text); element ids, types and states as
+  `memory search` returns them; `ui.status` as the effective configuration holds it (already
+  sanitised, D54-6). A `text-sweep.test.ts` entry adds the two routes to task-056's sweep.
+- **D59-11 — Errors (AC-4, §10).** `memory search` failing → the CLI envelope (`refusalOf`), no
+  body; `memory.yaml` unreadable → 502 `read-error` (`uiConfig()` rejects as `memoryTypes()`);
+  `ui.yaml` missing or ignored → 200 with the inferred values; an unreadable or 201-value file →
+  `unreadable`/`capped`; events failing → `/traceability` `eventsError`, `/progress` untouched;
+  `dna show` failing → no field (member actors fall back, the header's `dnaError`).
+- **D59-12 — Fixture variants in the harness** (`test/harness/fixtures/progress.ts`, exported from
+  `index.ts`, for task-065 … task-067): `addSecondRelease` (T-12.4, T-12.6: `minor-v0.1` to
+  `released` by `submitToReleasing` + `releaseHeldRelease`, `minor-v0.2` added and submitted twice
+  by verbs, P3), `draftRelease` (T-12.5: `minor-v0.1` `planning → draft` by the harness's existing
+  `handTransition`, a commit outside the UI — Q4), `addFrontmatterValue(fx, id, field, value)`
+  (R-01.5 `ref: US-S-09` on dl-001, R-01.7 `related:` on task-001, M-03.2 and M-04.3 `ref: US-X-08`
+  / `sard_ref: REQ-ARC-01`), each committed alone by the fixture's identity with a plain subject.
+- **D59-13 — bug-034 (AC-10): each per-state read tied to what the state check saw.**
+  1. *Marks of a state.* `Fingerprinter.fingerprint` also returns each status entry's mark; the
+     snapshot keeps, with each state, those marks, the `ui.yaml` mark and — for the files not in
+     the status — the blobs at HEAD of the Memory folders **and `.wingfoil/`** (the existing one
+     `git ls-tree -r` per HEAD, its directory list widened; now read on the first direct read of a
+     new HEAD even without the index: +1 git process per new HEAD where no index was built, no CLI
+     process — the process audits' git counts are updated accordingly).
+  2. *Direct reads* (`memory.yaml`, `ui.yaml`, element files of the element read and of the index,
+     directive files) report the bytes they consumed (path, SHA-256, git blob id) to their memo
+     entry; on completion the entry is **kept only if every report matches** the state's mark
+     (a status entry's `sha:` mark; a clean file's HEAD blob; `ui.yaml`'s mark). A mismatch, or a
+     file with no comparable mark (a `stat:` mark past the fingerprint's limits, an ignored file, an
+     unreadable HEAD tree), serves the value to the callers of that read and **drops the state's
+     memo** (reads and derived values: what was built from it goes too) and asks for a check
+     (coalesced, `check()`). Values reused by `(path, blob id)` are tied by construction (D55-6).
+  3. *CLI reads* (`memory search`, `dna show`, `paths`, `workflow list`, `directives list`,
+     `memory history`, `--version`) read files the server does not see: the snapshot counts the
+     watcher's repository events as they arrive (`touched()`, before the 1.5 s debounce); a memo
+     records the count at the start of its state's check, and an entry completing after the count
+     moved is served and the memo dropped (the debounced check follows). Declared residual: an edit
+     and revert the watcher does not report (degraded watching, a type with no static folder, an
+     ignored file) between two checks keeps a CLI read's output until the state moves — Q2.
+  4. Red first (AC-10): the P5 sequence as a test for a direct read (`ui.yaml` through `/config`,
+     an element file through `/elements/:eid`, `memory.yaml`, the index) and for a CLI read (a
+     title through `/elements`, with the watcher's event); spec-012 §8 and spec-004 §5 amended with
+     a dated Process Note (the cache contract changes; the approver's OK, Q2).
+- **D59-14 — bug-037 (AC-11): keys compared as the CLI's js-yaml compares them.** In
+  `duplicateKey`, each key becomes the text js-yaml stores it under, `String(value)` of its
+  default-schema value: a quoted or block scalar its string; a plain scalar resolved by js-yaml's
+  implicit types — null (`~`, `null`, `Null`, `NULL`, empty → `null`), bool (`true`/`True`/`TRUE`,
+  `false`… → `true`/`false`), int (decimal, `0b`, `0o`, `0x`, `_` separators as js-yaml accepts
+  them) and float (`.inf`, `.nan`, exponents → `String(Number)`), timestamp (js-yaml's two
+  patterns → `String(new Date(…))`, so `2026-01-01` and `2026-01-01T00:00:00Z` collide and
+  `2026-01-01` and `"2026-01-01"` do not — P6's reverse case fixed too), else its text; an alias
+  key the form of its anchored node; a map key `[object Object]`; a sequence key its items' forms
+  joined by `,`. `<<` stays a merge key, not a key. Still one `Set` per map, one pass (bug-032's
+  linear check and its structural test kept). A differential test runs a table of keys through
+  both the server and `js-yaml` (`js-yaml@4.3.2` pinned as a devDependency, the CLI's version — Q3).
+- **D59-15 — AC-7 timing.** `test/e2e/performance.spec.ts` gains, on the `large` fixture with
+  `usePresetUiConfig`-equivalent `ui.yaml` committed: a commit outside the UI reflected in
+  `/progress` and the `/elements` flags within 5 s (REQ-PERF-03, `@live-refresh` budget form) and
+  `/traceability` and `/elements` with `requires` warm p95 ≤ 1.0 s (REQ-PERF-04), tagged for
+  `test:timing`; the vitest API test asserts one element file re-read for a commit touching one
+  element (task-055's reuse contract, through the route). Where it runs: Q7.
+
+#### Specs and gaps
+
+- spec-004 §3 already lists both routes (AC-8): no change. spec-012: no shape change; the clarifications
+  of D59-2 (the off-sequence rank, the `version` tie order) and D59-8 (a pattern row and an element row
+  with the same text) are recorded in a dated Process Note with the green commit, if the approver
+  agrees (Q5). bug-034 changes the cache contract: spec-012 §8 and spec-004 §5 Process Notes (Q2).
+- REQ-ARC-05: `done`, `in-progress` and the categories `requirement`/`feature` are written through
+  `server/src/presets/` constants (D59-5, D59-8), never as literals.
+
+#### Test plan (each AC and scenario → file › title)
+
+| AC / scenario | Test |
+|---------------|------|
+| AC-1 `/progress` shape, 400 on any query, scope, figures, ReadOnly, `unreadable`/`capped`, DNA/events failure | `test/server/http/progress-routes.test.ts` › "AC-1 …" (schema on the three fixtures and the preset variant; one test per figure) |
+| AC-1 units: current element (rank, off-sequence, version tie, id tie), in scope by id and by `version`, each `Unavailable`/`ReadOnly`, percent half up (1/8 → 13, 1/2 → 50), natural order, the 10-entry cap, pending gates without held gates | `test/server/project-state/current.test.ts`, `figures.test.ts`, `percent.test.ts`, `order.test.ts` |
+| AC-2 `/traceability`: `scope` current/project, 400 after 404, rows, `no-elements`, `missing`, `elements` with `done`/`inScope`, figures, `eventsError` | `progress-routes.test.ts` › "AC-2 …"; `test/server/project-state/traceability.test.ts` (rows, keys, status codes) |
+| AC-3 flag: `missingCategories`, `missingReferences`, absent with `typesError`, none on the element read, no index without `requires` and hold | `progress-routes.test.ts` › "AC-3 …"; `test/server/project-state/missing.test.ts` |
+| AC-4 every row of §10 | `progress-routes.test.ts` › "AC-4 <row>" (CLI stub failures from `test/harness/fixtures/variants.ts`, an unreadable `memory.yaml`, an ignored `ui.yaml`, a malformed element file, 201 values) |
+| AC-5 caching and processes | `test/server/snapshot/process-audit.test.ts` › "AC-5 a repeated /progress and /traceability start 0 processes", "a cold Today with /progress adds 0 CLI processes", "no process per element" |
+| AC-6 K1 | `progress-routes.test.ts` › "AC-6 …" (a bidi control and a C1 control in a title and in a reference value); `test/server/http/text-sweep.test.ts` (the two routes added) |
+| AC-7 timing | `test/e2e/performance.spec.ts` › "TT-PERF-03 — progress and missing refs within 5 s", "TT-PERF-04 — Traceability / Memory list with requires p95 ≤ 1.0 s"; `progress-routes.test.ts` › "AC-7 one file re-read for a commit touching one element" |
+| AC-10 bug-034 | `test/server/snapshot/read-tie.test.ts` › "AC-10 red first: …" (ui.yaml, element file, memory.yaml, index, a CLI read with a watcher event; a `stat:` mark not kept) |
+| AC-11 bug-037 | `test/server/reads/frontmatter.test.ts` › "AC-11 …" (each P6 case, the differential table against js-yaml; the linear structural test kept) |
+| T-12.1, T-12.2, T-12.4, T-12.5, T-12.6 | `progress-routes.test.ts` › "T-12.1 Show the figures of the current scope" … (fixture and variant as named in AC-7's list; the figures of §11) |
+| T-13.1, T-13.2, T-13.3, T-13.4 | `progress-routes.test.ts` › "T-13.1 …" (`pendingGates.ids`), "T-13.2 …" (`iterated.ids`, `doneIds`), "T-13.3 / T-13.4 the ids the list filters on" |
+| T-14.1 | `progress-routes.test.ts` › "T-14.1 …" (`completion.references`, `referencesCount` 2) |
+| R-01.1, R-01.5 … R-01.9 | `progress-routes.test.ts` › "R-01.1 …" … "R-01.9 …" |
+| M-03.1, M-04.3 | `progress-routes.test.ts` › "M-03.1 …", "M-04.3 …" |
+| `/config` `scope.current` (D59-2) | `test/server/http/ui-config-route.test.ts` › "T-12.1 / T-12.4 / T-12.5 `scope.current` derived" (the three tests of task-068 extended) |
+
+The e2e closure of the scenarios stays with task-065, task-066 and task-067 (AC-7 list); the
+variants of D59-12 are theirs to reuse. `test/README.md` lists the new suites (version bumped).
+
+#### Gates and where they run
+
+Local: `typecheck`, `lint`, `format:check`, `docs:api`, targeted `npx vitest run <files>`
+(git-touching suites also under the strict-identity recipe, dl-011), `python3
+docs/03_backlog/X_tools/check_tasks.py v0.3`, `test/docs/public-text.test.ts` before each push.
+On `gates.yml` (the push of `task/task-059-…`): `test:coverage`, `test:contract`,
+`test:e2e:chromium`; no own e2e spec on Firefox/WebKit (the task adds none besides
+`performance.spec.ts`, which the timing run measures). `test:timing`: Q7.
+
+#### Size (RP3-20 G2)
+
+About **2.8 active days**: contracts and types 0.2; the module (D59-1 … D59-8) 0.6; the routes,
+`/config` current, the flag 0.3; harness variants 0.15; unit and API tests for 17 scenarios, §10
+and K1 0.5; AC-7 0.2; bug-034 0.5; bug-037 0.2; docs, gates, review rounds 0.2 (on top). Above one
+day: a split is proposed (Q1).
+
+#### Questions (one recommendation each)
+
+- **Q1 — Split (RP3-20 G2).** (a) No split (about 2.8 days). (b) bug-034 and bug-037 to a new
+  server task (about 0.7 day; they touch `snapshot.ts`, `fingerprint.ts`, the reads and
+  `frontmatter.ts`, nothing of the routes), task-059 keeps the three routes (about 2.1 days).
+  (c) Three parts: task-059 keeps the module, `/progress`, the `/elements` flag, `/config`
+  `scope.current`, the harness variants and AC-7's progress and flag timing (about 1.4 days; T-12,
+  T-13, T-14, M-03, M-04 — what task-065 and task-066 need); a new task for `/traceability` (its
+  schema, route, R-01 tests, its REQ-PERF-04 timing; about 0.8 day, after task-059, before
+  task-067); a new task for bug-034 and bug-037 (about 0.7 day, independent, can start now).
+  **Recommended (c)**: each part is about a day, the bugs run in parallel with no shared file but
+  the shared append-only ones, and task-065/066 are unblocked by the first part without waiting for
+  the traceability page's API.
+- **Q2 — bug-034's tie for CLI reads.** (a) Direct reads tied by hash to the check's marks (exact);
+  CLI reads tied by the watcher's event count (D59-13.3), with the declared residual of what the
+  watcher does not report; spec-012 §8 and spec-004 §5 Process Notes. (b) Also re-run the state
+  check after every cold CLI read and keep it only if the key holds (3–4 git processes per new
+  state; still open to an edit and revert both inside the read). (c) Direct reads only; CLI reads a
+  declared residual as today. **Recommended (a)**: exact where the server reads the bytes, the
+  narrowest window where the CLI does, no process added beyond D59-13.1's `ls-tree`.
+- **Q3 — bug-037's scope.** (a) Emulate js-yaml's key text in both directions (D59-14, the date
+  case P6 found fixed too), `js-yaml@4.3.2` a devDependency for the differential test only. (b) The
+  cases of AC-11 only (numbers, booleans, alias, complex keys), dates left as they are. (c) Add
+  `js-yaml` as a runtime dependency and run its `load` on every frontmatter (exact, a second parse
+  per file). **Recommended (a)**: the console and the CLI agree on which files are elements in both
+  directions, with one parse and no runtime dependency.
+- **Q4 — T-12.5's `draft` Given.** (a) The harness's `handTransition` (`planning → draft`, a commit
+  outside the UI, as the custom builder already does for `backlog → in-progress`); on a fixture
+  copy, no repository governance. (b) Map T-12.5 to `minor-v0.1` `released` (same derivation, not
+  the scenario's text). **Recommended (a)**: the scenario's own Given.
+- **Q5 — Tie order and spec clarifications.** The "lowest `version`" in natural order (digit runs
+  as numbers: `v0.10` after `v0.9`), an element with no `version` after the others; an off-sequence
+  state ranked below every sequence state; a pattern row separate from an element row of the same
+  text — recorded in a spec-012 Process Note (no shape change). **Recommended**: as stated.
+- **Q6 — `/config` `ui.progress.scope.current`.** (a) Filled here by D59-2's function (task-054
+  D54-6 and task-056's field table leave it to this task, spec-012 §2 defines it). (b) Left `null`
+  for task-064. **Recommended (a)**: one derivation, two answers that never differ.
+- **Q7 — Where AC-7's timing runs.** AC-9 names `test:timing` alone, while the Wave 2 rules keep
+  `test:timing` out of tasks (the coordinator runs it at the wave gate). (a) The task writes the
+  timing tests and runs them only as ordinary specs (no budget asserted outside `test:timing`); the
+  coordinator's `test:timing` at the wave gate (or a slot run it arranges) is AC-7's evidence,
+  recorded in these notes. (b) The developer runs `test:timing` through the slot once before
+  review. **Recommended (a)**, per the Wave 2 rule.
