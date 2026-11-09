@@ -484,3 +484,12 @@ Review on `405531d3`. Runs: `42600944684` (`e3128d36`, round 2's code and docs) 
 Checks of round 3 (local): `npm run typecheck`, `npm run lint`, `npm run format:check`, `npm run
 docs:api` clean; `check_tasks.py v0.3` OK; `npx vitest run test/server/git/redact.test.ts
 test/server/cli/ test/docs/public-text.test.ts` — 11 files, 313 passed.
+
+### merge with task-069 (2026-11-09, the coordinator)
+
+Run `42605688273` on `7e50206c` (round 3's nits) — **success**, every job, `e2e-wave` skipped.
+`design/dev-loop_v0.3` (task-069 merged, `88712e78`; done `b2a29806`) merged into this branch
+(`9e2705ca`): `CHANGELOG.md` and `server/src/http/project-routes.ts` merged without conflict; the
+two version lines reconciled — `docs/user-guide.md` 0.29 (task-069) then **0.30** (this task's
+entry), `test/README.md` 0.68 (task-069) then **0.69** (this task's entry). `npm run typecheck`,
+`npm run lint`, `npx prettier --check` on the merged files and `npm run docs:api` clean.
