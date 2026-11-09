@@ -83,3 +83,209 @@ stood before the split (`76361a80`).
 ## Execution Notes
 
 <!-- Running log per phase: design, red / green / refactor, review. -->
+
+### design (2026-11-09)
+
+Read (dl-015): this task; task-069's `### design (2026-11-09)` (D69-2 `occupancy`, D69-6, D69-7,
+the `state-limit` parts of D69-8 and D69-9, probe P3), its *design approved* (W2-5), its red / green
+/ refactor and review notes (D69-14); spec-003 §1, §6, §8, §9 and its Process Notes; spec-001 §4.1;
+spec-008 §4 (the v0.3 codes); `features/s/action-descriptor.feature` S-24.7; the plan's RP3-14 D11,
+RP3-15 F4, RP3-16 P3, P4; `backlog-item-rel-v0.3-plan` W2-5; directives `definition-of-done` 1.4 and
+`wingfoil-cli` 1.27 (W-34, W-47). The merged code it builds on: `server/src/descriptor/descriptor.ts`
+(`DescriptorProject`, `disabledReason`, `describeElement`), `server/src/http/project-routes.ts`
+(`descriptorInputs`, `holds`), `server/src/snapshot/snapshot.ts` (`elements()`, `element()`: one
+cached `memory search` per state), `server/src/reads/memory-yaml.ts` (`pickStates`,
+`resolveStates`), `server/src/cli/version.ts` (`DetectedVersion.version`),
+`server/src/http/serialise.ts` (`descriptorBody`), `contracts/{src/descriptor.ts,src/files.ts,
+api/descriptor.schema.json,files/memory-yaml.schema.json,api/element.schema.json,
+api/config.schema.json}`, `web/src/element/{footer.ts,ElementFooter.tsx}`, `web/src/i18n/en.json`,
+`test/harness/fixtures/{held-gates,project,variants}.ts`, `test/contracts/held-gates-contract.test.ts`,
+`test/server/http/{held-gates-routes,element-writes}.test.ts`, `test/e2e/held-gates.spec.ts`;
+WingFoil 0.3.1 `dist/core/memory-transition.js` (`prepareMemoryTransition`, `requireWipSlot`) and
+`dist/memory/schema.js` (`limits`); the WingFoil 0.3.0 package (`npm pack wingfoil@0.3.0`, read only,
+removed after).
+
+#### Probes (a temporary vitest file in this worktree, removed after; the harness's fixture builder and environment, `cliBuildFor('0.2.2')`; load 15–19)
+
+Every row on a fresh copy of the custom fixture; `sprint` has `limits: { active: 1 }` on the live
+`memory.yaml`. "Search" is `memory search --type <t> --format json`, what the console counts.
+
+| # | What | Result |
+|---|------|--------|
+| P1 | S-24.7's Given (task-069 P3 again): `memory add --type sprint` twice (Alex), `goal` written before the first submit, `sprint-001` submitted twice, `sprint-002` once | search `sprint-001=active, sprint-002=planned`; `memory submit sprint-002` → exit 1, "WIP limit reached for 'active' on type 'sprint' (limit 1): held by sprint-001. …" |
+| P2 | Archived holder: P1, then `memory deprecate sprint-001` | search `sprint-002=planned` (`--status deprecated` lists `sprint-001`); `memory submit sprint-002` **accepted** — the console's count (non-archived search) agrees |
+| P3 | Working tree vs HEAD: P1, `sprint-001`'s `status:` edited to `done`, not committed | search says `sprint-001=done` (the search reads the working tree); `submit sprint-002` **refused** (the CLI counts at HEAD) — the console would enable it |
+| P4 | The reverse: both `planned` at HEAD, `sprint-001`'s `status:` edited to `active`, not committed | search says `sprint-001=active`; `submit sprint-002` **accepted** — the console would disable it |
+| P5 | Unparseable holder: P1, `sprint-001`'s frontmatter broken and committed | search omits `sprint-001`; `submit sprint-002` accepted with `W_MEMORY_UNREADABLE` — they agree |
+| P6 | Holder on another branch: both `planned` on `main`, `sprint-001` submitted to `active` on a local branch `side`, back on `main` | search `planned, planned`; `submit sprint-002` **refused** (holders counted on every ref that changed them) — the console would enable it |
+| P7 | P6 with `side` pushed, fetched, the local branch deleted (remote-tracking only) | `submit sprint-002` **refused** — the same divergence |
+| P8 | `task` with `limits: { in-progress: 1, backlog: 1 }` committed: `submit task-003` into `in-progress` (0 holders), `reject task-001` (Morgan) `in-review → in-progress` (full), `submit task-004` into `in-progress`, `park task-003 --reason …` `in-progress → backlog` (full, `task-004` there) | submit accepted; **reject accepted** into the full state (2 holders then); submit **refused** "held by task-001-cli-adapter, task-003-element-panel"; **park accepted** into the full state |
+| P9 | `task` with `limits: { approved: 1 }`: `approve task-001` (0 holders), `task-003` submitted to `in-review`, `approve task-003` | first approve accepted; second **refused** "WIP limit reached for 'approved' … held by task-001-cli-adapter" |
+| P10 | `task` with `limits: { in-review: 0 }`, `1.5`, `x`, `nowhere: 1` on 0.3.1 | `memory search` itself exits 1 (`E_VALIDATION types.task.states.limits.…`) and every verb refuses: on 0.3.1 a bad `limits` makes the project unreadable to the CLI before the console counts anything |
+| P11 | WingFoil 0.2.2 (pre-packs governance), `decision-log` with `limits: { in-discussion: 1 }` committed, `dl-002` in `in-discussion`; a third added and submitted | search reads the file; the submit **accepted** (2 holders): 0.2.2 ignores `limits`. The same copy on 0.3.1: a fourth's submit refused ("held by dl-002-use-fastify, dl-003-third") |
+| P12 | 0.2.2 with `limits: { in-discussion: 0 }` | search reads the file normally: 0.2.2 accepts any `limits` value |
+| P13 | WingFoil 0.3.0 package, read only | the same `requireWipSlot`, the same `limits` schema, the same `reject`/`park` exemption and the counting across refs: 0.3.0 and 0.3.1 behave alike |
+
+No console was started; `ls /tmp | grep -c wfui-probe073`: 0. The 0.2.2 build stays in this
+worktree's `node_modules/.cache/wingfoil-ui-matrix/` (git-ignored, the contract tests' cache).
+
+What the approximation does not foresee (each the CLI's refusal, 422 `cli-refused`, or an
+unneeded disable): a holder recorded only on another local or remote-tracking branch (P6, P7 —
+spec-003 §6 names it), an uncommitted `status:` edit of another element (P3, P4 — reachable only
+by a hand edit of `status:`, which W-34 forbids). Archived and unparseable elements agree (P2, P5);
+`reject` and `park` are exempt as spec-003 §6 says (P8); `approve` is limited (P9).
+
+#### Decisions (D73-n)
+
+- **D73-1 — Starting point.** task-069's D69-2 (`occupancy` only), D69-6, D69-7, the `state-limit`
+  parts of D69-8 and D69-9 are taken, re-checked against the merged code and the probes above;
+  the deltas are D73-3 (the version gate as an absent input), D73-4 (no schema constraint at all)
+  and D73-7 (the gate footer's mixed outcomes).
+- **D73-2 — Descriptor input (spec-003 §1).** `DescriptorProject.occupancy?: (type, state) =>
+  number` — the non-archived elements of `type` in `state`. `describeElement` stays pure; an absent
+  `occupancy` applies no limit (the contract test's and unit tests' callers keep compiling).
+- **D73-3 — Where it is computed (`descriptorInputs`).** Once per state, in the memoised
+  `descriptorInputs`: given only when the detected WingFoil version is 0.3.0 or later
+  (`DetectedVersion.version`, a semver compare against a `LIMITS_SINCE` constant in
+  `server/src/presets/wingfoil.ts`; P11, P13) **and** some resolved machine of `memory.yaml`
+  declares `limits`; counted from `view.elements()` — the `memory search` every route already
+  reads (cached; `element()` reads the same) — by type and status. No process added (TT-PERF-05);
+  `?archived=true` does not change the count (the archived searches are not counted, P2). An
+  unrecognised or unsupported version is rule 2's `version-unsupported` first anyway.
+- **D73-4 — `limits` read (spec-001 §4.1; G1).** `StateMachine.limits?: Record<string, number>`
+  in `contracts/src/files.ts`; `pickStates` keeps only the entries of a plain-object `limits` whose
+  value is a positive integer (anything else dropped, the rest of the file read as today).
+  `contracts/files/memory-yaml.schema.json` puts **no** constraint on `limits` (not even `type:
+  object`, refining D69-6): 0.2.2 accepts any value (P12), so any constraint could make a 0.2.2
+  project's `memory.yaml` unreadable to the console (`typesError`) for a key its CLI ignores, while
+  0.3.1 refuses a bad value itself before the console counts (P10). Since `limits` joins
+  `StateMachine`, the resolved states of `/config` (`types.<t>.states`) and of `/elements/:eid`
+  (`states`) carry it — additive, valid against their schemas (the `states` objects allow extra
+  keys); the web does not show it in v0.3. A Process Note in spec-001 §4.1 (the coordinator's OK).
+- **D73-5 — The rule (spec-003 §6 rule 5, D11, F4; AC-2).** For `submit` and `approve` only, after
+  rules 1–4 (the first failing reason wins, so `not-in-team`, `version-unsupported`,
+  `local-changes` and the copy reasons precede it): `machine.limits[to] = N` and `occupancy(type, to)
+  ≥ N` → `{ enabled: false, reason: { code: 'state-limit', state: to, limit: N } }`. `reject` never
+  limited (P8); `park` never offered (spec-003 §9). Per verb: a gate's `approve` may be disabled
+  while its `reject` stays enabled. No server write check: the limit stays the CLI's (spec-003 §6
+  last paragraph); a refusal where the count differs is 422 `cli-refused` with its toast (P3, P6,
+  P7; D69-14's reasoning applies to the limit as to the hold).
+- **D73-6 — Contracts (AC-2).** `descriptor.schema.json` › `definitions.reason` gains a seventh
+  `oneOf` branch `{ code: "state-limit", state: string, limit: integer ≥ 1 }`, no extra key;
+  `DisabledReason` in `contracts/src/descriptor.ts` the same. `today.schema.json` and
+  `elements.schema.json` change through the `$ref` only. The `state` parameter is a state name of
+  `memory.yaml`, as `verbs[].to` already is: no new text class for `descriptorBody` (task-056).
+- **D73-7 — Web (AC-3).** `ElementFooter.tsx`: `REASONS['state-limit']` →
+  `element.reason.stateLimit`, `reasonMessage` passes `{ state, limit }`. The single-action
+  footer needs nothing else (it renders `reason` as the button's accessible description). The gate
+  footer keeps its one blocked line, taken from the first disabled outcome: with rule 5 that is
+  only the approve, and only the approve's `aria-describedby` points to it (the code already ties
+  the line to `!o.enabled` outcomes); its comment "the same for every outcome of a state" is
+  corrected (rules 1–4 are; rule 5 is per verb). Today, the bell and the Team counts are
+  unchanged: placement does not read enablement (spec-003 §5).
+- **D73-8 — Catalogue (spec-008 §4, P3; AC-3).** One key, sorted in place, append-only:
+  `element.reason.stateLimit` "Blocked: only {limit} {state} at a time" — spec-008's text and
+  S-24.7's exactly; no plural (`{state}` is a state name, not a noun to inflect).
+- **D73-9 — Fixture Given step (RP3-16 P4; W-34).** A new harness module
+  `test/harness/fixtures/state-limit.ts` (the `held-gates.ts` pattern; one export line appended to
+  `fixtures/index.ts`): `fillSprints(fx)` — P1 on a packs-governance custom fixture, by the
+  builder's verbs only (`add`, the `goal` written into the file before the first `submit` as
+  `editFrontmatter` does, `submit`), exporting `ACTIVE_SPRINT` (`sprint-001`) and `PLANNED_SPRINT`
+  (`sprint-002`). Used by the route tests, the contract variant and the e2e spec.
+- **D73-10 — The contract check (spec-003 §9; AC-2).** A variant file of its own,
+  `test/contracts/state-limit-contract.test.ts` (as `held-gates-contract.test.ts`, pinned CLI
+  only): the custom fixture with D73-9's Given, descriptors read **as the server serves them**
+  (`GET /elements` through the app harness, so the version gate and the count are the route's), and
+  for every element and every `submit`/`approve`/`reject`, on a fresh copy, the CLI accepts exactly
+  what the descriptor offers enabled — `sprint-002`'s `submit` offered disabled with `state-limit`
+  and refused by the CLI with "WIP limit reached". Every other element of the fixture is as
+  `STANDARD_PACKS` says.
+- **D73-11 — Security.** No new input reaches a read: `limits` comes from the `memory.yaml` the
+  console already parses (bounded by its read), the count from the cached `memory search`. No new
+  git or CLI command, no new log field, no new text in an API body (D73-6). The adversarial
+  probes the task names are P2 (archived holder), P8 (reject and park into a full state) and P3, P6,
+  P7 (refusals the count does not foresee); each becomes a test below.
+
+#### Specs and gaps
+
+| Artefact | Spec | State |
+|----------|------|-------|
+| `state-limit` rule, per verb, `reject` exempt | spec-003 §6 rule 5 (approved) | covered (P8, P9) |
+| The count from `memory search` (the working tree) and its divergence from HEAD and other refs | spec-003 §6 rule 5 | covered as written (P3, P6, P7 confirm the text) |
+| Applied from WingFoil 0.3.0 | spec-003 §6 ("WingFoil 0.3.x") | covered: 0.3.x made explicit (P11, P13), no amendment |
+| `limits` read | spec-001 §4.1 (approved; lists `limits{<state>: N}?` from 0.3.x) | **G1**: the lenient read and the dropped values (D73-4) — Process Note |
+| Catalogue text | spec-008 §4 (approved) | covered (D73-8) |
+| Contract check | spec-003 §9 (approved) | covered (D73-10) |
+| `DescriptorProject.occupancy` | internal | these notes and TypeDoc |
+
+- **G2 (a behaviour to note)** — `limits` now appears in `/config` and `/elements/:eid` resolved
+  states (D73-4); no screen uses it in v0.3.
+
+#### Classification and test plan
+
+| AC / scenario | Kind | Test (file › test) |
+|---------------|------|--------------------|
+| AC-1 S-24.7 | red-first | `test/e2e/state-limit.spec.ts` (new; `prebuild: ['custom']`, a copy with `fillSprints`) › "S-24.7 — Disable a move into a state at its limit": Morgan opens `sprint-002`'s panel, *Submit → active* is `aria-disabled` with the accessible description "Blocked: only 1 active at a time" (`toHaveAccessibleDescription`); keyboard: Tab reaches it, Enter writes nothing (no `write` request, `lastCommitSubject` unchanged); `scanThemes` 0 serious/critical in both themes. Chromium, Firefox, WebKit (`scripts/e2e-own-specs` on `gates.yml`) |
+| AC-1 S-24.1 … S-24.6 | characterization | `test/e2e/gate-footer.spec.ts`, `test/e2e/held-gates.spec.ts`, unchanged, in the Chromium suite |
+| AC-2 rule | red-first | `test/server/descriptor/state-limit.test.ts` (new, on the 0.3.1 custom sample's `memory.yaml`): "submit into a full state is disabled with state-limit {state, limit}"; "approve into a full state is disabled, its reject stays enabled"; "below the limit the move is enabled"; "a reject into a full state stays enabled"; "rules 1–4 win over the limit" (one case each); "no occupancy (a CLI that does not read limits) applies no limit"; "a limit on another state has no effect"; "a limit of defaults.states applies to a type without states" |
+| AC-2 `limits` read | red-first | `test/server/reads/memory-yaml.test.ts` › "limits: positive integers kept, 0, -1, 1.5, '1' and null dropped"; "a limits that is not an object leaves memory.yaml readable, with no limits"; "limits of defaults.states" |
+| AC-2 routes, version gate, archived | red-first | `test/server/http/state-limit-routes.test.ts` (new, the `held-gates-routes` harness, variants built once in `beforeAll`, bug-028): "`/elements`, `/elements/:eid` and `/today` serve sprint-002's submit disabled with state-limit, schema-valid" (P1); "an archived holder is not counted" (P2: `sprint-001` deprecated → enabled); "on a CLI that answers 0.2.2 no limit is applied" (`installCliStub(fx, { version: '0.2.2' })`); "a cold `/elements` starts no more CLI processes than before" (≤ 6, TT-PERF-05) |
+| AC-2 CLI refusal | characterization | the same file, with `registerElementWriteRoutes` › "a holder on another branch: submit offered enabled, POST …/submit → 422 cli-refused with the CLI's WIP text" (P6); the guard-removal check does not apply (no server guard is added, D73-5) |
+| AC-2 schema | red-first | `test/contracts/api-descriptor-schema.test.ts` › "accepts a state-limit reason"; "refuses state-limit without limit, with limit 0, without state, with an extra key" |
+| AC-2 contract check | red-first | `test/contracts/state-limit-contract.test.ts` (new) › "the CLI accepts exactly the enabled verbs; sprint-002's disabled submit is refused" (D73-10) |
+| AC-2 REQ-ARC-05 | characterization | `test/lint/` green on the changed files (`'state-limit'` and `limits` are no fixture names; no state literal in code) |
+| AC-3 web | red-first | `test/web/element/submit-footer.test.tsx` › "state-limit: Submit disabled with its reason as accessible description"; `test/web/element/gate-footer.test.tsx` › "an approve disabled by state-limit: the line describes Approve only, the rejects stay enabled"; the X-09.1 catalogue checks of `test/web/i18n/` (the new key used and sorted) |
+| AC-4 | gates | below |
+
+#### Shared files (append-only where shared)
+
+`server/src/descriptor/descriptor.ts`, `server/src/http/project-routes.ts` (`descriptorInputs`
+only), `server/src/reads/memory-yaml.ts`, `server/src/presets/wingfoil.ts` (one constant),
+`contracts/src/{descriptor,files}.ts`, `contracts/api/descriptor.schema.json`,
+`contracts/files/memory-yaml.schema.json` (description only), `web/src/element/ElementFooter.tsx`,
+`web/src/i18n/en.json` (one key in place), `test/harness/fixtures/index.ts` (one line),
+`test/README.md` (version line), `CHANGELOG.md` *Unreleased* *Added*, `docs/user-guide.md` (the
+element panel's disabled reasons — `documentation`), spec-001 §4.1 Process Note (G1, after the
+coordinator's OK), the `docs:api` output (regenerated). task-059 (in parallel) touches
+`contracts/src/index.ts`, `en.json` and `test/README.md`: append only.
+
+#### Gates and where they run
+
+Local: `npm run typecheck`, `npm run lint`, `npm run format:check`, `npm run docs:api`,
+`python3 docs/03_backlog/X_tools/check_tasks.py v0.3`, targeted `npx vitest run <files>`; the
+git-touching suites (the route file, the contract variant) under the strict-identity recipe of
+`test/README.md` (dl-011); `npx vitest run test/docs/public-text.test.ts` before each push. On
+`gates.yml` (a push of `task/task-073-…`, W1-11): `test:coverage`, `test:contract`,
+`test:e2e:chromium`, and `test/e2e/state-limit.spec.ts` on Firefox and WebKit; evidence as run id,
+commit, result. No smoke: no packaging, launcher or bin change.
+
+#### Size
+
+Descriptor rule, `limits` read and contracts 0.15; route wiring, route and write tests 0.15; web
+reason, catalogue and component tests 0.05; harness helper and the three-engine e2e 0.15; contract
+variant 0.05; docs, Process Note, CI runs 0.1 — **about 0.65 active day**, within RP3-20 G2.
+
+#### Questions (one recommendation each)
+
+- **Q1 — the version gate (D73-3).** (a) A semver compare against `LIMITS_SINCE` (0.3.0) in
+  `descriptorInputs`. (b) A capability row in `contracts/capabilities.json` (`minVersion` 0.3.0),
+  shown in the project header and the package README. **Recommended (a)**: the limit is an input of
+  one rule, not a feature the user enables; a capability row changes the header and the README
+  check for no user benefit.
+- **Q2 — the uncommitted `status:` edit (P3, P4).** (a) Count `memory search` as spec-003 §6 says
+  (the working tree) and accept the divergence. (b) Count an element with local changes at its
+  HEAD status (a `git show` per changed element file). **Recommended (a)**: only a hand edit of
+  `status:` reaches it, which the project's rules forbid (W-34); the edited element itself is
+  already blocked by rule 3, and the CLI's refusal stays the authority.
+- **Q3 — the gate footer's line (D73-7).** (a) Keep the one blocked line, which describes only the
+  disabled approve. (b) A line per disabled outcome. **Recommended (a)**: rules 1–4 disable every
+  outcome with one reason and rule 5 only the approve, so one line always suffices.
+- **Q4 — Today with a limited move.** (a) Unchanged: an element whose move is disabled by the limit
+  stays in its actor's *Requires you* (spec-003 §5 places by kind and actor, not by enablement).
+  (b) Move it to *Waiting on others* — a spec-003 §5 amendment. **Recommended (a)**: the actor still
+  has to act (free a slot, or reject at a gate), and S-24.7 asks only for the disabled action.
+- **Q5 — the spec Process Note (AC-4).** G1 (spec-001 §4.1, the lenient `limits` read and that
+  `limits` is served in the resolved states): **recommended** to write it in the green commit, after
+  the coordinator's OK on this design; spec-003 and spec-008 hold as written.
+
+Blockers: none outside these questions; red waits for the coordinator.
