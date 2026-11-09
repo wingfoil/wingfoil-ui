@@ -15,7 +15,7 @@ import type {
   WorkflowList,
   WorkflowList02,
 } from '@wingfoil-ui/contracts';
-import { schemaProblems, type ContractSchema } from '../contracts.js';
+import { definitionProblems, schemaProblems, type ContractSchema } from '../contracts.js';
 
 /** One consumed command. */
 export interface CliCommandSpec {
@@ -72,6 +72,49 @@ export function commandFor(words: readonly string[]): CliCommandName | undefined
 /** Why the output of `name` does not match its schema, or `undefined` when it does. */
 export function outputProblem(name: CliCommandName, data: unknown): string[] | undefined {
   return schemaProblems(cliSchemaFile(name), data);
+}
+
+/** The fields of a `memory search` match, in the schema's order (`#/definitions/match`). */
+const MATCH_FIELDS = ['path', 'id', 'title', 'type', 'status', 'tags'] as const;
+
+/** The valid matches of a `memory search` output and one line per dropped match (not sanitised). */
+export interface SearchMatches {
+  /** The output with the valid matches only, in their order. */
+  data: MemorySearch;
+  /** `memory search left out <path>: not a Memory element (…)`, one per dropped match. */
+  dropped: string[];
+}
+
+/**
+ * The per-match reading of a `memory search` output that fails its schema (spec-001 §2, task-070
+ * D70-1 … D70-3, bug-024): `undefined` when the envelope fails (`matches` not an array, or the rest
+ * of the object invalid — checked as the same schema with no match), else the valid matches and one
+ * line per dropped match, naming its `path` as the CLI returned it (`<no path>` when it is not text)
+ * and the failing fields — never a value.
+ */
+export function searchMatches(data: unknown): SearchMatches | undefined {
+  if (data === null || typeof data !== 'object' || Array.isArray(data)) return undefined;
+  const matches = (data as { matches?: unknown }).matches;
+  if (!Array.isArray(matches)) return undefined;
+  if (outputProblem('memory search', { ...data, matches: [] }) !== undefined) return undefined;
+  const kept: unknown[] = [];
+  const dropped: string[] = [];
+  for (const match of matches) {
+    const problems = definitionProblems(cliSchemaFile('memory search'), '#/definitions/match', match);
+    if (problems === undefined) {
+      kept.push(match);
+      continue;
+    }
+    const path = (match as { path?: unknown } | null)?.path;
+    const where = typeof path === 'string' ? path : '<no path>';
+    const fields = new Set(
+      problems.map((p) => p.missingProperty ?? p.instancePath.split('/')[1]).filter((f) => f !== undefined && f !== ''),
+    );
+    const named = MATCH_FIELDS.filter((f) => fields.has(f));
+    const why = named.length > 0 ? `${named.join(', ')} missing or not text` : 'not an object';
+    dropped.push(`memory search left out ${where}: not a Memory element (${why})`);
+  }
+  return { data: { ...(data as MemorySearch), matches: kept as MemorySearch['matches'] }, dropped };
 }
 
 /**

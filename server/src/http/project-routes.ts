@@ -491,8 +491,15 @@ async function elements(read: ProjectRead, archived: boolean): Promise<ElementLi
   const { view } = read;
   const list = await view.elements();
   const matches = [...list.matches];
+  const warnings = new Set(list.warnings);
   if (archived) {
-    for (const status of ARCHIVED_STATES) matches.push(...(await view.archivedElements(status)).matches);
+    for (const status of ARCHIVED_STATES) {
+      const more = await view.archivedElements(status);
+      matches.push(...more.matches);
+      // The archived searches' warnings too — a dropped archived match included (task-070 D70-4) —
+      // each text once: every search repeats the CLI's own warnings.
+      for (const w of more.warnings) warnings.add(w);
+    }
   }
   const inputs = await read.descriptorInputs();
   const events = inputs.ok ? await read.events() : undefined;
@@ -508,7 +515,7 @@ async function elements(read: ProjectRead, archived: boolean): Promise<ElementLi
   }));
   return {
     elements: listed,
-    warnings: list.warnings,
+    warnings: [...warnings],
     ...(list.message !== undefined ? { message: list.message } : {}),
     ...(inputs.ok ? {} : { typesError: inputs.refusal.error }),
     ...(events?.error ? { eventsError: events.error } : {}),
