@@ -517,8 +517,11 @@ goes away by itself when the stream reconnects. A network failure is not rendere
   backlog-item-rel-v0.3-plan W2-5; decided by the approver, "tutto come consigliato"): §5 the
   `warnings` of `/elements?archived=true` carry the archived searches' warnings too; the `warnings`
   of `/elements`, with or without `?archived=true`, hold each text once, at most 200 and one count
-  line summing every omission (review round 1 F2, F4); a dropped match's line holds no newline,
-  carriage return or tab — its path writes them as `\x0a`, `\x0d`, `\x09` (F1);
+  line (review round 1 F2, F4) — the archived searches repeat the live search's `stderr` (one scan of
+  the Memory folders), so what their `stderr` left out is counted once, the most any of them left
+  out, and the dropped matches exactly (round 2 R2-F1); a dropped match's line holds no newline,
+  carriage return or tab — its path writes them as `\x0a`, `\x0d`, `\x09` (F1) — and is at most
+  4 000 characters after them (R2-F2);
   the `cli-refused` reasons' cap (200 and a count line), the details' `file` left out, `detail`
   only with a reason, and the envelope's schema `contracts/api/cli.refusal.schema.json` (the
   `cli-refused` branch of `write.refusal.schema.json` refers to it).

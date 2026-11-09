@@ -441,3 +441,23 @@ On `gates.yml`: run `42594850231` (the push of `2faaf37c`, round 1's code and do
 97.28 %, lines 98.41 %), `contract` (17 files passed, 1 skipped), `e2e-chromium` (162 and 161
 passed), `own-specs (firefox)` and `own-specs (webkit)`, `smoke`, `publish-smoke`; `e2e-wave`
 skipped (task scope).
+
+### review round 2 (2026-11-09) — PASS, one minor and one nit
+
+Review on `70f7da35` (the tip run `42596814870`, green). Red `4037dc94`: `memory-search-matches` 2
+failed (the helper's count, the length after the escapes), `dropped-matches` 1 failed on real 0.3.1
+(`?archived=true`: `150 more warnings omitted` for 50 texts cut).
+
+| # | Finding | What changed |
+|---|---------|--------------|
+| R2-F1 (minor) | `mergeToolLines` summed every list's count line: the three searches of `?archived=true` repeat the same `stderr`, so 250 frontmatters that do not parse on 0.3.1 gave `150 more warnings omitted` for 50 distinct texts cut | The adapter keeps the warnings in their parts (`WarningParts`, `CliOutput.warningParts`, `ElementList.warningParts`): the first 200 `stderr` lines and how many follow, and every dropped match. `mergeToolLines(parts)`: each text once, the `stderr` lines first; the `stderr` cut counted **once, the most any search left out** — the three searches read one scan of the Memory folders, so their `stderr` repeats (shown on the probe: 250 files → 50 on both routes) —; the dropped matches all known and counted exactly (201 + 201 on 0.2.2 → 202, as round 1). The rule is in the spec-004 §5 Process Note. `tool-messages.test.ts` lists the adapter's producer line as it now reads |
+| R2-F2 (nit) | `oneLine` ran after the 4 000-character cap: each newline or tab grows to four characters | A dropped-match line is capped again after its escapes (`capMessage`, the sanitiser's own cap, exported from `server/src/git/redact.ts`); the cap's omission mark, set off by newlines, is written with spaces (same length), so the line stays one line. Test: a path of 3 000 newlines → one line of at most 4 000 characters |
+
+The user guide stays at 0.29 (the coordinator bumps it at the reconcile with task-069).
+
+Gates of round 2 (local, on the fix): `npm run typecheck`, `npm run lint`, `npm run format:check`,
+`npm run docs:api` clean; `check_tasks.py v0.3` OK; `test/docs/public-text.test.ts`, `test/governance`
+and `test/wingfoil-feedback.test.ts` passed. Under the strict-identity recipe: `test/server/cli/`,
+`test/server/http/`, `tool-messages`, `test/server/snapshot`, `test/server/writes`,
+`harness/git-identity`, `api-cli-refusal-schema`, `api-writes-schema`, `test/web/memory`,
+`test/web/shell` — 55 files, 1 121 passed.
