@@ -435,3 +435,9 @@ strict-identity recipe: `test/server/cli/`, `dropped-matches`, `project-routes`,
 `tool-messages`, `test/server/snapshot`, `harness/git-identity`, `api-cli-refusal-schema`,
 `api-writes-schema`, `test/web/memory`, `test/web/shell` — 39 files, 654 passed. The heavy gates:
 the run of the push of this round, below.
+
+On `gates.yml`: run `42594850231` (the push of `2faaf37c`, round 1's code and docs) — **success**:
+`checks`, `coverage` (221 files passed, 1 skipped; statements 96.64 %, branches 91.38 %, functions
+97.28 %, lines 98.41 %), `contract` (17 files passed, 1 skipped), `e2e-chromium` (162 and 161
+passed), `own-specs (firefox)` and `own-specs (webkit)`, `smoke`, `publish-smoke`; `e2e-wave`
+skipped (task scope).
