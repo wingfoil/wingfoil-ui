@@ -26,7 +26,6 @@ import {
   MAX_TOOL_LINES,
   outputProblem,
   searchMatches,
-  toolLines,
   toolText,
   type CliCommandName,
   type CliCommandOutputs,
@@ -483,9 +482,20 @@ function stderrWarnings(stderr: string, sanitise: (text: string) => string, more
   const { lines: first, omitted } = boundedLines(stderr, MAX_TOOL_LINES);
   // The adapter's own lines (task-070: the dropped matches) follow the stderr lines, under the same cap
   // and count line; past the cap they are counted, never sanitised.
-  if (omitted > 0) return toolLines(first, sanitise, omitted + more.length);
-  const kept = more.slice(0, MAX_TOOL_LINES);
-  return toolLines([...first, ...kept], sanitise, more.length - kept.length);
+  // Each of those lines is one line on the page: a newline, carriage return or tab its path holds is
+  // written as a visible escape after the sanitiser (review round 1 F1) — after it, so that the escape
+  // keeps one backslash, like the sanitiser's own, and a literal backslash stays doubled.
+  const lines = [
+    ...first.map(sanitise),
+    ...more.slice(0, MAX_TOOL_LINES - first.length).map((l) => oneLine(sanitise(l))),
+  ];
+  const rest = omitted + first.length + more.length - lines.length;
+  return rest > 0 ? [...lines, `${rest} more warnings omitted`] : lines;
+}
+
+/** `text` on one line: newline, carriage return and tab as `\x0a`, `\x0d`, `\x09` (review round 1 F1). */
+function oneLine(text: string): string {
+  return text.replace(/[\n\r\t]/g, (ch) => `\\x${ch.charCodeAt(0).toString(16).padStart(2, '0')}`);
 }
 
 /** HTTP status and envelope of a CLI failure (spec-004 §5, spec-006 §3). */

@@ -110,9 +110,14 @@ export function searchMatches(data: unknown): SearchMatches | undefined {
     const fields = new Set(
       problems.map((p) => p.missingProperty ?? p.instancePath.split('/')[1]).filter((f) => f !== undefined && f !== ''),
     );
-    const named = MATCH_FIELDS.filter((f) => fields.has(f));
-    const why = named.length > 0 ? `${named.join(', ')} missing or not text` : 'not an object';
-    dropped.push(`memory search left out ${where}: not a Memory element (${why})`);
+    const texts = MATCH_FIELDS.filter((f) => f !== 'tags' && fields.has(f));
+    const why = [
+      ...(texts.length > 0 ? [`${texts.join(', ')} missing or not text`] : []),
+      // `tags` is a list (review round 1 F5).
+      ...(fields.has('tags') ? ['tags missing or not a list of text'] : []),
+    ];
+    if (why.length === 0) why.push('not an object');
+    dropped.push(`memory search left out ${where}: not a Memory element (${why.join('; ')})`);
   }
   return { data: { ...(data as MemorySearch), matches: kept as MemorySearch['matches'] }, dropped };
 }
@@ -132,6 +137,28 @@ export function toolLines(lines: readonly string[], sanitise: (text: string) => 
   const kept = lines.slice(0, MAX_TOOL_LINES).map(sanitise);
   const rest = Math.max(0, lines.length - MAX_TOOL_LINES) + omitted;
   return rest > 0 ? [...kept, `${rest} more warnings omitted`] : kept;
+}
+
+/** The count line {@link toolLines} appends: `<n> more warnings omitted`. */
+const COUNT_LINE = /^(\d+) more warnings omitted$/;
+
+/**
+ * Several lists of tool lines, each already passed through {@link toolLines}, as one list under the
+ * same rule (task-070 review round 1 F2, F4; spec-004 §5): each text once, in order, at most
+ * {@link MAX_TOOL_LINES}, then **one** count line summing what each list counted and what this cut
+ * leaves out. A list's count line is its last line when the list is over the cap — the only place
+ * {@link toolLines} writes one —, so a CLI warning that reads like one is kept as a warning.
+ */
+export function mergeToolLines(lists: readonly (readonly string[])[]): string[] {
+  const seen = new Set<string>();
+  let counted = 0;
+  for (const list of lists) {
+    const count = list.length > MAX_TOOL_LINES ? COUNT_LINE.exec(list[list.length - 1] ?? '') : null;
+    if (count) counted += Number(count[1]);
+    for (const line of count ? list.slice(0, -1) : list) seen.add(line);
+  }
+  // The texts are sanitised already: the identity, never a second sanitiser.
+  return toolLines([...seen], (text) => text, counted);
 }
 
 /**
