@@ -706,10 +706,10 @@ In the unreleased v0.3:
 
 - **WingFoil 0.2.2 and a frontmatter that does not parse** (bug-036). On a project on WingFoil
   0.2.2, one Memory file whose frontmatter is not valid YAML (`id: [unclosed`) makes WingFoil's
-  `memory search` fail with no list and without naming the file: the Memory list, the element panel
-  and Today answer an internal error. Run `wingfoil memory search` in the project — WingFoil prints
-  the YAML error and the lines around it —, fix that frontmatter, or move the project to WingFoil
-  0.3.1, which lists the other elements and names the file.
+  `memory search` fail with no list and without naming the file: the Memory list, the element panel,
+  Today and the notification bell answer an internal error. Run `wingfoil memory search` in the
+  project — WingFoil prints the YAML error and the lines around it —, fix that frontmatter, or move
+  the project to WingFoil 0.3.1, which lists the other elements and names the file.
 
 Git sync and actions (new in v0.2):
 

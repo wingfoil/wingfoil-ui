@@ -239,7 +239,7 @@ most 200, then one line `<n> more warnings omitted` (task-046, review round 2 d1
 by its project-relative path (spec-001 §2, RP3-14 D10, bug-024): the list is served with the valid
 matches, never as 502 `cli-output` for a bad match; Today and the other reads of the same output use
 the valid matches. With `?archived=true` the `warnings` also carry those of the archived searches
-(a dropped archived match among them), each text once.
+(a dropped archived match among them); either way each text once, at most 200 and one count line.
 
 Commit texts (v0.3, RP3-14 D13, bug-027): the `subject`, `reason`, `author` and `approver` of the
 history entries (`/elements/:eid/history`), the `author`, `approver` and `reason` of the Memory events
@@ -515,7 +515,10 @@ goes away by itself when the stream reconnects. A network failure is not rendere
   `author.email`, else `user.email`, SARD REQ-STATE-05), in place of `user.email` alone.
 - 2026-11-09 — amended in development (task-070 design D70-4, D70-5, D70-6, D70-12, plan
   backlog-item-rel-v0.3-plan W2-5; decided by the approver, "tutto come consigliato"): §5 the
-  `warnings` of `/elements?archived=true` carry the archived searches' warnings too, each text once;
+  `warnings` of `/elements?archived=true` carry the archived searches' warnings too; the `warnings`
+  of `/elements`, with or without `?archived=true`, hold each text once, at most 200 and one count
+  line summing every omission (review round 1 F2, F4); a dropped match's line holds no newline,
+  carriage return or tab — its path writes them as `\x0a`, `\x0d`, `\x09` (F1);
   the `cli-refused` reasons' cap (200 and a count line), the details' `file` left out, `detail`
   only with a reason, and the envelope's schema `contracts/api/cli.refusal.schema.json` (the
   `cli-refused` branch of `write.refusal.schema.json` refers to it).

@@ -183,7 +183,9 @@ file. The AC's own exit applies: a declared limitation, decided by the approver 
   stderr lines first, then the dropped matches, **one** cap of 200 and one count line (`toolLines`
   over both, the stderr's own `omitted` carried), every line through the adapter's sanitiser (class
   (a), `serialise.ts`'s table; no second rule). The archived searches are the same command and get
-  the same rule (Q-2).
+  the same rule (Q-2). *Review round 1 F1, F5:* a newline, carriage return or tab of the path is
+  written as `\x0a`, `\x0d`, `\x09` after the sanitiser, so one dropped match is one line; `tags`
+  is named as a list (`tags missing or not a list of text`).
 - **D70-4 — `/elements?archived=true` carries the archived searches' warnings too**, after the live
   one's, de-duplicated by text (today it carries the live search's only, so a dropped archived match
   would vanish without a word; 0.2.2 and 0.3.1 repeat their stderr warnings on each search). The
@@ -411,3 +413,25 @@ On `gates.yml` (commit `37458a2a`, the code and docs above):
   `publish-smoke`; `e2e-wave` skipped (task scope).
 - Run `42589745891` (the push of `1e39669f`, the gate evidence above; recorded by the
   coordinator): **success**, every job; `e2e-wave` skipped (task scope).
+
+### review round 1 (2026-11-09) — PASS, two minor and three nits
+
+Adversarial review on `f51a17aa` (the phase branch merged, run `42591598403` green on it; the run on
+the tip before review, `42589745891`, recorded by the coordinator in `f51a17aa`). Red `9088daf3`
+(`memory-search-matches` 3 failed, `dropped-matches` 2 failed on real 0.2.2), then green.
+
+| # | Finding | What changed |
+|---|---------|--------------|
+| F1 (minor) | A newline in a Memory file name forged a second line in the dropped-match warning, rendered in `<pre>` (probe on real 0.2.2: `docs/memory/bug/a\nWARNING forged line.md`) | The adapter writes a newline, carriage return or tab of a dropped-match line as `\x0a`, `\x0d`, `\x09` **after** the sanitiser (`oneLine`, `adapter.ts`): escaped before it, the sanitiser would double the backslash (`\\x0a`) and a literal `\x0a` in a name could not be told from a newline — a deviation from "in `searchMatches`", same result. Tests: the fake runner (newline, CR, tab, a literal backslash) and real 0.2.2 (a committed file with a newline in its name). D70-3 and the spec-004 §5 Process Note updated |
+| F2 (minor) | `?archived=true` merged three lists each capped at 200 plus a count line without capping again (up to ~600 lines, several count lines, identical count lines collapsed) | `mergeToolLines` (`commands.ts`): each text once, one cap of 200, one count line summing each list's count and the cut; a list's count line is read only as the last line of a list over the cap, so a CLI warning that reads like one stays a warning. Tests: the helper, and real 0.2.2 with 201 files without frontmatter and 201 deprecated without `type` → 200 lines and `202 more warnings omitted`; plain `/elements` 200 and `1 more warnings omitted` |
+| F3 | The merge with task-069 (`docs/user-guide.md`, `test/README.md` versions, `docs:api`) | Nothing here: the coordinator reconciles them after task-069's merge (so the user guide keeps 0.29 in this round) |
+| F4 (nit) | Plain `/elements` de-duplicates its warnings too | Kept (it also removes a duplicate React key in the Memory list's notice); stated in the spec-004 §5 Process Note |
+| F5 (nit) | "tags missing or not text" for a list | `tags missing or not a list of text`, joined to the other fields with `; `. The userinfo redaction renaming a file name that holds `scheme://user@` is the sanitiser's documented rule (spec-004 §5) and stays |
+| F6 (nit) | The bug-036 limitation also reaches the notification bell (it reads `/today`) | Named in `CHANGELOG.md` *Known limitations* and the user guide's limitation |
+
+Gates of round 1 (local, on the fix): `npm run typecheck`, `npm run lint`, `npm run format:check`,
+`npm run docs:api` clean; `check_tasks.py v0.3` OK; `test/docs/public-text.test.ts` passed. Under the
+strict-identity recipe: `test/server/cli/`, `dropped-matches`, `project-routes`, `text-sweep`,
+`tool-messages`, `test/server/snapshot`, `harness/git-identity`, `api-cli-refusal-schema`,
+`api-writes-schema`, `test/web/memory`, `test/web/shell` — 39 files, 654 passed. The heavy gates:
+the run of the push of this round, below.

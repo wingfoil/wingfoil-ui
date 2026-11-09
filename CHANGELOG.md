@@ -150,9 +150,9 @@ release `v0.2` the git tag `v0.2.0` and the npm version `wingfoil-ui@0.2.0`.
 - **WingFoil 0.2.2 and a frontmatter that is not valid YAML** (bug-036, task-070): on a project on
   WingFoil 0.2.2, one Memory file whose frontmatter does not parse (`id: [unclosed`) makes WingFoil's
   `memory search` fail with no list and without naming the file, so the Memory list, the element
-  panel and Today answer an internal error. The console has no list to show. Find the file by
-  running `wingfoil memory search` in the project (WingFoil prints the YAML error and the lines
-  around it), fix its frontmatter, or move the project to WingFoil 0.3.1, which lists the other
+  panel, Today and the notification bell answer an internal error. The console has no list to
+  show. Find the file by running `wingfoil memory search` in the project (WingFoil prints the YAML
+  error and the lines around it), fix its frontmatter, or move the project to WingFoil 0.3.1, which lists the other
   elements and names the file (`W_MEMORY_UNREADABLE`), shown in the Memory list's notice.
 
 ## [0.2.0] - 2026-10-20
