@@ -512,3 +512,14 @@ test/package test/server/project-state test/server/references test/server/descri
 Run `43079616427` (`5df949ab`): every job green; `own-specs` (Firefox, job `130729688022`) and
 (WebKit, job `130729688345`) print `no test of the own specs runs on <engine>: nothing to run` and
 pass (F-4 verified).
+
+### review round 2 (2026-11-11)
+
+On `b7b3e188`: PASS — F-1 … F-6 closed, no regression (265/265 targeted under strict identity,
+task-069's held-gate suites included); three new findings, red first in `34b5d30b`.
+
+| # | Finding | Fix | Red evidence |
+|---|---------|-----|--------------|
+| F-7 (minor) | `gates.yml`'s own-specs step piped the list into `grep -q`: a spec that fails to load makes `playwright test --list --pass-with-no-tests` print the error and `Total: 0 tests in 0 files` and exit 1, and without `pipefail` the `if` took grep's status — "nothing to run", green | `listed=$(npx playwright test --list --pass-with-no-tests --project="$ENGINE" "${specs[@]}")` (a failed list fails the step under `bash -e`), then `if grep -q '^Total: 0 tests' <<<"$listed"; then`; pins, permissions, triggers, expressions and quoting unchanged; `test/README.md` *CI gates* 0.73 | `gates-workflow` › D71-6's exact lines and the bug-038 case (the captured form, no pipe) failed (2 failed). Probe (`bash -e`, a scratch spec importing a missing module, removed after): the piped form printed "nothing to run" and exited 0, the captured form exited 1; `performance.spec.ts` on Firefox still "nothing to run", exit 0 |
+| F-8 (minor) | the pipe left an `Error: write EPIPE` stack in both own-specs logs of `43079616427`; spec-012's Process Note named spec-005 §4a's count, which spec-005 did not say | the captured form ends the pipe; spec-005 Process Note (2026-11-11, round 2): an empty `version` is no version in §4 *In scope* and §4a | the new run's own-specs logs (below) |
+| F-9 (nit) | task-055's own suite did not cover the round 1 change of `build.ts` | `test/server/references/build.test.ts` › "an empty version is no version: it scopes only by id, and counts only by id": `inScope` and `referencingNotDone` with `version: ""` | passes on the code; with the round 1 line of `build.ts` reverted it fails (1 failed), code restored |

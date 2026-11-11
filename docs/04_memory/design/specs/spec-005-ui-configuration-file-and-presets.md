@@ -394,3 +394,8 @@ remaining non-methodology hit needs a justified inline disable.
   empty-segment rule first written here: in the relative-path form of `artifacts[].path` the first
   segment holds no `:` (so `javascript:…`, `data:…`, `mailto:…`, `http:x`, `C:/x` are refused),
   and empty segments are allowed (`dist/`, `a//b`).
+- 2026-11-11 — clarified in task-059 review round 2 (F-8; plan `backlog-item-rel-v0.3-plan`), as
+  spec-012's Process Note of the same day (review round 1, F-2): in §4 *In scope* and §4a's
+  `when-references-done` count, a `version` field that is the empty string is no version — empty
+  template fields carry `""`, so it would count every element holding one; the element is then
+  referenced by its id only. No rule changes otherwise.
