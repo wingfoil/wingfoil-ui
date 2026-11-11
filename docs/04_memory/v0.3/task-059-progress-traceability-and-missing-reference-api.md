@@ -457,3 +457,15 @@ parti, il resto come proponi".
   `text-sweep`, `ui-config-route` and `test/docs` 94 passed; `test/governance` and
   `wingfoil-feedback` passed; `progress-routes` and `ui-config-route` under the strict-identity
   `git` wrapper of *Git identity* (outside the repository) 44 passed.
+- **gates.yml** (W2-4): run `43034047464` (`93583b2a`): checks, contract, smoke, publish-smoke
+  success; coverage failure — `test/lint/one-console-per-test` (bug-023's check): four
+  `progress-routes` bodies started a console per variant or failure; fixed as `it.each` rows and
+  separate tests (`2095cde1`); its e2e jobs failed before any test (the runner's `apt` could not
+  resolve `azure.archive.ubuntu.com`: "Failed to install browsers"), its own-specs cancelled by the
+  next push. Run `43038002225` (`2095cde1`, with the refactor `5b6ab51c`): checks, coverage,
+  contract, smoke, publish-smoke success; `e2e-chromium` (1) and (2) failed again before any test
+  on the same runner DNS failure, also on the rerun of the failed jobs (attempt 2, jobs
+  `130611493980`, `130611494067`); own-specs (Firefox, WebKit: `performance.spec.ts`) cancelled
+  with them. The Playwright gates are still to be run once the runner resolves its mirror.
+- **Refactor** (`5b6ab51c`): the refusal order of `/progress` named in a comment, a test leftover
+  dropped; targeted coverage of `server/src/project-state/` 98.4 % statements, 88.8 % branches.
