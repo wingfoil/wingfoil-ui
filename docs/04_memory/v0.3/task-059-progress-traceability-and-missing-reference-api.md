@@ -473,3 +473,18 @@ parti, il resto come proponi".
   with them. The Playwright gates are still to be run once the runner resolves its mirror.
 - **Refactor** (`5b6ab51c`): the refusal order of `/progress` named in a comment, a test leftover
   dropped; targeted coverage of `server/src/project-state/` 98.4 % statements, 88.8 % branches.
+- Run `43054778990` (`55ce600b`), after the rerun of its failed jobs (the runner's mirror resolved
+  again): every job green but `own-specs` (Firefox) and (WebKit), `Error: No tests found.` —
+  `performance.spec.ts`, the task's only own spec, holds only `@perf` tests, which
+  `playwright.config.ts` leaves out on those engines: bug-038, absorbed as AC-12 (`5c8963b4`).
+- **AC-12 — bug-038.** Red (`dbc096db`): the case "own-specs: listed specs that select no test on
+  the engine pass" in `test/package/gates-workflow.test.ts` failed on the current `gates.yml` (1
+  failed, 46 passed). Green (`acb0c7b1`): `--pass-with-no-tests` on the own-specs job's
+  `npm run test:e2e -- --project="$ENGINE" …` line, the exact-line expectation of D71-6 updated,
+  `test/README.md` *CI gates* 0.70; pins, permissions, triggers and expressions unchanged. `npx
+  vitest run test/package test/docs/public-text.test.ts` 142 passed. Run `43068260805` (`acb0c7b1`):
+  every job green — checks, coverage, contract, smoke, publish-smoke, `e2e-chromium` (1) and (2),
+  `own-specs` (Firefox, job `130689900080`) and (WebKit, job `130689899912`), each running
+  `playwright test --project=<engine> --reporter=github,html --pass-with-no-tests
+  test/e2e/performance.spec.ts` and exiting 0 with no test selected (Playwright prints no line for
+  it with these reporters).
