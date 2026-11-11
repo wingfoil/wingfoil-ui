@@ -289,3 +289,22 @@ variant 0.05; docs, Process Note, CI runs 0.1 — **about 0.65 active day**, wit
   the coordinator's OK on this design; spec-003 and spec-008 hold as written.
 
 Blockers: none outside these questions; red waits for the coordinator.
+
+### design approved (2026-11-11)
+
+Relayed by the coordinator, the approver: "task 73: q3-b, le altre a. q5 come suggerisci".
+
+- **Q1 (a)** — the version gate is a semver compare against `LIMITS_SINCE` 0.3.0 (D73-3).
+- **Q2 (a)** — the count is `memory search`'s (the working tree), as spec-003 §6 says. The divergence
+  from the CLI after an uncommitted, hand-set `status:` of another element (P3: a false enable,
+  answered 422 `cli-refused`; P4: a false disable) is an accepted limitation.
+- **Q3 (b)** — not the recommendation: the gate footer shows a blocked line per disabled outcome,
+  each wired as that outcome's accessible description, so an *Approve* blocked by `state-limit` has
+  a line of its own while each *Reject* stays enabled. D73-7 is revised: rules 1–4 give every outcome
+  the same reason, so read literally (b) would repeat one text per outcome and change the v0.2
+  rendering. The developer proposed to the coordinator one line per **distinct** reason, each
+  outcome described by its own reason's line, with the v0.2 single line kept unchanged; the answer
+  is recorded below when it comes. The `ux-reference.md` §4.2 bullet goes in the green commit.
+- **Q4 (a)** — Today's placement is unchanged.
+- **Q5** — the spec-001 §4.1 Process Note (the lenient `limits` read, `limits` in the resolved
+  states) goes in the green commit; spec-003 and spec-008 hold as written.
