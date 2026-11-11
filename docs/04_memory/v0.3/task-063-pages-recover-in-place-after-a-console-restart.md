@@ -365,3 +365,7 @@ run `43074720649`, green). Findings fixed, red first where a test is added:
 - **F-5 (nit)** — the runs of the tips are cited above and below.
 - Out of scope, unchanged: `stripFragment`'s `pathname + search` (the coordinator asks the
   approver).
+- Gates of round 1: local typecheck, lint, format:check, `npx vitest run test/contracts
+  test/server/http/app.test.ts test/web/session` (22 files, 541 tests passed); `gates.yml` on
+  `d82a9046`: run `43082308356`, green on every job (checks, coverage, contract, e2e-chromium ×2,
+  own specs on Firefox and WebKit, smoke, publish-smoke).
