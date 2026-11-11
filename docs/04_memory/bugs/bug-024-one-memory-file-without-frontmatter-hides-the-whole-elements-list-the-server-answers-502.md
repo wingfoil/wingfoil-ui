@@ -14,6 +14,7 @@ contributor: "WingFoil maintainer (request R4, 2026-10-26)"        # optional â€
 credit: ""             # optional â€” free-text credit note
 tmpl_version: 260703   # Orignal template version
 ---
+- close note (2026-11-11): fixed by task-070 (`done` `7a6660c2`), merged into the phase branch in `0795691a`; resolved by the approver (`54e5b58d`). The CLI adapter reads `memory search` per match: a Memory file without frontmatter, or one the CLI cannot read, is named in the Memory list's notice and the other elements are listed (`test/server/http/dropped-matches.test.ts`, real 0.2.2 and 0.3.1). It closes with Wave 2's merge into `main`.
 
 ## Summary
 

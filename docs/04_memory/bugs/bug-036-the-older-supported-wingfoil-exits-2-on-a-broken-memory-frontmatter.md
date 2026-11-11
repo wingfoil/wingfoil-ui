@@ -57,3 +57,4 @@ a declared 0.2.2 limitation. Its task, or the limitation, is decided at Wave 2's
        live on those tasks (docs/04_memory/{release}/{id}.md, `bug: {this id}`, their own
        Execution Notes section) — this section only needs a pointer plus anything that doesn't
        belong on a specific fix task (e.g. why 2 tasks were needed instead of 1). -->
+- close note (2026-11-11): declared as a WingFoil 0.2.2 limitation by task-070 (the approver's D70-9 (a), `backlog-item-rel-v0.3-plan` W2-5; `done` `7a6660c2`, merged in `0795691a`); resolved by the approver (`e2f7aca7`). No code: `CHANGELOG.md` *Unreleased* › *Known limitations* and the user guide say how to find the file and that WingFoil 0.3.1 lists the other elements; a characterization test pins the 500 `internal` on 0.2.2 (`test/server/http/dropped-matches.test.ts`). It closes with Wave 2's merge into `main`.
