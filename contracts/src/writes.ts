@@ -64,4 +64,7 @@ export type WriteRefusalCode =
   | 'internal'
   | 'read-error'
   /** The CLI failed and left the element file changed without the write's commit (W2-1); `detail.file`. */
-  | 'write-incomplete';
+  | 'write-incomplete'
+  /** A body too large or of a content type without a parser, before the handler (task-063 D63-10). */
+  | 'payload-too-large'
+  | 'unsupported-media-type';
