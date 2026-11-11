@@ -525,3 +525,9 @@ e2e closure — every scenario this task closes, at the tip:
 | AC-5 | `test/web/element/page.test.tsx` › "rewrites a short id to the full id, replacing the entry, with one element read (D62-4)", "lists the candidates of an ambiguous short id, …", "shows not found for an unknown id, the address as heading", "closes with Escape to the Memory list …", "closes with Close back to where it was opened inside the console" |
 | AC-6 | `test/web/element/address.test.ts` (`elementPath` encoding and the `''`, `.`, `..` refusals, the queries reading nothing); `page.test.tsx` › the short-id rewrite and N-2's cases |
 
+
+Run `43091226795` on `dc43756c` (the checker round's fixes): attempt 1 every job green but the WebKit
+own specs — 1 failed / 258 passed, `documentation.spec.ts` › R-09.4 (the new tab of an external link
+never opened within the test's 180 s; the test, the Documentation view and the renderer are unchanged
+by this task — the spec ran because its R-09.1 title changed, and R-09.4 passed on WebKit in runs
+`43080129023` and `43085574218`); attempt 2, the failed job re-run: success.
