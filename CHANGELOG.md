@@ -72,6 +72,12 @@ release `v0.2` the git tag `v0.2.0` and the npm version `wingfoil-ui@0.2.0`.
   other requests (measured: never more than about 26 ms without an answer, on 500 elements of 200
   values with costly patterns); an element it
   could not read or index fully is named, never failing the whole. Nothing shows it yet.
+- **Why WingFoil refused, in the refusal toast** (task-070; spec-004 §5): when WingFoil 0.3.x
+  refuses an action with its reasons — a submit from a state that waits for an approval, for
+  example — the refusal toast shows them under WingFoil's message, one line each, as WingFoil
+  wrote them (the local folders shown as `<project>`, `<repository>`, `<wingfoil>`, `~`, the
+  credentials of a URL removed, control and bidi characters as visible escapes); the API's `cli-refused` answer carries them as
+  `detail.reasons`. A refusal of WingFoil 0.2.2, which gives no reasons, is shown as before.
 
 ### Changed
 
@@ -134,6 +140,16 @@ release `v0.2` the git tag `v0.2.0` and the npm version `wingfoil-ui@0.2.0`.
   `<wingfoil>` and `~`, at most 4 000 characters. Who must act is still found by the author's
   email. The defect shipped in v0.1.0 and v0.2.0.
 
+- **One Memory file that is not an element no longer hides the project** (bug-024, task-070): on
+  WingFoil 0.2.2, a Markdown file without frontmatter under a Memory folder (or one whose
+  frontmatter lacks the id, title, type or status) was returned among the elements, and the
+  console refused the whole list — the Memory list, the element panel, Today and the bell showed
+  no element (*Unexpected output of memory search*). The console now lists the valid elements and
+  names each such file in the Memory list's notice (`memory search left out docs/…/notes.md: not a
+  Memory element (id, title, type, status missing or not text)`), archived elements included.
+  WingFoil 0.3.1 leaves such a file out by itself, without a word (`wingfoil-cli` W-47). The
+  defect shipped in v0.1.0 and v0.2.0.
+
 ### Security
 
 - **Repository text escaped in the API** (task-056, RP3-18 K1; spec-004 §5): an element's title in
@@ -156,6 +172,14 @@ release `v0.2` the git tag `v0.2.0` and the npm version `wingfoil-ui@0.2.0`.
   --refetch --no-filter <remote>` (a plain `git fetch --refetch` applies the filter again), then `git
   config --unset remote.<remote>.partialclonefilter` so that later fetches stay full (checked by
   hand, git 2.43); or use a full clone (spec-010 §6).
+- **WingFoil 0.2.2 and a frontmatter that is not valid YAML** (bug-036, task-070): on a project on
+  WingFoil 0.2.2, one Memory file whose frontmatter does not parse (`id: [unclosed`) makes WingFoil's
+  `memory search` fail with no list and without naming the file, so the Memory list, the element
+  panel, Today and the notification bell answer an internal error. The console has no list to
+  show. Find the file by running `wingfoil memory search` in the project (WingFoil prints the YAML
+  error and the lines around it), fix its frontmatter, or move the project to WingFoil 0.3.1,
+  which lists the other elements and names the file (`W_MEMORY_UNREADABLE`), shown in the Memory
+  list's notice.
 
 ## [0.2.0] - 2026-10-20
 

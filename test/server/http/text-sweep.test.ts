@@ -71,11 +71,13 @@ const UI = '^(?:config \\.ui|ui-config )\\.';
 const RULES: readonly Rule[] = [
   // The error envelopes.
   {
-    pattern: /^(?:error|element\.refusal|git\.refusal|projects\.refusal|write\.refusal) \.(?:error\.)?code$/,
+    pattern:
+      /^(?:error|cli\.refusal|element\.refusal|git\.refusal|projects\.refusal|write\.refusal) \.(?:error\.)?code$/,
     cls: 'e',
   },
   {
-    pattern: /^(?:error|element\.refusal|git\.refusal|projects\.refusal|write\.refusal) \.(?:error\.)?message$/,
+    pattern:
+      /^(?:error|cli\.refusal|element\.refusal|git\.refusal|projects\.refusal|write\.refusal) \.(?:error\.)?message$/,
     cls: 'a',
     note: 'a tool message (cli-refused, git-refused) or a fixed one',
   },
@@ -85,6 +87,8 @@ const RULES: readonly Rule[] = [
   { pattern: /^projects\.refusal \.error\.detail\.name$/, cls: 'r', note: BUG_035 },
   { pattern: /^projects\.refusal \.error\.detail\.(?:path|pid|command|stateDir)$/, cls: 'e' },
   { pattern: /^write\.refusal \.error\.detail\.(?:file|command|commit)$/, cls: 'e' },
+  // task-070 (D70-6, D70-11): a WingFoil 0.3.x refusal's reasons, tool messages as the message.
+  { pattern: /^(?:cli|write)\.refusal \.error\.detail\.reasons\[\]$/, cls: 'a', note: 'a refusal reason (task-070)' },
   // The action descriptor, wherever it is.
   { pattern: new RegExp(`${DESCRIPTOR}(?:id|type|status|verbs\\[\\]\\.(?:to|role)|actor\\.role)$`), cls: 'c' },
   { pattern: new RegExp(`${DESCRIPTOR}(?:verbs\\[\\]\\.reason\\.range|rejection\\.at|since)$`), cls: 'e' },

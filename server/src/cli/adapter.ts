@@ -5,8 +5,8 @@
  *
  * | Exit | The adapter |
  * |------|-------------|
- * | 0 | returns the parsed stdout, validated against the command's schema, and the stderr lines as warnings; stdout that is not JSON, or fails the schema, is a {@link CliOutputError} |
- * | 1 | {@link CliRefusedError} with the CLI's message verbatim (stderr `{"error": …}`, else its text) |
+ * | 0 | returns the parsed stdout, validated against the command's schema, and the stderr lines as warnings; stdout that is not JSON, or fails the schema, is a {@link CliOutputError} — except a `memory search` whose envelope passes: each failing match is dropped and becomes a warning (task-070, bug-024) |
+ * | 1 | {@link CliRefusedError} with the CLI's message verbatim (stderr `{"error": …}`, else its text) and, from WingFoil 0.3.x, the `detail` texts of its `details` as `reasons` |
  * | 2 | {@link CliInternalError}: a defect of the adapter, logged (command words and option names) |
  * | other, signal, cancelled, stopped | {@link CliProcessError} with the reason |
  * | killed at the timeout | {@link CliTimeoutError} |
@@ -24,13 +24,15 @@ import {
   boundedLines,
   commandFor,
   MAX_TOOL_LINES,
+  mergeToolLines,
   outputProblem,
-  toolLines,
+  searchMatches,
   toolText,
   type CliCommandName,
   type CliCommandOutputs,
+  type WarningParts,
 } from './commands.js';
-import { redactLocalPaths } from '../git/redact.js';
+import { capMessage, redactLocalPaths } from '../git/redact.js';
 import { READ_GIT_ENV, withoutNames } from '../git/git.js';
 import { CliNotFoundError, type CliSource, type ResolvedCli } from './discovery.js';
 
@@ -46,6 +48,11 @@ export interface CliOutput<T = unknown> {
   data: T;
   /** stderr lines (e.g. `unknown field(s) ignored`, W-12): project warnings, never errors. */
   warnings: string[];
+  /**
+   * The same warnings in their parts, for a caller that merges several outputs of one command
+   * ({@link mergeToolLines}: `/elements?archived=true`, task-070 review round 2 R2-F1).
+   */
+  warningParts: WarningParts;
 }
 
 /** Where the adapter logs its own defects (pino's `Logger` fits). */
@@ -106,10 +113,18 @@ export class CliRefusedError extends CliError {
     command: CliCommand,
     /** The CLI's message, verbatim. */
     readonly cliMessage: string,
+    /**
+     * Why, from a WingFoil 0.3.x refusal's `details[].detail` (W-20; spec-001 §2, task-070): sanitised
+     * like the message, at most {@link MAX_REASONS} then one count line; empty for 0.2.2.
+     */
+    readonly reasons: readonly string[] = [],
   ) {
     super(command, cliMessage);
   }
 }
+
+/** Most reasons of one refusal passed on; the others are counted in a last line (task-070 D70-5). */
+export const MAX_REASONS = 200;
 
 /** Exit 0 with output that cannot be read: not JSON, or failing the command's schema. */
 export class CliOutputError extends CliError {
@@ -246,12 +261,18 @@ export class WingfoilCli {
       throw this.outputError(command, ['not JSON']);
     }
     const problems = outputProblem(name, data);
-    if (problems) throw this.outputError(command, problems);
+    // `memory search` alone is read per match (spec-001 §2, task-070, bug-024): a failing match is
+    // dropped and becomes a warning; a failing envelope, and every other command, stays an output error.
+    const perMatch = problems && name === 'memory search' ? searchMatches(data) : undefined;
+    if (problems && !perMatch) throw this.outputError(command, problems);
+    if (perMatch) data = perMatch.data;
     // Each warning, and the tool text of the output (task-046), through the one sanitiser of tool
-    // messages (bug-017, review round 3 S3-1).
+    // messages (bug-017, review round 3 S3-1); the dropped matches after the stderr lines, one cap.
+    const parts = stderrWarnings(result.stderr, (w) => this.redact(warningText(w)), perMatch?.dropped);
     return {
       data: toolText(name, data, (text) => this.redact(text)) as T,
-      warnings: stderrWarnings(result.stderr, (w) => this.redact(warningText(w))),
+      warnings: mergeToolLines([parts]),
+      warningParts: parts,
     };
   }
 
@@ -302,8 +323,16 @@ export class WingfoilCli {
     }
     if (result.ended === 'exit' && result.exitCode === 0) return result;
     if (result.ended === 'exit' && result.exitCode === 1) {
-      // The CLI's wording verbatim, the machine's folders removed (D33-5, bug-012).
-      throw new CliRefusedError(command, this.redact(refusalMessage(result.stderr)));
+      // The CLI's wording verbatim, the machine's folders removed (D33-5, bug-012); its reasons too
+      // (task-070 D70-5), cut before the sanitiser.
+      // The stderr text is parsed once for both (review round 2 n5 of task-046: one parse per candidate).
+      const { message, reasons } = refusalOf(result.stderr);
+      const kept = reasons.slice(0, MAX_REASONS).map((r) => this.redact(r));
+      const more = reasons.length - kept.length;
+      throw new CliRefusedError(command, this.redact(message), [
+        ...kept,
+        ...(more > 0 ? [`${more} more reasons omitted`] : []),
+      ]);
     }
     if (result.ended === 'exit' && result.exitCode === 2) {
       // A usage error may quote a value (a rejected option value, a reason WingFoil will not record,
@@ -370,11 +399,24 @@ export function usageKind(stderr: string): string {
   return /^([A-Za-z][A-Za-z ]{0,60}):/.exec(text)?.[1] ?? 'usage error';
 }
 
-/** The CLI's refusal message: stderr `{"error": "<message>"}`, else the stderr text, else the exit. */
-function refusalMessage(stderr: string): string {
+/**
+ * The CLI's refusal of a `stderr` text: its message — `{"error": "<message>"}`, else the stderr
+ * text, else the exit — and the `detail` texts of its `details` (WingFoil 0.3.x, W-20; task-070
+ * D70-5), in order: every item with a string `detail`; any other shape gives none. `details[].file`
+ * is not read.
+ */
+function refusalOf(stderr: string): { message: string; reasons: string[] } {
   const text = stderr.trim();
-  if (!text) return 'WingFoil refused (exit status 1) without a message';
-  return cliError(text) ?? text;
+  if (!text) return { message: 'WingFoil refused (exit status 1) without a message', reasons: [] };
+  const parsed = cliErrorObject(text);
+  const reasons: string[] = [];
+  if (parsed && Array.isArray(parsed.details)) {
+    for (const item of parsed.details as unknown[]) {
+      const detail = item !== null && typeof item === 'object' ? (item as { detail?: unknown }).detail : undefined;
+      if (typeof detail === 'string') reasons.push(detail);
+    }
+  }
+  return { message: parsed?.error ?? text, reasons };
 }
 
 /**
@@ -384,12 +426,17 @@ function refusalMessage(stderr: string): string {
  * win; one parse per candidate whatever the length).
  */
 function cliError(text: string): string | undefined {
+  return cliErrorObject(text)?.error;
+}
+
+/** The CLI's error object of a `stderr` text: the whole text or its last line ({@link cliError}). */
+function cliErrorObject(text: string): { error: string; details?: unknown } | undefined {
   const last = text.slice(text.lastIndexOf('\n') + 1).trim();
   for (const candidate of last === text ? [text] : [text, last]) {
     if (!candidate.startsWith('{')) continue;
     try {
-      const parsed = JSON.parse(candidate) as { error?: unknown };
-      if (typeof parsed.error === 'string') return parsed.error;
+      const parsed = JSON.parse(candidate) as { error?: unknown; details?: unknown };
+      if (typeof parsed.error === 'string') return { error: parsed.error, details: parsed.details };
     } catch {
       // Not JSON: the next candidate.
     }
@@ -436,13 +483,31 @@ function warningText(line: string): string {
 }
 
 /**
- * The `stderr` warnings as the API passes them on: the first {@link MAX_TOOL_LINES} non-empty lines,
- * sanitised, then one line counting the others — counted, never split into an array (review round 3
- * n1: a 64 MiB stderr).
+ * The warnings of an output in their parts ({@link WarningParts}): the first {@link MAX_TOOL_LINES}
+ * non-empty `stderr` lines, sanitised, and how many follow — counted, never split into an array
+ * (review round 3 n1 of task-046: a 64 MiB stderr) —, then the adapter's own lines (task-070: the
+ * dropped matches), each text once. Each of those is one line on the page: a newline, carriage
+ * return or tab its path holds is written as a visible escape after the sanitiser (review round 1
+ * F1) — after it, so that the escape keeps one backslash, like the sanitiser's own, and a literal
+ * backslash stays doubled —, and the line is capped again (round 2 R2-F2: an escape is longer).
  */
-function stderrWarnings(stderr: string, sanitise: (text: string) => string): string[] {
+function stderrWarnings(
+  stderr: string,
+  sanitise: (text: string) => string,
+  more: readonly string[] = [],
+): WarningParts {
   const { lines: first, omitted } = boundedLines(stderr, MAX_TOOL_LINES);
-  return toolLines(first, sanitise, omitted);
+  return {
+    stderr: first.map(sanitise),
+    stderrOmitted: omitted,
+    // The cap's own omission mark is set off by newlines: spaces here, the same length.
+    dropped: [...new Set(more)].map((l) => capMessage(oneLine(sanitise(l))).replace(/\n/g, ' ')),
+  };
+}
+
+/** `text` on one line: newline, carriage return and tab as `\x0a`, `\x0d`, `\x09` (review round 1 F1). */
+function oneLine(text: string): string {
+  return text.replace(/[\n\r\t]/g, (ch) => `\\x${ch.charCodeAt(0).toString(16).padStart(2, '0')}`);
 }
 
 /** HTTP status and envelope of a CLI failure (spec-004 §5, spec-006 §3). */
@@ -461,8 +526,12 @@ export function cliErrorEnvelope(error: CliError | CliNotFoundError): { status: 
     };
   }
   switch (error.kind) {
-    case 'refused':
-      return { status: 422, body: envelope('cli-refused', error.message) };
+    case 'refused': {
+      // `detail.reasons` only when there is one: a refusal without `details` (0.2.2) is unchanged.
+      const reasons = error instanceof CliRefusedError ? error.reasons : [];
+      const body = envelope('cli-refused', error.message);
+      return { status: 422, body: reasons.length > 0 ? { error: { ...body.error, detail: { reasons } } } : body };
+    }
     case 'output':
       return { status: 502, body: envelope('cli-output', error.message) };
     case 'timeout':

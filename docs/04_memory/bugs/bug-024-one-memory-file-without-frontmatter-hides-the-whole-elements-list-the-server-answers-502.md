@@ -2,7 +2,7 @@
 id: bug-024-one-memory-file-without-frontmatter-hides-the-whole-elements-list-the-server-answers-502
 type: bug
 title: "One Memory file without frontmatter hides the whole elements list: the server answers 502"
-status: in-progress
+status: resolved
 severity: "medium"           # REQUIRED — critical | high | medium | low
 release-origin: "v0.2"     # optional — release where the bug was FOUND, e.g. "v0.1"
 release: "v0.3"            # optional — fix/implementation release, stamped by release-planning/build-backlog
@@ -14,6 +14,7 @@ contributor: "WingFoil maintainer (request R4, 2026-10-26)"        # optional �
 credit: ""             # optional — free-text credit note
 tmpl_version: 260703   # Orignal template version
 ---
+- close note (2026-11-11): fixed by task-070 (`done` `7a6660c2`), merged into the phase branch in `0795691a`; resolved by the approver (`54e5b58d`). The CLI adapter reads `memory search` per match: a Memory file without frontmatter, or one the CLI cannot read, is named in the Memory list's notice and the other elements are listed (`test/server/http/dropped-matches.test.ts`, real 0.2.2 and 0.3.1). It closes with Wave 2's merge into `main`.
 
 ## Summary
 

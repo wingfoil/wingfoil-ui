@@ -51,23 +51,22 @@ describe('schema validation of exit-0 output (spec-001 §2)', () => {
     expect(out.data.matches.map((m) => m.id)).toContain('task-001-login-form');
   });
 
+  // task-070 D70-10: `memory search` is validated per match since bug-024 (its twin is in
+  // `memory-search-matches.test.ts`); `dna show` stays strict, as every other command.
   it('JSON failing the schema is an output error → 502 cli-output, logged without values', async () => {
-    const data = JSON.parse(sampleText('memory-search.json')) as { matches: Record<string, unknown>[] };
-    delete data.matches[0]!.status;
-    data.matches[1]!.title = 42;
+    const data = JSON.parse(sampleText('dna-show.json')) as Record<string, unknown> & { project: { name: unknown } };
+    delete data.stacks;
+    data.version = 'Login form';
     const { cli, logger } = cliAnswering(JSON.stringify(data));
-    const error = await cli.json(['memory', 'search']).catch((e: unknown) => e);
+    const error = await cli.json(['dna', 'show']).catch((e: unknown) => e);
     expect(error).toBeInstanceOf(CliOutputError);
     expect(cliErrorEnvelope(error as CliOutputError)).toEqual({
       status: 502,
-      body: { error: { code: 'cli-output', message: 'Unexpected output of memory search' } },
+      body: { error: { code: 'cli-output', message: 'Unexpected output of dna show' } },
     });
     expect(logger.error).toHaveBeenCalledTimes(1);
     const [logged] = logger.error.mock.calls[0] as [{ problems: string[] }];
-    expect(logged.problems).toEqual([
-      "/matches/0 must have required property 'status'",
-      '/matches/1/title must be string',
-    ]);
+    expect(logged.problems).toEqual(["/ must have required property 'stacks'", '/version must be number']);
     expect(JSON.stringify(logged)).not.toContain('Login form');
   });
 

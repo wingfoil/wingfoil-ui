@@ -32,6 +32,7 @@ import { lstat } from 'node:fs/promises';
 import path from 'node:path';
 import type { DirectivesList, DnaPaths, DnaShow, MemoryMatch, MemoryYaml, WorkflowList } from '@wingfoil-ui/contracts';
 import { CliOutputError, CliRefusedError, type CliOutput, type WingfoilCli } from '../cli/adapter.js';
+import type { WarningParts } from '../cli/commands.js';
 import type { CliCommandOutputs } from '../cli/commands.js';
 import { CliNotFoundError, type ResolvedCli } from '../cli/discovery.js';
 import type { DetectedVersion } from '../cli/version.js';
@@ -124,8 +125,10 @@ export interface MarkedElement {
 /** A `memory search` result with the markers. */
 export interface ElementList {
   matches: MarkedElement[];
-  /** The CLI's warnings (stderr lines). */
+  /** The CLI's warnings (stderr lines) and the dropped matches, as the API passes them on. */
   warnings: string[];
+  /** The same in their parts, to merge several searches (task-070 review round 2 R2-F1). */
+  warningParts: WarningParts;
   /** The CLI's message when nothing matched. */
   message?: string;
 }
@@ -724,6 +727,7 @@ export class SnapshotView {
     return {
       matches: matches.map((match) => ({ match, localChanges: this.hasLocalChanges(match.path) })),
       warnings: output.warnings,
+      warningParts: output.warningParts,
       ...(message !== undefined ? { message } : {}),
     };
   }
