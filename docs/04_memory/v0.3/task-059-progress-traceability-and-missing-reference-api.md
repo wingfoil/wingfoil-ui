@@ -9,7 +9,7 @@ module: "server"             # optional — server | web | contracts (dna.yaml m
 priority: "high"           # optional — high | medium | low
 tags: ["v0.3", "t2", "r5", "m2", "progress", "traceability"]               # optional — additional labels, e.g. [today, a11y]
 ref: "TT-STATE-08"                # optional — backlog item ID, e.g. "TASK-001"
-bug: ["bug-034-a-file-edited-and-reverted-between-two-state-checks-keeps-serving-the-edited-content", "bug-037-the-server-reads-frontmatter-keys-that-the-cli-counts-as-duplicates"]                # optional — LIST of bug ids this task closes. Two cases: a fix task derived from a bug
+bug: []                # optional — LIST of bug ids this task closes. Two cases: a fix task derived from a bug
                        # by release-planning, and a bug ABSORBED into an existing task's Acceptance Criteria because that
                        # task already owns the ground. Each bug listed moves with its own verbs (`.wingfoil/memory.yaml`):
                        # the approver's `memory approve` triaged -> planned, `memory submit` planned -> in-progress when
@@ -22,10 +22,13 @@ tmpl_version: 260703   # Orignal template version
 
 T2, M2 and R5 server side, Wave 2 (RP3-7; RP3-14 D2, D9; RP3-18 TQ-1 … TQ-6, K1, K2): the
 project-state views API of spec-012 — `GET /api/p/:pid/progress` (the progress card, §3),
-`GET /api/p/:pid/traceability?scope=` (a new route, §4) and the missing-reference flag on
-`GET /api/p/:pid/elements` (§5) — computed once per repository state from the shared reference index
+the missing-reference flag on `GET /api/p/:pid/elements` (§5) and `/config`
+`ui.progress.scope.current` (§2) — computed once per repository state from the shared reference index
 (§1, built by task-055) and the effective `ui.yaml` (task-054), so that the web never computes a
-figure, a reference or a done state (spec-003 §8, spec-012 *Consequences*).
+figure, a reference or a done state (spec-003 §8, spec-012 *Consequences*). Split at design
+(2026-11-11, the approver, Q1 (c); `backlog-item-rel-v0.3-plan` W2-6): `GET
+/api/p/:pid/traceability?scope=` (§4) moved to task-074-traceability-api, bug-034 and bug-037 to
+task-075-reads-tied-to-their-state-check-and-frontmatter-duplicate-keys.
 
 Decisions it carries: D2 — the current element is the 0.2.2 derivation on every WingFoil version,
 the phase figures `read-only` (`needs-version` below 0.3.0, `not-in-release` from it) until v0.4;
@@ -37,6 +40,8 @@ REQ-PERF-04; K1 the repository strings escaped; K2 the index's values, cap and r
 check on the `large` fixture.
 
 **Backlog items:** TT-STATE-08
+
+TT-STATE-08's R-01 scenarios are delivered by task-074-traceability-api (W2-6).
 
 ## Acceptance Criteria
 
@@ -50,38 +55,32 @@ check on the `large` fixture.
   `GET /api/p/:pid`, factored into `project.schema.json` `definitions.capabilityReason`),
   `iterated`, `openDefects`, `pendingGates` (held gates excluded, spec-005 §4a); `unreadable`,
   `capped`. A failed `dna show` or events read does not fail it.
-- **AC-2 — `/traceability`.** `contracts/api/traceability.schema.json` (new) and the route as
-  spec-012 §4: `scope` ∈ `current` (default) | `project`, else 400 after the 404 of an unknown
-  `:pid`; `applied`; `patterns`; `references` (every categorised reference, element and pattern
-  references alike, the `no-elements` rows in `project` scope, `status` of the four filters,
-  natural order), `missing`, `elements` (the `/elements` row moved to
-  `elements.schema.json` `definitions.row`, plus `done` and `inScope`), `figures` (`completion` on
-  `applied`, `coverage` project-wide or `no-requires`, `referencesWithoutElements`), `unreadable`,
-  `capped`, `eventsError` as `/elements` degrades today.
+- **AC-2** — moved to task-074-traceability-api (its AC-1). (amended 2026-11-11, W2-6.)
 - **AC-3 — Missing-reference flag.** `elements.schema.json` gains `missingCategories` per element
   and `missingReferences {shown, unreadable, capped}` (spec-012 §5), absent with `typesError`; the
   element read carries no flag in v0.3.
-- **AC-4 — Errors.** Every row of spec-012 §10 has an API test: unknown `:pid`, bad query,
+- **AC-4 — Errors.** Every row of spec-012 §10 for `/progress` and `/elements` has an API test: unknown `:pid`, bad query,
   `memory search` failing (the CLI envelope, no partial figures), `memory.yaml` unreadable (502
   `read-error`), `ui.yaml` missing or ignored (200 with `ui.status` and inferred values), an
   unreadable element file and one with 201 values (`unreadable`, `capped`), events or `dna show`
-  failing.
+  failing. (amended 2026-11-11, W2-6: the `/traceability` rows are task-074's.)
 - **AC-5 — Caching and processes.** The bodies are derived values of the snapshot view, memoised
   per content key and carrying `X-Repo-State` (spec-012 §8); a repeated request on the same state
   starts 0 CLI processes, a cold Today with the progress card adds none to REQ-PERF-05's ≤ 6, and no
   process is started per element (process audit, TT-PERF-05). Invalidation is the existing `repo`
-  event: no new event.
+  event: no new event. (amended 2026-11-11, W2-6: `/traceability`'s caching is task-074's.)
 - **AC-6 — Sanitising (K1).** Every element title (`ElementRef.title`, the rows, `scope.current`)
-  and every pattern reference id in `/progress` and `/traceability` passes the character escape of
+  and every pattern reference id in `/progress` (and `/config` `scope.current`) passes the character escape of
   spec-004 §5 / spec-012 §9: an API test with a bidi control and a C1 control in a title and in a
   reference value gets them escaped; ids, types and states of `memory search` stay as returned; no
   input of these routes becomes a path, a regular expression or a command.
 - **AC-7 — Timing (REQ-PERF-03, REQ-PERF-04; K2).** In `test/e2e/performance.spec.ts` on the
   `large` fixture (`test/harness/fixtures/large.ts`, 500 elements) with the sw-life-cycle preset
   applied: a commit made outside the UI reaches `/progress` and the `/elements` flags within 5 s,
-  and `/traceability` and `/elements` with `requires` set answer within the warm p95 ≤ 1.0 s budget
-  in `test:timing` (Chromium, run alone through the machine-free slot, dl-009 action 6); the API
-  test asserts one file re-read for a commit touching one element (task-055's reuse contract).
+  and `/elements` with `requires` set answers within the warm p95 ≤ 1.0 s budget in `test:timing`
+  (the coordinator's run at the wave gate, Q7 (a)); the API test asserts one file re-read for a
+  commit touching one element (task-055's reuse contract). (amended 2026-11-11, W2-6:
+  `/traceability`'s budget is task-074's.)
 - **TT-STATE-08** (REQ-STATE-08 — progress scope and computations) — every `@v0.3` scenario has an
   API test here, titled with its id, on the fixture and variant the scenario names, asserting the
   figures behind its text (spec-012 §11 *Figures on the fixtures*), and closes in the e2e of the task
@@ -103,17 +102,7 @@ check on the `large` fixture.
     on, and no other filter source (the Memory list in task-066, the e2e in task-065);
   - T-14.1 Explain the completion figure on hover — `completion.references` US-M-01 50 %, US-S-01
     0 %, `referencesCount` 2 (task-065);
-  - R-01.1 List references with their completion — completion 25 %, coverage 3/5, US-M-01 2 linked
-    "50 % · 1/2", US-S-01 1 linked "0 % · 0/1" (task-067);
-  - R-01.5 Show the rows outside the current release under the whole project — `US-S-09` only with
-    `scope=project` (task-067);
-  - R-01.6 Show a pattern reference by its id only — `element: false`, no title (task-067);
-  - R-01.7 List references between Memory elements without ui.yaml — `patterns: false`, the
-    element reference to `dl-001-initialise-wingfoil-before-inception` with category `decision`
-    (task-067);
-  - R-01.8 Open the elements missing required references in Memory — `missing` = the two elements
-    of M-03.1 (task-067);
-  - R-01.9 Filter references by category — the `requirement` rows US-M-01 and US-S-01 (task-067);
+  - R-01.1, R-01.5, R-01.6, R-01.7, R-01.8, R-01.9 — delivered by task-074-traceability-api (W2-6);
   - M-03.1 Filter the elements missing a required reference — `missingCategories` on exactly
     `task-004-themes` and `adr-001-local-server` (task-066);
   - M-04.3 Show the filter with 0 when every required reference is present — `shown: true`, no
@@ -124,15 +113,10 @@ check on the `large` fixture.
   `test:contract`, `test:e2e:chromium` and `performance.spec.ts`, `test:timing` alone — heavy gates
   through the machine-free slot, load and slot wait in each log; the strict-identity run of
   `test/README.md` *Fixtures* › *Git identity* for the suites that commit to fixtures (dl-011).
-- **AC-10 — bug-034** (absorbed 2026-11-08, the approver: "tutto come consigliato"): red first — a test edits a Memory file, reads it under the
-  state key, reverts it before the next state check, and asserts that the next read serves the
-  reverted content; then every per-state read of `ProjectSnapshot` is tied to the bytes the state
-  check saw (built from them, or its hash checked against the check's mark before it is kept);
-  spec-012 §1 or spec-004 amended with a dated Process Note if the cache contract changes.
-- **AC-11 — bug-037** (absorbed 2026-11-08, the approver: "tutto come consigliato"): red first — a frontmatter with `1:` and `"1":`, with `true:` and
-  `"true":`, with an alias key and with a repeated complex key is refused by
-  `server/src/reads/frontmatter.ts` as a duplicate key with its line, as the pinned CLI leaves it
-  out (`wingfoil-cli` W-49); the linear duplicate check of bug-032 kept (its structural test).
+- **AC-10** — bug-034: moved to task-075-reads-tied-to-their-state-check-and-frontmatter-duplicate-keys
+  (W2-6).
+- **AC-11** — bug-037: moved to task-075-reads-tied-to-their-state-check-and-frontmatter-duplicate-keys
+  (W2-6).
 
 ## Implementation Notes
 
@@ -284,7 +268,7 @@ their workspace.
   `handTransition`, a commit outside the UI — Q4), `addFrontmatterValue(fx, id, field, value)`
   (R-01.5 `ref: US-S-09` on dl-001, R-01.7 `related:` on task-001, M-03.2 and M-04.3 `ref: US-X-08`
   / `sard_ref: REQ-ARC-01`), each committed alone by the fixture's identity with a plain subject.
-- **D59-13 — bug-034 (AC-10): each per-state read tied to what the state check saw.**
+- **D59-13 — bug-034 (AC-10): each per-state read tied to what the state check saw.** *(Moved to task-075, W2-6.)*
   1. *Marks of a state.* `Fingerprinter.fingerprint` also returns each status entry's mark; the
      snapshot keeps, with each state, those marks, the `ui.yaml` mark and — for the files not in
      the status — the blobs at HEAD of the Memory folders **and `.wingfoil/`** (the existing one
@@ -310,7 +294,7 @@ their workspace.
      an element file through `/elements/:eid`, `memory.yaml`, the index) and for a CLI read (a
      title through `/elements`, with the watcher's event); spec-012 §8 and spec-004 §5 amended with
      a dated Process Note (the cache contract changes; the approver's OK, Q2).
-- **D59-14 — bug-037 (AC-11): keys compared as the CLI's js-yaml compares them.** In
+- **D59-14 — bug-037 (AC-11): keys compared as the CLI's js-yaml compares them.** *(Moved to task-075, W2-6.)* In
   `duplicateKey`, each key becomes the text js-yaml stores it under, `String(value)` of its
   default-schema value: a quoted or block scalar its string; a plain scalar resolved by js-yaml's
   implicit types — null (`~`, `null`, `Null`, `NULL`, empty → `null`), bool (`true`/`True`/`TRUE`,
@@ -421,3 +405,20 @@ day: a split is proposed (Q1).
   coordinator's `test:timing` at the wave gate (or a slot run it arranges) is AC-7's evidence,
   recorded in these notes. (b) The developer runs `test:timing` through the slot once before
   review. **Recommended (a)**, per the Wave 2 rule.
+
+### design approved (2026-11-11, W2-6)
+
+Relayed by the coordinator (`backlog-item-rel-v0.3-plan` W2-6), the approver: "task 59: q1-tre
+parti, il resto come proponi".
+
+- **Q1 (c)** — split in three: this task keeps the module (D59-1 … D59-7, D59-9 … D59-12),
+  `/progress`, the `/elements` flag, `/config` `scope.current`, the harness variants and AC-7's
+  progress and flag timing; `/traceability` (D59-8, its parts of AC-4 … AC-7, the R-01 tests) moved
+  to task-074-traceability-api; bug-034 and bug-037 (D59-13, D59-14, probes P5, P6) moved to
+  task-075-reads-tied-to-their-state-check-and-frontmatter-duplicate-keys, which starts from them.
+  The ACs above are amended with dated notes; the title is left as it is (the id cannot change).
+- **Q2 (a)**, **Q3 (a)** — as recommended, for task-075.
+- **Q4 (a)** — T-12.5's `draft` by the harness's `handTransition`.
+- **Q5** — the tie order as proposed, in a spec-012 Process Note with the green commit.
+- **Q6 (a)** — `/config` `ui.progress.scope.current` filled here.
+- **Q7 (a)** — the timing tests are written here; `test:timing` stays the coordinator's.
