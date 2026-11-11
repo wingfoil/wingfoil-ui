@@ -227,3 +227,29 @@ gates' runs 0.1.
 The approver, 2026-11-11: "task-076 come consigliato" — Q1 (a) S-23.4 keeps its CLI Given (the
 two kanban drafts submitted, one task added and submitted: 5 pending); Q2 (a) the v0.2 summary
 rules of `today.css` replaced in place, inside the summary block.
+
+### red / green / refactor (2026-11-11)
+
+- **Red** (`1dd9f615`, contracts first — RP-55): `contracts/api/today.schema.json` (summary items
+  `{ role, count }`, `additionalProperties: false`), `TodaySummaryLine` without `items` and `more`,
+  and `test/contracts/api-element-schema.test.ts` "today.schema.json summary: role and count only"
+  — against the v0.2 schema: 2 failed, 19 passed ("accepts one tag per role with its count",
+  "refuses a tag with the v0.2 items and more"). With the v0.2 schema and types restored for the
+  run, `npx vitest run test/server/descriptor/today.test.ts test/server/http/today-routes.test.ts
+  test/contracts/api-element-schema.test.ts test/web/today/summary.test.tsx`: 16 failed, 45 passed
+  — S-23.1 and S-23.4 of `today.test.ts` (`expected { role: 'approver', count: 2, …(2) } to deeply
+  equal { role: 'approver', count: 2 }`), the route tests on the new schema (`must NOT have
+  additional properties` `items`, `more`), `summary.test.tsx` (no *Your roles* region: the v0.2
+  component reads `line.items`). The e2e `notification-bell.spec.ts`: S-23.1 and S-23.4 updated,
+  S-23.5 added (D76-7).
+- **Green** (`72345723`): `server/src/descriptor/today.ts` (`{ role, count }`, `SUMMARY_ITEMS`
+  gone), `web/src/today/RoleSummary.tsx` (the bar, one list of tags, no `pid`), `today.css` (the
+  summary block replaced in place, Q2 (a)), `en.json` (two keys removed), `TodayView.tsx` — only
+  the `RoleSummary` element in `TodayView` and the `returnOpener` comment (D76-4). Docs in the same
+  change: spec-003 §5 and its Process Note, `CHANGELOG.md` *Unreleased* *Changed*,
+  `docs/user-guide.md` 0.32, `test/README.md` 0.71. Local: `npm run typecheck`, `npm run lint`,
+  `npm run format:check`, `npm run docs:api` clean; `check_tasks.py v0.3` OK; `npx vitest run`
+  of the four files above plus `test/server/http/held-gates-routes.test.ts`,
+  `test/server/http/state-limit-routes.test.ts`, `test/web/today`, `test/web/i18n`: 12 files, 113
+  passed; `npx vitest run test/docs test/governance` 93 passed after the commit (before it,
+  `workflow-diagnostics` counted the uncommitted spec-003 as `W_UNCOMMITTED_INPUTS`, as expected).
