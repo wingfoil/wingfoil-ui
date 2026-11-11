@@ -247,7 +247,7 @@ and `write.response` (`result` keys, `commits[].subject` checked equal to the CL
   `docs/pages.tsx`, `docs/DocumentView.tsx`). How to join's command (`project/join.ts`) then holds
   an escaped email as written for such an email (Q3).
 - **D72-13 — Tests in files of their own** (W1-4 hot spots): `test/server/http/repository-text.test.ts`,
-  `test/web/docs/labels.test.tsx`, `test/web/team/escaped-names.test.tsx`,
+  `test/web/docs/labels.test.tsx`, `test/web/team/escaped-names.test.ts` (a `.ts` file: no rendering, round 1 F-4),
   `test/web/shell/repository-text.test.tsx`, `test/contracts/api-docs-label-schema.test.ts`;
   appended cases in `test/server/http/serialise.test.ts`; `text-sweep.test.ts` changes as D72-10
   (its `RULES` kept append-friendly for task-059 and task-074).
@@ -272,7 +272,7 @@ and `write.response` (`result` keys, `commits[].subject` checked equal to the CL
 | AC-2 | `dnaBody`/`workflowsBody`: keys untouched, an unknown field escaped, the 0.2.2 sample's phase texts escaped, 0.3.x diagnostics not escaped twice | **red** | `test/server/http/serialise.test.ts` (appended) |
 | AC-3 | a GET route outside the route table, a registrar the sweep does not register, a (b) leaf not reached: each fails | **red** (the guards are new; guard-removal shown) | `test/server/http/text-sweep.test.ts` |
 | AC-4 | the docs index shows the label, links to the raw path; the document page's heading and title show `content.label` | **red** | `test/web/docs/labels.test.tsx` |
-| AC-4 | Team's "you" and pending gates with escaped names | characterization (equal stays equal) | `test/web/team/escaped-names.test.tsx` |
+| AC-4 | Team's "you" and pending gates with escaped names | characterization (equal stays equal) | `test/web/team/escaped-names.test.ts` (a `.ts` file: no rendering, round 1 F-4) |
 | AC-4 | the header, the switcher, the directives list and page, the history line show `\u202e` as text, not twice | characterization | `test/web/shell/repository-text.test.tsx` |
 | AC-4 | the schemas with `label` | **red** | `test/contracts/api-docs-label-schema.test.ts` |
 | AC-5 | docs | — | review |
@@ -468,3 +468,24 @@ Local, after the merge (Vitest `--maxWorkers=2`, targeted, as the coordinator as
 On `gates.yml`: run `43116195839` (a dispatch on `af73c3ad`, task scope, the same seven own
 specs) passed every job: `checks`, `coverage`, `contract`, `e2e-chromium` (both shards), `own-specs`
 on Firefox and WebKit, `smoke` and `publish-smoke`.
+
+The push run of `701d1044`, `43118993052`: success (push, task scope).
+
+### review round 1 (2026-11-12, security-adversarial) — FAIL: 1 major, 2 minor, nits
+
+On `701d1044`. Red `824c585d` (failing tests first); green in the commit after it.
+
+| # | Finding | What changed |
+|---|---------|--------------|
+| F-1 (major) | `writes/governed.ts` row 9 is a second `read-error` producer: an element file renamed to a path with U+202E and ESC, and too large to read (`shape`), made `POST …/approve` answer 502 with the raw path in `message` and `detail.file` (only `refusalOf` had changed) | Red: `element-writes.test.ts` *review round 1 F-1* (the renamed file, 5 MiB plus a line). Green: `match.path` goes through `repositoryText` in both places. The sweep rule `write.refusal .error.detail.file` is now (b); `command` and `commit` stay (e). The other producers of a `detail` path or a path in a message across `server/src` were checked with `grep`: `writes/preset.ts`'s `read-error` and `write-incomplete` name the constants `.wingfoil/memory.yaml` and `.wingfoil/ui.yaml`; `projects/project-list.ts`'s `folder-not-found`, `not-wingfoil` and `directory-not-empty` quote the caller's own path; `already-listed` was already escaped; `cli-not-found`'s `command` and `ui-config-invalid`'s `failure` are the server's own text; the git refusals go through `redactLocalPaths`. None was raw. |
+| F-2 (minor) | `memoryEventBody` served a Memory event's `from` and `to` raw, while the history's are escaped (D72-8); the web only shows them (`shell/notifications.ts` → `NotificationBell.tsx`, `element.history.transition`) | Red: the fixture adds two body edits of Alex's task under `wf(task): submit <id> [<hostile state> …]`. A commit that changes no `status:` line takes its transition from the subject (spec-002 §3 rule 2), so the events carry the raw state. `repository-text` *Memory events*, a `serialise.test.ts` case and the sweep failed. Green: `memoryEventBody` escapes `from` and `to` (class (b)); `type` and `id` stay keys. Sweep rule split; spec-004 §5 and its Process Note of 2026-11-12; `serialise.ts`'s header. |
+| F-3 (minor) | Per-field reach read its own route list: with `['progress', '/progress']` deleted, all 10 sweep tests stayed green | The sweep asserts that every entry of `SWEPT_ROUTES` was read, with its schema. Shown red by that same deletion (`[/api/p/:pid/progress, progress]` unread); restored. |
+| F-4 (nits) | The Today actor rows of `REACHED_ELSEWHERE` gave a reason, not a test; `EXEMPT_ROUTES` entries never checked; D72-13 named `escaped-names.test.tsx` | The rows name `serialise.test.ts` › *the actor's member name and email and its members' names escaped*, a new unit test of `descriptorBody`, the writer of every Today row. Route coverage checks that each exempt route still exists. D72-13 and the test plan name `escaped-names.test.ts`. |
+| F-5 | `neutralise` escapes every Cf character, ZWNJ and ZWJ included (Persian, Indic names) — K1's inherited rule | Not this task's: the coordinator takes it to the approver. |
+
+Gates of round 1 (local, Vitest `--maxWorkers=2`, targeted):
+- `npm run typecheck`, `npm run lint` and `npm run format:check` are clean.
+- `text-sweep`, `repository-text` and `serialise`: 32 passed.
+- `element-writes`, `commit-text`, `test/server/git`, `project-routes`, `web/shell/notification-bell` and `notifications`: 14 files, 433 passed.
+- Strict identity (`text-sweep`, `repository-text`, `element-writes`, `harness/git-identity`): 4
+  files, 111 passed.

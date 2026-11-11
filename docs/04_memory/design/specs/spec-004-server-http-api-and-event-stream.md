@@ -267,12 +267,12 @@ step names, kinds, roles, element types and included files; 0.3.x's `message` an
 are tool messages), member names and emails wherever a body names them (the header's `identity`,
 the descriptor's `actor`) — the same text in every body —, the project's name (the header, the
 project list, `already-listed`) and its `remote`, a directive's `name` and `title` (the list and the
-page), a history entry's `from` and `to`, a file-tree entry's `name`, a document's `label`, and a
+page), a history entry's and a Memory event's `from` and `to`, a file-tree entry's `name`, a document's `label`, and a
 repository path in an error detail the page shows (`read-error`'s `detail.file` and the file in its
 message, `write-incomplete`'s `detail.file`). Element
 ids, types and states stay as `memory search` returns them: they are the keys a page sends back.
-So does every other key whatever its source — an event's `type`, `id`, `from` and `to`, read from
-the commit subject and patch (spec-002 §3), the roles, the paths a page sends back. Document
+So does every other key whatever its source — an event's `type` and `id`, read from the commit
+subject (spec-002 §3), the roles, the paths a page sends back. Document
 content — a frontmatter value, an element or directive body, a working-tree file — is served as
 written: the page renders it as a document, and the escape would change it (a doubled backslash in
 Markdown); the one frontmatter field outside it is `rejection_reason`, which `memory reject` writes
@@ -548,3 +548,7 @@ goes away by itself when the stream reconnects. A network failure is not rendere
   history entry's states, a file-tree name, the repository paths of `read-error` and
   `write-incomplete`; the keys shown raw are bug-041. §3: `docs.schema.json`'s `documents[].label`
   and `file-content.schema.json`'s `label`, required next to the `path`.
+- 2026-11-12 — amended in task-072 security review round 1 (F-1, F-2; the coordinator's findings):
+  §5 a Memory event's `from` and `to` are display text (the bell only shows them), escaped as a
+  history entry's; its `type` and `id` stay keys. A governed write's `read-error` (row 9) names the
+  element's path escaped, as the read routes' does.

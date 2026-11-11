@@ -306,13 +306,15 @@ export class GovernedWrites {
       if (!(error instanceof DirectReadError)) throw error;
       if (error.kind === 'mismatch' || error.kind === 'missing') return ELEMENT_CHANGED;
       log.warn({ kind: error.kind }, 'governed write: element file unreadable');
+      // The path is shown through the catalogue: class (b) (task-072 review round 1 F-1).
+      const shown = repositoryText(match.path);
       return {
         status: 502,
         body: {
           error: {
             code: 'read-error',
-            message: `Cannot read ${match.path}: ${error.kind}`,
-            detail: { file: match.path, kind: error.kind },
+            message: `Cannot read ${shown}: ${error.kind}`,
+            detail: { file: shown, kind: error.kind },
           },
         },
       };

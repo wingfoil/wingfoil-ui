@@ -7,8 +7,8 @@
  * | Class | What | Rule |
  * |-------|------|------|
  * | (a) tool message | a CLI or git message, a CLI warning, **commit text** (a history entry's `subject`, `reason`, `author`, `approver`; a Memory event's `author`, `approver`, `reason`; the descriptor's `rejection`) | the whole sanitiser `redactLocalPaths` with the project's roots ({@link TextSanitiser}) |
- * | (b) repository display text | any string a body takes from the project — a committed or working-tree file, a file or folder name, the project's `origin`, the user's git email, the console's stored copy of one — that the page only shows (task-072 D72-1): an element **title** (`/elements`, `/elements/:eid`, the Today rows, the candidates of spec-011 §3, spec-012's `ElementRef`), the pattern references, the `ui.yaml` strings `/config` echoes, the DNA's texts ({@link dnaBody}), the workflow texts ({@link workflowsBody}), member names and emails wherever they are ({@link identityBody}, {@link descriptorBody}), the project's name and `remote` ({@link projectItemBody}), a directive's `name` and `title` ({@link directiveBody}), a history entry's states, a file-tree name, a documentation path's `label`, a repository path in an error detail | {@link repositoryText} (`neutralise`) |
- * | (c) key | a value the page sends back, builds an address from, or compares with another key — an element id, type, state, a role, a path — whatever its source (an event's `type`, `id`, `from`, `to` come from the commit subject and patch); a key that is also shown gets a display sibling (a documentation path's `label`) | as returned |
+ * | (b) repository display text | any string a body takes from the project — a committed or working-tree file, a file or folder name, the project's `origin`, the user's git email, the console's stored copy of one — that the page only shows (task-072 D72-1): an element **title** (`/elements`, `/elements/:eid`, the Today rows, the candidates of spec-011 §3, spec-012's `ElementRef`), the pattern references, the `ui.yaml` strings `/config` echoes, the DNA's texts ({@link dnaBody}), the workflow texts ({@link workflowsBody}), member names and emails wherever they are ({@link identityBody}, {@link descriptorBody}), the project's name and `remote` ({@link projectItemBody}), a directive's `name` and `title` ({@link directiveBody}), a history entry's and a Memory event's states, a file-tree name, a documentation path's `label`, a repository path in an error detail | {@link repositoryText} (`neutralise`) |
+ * | (c) key | a value the page sends back, builds an address from, or compares with another key — an element id, type, state, a role, a path — whatever its source (an event's `type` and `id` come from the commit subject); a key that is also shown gets a display sibling (a documentation path's `label`) | as returned |
  * | (d) document content | a frontmatter value, an element or directive body, a working-tree file | as written: the page renders it as a document — but `rejection_reason`, which `memory reject` writes from its reason: class (a) ({@link frontmatterBody}) |
  *
  * Keys stay raw even where the page shows them (bug-041). The CLI adapter's own tool texts (its `stderr` warnings,
@@ -219,13 +219,19 @@ export function historyBody({ id, path, entries }: MemoryHistory, sanitise: Text
   };
 }
 
-/** A Memory event with its commit texts (`author`, `approver`, `reason`) as class (a) (bug-027). */
-export function memoryEventBody<T extends Pick<MemoryEventEntry, 'author' | 'approver' | 'reason'>>(
+/**
+ * A Memory event with its commit texts (`author`, `approver`, `reason`) as class (a) (bug-027) and
+ * its states (`from`, `to`) as class (b): only shown, as a history entry's (task-072 review round 1
+ * F-2); its `type` and `id` stay keys (the page compares them and links to the element, D56-8).
+ */
+export function memoryEventBody<T extends Pick<MemoryEventEntry, 'author' | 'approver' | 'reason' | 'from' | 'to'>>(
   event: T,
   sanitise: TextSanitiser,
 ): T {
   return {
     ...event,
+    from: event.from === null ? null : repositoryText(event.from),
+    to: event.to === null ? null : repositoryText(event.to),
     author: sanitise(event.author),
     approver: nullable(event.approver, sanitise),
     reason: nullable(event.reason, sanitise),
