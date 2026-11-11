@@ -136,6 +136,9 @@ function yamlString(text: string): string {
   return JSON.stringify(text).replace(/\u202e/g, '\\u202e');
 }
 
+/** Sam's email in the DNA of {@link addHostileRepositoryText}: U+202E and ESC. */
+export const HOSTILE_EMAIL = `sam${RLO}${ESC}@example.test`;
+
 /** What {@link addHostileRepositoryText} wrote. */
 export interface HostileRepository {
   /** The identified user (Alex) under the hostile name and email. */
@@ -143,7 +146,7 @@ export interface HostileRepository {
   /** The hostile directive's id. */
   directive: string;
   /** The element whose history holds a state written by hand (`from` and `to`). */
-  handState: { id: string; path: string; state: string };
+  handState: { id: string; path: string; title: string; state: string };
   /** The `origin` URL. */
   remote: string;
 }
@@ -175,11 +178,12 @@ export const HOSTILE_DNA_LABELS = {
 /**
  * The repository display texts of task-072 (bug-035, D72-11) on `fixture` (a `kanban` fixture or a
  * copy of one): U+202E and ESC ({@link hostileMark}) in the DNA (project, a module, a technology, a
- * methodology, a role description, the agent's name, a `paths` value), in the name and email of
+ * methodology, a role description, the agent's name, a `paths` value, Sam's email), in the name and email of
  * the identified user (Alex, the fixture's last identity — his git `user.email` follows), in a custom
  * directive's `name` and `title`, in a custom workflow's `description`, in the `origin` URL (set in place of the
- * fixture's own remote, never fetched), and in a state written by hand on a new task and set back (its history's `from` and
- * `to`). The DNA, the directive and the workflow are written to their files (the CLI has no verb
+ * fixture's own remote, never fetched), and in a task Alex adds (his descriptors' actor), whose
+ * title holds U+202E, whose state is written by hand and set back (its history's `from` and `to`),
+ * then submitted by him (a gate of his roles), and a draft of his. The DNA, the directive and the workflow are written to their files (the CLI has no verb
  * for them) and committed under the harness identity; the task is added with `memory add`.
  */
 export async function addHostileRepositoryText(
@@ -229,10 +233,14 @@ export async function addHostileRepositoryText(
   const team = dna['team'];
   team.roles[0].description = hostileMark(L.roleDescription);
   team.agents[0].name = hostileMark(L.agent);
-  const member = { name: hostileMark(L.member), email: `alex${RLO}${ESC}@example.test` };
+  // WingFoil 0.3.1 refuses a control character in the author email of a verb (Alex commits below):
+  // his email holds U+202E only; Sam's (who commits no more) holds ESC too.
+  const member = { name: hostileMark(L.member), email: `alex${RLO}@example.test` };
   const alex = team.members.find((m: { name: string }) => m.name === 'Alex');
   alex.name = member.name;
   alex.email = member.email;
+  const sam = team.members.find((m: { name: string }) => m.name === 'Sam');
+  sam.email = HOSTILE_EMAIL;
   dna['paths'] = { ...dna['paths'], hostile: [hostileMark(L.docsPath)] };
   // JSON is YAML: every string a double-quoted scalar, the characters as escapes.
   await writeFile(dnaFile, `${JSON.stringify(dna, null, 1).replace(/\u202e/g, '\\u202e')}\n`);
@@ -266,18 +274,27 @@ export async function addHostileRepositoryText(
   );
   await p.commitAll('docs: hostile repository texts', 'elements');
 
-  // The identified user's git email is the member's (the identity is matched by email).
+  // The identified user (Alex) commits under his hostile email from here on: the identity and the
+  // authors are matched by email.
+  // WingFoil 0.3.1 refuses an author name holding a control character: his git name stays `Alex`.
+  await p.as('Alex');
   await git(fixture.dir, ['config', 'user.email', member.email], fixture.env);
 
-  const el = await p.add('Jordan', 'task', 'Hand state');
+  // A task Alex adds (so he is its actor) whose title holds U+202E, and whose state is written by
+  // hand and set back (its history's `from` and `to`).
+  const title = `Hand ${RLO}state`;
+  const el = (await p.wingfoil(['memory', 'add', '--type', 'task', '--title', title])) as { id: string; path: string };
   const state = hostileMark(L.state);
-  await p.handCommit('Jordan', el.path, { status: yamlString(state) }, 'edit: a state written by hand');
-  await p.handCommit('Jordan', el.path, { status: 'draft' }, 'edit: the state set back');
-  await p.as('Alex');
-  await git(fixture.dir, ['config', 'user.name', member.name], fixture.env);
-  await git(fixture.dir, ['config', 'user.email', member.email], fixture.env);
+  await p.editFrontmatter(el.path, { status: yamlString(state) });
+  await p.commitAll('edit: a state written by hand', 'elements');
+  await p.editFrontmatter(el.path, { status: 'draft' });
+  await p.commitAll('edit: the state set back', 'elements');
+  // Submitted by Alex: a gate of his roles (Today's *Requires you* and its summary).
+  await p.wingfoil(['memory', 'submit', el.id]);
+  // And a draft of his: a member actor (*Waiting on others*, the Memory list).
+  await p.wingfoil(['memory', 'add', '--type', 'task', '--title', 'Draft by Alex']);
 
   const remote = `https://example.test/r${RLO}o${ESC}.git`;
   await git(fixture.dir, ['remote', 'set-url', 'origin', remote], fixture.env);
-  return { member, directive, handState: { id: el.id, path: el.path, state }, remote };
+  return { member, directive, handState: { id: el.id, path: el.path, title, state }, remote };
 }

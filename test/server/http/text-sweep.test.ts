@@ -348,6 +348,20 @@ const REACHED_ELSEWHERE: Readonly<Record<string, string>> = {
   'project .repository.sync.update.lastError.detail.files[]': 'a failed update: server/http/repository-status',
   'project .identity.members[]': 'an ambiguous identity: server/http/repository-text',
   'config .ui.progress.scope.current.title': 'filled by task-059',
+  // Today places each row by its descriptor (spec-003 §5) and writes every row of every list through
+  // the same `descriptorBody` (project-routes `todayOf`): a member actor is never a gate of *Requires
+  // you* or the summary, and the identified user holds every role, so no gate waits on others.
+  'today .requiresYou[].descriptor.actor.member.name': 'only gates there: the rows of waitingOnOthers, same writer',
+  'today .requiresYou[].descriptor.actor.member.email': 'only gates there: the rows of waitingOnOthers, same writer',
+  'today .summary[].items[].descriptor.actor.member.name': 'only gates there: the rows of waitingOnOthers, same writer',
+  'today .summary[].items[].descriptor.actor.member.email':
+    'only gates there: the rows of waitingOnOthers, same writer',
+  'today .waitingOnOthers[].descriptor.actor.members[]': 'Alex holds every role: the rows of requiresYou, same writer',
+  'config .workflows.data.workflows[].phases[].description':
+    'WingFoil 0.2.x only: server/http/serialise (workflowsBody)',
+  'config .workflows.data.workflows[].phases[].actions[]': 'WingFoil 0.2.x only: server/http/serialise (workflowsBody)',
+  'config .workflows.data.workflows[].phases[].produces[]':
+    'WingFoil 0.2.x only: server/http/serialise (workflowsBody)',
 };
 
 /** `.a.<key>[]` → a pattern matching `.a.<any key>[]` of a body. */
@@ -559,6 +573,11 @@ describe('the sweep of AC-4 (one hostile fixture, every GET route of the project
       ['directive', `/directives/${repository.directive}`],
       ['projects.list.response', '/api/projects'],
     ];
+    // Today in every role view of the identified user (task-072): each list holds rows.
+    for (const view of (await get('')).roleViews as string[]) routes.push(['today', `/today?view=${view}`]);
+    // Every element's detail: its descriptor's actor in each kind the fixture has (task-072).
+    for (const e of (await get('/elements')).elements)
+      if (e.id !== hostile.id) routes.push(['element', `/elements/${e.id}`]);
     const directives = await get('/directives');
     if (directives.entries[0]) routes.push(['directive', `/directives/${directives.entries[0].frontmatter.id}`]);
     if (doc) routes.push(['file-content', `/files/content?path=${encodeURIComponent(doc)}`]);

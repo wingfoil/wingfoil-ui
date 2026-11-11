@@ -140,7 +140,7 @@ describe('the project header and the project list (D72-3, D72-4)', () => {
     expect(header.identity).toMatchObject({
       kind: 'member',
       name: escapedMark(L.member),
-      email: 'alex\\u202e\\x1b@example.test',
+      email: 'alex\\u202e@example.test',
     });
     expect(header.identity.roles).toContain('tech-lead');
     expect(rawJson(JSON.stringify(header))).toBe(false);
@@ -199,8 +199,9 @@ describe('/config (D72-2)', () => {
     expect(dna.team.roles[0].description).toBe(escapedMark(L.roleDescription));
     expect(dna.team.agents[0].name).toBe(escapedMark(L.agent));
     expect(dna.team.members).toContainEqual(
-      expect.objectContaining({ name: escapedMark(L.member), email: 'alex\\u202e\\x1b@example.test' }),
+      expect.objectContaining({ name: escapedMark(L.member), email: 'alex\\u202e@example.test' }),
     );
+    expect(dna.team.members).toContainEqual(expect.objectContaining({ email: 'sam\\u202e\\x1b@example.test' }));
     expect(dna.paths.hostile).toEqual([escapedMark(L.docsPath)]);
     // The keys, as the DNA holds them.
     const file = parse(await readFile(path.join(main.fx.dir, '.wingfoil', 'dna.yaml'), 'utf8')) as any;
@@ -320,6 +321,15 @@ describe('error details the catalogue shows (D72-9)', () => {
     expect(error.detail.file).toBe(shown);
     expect(error.message).toContain(shown);
     expect(rawJson(res.body)).toBe(false);
+  });
+
+  it('a user outside the team: the header shows their git email escaped (Q3), ESC included', async () => {
+    const fx = await copyFixture(kanban, path.join(root, 'outsider'));
+    await git(fx.dir, ['config', 'user.email', `riley${RLO}${ESC}@example.test`], fx.env);
+    const w = await world(fx);
+    worlds.push(w);
+    const header = await get('', w);
+    expect(header.identity).toEqual({ kind: 'not-in-team', email: 'riley\\u202e\\x1b@example.test' });
   });
 
   it('an ambiguous identity names its members escaped', async () => {
