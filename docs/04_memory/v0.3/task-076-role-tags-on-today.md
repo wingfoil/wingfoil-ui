@@ -221,3 +221,9 @@ e2e closure (at design): S-23.1, S-23.2, S-23.3, S-23.4, S-23.5 → `test/e2e/no
 About 0.5 active day: server, contracts and the contract test 0.1; `RoleSummary.tsx`, CSS and
 catalogue 0.1; the F9 test updates, `summary.test.tsx` and the S-23.4/S-23.5 e2e 0.2; docs and the
 gates' runs 0.1.
+
+### design approved (2026-11-11)
+
+The approver, 2026-11-11: "task-076 come consigliato" — Q1 (a) S-23.4 keeps its CLI Given (the
+two kanban drafts submitted, one task added and submitted: 5 pending); Q2 (a) the v0.2 summary
+rules of `today.css` replaced in place, inside the summary block.
