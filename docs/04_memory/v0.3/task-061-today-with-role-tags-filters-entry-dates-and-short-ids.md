@@ -371,3 +371,12 @@ Local: `npm run typecheck`, `npm run lint`, `npm run format:check` clean; `npx v
 Run `43081045293` on `20e684e0`: green — checks, coverage, contract, smoke, publish-smoke,
 e2e-chromium 166 + 166 passed, own specs (`today-cards.spec.ts`, 5 with F-4's X-09.1) on Firefox and
 WebKit.
+
+### review round 2 (2026-11-11: PASS — F-1 … F-5 closed; one nit)
+
+The tip's run `43083595645` on `f5d3963b`: green (checks, coverage, contract, smoke, publish-smoke,
+e2e-chromium both shards, own specs on Firefox and WebKit).
+
+| Finding | Change | Evidence |
+|---------|--------|----------|
+| N-1 (nit) — the F-5 path tested in jsdom and on Chromium only; it depends on `onBlur` when the focused toggle is removed, which engines handle differently | `today-cards.spec.ts` "a refetch leaving 10 rows moves the focus from "Show fewer" to the card's heading" (the T-02.6 copy, the toggle reached and pressed from the keyboard, three approvals made with the CLI while Today is open; *Requires you* only — a Waiting on others card past 10 rows would need nine more commits on the copy) | run `43086358249` on `4f92e4c8`: green — own specs (6, the new test included) on Firefox and WebKit, e2e-chromium 166 + 167; no code change was needed |
