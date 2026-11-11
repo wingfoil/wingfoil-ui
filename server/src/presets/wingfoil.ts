@@ -89,3 +89,10 @@ export const NON_REFERENCE_FIELDS: ReadonlySet<string> = new Set([
 
 /** The field whose string value puts elements in an element's scope (spec-005 §4, spec-012 §1). */
 export const VERSION_FIELD = 'version';
+
+/**
+ * The first WingFoil version that enforces a machine's `limits` (task-180 of WingFoil; checked on
+ * 0.3.0 and 0.3.1, task-073 design probes P11, P13): before it the key is ignored, so the descriptor
+ * applies no limit (spec-003 §6 rule 5, D73-3).
+ */
+export const LIMITS_SINCE = '0.3.0';

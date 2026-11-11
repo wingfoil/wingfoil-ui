@@ -7,3 +7,4 @@ export * from './variants.js';
 export * from './hostile.js';
 export * from './held-gates.js';
 export * from './pending-tasks.js';
+export * from './state-limit.js';

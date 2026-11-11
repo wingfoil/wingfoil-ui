@@ -90,6 +90,7 @@
   "element.reason.heldUntilReferencesDone": "Waits for {count, plural, one {# referencing element} other {# referencing elements}} to be done",
   "element.reason.localChanges": "Blocked: this element has local changes — commit or discard them first",
   "element.reason.notInTeam": "Read-only: not in the team",
+  "element.reason.stateLimit": "Blocked: only {limit} {state} at a time",
   "element.reason.versionUnsupported": "Read-only: supported {range}",
   "element.rejection.noReason": "Rejected by {name}",
   "element.rejection.withReason": "Rejected by {name}: {reason}",
