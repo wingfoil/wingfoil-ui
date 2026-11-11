@@ -291,3 +291,43 @@ lost after a message heard while it was not (an in-memory flag only); Q2 the rec
 exactly, with a dated Process Note on adr-003; Q3 (a) the explicit 4xx code list with
 `client-error` (413 becomes `payload-too-large`); Q4 (a) the bug-031 rule for every static-route
 403 caused by a name too long.
+
+### red / green / refactor (2026-11-11)
+
+- **bug-031 red first** (`baf295dc`): the four new tests of `test/server/http/app.test.ts`
+  (*bug-031 — names too long and the codes of the other client errors*) and the changed 413
+  assertion failed on the old code (`GET 264: expected 403 to be 404`, `257: expected 403 to be
+  200`, `invalid-request` for the 403, 413, 415, 416, 412 and 418 cases). One planned case,
+  `/assets/x/..%2F<256 x>`, answered 404 already on the old code (the plugin normalises it before
+  the spelling check), so it was dropped as not a 403. **Green** (`b367435b`): D63-9 and D63-10 as
+  designed; the message of a 4xx other than 400 is Node's status text (never shown, `message` is
+  not rendered). Guard removal: without the empty-segment rule `/assets//<256 x>` answers 404 and
+  the non-canonical test fails. A characterization row of `test/server/http/role-view.test.ts`
+  (415 for `application/xml`) moved from `invalid-request` to `unsupported-media-type`, as D63-10
+  says. `npx vitest run test/server/http`: 19 files, 529 tests passed.
+- **Web red** (`47876e70`): `test/web/session/recovery.test.ts` (new, 19 tests) failed on the
+  missing module, and *announces a session after a 204 exchange* of `session.test.ts` failed
+  (`expected [] to deeply equal [{ name: 'wfui-session', data: null }]`). **Green** (`f28821b2`):
+  `web/src/session/recovery.ts`, the announce in `session.ts`, `main.tsx`, the catalogue value of
+  Q2. Deviation from D63-1's layout: `announceSession` and `SESSION_CHANNEL` live in `session.ts`
+  (the bootstrap calls it; `recovery.ts` imports from `session.ts`, so no import cycle). Guard
+  removals, each failing its test: the arming check (3 tests), the "one more" flag (1), the Q1
+  flag (1, two mutations), the `reloading` check of the probe (1); a second `!reloading` in the
+  answer was redundant (one probe at a time) and removed. `npx vitest run test/web/session test/web/i18n test/web/shell`:
+  17 files, 248 tests passed.
+- **e2e** (`fe2eb3e2`): `test/e2e/session-recovery.spec.ts`, two tests (D63-13, the test plan),
+  written after the web code; their guards are the unit tests' above (the e2e drives the message
+  path only, D63-14). The element page is found by its title heading, whichever form task-062
+  gives it.
+- **Docs** (`e7acafff`): spec-004 §2 and §5 with the 2026-11-11 Process Note, adr-003's Process
+  Note (Q2, Q1), `docs/cli-reference.md` 0.7 (`--port`), `docs/user-guide.md` 0.31,
+  `docs/00_reference/ux-reference.md` 1.15 (§3 *Lost session*), `CHANGELOG.md` *Unreleased*
+  *Added* and *Fixed*, `test/README.md` 0.70.
+- **Refactor** (`6608d32f`): one `PROBE_TIMEOUT_MS` (10 s) for `watchFragmentToken` and the
+  recovery.
+- **Gates.** Local: `npm run typecheck`, `npm run lint`, `npx prettier --check` (web, test,
+  server, docs), `npm run docs:api`, `python3 docs/03_backlog/X_tools/check_tasks.py v0.3` (OK),
+  `npx vitest run test/docs test/lint` (7 files, 189 tests), the public-text check before each push.
+  `gates.yml` task scope on `e7acafff`: run `43072661633`, all green — checks, coverage (all files
+  96.68 % statements, 91.51 % branches, 98.39 % lines), contract, e2e-chromium (2 shards), the own
+  spec `session-recovery.spec.ts` on Firefox and WebKit (2 passed each), smoke, publish-smoke.
