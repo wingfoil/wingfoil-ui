@@ -566,3 +566,6 @@ and a test-plan row out of date). Fixed in one round:
   121 passed locally, the two cases 2 passed under the strict-identity wrapper).
 - N-4: AC-9 amended with a dated note (heavy gates on `gates.yml`, `test:timing` the
   coordinator's); the test plan's T-12.x row cites TT-STATE-08's list.
+- Run `43094292351` (`d0e06fc1`): every job green but coverage, whose tests all passed (4 300
+  passed, 3 skipped) and whose artifact upload failed on GitHub's side ("Failed to CreateArtifact
+  … not valid JSON"); the rerun of that job (attempt 2) succeeded: the run is green.
