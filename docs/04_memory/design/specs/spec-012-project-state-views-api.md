@@ -570,7 +570,8 @@ every object `additionalProperties: false`, as the other API schemas.
   §8 the same-key `repo` after a drop is published at most once per state key, until the key
   changes — a writer outside the console firing the watcher (a log file in the project folder, even
   one git ignores) would otherwise drop every CLI read and force a refetch that is dropped again.
-  Declared residual: under such a writer an edit and revert during a CLI read is caught once per
-  key. The confirmed mismatches are kept for every file of the newest state (no fixed number) and
+  Declared residual (review round 2 F-8): the limit holds for any later drop on the same key, with
+  or without such a writer — until the key moves, a second untied read on that key is served once
+  and re-read on the next request, but no further `repo` tells an open page to refetch it. The confirmed mismatches are kept for every file of the newest state (no fixed number) and
   recorded also by a read that settles after its memo was dropped, so a checkout with converted line
   ends settles in one drop.

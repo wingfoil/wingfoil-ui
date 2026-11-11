@@ -368,5 +368,6 @@ its schema, and run the §4.1 resolution check. A failure blocks the matrix adva
 - 2026-11-11 — task-075 review round 1 (F-1, F-5): §4.2 alias keys are resolved in one pass over
   the frontmatter (the check stays linear with aliases); a collection key tagged other than
   `!!map` on a map or `!!seq` on a sequence is an unsupported key, as for js-yaml; a `!!merge` key
-  quoted or empty is a merge key, as in both libraries. Declared residual: the YAML library merges a
+  `<<` (quoted or not) or plain and empty is a merge key, as in both libraries, and a quoted empty
+  one an unsupported key (review round 2 F-7). Declared residual: the YAML library merges a
   `!!str <<` key, which js-yaml stores as the key `<<` (refused when its value is not a map).

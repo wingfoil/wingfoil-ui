@@ -251,11 +251,13 @@ export function jsYamlKey(node: unknown, context: KeyContext): string {
 
 /**
  * Whether `node` is a merge key as js-yaml and `yaml` resolve one: a plain untagged `<<`, or a
- * `!!merge` scalar whose text is `<<` or empty, quoted or not (review round 1 F-5). Declared
+ * `!!merge` scalar whose text is `<<` (quoted or not) or that is empty and plain (review round 1
+ * F-5, round 2 F-7); a quoted empty `!!merge` key is refused as an unsupported key. Declared
  * residual: `yaml` also merges a `!!str <<` key, which js-yaml stores as the key `<<`.
  */
 export function isMergeKey(node: unknown): boolean {
   if (!isScalar(node)) return false;
-  if (node.tag === `${TAG}merge`) return node.source === '<<' || node.source === '';
+  // js-yaml resolves `!!merge` on `<<` or on an empty node — a quoted `''` is no empty node (F-7).
+  if (node.tag === `${TAG}merge`) return node.source === '<<' || (node.source === '' && node.type === 'PLAIN');
   return node.tag === undefined && node.type === 'PLAIN' && node.source === '<<';
 }

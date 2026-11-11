@@ -358,3 +358,20 @@ Local checks: `typecheck`, `lint`, `format:check` clean; `npx vitest run test/se
 test/server/reads test/server/references test/server/http/ui-config-route.test.ts
 test/server/http/held-gates-routes.test.ts` 484 passed; `read-tie` under the strict-identity
 wrapper 11 passed (load 3.8).
+- Gates after round 1 (F-10): run `43088908382` on `10605e1f` success (every job; `e2e-wave`
+  skipped, task scope).
+
+### review round 2 (2026-11-11: PASS — F-1 … F-5 closed; four small items)
+
+Relayed by the coordinator on `10605e1f`. Red `ef8c285f`, then the fix; the `yaml` library's own
+`toJS` cost is left for the approver's decision.
+
+| Finding | Red | Fix |
+|---------|-----|-----|
+| F-7 (minor) — a quoted empty `!!merge` key (`!!merge '':`, `!!merge "":`) was merged; js-yaml refuses it ("cannot resolve a node with !<tag:yaml.org,2002:merge> explicit tag") | `yaml-keys.test.ts` the two rows (2 failed red); that refusal counted as a key refusal in the table | `isMergeKey`: an empty `!!merge` source only when the node is plain; a quoted empty one is an unsupported key. spec-001 round-1 note reworded |
+| F-8 (minor, wording) — the once-per-key limit applies to any later drop on the same key | — | spec-012 round-1 note: the residual names any later drop on that key, with or without a writer |
+| F-9 (nit) — the structural test counts `Alias.resolve` walks only | `frontmatter.test.ts` › "the key forms of 4N alias keys cost about four times those of N" (4 000 vs 16 000 distinct alias keys, the check's own `keyContext` + `jsYamlKey` work, median of five, bound 8×): passes; with a per-alias scan injected into `target()` it fails at 10.9× (guard check). A 2N/N version with a 3.5× bound was too close to noise (it failed once on the clean code, 3.78× with the injected scan) and was widened | — |
+| F-10 (nit) | — | the run above |
+
+Local checks: `typecheck`, `lint`, `format:check` clean; `npx vitest run test/server/reads
+test/docs/public-text.test.ts` 399 passed; the ratio test passed three runs in a row.
