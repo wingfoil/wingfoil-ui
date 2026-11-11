@@ -4,7 +4,7 @@
 // rewritten to the full id with the answer seeded (D62-4), the candidates of an ambiguous one
 // (D62-5), and the refusal of path-syntax ids (D62-9).
 import type { ElementDetail, ElementRefusalBody, MemoryHistory } from '@wingfoil-ui/contracts';
-import { cleanup, screen, waitFor, within } from '@testing-library/react';
+import { cleanup, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { userEvent } from '@testing-library/user-event';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { keyCatalogue } from '../../../web/scripts/catalogue.mjs';
@@ -245,6 +245,48 @@ it('names the page "Loading the element…" until the element is read, not by th
   expect(page.contains(heading)).toBe(true);
   expect(within(page).getByText(EID).classList.contains('element-id')).toBe(true);
   expect(screen.queryByRole('heading', { level: 1, name: EID })).toBeNull();
+});
+
+// Checker N-2: a server-answered id that the URL parser reads as path syntax is no address either.
+it.each(['', '.', '..'])('does not rewrite the address to a server-answered id %j: not found, no read', async (bad) => {
+  const fetch = stubApi(
+    api({ [`${API}/${SHORT}`]: { status: 200, body: { ...DETAIL, element: { ...DETAIL.element, id: bad } } } }),
+  );
+  const { router } = renderApp(`/p/${PID}/e/${SHORT}`);
+  const page = await screen.findByRole('region', { name: SHORT });
+  expect(await within(page).findByRole('alert')).toBeTruthy();
+  expect(router.state.location.pathname).toBe(`/p/${PID}/e/${SHORT}`);
+  const reads = asked(fetch).filter((p) => p.startsWith(`/api/p/${PID}`));
+  expect(reads.every((p) => p === `/api/p/${PID}` || p.startsWith(`/api/p/${PID}/`))).toBe(true);
+  expect(reads).not.toContain(`/api/p/${PID}/`);
+  expect(
+    reads.filter((p) => p.startsWith(`${API}/`) && p !== `${API}/${SHORT}` && p !== `${API}/${SHORT}/history`),
+  ).toEqual([]);
+});
+
+it.each(['', '.', '..'])('shows a 409 with a candidate id %j as an error, not as candidates', async (bad) => {
+  const [first, second] = AMBIGUOUS.error.code === 'ambiguous-id' ? AMBIGUOUS.error.detail.candidates : [];
+  const detail = { candidates: [first, { ...second!, id: bad }], more: 0 };
+  stubApi(api({ [`${API}/el-001`]: { status: 409, body: { error: { code: 'ambiguous-id', message: 'x', detail } } } }));
+  renderApp(`/p/${PID}/e/el-001`);
+  expect(await screen.findByRole('alert')).toBeTruthy();
+  expect(screen.queryByRole('list', { name: 'el-001 names several elements' })).toBeNull();
+});
+
+// Checker N-3: a second Escape or Close before the first Back resolves goes back once.
+it('goes back once on a double Escape', async () => {
+  stubApi(api());
+  const { router } = renderApp('/');
+  await screen.findByRole('heading', { level: 1, name: 'Projects' });
+  await router.navigate({ to: '/p/$pid/e/$eid', params: { pid: PID, eid: EID } });
+  const page = await screen.findByRole('region', { name: 'Password reset' });
+  const back = vi.spyOn(router.history, 'back');
+  const heading = within(page).getByRole('heading', { level: 1 });
+  fireEvent.keyDown(heading, { key: 'Escape' });
+  fireEvent.keyDown(heading, { key: 'Escape' });
+  fireEvent.click(within(page).getByRole('button', { name: 'Close' }));
+  expect(back).toHaveBeenCalledTimes(1);
+  await waitFor(() => expect(router.state.location.pathname).toBe('/'));
 });
 
 it('shows not found for an unknown id, the address as heading', async () => {
