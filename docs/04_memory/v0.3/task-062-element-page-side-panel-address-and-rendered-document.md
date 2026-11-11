@@ -484,3 +484,4 @@ two minors and two nits. The tip run `43082976937` on `675b5aa0`: success.
 | F-4 (nit) — `close`'s `onResolved` listener was removed only on the next resolve | one listener at a time (module `pendingClose`): a new close removes the previous one, the first resolve removes it; it cannot go with the page's unmount — it must run once the destination is shown, after the page left (comment in `routes/element.tsx`) | the close tests of `page.test.tsx` and `panel.test.tsx` |
 
 Checks: `npm run typecheck`, `npm run lint` clean; `npx vitest run test/web` 64 files, 1 056 passed.
+Run `43085574218` on `176b6f2e` (the round's fixes): success — every job of the task scope green.
