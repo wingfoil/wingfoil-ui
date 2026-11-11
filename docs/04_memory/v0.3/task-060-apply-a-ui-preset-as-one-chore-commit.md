@@ -363,3 +363,66 @@ header comment updated; Q3 (a) the spec-005 §5 Process Note in the green commit
 coordinator's recommendation instead of the developer's: a `CHANGELOG.md` *Unreleased* › *Added*
 entry for the preset API ending "Nothing shows it yet." (as task-055's and task-059's entries do);
 the user guide waits for task-064.
+
+### red / green / refactor (2026-11-11)
+
+- **Contracts first** (`56c3df4a`): `contracts/api/ui-config.preset.request.schema.json`,
+  `ui-config.preset.refusal.schema.json`, `write.response.schema.json`'s descriptions; the types
+  `UiPresetId`, `UiConfigPresetRequest`, `UiConfigPresetResult`, `UiConfigPresetRefusalCode` in
+  `contracts/src/writes.ts`, one export line appended to `contracts/src/index.ts`.
+- **Red** (`01cb2a6a`): `test/server/http/ui-config-preset.test.ts` (the scenarios and rows),
+  `test/server/writes/preset.test.ts` (the create port), `test/server/git/index-write.test.ts`,
+  the `PRESET_COMMIT_SUBJECTS` and table cases of `test/server/presets/ui-config.test.ts`, the
+  AC-5 cases of `test/harness/commit-provenance.test.ts` (replacing task-054's "still reported"
+  case), the route row of `test/launcher/local-security.test.ts`, D60-14's test in
+  `test/e2e/commit-provenance.spec.ts`, the `preset` helper and route of
+  `test/server/http/git-console.ts`, `no-commit.spec.ts`'s header (Q2). `npx vitest run` of the
+  five unit and API files: 3 files failed on their missing modules, 6 tests failed on the missing
+  exports and the provenance rule (the "another `chore(ui)` text" case passed: characterization of
+  the old rule).
+- **Green** (`912b7eeb`): `server/src/writes/preset.ts` (`PresetWrites`, `PresetFs`,
+  `nodePresetFs`, `PartialCreateError`), `server/src/git/index-write.ts`,
+  `server/src/http/ui-config-preset.ts`, the registration in `server/src/launcher/start.ts`;
+  `GitReads.indexWrite`, `hasIndexEntry`, `hasHeadEntry`, `commitsFromRoot` and
+  `INDEX_WRITE_GIT_CONFIG` in `server/src/git/git.ts`, where `CLI_GIT_CONFIG` and `CLI_GIT_ENV`
+  moved from `cli/adapter.ts` (no cycle: the adapter imports them; behaviour unchanged);
+  `identifiedInRange`, `appendActions`, `isoSeconds` exported from `writes/governed.ts` (its class
+  delegates); `renderPreset`/`presetCommitSubject` take the table, `PRESET_COMMIT_SUBJECTS`;
+  `isPresetCommit` in `test/harness/commit-provenance.ts`; spec-005's Process Note (Q3),
+  `CHANGELOG.md` *Unreleased* › *Added* (Q4, ending "Nothing shows it yet."), `test/README.md` 0.70;
+  `test/contracts/api-ui-config-preset-schema.test.ts` and the D60-12 source test of
+  `test/server/writes/preset.test.ts` (written with the code: characterization).
+- **Guard removal** (`server/src/writes/preset.ts`, each edit reverted after its run, `npx vitest
+  run <file> -t <title>`, a scratch script outside the repository): without the index check →
+  the intent-to-add and below-a-directory cases fail (2; the `skip-worktree` one is caught at HEAD
+  too); without the HEAD check → the staged deletion fails; without the swap check → the
+  `.wingfoil` swap case fails; without the working-tree text check → "a hook that rewrites ui.yaml"
+  fails; with the first commit taken instead of the single one → P3 fails. Without row 7′'s
+  `.wingfoil` kind check alone the linked-`.wingfoil` case still passes — the create step's own
+  `.wingfoil` directory check answers it; with both removed it fails (`git-refused`: git refuses
+  the path "beyond a symbolic link", P13), so the two are layers of one rule.
+- **Deviations.** (1) D60-3 said rows 7′–8 start no `wingfoil` process; on a state that moved
+  since the page's read (a file planted, a fetch) rows 5–6 run again on the fresh view, and their
+  reads (`dna show`, the version) may start the CLI, as the element writes do: the tests assert no
+  `add`/`commit` there, and no process but the fresh check on a warm unmoved state (C-03.1). (2)
+  The P16 test (a project in a sub-folder) was dropped: WingFoil 0.3.1 refuses `dna show` there
+  (`E_NOT_AT_GIT_ROOT: run wingfoil from the project root`), so row 5 answers `not-in-team` and no
+  write is reached; the prefix rule stays `isWriteCommit`'s (tested since task-032) and the P16
+  probe's; recorded in spec-005's Process Note. (3) C-02.1's "every value declared" is asserted on
+  the Taxonomy values (categories, patterns, requires), as the scenario says: the Kanban preset
+  writes no `scope`, so `progress.scope` is `inferred`. (4) The design's unborn-HEAD test was not
+  written (a WingFoil project always has its `init` commit; `commitsFromRoot` has its unit test).
+- **Gates.** Locally: `npm run typecheck`, `npm run lint`, `npm run format:check`, `npm run
+  docs:api` clean (two unresolved TypeDoc links fixed); the touched suites (`index-write`,
+  `presets/ui-config`, `commit-provenance`, `writes/`, `ui-config-preset`,
+  `api-ui-config-preset-schema`, `cli/adapter`, `git/git`, `launcher/local-security`): 10 files,
+  311 tests passed (load 15.7 → 27); the git-touching ones (`ui-config-preset`, `writes/preset`,
+  `commit-provenance`) under the strict-identity recipe (a `git` wrapper first on the `PATH` with
+  `-c user.useConfigOnly=true`): 3 files, 63 passed (load 21.8); `npx vitest run
+  test/docs/public-text.test.ts` 67 passed before the push. On `gates.yml`: run `43074208224` on
+  `912b7eeb` — every job green (checks, contract, e2e-chromium ×2, own specs on Firefox and
+  WebKit, smoke, publish-smoke) but `coverage`: 2 of 230 files failed, the two registries of
+  task-056 that list every tool-message producer (`test/server/tool-messages.test.ts`: the new
+  `git-refused` of `writes/preset.ts`) and every string field of the response schemas
+  (`test/server/http/text-sweep.test.ts`: the new refusal schema) — both extended in the next
+  commit (`failure` classed as the server's own text: it quotes the shipped preset only, D60-5).

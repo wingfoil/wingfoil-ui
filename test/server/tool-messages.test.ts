@@ -47,6 +47,8 @@ const PRODUCERS: Record<string, readonly RegExp[]> = {
   'server/src/sync/auto-sync.ts': [/transport\.message\(/],
   'server/src/writes/auto-push.ts': [/transport\.message\(/],
   'server/src/writes/governed.ts': [/redactLocalPaths\(/],
+  // task-060: the preset write's `git-refused`, git's message of a failed `git add`.
+  'server/src/writes/preset.ts': [/redactLocalPaths\(/],
   'server/src/cli/adapter.ts': [
     /redactLocalPaths\(/,
     // task-070 review round 2: the warnings in their parts, merged by `mergeToolLines`.
