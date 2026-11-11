@@ -6,7 +6,7 @@
 import { isMap, LineCounter, parseDocument, visit } from 'yaml';
 import { schemaProblems, type ContractSchema } from '../contracts.js';
 import { DirectReadError } from './confine.js';
-import { isMergeKey, jsYamlKey, UnsupportedKeyError } from './yaml-keys.js';
+import { isMergeKey, jsYamlKey, keyContext, UnsupportedKeyError } from './yaml-keys.js';
 
 /** A parsed Markdown file. */
 export interface FrontmatterFile<T> {
@@ -47,7 +47,7 @@ function keyText(text: string, node: unknown): string {
  */
 function duplicateKey(doc: ReturnType<typeof parseDocument>, text: string, lines: LineCounter): string | undefined {
   let found: string | undefined;
-  const forms = new Map<unknown, string>();
+  const context = keyContext(doc);
   const at = (node: unknown): string => {
     const where = lines.linePos((node as { range?: readonly number[] } | null)?.range?.[0] ?? 0);
     return `(line ${where.line}, column ${where.col})`;
@@ -61,7 +61,7 @@ function duplicateKey(doc: ReturnType<typeof parseDocument>, text: string, lines
         if (isMergeKey(key)) continue;
         let form: string;
         try {
-          form = jsYamlKey(key, doc, forms);
+          form = jsYamlKey(key, context);
         } catch (error) {
           if (!(error instanceof UnsupportedKeyError)) throw error;
           found = `unsupported key ${keyText(text, key)} ${at(key)}`;

@@ -12,13 +12,25 @@
  *   text; `!!null`, `!!bool`, `!!int`, `!!float`, `!!timestamp` through that type alone;
  * - an alias: the form of its anchored node; a map: `[object Object]`; a sequence: its items' forms as
  *   `Array.prototype.toString` joins them (`null` empty, a map `[object Object]`) — a nested sequence
- *   is refused, as js-yaml refuses it;
+ *   is refused, as js-yaml refuses it, and so is a collection tagged other than `!!map`/`!!seq`;
  * - any other tag (`!!binary`, `!!set`, a local tag): refused as unsupported — fail closed (declared
  *   residual: the CLI may list such a file; this repository has none).
  *
  * A date's form is `String(date)` in the server's time zone, the one the CLI child inherits.
  */
-import { isAlias, isMap, isScalar, isSeq, type Document, type Node, type Scalar } from 'yaml';
+import {
+  isAlias,
+  isMap,
+  isScalar,
+  isSeq,
+  visit,
+  type Alias,
+  type Document,
+  type Node,
+  type Scalar,
+  type YAMLMap,
+  type YAMLSeq,
+} from 'yaml';
 
 /** A key js-yaml would refuse, or one whose form is not emulated (a nested sequence, another tag). */
 export class UnsupportedKeyError extends Error {
@@ -155,14 +167,58 @@ function scalarOf(node: Scalar): unknown {
   return scalarValue(data, node.tag);
 }
 
+/**
+ * What the key forms of one document share: the node each alias names — found in one pass in
+ * document order, the latest anchor of its name before it (task-075 review round 1 F-1: `yaml`'s
+ * `Alias.resolve` walks the whole document per alias) — and the form of each aliased sequence.
+ */
+export interface KeyContext {
+  aliases: ReadonlyMap<Alias, Node | undefined>;
+  forms: Map<unknown, string>;
+}
+
+/** The {@link KeyContext} of `doc`: one visit of its nodes. */
+export function keyContext(doc: Document): KeyContext {
+  const anchors = new Map<string, Node>();
+  const aliases = new Map<Alias, Node | undefined>();
+  const anchor = (_: unknown, node: Scalar | YAMLMap | YAMLSeq): void => {
+    if (node.anchor) anchors.set(node.anchor, node);
+  };
+  visit(doc, {
+    Scalar: anchor,
+    Map: anchor,
+    Seq: anchor,
+    Alias(_, node) {
+      aliases.set(node, anchors.get(node.source));
+    },
+  });
+  return { aliases, forms: new Map() };
+}
+
+/** The node `node` stands for: an alias's anchored node, else itself. */
+function target(node: unknown, context: KeyContext): unknown {
+  return isAlias(node) ? context.aliases.get(node) : node;
+}
+
+/**
+ * A collection key's tag as js-yaml accepts it (review round 1 F-5): none (`!` resolves to the
+ * collection's own tag in `yaml`), `!!map` on a map, `!!seq` on a sequence; any other is refused.
+ */
+function checkCollectionTag(node: YAMLMap | YAMLSeq, own: 'map' | 'seq'): void {
+  if (node.tag !== undefined && node.tag !== `${TAG}${own}`) throw new UnsupportedKeyError(`tag ${node.tag}`);
+}
+
 /** The key form of an item of a sequence key: `Array.prototype.toString`'s, per item. */
-function itemForm(node: unknown, doc: Document): string {
-  const target = isAlias(node) ? node.resolve(doc) : node;
-  if (target === null || target === undefined) return '';
-  if (isSeq(target)) throw new UnsupportedKeyError('nested sequence');
-  if (isMap(target)) return '[object Object]';
-  if (isScalar(target)) {
-    const value = scalarOf(target);
+function itemForm(node: unknown, context: KeyContext): string {
+  const item = target(node, context);
+  if (item === null || item === undefined) return '';
+  if (isSeq(item)) throw new UnsupportedKeyError('nested sequence');
+  if (isMap(item)) {
+    checkCollectionTag(item, 'map');
+    return '[object Object]';
+  }
+  if (isScalar(item)) {
+    const value = scalarOf(item);
     return value === null || value === undefined ? '' : String(value);
   }
   throw new UnsupportedKeyError('node');
@@ -170,30 +226,36 @@ function itemForm(node: unknown, doc: Document): string {
 
 /**
  * The text js-yaml stores the key `node` under (`null`: a missing key); an
- * {@link UnsupportedKeyError} for a key whose form is not emulated. `forms` keeps the form of each
- * aliased sequence, so many aliases of one long sequence cost its length once (linear, bug-032).
+ * {@link UnsupportedKeyError} for a key whose form is not emulated. The `context` of the document
+ * ({@link keyContext}) resolves aliases and keeps the form of each aliased sequence, so many aliases
+ * of one long sequence cost its length once (linear, bug-032).
  */
-export function jsYamlKey(node: unknown, doc: Document, forms: Map<unknown, string> = new Map()): string {
-  const target = isAlias(node) ? node.resolve(doc) : (node as Node | null | undefined);
-  if (target === null || target === undefined) return 'null';
-  if (isMap(target)) return '[object Object]';
-  if (isSeq(target)) {
-    const known = forms.get(target);
+export function jsYamlKey(node: unknown, context: KeyContext): string {
+  const key = target(node, context);
+  if (key === null || key === undefined) return 'null';
+  if (isMap(key)) {
+    checkCollectionTag(key, 'map');
+    return '[object Object]';
+  }
+  if (isSeq(key)) {
+    checkCollectionTag(key, 'seq');
+    const known = context.forms.get(key);
     if (known !== undefined) return known;
-    const form = target.items.map((item) => itemForm(item, doc)).join(',');
-    forms.set(target, form);
+    const form = key.items.map((item) => itemForm(item, context)).join(',');
+    context.forms.set(key, form);
     return form;
   }
-  if (isScalar(target)) return String(scalarOf(target));
+  if (isScalar(key)) return String(scalarOf(key));
   throw new UnsupportedKeyError('node');
 }
 
-/** Whether `node` is a merge key as `yaml` resolves one: a plain `<<`, untagged or `!!merge`. */
+/**
+ * Whether `node` is a merge key as js-yaml and `yaml` resolve one: a plain untagged `<<`, or a
+ * `!!merge` scalar whose text is `<<` or empty, quoted or not (review round 1 F-5). Declared
+ * residual: `yaml` also merges a `!!str <<` key, which js-yaml stores as the key `<<`.
+ */
 export function isMergeKey(node: unknown): boolean {
-  return (
-    isScalar(node) &&
-    node.type === 'PLAIN' &&
-    node.source === '<<' &&
-    (node.tag === undefined || node.tag === `${TAG}merge`)
-  );
+  if (!isScalar(node)) return false;
+  if (node.tag === `${TAG}merge`) return node.source === '<<' || node.source === '';
+  return node.tag === undefined && node.type === 'PLAIN' && node.source === '<<';
 }

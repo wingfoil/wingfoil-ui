@@ -566,3 +566,11 @@ every object `additionalProperties: false`, as the other API schemas.
   and revert the watcher does not report (degraded watching, an ignored file outside the watched
   folders) keeps a CLI read until the state moves; two edit-and-revert cycles of the same bytes
   across one check keep the second read.
+- 2026-11-11 — task-075 review round 1 (F-2, F-3, F-4; the coordinator's decision, keeping Q2 (a)):
+  §8 the same-key `repo` after a drop is published at most once per state key, until the key
+  changes — a writer outside the console firing the watcher (a log file in the project folder, even
+  one git ignores) would otherwise drop every CLI read and force a refetch that is dropped again.
+  Declared residual: under such a writer an edit and revert during a CLI read is caught once per
+  key. The confirmed mismatches are kept for every file of the newest state (no fixed number) and
+  recorded also by a read that settles after its memo was dropped, so a checkout with converted line
+  ends settles in one drop.

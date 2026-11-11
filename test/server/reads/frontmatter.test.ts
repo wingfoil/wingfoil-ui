@@ -8,7 +8,7 @@
 import { Alias, parseDocument, type YAMLMap } from 'yaml';
 import { describe, expect, it, vi } from 'vitest';
 import { FRONTMATTER_PARSE_OPTIONS, parseYaml } from '../../../server/src/reads/frontmatter.js';
-import { jsYamlKey } from '../../../server/src/reads/yaml-keys.js';
+import { jsYamlKey, keyContext } from '../../../server/src/reads/yaml-keys.js';
 
 describe('parseYaml (bug-032)', () => {
   it("the library's duplicate-key check is off; merge keys resolved as before", () => {
@@ -91,19 +91,19 @@ describe('jsYamlKey (bug-037 with bug-032)', () => {
     const items = Array.from({ length: 2_000 }, (_, i) => `i${i}`).join(', ');
     const text = `a: &s [${items}]\n${Array.from({ length: 500 }, (_, i) => `m${i}:\n  ? *s\n  : x\n`).join('')}`;
     const doc = parseDocument(text, FRONTMATTER_PARSE_OPTIONS);
-    const forms = new Map<unknown, string>();
+    const context = keyContext(doc);
     const seq = (doc.contents as YAMLMap).items[0]!.value;
     const join = vi.spyOn(Array.prototype, 'join');
     try {
       for (const pair of (doc.contents as YAMLMap).items.slice(1)) {
         const inner = (pair.value as YAMLMap).items[0]!.key;
-        expect(jsYamlKey(inner, doc, forms)).toHaveLength(items.replace(/ /g, '').length);
+        expect(jsYamlKey(inner, context)).toHaveLength(items.replace(/ /g, '').length);
       }
       expect(join.mock.calls.filter((c) => c[0] === ',')).toHaveLength(1);
     } finally {
       join.mockRestore();
     }
-    expect([...forms.keys()]).toEqual([seq]);
+    expect([...context.forms.keys()]).toEqual([seq]);
   });
 });
 
@@ -115,18 +115,25 @@ describe('alias keys resolved in one pass (task-075 review round 1 F-1)', () => 
     Array.from({ length: n }, (_, i) => `a${i}: &a${i} v${i}\n`).join('') +
     Array.from({ length: n }, (_, i) => `*a${i} : ${i}\n`).join('');
 
-  it('no alias is resolved by walking the document (`Alias.resolve`), for N and 2N aliases', () => {
-    const resolve = vi.spyOn(Alias.prototype, 'resolve');
+  it('the key check resolves no alias by walking the document, for N and 2N aliases', () => {
+    // `Alias.resolve(doc)` without the library's context walks the whole document (the check's
+    // former call); the library's own `toJS` passes its context, which caches that walk.
+    const resolve = Alias.prototype.resolve;
+    let walks = 0;
+    Alias.prototype.resolve = function (this: Alias, ...args: Parameters<Alias['resolve']>) {
+      if (args[1] === undefined) walks += 1;
+      return resolve.apply(this, args);
+    };
     try {
       for (const n of [500, 1_000]) {
         // The library's own alias limit refuses it after the key check, as before this task.
         expect(() => parseYaml(aliases(n), 'f.md')).toThrow(/Excessive alias count/);
         expect(() => parseYaml(distinct(n), 'f.md')).not.toThrow();
       }
-      expect(resolve).not.toHaveBeenCalled();
     } finally {
-      resolve.mockRestore();
+      Alias.prototype.resolve = resolve;
     }
+    expect(walks).toBe(0);
   });
 
   it('a 64 KiB frontmatter of 16 000 aliases is answered within 5 s (53 s before the fix)', () => {

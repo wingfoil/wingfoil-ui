@@ -226,6 +226,10 @@ export class ProjectSnapshot {
   private republishAfter: number | undefined;
   /** The mismatches a later check may confirm (D75-5). */
   private readonly suspects = new Suspects();
+  /** The check sequence whose files last pruned the suspects (review round 1 F-3). */
+  private suspectsPrunedAt = 0;
+  /** The key a same-key `repo` was last forced for: at most one per key (review round 1 F-2). */
+  private republishedKey: string | undefined;
 
   private readonly fingerprints: Fingerprinter;
   /** The last `ui.yaml` content's parse and schema check (task-054 D54-7). */
@@ -434,6 +438,11 @@ export class ProjectSnapshot {
       if (files.length === 0 && uiMarks.length === 0) return true;
       const needsBlobs = files.some((f) => !marks.files.has(f.path));
       const blobs = needsBlobs ? await this.headBlobs(state.head, await dirs()) : undefined;
+      // The suspects of files the newest state no longer lists go (review round 1 F-3).
+      if (blobs && marks.seq > this.suspectsPrunedAt) {
+        this.suspectsPrunedAt = marks.seq;
+        this.suspects.prune((path) => marks.files.has(path) || blobs.has(path));
+      }
       const fresh = mismatches(files, uiMarks, marks, blobs, format).filter(
         (m) => !this.suspects.accepts(m, marks.seq),
       );
@@ -465,13 +474,14 @@ export class ProjectSnapshot {
       // The folders of the HEAD listing: from this state's `memory.yaml` — for its own read, the
       // value it just read (`.wingfoil` alone when it failed), never a wait on itself.
       const own = name === MEMORY_YAML_MEMO;
+      // A read settling after its memo was dropped still records its mismatches as suspects, so a
+      // later check confirms them all at once (review round 1 F-4); it drops nothing again.
       const settle = async (result?: unknown): Promise<void> => {
-        if (holder.dead) return;
         const dirs = async (): Promise<string[]> =>
           blobDirectories(
             own ? (result as MemoryYaml | undefined) : await bound.view!.memoryTypes().catch(() => undefined),
           );
-        if (!(await tied(kind, files, uiMarks, dirs))) drop();
+        if (!(await tied(kind, files, uiMarks, dirs)) && !holder.dead) drop();
       };
       const value = run.then(
         async (result) => {
@@ -609,9 +619,15 @@ export class ProjectSnapshot {
       this.last = next;
       const cliFound = await this.cliFoundAgain();
       // A check started after a drop publishes the state even when it did not move (D75-7).
+      // At most once per key (review round 1 F-2): an outside writer firing the watcher would else
+      // drop every CLI read and force a same-key `repo`, whose refetch is dropped again.
       const republish = this.republishAfter !== undefined && seq > this.republishAfter;
       if (republish) this.republishAfter = undefined;
-      if (previous && (!sameState(previous, next) || cliFound || republish)) this.options.onChange?.(next);
+      const moved = previous !== undefined && (!sameState(previous, next) || cliFound);
+      const forced = republish && !moved && this.republishedKey !== next.key;
+      if (moved) this.republishedKey = undefined;
+      if (forced) this.republishedKey = next.key;
+      if (previous && (moved || forced)) this.options.onChange?.(next);
       return next;
     })();
     this.running = run;

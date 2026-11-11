@@ -99,13 +99,13 @@ export function mismatches(
   return found;
 }
 
-/** Suspects kept, at most (the oldest go first). */
-export const MAX_SUSPECTS = 1_000;
-
 /**
  * The mismatches seen, one per path, with the sequence number of the checks started when each was
  * seen: a later read with the same observed and expected values, under a state whose check started
- * after that, is accepted — that check saw the file as git sees it and found the same state.
+ * after that, is accepted — that check saw the file as git sees it and found the same state. No fixed
+ * cap (task-075 review round 1 F-3: a cap below the files read evicts and re-mismatches them at every
+ * build); the snapshot prunes them to the paths of the newest state ({@link Suspects.prune}), so they
+ * stay bounded by the files under `.wingfoil/`, the Memory folders and the status entries.
  */
 export class Suspects {
   private readonly entries = new Map<string, { observed: string; expected: string; seq: number }>();
@@ -126,15 +126,14 @@ export class Suspects {
     );
   }
 
-  /** Keep the suspects of the paths `keep` accepts (red step stub). */
-  prune(_keep: (path: string) => boolean): void {
-    throw new Error('not implemented');
+  /** Keep only the suspects of the paths `keep` accepts (the files the newest state still lists). */
+  prune(keep: (path: string) => boolean): void {
+    for (const path of [...this.entries.keys()]) if (!keep(path)) this.entries.delete(path);
   }
 
   /** Record `mismatch`, seen when `seq` checks had started (an earlier one for its path is replaced). */
   record(mismatch: Mismatch, seq: number): void {
     this.entries.delete(mismatch.path);
     this.entries.set(mismatch.path, { observed: mismatch.observed, expected: mismatch.expected, seq });
-    while (this.entries.size > MAX_SUSPECTS) this.entries.delete(this.entries.keys().next().value!);
   }
 }
