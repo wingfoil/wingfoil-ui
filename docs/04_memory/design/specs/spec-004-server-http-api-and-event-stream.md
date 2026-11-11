@@ -55,7 +55,14 @@ table of `docs/00_reference/adr-draft-local-server.md` is its starting point.
   every token and session (X-02.2).
 - A 401 on the session exchange, on an API request or on the event stream's probe means the
   console no longer recognises the page (stopped and started again, or another console): the shell shows a full-page notice to open the URL printed in
-  the terminal, and the page does not retry.
+  the terminal. From v0.3 the page **recovers in place** (adr-003 D6, task-063): a tab whose
+  exchange answers 204 posts a message with no content on the same-origin `BroadcastChannel`
+  `wfui-session`; a lost page, on that message, when the user returns to it (once per return) or at
+  its loss when such a message was heard just before, asks `GET /api/server` with its cookie only
+  (one probe at a time, 10 s timeout), and an OK answer reloads its own address (path and query,
+  no fragment); any other answer leaves the notice. A failed exchange is never retried, no token,
+  session id or path crosses tabs, and nothing is added to the address. Deep links survive a
+  restart only on the same port (`--port`, adr-003 D7).
 - Neither token nor session id is logged (pino redaction of `authorization` and `cookie`) or
   written to disk.
 
@@ -305,6 +312,7 @@ name and `remote`) is not escaped yet: bug-035.
 | 502 | `read-error` | a direct read of spec-001 §4 failed: `message` "Cannot read `<file>`" and the reason, `detail: { file, kind }` with `kind` one of `outside`, `missing`, `shape`, `mismatch` and `file` relative to the project (never absolute). Scoped to the element or directive read: a list never fails as a whole; an unreadable `memory.yaml` degrades only the type-dependent features. Logged as `{ kind, file }` only (`outside` at warn level) |
 | 422 | project-list codes | refusals of `POST /api/projects` and `/projects/clone`: spec-006 §3 (`folder-not-found`, `not-wingfoil`, `already-listed`, `directory-not-empty`, `cli-not-found`, `state-dir-inside-project`, `directory-inside-project`, `inside-state-dir`, `git-refused` — also for a folder with `.wingfoil/` that is not a git repository —, `remote-not-owned`, `remote-unreadable`) |
 | 404 | `not-found` | also a refused working-tree path of `/files/tree` and `/files/content` (REQ-SEC-06): `detail.kind` one of `outside` (the "outside the repository" marker), `missing`, `not-allowed`, `too-large`; 0 bytes of the target |
+| 4xx | `forbidden`, `precondition-failed`, `payload-too-large`, `unsupported-media-type`, `range-not-satisfiable`, `client-error` | a client error the handlers do not name (v0.3, task-063): 403, 412, 413, 415, 416, any other 4xx; a static path the file system refuses as too long answers 404 `not-found` under `/assets/` and the application elsewhere (bug-031) |
 
 - Read responses carry `X-Repo-State: <HEAD sha>.<status hash>`; the page compares it with the
   event stream to know whether its data is current. The status hash is the hash of
@@ -527,3 +535,11 @@ goes away by itself when the stream reconnects. A network failure is not rendere
   the `cli-refused` reasons' cap (200 and a count line), the details' `file` left out, `detail`
   only with a reason, and the envelope's schema `contracts/api/cli.refusal.schema.json` (the
   `cli-refused` branch of `write.refusal.schema.json` refers to it).
+- 2026-11-11 — amended in development (task-063, plan backlog-item-rel-v0.3-plan; decided by the
+  approver, "tutto come consigliato": Q1 (a), Q3 (a), Q4 (a)): §2 "the page does not retry" becomes
+  the recovery in place of adr-003 D6 (the message, the triggers, the probe with the cookie, the
+  reload of the page's own address); §5 a 4xx the error handler does not name gets a code that
+  matches its status — 403 `forbidden`, 412 `precondition-failed`, 413 `payload-too-large`, 415
+  `unsupported-media-type`, 416 `range-not-satisfiable`, any other `client-error` (400 stays
+  `invalid-request`, 404 `not-found`); a static path the file system refuses as too long is
+  missing: 404 `not-found` under `/assets/`, the application for any other path (bug-031).

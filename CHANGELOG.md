@@ -68,6 +68,14 @@ release `v0.2` the git tag `v0.2.0` and the npm version `wingfoil-ui@0.2.0`.
   credentials of a URL removed, control and bidi characters as visible escapes); the API's `cli-refused` answer carries them as
   `detail.reasons`. A refusal of WingFoil 0.2.2, which gives no reasons, is shown as before.
 
+- **A page of a restarted console recovers in place** (task-063, US-X-02 X-02.3; adr-003 D6, D7;
+  spec-004 §2): when the console was stopped and started again on the same port (`--port`), a page
+  that shows *This page is no longer recognised by the console* reconnects by itself once the new
+  console URL is opened in any tab of the same browser, or when you return to it, and opens again
+  at its own address — the element it showed, for example. No token or session crosses tabs and
+  nothing is added to the address; a page of a console started without `--port` cannot reconnect
+  (another port is another origin), as the notice says.
+
 ### Changed
 
 - **WingFoil 0.3 support** (task-046): a project on WingFoil 0.2.2 to 0.3.x is supported
@@ -138,6 +146,12 @@ release `v0.2` the git tag `v0.2.0` and the npm version `wingfoil-ui@0.2.0`.
   Memory element (id, title, type, status missing or not text)`), archived elements included.
   WingFoil 0.3.1 leaves such a file out by itself, without a word (`wingfoil-cli` W-47). The
   defect shipped in v0.1.0 and v0.2.0.
+
+- **A build asset whose name is too long answers 404** (bug-031, task-063; spec-004 §5): a path
+  the file system refuses as too long answered 403 `invalid-request`; it is now missing — 404
+  `not-found` under `/assets/`, the application for any other path — and every client error gets
+  a code that matches its status (`forbidden`, `payload-too-large`, `unsupported-media-type`, …)
+  instead of `invalid-request`.
 
 ### Security
 
