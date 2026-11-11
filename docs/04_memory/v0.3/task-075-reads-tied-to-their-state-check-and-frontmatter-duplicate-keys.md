@@ -331,3 +331,30 @@ here unless the coordinator relays that it is absorbed.
   The design push's run `43046319548` (`108d5d1a`, no code) failed only in the two
   `e2e-chromium` jobs' step *Chromium and its system packages* (the browser install), not rerun:
   the later run supersedes it.
+- Tip runs before review (F-6): `43081218660` on `15806ed3` cancelled (superseded by the
+  coordinator's merge); `43081324099` on `0b99e5ad` (the merge of the phase branch) success.
+
+### review round 1 (2026-11-11, adversarial: FAIL — one blocker, one major)
+
+Relayed by the coordinator on `0b99e5ad`. Red first: `4f610cd9` (F-1, F-5), `daa8afd5` (F-2, F-3,
+F-4); green `70f68eee`.
+
+| Finding | Red | Fix |
+|---------|-----|-----|
+| F-1 (blocker) — `yaml-keys.ts` resolved each alias with `Alias.resolve(doc)`, a walk of the whole document per alias: 53 s for a 64 KiB frontmatter of 16 000 aliases | `frontmatter.test.ts` › "the key check resolves no alias by walking the document, for N and 2N aliases" (500 and 1 000; red as a spy, which counted the library's own `toJS` calls too — it was narrowed to the context-less walks, the check's former call) and "a 64 KiB frontmatter of 16 000 aliases is answered within 5 s" (30 s red) | `keyContext(doc)`: one visit in document order, anchor → latest node, each alias mapped to its node; `jsYamlKey(node, context)`. Now: the 64 KiB case about 0.1 s; 4 000 distinct alias keys 0.44 s (11.5 s at review) |
+| F-2 (major) — an outside writer firing the watcher drops every CLI read and forces a same-key `repo` each time: an endless refetch loop | `read-tie.test.ts` › "F-2 an outside writer firing the watcher every 20 ms: bounded processes, at most one same-key `repo` per key" (9 same-key publishes in 3 s red) | the forced same-key publish at most once per key until the key changes (the coordinator's decision, keeping Q2 (a)); residual declared in spec-012 §8 |
+| F-3 (minor) — `MAX_SUSPECTS` 1 000, oldest evicted: above 1 000 clean files that never hash to HEAD, a drop per index build | `tie.test.ts` › "keeps one suspect per path, with no fixed cap (1 500 files)", "prune keeps the suspects of the paths still listed" | no cap; pruned once per state to the paths in its status marks or HEAD listing |
+| F-4 (minor) — a read settling after its memo was dropped recorded no suspects: one layer of mismatches per drop cycle | `read-tie.test.ts` › "F-4 a checkout with line-end conversion settles in one drop cycle" (`core.autocrlf=true`, the files checked out again with CRLF; the third view re-read red) | the verdict always computed and its suspects recorded; only a live memo is dropped |
+| F-5 (minor) — tags on collection keys ignored; `!!merge "<<"` and `!!merge` (empty) refused | `yaml-keys.test.ts` rows `? !foo [a]`, `? !!map [a]`, `? !!str {a: 1}`, `? !!str [a]`, `? !foo {a: 1}`, `? !!seq {a: 1}`, `? ! [a]`, `? !!seq [a]`, `? !!map {a: 1}`, the two `!!merge` mappings and one nested (8 failed red); js-yaml's "unknown tag" and "unacceptable node kind" counted as key refusals in that table | a map key tagged other than `!!map`, a sequence key other than `!!seq` (`!` resolves to it), refused; a `!!merge` scalar whose text is `<<` or empty is a merge key. Declared residual: `yaml` merges a `!!str <<` key, which js-yaml stores as `<<` ("declared residual of the merge key") |
+| F-6 (nit) — cite the tip runs | — | above |
+
+Out of scope, found while fixing F-1 (reported to the coordinator as a bug candidate): `yaml`'s
+own `toJS` is quadratic in the number of aliases (each `Alias.resolve` with its cached node list
+scans the list up to itself): 1 000 / 2 000 / 4 000 distinct alias keys 34 / 92 / 418 ms. The index
+bounds a frontmatter at 64 KiB (about 2 000 such keys), but the element read and `memory.yaml`
+are bounded only by 5 MiB; it predates this task (the parse has called `toJS` since v0.1.0).
+
+Local checks: `typecheck`, `lint`, `format:check` clean; `npx vitest run test/server/snapshot
+test/server/reads test/server/references test/server/http/ui-config-route.test.ts
+test/server/http/held-gates-routes.test.ts` 484 passed; `read-tie` under the strict-identity
+wrapper 11 passed (load 3.8).
