@@ -564,6 +564,14 @@ describe('gates.yml — the jobs (task-071, AC-2, AC-3)', () => {
     });
   });
 
+  it('own-specs: listed specs that select no test on the engine pass (bug-038, task-059 AC-12)', () => {
+    // `performance.spec.ts` holds only `@perf` tests, which `playwright.config.ts` leaves out on
+    // Firefox and WebKit (`grepInvert`): Playwright's own "no tests found" must not fail the job.
+    const runStep = stepsOf(job('own-specs')).find((s) => s.run?.includes('test:e2e'))!;
+    const playwright = runStep.run!.split('\n').find((l) => l.includes('npm run test:e2e'))!;
+    expect(playwright.trim().split(/\s+/)).toContain('--pass-with-no-tests');
+  });
+
   it('uploads a report from each Playwright job under a name of its own, on failure (AC-4, D71-10, D71-11)', () => {
     const names: Record<string, string> = {
       'e2e-chromium': 'playwright-report-chromium-${{ matrix.shard }}',
