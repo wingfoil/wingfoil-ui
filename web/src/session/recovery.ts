@@ -16,7 +16,7 @@
  * nothing is added to the address and no redirect parameter exists. The status `lost` stays final
  * inside the page: the only way out is a full load, so no state of the dead session survives.
  */
-import { SESSION_CHANNEL, sessionStatus, subscribeSession } from './session.js';
+import { PROBE_TIMEOUT_MS, SESSION_CHANNEL, sessionStatus, subscribeSession } from './session.js';
 
 /** Options of {@link watchSessionRecovery}. */
 export interface RecoveryOptions {
@@ -43,7 +43,7 @@ export function ownAddress(href: string): string {
  */
 export function watchSessionRecovery(options: RecoveryOptions = {}): () => void {
   const reload = options.reload ?? ((address: string) => window.location.replace(address));
-  const timeoutMs = options.probeTimeoutMs ?? 10_000;
+  const timeoutMs = options.probeTimeoutMs ?? PROBE_TIMEOUT_MS;
   let probing = false;
   // A message that arrived during a probe asks for one more after it (never a queue).
   let again = false;

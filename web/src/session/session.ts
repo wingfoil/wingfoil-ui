@@ -102,6 +102,9 @@ function stripFragment(): void {
   window.history.replaceState(window.history.state, '', window.location.pathname + window.location.search);
 }
 
+/** Longest wait for the answer of a session probe, `GET /api/server` (review round 2 S2-8 of task-040). */
+export const PROBE_TIMEOUT_MS = 10_000;
+
 /** Options of {@link watchFragmentToken}. */
 export interface WatchFragmentOptions {
   /** Reloads the page (default `location.reload()`; tests). */
@@ -122,7 +125,7 @@ export interface WatchFragmentOptions {
  */
 export function watchFragmentToken(options: WatchFragmentOptions = {}): () => void {
   const reload = options.reload ?? (() => window.location.reload());
-  const timeoutMs = options.probeTimeoutMs ?? 10_000;
+  const timeoutMs = options.probeTimeoutMs ?? PROBE_TIMEOUT_MS;
   // One probe at a time: a storm of fragment changes sends no more (review round 1 S6).
   let probing = false;
   const onChange = (): void => {
