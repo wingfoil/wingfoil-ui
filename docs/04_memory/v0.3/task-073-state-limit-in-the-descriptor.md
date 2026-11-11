@@ -401,3 +401,14 @@ version bump, in the green commit. D73-7 is revised accordingly.
   `state-limit.spec.ts` 1 passed on Firefox and on WebKit. The commits since then changed the gate
   footer (`ElementFooter.tsx`), the docs and one test classification, so the e2e jobs are still
   owed on the tip.
+- **`gates.yml` run `43061507035`** on `11b034fb` (the tip with the footer code of `c1191788`, task
+  scope): **success**. Jobs:
+  - `checks`, `contract`, `smoke`, `publish-smoke`;
+  - `coverage`: 223 files passed, 1 skipped; statements 96.63 %, branches 91.43 %, functions
+    97.29 %, lines 98.41 %;
+  - `e2e-chromium`, both shards;
+  - `own-specs (firefox)`: `state-limit.spec.ts` 1 passed;
+  - `own-specs (webkit)`: 1 passed, on the rerun of that job. Its first attempt failed while
+    installing system packages, with the same unreachable apt mirror.
+  - `e2e-wave` skipped.
+- **Refactor**: no code change after the footer green.
