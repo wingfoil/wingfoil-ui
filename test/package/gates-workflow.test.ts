@@ -555,7 +555,7 @@ describe('gates.yml — the jobs (task-071, AC-2, AC-3)', () => {
       'exit 0',
       'fi',
       'npx playwright install --with-deps "$ENGINE"',
-      'npm run test:e2e -- --project="$ENGINE" --reporter=github,html "${specs[@]}"',
+      'npm run test:e2e -- --project="$ENGINE" --reporter=github,html --pass-with-no-tests "${specs[@]}"',
     ]);
     expect(runStep.env).toEqual({
       ENGINE: '${{ matrix.engine }}',
