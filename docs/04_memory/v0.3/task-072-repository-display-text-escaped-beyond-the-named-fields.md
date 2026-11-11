@@ -464,3 +464,7 @@ Local, after the merge (Vitest `--maxWorkers=2`, targeted, as the coordinator as
 - `repository-text`, `serialise`, `api-docs-label-schema`, `web/docs`, `web/shell/repository-text`
   and `web/team`: 11 files, 161 passed.
 - Strict identity (`text-sweep`, `repository-text`, `harness/git-identity`): 27 passed.
+
+On `gates.yml`: run `43116195839` (a dispatch on `af73c3ad`, task scope, the same seven own
+specs) passed every job: `checks`, `coverage`, `contract`, `e2e-chromium` (both shards), `own-specs`
+on Firefox and WebKit, `smoke` and `publish-smoke`.
