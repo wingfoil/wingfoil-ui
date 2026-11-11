@@ -100,3 +100,416 @@ approver's Q3 and Q5 answers; AC-3 and AC-4 are new.
      - design: tech-specs found missing/needing revision (`definition-of-done` › design).
      - red/green/refactor: deviations from the plan above, blockers, scope surprises.
      - review: rejection reasons and what changed on the next pass. -->
+
+### design (2026-11-09)
+
+Read (definition-of-done 1.4 › build › design): this task, bug-024, bug-036; task-056's Execution
+Notes (its design: probes P1 … P8, the AC-1 enumeration, D56-5 … D56-7 and the AC-2/AC-5 rows of
+its test plan, the approver's Q1-a … Q6-a; its green: `server/src/http/serialise.ts`); spec-001 §2,
+§3 and its Process Notes; spec-004 §5 and its Process Notes (2026-11-07: the per-match search and
+`detail.reasons[]` are this task's); directive `wingfoil-cli` 1.27 (W-19, W-20, W-24, W-36, W-37,
+W-47, W-49); `contracts/matrix.json` (0.2.2 and 0.3.1); the plan's W1-19, W2-1 … W2-4. The code,
+re-checked against the merged tree at `e434a23f`: `server/src/cli/adapter.ts` (`json`, `exec`,
+`cliError`, `refusalMessage`, `stderrWarnings`, `cliErrorEnvelope`), `server/src/cli/commands.ts`
+(`outputProblem`, `toolLines`, `boundedLines`, `toolText`), `server/src/contracts.ts`,
+`server/src/snapshot/snapshot.ts` (`search`, `archived`, `mark`), `server/src/http/project-routes.ts`
+(`elements`, the Today rows, `resolve`), `server/src/writes/governed.ts` (`write`, `listed`),
+`server/src/http/serialise.ts`; `contracts/cli/memory-search.schema.json`, `contracts/api/error.schema.json`,
+`write.refusal.schema.json`, `element.refusal.schema.json`; the web's `api/error-message.ts`,
+`shell/ErrorText.tsx`, `element/write-toast.tsx`; `test/server/cli/commands.test.ts`,
+`test/contracts/capture-samples.test.ts`, `test/contracts/schemas.test.ts`.
+
+#### Probes (2026-11-09; scratch projects in the session's scratch folder, `init --template Kanban`)
+
+One project per version: the pinned 0.3.1 (this worktree's `node_modules/wingfoil`) and 0.2.2 (the
+cached matrix build of the main checkout, run read-only, as a binary). Each holds one valid bug
+(`memory add --type bug --title "Probe bug"`).
+
+| # | What | Result |
+|---|------|--------|
+| Q-1 | bug-024 re-checked, CLI direct (`memory search --format json`, a Markdown file without frontmatter `docs/memory/bug/notes.md`) | 0.2.2: exit 0, `matches` holds `{"path":"docs/memory/bug/notes.md","tags":[]}` after the bug; 0.3.1: exit 0, the bug only, stderr empty (W-47) — as task-056 P2 |
+| Q-2 | The archived searches on 0.2.2 (a file with `id`, `title`, `status: deprecated`, no `type`) | `memory search --status deprecated` returns it as a match without `type`: the archived searches fail per match too (D70-3) |
+| Q-3 | bug-036, CLI direct (`docs/memory/bug/broken.md` with `id: [unclosed`) | 0.2.2: **exit 2, stdout empty**, stderr `{"error":"missed comma between flow collection entries (2:1)\n\n 1 \| id: [unclosed\n 2 \| type: bug\n-----^"}` — the error **names no file**; `--status deprecated` exits 2 the same way. 0.3.1: exit 0, the bug listed, `{"warning":"W_MEMORY_UNREADABLE (docs/memory/bug/broken.md): unreadable frontmatter in docs/memory/bug/broken.md: missed comma between flow collection entries (2:1)"}` |
+| Q-4 | The 0.3.1 refusal with `details` (`memory submit` of the bug, then again from `pending`) | 0.3.1: exit 1, `{"error":"illegal transition pending -> (none) for type 'bug'","details":[{"file":"docs/memory/bug/bug-001-probe-bug.md","detail":"illegal \`submit\` from \"pending\": a \`gates\` state — its forward edge requires \`approve\`, not \`submit\`"}]}`; 0.2.2: exit 1, the `error` only — as task-056 P5 |
+| Q-5 | Security: `GIT_TRACE=<file>` of `memory search` and `memory search --status deprecated`, both versions, with the broken file present | **no git process** on either version (trace empty) — as task-056 P6 |
+| Q-6 | Security: `.git` snapshot (every file's SHA-256; every entry's name, type, size, mtime) before and after Q-5 | identical on both versions |
+| Q-7 | Security: the children's environment | not re-run: the task changes how the adapter **reads** an output it already gets, not what it runs or with which environment; task-056 P8 (`strace -v`, 2026-11-06) is the evidence, and `test/server/cli/adapter.test.ts` *D46-5* … *D46-8* guard it |
+
+No console was started; no heavy gate ran.
+
+#### Approach
+
+**AC-1 — per-match `memory search` (bug-024; spec-001 §2, spec-004 §5).** Only when the whole output
+of `memory search` fails its schema (no cost on the valid path), `WingfoilCli.json` re-checks it in
+two steps: the envelope (`matches` an array and the rest of the object valid — checked as the same
+schema with `matches: []`, so no second schema), whose failure stays the 502 `cli-output`; then each
+match against `#/definitions/match`. A failing match is dropped and becomes one warning; the valid
+matches are returned in their order. Every caller of `memory search` reads through the adapter
+(`project-reads.ts` `elements`, `archivedElements`, `element`), so the Memory list, the element
+read, history's lookup, Today (and the bell, which reads `/today`), the writes' `listed` and the
+reference index all get the valid matches from one fix point (D56-6). The project header reads no
+match (`GET /api/p/:pid` runs `--version`, `dna show` and git only). Every other command stays
+strict.
+
+**AC-2 — `detail.reasons[]` (spec-001 §2 exit-1 row, spec-004 §5).** On exit 1 the adapter reads
+`details` from the same JSON text as `error` (whole stderr or its last line, `cliError`'s rule);
+`CliRefusedError` gains `reasons`; `cliErrorEnvelope` adds `detail: { reasons }` only when there is
+one, so a 0.2.2 refusal is unchanged byte for byte. The governed writes, the role-view route and the
+project routes all map through `cliErrorEnvelope`: each 422 `cli-refused` carries them. The web's
+`errorMessage` appends the reasons to the verbatim block, one line each (Q3-a): every screen that
+renders an error through `ErrorText` (the write toast first) shows them; no catalogue string.
+
+**AC-5 — bug-036.** Q-3 shows that 0.2.2's exit 2 leaves **no element list to serve**: stdout is
+empty and the error names no file, so the console cannot answer the other elements nor name the
+file. The AC's own exit applies: a declared limitation, decided by the approver (D70-9).
+
+#### Decisions (D70-n), one recommendation each
+
+- **D70-1 — The match schema becomes a definition.** `contracts/cli/memory-search.schema.json`:
+  `matches.items` becomes `{ "$ref": "#/definitions/match" }`, the match's shape unchanged (the
+  samples and the 0.2.2/0.3.1 contract tests keep passing). `server/src/contracts.ts` gains
+  `fragmentProblems(file, pointer, data)` (Ajv's `getSchema('<$id>#/definitions/match')`, compiled
+  once at load like the others). The TypeScript `MemoryMatch` type (`contracts/src/cli.ts`, hand
+  written) is unchanged.
+- **D70-2 — Where the check lives.** `commands.ts` gains `searchMatches(data): { matches, dropped }
+  | undefined` (`undefined` when the envelope fails), next to `outputProblem`; `adapter.ts`'s `json`
+  calls it only for `memory search` and only when `outputProblem` fails. Nothing is logged for a
+  dropped match (the warning is in the body; a log line would repeat a project-relative path the
+  page already shows); a failing envelope is logged as today.
+- **D70-3 — The warning's text and its channel.** `memory search left out <path>: not a Memory
+  element (<field>, … missing or not text)` — `<path>` the match's `path` as the CLI returned it
+  (project-relative), `<no path>` when it is not a string, the field names read from Ajv's problems
+  (`missingProperty`, the instance path's last segment), never a value. One list per output: the
+  stderr lines first, then the dropped matches, **one** cap of 200 and one count line (`toolLines`
+  over both, the stderr's own `omitted` carried), every line through the adapter's sanitiser (class
+  (a), `serialise.ts`'s table; no second rule). The archived searches are the same command and get
+  the same rule (Q-2). *Review round 1 F1, F5:* a newline, carriage return or tab of the path is
+  written as `\x0a`, `\x0d`, `\x09` after the sanitiser, so one dropped match is one line; `tags`
+  is named as a list (`tags missing or not a list of text`). *Review round 3 R3-n1:* every list of
+  tool messages the adapter passes on — the warnings of any command, the `/config` sections' too —
+  shows each text once (`mergeToolLines`).
+- **D70-4 — `/elements?archived=true` carries the archived searches' warnings too**, after the live
+  one's, de-duplicated by text (today it carries the live search's only, so a dropped archived match
+  would vanish without a word; 0.2.2 and 0.3.1 repeat their stderr warnings on each search). The
+  plain `/elements` reads no archived search (REQ-PERF-05, TT-PERF-05's six calls unchanged).
+- **D70-5 — `reasons` in the adapter.** `CliRefusedError.reasons: readonly string[]` (default
+  `[]`): each item of `details` that is an object with a string `detail`, in order, through the
+  adapter's sanitiser (`this.redact`: the project, repository, package and home folders, URL
+  userinfo, the character escape, 4 000 characters each); at most 200, then one
+  `<n> more reasons omitted`. Any other shape of `details` (absent, not an array, items without a
+  string `detail`) gives no reason and never fails the refusal. `details[].file` is not passed on
+  (spec-004 §5 names the `detail` texts only).
+- **D70-6 — The contract of the envelope.** A new `contracts/api/cli.refusal.schema.json` (as
+  `git.refusal`): `error { code: const "cli-refused", message ≤ 4 000, detail? { reasons:
+  string[] (1 … 201 items, each ≤ 4 000) } }`, `additionalProperties: false`; v0.4's ingestion
+  detail (`created`, `commits`, spec-004 §5) is not in it (G5 moved, RP3-7). `write.refusal.schema.json`:
+  `cli-refused` leaves the no-detail branch for a branch whose `detail` is optional and refers to
+  the new schema's `reasons` definition. `error.schema.json` (the embedded `dnaError`, `typesError`,
+  … — `detail: {}`) is unchanged. Contract test: `test/contracts/api-cli-refusal-schema.test.ts`
+  (the captured 0.3.1 sample mapped through `cliErrorEnvelope` passes; a 0.2.2 one has no `detail`;
+  `file`, an empty `reasons`, a 202nd item, a non-string reason are refused).
+- **D70-7 — The captured sample (Q5-a).** A new, separately runnable capture in
+  `capture-samples.test.ts` (`-t 'refusals'`, as task-048's `-t 'operations'`): on a copy of the
+  kanban fixture of every matrix version, Jordan's `memory submit task-001-login-form` (a `pending`
+  gate state) — stderr saved raw as `kanban/memory-submit-refused.stderr.txt` (the exit code
+  asserted 1), so the whole-sample recapture is not needed and no other sample changes.
+  `schemas.test.ts` checks that the 0.3.1 sample holds `details[].detail` and the 0.2.2 one none.
+- **D70-8 — The web.** `api/error-message.ts`: for `cli-refused`, `verbatim` = the message, then each
+  string of `detail.reasons` on its own line; `reasons` is left out of the catalogue `values` (the
+  generic array rule would turn it into base names). `ErrorText` is unchanged (`<pre
+  class="verbatim">` keeps the lines). A reason holding a newline is shown as written (the sanitiser
+  keeps newline and tab): accepted, one reason may span two lines. Component test
+  `test/web/shell/refusal-reasons.test.tsx` (the write toast with a 422 carrying two reasons: the
+  CLI's message then one line per reason, in the verbatim block, after the catalogue line; a 0.2.2
+  body without `detail` unchanged; a non-array `reasons` ignored). **No new e2e spec**: the
+  console never offers a submit from a gate state (spec-003), and the UI path is covered by the
+  component test plus the existing refusal toasts of `submit-footer.spec.ts` and `gate-footer.spec.ts`
+  on the three engines (AC-4). Option: one mocked case appended to `submit-footer.spec.ts` (its
+  line-348 pattern), +0.1 d — not recommended.
+- **D70-9 — bug-036 becomes a declared 0.2.2 limitation (AC-5's exit), for the approver.** Options:
+  **(a)** the limitation only: `CHANGELOG.md` *Unreleased* › *Known limitations* and the user guide
+  (*one Memory file whose frontmatter is not valid YAML makes every list of a project on WingFoil
+  0.2.2 answer an internal error; WingFoil 0.3.1 names the file and the console lists the others;
+  find it with `wingfoil memory search` or upgrade*), no code; the exit 2 stays 500 `internal` with
+  its log line; **(b)** as (a) plus a mitigation: on `memory search` alone, an exit 2 whose JSON
+  `error` is not one of the known usage forms becomes a read error 502 with the YAML message
+  sanitised, so the page shows the parser's text (+0.25 d; it text-matches the CLI's usage errors,
+  which the bug's own notes call fragile, and still names no file); **(c)** a server-side scan of
+  the Memory folders to find the file (against adr-001 D1/D1a: the CLI is the source of the list,
+  and the direct reads are a closed allow-list). **Recommended (a)**: there is nothing to serve, the
+  pin (0.3.1) already does the right thing, and the console's answer for the older version should
+  not depend on a parser's wording. bug-036 then closes with this task as `release: v0.3`, its fix
+  being the declared limitation, quoted in these notes.
+- **D70-10 — An existing test changes.** `test/server/cli/commands.test.ts` *JSON failing the schema
+  is an output error* uses `memory search` with two bad matches: after AC-1 that output is served.
+  The case moves to `dna show` (still strict), and its `memory search` twin goes to the new suite
+  as the per-match case — declared here, not a weakened test.
+- **D70-11 — The sweep and the producer scan learn the new texts.** `test/server/http/text-sweep.test.ts`
+  classifies `cli.refusal`'s `error.detail.reasons[]` as (a) (it walks every response schema of
+  `contracts/api/`, so the new schema must be classified or the sweep fails); `test/server/tool-messages.test.ts`
+  lists the new producers (the reasons and the dropped-match lines through `this.redact`).
+- **D70-12 — Docs.** spec-001 §2 holds as written (the per-match paragraph and the exit-1 row are
+  already there); spec-004 §5 gets a dated Process Note for what it does not say: the reasons' cap
+  (200 + a count line) and schema, the archived warnings of `?archived=true` (D70-4); both specs
+  amended in place only after the coordinator's OK. `CHANGELOG.md` *Unreleased*: *Fixed* (bug-024),
+  *Added* (the refusal reasons), *Known limitations* (bug-036, D70-9 (a)); `docs/user-guide.md`
+  (the reasons in the refusal toast; the limitation); `test/README.md` version line and suites;
+  `npm run docs:api` regenerated (git-ignored output).
+- **D70-13 — Tests in files of their own** (W1-4 hot spots): `test/server/cli/memory-search-matches.test.ts`,
+  `test/server/http/dropped-matches.test.ts`, `test/server/cli/refusal-reasons.test.ts`,
+  `test/contracts/api-cli-refusal-schema.test.ts`, `test/web/shell/refusal-reasons.test.tsx`; the
+  shared files get appended cases only (D70-10, D70-11, `capture-samples`, `schemas`).
+
+#### Test plan (red-first or characterization, scenario → file)
+
+| AC | Scenario | Kind | File |
+|----|----------|------|------|
+| AC-1 | fake CLI: one valid and two failing matches → the valid one, two warnings naming the paths and the fields; `<no path>`; a path with U+202E and ESC escaped; 201 dropped + 3 stderr lines → 200 lines and one count line | **red** (`CliOutputError` today) | `test/server/cli/memory-search-matches.test.ts` |
+| AC-1 | fake CLI: `matches` not an array, `query` missing → 502 `cli-output`, logged; `dna show` with a bad field → 502 (strict) | characterization (guard removal: the per-match path applied to every command fails it) | same |
+| AC-1 | real 0.2.2: a committed `notes.md` without frontmatter → `/elements` 200, the valid elements, one warning naming `docs/…/notes.md`; `/elements/:eid`, `/elements/:eid/history`, `/today` 200 | **red** (502, task-056 P1) | `test/server/http/dropped-matches.test.ts` |
+| AC-1 | real 0.2.2: a deprecated file without `type` → `/elements?archived=true` 200 with its warning (D70-4) | **red** | same |
+| AC-1 | real 0.2.2: `GET /api/p/:pid` (header) 200 | characterization (it reads no match) | same |
+| AC-1 | real 0.3.1: the same files → 200, `notes.md` absent without warning (W-47); a broken frontmatter → its `W_MEMORY_UNREADABLE` warning | characterization | same |
+| AC-2 | fake CLI: `details` with two `detail`s → `reasons` redacted (project, repository, package, home folders, URL userinfo), escaped (U+202E, ESC), capped at 4 000 each and 200 + a count line; a malformed `details` ignored; warning lines before the error line | **red** | `test/server/cli/refusal-reasons.test.ts` |
+| AC-2 | real 0.3.1 kanban fixture: `POST …/task-001-login-form/submit` (`pending`) → 422 `cli-refused` with `detail.reasons` = the gate sentence; real 0.2.2 → 422 without `detail`, body unchanged | **red** (0.3.1) / characterization (0.2.2) | same |
+| AC-2 | the envelope schema; the sample mapped through `cliErrorEnvelope` | **red** (the schema does not exist) | `test/contracts/api-cli-refusal-schema.test.ts`; sample checks appended to `schemas.test.ts` |
+| AC-2 | the toast shows the reasons, one line each, after the message; a 0.2.2 body unchanged | **red** | `test/web/shell/refusal-reasons.test.tsx` |
+| AC-3 | docs | — | review |
+| AC-4 | gates | — | below |
+| AC-5 | real 0.2.2: a broken frontmatter → `memory search` exit 2 → `/elements` 500 `internal` (the declared limitation pinned, so a WingFoil or adapter change shows) | characterization of the limitation (if D70-9 (a)); **red** if (b) | `test/server/http/dropped-matches.test.ts` |
+
+Strict identity: the real-CLI suites (`dropped-matches`, `refusal-reasons`) commit on fixtures, so
+they also run under the recipe of `test/README.md` *Git identity* (dl-011) before each push.
+
+#### Risks
+
+- **Coverage of the 0.2.2 route tests on the runner**: `cliBuildFor('0.2.2')` installs the build into
+  the matrix cache (network); `element-writes.test.ts` already does it on `gates.yml`, so no new
+  dependency.
+- **The sweep** (D70-11) fails until the new schema is classified: written in the same red commit.
+- **Merge hot spots**: task-069's file names neither the adapter nor `commands.ts` (`grep -c` 0);
+  `en.json` is not touched; `CHANGELOG.md`,
+  `test/README.md` version line and the user guide are.
+- **0.3.1's silent drop (W-47)** stays: the console warns only for what the CLI returns or reports;
+  the feedback note F-039 is the coordinator's (task-056 Q6-a).
+
+#### Gates and where (AC-4; dev rules Wave 2, W1-10, W2-4)
+
+- Local: `npm run typecheck`, `npm run lint`, `npm run format:check`, `npm run docs:api`,
+  `python3 docs/03_backlog/X_tools/check_tasks.py v0.3`, targeted `npx vitest run <files>`; the
+  git-touching suites under the strict-identity recipe; `npx vitest run test/docs/public-text.test.ts`
+  before each push.
+- On `gates.yml` (the push of `task/task-070-…`, own-spec dispatch with `-f specs=test/e2e/submit-footer.spec.ts
+  test/e2e/gate-footer.spec.ts`): `test:coverage`, `test:contract`, `test:e2e:chromium`, the two
+  specs on Firefox and WebKit. No smoke (no packaging, launcher or bin change). Evidence: run id,
+  commit, result.
+
+#### Size
+
+About **1.1 active days**: AC-1 0.4 (schema split, adapter, two suites on both versions), AC-2 0.4
+(adapter, envelope, two schemas, sample capture, web, component test), AC-3 0.1, AC-4 0.15 (runs on
+GitHub), AC-5 0.05 with D70-9 (a) (+0.25 with (b)). Slightly over the one-day line; **no split
+recommended** (Q-A).
+
+#### Questions
+
+- **Q-A — Size (RP3-20 G2).** (a) No split: both halves live in `adapter.ts`/`commands.ts` and are
+  already the product of task-056's split; (b) split the refusal reasons into another task.
+  **Recommended (a).**
+- **Q-B — bug-036 (AC-5).** D70-9: **recommended (a)**, the declared limitation, for the approver's
+  decision, quoted here once given.
+- **Q-C — The archived warnings (D70-4).** (a) `?archived=true` carries them, de-duplicated; (b) leave
+  `?archived=true` as today (live warnings only). **Recommended (a)**: otherwise a dropped archived
+  match vanishes silently, the gap bug-024 is about.
+- **Q-D — An e2e case for the reasons (D70-8).** (a) Component test only, the existing refusal
+  specs re-run on three engines; (b) also one mocked case in `submit-footer.spec.ts`.
+  **Recommended (a)**, as AC-2 asks.
+
+#### The approver's decisions (2026-11-09, relayed by the coordinator; plan W2-5)
+
+"tutto come consigliato", 2026-11-09:
+
+- **Q-A (a)** — no split.
+- **Q-B** — D70-9 (a): bug-036 becomes a declared WingFoil 0.2.2 limitation (`CHANGELOG.md`
+  *Known limitations* and the user guide; no code).
+- **Q-C (a)** — `?archived=true` carries the archived searches' warnings.
+- **Q-D (a)** — component test only.
+- D70-1 … D70-13 accepted; the dated Process Note of spec-004 §5 (D70-12) OK'd.
+
+**Identity note (design probes).** One probe command of the design exported throwaway
+`GIT_AUTHOR_*`/`GIT_COMMITTER_*` values in its own shell to make commits in the two scratch projects
+(Q-1 … Q-4). It touched only those scratch projects, outside the repository, and lasted that one
+command; no commit of this repository carries it. It will not recur: scratch and fixture commits use
+the fixture builder or the strict-identity recipe of `test/README.md` *Fixtures* › *Git identity*.
+
+### red / green / refactor (2026-11-09)
+
+- **Red** (`b6ca4b8a`): the five suites of D70-13, the refused-submit samples captured with
+  `WFUI_CAPTURE_SAMPLES=1 npx vitest run test/contracts/capture-samples.test.ts -t 'refusals'`
+  (`kanban/memory-submit-refused.stderr.txt` of 0.2.2 and 0.3.1: the `error` only, and the `error`
+  with one `details` item, as Q-4 showed; the full capture writes them too, so a full re-capture
+  keeps them), and D70-10's move of the strict case to `dna show`. `npx vitest run` of the five
+  suites: **35 failed, 13 passed** of 48 — the routes on 0.2.2 answered 502 `cli-output` (bug-024),
+  the adapter threw `CliOutputError` on a failing match, no `reasons`, no `cli.refusal` schema, no
+  reason in the toast. The 13 passing are the characterization rows: the strict envelope and `dna
+  show` cases, 0.3.1's own drop and warning, the 0.2.2 limitation of bug-036 (500 `internal`), the
+  refusals without `details`, the toast without reasons. The `dna show` case holds whatever the
+  name check says: the per-match path needs a `matches` array, so the envelope check is the guard
+  that keeps every other command strict. Deviation from D70-7: the samples' checks live in
+  `test/contracts/api-cli-refusal-schema.test.ts` (*the captured samples*), not in `schemas.test.ts`,
+  which reads JSON samples only.
+- **Green** (`bb0ea538`):
+  - `contracts/cli/memory-search.schema.json`: the match in `definitions.match` (D70-1);
+    `server/src/contracts.ts` `definitionProblems` (each schema's `$id` kept at load, Ajv's
+    compiled fragment).
+  - `server/src/cli/commands.ts` `searchMatches` (D70-2, D70-3: the envelope checked as the same
+    schema with no match, the fields in the schema's order, `<no path>`, `not an object`);
+    `adapter.ts` `json` reads `memory search` per match only when its whole output fails;
+    `stderrWarnings` takes the dropped lines after the stderr lines under one cap and count line.
+  - `adapter.ts`: `CliRefusedError.reasons`, `MAX_REASONS` (200), `refusalOf` — the message and
+    the reasons from **one** parse of the stderr text (`test/server/tool-messages.test.ts`'s *one
+    parse per candidate* failed with a second parse at the first green run, 4 > 3);
+    `cliErrorEnvelope` adds `detail.reasons` only when there is one (D70-5).
+  - `contracts/api/cli.refusal.schema.json` (new) and `write.refusal.schema.json`'s `cli-refused`
+    branch referring to its `detail` (D70-6); `test/contracts/api-writes-schema.test.ts` compiles
+    `write.refusal` with it and its `cli-refused` cases moved to their own test.
+  - `server/src/http/project-routes.ts`: `?archived=true` carries the archived searches' warnings,
+    each text once (D70-4).
+  - `web/src/api/error-message.ts`: `verbatim` is the message then each reason on its own line;
+    `reasons` left out of the catalogue values (D70-8).
+  - `test/server/http/text-sweep.test.ts` classifies `cli.refusal`'s and `write.refusal`'s
+    `error.detail.reasons[]` as (a) and `cli.refusal`'s code and message with the other envelopes
+    (D70-11); `tool-messages.test.ts`'s producer scan passes unchanged (the reasons go through
+    `this.redact`, on the line its pattern already lists).
+- **Refactor:** none beyond green's; the public-text check (`test/docs/public-text.test.ts`) refused
+  two fictitious folders and a home subfolder in `refusal-reasons.test.ts`, written as `/p`, `/x/wingfoil`
+  and `~/x` (the allowed forms).
+- **Docs** (`e14765b4` and this section): `CHANGELOG.md` *Unreleased* › *Added* (the reasons),
+  *Fixed* (bug-024), *Known limitations* (bug-036, D70-9 (a), the approver's choice quoted above);
+  `docs/user-guide.md` 0.29 (*Files that are not elements*, the reasons in *After an action*, the
+  limitation); spec-004 §5 and its Process Note of 2026-11-09; spec-001 §2 holds as written;
+  `test/README.md` 0.68; `npm run docs:api` regenerated (git-ignored output, exit 0).
+
+### gates (2026-11-09, AC-4)
+
+Local, on the tip before the push: `npm run typecheck`, `npm run lint`, `npm run format:check`,
+`npm run docs:api` clean; `python3 docs/03_backlog/X_tools/check_tasks.py v0.3` OK. Targeted
+`npx vitest run`: the five new suites with `tool-messages`, `text-sweep`, `project-routes`,
+`element-writes`, `today-routes`, `api-writes-schema`, `schemas` and `test/server/cli/` — 17 files,
+443 passed; `test/web/shell/`, `test/web/api/error-message` — 13 files, 288 passed. Under the
+strict-identity recipe (`test/README.md` *Git identity*: a `git` wrapper first on the `PATH`,
+outside the repository, with `-c user.useConfigOnly=true` and the `followRemoteHEAD` emulation):
+`dropped-matches`, `refusal-reasons`, `project-routes`, `text-sweep`, `tool-messages`,
+`harness/git-identity`, `test/docs`, `test/governance`, `wingfoil-feedback` — all passed but the
+public-text finding above, fixed, then `public-text` and `refusal-reasons` 78 passed.
+
+On `gates.yml` (commit `37458a2a`, the code and docs above):
+
+- Run `42587575794` (the push): **cancelled**, all jobs — the dispatch below, on the same ref,
+  replaced it (the workflow's concurrency group); no job had a result.
+- Run `42587613225` (`gh workflow run gates.yml --ref task/task-070-… -f specs="test/e2e/submit-footer.spec.ts
+  test/e2e/gate-footer.spec.ts"`, no e2e spec changed on the branch): **success** — `checks`,
+  `coverage` (221 files passed, 1 skipped; statements 96.62 %, branches 91.33 %, functions
+  97.27 %, lines 98.4 %), `contract` (17 files passed, 1 skipped), `e2e-chromium` (two shards, 162
+  and 161 passed), `own-specs (firefox)` and `own-specs (webkit)` (44 passed each), `smoke`,
+  `publish-smoke`; `e2e-wave` skipped (task scope).
+- Run `42589745891` (the push of `1e39669f`, the gate evidence above; recorded by the
+  coordinator): **success**, every job; `e2e-wave` skipped (task scope).
+
+### review round 1 (2026-11-09) — PASS, two minor and three nits
+
+Adversarial review on `f51a17aa` (the phase branch merged, run `42591598403` green on it; the run on
+the tip before review, `42589745891`, recorded by the coordinator in `f51a17aa`). Red `9088daf3`
+(`memory-search-matches` 3 failed, `dropped-matches` 2 failed on real 0.2.2), then green.
+
+| # | Finding | What changed |
+|---|---------|--------------|
+| F1 (minor) | A newline in a Memory file name forged a second line in the dropped-match warning, rendered in `<pre>` (probe on real 0.2.2: `docs/memory/bug/a\nWARNING forged line.md`) | The adapter writes a newline, carriage return or tab of a dropped-match line as `\x0a`, `\x0d`, `\x09` **after** the sanitiser (`oneLine`, `adapter.ts`): escaped before it, the sanitiser would double the backslash (`\\x0a`) and a literal `\x0a` in a name could not be told from a newline — a deviation from "in `searchMatches`", same result. Tests: the fake runner (newline, CR, tab, a literal backslash) and real 0.2.2 (a committed file with a newline in its name). D70-3 and the spec-004 §5 Process Note updated |
+| F2 (minor) | `?archived=true` merged three lists each capped at 200 plus a count line without capping again (up to ~600 lines, several count lines, identical count lines collapsed) | `mergeToolLines` (`commands.ts`): each text once, one cap of 200, one count line summing each list's count and the cut; a list's count line is read only as the last line of a list over the cap, so a CLI warning that reads like one stays a warning. Tests: the helper, and real 0.2.2 with 201 files without frontmatter and 201 deprecated without `type` → 200 lines and `202 more warnings omitted`; plain `/elements` 200 and `1 more warnings omitted` |
+| F3 | The merge with task-069 (`docs/user-guide.md`, `test/README.md` versions, `docs:api`) | Nothing here: the coordinator reconciles them after task-069's merge (so the user guide keeps 0.29 in this round) |
+| F4 (nit) | Plain `/elements` de-duplicates its warnings too | Kept (it also removes a duplicate React key in the Memory list's notice); stated in the spec-004 §5 Process Note |
+| F5 (nit) | "tags missing or not text" for a list | `tags missing or not a list of text`, joined to the other fields with `; `. The userinfo redaction renaming a file name that holds `scheme://user@` is the sanitiser's documented rule (spec-004 §5) and stays |
+| F6 (nit) | The bug-036 limitation also reaches the notification bell (it reads `/today`) | Named in `CHANGELOG.md` *Known limitations* and the user guide's limitation |
+
+Gates of round 1 (local, on the fix): `npm run typecheck`, `npm run lint`, `npm run format:check`,
+`npm run docs:api` clean; `check_tasks.py v0.3` OK; `test/docs/public-text.test.ts` passed. Under the
+strict-identity recipe: `test/server/cli/`, `dropped-matches`, `project-routes`, `text-sweep`,
+`tool-messages`, `test/server/snapshot`, `harness/git-identity`, `api-cli-refusal-schema`,
+`api-writes-schema`, `test/web/memory`, `test/web/shell` — 39 files, 654 passed. The heavy gates:
+the run of the push of this round, below.
+
+On `gates.yml`: run `42594850231` (the push of `2faaf37c`, round 1's code and docs) — **success**:
+`checks`, `coverage` (221 files passed, 1 skipped; statements 96.64 %, branches 91.38 %, functions
+97.28 %, lines 98.41 %), `contract` (17 files passed, 1 skipped), `e2e-chromium` (162 and 161
+passed), `own-specs (firefox)` and `own-specs (webkit)`, `smoke`, `publish-smoke`; `e2e-wave`
+skipped (task scope).
+
+### review round 2 (2026-11-09) — PASS, one minor and one nit
+
+Review on `70f7da35` (the tip run `42596814870`, green). Red `4037dc94`: `memory-search-matches` 2
+failed (the helper's count, the length after the escapes), `dropped-matches` 1 failed on real 0.3.1
+(`?archived=true`: `150 more warnings omitted` for 50 texts cut).
+
+| # | Finding | What changed |
+|---|---------|--------------|
+| R2-F1 (minor) | `mergeToolLines` summed every list's count line: the three searches of `?archived=true` repeat the same `stderr`, so 250 frontmatters that do not parse on 0.3.1 gave `150 more warnings omitted` for 50 distinct texts cut | The adapter keeps the warnings in their parts (`WarningParts`, `CliOutput.warningParts`, `ElementList.warningParts`): the first 200 `stderr` lines and how many follow, and every dropped match. `mergeToolLines(parts)`: each text once, the `stderr` lines first; the `stderr` cut counted **once, the most any search left out** — the three searches read one scan of the Memory folders, so their `stderr` repeats (shown on the probe: 250 files → 50 on both routes) —; the dropped matches all known and counted exactly (201 + 201 on 0.2.2 → 202, as round 1). The rule is in the spec-004 §5 Process Note. `tool-messages.test.ts` lists the adapter's producer line as it now reads |
+| R2-F2 (nit) | `oneLine` ran after the 4 000-character cap: each newline or tab grows to four characters | A dropped-match line is capped again after its escapes (`capMessage`, the sanitiser's own cap, exported from `server/src/git/redact.ts`); the cap's omission mark, set off by newlines, is written with spaces (same length), so the line stays one line. Test: a path of 3 000 newlines → one line of at most 4 000 characters |
+
+The user guide stays at 0.29 (the coordinator bumps it at the reconcile with task-069).
+
+Gates of round 2 (local, on the fix): `npm run typecheck`, `npm run lint`, `npm run format:check`,
+`npm run docs:api` clean; `check_tasks.py v0.3` OK; `test/docs/public-text.test.ts`, `test/governance`
+and `test/wingfoil-feedback.test.ts` passed. Under the strict-identity recipe: `test/server/cli/`,
+`test/server/http/`, `tool-messages`, `test/server/snapshot`, `test/server/writes`,
+`harness/git-identity`, `api-cli-refusal-schema`, `api-writes-schema`, `test/web/memory`,
+`test/web/shell` — 55 files, 1 121 passed.
+
+On `gates.yml`: run `42600944684` (the push of `e3128d36`, round 2's code and docs) — **success**:
+`checks`, `coverage` (221 files passed, 1 skipped; statements 96.64 %, branches 91.37 %, functions
+97.28 %, lines 98.4 %), `contract` (17 files passed, 1 skipped), `e2e-chromium` (162 and 161
+passed), `own-specs (firefox)` and `own-specs (webkit)`, `smoke`, `publish-smoke`; `e2e-wave`
+skipped (task scope).
+
+### review round 3 (2026-11-09) — PASS, three nits
+
+Review on `405531d3`. Runs: `42600944684` (`e3128d36`, round 2's code and docs) and `42603087138`
+(`405531d3`, the tip before this round) — both **success**, every job, `e2e-wave` skipped.
+
+| # | Nit | What was done |
+|---|-----|---------------|
+| R3-n1 | The adapter sends every command's `stderr` warnings through `mergeToolLines`, so each text once now holds for every command (the `/config` sections too), not only `/elements` | Kept; stated generally in D70-3 and the spec-004 §5 Process Note |
+| R3-n2 | `cap`'s JSDoc sat above `capMessage` in `server/src/git/redact.ts` | Moved back to `cap`; `capMessage` has a one-line doc of its own |
+| R3-n3 | On a path over 4 000 characters, the sanitiser's own cut marker shows as a literal `\x0a…\x0a` | Accepted: the line stays one line and capped; noted here only |
+
+Checks of round 3 (local): `npm run typecheck`, `npm run lint`, `npm run format:check`, `npm run
+docs:api` clean; `check_tasks.py v0.3` OK; `npx vitest run test/server/git/redact.test.ts
+test/server/cli/ test/docs/public-text.test.ts` — 11 files, 313 passed.
+
+### merge with task-069 (2026-11-09, the coordinator)
+
+Run `42605688273` on `7e50206c` (round 3's nits) — **success**, every job, `e2e-wave` skipped.
+`design/dev-loop_v0.3` (task-069 merged, `88712e78`; done `b2a29806`) merged into this branch
+(`9e2705ca`): `CHANGELOG.md` and `server/src/http/project-routes.ts` merged without conflict; the
+two version lines reconciled — `docs/user-guide.md` 0.29 (task-069) then **0.30** (this task's
+entry), `test/README.md` 0.68 (task-069) then **0.69** (this task's entry). `npm run typecheck`,
+`npm run lint`, `npx prettier --check` on the merged files and `npm run docs:api` clean.
+
+Tip run `42619591745` on `40fe4685` (this merge and its notes) — **success**, every job,
+`e2e-wave` skipped. W0-7's re-run after the merge, by the independent checker in its own detached
+worktree at `40fe4685` under the strict-identity recipe: `npm run typecheck`, `npm run lint`,
+`npm run format:check`, `npm run docs:api` exit 0; `check_tasks.py v0.3` OK; `npx vitest run`
+on `test/docs`, `test/governance`, `test/wingfoil-feedback.test.ts`, the five new suites,
+`test/server/cli/`, `tool-messages`, `text-sweep`, `api-writes-schema`, `schemas`, `redact`,
+`project-routes`, `harness/git-identity`, `web/api/error-message` — 27 files, 682 passed.
+
+### checker (2026-11-09)
+
+On `40fe4685`: **READY**. Every AC's evidence holds; the red commits `b6ca4b8a` (35 failed, 13
+passed), `9088daf3` (3 + 2 failed) and `4037dc94` (2 + 1 failed) re-run, failing on behaviour;
+rounds 1–3 PASS; the ten run ids on their commits (`42587575794` cancelled as noted, the others
+success); the reconcile with task-069 and no conflict marker; frontmatter, versions, public text.
+G-1 (this run and the re-run above not recorded) fixed here. N-2 the CHANGELOG entry names
+`<repository>` and the URL credentials; N-3 the bug-036 entry rewrapped; N-4 the AC-5 row of the
+test plan no longer claims a log assertion — all fixed in this commit. N-1 (the bugs' notes) comes
+with their close notes at done; N-5 the identity note of the design is already recorded (W2-5);
+N-6 the phase branch's later status commits merged next.

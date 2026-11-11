@@ -15,7 +15,7 @@ import type {
   WorkflowList,
   WorkflowList02,
 } from '@wingfoil-ui/contracts';
-import { schemaProblems, type ContractSchema } from '../contracts.js';
+import { definitionProblems, schemaProblems, type ContractSchema } from '../contracts.js';
 
 /** One consumed command. */
 export interface CliCommandSpec {
@@ -74,6 +74,54 @@ export function outputProblem(name: CliCommandName, data: unknown): string[] | u
   return schemaProblems(cliSchemaFile(name), data);
 }
 
+/** The fields of a `memory search` match, in the schema's order (`#/definitions/match`). */
+const MATCH_FIELDS = ['path', 'id', 'title', 'type', 'status', 'tags'] as const;
+
+/** The valid matches of a `memory search` output and one line per dropped match (not sanitised). */
+export interface SearchMatches {
+  /** The output with the valid matches only, in their order. */
+  data: MemorySearch;
+  /** `memory search left out <path>: not a Memory element (…)`, one per dropped match. */
+  dropped: string[];
+}
+
+/**
+ * The per-match reading of a `memory search` output that fails its schema (spec-001 §2, task-070
+ * D70-1 … D70-3, bug-024): `undefined` when the envelope fails (`matches` not an array, or the rest
+ * of the object invalid — checked as the same schema with no match), else the valid matches and one
+ * line per dropped match, naming its `path` as the CLI returned it (`<no path>` when it is not text)
+ * and the failing fields — never a value.
+ */
+export function searchMatches(data: unknown): SearchMatches | undefined {
+  if (data === null || typeof data !== 'object' || Array.isArray(data)) return undefined;
+  const matches = (data as { matches?: unknown }).matches;
+  if (!Array.isArray(matches)) return undefined;
+  if (outputProblem('memory search', { ...data, matches: [] }) !== undefined) return undefined;
+  const kept: unknown[] = [];
+  const dropped: string[] = [];
+  for (const match of matches) {
+    const problems = definitionProblems(cliSchemaFile('memory search'), '#/definitions/match', match);
+    if (problems === undefined) {
+      kept.push(match);
+      continue;
+    }
+    const path = (match as { path?: unknown } | null)?.path;
+    const where = typeof path === 'string' ? path : '<no path>';
+    const fields = new Set(
+      problems.map((p) => p.missingProperty ?? p.instancePath.split('/')[1]).filter((f) => f !== undefined && f !== ''),
+    );
+    const texts = MATCH_FIELDS.filter((f) => f !== 'tags' && fields.has(f));
+    const why = [
+      ...(texts.length > 0 ? [`${texts.join(', ')} missing or not text`] : []),
+      // `tags` is a list (review round 1 F5).
+      ...(fields.has('tags') ? ['tags missing or not a list of text'] : []),
+    ];
+    if (why.length === 0) why.push('not an object');
+    dropped.push(`memory search left out ${where}: not a Memory element (${why.join('; ')})`);
+  }
+  return { data: { ...(data as MemorySearch), matches: kept as MemorySearch['matches'] }, dropped };
+}
+
 /**
  * Most tool lines of one CLI output passed on (review round 1 m1): `workflow list` diagnostics and
  * `stderr` warnings; the others are counted (`diagnosticsOmitted`, a last warning line).
@@ -89,6 +137,41 @@ export function toolLines(lines: readonly string[], sanitise: (text: string) => 
   const kept = lines.slice(0, MAX_TOOL_LINES).map(sanitise);
   const rest = Math.max(0, lines.length - MAX_TOOL_LINES) + omitted;
   return rest > 0 ? [...kept, `${rest} more warnings omitted`] : kept;
+}
+
+/**
+ * The warnings of one CLI output in their parts, sanitised (task-070 review round 2 R2-F1): its
+ * `stderr` lines as {@link toolLines} keeps them and how many it left out, and every line the adapter
+ * adds — one per dropped `memory search` match, each text once, none left out.
+ */
+export interface WarningParts {
+  /** The first {@link MAX_TOOL_LINES} non-empty `stderr` lines. */
+  stderr: string[];
+  /** How many non-empty `stderr` lines follow them. */
+  stderrOmitted: number;
+  /** One line per dropped match, all of them. */
+  dropped: string[];
+}
+
+/**
+ * The warnings of one or more outputs of a command as the API passes them on (spec-004 §5; task-070
+ * review rounds 1 F2, F4 and 2 R2-F1): each text once, in order — the `stderr` lines first, then the
+ * dropped matches —, at most {@link MAX_TOOL_LINES}, then **one** count line. The outputs of
+ * `memory search` and its archived searches come from one scan of the Memory folders, so their
+ * `stderr` repeats the same lines: what their `stderr` left out is counted once, the most any of
+ * them left out, never their sum; the dropped matches are all known and counted exactly.
+ */
+export function mergeToolLines(parts: readonly WarningParts[]): string[] {
+  const stderr = new Set<string>();
+  const dropped = new Set<string>();
+  let stderrOmitted = 0;
+  for (const part of parts) {
+    for (const line of part.stderr) stderr.add(line);
+    stderrOmitted = Math.max(stderrOmitted, part.stderrOmitted);
+  }
+  for (const part of parts) for (const line of part.dropped) if (!stderr.has(line)) dropped.add(line);
+  // The texts are sanitised already: the identity, never a second sanitiser.
+  return toolLines([...stderr, ...dropped], (text) => text, stderrOmitted);
 }
 
 /**

@@ -75,7 +75,10 @@ export interface ErrorRendering {
   descriptor: MessageDescriptor;
   /** Arguments of the message: the `detail` fields as text (selectors included). */
   values: Record<string, string>;
-  /** The tool output to show verbatim after the message, for `cli-refused` and `git-refused`. */
+  /**
+   * The tool output to show verbatim after the message, for `cli-refused` and `git-refused`: the
+   * tool's message, then for `cli-refused` each of its `detail.reasons` on a line of its own.
+   */
   verbatim?: string;
 }
 
@@ -100,6 +103,8 @@ export function errorMessage(
   const values: Record<string, string> = {};
   if (error.detail !== null && typeof error.detail === 'object') {
     for (const [k, v] of Object.entries(error.detail)) {
+      // A refusal's reasons are tool text shown verbatim, never a catalogue argument (task-070).
+      if (code === 'cli-refused' && k === 'reasons') continue;
       if (typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean') values[k] = String(v);
       else if (Array.isArray(v) && v.every((item) => typeof item === 'string')) {
         // POSIX separators only (spec-010 §5): a backslash is part of a name — the server writes one
@@ -121,6 +126,18 @@ export function errorMessage(
   return {
     descriptor: MESSAGES[code],
     values,
-    ...(VERBATIM.has(code) ? { verbatim: error.message } : {}),
+    ...(VERBATIM.has(code)
+      ? { verbatim: [error.message, ...(code === 'cli-refused' ? reasons(error.detail) : [])].join('\n') }
+      : {}),
   };
+}
+
+/**
+ * The `detail.reasons` of a `cli-refused` answer (WingFoil 0.3.x, spec-004 §5, task-070): shown in the
+ * verbatim block after the CLI's message, one line each (task-056 Q3-a); none unless it is a list of texts.
+ */
+function reasons(detail: unknown): string[] {
+  if (detail === null || typeof detail !== 'object') return [];
+  const list = (detail as { reasons?: unknown }).reasons;
+  return Array.isArray(list) && list.every((r) => typeof r === 'string') ? list : [];
 }

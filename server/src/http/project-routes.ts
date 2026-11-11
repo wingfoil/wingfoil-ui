@@ -56,6 +56,7 @@ import type {
 } from '@wingfoil-ui/contracts';
 import { CliError, cliErrorEnvelope, type CliOutput } from '../cli/adapter.js';
 import { evaluateCapabilities } from '../cli/capabilities.js';
+import { mergeToolLines, type WarningParts } from '../cli/commands.js';
 import { CliNotFoundError } from '../cli/discovery.js';
 import { supportedRange, type DetectedVersion } from '../cli/version.js';
 import { describeElement, type CopyState, type DescriptorHolds } from '../descriptor/descriptor.js';
@@ -510,9 +511,19 @@ async function elements(read: ProjectRead, archived: boolean): Promise<ElementLi
   const { view } = read;
   const list = await view.elements();
   const matches = [...list.matches];
+  const lists: WarningParts[] = [list.warningParts];
   if (archived) {
-    for (const status of ARCHIVED_STATES) matches.push(...(await view.archivedElements(status)).matches);
+    for (const status of ARCHIVED_STATES) {
+      const more = await view.archivedElements(status);
+      matches.push(...more.matches);
+      // The archived searches' warnings too — a dropped archived match included (task-070 D70-4).
+      lists.push(more.warningParts);
+    }
   }
+  // Each text once (every search repeats the CLI's own warnings; the page keys the notice's rows by
+  // text, review round 1 F4), under one cap and one count line (F2), the repeated stderr's cut counted
+  // once (round 2 R2-F1).
+  const warnings = mergeToolLines(lists);
   const inputs = await read.descriptorInputs();
   const events = inputs.ok ? await read.events() : undefined;
   const shortIds = await read.shortIds();
@@ -527,7 +538,7 @@ async function elements(read: ProjectRead, archived: boolean): Promise<ElementLi
   }));
   return {
     elements: listed,
-    warnings: list.warnings,
+    warnings,
     ...(list.message !== undefined ? { message: list.message } : {}),
     ...(inputs.ok ? {} : { typesError: inputs.refusal.error }),
     ...(events?.error ? { eventsError: events.error } : {}),
