@@ -381,3 +381,23 @@ version bump, in the green commit. D73-7 is revised accordingly.
 - **Red** (the commit after this note): `test/web/element/gate-footer.test.tsx` › "state-limit —
   outcomes disabled by different reasons: one line per reason, each outcome described by its own"
   fails with only the first reason's line rendered (1 failed, 41 passed).
+- **Green** (`c1191788`):
+  - `web/src/element/ElementFooter.tsx`: one `.gate-blocked` line per distinct reason (`reasonKey`:
+    the code and parameters, in key order), in the outcomes' order. The first line keeps the id of
+    v0.2's single line. Each disabled outcome's `aria-describedby` names its own reason's line,
+    after the hold line.
+  - `docs/00_reference/ux-reference.md` 1.15, §4.2 *v0.3 state at its limit*.
+  - Results: `npx vitest run test/web`: 61 files, 1021 passed (the D37-8 single-line tests of
+    v0.2 unchanged); typecheck, lint and format:check clean; `test/docs test/governance
+    test/wingfoil-feedback.test.ts`: 7 files, 101 passed.
+- **`gates.yml` runs** (push, task scope):
+
+  | Run | Commit | Jobs that passed | Jobs that did not |
+  |-----|--------|------------------|-------------------|
+  | `43034546332` | `48226b12` | `checks`, `coverage` (223 files passed, 1 skipped), `contract`, `smoke`, `publish-smoke` | both `e2e-chromium` shards failed in the step that installs Chromium's system packages (the runner could not resolve the Ubuntu apt mirror); the rerun of those jobs was cancelled by the next push |
+  | `43044629324` | `c1191788` | `checks`, `coverage`, `contract`, `smoke`, `publish-smoke` | `e2e-chromium` failed in the same install step twice (the run and its rerun); in the rerun `own-specs (firefox)` stopped during its browser install with the same mirror errors, and WebKit was cancelled |
+
+  The e2e jobs had passed on `fb8e69d4` (run `43031478565`): `e2e-chromium` both shards, and
+  `state-limit.spec.ts` 1 passed on Firefox and on WebKit. The commits since then changed the gate
+  footer (`ElementFooter.tsx`), the docs and one test classification, so the e2e jobs are still
+  owed on the tip.
