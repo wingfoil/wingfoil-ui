@@ -356,3 +356,10 @@ its schema, and run the §4.1 resolution check. A failure blocks the matrix adva
   duplicate key is refused by a check linear in the frontmatter's size (the YAML library's own
   check is quadratic: 1 MiB of keys took about 99 s), and the bulk reader of the reference index
   refuses a frontmatter above 64 KiB as `shape` (this repository's largest is about 2 KiB).
+- 2026-11-11 — amended in task-073 (design D73-4, Q5, decided by the approver): §4.1 `limits` is
+  read leniently — the schema of `contracts/files/memory-yaml.schema.json` puts no constraint on it
+  (WingFoil 0.2.2 accepts any value and ignores it, so a constraint could make a 0.2.2 project's
+  `memory.yaml` unreadable for a key its CLI never reads; 0.3.x refuses a bad value itself, before
+  anything is counted), and the server keeps only the entries whose value is a positive integer.
+  The kept `limits` are part of the resolved states, so `/config` and the element read serve them
+  (spec-004 §3, additive). Only spec-003 §6 rule 5 uses them, and only on WingFoil 0.3.0 or later.

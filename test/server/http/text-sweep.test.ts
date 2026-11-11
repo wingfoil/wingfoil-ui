@@ -100,7 +100,10 @@ const RULES: readonly Rule[] = [
     note: 'a refusal reason (task-070)',
   },
   // The action descriptor, wherever it is.
-  { pattern: new RegExp(`${DESCRIPTOR}(?:id|type|status|verbs\\[\\]\\.(?:to|role)|actor\\.role)$`), cls: 'c' },
+  {
+    pattern: new RegExp(`${DESCRIPTOR}(?:id|type|status|verbs\\[\\]\\.(?:to|role|reason\\.state)|actor\\.role)$`),
+    cls: 'c',
+  },
   { pattern: new RegExp(`${DESCRIPTOR}(?:verbs\\[\\]\\.reason\\.range|rejection\\.at|since)$`), cls: 'e' },
   { pattern: new RegExp(`${DESCRIPTOR}rejection\\.(?:by|reason)$`), cls: 'a', note: 'commit text (bug-027)' },
   {

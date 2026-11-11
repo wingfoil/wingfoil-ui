@@ -58,7 +58,7 @@ import { CliError, cliErrorEnvelope, type CliOutput } from '../cli/adapter.js';
 import { evaluateCapabilities } from '../cli/capabilities.js';
 import { mergeToolLines, type WarningParts } from '../cli/commands.js';
 import { CliNotFoundError } from '../cli/discovery.js';
-import { supportedRange, type DetectedVersion } from '../cli/version.js';
+import { compareSemVer, parseSemVer, supportedRange, type DetectedVersion } from '../cli/version.js';
 import { describeElement, type CopyState, type DescriptorHolds } from '../descriptor/descriptor.js';
 import { today } from '../descriptor/today.js';
 import { GitReadError } from '../git/git.js';
@@ -67,7 +67,7 @@ import { MEMORY_EVENTS_MAX_LIMIT, memoryDirectories, memoryEventsPage } from '..
 import { directivesForRoleView, identityView } from '../identity/identity.js';
 import { identityOf } from '../identity/snapshot-identity.js';
 import { ARCHIVED_QUERY } from '../presets/api.js';
-import { ARCHIVED_STATES } from '../presets/wingfoil.js';
+import { ARCHIVED_STATES, LIMITS_SINCE } from '../presets/wingfoil.js';
 import { DirectReadError } from '../reads/confine.js';
 import { shortIdsOf, type ShortIds } from '../reads/short-id.js';
 import { resolveStates } from '../reads/memory-yaml.js';
@@ -278,6 +278,7 @@ class ProjectRead {
       };
       const none: ReadonlySet<string> = new Set();
       const holds = await this.holds();
+      const occupancy = await this.occupancy(memoryYaml, detected);
       return {
         ok: true,
         memoryYaml,
@@ -288,9 +289,32 @@ class ProjectRead {
             members,
             enablement: { ...enablement, localChanges: localChanges ? new Set([match.id]) : none },
             ...(holds ? { holds } : {}),
+            ...(occupancy ? { occupancy } : {}),
           }),
       };
     });
+  }
+
+  /**
+   * Rule 5's count (spec-003 §6; task-073 D73-3): the non-archived elements of `memory search` by
+   * type and status — the search every route already reads, cached for the state, so no process is
+   * added — only for a WingFoil version that enforces `limits` ({@link LIMITS_SINCE}) and a
+   * `memory.yaml` where some machine declares one; otherwise `undefined` (no limit applies).
+   */
+  private async occupancy(
+    memoryYaml: MemoryYaml,
+    detected: DetectedVersion,
+  ): Promise<((type: string, state: string) => number) | undefined> {
+    const version = detected.version === null ? undefined : parseSemVer(detected.version);
+    if (!version || compareSemVer(version, parseSemVer(LIMITS_SINCE)!) < 0) return undefined;
+    const machines = [memoryYaml.defaults?.states, ...Object.values(memoryYaml.types).map((t) => t.states)];
+    if (!machines.some((m) => m?.limits !== undefined)) return undefined;
+    const counts = new Map<string, number>();
+    for (const { match } of (await this.view.elements()).matches) {
+      const key = `${match.type}\0${match.status}`;
+      counts.set(key, (counts.get(key) ?? 0) + 1);
+    }
+    return (type, state) => counts.get(`${type}\0${state}`) ?? 0;
   }
 
   /**

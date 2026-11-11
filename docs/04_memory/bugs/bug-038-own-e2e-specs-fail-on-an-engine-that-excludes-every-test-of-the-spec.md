@@ -5,7 +5,7 @@ title: "Own e2e specs fail on an engine that excludes every test of the spec"   
 status: in-progress          # auto-set by wingfoil; memory.submit → open
 severity: "medium"           # REQUIRED — critical | high | medium | low
 release-origin: "v0.3"     # optional — release where the bug was FOUND, e.g. "v0.1"
-release: ""            # optional — fix/implementation release, stamped by release-planning/build-backlog; required once closed, unless closed by a reject
+release: "v0.3"            # optional — fix/implementation release, stamped by release-planning/build-backlog; required once closed, unless closed by a reject
 feature: ""            # optional — related feature ID from docs/01_vision/06_features.md
 module: ""             # optional — server | web | contracts
 wingfoil_version: "0.3.1"   # optional — `wingfoil --version` of the OBSERVED project (the UI drives its CLI)
@@ -55,7 +55,8 @@ run (the empty-list branch already exits 0 with a line), with a case in
 `test/package/gates-workflow.test.ts`; or have `scripts/e2e-own-specs.mjs` leave out, per engine,
 the specs that select no test there. Workaround until then: none on push; a dispatch with `specs`
 naming another spec runs that spec instead. Proposed to be absorbed into task-059 (the approver,
-2026-11-11).
+2026-11-11). The fix took the list-first form instead (task-059 review rounds 1 and 2):
+the job counts the selected tests with `--list` and prints its line when there are none.
 
 ## Triage & Execution Notes
 
@@ -65,3 +66,5 @@ naming another spec runs that spec instead. Proposed to be absorbed into task-05
        live on those tasks (docs/04_memory/{release}/{id}.md, `bug: {this id}`, their own
        Execution Notes section) — this section only needs a pointer plus anything that doesn't
        belong on a specific fix task (e.g. why 2 tasks were needed instead of 1). -->
+- absorbed (2026-11-11): into task-059 as AC-12 (the approver, "per task 59 vai con a"); planned by
+  the approver (`4e86e4ec`); execution notes in task-059's file.
