@@ -18,6 +18,7 @@ import { createTokenAuthentication } from '../../../server/src/auth/authenticati
 import { buildApp } from '../../../server/src/http/app.js';
 import { registerProjectRoutes } from '../../../server/src/http/project-routes.js';
 import { createLogger } from '../../../server/src/logging.js';
+import { renderPreset } from '../../../server/src/presets/ui-config.js';
 import { nodeReadFs, type ReadFs } from '../../../server/src/reads/confine.js';
 import { REPO_STATE_HEADER } from '../../../server/src/snapshot/state.js';
 import type { Snapshots } from '../../../server/src/snapshot/snapshots.js';
@@ -98,7 +99,9 @@ async function start(template: Fixture, options: { fs?: ReadFs; prepare?: (fx: F
     expectConfigSchema(body);
     return body;
   };
-  return { fx, config };
+  /** The project's snapshot, as the routes open it. */
+  const snapshot = () => audited.snapshots.open(entry.id, entry.path);
+  return { fx, config, snapshot };
 }
 
 /** Write `.wingfoil/ui.yaml` and commit it (the scenarios' "committed ui.yaml"). */
@@ -310,5 +313,20 @@ describe('the C and T scenarios at the API level', () => {
 
   it('T-12.5 — Say that no release is under way', async () => {
     expect(await scope()).toEqual(declaredScope);
+  });
+});
+
+describe('GET /api/p/:pid/config — tied to its state check (bug-034, task-075 AC-1)', () => {
+  it('AC-1 bug-034 `/config` after an edit and a revert between two checks serves the reverted `ui`', async () => {
+    const { fx, config, snapshot } = await start(templates.kanban);
+    const project = await snapshot();
+    await project.view(); // the state check, before ui.yaml exists; no read of it yet
+    const file = path.join(fx.dir, '.wingfoil', 'ui.yaml');
+    await writeFile(file, renderPreset('kanban'));
+    expect((await config()).ui.status.source).toBe('file');
+    await rm(file);
+    const before = project.current()!.key;
+    expect((await project.check()).key).toBe(before);
+    expect((await config()).ui.status).toEqual({ source: 'none' });
   });
 });
