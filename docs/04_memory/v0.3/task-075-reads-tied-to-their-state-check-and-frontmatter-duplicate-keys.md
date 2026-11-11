@@ -420,3 +420,18 @@ AC-5; `bug:` lists both).
   only the repeats of one anchor, so it was the model for the place and the refusal, not the count.
   The 64 KiB / 16 000-alias case of round 1 is now refused by this bound. CHANGELOG *Fixed*,
   spec-001 Process Note, `test/README.md` 0.71.
+
+### review round 3 (2026-11-12, adversarial: FAIL — one blocker; F-7, F-8, F-10, F-9's removal and bug-040 hold)
+
+Relayed by the coordinator on `54491bd1` (its gates: dispatch `43115640738`; the push run
+`43098616541` stayed queued). Red `8e671c45`, then the fix.
+
+| Finding | Red | Fix |
+|---------|-----|-----|
+| F-11 (blocker) — the bound counted only `Alias.resolve`'s cached scan; `yaml`'s `getAliasCount`, the first time an anchored collection is aliased, resolves every alias inside it by a walk of the whole document (`node_modules/yaml/dist/nodes/Alias.js`): nested aliases × all nodes, unbounded by the step count (240 KB read in 10.4 s, 492 KB in 27.3 s at review) | `alias-bound.test.ts` › three shapes — a sequence of aliases, nested sequences of aliases, a map whose values are aliases — anchored as `b`, aliased once by `c`, before 20 000 plain pairs: each read in about 4 s, not refused (3 failed red); "an aliased collection holding a few aliases is read" (passes, the guard against over-refusal) | `keyContext` walks the document itself in document order (pair key then value, the order `visit` uses) and counts, besides the scan, for every alias of an anchored collection the aliases inside it times the document's nodes (an upper bound: the library computes it once per anchor); the sum is compared with the same `MAX_ALIAS_RESOLVE_STEPS` |
+| F-12 (nit) — an empty-key refusal named the next token's position | `frontmatter.test.ts` › "the line and column of the `:` of the pair" (`a: 1\n\n: 2\n` named line 2) | the position of the item's `map-value-ind` source token (`valueIndicatorOffset`); the key's range when the tokens are missing |
+
+Re-checked: every YAML file of this repository (the 383 tracked Markdown frontmatters and
+`.wingfoil/` YAML files, a scratch script on the built `server/dist`) parses. Local checks:
+`typecheck`, `lint` clean; `npx vitest run --maxWorkers=2` on the 16 files of `test/server/reads`
+and `test/server/references` 391 passed (load 3.9).

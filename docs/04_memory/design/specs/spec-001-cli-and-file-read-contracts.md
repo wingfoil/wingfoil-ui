@@ -383,3 +383,6 @@ its schema, and run the §4.1 resolution check. A failure blocks the matrix adva
   error ("too many aliases to resolve") above 2 000 000 steps — about 1 100 aliases of distinct
   anchors — before building the values. The library's own limit (100 aliases per anchor, weighted by
   the aliases inside it) stays.
+- 2026-11-12 — task-075 review round 3 (F-11, F-12): §4.1, §4.2 the alias steps also count, for
+  every alias of an anchored collection, the aliases inside it times the file's nodes (the library
+  walks the whole file to count them); an empty key is named at its `:`.

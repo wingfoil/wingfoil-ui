@@ -13,6 +13,7 @@ import {
   keyContext,
   MAX_ALIAS_RESOLVE_STEPS,
   UnsupportedKeyError,
+  valueIndicatorOffset,
   type KeyContext,
 } from './yaml-keys.js';
 
@@ -60,10 +61,11 @@ function duplicateKey(
   lines: LineCounter,
 ): string | undefined {
   let found: string | undefined;
-  const at = (node: unknown): string => {
-    const where = lines.linePos((node as { range?: readonly number[] } | null)?.range?.[0] ?? 0);
+  const position = (offset: number): string => {
+    const where = lines.linePos(offset);
     return `(line ${where.line}, column ${where.col})`;
   };
+  const at = (node: unknown): string => position((node as { range?: readonly number[] } | null)?.range?.[0] ?? 0);
   visit(doc, {
     Map(_, map) {
       if (!isMap(map)) return undefined;
@@ -71,7 +73,8 @@ function duplicateKey(
       for (const [index, pair] of map.items.entries()) {
         const key = pair.key;
         if (isImplicitEmptyKey(map, index)) {
-          found = `empty key ${at(key ?? pair.value)}`;
+          const colon = valueIndicatorOffset(map, index);
+          found = `empty key ${colon !== undefined ? position(colon) : at(key ?? pair.value)}`;
           return visit.BREAK;
         }
         if (isMergeKey(key)) continue;

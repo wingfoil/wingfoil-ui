@@ -21,9 +21,9 @@
 import {
   isAlias,
   isMap,
+  isPair,
   isScalar,
   isSeq,
-  visit,
   type Alias,
   type Document,
   type Node,
@@ -176,9 +176,9 @@ export interface KeyContext {
   aliases: ReadonlyMap<Alias, Node | undefined>;
   forms: Map<unknown, string>;
   /**
-   * The steps the `yaml` library's `toJS` would take to resolve the aliases (bug-042): its
-   * `Alias.resolve` scans the anchored nodes and aliases before each alias, so each alias costs the
-   * number of them before it — a cost that grows with the square of their number.
+   * The steps the `yaml` library's `toJS` would take to resolve the aliases (bug-042,
+   * {@link keyContext}): a cost that grows with the square of their number, or with the aliases
+   * inside an aliased collection times the document's nodes.
    */
   resolveSteps: number;
 }
@@ -192,30 +192,53 @@ export interface KeyContext {
  */
 export const MAX_ALIAS_RESOLVE_STEPS = 2_000_000;
 
-/** The {@link KeyContext} of `doc`: one visit of its nodes. */
+/**
+ * The {@link KeyContext} of `doc`: one walk of its nodes in document order (pair key, then value).
+ * `resolveSteps` counts what `yaml`'s `toJS` does for the aliases (`node_modules/yaml/dist/nodes/
+ * Alias.js`): `Alias.resolve` scans the anchored nodes and aliases before each alias; and, when an
+ * alias names an anchored collection, `getAliasCount` resolves every alias inside that collection
+ * by a walk of the whole document (task-075 review round 3 F-11) — counted as the aliases inside it
+ * times the document's nodes, for every alias of it (an upper bound: the library keeps the count).
+ */
 export function keyContext(doc: Document): KeyContext {
   const anchors = new Map<string, Node>();
   const aliases = new Map<Alias, Node | undefined>();
-  // The anchored nodes and aliases seen so far, as `yaml`'s `Alias.resolve` lists them.
+  /** The aliases inside each anchored collection (not through an alias). */
+  const inside = new Map<Node, number>();
+  /** The anchored collections the aliases name, once per alias. */
+  const aliasedCollections: Node[] = [];
   let listed = 0;
-  let resolveSteps = 0;
-  const anchor = (_: unknown, node: Scalar | YAMLMap | YAMLSeq): void => {
-    if (node.anchor) {
-      anchors.set(node.anchor, node);
+  let scanSteps = 0;
+  let nodes = 0;
+  const walk = (node: unknown): number => {
+    if (node === null || node === undefined) return 0;
+    nodes += 1;
+    if (isAlias(node)) {
+      const target = anchors.get(node.source);
+      aliases.set(node, target);
+      scanSteps += listed;
       listed += 1;
+      if (isMap(target) || isSeq(target)) aliasedCollections.push(target);
+      return 1;
     }
+    if (isPair(node)) return walk(node.key) + walk(node.value);
+    if (isScalar(node) || isMap(node) || isSeq(node)) {
+      if (node.anchor) {
+        anchors.set(node.anchor, node);
+        listed += 1;
+      }
+      if (isScalar(node)) return 0;
+      let count = 0;
+      for (const item of node.items) count += walk(item);
+      if (node.anchor) inside.set(node, count);
+      return count;
+    }
+    return 0;
   };
-  visit(doc, {
-    Scalar: anchor,
-    Map: anchor,
-    Seq: anchor,
-    Alias(_, node) {
-      aliases.set(node, anchors.get(node.source));
-      resolveSteps += listed;
-      listed += 1;
-    },
-  });
-  return { aliases, forms: new Map(), resolveSteps };
+  walk(doc.contents);
+  let walkSteps = 0;
+  for (const collection of aliasedCollections) walkSteps += (inside.get(collection) ?? 0) * nodes;
+  return { aliases, forms: new Map(), resolveSteps: scanSteps + walkSteps };
 }
 
 /** The node `node` stands for: an alias's anchored node, else itself. */
@@ -291,6 +314,17 @@ export function isImplicitEmptyKey(map: YAMLMap, index: number): boolean {
   const tokens = (map.srcToken as { items?: { start?: { type: string }[] }[] } | undefined)?.items;
   const start = tokens && tokens.length === map.items.length ? tokens[index]?.start : undefined;
   return !(start ?? []).some((token) => token.type === 'explicit-key-ind');
+}
+
+/**
+ * The source offset of the `:` of item `index` of a block mapping (from its source tokens), or
+ * `undefined`: where an empty key is named (task-075 review round 3 F-12).
+ */
+export function valueIndicatorOffset(map: YAMLMap, index: number): number | undefined {
+  type Token = { type: string; offset: number };
+  const tokens = (map.srcToken as { items?: { sep?: Token[] }[] } | undefined)?.items;
+  const item = tokens && tokens.length === map.items.length ? tokens[index] : undefined;
+  return item?.sep?.find((token) => token.type === 'map-value-ind')?.offset;
 }
 
 /**
