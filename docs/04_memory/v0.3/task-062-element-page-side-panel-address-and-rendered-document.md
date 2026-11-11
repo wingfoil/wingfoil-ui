@@ -544,3 +544,6 @@ page (`npx vitest run --maxWorkers=2 test/web/element/gate-footer.test.tsx
 test/web/element/submit-footer.test.tsx test/web/element/page.test.tsx`: 74 passed). Locally:
 typecheck and lint clean; `npx playwright test --project=chromium test/e2e/state-limit.spec.ts`: 1
 passed (1-min load 13.81 → 11.85, another worktree's targeted vitest running; no console left).
+Run `43109573662` on `7239e547`: success — every job of the task scope green; the own specs on
+Firefox and WebKit listed `state-limit.spec.ts` (changed on the branch: `scripts/e2e-own-specs.mjs`
+selects it), so no dispatch was needed.
