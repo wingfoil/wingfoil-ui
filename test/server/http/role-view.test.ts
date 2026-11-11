@@ -123,23 +123,33 @@ describe('PUT /api/p/:pid/role-view', () => {
   });
 
   it.each([
-    ['malformed JSON', 'application/json', '{"role": "developer"', 400],
-    ['a __proto__ key', 'application/json', '{"__proto__": {"role": "developer"}, "role": "developer"}', 400],
-    ['a content type without a parser', 'application/xml', '<role>developer</role>', 415],
-    ['a text body', 'text/plain', 'developer', 400],
-  ])('answers %s with a known project before the identity (characterization)', async (_name, type, payload, status) => {
-    const { store, kanban, source } = await setUp(ALEX);
-    const res = await app!.inject({
-      method: 'PUT',
-      url: `/api/p/${kanban.id}/role-view`,
-      headers: { 'content-type': type, ...AUTH },
-      payload,
-    });
-    expect(res.statusCode).toBe(status);
-    expect(res.json()).toEqual({ error: { code: 'invalid-request', message: expect.any(String) } });
-    expect(source.calls).toEqual([]);
-    expect(store.get(kanban.id)?.roleView).toBe('');
-  });
+    ['malformed JSON', 'application/json', '{"role": "developer"', 400, 'invalid-request'],
+    [
+      'a __proto__ key',
+      'application/json',
+      '{"__proto__": {"role": "developer"}, "role": "developer"}',
+      400,
+      'invalid-request',
+    ],
+    // task-063 D63-10: a 4xx other than 400 and 404 has a code matching its status.
+    ['a content type without a parser', 'application/xml', '<role>developer</role>', 415, 'unsupported-media-type'],
+    ['a text body', 'text/plain', 'developer', 400, 'invalid-request'],
+  ])(
+    'answers %s with a known project before the identity (characterization)',
+    async (_name, type, payload, status, code) => {
+      const { store, kanban, source } = await setUp(ALEX);
+      const res = await app!.inject({
+        method: 'PUT',
+        url: `/api/p/${kanban.id}/role-view`,
+        headers: { 'content-type': type, ...AUTH },
+        payload,
+      });
+      expect(res.statusCode).toBe(status);
+      expect(res.json()).toEqual({ error: { code, message: expect.any(String) } });
+      expect(source.calls).toEqual([]);
+      expect(store.get(kanban.id)?.roleView).toBe('');
+    },
+  );
 
   it.each([
     ['no role', {}],

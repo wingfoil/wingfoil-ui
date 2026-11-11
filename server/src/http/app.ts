@@ -5,6 +5,8 @@
 import fastifyStatic from '@fastify/static';
 import { fastify, type FastifyBaseLogger, type FastifyInstance, type FastifyReply } from 'fastify';
 import { existsSync } from 'node:fs';
+import { STATUS_CODES } from 'node:http';
+import { stat } from 'node:fs/promises';
 import path from 'node:path';
 import { GitReadError } from '../git/git.js';
 import type { Logger } from 'pino';
@@ -54,6 +56,54 @@ function notFound(reply: FastifyReply): FastifyReply {
   return reply.code(404).send(envelope('not-found', 'Not found'));
 }
 
+/**
+ * The body codes of the client errors the error handler does not name otherwise (task-063 D63-10,
+ * the approver's Q3 a): a code that matches the status, `client-error` for any other 4xx. 400 is
+ * `invalid-request` and 404 `not-found`, as before.
+ */
+const CLIENT_ERROR_CODES: Readonly<Record<number, string>> = {
+  400: 'invalid-request',
+  403: 'forbidden',
+  404: 'not-found',
+  412: 'precondition-failed',
+  413: 'payload-too-large',
+  415: 'unsupported-media-type',
+  416: 'range-not-satisfiable',
+};
+
+/** The body code of the client error `status` (4xx). */
+export function clientErrorCode(status: number): string {
+  return CLIENT_ERROR_CODES[status] ?? 'client-error';
+}
+
+/** The route the static file plugin registers for every path (`wildcard: true`). */
+const STATIC_ROUTE = '/*';
+
+/**
+ * bug-031 (task-063 D63-9): `true` when the file system refuses the static path `url` as too long
+ * (`ENAMETOOLONG`, its own limit, not a constant). A path with an empty, `.` or `..` segment, or a
+ * segment holding `\0` or `\`, is never judged here: the plugin's refusal of a non-canonical
+ * path stands, and the `stat` stays inside `root`.
+ */
+async function isNameTooLong(root: string, url: string): Promise<boolean> {
+  let pathname: string;
+  try {
+    pathname = decodeURIComponent(url.split('?')[0] ?? '');
+  } catch {
+    return false;
+  }
+  const segments = pathname.split('/').slice(1);
+  if (segments.some((s) => s === '' || s === '.' || s === '..' || s.includes('\0') || s.includes('\\'))) {
+    return false;
+  }
+  try {
+    await stat(path.join(root, ...segments));
+    return false;
+  } catch (error) {
+    return (error as NodeJS.ErrnoException).code === 'ENAMETOOLONG';
+  }
+}
+
 /** Build the application; call `ready()` before handing `routing` to a server. */
 export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
   const loggerInstance: FastifyBaseLogger = options.logger;
@@ -92,11 +142,30 @@ export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
   } else {
     app.log.warn({ staticDir: options.staticDir }, 'web build not found: the application is not served');
   }
-  app.setErrorHandler((error: { statusCode?: number; validation?: unknown }, request, reply) => {
+  app.setErrorHandler(async (error: { statusCode?: number; validation?: unknown }, request, reply) => {
     const status = error.validation !== undefined ? 400 : (error.statusCode ?? 500);
     if (status === 404) return notFound(reply);
-    // A client error keeps its status (400, 413, 415, …); the request is what is wrong.
-    if (status >= 400 && status < 500) return reply.code(status).send(envelope('invalid-request', 'Invalid request'));
+    // bug-031: the static plugin answers 403 for a name the file system refuses as too long; such a
+    // path is missing — the not-found handler answers (404 under /assets/, the application else).
+    if (
+      status === 403 &&
+      hasWebBuild &&
+      request.routeOptions.url === STATIC_ROUTE &&
+      (request.method === 'GET' || request.method === 'HEAD') &&
+      (await isNameTooLong(options.staticDir, request.url))
+    ) {
+      return reply.callNotFound();
+    }
+    // A client error keeps its status (400, 403, 413, 415, …), with a code that matches it.
+    if (status >= 400 && status < 500)
+      return reply
+        .code(status)
+        .send(
+          envelope(
+            clientErrorCode(status),
+            status === 400 ? 'Invalid request' : (STATUS_CODES[status] ?? 'Client error'),
+          ),
+        );
     if (error instanceof GitReadError) {
       // Git's message may quote configuration values and paths (task-046 review rounds 3 m1, 4
       // minor-1): on any route, the kind and the exit only.

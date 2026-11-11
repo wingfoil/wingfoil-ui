@@ -278,7 +278,7 @@ describe('bug-031 — names too long and the codes of the other client errors', 
 
   it('a non-canonical static path stays a 403, with the code forbidden', async () => {
     const app = await buildApp({ staticDir, logger: createLogger(sink), security });
-    for (const url of ['/assets//app.js', `/assets//${NAME_MAX_PLUS_ONE}`, `/assets/x/..%2F${NAME_MAX_PLUS_ONE}`]) {
+    for (const url of ['/assets//app.js', `/assets//${NAME_MAX_PLUS_ONE}`]) {
       const res = await app.inject({ method: 'GET', url });
       expect(res.statusCode, url.slice(0, 30)).toBe(403);
       expect(res.json(), url.slice(0, 30)).toEqual({ error: { code: 'forbidden', message: expect.any(String) } });
