@@ -435,3 +435,26 @@ Re-checked: every YAML file of this repository (the 383 tracked Markdown frontma
 `.wingfoil/` YAML files, a scratch script on the built `server/dist`) parses. Local checks:
 `typecheck`, `lint` clean; `npx vitest run --maxWorkers=2` on the 16 files of `test/server/reads`
 and `test/server/references` 391 passed (load 3.9).
+- Gates of round 3: run `43117679524` on `7559a898` (the push); the dispatch `43115640738` on
+  `54491bd1` success.
+
+### review round 4 (2026-11-12, adversarial: PASS — F-11, F-12 closed; one nit) and the combination
+
+- **F-13 (nit, information)** — the alias bound is an upper bound (the collection walk charged per
+  alias, the library's per anchor; the distinct-alias scan reaches the bound near 2 000 aliases):
+  the spec-001 round-3 note now says a file over roughly 1 000–2 000 aliases may be refused even
+  when WingFoil lists it (declared residual).
+- **The combination** — the coordinator merged `design/dev-loop_v0.3` (task-073, task-060,
+  task-061, task-059) into this branch (`40f57121`): `snapshot.ts` merged cleanly with task-059's
+  `contentDerived` (a memo entry of kind `none`, dropped with the state's memo), spec-001 and
+  spec-012 keep both sides' notes, `test/README.md` 0.79. On the merge, task-059's
+  `progress-routes.test.ts` › "AC-3 without requires (plain)" and "(unknown)" failed (the red): they
+  asserted no `git ls-tree`, and D75-2 adds the read tie's one per new HEAD. Fixed in the test,
+  keeping its intent: no element file read (the index reads every one), at most one `ls-tree`, and
+  that one the tie's listing (its pathspec holds `.wingfoil`). task-059's other audits under the
+  marks: `progress-routes.test.ts` (with its "one `ls-tree`" commit test) and
+  `snapshot/content-derived.test.ts` 38 passed.
+- Local checks on the merge: `typecheck`, `lint`, `format:check` clean; `npx vitest run
+  --maxWorkers=2` on `process-audit`, `read-tie`, `reference-index`, `memory-events`, `tie`,
+  `fingerprint`, `held-gates-routes`, `ui-config-route` 80 passed; the 9 files of
+  `test/server/reads` and the 4 of `test/server/project-state` 392 passed.

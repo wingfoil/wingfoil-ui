@@ -392,4 +392,8 @@ its schema, and run the §4.1 resolution check. A failure blocks the matrix adva
   the aliases inside it) stays.
 - 2026-11-12 — task-075 review round 3 (F-11, F-12): §4.1, §4.2 the alias steps also count, for
   every alias of an anchored collection, the aliases inside it times the file's nodes (the library
-  walks the whole file to count them); an empty key is named at its `:`.
+  walks the whole file to count them); an empty key is named at its `:`. The count is an upper bound
+  (review round 4 F-13): it charges that walk once per alias where the library walks once per
+  anchor, and the scan of distinct aliases reaches the bound near 2 000 of them — a file holding
+  more than roughly 1 000–2 000 aliases may be refused even when WingFoil lists it (declared
+  residual; no file of this repository holds any).
