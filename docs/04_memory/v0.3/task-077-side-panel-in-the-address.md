@@ -65,3 +65,202 @@ its design's decisions D62-6 … D62-8, D62-10 and the approver's answer Q1 (a) 
 - task-061's Today filters live in component state: the panel keeps Today mounted (task-061 Q3).
 
 ## Execution Notes
+
+### design (2026-11-12)
+
+Read (dl-015): this task; task-062's file in full (D62-1 … D62-18, Q1 … Q4 and the approver's
+answers, red / green / refactor, review round 1 F-1 … F-4, checker round 1 G-1, G-2, N-1 … N-3, the
+e2e closure, the merged-phase note); task-061's D61-6, D61-7 and Q3 (a); spec-011 §2, §3, §6, §8 and
+its Process Notes; `ux-reference.md` §3 *Notifications*, §4.2 (v0.1 W4-8, v0.2 bug-018, v0.3), §5
+*Feedback*; the features `g/element-panel.feature` (G-01.8) and `s/shell.feature` (S-21.1 …
+S-21.4). The merged code: `web/src/routes/{project,element,today,memory,team,directives,tree}.tsx`,
+`web/src/element/{ElementPage,ElementView,Candidates,ElementFooter,queries}.ts(x)`, `element.css`
+(the `.drawer*` rules task-062 kept), `web/src/today/{TodayView,RoleSummary}.tsx`,
+`web/src/shell/{NotificationBell,Toasts,toasts}.ts(x)`, the pre-task-062 drawer
+(`git show 0b76f2e9^1:web/src/element/ElementPanel.tsx`); `test/e2e/support/{element,screens}.ts`,
+the e2e and web tests that open an element from Today or the bell.
+
+#### Probes
+
+- **P1 — TanStack Router 1.170.41 `defaultParseSearch` / `defaultStringifySearch`** (a node script
+  on the worktree's `node_modules`): `?panel=task-001-login-form` → the string; `?panel=` and a bare
+  `?panel` → `''`; `?panel=123` → a number, `true` → a boolean, `null` → `null`, `%7B%7D` → an
+  object, `?panel=a&panel=b` → an array; `%2e%2e` → `..` and `..%2Fx` → `../x` (decoded before any
+  check); `%22123%22` → the string `123`. The console's own links are safe: `stringifySearch` quotes a
+  string that would parse as something else (`123` → `%22123%22`). → D77-1, Q1.
+- **P2 — the API path of a hostile value** (`elementPath`'s `encodeURIComponent` and the WHATWG
+  `URL` parser): `../x` → `/elements/..%2Fx`, `https://example.test/x` → `…%3A%2F%2Fexample.test%2Fx`,
+  `a/..` → `a%2F..`, `x?y#z` → `x%3Fy%23z` — each one segment, the dot segments only for `.` and `..`
+  themselves (refused before any request since task-062, D62-9).
+- **P3 — the server's router** (`find-my-way` 9.9.0, `maxParamLength` 255, the routes
+  `/api/p/:pid/elements/:eid[/history]`): those paths match `:eid` with the decoded value as one
+  string (`a%2F..%2F..%2Fother` → `eid: "a/../../other"`), which task-057's resolution compares with
+  the listed ids only (spec-011 §6): no value reaches another project or another route.
+- **P4 — the merged views' own navigations:** the Memory filters (`FilterLink` with a literal
+  `search`), the Directives *show all* and the Team filters (`navigate({ search: … , replace: true })`)
+  build their search without the previous one, so they drop `panel=`: a view's own navigation closes
+  the panel (D62-6 holds, no view changes for it). `switchTarget` drops every parameter (S-16.2).
+- **P5 — what task-062 left for the panel:** `ElementContent` and `QueryError` exported from
+  `ElementView.tsx`; `ElementFooter` finds the title by `closest('[data-element-view]')` →
+  `.drawer-title` (D62-3); `Toasts.tsx` still places the stack against `.drawer`, its
+  `.drawer-header` and `.element-footer-slot` (the v0.2 rules) and switches to the page's bar only
+  when no `.drawer` is present; `element.css` keeps the `.drawer*` rules; the catalogue key
+  `element.body.label` (the drawer's scrolling body region) was removed as unused. `Candidates` links
+  only to `/p/$pid/e/$eid`. Today's opener record (`returnOpener`) is restored on Today's **mount**:
+  with the panel Today stays mounted, so that path no longer runs. The bell's and Today's links go to
+  `/p/$pid/e/$eid`.
+- To run at red (red-first tests, not run at design): (R1) whether React Aria's popover, closing on a
+  bell item, gives the focus back to the bell after the panel's heading took it (then the panel takes
+  it in a frame after); (R2) whether a search-only navigation resets the scroll of the view under
+  the panel (TanStack's `resetScroll`, default on) — D77-4 passes `resetScroll: false` either way;
+  (R3) `useCanGoBack()` after a reload of a pushed entry.
+
+#### Decisions
+
+Task-062's D62-6 … D62-8 and D62-10 re-checked against the merged page: they hold, with the changes
+below (D77-1 for the empty value, D77-4 for a second opening, D77-7 for the focus path).
+
+- **D77-1 — `panel=` is a search parameter of the project layout (D62-6).** `projectRoute` gets
+  `validateSearch: panelSearch` (`web/src/element/side-panel.ts`): a present `panel` is kept as
+  `{ panel: <string> }` when it is a string — `''` included — and as `{ panel: '' }` for any other
+  parsed form (number, boolean, `null`, object, array), which `elementPath` refuses as *not found*
+  without a request (D62-9): Q1. A string keeps the parameter serialisable when a view spreads the
+  previous search. Every view under `/p/$pid` sees it, its own
+  parameters untouched (a child's `validateSearch` returns only its own keys; the parent's result is
+  merged, task-062 P5). `ProjectLayout` renders `<SidePanel key={pid} pid={pid} />` after `<main>`
+  when `panel` is present and the current match is not the element page (spec-011 §2: ignored there;
+  the match is tested by route id, `'/p/$pid/e/$eid'`, so `project.tsx` does not import
+  `element.tsx`). On `/e/` nothing is read for it.
+- **D77-2 — Two files for the panel.** `web/src/element/ElementSidePanel.tsx` (the presentation,
+  as the pre-task-062 drawer: `.drawer` wrapper with the Escape handler, a non-modal React Aria
+  `Dialog` — W4-8: no backdrop, no focus trap —, `.drawer-header` with the type tag, the id and
+  *Close*, the title as `Heading slot="title" level={2}` with `drawer-title`, the state machine; a
+  focusable scrolling body region named "Element details" (`element.body.label`, re-added; axe
+  `scrollable-region-focusable`); `ElementContent` and the footer as on the page; `data-element-view`
+  on the dialog, so the footer's and the specs' selectors hold) and `web/src/element/SidePanel.tsx`
+  (the controller: the reads `elementQuery` / `historyQuery` / `directivesQuery` /
+  `projectHeaderQuery`, the short-id rewrite, close, the gate-focus request). The panel shows the
+  content only when `element.id === panel` (as the page, D62-4); the heading reads "Loading the
+  element…" until then and the address's value after a refusal (task-062 F-3). The view's page title
+  is unchanged (the panel is not a page).
+- **D77-3 — Short values and candidates (spec-011 §2, AC-3).** An answer whose `element.id` differs
+  from `panel` (and is no path syntax, task-062 N-2) seeds `elementKeys.detail(pid, full)` and
+  navigates `to: '.'` with `search: (prev) => ({ ...prev, panel: full })`, `replace: true`, the
+  entry's state and hash kept, `resetScroll: false`: only the value changes. A 409 shows
+  `Candidates` with a new prop `linkTo: 'page' | 'panel'`: on the panel each candidate is a
+  `?panel=<full id>` link on the same view (`replace`, the entry's state kept — the candidate takes
+  the short value's place as the canonical rewrite does, so *Close* still returns to the view); the
+  section heading is a level-3 heading under the panel's `h2` (the page keeps its level).
+- **D77-4 — Opening (D62-7, D62-8; AC-3).** One helper, `panelLinkOptions(id, { gateFocus })` in
+  `side-panel.ts`, returns the navigation for a `Link` and for `navigate`: `to: '.'`, `search:
+  (prev) => ({ ...prev, panel: id })`, `state: { panelPushed: true, gateFocus }`, `resetScroll:
+  false`; a **push** when the location has no `panel=`, a **replace** that keeps the entry's state
+  when one is already open (another Today row, another bell item while the panel shows an element):
+  Q2. Its users: Today's *Requires you* title and action, *Waiting on others*, the all-roles summary
+  item (`RoleSummary.tsx`), both lists of the bell; *Recent activity* (task-065) will use it.
+  On the element page the bell's items keep `/p/$pid/e/$eid` (a push): the approver's Q1 (a),
+  recorded in spec-011's Process Note and `ux-reference.md` §4.2 v0.3. The Memory list, document,
+  directive and element links keep the page (task-062).
+- **D77-5 — Closing (D62-7).** *Close*, Escape (inside the panel, not handled by an inner control —
+  the drawer's R8 rule) and the footer's *Cancel* call one `close`: `router.history.back()` when the
+  entry carries `panelPushed` and `useCanGoBack()`, else `navigate({ to: '.', search: (prev) =>
+  without(prev, 'panel'), replace: true, resetScroll: false })` (a reload in a fresh tab, a pasted
+  address). One close at a time (task-062 N-3's `closing` flag, reset when `panel` changes) and one
+  `onResolved` listener (F-4's `pendingClose`). The gate-focus request is forgotten as on the page
+  (`history.replace` without `gateFocus`, keeping `panelPushed`). Every other parameter of the view
+  is kept (AC-3).
+- **D77-6 — Hostile values (spec-011 §6, AC-4).** The value is only ever the `eid` of
+  `elementQuery(pid, value)` / `historyQuery` — `elementPath`'s `encodeURIComponent` and its refusal
+  of `''`, `.`, `..` (D62-9, P2) — and never a link, a navigation target or a page title; the only
+  rewrites put the server's `element.id` (D77-3) or a candidate's id (refused when path syntax,
+  `isCandidate`) into the parameter. Another project's element id is looked up under the current
+  `pid` (*not found*, P3). The value is shown as React text in the topline and, after a refusal, the
+  heading (wrapped with `overflow-wrap: anywhere`, D62-11), as the page shows its address. A refusal
+  shows the panel's *not found* and navigates nowhere: path, other parameters and the history length
+  unchanged.
+- **D77-7 — The focus (D62-10, bug-018, X-06.3; AC-3).** On open, and when `panel` changes, the
+  panel's heading takes the focus unless it is already inside the panel (the footer's reason after
+  Today's *Approve* / *Review*, D37-1); R1 decides whether a frame's delay is needed after a bell
+  item. The opener record moves from `TodayView.tsx` to `side-panel.ts` (`rememberOpener(pid, eid,
+  className, event?)`, the same click rules: only a click followed in this page). After the panel
+  closes — by *Close*, Escape, *Cancel* **or the browser's Back** (the panel unmounts with the focus
+  inside it) — `side-panel.ts` signals `panelClosed(pid)`: Today, still mounted, takes the remembered
+  opener as its pending opener and focuses it once its read settles (the existing effect, now driven
+  by the signal instead of the mount — a decided gate that left *Requires you* falls back to `#main`);
+  with no remembered opener (a bell item, a pasted address, a reload) or on a view that holds none,
+  `#main` takes the focus when the focus was lost (`document.body`). A focus the user moved meanwhile
+  is kept. Today's filters and expansion survive (task-061 Q3): Today is never unmounted by the panel.
+- **D77-8 — Toasts and layout.** The panel is the v0.2 drawer for `Toasts.tsx` (`.drawer`,
+  `.drawer-header`, `.element-footer-slot`): no change there; the page's branch applies only without
+  a drawer (P5). The drawer covers the right 480 px of the view as in v0.2.
+- **D77-9 — Strings, screens, support.** Catalogue: `element.body.label` re-added (sorted in place);
+  no other new key expected. `SCREENS` (append-only): "element side panel (Today)" (Today, then the
+  title of `task-001-login-form`) and "element side panel — candidates" (the 409 of task-062's
+  *element page — candidates* entry answered through `page.route` on `?panel=task-001`).
+  `test/e2e/support/element.ts`: `sidePanel(page)` → the panel's `[role="dialog"][data-element-view]`;
+  `elementView` keeps matching both presentations.
+
+#### Files
+
+New: `web/src/element/{side-panel.ts,SidePanel.tsx,ElementSidePanel.tsx}`,
+`test/web/element/side-panel.test.tsx`, `test/e2e/side-panel.spec.ts`. Changed:
+`web/src/routes/project.tsx` (`validateSearch`, the panel after `<main>`),
+`web/src/element/Candidates.tsx` (`linkTo`), `web/src/today/{TodayView,RoleSummary}.tsx` (the
+openers and the restore signal; RoleSummary also changes in task-076, in review: two lines),
+`web/src/shell/NotificationBell.tsx` (its links), `web/src/element/element.css` (the candidates in
+the drawer, if needed), `web/src/i18n/en.json`, `test/web/element/address.test.ts` (`panelSearch`
+cases appended), `test/e2e/support/{element,screens}.ts`, and the tests that assert an opener's
+address (below). Docs: spec-011 Process Note, `ux-reference.md` 1.17 (§4.2 v0.3: Q1 (a), Q2's
+outcome), `CHANGELOG.md` *Unreleased*, `docs/user-guide.md` (the side panel), `test/README.md`
+(version line, `sidePanel`). No server, contract or `.wingfoil/` change.
+
+#### Acceptance criteria — class and test plan
+
+| AC / scenario | Class | Test (file › title) |
+|---|---|---|
+| AC-1 G-01.8 | red-first | `test/e2e/side-panel.spec.ts` › `G-01.8 — Open an element from Requires you in the side panel and keep it on reload` (Today's heading and the dialog both visible, `toHaveURL` `/p/<pid>/today?panel=task-001-login-form` before and after `page.reload()`) |
+| AC-2 S-21.4 | red-first | same › `S-21.4 — Open an item of the bell in the side panel of the current view` (the Memory list at `?type=task`, the bell's *To unblock* item: the list and its filter stay, the address `/p/<pid>/memory?type=task&panel=task-001-login-form` in either order of parameters) |
+| AC-2 Q1 (a) | red-first | same › `AC-2 — On the element page a bell item opens that item's element page`; `test/web/element/side-panel.test.tsx` › the bell on `/e/` links to the page, elsewhere to `?panel=` |
+| AC-2 S-21.1 … S-21.3 | characterization (S-21.1's address now `?panel=`) | `test/e2e/notification-bell.spec.ts`, titles unchanged |
+| AC-3 | red-first | `side-panel.spec.ts` › `AC-3 — Opening pushes, a reload keeps, closing removes panel= and keeps the other parameters`; `X-06.3 — Escape on the side panel returns the focus to its opener` (Today's action; the Memory list keeps its own X-06.3 in `accessibility.spec.ts`); `side-panel.test.tsx` (memory history): a push from Today; *Close* → Back, Forward reopens; *Close* after a fresh load → `replace` without `panel`; other parameters kept; `panel=` on `/e/` ignored with no request; a short value replaced in place (one element read, path unchanged, the entry replaced); a 409's candidates are `?panel=` links on the same view; a second opening replaces (Q2); *Close*, Escape and *Cancel* to the opener, to `#main` after a bell item, after the browser's Back; a double Escape goes back once; Today's card filter kept through open and close (task-061 Q3); the scroll of the view kept (R2) |
+| AC-4 | red-first | `side-panel.test.tsx` › `it.each` `../x`, `https://example.test/x`, `.`, `..`, `''`, `%2e%2e`, `123`, a repeated `panel=`, another project's element id → the panel's *not found*; the stub API saw no request but `/api/p/<pid>/elements/<encoded>` (none for the refused ones); `location.pathname`, the other parameters and the history length unchanged; `address.test.ts` › `panelSearch` (a string kept, `''` kept, every other form `''`, absent stays absent) |
+| AC-5 | red-first | `test/e2e/accessibility.spec.ts` — the two `SCREENS` entries of D77-9, both themes, both builds; keyboard in `side-panel.spec.ts` (`expectFocusVisible` on *Close*, the candidates, Tab into the footer, the shell operable while open — W4-8); `side-panel.spec.ts` › `AC-5 — The toasts never cover the side panel's footer actions` (`document.elementFromPoint` at each action after a decision at 1280×720, 600×720, 400×600) |
+| AC-5 three engines | gate | `gates.yml` own-spec selection: `side-panel` and every spec changed below |
+| AC-6 | docs, gates | spec-011 Process Note (D77-1, D77-4, Q1 (a), Q1, Q2); `CHANGELOG.md`; local typecheck, lint, format:check, `docs:api`, targeted vitest (`--maxWorkers=2`), `check_tasks.py v0.3`, `public-text`; heavy gates on `gates.yml` (run id, commit, result) |
+
+Characterization that moves with the openers (asserts the address or Today's remount): web —
+`test/web/today/{today,summary,cards}.test.tsx`, `test/web/shell/notification-bell.test.tsx`; e2e —
+`today.spec.ts` (T-02.2, T-02.x URLs), `notification-bell.spec.ts` (S-21.1), `gate-footer.spec.ts`
+(G-04.x, bug-018 AC-7: the panel, Today mounted), `submit-footer.spec.ts`, `held-gates.spec.ts`,
+`today-cards.spec.ts` — each checked at red and changed only where it asserts the page's address or
+locator. A test that passes on its first run gets a guard removal (Wave 3 lesson).
+
+#### Security review (spec-011 §6)
+
+For the adversarial reviewer: `panelSearch` (every parsed form), `elementPath` (D62-9), the two
+rewrites (D77-3) — the only places a value enters a navigation —, the candidates' links, the bell
+on `/e/`; the probes P1 … P3 to re-run; no CLI process, no server change.
+
+#### Open questions
+
+- **Q1 — An empty or non-string `panel=` (AC-4 vs D62-6).** AC-4 lists "an empty value" among the
+  values that show the panel's *not found*; D62-6 drops `''` and every non-string form (no panel).
+  Options: (a) a present `panel=` always opens the panel: a string is looked up (`''`, `.`, `..`
+  refused before any request, D62-9), any other parsed form (number, boolean, `null`, object, a
+  repeated parameter) is *not found* without a request; (b) AC-4 for `''` only, the other forms
+  absent as D62-6 says; (c) D62-6 as written and AC-4 amended. **Recommendation: (a)** — one rule
+  for a pasted address: the user always sees an answer, and only a string ever reaches a request.
+- **Q2 — Opening another element while the panel is open.** AC-3 says opening pushes; pushing again
+  from an open panel would make *Close* (Back) show the previous element instead of the view.
+  Options: (a) push only when no panel is open, otherwise replace the value keeping the entry's
+  state, so one *Close* / Back always returns to the view; (b) always push (Back walks through every
+  element opened); (c) push, and *Close* replaces to the view without `panel` (Back then reopens the
+  previous element). **Recommendation: (a)** — *Close* always leaves the panel, as the drawer did;
+  recorded in `ux-reference.md` §4.2 v0.3 and spec-011's Process Note.
+
+#### Size
+
+About 0.9 active day: the panel shell, the controller and the rewrite 0.25 d; the openers, the
+bell and the focus signal 0.15 d; the web tests (address, hostile values, focus) 0.2 d; the new
+e2e spec, the two screens and the characterization moves 0.2 d; docs, `gates.yml` runs, review
+0.1 d. Within one day: no split.
