@@ -131,6 +131,7 @@ describe('today.schema.json summary: role and count only (task-076, D76-1)', () 
     ['the v0.2 items and more', { role: 'approver', count: 2, items: [], more: 0 }],
     ['items', { role: 'approver', count: 2, items: [] }],
     ['more', { role: 'approver', count: 5, more: 2 }],
+    ['another key', { role: 'approver', count: 2, foo: true }],
     ['no count', { role: 'approver' }],
     ['a negative count', { role: 'approver', count: -1 }],
   ])('refuses a tag with %s', (_what, line) => {

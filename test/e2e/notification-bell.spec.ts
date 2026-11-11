@@ -246,6 +246,34 @@ test.describe('US-S-23 — all-roles summary', () => {
     await expect(summary(page).locator('[aria-current="true"]')).toHaveCount(1);
     expect(await scanThemes(page)).toEqual([]);
   });
+
+  // task-076 review round 1, F-1: a long role name from the DNA wraps inside its tag and the card.
+  test('a long role name wraps inside the Your roles card at 400 px (F-1)', async ({ page, fixtures, consoles }) => {
+    const long = 'release-coordination-and-cross-team-dependency-management-leads';
+    const kanban = await copyAs(fixtures, 'Morgan', async (fx) => {
+      await cli(fx, ['dna', 'add', 'team.roles', '--value', long]);
+      await cli(fx, [
+        'dna',
+        'update',
+        'team.members',
+        '--value',
+        'Morgan',
+        '--entry-roles',
+        `approver, tech-lead, ${long}`,
+      ]);
+    });
+    const c = await consoles.start({ projects: [kanban] });
+    await page.setViewportSize({ width: 400, height: 600 });
+    await openToday(page, c);
+    await expect(tags(page)).toHaveCount(3, { timeout: COLD_READ_MS });
+    const tag = summary(page).getByRole('button', { name: `${long} · 0`, exact: true });
+    await expect(tag).toBeVisible();
+    const card = await summary(page).evaluate((el) => el.getBoundingClientRect().right);
+    const rights = await tags(page).evaluateAll((els) =>
+      els.flatMap((el) => [el, ...el.querySelectorAll('*')]).map((el) => el.getBoundingClientRect().right),
+    );
+    expect(Math.max(...rights), `card right ${card}, tag rights ${rights.join(', ')}`).toBeLessThanOrEqual(card);
+  });
 });
 
 test.describe('US-T-07 — empty state', () => {
