@@ -354,3 +354,12 @@ About **1 active day**: the write module (about 300 lines), the route and two sc
 provenance rule, about 35 API tests on real git (the hook cases are short scripts in the copies),
 the fs-port tests, one e2e test, the docs. No split proposed; if review rounds grow it, the
 candidate cut is AC-5 with D60-14 (the provenance checker and its e2e test) as a follow-up task.
+
+#### Decisions of the approver (2026-11-11)
+
+Relayed by the coordinator, quoted: "tutto come consigliato" — Q1 (a) 409 `ui-config-exists` for a
+`.wingfoil` that is a symbolic link or a file; Q2 (a) `no-commit.spec.ts` assertions unchanged, its
+header comment updated; Q3 (a) the spec-005 §5 Process Note in the green commit. Q4 — the
+coordinator's recommendation instead of the developer's: a `CHANGELOG.md` *Unreleased* › *Added*
+entry for the preset API ending "Nothing shows it yet." (as task-055's and task-059's entries do);
+the user guide waits for task-064.
