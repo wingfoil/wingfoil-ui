@@ -305,3 +305,43 @@ Q2 (a)) moved to task-076-role-tags-on-today; this task keeps the cards [A] (US-
 D61-10, D61-12, its parts of D61-11, D61-13 … D61-15); Q2 (a) (task-076's); Q3 (a) component
 state, task-062's side panel keeps Today mounted; Q4 (a) the action keeps the full id.
 `RoleSummary.tsx`, `server/src/descriptor/today.ts` and the summary contract stay untouched here.
+
+### red / green / refactor (2026-11-11)
+
+- **Red** (`486d65e7`): `test/web/today/model.test.ts` (4 new: facets, filters combined, the
+  fallback to *All*, the 10-row limit) and `test/web/today/cards.test.tsx` (new, 9) —
+  `npx vitest run test/web/today`: 13 failed, 49 passed, on the missing model functions
+  (`facetsOf is not a function`) and the missing controls (no `Type` / `State` button, no
+  `.today-id`, 12 rows where 10 were expected); the e2e `test/e2e/today-cards.spec.ts` (T-02.4 …
+  T-02.7), the fixture helper `test/harness/fixtures/pending-tasks.ts` with
+  `test/harness/pending-tasks.test.ts`, the SCREENS entry *today — card filter open*.
+  `today.test.tsx`'s "no button in Waiting on others" now reads "no button in a row" (the card's
+  filters are buttons of their own).
+- **Green** (`b8183e88`): `web/src/today/model.ts` (`ROW_LIMIT`, `facetsOf`, `filterCard`,
+  `effectiveFilter`, `limited`), `CardFilters.tsx`, `CardRows.tsx`, `RowParts.tsx` (`RowId`,
+  `RowSince`), `today.css` (appended), eight catalogue keys inserted in place. In `TodayView.tsx`
+  only `RequiresYouRow` (`RowId` before the title; the reason and `RowSince` in a `today-meta`
+  span), `WaitingRow` (`RowId`, `RowSince`) and the two cards' lists in `TodayView` (each list
+  replaced by `CardRows` keyed by `data.view`) changed, plus the imports and the header comment;
+  the openers (`rememberOpener`, `returnOpener`, the focus effects) are untouched. The key-build
+  check (`test/e2e/support/strings.ts`, `intlRenderings`) accepts the date alone and the full time
+  (appended). `npx vitest run test/web`: 63 files, 1038 passed; `test/harness/pending-tasks.test.ts`
+  2 passed, also under the strict-identity recipe (a `git` wrapper with `-c user.useConfigOnly=true`
+  first on the `PATH`, `test/README.md` *Git identity*).
+- **Deviation from D61-13**: one SCREENS entry instead of two — the shared screens console has no
+  copy with more than 10 pending rows; the expanded card's axe scan (both themes) is in T-02.6's e2e.
+  `RoleSummary.tsx`, `server/src/descriptor/today.ts` and the summary contract untouched (task-076).
+- Docs (`985fc8fb`): `CHANGELOG.md` *Unreleased* *Added*, `docs/user-guide.md` 0.31,
+  `test/README.md` 0.70. Local: `npm run typecheck`, `npm run lint`, `npm run format:check`,
+  `npm run docs:api` clean; `check_tasks.py v0.3` OK; `npx vitest run test/docs test/governance`
+  93 passed.
+- **Gates on `gates.yml`** (task scope): run `43071931364` on `985fc8fb` — every job green but
+  T-02.6 on the three engines (`e2e-chromium (2)`, `own-specs (firefox)`, `own-specs (webkit)`): the
+  test's locator named the toggle "Show all (13)", which no longer matched once it read "Show
+  fewer" — a test defect, fixed in `8aa617d3` (the toggle by its class, its name asserted). Run
+  `43075019283` on `8aa617d3`: green — checks, coverage, contract, smoke, publish-smoke,
+  e2e-chromium 166 + 165 passed (the SCREENS entry *today — card filter open* included), own specs
+  (`today-cards.spec.ts`, 4) on Firefox and WebKit. (The design commit's run `43046066367` failed
+  only on the Chromium install, the mirror outage of 2026-11-11.)
+- **Refactor**: none needed beyond the test fix; the model stays pure, the controls in their own
+  files, `TodayView.tsx`'s openers untouched.
