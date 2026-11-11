@@ -22,9 +22,8 @@ tmpl_version: 260703   # Orignal template version
 
 Today, clearer (release-planning v0.3, RP3-7 N1–N4; RP3-14 D1; RP3-15 F1, F5, F9, S4; RP3-16 P1):
 
-- **N1 — *Your roles* as one line**: one tag per role in DNA order, "approver · 2" — the role and
-  its count of *Requires you* — a click switches the role view; the current view's tag is marked
-  and is not a switch; no items and no "N more" (the v0.2 summary's ≤ 3 items per role go).
+- **N1 — *Your roles* as one line**: moved to task-076-role-tags-on-today at the split
+  (2026-11-11, the approver, Q1 (b); `backlog-item-rel-v0.3-plan` W2-7).
 - **N2, N3 — filters, entry dates, 10 rows**: *Requires you* and *Waiting on others* each get a
   **type** and a **state** filter over that card's rows, with their counts (*All* by default, a
   filter applies to its own card only); each row shows when its element entered its current state
@@ -48,6 +47,8 @@ Today, clearer (release-planning v0.3, RP3-7 N1–N4; RP3-14 D1; RP3-15 F1, F5, 
   on Today — for each role I hold, the count and top items requiring it — so that I know which hat
   to put on first; in v0.3 the summary is one line of role tags with their counts
 
+US-S-23's `@v0.3` scenarios S-23.4 and S-23.5 are delivered by task-076-role-tags-on-today (W2-7).
+
 ## Acceptance Criteria
 
 - **US-T-02** (AC-1) — every `@v0.3` scenario passes
@@ -55,34 +56,28 @@ Today, clearer (release-planning v0.3, RP3-7 N1–N4; RP3-14 D1; RP3-15 F1, F5, 
   by state; T-02.5 Show when each element entered its current state; T-02.6 Show the first 10 rows,
   then all of them on request (its fixture Given accepted at RP3-16 P4); T-02.7 Name each row's
   element by its short id. The `@v0.2` scenarios T-02.1 … T-02.3 still pass.
-- **US-S-23** (AC-2) — every `@v0.3` scenario passes
-  (`docs/02_requirements/02_bdd/features/s/shell.feature`): S-23.4 Show the count of a role, not its
-  items; S-23.5 Switch the role view from the line of role tags. The `@v0.2` scenarios S-23.1
-  (reworded at RP3-16 P1), S-23.2 and S-23.3 still pass.
+- **US-S-23** (AC-2) — moved to task-076-role-tags-on-today (its AC-1): S-23.4 Show the count of
+  a role, not its items, and S-23.5 Switch the role view from the line of role tags are delivered
+  there. (amended 2026-11-11, W2-7.)
 - **AC-3** — *Waiting on others* (`ux-reference.md` §4.1 v0.3): the same two filters, the same
   10-row limit and "Show all (<n>)" / "Show fewer"; a held gate's row shows its reason (S-24.5,
   S-24.6 stay green); a filter's options list only the types and states of its card's rows, with
   counts; changing one card's filter leaves the other card unfiltered (T-02.4); a row without
   `since` shows no date.
-- **AC-4** — REQ-PERF-11's fit criterion (v0.3): the summary is one tag per role with its count and
-  no item; each card lists the first 10 rows of its filtered list, then "Show all (<n>)" — checked
-  in the e2e of AC-1 and AC-2.
-- **AC-5** — F9 (RP3-15): the tests citing S-23.1 and S-23.4 are updated to the reworded and the
-  re-tagged scenarios — `test/web/today/summary.test.tsx`, `test/server/descriptor/today.test.ts`
-  (its "at most 3 items per role, and N more" case becomes the count without items) and
-  `test/e2e/notification-bell.spec.ts`; the server's Today summary drops the items and "N more",
-  with `contracts/api/today.schema.json` and its contract test changed accordingly; the
-  TT-PERF-09 and TT-PERF-11 scenario citations of those tests stay consistent.
+- **AC-4** — REQ-PERF-11's fit criterion (v0.3): each card lists the first 10 rows of its filtered
+  list, then "Show all (<n>)" — checked in the e2e of AC-1. (amended 2026-11-11, W2-7: the
+  summary half is task-076's AC-3.)
+- **AC-5** — moved to task-076-role-tags-on-today (its AC-2). (amended 2026-11-11, W2-7.)
 - **AC-6** — `shortId` is read from the API (spec-011 §1 *Display*); the REQ-ARC-05 lint stays
   green (no type, state or pattern literal in `web/`); no per-element fetch is added (TT-PERF-05
   process audits green).
 - **AC-7** — Screen and accessibility: `docs/00_reference/ux-reference.md` §4.1 v0.3 and the
   prototype (`docs/00_reference/prototype/`), deviations only as recorded (directive
-  `ux-consistency`); every control operable from the keyboard with visible focus (the filters, the
-  tags, "Show all" / "Show fewer"; after a tag switch the focus moves to the *Requires you* heading,
-  as in v0.2); axe-core 0 serious/critical in both themes; every string from the catalogue
+  `ux-consistency`); every control operable from the keyboard with visible focus (the filters,
+  "Show all" / "Show fewer"); axe-core 0 serious/critical in both themes; every string from the catalogue
   (X-09.1); `SCREENS` (`test/e2e/support/screens.ts`) covers the changed cards; the task's e2e
-  specs pass on Chromium, Firefox and WebKit.
+  specs pass on Chromium, Firefox and WebKit. (amended 2026-11-11, W2-7: the tags and the focus
+  after a tag switch are task-076's AC-4.)
 - **AC-8** — Docs and gates: `CHANGELOG.md` *Unreleased* *Changed*/*Added*; the checks of
   `CLAUDE.md`, `npm run docs:api`, `check_tasks.py v0.3`, `test:e2e:chromium`; results with
   commands in the Execution Notes.
@@ -151,14 +146,14 @@ No console was started, no `wfui-*` entry created, nothing committed by the prob
 - **D61-1 — Size and split.** About 1.5 active days (estimate below), above the one-day mark of
   RP3-20 G2: Q1 proposes moving N1 (US-S-23) to a task of its own. The decisions cover the whole
   scope; Q1 says which half each goes to (*[A]* the cards, *[B]* the role tags).
-- **D61-2 — [B] The summary without items (AC-5, REQ-PERF-11 v0.3).** `today()` serves
+- **D61-2 — [B] The summary without items (AC-5, REQ-PERF-11 v0.3; moved to task-076, W2-7).** `today()` serves
   `summary: [{ role, count }]` — `items`, `more` and `SUMMARY_ITEMS` go; `count` is still the
   length of *Requires you* of that role view, in the DNA order, absent for a single-role member.
   `contracts/api/today.schema.json` (`summary` items `required: [role, count]`,
   `additionalProperties: false`) and `TodaySummaryLine` change in the same commit as the contract
   test (RP-55: contracts first). spec-003 §5 says `items` and `more` are "kept in the output,
   unused (no decision to drop them)" while this task's AC-5 drops them: Q2.
-- **D61-3 — [B] *Your roles* as one line (N1, S-23.4, S-23.5).** `RoleSummary.tsx` keeps its
+- **D61-3 — [B] *Your roles* as one line (N1, S-23.4, S-23.5; moved to task-076, W2-7).** `RoleSummary.tsx` keeps its
   region "Your roles" and renders its heading and one list of tags on one wrapping line: a tag per
   role, "approver · 2" (`today.summary.line`, unchanged); a non-current tag is a React Aria `Button`
   described by the `hidden` "Switches the role view" hint (R7, R2-3 of task-042), the current one
@@ -301,3 +296,12 @@ e2e closure: T-02.4, T-02.5, T-02.6, T-02.7 → `test/e2e/today-cards.spec.ts`; 
 e2e (four scenarios, fixture helper, two screens) 0.3, docs and gates 0.1. [B] about 0.5: server and
 contracts 0.1, role tags 0.1, F9 test updates and S-23.4/S-23.5 e2e 0.2, docs and gates 0.1. Total
 about 1.5 active days.
+
+### design approved (2026-11-11, W2-7)
+
+The approver, 2026-11-11: "tutto come consigliato" — Q1 (b) split by backlog item: the role tags
+and the server summary [B] (former AC-2, AC-5, the summary halves of AC-4 and AC-7; D61-2, D61-3,
+Q2 (a)) moved to task-076-role-tags-on-today; this task keeps the cards [A] (US-T-02, D61-4 …
+D61-10, D61-12, its parts of D61-11, D61-13 … D61-15); Q2 (a) (task-076's); Q3 (a) component
+state, task-062's side panel keeps Today mounted; Q4 (a) the action keeps the full id.
+`RoleSummary.tsx`, `server/src/descriptor/today.ts` and the summary contract stay untouched here.
