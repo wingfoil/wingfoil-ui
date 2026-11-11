@@ -154,3 +154,26 @@ describe('the C-03.1 seam stays out of the bin (D60-12)', () => {
     expect(calls[0]).not.toMatch(/presets|fs\b/);
   });
 });
+
+describe('review round 1 F-5 (task-060)', () => {
+  it(
+    'a short write whose cleanup is refused → 500 write-incomplete (as after a failed add), the file kept',
+    async () => {
+      const fs: PresetFs = {
+        ...nodePresetFs,
+        create: async (file, bytes) => {
+          const entry = await nodePresetFs.create(file, bytes.subarray(0, 3));
+          throw new PartialCreateError(entry, Object.assign(new Error('no space'), { code: 'ENOSPC' }));
+        },
+        unlink: () => Promise.reject(Object.assign(new Error('busy'), { code: 'EBUSY' })),
+      };
+      const c = await start({ presetFs: fs });
+      const res = await c.preset({ preset: 'kanban' });
+      expect(res.status).toBe(500);
+      expect(res.body.error).toMatchObject({ code: 'write-incomplete', detail: { file: '.wingfoil/ui.yaml' } });
+      expect(await exists(path.join(c.fx.dir, '.wingfoil', 'ui.yaml'))).toBe(true);
+      expect(writes(c)).toEqual([]);
+    },
+    T,
+  );
+});

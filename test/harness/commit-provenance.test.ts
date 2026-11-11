@@ -3,7 +3,7 @@
 // `test/e2e/commit-provenance.spec.ts` means something. A scratch repository with a bare remote
 // plays the session: the remote brings one commit, the copy fast-forwards to it, two governed
 // commits follow, then a push; each test adds one defect before the after-snapshot.
-import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, rm, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
@@ -289,7 +289,15 @@ describe('the preset fixture variant (task-054 AC-7, D54-10)', () => {
 
   it('task-060 AC-5: each preset subject is accepted, in the session’s order', async () => {
     for (const subject of PRESET_COMMIT_SUBJECTS) {
-      expect(isPresetCommit({ sha: 'a'.repeat(40), subject, parents: ['b'.repeat(40)], files: [UI] }, [])).toBe(true);
+      const raw = [`:000000 100644 ${'0'.repeat(40)} ${'c'.repeat(40)} A\t${UI}`];
+      expect(isPresetCommit({ sha: 'a'.repeat(40), subject, parents: ['b'.repeat(40)], files: [UI], raw }, [])).toBe(
+        true,
+      );
+      // Review round 1 F-4: a modification or another mode is not the preset's create.
+      const modified = [`:100644 100644 ${'d'.repeat(40)} ${'c'.repeat(40)} M\t${UI}`];
+      expect(
+        isPresetCommit({ sha: 'a'.repeat(40), subject, parents: ['b'.repeat(40)], files: [UI], raw: modified }, []),
+      ).toBe(false);
     }
   });
 
@@ -335,6 +343,48 @@ describe('the preset fixture variant (task-054 AC-7, D54-10)', () => {
     expect(await provenanceProblems(await input(brought, [SUBMIT, REJECT, PRESET]))).toContainEqual(
       expect.stringMatching(
         /^[0-9a-f]{7} chore\(ui\): apply the WingFoil sw-life-cycle preset: \.wingfoil\/ui\.yaml was tracked at the start$/,
+      ),
+    );
+  });
+
+  it('review round 1 F-4: a second preset commit that changes the session’s ui.yaml is reported', async () => {
+    const brought = await playSession();
+    await mkdir(path.join(dir, '.wingfoil'), { recursive: true });
+    await commit(UI, 'version: 1\n', PRESET);
+    await commit(UI, 'version: 1\nprogress: {}\n', PRESET_COMMIT_SUBJECTS[0]!);
+    await git(dir, ['push', '-q', 'origin', 'HEAD:main'], env);
+    const problems = await provenanceProblems(
+      await input(brought, [SUBMIT, REJECT, PRESET, PRESET_COMMIT_SUBJECTS[0]!]),
+    );
+    expect(problems).toContainEqual(
+      expect.stringMatching(
+        /^[0-9a-f]{7} chore\(ui\): apply the Kanban preset: a second preset commit in the session$/,
+      ),
+    );
+  });
+
+  it('review round 1 F-4: a preset commit that deletes the session’s ui.yaml is reported', async () => {
+    const brought = await playSession();
+    await mkdir(path.join(dir, '.wingfoil'), { recursive: true });
+    await commit(UI, 'version: 1\n', PRESET);
+    await git(dir, ['rm', '-q', '--', UI], env);
+    await git(dir, ['commit', '-q', '-m', PRESET], env);
+    await git(dir, ['push', '-q', 'origin', 'HEAD:main'], env);
+    const problems = await provenanceProblems(await input(brought, [SUBMIT, REJECT, PRESET, PRESET]));
+    expect(problems).toContainEqual(expect.stringMatching(/does not add \.wingfoil\/ui\.yaml as a regular file$/));
+  });
+
+  it('review round 1 F-4: a preset commit that adds ui.yaml as a symbolic link is reported', async () => {
+    const brought = await playSession();
+    await mkdir(path.join(dir, '.wingfoil'), { recursive: true });
+    await symlink('../outside.txt', path.join(dir, UI));
+    await git(dir, ['add', '--', UI], env);
+    await git(dir, ['commit', '-q', '-m', PRESET], env);
+    await git(dir, ['push', '-q', 'origin', 'HEAD:main'], env);
+    const problems = await provenanceProblems(await input(brought, [SUBMIT, REJECT, PRESET]));
+    expect(problems).toContainEqual(
+      expect.stringMatching(
+        /^[0-9a-f]{7} chore\(ui\): apply the WingFoil sw-life-cycle preset does not add \.wingfoil\/ui\.yaml as a regular file$/,
       ),
     );
   });

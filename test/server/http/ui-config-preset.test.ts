@@ -6,7 +6,19 @@
 // `.wingfoil/ui.yaml` (D60-7, D60-8, C-02.x), what follows it (D60-10) and the failures (D60-9).
 /* eslint-disable @typescript-eslint/no-explicit-any -- JSON bodies, each validated against its schema */
 import type { FastifyInstance } from 'fastify';
-import { chmod, lstat, mkdir, readFile, readdir, realpath, rm, stat, symlink, writeFile } from 'node:fs/promises';
+import {
+  chmod,
+  lstat,
+  mkdir,
+  readFile,
+  readdir,
+  realpath,
+  rename,
+  rm,
+  stat,
+  symlink,
+  writeFile,
+} from 'node:fs/promises';
 import path from 'node:path';
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 import { gitSubcommand } from '../../../server/src/git/git.js';
@@ -729,6 +741,96 @@ describe('failures (D60-9)', () => {
       expect(res.body.error.detail).toEqual({ file: UI });
       expect(await staged(c)).toEqual([UI]);
       expect((await stat(uiFile(c))).isFile()).toBe(true);
+    },
+    T,
+  );
+});
+
+// Review round 1 (security-adversarial): the guards of the removal after a failed `git add`, the
+// commit's own exit, and an unborn HEAD.
+describe('review round 1 (task-060)', () => {
+  const isAdd = (r: ProcessRequest) => gitSubcommand(r.args) === 'add';
+  const isCommit = (r: ProcessRequest) => gitSubcommand(r.args) === 'commit';
+
+  it.runIf(posix)(
+    'F-1: .wingfoil swapped for a link to an outside folder before a failed add → 500, nothing deleted outside or inside',
+    async () => {
+      let outside = '';
+      let moved = '';
+      const c = await start({
+        intercept: async (request, real) => {
+          if (!isAdd(request)) return undefined;
+          const wingfoil = path.join(request.cwd, '.wingfoil');
+          moved = path.join(request.cwd, 'wf-moved');
+          outside = path.join(path.dirname(request.cwd), `outside-${path.basename(path.dirname(request.cwd))}`);
+          await mkdir(outside, { recursive: true });
+          await writeFile(path.join(outside, 'ui.yaml'), 'victim\n');
+          await rename(wingfoil, moved);
+          await symlink(outside, wingfoil);
+          return real(request);
+        },
+      });
+      const res = await c.preset({ preset: 'kanban' });
+      expect(res.status).toBe(500);
+      expect(res.body.error).toMatchObject({ code: 'write-incomplete', detail: { file: UI } });
+      expect(await readFile(path.join(outside, 'ui.yaml'), 'utf8')).toBe('victim\n');
+      expect(await readFile(path.join(moved, 'ui.yaml'), 'utf8')).toBe(renderPreset('kanban'));
+    },
+    T,
+  );
+
+  it(
+    'F-2: git add stages the file but reports a failure → 500 write-incomplete, the file kept and staged',
+    async () => {
+      const c = await start({
+        intercept: async (request, real) =>
+          isAdd(request) ? { ...(await real(request)), exitCode: 1, stderr: 'refused by the test' } : undefined,
+      });
+      const res = await c.preset({ preset: 'kanban' });
+      expect(res.status).toBe(500);
+      expect(res.body.error).toMatchObject({ code: 'write-incomplete', detail: { file: UI } });
+      expect(await readFile(uiFile(c), 'utf8')).toBe(renderPreset('kanban'));
+      expect(await staged(c)).toEqual([UI]);
+    },
+    T,
+  );
+
+  it(
+    'F-3: the commit made but its process killed at the timeout → 500 naming it; nothing logged, pushed or announced',
+    async () => {
+      const c = await start({
+        autoPush: {},
+        intercept: async (request, real) =>
+          isCommit(request) ? { ...(await real(request)), ended: 'timeout', exitCode: null } : undefined,
+      });
+      await c.store.putSettings({ ...DEFAULT_SETTINGS, autoPush: true });
+      const remote = (await git(c.fx.remoteDir, ['rev-parse', 'main'], c.fx.env)).stdout;
+      const res = await c.preset({ preset: 'kanban' });
+      const head = await c.head();
+      expect(res.status).toBe(500);
+      expect(res.body.error).toMatchObject({ code: 'write-incomplete', detail: { file: UI, commit: head } });
+      expect((await subjects(c))[0]).toBe(KANBAN);
+      expect(c.store.snapshot().actionLog).toEqual([]);
+      expect(writeEvents(c)).toEqual([]);
+      expect((await git(c.fx.remoteDir, ['rev-parse', 'main'], c.fx.env)).stdout).toBe(remote);
+    },
+    T,
+  );
+
+  it(
+    'F-7: an unborn HEAD (an orphan branch): 200, a root commit holding only ui.yaml, the rest still staged',
+    async () => {
+      const c = await start({
+        prepare: (fx) => git(fx.dir, ['checkout', '-q', '--orphan', 'fresh'], fx.env).then(() => {}),
+      });
+      const res = await c.preset({ preset: 'kanban' });
+      expect(res.status).toBe(200);
+      const head = await c.head();
+      expect(res.body.commits).toEqual([{ sha: head, subject: KANBAN }]);
+      expect((await out(c, ['rev-list', '--count', 'HEAD'])).trim()).toBe('1');
+      expect(await changedBy(c, 'HEAD')).toEqual([UI]);
+      expect(await staged(c)).toContain('.wingfoil/memory.yaml');
+      expect(c.store.snapshot().actionLog.map((e) => e.sha)).toEqual([head]);
     },
     T,
   );
