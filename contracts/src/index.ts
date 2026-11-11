@@ -144,3 +144,4 @@ export type {
   Shown,
   Unavailable,
 } from './progress.js';
+export type { UiConfigPresetRefusalCode, UiConfigPresetRequest, UiConfigPresetResult, UiPresetId } from './writes.js';

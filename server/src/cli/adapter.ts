@@ -33,7 +33,7 @@ import {
   type WarningParts,
 } from './commands.js';
 import { capMessage, redactLocalPaths } from '../git/redact.js';
-import { READ_GIT_ENV, withoutNames } from '../git/git.js';
+import { CLI_GIT_CONFIG, CLI_GIT_ENV, withoutNames } from '../git/git.js';
 import { CliNotFoundError, type CliSource, type ResolvedCli } from './discovery.js';
 
 /** Timeout of every `wingfoil` process (REQ-INT-04). */
@@ -443,21 +443,6 @@ function cliErrorObject(text: string): { error: string; details?: unknown } | un
   }
   return undefined;
 }
-
-/**
- * The git settings of every WingFoil process: no fsmonitor program (task-046 D46-6), no transport
- * at all (D46-7: a lazy fetch would run a promisor remote's `uploadpack` or `core.sshCommand`).
- */
-const CLI_GIT_CONFIG: readonly (readonly [string, string])[] = [
-  ['core.fsmonitor', 'false'],
-  ['protocol.allow', 'never'],
-  // No signature check in a history read (review round 5 s-minor-1: 0.2.2's `git log --follow`
-  // would run a configured `gpg.program`); the server's own log reads set it too.
-  ['log.showSignature', 'false'],
-];
-
-/** The git variables of every WingFoil process (task-046 D46-5, D46-7). */
-const CLI_GIT_ENV: Readonly<Record<string, string>> = { GIT_OPTIONAL_LOCKS: '0', ...READ_GIT_ENV };
 
 /**
  * `env` with {@link CLI_GIT_ENV} — `GIT_OPTIONAL_LOCKS=0`, `GIT_ALLOW_PROTOCOL=none` (which also
