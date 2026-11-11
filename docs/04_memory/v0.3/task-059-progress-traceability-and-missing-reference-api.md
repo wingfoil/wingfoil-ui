@@ -113,6 +113,9 @@ TT-STATE-08's R-01 scenarios are delivered by task-074-traceability-api (W2-6).
   `test:contract`, `test:e2e:chromium` and `performance.spec.ts`, `test:timing` alone — heavy gates
   through the machine-free slot, load and slot wait in each log; the strict-identity run of
   `test/README.md` *Fixtures* › *Git identity* for the suites that commit to fixtures (dl-011).
+  (amended 2026-11-11, checker N-4: the heavy gates run on `.github/workflows/gates.yml`, on the
+  run a push starts — W2-4, dl-016 —, not through the slot; `test:timing` is the coordinator's run
+  at the wave gate, not the task's — Q7 (a).)
 - **AC-10** — bug-034: moved to task-075-reads-tied-to-their-state-check-and-frontmatter-duplicate-keys
   (W2-6).
 - **AC-11** — bug-037: moved to task-075-reads-tied-to-their-state-check-and-frontmatter-duplicate-keys
@@ -340,7 +343,7 @@ their workspace.
 | AC-7 timing | `test/e2e/performance.spec.ts` › "TT-PERF-03 — progress and missing refs within 5 s", "TT-PERF-04 — Traceability / Memory list with requires p95 ≤ 1.0 s"; `progress-routes.test.ts` › "AC-7 one file re-read for a commit touching one element" |
 | AC-10 bug-034 | `test/server/snapshot/read-tie.test.ts` › "AC-10 red first: …" (ui.yaml, element file, memory.yaml, index, a CLI read with a watcher event; a `stat:` mark not kept) |
 | AC-11 bug-037 | `test/server/reads/frontmatter.test.ts` › "AC-11 …" (each P6 case, the differential table against js-yaml; the linear structural test kept) |
-| T-12.1, T-12.2, T-12.4, T-12.5, T-12.6 | `progress-routes.test.ts` › "T-12.1 Show the figures of the current scope" … (fixture and variant as named in AC-7's list; the figures of §11) |
+| T-12.1, T-12.2, T-12.4, T-12.5, T-12.6 | `progress-routes.test.ts` › "T-12.1 Show the figures of the current scope" … (fixture and variant as named in TT-STATE-08's list; the figures of §11) |
 | T-13.1, T-13.2, T-13.3, T-13.4 | `progress-routes.test.ts` › "T-13.1 …" (`pendingGates.ids`), "T-13.2 …" (`iterated.ids`, `doneIds`), "T-13.3 / T-13.4 the ids the list filters on" |
 | T-14.1 | `progress-routes.test.ts` › "T-14.1 …" (`completion.references`, `referencesCount` 2) |
 | R-01.1, R-01.5 … R-01.9 | `progress-routes.test.ts` › "R-01.1 …" … "R-01.9 …" |
@@ -437,6 +440,9 @@ parti, il resto come proponi".
   flag; the element read carries none" and "AC-3 absent with typesError", which assert an absence
   the code before the task already had (characterization, kept as guards);
   `contracts/progress-api-schema` 3 failed, 2 passed (the schema parts, committed with the red).
+  One of the 3, "compiles in Ajv strict mode", failed on a defect of the test itself, not on the
+  stubs: its `addSchema` list lacked `repository.schema.json` (which `project.schema.json`
+  references); at green it adds every `contracts/api/` schema with `readdirSync` (checker N-1).
 - **Green**: the module (D59-1 … D59-7, D59-10), `/progress`, the flag, `/config` `scope.current`
   (`ProjectRead.currentRef`), `heldOf` exported from `descriptor.ts`, `ProjectRead.holds()` public,
   `SnapshotView.contentDerived` (D59-9, announced to the coordinator before the change: additive,
@@ -529,3 +535,31 @@ test/server/references test/docs/public-text.test.ts` 179 passed; `check_tasks.p
 `43084797482` (`5b6efbf1`): every job green; `own-specs` (Firefox, job `130747138247`) and (WebKit,
 job `130747138198`) print `no test of the own specs runs on <engine>: nothing to run`, with no
 `EPIPE` and no "No tests found" in their logs (F-7, F-8 verified).
+
+### review round 3 (2026-11-11)
+
+Scope F-7 … F-9 only, on `8385b416` (run `43084797482` on `5b6efbf1`): PASS, no findings. The
+reviewer ran the own-specs `run:` block under `bash -e` with a spec that throws at load and one
+with a syntax error (the step stops with exit 1), with `performance.spec.ts` alone (the line, exit
+0) and with `today.spec.ts` (it goes on to the run); with the pipe form restored two
+`gates-workflow` cases fail; F-8's spec-005 Process Note and F-9's build test (1 of 37 fails with
+`build.ts` reverted) verified.
+
+### checker (2026-11-11)
+
+On `8385b416`: NOT READY on the notes only (the code holds) — G-1 (review round 3 not recorded),
+N-1 (the red's test defect not said), N-3 (no test of a gate that is also a `waiting:` state in
+`pendingGates`, which TT-STATE-08's fit criterion names: "pre-packs … pending gates 2"), N-4 (AC-9
+and a test-plan row out of date). Fixed in one round:
+
+- G-1: the review round 3 section above.
+- N-1: the red/green notes say which red failure was the test's own defect.
+- N-3: `figures` › "a gate that is also a waiting state is no pending gate" (the pre-packs
+  `memory.yaml` of the 0.2.2 custom sample, bug `triaged`, kind `gate-waiting`) and
+  `progress-routes` › "TT-STATE-08 fit criterion (checker N-3): pre-packs states and the preset —
+  pending gates 3, then 2 once bug-001 is triaged" (`usePrePacksStates` + `usePresetUiConfig`, then
+  Morgan's `memory approve` of `bug-001-toast-overlap` → `triaged`, descriptor kind `gate-waiting`,
+  pending gates 2 without it). Both pass on the code; with `pendingGatesFigure` counting
+  `gate-waiting` too both fail (1 failed each), code restored.
+- N-4: AC-9 amended with a dated note (heavy gates on `gates.yml`, `test:timing` the
+  coordinator's); the test plan's T-12.x row cites TT-STATE-08's list.

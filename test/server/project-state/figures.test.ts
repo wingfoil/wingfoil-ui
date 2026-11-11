@@ -19,7 +19,7 @@ import { renderPreset } from '../../../server/src/presets/ui-config.js';
 import { shortIdsOf } from '../../../server/src/reads/short-id.js';
 import type { ReferenceIndex } from '../../../server/src/references/index.js';
 import type { EffectiveUiConfig } from '../../../server/src/ui-config/types.js';
-import { customPacks, kanban } from '../ui-config/samples.js';
+import { customPacks, kanban, sampleMemoryYaml } from '../ui-config/samples.js';
 import { CUSTOM, indexOf, matchesOf, uiOf, withRow, type Row } from './support.js';
 
 const READ_ONLY = { code: 'not-in-release' } as const;
@@ -220,6 +220,16 @@ describe('the figures (spec-012 §3, §11 Figures on the fixtures)', () => {
       count: 2,
       ids: ['bug-001-toast-overlap', 'task-001-cli-adapter'],
     });
+  });
+
+  it('a gate that is also a waiting state is no pending gate (spec-005 §4, checker N-3)', async () => {
+    // The pre-packs states (WingFoil 0.2.2's custom sample): bug `triaged` is both a gate and `waiting:`.
+    const prePacks = sampleMemoryYaml('0.2.2', 'custom');
+    const ui = uiOf(renderPreset('sw-life-cycle'), prePacks);
+    const index = await indexOf(withRow(CUSTOM, 'bug-001-toast-overlap', { status: 'triaged' }), ui, prePacks);
+    expect(index.get('bug-001-toast-overlap')!.kind).toBe('gate-waiting');
+    const figure = pendingGatesFigure({ index, ui, current: undefined, held: () => false });
+    expect(figure.ids).not.toContain('bug-001-toast-overlap');
   });
 
   it('T-12.6: no-linked-elements when the current release has no linked reference', async () => {

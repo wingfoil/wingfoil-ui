@@ -34,8 +34,11 @@ import {
   HELD_RELEASE,
   RELEASE_LINE,
   submitToReleasing,
+  usePrePacksStates,
   type Fixture,
 } from '../../harness/fixtures/index.js';
+import { FixtureProject } from '../../harness/fixtures/project.js';
+import { pinnedCli, pinnedVersion } from '../../harness/cli.js';
 import { naturalOrder } from '../../../server/src/project-state/order.js';
 import { git } from '../../harness/run.js';
 import { TempWorkspace } from '../../harness/temp-workspace.js';
@@ -112,6 +115,25 @@ const VARIANTS = {
     await usePresetUiConfig(fx);
     await addSecondRelease(fx);
     await setFrontmatterValue(fx, SECOND_RELEASE, 'version', '');
+  },
+  // TT-STATE-08's fit criterion (checker N-3): the pre-packs states with the preset, where bug
+  // `triaged` is both a gate and a `waiting:` state …
+  prePacks: async (fx: Fixture) => {
+    await usePrePacksStates(fx);
+    await usePresetUiConfig(fx);
+  },
+  // … and bug-001-toast-overlap approved to `triaged` by Morgan (the verb).
+  prePacksTriaged: async (fx: Fixture) => {
+    await usePrePacksStates(fx);
+    await usePresetUiConfig(fx);
+    const p = new FixtureProject({
+      dir: fx.dir,
+      cli: pinnedCli(),
+      cliVersion: pinnedVersion(),
+      now: new Date(fx.now.getTime() + 70 * 60 * 1000),
+      env: fx.env,
+    });
+    await p.approve('Morgan', 'bug-001-toast-overlap');
   },
   // spec-012 §2: an ignored ui.yaml.
   ignored: async (fx: Fixture) => commitUiYaml(fx, 'version: 1\nprogress: { mode: spiral }\n'),
@@ -308,6 +330,18 @@ describe('GET /api/p/:pid/progress — the figures on the fixtures (TT-STATE-08)
     },
     300_000,
   );
+
+  it('TT-STATE-08 fit criterion (checker N-3): pre-packs states and the preset — pending gates 3, then 2 once bug-001 is triaged (a gate and a waiting state)', async () => {
+    expect((await progress(await start('prePacks'))).figures.pendingGates.count).toBe(3);
+    const c = await start('prePacksTriaged');
+    const body = await progress(c);
+    const list = await c.get(`/api/p/${c.pid}/elements`);
+    const bug = list.body.elements.find((e: any) => e.id === 'bug-001-toast-overlap');
+    expect(bug.status).toBe('triaged');
+    expect(bug.descriptor.kind).toBe('gate-waiting');
+    expect(body.figures.pendingGates.count).toBe(2);
+    expect(body.figures.pendingGates.ids).not.toContain('bug-001-toast-overlap');
+  }, 300_000);
 
   it('review round 1 F-2: a current release with an empty version scopes nothing — tasks 0/0, no-linked-elements', async () => {
     const body = await progress(await start('emptyVersion'));
