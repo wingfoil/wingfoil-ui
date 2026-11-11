@@ -407,11 +407,13 @@ the user guide waits for task-064.
   `add`/`commit` there, and no process but the fresh check on a warm unmoved state (C-03.1). (2)
   The P16 test (a project in a sub-folder) was dropped: WingFoil 0.3.1 refuses `dna show` there
   (`E_NOT_AT_GIT_ROOT: run wingfoil from the project root`), so row 5 answers `not-in-team` and no
-  write is reached; the prefix rule stays `isWriteCommit`'s (tested since task-032) and the P16
+  write is reached (0.2.2 not checked; review round 1 F-6); the prefix rule stays `isWriteCommit`'s (tested since task-032) and the P16
   probe's; recorded in spec-005's Process Note. (3) C-02.1's "every value declared" is asserted on
   the Taxonomy values (categories, patterns, requires), as the scenario says: the Kanban preset
   writes no `scope`, so `progress.scope` is `inferred`. (4) The design's unborn-HEAD test was not
-  written (a WingFoil project always has its `init` commit; `commitsFromRoot` has its unit test).
+  written (a WingFoil project always has its `init` commit; `commitsFromRoot` has its unit test) —
+  wrong, corrected in review round 1 (F-7): `git checkout --orphan` on a WingFoil project gives an
+  unborn HEAD with every file still staged; the test exists now.
 - **Gates.** Locally: `npm run typecheck`, `npm run lint`, `npm run format:check`, `npm run
   docs:api` clean (two unresolved TypeDoc links fixed); the touched suites (`index-write`,
   `presets/ui-config`, `commit-provenance`, `writes/`, `ui-config-preset`,

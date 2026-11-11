@@ -268,7 +268,10 @@ export class PresetWrites {
           { kind: 'ui-yaml-create', code: (error.cause as NodeJS.ErrnoException)?.code },
           'preset write: not written',
         );
-        await this.removeCreated(snapshot, wingfoilDir, before, file, error.entry, log);
+        // Review round 1 F-5: a file left behind is answered as after a failed add.
+        if (!(await this.removeCreated(snapshot, wingfoilDir, before, file, error.entry, log))) {
+          return incomplete('ui.yaml could not be removed after it was not fully written');
+        }
         return INTERNAL;
       }
       if (code === 'EEXIST') return EXISTS;
