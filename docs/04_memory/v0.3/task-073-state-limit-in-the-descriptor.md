@@ -369,3 +369,15 @@ answer on the developer's proposal (one line per distinct reason, the coordinato
   - `test/docs test/governance test/wingfoil-feedback.test.ts test/package`: 10 files, 175
     passed.
 - **Refactor**: no code change after green. The review of the diff found nothing to simplify.
+
+### gate footer, Q3 (2026-11-11)
+
+Relayed by the coordinator, the approver: "footer A". Each distinct reason gets one blocked line,
+and each disabled outcome is described by the line of its own reason. When rules 1–4 give every
+outcome the same reason, the single line renders as in v0.2. `state-limit` gets a line of its own,
+which only *Approve* points to. A dated v0.3 bullet goes into `ux-reference.md` §4.2, with its
+version bump, in the green commit. D73-7 is revised accordingly.
+
+- **Red** (the commit after this note): `test/web/element/gate-footer.test.tsx` › "state-limit —
+  outcomes disabled by different reasons: one line per reason, each outcome described by its own"
+  fails with only the first reason's line rendered (1 failed, 41 passed).

@@ -716,3 +716,29 @@ it('state-limit — an approve disabled by the limit: its reason describes Appro
   expect(reject.getAttribute('aria-disabled')).toBeNull();
   expect(describedBy(reject)).toEqual([]);
 });
+
+// task-073 Q3 (b), option (A) (the approver, 2026-11-11): one blocked line per distinct reason, each
+// disabled outcome described by its own reason's line; one shared reason keeps the single v0.2 line
+// (D37-8 above).
+it('state-limit — outcomes disabled by different reasons: one line per reason, each outcome described by its own', async () => {
+  stub({
+    ...GATE,
+    verbs: [
+      { verb: 'approve', to: 's3', role: ROLE, enabled: false, reason: { code: 'state-limit', state: 's3', limit: 1 } },
+      { verb: 'reject', to: 's1', role: ROLE, enabled: false, reason: { code: 'copy-diverged' } },
+      { verb: 'reject', to: 's0', role: ROLE, enabled: false, reason: { code: 'copy-diverged' } },
+    ],
+  });
+  renderApp(`/p/${PID}/e/${EID}`);
+  const f = await footer();
+  const lines = [...f.querySelectorAll('.gate-blocked')].map((p) => p.textContent);
+  expect(lines).toEqual(['Blocked: only 1 s3 at a time', 'Blocked: your copy has diverged from the remote']);
+  const describedBy = (name: string) =>
+    (outcome(f, name).getAttribute('aria-describedby') ?? '')
+      .split(' ')
+      .filter(Boolean)
+      .map((id) => document.getElementById(id)?.textContent);
+  expect(describedBy('Approve → s3')).toEqual(['Blocked: only 1 s3 at a time']);
+  expect(describedBy('Reject → s1')).toEqual(['Blocked: your copy has diverged from the remote']);
+  expect(describedBy('Reject → s0')).toEqual(['Blocked: your copy has diverged from the remote']);
+});
