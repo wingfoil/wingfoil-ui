@@ -470,3 +470,17 @@ split (W2-7); `a9744c80` red; `ec083543` green with the docs.
   panel), in `45b453c1`. The strict-identity recipe (dl-011): the only suite that commits through the
   console here is G-01.7's e2e, which runs on the CI runner (a fresh account with no identity of its
   own, task-071); no server or git code changed.
+
+### review round 1 (2026-11-11)
+
+Independent, adversarial, on `675b5aa0` (the phase branch merged by the coordinator, W0-7): PASS,
+two minors and two nits. The tip run `43082976937` on `675b5aa0`: success.
+
+| Finding | Fix | Test |
+|---------|-----|------|
+| F-1 (minor) — the `more` guard of `ambiguousDetail` (`web/src/element/Candidates.tsx`) was untested | none needed: the guard is right | `test/web/element/page.test.tsx` › "shows a 409 whose more is %s as an error, not as candidates" (`'3'`, `-1`, `1.5`, missing), committed first (`6391f0da`); with the guard line removed (a scratch edit, restored with a file copy) the 4 cases fail, 10 others skipped by `-t` |
+| F-2 (minor, doc) — spec-011 §2 still named `/p/<pid>` as the fallback of *Close* | the 2026-11-11 Process Note states the Memory list fallback and that §2's "today" describes the code before task-062 | — |
+| F-3 (nit) — while loading, the heading showed the address's id as well as the topline | the heading reads "Loading the element…" (`element.loading`) until the element answers; after a refusal it keeps the address's id | `page.test.tsx` › 'names the page "Loading the element…" until the element is read, not by the address' — fails against the round's `ElementPage.tsx` (checked with a file copy); `panel.test.tsx`'s loading test reads the status line |
+| F-4 (nit) — `close`'s `onResolved` listener was removed only on the next resolve | one listener at a time (module `pendingClose`): a new close removes the previous one, the first resolve removes it; it cannot go with the page's unmount — it must run once the destination is shown, after the page left (comment in `routes/element.tsx`) | the close tests of `page.test.tsx` and `panel.test.tsx` |
+
+Checks: `npm run typecheck`, `npm run lint` clean; `npx vitest run test/web` 64 files, 1 056 passed.

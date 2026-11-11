@@ -282,4 +282,7 @@ remember across the session exchange, and where, is adr-003's.
   segments, so `/api/p/<pid>/elements/..` would reach `/api/p/<pid>/` (the project header). Every
   other value is placed with `encodeURIComponent` as §2 says. The side panel of §2 (E1) is
   task-077-side-panel-in-the-address, split from task-062; on the element page a bell item opens
-  that item's element page (Q1 (a)), recorded there when it is built.
+  that item's element page (Q1 (a)), recorded there when it is built. §2 *Close and Escape*: the
+  fallback, when the page was not reached inside the console, is now the project's Memory list
+  `/p/<pid>/memory` as §2 decides (`web/src/routes/element.tsx`, task-062); the "today the fallback
+  is `/p/<pid>`" of §2 describes the code before task-062 (task-062 review round 1, F-2).

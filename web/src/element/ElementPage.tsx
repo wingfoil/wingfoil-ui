@@ -87,7 +87,9 @@ export function ElementPage({
           </Button>
         </div>
         <h1 id={titleId} ref={heading} className="page-title drawer-title" tabIndex={-1}>
-          {shown ? shown.element.title : eid}
+          {/* While the read is pending the heading says so, not the address's id (the topline shows it,
+              review F-3); a refusal keeps the address's id as the heading. */}
+          {shown ? shown.element.title : element.error ? eid : <FormattedMessage id="element.loading" />}
         </h1>
         {shown && (
           <StateMachine

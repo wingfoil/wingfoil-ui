@@ -160,7 +160,7 @@ test.describe('US-M-01 — Memory list', () => {
     await expectFocusVisible(logout);
     await page.keyboard.press('Enter');
     const panel = page.getByRole('region', { name: 'Logout', exact: true });
-    // The panel's first read (bug-004): until it answers, the dialog is named by the id.
+    // The page's first read (bug-004): until it answers, the page is named "Loading the element…".
     await expectFirstLoad(panel.locator('.type-tag'));
     await expect(panel.getByText('task-003-logout', { exact: true })).toBeVisible();
     await expect(page).toHaveURL(`${c.origin}/p/${c.pids[0]}/e/task-003-logout`);

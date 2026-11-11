@@ -276,7 +276,10 @@ it('renders a failed history read inside the history section', async () => {
 it('says the element is loading while the read is pending', async () => {
   stubApi(api());
   renderApp(`/p/${PID}/e/${EID}`);
-  expect(await screen.findByText('Loading the element…')).toBeTruthy();
+  // The status line of the body (the heading says it too, review F-3).
+  await waitFor(() =>
+    expect(screen.getAllByRole('status').map((s) => s.textContent)).toContain('Loading the element…'),
+  );
 });
 
 it('closes with Escape to the Memory list when opened from its URL (no page to go back to; spec-011 §2), focus on main', async () => {

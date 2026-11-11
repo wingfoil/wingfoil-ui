@@ -27,7 +27,10 @@ declare module '@tanstack/history' {
   }
 }
 
-/** Focus the page's `<main>` when the focus was lost with the closed panel (on `<body>`). */
+/** The listener of the last close not yet resolved (one at a time, review F-4). */
+let pendingClose: (() => void) | undefined;
+
+/** Focus the page's `<main>` when the focus was lost with the closed page (on `<body>`). */
 function focusMainWhenLost(): void {
   const active = document.activeElement;
   if (active === null || active === document.body) document.getElementById('main')?.focus();
@@ -63,10 +66,15 @@ function ElementRoutePage(): ReactNode {
   // list (spec-011 §2); then the focus goes to the destination's main region, unless the
   // destination placed it itself (e.g. the Memory list on the row of this element).
   const close = useCallback(() => {
+    // One listener at a time, removed on the first resolve after the close (review F-4). It cannot go
+    // with the page's unmount: it has to run once the destination is shown, after the page left.
+    pendingClose?.();
     const unsubscribe = router.subscribe('onResolved', () => {
       unsubscribe();
+      pendingClose = undefined;
       requestAnimationFrame(focusMainWhenLost);
     });
+    pendingClose = unsubscribe;
     if (canGoBack) router.history.back();
     else void router.navigate({ to: '/p/$pid/memory', params: { pid } });
   }, [canGoBack, router, pid]);

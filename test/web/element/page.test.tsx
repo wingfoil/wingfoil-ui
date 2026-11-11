@@ -234,6 +234,19 @@ it.each([
   expect(screen.queryByRole('link', { name: /Login form/ })).toBeNull();
 });
 
+// Review round 1, F-3: while the element is read, the heading says so — the id is in the topline only.
+it('names the page "Loading the element…" until the element is read, not by the address', async () => {
+  const fetch = stubApi(api());
+  const answer = fetch.getMockImplementation() as (url: string) => Promise<Response>;
+  fetch.mockImplementation((url: string) => (url === `${API}/${EID}` ? new Promise(() => {}) : answer(url)));
+  renderApp(`/p/${PID}/e/${EID}`);
+  const heading = await screen.findByRole('heading', { level: 1, name: 'Loading the element…' });
+  const page = screen.getByRole('region', { name: 'Loading the element…' });
+  expect(page.contains(heading)).toBe(true);
+  expect(within(page).getByText(EID).classList.contains('element-id')).toBe(true);
+  expect(screen.queryByRole('heading', { level: 1, name: EID })).toBeNull();
+});
+
 it('shows not found for an unknown id, the address as heading', async () => {
   stubApi(api());
   renderApp(`/p/${PID}/e/task-46`);
