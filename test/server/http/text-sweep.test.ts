@@ -105,7 +105,10 @@ const RULES: readonly Rule[] = [
   { pattern: /^git\.refusal \.error\.detail\.files\[\]$/, cls: 'b' },
   { pattern: /^projects\.refusal \.error\.detail\.name$/, cls: 'b', note: BUG_035 },
   { pattern: /^projects\.refusal \.error\.detail\.(?:path|pid|command|stateDir)$/, cls: 'e' },
-  { pattern: /^write\.refusal \.error\.detail\.(?:file|command|commit)$/, cls: 'e' },
+  // task-072 review round 1 F-1: `read-error` and `write-incomplete` name a repository path the
+  // catalogue shows.
+  { pattern: /^write\.refusal \.error\.detail\.file$/, cls: 'b', note: BUG_035 },
+  { pattern: /^write\.refusal \.error\.detail\.(?:command|commit)$/, cls: 'e' },
   // task-060: the preset write's refusal; `failure` quotes the shipped preset only (D60-5).
   {
     pattern: /^ui-config\.preset\.refusal \.error\.detail\.(?:file|command|commit|failure)$/,
@@ -154,7 +157,9 @@ const RULES: readonly Rule[] = [
   { pattern: /^history \.entries\[\]\.(?:sha|timestamp)$/, cls: 'e' },
   { pattern: /^history \.entries\[\]\.(?:subject|reason|author|approver)$/, cls: 'a', note: 'commit text (bug-027)' },
   { pattern: /^memory-events \.events\[\]\.(?:sha|timestamp)$/, cls: 'e' },
-  { pattern: /^memory-events \.events\[\]\.(?:type|id|from|to)$/, cls: 'c', note: 'keys from the subject (D56-8)' },
+  { pattern: /^memory-events \.events\[\]\.(?:type|id)$/, cls: 'c', note: 'keys from the subject (D56-8)' },
+  // task-072 review round 1 F-2: only shown (the bell's *Updates*), as a history entry's states.
+  { pattern: /^memory-events \.events\[\]\.(?:from|to)$/, cls: 'b', note: BUG_035 },
   { pattern: /^memory-events \.events\[\]\.(?:author|approver|reason)$/, cls: 'a', note: 'commit text (bug-027)' },
   // Directives.
   { pattern: /^directives? \.(?:entries\[\]|entry)\.frontmatter\.(?:name|title)$/, cls: 'b', note: BUG_035 },
@@ -374,20 +379,23 @@ const EXEMPT_ROUTES: Readonly<Record<string, string>> = {
  * The (b) leaves of the swept schemas the hostile fixture cannot reach, each with the test that
  * covers it (task-072 D72-10). A (b) leaf neither reached nor listed fails *per-field reach*.
  */
+/** The test of the writer of every Today row's actor (review round 1 F-4). */
+const TODAY_ACTOR =
+  "server/http/serialise › descriptorBody › the actor's member name and email and its members' names escaped";
+
 const REACHED_ELSEWHERE: Readonly<Record<string, string>> = {
   'project .repository.branch': 'git refuses a control character in a ref name: server/http/repository-status',
   'project .repository.upstream': 'as the branch: server/http/repository-status',
   'project .repository.sync.update.lastError.detail.files[]': 'a failed update: server/http/repository-status',
   'project .identity.members[]': 'an ambiguous identity: server/http/repository-text',
-  // Today places each row by its descriptor (spec-003 §5) and writes every row of every list through
-  // the same `descriptorBody` (project-routes `todayOf`): a member actor is never a gate of *Requires
-  // you* or the summary, and the identified user holds every role, so no gate waits on others.
-  'today .requiresYou[].descriptor.actor.member.name': 'only gates there: the rows of waitingOnOthers, same writer',
-  'today .requiresYou[].descriptor.actor.member.email': 'only gates there: the rows of waitingOnOthers, same writer',
-  'today .summary[].items[].descriptor.actor.member.name': 'only gates there: the rows of waitingOnOthers, same writer',
-  'today .summary[].items[].descriptor.actor.member.email':
-    'only gates there: the rows of waitingOnOthers, same writer',
-  'today .waitingOnOthers[].descriptor.actor.members[]': 'Alex holds every role: the rows of requiresYou, same writer',
+  // Today places each row by its descriptor (spec-003 §5): a member actor is never a gate of
+  // *Requires you* or the summary, and the identified user holds every role, so no gate waits on
+  // others. Every row of every list is written by `descriptorBody` (project-routes `todayOf`).
+  'today .requiresYou[].descriptor.actor.member.name': TODAY_ACTOR,
+  'today .requiresYou[].descriptor.actor.member.email': TODAY_ACTOR,
+  'today .summary[].items[].descriptor.actor.member.name': TODAY_ACTOR,
+  'today .summary[].items[].descriptor.actor.member.email': TODAY_ACTOR,
+  'today .waitingOnOthers[].descriptor.actor.members[]': TODAY_ACTOR,
   'config .workflows.data.workflows[].phases[].description':
     'WingFoil 0.2.x only: server/http/serialise (workflowsBody)',
   'config .workflows.data.workflows[].phases[].actions[]': 'WingFoil 0.2.x only: server/http/serialise (workflowsBody)',
@@ -461,6 +469,8 @@ describe('route coverage (task-072 D72-10)', () => {
       const unswept = gets.filter((u) => !(u in SWEPT_ROUTES) && !(u in EXEMPT_ROUTES));
       expect(unswept).toEqual([]);
       for (const u of Object.keys(SWEPT_ROUTES)) expect(gets, u).toContain(u);
+      // Review round 1 F-4: an exempt route that is gone is not left listed.
+      for (const u of Object.keys(EXEMPT_ROUTES)) expect(gets, u).toContain(u);
     } finally {
       await routesApp.close();
     }
@@ -693,6 +703,15 @@ describe('the sweep of AC-4 (one hostile fixture, every GET route of the project
     expect(checked).toBeGreaterThan(50);
     // Per-field reach (task-072 D72-10, AC-2): every (b) leaf of every swept schema was seen holding
     // the hostile U+202E escaped once, or names the test that covers it.
+    // Review round 1 F-3: every route of SWEPT_ROUTES was read here, with its schema.
+    const read = new Set(
+      routes.map(([schema, url]) => {
+        const at = (url.startsWith('/api/') ? url : `/api/p/${pid}${url}`).split('?')[0]!;
+        const route = Object.keys(SWEPT_ROUTES).find((r) => new RegExp(`^${r.replace(/:[a-z]+/g, '[^/]+')}$`).test(at));
+        return `${route} ${schema}`;
+      }),
+    );
+    expect(Object.entries(SWEPT_ROUTES).filter(([r, schema]) => !read.has(`${r} ${schema}`))).toEqual([]);
     const swept = new Set(routes.map(([schema]) => schema));
     const leavesB = (await schemaFields()).filter((f) => swept.has(f.split(' ')[0]!) && classOf(f)?.cls === 'b');
     const unreached = leavesB.filter((leaf) => {

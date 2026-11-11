@@ -3,7 +3,14 @@
 // list or object has every string leaf sanitised, its shape kept, the keys of a nested object left
 // as keys; the other fields stay as written (class (d)).
 import { describe, expect, it } from 'vitest';
-import { dnaBody, frontmatterBody, toolTextSanitiser, workflowsBody } from '../../../server/src/http/serialise.js';
+import {
+  descriptorBody,
+  dnaBody,
+  frontmatterBody,
+  memoryEventBody,
+  toolTextSanitiser,
+  workflowsBody,
+} from '../../../server/src/http/serialise.js';
 
 const RLO = String.fromCodePoint(0x202e);
 const ESC = String.fromCodePoint(0x1b);
@@ -114,6 +121,48 @@ describe('dnaBody and workflowsBody (task-072)', () => {
     expect(workflowsBody(list as never)).toEqual({
       ...list,
       workflows: [{ ...list.workflows[0], description: e, more: e }],
+    });
+  });
+});
+
+// task-072 review round 1 — F-2: a Memory event's `from` and `to` are only shown (the bell's
+// *Updates*): class (b); its `type` and `id` stay keys. F-4: the actor's member and members, as every
+// row of every Today list writes them (`descriptorBody`, `todayOf`).
+describe('memoryEventBody and descriptorBody (task-072 review round 1)', () => {
+  const h = `s${RLO}${ESC}`;
+  const e = 's\\u202e\\x1b';
+
+  it("an event's from and to escaped, its type and id raw", () => {
+    const event = {
+      sha: 'a'.repeat(40),
+      timestamp: 't',
+      operation: null,
+      type: `t${RLO}`,
+      id: `i${RLO}`,
+      from: h,
+      to: h,
+      author: 'A',
+      approver: null,
+      reason: null,
+    };
+    expect(memoryEventBody(event as never, sanitise)).toMatchObject({ type: `t${RLO}`, id: `i${RLO}`, from: e, to: e });
+  });
+
+  it("the actor's member name and email and its members' names escaped, the role raw", () => {
+    const descriptor = {
+      id: 'x',
+      type: 'task',
+      status: 's',
+      kind: 'gate',
+      tone: 'human',
+      verbs: [],
+      actor: { kind: 'role', role: `r${RLO}`, member: { name: h, email: h }, members: [h, 'Plain'] },
+    };
+    expect(descriptorBody(descriptor as never, sanitise).actor).toEqual({
+      kind: 'role',
+      role: `r${RLO}`,
+      member: { name: e, email: e },
+      members: [e, 'Plain'],
     });
   });
 });

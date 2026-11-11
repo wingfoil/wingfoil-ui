@@ -289,6 +289,14 @@ export async function addHostileRepositoryText(
   await p.commitAll('edit: a state written by hand', 'elements');
   await p.editFrontmatter(el.path, { status: 'draft' });
   await p.commitAll('edit: the state set back', 'elements');
+  // Two edits of the body under a CLI subject whose bracket names the hostile state (task-072 review
+  // round 1 F-2): a commit that changes no `status:` line takes its transition from the subject
+  // (spec-002 §3 rule 2), so a Memory event's `from` and `to` hold U+202E and ESC.
+  const file = path.join(fixture.dir, el.path);
+  for (const bracket of [`draft → ${state}`, `${state} → draft`]) {
+    await writeFile(file, `${await readFile(file, 'utf8')}\nEdited.\n`);
+    await p.commitAll(`wf(task): submit ${el.id} [${bracket}]`, 'elements');
+  }
   // Submitted by Alex: a gate of his roles (Today's *Requires you* and its summary).
   await p.wingfoil(['memory', 'submit', el.id]);
   // And a draft of his: a member actor (*Waiting on others*, the Memory list).

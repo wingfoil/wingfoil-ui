@@ -270,6 +270,21 @@ describe('history (D72-8)', () => {
   });
 });
 
+describe('Memory events (task-072 review round 1 F-2)', () => {
+  it("a state written by hand reaches the events' from and to escaped; type and id stay keys", async () => {
+    const page = await get('/events/memory?limit=100');
+    const state = escapedMark(L.state);
+    const mine = page.events.filter((e: any) => e.id === hostile.handState.id);
+    expect(mine.map((e: any) => [e.type, e.from, e.to])).toEqual(
+      expect.arrayContaining([
+        ['task', 'draft', state],
+        ['task', state, 'draft'],
+      ]),
+    );
+    expect(rawJson(JSON.stringify(page))).toBe(false);
+  });
+});
+
 describe('documentation and files (D72-6, D72-7)', () => {
   it('a document keeps its raw path (the address) and gets an escaped label', async () => {
     const docs = await get('/docs');
