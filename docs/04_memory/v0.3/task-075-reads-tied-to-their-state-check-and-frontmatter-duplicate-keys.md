@@ -325,3 +325,9 @@ here unless the coordinator relays that it is absorbed.
   the strict-identity run (a `git` wrapper outside the repository with `-c user.useConfigOnly=true`
   and the `followRemoteHEAD` emulation, *Git identity*) of `read-tie`, `frontmatter-cli`,
   `process-audit`, `ui-config-route`: 33 passed.
+- **Heavy gates on `gates.yml`**: run `43078974286` at `a63b99af` (the push of this branch) —
+  success: `checks`, `coverage`, `contract`, `e2e-chromium` (2 shards), `own-specs` (Firefox,
+  WebKit; this task adds no e2e spec), `smoke`, `publish-smoke`; `e2e-wave` skipped (task scope).
+  The design push's run `43046319548` (`108d5d1a`, no code) failed only in the two
+  `e2e-chromium` jobs' step *Chromium and its system packages* (the browser install), not rerun:
+  the later run supersedes it.
