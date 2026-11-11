@@ -61,7 +61,7 @@ function fetchControlled(): { fn: ReturnType<typeof vi.fn>; answer: (status: num
 }
 
 let stop: (() => void) | undefined;
-let reload: ReturnType<typeof vi.fn>;
+let reload: ReturnType<typeof vi.fn<(address: string) => void>>;
 
 beforeEach(() => {
   resetSession();
@@ -70,7 +70,7 @@ beforeEach(() => {
   visibility = 'visible';
   Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => visibility });
   history.replaceState(null, '', '/p/p_abc/e/task-001-login-form?panel=x');
-  reload = vi.fn();
+  reload = vi.fn<(address: string) => void>();
 });
 afterEach(() => {
   stop?.();

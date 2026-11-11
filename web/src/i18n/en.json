@@ -337,7 +337,7 @@
   "shell.reason.unsupportedVersion": "supported {min} to {max}",
   "shell.roleView.hint": "You hold several roles: choose the view",
   "shell.roleView.label": "Role view",
-  "shell.session.lost.body": "The console was stopped and started again, or this page belongs to another console. Open the URL printed in the terminal where you started the console.",
+  "shell.session.lost.body": "The console was stopped and started again, or this page belongs to another console. Open the URL printed in the terminal in any tab of this browser: if the console runs on the same port again, this page reconnects by itself.",
   "shell.session.lost.title": "This page is no longer recognised by the console",
   "shell.toast.close": "Close notification",
   "shell.unreachable.body": "Cannot reach the console. Check that it is still running in the terminal where you started it, or start it again and open the URL it prints. This page reconnects by itself when the console answers again.",

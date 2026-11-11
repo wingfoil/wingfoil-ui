@@ -4,12 +4,27 @@
  * and the token exchanged with `POST /api/session` for the `HttpOnly` session cookie. A page opened
  * without a token (a reload) relies on that cookie. A 401 anywhere — the exchange, an API call, the
  * event stream's probe — means the console no longer knows this page (stopped or started again):
- * the session is **lost** for good and the shell shows the lost-session notice (decision W3-7).
+ * the session is **lost** — final inside the page — and the shell shows the lost-session notice
+ * (decision W3-7). A lost page leaves that state only by a full load of its own address, once the
+ * browser holds a session again (`recovery.ts`, adr-003 D6, task-063).
  *
  * A console URL pasted into a tab that already shows the console changes only the fragment, which
  * the browser does not reload for (bug-016): {@link watchFragmentToken} handles that case.
  */
 import { useSyncExternalStore } from 'react';
+
+/** The same-origin `BroadcastChannel` on which a successful exchange is announced (adr-003 D6). */
+export const SESSION_CHANNEL = 'wfui-session';
+
+/**
+ * Tell the other tabs of this origin that the browser holds a session again: a message that holds
+ * nothing (`null`) — no token, session id or path (task-063 D63-2). Nothing without
+ * `BroadcastChannel`.
+ */
+function announceSession(): void {
+  if (typeof BroadcastChannel !== 'function') return;
+  new BroadcastChannel(SESSION_CHANNEL).postMessage(null);
+}
 
 /** `connecting` until the bootstrap ends, then `connected` or `lost` (final). */
 export type SessionStatus = 'connecting' | 'connected' | 'lost';
@@ -75,6 +90,7 @@ export async function bootstrapSession(): Promise<SessionStatus> {
       headers: { Authorization: `Bearer ${token}` },
     });
     setStatus(response.status === 204 ? 'connected' : 'lost');
+    if (response.status === 204) announceSession();
   } catch {
     setStatus('lost');
   }
