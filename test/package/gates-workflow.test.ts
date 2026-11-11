@@ -554,8 +554,13 @@ describe('gates.yml — the jobs (task-071, AC-2, AC-3)', () => {
       'echo "no own e2e spec: nothing to run on $ENGINE"',
       'exit 0',
       'fi',
+      // bug-038 (task-059 AC-12, review round 1 F-4): listed specs that select no test on the engine.
+      'if npx playwright test --list --pass-with-no-tests --project="$ENGINE" "${specs[@]}" | grep -q \'^Total: 0 tests\'; then',
+      'echo "no test of the own specs runs on $ENGINE: nothing to run"',
+      'exit 0',
+      'fi',
       'npx playwright install --with-deps "$ENGINE"',
-      'npm run test:e2e -- --project="$ENGINE" --reporter=github,html --pass-with-no-tests "${specs[@]}"',
+      'npm run test:e2e -- --project="$ENGINE" --reporter=github,html "${specs[@]}"',
     ]);
     expect(runStep.env).toEqual({
       ENGINE: '${{ matrix.engine }}',
@@ -564,12 +569,26 @@ describe('gates.yml — the jobs (task-071, AC-2, AC-3)', () => {
     });
   });
 
-  it('own-specs: listed specs that select no test on the engine pass (bug-038, task-059 AC-12)', () => {
+  it('own-specs: listed specs that select no test on the engine pass with a line that says so (bug-038, task-059 AC-12)', () => {
     // `performance.spec.ts` holds only `@perf` tests, which `playwright.config.ts` leaves out on
-    // Firefox and WebKit (`grepInvert`): Playwright's own "no tests found" must not fail the job.
-    const runStep = stepsOf(job('own-specs')).find((s) => s.run?.includes('test:e2e'))!;
-    const playwright = runStep.run!.split('\n').find((l) => l.includes('npm run test:e2e'))!;
-    expect(playwright.trim().split(/\s+/)).toContain('--pass-with-no-tests');
+    // Firefox and WebKit (`grepInvert`). The count comes first, from Playwright's own list; the run
+    // itself keeps failing on "No tests found" (a changed list format runs, and fails, never passes
+    // silently).
+    const lines = stepsOf(job('own-specs'))
+      .find((s) => s.run?.includes('test:e2e'))!
+      .run!.split('\n')
+      .map((l) => l.trim());
+    const list = lines.findIndex((l) => l.includes('playwright test --list'));
+    expect(list).toBeGreaterThan(-1);
+    expect(lines[list]).toContain('--project="$ENGINE" "${specs[@]}"');
+    expect(lines.slice(list + 1, list + 4)).toEqual([
+      'echo "no test of the own specs runs on $ENGINE: nothing to run"',
+      'exit 0',
+      'fi',
+    ]);
+    const run = lines.findIndex((l) => l.startsWith('npm run test:e2e'));
+    expect(run).toBeGreaterThan(list);
+    expect(lines[run]!.split(/\s+/)).not.toContain('--pass-with-no-tests');
   });
 
   it('uploads a report from each Playwright job under a name of its own, on failure (AC-4, D71-10, D71-11)', () => {

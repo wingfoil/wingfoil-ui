@@ -83,6 +83,22 @@ describe('natural order and percent (D59-1, D59-4)', () => {
         { finished: 1, total: 3 },
       ]).percent,
     ).toBe(33);
+    // Review round 1 F-3: (0/1 + 5/8 + 1/5) / 3 = 27.5 % exactly → 28; the float mean gives 27.
+    expect(
+      meanOf([
+        { finished: 0, total: 1 },
+        { finished: 5, total: 8 },
+        { finished: 1, total: 5 },
+      ]).percent,
+    ).toBe(28);
+    expect(Math.round(100 * ((0 + 5 / 8 + 1 / 5) / 3))).toBe(27);
+    expect(
+      meanOf([
+        { finished: 1, total: 3 },
+        { finished: 1, total: 3 },
+        { finished: 1, total: 3 },
+      ]).percent,
+    ).toBe(33);
   });
 });
 
@@ -129,6 +145,18 @@ describe('the current element (D59-2, spec-005 §4)', () => {
     rows = withRow(CUSTOM, 'minor-v0.1', rel('minor-v0.1'));
     rows = withRow(rows, 'minor-v0.0', rel('minor-v0.0'));
     expect((await inputs(rows)).current?.id).toBe('minor-v0.0');
+  });
+
+  it('review round 1 F-2: an empty version is no version — it loses the tie and scopes nothing', async () => {
+    let rows = withRow(CUSTOM, 'minor-v0.0', { type: 'release', status: 'planning', version: '', values: [''] });
+    expect((await inputs(rows)).current?.id).toBe('minor-v0.1');
+    rows = withRow(CUSTOM, 'minor-v0.1', { status: 'released' });
+    rows = withRow(rows, 'minor-v0.2', { type: 'release', status: 'in-development', version: '', values: [''] });
+    const i = await inputs(rows);
+    expect(i.current?.id).toBe('minor-v0.2');
+    // Every task carries the empty value of a template field: none is in v0.2's scope for it.
+    expect(iteratedFigure(i)).toMatchObject({ done: 0, total: 0 });
+    expect(completionFigure(i)).toEqual({ state: 'unavailable', reason: { code: 'no-linked-elements' } });
   });
 
   it('a state off the sequence ranks below every state of it', async () => {

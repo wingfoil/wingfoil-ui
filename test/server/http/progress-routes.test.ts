@@ -30,8 +30,13 @@ import {
   installCliStub,
   SECOND_RELEASE,
   usePresetUiConfig,
+  addReleaseLine,
+  HELD_RELEASE,
+  RELEASE_LINE,
+  submitToReleasing,
   type Fixture,
 } from '../../harness/fixtures/index.js';
+import { naturalOrder } from '../../../server/src/project-state/order.js';
 import { git } from '../../harness/run.js';
 import { TempWorkspace } from '../../harness/temp-workspace.js';
 import { auditedSnapshots, processKind, type AuditedRunner } from '../snapshot/support.js';
@@ -91,6 +96,22 @@ const VARIANTS = {
     await usePresetUiConfig(fx);
     await setFrontmatterValue(fx, 'task-004-themes', 'ref', 'US-X-08');
     await setFrontmatterValue(fx, 'adr-001-local-server', 'sard_ref', 'REQ-ARC-01');
+  },
+  // Review round 1 F-1: minor-v0.1 in `releasing`, held `never` by the preset.
+  releasing: async (fx: Fixture) => {
+    await usePresetUiConfig(fx);
+    await submitToReleasing(fx);
+  },
+  // Review round 1 F-1: rl-v1 `active`, held `when-references-done` (minor-v0.1 references it).
+  line: async (fx: Fixture) => {
+    await usePresetUiConfig(fx);
+    await addReleaseLine(fx);
+  },
+  // Review round 1 F-2: the current release with an empty `version`.
+  emptyVersion: async (fx: Fixture) => {
+    await usePresetUiConfig(fx);
+    await addSecondRelease(fx);
+    await setFrontmatterValue(fx, SECOND_RELEASE, 'version', '');
   },
   // spec-012 §2: an ignored ui.yaml.
   ignored: async (fx: Fixture) => commitUiYaml(fx, 'version: 1\nprogress: { mode: spiral }\n'),
@@ -218,9 +239,12 @@ describe('GET /api/p/:pid/progress — the figures on the fixtures (TT-STATE-08)
 
   it('T-13.1 Open the items behind "Pending gates" — pendingGates.ids', async () => {
     const body = await progress(await start('preset'));
-    expect([...body.figures.pendingGates.ids].sort()).toEqual(
-      ['bug-001-toast-overlap', 'dl-002-use-fastify', 'task-001-cli-adapter'].sort(),
-    );
+    // In natural id order (review round 1 F-6).
+    expect(body.figures.pendingGates.ids).toEqual([
+      'bug-001-toast-overlap',
+      'dl-002-use-fastify',
+      'task-001-cli-adapter',
+    ]);
   }, 300_000);
 
   it('T-13.2 Open the items behind "Tasks 1/4" — the 4 tasks of v0.1, task-002-memory-list done', async () => {
@@ -261,6 +285,35 @@ describe('GET /api/p/:pid/progress — the figures on the fixtures (TT-STATE-08)
       referencesCount: 2,
       ids: ['task-001-cli-adapter', 'task-002-memory-list', 'task-003-element-panel'],
     });
+  }, 300_000);
+
+  it.each([
+    ['releasing', HELD_RELEASE],
+    ['line', RELEASE_LINE],
+  ] as const)(
+    'review round 1 F-1: a held gate is no pending gate (%s: %s) — the ids are the /elements gates with no approveHeld',
+    async (variant, held) => {
+      const c = await start(variant);
+      const body = await progress(c);
+      const list = await c.get(`/api/p/${c.pid}/elements`);
+      const heldGate = list.body.elements.find((e: any) => e.id === held);
+      expect(heldGate.descriptor.kind).toBe('gate');
+      expect(heldGate.descriptor.approveHeld).toBeDefined();
+      const gates = list.body.elements
+        .filter((e: any) => e.descriptor.kind === 'gate' && e.descriptor.approveHeld === undefined)
+        .map((e: any) => e.id);
+      expect(body.figures.pendingGates.ids).not.toContain(held);
+      expect(body.figures.pendingGates.ids).toEqual(naturalOrder(gates));
+      expect(body.figures.pendingGates.count).toBe(gates.length);
+    },
+    300_000,
+  );
+
+  it('review round 1 F-2: a current release with an empty version scopes nothing — tasks 0/0, no-linked-elements', async () => {
+    const body = await progress(await start('emptyVersion'));
+    expect(body.scope.current.id).toBe(SECOND_RELEASE);
+    expect(body.figures.iterated).toMatchObject({ state: 'shown', done: 0, total: 0, ids: [] });
+    expect(body.figures.completion).toEqual({ state: 'unavailable', reason: { code: 'no-linked-elements' } });
   }, 300_000);
 
   it('AC-1 the phase figures are read-only with the workflow-position reason of the header', async () => {
