@@ -69,7 +69,7 @@ async function out(dir: string, env: NodeJS.ProcessEnv, args: string[]): Promise
 
 async function describeCommit(dir: string, env: NodeJS.ProcessEnv, sha: string): Promise<SessionCommit> {
   const [subject = '', parents = ''] = (await out(dir, env, ['log', '-1', '--format=%s%x00%P', sha])).split('\0');
-  const files = (await out(dir, env, ['diff-tree', '--no-commit-id', '--name-only', '-r', sha]))
+  const files = (await out(dir, env, ['diff-tree', '--no-commit-id', '--name-only', '-r', '--root', sha]))
     .split('\n')
     .filter(Boolean);
   const raw = (

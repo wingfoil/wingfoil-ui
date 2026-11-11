@@ -456,3 +456,19 @@ Red `08b4468e`, fix `6fddf9f1`. Guard removals with a scratch script outside the
 edit reverted; `npx vitest run test/server/http/ui-config-preset.test.ts -t <id>`), results as in
 the table. Local: typecheck, lint, format:check clean; `commit-provenance`, `writes/preset`,
 `ui-config-preset`, `api-ui-config-preset-schema`: 4 files, 76 tests passed (load 9.1); the three git-touching ones under the strict-identity wrapper: 71 passed.
+Run `43085338740` on `5caa5c1d` (round 1 complete): success — every job green; coverage 229
+files passed, 1 skipped, statements 96.53 %, branches 91.37 %; `writes/preset.ts` 86.89 %
+statements, 85 % branches.
+
+### review round 2 (2026-11-11, security-adversarial: PASS, one nit)
+
+On `5caa5c1d`: F-1 … F-7 closed, each mutation failing exactly its test; F-4's checker re-probed on
+real git (a rename, a mode change, a symbolic link, a gitlink, two paths, a top-level `ui.yaml`, a
+directory, an empty commit: all refused); no regression on the round-1 probes.
+
+| Finding | Fix | Test (red first) |
+|---------|-----|------------------|
+| F-8 (nit) — `describeCommit` read `files` without `--root` but `raw` with it, so a root preset commit (F-7's orphan case) was reported | `--root` on the `files` read of `test/harness/commit-provenance.ts` | `commit-provenance.test.ts` › "review round 2 F-8: a root preset commit …" — failed before the fix (`64ffdfae`: `files` empty) |
+
+Local: typecheck, lint clean; `commit-provenance.test.ts` 24 passed, also under the
+strict-identity wrapper.
