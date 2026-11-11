@@ -509,3 +509,6 @@ Checks after the fixes: `npm run typecheck`, `lint`, `format:check` clean; `npx 
 test/package test/server/project-state test/server/references test/server/descriptor` 224 passed;
 `progress-routes`, `held-gates-routes`, `snapshot/content-derived`, `snapshot/reference-index`,
 `ui-config-route` under the strict-identity `git` wrapper 61 passed; `check_tasks.py v0.3` OK.
+Run `43079616427` (`5df949ab`): every job green; `own-specs` (Firefox, job `130729688022`) and
+(WebKit, job `130729688345`) print `no test of the own specs runs on <engine>: nothing to run` and
+pass (F-4 verified).
