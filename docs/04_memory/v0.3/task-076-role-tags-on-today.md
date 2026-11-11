@@ -234,8 +234,8 @@ rules of `today.css` replaced in place, inside the summary block.
   `{ role, count }`, `additionalProperties: false`), `TodaySummaryLine` without `items` and `more`,
   and `test/contracts/api-element-schema.test.ts` "today.schema.json summary: role and count only"
   — against the v0.2 schema: 2 failed, 19 passed ("accepts one tag per role with its count",
-  "refuses a tag with the v0.2 items and more"). With the v0.2 schema and types restored for the
-  run, `npx vitest run test/server/descriptor/today.test.ts test/server/http/today-routes.test.ts
+  "refuses a tag with the v0.2 items and more"). With only the v0.2 types (`contracts/src/today.ts`)
+  restored for the run — the new schema in place (with both restored: 13 failed, 48 passed — the checker's run) — `npx vitest run test/server/descriptor/today.test.ts test/server/http/today-routes.test.ts
   test/contracts/api-element-schema.test.ts test/web/today/summary.test.tsx`: 16 failed, 45 passed
   — S-23.1 and S-23.4 of `today.test.ts` (`expected { role: 'approver', count: 2, …(2) } to deeply
   equal { role: 'approver', count: 2 }`), the route tests on the new schema (`must NOT have
@@ -277,6 +277,7 @@ rules of `today.css` replaced in place, inside the summary block.
 | S-23.3 Show no summary to a single-role member | same spec › "S-23.3 — Show no summary to a single-role member" |
 | S-23.4 Show the count of a role, not its items | same spec › "S-23.4 — Show the count of a role, not its items" |
 | S-23.5 Switch the role view from the line of role tags | same spec › "S-23.5 — Switch the role view from the line of role tags" |
+| F-1 (review round 1) a long role name wraps inside its tag and the card | same spec › "a long role name wraps inside the Your roles card at 400 px (F-1)" |
 
 ### review round 1 (2026-11-11: PASS, one minor and a nit)
 
@@ -286,7 +287,14 @@ branch; `test/README.md` 0.72); its run `43108560261`: success.
 | Finding | Change | Evidence |
 |---------|--------|----------|
 | F-1 (minor) — a long role name from the DNA did not wrap: at 400 × 600 a 63-character name pushed its tag to 480–503 px, the card ending at 384 px | `today.css`: `.today-summary-tag` `flex: 0 1 auto`, `min-width: 0`, `max-width: 100%`, `flex-wrap: wrap`; its button and the current tag's span `white-space: normal`, `overflow-wrap: anywhere`, `text-align: start` | red first (`3fbbe747`): `notification-bell.spec.ts` "a long role name wraps inside the Your roles card at 400 px (F-1)" — the role added with `dna add team.roles` and given to Morgan with `dna update team.members` on the copy — on Chromium alone, locally (`npx playwright test test/e2e/notification-bell.spec.ts --project=chromium -g "F-1" --workers=1`): `card right 384, tag rights … 503` failed; after the fix the F-1 test and S-23.1 … S-23.5: 6 passed |
-| N-1 (nit) — the contract test did not refuse an unknown key | `api-element-schema.test.ts` refuses `{ role, count, foo }` | `npx vitest run --maxWorkers=2 test/contracts/api-element-schema.test.ts`: 22 passed |
+| N-1 (nit) — the contract test did not refuse an unknown key | `api-element-schema.test.ts` refuses `{ role, count, foo }` | `npx vitest run --maxWorkers=2 test/contracts/api-element-schema.test.ts`: 22 passed; with `additionalProperties` removed from the summary items for one run, the `{ role, count, foo }` row fails ("refuses a tag with another key", with the `items` and `more` rows: 4 failed, 18 passed), the schema restored after it |
+
+The local Playwright run of F-1 (Chromium only, one spec, `--workers=1`) came after the
+coordinator's "no local Playwright" rule of the machine restart, under round 1's own allowance
+("single spec locally on Chromium only"); the three-engine evidence is the run below. Gates: run
+`43111304094` on `c8aa2a35`: success — checks, coverage, contract, e2e-chromium both shards, own
+specs (`notification-bell.spec.ts`, the F-1 test included) on Firefox and WebKit, smoke,
+publish-smoke.
 
 Local: `npm run typecheck`, `npm run lint`, `npm run format:check` clean. The header's
 `.current-user` that scrolls the page sideways at 400 px is not this task's (the coordinator opens a
