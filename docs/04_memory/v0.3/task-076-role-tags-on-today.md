@@ -277,3 +277,17 @@ rules of `today.css` replaced in place, inside the summary block.
 | S-23.3 Show no summary to a single-role member | same spec › "S-23.3 — Show no summary to a single-role member" |
 | S-23.4 Show the count of a role, not its items | same spec › "S-23.4 — Show the count of a role, not its items" |
 | S-23.5 Switch the role view from the line of role tags | same spec › "S-23.5 — Switch the role view from the line of role tags" |
+
+### review round 1 (2026-11-11: PASS, one minor and a nit)
+
+On `586848eb` (the coordinator's merge of the phase branch — task-073, task-060 — into this
+branch; `test/README.md` 0.72); its run `43108560261`: success.
+
+| Finding | Change | Evidence |
+|---------|--------|----------|
+| F-1 (minor) — a long role name from the DNA did not wrap: at 400 × 600 a 63-character name pushed its tag to 480–503 px, the card ending at 384 px | `today.css`: `.today-summary-tag` `flex: 0 1 auto`, `min-width: 0`, `max-width: 100%`, `flex-wrap: wrap`; its button and the current tag's span `white-space: normal`, `overflow-wrap: anywhere`, `text-align: start` | red first (`3fbbe747`): `notification-bell.spec.ts` "a long role name wraps inside the Your roles card at 400 px (F-1)" — the role added with `dna add team.roles` and given to Morgan with `dna update team.members` on the copy — on Chromium alone, locally (`npx playwright test test/e2e/notification-bell.spec.ts --project=chromium -g "F-1" --workers=1`): `card right 384, tag rights … 503` failed; after the fix the F-1 test and S-23.1 … S-23.5: 6 passed |
+| N-1 (nit) — the contract test did not refuse an unknown key | `api-element-schema.test.ts` refuses `{ role, count, foo }` | `npx vitest run --maxWorkers=2 test/contracts/api-element-schema.test.ts`: 22 passed |
+
+Local: `npm run typecheck`, `npm run lint`, `npm run format:check` clean. The header's
+`.current-user` that scrolls the page sideways at 400 px is not this task's (the coordinator opens a
+bug).

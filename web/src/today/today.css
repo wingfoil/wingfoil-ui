@@ -183,9 +183,21 @@
 
 .today-summary-tag {
   display: inline-flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: var(--space-2);
-  flex: none;
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 100%;
+}
+
+/* A long role name from the DNA wraps inside its tag (task-076 review round 1, F-1). */
+.today-summary-tag .today-summary-role {
+  min-width: 0;
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  text-align: start;
 }
 
 .today-summary-tag .button.today-summary-role {
