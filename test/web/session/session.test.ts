@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   bootstrapSession,
   markSessionLost,
+  SESSION_CHANNEL,
   resetSession,
   sessionStatus,
   subscribeSession,
@@ -225,5 +226,57 @@ describe('watchFragmentToken (bug-016)', () => {
     watchFragmentToken({ reload })();
     paste(`#token=${TOKEN}`);
     expect(reload).not.toHaveBeenCalled();
+  });
+});
+
+// task-063 (adr-003 D6, AC-2; D63-2): a successful exchange tells the other tabs of this origin, on
+// the channel `wfui-session`, with a message that holds nothing; no other bootstrap posts.
+describe('announceSession (task-063)', () => {
+  const posted: { name: string; data: unknown }[] = [];
+  class RecordingChannel {
+    constructor(readonly name: string) {}
+    postMessage(data: unknown): void {
+      posted.push({ name: this.name, data });
+    }
+    close(): void {}
+  }
+  beforeEach(() => {
+    posted.length = 0;
+    vi.stubGlobal('BroadcastChannel', RecordingChannel);
+  });
+
+  it('announces a session after a 204 exchange, with an empty message', async () => {
+    history.replaceState(null, '', `/p/x?q=1#token=${TOKEN}`);
+    fetchAnswering(204);
+    await bootstrapSession();
+    expect(posted).toEqual([{ name: SESSION_CHANNEL, data: null }]);
+    expect(SESSION_CHANNEL).toBe('wfui-session');
+  });
+
+  it('announces nothing on a 401, a network failure or a reload', async () => {
+    history.replaceState(null, '', `/#token=${TOKEN}`);
+    fetchAnswering(401);
+    await bootstrapSession();
+    resetSession();
+    history.replaceState(null, '', `/#token=${TOKEN}`);
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => {
+        throw new TypeError('Failed to fetch');
+      }),
+    );
+    await bootstrapSession();
+    resetSession();
+    history.replaceState(null, '', '/');
+    fetchAnswering(204);
+    await bootstrapSession();
+    expect(posted).toEqual([]);
+  });
+
+  it('a browser without BroadcastChannel still connects', async () => {
+    vi.stubGlobal('BroadcastChannel', undefined);
+    history.replaceState(null, '', `/#token=${TOKEN}`);
+    fetchAnswering(204);
+    expect(await bootstrapSession()).toBe('connected');
   });
 });
