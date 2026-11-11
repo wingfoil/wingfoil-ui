@@ -6,7 +6,15 @@
 import { isMap, LineCounter, parseDocument, visit } from 'yaml';
 import { schemaProblems, type ContractSchema } from '../contracts.js';
 import { DirectReadError } from './confine.js';
-import { isImplicitEmptyKey, isMergeKey, jsYamlKey, keyContext, UnsupportedKeyError } from './yaml-keys.js';
+import {
+  isImplicitEmptyKey,
+  isMergeKey,
+  jsYamlKey,
+  keyContext,
+  MAX_ALIAS_RESOLVE_STEPS,
+  UnsupportedKeyError,
+  type KeyContext,
+} from './yaml-keys.js';
 
 /** A parsed Markdown file. */
 export interface FrontmatterFile<T> {
@@ -45,9 +53,13 @@ function keyText(text: string, node: unknown): string {
  * {@link jsYamlKey}; a merge key `<<` is not a key of its own), or a key js-yaml refuses or whose
  * form is not emulated — with its line and column; `undefined` when none. One pass, one set per map.
  */
-function duplicateKey(doc: ReturnType<typeof parseDocument>, text: string, lines: LineCounter): string | undefined {
+function duplicateKey(
+  doc: ReturnType<typeof parseDocument>,
+  context: KeyContext,
+  text: string,
+  lines: LineCounter,
+): string | undefined {
   let found: string | undefined;
-  const context = keyContext(doc);
   const at = (node: unknown): string => {
     const where = lines.linePos((node as { range?: readonly number[] } | null)?.range?.[0] ?? 0);
     return `(line ${where.line}, column ${where.col})`;
@@ -93,7 +105,12 @@ export function parseYaml(text: string, file: string): unknown {
   const doc = parseDocument(text, { ...FRONTMATTER_PARSE_OPTIONS, lineCounter: lines, keepSourceTokens: true });
   const error = doc.errors[0];
   if (error) fail(error.message.split('\n')[0] ?? '');
-  const duplicate = duplicateKey(doc, text, lines);
+  // One pass over the nodes: the aliases and the cost of resolving them (bug-042), before `toJS`.
+  const context = keyContext(doc);
+  if (context.resolveSteps > MAX_ALIAS_RESOLVE_STEPS) {
+    fail(`too many aliases to resolve (over ${MAX_ALIAS_RESOLVE_STEPS} steps)`);
+  }
+  const duplicate = duplicateKey(doc, context, text, lines);
   if (duplicate !== undefined) fail(duplicate);
   try {
     return doc.toJS();

@@ -175,14 +175,35 @@ function scalarOf(node: Scalar): unknown {
 export interface KeyContext {
   aliases: ReadonlyMap<Alias, Node | undefined>;
   forms: Map<unknown, string>;
+  /**
+   * The steps the `yaml` library's `toJS` would take to resolve the aliases (bug-042): its
+   * `Alias.resolve` scans the anchored nodes and aliases before each alias, so each alias costs the
+   * number of them before it — a cost that grows with the square of their number.
+   */
+  resolveSteps: number;
 }
+
+/**
+ * The most alias-resolution steps a parse accepts (bug-042, task-075 AC-5): about 1 100 aliases of
+ * distinct anchors (tens of ms of `toJS`), far beyond what a frontmatter or `memory.yaml` holds; a
+ * file above it is refused as unreadable before `toJS`, which would block the server (4 000 such
+ * aliases took 0.4 s, 175 000 in a 5 MiB file tens of minutes). `yaml`'s own `maxAliasCount` (100
+ * per anchor, weighted by the aliases inside it) bounds the repeated aliases of one anchor only.
+ */
+export const MAX_ALIAS_RESOLVE_STEPS = 2_000_000;
 
 /** The {@link KeyContext} of `doc`: one visit of its nodes. */
 export function keyContext(doc: Document): KeyContext {
   const anchors = new Map<string, Node>();
   const aliases = new Map<Alias, Node | undefined>();
+  // The anchored nodes and aliases seen so far, as `yaml`'s `Alias.resolve` lists them.
+  let listed = 0;
+  let resolveSteps = 0;
   const anchor = (_: unknown, node: Scalar | YAMLMap | YAMLSeq): void => {
-    if (node.anchor) anchors.set(node.anchor, node);
+    if (node.anchor) {
+      anchors.set(node.anchor, node);
+      listed += 1;
+    }
   };
   visit(doc, {
     Scalar: anchor,
@@ -190,9 +211,11 @@ export function keyContext(doc: Document): KeyContext {
     Seq: anchor,
     Alias(_, node) {
       aliases.set(node, anchors.get(node.source));
+      resolveSteps += listed;
+      listed += 1;
     },
   });
-  return { aliases, forms: new Map() };
+  return { aliases, forms: new Map(), resolveSteps };
 }
 
 /** The node `node` stands for: an alias's anchored node, else itself. */

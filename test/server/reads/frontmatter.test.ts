@@ -136,31 +136,12 @@ describe('alias keys resolved in one pass (task-075 review round 1 F-1)', () => 
     expect(walks).toBe(0);
   });
 
-  it('the key forms of 4N alias keys cost about four times those of N (review round 2 F-9)', () => {
-    // The check's own work only: the documents are parsed outside the clock (the library's own
-    // `toJS` is not measured here). The fastest of seven runs, the least disturbed by other suites
-    // running in parallel; a quadratic cost would give about 16×.
-    const time = (n: number): number => {
-      const doc = parseDocument(distinct(n), FRONTMATTER_PARSE_OPTIONS);
-      const runs: number[] = [];
-      for (let r = 0; r < 7; r += 1) {
-        const started = performance.now();
-        const context = keyContext(doc);
-        for (const pair of (doc.contents as YAMLMap).items) jsYamlKey(pair.key, context);
-        runs.push(performance.now() - started);
-      }
-      return Math.min(...runs);
-    };
-    time(2_000); // warm-up
-    const ratio = time(16_000) / time(4_000);
-    expect(ratio).toBeLessThan(8);
-  });
-
   it('a 64 KiB frontmatter of 16 000 aliases is answered within 5 s (53 s before the fix)', () => {
     const text = aliases(16_000);
     expect(text.length).toBeLessThanOrEqual(64 * 1024);
     const started = performance.now();
-    expect(() => parseYaml(text, 'f.md')).toThrow(/Excessive alias count/);
+    // Refused by the alias bound of bug-042 (AC-5) before the library's own limit.
+    expect(() => parseYaml(text, 'f.md')).toThrow(/too many aliases to resolve/);
     expect(performance.now() - started).toBeLessThan(5_000);
   }, 120_000);
 });

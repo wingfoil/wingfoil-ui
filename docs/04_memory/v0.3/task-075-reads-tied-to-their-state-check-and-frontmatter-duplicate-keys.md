@@ -386,3 +386,37 @@ Relayed by the coordinator on `10605e1f`. Red `ef8c285f`, then the fix; the `yam
 
 Local checks: `typecheck`, `lint`, `format:check` clean; `npx vitest run test/server/reads
 test/docs/public-text.test.ts` 399 passed; the ratio test passed three runs in a row.
+
+Correction after round 2 (F-9): the ratio test of `53dc6973` failed on the clean code when the
+reads suites ran in parallel (9.0×, bound 8; 10.9× with the injected scan), too close to tell; it
+was removed in `e3d4ea5a`. The guard of the check's alias cost is now AC-5's bound: a file is
+refused above 2 000 000 alias-resolution steps (about 1 100 aliases), so no alias-quadratic of the
+key check runs on more, and the 64 KiB (5 s) and 5 MiB (20 s, child process) time bounds of
+`frontmatter.test.ts` and `alias-bound.test.ts` cover the whole parse; the bug-042 N/4N ratio runs on
+refused files (20 000 vs 80 000 aliases, the parse and the one pass only) and held in three
+consecutive runs of the reads suites.
+
+### bug-040 and bug-042 absorbed (2026-11-11)
+
+The approver: "ok anche per bug 39 40 e 41, con 40 assorbito da task 75" and "toJS a" (AC-4,
+AC-5; `bug:` lists both).
+
+- **bug-040 (AC-4)** — red `b9008c3d`: `yaml-keys.test.ts` 6 rows, `frontmatter.test.ts` 1,
+  `frontmatter-cli.test.ts` 1 failed (the pinned CLI half passed). Green `e3d4ea5a`:
+  `isImplicitEmptyKey` (`yaml-keys.ts`) — an empty untagged, unanchored plain key of a block mapping
+  with no explicit-key indicator among its item's source tokens (`keepSourceTokens` on in
+  `parseYaml`); a missing token list counts as implicit. Probe (scratch script, 21 forms through
+  both libraries): js-yaml refuses `: a`, `:`, `- : a`, a nested `: a`, `? : a`, a commented-then-
+  empty key; reads `?` alone (`null`), `!!null :`, `!!str :`, `&x :`, `{: a}`, `[: a]`, `{a, : b}`.
+  The table counts js-yaml's "incomplete explicit mapping pair" as a key refusal and the server's
+  `empty key`. The real CLI test now adds `: blank` (left out by the CLI, refused by the server) and
+  `extra: {: blank}` (listed and read).
+- **bug-042 (AC-5)** — red `88a41a75` (`alias-bound.test.ts` on the old code: 4 000 distinct alias
+  keys read, the ratio 13.2×, the 5 MiB file killed at 20 s). Green below: `keyContext` counts the
+  steps `yaml`'s `Alias.resolve` takes inside `toJS` (each alias scans the anchored nodes and
+  aliases before it, `node_modules/yaml/dist/nodes/Alias.js`) and `parseYaml` refuses above
+  `MAX_ALIAS_RESOLVE_STEPS` (2 000 000) before the key check and `toJS`, for the element read, the
+  index and `memory.yaml` (one parse). `yaml`'s `maxAliasCount` (100 per anchor) stays; it bounds
+  only the repeats of one anchor, so it was the model for the place and the refusal, not the count.
+  The 64 KiB / 16 000-alias case of round 1 is now refused by this bound. CHANGELOG *Fixed*,
+  spec-001 Process Note, `test/README.md` 0.71.

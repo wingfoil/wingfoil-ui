@@ -376,3 +376,10 @@ its schema, and run the §4.1 resolution check. A failure blocks the matrix adva
   explicit key) is a `shape` error ("empty key"), as WingFoil's js-yaml refuses it; an explicit
   empty key (`?` alone), one with a tag or an anchor, and one in a flow collection are read (js-yaml's
   `null` key). The parse keeps the source tokens to tell the explicit indicator.
+- 2026-11-11 — amended in task-075 (bug-042, absorbed by the approver the same day, "toJS a"; AC-5):
+  §4.1, §4.2 the parse of `memory.yaml` and of every frontmatter (element read, reference index)
+  counts, in the key check's one pass, the steps the YAML library would take to resolve the aliases
+  (each alias scans the anchored nodes and aliases before it) and refuses the file as a `shape`
+  error ("too many aliases to resolve") above 2 000 000 steps — about 1 100 aliases of distinct
+  anchors — before building the values. The library's own limit (100 aliases per anchor, weighted by
+  the aliases inside it) stays.

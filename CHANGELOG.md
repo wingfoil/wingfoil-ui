@@ -161,6 +161,11 @@ release `v0.2` the git tag `v0.2.0` and the npm version `wingfoil-ui@0.2.0`.
   while every `wingfoil` command leaves the file out. Such a key is now refused as WingFoil refuses
   it; an empty key WingFoil accepts (written `? ` alone, with a tag or an anchor, or inside `{…}`)
   is still read. The defect shipped in v0.1.0 and v0.2.0.
+- **A file with many YAML aliases no longer blocks the console** (bug-042, task-075): reading a
+  Memory file or `.wingfoil/memory.yaml` holding thousands of aliases (`*name`) took time growing
+  with the square of their number — minutes for a large file — while every other request waited.
+  Such a file is now refused as unreadable at once (`too many aliases to resolve`); a file with the
+  aliases a project writes by hand is read as before. The defect shipped in v0.1.0 and v0.2.0.
 - **Repository text escaped in the API** (task-056, RP3-18 K1; spec-004 §5): an element's title in
   the Memory list, the element panel and Today comes back with control, bidi and invisible
   characters as visible escapes, as the `ui.yaml` strings of the configuration do (task-068), so a
