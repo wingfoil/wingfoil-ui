@@ -258,7 +258,16 @@ describe('bug-031 — names too long and the codes of the other client errors', 
 
   it('bug-031 — an asset name the file system refuses answers 404 not-found', async () => {
     const app = await buildApp({ staticDir, logger: createLogger(sink), security });
-    for (const url of [`/assets/${NAME_MAX_PLUS_ONE}`, `/assets/${OVER_PATH_MAX}`]) {
+    // Review round 2 R2-1: a path over PATH_MAX made of short segments only (33 × 127 bytes), and a
+    // name under 128 characters but over 255 bytes (86 × €, 258 bytes): measured in bytes, both.
+    const shortSegments = Array.from({ length: 33 }, () => 'x'.repeat(127)).join('/');
+    const multiByte = encodeURIComponent('€'.repeat(86));
+    for (const url of [
+      `/assets/${NAME_MAX_PLUS_ONE}`,
+      `/assets/${OVER_PATH_MAX}`,
+      `/assets/${shortSegments}`,
+      `/assets/${multiByte}`,
+    ]) {
       for (const method of ['GET', 'HEAD'] as const) {
         const res = await app.inject({ method, url });
         expect(res.statusCode, `${method} ${url.length}`).toBe(404);

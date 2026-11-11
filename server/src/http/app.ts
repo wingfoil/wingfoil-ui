@@ -82,7 +82,9 @@ const STATIC_ROUTE = '/*';
 /**
  * Below every file-system name limit in use (ext4 and most file systems 255 bytes, eCryptfs 143) and
  * far below `PATH_MAX`: a path whose segments and length stay under these is never judged by a
- * `stat` (task-063 review round 1 F-3, no system call on an ordinary request).
+ * `stat` (task-063 review round 1 F-3, no system call on an ordinary request). An accepted residual
+ * (review round 2 R2-2): on a file system whose name limit is below 128 bytes, a name between that
+ * limit and 127 bytes still gets the plugin's 403 `forbidden`.
  */
 const SHORT_SEGMENT_BYTES = 128;
 const SHORT_PATH_BYTES = 1024;

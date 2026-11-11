@@ -369,3 +369,21 @@ run `43074720649`, green). Findings fixed, red first where a test is added:
   test/server/http/app.test.ts test/web/session` (22 files, 541 tests passed); `gates.yml` on
   `d82a9046`: run `43082308356`, green on every job (checks, coverage, contract, e2e-chromium ×2,
   own specs on Firefox and WebKit, smoke, publish-smoke).
+
+### review round 2 (2026-11-11)
+
+Security review on `41d03928`: **PASS** — F-1 … F-5 hold, no regression (no
+`MaxListenersExceededWarning`; the recovery, token, channel and bug-031 paths re-probed on Chromium
+and Firefox). That tip's run `43084675761`: success on every job (checks, coverage, contract,
+e2e-chromium ×2, own specs on Firefox and WebKit, smoke, publish-smoke).
+
+- **R2-1 (minor)** — the byte measures of the `stat` gate were untested: `SHORT_PATH_BYTES` set to
+  1 000 000, or `Buffer.byteLength(s)` replaced by `s.length`, left `app.test.ts` green. The bug-031
+  test now also asks a path over `PATH_MAX` made only of 127-byte segments (33 of them) and a name
+  of 86 × `€` (86 characters, 258 bytes): 404 `not-found`. Each mutation fails it (`GET 4231` and
+  `GET 782: expected 403 to be 404`); the test passes on the code as it is.
+- **R2-2 (nit), an accepted residual** — on a file system whose name limit is below 128 bytes, a
+  name between that limit and 127 bytes still gets the plugin's 403 `forbidden` (eCryptfs's 143
+  bytes is covered); said in the `SHORT_SEGMENT_BYTES` comment of `server/src/http/app.ts`.
+- Gates of round 2: local typecheck, lint, format:check, `npx vitest run test/server/http/app.test.ts`
+  (33 tests passed); the run of the pushed tip is cited in the coordinator's report.
