@@ -120,6 +120,9 @@ describe('write.refusal.schema.json (W2-1)', () => {
     'cli-output',
     'cli-timeout',
     'internal',
+    // Body parsing before the handler (task-063 D63-10, review round 1 F-4).
+    'payload-too-large',
+    'unsupported-media-type',
   ])('accepts %s without detail', (code) => {
     expect(refusal(envelope(code))).toBe(true);
     expect(refusal(envelope(code, { file: 'x' }))).toBe(false);
