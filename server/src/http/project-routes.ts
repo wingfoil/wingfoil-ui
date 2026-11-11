@@ -727,6 +727,7 @@ async function todayOf(read: ProjectRead, query: Record<string, unknown>): Promi
 async function progressOf(read: ProjectRead, query: Record<string, unknown>): Promise<Progress> {
   if (Object.keys(query).length > 0) throw invalidRequest();
   const { view } = read;
+  // The refusals in spec-012 §10's order: `memory.yaml` (502), then `memory search` (its envelope).
   valueOf(await read.settle(view.memoryTypes(), '.wingfoil/'));
   valueOf(await read.settle(view.uiConfig(), '.wingfoil/'));
   valueOf(await read.settle(view.elements()));

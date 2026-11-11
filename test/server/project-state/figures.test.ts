@@ -11,7 +11,6 @@ import {
   iteratedFigure,
   openDefectsFigure,
   pendingGatesFigure,
-  type FigureInputs,
 } from '../../../server/src/project-state/figures.js';
 import { missingCategories } from '../../../server/src/project-state/missing.js';
 import { naturalCompare, naturalOrder } from '../../../server/src/project-state/order.js';
@@ -338,6 +337,3 @@ describe('the body (D59-10, K1)', () => {
     expect(body.capped).toEqual(['task-002-memory-list']);
   });
 });
-
-/** Keeps the type import used where only the shape matters. */
-export type { FigureInputs };
