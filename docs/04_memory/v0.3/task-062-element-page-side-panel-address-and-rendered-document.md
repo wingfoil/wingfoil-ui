@@ -20,28 +20,26 @@ tmpl_version: 260703   # Orignal template version
 
 ## Description
 
-The element page and the side panel, with their addresses, and the element's document rendered
-(release-planning v0.3, RP3-7 N5, N6; dl-012 R2 on the web; RP3-15 S5; RP3-16 P2; RP3-17 E1;
-spec-011 §2, §6, §8):
+The element page with its addresses (release-planning v0.3, RP3-7 N5; dl-012 R2 on the web;
+RP3-16 P2; spec-011 §2, §6, §8). Split at design (2026-11-11, the approver, Q4 (a);
+`backlog-item-rel-v0.3-plan` W2-7): the side panel addressed by `?panel=<full id>` (RP3-15 S5,
+RP3-17 E1) moved to task-077-side-panel-in-the-address, the rendered document (N6, US-G-03, US-G-08)
+to task-078-rendered-element-document.
 
 - **N5 — where an element opens**: its address, the Memory list and any link inside a document, a
-  directive or another element open the **element page** in the main region, with the sidebar;
-  Today (*Requires you*, *Waiting on others*, *Recent activity*) and an item of the notification
-  bell open the **side panel** over the current view, addressed by `?panel=<full id>` (E1); the
-  route of `web/src/routes/element.tsx` splits into the page and the panel.
+  directive or another element open the **element page** in the main region, with the sidebar; the
+  route of `web/src/routes/element.tsx` becomes the page. Until task-077, Today and the bell open
+  the page too.
 - **Addresses** (spec-011 §2): a short id resolves through the server
   (task-057-element-addressing-with-short-ids-and-long-ids) and the address is rewritten to the
-  full id (`history.replace`; for `panel=` the value only); an ambiguous short id lists its
-  candidates, each a link; an id longer than 100 characters opens and is decided like any other
-  (bug-019, fixed on the server by task-057).
-- **N6 — the document**: the summary rendered as Markdown; *Open document* opens a modal dialog
-  with the whole body, rendered by default, with a *Rendered / Source* switch; links relative to
-  the element file's folder, classified as the documentation view's; images never loaded — the
-  renderer of `adr-002` (`web/src/docs/render.ts`), the body of the element read (no other read).
-- **US-G-03 and US-G-08**: a decision-log read as a document and decided from its panel by a
-  member holding `approver`, on the v0.2 gate footer.
+  full id (`history.replace`); an ambiguous short id lists its candidates, each a link; an id
+  longer than 100 characters opens and is decided like any other (bug-019, fixed on the server by
+  task-057).
 
 **Backlog items:** US-G-03, US-G-08, US-G-01, US-S-21
+
+US-G-03 and US-G-08 are delivered by task-078-rendered-element-document, G-01.8 and S-21.4 by
+task-077-side-panel-in-the-address (W2-7).
 
 - US-G-03 — As Casey, I want to read a decision-log as a rendered document in the element panel,
   with its history, so that I understand the decision before taking it
@@ -56,52 +54,39 @@ spec-011 §2, §6, §8):
 
 ## Acceptance Criteria
 
-- **US-G-03** (AC-1) — every `@v0.3` scenario passes
-  (`docs/02_requirements/02_bdd/features/g/decision-log.feature`): G-03.1 Read a decision-log as a
-  rendered document; G-03.2 Open the decision-log from Documentation links; G-03.3 Read a
-  decision-log with an empty body; G-03.4 Open a linked element from a summary in the main region.
-- **US-G-08** (AC-2) — every `@v0.3` scenario passes (same file): G-08.1 Approve a decision-log as a
-  product owner holding approver; G-08.2 Send a decision-log back to draft; G-08.3 Keep the
-  decision informational for a product owner without approver.
+- **US-G-03** (AC-1) — G-03.1, G-03.2, G-03.3, G-03.4 — delivered by
+  task-078-rendered-element-document (its AC-1). (amended 2026-11-11, W2-7.)
+- **US-G-08** (AC-2) — G-08.1, G-08.2, G-08.3 — delivered by task-078-rendered-element-document
+  (its AC-2). (amended 2026-11-11, W2-7.)
 - **US-G-01** (AC-3) — every `@v0.3` scenario passes
   (`docs/02_requirements/02_bdd/features/g/element-panel.feature`): G-01.5 Open an element by its
   short id and show its full id; G-01.6 List the candidates of an ambiguous short id; G-01.7 Open
   and decide an element whose id is longer than 100 characters (task-057's long-id fixture
-  helper); G-01.8 Open an element from Requires you in the side panel and keep it on reload. The
-  `@v0.1` scenarios G-01.1 … G-01.4 (G-01.4 reworded to the element page, still `@v0.1`) and
-  G-02.1, G-02.2 still pass, as do M-01.3, R-09.1 and X-06.3 (spec-011 §8 *e2e*).
-- **US-S-21** (AC-4) — the `@v0.3` scenario passes
-  (`docs/02_requirements/02_bdd/features/s/shell.feature`): S-21.4 Open an item of the bell in the
-  side panel of the current view; S-21.1 … S-21.3 still pass.
-- **AC-5** — Addresses (spec-011 §2, E1): opening the side panel pushes a history entry, a reload
-  keeps it over the same view, closing removes `panel=`, any other search parameter is kept;
-  `panel=` on `/p/<pid>/e/…` is ignored; a resolved short id replaces the history entry with the
-  full id's address and seeds the full id's query with the answer (no second read); for `panel=`
-  only the value is replaced; 404 shows *not found*; 409 shows the candidates — links to the
-  element page on the page, `?panel=<full id>` links on the same view in the panel. *Close* and
-  Escape: on the page back in history when reached inside the console, else to the Memory list; on
-  the panel the view stays and the focus returns to the opener (`ux-reference.md` §4.2 v0.2,
-  bug-018's rules).
-- **AC-6** — Web unit tests (spec-011 §8): hostile `panel=` values — `../x`,
-  `https://example.test/x`, another project's element id — show the panel's *not found* and
-  navigate nowhere (path and other parameters unchanged); a short value replaced by the full id
-  with the path unchanged; every element link built with `encodeURIComponent`.
-- **AC-7** — The document (N6, `ux-reference.md` §4.2 v0.3, §4.9): the summary — the body's first
-  paragraph — rendered as Markdown ("No summary in the document." otherwise); the dialog rendered
-  by default, *Source* shows the Markdown as written in a monospace block; "No content yet" for an
-  empty body; *Close* and Escape close it and give the focus back to *Open document*; raw HTML
-  shown as text; relative links resolved against the element file's folder and classified by
-  `web/src/docs/links.ts` (a link to an element file opens its element page); images never loaded
-  — the e2e asserts no image request — with their alternative text shown and marked.
-- **AC-8** — Screen and accessibility: `ux-reference.md` §4.2 v0.3 and §4.9 and the prototype,
-  deviations only as recorded (directive `ux-consistency`); the page, the panel (non-modal, W4-8),
-  the dialog (modal) and the candidates list operable from the keyboard with visible focus;
-  axe-core 0 serious/critical in both themes on each; every string from the catalogue (X-09.1);
-  new `SCREENS` entries (the element page, the document dialog, the candidates); the task's e2e
-  specs pass on Chromium, Firefox and WebKit.
+  helper). G-01.8 is delivered by task-077-side-panel-in-the-address. The `@v0.1` scenarios
+  G-01.1 … G-01.4 (G-01.4 reworded to the element page, still `@v0.1`) and G-02.1, G-02.2 still
+  pass, as do M-01.3, R-09.1 and X-06.3 (spec-011 §8 *e2e*). (amended 2026-11-11, W2-7.)
+- **US-S-21** (AC-4) — S-21.4 — delivered by task-077-side-panel-in-the-address (its AC-2); S-21.1
+  … S-21.3 still pass. (amended 2026-11-11, W2-7.)
+- **AC-5** — Addresses (spec-011 §2): a resolved short id replaces the history entry with the full
+  id's address and seeds the full id's query with the answer (no second read); 404 shows *not
+  found*; 409 shows the candidates, each a link to its element page. *Close* and Escape: back in
+  history when the page was reached inside the console, else to the Memory list. (amended
+  2026-11-11, W2-7: the side panel's parts are task-077's AC-3.)
+- **AC-6** — Web unit tests (spec-011 §8): a short id replaced by the full id; every element link
+  built with `encodeURIComponent`; `elementPath` refuses `''`, `.` and `..` without a request
+  (D62-9). (amended 2026-11-11, W2-7: the hostile `panel=` values are task-077's AC-4.)
+- **AC-7** — The document: moved to task-078-rendered-element-document (its AC-3). (amended
+  2026-11-11, W2-7.)
+- **AC-8** — Screen and accessibility: `ux-reference.md` §4.2 v0.3 and the prototype, deviations
+  only as recorded (directive `ux-consistency`); the page and the candidates list operable from the
+  keyboard with visible focus; axe-core 0 serious/critical in both themes on each; every string from
+  the catalogue (X-09.1); new `SCREENS` entries (the element page's candidates); the task's e2e
+  specs pass on Chromium, Firefox and WebKit. (amended 2026-11-11, W2-7: the panel's and the
+  dialog's screens are task-077's and task-078's.)
 - **AC-9** — Docs and gates: spec-011 holds as written or is amended with a dated Process Note;
   `CHANGELOG.md` *Unreleased* *Added*/*Changed*; the checks of `CLAUDE.md`, `npm run docs:api`,
-  `check_tasks.py v0.3`, `test:e2e:chromium`; results with commands in the Execution Notes.
+  `check_tasks.py v0.3`, `test:e2e:chromium` (on `gates.yml`); results with commands in the
+  Execution Notes.
 
 ## Implementation Notes
 
@@ -119,13 +104,13 @@ spec-011 §2, §6, §8):
 - Moving the element out of the drawer touches every e2e that opens an element (Memory list,
   documentation, directives): update them in the same change; shared files stay append-only
   (catalogue, `SCREENS`, route registration, `test/README.md` version line).
-- G-01.7 and G-08.x commit through the console: the affected suites also run under the
+- G-01.7 commits through the console: the affected suites also run under the
   strict-identity recipe of `test/README.md` *Git identity* (dl-011).
-- Security review (the renderer reaches a new surface, and `panel=` is an address input): a
-  security-adversarial reviewer who runs the tools checks that no raw HTML, script URL or image load passes, and that a
-  `panel=` value is only ever looked up as an element id of the current project (spec-011 §6).
-- Heavy gates through the machine-free slot of the dev-loop rules, in the task's worktree; e2e: the
-  full suite on Chromium plus the task's own specs on the three engines.
+- Security review: the renderer's and `panel=`'s reviews moved with task-078 and task-077 (W2-7);
+  here an adversarial reviewer checks the address rewrite stays inside `/p/<pid>/e/` and that no
+  address value becomes a path (D62-9, spec-011 §6).
+- Heavy gates on `.github/workflows/gates.yml` (dl-016); e2e: the full suite on Chromium plus the
+  task's own specs on the three engines.
 
 ## Execution Notes
 
@@ -190,7 +175,7 @@ RenderedArticle,DocumentView,pages}.ts(x)`, `web/src/directives/pages.tsx`, `web
 
 #### Decisions
 
-- **D62-1 — Two presentations, one content.** `ElementPanel.tsx` splits into `ElementView.tsx`
+- **D62-1 — Two presentations, one content.** *(The side panel shell is task-077's, W2-7: here the content and the page.)* `ElementPanel.tsx` splits into `ElementView.tsx`
   (the content: topline, title, state machine, notices, summary, references, directives, history,
   the footer — unchanged sections) and two shells: `ElementPage.tsx` (in `<main>`, `<h1>` title,
   no `role="dialog"`) and `ElementSidePanel.tsx` (the v0.1 drawer: non-modal `Dialog`, `<h2>`,
@@ -222,21 +207,21 @@ RenderedArticle,DocumentView,pages}.ts(x)`, `web/src/directives/pages.tsx`, `web
   server, rendered as React text —, the state), "and <n> more" when `more > 0`. Each row is a link:
   `/p/<pid>/e/<full id>` on the page; on the side panel `?panel=<full id>` on the same view (D62-7).
   No *Not found* (G-01.6). A 404 keeps the existing `ErrorText` (*not found*).
-- **D62-6 — `panel=` is a search parameter of the project layout.** `projectRoute` gets
+- **D62-6 — `panel=` is a search parameter of the project layout.** *(Moved to task-077, W2-7.)* `projectRoute` gets
   `validateSearch: panelSearch`: `panel` kept only when it is a non-empty string (a number, a
   boolean, an object, an array or `''` → absent: the panel is not shown), so every view under
   `/p/$pid` sees it and its own parameters are untouched. `ProjectLayout` renders
   `ElementSidePanel` after `<main>` when `panel` is set and the current match is not the element
   page (spec-011 §2: ignored there). The view's own navigations (a Memory filter, the Directives
   *show all*) build their search as today and so close the panel: no view is changed for it.
-- **D62-7 — Opening, closing, the address (E1, AC-5).** Opening: `navigate({ to: '.', search:
+- **D62-7 — Opening, closing, the address (E1, AC-5).** *(Moved to task-077, W2-7.)* Opening: `navigate({ to: '.', search:
   (prev) => ({ ...prev, panel: id }), state: { gateFocus, panelPushed: true } })` — a push, the
   path and the other parameters kept. Closing (*Close*, Escape, the footer's *Cancel*): Back when
   the entry carries `panelPushed` (opened inside the console: Back restores the view without the
   panel, Forward reopens it), else a `replace` navigation without `panel` (a reload, a pasted
   address). A short `panel=` value is replaced as D62-4 (seed, then `replace` with only `panel`
   changed). A switch of project drops it (`switchTarget` drops every search parameter, S-16.2).
-- **D62-8 — The openers.** Today (*Requires you* title and action, *Waiting on others*, the
+- **D62-8 — The openers.** *(Moved to task-077, W2-7; until then Today and the bell open the page.)* Today (*Requires you* title and action, *Waiting on others*, the
   all-roles summary; *Recent activity* is task-065's and uses the same helper), and both lists of
   the notification bell open the side panel through one helper `openPanelLink(id, gateFocus)`
   (`web/src/element/side-panel.ts`). The Memory list, document links, directive links and element
@@ -250,7 +235,7 @@ RenderedArticle,DocumentView,pages}.ts(x)`, `web/src/directives/pages.tsx`, `web
   request outside `/api/p/<pid>/elements/<encoded>`, the location's path and other parameters
   unchanged, no navigation (AC-6). A `panel=` value is never a link target: the only rewrite puts
   the server's `element.id` into the parameter.
-- **D62-10 — The focus with the side panel (bug-018 rules, X-06.3).** The view stays mounted under
+- **D62-10 — The focus with the side panel (bug-018 rules, X-06.3).** *(Moved to task-077, W2-7; X-06.3 on the page stays here.)* The view stays mounted under
   the panel, so the opener is still in the page: `side-panel.ts` remembers `{ pid, eid, selector }`
   when an opener is used (the click or press handler, not `document.activeElement`: Safari does not
   focus a clicked button, Wave 3 lesson); after the panel closes, the focus goes to that control
@@ -268,19 +253,19 @@ RenderedArticle,DocumentView,pages}.ts(x)`, `web/src/directives/pages.tsx`, `web
   and sits above the page's footer bar (`[data-element-view] .element-footer-slot`), never over its
   actions (ux §5 *Feedback*). e2e: `document.elementFromPoint` at the centre of each footer action
   after a decision, at 1280×720, 600×720 and 400×600 (Wave 5 lesson).
-- **D62-13 — The summary (N6).** `summaryOf` becomes `summarySource(body)`: HTML comments removed
+- **D62-13 — The summary (N6).** *(Moved to task-078, W2-7.)* `summaryOf` becomes `summarySource(body)`: HTML comments removed
   (v0.1's rule), parsed by markdown-it, the first top-level `paragraph` token rendered alone (with
   the document's reference definitions, so `[x][ref]` links work); then the same two steps as the
   document (D62-15). "No summary in the document." when none. The missing required fields stay
   below it.
-- **D62-14 — The document dialog.** *Open document* (a button under the summary) opens a React
+- **D62-14 — The document dialog.** *(Moved to task-078, W2-7.)* *Open document* (a button under the summary) opens a React
   Aria `Modal` + `Dialog` (`isDismissable={false}`: no outside click, ux §5; Escape and *Close*
   close it; the focus back to *Open document* — `DialogTrigger`). A `ToggleButtonGroup` *Rendered /
   Source* (single selection, never empty; Rendered by default): Rendered — the whole body through
   D62-15; Source — the body as written in a focusable `<pre>` (React text, monospace, wrapping off,
   scrolling). An empty or whitespace-only body: "No content yet" in both modes (G-03.3). Its
   heading: the element's title. The switch's state is not in the URL (a reload closes the dialog).
-- **D62-15 — Rendering, links, images (adr-002, AC-7).** The renderer of `web/src/docs/render.ts`,
+- **D62-15 — Rendering, links, images (adr-002, AC-7).** *(Moved to task-078, W2-7.)* The renderer of `web/src/docs/render.ts`,
   unchanged in its two sanitising passes: `markdownToSafeHtml` (markdown-it `html: false`, raw HTML
   shown as written; DOMPurify) then `finishDocument` (DOMPurify last). The link lookup of the
   Documentation view moves from `docs/pages.tsx` to `web/src/docs/link-lookup.ts` (the same reads
@@ -299,17 +284,17 @@ RenderedArticle,DocumentView,pages}.ts(x)`, `web/src/directives/pages.tsx`, `web
   `RenderedArticle` prop `inPageAnchors`. The renderer and the lookup load with the element's lazy
   document module (`element/document.tsx`, `React.lazy`), keeping markdown-it out of the entry
   chunk as the Directives page does; the summary shows a polite loading line until it loads.
-- **D62-16 — Text from the body is document content (D56-2).** The body is rendered as written: no
+- **D62-16 — Text from the body is document content (D56-2).** *(Moved to task-078, W2-7.)* The body is rendered as written: no
   character escape (a Markdown backslash must stay one), as the Documentation and Directives views
   do; bidirectional and zero-width characters inside it reach the page like any document's. The
   titles and texts the server escapes (K1, bug-035/task-072) are shown as React text.
-- **D62-17 — Strings and screens.** New catalogue keys (sorted in place): the candidates (heading,
+- **D62-17 — Strings and screens.** *(Partly moved, W2-7: the candidates' keys and the "element page — candidates" screen stay here; the panel's and the dialog's go to task-077 and task-078.)* New catalogue keys (sorted in place): the candidates (heading,
   "and {n} more"), *Open document*, the dialog's label, *Rendered*, *Source*, "No content yet", the
   summary's loading line. `SCREENS` (append-only): "element page — candidates", "element side panel
   (Today)", "element document — rendered", "element document — source"; the existing "element
   panel …" entries keep their names and now reach the page by its URL (their open steps change to
   the page's locator). Both build modes (normal, key) through the same structure-based steps.
-- **D62-18 — e2e support.** `test/e2e/support/element.ts` (new): `openElementPage(page, c, eid,
+- **D62-18 — e2e support.** *(Here `openElementPage`; `sidePanel` is task-077's, `expectNoImageRequest` task-078's, W2-7.)* `test/e2e/support/element.ts` (new): `openElementPage(page, c, eid,
   { pidIndex })` → the page locator (`[data-element-view]` in `main`, first load through
   `expectFirstLoad`), `sidePanel(page)` → the drawer dialog, `expectNoImageRequest(page, action)`
   (a `request` listener on `resourceType() === 'image'` and `img` URLs, around the action). Every
@@ -412,3 +397,14 @@ the hostile-value guard 0.5 d; the locator move across 16 e2e files and 10 web t
 0.5 d; the new address and panel specs 0.3 d; the summary, the dialog, the lookup move, the
 renderer options, the comment rule and their tests, the decision-log spec with its scenario-local
 fixtures 0.8 d; docs, `gates.yml` runs, review rounds 0.3 d. Above one day: Q4.
+
+**Decisions of the approver** (2026-11-11, relayed by the coordinator: "tutto come consigliato";
+`backlog-item-rel-v0.3-plan` W2-7): Q4 (a) — split in three: task-062 keeps the element page and
+its addresses (D62-1 … D62-5, D62-9, D62-11, D62-12; G-01.4 … G-01.7, M-01.3, R-09.1, X-06.3, every
+URL opener moved); task-077-side-panel-in-the-address takes G-01.8, S-21.4, the panel parts of
+AC-5 and AC-6, D62-6 … D62-8, D62-10 and Q1; task-078-rendered-element-document takes G-03.x,
+G-08.x, AC-7, D62-13 … D62-17, Q2 and Q3. Q1 (a) — on the element page a bell item opens that
+item's element page (task-077). Q2 (b) — HTML comments left out of the rendered element document
+only, *Source* keeps them (task-078). Q3 (a) — no Content-Security-Policy in these tasks; a
+console-wide policy is
+bug-039-the-console-serves-its-pages-without-a-content-security-policy (through `bug-ingest`).
