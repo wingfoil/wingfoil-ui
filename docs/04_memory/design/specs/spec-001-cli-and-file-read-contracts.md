@@ -356,3 +356,12 @@ its schema, and run the §4.1 resolution check. A failure blocks the matrix adva
   duplicate key is refused by a check linear in the frontmatter's size (the YAML library's own
   check is quadratic: 1 MiB of keys took about 99 s), and the bulk reader of the reference index
   refuses a frontmatter above 64 KiB as `shape` (this repository's largest is about 2 KiB).
+- 2026-11-11 — amended in task-075 (bug-037; task-059 design D59-14, Q3 (a), decided by the
+  approver; task-075 D75-9): §4.2 duplicate keys are compared as WingFoil's YAML loader
+  (`js-yaml` 4.x, default schema) stores keys — `String()` of each key's value, so `1` and `"1"`,
+  `true` and `"true"`, `~` and `"null"`, two spellings of one timestamp, an alias of a key and two
+  equal complex keys are duplicates, while `2026-01-01` (a date there) and `"2026-01-01"` are not;
+  a merge key is a plain `<<` only. A key with a tag outside `str`, `null`, `bool`, `int`, `float`,
+  `timestamp` (or `!`), or a sequence key holding a sequence, is a `shape` error ("unsupported
+  key") — declared residual: the CLI may list such a file. The same rule applies to
+  `.wingfoil/memory.yaml` (§4.1). The values read are unchanged (the YAML 1.2 core schema).

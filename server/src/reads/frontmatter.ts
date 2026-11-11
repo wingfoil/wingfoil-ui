@@ -3,9 +3,10 @@
  * then the body. YAML 1.2 core schema: dates and versions stay as written (no timestamp type);
  * `# …` comments are ignored.
  */
-import { isMap, isScalar, LineCounter, parseDocument, visit } from 'yaml';
+import { isMap, LineCounter, parseDocument, visit } from 'yaml';
 import { schemaProblems, type ContractSchema } from '../contracts.js';
 import { DirectReadError } from './confine.js';
+import { isMergeKey, jsYamlKey, UnsupportedKeyError } from './yaml-keys.js';
 
 /** A parsed Markdown file. */
 export interface FrontmatterFile<T> {
@@ -27,25 +28,50 @@ export const FRONTMATTER_PARSE_OPTIONS = Object.freeze({
   prettyErrors: false,
 } as const);
 
+/** The longest key text a refusal quotes, in code points (its first line only). */
+const MAX_KEY_TEXT = 64;
+
+/** The source text of `node` in `text`, for a refusal: its first line, at most {@link MAX_KEY_TEXT}. */
+function keyText(text: string, node: unknown): string {
+  const range = (node as { range?: readonly number[] } | null)?.range;
+  if (!range) return '';
+  const line = (text.slice(range[0], range[1]).split(/\r?\n/)[0] ?? '').trimEnd();
+  const points = [...line];
+  return points.length > MAX_KEY_TEXT ? `${points.slice(0, MAX_KEY_TEXT).join('')}…` : line;
+}
+
 /**
- * The first key repeated in a mapping, compared as the library does (the parsed scalar values;
- * a merge key `<<` is not a key of its own), with its line and column; `undefined` when none.
+ * The first key repeated in a mapping, compared as WingFoil's js-yaml stores keys (bug-037,
+ * {@link jsYamlKey}; a merge key `<<` is not a key of its own), or a key js-yaml refuses or whose
+ * form is not emulated — with its line and column; `undefined` when none. One pass, one set per map.
  */
-function duplicateKey(doc: ReturnType<typeof parseDocument>, lines: LineCounter): string | undefined {
+function duplicateKey(doc: ReturnType<typeof parseDocument>, text: string, lines: LineCounter): string | undefined {
   let found: string | undefined;
+  const forms = new Map<unknown, string>();
+  const at = (node: unknown): string => {
+    const where = lines.linePos((node as { range?: readonly number[] } | null)?.range?.[0] ?? 0);
+    return `(line ${where.line}, column ${where.col})`;
+  };
   visit(doc, {
     Map(_, map) {
       if (!isMap(map)) return undefined;
-      const seen = new Set<unknown>();
+      const seen = new Set<string>();
       for (const pair of map.items) {
         const key = pair.key;
-        if (!isScalar(key) || key.value === '<<') continue;
-        if (seen.has(key.value)) {
-          const at = lines.linePos(key.range?.[0] ?? 0);
-          found = `duplicate key ${String(key.value)} (line ${at.line}, column ${at.col})`;
+        if (isMergeKey(key)) continue;
+        let form: string;
+        try {
+          form = jsYamlKey(key, doc, forms);
+        } catch (error) {
+          if (!(error instanceof UnsupportedKeyError)) throw error;
+          found = `unsupported key ${keyText(text, key)} ${at(key)}`;
           return visit.BREAK;
         }
-        seen.add(key.value);
+        if (seen.has(form)) {
+          found = `duplicate key ${keyText(text, key)} ${at(key)}`;
+          return visit.BREAK;
+        }
+        seen.add(form);
       }
       return undefined;
     },
@@ -62,7 +88,7 @@ export function parseYaml(text: string, file: string): unknown {
   const doc = parseDocument(text, { ...FRONTMATTER_PARSE_OPTIONS, lineCounter: lines });
   const error = doc.errors[0];
   if (error) fail(error.message.split('\n')[0] ?? '');
-  const duplicate = duplicateKey(doc, lines);
+  const duplicate = duplicateKey(doc, text, lines);
   if (duplicate !== undefined) fail(duplicate);
   try {
     return doc.toJS();

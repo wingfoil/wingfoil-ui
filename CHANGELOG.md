@@ -138,6 +138,14 @@ release `v0.2` the git tag `v0.2.0` and the npm version `wingfoil-ui@0.2.0`.
   Memory element (id, title, type, status missing or not text)`), archived elements included.
   WingFoil 0.3.1 leaves such a file out by itself, without a word (`wingfoil-cli` W-47). The
   defect shipped in v0.1.0 and v0.2.0.
+- **The console and WingFoil agree on which frontmatters have a duplicate key** (bug-037, task-075):
+  keys that are one key for WingFoil's YAML loader — `1` and `"1"`, `true` and `"true"`, `~` and
+  `"null"`, two spellings of one date, an alias repeating a key, a repeated complex key — were read
+  as two by the console, which showed as an element a file every `wingfoil` command leaves out
+  (`duplicated mapping key`); and `2026-01-01` with `"2026-01-01"`, two keys for WingFoil, was
+  refused. Keys are now compared as WingFoil stores them (also in `.wingfoil/memory.yaml`). A key
+  with a tag the console does not emulate (`!!binary`, `!!set`, a local tag) or a nested list is
+  refused. The defect shipped in v0.1.0 and v0.2.0.
 
 ### Security
 

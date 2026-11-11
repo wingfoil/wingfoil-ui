@@ -5,8 +5,10 @@
 // bug-037, task-075 AC-2 (D75-9): keys are compared as the pinned CLI's js-yaml 4.3.2 stores them —
 // `String()` of their default-schema value — so the files the CLI leaves out as a "duplicated mapping
 // key" are refused here, and a pair it accepts is read; the differential table is `yaml-keys.test.ts`.
-import { describe, expect, it } from 'vitest';
+import { parseDocument, type YAMLMap } from 'yaml';
+import { describe, expect, it, vi } from 'vitest';
 import { FRONTMATTER_PARSE_OPTIONS, parseYaml } from '../../../server/src/reads/frontmatter.js';
+import { jsYamlKey } from '../../../server/src/reads/yaml-keys.js';
 
 describe('parseYaml (bug-032)', () => {
   it("the library's duplicate-key check is off; merge keys resolved as before", () => {
@@ -81,5 +83,26 @@ describe('parseYaml keys as js-yaml stores them (bug-037, task-075 AC-2)', () =>
     // 1 000 integer keys and 1 000 distinct date-time keys (one per minute from 2026-01-01T00:00Z).
     for (let i = 0; i < 1_000; i += 1) text += `${i}: v\n2026-01-01T${two(Math.floor(i / 60))}:${two(i % 60)}:00Z: v\n`;
     expect(Object.keys(parseYaml(text, 'f.md') as object)).toHaveLength(2_000);
+  });
+});
+
+describe('jsYamlKey (bug-037 with bug-032)', () => {
+  it("an aliased sequence's form is computed once per parse, however many aliases name it", () => {
+    const items = Array.from({ length: 2_000 }, (_, i) => `i${i}`).join(', ');
+    const text = `a: &s [${items}]\n${Array.from({ length: 500 }, (_, i) => `m${i}:\n  ? *s\n  : x\n`).join('')}`;
+    const doc = parseDocument(text, FRONTMATTER_PARSE_OPTIONS);
+    const forms = new Map<unknown, string>();
+    const seq = (doc.contents as YAMLMap).items[0]!.value;
+    const join = vi.spyOn(Array.prototype, 'join');
+    try {
+      for (const pair of (doc.contents as YAMLMap).items.slice(1)) {
+        const inner = (pair.value as YAMLMap).items[0]!.key;
+        expect(jsYamlKey(inner, doc, forms)).toHaveLength(items.replace(/ /g, '').length);
+      }
+      expect(join.mock.calls.filter((c) => c[0] === ',')).toHaveLength(1);
+    } finally {
+      join.mockRestore();
+    }
+    expect([...forms.keys()]).toEqual([seq]);
   });
 });
