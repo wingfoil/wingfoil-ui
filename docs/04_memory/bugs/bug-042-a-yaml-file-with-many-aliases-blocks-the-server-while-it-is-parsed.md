@@ -3,12 +3,12 @@ id: bug-042-a-yaml-file-with-many-aliases-blocks-the-server-while-it-is-parsed  
 type: bug
 title: "A YAML file with many aliases blocks the server while it is parsed"              # REQUIRED — short description, e.g. "Approve dialog loses the reason on server error"
 status: draft          # auto-set by wingfoil; memory.submit → open
-severity: ""           # REQUIRED — critical | high | medium | low
-release-origin: ""     # optional — release where the bug was FOUND, e.g. "v0.1"
+severity: "high"           # REQUIRED — critical | high | medium | low
+release-origin: "v0.3"     # optional — release where the bug was FOUND, e.g. "v0.1"
 release: ""            # optional — fix/implementation release, stamped by release-planning/build-backlog; required once closed, unless closed by a reject
 feature: ""            # optional — related feature ID from docs/01_vision/06_features.md
-module: ""             # optional — server | web | contracts
-wingfoil_version: ""   # optional — `wingfoil --version` of the OBSERVED project (the UI drives its CLI)
+module: "server"             # optional — server | web | contracts
+wingfoil_version: "0.3.1"   # optional — `wingfoil --version` of the OBSERVED project (the UI drives its CLI)
 browser: ""            # optional — for `web`: browser name + version, e.g. "Firefox 131"
 contributor: ""        # optional — who originated this contribution, if not the git author; credited for AI-generated work derived from it
 credit: ""             # optional — free-text credit note
@@ -17,32 +17,43 @@ tmpl_version: 260703   # Orignal template version
 
 ## Summary
 
-<!-- One-sentence description of the defect. -->
+The server's YAML parse (`yaml`'s `toJS`, called by the frontmatter and `memory.yaml` reads since
+v0.1.0) takes time that grows with the square of the number of aliases, so one committed or
+working-tree file with many alias keys blocks the server's event loop for minutes.
 
 ## Steps to Reproduce
 
-<!-- Start from the observed project's state (WingFoil version, branch, the elements involved),
-     then the numbered steps in the UI or against the server API.
-  1. ...
-  2. ...
-  3. ... -->
+1. In a project the console shows, write a Memory file whose frontmatter holds one anchor and many
+   distinct alias keys (`*a1 : 1`, `*a2 : 1`, …), or put the same into `.wingfoil/memory.yaml`.
+2. Open that element's page (or any read of `memory.yaml`).
 
 ## Expected Behavior
 
-<!-- What should happen. -->
+The read answers within its usual time, or refuses the file as unreadable, without blocking other
+requests.
 
 ## Actual Behavior
 
-<!-- What actually happens. Include error messages or stack traces if available. -->
+The parse blocks the event loop: `toJS` of 1 000 / 2 000 / 4 000 / 8 000 distinct alias keys takes
+108 / 198 / 644 / 5 550 ms (about 4× per doubling). The reference index bounds a frontmatter at
+64 KiB (about 0.3 s), but the element read and `memory.yaml` are bounded only by
+`MAX_DIRECT_READ_BYTES` (5 MiB, `server/src/reads/confine.ts`): about 175 000 such keys, which
+extrapolates to tens of minutes of a blocked server.
 
 ## Evidence
 
-<!-- Screenshot or recording (web), browser console output, server log lines, the CLI command the
-     server ran and its JSON output. Never paste secrets (directive security-secrets). -->
+task-075's review round 2 (2026-11-11,
+`task/task-075-reads-tied-to-their-state-check-and-frontmatter-duplicate-keys` at `10605e1f`):
+measured with `parseDocument`, then `toJS`, then `parseYaml`; the developer's own figures at a lower
+load were 34 / 92 / 418 ms for 1 000 / 2 000 / 4 000 keys. `parseYaml` has called `toJS` since
+v0.1.0.
 
 ## Notes
 
-<!-- Optional: environment details, related ADRs, suspected root cause, or workaround. -->
+High: one file a project member commits (or leaves in the working tree) stalls the console for
+everyone using it. Fix direction: count the aliases in task-075's one-pass `keyContext` and refuse
+the file above a bound before `toJS` (the library's `maxAliasCount` as the model), with a timing
+test for N and 2N. Absorbed into task-075 (the approver, 2026-11-11, "toJS a").
 
 ## Triage & Execution Notes
 
