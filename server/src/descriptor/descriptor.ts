@@ -61,7 +61,7 @@ export interface DescribedElement {
 export type CopyState =
   { state: 'ok' } | { state: 'behind'; commits: number } | { state: 'diverged' } | { state: 'detached' };
 
-/** The inputs of the four enablement rules of spec-003 §6. */
+/** The inputs of enablement rules 1–4 of spec-003 §6 (rule 5 is {@link DescriptorProject.occupancy}). */
 export interface Enablement {
   /** The current user is identified in the team (REQ-SEC-08). */
   identified: boolean;
@@ -93,6 +93,11 @@ export interface DescriptorProject {
   enablement: Enablement;
   /** The held gates (v0.3); none when absent. */
   holds?: DescriptorHolds;
+  /**
+   * The non-archived elements of `type` in `state` (v0.3, spec-003 §6 rule 5): given only for a
+   * WingFoil version that enforces the machines' `limits`; absent, no limit applies (task-073 D73-2).
+   */
+  occupancy?: (type: string, state: string) => number;
 }
 
 const isArchived = (state: string): boolean => (ARCHIVED_STATES as readonly string[]).includes(state);
@@ -178,7 +183,29 @@ function heldOf(
   return count > 0 ? { condition, reason: { code: 'held-until-references-done', count } } : undefined;
 }
 
-/** The first failing rule of spec-003 §6 for element `id`, or `undefined`. */
+/**
+ * Rule 5 of spec-003 §6 (v0.3, RP3-14 D11, RP3-15 F4; task-073 D73-5): a `submit` or `approve` whose
+ * target declares `limits: {<to>: N}` with N elements of the type already there. A `reject` is
+ * never limited — WingFoil exempts it, as it does `park`, never offered. An approximation of
+ * WingFoil's count (the working tree's `memory search` against HEAD and every changed ref): the
+ * CLI's refusal stays the authority.
+ */
+function limitReason(
+  verb: Omit<DescriptorVerb, 'enabled'>,
+  type: string,
+  machine: StateMachine | undefined,
+  occupancy: DescriptorProject['occupancy'],
+): DisabledReason | undefined {
+  if (!occupancy || verb.verb === 'reject') return undefined;
+  // An own entry only: a state may be named after an Object built-in (`constructor`, review F-1).
+  const limits = machine?.limits;
+  if (!limits || !Object.hasOwn(limits, verb.to)) return undefined;
+  const limit = limits[verb.to]!;
+  if (occupancy(type, verb.to) < limit) return undefined;
+  return { code: 'state-limit', state: verb.to, limit };
+}
+
+/** The first failing rule among rules 1–4 of spec-003 §6 for element `id`, or `undefined`. */
 function disabledReason(id: string, enablement: Enablement): DisabledReason | undefined {
   if (!enablement.identified) return { code: 'not-in-team' };
   if (!enablement.version.supported) return { code: 'version-unsupported', range: enablement.version.range };
@@ -287,7 +314,11 @@ export function describeElement(
   const approveHeld = heldOf(id, type, status, kind, project.holds);
   const verbs = verbsOf(machine, status, kind)
     .filter((v) => !(approveHeld && v.verb === 'approve'))
-    .map((v): DescriptorVerb => (reason ? { ...v, enabled: false, reason } : { ...v, enabled: true }));
+    .map((v): DescriptorVerb => {
+      // Rules 1–4 hold for every verb of the state; rule 5 is per verb (its target).
+      const failed = reason ?? limitReason(v, type, machine, project.occupancy);
+      return failed ? { ...v, enabled: false, reason: failed } : { ...v, enabled: true };
+    });
   const moves = transitions(events);
   const rejection = rejectionOf(status, moves);
   const since = moves.findLast((e) => e.to === status)?.timestamp;

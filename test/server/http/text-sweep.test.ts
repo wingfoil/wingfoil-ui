@@ -90,7 +90,10 @@ const RULES: readonly Rule[] = [
   // task-070 (D70-6, D70-11): a WingFoil 0.3.x refusal's reasons, tool messages as the message.
   { pattern: /^(?:cli|write)\.refusal \.error\.detail\.reasons\[\]$/, cls: 'a', note: 'a refusal reason (task-070)' },
   // The action descriptor, wherever it is.
-  { pattern: new RegExp(`${DESCRIPTOR}(?:id|type|status|verbs\\[\\]\\.(?:to|role)|actor\\.role)$`), cls: 'c' },
+  {
+    pattern: new RegExp(`${DESCRIPTOR}(?:id|type|status|verbs\\[\\]\\.(?:to|role|reason\\.state)|actor\\.role)$`),
+    cls: 'c',
+  },
   { pattern: new RegExp(`${DESCRIPTOR}(?:verbs\\[\\]\\.reason\\.range|rejection\\.at|since)$`), cls: 'e' },
   { pattern: new RegExp(`${DESCRIPTOR}rejection\\.(?:by|reason)$`), cls: 'a', note: 'commit text (bug-027)' },
   {

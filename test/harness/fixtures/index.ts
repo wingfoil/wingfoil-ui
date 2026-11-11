@@ -6,3 +6,4 @@ export * from './team.js';
 export * from './variants.js';
 export * from './hostile.js';
 export * from './held-gates.js';
+export * from './state-limit.js';
