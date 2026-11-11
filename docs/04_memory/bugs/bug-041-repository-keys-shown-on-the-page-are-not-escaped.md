@@ -50,6 +50,8 @@ approver, 2026-11-11, task-072 Q5 (a)).
 Low: it needs a hand edit (W-34 forbids a hand-set `status:`) or a hostile governance file. Fix
 direction: a display sibling for each key the page shows (as D72-1 does for values that are both),
 or a web-side display escape applied only where a key is rendered; about half a day (task-072 Q5).
+Two more places found at task-072's green (2026-11-11): the directive page's toolbar and the element
+panel show `entry.path` (a path key) as written.
 
 ## Triage & Execution Notes
 
