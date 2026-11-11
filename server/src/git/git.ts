@@ -19,9 +19,11 @@
  * | the upstream's remote and merge ref of the branch; the user's ssh command (spec-010 §1, §4) | `git config --get branch.<branch>.remote`, `… .merge`, `git config --get core.sshCommand` |
  * | every URL of a remote (`insteadOf` applied), for the owner check of a local remote (D33-1) | `git remote get-url --all [--push] -- <remote>` |
  * | the files the incoming commits change (spec-010 §5 `local-changes-in-the-way`) | `git log --no-renames --name-only -z --format= HEAD..@{u}` |
+ * | the preset write's row 7′: any entry at `.wingfoil/ui.yaml` in the index and at HEAD; its commit from an unborn start (task-060 D60-4, D60-8) | `git ls-files --stage -z -- <path>`, `git ls-tree -z HEAD -- <path>`, `git log --first-parent --format=… HEAD` |
  *
- * Git is never used to change a repository by these reads. The writes are git transport (write
- * class (c), adr-001 D7): the clone into a new, empty folder ({@link cloneArgs}, run by
+ * Git is never used to change a repository by these reads. {@link GitReads.indexWrite} runs the
+ * preset write's `git add` and `git commit --only` of `.wingfoil/ui.yaml` (write class (b),
+ * task-060; `git/index-write.ts`). The other writes are git transport (write class (c), adr-001 D7): the clone into a new, empty folder ({@link cloneArgs}, run by
  * `projects/clone.ts`) and, from v0.2, fetch, `pull --ff-only` and push (`git/transport.ts`).
  */
 import { createHash } from 'node:crypto';
@@ -316,6 +318,19 @@ export class GitNotFoundError extends Error {
 function commitArg(head: string): string {
   if (!/^(?:[0-9a-f]{40}|[0-9a-f]{64})$/.test(head)) throw new GitReadError(`not a commit sha: ${head}`);
   return head;
+}
+
+/** The records of {@link GIT_READ_ARGS}`.commits`. */
+function parseCommits(out: string): CommitSummary[] {
+  return out
+    .split('\x1e')
+    .map((record) => record.replace(/^\s+/, ''))
+    .filter((record) => record !== '')
+    .flatMap((record) => {
+      const [sha = '', time = '', ...subject] = record.split('\x1f');
+      if (!/^(?:[0-9a-f]{40}|[0-9a-f]{64})$/.test(sha) || !/^\d+$/.test(time)) return [];
+      return [{ sha, at: new Date(Number(time) * 1000), subject: subject.join('\x1f') }];
+    });
 }
 
 /** The NUL-terminated records of a `-z` output. */
@@ -646,16 +661,44 @@ export class GitReads {
 
   /** The first-parent commits of `<before>..HEAD`, newest first, at most 50 (task-032, D32-4). */
   async commitsSince(before: string): Promise<CommitSummary[]> {
-    const out = (await this.read([...GIT_READ_ARGS.commits, `${commitArg(before)}..HEAD`])).stdout;
-    return out
-      .split('\x1e')
-      .map((record) => record.replace(/^\s+/, ''))
-      .filter((record) => record !== '')
-      .flatMap((record) => {
-        const [sha = '', time = '', ...subject] = record.split('\x1f');
-        if (!/^(?:[0-9a-f]{40}|[0-9a-f]{64})$/.test(sha) || !/^\d+$/.test(time)) return [];
-        return [{ sha, at: new Date(Number(time) * 1000), subject: subject.join('\x1f') }];
-      });
+    return parseCommits((await this.read([...GIT_READ_ARGS.commits, `${commitArg(before)}..HEAD`])).stdout);
+  }
+
+  /**
+   * Whether the index holds any entry at `file` or below it (any stage, intent-to-add,
+   * `skip-worktree`; task-060 D60-4). `file` is relative to the project root.
+   */
+  async hasIndexEntry(file: string): Promise<boolean> {
+    return splitNul((await this.read([...GIT_READ_ARGS.lsFiles, '--', file])).stdout).length > 0;
+  }
+
+  /** Whether HEAD holds any entry at `file` (a blob, a tree, a link, a submodule; task-060 D60-4). */
+  async hasHeadEntry(file: string): Promise<boolean> {
+    return splitNul((await this.read([...GIT_READ_ARGS.lsTree, 'HEAD', '--', file])).stdout).length > 0;
+  }
+
+  /** The first-parent commits of HEAD, newest first, at most 50: {@link commitsSince} for an unborn start. */
+  async commitsFromRoot(): Promise<CommitSummary[]> {
+    return parseCommits((await this.read([...GIT_READ_ARGS.commits, 'HEAD'])).stdout);
+  }
+
+  /**
+   * Run the preset write's `git add` or `git commit` (task-060 D60-7; `git/index-write.ts` builds the
+   * arguments) with the CLI's variables (spec-001 §1) and {@link INDEX_WRITE_GIT_CONFIG}, the default
+   * timeout; the outcome as it is. Any other subcommand throws before a process starts.
+   */
+  indexWrite(args: readonly string[]): Promise<ProcessResult> {
+    if (!INDEX_WRITE_SUBCOMMANDS.includes(gitSubcommand(args) ?? '')) {
+      return Promise.reject(new Error(`not an index write: ${gitSubcommand(args) ?? '(none)'}`));
+    }
+    const { git, runner, cwd } = this.options;
+    return runner.run({
+      file: git,
+      args,
+      cwd,
+      env: { ...withoutNames(this.base, CLI_GIT_ENV), ...CLI_GIT_ENV },
+      gitConfig: INDEX_WRITE_GIT_CONFIG,
+    });
   }
 
   private run(args: readonly string[]): Promise<ProcessResult> {
@@ -725,6 +768,36 @@ export function withoutNames(env: NodeJS.ProcessEnv, names: Readonly<Record<stri
  * transport commands (`git/transport.ts`, `projects/clone.ts`) set their own allowed list.
  */
 export const READ_GIT_ENV: Readonly<Record<string, string>> = { GIT_ALLOW_PROTOCOL: 'none', GIT_NO_LAZY_FETCH: '1' };
+
+/**
+ * The git settings of every WingFoil process (spec-001 §1; moved from `cli/adapter.ts` for the
+ * preset write, task-060 D60-7): no fsmonitor program (task-046 D46-6), no transport at all (D46-7:
+ * a lazy fetch would run a promisor remote's `uploadpack` or `core.sshCommand`).
+ */
+export const CLI_GIT_CONFIG: readonly (readonly [string, string])[] = [
+  ['core.fsmonitor', 'false'],
+  ['protocol.allow', 'never'],
+  // No signature check in a history read (review round 5 s-minor-1: 0.2.2's `git log --follow`
+  // would run a configured `gpg.program`); the server's own log reads set it too.
+  ['log.showSignature', 'false'],
+];
+
+/** The git variables of every WingFoil process (task-046 D46-5, D46-7). */
+export const CLI_GIT_ENV: Readonly<Record<string, string>> = { GIT_OPTIONAL_LOCKS: '0', ...READ_GIT_ENV };
+
+/**
+ * The git settings of the preset write's `add` and `commit` (task-060 D60-7), given to the process
+ * and every hook it runs: the CLI's, and no automatic maintenance (task-033 D33-3: a commit runs
+ * `git maintenance run --auto`, which may detach and outlive the process group).
+ */
+export const INDEX_WRITE_GIT_CONFIG: readonly (readonly [string, string])[] = [
+  ...CLI_GIT_CONFIG,
+  ['maintenance.auto', 'false'],
+  ['gc.auto', '0'],
+];
+
+/** The only subcommands `GitReads.indexWrite` runs. */
+export const INDEX_WRITE_SUBCOMMANDS: readonly string[] = ['add', 'commit'];
 
 /**
  * `PATH` of `env` with its absolute entries only (review round 1 R3): a relative entry would be

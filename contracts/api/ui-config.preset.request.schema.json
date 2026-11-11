@@ -1,0 +1,12 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://wingfoil-ui.local/contracts/api/ui-config.preset.request.schema.json",
+  "title": "POST /api/p/:pid/ui-config/preset request",
+  "description": "Apply a shipped UI preset (spec-004 §3, spec-005 §5; v0.3, task-060): the server writes it as `.wingfoil/ui.yaml` and commits it alone as `chore(ui): apply the <Preset> preset`. Any other value or key fails this schema: 400 `invalid-request`.",
+  "type": "object",
+  "required": ["preset"],
+  "additionalProperties": false,
+  "properties": {
+    "preset": { "enum": ["kanban", "scrum", "sw-life-cycle"] }
+  }
+}

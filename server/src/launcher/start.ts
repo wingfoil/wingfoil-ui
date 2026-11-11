@@ -14,6 +14,7 @@ import { registerProjectListRoutes } from '../http/projects.js';
 import { registerRoleViewRoute } from '../http/role-view.js';
 import { registerServerRoute } from '../http/server-route.js';
 import { registerSettingsRoutes } from '../http/settings.js';
+import { registerUiConfigPresetRoute } from '../http/ui-config-preset.js';
 import { createSnapshotIdentitySource } from '../identity/snapshot-identity.js';
 import { message } from '../i18n/messages.js';
 import { createLogger } from '../logging.js';
@@ -196,6 +197,8 @@ export async function runLauncher(argv: readonly string[], io: LauncherIo): Prom
       registerElementWriteRoutes(routes, { store: state, snapshots, writeLock, bus, push: autoPush });
       // task-033: the git routes (spec-010 §4–§5, §8).
       registerGitRoutes(routes, { store: state, snapshots, writeLock });
+      // task-060: the preset write (spec-005 §5); the shipped presets only — never a `presets` table here (D60-12).
+      registerUiConfigPresetRoute(routes, { store: state, snapshots, writeLock, bus, push: autoPush });
     },
   });
   // Stop sequence (spec-007 §6): close the event streams and the watchers, then terminate the CLI

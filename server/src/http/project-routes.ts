@@ -41,6 +41,7 @@ import type {
   DnaShow,
   ElementDetail,
   ElementList,
+  ElementRef,
   ListedElement,
   MemoryMatch,
   MemoryYaml,
@@ -53,13 +54,15 @@ import type {
   Today,
   TodayRow,
   MemoryEventsPage,
+  MissingReferences,
+  Progress,
 } from '@wingfoil-ui/contracts';
 import { CliError, cliErrorEnvelope, type CliOutput } from '../cli/adapter.js';
 import { evaluateCapabilities } from '../cli/capabilities.js';
 import { mergeToolLines, type WarningParts } from '../cli/commands.js';
 import { CliNotFoundError } from '../cli/discovery.js';
-import { supportedRange, type DetectedVersion } from '../cli/version.js';
-import { describeElement, type CopyState, type DescriptorHolds } from '../descriptor/descriptor.js';
+import { compareSemVer, parseSemVer, supportedRange, type DetectedVersion } from '../cli/version.js';
+import { describeElement, heldOf, type CopyState, type DescriptorHolds } from '../descriptor/descriptor.js';
 import { today } from '../descriptor/today.js';
 import { GitReadError } from '../git/git.js';
 import { repositoryStatus, type SyncStatus } from '../git/sync-status.js';
@@ -67,7 +70,7 @@ import { MEMORY_EVENTS_MAX_LIMIT, memoryDirectories, memoryEventsPage } from '..
 import { directivesForRoleView, identityView } from '../identity/identity.js';
 import { identityOf } from '../identity/snapshot-identity.js';
 import { ARCHIVED_QUERY } from '../presets/api.js';
-import { ARCHIVED_STATES } from '../presets/wingfoil.js';
+import { ARCHIVED_STATES, LIMITS_SINCE } from '../presets/wingfoil.js';
 import { DirectReadError } from '../reads/confine.js';
 import { shortIdsOf, type ShortIds } from '../reads/short-id.js';
 import { resolveStates } from '../reads/memory-yaml.js';
@@ -87,6 +90,11 @@ import { stripUserinfo, type StateStore } from '../state/store.js';
 import { envelope } from './app.js';
 import { resolveElementId } from './element-address.js';
 import { uiConfigBody } from '../ui-config/body.js';
+import { elementRef, progressBody } from '../project-state/bodies.js';
+import { currentElement, scopeType } from '../project-state/current.js';
+import { missingCategories } from '../project-state/missing.js';
+import { naturalOrder } from '../project-state/order.js';
+import type { UiCategory } from '../ui-config/types.js';
 import {
   descriptorBody,
   directiveBody,
@@ -289,6 +297,7 @@ class ProjectRead {
       };
       const none: ReadonlySet<string> = new Set();
       const holds = await this.holds();
+      const occupancy = await this.occupancy(memoryYaml, detected);
       return {
         ok: true,
         memoryYaml,
@@ -299,18 +308,42 @@ class ProjectRead {
             members,
             enablement: { ...enablement, localChanges: localChanges ? new Set([match.id]) : none },
             ...(holds ? { holds } : {}),
+            ...(occupancy ? { occupancy } : {}),
           }),
       };
     });
   }
 
   /**
+   * Rule 5's count (spec-003 §6; task-073 D73-3): the non-archived elements of `memory search` by
+   * type and status — the search every route already reads, cached for the state, so no process is
+   * added — only for a WingFoil version that enforces `limits` ({@link LIMITS_SINCE}) and a
+   * `memory.yaml` where some machine declares one; otherwise `undefined` (no limit applies).
+   */
+  private async occupancy(
+    memoryYaml: MemoryYaml,
+    detected: DetectedVersion,
+  ): Promise<((type: string, state: string) => number) | undefined> {
+    const version = detected.version === null ? undefined : parseSemVer(detected.version);
+    if (!version || compareSemVer(version, parseSemVer(LIMITS_SINCE)!) < 0) return undefined;
+    const machines = [memoryYaml.defaults?.states, ...Object.values(memoryYaml.types).map((t) => t.states)];
+    if (!machines.some((m) => m?.limits !== undefined)) return undefined;
+    const counts = new Map<string, number>();
+    for (const { match } of (await this.view.elements()).matches) {
+      const key = `${match.type}\0${match.status}`;
+      counts.set(key, (counts.get(key) ?? 0) + 1);
+    }
+    return (type, state) => counts.get(`${type}\0${state}`) ?? 0;
+  }
+
+  /**
    * The held gates of this state (spec-005 §4a, spec-003 §3; task-069 D69-4): the `holds` of the
    * effective `ui.yaml` (an ignored or absent file holds nothing → `undefined`), and the reference
    * index (spec-012 §1) built only when one of them is `when-references-done`. Called once per state
-   * from {@link descriptorInputs}, after `memory.yaml` was read.
+   * from {@link descriptorInputs}, after `memory.yaml` was read, and by `/progress`'s pending gates
+   * (task-059 D59-6).
    */
-  private async holds(): Promise<DescriptorHolds | undefined> {
+  async holds(): Promise<DescriptorHolds | undefined> {
     const table = (await this.view.uiConfig()).holds.value;
     if (table.size === 0) return undefined;
     const counted = [...table.values()].some((states) => [...states.values()].includes('when-references-done'));
@@ -357,6 +390,27 @@ class ProjectRead {
       // header; the kind only (the message may quote paths).
       this.log.warn({ kind: (error as Error).name }, 'project entry not refreshed: state not written');
     }
+  }
+
+  /**
+   * The current element of `progress.scope` as an `ElementRef` (spec-012 §2, §3; task-059 D59-2), once
+   * per content key; `null` when no scope applies or no element is current. Rejects as
+   * {@link SnapshotView.referenceIndex} does (a failed `memory search`, an unreadable `memory.yaml`).
+   */
+  currentRef(): Promise<ElementRef | null> {
+    return this.view.contentDerived('current element', async () => {
+      const ui = await this.view.uiConfig();
+      if (scopeType(ui) === null) return null;
+      const [index, memoryYaml, list, shortIds] = await Promise.all([
+        this.view.referenceIndex(),
+        this.view.memoryTypes(),
+        this.view.elements(),
+        this.shortIds(),
+      ]);
+      const current = currentElement(index, memoryYaml, ui);
+      const match = current && list.matches.find((m) => m.match.id === current.id)?.match;
+      return current && match ? elementRef(current, match, shortIds) : null;
+    });
   }
 
   /** The short ids of this state's elements (spec-011 §1): none when `memory.yaml` is unreadable. */
@@ -518,8 +572,36 @@ async function config(read: ProjectRead): Promise<ProjectConfig> {
     paths: section(paths),
     workflows: section(workflows, workflowsBody),
     types: types.ok ? { data: resolved(types.value) } : { error: types.refusal.error },
-    ...(ui.ok ? { ui: uiConfigBody(ui.value) } : {}),
+    ...(ui.ok ? { ui: uiConfigBody(ui.value, await currentOrNull(read)) } : {}),
   };
+}
+
+/**
+ * `/config`'s `scope.current` (task-059 D59-2, Q6): the derived element, `null` when the reads it
+ * needs fail — the other sections report those failures; `/progress` answers them.
+ */
+async function currentOrNull(read: ProjectRead): Promise<ElementRef | null> {
+  const settled = await read.settle(read.currentRef(), '.wingfoil/');
+  return settled.ok ? settled.value : null;
+}
+
+/**
+ * The missing-reference flag of a state (spec-012 §5, task-059 D59-7): `requires` from the
+ * effective `ui.yaml`; the reference index built only when it names a type (`shown`). Once per
+ * content key.
+ */
+function missingOf(
+  read: ProjectRead,
+): Promise<{ references: MissingReferences; categories: ReadonlyMap<string, readonly UiCategory[]> }> {
+  return read.view.contentDerived('missing references', async () => {
+    const requires = (await read.view.uiConfig()).requires.value;
+    if (requires.size === 0) return { references: { shown: false, unreadable: [], capped: [] }, categories: new Map() };
+    const index = await read.view.referenceIndex();
+    return {
+      references: { shown: true, unreadable: naturalOrder(index.unreadable), capped: naturalOrder(index.capped) },
+      categories: missingCategories(index, requires),
+    };
+  });
 }
 
 /** `GET /api/p/:pid/elements[?archived=true]`. */
@@ -544,19 +626,28 @@ async function elements(read: ProjectRead, archived: boolean): Promise<ElementLi
   const events = inputs.ok ? await read.events() : undefined;
   const shortIds = await read.shortIds();
   const sanitise = await read.toolText();
-  const listed: ListedElement[] = matches.map(({ match, localChanges }) => ({
-    ...matchBody(match),
-    ...shortIdField(shortIds, match),
-    localChanges,
-    ...(inputs.ok && events
-      ? { descriptor: descriptorBody(inputs.describe(match, localChanges, events.events), sanitise) }
-      : {}),
-  }));
+  // spec-012 §5: only with a readable memory.yaml (the effective ui.yaml needs it); the listed
+  // elements only — the archived ones are not indexed (TQ-3).
+  const missing = inputs.ok ? await missingOf(read) : undefined;
+  const live = new Set(list.matches.map((m) => m.match.path));
+  const listed: ListedElement[] = matches.map(({ match, localChanges }) => {
+    const categories = live.has(match.path) ? missing?.categories.get(match.id) : undefined;
+    return {
+      ...matchBody(match),
+      ...shortIdField(shortIds, match),
+      localChanges,
+      ...(inputs.ok && events
+        ? { descriptor: descriptorBody(inputs.describe(match, localChanges, events.events), sanitise) }
+        : {}),
+      ...(categories ? { missingCategories: [...categories] } : {}),
+    };
+  });
   return {
     elements: listed,
     warnings,
     ...(list.message !== undefined ? { message: list.message } : {}),
     ...(inputs.ok ? {} : { typesError: inputs.refusal.error }),
+    ...(missing ? { missingReferences: missing.references } : {}),
     ...(events?.error ? { eventsError: events.error } : {}),
   };
 }
@@ -689,6 +780,54 @@ async function todayOf(read: ProjectRead, query: Record<string, unknown>): Promi
   return today(rows, ids.identity, requested ?? ids.roleView);
 }
 
+/**
+ * `GET /api/p/:pid/progress` (spec-012 §3, task-059): no query parameter (any → 400
+ * `invalid-request`, after the project lookup); an unreadable `memory.yaml` → 502 `read-error`, a
+ * failed `memory search` → its CLI envelope, never partial figures. Neither the DNA nor the Memory
+ * events are read: their failure does not fail it. The body once per content key (D59-9).
+ */
+async function progressOf(read: ProjectRead, query: Record<string, unknown>): Promise<Progress> {
+  if (Object.keys(query).length > 0) throw invalidRequest();
+  const { view } = read;
+  // The refusals in spec-012 §10's order: `memory.yaml` (502), then `memory search` (its envelope).
+  valueOf(await read.settle(view.memoryTypes(), '.wingfoil/'));
+  valueOf(await read.settle(view.uiConfig(), '.wingfoil/'));
+  valueOf(await read.settle(view.elements()));
+  return valueOf(
+    await read.settle(
+      view.contentDerived('progress body', async () => {
+        const [index, memoryYaml, ui, list, holds, detected, shortIds] = await Promise.all([
+          view.referenceIndex(),
+          view.memoryTypes(),
+          view.uiConfig(),
+          view.elements(),
+          read.holds(),
+          view.detected(),
+          read.shortIds(),
+        ]);
+        const matches = new Map(list.matches.map((m) => [m.match.id, m.match]));
+        const capability = evaluateCapabilities(detected, supportedRange()).capabilities.find(
+          (c) => c.id === WORKFLOW_POSITION,
+        );
+        return progressBody({
+          index,
+          ui,
+          current: currentElement(index, memoryYaml, ui),
+          held: (e) => heldOf(e.id, e.type, e.status, e.kind, holds) !== undefined,
+          match: (id) => matches.get(id)!,
+          shortIds,
+          // `via: null` in v0.3: the capability is always read-only, with a reason (spec-001 §6).
+          phaseReason: capability?.reason ?? { code: 'not-in-release' },
+        });
+      }),
+      '.wingfoil/',
+    ),
+  );
+}
+
+/** The capability whose reason the phase figures carry (spec-012 §3, `contracts/capabilities.json`). */
+const WORKFLOW_POSITION = 'workflow-position';
+
 /** A `limit` of spec-004 §3: an integer from 1 to {@link MEMORY_EVENTS_MAX_LIMIT} (D31-2). */
 const LIMIT = /^[1-9][0-9]*$/;
 
@@ -796,4 +935,6 @@ export function registerProjectRoutes(app: FastifyInstance, options: ProjectRout
   route<object, Record<string, unknown>>(`${PROJECT_PATH}/events/memory`, (read, _p, query) =>
     memoryEventsOf(read, query),
   );
+  // task-059 (v0.3): no query parameter, checked in the handler after the project lookup.
+  route<object, Record<string, unknown>>(`${PROJECT_PATH}/progress`, (read, _p, query) => progressOf(read, query));
 }
