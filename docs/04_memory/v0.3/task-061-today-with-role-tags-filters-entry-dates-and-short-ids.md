@@ -367,3 +367,7 @@ September 29, 2026 at 5:20:0…'`); F-2's rewritten test passes with the key and
 
 Local: `npm run typecheck`, `npm run lint`, `npm run format:check` clean; `npx vitest run test/web`
 63 files, 1041 passed.
+
+Run `43081045293` on `20e684e0`: green — checks, coverage, contract, smoke, publish-smoke,
+e2e-chromium 166 + 166 passed, own specs (`today-cards.spec.ts`, 5 with F-4's X-09.1) on Firefox and
+WebKit.
