@@ -531,3 +531,16 @@ own specs — 1 failed / 258 passed, `documentation.spec.ts` › R-09.4 (the new
 never opened within the test's 180 s; the test, the Documentation view and the renderer are unchanged
 by this task — the spec ran because its R-09.1 title changed, and R-09.4 passed on WebKit in runs
 `43080129023` and `43085574218`); attempt 2, the failed job re-run: success.
+
+### the phase branch merged in (2026-11-11)
+
+The coordinator's merge of the phase branch with task-073 and task-060 (`2ad123fb`): run
+`43106249541`, e2e-chromium shard 2 — 1 failed: task-073's `test/e2e/state-limit.spec.ts` (S-24.7)
+looked for the element in `.drawer`, written before the element page. Moved to the page like the
+other specs: its `drawer(page)` is now `elementView(page)` (`support/element.ts`), every assertion
+kept. A grep of the merged tree (`test/e2e`, `test/web`, `harness/a11y-support`, `SCREENS`) finds no
+other `.drawer` or element-dialog use added by task-073 or task-060; their web tests render the
+page (`npx vitest run --maxWorkers=2 test/web/element/gate-footer.test.tsx
+test/web/element/submit-footer.test.tsx test/web/element/page.test.tsx`: 74 passed). Locally:
+typecheck and lint clean; `npx playwright test --project=chromium test/e2e/state-limit.spec.ts`: 1
+passed (1-min load 13.81 → 11.85, another worktree's targeted vitest running; no console left).
