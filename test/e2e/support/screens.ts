@@ -286,4 +286,15 @@ export const SCREENS: readonly Screen[] = [
       await expect(page.locator('.git-status .git-update')).toBeVisible({ timeout: COLD_READ_MS });
     },
   },
+  {
+    // task-061 (D61-13): Today as Morgan with the Requires you card's type filter open (its listbox
+    // of options with counts); the short ids and the entry dates are on the "today" screen.
+    name: 'today — card filter open',
+    open: async (page, c) => {
+      await project(page, c, `/p/${c.pids[0]}/today`, (p) => p.locator('.today-row'));
+      await page.locator('.today-card .today-filter-button').first().click();
+      await expect(page.locator('.today-filter-popover [role="option"]').first()).toBeVisible();
+      await expectSettled(page);
+    },
+  },
 ];
