@@ -197,8 +197,11 @@ function limitReason(
   occupancy: DescriptorProject['occupancy'],
 ): DisabledReason | undefined {
   if (!occupancy || verb.verb === 'reject') return undefined;
-  const limit = machine?.limits?.[verb.to];
-  if (limit === undefined || occupancy(type, verb.to) < limit) return undefined;
+  // An own entry only: a state may be named after an Object built-in (`constructor`, review F-1).
+  const limits = machine?.limits;
+  if (!limits || !Object.hasOwn(limits, verb.to)) return undefined;
+  const limit = limits[verb.to]!;
+  if (occupancy(type, verb.to) < limit) return undefined;
   return { code: 'state-limit', state: verb.to, limit };
 }
 

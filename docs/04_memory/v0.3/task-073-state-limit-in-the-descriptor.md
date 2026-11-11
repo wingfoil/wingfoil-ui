@@ -412,3 +412,22 @@ version bump, in the green commit. D73-7 is revised accordingly.
     installing system packages, with the same unreachable apt mirror.
   - `e2e-wave` skipped.
 - **Refactor**: no code change after the footer green.
+
+### review round 1 (2026-11-11, adversarial: PASS; two minors, one nit)
+
+Relayed by the coordinator. It ran on `274b5f3e`, the coordinator's merge of the phase branch (with
+task-070) into this branch. `gates.yml` run `43065973406` on `274b5f3e`: **success**, every job,
+including `own-specs` on Firefox and on WebKit.
+
+| Finding | Fix | Test |
+|---------|-----|------|
+| **F-1 (minor)**: a next state named after an Object built-in (`constructor`, `toString`, `hasOwnProperty`, `__proto__`) read `Object.prototype`'s member as its limit. The submit was disabled with a `state-limit` whose `limit` is a function, dropped by JSON (`{}` for `__proto__`), breaking `descriptor.schema.json` | `limitReason` (`server/src/descriptor/descriptor.ts`) reads an own entry only (`Object.hasOwn`); `pickLimits` (`server/src/reads/memory-yaml.ts`) builds the record on a null prototype. The occupancy count was already a `Map` | red first (`7ae91472`): `test/server/descriptor/state-limit.test.ts` › "a next state %s that declares no limit: the submit is enabled" (5 names, 5 failed), "a limit declared on a state named %s applies"; `test/server/reads/memory-yaml.test.ts` › "keeps a limit on %s as an own entry, and reads no other" (characterization: it passed before the fix) |
+| F-1, WingFoil side | WingFoil 0.3.1 has the same defect. Reproduced with the pinned CLI on a scratch copy of the custom fixture (a type with `sequence: [draft, constructor, done]`, `limits: {done: 1}`): `memory submit probe-001` exits 1 with "WIP limit reached for 'constructor' … (limit function Object() { [native code] }): held by ." (and alike for `toString`, `__proto__`). Note `docs/wingfoil-feedback/F-040-…` and its ledger row; its `wingfoil-cli` entry (W-51) is left to the coordinator's governance run, with no `.wingfoil/` edit here. In the console such a move is offered and the CLI's refusal answers 422 `cli-refused` | `test/wingfoil-feedback.test.ts` passes |
+| **F-2 (minor)**: no route test checked that the count is per type | a kanban variant of `test/server/http/state-limit-routes.test.ts` (`defaults.states` with `limits: {approved: 1}`, `task-003-logout` in `approved`, no bug there) | "review F-2 — the count is per type: a task holds the limited state, the bug's approve stays enabled". Red against `ProjectRead.occupancy` keyed by status only (changed temporarily, then restored): 1 failed, the bug's approve disabled; with the per-type key: passed |
+| F-3 (nit): the merge left `docs/user-guide.md` 0.31 and `test/README.md` 0.70 dated 2026-11-09 | both dated 2026-11-11 | — |
+
+Local checks after the fixes:
+- typecheck, lint, format:check clean;
+- under the strict-identity recipe, the route, contract, descriptor, `memory-yaml`, schema and
+  text-sweep files: 10 files, 180 passed (load 24);
+- `test/wingfoil-feedback.test.ts test/docs`: passed.

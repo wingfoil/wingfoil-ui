@@ -44,7 +44,11 @@ function pickLimits(raw: unknown): Record<string, number> | undefined {
   const kept = Object.entries(raw).filter(
     (entry): entry is [string, number] => Number.isInteger(entry[1]) && (entry[1] as number) > 0,
   );
-  return kept.length > 0 ? Object.fromEntries(kept) : undefined;
+  // Own entries only, on a null prototype: a state named `constructor` or `__proto__` is a plain key
+  // (review F-1).
+  return kept.length > 0
+    ? Object.assign(Object.create(null) as Record<string, number>, Object.fromEntries(kept))
+    : undefined;
 }
 
 interface RawType {
