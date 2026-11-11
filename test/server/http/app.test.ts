@@ -361,6 +361,21 @@ describe('bug-031 — names too long and the codes of the other client errors', 
     expect(warnings).toEqual([]);
   });
 
+  it('F-2 — only the static route is judged: an API route with a path too long for a file still answers', async () => {
+    const app = await buildApp({
+      staticDir,
+      logger: createLogger(sink),
+      security,
+      register: (a) => {
+        a.get('/api/deep/*', async () => ({ reached: true }));
+      },
+    });
+    const res = await app.inject({ method: 'GET', url: `/api/deep/${OVER_PATH_MAX}`, headers: AUTH });
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toEqual({ reached: true });
+    await app.close();
+  });
+
   it('every 4xx gets a code matching its status', async () => {
     const app = await buildApp({
       staticDir,

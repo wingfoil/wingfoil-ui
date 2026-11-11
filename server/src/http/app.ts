@@ -80,10 +80,19 @@ export function clientErrorCode(status: number): string {
 const STATIC_ROUTE = '/*';
 
 /**
+ * Below every file-system name limit in use (ext4 and most file systems 255 bytes, eCryptfs 143) and
+ * far below `PATH_MAX`: a path whose segments and length stay under these is never judged by a
+ * `stat` (task-063 review round 1 F-3, no system call on an ordinary request).
+ */
+const SHORT_SEGMENT_BYTES = 128;
+const SHORT_PATH_BYTES = 1024;
+
+/**
  * bug-031 (task-063 D63-9): `true` when the file system refuses the static path `url` as too long
  * (`ENAMETOOLONG`, its own limit, not a constant). A path with an empty, `.` or `..` segment, or a
- * segment holding `\0` or `\`, is never judged here: the plugin's refusal of a non-canonical
- * path stands, and the `stat` stays inside `root`.
+ * segment holding a backslash (a separator on Windows), is never judged here: the plugin's refusal of a
+ * non-canonical path stands, and the `stat` stays inside `root`. A segment holding `\0` needs no
+ * rule of its own: `stat` refuses it with `ERR_INVALID_ARG_VALUE`, never `ENAMETOOLONG`.
  */
 async function isNameTooLong(root: string, url: string): Promise<boolean> {
   let pathname: string;
@@ -93,9 +102,13 @@ async function isNameTooLong(root: string, url: string): Promise<boolean> {
     return false;
   }
   const segments = pathname.split('/').slice(1);
-  if (segments.some((s) => s === '' || s === '.' || s === '..' || s.includes('\0') || s.includes('\\'))) {
+  if (
+    Buffer.byteLength(pathname) < SHORT_PATH_BYTES &&
+    segments.every((s) => Buffer.byteLength(s) < SHORT_SEGMENT_BYTES)
+  ) {
     return false;
   }
+  if (segments.some((s) => s === '' || s === '.' || s === '..' || s.includes('\\'))) return false;
   try {
     await stat(path.join(root, ...segments));
     return false;
@@ -132,6 +145,14 @@ export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
   registerSessionRoute(app, options.security);
   const hasWebBuild = existsSync(path.join(options.staticDir, 'index.html'));
   if (hasWebBuild) {
+    // bug-031: a path the file system refuses as too long is missing — decided before the static
+    // plugin runs (it would answer 403, and an answer re-sent from the error handler left its
+    // stream's `close` listeners on the response: review round 1 F-3). The not-found handler
+    // answers: 404 under /assets/, the application else. The static route only (GET and HEAD).
+    app.addHook('preHandler', async (request, reply) => {
+      if (request.routeOptions.url !== STATIC_ROUTE) return;
+      if (await isNameTooLong(options.staticDir, request.url)) return reply.callNotFound();
+    });
     await app.register(fastifyStatic, {
       root: options.staticDir,
       prefix: '/',
@@ -142,20 +163,9 @@ export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
   } else {
     app.log.warn({ staticDir: options.staticDir }, 'web build not found: the application is not served');
   }
-  app.setErrorHandler(async (error: { statusCode?: number; validation?: unknown }, request, reply) => {
+  app.setErrorHandler((error: { statusCode?: number; validation?: unknown }, request, reply) => {
     const status = error.validation !== undefined ? 400 : (error.statusCode ?? 500);
     if (status === 404) return notFound(reply);
-    // bug-031: the static plugin answers 403 for a name the file system refuses as too long; such a
-    // path is missing — the not-found handler answers (404 under /assets/, the application else).
-    if (
-      status === 403 &&
-      hasWebBuild &&
-      request.routeOptions.url === STATIC_ROUTE &&
-      (request.method === 'GET' || request.method === 'HEAD') &&
-      (await isNameTooLong(options.staticDir, request.url))
-    ) {
-      return reply.callNotFound();
-    }
     // A client error keeps its status (400, 403, 413, 415, …), with a code that matches it.
     if (status >= 400 && status < 500)
       return reply
