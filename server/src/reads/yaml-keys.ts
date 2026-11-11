@@ -250,6 +250,27 @@ export function jsYamlKey(node: unknown, context: KeyContext): string {
 }
 
 /**
+ * Whether item `index` of `map` has an empty key js-yaml refuses (bug-040, task-075 AC-4): in a block
+ * mapping, an implicit key with no content, no tag and no anchor (`: a`, "incomplete explicit mapping
+ * pair") — an explicit one (`?` then nothing) is js-yaml's `null`, and so is one in a flow
+ * collection. The explicit indicator is read from the source tokens (`keepSourceTokens`); an item
+ * whose tokens are missing counts as implicit (fail closed).
+ */
+export function isImplicitEmptyKey(map: YAMLMap, index: number): boolean {
+  if (map.flow) return false;
+  const pair = map.items[index];
+  const key = pair?.key;
+  const empty =
+    key === null ||
+    key === undefined ||
+    (isScalar(key) && key.type === 'PLAIN' && key.source === '' && key.tag === undefined && !key.anchor);
+  if (!empty) return false;
+  const tokens = (map.srcToken as { items?: { start?: { type: string }[] }[] } | undefined)?.items;
+  const start = tokens && tokens.length === map.items.length ? tokens[index]?.start : undefined;
+  return !(start ?? []).some((token) => token.type === 'explicit-key-ind');
+}
+
+/**
  * Whether `node` is a merge key as js-yaml and `yaml` resolve one: a plain untagged `<<`, or a
  * `!!merge` scalar whose text is `<<` (quoted or not) or that is empty and plain (review round 1
  * F-5, round 2 F-7); a quoted empty `!!merge` key is refused as an unsupported key. Declared

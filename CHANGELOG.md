@@ -156,6 +156,11 @@ release `v0.2` the git tag `v0.2.0` and the npm version `wingfoil-ui@0.2.0`.
 
 ### Security
 
+- **An empty key no longer makes an element of a file WingFoil leaves out** (bug-040, task-075): a
+  frontmatter with a line `: value` (a key with nothing before the colon) was read by the console,
+  while every `wingfoil` command leaves the file out. Such a key is now refused as WingFoil refuses
+  it; an empty key WingFoil accepts (written `? ` alone, with a tag or an anchor, or inside `{…}`)
+  is still read. The defect shipped in v0.1.0 and v0.2.0.
 - **Repository text escaped in the API** (task-056, RP3-18 K1; spec-004 §5): an element's title in
   the Memory list, the element panel and Today comes back with control, bidi and invisible
   characters as visible escapes, as the `ui.yaml` strings of the configuration do (task-068), so a

@@ -9,7 +9,7 @@ module: "governance"             # optional — server | web | contracts (dna.ya
 priority: "medium"           # optional — high | medium | low
 tags: ["v0.3", "governance", "server", "snapshot", "frontmatter"]               # optional — additional labels, e.g. [today, a11y]
 ref: "GOV"                # optional — backlog item ID, e.g. "TASK-001"
-bug: ["bug-034-a-file-edited-and-reverted-between-two-state-checks-keeps-serving-the-edited-content", "bug-037-the-server-reads-frontmatter-keys-that-the-cli-counts-as-duplicates"]                # optional — LIST of bug ids this task closes. Two cases: a fix task derived from a bug
+bug: ["bug-034-a-file-edited-and-reverted-between-two-state-checks-keeps-serving-the-edited-content", "bug-037-the-server-reads-frontmatter-keys-that-the-cli-counts-as-duplicates", "bug-040-the-server-reads-a-frontmatter-with-an-empty-key-that-the-cli-refuses", "bug-042-a-yaml-file-with-many-aliases-blocks-the-server-while-it-is-parsed"]                # optional — LIST of bug ids this task closes. Two cases: a fix task derived from a bug
                        # by release-planning, and a bug ABSORBED into an existing task's Acceptance Criteria because that
                        # task already owns the ground. Each bug listed moves with its own verbs (`.wingfoil/memory.yaml`):
                        # the approver's `memory approve` triaged -> planned, `memory submit` planned -> in-progress when
@@ -51,11 +51,22 @@ AC-11)
   them out; `2026-01-01:` with `"2026-01-01":`, which the CLI lists, is read. Keys compared as
   js-yaml's string form under its default schema, in one linear pass (bug-032's structural test
   kept); a differential test against `js-yaml` as a devDependency only.
-- **AC-3 — Docs and gates**: `CHANGELOG.md` *Unreleased* *Fixed* (bug-034, bug-037);
+- **AC-3 — Docs and gates**: `CHANGELOG.md` *Unreleased* *Fixed* (bug-034, bug-037; bug-040 and
+  bug-042 with AC-4 and AC-5);
   `test/README.md` for new suites; `npm run docs:api`; the checks of `CLAUDE.md` *Checks before
   handing work back* (heavy gates on `gates.yml`, W2-4), the strict-identity run for the suites
   that commit to fixtures, and `check_tasks.py v0.3`, with their commands and results in the
   Execution Notes.
+- **AC-4 — bug-040** (absorbed 2026-11-11, the approver: "ok anche per bug 39 40 e 41, con 40
+  assorbito da task 75"): red first — an implicit empty key of a block mapping (`: a`, `- : a`, a
+  nested `: a`, `? : a`) is refused by `server/src/reads/frontmatter.ts` with its line, as the
+  pinned CLI's js-yaml refuses it; an explicit (`?`), tagged, anchored or flow empty key is read,
+  as js-yaml reads it; rows in the differential table; the real pinned CLI in both directions.
+- **AC-5 — bug-042** (absorbed 2026-11-11, the approver: "toJS a"): red first — the aliases of a
+  YAML file are counted in the key check's one pass and a file above a bound is refused as
+  unreadable before `toJS` (the `yaml` library's `maxAliasCount` as the model), for the element
+  read, `memory.yaml` and the index alike; a timing test for N and 2N aliases and a 5 MiB worst case
+  under a time bound.
 
 ## Implementation Notes
 

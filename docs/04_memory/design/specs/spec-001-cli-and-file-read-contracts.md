@@ -371,3 +371,8 @@ its schema, and run the §4.1 resolution check. A failure blocks the matrix adva
   `<<` (quoted or not) or plain and empty is a merge key, as in both libraries, and a quoted empty
   one an unsupported key (review round 2 F-7). Declared residual: the YAML library merges a
   `!!str <<` key, which js-yaml stores as the key `<<` (refused when its value is not a map).
+- 2026-11-11 — amended in task-075 (bug-040, absorbed by the approver the same day; AC-4): §4.2 an
+  implicit empty key of a block mapping (`: a`, also nested, in a sequence entry or inside an
+  explicit key) is a `shape` error ("empty key"), as WingFoil's js-yaml refuses it; an explicit
+  empty key (`?` alone), one with a tag or an anchor, and one in a flow collection are read (js-yaml's
+  `null` key). The parse keeps the source tokens to tell the explicit indicator.

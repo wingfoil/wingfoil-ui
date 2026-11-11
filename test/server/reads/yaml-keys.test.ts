@@ -2,8 +2,8 @@
 // three) keys run through the server's parse (`parseYaml`) and through `js-yaml` 4.3.2's `load` with
 // its default schema, the loader of the pinned `wingfoil@0.3.1` (`dist/validation/yaml.js`). A row
 // passes when both refuse it for its keys (js-yaml: "duplicated mapping key", "nested arrays are not
-// supported inside keys", a tag it does not accept on a key; the server: a `duplicate key` or
-// `unsupported key`) or both read it.
+// supported inside keys", a tag it does not accept on a key, an implicit empty key; the server: a
+// `duplicate key`, `unsupported key` or `empty key`) or both read it.
 import { load } from 'js-yaml';
 import { describe, expect, it } from 'vitest';
 import { parseYaml } from '../../../server/src/reads/frontmatter.js';
@@ -181,7 +181,7 @@ function serverVerdict(text: string): 'refused' | 'read' | 'other' {
     parseYaml(text, 'f.md');
     return 'read';
   } catch (error) {
-    return /\((duplicate|unsupported) key /.test((error as Error).message) ? 'refused' : 'other';
+    return /\((duplicate key|unsupported key|empty key) /.test((error as Error).message) ? 'refused' : 'other';
   }
 }
 

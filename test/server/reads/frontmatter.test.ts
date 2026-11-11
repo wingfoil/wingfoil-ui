@@ -138,17 +138,18 @@ describe('alias keys resolved in one pass (task-075 review round 1 F-1)', () => 
 
   it('the key forms of 4N alias keys cost about four times those of N (review round 2 F-9)', () => {
     // The check's own work only: the documents are parsed outside the clock (the library's own
-    // `toJS` is not measured here). Median of five; a quadratic cost would give about 16×.
+    // `toJS` is not measured here). The fastest of seven runs, the least disturbed by other suites
+    // running in parallel; a quadratic cost would give about 16×.
     const time = (n: number): number => {
       const doc = parseDocument(distinct(n), FRONTMATTER_PARSE_OPTIONS);
       const runs: number[] = [];
-      for (let r = 0; r < 5; r += 1) {
+      for (let r = 0; r < 7; r += 1) {
         const started = performance.now();
         const context = keyContext(doc);
         for (const pair of (doc.contents as YAMLMap).items) jsYamlKey(pair.key, context);
         runs.push(performance.now() - started);
       }
-      return runs.sort((x, y) => x - y)[2]!;
+      return Math.min(...runs);
     };
     time(2_000); // warm-up
     const ratio = time(16_000) / time(4_000);

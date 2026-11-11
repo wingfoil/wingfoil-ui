@@ -6,7 +6,7 @@
 import { isMap, LineCounter, parseDocument, visit } from 'yaml';
 import { schemaProblems, type ContractSchema } from '../contracts.js';
 import { DirectReadError } from './confine.js';
-import { isMergeKey, jsYamlKey, keyContext, UnsupportedKeyError } from './yaml-keys.js';
+import { isImplicitEmptyKey, isMergeKey, jsYamlKey, keyContext, UnsupportedKeyError } from './yaml-keys.js';
 
 /** A parsed Markdown file. */
 export interface FrontmatterFile<T> {
@@ -56,8 +56,12 @@ function duplicateKey(doc: ReturnType<typeof parseDocument>, text: string, lines
     Map(_, map) {
       if (!isMap(map)) return undefined;
       const seen = new Set<string>();
-      for (const pair of map.items) {
+      for (const [index, pair] of map.items.entries()) {
         const key = pair.key;
+        if (isImplicitEmptyKey(map, index)) {
+          found = `empty key ${at(key ?? pair.value)}`;
+          return visit.BREAK;
+        }
         if (isMergeKey(key)) continue;
         let form: string;
         try {
@@ -85,7 +89,8 @@ export function parseYaml(text: string, file: string): unknown {
     throw new DirectReadError('shape', file, `${file}: invalid YAML (${message})`);
   };
   const lines = new LineCounter();
-  const doc = parseDocument(text, { ...FRONTMATTER_PARSE_OPTIONS, lineCounter: lines });
+  // The source tokens tell an explicit key (`?`) from an implicit one (bug-040).
+  const doc = parseDocument(text, { ...FRONTMATTER_PARSE_OPTIONS, lineCounter: lines, keepSourceTokens: true });
   const error = doc.errors[0];
   if (error) fail(error.message.split('\n')[0] ?? '');
   const duplicate = duplicateKey(doc, text, lines);
