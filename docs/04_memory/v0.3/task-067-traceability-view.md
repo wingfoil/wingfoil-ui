@@ -14,7 +14,7 @@ bug: []                # optional — LIST of bug ids this task closes. Two case
                        # task already owns the ground. Each bug listed moves with its own verbs (`.wingfoil/memory.yaml`):
                        # the approver's `memory approve` triaged -> planned, `memory submit` planned -> in-progress when
                        # this task starts, then submit/approve along its machine; no `bug.sync_state` since the packs adoption
-depends_on: ["task-059-progress-traceability-and-missing-reference-api", "task-066-memory-list-state-filter-and-missing-reference-badge", "task-062-element-page-side-panel-address-and-rendered-document"]         # optional — ids of tasks whose Execution Notes constrain this one; authored at planning time, may be appended during design
+depends_on: ["task-059-progress-traceability-and-missing-reference-api", "task-074-traceability-api", "task-066-memory-list-state-filter-and-missing-reference-badge", "task-062-element-page-side-panel-address-and-rendered-document"]         # optional — ids of tasks whose Execution Notes constrain this one; authored at planning time, may be appended during design
 tmpl_version: 260703   # Orignal template version
 ---
 

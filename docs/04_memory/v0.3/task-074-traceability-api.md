@@ -4,41 +4,77 @@ type: task
 title: "Traceability API"              # REQUIRED — e.g. "Today view: pending gates list (REQ-UI-03)"
 status: draft          # auto-set by wingfoil
 release: "v0.3"            # REQUIRED — target release version, e.g. "v0.1"
-sprint: ""             # REQUIRED — the Sprint that selects it (sprint-NNN), or "n/a — <reason>" until one does (methodology/scrum)
-module: ""             # optional — server | web | contracts (dna.yaml modules)
-priority: ""           # optional — high | medium | low
-tags: []               # optional — additional labels, e.g. [today, a11y]
-ref: ""                # optional — backlog item ID, e.g. "TASK-001"
+sprint: "sprint-001"             # REQUIRED — the Sprint that selects it (sprint-NNN), or "n/a — <reason>" until one does (methodology/scrum)
+module: "governance"             # optional — server | web | contracts (dna.yaml modules)
+priority: "high"           # optional — high | medium | low
+tags: ["v0.3", "governance", "r5", "traceability"]               # optional — additional labels, e.g. [today, a11y]
+ref: "GOV"                # optional — backlog item ID, e.g. "TASK-001"
 bug: []                # optional — LIST of bug ids this task closes. Two cases: a fix task derived from a bug
                        # by release-planning, and a bug ABSORBED into an existing task's Acceptance Criteria because that
                        # task already owns the ground. Each bug listed moves with its own verbs (`.wingfoil/memory.yaml`):
                        # the approver's `memory approve` triaged -> planned, `memory submit` planned -> in-progress when
                        # this task starts, then submit/approve along its machine; no `bug.sync_state` since the packs adoption
-depends_on: []         # optional — ids of tasks whose Execution Notes constrain this one; authored at planning time, may be appended during design
+depends_on: ["task-059-progress-traceability-and-missing-reference-api"]         # optional — ids of tasks whose Execution Notes constrain this one; authored at planning time, may be appended during design
 tmpl_version: 260703   # Orignal template version
 ---
 
 ## Description
 
-<!-- What needs to be built and why. Reference the user story if applicable:
-     "As <persona>, I want <action> so that <benefit>." -->
+The `/traceability` route split from task-059-progress-traceability-and-missing-reference-api at
+its design (the approver, 2026-11-11, task-059 Q1 (c); `backlog-item-rel-v0.3-plan` W2-6; RP3-20
+G2: task-059 was about 2.8 active days): task-059 keeps the shared project-state module,
+`/progress`, the missing-reference flag on `/elements` and `/config` `scope.current`; this task
+adds `GET /api/p/:pid/traceability?scope=` (spec-012 §4) on that module, for the Traceability view
+of task-067.
+
+**Backlog items:** GOV (governance — `/traceability` split from task-059: its former AC-2 and the
+`/traceability` parts of its AC-4 … AC-7 and of TT-STATE-08's R-01 scenarios; TT-STATE-08 stays
+listed by task-059, which cites R-01 as delivered here)
 
 ## Acceptance Criteria
 
-<!-- Reference the Gherkin feature file, or inline the key scenarios.
-     e.g. "See docs/02_requirements/02_bdd/features/today/pending-gates.feature"
-     For `web` tasks also point to the screen in docs/00_reference/ux-reference.md (§4.x) and the
-     prototype, and state the accessibility bar (keyboard path, axe clean). -->
+The criteria are task-059's as they stood before the split (`35932249`), for `/traceability` only;
+its design's decisions (D59-1 … D59-15, Q2 … Q7 as approved) apply.
+
+- **AC-1 — `/traceability`** (task-059's former AC-2): `contracts/api/traceability.schema.json`
+  (new) and the route as spec-012 §4: `scope` ∈ `current` (default) | `project`, else 400 after the
+  404 of an unknown `:pid`; `applied`; `patterns`; `references` (every categorised reference,
+  element and pattern references alike, the `no-elements` rows in `project` scope, `status` of the
+  four filters, natural order), `missing`, `elements` (the `/elements` row moved to
+  `elements.schema.json` `definitions.row`, plus `done` and `inScope`), `figures` (`completion` on
+  `applied`, `coverage` project-wide or `no-requires`, `referencesWithoutElements`), `unreadable`,
+  `capped`, `eventsError` as `/elements` degrades today.
+- **AC-2 — Errors** (task-059's former AC-4, its `/traceability` rows): every row of spec-012 §10
+  that applies to the route has an API test.
+- **AC-3 — Caching and processes** (former AC-5): the body is a derived value of the snapshot view
+  (D59-9: memoised per full key) carrying `X-Repo-State`; a repeated request on the same state
+  starts 0 CLI processes and no process is started per element (process audit).
+- **AC-4 — Sanitising (K1)** (former AC-6): every element title and every pattern reference id in
+  the body passes the character escape of spec-004 §5 / spec-012 §9; the route joins the text
+  sweep; no input becomes a path, a regular expression or a command.
+- **AC-5 — Timing (REQ-PERF-04)** (former AC-7, its `/traceability` part): on the `large` fixture
+  with the sw-life-cycle preset, `/traceability` answers within the warm p95 ≤ 1.0 s budget in
+  `test:timing` (the coordinator's run at the wave gate, task-059 Q7).
+- **AC-6 — R-01** (TT-STATE-08's R-01 scenarios): an API test per scenario, titled with its id,
+  asserting the figures behind its text — R-01.1 (completion 25 %, coverage 3/5, US-M-01 "50 % ·
+  1/2", US-S-01 "0 % · 0/1"), R-01.5 (`US-S-09` only with `scope=project`), R-01.6 (`element:
+  false`, no title), R-01.7 (`patterns: false`, the element reference to
+  `dl-001-initialise-wingfoil-before-inception`, category `decision`), R-01.8 (`missing` = the two
+  elements of M-03.1), R-01.9 (the `requirement` rows US-M-01 and US-S-01); their e2e closes in
+  task-067.
+- **AC-7 — Docs and gates**: `npm run docs:api`; `test/README.md` for the new suites; `CHANGELOG.md`
+  *Unreleased*; the checks of `CLAUDE.md` *Checks before handing work back* (heavy gates on
+  `gates.yml`, W2-4) and `check_tasks.py v0.3`, with their commands and results in the Execution
+  Notes.
 
 ## Implementation Notes
 
-<!-- Optional: known constraints, design hints, or links to relevant ADRs. -->
+- After task-059 is merged: start from its design (`### design (2026-11-09)` of its task file) and
+  its Execution Notes, re-checked against the merged module.
+- Read at design: spec-012 §4, §8 … §11 and their Process Notes; spec-004 §3, §5.
+- Review: an independent reviewer until PASS, plus a performance check of AC-5 on the `large`
+  fixture.
+- Every server task regenerates the `npm run docs:api` output; after a merge the output is
+  regenerated, never merged by hand.
 
 ## Execution Notes
-
-<!-- Running log of what actually happened while working this task (`backlog-item`) — filled in
-     incrementally per phase, not written after the fact. Raw material for the release's Execution
-     Notes / the retrospective, not the retrospective itself.
-     - design: tech-specs found missing/needing revision (`definition-of-done` › design).
-     - red/green/refactor: deviations from the plan above, blockers, scope surprises.
-     - review: rejection reasons and what changed on the next pass. -->
