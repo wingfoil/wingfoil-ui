@@ -72,12 +72,12 @@ const RULES: readonly Rule[] = [
   // The error envelopes.
   {
     pattern:
-      /^(?:error|cli\.refusal|element\.refusal|git\.refusal|projects\.refusal|write\.refusal) \.(?:error\.)?code$/,
+      /^(?:error|cli\.refusal|element\.refusal|git\.refusal|projects\.refusal|write\.refusal|ui-config\.preset\.refusal) \.(?:error\.)?code$/,
     cls: 'e',
   },
   {
     pattern:
-      /^(?:error|cli\.refusal|element\.refusal|git\.refusal|projects\.refusal|write\.refusal) \.(?:error\.)?message$/,
+      /^(?:error|cli\.refusal|element\.refusal|git\.refusal|projects\.refusal|write\.refusal|ui-config\.preset\.refusal) \.(?:error\.)?message$/,
     cls: 'a',
     note: 'a tool message (cli-refused, git-refused) or a fixed one',
   },
@@ -87,8 +87,18 @@ const RULES: readonly Rule[] = [
   { pattern: /^projects\.refusal \.error\.detail\.name$/, cls: 'r', note: BUG_035 },
   { pattern: /^projects\.refusal \.error\.detail\.(?:path|pid|command|stateDir)$/, cls: 'e' },
   { pattern: /^write\.refusal \.error\.detail\.(?:file|command|commit)$/, cls: 'e' },
+  // task-060: the preset write's refusal; `failure` quotes the shipped preset only (D60-5).
+  {
+    pattern: /^ui-config\.preset\.refusal \.error\.detail\.(?:file|command|commit|failure)$/,
+    cls: 'e',
+    note: 'the server’s own text (task-060)',
+  },
   // task-070 (D70-6, D70-11): a WingFoil 0.3.x refusal's reasons, tool messages as the message.
-  { pattern: /^(?:cli|write)\.refusal \.error\.detail\.reasons\[\]$/, cls: 'a', note: 'a refusal reason (task-070)' },
+  {
+    pattern: /^(?:cli|write|ui-config\.preset)\.refusal \.error\.detail\.reasons\[\]$/,
+    cls: 'a',
+    note: 'a refusal reason (task-070)',
+  },
   // The action descriptor, wherever it is.
   {
     pattern: new RegExp(`${DESCRIPTOR}(?:id|type|status|verbs\\[\\]\\.(?:to|role|reason\\.state)|actor\\.role)$`),
