@@ -62,7 +62,7 @@ afterEach(() => {
 
 /** The Directives section of the open panel. */
 async function section(): Promise<ReturnType<typeof within>> {
-  const dialog = await screen.findByRole('dialog');
+  const dialog = await screen.findByRole('region', { name: /^Element e-/ });
   return within(await within(dialog).findByRole('region', { name: 'Directives' }));
 }
 
@@ -75,7 +75,7 @@ it("lists the role view's directives as links to the Directives view, between Re
   );
   expect(s.getByRole('link', { name: 'Title of d-dev' }).getAttribute('href')).toBe(`/p/${PID}/directives/d-dev`);
   expect(s.getByText('d-all')).toBeTruthy();
-  const titles = [...document.querySelectorAll('.drawer-body h3')].map((h) => h.textContent);
+  const titles = [...document.querySelectorAll('.element-page-body h3')].map((h) => h.textContent);
   expect(titles).toEqual(['Summary', 'References', 'Directives', 'History']);
 });
 
@@ -84,7 +84,7 @@ it('reads the directives once for every panel of the project', async () => {
   const { router } = renderApp(`/p/${PID}/e/e-1`);
   await (await section()).findByRole('link', { name: 'Title of d-dev' });
   await router.navigate({ to: '/p/$pid/e/$eid', params: { pid: PID, eid: 'e-2' } });
-  await screen.findByRole('dialog', { name: 'Element e-2' });
+  await screen.findByRole('region', { name: 'Element e-2' });
   await (await section()).findByRole('link', { name: 'Title of d-dev' });
   const reads = fetch.mock.calls.map((c) => String(c[0])).filter((p) => p === `${BASE}/directives`);
   expect(reads).toHaveLength(1);
@@ -97,7 +97,7 @@ it('opens the directive in the Directives view, with its body', async () => {
   await user.click(await (await section()).findByRole('link', { name: 'Title of d-dev' }));
   expect(await screen.findByRole('article', { name: 'Title of d-dev' })).toBeTruthy();
   expect(router.state.location.pathname).toBe(`/p/${PID}/directives/d-dev`);
-  expect(screen.queryByRole('dialog')).toBeNull();
+  expect(document.querySelector('[data-element-view]')).toBeNull();
 });
 
 it('shows the global directives with the reason outside the team', async () => {
@@ -128,5 +128,5 @@ it('keeps a failed read inside the section', async () => {
   renderApp(`/p/${PID}/e/e-1`);
   const s = await section();
   expect(within(await s.findByRole('alert')).getByText('roles broken')).toBeTruthy();
-  expect(screen.getByRole('dialog', { name: 'Element e-1' })).toBeTruthy();
+  expect(screen.getByRole('region', { name: 'Element e-1' })).toBeTruthy();
 });

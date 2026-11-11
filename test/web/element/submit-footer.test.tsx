@@ -93,7 +93,7 @@ function posts(fetch: ReturnType<typeof vi.fn>): { url: string; body: unknown }[
     .map((c) => ({ url: String(c[0]), body: JSON.parse(String((c[1] as RequestInit).body)) as unknown }));
 }
 
-const dialog = () => screen.findByRole('dialog', { name: 'A draft element' });
+const dialog = () => screen.findByRole('region', { name: 'A draft element' });
 const submit = async () => within(await dialog()).findByRole('button', { name: 'Submit → s2' });
 const politeToasts = () => document.querySelector('.toasts [aria-live="polite"]') as HTMLElement;
 const assertiveToasts = () => document.querySelector('.toasts [aria-live="assertive"]') as HTMLElement;
@@ -152,7 +152,7 @@ it('G-10.1 — Submit posts {expectedStatus}; "Submitting…" while it runs; a t
   expect(politeToasts().textContent).toContain(`abcdef0 wf(kind-a): submit ${EID}`);
   expect(posts(fetch)).toEqual([{ url: `${BASE}/submit`, body: { expectedStatus: 's1' } }]);
   await waitFor(() => expect(within(d).getByRole('status').textContent).toBe(''));
-  expect(document.activeElement).toBe(screen.getByRole('heading', { level: 2, name: 'A draft element' }));
+  expect(document.activeElement).toBe(screen.getByRole('heading', { level: 1, name: 'A draft element' }));
 });
 
 it('G-10.1 — keyboard: Enter on Submit sends it', async () => {
@@ -217,7 +217,7 @@ it('Cancel closes the panel and sends nothing', async () => {
   renderApp(`/p/${PID}/e/${EID}`);
   await submit();
   await userEvent.click(within(await dialog()).getByRole('button', { name: 'Cancel' }));
-  await waitFor(() => expect(screen.queryByRole('dialog', { name: 'A draft element' })).toBeNull());
+  await waitFor(() => expect(screen.queryByRole('region', { name: 'A draft element' })).toBeNull());
   expect(posts(fetch)).toEqual([]);
 });
 
