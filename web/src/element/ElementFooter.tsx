@@ -42,6 +42,7 @@ const REASONS = defineMessages({
   'copy-behind': { id: 'element.reason.copyBehind' },
   'copy-diverged': { id: 'element.reason.copyDiverged' },
   'copy-detached': { id: 'element.reason.copyDetached' },
+  'state-limit': { id: 'element.reason.stateLimit' },
 });
 
 /** The project and the footer's callback for the *Update* link of the copy-behind reason (D40-2). */
@@ -66,6 +67,8 @@ function reasonMessage(reason: DisabledReason): {
   switch (reason.code) {
     case 'version-unsupported':
       return { descriptor: REASONS[reason.code], values: { range: reason.range } };
+    case 'state-limit':
+      return { descriptor: REASONS[reason.code], values: { state: reason.state, limit: reason.limit } };
     case 'copy-behind':
       return {
         descriptor: REASONS[reason.code],

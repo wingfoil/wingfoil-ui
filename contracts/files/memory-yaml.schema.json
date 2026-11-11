@@ -3,7 +3,7 @@
   "$id": "https://wingfoil-ui.local/contracts/files/memory-yaml.schema.json",
   "$comment": "wingfoil 0.2.2 — checked on the memory.yaml of the kanban (template), custom (this repository) and unknown (hand-written) fixtures.",
   "title": ".wingfoil/memory.yaml (subset)",
-  "description": "The keys of memory.yaml the server reads directly (spec-001 §4.1, adr-001 D1a); other keys are ignored. As WingFoil 0.2.2's dist/memory/schema.js: version a positive number, id_pattern optional. Merge keys (<<) are resolved, as js-yaml does.",
+  "description": "The keys of memory.yaml the server reads directly (spec-001 §4.1, adr-001 D1a); other keys are ignored. The states' limits (WingFoil 0.3.x) are deliberately not constrained here: WingFoil 0.2.2 accepts any value and ignores it, so the server keeps only positive integers (task-073 D73-4). As WingFoil 0.2.2's dist/memory/schema.js: version a positive number, id_pattern optional. Merge keys (<<) are resolved, as js-yaml does.",
   "type": "object",
   "required": ["version", "types"],
   "properties": {
