@@ -7,7 +7,14 @@ import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { provenanceProblems, remoteRefs, sessionCommits, type ProvenanceInput } from './commit-provenance.js';
+import { PRESET_COMMIT_SUBJECTS } from '../../server/src/presets/ui-config.js';
+import {
+  isPresetCommit,
+  provenanceProblems,
+  remoteRefs,
+  sessionCommits,
+  type ProvenanceInput,
+} from './commit-provenance.js';
 import { harnessEnv } from './fixtures/index.js';
 import { snapshotRepo, type RepoState } from './repo-state.js';
 import { git } from './run.js';
@@ -272,14 +279,62 @@ describe('the preset fixture variant (task-054 AC-7, D54-10)', () => {
     expect(await provenanceProblems(await input(brought))).toEqual([]);
   });
 
-  it('the same commit made during the session is still reported (the console’s own is task-060’s)', async () => {
+  it('task-060 AC-5: the console’s preset commit during the session, alone on an untracked ui.yaml: clean', async () => {
     const brought = await playSession();
     await mkdir(path.join(dir, '.wingfoil'), { recursive: true });
     await commit(UI, 'version: 1\n', PRESET);
     await git(dir, ['push', '-q', 'origin', 'HEAD:main'], env);
-    expect(await provenanceProblems(await input(brought))).toContainEqual(
+    expect(await provenanceProblems(await input(brought, [SUBMIT, REJECT, PRESET]))).toEqual([]);
+  });
+
+  it('task-060 AC-5: each preset subject is accepted, in the session’s order', async () => {
+    for (const subject of PRESET_COMMIT_SUBJECTS) {
+      expect(isPresetCommit({ sha: 'a'.repeat(40), subject, parents: ['b'.repeat(40)], files: [UI] }, [])).toBe(true);
+    }
+  });
+
+  it('task-060 AC-5: another chore(ui) text is still reported', async () => {
+    const brought = await playSession();
+    await mkdir(path.join(dir, '.wingfoil'), { recursive: true });
+    await commit(UI, 'version: 1\n', 'chore(ui): apply the Mine preset');
+    await git(dir, ['push', '-q', 'origin', 'HEAD:main'], env);
+    expect(
+      await provenanceProblems(await input(brought, [SUBMIT, REJECT, 'chore(ui): apply the Mine preset'])),
+    ).toContainEqual(expect.stringMatching(/^not a governed subject: [0-9a-f]{7} chore\(ui\): apply the Mine preset$/));
+  });
+
+  it('task-060 AC-5: a preset subject on another file, or on ui.yaml and a second file, is reported', async () => {
+    const brought = await playSession();
+    await commit('notes.txt', 'n\n', PRESET);
+    await mkdir(path.join(dir, '.wingfoil'), { recursive: true });
+    await writeFile(path.join(dir, 'second.txt'), 's\n');
+    await git(dir, ['add', '--', 'second.txt'], env);
+    await commit(UI, 'version: 1\n', PRESET);
+    await git(dir, ['push', '-q', 'origin', 'HEAD:main'], env);
+    const problems = await provenanceProblems(await input(brought, [SUBMIT, REJECT, PRESET, PRESET]));
+    expect(problems).toContainEqual(
       expect.stringMatching(
-        /^not a governed subject: [0-9a-f]{7} chore\(ui\): apply the WingFoil sw-life-cycle preset$/,
+        /^[0-9a-f]{7} chore\(ui\): apply the WingFoil sw-life-cycle preset touches notes\.txt, not only \.wingfoil\/ui\.yaml$/,
+      ),
+    );
+    expect(problems).toContainEqual(
+      expect.stringMatching(/touches \.wingfoil\/ui\.yaml, second\.txt, not only \.wingfoil\/ui\.yaml$/),
+    );
+  });
+
+  it('task-060 AC-5: a preset subject on a ui.yaml tracked when the session started is reported', async () => {
+    await mkdir(path.join(dir, '.wingfoil'), { recursive: true });
+    await commit(UI, 'mine: 1\n', 'chore: my own ui.yaml');
+    await git(dir, ['push', '-q', 'origin', 'HEAD:main'], env);
+    await git(dir, ['fetch', '-q', 'origin'], env);
+    before = await snapshotRepo(dir, env);
+    remoteBefore = await remoteRefs(remoteDir, env);
+    const brought = await playSession();
+    await commit(UI, 'version: 1\n', PRESET);
+    await git(dir, ['push', '-q', 'origin', 'HEAD:main'], env);
+    expect(await provenanceProblems(await input(brought, [SUBMIT, REJECT, PRESET]))).toContainEqual(
+      expect.stringMatching(
+        /^[0-9a-f]{7} chore\(ui\): apply the WingFoil sw-life-cycle preset: \.wingfoil\/ui\.yaml was tracked at the start$/,
       ),
     );
   });

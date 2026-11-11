@@ -18,11 +18,14 @@ import { buildApp } from '../../../server/src/http/app.js';
 import { registerElementWriteRoutes } from '../../../server/src/http/element-writes.js';
 import { registerGitRoutes } from '../../../server/src/http/git-routes.js';
 import { registerProjectRoutes } from '../../../server/src/http/project-routes.js';
+import { registerUiConfigPresetRoute, UI_CONFIG_PRESET_PATH } from '../../../server/src/http/ui-config-preset.js';
 import { createLogger } from '../../../server/src/logging.js';
 import type { ProcessRequest, ProcessResult } from '../../../server/src/process/runner.js';
 import { InProcessWriteLock } from '../../../server/src/process/write-lock.js';
 import type { Snapshots } from '../../../server/src/snapshot/snapshots.js';
+import type { UiPreset, UiPresetName } from '../../../server/src/presets/ui-config.js';
 import { AutoPush } from '../../../server/src/writes/auto-push.js';
+import type { PresetFs } from '../../../server/src/writes/preset.js';
 import { GitTransport } from '../../../server/src/writes/transport.js';
 import type { EventBus } from '../../../server/src/events/bus.js';
 import { createMemoryStateStore } from '../../../server/src/state/memory-store.js';
@@ -67,6 +70,10 @@ export interface GitConsoleOptions {
   env?: (fx: Fixture) => NodeJS.ProcessEnv;
   /** task-034: the governed writes get the auto-push (reading `autoPush` from the store), with this time limit. */
   autoPush?: { timeoutMs?: number };
+  /** task-060 (D60-12): the preset table of the preset write — the API test's seam only. */
+  presets?: Readonly<Record<UiPresetName, UiPreset>>;
+  /** task-060 (D60-6): the preset write's file port (the tests' swaps). */
+  presetFs?: PresetFs;
 }
 
 /** A started console on one fixture copy. */
@@ -90,6 +97,11 @@ export interface GitConsole {
     options?: { pid?: string; payload?: string; contentType?: string },
   ): Promise<{ status: number; body: any }>;
   write(verb: string, eid: string, body: unknown): Promise<{ status: number; body: any }>;
+  /**
+   * task-060: `POST /api/p/:pid/ui-config/preset` with `body` (a raw string as it is); a 200 checked
+   * against `write.response.schema.json`, any other answer against `ui-config.preset.refusal.schema.json`.
+   */
+  preset(body: unknown, options?: { pid?: string }): Promise<{ status: number; body: any }>;
   /** The page's reads of the current state (header and Memory list). */
   warm(): Promise<void>;
   /** Processes started by `fn`, by kind; `transport`: the git fetch/pull/push among them. */
@@ -159,6 +171,15 @@ export async function startGitConsole(
         ...(push ? { push } : {}),
       });
       registerGitRoutes(a, { store, snapshots: audited.snapshots, writeLock, env });
+      registerUiConfigPresetRoute(a, {
+        store,
+        snapshots: audited.snapshots,
+        writeLock,
+        bus: audited.bus,
+        ...(push ? { push } : {}),
+        ...(options.presets ? { presets: options.presets } : {}),
+        ...(options.presetFs ? { fs: options.presetFs } : {}),
+      });
     },
   });
   apps.push(app);
@@ -186,6 +207,20 @@ export async function startGitConsole(
     });
     const answer = { status: res.statusCode, body: res.json() };
     if (answer.status !== 200) expectSchema('write.refusal.schema.json', answer.body);
+    return answer;
+  };
+  const preset = async (body: unknown, o: { pid?: string } = {}) => {
+    const res = await app.inject({
+      method: 'POST',
+      url: UI_CONFIG_PRESET_PATH.replace(':pid', o.pid ?? entry.id),
+      headers: { ...AUTH, 'content-type': 'application/json' },
+      payload: typeof body === 'string' ? body : JSON.stringify(body),
+    });
+    const answer = { status: res.statusCode, body: res.json() };
+    expectSchema(
+      answer.status === 200 ? 'write.response.schema.json' : 'ui-config.preset.refusal.schema.json',
+      answer.body,
+    );
     return answer;
   };
   const warm = async () => {
@@ -235,6 +270,7 @@ export async function startGitConsole(
     get,
     op,
     write,
+    preset,
     warm,
     processes,
     remoteCommit,
