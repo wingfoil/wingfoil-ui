@@ -76,3 +76,35 @@ describe('AC-5 bug-042 many aliases', () => {
     expect(result.ms).toBeLessThan(20_000);
   }, 60_000);
 });
+
+describe('AC-5 bug-042 review round 3 F-11: aliases nested in an aliased collection', () => {
+  // `yaml`'s `toJS`, the first time an anchored collection is aliased, counts the aliases inside it
+  // (`getAliasCount`), resolving each one by a walk of the whole document: nested aliases × nodes.
+  const anchors = (n: number) => Array.from({ length: n }, (_, i) => `a${i}: &a${i} v${i}\n`).join('');
+  const padding = (p: number) => `pad:\n${Array.from({ length: p }, (_, i) => `  p${i}: ${i}\n`).join('')}`;
+  const shapes: [string, (n: number) => string][] = [
+    ['a sequence of aliases', (n) => `b: &b\n${Array.from({ length: n }, (_, i) => `  - *a${i}\n`).join('')}`],
+    [
+      'nested sequences of aliases',
+      (n) =>
+        `b: &b\n${Array.from({ length: n / 10 }, (_, j) => `  - [${Array.from({ length: 10 }, (_, i) => `*a${j * 10 + i}`).join(', ')}]\n`).join('')}`,
+    ],
+    [
+      'a map whose values are aliases',
+      (n) => `b: &b\n${Array.from({ length: n }, (_, i) => `  k${i}: *a${i}\n`).join('')}`,
+    ],
+  ];
+  for (const [name, holder] of shapes) {
+    it(`${name}, aliased once, before a large map: refused within 5 s`, () => {
+      const text = `${anchors(500)}${holder(500)}c: *b\n${padding(20_000)}`;
+      const started = performance.now();
+      expect(() => parseYaml(text, 'f.md')).toThrow(/too many aliases to resolve/);
+      expect(performance.now() - started).toBeLessThan(5_000);
+    }, 120_000);
+  }
+
+  it('an aliased collection holding a few aliases is read', () => {
+    const text = `${anchors(5)}${shapes[0]![1](5)}c: *b\nd: *b\n${padding(200)}`;
+    expect(parseYaml(text, 'f.md')).toMatchObject({ c: ['v0', 'v1', 'v2', 'v3', 'v4'] });
+  });
+});

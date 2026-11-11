@@ -159,3 +159,10 @@ describe('parseYaml an empty key (bug-040, task-075 AC-4)', () => {
     }
   });
 });
+
+describe('parseYaml an empty key is named at its colon (task-075 review round 3 F-12)', () => {
+  it('the line and column of the `:` of the pair', () => {
+    expect(() => parseYaml('a: 1\n\n: 2\n', 'f.md')).toThrow(/empty key \(line 3, column 1\)/);
+    expect(() => parseYaml('x:\n  y: 1\n  : a\n', 'f.md')).toThrow(/empty key \(line 3, column 3\)/);
+  });
+});
