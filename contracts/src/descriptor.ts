@@ -30,7 +30,9 @@ export type DisabledReason =
   | { code: 'local-changes' }
   | { code: 'copy-behind'; commits: number }
   | { code: 'copy-diverged' }
-  | { code: 'copy-detached' };
+  | { code: 'copy-detached' }
+  /** v0.3 (rule 5, RP3-14 D11): the target `state` already holds the type's `limit` elements. */
+  | { code: 'state-limit'; state: string; limit: number };
 
 /** `holds.<type>.<state>.approve` of `.wingfoil/ui.yaml` (spec-005 §4a). */
 export type HoldCondition = 'never' | 'when-references-done';
@@ -56,7 +58,7 @@ export interface DescriptorVerb {
   to: string;
   /** The role WingFoil requires (`approver` for a gate on 0.2.2), `null` for none. */
   role: string | null;
-  /** Whether the four rules of spec-003 §6 hold (the role is not one of them). */
+  /** Whether the rules of spec-003 §6 hold (the role is not one of them). */
   enabled: boolean;
   /** The first failing rule, when disabled. */
   reason?: DisabledReason;

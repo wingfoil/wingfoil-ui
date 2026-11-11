@@ -231,3 +231,19 @@ it('S-13.2 — a user who is not in the team gets the read-only line, no Submit'
   await within(d).findByText(/is not in the team/);
   expect(within(d).queryByRole('button', { name: /^Submit/ })).toBeNull();
 });
+
+// task-073 (spec-003 §6 rule 5, S-24.7; D73-7, D73-8): the limit's reason from the catalogue.
+it('state-limit: Submit disabled with its reason as accessible description', async () => {
+  const fetch = stub({
+    ...DRAFT,
+    verbs: [{ ...DRAFT.verbs[0]!, enabled: false, reason: { code: 'state-limit', state: 's2', limit: 1 } }],
+  });
+  renderApp(`/p/${PID}/e/${EID}`);
+  const button = await submit();
+  expect(button.getAttribute('aria-disabled')).toBe('true');
+  expect(document.getElementById(button.getAttribute('aria-describedby') ?? '')?.textContent).toBe(
+    'Blocked: only 1 s2 at a time',
+  );
+  fireEvent.click(button);
+  expect(posts(fetch)).toEqual([]);
+});

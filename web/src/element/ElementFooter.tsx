@@ -42,6 +42,7 @@ const REASONS = defineMessages({
   'copy-behind': { id: 'element.reason.copyBehind' },
   'copy-diverged': { id: 'element.reason.copyDiverged' },
   'copy-detached': { id: 'element.reason.copyDetached' },
+  'state-limit': { id: 'element.reason.stateLimit' },
 });
 
 /** The project and the footer's callback for the *Update* link of the copy-behind reason (D40-2). */
@@ -66,6 +67,8 @@ function reasonMessage(reason: DisabledReason): {
   switch (reason.code) {
     case 'version-unsupported':
       return { descriptor: REASONS[reason.code], values: { range: reason.range } };
+    case 'state-limit':
+      return { descriptor: REASONS[reason.code], values: { state: reason.state, limit: reason.limit } };
     case 'copy-behind':
       return {
         descriptor: REASONS[reason.code],
@@ -78,6 +81,16 @@ function reasonMessage(reason: DisabledReason): {
     default:
       return { descriptor: REASONS[reason.code], values: {} };
   }
+}
+
+/** A reason's identity: its code and parameters, whatever the order of its keys. */
+function reasonKey(reason: DisabledReason): string {
+  const fields = reason as unknown as Record<string, unknown>;
+  return JSON.stringify(
+    Object.keys(fields)
+      .sort()
+      .map((k) => [k, fields[k]]),
+  );
 }
 
 /** Props of {@link ElementFooter}. */
@@ -401,9 +414,19 @@ function GateFooter({
     }
   };
 
-  // The first rule the descriptor reports (the same for every outcome of a state, spec-003 §6).
-  const blocked = view.outcomes.find((o) => !o.enabled && o.reason)?.reason;
-  const blockedText = blocked ? reasonMessage(blocked) : undefined;
+  // One line per distinct reason the descriptor reports, in the outcomes' order (task-073 Q3, option
+  // A): rules 1–4 of spec-003 §6 give every outcome the same one — the single line of v0.2 —, rule 5
+  // (`state-limit`) only the approve. Each disabled outcome is described by its own reason's line.
+  const blockedLines: { key: string; id: string; text: ReturnType<typeof reasonMessage> }[] = [];
+  for (const o of view.outcomes) {
+    if (o.enabled || !o.reason) continue;
+    const key = reasonKey(o.reason);
+    if (blockedLines.some((line) => line.key === key)) continue;
+    const id = blockedLines.length === 0 ? blockedId : `${blockedId}-${blockedLines.length}`;
+    blockedLines.push({ key, id, text: reasonMessage(o.reason) });
+  }
+  const lineOf = (o: GateOutcome) =>
+    !o.enabled && o.reason ? blockedLines.find((line) => line.key === reasonKey(o.reason!))?.id : undefined;
 
   return (
     <section className="element-footer gate-footer" aria-labelledby={titleId}>
@@ -441,11 +464,11 @@ function GateFooter({
           <FormattedMessage id="element.gate.reason.required" />
         </p>
       )}
-      {blockedText && (
-        <p id={blockedId} className="gate-hint gate-blocked">
-          <FormattedMessage {...blockedText.descriptor} values={blockedText.values} />
+      {blockedLines.map(({ key, id, text }) => (
+        <p key={key} id={id} className="gate-hint gate-blocked">
+          <FormattedMessage {...text.descriptor} values={text.values} />
         </p>
-      )}
+      ))}
       {view.engineAdvance && (
         <p className="gate-hint">
           <FormattedMessage id="element.gate.engineAdvance" />
@@ -454,7 +477,7 @@ function GateFooter({
       <div className="gate-actions">
         {view.outcomes.map((o) => {
           const disabled = !o.enabled || blank || busy || decided;
-          const reasonId = !o.enabled && blockedText ? blockedId : blank ? hintId : undefined;
+          const reasonId = lineOf(o) ?? (blank ? hintId : undefined);
           // A held gate's line describes each reject too (review F5).
           const describedBy = [view.held ? heldId : undefined, reasonId].filter(Boolean).join(' ') || undefined;
           return (

@@ -26,6 +26,14 @@ release `v0.2` the git tag `v0.2.0` and the npm version `wingfoil-ui@0.2.0`.
   others* for everyone, approvers included, with the hold in place of "Reserved to approver". The
   descriptor carries it as `approveHeld`; an ignored `ui.yaml` holds nothing; the `approve` itself
   is still accepted by the CLI.
+- **A move into a state at its limit** (task-073, US-S-24 S-24.7; spec-003 §6 rule 5): on WingFoil
+  0.3, a *Submit* or *Approve* whose next state already holds as many elements of the type as its
+  `limits` in `.wingfoil/memory.yaml` allow is disabled with "Blocked: only 1 active at a time"
+  (the descriptor's `state-limit {state, limit}`); a *Reject* is never limited. The console counts
+  the non-archived elements `memory search` lists; WingFoil also counts the elements other branches
+  moved there, so a move the console offers can still be refused (422 `cli-refused`, its toast).
+  `limits` is read leniently — only positive integers are kept — and is served with the resolved
+  states of `/config` and of an element.
 - **The actor after an approve** (task-069, spec-003 §4, RP3-14 D6): an element in a working state
   that an `approve` entered — a task approved into `backlog` — is the work of the member who made
   the last submit before that approve, no longer of the approver ("Jordan (submitter) must act"); a
@@ -178,6 +186,11 @@ release `v0.2` the git tag `v0.2.0` and the npm version `wingfoil-ui@0.2.0`.
   error and the lines around it), fix its frontmatter, or move the project to WingFoil 0.3.1,
   which lists the other elements and names the file (`W_MEMORY_UNREADABLE`), shown in the Memory
   list's notice.
+- **The state limit is the console's estimate** (task-073, design Q2 (a)): it counts what your copy
+  lists, WingFoil counts at the last commit and on every branch that moved an element. An element
+  another branch moved into the state, or another element's `status:` edited by hand and not
+  committed, can make the console offer a move WingFoil refuses (shown as a toast) or, for an
+  uncommitted edit into the state, disable one WingFoil would accept (design probes P3, P4, P6, P7).
 
 ## [0.2.0] - 2026-10-20
 

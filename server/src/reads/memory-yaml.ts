@@ -30,6 +30,25 @@ interface RawStates {
   sequence: string[];
   gates?: Record<string, { reject: string }>;
   waiting?: string[];
+  /** Not checked by the schema: any value (WingFoil 0.2.2 accepts and ignores one, task-073 D73-4). */
+  limits?: unknown;
+}
+
+/**
+ * The WIP limits of a machine (WingFoil 0.3.x): the entries of a plain-object `limits` whose value is
+ * a positive integer; anything else is dropped, `undefined` when none is left (task-073 D73-4).
+ * WingFoil 0.3.x refuses a bad value itself, before anything is counted; 0.2.2 ignores the key.
+ */
+function pickLimits(raw: unknown): Record<string, number> | undefined {
+  if (raw === null || typeof raw !== 'object' || Array.isArray(raw)) return undefined;
+  const kept = Object.entries(raw).filter(
+    (entry): entry is [string, number] => Number.isInteger(entry[1]) && (entry[1] as number) > 0,
+  );
+  // Own entries only, on a null prototype: a state named `constructor` or `__proto__` is a plain key
+  // (review F-1).
+  return kept.length > 0
+    ? Object.assign(Object.create(null) as Record<string, number>, Object.fromEntries(kept))
+    : undefined;
 }
 
 interface RawType {
@@ -49,12 +68,14 @@ interface RawMemoryYaml {
 }
 
 function pickStates(raw: RawStates): StateMachine {
+  const limits = pickLimits(raw.limits);
   return {
     sequence: [...raw.sequence],
     ...(raw.gates
       ? { gates: Object.fromEntries(Object.entries(raw.gates).map(([k, g]) => [k, { reject: g.reject }])) }
       : {}),
     ...(raw.waiting ? { waiting: [...raw.waiting] } : {}),
+    ...(limits ? { limits } : {}),
   };
 }
 

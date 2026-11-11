@@ -691,3 +691,54 @@ it('R3 — with no action left to take, the focus goes to the panel heading', as
   });
   await waitFor(() => expect(document.activeElement?.classList.contains('drawer-title')).toBe(true));
 });
+
+// task-073 (spec-003 §6 rule 5; D73-5, D73-7): rule 5 disables the approve only — its reason
+// describes Approve, never a reject, which stays enabled.
+it('state-limit — an approve disabled by the limit: its reason describes Approve only, the rejects stay enabled', async () => {
+  stub({
+    ...GATE,
+    verbs: [
+      { verb: 'approve', to: 's3', role: ROLE, enabled: false, reason: { code: 'state-limit', state: 's3', limit: 2 } },
+      { verb: 'reject', to: 's1', role: ROLE, enabled: true },
+    ],
+  });
+  renderApp(`/p/${PID}/e/${EID}`);
+  const f = await footer();
+  const approve = outcome(f, 'Approve → s3');
+  expect(approve.getAttribute('aria-disabled')).toBe('true');
+  const describedBy = (b: HTMLElement) =>
+    (b.getAttribute('aria-describedby') ?? '')
+      .split(' ')
+      .filter(Boolean)
+      .map((id) => document.getElementById(id)?.textContent);
+  expect(describedBy(approve)).toEqual(['Blocked: only 2 s3 at a time']);
+  const reject = outcome(f, 'Reject → s1');
+  expect(reject.getAttribute('aria-disabled')).toBeNull();
+  expect(describedBy(reject)).toEqual([]);
+});
+
+// task-073 Q3 (b), option (A) (the approver, 2026-11-11): one blocked line per distinct reason, each
+// disabled outcome described by its own reason's line; one shared reason keeps the single v0.2 line
+// (D37-8 above).
+it('state-limit — outcomes disabled by different reasons: one line per reason, each outcome described by its own', async () => {
+  stub({
+    ...GATE,
+    verbs: [
+      { verb: 'approve', to: 's3', role: ROLE, enabled: false, reason: { code: 'state-limit', state: 's3', limit: 1 } },
+      { verb: 'reject', to: 's1', role: ROLE, enabled: false, reason: { code: 'copy-diverged' } },
+      { verb: 'reject', to: 's0', role: ROLE, enabled: false, reason: { code: 'copy-diverged' } },
+    ],
+  });
+  renderApp(`/p/${PID}/e/${EID}`);
+  const f = await footer();
+  const lines = [...f.querySelectorAll('.gate-blocked')].map((p) => p.textContent);
+  expect(lines).toEqual(['Blocked: only 1 s3 at a time', 'Blocked: your copy has diverged from the remote']);
+  const describedBy = (name: string) =>
+    (outcome(f, name).getAttribute('aria-describedby') ?? '')
+      .split(' ')
+      .filter(Boolean)
+      .map((id) => document.getElementById(id)?.textContent);
+  expect(describedBy('Approve → s3')).toEqual(['Blocked: only 1 s3 at a time']);
+  expect(describedBy('Reject → s1')).toEqual(['Blocked: your copy has diverged from the remote']);
+  expect(describedBy('Reject → s0')).toEqual(['Blocked: your copy has diverged from the remote']);
+});
