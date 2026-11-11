@@ -6,7 +6,7 @@
 // visibility and focus events stand for the browser (headless engines report every page visible).
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { watchSessionRecovery, ownAddress } from '../../../web/src/session/recovery.js';
-import { markSessionLost, resetSession, SESSION_CHANNEL } from '../../../web/src/session/session.js';
+import { markSessionLost, PROBE_TIMEOUT_MS, resetSession, SESSION_CHANNEL } from '../../../web/src/session/session.js';
 
 /** A same-process stand-in of `BroadcastChannel`: delivers to the other instances of one name. */
 class FakeChannel {
@@ -169,12 +169,19 @@ describe('triggers (D63-3)', () => {
 describe('the probe (D63-4)', () => {
   it('GET /api/server with the cookie only: no header, no body, a 10 s timeout', async () => {
     const fetchFn = fetchAnswering(401);
+    // Checker G-1: the default timeout is the shared 10 s one.
+    const timeout = vi.spyOn(AbortSignal, 'timeout');
     markSessionLost();
     stop = watchSessionRecovery({ reload });
     otherTab().postMessage(null);
     await vi.waitFor(() => expect(fetchFn).toHaveBeenCalledTimes(1));
+    expect(PROBE_TIMEOUT_MS).toBe(10_000);
+    expect(timeout).toHaveBeenCalledExactlyOnceWith(10_000);
+    timeout.mockRestore();
     const [url, init] = fetchFn.mock.calls[0] as unknown as [string, RequestInit];
     expect(url).toBe('/api/server');
+    // Checker N-1: never an answer from the browser's cache.
+    expect(init.cache).toBe('no-store');
     expect(init.method ?? 'GET').toBe('GET');
     expect(init.credentials).toBe('same-origin');
     expect(init.headers).toBeUndefined();

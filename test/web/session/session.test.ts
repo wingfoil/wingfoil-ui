@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   bootstrapSession,
   markSessionLost,
+  PROBE_TIMEOUT_MS,
   SESSION_CHANNEL,
   resetSession,
   sessionStatus,
@@ -124,9 +125,14 @@ describe('watchFragmentToken (bug-016)', () => {
     const reload = vi.fn();
     const fetchFn = fetchAnswering(401);
     await bootstrapSession();
+    const timeout = vi.spyOn(AbortSignal, 'timeout');
     stop = watchFragmentToken({ reload });
     paste(`#token=${TOKEN}`);
     await vi.waitFor(() => expect(reload).toHaveBeenCalledTimes(1));
+    // task-063 checker G-1: the probe waits the shared 10 s at most.
+    expect(PROBE_TIMEOUT_MS).toBe(10_000);
+    expect(timeout).toHaveBeenCalledExactlyOnceWith(10_000);
+    timeout.mockRestore();
     const [url, init] = fetchFn.mock.calls[0] as unknown as [string, RequestInit];
     expect(url).toBe('/api/server');
     expect(new Headers(init.headers).get('authorization')).toBeNull();
@@ -238,7 +244,9 @@ describe('announceSession (task-063)', () => {
     postMessage(data: unknown): void {
       posted.push({ name: this.name, data });
     }
-    close(): void {}
+    close(): void {
+      posted.push({ name: this.name, data: 'closed' });
+    }
   }
   beforeEach(() => {
     posted.length = 0;
@@ -249,7 +257,11 @@ describe('announceSession (task-063)', () => {
     history.replaceState(null, '', `/p/x?q=1#token=${TOKEN}`);
     fetchAnswering(204);
     await bootstrapSession();
-    expect(posted).toEqual([{ name: SESSION_CHANNEL, data: null }]);
+    // Checker N-3: the channel is closed once the message is posted (D63-2).
+    expect(posted).toEqual([
+      { name: SESSION_CHANNEL, data: null },
+      { name: SESSION_CHANNEL, data: 'closed' },
+    ]);
     expect(SESSION_CHANNEL).toBe('wfui-session');
   });
 
