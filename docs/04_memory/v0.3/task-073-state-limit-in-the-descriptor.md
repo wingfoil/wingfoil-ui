@@ -378,7 +378,7 @@ outcome the same reason, the single line renders as in v0.2. `state-limit` gets 
 which only *Approve* points to. A dated v0.3 bullet goes into `ux-reference.md` §4.2, with its
 version bump, in the green commit. D73-7 is revised accordingly.
 
-- **Red** (the commit after this note): `test/web/element/gate-footer.test.tsx` › "state-limit —
+- **Red** (`3be5fad7`): `test/web/element/gate-footer.test.tsx` › "state-limit —
   outcomes disabled by different reasons: one line per reason, each outcome described by its own"
   fails with only the first reason's line rendered (1 failed, 41 passed).
 - **Green** (`c1191788`):
@@ -434,3 +434,29 @@ Local checks after the fixes:
 - `gates.yml` run `43071319215` on `326bcd63` (task scope): **success**. Every job passed
   (`checks`, `contract`, `coverage`, `e2e-chromium` on both shards, `own-specs` on Firefox and
   WebKit, `smoke`, `publish-smoke`); `e2e-wave` skipped.
+
+### review round 2 (2026-11-11) — PASS, no findings
+
+The same adversarial reviewer on `6f41a0e9` (the fixes `326bcd63`, run `43071319215` green on every
+job): F-1 re-probed for the 12 names `Object.prototype` defines in three layouts (the name only as
+the next state, as the limited state, both), occupancy 0 and 1 and the move out — 36 results
+correct; the round-1 mutation (`=== undefined` with a normal-prototype `Object.fromEntries`) fails 5
+tests. F-2's status-only key fails the new route test (1 failed, 5 passed). F-3 dates 2026-11-11.
+F-040 reproduced independently with the pinned 0.3.1 (`constructor`, `toString`, `__proto__`; a
+`plainstate` control accepted). No regression: 8 files, 149 passed under the strict-identity recipe;
+`test/web/element`, `test/server/descriptor` and the descriptor schema, 13 files, 239 passed.
+
+e2e closure: S-24.7 → `test/e2e/state-limit.spec.ts` › "S-24.7 — Disable a move into a state at its
+limit", passed on Chromium (`e2e-chromium`), Firefox and WebKit (`own-specs`) in runs `43065973406`
+(`274b5f3e`) and `43071319215` (`326bcd63`).
+
+### checker (2026-11-11)
+
+On `6f41a0e9`: every AC's evidence holds; the red commits `b24cb871` (16 failed / 103 passed; routes
+and contract 3 failed / 3 passed), `3be5fad7` (1 failed / 41 passed) and `7ae91472` (5 failed / 53
+passed) re-run, failing on behaviour; the six run ids on their commits with the conclusions
+recorded; the merge `274b5f3e` lost nothing of task-070; local checks and the task's suites green
+(585 and, under the strict-identity recipe, 121 passed); frontmatter and doc-versioning hold. NOT
+READY only on the notes: round 2 not recorded (G-1), fixed here with N-1 (the red commit named) and
+N-2 (the e2e closure line). Known pending, not of this task: F-040 cites `wingfoil-cli` W-51, added
+by the coordinator's governance run before the merge into `main`.
