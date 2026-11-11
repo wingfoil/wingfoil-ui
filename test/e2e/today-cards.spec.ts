@@ -129,6 +129,19 @@ test.describe('US-T-02 — Requires you (v0.3)', () => {
     await expect(rowOf(requiresYou(page), 'task-001-login-form').locator('.today-reason')).toHaveText(
       'pending for 3 days',
     );
+    // The row's link carries the full time too (review round 1 F-3): the title link of Requires you,
+    // the whole row's link of Waiting on others (its own `since`, the time of its last move).
+    await expect(
+      rowOf(requiresYou(page), 'task-001-login-form').getByRole('link', { name: 'Login form' }),
+    ).toHaveAccessibleDescription(shown.full);
+    const waitingRow = rowOf(waiting(page), 'task-002-password-reset');
+    const waitingSince = (await waitingRow.locator('time.today-since').getAttribute('datetime')) ?? '';
+    expect(waitingSince).not.toBe('');
+    const waitingFull = await page.evaluate(
+      (iso) => new Intl.DateTimeFormat('en', { dateStyle: 'full', timeStyle: 'long' }).format(new Date(iso)),
+      waitingSince,
+    );
+    await expect(waitingRow.getByRole('link')).toHaveAccessibleDescription(waitingFull);
   });
 
   test('T-02.6 — Show the first 10 rows, then all of them on request', async ({ page, fixtures, consoles }) => {

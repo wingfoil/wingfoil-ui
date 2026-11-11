@@ -253,18 +253,19 @@ summary cases), `test/web/today/summary.test.tsx`, `test/e2e/notification-bell.s
 | T-02.6 | red-first | e2e: "T-02.6 — Show the first 10 rows, then all of them on request" (`addPendingTasks(copy, 11)`; 10 rows, then "Show all (13)" → 13 rows and "Show fewer", `aria-expanded`; greeting "Morgan, 13 things require you"; the bell's count 13). Unit `cards.test.tsx`: "filters apply before the limit", "Show fewer keeps the focus" |
 | T-02.7 | red-first | e2e (custom): "T-02.7 — Name each row's element by its short id" (`dl-002`; `minor-v0.1` in *Waiting on others*). Unit `today.test.tsx`: "the short id is the API's, else the full id" |
 | T-02.1 … T-02.3 | characterization | `today.spec.ts` unchanged, green |
-| S-23.4 [B] | red-first | e2e `notification-bell.spec.ts`: "S-23.4 — Show the count of a role, not its items" (`addPendingTasks(copy, 3)`; tag "approver · 5"; no `li[data-eid]`, no link or button "more" in the region). Server `today.test.ts`: "S-23.4: the count of a role, no items" (replaces "at most 3 items per role, and N more") |
-| S-23.5 [B] | red-first | e2e `notification-bell.spec.ts`: "S-23.5 — Switch the role view from the line of role tags" (Alex, `developer` → click "approver · 2" → header "approver"; 7 tags in one line — one list, every tag's top equal at 1280 px; "approver · 2" `aria-current`; focus on the *Requires you* heading) |
-| S-23.1 … S-23.3 [B] | updated (F9) | `notification-bell.spec.ts` S-23.1 asserts the 7 tags and their counts (no items); S-23.2, S-23.3 unchanged; `summary.test.tsx` "summarises each role with its count, no items (S-23.1, S-23.4)" |
+| S-23.4 [B] (moved to task-076, W2-7) | red-first | e2e `notification-bell.spec.ts`: "S-23.4 — Show the count of a role, not its items" (`addPendingTasks(copy, 3)`; tag "approver · 5"; no `li[data-eid]`, no link or button "more" in the region). Server `today.test.ts`: "S-23.4: the count of a role, no items" (replaces "at most 3 items per role, and N more") |
+| S-23.5 [B] (moved to task-076, W2-7) | red-first | e2e `notification-bell.spec.ts`: "S-23.5 — Switch the role view from the line of role tags" (Alex, `developer` → click "approver · 2" → header "approver"; 7 tags in one line — one list, every tag's top equal at 1280 px; "approver · 2" `aria-current`; focus on the *Requires you* heading) |
+| S-23.1 … S-23.3 [B] (moved to task-076, W2-7) | updated (F9) | `notification-bell.spec.ts` S-23.1 asserts the 7 tags and their counts (no items); S-23.2, S-23.3 unchanged; `summary.test.tsx` "summarises each role with its count, no items (S-23.1, S-23.4)" |
 | AC-3 held gates | characterization | `held-gates.spec.ts` S-24.5, S-24.6 unchanged; `cards.test.tsx` "a held row is filtered and limited like the others" |
 | AC-4 | covered | by T-02.6, S-23.4 (REQ-PERF-11's fit criterion) |
-| AC-5 [B] | red-first | `test/contracts/api-element-schema.test.ts` (Today summary: `{role, count}` accepted, an `items` key refused); `today-routes.test.ts` schema checks; the TT-PERF-09/-11 citations in the touched files kept consistent |
+| AC-5 [B] (moved to task-076, W2-7) | red-first | `test/contracts/api-element-schema.test.ts` (Today summary: `{role, count}` accepted, an `items` key refused); `today-routes.test.ts` schema checks; the TT-PERF-09/-11 citations in the touched files kept consistent |
 | AC-6 | gates | `npm run lint` (REQ-ARC-05), the process audits on `gates.yml` |
 | AC-7 | e2e | the new SCREENS entries in `accessibility.spec.ts`; keyboard path in "T-02.4" and "T-02.6"; the task's specs (`today-cards.spec.ts`, `notification-bell.spec.ts`) on the three engines through `gates.yml`'s own-specs; catalogue checks `test/web/i18n/*` |
 | AC-8 | gates | typecheck, lint, format:check, `docs:api`, `check_tasks.py v0.3` local; `test:coverage`, `test:e2e:chromium`, the own specs on Firefox and WebKit on `gates.yml` (run ids in the notes) |
 
-e2e closure: T-02.4, T-02.5, T-02.6, T-02.7 → `test/e2e/today-cards.spec.ts`; S-23.4, S-23.5 →
-`test/e2e/notification-bell.spec.ts`.
+e2e closure (at design): T-02.4, T-02.5, T-02.6, T-02.7 → `test/e2e/today-cards.spec.ts`; S-23.4,
+S-23.5 → `test/e2e/notification-bell.spec.ts` (moved to task-076, W2-7). The closure as delivered:
+*e2e closure (task-061)* under the checker's notes below.
 
 #### Questions
 
@@ -366,7 +367,10 @@ September 29, 2026 at 5:20:0…'`); F-2's rewritten test passes with the key and
 | F-5 (nit) — the focus fell to `<body>` when a refetch removed the focused toggle | `CardRows.tsx`: the toggle's focus is tracked; when it unmounts with the focus gone to the page, the card's heading takes it (the Waiting on others heading gains `tabIndex={-1}`, as Requires you's) | "moves the focus to the card's heading when a refetch removes the focused toggle" |
 
 Local: `npm run typecheck`, `npm run lint`, `npm run format:check` clean; `npx vitest run test/web`
-63 files, 1041 passed.
+63 files, 1041 passed. The red commit `bd5e80d4` imported `computeAccessibleDescription` from
+`dom-accessibility-api` (a transitive dependency with no declaration file: `npm run typecheck` failed
+on TS7016); `20e684e0` replaced it with a test helper that joins the texts of the link's
+`aria-describedby` ids, and the checker's round adds a browser check of F-3 (below).
 
 Run `43081045293` on `20e684e0`: green — checks, coverage, contract, smoke, publish-smoke,
 e2e-chromium 166 + 166 passed, own specs (`today-cards.spec.ts`, 5 with F-4's X-09.1) on Firefox and
@@ -380,3 +384,29 @@ e2e-chromium both shards, own specs on Firefox and WebKit).
 | Finding | Change | Evidence |
 |---------|--------|----------|
 | N-1 (nit) — the F-5 path tested in jsdom and on Chromium only; it depends on `onBlur` when the focused toggle is removed, which engines handle differently | `today-cards.spec.ts` "a refetch leaving 10 rows moves the focus from "Show fewer" to the card's heading" (the T-02.6 copy, the toggle reached and pressed from the keyboard, three approvals made with the CLI while Today is open; *Requires you* only — a Waiting on others card past 10 rows would need nine more commits on the copy) | run `43086358249` on `4f92e4c8`: green — own specs (6, the new test included) on Firefox and WebKit, e2e-chromium 166 + 167; no code change was needed |
+
+### checker (2026-11-11, on `aadbba52`: NOT READY on G-1)
+
+**e2e closure (task-061):**
+
+| Scenario | Spec file › test |
+|---|---|
+| T-02.1 List the items requiring the approver | `test/e2e/today.spec.ts` › "T-02.1 — List the items requiring the approver" |
+| T-02.2 Show one primary action per row | same spec › "T-02.2 — Show one primary action per row" |
+| T-02.3 Follow the role view | same spec › "T-02.3 — Follow the role view" |
+| T-02.4 Filter a card by type and by state | `test/e2e/today-cards.spec.ts` › "T-02.4 — Filter a card by type and by state" |
+| T-02.5 Show when each element entered its current state | same spec › "T-02.5 — Show when each element entered its current state" (the date, its description, and the row link's description — F-3, N-2) |
+| T-02.6 Show the first 10 rows, then all of them on request | same spec › "T-02.6 — Show the first 10 rows, then all of them on request" |
+| T-02.7 Name each row's element by its short id | same spec › "T-02.7 — Name each row’s element by its short id" |
+| S-24.5 Hold a gate whose approval is made outside the console (AC-3) | `test/e2e/held-gates.spec.ts` › "S-24.5 — Hold a gate whose approval is made outside the console" |
+| S-24.6 Hold a gate until the elements that reference it are done (AC-3) | same spec › "S-24.6 — Hold a gate until the elements that reference it are done" |
+| X-09.1 the cards' strings from the catalogue (F-4) | `test/e2e/today-cards.spec.ts` › "X-09.1 — Render the cards’ strings from the message catalogue" |
+| The focus after the toggle goes (F-5, round 2 N-1) | same spec › "a refetch leaving 10 rows moves the focus from "Show fewer" to the card’s heading" |
+
+S-23.4 and S-23.5 are task-076's (W2-7).
+
+- **N-2**: T-02.5 also asserts `toHaveAccessibleDescription` (the full time) on the *Waiting on
+  others* link of `task-002-password-reset` and on the *Requires you* title link of
+  `task-001-login-form`.
+- **N-3**: `test/README.md`'s task-061 paragraph names the X-09.1 test and the focus test.
+
