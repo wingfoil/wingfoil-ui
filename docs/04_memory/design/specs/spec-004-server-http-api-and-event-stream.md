@@ -527,3 +527,9 @@ goes away by itself when the stream reconnects. A network failure is not rendere
   the `cli-refused` reasons' cap (200 and a count line), the details' `file` left out, `detail`
   only with a reason, and the envelope's schema `contracts/api/cli.refusal.schema.json` (the
   `cli-refused` branch of `write.refusal.schema.json` refers to it).
+
+- 2026-11-11 — amended in task-075 (bug-034, spec-012 §8 of the same day): §5 a body served under an
+  `X-Repo-State` is read from the content that state stands for — a read whose files differ from
+  the state check's marks, or a CLI read finishing after a watcher event, still answers its request,
+  and the server then checks again and emits `repo` also when the key did not move, so the page
+  refetches. The header format is unchanged.

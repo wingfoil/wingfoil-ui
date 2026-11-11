@@ -165,14 +165,15 @@ describe('AC-1 the CLI reads with no event, the drop, the confirmation', () => {
     const { fx, snapshot, events } = await fresh();
     const view = await snapshot.view();
     const [, second] = (await view.elements()).matches.map((m) => m.match);
-    const file = path.join(fx.dir, second!.path);
-    const committed = await retitle(file, 'EDITED');
+    // git's status hides the edit, so the drop's own check finds the same key.
+    await git(fx.dir, ['update-index', '--assume-unchanged', second!.path], fx.env);
+    await retitle(path.join(fx.dir, second!.path), 'HIDDEN');
     const published = events.length;
     await view.element(second!.id);
-    await writeFile(file, committed);
     await expect
       .poll(() => events.slice(published), { timeout: 20_000 })
       .toContainEqual({ event: 'repo', data: { pid: snapshot.pid, state: view.state.key } });
+    expect(snapshot.current()?.key).toBe(view.state.key);
   });
 
   it('a mismatch a later check confirms (`assume-unchanged`) is cached once confirmed, with no drop after', async () => {

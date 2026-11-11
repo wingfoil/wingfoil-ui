@@ -320,12 +320,11 @@ describe('GET /api/p/:pid/config — tied to its state check (bug-034, task-075 
   it('AC-1 bug-034 `/config` after an edit and a revert between two checks serves the reverted `ui`', async () => {
     const { fx, config, snapshot } = await start(templates.kanban);
     const project = await snapshot();
-    await project.view(); // the state check, before ui.yaml exists; no read of it yet
+    const before = (await project.view()).state.key; // the state check, before ui.yaml exists
     const file = path.join(fx.dir, '.wingfoil', 'ui.yaml');
     await writeFile(file, renderPreset('kanban'));
     expect((await config()).ui.status.source).toBe('file');
     await rm(file);
-    const before = project.current()!.key;
     expect((await project.check()).key).toBe(before);
     expect((await config()).ui.status).toEqual({ source: 'none' });
   });

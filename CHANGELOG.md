@@ -138,6 +138,13 @@ release `v0.2` the git tag `v0.2.0` and the npm version `wingfoil-ui@0.2.0`.
   Memory element (id, title, type, status missing or not text)`), archived elements included.
   WingFoil 0.3.1 leaves such a file out by itself, without a word (`wingfoil-cli` W-47). The
   defect shipped in v0.1.0 and v0.2.0.
+- **An edit undone before the console looked again is no longer shown** (bug-034, task-075): a file
+  edited, read by a page and put back before the console's next look at the repository gave the
+  same repository state again, and the console kept serving what it had read from the edited file
+  (an element, `ui.yaml`, `memory.yaml`, a directive) until the next change. Each read is now tied
+  to what the console's check saw: a read of other content, or a `wingfoil` read that finished after
+  a file event, answers once, then the console checks again and the page refetches. The defect
+  shipped in v0.1.0 and v0.2.0.
 - **The console and WingFoil agree on which frontmatters have a duplicate key** (bug-037, task-075):
   keys that are one key for WingFoil's YAML loader — `1` and `"1"`, `true` and `"true"`, `~` and
   `"null"`, two spellings of one date, an alias repeating a key, a repeated complex key — were read

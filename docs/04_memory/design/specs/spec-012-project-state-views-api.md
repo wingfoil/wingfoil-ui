@@ -550,3 +550,19 @@ every object `additionalProperties: false`, as the other API schemas.
 - 2026-11-07 — task-055 review round 3 (nit 1): the slice clock starts before the element reads,
   so the first build of a process keeps the same bound (measured in fresh processes on the round-2
   workload: longest event-loop gap 22–25 ms). No rule changes.
+
+- 2026-11-11 — amended in task-075 (bug-034; task-059 design D59-13, Q2 (a), and task-075's Q1 (a),
+  Q2 (a), decided by the approver; task-075 D75-1 … D75-7): §8 *Per state* — a read is kept for its
+  state only when it read what that state's check saw. A direct read (`memory.yaml`, `ui.yaml`, an
+  element file, a directive file, the index's element files) is compared with the check's marks: a
+  status entry's content hash, a clean file's blob at HEAD (one `git ls-tree -r HEAD` over
+  `.wingfoil/` and the Memory directories per new HEAD, shared with the reuse below: a git process
+  where no index is built, no CLI process), `ui.yaml`'s mark; a CLI read is kept only if no watcher
+  event arrived after its state's check began. Otherwise the value answers its callers, the state's
+  memo is dropped, a check runs and `repo {pid, state}` is published when it ends, also with the
+  same key. A mismatch a later check confirms (line-end conversion, a clean filter,
+  `assume-unchanged`, `skip-worktree`) is accepted. Declared residuals: a file with no comparable
+  mark (marked by its `lstat`, ignored by git, or an unreadable HEAD tree) is kept as before; an edit
+  and revert the watcher does not report (degraded watching, an ignored file outside the watched
+  folders) keeps a CLI read until the state moves; two edit-and-revert cycles of the same bytes
+  across one check keep the second read.

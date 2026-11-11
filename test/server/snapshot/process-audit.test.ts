@@ -65,8 +65,9 @@ describe('TT-PERF-05 — batched CLI reads (S-26.3)', () => {
     // open(): one rev-parse; the first state: one status, one user.email (review F4), one `git remote`
     // and `branch.main.remote` (spec-010 §1, task-033 D33-7); the actor events of the descriptors: one
     // `git log -p` (spec-002 §3) and its header-only sha list; the header's `origin` (spec-006 §2
-    // refresh on open).
-    expect(runner.count('git')).toBe(8);
+    // refresh on open); the HEAD listing of `.wingfoil/` and the Memory folders the direct reads are
+    // tied to (bug-034, task-075 D75-2: one `git ls-tree -r` per new HEAD).
+    expect(runner.count('git')).toBe(9);
     expect(runner.spawned.filter((r) => r.args.includes('log'))).toHaveLength(2);
     // REQ-INT-06: every git process of the read routes uses a subcommand of the allowed list.
     for (const r of runner.spawned.filter((x) => processKind(x) === 'git')) {
@@ -204,8 +205,9 @@ describe('task-068 — the /config ui section and the ui.yaml mark start no proc
     // sections and the git of the project's open and its first state (as the Memory list audit
     // above) — the ui section and the mark add none.
     expect(runner.wingfoilCommands().sort()).toEqual(['dna show', 'paths', 'workflow list']);
-    // rev-parse (open); status, config user.email, remote, config branch.main.remote (the first state).
-    expect(gits.sort()).toEqual(['config', 'config', 'remote', 'rev-parse', 'status']);
+    // rev-parse (open); status, config user.email, remote, config branch.main.remote (the first state);
+    // ls-tree, the HEAD listing the direct reads are tied to (bug-034, task-075 D75-2).
+    expect(gits.sort()).toEqual(['config', 'config', 'ls-tree', 'remote', 'rev-parse', 'status']);
 
     const before = runner.spawned.length;
     await standIn.get(`/api/p/${pid}/config`);

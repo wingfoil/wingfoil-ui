@@ -9,7 +9,14 @@ import { appendFile, mkdir, mkdtemp, realpath, rename, rm, symlink, writeFile } 
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { nodeUiYamlFs, UI_YAML, uiYamlMark, type UiYamlFs } from '../../../server/src/reads/ui-yaml.js';
+import {
+  nodeUiYamlFs,
+  readMarkedUiYaml,
+  readUiYaml,
+  UI_YAML,
+  uiYamlMark,
+  type UiYamlFs,
+} from '../../../server/src/reads/ui-yaml.js';
 
 let base: string;
 let outside: string;
@@ -133,6 +140,28 @@ describe('uiYamlMark — the mark of .wingfoil/ui.yaml in the state key', () => 
     expect(await uiYamlMark(root, fs)).toMatch(/^swapped:/);
     expect(await uiYamlMark(root, fs)).toBe(
       `sha:${createHash('sha256').update('version: 1\n# swapped\n').digest('hex')}`,
+    );
+  });
+});
+
+describe('readMarkedUiYaml (bug-034, task-075 D75-3)', () => {
+  it("the read's mark equals the check's for each kind; its entry equals readUiYaml's", async () => {
+    const roots = [await project(false), await project()];
+    const text = await project();
+    await writeFile(file(text), 'version: 1\n');
+    const binary = await project();
+    await writeFile(file(binary), Buffer.from([0xff, 0xfe, 0x00]));
+    const large = await project();
+    await writeFile(file(large), 'x'.repeat(64 * 1024 + 1));
+    const dir = await project();
+    await mkdir(file(dir));
+    for (const root of [...roots, text, binary, large, dir]) {
+      const { entry, mark } = await readMarkedUiYaml(root);
+      expect(mark, root).toBe(await uiYamlMark(root));
+      expect(entry, root).toEqual(await readUiYaml(root));
+    }
+    expect((await readMarkedUiYaml(text)).mark).toBe(
+      `sha:${createHash('sha256').update('version: 1\n').digest('hex')}`,
     );
   });
 });

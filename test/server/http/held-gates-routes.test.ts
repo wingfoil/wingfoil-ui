@@ -214,7 +214,9 @@ describe('held gates through the routes (spec-003 §3, §5, §8; spec-005 §4a)'
     expect(descriptorOf(list.body, HELD_RELEASE).approveHeld?.condition).toBe('never');
     expect((await c.get(`/api/p/${c.pid}/today?view=approver`)).status).toBe(200);
     expect((await c.get(`/api/p/${c.pid}/elements/${HELD_RELEASE}`)).status).toBe(200);
-    expect(lsTrees(c.runner)).toBe(0);
+    // One HEAD listing, for the reads' state tie (task-075 D75-2), not an index: the index would
+    // read every element file.
+    expect(lsTrees(c.runner)).toBe(1);
     expect(c.elementReads()).toEqual(['docs/04_memory/planning/v1/minor-v0.1.md']);
   }, 300_000);
 });
