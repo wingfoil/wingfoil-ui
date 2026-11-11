@@ -310,18 +310,18 @@ RenderedArticle,DocumentView,pages}.ts(x)`, `web/src/directives/pages.tsx`, `web
 | AC-3 G-01.5 | red-first | `test/e2e/element-page.spec.ts` › `G-01.5 — Open an element by its short id and show its full id` (`toHaveURL` full id; `history.back()` does not return to `task-003`) |
 | AC-3 G-01.6 | red-first | same › `G-01.6 — List the candidates of an ambiguous short id` (a hand-committed `task-001-login-form-copy` on a copy; two links, `getByText('Not found')` absent; keyboard; `scanThemes`) |
 | AC-3 G-01.7 | red-first | same › `G-01.7 — Open and decide an element whose id is longer than 100 characters` (`addLongIdElement(copy, { length: 140 })`, the Memory list row, Approve with "Long ids work", the last commit's subject; no horizontal scroll) |
-| AC-3 G-01.8 | red-first | `test/e2e/side-panel.spec.ts` › `G-01.8 — Open an element from Requires you in the side panel and keep it on reload` |
-| AC-4 S-21.4 | red-first | same › `S-21.4 — Open an item of the bell in the side panel of the current view` (the Memory list stays, its filter kept) |
+| AC-3 G-01.8 | red-first | `test/e2e/side-panel.spec.ts` › `G-01.8 — Open an element from Requires you in the side panel and keep it on reload` **— moved to task-077 (W2-7).** |
+| AC-4 S-21.4 | red-first | same › `S-21.4 — Open an item of the bell in the side panel of the current view` (the Memory list stays, its filter kept) **— moved to task-077 (W2-7).** |
 | AC-4 S-21.1 … S-21.3 | characterization | `test/e2e/notification-bell.spec.ts`, titles unchanged |
-| AC-3 M-01.3, R-09.1, X-06.3 | characterization (reworded) | `memory-list.spec.ts` › M-01.3 (the page); `documentation.spec.ts` › R-09.1 (the page); `accessibility.spec.ts` › X-06.3 (Escape on the page, back to the Memory list row) plus `side-panel.spec.ts` › `X-06.3 — Escape on the side panel returns the focus to its opener` (Today's action) |
-| AC-5 | red-first | `side-panel.spec.ts` › `AC-5 — opening pushes, a reload keeps, closing removes panel= and keeps the other parameters`; `test/web/element/side-panel.test.tsx` (memory history): push / Back / replace-on-close-after-reload / other parameters kept / `panel=` ignored on `/e/` / a short value replaced in place / bell on the page (Q1) / focus to the opener or `#main` |
-| AC-6 | red-first | `test/web/element/side-panel.test.tsx` › hostile `panel=` values (D62-9's list): *not found*, the stub API saw no other path, location unchanged; `test/web/element/address.test.ts` (new, pure): `elementPath` encoding and refusals, `panelSearch` (string only); `test/web/element/page.test.tsx` › a short id seeds the full id's query (one element request) and replaces the entry |
-| AC-7 summary | red-first | `test/web/element/summary.test.ts` (new): first paragraph after comments and headings, a reference link, emphasis and code, none → `undefined`; `test/web/element/document.test.tsx` (new): the summary rendered, *Open document*, Rendered by default, Source as written, "No content yet", Escape and *Close* back to the button, Escape closes only the dialog, raw HTML (`<img src=x onerror=…>`, `<script>`) as text, `javascript:` / `data:` / `//host` links marked, a relative link to an element file → `/p/<pid>/e/<id>`, an anchor focuses its heading in place, images as marked text and no `img` in the DOM, ids prefixed `eldoc-` |
-| AC-7 lookup | characterization + red | `test/web/docs/docs.test.tsx` unchanged (the lookup moved); `document.test.tsx` › a body with no repository link reads only the element |
-| AC-1 G-03.1 … G-03.4 | red-first | `test/e2e/decision-log.spec.ts` (new, `prebuild: ['custom']`, copies with scenario-local commits): G-03.1 (headings in the dialog, the history line), G-03.2 (`docs/01_vision/00_index.md` link → the page, its summary rendered), G-03.3 (`dl-003-empty` added and its body emptied on the copy), G-03.4 (from Casey's *Waiting on others* side panel to `dl-001`'s page); AC-7's e2e: `expectNoImageRequest` around opening the dialog of a body with a remote and a relative image |
-| AC-2 G-08.1 … G-08.3 | red-first (G-08.1, G-08.2 with the approver role on the copy's DNA) · characterization (G-08.3, the v0.2 reserved line) | same spec; the commits' subjects; G-08.2's Today row "Rejected by Casey: Needs a cost estimate" |
+| AC-3 M-01.3, R-09.1, X-06.3 | characterization (reworded) | `memory-list.spec.ts` › M-01.3 (the page); `documentation.spec.ts` › R-09.1 (the page); `accessibility.spec.ts` › X-06.3 (Escape on the page, back to the Memory list row) plus `side-panel.spec.ts` › `X-06.3 — Escape on the side panel returns the focus to its opener` (Today's action) **— the side-panel part moved to task-077 (W2-7).** |
+| AC-5 | red-first | `side-panel.spec.ts` › `AC-5 — opening pushes, a reload keeps, closing removes panel= and keeps the other parameters`; `test/web/element/side-panel.test.tsx` (memory history): push / Back / replace-on-close-after-reload / other parameters kept / `panel=` ignored on `/e/` / a short value replaced in place / bell on the page (Q1) / focus to the opener or `#main` **— moved to task-077 (W2-7).** |
+| AC-6 | red-first | `test/web/element/side-panel.test.tsx` › hostile `panel=` values (D62-9's list): *not found*, the stub API saw no other path, location unchanged **(moved to task-077, W2-7)**; `test/web/element/address.test.ts` (new, pure): `elementPath` encoding and refusals, `panelSearch` (string only); `test/web/element/page.test.tsx` › a short id seeds the full id's query (one element request) and replaces the entry |
+| AC-7 summary | red-first | `test/web/element/summary.test.ts` (new): first paragraph after comments and headings, a reference link, emphasis and code, none → `undefined`; `test/web/element/document.test.tsx` (new): the summary rendered, *Open document*, Rendered by default, Source as written, "No content yet", Escape and *Close* back to the button, Escape closes only the dialog, raw HTML (`<img src=x onerror=…>`, `<script>`) as text, `javascript:` / `data:` / `//host` links marked, a relative link to an element file → `/p/<pid>/e/<id>`, an anchor focuses its heading in place, images as marked text and no `img` in the DOM, ids prefixed `eldoc-` **— moved to task-078 (W2-7).** |
+| AC-7 lookup | characterization + red | `test/web/docs/docs.test.tsx` unchanged (the lookup moved); `document.test.tsx` › a body with no repository link reads only the element **— moved to task-078 (W2-7).** |
+| AC-1 G-03.1 … G-03.4 | red-first | `test/e2e/decision-log.spec.ts` (new, `prebuild: ['custom']`, copies with scenario-local commits): G-03.1 (headings in the dialog, the history line), G-03.2 (`docs/01_vision/00_index.md` link → the page, its summary rendered), G-03.3 (`dl-003-empty` added and its body emptied on the copy), G-03.4 (from Casey's *Waiting on others* side panel to `dl-001`'s page); AC-7's e2e: `expectNoImageRequest` around opening the dialog of a body with a remote and a relative image **— moved to task-078 (W2-7).** |
+| AC-2 G-08.1 … G-08.3 | red-first (G-08.1, G-08.2 with the approver role on the copy's DNA) · characterization (G-08.3, the v0.2 reserved line) | same spec; the commits' subjects; G-08.2's Today row "Rejected by Casey: Needs a cost estimate" **— moved to task-078 (W2-7).** |
 | AC-8 | red-first | `test/e2e/accessibility.spec.ts` (`SCREENS` entries of D62-17, both themes, both builds); keyboard paths in the specs above (`expectFocusVisible` on Close, the candidates, *Open document*, the switch, the dialog's Close) |
-| AC-8 own specs on three engines | gate | `gates.yml` own-spec selection: `element-page`, `side-panel`, `decision-log`, `element-panel` |
+| AC-8 own specs on three engines | gate | `gates.yml` own-spec selection: `element-page`, `side-panel`, `decision-log`, `element-panel` (**`side-panel` moved to task-077, `decision-log` to task-078, W2-7**) |
 | AC-9 | docs, gates | spec-011 Process Note (D62-6, D62-7, D62-9, Q1); `ux-reference.md` 1.15 (§4.2 v0.3: the page's footer bar, the toasts above it, Q2's outcome; §5 *Feedback*); `CHANGELOG.md` *Unreleased* *Added*/*Changed*; `docs/user-guide.md` (the element page, the side panel, the document); `test/README.md` (version line, `support/element.ts`); `npm run docs:api`; `check_tasks.py v0.3`; local typecheck, lint, format:check, targeted vitest; heavy gates on `gates.yml` (run id, commit, result in these notes) |
 
 Every e2e spec that opens an element by its URL changes its locator (D62-18): `commit-provenance`,
@@ -485,3 +485,43 @@ two minors and two nits. The tip run `43082976937` on `675b5aa0`: success.
 
 Checks: `npm run typecheck`, `npm run lint` clean; `npx vitest run test/web` 64 files, 1 056 passed.
 Run `43085574218` on `176b6f2e` (the round's fixes): success — every job of the task scope green.
+
+### checker round 1 (2026-11-11)
+
+The pre-gate checker on `f0c2ba02`: NOT READY on two notes gaps (G-1, G-2), the code accepted; three
+notes (N-1 … N-3) done in the same round.
+
+| Finding | Change | Test |
+|---------|--------|------|
+| G-1 — red `a9744c80` failed `address.test.ts` only on the missing module, so D62-9's refusal never failed on behaviour | — | guard removal at `f0c2ba02`: the refusal line of `elementPath` (`web/src/element/queries.ts`) deleted by a scratch edit, restored with a file copy: `npx vitest run test/web/element/address.test.ts` → 6 failed, 8 passed (the three `elementPath` refusals and the three queries reading nothing) |
+| G-2 — no `e2e closure` table; the design's test plan still listed the moved rows | the moved rows of the class-and-test-plan table marked "moved to task-077" / "moved to task-078"; the closure table below | — |
+| N-1 — two e2e titles still named the panel | `memory-list.spec.ts` › M-01.3 and `documentation.spec.ts` › R-09.1 retitled to the features' titles | — |
+| N-2 — a server-answered id was not checked like an address's | `isPathSyntaxId` and `notFound` in `queries.ts`: the short-id rewrite answers *not found* and navigates nowhere for an answered `''`, `.` or `..`, and `isCandidate` refuses such a candidate | red first (`734d1768`): `page.test.tsx` › "does not rewrite the address to a server-answered id %j: not found, no read" (3 failed) and "shows a 409 with a candidate id %j as an error" (`.` and `..` failed; `''` already refused) |
+| N-3 — a double Escape or Close before the first Back resolved went back twice | a `closing` flag per page in `routes/element.tsx` (reset when the address changes) | red first (`734d1768`): `page.test.tsx` › "goes back once on a double Escape" (`history.back` called twice before) |
+
+Address security (review round 1, the reviewer's check, recorded here): the rewrite's target is
+the server's `element.id` placed as the `$eid` parameter of `/p/$pid/e/$eid` — TanStack Router's
+`encodeParam` keeps a `/` inside one encoded segment, so the rewrite stays inside `/p/<pid>/e/`; no
+address value becomes an API path except through `elementPath` (`encodeURIComponent`, the
+path-syntax refusal), and since N-2 neither does an answered id.
+
+e2e closure — every scenario this task closes, at the tip:
+
+| Scenario / AC | Spec file › test |
+|---------------|------------------|
+| G-01.1 | `test/e2e/element-panel.spec.ts` › `G-01.1 — Show an element with its state machine and history` |
+| G-01.2 | same › `G-01.2 — Show the rejection banner after a reject` |
+| G-01.3 | same › `G-01.3 — Flag a missing required field` |
+| G-01.4 | same › `G-01.4 — Open an element page from its URL` |
+| G-01.5 | `test/e2e/element-page.spec.ts` › `G-01.5 — Open an element by its short id and show its full id` |
+| G-01.6 | same › `G-01.6 — List the candidates of an ambiguous short id` |
+| G-01.7 | same › `G-01.7 — Open and decide an element whose id is longer than 100 characters` |
+| G-02.1 | `test/e2e/element-panel.spec.ts` › `G-02.1 — Show the directives that apply to the element's roles` |
+| G-02.2 | same › `G-02.2 — Open a directive from the panel` |
+| M-01.3 | `test/e2e/memory-list.spec.ts` › `M-01.3 — Open the element page from the list` |
+| R-09.1 | `test/e2e/documentation.spec.ts` › `R-09.1 — Open a linked Memory file as its element` |
+| X-06.3 | `test/e2e/accessibility.spec.ts` › `X-06.3 — Close the element panel with Escape` (the page from the Memory list row, back to the row) |
+| S-21.1 … S-21.3 | `test/e2e/notification-bell.spec.ts` › `S-21.1 — Count the items to unblock`, `S-21.2 — Show no count when nothing requires me`, `S-21.3 — Update the count after an action` |
+| AC-5 | `test/web/element/page.test.tsx` › "rewrites a short id to the full id, replacing the entry, with one element read (D62-4)", "lists the candidates of an ambiguous short id, …", "shows not found for an unknown id, the address as heading", "closes with Escape to the Memory list …", "closes with Close back to where it was opened inside the console" |
+| AC-6 | `test/web/element/address.test.ts` (`elementPath` encoding and the `''`, `.`, `..` refusals, the queries reading nothing); `page.test.tsx` › the short-id rewrite and N-2's cases |
+

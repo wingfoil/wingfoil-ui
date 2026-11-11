@@ -152,7 +152,7 @@ test.describe('US-M-01 — Memory list', () => {
     expect(await scanThemes(page)).toEqual([]);
   });
 
-  test('M-01.3 — Open the element panel from the list', async ({ page, fixtures, consoles }) => {
+  test('M-01.3 — Open the element page from the list', async ({ page, fixtures, consoles }) => {
     const c = await consoles.start({ projects: [await fixtures.get('kanban')] });
     await openList(page, c, '?type=task');
     const logout = row(page, 'task-003-logout');

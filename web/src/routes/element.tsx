@@ -13,10 +13,10 @@
  */
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { createRoute, useCanGoBack, useRouter, useRouterState } from '@tanstack/react-router';
-import { useCallback, useEffect, type ReactNode } from 'react';
+import { useCallback, useEffect, useRef, type ReactNode } from 'react';
 import { directivesQuery, projectHeaderQuery } from '../api/queries.js';
 import { ElementPage } from '../element/ElementPage.js';
-import { elementKeys, elementQuery, historyQuery } from '../element/queries.js';
+import { elementKeys, elementQuery, historyQuery, isPathSyntaxId, notFound } from '../element/queries.js';
 import { TITLES, usePageTitle, useProjectName } from '../shell/page-title.js';
 import { projectRoute } from './project.js';
 
@@ -26,6 +26,9 @@ declare module '@tanstack/history' {
     gateFocus?: boolean;
   }
 }
+
+/** The page's error for an answered id that is no address (checker N-2). */
+const NOT_FOUND = notFound();
 
 /** The listener of the last close not yet resolved (one at a time, review F-4). */
 let pendingClose: (() => void) | undefined;
@@ -51,12 +54,15 @@ function ElementRoutePage(): ReactNode {
   }, [router]);
   usePageTitle(TITLES.projectElement, { project: useProjectName(pid), element: eid });
   const queryClient = useQueryClient();
-  const element = useQuery(elementQuery(pid, eid));
-  const answered = element.data;
+  const read = useQuery(elementQuery(pid, eid));
+  const answered = read.data;
+  // An answered id the URL parser would read as path syntax is no address: not found (checker N-2).
+  const unusable = answered !== undefined && answered.element.id !== eid && isPathSyntaxId(answered.element.id);
+  const element = unusable ? { data: undefined, error: NOT_FOUND } : read;
   // A short id: seed the full id's query with this answer and replace the address (D62-4). The
   // target is the server's `element.id`, under this project's `/e/` (spec-011 §6).
   useEffect(() => {
-    if (answered === undefined || answered.element.id === eid) return;
+    if (answered === undefined || answered.element.id === eid || isPathSyntaxId(answered.element.id)) return;
     const full = answered.element.id;
     queryClient.setQueryData(elementKeys.detail(pid, full), answered);
     const { state, hash } = router.state.location;
@@ -65,7 +71,14 @@ function ElementRoutePage(): ReactNode {
   // Back to where the page was opened from inside the application, else to the project's Memory
   // list (spec-011 §2); then the focus goes to the destination's main region, unless the
   // destination placed it itself (e.g. the Memory list on the row of this element).
+  // One Back per page: a second Escape or Close before the first resolves does nothing (checker N-3).
+  const closing = useRef(false);
+  useEffect(() => {
+    closing.current = false;
+  }, [pid, eid]);
   const close = useCallback(() => {
+    if (closing.current) return;
+    closing.current = true;
     // One listener at a time, removed on the first resolve after the close (review F-4). It cannot go
     // with the page's unmount: it has to run once the destination is shown, after the page left.
     pendingClose?.();

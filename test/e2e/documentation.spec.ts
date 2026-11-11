@@ -117,7 +117,7 @@ test.describe('US-R-08 — documentation index and documents', () => {
 });
 
 test.describe('US-R-09 — safe links', () => {
-  test('R-09.1 — Open a linked Memory file in the element panel', async ({ page, fixtures, consoles }) => {
+  test('R-09.1 — Open a linked Memory file as its element', async ({ page, fixtures, consoles }) => {
     const c = await withLinks(fixtures, consoles);
     await openConsole(page, c, { path: docPath(c, LINKS_DOC) });
     const link = article(page, LINKS_DOC).getByRole('link', { name: 'Decision' });

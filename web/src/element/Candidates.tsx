@@ -9,6 +9,7 @@ import { Link } from '@tanstack/react-router';
 import type { ReactNode } from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { ApiError } from '../api/client.js';
+import { isPathSyntaxId } from './queries.js';
 
 function isText(value: unknown): value is string {
   return typeof value === 'string';
@@ -17,7 +18,10 @@ function isText(value: unknown): value is string {
 function isCandidate(value: unknown): value is AmbiguousCandidate {
   if (typeof value !== 'object' || value === null) return false;
   const c = value as Record<string, unknown>;
-  return [c['id'], c['shortId'], c['title'], c['type'], c['status']].every(isText) && c['id'] !== '';
+  // A candidate's id becomes a link to its page: never one the URL parser reads as path syntax.
+  return (
+    [c['id'], c['shortId'], c['title'], c['type'], c['status']].every(isText) && !isPathSyntaxId(c['id'] as string)
+  );
 }
 
 /** The detail of a 409 `ambiguous-id` of the contract's shape, else `undefined` (shown as any error). */

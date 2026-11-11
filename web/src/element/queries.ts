@@ -14,6 +14,16 @@ export const elementKeys = {
   history: (pid: string, eid: string) => queryKeys.project(pid, 'element', eid, 'history'),
 };
 
+/** True for an id the URL parser reads as path syntax (`''`, `.`, `..`): never an address (D62-9). */
+export function isPathSyntaxId(id: string): boolean {
+  return id === '' || id === '.' || id === '..';
+}
+
+/** The local *not found* of an id that is no address. */
+export function notFound(): ApiError {
+  return new ApiError(404, 'not-found', 'Not found', undefined);
+}
+
 /**
  * The API path of element `eid` of project `pid`, each id one encoded segment. An id that the URL
  * parser reads as path syntax — `''`, `.`, `..`: `encodeURIComponent` keeps dots, and the parser
@@ -21,7 +31,7 @@ export const elementKeys = {
  * refused as an unknown id, before any request (spec-011 §6). WingFoil makes no such id.
  */
 export function elementPath(pid: string, eid: string): string {
-  if (eid === '' || eid === '.' || eid === '..') throw new ApiError(404, 'not-found', 'Not found', undefined);
+  if (isPathSyntaxId(eid)) throw notFound();
   return `/api/p/${encodeURIComponent(pid)}/elements/${encodeURIComponent(eid)}`;
 }
 
