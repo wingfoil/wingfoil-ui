@@ -331,3 +331,37 @@ exactly, with a dated Process Note on adr-003; Q3 (a) the explicit 4xx code list
   `gates.yml` task scope on `e7acafff`: run `43072661633`, all green — checks, coverage (all files
   96.68 % statements, 91.51 % branches, 98.39 % lines), contract, e2e-chromium (2 shards), the own
   spec `session-recovery.spec.ts` on Firefox and WebKit (2 passed each), smoke, publish-smoke.
+
+### review round 1 (2026-11-11)
+
+Security review on `c327b213` (the coordinator's merge of the phase branch): **PASS**, no
+blocker or major; that tip's run `43077599901` green on every job (the previous tip `8a890093`:
+run `43074720649`, green). Findings fixed, red first where a test is added:
+
+- **F-1 (minor)** — the `.`, `..` and backslash rules of `isNameTooLong` were untested (only `//`
+  was). *a non-canonical path with a name too long is never judged missing* (`app.test.ts`) sends
+  `/assets/./`, `/assets/../`, `/assets/%2e%2e/`, `%00` and `%5c`, each with a 256-byte name,
+  through a listening socket (light-my-request resolves dot segments before routing): 403
+  `forbidden`. Removing the `.`, `..`, empty-segment or backslash rule fails it (404). The NUL
+  rule was unobservable — `stat` refuses a NUL with `ERR_INVALID_ARG_VALUE`, never `ENAMETOOLONG`
+  — so it was dropped, the reason in the comment; `%00` stays in the test.
+- **F-3 (minor)** — `GET /` + 256 `x` printed `MaxListenersExceededWarning` (11 `close` listeners
+  on the response) once per request. Cause: the static plugin's 403 was answered again from the
+  async error handler (`callNotFound` → `sendFile`), on a response that still held the first
+  stream's listeners. Red: *a name too long adds no listener warning* (`process.on('warning')`,
+  three rounds of both paths) failed with three warnings (`7614dc5b`). Fix: the check runs in a
+  `preHandler` of the static route, before the plugin, so it never answers 403 for such a path;
+  the error handler is synchronous again and has no static branch. The `stat` runs only for a
+  path with a segment of 128 bytes or more, or 1 024 bytes in all (below every name limit in use:
+  ext4 255, eCryptfs 143; `PATH_MAX` 4 096), so an ordinary request makes no system call.
+- **F-2 (nit)** — with the error-handler branch gone, the method condition went too (the static
+  route takes `GET` and `HEAD` only); the route condition is tested: *only the static route is
+  judged* (an API wildcard route with a path over `PATH_MAX` answers 200), and removing it also
+  breaks the not-found handler's own pass (three tests fail).
+- **F-4 (nit)** — `payload-too-large` and `unsupported-media-type` (body parsing, before any
+  handler) added to `GitRefusalCode`, `WriteRefusalCode` and the detail-less enums of
+  `git.refusal.schema.json` and `write.refusal.schema.json`; red first in
+  `test/contracts/api-git-schema.test.ts` and `api-writes-schema.test.ts` (4 failed).
+- **F-5 (nit)** — the runs of the tips are cited above and below.
+- Out of scope, unchanged: `stripFragment`'s `pathname + search` (the coordinator asks the
+  approver).
