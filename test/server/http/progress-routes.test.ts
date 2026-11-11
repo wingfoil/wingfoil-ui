@@ -299,8 +299,9 @@ describe('GET /api/p/:pid/elements — the missing-reference flag (spec-012 §5)
     expect(res.body.missingReferences).toEqual({ shown: true, unreadable: [], capped: [] });
   }, 300_000);
 
-  it('AC-3 without requires: shown false, no flag, and no index (no ls-tree, no element file read)', async () => {
-    for (const variant of ['plain', 'unknown'] as const) {
+  it.each(['plain', 'unknown'] as const)(
+    'AC-3 without requires (%s): shown false, no flag, and no index (no ls-tree, no element file read)',
+    async (variant) => {
       const c = await start(variant);
       const res = await c.get(`/api/p/${c.pid}/elements`);
       expectSchema('elements.schema.json', res.body);
@@ -308,8 +309,9 @@ describe('GET /api/p/:pid/elements — the missing-reference flag (spec-012 §5)
       expect(res.body.elements.some((e: any) => e.missingCategories)).toBe(false);
       expect(c.runner.spawned.filter((r) => r.args.includes('ls-tree'))).toHaveLength(0);
       expect(c.elementReads()).toEqual([]);
-    }
-  }, 300_000);
+    },
+    300_000,
+  );
 
   it('AC-3 archived rows carry no flag; the element read carries none', async () => {
     const c = await start('preset');
@@ -332,20 +334,22 @@ describe('GET /api/p/:pid/elements — the missing-reference flag (spec-012 §5)
 });
 
 describe('/config ui.progress.scope.current (D59-2, Q6)', () => {
-  it('T-12.1, T-12.4, T-12.5: the same derived element as /progress', async () => {
-    for (const [variant, id] of [
-      ['preset', 'minor-v0.1'],
-      ['second', SECOND_RELEASE],
-      ['draft', null],
-    ] as const) {
+  it.each([
+    ['T-12.1', 'preset', 'minor-v0.1'],
+    ['T-12.4', 'second', SECOND_RELEASE],
+    ['T-12.5', 'draft', null],
+  ] as const)(
+    '%s: the same derived element as /progress (%s)',
+    async (_id, variant, id) => {
       const c = await start(variant);
       const config = await c.get(`/api/p/${c.pid}/config`);
       expectSchema('config.schema.json', config.body);
       const body = await progress(c);
       expect(config.body.ui.progress.scope.current?.id ?? null).toBe(id);
       expect(config.body.ui.progress.scope.current).toEqual(body.scope.current);
-    }
-  }, 600_000);
+    },
+    300_000,
+  );
 });
 
 describe('spec-012 §10 — errors (AC-4)', () => {
@@ -357,11 +361,12 @@ describe('spec-012 §10 — errors (AC-4)', () => {
     expect(bad.body.error.code).toBe('invalid-request');
   }, 300_000);
 
-  it('memory search fails → the CLI envelope, no partial figures (as /elements answers it)', async () => {
-    for (const failure of [
-      { exitCode: 1, stderr: '{"error":"E_BOOM: boom"}', code: 'cli-refused' },
-      { exitCode: 2, stderr: 'error: boom', code: 'internal' },
-    ]) {
+  it.each([
+    { exitCode: 1, stderr: '{"error":"E_BOOM: boom"}', code: 'cli-refused' },
+    { exitCode: 2, stderr: 'error: boom', code: 'internal' },
+  ])(
+    'memory search fails (exit $exitCode) → the CLI envelope, no partial figures (as /elements answers it)',
+    async ({ code, ...failure }) => {
       const c = await start('preset', {
         prepare: (fx) =>
           installCliStub(fx, { failures: [{ command: ['memory', 'search'], ...failure }] }).then(() => {}),
@@ -370,10 +375,11 @@ describe('spec-012 §10 — errors (AC-4)', () => {
       const list = await c.get(`/api/p/${c.pid}/elements`);
       expect(res.status).toBe(list.status);
       expect(res.body).toEqual(list.body);
-      expect(res.body.error.code).toBe(failure.code);
+      expect(res.body.error.code).toBe(code);
       expect(res.body).not.toHaveProperty('figures');
-    }
-  }, 300_000);
+    },
+    300_000,
+  );
 
   it('memory.yaml unreadable → 502 read-error', async () => {
     const c = await start('preset', {
@@ -384,11 +390,14 @@ describe('spec-012 §10 — errors (AC-4)', () => {
     expect(res.body.error).toMatchObject({ code: 'read-error', detail: { file: '.wingfoil/memory.yaml' } });
   }, 300_000);
 
-  it('ui.yaml missing or ignored → 200 with ui.status and the inferred values', async () => {
+  it('ui.yaml ignored → 200 with ui.status and the inferred values', async () => {
     const ignored = await progress(await start('ignored'));
     expect(ignored.ui).toMatchObject({ source: 'ignored', warning: { code: 'ui-config-ignored' } });
     expect(ignored.mode).toBe('flow');
     expect(ignored.scope).toEqual({ type: null, current: null, basis: null });
+  }, 300_000);
+
+  it('ui.yaml missing → 200 with ui.status and the inferred values', async () => {
     const none = await progress(await start('plain'));
     expect(none.ui).toEqual({ source: 'none' });
     expect(none.figures.iterated).toMatchObject({ state: 'shown', type: 'task', total: 4 });
