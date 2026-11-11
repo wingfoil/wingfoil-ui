@@ -22,6 +22,9 @@ export const UI_CATEGORIES = [
 /** A UI category. */
 export type UiCategory = (typeof UI_CATEGORIES)[number];
 
+/** The categories the completion figures count (spec-005 §4, spec-012 §3; task-059 D59-5). */
+export const COMPLETION_CATEGORIES: readonly UiCategory[] = Object.freeze(['requirement', 'feature']);
+
 /** The category inferred from a type's name (spec-005 §3); any other type has none. */
 export const INFERRED_CATEGORIES: Readonly<Record<string, UiCategory>> = Object.freeze({
   task: 'work',

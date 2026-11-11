@@ -260,7 +260,8 @@ async function indexOf(elements: readonly IndexedElement[], step: () => Promise<
   }
   const carrying = (value: string): readonly IndexedElement[] => carriers.get(value) ?? [];
   const inScope = (c: IndexedElement): readonly IndexedElement[] => {
-    const found = new Set([...carrying(c.id), ...(c.version !== undefined ? carrying(c.version) : [])]);
+    // An empty `version` is no version (task-059 review round 1 F-2): empty template fields carry it.
+    const found = new Set([...carrying(c.id), ...(c.version ? carrying(c.version) : [])]);
     found.delete(c);
     return [...found].sort((a, b) => order.get(a.id)! - order.get(b.id)!);
   };

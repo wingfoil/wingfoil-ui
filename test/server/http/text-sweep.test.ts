@@ -205,6 +205,23 @@ const RULES: readonly Rule[] = [
     cls: 'b',
     note: 'ECHOED_UI_FIELDS (task-068)',
   },
+  // `/progress` (task-059 D59-10) and the missing-reference flag of `/elements`.
+  { pattern: /^progress \.ui\.warning\.failure$/, cls: 'a' },
+  { pattern: /^progress \.scope\.current\.title$/, cls: 'b' },
+  { pattern: /^progress \.scope\.current\.(?:id|shortId|type|status)$/, cls: 'c' },
+  {
+    pattern: /^progress \.(?:scope\.type|figures\.(?:iterated|openDefects)\.type)$/,
+    cls: 'b',
+    note: 'type names echoed from ui.yaml, escaped as /config ui echoes them',
+  },
+  {
+    pattern: /^progress \.figures\.completion\.references\[\]\.id$/,
+    cls: 'b',
+    note: 'a pattern reference escaped (§9); an element reference the target id of memory search',
+  },
+  { pattern: /^progress \.(?:figures\.\w+\.(?:ids|doneIds)\[\]|unreadable\[\]|capped\[\])$/, cls: 'c' },
+  { pattern: /^progress \.figures\.(?:phase|phaseCompletion)\.reason\..+$/, cls: 'e' },
+  { pattern: /^elements \.missingReferences\.(?:unreadable|capped)\[\]$/, cls: 'c' },
 ];
 
 /** The class of `key` (`<schema> <path>`), or `undefined`. */
@@ -418,6 +435,7 @@ describe('the sweep of AC-4 (one hostile fixture, every GET route of the project
       ['docs', '/docs'],
       ['today', '/today'],
       ['memory-events', '/events/memory?limit=100'],
+      ['progress', '/progress'],
     ];
     const directives = await get('/directives');
     if (directives.entries[0]) routes.push(['directive', `/directives/${directives.entries[0].frontmatter.id}`]);

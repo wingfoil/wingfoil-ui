@@ -417,3 +417,8 @@ remaining non-methodology hit needs a justified inline disable.
   round 1 F-5). On WingFoil 0.3.1 a project in a sub-folder of its
   repository is refused by `dna show` (`E_NOT_AT_GIT_ROOT`), so row 5 answers `not-in-team` there
   (not checked on 0.2.2).
+- 2026-11-11 — clarified in task-059 review round 2 (F-8; plan `backlog-item-rel-v0.3-plan`), as
+  spec-012's Process Note of the same day (review round 1, F-2): in §4 *In scope* and §4a's
+  `when-references-done` count, a `version` field that is the empty string is no version — empty
+  template fields carry `""`, so it would count every element holding one; the element is then
+  referenced by its id only. No rule changes otherwise.

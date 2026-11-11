@@ -149,6 +149,30 @@ describe('buildReferenceIndex — the rules (spec-012 §1)', () => {
     expect(index.referencingNotDone('nothing-listed')).toBe(0);
   });
 
+  it('an empty version is no version: it scopes only by id, and counts only by id (task-059 review round 1 F-2, round 2 F-9)', async () => {
+    const matches = [
+      match('release-001-r', 'release', 'pending'),
+      match('task-001-a', 'task', 'draft'),
+      match('task-002-b', 'task', 'draft'),
+      match('task-003-c', 'task', 'approved'),
+    ];
+    // Empty template fields carry "": task-002-b and task-003-c hold it, task-001-a names the release.
+    const index = await build(
+      matches,
+      tableSource({
+        'release-001-r': { values: [''], version: '' },
+        'task-001-a': { values: ['release-001-r', ''] },
+        'task-002-b': { values: [''] },
+        'task-003-c': { values: [''] },
+      }),
+    );
+    const r = index.get('release-001-r')!;
+    expect(r.version).toBe('');
+    expect(index.inScope(r).map((e) => e.id)).toEqual(['task-001-a']);
+    // The `when-references-done` count of a gate with an empty version: task-001-a only.
+    expect(index.referencingNotDone('release-001-r')).toBe(1);
+  });
+
   it('an unreadable file: its kind, no values, in no scope, listed; never a failed index', async () => {
     const matches = [
       match('release-001-r', 'release', 'pending'),
